@@ -29,7 +29,7 @@ Notification.init(
       defaultValue: 'system',
       validate: {
         isIn: {
-          args: [['orientation', 'system', 'order', 'workout', 'client', 'admin', 'session', 'achievement', 'reward', 'measurement']],
+          args: [['orientation', 'system', 'order', 'workout', 'client', 'admin', 'session', 'achievement', 'reward', 'measurement', 'nutrition']],
           msg: 'Invalid notification type'
         }
       }

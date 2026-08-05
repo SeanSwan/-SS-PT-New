@@ -81,3 +81,22 @@ describe('CheckoutView — the buyer always has a way out', () => {
     expect(sections).toMatch(/returnUrl=\/checkout/);
   });
 });
+
+describe('no surface on the money path renders a raw transport string', () => {
+  const storeV3 = read('../../pages/shop/StoreV3.tsx');
+  const storeV2 = read('../../pages/shop/StoreV2.tsx');
+
+  it('the store does not render the raw catalog-fetch error to cold traffic', () => {
+    // This is the first screen a YouTube visitor sees; a hiccup must not print
+    // "Network Error" / "Request failed with status code 500" onto it.
+    for (const src of [storeV3, storeV2]) {
+      expect(src).not.toMatch(/setPackagesError\(error\.message/);
+      expect(src).toMatch(/setPackagesError\('Failed to load packages'\)/);
+    }
+  });
+
+  it('checkout shows deliberate copy but never a runtime fault message', () => {
+    expect(checkoutView).toMatch(/error\.name === 'Error'/);
+    expect(checkoutView).not.toMatch(/errorMessage = error\.message \|\|/);
+  });
+});

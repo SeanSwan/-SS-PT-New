@@ -359,7 +359,10 @@ const sanitizeUser = (user) => {
     photo: user.photo,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
-    isOnboardingComplete: user.isOnboardingComplete === true
+    isOnboardingComplete: user.isOnboardingComplete === true,
+    emailNotifications: user.emailNotifications !== false,
+    smsNotifications: user.smsNotifications !== false,
+    notificationPreferences: user.notificationPreferences ?? null
   };
 
   // Only include additional fields if they exist
@@ -367,6 +370,11 @@ const sanitizeUser = (user) => {
   if (user.trainingExperience) sanitized.trainingExperience = user.trainingExperience;
   if (user.specialties) sanitized.specialties = user.specialties;
   if (user.lastActive) sanitized.lastActive = user.lastActive;
+  // Slice 2 (A1/A4): gender drives the client's own body-map figure
+  // auto-select (was never serialized — the frontend auto-pick was dead
+  // code); bodyMapHeadPhoto is the dedicated body-map head photo.
+  if (user.gender) sanitized.gender = user.gender;
+  if (user.bodyMapHeadPhoto) sanitized.bodyMapHeadPhoto = user.bodyMapHeadPhoto;
   // Include session count so frontend can route gallery funnel correctly
   if (user.availableSessions !== undefined) sanitized.availableSessions = user.availableSessions;
   // Include client source so frontend can adapt UI (move_fitness vs swanstudios)

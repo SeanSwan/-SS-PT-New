@@ -14,6 +14,9 @@
 import logger from '../utils/logger.mjs';
 import { getTier, getTierDisplay } from '../utils/levelingAlgorithm.mjs';
 import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
+import { wrapClientReported } from './ai/clientTextSanitizer.mjs';
+import { decrypt } from './encryption/encryptionService.mjs';
+import { getPainTrendFacts, formatTrendFactsForPrompt } from './painTrendService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
 import { buildIntakeCoverageBlock } from './ai/intakeCoverage.mjs';
 import { NUTRITION_CARE_COPY_RULES } from './nutrition/nutritionCareCopy.mjs';
@@ -1318,10 +1321,13 @@ export async function enrichWithUserData(userId, role, context, sequelize, foodC
          WHERE "userId" = :userId LIMIT 1`, { userId }),
       // 12. Macro logs
       includeNutrition ? safeQuery(
+        // S2.3 (2026-08-04): widened 2→14 days so the coach has trend
+        // awareness, matching the Context Engine's horizon. Aggregate macros
+        // only — descriptions stay excluded (Rule 8).
         `SELECT date, "mealType", calories, protein, carbs, fat, fiber
          FROM daily_macro_logs
-         WHERE "userId" = :userId AND date >= CURRENT_DATE - INTERVAL '2 days'
-         ORDER BY date DESC, "createdAt" DESC LIMIT 20`, { userId }) : Promise.resolve([]),
+         WHERE "userId" = :userId AND date >= CURRENT_DATE - INTERVAL '14 days'
+         ORDER BY date DESC, "createdAt" DESC LIMIT 60`, { userId }) : Promise.resolve([]),
       // 13. Movement profile
       safeQuery(
         `SELECT "mobilityScores", "strengthBalance", "commonCompensations",
@@ -1777,7 +1783,15 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
         byDate[d].t.cal += (m.calories || 0); byDate[d].t.pro += (m.protein || 0);
         byDate[d].t.carb += (m.carbs || 0); byDate[d].t.fat += (m.fat || 0);
       }
-      dataParts.push(`\n--- NUTRITION ---\n${Object.entries(byDate).map(([d, x]) => `${d}: ${x.meals.join('; ')} TOTAL: ${x.t.cal}cal ${x.t.pro}P ${x.t.carb}C ${x.t.fat}F`).join('\n')}`);
+      // S2.3: 14-day window — meal-level detail for the 2 most recent days,
+      // daily totals only for the rest (trend without prompt bloat).
+      const dates = Object.entries(byDate);
+      const rendered = dates.map(([d, x], i) => (
+        i < 2
+          ? `${d}: ${x.meals.join('; ')} TOTAL: ${x.t.cal}cal ${x.t.pro}P ${x.t.carb}C ${x.t.fat}F`
+          : `${d}: ${x.meals.length} meals TOTAL: ${x.t.cal}cal ${x.t.pro}P ${x.t.carb}C ${x.t.fat}F`
+      ));
+      dataParts.push(`\n--- NUTRITION (14d) ---\n${rendered.join('\n')}`);
     }
 
     // ── RESTAURANT FOOD CONTEXT (injected by Ask Coach button) ──
@@ -1839,8 +1853,33 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
     }
 
     // ── 16. PAIN ──
+    // Slice 0: description is raw SQL (bypasses Sequelize decrypt hooks) →
+    // decrypt() first (plaintext passes through untouched), then identity
+    // strip, then injection-sanitize + <client_reported> wrap (F3).
+    // Slice 4 (C4): recency rendered — an 8/10 logged this morning and one
+    // logged 8 months ago used to read identically to the model.
     if (painEntries.length > 0) {
-      dataParts.push(`\n--- PAIN/INJURY ---\n${painEntries.map(p => `${p.region}${p.side ? `(${p.side})` : ''}: ${p.pain_level}/10 ${p.pain_type || ''}${p.description ? ` — ${stripIdentityFromNotes(p.description, userId, clientIdentity)}` : ''}`).join('\n')}`);
+      dataParts.push(`\n--- PAIN/INJURY ---\n${painEntries.map(p => {
+        const description = p.description
+          ? wrapClientReported(stripIdentityFromNotes(decrypt(p.description, 'health:pain_entry'), userId, clientIdentity))
+          : '';
+        const createdMs = p.created_at ? new Date(p.created_at).getTime() : NaN;
+        const recency = Number.isFinite(createdMs)
+          ? ` (logged ${Math.max(0, Math.floor((Date.now() - createdMs) / 86400000))}d ago)`
+          : '';
+        return `${p.region}${p.side ? `(${p.side})` : ''}: ${p.pain_level}/10 ${p.pain_type || ''}${recency}${description ? ` — ${description}` : ''}`;
+      }).join('\n')}`);
+
+      // Slice 4 (C5): computed per-episode deltas — the prompt doctrine asks
+      // the model to "flag worsening patterns"; these are the only truthful
+      // basis for that. Degrades silently when trend data is unavailable.
+      try {
+        const { facts } = await getPainTrendFacts(userId);
+        const trendLines = formatTrendFactsForPrompt(facts);
+        if (trendLines.length > 0) {
+          dataParts.push(`\n--- PAIN TREND (computed per-episode; sample sizes stated) ---\n${trendLines.join('\n')}`);
+        }
+      } catch { /* trend facts are enrichment, never a failure */ }
     }
 
     // ── 17. SESSIONS (notes PII-stripped) ──

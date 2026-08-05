@@ -680,7 +680,10 @@ const StoreV3: React.FC = () => {
     } catch (error: any) {
       logger.warn('Failed to fetch live storefront packages:', error);
       setPackages([]);
-      setPackagesError(error.message || 'Failed to load packages');
+      // Never render the raw throw: axios yields "Network Error" / "Request
+      // failed with status code 500", and this surface is the first thing cold
+      // traffic sees. The detail belongs in the log, not on the storefront.
+      setPackagesError('Failed to load packages');
     } finally {
       setIsLoadingPackages(false);
     }

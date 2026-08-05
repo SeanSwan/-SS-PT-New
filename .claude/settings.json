@@ -341,6 +341,11 @@
             "type": "command",
             "command": "node scripts/hooks/backup-after-work.mjs",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/lesson-recall-gate.mjs",
+            "timeout": 30
           }
         ]
       }

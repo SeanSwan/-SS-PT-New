@@ -5,6 +5,7 @@
   "main": "server.mjs",
   "type": "module",
   "scripts": {
+    "audit:all": "node scripts/audit-all.mjs",
     "audit:idor": "node scripts/audit-idor-surface.mjs",
     "backup:db": "node scripts/backup-db.mjs",
     "backup:db:verify": "node scripts/backup-db.mjs --verify-only",

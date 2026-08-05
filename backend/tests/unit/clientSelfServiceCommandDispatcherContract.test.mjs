@@ -204,10 +204,14 @@ describe('client self-service command dispatchers', () => {
     }, ctx);
     const avoid = await dispatch('exercises_to_avoid', { limit: 4 }, ctx);
 
+    // Slice 0 (C3) + dry-loop: natural phrasing normalizes to the canonical
+    // region and the write flows through the validated painWriteService
+    // (which also pins side: 'center' for the narrow command schema).
     expect(ClientPainEntry.create).toHaveBeenCalledWith({
       userId: 17,
       createdById: 17,
-      bodyRegion: 'lower back',
+      bodyRegion: 'lower_back',
+      side: 'center',
       painLevel: 7,
       description: 'Private pain wording',
       isActive: true,
@@ -220,7 +224,7 @@ describe('client self-service command dispatchers', () => {
     expect(tracked).toEqual({
       entryId: 19,
       userId: 17,
-      bodyRegion: 'lower back',
+      bodyRegion: 'lower_back',
       painLevel: 7,
       isActive: true,
     });

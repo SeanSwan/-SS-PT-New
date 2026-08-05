@@ -94,7 +94,8 @@ describe('PainChartInsightPanel', () => {
       />,
     );
 
-    expect(screen.getByText('Severity Trend')).toBeTruthy();
+    // Slice 4 (B11): title now names the focused region (e.g. 'Severity Trend — Left Shoulder').
+    expect(screen.getByText(/Severity Trend/)).toBeTruthy();
     expect(screen.getByRole('img', { name: /Worsening: 3\/10 to 8\/10/ })).toBeTruthy();
     expect(screen.getByText('Follow-up')).toBeTruthy();
     expect(screen.getByText(/Re-check Left Knee/i)).toBeTruthy();

@@ -60,7 +60,14 @@ describe('Logger redaction — env value scrubbing (Codex CR-IMPL-2)', () => {
       messages: [`contains ${plaudWebhookSecret}`, 'normal'],
     };
     const out = redactValue(obj);
-    expect(out.meta.config.secret).toBe('<REDACTED>');
+    // Two mechanisms can now redact this field and either satisfies the security property: the
+    // env-value scrubber matches the VALUE, and key-name redaction matches the KEY (`secret` is on
+    // the credential allowlist) and wins by short-circuiting first. Asserting the exact placeholder
+    // pinned which mechanism ran — an implementation detail — so assert the property instead:
+    // the secret is gone and the field is redacted. The array case below is a non-credential key,
+    // so it still proves the env-value path itself works.
+    expect(out.meta.config.secret).not.toContain('plaud_test_secret_value');
+    expect(String(out.meta.config.secret)).toContain('REDACTED');
     expect(out.messages[0]).not.toContain('plaud_test_secret_value');
     expect(out.messages[0]).toContain('<REDACTED>');
     expect(out.messages[1]).toBe('normal');

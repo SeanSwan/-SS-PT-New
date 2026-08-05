@@ -82,6 +82,7 @@ import painEntryRoutes from '../routes/painEntryRoutes.mjs';
 import formAnalysisRoutes from '../routes/formAnalysisRoutes.mjs';
 import customExerciseRoutes from '../routes/customExerciseRoutes.mjs';
 import equipmentRoutes from '../routes/equipmentRoutes.mjs';
+import equipmentInsightsRoutes from '../routes/equipmentInsightsRoutes.mjs';
 import variationRoutes from '../routes/variationRoutes.mjs';
 import clientIntelligenceRoutes from '../routes/clientIntelligenceRoutes.mjs';
 import workoutBuilderRoutes from '../routes/workoutBuilderRoutes.mjs';
@@ -425,6 +426,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/form-analysis', formAnalysisRoutes);
   app.use('/api/custom-exercises', customExerciseRoutes);
   app.use('/api/equipment-profiles', equipmentRoutes);
+  app.use('/api/equipment-insights', equipmentInsightsRoutes);
   app.use('/api/variation', variationRoutes);
   app.use('/api/client-intelligence', clientIntelligenceRoutes);
   app.use('/api/workout-builder', workoutBuilderRoutes);
@@ -632,7 +634,7 @@ export const setupRoutes = async (app) => {
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: objectKey,
-          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentType: Object.prototype.hasOwnProperty.call(mimeMap, ext) ? mimeMap[ext] : 'image/jpeg', // hasOwnProperty: a key like 'constructor' would otherwise put a function in the header
           ResponseContentDisposition: 'inline',
         });
 
@@ -677,7 +679,7 @@ export const setupRoutes = async (app) => {
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: objectKey,
-          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentType: Object.prototype.hasOwnProperty.call(mimeMap, ext) ? mimeMap[ext] : 'image/jpeg', // hasOwnProperty: a key like 'constructor' would otherwise put a function in the header
           ResponseContentDisposition: 'inline',
         });
 
@@ -864,7 +866,7 @@ export const setupRoutes = async (app) => {
         const command = new GetObjectCommand({
           Bucket: process.env.R2_BUCKET_NAME,
           Key: objectKey,
-          ResponseContentType: mimeMap[ext] || 'image/jpeg',
+          ResponseContentType: Object.prototype.hasOwnProperty.call(mimeMap, ext) ? mimeMap[ext] : 'image/jpeg', // hasOwnProperty: a key like 'constructor' would otherwise put a function in the header
           ResponseContentDisposition: 'inline',
         });
 

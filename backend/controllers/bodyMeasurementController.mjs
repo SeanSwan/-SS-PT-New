@@ -5,6 +5,7 @@ import { detectMilestones } from '../services/measurementMilestoneService.mjs';
 import { syncMeasurementDates } from '../services/measurementScheduleService.mjs';
 import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { signPhotoUrls, stripPhotoSignatures } from '../services/photoUrlSigner.mjs';
+import { validateMeasurementPhotoUrls } from '../utils/photoRecordValidation.mjs';
 import { Op } from 'sequelize';
 
 /**
@@ -109,6 +110,15 @@ export async function createMeasurement(req, res) {
     if (!allowed) {
       await transaction.rollback();
       return res.status(404).json({ success: false, message: 'Client not found' });
+    }
+
+    // SWA-129 (Kimi call 5): photoUrls[] must reference owned measurement photos
+    // the uploader actually uploaded — never a cross-user path (IDOR over minors'
+    // photos, auto-signed by photoUrlSigner) or an external/js: URL.
+    const photoCheck = validateMeasurementPhotoUrls(photoUrls, { uploaderId: req.user.id });
+    if (!photoCheck.ok) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: photoCheck.message });
     }
 
     // Create measurement
@@ -379,6 +389,16 @@ export async function updateMeasurement(req, res) {
     }
     // Bare paths only in storage — a persisted signed URL would expire.
     if (Array.isArray(sanitizedUpdate.photoUrls)) {
+      // SWA-129 (Kimi call 5): reject cross-user / external photo paths; allow
+      // re-submitting photos already stored on this measurement (multi-editor).
+      const photoCheck = validateMeasurementPhotoUrls(sanitizedUpdate.photoUrls, {
+        uploaderId: req.user.id,
+        existing: measurement.photoUrls || [],
+      });
+      if (!photoCheck.ok) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: photoCheck.message });
+      }
       sanitizedUpdate.photoUrls = stripPhotoSignatures(sanitizedUpdate.photoUrls);
     }
     await measurement.update(sanitizedUpdate, { transaction });
@@ -539,6 +559,16 @@ export async function uploadProgressPhotos(req, res) {
     const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, measurement.userId);
     if (!allowed) {
       return res.status(404).json({ success: false, message: 'Measurement not found' });
+    }
+
+    // SWA-129 (Kimi call 5): the new batch must reference owned measurement
+    // photos — never a cross-user path (IDOR, auto-signed on read) or external URL.
+    const photoCheck = validateMeasurementPhotoUrls(photoUrls, {
+      uploaderId: req.user.id,
+      existing: measurement.photoUrls || [],
+    });
+    if (!photoCheck.ok) {
+      return res.status(400).json({ success: false, message: photoCheck.message });
     }
 
     // Merge new photos with existing — bare paths only in storage.

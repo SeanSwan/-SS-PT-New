@@ -7,6 +7,7 @@ export interface ActiveClient {
   lastName: string;
   email: string;
   photo?: string;
+  bodyMapHeadPhoto?: string;
   gender?: string;
   role?: string;
   availableSessions?: number;
@@ -40,6 +41,7 @@ export function normalizeClientListResponse(data: any, role: string): ActiveClie
       lastName: c.lastName ?? '',
       email: c.email ?? '',
       photo: c.profileImageUrl ?? c.photo,
+      bodyMapHeadPhoto: c.bodyMapHeadPhoto ?? undefined,
       ...optionalGender(c.gender),
       role: c.role,
       availableSessions: typeof c.availableSessions === 'number' ? c.availableSessions : undefined,
@@ -65,6 +67,7 @@ export function normalizeClientListResponse(data: any, role: string): ActiveClie
       lastName: c.lastName ?? '',
       email: c.email ?? '',
       photo: c.profileImageUrl ?? c.photo,
+      bodyMapHeadPhoto: c.bodyMapHeadPhoto ?? undefined,
       ...optionalGender(c.gender),
       role: c.role,
       availableSessions: typeof c.availableSessions === 'number' ? c.availableSessions : undefined,

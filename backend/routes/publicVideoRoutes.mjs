@@ -55,7 +55,13 @@ router.get('/', async (req, res) => {
       popular: 'ev.views DESC',
       title: 'ev.title ASC',
     };
-    const orderBy = sortMap[req.query.sort] || sortMap.newest;
+    // hasOwnProperty, not `sortMap[key] ||`: plain indexing resolves INHERITED keys, so
+    // ?sort=constructor / ?sort=toString returned a function, stringified it into ORDER BY,
+    // and 500'd this UNAUTHENTICATED endpoint (live-verified against production 2026-08-04).
+    const requestedSort = typeof req.query.sort === 'string' ? req.query.sort : '';
+    const orderBy = Object.prototype.hasOwnProperty.call(sortMap, requestedSort)
+      ? sortMap[requestedSort]
+      : sortMap.newest;
 
     const [videos, countResult] = await Promise.all([
       sequelize.query(

@@ -12,120 +12,26 @@ export const NutritionTimelineShell = styled.section`
   gap: 14px;
 `;
 
-export const NutritionTimelineHeader = styled.header`
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  align-items: flex-start;
-  min-width: 0;
-
-  @media (max-width: 520px) {
-    flex-direction: column;
-  }
-`;
-
-export const NutritionTimelineTitleGroup = styled.div`
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-`;
-
-export const NutritionTimelineTitle = styled.h3`
-  margin: 0;
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 18px;
-  font-weight: 900;
-  line-height: 1.25;
-`;
-
-export const NutritionTimelineClient = styled.span`
-  color: var(--text-muted, ${alpha('--swan-frost-white', '#E0ECF4', 72)});
-  font-family: 'Sora', sans-serif;
-  font-size: 12px;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-`;
-
-export const NutritionTimelineDate = styled.span`
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  border-radius: 8px;
-  color: var(--accent-primary, #60C0F0);
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
-  font-family: 'Fira Code', monospace;
-  font-size: 11px;
-  font-weight: 800;
-`;
-
-export const NutritionProvenanceCard = styled.section`
-  ${swanMetricTile}
-  display: grid;
-  gap: 10px;
-  padding: 12px;
-`;
-
-export const NutritionProvenanceTitle = styled.h4`
-  margin: 0;
-  color: var(--text-primary, #E0ECF4);
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 900;
-`;
-
-export const NutritionProvenanceGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const NutritionProvenanceMetric = styled.div`
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-
-  strong {
-    color: var(--text-primary, #E0ECF4);
-    font-family: 'Fira Code', monospace;
-    font-size: 12px;
-    font-weight: 900;
-    overflow-wrap: anywhere;
-  }
-`;
-
-export const NutritionProvenanceLabel = styled.span`
-  color: var(--text-muted, ${alpha('--swan-frost-white', '#E0ECF4', 72)});
-  font-family: 'Sora', sans-serif;
-  font-size: 11px;
-  font-weight: 800;
-`;
-
-export const NutritionProvenanceCopy = styled.span`
-  color: var(--accent-primary, #60C0F0);
-  font-family: 'Sora', sans-serif;
-  font-size: 11px;
-  font-weight: 850;
-`;
+/* Phase 4A: the old header/title/date primitives were superseded by
+   CoachClientNutritionHeader + NutritionDateStepper (HY3 §(a)1/§(a)4). */
 
 export const NutritionTimelineList = styled.div`
   display: grid;
   gap: 10px;
 `;
 
-export const NutritionTimelineRowCard = styled.article`
+/** Phase 4A: needs-review rows carry a Wing Purple left border (HY3 §(a)6). */
+export const NutritionTimelineRowCard = styled.article<{ $needsReview?: boolean }>`
   ${swanMetricTile}
   display: grid;
   gap: 9px;
   min-width: 0;
   padding: 12px;
+  border-left: ${({ $needsReview }) => (
+    $needsReview
+      ? '3px solid color-mix(in srgb, var(--accent-purple, #8B5CF6) 78%, transparent)'
+      : '1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 14%, transparent)'
+  )};
 `;
 
 export const NutritionTimelineRowHeader = styled.div`

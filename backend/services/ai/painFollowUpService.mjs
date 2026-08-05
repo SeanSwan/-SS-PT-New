@@ -20,8 +20,9 @@
  * are multiple active left_knee entries (e.g. logged twice), the system must report
  * the ambiguity rather than silently resolve the wrong one.
  *
- * VALIDATION MIRRORED FROM: backend/controllers/painEntryController.mjs
- *   - bodyRegion must be in ALLOWED_BODY_REGIONS (48 values)
+ * VALIDATION SHARED WITH: backend/controllers/painEntryController.mjs
+ *   - bodyRegion must be a pain-intake region (single-sourced in the ontology
+ *     via painWriteService re-export; count derived, never hand-written)
  *   - painLevel must be integer 1-10 (if present)
  *
  * REAL resolvedAt: After entry.update(), the actual DB-stored resolvedAt is read

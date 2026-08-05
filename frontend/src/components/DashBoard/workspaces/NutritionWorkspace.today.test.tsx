@@ -1,6 +1,6 @@
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import NutritionWorkspace from './NutritionWorkspace';
@@ -107,7 +107,9 @@ describe('NutritionWorkspace Today landing', () => {
     expect(screen.getByRole('button', { name: /open today/i })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByLabelText(/nutrition today diary/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /search food/i }));
-    expect(screen.getByRole('button', { name: /food search/i })).toHaveAttribute('aria-pressed', 'true');
+    // 4B: the tool name now appears in both the capture rail and the pill row.
+    const captureRail = screen.getByRole('navigation', { name: /nutrition capture modes/i });
+    expect(within(captureRail).getByRole('button', { name: /food search/i })).toHaveAttribute('aria-pressed', 'true');
     expect(await screen.findByLabelText('food search add')).toBeInTheDocument();
   });
 
@@ -124,7 +126,8 @@ describe('NutritionWorkspace Today landing', () => {
     expect(screen.getByRole('heading', { name: /today's diary timeline/i })).toBeInTheDocument();
     expect(screen.queryByLabelText(/0 calories logged today/i)).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText(/more nutrition tools/i), 'macros');
+    // 4B: the <select> is gone — the Insights segment lands on My Macros.
+    await user.click(screen.getByRole('button', { name: /^insights$/i }));
     expect(await screen.findByRole('alert', { name: /nutrition totals unavailable/i }))
       .toHaveTextContent(/Macro summary unavailable/i);
   });
@@ -133,7 +136,8 @@ describe('NutritionWorkspace Today landing', () => {
     const user = userEvent.setup();
     render(<MemoryRouter><NutritionWorkspace /></MemoryRouter>);
 
-    await user.click(screen.getByRole('button', { name: /manual meal/i }));
+    const captureRail = screen.getByRole('navigation', { name: /nutrition capture modes/i });
+    await user.click(within(captureRail).getByRole('button', { name: /manual meal/i }));
     await user.click(await screen.findByRole('button', { name: /prepare manual draft/i }));
     await user.click(screen.getByRole('button', { name: /complete reviewed save/i }));
 

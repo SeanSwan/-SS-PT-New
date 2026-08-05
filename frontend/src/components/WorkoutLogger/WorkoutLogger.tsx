@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ExerciseEntry, ExerciseSet } from '../../services/nasmApiService';
 import type { DailyWorkoutForm } from '../../services/nasmApiService';
-import EquipmentProfilePicker from '../Shared/EquipmentProfilePicker';
+import EquipmentContextChip from '../Shared/EquipmentContextChip';
 import '../../utils/aiWorkoutEvents';
 import '../../utils/workoutLoggedEvent';
 import { exportWorkoutLoggerPDF } from '../../services/pdfExportService';
@@ -625,14 +625,15 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
         {/* Receipt terminal state (Slice 5): post-save the rail is NOT
             navigable — the receipt below replaces the staged canvas. */}
         {!lastSaveResponse && (<>
+        {/* F11 §10a#1: context chip visible across setup AND train stages. */}
+        {!isClientSelfMode && (
+          <EquipmentContextChip selectedProfileId={equipmentProfileId} onSelect={setEquipmentProfileId} />
+        )}
         <ShellZoneBoundary zone='stage-rail'>
           <StageRail store={sessionStageStore} variant={pageRecipe.stageRail === 'segmented' ? 'segmented' : 'tabs'} />
         </ShellZoneBoundary>
         <StageCanvas stage={sessionStage} store={sessionStageStore}>
         {sessionStage === 'setup' && (<>
-          {!isClientSelfMode && (
-            <EquipmentProfilePicker selectedProfileId={equipmentProfileId} onSelect={setEquipmentProfileId} label="Training Location" />
-          )}
           {!isClientSelfMode && typeof effectiveClientId === 'number' && (
             <WorkoutPlanAssignmentPicker clientId={effectiveClientId} disabled={isLoadingPlan || isRepeatingSession} onApplyAssignment={handleApplyGeneratedPlanDay} />
           )}

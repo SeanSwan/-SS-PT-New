@@ -4,6 +4,7 @@ import BodyMapSVG from './BodyMapSVG';
 import BodyMapToolbar, { type AnatomyGender, type LabelMode } from './BodyMapToolbar';
 import BodyMapEvidenceSection from './BodyMapEvidenceSection';
 import BodyMapClientTargetSelector from './BodyMapClientTargetSelector';
+import BodyMapHeadPhotoControl from './BodyMapHeadPhotoControl';
 import PainEntryPanel from './PainEntryPanel';
 import PainChartInsightPanel from './PainChartInsightPanel';
 import PainChartCoachDockMount from '../CoachDock/PainChartCoachDockMount';
@@ -67,7 +68,8 @@ const ActiveEntryRow = styled.div<{ $color: string }>`
   padding: 10px 14px;
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.25);
-  border: 1px solid ${({ $color }) => `${$color}33`};
+  /* color-mix, not hex-concat: $color is a var(--token, #fallback) expression (Rule 6). */
+  border: 1px solid ${({ $color }) => `color-mix(in srgb, ${$color} 20%, transparent)`};
   margin-bottom: 8px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -122,12 +124,14 @@ const EntriesLabel = styled.div`
 
 interface BodyMapProps { userId?: number; mode?: 'trainer' | 'client'; }
 
-const resolveAnatomyGender = (value?: string | null): AnatomyGender | null => {
+// Slice 2 (A5): unresolvable/non-binary/unset gender renders the NEUTRAL
+// figure — nobody is silently shown the male body.
+const resolveAnatomyGender = (value?: string | null): AnatomyGender => {
   const normalized = value?.trim().toLowerCase();
-  if (!normalized) return null;
+  if (!normalized) return 'neutral';
   if (['female', 'woman', 'f'].includes(normalized)) return 'female';
   if (['male', 'man', 'm'].includes(normalized)) return 'male';
-  return null;
+  return 'neutral';
 };
 
 const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
@@ -140,26 +144,46 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
   )
     ? globalClient.activeClient
     : null;
-  const activeClientProfile = verifiedActiveClient as any;
   const staffTargetClientId = userIdProp ?? verifiedActiveClient?.id;
   const userId = isTrainerOrAdmin ? staffTargetClientId : userIdProp ?? user?.id;
-  const profileGender = isTrainerOrAdmin ? activeClientProfile?.gender : user?.gender;
-  const profilePhotoUrl = isTrainerOrAdmin ? activeClientProfile?.photo ?? null : user?.photo ?? user?.profileImageUrl ?? null;
+  // Slice 2 (A2): the TARGET client's identity is resolved BY userId from the
+  // client list — never from the globally selected client. The old code read
+  // gender/photo off GlobalClientContext.activeClient while entries loaded for
+  // the userId prop, so embedded mounts (Biometrics, Measurements) could show
+  // client A's pain on client B's face/figure. Unresolvable target ⇒ no photo
+  // + neutral figure — fail-closed, never another client's identity.
+  const targetClientProfile = isTrainerOrAdmin && userId != null
+    ? (globalClient?.clientList?.find((client) => Number(client.id) === Number(userId)) as any) ?? null
+    : null;
+  const profileGender = isTrainerOrAdmin ? targetClientProfile?.gender : user?.gender;
+  const profilePhotoUrl = isTrainerOrAdmin
+    ? targetClientProfile?.bodyMapHeadPhoto ?? targetClientProfile?.photo ?? null
+    : user?.bodyMapHeadPhoto ?? user?.photo ?? user?.profileImageUrl ?? null;
   const entryService = useMemo(() => (authAxios ? createPainEntryService(authAxios) : null), [authAxios]);
 
   const [entries, setEntries] = useState<PainEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  // Slice 3 (B5): the map stays MOUNTED during refetches — the old
+  // `{!loading && ...}` unmounted the whole figure after every save/resolve,
+  // flashing the UI away. Only the very first load shows the empty state.
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [targetNotice, setTargetNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [gender, setGender] = useState<AnatomyGender>('male');
+  const [gender, setGender] = useState<AnatomyGender>('neutral');
   const [labelMode, setLabelMode] = useState<LabelMode>('off');
+  // Slice 2 (A4): client-session override after upload/remove of the
+  // dedicated head photo (auth user refreshes on next load). undefined =
+  // untouched this session.
+  const [headPhotoOverride, setHeadPhotoOverride] = useState<string | null | undefined>(undefined);
+  const displayedPhotoUrl = !isTrainerOrAdmin && headPhotoOverride !== undefined
+    ? headPhotoOverride ?? user?.photo ?? user?.profileImageUrl ?? null
+    : profilePhotoUrl;
 
   useEffect(() => {
-    const resolved = resolveAnatomyGender(profileGender);
-    if (resolved) setGender(resolved);
+    setGender(resolveAnatomyGender(profileGender));
   }, [profileGender, userId]);
 
   const effectiveMode = mode || (isTrainerOrAdmin ? 'trainer' : 'client');
@@ -201,6 +225,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
       setError(err?.response?.data?.message || 'Failed to load entries');
     } finally {
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   }, [entryService, userId]);
 
@@ -298,11 +323,13 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
             {resolvedCount > 0 && (
               <SummaryBadge $color="var(--tertiary, #4070C0)">{resolvedCount} resolved</SummaryBadge>
             )}
+            {/* Slice 3 (B8): badges share the map's severity scale — the old
+                pair used two near-identical blues for moderate vs mild. */}
             {severeCount > 0 && (
-              <SummaryBadge $color="var(--accent-luxury, #C6A84B)">{severeCount} severe</SummaryBadge>
+              <SummaryBadge $color="var(--glow-accent, #8B5CF6)">{severeCount} severe</SummaryBadge>
             )}
             {moderateCount > 0 && (
-              <SummaryBadge $color="var(--data-accent, #50A0F0)">{moderateCount} moderate</SummaryBadge>
+              <SummaryBadge $color="var(--accent-luxury, #C6A84B)">{moderateCount} moderate</SummaryBadge>
             )}
             {mildCount > 0 && (
               <SummaryBadge $color="var(--accent-primary, #60C0F0)">{mildCount} mild</SummaryBadge>
@@ -311,8 +338,9 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
         )}
       </SectionHeader>
 
-      {loading && <StatusText>Loading entries...</StatusText>}
-      {error && <ErrorText>{error}</ErrorText>}
+      {loading && !hasLoadedOnce && <StatusText>Loading entries...</StatusText>}
+      {loading && hasLoadedOnce && <StatusText role="status">Refreshing…</StatusText>}
+      {error && <ErrorText role="alert">{error}</ErrorText>}
 
       {showStaffClientSelector && (
         <BodyMapClientTargetSelector
@@ -324,7 +352,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
         />
       )}
 
-      {!loading && (
+      {(hasLoadedOnce || !loading) && (
         <>
           <BodyMapToolbar
             gender={gender}
@@ -332,13 +360,20 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
             onGenderChange={setGender}
             onLabelModeChange={setLabelMode}
           />
+          {isClientMode && isOwnData && authAxios && (
+            <BodyMapHeadPhotoControl
+              authAxios={authAxios}
+              hasDedicatedPhoto={Boolean(headPhotoOverride !== undefined ? headPhotoOverride : user?.bodyMapHeadPhoto)}
+              onPhotoChange={setHeadPhotoOverride}
+            />
+          )}
           <BodyMapSVG
             painEntries={activeEntries}
             selectedRegion={selectedRegion}
             onRegionClick={handleRegionClick}
             gender={gender}
             labelMode={labelMode}
-            profilePhotoUrl={profilePhotoUrl}
+            profilePhotoUrl={displayedPhotoUrl}
           />
 
           {activeEntries.length > 0 && (

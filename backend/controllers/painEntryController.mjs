@@ -8,35 +8,11 @@
  */
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
-
-// Allowed body regions (front + back views)
-const ALLOWED_BODY_REGIONS = new Set([
-  // Front view
-  'neck_front', 'chest_left', 'chest_right', 'chest',
-  'left_shoulder', 'right_shoulder',
-  'left_bicep', 'right_bicep',
-  'left_forearm', 'right_forearm',
-  'left_elbow', 'right_elbow',
-  'upper_abs', 'lower_abs', 'left_oblique', 'right_oblique',
-  'left_hip_flexor', 'right_hip_flexor',
-  'left_quad', 'right_quad',
-  'left_inner_thigh', 'right_inner_thigh',
-  'left_shin', 'right_shin',
-  'left_knee', 'right_knee',
-  'left_ankle_front', 'right_ankle_front',
-  // Back view
-  'neck_back', 'upper_traps_left', 'upper_traps_right',
-  'mid_back_left', 'mid_back_right',
-  'left_rear_delt', 'right_rear_delt',
-  'lower_back_left', 'lower_back_right', 'lower_back',
-  'left_tricep', 'right_tricep',
-  'left_glute', 'right_glute',
-  'left_hamstring', 'right_hamstring',
-  'left_calf', 'right_calf',
-  'left_achilles', 'right_achilles',
-  // Rotator cuff (specific)
-  'left_rotator_cuff', 'right_rotator_cuff',
-]);
+// Slice 1 (C11): the region allowlist is single-sourced in the ontology —
+// this file and painWriteService previously carried hand-duplicated copies.
+import { PAIN_INTAKE_REGION_SET as ALLOWED_BODY_REGIONS } from '../services/training-cortex/ontology/regionMuscleMap.mjs';
+import { processPainCheckIn } from '../services/painCheckInService.mjs';
+import { getTrainerPainDigest } from '../services/painDigestService.mjs';
 
 const parsePositiveInt = (value) => {
   const parsed = Number(value);
@@ -49,6 +25,27 @@ const parsePainLevel = (value) => {
 };
 
 const STAFF_ROLES = new Set(['trainer', 'admin']);
+
+// Slice 1 (F14): onsetDate is client-reported HISTORY — the future is
+// rejected (24h grace absorbs timezone skew). Exclusion windows key on
+// createdAt (system trust); trends display onsetDate.
+const isFutureDate = (value) => {
+  if (!value) return false;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) && parsed > Date.now() + 24 * 60 * 60 * 1000;
+};
+
+// Slice 1 (F5): rest pain is a contraindication signal, load pain a
+// modification signal — validated here, escalated in clientIntelligence.
+const PAIN_CONTEXTS = new Set(['rest', 'daily_activity', 'loaded_movement']);
+
+// Slice 0 (F2): at/above this severity, resolution and severity-reduction are
+// trainer decisions. Without this gate a client could resolve their own 8/10
+// and silently switch off the fail-closed planning safety gate.
+const PAIN_TRAINER_REVIEW_SEVERITY = 7;
+const TRAINER_REVIEW_REQUIRED_MESSAGE =
+  'This entry is 7/10 or higher, so it gets reviewed together with your trainer. '
+  + 'Ask your trainer to confirm the change — they can update or resolve it in seconds.';
 
 const sanitizePainEntryForRequester = (entry, requester) => {
   const data = entry?.toJSON ? entry.toJSON() : { ...entry };
@@ -178,7 +175,7 @@ export const createPainEntry = async (req, res) => {
 
     const {
       bodyRegion, side, painLevel, painType, description,
-      onsetDate, aggravatingMovements, relievingFactors,
+      onsetDate, aggravatingMovements, relievingFactors, painContext,
       trainerNotes, aiNotes, posturalSyndrome, assessmentFindings,
     } = req.body;
 
@@ -196,6 +193,12 @@ export const createPainEntry = async (req, res) => {
     if (!parsedPainLevel) {
       return res.status(400).json({ success: false, message: 'painLevel must be between 1 and 10' });
     }
+    if (isFutureDate(onsetDate)) {
+      return res.status(400).json({ success: false, message: 'onsetDate cannot be in the future' });
+    }
+    if (painContext !== undefined && !PAIN_CONTEXTS.has(painContext)) {
+      return res.status(400).json({ success: false, message: 'painContext must be rest, daily_activity, or loaded_movement' });
+    }
 
     // Clients cannot set trainer-only fields
     const isClient = requester.role === 'client';
@@ -211,6 +214,8 @@ export const createPainEntry = async (req, res) => {
       onsetDate: onsetDate || null,
       aggravatingMovements: aggravatingMovements || null,
       relievingFactors: relievingFactors || null,
+      painContext: painContext || 'loaded_movement',
+      lastConfirmedAt: new Date(),
       trainerNotes: isClient ? null : (trainerNotes || null),
       aiNotes: isClient ? null : (aiNotes || null),
       posturalSyndrome: isClient ? 'none' : (posturalSyndrome || 'none'),
@@ -266,14 +271,21 @@ export const updatePainEntry = async (req, res) => {
     // Clients cannot update trainer-only fields
     const isClient = requester.role === 'client';
     const allowedFields = isClient
-      ? ['painLevel', 'painType', 'description', 'onsetDate', 'aggravatingMovements', 'relievingFactors', 'side']
-      : ['painLevel', 'painType', 'description', 'onsetDate', 'aggravatingMovements', 'relievingFactors', 'trainerNotes', 'aiNotes', 'posturalSyndrome', 'assessmentFindings', 'side'];
+      ? ['painLevel', 'painType', 'description', 'onsetDate', 'aggravatingMovements', 'relievingFactors', 'side', 'painContext']
+      : ['painLevel', 'painType', 'description', 'onsetDate', 'aggravatingMovements', 'relievingFactors', 'trainerNotes', 'aiNotes', 'posturalSyndrome', 'assessmentFindings', 'side', 'painContext'];
 
     const updates = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         updates[field] = req.body[field];
       }
+    }
+
+    if (updates.onsetDate !== undefined && isFutureDate(updates.onsetDate)) {
+      return res.status(400).json({ success: false, message: 'onsetDate cannot be in the future' });
+    }
+    if (updates.painContext !== undefined && !PAIN_CONTEXTS.has(updates.painContext)) {
+      return res.status(400).json({ success: false, message: 'painContext must be rest, daily_activity, or loaded_movement' });
     }
 
     if (updates.painLevel !== undefined) {
@@ -284,7 +296,25 @@ export const updatePainEntry = async (req, res) => {
       updates.painLevel = parsedPainLevel;
     }
 
-    await entry.update(updates);
+    // Slice 0 (F2): a client lowering a >=7 severity is a trainer decision —
+    // otherwise the fail-closed planning gate is a client-controlled toggle.
+    if (
+      isClient
+      && Number(entry.painLevel) >= PAIN_TRAINER_REVIEW_SEVERITY
+      && updates.painLevel !== undefined
+      && updates.painLevel < Number(entry.painLevel)
+    ) {
+      return res.status(403).json({
+        success: false,
+        code: 'TRAINER_REVIEW_REQUIRED',
+        message: TRAINER_REVIEW_REQUIRED_MESSAGE,
+      });
+    }
+
+    // Slice 1: any authorized human update re-confirms the entry's state.
+    updates.lastConfirmedAt = new Date();
+
+    await entry.update(updates, { revisionActorId: requester.id });
 
     logger.info(`[PainEntry] Updated entry ${entryId} for user ${userId}`);
 
@@ -331,10 +361,20 @@ export const resolvePainEntry = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Pain entry not found' });
     }
 
+    // Slice 0 (F2): clients cannot self-resolve >=7 entries — resolving a
+    // severe entry is what re-opens the planning gate, so it needs a trainer.
+    if (requester.role === 'client' && Number(entry.painLevel) >= PAIN_TRAINER_REVIEW_SEVERITY) {
+      return res.status(403).json({
+        success: false,
+        code: 'TRAINER_REVIEW_REQUIRED',
+        message: TRAINER_REVIEW_REQUIRED_MESSAGE,
+      });
+    }
+
     await entry.update({
       isActive: false,
       resolvedAt: new Date(),
-    });
+    }, { revisionActorId: requester.id });
 
     logger.info(`[PainEntry] Resolved entry ${entryId} for user ${userId}`);
 
@@ -393,5 +433,61 @@ export const deletePainEntry = async (req, res) => {
   } catch (error) {
     logger.error('[PainEntry] Error deleting entry:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete pain entry' });
+  }
+};
+
+/**
+ * POST /api/pain-entries/:userId/check-in
+ * Slice 5 (C6): post-workout pain check-in — the closed loop. Asymmetric
+ * gate: worse-than-recorded raises immediately; same/better is acknowledged
+ * for trainer confirmation; unknown region + level >= 4 creates a validated
+ * entry. Clients may only check in for themselves.
+ */
+export const painCheckIn = async (req, res) => {
+  try {
+    const userId = parsePositiveInt(req.params.userId);
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+    const requester = req.user;
+    if (requester.role === 'client' && Number(requester.id) !== userId) {
+      return res.status(403).json({ success: false, message: 'Clients can only check in for themselves' });
+    }
+
+    const { bodyRegion, side, painLevel } = req.body || {};
+    if (!bodyRegion) {
+      return res.status(400).json({ success: false, message: 'bodyRegion is required' });
+    }
+
+    const result = await processPainCheckIn({
+      userId,
+      actorId: Number(requester.id),
+      bodyRegion,
+      side,
+      painLevel,
+    });
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    if (/Invalid bodyRegion|painLevel must be/.test(error?.message || '')) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
+    logger.error('[PainEntry] Check-in failed:', error);
+    return res.status(500).json({ success: false, message: 'Failed to record pain check-in' });
+  }
+};
+
+/**
+ * GET /api/pain-entries/trainer/digest
+ * Slice 5 (#7): roster-scoped pain command surface for trainers — worsening
+ * episodes (computed facts), stale severe entries needing re-confirmation,
+ * severe entries in unmapped regions. Admin sees platform-wide.
+ */
+export const trainerPainDigest = async (req, res) => {
+  try {
+    const digest = await getTrainerPainDigest(Number(req.user.id), { role: req.user.role });
+    return res.json({ success: true, data: digest });
+  } catch (error) {
+    logger.error('[PainEntry] Digest failed:', error);
+    return res.status(500).json({ success: false, message: 'Failed to build pain digest' });
   }
 };

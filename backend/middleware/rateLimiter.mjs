@@ -193,6 +193,30 @@ export const handoffLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Public food-scanner rate limiter (60 req / 15 min per IP).
+ *
+ * GET /api/food-scanner/scan/:barcode, /search, /product/:id, /ingredient/:id
+ * and the explain endpoints are PUBLIC (the /food-scanner page works logged-out).
+ * But an anonymous scan is not free: a cache miss fans out to Open Food Facts /
+ * FatSecret and CREATES a FoodProduct row + increments scanCount. Unthrottled,
+ * barcode enumeration (8-14 digit space) becomes unbounded outbound traffic and
+ * unbounded row creation. 60/15min covers a human scanning a whole pantry;
+ * it kills enumeration. Per-IP is correct (trust proxy = 1, see contactLimiter).
+ */
+export const foodScannerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: {
+    success: false,
+    error: 'Too many scanner requests from this IP. Please try again in a few minutes.',
+    message: 'Too many scanner requests from this IP. Please try again in a few minutes.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export default {
   apiLimiter,
   authLimiter,
@@ -202,4 +226,5 @@ export default {
   contactLimiter,
   orientationLimiter,
   handoffLimiter,
+  foodScannerLimiter,
 };

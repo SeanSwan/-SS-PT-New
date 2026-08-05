@@ -76,7 +76,12 @@ export const WorkspaceRoot = styled.div`
   padding: 24px;
   container-type: inline-size;
 
-  @media (max-width: 768px) { padding: 16px; gap: 16px; }
+  /* ≤768px the SegmentedTabBar fixes to the bottom of the viewport —
+     reserve space so content and the review drawer never sit under it. */
+  @media (max-width: 768px) {
+    padding: 16px 16px calc(88px + env(safe-area-inset-bottom, 0px));
+    gap: 16px;
+  }
   @media (min-width: 2560px) { max-width: min(100%, 2120px); }
   @media (min-width: 3840px) { max-width: min(100%, 2480px); }
 `;
@@ -181,29 +186,6 @@ export const TabBtn = styled(motion.button)<{ $active: boolean }>`
   font-weight: ${(props) => (props.$active ? 600 : 500)};
   cursor: pointer;
   white-space: nowrap;
-`;
-
-export const MoreToolsRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-`;
-
-export const MoreToolsLabel = styled.label`
-  color: var(--text-secondary, #94a3b8);
-  font: 800 0.78rem/1 var(--font-ui, 'Sora', sans-serif);
-  text-transform: uppercase;
-  letter-spacing: 0;
-`;
-
-export const MoreToolsSelect = styled.select`
-  ${nutritionControlCss}
-  min-width: min(260px, 100%);
-  padding: 0 0.95rem;
-  cursor: pointer;
-  color-scheme: dark;
 `;
 
 export const ContentArea = styled.div`

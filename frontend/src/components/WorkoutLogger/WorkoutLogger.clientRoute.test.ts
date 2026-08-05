@@ -335,19 +335,19 @@ describe('Phase 16.2 - exercise source is client-safe', () => {
 // -----------------------------------------------------------------------------
 
 describe('Phase 16.2 - EquipmentProfilePicker does not mount on the client self-route', () => {
-  it('renders EquipmentProfilePicker conditionally behind !isClientSelfMode', () => {
+  it('renders EquipmentContextChip conditionally behind !isClientSelfMode', () => {
     // The old unconditional render caused the client self-route to
     // fetch /api/equipment-profiles (admin/trainer gated -> 403).
     // The fix wraps the picker in `{!isClientSelfMode && (...)}`.
     expect(SOURCE).toMatch(
-      /!\s*isClientSelfMode\s*&&\s*\(\s*<EquipmentProfilePicker/,
+      /!\s*isClientSelfMode\s*&&\s*\(\s*<EquipmentContextChip/,
     );
   });
 
-  it('does not render EquipmentProfilePicker unconditionally', () => {
+  it('does not render EquipmentContextChip unconditionally', () => {
     // Anti-regression: a future refactor that drops the guard would
     // silently re-break the client route. Lock the pattern.
-    const beforeGuardIdx = SOURCE.indexOf('<EquipmentProfilePicker');
+    const beforeGuardIdx = SOURCE.indexOf('<EquipmentContextChip');
     expect(beforeGuardIdx).toBeGreaterThan(-1);
     const preamble = SOURCE.slice(Math.max(0, beforeGuardIdx - 200), beforeGuardIdx);
     expect(preamble).toMatch(/!isClientSelfMode|isClientSelfMode\s*===\s*false/);

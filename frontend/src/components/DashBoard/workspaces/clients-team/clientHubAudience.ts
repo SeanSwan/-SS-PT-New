@@ -51,7 +51,13 @@ export const CLIENT_HUB_AUDIENCES: Record<ClientHubAudience, ClientHubAudienceCo
     workoutPlannerBase: '/dashboard/trainer/workout-planner',
     visibleDetailTabs: ['training', 'progress', 'nutrition', 'biometrics'],
     canManageAccounts: false,
-    showRosterOpsPanels: false,
+    /**
+     * Phase 4A: trainers now get the roster nutrition triage/review panels.
+     * Backend scoping verified: /api/macros/roster-triage, /review-queue and
+     * /client-timeline each call assertAssignmentOrAdmin per userId, so a
+     * trainer only ever receives assigned-client data.
+     */
+    showRosterOpsPanels: true,
     emptyRosterCopy: 'No assigned clients yet. Clients appear here once an admin assigns them to you.',
   },
 };

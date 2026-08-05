@@ -78,6 +78,8 @@ export const trainerNavConfig = [
       { label: 'Sprint Planner', path: '/dashboard/trainer/sprint-planner', icon: CalendarRange },
       { label: 'Equipment', path: '/dashboard/trainer/equipment', icon: Wrench },
       { label: 'Nutrition Intelligence', path: '/dashboard/trainer/meal-planner', icon: Apple },
+      // Phase 4E (2026-08-04): Plan Builder route existed but had no nav entry.
+      { label: 'Nutrition Plan Builder', path: '/dashboard/trainer/nutrition', icon: ClipboardCheck },
     ],
   },
   {

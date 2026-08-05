@@ -95,9 +95,14 @@ export const searchUsers = async (req, res) => {
   if (!currentUserId) return res.status(401).json({ error: 'Authentication required.' });
 
   try {
+    // Response columns deliberately EXCLUDE email + lastLogin/lastActive: this is a
+    // directory any authenticated user can query, and exposing activity timestamps to
+    // everyone is more than "find someone to message" needs. lastActive/lastLogin are
+    // still used in ORDER BY (Postgres allows ordering by non-selected columns) so the
+    // most-recently-active users still surface first. Found 2026-08-04, security audit.
     const users = !query || query.length < 2
       ? await sequelize.query(
-        `SELECT id, "firstName", "lastName", username, photo, role, "lastActive", "lastLogin"
+        `SELECT id, "firstName", "lastName", username, photo, role
          FROM "Users"
          WHERE id != :currentUserId
            AND "deletedAt" IS NULL
@@ -107,14 +112,15 @@ export const searchUsers = async (req, res) => {
         { replacements: { currentUserId }, type: QueryTypes.SELECT }
       )
       : await sequelize.query(
-        `SELECT id, "firstName", "lastName", username, photo, role, "lastActive", "lastLogin"
+        // email is NOT a search key: matching on email lets any authenticated user
+        // confirm whether an address has an account (enumeration). Name/username only.
+        `SELECT id, "firstName", "lastName", username, photo, role
          FROM "Users"
          WHERE (
              "firstName" ILIKE :query
              OR "lastName" ILIKE :query
              OR ("firstName" || ' ' || "lastName") ILIKE :query
              OR username ILIKE :query
-             OR email ILIKE :query
            )
            AND id != :currentUserId
            AND "deletedAt" IS NULL
@@ -134,7 +140,6 @@ export const searchUsers = async (req, res) => {
       ...u,
       role: u.role === 'user' ? 'client' : u.role,
       displayName: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username,
-      lastActive: u.lastActive || u.lastLogin || null,
     }));
 
     return res.json(normalized);

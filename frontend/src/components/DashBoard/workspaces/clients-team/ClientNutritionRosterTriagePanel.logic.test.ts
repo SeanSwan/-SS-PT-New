@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildNutritionRosterRows,
+  ROSTER_TRIAGE_COLLAPSED_COUNT,
   selectRosterClientIds,
+  selectVisibleRosterRows,
   type NutritionRosterClient,
+  type NutritionRosterRow,
   type RosterTriageRecord,
 } from './ClientNutritionRosterTriagePanel.logic';
 
@@ -128,5 +131,21 @@ describe('ClientNutritionRosterTriagePanel logic', () => {
       weeklyLabel: '4/7 days',
       proteinLabel: '55g protein',
     });
+  });
+
+  it('collapses to four visible rows by default and shows all when expanded', () => {
+    const rows: NutritionRosterRow[] = Array.from({ length: 6 }, (_, index) => ({
+      clientId: index + 1,
+      clientName: `Client ${index + 1}`,
+      statusLabel: 'No meals today',
+      weeklyLabel: '0/7 days',
+      proteinLabel: '0g protein',
+      flags: ['No attention flags'],
+      attentionScore: 0,
+    }));
+
+    expect(selectVisibleRosterRows(rows, false)).toHaveLength(ROSTER_TRIAGE_COLLAPSED_COUNT);
+    expect(selectVisibleRosterRows(rows, true)).toHaveLength(6);
+    expect(selectVisibleRosterRows(rows.slice(0, 3), false)).toHaveLength(3);
   });
 });

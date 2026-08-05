@@ -1,8 +1,11 @@
 /**
- * AI data-write macro log date contract
+ * AI data-write macro log contract
  *
- * Locks legacy macro_log writes to the same display-date fallback as the
- * canonical nutrition command paths when callers omit a date.
+ * Locks AI macro_log writes to the canonical ORM path's sanitization: date
+ * fallback/rejection, untrusted source/mealType, copy scrub, malformed-number
+ * rejection, and FDA flag computation. S0.7 (2026-08-04): the raw-SQL INSERT
+ * was collapsed into buildMacroRow + DailyMacroLog.create, so the capture
+ * point moved from sequelize.query replacements to DailyMacroLog.create.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +20,10 @@ vi.mock('../../utils/logger.mjs', () => ({
 vi.mock('../../services/encryption/encryptionService.mjs', () => ({
   encrypt: vi.fn((value) => value),
 }));
+const macroCreateMock = vi.hoisted(() => vi.fn(async (row) => row));
+vi.mock('../../models/DailyMacroLog.mjs', () => ({
+  default: { create: macroCreateMock },
+}));
 
 
 const { processAIDataUpdates } = await import('../../services/aiDataWriteService.mjs');
@@ -24,15 +31,13 @@ const unsafeNutritionCopyPattern =
   /\b(cutting|bulking?|caloric deficit|cheat meal|clean eating|dirty bulk|sugar crash|inflammatory|deficien(?:t|cy|cies)|zero sugar|no sugar|guilt|spike insulin|wasted macros)\b/i;
 
 function makeMacroCaptureSequelize(capture) {
-  return {
-    query: vi.fn(async (sql, options) => {
-      if (typeof sql === 'string' && sql.includes('INSERT INTO daily_macro_logs')) {
-        capture.replacements = options?.replacements || null;
-      }
-      return [[], { rowCount: 1 }];
-    }),
-    QueryTypes: { INSERT: 'INSERT' },
-  };
+  // macro_log no longer touches sequelize directly; the capture rides the
+  // mocked DailyMacroLog.create. Other update types still receive sequelize.
+  macroCreateMock.mockImplementation(async (row) => {
+    capture.replacements = row;
+    return row;
+  });
+  return { query: vi.fn(async () => [[], { rowCount: 1 }]), QueryTypes: { INSERT: 'INSERT' } };
 }
 
 function macroUpdate(overrides = {}) {
@@ -194,7 +199,7 @@ describe('aiDataWriteService macro_log date fallback', () => {
 
     const result = await processAIDataUpdates(42, [macroUpdate({
       calories: '420.5',
-      protein: '35.25',
+      protein: '35.25',  // canonical path rounds to 1 decimal
       carbs: '32',
       fat: '14.75',
       sodium: '801',
@@ -205,9 +210,9 @@ describe('aiDataWriteService macro_log date fallback', () => {
     expect(result).toEqual({ successful: 1, errors: [] });
     expect(capture.replacements).toMatchObject({
       calories: 420.5,
-      protein: 35.25,
+      protein: 35.3,
       carbs: 32,
-      fat: 14.75,
+      fat: 14.8,
       sodium: 801,
       addedSugar: 12.5,
       novaGroup: 4,

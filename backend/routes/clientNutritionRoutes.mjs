@@ -8,6 +8,11 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { searchFoodCatalog } from '../services/nutrition/foodCatalogSearchService.mjs';
+import { validateNutritionPlanBody } from '../services/nutrition/nutritionPlanValidation.mjs';
+import { setNutritionTarget, getActiveNutritionTarget, activateNutritionTarget } from '../services/nutrition/nutritionTargetService.mjs';
+import NutritionTarget from '../models/NutritionTarget.mjs';
+import { getUserLocalToday } from '../services/nutrition/nutritionAdherenceService.mjs';
+import { getDietaryIdentity, declareDietaryIdentity } from '../services/nutrition/dietaryIdentityService.mjs';
 import { ensureClientAccess } from '../utils/clientAccess.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -79,10 +84,26 @@ router.get('/:userId/current', protect, async (req, res) => {
       order: [['createdAt', 'DESC']]
     });
 
+    // S1.4: the versioned target is the adherence truth; the plan document is
+    // supporting context. Surface the target even when no plan document exists.
+    const activeTarget = await getActiveNutritionTarget(clientId).catch(() => null);
+    const targetPayload = activeTarget ? {
+      id: activeTarget.id,
+      dailyCalories: activeTarget.dailyCalories,
+      proteinGrams: parseFloat(activeTarget.proteinGrams) || null,
+      carbsGrams: parseFloat(activeTarget.carbsGrams) || null,
+      fatGrams: parseFloat(activeTarget.fatGrams) || null,
+      fiberGrams: parseFloat(activeTarget.fiberGrams) || null,
+      sodiumLimitMg: activeTarget.sodiumLimitMg,
+      hydrationTargetLiters: parseFloat(activeTarget.hydrationTargetLiters) || null,
+      effectiveFrom: activeTarget.effectiveFrom,
+    } : null;
+
     if (!plan) {
       return res.status(200).json({
         success: true,
         data: null,
+        target: targetPayload,
         message: 'No nutrition plan available. Complete your onboarding to receive personalized guidance.'
       });
     }
@@ -120,6 +141,98 @@ router.get('/:userId/current', protect, async (req, res) => {
 });
 
 /**
+ * GET /api/nutrition/:userId/dietary-identity
+ * PUT /api/nutrition/:userId/dietary-identity
+ * User-scoped allergy/restriction record (SWA-71 P0 — kills the fail-open
+ * plan-JSONB allergies). GET returns the tri-state; PUT records an explicit
+ * declaration (empty allergies array is a VALID "declared none" here because
+ * a human is asserting it, with provenance).
+ */
+router.get('/:userId/dietary-identity', protect, async (req, res) => {
+  try {
+    const access = await ensureClientAccess(req, req.params.userId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+    const identity = await getDietaryIdentity(access.clientId);
+    return res.json({ success: true, identity });
+  } catch (error) {
+    logger.error('Error fetching dietary identity:', error);
+    return sendInternalError(res, 'Server error fetching dietary identity');
+  }
+});
+
+router.put('/:userId/dietary-identity', protect, async (req, res) => {
+  try {
+    const access = await ensureClientAccess(req, req.params.userId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+    const { allergies, dietaryRestrictions } = req.body || {};
+    const result = await declareDietaryIdentity({
+      userId: access.clientId,
+      allergies: allergies ?? [],
+      dietaryRestrictions: dietaryRestrictions ?? [],
+      capturedBy: req.user.id,
+      captureSource: ['trainer', 'admin'].includes(req.user.role) && access.clientId !== req.user.id
+        ? 'trainer' : 'client_settings',
+    });
+    if (!result.ok) {
+      return res.status(400).json({ success: false, message: 'Invalid dietary identity payload', errors: result.errors });
+    }
+    return res.json({ success: true, identity: await getDietaryIdentity(access.clientId) });
+  } catch (error) {
+    logger.error('Error declaring dietary identity:', error);
+    return sendInternalError(res, 'Server error saving dietary identity');
+  }
+});
+
+/**
+ * PATCH /api/nutrition/targets/:targetId/activate
+ * Human activation of an AI-drafted nutrition target (S2.2 activation law:
+ * the model proposes — a debate lands as status='draft' — and ONLY a
+ * trainer/admin with access to that client can make it the live adherence
+ * denominator).
+ */
+router.patch('/targets/:targetId/activate', protect, async (req, res) => {
+  try {
+    if (!['trainer', 'admin'].includes(req.user?.role)) {
+      return res.status(403).json({ success: false, message: 'Only trainers and admins can activate nutrition targets' });
+    }
+
+    const targetId = Number(req.params.targetId);
+    if (!Number.isSafeInteger(targetId) || targetId <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid target id' });
+    }
+
+    const draft = await NutritionTarget.findByPk(targetId);
+    if (!draft) {
+      return res.status(404).json({ success: false, message: 'Target not found' });
+    }
+
+    const access = await ensureClientAccess(req, draft.userId);
+    if (!access.allowed) {
+      return res.status(access.status).json({ success: false, message: access.message });
+    }
+
+    const { todayLocal } = await getUserLocalToday(draft.userId);
+    const result = await activateNutritionTarget({
+      targetId,
+      activatedBy: req.user.id,
+      effectiveFrom: todayLocal,
+    });
+    if (!result.ok) {
+      return res.status(400).json({ success: false, message: 'Activation failed', errors: result.errors });
+    }
+
+    return res.json({ success: true, target: result.target });
+  } catch (error) {
+    logger.error('Error activating nutrition target:', error);
+    return sendInternalError(res, 'Server error activating nutrition target');
+  }
+});
+
+/**
  * POST /api/nutrition/:userId
  * Create/update nutrition plan (trainer/admin only)
  */
@@ -142,44 +255,66 @@ router.post('/:userId', protect, async (req, res) => {
       return res.status(500).json({ success: false, message: 'Nutrition model not available' });
     }
 
-    const {
-      planName,
-      dailyCalories,
-      proteinGrams,
-      carbsGrams,
-      fatGrams,
-      fiberGrams,
-      mealsJson,
-      groceryListJson,
-      dietaryRestrictions,
-      allergies,
-      hydrationTarget,
-      notes,
-      startDate,
-      endDate
-    } = req.body;
+    // S0.2: strict allowlist + bounds. Garbage types 400 instead of 500ing in
+    // the DECIMAL columns, and the JSONB fields are shape- and size-capped.
+    const validation = validateNutritionPlanBody(req.body);
+    if (!validation.ok) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid nutrition plan payload',
+        errors: validation.errors
+      });
+    }
+
+    // S1.4: targets route through the SINGLE WRITER (nutritionTargetService),
+    // so /api/macros/summary, the coach context, and this Builder all agree on
+    // one adherence denominator. Bounds are validated BEFORE the plan document
+    // is created — a rejected target rejects the whole write with a 400 the
+    // Builder can show, instead of a plan that silently "didn't take".
+    const targetFields = {
+      dailyCalories: validation.plan.dailyCalories,
+      proteinGrams: validation.plan.proteinGrams,
+      carbsGrams: validation.plan.carbsGrams,
+      fatGrams: validation.plan.fatGrams,
+      fiberGrams: validation.plan.fiberGrams,
+      hydrationTargetLiters: validation.plan.hydrationTarget,
+    };
+    const hasTargetFields = Object.values(targetFields).some((v) => v !== undefined && v !== null);
+
+    let targetResult = null;
+    if (hasTargetFields) {
+      const { todayLocal } = await getUserLocalToday(clientId);
+      targetResult = await setNutritionTarget({
+        userId: clientId,
+        fields: targetFields,
+        createdBy: req.user.id,
+        source: 'manual',
+        activate: true,
+        effectiveFrom: todayLocal,
+      });
+      if (!targetResult.ok) {
+        return res.status(400).json({
+          success: false,
+          message: 'Nutrition targets failed validation',
+          errors: targetResult.errors
+        });
+      }
+    }
 
     const plan = await ClientNutritionPlan.create({
+      ...validation.plan,
       userId: clientId,
-      planName: planName || 'Custom Nutrition Plan',
-      dailyCalories,
-      proteinGrams,
-      carbsGrams,
-      fatGrams,
-      fiberGrams,
-      mealsJson,
-      groceryListJson,
-      dietaryRestrictions,
-      allergies,
-      hydrationTarget,
-      notes,
-      startDate: startDate || new Date(),
-      endDate
+      planName: validation.plan.planName || 'Custom Nutrition Plan',
+      startDate: validation.plan.startDate || new Date(),
+      // Attribution was never captured before S0.2 — the createdByUser
+      // association was unusable and no audit story existed for plan writes.
+      createdBy: req.user.id
     });
 
     return res.status(201).json({
       success: true,
       data: plan,
+      target: targetResult?.target ?? null,
       message: 'Nutrition plan created successfully'
     });
   } catch (error) {

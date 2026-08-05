@@ -90,7 +90,7 @@ const ADDED_ITEM: EquipmentItem = {
 async function openProfileDetail() {
   const { container } = render(<EquipmentManagerPage />);
   fireEvent.click(await screen.findByText(/Hotel Gym/));
-  await screen.findByText('Swan Coach Scan');
+  await screen.findByText('Scan Equipment');
   const galleryInput = container.querySelector('input[type="file"][multiple]') as HTMLInputElement;
   expect(galleryInput).toBeTruthy();
   return galleryInput;
@@ -138,7 +138,7 @@ describe('EquipmentManagerPage possible scan candidate promotion', () => {
 
     const tray = await screen.findByLabelText('Latest equipment scan review');
     expect(within(tray).getAllByText('Foam Roller').length).toBeGreaterThanOrEqual(1);
-    expect(within(tray).getByText(/42% confidence/)).toBeTruthy();
+    expect(within(tray).getByText(/Not sure — scan this spot closer/)).toBeTruthy();
     fireEvent.click(within(tray).getByRole('button', { name: /add foam roller to inventory/i }));
 
     await waitFor(() => expect(addItemMock).toHaveBeenCalledWith(1, expect.objectContaining({

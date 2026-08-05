@@ -6,6 +6,7 @@
  * echoed back to the AI command receipt.
  */
 import { getAllModels } from '../../../models/index.mjs';
+import { createPainEntry } from '../painWriteService.mjs';
 
 const toNumber = (value) => {
   const parsed = Number(value);
@@ -25,27 +26,30 @@ const inferMovementPattern = (region) => {
 };
 
 export const dispatchTrackMyPain = async (params = {}, ctx = {}) => {
-  const { ClientPainEntry } = getAllModels();
+  // Slice 0 (C3): route through painWriteService so the client self-service
+  // lane enforces the SAME validation as every other writer. The old inline
+  // create accepted any garbage string as bodyRegion and silently clamped
+  // non-numeric painLevel to 1/10 instead of erroring.
   const userId = selfUserId(ctx);
-  const bodyRegion = String(params.bodyRegion || params.bodyPart || '').trim();
-  const painLevel = Math.min(10, Math.max(1, toNumber(params.painLevel)));
+  // Chat/voice lane: the LLM emits natural phrasing ("lower back") — we
+  // normalize to the canonical snake_case region BEFORE validation instead
+  // of erroring at users for speaking like humans.
+  const bodyRegion = String(params.bodyRegion || params.bodyPart || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
 
-  const entry = await ClientPainEntry.create({
-    userId,
-    createdById: userId,
-    bodyRegion,
-    painLevel,
-    description: params.notes || null,
-    isActive: true,
-  });
-  const row = normalizeRow(entry) || {};
+  const result = await createPainEntry(
+    { bodyRegion, painLevel: params.painLevel, notes: params.notes },
+    { clientId: userId, trainerId: userId } // self-service: createdById = self
+  );
 
   return {
-    entryId: row.id ?? null,
+    entryId: result.entryId,
     userId,
-    bodyRegion: row.bodyRegion ?? bodyRegion,
-    painLevel: toNumber(row.painLevel || painLevel),
-    isActive: row.isActive !== false,
+    bodyRegion: result.bodyRegion,
+    painLevel: toNumber(result.painLevel),
+    isActive: result.isActive !== false,
   };
 };
 

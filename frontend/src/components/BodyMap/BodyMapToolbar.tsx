@@ -14,7 +14,9 @@ import styled from 'styled-components';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
-export type AnatomyGender = 'male' | 'female';
+// Slice 2 (A5): 'neutral' is the inclusive default — non-binary/unset
+// profiles are never silently rendered male.
+export type AnatomyGender = 'male' | 'female' | 'neutral';
 export type LabelMode = 'off' | 'muscles' | 'bones';
 
 // ── Styled Components ──────────────────────────────────────────────────
@@ -106,6 +108,14 @@ const BodyMapToolbar: React.FC<BodyMapToolbarProps> = ({
         aria-pressed={gender === 'male'}
       >
         Male
+      </ToggleBtn>
+      <ToggleBtn
+        $active={gender === 'neutral'}
+        onClick={() => onGenderChange('neutral')}
+        aria-label="Neutral body view"
+        aria-pressed={gender === 'neutral'}
+      >
+        Neutral
       </ToggleBtn>
       <ToggleBtn
         $active={gender === 'female'}

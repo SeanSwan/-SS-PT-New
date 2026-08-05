@@ -260,6 +260,16 @@ const FREE_TEXT_WITHHELD_PLACEHOLDER = '[clinical note withheld — client ident
 export function stripIdentityFromNotes(noteContent, targetUserId, identity = null) {
   if (!noteContent) return noteContent;
 
+  // FAIL-CLOSED on non-string input (Kimi PII-to-LLM SEV-2, SWA-129). A truthy
+  // non-string (an array/object from a client-authored JSON column like
+  // masterPromptJson.goals.notes) would hit `.replace()` in the term loop and
+  // throw an uncaught TypeError — crashing the AI request — or, if a caller
+  // stringified it first elsewhere, leak raw PII. Neither is acceptable: a
+  // value we cannot deterministically scrub must never reach an LLM. Withhold.
+  if (typeof noteContent !== 'string') {
+    return FREE_TEXT_WITHHELD_PLACEHOLDER;
+  }
+
   // FAIL-CLOSED (Rule 8): with no identity map we cannot know the client's name,
   // so we cannot reliably strip it from free text — and a free-text clinical note
   // must NEVER reach an LLM raw. Withhold it. Non-identity derived signals (e.g.

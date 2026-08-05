@@ -75,7 +75,7 @@ export async function loadDispatcher() {
   const createdPainEntry = {
     id: 19,
     userId: 17,
-    bodyRegion: 'lower back',
+    bodyRegion: 'lower_back',
     painLevel: 7,
     isActive: true,
   };
@@ -110,6 +110,7 @@ export async function loadDispatcher() {
   };
 
   vi.doMock('../../models/index.mjs', () => ({
+    getClientPainEntry: () => ClientPainEntry,
     getAllModels: () => ({
       WorkoutPlan,
       WorkoutSession,

@@ -22,6 +22,35 @@ import { assertGroupPostAccess, canPostInGroup, canViewGroupContent, getGroupWit
 
 const router = express.Router();
 
+/**
+ * SWA-129 (Kimi call 6): interaction access = the group gate (for group posts)
+ * PLUS non-group visibility. assertGroupPostAccess returns ok:true for ANY
+ * non-group post regardless of visibility, so the like/unreact/comment/report
+ * handlers previously let a stranger interact with a `private` or `friends`-only
+ * post by enumerating postId (privacy breach over minors' posts + existence
+ * oracle + harassment/point-farm). This mirrors the single-post GET visibility
+ * gate: private → owner only; friends → owner or an accepted friendship.
+ */
+async function assertPostInteractionAccess(post, user) {
+  const groupGate = await assertGroupPostAccess(post, user);
+  if (!groupGate.ok) return groupGate;
+  if (post?.groupId) return { ok: true }; // group visibility already decided above
+  const denied = { ok: false, status: 403, message: 'You do not have permission to interact with this post' };
+  if (post?.visibility === 'private' && post.userId !== user?.id) return denied;
+  if (post?.visibility === 'friends' && post.userId !== user?.id) {
+    const friendship = await Friendship.findOne({
+      where: {
+        [Op.or]: [
+          { requesterId: user?.id, recipientId: post.userId, status: 'accepted' },
+          { requesterId: post.userId, recipientId: user?.id, status: 'accepted' },
+        ],
+      },
+    });
+    if (!friendship) return denied;
+  }
+  return { ok: true };
+}
+
 // Apply auth middleware to all routes
 router.use(protect);
 
@@ -1170,7 +1199,7 @@ router.post('/:postId/report', async (req, res) => {
     }
 
     // Non-members can't report (or oracle the existence of) private group posts.
-    const reportGate = await assertGroupPostAccess(post, req.user);
+    const reportGate = await assertPostInteractionAccess(post, req.user);
     if (!reportGate.ok) return res.status(reportGate.status).json({ success: false, message: reportGate.message });
 
     // Cannot report your own post
@@ -1312,7 +1341,7 @@ router.post('/:postId/like', async (req, res) => {
     }
 
     // Non-members must not react to (or point-farm on) private group posts.
-    const reactGate = await assertGroupPostAccess(post, req.user);
+    const reactGate = await assertPostInteractionAccess(post, req.user);
     if (!reactGate.ok) return res.status(reactGate.status).json({ success: false, message: reactGate.message });
 
     // Use reactToPost which handles dedup
@@ -1394,7 +1423,7 @@ router.delete('/:postId/like', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found' });
     }
 
-    const unreactGate = await assertGroupPostAccess(post, req.user);
+    const unreactGate = await assertPostInteractionAccess(post, req.user);
     if (!unreactGate.ok) return res.status(unreactGate.status).json({ success: false, message: unreactGate.message });
 
     const result = await SocialLike.removeReaction(req.user.id, postId, reactionType);
@@ -1443,7 +1472,7 @@ router.post('/:postId/comments', async (req, res) => {
     }
 
     // Non-members must not comment into a private group's feed.
-    const commentGate = await assertGroupPostAccess(post, req.user);
+    const commentGate = await assertPostInteractionAccess(post, req.user);
     if (!commentGate.ok) return res.status(commentGate.status).json({ success: false, message: commentGate.message });
 
     // Create the comment

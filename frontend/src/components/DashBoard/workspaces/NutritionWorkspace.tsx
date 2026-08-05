@@ -3,7 +3,7 @@
  * PURPOSE: Mounted nutrition hub for capture, review, macros, hydration, and education.
  * HOW IT FITS: UniversalDashboardLayout -> role /meal-planner route -> NutritionWorkspace.
  */
-import React, { useCallback, useState, lazy, Suspense } from 'react';
+import React, { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import { Apple, HeartPulse } from 'lucide-react';
 import NutritionWorkspaceCapture from './NutritionWorkspace.capture';
@@ -20,6 +20,19 @@ import type { RestaurantAddFoodPayload } from '../../FoodTracker/RestaurantTab.l
 import type { NutritionEntryDraft } from '../../FoodTracker/nutritionDraft.types';
 import { hasWorkoutLoggedOnDate } from './NutritionTodayPanel.trainingDay';
 import MacroChartsPanel from './NutritionWorkspace.macroCharts';
+import SegmentedTabBar from './SegmentedTabBar';
+import QuickAddFab from '../../FoodTracker/QuickAddFab';
+import StreakRing from '../../FoodTracker/StreakRing';
+import CelebrationToast from '../../FoodTracker/CelebrationToast';
+import SwanErrorCard from '../../FoodTracker/SwanErrorCard';
+// Lazy: the Food Quality surface (resurrected ingredient-safety intelligence)
+// is heavy and reached only through the Explore segment.
+const FoodQualityTab = lazy(() => import('../../FoodTracker/FoodQualityTab'));
+import {
+  detectStreakMilestone,
+  readCurrentLogStreak,
+  streakMilestoneMessage,
+} from '../../FoodTracker/nutritionStreakMilestones';
 import {
   readNutritionGentleModePreference,
   writeNutritionGentleModePreference,
@@ -32,18 +45,10 @@ import {
   HeaderSubtitle,
   HeaderTitle,
   GentleModeButton,
-  MacroHiddenPanel,
-  MacroHiddenText,
-  MacroHiddenTitle,
-  MoreToolsLabel,
-  MoreToolsRow,
-  MoreToolsSelect,
   WorkspaceRoot,
 } from './NutritionWorkspace.styles';
 import {
-  NUTRITION_MORE_TABS,
   NUTRITION_TAB_LABELS,
-  isMoreNutritionTab,
   nutritionPanelId,
   type Tab,
 } from './NutritionWorkspace.tabs';
@@ -77,7 +82,23 @@ const NutritionWorkspace: React.FC = () => {
   const workoutSessions = useWorkoutSessions({ limit: 50 });
   const trainingDay = hasWorkoutLoggedOnDate(workoutSessions.data, summary?.date);
   const reduceMotion = Boolean(useReducedMotion());
-  const activeMoreTab = isMoreNutritionTab(activeTab);
+  const logStreak = readCurrentLogStreak(summary);
+  const [celebration, setCelebration] = useState<string | null>(null);
+  // Milestone watcher (4C): a log action refetches the summary; when the
+  // refreshed streak crosses 3/7/30 the toast fires once. First load (null
+  // prev) and Gentle Mode never celebrate — ED-safe, numbers stay hidden.
+  const prevStreakRef = useRef<number | null>(null);
+  useEffect(() => {
+    // No summary (loading or error) leaves the last real streak untouched so
+    // an error→recovery refetch can never fake a milestone crossing.
+    if (macroLoading || !summary) return;
+    const prev = prevStreakRef.current;
+    prevStreakRef.current = logStreak;
+    if (prev === null || gentleMode) return;
+    const milestone = detectStreakMilestone(prev, logStreak);
+    if (milestone !== null) setCelebration(streakMilestoneMessage(milestone));
+  }, [logStreak, macroLoading, summary, gentleMode]);
+  const dismissCelebration = useCallback(() => setCelebration(null), []);
 
   const handleMealLogResult = useCallback((success: boolean) => {
     if (success) {
@@ -114,10 +135,12 @@ const NutritionWorkspace: React.FC = () => {
   const handleCloseReview = useCallback(() => setReviewDraft(null), []);
 
   const macroUnavailablePanel = macroError ? (
-    <MacroHiddenPanel role="alert" aria-live="assertive" aria-label="Nutrition totals unavailable">
-      <MacroHiddenTitle>Nutrition totals unavailable</MacroHiddenTitle>
-      <MacroHiddenText>{macroError}</MacroHiddenText>
-    </MacroHiddenPanel>
+    <SwanErrorCard
+      title="Nutrition totals unavailable"
+      message={macroError}
+      onRetry={refetchMacroSummary}
+      ariaLabel="Nutrition totals unavailable"
+    />
   ) : null;
 
   return (
@@ -129,6 +152,9 @@ const NutritionWorkspace: React.FC = () => {
           <HeaderSubtitle>Today&apos;s diary, macro balance, hydration, and trainer review</HeaderSubtitle>
         </div>
         <HeaderActions>
+          {!gentleMode && logStreak > 0 && (
+            <StreakRing streak={logStreak} reduceMotion={reduceMotion} />
+          )}
           <GentleModeButton
             type="button"
             $active={gentleMode}
@@ -150,24 +176,11 @@ const NutritionWorkspace: React.FC = () => {
         trainingDay={trainingDay}
         reduceMotion={reduceMotion}
       />
-      <MoreToolsRow>
-        <MoreToolsLabel htmlFor="nutrition-more-tools">Views &amp; tools</MoreToolsLabel>
-        <MoreToolsSelect
-          id="nutrition-more-tools"
-          aria-label="More nutrition tools"
-          aria-controls={activeMoreTab ? nutritionPanelId(activeTab) : undefined}
-          value={activeMoreTab ? activeTab : ''}
-          onChange={(event) => {
-            const nextTab = event.target.value as Tab;
-            if (nextTab) setActiveTab(nextTab);
-          }}
-        >
-          <option value="">Choose a nutrition tool</option>
-          {NUTRITION_MORE_TABS.map(tab => (
-            <option key={tab.id} value={tab.id}>{tab.label}</option>
-          ))}
-        </MoreToolsSelect>
-      </MoreToolsRow>
+      <SegmentedTabBar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        premiumLocked={!hasAINutrition}
+      />
 
       <ContentArea
         role="region"
@@ -220,6 +233,11 @@ const NutritionWorkspace: React.FC = () => {
             {activeTab === 'garden' && <GardeningTab />}
             {activeTab === 'farms' && <FarmFinderTab />}
             {activeTab === 'supplements' && <SupplementsTab />}
+            {activeTab === 'quality' && (
+              <Suspense fallback={<CosmicSuspenseLoader />}>
+                <FoodQualityTab />
+              </Suspense>
+            )}
             {activeTab === 'meal-plan' && (
               <CrystallineLockOverlay
                 isLocked={!hasAINutrition}
@@ -247,6 +265,13 @@ const NutritionWorkspace: React.FC = () => {
         </ErrorBoundary>
       </ContentArea>
       <NutritionReviewDrawer draft={reviewDraft} onClose={handleCloseReview} onSaved={handleReviewSaved} />
+      <QuickAddFab
+        onReviewDraft={setReviewDraft}
+        onNavigate={setActiveTab}
+        reduceMotion={reduceMotion}
+        gentleMode={gentleMode}
+      />
+      <CelebrationToast message={celebration} onDismiss={dismissCelebration} reduceMotion={reduceMotion} />
     </WorkspaceRoot>
   );
 };

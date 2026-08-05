@@ -12,9 +12,16 @@ import {
 } from './encryptionService.mjs';
 
 const ENCRYPTED_MODEL_FIELDS = {
+  // Slice 0 (C9): the old list named two columns that DO NOT EXIST on
+  // ClientPainEntry ('notes', 'severity_notes') and omitted the model's real
+  // sensitive free-text columns. Legacy plaintext rows are safe: decrypt()
+  // passes through values without the enc prefix. assessmentFindings (JSONB)
+  // is intentionally excluded — these hooks handle scalar strings only.
+  // Raw-SQL readers bypass these hooks; the only one selecting an encrypted
+  // column is aiChatService (pain description), which decrypts explicitly.
   ClientPainEntry: {
     context: 'health:pain_entry',
-    fields: ['description', 'notes', 'severity_notes'],
+    fields: ['description', 'trainerNotes', 'aiNotes', 'aggravatingMovements', 'relievingFactors'],
   },
   ClientBaselineMeasurements: {
     context: 'health:baseline',
@@ -34,8 +41,23 @@ const ENCRYPTED_MODEL_FIELDS = {
   },
   ClientNutritionPlan: {
     context: 'health:nutrition_plan',
-    fields: ['plan_details', 'notes', 'restrictions'],
+    // S0.3 (2026-08-04): this entry previously named plan_details/restrictions —
+    // columns that do not exist — so only `notes` was ever encrypted and the
+    // PHI-adjacent allergy/restriction lists sat in plaintext JSONB, silently.
+    // JSONB arrays must NOT go through encryptFields (String([...]) flattens
+    // the array to "a,b" and destroys it); they are encrypted element-wise via
+    // stringArrayFields below, preserving the array shape. Legacy plaintext
+    // rows keep reading fine: decrypt() passes through non-prefixed values.
+    fields: ['notes'],
+    stringArrayFields: ['dietaryRestrictions', 'allergies'],
   },
+};
+
+const mapStringArray = (value, transform, context) => {
+  if (!Array.isArray(value)) return value;
+  return value.map((item) =>
+    typeof item === 'string' && item ? transform(item, context) : item
+  );
 };
 
 const mapNutritionItems = (items, transform) => {
@@ -61,9 +83,19 @@ const transformNutritionItems = (instance, transform) => {
   if (items !== undefined) instance.setDataValue('items', transform(items));
 };
 
-const decryptInstance = (instance, validFields, config, isNutrition) => {
+const transformStringArrayFields = (instance, fields, context, transform, onlyChanged = false) => {
+  for (const field of fields) {
+    if (onlyChanged && !instance.changed(field)) continue;
+    const value = instance.getDataValue(field);
+    if (value === undefined || value === null) continue;
+    instance.setDataValue(field, mapStringArray(value, transform, `${context}:${field}`));
+  }
+};
+
+const decryptInstance = (instance, validFields, validArrayFields, config, isNutrition) => {
   if (!instance || typeof instance.getDataValue !== 'function') return;
   decryptFields(instance, validFields, config.context);
+  transformStringArrayFields(instance, validArrayFields, config.context, decrypt);
   if (isNutrition) transformNutritionItems(instance, decryptNutritionItems);
 };
 
@@ -73,12 +105,14 @@ export function registerEncryptionHooks(Model, modelName) {
 
   const attrs = Model.rawAttributes || Model.tableAttributes || {};
   const validFields = config.fields.filter((field) => Boolean(attrs[field]));
+  const validArrayFields = (config.stringArrayFields || []).filter((field) => Boolean(attrs[field]));
   const isNutrition = modelName === 'DailyMacroLog' && Boolean(attrs.items);
-  if (validFields.length === 0 && !isNutrition) return;
+  if (validFields.length === 0 && validArrayFields.length === 0 && !isNutrition) return;
 
   Model.addHook('beforeCreate', `encrypt_${modelName}`, (instance) => {
     if (!isEncryptionEnabled()) return;
     encryptFields(instance, validFields, config.context);
+    transformStringArrayFields(instance, validArrayFields, config.context, encrypt);
     if (isNutrition) transformNutritionItems(instance, encryptNutritionItems);
   });
 
@@ -86,6 +120,7 @@ export function registerEncryptionHooks(Model, modelName) {
     if (!isEncryptionEnabled()) return;
     const changedFields = validFields.filter((field) => instance.changed(field));
     if (changedFields.length > 0) encryptFields(instance, changedFields, config.context);
+    transformStringArrayFields(instance, validArrayFields, config.context, encrypt, true);
     if (isNutrition && instance.changed('items')) {
       transformNutritionItems(instance, encryptNutritionItems);
     }
@@ -94,12 +129,12 @@ export function registerEncryptionHooks(Model, modelName) {
   Model.addHook('afterFind', `decrypt_${modelName}`, (results) => {
     if (!isEncryptionEnabled() || !results) return;
     const instances = Array.isArray(results) ? results : [results];
-    instances.forEach((instance) => decryptInstance(instance, validFields, config, isNutrition));
+    instances.forEach((instance) => decryptInstance(instance, validFields, validArrayFields, config, isNutrition));
   });
 
   for (const event of ['afterCreate', 'afterUpdate']) {
     Model.addHook(event, `decrypt_${modelName}_${event}`, (instance) => {
-      if (isEncryptionEnabled()) decryptInstance(instance, validFields, config, isNutrition);
+      if (isEncryptionEnabled()) decryptInstance(instance, validFields, validArrayFields, config, isNutrition);
     });
   }
 }

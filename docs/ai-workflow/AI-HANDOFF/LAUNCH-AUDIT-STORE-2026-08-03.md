@@ -9,11 +9,18 @@ supersedes: none
 **Auditor:** VS-Claude (Fable 5), Lane 4 · **Date:** 2026-08-03
 **Base:** `origin/main` @ `0949eaf6b` in isolated worktree `c:/tmp/ss-launch-audit-lane4-20260803`,
 branch `claude/launch-audit-lane4-20260803`. The shared tree
-(`wip/comms-notifications-2026-07-05`) is 684 commits behind main and was **not edited**
-by this lane except its own coordination file.
-**Commits (local, NOT pushed — integrator reconciles):** `8266626ec`, `eb5366b15`,
-`ba94154e5`, `166983237`, `3f473dc74`, `42c84a077`, `79c5f7b23`, `92b8b863a`, `ec5a04f13`,
-`03b7f222b`, `df8933420`, `700caec79` (+ this doc commit).
+(`wip/comms-notifications-2026-07-05`) was already far behind main at audit start and was
+**not edited** by this lane except its own coordination file.
+
+**Commits: local, NOT pushed — integrator reconciles.** For the current count and list, run
+`git log --oneline 0949eaf6b..HEAD` on `claude/launch-audit-lane4-20260803`.
+
+> **No self-staling numbers in this header, deliberately.** It has carried a wrong figure
+> three separate times — a hand-maintained SHA list (round 9), a hardcoded commit count, and
+> a "N commits behind main" reading that was stale within a day. Each was corrected and each
+> rotted again, because a number written into a document that keeps changing is a number that
+> will be wrong. Counts that still appear in this record are scoped to *when they were
+> measured* (§7) or are enumerable from §1 rather than asserted here.
 
 > **Header notice (C4):** no shared-infrastructure file was edited. One P0-adjacent
 > hazard lives in `render.yaml` and one in `CLAUDE.md`; both are written up as
@@ -30,9 +37,9 @@ by this lane except its own coordination file.
 | **B1** | **Confirm the Stripe webhook endpoint URL in the Stripe dashboard.** `https://sswanstudios.com/webhooks/stripe` returns **HTTP 200 with an empty body** to any POST (§2 F-1). Stripe reads 2xx as delivered. If the dashboard points there, every payment is marked delivered while **no sessions are credited** — silently, with no 4xx in Stripe, no backend log, and no retry. | A buyer pays $8,400 and receives nothing; nothing alerts anyone | Sean (dashboard access) | ~2 min to check |
 | **B2** | **Confirm live catalog price truth.** Live prod serves **7 packages**, the canonical seeder defines **5** (§3). Prices are invisible to me because the invitation gate strips them from every public response, so I could not verify "$175/session flat" against the live DB. | A wrong price on the money path at the moment YouTube traffic arrives | Sean or an authenticated admin read | ~5 min |
 
-Everything else on the revenue path that I could verify is sound, and **15 real defects
-found during this audit are fixed with proof** (§1) — including three that would have hit
-buyers directly: a charged customer stranded with a raw axios error and no retry, a
+Everything else on the revenue path that I could verify is sound, and **every defect found
+during this audit is fixed with proof and enumerated in §1** (F-A … F-P) — including the
+ones that would have hit buyers directly: a charged customer stranded with a raw axios error and no retry, a
 one-second window that could mint a second Stripe session for the same cart, and a
 `/checkout` screen with no route back to the store.
 
@@ -82,8 +89,28 @@ Failing→passing verified: with the guard stashed, 2 of 5 tests fail.
 was already capped at 5/15min (`middleware/rateLimiter.mjs:111`, confirmed live:
 `ratelimit-policy: 5;w=900`). The endpoints that actually cost money were the unprotected
 ones. `POST /api/v2/payments/create-checkout-session` mints a real Stripe object per call
-(`v2PaymentRoutes.mjs:564`), so an authenticated account could loop it to burn Stripe API
-quota, flood the dashboard with abandoned sessions, and churn cart rows.
+(`v2PaymentRoutes.mjs:564`).
+
+> **IMPACT CORRECTED (hostile round 21).** The original wording here said an authenticated
+> account "could loop it to burn Stripe API quota, flood the dashboard with abandoned
+> sessions, and churn cart rows." That overstates it, and an overstated threat in a security
+> record misdirects future effort. Two defenses already existed and I had not traced them:
+> 1. **An atomic cart claim.** `ShoppingCart.update(..., { where: { id, userId, status:
+>    'active' } })` (`v2PaymentRoutes.mjs:543-549`) is a compare-and-swap: the first call
+>    flips the cart `active → pending_payment`, and every subsequent call matches 0 rows and
+>    returns **409 `CART_CHECKOUT_IN_PROGRESS`**. A same-cart loop therefore does *not* mint
+>    N Stripe sessions — it mints one and then 409s.
+> 2. **A real Stripe idempotency key** (`:541`, `:587`), derived from `userId`, `cart.id`, an
+>    item fingerprint, and the cart's *prior* `lastCheckoutAttempt` — and built **before**
+>    that field is rewritten (`:541` precedes `:547`), so a genuine repeat returns the same
+>    Stripe session rather than a new one.
+>
+> What remains true, and is why the limiter still earns its place: **no limiter existed on
+> any money endpoint**, and the claim/idempotency pair bounds the *same-cart* case only. It
+> does not bound repeated cancel→reopen→checkout cycles, cross-cart churn, or an accidental
+> client-side retry storm. The limiter is defense-in-depth against those, not the sole
+> guard — and it is the only thing that was missing, rather than the only thing standing
+> between the endpoint and abuse.
 
 **Fix.** Cart mutations 120/15min; checkout-session creation 20/15min; verify/activation
 60/15min. **Keyed per authenticated user id, falling back to IP** — IP alone would bucket
@@ -257,6 +284,186 @@ the same over-claiming this audit flags elsewhere (Rule 75), applied to my own w
 the module and F-B now disclose the limits and name the condition under which they must
 move to a shared store.
 
+### F-K · Correction — I asserted 320px damage I never rendered
+`d0d4c4563` · see the CORRECTION block in §7b
+
+Round 13 drove the **live site in a real browser**. It disproved my own §7b claims, which
+had been derived from reading stylesheets and written as though observed. Details and
+measurements in §7b. Methodology trap worth carrying: asking the harness for a 320px
+viewport yields `innerWidth: 465` — requests are scaled 1.5×, so a naive run "verifies
+320px" while actually measuring 480. Request **213** to get a true 320.
+
+### F-L · P1 — Cart quantity had no upper bound at all
+`ac68e2b07` · `backend/routes/cartRoutes.mjs`, new `cartQuantityCeiling.test.mjs`
+
+Fuzzing the quantity parser with 21 hostile values showed it is genuinely solid —
+negatives, zero, floats, hex, exponent notation, leading zeros, oversized strings,
+booleans, arrays, objects, unicode digits and a SQL-injection string are all rejected.
+But it has **no ceiling**, and the chain behind that matters: `parsePositiveInteger`
+accepts anything up to `Number.MAX_SAFE_INTEGER`; training packages carry
+`stockQuantity: null` (**verified on the live catalog**), so `getAvailableStock` returns
+null and the stock check is skipped for exactly the items Sean sells; and
+`ShoppingCart.total` is `DECIMAL(10,2)` — max 99,999,999.99. An authenticated buyer could
+therefore push a quantity large enough to overflow the column and turn a money-path request
+into a 500 (~571,429 for a $175 item), and anything below that still mints a real, absurd
+Stripe Checkout Session.
+
+Capped at **99 per line** — far above how packages are sold (a package already bundles up to
+192 sessions, so quantity counts *packages*) and comfortably inside the column at the top
+price. Enforced on **all three** entry points including the add-again merge path, so adding
+50 twice cannot reach 100. The refusal names the limit and points at a human.
+
+**Proof.** `cartQuantityCeiling.test.mjs` **10/10**; with `cartRoutes.mjs` stashed, **5 of
+10 fail** (failing→passing verified). Cart suites **6 files / 41 tests**.
+
+### F-M / F-N · P1 — The raw-transport-string leak had three more surfaces
+`1ec70a2d7`, `8e959056f` · `cartContextContracts.ts`, `StoreV3.tsx`, `StoreV2.tsx`, `CheckoutView.tsx`
+
+Having fixed "never show a buyer a raw transport error" on the checkout and post-payment
+screens (F-F), I stopped — and it was still live in three more places:
+1. **The cart panel.** `getCartErrorMessage` fell through to `error.message`, which
+   `ShoppingCart` renders directly, so a failed cart call showed "Request failed with status
+   code 500" / "Network Error" / "timeout of 30000ms exceeded".
+2. **The store itself, both surfaces.** `setPackagesError(error.message || …)` printed the
+   raw axios string onto **the first screen cold YouTube traffic sees**.
+3. **CheckoutView's non-HTTP branch** rendered any throw verbatim — fine for our own
+   deliberate copy, wrong for a genuine `TypeError` at the payment step.
+
+Each fix preserves intentional copy: server-authored messages still surface (that is how the
+new quantity-ceiling message reaches the user), a plain `Error` thrown by our own code still
+shows ("Please login to add items to cart"), and Stripe-authored decline text in
+`ACHPayment`/`PaymentMethodSelector` is **deliberately left alone** — suppressing it would
+make a decline less actionable, not more. Discrimination is on `error.name === 'Error'` and
+on whether the error is an axios error.
+
+**This is the round-7 lesson repeating twice more: fixing the first surface a defect appears
+on is not fixing the defect.** Round 16 stopped fixing instances and swept the whole money
+path instead.
+
+**Proof.** `cartContextContracts` **9/9** (5 new), `moneyPathSafety` **12/12** (2 new), lane
+frontend **40 files / 199 tests**, `tsc` 0 errors.
+
+### F-O · P1 (latent) — The displayed total and the charged total are computed twice, and disagree
+`eec738893` · `backend/routes/v2PaymentRoutes.mjs`, new `checkoutDisplayedVsChargedTotal.test.mjs`
+
+Every earlier round audited routing, auth, idempotency and copy. None audited the **money
+arithmetic**. Doing so found that what the buyer SEES and what Stripe CHARGES come from two
+entirely independent implementations — `cartHelpers.calculateCartTotals` persists
+`ShoppingCart.total` for the cart UI, while `v2PaymentRoutes.resolveCheckoutLineItem:162`
+builds the Stripe lines. They disagree on malformed quantity, and **every disagreement
+overcharges**:
+
+| cart row | buyer SEES | Stripe CHARGES |
+|---|---|---|
+| `quantity: 0` | **$0.00** | **$175.00** — `Number(0) > 0` is false, so the resolver silently defaults the quantity to 1 |
+| `quantity: -1` | -$175.00 | **$175.00** |
+| `quantity: '2'` (string) | item skipped entirely | **$350.00** |
+
+Proven by executing both rule sets side by side, not by reading them.
+
+**Reachability, stated honestly: LATENT, not live.** Route writes gate quantity through
+`parsePositiveInteger`, so such a row cannot be created through the API today. It matters
+because the **price** column already comes back from Sequelize as a *string* — which is
+precisely why the total helper carries explicit string handling — so the same thing
+happening to `quantity`, or any admin/repair/import path writing `cart_items` directly,
+makes it live with no other change.
+
+**Fix.** Checkout now fails closed: any cart item whose quantity is not a positive safe
+integer is refused with a recoverable 409 **before** the Stripe lines are built. Refusing
+costs a healthy cart nothing (every legitimate row is a positive integer), and never
+charging for a line the buyer's total did not include is the only safe direction. Scoped
+deliberately to quantity — a null or zero *price* costs the buyer $0 on both paths, so it is
+not a money divergence and guarding it would have blocked a legitimately free line.
+
+**Proof.** `checkoutDisplayedVsChargedTotal.test.mjs` **9/9**; with the route stashed **3 of
+9 fail**. v2 payment suites **6 files / 18 tests**.
+
+### F-P · P2 (latent) — The cart's session count disagreed with what actually gets granted
+`9af42bfa5` · `backend/utils/cartHelpers.mjs`, new `cartSessionCountMatchesGrant.test.mjs`
+
+Same root cause as F-O, different quantity. The count shown in the cart keyed on
+`typeof … === 'number'`; the count credited comes from
+`SessionGrantService.getStorefrontSessionCredits:36`. They disagree:
+
+- `sessions: 0, totalSessions: 48` → cart showed **0**, grant credits **48**. `0` *is* a
+  number, so the old branch was taken and `totalSessions` was never consulted — a monthly
+  package rendering as **"$8,400 for 0 sessions."**
+- `sessions: '8'` (string) → cart showed **0**, grant credits **8**.
+
+Neither overcharges, so this is not F-O's class of harm. It is a **truth** defect — a cart
+that disagrees with what the buyer receives — and at 0 a **conversion** defect. Live data
+uses `sessions: null`, which both implementations handled alike, so this was latent.
+
+**Fix by de-duplication, not by patching the symptom:** `cartHelpers` now calls the same
+canonical helper the grant uses. `sessionPackageRoutes` and `v2PaymentRoutes` already did;
+this was the last divergent copy, and the audit breakdown's `sessionsPerItem` was a *third*
+variant (`||` chaining) now also canonical. No import cycle — verified by import-execution.
+
+**Proof.** `cartSessionCountMatchesGrant.test.mjs` **9/9** (displayed == credited across all
+five shapes); with `cartHelpers` stashed **4 of 9 fail**. Cart + grant suites **7 files / 40
+tests**.
+
+---
+
+### F-Q · SECURITY P1 — Cart identity was COERCED, not validated (parseInt IDOR)
+`5d3256881` · `backend/utils/cartSchemaRecovery.mjs`, new `cartUserIdCoercionIdor.test.mjs`
+*(found by Kimi K3 external hostile review, verified here)*
+
+`normalizeAuthenticatedUserId` did `Number.parseInt(String(userId), 10)`. **`parseInt` stops at
+the first non-digit**: `parseInt('12f3a9…')` is `12`; `parseInt('42abc')` is `42`. Every cart
+route scopes on that return value — `where userId = ?` on read/update/remove/clear, and the
+checkout compare-and-swap — so a non-numeric or prefixed identifier (legacy token, SSO subject,
+migrated id) silently resolved to a **different, real user**, and the caller then read and
+mutated **that user's cart**. An IDOR produced by coercion rather than by a missing check, on
+the money path, in the one function whose entire job is to establish who is asking.
+
+The diagnosis is the irony: `cartRoutes.parsePositiveInteger` already rejects these correctly
+with a regex. **Identity was the single input still being coerced** — two implementations of
+"parse a positive integer", one safe, one not.
+
+Now rejects rather than coerces, and deliberately does not echo the rejected id back (that
+message reaches logs and a 401 body).
+
+**Proof.** 26/26; **13 of 26 fail** against the pre-fix version. Runtime probe over a real HTTP
+server: `12f3a9` → **401** (pre-fix: 200 → user 12), `42` → 200 → user 42.
+
+### F-R · P1 — My own quantity ceiling only guarded NEW writes
+`987b8cba7` · `cartHelpers.mjs`, `cartRoutes.mjs`, `v2PaymentRoutes.mjs`
+
+The 99/line cap lived at the cart routes. The checkout gate rejected non-positive and
+non-integer quantities but **not over-cap ones**, so a row of quantity 500 — predating the cap,
+or written by any path bypassing the routes — passed the last gate before Stripe and was
+charged. Fixed by enforcing the ceiling at checkout *and* moving `MAX_CART_ITEM_QUANTITY` into
+`cartHelpers` so both layers read **one** value. Also: `CART_ITEM_QUANTITY_INVALID` returned
+**409**, the same status as `CART_CHECKOUT_IN_PROGRESS` — one transient and retryable, one
+permanent — so a client retrying 409s would spin forever. Now **422**.
+
+### F-S · Six tests named for the double-credit invariant proved nothing
+`32c9e61db` · `tests/api/payments.test.mjs`, `__tests__/SessionGrantService.replay.test.mjs`
+
+`'should skip session grant for idempotent requests'` declared `const sessionsToAdd = 0` and
+asserted it equalled 0, never calling the service, wrapped in an `if` so it could pass with zero
+assertions. The **entire** "Webhook vs Verify-Session Race Condition" block built literal objects
+with `sessionsGranted: true` hardcoded and asserted they were true. **This is why round 19 found
+the real replay defense untested — the names made it look covered.** Tautologies removed (with
+comments so they are not "restored"), scenarios rewritten against the real service.
+
+### Kimi K3 findings VERIFIED AND REFUTED (recorded so they are not re-raised)
+
+| Kimi claim | Reality |
+|---|---|
+| CRIT-1: the five webhook surfaces may not all verify signatures | **All four handler files call `constructEvent`**, and `core/middleware/index.mjs` enumerates all five paths in the `express.json` bypass list |
+| CRIT-2: missing-secret branch may fail open | Returns **500 before any processing** — fail-closed |
+| CRIT-3: ACH grant-before-money | `completed` skips unless `payment_status === 'paid'`; `payment_intent.processing` only sets `Order.status`, it does **not** grant |
+| CRIT-4: fatten a claimed cart, then pay the still-live session | Cart mutations all scope to `status:'active'` so a claimed cart cannot be fattened; and cancel **refuses if already paid, expires the Stripe session server-side, clears `checkoutSessionId`**, scoped to `pending_payment` |
+| HIGH-2: out-of-order expired event releases a live claim | Canonical handler only sets a flag; the cart-route release is scoped to `checkoutSessionId: session.id` — the conditional release Kimi recommended already exists |
+| HIGH-4: XFF spoofing defeats the IP limiter | `trust proxy` is **1** (hop count), not `true` |
+| HIGH-4: success page polls every 2s → buyer gets 429'd | activation-status is called **at most twice per visit**; no polling loop |
+| MED-2: price gate is display-only, purchase open | `cartRoutes.mjs:430` gates purchase with `isPriceAccessGranted` → 403 `PRICE_ACCESS_REQUIRED` |
+
+**Confirmed and routed out-of-lane:** no refund/chargeback clawback (`charge.refunded` /
+`charge.dispute.created` unhandled) → **SWA-139**.
+
 ---
 
 ## 2. FINDINGS NOT FIXED IN-LANE (ranked)
@@ -264,6 +471,7 @@ move to a shared store.
 | # | Sev | Finding | Evidence | Why not fixed here |
 |---|---|---|---|---|
 | **F-1** | **P0-risk / config** | `https://sswanstudios.com/webhooks/stripe` returns **empty HTTP 200** to any POST. So does `/webhooks/anything-else` — the static site's SPA rewrite `/*  → /index.html` (`render.yaml:198-200`) swallows the whole prefix; only `/api` is proxied to the backend. Stripe treats 2xx as delivered, so a dashboard pointed here would mark every payment delivered while crediting nothing — no 4xx, no log, no retry. | Live probes: `/webhooks/stripe` → `200`, `Content-Length: 0`; `/webhooks/nonexistent-xyz` → identical `200`/0; `/api/webhook/stripe` → `400 "No stripe-signature header value was provided"`; backend origin `ss-pt-new.onrender.com/webhooks/stripe` → `400` (handler is healthy where reachable) | Requires Stripe dashboard access (Sean) + a `render.yaml` change (shared infra → §6 proposal). **Signature verification itself is intact everywhere it is reachable.** The code comment at `webhooks/stripeWebhook.mjs:49-51` says the dashboard uses `/api/webhook/stripe`, which works — so this is most likely already fine, but it is unverified and the failure mode is silent and total. |
+| **F-0** | P2 | **A SECOND session-crediting rail exists with no idempotency guard, and the admin endpoint calls that one.** `unifiedSessionService.allocateSessionsFromOrder` (`services/sessions/session.service.mjs:2249`) guards correctly — it looks for an existing `FinancialTransaction` for the order and returns `alreadyAllocated: true` (`:2275-2280`). `SessionAllocationService.allocateSessionsFromOrder` (`services/SessionAllocationService.mjs:45`) is a **second implementation of the same operation with no guard at all**: validate → create sessions → update balance → create transaction, straight through. `POST /api/sessions/allocate-from-order` (`routes/sessionRoutes.mjs:214`, `protect + adminOnly`) calls the **unguarded** one, and it is live — `core/routes.mjs:315-330` documents that `sessionRoutes` still serves via the `/api` fallback precisely because 4 admin-only endpoints exist nowhere else. Running it twice for one order creates a **duplicate batch of bookable `Session` rows** (`createAvailableSessions:185-194`, a plain loop + create) and a **duplicate `FinancialTransaction`** (`:261`, plain `.create()`). **Precisely scoped:** it does **not** double `availableSessions` — that increment is commented out (`:238-239`). So the damage is phantom bookable sessions plus double-counted revenue, not a doubled balance. Not attacker-reachable (adminOnly), but a double-click or a retry-after-timeout triggers it. | as cited | **READ-ONLY for this lane** — session-crediting service and `sessionRoutes.mjs` are outside Lane 4's OWNS list, so this is reported and handed off rather than fixed. Adjacent to the SWA-71 competing-surface work. |
 | **F-2** | P1 | **No `event.id` replay guard on the training-package webhook path.** Replay safety is *state-based* (`cart.sessionsGranted` under `FOR UPDATE`, `SessionGrantService.mjs:196-200`; `Order.paymentAppliedAt` claim, `stripeWebhook.mjs:242 (claim), 526-539 pre-fix`), not *event-based*. Gallery credits/donations/prints DO dedupe on session id via `processed_stripe_sessions` (`:606`, `:683`, `:775`); the training path does not. | grep: zero `event.id` references in `backend/webhooks/` | **Tier-3 trigger.** Structural Stripe/idempotency change on the money path — Rule 16 says propose a paid Village pass and ask Sean; do not self-approve. Today's state-based guards do hold, so this is hardening, not an open hole. |
 | **F-3** | P1 | **Two revenue routers are registered twice.** `v2PaymentRoutes` at `core/routes.mjs:371` *and* `routes/api.mjs:39`; `sessionPackageRoutes` at `core/routes.mjs:331` *and* `routes/api.mjs:27`. First mount wins; the second is inert. A future "fix" applied to the shadowed registration would silently do nothing. Existing mount-uniqueness guards exist for `/api/cart` and `/api/storefront` (`cartRoutesSecurity.test.mjs:24`, `storefrontRoutesSecurity.test.mjs:21`) but **not** for these two — which is exactly how the duplicates slipped in. | `core/routes.mjs:331,371`; `routes/api.mjs:27,39` | `routes/api.mjs` and `core/routes.mjs` are shared route-tree infrastructure (C4). → §6 proposal. |
 | **F-4** | P2 | **Three overlapping money columns** on `StorefrontItem`: `price`, `totalCost`, `pricePerSession` (`models/StorefrontItem.mjs:51,67,103`). The Stripe cart rail reads `totalCost` first then `price` (`cartRoutes.mjs:179`); the ACH/offline rails read **`price` only** (`achPaymentRoutes.mjs:121`). If the two ever diverge, the same item charges different amounts on different rails. A `beforeValidate` hook keeps them in sync today (`:216-246`). | as cited | Model change = C4 propose-only (admin + client surfaces consume it). |
@@ -407,6 +615,31 @@ scope decision, not a hostile-review fix. Tracked on SWA-112.
 
 ## 6. SHARED-INFRA PROPOSALS (C4 — integrator applies, I did not)
 
+> **RE-VALIDATED AGAINST CURRENT `origin/main` (hostile round 28).** This audit was built on
+> `0949eaf6b`; `origin/main` has since advanced **81 commits** to `c21a709757`. That is
+> exactly the staleness Ground Rule 1 warns about, so every proposal below was re-checked
+> against the *current* tip rather than assumed to still apply.
+>
+> **All three still apply, and none of this lane's audited files changed upstream** (verified
+> per-file with `git rev-list --count 0949eaf6b..origin/main -- <path>` — zero for every file
+> this lane touched, so the fixes still merge cleanly and the findings still hold).
+>
+> **Anchors below are given for CURRENT main**, because the integrator will apply them there,
+> not against this audit's base:
+>
+> | Proposal | Current-main anchor | Status |
+> |---|---|---|
+> | P-1 | `CLAUDE.md:1019` (FORCE_RESEED line) and `:1020` (the stale "/api/cart/add returning 404" line) | **still present — still needed** |
+> | P-2 | `render.yaml:198-200` (`type: rewrite` / `source: /*` / `destination: /index.html`) | **unchanged upstream — still needed** |
+> | P-3 | `routes/api.mjs:27` + `core/routes.mjs:332` (sessionPackageRoutes ×2); `routes/api.mjs:39` + `core/routes.mjs:378` (v2PaymentRoutes ×2) | **still duplicated — and now more timely:** `66288d074` just unmounted `/api/packages` as a dead surface (`core/routes.mjs:339`, now commented out), so duplicate-mount cleanup is actively in progress and these two were missed |
+>
+> One upstream change worth flagging to whoever merges this: `fe9a69c6f` renames `users` →
+> `_dead_users` and repoints canonical FKs (SWA-115). This lane's money path reaches users
+> only through the Sequelize models, so nothing here targets the renamed table directly — but
+> that is a schema move under a live payment path and deserves its own verification pass by
+> whoever owns SWA-115.
+
+
 **P-1 — `CLAUDE.md` → Open Items → "Storefront Packages (PENDING CONFIRMATION)".**
 Retract the FORCE_RESEED instruction; it is now destructive and the seeder will refuse it.
 
@@ -455,18 +688,41 @@ needs verification I could not do without dashboard access.
 
 | Gate | Result | Scope |
 |---|---|---|
-| Final backend money-path suites | **7 files / 83 tests pass** | seeder guard, money-path limits, cart security, checkout gate, price gating, admin charge-card, Stripe env safety |
-| Full backend suite | **1036 pass / 3 fail** | all 3 failures **proven pre-existing** by re-running them on a pristine worktree at base commit `0949eaf6b` |
-| Lane frontend suites | **40 files / 192 tests pass** | `pages/shop`, `NewCheckout`, `ShoppingCart`, `pages/checkout`, `context` |
-| Full frontend suite | **1516 / 1517 files pass** | the 1 failure is the same pre-existing one (workout-builder, Lane 5 territory) |
-| `tsc --noEmit` | **0 errors — baseline genuinely clean repo-wide**, not merely slice-clean | full frontend |
-| Production `vite build` | **succeeds** | real bundle, not just typecheck |
-| Runtime probe | limiter first-429 at request **121** against a cap of 120 | real HTTP server + `fetch`, unauthenticated IP-fallback key |
-| `node --check` | clean on **every** `.mjs` this lane touched | syntax sweep over the full diff |
+| Backend money-path suites | **7 files / 83 tests pass**, plus webhook-replay safety **6/6** | seeder guard, money-path limits, cart security, checkout gate, price gating, admin charge-card, Stripe env safety |
+| Full backend suite | **1040 pass / 3 fail** | all 3 failures **proven pre-existing** by re-running them on a pristine worktree at base `0949eaf6b` |
+| Frontend importer-closure sweep | **47 files / 242 tests pass** | every module importing anything this lane changed — `context`, `pages/shop`, `ShoppingCart`, `NewCheckout`, `pages/checkout`, `content/marketingStats`, `routes` |
+| Full frontend suite | **1516 / 1517 files pass** — measured at round 12 | see the disclosure below: the round-18 re-run had to be substituted |
+| `tsc --noEmit` | **0 errors — baseline genuinely clean repo-wide** | full frontend |
+| Production `vite build` | **succeeds** | real bundle |
+| Live browser, true 320px | overflow **0px**; **0** sub-44px targets; inquiry dialog fully usable; Escape restores focus | `https://sswanstudios.com/store` |
+| Runtime probe | limiter first-429 at request **121** vs cap 120 | real HTTP server + `fetch`, unauthenticated IP-fallback key |
+| Adversarial input fuzz | 21 hostile values — **0 accepted-but-unsafe** | cart quantity parser |
+| `node --check` | clean on **every** `.mjs` this lane touched | full diff sweep |
 | Rule 42 pre-push audit | clean | 0 untracked, 0 modified-uncommitted under `backend/` |
-| Pre-commit secret scan | CLEAN on all 15 commits | staged blobs |
-| Live production probes | 13 endpoints, read-only, unauthenticated | see §2/§3/§5 |
-| Dry-loop | **12 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
+| Pre-commit secret scan | CLEAN on all commits | staged blobs |
+| Dry-loop | **31 rounds, ending CLEAN×2** | each round used a vantage not previously tried |
+
+**Full-frontend-suite disclosure (Rule 56).** The 1516/1517 figure was measured at round 12.
+The round-18 re-run was started twice and **stopped producing output for 25+ minutes** with
+the machine saturated, so it was killed rather than reported. In its place, the round-18
+sweep enumerated **every importer** of every file rounds 13–16 touched — `cartContextContracts`
+(→ `CartContextProvider`, `cartContextState`), `StoreV3`/`StoreV2` (→ `main-routes` + 5 test
+surfaces), `CheckoutView` (→ `main-routes`, `CheckoutCancel`, both stores) — and ran that
+complete closure green at 47 files / 242 tests. That is dependency-complete for this lane's
+changes but is **not** the same claim as a green full-suite run, and is labelled accordingly.
+
+**Mergeability against current `origin/main` — verified, not assumed (round 30).** A clean
+textual merge is not semantic safety, and main had moved 81 commits including a schema rename
+(`users` → `_dead_users`, `fe9a69c6f`) beneath a live payment path. So the branch was actually
+merged onto current main on a throwaway probe branch and the suites re-run there:
+
+- `git merge-tree` + a real trial merge: **zero conflicts**.
+- This lane's money-path suites on the **merged** tree: **7 files / 63 tests pass**.
+- Full backend on the **merged** tree: **1055 pass / 3 fail** — the same three
+  (`galleryReferralCreditGuardTruth`, `adminWorkoutLoggerHistoryDate`, `editWorkoutDateParsing`).
+  None of them can be this lane's: the diff `0949eaf6b..HEAD` has **zero filename intersection**
+  with gallery/referral/workout files.
+- Probe branch deleted; audit branch restored; tree clean.
 
 **Not verified — disclosed gaps.** (a) Live catalog *prices* — invisible behind the
 invitation gate without an admin credential (B2). (b) The Stripe dashboard's configured
@@ -491,16 +747,39 @@ Touch targets are genuinely strong: **every** interactive control on the money p
 (cart close, quantity steppers, remove, dock FAB, fulfillment buttons, GlowButton 44/48/56).
 `prefers-reduced-motion` is honoured in 10+ files. The retired Galaxy-Swan palette is absent.
 
-Ranked gaps, none fixed (all P2 — presentation, not correctness):
+> **CORRECTION (hostile round 13, live-browser evidence).** An earlier revision of this
+> section asserted concrete 320px *consequences* — overflow, a title colliding with the close
+> button — derived from **reading CSS, never from rendering the page**. Driving the live site
+> in a real browser at a **true 320px CSS viewport** disproves them for the store surface.
+>
+> Methodology note that matters: the first attempt reported `innerWidth: 465` after asking
+> for 320 — the harness scales viewport requests by 1.5×, so a naive run would have "verified
+> 320px" while actually measuring 480. Requesting 213 yields a genuine `innerWidth: 320`.
+>
+> Measured at true 320px on `https://sswanstudios.com/store`:
+> - **Horizontal overflow: 0px** (`scrollWidth 304` vs `clientWidth 304`). The page does not
+>   scroll sideways.
+> - **Genuinely sub-44px touch targets: 0.** A first pass flagged 26 — all were rounding
+>   artifacts at 43.9x; re-measured at a 43.5 threshold, none are real.
+> - **The cold-traffic conversion path works.** All 7 "Ask About Pricing" buttons render
+>   140×48 inside the viewport. Opening one produces a dialog that **fits the viewport**
+>   (left 14 → right 290 of 320), with all four fields at 240×44+, "Send inquiry" at 240×48,
+>   and a 44×44 close — **nothing clipped, nothing below the fold**.
+> - **Escape closes the dialog and returns focus to the button that opened it** (WCAG 2.4.3),
+>   verified live.
+>
+> What remains true is only the CSS fact, with no proven consequence:
 
-1. **No breakpoint below 480px anywhere on the money path.** Smallest is `max-width: 480px`;
-   the responsive matrix requires 320px. Concrete consequences: the cart modal keeps
-   **2rem (64px) horizontal padding at every width** (`ShoppingCart.styles.ts:87,158,177`),
-   and `CartTitle` at 1.6rem sits under an absolutely-positioned 44px close button
-   (`:95-96` vs `:121-129`) — roughly 192px of usable title width at 320px.
-2. **`CartBody { max-height: calc(85vh - 150px) }`** (`ShoppingCart.styles.ts:156`) hardcodes
-   a 150px header+footer assumption that breaks when the header wraps or the footer stacks
-   at ≤480px (`ShoppingCart.summaryStyles.ts:74-77`).
+1. **No breakpoint below 480px is declared anywhere on the money path** — smallest is
+   `max-width: 480px`, while the responsive matrix asks for 320px. On the **store** surface
+   this provably does not manifest (evidence above). The **cart modal and `/checkout`**
+   remain **`[UNKNOWN]` at 320px** — both require an authenticated session, which this audit
+   could not drive (§7 disclosed gap). The specific mechanisms worth checking there when
+   someone *can* log in: `ShoppingCart.styles.ts:87,158,177` keeps 2rem horizontal padding at
+   every width, and `CartBody { max-height: calc(85vh - 150px) }` (`:156`) hardcodes a 150px
+   header+footer assumption that a wrapped header or a footer stacking at ≤480px
+   (`ShoppingCart.summaryStyles.ts:74-77`) would break. Stated as **hypotheses to test**, not
+   as findings.
 3. **`PackageCard.tsx` bypasses the token system**: a private `const T = {…}` object holds 6
    raw hex values (`:33-39`, incl. `#00D4AA`, `#8B5CF6`) interpolated ~20×, plus ~30 raw
    `rgba()` literals. It is the single worst Rule-6 offender on the store→checkout path, and

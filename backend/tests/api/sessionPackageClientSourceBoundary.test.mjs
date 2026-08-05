@@ -53,7 +53,7 @@ describe('session package clientSource boundary', () => {
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
     expect(source).toContain("router.post('/add-test-sessions', protect, adminOnly");
-    expect(source).toContain("process.env.NODE_ENV === 'production'");
+    expect(source).toContain("ENABLE_TEST_SESSION_GRANTS"); // F3: allowlist gate (was a NODE_ENV===production blacklist)
     expect(source).toContain('isNonDeductingClient(user)');
     expect(source).toContain('Test session grants are disabled for free-tracking clients');
   });

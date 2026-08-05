@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildNutritionProvenanceSummary,
   buildNutritionTimelineRows,
   type NutritionTimelineEntry,
 } from './NutritionTabContent.logic';
@@ -32,6 +31,7 @@ describe('NutritionTabContent logic', () => {
       macroLine: '620 cal - 44g protein - 9g fiber',
       sourceLabel: 'Photo estimate',
       reviewLabels: ['Needs review', 'Photo estimate'],
+      needsAttention: true,
     });
   });
 
@@ -45,6 +45,7 @@ describe('NutritionTabContent logic', () => {
       sourceLabel: 'Manual',
       reviewLabels: ['Verified'],
       canVerify: false,
+      needsAttention: false,
     });
   });
 
@@ -58,7 +59,24 @@ describe('NutritionTabContent logic', () => {
       sourceLabel: 'Manual',
       reviewLabels: ['Needs verification', 'Manual'],
       canVerify: true,
+      needsAttention: false,
     });
+  });
+
+  it('marks unverified manual entries flagged needs_review by the reviewer pipeline', () => {
+    const rows = buildNutritionTimelineRows([
+      entry({ source: 'manual', verified: false, reviewStatus: 'needs_review' }),
+    ]);
+
+    expect(rows[0].needsAttention).toBe(true);
+  });
+
+  it('never marks verified rows as needing attention regardless of reviewStatus', () => {
+    const rows = buildNutritionTimelineRows([
+      entry({ verified: true, reviewStatus: 'needs_review' }),
+    ]);
+
+    expect(rows[0].needsAttention).toBe(false);
   });
 
   it('preserves stored backend source labels for timeline rows', () => {
@@ -78,50 +96,12 @@ describe('NutritionTabContent logic', () => {
     expect(rows.every((row) => row.canVerify)).toBe(true);
   });
 
-  it('summarizes provenance using only source and verified fields', () => {
-    const summary = buildNutritionProvenanceSummary([
-      entry({ source: 'photo', verified: false }),
-      entry({ source: 'voice', verified: false }),
-      entry({ source: 'manual', verified: true }),
-    ]);
+  it('adds day context to the time label in range mode only', () => {
+    const [dayRow] = buildNutritionTimelineRows([entry()]);
+    const [rangeRow] = buildNutritionTimelineRows([entry()], { withDateLabels: true });
 
-    expect(summary).toEqual({
-      estimateCount: 2,
-      pendingReviewCount: 2,
-      sourceLine: 'Photo estimate, Voice estimate, Manual',
-      totalCount: 3,
-      verifiedCount: 1,
-      verificationLine: '1 verified / 2 pending reviews',
-    });
-  });
-
-  it('does not count manual unverified rows as estimates in provenance copy', () => {
-    const summary = buildNutritionProvenanceSummary([
-      entry({ source: 'manual', verified: false }),
-      entry({ source: 'photo', verified: false }),
-    ]);
-
-    expect(summary).toEqual({
-      estimateCount: 1,
-      pendingReviewCount: 2,
-      sourceLine: 'Manual, Photo estimate',
-      totalCount: 2,
-      verifiedCount: 0,
-      verificationLine: '0 verified / 2 pending reviews',
-    });
-  });
-
-  it('keeps empty provenance honest', () => {
-    const summary = buildNutritionProvenanceSummary([]);
-
-    expect(summary).toEqual({
-      estimateCount: 0,
-      pendingReviewCount: 0,
-      sourceLine: 'No sources yet',
-      totalCount: 0,
-      verifiedCount: 0,
-      verificationLine: 'No nutrition rows for this date',
-    });
+    expect(dayRow.createdAtLabel).not.toMatch(/Jun/);
+    expect(rangeRow.createdAtLabel).toMatch(/Jun \d{2}/);
   });
 
   it('rejects coercive macro values before timeline macro copy', () => {

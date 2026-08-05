@@ -9,6 +9,7 @@ import { Challenge, ChallengeParticipant, ChallengeTeam } from '../../models/soc
 // decision on the PascalCase challenge family.
 import { getChallenge, getChallengeParticipant } from '../../models/index.mjs';
 import { mapChallengeToSocialPreview } from './challengePreviewMapper.mjs';
+import { isMissingTableError } from '../featureAvailability.mjs';
 import User from '../../models/User.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
 import { Op } from 'sequelize';
@@ -29,6 +30,13 @@ const ALLOWED_SOCIAL_CHALLENGE_TYPES = new Set(['individual', 'team']);
 // The biometric/habit categories have no workout-event evidence source and
 // stay self-reportable. (Sean policy 2026-07-15.)
 const EVIDENCE_REQUIRED_CATEGORIES = new Set(['workout']);
+
+const parseBoundedInteger = (value, fallback, { min, max }) => {
+  const parsed = Number.parseInt(String(value ?? ''), 10);
+  return Number.isSafeInteger(parsed)
+    ? Math.min(Math.max(parsed, min), max)
+    : fallback;
+};
 
 const router = express.Router();
 
@@ -57,9 +65,10 @@ const upload = multer({
  * Get active challenges
  */
 router.get('/active', async (req, res) => {
+  const limit = parseBoundedInteger(req.query.limit, 10, { min: 1, max: 50 });
+  const offset = parseBoundedInteger(req.query.offset, 0, { min: 0, max: 10000 });
+
   try {
-    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
-    const offset = parseInt(req.query.offset) || 0;
     const now = new Date();
 
     // CANONICAL lane (see import note above): real challenges, public only —
@@ -107,9 +116,10 @@ router.get('/active', async (req, res) => {
       pagination: { limit, offset, total },
     });
   } catch (error) {
-    // Non-fatal: table may not be migrated yet in fresh environments
-    if (error.name === 'SequelizeDatabaseError' && error.message?.includes('does not exist')) {
-      return res.status(200).json({ success: true, challenges: [], pagination: { limit: 10, offset: 0, total: 0 } });
+    // A genuinely absent relation can degrade in a fresh environment. Missing
+    // columns and every other database failure stay visible as real 500s.
+    if (isMissingTableError(error)) {
+      return res.status(200).json({ success: true, challenges: [], pagination: { limit, offset, total: 0 } });
     }
     logger.error('Error fetching active challenges:', { error: error.message, stack: error.stack });
     return res.status(500).json({

@@ -5,9 +5,9 @@
  */
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import React from 'react';
 
-import AudienceView, { pageSlice } from './AudienceView';
+import AudienceView from './AudienceView';
+import { pageSlice } from './AudienceView.logic';
 import { directAudience, type RoomProfile } from './audienceDirector';
 import { createRunnerState, locate } from './runnerProtocol';
 // @ts-expect-error shared core ships untyped .mjs

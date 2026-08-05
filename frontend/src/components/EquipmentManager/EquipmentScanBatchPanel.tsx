@@ -10,19 +10,22 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { EquipmentItem, EquipmentScanCandidate, EquipmentScanDuplicate } from '../../hooks/useEquipmentAPI';
 import type { EquipmentScanBatch } from './equipmentScanBatch';
 import {
+  TRUST_TIER_LABELS,
   findDuplicateMatchedItem,
-  formatScanConfidence,
   getBatchBoundingBoxes,
   getCandidateName,
+  getTrustTier,
 } from './equipmentScanBatch';
 import {
   ActionBar,
   ActionButton,
   ActionButtons,
   CandidateRow,
+  DegradedBanner,
   DetectionBox,
   DetectionLabel,
   DangerActionButton,
+  PipDot,
   DismissButton,
   Eyebrow,
   GhostActionButton,
@@ -96,11 +99,22 @@ const EquipmentScanBatchPanel: React.FC<EquipmentScanBatchPanelProps> = ({
   bulkActionPending = false,
 }) => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  // Constellation focus sync (§10a #2): tapping a box or its row spotlights
+  // that detection and dims the rest of the photo. Null = no spotlight.
+  const [focusedBoxId, setFocusedBoxId] = useState<string | null>(null);
   const pendingItems = useMemo(
     () => batch.createdItems.filter(item => item.approvalStatus === 'pending'),
     [batch.createdItems],
   );
   const detectionBoxes = useMemo(() => getBatchBoundingBoxes(batch), [batch]);
+  const boxIdForItem = (item: EquipmentItem): string | null => {
+    const id = `created-${item.id}`;
+    return detectionBoxes.some(box => box.id === id) ? id : null;
+  };
+  const toggleFocus = (boxId: string | null) => {
+    if (!boxId) return;
+    setFocusedBoxId(current => (current === boxId ? null : boxId));
+  };
 
   useEffect(() => {
     const validIds = new Set(pendingItems.map(item => item.id));
@@ -136,6 +150,11 @@ const EquipmentScanBatchPanel: React.FC<EquipmentScanBatchPanelProps> = ({
       </HeaderRow>
 
       {batch.scanSession?.sceneSummary && <SceneSummary>{batch.scanSession.sceneSummary}</SceneSummary>}
+      {batch.degraded && (
+        <DegradedBanner role="status">
+          Limited scan — we could only identify one item confidently. Better lighting or a closer shot helps.
+        </DegradedBanner>
+      )}
       {previewUrl && (
         <PreviewSection aria-label="Scanned photo review">
           <PreviewFrame>
@@ -145,9 +164,13 @@ const EquipmentScanBatchPanel: React.FC<EquipmentScanBatchPanelProps> = ({
                 {detectionBoxes.map(box => (
                   <StyledBox as={DetectionBox}
                     key={box.id}
-                    aria-label={`${box.label} detection box`}
-                    role="img"
+                    type="button"
+                    aria-label={`${box.label} — ${TRUST_TIER_LABELS[box.tier]}`}
+                    aria-pressed={focusedBoxId === box.id}
                     data-status={box.status}
+                    data-focused={focusedBoxId === box.id}
+                    data-dimmed={focusedBoxId !== null && focusedBoxId !== box.id}
+                    onClick={() => toggleFocus(box.id)}
                     $style={{
                       left: `${box.left}%`,
                       top: `${box.top}%`,
@@ -155,6 +178,7 @@ const EquipmentScanBatchPanel: React.FC<EquipmentScanBatchPanelProps> = ({
                       height: `${box.height}%`,
                     }}
                   >
+                    <PipDot aria-hidden>{box.status === 'possible' ? '?' : box.pip}</PipDot>
                     <DetectionLabel>{box.label}</DetectionLabel>
                   </StyledBox>
                 ))}
@@ -179,7 +203,7 @@ const EquipmentScanBatchPanel: React.FC<EquipmentScanBatchPanelProps> = ({
             </SelectionLabel>
             <ActionButtons>
               <ActionButton type="button" disabled={!canAct || !onApproveSelected} onClick={() => onApproveSelected?.(selectedItems)}>
-                Approve selected
+                {selectedCount > 0 ? `Add ${selectedCount} selected ${selectedCount === 1 ? 'item' : 'items'}` : 'Add selected'}
               </ActionButton>
               <DangerActionButton type="button" disabled={!canAct || !onRejectSelected} onClick={() => onRejectSelected?.(selectedItems)}>
                 Reject selected
@@ -201,9 +225,15 @@ const EquipmentScanBatchPanel: React.FC<EquipmentScanBatchPanelProps> = ({
                       onChange={() => toggleItem(item.id)}
                     />
                   </SelectControl>
-                  <ItemCopy>
+                  <ItemCopy
+                    onClick={() => toggleFocus(boxIdForItem(item))}
+                    data-has-box={boxIdForItem(item) !== null}
+                  >
                     <ItemName>{itemLabel(item)}</ItemName>
-                    <MetaLine>{item.category} - {statusLabel(item.approvalStatus)}</MetaLine>
+                    <MetaLine>
+                      {item.category} - {statusLabel(item.approvalStatus)}
+                      {item.aiScanData ? ` - ${TRUST_TIER_LABELS[getTrustTier(item.aiScanData.confidence)]}` : ''}
+                    </MetaLine>
                   </ItemCopy>
                   <ReviewButton type="button" disabled={!pending || bulkActionPending} onClick={() => onReviewItem(item)}>
                     Review
@@ -256,7 +286,7 @@ const EquipmentScanBatchPanel: React.FC<EquipmentScanBatchPanelProps> = ({
                 <CandidateRow key={`${candidate.dedupeKey || candidate.suggestedName}-${index}`}>
                   <ItemCopy>
                     <ItemName>{candidateName}</ItemName>
-                    <MetaLine>{formatScanConfidence(candidate.confidence)} - Possible, not added</MetaLine>
+                    <MetaLine>{TRUST_TIER_LABELS[getTrustTier(candidate.confidence)]} - Possible, not added</MetaLine>
                   </ItemCopy>
                   <ReviewButton
                     type="button"

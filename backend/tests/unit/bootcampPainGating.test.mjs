@@ -198,13 +198,12 @@ describe('unmapped-region fail-visible note (hostile-review HIGH-2, 2026-07-13)'
   });
 
   it('severe pain in a region the bootcamp map cannot reach produces a visible alert, never silence', async () => {
-    // The intake vocabulary is granular (left_achilles, left_hip_flexor, ...)
-    // while the bootcamp map speaks coarse keys — unmapped regions used to
-    // `continue` silently, so a severity-9 achilles report left jump/calf
-    // work on Board 1 with zero annotation. Full vocabulary reconciliation is
-    // the Cortex Phase 2E+ arc; until then the gate must SAY it cannot map.
+    // Slice 1 (2026-08-04) mapped ALL 50 intake regions (left_achilles now
+    // gates via 'calves'), but legacy rows written before the C3 validation
+    // fix can still carry free-text regions no map reaches — the gate must
+    // SAY it cannot map those, never silently `continue`.
     mocks.painFindAll.mockResolvedValue([
-      { bodyRegion: 'left_achilles', side: 'left', painLevel: 9, painType: 'sharp', userId: 101 },
+      { bodyRegion: 'legacy_mystery_area', side: 'left', painLevel: 9, painType: 'sharp', userId: 101 },
     ]);
     const explanations = [];
 
@@ -212,7 +211,7 @@ describe('unmapped-region fail-visible note (hostile-review HIGH-2, 2026-07-13)'
 
     expect(alerts).toEqual([
       expect.objectContaining({
-        region: 'left_achilles',
+        region: 'legacy_mystery_area',
         severity: 9,
         unmappedRegion: true,
       }),

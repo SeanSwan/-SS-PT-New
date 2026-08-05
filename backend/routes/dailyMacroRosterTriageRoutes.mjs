@@ -3,6 +3,9 @@ import { Op } from 'sequelize';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import DailyMacroLog from '../models/DailyMacroLog.mjs';
+import { recordMacroLogRevision } from '../services/nutrition/nutritionLogRevisionService.mjs';
+import { getActiveNutritionTarget } from '../services/nutrition/nutritionTargetService.mjs';
+import { getCurrentLogStreak, summarizeAdherence } from '../services/nutrition/nutritionAdherenceService.mjs';
 import {
   ESTIMATE_REVIEW_SOURCES,
   addTodayEntry,
@@ -131,6 +134,11 @@ router.patch('/client-timeline/:entryId/verify', requireNutritionReviewer, async
       return res.json({ success: true, entry: timelineEntry(entry) });
     }
 
+    // S0.5: verify flips are trainer/admin actions on a client's record —
+    // capture the before-state first (best-effort, never blocks the verify).
+    await recordMacroLogRevision({
+      entry, action: 'verify', actorUserId: req.user.id, actorRole: req.user.role,
+    });
     const updatedEntry = await entry.update({
       verified: true,
       reviewStatus: 'verified',
@@ -215,14 +223,41 @@ router.get('/review-queue', requireNutritionReviewer, async (req, res) => {
 
 router.get('/client-timeline', requireNutritionReviewer, async (req, res) => {
   try {
-    const dateResult = resolveRequestedDate(req.query.date);
-    if (dateResult.status) {
-      return res.status(dateResult.status).json({ success: false, error: dateResult.error });
-    }
-    const date = dateResult.date;
     const userId = parseSingleUserId(req.query.userId);
     if (!userId) {
       return res.status(400).json({ success: false, error: 'Invalid userId' });
+    }
+
+    // S1.3: range mode (?start&?end, ≤31 days) kills the today-only coach view.
+    // Single-date mode (?date, default today) keeps the original contract.
+    // Date validation runs BEFORE the assignment check — invalid input must
+    // fail fast without touching access-control or the DB (locked by
+    // dailyMacroRosterReviewRoutes.test.mjs).
+    const hasRange = req.query.start !== undefined || req.query.end !== undefined;
+    let where;
+    let responseDates;
+    if (hasRange) {
+      const startResult = resolveRequestedDate(req.query.start);
+      if (startResult.status) {
+        return res.status(startResult.status).json({ success: false, error: startResult.error });
+      }
+      const endResult = resolveRequestedDate(req.query.end);
+      if (endResult.status) {
+        return res.status(endResult.status).json({ success: false, error: endResult.error });
+      }
+      const msRange = new Date(endResult.date).getTime() - new Date(startResult.date).getTime();
+      if (msRange < 0 || msRange > 31 * 24 * 60 * 60 * 1000) {
+        return res.status(400).json({ success: false, error: 'Date range must be within 31 days' });
+      }
+      where = { userId, date: { [Op.between]: [startResult.date, endResult.date] } };
+      responseDates = { start: startResult.date, end: endResult.date };
+    } else {
+      const dateResult = resolveRequestedDate(req.query.date);
+      if (dateResult.status) {
+        return res.status(dateResult.status).json({ success: false, error: dateResult.error });
+      }
+      where = { userId, date: dateResult.date };
+      responseDates = { date: dateResult.date };
     }
 
     const allowed = await assertAssignmentOrAdmin(req.user.id, req.user.role, userId);
@@ -232,16 +267,38 @@ router.get('/client-timeline', requireNutritionReviewer, async (req, res) => {
 
     const rows = await DailyMacroLog.findAll({
       attributes: REVIEW_MACRO_ATTRIBUTES,
-      where: { userId, date },
-      order: [['createdAt', 'ASC']],
-      limit: 100,
+      where,
+      order: [['date', 'ASC'], ['createdAt', 'ASC']],
+      limit: hasRange ? 500 : 100,
     });
+
+    // S1.2 spine for the coach tab: target + adherence ride along (best-effort).
+    const [target, currentLogStreak] = await Promise.all([
+      getActiveNutritionTarget(userId).catch(() => null),
+      getCurrentLogStreak(userId),
+    ]);
+    const rangeDays = hasRange
+      ? Math.round((new Date(responseDates.end) - new Date(responseDates.start)) / 86400000) + 1
+      : 1;
+    // Lean/mocked rows may not carry .get — never let adherence math 500 a read.
+    const plainRows = rows.map((r) => (typeof r?.get === 'function' ? r.get({ plain: true }) : r));
+    const adherence = summarizeAdherence(plainRows, target, rangeDays);
 
     return res.json({
       success: true,
-      date,
+      ...responseDates,
       userId,
       entries: rows.map(timelineEntry),
+      target: target ? {
+        dailyCalories: target.dailyCalories,
+        proteinGrams: target.proteinGrams,
+        carbsGrams: target.carbsGrams,
+        fatGrams: target.fatGrams,
+        fiberGrams: target.fiberGrams,
+        sodiumLimitMg: target.sodiumLimitMg,
+        hydrationTargetLiters: target.hydrationTargetLiters,
+      } : null,
+      adherence: { ...adherence, currentLogStreak },
     });
   } catch (err) {
     logger.error('[DailyMacroRosterTriageRoutes] Get client timeline error:', err.message);

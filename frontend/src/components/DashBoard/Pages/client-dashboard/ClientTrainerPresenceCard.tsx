@@ -81,7 +81,7 @@ const Kicker = styled.span`
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-secondary, #4070C0);
+  color: var(--text-secondary, #9FB0C8);
 `;
 
 const Name = styled.span`
@@ -125,11 +125,23 @@ const SkeletonRow = styled.div`
   display: flex;
   align-items: center;
   gap: 14px;
-  span {
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
-    border-radius: 8px;
-    display: inline-block;
-  }
+`;
+
+const SkeletonBlock = styled.span`
+  display: inline-block;
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+`;
+
+const AvatarSkeleton = styled(SkeletonBlock)`
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+`;
+
+const NameSkeleton = styled(SkeletonBlock)`
+  width: 140px;
+  height: 16px;
+  border-radius: 8px;
 `;
 
 const ClientTrainerPresenceCard: React.FC = () => {
@@ -159,8 +171,8 @@ const ClientTrainerPresenceCard: React.FC = () => {
     return (
       <Card aria-busy="true">
         <SkeletonRow>
-          <span style={{ width: 52, height: 52, borderRadius: '50%' }} />
-          <span style={{ width: 140, height: 16 }} />
+          <AvatarSkeleton />
+          <NameSkeleton />
         </SkeletonRow>
       </Card>
     );

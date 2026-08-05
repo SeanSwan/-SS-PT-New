@@ -19,6 +19,19 @@
  */
 
 import logger from './logger.mjs';
+import { getStorefrontSessionCredits } from '../services/SessionGrantService.mjs';
+
+/**
+ * Upper bound on a single cart line's quantity — the SINGLE source of truth.
+ *
+ * Lives here rather than in cartRoutes because BOTH layers must agree: the cart
+ * routes reject an over-cap write, and checkout must reject an over-cap ROW.
+ * A row can exceed the cap without ever passing through the cart routes — it
+ * predates the cap, or an admin/repair/import path wrote it directly — and
+ * checkout is the last gate before Stripe is charged. Two copies of this number
+ * would drift, which is the exact defect class this audit kept finding.
+ */
+export const MAX_CART_ITEM_QUANTITY = 99;
 // 🚀 ENHANCED P0 FIX: Coordinated model imports for production stability
 import { 
   getShoppingCart,
@@ -101,16 +114,23 @@ export const calculateCartTotals = (cartItems) => {
         const itemTotal = itemPrice * itemQuantity;
         total += itemTotal;
 
-        // Calculate sessions for this item
-        let itemSessions = 0;
-        if (item.storefrontItem && typeof item.storefrontItem.sessions === 'number') {
-          itemSessions = item.storefrontItem.sessions * item.quantity;
-          totalSessions += itemSessions;
-        } else if (item.storefrontItem && typeof item.storefrontItem.totalSessions === 'number') {
-          // Fallback to totalSessions for monthly packages
-          itemSessions = item.storefrontItem.totalSessions * item.quantity;
-          totalSessions += itemSessions;
-        }
+        // Calculate sessions for this item using the SAME helper that actually
+        // grants the credits (SessionGrantService.getStorefrontSessionCredits).
+        //
+        // This used to be a second, divergent implementation keyed on
+        // `typeof … === 'number'`, and it disagreed with the grant in the
+        // buyer's face:
+        //   sessions: 0, totalSessions: 48  -> cart displayed 0, grant credited 48
+        //     (0 IS a number, so the old code took that branch and never fell
+        //      through to totalSessions)
+        //   sessions: '8' (a string)        -> cart displayed 0, grant credited 8
+        // Neither overcharges, but a monthly package rendering as "$8,400 for 0
+        // sessions" is a conversion defect, and a cart that disagrees with what
+        // the buyer receives is a truth defect. sessionPackageRoutes and
+        // v2PaymentRoutes already call the canonical helper; this was the last
+        // divergent copy.
+        const itemSessions = getStorefrontSessionCredits(item.storefrontItem) * itemQuantity;
+        totalSessions += itemSessions;
 
         // Track breakdown for audit purposes
         itemBreakdown.push({
@@ -120,7 +140,7 @@ export const calculateCartTotals = (cartItems) => {
           quantity: itemQuantity,
           pricePerItem: itemPrice, // Use parsed price
           itemTotal,
-          sessionsPerItem: item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || 0,
+          sessionsPerItem: getStorefrontSessionCredits(item.storefrontItem),
           totalSessionsForItem: itemSessions
         });
 

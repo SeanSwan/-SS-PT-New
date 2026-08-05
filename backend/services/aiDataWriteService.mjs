@@ -17,14 +17,12 @@
 import logger from '../utils/logger.mjs';
 import { getWorkoutPlan } from '../models/index.mjs';
 import { PLAN_HORIZONS } from './clientTrainingPlanHorizonService.mjs';
-import { encrypt } from './encryption/encryptionService.mjs';
-import { resolveNutritionWriteDate } from './nutrition/displayDate.mjs';
-import { sanitizeNutritionCopy } from './nutrition/nutritionCareCopy.mjs';
+import DailyMacroLog from '../models/DailyMacroLog.mjs';
+import { buildMacroRow } from './nutrition/macroLogService.mjs';
 import {
   normalizeWorkoutPlanDataForPersistence,
   sanitizeWorkoutPlanMetadataForPersistence,
 } from './workoutPlanDataPrivacyService.mjs';
-import { parsePlainDecimalNumber } from './nutrition/numericInputValidation.mjs';
 import { createWorkoutPlanRecord } from './workoutPlanMutationService.mjs';
 import { transitionWorkoutPlanLifecycle } from './workoutPlanLifecycleService.mjs';
 
@@ -43,14 +41,6 @@ const TRUSTED_MACRO_SOURCE_MAP = {
   'food-scanner': 'photo',
   manual: 'manual',
 };
-const TRUSTED_MACRO_MEAL_TYPES = new Set(['breakfast', 'lunch', 'dinner', 'snack', 'pre_workout', 'post_workout']);
-
-function trustedMacroMealType(value) {
-  if (typeof value !== 'string') return 'snack';
-  const normalized = value.trim().toLowerCase();
-  return TRUSTED_MACRO_MEAL_TYPES.has(normalized) ? normalized : 'snack';
-}
-
 function normalizeUpdateType(type) {
   if (typeof type !== 'string') return 'unknown';
   const trimmed = type.trim();
@@ -119,24 +109,6 @@ async function runWorkoutPlanWriteTransaction(sequelize, work) {
     return sequelize.transaction((transaction) => work(transaction));
   }
   return work(null);
-}
-
-function sanitizeAiMacroNumber(value, fallback = 0) {
-  if (value === undefined || value === null) return fallback;
-  if (typeof value === 'string' && value.trim() === '') return fallback;
-
-  const parsed = parsePlainDecimalNumber(value);
-  if (parsed === null || parsed < 0) return null;
-  return parsed;
-}
-
-function sanitizeAiNovaGroup(value) {
-  if (value === undefined || value === null) return null;
-  if (typeof value === 'string' && value.trim() === '') return null;
-
-  const parsed = parsePlainDecimalNumber(value);
-  if (parsed === null || !Number.isInteger(parsed) || parsed < 1 || parsed > 4) return null;
-  return parsed;
 }
 
 function trustedMacroSource(source) {
@@ -342,72 +314,15 @@ async function insertClientNote(userId, trainerId, data, sequelize) {
 }
 
 async function insertMacroLog(userId, data, sequelize, { source = 'ai_chat' } = {}) {
-  const safeDescription = sanitizeNutritionCopy(data.description, '', 500);
-  if (!safeDescription) throw new Error('Food description is required');
+  // S0.7 (nutrition blueprint 2026-08-04): the raw-SQL INSERT that lived here
+  // was the second live write path to daily_macro_logs — it hand-encrypted
+  // description, wrote no items and none of the provenance columns, and leaked
+  // data.source into mealSource. All column logic (FDA fields, warning flags,
+  // sanitization) now lives in buildMacroRow; the model hooks own encryption.
+  const row = buildMacroRow(data, { userId, source: trustedMacroSource(source) });
+  await DailyMacroLog.create(row);
 
-  const sodium = sanitizeAiMacroNumber(data.sodium);
-  const addedSugar = sanitizeAiMacroNumber(data.addedSugar);
-  const cholesterol = sanitizeAiMacroNumber(data.cholesterol);
-  const saturatedFat = sanitizeAiMacroNumber(data.saturatedFat);
-  const transFat = sanitizeAiMacroNumber(data.transFat);
-  const novaGroup = sanitizeAiNovaGroup(data.novaGroup);
-
-  // Auto-calculate FDA warning flags per meal
-  const flagSodium = sodium > 800;           // >33% of 2,300mg DV
-  const flagSugar = addedSugar > 12;         // >50% AHA women's limit
-  const flagCholesterol = cholesterol > 100;  // >33% of 300mg DV
-  const flagSaturatedFat = saturatedFat > 7;  // >33% of 20g DV
-  const flagTransFat = transFat > 0;          // ANY trans fat
-  const flagProcessed = novaGroup === 4;      // Ultra-processed (NOVA 4)
-
-  const replacements = {
-    userId,
-    date: resolveNutritionWriteDate(data.date),
-    mealType: trustedMacroMealType(data.mealType),
-    description: encrypt(safeDescription, 'health:nutrition:description'),
-    calories: sanitizeAiMacroNumber(data.calories),
-    protein: sanitizeAiMacroNumber(data.protein),
-    carbs: sanitizeAiMacroNumber(data.carbs),
-    fat: sanitizeAiMacroNumber(data.fat),
-    fiber: sanitizeAiMacroNumber(data.fiber),
-    sugar: sanitizeAiMacroNumber(data.sugar),
-    sodium,
-    addedSugar: addedSugar || null,
-    saturatedFat: saturatedFat || null,
-    transFat: transFat || null,
-    cholesterol: cholesterol || null,
-    novaGroup,
-    brandName: sanitizeNutritionCopy(data.brandName, '', 200) || null,
-    mealSource: sanitizeNutritionCopy(data.source || data.mealSource, '', 200) || null,
-    flagSodium,
-    flagSugar,
-    flagCholesterol,
-    flagSaturatedFat,
-    flagTransFat,
-    flagProcessed,
-    source: trustedMacroSource(source),
-    verified: false,
-  };
-
-  await sequelize.query(
-    `INSERT INTO daily_macro_logs ("userId", date, "mealType", description,
-                                   calories, protein, carbs, fat, fiber, sugar, sodium,
-                                   "addedSugar", "saturatedFat", "transFat", cholesterol,
-                                   "novaGroup", "brandName", "mealSource",
-                                   "flagSodium", "flagSugar", "flagCholesterol",
-                                   "flagSaturatedFat", "flagTransFat", "flagProcessed",
-                                   source, verified, "createdAt", "updatedAt")
-     VALUES (:userId, :date, :mealType, :description,
-             :calories, :protein, :carbs, :fat, :fiber, :sugar, :sodium,
-             :addedSugar, :saturatedFat, :transFat, :cholesterol,
-             :novaGroup, :brandName, :mealSource,
-             :flagSodium, :flagSugar, :flagCholesterol,
-             :flagSaturatedFat, :flagTransFat, :flagProcessed,
-             :source, :verified, NOW(), NOW())`,
-    { replacements, type: sequelize.QueryTypes.INSERT }
-  );
-
-  logger.info('[AIDataWrite] Macro log added for user %d via %s', userId, replacements.source);
+  logger.info('[AIDataWrite] Macro log added for user %d via %s', userId, row.source);
 }
 
 async function updateProgressLevel(userId, data, sequelize) {
@@ -469,8 +384,11 @@ async function insertDailyWorkoutForm(clientId, trainerId, data, sequelize) {
   // `formRating: 3`, `overallIntensity || 5`. When the AI transcription
   // extracts a rating we clamp + keep it; when it doesn't, we omit the
   // field so the persisted row reads as "not rated" rather than a
-  // falsely-confident neutral middle value. `painLevel: 0` stays as-is
-  // per the Phase 16 scope — null-honest painLevel deferred to Phase 16.1.
+  // falsely-confident neutral middle value.
+  // Pain-Chart Slice 5 (C6): painLevel is now null-honest too — the
+  // hardcoded 0 asserted "zero pain" for every AI-logged exercise, which
+  // is exactly the falsely-confident value Phase 16 removed elsewhere.
+  // When the transcription carries a pain rating we clamp + keep it.
   const sanitizedExercises = data.exercises.slice(0, 30).map((ex, i) => {
     const name = String(ex.exerciseName || ex.name || `Exercise ${i + 1}`).slice(0, 200);
     const sets = Math.max(1, Math.min(20, parseInt(ex.sets) || 3));
@@ -499,9 +417,10 @@ async function insertDailyWorkoutForm(clientId, trainerId, data, sequelize) {
         if (exRpe !== null) setObj.rpe = exRpe;
         return setObj;
       }),
-      painLevel: 0,
       performanceNotes: '',
     };
+    const exPainLevel = clampIfProvided(ex.painLevel, 0, 10);
+    if (exPainLevel !== null) entry.painLevel = exPainLevel;
     if (exFormRating !== null) entry.formRating = exFormRating;
     return entry;
   });

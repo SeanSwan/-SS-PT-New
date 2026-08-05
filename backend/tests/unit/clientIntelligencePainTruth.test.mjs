@@ -102,11 +102,21 @@ describe('clientIntelligenceService pain-context truth (Cortex P0 §5.1-§5.2)',
 
     expect(context.pain.status).toBe('loaded_active_issue');
     expect(context.pain.activeIssueCount).toBe(1);
-    // Severity 8 but >72h old: not auto-excluded, MUST surface as a warning (not vanish)
+    // Slice 0/1 (F1, 2026-08-04): ACTIVE severity 8 EXCLUDES regardless of
+    // age — the old behavior (warning-only after 72h) let chronic severe
+    // pain silently age out of protection. The stale >=7 additionally warns
+    // for trainer re-confirmation.
+    expect(context.pain.exclusions).toEqual([
+      expect.objectContaining({
+        bodyRegion: 'shoulder',
+        painLevel: 8,
+        entryId: 11,
+        reason: expect.stringContaining('re-confirmation'),
+      }),
+    ]);
     expect(context.pain.warnings).toEqual([
       expect.objectContaining({ bodyRegion: 'shoulder', painLevel: 8, entryId: 11 }),
     ]);
-    expect(context.pain.exclusions).toEqual([]);
   });
 
   it('flags chronic active issues older than 30 days as stale-for-reassessment instead of dropping them', async () => {

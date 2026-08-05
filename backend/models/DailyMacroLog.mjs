@@ -184,6 +184,12 @@ DailyMacroLog.init({
     defaultValue: false,
     comment: 'Whether user confirmed the AI-parsed macros are correct',
   },
+  clientRequestId: {
+    type: DataTypes.STRING(64),
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Client-generated idempotency key; unique per user when present (S0.4)',
+  },
   ...nutritionProvenanceAttributes,
 }, {
   sequelize,

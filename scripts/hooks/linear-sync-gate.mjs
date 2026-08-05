@@ -22,9 +22,10 @@
  *   6. otherwise                        -> allow silently (not build-shaped)
  *
  * MARKER CONTRACT (what the closeout must contain to pass without an actual board write):
- *   `SWA-<n>`            — names the issue this work advanced/finished (agent claims it synced it), OR
+ *   `LINEAR: SWA-<n>`    — names the issue this work advanced/finished (agent CLAIMS it synced it), OR
  *   `LINEAR: N/A — why`  — this build turn genuinely maps to no issue (trivial/no-ticket work).
  *   Preferred is an ACTUAL save_issue/save_comment call — that needs no marker at all (rule 3).
+ *   NOTE: a bare `SWA-123` mention no longer passes — see ISSUE_REF_RE for why.
  */
 import { readFileSync } from 'node:fs';
 
@@ -36,8 +37,29 @@ const GIT_ACTIVITY_RE = /git(?:\s+-C\s+(?:"[^"]+"|'[^']+'|\S+))?\s+(commit|push)
  * create_attachment/label) do NOT count — those can happen without the work's issue being synced,
  * and accepting them would falsely waive the gate (tightened in the gate's own dry-loop 2026-07-21). */
 const LINEAR_WRITE_RE = /^mcp__linear-server__(save_issue|save_comment)\b/;
-/** Final-closeout markers: an issue id, or an explicit opt-out with a reason. */
-const ISSUE_REF_RE = /\bSWA-\d+\b/;
+/**
+ * Final-closeout markers: a DELIBERATE sync claim, or an explicit opt-out.
+ *
+ * TIGHTENED 2026-08-04 (Sean: "are we updating Linear as well… this should be
+ * automatic"). This was `/\bSWA-\d+\b/` — ANY incidental mention anywhere in the
+ * closeout satisfied it. Closeouts routinely cite issues for context
+ * ("see SWA-111", "filed as SWA-126"), so the gate effectively never fired:
+ * citing an issue was indistinguishable from syncing one, and a turn could ship
+ * a governance change with zero board activity and still pass. The marker now
+ * has to be an explicit claim — `LINEAR: SWA-<n>` — which an agent only writes
+ * when it means "this issue is synced". Real `save_issue`/`save_comment` calls
+ * still pass with no marker at all (the preferred path), and the N/A opt-out is
+ * unchanged, so every documented escape hatch survives.
+ *
+ * HOSTILE-ROUND CORRECTION (same day): the first cut allowed arbitrary text
+ * between the label and the id (`LINEAR:\s*(?:[^\n]*\b)?SWA-\d+`), which let
+ * `LINEAR: none — but SWA-9 exists` and `LINEAR: pending, see SWA-5 later`
+ * pass — re-opening the accidental-pass hole this exists to close, because
+ * "LINEAR:" followed by prose plus an incidental citation is NOT a sync claim.
+ * The id must now follow the label directly (only whitespace / markdown
+ * emphasis between), so the marker cannot be assembled by accident.
+ */
+const ISSUE_REF_RE = /LINEAR:\s*\**\s*SWA-\d+\b/i;
 const OPTOUT_RE = /LINEAR:\s*N\/A/i;
 
 const BLOCK_REASON =
@@ -45,8 +67,9 @@ const BLOCK_REASON =
   'code/files or committed, but the closeout neither updated a SWA issue nor named one. The board ' +
   'sync is UNPROMPTED — Sean must never have to ask. Do ONE of: (a) update the SWA issue this work ' +
   'advanced/finished via the Linear tool (save_issue/save_comment) — strongest; (b) if it is ' +
-  'substantial net-new work with no issue, capture one (linear-todo Mode 1, dedup first); (c) name ' +
-  'the issue in your closeout as `SWA-<n>`; or (d) if this build genuinely maps to no issue, state ' +
+  'substantial net-new work with no issue, capture one (linear-todo Mode 1, dedup first); (c) claim ' +
+  'the sync explicitly as `LINEAR: SWA-<n>` (a bare "SWA-123" mention no longer counts — citing an ' +
+  'issue is not syncing it); or (d) if this build genuinely maps to no issue, state ' +
   '`LINEAR: N/A — <reason>`. See closeout-evidence-lock Section 6.6. Do not fabricate an SWA id.';
 
 /**

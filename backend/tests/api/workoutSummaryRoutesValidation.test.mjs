@@ -19,6 +19,13 @@ vi.mock('../../middleware/auth.mjs', () => ({
   trainerOrAdminOnly: (_req, _res, next) => next(),
 }));
 
+// This suite exercises PAYLOAD VALIDATION, so the trainer↔client assignment gate added by
+// the 2026-08-04 authz sweep is stubbed to pass. The gate itself is real and must stay wired:
+// the "authorization gate" test at the bottom of this file locks it against removal.
+vi.mock('../../middleware/verifyClientAccess.mjs', () => ({
+  verifyClientAccessByUserId: () => (_req, _res, next) => next(),
+}));
+
 vi.mock('../../models/index.mjs', () => ({
   getAllModels: () => ({
     User: { findByPk: userFindByPk },
@@ -140,7 +147,28 @@ describe('workout summary route payload validation', () => {
     });
     expect(dailyWorkoutFormUpdate).toHaveBeenCalledWith(
       { clientSummary: expect.stringContaining('Push Up') },
-      { where: { id: formId } },
+      // Scoped by clientId too: `where: { id }` alone let any trainer overwrite ANY
+      // client's summary by supplying its form id (authz sweep 2026-08-04).
+      { where: { id: formId, clientId: 42 } },
     );
+  });
+});
+
+describe('workout summary authorization gate (authz sweep 2026-08-04)', () => {
+  // Source-level lock: `protect + trainerOrAdminOnly` was the entire guard, which let any
+  // trainer write to any client's form, resolve any user's identity (200-vs-404 oracle), and
+  // send a SwanStudios-branded email containing attacker-supplied text to any user's address.
+  it('wires the trainer-to-client assignment check on the POST route', () => {
+    expect(workoutSummaryRouteSource).toContain(
+      "import { verifyClientAccessByUserId } from '../middleware/verifyClientAccess.mjs'",
+    );
+    expect(workoutSummaryRouteSource).toMatch(
+      /router\.post\(\s*'\/',\s*protect,\s*trainerOrAdminOnly,\s*verifyClientAccessByUserId\(\{\s*bodyField:\s*'clientId'\s*\}\)/,
+    );
+  });
+
+  it('scopes the form update to the authorized client, never by form id alone', () => {
+    expect(workoutSummaryRouteSource).toMatch(/where:\s*\{\s*id:\s*normalizedFormId,\s*clientId:\s*parsedClientId\s*\}/);
+    expect(workoutSummaryRouteSource).not.toMatch(/where:\s*\{\s*id:\s*normalizedFormId\s*\}/);
   });
 });

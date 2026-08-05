@@ -50,7 +50,9 @@ router.get('/:clientId', authorize(['admin', 'trainer']), verifyClientAccessByUs
 router.get('/', authorize(['admin']), async (req, res) => {
   try {
     const trainerId = req.user.id;
-    const overview = await getAdminIntelligenceOverview(trainerId);
+    // Role is passed so pain alerts stay roster-scoped if this route ever
+    // opens beyond admin (Slice 0, C12 fail-closed scoping).
+    const overview = await getAdminIntelligenceOverview(trainerId, { role: req.user.role });
 
     return res.json({
       success: true,

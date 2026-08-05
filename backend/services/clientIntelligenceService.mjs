@@ -48,6 +48,7 @@ import {
 import { buildRecentExercisePerformance } from './workoutProgressionService.mjs';
 import { getCesStrategy } from './training-cortex/policy/nasmCesPolicy.mjs';
 import { registryMusclesForRegion } from './training-cortex/ontology/regionMuscleMap.mjs';
+import { getPainTrendFacts } from './painTrendService.mjs';
 
 // ── Safe model getter (non-fatal for optional tables) ────────────────
 function safeGetModel(name) {
@@ -663,14 +664,16 @@ export async function getClientContext(clientId, trainerId) {
   const painExclusions = [];
   const painWarnings = [];
   const staleActiveIssues = [];
+  const painUnmappedRegions = [];
   const excludedMuscles = new Set();
   let lastPainTouchMs = null;
 
+  // Staleness + last-touch run over ALL active entries. Slice 1 (C8 fix):
+  // the confirmation anchor is lastConfirmedAt (trainer/human confirm
+  // refreshes it) with updatedAt→createdAt fallback for pre-migration rows.
   for (const entry of safePainEntries) {
-    const muscles = registryMusclesForRegion(entry.bodyRegion);
-    const isRecent = entry.createdAt >= seventyTwoHoursAgo;
     const severity = entry.painLevel || 0;
-    const lastTouched = entry.updatedAt || entry.createdAt;
+    const lastTouched = entry.lastConfirmedAt || entry.updatedAt || entry.createdAt;
 
     if (lastTouched) {
       const touchedMs = new Date(lastTouched).getTime();
@@ -679,40 +682,101 @@ export async function getClientContext(clientId, trainerId) {
       }
     }
 
-    // Cortex P0 (§5.1): active issue untouched past the review window — flag for
-    // reassessment. It STILL flows through exclusion/warning processing below.
+    // Cortex P0 (§5.1): active issue unconfirmed past the review window —
+    // flag for reassessment. It STILL flows through exclusion processing.
     if (lastTouched && new Date(lastTouched) < painStaleCutoff) {
       staleActiveIssues.push({
         entryId: entry.id,
         bodyRegion: entry.bodyRegion,
         painLevel: severity,
         lastReviewedAt: new Date(lastTouched).toISOString(),
-        reason: `Active issue not reviewed in ${PAIN_STALE_REVIEW_DAYS}+ days -- reassess`,
+        reason: `Active issue not confirmed in ${PAIN_STALE_REVIEW_DAYS}+ days -- reassess`,
+      });
+    }
+  }
+
+  // Slice 1 (F4): gate input is DETERMINISTIC — one representative per
+  // (region, side), the max-severity entry. Five duplicate "left shoulder"
+  // rows no longer multiply warnings or randomize which entry explains the
+  // exclusion. (Muscle exclusion was already order-independent set-union;
+  // this fixes the warning/explanation noise and pins the cited entryId.)
+  const gateRepresentatives = new Map();
+  for (const entry of safePainEntries) {
+    const key = `${entry.bodyRegion}|${entry.side || 'center'}`;
+    const prev = gateRepresentatives.get(key);
+    if (!prev || (entry.painLevel || 0) > (prev.painLevel || 0)) {
+      gateRepresentatives.set(key, entry);
+    }
+  }
+
+  for (const entry of gateRepresentatives.values()) {
+    const muscles = registryMusclesForRegion(entry.bodyRegion);
+    const isRecent = entry.createdAt >= seventyTwoHoursAgo;
+    const severity = entry.painLevel || 0;
+    // Slice 1 (F5): pain AT REST escalates one tier — it signals irritation
+    // that loading decisions must respect even at moderate severity.
+    const isRestPain = entry.painContext === 'rest';
+
+    // Slice 1 (C1 parity): a region with no muscle mapping cannot machine-
+    // protect the plan — say so VISIBLY (bootcamp side already did).
+    if (muscles.length === 0 && severity >= PAIN_WARN_SEVERITY) {
+      painUnmappedRegions.push({
+        bodyRegion: entry.bodyRegion,
+        painLevel: severity,
+        entryId: entry.id,
+        reason: 'No automatic muscle mapping -- manual exercise review required',
       });
     }
 
-    if (severity >= PAIN_AUTO_EXCLUDE_SEVERITY && isRecent) {
+    // Slice 0/1 (F1): an ACTIVE >=7 entry excludes regardless of age — the
+    // old `&& isRecent` let chronic severe pain silently age OUT of
+    // exclusion after 72h while still active. Stale >=7 additionally warns
+    // for trainer re-confirmation.
+    if (severity >= PAIN_AUTO_EXCLUDE_SEVERITY || (isRestPain && severity >= PAIN_WARN_SEVERITY)) {
       painExclusions.push({
         bodyRegion: entry.bodyRegion,
         painLevel: severity,
         painType: entry.painType,
+        painContext: entry.painContext || 'loaded_movement',
         muscles,
-        reason: `Auto-excluded: severity ${severity}/10 within 72h`,
+        reason: isRestPain && severity < PAIN_AUTO_EXCLUDE_SEVERITY
+          ? `Auto-excluded: pain at REST (${severity}/10) -- contraindication signal, trainer review before loading`
+          : isRecent
+            ? `Auto-excluded: severity ${severity}/10 within 72h`
+            : `Auto-excluded: active severity ${severity}/10 (logged >72h ago -- trainer re-confirmation recommended)`,
         entryId: entry.id,
       });
       muscles.forEach(m => excludedMuscles.add(m));
+      if (!isRecent && severity >= PAIN_AUTO_EXCLUDE_SEVERITY) {
+        painWarnings.push({
+          bodyRegion: entry.bodyRegion,
+          painLevel: severity,
+          painType: entry.painType,
+          muscles,
+          reason: `High severity logged >72h ago -- trainer re-confirmation needed`,
+          entryId: entry.id,
+        });
+      }
     } else if (severity >= PAIN_WARN_SEVERITY) {
       painWarnings.push({
         bodyRegion: entry.bodyRegion,
         painLevel: severity,
         painType: entry.painType,
         muscles,
-        reason: severity >= PAIN_AUTO_EXCLUDE_SEVERITY
-          ? `High severity but >72h ago -- trainer review needed`
-          : `Moderate pain (${severity}/10) -- modify load/ROM`,
+        reason: `Moderate pain (${severity}/10) -- modify load/ROM`,
         entryId: entry.id,
       });
     }
+  }
+
+  // Slice 4 (C5): per-episode severity trend FACTS (delta/flare/sample size)
+  // — degrades to [] without ever failing the context build.
+  let painTrends = [];
+  try {
+    const trendResult = await getPainTrendFacts(clientId);
+    painTrends = trendResult.facts.filter((fact) => fact.isActive);
+  } catch {
+    painTrends = [];
   }
 
   // ── Pain Source State (Cortex P0 §5.2) ─────────────────────────
@@ -966,6 +1030,11 @@ export async function getClientContext(clientId, trainerId) {
       exclusions: painExclusions,
       warnings: painWarnings,
       excludedMuscles: Array.from(excludedMuscles),
+      // Slice 1 (C1 parity): regions that could NOT be machine-protected —
+      // fail-visible, mirroring bootcamp's unmappedRegion alerts.
+      unmappedRegions: painUnmappedRegions,
+      // Slice 4 (C5): computed per-episode trend facts (never cross-region).
+      trends: painTrends,
     },
 
     movement: {
@@ -1017,13 +1086,36 @@ export async function getClientContext(clientId, trainerId) {
 /**
  * Get admin-level overview across all clients for dashboard widgets.
  *
+ * Slice 0 (C12): the signature always advertised trainer scoping but never
+ * applied it to pain alerts. The route is admin-only today (admins see the
+ * whole platform on purpose); if this ever opens to trainers, named pain
+ * alerts are hard-scoped to the caller's ACTIVE roster here — fail-closed
+ * (missing roster model or empty roster ⇒ zero alerts, never platform-wide).
+ *
  * @param {number} trainerId
+ * @param {{ role?: 'admin' | 'trainer' }} [opts]
  * @returns {Promise<Object>} AdminIntelligenceOverview
  */
-export async function getAdminIntelligenceOverview(trainerId) {
+export async function getAdminIntelligenceOverview(trainerId, { role = 'admin' } = {}) {
   const now = new Date();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  let painAlertRosterScope = {};
+  if (role !== 'admin') {
+    // NOTE: Op.in with an EMPTY array matches nothing (safe), but the [-1]
+    // sentinel makes the fail-closed intent explicit and survives refactors
+    // (Op.notIn with [] would match EVERYTHING — see 61f98a585 lesson).
+    const ClientTrainerAssignment = safeGetModel('ClientTrainerAssignment');
+    const roster = ClientTrainerAssignment
+      ? await ClientTrainerAssignment.findAll({
+          where: { trainerId, status: 'active' },
+          attributes: ['clientId'],
+        }).catch(() => [])
+      : [];
+    const rosterIds = roster.map((a) => a.clientId).filter(Boolean);
+    painAlertRosterScope = { userId: { [Op.in]: rosterIds.length ? rosterIds : [-1] } };
+  }
 
   const [
     highPainAlerts,
@@ -1032,12 +1124,13 @@ export async function getAdminIntelligenceOverview(trainerId) {
     recentVariations,
     recentWorkouts,
   ] = await Promise.all([
-    // Pain alerts: severity >= 7 in last 24h
+    // Pain alerts: severity >= 7 in last 24h (roster-scoped for non-admins)
     getClientPainEntry().findAll({
       where: {
         isActive: true,
         painLevel: { [Op.gte]: PAIN_AUTO_EXCLUDE_SEVERITY },
         createdAt: { [Op.gte]: twentyFourHoursAgo },
+        ...painAlertRosterScope,
       },
       include: [{
         model: getUser(),

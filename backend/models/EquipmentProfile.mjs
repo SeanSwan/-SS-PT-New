@@ -26,7 +26,14 @@ EquipmentProfile.init({
     references: { model: 'Users', key: 'id' },
     onUpdate: 'CASCADE',
     onDelete: 'CASCADE',
-    comment: 'Trainer who owns this equipment profile',
+    comment: 'Owner user id (generic since S4/20260804120000 — any role; name kept as deprecated alias)',
+  },
+  ownerRole: {
+    type: DataTypes.STRING(20),
+    allowNull: false,
+    defaultValue: 'trainer',
+    validate: { isIn: [['trainer', 'client', 'user', 'admin']] },
+    comment: 'Role of the owning user at creation time (S4 all-roles ownership)',
   },
   name: {
     type: DataTypes.STRING(100),

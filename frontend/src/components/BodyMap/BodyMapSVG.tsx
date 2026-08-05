@@ -27,378 +27,40 @@
  *
  * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
  */
-import React, { useRef, useState, useCallback, useMemo } from 'react';
-import styled, { keyframes, css } from 'styled-components';
+import React, { useRef, useState, useCallback, useMemo, useId } from 'react';
 import {
   FRONT_VIEW_REGIONS,
   BACK_VIEW_REGIONS,
   getSeverityColor,
+  getSeverityTier,
   type BodyRegion,
 } from './bodyRegions';
+import ZoomablePanel from './ZoomablePanel';
+import {
+  MaleFrontOutline,
+  MaleBackOutline,
+  FemaleFrontOutline,
+  FemaleBackOutline,
+  NeutralFrontOutline,
+  NeutralBackOutline,
+  HEAD_GEOMETRY,
+} from './bodyOutlines';
 import type { AnatomyGender, LabelMode } from './BodyMapToolbar';
 import type { PainEntry } from '../../services/painEntryService';
-import { device } from '../../styles/breakpoints';
 
-// ── Animations ──────────────────────────────────────────────────────────
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-`;
-
-// ── Styled Components ───────────────────────────────────────────────────
-
-const MapContainer = styled.div`
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  align-items: flex-start;
-  flex-direction: column;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  box-sizing: border-box;
-
-  ${device.md} {
-    flex-direction: row;
-    gap: 24px;
-  }
-
-  ${device.xxxl} {
-    gap: 32px;
-  }
-`;
-
-const ViewPanel = styled.div`
-  background: var(--bg-elevated, rgba(0, 32, 96, 0.8));
-  border: 1px solid var(--border-soft, rgba(64, 112, 192, 0.2));
-  border-radius: 16px;
-  backdrop-filter: blur(12px);
-  padding: 10px;
-  text-align: center;
-  width: 100%;
-  max-width: 100%;
-  margin: 0 auto;
-  touch-action: manipulation;
-  box-sizing: border-box;
-  min-width: 0;
-
-  @supports not (backdrop-filter: blur(12px)) {
-    background: var(--bg-elevated, rgba(0, 20, 60, 0.95));
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  }
-
-  ${device.sm} {
-    max-width: 300px;
-    padding: 14px;
-  }
-
-  ${device.md} {
-    flex: 1;
-    max-width: 320px;
-    min-width: 0;
-  }
-
-  ${device.xxxl} {
-    max-width: 400px;
-    padding: 20px;
-  }
-`;
-
-const ViewLabel = styled.h4`
-  color: var(--accent-primary, #8B5CF6);
-  font-family: 'Sora', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin: 0 0 12px 0;
-  position: relative;
-  padding-bottom: 8px;
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60%;
-    max-width: 120px;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent-primary, #8B5CF6), transparent);
-    border-radius: 1px;
-    box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
-  }
-`;
-
-const ResponsiveSVG = styled.svg`
-  width: 100%;
-  height: auto;
-  max-width: 280px;
-  display: block;
-  margin: 0 auto;
-  overflow: visible;
-
-  ${device.xxxl} {
-    max-width: 360px;
-  }
-`;
-
-const ZoomContainer = styled.div`
-  position: relative;
-  overflow: hidden;
-  touch-action: none;
-  border-radius: 12px;
-
-  ${device.md} {
-    touch-action: manipulation;
-    overflow: visible;
-  }
-`;
-
-const ZoomContent = styled.div<{ $scale: number; $x: number; $y: number; $isPinching: boolean }>`
-  transform: ${({ $scale, $x, $y }) => `scale(${$scale}) translate(${$x / $scale}px, ${$y / $scale}px)`};
-  transform-origin: center center;
-  transition: ${({ $isPinching }) => $isPinching ? 'none' : 'transform 0.2s ease-out'};
-`;
-
-/**
- * Minimum radius for interactive ellipses to guarantee 44px touch targets.
- * For a 280px-wide SVG mapping to 200 viewBox units:
- *   44px → 200/280 * 44/2 = 15.7 viewBox units
- * Using 22 guarantees 44px diameter at any reasonable scale.
- */
-const HIT_AREA_MIN_R = 22;
-
-interface RegionEllipseProps {
-  $isActive: boolean;
-  $isSelected: boolean;
-  $severityColor: string | null;
-}
-
-const RegionEllipse = styled.ellipse<RegionEllipseProps>`
-  fill: transparent;
-  stroke: ${({ $isActive, $isSelected, $severityColor }) =>
-    $isSelected
-      ? '#8B5CF6'
-      : $isActive && $severityColor
-        ? $severityColor
-        : 'rgba(64, 112, 192, 0.30)'};
-  stroke-width: ${({ $isSelected }) => ($isSelected ? 2.5 : 1.5)};
-  cursor: pointer;
-  pointer-events: all;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  ${({ $isActive }) =>
-    $isActive &&
-    css`
-      animation: ${pulse} 2s ease-in-out infinite;
-    `}
-
-  &:hover {
-    stroke: #8B5CF6;
-    stroke-width: 2;
-    filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.5));
-  }
-
-  &:focus {
-    outline: none;
-  }
-
-  &:focus-visible {
-    stroke: #8B5CF6;
-    stroke-width: 3;
-    filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.6));
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-`;
-
-const PainDot = styled.circle<{ $color: string }>`
-  fill: ${({ $color }) => $color};
-  stroke: #E0ECF4;
-  stroke-width: 2;
-  filter: drop-shadow(0 0 6px ${({ $color }) => $color});
-  pointer-events: none;
-`;
-
-// ── Detailed Body Outlines ──────────────────────────────────────────────
-
-/** Male front outline — broader shoulders, narrower hips, more angular musculature */
-const MaleFrontOutline: React.FC = () => (
-  <g stroke="rgba(64, 112, 192, 0.40)" strokeWidth="1.2" fill="none" strokeLinecap="round">
-    {/* Head + jaw */}
-    <ellipse cx="100" cy="24" rx="14" ry="18" />
-    <path d="M88,36 Q88,42 92,44" />
-    <path d="M112,36 Q112,42 108,44" />
-    {/* Neck — trapezius flare */}
-    <line x1="93" y1="44" x2="90" y2="60" />
-    <line x1="107" y1="44" x2="110" y2="60" />
-    {/* Shoulders — broad, angular deltoid caps */}
-    <path d="M90,62 Q78,56 60,68 Q50,74 48,82" />
-    <path d="M110,62 Q122,56 140,68 Q150,74 152,82" />
-    {/* Chest — pec shelf */}
-    <path d="M68,78 Q72,88 80,94 L100,98 L120,94 Q128,88 132,78" />
-    <path d="M80,94 Q84,100 100,102 Q116,100 120,94" />
-    {/* Torso sides — lats, obliques, hip bone */}
-    <path d="M66,80 L64,100 Q62,120 66,140 L72,158 Q78,168 86,174" />
-    <path d="M134,80 L136,100 Q138,120 134,140 L128,158 Q122,168 114,174" />
-    {/* Waistline + hip line */}
-    <path d="M72,158 Q86,162 100,162 Q114,162 128,158" />
-    {/* Arms */}
-    <path d="M48,82 Q44,96 42,112 L38,140 Q36,155 34,170" />
-    <path d="M152,82 Q156,96 158,112 L162,140 Q164,155 166,170" />
-    <path d="M48,82 Q52,96 54,112 L52,130" />
-    <path d="M152,82 Q148,96 146,112 L148,130" />
-    {/* Hands */}
-    <ellipse cx="34" cy="174" rx="4" ry="6" />
-    <ellipse cx="166" cy="174" rx="4" ry="6" />
-    {/* Abs center line */}
-    <line x1="100" y1="98" x2="100" y2="162" stroke="rgba(64,112,192,0.15)" strokeDasharray="3 4" />
-    {/* Legs */}
-    <path d="M86,174 Q84,190 82,210 L80,230 Q78,246 78,260 L76,290 Q76,296 80,300" />
-    <path d="M114,174 Q116,190 118,210 L120,230 Q122,246 122,260 L124,290 Q124,296 120,300" />
-    <path d="M86,174 Q92,178 100,178 Q108,178 114,174" />
-    <path d="M96,178 Q94,200 92,220 L90,240 Q88,260 88,280 L88,300" />
-    <path d="M104,178 Q106,200 108,220 L110,240 Q112,260 112,280 L112,300" />
-    {/* Feet */}
-    <path d="M76,298 L74,304 Q78,308 86,308 L92,306" />
-    <path d="M124,298 L126,304 Q122,308 114,308 L108,306" />
-  </g>
-);
-
-/** Female front outline — narrower shoulders, wider hips, curved silhouette */
-const FemaleFrontOutline: React.FC = () => (
-  <g stroke="rgba(64, 112, 192, 0.40)" strokeWidth="1.2" fill="none" strokeLinecap="round">
-    {/* Head — slightly softer jaw */}
-    <ellipse cx="100" cy="24" rx="13" ry="17" />
-    <path d="M89,36 Q90,40 93,43" />
-    <path d="M111,36 Q110,40 107,43" />
-    {/* Neck — slimmer */}
-    <line x1="94" y1="43" x2="92" y2="58" />
-    <line x1="106" y1="43" x2="108" y2="58" />
-    {/* Shoulders — narrower, rounder */}
-    <path d="M92,60 Q82,58 68,66 Q58,72 56,80" />
-    <path d="M108,60 Q118,58 132,66 Q142,72 144,80" />
-    {/* Chest — bust curve */}
-    <path d="M72,76 Q76,84 82,90 Q88,96 100,98 Q112,96 118,90 Q124,84 128,76" />
-    <path d="M82,90 Q86,96 100,100 Q114,96 118,90" />
-    {/* Torso — waist cinch + hip flare */}
-    <path d="M70,78 L68,96 Q66,110 70,126 L74,140 Q72,152 68,162 Q72,174 82,180" />
-    <path d="M130,78 L132,96 Q134,110 130,126 L126,140 Q128,152 132,162 Q128,174 118,180" />
-    {/* Waist narrowing */}
-    <path d="M74,140 Q86,136 100,136 Q114,136 126,140" />
-    {/* Hip line — wider */}
-    <path d="M68,162 Q82,170 100,170 Q118,170 132,162" />
-    {/* Arms — slimmer */}
-    <path d="M56,80 Q52,94 50,110 L46,138 Q44,152 42,168" />
-    <path d="M144,80 Q148,94 150,110 L154,138 Q156,152 158,168" />
-    <path d="M56,80 Q58,94 58,110 L56,128" />
-    <path d="M144,80 Q142,94 142,110 L144,128" />
-    {/* Hands */}
-    <ellipse cx="42" cy="172" rx="3.5" ry="5.5" />
-    <ellipse cx="158" cy="172" rx="3.5" ry="5.5" />
-    {/* Center line */}
-    <line x1="100" y1="98" x2="100" y2="170" stroke="rgba(64,112,192,0.12)" strokeDasharray="3 4" />
-    {/* Legs — curvier */}
-    <path d="M82,180 Q80,196 78,214 L76,234 Q74,250 74,264 L72,292 Q72,298 76,302" />
-    <path d="M118,180 Q120,196 122,214 L124,234 Q126,250 126,264 L128,292 Q128,298 124,302" />
-    <path d="M82,180 Q90,184 100,184 Q110,184 118,180" />
-    <path d="M94,184 Q92,204 90,224 L88,244 Q86,264 86,282 L86,302" />
-    <path d="M106,184 Q108,204 110,224 L112,244 Q114,264 114,282 L114,302" />
-    {/* Feet */}
-    <path d="M72,300 L70,306 Q74,310 82,310 L90,308" />
-    <path d="M128,300 L130,306 Q126,310 118,310 L110,308" />
-  </g>
-);
-
-/** Male back outline */
-const MaleBackOutline: React.FC = () => (
-  <g stroke="rgba(64, 112, 192, 0.40)" strokeWidth="1.2" fill="none" strokeLinecap="round">
-    {/* Head */}
-    <ellipse cx="100" cy="24" rx="14" ry="18" />
-    {/* Neck */}
-    <line x1="93" y1="42" x2="90" y2="58" />
-    <line x1="107" y1="42" x2="110" y2="58" />
-    {/* Trapezius diamond */}
-    <path d="M90,58 Q80,54 62,66 Q52,72 48,82" />
-    <path d="M110,58 Q120,54 138,66 Q148,72 152,82" />
-    <path d="M90,58 Q96,66 100,70 Q104,66 110,58" />
-    {/* Spine line */}
-    <line x1="100" y1="58" x2="100" y2="165" stroke="rgba(64,112,192,0.15)" strokeDasharray="3 4" />
-    {/* Scapulae */}
-    <path d="M72,80 Q78,86 82,96 Q80,104 74,108" opacity="0.4" />
-    <path d="M128,80 Q122,86 118,96 Q120,104 126,108" opacity="0.4" />
-    {/* Back torso — lats V-taper */}
-    <path d="M66,82 L62,100 Q58,118 62,136 L68,156 Q76,168 86,174" />
-    <path d="M134,82 L138,100 Q142,118 138,136 L132,156 Q124,168 114,174" />
-    {/* Waistline */}
-    <path d="M68,156 Q84,162 100,162 Q116,162 132,156" />
-    {/* Arms */}
-    <path d="M48,82 Q44,96 42,112 L38,140 Q36,155 34,170" />
-    <path d="M152,82 Q156,96 158,112 L162,140 Q164,155 166,170" />
-    <path d="M48,82 Q52,96 54,108 L52,128" />
-    <path d="M152,82 Q148,96 146,108 L148,128" />
-    <ellipse cx="34" cy="174" rx="4" ry="6" />
-    <ellipse cx="166" cy="174" rx="4" ry="6" />
-    {/* Glute line */}
-    <path d="M86,174 Q92,178 100,180 Q108,178 114,174" />
-    <path d="M90,170 Q100,176 110,170" opacity="0.3" />
-    {/* Legs */}
-    <path d="M86,174 Q82,196 80,218 L78,240 Q76,256 76,270 L74,294 Q74,300 78,304" />
-    <path d="M114,174 Q118,196 120,218 L122,240 Q124,256 124,270 L126,294 Q126,300 122,304" />
-    <path d="M96,178 Q94,200 92,222 L90,244 Q88,262 88,278 L88,304" />
-    <path d="M104,178 Q106,200 108,222 L110,244 Q112,262 112,278 L112,304" />
-    {/* Feet */}
-    <path d="M74,302 L72,308 Q76,312 84,312 L92,310" />
-    <path d="M126,302 L128,308 Q124,312 116,312 L108,310" />
-  </g>
-);
-
-/** Female back outline */
-const FemaleBackOutline: React.FC = () => (
-  <g stroke="rgba(64, 112, 192, 0.40)" strokeWidth="1.2" fill="none" strokeLinecap="round">
-    {/* Head */}
-    <ellipse cx="100" cy="24" rx="13" ry="17" />
-    {/* Neck */}
-    <line x1="94" y1="41" x2="92" y2="56" />
-    <line x1="106" y1="41" x2="108" y2="56" />
-    {/* Trapezius — narrower */}
-    <path d="M92,58 Q82,56 68,64 Q58,70 56,78" />
-    <path d="M108,58 Q118,56 132,64 Q142,70 144,78" />
-    <path d="M92,58 Q96,64 100,68 Q104,64 108,58" />
-    {/* Spine */}
-    <line x1="100" y1="58" x2="100" y2="168" stroke="rgba(64,112,192,0.12)" strokeDasharray="3 4" />
-    {/* Scapulae */}
-    <path d="M74,78 Q80,84 84,92 Q82,100 76,104" opacity="0.35" />
-    <path d="M126,78 Q120,84 116,92 Q118,100 124,104" opacity="0.35" />
-    {/* Back — waist cinch + hip flare */}
-    <path d="M70,78 L68,96 Q64,112 68,130 L72,144 Q70,156 66,166 Q70,176 80,182" />
-    <path d="M130,78 L132,96 Q136,112 132,130 L128,144 Q130,156 134,166 Q130,176 120,182" />
-    <path d="M72,144 Q86,138 100,138 Q114,138 128,144" />
-    {/* Hip line */}
-    <path d="M66,166 Q82,174 100,174 Q118,174 134,166" />
-    {/* Arms */}
-    <path d="M56,78 Q52,92 50,108 L46,136 Q44,150 42,166" />
-    <path d="M144,78 Q148,92 150,108 L154,136 Q156,150 158,166" />
-    <path d="M56,78 Q58,92 58,106 L56,124" />
-    <path d="M144,78 Q142,92 142,106 L144,124" />
-    <ellipse cx="42" cy="170" rx="3.5" ry="5.5" />
-    <ellipse cx="158" cy="170" rx="3.5" ry="5.5" />
-    {/* Glute */}
-    <path d="M80,182 Q90,186 100,188 Q110,186 120,182" />
-    <path d="M86,176 Q100,182 114,176" opacity="0.3" />
-    {/* Legs */}
-    <path d="M80,182 Q78,200 76,218 L74,240 Q72,256 72,270 L70,296 Q70,302 74,306" />
-    <path d="M120,182 Q122,200 124,218 L126,240 Q128,256 128,270 L130,296 Q130,302 126,306" />
-    <path d="M94,186 Q92,206 90,226 L88,248 Q86,266 86,282 L86,306" />
-    <path d="M106,186 Q108,206 110,226 L112,248 Q114,266 114,282 L114,306" />
-    <path d="M70,304 L68,310 Q72,314 80,314 L88,312" />
-    <path d="M130,304 L132,310 Q128,314 120,314 L112,312" />
-  </g>
-);
+import {
+  pulse,
+  MapContainer,
+  ViewPanel,
+  ViewLabel,
+  ResponsiveSVG,
+  ChipRow,
+  ChipLabel,
+  Chip,
+  HIT_AREA_MIN_R,
+  RegionEllipse,
+  PainDot,
+} from './BodyMapSVG.styles';
 
 // ── Anatomy Image Paths ─────────────────────────────────────────────────
 
@@ -406,9 +68,30 @@ const FemaleBackOutline: React.FC = () => (
  * Anatomy images loaded from /anatomy/{gender}-{view}.png
  * Generated via Imagen 4.0 API (scripts/generate-anatomy-images.mjs).
  * SVG outline used as fallback if images fail to load.
+ * NEUTRAL (Slice 2, A5) has no photorealistic asset on purpose — it renders
+ * the outline at full opacity (returning null skips the image layer).
  */
-const getAnatomyImagePath = (gender: AnatomyGender, view: 'front' | 'back') =>
-  `/anatomy/${gender}-${view}.png`;
+const getAnatomyImagePath = (gender: AnatomyGender, view: 'front' | 'back'): string | null =>
+  gender === 'neutral' ? null : `/anatomy/${gender}-${view}.png`;
+
+/**
+ * PNG letterbox math (Slice 2, A3). Assets are 768x1408 rendered in a
+ * 160x310 box at (20,4) with preserveAspectRatio="xMidYMid meet" →
+ * width-limited: content height = 160 * 1408/768 = 293.33 viewBox units,
+ * top offset = 4 + (310 - 293.33)/2 = 12.33. The outlines are authored
+ * against the full 0..320 viewBox, so when the PNG is showing, the
+ * photo-head anchor maps outline-space Y into PNG-content-space. Estimate
+ * verified visually in the Slice 3 QA pass.
+ */
+const VIEWBOX_H = 320;
+const PNG_CONTENT_H = (160 * 1408) / 768;
+const PNG_CONTENT_TOP = 4 + (310 - PNG_CONTENT_H) / 2;
+const mapHeadToPng = (head: { cx: number; cy: number; rx: number; ry: number }) => ({
+  cx: head.cx,
+  cy: PNG_CONTENT_TOP + (head.cy / VIEWBOX_H) * PNG_CONTENT_H,
+  rx: head.rx,
+  ry: head.ry * (PNG_CONTENT_H / VIEWBOX_H),
+});
 
 // ── Component ───────────────────────────────────────────────────────────
 
@@ -429,11 +112,16 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
   labelMode = 'off',
   profilePhotoUrl = null,
 }) => {
-  // Pinch-zoom state for mobile
-  const [scale, setScale] = useState(1);
-  const [translate, setTranslate] = useState({ x: 0, y: 0 });
-  const pinchRef = useRef<{ startDist: number; startScale: number } | null>(null);
-  const panRef = useRef<{ startX: number; startY: number; startTx: number; startTy: number } | null>(null);
+  // Slice 3 (B1): overlapping-hotspot disambiguation — when a tap lands
+  // inside more than one inflated hit ellipse, ASK instead of letting the
+  // top-most element silently win.
+  const [ambiguousRegions, setAmbiguousRegions] = useState<BodyRegion[] | null>(null);
+  // Slice 3 (B7): roving tabindex — one tab stop per view, arrows move focus.
+  const regionRefs = useRef(new Map<string, SVGEllipseElement | null>());
+  const [rovingFocus, setRovingFocus] = useState<{ front: string; back: string }>({
+    front: FRONT_VIEW_REGIONS[0]?.id ?? '',
+    back: BACK_VIEW_REGIONS[0]?.id ?? '',
+  });
 
   // Track whether anatomical images loaded successfully.
   const [frontImgLoaded, setFrontImgLoaded] = useState(false);
@@ -459,22 +147,27 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
     };
   }, [profilePhotoUrl]);
 
-  // Reset and preload image state when gender changes.
+  // Reset and preload image state when the figure changes.
   React.useEffect(() => {
     let active = true;
-    const frontImage = new Image();
-    const backImage = new Image();
 
     setFrontImgLoaded(false);
     setBackImgLoaded(false);
+
+    const frontPath = getAnatomyImagePath(gender, 'front');
+    const backPath = getAnatomyImagePath(gender, 'back');
+    if (!frontPath || !backPath) return () => { active = false; }; // neutral: outline-only
+
+    const frontImage = new Image();
+    const backImage = new Image();
 
     frontImage.onload = () => { if (active) setFrontImgLoaded(true); };
     frontImage.onerror = () => { if (active) setFrontImgLoaded(false); };
     backImage.onload = () => { if (active) setBackImgLoaded(true); };
     backImage.onerror = () => { if (active) setBackImgLoaded(false); };
 
-    frontImage.src = getAnatomyImagePath(gender, 'front');
-    backImage.src = getAnatomyImagePath(gender, 'back');
+    frontImage.src = frontPath;
+    backImage.src = backPath;
 
     return () => {
       active = false;
@@ -484,56 +177,6 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
       backImage.onerror = null;
     };
   }, [gender]);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      pinchRef.current = { startDist: Math.hypot(dx, dy), startScale: scale };
-    } else if (e.touches.length === 1 && scale > 1) {
-      panRef.current = {
-        startX: e.touches[0].clientX,
-        startY: e.touches[0].clientY,
-        startTx: translate.x,
-        startTy: translate.y,
-      };
-    }
-  }, [scale, translate]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2 && pinchRef.current) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.hypot(dx, dy);
-      const newScale = Math.min(5, Math.max(1, pinchRef.current.startScale * (dist / pinchRef.current.startDist)));
-      setScale(newScale);
-      if (newScale <= 1) setTranslate({ x: 0, y: 0 });
-    } else if (e.touches.length === 1 && panRef.current && scale > 1) {
-      const dx = e.touches[0].clientX - panRef.current.startX;
-      const dy = e.touches[0].clientY - panRef.current.startY;
-      const maxPan = (scale - 1) * 150;
-      const newX = Math.min(maxPan, Math.max(-maxPan, panRef.current.startTx + dx));
-      const newY = Math.min(maxPan, Math.max(-maxPan, panRef.current.startTy + dy));
-      setTranslate({ x: newX, y: newY });
-    }
-  }, [scale]);
-
-  const handleTouchEnd = useCallback(() => {
-    pinchRef.current = null;
-    panRef.current = null;
-  }, []);
-
-  // Double-tap to reset zoom
-  const lastTapRef = useRef(0);
-  const handleDoubleTap = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    const now = Date.now();
-    if (now - lastTapRef.current < 300) {
-      setScale(1);
-      setTranslate({ x: 0, y: 0 });
-    }
-    lastTapRef.current = now;
-  }, []);
 
   // Build a map from bodyRegion → highest pain entry
   const regionPainMap = useMemo(() => {
@@ -614,17 +257,62 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
     });
   };
 
-  const renderRegions = (regions: BodyRegion[]) =>
+  // Slice 3 (B1): find EVERY region whose inflated hit ellipse contains the
+  // click point. Neighbors closer than the 44px inflation used to be silently
+  // unreachable — the top-most element always won. >1 candidate → ask.
+  const findRegionsAtPoint = useCallback((evt: React.MouseEvent<SVGElement>, regions: BodyRegion[]): BodyRegion[] => {
+    const svg = (evt.currentTarget as SVGGraphicsElement).ownerSVGElement;
+    const ctm = svg?.getScreenCTM?.();
+    if (!svg || !ctm) return []; // non-browser env (JSDOM) — caller falls back
+    const pt = svg.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    const local = pt.matrixTransform(ctm.inverse());
+    return regions.filter((region) => {
+      const { cx, cy, rx, ry } = region.svgCoords;
+      const hx = Math.max(rx, HIT_AREA_MIN_R);
+      const hy = Math.max(ry, HIT_AREA_MIN_R);
+      const dx = (local.x - cx) / hx;
+      const dy = (local.y - cy) / hy;
+      return dx * dx + dy * dy <= 1;
+    });
+  }, []);
+
+  const handleRegionActivate = useCallback((evt: React.MouseEvent<SVGElement>, region: BodyRegion, regions: BodyRegion[]) => {
+    const candidates = findRegionsAtPoint(evt, regions);
+    if (candidates.length > 1) {
+      setAmbiguousRegions(candidates);
+      return;
+    }
+    setAmbiguousRegions(null);
+    onRegionClick(region.id);
+  }, [findRegionsAtPoint, onRegionClick]);
+
+  // Slice 3 (B7): roving tabindex — the map is ONE tab stop per view;
+  // Arrow keys move between regions, Enter/Space selects.
+  const moveRovingFocus = useCallback((view: 'front' | 'back', regions: BodyRegion[], currentId: string, delta: number) => {
+    const idx = regions.findIndex((r) => r.id === currentId);
+    const next = regions[(idx + delta + regions.length) % regions.length];
+    if (!next) return;
+    setRovingFocus((prev) => ({ ...prev, [view]: next.id }));
+    regionRefs.current.get(next.id)?.focus();
+  }, []);
+
+  const renderRegions = (regions: BodyRegion[], view: 'front' | 'back') =>
     regions.map((region) => {
       const painEntry = regionPainMap.get(region.id);
       const isActive = !!painEntry;
       const isSelected = selectedRegion === region.id;
       const severityColor = painEntry ? getSeverityColor(painEntry.painLevel) : null;
+      const tier = painEntry ? getSeverityTier(painEntry.painLevel) : null;
       const { cx, cy, rx, ry } = region.svgCoords;
+      const visRx = Math.min(rx, HIT_AREA_MIN_R);
+      const visRy = Math.min(ry, HIT_AREA_MIN_R);
 
       return (
         <g key={region.id}>
           <RegionEllipse
+            ref={(el: SVGEllipseElement | null) => { regionRefs.current.set(region.id, el); }}
             cx={cx}
             cy={cy}
             rx={Math.max(rx, HIT_AREA_MIN_R)}
@@ -632,16 +320,29 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
             $isActive={isActive}
             $isSelected={isSelected}
             $severityColor={severityColor}
-            onClick={() => onRegionClick(region.id)}
+            $tier={tier}
+            onClick={(e: React.MouseEvent<SVGElement>) => handleRegionActivate(e, region, regions)}
             onKeyDown={(e: React.KeyboardEvent) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
+                setAmbiguousRegions(null); // keyboard targeting is exact
                 onRegionClick(region.id);
+              } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                moveRovingFocus(view, regions, region.id, 1);
+              } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                moveRovingFocus(view, regions, region.id, -1);
               }
             }}
-            tabIndex={0}
+            onFocus={() => setRovingFocus((prev) => ({ ...prev, [view]: region.id }))}
+            tabIndex={rovingFocus[view] === region.id ? 0 : -1}
             role="button"
-            aria-label={`Select ${region.label}`}
+            aria-label={
+              painEntry
+                ? `${region.label}, pain ${painEntry.painLevel} out of 10${isSelected ? ', selected' : ''}`
+                : `Select ${region.label}`
+            }
           />
           {/* Visual-only overlay showing true anatomical size */}
           {(rx < HIT_AREA_MIN_R || ry < HIT_AREA_MIN_R) && (
@@ -650,7 +351,7 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
               cy={cy}
               rx={rx}
               ry={ry}
-              fill={isActive && severityColor ? `${severityColor}40` : 'rgba(64, 112, 192, 0.05)'}
+              fill={isActive && severityColor ? `color-mix(in srgb, ${severityColor} 25%, transparent)` : 'rgba(64, 112, 192, 0.05)'}
               stroke="inherit"
               strokeWidth="inherit"
               pointerEvents="none"
@@ -660,57 +361,97 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
           {isActive && severityColor && (
             <PainDot cx={cx} cy={cy} r={3} $color={severityColor} />
           )}
+          {/* Slice 3 (B8): numeric severity pill — the truthful channel. */}
+          {isActive && painEntry && (
+            <g pointerEvents="none" aria-hidden="true">
+              <rect
+                x={cx + visRx * 0.55}
+                y={cy - visRy - 7}
+                width={painEntry.painLevel >= 10 ? 13 : 10}
+                height={8}
+                rx={2.5}
+                fill="var(--bg-base, #0A0A0F)"
+                stroke={severityColor ?? 'none'}
+                strokeWidth="0.6"
+              />
+              <text
+                x={cx + visRx * 0.55 + (painEntry.painLevel >= 10 ? 6.5 : 5)}
+                y={cy - visRy - 1}
+                textAnchor="middle"
+                fontSize="5.5"
+                fontFamily="Fira Code, monospace"
+                fontWeight="600"
+                fill="var(--text-primary, #E0ECF4)"
+              >
+                {painEntry.painLevel}
+              </text>
+            </g>
+          )}
         </g>
       );
     });
 
-  // Select outline based on gender + view
-  const getFrontOutline = () => gender === 'female' ? <FemaleFrontOutline /> : <MaleFrontOutline />;
-  const getBackOutline = () => gender === 'female' ? <FemaleBackOutline /> : <MaleBackOutline />;
+  // Select outline based on figure + view (neutral = A5 inclusive default)
+  const getFrontOutline = () =>
+    gender === 'female' ? <FemaleFrontOutline /> : gender === 'neutral' ? <NeutralFrontOutline /> : <MaleFrontOutline />;
+  const getBackOutline = () =>
+    gender === 'female' ? <FemaleBackOutline /> : gender === 'neutral' ? <NeutralBackOutline /> : <MaleBackOutline />;
+
+  // Slice 2 (A6): unique per-mount clip id — two BodyMaps on one page no
+  // longer collide on a static DOM id. useId's colons are stripped for
+  // url(#...) safety.
+  const headClipId = `bm-head-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  // Slice 2 (A3): head geometry follows the figure (male/female/neutral heads
+  // differ) and remaps into PNG-content space when the photo asset is showing.
+  const headBase = HEAD_GEOMETRY[gender] ?? HEAD_GEOMETRY.neutral;
+  const frontImagePath = getAnatomyImagePath(gender, 'front');
+  const backImagePath = getAnatomyImagePath(gender, 'back');
+  const photoHead = frontImgLoaded && frontImagePath ? mapHeadToPng(headBase) : headBase;
 
   return (
+    <>
     <MapContainer>
       <ViewPanel>
         <ViewLabel>Front View</ViewLabel>
-        <ZoomContainer
-          onTouchStart={(e) => { handleTouchStart(e); handleDoubleTap(e); }}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <ZoomContent $scale={scale} $x={translate.x} $y={translate.y} $isPinching={!!pinchRef.current}>
+        <ZoomablePanel label="front view">
             <ResponsiveSVG viewBox="0 0 200 320">
               <rect x="0" y="0" width="200" height="320" rx="8" fill="var(--bg-base, #002060)" />
               <defs>
-                <clipPath id="body-map-profile-head-clip">
-                  <ellipse cx="100" cy="24" rx="12" ry="15" />
+                <clipPath id={headClipId}>
+                  <ellipse cx={photoHead.cx} cy={photoHead.cy} rx={photoHead.rx} ry={photoHead.ry} />
                 </clipPath>
               </defs>
-              {/* Layer 1: Anatomical image (if available) */}
-              <image
-                href={getAnatomyImagePath(gender, 'front')}
-                x="20" y="4" width="160" height="310"
-                preserveAspectRatio="xMidYMid meet"
-                opacity={frontImgLoaded ? 0.85 : 0}
-                pointerEvents="none"
-              />
+              {/* Layer 1: Anatomical image (neutral figure has none on purpose) */}
+              {frontImagePath && (
+                <image
+                  href={frontImagePath}
+                  x="20" y="4" width="160" height="310"
+                  preserveAspectRatio="xMidYMid meet"
+                  opacity={frontImgLoaded ? 0.85 : 0}
+                  pointerEvents="none"
+                />
+              )}
               {/* Layer 2: SVG outline remains visible when the image is not available. */}
-              <g opacity={frontImgLoaded ? 0.3 : 1}>
+              <g opacity={frontImagePath && frontImgLoaded ? 0.3 : 1}>
                 {getFrontOutline()}
               </g>
-              {/* Layer 3: Decorative profile personalization, scaled with the front anatomy. */}
+              {/* Layer 3: Decorative profile personalization, anchored to the figure head. */}
               {shouldShowProfilePhoto && (
                 <g pointerEvents="none" aria-hidden="true" data-testid="body-map-profile-head-overlay">
                   <image
                     data-testid="body-map-profile-head-image"
                     href={profilePhotoUrl ?? undefined}
-                    x="88" y="9" width="24" height="30"
+                    x={photoHead.cx - photoHead.rx}
+                    y={photoHead.cy - photoHead.ry}
+                    width={photoHead.rx * 2}
+                    height={photoHead.ry * 2}
                     preserveAspectRatio="xMidYMid slice"
-                    clipPath="url(#body-map-profile-head-clip)"
+                    clipPath={`url(#${headClipId})`}
                     opacity="0.92"
                     pointerEvents="none"
                   />
                   <ellipse
-                    cx="100" cy="24" rx="12" ry="15"
+                    cx={photoHead.cx} cy={photoHead.cy} rx={photoHead.rx} ry={photoHead.ry}
                     fill="none"
                     stroke="var(--accent-primary, #8B5CF6)"
                     strokeWidth="0.8"
@@ -720,42 +461,58 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
                 </g>
               )}
               {/* Layer 4: Interactive hotspot regions */}
-              {renderRegions(FRONT_VIEW_REGIONS)}
+              {renderRegions(FRONT_VIEW_REGIONS, 'front')}
               {/* Layer 5: Anatomical labels */}
               {renderLabels(FRONT_VIEW_REGIONS)}
             </ResponsiveSVG>
-          </ZoomContent>
-        </ZoomContainer>
+        </ZoomablePanel>
       </ViewPanel>
 
       <ViewPanel>
         <ViewLabel>Back View</ViewLabel>
-        <ZoomContainer
-          onTouchStart={(e) => { handleTouchStart(e); handleDoubleTap(e); }}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <ZoomContent $scale={scale} $x={translate.x} $y={translate.y} $isPinching={!!pinchRef.current}>
+        <ZoomablePanel label="back view">
             <ResponsiveSVG viewBox="0 0 200 320">
               <rect x="0" y="0" width="200" height="320" rx="8" fill="var(--bg-base, #002060)" />
-              {/* Layer 1: Anatomical image */}
-              <image
-                href={getAnatomyImagePath(gender, 'back')}
-                x="20" y="4" width="160" height="310"
-                preserveAspectRatio="xMidYMid meet"
-                opacity={backImgLoaded ? 0.85 : 0}
-                pointerEvents="none"
-              />
-              <g opacity={backImgLoaded ? 0.3 : 1}>
+              {/* Layer 1: Anatomical image (neutral figure has none on purpose) */}
+              {backImagePath && (
+                <image
+                  href={backImagePath}
+                  x="20" y="4" width="160" height="310"
+                  preserveAspectRatio="xMidYMid meet"
+                  opacity={backImgLoaded ? 0.85 : 0}
+                  pointerEvents="none"
+                />
+              )}
+              <g opacity={backImagePath && backImgLoaded ? 0.3 : 1}>
                 {getBackOutline()}
               </g>
-              {renderRegions(BACK_VIEW_REGIONS)}
+              {renderRegions(BACK_VIEW_REGIONS, 'back')}
               {renderLabels(BACK_VIEW_REGIONS)}
             </ResponsiveSVG>
-          </ZoomContent>
-        </ZoomContainer>
+        </ZoomablePanel>
       </ViewPanel>
     </MapContainer>
+    {/* Slice 3 (B1): overlap disambiguation — never guess which body part
+        a tap between neighbors meant. */}
+    {ambiguousRegions && ambiguousRegions.length > 1 && (
+      <ChipRow role="group" aria-label="Choose which area you meant">
+        <ChipLabel>Which area?</ChipLabel>
+        {ambiguousRegions.map((region) => (
+          <Chip
+            key={region.id}
+            type="button"
+            onClick={() => {
+              setAmbiguousRegions(null);
+              onRegionClick(region.id);
+            }}
+          >
+            {region.label}
+          </Chip>
+        ))}
+        <Chip type="button" onClick={() => setAmbiguousRegions(null)} aria-label="Dismiss area choices">✕</Chip>
+      </ChipRow>
+    )}
+    </>
   );
 };
 

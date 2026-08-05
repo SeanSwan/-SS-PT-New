@@ -82,7 +82,7 @@ vi.mock('../../../../../hooks/useDashboardQueries', () => ({
   // path, which is a with-history surface — zero-history clients get the
   // orientation strip and no composer (panel Q5 suppression, 2026-08-03).
   useWorkoutSessions: () => ({
-    data: [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45 }],
+    data: [{ id: 's1', title: 'Workout', date: new Date().toISOString(), duration: 45, status: 'completed' }],
     isLoading: false,
   }),
   useTrendingHashtags: () => ({

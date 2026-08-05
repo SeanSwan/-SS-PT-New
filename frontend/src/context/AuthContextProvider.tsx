@@ -18,6 +18,13 @@ import { AuthContext } from './authContextState';
 // This version is for LIVE PRODUCTION use where real authentication is required
 
 // Enhanced User Interface aligned with backend model
+interface NotificationPreferences {
+  email?: boolean;
+  sms?: boolean;
+  push?: boolean;
+  quietHours?: unknown;
+  [key: string]: unknown;
+}
 export interface User {
   id: string;
   email: string;
@@ -27,6 +34,9 @@ export interface User {
   lastName: string;
   role: 'admin' | 'trainer' | 'client' | 'user';
   fitnessGoal?: string;
+  emailNotifications?: boolean;
+  smsNotifications?: boolean;
+  notificationPreferences?: NotificationPreferences | null;
   clientSource?: 'swanstudios' | 'move_fitness' | 'external';
   hasLinkedWaiver?: boolean;
   waiverStatus?: 'linked' | 'missing' | 'unverified' | 'invalid_user' | 'not_required';
@@ -34,6 +44,8 @@ export interface User {
   waiverSignedAt?: string | null;
   profileImageUrl?: string;
   photo?: string;
+  gender?: string;
+  bodyMapHeadPhoto?: string;
   isActive: boolean;
   isOnboardingComplete?: boolean;
   createdAt: string;
@@ -242,9 +254,18 @@ const formatAuthUser = (
   lastName: userData.lastName || '',
   role: userData.role || 'user',
   clientSource: userData.clientSource,
+  emailNotifications: userData.emailNotifications ?? fallback?.emailNotifications ?? true,
+  smsNotifications: userData.smsNotifications ?? fallback?.smsNotifications ?? true,
+  notificationPreferences: userData.notificationPreferences ?? fallback?.notificationPreferences ?? null,
   ...resolveWaiverFields(userData, fallback),
   profileImageUrl: userData.profileImageUrl || userData.photo,
   photo: userData.photo,
+  // Slice 2 (A1): gender drives the body-map figure auto-select for the
+  // client's OWN view — it was never carried through here, so the auto-pick
+  // was dead code for clients. bodyMapHeadPhoto is the optional dedicated
+  // head photo (A4); falls back to `photo` at the consumer.
+  gender: userData.gender,
+  bodyMapHeadPhoto: userData.bodyMapHeadPhoto,
   isActive: userData.isActive !== false,
   isOnboardingComplete: resolveOnboardingComplete(userData, fallback),
   createdAt: userData.createdAt,

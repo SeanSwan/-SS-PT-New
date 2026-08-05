@@ -93,6 +93,45 @@ export const RosterTriageFlags = styled.div`
   gap: 5px;
 `;
 
+/** Phase 4A: 44px expand affordance replacing the silent 4-row truncation. */
+export const RosterShowAllButton = styled.button`
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 26%, transparent);
+  background: color-mix(in srgb, var(--surface-elevated, #003080) 82%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 520px) {
+    width: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+`;
+
 export const RosterTriageFlag = styled.span<{ $attention?: boolean }>`
   min-height: 26px;
   display: inline-flex;

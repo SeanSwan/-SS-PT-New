@@ -12,7 +12,6 @@
  * Phase 12 — Pain/Injury Body Map (NASM CES + Squat University)
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import styled from 'styled-components';
 import {
   getRegionById,
   getSeverityColor,
@@ -25,340 +24,36 @@ import type {
   PainEntry,
   PainType,
   PainSide,
+  PainContext,
   PosturalSyndrome,
   CreatePainEntryPayload,
 } from '../../services/painEntryService';
-import { device } from '../../styles/breakpoints';
 
-// ── Styled Components ───────────────────────────────────────────────────
-
-const Panel = styled.div<{ $isOpen: boolean }>`
-  position: fixed;
-  z-index: 1200;
-  background: ${({ theme }) => theme.background?.card || 'rgba(0, 32, 96, 0.95)'};
-  backdrop-filter: blur(16px);
-  overflow-y: auto;
-  box-sizing: border-box;
-  padding: 24px;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-
-  /* Mobile: bottom-sheet */
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 85vh;
-  max-height: 85vh;
-  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.2)'};
-  border-radius: 20px 20px 0 0;
-  transform: translateY(${({ $isOpen }) => ($isOpen ? '0' : '100%')});
-
-  /* Tablet+: side panel */
-  ${device.sm} {
-    top: 0;
-    bottom: 0;
-    left: auto;
-    right: 0;
-    height: 100vh;
-    max-height: 100vh;
-    width: min(440px, 95vw);
-    border-top: none;
-    border-left: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.2)'};
-    border-radius: 0;
-    transform: translateX(${({ $isOpen }) => ($isOpen ? '0' : '100%')});
-  }
-`;
-
-const DragHandle = styled.div`
-  width: 40px;
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.3);
-  margin: 0 auto 16px;
-
-  ${device.sm} {
-    display: none;
-  }
-`;
-
-const Overlay = styled.div<{ $isOpen: boolean }>`
-  display: ${({ $isOpen }) => ($isOpen ? 'block' : 'none')};
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1199;
-`;
-
-const PanelHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-`;
-
-const PanelTitle = styled.h3`
-  color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
-  font-size: 18px;
-  font-weight: 600;
-  margin: 0;
-`;
-
-const CloseBtn = styled.button`
-  background: none;
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.3)'};
-  color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
-  border-radius: 8px;
-  width: 44px;
-  height: 44px;
-  font-size: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-  &:hover {
-    background: rgba(139, 92, 246, 0.1);
-  }
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 16px;
-`;
-
-const Label = styled.label`
-  display: block;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.7)'};
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 6px;
-`;
-
-const GroupLabel = styled.div`
-  display: block;
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255, 255, 255, 0.7)'};
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 6px;
-`;
-
-const SliderContainer = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 0;
-`;
-
-const Slider = styled.input<{ $painColor: string }>`
-  flex: 1;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 8px;
-  border-radius: 4px;
-  outline: none;
-  background: rgba(255, 255, 255, 0.05);
-
-  &::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: #002060;
-    border: 3px solid ${({ $painColor }) => $painColor};
-    box-shadow: 0 0 12px ${({ $painColor }) => `${$painColor}80`}, inset 0 0 4px ${({ $painColor }) => $painColor};
-    cursor: pointer;
-    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
-  }
-
-  &::-webkit-slider-thumb:hover {
-    transform: scale(1.15);
-    box-shadow: 0 0 20px ${({ $painColor }) => `${$painColor}AA`}, inset 0 0 6px ${({ $painColor }) => $painColor};
-  }
-
-  &:focus-visible::-webkit-slider-thumb {
-    outline: 2px solid #8B5CF6;
-    outline-offset: 4px;
-  }
-`;
-
-const SliderValue = styled.div<{ $color: string }>`
-  color: ${({ $color }) => $color};
-  font-size: 24px;
-  font-weight: 800;
-  min-width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: ${({ $color }) => `${$color}15`};
-  border: 1px solid ${({ $color }) => `${$color}40`};
-  border-radius: 12px;
-  text-shadow: 0 0 10px ${({ $color }) => `${$color}60`};
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.2)'};
-  border-radius: 8px;
-  color: ${({ theme }) => theme.text?.primary || '#fff'};
-  font-size: 14px;
-  min-height: 44px;
-  &:focus {
-    border-color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
-    outline: none;
-  }
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.2)'};
-  border-radius: 8px;
-  color: ${({ theme }) => theme.text?.primary || '#fff'};
-  font-size: 14px;
-  min-height: 80px;
-  resize: vertical;
-  font-family: inherit;
-  box-sizing: border-box;
-  &:focus {
-    border-color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
-    outline: none;
-  }
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 10px 12px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.2)'};
-  border-radius: 8px;
-  color: ${({ theme }) => theme.text?.primary || '#fff'};
-  font-size: 14px;
-  min-height: 44px;
-  box-sizing: border-box;
-  &:focus {
-    border-color: ${({ theme }) => theme.colors?.accent || '#8B5CF6'};
-    outline: none;
-  }
-`;
-
-const ChipGrid = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-`;
-
-const Chip = styled.button<{ $active: boolean }>`
-  padding: 8px 14px;
-  border-radius: 16px;
-  font-size: 12px;
-  cursor: pointer;
-  border: 1px solid ${({ $active, theme }) => ($active ? (theme?.colors?.accent || '#8B5CF6') : 'rgba(255,255,255,0.15)')};
-  background: ${({ $active }) => ($active ? 'rgba(139, 92, 246,0.15)' : 'rgba(0,0,0,0.3)')};
-  color: ${({ $active, theme }) => ($active ? (theme?.colors?.accent || '#8B5CF6') : 'rgba(255,255,255,0.6)')};
-  transition: all 0.15s;
-  min-height: 44px;
-  &:hover {
-    border-color: ${({ theme }) => theme?.colors?.accent || '#8B5CF6'};
-    color: ${({ theme }) => theme?.colors?.accent || '#8B5CF6'};
-  }
-  &:active {
-    transform: scale(0.96);
-  }
-`;
-
-const SyndromeToggle = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const SyndromeBtn = styled.button<{ $active: boolean; $color: string }>`
-  flex: 1;
-  min-width: 100px;
-  min-height: 44px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid ${({ $active, $color }) => ($active ? $color : 'rgba(255,255,255,0.15)')};
-  background: ${({ $active, $color }) => ($active ? `${$color}22` : 'rgba(0,0,0,0.3)')};
-  color: ${({ $active, $color }) => ($active ? $color : 'rgba(255,255,255,0.6)')};
-  transition: all 0.15s;
-`;
-
-const ButtonRow = styled.div`
-  display: flex;
-  gap: 10px;
-  margin-top: 24px;
-  flex-wrap: wrap;
-`;
-
-const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' | 'secondary' }>`
-  flex: 1;
-  min-width: 100px;
-  min-height: 44px;
-  padding: 10px 16px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  ${({ $variant, theme }) => {
-    const accent = theme?.colors?.accent || '#8B5CF6';
-    switch ($variant) {
-      case 'primary':
-        return `
-          background: linear-gradient(135deg, ${accent}, #8B5CF6);
-          border: none;
-          color: #002060;
-          &:hover { filter: brightness(1.1); }
-        `;
-      case 'danger':
-        return `
-          background: rgba(255,50,50,0.15);
-          border: 1px solid rgba(255,50,50,0.4);
-          color: #FF5555;
-          &:hover { background: rgba(255,50,50,0.25); }
-        `;
-      default:
-        return `
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.15);
-          color: rgba(255,255,255,0.7);
-          &:hover { background: rgba(255,255,255,0.1); }
-        `;
-    }
-  }}
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-`;
-
-const Divider = styled.hr`
-  border: none;
-  border-top: 1px solid ${({ theme }) => theme.borders?.subtle || 'rgba(139, 92, 246, 0.1)'};
-  margin: 16px 0;
-`;
-
-const HintText = styled.div`
-  color: ${({ theme }) => theme.text?.muted || 'rgba(255,255,255,0.4)'};
-  font-size: 11px;
-  margin-top: 4px;
-`;
+import {
+  Panel,
+  DragHandle,
+  Overlay,
+  PanelHeader,
+  PanelTitle,
+  CloseBtn,
+  FormGroup,
+  Label,
+  GroupLabel,
+  SliderContainer,
+  Slider,
+  SliderValue,
+  Select,
+  TextArea,
+  Input,
+  ChipGrid,
+  Chip,
+  SyndromeToggle,
+  SyndromeBtn,
+  ButtonRow,
+  ActionBtn,
+  Divider,
+  HintText,
+} from './PainEntryPanel.styles';
 
 // ── Component ───────────────────────────────────────────────────────────
 
@@ -412,6 +107,75 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 }) => {
   // Track effective region — may differ from regionId if user swaps sides
   const [effectiveRegionId, setEffectiveRegionId] = useState<string | null>(regionId);
+
+  // ── Slice 3 (B6): real dialog semantics ─────────────────────────────
+  // The panel was a modal that wasn't one: no role, no focus management, no
+  // Escape, and its 11 hidden fields stayed tab-reachable while closed.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
+  const dragStartYRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return undefined;
+    if (isOpen) {
+      lastFocusedRef.current = document.activeElement as HTMLElement | null;
+      (panel as any).inert = false;
+      panel.removeAttribute('aria-hidden');
+      const firstFocusable = panel.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      firstFocusable?.focus();
+      return undefined;
+    }
+    // Closed: unreachable for keyboard/AT (the transform only moves it
+    // off-screen), and focus returns to the opener.
+    (panel as any).inert = true;
+    panel.setAttribute('aria-hidden', 'true');
+    if (lastFocusedRef.current && document.contains(lastFocusedRef.current)) {
+      lastFocusedRef.current.focus();
+    }
+    return undefined;
+  }, [isOpen]);
+
+  const handleDialogKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    // Focus trap: cycle within the dialog.
+    const panel = panelRef.current;
+    if (!panel) return;
+    const focusables = Array.from(panel.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )).filter((el) => !el.hasAttribute('disabled'));
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }, [onClose]);
+
+  // Drag-to-dismiss: the handle was pure decoration promising a gesture
+  // that didn't exist.
+  const handleDragStart = useCallback((e: React.PointerEvent) => {
+    dragStartYRef.current = e.clientY;
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  }, []);
+  const handleDragMove = useCallback(() => {}, []);
+  const handleDragEnd = useCallback((e: React.PointerEvent) => {
+    if (dragStartYRef.current !== null && e.clientY - dragStartYRef.current > 80) {
+      onClose();
+    }
+    dragStartYRef.current = null;
+  }, [onClose]);
   const region = effectiveRegionId ? getRegionById(effectiveRegionId) : null;
   // Ref to prevent form reset when side-swap changes effectiveRegionId
   const isSideSwapRef = useRef(false);
@@ -419,6 +183,9 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   const [painLevel, setPainLevel] = useState(5);
   const [painType, setPainType] = useState<PainType>('aching');
   const [side, setSide] = useState<PainSide>('center');
+  // Slice 5 dry-loop finding: F5's rest-pain escalation was server-ready but
+  // the form never sent painContext — unreachable feature. Now first-class.
+  const [painContext, setPainContext] = useState<PainContext>('loaded_movement');
   const [description, setDescription] = useState('');
   const [onsetDate, setOnsetDate] = useState('');
   const [selectedAggravating, setSelectedAggravating] = useState<string[]>([]);
@@ -443,6 +210,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
       setPainLevel(existingEntry.painLevel);
       setPainType(existingEntry.painType);
       setSide(existingEntry.side);
+      setPainContext(existingEntry.painContext || 'loaded_movement');
       setDescription(existingEntry.description || '');
       setOnsetDate(existingEntry.onsetDate || '');
       setSelectedAggravating(
@@ -463,6 +231,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
       setPainLevel(5);
       setPainType('aching');
       setSide(currentRegion?.side || 'center');
+      setPainContext('loaded_movement');
       setDescription('');
       setOnsetDate('');
       setSelectedAggravating([]);
@@ -487,6 +256,7 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
       side,
       painLevel,
       painType,
+      painContext,
       description: description.trim() || undefined,
       onsetDate: onsetDate || undefined,
       aggravatingMovements: selectedAggravating.length > 0 ? selectedAggravating.join(', ') : undefined,
@@ -506,8 +276,23 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   return (
     <>
       <Overlay $isOpen={isOpen} onPointerDown={onClose} role="presentation" />
-      <Panel $isOpen={isOpen}>
-        <DragHandle />
+      <Panel
+        ref={panelRef}
+        $isOpen={isOpen}
+        role="dialog"
+        aria-modal="true"
+        aria-label={region?.label ? `Pain entry for ${region.label}` : 'Pain entry'}
+        onKeyDown={handleDialogKeyDown}
+      >
+        <DragHandle
+          role="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          onPointerDown={handleDragStart}
+          onPointerMove={handleDragMove}
+          onPointerUp={handleDragEnd}
+          onPointerCancel={handleDragEnd}
+        />
         <PanelHeader>
           <PanelTitle>{region?.label || 'Select Region'}</PanelTitle>
           <CloseBtn onClick={onClose} aria-label="Close panel">&#x2715;</CloseBtn>
@@ -531,6 +316,30 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
           <HintText>
             {painLevel >= 7 ? 'Severe — exercises AVOIDED' : painLevel >= 4 ? 'Moderate — exercises MODIFIED' : 'Mild — include with corrective warm-up'}
           </HintText>
+        </FormGroup>
+
+        {/* Slice 5 (F5): pain felt AT REST is a contraindication signal —
+            escalates the safety tier server-side. */}
+        <FormGroup>
+          <GroupLabel id="pain-context-label">When does it hurt?</GroupLabel>
+          <ChipGrid role="radiogroup" aria-labelledby="pain-context-label">
+            {([
+              ['loaded_movement', 'Under load'],
+              ['daily_activity', 'Daily life'],
+              ['rest', 'At rest'],
+            ] as Array<[PainContext, string]>).map(([value, label]) => (
+              <Chip
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={painContext === value}
+                $active={painContext === value}
+                onClick={() => setPainContext(value)}
+              >
+                {label}
+              </Chip>
+            ))}
+          </ChipGrid>
         </FormGroup>
 
         {/* Pain Type */}

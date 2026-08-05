@@ -101,10 +101,18 @@ router.post('/add-sessions', protect, adminOnly, async (req, res) => {
  */
 router.post('/add-test-sessions', protect, adminOnly, async (req, res) => {
   try {
-    if (process.env.NODE_ENV === 'production') {
+    // ALLOWLIST guard (Kimi security audit F3, SWA-129): this endpoint mints
+    // paid sessions to the caller with a body-supplied amount and can upgrade
+    // their role — it must NOT exist outside a deliberately-enabled dev box.
+    // The old `NODE_ENV === 'production'` blacklist FAILED OPEN on the classic
+    // misconfigs (NODE_ENV unset on a PaaS, 'staging', 'prod', review apps).
+    // Require an explicit development env AND an opt-in flag — default deny.
+    const isDevEnv = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+    const testGrantsEnabled = process.env.ENABLE_TEST_SESSION_GRANTS === 'true';
+    if (!isDevEnv || !testGrantsEnabled) {
       return res.status(403).json({
         success: false,
-        message: 'This endpoint is only available in development mode'
+        message: 'This endpoint is disabled. Enable only in development with ENABLE_TEST_SESSION_GRANTS=true.'
       });
     }
 

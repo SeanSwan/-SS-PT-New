@@ -46,7 +46,12 @@ export async function calculateVolumeOverTimeFromLogs(userId, options = {}) {
   const parsedUserId = parsePositiveInteger(userId);
   if (!parsedUserId) return [];
 
-  const groupConfig = GROUP_CONFIG[options.groupBy] || GROUP_CONFIG.week;
+  // hasOwnProperty, not plain indexing — inherited keys (constructor/toString) would
+  // otherwise reach the interpolated GROUP BY / ORDER BY and 500 the request.
+  const groupConfig = (typeof options.groupBy === 'string'
+    && Object.prototype.hasOwnProperty.call(GROUP_CONFIG, options.groupBy))
+    ? GROUP_CONFIG[options.groupBy]
+    : GROUP_CONFIG.week;
   const replacements = { userId: parsedUserId };
   const dateFilters = [];
 

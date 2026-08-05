@@ -24,6 +24,9 @@ describe('auth controller onboarding completion contract', () => {
     );
 
     expect(sanitizeBlock).toContain('isOnboardingComplete: user.isOnboardingComplete === true');
+    expect(sanitizeBlock).toContain('emailNotifications: user.emailNotifications !== false');
+    expect(sanitizeBlock).toContain('smsNotifications: user.smsNotifications !== false');
+    expect(sanitizeBlock).toContain('notificationPreferences: user.notificationPreferences ?? null');
   });
 
   it('routes login, profile, validation, and forced password responses through the sanitizer', () => {

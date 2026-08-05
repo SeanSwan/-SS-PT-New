@@ -15,10 +15,21 @@ describe('BodyMap client target selection', () => {
     expect(source).toContain('Select a client to view pain and injury entries.');
   });
 
-  it('passes a decorative profile photo to the body-map SVG without changing evidence logic', () => {
-    expect(source).toContain('const profilePhotoUrl = isTrainerOrAdmin ? activeClientProfile?.photo ?? null : user?.photo ?? user?.profileImageUrl ?? null;');
-    expect(source).toContain('profilePhotoUrl={profilePhotoUrl}');
+  it('resolves photo + gender from the TARGET client by userId, never the global selection (Slice 2, A2)', () => {
+    // The old chain read activeClientProfile (globally selected client), so
+    // embedded mounts could show client A's pain on client B's face/figure.
+    expect(source).not.toContain('activeClientProfile?.photo');
+    expect(source).not.toContain('activeClientProfile?.gender');
+    expect(source).toContain('globalClient?.clientList?.find((client) => Number(client.id) === Number(userId))');
+    expect(source).toContain('targetClientProfile?.bodyMapHeadPhoto ?? targetClientProfile?.photo ?? null');
+    expect(source).toContain('user?.bodyMapHeadPhoto ?? user?.photo ?? user?.profileImageUrl ?? null');
+    expect(source).toContain('profilePhotoUrl={displayedPhotoUrl}');
     expect(source).toContain('<BodyMapEvidenceSection');
+  });
+
+  it('defaults to the NEUTRAL figure for unresolvable gender (Slice 2, A5)', () => {
+    expect(source).toContain("useState<AnatomyGender>('neutral')");
+    expect(source).toContain("return 'neutral';");
   });
 
   it('keeps standalone staff Pain Charts editable through an explicit target selector', () => {

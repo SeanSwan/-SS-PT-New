@@ -113,7 +113,7 @@ vi.mock('./../../NASMExerciseRolodex', () => ({
 
 
 vi.mock('../../../Shared/AITerminalPanel', () => ({ default: () => null }));
-vi.mock('../../../Shared/EquipmentProfilePicker', () => ({
+vi.mock('../../../Shared/EquipmentContextChip', () => ({
   default: (props: any) => (
     <button data-testid='mock-equipment-profile-select' onClick={() => props.onSelect(77)}>
       Select training location

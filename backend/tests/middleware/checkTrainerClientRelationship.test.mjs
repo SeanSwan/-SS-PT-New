@@ -223,4 +223,67 @@ describe('checkTrainerClientRelationship — source-level anti-regression locks'
     expect(whereBlock).toMatch(/trainerId:\s*userNumericId/);
     expect(whereBlock).not.toMatch(/trainerId:\s*req\.user\.id/);
   });
+  // ── Kimi security audit F1: confused-deputy guard (2026-08-04) ──────────
+  describe('F1 — params/body clientId confused-deputy guard', () => {
+    it('REJECTS 400 when params.clientId and body.clientId disagree (the IDOR primitive)', async () => {
+      // The attack: a trainer authorized for client A (params) smuggles client
+      // B (body) that a downstream handler might act on. Must fail loudly.
+      const req = {
+        user: { id: '7', role: 'trainer' },
+        params: { clientId: '10' },
+        body: { clientId: '99' },
+        path: '/api/clients/10/sessions',
+      };
+      const res = mockRes();
+      const next = vi.fn();
+      await checkTrainerClientRelationship(req, res, next);
+      expect(next).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(400);
+      expect(res.jsonBody.message).toMatch(/disagree/i);
+    });
+
+    it('pins req.authorizedClientId to the authorized id for handlers to consume', async () => {
+      ClientTrainerAssignment.findOne.mockResolvedValue({ id: 1 }); // assigned
+      const req = {
+        user: { id: '7', role: 'trainer' },
+        params: { clientId: '10' },
+        body: {},
+        path: '/api/clients/10/sessions',
+      };
+      const res = mockRes();
+      const next = vi.fn();
+      await checkTrainerClientRelationship(req, res, next);
+      expect(next).toHaveBeenCalled();
+      expect(req.authorizedClientId).toBe(10);
+    });
+
+    it('allows the request when params and body agree', async () => {
+      const req = {
+        user: { id: '91', role: 'client' },
+        params: { clientId: '91' },
+        body: { clientId: '91' },
+        path: '/api/workout-forms',
+      };
+      const res = mockRes();
+      const next = vi.fn();
+      await checkTrainerClientRelationship(req, res, next);
+      expect(next).toHaveBeenCalled();
+      expect(res.statusCode).toBe(200);
+    });
+
+    it('a single source (only params, or only body) is unaffected', async () => {
+      ClientTrainerAssignment.findOne.mockResolvedValue({ id: 1 });
+      const req = {
+        user: { id: '7', role: 'trainer' },
+        params: {},
+        body: { clientId: '10' },
+        path: '/api/workout-forms',
+      };
+      const res = mockRes();
+      const next = vi.fn();
+      await checkTrainerClientRelationship(req, res, next);
+      expect(next).toHaveBeenCalled();
+      expect(req.authorizedClientId).toBe(10);
+    });
+  });
 });

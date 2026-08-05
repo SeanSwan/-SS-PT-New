@@ -624,6 +624,14 @@ export const initializeServer = async (app) => {
         }
 
         try {
+          // Nutrition Phase 3 S3.3. No-op unless ENABLE_NUTRITION_LOG_NUDGES=true (kill switch).
+          const { startNutritionLogNudgeScheduler } = await import('../services/nutritionLogNudgeCron.mjs');
+          startNutritionLogNudgeScheduler();
+        } catch (nutritionNudgeErr) {
+          logger.warn(`Nutrition log nudge scheduler failed to start: ${nutritionNudgeErr.message}`);
+        }
+
+        try {
           const { registerEventListeners } = await import('../services/eventBus.mjs');
           registerEventListeners();
         } catch (eventErr) {

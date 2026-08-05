@@ -222,15 +222,13 @@ describe('Payment Flow API', () => {
       expect(alreadyProcessed).toBe(true);
     });
 
-    it('should skip session grant for idempotent requests', () => {
-      const cart = testCarts.completed;
-
-      // If sessionsGranted is true, we should NOT grant more sessions
-      if (cart.sessionsGranted === true) {
-        const sessionsToAdd = 0; // Idempotent response
-        expect(sessionsToAdd).toBe(0);
-      }
-    });
+    // REMOVED (2026-08-04, Lane 4 audit): 'should skip session grant for
+    // idempotent requests' declared `const sessionsToAdd = 0` and asserted it
+    // equalled 0. It never called grantSessionsForCart. It was also wrapped in
+    // an `if`, so it could pass having run zero assertions. Its NAME claimed the
+    // most important money invariant was covered, which is why the real one went
+    // untested for so long. Real coverage:
+    // __tests__/SessionGrantService.replay.test.mjs.
 
     it('should grant sessions only once', async () => {
       const unprocessedCart = { ...testCarts.pendingPayment, sessionsGranted: false };
@@ -325,45 +323,19 @@ describe('Payment Flow API', () => {
     });
   });
 
-  describe('Webhook vs Verify-Session Race Condition', () => {
-    it('should handle webhook arriving first', () => {
-      // Scenario: Webhook processes before verify-session
-      const cartAfterWebhook = {
-        ...testCarts.pendingPayment,
-        status: 'completed',
-        sessionsGranted: true,
-      };
-
-      // When verify-session checks, it should see sessionsGranted = true
-      const shouldSkip = cartAfterWebhook.sessionsGranted === true;
-      expect(shouldSkip).toBe(true);
-    });
-
-    it('should handle verify-session arriving first', () => {
-      // Scenario: Verify-session processes before webhook
-      const cartAfterVerify = {
-        ...testCarts.pendingPayment,
-        status: 'completed',
-        sessionsGranted: true,
-      };
-
-      // When webhook checks, it should see sessionsGranted = true
-      const shouldSkip = cartAfterVerify.sessionsGranted === true;
-      expect(shouldSkip).toBe(true);
-    });
-
-    it('should ensure consistent final state', () => {
-      // Both paths should result in the same final state
-      const finalState = {
-        status: 'completed',
-        paymentStatus: 'paid',
-        sessionsGranted: true,
-      };
-
-      expect(finalState.status).toBe('completed');
-      expect(finalState.sessionsGranted).toBe(true);
-    });
-  });
+  // REMOVED (2026-08-04, Lane 4 audit): the entire 'Webhook vs Verify-Session
+  // Race Condition' block was tautological. Each test built a literal object
+  // with `sessionsGranted: true` hardcoded and then asserted it was true;
+  // 'should ensure consistent final state' constructed { status: 'completed' }
+  // and asserted status === 'completed'. No production code was involved, so
+  // three tests named for the highest-risk concurrency scenario on the money
+  // path proved nothing.
+  //
+  // Rewritten against the real service in
+  // __tests__/SessionGrantService.replay.test.mjs — 'webhook vs verify-session
+  // ordering': both orderings credit exactly once, the second call is a no-op,
+  // and the final cart state is asserted from what the service actually WROTE
+  // rather than from a literal.
 });
 
 describe('Pricing Validation', () => {
