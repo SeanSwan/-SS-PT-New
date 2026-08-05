@@ -1,4 +1,7 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { MotionConfig } from 'framer-motion';
+import { ADMIN_MOTION_POLICY } from './adminOverviewMotion';
+import AdminOverviewControls from './AdminOverviewControls';
 import { DollarSign, Users, Dumbbell, Monitor } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
@@ -38,11 +41,6 @@ import {
   BentoHalf,
   BentoThird,
   BentoWrapper,
-  ControlsHeader,
-  ControlsInner,
-  CosmicSelect,
-  ErrorText,
-  StatusText,
 } from './AdminOverviewPanel.styles';
 import { StyledBox } from '@/components/ui/StyledBox';
 const VisitorWorldMap = lazy(() => import('../components/VisitorWorldMap'));
@@ -189,6 +187,7 @@ const AdminOverviewPanel: React.FC = () => {
     fetchAdminOverview();
   }, [fetchAdminOverview]);
   return (
+    <MotionConfig reducedMotion={ADMIN_MOTION_POLICY}>
     <BentoWrapper>
       <BentoFull><WidgetErrorBoundary name="Signal bar"><AdminSignalBar /></WidgetErrorBoundary></BentoFull>
       <BentoFull><WidgetErrorBoundary name="Quick actions"><AdminQuickActions actions={quickActions} /></WidgetErrorBoundary></BentoFull>
@@ -223,22 +222,7 @@ const AdminOverviewPanel: React.FC = () => {
         lead="Signup flow, health services, and top-line metrics are visible early without pushing the action queues below finance."
       >
         <BentoFull>
-          <ControlsHeader>
-            <ControlsInner>
-              <CosmicSelect
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                aria-label="Select time range"
-              >
-                <option value="24h">Last 24 hours</option>
-                <option value="7d">Last 7 days</option>
-                <option value="30d">Last 30 days</option>
-                <option value="90d">Last 90 days</option>
-              </CosmicSelect>
-              {isLoading && <StatusText>Loading...</StatusText>}
-              {error && <ErrorText role="alert" aria-live="polite">{error}</ErrorText>}
-            </ControlsInner>
-          </ControlsHeader>
+          <AdminOverviewControls timeRange={timeRange} onTimeRangeChange={setTimeRange} isLoading={isLoading} error={error} />
         </BentoFull>
         <BentoFull><WidgetErrorBoundary name="Overview metrics"><AdminOverviewMetrics metrics={metrics} /></WidgetErrorBoundary></BentoFull>
         <BentoFull><WidgetErrorBoundary name="Signup monitoring"><RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} /></WidgetErrorBoundary></BentoFull>
@@ -293,6 +277,7 @@ const AdminOverviewPanel: React.FC = () => {
         <BentoFull><WidgetErrorBoundary name="Oracle insights"><OracleInsightsWidget defaultTab="news" defaultQuery="personal training fitness industry trends" /></WidgetErrorBoundary></BentoFull>
       </AdminOverviewSection>
     </BentoWrapper>
+    </MotionConfig>
   );
 };
 export default AdminOverviewPanel;

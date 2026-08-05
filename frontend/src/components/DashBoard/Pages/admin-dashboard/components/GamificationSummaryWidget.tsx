@@ -25,10 +25,12 @@ const EMPTY_GAMIFICATION: GamificationData = {
   leaderboard: [],
 };
 
+// SWA-138 S8: badge/bar chrome uses theme tokens (Rule 6) — CHART_COLORS raw
+// hex stays only on icon accents, matching the documented chart-color pattern.
 const RARITY_COLORS: Record<number, string> = {
-  1: CHART_COLORS.gildedFern,
-  2: CHART_COLORS.iceWing,
-  3: CHART_COLORS.wingPurple,
+  1: 'var(--accent-gold, #C6A84B)',
+  2: 'var(--accent-primary, #60C0F0)',
+  3: 'var(--accent-secondary, #8B5CF6)',
 };
 const rankFallbackBackground = 'var(--surface-muted, rgba(255,255,255,0.05))';
 const rankFallbackColor = 'var(--text-muted, rgba(224,236,244,0.5))';
@@ -225,8 +227,8 @@ const RankBadge = styled.div<{ $rank: number }>`
   width: 24px; height: 24px; border-radius: 6px;
   display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 700; flex-shrink: 0;
-  background: ${p => p.$rank <= 3 ? hexAlpha(RARITY_COLORS[p.$rank] || CHART_COLORS.iceWing, 0.2) : rankFallbackBackground};
-  color: ${p => p.$rank <= 3 ? (RARITY_COLORS[p.$rank] || CHART_COLORS.iceWing) : rankFallbackColor};
+  background: ${p => p.$rank <= 3 ? `color-mix(in srgb, ${RARITY_COLORS[p.$rank] || 'var(--accent-primary, #60C0F0)'} 20%, transparent)` : rankFallbackBackground};
+  color: ${p => p.$rank <= 3 ? (RARITY_COLORS[p.$rank] || 'var(--accent-primary, #60C0F0)') : rankFallbackColor};
 `;
 
 const LeaderInfo = styled.div`
@@ -250,7 +252,7 @@ const XPBar = styled.div`
 
 const XPFill = styled.div<{ $rank: number }>`
   height: 100%; border-radius: 3px;
-  background: ${p => RARITY_COLORS[p.$rank] || CHART_COLORS.swanLavender};
+  background: ${p => RARITY_COLORS[p.$rank] || 'var(--accent-tertiary, #4070C0)'};
   transition: width 0.6s ease;
 `;
 

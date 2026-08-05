@@ -71,6 +71,7 @@ export const LiveDot = styled.div`
     content: '';
     inset: 0;
     position: absolute;
+    @media (prefers-reduced-motion: reduce) { animation: none; }
   }
 `;
 
@@ -174,6 +175,7 @@ export const Tab = styled.button<{ $active: boolean }>`
 
 export const ContentArea = styled.div`
   animation: ${fadeSlideUp} 0.25s ease both;
+  @media (prefers-reduced-motion: reduce) { animation: none; }
   flex: 1;
   min-height: 260px;
   overflow-y: auto;

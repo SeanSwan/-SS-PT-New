@@ -50,8 +50,11 @@ describe('GamificationSummaryWidget active surface truth contract', () => {
     expect(source).toContain('background: color-mix(in srgb, var(--royal-depth, #003080) 25%, transparent);');
     expect(source).toContain('border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent);');
     expect(source).toContain('color: var(--text-muted, rgba(224,236,244,0.45));');
-    expect(source).toContain('background: ${p => p.$rank <= 3 ? hexAlpha(RARITY_COLORS[p.$rank] || CHART_COLORS.iceWing, 0.2) : rankFallbackBackground};');
-    expect(source).toContain('color: ${p => p.$rank <= 3 ? (RARITY_COLORS[p.$rank] || CHART_COLORS.iceWing) : rankFallbackColor};');
+    // SWA-138 S8: badge chrome is token-driven (Rule 6) — color-mix over var(),
+    // no raw chart hex in CSS. hexAlpha stays only on chart-adjacent accents.
+    expect(source).toContain("1: 'var(--accent-gold, #C6A84B)'");
+    expect(source).toContain('color-mix(in srgb, ${RARITY_COLORS[p.$rank]');
+    expect(source).not.toContain('hexAlpha(RARITY_COLORS');
     expect(source).not.toContain('background: rgba(0, 32, 96, 0.25);');
     expect(source).not.toContain('border: 1px solid rgba(96, 192, 240, 0.06);');
     expect(source).not.toContain('background: rgba(198, 168, 75, 0.12);');
