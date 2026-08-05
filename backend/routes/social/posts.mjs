@@ -19,6 +19,7 @@ import { getSocialPointsFailure, sendSocialRouteError } from './socialRouteRespo
 import { attachWorkoutDataToPost, sanitizeWorkoutPostData } from './socialWorkoutData.mjs';
 import { buildFeedVisibilityWhere, normalizePostType } from './feedPolicy.mjs';
 import { assertGroupPostAccess, canPostInGroup, canViewGroupContent, getGroupWithMembership } from '../../services/social/groupAccessService.mjs';
+import { directoryAttributes } from '../../utils/memberDirectoryAccess.mjs';
 
 const router = express.Router();
 
@@ -602,8 +603,12 @@ router.get('/user/:userId', async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
     
     // Check if user exists
+    // The friendship check below gates the POSTS; this profile card was
+    // returned for ANY userId to any authenticated caller — surname, role,
+    // clientSource (an internal acquisition classification), tier and points.
+    // Sequential-id surname harvest. On the shared directory policy now.
     const user = await getUser().findByPk(userId, {
-      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+      attributes: directoryAttributes(req.user, ['role', 'level', 'tier', 'points'])
     });
     
     if (!user) {
