@@ -48,6 +48,7 @@ import {
 import { buildRecentExercisePerformance } from './workoutProgressionService.mjs';
 import { getCesStrategy } from './training-cortex/policy/nasmCesPolicy.mjs';
 import { registryMusclesForRegion } from './training-cortex/ontology/regionMuscleMap.mjs';
+import { getPainTrendFacts } from './painTrendService.mjs';
 
 // ── Safe model getter (non-fatal for optional tables) ────────────────
 function safeGetModel(name) {
@@ -768,6 +769,16 @@ export async function getClientContext(clientId, trainerId) {
     }
   }
 
+  // Slice 4 (C5): per-episode severity trend FACTS (delta/flare/sample size)
+  // — degrades to [] without ever failing the context build.
+  let painTrends = [];
+  try {
+    const trendResult = await getPainTrendFacts(clientId);
+    painTrends = trendResult.facts.filter((fact) => fact.isActive);
+  } catch {
+    painTrends = [];
+  }
+
   // ── Pain Source State (Cortex P0 §5.2) ─────────────────────────
   // "No active pain reported" and "pain information unavailable" are different
   // facts; the safety gate keys on this status, never on array shapes.
@@ -1022,6 +1033,8 @@ export async function getClientContext(clientId, trainerId) {
       // Slice 1 (C1 parity): regions that could NOT be machine-protected —
       // fail-visible, mirroring bootcamp's unmappedRegion alerts.
       unmappedRegions: painUnmappedRegions,
+      // Slice 4 (C5): computed per-episode trend facts (never cross-region).
+      trends: painTrends,
     },
 
     movement: {

@@ -12,7 +12,8 @@
  * NOTE: Uses STRING instead of ENUM for side/painType/posturalSyndrome
  * to avoid PostgreSQL ENUM type issues with sequelize.sync({ alter: true }).
  */
-import { DataTypes, Model } from 'sequelize';
+import { randomUUID } from 'node:crypto';
+import { DataTypes, Model, Op } from 'sequelize';
 import sequelize from '../database.mjs';
 
 class ClientPainEntry extends Model {}
@@ -152,6 +153,15 @@ ClientPainEntry.init({
     },
     comment: 'rest | daily_activity | loaded_movement',
   },
+  episodeId: {
+    // Slice 4 (F6): pain is EPISODIC; a flat log made every trend a lie
+    // (resolved ankle + new shoulder read as "worsening 2→8"). Same-region
+    // entries within 30 days share an episode (beforeCreate hook links them);
+    // trends/deltas are computed per episode, never across body parts.
+    type: DataTypes.UUID,
+    allowNull: true,
+    comment: 'Episode grouping — same region/side entries within 30d share one',
+  },
 }, {
   sequelize,
   tableName: 'client_pain_entries',
@@ -160,7 +170,67 @@ ClientPainEntry.init({
   indexes: [
     { fields: ['userId', 'isActive'], name: 'idx_pain_user_active' },
     { fields: ['bodyRegion'], name: 'idx_pain_body_region' },
+    { fields: ['episodeId'], name: 'idx_pain_episode' },
   ],
+});
+
+// ── Slice 4 hooks — model-level so EVERY writer is covered ────────────────
+// (REST controller, AI command lane, client self-service, future check-in.)
+
+const EPISODE_LINK_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+// F6: link a new entry to an existing same-(region, side) episode when the
+// prior entry is active or was touched within 30 days; otherwise start a new
+// episode. Failure degrades to a fresh episode — never blocks the write.
+ClientPainEntry.addHook('beforeCreate', 'painEpisodeLink', async (entry) => {
+  if (entry.episodeId) return;
+  try {
+    const cutoff = new Date(Date.now() - EPISODE_LINK_WINDOW_MS);
+    const prior = await ClientPainEntry.findOne({
+      where: {
+        userId: entry.userId,
+        bodyRegion: entry.bodyRegion,
+        side: entry.side || 'center',
+        [Op.or]: [
+          { isActive: true },
+          { resolvedAt: { [Op.gte]: cutoff } },
+          { updatedAt: { [Op.gte]: cutoff } },
+        ],
+      },
+      order: [['createdAt', 'DESC']],
+      attributes: ['episodeId'],
+    });
+    entry.episodeId = prior?.episodeId || randomUUID();
+  } catch {
+    entry.episodeId = randomUUID();
+  }
+});
+
+// F7: append-only revision audit for the safety-relevant fields. A severity
+// edit must never erase the value it replaced. Audit failure is logged via
+// console (logger import would be circular here) but never blocks the write.
+const REVISION_TRACKED_FIELDS = ['painLevel', 'isActive', 'painContext', 'side', 'posturalSyndrome'];
+
+ClientPainEntry.addHook('afterUpdate', 'painRevisionAudit', async (entry, options) => {
+  const changes = {};
+  for (const field of REVISION_TRACKED_FIELDS) {
+    if (entry.changed(field)) {
+      changes[field] = { from: entry.previous(field), to: entry.get(field) };
+    }
+  }
+  if (Object.keys(changes).length === 0) return;
+  try {
+    const Revision = sequelize.models.PainEntryRevision;
+    if (!Revision) return;
+    await Revision.create({
+      painEntryId: entry.id,
+      changedById: options?.revisionActorId ?? null,
+      changes,
+    }, { transaction: options?.transaction });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('[ClientPainEntry] revision audit write failed (non-blocking):', error?.message);
+  }
 });
 
 export default ClientPainEntry;

@@ -66,7 +66,7 @@ describe('resolvePainEntry — trainer-review gate', () => {
     findOneMock.mockResolvedValue(makeEntry(5));
     const res = makeRes();
     await resolvePainEntry(clientReq(), res);
-    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ isActive: false }));
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ isActive: false }), expect.objectContaining({ revisionActorId: expect.any(Number) }));
     expect(res.status).not.toHaveBeenCalledWith(403);
   });
 
@@ -74,7 +74,7 @@ describe('resolvePainEntry — trainer-review gate', () => {
     findOneMock.mockResolvedValue(makeEntry(9));
     const res = makeRes();
     await resolvePainEntry(trainerReq(), res);
-    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ isActive: false }));
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ isActive: false }), expect.objectContaining({ revisionActorId: expect.any(Number) }));
     expect(res.status).not.toHaveBeenCalledWith(403);
   });
 });
@@ -93,7 +93,7 @@ describe('updatePainEntry — severity-downgrade gate', () => {
     findOneMock.mockResolvedValue(makeEntry(7));
     const res = makeRes();
     await updatePainEntry(clientReq({ painLevel: 9 }), res);
-    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ painLevel: 9 }));
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ painLevel: 9 }), expect.objectContaining({ revisionActorId: expect.any(Number) }));
     expect(res.status).not.toHaveBeenCalledWith(403);
   });
 
@@ -101,14 +101,14 @@ describe('updatePainEntry — severity-downgrade gate', () => {
     findOneMock.mockResolvedValue(makeEntry(6));
     const res = makeRes();
     await updatePainEntry(clientReq({ painLevel: 2 }), res);
-    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ painLevel: 2 }));
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ painLevel: 2 }), expect.objectContaining({ revisionActorId: expect.any(Number) }));
   });
 
   it('allows a trainer to lower a >=7 entry', async () => {
     findOneMock.mockResolvedValue(makeEntry(9));
     const res = makeRes();
     await updatePainEntry(trainerReq({ painLevel: 4 }), res);
-    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ painLevel: 4 }));
+    expect(updateMock).toHaveBeenCalledWith(expect.objectContaining({ painLevel: 4 }), expect.objectContaining({ revisionActorId: expect.any(Number) }));
     expect(res.status).not.toHaveBeenCalledWith(403);
   });
 

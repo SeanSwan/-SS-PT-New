@@ -62,28 +62,37 @@ const ReminderList = styled.ul`
   line-height: 1.45;
 `;
 
-const hiddenAxisStyle = {
-  axis: { stroke: 'transparent' },
-  ticks: { stroke: 'transparent' },
-  tickLabels: { fill: 'transparent' },
+// Slice 4 (B11): the chart used to hide ALL axes — no dates, no scale, just
+// a floating line. Axes are now visible: dated x ticks, 0–10 y scale.
+const visibleAxisStyle = {
+  axis: { stroke: 'var(--border-soft, rgba(96, 192, 240, 0.25))' },
+  ticks: { stroke: 'var(--border-soft, rgba(96, 192, 240, 0.25))', size: 3 },
+  tickLabels: { fill: 'var(--text-secondary, rgba(224, 236, 244, 0.62))', fontSize: 7 },
   grid: { stroke: 'transparent' },
 };
 
 const PainChartTrendFollowUp: React.FC<PainChartTrendFollowUpProps> = ({ severityTrend, reminders }) => {
-  const data = severityTrend.points.map((point, index) => ({ x: index + 1, y: point.painLevel }));
+  const data = severityTrend.points.map((point, index) => ({ x: index + 1, y: point.painLevel, dateLabel: point.label }));
+  const hasTrendLine = severityTrend.points.length >= 2;
 
   return (
     <Grid>
       <Block>
-        <BlockTitle>Severity Trend</BlockTitle>
+        <BlockTitle>Severity Trend{severityTrend.points[0]?.regionLabel ? ` — ${severityTrend.points[0].regionLabel}` : ''}</BlockTitle>
         <Summary>{severityTrend.summary}</Summary>
-        {severityTrend.points.length > 0 && (
+        {/* A single point is not a trend — the line only renders at >=2
+            points of the SAME region series (B11). */}
+        {hasTrendLine && (
           <TrendGraphic role="img" aria-label={`Pain severity trend: ${severityTrend.summary}`}>
-            <VictoryChart height={76} padding={{ top: 8, right: 8, bottom: 8, left: 8 }} domain={{ y: [0, 10] }}>
-              <VictoryAxis {...victoryStyleProps(hiddenAxisStyle)} />
-              <VictoryAxis dependentAxis {...victoryStyleProps(hiddenAxisStyle)} />
-              <VictoryLine data={data} interpolation="monotoneX" {...victoryStyleProps({ data: { stroke: 'var(--accent-primary, #60C0F0)', strokeWidth: 3 } })} />
-              <VictoryScatter data={data} size={3} {...victoryStyleProps({ data: { fill: 'var(--accent-primary, #60C0F0)' } })} />
+            <VictoryChart height={92} padding={{ top: 8, right: 10, bottom: 22, left: 24 }} domain={{ y: [0, 10] }}>
+              <VictoryAxis
+                tickValues={data.map((d) => d.x)}
+                tickFormat={(x: number) => data[x - 1]?.dateLabel ?? ''}
+                {...victoryStyleProps(visibleAxisStyle)}
+              />
+              <VictoryAxis dependentAxis tickValues={[0, 5, 10]} {...victoryStyleProps(visibleAxisStyle)} />
+              <VictoryLine data={data} interpolation="monotoneX" {...victoryStyleProps({ data: { stroke: 'var(--data-accent, #50A0F0)', strokeWidth: 3 } })} />
+              <VictoryScatter data={data} size={3} {...victoryStyleProps({ data: { fill: 'var(--data-accent, #50A0F0)' } })} />
             </VictoryChart>
             <PointLabels aria-hidden="true">
               {severityTrend.points.map((point) => <span key={`${point.id}-label`}>{point.painLevel}/10</span>)}

@@ -198,8 +198,22 @@ const buildWorkoutConstraints = (activeEntries: PainEntry[], riskBand: PainRiskB
   };
 };
 
+/**
+ * Slice 4 (B11 fix): the old trend sorted ALL entries (every region, active
+ * and resolved) into one line — a resolved 2/10 ankle followed by a new 8/10
+ * shoulder rendered as "Worsening: 2/10 to 8/10". A severity trend is only
+ * truthful within ONE (region, side) series. We chart the highest-severity
+ * ACTIVE region's own history and say which region it is.
+ */
 const buildSeverityTrend = (entries: PainEntry[]): PainSeverityTrend => {
-  const points = [...entries]
+  const active = entries.filter((entry) => entry.isActive);
+  const focus = [...active].sort((a, b) => b.painLevel - a.painLevel)[0] ?? null;
+
+  const series = focus
+    ? entries.filter((entry) => entry.bodyRegion === focus.bodyRegion && entry.side === focus.side)
+    : [];
+
+  const points = [...series]
     .sort(sortOldestFirst)
     .slice(-6)
     .map((entry) => {
@@ -214,11 +228,15 @@ const buildSeverityTrend = (entries: PainEntry[]): PainSeverityTrend => {
       };
     });
 
+  const focusLabel = focus ? formatPainRegionLabel(focus.bodyRegion) : null;
+
   if (points.length < 2) {
     return {
       direction: 'insufficient',
       delta: 0,
-      summary: 'Need at least two pain reports to show a severity trend.',
+      summary: focusLabel
+        ? `${focusLabel}: need at least two reports for this area to show a trend.`
+        : 'Need at least two pain reports for the same area to show a severity trend.',
       points,
     };
   }
@@ -232,7 +250,7 @@ const buildSeverityTrend = (entries: PainEntry[]): PainSeverityTrend => {
   return {
     direction,
     delta,
-    summary: `${directionLabel}: ${first}/10 to ${last}/10 across ${points.length} reports.`,
+    summary: `${focusLabel} — ${directionLabel}: ${first}/10 to ${last}/10 across ${points.length} reports (same area only).`,
     points,
   };
 };

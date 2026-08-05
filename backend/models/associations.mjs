@@ -169,6 +169,7 @@ const setupAssociations = async () => {
 
     // Pain/Injury Tracking (NASM CES + Squat University)
     const ClientPainEntryModule = await import('./ClientPainEntry.mjs');
+    const PainEntryRevisionModule = await import('./PainEntryRevision.mjs');
     const PainEntryCorrectiveExerciseModule = await import('./PainEntryCorrectiveExercise.mjs');
     const RecoveryActivityLogModule = await import('./RecoveryActivityLog.mjs');
 
@@ -384,6 +385,7 @@ const setupAssociations = async () => {
 
     // Pain/Injury Tracking (NASM CES + Squat University)
     const ClientPainEntry = ClientPainEntryModule.default;
+    const PainEntryRevision = PainEntryRevisionModule.default;
     const PainEntryCorrectiveExercise = PainEntryCorrectiveExerciseModule.default;
     const RecoveryActivityLog = RecoveryActivityLogModule.default;
 
@@ -557,7 +559,7 @@ const setupAssociations = async () => {
         // 2026-07-14 drift repair: models below existed only in the FULL
         // return literal; this early-return would have served a cache
         // missing them. Keep BOTH literals in sync when adding models.
-        ChallengeSubmission, WearableData, ClientPainEntry, PainEntryCorrectiveExercise, RecoveryActivityLog,
+        ChallengeSubmission, WearableData, ClientPainEntry, PainEntryRevision, PainEntryCorrectiveExercise, RecoveryActivityLog,
         BootcampStretch, PhotoVote, Lead, LeadActivity, AiConversation,
         ...(DailyMacroLog ? { DailyMacroLog } : {}),
         ...(DailyHydration ? { DailyHydration } : {}),
@@ -1195,6 +1197,8 @@ const setupAssociations = async () => {
     ClientPainEntry.belongsTo(User, { foreignKey: 'userId', as: 'client' });
     ClientPainEntry.belongsTo(User, { foreignKey: 'createdById', as: 'createdBy' });
     ClientPainEntry.hasMany(PainEntryCorrectiveExercise, { foreignKey: 'painEntryId', as: 'correctiveExercises' });
+    ClientPainEntry.hasMany(PainEntryRevision, { foreignKey: 'painEntryId', as: 'revisions' });
+    PainEntryRevision.belongsTo(ClientPainEntry, { foreignKey: 'painEntryId', as: 'painEntry' });
     PainEntryCorrectiveExercise.belongsTo(ClientPainEntry, { foreignKey: 'painEntryId', as: 'painEntry' });
     PainEntryCorrectiveExercise.belongsTo(Exercise, { foreignKey: 'exerciseId', as: 'exercise' });
 
@@ -1554,6 +1558,7 @@ const setupAssociations = async () => {
 
       // Pain/Injury Tracking
       ClientPainEntry,
+      PainEntryRevision,
       PainEntryCorrectiveExercise,
 
       // Restore (off-day recovery)

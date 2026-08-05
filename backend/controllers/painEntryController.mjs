@@ -303,7 +303,7 @@ export const updatePainEntry = async (req, res) => {
     // Slice 1: any authorized human update re-confirms the entry's state.
     updates.lastConfirmedAt = new Date();
 
-    await entry.update(updates);
+    await entry.update(updates, { revisionActorId: requester.id });
 
     logger.info(`[PainEntry] Updated entry ${entryId} for user ${userId}`);
 
@@ -363,7 +363,7 @@ export const resolvePainEntry = async (req, res) => {
     await entry.update({
       isActive: false,
       resolvedAt: new Date(),
-    });
+    }, { revisionActorId: requester.id });
 
     logger.info(`[PainEntry] Resolved entry ${entryId} for user ${userId}`);
 

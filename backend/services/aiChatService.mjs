@@ -16,6 +16,7 @@ import { getTier, getTierDisplay } from '../utils/levelingAlgorithm.mjs';
 import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
 import { wrapClientReported } from './ai/clientTextSanitizer.mjs';
 import { decrypt } from './encryption/encryptionService.mjs';
+import { getPainTrendFacts, formatTrendFactsForPrompt } from './painTrendService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
 import { buildIntakeCoverageBlock } from './ai/intakeCoverage.mjs';
 import { NUTRITION_CARE_COPY_RULES } from './nutrition/nutritionCareCopy.mjs';
@@ -1855,13 +1856,30 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
     // Slice 0: description is raw SQL (bypasses Sequelize decrypt hooks) →
     // decrypt() first (plaintext passes through untouched), then identity
     // strip, then injection-sanitize + <client_reported> wrap (F3).
+    // Slice 4 (C4): recency rendered — an 8/10 logged this morning and one
+    // logged 8 months ago used to read identically to the model.
     if (painEntries.length > 0) {
       dataParts.push(`\n--- PAIN/INJURY ---\n${painEntries.map(p => {
         const description = p.description
           ? wrapClientReported(stripIdentityFromNotes(decrypt(p.description, 'health:pain_entry'), userId, clientIdentity))
           : '';
-        return `${p.region}${p.side ? `(${p.side})` : ''}: ${p.pain_level}/10 ${p.pain_type || ''}${description ? ` — ${description}` : ''}`;
+        const createdMs = p.created_at ? new Date(p.created_at).getTime() : NaN;
+        const recency = Number.isFinite(createdMs)
+          ? ` (logged ${Math.max(0, Math.floor((Date.now() - createdMs) / 86400000))}d ago)`
+          : '';
+        return `${p.region}${p.side ? `(${p.side})` : ''}: ${p.pain_level}/10 ${p.pain_type || ''}${recency}${description ? ` — ${description}` : ''}`;
       }).join('\n')}`);
+
+      // Slice 4 (C5): computed per-episode deltas — the prompt doctrine asks
+      // the model to "flag worsening patterns"; these are the only truthful
+      // basis for that. Degrades silently when trend data is unavailable.
+      try {
+        const { facts } = await getPainTrendFacts(userId);
+        const trendLines = formatTrendFactsForPrompt(facts);
+        if (trendLines.length > 0) {
+          dataParts.push(`\n--- PAIN TREND (computed per-episode; sample sizes stated) ---\n${trendLines.join('\n')}`);
+        }
+      } catch { /* trend facts are enrichment, never a failure */ }
     }
 
     // ── 17. SESSIONS (notes PII-stripped) ──
