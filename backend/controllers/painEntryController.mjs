@@ -48,6 +48,14 @@ const parsePainLevel = (value) => {
   return Number.isInteger(parsed) && parsed >= 1 && parsed <= 10 ? parsed : null;
 };
 
+// Slice 0 (F2): at/above this severity, resolution and severity-reduction are
+// trainer decisions. Without this gate a client could resolve their own 8/10
+// and silently switch off the fail-closed planning safety gate.
+const PAIN_TRAINER_REVIEW_SEVERITY = 7;
+const TRAINER_REVIEW_REQUIRED_MESSAGE =
+  'This entry is 7/10 or higher, so it gets reviewed together with your trainer. '
+  + 'Ask your trainer to confirm the change — they can update or resolve it in seconds.';
+
 const sanitizePainEntryForRequester = (entry, requester) => {
   const data = entry?.toJSON ? entry.toJSON() : { ...entry };
   if (requester?.role !== 'client') {
@@ -275,6 +283,21 @@ export const updatePainEntry = async (req, res) => {
       updates.painLevel = parsedPainLevel;
     }
 
+    // Slice 0 (F2): a client lowering a >=7 severity is a trainer decision —
+    // otherwise the fail-closed planning gate is a client-controlled toggle.
+    if (
+      isClient
+      && Number(entry.painLevel) >= PAIN_TRAINER_REVIEW_SEVERITY
+      && updates.painLevel !== undefined
+      && updates.painLevel < Number(entry.painLevel)
+    ) {
+      return res.status(403).json({
+        success: false,
+        code: 'TRAINER_REVIEW_REQUIRED',
+        message: TRAINER_REVIEW_REQUIRED_MESSAGE,
+      });
+    }
+
     await entry.update(updates);
 
     logger.info(`[PainEntry] Updated entry ${entryId} for user ${userId}`);
@@ -320,6 +343,16 @@ export const resolvePainEntry = async (req, res) => {
 
     if (!entry) {
       return res.status(404).json({ success: false, message: 'Pain entry not found' });
+    }
+
+    // Slice 0 (F2): clients cannot self-resolve >=7 entries — resolving a
+    // severe entry is what re-opens the planning gate, so it needs a trainer.
+    if (requester.role === 'client' && Number(entry.painLevel) >= PAIN_TRAINER_REVIEW_SEVERITY) {
+      return res.status(403).json({
+        success: false,
+        code: 'TRAINER_REVIEW_REQUIRED',
+        message: TRAINER_REVIEW_REQUIRED_MESSAGE,
+      });
     }
 
     await entry.update({

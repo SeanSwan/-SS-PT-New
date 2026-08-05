@@ -12,9 +12,16 @@ import {
 } from './encryptionService.mjs';
 
 const ENCRYPTED_MODEL_FIELDS = {
+  // Slice 0 (C9): the old list named two columns that DO NOT EXIST on
+  // ClientPainEntry ('notes', 'severity_notes') and omitted the model's real
+  // sensitive free-text columns. Legacy plaintext rows are safe: decrypt()
+  // passes through values without the enc prefix. assessmentFindings (JSONB)
+  // is intentionally excluded — these hooks handle scalar strings only.
+  // Raw-SQL readers bypass these hooks; the only one selecting an encrypted
+  // column is aiChatService (pain description), which decrypts explicitly.
   ClientPainEntry: {
     context: 'health:pain_entry',
-    fields: ['description', 'notes', 'severity_notes'],
+    fields: ['description', 'trainerNotes', 'aiNotes', 'aggravatingMovements', 'relievingFactors'],
   },
   ClientBaselineMeasurements: {
     context: 'health:baseline',

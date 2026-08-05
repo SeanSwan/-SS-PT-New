@@ -10,6 +10,7 @@
  */
 import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+import { sanitizeClientText } from './ai/clientTextSanitizer.mjs';
 
 // ── Helper Functions ──────────────────────────────────────────────────────────
 
@@ -199,9 +200,11 @@ export async function buildMasterPromptFromUserData(targetUser) {
         order: [['createdAt', 'DESC']],
       }).catch(() => null) ?? Promise.resolve(null),
 
-      // ALL pain entries sorted by severity — no limits, AI needs full picture
+      // ACTIVE pain entries sorted by severity — no row limit, but resolved
+      // entries must never masquerade as current constraints (Slice 0, C2:
+      // this query fed 10 resolved entries to the workout LLM as "active").
       ClientPainEntry?.findAll({
-        where: { userId },
+        where: { userId, isActive: true },
         order: [['painLevel', 'DESC']],
       }).catch(() => []) ?? Promise.resolve([]),
 
@@ -330,15 +333,18 @@ export async function buildMasterPromptFromUserData(targetUser) {
       bmi: baseline.bmi || null,
     } : null,
 
-    // v4.0: Pain & injury context
+    // v4.0: Pain & injury context (active-only since Slice 0 C2 fix).
+    // avoid/helps are CLIENT-writable free text → injection-sanitized (F3).
+    // aiGuidance/syndrome are trainer-authored guidance, intentionally kept
+    // for the generation LLM (server-side prompt; never client-rendered).
     painAndInjuries: {
       activePainEntries: painEntries.map(p => ({
         region: p.bodyRegion,
         side: p.side,
         level: p.painLevel,
         type: p.painType,
-        avoid: p.aggravatingMovements,
-        helps: p.relievingFactors,
+        avoid: sanitizeClientText(p.aggravatingMovements),
+        helps: sanitizeClientText(p.relievingFactors),
         aiGuidance: p.aiNotes,
         syndrome: p.posturalSyndrome,
       })),

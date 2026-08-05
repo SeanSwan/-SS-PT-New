@@ -14,6 +14,8 @@
 import logger from '../utils/logger.mjs';
 import { getTier, getTierDisplay } from '../utils/levelingAlgorithm.mjs';
 import { stripIdentityFromNotes } from './aiPrivacyService.mjs';
+import { wrapClientReported } from './ai/clientTextSanitizer.mjs';
+import { decrypt } from './encryption/encryptionService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
 import { buildIntakeCoverageBlock } from './ai/intakeCoverage.mjs';
 import { NUTRITION_CARE_COPY_RULES } from './nutrition/nutritionCareCopy.mjs';
@@ -1850,8 +1852,16 @@ Member Since: ${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'Unkn
     }
 
     // ── 16. PAIN ──
+    // Slice 0: description is raw SQL (bypasses Sequelize decrypt hooks) →
+    // decrypt() first (plaintext passes through untouched), then identity
+    // strip, then injection-sanitize + <client_reported> wrap (F3).
     if (painEntries.length > 0) {
-      dataParts.push(`\n--- PAIN/INJURY ---\n${painEntries.map(p => `${p.region}${p.side ? `(${p.side})` : ''}: ${p.pain_level}/10 ${p.pain_type || ''}${p.description ? ` — ${stripIdentityFromNotes(p.description, userId, clientIdentity)}` : ''}`).join('\n')}`);
+      dataParts.push(`\n--- PAIN/INJURY ---\n${painEntries.map(p => {
+        const description = p.description
+          ? wrapClientReported(stripIdentityFromNotes(decrypt(p.description, 'health:pain_entry'), userId, clientIdentity))
+          : '';
+        return `${p.region}${p.side ? `(${p.side})` : ''}: ${p.pain_level}/10 ${p.pain_type || ''}${description ? ` — ${description}` : ''}`;
+      }).join('\n')}`);
     }
 
     // ── 17. SESSIONS (notes PII-stripped) ──

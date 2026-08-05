@@ -776,10 +776,23 @@ export async function generateWorkout(options) {
   }
 
   if (context.pain.exclusions.length > 0) {
+    // Slice 0: honest copy. The old message claimed "N muscle group(s)
+    // auto-excluded" for N ENTRIES even when a region mapped to zero muscles
+    // and excluded nothing (C1 false confidence). Unmapped regions are named
+    // explicitly so the trainer knows those areas are NOT machine-protected.
+    const mapped = context.pain.exclusions.filter(e => (e.muscles || []).length > 0);
+    const unmapped = context.pain.exclusions.filter(e => (e.muscles || []).length === 0);
+    const parts = [];
+    if (mapped.length > 0) {
+      parts.push(`${mapped.length} pain area(s) with active severity >= ${PAIN_AUTO_EXCLUDE_SEVERITY}/10 auto-excluded matching muscle groups`);
+    }
+    if (unmapped.length > 0) {
+      parts.push(`${unmapped.length} severe pain area(s) have NO automatic muscle mapping yet -- review these exercises manually`);
+    }
     explanations.push({
       type: 'pain_exclusion',
-      message: `${context.pain.exclusions.length} muscle group(s) auto-excluded due to pain severity >= ${PAIN_AUTO_EXCLUDE_SEVERITY}/10 within 72h`,
-      details: context.pain.exclusions.map(e => `${e.bodyRegion} (${e.painLevel}/10)`),
+      message: parts.join('; '),
+      details: context.pain.exclusions.map(e => `${e.bodyRegion} (${e.painLevel}/10)${(e.muscles || []).length === 0 ? ' [unmapped -- manual review]' : ''}`),
     });
   }
 

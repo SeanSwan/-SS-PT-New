@@ -691,25 +691,40 @@ export async function getClientContext(clientId, trainerId) {
       });
     }
 
-    if (severity >= PAIN_AUTO_EXCLUDE_SEVERITY && isRecent) {
+    // Slice 0 (F1 interim): an ACTIVE >=7 entry excludes regardless of age.
+    // The old `&& isRecent` let chronic severe pain silently age OUT of
+    // exclusion after 72h while still being active — the safety system only
+    // protected acute injuries. Stale >=7 additionally warns for trainer
+    // re-confirmation (full lastConfirmedAt semantics land in Slice 1).
+    if (severity >= PAIN_AUTO_EXCLUDE_SEVERITY) {
       painExclusions.push({
         bodyRegion: entry.bodyRegion,
         painLevel: severity,
         painType: entry.painType,
         muscles,
-        reason: `Auto-excluded: severity ${severity}/10 within 72h`,
+        reason: isRecent
+          ? `Auto-excluded: severity ${severity}/10 within 72h`
+          : `Auto-excluded: active severity ${severity}/10 (logged >72h ago -- trainer re-confirmation recommended)`,
         entryId: entry.id,
       });
       muscles.forEach(m => excludedMuscles.add(m));
+      if (!isRecent) {
+        painWarnings.push({
+          bodyRegion: entry.bodyRegion,
+          painLevel: severity,
+          painType: entry.painType,
+          muscles,
+          reason: `High severity logged >72h ago -- trainer re-confirmation needed`,
+          entryId: entry.id,
+        });
+      }
     } else if (severity >= PAIN_WARN_SEVERITY) {
       painWarnings.push({
         bodyRegion: entry.bodyRegion,
         painLevel: severity,
         painType: entry.painType,
         muscles,
-        reason: severity >= PAIN_AUTO_EXCLUDE_SEVERITY
-          ? `High severity but >72h ago -- trainer review needed`
-          : `Moderate pain (${severity}/10) -- modify load/ROM`,
+        reason: `Moderate pain (${severity}/10) -- modify load/ROM`,
         entryId: entry.id,
       });
     }
@@ -1017,13 +1032,36 @@ export async function getClientContext(clientId, trainerId) {
 /**
  * Get admin-level overview across all clients for dashboard widgets.
  *
+ * Slice 0 (C12): the signature always advertised trainer scoping but never
+ * applied it to pain alerts. The route is admin-only today (admins see the
+ * whole platform on purpose); if this ever opens to trainers, named pain
+ * alerts are hard-scoped to the caller's ACTIVE roster here — fail-closed
+ * (missing roster model or empty roster ⇒ zero alerts, never platform-wide).
+ *
  * @param {number} trainerId
+ * @param {{ role?: 'admin' | 'trainer' }} [opts]
  * @returns {Promise<Object>} AdminIntelligenceOverview
  */
-export async function getAdminIntelligenceOverview(trainerId) {
+export async function getAdminIntelligenceOverview(trainerId, { role = 'admin' } = {}) {
   const now = new Date();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  let painAlertRosterScope = {};
+  if (role !== 'admin') {
+    // NOTE: Op.in with an EMPTY array matches nothing (safe), but the [-1]
+    // sentinel makes the fail-closed intent explicit and survives refactors
+    // (Op.notIn with [] would match EVERYTHING — see 61f98a585 lesson).
+    const ClientTrainerAssignment = safeGetModel('ClientTrainerAssignment');
+    const roster = ClientTrainerAssignment
+      ? await ClientTrainerAssignment.findAll({
+          where: { trainerId, status: 'active' },
+          attributes: ['clientId'],
+        }).catch(() => [])
+      : [];
+    const rosterIds = roster.map((a) => a.clientId).filter(Boolean);
+    painAlertRosterScope = { userId: { [Op.in]: rosterIds.length ? rosterIds : [-1] } };
+  }
 
   const [
     highPainAlerts,
@@ -1032,12 +1070,13 @@ export async function getAdminIntelligenceOverview(trainerId) {
     recentVariations,
     recentWorkouts,
   ] = await Promise.all([
-    // Pain alerts: severity >= 7 in last 24h
+    // Pain alerts: severity >= 7 in last 24h (roster-scoped for non-admins)
     getClientPainEntry().findAll({
       where: {
         isActive: true,
         painLevel: { [Op.gte]: PAIN_AUTO_EXCLUDE_SEVERITY },
         createdAt: { [Op.gte]: twentyFourHoursAgo },
+        ...painAlertRosterScope,
       },
       include: [{
         model: getUser(),
