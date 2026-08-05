@@ -116,13 +116,13 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
         <UserInfo>
           <AvatarEl
             src={post.user.photo || undefined}
-            alt={`${post.user.firstName} ${post.user.lastName}`}
-            fallback={`${post.user.firstName[0]}${post.user.lastName[0]}`}
+            alt={[post.user.firstName, post.user.lastName].filter(Boolean).join(' ')}
+            fallback={`${post.user.firstName?.[0] ?? ''}${post.user.lastName?.[0] ?? ''}` || '?'}
             coach={isCoach}
           />
           <div>
             <UserName>
-              {post.user.firstName} {post.user.lastName}
+              {[post.user.firstName, post.user.lastName].filter(Boolean).join(' ')}
               {/* Coach presence — members see a real coach is here and can
                   ask questions right in the thread. */}
               {isCoach && (

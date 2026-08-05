@@ -62,7 +62,10 @@ function isLegacySocialTableMissingError(error) {
   return /SocialPosts|Friendships|SocialComments|SocialLikes/i.test(message);
 }
 
-async function getEnhancedFallbackFeed(userId, limit, offset) {
+// `viewer` is threaded in so the projection can be viewer-aware: this helper
+// has no `req`, and a mechanical sweep that assumed one would have thrown a
+// ReferenceError on the fallback-feed path.
+async function getEnhancedFallbackFeed(userId, limit, offset, viewer = null) {
   const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(limit, 100)) : 20;
   const safeOffset = Number.isFinite(offset) ? Math.max(offset, 0) : 0;
 
@@ -94,7 +97,7 @@ async function getEnhancedFallbackFeed(userId, limit, offset) {
   const users = numericUserIds.length > 0
     ? await getUser().findAll({
       where: { id: { [Op.in]: numericUserIds } },
-      attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points']),
+      attributes: directoryAttributes(viewer, ['role', 'level', 'tier', 'points']),
       raw: true
     })
     : [];
@@ -460,7 +463,7 @@ router.get('/feed', async (req, res) => {
   } catch (error) {
     if (isLegacySocialTableMissingError(error)) {
       try {
-        const fallback = await getEnhancedFallbackFeed(req.user.id, parseInt(req.query.limit), parseInt(req.query.offset));
+        const fallback = await getEnhancedFallbackFeed(req.user.id, parseInt(req.query.limit), parseInt(req.query.offset), req.user);
         return res.status(200).json(fallback);
       } catch (fallbackError) {
         console.error('Enhanced social fallback failed:', fallbackError);
