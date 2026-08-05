@@ -51,6 +51,9 @@ interface ObservatoryShellProps {
   observatoryProgressPct: number;
   observatoryXpToNext: number;
   observatoryStreakDays: number;
+  /** Whether the gamification record is known; false suppresses the momentum numbers. */
+  gamificationKnown: boolean;
+  onRetryGamification?: () => void;
   topBadges: ObservatoryBadge[];
   navItems: ReadonlyArray<ObservatoryNavItem>;
   children: React.ReactNode;
@@ -66,6 +69,8 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
   observatoryProgressPct,
   observatoryXpToNext,
   observatoryStreakDays,
+  gamificationKnown,
+  onRetryGamification,
   topBadges,
   navItems,
   children,
@@ -83,6 +88,8 @@ const ObservatoryShell: React.FC<ObservatoryShellProps> = ({
           observatoryProgressPct={observatoryProgressPct}
           observatoryXpToNext={observatoryXpToNext}
           observatoryStreakDays={observatoryStreakDays}
+          gamificationKnown={gamificationKnown}
+          onRetryGamification={onRetryGamification}
         />
 
         <ObservatoryMain data-user-dashboard-scroll-root>{children}</ObservatoryMain>

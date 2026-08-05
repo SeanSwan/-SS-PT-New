@@ -14,7 +14,20 @@
  */
 import { formatAgo } from './HomeTabLiveWidgetViewModel';
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * How many whole calendar days back a timestamp falls, relative to the start of
+ * today. Day-aligned on purpose: an instant-based `(now - t) / 7 days` window
+ * slides by the hour, so a session 6 days and 20 hours old counted as "this
+ * week" while the day grid beside it — which can only draw whole days — showed
+ * nothing. Rounding absorbs DST's 23- and 25-hour days.
+ */
+const calendarDaysAgo = (timeMs: number, startOfTodayMs: number): number => {
+  const sessionDay = new Date(timeMs);
+  sessionDay.setHours(0, 0, 0, 0);
+  return Math.round((startOfTodayMs - sessionDay.getTime()) / DAY_MS);
+};
 /** Hour of day (local) after which an unbroken-but-untrained streak is at risk. */
 const STREAK_RISK_HOUR = 15;
 
@@ -47,6 +60,10 @@ export function buildHomeTrainingProof(
   let minutesThisWeek = 0;
   let last: { timeMs: number; title: string; id: string | null } | null = null;
 
+  const startOfToday = new Date(nowMs);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfTodayMs = startOfToday.getTime();
+
   for (const session of sessions || []) {
     if (!isLoggedWorkoutSession(session)) continue;
     const record = session;
@@ -54,7 +71,7 @@ export function buildHomeTrainingProof(
     const timeMs = new Date(String(rawDate || '')).getTime();
     if (!Number.isFinite(timeMs) || timeMs > nowMs) continue;
 
-    const weeksAgo = Math.floor((nowMs - timeMs) / WEEK_MS);
+    const weeksAgo = Math.floor(calendarDaysAgo(timeMs, startOfTodayMs) / 7);
     if (weeksAgo < 4) {
       weeklyCounts[3 - weeksAgo] += 1;
       if (weeksAgo === 0) {
@@ -100,6 +117,84 @@ export function buildHomeTrainingProof(
     latestSessionId: last?.id ?? null,
     shareLine,
   };
+}
+
+/** One tile of the Home left-rail trailing-7-day creator-streak grid. */
+export interface WeekTrainingDay {
+  /** Weekday initial for this tile's actual date. */
+  label: string;
+  /** Full weekday name, for the screen-reader label. */
+  dayName: string;
+  /** True only when a real session was logged on that calendar day. */
+  trained: boolean;
+  /** The last tile — today. */
+  isToday: boolean;
+}
+
+const DAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const TRAILING_DAYS = 7;
+
+/**
+ * The trailing seven days ending today, each marked from real logged sessions.
+ *
+ * Two things this must NOT do, both of which were live defects:
+ *  - derive tiles from the streak COUNT (`index < streakDays`), which named
+ *    days the member trained without reading a single session date;
+ *  - use a calendar Mon..Sun window while `buildHomeTrainingProof` counts a
+ *    ROLLING 7 days (`weeksAgo === 0` above). Two definitions of "this week"
+ *    rendered side by side disagree — on a Thursday, a session logged last
+ *    Saturday counts as "This Week: 1" while every calendar tile is dark.
+ *    This window is deliberately the same rolling one, so they always agree.
+ */
+export function buildWeekTrainingDays(
+  sessions: unknown[] | null | undefined,
+  nowMs: number,
+): WeekTrainingDay[] {
+  const startOfToday = new Date(nowMs);
+  startOfToday.setHours(0, 0, 0, 0);
+
+  // Eight boundaries: the start of each of the 7 days, plus tomorrow's start.
+  // Derived with setDate so a DST transition (a 23- or 25-hour day) cannot
+  // shift a session into the neighbouring tile the way a fixed +24h would.
+  const dayBounds = Array.from({ length: TRAILING_DAYS + 1 }, (_, index) => {
+    const boundary = new Date(startOfToday);
+    boundary.setDate(boundary.getDate() - (TRAILING_DAYS - 1) + index);
+    return boundary.getTime();
+  });
+
+  const trained = Array.from({ length: TRAILING_DAYS }, () => false);
+
+  for (const session of sessions || []) {
+    // Same completeness filter as buildHomeTrainingProof. Without it the two
+    // builders drift apart again: a PLANNED session would light a tile while
+    // the "This Week" count beside it ignored the row — the exact
+    // two-definitions-of-one-week defect the agreement tests below exist to
+    // catch, and which they caught when this filter arrived upstream.
+    if (!isLoggedWorkoutSession(session)) continue;
+    const record = session;
+    const rawDate = record.date ?? record.completedAt ?? record.createdAt;
+    const timeMs = new Date(String(rawDate || '')).getTime();
+    // Future-dated rows are never proof of a completed session.
+    if (!Number.isFinite(timeMs) || timeMs > nowMs) continue;
+
+    for (let index = 0; index < TRAILING_DAYS; index += 1) {
+      if (timeMs >= dayBounds[index] && timeMs < dayBounds[index + 1]) {
+        trained[index] = true;
+        break;
+      }
+    }
+  }
+
+  return trained.map((didTrain, index) => {
+    const weekday = new Date(dayBounds[index]).getDay();
+    return {
+      label: DAY_INITIALS[weekday],
+      dayName: DAY_NAMES[weekday],
+      trained: didTrain,
+      isToday: index === TRAILING_DAYS - 1,
+    };
+  });
 }
 
 /**

@@ -101,8 +101,8 @@ const PostComments: React.FC<PostCommentsProps> = React.memo(({
     <StyledBox as={CommentItem} key={comment.id} $style={isReply ? { paddingLeft: 24 } : undefined}>
       <AvatarEl
         src={comment.user.photo || undefined}
-        alt={`${comment.user.firstName} ${comment.user.lastName}`}
-        fallback={`${comment.user.firstName[0]}${comment.user.lastName[0]}`}
+        alt={[comment.user.firstName, comment.user.lastName].filter(Boolean).join(' ')}
+        fallback={`${comment.user.firstName?.[0] ?? ''}${comment.user.lastName?.[0] ?? ''}` || '?'}
         size={isReply ? 26 : 32}
         coach={isCoachRole(comment.user.role)}
       />
@@ -110,7 +110,7 @@ const PostComments: React.FC<PostCommentsProps> = React.memo(({
         <CommentBubble>
           <CommentAuthor>
             {isReply && <StyledBox as={CornerDownRight} size={12} $style={{ marginRight: 4, opacity: 0.4 }} />}
-            {comment.user.firstName} {comment.user.lastName}
+            {[comment.user.firstName, comment.user.lastName].filter(Boolean).join(' ')}
             {/* A coach answered — the gold mark makes the reply load-bearing. */}
             {isCoachRole(comment.user.role) && (
               <CoachChip title="SwanStudios Coach">

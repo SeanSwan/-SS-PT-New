@@ -54,7 +54,7 @@ const PhotoGallery: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { posts, refreshProfile } = useProfile();
+  const { posts, refreshProfile, postsStatus } = useProfile();
   const { createPost, refreshPosts } = useSocialFeed();
 
   const photos = useMemo(
@@ -158,7 +158,7 @@ const PhotoGallery: React.FC = () => {
         {uploadMessage && <StatusMessage role="status">{uploadMessage}</StatusMessage>}
 
         {filteredPhotos.length === 0 && searchTerm === '' ? (
-          <PhotoGalleryEmptyState />
+          <PhotoGalleryEmptyState status={postsStatus} />
         ) : (
           <PhotoGrid>
             <PhotoGalleryUploadCard onUpload={handleUpload} />

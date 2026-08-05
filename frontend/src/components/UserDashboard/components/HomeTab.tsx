@@ -2,7 +2,7 @@
  * FILE: HomeTab.tsx
  * PURPOSE: Source-of-truth Creator Observatory Home tab for /user-dashboard.
  */
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getTransformationPhotos } from './ObservatoryShellAdapter';
@@ -39,12 +39,15 @@ import { type VisionTarget } from './HomeTabVision.data';
 import HomeTabTrainingProof from './HomeTabTrainingProof';
 import HomeGroupsStrip from './groups/HomeGroupsStrip';
 import useHomeComposer, { HOME_COMPOSER_ACCEPT } from './useHomeComposer';
+import useDayBoundary, { dayClock } from '../hooks/useDayBoundary';
+import { isDataKnown, resolveDataStatus } from '../hooks/resolveDataStatus';
 import { useHomeNutritionAction } from './useHomeNutritionAction';
 import {
   assessStreakRisk,
   buildHomeTopBarActions,
   buildHomeTrainingProof,
   buildLatestPostView,
+  buildWeekTrainingDays,
   normalizeHomePercent,
   normalizeHomeWholeNumber,
   parseUnreadNotificationCount,
@@ -56,6 +59,10 @@ interface HomeTabProps {
   onTabChange: (tab: TabId) => void;
   profile: UserProfile | null;
   displayStats: ProfileStats;
+  /** False when the profile-stats fetch failed and displayStats holds substituted zeros. */
+  profileStatsKnown?: boolean;
+  /** From the controller; HomeTab also resolves its own, this is the shell's view. */
+  gamificationKnown?: boolean;
   profilePosts: SocialPost[];
   followStats: FollowStats | null;
   displayNameOverride: string;
@@ -65,13 +72,27 @@ const HomeTab: React.FC<HomeTabProps> = ({
   onTabChange,
   profile,
   displayStats,
+  profileStatsKnown = true,
   displayNameOverride,
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const currentWorkoutState = useCurrentClientWorkout(user?.id);
   const todayTrainingEnabled = clientTodayTrainingModuleEnabled();
-  const { profile: gamProfile, levelProgress, leaderboard } = useGamificationData();
+  const {
+    profile: gamProfile,
+    levelProgress,
+    leaderboard,
+    refetch: refetchGamification,
+  } = useGamificationData();
+  // The profile query owns level/XP/streak. When it fails, `levelProgress`
+  // still resolves from a `?? 0` fallback — so the rail must be told, or it
+  // reports Level 1 / 0 XP / 0 streak as if that were the member's record.
+  // Uses the shared resolver: the hand-rolled `isError && !data` here read
+  // FALSE for the whole pending window, which is exactly the hole this
+  // workstream closed for sessions and left open for gamification.
+  const gamificationStatus = resolveDataStatus(gamProfile);
+  const gamificationUnavailable = !isDataKnown(gamificationStatus);
   // Workstream O: Faction War lives on Home now (sole mount post-Feed-unmount).
   const { factions } = useFaction();
   const { isElite, loading: subLoading } = useSubscription();
@@ -102,22 +123,59 @@ const HomeTab: React.FC<HomeTabProps> = ({
   const hasEliteAccess = isElite || user?.role === 'admin' || user?.role === 'trainer';
   // Workstream N4: real training proof from logged workout sessions.
   const workoutSessions = useWorkoutSessions({ limit: 50 });
+  // Recomputes at local midnight. Without it these memos hold the day they
+  // first ran: an overnight tab kept yesterday's window, so the "(today)" ring
+  // and its screen-reader label sat on the wrong day and a workout logged after
+  // midnight lit no tile.
+  const dayStart = useDayBoundary();
   const trainingProof = useMemo(
-    () => buildHomeTrainingProof(workoutSessions.data, Date.now()),
-    [workoutSessions.data],
+    () => buildHomeTrainingProof(workoutSessions.data, dayClock(dayStart)),
+    [workoutSessions.data, dayStart],
   );
+  // Trailing-7-day tiles come from real session dates, never from the streak
+  // count — and the same failure gate as the proof card, so a fetch error
+  // cannot render as seven "no workout logged" days.
+  const weekTrainingDays = useMemo(
+    () => buildWeekTrainingDays(workoutSessions.data, dayClock(dayStart)),
+    [workoutSessions.data, dayStart],
+  );
+  // Never hand-roll this gate again — see resolveDataStatus for the three ways
+  // it was got wrong. 'stale' matters here: a failed background refetch keeps
+  // the cached list, which must still be shown but must offer a retry rather
+  // than pass as current.
+  const sessionsStatus = resolveDataStatus(workoutSessions);
+  const sessionsKnown = isDataKnown(sessionsStatus);
+  // buildHomeTrainingProof ALWAYS returns an object, so the `trainingProof ?`
+  // guard inside buildSidebarQuickStats is dead on this path: the ticker
+  // asserted "This Week 0 / Training Time 0m" through the whole pending window
+  // and through any failure. Pass null until the record is actually known, and
+  // the two tiles drop out instead of stating a zero.
   const quickStats = useMemo(() => buildSidebarQuickStats({
     displayStats: { ...displayStats, points, level },
     canonicalLevel: level,
     streakDays,
     progressPercent,
     pointsToNext,
-    trainingProof,
-  }), [displayStats, level, points, pointsToNext, progressPercent, streakDays, trainingProof]);
+    trainingProof: sessionsKnown ? trainingProof : null,
+    profileStatsKnown,
+    gamificationKnown: !gamificationUnavailable,
+  }), [displayStats, level, points, pointsToNext, progressPercent, streakDays, trainingProof, sessionsKnown, gamificationUnavailable, profileStatsKnown]);
+  // Rolling the window is not enough on its own: nothing else refetches (no
+  // polling, no refetch-on-focus), so an overnight tab would slide to the new
+  // day and still hold yesterday's session list — a workout logged at 00:30
+  // would light no tile. Pull fresh sessions when the day actually changes.
+  const refetchSessions = workoutSessions.refetch;
+  const mountedDayRef = useRef(dayStart);
+  useEffect(() => {
+    if (mountedDayRef.current === dayStart) return;
+    mountedDayRef.current = dayStart;
+    void refetchSessions();
+  }, [dayStart, refetchSessions]);
+
   // O3 streak rescue: live streak + no session today + evening = escalate.
   const streakAtRisk = useMemo(
-    () => assessStreakRisk(workoutSessions.data, streakDays, Date.now()),
-    [streakDays, workoutSessions.data],
+    () => assessStreakRisk(workoutSessions.data, streakDays, dayClock(dayStart)),
+    [streakDays, workoutSessions.data, dayStart],
   );
   // O3 Quick Post composer can attach the latest real workout-proof session.
   const composer = useHomeComposer({
@@ -148,6 +206,8 @@ const HomeTab: React.FC<HomeTabProps> = ({
       <Panel>
         <HomeTabTrainingProof
           proof={trainingProof}
+          sessionsStatus={sessionsStatus}
+          onRetrySessions={() => { void workoutSessions.refetch(); }}
           onShareProgress={composer.handleShareProgress}
         />
       </Panel>
@@ -158,6 +218,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
           level={level}
           progressPercent={progressPercent}
           tierName={tierName}
+          gamificationKnown={!gamificationUnavailable}
           logWorkoutPath={logWorkoutPath}
           nutritionAction={nutritionAction}
           onOpenNutrition={() => onTabChange('nutrition')}
@@ -230,12 +291,17 @@ const HomeTab: React.FC<HomeTabProps> = ({
           pointsToNext={pointsToNext}
           progressPercent={progressPercent}
           streakDays={streakDays}
+          weekDays={weekTrainingDays}
+          statsUnavailable={gamificationUnavailable}
+          sessionsStatus={sessionsStatus}
+          onRetryStats={refetchGamification}
           activeId={activeLens}
           onAction={runAction}
         />
 
         <HomeTabVisionCenter
           points={points}
+          gamificationKnown={!gamificationUnavailable}
           activeLens={activeLens}
           postText={composer.postText}
           activeMood={composer.activeMood}
@@ -284,6 +350,7 @@ const HomeTab: React.FC<HomeTabProps> = ({
 
         <HomeTabVisionRightRail
           progressPercent={progressPercent}
+          gamificationKnown={!gamificationUnavailable}
           liveActivityItems={liveWidgets.liveActivityItems}
           liveActivityConnected={liveWidgets.liveActivityConnected}
           activeChallenge={liveWidgets.activeChallenge}

@@ -4,11 +4,20 @@
  *
  * Business logic for fetching and managing schedule events.
  * This controller is role-aware and provides events tailored to
- * clients, trainers, and admins.
+ * members ('client' and the default 'user' role), trainers, and admins.
+ * Row scope and column projection both fail closed: an unrecognised role is
+ * scoped to its own sessions and receives the minimal projection.
  */
 
 import sequelize from '../database.mjs';
 import { QueryTypes } from 'sequelize';
+
+/**
+ * `User.role` defaults to 'user' and public self-registration mints
+ * {'user','client'}, so both roles reach this controller as ordinary members.
+ * Mirrors `isClientEquivalentRole` in utils/clientAccess.mjs.
+ */
+const isClientEquivalentRole = (role) => role === 'client' || role === 'user';
 
 /**
  * Get schedule events for a given date range and user.
@@ -47,7 +56,7 @@ export const getScheduleEvents = async (req, res) => {
     };
 
     // Role-based filtering (RBAC - MindBody Parity)
-    if (role === 'client') {
+    if (isClientEquivalentRole(role)) {
       // SECURITY: Clients can ONLY see their own sessions
       whereClause += ' AND s."userId" = :userId';
       replacements.userId = userId;
@@ -67,20 +76,39 @@ export const getScheduleEvents = async (req, res) => {
         replacements.filterTrainerId = parseInt(trainerId, 10);
       }
       // Global mode with no trainerId filter shows all sessions
+    } else {
+      // SECURITY: fail closed. An unrecognised role gets the narrowest scope,
+      // never the unfiltered global one.
+      whereClause += ' AND s."userId" = :userId';
+      replacements.userId = userId;
     }
 
     // Role-based SELECT fields for PII protection
     // Clients only see their trainer's name, not other client info
     // Trainers see their clients' names
     // Admins see all
-    const selectFields = role === 'client'
+    // SECURITY: the client shape is the DEFAULT, not the fallthrough. Only the
+    // two roles that are entitled to another person's contact details opt out
+    // of it; every other role (including 'user' and anything unrecognised)
+    // receives the minimal projection.
+    const selectFields = role === 'admin'
       ? `
         s.id,
         s."sessionDate" as start,
         s."sessionDate" + (s.duration || ' minutes')::interval as "end",
         s.status,
-        'Session with ' || t."firstName" || ' ' || t."lastName" as title,
+        s."trainerId",
+        s."userId",
+        CASE
+          WHEN s."userId" = :requestingUserId THEN 'Session with ' || t."firstName" || ' ' || t."lastName"
+          WHEN s."trainerId" = :requestingUserId THEN 'Session with ' || c."firstName" || ' ' || c."lastName"
+          ELSE c."firstName" || ' ' || c."lastName" || ' / ' || t."firstName" || ' ' || t."lastName"
+        END as title,
         json_build_object(
+          'clientId', c.id,
+          'clientName', c."firstName" || ' ' || c."lastName",
+          'clientEmail', c.email,
+          'clientPhone', c.phone,
           'trainerId', t.id,
           'trainerName', t."firstName" || ' ' || t."lastName"
         ) as resource
@@ -104,18 +132,8 @@ export const getScheduleEvents = async (req, res) => {
         s."sessionDate" as start,
         s."sessionDate" + (s.duration || ' minutes')::interval as "end",
         s.status,
-        s."trainerId",
-        s."userId",
-        CASE
-          WHEN s."userId" = :requestingUserId THEN 'Session with ' || t."firstName" || ' ' || t."lastName"
-          WHEN s."trainerId" = :requestingUserId THEN 'Session with ' || c."firstName" || ' ' || c."lastName"
-          ELSE c."firstName" || ' ' || c."lastName" || ' / ' || t."firstName" || ' ' || t."lastName"
-        END as title,
+        'Session with ' || t."firstName" || ' ' || t."lastName" as title,
         json_build_object(
-          'clientId', c.id,
-          'clientName', c."firstName" || ' ' || c."lastName",
-          'clientEmail', c.email,
-          'clientPhone', c.phone,
           'trainerId', t.id,
           'trainerName', t."firstName" || ' ' || t."lastName"
         ) as resource

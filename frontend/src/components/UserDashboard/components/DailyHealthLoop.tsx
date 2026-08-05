@@ -61,9 +61,28 @@ interface DailyHealthLoopProps {
     label: string;
   } | null;
   onOpenNutrition?: () => void;
+  /**
+   * Whether the gamification record is known. `streakDays` resolves through
+   * `?? 0` upstream, so on an outage this component told a member on a live
+   * streak to "start today" and claimed "0% to next level".
+   */
+  gamificationKnown: boolean;
 }
 
-function getMissionCopy(streakDays: number, level: number, progressPercent: number) {
+function getMissionCopy(
+  streakDays: number,
+  level: number,
+  progressPercent: number,
+  gamificationKnown: boolean,
+) {
+  // Unknown is not a zero-streak. Fall back to copy that is true either way.
+  if (!gamificationKnown) {
+    return {
+      title: 'Log today’s session when you finish it.',
+      copy: 'Your streak and level are still loading, but logging the work is what they are built from.',
+    };
+  }
+
   if (streakDays === 0) {
     return {
       title: 'Start today with one logged health action.',
@@ -92,11 +111,12 @@ const DailyHealthLoop: React.FC<DailyHealthLoopProps> = ({
   logWorkoutPath,
   nutritionAction,
   onOpenNutrition,
+  gamificationKnown,
 }) => {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
   const nutritionMission = nutritionAction && onOpenNutrition ? nutritionAction : null;
-  const mission = nutritionMission || getMissionCopy(streakDays, level, progressPercent);
+  const mission = nutritionMission || getMissionCopy(streakDays, level, progressPercent, gamificationKnown);
   const PrimaryIcon = nutritionMission ? Utensils : Dumbbell;
   const handlePrimaryAction = () => {
     if (nutritionMission && onOpenNutrition) {
@@ -125,7 +145,9 @@ const DailyHealthLoop: React.FC<DailyHealthLoopProps> = ({
             {nutritionMission ? <Utensils size={13} /> : <ShieldCheck size={13} />}
             {nutritionMission ? ' Nutrition Today' : ' Progress updates'}
           </ResultPill>
-          <ResultPill><Sparkles size={13} /> {Math.round(progressPercent)}% to next level</ResultPill>
+          {gamificationKnown ? (
+            <ResultPill><Sparkles size={13} /> {Math.round(progressPercent)}% to next level</ResultPill>
+          ) : null}
           <ResultPill><Users size={13} /> Share only when ready</ResultPill>
         </ResultRow>
         <PrimaryAction onClick={handlePrimaryAction}>

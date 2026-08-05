@@ -34,6 +34,7 @@ import logger from '../../utils/logger.mjs';
 import Session from '../../models/Session.mjs';
 import User from '../../models/User.mjs';
 import { Op } from 'sequelize';
+import { directoryAttributes } from '../../utils/memberDirectoryAccess.mjs';
 import sequelize from '../../database.mjs';
 import moment from 'moment';
 import rrulePkg from 'rrule';
@@ -2471,21 +2472,21 @@ class UnifiedSessionService {
    * Includes admin users since admins also conduct training sessions
    * @returns {Array} List of trainers and admins
    */
-  async getTrainers(requestingUser = null) {
+  async getTrainers(viewer = null) {
     try {
-      // Launch audit (2026-08-03): this endpoint feeds trainer dropdowns, so it
-      // stays readable by any authenticated user — but it previously returned
-      // `email` + `phone` for every trainer AND admin, handing out the owner's
-      // personal contact details to anyone who registered. Contact fields are
-      // now projected only for staff roles; everyone else gets the display
-      // fields the dropdowns actually consume. Fail closed on an unknown role.
-      const isStaff = requestingUser?.role === 'admin' || requestingUser?.role === 'trainer';
-      const displayAttributes = ['id', 'firstName', 'lastName', 'photo', 'specialties', 'bio'];
-      const staffAttributes = [...displayAttributes, 'email', 'phone'];
-
+      // Contact details are staff-only. This is a dropdown feed: a name, a
+      // photo and a speciality are all any caller renders.
+      //
+      // MERGE NOTE (integration 2026-08-05): the integrator and lane 1 fixed
+      // this same leak independently (it returned email + phone for every
+      // trainer AND admin to any authenticated caller). Lane 1's version wins:
+      // it routes through the shared `directoryAttributes` helper, which is
+      // fail-closed on unknown roles AND allowlist-filters the extra fields,
+      // and is applied consistently across the leaderboard/challenge surfaces
+      // in the same lane. The integrator's inline projection is superseded.
       const trainers = await this.User.findAll({
         where: { role: { [Op.in]: ['trainer', 'admin'] } },
-        attributes: isStaff ? staffAttributes : displayAttributes,
+        attributes: directoryAttributes(viewer, ['specialties', 'bio']),
         order: [['role', 'ASC'], ['firstName', 'ASC']]
       });
 

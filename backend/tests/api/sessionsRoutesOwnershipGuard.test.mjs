@@ -137,9 +137,15 @@ describe('unified sessions route ownership guards', () => {
     expect(clientUsersRouteIndex).toBeLessThan(idRouteIndex);
 
     const userDropdownRoutes = routeSource.slice(trainerUsersRouteIndex, idRouteIndex);
-    // Launch audit 2026-08-03: getTrainers now takes the requesting user so it
-    // can withhold trainer/admin contact PII from non-staff callers.
+    // The dropdown feed is now viewer-aware: it was returning the full legal
+    // name, EMAIL and PHONE of every trainer and admin to any authenticated
+    // account, unpaginated. Route is staff-gated and the service narrows.
     expect(userDropdownRoutes).toContain('unifiedSessionService.getTrainers(req.user)');
+    // NOTE: the PII narrowing for this route is asserted behaviourally in
+    // trainerDirectoryPii.test.mjs. A source slice here spans BOTH /users/
+    // trainers and /users/clients, so a `toContain('trainerOrAdminOnly')`
+    // assertion passed on the sibling's gate and could not see the guard being
+    // deleted from the route it was meant to protect.
     expect(userDropdownRoutes).toContain('unifiedSessionService.getClients(req.user)');
     expect(userDropdownRoutes).toContain('trainerOrAdminOnly');
   });

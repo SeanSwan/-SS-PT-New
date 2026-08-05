@@ -6,6 +6,15 @@
  */
 
 import { Op } from 'sequelize';
+import {
+  directoryAttributes,
+  directoryLimit,
+  directoryOffset,
+  directoryTotal,
+  isKnownTier,
+  isStaffViewer,
+  scopeToMembers,
+} from '../utils/memberDirectoryAccess.mjs';
 import db from '../database.mjs';
 
 // Import models through associations for proper relationships
@@ -199,7 +208,12 @@ const socialController = {
 
       if (!userId) return res.status(400).json({ success: false, message: 'Invalid user id' });
 
-      const offset = (normalizedPage - 1) * normalizedLimit;
+      // Same directory policy as /discover-users and /leaderboard: surnames are
+      // staff-only and members cannot page. Without this a member could walk any
+      // account's follower graph — including an admin's — harvesting full legal
+      // names one page at a time.
+      const offset = directoryOffset(req.user, (normalizedPage - 1) * normalizedLimit);
+      const effectiveLimit = directoryLimit(req.user, normalizedLimit);
 
       const followers = await UserFollow.findAndCountAll({
         where: {
@@ -209,14 +223,11 @@ const socialController = {
         include: [{
           model: User,
           as: 'follower',
-          attributes: [
-            'id', 'firstName', 'lastName', 'username', 'photo',
-            'points', 'level', 'tier'
-          ],
+          attributes: directoryAttributes(req.user, ['points', 'level', 'tier']),
           include: []
         }],
         order: [['followedAt', 'DESC']],
-        limit: normalizedLimit,
+        limit: effectiveLimit,
         offset,
         distinct: true
       });
@@ -225,10 +236,13 @@ const socialController = {
         success: true,
         followers: followers.rows,
         pagination: {
-          total: followers.count,
-          page: normalizedPage,
-          limit: normalizedLimit,
-          pages: Math.ceil(followers.count / normalizedLimit)
+          // An exact follower count for an arbitrary account is an oracle, and
+          // echoing the REQUESTED page while the offset is pinned to 0 returned
+          // page 1's rows labelled "page 5".
+          total: directoryTotal(req.user, followers.count, followers.rows.length),
+          page: isStaffViewer(req.user) ? normalizedPage : 1,
+          limit: effectiveLimit,
+          pages: isStaffViewer(req.user) ? Math.ceil(followers.count / normalizedLimit) : 1
         }
       });
     } catch (error) {
@@ -264,15 +278,12 @@ const socialController = {
         include: [{
           model: User,
           as: 'followedUser',
-          attributes: [
-            'id', 'firstName', 'lastName', 'username', 'photo',
-            'points', 'level', 'tier'
-          ],
+          attributes: directoryAttributes(req.user, ['points', 'level', 'tier']),
           include: []
         }],
         order: [['followedAt', 'DESC']],
-        limit: normalizedLimit,
-        offset,
+        limit: directoryLimit(req.user, normalizedLimit),
+        offset: directoryOffset(req.user, offset),
         distinct: true
       });
 
@@ -280,10 +291,10 @@ const socialController = {
         success: true,
         following: following.rows,
         pagination: {
-          total: following.count,
-          page: normalizedPage,
-          limit: normalizedLimit,
-          pages: Math.ceil(following.count / normalizedLimit)
+          total: directoryTotal(req.user, following.count, following.rows.length),
+          page: isStaffViewer(req.user) ? normalizedPage : 1,
+          limit: directoryLimit(req.user, normalizedLimit),
+          pages: isStaffViewer(req.user) ? Math.ceil(following.count / normalizedLimit) : 1
         }
       });
     } catch (error) {
@@ -465,17 +476,37 @@ const socialController = {
       const currentUserId = parsePositiveInteger(req.user?.id);
       const normalizedPage = parsePositiveInteger(page, 1);
       const normalizedLimit = parseBoundedPositiveInteger(limit, 20, 100);
-      const offset = (normalizedPage - 1) * normalizedLimit;
+      const rawOffset = (normalizedPage - 1) * normalizedLimit;
 
       if (!currentUserId) return res.status(400).json({ success: false, message: 'Invalid user id' });
 
-      // Build where clause for filtering
-      const whereClause = {
-        id: { [Op.ne]: currentUserId }
-      };
+      // SECURITY: this is a member-facing DIRECTORY over the Users table, open
+      // to any authenticated account. It previously shipped surnames with no
+      // role filter, unbounded paging, an unvalidated tier filter and the full
+      // population count — i.e. every defect that was closed one route above on
+      // /leaderboard, still wide open here. Both now share one policy module so
+      // the next directory endpoint cannot re-open it by hand-rolling its own.
+      const offset = directoryOffset(req.user, rawOffset);
+      const effectiveLimit = directoryLimit(req.user, normalizedLimit);
 
-      if (level) whereClause.level = level;
-      if (tier) whereClause.tier = tier;
+      // Build where clause for filtering
+      const whereClause = scopeToMembers(req.user, {
+        id: { [Op.ne]: currentUserId }
+      });
+
+      // `level` is the surviving partition key now that offset is pinned to 0:
+      // ?level=1,2,3... are disjoint slices that compose with tier. Validated
+      // as a bounded integer (it is an INTEGER column, so a non-numeric value
+      // also threw a Postgres cast error straight into the 500 handler).
+      // Uses the file's sanctioned helper (raw parseInt is banned here by
+      // socialControllerSecurity.test.mjs — it returns NaN/partial parses).
+      const parsedLevel = parsePositiveInteger(level);
+      if (parsedLevel && parsedLevel <= 1000) {
+        whereClause.level = parsedLevel;
+      }
+      // Unvalidated `tier` partitions the table into independently-walkable
+      // slices; allowlisted against the values the system can actually store.
+      if (tier && isKnownTier(tier)) whereClause.tier = tier;
 
       // Get users already followed by current user
       const alreadyFollowing = await UserFollow.findAll({
@@ -527,18 +558,17 @@ const socialController = {
 
       const users = await User.findAndCountAll({
         where: whereClause,
-        attributes: [
-          'id', 'firstName', 'lastName', 'username', 'photo',
+        attributes: directoryAttributes(req.user, [
           'points', 'level', 'tier', 'streakDays',
           'totalWorkouts', 'createdAt'
-        ],
+        ]),
         include: includeClause,
         order: [
           ['points', 'DESC'],
           ['level', 'DESC'],
           ['createdAt', 'DESC']
         ],
-        limit: normalizedLimit,
+        limit: effectiveLimit,
         offset,
         distinct: true
       });
@@ -563,10 +593,13 @@ const socialController = {
         success: true,
         users: usersWithRecommendations,
         pagination: {
-          total: users.count,
-          page: normalizedPage,
-          limit: normalizedLimit,
-          pages: Math.ceil(users.count / normalizedLimit)
+          // Members are told the size of what they received, never the
+          // population — with `tier`/`level` set that is an exact per-slice
+          // headcount, and it hands an enumerator the page count to walk.
+          total: directoryTotal(req.user, users.count, usersWithRecommendations.length),
+          page: isStaffViewer(req.user) ? normalizedPage : 1,
+          limit: effectiveLimit,
+          pages: isStaffViewer(req.user) ? Math.ceil(users.count / normalizedLimit) : 1
         }
       });
     } catch (error) {
@@ -630,7 +663,7 @@ const socialController = {
             {
               model: User,
               as: 'user',
-              attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+              attributes: directoryAttributes(req.user)
             },
             {
               model: Challenge,
@@ -669,7 +702,7 @@ const socialController = {
             {
               model: User,
               as: 'user',
-              attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+              attributes: directoryAttributes(req.user)
             },
             {
               model: Achievement,
@@ -707,12 +740,12 @@ const socialController = {
             {
               model: User,
               as: 'follower',
-              attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+              attributes: directoryAttributes(req.user)
             },
             {
               model: User,
               as: 'followedUser',
-              attributes: ['id', 'firstName', 'lastName', 'username']
+              attributes: directoryAttributes(req.user).filter((a) => a !== 'photo')
             }
           ],
           order: [['followedAt', 'DESC']],

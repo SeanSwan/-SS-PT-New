@@ -94,6 +94,16 @@ export const searchUsers = async (req, res) => {
   const query = typeof q === 'string' ? q.trim().replace(/\s+/g, ' ') : '';
   if (!currentUserId) return res.status(401).json({ error: 'Authentication required.' });
 
+  // SECURITY: this is open to every authenticated account (deliberately outside
+  // the messagingTier gate) and it used to match on `email`, so
+  // ?q=someone@example.com confirmed that address was registered AND returned
+  // that person's full legal name - an email-existence oracle. The email clause
+  // is gone.
+  //
+  // Name MATCHING is kept: searching "Jane Smith" to start a conversation is a
+  // real product feature (pinned by messagingRoutesSecurity.test.mjs), and
+  // matching on a column you do not RETURN discloses nothing - the caller must
+  // already know the name to find it. The surname is no longer selected.
   try {
     // Response columns deliberately EXCLUDE email + lastLogin/lastActive: this is a
     // directory any authenticated user can query, and exposing activity timestamps to
@@ -102,7 +112,11 @@ export const searchUsers = async (req, res) => {
     // most-recently-active users still surface first. Found 2026-08-04, security audit.
     const users = !query || query.length < 2
       ? await sequelize.query(
-        `SELECT id, "firstName", "lastName", username, photo, role
+        // Union of two independent audits: main dropped lastActive/lastLogin
+        // (more than "find someone to message" needs) and this lane dropped the
+        // surname (staff-only on member-facing directory responses). Keep both
+        // reductions - the narrower projection is the safe merge.
+        `SELECT id, "firstName", username, photo, role
          FROM "Users"
          WHERE id != :currentUserId
            AND "deletedAt" IS NULL
@@ -114,7 +128,9 @@ export const searchUsers = async (req, res) => {
       : await sequelize.query(
         // email is NOT a search key: matching on email lets any authenticated user
         // confirm whether an address has an account (enumeration). Name/username only.
-        `SELECT id, "firstName", "lastName", username, photo, role
+        // Surname is matched but NOT returned - matching a column you do not
+        // project discloses nothing, and full-name search is a real feature.
+        `SELECT id, "firstName", username, photo, role
          FROM "Users"
          WHERE (
              "firstName" ILIKE :query

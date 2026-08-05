@@ -6,6 +6,13 @@
  */
 
 import { Op } from 'sequelize';
+import {
+  directoryOffset,
+  directoryLimit,
+  isKnownTier,
+  isStaffViewer as isStaffDirectoryViewer,
+  scopeToRankable,
+} from '../utils/memberDirectoryAccess.mjs';
 import db from '../database.mjs';
 
 // Import models through associations for proper relationships
@@ -353,21 +360,52 @@ const progressController = {
         metric = 'points',
         tier,
         limit: rawLimit = 20,
-        page = 1,
-        includeUser
+        page = 1
       } = req.query;
 
       const normalizedPage = parsePositiveInteger(page, 1);
       const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 20, 100);
-      const offset = (normalizedPage - 1) * normalizedLimit;
 
-      const whereClause = {};
+      // SECURITY: this route is open to ANY authenticated account, and `page`
+      // was unbounded with no role filter and surnames in the projection — so a
+      // member created through the public signup form could walk
+      // ?limit=100&page=1..N and harvest the whole user table, staff included.
+      // Members get a bounded, member-only, surname-free board; staff keep the
+      // full one the admin surfaces already consume.
+      const isStaffViewer = isStaffDirectoryViewer(req.user);
+      // A member-facing leaderboard shows the TOP of a slice. It is not a
+      // cursor over the user table, so members get NO paging at all: offset is
+      // forced to 0.
+      //
+      // Capping offset instead of eliminating it was two fixes ago, and it was
+      // still wrong — the cap bound each QUERY while the reachable set is the
+      // UNION over the parameter space. `tier` partitions the table and
+      // `metric` re-sorts it, so a bounded-offset member could still walk past
+      // the top of every slice. With offset pinned to 0 the top is all there
+      // is, whatever tier/metric/timeframe is requested.
+      const MEMBER_MAX_ROWS = 100;
+
+      const rawOffset = (normalizedPage - 1) * normalizedLimit;
+      const offset = directoryOffset(req.user, rawOffset);
+      const effectiveLimit = directoryLimit(req.user, normalizedLimit);
+
+      // A member-facing leaderboard ranks members. Staff are not competitors,
+      // and listing them here is what exposed their names.
+      const whereClause = scopeToRankable(req.user);
       let orderBy;
       let includeProgressData = false;
 
-      // Build where clause
-      if (tier && tier !== 'all') {
-        whereClause.tier = tier;
+      // Build where clause. `tier` is allowlisted: an unvalidated value both
+      // reaches the query and echoes back in `filters`, and each distinct tier
+      // is a DISJOINT slice — so without a fixed, small set of slices the
+      // per-query row cap can be unioned over the parameter space.
+      // Allowlisted against the CANONICAL domain. A hand-copied
+      // ['bronze','silver','gold','platinum'] matched nothing at all, because
+      // the column stores `bronze_forge`-style keys — so every legitimate tier
+      // filter was silently discarded and the slice protection was accidental.
+      const safeTier = tier && tier !== 'all' && isKnownTier(tier) ? tier : null;
+      if (safeTier) {
+        whereClause.tier = safeTier;
       }
 
       // Configure ordering and includes based on metric and timeframe
@@ -431,13 +469,16 @@ const progressController = {
       const leaderboard = await User.findAll({
         where: whereClause,
         attributes: [
-          'id', 'firstName', 'lastName', 'username', 'photo',
+          'id', 'firstName',
+          // Surnames are staff-only: the member UI renders firstName/username.
+          ...(isStaffViewer ? ['lastName'] : []),
+          'username', 'photo',
           ['lifetimePointsEarned', 'points'], 'level', 'tier', 'streakDays', 'totalWorkouts',
           'totalExercises'
         ],
         include: includeClause,
         order: orderBy,
-        limit: normalizedLimit,
+        limit: effectiveLimit,
         offset,
         subQuery: false,
         distinct: true
@@ -463,22 +504,16 @@ const progressController = {
         };
       });
 
-      // Get user's position if requested
-      let userRank = null;
-      if (includeUser) {
-        const userPosition = await User.count({
-          where: {
-            ...whereClause,
-            [metric === 'points' ? 'lifetimePointsEarned' : metric === 'level' ? 'level' : metric === 'streak' ? 'streakDays' : 'totalWorkouts']: {
-              [Op.gt]: metric === 'points' ? (await User.findByPk(includeUser))?.lifetimePointsEarned || 0 :
-                       metric === 'level' ? (await User.findByPk(includeUser))?.level || 0 :
-                       metric === 'streak' ? (await User.findByPk(includeUser))?.streakDays || 0 :
-                       (await User.findByPk(includeUser))?.totalWorkouts || 0
-            }
-          }
-        });
-        userRank = userPosition + 1;
-      }
+      // SECURITY: `includeUser` was an unauthenticated-by-design stat oracle.
+      // It fed an attacker-controlled id straight into User.findByPk with no
+      // ownership check, and findByPk bypasses the role filter entirely — so a
+      // member could rank ANY account (staff included) and, by switching
+      // `metric`, read that account's points/level/streak/workouts one
+      // comparison at a time. The `?.x || 0` fallback also made it an existence
+      // oracle. It had ZERO callers in the entire repo, so it is removed rather
+      // than guarded: the safest parameter is the one that does not exist.
+      // Members already receive their own rank via /gamification/profile.
+      const userRank = null;
 
       const total = await User.count({ where: whereClause });
 
@@ -486,15 +521,19 @@ const progressController = {
         success: true,
         leaderboard: rankedLeaderboard,
         pagination: {
-          total,
-          page: normalizedPage,
-          limit: normalizedLimit,
-          pages: Math.ceil(total / normalizedLimit)
+          // Members are told the size of what they received, never the
+          // population. `Math.min(total, CAP)` still disclosed any count BELOW
+          // the cap exactly — and with `tier` set that is an exact per-segment
+          // headcount, which at launch scale is the whole roster.
+          total: isStaffViewer ? total : leaderboard.length,
+          page: isStaffViewer ? normalizedPage : 1,
+          limit: effectiveLimit,
+          pages: isStaffViewer ? Math.ceil(total / normalizedLimit) : 1
         },
         filters: {
           timeframe,
           metric,
-          tier
+          tier: safeTier
         },
         userRank
       });

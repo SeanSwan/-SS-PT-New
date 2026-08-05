@@ -11,6 +11,24 @@ import profileService, { UserProfile, UserStats, SocialPost, Achievement, Follow
 import { logger } from '@/utils/logger';
 
 interface UseProfileReturn {
+  /**
+   * Lifecycle of the stats fetch. A boolean cannot express this: a negative
+   * flag defaulting to false is open for the whole pending window, and a
+   * positive one cannot tell "not started" from "failed", so a consumer either
+   * fabricates zeros or flashes an outage card before the request fires.
+   * 'ready' is the ONLY value that licenses rendering `stats` as the record.
+   */
+  statsStatus: 'loading' | 'ready' | 'unavailable';
+  /** Same lifecycle for posts: 'ready' is the ONLY value that licenses "no posts yet". */
+  postsStatus: 'loading' | 'ready' | 'unavailable';
+  postsKnown: boolean;
+  /** Same lifecycle for the last two loaders that rendered failure as emptiness. */
+  achievementsStatus: 'loading' | 'ready' | 'unavailable';
+  achievementsKnown: boolean;
+  followStatsStatus: 'loading' | 'ready' | 'unavailable';
+  followStatsKnown: boolean;
+  /** Convenience: `statsStatus === 'ready'`. */
+  statsKnown: boolean;
   // Profile data
   profile: UserProfile | null;
   stats: UserStats | null;
@@ -70,6 +88,11 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
   // Loading states
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [statsStatus, setStatsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const [postsStatus, setPostsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const [achievementsStatus, setAchievementsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const [followStatsStatus, setFollowStatsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading');
+  const statsSeqRef = useRef(0);
   const [isLoadingPosts, setIsLoadingPosts] = useState(false);
   const [isLoadingAchievements, setIsLoadingAchievements] = useState(false);
   const [isLoadingFollowStats, setIsLoadingFollowStats] = useState(false);
@@ -119,17 +142,48 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
    * Load user statistics
    */
   const loadStats = useCallback(async () => {
-    if (!user) return;
-    
+    // No user means the request will never fire. That is unavailable, not
+    // loading — returning early while the status still read 'loading' left a
+    // spinner that could never resolve, and left any boolean gate wide open.
+    if (!user) {
+      statsSeqRef.current += 1; // cancel anything in flight for a prior user
+      setStatsStatus('unavailable');
+      setIsLoadingStats(false);
+      return;
+    }
+
+    // Only announce 'loading' when there is nothing good on screen. A manual
+    // refresh after a recovered outage used to drop straight back to 'loading',
+    // which blanked the member's stats and pulled the sidebar tiles.
+    setStatsStatus((current) => (current === 'ready' ? 'ready' : 'loading'));
     setIsLoadingStats(true);
+
+    // Sequence the request. Without this, an account switch or a double-tapped
+    // Retry can resolve out of order and publish a STALE payload as 'ready' —
+    // another context's numbers presented as this member's record, which is the
+    // exact class the status flag exists to prevent. Same guard the banner
+    // upload path in this file already uses.
+    const sequence = statsSeqRef.current + 1;
+    statsSeqRef.current = sequence;
     
     try {
       const statsData = await profileService.getUserStats();
+      if (statsSeqRef.current !== sequence) return;
       setStats(statsData);
+      setStatsStatus('ready');
     } catch (err: any) {
       logger.warn('Stats endpoint not available yet:', err.message);
-      // Set default stats instead of showing error
-      setStats({
+      if (statsSeqRef.current !== sequence) return;
+      // Substituting zeros keeps the UI from crashing, but those zeros are NOT
+      // the member's record. Flag it so consumers can omit the numbers instead
+      // of asserting "0 workouts / 0 posts / Level 1 / bronze" as fact.
+      setStatsStatus('unavailable');
+      // Zeros exist only so a FIRST load cannot render undefined. A failed
+      // REFRESH must not destroy a record we already hold: overwriting it threw
+      // away the member's real numbers, so a recovered outage could not restore
+      // them without a full reload. `statsStatus` is what licenses display, so
+      // keeping the last known values here is safe and strictly more useful.
+      setStats((current) => current ?? {
         posts: 0,
         followers: 0,
         following: 0,
@@ -140,7 +194,7 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
         tier: 'bronze'
       });
     } finally {
-      setIsLoadingStats(false);
+      if (statsSeqRef.current === sequence) setIsLoadingStats(false);
     }
   }, [user]);
 
@@ -163,12 +217,15 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
       
       setPostsHasMore(postsData.posts.length === limit);
       setPostsOffset(offset + postsData.posts.length);
+      setPostsStatus('ready');
     } catch (err: any) {
       logger.warn('Posts endpoint not available yet:', err.message);
-      // Set empty posts instead of showing error
-      setPosts([]);
+      // An empty list is a CLAIM: "you have posted nothing". A failed fetch is
+      // not that claim. Keep whatever we already hold and mark the status, the
+      // same shape `statsStatus` uses — three of this hook's four loaders used
+      // to render failure as emptiness.
+      setPostsStatus('unavailable');
       setPostsHasMore(false);
-      setPostsOffset(0);
     } finally {
       setIsLoadingPosts(false);
     }
@@ -193,11 +250,15 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     
     try {
       const achievementsData = await profileService.getUserAchievements();
+      setAchievementsStatus('ready');
       setAchievements(achievementsData.achievements);
     } catch (err: any) {
       logger.warn('Achievements endpoint not available yet:', err.message);
-      // Set empty achievements instead of showing error
+      // Clear AND flag, in that order. Flagging alone left the PREVIOUS list
+      // rendered as current — the exact defect just fixed for group members.
+      // Clearing alone was the original "you have earned nothing" lie.
       setAchievements([]);
+      setAchievementsStatus('unavailable');
     } finally {
       setIsLoadingAchievements(false);
     }
@@ -214,9 +275,10 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     try {
       const followData = await profileService.getFollowStats();
       setFollowStats(followData);
+      setFollowStatsStatus('ready');
     } catch (err: any) {
       logger.warn('Follow stats endpoint not available yet:', err.message);
-      // Set default follow stats instead of showing error
+      setFollowStatsStatus('unavailable');
       setFollowStats({
         followers: { count: 0, list: [] },
         following: { count: 0, list: [] },
@@ -426,6 +488,14 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     
     // Error states
     error,
+    statsStatus,
+    statsKnown: statsStatus === 'ready',
+    postsStatus,
+    postsKnown: postsStatus === 'ready',
+    achievementsStatus,
+    achievementsKnown: achievementsStatus === 'ready',
+    followStatsStatus,
+    followStatsKnown: followStatsStatus === 'ready',
     
     // Operations
     refreshProfile,

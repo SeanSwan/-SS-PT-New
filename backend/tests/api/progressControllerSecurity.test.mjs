@@ -41,9 +41,21 @@ describe('progress controller security hardening', () => {
     expect(controllerSource).toContain('const normalizedLimit = parseBoundedPositiveInteger(limit, 100, 500);');
     expect(controllerSource).toContain('const normalizedPage = parsePositiveInteger(page, 1);');
     expect(controllerSource).toContain('const normalizedLimit = parseBoundedPositiveInteger(rawLimit, 20, 100);');
-    expect(controllerSource).toContain('const offset = (normalizedPage - 1) * normalizedLimit;');
+    // The raw offset is still derived from the normalized page/limit, but a
+    // member's reachable window is then CAPPED — an uncapped offset let any
+    // authenticated account page the whole user table.
+    expect(controllerSource).toContain('const rawOffset = (normalizedPage - 1) * normalizedLimit;');
+    expect(controllerSource).toContain('MEMBER_MAX_ROWS');
+    // The offset policy now lives in the shared memberDirectoryAccess module,
+    // so every member-facing directory surface obeys one rule instead of each
+    // handler hand-rolling its own (which is how a sibling route kept all five
+    // defects while this one was hardened).
+    expect(controllerSource).toContain('directoryOffset(req.user, rawOffset)');
     expect(controllerSource).toContain('limit: normalizedLimit');
-    expect(controllerSource).toContain('page: normalizedPage');
+    // `page` is no longer echoed back verbatim: a member's offset is clamped,
+    // so reporting the REQUESTED page told them they were reading page 7 while
+    // they were served rows 1-100. Staff still get the true page.
+    expect(controllerSource).toContain('page: isStaffViewer ? normalizedPage :');
     expect(controllerSource).not.toContain('parseInt(');
   });
 });

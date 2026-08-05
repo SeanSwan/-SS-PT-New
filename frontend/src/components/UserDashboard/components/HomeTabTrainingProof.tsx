@@ -16,6 +16,7 @@ import { Dumbbell, Share2, TrendingDown, TrendingUp } from 'lucide-react';
 import { Eyebrow } from './HomeTabVision.styles';
 import { ButtonRow, Chip, GlassButton } from './HomeTabVisionCards.styles';
 import type { HomeTrainingProof } from './HomeTabViewModel';
+import { isDataKnown, type DataStatus } from '../hooks/resolveDataStatus';
 import { StyledBox } from '@/components/ui/StyledBox';
 
 const ProofHeader = styled(ButtonRow)`
@@ -76,12 +77,58 @@ const EmptyCopy = styled.p`
   line-height: 1.5;
 `;
 
+const StaleNote = styled.p`
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  color: var(--vision-soft, #9FB6C9);
+`;
+
+const RetryLink = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  margin-top: 0.5rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
+  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 12%, transparent);
+  color: var(--text-primary, #E0ECF4);
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 20%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--glow-accent, #8B5CF6);
+    outline-offset: 2px;
+  }
+`;
+
 interface HomeTabTrainingProofProps {
   proof: HomeTrainingProof;
+  /**
+   * Whether the sessions are actually known. Anything but 'ready' means an
+   * empty proof is UNKNOWN, not "none" — 'loading' covers first paint and the
+   * request's retry/backoff, which a boolean keyed on `isError` left open.
+   */
+  sessionsStatus?: DataStatus;
+  onRetrySessions?: () => void;
   onShareProgress: (line: string) => void;
 }
 
-const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({ proof, onShareProgress }) => {
+const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({
+  proof,
+  sessionsStatus = 'ready',
+  onRetrySessions,
+  onShareProgress,
+}) => {
   const maxCount = Math.max(1, ...proof.weeklyCounts);
 
   return (
@@ -104,8 +151,22 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({ proof, onSh
           {proof.thisWeekCount > 0 && <Chip $tone="gold">{proof.thisWeekCount} this week</Chip>}
         </ButtonRow>
       </ProofHeader>
+      {/* 'stale' = the cached list is displayable but the last refresh FAILED.
+          Hoisted ABOVE the three-way split on purpose: nested inside the
+          has-data branch it could never reach the case that matters most —
+          a cached zero plus a failed refresh, where the member is told
+          "No logged workouts yet" with no hint the number is stale. */}
+      {sessionsStatus === 'stale' ? (
+        <StaleNote role="status">
+          Couldn&apos;t refresh — showing your last saved history.
+          {onRetrySessions ? (
+            <RetryLink type="button" onClick={onRetrySessions}>Retry</RetryLink>
+          ) : null}
+        </StaleNote>
+      ) : null}
       {proof.weeklyCounts.some((count) => count > 0) ? (
         <>
+
           <ProofRow>
             <ProofStat>
               <strong>{proof.thisWeekCount}</strong>
@@ -143,6 +204,23 @@ const HomeTabTrainingProof: React.FC<HomeTabTrainingProofProps> = ({ proof, onSh
               </GlassButton>
             </StyledBox>
           )}
+        </>
+      ) : !isDataKnown(sessionsStatus) ? (
+        // "No logged workouts yet" is a claim about the member's record. When
+        // the fetch failed we do not know their record, so we must not make it.
+        // The live region wraps the MESSAGE only — including the button would
+        // re-announce the control every time the region updates.
+        <>
+          <EmptyCopy role="status">
+            {sessionsStatus === 'loading'
+              ? 'Loading your training history…'
+              : "We couldn't load your training history just now. Nothing you logged is lost."}
+          </EmptyCopy>
+          {sessionsStatus !== 'loading' && onRetrySessions ? (
+            <RetryLink type="button" onClick={onRetrySessions}>
+              Retry
+            </RetryLink>
+          ) : null}
         </>
       ) : (
         <EmptyCopy>

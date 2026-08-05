@@ -19,6 +19,7 @@ import { getSocialPointsFailure, sendSocialRouteError } from './socialRouteRespo
 import { attachWorkoutDataToPost, sanitizeWorkoutPostData } from './socialWorkoutData.mjs';
 import { buildFeedVisibilityWhere, normalizePostType } from './feedPolicy.mjs';
 import { assertGroupPostAccess, canPostInGroup, canViewGroupContent, getGroupWithMembership } from '../../services/social/groupAccessService.mjs';
+import { directoryAttributes } from '../../utils/memberDirectoryAccess.mjs';
 
 const router = express.Router();
 
@@ -61,7 +62,10 @@ function isLegacySocialTableMissingError(error) {
   return /SocialPosts|Friendships|SocialComments|SocialLikes/i.test(message);
 }
 
-async function getEnhancedFallbackFeed(userId, limit, offset) {
+// `viewer` is threaded in so the projection can be viewer-aware: this helper
+// has no `req`, and a mechanical sweep that assumed one would have thrown a
+// ReferenceError on the fallback-feed path.
+async function getEnhancedFallbackFeed(userId, limit, offset, viewer = null) {
   const safeLimit = Number.isFinite(limit) ? Math.max(1, Math.min(limit, 100)) : 20;
   const safeOffset = Number.isFinite(offset) ? Math.max(offset, 0) : 0;
 
@@ -93,7 +97,7 @@ async function getEnhancedFallbackFeed(userId, limit, offset) {
   const users = numericUserIds.length > 0
     ? await getUser().findAll({
       where: { id: { [Op.in]: numericUserIds } },
-      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points'],
+      attributes: directoryAttributes(viewer, ['role', 'level', 'tier', 'points']),
       raw: true
     })
     : [];
@@ -383,7 +387,7 @@ router.get('/feed', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -459,7 +463,7 @@ router.get('/feed', async (req, res) => {
   } catch (error) {
     if (isLegacySocialTableMissingError(error)) {
       try {
-        const fallback = await getEnhancedFallbackFeed(req.user.id, parseInt(req.query.limit), parseInt(req.query.offset));
+        const fallback = await getEnhancedFallbackFeed(req.user.id, parseInt(req.query.limit), parseInt(req.query.offset), req.user);
         return res.status(200).json(fallback);
       } catch (fallbackError) {
         console.error('Enhanced social fallback failed:', fallbackError);
@@ -506,7 +510,7 @@ router.get('/trending', async (req, res) => {
       const users = userIds.length > 0
         ? await User.findAll({
             where: { id: { [Op.in]: userIds } },
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+            attributes: directoryAttributes(req.user, ['role']),
             raw: true,
           })
         : [];
@@ -573,7 +577,7 @@ router.get('/trending', async (req, res) => {
       const users = userIds.length > 0
         ? await User.findAll({
             where: { id: { [Op.in]: userIds } },
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role'],
+            attributes: directoryAttributes(req.user, ['role']),
             raw: true,
           })
         : [];
@@ -615,8 +619,12 @@ router.get('/user/:userId', async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
     
     // Check if user exists
+    // The friendship check below gates the POSTS; this profile card was
+    // returned for ANY userId to any authenticated caller — surname, role,
+    // clientSource (an internal acquisition classification), tier and points.
+    // Sequential-id surname harvest. On the shared directory policy now.
     const user = await getUser().findByPk(userId, {
-      attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+      attributes: directoryAttributes(req.user, ['role', 'level', 'tier', 'points'])
     });
     
     if (!user) {
@@ -665,7 +673,7 @@ router.get('/user/:userId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -900,7 +908,7 @@ router.post('/', upload.single('media'), async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -972,7 +980,7 @@ router.get('/:postId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -1036,7 +1044,7 @@ router.get('/:postId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -1116,7 +1124,7 @@ router.put('/:postId', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });
@@ -1510,7 +1518,7 @@ router.post('/:postId/comments', async (req, res) => {
         {
           model: getUser(),
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role', 'clientSource', 'level', 'tier', 'points']
+          attributes: directoryAttributes(req.user, ['role', 'clientSource', 'level', 'tier', 'points'])
         }
       ]
     });

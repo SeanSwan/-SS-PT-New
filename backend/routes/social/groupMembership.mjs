@@ -20,6 +20,7 @@ import {
   refreshMemberCount,
   transferGroupOwnership,
 } from '../../services/social/groupAccessService.mjs';
+import { directoryAttributes } from '../../utils/memberDirectoryAccess.mjs';
 import { sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
 import { serializeGroup, toPositiveInt } from './groupRouteHelpers.mjs';
 import {
@@ -29,7 +30,10 @@ import {
 
 const router = express.Router();
 
-const USER_PREVIEW_ATTRS = ['id', 'firstName', 'lastName', 'username', 'photo', 'role'];
+// Viewer-aware: a module constant cannot be, and this shipped up to 200
+// members' surnames per public group to any authenticated non-member.
+const userPreviewAttrs = (viewer, extra = ['role']) =>
+  directoryAttributes(viewer, extra.includes('role') ? extra : ['role', ...extra]);
 
 /** POST /:id/join — public: active member; private: pending request. */
 router.post('/:id/join', async (req, res) => {
@@ -136,7 +140,7 @@ router.get('/:id/members', async (req, res) => {
 
     const users = await getUser().findAll({
       where: { id: { [Op.in]: members.map((m) => m.userId) } },
-      attributes: USER_PREVIEW_ATTRS,
+      attributes: userPreviewAttrs(req.user),
       raw: true,
     });
     const userMap = new Map(users.map((u) => [u.id, u]));

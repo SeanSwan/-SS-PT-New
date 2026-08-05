@@ -100,6 +100,7 @@ const UserDashboardV3: React.FC = () => {
             userInitials={dashboard.getUserInitials()}
             tierName={dashboard.observatoryTierName}
             rankTitleLabel={dashboard.observatoryRankTitleLabel}
+            gamificationKnown={dashboard.gamificationKnown}
             level={dashboard.observatoryLevel}
             profilePhoto={dashboard.profile?.photo}
             onEditProfile={dashboard.handleEditProfile}
@@ -131,6 +132,8 @@ const UserDashboardV3: React.FC = () => {
                 transformationVisibility={dashboard.transformationVisibility}
                 homeProfile={dashboard.profile}
                 homeDisplayStats={dashboard.displayStats}
+                homeProfileStatsKnown={dashboard.profileStatsKnown}
+                homeGamificationKnown={dashboard.gamificationKnown}
                 homeProfilePosts={dashboard.profilePosts}
                 homeFollowStats={dashboard.followStats}
                 homeDisplayName={dashboard.getDisplayName()}
@@ -148,6 +151,8 @@ const UserDashboardV3: React.FC = () => {
                 observatoryProgressPct={dashboard.observatoryProgressPct}
                 observatoryXpToNext={dashboard.observatoryXpToNext}
                 observatoryStreakDays={dashboard.observatoryStreakDays}
+                gamificationKnown={dashboard.gamificationKnown}
+                onRetryGamification={dashboard.refetchGamification}
                 topBadges={dashboard.topBadges}
                 navItems={OBSERVATORY_NAV_ITEMS}
               >
@@ -167,6 +172,11 @@ const UserDashboardV3: React.FC = () => {
                     <UserDashboardSidebarV3
                       displayStats={dashboard.displayStats}
                       canonicalLevel={dashboard.canonicalLevel}
+                      streakDays={dashboard.observatoryStreakDays}
+                      progressPercent={dashboard.observatoryProgressPct}
+                      pointsToNext={dashboard.observatoryXpToNext}
+                      gamificationKnown={dashboard.gamificationKnown}
+                      profileStatsKnown={dashboard.profileStatsKnown}
                     />
                   )}
 

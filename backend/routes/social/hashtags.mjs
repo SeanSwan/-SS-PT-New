@@ -33,6 +33,7 @@ import PostHashtag from '../../models/social/PostHashtag.mjs';
 import UserHashtagFollow from '../../models/social/UserHashtagFollow.mjs';
 import { SocialPost } from '../../models/social/index.mjs';
 import { getUser } from '../../models/index.mjs';
+import { directoryAttributes } from '../../utils/memberDirectoryAccess.mjs';
 
 // Re-export utilities for backward compatibility with posts.mjs imports
 export { extractHashtags, processHashtags, resetWeeklyCounters } from './hashtagUtils.mjs';
@@ -257,7 +258,7 @@ router.get('/:slug', async (req, res) => {
           include: [{
             model: getUser(),
             as: 'user',
-            attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+            attributes: directoryAttributes(req.user)
           }]
         })
       : [];

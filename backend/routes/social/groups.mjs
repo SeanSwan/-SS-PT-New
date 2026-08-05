@@ -38,11 +38,15 @@ import { sendSocialRouteError } from './socialRouteResponse.helpers.mjs';
 import { serializeGroup, toPositiveInt } from './groupRouteHelpers.mjs';
 import { ensureGroupConversation } from '../../services/social/groupChatLinkService.mjs';
 import groupMembershipRoutes from './groupMembership.mjs';
+import { directoryAttributes } from '../../utils/memberDirectoryAccess.mjs';
 
 const router = express.Router();
 router.use(protect);
 
-const USER_PREVIEW_ATTRS = ['id', 'firstName', 'lastName', 'username', 'photo', 'role'];
+// Viewer-aware: a module constant cannot be, and this shipped up to 200
+// members' surnames per public group to any authenticated non-member.
+const userPreviewAttrs = (viewer, extra = ['role']) =>
+  directoryAttributes(viewer, extra.includes('role') ? extra : ['role', ...extra]);
 
 /** GET / — discovery + my groups. Query: mine=true | search | category */
 router.get('/', async (req, res) => {
@@ -253,7 +257,7 @@ router.get('/:id/feed', async (req, res) => {
       include: [{
         model: getUser(),
         as: 'user',
-        attributes: [...USER_PREVIEW_ATTRS, 'clientSource', 'level', 'tier', 'points'],
+        attributes: userPreviewAttrs(req.user, ['clientSource', 'level', 'tier', 'points']),
       }],
     });
 

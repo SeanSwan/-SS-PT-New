@@ -120,7 +120,9 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
           return mapFallbackAchievementsToLegacy(fallbackAchievements);
         } catch {
           logger.warn('[Gamification] Achievements fallback also failed.');
-          return [];
+          // Rethrow: returning [] recorded SUCCESS, so `isError` stayed false
+          // and no consumer could tell an outage from "you earned nothing".
+          throw new Error('Achievements unavailable');
         }
       }
     },
@@ -278,7 +280,6 @@ export const useGamificationData = (options: UseGamificationDataOptions = {}) =>
     profileQuery.refetch();
     achievementsQuery.refetch();
   }, [profileQuery, achievementsQuery]);
-
   return {
     profile: profileQuery,
     achievements: achievementsQuery,

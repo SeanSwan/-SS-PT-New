@@ -1495,6 +1495,15 @@ router.get("/client/:userId", protect, async (req, res) => {
  * GET /api/sessions/users/trainers
  * Get all trainers for dropdown selection
  */
+// SECURITY: this returned the full legal name, EMAIL and PHONE of every trainer
+// and admin, unpaginated, to any account from the public signup form.
+//
+// The fix is least privilege on the DATA, not on the feature. An earlier pass
+// also added `trainerOrAdminOnly` here — that broke client booking, because
+// UniversalSchedule backs BOTH /dashboard/admin/master-schedule AND
+// /dashboard/client/schedule ("Book My Session"), and a member must see trainer
+// names to book. The route stays open to authenticated callers; the service
+// returns contact details to staff only.
 router.get("/users/trainers", protect, async (req, res) => {
   try {
     const trainers = await unifiedSessionService.getTrainers(req.user);

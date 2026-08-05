@@ -187,6 +187,7 @@ export const useGroupDetail = (groupId: number | null) => {
   const { authAxios, user } = useAuth();
   const [group, setGroup] = useState<CommunityGroup | null>(null);
   const [members, setMembers] = useState<GroupMemberEntry[]>([]);
+  const [membersUnavailable, setMembersUnavailable] = useState(false);
   const [isLoading, setIsLoading] = useState(Boolean(groupId));
   const [error, setError] = useState<string | null>(null);
   // Monotonic request id: rapid refresh() calls must not let an earlier,
@@ -209,8 +210,16 @@ export const useGroupDetail = (groupId: number | null) => {
           const membersRes = await authAxios.get(`/api/social/groups/${groupId}/members`);
           if (isStale()) return;
           setMembers(membersRes.data.members || []);
+          setMembersUnavailable(false);
         } catch {
-          if (!isStale()) setMembers([]);
+          // An empty roster is a claim about the group. A failed members fetch
+          // is not that claim — the header still reads "42 members" beside it.
+          if (!isStale()) {
+            // Clear the stale roster AND flag it: keeping the old list rendered
+            // it as current, while clearing it alone said "this group is empty".
+            setMembers([]);
+            setMembersUnavailable(true);
+          }
         }
       } else {
         setMembers([]);
@@ -228,7 +237,7 @@ export const useGroupDetail = (groupId: number | null) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, groupId]);
 
-  return { group, members, isLoading, error, refresh: fetchDetail };
+  return { group, members, membersUnavailable, isLoading, error, refresh: fetchDetail };
 };
 
 /** Join/leave for a single group WITHOUT the discovery/mine list fetch —

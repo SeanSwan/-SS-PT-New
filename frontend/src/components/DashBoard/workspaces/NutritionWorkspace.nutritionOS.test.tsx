@@ -40,7 +40,10 @@ vi.mock('../../../hooks/useMacroSummary', () => ({
 }));
 
 vi.mock('../../../hooks/useSubscription', () => ({
-  useSubscription: () => ({ isPro: true, isElite: false, isTrial: false }),
+  useSubscription: () => ({
+    hasGuardianAccess: true,
+    loading: false,
+    error: null, isPro: true, isElite: false, isTrial: false }),
 }));
 
 vi.mock('../../../hooks/useHydration', () => ({

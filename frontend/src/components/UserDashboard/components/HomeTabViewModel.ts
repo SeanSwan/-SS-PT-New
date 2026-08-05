@@ -231,8 +231,10 @@ export function buildLatestPostView(
    consumers/tests keep one import surface. */
 export {
   buildHomeTrainingProof,
+  buildWeekTrainingDays,
   assessStreakRisk,
   type HomeTrainingProof,
+  type WeekTrainingDay,
 } from './HomeTabProofViewModel';
 
 export function parseUnreadNotificationCount(payload: unknown): number {
