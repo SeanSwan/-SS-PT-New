@@ -117,7 +117,9 @@ const PainChartInsightPanel: React.FC<PainChartInsightPanelProps> = ({
         <ConstraintText><strong>Avoid:</strong> {joinList(constraints.avoidMovements, 'No hard avoid rules from active entries.')}</ConstraintText>
         <ConstraintText><strong>Modify:</strong> {joinList(constraints.modifyMovements, 'No active movement modifications.')}</ConstraintText>
         <ConstraintText><strong>Prep:</strong> {joinList(constraints.warmupPriorities, 'Use normal warm-up progression.')}</ConstraintText>
-        {constraints.promptSnippet && <ConstraintText><strong>Coach context:</strong> {constraints.promptSnippet}</ConstraintText>}
+        {/* Slice 3 (B10): the raw AI prompt fragment is staff-facing only —
+            it read as machine text to clients and leaked prompt phrasing. */}
+        {!isClientMode && constraints.promptSnippet && <ConstraintText><strong>Coach context:</strong> {constraints.promptSnippet}</ConstraintText>}
         <DisclaimerText>
           These are comfort modifications for training only — not medical advice,
           diagnosis, or treatment. For persistent or severe pain, consult a
@@ -125,36 +127,51 @@ const PainChartInsightPanel: React.FC<PainChartInsightPanelProps> = ({
         </DisclaimerText>
       </ConstraintBlock>
 
+      {/* Slice 3 (B9): complete tab ARIA — tabpanel + aria-controls + roving
+          tabindex + arrow-key navigation (was tablist/tab with none of it). */}
       <TabBar role="tablist" aria-label="Pain entry history">
-        {tabs.map((tab) => (
+        {tabs.map((tab, tabIndex) => (
           <TabButton
             key={tab.id}
+            id={`pain-tab-${tab.id}`}
             type="button"
             role="tab"
             aria-selected={activeTab === tab.id}
+            aria-controls="pain-tabpanel"
+            tabIndex={activeTab === tab.id ? 0 : -1}
             $active={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLButtonElement>) => {
+              if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+              e.preventDefault();
+              const delta = e.key === 'ArrowRight' ? 1 : -1;
+              const next = tabs[(tabIndex + delta + tabs.length) % tabs.length];
+              setActiveTab(next.id);
+              document.getElementById(`pain-tab-${next.id}`)?.focus();
+            }}
           >
             {tab.label} ({tab.count})
           </TabButton>
         ))}
       </TabBar>
 
-      {tabEntries.length > 0 ? (
-        <EntryList>
-          {tabEntries.map((entry) => (
-            <EntryButton key={`${activeTab}-${entry.id}`} type="button" onClick={() => onSelectRegion(entry.bodyRegion)}>
-              <EntryMain>
-                <EntryName>{formatPainRegionLabel(entry.bodyRegion)}</EntryName>
-                <EntryDetail>{entry.painLevel}/10 - {entry.painType || 'reported'} - {entry.side}</EntryDetail>
-              </EntryMain>
-              <EntryStatus>{entry.isActive ? formatDate(entry.updatedAt) : `Resolved ${formatDate(entry.resolvedAt)}`}</EntryStatus>
-            </EntryButton>
-          ))}
-        </EntryList>
-      ) : (
-        <EmptyState>{activeTab === 'resolved' ? 'No resolved entries yet.' : 'No entries in this view.'}</EmptyState>
-      )}
+      <div id="pain-tabpanel" role="tabpanel" aria-labelledby={`pain-tab-${activeTab}`}>
+        {tabEntries.length > 0 ? (
+          <EntryList>
+            {tabEntries.map((entry) => (
+              <EntryButton key={`${activeTab}-${entry.id}`} type="button" onClick={() => onSelectRegion(entry.bodyRegion)}>
+                <EntryMain>
+                  <EntryName>{formatPainRegionLabel(entry.bodyRegion)}</EntryName>
+                  <EntryDetail>{entry.painLevel}/10 - {entry.painType || 'reported'} - {entry.side}</EntryDetail>
+                </EntryMain>
+                <EntryStatus>{entry.isActive ? formatDate(entry.updatedAt) : `Resolved ${formatDate(entry.resolvedAt)}`}</EntryStatus>
+              </EntryButton>
+            ))}
+          </EntryList>
+        ) : (
+          <EmptyState>{activeTab === 'resolved' ? 'No resolved entries yet.' : 'No entries in this view.'}</EmptyState>
+        )}
+      </div>
     </Panel>
   );
 };

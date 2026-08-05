@@ -130,11 +130,26 @@ export function getRegionsByView(view: BodyView): BodyRegion[] {
   return ALL_BODY_REGIONS.filter(r => r.view === view);
 }
 
-/** Severity → color mapping for the body map markers (Crystalline Swan palette) */
+/**
+ * Severity → color mapping (Slice 3, B8). The old scale used two
+ * near-identical blues (#50A0F0 vs #60C0F0 — indistinguishable at a glance
+ * and worthless to color-blind users). New scale is NON-adjacent and
+ * tokenized (Rule 6); color is also no longer the only channel — the map
+ * adds numeric pills and dash-pattern strokes per tier.
+ */
+export type SeverityTier = 'severe' | 'moderate' | 'mild';
+
+export function getSeverityTier(painLevel: number): SeverityTier {
+  if (painLevel >= 7) return 'severe';
+  if (painLevel >= 4) return 'moderate';
+  return 'mild';
+}
+
 export function getSeverityColor(painLevel: number): string {
-  if (painLevel >= 7) return '#C6A84B'; // Gilded Fern — severe (high visibility on dark)
-  if (painLevel >= 4) return '#50A0F0'; // Arctic Cyan — moderate
-  return '#60C0F0';                      // Ice Wing — mild
+  const tier = getSeverityTier(painLevel);
+  if (tier === 'severe') return 'var(--glow-accent, #8B5CF6)';    // Wing Purple — filled + halo + pulse
+  if (tier === 'moderate') return 'var(--accent-luxury, #C6A84B)'; // Gilded Fern — dashed stroke
+  return 'var(--accent-primary, #60C0F0)';                         // Ice Wing — outline
 }
 
 /** Pain type labels */

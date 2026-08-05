@@ -68,7 +68,8 @@ const ActiveEntryRow = styled.div<{ $color: string }>`
   padding: 10px 14px;
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.25);
-  border: 1px solid ${({ $color }) => `${$color}33`};
+  /* color-mix, not hex-concat: $color is a var(--token, #fallback) expression (Rule 6). */
+  border: 1px solid ${({ $color }) => `color-mix(in srgb, ${$color} 20%, transparent)`};
   margin-bottom: 8px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -162,6 +163,10 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
 
   const [entries, setEntries] = useState<PainEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  // Slice 3 (B5): the map stays MOUNTED during refetches — the old
+  // `{!loading && ...}` unmounted the whole figure after every save/resolve,
+  // flashing the UI away. Only the very first load shows the empty state.
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
@@ -220,6 +225,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
       setError(err?.response?.data?.message || 'Failed to load entries');
     } finally {
       setLoading(false);
+      setHasLoadedOnce(true);
     }
   }, [entryService, userId]);
 
@@ -317,11 +323,13 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
             {resolvedCount > 0 && (
               <SummaryBadge $color="var(--tertiary, #4070C0)">{resolvedCount} resolved</SummaryBadge>
             )}
+            {/* Slice 3 (B8): badges share the map's severity scale — the old
+                pair used two near-identical blues for moderate vs mild. */}
             {severeCount > 0 && (
-              <SummaryBadge $color="var(--accent-luxury, #C6A84B)">{severeCount} severe</SummaryBadge>
+              <SummaryBadge $color="var(--glow-accent, #8B5CF6)">{severeCount} severe</SummaryBadge>
             )}
             {moderateCount > 0 && (
-              <SummaryBadge $color="var(--data-accent, #50A0F0)">{moderateCount} moderate</SummaryBadge>
+              <SummaryBadge $color="var(--accent-luxury, #C6A84B)">{moderateCount} moderate</SummaryBadge>
             )}
             {mildCount > 0 && (
               <SummaryBadge $color="var(--accent-primary, #60C0F0)">{mildCount} mild</SummaryBadge>
@@ -330,8 +338,9 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
         )}
       </SectionHeader>
 
-      {loading && <StatusText>Loading entries...</StatusText>}
-      {error && <ErrorText>{error}</ErrorText>}
+      {loading && !hasLoadedOnce && <StatusText>Loading entries...</StatusText>}
+      {loading && hasLoadedOnce && <StatusText role="status">Refreshing…</StatusText>}
+      {error && <ErrorText role="alert">{error}</ErrorText>}
 
       {showStaffClientSelector && (
         <BodyMapClientTargetSelector
@@ -343,7 +352,7 @@ const BodyMap: React.FC<BodyMapProps> = ({ userId: userIdProp, mode }) => {
         />
       )}
 
-      {!loading && (
+      {(hasLoadedOnce || !loading) && (
         <>
           <BodyMapToolbar
             gender={gender}

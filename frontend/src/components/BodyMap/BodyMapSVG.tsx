@@ -33,8 +33,10 @@ import {
   FRONT_VIEW_REGIONS,
   BACK_VIEW_REGIONS,
   getSeverityColor,
+  getSeverityTier,
   type BodyRegion,
 } from './bodyRegions';
+import ZoomablePanel from './ZoomablePanel';
 import {
   MaleFrontOutline,
   MaleBackOutline,
@@ -153,22 +155,39 @@ const ResponsiveSVG = styled.svg`
   }
 `;
 
-const ZoomContainer = styled.div`
-  position: relative;
-  overflow: hidden;
-  touch-action: none;
-  border-radius: 12px;
+// Zoom/pan lives in ZoomablePanel.tsx since Slice 3 (per-panel state, pan-y
+// page scroll, visible controls).
 
-  ${device.md} {
-    touch-action: manipulation;
-    overflow: visible;
-  }
+const ChipRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
 `;
 
-const ZoomContent = styled.div<{ $scale: number; $x: number; $y: number; $isPinching: boolean }>`
-  transform: ${({ $scale, $x, $y }) => `scale(${$scale}) translate(${$x / $scale}px, ${$y / $scale}px)`};
-  transform-origin: center center;
-  transition: ${({ $isPinching }) => $isPinching ? 'none' : 'transform 0.2s ease-out'};
+const ChipLabel = styled.span`
+  color: var(--text-muted, rgba(255, 255, 255, 0.55));
+  font-size: 12px;
+`;
+
+const Chip = styled.button`
+  min-height: 44px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-soft, rgba(139, 92, 246, 0.3));
+  background: var(--bg-elevated, rgba(0, 32, 96, 0.8));
+  color: var(--text-primary, #E0ECF4);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover { border-color: var(--glow-accent, #8B5CF6); }
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
 `;
 
 /**
@@ -183,31 +202,45 @@ interface RegionEllipseProps {
   $isActive: boolean;
   $isSelected: boolean;
   $severityColor: string | null;
+  $tier: 'severe' | 'moderate' | 'mild' | null;
 }
 
+/**
+ * Slice 3 (B8): severity is multi-channel — color (non-adjacent tokens),
+ * stroke pattern (moderate = dashed), fill (severe = filled + halo), numeric
+ * pill, and pulse ONLY at severe (respecting prefers-reduced-motion).
+ * Selection/hover/focus moved to Ice Wing so they can't be confused with the
+ * severe (Wing Purple) tier.
+ */
 const RegionEllipse = styled.ellipse<RegionEllipseProps>`
-  fill: transparent;
+  fill: ${({ $tier, $severityColor }) =>
+    $tier === 'severe' && $severityColor
+      ? `color-mix(in srgb, ${$severityColor} 22%, transparent)`
+      : 'transparent'};
   stroke: ${({ $isActive, $isSelected, $severityColor }) =>
     $isSelected
-      ? '#8B5CF6'
+      ? 'var(--accent-primary, #60C0F0)'
       : $isActive && $severityColor
         ? $severityColor
         : 'rgba(64, 112, 192, 0.30)'};
   stroke-width: ${({ $isSelected }) => ($isSelected ? 2.5 : 1.5)};
+  stroke-dasharray: ${({ $tier }) => ($tier === 'moderate' ? '4 2' : 'none')};
   cursor: pointer;
   pointer-events: all;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-  ${({ $isActive }) =>
-    $isActive &&
+  ${({ $tier }) =>
+    $tier === 'severe' &&
     css`
-      animation: ${pulse} 2s ease-in-out infinite;
+      @media (prefers-reduced-motion: no-preference) {
+        animation: ${pulse} 2s ease-in-out infinite;
+      }
     `}
 
   &:hover {
-    stroke: #8B5CF6;
+    stroke: var(--accent-primary, #60C0F0);
     stroke-width: 2;
-    filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.5));
+    filter: drop-shadow(0 0 8px rgba(96, 192, 240, 0.5));
   }
 
   &:focus {
@@ -215,9 +248,9 @@ const RegionEllipse = styled.ellipse<RegionEllipseProps>`
   }
 
   &:focus-visible {
-    stroke: #8B5CF6;
+    stroke: var(--accent-primary, #60C0F0);
     stroke-width: 3;
-    filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.6));
+    filter: drop-shadow(0 0 12px rgba(96, 192, 240, 0.6));
   }
 
   &:active {
@@ -227,7 +260,7 @@ const RegionEllipse = styled.ellipse<RegionEllipseProps>`
 
 const PainDot = styled.circle<{ $color: string }>`
   fill: ${({ $color }) => $color};
-  stroke: #E0ECF4;
+  stroke: var(--text-primary, #E0ECF4);
   stroke-width: 2;
   filter: drop-shadow(0 0 6px ${({ $color }) => $color});
   pointer-events: none;
@@ -285,11 +318,16 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
   labelMode = 'off',
   profilePhotoUrl = null,
 }) => {
-  // Pinch-zoom state for mobile
-  const [scale, setScale] = useState(1);
-  const [translate, setTranslate] = useState({ x: 0, y: 0 });
-  const pinchRef = useRef<{ startDist: number; startScale: number } | null>(null);
-  const panRef = useRef<{ startX: number; startY: number; startTx: number; startTy: number } | null>(null);
+  // Slice 3 (B1): overlapping-hotspot disambiguation — when a tap lands
+  // inside more than one inflated hit ellipse, ASK instead of letting the
+  // top-most element silently win.
+  const [ambiguousRegions, setAmbiguousRegions] = useState<BodyRegion[] | null>(null);
+  // Slice 3 (B7): roving tabindex — one tab stop per view, arrows move focus.
+  const regionRefs = useRef(new Map<string, SVGEllipseElement | null>());
+  const [rovingFocus, setRovingFocus] = useState<{ front: string; back: string }>({
+    front: FRONT_VIEW_REGIONS[0]?.id ?? '',
+    back: BACK_VIEW_REGIONS[0]?.id ?? '',
+  });
 
   // Track whether anatomical images loaded successfully.
   const [frontImgLoaded, setFrontImgLoaded] = useState(false);
@@ -345,56 +383,6 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
       backImage.onerror = null;
     };
   }, [gender]);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      pinchRef.current = { startDist: Math.hypot(dx, dy), startScale: scale };
-    } else if (e.touches.length === 1 && scale > 1) {
-      panRef.current = {
-        startX: e.touches[0].clientX,
-        startY: e.touches[0].clientY,
-        startTx: translate.x,
-        startTy: translate.y,
-      };
-    }
-  }, [scale, translate]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length === 2 && pinchRef.current) {
-      const dx = e.touches[0].clientX - e.touches[1].clientX;
-      const dy = e.touches[0].clientY - e.touches[1].clientY;
-      const dist = Math.hypot(dx, dy);
-      const newScale = Math.min(5, Math.max(1, pinchRef.current.startScale * (dist / pinchRef.current.startDist)));
-      setScale(newScale);
-      if (newScale <= 1) setTranslate({ x: 0, y: 0 });
-    } else if (e.touches.length === 1 && panRef.current && scale > 1) {
-      const dx = e.touches[0].clientX - panRef.current.startX;
-      const dy = e.touches[0].clientY - panRef.current.startY;
-      const maxPan = (scale - 1) * 150;
-      const newX = Math.min(maxPan, Math.max(-maxPan, panRef.current.startTx + dx));
-      const newY = Math.min(maxPan, Math.max(-maxPan, panRef.current.startTy + dy));
-      setTranslate({ x: newX, y: newY });
-    }
-  }, [scale]);
-
-  const handleTouchEnd = useCallback(() => {
-    pinchRef.current = null;
-    panRef.current = null;
-  }, []);
-
-  // Double-tap to reset zoom
-  const lastTapRef = useRef(0);
-  const handleDoubleTap = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    const now = Date.now();
-    if (now - lastTapRef.current < 300) {
-      setScale(1);
-      setTranslate({ x: 0, y: 0 });
-    }
-    lastTapRef.current = now;
-  }, []);
 
   // Build a map from bodyRegion → highest pain entry
   const regionPainMap = useMemo(() => {
@@ -475,17 +463,62 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
     });
   };
 
-  const renderRegions = (regions: BodyRegion[]) =>
+  // Slice 3 (B1): find EVERY region whose inflated hit ellipse contains the
+  // click point. Neighbors closer than the 44px inflation used to be silently
+  // unreachable — the top-most element always won. >1 candidate → ask.
+  const findRegionsAtPoint = useCallback((evt: React.MouseEvent<SVGElement>, regions: BodyRegion[]): BodyRegion[] => {
+    const svg = (evt.currentTarget as SVGGraphicsElement).ownerSVGElement;
+    const ctm = svg?.getScreenCTM?.();
+    if (!svg || !ctm) return []; // non-browser env (JSDOM) — caller falls back
+    const pt = svg.createSVGPoint();
+    pt.x = evt.clientX;
+    pt.y = evt.clientY;
+    const local = pt.matrixTransform(ctm.inverse());
+    return regions.filter((region) => {
+      const { cx, cy, rx, ry } = region.svgCoords;
+      const hx = Math.max(rx, HIT_AREA_MIN_R);
+      const hy = Math.max(ry, HIT_AREA_MIN_R);
+      const dx = (local.x - cx) / hx;
+      const dy = (local.y - cy) / hy;
+      return dx * dx + dy * dy <= 1;
+    });
+  }, []);
+
+  const handleRegionActivate = useCallback((evt: React.MouseEvent<SVGElement>, region: BodyRegion, regions: BodyRegion[]) => {
+    const candidates = findRegionsAtPoint(evt, regions);
+    if (candidates.length > 1) {
+      setAmbiguousRegions(candidates);
+      return;
+    }
+    setAmbiguousRegions(null);
+    onRegionClick(region.id);
+  }, [findRegionsAtPoint, onRegionClick]);
+
+  // Slice 3 (B7): roving tabindex — the map is ONE tab stop per view;
+  // Arrow keys move between regions, Enter/Space selects.
+  const moveRovingFocus = useCallback((view: 'front' | 'back', regions: BodyRegion[], currentId: string, delta: number) => {
+    const idx = regions.findIndex((r) => r.id === currentId);
+    const next = regions[(idx + delta + regions.length) % regions.length];
+    if (!next) return;
+    setRovingFocus((prev) => ({ ...prev, [view]: next.id }));
+    regionRefs.current.get(next.id)?.focus();
+  }, []);
+
+  const renderRegions = (regions: BodyRegion[], view: 'front' | 'back') =>
     regions.map((region) => {
       const painEntry = regionPainMap.get(region.id);
       const isActive = !!painEntry;
       const isSelected = selectedRegion === region.id;
       const severityColor = painEntry ? getSeverityColor(painEntry.painLevel) : null;
+      const tier = painEntry ? getSeverityTier(painEntry.painLevel) : null;
       const { cx, cy, rx, ry } = region.svgCoords;
+      const visRx = Math.min(rx, HIT_AREA_MIN_R);
+      const visRy = Math.min(ry, HIT_AREA_MIN_R);
 
       return (
         <g key={region.id}>
           <RegionEllipse
+            ref={(el: SVGEllipseElement | null) => { regionRefs.current.set(region.id, el); }}
             cx={cx}
             cy={cy}
             rx={Math.max(rx, HIT_AREA_MIN_R)}
@@ -493,16 +526,29 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
             $isActive={isActive}
             $isSelected={isSelected}
             $severityColor={severityColor}
-            onClick={() => onRegionClick(region.id)}
+            $tier={tier}
+            onClick={(e: React.MouseEvent<SVGElement>) => handleRegionActivate(e, region, regions)}
             onKeyDown={(e: React.KeyboardEvent) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
+                setAmbiguousRegions(null); // keyboard targeting is exact
                 onRegionClick(region.id);
+              } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                moveRovingFocus(view, regions, region.id, 1);
+              } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                moveRovingFocus(view, regions, region.id, -1);
               }
             }}
-            tabIndex={0}
+            onFocus={() => setRovingFocus((prev) => ({ ...prev, [view]: region.id }))}
+            tabIndex={rovingFocus[view] === region.id ? 0 : -1}
             role="button"
-            aria-label={`Select ${region.label}`}
+            aria-label={
+              painEntry
+                ? `${region.label}, pain ${painEntry.painLevel} out of 10${isSelected ? ', selected' : ''}`
+                : `Select ${region.label}`
+            }
           />
           {/* Visual-only overlay showing true anatomical size */}
           {(rx < HIT_AREA_MIN_R || ry < HIT_AREA_MIN_R) && (
@@ -511,7 +557,7 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
               cy={cy}
               rx={rx}
               ry={ry}
-              fill={isActive && severityColor ? `${severityColor}40` : 'rgba(64, 112, 192, 0.05)'}
+              fill={isActive && severityColor ? `color-mix(in srgb, ${severityColor} 25%, transparent)` : 'rgba(64, 112, 192, 0.05)'}
               stroke="inherit"
               strokeWidth="inherit"
               pointerEvents="none"
@@ -520,6 +566,32 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
           )}
           {isActive && severityColor && (
             <PainDot cx={cx} cy={cy} r={3} $color={severityColor} />
+          )}
+          {/* Slice 3 (B8): numeric severity pill — the truthful channel. */}
+          {isActive && painEntry && (
+            <g pointerEvents="none" aria-hidden="true">
+              <rect
+                x={cx + visRx * 0.55}
+                y={cy - visRy - 7}
+                width={painEntry.painLevel >= 10 ? 13 : 10}
+                height={8}
+                rx={2.5}
+                fill="var(--bg-base, #0A0A0F)"
+                stroke={severityColor ?? 'none'}
+                strokeWidth="0.6"
+              />
+              <text
+                x={cx + visRx * 0.55 + (painEntry.painLevel >= 10 ? 6.5 : 5)}
+                y={cy - visRy - 1}
+                textAnchor="middle"
+                fontSize="5.5"
+                fontFamily="Fira Code, monospace"
+                fontWeight="600"
+                fill="var(--text-primary, #E0ECF4)"
+              >
+                {painEntry.painLevel}
+              </text>
+            </g>
           )}
         </g>
       );
@@ -543,15 +615,11 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
   const photoHead = frontImgLoaded && frontImagePath ? mapHeadToPng(headBase) : headBase;
 
   return (
+    <>
     <MapContainer>
       <ViewPanel>
         <ViewLabel>Front View</ViewLabel>
-        <ZoomContainer
-          onTouchStart={(e) => { handleTouchStart(e); handleDoubleTap(e); }}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <ZoomContent $scale={scale} $x={translate.x} $y={translate.y} $isPinching={!!pinchRef.current}>
+        <ZoomablePanel label="front view">
             <ResponsiveSVG viewBox="0 0 200 320">
               <rect x="0" y="0" width="200" height="320" rx="8" fill="var(--bg-base, #002060)" />
               <defs>
@@ -599,22 +667,16 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
                 </g>
               )}
               {/* Layer 4: Interactive hotspot regions */}
-              {renderRegions(FRONT_VIEW_REGIONS)}
+              {renderRegions(FRONT_VIEW_REGIONS, 'front')}
               {/* Layer 5: Anatomical labels */}
               {renderLabels(FRONT_VIEW_REGIONS)}
             </ResponsiveSVG>
-          </ZoomContent>
-        </ZoomContainer>
+        </ZoomablePanel>
       </ViewPanel>
 
       <ViewPanel>
         <ViewLabel>Back View</ViewLabel>
-        <ZoomContainer
-          onTouchStart={(e) => { handleTouchStart(e); handleDoubleTap(e); }}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
-          <ZoomContent $scale={scale} $x={translate.x} $y={translate.y} $isPinching={!!pinchRef.current}>
+        <ZoomablePanel label="back view">
             <ResponsiveSVG viewBox="0 0 200 320">
               <rect x="0" y="0" width="200" height="320" rx="8" fill="var(--bg-base, #002060)" />
               {/* Layer 1: Anatomical image (neutral figure has none on purpose) */}
@@ -630,13 +692,33 @@ const BodyMapSVG: React.FC<BodyMapSVGProps> = ({
               <g opacity={backImagePath && backImgLoaded ? 0.3 : 1}>
                 {getBackOutline()}
               </g>
-              {renderRegions(BACK_VIEW_REGIONS)}
+              {renderRegions(BACK_VIEW_REGIONS, 'back')}
               {renderLabels(BACK_VIEW_REGIONS)}
             </ResponsiveSVG>
-          </ZoomContent>
-        </ZoomContainer>
+        </ZoomablePanel>
       </ViewPanel>
     </MapContainer>
+    {/* Slice 3 (B1): overlap disambiguation — never guess which body part
+        a tap between neighbors meant. */}
+    {ambiguousRegions && ambiguousRegions.length > 1 && (
+      <ChipRow role="group" aria-label="Choose which area you meant">
+        <ChipLabel>Which area?</ChipLabel>
+        {ambiguousRegions.map((region) => (
+          <Chip
+            key={region.id}
+            type="button"
+            onClick={() => {
+              setAmbiguousRegions(null);
+              onRegionClick(region.id);
+            }}
+          >
+            {region.label}
+          </Chip>
+        ))}
+        <Chip type="button" onClick={() => setAmbiguousRegions(null)} aria-label="Dismiss area choices">✕</Chip>
+      </ChipRow>
+    )}
+    </>
   );
 };
 

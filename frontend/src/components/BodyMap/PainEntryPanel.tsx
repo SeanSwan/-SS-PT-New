@@ -171,14 +171,14 @@ const Slider = styled.input<{ $painColor: string }>`
     border-radius: 50%;
     background: #002060;
     border: 3px solid ${({ $painColor }) => $painColor};
-    box-shadow: 0 0 12px ${({ $painColor }) => `${$painColor}80`}, inset 0 0 4px ${({ $painColor }) => $painColor};
+    box-shadow: 0 0 12px ${({ $painColor }) => `color-mix(in srgb, ${$painColor} 50%, transparent)`}, inset 0 0 4px ${({ $painColor }) => $painColor};
     cursor: pointer;
     transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
   }
 
   &::-webkit-slider-thumb:hover {
     transform: scale(1.15);
-    box-shadow: 0 0 20px ${({ $painColor }) => `${$painColor}AA`}, inset 0 0 6px ${({ $painColor }) => $painColor};
+    box-shadow: 0 0 20px ${({ $painColor }) => `color-mix(in srgb, ${$painColor} 67%, transparent)`}, inset 0 0 6px ${({ $painColor }) => $painColor};
   }
 
   &:focus-visible::-webkit-slider-thumb {
@@ -196,10 +196,10 @@ const SliderValue = styled.div<{ $color: string }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  background: ${({ $color }) => `${$color}15`};
-  border: 1px solid ${({ $color }) => `${$color}40`};
+  background: ${({ $color }) => `color-mix(in srgb, ${$color} 8%, transparent)`};
+  border: 1px solid ${({ $color }) => `color-mix(in srgb, ${$color} 25%, transparent)`};
   border-radius: 12px;
-  text-shadow: 0 0 10px ${({ $color }) => `${$color}60`};
+  text-shadow: 0 0 10px ${({ $color }) => `color-mix(in srgb, ${$color} 38%, transparent)`};
 `;
 
 const Select = styled.select`
@@ -292,7 +292,7 @@ const SyndromeBtn = styled.button<{ $active: boolean; $color: string }>`
   font-weight: 500;
   cursor: pointer;
   border: 1px solid ${({ $active, $color }) => ($active ? $color : 'rgba(255,255,255,0.15)')};
-  background: ${({ $active, $color }) => ($active ? `${$color}22` : 'rgba(0,0,0,0.3)')};
+  background: ${({ $active, $color }) => ($active ? `color-mix(in srgb, ${$color} 13%, transparent)` : 'rgba(0,0,0,0.3)')};
   color: ${({ $active, $color }) => ($active ? $color : 'rgba(255,255,255,0.6)')};
   transition: all 0.15s;
 `;
@@ -412,6 +412,75 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
 }) => {
   // Track effective region — may differ from regionId if user swaps sides
   const [effectiveRegionId, setEffectiveRegionId] = useState<string | null>(regionId);
+
+  // ── Slice 3 (B6): real dialog semantics ─────────────────────────────
+  // The panel was a modal that wasn't one: no role, no focus management, no
+  // Escape, and its 11 hidden fields stayed tab-reachable while closed.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
+  const dragStartYRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return undefined;
+    if (isOpen) {
+      lastFocusedRef.current = document.activeElement as HTMLElement | null;
+      (panel as any).inert = false;
+      panel.removeAttribute('aria-hidden');
+      const firstFocusable = panel.querySelector<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      firstFocusable?.focus();
+      return undefined;
+    }
+    // Closed: unreachable for keyboard/AT (the transform only moves it
+    // off-screen), and focus returns to the opener.
+    (panel as any).inert = true;
+    panel.setAttribute('aria-hidden', 'true');
+    if (lastFocusedRef.current && document.contains(lastFocusedRef.current)) {
+      lastFocusedRef.current.focus();
+    }
+    return undefined;
+  }, [isOpen]);
+
+  const handleDialogKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      onClose();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    // Focus trap: cycle within the dialog.
+    const panel = panelRef.current;
+    if (!panel) return;
+    const focusables = Array.from(panel.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )).filter((el) => !el.hasAttribute('disabled'));
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }, [onClose]);
+
+  // Drag-to-dismiss: the handle was pure decoration promising a gesture
+  // that didn't exist.
+  const handleDragStart = useCallback((e: React.PointerEvent) => {
+    dragStartYRef.current = e.clientY;
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+  }, []);
+  const handleDragMove = useCallback(() => {}, []);
+  const handleDragEnd = useCallback((e: React.PointerEvent) => {
+    if (dragStartYRef.current !== null && e.clientY - dragStartYRef.current > 80) {
+      onClose();
+    }
+    dragStartYRef.current = null;
+  }, [onClose]);
   const region = effectiveRegionId ? getRegionById(effectiveRegionId) : null;
   // Ref to prevent form reset when side-swap changes effectiveRegionId
   const isSideSwapRef = useRef(false);
@@ -506,8 +575,23 @@ const PainEntryPanel: React.FC<PainEntryPanelProps> = ({
   return (
     <>
       <Overlay $isOpen={isOpen} onPointerDown={onClose} role="presentation" />
-      <Panel $isOpen={isOpen}>
-        <DragHandle />
+      <Panel
+        ref={panelRef}
+        $isOpen={isOpen}
+        role="dialog"
+        aria-modal="true"
+        aria-label={region?.label ? `Pain entry for ${region.label}` : 'Pain entry'}
+        onKeyDown={handleDialogKeyDown}
+      >
+        <DragHandle
+          role="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          onPointerDown={handleDragStart}
+          onPointerMove={handleDragMove}
+          onPointerUp={handleDragEnd}
+          onPointerCancel={handleDragEnd}
+        />
         <PanelHeader>
           <PanelTitle>{region?.label || 'Select Region'}</PanelTitle>
           <CloseBtn onClick={onClose} aria-label="Close panel">&#x2715;</CloseBtn>
