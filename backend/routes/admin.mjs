@@ -31,16 +31,32 @@ router.post('/sync-data', isAdmin, async (req, res) => {
     });
     
     const userIds = users.map(user => user.id);
-    
+
+    // An EMPTY exclusion list is not "exclude nothing" — Sequelize drops the whole WHERE clause,
+    // so `notIn: []` matches EVERY row. Every cleanup below is destructive (sessions nulled,
+    // notifications destroyed), so an empty user set would wipe the table rather than clean it.
+    //
+    // An empty Users table means a failed query, a migration mid-flight, or a soft-delete sweep —
+    // never "every record in the system is garbage". Bail out instead of acting on that reading.
+    if (userIds.length === 0) {
+      await transaction.rollback();
+      logger.warn('Admin data sync aborted: no users found. Refusing to treat every record as orphaned.');
+      return errorResponse(
+        res,
+        'Data sync aborted: no users found. Every session and notification would have been treated as orphaned.',
+        409
+      );
+    }
+
     // Find sessions with non-existent users
     const orphanedUserSessions = await Session.findAll({
       where: {
         userId: { [Op.not]: null },
         [Op.and]: [
-          { 
-            userId: { 
-              [Op.notIn]: userIds 
-            } 
+          {
+            userId: {
+              [Op.notIn]: userIds
+            }
           }
         ]
       },
@@ -66,19 +82,26 @@ router.post('/sync-data', isAdmin, async (req, res) => {
       );
     }
     
-    // Find sessions with non-existent trainers
-    const trainerIds = users
-      .filter(user => user.role === 'trainer')
-      .map(user => user.id);
-    
+    // Find sessions whose trainer no longer EXISTS.
+    //
+    // This previously excluded against `users.filter(role === 'trainer')`, which is a different
+    // question: it treats a session assigned to a real user holding any other role as orphaned.
+    // Verified against production — 9 sessions carried a trainerId, every one pointing at a user
+    // that exists (ids 5 and 2, both role='admin', i.e. admins who coach). Genuinely orphaned: 0.
+    // Combined with the empty-array behaviour above (prod has zero role='trainer' users, so the
+    // filtered list was empty and the clause vanished entirely), this endpoint would have cleared
+    // the trainer from all 9 live sessions.
+    //
+    // Orphaned means the referenced row is gone. Role is a separate concern and must not be
+    // repaired by silently deleting assignments.
     const orphanedTrainerSessions = await Session.findAll({
       where: {
         trainerId: { [Op.not]: null },
         [Op.and]: [
-          { 
-            trainerId: { 
-              [Op.notIn]: trainerIds 
-            } 
+          {
+            trainerId: {
+              [Op.notIn]: userIds
+            }
           }
         ]
       },
