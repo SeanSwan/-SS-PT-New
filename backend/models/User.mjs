@@ -67,6 +67,14 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    bodyMapHeadPhoto: {
+      // Slice 2 (A4): optional DEDICATED head photo for the pain-chart body
+      // figure — the main profile photo may be a logo/pet/brand image that
+      // makes no sense on a body map. Falls back to `photo` when null.
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'Dedicated body-map head photo URL (falls back to photo)',
+    },
     bannerPhoto: {
       type: DataTypes.STRING,
       allowNull: true,

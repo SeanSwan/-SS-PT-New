@@ -370,6 +370,11 @@ const sanitizeUser = (user) => {
   if (user.trainingExperience) sanitized.trainingExperience = user.trainingExperience;
   if (user.specialties) sanitized.specialties = user.specialties;
   if (user.lastActive) sanitized.lastActive = user.lastActive;
+  // Slice 2 (A1/A4): gender drives the client's own body-map figure
+  // auto-select (was never serialized — the frontend auto-pick was dead
+  // code); bodyMapHeadPhoto is the dedicated body-map head photo.
+  if (user.gender) sanitized.gender = user.gender;
+  if (user.bodyMapHeadPhoto) sanitized.bodyMapHeadPhoto = user.bodyMapHeadPhoto;
   // Include session count so frontend can route gallery funnel correctly
   if (user.availableSessions !== undefined) sanitized.availableSessions = user.availableSessions;
   // Include client source so frontend can adapt UI (move_fitness vs swanstudios)

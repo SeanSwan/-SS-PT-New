@@ -624,6 +624,11 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
             'fitnessGoal',
             'trainingExperience',
             'photo',
+            // Slice 2 (A1/A4): the trainer roster never carried gender, so
+            // the body-map figure auto-select silently worked for admins
+            // ONLY. bodyMapHeadPhoto = dedicated head photo fallback chain.
+            'gender',
+            'bodyMapHeadPhoto',
             'healthConcerns',
             'emergencyContact',
             'isOnboardingComplete'

@@ -146,6 +146,110 @@ router.post(
   }
 );
 
+/**
+ * @route   POST /api/profile/upload-body-map-photo
+ * @desc    Upload the user's DEDICATED body-map head photo (Pain-Chart
+ *          Slice 2, A4). Separate from the profile photo on purpose — the
+ *          profile photo may be a logo/pet/brand image. Self-service only;
+ *          images only. Same storage governance as profile media.
+ * @access  Private
+ */
+router.post(
+  '/upload-body-map-photo',
+  protect,
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 10 }),
+  upload.single('bodyMapPhoto'),
+  async (req, res) => {
+    try {
+      const { default: path } = await import('path');
+
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+      if (!allowedExtensions.includes(fileExt)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid file type. Only JPG, JPEG, PNG, and WEBP files are allowed.'
+        });
+      }
+
+      const { url: bodyMapHeadPhotoUrl } = await uploadPhoto(req.file.buffer, {
+        userId: req.user.id,
+        category: 'body-map-heads',
+        originalFilename: req.file.originalname,
+        contentType: req.file.mimetype,
+      });
+
+      const { getUser } = await import('../models/index.mjs');
+      const User = getUser();
+      const user = await User.findByPk(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      // Delete the previous dedicated photo (best-effort). NEVER touches the
+      // main profile photo — that is a separate asset.
+      if (user.bodyMapHeadPhoto) {
+        await deletePhoto(user.bodyMapHeadPhoto);
+      }
+
+      await user.update({ bodyMapHeadPhoto: bodyMapHeadPhotoUrl });
+
+      logger.info('Body-map head photo uploaded', { userId: req.user.id });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Body map photo uploaded successfully',
+        data: { bodyMapHeadPhoto: bodyMapHeadPhotoUrl }
+      });
+    } catch (error) {
+      logger.error('Body-map photo upload error:', { error: error.message, userId: req.user?.id });
+      return res.status(500).json({ success: false, message: 'Server error uploading body map photo' });
+    }
+  }
+);
+
+/**
+ * @route   DELETE /api/profile/body-map-photo
+ * @desc    Remove the dedicated body-map head photo (figure falls back to
+ *          the profile photo, then to the initial glyph).
+ * @access  Private
+ */
+router.delete(
+  '/body-map-photo',
+  protect,
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 10 }),
+  async (req, res) => {
+    try {
+      const { getUser } = await import('../models/index.mjs');
+      const User = getUser();
+      const user = await User.findByPk(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      if (user.bodyMapHeadPhoto) {
+        await deletePhoto(user.bodyMapHeadPhoto);
+        await user.update({ bodyMapHeadPhoto: null });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Body map photo removed',
+        data: { bodyMapHeadPhoto: null }
+      });
+    } catch (error) {
+      logger.error('Body-map photo delete error:', { error: error.message, userId: req.user?.id });
+      return res.status(500).json({ success: false, message: 'Server error removing body map photo' });
+    }
+  }
+);
+
 router.post(
   '/upload-banner-collage-photo',
   protect,
