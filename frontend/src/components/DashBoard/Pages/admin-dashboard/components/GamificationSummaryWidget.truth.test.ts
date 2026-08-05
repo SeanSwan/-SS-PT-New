@@ -22,7 +22,7 @@ const gamificationRoutesSource = readFileSync(
 describe('GamificationSummaryWidget active surface truth contract', () => {
   it('is mounted by the admin overview dashboard', () => {
     expect(parentSource).toContain("import GamificationSummaryWidget from '../components/GamificationSummaryWidget'");
-    expect(parentSource).toContain('<BentoThird><GamificationSummaryWidget /></BentoThird>');
+    expect(parentSource).toContain('<BentoThird><WidgetErrorBoundary name="Gamification summary"><GamificationSummaryWidget /></WidgetErrorBoundary></BentoThird>');
   });
 
   it('only labels metrics that are backed by the leaderboard response', () => {

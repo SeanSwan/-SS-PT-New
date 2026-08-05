@@ -31,7 +31,7 @@ const controllerSource = readFileSync(
 describe('WaiverSummaryWidget active surface truth contract', () => {
   it('is mounted by the admin overview and backed by the admin waiver list route', () => {
     expect(parentSource).toContain("import WaiverSummaryWidget from '../components/WaiverSummaryWidget'");
-    expect(parentSource).toContain('<BentoThird><WaiverSummaryWidget /></BentoThird>');
+    expect(parentSource).toContain('<BentoThird><WidgetErrorBoundary name="Waiver summary"><WaiverSummaryWidget /></WidgetErrorBoundary></BentoThird>');
     expect(source).toContain("apiService.get('/api/admin/waivers?page=1&limit=5')");
     expect(routeSource).toContain("router.get('/', protect, adminOnly, listWaiverRecords)");
   });

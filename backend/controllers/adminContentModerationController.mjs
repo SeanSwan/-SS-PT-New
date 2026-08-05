@@ -598,6 +598,98 @@ class AdminContentModerationController {
   }
 
   /**
+   * PATCH /reports/:id/resolve (SWA-138 S2)
+   * Resolves a report using the PostReport.resolve() instance method.
+   * 409 when another admin already finalized it (multi-admin truth).
+   */
+  async resolveReport(req, res) {
+    try {
+      const { id } = req.params;
+      const { actionTaken, adminNotes = null } = req.body || {};
+
+      const validActions = [
+        'no-action', 'content-approved', 'content-flagged', 'content-removed',
+        'user-warned', 'user-suspended', 'user-banned'
+      ];
+      if (!validActions.includes(actionTaken)) {
+        return res.status(400).json({
+          success: false,
+          message: `actionTaken must be one of: ${validActions.join(', ')}`
+        });
+      }
+
+      const report = await PostReport.findByPk(id);
+      if (!report) {
+        return res.status(404).json({ success: false, message: 'Report not found' });
+      }
+      if (report.status === 'resolved' || report.status === 'dismissed') {
+        return res.status(409).json({
+          success: false,
+          message: `Report already ${report.status}`,
+          data: { id: String(report.id), status: report.status }
+        });
+      }
+
+      await report.resolve(req.user.id, actionTaken, adminNotes);
+      logger.info(`✅ Admin ${req.user.email} resolved report ${id} (${actionTaken})`);
+
+      return res.json({
+        success: true,
+        message: 'Report resolved',
+        data: {
+          id: String(report.id),
+          status: report.status,
+          actionTaken: report.actionTaken,
+          resolvedAt: report.resolvedAt
+        }
+      });
+    } catch (error) {
+      logger.error(`Error resolving report ${req.params.id}:`, error);
+      return sendInternalError(res, 'Error resolving report');
+    }
+  }
+
+  /**
+   * PATCH /reports/:id/dismiss (SWA-138 S2)
+   * Dismisses a report using the PostReport.dismiss() instance method.
+   */
+  async dismissReport(req, res) {
+    try {
+      const { id } = req.params;
+      const { adminNotes = null } = req.body || {};
+
+      const report = await PostReport.findByPk(id);
+      if (!report) {
+        return res.status(404).json({ success: false, message: 'Report not found' });
+      }
+      if (report.status === 'resolved' || report.status === 'dismissed') {
+        return res.status(409).json({
+          success: false,
+          message: `Report already ${report.status}`,
+          data: { id: String(report.id), status: report.status }
+        });
+      }
+
+      await report.dismiss(req.user.id, adminNotes);
+      logger.info(`🚫 Admin ${req.user.email} dismissed report ${id}`);
+
+      return res.json({
+        success: true,
+        message: 'Report dismissed',
+        data: {
+          id: String(report.id),
+          status: report.status,
+          actionTaken: report.actionTaken,
+          resolvedAt: report.resolvedAt
+        }
+      });
+    } catch (error) {
+      logger.error(`Error dismissing report ${req.params.id}:`, error);
+      return sendInternalError(res, 'Error dismissing report');
+    }
+  }
+
+  /**
    * Moderate content (approve, reject, flag)
    */
   async moderateContent(req, res) {

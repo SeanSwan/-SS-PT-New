@@ -23,6 +23,8 @@
  * │ GET     /posts                           Admin          Get posts for review │
  * │ GET     /comments                        Admin          Get comments         │
  * │ GET     /reports                         Admin          Get reported content │
+ * │ PATCH   /reports/:id/resolve             Admin          Resolve a report     │
+ * │ PATCH   /reports/:id/dismiss             Admin          Dismiss a report     │
  * │ GET     /stats                           Admin          Get stats            │
  * │ POST    /moderate                        Admin          Moderate content     │
  * │ PUT     /posts/:id                       Admin          Update post status   │
@@ -196,6 +198,24 @@ router.get('/comments', adminContentModerationController.getComments);
  * Get reported content with filtering and pagination
  */
 router.get('/reports', adminContentModerationController.getReports);
+
+// =====================================================
+// REPORT LIFECYCLE ACTIONS (SWA-138 S2)
+// =====================================================
+
+/**
+ * PATCH /api/admin/content/reports/:id/resolve
+ * Resolve a report via PostReport.resolve() (sets status/resolvedAt/resolvedBy).
+ * Body: { actionTaken, adminNotes? } — actionTaken must be a PostReport action enum value.
+ */
+router.patch('/reports/:id/resolve', adminContentModerationController.resolveReport);
+
+/**
+ * PATCH /api/admin/content/reports/:id/dismiss
+ * Dismiss a report via PostReport.dismiss() (status=dismissed, actionTaken=no-action).
+ * Body: { adminNotes? }
+ */
+router.patch('/reports/:id/dismiss', adminContentModerationController.dismissReport);
 
 /**
  * GET /api/admin/content/stats

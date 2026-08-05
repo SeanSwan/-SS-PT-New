@@ -34,7 +34,7 @@ const controllerSource = readFileSync(
 describe('VisitorGeoWidget active surface truth contract', () => {
   it('is mounted by admin overview and backed by dashboard visitor endpoints', () => {
     expect(parentSource).toContain("import VisitorGeoWidget from '../components/VisitorGeoWidget'");
-    expect(parentSource).toContain('<BentoHalf><VisitorGeoWidget /></BentoHalf>');
+    expect(parentSource).toContain('<BentoHalf><WidgetErrorBoundary name="Visitor geography"><VisitorGeoWidget /></WidgetErrorBoundary></BentoHalf>');
     expect(source).toContain("authAxios.get('/api/admin/dashboard/visitor-geo')");
     expect(source).toContain("authAxios.get('/api/admin/dashboard/anonymous-visitors')");
     expect(source).toContain("authAxios.get('/api/admin/dashboard/visitor-history'");

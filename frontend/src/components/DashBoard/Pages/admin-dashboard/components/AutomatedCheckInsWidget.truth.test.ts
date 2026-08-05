@@ -28,7 +28,7 @@ const backendSource = readFileSync(
 describe('AutomatedCheckInsWidget active surface truth contract', () => {
   it('is mounted by the admin overview telemetry dashboard', () => {
     expect(parentSource).toContain("import AutomatedCheckInsWidget from '../components/AutomatedCheckInsWidget'");
-    expect(parentSource).toContain('<BentoHalf><AutomatedCheckInsWidget /></BentoHalf>');
+    expect(parentSource).toContain('<BentoHalf><WidgetErrorBoundary name="Automated check-ins"><AutomatedCheckInsWidget /></WidgetErrorBoundary></BentoHalf>');
   });
 
   it('uses the mounted read-only check-in dashboard endpoint', () => {

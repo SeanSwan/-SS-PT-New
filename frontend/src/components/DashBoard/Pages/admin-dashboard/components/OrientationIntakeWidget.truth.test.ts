@@ -30,7 +30,7 @@ const routeSource = readFileSync(
 describe('OrientationIntakeWidget active surface truth contract', () => {
   it('is mounted by the admin overview and backed by mounted orientation routes', () => {
     expect(parentSource).toContain("import OrientationIntakeWidget from '../components/OrientationIntakeWidget'");
-    expect(parentSource).toContain('<BentoThird><OrientationIntakeWidget /></BentoThird>');
+    expect(parentSource).toContain('<BentoThird><WidgetErrorBoundary name="Orientation intake"><OrientationIntakeWidget /></WidgetErrorBoundary></BentoThird>');
     expect(source).toContain("authAxios.get('/api/orientation/all')");
     expect(source).toContain("authAxios.post(`/api/orientation/${orientation.id}/link-user`");
     expect(routeSource).toContain("router.get('/all'");

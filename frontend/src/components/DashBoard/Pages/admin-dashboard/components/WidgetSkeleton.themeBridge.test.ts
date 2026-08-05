@@ -10,13 +10,17 @@ describe('WidgetSkeleton active admin overview theme bridge', () => {
     const adminDashboardView = readSource('src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx');
     const adminOverviewPanel = readSource('src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx');
     const upcomingChecks = readSource('src/components/DashBoard/Pages/admin-dashboard/components/UpcomingChecksWidget.tsx');
+    const widgetShell = readSource('src/components/DashBoard/Pages/admin-dashboard/shell/WidgetShell.tsx');
 
     expect(dashboardRoutesSource).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
     expect(adminDashboardView).toContain('<AdminOverviewPanel />');
     expect(adminOverviewPanel).toContain("import UpcomingChecksWidget from '../components/UpcomingChecksWidget'");
-    expect(adminOverviewPanel).toContain('<BentoHalf><UpcomingChecksWidget /></BentoHalf>');
-    expect(upcomingChecks).toContain("import WidgetSkeleton from './WidgetSkeleton'");
-    expect(upcomingChecks).toContain('<WidgetSkeleton count={4} />');
+    expect(adminOverviewPanel).toContain('<BentoHalf><WidgetErrorBoundary name="Upcoming check-ins"><UpcomingChecksWidget /></WidgetErrorBoundary></BentoHalf>');
+    // SWA-138 S1: skeleton rendering moved into the shared WidgetShell —
+    // the theme bridge now flows widget → WidgetShell → WidgetSkeleton.
+    expect(upcomingChecks).toContain("import { usePolledFetch, WidgetShell } from '../shell'");
+    expect(widgetShell).toContain("import WidgetSkeleton from '../components/WidgetSkeleton'");
+    expect(widgetShell).toContain('<WidgetSkeleton count={skeletonCount} />');
     expect(upcomingChecks).toContain("authAxios.get('/api/measurements/schedule/upcoming')");
   });
 

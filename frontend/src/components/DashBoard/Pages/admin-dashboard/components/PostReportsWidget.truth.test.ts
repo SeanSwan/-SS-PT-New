@@ -19,12 +19,30 @@ const routeSource = readFileSync(
   'utf8',
 );
 
-describe('PostReportsWidget active surface truth contract', () => {
-  it('is mounted by the admin overview and backed by the content reports route', () => {
+describe('PostReportsWidget active surface truth contract (SWA-138 S2)', () => {
+  it('is mounted by the admin overview (inside its crash boundary) and backed by the content reports route', () => {
     expect(parentSource).toContain("import PostReportsWidget from '../components/PostReportsWidget'");
-    expect(parentSource).toContain('<BentoThird><PostReportsWidget /></BentoThird>');
+    expect(parentSource).toContain(
+      '<BentoThird><WidgetErrorBoundary name="Post reports"><PostReportsWidget /></WidgetErrorBoundary></BentoThird>',
+    );
     expect(source).toContain("authAxios.get('/api/admin/content/reports'");
     expect(routeSource).toContain("router.get('/reports'");
+  });
+
+  it('renders REAL Resolve/Dismiss actions wired to registered PATCH routes — the S2 fix for the never-built blueprint promise', () => {
+    expect(source).toContain('actOnReport(report.id, \'resolve\')');
+    expect(source).toContain('actOnReport(report.id, \'dismiss\')');
+    expect(source).toContain('authAxios.patch(`/api/admin/content/reports/${id}/${verb}`');
+    expect(routeSource).toContain("router.patch('/reports/:id/resolve', adminContentModerationController.resolveReport)");
+    expect(routeSource).toContain("router.patch('/reports/:id/dismiss', adminContentModerationController.dismissReport)");
+  });
+
+  it('quick-resolve declares its action honestly (content-flagged) and buttons meet the 44px/keyboard bar', () => {
+    expect(source).toContain("{ actionTaken: 'content-flagged' }");
+    expect(source).toContain('min-height: 44px');
+    expect(source).not.toContain('min-height: 36px');
+    expect(source).toContain('type="button"');
+    expect(source).toContain('&:focus-visible');
   });
 
   it('routes View All to an active admin dashboard content path', () => {
@@ -37,16 +55,10 @@ describe('PostReportsWidget active surface truth contract', () => {
     expect(source).toContain('res.data?.data?.pagination?.total');
   });
 
-  it('does not hide report fetch failures as a clean empty queue', () => {
-    expect(source).toContain('loadError');
-    expect(source).toContain('Reports data unavailable');
-  });
-
-  it('does not render unsupported Resolve/Dismiss report mutation controls', () => {
-    expect(source).not.toContain('reportId,');
-    expect(source).not.toContain('Fallback: remove from UI anyway');
-    expect(source).not.toContain('<ActionBtn');
-    expect(source).not.toContain('min-height: 36px');
+  it('uses the S1 WidgetShell so error, empty, and loading are distinct states', () => {
+    expect(source).toContain("import { usePolledFetch, WidgetShell } from '../shell'");
+    expect(source).toContain("error={error ? 'Reports data unavailable' : null}");
+    expect(source).toContain('emptyMessage="No pending reports"');
   });
 
   it('uses Crystalline Swan theme tokens for report priority visuals', () => {
@@ -59,8 +71,5 @@ describe('PostReportsWidget active surface truth contract', () => {
     expect(source).toContain('<Flag size={20} color={REPORT_ERROR} />');
     expect(source).not.toContain('rgba(201, 42, 84');
     expect(source).not.toContain('color="#ef4444"');
-    expect(source).not.toContain("props.$level === 'urgent' ? '#ef4444'");
-    expect(source).not.toContain("props.$level === 'high' ? '#f59e0b'");
-    expect(source).not.toContain("props.$level === 'medium' ? '#60C0F0'");
   });
 });

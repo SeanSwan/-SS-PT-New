@@ -17,8 +17,8 @@ const indexOfRequired = (needle: string) => {
 
 describe('AdminOverviewPanel action priority', () => {
   it('puts signal, commands, and mission queues before passive business analytics', () => {
-    const signalIndex = indexOfRequired('<BentoFull><AdminSignalBar /></BentoFull>');
-    const quickActionsIndex = indexOfRequired('<BentoFull><AdminQuickActions actions={quickActions} /></BentoFull>');
+    const signalIndex = indexOfRequired('<BentoFull><WidgetErrorBoundary name="Signal bar"><AdminSignalBar /></WidgetErrorBoundary></BentoFull>');
+    const quickActionsIndex = indexOfRequired('<BentoFull><WidgetErrorBoundary name="Quick actions"><AdminQuickActions actions={quickActions} /></WidgetErrorBoundary></BentoFull>');
     const assistantIndex = indexOfRequired('<AITerminalPanel');
     const missionIndex = indexOfRequired('id="admin-mission-critical"');
     const platformIndex = indexOfRequired('id="admin-platform-pulse"');
@@ -42,9 +42,9 @@ describe('AdminOverviewPanel action priority', () => {
     expect(source).not.toContain('TelemetryGrid');
     expect(source).not.toContain('<details');
     expect(source).not.toContain('Access Deep Telemetry');
-    expect(source.indexOf('<BentoThird><SocialOverviewWidget /></BentoThird>')).toBeGreaterThanOrEqual(0);
-    expect(source.indexOf('<BentoHalf><UpcomingChecksWidget /></BentoHalf>')).toBeGreaterThanOrEqual(0);
-    expect(source.indexOf('<BentoHalf><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></BentoHalf>')).toBeGreaterThanOrEqual(0);
+    expect(source.indexOf('<BentoThird><WidgetErrorBoundary name="Social overview"><SocialOverviewWidget /></WidgetErrorBoundary></BentoThird>')).toBeGreaterThanOrEqual(0);
+    expect(source.indexOf('<BentoHalf><WidgetErrorBoundary name="Upcoming check-ins"><UpcomingChecksWidget /></WidgetErrorBoundary></BentoHalf>')).toBeGreaterThanOrEqual(0);
+    expect(source.indexOf('<BentoHalf><WidgetErrorBoundary name="Cancelled sessions"><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></WidgetErrorBoundary></BentoHalf>')).toBeGreaterThanOrEqual(0);
   });
 
   it('keeps signal shortcuts honest and wired to visible sections', () => {

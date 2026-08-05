@@ -26,7 +26,7 @@ const lineCount = (value: string) => value.split(/\r?\n/).length;
 describe('SocialOverviewWidget active surface truth contract', () => {
   it('is mounted by the admin overview and backed by the admin content posts route', () => {
     expect(parentSource).toContain("import SocialOverviewWidget from '../components/SocialOverviewWidget'");
-    expect(parentSource).toContain('<BentoThird><SocialOverviewWidget /></BentoThird>');
+    expect(parentSource).toContain('<BentoThird><WidgetErrorBoundary name="Social overview"><SocialOverviewWidget /></WidgetErrorBoundary></BentoThird>');
     expect(source).toContain("authAxios.get('/api/admin/content/posts'");
     expect(source).not.toContain("authAxios.get('/api/social/posts/feed");
     expect(moderationRouteSource).toContain("router.get('/posts'");

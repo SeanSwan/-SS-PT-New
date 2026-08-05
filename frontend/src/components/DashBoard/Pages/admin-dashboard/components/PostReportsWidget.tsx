@@ -5,33 +5,36 @@
  * │          priority badges & quick resolve/dismiss actions.    │
  * │ WIREFRAME:                                                  │
  * │ ┌────────────────────────────────────────────────────────┐  │
- * │ │ 🚩 Post Reports                     [View All →]      │  │
+ * │ │ 🚩 Post Reports (3)                        [↻]        │  │
  * │ │ ─────────────────────────────────────────────────────  │  │
  * │ │ [●] Harassment — by John D. ▪ 2h ago         [HIGH]   │  │
  * │ │     "Reported: offensive comment..."                   │  │
  * │ │     [Resolve]  [Dismiss]                               │  │
  * │ │ ─────────────────────────────────────────────────────  │  │
- * │ │ [●] Spam — by Jane S. ▪ 5h ago               [MED]    │  │
- * │ │     "Reported: repeated promotional..."                │  │
- * │ │     [Resolve]  [Dismiss]                               │  │
+ * │ │ View all (12) →                                        │  │
  * │ └────────────────────────────────────────────────────────┘  │
  * │ Props: none (fetches own data from admin API)               │
- * │ CLICK-OUTCOMES:                                             │
- * │ [Resolve] -> PATCH report status -> removes from list       │
- * │ [Dismiss] -> PATCH report status -> removes from list       │
- * │ [View All] -> navigates to /dashboard/content/moderation    │
+ * │ CLICK-OUTCOMES (SWA-138 S2 — now REAL, wired end-to-end):   │
+ * │ [Resolve] -> PATCH /api/admin/content/reports/:id/resolve   │
+ * │              (actionTaken: 'content-flagged' — the widget's │
+ * │              quick action; heavier verdicts live on the     │
+ * │              View All page) -> removes from list            │
+ * │ [Dismiss] -> PATCH /api/admin/content/reports/:id/dismiss   │
+ * │              -> removes from list                           │
+ * │ [View All] -> navigates to /dashboard/admin/content         │
+ * │ Shell: WidgetShell (S1) — loading/error/empty distinct,     │
+ * │        60s poll, stale-after-failure, freshness, refresh.   │
  * │ GAMIFICATION: None                                          │
  * └─────────────────────────────────────────────────────────────┘
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import styled from 'styled-components';
-import { Flag, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../../context/AuthContext';
-import { StyledBox } from '@/components/ui/StyledBox';
+import { usePolledFetch, WidgetShell } from '../shell';
 
-// ─────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────
 
 interface PostReport {
@@ -41,9 +44,13 @@ interface PostReport {
   status: string;
   priority: string;
   createdAt: string;
-  reporter?: { firstName: string; lastName: string };
   reporterName?: string;
   contentPreview?: string;
+}
+
+interface ReportsPayload {
+  reports: PostReport[];
+  totalPending: number;
 }
 
 type ReportPriorityStyle = { color: string; background: string; border: string };
@@ -52,6 +59,7 @@ const REPORT_WARNING = 'var(--warning, #F59E0B)';
 const REPORT_PRIMARY = 'var(--accent-primary, #60C0F0)';
 const REPORT_TEXT_PRIMARY = 'var(--text-primary, #E0ECF4)';
 const REPORT_TEXT_MUTED = 'var(--text-muted, rgba(224, 236, 244, 0.55))';
+const REPORT_SUCCESS = 'var(--success, #22C55E)';
 const reportWash = (color: string, amount: number) => `color-mix(in srgb, ${color} ${amount}%, transparent)`;
 const REPORT_PRIORITY_STYLES: Record<string, ReportPriorityStyle> = {
   urgent: { color: REPORT_ERROR, background: reportWash(REPORT_ERROR, 18), border: reportWash(REPORT_ERROR, 30) },
@@ -61,92 +69,17 @@ const REPORT_PRIORITY_STYLES: Record<string, ReportPriorityStyle> = {
 };
 const getPriorityStyle = (level: string) => REPORT_PRIORITY_STYLES[level] || REPORT_PRIORITY_STYLES.low;
 
-const normalizeReport = (report: any): PostReport => {
-  const reporterName = report.reporterName
-    ?? (report.reporter ? `${report.reporter.firstName ?? ''} ${report.reporter.lastName ?? ''}`.trim() : '');
-
-  return {
-    id: String(report.id),
-    reason: report.reason || 'other',
-    description: report.description || null,
-    status: report.status || 'pending',
-    priority: report.priority || 'low',
-    createdAt: report.createdAt || new Date().toISOString(),
-    reporter: reporterName ? {
-      firstName: reporterName.split(' ')[0] || reporterName,
-      lastName: reporterName.split(' ').slice(1).join(' ') || ' ',
-    } : undefined,
-    reporterName,
-    contentPreview: report.contentPreview || report.contentSnippet || '',
-  };
-};
-
-// ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
-
-const Widget = styled.div`
-  background: color-mix(in srgb, var(--royal-depth, #003080) 38%, transparent);
-  backdrop-filter: blur(12px);
-  border-radius: 16px;
-  border: 1px solid color-mix(in srgb, var(--error, #EF4444) 20%, transparent);
-  padding: 20px;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-`;
-
-const Header = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-`;
-
-const TitleRow = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const Title = styled.h3`
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: ${REPORT_TEXT_PRIMARY};
-  font-family: 'Plus Jakarta Sans', sans-serif;
-`;
-
-const Badge = styled.span`
-  background: ${reportWash(REPORT_ERROR, 18)};
-  color: ${REPORT_ERROR};
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 10px;
-`;
-
-const ViewAllBtn = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: transparent;
-  color: ${REPORT_PRIMARY};
-  font-size: 0.8rem;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 8px;
-  min-height: 44px;
-  &:hover { background: ${reportWash(REPORT_PRIMARY, 8)}; }
-  &:focus-visible { outline: 2px solid ${REPORT_PRIMARY}; outline-offset: 2px; }
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 24px 16px;
-  color: ${REPORT_TEXT_MUTED};
-  font-size: 0.9rem;
-`;
+const normalizeReport = (report: any): PostReport => ({
+  id: String(report.id),
+  reason: report.reason || 'other',
+  description: report.description || null,
+  status: report.status || 'pending',
+  priority: report.priority || 'low',
+  createdAt: report.createdAt || new Date().toISOString(),
+  reporterName: report.reporterName
+    ?? (report.reporter ? `${report.reporter.firstName ?? ''} ${report.reporter.lastName ?? ''}`.trim() : ''),
+  contentPreview: report.contentPreview || report.contentSnippet || '',
+});
 
 const ReportItem = styled.div`
   padding: 12px 0;
@@ -157,6 +90,7 @@ const ReportItem = styled.div`
 const ReportHeader = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
@@ -196,43 +130,102 @@ const Snippet = styled.p`
   white-space: nowrap;
 `;
 
-// ─────────────────────────────────────────────────────────────
+const ActionRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+`;
+
+const ReportActionButton = styled.button<{ $tone: 'resolve' | 'dismiss' }>`
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: ${({ $tone }) => ($tone === 'resolve' ? REPORT_SUCCESS : REPORT_TEXT_MUTED)};
+  background: ${({ $tone }) => ($tone === 'resolve' ? reportWash(REPORT_SUCCESS, 12) : 'var(--surface-muted, rgba(255, 255, 255, 0.08))')};
+  border: 1px solid ${({ $tone }) => ($tone === 'resolve' ? reportWash(REPORT_SUCCESS, 35) : 'var(--border-soft, rgba(255, 255, 255, 0.12))')};
+  &:hover:not(:disabled) { filter: brightness(1.15); }
+  &:focus-visible { outline: 2px solid var(--accent-secondary, #8B5CF6); outline-offset: 2px; }
+  &:disabled { opacity: 0.55; cursor: default; }
+`;
+
+const RowError = styled.div`
+  color: ${REPORT_ERROR};
+  font-size: 0.75rem;
+  margin-top: 6px;
+`;
+
+const ViewAllBtn = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: ${REPORT_PRIMARY};
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  min-height: 44px;
+  margin-top: 8px;
+  &:hover { background: ${reportWash(REPORT_PRIMARY, 8)}; }
+  &:focus-visible { outline: 2px solid ${REPORT_PRIMARY}; outline-offset: 2px; }
+`;
+
 // ─────────────────────────────────────────────────────────────
 
 const PostReportsWidget: React.FC = () => {
   const { authAxios } = useAuth();
   const navigate = useNavigate();
-  const [reports, setReports] = useState<PostReport[]>([]);
-  const [totalPending, setTotalPending] = useState(0);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [removedIds, setRemovedIds] = useState<Set<string>>(new Set());
+  const [actingId, setActingId] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
 
-  const fetchReports = useCallback(async () => {
-    try {
-      setLoadError(null);
-      const res = await authAxios.get('/api/admin/content/reports', {
-        params: { status: 'pending', limit: 5 },
-      });
-      const data = res.data?.data?.reports || res.data?.reports || [];
-      const pendingReports = Array.isArray(data) ? data : [];
-      setReports(pendingReports.slice(0, 5).map(normalizeReport));
-      setTotalPending(
+  const fetchReports = useCallback(async (): Promise<ReportsPayload> => {
+    const res = await authAxios.get('/api/admin/content/reports', {
+      params: { status: 'pending', limit: 5 },
+    });
+    const data = res.data?.data?.reports || res.data?.reports || [];
+    const pendingReports = Array.isArray(data) ? data : [];
+    return {
+      reports: pendingReports.slice(0, 5).map(normalizeReport),
+      totalPending:
         res.data?.data?.pagination?.total
-          ?? res.data?.data?.summary?.pending
-          ?? res.data?.total
-          ?? res.data?.count
-          ?? pendingReports.length
-      );
-    } catch (error) {
-      console.error('Failed to load post reports:', error);
-      setReports([]);
-      setTotalPending(0);
-      setLoadError('Reports data unavailable');
-    }
+        ?? res.data?.data?.summary?.pending
+        ?? res.data?.total
+        ?? res.data?.count
+        ?? pendingReports.length,
+    };
   }, [authAxios]);
 
-  useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+  const { data, loading, refreshing, error, lastUpdated, refresh } =
+    usePolledFetch<ReportsPayload>(fetchReports);
+
+  const visibleReports = (data?.reports ?? []).filter(r => !removedIds.has(r.id));
+  const totalPending = Math.max(0, (data?.totalPending ?? 0) - removedIds.size);
+
+  const actOnReport = async (id: string, verb: 'resolve' | 'dismiss') => {
+    setActingId(id);
+    setRowError(null);
+    try {
+      const body = verb === 'resolve' ? { actionTaken: 'content-flagged' } : {};
+      await authAxios.patch(`/api/admin/content/reports/${id}/${verb}`, body);
+      setRemovedIds(prev => new Set(prev).add(id));
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        // Another admin already finalized it — drop the row, truth wins.
+        setRemovedIds(prev => new Set(prev).add(id));
+      } else {
+        setRowError({ id, message: `Could not ${verb} the report — try again.` });
+      }
+    } finally {
+      setActingId(null);
+    }
+  };
 
   const formatTimeAgo = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -243,57 +236,63 @@ const PostReportsWidget: React.FC = () => {
   };
 
   return (
-    <Widget>
-      <Header>
-        <TitleRow>
-          <Flag size={20} color={REPORT_ERROR} />
-          <Title>Post Reports</Title>
-          {totalPending > 0 && <Badge>{totalPending}</Badge>}
-        </TitleRow>
-        <ViewAllBtn onClick={() => navigate('/dashboard/admin/content')}>
-          View All <ChevronRight size={16} />
-        </ViewAllBtn>
-      </Header>
+    <WidgetShell
+      title={totalPending > 0 ? `Post Reports (${totalPending})` : 'Post Reports'}
+      icon={<Flag size={20} color={REPORT_ERROR} />}
+      loading={loading}
+      error={error ? 'Reports data unavailable' : null}
+      empty={visibleReports.length === 0}
+      emptyMessage="No pending reports"
+      hasData={data !== null && visibleReports.length > 0}
+      lastUpdated={lastUpdated}
+      refreshing={refreshing}
+      onRefresh={refresh}
+    >
+      {visibleReports.map(report => (
+        <ReportItem key={report.id}>
+          <ReportHeader>
+            <div>
+              <ReasonLabel>{report.reason.replace(/-/g, ' ')}</ReasonLabel>
+              <ReporterInfo>
+                {report.reporterName ? ` — by ${report.reporterName}` : ''}
+                {' '}· {formatTimeAgo(report.createdAt)}
+              </ReporterInfo>
+            </div>
+            <PriorityBadge $level={report.priority || 'low'}>
+              {report.priority || 'low'}
+            </PriorityBadge>
+          </ReportHeader>
 
-      {loadError ? (
-        <EmptyState role="alert">
-          <StyledBox as={AlertTriangle} size={24} $style={{ marginBottom: 8, opacity: 0.4 }} />
-          <div>Reports data unavailable</div>
-        </EmptyState>
-      ) : reports.length === 0 ? (
-        <EmptyState>
-          <StyledBox as={AlertTriangle} size={24} $style={{ marginBottom: 8, opacity: 0.4 }} />
-          <div>No pending reports</div>
-        </EmptyState>
-      ) : (
-        reports.map(report => (
-          <ReportItem key={report.id}>
-            <ReportHeader>
-              <div>
-                <ReasonLabel>{report.reason.replace(/-/g, ' ')}</ReasonLabel>
-                <ReporterInfo>
-                  {report.reporterName
-                    ? ` — by ${report.reporterName}`
-                    : ''}
-                  {' '}· {formatTimeAgo(report.createdAt)}
-                </ReporterInfo>
-              </div>
-              <PriorityBadge $level={report.priority || 'low'}>
-                {report.priority || 'low'}
-              </PriorityBadge>
-            </ReportHeader>
+          {report.description && <Snippet>&quot;{report.description}&quot;</Snippet>}
+          {report.contentPreview && <Snippet>{report.contentPreview}</Snippet>}
 
-            {report.description && (
-              <Snippet>&quot;{report.description}&quot;</Snippet>
-            )}
-
-            {report.contentPreview && (
-              <Snippet>{report.contentPreview}</Snippet>
-            )}
-          </ReportItem>
-        ))
-      )}
-    </Widget>
+          <ActionRow>
+            <ReportActionButton
+              type="button"
+              $tone="resolve"
+              disabled={actingId === report.id}
+              aria-label={`Resolve report: flags the reported content for follow-up`}
+              onClick={() => actOnReport(report.id, 'resolve')}
+            >
+              Resolve
+            </ReportActionButton>
+            <ReportActionButton
+              type="button"
+              $tone="dismiss"
+              disabled={actingId === report.id}
+              aria-label="Dismiss report: no action needed"
+              onClick={() => actOnReport(report.id, 'dismiss')}
+            >
+              Dismiss
+            </ReportActionButton>
+          </ActionRow>
+          {rowError?.id === report.id && <RowError role="alert">{rowError.message}</RowError>}
+        </ReportItem>
+      ))}
+      <ViewAllBtn onClick={() => navigate('/dashboard/admin/content')}>
+        View all{totalPending > 0 ? ` (${totalPending})` : ''} →
+      </ViewAllBtn>
+    </WidgetShell>
   );
 };
 

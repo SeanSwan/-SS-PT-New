@@ -97,7 +97,7 @@ describe('SessionTrackingWidget truth handling', () => {
     expect(ROUTE_COMPONENTS_SOURCE).toContain("export const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))");
     expect(DASHBOARD_ROUTES_SOURCE).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
     expect(OVERVIEW_SOURCE).toContain("import SessionTrackingWidget from '../components/SessionTrackingWidget'");
-    expect(OVERVIEW_SOURCE).toContain('<BentoHalf><SessionTrackingWidget /></BentoHalf>');
+    expect(OVERVIEW_SOURCE).toContain('<BentoHalf><WidgetErrorBoundary name="Session tracking"><SessionTrackingWidget /></WidgetErrorBoundary></BentoHalf>');
     expect(SOURCE).toContain("authAxios.get('/api/admin/analytics/statistics/workouts')");
   });
 

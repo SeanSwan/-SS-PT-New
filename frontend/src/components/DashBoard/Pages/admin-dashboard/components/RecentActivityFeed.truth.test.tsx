@@ -89,7 +89,7 @@ describe('RecentActivityFeed truth handling', () => {
     expect(ROUTE_COMPONENTS_SOURCE).toContain("export const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))");
     expect(DASHBOARD_ROUTES_SOURCE).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
     expect(OVERVIEW_SOURCE).toContain("import RecentActivityFeed from '../components/RecentActivityFeed'");
-    expect(OVERVIEW_SOURCE).toContain('<BentoThird><RecentActivityFeed /></BentoThird>');
+    expect(OVERVIEW_SOURCE).toContain('<BentoThird><WidgetErrorBoundary name="Recent activity"><RecentActivityFeed /></WidgetErrorBoundary></BentoThird>');
     expect(SOURCE).toContain("authAxios.get('/api/gamification/activity-feed'");
   });
 

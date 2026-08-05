@@ -105,7 +105,7 @@ describe('BusinessKPIDashboard truth handling', () => {
     expect(ROUTE_COMPONENTS_SOURCE).toContain("export const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))");
     expect(DASHBOARD_ROUTES_SOURCE).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
     expect(OVERVIEW_SOURCE).toContain("import BusinessKPIDashboard from '../components/BusinessKPIDashboard'");
-    expect(OVERVIEW_SOURCE).toContain('<BentoHalf><BusinessKPIDashboard /></BentoHalf>');
+    expect(OVERVIEW_SOURCE).toContain('<BentoHalf><WidgetErrorBoundary name="Business KPIs"><BusinessKPIDashboard /></WidgetErrorBoundary></BentoHalf>');
     expect(SOURCE).toContain("authAxios.get('/api/admin/analytics/business-kpis'");
   });
 

@@ -20,7 +20,7 @@ const lineCount = (text: string) => text.split(/\r?\n/).length;
 describe('ModerationWidget active surface truth contract', () => {
   it('is mounted by the admin overview dashboard and backed by the moderation route module', () => {
     expect(parentSource).toContain("import ModerationWidget from '../components/ModerationWidget'");
-    expect(parentSource).toContain('<BentoThird><ModerationWidget /></BentoThird>');
+    expect(parentSource).toContain('<BentoThird><WidgetErrorBoundary name="Moderation"><ModerationWidget /></WidgetErrorBoundary></BentoThird>');
     expect(source).toContain("authAxios.get('/api/admin/content/posts'");
     expect(source).toContain("authAxios.get('/api/admin/content/stats'");
     expect(routeSource).toContain("router.get('/posts'");
