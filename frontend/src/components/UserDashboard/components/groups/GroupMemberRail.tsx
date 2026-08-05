@@ -14,6 +14,8 @@ import { MemberChip, MemberRail, MemberRailTitle, MemberActionRow } from './Grou
 import { QuietGroupButton, StatusPill } from './GroupsShared.styles';
 
 interface GroupMemberRailProps {
+  /** True when the members fetch failed — an empty rail is then unknown, not empty. */
+  membersUnavailable?: boolean;
   members: GroupMemberEntry[];
   ownerId?: number;
   canModerate: boolean;
@@ -35,6 +37,7 @@ const displayName = (entry: GroupMemberEntry) => {
 };
 
 const GroupMemberRail: React.FC<GroupMemberRailProps> = ({
+  membersUnavailable = false,
   members, ownerId, canModerate, isOwner, isBusy,
   onApprove, onDeny, onSetRole, onRemove, onBan, onReinstate, onTransfer,
 }) => {
@@ -79,7 +82,7 @@ const GroupMemberRail: React.FC<GroupMemberRailProps> = ({
       )}
 
       {active.length === 0 ? (
-        <MemberChip>No visible members yet</MemberChip>
+        <MemberChip>{membersUnavailable ? "Couldn't load members" : 'No visible members yet'}</MemberChip>
       ) : (
         active.map((entry) => {
           const isGroupOwnerRow = entry.userId === ownerId || entry.role === 'owner';

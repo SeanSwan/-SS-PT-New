@@ -262,6 +262,7 @@ const GroupDetail: React.FC<GroupDetailProps> = ({ groupId, onBack }) => {
 
           <GroupMemberRail
             members={detail.members}
+            membersUnavailable={detail.membersUnavailable}
             ownerId={group.ownerId}
             canModerate={canModerate}
             isOwner={isOwner}

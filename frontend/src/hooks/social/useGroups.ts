@@ -214,7 +214,12 @@ export const useGroupDetail = (groupId: number | null) => {
         } catch {
           // An empty roster is a claim about the group. A failed members fetch
           // is not that claim — the header still reads "42 members" beside it.
-          if (!isStale()) setMembersUnavailable(true);
+          if (!isStale()) {
+            // Clear the stale roster AND flag it: keeping the old list rendered
+            // it as current, while clearing it alone said "this group is empty".
+            setMembers([]);
+            setMembersUnavailable(true);
+          }
         }
       } else {
         setMembers([]);
@@ -232,7 +237,7 @@ export const useGroupDetail = (groupId: number | null) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, groupId]);
 
-  return { group, members, isLoading, error, refresh: fetchDetail };
+  return { group, members, membersUnavailable, isLoading, error, refresh: fetchDetail };
 };
 
 /** Join/leave for a single group WITHOUT the discovery/mine list fetch —

@@ -11,7 +11,7 @@
  * This pins the POLICY. Any member-facing directory surface that hand-rolls its
  * own attribute list, offset or count is re-opening the hole.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -212,21 +212,40 @@ describe('every member-facing directory surface uses the policy', () => {
     expect(friendships).toContain('Math.min(requestedLimit, 50)');
   });
 
-  it('leaves NO raw surname projection in any social route', () => {
-    // A whole-file `toContain('directoryAttributes')` passed on ONE call while
-    // five raw projections sat in the same file. Assert the absence of the
-    // defect across every file instead of the presence of the fix in one.
-    const socialRoutes = [
-      'routes/social/posts.mjs', 'routes/social/friendships.mjs',
-      'routes/social/groups.mjs', 'routes/social/groupMembership.mjs',
-      'routes/social/challenges.mjs', 'routes/social/events.mjs',
-      'routes/social/factions.mjs', 'routes/social/hashtags.mjs',
+  it('leaves NO raw surname anywhere in the social routes, however it is written', () => {
+    // The previous version regex-matched `attributes: [ ... 'lastName' ... ]`.
+    // Ten reintroduction forms evaded it: double quotes, no space after the
+    // colon, a newline, `attributes: { include: [...] }`, and — worst — a
+    // module constant spread in (`[...USER_PREVIEW_ATTRS]`), which is the exact
+    // pattern whose removal was this sweep's headline. It also hardcoded the
+    // file list, so a NEW social route was born unguarded.
+    //
+    // So: discover the files, strip comments, and forbid the identifier
+    // outright. The only legitimate use is MATCHING (a WHERE clause), which
+    // discloses nothing because the column is never projected.
+    const socialDir = resolve(here, '../../routes/social');
+    const files = readdirSync(socialDir).filter((f) => f.endsWith('.mjs'));
+    expect(files.length).toBeGreaterThan(5);
+
+    const MATCH_ONLY = [
+      /Sequelize\.col\(\s*['"]lastName['"]\s*\)/g,   // concat for name search
+      /['"]lastName['"]\s+ILIKE/g,                     // raw ILIKE match
+      /\{\s*lastName:\s*\{\s*\[Op\.\w+\]/g,             // Sequelize object-form match
+      /firstName, lastName, or username/g,             // the comment describing it
+      // Your OWN surname. The policy governs what you see about OTHER users;
+      // `req.user` is the caller themself.
+      /req\.user\.lastName/g,
     ];
 
-    for (const file of socialRoutes) {
-      const source = read(file);
-      for (const match of source.matchAll(/attributes: \[[^\]]*'lastName'[^\]]*\]/g)) {
-        throw new Error(`${file} still selects a raw surname: ${match[0].slice(0, 80)}`);
+    for (const file of files) {
+      let source = readFileSync(resolve(socialDir, file), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')   // block comments
+        .replace(/^\s*\/\/.*$/gm, '');        // line comments
+      for (const allowed of MATCH_ONLY) source = source.replace(allowed, '');
+
+      if (/lastName/.test(source)) {
+        const line = source.split(String.fromCharCode(10)).find((l) => l.includes('lastName'));
+        throw new Error(`routes/social/${file} still references lastName outside a match clause: ${line?.trim().slice(0, 90)}`);
       }
     }
   });
