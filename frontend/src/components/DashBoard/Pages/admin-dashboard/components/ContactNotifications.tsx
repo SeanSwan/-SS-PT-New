@@ -6,7 +6,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Bell, ChevronDown, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Bell, CheckCheck, ChevronDown, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
 import ContactNotificationItem from './ContactNotificationItem';
 import type { ContactNotificationsProps, Notification } from './ContactNotifications.types';
@@ -124,8 +124,26 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   }, [contactHasMore, contactOffset, fetchPage, financeHasMore, financeOffset, pageSize]);
 
   const handleNotificationClick = (notification: Notification) => {
+    // SWA-138 S3: opening a contact alert persists its read-state server-side.
+    if (notification.type === 'contact' && !notification.isRead && notification.contactId != null) {
+      authAxios.patch(`/api/contact/${notification.contactId}/viewed`).catch(() => {});
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)),
+      );
+    }
     navigate(NOTIFICATION_ROUTE_DESTINATIONS[notification.type]);
   };
+
+  const handleMarkAllRead = useCallback(async () => {
+    try {
+      await authAxios.patch('/api/contact/mark-all-viewed');
+      setNotifications((prev) =>
+        prev.map((n) => (n.type === 'contact' ? { ...n, isRead: true } : n)),
+      );
+    } catch {
+      setError('Could not mark all as read — try again.');
+    }
+  }, [authAxios]);
 
   const handleNotificationKeyDown = (event: React.KeyboardEvent, notification: Notification) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -170,6 +188,16 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
         </HeaderTitle>
         {showActions && (
           <HeaderControls>
+            <ControlButton
+              disabled={refreshing || unreadCount === 0}
+              onClick={handleMarkAllRead}
+              title="Mark all as read"
+              type="button"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <CheckCheck size={16} />
+            </ControlButton>
             <ControlButton
               className={showUnreadOnly ? 'active' : ''}
               onClick={() => setShowUnreadOnly(!showUnreadOnly)}

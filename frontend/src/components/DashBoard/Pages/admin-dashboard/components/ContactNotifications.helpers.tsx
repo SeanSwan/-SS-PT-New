@@ -116,9 +116,11 @@ export const mapContactNotifications = (contacts: ContactPayload[]): Notificatio
     message: `${contact.name || 'Unknown'} (${contact.email || 'no email'}) sent: "${contact.message || 'No message'}"`,
     timestamp: contact.createdAt || new Date().toISOString(),
     priority: contact.priority === 'urgent' ? 'high' : 'medium',
-    isRead: false,
+    // SWA-138 S3: read-state is now REAL — backed by contacts.viewedAt.
+    isRead: Boolean(contact.viewedAt),
     actionRequired: true,
     userName: contact.name || 'Unknown',
+    contactId: contact.id,
   }));
 
 export const upsertNotifications = (existing: Notification[], ...newBatches: Notification[][]): Notification[] => {

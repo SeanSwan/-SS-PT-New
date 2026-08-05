@@ -10,6 +10,7 @@ import { sendSpeedToLeadReply } from '../services/speedToLeadService.mjs';
 
 const router = express.Router();
 let contactsPriorityColumnPromise = null;
+let contactsViewedAtColumnPromise = null;
 
 const hasContactsPriorityColumn = async () => {
   if (!contactsPriorityColumnPromise) {
@@ -20,6 +21,19 @@ const hasContactsPriorityColumn = async () => {
       .catch(() => false);
   }
   return contactsPriorityColumnPromise;
+};
+
+// SWA-138 S3: same drift-defensive probe as priority — the migration
+// 20260804230000 adds viewedAt, but this route must not 500 if it hasn't run.
+const hasContactsViewedAtColumn = async () => {
+  if (!contactsViewedAtColumnPromise) {
+    contactsViewedAtColumnPromise = sequelize
+      .getQueryInterface()
+      .describeTable('contacts')
+      .then((columns) => Boolean(columns?.viewedAt))
+      .catch(() => false);
+  }
+  return contactsViewedAtColumnPromise;
 };
 
 // ADMIN: Get contacts list with pagination
@@ -34,9 +48,13 @@ router.get("/", protect, adminOnly, async (req, res) => {
     const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
 
     const includePriority = await hasContactsPriorityColumn();
+    const includeViewedAt = await hasContactsViewedAtColumn();
     const attributes = ['id', 'name', 'email', 'message', 'createdAt', 'updatedAt'];
     if (includePriority) {
       attributes.push('priority');
+    }
+    if (includeViewedAt) {
+      attributes.push('viewedAt');
     }
 
     const contacts = await Contact.findAll({
@@ -72,6 +90,55 @@ router.get("/", protect, adminOnly, async (req, res) => {
       message: 'Failed to fetch contacts',
       error: 'Internal server error'
     });
+  }
+});
+
+// SWA-138 S3 — persisted read-state ("Business Intelligence Alerts" dismiss fix).
+// NOTE: /mark-all-viewed MUST be declared before /:id/viewed or the param route
+// would shadow it (Rule 31).
+router.patch('/mark-all-viewed', protect, adminOnly, async (req, res) => {
+  try {
+    if (!(await hasContactsViewedAtColumn())) {
+      return res.status(503).json({
+        success: false,
+        message: 'Contact read-state is unavailable: viewedAt column missing (run migrations).',
+      });
+    }
+    const [updated] = await Contact.update(
+      { viewedAt: new Date() },
+      { where: { viewedAt: null } }
+    );
+    console.log(`✅ Admin marked ${updated} contact notifications as viewed`);
+    return res.json({ success: true, updated });
+  } catch (error) {
+    console.error('💥 Error marking all contacts viewed:', error);
+    return res.status(500).json({ success: false, message: 'Failed to mark contacts viewed' });
+  }
+});
+
+router.patch('/:id/viewed', protect, adminOnly, async (req, res) => {
+  try {
+    if (!(await hasContactsViewedAtColumn())) {
+      return res.status(503).json({
+        success: false,
+        message: 'Contact read-state is unavailable: viewedAt column missing (run migrations).',
+      });
+    }
+    const contact = await Contact.findByPk(req.params.id);
+    if (!contact) {
+      return res.status(404).json({ success: false, message: 'Contact not found' });
+    }
+    // First-view timestamp is preserved — marking twice is a no-op.
+    if (!contact.viewedAt) {
+      await contact.update({ viewedAt: new Date() });
+    }
+    return res.json({
+      success: true,
+      contact: { id: contact.id, viewedAt: contact.viewedAt },
+    });
+  } catch (error) {
+    console.error('💥 Error marking contact viewed:', error);
+    return res.status(500).json({ success: false, message: 'Failed to mark contact viewed' });
   }
 });
 

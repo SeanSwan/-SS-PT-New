@@ -24,6 +24,8 @@ export interface Notification {
   actionRequired?: boolean;
   userId?: number;
   userName?: string;
+  /** Numeric Contact row id — present only for type 'contact' (SWA-138 S3 read-state). */
+  contactId?: number | string;
 }
 
 export interface FinanceNotificationPayload {
@@ -46,6 +48,8 @@ export interface ContactPayload {
   message?: string;
   createdAt?: string;
   priority?: string;
+  /** Persisted read-state (SWA-138 S3) — null/absent means unread. */
+  viewedAt?: string | null;
 }
 
 export interface ContactNotificationsProps {
