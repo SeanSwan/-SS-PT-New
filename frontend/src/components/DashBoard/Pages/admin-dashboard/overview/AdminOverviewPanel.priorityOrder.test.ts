@@ -16,25 +16,25 @@ const indexOfRequired = (needle: string) => {
 };
 
 describe('AdminOverviewPanel action priority', () => {
-  it('puts signal, commands, and mission queues before passive business analytics', () => {
+  it('orders sections Alerts -> Queues -> Business -> Ops -> Community -> Telemetry (SignalBar order = scroll order, SWA-138 S5)', () => {
     const signalIndex = indexOfRequired('<BentoFull><WidgetErrorBoundary name="Signal bar"><AdminSignalBar /></WidgetErrorBoundary></BentoFull>');
     const quickActionsIndex = indexOfRequired('<BentoFull><WidgetErrorBoundary name="Quick actions"><AdminQuickActions actions={quickActions} /></WidgetErrorBoundary></BentoFull>');
     const assistantIndex = indexOfRequired('<AITerminalPanel');
-    const missionIndex = indexOfRequired('id="admin-mission-critical"');
-    const platformIndex = indexOfRequired('id="admin-platform-pulse"');
+    const alertsIndex = indexOfRequired('id="admin-alerts"');
+    const queuesIndex = indexOfRequired('id="admin-queues"');
+    const businessIndex = indexOfRequired('id="admin-business-lens"');
     const operationsIndex = indexOfRequired('id="admin-operations"');
     const communityIndex = indexOfRequired('id="admin-community-safety"');
-    const businessIndex = indexOfRequired('id="admin-business-lens"');
-    const telemetryIndex = indexOfRequired('id="admin-deep-telemetry"');
+    const telemetryIndex = indexOfRequired('id="admin-telemetry"');
 
     expect(signalIndex).toBeLessThan(quickActionsIndex);
     expect(quickActionsIndex).toBeLessThan(assistantIndex);
-    expect(assistantIndex).toBeLessThan(missionIndex);
-    expect(missionIndex).toBeLessThan(platformIndex);
-    expect(platformIndex).toBeLessThan(operationsIndex);
+    expect(assistantIndex).toBeLessThan(alertsIndex);
+    expect(alertsIndex).toBeLessThan(queuesIndex);
+    expect(queuesIndex).toBeLessThan(businessIndex);
+    expect(businessIndex).toBeLessThan(operationsIndex);
     expect(operationsIndex).toBeLessThan(communityIndex);
-    expect(communityIndex).toBeLessThan(businessIndex);
-    expect(businessIndex).toBeLessThan(telemetryIndex);
+    expect(communityIndex).toBeLessThan(telemetryIndex);
   });
 
   it('promotes operational intelligence out of the old collapsed telemetry details block', () => {
@@ -51,10 +51,15 @@ describe('AdminOverviewPanel action priority', () => {
     expect(signalSource).toContain("Counts stay inside the live widgets");
     expect(signalSource).not.toContain('0');
     expect(signalSource).not.toContain('99');
-    expect(signalSource).toContain("href: '#admin-mission-critical'");
-    expect(signalSource).toContain("href: '#admin-platform-pulse'");
+    expect(signalSource).toContain("href: '#admin-alerts'");
+    expect(signalSource).toContain("href: '#admin-queues'");
     expect(signalSource).toContain("href: '#admin-community-safety'");
     expect(signalSource).toContain("href: '#admin-business-lens'");
+    expect(signalSource).toContain("href: '#admin-telemetry'");
+    // Every anchor must point at a section id the panel actually renders:
+    for (const anchor of ['admin-alerts', 'admin-queues', 'admin-business-lens', 'admin-operations', 'admin-community-safety', 'admin-telemetry']) {
+      expect(source).toContain(`id="${anchor}"`);
+    }
   });
 
   it('seeds the admin assistant with one-tap operator prompts', () => {

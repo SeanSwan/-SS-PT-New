@@ -1,6 +1,6 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Activity, Bell, CalendarCheck, CalendarX, ClipboardCheck, CreditCard, ShieldAlert } from 'lucide-react';
+import { Activity, Bell, CalendarCheck, ClipboardCheck, CreditCard, ShieldAlert } from 'lucide-react';
 import {
   SignalBar,
   SignalCta,
@@ -20,55 +20,50 @@ interface SignalItem {
   tone: SignalTone;
   icon: LucideIcon;
 }
+// SWA-138 S5: item order MIRRORS the page scroll order — anchor N always
+// jumps DOWN the page, never backwards (broken-wayfinding fix, Kimi accepted).
 const signalItems: SignalItem[] = [
   {
-    href: '#admin-mission-critical',
-    label: 'Mission queues',
+    href: '#admin-alerts',
+    label: 'Alerts',
+    detail: 'Dismissible intelligence',
+    tone: 'urgent',
+    icon: Bell,
+  },
+  {
+    href: '#admin-queues',
+    label: 'Work queues',
     detail: 'Intakes, waivers, payments',
     tone: 'urgent',
     icon: ClipboardCheck,
   },
   {
-    href: '#admin-mission-critical',
-    label: 'Lead alerts',
-    detail: 'Contact submissions',
-    tone: 'urgent',
-    icon: Bell,
+    href: '#admin-business-lens',
+    label: 'Business lens',
+    detail: 'Server-truth revenue',
+    tone: 'system',
+    icon: CreditCard,
   },
   {
     href: '#admin-operations',
     label: 'Client ops',
-    detail: 'Compliance and check-ins',
+    detail: 'Compliance, sessions, signups',
     tone: 'ops',
     icon: CalendarCheck,
   },
   {
-    href: '#admin-operations',
-    label: 'Session review',
-    detail: 'Cancellations and tracking',
-    tone: 'ops',
-    icon: CalendarX,
-  },
-  {
     href: '#admin-community-safety',
-    label: 'Safety reports',
-    detail: 'Moderation and posts',
+    label: 'Community safety',
+    detail: 'Moderation and reports',
     tone: 'community',
     icon: ShieldAlert,
   },
   {
-    href: '#admin-platform-pulse',
-    label: 'Platform pulse',
-    detail: 'Signups and system health',
+    href: '#admin-telemetry',
+    label: 'Telemetry',
+    detail: 'Geo, health, Oracle',
     tone: 'system',
     icon: Activity,
-  },
-  {
-    href: '#admin-business-lens',
-    label: 'Business lens',
-    detail: 'Revenue after action queues',
-    tone: 'system',
-    icon: CreditCard,
   },
 ];
 const AdminSignalBar: React.FC = () => (

@@ -203,48 +203,56 @@ const AdminOverviewPanel: React.FC = () => {
         </WidgetErrorBoundary>
       </BentoFull>
       <AdminOverviewSection
-        id="admin-mission-critical"
-        eyebrow="Mission Critical Queues"
-        title="Action required before analytics"
-        lead="Intakes, waivers, payments, leads, cancellations, and measurement checks stay above passive charts so urgent work is not buried."
+        id="admin-alerts"
+        eyebrow="Alerts"
+        title="Dismissible intelligence, severity first"
+        lead="Business Intelligence Alerts carry persisted read-state: ack, clear, and archive stick per admin. Work queues live below — alerts inform, queues demand."
+      >
+        <BentoFull><WidgetErrorBoundary name="Business Intelligence alerts"><ContactNotifications autoRefresh={true} showActions={true} /></WidgetErrorBoundary></BentoFull>
+      </AdminOverviewSection>
+      <AdminOverviewSection
+        id="admin-queues"
+        eyebrow="Work Queues"
+        title="Action required — every card is a task"
+        lead="Intakes, waivers, payments, cancellations, and measurement checks. These are not dismissible: they clear by being DONE."
       >
         <BentoThird><WidgetErrorBoundary name="Orientation intake"><OrientationIntakeWidget /></WidgetErrorBoundary></BentoThird>
         <BentoThird><WidgetErrorBoundary name="Waiver summary"><WaiverSummaryWidget /></WidgetErrorBoundary></BentoThird>
-        <BentoThird><WidgetErrorBoundary name="Business Intelligence alerts"><ContactNotifications autoRefresh={true} showActions={true} /></WidgetErrorBoundary></BentoThird>
-        <BentoHalf><WidgetErrorBoundary name="Pending payments"><PendingPaymentsWidget /></WidgetErrorBoundary></BentoHalf>
+        <BentoThird><WidgetErrorBoundary name="Pending payments"><PendingPaymentsWidget /></WidgetErrorBoundary></BentoThird>
         <BentoHalf><WidgetErrorBoundary name="Cancelled sessions"><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></WidgetErrorBoundary></BentoHalf>
         <BentoHalf><WidgetErrorBoundary name="Upcoming check-ins"><UpcomingChecksWidget /></WidgetErrorBoundary></BentoHalf>
       </AdminOverviewSection>
       <AdminOverviewSection
-        id="admin-platform-pulse"
-        eyebrow="Platform Pulse"
-        title="Live system trust and overview metrics"
-        lead="Signup flow, health services, and top-line metrics are visible early without pushing the action queues below finance."
+        id="admin-business-lens"
+        eyebrow="Business Lens"
+        title="Money truth"
+        lead="Server-aggregated revenue and growth. Labels disclose gross vs net; no synthetic targets."
       >
         <BentoFull>
           <AdminOverviewControls timeRange={timeRange} onTimeRangeChange={setTimeRange} isLoading={isLoading} error={error} />
         </BentoFull>
         <BentoFull><WidgetErrorBoundary name="Overview metrics"><AdminOverviewMetrics metrics={metrics} /></WidgetErrorBoundary></BentoFull>
-        <BentoFull><WidgetErrorBoundary name="Signup monitoring"><RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} /></WidgetErrorBoundary></BentoFull>
-        <BentoHalf><WidgetErrorBoundary name="System health"><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></WidgetErrorBoundary></BentoHalf>
-        <BentoThird><WidgetErrorBoundary name="Recent activity"><RecentActivityFeed /></WidgetErrorBoundary></BentoThird>
+        <BentoHalf><WidgetErrorBoundary name="Revenue chart"><RevenueChart /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="User growth chart"><UserGrowthChart /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Business KPIs"><BusinessKPIDashboard /></WidgetErrorBoundary></BentoHalf>
       </AdminOverviewSection>
       <AdminOverviewSection
         id="admin-operations"
         eyebrow="Client and Trainer Operations"
         title="Coaching workflow health"
-        lead="Compliance, automated check-ins, and session tracking sit together so admin can detect stale client or trainer workflows quickly."
+        lead="Compliance, automated check-ins, session tracking, live signups, and the activity pulse — who needs intervention now."
       >
         <BentoHalf><WidgetErrorBoundary name="Client compliance"><ClientComplianceDashboard /></WidgetErrorBoundary></BentoHalf>
         <BentoHalf><WidgetErrorBoundary name="Automated check-ins"><AutomatedCheckInsWidget /></WidgetErrorBoundary></BentoHalf>
         <BentoHalf><WidgetErrorBoundary name="Session tracking"><SessionTrackingWidget /></WidgetErrorBoundary></BentoHalf>
-        <BentoHalf><WidgetErrorBoundary name="Visitor geography"><VisitorGeoWidget /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Signup monitoring"><RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} /></WidgetErrorBoundary></BentoHalf>
+        <BentoThird><WidgetErrorBoundary name="Recent activity"><RecentActivityFeed /></WidgetErrorBoundary></BentoThird>
       </AdminOverviewSection>
       <AdminOverviewSection
         id="admin-community-safety"
         eyebrow="Community and Content Safety"
         title="Social, moderation, and challenge signals"
-        lead="Community status is no longer hidden in a bottom accordion; moderation reports and gamification sit in the active scan path."
+        lead="Moderation queues act (approve, reject, resolve, dismiss); community summaries inform."
       >
         <BentoThird><WidgetErrorBoundary name="Social overview"><SocialOverviewWidget /></WidgetErrorBoundary></BentoThird>
         <BentoThird><WidgetErrorBoundary name="Moderation"><ModerationWidget /></WidgetErrorBoundary></BentoThird>
@@ -252,21 +260,12 @@ const AdminOverviewPanel: React.FC = () => {
         <BentoThird><WidgetErrorBoundary name="Gamification summary"><GamificationSummaryWidget /></WidgetErrorBoundary></BentoThird>
       </AdminOverviewSection>
       <AdminOverviewSection
-        id="admin-business-lens"
-        eyebrow="Business Lens"
-        title="Growth and revenue after the action queues"
-        lead="Finance remains visible, but it no longer outranks people waiting on admin decisions."
-      >
-        <BentoHalf><WidgetErrorBoundary name="Revenue chart"><RevenueChart /></WidgetErrorBoundary></BentoHalf>
-        <BentoHalf><WidgetErrorBoundary name="User growth chart"><UserGrowthChart /></WidgetErrorBoundary></BentoHalf>
-        <BentoHalf><WidgetErrorBoundary name="Business KPIs"><BusinessKPIDashboard /></WidgetErrorBoundary></BentoHalf>
-      </AdminOverviewSection>
-      <AdminOverviewSection
-        id="admin-deep-telemetry"
+        id="admin-telemetry"
         eyebrow="Research and Deep Telemetry"
-        title="Oracle and geographic intelligence"
-        lead="Long-form telemetry is promoted to a visible section instead of a mystery details button at the bottom of the page."
+        title="Geography, system health, and Oracle intelligence"
+        lead="Long-form telemetry: visitor geography, service health, and research feeds."
       >
+        <BentoHalf><WidgetErrorBoundary name="Visitor geography"><VisitorGeoWidget /></WidgetErrorBoundary></BentoHalf>
         <BentoHalf>
           <WidgetErrorBoundary name="Visitor world map">
             <Suspense fallback={<StyledBox as="div" $style={{ minHeight: 400 }} />}>
@@ -274,6 +273,7 @@ const AdminOverviewPanel: React.FC = () => {
             </Suspense>
           </WidgetErrorBoundary>
         </BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="System health"><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></WidgetErrorBoundary></BentoHalf>
         <BentoFull><WidgetErrorBoundary name="Oracle insights"><OracleInsightsWidget defaultTab="news" defaultQuery="personal training fitness industry trends" /></WidgetErrorBoundary></BentoFull>
       </AdminOverviewSection>
     </BentoWrapper>

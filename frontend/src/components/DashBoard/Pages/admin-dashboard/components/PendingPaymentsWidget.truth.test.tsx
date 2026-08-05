@@ -106,7 +106,7 @@ describe('PendingPaymentsWidget truth and accessibility', () => {
     expect(ROUTE_COMPONENTS_SOURCE).toContain("export const RevolutionaryAdminDashboard = React.lazy(() => import('./Pages/admin-dashboard/admin-dashboard-view'))");
     expect(DASHBOARD_ROUTES_SOURCE).toContain("{ path: '/overview', component: RevolutionaryAdminDashboard");
     expect(OVERVIEW_SOURCE).toContain("import PendingPaymentsWidget from '../components/PendingPaymentsWidget'");
-    expect(OVERVIEW_SOURCE).toContain('<BentoHalf><WidgetErrorBoundary name="Pending payments"><PendingPaymentsWidget /></WidgetErrorBoundary></BentoHalf>');
+    expect(OVERVIEW_SOURCE).toContain('<BentoThird><WidgetErrorBoundary name="Pending payments"><PendingPaymentsWidget /></WidgetErrorBoundary></BentoThird>');
     expect(SOURCE).toContain("authAxios.get('/api/orders'");
   });
 
