@@ -73,6 +73,7 @@ describe('dashboard theme synchronization contract', () => {
     const storeControls = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.controls.tsx');
     const storeFeedback = readSource('src/components/DashBoard/Pages/store-shared/StoreDesignSystem.feedback.tsx');
     const pendingOrders = readSource('src/components/DashBoard/Pages/admin-dashboard/components/PendingOrdersAdminPanel.tsx');
+    const pendingOrdersStyles = readSource('src/components/DashBoard/Pages/admin-dashboard/components/PendingOrdersAdminPanel.styles.ts');
 
     expect(adminSessionsTheme).toContain("deepSpace: 'var(--bg-base, #0A0A0F)'");
     expect(adminSessionsStyles).toContain('linear-gradient(180deg, ${executiveTheme.deepSpace} 0%, ${executiveTheme.commandNavy} 100%)');
@@ -91,9 +92,10 @@ describe('dashboard theme synchronization contract', () => {
     [storeDesignSystem, storeTokens, storeLayout, storeControls, storeFeedback].forEach((source) => {
       expect(lineCount(source)).toBeLessThanOrEqual(300);
     });
-    expect(pendingOrders).toContain('var(--bg-elevated, #141419)');
-    expect(pendingOrders).not.toContain('background: #120d26');
-    expect(pendingOrders).not.toContain('rgba(0,255,136');
+    // SWA-138 S6: the panel's styled components moved to .styles.ts (Rule 4 split).
+    expect(pendingOrdersStyles).toContain('var(--bg-elevated, #141419)');
+    expect(pendingOrdersStyles).not.toContain('background: #120d26');
+    expect(pendingOrdersStyles).not.toContain('rgba(0,255,136');
   });
 
   it('keeps the mounted dashboard canvas independent from the active lens background', () => {

@@ -153,7 +153,7 @@ const BusinessKPIDashboard: React.FC = () => {
   const d = data ?? EMPTY_BUSINESS_DATA;
   const kpis: KPIMetric[] = [
     {
-      label: 'Monthly Revenue',
+      label: 'Monthly Revenue (gross)',
       value: `$${d.mrr.toLocaleString()}`,
       change: d.mrrChange,
       icon: <DollarSign size={18} />,

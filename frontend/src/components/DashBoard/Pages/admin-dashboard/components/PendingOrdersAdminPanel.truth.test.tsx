@@ -136,7 +136,7 @@ describe('PendingOrdersAdminPanel truth handling', () => {
 
     render(<PendingOrdersAdminPanel />);
 
-    expect(await screen.findByText('Completed orders unavailable. Totals may exclude completed orders.')).toBeInTheDocument();
+    expect(await screen.findByText('Completed orders unavailable. The list below may exclude completed orders.')).toBeInTheDocument();
     expect(screen.getByText('#42')).toBeInTheDocument();
   });
 
@@ -157,9 +157,12 @@ describe('PendingOrdersAdminPanel truth handling', () => {
   });
 
   it('keeps source guards against silent partial failures and status drift', () => {
-    expect(source).toContain('normalizeOrderStatus');
-    expect(source).toContain("case 'pending_payment':");
-    expect(source).toContain("case 'active':");
+    // SWA-138 S6: mapping/normalization moved to the .logic module (Rule 4 split).
+    const logicSource = readFileSync(resolve(__dirname, './PendingOrdersAdminPanel.logic.ts'), 'utf8');
+    expect(source).toContain("from './PendingOrdersAdminPanel.logic'");
+    expect(logicSource).toContain('normalizeOrderStatus');
+    expect(logicSource).toContain("case 'pending_payment':");
+    expect(logicSource).toContain("case 'active':");
     expect(source).toContain('const [partialWarning, setPartialWarning]');
     expect(source).toContain('<option value="total">Amount</option>');
     expect(source).toContain('<option value="status">Status</option>');

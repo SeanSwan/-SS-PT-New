@@ -141,7 +141,10 @@ router.get('/statistics/users', async (req, res) => {
           calculateChangePercent(activeUsers, previousActiveUsers).toFixed(1)
         ),
         trend: trendRows.map((item) => Number(item.count || 0)),
-        target: Math.round(totalUsers * 1.1),
+        // SWA-138 S6: the old target was the metric itself +15%/+10% — a synthetic
+        // self-referential 'goal' that always rendered ~87-91% progress. Until a real
+        // stored business goal exists, no target is reported (UI hides the bar).
+        target: null,
       },
     });
   } catch (error) {

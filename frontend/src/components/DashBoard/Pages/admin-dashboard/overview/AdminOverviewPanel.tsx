@@ -82,7 +82,7 @@ const AdminOverviewPanel: React.FC = () => {
             changeType: mapChangeType(Number(revenueData.changePercent ?? 0)),
             icon: <DollarSign size={24} />,
             color: 'var(--accent-gold, #C6A84B)',
-            description: 'Monthly recurring revenue',
+            description: 'Gross revenue for the selected window (refunds not deducted)',
             trend: safeTrend(revenueData.trend),
             target: revenueData.target ?? undefined,
             format: 'currency',
