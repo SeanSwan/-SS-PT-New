@@ -28,6 +28,7 @@ export function useUserDashboardV3Controller() {
     stats,
     posts: profilePosts,
     followStats,
+    followStatsKnown,
     isLoading,
     error,
     statsKnown,
@@ -213,7 +214,10 @@ export function useUserDashboardV3Controller() {
   return {
     profile,
     profilePosts,
-    followStats,
+    // null, not a zeroed object: a zeroed followStats renders "0 followers"
+    // as fact, while null falls through to the profile-stats path, which is
+    // already gated by profileStatsKnown.
+    followStats: followStatsKnown ? followStats : null,
     isLoading,
     error,
     activeTab,
@@ -229,6 +233,7 @@ export function useUserDashboardV3Controller() {
     gamificationKnown,
     gamificationStatus,
     profileStatsKnown: statsKnown,
+    followStatsKnown,
     refetchGamification,
     observatoryPoints: gamProfile?.data?.points ?? stats?.points ?? 0,
     observatoryTierName,
