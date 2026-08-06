@@ -15,7 +15,7 @@ const modalStylesSource = readFileSync(
   'utf8',
 );
 const parentSource = readFileSync(
-  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminTelemetrySection.tsx'),
   'utf8',
 );
 const coreRoutesSource = readFileSync(

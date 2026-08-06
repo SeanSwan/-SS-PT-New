@@ -21,7 +21,7 @@ const base = 'src/components/DashBoard/Pages/admin-dashboard/components/SwanGlob
 const scene = read(`${base}/swanGlobeScene.ts`);
 const capability = read(`${base}/swanGlobeCapability.ts`);
 const panel = read(`${base}/SwanGlobePanel.tsx`);
-const overview = read('src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx');
+const overview = read('src/components/DashBoard/Pages/admin-dashboard/overview/AdminTelemetrySection.tsx');
 
 const geoResponse = {
   data: {

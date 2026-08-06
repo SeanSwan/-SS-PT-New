@@ -145,6 +145,90 @@ router.get('/stats', async (req, res) => {
 });
 
 /**
+ * GET /api/leads/sla  (SWA-138 S10b — speed-to-lead)
+ * How fast leads get their first contact, and which are still waiting.
+ *
+ * Speed-to-lead is the single strongest predictor of lead conversion, so this
+ * reports BOTH halves: how we performed on answered leads (median/average
+ * response) and the live exposure (uncontacted leads with the clock running).
+ *
+ * MUST stay declared before GET /:id or the param route shadows it (Rule 31).
+ */
+router.get('/sla', async (req, res) => {
+  try {
+    const { Lead } = await getModels();
+
+    const where = {};
+    if (req.user.role === 'trainer') {
+      where.assignedTrainerId = req.user.id;
+    }
+
+    const windowDays = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 365);
+    const since = new Date(Date.now() - windowDays * 86400000);
+
+    // Answered leads in the window: measure created -> first contact.
+    const answered = await Lead.findAll({
+      where: { ...where, contactedAt: { [Op.ne]: null }, createdAt: { [Op.gte]: since } },
+      attributes: ['id', 'createdAt', 'contactedAt', 'source'],
+      limit: 5000,
+    });
+
+    const responseMinutes = answered
+      .map((l) => (new Date(l.contactedAt).getTime() - new Date(l.createdAt).getTime()) / 60000)
+      .filter((m) => Number.isFinite(m) && m >= 0)
+      .sort((a, b) => a - b);
+
+    const median = responseMinutes.length
+      ? responseMinutes[Math.floor(responseMinutes.length / 2)]
+      : null;
+    const average = responseMinutes.length
+      ? responseMinutes.reduce((sum, m) => sum + m, 0) / responseMinutes.length
+      : null;
+    const withinFiveMin = responseMinutes.filter((m) => m <= 5).length;
+    const withinHour = responseMinutes.filter((m) => m <= 60).length;
+
+    // Live exposure: still waiting, clock running. Oldest first — that is the
+    // work order.
+    const waitingRows = await Lead.findAll({
+      where: {
+        ...where,
+        contactedAt: null,
+        status: { [Op.notIn]: ['converted', 'lost'] },
+      },
+      attributes: ['id', 'firstName', 'source', 'score', 'createdAt'],
+      order: [['createdAt', 'ASC']],
+      limit: 25,
+    });
+
+    const now = Date.now();
+    const waiting = waitingRows.map((l) => ({
+      id: l.id,
+      firstName: l.firstName,
+      source: l.source,
+      score: l.score,
+      waitingMinutes: Math.max(0, Math.round((now - new Date(l.createdAt).getTime()) / 60000)),
+    }));
+
+    return res.json({
+      success: true,
+      sla: {
+        windowDays,
+        answeredCount: responseMinutes.length,
+        medianMinutes: median === null ? null : Math.round(median),
+        averageMinutes: average === null ? null : Math.round(average),
+        withinFiveMin,
+        withinHour,
+        waitingCount: waiting.length,
+        waiting,
+      },
+    });
+  } catch (err) {
+    logger.error('[Leads] SLA error:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to load lead SLA' });
+  }
+});
+
+/**
  * GET /api/leads/:id
  * Get single lead with activity history.
  */

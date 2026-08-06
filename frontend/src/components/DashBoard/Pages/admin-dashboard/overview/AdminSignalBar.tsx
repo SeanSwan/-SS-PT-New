@@ -1,6 +1,6 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Activity, Bell, CalendarCheck, ClipboardCheck, CreditCard, ShieldAlert } from 'lucide-react';
+import { Activity, Bell, CalendarCheck, ClipboardCheck, CreditCard, ShieldAlert, Timer } from 'lucide-react';
 import {
   SignalBar,
   SignalCta,
@@ -43,6 +43,13 @@ const signalItems: SignalItem[] = [
     detail: 'Server-truth revenue',
     tone: 'system',
     icon: CreditCard,
+  },
+  {
+    href: '#admin-revenue-integrity',
+    label: 'Revenue integrity',
+    detail: 'Lead speed, sessions owed',
+    tone: 'urgent',
+    icon: Timer,
   },
   {
     href: '#admin-operations',

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MotionConfig } from 'framer-motion';
 import { ADMIN_MOTION_POLICY } from './adminOverviewMotion';
 import AdminOverviewControls from './AdminOverviewControls';
@@ -22,14 +22,14 @@ import SessionTrackingWidget from '../components/SessionTrackingWidget';
 import RecentActivityFeed from '../components/RecentActivityFeed';
 import GamificationSummaryWidget from '../components/GamificationSummaryWidget';
 import AdminOverviewMetrics from './AdminOverviewMetrics';
-import AdminSystemHealthPanel from './AdminSystemHealthPanel';
 import AdminQuickActions from './AdminQuickActions';
 import AdminSignalBar from './AdminSignalBar';
 import AdminOverviewSection from './AdminOverviewSection';
-import VisitorGeoWidget from '../components/VisitorGeoWidget';
+import AdminTelemetrySection from './AdminTelemetrySection';
 import PendingPaymentsWidget from '../components/PendingPaymentsWidget';
 import RenewalRiskWidget from '../components/RenewalRiskWidget';
-import OracleInsightsWidget from '../components/OracleInsightsWidget';
+import LeadSpeedWidget from '../components/LeadSpeedWidget';
+import SessionReconciliationWidget from '../components/SessionReconciliationWidget';
 import WaiverSummaryWidget from '../components/WaiverSummaryWidget';
 import WidgetErrorBoundary from '../shell/WidgetErrorBoundary';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
@@ -44,11 +44,6 @@ import {
   BentoWrapper,
 } from './AdminOverviewPanel.styles';
 import { StyledBox } from '@/components/ui/StyledBox';
-const VisitorWorldMap = lazy(() => import('../components/VisitorWorldMap'));
-// SWA-138 S12: SwanGlobe is capability-gated internally; the Three.js chunk is
-// only fetched on desktop+WebGL+motion-allowed. The SVG map stays as the
-// heritage surface beside it.
-const SwanGlobePanel = lazy(() => import('../components/SwanGlobe/SwanGlobePanel'));
 const AdminOverviewPanel: React.FC = () => {
   const { authAxios } = useAuth();
   const navigate = useNavigate();
@@ -243,6 +238,15 @@ const AdminOverviewPanel: React.FC = () => {
         <BentoHalf><WidgetErrorBoundary name="Business KPIs"><BusinessKPIDashboard /></WidgetErrorBoundary></BentoHalf>
       </AdminOverviewSection>
       <AdminOverviewSection
+        id="admin-revenue-integrity"
+        eyebrow="Revenue Integrity"
+        title="Money in motion — speed in, obligations out"
+        lead="Business Lens reports what revenue WAS. This band watches what it is DOING: how fast new leads get answered, and whether every paid purchase actually delivered its sessions."
+      >
+        <BentoHalf><WidgetErrorBoundary name="Speed to lead"><LeadSpeedWidget /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Session reconciliation"><SessionReconciliationWidget /></WidgetErrorBoundary></BentoHalf>
+      </AdminOverviewSection>
+      <AdminOverviewSection
         id="admin-operations"
         eyebrow="Client and Trainer Operations"
         title="Coaching workflow health"
@@ -265,30 +269,7 @@ const AdminOverviewPanel: React.FC = () => {
         <BentoThird><WidgetErrorBoundary name="Post reports"><PostReportsWidget /></WidgetErrorBoundary></BentoThird>
         <BentoThird><WidgetErrorBoundary name="Gamification summary"><GamificationSummaryWidget /></WidgetErrorBoundary></BentoThird>
       </AdminOverviewSection>
-      <AdminOverviewSection
-        id="admin-telemetry"
-        eyebrow="Research and Deep Telemetry"
-        title="Geography, system health, and Oracle intelligence"
-        lead="Long-form telemetry: visitor geography, service health, and research feeds."
-      >
-        <BentoFull>
-          <WidgetErrorBoundary name="Visitor globe">
-            <Suspense fallback={<StyledBox as="div" $style={{ minHeight: 340 }} />}>
-              <SwanGlobePanel />
-            </Suspense>
-          </WidgetErrorBoundary>
-        </BentoFull>
-        <BentoHalf><WidgetErrorBoundary name="Visitor geography"><VisitorGeoWidget /></WidgetErrorBoundary></BentoHalf>
-        <BentoHalf>
-          <WidgetErrorBoundary name="Visitor world map">
-            <Suspense fallback={<StyledBox as="div" $style={{ minHeight: 400 }} />}>
-              <VisitorWorldMap />
-            </Suspense>
-          </WidgetErrorBoundary>
-        </BentoHalf>
-        <BentoHalf><WidgetErrorBoundary name="System health"><AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} /></WidgetErrorBoundary></BentoHalf>
-        <BentoFull><WidgetErrorBoundary name="Oracle insights"><OracleInsightsWidget defaultTab="news" defaultQuery="personal training fitness industry trends" /></WidgetErrorBoundary></BentoFull>
-      </AdminOverviewSection>
+      <AdminTelemetrySection systemHealth={systemHealth} onRefresh={fetchAdminOverview} />
     </BentoWrapper>
     </MotionConfig>
   );

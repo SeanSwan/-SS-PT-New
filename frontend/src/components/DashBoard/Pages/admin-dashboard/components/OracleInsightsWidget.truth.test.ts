@@ -17,7 +17,7 @@ const source = readFileSync(
 const stylesSource = existsSync(stylesPath) ? readFileSync(stylesPath, 'utf8') : '';
 const combinedSource = `${source}\n${stylesSource}`;
 const parentSource = readFileSync(
-  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx'),
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/overview/AdminTelemetrySection.tsx'),
   'utf8',
 );
 const routeSource = readFileSync(

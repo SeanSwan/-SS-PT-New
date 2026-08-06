@@ -25,14 +25,17 @@ describe('AdminOverviewPanel action priority', () => {
     const businessIndex = indexOfRequired('id="admin-business-lens"');
     const operationsIndex = indexOfRequired('id="admin-operations"');
     const communityIndex = indexOfRequired('id="admin-community-safety"');
-    const telemetryIndex = indexOfRequired('id="admin-telemetry"');
+    const integrityIndex = indexOfRequired('id="admin-revenue-integrity"');
+    // SWA-138 S10b: the telemetry band is its own component now (Rule 4).
+    const telemetryIndex = indexOfRequired('<AdminTelemetrySection');
 
     expect(signalIndex).toBeLessThan(quickActionsIndex);
     expect(quickActionsIndex).toBeLessThan(assistantIndex);
     expect(assistantIndex).toBeLessThan(alertsIndex);
     expect(alertsIndex).toBeLessThan(queuesIndex);
     expect(queuesIndex).toBeLessThan(businessIndex);
-    expect(businessIndex).toBeLessThan(operationsIndex);
+    expect(businessIndex).toBeLessThan(integrityIndex);
+    expect(integrityIndex).toBeLessThan(operationsIndex);
     expect(operationsIndex).toBeLessThan(communityIndex);
     expect(communityIndex).toBeLessThan(telemetryIndex);
   });
@@ -56,9 +59,12 @@ describe('AdminOverviewPanel action priority', () => {
     expect(signalSource).toContain("href: '#admin-community-safety'");
     expect(signalSource).toContain("href: '#admin-business-lens'");
     expect(signalSource).toContain("href: '#admin-telemetry'");
+    expect(signalSource).toContain("href: '#admin-revenue-integrity'");
     // Every anchor must point at a section id the panel actually renders:
-    for (const anchor of ['admin-alerts', 'admin-queues', 'admin-business-lens', 'admin-operations', 'admin-community-safety', 'admin-telemetry']) {
-      expect(source).toContain(`id="${anchor}"`);
+    const telemetrySection = readFileSync(resolve(__dirname, './AdminTelemetrySection.tsx'), 'utf8');
+    const allSectionSource = source + telemetrySection;
+    for (const anchor of ['admin-alerts', 'admin-queues', 'admin-business-lens', 'admin-revenue-integrity', 'admin-operations', 'admin-community-safety', 'admin-telemetry']) {
+      expect(allSectionSource).toContain(`id="${anchor}"`);
     }
   });
 
