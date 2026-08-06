@@ -28,6 +28,7 @@ import AdminSignalBar from './AdminSignalBar';
 import AdminOverviewSection from './AdminOverviewSection';
 import VisitorGeoWidget from '../components/VisitorGeoWidget';
 import PendingPaymentsWidget from '../components/PendingPaymentsWidget';
+import RenewalRiskWidget from '../components/RenewalRiskWidget';
 import OracleInsightsWidget from '../components/OracleInsightsWidget';
 import WaiverSummaryWidget from '../components/WaiverSummaryWidget';
 import WidgetErrorBoundary from '../shell/WidgetErrorBoundary';
@@ -44,6 +45,10 @@ import {
 } from './AdminOverviewPanel.styles';
 import { StyledBox } from '@/components/ui/StyledBox';
 const VisitorWorldMap = lazy(() => import('../components/VisitorWorldMap'));
+// SWA-138 S12: SwanGlobe is capability-gated internally; the Three.js chunk is
+// only fetched on desktop+WebGL+motion-allowed. The SVG map stays as the
+// heritage surface beside it.
+const SwanGlobePanel = lazy(() => import('../components/SwanGlobe/SwanGlobePanel'));
 const AdminOverviewPanel: React.FC = () => {
   const { authAxios } = useAuth();
   const navigate = useNavigate();
@@ -221,6 +226,7 @@ const AdminOverviewPanel: React.FC = () => {
         <BentoThird><WidgetErrorBoundary name="Pending payments"><PendingPaymentsWidget /></WidgetErrorBoundary></BentoThird>
         <BentoHalf><WidgetErrorBoundary name="Cancelled sessions"><CancelledSessionsWidget maxItems={10} showChargeButtons={true} /></WidgetErrorBoundary></BentoHalf>
         <BentoHalf><WidgetErrorBoundary name="Upcoming check-ins"><UpcomingChecksWidget /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Renewal risk"><RenewalRiskWidget /></WidgetErrorBoundary></BentoHalf>
       </AdminOverviewSection>
       <AdminOverviewSection
         id="admin-business-lens"
@@ -265,6 +271,13 @@ const AdminOverviewPanel: React.FC = () => {
         title="Geography, system health, and Oracle intelligence"
         lead="Long-form telemetry: visitor geography, service health, and research feeds."
       >
+        <BentoFull>
+          <WidgetErrorBoundary name="Visitor globe">
+            <Suspense fallback={<StyledBox as="div" $style={{ minHeight: 340 }} />}>
+              <SwanGlobePanel />
+            </Suspense>
+          </WidgetErrorBoundary>
+        </BentoFull>
         <BentoHalf><WidgetErrorBoundary name="Visitor geography"><VisitorGeoWidget /></WidgetErrorBoundary></BentoHalf>
         <BentoHalf>
           <WidgetErrorBoundary name="Visitor world map">
