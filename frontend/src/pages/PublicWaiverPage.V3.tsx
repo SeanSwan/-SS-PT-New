@@ -1,795 +1,467 @@
 /**
- * PublicWaiverPage.V3 — Enhanced Cinematic Waiver
- * ================================================
- * V3 upgrade: noise overlay, extended responsive (320px–3840px),
- * enhanced glass depth, pulse CTA button, improved mobile UX.
- * Same form logic and validation as V2.
+ * PublicWaiverPage V3 — SwanStudios public waiver (/waiver)
+ * ==========================================================
+ * BLUEPRINT
+ * Purpose : Capture a signed liability waiver + consents from anyone — QR walk-up,
+ *           header link, or a logged-in client sent here by the waiver gate.
+ * Route   : `/waiver` (routes/main-routes.tsx), `?source=qr`, `?returnUrl=/…`
+ * Data    : GET /api/public/waivers/versions/current · POST /api/public/waivers/submit
+ * Logic   : ./waiver/usePublicWaiverForm  ·  Copy: ./waiver/waiverCopy
+ * Rebuilt : SWA-140 (2026-08-04) after a three-model review found the page was
+ *           unusable by keyboard, silently dead-ended when documents failed to
+ *           load, let minors sign for themselves, and threw away the returnUrl
+ *           the gate had just written.
+ *
+ * Composition only — state and validation live in the hook, strings in the copy
+ * module, styles in ./waiver/PublicWaiverPage.styles.
  */
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import styled from 'styled-components';
+
 import SignaturePad, { type SignaturePadHandle } from '../components/SignatureCapture/SignaturePad';
-import {
-  fetchCurrentWaiverVersions,
-  submitPublicWaiver,
-  type ActivityType,
-  type WaiverSource,
-  type WaiverVersionInfo,
-  type WaiverSubmitResponse,
-} from '../services/publicWaiverService';
-import ParallaxHero from '../components/ui-kit/cinematic/ParallaxHero';
-import { VIDEO } from '../config/videoAssets';
-import ScrollReveal from '../components/ui-kit/cinematic/ScrollReveal';
-import TypewriterText from '../components/ui-kit/cinematic/TypewriterText';
-import SectionDivider from '../components/ui-kit/cinematic/SectionDivider';
-import GlowButton from '../components/ui/buttons/GlowButton';
-import logoImg from '../assets/Logo.png';
 import { useAuth } from '../context/AuthContext';
-import { StyledBox } from '@/components/ui/StyledBox';
+import logoImg from '../assets/Logo.png';
 
-// ── Activity display names ───────────────────────────────────
-const ACTIVITY_OPTIONS: { value: ActivityType; label: string }[] = [
-  { value: 'HOME_GYM_PT', label: 'Home Gym PT' },
-  { value: 'PARK_TRAINING', label: 'Park Training' },
-  { value: 'SWIMMING_LESSONS', label: 'Swimming Lessons' },
-];
+import { WAIVER_COPY } from './waiver/waiverCopy';
+import { usePublicWaiverForm, safeReturnUrl } from './waiver/usePublicWaiverForm';
+import WaiverDocumentReader from './waiver/WaiverDocumentReader';
+import WaiverReceipt from './waiver/WaiverReceipt';
+import type { ActivityType, WaiverSource } from '../services/publicWaiverService';
+import {
+  PageWrapper, Header, Logo, PageTitle, PageSubtitle, Container, Card, Step, StepHeading,
+  StepHelp, ActivityGrid, ActivityCard, ActivityLabel, ActivityDetail, FieldGrid, Field,
+  Label, Input, FieldHelp, ConsentCard, ConsentText, ConsentNote, Restatement, Notice,
+  SubmitBar, SubmitButton, RetryButton, HelpFooter,
+} from './waiver/PublicWaiverPage.styles';
 
-// ── Noise Overlay ────────────────────────────────────────────
-const NoiseOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.04;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
-`;
-
-// ── Styled Components — Theme-Aware + Extended Responsive ────
-
-const PageWrapper = styled.div`
-  min-height: 100vh;
-  background: ${({ theme }) => theme.background.primary};
-  color: ${({ theme }) => theme.text.body};
-  position: relative;
-`;
-
-const HeroLogo = styled.img`
-  border-radius: 50%;
-  width: 100px;
-  border-radius: 50%;
-  height: 100px;
-  object-fit: contain;
-  margin-bottom: 1rem;
-  filter: drop-shadow(0 0 20px ${({ theme }) =>
-    theme.effects.glowIntensity !== 'none'
-      ? `${theme.colors.primary}40`
-      : 'transparent'});
-
-  @media (max-width: 320px) {
-    width: 70px;
-    height: 70px;
-  }
-  @media (min-width: 2560px) {
-    width: 130px;
-    height: 130px;
-  }
-`;
-
-const HeroTitle = styled.h1`
-  font-family: ${({ theme }) => theme.fonts.drama};
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  font-weight: 600;
-  color: ${({ theme }) => theme.text.heading};
-  margin-bottom: 0.5rem;
-
-  @media (max-width: 320px) {
-    font-size: 1.5rem;
-  }
-  @media (min-width: 2560px) {
-    font-size: 4rem;
-  }
-  @media (min-width: 3840px) {
-    font-size: 5rem;
-  }
-`;
-
-const HeroSubtitle = styled.p`
-  font-family: ${({ theme }) => theme.fonts.ui};
-  font-size: clamp(0.9rem, 2vw, 1.1rem);
-  color: ${({ theme }) => theme.text.secondary};
-  max-width: 500px;
-  text-align: center;
-`;
-
-const FormContainer = styled.div`
-  max-width: 720px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
-  position: relative;
-  z-index: 2;
-
-  @media (max-width: 430px) {
-    padding: 1.5rem 1rem 3rem;
-  }
-  @media (max-width: 320px) {
-    padding: 1rem 0.75rem 2rem;
-  }
-  @media (min-width: 2560px) {
-    max-width: 900px;
-    padding: 3rem 2rem 5rem;
-  }
-  @media (min-width: 3840px) {
-    max-width: 1100px;
-    padding: 4rem 2.5rem 6rem;
-  }
-`;
-
-const GlassCard = styled.div`
-  background: ${({ theme }) =>
-    theme.effects.glassmorphism
-      ? `${theme.background.surface}`
-      : theme.background.elevated};
-  backdrop-filter: ${({ theme }) =>
-    theme.effects.glassmorphism ? 'blur(20px)' : 'none'};
-  -webkit-backdrop-filter: ${({ theme }) =>
-    theme.effects.glassmorphism ? 'blur(20px)' : 'none'};
-  border: ${({ theme }) => theme.borders.card};
-  border-radius: 20px;
-  padding: 2.5rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-
-  @media (max-width: 430px) {
-    padding: 1.5rem 1rem;
-    border-radius: 14px;
-  }
-  @media (max-width: 320px) {
-    padding: 1rem 0.75rem;
-    border-radius: 12px;
-  }
-  @media (min-width: 2560px) {
-    padding: 3rem;
-    border-radius: 24px;
-  }
-`;
-
-const SectionTitle = styled.h2`
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: ${({ theme }) => theme.colors.primary};
-  margin: 2rem 0 0.75rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid ${({ theme }) => `${theme.colors.primary}20`};
-
-  @media (min-width: 2560px) {
-    font-size: 1.35rem;
-  }
-`;
-
-const CheckboxGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.75rem;
-
-  @media (max-width: 320px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const CheckboxLabel = styled.label<{ $checked?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 44px;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid ${({ theme, $checked }) =>
-    $checked ? theme.colors.primary : `${theme.text.muted}30`};
-  border-radius: 10px;
-  background: ${({ theme, $checked }) =>
-    $checked ? `${theme.colors.primary}10` : 'transparent'};
-  cursor: pointer;
-  transition: all 0.2s;
-  font-family: ${({ theme }) => theme.fonts.ui};
-  font-size: 0.95rem;
-  color: ${({ theme }) => theme.text.body};
-
-  input {
-    width: 18px;
-    height: 18px;
-    accent-color: ${({ theme }) => theme.colors.primary};
-  }
-`;
-
-const InputGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-bottom: 1rem;
-`;
-
-const Label = styled.label`
-  font-family: ${({ theme }) => theme.fonts.ui};
-  font-size: 0.875rem;
-  color: ${({ theme }) => theme.text.muted};
-`;
-
-const Input = styled.input<{ $error?: boolean }>`
-  padding: 0.75rem;
-  min-height: 44px;
-  background: ${({ theme }) => theme.background.elevated};
-  border: 1px solid ${({ theme, $error }) =>
-    $error ? '#f44336' : `${theme.text.muted}25`};
-  border-radius: 10px;
-  color: ${({ theme }) => theme.text.primary};
-  font-family: ${({ theme }) => theme.fonts.ui};
-  font-size: 1rem;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-
-  &:focus {
-    border-color: ${({ theme }) => theme.colors.primary};
-    outline: none;
-    box-shadow: 0 0 0 2px ${({ theme }) => `${theme.colors.primary}20`},
-                0 0 16px ${({ theme }) => `${theme.colors.primary}10`};
-  }
-
-  @media (max-width: 430px) {
-    font-size: 16px; /* prevent iOS zoom */
-  }
-`;
-
-const WaiverTextContainer = styled.div`
-  max-height: 400px;
-  overflow-y: auto;
-  border: 1px solid ${({ theme }) => `${theme.colors.primary}20`};
-  border-radius: 12px;
-  padding: 1rem;
-  background: ${({ theme }) => theme.background.elevated};
-  margin-bottom: 1rem;
-  color: ${({ theme }) => theme.text.body};
-  line-height: 1.6;
-  font-family: ${({ theme }) => theme.fonts.ui};
-
-  h1, h2, h3, h4 {
-    color: ${({ theme }) => theme.colors.primary};
-    margin-top: 1rem;
-  }
-  p { margin: 0.5rem 0; }
-  ul, ol { padding-left: 1.5rem; }
-`;
-
-const WaiverVersionTitle = styled.h3`
-  font-family: ${({ theme }) => theme.fonts.heading};
-  font-size: 1rem;
-  color: ${({ theme }) => theme.colors.primary};
-  margin: 1rem 0 0.5rem;
-  padding-bottom: 0.25rem;
-  border-bottom: 1px solid ${({ theme }) => `${theme.colors.primary}15`};
-`;
-
-const PreText = styled.pre`
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-family: inherit;
-  margin: 0;
-`;
-
-const WarningBanner = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 1rem;
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  border-radius: 10px;
-  color: #f59e0b;
-  margin-bottom: 1rem;
-  font-family: ${({ theme }) => theme.fonts.ui};
-`;
-
-const ConsentRow = styled.label<{ $required?: boolean }>`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-height: 44px;
-  padding: 0.5rem 0;
-  cursor: pointer;
-  font-family: ${({ theme }) => theme.fonts.ui};
-  font-weight: ${({ $required }) => ($required ? 600 : 400)};
-  color: ${({ theme }) => theme.text.body};
-
-  input {
-    width: 20px;
-    height: 20px;
-    accent-color: ${({ theme }) => theme.colors.primary};
-    flex-shrink: 0;
-  }
-`;
-
-const SuccessCard = styled.div`
-  text-align: center;
-  padding: 3rem 1rem;
-`;
-
-const CheckIcon = styled.div`
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 1.5rem;
-  border-radius: 50%;
-  background: ${({ theme }) => `${theme.colors.primary}15`};
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  color: ${({ theme }) => theme.colors.primary};
-`;
-
-const SuccessTitle = styled.h1`
-  font-family: ${({ theme }) => theme.fonts.drama};
-  font-size: 1.75rem;
-  color: ${({ theme }) => theme.colors.primary};
-  margin-bottom: 0.5rem;
-`;
-
-const ErrorText = styled.p`
-  color: #f44336;
-  font-family: ${({ theme }) => theme.fonts.ui};
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-`;
-
-const LinkButton = styled.a`
-  display: inline-block;
-  margin-top: 1.5rem;
-  padding: 0.75rem 2rem;
-  border: 1px solid ${({ theme }) => theme.colors.primary};
-  border-radius: 10px;
-  color: ${({ theme }) => theme.colors.primary};
-  text-decoration: none;
-  font-family: ${({ theme }) => theme.fonts.ui};
-  transition: background 0.2s;
-
-  &:hover {
-    background: ${({ theme }) => `${theme.colors.primary}10`};
-  }
-`;
-
-const Spinner = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem;
-  font-family: ${({ theme }) => theme.fonts.ui};
-  color: ${({ theme }) => theme.text.muted};
-`;
-
-const ToggleRow = styled.label`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-height: 44px;
-  cursor: pointer;
-  margin-bottom: 0.5rem;
-  font-family: ${({ theme }) => theme.fonts.ui};
-  color: ${({ theme }) => theme.text.body};
-
-  input {
-    width: 20px;
-    height: 20px;
-    accent-color: ${({ theme }) => theme.colors.primary};
-  }
-`;
-
-const SignatureWrapper = styled.div`
-  border: 1px solid ${({ theme }) => `${theme.colors.primary}25`};
-  border-radius: 12px;
-  overflow: hidden;
-  background: ${({ theme }) => theme.background.elevated};
-`;
-
-// ── Helpers ──────────────────────────────────────────────────
-
-function containsHtmlTags(text: string): boolean {
-  return /<[a-z][\s\S]*>/i.test(text);
-}
-
-// ── Component ────────────────────────────────────────────────
-
-type PageState = 'form' | 'submitting' | 'success' | 'error';
+const ACTIVITY_ORDER: ActivityType[] = ['HOME_GYM_PT', 'PARK_TRAINING', 'SWIMMING_LESSONS'];
 
 export default function PublicWaiverPageV3() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
-  const waiverSource: WaiverSource = searchParams.get('source') === 'qr' ? 'qr' : 'header_waiver';
 
-  // Form state
-  const [selectedActivities, setSelectedActivities] = useState<Set<ActivityType>>(new Set());
-  const [fullName, setFullName] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [liabilityAccepted, setLiabilityAccepted] = useState(false);
-  const [aiConsentAccepted, setAiConsentAccepted] = useState(false);
-  const [mediaConsentAccepted, setMediaConsentAccepted] = useState(false);
-  const [submittedByGuardian, setSubmittedByGuardian] = useState(false);
-  const [guardianName, setGuardianName] = useState('');
-  const [guardianTypedSignature, setGuardianTypedSignature] = useState('');
-  const [hasSignature, setHasSignature] = useState(false);
-
-  // Page state
-  const [pageState, setPageState] = useState<PageState>('form');
-  const [versions, setVersions] = useState<WaiverVersionInfo[]>([]);
-  const [versionsLoading, setVersionsLoading] = useState(true);
-  const [submitResult, setSubmitResult] = useState<WaiverSubmitResponse | null>(null);
-  const [submitError, setSubmitError] = useState('');
-  const [attempted, setAttempted] = useState(false);
+  const source: WaiverSource = searchParams.get('source') === 'qr' ? 'qr' : 'header_waiver';
+  const returnUrl = safeReturnUrl(searchParams.get('returnUrl'));
 
   const sigPadRef = useRef<SignaturePadHandle>(null);
 
-  useEffect(() => {
-    fetchCurrentWaiverVersions()
-      .then(setVersions)
-      .catch(() => setVersions([]))
-      .finally(() => setVersionsLoading(false));
-  }, []);
+  const form = usePublicWaiverForm({
+    source,
+    returnUrl,
+    isSignatureEmpty: () => sigPadRef.current?.isEmpty() ?? true,
+    getSignatureData: () => sigPadRef.current?.toDataURL() ?? '',
+  });
 
-  const relevantVersions = useMemo(() => {
-    if (selectedActivities.size === 0) return [];
-    return versions.filter((v) => {
-      if (v.waiverType === 'core' || v.waiverType === 'ai_notice') return true;
-      if (v.waiverType === 'activity_addendum' && v.activityType) {
-        return selectedActivities.has(v.activityType as ActivityType);
-      }
-      return false;
-    });
-  }, [versions, selectedActivities]);
+  const role = String(user?.role || '').toLowerCase();
+  const isClient = role === 'client' || role === 'user';
 
-  const hasMissingText = useMemo(
-    () => relevantVersions.some((v) => !v.displayText),
-    [relevantVersions],
+  const requiredIds = useMemo(
+    () => new Set(form.requiredVersions.map((v) => v.id)),
+    [form.requiredVersions],
   );
 
-  const isFormValid = useMemo(() => {
-    if (selectedActivities.size === 0) return false;
-    if (versionsLoading || versions.length === 0) return false;
-    if (relevantVersions.length === 0) return false;
-    if (hasMissingText) return false;
-    if (!fullName.trim()) return false;
-    if (!dateOfBirth) return false;
-    if (!email.trim() && !phone.trim()) return false;
-    if (!liabilityAccepted) return false;
-    if (!hasSignature) return false;
-    if (submittedByGuardian && (!guardianName.trim() || !guardianTypedSignature.trim())) {
-      return false;
+  const showProblem = useCallback(
+    (key: string) => form.attempted && form.validation.problems.includes(key),
+    [form.attempted, form.validation.problems],
+  );
+
+  /**
+   * After signing, send the user where they were actually going. The gate
+   * writes `?returnUrl=` and the old page ignored it, so a client redirected
+   * out of their progress view landed on a hardcoded dashboard route instead.
+   */
+  const handleContinue = useCallback(async () => {
+    if (isClient) {
+      try { await refreshUser(); } catch { /* the receipt stays valid regardless */ }
+      navigate(returnUrl || '/user-dashboard', { replace: true });
+      return;
     }
-    return true;
-  }, [
-    selectedActivities, versionsLoading, versions, relevantVersions,
-    hasMissingText, fullName, dateOfBirth, email, phone,
-    liabilityAccepted, hasSignature, submittedByGuardian,
-    guardianName, guardianTypedSignature,
-  ]);
+    navigate(returnUrl || '/', { replace: true });
+  }, [isClient, refreshUser, navigate, returnUrl]);
 
-  const handleSignEnd = useCallback(() => setHasSignature(true), []);
-  const handleSignClear = useCallback(() => setHasSignature(false), []);
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    await form.submit();
+  }, [form]);
 
-  const toggleActivity = useCallback((activity: ActivityType) => {
-    setSelectedActivities((prev) => {
-      const next = new Set(prev);
-      if (next.has(activity)) next.delete(activity);
-      else next.add(activity);
-      return next;
-    });
-  }, []);
-
-  const handleSubmit = async () => {
-    setAttempted(true);
-    if (!isFormValid || sigPadRef.current?.isEmpty()) return;
-
-    setPageState('submitting');
-    setSubmitError('');
-
-    try {
-      const result = await submitPublicWaiver({
-        fullName: fullName.trim(),
-        dateOfBirth,
-        email: email.trim() || undefined,
-        phone: phone.trim() || undefined,
-        activityTypes: Array.from(selectedActivities),
-        signatureData: sigPadRef.current?.toDataURL() || '',
-        liabilityAccepted,
-        aiConsentAccepted,
-        mediaConsentAccepted,
-        source: waiverSource,
-        submittedByGuardian: submittedByGuardian || undefined,
-        guardianName: submittedByGuardian ? guardianName.trim() : undefined,
-        guardianTypedSignature: submittedByGuardian ? guardianTypedSignature.trim() : undefined,
-      });
-
-      if (result.success) {
-        const role = String(user?.role || '').toLowerCase();
-        const shouldRouteToDashboard = result.status === 'linked' && (role === 'client' || role === 'user');
-
-        if (shouldRouteToDashboard) {
-          try {
-            const refreshed = await refreshUser();
-            if (refreshed?.success !== false) {
-              navigate('/user-dashboard', { replace: true });
-              return;
-            }
-          } catch {
-            // Keep the submitted-waiver receipt visible if the auth refresh cannot complete.
-          }
-        }
-
-        setSubmitResult(result);
-        setPageState('success');
-      } else {
-        setSubmitError(result.error || 'Submission failed');
-        setPageState('error');
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Network error';
-      const axiosError = err as { response?: { data?: { error?: string } } };
-      setSubmitError(axiosError?.response?.data?.error || msg);
-      setPageState('error');
-    }
-  };
-
-  // ── Success View ───────────────────────────────────────────
-  if (pageState === 'success' && submitResult) {
+  // ── Success ───────────────────────────────────────────────────
+  if (form.submitState === 'success' && form.submitResult) {
     return (
       <PageWrapper>
-        <NoiseOverlay />
-        <ParallaxHero videoSrc={VIDEO.swan} overlayOpacity={0.7} minHeight="40vh">
-          <HeroLogo src={logoImg} alt="SwanStudios Logo" />
-        </ParallaxHero>
-        <FormContainer>
-          <GlassCard>
-            <SuccessCard>
-              <CheckIcon aria-hidden>&#10003;</CheckIcon>
-              <SuccessTitle>Waiver Submitted</SuccessTitle>
-              <StyledBox as="p" $style={{ marginBottom: '0.5rem' }}>
-                Thank you! Your waiver has been submitted successfully.
-              </StyledBox>
-              <StyledBox as="p" $style={{ fontSize: '0.875rem', opacity: 0.7 }}>
-                Confirmation ID: <strong>{submitResult.waiverRecordId}</strong>
-              </StyledBox>
-              <LinkButton href="/signup">Create an Account</LinkButton>
-            </SuccessCard>
-          </GlassCard>
-        </FormContainer>
+        <Header>
+          <Logo src={logoImg} alt="SwanStudios" />
+        </Header>
+        <Container>
+          <Card>
+            <WaiverReceipt
+              result={form.submitResult}
+              firstName={form.fields.fullName.trim().split(/\s+/)[0]}
+              isLoggedInClient={isClient}
+              onContinue={handleContinue}
+            />
+          </Card>
+        </Container>
       </PageWrapper>
     );
   }
 
-  // ── Loading View ───────────────────────────────────────────
-  if (versionsLoading) {
-    return (
-      <PageWrapper>
-        <NoiseOverlay />
-        <ParallaxHero videoSrc={VIDEO.swan} overlayOpacity={0.7} minHeight="40vh">
-          <HeroLogo src={logoImg} alt="SwanStudios Logo" />
-        </ParallaxHero>
-        <FormContainer>
-          <GlassCard>
-            <Spinner>Loading waiver information...</Spinner>
-          </GlassCard>
-        </FormContainer>
-      </PageWrapper>
-    );
-  }
+  const heading = form.isReconsent ? WAIVER_COPY.page.reconsentTitle : WAIVER_COPY.page.title;
+  const subheading = form.isReconsent ? WAIVER_COPY.page.reconsentSubtitle : WAIVER_COPY.page.subtitle;
 
-  // ── Form View ──────────────────────────────────────────────
   return (
     <PageWrapper>
-      <NoiseOverlay />
+      <Header>
+        <Logo src={logoImg} alt="SwanStudios" />
+        <PageTitle>{heading}</PageTitle>
+        <PageSubtitle>{subheading}</PageSubtitle>
+      </Header>
 
-      {/* Hero */}
-      <ParallaxHero videoSrc={VIDEO.swan} overlayOpacity={0.65} minHeight="50vh">
-        <HeroLogo src={logoImg} alt="SwanStudios Logo" />
-        <HeroTitle>
-          <TypewriterText text="Activity Waiver & Release" as="span" speed={50} />
-        </HeroTitle>
-        <HeroSubtitle>
-          Please complete and sign the waiver below before your session.
-        </HeroSubtitle>
-      </ParallaxHero>
+      <Container>
+        <Card>
+          {/* The documents could not be loaded. This used to render nothing at
+              all — the form appeared normal and submit stayed disabled forever. */}
+          {form.loadState === 'error' && (
+            <Notice $tone="danger" role="alert">
+              <strong>{WAIVER_COPY.errors.versionsTitle}</strong>
+              {WAIVER_COPY.errors.versionsBody}
+              <div>
+                <RetryButton type="button" onClick={() => void form.reloadVersions()}>
+                  {WAIVER_COPY.errors.retry}
+                </RetryButton>
+              </div>
+            </Notice>
+          )}
 
-      <SectionDivider />
+          {form.loadState === 'empty' && (
+            <Notice $tone="danger" role="alert">
+              <strong>{WAIVER_COPY.errors.emptyVersionsTitle}</strong>
+              {WAIVER_COPY.errors.emptyVersionsBody}
+            </Notice>
+          )}
 
-      <FormContainer>
-        <ScrollReveal>
-          <GlassCard>
-            {/* Section 1: Activity Selection */}
-            <SectionTitle>1. Select Activities</SectionTitle>
-            <CheckboxGrid>
-              {ACTIVITY_OPTIONS.map((opt) => (
-                <CheckboxLabel key={opt.value} $checked={selectedActivities.has(opt.value)}>
+          {form.loadState === 'loading' && (
+            <Notice $tone="info" aria-live="polite">{WAIVER_COPY.loading.documents}</Notice>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate>
+            {/* ── Step 1: where we'll train ── */}
+            <Step>
+              <StepHeading>{WAIVER_COPY.steps.activities.heading}</StepHeading>
+              <StepHelp>{WAIVER_COPY.steps.activities.help}</StepHelp>
+              <ActivityGrid>
+                {ACTIVITY_ORDER.map((activity) => {
+                  const copy = WAIVER_COPY.activities[activity];
+                  const selected = form.selectedActivities.has(activity);
+                  return (
+                    <ActivityCard key={activity} $selected={selected}>
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => form.toggleActivity(activity)}
+                      />
+                      <span>
+                        <ActivityLabel>{copy.label}</ActivityLabel>
+                        <ActivityDetail>{copy.detail}</ActivityDetail>
+                      </span>
+                    </ActivityCard>
+                  );
+                })}
+              </ActivityGrid>
+              {showProblem('activities') && (
+                <FieldHelp role="alert">{WAIVER_COPY.errors.activitiesRequired}</FieldHelp>
+              )}
+            </Step>
+
+            {/* ── Step 2: read the documents ── */}
+            {form.relevantVersions.length > 0 && (
+              <Step>
+                <StepHeading>{WAIVER_COPY.steps.documents.heading}</StepHeading>
+                <StepHelp>{WAIVER_COPY.steps.documents.help}</StepHelp>
+                {form.hasMissingText && (
+                  <Notice $tone="warn" role="alert">
+                    <strong>{WAIVER_COPY.errors.versionsTitle}</strong>
+                    {WAIVER_COPY.errors.versionsBody}
+                  </Notice>
+                )}
+                <WaiverDocumentReader
+                  versions={form.relevantVersions}
+                  attestedIds={form.attestedVersionIds}
+                  onAttest={form.attestVersion}
+                  requiredIds={requiredIds}
+                />
+                {showProblem('attestation') && (
+                  <FieldHelp role="alert">{WAIVER_COPY.errors.documentsUnread}</FieldHelp>
+                )}
+              </Step>
+            )}
+
+            {/* ── Step 3: about you ── */}
+            <Step>
+              <StepHeading>{WAIVER_COPY.steps.about.heading}</StepHeading>
+              <StepHelp>{WAIVER_COPY.steps.about.help}</StepHelp>
+              <FieldGrid>
+                <Field>
+                  <Label htmlFor="waiver-name">
+                    {form.isMinor
+                      ? WAIVER_COPY.fields.participantName.label
+                      : WAIVER_COPY.fields.fullName.label}
+                  </Label>
+                  <Input
+                    id="waiver-name"
+                    value={form.fields.fullName}
+                    onChange={(e) => form.setField('fullName', e.target.value)}
+                    placeholder={WAIVER_COPY.fields.fullName.placeholder}
+                    $invalid={showProblem('fullName')}
+                    aria-invalid={showProblem('fullName')}
+                    aria-required="true"
+                    autoComplete="name"
+                  />
+                </Field>
+
+                <Field>
+                  <Label htmlFor="waiver-dob">{WAIVER_COPY.fields.dateOfBirth.label}</Label>
+                  <Input
+                    id="waiver-dob"
+                    type="date"
+                    value={form.fields.dateOfBirth}
+                    onChange={(e) => form.setField('dateOfBirth', e.target.value)}
+                    $invalid={showProblem('dateOfBirth')}
+                    aria-invalid={showProblem('dateOfBirth')}
+                    aria-required="true"
+                  />
+                  <FieldHelp>{WAIVER_COPY.fields.dateOfBirth.help}</FieldHelp>
+                </Field>
+
+                <Field>
+                  <Label htmlFor="waiver-email">{WAIVER_COPY.fields.email.label}</Label>
+                  <Input
+                    id="waiver-email"
+                    type="email"
+                    value={form.fields.email}
+                    onChange={(e) => form.setField('email', e.target.value)}
+                    placeholder={WAIVER_COPY.fields.email.placeholder}
+                    $invalid={showProblem('contact')}
+                    aria-invalid={showProblem('contact')}
+                    autoComplete="email"
+                  />
+                </Field>
+
+                <Field>
+                  <Label htmlFor="waiver-phone">{WAIVER_COPY.fields.phone.label}</Label>
+                  <Input
+                    id="waiver-phone"
+                    type="tel"
+                    value={form.fields.phone}
+                    onChange={(e) => form.setField('phone', e.target.value)}
+                    placeholder={WAIVER_COPY.fields.phone.placeholder}
+                    $invalid={showProblem('contact')}
+                    aria-invalid={showProblem('contact')}
+                    autoComplete="tel"
+                  />
+                </Field>
+              </FieldGrid>
+              <FieldHelp>{WAIVER_COPY.fields.contactHelp}</FieldHelp>
+              {showProblem('contact') && (
+                <FieldHelp role="alert">{WAIVER_COPY.errors.contactRequired}</FieldHelp>
+              )}
+            </Step>
+
+            {/* ── Step 4: guardian — opened by date of birth, never self-declared ── */}
+            {form.isMinor && (
+              <Step>
+                <StepHeading>{WAIVER_COPY.steps.guardian.heading}</StepHeading>
+                <StepHelp>{WAIVER_COPY.steps.guardian.help}</StepHelp>
+                <Notice $tone="warn">{WAIVER_COPY.guardian.autoNotice}</Notice>
+
+                <FieldGrid>
+                  <Field>
+                    <Label htmlFor="waiver-guardian">{WAIVER_COPY.fields.guardianName.label}</Label>
+                    <Input
+                      id="waiver-guardian"
+                      value={form.fields.guardianName}
+                      onChange={(e) => form.setField('guardianName', e.target.value)}
+                      placeholder={WAIVER_COPY.fields.guardianName.placeholder}
+                      $invalid={showProblem('guardian')}
+                      aria-invalid={showProblem('guardian')}
+                      aria-required="true"
+                    />
+                  </Field>
+
+                  <Field>
+                    <Label htmlFor="waiver-emergency-name">
+                      {WAIVER_COPY.fields.emergencyContactName.label}
+                    </Label>
+                    <Input
+                      id="waiver-emergency-name"
+                      value={form.fields.emergencyContactName}
+                      onChange={(e) => form.setField('emergencyContactName', e.target.value)}
+                      placeholder={WAIVER_COPY.fields.emergencyContactName.placeholder}
+                      $invalid={showProblem('emergency')}
+                      aria-invalid={showProblem('emergency')}
+                      aria-required="true"
+                    />
+                  </Field>
+
+                  <Field>
+                    <Label htmlFor="waiver-emergency-phone">
+                      {WAIVER_COPY.fields.emergencyContactPhone.label}
+                    </Label>
+                    <Input
+                      id="waiver-emergency-phone"
+                      type="tel"
+                      value={form.fields.emergencyContactPhone}
+                      onChange={(e) => form.setField('emergencyContactPhone', e.target.value)}
+                      placeholder={WAIVER_COPY.fields.emergencyContactPhone.placeholder}
+                      $invalid={showProblem('emergency')}
+                      aria-invalid={showProblem('emergency')}
+                      aria-required="true"
+                    />
+                  </Field>
+
+                  <Field>
+                    <Label htmlFor="waiver-assent">{WAIVER_COPY.fields.minorAssent.label}</Label>
+                    <Input
+                      id="waiver-assent"
+                      value={form.fields.minorAssentName}
+                      onChange={(e) => form.setField('minorAssentName', e.target.value)}
+                      placeholder={WAIVER_COPY.fields.minorAssent.placeholder}
+                    />
+                  </Field>
+                </FieldGrid>
+
+                <ConsentCard $required>
                   <input
                     type="checkbox"
-                    checked={selectedActivities.has(opt.value)}
-                    onChange={() => toggleActivity(opt.value)}
+                    id="waiver-guardian-attest"
+                    checked={form.guardianAttested}
+                    onChange={(e) => form.setGuardianAttested(e.target.checked)}
+                    aria-required="true"
                   />
-                  {opt.label}
-                </CheckboxLabel>
-              ))}
-            </CheckboxGrid>
+                  <Label as="label" htmlFor="waiver-guardian-attest">
+                    <ConsentText>{WAIVER_COPY.guardian.attestation}</ConsentText>
+                  </Label>
+                </ConsentCard>
 
-            {/* Section 2: Waiver Text Display */}
-            {selectedActivities.size > 0 && (
-              <>
-                <SectionTitle>2. Read the Waiver</SectionTitle>
-                {hasMissingText && (
-                  <WarningBanner>
-                    Waiver text unavailable for some required sections — please contact staff.
-                  </WarningBanner>
+                {showProblem('guardian') && (
+                  <FieldHelp role="alert">{WAIVER_COPY.errors.guardianRequired}</FieldHelp>
                 )}
-                <WaiverTextContainer>
-                  {relevantVersions.map((v) => (
-                    <div key={v.id ?? `${v.waiverType}-${v.activityType ?? 'core'}-${v.textHash}` }>
-                      <WaiverVersionTitle>{v.title}</WaiverVersionTitle>
-                      {v.displayText ? (
-                        containsHtmlTags(v.displayText) ? (
-                          <div dangerouslySetInnerHTML={{ __html: v.displayText }} />
-                        ) : (
-                          <PreText>{v.displayText}</PreText>
-                        )
-                      ) : (
-                        <StyledBox as="p" $style={{ color: '#f59e0b', fontStyle: 'italic' }}>
-                          Text not available
-                        </StyledBox>
-                      )}
-                    </div>
+                {showProblem('emergency') && (
+                  <FieldHelp role="alert">{WAIVER_COPY.errors.emergencyRequired}</FieldHelp>
+                )}
+              </Step>
+            )}
+
+            {/* ── Step 5: consents, each its own card ── */}
+            <Step>
+              <StepHeading>{WAIVER_COPY.steps.consent.heading}</StepHeading>
+              <StepHelp>{WAIVER_COPY.steps.consent.help}</StepHelp>
+
+              <ConsentCard $required>
+                <input
+                  type="checkbox"
+                  id="consent-liability"
+                  checked={form.liabilityAccepted}
+                  onChange={(e) => form.setLiabilityAccepted(e.target.checked)}
+                  aria-required="true"
+                  aria-invalid={showProblem('liability')}
+                />
+                <label htmlFor="consent-liability">
+                  <ConsentText>{WAIVER_COPY.consents.liability.label}</ConsentText>
+                  <ConsentNote>{WAIVER_COPY.consents.liability.note}</ConsentNote>
+                </label>
+              </ConsentCard>
+
+              <ConsentCard>
+                <input
+                  type="checkbox"
+                  id="consent-swan-coach"
+                  checked={form.swanCoachAccepted}
+                  onChange={(e) => form.setSwanCoachAccepted(e.target.checked)}
+                />
+                <label htmlFor="consent-swan-coach">
+                  <ConsentText>{WAIVER_COPY.consents.swanCoach.label}</ConsentText>
+                  <ConsentNote>{WAIVER_COPY.consents.swanCoach.note}</ConsentNote>
+                </label>
+              </ConsentCard>
+
+              <ConsentCard>
+                <input
+                  type="checkbox"
+                  id="consent-media"
+                  checked={form.mediaAccepted}
+                  onChange={(e) => form.setMediaAccepted(e.target.checked)}
+                />
+                <label htmlFor="consent-media">
+                  <ConsentText>{WAIVER_COPY.consents.media.label}</ConsentText>
+                  <ConsentNote>{WAIVER_COPY.consents.media.note}</ConsentNote>
+                </label>
+              </ConsentCard>
+
+              {showProblem('liability') && (
+                <FieldHelp role="alert">{WAIVER_COPY.errors.liabilityRequired}</FieldHelp>
+              )}
+            </Step>
+
+            {/* ── Step 6: sign ── */}
+            <Step>
+              <StepHeading>{WAIVER_COPY.steps.signature.heading}</StepHeading>
+              <StepHelp>{WAIVER_COPY.steps.signature.help}</StepHelp>
+
+              {/* Conspicuousness: the operative terms restated in plain words,
+                  immediately above the signature rather than 400px up the page. */}
+              <Restatement>
+                <h3>{WAIVER_COPY.restatement.heading}</h3>
+                <ul>
+                  {WAIVER_COPY.restatement.points.map((point) => (
+                    <li key={point}>{point}</li>
                   ))}
-                </WaiverTextContainer>
-              </>
-            )}
+                </ul>
+              </Restatement>
 
-            {/* Section 3: Identity */}
-            <SectionTitle>3. Your Information</SectionTitle>
-            <InputGroup>
-              <Label htmlFor="fullName">Full Name *</Label>
-              <Input
-                id="fullName"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter your full name"
-                $error={attempted && !fullName.trim()}
-              />
-            </InputGroup>
-            <InputGroup>
-              <Label htmlFor="dateOfBirth">Date of Birth *</Label>
-              <Input
-                id="dateOfBirth"
-                type="date"
-                value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
-                $error={attempted && !dateOfBirth}
-              />
-            </InputGroup>
-            <InputGroup>
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                $error={attempted && !email.trim() && !phone.trim()}
-              />
-            </InputGroup>
-            <InputGroup>
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+1 (555) 123-4567"
-                $error={attempted && !email.trim() && !phone.trim()}
-              />
-            </InputGroup>
-            {attempted && !email.trim() && !phone.trim() && (
-              <ErrorText>At least one of email or phone is required.</ErrorText>
-            )}
+              {form.isMinor && <FieldHelp>{WAIVER_COPY.guardian.signatureLabel}</FieldHelp>}
 
-            {/* Section 4: Guardian */}
-            <SectionTitle>4. Guardian (if applicable)</SectionTitle>
-            <ToggleRow>
-              <input
-                type="checkbox"
-                checked={submittedByGuardian}
-                onChange={(e) => setSubmittedByGuardian(e.target.checked)}
+              <SignaturePad
+                ref={sigPadRef}
+                onEnd={() => form.setHasSignature(true)}
+                onClear={() => form.setHasSignature(false)}
               />
-              This waiver is being signed by a parent or legal guardian
-            </ToggleRow>
-            {submittedByGuardian && (
-              <>
-                <InputGroup>
-                  <Label htmlFor="guardianName">Guardian Name *</Label>
-                  <Input
-                    id="guardianName"
-                    value={guardianName}
-                    onChange={(e) => setGuardianName(e.target.value)}
-                    placeholder="Guardian's full name"
-                    $error={attempted && submittedByGuardian && !guardianName.trim()}
-                  />
-                </InputGroup>
-                <InputGroup>
-                  <Label htmlFor="guardianSig">Guardian Typed Signature *</Label>
-                  <Input
-                    id="guardianSig"
-                    value={guardianTypedSignature}
-                    onChange={(e) => setGuardianTypedSignature(e.target.value)}
-                    placeholder="Type full name as signature"
-                    $error={attempted && submittedByGuardian && !guardianTypedSignature.trim()}
-                  />
-                </InputGroup>
-              </>
-            )}
 
-            {/* Section 5: Consent */}
-            <SectionTitle>5. Consent</SectionTitle>
-            <ConsentRow $required>
-              <input
-                type="checkbox"
-                checked={liabilityAccepted}
-                onChange={(e) => setLiabilityAccepted(e.target.checked)}
-              />
-              <span>
-                <strong>I accept the liability waiver</strong> and acknowledge the risks described above. *
-              </span>
-            </ConsentRow>
-            <ConsentRow>
-              <input
-                type="checkbox"
-                checked={aiConsentAccepted}
-                onChange={(e) => setAiConsentAccepted(e.target.checked)}
-              />
-              I consent to AI-powered features and personalized workout recommendations.
-            </ConsentRow>
-            <ConsentRow>
-              <input
-                type="checkbox"
-                checked={mediaConsentAccepted}
-                onChange={(e) => setMediaConsentAccepted(e.target.checked)}
-              />
-              I consent to photos/videos being taken during sessions for promotional purposes.
-            </ConsentRow>
+              {showProblem('signature') && (
+                <FieldHelp role="alert">{WAIVER_COPY.errors.signatureRequired}</FieldHelp>
+              )}
+            </Step>
 
-            {/* Section 6: Signature */}
-            <SectionTitle>6. Signature</SectionTitle>
-            <SignatureWrapper>
-              <SignaturePad ref={sigPadRef} onEnd={handleSignEnd} onClear={handleSignClear} />
-            </SignatureWrapper>
-            {attempted && !hasSignature && (
-              <ErrorText>Please sign above before submitting.</ErrorText>
-            )}
+            {/* ── Submit ── */}
+            <SubmitBar>
+              {form.submitError && (
+                <Notice $tone="danger" role="alert" style={{ width: '100%' }}>
+                  <strong>{form.submitError.title}</strong>
+                  {form.submitError.detail}
+                </Notice>
+              )}
 
-            {/* Section 7: Submit */}
-            {pageState === 'error' && submitError && (
-              <StyledBox as={ErrorText} $style={{ marginTop: '1rem' }}>{submitError}</StyledBox>
-            )}
+              <SubmitButton
+                type="submit"
+                disabled={form.submitState === 'submitting' || form.loadState !== 'ready'}
+              >
+                {form.submitState === 'submitting'
+                  ? WAIVER_COPY.submit.busy
+                  : WAIVER_COPY.submit.idle}
+              </SubmitButton>
 
-            <StyledBox as="div" $style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-              <GlowButton
-                text={pageState === 'submitting' ? 'Submitting...' : 'Submit Waiver'}
-                variant="primary"
-                size="large"
-                fullWidth
-                disabled={!isFormValid || pageState === 'submitting'}
-                isLoading={pageState === 'submitting'}
-                onClick={handleSubmit}
-                pulse={isFormValid && pageState === 'form'}
-                haptic
-              />
-            </StyledBox>
-          </GlassCard>
-        </ScrollReveal>
-      </FormContainer>
+              {form.requiredVersions.length > 0 && (
+                <FieldHelp>{WAIVER_COPY.submit.documentCount(form.relevantVersions.length)}</FieldHelp>
+              )}
+            </SubmitBar>
+          </form>
+
+          <HelpFooter>
+            <strong>{WAIVER_COPY.help.heading}</strong>
+            {WAIVER_COPY.help.body}
+          </HelpFooter>
+        </Card>
+      </Container>
     </PageWrapper>
   );
 }

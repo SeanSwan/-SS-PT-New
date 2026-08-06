@@ -104,11 +104,21 @@ const ClaimAccountPage = lazyLoadWithErrorHandling(
   'Claim Account Page'
 );
 
-// Public Waiver (Phase 5W-G) — V3 primary, V2 fallback
+/**
+ * Public Waiver (Phase 5W-G, hardened SWA-140).
+ *
+ * V3 is the ONLY waiver surface. The former `PublicWaiverPage.V2` chunk-failure
+ * fallback was removed deliberately: it had drifted into a genuinely different
+ * legal flow — no guardian enforcement, no document attestation, no error state
+ * — so a stale-chunk failure could quietly serve a weaker waiver in which a
+ * minor is able to sign for themselves. A retry/reload path (handled by
+ * lazyLoadWithErrorHandling's own retry + error route) is the correct recovery
+ * for a failed chunk; a second, divergent legal document is not.
+ * The V2 file is retained on disk pending Sean's archive decision (Rule 34).
+ */
 const PublicWaiverPage = lazyLoadWithErrorHandling(
   () => import('../pages/PublicWaiverPage.V3'),
-  'Public Waiver Page V3',
-  () => import('../pages/PublicWaiverPage.V2')
+  'Public Waiver Page'
 );
 
 // Legal surfaces (launch charter BP04 §6.3 — footer links previously bounced to Home)

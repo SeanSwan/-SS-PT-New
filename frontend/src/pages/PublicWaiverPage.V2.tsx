@@ -1,8 +1,20 @@
 /**
- * PublicWaiverPage.V2 — Theme-Aware Cinematic Waiver
- * ===================================================
- * Same form logic and validation as V1, but fully theme-aware
- * with cinematic hero, ScrollReveal, and GlowButton.
+ * PublicWaiverPage.V2 — RETIRED, NOT MOUNTED (SWA-140, 2026-08-04)
+ * ================================================================
+ * ⚠️  This page is no longer reachable. It was the chunk-failure fallback for
+ * V3 until it was removed from `routes/main-routes.tsx`, because it had drifted
+ * into a materially weaker legal flow: no date-of-birth guardian enforcement
+ * (a minor could sign for themselves), no per-document attestation, no error
+ * state when the documents fail to load, and no auth-aware redirect. Serving it
+ * as a "fallback" meant a stale-chunk failure could silently collect an
+ * unenforceable waiver.
+ *
+ * Kept on disk pending Sean's archive decision (Rule 34 — no blind cleanup).
+ * Do NOT re-mount it. If a fallback is ever wanted again, it must be generated
+ * from V3, not maintained as a second copy of a legal surface.
+ *
+ * Original header: Theme-aware cinematic waiver — same form logic as V1, with
+ * cinematic hero, ScrollReveal, and GlowButton.
  */
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -357,7 +369,7 @@ export default function PublicWaiverPageV2() {
 
   useEffect(() => {
     fetchCurrentWaiverVersions()
-      .then(setVersions)
+      .then((res) => setVersions(res.versions))
       .catch(() => setVersions([]))
       .finally(() => setVersionsLoading(false));
   }, []);
