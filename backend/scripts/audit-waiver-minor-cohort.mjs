@@ -43,6 +43,27 @@ function ageAt(dob, at) {
   return age;
 }
 
+/**
+ * Which of the SWA-140 columns actually exist in this database.
+ *
+ * This audit has to run BEFORE the migration ships — its whole purpose is to
+ * size the minor-remediation problem so the merge/deploy decision is informed.
+ * Selecting a column the migration adds would make the script fail against
+ * exactly the schema it most needs to read.
+ */
+async function detectOptionalColumns() {
+  const [rows] = await sequelize.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_name = 'waiver_records'
+       AND column_name IN ('emergencyContactName', 'participantName');`,
+  );
+  const present = new Set(rows.map((r) => r.column_name));
+  return {
+    hasEmergencyContact: present.has('emergencyContactName'),
+    hasParticipantName: present.has('participantName'),
+  };
+}
+
 async function main() {
   await sequelize.authenticate();
   await initializeModelsCache();
@@ -51,11 +72,23 @@ async function main() {
   const WaiverVersion = getModel('WaiverVersion');
   const WaiverRecordVersion = getModel('WaiverRecordVersion');
 
+  const { hasEmergencyContact, hasParticipantName } = await detectOptionalColumns();
+  if (!hasEmergencyContact) {
+    console.log('\nNOTE: the SWA-140 migration has not run on this database yet.');
+    console.log('      Cohort A (the number that matters) is unaffected.');
+    console.log('      Cohort B is reported as "not yet applicable" — before the');
+    console.log('      migration, no record can have an emergency contact at all.\n');
+  }
+
+  const attributes = [
+    'id', 'userId', 'status', 'dateOfBirth', 'signedAt', 'activityTypes',
+    'submittedByGuardian',
+  ];
+  if (hasEmergencyContact) attributes.push('emergencyContactName');
+  if (hasParticipantName) attributes.push('participantName');
+
   const records = await WaiverRecord.findAll({
-    attributes: [
-      'id', 'userId', 'status', 'dateOfBirth', 'signedAt', 'activityTypes',
-      'submittedByGuardian', 'emergencyContactName', 'participantName',
-    ],
+    attributes,
     where: { status: ['pending_match', 'linked'] },
   });
 
@@ -73,7 +106,7 @@ async function main() {
           activityTypes: r.activityTypes,
           aquatic: Array.isArray(r.activityTypes) && r.activityTypes.includes('SWIMMING_LESSONS'),
         });
-      } else if (!r.emergencyContactName) {
+      } else if (hasEmergencyContact && !r.emergencyContactName) {
         cohortB.push({ waiverRecordId: r.id, userId: r.userId, ageAtSigning });
       }
     }
@@ -115,7 +148,11 @@ async function main() {
     console.log(`Records scanned (pending_match + linked): ${summary.scannedRecords}\n`);
     console.log(`COHORT A — minor signed without a guardian: ${summary.cohortA_minorSelfSigned}`);
     console.log(`           …of those, swim lessons:        ${summary.cohortA_aquatic}`);
-    console.log(`COHORT B — guardian, no emergency contact:  ${summary.cohortB_guardianNoEmergencyContact}`);
+    console.log(
+      `COHORT B — guardian, no emergency contact:  ${
+        hasEmergencyContact ? summary.cohortB_guardianNoEmergencyContact : 'n/a (pre-migration)'
+      }`,
+    );
     console.log(`COHORT C — on a superseded version:         ${summary.cohortC_onSupersededVersion}\n`);
     if (cohortA.length) {
       console.log('Cohort A waiver record ids (re-execution needed, guardian as signer):');
