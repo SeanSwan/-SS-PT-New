@@ -31,7 +31,12 @@ describe('AdminWaiversTable', () => {
     const table = screen.getByRole('table');
     expect(scroller.contains(table)).toBe(true);
     expect(scroller).toHaveAttribute('tabindex', '0');
-    expect(screen.getByRole('button', { name: 'View' })).toBeTruthy();
+    // SWA-140: the row action now carries a per-row accessible name
+    // ("View waiver record for <client>") instead of a bare "View". In a list
+    // of 25 rows, 25 buttons all named "View" give a screen-reader user no way
+    // to tell them apart. Same assertion intent — the action is present and
+    // reachable by role — matched against the descriptive name.
+    expect(screen.getByRole('button', { name: /^View waiver record for/ })).toBeTruthy();
   });
 
   it('renders the empty state without a table when no records exist', () => {
