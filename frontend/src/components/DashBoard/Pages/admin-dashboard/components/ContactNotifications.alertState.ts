@@ -13,6 +13,19 @@ type AxiosLike = {
   post: (url: string, body?: unknown) => Promise<{ data: any }>;
 };
 
+export interface ArchivedAlert {
+  refType: string;
+  refId: string;
+  archivedAt: string;
+  snapshot: {
+    title?: string;
+    message?: string;
+    type?: string;
+    priority?: string;
+    timestamp?: string;
+  } | null;
+}
+
 export interface AlertClaim {
   adminId: number;
   claimedAt: string;
@@ -75,6 +88,58 @@ export function useAlertReadState(authAxios: AxiosLike) {
     refs.forEach((r) => markLocal(r.refType, r.refId, 'readAt'));
   }, [authAxios, markLocal]);
 
+  /** What the alert said, captured at archive time so the archive stays readable. */
+  const snapshotOf = (n: Notification) => ({
+    title: n.title,
+    message: n.message,
+    type: n.type,
+    priority: n.priority,
+    timestamp: n.timestamp,
+  });
+
+  const archiveAlert = useCallback(async (n: Notification) => {
+    const ref = alertRefOf(n);
+    await authAxios.post('/api/admin/alert-state/archive', { ...ref, snapshot: snapshotOf(n) });
+    markLocal(ref.refType, ref.refId, 'archivedAt');
+  }, [authAxios, markLocal]);
+
+  /** Clear-all: archives (never destroys) every visible alert, in capped batches. */
+  const archiveMany = useCallback(async (items: Notification[]) => {
+    if (items.length === 0) return 0;
+    let done = 0;
+    for (let i = 0; i < items.length; i += 100) {
+      const batch = items.slice(i, i + 100);
+      await authAxios.post('/api/admin/alert-state/bulk', {
+        op: 'archive',
+        items: batch.map((n) => ({ ...alertRefOf(n), snapshot: snapshotOf(n) })),
+      });
+      batch.forEach((n) => {
+        const ref = alertRefOf(n);
+        markLocal(ref.refType, ref.refId, 'archivedAt');
+      });
+      done += batch.length;
+    }
+    return done;
+  }, [authAxios, markLocal]);
+
+  const fetchArchived = useCallback(async (): Promise<ArchivedAlert[]> => {
+    const res = await authAxios.get('/api/admin/alert-state/archived?limit=100');
+    return Array.isArray(res.data?.archived) ? res.data.archived : [];
+  }, [authAxios]);
+
+  const restoreAlert = useCallback(async (entry: ArchivedAlert) => {
+    await authAxios.post('/api/admin/alert-state/restore', {
+      refType: entry.refType, refId: entry.refId,
+    });
+    setReadState((prev) => {
+      const next = new Map(prev);
+      const k = keyOf(entry.refType, entry.refId);
+      const existing = next.get(k);
+      if (existing) next.set(k, { ...existing, archivedAt: null });
+      return next;
+    });
+  }, [authAxios]);
+
   const isRead = useCallback((n: Notification) => {
     const ref = alertRefOf(n);
     return Boolean(readState.get(keyOf(ref.refType, ref.refId))?.readAt);
@@ -116,5 +181,9 @@ export function useAlertReadState(authAxios: AxiosLike) {
     return Boolean(readState.get(keyOf(ref.refType, ref.refId))?.archivedAt);
   }, [readState]);
 
-  return { refreshReadState, ackAlert, bulkAck, isRead, isArchived, refreshClaims, claimOf, toggleClaim };
+  return {
+    refreshReadState, ackAlert, bulkAck, isRead, isArchived,
+    refreshClaims, claimOf, toggleClaim,
+    archiveAlert, archiveMany, fetchArchived, restoreAlert,
+  };
 }

@@ -32,7 +32,10 @@ export interface SceneOptions {
 
 const GLOBE_RADIUS = 1;
 const MAX_DPR = 2;
-const OBSIDIAN = 0x0a0a0f;
+// SWA-138 FIX: the sphere was 0x0a0a0f — the SAME value as the dashboard
+// background — so the globe read as a void with only its halo visible. The
+// ocean now uses a deep Swan blue that separates from the card behind it.
+const OCEAN = 0x32496f;
 const ICE_WING = 0x60c0f0;
 const GILDED_FERN = 0xc6a84b;
 
@@ -68,19 +71,19 @@ export function createGlobeScene({ container, onHover, onContextLost }: SceneOpt
 
   const sphere = new THREE.Mesh(
     new THREE.SphereGeometry(GLOBE_RADIUS, 64, 48),
-    new THREE.MeshStandardMaterial({ color: OBSIDIAN, roughness: 0.92, metalness: 0.08 }),
+    new THREE.MeshStandardMaterial({ color: OCEAN, roughness: 0.85, metalness: 0.12 }),
   );
   world.add(sphere);
 
   const halo = new THREE.Mesh(
     new THREE.SphereGeometry(GLOBE_RADIUS * 1.015, 48, 32),
-    new THREE.MeshBasicMaterial({ color: ICE_WING, transparent: true, opacity: 0.06, side: THREE.BackSide }),
+    new THREE.MeshBasicMaterial({ color: ICE_WING, transparent: true, opacity: 0.10, side: THREE.BackSide }),
   );
   world.add(halo);
 
   const graticule = new THREE.LineSegments(
     new THREE.WireframeGeometry(new THREE.SphereGeometry(GLOBE_RADIUS * 1.001, 24, 16)),
-    new THREE.LineBasicMaterial({ color: ICE_WING, transparent: true, opacity: 0.12 }),
+    new THREE.LineBasicMaterial({ color: ICE_WING, transparent: true, opacity: 0.22 }),
   );
   world.add(graticule);
 

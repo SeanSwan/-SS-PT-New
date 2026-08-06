@@ -13,6 +13,8 @@
  * │ POST   /alert-state/bulk         Admin   ack|archive ≤100 items  │
  * │ GET    /alert-state/claims       Admin   Who is handling what     │
  * │ POST   /alert-state/claim        Admin   Claim / release an alert │
+ * │ GET    /alert-state/archived     Admin   The archive (snapshots)   │
+ * │ POST   /alert-state/restore      Admin   Un-archive one alert      │
  * └──────────────────────────────────────────────────────────────────┘
  *
  * Scoping law: every query filters adminId = req.user.id — one admin can
@@ -35,15 +37,32 @@ const isValidRefId = (refId) => {
   return value.length > 0 && value.length <= 160;
 };
 
-async function upsertState(adminId, refType, refId, field) {
+async function upsertState(adminId, refType, refId, field, snapshot = null) {
   const [row] = await NotificationReadState.findOrCreate({
     where: { adminId, refType, refId: String(refId) },
-    defaults: { [field]: new Date() },
+    defaults: { [field]: new Date(), ...(snapshot ? { snapshot } : {}) },
   });
-  if (!row[field]) {
-    await row.update({ [field]: new Date() });
-  }
+  const patch = {};
+  if (!row[field]) patch[field] = new Date();
+  // Snapshot is written once, on the archive that created it — later acks must
+  // never overwrite what the alert actually said when it was filed away.
+  if (snapshot && !row.snapshot) patch.snapshot = snapshot;
+  if (Object.keys(patch).length > 0) await row.update(patch);
   return row;
+}
+
+/** Keep archive snapshots small, safe, and free of contact details (Rule 8). */
+function sanitizeSnapshot(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : undefined);
+  const snap = {
+    title: str(raw.title, 160),
+    message: str(raw.message, 600),
+    type: str(raw.type, 40),
+    priority: str(raw.priority, 20),
+    timestamp: str(raw.timestamp, 40),
+  };
+  return Object.values(snap).some((v) => v !== undefined) ? snap : null;
 }
 
 router.get('/alert-state', protect, adminOnly, async (req, res) => {
@@ -81,7 +100,9 @@ router.post('/alert-state/archive', protect, adminOnly, async (req, res) => {
     if (!ALERT_REF_TYPES.includes(refType) || !isValidRefId(refId)) {
       return res.status(400).json({ success: false, message: 'Invalid refType/refId' });
     }
-    const row = await upsertState(req.user.id, refType, refId, 'archivedAt');
+    const row = await upsertState(
+      req.user.id, refType, refId, 'archivedAt', sanitizeSnapshot(req.body?.snapshot),
+    );
     return res.json({ success: true, state: { refType, refId: String(refId), archivedAt: row.archivedAt } });
   } catch (error) {
     logger.error('Failed to archive alert:', error);
@@ -104,7 +125,10 @@ router.post('/alert-state/bulk', protect, adminOnly, async (req, res) => {
     }
     let processed = 0;
     for (const item of items) {
-      await upsertState(req.user.id, item.refType, item.refId, field);
+      await upsertState(
+        req.user.id, item.refType, item.refId, field,
+        field === 'archivedAt' ? sanitizeSnapshot(item.snapshot) : null,
+      );
       processed += 1;
     }
     logger.info(`Admin ${req.user.id} bulk-${op}ed ${processed} alerts`);
@@ -187,6 +211,61 @@ router.post('/alert-state/claim', protect, adminOnly, async (req, res) => {
   } catch (error) {
     logger.error('Failed to claim alert:', error);
     return res.status(500).json({ success: false, message: 'Failed to claim alert' });
+  }
+});
+
+/**
+ * GET /alert-state/archived
+ * The archive view: everything this admin has filed away, newest first, with
+ * the snapshot taken at archive time so the entry is readable even when the
+ * source alert is no longer emitted.
+ */
+router.get('/alert-state/archived', protect, adminOnly, async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), MAX_STATE_ROWS);
+    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+    const { rows, count } = await NotificationReadState.findAndCountAll({
+      where: { adminId: req.user.id, archivedAt: { [Op.ne]: null } },
+      order: [['archivedAt', 'DESC']],
+      limit,
+      offset,
+      attributes: ['refType', 'refId', 'archivedAt', 'snapshot'],
+    });
+    return res.json({
+      success: true,
+      total: count,
+      archived: rows.map((r) => ({
+        refType: r.refType,
+        refId: r.refId,
+        archivedAt: r.archivedAt,
+        snapshot: r.snapshot || null,
+      })),
+    });
+  } catch (error) {
+    logger.error('Failed to fetch archived alerts:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch archived alerts' });
+  }
+});
+
+/**
+ * POST /alert-state/restore  { refType, refId }
+ * Undo an archive. The snapshot is kept — restoring twice is harmless, and the
+ * record of what it said is never destroyed by this route.
+ */
+router.post('/alert-state/restore', protect, adminOnly, async (req, res) => {
+  try {
+    const { refType, refId } = req.body || {};
+    if (!ALERT_REF_TYPES.includes(refType) || !isValidRefId(refId)) {
+      return res.status(400).json({ success: false, message: 'Invalid refType/refId' });
+    }
+    const [updated] = await NotificationReadState.update(
+      { archivedAt: null },
+      { where: { adminId: req.user.id, refType, refId: String(refId) } },
+    );
+    return res.json({ success: true, restored: updated > 0 });
+  } catch (error) {
+    logger.error('Failed to restore alert:', error);
+    return res.status(500).json({ success: false, message: 'Failed to restore alert' });
   }
 });
 

@@ -40,6 +40,9 @@ const NotificationReadState = db.define('NotificationReadState', {
   // signal other admins must see, so it is queried across the whole table for
   // a given ref rather than scoped to the acting admin.
   claimedAt: { type: DataTypes.DATE, allowNull: true },
+  // SWA-138 S14 — readable archive. Computed alerts stop being emitted once
+  // archived, so the archive keeps its own copy of what the alert said.
+  snapshot: { type: DataTypes.JSONB, allowNull: true },
 }, {
   tableName: 'notification_read_state',
   timestamps: true,

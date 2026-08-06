@@ -82,3 +82,88 @@ export const ClaimChip = styled.button<{ $mine: boolean }>`
 
   &:focus-visible { outline: 2px solid var(--accent-secondary, #8B5CF6); outline-offset: 2px; }
 `;
+
+/** SWA-138 S14 — per-row dismiss (archive, never destroy). */
+export const DismissButton = styled.button`
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: ${TEXT_MUTED};
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+
+  &:hover {
+    background: color-mix(in srgb, var(--error, #EF4444) 12%, transparent);
+    border-color: color-mix(in srgb, var(--error, #EF4444) 32%, transparent);
+    color: var(--error, #EF4444);
+  }
+  &:focus-visible { outline: 2px solid ${ACCENT_SECONDARY}; outline-offset: 2px; }
+`;
+
+/** Active | Archived view switch. */
+export const ViewTab = styled.button<{ $active: boolean }>`
+  background: ${({ $active }) => ($active
+    ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent)'
+    : 'transparent')};
+  border: 1px solid ${({ $active }) => ($active
+    ? 'color-mix(in srgb, var(--accent-primary, #60C0F0) 38%, transparent)'
+    : 'var(--border-soft, rgba(255,255,255,0.12))')};
+  border-radius: 999px;
+  color: ${({ $active }) => ($active ? ACCENT_PRIMARY : TEXT_MUTED)};
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  min-height: 44px;
+  padding: 0 16px;
+  text-transform: uppercase;
+
+  &:focus-visible { outline: 2px solid ${ACCENT_SECONDARY}; outline-offset: 2px; }
+`;
+
+export const ArchiveRow = styled.div`
+  border-bottom: 1px solid color-mix(in srgb, ${ACCENT_TERTIARY} 12%, transparent);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 0;
+  &:last-child { border-bottom: none; }
+`;
+
+export const ArchiveBody = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+export const ArchiveTitle = styled.div`
+  color: ${TEXT_PRIMARY};
+  font-size: 0.85rem;
+  font-weight: 600;
+`;
+
+export const ArchiveMeta = styled.div`
+  color: ${TEXT_MUTED};
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+export const RestoreButton = styled.button`
+  background: color-mix(in srgb, ${ACCENT_PRIMARY} 12%, transparent);
+  border: 1px solid color-mix(in srgb, ${ACCENT_PRIMARY} 34%, transparent);
+  border-radius: 10px;
+  color: ${ACCENT_PRIMARY};
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 0 14px;
+
+  &:focus-visible { outline: 2px solid ${ACCENT_SECONDARY}; outline-offset: 2px; }
+`;

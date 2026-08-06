@@ -16,6 +16,10 @@ const helpersSource = readFileSync(
   resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/components/ContactNotifications.helpers.tsx'),
   'utf8',
 );
+const toolbarSource = readFileSync(
+  resolve(process.cwd(), 'src/components/DashBoard/Pages/admin-dashboard/components/AlertsToolbar.tsx'),
+  'utf8',
+);
 const contactRouteSource = readFileSync(
   resolve(process.cwd(), '../backend/routes/contactRoutes.mjs'),
   'utf8',
@@ -45,7 +49,8 @@ describe('read-state wiring contract', () => {
 
   it('the header exposes a working "Mark all as read" backed by a registered route', () => {
     expect(componentSource).toContain("authAxios.patch('/api/contact/mark-all-viewed')");
-    expect(componentSource).toContain('title="Mark all as read"');
+    // SWA-138 S14: header chrome lives in AlertsToolbar (Rule 4 split).
+    expect(toolbarSource).toContain('title="Mark all as read"');
     expect(contactRouteSource).toContain("router.patch('/mark-all-viewed', protect, adminOnly");
   });
 

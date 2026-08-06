@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, X } from 'lucide-react';
 import type { Notification } from './ContactNotifications.types';
 import { formatTimeAgo, getPriorityColor, getTypeIcon } from './ContactNotifications.helpers';
 import {
@@ -15,7 +15,7 @@ import {
   NotificationTime,
   NotificationTitle,
 } from './ContactNotifications.styles';
-import { ClaimChip } from './ContactNotifications.controls.styles';
+import { ClaimChip, DismissButton } from './ContactNotifications.controls.styles';
 import type { AlertClaim } from './ContactNotifications.alertState';
 
 interface ContactNotificationItemProps {
@@ -28,6 +28,8 @@ interface ContactNotificationItemProps {
   /** Cross-admin claim on this alert, if any (SWA-138 S4b). */
   claim?: AlertClaim | null;
   onToggleClaim?: (notification: Notification) => void;
+  /** Archive this alert out of the active list (SWA-138 S14). */
+  onDismiss?: (notification: Notification) => void;
 }
 
 const ContactNotificationItem: React.FC<ContactNotificationItemProps> = ({
@@ -39,6 +41,7 @@ const ContactNotificationItem: React.FC<ContactNotificationItemProps> = ({
   onToggleMessage,
   claim = null,
   onToggleClaim,
+  onDismiss,
 }) => {
   const priorityColor = getPriorityColor(notification.priority);
   const isLongMessage = notification.message.length > 150;
@@ -89,6 +92,16 @@ const ContactNotificationItem: React.FC<ContactNotificationItemProps> = ({
           </NotificationMeta>
         </NotificationDetails>
         {notification.actionRequired && <ActionRequiredBadge>Action Required</ActionRequiredBadge>}
+        {onDismiss && (
+          <DismissButton
+            type="button"
+            aria-label={`Dismiss: move "${notification.title}" to the archive`}
+            title="Dismiss to archive"
+            onClick={(e) => { e.stopPropagation(); onDismiss(notification); }}
+          >
+            <X size={16} aria-hidden="true" />
+          </DismissButton>
+        )}
         {onToggleClaim && (
           <ClaimChip
             type="button"

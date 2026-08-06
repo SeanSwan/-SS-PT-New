@@ -6,9 +6,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCheck, ChevronDown, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useAuth } from '../../../../../context/AuthContext';
-import { useAlertReadState } from './ContactNotifications.alertState';
+import { useAlertReadState, type ArchivedAlert } from './ContactNotifications.alertState';
 import ContactNotificationItem from './ContactNotificationItem';
 import type { ContactNotificationsProps, Notification } from './ContactNotifications.types';
 import {
@@ -24,15 +24,13 @@ import {
   EmptyCheckIcon,
   EmptyState,
   ErrorBanner,
-  HeaderControls,
-  HeaderTitle,
   LoadingSpinner,
-  NotificationBadge,
-  NotificationHeader,
   NotificationsContainer,
   NotificationsList,
 } from './ContactNotifications.styles';
-import { ControlButton, LoadMoreControl, LoadMoreLabel, LoadMoreRow } from './ContactNotifications.controls.styles';
+import { LoadMoreControl, LoadMoreLabel, LoadMoreRow } from './ContactNotifications.controls.styles';
+import AlertsToolbar from './AlertsToolbar';
+import AlertArchiveView from './AlertArchiveView';
 
 type ApiResponse = { data: any };
 
@@ -57,7 +55,10 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   const { authAxios } = useAuth();
   const navigate = useNavigate();
   const { refreshReadState, ackAlert, bulkAck, isRead: isAckedRemotely, isArchived,
-    refreshClaims, claimOf, toggleClaim } = useAlertReadState(authAxios);
+    refreshClaims, claimOf, toggleClaim,
+    archiveAlert, archiveMany, fetchArchived, restoreAlert } = useAlertReadState(authAxios);
+  const [view, setView] = useState<'active' | 'archived'>('active');
+  const [archived, setArchived] = useState<ArchivedAlert[]>([]);
   const pageSize = initialPageSize;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -140,6 +141,45 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
     navigate(NOTIFICATION_ROUTE_DESTINATIONS[notification.type]);
   };
 
+  const loadArchive = useCallback(async () => {
+    try {
+      setArchived(await fetchArchived());
+    } catch {
+      setError('Could not load the archive — try again.');
+    }
+  }, [fetchArchived]);
+
+  /** Dismiss = archive. Nothing is destroyed; it moves to the Archived view. */
+  const handleDismiss = useCallback(async (notification: Notification) => {
+    try {
+      await archiveAlert(notification);
+      setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
+    } catch {
+      setError('Could not dismiss that alert — try again.');
+    }
+  }, [archiveAlert]);
+
+  const handleClearAll = useCallback(async (items: Notification[]) => {
+    try {
+      const cleared = await archiveMany(items);
+      const clearedIds = new Set(items.map((n) => n.id));
+      setNotifications((prev) => prev.filter((n) => !clearedIds.has(n.id)));
+      if (cleared > 0 && view === 'archived') await loadArchive();
+    } catch {
+      setError('Could not clear the alerts — try again.');
+    }
+  }, [archiveMany, loadArchive, view]);
+
+  const handleRestore = useCallback(async (entry: ArchivedAlert) => {
+    try {
+      await restoreAlert(entry);
+      setArchived((prev) => prev.filter((a) => !(a.refType === entry.refType && a.refId === entry.refId)));
+      await fetchPage(0, 0, true);
+    } catch {
+      setError('Could not restore that alert — try again.');
+    }
+  }, [restoreAlert, fetchPage]);
+
   const handleMarkAllRead = useCallback(async () => {
     try {
       await authAxios.patch('/api/contact/mark-all-viewed');
@@ -190,50 +230,25 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
       initial={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.5 }}
     >
-      <NotificationHeader>
-        <HeaderTitle>
-          <Bell size={20} />
-          Business Intelligence Alerts
-          {unreadCount > 0 && <NotificationBadge>{unreadCount}</NotificationBadge>}
-        </HeaderTitle>
-        {showActions && (
-          <HeaderControls>
-            <ControlButton
-              disabled={refreshing || unreadCount === 0}
-              onClick={handleMarkAllRead}
-              title="Mark all as read"
-              type="button"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <CheckCheck size={16} />
-            </ControlButton>
-            <ControlButton
-              className={showUnreadOnly ? 'active' : ''}
-              onClick={() => setShowUnreadOnly(!showUnreadOnly)}
-              title={showUnreadOnly ? 'Show all notifications' : 'Show unread only'}
-              type="button"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {showUnreadOnly ? <Eye size={16} /> : <EyeOff size={16} />}
-            </ControlButton>
-            <ControlButton
-              disabled={refreshing}
-              onClick={() => fetchPage(0, 0, true)}
-              title="Refresh notifications"
-              type="button"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-            </ControlButton>
-          </HeaderControls>
-        )}
-      </NotificationHeader>
+      <AlertsToolbar
+        unreadCount={unreadCount}
+        visibleCount={filteredNotifications.length}
+        showActions={showActions}
+        refreshing={refreshing}
+        showUnreadOnly={showUnreadOnly}
+        view={view}
+        onSetView={(next) => { setView(next); if (next === 'archived') loadArchive(); }}
+        onToggleUnreadOnly={() => setShowUnreadOnly(!showUnreadOnly)}
+        onClearAll={() => handleClearAll(filteredNotifications)}
+        onMarkAllRead={handleMarkAllRead}
+        onRefresh={() => fetchPage(0, 0, true)}
+      />
 
       {error && <ErrorBanner role="status">{error}</ErrorBanner>}
 
+      {view === 'archived' ? (
+        <AlertArchiveView entries={archived} onRestore={handleRestore} />
+      ) : (
       <NotificationsList>
         <AnimatePresence>
           {filteredNotifications.length > 0 ? (
@@ -248,6 +263,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                 onToggleMessage={toggleMessageExpand}
                 claim={claimOf(notification)}
                 onToggleClaim={toggleClaim}
+                onDismiss={handleDismiss}
               />
             ))
           ) : (
@@ -258,8 +274,9 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
           )}
         </AnimatePresence>
       </NotificationsList>
+      )}
 
-      {(financeHasMore || contactHasMore) && (
+      {view === 'active' && (financeHasMore || contactHasMore) && (
         <LoadMoreRow>
           <LoadMoreControl
             disabled={refreshing}

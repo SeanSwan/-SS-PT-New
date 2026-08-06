@@ -6,7 +6,7 @@ const textMuted = 'var(--text-muted, color-mix(in srgb, var(--text-primary, #E0E
 const textSecondary = 'var(--text-secondary, color-mix(in srgb, var(--text-primary, #E0ECF4) 70%, transparent))';
 const accentSoft = 'color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent)';
 const accentFaint = 'color-mix(in srgb, var(--accent-primary, #60C0F0) 6%, transparent)';
-const hoverLand = 'color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, var(--bg-surface, #1A1A24))';
+const hoverLand = 'color-mix(in srgb, var(--accent-primary, #60C0F0) 30%, var(--map-land, #4A6081))';
 const shadowStrong = 'color-mix(in srgb, var(--bg-base, #030712) 55%, transparent)';
 const shadowGlow = 'color-mix(in srgb, var(--accent-primary, #60C0F0) 18%, transparent)';
 
@@ -174,8 +174,10 @@ export const MapContainer = styled.div`
     height: auto;
   }
   .country-geography {
-    fill: var(--bg-surface, #1A1A24);
-    stroke: ${borderSoft};
+    /* SWA-138: land was --bg-surface on a --bg-base container = 1.14:1, an
+       invisible map. Now ~3.1:1 so continents actually read. */
+    fill: var(--map-land, #4A6081);
+    stroke: var(--map-land-border, color-mix(in srgb, var(--accent-primary, #60C0F0) 45%, transparent));
     stroke-width: 0.5;
     outline: none;
   }
@@ -184,7 +186,7 @@ export const MapContainer = styled.div`
   }
   .state-geography {
     fill: transparent;
-    stroke: ${borderFaint};
+    stroke: var(--map-state-border, color-mix(in srgb, var(--accent-primary, #60C0F0) 22%, transparent));
     stroke-width: 0.3;
     outline: none;
   }
