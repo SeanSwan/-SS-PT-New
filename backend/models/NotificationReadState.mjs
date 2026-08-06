@@ -36,6 +36,10 @@ const NotificationReadState = db.define('NotificationReadState', {
   },
   readAt: { type: DataTypes.DATE, allowNull: true },
   archivedAt: { type: DataTypes.DATE, allowNull: true },
+  // SWA-138 S4b — claim chip. Read/archive stay per-admin; a CLAIM is the one
+  // signal other admins must see, so it is queried across the whole table for
+  // a given ref rather than scoped to the acting admin.
+  claimedAt: { type: DataTypes.DATE, allowNull: true },
 }, {
   tableName: 'notification_read_state',
   timestamps: true,

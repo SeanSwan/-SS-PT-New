@@ -15,6 +15,8 @@ import {
   NotificationTime,
   NotificationTitle,
 } from './ContactNotifications.styles';
+import { ClaimChip } from './ContactNotifications.controls.styles';
+import type { AlertClaim } from './ContactNotifications.alertState';
 
 interface ContactNotificationItemProps {
   notification: Notification;
@@ -23,6 +25,9 @@ interface ContactNotificationItemProps {
   onClick: (notification: Notification) => void;
   onKeyDown: (event: React.KeyboardEvent, notification: Notification) => void;
   onToggleMessage: (id: string) => void;
+  /** Cross-admin claim on this alert, if any (SWA-138 S4b). */
+  claim?: AlertClaim | null;
+  onToggleClaim?: (notification: Notification) => void;
 }
 
 const ContactNotificationItem: React.FC<ContactNotificationItemProps> = ({
@@ -32,6 +37,8 @@ const ContactNotificationItem: React.FC<ContactNotificationItemProps> = ({
   onClick,
   onKeyDown,
   onToggleMessage,
+  claim = null,
+  onToggleClaim,
 }) => {
   const priorityColor = getPriorityColor(notification.priority);
   const isLongMessage = notification.message.length > 150;
@@ -82,6 +89,18 @@ const ContactNotificationItem: React.FC<ContactNotificationItemProps> = ({
           </NotificationMeta>
         </NotificationDetails>
         {notification.actionRequired && <ActionRequiredBadge>Action Required</ActionRequiredBadge>}
+        {onToggleClaim && (
+          <ClaimChip
+            type="button"
+            $mine={Boolean(claim?.mine)}
+            aria-label={claim
+              ? (claim.mine ? 'Release your claim on this alert' : `Claimed by admin #${claim.adminId}`)
+              : 'Claim this alert so other admins know you are handling it'}
+            onClick={(e) => { e.stopPropagation(); onToggleClaim(notification); }}
+          >
+            {claim ? (claim.mine ? 'Mine · release' : `Admin #${claim.adminId}`) : 'Claim'}
+          </ClaimChip>
+        )}
       </NotificationContent>
     </NotificationItemShell>
   );

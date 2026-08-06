@@ -74,34 +74,6 @@ export const HeaderControls = styled.div`
   gap: 0.5rem;
 `;
 
-export const ControlButton = styled(motion.button)`
-  align-items: center;
-  background: color-mix(in srgb, ${ACCENT_TERTIARY} 10%, transparent);
-  border: 1px solid color-mix(in srgb, ${ACCENT_TERTIARY} 30%, transparent);
-  border-radius: 8px;
-  color: ${TEXT_SECONDARY};
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  min-height: 44px;
-  min-width: 44px;
-  padding: 0.5rem;
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-  &:hover {
-    background: color-mix(in srgb, ${ACCENT_TERTIARY} 20%, transparent);
-    border-color: color-mix(in srgb, ${ACCENT_TERTIARY} 50%, transparent);
-    color: ${TEXT_PRIMARY};
-  }
-  &:focus-visible {
-    outline: 2px solid ${ACCENT_PRIMARY};
-    outline-offset: 2px;
-  }
-  &.active {
-    background: color-mix(in srgb, ${ACCENT_SECONDARY} 20%, transparent);
-    border-color: color-mix(in srgb, ${ACCENT_SECONDARY} 50%, transparent);
-    color: ${ACCENT_PRIMARY};
-  }
-`;
 
 export const NotificationBadge = styled.div`
   align-items: center;
@@ -283,17 +255,6 @@ export const EmptyCheckIcon = styled(CheckCircle)`
   opacity: 0.5;
 `;
 
-export const LoadMoreRow = styled.div`
-  margin-top: 1rem;
-  text-align: center;
-`;
 
-export const LoadMoreControl = styled(ControlButton)`
-  border-radius: 8px;
-  min-height: 44px;
-  padding: 0.5rem 1.5rem;
-`;
 
-export const LoadMoreLabel = styled.span`
-  margin-left: 0.5rem;
-`;
+

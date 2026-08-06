@@ -11,6 +11,8 @@
  * │ POST   /alert-state/ack          Admin   Mark one alert seen     │
  * │ POST   /alert-state/archive      Admin   Hide one alert (self)   │
  * │ POST   /alert-state/bulk         Admin   ack|archive ≤100 items  │
+ * │ GET    /alert-state/claims       Admin   Who is handling what     │
+ * │ POST   /alert-state/claim        Admin   Claim / release an alert │
  * └──────────────────────────────────────────────────────────────────┘
  *
  * Scoping law: every query filters adminId = req.user.id — one admin can
@@ -18,6 +20,7 @@
  */
 
 import express from 'express';
+import { Op } from 'sequelize';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import NotificationReadState, { ALERT_REF_TYPES } from '../models/NotificationReadState.mjs';
 import logger from '../utils/logger.mjs';
@@ -109,6 +112,81 @@ router.post('/alert-state/bulk', protect, adminOnly, async (req, res) => {
   } catch (error) {
     logger.error('Failed bulk alert-state op:', error);
     return res.status(500).json({ success: false, message: 'Failed bulk alert-state operation' });
+  }
+});
+
+/**
+ * GET /alert-state/claims
+ * Cross-admin by design: a claim's whole purpose is telling OTHER admins that
+ * someone is already handling an item, so this is the one read that is not
+ * scoped to req.user.id. Returns only ref + claimant id/name — never contact
+ * details (Rule 8).
+ */
+router.get('/alert-state/claims', protect, adminOnly, async (req, res) => {
+  try {
+    const rows = await NotificationReadState.findAll({
+      where: { claimedAt: { [Op.ne]: null }, archivedAt: null },
+      order: [['claimedAt', 'DESC']],
+      limit: MAX_STATE_ROWS,
+      attributes: ['adminId', 'refType', 'refId', 'claimedAt'],
+    });
+    return res.json({
+      success: true,
+      claims: rows.map((r) => ({
+        refType: r.refType,
+        refId: r.refId,
+        adminId: r.adminId,
+        claimedAt: r.claimedAt,
+        mine: r.adminId === req.user.id,
+      })),
+    });
+  } catch (error) {
+    logger.error('Failed to fetch alert claims:', error);
+    return res.status(500).json({ success: false, message: 'Failed to fetch alert claims' });
+  }
+});
+
+/**
+ * POST /alert-state/claim  { refType, refId, release?: boolean }
+ * Claiming is first-writer-wins: if another admin already holds it, respond 409
+ * with the holder so the UI can say who. Releasing only clears YOUR OWN claim.
+ */
+router.post('/alert-state/claim', protect, adminOnly, async (req, res) => {
+  try {
+    const { refType, refId, release = false } = req.body || {};
+    if (!ALERT_REF_TYPES.includes(refType) || !isValidRefId(refId)) {
+      return res.status(400).json({ success: false, message: 'Invalid refType/refId' });
+    }
+    const key = String(refId);
+
+    if (release) {
+      const [updated] = await NotificationReadState.update(
+        { claimedAt: null },
+        { where: { adminId: req.user.id, refType, refId: key } },
+      );
+      return res.json({ success: true, released: updated > 0 });
+    }
+
+    const holder = await NotificationReadState.findOne({
+      where: { refType, refId: key, claimedAt: { [Op.ne]: null } },
+      attributes: ['adminId', 'claimedAt'],
+    });
+    if (holder && holder.adminId !== req.user.id) {
+      return res.status(409).json({
+        success: false,
+        message: 'Already claimed by another admin',
+        claim: { adminId: holder.adminId, claimedAt: holder.claimedAt },
+      });
+    }
+
+    const row = await upsertState(req.user.id, refType, key, 'claimedAt');
+    return res.json({
+      success: true,
+      claim: { refType, refId: key, adminId: req.user.id, claimedAt: row.claimedAt },
+    });
+  } catch (error) {
+    logger.error('Failed to claim alert:', error);
+    return res.status(500).json({ success: false, message: 'Failed to claim alert' });
   }
 });
 

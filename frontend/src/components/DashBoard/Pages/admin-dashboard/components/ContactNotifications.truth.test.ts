@@ -10,6 +10,10 @@ const stylesPath = resolve(
   process.cwd(),
   'src/components/DashBoard/Pages/admin-dashboard/components/ContactNotifications.styles.ts',
 );
+const controlStylesPath = resolve(
+  process.cwd(),
+  'src/components/DashBoard/Pages/admin-dashboard/components/ContactNotifications.controls.styles.ts',
+);
 const helpersPath = resolve(
   process.cwd(),
   'src/components/DashBoard/Pages/admin-dashboard/components/ContactNotifications.helpers.tsx',
@@ -28,6 +32,7 @@ const source = readFileSync(
 );
 const stylesSource = existsSync(stylesPath) ? readFileSync(stylesPath, 'utf8') : '';
 const helpersSource = existsSync(helpersPath) ? readFileSync(helpersPath, 'utf8') : '';
+const controlStylesSource = existsSync(controlStylesPath) ? readFileSync(controlStylesPath, 'utf8') : '';
 const itemSource = existsSync(itemPath) ? readFileSync(itemPath, 'utf8') : '';
 const typesSource = existsSync(typesPath) ? readFileSync(typesPath, 'utf8') : '';
 const combinedSource = `${source}\n${stylesSource}\n${helpersSource}\n${itemSource}\n${typesSource}`;
@@ -80,7 +85,8 @@ describe('ContactNotifications active surface truth contract', () => {
   });
 
   it('keeps icon-only controls at the required minimum touch target size', () => {
-    const controlButtonBlock = stylesSource.match(/export const ControlButton[\s\S]*?`;/)?.[0] ?? '';
+    // SWA-138 S4b: control chrome moved to ContactNotifications.controls.styles.ts (Rule 4).
+    const controlButtonBlock = controlStylesSource.match(/export const ControlButton[\s\S]*?`;/)?.[0] ?? '';
 
     expect(controlButtonBlock).toContain('min-height: 44px');
     expect(controlButtonBlock).toContain('min-width: 44px');

@@ -21,21 +21,18 @@ import {
   upsertNotifications,
 } from './ContactNotifications.helpers';
 import {
-  ControlButton,
   EmptyCheckIcon,
   EmptyState,
   ErrorBanner,
   HeaderControls,
   HeaderTitle,
-  LoadMoreControl,
-  LoadMoreLabel,
-  LoadMoreRow,
   LoadingSpinner,
   NotificationBadge,
   NotificationHeader,
   NotificationsContainer,
   NotificationsList,
 } from './ContactNotifications.styles';
+import { ControlButton, LoadMoreControl, LoadMoreLabel, LoadMoreRow } from './ContactNotifications.controls.styles';
 
 type ApiResponse = { data: any };
 
@@ -59,8 +56,8 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
 }) => {
   const { authAxios } = useAuth();
   const navigate = useNavigate();
-  const { refreshReadState, ackAlert, bulkAck, isRead: isAckedRemotely, isArchived } =
-    useAlertReadState(authAxios);
+  const { refreshReadState, ackAlert, bulkAck, isRead: isAckedRemotely, isArchived,
+    refreshClaims, claimOf, toggleClaim } = useAlertReadState(authAxios);
   const pageSize = initialPageSize;
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +108,8 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   useEffect(() => {
     fetchPage(0, 0, false);
     refreshReadState();
-  }, [fetchPage, refreshReadState]);
+    refreshClaims();
+  }, [fetchPage, refreshReadState, refreshClaims]);
 
   useEffect(() => {
     if (!autoRefresh) return undefined;
@@ -248,6 +246,8 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                 onClick={handleNotificationClick}
                 onKeyDown={handleNotificationKeyDown}
                 onToggleMessage={toggleMessageExpand}
+                claim={claimOf(notification)}
+                onToggleClaim={toggleClaim}
               />
             ))
           ) : (

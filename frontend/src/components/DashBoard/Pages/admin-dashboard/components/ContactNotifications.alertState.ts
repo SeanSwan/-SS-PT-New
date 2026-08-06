@@ -13,6 +13,12 @@ type AxiosLike = {
   post: (url: string, body?: unknown) => Promise<{ data: any }>;
 };
 
+export interface AlertClaim {
+  adminId: number;
+  claimedAt: string;
+  mine: boolean;
+}
+
 export interface AlertStateEntry {
   readAt: string | null;
   archivedAt: string | null;
@@ -28,6 +34,9 @@ export const alertRefOf = (n: Notification): { refType: string; refId: string } 
 
 export function useAlertReadState(authAxios: AxiosLike) {
   const [readState, setReadState] = useState<Map<string, AlertStateEntry>>(new Map());
+  // SWA-138 S4b: claims are CROSS-admin — the whole point is seeing that a
+  // teammate already has an item, so two people don't work the same refund.
+  const [claims, setClaims] = useState<Map<string, AlertClaim>>(new Map());
 
   const refreshReadState = useCallback(async () => {
     try {
@@ -71,10 +80,41 @@ export function useAlertReadState(authAxios: AxiosLike) {
     return Boolean(readState.get(keyOf(ref.refType, ref.refId))?.readAt);
   }, [readState]);
 
+  const refreshClaims = useCallback(async () => {
+    try {
+      const res = await authAxios.get('/api/admin/alert-state/claims');
+      const rows: Array<{ refType: string; refId: string } & AlertClaim> = res.data?.claims ?? [];
+      setClaims(new Map(rows.map((r) => [
+        keyOf(r.refType, r.refId),
+        { adminId: r.adminId, claimedAt: r.claimedAt, mine: r.mine },
+      ])));
+    } catch {
+      // Claims are an overlay; a failure just means no chips render.
+    }
+  }, [authAxios]);
+
+  const claimOf = useCallback((n: Notification): AlertClaim | null => {
+    const ref = alertRefOf(n);
+    return claims.get(keyOf(ref.refType, ref.refId)) ?? null;
+  }, [claims]);
+
+  /** Claim, or release when the acting admin already holds it. */
+  const toggleClaim = useCallback(async (n: Notification) => {
+    const ref = alertRefOf(n);
+    const existing = claims.get(keyOf(ref.refType, ref.refId));
+    const release = Boolean(existing?.mine);
+    try {
+      await authAxios.post('/api/admin/alert-state/claim', { ...ref, release });
+    } catch {
+      // 409 = another admin got there first; the refresh below shows who.
+    }
+    await refreshClaims();
+  }, [authAxios, claims, refreshClaims]);
+
   const isArchived = useCallback((n: Notification) => {
     const ref = alertRefOf(n);
     return Boolean(readState.get(keyOf(ref.refType, ref.refId))?.archivedAt);
   }, [readState]);
 
-  return { refreshReadState, ackAlert, bulkAck, isRead, isArchived };
+  return { refreshReadState, ackAlert, bulkAck, isRead, isArchived, refreshClaims, claimOf, toggleClaim };
 }

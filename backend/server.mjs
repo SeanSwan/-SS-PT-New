@@ -68,6 +68,7 @@ import logger from './utils/logger.mjs';
 import { startPlaudR2MirrorWorker, stopPlaudR2MirrorWorker } from './jobs/plaudR2MirrorWorker.mjs';
 import { startPlaudCronJobs, stopPlaudCronJobs } from './jobs/plaudCronJobs.mjs';
 import { startMarketingPublisherWorker, stopMarketingPublisherWorker } from './jobs/marketingPublisherWorker.mjs';
+import { startAlertRetentionWorker, stopAlertRetentionWorker } from './jobs/alertRetentionWorker.mjs';
 import {
   startWorkoutPlanPdfDerivativeWorker,
   stopWorkoutPlanPdfDerivativeWorker,
@@ -151,6 +152,14 @@ let appInstance = null;
       logger.error('Workout plan PDF worker bootstrap failed (non-fatal): %s', pdfWorkerError.message);
     }
 
+    try {
+      // SWA-138 S4b: prunes expired admin notifications + settled alert
+      // read-state rows. Flag-gated (ALERT_RETENTION_WORKER_ENABLED).
+      startAlertRetentionWorker();
+    } catch (retentionErr) {
+      logger.error('Alert retention worker bootstrap failed (non-fatal): %s', retentionErr.message);
+    }
+
     logger.info('🎉 SwanStudios Server is now ready to serve cosmic wellness!');
 
   } catch (error) {
@@ -171,6 +180,7 @@ const gracefulShutdown = async (signal) => {
     stopPlaudCronJobs();
     stopMarketingPublisherWorker();
     stopWorkoutPlanPdfDerivativeWorker();
+    stopAlertRetentionWorker();
   } catch (err) {
     logger.warn('Worker/cron shutdown error: %s', err.message);
   }
