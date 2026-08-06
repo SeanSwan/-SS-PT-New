@@ -20,7 +20,8 @@ const coreRoutesSource = readFileSync(resolve(__dirname, '../../core/routes.mjs'
 describe('admin compliance workout truth contract', () => {
   it('keeps the active admin overview widget wired to the mounted compliance route', () => {
     expect(overviewSource).toContain("import ClientComplianceDashboard from '../components/ClientComplianceDashboard'");
-    expect(overviewSource).toContain('<BentoHalf><ClientComplianceDashboard /></BentoHalf>');
+    // SWA-138 S1/S5: every overview widget is wrapped in a crash boundary.
+    expect(overviewSource).toContain('<BentoHalf><WidgetErrorBoundary name="Client compliance"><ClientComplianceDashboard /></WidgetErrorBoundary></BentoHalf>');
     expect(dashboardSource).toContain("authAxios.get('/api/admin/compliance/at-risk')");
     expect(coreRoutesSource).toContain("app.use('/api/admin', adminComplianceRoutes)");
     expect(complianceRoutesSource).toContain("router.get('/compliance/at-risk'");
