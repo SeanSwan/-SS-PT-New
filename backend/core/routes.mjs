@@ -162,6 +162,7 @@ import videoCollectionRoutes from '../routes/videoCollectionRoutes.mjs';
 import adminNotificationsRoutes from '../routes/adminNotificationsRoutes.mjs';
 import adminAlertStateRoutes from '../routes/adminAlertStateRoutes.mjs';
 import renewalAlertRoutes from '../routes/renewalAlertRoutes.mjs';
+import adminSessionLiabilityRoutes from '../routes/adminSessionLiabilityRoutes.mjs';
 import adminOnboardingRoutes from '../routes/adminOnboardingRoutes.mjs';
 import adminWorkoutLoggerRoutes from '../routes/adminWorkoutLoggerRoutes.mjs';
 import adminReconciliationRoutes from '../routes/adminReconciliationRoutes.mjs';
@@ -548,6 +549,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API
   app.use('/api/admin', adminAlertStateRoutes); // SWA-138 S4: per-admin alert ack/archive read-state
   app.use('/api/renewal-alerts', renewalAlertRoutes); // SWA-138 S10: churn-risk queue (controller existed, never mounted)
+  app.use('/api/admin', adminSessionLiabilityRoutes); // SWA-138 S11: unredeemed prepaid-session liability
   app.use('/api/admin', adminOnboardingRoutes); // Admin onboarding management API (Phase 1.2)
   app.use('/api/admin', adminWorkoutLoggerRoutes); // Phase 1B: Admin workout logging API
 

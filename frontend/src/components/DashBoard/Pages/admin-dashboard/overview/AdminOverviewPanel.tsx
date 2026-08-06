@@ -30,6 +30,8 @@ import PendingPaymentsWidget from '../components/PendingPaymentsWidget';
 import RenewalRiskWidget from '../components/RenewalRiskWidget';
 import LeadSpeedWidget from '../components/LeadSpeedWidget';
 import SessionReconciliationWidget from '../components/SessionReconciliationWidget';
+import SessionLiabilityWidget from '../components/SessionLiabilityWidget';
+import AiSpendWidget from '../components/AiSpendWidget';
 import WaiverSummaryWidget from '../components/WaiverSummaryWidget';
 import WidgetErrorBoundary from '../shell/WidgetErrorBoundary';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
@@ -241,10 +243,12 @@ const AdminOverviewPanel: React.FC = () => {
         id="admin-revenue-integrity"
         eyebrow="Revenue Integrity"
         title="Money in motion — speed in, obligations out"
-        lead="Business Lens reports what revenue WAS. This band watches what it is DOING: how fast new leads get answered, and whether every paid purchase actually delivered its sessions."
+        lead="Business Lens reports what revenue WAS. This band watches what it is DOING: how fast new leads get answered, whether every paid purchase delivered its sessions, what training is still owed, and what the AI is costing."
       >
         <BentoHalf><WidgetErrorBoundary name="Speed to lead"><LeadSpeedWidget /></WidgetErrorBoundary></BentoHalf>
         <BentoHalf><WidgetErrorBoundary name="Session reconciliation"><SessionReconciliationWidget /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Session liability"><SessionLiabilityWidget /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="AI spend"><AiSpendWidget /></WidgetErrorBoundary></BentoHalf>
       </AdminOverviewSection>
       <AdminOverviewSection
         id="admin-operations"
