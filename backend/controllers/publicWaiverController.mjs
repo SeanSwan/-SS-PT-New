@@ -90,6 +90,17 @@ function resolveDisplayText(version) {
   return version.htmlText || version.markdownText || null;
 }
 
+/**
+ * Whether the signer accepted a given document type. Required documents are
+ * accepted by definition (submit refuses without liabilityAccepted); optional
+ * ones carry the signer's actual answer.
+ */
+function acceptanceForVersionType(waiverType, { aiConsentAccepted, mediaConsentAccepted }) {
+  if (waiverType === 'ai_notice') return aiConsentAccepted === true;
+  if (waiverType === 'media_release') return mediaConsentAccepted === true;
+  return true;
+}
+
 function dedupeVersions(versions) {
   const seen = new Map();
   return versions.filter((v) => {
@@ -360,6 +371,10 @@ export async function submitPublicWaiver(req, res) {
         [Op.or]: [
           { waiverType: 'core' },
           { waiverType: 'ai_notice' },
+          // Optional — present from v2.0 onward. Included so the signer's
+          // media decision is recorded against real terms, but never required
+          // (a v1.0 database has no media_release row at all).
+          { waiverType: 'media_release' },
           ...activityTypes.map((at) => ({
             waiverType: 'activity_addendum',
             activityType: at,
@@ -495,12 +510,19 @@ export async function submitPublicWaiver(req, res) {
         },
       }, { transaction });
 
-      // C.2 Create WaiverRecordVersion links
+      // C.2 Create WaiverRecordVersion links.
+      // `accepted` is per-document, not blanket-true: an optional document the
+      // signer DECLINED must be recorded as shown-and-declined, which is
+      // evidence in its own right (SWA-140 — optional consent bundled into a
+      // required release is what invalidates the optional consent).
       await WaiverRecordVersion.bulkCreate(
         resolvedVersions.map((v) => ({
           waiverRecordId: record.id,
           waiverVersionId: v.id,
-          accepted: true,
+          accepted: acceptanceForVersionType(v.waiverType, {
+            aiConsentAccepted,
+            mediaConsentAccepted: mediaConsentAccepted ?? false,
+          }),
           acceptedAt: now,
         })),
         { transaction },

@@ -336,7 +336,8 @@ const seedInitialData = async () => {
   // Seed waiver versions (Phase 5W-G) — idempotent, safe for every startup
   try {
     const { getModel } = await import('../models/index.mjs');
-    const waiverResult = await seedWaiverVersions(getModel);
+    const { default: sequelizeInstance } = await import('../database.mjs');
+    const waiverResult = await seedWaiverVersions(getModel, sequelizeInstance);
     if (waiverResult.seeded) {
       logger.info(`✅ Waiver version seeding: ${waiverResult.created} created, ${waiverResult.existing} existing`);
     } else {

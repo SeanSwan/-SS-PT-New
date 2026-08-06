@@ -32,7 +32,7 @@ async function main() {
     await initializeModelsCache();
     console.log('✅ Models initialized\n');
 
-    const result = await seedWaiverVersions(getModel);
+    const result = await seedWaiverVersions(getModel, sequelize);
     console.log(`\nResult: created=${result.created} existing=${result.existing} reason=${result.reason}`);
 
     if (!result.seeded && result.reason !== 'all_exist') {

@@ -122,11 +122,69 @@ const VERSIONS = [
 ];
 
 /**
+ * Activate the v2.0 document set (SWA-140).
+ *
+ * GATED: runs only when WAIVER_ACTIVATE_V2=true. The v2.0 text is DRAFT until
+ * an attorney has reviewed it (contract §16), so the flag stays off and v1.0
+ * stays live until Sean flips it deliberately.
+ *
+ * Activation is one transaction — create the new rows AND retire the previous
+ * active rows for the same document keys together. That is what makes "at most
+ * one active version per document" true rather than aspirational; a half-done
+ * activation would leave two live documents and the signer would get whichever
+ * one insert order happened to favour.
+ */
+async function activateV2(WaiverVersion, sequelize) {
+  const { WAIVER_TEXT_V2 } = await import('./waiver-text/waiverTextV2.mjs');
+  const now = new Date();
+  let created = 0;
+  let retired = 0;
+
+  await sequelize.transaction(async (transaction) => {
+    for (const v of WAIVER_TEXT_V2) {
+      const existing = await WaiverVersion.findOne({
+        where: { waiverType: v.waiverType, activityType: v.activityType, version: v.version },
+        transaction,
+      });
+      if (existing) continue;
+
+      // Retire the currently-live document for this key first — the partial
+      // unique index refuses two non-retired rows for the same key.
+      const [retiredCount] = await WaiverVersion.update(
+        { retiredAt: now },
+        {
+          where: { waiverType: v.waiverType, activityType: v.activityType, retiredAt: null },
+          transaction,
+        },
+      );
+      retired += retiredCount;
+
+      await WaiverVersion.create(
+        {
+          ...v,
+          textHash: sha256(v.htmlText),
+          effectiveAt: now,
+          retiredAt: null,
+          // Existing signers are asked to re-sign: v2.0 adds materially
+          // protective terms (negligence, minors, media) that v1.0 never had.
+          requiresReconsent: true,
+        },
+        { transaction },
+      );
+      created += 1;
+    }
+  });
+
+  return { created, retired };
+}
+
+/**
  * Seed waiver versions if not already present.
  * @param {Function} getModel - Model getter from models/index.mjs
+ * @param {object} [sequelize] - Sequelize instance (required for v2 activation)
  * @returns {{ seeded: boolean, created: number, existing: number }}
  */
-export default async function seedWaiverVersions(getModel) {
+export default async function seedWaiverVersions(getModel, sequelize = null) {
   try {
     const WaiverVersion = getModel('WaiverVersion');
     if (!WaiverVersion) {
@@ -154,11 +212,29 @@ export default async function seedWaiverVersions(getModel) {
       else existing++;
     }
 
+    let v2 = null;
+    if (process.env.WAIVER_ACTIVATE_V2 === 'true') {
+      if (!sequelize) {
+        logger.error('❌ WAIVER_ACTIVATE_V2=true but no sequelize instance was passed — v2.0 NOT activated');
+      } else {
+        v2 = await activateV2(WaiverVersion, sequelize);
+        if (v2.created > 0) {
+          logger.info(`✅ Waiver v2.0 ACTIVATED: ${v2.created} created, ${v2.retired} prior versions retired`);
+        }
+      }
+    }
+
     if (created > 0) {
       logger.info(`✅ Waiver versions seeded: ${created} created, ${existing} existing`);
     }
 
-    return { seeded: created > 0, created, existing, reason: created > 0 ? 'seeded' : 'all_exist' };
+    return {
+      seeded: created > 0 || (v2?.created ?? 0) > 0,
+      created,
+      existing,
+      v2,
+      reason: created > 0 ? 'seeded' : 'all_exist',
+    };
   } catch (err) {
     logger.error('❌ Waiver version seeding error:', err.message);
     return { seeded: false, created: 0, existing: 0, reason: err.message };

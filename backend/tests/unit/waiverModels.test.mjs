@@ -40,7 +40,9 @@ describe('WaiverVersion model definition', () => {
 
   it('4 - waiverType enum includes expected values', () => {
     const values = WaiverVersion.getAttributes().waiverType.values;
-    expect(values).toEqual(['core', 'activity_addendum', 'ai_notice']);
+    // media_release added SWA-140 — the optional photo/video consent is its own
+    // versioned document instead of a checkbox referencing nothing.
+    expect(values).toEqual(['core', 'activity_addendum', 'ai_notice', 'media_release']);
   });
 
   it('5 - activityType enum includes contract values', () => {

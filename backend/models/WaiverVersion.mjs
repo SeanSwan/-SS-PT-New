@@ -11,7 +11,9 @@ WaiverVersion.init(
       autoIncrement: true,
     },
     waiverType: {
-      type: DataTypes.ENUM('core', 'activity_addendum', 'ai_notice'),
+      // media_release added SWA-140: the optional photo/video consent needs its
+      // own versioned document rather than riding on the liability release.
+      type: DataTypes.ENUM('core', 'activity_addendum', 'ai_notice', 'media_release'),
       allowNull: false,
     },
     activityType: {
