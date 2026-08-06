@@ -33,7 +33,7 @@ export interface Toast {
   };
 }
 
-interface ToastContextType {
+export interface ToastContextType {
   toast: (toast: Omit<Toast, 'id'>) => void;
   dismiss: (id: string) => void;
   dismissAll: () => void;
@@ -82,6 +82,18 @@ export const useToast = () => {
       context.toast({ variant: 'info', title, description: message })
   };
 };
+
+/**
+ * Non-throwing variant of `useToast`.
+ *
+ * `useToast` throws when no ToastProvider is mounted, which turns a missing
+ * provider into a blank screen for the whole subtree. Surfaces that only use
+ * toasts for confirmations (and have their own on-screen fallback for
+ * failures) read the context through this instead and degrade gracefully.
+ * Returns null when there is no provider.
+ */
+export const useOptionalToast = (): ToastContextType | null =>
+  useContext(ToastContext) ?? null;
 
 // Styled Components
 const ToastContainer = styled.div`

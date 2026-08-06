@@ -189,6 +189,12 @@ const AdminWaiverConfirmDialog: React.FC<AdminWaiverConfirmDialogProps> = ({
     try {
       await request.onConfirm();
       onClose();
+    } catch {
+      // Deliberate swallow: `onConfirm` rethrows only AFTER the caller has
+      // surfaced the failure to the admin (see AdminWaiversManager's revoke
+      // handler). The rethrow's job is to keep this dialog OPEN so the action
+      // can be retried; without this catch it also became an unhandled
+      // promise rejection.
     } finally {
       setConfirming(false);
     }

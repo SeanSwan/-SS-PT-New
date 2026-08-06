@@ -2,52 +2,49 @@
  * ============================================================================
  * FILE: AdminWaiversManager.tsx
  * PURPOSE: Admin waiver management — list, filter, detail, match/link/revoke
- * AUTHOR: Claude Sonnet 4.6 | LAST MODIFIED: 2026-04-12
+ * AUTHOR: Claude Sonnet 4.6 | LAST MODIFIED: 2026-08-05
  * ============================================================================
  *
  * WHAT THIS FILE DOES: Renders the waiver management surface for admin ops.
- * Fetches waiver records, supports quick-filter chips and debounced search,
- * opens a detail modal (approve/reject matches, revoke, manual link).
+ * Presentation only — the list query, detail fetches and the four mutating
+ * actions live in `useAdminWaiversController`, which reports every failure to
+ * the admin through `useAdminWaiverFeedback`. This surface has no silent
+ * catches.
  *
  * HOW IT FITS IN THE APP:
  *   UniversalDashboardLayout → /dashboard/admin/waivers → AdminWaiversManager
- *   Also reachable via sidebar "Waivers" workspace item.
+ *   Nav registration: `frontend/src/config/dashboard-tabs.ts:175` (id
+ *   `waivers`, section `clients`, prefix `/dashboard/admin/waivers`). It is
+ *   NOT registered in AdminStellarSidebar.tsx — that file contains zero waiver
+ *   references; an earlier version of this header claimed otherwise.
  *
  *
  * ╔═══════════════════════════════════════════════════════════════╗
  * ║  COMPONENT: AdminWaiversManager                               ║
  * ║  PURPOSE: Waiver ops panel — list + filter + detail + actions ║
  * ║  OWNER: Claude Sonnet 4.6                                     ║
- * ║  LAST VALIDATED: 2026-04-12                                   ║
+ * ║  LAST VALIDATED: 2026-08-05                                   ║
  * ╚═══════════════════════════════════════════════════════════════╝
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { RefreshCw } from 'lucide-react';
 import apiService from '../../../../services/api';
-import type {
-  WaiverRecordSummary, WaiverRecordDetail, BadgeLabel, WaiverStatus,
-} from './adminWaivers.types';
+import { WAIVER_UNCHANGED } from './adminWaiverFeedback';
 import {
   Container, Header, Title, FilterBar, SearchInput,
-  PaginationRow, PageButton, LoadingState,
+  PaginationRow, PageButton, LoadingState, ErrorState,
   QuickFilters, QuickFilterChip, StatsRow, StatItem, RefreshBtn,
 } from './adminWaivers.styles';
+import AdminWaiverAlerts from './AdminWaiverAlerts';
 import AdminWaiversTable from './AdminWaiversTable';
 import AdminWaiverDetailModal from './AdminWaiverDetailModal';
 import AdminManualLinkModal from './AdminManualLinkModal';
-import AdminWaiverConfirmDialog, { type AdminWaiverConfirmRequest } from './AdminWaiverConfirmDialog';
-import {
-  getWaiverActivationClientId,
-  QUICK_FILTERS,
-  SEARCH_DEBOUNCE_MS,
-} from './AdminWaiversManager.logic';
+import AdminWaiverConfirmDialog from './AdminWaiverConfirmDialog';
+import { QUICK_FILTERS } from './AdminWaiversManager.logic';
+import { useAdminWaiversController } from './useAdminWaiversController';
 import { StyledBox } from '@/components/ui/StyledBox';
-
-// ─────────────────────────────────────────────────────────────
-// SECTION: Constants
-// ─────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Component
@@ -55,119 +52,29 @@ import { StyledBox } from '@/components/ui/StyledBox';
 
 const AdminWaiversManager: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [records, setRecords] = useState<WaiverRecordSummary[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalRecords, setTotalRecords] = useState(0);
-  const [statusFilter, setStatusFilter] = useState<WaiverStatus | ''>('');
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activationClientId = getWaiverActivationClientId(searchParams);
+  const {
+    records, loading, page, setPage, totalPages, totalRecords,
+    statusFilter, setStatusFilter, listFailed,
+    search, handleSearchChange,
+    detailRecord, detailBadges, showDetail, closeDetail, openDetail,
+    linkRecordId, setLinkRecordId,
+    confirmRequest, setConfirmRequest,
+    alerts, dismissAlert, reportError, reportSuccess,
+    fetchRecords,
+    handleApproveMatch, handleRejectMatch, handleManualLink,
+    pendingCount, showPendingAlert,
+  } = useAdminWaiversController(searchParams);
 
-  // Detail modal
-  const [detailRecord, setDetailRecord] = useState<WaiverRecordDetail | null>(null);
-  const [detailBadges, setDetailBadges] = useState<BadgeLabel[]>([]);
-  const [showDetail, setShowDetail] = useState(false);
+  // The list is empty AND the request that produced it failed — an empty
+  // table here would be a lie (see WaiverSummaryWidget's warning).
+  const listUnavailable = listFailed && records.length === 0;
 
-  // Manual link modal
-  const [linkRecordId, setLinkRecordId] = useState<number | null>(null);
-  const [confirmRequest, setConfirmRequest] = useState<AdminWaiverConfirmRequest | null>(null);
-
-  // ── Search debounce ──────────────────────────────────────
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearch(val);
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => setDebouncedSearch(val), SEARCH_DEBOUNCE_MS);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    };
-  }, []);
-
-  // ── Data fetch ───────────────────────────────────────────
-  const fetchRecords = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ page: String(page), limit: '25' });
-      if (statusFilter) params.set('status', statusFilter);
-      if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
-      if (activationClientId) params.set('clientId', activationClientId);
-
-      const res = await apiService.get(`/api/admin/waivers?${params}`);
-      const data = res.data?.data;
-      setRecords(data?.records || []);
-      setTotalPages(data?.pagination?.pages || 1);
-      setTotalRecords(data?.pagination?.total || 0);
-    } catch (err) {
-      console.error('Failed to fetch waiver records:', err);
-      setRecords([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, statusFilter, debouncedSearch, activationClientId]);
-
-  useEffect(() => {
-    fetchRecords();
-  }, [fetchRecords]);
-
-  // Reset to page 1 when filters/search change
-  useEffect(() => {
-    setPage(1);
-  }, [statusFilter, debouncedSearch]);
-
-  // ── Detail modal ─────────────────────────────────────────
-  const openDetail = async (record: WaiverRecordSummary) => {
-    try {
-      const res = await apiService.get(`/api/admin/waivers/${record.id}`);
-      setDetailRecord(res.data?.data?.record || null);
-      setDetailBadges(res.data?.data?.badges || []);
-      setShowDetail(true);
-    } catch (err) {
-      console.error('Failed to fetch waiver detail:', err);
-    }
-  };
-
-  const closeDetail = () => {
-    setShowDetail(false);
-    setDetailRecord(null);
-  };
-
-  const refreshDetail = async (id: number) => {
-    try {
-      const res = await apiService.get(`/api/admin/waivers/${id}`);
-      setDetailRecord(res.data?.data?.record || null);
-      setDetailBadges(res.data?.data?.badges || []);
-    } catch (err) {
-      console.error('Failed to refresh waiver detail:', err);
-    }
-  };
-
-  // ── Actions ──────────────────────────────────────────────
-  const handleApproveMatch = async (matchId: number) => {
-    try {
-      await apiService.post(`/api/admin/waivers/matches/${matchId}/approve`);
-      fetchRecords();
-      if (detailRecord) await refreshDetail(detailRecord.id);
-    } catch (err) {
-      console.error('Failed to approve match:', err);
-    }
-  };
-
-  const handleRejectMatch = async (matchId: number) => {
-    try {
-      await apiService.post(`/api/admin/waivers/matches/${matchId}/reject`);
-      fetchRecords();
-      if (detailRecord) await refreshDetail(detailRecord.id);
-    } catch (err) {
-      console.error('Failed to reject match:', err);
-    }
-  };
-
+  /*
+   * Revocation stays in this file on purpose: AdminWaiversManager.
+   * confirmationContract.test.ts reads this source and asserts the revoke call
+   * sits beside the branded confirmation layer, so it can never regress to a
+   * browser-native confirm. Keep the endpoint and `setConfirmRequest` here.
+   */
   const handleRevoke = (recordId: number) => {
     setConfirmRequest({
       title: 'Revoke this waiver?',
@@ -178,30 +85,17 @@ const AdminWaiversManager: React.FC = () => {
       onConfirm: async () => {
         try {
           await apiService.post(`/api/admin/waivers/${recordId}/revoke`);
+          reportSuccess('Waiver revoked — it is no longer in operational use.');
           fetchRecords();
           closeDetail();
         } catch (err) {
-          console.error('Failed to revoke waiver:', err);
+          reportError(err, 'Revoke waiver', WAIVER_UNCHANGED.revoke);
+          // Rethrow so the confirm dialog stays open on the failed action.
           throw err;
         }
       },
     });
   };
-
-  const handleManualLink = async (recordId: number, userId: number) => {
-    try {
-      await apiService.post(`/api/admin/waivers/${recordId}/attach-user`, { userId });
-      setLinkRecordId(null);
-      fetchRecords();
-      closeDetail();
-    } catch (err) {
-      console.error('Failed to attach user:', err);
-    }
-  };
-
-  // ── Derived stats ────────────────────────────────────────
-  const pendingCount = records.filter((r) => r.status === 'pending_match').length;
-  const showPendingAlert = statusFilter === '' && pendingCount > 0;
 
   // ── Render ───────────────────────────────────────────────
   return (
@@ -236,6 +130,8 @@ const AdminWaiversManager: React.FC = () => {
         </FilterBar>
       </Header>
 
+      <AdminWaiverAlerts alerts={alerts} onDismiss={dismissAlert} />
+
       <QuickFilters role="group" aria-label="Filter waivers by status">
         {QUICK_FILTERS.map((f) => (
           <QuickFilterChip
@@ -249,9 +145,17 @@ const AdminWaiversManager: React.FC = () => {
         ))}
       </QuickFilters>
 
-      {loading ? (
-        <LoadingState>Loading waiver records...</LoadingState>
-      ) : (
+      {loading && <LoadingState>Loading waiver records...</LoadingState>}
+
+      {!loading && listUnavailable && (
+        <ErrorState>
+          Waiver records could not be loaded, so this list is empty because the
+          request failed — not because there are no waivers. Use Refresh to try
+          again.
+        </ErrorState>
+      )}
+
+      {!loading && !listUnavailable && (
         <AdminWaiversTable records={records} onView={openDetail} />
       )}
 
@@ -260,7 +164,7 @@ const AdminWaiversManager: React.FC = () => {
           <PageButton disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
             Prev
           </PageButton>
-          <StyledBox as="span" $style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
+          <StyledBox as="span" $style={{ color: 'var(--text-secondary, rgba(255,255,255,0.6))', fontSize: '0.85rem' }}>
             Page {page} of {totalPages}
           </StyledBox>
           <PageButton disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>

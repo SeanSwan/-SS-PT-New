@@ -18,6 +18,10 @@ const DEBOUNCE_MS = 300;
 const AdminManualLinkModal: React.FC<Props> = ({ recordId, onClose, onAttach }) => {
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [loading, setLoading] = useState(false);
+  // A failed client search used to log to the console and leave the list
+  // empty, which reads as "this client doesn't exist" — the same false
+  // reassurance the manager's silent catches produced (SWA-140).
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,6 +35,7 @@ const AdminManualLinkModal: React.FC<Props> = ({ recordId, onClose, onAttach }) 
 
   const fetchUsers = useCallback(async (term: string) => {
     setLoading(true);
+    setSearchError(null);
     try {
       const params = new URLSearchParams({ limit: '50' });
       if (term.trim()) params.set('search', term.trim());
@@ -46,6 +51,13 @@ const AdminManualLinkModal: React.FC<Props> = ({ recordId, onClose, onAttach }) 
       );
     } catch (err) {
       console.error('Failed to fetch users:', err);
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setUsers([]);
+      setSearchError(
+        status === 429
+          ? 'Too many requests — wait a moment, then search again.'
+          : "Couldn't load clients. This is a loading failure, not an empty result — try again.",
+      );
     } finally {
       setLoading(false);
     }
@@ -83,8 +95,24 @@ const AdminManualLinkModal: React.FC<Props> = ({ recordId, onClose, onAttach }) 
           <LoadingState>Loading clients...</LoadingState>
         ) : (
           <UserSearchList>
-            {users.length === 0 && (
-              <StyledBox as="div" $style={{ padding: 16, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>
+            {searchError && (
+              <StyledBox
+                as="div"
+                role="alert"
+                $style={{
+                  padding: 16,
+                  textAlign: 'center',
+                  color: 'var(--danger, #f4707a)',
+                  border: '1px solid var(--danger, #f4707a)',
+                  borderRadius: 8,
+                  margin: 8,
+                }}
+              >
+                {searchError}
+              </StyledBox>
+            )}
+            {!searchError && users.length === 0 && (
+              <StyledBox as="div" $style={{ padding: 16, color: 'var(--text-muted, rgba(255,255,255,0.4))', textAlign: 'center' }}>
                 {search.trim() ? 'No matching clients.' : 'No clients found.'}
               </StyledBox>
             )}
