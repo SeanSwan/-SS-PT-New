@@ -362,3 +362,69 @@ describe('§5 durable signed artifact', () => {
     expect(res.body.signedAt).toBeTruthy();
   });
 });
+
+// ═══════════════════════════════════════════════════════════════
+describe('§6 the artifact is rendered, so it must be sanitized', () => {
+  const HOSTILE = '<p>ok</p><script>alert(1)</script><a href="javascript:alert(2)">x</a><img src=x onerror="alert(3)">';
+
+  function setupHostileText() {
+    const captured = { record: null, updates: [] };
+    const hostileVersions = [
+      { ...VERSIONS[0], htmlText: HOSTILE },
+      VERSIONS[1], VERSIONS[2], VERSIONS[3],
+    ];
+    mockGetModel.mockImplementation((name) => {
+      if (name === 'WaiverVersion') return { findAll: vi.fn().mockResolvedValue(hostileVersions) };
+      if (name === 'WaiverRecord') {
+        return {
+          findOne: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockImplementation((data) => {
+            captured.record = data;
+            return {
+              id: 90,
+              metadata: data.metadata,
+              update: vi.fn().mockImplementation((patch) => { captured.updates.push(patch); }),
+            };
+          }),
+        };
+      }
+      if (name === 'WaiverRecordVersion') return { bulkCreate: vi.fn().mockResolvedValue([]) };
+      if (name === 'WaiverConsentFlags') return { create: vi.fn().mockResolvedValue({}) };
+      if (name === 'User') return { findAll: vi.fn().mockResolvedValue([]) };
+      if (name === 'PendingWaiverMatch') return { bulkCreate: vi.fn().mockResolvedValue([]) };
+      return {};
+    });
+    return captured;
+  }
+
+  it('6.1 — the returned artifact carries no script, no javascript: URI, no event handler', async () => {
+    setupHostileText();
+    const res = makeRes();
+    await submitPublicWaiver(makeReq({ ...ADULT_BODY }), res);
+
+    expect(res.statusCode).toBe(201);
+    const html = res.body.artifactHtml;
+    expect(html).toContain('<p>ok</p>');
+    expect(html).not.toContain('<script');
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('onerror');
+  });
+
+  it('6.2 — the STORED evidence snapshot stays verbatim (it is never rendered)', async () => {
+    const captured = setupHostileText();
+    const res = makeRes();
+    await submitPublicWaiver(makeReq({ ...ADULT_BODY }), res);
+
+    const snapshot = captured.record.metadata.versionTextSnapshots.find((s) => s.id === 1);
+    expect(snapshot.displayText).toBe(HOSTILE);
+  });
+
+  it('6.3 — the stored artifact copy is sanitized too', async () => {
+    const captured = setupHostileText();
+    const res = makeRes();
+    await submitPublicWaiver(makeReq({ ...ADULT_BODY }), res);
+
+    const stored = captured.updates.find((u) => u.metadata?.artifactHtml);
+    expect(stored.metadata.artifactHtml).not.toContain('<script');
+  });
+});

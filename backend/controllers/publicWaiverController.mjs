@@ -614,7 +614,14 @@ export async function submitPublicWaiver(req, res) {
           title: v.title,
           textHash: v.textHash,
           effectiveAt: v.effectiveAt,
-          displayText: resolveDisplayText(v),
+          // SANITIZED, unlike the evidence snapshot above. The artifact is a
+          // RENDERED document — it is returned to the browser and the receipt
+          // opens it in a new window to print. Embedding raw admin-authored
+          // HTML here would reopen the stored-XSS vector that server-side
+          // sanitization closed on /versions/current, through a new door.
+          // The verbatim text remains in metadata.versionTextSnapshots, which
+          // is evidence and is never rendered.
+          displayText: sanitizeWaiverDisplayHtml(resolveDisplayText(v)),
         })),
       });
 

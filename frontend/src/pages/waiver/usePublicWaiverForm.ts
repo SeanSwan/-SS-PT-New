@@ -61,14 +61,42 @@ export function computeAge(dob: string, at: Date = new Date()): number | null {
   return age;
 }
 
-/** Only same-origin relative paths are accepted, so returnUrl can't be an open redirect. */
+/**
+ * Only same-origin relative paths are accepted, so returnUrl can't be turned
+ * into an open redirect off a page we deliberately send logged-in users to.
+ *
+ * Parsed against a sentinel origin rather than string-matched: hand-rolled
+ * `startsWith('//')` checks miss the normalisations a browser performs before
+ * it resolves a URL. `/\evil.com` (backslash) and `/<TAB>/evil.com` both
+ * collapse to `//evil.com` — protocol-relative, i.e. off-site — and both got
+ * past an earlier version of this guard. The URL parser applies the same
+ * normalisation the browser will, so anything that escapes the origin is
+ * caught rather than guessed at.
+ */
+const RETURN_URL_SENTINEL = 'https://waiver.invalid';
+
 export function safeReturnUrl(raw: string | null): string | null {
   if (!raw) return null;
+
   let decoded = raw;
   try { decoded = decodeURIComponent(raw); } catch { return null; }
-  if (!decoded.startsWith('/') || decoded.startsWith('//')) return null;
-  if (/[\r\n]/.test(decoded)) return null;
-  return decoded;
+
+  // Control characters are stripped by browsers before parsing, which is how
+  // a tab smuggles in an extra slash. Refuse them outright.
+  // Browsers strip control characters before parsing a URL, which is how a
+  // tab smuggles in an extra slash. Checked by code point so no control
+  // character has to appear in this source file.
+  for (let k = 0; k < decoded.length; k += 1) {
+    const code = decoded.charCodeAt(k);
+    if (code < 0x20 || code === 0x7f) return null;
+  }
+
+  let url: URL;
+  try { url = new URL(decoded, RETURN_URL_SENTINEL); } catch { return null; }
+  if (url.origin !== RETURN_URL_SENTINEL) return null;
+
+  const path = `${url.pathname}${url.search}${url.hash}`;
+  return path.startsWith('/') ? path : null;
 }
 
 export interface UsePublicWaiverFormOptions {
