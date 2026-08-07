@@ -662,6 +662,54 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
 
     **Cross-references:** Rule 58 (schema-drift detection — how ground truth is established), Rule 56 (baseline disclosure), Rule 74 (Proof-Before-Done — a suite turned green by appeasement is not proof), Rule 75 (Trailhead-Truth — stale workaround comments), Rule 20 (sibling sweep — shared harnesses are siblings), Rule 77 (Dead-File Quarantine — a green test over a dead twin).
 
+80. **Second-Vantage Verification — one tool's failure is NEVER proof something is broken (MANDATORY, HARD GATE before any destructive remedy, applies to EVERY agent)** — Established 2026-08-05 after a planner investigating the SwanGuard repo ran `git status`, got `fatal: not a git repository`, ranked **"the repo is completely broken" as its #1 finding above everything else**, and prescribed *"re-clone or re-init as an independent repo"* as Slice 0 of the build.
+
+    The repo was completely healthy. Branch `codex/…-recovery-20260801`, full history, tracked modifications, intact worktree metadata. Git failed for exactly one reason: the agent runs in **WSL**, and the repo's `.git` file holds a **Windows** path (`C:/…`) that WSL's git cannot resolve. Windows git reads it perfectly. Executing that slice would have destroyed a branch, its history, and five files of uncommitted work. A human asking for a review caught it. **Nothing else would have.**
+
+    The failure was not the git error. It was collapsing two different sentences:
+    > "I cannot reach X with this tool."
+    > "X is broken."
+
+    The first is an observation about your tooling. The second is a claim about the world. **Everything expensive lives in the gap between them.**
+
+    **THE GATE:** no `delete`, `re-clone`, `re-init`, `reset --hard`, `wipe`, `drop`, `reinstall`, `overwrite`, or "recreate it fresh" **on the strength of one tool's failure.** Each requires positive evidence of damage **from a second vantage** — not merely an error from the first. If you cannot obtain that evidence, the finding is *"unreachable from here"* and the remedy is **escalate to Sean**, not repair.
+
+    **When it fires:** any sentence of the form "X is broken / corrupt / missing / empty / not found / does not exist / unreachable," "the repo/DB/service/config is in a bad state," "there is no Y here" (when Y's absence would be surprising), or "we need to re-clone / re-init / reset / wipe / reinstall." It fires **hardest** when the proposed remedy is destructive: a wrong "it's broken" that leads to a `--help` is cheap; one that leads to `rm -rf` is not.
+
+    **The check:**
+    1. **Name the tool AND the environment, not just the result.** Not "git says it's not a repo" — *"git, run from WSL against a `/mnt/c` path, says it's not a repo."* The moment you write the environment down, the hypothesis appears on its own.
+    2. **Re-check from a second vantage** before the claim stands: git failing on `/mnt/c` from WSL → run git from Windows (and vice versa); a file "missing" from one side → check the other side's path; a command "not installed" → check the other shell, the venv, `which -a`, the full path; a service "down" → check the port/socket, not just the client; an env var "unset" → check the *running process's* `/proc/<pid>/environ`, not your shell; a dir "empty" → check permissions and that you are where you think; an API "returning nothing" → check status code and raw body before parsing.
+    3. **Look for the artifact that would exist if it really were broken.** A truly broken git repo has no intact `refs/`, `logs/`, or `HEAD`. **Absence of damage is evidence of health** — go find the damage before you claim it.
+    4. **State the residue.** If a second vantage was impossible, say so explicitly: `[UNVERIFIED — could not check from <vantage>]`. Never upgrade an unverified failure into a fact.
+
+    **Build it into the tooling, not just the habit.** Any diagnostic that reports "unreachable" must try the second vantage *itself* before giving up. Proven 2026-08-06: the test-delta detector in `scripts/hermes/review.py` reported `[UNVERIFIED]` for SwanGuard from WSL — correct, but it meant the gate would have been **decorative in 100% of real Hermes runs**. It now falls back to Windows `git.exe` with a translated path and reports unreachable only after *every* vantage fails.
+
+    **Absence claims are the same error in a different costume.** "No Linear issue exists," "there's no test for this," "that file isn't anywhere," "nothing references it" — each is a claim about the world derived from not having looked hard enough. Search before asserting absence; an empty result from one query is not an empty world.
+
+    **Reviewer duty:** treat every "X is broken" in another agent's work as **unproven until you re-check it yourself from a different environment.** This is the single highest-yield check when reviewing anything produced by an agent that lives in WSL while the repos live on Windows — the mismatch is structural, so this error will keep recurring.
+
+    **Cross-references:** Rule 34 (No Blind Cleanup — the forbidden-language sibling), Rule 47 (supervised read-only launcher — redaction-at-source applies the same principle to remote shells), Rule 74 (Proof-Before-Done), Rule 51 (confidence tags — an unverified failure is `[HYPOTHESIS]`, never `[VERIFIED]`), Rule 52 (anti-rework burden of proof). Full procedure: skill `cross-env-verify`.
+
+81. **Test-Delta Disclosure — a pass count that includes assertions you rewrote is not proof (MANDATORY, applies to EVERY agent)** — Established 2026-08-06. This is the **disclosure half of Rule 79**: Rule 79 grants that a red test may itself be the thing that is wrong; Rule 81 requires you to show your work when you act on that grant. Without 81, Rule 79 is a license to edit any inconvenient assertion.
+
+    Incident: a builder appended migration `0026` to SwanGuard, which turned three existing position-anchored tests red. It re-anchored all three — **correctly** — and reported *"all 52 database tests pass."* Every edit was right; the report gave no way to know that. One sentence was doing two jobs at once: vouching for 49 tests that passed on their own, and vouching for 3 whose assertions the author had rewritten minutes earlier so that they would.
+
+    Every edit to an existing test is exactly one of two things:
+    - **RE-ANCHOR** — the contract genuinely changed, and the old assertion encoded the old contract. Legitimate, expected, often mandatory.
+    - **SILENCE** — the code broke a contract that still holds, and the assertion was moved to match the break. A bug, now wearing a green checkmark.
+
+    **In a diff these are indistinguishable. In a pass count they are invisible.** The only one who can tell them apart is the author, at the moment of the edit, while the reason is still in their head. The failure mode is not dishonesty — it is flow: red test → obvious fix → green → move on. Each step is locally reasonable, which is why the reflex is the danger.
+
+    **The requirement:** report a **test-delta table** — one row per changed assertion, not per file — **before and separately from** the pass count, then split the number: *"52 passed — 49 unchanged, 3 re-anchored above."* Columns: `File:line | Before | After | Class (RE-ANCHOR|SILENCE) | Why the new assertion is the correct one`. **The *why* must stand alone, without the diff, in one sentence** — if you cannot write that sentence, you have not established which class you are in, and you must find out before reporting rather than after. **Any row you would honestly class SILENCE is a STOP:** escalate it and name the contract. Silencing a live contract is a spec change, not a builder's call.
+
+    **Fires on** any edit to an assertion-bearing file: changing an expected value, count, length, index, or ordinal; changing or loosening a matcher; widening a tolerance/timeout/retry; renaming a test in a way that changes what it claims; deleting a test or an assertion inside one; adding `.skip` / `.only` / `xit` / `@pytest.mark.skip`; editing a shared fixture, factory, harness, or `conftest`; regenerating a snapshot. **Does not fire** for a brand-new test file or for new assertions that leave every existing one untouched — net-new coverage is not standing in for evidence that already existed.
+
+    **Anchor on identity, not position.** `toHaveLength(26)`, `.at(-1)`, `[25]` break every time a list grows, and the "fix" is always to bump a number — **which is exactly the reflex this rule exists to interrupt.** A test that must be edited on every unrelated append is training the habit that hides bugs. Prefer `find(m => m.version === '0025')` / `toContain('0026')`. **When you find yourself editing a positional assertion, that is a signal the assertion is wrong, not merely outdated** — say so in the *why* column and fix the anchor in the same slice if it is a one-liner. A count that *deliberately* pins a registry size as a canary is legitimate; say so, so the reviewer knows it was a choice.
+
+    **Reviewer duty:** never accept a bare pass count from a turn that edited tests — its absence is a finding, not a formatting nit. Get ground truth yourself (`git diff -- '*test*' '*spec*' '*fixture*' '*conftest*'`), classify each row **independently before** reading the author's reason, then compare; disagreement on the class is a **blocker**. Watch the quiet ones that never turn a suite red and never change the count: an added `.skip`, a deleted assertion, a regenerated snapshot, a widened tolerance — the only edits that reduce coverage while looking like maintenance.
+
+    **Cross-references:** Rule 79 (Tests Can Encode The Bug — the permission this rule disciplines), Rule 74 (Proof-Before-Done — proof you manufactured in the same breath you cited it), Rule 56 (baseline disclosure), Rule 58 (schema drift — the usual cause of a legitimate re-anchor), Rule 20 (sibling sweep — shared harnesses are siblings). Full procedure: skill `test-delta-disclosure`; enforced for Hermes by `scripts/hermes/review.py`, which scans the repo and pre-seeds the table.
+
 ## Dual-Pass Fix/Review Discipline (MANDATORY)
 Use this on every bug fix, production incident, and code review unless Sean explicitly narrows scope to implementation-only or debate-file-only.
 
@@ -936,6 +984,12 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `closeout-evidence-lock` | End-of-task closeout gate. Enforces Claim-to-Evidence Lock + dual-pass hostile review + post-task hygiene check + forbidden-language filter. Preserves the full substantive code-review checklist (security, performance, test coverage, breaking changes, conventions) inherited from retired `requesting-code-review`. |
 | `hermes-learning-packet` | Fable→Hermes learning loop (rule 68). At close of substantial/Fable-tier work, emits a privacy-safe, durable, compounding learning packet Hermes ingests so it self-upgrades without Sean re-typing. Source gate is fail-closed to Fable-tier only (sub-Fable → quarantine). Delivers over the proven Pi SSH/cat transport. |
 | `hermes-inbox` | Any-agent → Hermes working channel (rule 69). Work done OUTSIDE Hermes (terminal Claude/Codex, local Qwen, scripts) drops a short IDs-only memo in `.ai-workflow/hermes-inbox/pending/`; Hermes reads at session start, absorbs, then memos archive to `consumed/` (Rule 34). Ephemeral + any-agent — distinct from the Fable-tier-only durable learning-packet and the Sean-triggered continuity bridge. Fires via rule 69 + closeout-evidence-lock fold + a SessionStart hook. |
+
+**Evidence gates (2) — rules 80-81:**
+| Skill | Role |
+|---|---|
+| `cross-env-verify` | Fires before any "X is broken / missing / corrupt" claim, and **hard-gates every destructive remedy** (delete, re-clone, re-init, reset, wipe, reinstall). One tool's failure is not a fact about the world — re-check from a second vantage first. Born 2026-08-05 from a near-miss that would have destroyed a branch and its history. |
+| `test-delta-disclosure` | Fires when a turn edits an existing test, fixture, or snapshot. Requires a test-delta table (`RE-ANCHOR` vs `SILENCE`) reported before and separately from the pass count. The disclosure half of rule 79 — without it, "tests can encode the bug" becomes a license to edit any inconvenient assertion. |
 
 **KEEP core:**
 `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
