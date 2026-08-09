@@ -2,7 +2,7 @@
  * @file repository-audit.mjs
  * @description Captures one stable base-to-working-tree risk and review scope.
  */
-import { spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { closeSync, constants as fsConstants, fstatSync, lstatSync, openSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 
@@ -15,14 +15,9 @@ import { captureSnapshot } from './snapshot.mjs';
 const MAX_UNTRACKED_BYTES = 512 * 1024;
 
 function git(cwd, args) {
-  const result = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
-    windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
-  if (result.status !== 0) {
-    const error = new Error(`git ${args.join(' ')} failed: ${String(result.stderr).trim()}`);
-    error.status = result.status;
-    throw error;
-  }
-  return result.stdout;
+  return execFileSync('git', args, {
+    cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, windowsHide: true,
+  });
 }
 
 function tryGit(cwd, args) {
@@ -102,7 +97,19 @@ export function appendUntrackedEvidence(repoRoot, untrackedFiles, initialDiff, i
 }
 
 export function resolveComparisonBase(repoRoot, requested = null) {
-  const candidates = requested ? [requested] : [
+  if (requested) {
+    let tipSha;
+    let mergeBaseSha;
+    try {
+      tipSha = git(repoRoot, ['rev-parse', '--verify', `${requested}^{commit}`]).trim();
+      mergeBaseSha = git(repoRoot, ['merge-base', 'HEAD', tipSha]).trim();
+    } catch (error) {
+      throw new Error(`Comparison base cannot be inspected: ${requested}: ${error.message}`);
+    }
+    if (!tipSha || !mergeBaseSha) throw new Error(`Comparison base cannot be resolved: ${requested}`);
+    return Object.freeze({ ref: requested, tipSha, mergeBaseSha });
+  }
+  const candidates = [
     tryGit(repoRoot, ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}']),
     tryGit(repoRoot, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']),
     'origin/main', 'origin/master',
@@ -114,7 +121,6 @@ export function resolveComparisonBase(repoRoot, requested = null) {
     if (!mergeBaseSha) continue;
     return Object.freeze({ ref, tipSha, mergeBaseSha });
   }
-  if (requested) throw new Error(`Comparison base cannot be resolved: ${requested}`);
   return null;
 }
 
