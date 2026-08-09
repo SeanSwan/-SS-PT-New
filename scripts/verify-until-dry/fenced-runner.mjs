@@ -118,6 +118,12 @@ function mirrorTrackedBytes(sourceRoot, fencePath) {
     if (!within(sourceRoot, source) || !within(fencePath, target)) {
       throw new Error(`Tracked path escapes repository: ${path}`);
     }
+    if (!existsSync(source)) {
+      try { lstatSync(target); unlinkSync(target); } catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+      }
+      continue;
+    }
     const sourceStat = lstatSync(source);
     if (sourceStat.isSymbolicLink()) {
       try { lstatSync(target); unlinkSync(target); } catch (error) {

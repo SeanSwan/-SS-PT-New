@@ -3,7 +3,7 @@
  * @description Adversarial tests for exact-source fenced verification execution.
  */
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -66,6 +66,22 @@ test('disposing a fence unlinks dependency junctions without deleting source dep
     for (const path of ['node_modules', 'frontend/node_modules', 'backend/node_modules']) {
       assert.equal(existsSync(join(root, path, 'source-marker.txt')), true);
     }
+  } finally {
+    if (fence) disposeFence(fence);
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('fence reconstructs an unstaged tracked-file deletion', () => {
+  const root = repoFixture();
+  let fence;
+  try {
+    unlinkSync(join(root, 'dirty.txt'));
+    const scope = { paths: ['.'], exclusions: [], gates: ['test'] };
+    const source = captureSnapshot({ cwd: root, scopeContract: scope });
+    fence = createFence({ repoRoot: root, snapshot: source, scopeContract: scope });
+    assert.equal(existsSync(join(fence.path, 'dirty.txt')), false);
+    assert.equal(captureSnapshot({ cwd: fence.path, scopeContract: scope }).sourceHash, source.sourceHash);
   } finally {
     if (fence) disposeFence(fence);
     rmSync(root, { recursive: true, force: true });

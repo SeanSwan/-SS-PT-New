@@ -2,7 +2,7 @@
  * @file repository-audit.mjs
  * @description Captures one stable base-to-working-tree risk and review scope.
  */
-import { execFileSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { closeSync, constants as fsConstants, fstatSync, lstatSync, openSync, readFileSync } from 'node:fs';
 import { isAbsolute, relative, resolve } from 'node:path';
 
@@ -15,8 +15,14 @@ import { captureSnapshot } from './snapshot.mjs';
 const MAX_UNTRACKED_BYTES = 512 * 1024;
 
 function git(cwd, args) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+  const result = spawnSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
     windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  if (result.status !== 0) {
+    const error = new Error(`git ${args.join(' ')} failed: ${String(result.stderr).trim()}`);
+    error.status = result.status;
+    throw error;
+  }
+  return result.stdout;
 }
 
 function tryGit(cwd, args) {
