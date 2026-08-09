@@ -76,6 +76,6 @@ export function selectGates({ tier, surfaces = [] }) {
   if (selected.has('frontend') && tier >= 1) ids.push('frontend-typecheck');
   if (selected.has('frontend') && tier >= 2) ids.push('frontend-tests', 'frontend-build');
   if (selected.has('backend') && tier >= 1) ids.push('backend-tests');
-  if (tier >= 3) ids.push('release-preflight');
+  if (selected.has('backend') && tier >= 3) ids.push('release-preflight');
   return Object.freeze(ids.map((id) => GATES[id]));
 }

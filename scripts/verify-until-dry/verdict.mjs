@@ -36,7 +36,14 @@ function axesDifference(left = [], right = []) {
 function missingOrStaleGates(input) {
   return (input.requiredGates ?? []).filter((name) => {
     const gate = input.gates?.[name];
-    return !gate || gate.status !== 'pass' || gate.current !== true;
+    return !gate || gate.current !== true || !['pass', 'fail'].includes(gate.status);
+  });
+}
+
+function failedCurrentGates(input) {
+  return (input.requiredGates ?? []).filter((name) => {
+    const gate = input.gates?.[name];
+    return gate?.current === true && gate.status === 'fail';
   });
 }
 
@@ -56,6 +63,11 @@ export function computeVerdict(input = {}) {
     .filter((finding) => finding.validated === true && finding.status === 'open');
   if (openFindings.length) {
     return result(VERDICTS.DIRTY, input, openFindings.map((finding) => finding.signature));
+  }
+
+  const failedGates = failedCurrentGates(input);
+  if (failedGates.length) {
+    return result(VERDICTS.DIRTY, input, failedGates.map((gate) => `gate:${gate}`));
   }
 
   if ((input.escalations ?? []).length) {

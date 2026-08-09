@@ -1,0 +1,43 @@
+name: Verify Until Dry
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 10 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-until-dry-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier-contracts:
+    name: Code Perfectionist contracts and observe pass
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERIFY_UNTIL_DRY_MODE: observe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run false-clean contract suite
+        run: node --test --test-concurrency=1 scripts/verify-until-dry/*.test.mjs
+      - name: Run fenced observe pass
+        run: node scripts/verify-until-dry/cli.mjs run --base origin/main --out "$RUNNER_TEMP/verify-until-dry-receipt.json"
+      - name: Preserve advisory receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-until-dry-receipt-${{ github.run_id }}
+          path: ${{ runner.temp }}/verify-until-dry-receipt.json
+          if-no-files-found: warn
+          retention-days: 14

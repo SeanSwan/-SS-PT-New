@@ -27,6 +27,11 @@ test('backend high-consequence changes add tests and preflight', () => {
   assert.ok(ids.includes('release-preflight'));
 });
 
+test('Tier 3 tooling does not inherit an unrelated payment preflight', () => {
+  const ids = selectGates({ tier: 3, surfaces: ['tooling'] }).map((gate) => gate.id);
+  assert.equal(ids.includes('release-preflight'), false);
+});
+
 test('unknown tiers and surfaces fail closed', () => {
   assert.throws(() => selectGates({ tier: 4, surfaces: [] }), /tier/i);
   assert.throws(() => selectGates({ tier: 1, surfaces: ['mystery'] }), /surface/i);

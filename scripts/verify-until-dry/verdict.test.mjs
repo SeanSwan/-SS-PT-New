@@ -96,3 +96,11 @@ test('missing gates or fewer than two clean rounds are UNPROVEN', () => {
   oneRound.vantages.pop();
   assert.equal(computeVerdict(oneRound).verdict, VERDICTS.UNPROVEN);
 });
+
+test('a current executed gate failure is DIRTY, not merely unproven', () => {
+  const failed = cleanInput();
+  failed.gates.unit = { status: 'fail', current: true };
+  const result = computeVerdict(failed);
+  assert.equal(result.verdict, VERDICTS.DIRTY);
+  assert.deepEqual(result.reasons, ['gate:unit']);
+});
