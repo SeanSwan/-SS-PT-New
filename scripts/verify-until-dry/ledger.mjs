@@ -26,7 +26,10 @@ export function canonicalJson(value) {
 }
 
 export function sha256(value) {
-  return createHash('sha256').update(String(value), 'utf8').digest('hex');
+  const bytes = Buffer.isBuffer(value) || ArrayBuffer.isView(value)
+    ? value
+    : Buffer.from(String(value), 'utf8');
+  return createHash('sha256').update(bytes).digest('hex');
 }
 
 function entryPayload(entry) {

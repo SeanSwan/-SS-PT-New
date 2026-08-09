@@ -8,7 +8,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { appendEvent, verifyLedger } from './ledger.mjs';
+import { appendEvent, sha256, verifyLedger } from './ledger.mjs';
 
 const buildLedger = () => {
   let entries = [];
@@ -41,4 +41,8 @@ test('non-object and duplicate-sequence entries are rejected', () => {
   const entries = buildLedger();
   entries[1].seq = entries[0].seq;
   assert.equal(verifyLedger(entries).valid, false);
+});
+
+test('binary hashes preserve byte identity instead of UTF-8 replacement collisions', () => {
+  assert.notEqual(sha256(Buffer.from([0x80])), sha256(Buffer.from([0x81])));
 });

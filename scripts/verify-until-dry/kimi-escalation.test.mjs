@@ -31,6 +31,13 @@ test('required exact-run review blocks until approval matches packet and cap', (
   assert.equal(ready.command.args[ready.command.args.indexOf('--max-tokens') + 1], '60000');
 });
 
+test('a packet above the committed worst-case cap reports cost blocking', () => {
+  const oversized = { ...packet, text: 'x'.repeat(300_000) };
+  const plan = planKimiReview({ required: true, packet: oversized, config });
+  assert.equal(plan.status, 'BLOCKED_COST_CAP');
+  assert.ok(plan.preflight.worstCaseUsd > config.kimi.maxUsdPerCall);
+});
+
 test('design-ceiling policy blocks sensitive Kimi evidence with no override', () => {
   const sensitive = { ...packet, evidencePaths: ['backend/routes/authRoutes.mjs'] };
   const plan = planKimiReview({

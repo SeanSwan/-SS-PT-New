@@ -18,7 +18,7 @@ const gate = (id, command, args, cwd = '.', timeoutMs = 120_000) =>
   Object.freeze({ id, command, args: Object.freeze(args), cwd, timeoutMs, shell: false });
 
 export const GATES = Object.freeze({
-  'diff-check': gate('diff-check', 'git', ['diff', '--check']),
+  'diff-check': gate('diff-check', 'git', ['diff', '--check', 'HEAD']),
   'verifier-tests': gate(
     'verifier-tests',
     process.execPath,

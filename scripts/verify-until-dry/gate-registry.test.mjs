@@ -52,3 +52,8 @@ test('verifier self-test expands an explicit serial file list, not directory dis
   assert.ok(selfTest.args.slice(2).every((path) => path.endsWith('.test.mjs')));
   assert.ok(selfTest.args.includes('scripts/verify-until-dry/verdict.test.mjs'));
 });
+
+test('diff integrity checks staged and unstaged changes against HEAD', () => {
+  const diff = selectGates({ tier: 0, surfaces: [] }).find((gate) => gate.id === 'diff-check');
+  assert.deepEqual(diff.args, ['diff', '--check', 'HEAD']);
+});

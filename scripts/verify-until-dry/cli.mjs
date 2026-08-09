@@ -48,6 +48,18 @@ export function inferSurfaces(files) {
   return [...surfaces].sort();
 }
 
+export function selectKimiEvidencePaths(files) {
+  const production = files.filter((raw) => {
+    const file = String(raw).replaceAll('\\', '/').toLowerCase();
+    return !file.endsWith('.md') &&
+      !/\.(?:test|spec)\.[cm]?[jt]sx?$/.test(file) &&
+      !file.startsWith('.agents/skills/') &&
+      !file.startsWith('.claude/skills/') &&
+      !file.endsWith('/openai.yaml');
+  });
+  return [...new Set(production)].sort();
+}
+
 export function defaultReceiptPath(repoRoot) {
   const id = createHash('sha256').update(resolve(repoRoot)).digest('hex').slice(0, 16);
   return join(tmpdir(), 'verify-until-dry', id, 'latest-receipt.json');
@@ -122,6 +134,25 @@ function inspectChanges(repoRoot, base) {
   };
 }
 
+function kimiEvidence(repoRoot, base, allFiles) {
+  const paths = selectKimiEvidencePaths(allFiles);
+  if (paths.length === 0) return { paths: allFiles, diffText: '(no production logic selected)', evidenceComplete: true };
+  let diffText = '';
+  for (let index = 0; index < paths.length; index += 50) {
+    const chunk = paths.slice(index, index + 50);
+    diffText += git(repoRoot, ['diff', '--binary', 'HEAD', '--', ...chunk]);
+    if (base) diffText += git(repoRoot, ['diff', '--binary', `${base}...HEAD`, '--', ...chunk]);
+  }
+  const untracked = new Set(lines(git(repoRoot, ['ls-files', '--others', '--exclude-standard'])));
+  const withUntracked = appendUntrackedEvidence(
+    repoRoot,
+    paths.filter((path) => untracked.has(path)),
+    diffText,
+    0,
+  );
+  return { paths, diffText: withUntracked.diffText, evidenceComplete: withUntracked.evidenceComplete };
+}
+
 function auditRepository(repoRoot, args) {
   const changes = inspectChanges(repoRoot, args.base);
   const risk = classifyRisk({
@@ -138,15 +169,20 @@ function auditRepository(repoRoot, args) {
     tier: risk.tier,
     surfaces,
   };
+  const kimiEvidenceSet = kimiEvidence(repoRoot, args.base, changes.files);
   const packet = buildReviewPacket({
     runId: 'preflight',
     objective: 'Find reproducible defects in the changed source and verifier logic.',
     sourceHash: 'captured-by-run',
     scopeHash: 'captured-by-run',
-    evidence: [{ id: 'DIFF', path: 'changes.diff', content: changes.diffText || changes.files.join('\n') || '(clean tree)' }],
+    evidence: [{
+      id: 'PRODUCTION_DIFF',
+      path: 'kimi-production-selection.diff',
+      content: kimiEvidenceSet.diffText || kimiEvidenceSet.paths.join('\n') || '(clean tree)',
+    }],
   });
-  const screenedPacket = { ...packet, evidencePaths: changes.files.length ? changes.files : packet.evidencePaths };
-  const kimi = risk.kimiRequired && !changes.evidenceComplete
+  const screenedPacket = { ...packet, evidencePaths: kimiEvidenceSet.paths.length ? kimiEvidenceSet.paths : packet.evidencePaths };
+  const kimi = risk.kimiRequired && !kimiEvidenceSet.evidenceComplete
     ? { status: 'BLOCKED_PACKET_SIZE', callCount: 0 }
     : planKimiReview({ required: risk.kimiRequired, packet: screenedPacket, config });
   return { changes, risk, surfaces, scopeContract, kimi, packet: screenedPacket };

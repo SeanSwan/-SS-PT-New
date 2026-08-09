@@ -50,6 +50,9 @@ export function planKimiReview({ required, packet, config, approval = null }) {
   }
 
   const dryRun = preflight(packet, config, provider);
+  if (dryRun.worstCaseUsd > config.kimi.maxUsdPerCall) {
+    return Object.freeze({ status: 'BLOCKED_COST_CAP', callCount: 0, preflight: dryRun });
+  }
   const exactApproval = approval?.packetHash === packet.hash &&
     Number.isFinite(approval?.maxUsd) && approval.maxUsd >= dryRun.worstCaseUsd &&
     approval.maxUsd <= config.kimi.maxUsdPerCall;

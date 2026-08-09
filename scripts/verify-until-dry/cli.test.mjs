@@ -8,7 +8,9 @@ import { tmpdir } from 'node:os';
 import { isAbsolute, join, relative } from 'node:path';
 import test from 'node:test';
 
-import { appendUntrackedEvidence, defaultReceiptPath, inferSurfaces, parseCli } from './cli.mjs';
+import {
+  appendUntrackedEvidence, defaultReceiptPath, inferSurfaces, parseCli, selectKimiEvidencePaths,
+} from './cli.mjs';
 
 test('parses run, finalize, audit, and verify commands without shell syntax', () => {
   assert.deepEqual(parseCli(['run', '--tier', '2', '--base', 'origin/main']), {
@@ -47,4 +49,17 @@ test('untracked text contributes content and line complexity while binary stays 
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('Kimi packet selection favors production logic and discloses its exact subset', () => {
+  assert.deepEqual(selectKimiEvidencePaths([
+    'docs/plan.md',
+    '.agents/skills/verify-until-dry/SKILL.md',
+    'scripts/verify-until-dry/engine.test.mjs',
+    'scripts/verify-until-dry/engine.mjs',
+    'config/verify-until-dry.config.mjs',
+  ]), [
+    'config/verify-until-dry.config.mjs',
+    'scripts/verify-until-dry/engine.mjs',
+  ]);
 });
