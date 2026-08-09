@@ -27,6 +27,18 @@ Assist mode may require Kimi K3 through the verifier's risk policy, but the hook
 never makes a paid call. It stops with `BLOCKED_AUTHORIZATION` until an exact,
 unexpired one-call approval is supplied.
 
+Kimi evidence is privacy-partitioned before preflight. Mixed scopes send only
+design-ceiling-safe, deterministically pseudonymized control-flow evidence and
+record excluded sensitive, binary, and narrative-only paths locally. Those
+excluded paths still require full local hostile-review coverage; partitioning
+does not narrow the release scope. An all-sensitive scope remains
+`BLOCKED_NO_SAFE_EVIDENCE`. Packet approval binds the rendered text hash plus the exact
+included/excluded manifest, and execution revalidates both immediately before
+dispatch. Scope objectives and tracked binary patches are screened under the
+same fail-closed privacy policy. A Kimi receipt can be imported only when the
+current exact audit is otherwise blocked solely on authorization; cost, privacy,
+packet-size, or no-safe-evidence blockers cannot be replaced by an old receipt.
+
 ## CI and deep scans
 
 `.github/workflows/verify-until-dry.yml` installs locked dependencies, runs

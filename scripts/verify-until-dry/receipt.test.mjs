@@ -30,11 +30,15 @@ const input = () => {
   };
   result.reviews = [
     buildCompletedReview({ id: 'R1', builder: 'b', reviewer: 'r1', headSha,
+      origin: 'local-full-scope',
       sourceHash: result.sourceHash, scopeHash, reviewPacketHash: result.reviewPacketHash,
-      axes: ['static-control-flow'], output: 'VERDICT: CLEAN\nNone.', findings: [] }),
+      axes: ['static-control-flow'], reviewedPaths: scopeContract.paths,
+      output: 'VERDICT: CLEAN\nNone.', findings: [] }),
     buildCompletedReview({ id: 'R2', builder: 'b', reviewer: 'r2', headSha,
+      origin: 'local-full-scope',
       sourceHash: result.sourceHash, scopeHash, reviewPacketHash: result.reviewPacketHash,
-      axes: ['dynamic-runtime'], output: 'VERDICT: CLEAN\nNone.', findings: [] }),
+      axes: ['dynamic-runtime'], reviewedPaths: scopeContract.paths,
+      output: 'VERDICT: CLEAN\nNone.', findings: [] }),
   ];
   return result;
 };

@@ -18,7 +18,9 @@ import { buildReceipt, verifyReceipt } from './receipt.mjs';
 import { auditRepository } from './repository-audit.mjs';
 import { buildCompletedReview, validateCompletedReviews, validateReviewSet } from './review-proof.mjs';
 
-export { appendUntrackedEvidence, inferSurfaces, selectKimiEvidencePaths } from './repository-audit.mjs';
+export {
+  appendUntrackedEvidence, inferSurfaces, partitionKimiEvidencePaths, selectKimiEvidencePaths,
+} from './repository-audit.mjs';
 
 const COMMANDS = new Set(['audit', 'run', 'record-review', 'finalize', 'verify', 'kimi']);
 
@@ -38,13 +40,18 @@ export function parseCli(argv) {
     command, tier, base: option('base'), out: option('out'), receipt: option('receipt'),
     reviews: option('reviews'), approval: option('approval'), contract: option('contract'),
     kimiReceipt: option('kimi-receipt'), mode,
-    input: option('input'), reviewer: option('reviewer'), axes: option('axes'), findings: option('findings'),
+    input: option('input'), reviewer: option('reviewer'), axes: option('axes'),
+    coverage: option('coverage'), findings: option('findings'),
   };
 }
 
 export function defaultReceiptPath(repoRoot) {
   const id = createHash('sha256').update(resolve(repoRoot)).digest('hex').slice(0, 16);
   return join(tmpdir(), 'verify-until-dry', id, 'latest-receipt.json');
+}
+
+export function kimiReceiptImportAllowed(audit) {
+  return audit?.risk?.kimiRequired === true && audit?.kimi?.status === 'BLOCKED_AUTHORIZATION';
 }
 
 
@@ -62,7 +69,8 @@ export async function commandRun(repoRoot, args) {
   const blockers = [];
   const reviews = [];
   if (audit.risk.kimiRequired) {
-    if (!args.kimiReceipt) blockers.push(`kimi-k3:${audit.kimi.status}`);
+    if (!kimiReceiptImportAllowed(audit)) blockers.push(`kimi-k3:${audit.kimi.status}`);
+    else if (!args.kimiReceipt) blockers.push(`kimi-k3:${audit.kimi.status}`);
     else {
       const proof = validateKimiReceipt(readJson(resolve(repoRoot, args.kimiReceipt)), {
         packet: audit.packet, model: config.kimi.model,
@@ -116,9 +124,10 @@ export function commandFinalize(repoRoot, args) {
 }
 
 export function commandRecordReview(repoRoot, args) {
-  if (!args.receipt || !args.input || !args.reviewer || !args.axes || !args.out) {
-    throw new Error('record-review requires --receipt, --input, --reviewer, --axes, and --out');
+  if (!args.receipt || !args.input || !args.reviewer || !args.axes || !args.out || !args.coverage) {
+    throw new Error('record-review requires --receipt, --input, --reviewer, --axes, --coverage full-scope, and --out');
   }
+  if (args.coverage !== 'full-scope') throw new Error('record-review coverage must be full-scope');
   const receipt = readJson(resolve(repoRoot, args.receipt));
   const verified = verifyReceipt(receipt);
   if (!verified.valid) throw new Error(`Cannot record review for invalid receipt: ${verified.error}`);
@@ -128,8 +137,10 @@ export function commandRecordReview(repoRoot, args) {
   const completed = buildCompletedReview({
     id: `R-${createHash('sha256').update(`${args.reviewer}\0${output}`).digest('hex').slice(0, 12)}`,
     builder: 'verify-until-dry-builder', reviewer: args.reviewer,
+    origin: 'local-full-scope',
     headSha: receipt.headSha, sourceHash: receipt.sourceHash, scopeHash: receipt.scopeHash,
     reviewPacketHash: receipt.reviewPacketHash, axes: args.axes.split(',').map((axis) => axis.trim()).filter(Boolean),
+    reviewedPaths: receipt.scopeContract?.paths,
     output, findings,
   });
   const existing = args.reviews ? readJson(resolve(repoRoot, args.reviews)) : {
@@ -150,7 +161,8 @@ async function main() {
     const audit = auditRepository(repoRoot, hydrated, config);
     process.stdout.write(`${JSON.stringify({
       ...audit,
-      packet: { hash: audit.packet.hash, evidencePaths: audit.packet.evidencePaths },
+      packet: { hash: audit.packet.hash, evidencePaths: audit.packet.evidencePaths,
+        excludedEvidencePaths: audit.packet.excludedEvidencePaths ?? [] },
       changes: { ...audit.changes, diffText: undefined },
     }, null, 2)}\n`);
     return;
@@ -164,6 +176,9 @@ async function main() {
   if (args.command === 'kimi') {
     if (!args.approval) throw new Error('kimi requires --approval for the exact preflight packet');
     const audit = auditRepository(repoRoot, hydrated, config);
+    if (audit.risk.kimiRequired && audit.kimi.status !== 'BLOCKED_AUTHORIZATION') {
+      throw new Error(`Kimi review blocked: ${audit.kimi.status}`);
+    }
     const approval = readJson(resolve(repoRoot, args.approval));
     const plan = planKimiReview({ required: audit.risk.kimiRequired, packet: audit.packet, config, approval });
     if (plan.status !== 'READY') throw new Error(`Kimi review blocked: ${plan.status}`);

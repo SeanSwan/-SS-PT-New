@@ -60,7 +60,8 @@ Kimi K3 call.
   --approval <json> --out <kimi-receipt>` makes exactly one approved Kimi K3
   call and persists its source/scope/packet-bound output.
 - `node scripts/verify-until-dry/cli.mjs record-review --receipt <json> --input
-  <captured-output> --reviewer <id> --axes <comma-list> --out <review-set>`
+  <captured-output> --reviewer <id> --axes <comma-list> --coverage full-scope
+  --out <review-set>`
   binds a captured independent review to the receipt. Add `--reviews <existing>`
   to append another review and `--findings <json-array>` when findings exist.
   Allowed axes are `adversarial-security`, `contract-tests`, `cross-platform`,
@@ -89,9 +90,20 @@ validate, not authoritative truth. Never send secrets, PII, exports, database
 material, precise home locations, or raw production evidence.
 
 Repository policy keeps Kimi at the design-provider sensitivity ceiling. Pure,
-sanitized logic can be reviewed; auth, billing, migration, PII, security-secret,
-or other ceiling-breaking evidence must return `BLOCKED_CEILING`. There is no
-runtime override.
+sanitized logic can be reviewed. In a mixed scope, the audit partitions out auth,
+billing, migration, PII, security-secret, and other ceiling-breaking paths and
+records them locally; Kimi receives only the safe evidence subset while a local
+reviewer remains responsible for the complete scope. Objectives, tracked binary
+patches, narrative-only paths, and safe-named files receive the same fail-closed
+screening. External evidence uses hashed display paths plus a deterministic
+control-flow transform that removes comments and literals and pseudonymizes
+identifiers while preserving opaque equality classes for literals. Only the
+explicit JS/TS-family and JSON transform allowlist can enter that packet;
+template interpolation and unsupported languages remain local-only. At least
+one clean review with the bound `local-full-scope` origin must
+cover the exact scope; Kimi/Moonshot aliases and partial-review unions cannot
+satisfy that proof. If no actual safe logic evidence remains, return
+`BLOCKED_NO_SAFE_EVIDENCE`. There is no runtime override.
 
 ## Evidence and dry-loop rules
 

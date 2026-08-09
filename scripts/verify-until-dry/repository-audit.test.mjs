@@ -9,7 +9,10 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 
-import { resolveComparisonBase, selectKimiEvidencePaths, validateDeclaredContract } from './repository-audit.mjs';
+import {
+  contentExceedsKimiCeiling, partitionKimiEvidencePaths, resolveComparisonBase,
+  selectKimiEvidencePaths, validateDeclaredContract,
+} from './repository-audit.mjs';
 
 function git(cwd, ...args) {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
@@ -43,6 +46,76 @@ test('review evidence includes changed tests but excludes narrative skill docs',
     'scripts/verify-until-dry/a.test.mjs', '.agents/skills/verify-until-dry/SKILL.md',
     'scripts/verify-until-dry/a.mjs',
   ]), ['scripts/verify-until-dry/a.mjs', 'scripts/verify-until-dry/a.test.mjs']);
+});
+
+test('Kimi evidence partitions sensitive paths without discarding safe logic', () => {
+  const partition = partitionKimiEvidencePaths([
+    'scripts/verify-until-dry/verdict.mjs',
+    'scripts/verify-until-dry/secret-scan-gate.mjs',
+    'backend/routes/authRoutes.mjs',
+    'docs/auth-flow.md',
+    'docs/plan.md',
+    'scripts/math.py',
+  ]);
+  assert.deepEqual(partition.safe, ['scripts/verify-until-dry/verdict.mjs']);
+  assert.deepEqual(partition.excluded, [
+    'backend/routes/authRoutes.mjs',
+    'docs/auth-flow.md',
+    'docs/plan.md',
+    'scripts/math.py',
+    'scripts/verify-until-dry/secret-scan-gate.mjs',
+  ]);
+  assert.deepEqual(selectKimiEvidencePaths([
+    'scripts/verify-until-dry/verdict.mjs', 'scripts/verify-until-dry/secret-scan-gate.mjs',
+  ]), ['scripts/verify-until-dry/verdict.mjs']);
+});
+
+test('narrative-only Kimi scope is reported as excluded instead of becoming dummy evidence', () => {
+  assert.deepEqual(partitionKimiEvidencePaths(['docs/plan.md']), {
+    safe: [], excluded: ['docs/plan.md'],
+  });
+});
+
+test('languages without a semantic transformer remain local-only', () => {
+  assert.deepEqual(partitionKimiEvidencePaths(['scripts/math.py', 'scripts/math.mjs']), {
+    safe: ['scripts/math.mjs'], excluded: ['scripts/math.py'],
+  });
+});
+
+test('Kimi content screening catches sensitive logic hidden behind a benign path', () => {
+  assert.equal(contentExceedsKimiCeiling(
+    "import '../middleware/authMiddleware.mjs'; verifyToken(paymentToken); patientHealthDecision();",
+  ), true);
+  assert.equal(contentExceedsKimiCeiling('export const add = (a, b) => a + b;'), false);
+});
+
+test('Kimi content screening fails closed for payment, identity, health, and privilege evidence', () => {
+  for (const sensitive of [
+    'cardNumber = "4111111111111111"',
+    'passportNumber = "X12345678"',
+    'diagnosisCode = "F32.9"',
+    'visaNumber = "A123456789"',
+    'medication = "lisinopril"',
+    'biometricTemplate = "abc123"',
+    'prescription = "lisinopril 10mg"',
+    'fingerprintTemplate = "base64-user-template"',
+    'homeCoordinates = { latitude: 34.052235, longitude: -118.243683 }',
+    'athleteName = "Sean Smith"',
+    'memberName = "Sean Smith"',
+    'lastKnownIp = "203.0.113.42"',
+    'swiftCode = "BOFAUS3N"',
+    'productionRow = { member_id: 42, accountBalance: 1200 }',
+    'export function canElevateRole(user) { return user.role === "admin"; }',
+  ]) assert.equal(contentExceedsKimiCeiling(sensitive), true, sensitive);
+});
+
+test('tracked binary patches are local-only because their decoded bytes are uninspected', () => {
+  assert.equal(contentExceedsKimiCeiling('diff --git a/a.bin b/a.bin\nGIT binary patch\nliteral 4\nLc${NkU|;|M00aO5'), true);
+  assert.equal(contentExceedsKimiCeiling('--- UNTRACKED a.bin ---\n[binary omitted]'), true);
+});
+
+test('template interpolation is local-only because executable expressions are not flattened', () => {
+  assert.equal(contentExceedsKimiCeiling('const out = `${getTenant()}-${fallbackMutation()}`;'), true);
 });
 
 test('audit scope requires an objective, requirements, and acceptance ids', () => {

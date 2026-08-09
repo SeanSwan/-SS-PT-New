@@ -27,6 +27,23 @@
 12. Secret-gate hardening: fail-closed Git enumeration, explicit Windows Git
     Bash selection, nonzero evidence validation, and index + working-tree +
     untracked-source scans.
+13. Privacy and review-coverage hardening: content-level payment, identity,
+    health, access-control, objective, and tracked-binary exclusions; canonical
+    packet text/manifest integrity revalidation at dispatch; fixed 60,000-token
+    Kimi ceiling; positive-safe control-flow pseudonymization; and one mandatory
+    clean, origin-bound local full-scope review. Opaque equality classes preserve
+    cross-file value mismatches without sending values; unsupported languages,
+    interpolated templates, binaries, and omission markers remain local-only.
+    Strict shared verdict parsing rejects CLEAN outputs with contradictory body
+    findings, unresolved proposed findings force `UNPROVEN`, closure evidence is
+    ordered and ledger/source/scope-bound, `FIXED` requires current regression
+    and mutation proof to the finding's normalized visible failure signature,
+    nonreproduction binds captured execution to that same signature, local owner
+    exemptions remain unproven, reviewer identities are normalized, and receipt
+    import cannot override a current non-authorization blocker.
+14. Shared Stop-hook registration: one assist-mode verifier hook is registered
+    after the existing dry-loop gate, with its command mode protected from
+    ambient downgrade.
 
 ## Recorded pre-registration evidence
 
@@ -42,7 +59,7 @@ and external review ledger must be regenerated on the final snapshot.
 - The resulting hash-valid receipt was `BLOCKED`, reason
   `kimi-k3:BLOCKED_AUTHORIZATION`. This is the intended fail-closed result for a
   Tier 3 verifier change without exact paid-call authorization.
-- The latest recorded full secret gate scanned 26,565 index, working-tree, and
+- The latest recorded full secret gate scanned 26,568 index, working-tree, and
   untracked-source evidence items in 31 seconds, skipped 944
   binary/vendor/generated items, reported zero unallowlisted hits, and emitted
   a nonzero evidence count plus `CLEAN.`.
@@ -53,9 +70,6 @@ and external review ledger must be regenerated on the final snapshot.
   validate and repair its findings.
 - Run independent hostile-review rounds until two meaningfully distinct rounds
   find nothing fixable on unchanged code.
-- Obtain Sean's explicit approval to edit shared `.claude/settings.json`, then
-  register the local assist hook exactly once. The hook and CI workflow exist;
-  local settings have not been overwritten.
 - Push/deploy only after those gates, then bind remote main, Render deploy, and
   health evidence with `deploy-proof.mjs`.
 

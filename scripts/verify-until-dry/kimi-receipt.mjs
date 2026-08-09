@@ -3,14 +3,7 @@
  * @description Persists and verifies one source-bound Kimi K3 advisory result.
  */
 import { canonicalJson, sha256 } from './ledger.mjs';
-import { buildCompletedReview } from './review-proof.mjs';
-
-function decision(output) {
-  const first = String(output).split(/\r?\n/).find((line) => line.trim())?.trim() ?? '';
-  if (/^VERDICT:\s*CLEAN$/i.test(first)) return 'CLEAN';
-  if (/^VERDICT:\s*REVISE$/i.test(first)) return 'REVISE';
-  return 'MALFORMED';
-}
+import { buildCompletedReview, parseReviewDecision } from './review-proof.mjs';
 
 function payload(input) {
   return {
@@ -24,7 +17,7 @@ function payload(input) {
 export function buildKimiReceipt(result, packet) {
   const body = payload({
     ...result, sourceHash: packet.sourceHash, scopeHash: packet.scopeHash,
-    output: result.text, outputHash: sha256(result.text), decision: decision(result.text),
+    output: result.text, outputHash: sha256(result.text), decision: parseReviewDecision(result.text),
   });
   return Object.freeze({ ...body, receiptHash: sha256(canonicalJson(body)) });
 }
@@ -38,7 +31,7 @@ export function validateKimiReceipt(receipt, { packet, model }) {
   }
   if (receipt.status !== 'COMPLETED_ADVISORY' || receipt.callCount !== 1 || receipt.model !== model ||
       receipt.packetHash !== packet.hash || receipt.sourceHash !== packet.sourceHash ||
-      receipt.scopeHash !== packet.scopeHash || receipt.decision !== decision(receipt.output)) {
+      receipt.scopeHash !== packet.scopeHash || receipt.decision !== parseReviewDecision(receipt.output)) {
     return fail('kimi-receipt-binding');
   }
   const findings = receipt.decision === 'CLEAN' ? [] : [{
@@ -49,6 +42,7 @@ export function validateKimiReceipt(receipt, { packet, model }) {
     id: `KIMI-${receipt.packetHash.slice(0, 12)}`, builder: 'verify-until-dry-builder',
     reviewer: 'kimi-k3', headSha: packet.headSha, sourceHash: packet.sourceHash,
     scopeHash: packet.scopeHash, reviewPacketHash: packet.hash,
+    reviewedPaths: packet.evidencePaths, origin: 'kimi-external',
     axes: ['hostile-logic', 'state-machine'], output: receipt.output, findings,
   });
   return { valid: true, clean: receipt.decision === 'CLEAN', error: null, review };

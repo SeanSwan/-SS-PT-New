@@ -18,9 +18,13 @@ function cleanReceipt() {
   const reviewPacketHash = 'd'.repeat(64);
   const reviews = [
     buildCompletedReview({ id: 'R1', builder: 'b', reviewer: 'r1', headSha, sourceHash,
-      scopeHash, reviewPacketHash, axes: ['static-control-flow'], output: 'VERDICT: CLEAN\nNone.', findings: [] }),
+      origin: 'local-full-scope',
+      scopeHash, reviewPacketHash, axes: ['static-control-flow'], reviewedPaths: scopeContract.paths,
+      output: 'VERDICT: CLEAN\nNone.', findings: [] }),
     buildCompletedReview({ id: 'R2', builder: 'b', reviewer: 'r2', headSha, sourceHash,
-      scopeHash, reviewPacketHash, axes: ['dynamic-runtime'], output: 'VERDICT: CLEAN\nNone.', findings: [] }),
+      origin: 'local-full-scope',
+      scopeHash, reviewPacketHash, axes: ['dynamic-runtime'], reviewedPaths: scopeContract.paths,
+      output: 'VERDICT: CLEAN\nNone.', findings: [] }),
   ];
   let ledger = appendEvent([], { type: 'snapshot', headSha, sourceHash, scopeHash });
   const requiredGates = ['diff-check', 'verifier-tests', 'secret-scan'];

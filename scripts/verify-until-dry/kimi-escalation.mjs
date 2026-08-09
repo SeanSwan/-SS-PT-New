@@ -10,28 +10,41 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { enforceCeiling, estimateCost, getProvider } from '../context-gateway/src/providers.mjs';
 import { executeCommand } from './fenced-runner.mjs';
-import { sha256 } from './ledger.mjs';
+import { canonicalJson, sha256 } from './ledger.mjs';
 
 const REMIT = `You are Kimi K3 acting as an independent hostile logic reviewer. Attack the supplied
 state machine, invariants, edge cases, failure handling, concurrency assumptions, and false-clean
 paths. Return VERDICT: CLEAN or REVISE, then only reproducible findings with severity, evidence id,
-failing scenario, and the smallest safe repair direction. Never trust builder conclusions.`;
+failing scenario, and the smallest safe repair direction. For CLEAN, the second and only remaining
+nonblank line must be exactly: No reproducible findings. Never trust builder conclusions.`;
 const READY_PLANS = new WeakSet();
 const NONCE = /^[A-Za-z0-9_-]{16,128}$/;
 
+function sameList(left, right) {
+  return Array.isArray(left) && Array.isArray(right) &&
+    canonicalJson(left) === canonicalJson(right);
+}
+
+function packetIntegrityValid(packet) {
+  if (!packet || typeof packet.text !== 'string' || typeof packet.canonical !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(String(packet.textHash ?? '')) ||
+      !/^[a-f0-9]{64}$/.test(String(packet.hash ?? '')) ||
+      sha256(packet.text) !== packet.textHash || sha256(packet.canonical) !== packet.hash) return false;
+  try {
+    const bound = JSON.parse(packet.canonical);
+    const manifest = bound?.packet?.evidenceManifest;
+    return canonicalJson(bound) === packet.canonical && bound.textHash === packet.textHash &&
+      bound.packet?.sourceHash === packet.sourceHash && bound.packet?.scopeHash === packet.scopeHash &&
+      sameList(manifest?.includedPaths, packet.evidencePaths) &&
+      sameList(manifest?.excludedPaths, packet.excludedEvidencePaths ?? []);
+  } catch {
+    return false;
+  }
+}
+
 function preflight(packet, config, provider) {
   const bytes = Buffer.byteLength(packet.text, 'utf8');
-  let maxTokens = config.kimi.maxTokens;
-  if (estimateCost(provider, bytes, maxTokens) > config.kimi.maxUsdPerCall) {
-    let low = 16_000;
-    let high = maxTokens;
-    while (low < high) {
-      const middle = Math.ceil((low + high) / 2);
-      if (estimateCost(provider, bytes, middle) <= config.kimi.maxUsdPerCall) low = middle;
-      else high = middle - 1;
-    }
-    maxTokens = low;
-  }
+  const maxTokens = config.kimi.maxTokens;
   const worstCaseUsd = estimateCost(provider, bytes, maxTokens);
   return Object.freeze({
     packetHash: packet.hash,
@@ -48,6 +61,9 @@ export function planKimiReview({ required, packet, config, approval = null, now 
   if (!required) return Object.freeze({ status: 'NOT_REQUIRED', callCount: 0 });
   if (!config?.kimi?.enabled || config.kimi.approvalMode === 'disabled') {
     return Object.freeze({ status: 'BLOCKED_DISABLED', callCount: 0 });
+  }
+  if (!packetIntegrityValid(packet)) {
+    return Object.freeze({ status: 'BLOCKED_PACKET_INTEGRITY', callCount: 0 });
   }
 
   const provider = getProvider('kimi');
@@ -144,7 +160,9 @@ export async function executeKimiReview({
   plan, packet, outPath = null, execute = executeCommand, consume = consumeAuthorization,
 }) {
   if (plan?.status !== 'READY') throw new Error(`Kimi execution is not ready: ${plan?.status ?? 'missing plan'}`);
-  if (packet?.hash !== plan.preflight.packetHash) throw new Error('Kimi packet no longer matches approved hash');
+  if (!packetIntegrityValid(packet) || packet.hash !== plan.preflight.packetHash) {
+    throw new Error('Kimi packet integrity verification failed');
+  }
   const temp = mkdtempSync(join(tmpdir(), 'verify-kimi-'));
   const packetPath = join(temp, 'packet.md');
   const outputPath = outPath ?? join(temp, 'review.md');

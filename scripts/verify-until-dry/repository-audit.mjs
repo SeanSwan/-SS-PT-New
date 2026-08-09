@@ -7,9 +7,10 @@ import { closeSync, constants as fsConstants, fstatSync, lstatSync, openSync, re
 import { isAbsolute, relative, resolve } from 'node:path';
 
 import { classifyRisk } from './classifier.mjs';
+import { SENSITIVE_PATH_RE } from '../context-gateway/src/providers.mjs';
 import { canonicalJson, sha256 } from './ledger.mjs';
 import { planKimiReview } from './kimi-escalation.mjs';
-import { buildReviewPacket } from './review-packet.mjs';
+import { buildReviewPacket, detectKimiCeilingEvidence, supportsKimiTransformPath } from './review-packet.mjs';
 import { captureSnapshot } from './snapshot.mjs';
 
 const MAX_UNTRACKED_BYTES = 512 * 1024;
@@ -40,12 +41,30 @@ export function inferSurfaces(files) {
   return [...surfaces].sort();
 }
 
+export function partitionKimiEvidencePaths(files) {
+  const normalized = [...new Set(files.map((raw) => String(raw).replaceAll('\\', '/')))].sort();
+  const candidates = normalized.filter((file) => !SENSITIVE_PATH_RE.test(file)).filter((file) => {
+    const lower = file.toLowerCase();
+    return !lower.endsWith('.md') && !lower.startsWith('.agents/skills/') &&
+      !lower.startsWith('.claude/skills/') && !lower.endsWith('/openai.yaml') &&
+      supportsKimiTransformPath(file);
+  });
+  const safeSet = new Set(candidates);
+  return Object.freeze({
+    safe: Object.freeze(candidates),
+    excluded: Object.freeze(normalized.filter((file) => !safeSet.has(file))),
+  });
+}
+
+export function contentExceedsKimiCeiling(content) {
+  const text = String(content);
+  return /^GIT binary patch$/m.test(text) || /^Binary files .+ differ$/m.test(text) ||
+    /^\[(?:binary|unsafe|content)[^\]]*omitted[^\]]*\]$/mi.test(text) ||
+    SENSITIVE_PATH_RE.test(text) || detectKimiCeilingEvidence(text).length > 0;
+}
+
 export function selectKimiEvidencePaths(files) {
-  return [...new Set(files.filter((raw) => {
-    const file = String(raw).replaceAll('\\', '/').toLowerCase();
-    return !file.endsWith('.md') && !file.startsWith('.agents/skills/') &&
-      !file.startsWith('.claude/skills/') && !file.endsWith('/openai.yaml');
-  }))].sort();
+  return partitionKimiEvidencePaths(files).safe;
 }
 
 export function appendUntrackedEvidence(repoRoot, untrackedFiles, initialDiff, initialLines) {
@@ -205,23 +224,43 @@ function evidenceDiff(repoRoot, comparisonBase, paths, untrackedFiles) {
 export function auditRepository(repoRoot, args, config) {
   const comparisonBase = resolveComparisonBase(repoRoot, args.base);
   const audit = stableAudit(repoRoot, comparisonBase, args.tier, args.contract ?? {});
-  const paths = selectKimiEvidencePaths(audit.changes.files);
-  const evidence = evidenceDiff(repoRoot, comparisonBase, paths, lines(git(repoRoot, ['ls-files', '--others', '--exclude-standard'])));
+  const partition = partitionKimiEvidencePaths(audit.changes.files);
+  const untrackedFiles = lines(git(repoRoot, ['ls-files', '--others', '--exclude-standard']));
+  const evidenceItems = [];
+  const contentExcluded = [];
+  for (const path of partition.safe) {
+    const captured = evidenceDiff(repoRoot, comparisonBase, [path], untrackedFiles);
+    if (!captured.evidenceComplete || contentExceedsKimiCeiling(captured.diffText)) contentExcluded.push(path);
+    else evidenceItems.push({ id: `E${evidenceItems.length + 1}`, path,
+      content: captured.diffText || `(changed path: ${path})` });
+  }
+  const paths = evidenceItems.map((item) => item.path);
+  const excludedPaths = [...partition.excluded, ...contentExcluded].sort();
   let packet;
   let kimi;
+  if (evidenceItems.length === 0) {
+    const blocked = {
+      schema: 'verify-until-dry.local-only-packet.v1', headSha: audit.snapshot.headSha,
+      sourceHash: audit.snapshot.sourceHash, scopeHash: audit.snapshot.scopeHash,
+      evidencePaths: [], excludedEvidencePaths: excludedPaths,
+    };
+    packet = Object.freeze({ ...blocked, text: '', textHash: sha256(''),
+      canonical: canonicalJson(blocked), hash: sha256(canonicalJson(blocked)) });
+    kimi = audit.risk.kimiRequired
+      ? { status: 'BLOCKED_NO_SAFE_EVIDENCE', callCount: 0,
+        reasons: excludedPaths.map((path, index) => `E${index + 1} ${path}`) }
+      : { status: 'NOT_REQUIRED', callCount: 0 };
+    return { ...audit, comparisonBase, kimi, packet };
+  }
   try {
     packet = buildReviewPacket({
       runId: 'preflight', objective: audit.scopeContract.objective ?? 'Find reproducible defects in the changed source.',
       sourceHash: audit.snapshot.sourceHash, scopeHash: audit.snapshot.scopeHash,
-      evidence: [{ id: 'CHANGED_EVIDENCE', path: 'reviewed-change-set.diff',
-        content: evidence.diffText || paths.join('\n') || '(clean tree)' }],
+      evidence: evidenceItems,
+      evidenceManifest: { includedPaths: paths, excludedPaths },
     });
-    const screened = { ...packet, headSha: audit.snapshot.headSha,
-      evidencePaths: paths.length ? paths : packet.evidencePaths };
-    packet = screened;
-    kimi = audit.risk.kimiRequired && !evidence.evidenceComplete
-      ? { status: 'BLOCKED_PACKET_SIZE', callCount: 0 }
-      : planKimiReview({ required: audit.risk.kimiRequired, packet, config });
+    packet = Object.freeze({ ...packet, headSha: audit.snapshot.headSha });
+    kimi = planKimiReview({ required: audit.risk.kimiRequired, packet, config });
   } catch (error) {
     if (error?.code !== 'SENSITIVE_EVIDENCE') throw error;
     const blocked = { headSha: audit.snapshot.headSha, sourceHash: audit.snapshot.sourceHash, scopeHash: audit.snapshot.scopeHash,

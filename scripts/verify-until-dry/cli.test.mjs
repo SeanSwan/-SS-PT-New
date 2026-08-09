@@ -10,7 +10,7 @@ import test from 'node:test';
 
 import {
   appendUntrackedEvidence, defaultReceiptPath, inferSurfaces, parseCli, selectKimiEvidencePaths,
-  commandFinalize,
+  commandFinalize, kimiReceiptImportAllowed,
 } from './cli.mjs';
 import { appendEvent, canonicalJson, sha256 } from './ledger.mjs';
 import { buildReceipt } from './receipt.mjs';
@@ -19,7 +19,7 @@ test('parses run, finalize, audit, and verify commands without shell syntax', ()
   assert.deepEqual(parseCli(['run', '--tier', '2', '--base', 'origin/main']), {
     command: 'run', tier: 2, base: 'origin/main', out: null, receipt: null, reviews: null,
     approval: null, contract: null, kimiReceipt: null, mode: 'observe',
-    input: null, reviewer: null, axes: null, findings: null,
+    input: null, reviewer: null, axes: null, coverage: null, findings: null,
   });
   assert.equal(parseCli(['audit']).command, 'audit');
   assert.equal(parseCli(['finalize', '--receipt', 'r.json', '--reviews', 'v.json']).reviews, 'v.json');
@@ -40,6 +40,15 @@ test('default receipts live under OS temp, never the repository', () => {
   assert.equal(isAbsolute(path), true);
   assert.equal(relative(tmpdir(), path).startsWith('..'), false);
   assert.match(path, /verify-until-dry/);
+});
+
+test('Kimi receipts import only against the current exact authorization blocker', () => {
+  assert.equal(kimiReceiptImportAllowed({
+    risk: { kimiRequired: true }, kimi: { status: 'BLOCKED_AUTHORIZATION' },
+  }), true);
+  for (const status of ['BLOCKED_NO_SAFE_EVIDENCE', 'BLOCKED_CEILING', 'BLOCKED_COST_CAP', 'BLOCKED_PACKET_SIZE']) {
+    assert.equal(kimiReceiptImportAllowed({ risk: { kimiRequired: true }, kimi: { status } }), false, status);
+  }
 });
 
 test('untracked text contributes content and line complexity while binary stays bounded', () => {

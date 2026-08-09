@@ -39,10 +39,12 @@ Require all of:
 Allow exactly:
 
 - `CLOSED_NONREPRO`: the verifier ran the supplied reproduction and it did not
-  demonstrate the declared failure.
-- `CLOSED_FIXED`: fail-before matches the declared signature, pass-after succeeds,
+  demonstrate the finding's normalized, visible canonical failure signature.
+- `CLOSED_FIXED`: fail-before matches that same canonical signature, pass-after succeeds,
   and required mutation proof succeeds.
-- `EXEMPTED`: named human identity, exact diff/scope hash, rationale, and expiry.
+- `EXEMPTED`: named human identity, exact diff/scope hash, rationale, expiry,
+  and protected approval attestation. A local advisory owner-exemption marker
+  remains `UNPROVEN`.
 
 The authoring agent, fixer, and originating reviewer cannot directly write closure
 events.

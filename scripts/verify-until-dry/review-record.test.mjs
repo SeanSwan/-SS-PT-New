@@ -34,7 +34,8 @@ test('records captured review output instead of accepting naked vantages', () =>
     writeFileSync(join(root, 'review.txt'), 'VERDICT: CLEAN\nNo reproducible findings.');
     const artifact = commandRecordReview(root, {
       receipt: 'receipt.json', input: 'review.txt', reviewer: 'reviewer-a',
-      axes: 'static-control-flow', findings: null, reviews: null, out: 'reviews.json',
+      axes: 'static-control-flow', coverage: 'full-scope',
+      findings: null, reviews: null, out: 'reviews.json',
     });
     assert.equal(artifact.reviews[0].clean, true);
     assert.match(readFileSync(join(root, 'reviews.json'), 'utf8'), /reviewer-a/);

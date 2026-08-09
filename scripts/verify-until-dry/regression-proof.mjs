@@ -3,6 +3,8 @@
  * @description Proves a regression test failed before and passed after the repair.
  */
 import { canonicalJson, sha256 } from './ledger.mjs';
+import { canonicalizeFailureSignature, hasUnsafeComparableCharacters,
+  normalizeComparableText } from './findings.mjs';
 
 const HASH = /^[a-f0-9]{64}$/;
 
@@ -26,8 +28,12 @@ export function createRegressionProof(input = {}) {
       typeof input.green.output !== 'string' || sha256(input.green.output) !== input.green.outputHash) {
     throw new Error('Regression output hashes must bind captured output');
   }
-  if (!input.failureSignature || !input.red.output.includes(input.failureSignature) ||
-      input.green.output.includes(input.failureSignature)) {
+  const failureSignature = canonicalizeFailureSignature(input.failureSignature);
+  if (!failureSignature || failureSignature !== input.failureSignature ||
+      hasUnsafeComparableCharacters(input.red.output) ||
+      hasUnsafeComparableCharacters(input.green.output) ||
+      !normalizeComparableText(input.red.output).includes(failureSignature) ||
+      normalizeComparableText(input.green.output).includes(failureSignature)) {
     throw new Error('Regression failure signature must disappear after repair');
   }
   if (input.greenTestHash !== input.testHash) {
@@ -48,12 +54,15 @@ export function createRegressionProof(input = {}) {
     if (input.mutation.testHash !== input.testHash || input.mutation.commandHash !== input.commandHash) {
       throw new Error('Mutation proof must run the same test and command');
     }
+    const mutationSignature = canonicalizeFailureSignature(input.mutation.failureSignature);
     if (input.mutation.sourceHash === input.green.sourceHash || input.mutation.exitCode === 0 ||
         typeof input.mutation.output !== 'string' || sha256(input.mutation.output) !== input.mutation.outputHash ||
-        !input.mutation.failureSignature || !input.mutation.output.includes(input.mutation.failureSignature)) {
+        !mutationSignature || mutationSignature !== input.mutation.failureSignature ||
+        hasUnsafeComparableCharacters(input.mutation.output) ||
+        !normalizeComparableText(input.mutation.output).includes(mutationSignature)) {
       throw new Error('Mutation evidence must bind a distinct killed mutation and captured failure');
     }
-    mutation = { ...input.mutation, killed: true };
+    mutation = { ...input.mutation, failureSignature: mutationSignature, killed: true };
   }
   const proof = {
     schema: 'verify-until-dry.regression-proof.v1',
@@ -63,11 +72,25 @@ export function createRegressionProof(input = {}) {
     greenTestHash: input.greenTestHash,
     commandHash: input.commandHash,
     tier: input.tier,
-    failureSignature: input.failureSignature,
+    failureSignature,
     red: { ...input.red },
     green: { ...input.green },
     mutation,
     biting: true,
   };
   return Object.freeze({ ...proof, proofHash: sha256(canonicalJson(proof)) });
+}
+
+export function validateRegressionProof(proof, context = {}) {
+  if (proof?.schema !== 'verify-until-dry.regression-proof.v1') return false;
+  const { proofHash, ...payload } = proof;
+  try {
+    const rebuilt = createRegressionProof(payload);
+    return rebuilt.proofHash === proofHash && canonicalJson(rebuilt) === canonicalJson(proof) &&
+      (!context.findingId || proof.findingId === context.findingId) &&
+      (!Number.isInteger(context.tier) || proof.tier === context.tier) &&
+      (!context.sourceHash || proof.green.sourceHash === context.sourceHash);
+  } catch {
+    return false;
+  }
 }

@@ -8,7 +8,8 @@ import test from 'node:test';
 import { buildKimiReceipt, validateKimiReceipt } from './kimi-receipt.mjs';
 
 const packet = { hash: 'a'.repeat(64), headSha: 'f'.repeat(40),
-  sourceHash: 'b'.repeat(64), scopeHash: 'c'.repeat(64) };
+  sourceHash: 'b'.repeat(64), scopeHash: 'c'.repeat(64),
+  evidencePaths: ['src/state-machine.mjs'] };
 
 test('binds a clean Kimi output to model, packet, source, and scope', () => {
   const receipt = buildKimiReceipt({
@@ -33,4 +34,16 @@ test('tampering, source drift, revise, and malformed output fail closed', () => 
   const tampered = structuredClone(revise);
   tampered.output = 'VERDICT: CLEAN';
   assert.equal(validateKimiReceipt(tampered, { packet, model: 'moonshotai/kimi-k3' }).valid, false);
+});
+
+test('a contradictory CLEAN Kimi body is malformed and cannot become a clean review', () => {
+  const receipt = buildKimiReceipt({
+    status: 'COMPLETED_ADVISORY', model: 'moonshotai/kimi-k3', packetHash: packet.hash,
+    outputHash: 'd'.repeat(64),
+    text: 'VERDICT: CLEAN\nSEVERITY: HIGH\nFINDING: division by zero is reproducible.', callCount: 1,
+  }, packet);
+  const verified = validateKimiReceipt(receipt, { packet, model: 'moonshotai/kimi-k3' });
+  assert.equal(verified.valid, true);
+  assert.equal(verified.clean, false);
+  assert.equal(verified.review.clean, false);
 });

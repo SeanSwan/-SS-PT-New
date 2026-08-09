@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createRegressionProof } from './regression-proof.mjs';
+import { createRegressionProof, validateRegressionProof } from './regression-proof.mjs';
 import { sha256 } from './ledger.mjs';
 
 const hash = (char) => char.repeat(64);
@@ -19,13 +19,19 @@ test('accepts the same test failing before and passing after a source change', (
   });
   assert.equal(proof.biting, true);
   assert.match(proof.proofHash, /^[a-f0-9]{64}$/);
+  assert.equal(validateRegressionProof(proof, {
+    findingId: 'F1', tier: 1, sourceHash: hash('d'),
+  }), true);
+  assert.equal(validateRegressionProof({ ...proof, green: { ...proof.green, exitCode: 1 } }, {
+    findingId: 'F1', tier: 1, sourceHash: hash('d'),
+  }), false);
 });
 
 test('rejects always-green, still-red, changed-test, and unchanged-source claims', () => {
   const base = {
     findingId: 'F2', testId: 'probe', tier: 1, testHash: hash('a'), greenTestHash: hash('a'), commandHash: hash('f'),
-    failureSignature: 'boom',
-    red: { sourceHash: hash('b'), exitCode: 1, output: 'boom', outputHash: sha256('boom') },
+    failureSignature: 'boom failure',
+    red: { sourceHash: hash('b'), exitCode: 1, output: 'boom failure', outputHash: sha256('boom failure') },
     green: { sourceHash: hash('d'), exitCode: 0, output: 'pass', outputHash: sha256('pass') },
   };
   assert.throws(() => createRegressionProof({ ...base, red: { ...base.red, exitCode: 0 } }), /red/i);
