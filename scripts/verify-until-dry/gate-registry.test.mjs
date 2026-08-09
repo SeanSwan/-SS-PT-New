@@ -51,9 +51,19 @@ test('verifier self-test expands an explicit serial file list, not directory dis
   assert.deepEqual(selfTest.args.slice(0, 2), ['--test', '--test-concurrency=1']);
   assert.ok(selfTest.args.slice(2).every((path) => path.endsWith('.test.mjs')));
   assert.ok(selfTest.args.includes('scripts/verify-until-dry/verdict.test.mjs'));
+  assert.ok(selfTest.args.includes('scripts/hooks/verify-until-dry-gate.test.mjs'));
+  assert.ok(selfTest.args.includes('scripts/hooks/dry-loop-gate.test.mjs'));
 });
 
 test('diff integrity checks staged and unstaged changes against HEAD', () => {
   const diff = selectGates({ tier: 0, surfaces: [] }).find((gate) => gate.id === 'diff-check');
   assert.deepEqual(diff.args, ['diff', '--check', 'HEAD']);
+});
+
+test('secret scanning uses the evidence-validating Node wrapper with a bounded full-scan timeout', () => {
+  const secret = selectGates({ tier: 0, surfaces: [] }).find((gate) => gate.id === 'secret-scan');
+  assert.equal(secret.command, process.execPath);
+  assert.deepEqual(secret.args, ['scripts/verify-until-dry/secret-scan-gate.mjs', '--all']);
+  assert.equal(secret.timeoutMs, 600_000);
+  assert.ok(secret.args.includes('scripts/verify-until-dry/secret-scan-gate.mjs'));
 });

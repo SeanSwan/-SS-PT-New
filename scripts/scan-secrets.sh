@@ -154,6 +154,31 @@ git_grep_cached_chunked() {
   return "$found"
 }
 
+git_grep_worktree_chunked() {
+  local regex="$1"
+  local output_file="$2"
+  shift 2
+  local -a batch=()
+  local file grep_rc
+  local found=1
+  : > "$output_file"
+  for file in "$@"; do
+    batch+=("$file")
+    if (( ${#batch[@]} >= 100 )); then
+      git grep -I -nE -- "$regex" -- "${batch[@]}" >> "$output_file"
+      grep_rc=$?
+      if (( grep_rc == 0 )); then found=0; elif (( grep_rc != 1 )); then return "$grep_rc"; fi
+      batch=()
+    fi
+  done
+  if (( ${#batch[@]} > 0 )); then
+    git grep -I -nE -- "$regex" -- "${batch[@]}" >> "$output_file"
+    grep_rc=$?
+    if (( grep_rc == 0 )); then found=0; elif (( grep_rc != 1 )); then return "$grep_rc"; fi
+  fi
+  return "$found"
+}
+
 # Scan committed blobs without mutating the worktree or index. Git prefixes
 # each hit with <treeish>:<path>:<line>; callers parse that data in-memory and
 # report only the path, pattern name, and line numbers.
@@ -492,13 +517,132 @@ scan_committed_range_fast() {
   return 0
 }
 
+scan_source_fast() {
+  local source="$1"
+  local -a tracked=()
+  local -a hotspots=()
+  local f hs is_hotspot
+  for f in "${files[@]}"; do
+    [[ -z "$f" ]] && continue
+    if is_skipped_path "$f"; then skipped=$((skipped + 1)); continue; fi
+    is_hotspot=0
+    for hs in "${HOT_SPOT_PATHS[@]}"; do [[ "$f" == "$hs" ]] && is_hotspot=1; done
+    if (( is_hotspot )) && [[ "$source" == "index" ]]; then continue; fi
+    scanned=$((scanned + 1))
+    if (( is_hotspot )); then hotspots+=("$f"); else tracked+=("$f"); fi
+  done
+
+  local tmp rc file line content entry name regex key line_numbers count
+  declare -A lines_by_key=()
+  if (( ${#tracked[@]} > 0 )); then
+    tmp="$(mktemp)"
+    set +e
+    if [[ "$source" == "index" ]]; then
+      git_grep_cached_chunked "$FAST_COMBINED_REGEX" "$tmp" "${tracked[@]}"
+    else
+      git_grep_worktree_chunked "$FAST_COMBINED_REGEX" "$tmp" "${tracked[@]}"
+    fi
+    rc=$?
+    set -e
+    if (( rc != 0 && rc != 1 )); then
+      rm -f "$tmp"
+      echo "Secret scan failed while scanning $source files." >&2
+      return 2
+    fi
+    if (( rc == 0 )); then
+      while IFS=: read -r file line content; do
+        [[ -z "$file" || -z "$line" ]] && continue
+        for entry in "${PATTERNS[@]}"; do
+          name="${entry%%|*}"
+          [[ "$name" == "rotated-password-shape" ]] && continue
+          regex="${entry#*|}"
+          if [[ "$content" =~ $regex ]]; then
+            key="$name|$file"
+            [[ -z "${lines_by_key[$key]:-}" ]] && lines_by_key[$key]="$line" || \
+              lines_by_key[$key]="${lines_by_key[$key]},$line"
+          fi
+        done
+      done < "$tmp"
+    fi
+    rm -f "$tmp"
+
+    tmp="$(mktemp)"
+    set +e
+    if [[ "$source" == "index" ]]; then
+      git_grep_cached_chunked "K[a-z]{4}K[a-z]{4}[0-9]{2,}!?" "$tmp" "${tracked[@]}"
+    else
+      git_grep_worktree_chunked "K[a-z]{4}K[a-z]{4}[0-9]{2,}!?" "$tmp" "${tracked[@]}"
+    fi
+    rc=$?
+    set -e
+    if (( rc != 0 && rc != 1 )); then
+      rm -f "$tmp"
+      echo "Secret scan failed while scanning $source password candidates." >&2
+      return 2
+    fi
+    if (( rc == 0 )); then
+      name="rotated-password-shape"
+      for entry in "${PATTERNS[@]}"; do
+        [[ "${entry%%|*}" == "$name" ]] && regex="${entry#*|}"
+      done
+      while IFS=: read -r file line content; do
+        [[ -z "$file" || -z "$line" ]] && continue
+        if [[ "$content" =~ $regex ]]; then
+          key="$name|$file"
+          [[ -z "${lines_by_key[$key]:-}" ]] && lines_by_key[$key]="$line" || \
+            lines_by_key[$key]="${lines_by_key[$key]},$line"
+        fi
+      done < "$tmp"
+    fi
+    rm -f "$tmp"
+  fi
+
+  for key in "${!lines_by_key[@]}"; do
+    name="${key%%|*}"; file="${key#*|}"; line_numbers="${lines_by_key[$key]}"
+    count="$(echo "$line_numbers" | tr ',' '\n' | grep -c .)"
+    if is_allowlisted "$file" "$name"; then
+      echo "  [allowlisted: $name in $file ($count match(es))]" >&2
+    else
+      echo "  [SECRET FOUND: $name in $file (lines: $line_numbers)]" >&2
+      total_hits=$((total_hits + 1))
+    fi
+  done
+
+  if [[ "$source" == "worktree" ]]; then
+    for f in "${hotspots[@]}"; do
+      set +e
+      scan_one "--workingtree" "$f"
+      rc=$?
+      set -e
+      (( rc > 0 )) && total_hits=$((total_hits + rc))
+    done
+  fi
+  return 0
+}
+
 mode="${1:-}"
 scan_mode="--workingtree"
 range_base=""
+untracked_files=()
+
+enumerate_git_files() {
+  local label="$1"
+  shift
+  local output
+  if ! output="$(git "$@")"; then
+    echo "Secret scan $label enumeration failed. Refusing zero-evidence CLEAN." >&2
+    return 2
+  fi
+  files=()
+  if [[ -n "$output" ]]; then
+    mapfile -t files <<< "$output"
+  fi
+}
+
 case "$mode" in
   --staged)
     echo "=== Secret scan: STAGED BLOBS (pre-commit mode) ==="
-    mapfile -t files < <(git diff --cached --name-only --diff-filter=ACM)
+    enumerate_git_files "staged-file" diff --cached --name-only --diff-filter=ACM || exit $?
     scan_mode="--stagedblob"
     ;;
   --range)
@@ -512,12 +656,20 @@ case "$mode" in
       exit 2
     fi
     echo "=== Secret scan: COMMITTED RANGE ${range_base}..HEAD ==="
-    mapfile -t files < <(git diff --name-only --diff-filter=ACM "${range_base}..HEAD")
+    enumerate_git_files "range-file" diff --name-only --diff-filter=ACM "${range_base}..HEAD" || exit $?
     scan_mode="--rangeblob"
     ;;
   --all)
-    echo "=== Secret scan: entire tracked tree + hot-spots ==="
-    mapfile -t files < <(git ls-files)
+    echo "=== Secret scan: index + working tree + untracked source + hot-spots ==="
+    enumerate_git_files "tracked-file" ls-files || exit $?
+    untracked_output=""
+    if ! untracked_output="$(git ls-files --others --exclude-standard)"; then
+      echo "Secret scan untracked-file enumeration failed. Refusing incomplete CLEAN." >&2
+      exit 2
+    fi
+    if [[ -n "$untracked_output" ]]; then
+      mapfile -t untracked_files <<< "$untracked_output"
+    fi
     # Append known-risky gitignored hot-spot paths that ls-files misses
     for hs in "${HOT_SPOT_PATHS[@]}"; do
       if [[ -f "$REPO_ROOT/$hs" ]]; then
@@ -659,6 +811,45 @@ if [[ "$scan_mode" == "--stagedblob" ]]; then
     exit 1
   fi
 
+  echo "CLEAN."
+  exit 0
+fi
+
+if [[ "$mode" == "--all" ]]; then
+  scanned=0
+  skipped=0
+  total_hits=0
+  scan_source_fast "index"
+  scan_rc=$?
+  if (( scan_rc == 0 )); then
+    scan_source_fast "worktree"
+    scan_rc=$?
+  fi
+  if (( scan_rc == 0 )); then
+    for f in "${untracked_files[@]}"; do
+      [[ -z "$f" ]] && continue
+      if is_skipped_path "$f"; then skipped=$((skipped + 1)); continue; fi
+      scanned=$((scanned + 1))
+      set +e
+      scan_one "--workingtree" "$f"
+      file_hits=$?
+      set -e
+      (( file_hits > 0 )) && total_hits=$((total_hits + file_hits))
+    done
+  fi
+  echo ""
+  echo "=== Scan summary ==="
+  echo "Scanned:     $scanned files"
+  echo "Skipped:     $skipped files (binaries, vendor, generated)"
+  echo "Hits:        $total_hits"
+  if (( scan_rc != 0 )); then
+    echo "SECRET SCAN FAILED. Commit/write blocked until scanner error is fixed."
+    exit "$scan_rc"
+  fi
+  if (( total_hits > 0 )); then
+    echo "SECRETS DETECTED. Commit/write blocked."
+    exit 1
+  fi
   echo "CLEAN."
   exit 0
 fi

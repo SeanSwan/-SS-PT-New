@@ -43,6 +43,11 @@ one evidence item, never the verdict.
 10. Ask the engine for the verdict. Push or deploy only when the exact release
     scope is proven and Sean's production authorization is present.
 
+When registered, the Stop hook runs in `assist` mode. It activates automatically
+on build-shaped and hostile-review turns, but skips trivial conversation. It may
+force this workflow to continue; it never bypasses exact approval for a paid
+Kimi K3 call.
+
 ## Commands
 
 - `node scripts/verify-until-dry/cli.mjs audit [--base <ref>] --contract <json>` performs a

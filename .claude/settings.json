@@ -329,6 +329,11 @@
           },
           {
             "type": "command",
+            "command": "node scripts/hooks/verify-until-dry-gate.mjs --mode assist",
+            "timeout": 30
+          },
+          {
+            "type": "command",
             "command": "node scripts/hooks/linear-sync-gate.mjs",
             "timeout": 30
           },

@@ -59,7 +59,7 @@ escalate; limits never expand to manufacture convergence.
 ## Automation and release
 
 The CLI supports audit, fenced run, exact-approved Kimi dispatch, finalization,
-and receipt verification. The local stop hook begins in observe mode and refuses
+and receipt verification. The local stop hook is activation-ready in assist mode and refuses
 to treat local advisory receipts as protected attestations. CI runs on
 pull requests, main, schedule, and manual dispatch. Deep scans cannot complete
 with missing analyzers. Advisory release evidence binds remote main, Render's

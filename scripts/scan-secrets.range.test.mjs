@@ -165,3 +165,73 @@ test('--range anchors git operations to the scanner repository', () => {
     rmSync(outside, { recursive: true, force: true });
   }
 });
+
+test('--all fails closed when tracked-file enumeration is unavailable', () => {
+  const notRepo = mkdtempSync(join(tmpdir(), 'swan-secret-no-git-'));
+  try {
+    const fixtureScanner = installScanner(notRepo);
+    writeFileSync(join(notRepo, 'safe.txt'), 'safe\n', 'utf8');
+    const result = run(BASH, [fixtureScanner, '--all'], notRepo);
+    const output = `${result.stdout}\n${result.stderr}`;
+    assert.notEqual(result.status, 0, output);
+    assert.match(output, /tracked-file enumeration failed/i);
+    assert.doesNotMatch(output, /Scanned:\s+0 files[\s\S]*CLEAN\./);
+  } finally {
+    rmSync(notRepo, { recursive: true, force: true });
+  }
+});
+
+test('--all detects a staged secret hidden by safe working-tree bytes', () => {
+  const repo = mkdtempSync(join(tmpdir(), 'swan-secret-index-worktree-'));
+  try {
+    git(repo, 'init');
+    git(repo, 'config', 'user.email', 'scanner-test@example.invalid');
+    git(repo, 'config', 'user.name', 'Scanner Test');
+    const fixtureScanner = installScanner(repo);
+    const target = join(repo, 'tracked.txt');
+    writeFileSync(join(repo, '.secretignore'), [
+      'scripts/scan-secrets.sh::pem-private-key',
+      'scripts/scan-secrets.sh::ssh-private-key',
+      '',
+    ].join('\n'), 'utf8');
+    writeFileSync(target, 'safe baseline\n', 'utf8');
+    commitAll(repo, 'baseline');
+    const syntheticSecret = ['sk', 'proj', 'Z'.repeat(24)].join('-');
+    writeFileSync(target, `${syntheticSecret}\n`, 'utf8');
+    git(repo, 'add', 'tracked.txt');
+    writeFileSync(target, 'safe working tree\n', 'utf8');
+    const result = run(BASH, [fixtureScanner, '--all'], repo);
+    const output = `${result.stdout}\n${result.stderr}`;
+    assert.equal(result.status, 1, output);
+    assert.match(output, /openai-project-key in tracked\.txt/);
+    assert.equal(output.includes(syntheticSecret), false, 'scanner output exposed staged content');
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});
+
+test('--all detects secrets in untracked source files', () => {
+  const repo = mkdtempSync(join(tmpdir(), 'swan-secret-untracked-'));
+  try {
+    git(repo, 'init');
+    git(repo, 'config', 'user.email', 'scanner-test@example.invalid');
+    git(repo, 'config', 'user.name', 'Scanner Test');
+    const fixtureScanner = installScanner(repo);
+    writeFileSync(join(repo, '.secretignore'), [
+      'scripts/scan-secrets.sh::pem-private-key',
+      'scripts/scan-secrets.sh::ssh-private-key',
+      '',
+    ].join('\n'), 'utf8');
+    writeFileSync(join(repo, 'baseline.txt'), 'safe baseline\n', 'utf8');
+    commitAll(repo, 'baseline');
+    const syntheticSecret = ['sk', 'proj', 'U'.repeat(24)].join('-');
+    writeFileSync(join(repo, 'new-source.mjs'), `export const key = '${syntheticSecret}';\n`, 'utf8');
+    const result = run(BASH, [fixtureScanner, '--all'], repo);
+    const output = `${result.stdout}\n${result.stderr}`;
+    assert.equal(result.status, 1, output);
+    assert.match(output, /openai-project-key in new-source\.mjs/);
+    assert.equal(output.includes(syntheticSecret), false, 'scanner output exposed untracked content');
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
+});

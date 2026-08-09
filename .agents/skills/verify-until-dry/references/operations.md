@@ -2,17 +2,30 @@
 
 ## Local adoption
 
-`scripts/hooks/verify-until-dry-gate.mjs` defaults to `observe`. It reads the
-latest OS-temp receipt and reports missing, stale, tampered, or non-clean proof.
-Set `VERIFY_UNTIL_DRY_MODE=enforce` only after protected CI attestation is
-implemented and an observe period shows the gate does not wedge legitimate
-workflows. Current local receipts are advisory, so enforce mode intentionally
-blocks even a locally clean receipt.
+`scripts/hooks/verify-until-dry-gate.mjs` supports three explicit trust modes:
 
-Register the hook in the active agent settings only after checking coordination
-locks. Never overwrite another live lane's settings edit. Existing transcript
-dry-loop hooks remain defense-in-depth; their prose marker is not a substitute
-for the hash-bound receipt.
+- `observe` reports missing, stale, tampered, or non-clean proof without blocking.
+- `assist` activates for repository writes, recognized write-capable shell/codegen
+  commands, commits, or hostile-review turns. It requests at most two corrective
+  continuations when the OS-temp receipt is missing, stale, or non-clean, then
+  releases to avoid an infinite harness loop. A local clean receipt remains
+  `LOCAL_ADVISORY`; a bounded release is not clean evidence.
+- `enforce` also requires protected `CI_ATTESTED` provenance and intentionally
+  rejects a locally authored clean receipt.
+
+Register `node scripts/hooks/verify-until-dry-gate.mjs --mode assist` in the
+active agent settings only after checking coordination locks and obtaining any
+required settings approval. The hook canonicalizes nested working directories
+to the Git top level before selecting or checking a receipt. Transcript failure
+and Git-root failure in assist/observe are fail-open so a broken heuristic cannot
+wedge the harness; enforce mode fails closed on unknown root identity. A
+two-feedback cap prevents infinite loops without treating the result as clean.
+Existing dry-loop hooks remain defense-in-depth; their prose
+marker is not a substitute for the hash-bound receipt.
+
+Assist mode may require Kimi K3 through the verifier's risk policy, but the hook
+never makes a paid call. It stops with `BLOCKED_AUTHORIZATION` until an exact,
+unexpired one-call approval is supplied.
 
 ## CI and deep scans
 
@@ -21,6 +34,12 @@ contract tests, and performs a fenced advisory pass on pull requests, main
 pushes, a weekly schedule, and manual dispatch. Once available on `origin/main`,
 the base branch's verifier is the authority reviewing candidate code. Bootstrap
 runs are explicitly candidate-advisory. Receipts are retained for 14 days.
+
+The secret gate launches `scan-secrets.sh --all` through the Node wrapper so
+Windows uses Git Bash rather than WSL Bash. It rejects spawn failures, nonzero
+exit, fatal Git output, missing counts, zero scanned files, nonzero hits, or a
+missing terminal clean marker. The Bash scanner itself also fails closed when
+Git cannot enumerate candidate files.
 
 Use `deep-scan.mjs` for broader scheduled analysis. Declare every required
 analyzer before the scan. Missing analyzer evidence is `UNPROVEN`; validated open

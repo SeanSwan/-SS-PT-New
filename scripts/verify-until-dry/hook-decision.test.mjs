@@ -42,6 +42,17 @@ test('observe mode reports gaps without blocking', () => {
   assert.match(result.reason, /receipt/i);
 });
 
+test('assist mode blocks gaps but accepts current local clean proof', () => {
+  assert.equal(decideHook({ mode: 'assist', receipt: null }).block, true);
+  const receipt = cleanReceipt();
+  const currentSnapshot = {
+    headSha: receipt.headSha, sourceHash: receipt.sourceHash, scopeHash: receipt.scopeHash,
+  };
+  assert.deepEqual(decideHook({ mode: 'assist', receipt, currentSnapshot }), {
+    mode: 'assist', block: false, reason: 'clean-current-receipt',
+  });
+});
+
 test('enforce mode blocks missing, dirty, tampered, or stale proof', () => {
   assert.equal(decideHook({ mode: 'enforce', receipt: null }).block, true);
   const receipt = cleanReceipt();

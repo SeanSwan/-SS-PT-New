@@ -1,6 +1,6 @@
 /**
  * @file hook-decision.mjs
- * @description Pure observe/enforce decision for verification receipts.
+ * @description Pure observe/assist/enforce decision for verification receipts.
  */
 import { verifyReceipt } from './receipt.mjs';
 
@@ -9,7 +9,9 @@ function result(mode, block, reason) {
 }
 
 export function decideHook({ mode = 'observe', receipt, currentSnapshot } = {}) {
-  if (!['observe', 'enforce'].includes(mode)) return result('enforce', true, `unknown-mode:${mode}`);
+  if (!['observe', 'assist', 'enforce'].includes(mode)) {
+    return result('enforce', true, `unknown-mode:${mode}`);
+  }
   if (!receipt) return result(mode, true, 'verification-receipt-missing');
   const verified = verifyReceipt(receipt);
   if (!verified.valid) return result(mode, true, verified.error);

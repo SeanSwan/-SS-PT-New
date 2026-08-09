@@ -30,7 +30,7 @@
 import { readFileSync } from 'node:fs';
 
 const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]|hermes-learning-packets[\\/]|memory[\\/]/;
-const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
+const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch', 'apply_patch']);
 const GIT_ACTIVITY_RE = /git(?:\s+-C\s+(?:"[^"]+"|'[^']+'|\S+))?\s+(commit|push)\b/;
 const MARKER_RE = /DRY-LOOP:\s*(CLEAN\s*[×x]\s*2|N\/A)/i;
 // Rule 74 (Proof-Before-Done, Sean 2026-07-22): a build-shaped closeout must also
@@ -163,7 +163,9 @@ export function parseTranscript(raw) {
 export function analyzeTurn(entries) {
   const lastUserIdx = entries.reduce((acc, e, i) => (isRealUserLine(e) ? i : acc), -1);
   const turn = entries.slice(lastUserIdx + 1);
-  const signals = { fileWrites: 0, gitActivity: false, markerSeen: false };
+  const signals = {
+    fileWrites: 0, writePaths: [], shellCommands: [], gitActivity: false, markerSeen: false,
+  };
   let lastAssistantText = '';
 
   for (const entry of turn) {
@@ -184,9 +186,14 @@ export function analyzeTurn(entries) {
       const input = item.input ?? {};
       const target = String(input.file_path ?? input.path ?? '');
       if (WRITE_TOOLS.has(item.name)) {
-        if (target && !EMISSION_PATH_RE.test(target)) signals.fileWrites += 1;
-      } else if (item.name === 'Bash' && GIT_ACTIVITY_RE.test(String(input.command ?? ''))) {
-        signals.gitActivity = true;
+        if ((!target || !EMISSION_PATH_RE.test(target))) {
+          signals.fileWrites += 1;
+          signals.writePaths.push(target || '.');
+        }
+      } else if (item.name === 'Bash') {
+        const command = String(input.command ?? '');
+        signals.shellCommands.push(command);
+        if (GIT_ACTIVITY_RE.test(command)) signals.gitActivity = true;
       }
     }
   }
@@ -197,6 +204,7 @@ export function analyzeTurn(entries) {
   const userText = lastUserIdx >= 0 ? userLineText(entries[lastUserIdx]) : '';
   signals.reviewRequested = REVIEW_REQUEST_RE.test(userText);
   signals.verdictSeen = REVIEW_VERDICT_RE.test(lastAssistantText);
+  signals.formalVerdictSeen = /^\s*VERDICT\s*:\s*(?:REVISE|REJECT)\b/im.test(lastAssistantText);
   signals.escapeSeen = ESCAPE_RE.test(lastAssistantText);
   return signals;
 }

@@ -11,8 +11,13 @@ import { fileURLToPath } from 'node:url';
 
 const SELF_TESTS = readdirSync(dirname(fileURLToPath(import.meta.url)))
   .filter((name) => name.endsWith('.test.mjs'))
-  .sort()
-  .map((name) => `scripts/verify-until-dry/${name}`);
+  .map((name) => `scripts/verify-until-dry/${name}`)
+  .concat(
+    'scripts/scan-secrets.range.test.mjs',
+    'scripts/hooks/dry-loop-gate.test.mjs',
+    'scripts/hooks/verify-until-dry-gate.test.mjs',
+  )
+  .sort();
 
 const gate = (id, command, args, cwd = '.', timeoutMs = 120_000) =>
   Object.freeze({ id, command, args: Object.freeze(args), cwd, timeoutMs, shell: false });
@@ -26,7 +31,10 @@ export const GATES = Object.freeze({
     '.',
     180_000,
   ),
-  'secret-scan': gate('secret-scan', 'bash', ['scripts/scan-secrets.sh', '--all']),
+  'secret-scan': gate(
+    'secret-scan', process.execPath,
+    ['scripts/verify-until-dry/secret-scan-gate.mjs', '--all'], '.', 600_000,
+  ),
   'frontend-typecheck': gate(
     'frontend-typecheck',
     process.execPath,

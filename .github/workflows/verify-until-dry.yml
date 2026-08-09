@@ -52,7 +52,10 @@ jobs:
             echo "VERIFY_UNTIL_DRY_AUTHORITY=bootstrap-candidate-advisory" >> "$GITHUB_ENV"
           fi
       - name: Run false-clean contract suite
-        run: node --test --test-concurrency=1 scripts/verify-until-dry/*.test.mjs
+        run: >-
+          node --test --test-concurrency=1 scripts/verify-until-dry/*.test.mjs
+          scripts/hooks/dry-loop-gate.test.mjs scripts/hooks/verify-until-dry-gate.test.mjs
+          scripts/scan-secrets.range.test.mjs
       - name: Run fenced observe pass
         run: >-
           node "$VERIFY_UNTIL_DRY_CLI" run --mode observe --base origin/main
