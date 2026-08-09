@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Perfectionist"
+  short_description: "Evidence-bound hostile review and repair"
+  default_prompt: "Use $verify-until-dry to verify this change through deterministic gates and hostile review until the proven scope is dry."
