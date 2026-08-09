@@ -3,22 +3,24 @@
  * @file cli.mjs
  * @description Command-line adapter for audits, fenced gates, receipt finalization, and verification.
  */
-import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import config from '../../config/verify-until-dry.config.mjs';
-import { classifyRisk } from './classifier.mjs';
 import { runDeterministicPass } from './engine.mjs';
 import { executeKimiReview, planKimiReview } from './kimi-escalation.mjs';
+import { buildKimiReceipt, validateKimiReceipt } from './kimi-receipt.mjs';
 import { appendEvent } from './ledger.mjs';
 import { buildReceipt, verifyReceipt } from './receipt.mjs';
-import { buildReviewPacket } from './review-packet.mjs';
+import { auditRepository } from './repository-audit.mjs';
+import { buildCompletedReview, validateCompletedReviews, validateReviewSet } from './review-proof.mjs';
 
-const COMMANDS = new Set(['audit', 'run', 'finalize', 'verify', 'kimi']);
+export { appendUntrackedEvidence, inferSurfaces, selectKimiEvidencePaths } from './repository-audit.mjs';
+
+const COMMANDS = new Set(['audit', 'run', 'record-review', 'finalize', 'verify', 'kimi']);
 
 export function parseCli(argv) {
   const command = argv[0] ?? 'audit';
@@ -30,34 +32,14 @@ export function parseCli(argv) {
   const tierText = option('tier');
   const tier = tierText === null ? null : Number(tierText);
   if (tier !== null && (!Number.isInteger(tier) || tier < 0 || tier > 3)) throw new Error(`Invalid tier: ${tierText}`);
+  const mode = option('mode') ?? process.env.VERIFY_UNTIL_DRY_MODE ?? 'observe';
+  if (!['observe', 'enforce'].includes(mode)) throw new Error(`Invalid mode: ${mode}`);
   return {
     command, tier, base: option('base'), out: option('out'), receipt: option('receipt'),
-    reviews: option('reviews'), approval: option('approval'),
+    reviews: option('reviews'), approval: option('approval'), contract: option('contract'),
+    kimiReceipt: option('kimi-receipt'), mode,
+    input: option('input'), reviewer: option('reviewer'), axes: option('axes'), findings: option('findings'),
   };
-}
-
-export function inferSurfaces(files) {
-  const surfaces = new Set();
-  for (const raw of files) {
-    const file = String(raw).replaceAll('\\', '/');
-    if (file.startsWith('frontend/')) surfaces.add('frontend');
-    else if (file.startsWith('backend/')) surfaces.add('backend');
-    else if (file.startsWith('docs/') || file.endsWith('.md')) surfaces.add('docs');
-    else surfaces.add('tooling');
-  }
-  return [...surfaces].sort();
-}
-
-export function selectKimiEvidencePaths(files) {
-  const production = files.filter((raw) => {
-    const file = String(raw).replaceAll('\\', '/').toLowerCase();
-    return !file.endsWith('.md') &&
-      !/\.(?:test|spec)\.[cm]?[jt]sx?$/.test(file) &&
-      !file.startsWith('.agents/skills/') &&
-      !file.startsWith('.claude/skills/') &&
-      !file.endsWith('/openai.yaml');
-  });
-  return [...new Set(production)].sort();
 }
 
 export function defaultReceiptPath(repoRoot) {
@@ -65,128 +47,6 @@ export function defaultReceiptPath(repoRoot) {
   return join(tmpdir(), 'verify-until-dry', id, 'latest-receipt.json');
 }
 
-function git(cwd, args) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, windowsHide: true });
-}
-
-function lines(value) {
-  return String(value).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-}
-
-const MAX_UNTRACKED_BYTES = 512 * 1024;
-
-export function appendUntrackedEvidence(repoRoot, untrackedFiles, initialDiff, initialLines) {
-  let diffText = initialDiff;
-  let changedLines = initialLines;
-  let includedBytes = 0;
-  let evidenceComplete = true;
-  for (const file of untrackedFiles) {
-    const absolute = resolve(repoRoot, file);
-    const rel = relative(resolve(repoRoot), absolute);
-    if (isAbsolute(rel) || rel.startsWith('..') || lstatSync(absolute).isSymbolicLink()) {
-      diffText += `\n--- UNTRACKED ${file} ---\n[unsafe path omitted]\n`;
-      evidenceComplete = false;
-      continue;
-    }
-    const content = readFileSync(absolute);
-    if (includedBytes + content.length > MAX_UNTRACKED_BYTES) {
-      diffText += `\n--- UNTRACKED ${file} ---\n[content omitted: packet size ceiling]\n`;
-      evidenceComplete = false;
-      continue;
-    }
-    includedBytes += content.length;
-    if (content.includes(0)) {
-      diffText += `\n--- UNTRACKED ${file} ---\n[binary omitted]\n`;
-      continue;
-    }
-    const text = content.toString('utf8');
-    const countable = text.endsWith('\n') ? text.slice(0, -1) : text;
-    if (countable) changedLines += countable.split(/\r?\n/).length;
-    diffText += `\n--- UNTRACKED ${file} ---\n${text}\n`;
-  }
-  return { diffText, changedLines, evidenceComplete };
-}
-
-function inspectChanges(repoRoot, base) {
-  const untrackedFiles = lines(git(repoRoot, ['ls-files', '--others', '--exclude-standard']));
-  const files = new Set([
-    ...lines(git(repoRoot, ['diff', '--name-only', 'HEAD'])),
-    ...untrackedFiles,
-  ]);
-  let diffText = git(repoRoot, ['diff', '--binary', 'HEAD']);
-  let numstat = git(repoRoot, ['diff', '--numstat', 'HEAD']);
-  if (base) {
-    for (const file of lines(git(repoRoot, ['diff', '--name-only', `${base}...HEAD`]))) files.add(file);
-    diffText += git(repoRoot, ['diff', '--binary', `${base}...HEAD`]);
-    numstat += git(repoRoot, ['diff', '--numstat', `${base}...HEAD`]);
-  }
-  let changedLines = 0;
-  for (const row of lines(numstat)) {
-    const [added, deleted] = row.split(/\s+/);
-    changedLines += (Number(added) || 0) + (Number(deleted) || 0);
-  }
-  const untracked = appendUntrackedEvidence(repoRoot, untrackedFiles, diffText, changedLines);
-  return {
-    files: [...files].map((file) => file.replaceAll('\\', '/')).sort(),
-    diffText: untracked.diffText,
-    changedLines: untracked.changedLines,
-    evidenceComplete: untracked.evidenceComplete,
-  };
-}
-
-function kimiEvidence(repoRoot, base, allFiles) {
-  const paths = selectKimiEvidencePaths(allFiles);
-  if (paths.length === 0) return { paths: allFiles, diffText: '(no production logic selected)', evidenceComplete: true };
-  let diffText = '';
-  for (let index = 0; index < paths.length; index += 50) {
-    const chunk = paths.slice(index, index + 50);
-    diffText += git(repoRoot, ['diff', '--binary', 'HEAD', '--', ...chunk]);
-    if (base) diffText += git(repoRoot, ['diff', '--binary', `${base}...HEAD`, '--', ...chunk]);
-  }
-  const untracked = new Set(lines(git(repoRoot, ['ls-files', '--others', '--exclude-standard'])));
-  const withUntracked = appendUntrackedEvidence(
-    repoRoot,
-    paths.filter((path) => untracked.has(path)),
-    diffText,
-    0,
-  );
-  return { paths, diffText: withUntracked.diffText, evidenceComplete: withUntracked.evidenceComplete };
-}
-
-function auditRepository(repoRoot, args) {
-  const changes = inspectChanges(repoRoot, args.base);
-  const risk = classifyRisk({
-    files: changes.files,
-    diffText: changes.diffText,
-    changedLines: changes.changedLines,
-    agentTier: args.tier,
-  });
-  const surfaces = inferSurfaces(changes.files);
-  const scopeContract = {
-    paths: changes.files.length ? changes.files : ['.'],
-    exclusions: [],
-    base: args.base ?? 'working-tree',
-    tier: risk.tier,
-    surfaces,
-  };
-  const kimiEvidenceSet = kimiEvidence(repoRoot, args.base, changes.files);
-  const packet = buildReviewPacket({
-    runId: 'preflight',
-    objective: 'Find reproducible defects in the changed source and verifier logic.',
-    sourceHash: 'captured-by-run',
-    scopeHash: 'captured-by-run',
-    evidence: [{
-      id: 'PRODUCTION_DIFF',
-      path: 'kimi-production-selection.diff',
-      content: kimiEvidenceSet.diffText || kimiEvidenceSet.paths.join('\n') || '(clean tree)',
-    }],
-  });
-  const screenedPacket = { ...packet, evidencePaths: kimiEvidenceSet.paths.length ? kimiEvidenceSet.paths : packet.evidencePaths };
-  const kimi = risk.kimiRequired && !kimiEvidenceSet.evidenceComplete
-    ? { status: 'BLOCKED_PACKET_SIZE', callCount: 0 }
-    : planKimiReview({ required: risk.kimiRequired, packet: screenedPacket, config });
-  return { changes, risk, surfaces, scopeContract, kimi, packet: screenedPacket };
-}
 
 function writeJson(path, value) {
   mkdirSync(dirname(path), { recursive: true });
@@ -197,36 +57,57 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
-async function commandRun(repoRoot, args) {
-  const audit = auditRepository(repoRoot, args);
+export async function commandRun(repoRoot, args) {
+  const audit = auditRepository(repoRoot, args, config);
   const blockers = [];
-  if (audit.risk.kimiRequired) blockers.push(`kimi-k3:${audit.kimi.status}`);
+  const reviews = [];
+  if (audit.risk.kimiRequired) {
+    if (!args.kimiReceipt) blockers.push(`kimi-k3:${audit.kimi.status}`);
+    else {
+      const proof = validateKimiReceipt(readJson(resolve(repoRoot, args.kimiReceipt)), {
+        packet: audit.packet, model: config.kimi.model,
+      });
+      if (!proof.valid) blockers.push(`kimi-k3:${proof.error}`);
+      else if (!proof.clean) blockers.push('kimi-k3:REVISE');
+      else reviews.push(proof.review);
+    }
+  }
   const receipt = await runDeterministicPass({
     repoRoot,
     tier: audit.risk.tier,
     surfaces: audit.surfaces,
     scopeContract: audit.scopeContract,
+    snapshot: audit.snapshot,
+    reviewPacketHash: audit.packet.hash,
     blockers,
+    reviews,
   });
   const out = args.out ? resolve(repoRoot, args.out) : defaultReceiptPath(repoRoot);
   writeJson(out, receipt);
   return { receipt, out, audit };
 }
 
-function commandFinalize(repoRoot, args) {
+export function commandFinalize(repoRoot, args) {
   if (!args.receipt || !args.reviews) throw new Error('finalize requires --receipt and --reviews');
   const receipt = readJson(resolve(repoRoot, args.receipt));
   const verified = verifyReceipt(receipt);
   if (!verified.valid) throw new Error(`Cannot finalize invalid receipt: ${verified.error}`);
   const review = readJson(resolve(repoRoot, args.reviews));
-  if (!Array.isArray(review.vantages)) throw new Error('Review artifact must contain vantages[]');
+  const proof = validateReviewSet(review, receipt);
+  if (!proof.valid) throw new Error(`Review artifact is invalid: ${proof.error}`);
+  const combined = validateCompletedReviews([...(receipt.reviews ?? []), ...proof.reviews], receipt);
+  if (!combined.valid) throw new Error(`Combined review evidence is invalid: ${combined.error}`);
   let ledger = receipt.ledger;
-  for (const vantage of review.vantages) ledger = appendEvent(ledger, { type: 'review', ...vantage });
+  for (const completed of proof.reviews) ledger = appendEvent(ledger, {
+    type: 'review', id: completed.id, reviewer: completed.reviewer,
+    packetHash: completed.packetHash, outputHash: completed.outputHash, clean: completed.clean,
+  });
   const finalized = buildReceipt({
     ...receipt,
     reviewedScopeHash: receipt.scopeHash,
-    vantages: review.vantages,
-    findings: [...receipt.findings, ...(review.findings ?? [])],
+    vantages: combined.vantages,
+    reviews: combined.reviews,
+    findings: [...receipt.findings, ...combined.findings],
     ledger,
   });
   const out = args.out ? resolve(repoRoot, args.out) : resolve(repoRoot, args.receipt);
@@ -234,11 +115,39 @@ function commandFinalize(repoRoot, args) {
   return { receipt: finalized, out };
 }
 
+export function commandRecordReview(repoRoot, args) {
+  if (!args.receipt || !args.input || !args.reviewer || !args.axes || !args.out) {
+    throw new Error('record-review requires --receipt, --input, --reviewer, --axes, and --out');
+  }
+  const receipt = readJson(resolve(repoRoot, args.receipt));
+  const verified = verifyReceipt(receipt);
+  if (!verified.valid) throw new Error(`Cannot record review for invalid receipt: ${verified.error}`);
+  const findings = args.findings ? readJson(resolve(repoRoot, args.findings)) : [];
+  if (!Array.isArray(findings)) throw new Error('Review findings file must contain an array');
+  const output = readFileSync(resolve(repoRoot, args.input), 'utf8');
+  const completed = buildCompletedReview({
+    id: `R-${createHash('sha256').update(`${args.reviewer}\0${output}`).digest('hex').slice(0, 12)}`,
+    builder: 'verify-until-dry-builder', reviewer: args.reviewer,
+    headSha: receipt.headSha, sourceHash: receipt.sourceHash, scopeHash: receipt.scopeHash,
+    reviewPacketHash: receipt.reviewPacketHash, axes: args.axes.split(',').map((axis) => axis.trim()).filter(Boolean),
+    output, findings,
+  });
+  const existing = args.reviews ? readJson(resolve(repoRoot, args.reviews)) : {
+    schema: 'verify-until-dry.review-set.v1', receiptHash: receipt.receiptHash, reviews: [],
+  };
+  const candidate = { ...existing, reviews: [...(existing.reviews ?? []), completed] };
+  const proof = validateReviewSet(candidate, receipt);
+  if (!proof.valid) throw new Error(`Recorded review set is invalid: ${proof.error}`);
+  writeJson(resolve(repoRoot, args.out), candidate);
+  return candidate;
+}
+
 async function main() {
   const args = parseCli(process.argv.slice(2));
   const repoRoot = process.cwd();
+  const hydrated = { ...args, contract: args.contract ? readJson(resolve(repoRoot, args.contract)) : {} };
   if (args.command === 'audit') {
-    const audit = auditRepository(repoRoot, args);
+    const audit = auditRepository(repoRoot, hydrated, config);
     process.stdout.write(`${JSON.stringify({
       ...audit,
       packet: { hash: audit.packet.hash, evidencePaths: audit.packet.evidencePaths },
@@ -247,29 +156,38 @@ async function main() {
     return;
   }
   if (args.command === 'run') {
-    const result = await commandRun(repoRoot, args);
+    const result = await commandRun(repoRoot, hydrated);
     process.stdout.write(`${result.receipt.verdict.verdict} receipt=${result.out}\n`);
-    if (result.receipt.verdict.verdict === 'DIRTY') process.exitCode = 1;
+    if (args.mode === 'enforce' && result.receipt.verdict.verdict !== 'CLEAN_IN_PROVEN_SCOPE') process.exitCode = 1;
     return;
   }
   if (args.command === 'kimi') {
     if (!args.approval) throw new Error('kimi requires --approval for the exact preflight packet');
-    const audit = auditRepository(repoRoot, args);
+    const audit = auditRepository(repoRoot, hydrated, config);
     const approval = readJson(resolve(repoRoot, args.approval));
     const plan = planKimiReview({ required: audit.risk.kimiRequired, packet: audit.packet, config, approval });
     if (plan.status !== 'READY') throw new Error(`Kimi review blocked: ${plan.status}`);
     const result = await executeKimiReview({
       plan,
       packet: audit.packet,
-      outPath: args.out ? resolve(repoRoot, args.out) : null,
+      outPath: null,
     });
-    process.stdout.write(`${JSON.stringify({ ...result, text: undefined })}\n`);
+    const receipt = buildKimiReceipt(result, audit.packet);
+    const out = args.out ? resolve(repoRoot, args.out) : join(dirname(defaultReceiptPath(repoRoot)), 'latest-kimi-receipt.json');
+    writeJson(out, receipt);
+    process.stdout.write(`${JSON.stringify({ status: result.status, model: result.model,
+      packetHash: result.packetHash, outputHash: result.outputHash, callCount: result.callCount, receipt: out })}\n`);
     return;
   }
   if (args.command === 'finalize') {
     const result = commandFinalize(repoRoot, args);
     process.stdout.write(`${result.receipt.verdict.verdict} receipt=${result.out}\n`);
     if (result.receipt.verdict.verdict !== 'CLEAN_IN_PROVEN_SCOPE') process.exitCode = 1;
+    return;
+  }
+  if (args.command === 'record-review') {
+    const result = commandRecordReview(repoRoot, args);
+    process.stdout.write(`RECORDED reviews=${result.reviews.length} artifact=${resolve(repoRoot, args.out)}\n`);
     return;
   }
   if (!args.receipt) throw new Error('verify requires --receipt');

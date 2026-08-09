@@ -30,6 +30,15 @@ test('complete coverage is DIRTY with open findings and COMPLETE when none remai
   });
   assert.equal(completeDeepScan(dirty).status, 'DIRTY');
 
+  let canonical = startDeepScan({
+    id: 'S2b', headSha: 'a'.repeat(40), sourceHash: hash('b'), scopeHash: hash('c'),
+    requiredAnalyzers: ['logic'],
+  });
+  canonical = recordAnalyzer(canonical, {
+    id: 'logic', outputHash: hash('f'), findings: [{ id: 'F1', status: 'VALIDATED' }],
+  });
+  assert.equal(completeDeepScan(canonical).status, 'DIRTY');
+
   let clean = startDeepScan({
     id: 'S3', headSha: 'a'.repeat(40), sourceHash: hash('b'), scopeHash: hash('c'),
     requiredAnalyzers: ['security'],

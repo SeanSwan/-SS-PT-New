@@ -9,19 +9,31 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import {
-  copyFileSync,
+  closeSync,
+  existsSync,
+  fstatSync,
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  openSync,
+  readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
+  writeFileSync,
 } from 'node:fs';
+import { constants as fsConstants } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 
 import { captureSnapshot } from './snapshot.mjs';
 
 const MAX_OUTPUT = 4 * 1024 * 1024;
+const ISSUED_FENCES = new Set();
+const SAFE_ENV_KEYS = Object.freeze([
+  'CI', 'COMSPEC', 'LANG', 'LC_ALL', 'PATH', 'PATHEXT', 'SYSTEMROOT',
+  'TEMP', 'TMP', 'TMPDIR', 'WINDIR',
+]);
 
 function git(cwd, args, options = {}) {
   const result = spawnSync('git', args, {
@@ -43,14 +55,38 @@ function within(parent, child) {
   return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
 }
 
+function fenceKey(fence) {
+  return `${resolve(fence.parent)}\0${resolve(fence.path)}\0${resolve(fence.sourceRoot)}`;
+}
+
+function attachDependencies(sourceRoot, fencePath) {
+  for (const relativePath of ['node_modules', 'frontend/node_modules', 'backend/node_modules']) {
+    const source = resolve(sourceRoot, relativePath);
+    const target = resolve(fencePath, relativePath);
+    if (!existsSync(source) || existsSync(target)) continue;
+    mkdirSync(dirname(target), { recursive: true });
+    symlinkSync(source, target, process.platform === 'win32' ? 'junction' : 'dir');
+  }
+}
+
 function safeUntrackedPaths(repoRoot) {
   const raw = git(repoRoot, ['ls-files', '--others', '--exclude-standard', '-z']);
   return raw.split('\0').filter(Boolean).map((path) => {
     const source = resolve(repoRoot, path);
     if (!within(repoRoot, source)) throw new Error(`Untracked path escapes repository: ${path}`);
-    if (lstatSync(source).isSymbolicLink()) throw new Error(`Untracked symlink is not fence-safe: ${path}`);
-    if (!lstatSync(source).isFile()) throw new Error(`Unsupported untracked entry: ${path}`);
-    return { path, source };
+    const before = lstatSync(source);
+    if (before.isSymbolicLink()) throw new Error(`Untracked symlink is not fence-safe: ${path}`);
+    if (!before.isFile()) throw new Error(`Unsupported untracked entry: ${path}`);
+    const fd = openSync(source, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+    try {
+      const opened = fstatSync(fd);
+      const after = lstatSync(source);
+      if (!after.isFile() || opened.ino !== after.ino || opened.size !== after.size ||
+          (process.platform !== 'win32' && opened.dev !== after.dev)) {
+        throw new Error(`Untracked file changed during safe open: ${path}`);
+      }
+      return { path, content: readFileSync(fd) };
+    } finally { closeSync(fd); }
   });
 }
 
@@ -81,8 +117,9 @@ export function createFence({ repoRoot, snapshot, scopeContract = {}, prefix = '
       const target = resolve(fencePath, item.path);
       if (!within(fencePath, target)) throw new Error(`Fence target escapes worktree: ${item.path}`);
       mkdirSync(dirname(target), { recursive: true });
-      copyFileSync(item.source, target);
+      writeFileSync(target, item.content, { flag: 'wx' });
     }
+    attachDependencies(canonicalRoot, fencePath);
     const fenced = captureSnapshot({ cwd: fencePath, scopeContract });
     if (fenced.sourceHash !== snapshot.sourceHash) {
       const fields = ['headSha', 'statusHash', 'unstagedHash', 'stagedHash'];
@@ -90,7 +127,9 @@ export function createFence({ repoRoot, snapshot, scopeContract = {}, prefix = '
       if (JSON.stringify(fenced.untracked) !== JSON.stringify(snapshot.untracked)) mismatches.push('untracked');
       throw new Error(`Fence reconstruction does not match source hash: ${mismatches.join(', ')}`);
     }
-    return Object.freeze({ id: randomUUID(), path: fencePath, parent, sourceRoot: canonicalRoot });
+    const fence = Object.freeze({ id: randomUUID(), path: fencePath, parent, sourceRoot: canonicalRoot });
+    ISSUED_FENCES.add(fenceKey(fence));
+    return fence;
   } catch (error) {
     try { git(canonicalRoot, ['worktree', 'remove', '--force', fencePath]); } catch { /* best effort */ }
     rmSync(parent, { recursive: true, force: true });
@@ -100,12 +139,17 @@ export function createFence({ repoRoot, snapshot, scopeContract = {}, prefix = '
 
 /** Remove only a validated fence created beneath the OS temp directory. */
 export function disposeFence(fence) {
-  if (!fence || !within(tmpdir(), fence.parent) || !within(fence.parent, fence.path)) {
+  const temp = resolve(tmpdir());
+  const parent = fence?.parent ? resolve(fence.parent) : '';
+  const expectedPath = parent ? resolve(parent, 'worktree') : '';
+  if (!fence || parent === temp || dirname(parent) !== temp ||
+      !/verify-until-dry-[^\\/]+$/.test(parent) || resolve(fence.path) !== expectedPath ||
+      !ISSUED_FENCES.has(fenceKey(fence))) {
     throw new Error('Refusing to remove an untrusted fence path');
   }
-  try { git(fence.sourceRoot, ['worktree', 'remove', '--force', fence.path]); } finally {
-    rmSync(fence.parent, { recursive: true, force: true });
-  }
+  git(fence.sourceRoot, ['worktree', 'remove', '--force', fence.path]);
+  rmSync(fence.parent, { recursive: true, force: true });
+  ISSUED_FENCES.delete(fenceKey(fence));
 }
 
 export function redactOutput(value) {
@@ -121,9 +165,16 @@ function outputHash(stdout, stderr) {
 
 export function executeCommand(spec) {
   return new Promise((resolvePromise) => {
+    const env = {};
+    for (const key of [...SAFE_ENV_KEYS, ...(spec.allowEnv ?? [])]) {
+      const actual = Object.keys(process.env).find((candidate) => candidate.toUpperCase() === key.toUpperCase());
+      if (actual && process.env[actual] !== undefined) env[actual] = process.env[actual];
+    }
+    Object.assign(env, spec.env ?? {});
     const child = spawn(spec.command, spec.args, {
       cwd: spec.cwd,
-      env: { ...process.env, ...(spec.env ?? {}) },
+      env,
+      detached: process.platform !== 'win32',
       shell: false,
       windowsHide: true,
     });
@@ -136,7 +187,14 @@ export function executeCommand(spec) {
     };
     child.stdout.on('data', collect('stdout'));
     child.stderr.on('data', collect('stderr'));
-    const timer = setTimeout(() => child.kill(), spec.timeoutMs);
+    const terminate = () => {
+      if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true });
+      else {
+        try { process.kill(-child.pid, 'SIGTERM'); } catch { child.kill('SIGTERM'); }
+        setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* exited */ } }, 2_000).unref();
+      }
+    };
+    const timer = setTimeout(terminate, spec.timeoutMs);
     child.on('error', (error) => {
       clearTimeout(timer);
       resolvePromise({ code: 1, stdout: '', stderr: error.message });

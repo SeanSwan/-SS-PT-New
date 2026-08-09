@@ -4,8 +4,10 @@
 
 `scripts/hooks/verify-until-dry-gate.mjs` defaults to `observe`. It reads the
 latest OS-temp receipt and reports missing, stale, tampered, or non-clean proof.
-Set `VERIFY_UNTIL_DRY_MODE=enforce` only after an observe period shows the gate
-does not wedge legitimate workflows. Enforce mode fails closed.
+Set `VERIFY_UNTIL_DRY_MODE=enforce` only after protected CI attestation is
+implemented and an observe period shows the gate does not wedge legitimate
+workflows. Current local receipts are advisory, so enforce mode intentionally
+blocks even a locally clean receipt.
 
 Register the hook in the active agent settings only after checking coordination
 locks. Never overwrite another live lane's settings edit. Existing transcript
@@ -14,10 +16,11 @@ for the hash-bound receipt.
 
 ## CI and deep scans
 
-`.github/workflows/verify-until-dry.yml` runs contract tests plus a fenced observe
-pass on pull requests, main pushes, a weekly schedule, and manual dispatch. The
-receipt is retained for 14 days. Promotion from observe to enforcement is an
-owner-controlled policy change.
+`.github/workflows/verify-until-dry.yml` installs locked dependencies, runs
+contract tests, and performs a fenced advisory pass on pull requests, main
+pushes, a weekly schedule, and manual dispatch. Once available on `origin/main`,
+the base branch's verifier is the authority reviewing candidate code. Bootstrap
+runs are explicitly candidate-advisory. Receipts are retained for 14 days.
 
 Use `deep-scan.mjs` for broader scheduled analysis. Declare every required
 analyzer before the scan. Missing analyzer evidence is `UNPROVEN`; validated open
@@ -26,7 +29,9 @@ the whole repository is perfect.
 
 ## Deployment proof
 
-Use `deploy-proof.mjs` only after push authorization. Evidence must bind the same
+Use the acquisition function in `deploy-proof.mjs` only after push authorization.
+The pure builder validates claim shape but cannot emit `PROVEN`; the collector
+must observe Git, Render, and HTTPS. Evidence must bind the same
 40-character commit to remote main and the live Render deploy, plus a timestamped
 2xx health-body hash. Any mismatch is `UNPROVEN`.
 

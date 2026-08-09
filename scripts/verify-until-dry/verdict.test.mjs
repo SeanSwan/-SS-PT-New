@@ -10,16 +10,19 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { VERDICTS, computeVerdict } from './verdict.mjs';
 import { appendEvent } from './ledger.mjs';
+import { buildCompletedReview } from './review-proof.mjs';
 
 const cleanInput = () => {
+  const headSha = '1'.repeat(40);
+  const scopeHash = '2'.repeat(64);
   let ledger = [];
-  ledger = appendEvent(ledger, { type: 'snapshot', headSha: 'head-1', scopeHash: 'scope-1' });
-  return {
+  ledger = appendEvent(ledger, { type: 'snapshot', headSha, scopeHash });
+  const input = {
     ledger,
     tier: 2,
-    headSha: 'head-1',
-    scopeHash: 'scope-1',
-    reviewedScopeHash: 'scope-1',
+    headSha,
+    scopeHash,
+    reviewedScopeHash: scopeHash, sourceHash: 'a'.repeat(64), reviewPacketHash: 'b'.repeat(64),
     requiredGates: ['unit', 'typecheck'],
     gates: {
       unit: { status: 'pass', current: true },
@@ -28,11 +31,19 @@ const cleanInput = () => {
     findings: [],
     blockers: [],
     escalations: [],
-    vantages: [
-      { clean: true, headSha: 'head-1', scopeHash: 'scope-1', axes: ['structural', 'reviewer-a'] },
-      { clean: true, headSha: 'head-1', scopeHash: 'scope-1', axes: ['behavioral', 'reviewer-b'] },
-    ],
+    vantages: [], reviews: [],
   };
+  input.reviews = [
+    buildCompletedReview({ id: 'R1', builder: 'builder', reviewer: 'reviewer-a',
+      headSha: input.headSha, sourceHash: input.sourceHash, scopeHash: input.scopeHash,
+      reviewPacketHash: input.reviewPacketHash, axes: ['static-control-flow'],
+      output: 'VERDICT: CLEAN\nNo findings.', findings: [] }),
+    buildCompletedReview({ id: 'R2', builder: 'builder', reviewer: 'reviewer-b',
+      headSha: input.headSha, sourceHash: input.sourceHash, scopeHash: input.scopeHash,
+      reviewPacketHash: input.reviewPacketHash, axes: ['dynamic-runtime'],
+      output: 'VERDICT: CLEAN\nNo findings.', findings: [] }),
+  ];
+  return input;
 };
 
 test('only the five scoped verdicts exist', () => {
@@ -44,13 +55,21 @@ test('only the five scoped verdicts exist', () => {
 test('emits scoped clean only with current gates and distinct clean vantages', () => {
   const result = computeVerdict(cleanInput());
   assert.equal(result.verdict, VERDICTS.CLEAN);
-  assert.equal(result.scopeHash, 'scope-1');
+  assert.equal(result.scopeHash, '2'.repeat(64));
 });
 
 test('open validated findings force DIRTY', () => {
   const input = cleanInput();
   input.findings.push({ status: 'open', validated: true, signature: 'a:f:logic' });
   assert.equal(computeVerdict(input).verdict, VERDICTS.DIRTY);
+});
+
+test('canonical finding lifecycle VALIDATED status forces DIRTY', () => {
+  const input = cleanInput();
+  input.findings.push({ id: 'F1', status: 'VALIDATED', severity: 'high' });
+  const result = computeVerdict(input);
+  assert.equal(result.verdict, VERDICTS.DIRTY);
+  assert.deepEqual(result.reasons, ['F1']);
 });
 
 test('blocking and oscillating conditions cannot become clean', () => {
@@ -79,11 +98,13 @@ test('tampered ledgers, scope narrowing, and stale gates are UNPROVEN', () => {
 
 test('same-vantage reruns and changed snapshots are UNPROVEN', () => {
   const repeated = cleanInput();
-  repeated.vantages[1].axes = [...repeated.vantages[0].axes];
+  repeated.reviews[1] = buildCompletedReview({ ...repeated.reviews[1],
+    reviewPacketHash: repeated.reviewPacketHash, axes: [...repeated.reviews[0].axes] });
   assert.equal(computeVerdict(repeated).verdict, VERDICTS.UNPROVEN);
 
   const drifted = cleanInput();
-  drifted.vantages[1].headSha = 'head-2';
+  drifted.reviews[1] = buildCompletedReview({ ...drifted.reviews[1], headSha: '3'.repeat(40),
+    reviewPacketHash: drifted.reviewPacketHash });
   assert.equal(computeVerdict(drifted).verdict, VERDICTS.UNPROVEN);
 });
 
@@ -93,8 +114,19 @@ test('missing gates or fewer than two clean rounds are UNPROVEN', () => {
   assert.equal(computeVerdict(missingGate).verdict, VERDICTS.UNPROVEN);
 
   const oneRound = cleanInput();
-  oneRound.vantages.pop();
+  oneRound.reviews.pop();
   assert.equal(computeVerdict(oneRound).verdict, VERDICTS.UNPROVEN);
+});
+
+test('a later dirty review prevents historical clean rounds from being reused', () => {
+  const input = cleanInput();
+  input.reviews.push(buildCompletedReview({
+    id: 'R3', builder: 'builder', reviewer: 'reviewer-c', headSha: input.headSha,
+    sourceHash: input.sourceHash, scopeHash: input.scopeHash, reviewPacketHash: input.reviewPacketHash,
+    axes: ['adversarial-security'], output: 'VERDICT: REVISE\nCritical bug.',
+    findings: [{ id: 'F3', status: 'PROPOSED' }],
+  }));
+  assert.equal(computeVerdict(input).verdict, VERDICTS.UNPROVEN);
 });
 
 test('a current executed gate failure is DIRTY, not merely unproven', () => {

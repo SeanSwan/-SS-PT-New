@@ -46,3 +46,8 @@ test('non-object and duplicate-sequence entries are rejected', () => {
 test('binary hashes preserve byte identity instead of UTF-8 replacement collisions', () => {
   assert.notEqual(sha256(Buffer.from([0x80])), sha256(Buffer.from([0x81])));
 });
+
+test('callers cannot self-assert protected evidence provenance', () => {
+  const [entry] = appendEvent([], { type: 'review', provenance: 'CI_ATTESTED' });
+  assert.equal(entry.provenance, 'LOCAL_ADVISORY');
+});

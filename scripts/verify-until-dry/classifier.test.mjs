@@ -17,6 +17,10 @@ test('assigns deterministic path floors from docs through high consequence', () 
   assert.equal(classifyRisk({ files: ['backend/migrations/2026-add.cjs'] }).tier, 3);
   assert.equal(classifyRisk({ files: ['.github/workflows/release.yml'] }).tier, 3);
   assert.equal(classifyRisk({ files: ['scripts/verify-until-dry/verdict.mjs'] }).tier, 3);
+  assert.equal(classifyRisk({ files: ['backend/models/User.mjs'] }).tier, 3);
+  assert.equal(classifyRisk({ files: ['render.yaml'] }).tier, 3);
+  assert.equal(classifyRisk({ files: ['.agents/skills/verify-until-dry/SKILL.md'] }).tier, 3);
+  assert.equal(classifyRisk({ files: ['scripts/hooks/verify-until-dry-gate.mjs'] }).tier, 3);
 });
 
 test('an agent can raise deterministic risk but never lower it', () => {

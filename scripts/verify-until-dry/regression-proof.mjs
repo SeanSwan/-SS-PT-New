@@ -13,10 +13,19 @@ function requireHash(value, label) {
 export function createRegressionProof(input = {}) {
   if (!input.findingId || !input.testId) throw new Error('Finding and test identifiers are required');
   requireHash(input.testHash, 'Test hash');
+  requireHash(input.commandHash, 'Command hash');
   requireHash(input.red?.sourceHash, 'Red source hash');
   requireHash(input.red?.outputHash, 'Red output hash');
   requireHash(input.green?.sourceHash, 'Green source hash');
   requireHash(input.green?.outputHash, 'Green output hash');
+  if (typeof input.red.output !== 'string' || sha256(input.red.output) !== input.red.outputHash ||
+      typeof input.green.output !== 'string' || sha256(input.green.output) !== input.green.outputHash) {
+    throw new Error('Regression output hashes must bind captured output');
+  }
+  if (!input.failureSignature || !input.red.output.includes(input.failureSignature) ||
+      input.green.output.includes(input.failureSignature)) {
+    throw new Error('Regression failure signature must disappear after repair');
+  }
   if (input.greenTestHash && input.greenTestHash !== input.testHash) {
     throw new Error('Regression proof must use the same test before and after repair');
   }
@@ -30,6 +39,8 @@ export function createRegressionProof(input = {}) {
     findingId: input.findingId,
     testId: input.testId,
     testHash: input.testHash,
+    commandHash: input.commandHash,
+    failureSignature: input.failureSignature,
     red: { ...input.red },
     green: { ...input.green },
     biting: true,

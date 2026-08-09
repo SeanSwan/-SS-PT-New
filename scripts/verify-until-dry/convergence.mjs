@@ -6,9 +6,15 @@ import { canonicalJson, sha256 } from './ledger.mjs';
 
 const HASH = /^[a-f0-9]{64}$/;
 
-function fingerprintVantage(vantage) {
-  if (!vantage || Object.keys(vantage).length < 2) throw new Error('Each round needs at least two vantage axes');
-  return sha256(canonicalJson(vantage));
+const AXES = new Set(['adversarial-security', 'contract-tests', 'cross-platform', 'dynamic-runtime',
+  'hostile-logic', 'state-machine', 'static-control-flow', 'user-forward-test']);
+
+function normalizeVantage(vantage) {
+  if (!vantage?.reviewer || !Array.isArray(vantage.axes) || vantage.axes.length === 0 ||
+      vantage.axes.some((axis) => !AXES.has(axis))) {
+    throw new Error('Each round needs a reviewer and allowed vantage axes');
+  }
+  return { reviewer: vantage.reviewer, axes: [...new Set(vantage.axes)].sort() };
 }
 
 function inverseOverlap(previous, current) {
@@ -35,6 +41,7 @@ export function initialConvergence() {
     cleanStreak: 0,
     cleanSourceHash: null,
     cleanVantages: Object.freeze([]),
+    cleanReviewers: Object.freeze([]),
     findingCounts: Object.freeze({}),
     rounds: Object.freeze([]),
     lastRepair: null,
@@ -56,11 +63,12 @@ export function recordRound(state, roundInput, config) {
   if (state.status !== 'VERIFYING') throw new Error(`Convergence state is terminal: ${state.status}`);
   if (!HASH.test(String(roundInput?.sourceHash ?? ''))) throw new Error('Round source hash is invalid');
   const findings = [...new Set(roundInput.findings ?? [])].sort();
-  const vantageHash = fingerprintVantage(roundInput.vantage);
+  const vantage = normalizeVantage(roundInput.vantage);
+  const vantageHash = sha256(canonicalJson(vantage.axes));
   const round = {
     number: state.rounds.length + 1,
     sourceHash: roundInput.sourceHash,
-    vantage: Object.freeze({ ...roundInput.vantage }),
+    vantage: Object.freeze(vantage),
     vantageHash,
     findings: Object.freeze(findings),
     repair: roundInput.repair ? Object.freeze({
@@ -82,11 +90,16 @@ export function recordRound(state, roundInput, config) {
   let cleanStreak = 0;
   let cleanSourceHash = null;
   let cleanVantages = [];
+  let cleanReviewers = [];
   if (findings.length === 0) {
     const sameSource = state.cleanSourceHash === round.sourceHash;
     cleanSourceHash = round.sourceHash;
     cleanVantages = sameSource ? [...state.cleanVantages] : [];
-    if (!cleanVantages.includes(vantageHash)) cleanVantages.push(vantageHash);
+    cleanReviewers = sameSource ? [...state.cleanReviewers] : [];
+    if (!cleanVantages.includes(vantageHash) && !cleanReviewers.includes(vantage.reviewer)) {
+      cleanVantages.push(vantageHash);
+      cleanReviewers.push(vantage.reviewer);
+    }
     cleanStreak = cleanVantages.length;
   }
   return Object.freeze({
@@ -95,6 +108,7 @@ export function recordRound(state, roundInput, config) {
     cleanStreak,
     cleanSourceHash,
     cleanVantages: Object.freeze(cleanVantages),
+    cleanReviewers: Object.freeze(cleanReviewers),
     findingCounts: Object.freeze(counts),
     rounds: Object.freeze([...state.rounds, Object.freeze(round)]),
     lastRepair: round.repair ?? state.lastRepair,

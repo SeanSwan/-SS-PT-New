@@ -68,3 +68,13 @@ test('scope narrowing invalidates otherwise identical code evidence', () => {
   assert.equal(result.current, false);
   assert.ok(result.reasons.includes('scope-contract-changed'));
 });
+
+test('Git checkout semantics are part of execution identity', () => {
+  const cwd = repo();
+  git(cwd, 'config', 'core.autocrlf', 'false');
+  const first = captureSnapshot({ cwd, scopeContract: { paths: ['.'] } });
+  git(cwd, 'config', 'core.autocrlf', 'true');
+  const second = captureSnapshot({ cwd, scopeContract: { paths: ['.'] } });
+  assert.notEqual(first.sourceHash, second.sourceHash);
+  assert.notDeepEqual(first.executionIdentity, second.executionIdentity);
+});

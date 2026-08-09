@@ -7,6 +7,7 @@
  */
 
 import { verifyLedger } from './ledger.mjs';
+import { validateCompletedReviews } from './review-proof.mjs';
 
 export const VERDICTS = Object.freeze({
   BLOCKED: 'BLOCKED',
@@ -48,8 +49,11 @@ function failedCurrentGates(input) {
 }
 
 function finalVantagesAreValid(input) {
-  const rounds = (input.vantages ?? []).filter((round) => round.clean === true).slice(-2);
+  const proof = validateCompletedReviews(input.reviews, input);
+  if (!proof.valid) return false;
+  const rounds = proof.vantages.slice(-2);
   if (rounds.length !== 2) return false;
+  if (rounds.some((round) => round.clean !== true)) return false;
   if (rounds.some((round) => round.headSha !== input.headSha)) return false;
   if (rounds.some((round) => round.scopeHash !== input.scopeHash)) return false;
   return axesDifference(rounds[0].axes, rounds[1].axes) >= 2;
@@ -59,10 +63,10 @@ export function computeVerdict(input = {}) {
   const ledger = verifyLedger(input.ledger);
   if (!ledger.valid) return result(VERDICTS.UNPROVEN, input, [ledger.error]);
 
-  const openFindings = (input.findings ?? [])
-    .filter((finding) => finding.validated === true && finding.status === 'open');
+  const openFindings = (input.findings ?? []).filter((finding) =>
+    finding.status === 'VALIDATED' || (finding.validated === true && finding.status === 'open'));
   if (openFindings.length) {
-    return result(VERDICTS.DIRTY, input, openFindings.map((finding) => finding.signature));
+    return result(VERDICTS.DIRTY, input, openFindings.map((finding) => finding.signature ?? finding.id));
   }
 
   const failedGates = failedCurrentGates(input);
@@ -83,6 +87,9 @@ export function computeVerdict(input = {}) {
   }
   if (!input.scopeHash || input.scopeHash !== input.reviewedScopeHash) {
     return result(VERDICTS.UNPROVEN, input, ['scope-contract-mismatch']);
+  }
+  if (!/^[a-f0-9]{64}$/.test(String(input.reviewPacketHash ?? ''))) {
+    return result(VERDICTS.UNPROVEN, input, ['review-packet-missing']);
   }
   if (!input.headSha || !finalVantagesAreValid(input)) {
     return result(VERDICTS.UNPROVEN, input, ['two-distinct-clean-vantages-required']);

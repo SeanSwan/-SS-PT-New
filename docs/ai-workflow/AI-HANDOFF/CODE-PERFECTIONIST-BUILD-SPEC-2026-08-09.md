@@ -11,7 +11,8 @@ when that proof is incomplete.
 
 The deterministic engine owns verdicts. Builders, hostile reviewers, Kimi K3,
 and fixers supply evidence or hypotheses only. Evidence binds HEAD, staged,
-unstaged, untracked, scope, gate output, and review vantage through SHA-256.
+unstaged, untracked, checkout/runtime identity, resolved base tip and merge-base,
+scope, gate output, and completed review output through SHA-256.
 Every source or scope change invalidates prior completion evidence.
 
 ## Risk and gates
@@ -35,8 +36,10 @@ the original evidence manifest.
 
 Kimi K3 is exactly `moonshotai/kimi-k3`—not GPT-3. Tier 3, oscillation, repeated
 high findings, or high complexity requires Kimi. The engine automatically builds
-the packet and zero-call preflight. A live call requires an exact packet-hash and
-dollar-cap approval, uses a 60,000 output-token ceiling, and never auto-retries.
+the packet and zero-call preflight. A live call requires an unexpired
+model/packet/source/scope/nonce/cap approval, uses at most a 60,000 output-token
+ceiling (reduced automatically to stay under the hard dollar cap), consumes the
+nonce, and never auto-retries.
 The repository's design-provider sensitivity ceiling remains binding; sensitive
 auth, billing, migration, PII, or secret evidence blocks Kimi rather than leaking.
 
@@ -54,7 +57,8 @@ escalate; limits never expand to manufacture convergence.
 ## Automation and release
 
 The CLI supports audit, fenced run, exact-approved Kimi dispatch, finalization,
-and receipt verification. The local stop hook begins in observe mode. CI runs on
+and receipt verification. The local stop hook begins in observe mode and refuses
+to treat local advisory receipts as protected attestations. CI runs on
 pull requests, main, schedule, and manual dispatch. Deep scans cannot complete
 with missing analyzers. Release proof binds remote main, Render's live deploy,
 and a timestamped health hash to one exact commit.

@@ -80,3 +80,25 @@ test('source mutation during a gate invalidates the whole run', async () => {
     /mutated/i,
   );
 });
+
+test('gate subprocess receives an allowlisted environment without ambient secrets', async () => {
+  process.env.VERIFY_UNTIL_DRY_TEST_SECRET = 'must-not-cross';
+  try {
+    const result = await runGates({
+      fencePath: process.cwd(), expectedSourceHash: 'source-1',
+      gates: [{ id: 'env', command: process.execPath,
+        args: ['-e', 'process.stdout.write(process.env.VERIFY_UNTIL_DRY_TEST_SECRET || "absent")'],
+        cwd: '.', timeoutMs: 10_000 }],
+      capture: () => ({ sourceHash: 'source-1' }),
+    });
+    assert.equal(result[0].stdout, 'absent');
+  } finally {
+    delete process.env.VERIFY_UNTIL_DRY_TEST_SECRET;
+  }
+});
+
+test('cleanup refuses crafted or overbroad temp targets', () => {
+  assert.throws(() => disposeFence({ parent: tmpdir(), path: join(tmpdir(), 'worktree'), sourceRoot: process.cwd() }), /refusing/i);
+  assert.throws(() => disposeFence({ parent: join(tmpdir(), 'verify-until-dry-crafted'),
+    path: join(tmpdir(), 'verify-until-dry-crafted', 'worktree'), sourceRoot: process.cwd() }), /refusing/i);
+});

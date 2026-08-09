@@ -5,7 +5,7 @@
  * Kimi remains design-ceiling under repository policy. The original evidence
  * manifest is screened before a sanitized temp packet can reach consult-kimi.
  */
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { enforceCeiling, estimateCost, getProvider } from '../context-gateway/src/providers.mjs';
@@ -16,13 +16,27 @@ const REMIT = `You are Kimi K3 acting as an independent hostile logic reviewer. 
 state machine, invariants, edge cases, failure handling, concurrency assumptions, and false-clean
 paths. Return VERDICT: CLEAN or REVISE, then only reproducible findings with severity, evidence id,
 failing scenario, and the smallest safe repair direction. Never trust builder conclusions.`;
+const READY_PLANS = new WeakSet();
+const NONCE = /^[A-Za-z0-9_-]{16,128}$/;
 
 function preflight(packet, config, provider) {
-  const worstCaseUsd = estimateCost(provider, Buffer.byteLength(packet.text, 'utf8'), config.kimi.maxTokens);
+  const bytes = Buffer.byteLength(packet.text, 'utf8');
+  let maxTokens = config.kimi.maxTokens;
+  if (estimateCost(provider, bytes, maxTokens) > config.kimi.maxUsdPerCall) {
+    let low = 16_000;
+    let high = maxTokens;
+    while (low < high) {
+      const middle = Math.ceil((low + high) / 2);
+      if (estimateCost(provider, bytes, middle) <= config.kimi.maxUsdPerCall) low = middle;
+      else high = middle - 1;
+    }
+    maxTokens = low;
+  }
+  const worstCaseUsd = estimateCost(provider, bytes, maxTokens);
   return Object.freeze({
     packetHash: packet.hash,
     model: provider.model,
-    maxTokens: config.kimi.maxTokens,
+    maxTokens,
     worstCaseUsd: Number(worstCaseUsd.toFixed(6)),
     hardCapUsd: config.kimi.maxUsdPerCall,
     callCount: 1,
@@ -30,9 +44,11 @@ function preflight(packet, config, provider) {
 }
 
 /** Produce a zero-network plan. Required reviews block until every policy gate passes. */
-export function planKimiReview({ required, packet, config, approval = null }) {
+export function planKimiReview({ required, packet, config, approval = null, now = new Date().toISOString() }) {
   if (!required) return Object.freeze({ status: 'NOT_REQUIRED', callCount: 0 });
-  if (!config?.kimi?.enabled) return Object.freeze({ status: 'BLOCKED_DISABLED', callCount: 0 });
+  if (!config?.kimi?.enabled || config.kimi.approvalMode === 'disabled') {
+    return Object.freeze({ status: 'BLOCKED_DISABLED', callCount: 0 });
+  }
 
   const provider = getProvider('kimi');
   if (provider.model !== config.kimi.model) {
@@ -53,17 +69,38 @@ export function planKimiReview({ required, packet, config, approval = null }) {
   if (dryRun.worstCaseUsd > config.kimi.maxUsdPerCall) {
     return Object.freeze({ status: 'BLOCKED_COST_CAP', callCount: 0, preflight: dryRun });
   }
-  const exactApproval = approval?.packetHash === packet.hash &&
+  const exactApproval = config.kimi.approvalMode === 'exact-run' &&
+    approval?.mode === 'exact-run' && approval.model === config.kimi.model &&
+    approval.packetHash === packet.hash && approval.sourceHash === packet.sourceHash &&
+    approval.scopeHash === packet.scopeHash && NONCE.test(String(approval.nonce ?? '')) &&
+    Date.parse(approval.expiresAt ?? '') > Date.parse(now) &&
     Number.isFinite(approval?.maxUsd) && approval.maxUsd >= dryRun.worstCaseUsd &&
     approval.maxUsd <= config.kimi.maxUsdPerCall;
-  if (!exactApproval) {
+  const expiresAt = Date.parse(approval?.expiresAt ?? '');
+  const standingApproval = config.kimi.approvalMode === 'standing' &&
+    approval?.mode === 'standing' && approval.model === config.kimi.model &&
+    approval.scopeHash === packet.scopeHash && Number.isInteger(approval.remainingCalls) &&
+    NONCE.test(String(approval.nonce ?? '')) && Number.isInteger(approval.callNumber) && approval.callNumber >= 1 &&
+    approval.callNumber <= approval.remainingCalls && approval.callNumber <= config.kimi.maxCallsPerRun &&
+    approval.remainingCalls >= 1 && Number.isFinite(approval.maxUsdPerCall) &&
+    approval.maxUsdPerCall >= dryRun.worstCaseUsd && approval.maxUsdPerCall <= config.kimi.maxUsdPerCall &&
+    Number.isFinite(approval.remainingUsd) && approval.remainingUsd >= dryRun.worstCaseUsd &&
+    approval.remainingUsd <= config.kimi.maxUsdPerRun &&
+    Number.isFinite(expiresAt) && expiresAt > Date.parse(now);
+  if (!exactApproval && !standingApproval) {
     return Object.freeze({ status: 'BLOCKED_AUTHORIZATION', callCount: 0, preflight: dryRun });
   }
 
-  return Object.freeze({
+  const approvedCap = exactApproval ? approval.maxUsd : approval.maxUsdPerCall;
+
+  const plan = Object.freeze({
     status: 'READY',
     callCount: 0,
     preflight: dryRun,
+    authorization: Object.freeze({
+      nonce: approval.nonce, callNumber: exactApproval ? 1 : approval.callNumber,
+      mode: approval.mode, expiresAt: approval.expiresAt,
+    }),
     command: Object.freeze({
       command: process.execPath,
       args: Object.freeze([
@@ -72,26 +109,40 @@ export function planKimiReview({ required, packet, config, approval = null }) {
         '--out', '{{OUTPUT_PATH}}',
         '--remit', REMIT,
         '--effort', 'high',
-        '--max-tokens', String(config.kimi.maxTokens),
+        '--max-tokens', String(dryRun.maxTokens),
       ]),
       env: Object.freeze({
-        SWAN_CONTEXT_MAX_USD: String(approval.maxUsd),
+        SWAN_CONTEXT_MAX_USD: String(approvedCap),
         SWAN_KIMI_MODEL: config.kimi.model,
       }),
+      allowEnv: Object.freeze(['OPENROUTER_API_KEY', 'OPEN_ROUTER_API_KEY']),
       timeoutMs: config.kimi.timeoutMs,
       shell: false,
     }),
   });
+  READY_PLANS.add(plan);
+  return plan;
 }
 
 /** Dispatch exactly once. Callers persist packet/output paths and substitute placeholders. */
 export async function dispatchKimi(plan, execute) {
   if (plan?.status !== 'READY') throw new Error(`Kimi dispatch is not ready: ${plan?.status ?? 'missing plan'}`);
+  if (!READY_PLANS.has(plan)) throw new Error('Kimi plan was already consumed');
+  READY_PLANS.delete(plan);
   return execute(plan.command);
 }
 
+function consumeAuthorization(authorization) {
+  const directory = join(tmpdir(), 'verify-until-dry', 'kimi-authorization');
+  mkdirSync(directory, { recursive: true });
+  const path = join(directory, `${authorization.nonce}-${authorization.callNumber}.used`);
+  writeFileSync(path, authorization.expiresAt, { encoding: 'utf8', flag: 'wx' });
+}
+
 /** Materialize the approved packet, dispatch once, hash output, and remove temporary input. */
-export async function executeKimiReview({ plan, packet, outPath = null, execute = executeCommand }) {
+export async function executeKimiReview({
+  plan, packet, outPath = null, execute = executeCommand, consume = consumeAuthorization,
+}) {
   if (plan?.status !== 'READY') throw new Error(`Kimi execution is not ready: ${plan?.status ?? 'missing plan'}`);
   if (packet?.hash !== plan.preflight.packetHash) throw new Error('Kimi packet no longer matches approved hash');
   const temp = mkdtempSync(join(tmpdir(), 'verify-kimi-'));
@@ -106,6 +157,7 @@ export async function executeKimiReview({ plan, packet, outPath = null, execute 
     cwd: process.cwd(),
   };
   try {
+    consume(plan.authorization);
     const raw = await dispatchKimi(plan, () => execute(command));
     if (raw.code !== 0) throw new Error(`Kimi K3 call failed once with exit ${raw.code}: ${raw.stderr ?? ''}`);
     const text = readFileSync(outputPath, 'utf8');

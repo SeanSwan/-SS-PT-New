@@ -11,7 +11,11 @@
 6. Bounded fixer policy, biting regression proof, dry-loop convergence and
    oscillation escalation.
 7. CLI, OS-temp receipts, observe/enforce stop-hook adapter, and observe-mode CI.
-8. Coverage-complete deep-scan lifecycle and exact Render deployment proof.
+8. Coverage-complete deep-scan lifecycle and observation-backed Render proof collector.
+9. Hostile repair pass: trusted gate re-derivation, output-bound completed
+   reviews, canonical finding status, chronological clean rounds, resolved-base
+   identity, checkout/runtime identity, PII removal, scrubbed gate environments,
+   safe fence cleanup, dependency attachment, and Kimi completion receipts.
 
 ## Current evidence
 
@@ -26,7 +30,7 @@
 
 ## Release gates still open
 
-- Run the exact Kimi K3 hostile review for the final packet after owner approval;
+- Run the exact Kimi K3 hostile review for the final packet after refreshed owner approval;
   validate and repair its findings.
 - Run independent hostile-review rounds until two meaningfully distinct rounds
   find nothing fixable on unchanged code.

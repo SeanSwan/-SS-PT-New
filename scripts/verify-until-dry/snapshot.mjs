@@ -6,7 +6,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { lstatSync, readFileSync, readlinkSync } from 'node:fs';
+import { closeSync, constants as fsConstants, fstatSync, lstatSync, openSync, readFileSync, readlinkSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
 import { canonicalJson, sha256 } from './ledger.mjs';
 
@@ -17,6 +17,10 @@ function git(cwd, args, encoding = 'utf8') {
     maxBuffer: 64 * 1024 * 1024,
     windowsHide: true,
   });
+}
+
+function gitOptional(cwd, args) {
+  try { return git(cwd, args).trim(); } catch { return null; }
 }
 
 function zeroList(buffer) {
@@ -31,15 +35,28 @@ function hashUntracked(cwd, relativeFiles) {
       throw new Error(`untracked path escapes repository: ${relative}`);
     }
     const stat = lstatSync(absolute);
-    const content = stat.isSymbolicLink()
-      ? `symlink:${readlinkSync(absolute)}`
-      : readFileSync(absolute);
+    let content;
+    if (stat.isSymbolicLink()) content = `symlink:${readlinkSync(absolute)}`;
+    else {
+      const fd = openSync(absolute, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+      try {
+        const opened = fstatSync(fd);
+        const after = lstatSync(absolute);
+        if (!after.isFile() || opened.ino !== after.ino || opened.size !== after.size ||
+            (process.platform !== 'win32' && opened.dev !== after.dev)) {
+          throw new Error(`untracked file changed during hashing: ${relative}`);
+        }
+        content = readFileSync(fd);
+      } finally { closeSync(fd); }
+    }
     return { path: relative.replace(/\\/g, '/'), hash: sha256(content) };
   });
 }
 
 export function captureSnapshot({ cwd, scopeContract = {} }) {
   const headSha = git(cwd, ['rev-parse', 'HEAD']).trim();
+  const indexModes = git(cwd, ['ls-files', '--stage']);
+  if (/^160000\s/m.test(indexModes)) throw new Error('Submodule verification is unsupported and therefore UNPROVEN');
   const status = git(cwd, ['status', '--porcelain=v1', '-z'], 'buffer');
   const unstaged = git(cwd, ['diff', '--binary', 'HEAD']);
   const staged = git(cwd, ['diff', '--cached', '--binary', 'HEAD']);
@@ -56,6 +73,15 @@ export function captureSnapshot({ cwd, scopeContract = {} }) {
     unstagedHash: sha256(unstaged),
     stagedHash: sha256(staged),
     untracked,
+    executionIdentity: {
+      platform: process.platform,
+      arch: process.arch,
+      node: process.version,
+      git: git(cwd, ['--version']).trim(),
+      autocrlf: gitOptional(cwd, ['config', '--get', 'core.autocrlf']),
+      symlinks: gitOptional(cwd, ['config', '--get', 'core.symlinks']),
+      filemode: gitOptional(cwd, ['config', '--get', 'core.filemode']),
+    },
   };
   return {
     ...material,

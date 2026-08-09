@@ -50,8 +50,8 @@ export function appendEvent(entries, event) {
   const entry = {
     seq: entries.length + 1,
     prevHash: previous?.hash ?? GENESIS_HASH,
-    provenance: event.provenance ?? 'LOCAL_ADVISORY',
     ...structuredClone(event),
+    provenance: 'LOCAL_ADVISORY',
   };
   entry.hash = hashLedgerEntry(entry);
   return [...entries, entry];

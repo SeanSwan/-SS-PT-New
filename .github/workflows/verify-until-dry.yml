@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   verifier-contracts:
-    name: Code Perfectionist contracts and observe pass
+    name: Code Perfectionist advisory evidence (non-enforcing)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -29,10 +29,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+            backend/package-lock.json
+      - name: Install locked dependencies
+        run: |
+          npm ci --ignore-scripts
+          npm ci --ignore-scripts --prefix frontend
+          npm ci --ignore-scripts --prefix backend
+      - name: Select trusted verifier authority
+        shell: bash
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/verify-until-dry-base" origin/main
+          BASE_CLI="$RUNNER_TEMP/verify-until-dry-base/scripts/verify-until-dry/cli.mjs"
+          if [[ -f "$BASE_CLI" ]]; then
+            echo "VERIFY_UNTIL_DRY_CLI=$BASE_CLI" >> "$GITHUB_ENV"
+            echo "VERIFY_UNTIL_DRY_AUTHORITY=origin/main" >> "$GITHUB_ENV"
+          else
+            echo "VERIFY_UNTIL_DRY_CLI=$GITHUB_WORKSPACE/scripts/verify-until-dry/cli.mjs" >> "$GITHUB_ENV"
+            echo "VERIFY_UNTIL_DRY_AUTHORITY=bootstrap-candidate-advisory" >> "$GITHUB_ENV"
+          fi
       - name: Run false-clean contract suite
         run: node --test --test-concurrency=1 scripts/verify-until-dry/*.test.mjs
       - name: Run fenced observe pass
-        run: node scripts/verify-until-dry/cli.mjs run --base origin/main --out "$RUNNER_TEMP/verify-until-dry-receipt.json"
+        run: node "$VERIFY_UNTIL_DRY_CLI" run --mode observe --base origin/main --out "$RUNNER_TEMP/verify-until-dry-receipt.json"
       - name: Preserve advisory receipt
         if: always()
         uses: actions/upload-artifact@v4

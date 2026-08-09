@@ -16,6 +16,9 @@ export function decideHook({ mode = 'observe', receipt, currentSnapshot } = {}) 
   if (verified.verdict.verdict !== 'CLEAN_IN_PROVEN_SCOPE') {
     return result(mode, true, `verification-verdict:${verified.verdict.verdict}`);
   }
+  if (mode === 'enforce' && verified.verdict.provenance !== 'CI_ATTESTED') {
+    return result(mode, true, 'verification-provenance-not-protected');
+  }
   if (!currentSnapshot) return result(mode, true, 'current-snapshot-missing');
   const stale = receipt.headSha !== currentSnapshot.headSha ||
     receipt.sourceHash !== currentSnapshot.sourceHash ||

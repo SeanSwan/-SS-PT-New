@@ -25,11 +25,12 @@ Require all of:
 
 1. A valid, ordered evidence chain.
 2. An unchanged head/source hash and scope-contract hash.
-3. Every risk-mandated gate current and passing.
+3. Every risk-mandated gate is re-derived from trusted tier/surface policy,
+   ledger-bound, current, and passing.
 4. No open validated finding.
 5. Every closed repair carrying the required regression proof.
-6. Two final clean rounds with identical code/scope and at least two different
-   vantage axes.
+6. The final two chronological completed reviews are output-bound, independently
+   named, clean on identical code/scope/packet, and differ on at least two axes.
 7. Required reviewer diversity and approvals for the risk tier.
 8. No blocker, escalation, expired exemption, or unexpired deep-scan intersection.
 
@@ -52,5 +53,7 @@ Invalidate relevant evidence after changes to source, tests, configuration,
 dependency locks, schema/migrations, environment contract, verifier/config/gate
 registry, scope contract, or approval/exemption expiry.
 
-Local ledgers are tamper-evident and `LOCAL_ADVISORY`, not locally trusted security
-attestations. CI reruns and emits `CI_ATTESTED` evidence.
+Local ledgers are tamper-evident and `LOCAL_ADVISORY`, not locally trusted
+security attestations. Caller-supplied provenance is overwritten. Protected CI
+attestation is a separate future signing boundary; until then enforce mode must
+not accept local receipts.

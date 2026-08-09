@@ -19,8 +19,9 @@ one evidence item, never the verdict.
 
 1. Re-read coordination lanes and locate the exact repo, branch, worktree, and
    baseline. Use an isolated worktree when the shared checkout is dirty or owned.
-2. Declare the scope contract and acceptance IDs. Do not narrow them after review.
-3. Run `node scripts/verify-until-dry/cli.mjs run` from the target repository.
+2. Declare the objective, requirements, and acceptance IDs in a scope-contract
+   JSON file. Pass it with `--contract`; do not narrow it after review.
+3. Run `node scripts/verify-until-dry/cli.mjs run --mode observe` from the target repository.
    Let deterministic rules establish the minimum risk tier; only raise it.
 4. Execute the selected gates against the fenced snapshot. Record outputs in the
    hash-chained local ledger; never hand-author pass events.
@@ -43,13 +44,19 @@ one evidence item, never the verdict.
 
 ## Commands
 
-- `node scripts/verify-until-dry/cli.mjs audit [--base <ref>]` performs a
+- `node scripts/verify-until-dry/cli.mjs audit [--base <ref>] [--contract <json>]` performs a
   zero-call inventory, risk classification, and Kimi K3 spend preflight.
-- `node scripts/verify-until-dry/cli.mjs run [--base <ref>] [--out <receipt>]`
+- `node scripts/verify-until-dry/cli.mjs run [--mode observe|enforce] [--base
+  <ref>] [--contract <json>] [--kimi-receipt <json>] [--out <receipt>]`
   runs deterministic gates in an exact disposable fence. Passing gates alone
   remain `UNPROVEN`; a required unpaid Kimi review remains `BLOCKED`.
-- `node scripts/verify-until-dry/cli.mjs kimi --base <ref> --approval <json>
-  --out <review>` makes exactly one approved Kimi K3 call for that packet hash.
+- `node scripts/verify-until-dry/cli.mjs kimi --base <ref> --contract <json>
+  --approval <json> --out <kimi-receipt>` makes exactly one approved Kimi K3
+  call and persists its source/scope/packet-bound output.
+- `node scripts/verify-until-dry/cli.mjs record-review --receipt <json> --input
+  <captured-output> --reviewer <id> --axes <comma-list> --out <review-set>`
+  binds a captured independent review to the receipt. Add `--reviews <existing>`
+  to append another review and `--findings <json-array>` when findings exist.
 - `node scripts/verify-until-dry/cli.mjs finalize --receipt <json> --reviews
   <json>` imports independent review rounds and recomputes the verdict.
 - `node scripts/verify-until-dry/cli.mjs verify --receipt <json>` verifies the
@@ -61,8 +68,10 @@ Use the repository's existing Kimi-only launcher. Do not duplicate provider HTTP
 or secret loading. The engine may choose Kimi, prepare the packet, and run a
 zero-call preflight automatically. A live call must follow the configured mode:
 
-- `exact-run`: require the operator's approval for the packet hash and cap.
-- `standing`: dispatch only within the committed per-call and per-run caps.
+- `exact-run`: require an unexpired operator approval bound to model, packet,
+  source, scope, nonce, and cap. A consumed nonce cannot be replayed locally.
+- `standing`: dispatch only within an unexpired scoped grant, call number, and
+  committed per-call/per-run caps.
 - `disabled`: record `BLOCKED` when policy requires Kimi.
 
 Kimi K3 is `moonshotai/kimi-k3`; it is not GPT-3. Never retry a paid Kimi call
@@ -85,8 +94,9 @@ runtime override.
 - Close findings only by verified non-reproduction, biting regression repair, or
   exact expiring human exemption.
 - Convert time, round, call, or cost exhaustion to a non-clean verdict.
-- Keep local evidence labeled `LOCAL_ADVISORY`; only CI may label evidence
-  `CI_ATTESTED`.
+- Keep local evidence labeled `LOCAL_ADVISORY`. The enforce hook never accepts
+  it as protected evidence; a future protected CI signer must mint
+  `CI_ATTESTED` rather than trusting caller text.
 
 ## References
 

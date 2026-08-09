@@ -55,7 +55,8 @@ export function completeDeepScan(scan) {
   }
   const openFindings = Object.values(scan.analyzers)
     .flatMap((analyzer) => analyzer.findings)
-    .filter((finding) => finding.validated === true && finding.status === 'open');
+    .filter((finding) => finding.status === 'VALIDATED' ||
+      (finding.validated === true && finding.status === 'open'));
   const completed = {
     ...scan,
     status: openFindings.length ? 'DIRTY' : 'COMPLETE',

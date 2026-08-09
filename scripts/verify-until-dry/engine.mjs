@@ -14,7 +14,7 @@ export async function runDeterministicPass(input) {
   const create = input.create ?? createFence;
   const run = input.run ?? runGates;
   const dispose = input.dispose ?? disposeFence;
-  const snapshot = capture({ cwd: input.repoRoot, scopeContract: input.scopeContract });
+  const snapshot = input.snapshot ?? capture({ cwd: input.repoRoot, scopeContract: input.scopeContract });
   const selected = select({ tier: input.tier, surfaces: input.surfaces });
   const fence = create({
     repoRoot: input.repoRoot,
@@ -55,6 +55,7 @@ export async function runDeterministicPass(input) {
     sourceHash: snapshot.sourceHash,
     scopeHash: snapshot.scopeHash,
     reviewedScopeHash: input.reviewedScopeHash ?? snapshot.scopeHash,
+    reviewPacketHash: input.reviewPacketHash ?? null,
     scopeContract: input.scopeContract,
     requiredGates: selected.map((gate) => gate.id),
     gates,
@@ -62,6 +63,7 @@ export async function runDeterministicPass(input) {
     blockers: input.blockers ?? [],
     escalations: input.escalations ?? [],
     vantages: input.vantages ?? [],
+    reviews: input.reviews ?? [],
     ledger,
   });
 }

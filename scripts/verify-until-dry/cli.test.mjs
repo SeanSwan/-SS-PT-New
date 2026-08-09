@@ -10,18 +10,23 @@ import test from 'node:test';
 
 import {
   appendUntrackedEvidence, defaultReceiptPath, inferSurfaces, parseCli, selectKimiEvidencePaths,
+  commandFinalize,
 } from './cli.mjs';
+import { appendEvent, canonicalJson, sha256 } from './ledger.mjs';
+import { buildReceipt } from './receipt.mjs';
 
 test('parses run, finalize, audit, and verify commands without shell syntax', () => {
   assert.deepEqual(parseCli(['run', '--tier', '2', '--base', 'origin/main']), {
     command: 'run', tier: 2, base: 'origin/main', out: null, receipt: null, reviews: null,
-    approval: null,
+    approval: null, contract: null, kimiReceipt: null, mode: 'observe',
+    input: null, reviewer: null, axes: null, findings: null,
   });
   assert.equal(parseCli(['audit']).command, 'audit');
   assert.equal(parseCli(['finalize', '--receipt', 'r.json', '--reviews', 'v.json']).reviews, 'v.json');
   assert.equal(parseCli(['kimi', '--approval', 'approval.json']).approval, 'approval.json');
   assert.throws(() => parseCli(['destroy']), /command/i);
   assert.throws(() => parseCli(['run', '--tier', '9']), /tier/i);
+  assert.throws(() => parseCli(['run', '--mode', 'maybe']), /mode/i);
 });
 
 test('surface inference is deterministic and gate-registry compatible', () => {
@@ -51,7 +56,7 @@ test('untracked text contributes content and line complexity while binary stays 
   }
 });
 
-test('Kimi packet selection favors production logic and discloses its exact subset', () => {
+test('Kimi packet selection excludes narrative docs but retains changed tests', () => {
   assert.deepEqual(selectKimiEvidencePaths([
     'docs/plan.md',
     '.agents/skills/verify-until-dry/SKILL.md',
@@ -61,5 +66,37 @@ test('Kimi packet selection favors production logic and discloses its exact subs
   ]), [
     'config/verify-until-dry.config.mjs',
     'scripts/verify-until-dry/engine.mjs',
+    'scripts/verify-until-dry/engine.test.mjs',
   ]);
+});
+
+test('finalize rejects hand-authored vantage arrays without completed review evidence', () => {
+  const root = mkdtempSync(join(tmpdir(), 'verify-finalize-'));
+  const headSha = 'a'.repeat(40);
+  const scopeContract = { tier: 0, surfaces: ['docs'], paths: ['docs/a.md'] };
+  const scopeHash = sha256(canonicalJson(scopeContract));
+  const sourceHash = 'c'.repeat(64);
+  let ledger = appendEvent([], { type: 'snapshot', headSha, sourceHash, scopeHash });
+  const requiredGates = ['diff-check', 'verifier-tests', 'secret-scan'];
+  const gates = {};
+  for (const [index, id] of requiredGates.entries()) {
+    gates[id] = { status: 'pass', current: true, outputHash: String(index + 1).repeat(64), exitCode: 0 };
+    ledger = appendEvent(ledger, { type: 'gate', gateId: id, ...gates[id] });
+  }
+  const receipt = buildReceipt({
+    tier: 0, headSha, sourceHash, scopeHash, scopeContract, reviewedScopeHash: scopeHash,
+    reviewPacketHash: 'd'.repeat(64), requiredGates, gates, findings: [], blockers: [],
+    ledger, reviews: [], vantages: [],
+  });
+  writeFileSync(join(root, 'receipt.json'), JSON.stringify(receipt));
+  writeFileSync(join(root, 'reviews.json'), JSON.stringify({ vantages: [
+    { clean: true, axes: ['static-control-flow'] }, { clean: true, axes: ['dynamic-runtime'] },
+  ] }));
+  try {
+    assert.throws(() => commandFinalize(root, {
+      receipt: 'receipt.json', reviews: 'reviews.json', out: 'final.json',
+    }), /review artifact is invalid/i);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });

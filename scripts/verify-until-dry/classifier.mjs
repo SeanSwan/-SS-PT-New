@@ -9,10 +9,13 @@ const normalize = (file) => String(file ?? '').replace(/\\/g, '/').toLowerCase()
 
 function pathTier(file) {
   const path = normalize(file);
-  if (/^docs\/|\.md$/.test(path)) return { tier: 0, rule: `docs:${path}` };
-  if (/^scripts\/verify-until-dry\/|^config\/verify-until-dry|^\.github\/workflows\//.test(path)) {
+  if (/^scripts\/verify-until-dry\/|^scripts\/hooks\/verify-until-dry|^config\/verify-until-dry|^\.github\/workflows\/|^\.(?:agents|claude)\/skills\/verify-until-dry\//.test(path)) {
     return { tier: 3, rule: `verifier-or-ci:${path}` };
   }
+  if (/^(?:render\.yaml|infra\/)|^(?:backend\/)?(?:migrations?|models?|schemas?)\//.test(path)) {
+    return { tier: 3, rule: `data-or-infra:${path}` };
+  }
+  if (/^docs\/|\.md$/.test(path)) return { tier: 0, rule: `docs:${path}` };
   if (/(^|\/)(package(?:-lock)?\.json|pnpm-lock\.yaml|yarn\.lock)$/.test(path)) {
     return { tier: 3, rule: `dependency-contract:${path}` };
   }
