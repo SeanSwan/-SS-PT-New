@@ -41,6 +41,20 @@ one evidence item, never the verdict.
 10. Ask the engine for the verdict. Push or deploy only when the exact release
     scope is proven and Sean's production authorization is present.
 
+## Commands
+
+- `node scripts/verify-until-dry/cli.mjs audit [--base <ref>]` performs a
+  zero-call inventory, risk classification, and Kimi K3 spend preflight.
+- `node scripts/verify-until-dry/cli.mjs run [--base <ref>] [--out <receipt>]`
+  runs deterministic gates in an exact disposable fence. Passing gates alone
+  remain `UNPROVEN`; a required unpaid Kimi review remains `BLOCKED`.
+- `node scripts/verify-until-dry/cli.mjs kimi --base <ref> --approval <json>
+  --out <review>` makes exactly one approved Kimi K3 call for that packet hash.
+- `node scripts/verify-until-dry/cli.mjs finalize --receipt <json> --reviews
+  <json>` imports independent review rounds and recomputes the verdict.
+- `node scripts/verify-until-dry/cli.mjs verify --receipt <json>` verifies the
+  receipt hash, ledger, and claimed verdict.
+
 ## Kimi K3 escalation
 
 Use the repository's existing Kimi-only launcher. Do not duplicate provider HTTP
@@ -51,9 +65,15 @@ zero-call preflight automatically. A live call must follow the configured mode:
 - `standing`: dispatch only within the committed per-call and per-run caps.
 - `disabled`: record `BLOCKED` when policy requires Kimi.
 
-Never retry a paid Kimi call automatically. Treat Kimi output as findings to
+Kimi K3 is `moonshotai/kimi-k3`; it is not GPT-3. Never retry a paid Kimi call
+automatically. Treat Kimi output as findings to
 validate, not authoritative truth. Never send secrets, PII, exports, database
 material, precise home locations, or raw production evidence.
+
+Repository policy keeps Kimi at the design-provider sensitivity ceiling. Pure,
+sanitized logic can be reviewed; auth, billing, migration, PII, security-secret,
+or other ceiling-breaking evidence must return `BLOCKED_CEILING`. There is no
+runtime override.
 
 ## Evidence and dry-loop rules
 
@@ -76,3 +96,5 @@ material, precise home locations, or raw production evidence.
   classifying a change or registering gates.
 - Read [reviewer-fixer-protocol.md](references/reviewer-fixer-protocol.md) before
   dispatching Kimi/reviewers or applying findings.
+- Read [operations.md](references/operations.md) before enabling the hook,
+  scheduled deep scans, CI enforcement, or deployment proof.

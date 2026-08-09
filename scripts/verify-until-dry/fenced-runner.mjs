@@ -123,7 +123,7 @@ export function executeCommand(spec) {
   return new Promise((resolvePromise) => {
     const child = spawn(spec.command, spec.args, {
       cwd: spec.cwd,
-      env: process.env,
+      env: { ...process.env, ...(spec.env ?? {}) },
       shell: false,
       windowsHide: true,
     });

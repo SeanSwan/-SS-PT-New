@@ -16,3 +16,7 @@ unchanged code before reporting `CLEAN_IN_PROVEN_SCOPE`.
 When Kimi K3 complexity triggers fire, allow automatic packet construction and
 preflight. Obey the configured spend/privacy mode; missing authorization is
 `BLOCKED`, never a reason to skip the required review.
+
+Kimi K3 means the exact model `moonshotai/kimi-k3`, not GPT-3. Use the canonical
+CLI `kimi` command for a packet-hash-approved single call; never improvise a
+provider request or bypass the design sensitivity ceiling.

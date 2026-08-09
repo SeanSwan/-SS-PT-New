@@ -13,9 +13,11 @@ import { appendUntrackedEvidence, defaultReceiptPath, inferSurfaces, parseCli } 
 test('parses run, finalize, audit, and verify commands without shell syntax', () => {
   assert.deepEqual(parseCli(['run', '--tier', '2', '--base', 'origin/main']), {
     command: 'run', tier: 2, base: 'origin/main', out: null, receipt: null, reviews: null,
+    approval: null,
   });
   assert.equal(parseCli(['audit']).command, 'audit');
   assert.equal(parseCli(['finalize', '--receipt', 'r.json', '--reviews', 'v.json']).reviews, 'v.json');
+  assert.equal(parseCli(['kimi', '--approval', 'approval.json']).approval, 'approval.json');
   assert.throws(() => parseCli(['destroy']), /command/i);
   assert.throws(() => parseCli(['run', '--tier', '9']), /tier/i);
 });

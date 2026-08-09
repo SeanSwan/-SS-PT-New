@@ -13,12 +13,12 @@ import { fileURLToPath } from 'node:url';
 import config from '../../config/verify-until-dry.config.mjs';
 import { classifyRisk } from './classifier.mjs';
 import { runDeterministicPass } from './engine.mjs';
-import { planKimiReview } from './kimi-escalation.mjs';
+import { executeKimiReview, planKimiReview } from './kimi-escalation.mjs';
 import { appendEvent } from './ledger.mjs';
 import { buildReceipt, verifyReceipt } from './receipt.mjs';
 import { buildReviewPacket } from './review-packet.mjs';
 
-const COMMANDS = new Set(['audit', 'run', 'finalize', 'verify']);
+const COMMANDS = new Set(['audit', 'run', 'finalize', 'verify', 'kimi']);
 
 export function parseCli(argv) {
   const command = argv[0] ?? 'audit';
@@ -30,7 +30,10 @@ export function parseCli(argv) {
   const tierText = option('tier');
   const tier = tierText === null ? null : Number(tierText);
   if (tier !== null && (!Number.isInteger(tier) || tier < 0 || tier > 3)) throw new Error(`Invalid tier: ${tierText}`);
-  return { command, tier, base: option('base'), out: option('out'), receipt: option('receipt'), reviews: option('reviews') };
+  return {
+    command, tier, base: option('base'), out: option('out'), receipt: option('receipt'),
+    reviews: option('reviews'), approval: option('approval'),
+  };
 }
 
 export function inferSurfaces(files) {
@@ -146,7 +149,7 @@ function auditRepository(repoRoot, args) {
   const kimi = risk.kimiRequired && !changes.evidenceComplete
     ? { status: 'BLOCKED_PACKET_SIZE', callCount: 0 }
     : planKimiReview({ required: risk.kimiRequired, packet: screenedPacket, config });
-  return { changes, risk, surfaces, scopeContract, kimi };
+  return { changes, risk, surfaces, scopeContract, kimi, packet: screenedPacket };
 }
 
 function writeJson(path, value) {
@@ -200,13 +203,31 @@ async function main() {
   const repoRoot = process.cwd();
   if (args.command === 'audit') {
     const audit = auditRepository(repoRoot, args);
-    process.stdout.write(`${JSON.stringify({ ...audit, changes: { ...audit.changes, diffText: undefined } }, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({
+      ...audit,
+      packet: { hash: audit.packet.hash, evidencePaths: audit.packet.evidencePaths },
+      changes: { ...audit.changes, diffText: undefined },
+    }, null, 2)}\n`);
     return;
   }
   if (args.command === 'run') {
     const result = await commandRun(repoRoot, args);
     process.stdout.write(`${result.receipt.verdict.verdict} receipt=${result.out}\n`);
     if (result.receipt.verdict.verdict === 'DIRTY') process.exitCode = 1;
+    return;
+  }
+  if (args.command === 'kimi') {
+    if (!args.approval) throw new Error('kimi requires --approval for the exact preflight packet');
+    const audit = auditRepository(repoRoot, args);
+    const approval = readJson(resolve(repoRoot, args.approval));
+    const plan = planKimiReview({ required: audit.risk.kimiRequired, packet: audit.packet, config, approval });
+    if (plan.status !== 'READY') throw new Error(`Kimi review blocked: ${plan.status}`);
+    const result = await executeKimiReview({
+      plan,
+      packet: audit.packet,
+      outPath: args.out ? resolve(repoRoot, args.out) : null,
+    });
+    process.stdout.write(`${JSON.stringify({ ...result, text: undefined })}\n`);
     return;
   }
   if (args.command === 'finalize') {

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import config from '../../config/verify-until-dry.config.mjs';
-import { dispatchKimi, planKimiReview } from './kimi-escalation.mjs';
+import { executeKimiReview, dispatchKimi, planKimiReview } from './kimi-escalation.mjs';
 
 const packet = { hash: 'a'.repeat(64), text: 'Pure state-machine logic.', evidencePaths: ['src/state-machine.mjs'] };
 
@@ -62,4 +62,29 @@ test('dispatcher makes one call only and never retries a failure', async () => {
   let calls = 0;
   await assert.rejects(dispatchKimi(ready, async () => { calls += 1; throw new Error('provider down'); }), /provider down/);
   assert.equal(calls, 1);
+});
+
+test('approved execution materializes one temp packet and returns hashed advisory output', async () => {
+  const ready = planKimiReview({
+    required: true, packet, config,
+    approval: { packetHash: packet.hash, maxUsd: config.kimi.maxUsdPerCall },
+  });
+  let calls = 0;
+  const result = await executeKimiReview({
+    plan: ready,
+    packet,
+    execute: async (command) => {
+      calls += 1;
+      const packetPath = command.args[command.args.indexOf('--document') + 1];
+      const outputPath = command.args[command.args.indexOf('--out') + 1];
+      assert.match(packetPath, /verify-kimi-/);
+      const { readFileSync, writeFileSync } = await import('node:fs');
+      assert.equal(readFileSync(packetPath, 'utf8'), packet.text);
+      writeFileSync(outputPath, 'VERDICT: CLEAN\nNo reproducible findings.\n');
+      return { code: 0, stdout: '', stderr: '' };
+    },
+  });
+  assert.equal(calls, 1);
+  assert.equal(result.status, 'COMPLETED_ADVISORY');
+  assert.match(result.outputHash, /^[a-f0-9]{64}$/);
 });
