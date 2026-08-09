@@ -6,10 +6,11 @@ import { sha256 } from './ledger.mjs';
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const HEAD = /^[a-f0-9]{40}$/;
-const ALLOWED_AXES = new Set([
+export const REVIEW_AXES = Object.freeze([
   'adversarial-security', 'contract-tests', 'cross-platform', 'dynamic-runtime',
   'hostile-logic', 'state-machine', 'static-control-flow', 'user-forward-test',
 ]);
+const ALLOWED_AXES = new Set(REVIEW_AXES);
 
 function cleanDecision(output, findings) {
   const first = String(output).split(/\r?\n/).find((line) => line.trim())?.trim() ?? '';
@@ -21,6 +22,17 @@ function validAxes(axes) {
     new Set(axes).size === axes.length && axes.every((axis) => ALLOWED_AXES.has(axis));
 }
 
+function requireValidAxes(axes) {
+  if (!Array.isArray(axes) || axes.length === 0) {
+    throw new Error(`Review axes are required. Allowed axes: ${REVIEW_AXES.join(', ')}`);
+  }
+  const invalid = [...new Set(axes.filter((axis) => !ALLOWED_AXES.has(axis)))];
+  if (invalid.length) {
+    throw new Error(`Unknown review axes: ${invalid.join(', ')}. Allowed axes: ${REVIEW_AXES.join(', ')}`);
+  }
+  if (new Set(axes).size !== axes.length) throw new Error('Review axes cannot contain duplicates');
+}
+
 export function buildCompletedReview(input = {}) {
   if (!input.id || !input.builder || !input.reviewer || input.builder === input.reviewer) {
     throw new Error('Review identity must name an independent reviewer');
@@ -29,9 +41,9 @@ export function buildCompletedReview(input = {}) {
       ![input.sourceHash, input.scopeHash, input.reviewPacketHash].every((value) => SHA256.test(String(value ?? '')))) {
     throw new Error('Review source, scope, packet, and HEAD bindings are required');
   }
-  if (!validAxes(input.axes) || typeof input.output !== 'string' || !Array.isArray(input.findings)) {
-    throw new Error('Review needs allowed axes, captured output, and findings');
-  }
+  requireValidAxes(input.axes);
+  if (typeof input.output !== 'string') throw new Error('Review output must be captured text');
+  if (!Array.isArray(input.findings)) throw new Error('Review findings must be an array');
   const findings = input.findings.map((finding) => ({ ...finding }));
   return Object.freeze({
     schema: 'verify-until-dry.completed-review.v1', id: input.id,

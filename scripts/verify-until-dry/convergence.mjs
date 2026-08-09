@@ -3,11 +3,11 @@
  * @description Pure dry-loop state machine with oscillation and exhaustion detection.
  */
 import { canonicalJson, sha256 } from './ledger.mjs';
+import { REVIEW_AXES } from './review-proof.mjs';
 
 const HASH = /^[a-f0-9]{64}$/;
 
-const AXES = new Set(['adversarial-security', 'contract-tests', 'cross-platform', 'dynamic-runtime',
-  'hostile-logic', 'state-machine', 'static-control-flow', 'user-forward-test']);
+const AXES = new Set(REVIEW_AXES);
 
 function normalizeVantage(vantage) {
   if (!vantage?.reviewer || !Array.isArray(vantage.axes) || vantage.axes.length === 0 ||

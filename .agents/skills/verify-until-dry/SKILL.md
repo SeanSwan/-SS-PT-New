@@ -58,6 +58,9 @@ one evidence item, never the verdict.
   <captured-output> --reviewer <id> --axes <comma-list> --out <review-set>`
   binds a captured independent review to the receipt. Add `--reviews <existing>`
   to append another review and `--findings <json-array>` when findings exist.
+  Allowed axes are `adversarial-security`, `contract-tests`, `cross-platform`,
+  `dynamic-runtime`, `hostile-logic`, `state-machine`, `static-control-flow`,
+  and `user-forward-test`.
 - `node scripts/verify-until-dry/cli.mjs finalize --receipt <json> --reviews
   <json>` imports independent review rounds and recomputes the verdict.
 - `node scripts/verify-until-dry/cli.mjs verify --receipt <json>` verifies the

@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { buildCompletedReview, validateReviewSet } from './review-proof.mjs';
+import { buildCompletedReview, REVIEW_AXES, validateReviewSet } from './review-proof.mjs';
 
 const context = {
   headSha: 'a'.repeat(40), sourceHash: 'b'.repeat(64), scopeHash: 'c'.repeat(64),
@@ -57,4 +57,17 @@ test('a CLEAN label with findings is not a clean vantage', () => {
     findings: [{ id: 'F1', status: 'PROPOSED' }], ...context,
   });
   assert.equal(result.clean, false);
+});
+
+test('invalid axes report the rejected value and canonical allowed vocabulary', () => {
+  assert.ok(REVIEW_AXES.includes('user-forward-test'));
+  assert.throws(() => buildCompletedReview({
+    id: 'R5', builder: 'builder', reviewer: 'reviewer-e',
+    axes: ['dynamic-runtime', 'failure-injection'], output: 'VERDICT: CLEAN', findings: [], ...context,
+  }), (error) => {
+    assert.match(error.message, /failure-injection/);
+    assert.match(error.message, /dynamic-runtime/);
+    assert.match(error.message, /user-forward-test/);
+    return true;
+  });
 });
