@@ -21,7 +21,8 @@ one evidence item, never the verdict.
    baseline. Use an isolated worktree when the shared checkout is dirty or owned.
 2. Declare the objective, requirements, and acceptance IDs in a scope-contract
    JSON file. Pass it with `--contract`; do not narrow it after review.
-3. Run `node scripts/verify-until-dry/cli.mjs run --mode observe` from the target repository.
+3. Run `node scripts/verify-until-dry/cli.mjs run --mode observe --contract
+   <scope.json>` from the target repository.
    Let deterministic rules establish the minimum risk tier; only raise it.
 4. Execute the selected gates against the fenced snapshot. Record outputs in the
    hash-chained local ledger; never hand-author pass events.
@@ -44,10 +45,10 @@ one evidence item, never the verdict.
 
 ## Commands
 
-- `node scripts/verify-until-dry/cli.mjs audit [--base <ref>] [--contract <json>]` performs a
+- `node scripts/verify-until-dry/cli.mjs audit [--base <ref>] --contract <json>` performs a
   zero-call inventory, risk classification, and Kimi K3 spend preflight.
 - `node scripts/verify-until-dry/cli.mjs run [--mode observe|enforce] [--base
-  <ref>] [--contract <json>] [--kimi-receipt <json>] [--out <receipt>]`
+  <ref>] --contract <json> [--kimi-receipt <json>] [--out <receipt>]`
   runs deterministic gates in an exact disposable fence. Passing gates alone
   remain `UNPROVEN`; a required unpaid Kimi review remains `BLOCKED`.
 - `node scripts/verify-until-dry/cli.mjs kimi --base <ref> --contract <json>

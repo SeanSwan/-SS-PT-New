@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import test from 'node:test';
 
-import { resolveComparisonBase, selectKimiEvidencePaths } from './repository-audit.mjs';
+import { resolveComparisonBase, selectKimiEvidencePaths, validateDeclaredContract } from './repository-audit.mjs';
 
 function git(cwd, ...args) {
   return execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
@@ -43,4 +43,13 @@ test('review evidence includes changed tests but excludes narrative skill docs',
     'scripts/verify-until-dry/a.test.mjs', '.agents/skills/verify-until-dry/SKILL.md',
     'scripts/verify-until-dry/a.mjs',
   ]), ['scripts/verify-until-dry/a.mjs', 'scripts/verify-until-dry/a.test.mjs']);
+});
+
+test('audit scope requires an objective, requirements, and acceptance ids', () => {
+  assert.throws(() => validateDeclaredContract({}), /objective/i);
+  assert.throws(() => validateDeclaredContract({ objective: 'Verify it', requirements: [], acceptanceIds: ['A1'] }), /requirements/i);
+  assert.throws(() => validateDeclaredContract({ objective: 'Verify it', requirements: ['R1'], acceptanceIds: [] }), /acceptance/i);
+  assert.doesNotThrow(() => validateDeclaredContract({
+    objective: 'Verify it', requirements: ['R1'], acceptanceIds: ['A1'], exclusions: [],
+  }));
 });

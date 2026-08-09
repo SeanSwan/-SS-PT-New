@@ -41,13 +41,14 @@ test('missing hashes and timestamps fail closed', () => {
   }), /health/i);
 });
 
-test('only the acquisition collector can emit PROVEN', async () => {
+test('caller-injected acquisition remains advisory and can never emit PROVEN', async () => {
   const proof = await collectDeployProof({
     expectedCommit: commit, serviceId: 'srv-1', healthUrl: 'https://example.test/health',
     now: '2026-08-09T12:00:00Z', observeRemoteMain: async () => commit,
     observeDeploy: async () => ({ id: 'dep-1', serviceId: 'srv-1', commitSha: commit, status: 'live' }),
     observeHealth: async () => ({ statusCode: 200, body: 'ok' }),
   });
-  assert.equal(proof.status, 'PROVEN');
+  assert.equal(proof.status, 'OBSERVED_ADVISORY');
+  assert.notEqual(proof.status, 'PROVEN');
   await assert.rejects(() => collectDeployProof({ expectedCommit: commit }), /requires/i);
 });

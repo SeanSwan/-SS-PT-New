@@ -30,10 +30,13 @@ the whole repository is perfect.
 ## Deployment proof
 
 Use the acquisition function in `deploy-proof.mjs` only after push authorization.
-The pure builder validates claim shape but cannot emit `PROVEN`; the collector
-must observe Git, Render, and HTTPS. Evidence must bind the same
-40-character commit to remote main and the live Render deploy, plus a timestamped
-2xx health-body hash. Any mismatch is `UNPROVEN`.
+The pure builder validates claim shape but cannot emit `PROVEN`. The current
+caller-injected collector is explicitly `OBSERVED_ADVISORY`; it is useful for
+binding Git, Render, and HTTPS observations but is not an authority boundary.
+Evidence must bind the same 40-character commit to remote main and the live
+Render deploy, plus a timestamped 2xx health-body hash. Any mismatch is
+`UNPROVEN`. A future protected collector must own concrete adapters and an
+attestation key before the module may introduce a `PROVEN` status.
 
 Local receipts are `LOCAL_ADVISORY`. Do not relabel them as CI-attested or use
 them to bypass branch protection, production approval, or the two-vantage rule.

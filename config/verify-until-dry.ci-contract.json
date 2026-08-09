@@ -1,0 +1,16 @@
+{
+  "objective": "Verify the complete candidate change set against the repository quality policy.",
+  "requirements": [
+    "The exact base-to-candidate source state is evidence-bound.",
+    "Every risk-mandated deterministic gate completes without a validated failure.",
+    "Missing hostile-review or authorization evidence remains non-clean."
+  ],
+  "acceptanceIds": [
+    "VUD-CI-SOURCE-BINDING",
+    "VUD-CI-DETERMINISTIC-GATES",
+    "VUD-CI-FAIL-CLOSED"
+  ],
+  "exclusions": [
+    "This advisory CI run does not grant protected attestation or deployment authority."
+  ]
+}

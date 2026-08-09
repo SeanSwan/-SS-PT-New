@@ -15,7 +15,8 @@ import { captureSnapshot } from './snapshot.mjs';
 const MAX_UNTRACKED_BYTES = 512 * 1024;
 
 function git(cwd, args) {
-  return execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, windowsHide: true });
+  return execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+    windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
 }
 
 function tryGit(cwd, args) {
@@ -125,25 +126,40 @@ function inspectChanges(repoRoot, comparisonBase) {
   return { files: [...files].map((file) => file.replaceAll('\\', '/')).sort(), ...untracked };
 }
 
-function buildScope(changes, comparisonBase, risk, declared = {}) {
+export function validateDeclaredContract(declared) {
+  if (!declared || typeof declared !== 'object' || Array.isArray(declared)) {
+    throw new Error('Scope contract must be a JSON object');
+  }
   for (const key of ['requirements', 'acceptanceIds', 'exclusions']) {
     if (declared[key] !== undefined && (!Array.isArray(declared[key]) ||
         declared[key].some((value) => typeof value !== 'string' || !value.trim()))) {
       throw new Error(`Scope contract ${key} must be an array of non-empty strings`);
     }
   }
-  if (declared.objective !== undefined && declared.objective !== null && typeof declared.objective !== 'string') {
-    throw new Error('Scope contract objective must be text');
+  if (typeof declared.objective !== 'string' || !declared.objective.trim()) {
+    throw new Error('Scope contract objective must be non-empty text');
   }
+  if (!declared.requirements?.length) throw new Error('Scope contract requirements cannot be empty');
+  if (!declared.acceptanceIds?.length) throw new Error('Scope contract acceptanceIds cannot be empty');
+  return Object.freeze({
+    objective: declared.objective.trim(),
+    requirements: Object.freeze(declared.requirements.map((value) => value.trim())),
+    acceptanceIds: Object.freeze(declared.acceptanceIds.map((value) => value.trim())),
+    exclusions: Object.freeze((declared.exclusions ?? []).map((value) => value.trim())),
+  });
+}
+
+function buildScope(changes, comparisonBase, risk, declared = {}) {
+  const contract = validateDeclaredContract(declared);
   const surfaces = inferSurfaces(changes.files);
   return {
     surfaces,
     contract: {
-      objective: declared.objective ?? null,
-      requirements: [...(declared.requirements ?? [])],
-      acceptanceIds: [...(declared.acceptanceIds ?? [])],
+      objective: contract.objective,
+      requirements: [...contract.requirements],
+      acceptanceIds: [...contract.acceptanceIds],
       paths: changes.files.length ? changes.files : ['.'],
-      exclusions: [...(declared.exclusions ?? [])],
+      exclusions: [...contract.exclusions],
       base: comparisonBase ?? { ref: 'working-tree', tipSha: null, mergeBaseSha: null },
       tier: risk.tier,
       surfaces,

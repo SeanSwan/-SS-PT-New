@@ -14,6 +14,8 @@ and fixers supply evidence or hypotheses only. Evidence binds HEAD, staged,
 unstaged, untracked, checkout/runtime identity, resolved base tip and merge-base,
 scope, gate output, and completed review output through SHA-256.
 Every source or scope change invalidates prior completion evidence.
+The scope contract is mandatory and must contain a non-empty objective,
+requirements, and acceptance IDs; an omitted contract fails closed.
 
 ## Risk and gates
 
@@ -60,5 +62,6 @@ The CLI supports audit, fenced run, exact-approved Kimi dispatch, finalization,
 and receipt verification. The local stop hook begins in observe mode and refuses
 to treat local advisory receipts as protected attestations. CI runs on
 pull requests, main, schedule, and manual dispatch. Deep scans cannot complete
-with missing analyzers. Release proof binds remote main, Render's live deploy,
-and a timestamped health hash to one exact commit.
+with missing analyzers. Advisory release evidence binds remote main, Render's
+live deploy, and a timestamped health hash to one exact commit. Caller-injected
+observers cannot emit protected `PROVEN` evidence.

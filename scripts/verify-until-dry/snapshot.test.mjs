@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { captureSnapshot, compareSnapshots } from './snapshot.mjs';
@@ -77,4 +77,24 @@ test('Git checkout semantics are part of execution identity', () => {
   const second = captureSnapshot({ cwd, scopeContract: { paths: ['.'] } });
   assert.notEqual(first.sourceHash, second.sourceHash);
   assert.notDeepEqual(first.executionIdentity, second.executionIdentity);
+});
+
+test('actual tracked bytes distinguish LF and CRLF even when Git normalizes the diff', () => {
+  const cwd = repo();
+  git(cwd, 'config', 'core.autocrlf', 'true');
+  writeFileSync(join(cwd, 'tracked.txt'), 'one\r\n');
+  const crlf = captureSnapshot({ cwd, scopeContract: { paths: ['.'] } });
+  writeFileSync(join(cwd, 'tracked.txt'), 'one\n');
+  const lf = captureSnapshot({ cwd, scopeContract: { paths: ['.'] } });
+  assert.notEqual(crlf.trackedHash, lf.trackedHash);
+  assert.notEqual(crlf.sourceHash, lf.sourceHash);
+});
+
+test('an unstaged tracked-file deletion is hashed as exact source state', () => {
+  const cwd = repo();
+  const present = captureSnapshot({ cwd, scopeContract: { paths: ['.'] } });
+  unlinkSync(join(cwd, 'tracked.txt'));
+  const deleted = captureSnapshot({ cwd, scopeContract: { paths: ['.'] } });
+  assert.notEqual(deleted.trackedHash, present.trackedHash);
+  assert.notEqual(deleted.sourceHash, present.sourceHash);
 });

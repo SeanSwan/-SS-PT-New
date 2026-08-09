@@ -32,6 +32,17 @@ test('same vantage or changed source cannot manufacture CLEAN x2', () => {
   assert.equal(changed.cleanStreak, 1);
 });
 
+test('adding only one axis is not a meaningfully distinct clean vantage', () => {
+  let state = recordRound(initialConvergence(), {
+    sourceHash: source, vantage: { reviewer: 'r1', axes: ['static-control-flow'] }, findings: [],
+  }, config);
+  state = recordRound(state, {
+    sourceHash: source, vantage: { reviewer: 'r2', axes: ['static-control-flow', 'dynamic-runtime'] }, findings: [],
+  }, config);
+  assert.equal(state.status, 'VERIFYING');
+  assert.equal(state.cleanStreak, 1);
+});
+
 test('repeated validated findings and exhausted rounds escalate', () => {
   let state = initialConvergence();
   state = recordRound(state, { sourceHash: source, vantage: { reviewer: 'r1', axes: ['static-control-flow'] }, findings: ['race:F1'] }, config);

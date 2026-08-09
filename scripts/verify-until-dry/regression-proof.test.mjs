@@ -12,7 +12,7 @@ const hash = (char) => char.repeat(64);
 
 test('accepts the same test failing before and passing after a source change', () => {
   const proof = createRegressionProof({
-    findingId: 'F1', testId: 'math-zero', testHash: hash('a'), commandHash: hash('f'),
+    findingId: 'F1', testId: 'math-zero', tier: 1, testHash: hash('a'), greenTestHash: hash('a'), commandHash: hash('f'),
     failureSignature: 'expected 0',
     red: { sourceHash: hash('b'), exitCode: 1, output: 'FAIL expected 0', outputHash: sha256('FAIL expected 0') },
     green: { sourceHash: hash('d'), exitCode: 0, output: 'PASS', outputHash: sha256('PASS') },
@@ -23,7 +23,7 @@ test('accepts the same test failing before and passing after a source change', (
 
 test('rejects always-green, still-red, changed-test, and unchanged-source claims', () => {
   const base = {
-    findingId: 'F2', testId: 'probe', testHash: hash('a'), commandHash: hash('f'),
+    findingId: 'F2', testId: 'probe', tier: 1, testHash: hash('a'), greenTestHash: hash('a'), commandHash: hash('f'),
     failureSignature: 'boom',
     red: { sourceHash: hash('b'), exitCode: 1, output: 'boom', outputHash: sha256('boom') },
     green: { sourceHash: hash('d'), exitCode: 0, output: 'pass', outputHash: sha256('pass') },
@@ -33,4 +33,14 @@ test('rejects always-green, still-red, changed-test, and unchanged-source claims
   assert.throws(() => createRegressionProof({ ...base, greenTestHash: hash('f') }), /same test/i);
   assert.throws(() => createRegressionProof({ ...base, green: { ...base.green, sourceHash: base.red.sourceHash } }), /source/i);
   assert.throws(() => createRegressionProof({ ...base, red: { ...base.red, output: 'different' } }), /output/i);
+  const { greenTestHash, ...missingGreenHash } = base;
+  assert.throws(() => createRegressionProof(missingGreenHash), /green test hash/i);
+  assert.throws(() => createRegressionProof({ ...base, tier: 2 }), /mutation/i);
+  const mutationOutput = 'FAIL mutation detected';
+  const tierTwo = createRegressionProof({ ...base, tier: 2, mutation: {
+    sourceHash: hash('e'), testHash: base.testHash, commandHash: base.commandHash,
+    exitCode: 1, output: mutationOutput, outputHash: sha256(mutationOutput),
+    failureSignature: 'mutation detected',
+  } });
+  assert.equal(tierTwo.mutation.killed, true);
 });

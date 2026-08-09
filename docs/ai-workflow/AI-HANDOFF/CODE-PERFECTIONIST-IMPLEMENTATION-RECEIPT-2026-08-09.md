@@ -11,11 +11,15 @@
 6. Bounded fixer policy, biting regression proof, dry-loop convergence and
    oscillation escalation.
 7. CLI, OS-temp receipts, observe/enforce stop-hook adapter, and observe-mode CI.
-8. Coverage-complete deep-scan lifecycle and observation-backed Render proof collector.
+8. Coverage-complete deep-scan lifecycle and advisory Render observation collector.
 9. Hostile repair pass: trusted gate re-derivation, output-bound completed
    reviews, canonical finding status, chronological clean rounds, resolved-base
    identity, checkout/runtime identity, PII removal, scrubbed gate environments,
    safe fence cleanup, dependency attachment, and Kimi completion receipts.
+10. Exact tracked-byte manifests, non-destructive dependency-junction cleanup,
+    mandatory scope contracts, Tier 2+ fix-mutation evidence, two-axis
+    convergence parity, process-tree output-cap termination, and advisory-only
+    caller-injected deploy observations.
 
 ## Current evidence
 

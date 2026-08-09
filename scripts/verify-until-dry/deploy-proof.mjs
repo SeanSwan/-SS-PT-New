@@ -43,7 +43,7 @@ export function buildDeployProof(input = {}) {
   return Object.freeze({ ...proof, proofHash: sha256(canonicalJson(proof)) });
 }
 
-/** Acquire observations through caller-supplied Git, Render, and HTTPS adapters. */
+/** Acquire advisory observations through caller-supplied Git, Render, and HTTPS adapters. */
 export async function collectDeployProof(input = {}) {
   for (const name of ['observeRemoteMain', 'observeDeploy', 'observeHealth']) {
     if (typeof input[name] !== 'function') throw new Error(`Deploy collector requires ${name}`);
@@ -57,7 +57,7 @@ export async function collectDeployProof(input = {}) {
     health: { statusCode: healthRaw.statusCode, bodyHash: sha256(healthRaw.body),
       observedAt, url: input.healthUrl },
   });
-  const proof = { ...claim, status: claim.reasons.length ? 'UNPROVEN' : 'PROVEN',
-    acquisition: { remote: 'observed', render: 'observed', health: 'observed' } };
+  const proof = { ...claim, status: claim.reasons.length ? 'UNPROVEN' : 'OBSERVED_ADVISORY',
+    acquisition: { remote: 'caller-injected', render: 'caller-injected', health: 'caller-injected' } };
   return Object.freeze({ ...proof, proofHash: sha256(canonicalJson({ ...proof, proofHash: undefined })) });
 }

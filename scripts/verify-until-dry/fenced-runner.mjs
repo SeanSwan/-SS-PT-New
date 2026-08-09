@@ -17,9 +17,11 @@ import {
   mkdtempSync,
   openSync,
   readFileSync,
+  readlinkSync,
   realpathSync,
   rmSync,
   symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { constants as fsConstants } from 'node:fs';
@@ -59,13 +61,20 @@ function fenceKey(fence) {
   return `${resolve(fence.parent)}\0${resolve(fence.path)}\0${resolve(fence.sourceRoot)}`;
 }
 
-function attachDependencies(sourceRoot, fencePath) {
+function attachDependencies(sourceRoot, fencePath, links) {
   for (const relativePath of ['node_modules', 'frontend/node_modules', 'backend/node_modules']) {
     const source = resolve(sourceRoot, relativePath);
     const target = resolve(fencePath, relativePath);
     if (!existsSync(source) || existsSync(target)) continue;
     mkdirSync(dirname(target), { recursive: true });
     symlinkSync(source, target, process.platform === 'win32' ? 'junction' : 'dir');
+    links.push(target);
+  }
+}
+
+function detachDependencies(links = []) {
+  for (const target of [...links].reverse()) {
+    if (existsSync(target)) unlinkSync(target);
   }
 }
 
@@ -100,11 +109,43 @@ function applyPatch(fencePath, patch, staged) {
   });
 }
 
+function mirrorTrackedBytes(sourceRoot, fencePath) {
+  const paths = git(sourceRoot, ['ls-files', '-z'], { encoding: null })
+    .toString('utf8').split('\0').filter(Boolean);
+  for (const path of paths) {
+    const source = resolve(sourceRoot, path);
+    const target = resolve(fencePath, path);
+    if (!within(sourceRoot, source) || !within(fencePath, target)) {
+      throw new Error(`Tracked path escapes repository: ${path}`);
+    }
+    const sourceStat = lstatSync(source);
+    if (sourceStat.isSymbolicLink()) {
+      try { lstatSync(target); unlinkSync(target); } catch (error) {
+        if (error?.code !== 'ENOENT') throw error;
+      }
+      symlinkSync(readlinkSync(source), target);
+      continue;
+    }
+    if (!sourceStat.isFile()) throw new Error(`Unsupported tracked entry: ${path}`);
+    const fd = openSync(source, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+    try {
+      const opened = fstatSync(fd);
+      const after = lstatSync(source);
+      if (!after.isFile() || opened.ino !== after.ino || opened.size !== after.size ||
+          (process.platform !== 'win32' && opened.dev !== after.dev)) {
+        throw new Error(`Tracked file changed during safe open: ${path}`);
+      }
+      writeFileSync(target, readFileSync(fd));
+    } finally { closeSync(fd); }
+  }
+}
+
 /** Materialize the precise HEAD/index/worktree/untracked state represented by snapshot. */
 export function createFence({ repoRoot, snapshot, scopeContract = {}, prefix = 'verify-until-dry-' }) {
   const canonicalRoot = realpathSync(repoRoot);
   const parent = mkdtempSync(join(tmpdir(), prefix));
   const fencePath = join(parent, 'worktree');
+  const dependencyLinks = [];
   if (!within(tmpdir(), fencePath)) throw new Error('Fence path must stay under the OS temp directory');
 
   try {
@@ -113,24 +154,27 @@ export function createFence({ repoRoot, snapshot, scopeContract = {}, prefix = '
     const unstaged = git(canonicalRoot, ['diff', '--binary'], { encoding: null });
     applyPatch(fencePath, staged, true);
     applyPatch(fencePath, unstaged, false);
+    mirrorTrackedBytes(canonicalRoot, fencePath);
     for (const item of safeUntrackedPaths(canonicalRoot)) {
       const target = resolve(fencePath, item.path);
       if (!within(fencePath, target)) throw new Error(`Fence target escapes worktree: ${item.path}`);
       mkdirSync(dirname(target), { recursive: true });
       writeFileSync(target, item.content, { flag: 'wx' });
     }
-    attachDependencies(canonicalRoot, fencePath);
+    attachDependencies(canonicalRoot, fencePath, dependencyLinks);
     const fenced = captureSnapshot({ cwd: fencePath, scopeContract });
     if (fenced.sourceHash !== snapshot.sourceHash) {
-      const fields = ['headSha', 'statusHash', 'unstagedHash', 'stagedHash'];
+      const fields = ['headSha', 'unstagedHash', 'stagedHash', 'trackedHash'];
       const mismatches = fields.filter((field) => fenced[field] !== snapshot[field]);
       if (JSON.stringify(fenced.untracked) !== JSON.stringify(snapshot.untracked)) mismatches.push('untracked');
       throw new Error(`Fence reconstruction does not match source hash: ${mismatches.join(', ')}`);
     }
-    const fence = Object.freeze({ id: randomUUID(), path: fencePath, parent, sourceRoot: canonicalRoot });
+    const fence = Object.freeze({ id: randomUUID(), path: fencePath, parent,
+      sourceRoot: canonicalRoot, dependencyLinks: Object.freeze([...dependencyLinks]) });
     ISSUED_FENCES.add(fenceKey(fence));
     return fence;
   } catch (error) {
+    detachDependencies(dependencyLinks);
     try { git(canonicalRoot, ['worktree', 'remove', '--force', fencePath]); } catch { /* best effort */ }
     rmSync(parent, { recursive: true, force: true });
     throw error;
@@ -147,6 +191,7 @@ export function disposeFence(fence) {
       !ISSUED_FENCES.has(fenceKey(fence))) {
     throw new Error('Refusing to remove an untrusted fence path');
   }
+  detachDependencies(fence.dependencyLinks);
   git(fence.sourceRoot, ['worktree', 'remove', '--force', fence.path]);
   rmSync(fence.parent, { recursive: true, force: true });
   ISSUED_FENCES.delete(fenceKey(fence));
@@ -180,20 +225,23 @@ export function executeCommand(spec) {
     });
     const chunks = { stdout: [], stderr: [] };
     let size = 0;
-    const collect = (name) => (chunk) => {
-      size += chunk.length;
-      if (size <= MAX_OUTPUT) chunks[name].push(chunk);
-      else child.kill();
-    };
-    child.stdout.on('data', collect('stdout'));
-    child.stderr.on('data', collect('stderr'));
+    let terminating = false;
     const terminate = () => {
+      if (terminating) return;
+      terminating = true;
       if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(child.pid), '/t', '/f'], { windowsHide: true });
       else {
         try { process.kill(-child.pid, 'SIGTERM'); } catch { child.kill('SIGTERM'); }
         setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* exited */ } }, 2_000).unref();
       }
     };
+    const collect = (name) => (chunk) => {
+      size += chunk.length;
+      if (size <= MAX_OUTPUT) chunks[name].push(chunk);
+      else terminate();
+    };
+    child.stdout.on('data', collect('stdout'));
+    child.stderr.on('data', collect('stderr'));
     const timer = setTimeout(terminate, spec.timeoutMs);
     child.on('error', (error) => {
       clearTimeout(timer);

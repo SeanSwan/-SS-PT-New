@@ -17,6 +17,15 @@ function normalizeVantage(vantage) {
   return { reviewer: vantage.reviewer, axes: [...new Set(vantage.axes)].sort() };
 }
 
+function axisDifference(left, right) {
+  const a = new Set(left);
+  const b = new Set(right);
+  let count = 0;
+  for (const axis of a) if (!b.has(axis)) count += 1;
+  for (const axis of b) if (!a.has(axis)) count += 1;
+  return count;
+}
+
 function inverseOverlap(previous, current) {
   if (!previous || !current) return 0;
   const priorAdded = new Set(previous.added ?? []);
@@ -96,7 +105,11 @@ export function recordRound(state, roundInput, config) {
     cleanSourceHash = round.sourceHash;
     cleanVantages = sameSource ? [...state.cleanVantages] : [];
     cleanReviewers = sameSource ? [...state.cleanReviewers] : [];
-    if (!cleanVantages.includes(vantageHash) && !cleanReviewers.includes(vantage.reviewer)) {
+    const priorClean = sameSource ? state.rounds.filter((item) =>
+      item.sourceHash === round.sourceHash && item.findings.length === 0) : [];
+    const distinctEnough = priorClean.length === 0 || priorClean.some((item) =>
+      item.vantage.reviewer !== vantage.reviewer && axisDifference(item.vantage.axes, vantage.axes) >= 2);
+    if (distinctEnough && !cleanVantages.includes(vantageHash) && !cleanReviewers.includes(vantage.reviewer)) {
       cleanVantages.push(vantageHash);
       cleanReviewers.push(vantage.reviewer);
     }
