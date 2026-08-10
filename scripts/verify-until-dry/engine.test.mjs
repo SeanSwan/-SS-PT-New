@@ -39,3 +39,39 @@ test('failed gates are DIRTY and fences dispose even when execution throws', asy
   }), /boom/);
   assert.equal(disposed, 2);
 });
+
+test('rejects a result gate id that does not exactly match the selected gate', async () => {
+  await assert.rejects(runDeterministicPass({
+    repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+    select: () => [{ id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
+    run: async () => [{ gateId: '__proto__', status: 'passed', outputHash: 'd'.repeat(64) }],
+    dispose: () => {},
+  }), /Gate result identity mismatch/);
+});
+
+test('rejects duplicate results for one selected gate', async () => {
+  const result = { gateId: 'unit', status: 'passed', outputHash: 'd'.repeat(64) };
+  await assert.rejects(runDeterministicPass({
+    repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+    select: () => [{ id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
+    run: async () => [result, result], dispose: () => {},
+  }), /Gate result count mismatch/);
+});
+
+test('rejects duplicate selected gate identities', async () => {
+  const result = { gateId: 'unit', status: 'passed', outputHash: 'd'.repeat(64) };
+  await assert.rejects(runDeterministicPass({
+    repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+    select: () => [{ id: 'unit' }, { id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
+    run: async () => [result, result], dispose: () => {},
+  }), /Selected gate identities must be unique/);
+});
+
+test('rejects a selected gate identity that is unsafe as an object key', async () => {
+  await assert.rejects(runDeterministicPass({
+    repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+    select: () => [{ id: '__proto__' }], create: () => ({ path: 'C:\\fence' }),
+    run: async () => [{ gateId: '__proto__', status: 'passed', outputHash: 'd'.repeat(64) }],
+    dispose: () => {},
+  }), /Selected gate identity is invalid/);
+});

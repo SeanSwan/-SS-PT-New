@@ -8,6 +8,8 @@ import { captureSnapshot } from './snapshot.mjs';
 import { createFence, disposeFence, runGates } from './fenced-runner.mjs';
 import { selectGates } from './gate-registry.mjs';
 
+const GATE_ID = /^[a-z][a-z0-9-]*$/;
+
 export async function runDeterministicPass(input) {
   const capture = input.capture ?? ((args) => captureSnapshot(args));
   const select = input.select ?? selectGates;
@@ -16,6 +18,13 @@ export async function runDeterministicPass(input) {
   const dispose = input.dispose ?? disposeFence;
   const snapshot = input.snapshot ?? capture({ cwd: input.repoRoot, scopeContract: input.scopeContract });
   const selected = select({ tier: input.tier, surfaces: input.surfaces });
+  const selectedIds = selected.map((gate) => gate.id);
+  if (selectedIds.some((id) => typeof id !== 'string' || !GATE_ID.test(id))) {
+    throw new Error('Selected gate identity is invalid');
+  }
+  if (new Set(selectedIds).size !== selectedIds.length) {
+    throw new Error('Selected gate identities must be unique');
+  }
   const fence = create({
     repoRoot: input.repoRoot,
     snapshot,
@@ -33,13 +42,22 @@ export async function runDeterministicPass(input) {
     dispose(fence);
   }
 
+  if (!Array.isArray(results) || results.length !== selected.length) {
+    throw new Error('Gate result count mismatch');
+  }
+  for (let index = 0; index < results.length; index += 1) {
+    if (results[index]?.gateId !== selectedIds[index]) {
+      throw new Error('Gate result identity mismatch');
+    }
+  }
+
   let ledger = appendEvent([], {
     type: 'snapshot',
     headSha: snapshot.headSha,
     sourceHash: snapshot.sourceHash,
     scopeHash: snapshot.scopeHash,
   });
-  const gates = {};
+  const gates = Object.create(null);
   for (const result of results) {
     gates[result.gateId] = {
       status: result.status === 'passed' ? 'pass' : 'fail',
