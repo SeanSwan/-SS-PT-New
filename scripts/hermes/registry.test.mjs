@@ -46,7 +46,7 @@ function mutateHealthSweep(cellIndex, value) {
 test('parses the real canon docs into the expected shape', () => {
   const reg = parseRegistryMarkdown(CMD_DOC, SWITCH_DOC);
   assert.equal(reg.schemaVersion, 1);
-  assert.equal(reg.commands.length, 23); // 12 T0 (incl. verify-chain E2, hermes-doctor E4, status-page + brain-view slice-3 v0) + 3 T1 + 4 T2 + 2 proposed-T2 + 1 T3 + 1 T4
+  assert.equal(reg.commands.length, 24); // 13 T0 (incl. verify-until-dry) + 3 T1 + 4 T2 + 2 proposed-T2 + 1 T3 + 1 T4
   assert.equal(reg.denied.length, 5);
   assert.equal(reg.switches.length, 9);
   const hs = reg.commands.find((c) => c.name === 'health-sweep');
@@ -55,6 +55,11 @@ test('parses the real canon docs into the expected shape', () => {
   assert.equal(hs.killSwitch, 'SWITCH_HEALTH_SWEEP');
   const ss = reg.commands.find((c) => c.name === 'switch-status');
   assert.equal(ss.killSwitch, null, 'switch-status has no kill switch (must work when all else is off)');
+  const vud = reg.commands.find((c) => c.name === 'verify-until-dry');
+  assert.equal(vud?.tier, 'T0');
+  assert.deepEqual(vud?.channels, ['command-center', 'telegram', 'vscode']);
+  assert.equal(vud?.killSwitch, 'SWITCH_MASTER');
+  assert.ok(!vud?.channels.includes('runner'), 'Code Perfectionist must remain manual-only');
 });
 
 test('ACCEPTANCE: blanking any field in a doc row makes the parser throw', () => {

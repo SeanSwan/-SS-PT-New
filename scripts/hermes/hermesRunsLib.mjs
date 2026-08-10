@@ -17,6 +17,7 @@
  *
  * Vault root: env HERMES_VAULT_ROOT, else ~/.hermes/vault — never inside a repo.
  */
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -243,11 +244,15 @@ export function readReceipts(vaultRoot, isoDate) {
  *  path that FAILS to resolve is refused upstream (fabricated-evidence defense);
  *  URLs/free text stay allowed (verified: null) — the approval surface renders
  *  those as unverified for Sean's judgment. Never throws. */
-function verifyEvidenceFile(file, label) {
+function verifyEvidenceFile(file, label, expectedSha256 = null) {
   try {
     const st = fs.lstatSync(file);
     if (st.isSymbolicLink()) return { ok: false, reason: `${label} is a symlink, not a direct evidence file` };
     if (!st.isFile()) return { ok: false, reason: `${label} is not a file` };
+    if (expectedSha256) {
+      const actual = createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+      if (actual !== expectedSha256) return { ok: false, reason: `${label} sha256 mismatch` };
+    }
     return { ok: true };
   } catch {
     return { ok: false, reason: `${label} does not exist` };
@@ -256,6 +261,9 @@ function verifyEvidenceFile(file, label) {
 
 export function classifyEvidence(vaultRoot, evidence) {
   const s = String(evidence || '').trim();
+  const hashMatch = /#sha256=([a-f0-9]{64})$/i.exec(s);
+  const expectedSha256 = hashMatch?.[1]?.toLowerCase() ?? null;
+  const evidencePath = hashMatch ? s.slice(0, hashMatch.index) : s.split('#')[0];
   const rid = /^R-(\d{4})(\d{2})(\d{2})-\d{3,}$/.exec(s);
   if (rid) {
     const found = readReceipts(vaultRoot, `${rid[1]}-${rid[2]}-${rid[3]}`).some((r) => r.id === s);
@@ -263,13 +271,13 @@ export function classifyEvidence(vaultRoot, evidence) {
   }
   if (/^https?:\/\//i.test(s)) return { kind: 'url', verified: null };
   if (/^runs[\/]/.test(s)) {
-    const p = s.split('#')[0];
-    const checked = verifyEvidenceFile(path.join(vaultRoot, p), `vault path ${p}`);
+    const p = evidencePath;
+    const checked = verifyEvidenceFile(path.join(vaultRoot, p), `vault path ${p}`, expectedSha256);
     return { kind: 'vault-path', verified: checked.ok, ...(checked.ok ? {} : { reason: checked.reason }) };
   }
-  if (/^([A-Za-z]:[\/]|\/)/.test(s)) {
-    const p = s.split('#')[0];
-    const checked = verifyEvidenceFile(p, 'path');
+  if (/^([A-Za-z]:[\\/]|\/)/.test(s)) {
+    const p = evidencePath;
+    const checked = verifyEvidenceFile(p, 'path', expectedSha256);
     return { kind: 'path', verified: checked.ok, ...(checked.ok ? {} : { reason: checked.reason }) };
   }
   return { kind: 'text', verified: null };

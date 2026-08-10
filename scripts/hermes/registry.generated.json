@@ -128,6 +128,22 @@
       "proposed": false
     },
     {
+      "name": "verify-until-dry",
+      "tier": "T0",
+      "approval": "none-logged",
+      "owner": "Deterministic Script",
+      "channels": [
+        "command-center",
+        "telegram",
+        "vscode"
+      ],
+      "inputs": "none (fixed repo root + committed verification contract)",
+      "receipt": "verifier receipt path + HEAD + source/scope hashes + verdict",
+      "description": "Run the canonical Code Perfectionist gates against the current repo change set; report the evidence-bound verdict without dispatching or importing a paid model review",
+      "killSwitch": "SWITCH_MASTER",
+      "proposed": false
+    },
+    {
       "name": "hermes-doctor",
       "tier": "T0",
       "approval": "none-logged",

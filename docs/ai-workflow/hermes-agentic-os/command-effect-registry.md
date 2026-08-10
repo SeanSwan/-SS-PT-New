@@ -44,6 +44,7 @@ Placeholder/demo content — targets and thresholds are illustrative until Sean 
 | `stale-client-report` | Read-only report: clients with no logged session in N days (IDs only, per rule 8) | Deterministic Script | command-center, runner | `days: int 7–90` | client-ID list pointer | `SWITCH_STALE_CLIENT` |
 | `switch-status` | Read every kill switch's current state | Deterministic Script | command-center, telegram | none | switch table | none (must work when everything else is off) |
 | `verify-chain` | Verify the tamper-evident hash chain of a day's receipt + queue streams and report any break (E2 spine) | Deterministic Script | command-center, runner | `date` | per-stream ok/break + line counts | none (integrity check must run during incidents) |
+| `verify-until-dry` | Run the canonical Code Perfectionist gates against the current repo change set; report the evidence-bound verdict without dispatching or importing a paid model review | Deterministic Script | command-center, telegram, vscode | none (fixed repo root + committed verification contract) | verifier receipt path + HEAD + source/scope hashes + verdict | `SWITCH_MASTER` |
 | `hermes-doctor` | Self-diagnosis: lanes + index law, switches readable, chain integrity, clock regression, schedule, receipt roundtrip; the health-panel + runner-preflight data source (E4) | Deterministic Script | command-center, runner | `date` | per-check ok/fault + exit code (0 healthy/1 degraded/2 fault) | none (health check must run during incidents) |
 | `brain-view` | Render the GRAPHICAL command center: the ARMS/Four-C second-brain graph (applications, routines, memory, skills) around the Hermes core, live-lit from local stores, with thought-stream + vitals HUD + ranked next-best-action. HTML/SVG + an HTML label overlay + VIEW-ONLY inlined client JS (zoom/pan/focus/keyboard; the only buttons are zoom/reset view controls). Zero network, zero action/command surface, no broker path - the page grants nothing (F-2/SB-2; redesign v2 Slice 1-2) | Deterministic Script | command-center, runner | `date` | rendered page path | none (read-only render; same doctrine as status-page) |
 | `status-page` | Render the read-only command-center v0: one static HTML page (switch posture, open queue, anchor level, today's receipts, briefing pointer) from local stores — slice-3 v0, zero buttons, no broker path | Deterministic Script | command-center, runner | `date` | rendered page path | none (read-only render; a status view must work during incidents — the page grants nothing, unplug-to-stop by design) |
@@ -96,6 +97,12 @@ Placeholder/demo content — targets and thresholds are illustrative until Sean 
 | `unreviewed-model-proxy` | **FORBIDDEN pending provenance review** | A base-URL/request proxy can see prompts, tool schemas, history, API keys, and outputs. It may be proposed only after the source/sandbox/network gates in `../references/FABLE-CONTEXT-COMPRESSION-PROTOCOL.md` pass |
 
 ## 4. Change control
+
+`verify-until-dry` is intentionally manual-only: it has no `runner` channel,
+accepts no caller-selected contract, base, receipt, or approval, and cannot
+dispatch Kimi. If its canonical audit requires Kimi K3, it returns
+`BLOCKED_AUTHORIZATION`; Sean must separately approve the exact packet-bound
+one-call CLI operation. No Hermes retry is permitted.
 
 - Adding/editing a row = T1 proposal → Sean applies (T0/T1 rows: Fable may apply, logged). Tier can only move **up** without Sean; moving a tier down is always Sean's call.
 - Every row edit gets a receipt referencing the diff.

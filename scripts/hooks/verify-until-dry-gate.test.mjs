@@ -124,7 +124,7 @@ test('writes outside the repo and casual verdict vocabulary do not activate', ()
 
 test('canonical repository root resolves from a nested cwd', () => {
   const nested = join(REPO_ROOT, 'scripts', 'hooks');
-  assert.equal(canonicalRepoRoot(nested).toLowerCase(), REPO_ROOT.toLowerCase());
+  assert.equal(canonicalRepoRoot(nested).toLowerCase(), canonicalRepoRoot(REPO_ROOT).toLowerCase());
 });
 
 test('repository containment resolves directory aliases before classifying writes', () => {

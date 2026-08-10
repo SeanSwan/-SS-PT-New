@@ -49,6 +49,7 @@ Data classes: `repo` (code/docs) · `app-meta` (routes, configs, non-client data
 | repo-hygiene-scan | Claude Code | T0 | repo | KEEP | Non-destructive only |
 | systematic-debugging / TDD / verification-before-completion / full-output-enforcement | Claude Code | T0–T1 | repo | KEEP | Core discipline set |
 | webapp-testing / agent-browser / audit-website | Browser Harness | T0 (T1 receipts) | app-meta | KEEP | Read-only default; interactions need per-run approval (bridge §6) |
+| verify-until-dry / Code Perfectionist | Codex + Claude + Hermes deterministic adapter | T0 local gates; bounded external Kimi review requires exact one-call approval | positive-safe repo evidence | KEEP MANUAL ONLY | One canonical engine in `scripts/verify-until-dry/`; Claude Stop hook enforces current receipts; Hermes command is receipt-bearing, unscheduled, and cannot auto-spend or retry Kimi |
 | attack-the-site | Claude Code | T1 | repo/app-meta | KEEP | Product red-team; hands code CVEs to security-review |
 | copy-tournament | Claude Code | T1 | public copy | KEEP | Visual side routes through design router |
 | skill-harvest | Claude Code | T1 | repo | KEEP | Proposes only; this registry is where its proposals land |

@@ -10,11 +10,14 @@ import { closeSync, constants as fsConstants, existsSync, fstatSync, lstatSync, 
 import { resolve, sep } from 'node:path';
 import { canonicalJson, sha256 } from './ledger.mjs';
 
+const GIT_TIMEOUT_MS = 30_000;
+
 function git(cwd, args, encoding = 'utf8') {
   return execFileSync('git', args, {
     cwd,
     encoding,
     maxBuffer: 64 * 1024 * 1024,
+    timeout: GIT_TIMEOUT_MS,
     windowsHide: true,
   });
 }

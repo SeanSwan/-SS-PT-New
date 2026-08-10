@@ -14,10 +14,11 @@ import { buildReviewPacket, detectKimiCeilingEvidence, supportsKimiTransformPath
 import { captureSnapshot } from './snapshot.mjs';
 
 const MAX_UNTRACKED_BYTES = 512 * 1024;
+const GIT_TIMEOUT_MS = 30_000;
 
 function git(cwd, args) {
   return execFileSync('git', args, {
-    cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, windowsHide: true,
+    cwd, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: GIT_TIMEOUT_MS, windowsHide: true,
   });
 }
 

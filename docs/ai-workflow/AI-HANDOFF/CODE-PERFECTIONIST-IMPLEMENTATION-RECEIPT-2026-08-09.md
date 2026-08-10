@@ -44,6 +44,11 @@
 14. Shared Stop-hook registration: one assist-mode verifier hook is registered
     after the existing dry-loop gate, with its command mode protected from
     ambient downgrade.
+15. Claude/Hermes parity: Claude delegates to the canonical skill and approved
+    Stop hook; Hermes exposes one registered, manual-only T0 command with fixed
+    inputs, master-switch gating, bounded Git subprocesses, no scheduler or
+    paid-model path, and content-addressed verifier evidence bound into the
+    append-only Hermes receipt by receipt hash plus file SHA-256.
 
 ## Recorded pre-registration evidence
 

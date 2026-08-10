@@ -31,6 +31,7 @@ import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { captureSnapshot } from './snapshot.mjs';
 
 const MAX_OUTPUT = 4 * 1024 * 1024;
+const GIT_TIMEOUT_MS = 30_000;
 const ISSUED_FENCES = new Set();
 const SAFE_ENV_KEYS = Object.freeze([
   'CI', 'COMSPEC', 'LANG', 'LC_ALL', 'PATH', 'PATHEXT', 'SYSTEMROOT',
@@ -43,6 +44,7 @@ function git(cwd, args, options = {}) {
     encoding: options.encoding ?? 'utf8',
     input: options.input,
     maxBuffer: MAX_OUTPUT,
+    timeout: GIT_TIMEOUT_MS,
     shell: false,
     windowsHide: true,
   });

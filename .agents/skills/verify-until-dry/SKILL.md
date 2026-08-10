@@ -15,6 +15,18 @@ Treat the agent, reviewer, and fixer as untrusted workflow roles. Treat current
 repository/runtime evidence as authoritative. A green test or model approval is
 one evidence item, never the verdict.
 
+## Runtime adapters
+
+- Codex and other Agents surfaces load this canonical skill directly.
+- Claude loads `.claude/skills/verify-until-dry/SKILL.md`, which delegates here,
+  and its approved shared Stop hook checks the canonical receipt.
+- Hermes invokes the registered manual-only command
+  `node scripts/hermes/verify-until-dry.mjs`. That adapter uses the committed CI
+  contract, writes a Hermes audit receipt, has no scheduler channel, and cannot
+  dispatch or import Kimi evidence. A Kimi-required result stays
+  `BLOCKED_AUTHORIZATION` until Sean separately approves the exact packet-bound
+  one-call canonical CLI operation; Hermes never retries it.
+
 ## Workflow
 
 1. Re-read coordination lanes and locate the exact repo, branch, worktree, and
