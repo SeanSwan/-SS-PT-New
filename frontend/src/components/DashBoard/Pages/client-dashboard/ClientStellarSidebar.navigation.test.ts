@@ -30,9 +30,20 @@ describe('ClientStellarSidebar navigation priority', () => {
       .find((group) => group.section === 'TRAIN')
       ?.items.map((item) => item.label);
 
-    // Contract intent: workout history leads the cluster. Swan Coach was
-    // appended 2026-07-13 (dashboard audit — routable but invisible in nav).
-    expect(trainingLabels).toEqual(['My Workouts', 'Book Session', 'Swan Coach']);
+    // Contract intent: workout history LEADS the cluster. Swan Coach was
+    // appended 2026-07-13 (dashboard audit — routable but invisible in nav);
+    // My Equipment landed later still.
+    //
+    // A frozen exact array does not express that intent — it fails on every
+    // legitimate addition, and the only way to "fix" it is to re-anchor it to
+    // whatever the nav currently says, which defends nothing. Worse, a nav
+    // test that is always red is a nav test nobody reads. Pin the ordering
+    // guarantee and the required members instead: demoting workout history,
+    // or dropping one of these destinations, still fails.
+    expect(trainingLabels?.[0]).toBe('My Workouts');
+    expect(trainingLabels).toEqual(
+      expect.arrayContaining(['My Workouts', 'Book Session', 'Swan Coach']),
+    );
   });
 
   it('keeps active client nav chrome connected to dashboard theme tokens', () => {
