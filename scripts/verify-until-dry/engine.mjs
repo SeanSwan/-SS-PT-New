@@ -31,6 +31,7 @@ export async function runDeterministicPass(input) {
     scopeContract: input.scopeContract,
   });
   let results;
+  let primaryError = null;
   try {
     results = await run({
       fencePath: fence.path,
@@ -38,17 +39,34 @@ export async function runDeterministicPass(input) {
       scopeContract: input.scopeContract,
       gates: selected,
     });
-  } finally {
-    dispose(fence);
+  } catch (error) {
+    primaryError = error;
   }
+  let cleanupError = null;
+  try {
+    dispose(fence);
+  } catch (error) {
+    cleanupError = error;
+  }
+  if (primaryError && cleanupError) {
+    throw new AggregateError(
+      [primaryError, cleanupError],
+      'Gate execution and fence cleanup both failed',
+      { cause: primaryError },
+    );
+  }
+  if (primaryError) throw primaryError;
+  if (cleanupError) throw cleanupError;
 
   if (!Array.isArray(results) || results.length !== selected.length) {
     throw new Error('Gate result count mismatch');
   }
+  // runGates is sequential; receipt evidence intentionally binds this exact order.
   for (let index = 0; index < results.length; index += 1) {
-    if (results[index]?.gateId !== selectedIds[index]) {
+    if (!selectedIds.includes(results[index]?.gateId)) {
       throw new Error('Gate result identity mismatch');
     }
+    if (results[index].gateId !== selectedIds[index]) throw new Error('Gate result order mismatch');
   }
 
   let ledger = appendEvent([], {

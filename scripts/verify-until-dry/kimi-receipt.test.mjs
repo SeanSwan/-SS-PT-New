@@ -47,3 +47,52 @@ test('a contradictory CLEAN Kimi body is malformed and cannot become a clean rev
   assert.equal(verified.clean, false);
   assert.equal(verified.review.clean, false);
 });
+
+test('parses the canonical consult launcher envelope before a REVISE verdict', () => {
+  const text = [
+    '# SwanStudios Kimi K3 Design Review',
+    '',
+    '**Reviewer:** OpenRouter `moonshotai/kimi-k3` (effort: high)',
+    '**Document:** C:\\Temp\\packet.md',
+    '**Seed:** (none)',
+    '**Tokens:** 10 in / 20 out | **Cost:** ~$0.0003 | **Wall:** 1.0s | **finish_reason:** stop',
+    '',
+    '---',
+    '',
+    'VERDICT: REVISE',
+    'Race found.',
+  ].join('\n');
+  const receipt = buildKimiReceipt({
+    status: 'COMPLETED_ADVISORY', model: 'moonshotai/kimi-k3', packetHash: packet.hash,
+    outputHash: 'd'.repeat(64), text, callCount: 1,
+  }, packet);
+  const verified = validateKimiReceipt(receipt, { packet, model: 'moonshotai/kimi-k3' });
+  assert.equal(receipt.decision, 'REVISE');
+  assert.equal(verified.valid, true);
+  assert.equal(verified.clean, false);
+});
+
+test('parses a canonical consult envelope without allowing arbitrary pre-verdict findings', () => {
+  const envelope = [
+    '# SwanStudios Kimi K3 Design Review',
+    '**Reviewer:** OpenRouter `moonshotai/kimi-k3` (effort: high)',
+    '**Document:** C:\\Temp\\packet.md',
+    '**Seed:** (none)',
+    '**Tokens:** 10 in / 20 out | **Cost:** ~$0.0003 | **Wall:** 1.0s | **finish_reason:** stop',
+    '---',
+  ];
+  const clean = buildKimiReceipt({
+    status: 'COMPLETED_ADVISORY', model: 'moonshotai/kimi-k3', packetHash: packet.hash,
+    outputHash: 'd'.repeat(64), text: [...envelope, 'VERDICT: CLEAN', 'No reproducible findings.'].join('\n'),
+    callCount: 1,
+  }, packet);
+  assert.equal(validateKimiReceipt(clean, { packet, model: 'moonshotai/kimi-k3' }).clean, true);
+
+  const spoof = buildKimiReceipt({
+    status: 'COMPLETED_ADVISORY', model: 'moonshotai/kimi-k3', packetHash: packet.hash,
+    outputHash: 'd'.repeat(64),
+    text: ['FINDING: hidden defect', 'VERDICT: CLEAN', 'No reproducible findings.'].join('\n'),
+    callCount: 1,
+  }, packet);
+  assert.equal(validateKimiReceipt(spoof, { packet, model: 'moonshotai/kimi-k3' }).clean, false);
+});

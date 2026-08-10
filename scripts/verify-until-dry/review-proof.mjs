@@ -14,6 +14,13 @@ export const REVIEW_AXES = Object.freeze([
 const ALLOWED_AXES = new Set(REVIEW_AXES);
 const REVIEW_ORIGINS = new Set(['kimi-external', 'local-full-scope']);
 const KIMI_ALIAS = /kimi|moonshot|openrouter/i;
+const KIMI_CONSULT_HEADER = '# SwanStudios Kimi K3 Design Review';
+const KIMI_CONSULT_METADATA = Object.freeze([
+  /^\*\*Reviewer:\*\* OpenRouter `moonshotai\/kimi-k3` \(effort: (?:low|medium|high)\)$/i,
+  /^\*\*Document:\*\* .+$/,
+  /^\*\*Seed:\*\* .+$/,
+  /^\*\*Tokens:\*\* \d+ in \/ \d+ out .+$/,
+]);
 
 function normalizeIdentity(value) {
   if (typeof value !== 'string') return '';
@@ -25,8 +32,18 @@ function identityKey(value) {
   return normalizeIdentity(value).toLowerCase();
 }
 
-export function parseReviewDecision(output) {
+function decisionLines(output) {
   const lines = String(output).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (/^VERDICT:/i.test(lines[0] ?? '')) return lines;
+  if (lines[0] !== KIMI_CONSULT_HEADER || lines[5] !== '---') return null;
+  const metadata = lines.slice(1, 5);
+  if (metadata.some((line, index) => !KIMI_CONSULT_METADATA[index].test(line))) return null;
+  return lines.slice(6);
+}
+
+export function parseReviewDecision(output) {
+  const lines = decisionLines(output);
+  if (!lines) return 'MALFORMED';
   if (/^VERDICT:\s*REVISE$/i.test(lines[0] ?? '')) return 'REVISE';
   if (!/^VERDICT:\s*CLEAN$/i.test(lines[0] ?? '')) return 'MALFORMED';
   const body = lines.slice(1);

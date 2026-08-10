@@ -20,6 +20,7 @@ test('passing gates remain UNPROVEN until hostile clean rounds exist', async () 
     dispose: () => { disposed += 1; },
   });
   assert.equal(receipt.verdict.verdict, 'UNPROVEN');
+  assert.equal(receipt.gates.unit.exitCode, 0);
   assert.equal(disposed, 1);
 });
 
@@ -32,6 +33,7 @@ test('failed gates are DIRTY and fences dispose even when execution throws', asy
     dispose: () => { disposed += 1; },
   });
   assert.equal(dirty.verdict.verdict, 'DIRTY');
+  assert.equal(dirty.gates.unit.exitCode, 1);
   await assert.rejects(runDeterministicPass({
     repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
     select: () => [{ id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
@@ -74,4 +76,28 @@ test('rejects a selected gate identity that is unsafe as an object key', async (
     run: async () => [{ gateId: '__proto__', status: 'passed', outputHash: 'd'.repeat(64) }],
     dispose: () => {},
   }), /Selected gate identity is invalid/);
+});
+
+test('preserves both the primary gate failure and a cleanup failure', async () => {
+  const primary = new Error('primary gate failure');
+  const cleanup = new Error('cleanup failure');
+  await assert.rejects(runDeterministicPass({
+    repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+    select: () => [{ id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
+    run: async () => { throw primary; }, dispose: () => { throw cleanup; },
+  }), (error) => {
+    assert(error instanceof AggregateError);
+    assert.deepEqual(error.errors, [primary, cleanup]);
+    assert.equal(error.cause, primary);
+    return true;
+  });
+});
+
+test('rejects a reordered complete result set as an order mismatch', async () => {
+  const pass = (gateId) => ({ gateId, status: 'passed', outputHash: 'd'.repeat(64) });
+  await assert.rejects(runDeterministicPass({
+    repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+    select: () => [{ id: 'first' }, { id: 'second' }], create: () => ({ path: 'C:\\fence' }),
+    run: async () => [pass('second'), pass('first')], dispose: () => {},
+  }), /Gate result order mismatch/);
 });
