@@ -73,11 +73,18 @@ export async function runDeterministicPass(input) {
   }));
   // runGates is sequential; receipt evidence intentionally binds this exact order.
   for (let index = 0; index < stableResults.length; index += 1) {
-    if (!GATE_STATUSES.has(stableResults[index].status)) throw new Error('Gate result status is invalid');
-    if (!selectedIds.includes(stableResults[index].gateId)) {
+    const result = stableResults[index];
+    if (!GATE_STATUSES.has(result.status)) throw new Error('Gate result status is invalid');
+    if (result.exitCode !== undefined && (!Number.isInteger(result.exitCode) || result.exitCode < 0)) {
+      throw new Error('Gate result exit code is invalid');
+    }
+    if (result.exitCode !== undefined && ((result.status === 'passed') !== (result.exitCode === 0))) {
+      throw new Error('Gate result exit code contradicts status');
+    }
+    if (!selectedIds.includes(result.gateId)) {
       throw new Error('Gate result identity mismatch');
     }
-    if (stableResults[index].gateId !== selectedIds[index]) throw new Error('Gate result order mismatch');
+    if (result.gateId !== selectedIds[index]) throw new Error('Gate result order mismatch');
   }
 
   let ledger = appendEvent([], {

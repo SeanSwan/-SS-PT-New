@@ -184,6 +184,7 @@ export function buildReviewPacket(input = {}) {
       'Report only reproducible findings with severity, evidence id, and a failing scenario.',
       'Do not trust builder conclusions and do not declare global perfection.',
       'Identifiers and literals are deterministically pseudonymized; reason from control flow and evidence IDs.',
+      'Transformed evidence may not parse as source; do not report syntax or lexical defects from transformed tokens.',
     ],
     evidenceTransform: 'pseudonymized-control-flow-v1',
     evidenceManifest,

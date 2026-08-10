@@ -111,6 +111,30 @@ test('rejects an unknown gate result status instead of coercing it to failure', 
   }), /Gate result status is invalid/);
 });
 
+test('rejects an explicit exit code that contradicts the gate status', async () => {
+  for (const result of [
+    { gateId: 'unit', status: 'passed', exitCode: 1, outputHash: 'd'.repeat(64) },
+    { gateId: 'unit', status: 'failed', exitCode: 0, outputHash: 'd'.repeat(64) },
+  ]) {
+    await assert.rejects(runDeterministicPass({
+      repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+      select: () => [{ id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
+      run: async () => [result], dispose: () => {},
+    }), /Gate result exit code contradicts status/);
+  }
+});
+
+test('rejects a malformed explicit gate exit code', async () => {
+  for (const exitCode of ['0', -1, Number.NaN]) {
+    await assert.rejects(runDeterministicPass({
+      repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+      select: () => [{ id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
+      run: async () => [{ gateId: 'unit', status: 'failed', exitCode, outputHash: 'd'.repeat(64) }],
+      dispose: () => {},
+    }), /Gate result exit code is invalid/);
+  }
+});
+
 test('snapshots the runner result collection before validating identities', async () => {
   let lengthReads = 0;
   const result = { gateId: 'unit', status: 'passed', outputHash: 'd'.repeat(64) };

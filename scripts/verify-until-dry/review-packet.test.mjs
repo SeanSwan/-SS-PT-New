@@ -95,6 +95,8 @@ test('external evidence is a deterministic positive-safe control-flow representa
   assert.match(packet.text, /const ID_\d+ = "STR_\d+"/);
   assert.match(packet.text, /\/\/ COMMENT/);
   assert.match(packet.text, /pseudonymized/i);
+  assert.match(packet.text, /may not parse/i);
+  assert.match(packet.text, /do not report syntax/i);
 });
 
 test('positive-safe evidence never emits raw Unicode identifiers or JSX names', () => {
