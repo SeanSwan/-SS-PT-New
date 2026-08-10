@@ -1,6 +1,6 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { Activity, Bell, CalendarCheck, ClipboardCheck, CreditCard, ShieldAlert, Timer } from 'lucide-react';
+import { Activity, Bell, CalendarCheck, ClipboardCheck, CreditCard, Gauge, ShieldAlert, Timer } from 'lucide-react';
 import {
   SignalBar,
   SignalCta,
@@ -57,6 +57,13 @@ const signalItems: SignalItem[] = [
     detail: 'Compliance, sessions, signups',
     tone: 'ops',
     icon: CalendarCheck,
+  },
+  {
+    href: '#admin-ops-intelligence',
+    label: 'Ops intelligence',
+    detail: 'Capacity, leakage, activation',
+    tone: 'ops',
+    icon: Gauge,
   },
   {
     href: '#admin-community-safety',

@@ -32,6 +32,9 @@ import LeadSpeedWidget from '../components/LeadSpeedWidget';
 import SessionReconciliationWidget from '../components/SessionReconciliationWidget';
 import SessionLiabilityWidget from '../components/SessionLiabilityWidget';
 import AiSpendWidget from '../components/AiSpendWidget';
+import {
+  ActivationFunnelWidget, CancellationImpactWidget, TrainerUtilizationWidget,
+} from '../components/OpsAggregateWidgets';
 import WaiverSummaryWidget from '../components/WaiverSummaryWidget';
 import WidgetErrorBoundary from '../shell/WidgetErrorBoundary';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
@@ -261,6 +264,16 @@ const AdminOverviewPanel: React.FC = () => {
         <BentoHalf><WidgetErrorBoundary name="Session tracking"><SessionTrackingWidget /></WidgetErrorBoundary></BentoHalf>
         <BentoHalf><WidgetErrorBoundary name="Signup monitoring"><RealTimeSignupMonitoring authAxios={authAxios} autoRefresh={true} refreshInterval={30000} /></WidgetErrorBoundary></BentoHalf>
         <BentoThird><WidgetErrorBoundary name="Recent activity"><RecentActivityFeed /></WidgetErrorBoundary></BentoThird>
+      </AdminOverviewSection>
+      <AdminOverviewSection
+        id="admin-ops-intelligence"
+        eyebrow="Ops Intelligence"
+        title="Rollups behind the live queues"
+        lead="Operations shows what is happening now; this band shows what it adds up to — trainer capacity, what cancellation policy costs, and whether new clients actually start training."
+      >
+        <BentoThird><WidgetErrorBoundary name="Trainer utilization"><TrainerUtilizationWidget /></WidgetErrorBoundary></BentoThird>
+        <BentoThird><WidgetErrorBoundary name="Cancellation impact"><CancellationImpactWidget /></WidgetErrorBoundary></BentoThird>
+        <BentoThird><WidgetErrorBoundary name="Activation funnel"><ActivationFunnelWidget /></WidgetErrorBoundary></BentoThird>
       </AdminOverviewSection>
       <AdminOverviewSection
         id="admin-community-safety"
