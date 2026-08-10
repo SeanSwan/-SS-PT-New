@@ -93,6 +93,33 @@ test('preserves both the primary gate failure and a cleanup failure', async () =
   });
 });
 
+test('awaits asynchronous cleanup and surfaces its rejection after successful gates', async () => {
+  const cleanup = new Error('async cleanup failure');
+  const rejectedCleanup = { then: (_resolve, reject) => reject(cleanup) };
+  await assert.rejects(runDeterministicPass({
+    repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+    select: () => [{ id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
+    run: async () => [{ gateId: 'unit', status: 'passed', outputHash: 'd'.repeat(64) }],
+    dispose: () => rejectedCleanup,
+  }), (error) => error === cleanup);
+});
+
+test('aggregates a primary failure with an asynchronous cleanup rejection', async () => {
+  const primary = new Error('primary gate failure');
+  const cleanup = new Error('async cleanup failure');
+  const rejectedCleanup = { then: (_resolve, reject) => reject(cleanup) };
+  await assert.rejects(runDeterministicPass({
+    repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+    select: () => [{ id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
+    run: async () => { throw primary; }, dispose: () => rejectedCleanup,
+  }), (error) => {
+    assert(error instanceof AggregateError);
+    assert.deepEqual(error.errors, [primary, cleanup]);
+    assert.equal(error.cause, primary);
+    return true;
+  });
+});
+
 test('rejects a reordered complete result set as an order mismatch', async () => {
   const pass = (gateId) => ({ gateId, status: 'passed', outputHash: 'd'.repeat(64) });
   await assert.rejects(runDeterministicPass({

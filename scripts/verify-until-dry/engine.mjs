@@ -45,7 +45,7 @@ export async function runDeterministicPass(input) {
   }
   let cleanupError = null;
   try {
-    dispose(fence);
+    await dispose(fence);
   } catch (error) {
     cleanupError = error;
   }
