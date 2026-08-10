@@ -3,8 +3,7 @@
 **Read time target:** under 2 minutes.
 **Purpose:** one-page map of where active, planned, and archived material lives.
 **Paired with:** `AGENTS.md` / `CLAUDE.md` (operating rules + load order).
-**Last updated:** 2026-08-02 (agent workflow router, portable workflow skills, deterministic skill inventory)
-
+**Last updated:** 2026-08-09 (MCP lifecycle audit-first implementation and verification pass)
 > If you are here for "where does X live" — this is the right file.
 > If you are here for "what are the rules" — read `CLAUDE.md`.
 
@@ -40,6 +39,7 @@ These files are the operating base. Everything else is loaded on-demand.
 
 Location: `docs/ai-workflow/AI-HANDOFF/`
 
+- **`MCP-LIFECYCLE-HYGIENE-ENHANCED-PLAN-2026-08-08.md`** — implemented audit-first lifecycle design in the isolated worktree: crash fencing, bounded recovery state, diagnostics, and code-owned mutation authority. Hooks remain audit-only; enforcement still requires an exact-revision Kimi APPROVE review and Sean approval. Raw packet/output plus the immutable paid-call receipt share the `MCP-LIFECYCLE-HYGIENE-KIMI-*` prefix.
 - **`AGENT-WORKFLOW-SKILL-INTEGRATION-AUDIT-2026-08-02.md`** — two-transcript + 44-skill triage, independent GPT-5-class verdict, Kimi spend-gate status, adopted/rejected capability map, and verification contract
 
 - **⭐ USER-DASHBOARD 7★ UPGRADE AUDIT (2026-07-06, active):** `USER-DASHBOARD-7STAR-UPGRADE-AUDIT-2026-07-06/` — 10-doc upgrade audit for future AI builders (read `00-MASTER-ROADMAP.md` first: engraved prompt, domain scorecard, "wire what exists" Wave 1-3 roadmap, Sean decision queue D1-D6, trust flags incl. verified feed private-post leak, algorithm spec index). 9 domain docs: home IA · chart truth · gamification · social · nudges · NBA extension · activation · trainer/admin proof · mobile polish. Complements (does not repeat) FABLE-VISION-REBUILD-DEEP-AUDIT; excludes the workout-logger lane.
@@ -55,7 +55,6 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `SWANSTUDIOS-BROAD-REDESIGN-POLISH-BACKLOG-2026-06-01.md` - parked broad redesign/polish backlog for dashboards, media header, social feed, theme sync, Bootcamp, workout UX, and separate command-dispatcher extraction debt
 - `SOCIAL-TRY-WORKOUT-FLOW-2026-06-25.md` - canonical receipt, composer/modal wireframe, data contract, and phased flow for making workout-tagged feed posts actionable without colliding with the active chart lane
 - `NEXT-SESSION-CONTINUATION-PROMPT-2026-06-01.md` - fresh-session prompt for continuing the recursive slice workflow after the latest Coach selected-client command push
-
 - `USER-DASHBOARD-N-SERIES-AUDIT-RECORD-2026-06-12.md` - rule-48 audit record for workstream N (M7+N1-N5): V3 Observatory as the canonical /user-dashboard hub, social absorbed, Home truth pass, cover editor, training proof, tab compaction
 - `FABLE-CONTROL-LAYER-AUDIT-RECORD-2026-07-04.md` — rule-48 audit record for the Fable control layer / Hermes Agentic OS / Design Brain docs + runtime Slice 1 (receipt/queue/digest/prune spine in `scripts/hermes/`, 31/31 tests); security posture, rollback, and future review hooks live here
 - `STOREFRONT-INQUIRY-AND-ACCOUNT-ACCESS-AUDIT-RECORD-2026-07-11.md` — rule-48 audit record for two shipped slices: storefront "Ask About Pricing" inquiry button (price-hidden cards → `/api/contact` → notify admin, VERIFIED LIVE) + admin account-access "skeleton key" REMOUNT (`/dashboard/admin/account-access` route + "Account Access" sidebar entry + Enter-to-go; additive to the Coach mount). Security posture (impersonation owner-gate, `/api/contact` abuse), rollback per commit, 6 future review hooks (incl. verify OWNER_ADMIN_EMAILS set in prod)
@@ -65,7 +64,6 @@ Location: `docs/ai-workflow/AI-HANDOFF/`
 - `CLIENT-BILLING-ACCOUNT-AUDIT-HANDOFF-2026-07-05.md` — **SHIPPED backend account-control audit trail** (updateClient/createClient/createExternalClient fail-closed AdminAccountAuditLog, 318 tests) + the remaining-slice roadmap (S1-S4 fable-arc frontend billing/FormAnalysis/charts/Overview; S5 deactivate-reactivate lifecycle audit; S6 fulfillment decision) + paste-ready next-AI prompt. Pairs with `CLIENTS-TEAM-COMMAND-CENTER-FABLE-AUDIT-2026-07-05.md` (§8 recipes). Open for hostile review + finish-up.
 
 Completed debates rotate to: `docs/ai-workflow/AI-HANDOFF/debate-archive/`
-
 ---
 
 ## Active video production workflow
@@ -84,7 +82,6 @@ Location: `scripts/swan-video-studio/`
 ## 🎨 Swan visual operating system (Phase 3 landed 2026-04-12)
 
 **Strict-model design exposure:** `swan-design-router` is the **only** default-exposed design brain. All UI/visual work auto-routes through it (CLAUDE.md rule 40). Closeout auto-routes through `closeout-evidence-lock` (rule 41). Skill inventory is discovered from disk with `node scripts/ai-workflow/validate-skill-registry.mjs`; do not trust a static total.
-
 ### Default-exposed `.claude/skills/`
 
 **Swan orchestration and workflow modes:**
@@ -97,9 +94,7 @@ Location: `scripts/swan-video-studio/`
 - `repo-hygiene-scan` — rules 32-39 execution surface
 - `swan-design-router` — the one design brain (loads SWAN-CINEMATIC-DESIGN-SYSTEM.md + SWAN-ASSET-STORYBOARDING.md from `docs/ai-workflow/references/`, and the two reference libraries from `.agents/skills/`)
 - `closeout-evidence-lock` — end-of-task evidence gate (preserves substantive code-review checklist from retired `requesting-code-review`)
-
-**KEEP core:**
-`systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
+**KEEP core:** `systematic-debugging`, `test-driven-development`, `verification-before-completion`, `webapp-testing`, `agent-browser`, `audit-website`, `full-output-enforcement`, `seedance-swan-video`
 
 ### Reference libraries loaded by `swan-design-router`, NOT default-exposed
 - `.agents/skills/frontend-design/SKILL.md` — guardrails layer (accessibility, responsiveness, anti-generic)

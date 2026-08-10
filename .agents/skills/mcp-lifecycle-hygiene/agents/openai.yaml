@@ -1,0 +1,4 @@
+interface:
+  display_name: "MCP Lifecycle Hygiene"
+  short_description: "Audit and preview unused MCP server processes"
+  default_prompt: "Use $mcp-lifecycle-hygiene to audit MCP exposure and preview task-owned server cleanup; current hooks are audit-only."

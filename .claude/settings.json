@@ -310,6 +310,22 @@
           {
             "type": "command",
             "command": "node scripts/hooks/hermes-inbox-reminder.mjs"
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/scripts/mcp/mcp-lifecycle-hook.ps1\" -Event SessionStart -Mode audit",
+            "timeout": 45
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File \"${CLAUDE_PROJECT_DIR}/scripts/mcp/mcp-lifecycle-hook.ps1\" -Event SessionEnd -Mode audit",
+            "timeout": 60
           }
         ]
       }
