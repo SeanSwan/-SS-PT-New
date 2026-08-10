@@ -12,6 +12,7 @@
  * │ GET /ops/trainer-utilization  Admin  Booked vs available, per trainer │
  * │ GET /ops/cancellation-impact  Admin  Cancellations + charged/waived   │
  * │ GET /ops/activation-funnel    Admin  Signup → booked → completed      │
+ * (PLAUD + bootcamp pipeline rollups live in adminOpsPipelineRoutes.mjs.)
  * └──────────────────────────────────────────────────────────────────────┘
  *
  * Every response states its own window and its counting basis, because each of
@@ -25,23 +26,12 @@ import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import Session from '../models/Session.mjs';
 import User from '../models/User.mjs';
 import TrainerAvailability from '../models/TrainerAvailability.mjs';
+import { BOOKED_STATUSES, resolveWindowDays, round2, since } from './opsAggregateHelpers.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
-const MAX_WINDOW_DAYS = 365;
-const DEFAULT_WINDOW_DAYS = 30;
-/** Sessions that represent real booked trainer time. */
-const BOOKED_STATUSES = ['scheduled', 'confirmed', 'completed'];
 
-function resolveWindowDays(raw) {
-  const n = parseInt(raw, 10);
-  if (!Number.isFinite(n) || n < 1) return DEFAULT_WINDOW_DAYS;
-  return Math.min(n, MAX_WINDOW_DAYS);
-}
-
-const since = (days) => new Date(Date.now() - days * 86400000);
-const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
 /**
  * GET /ops/trainer-utilization

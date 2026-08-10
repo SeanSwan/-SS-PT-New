@@ -164,6 +164,7 @@ import adminAlertStateRoutes from '../routes/adminAlertStateRoutes.mjs';
 import renewalAlertRoutes from '../routes/renewalAlertRoutes.mjs';
 import adminSessionLiabilityRoutes from '../routes/adminSessionLiabilityRoutes.mjs';
 import adminOpsAggregateRoutes from '../routes/adminOpsAggregateRoutes.mjs';
+import adminOpsPipelineRoutes from '../routes/adminOpsPipelineRoutes.mjs';
 import adminOnboardingRoutes from '../routes/adminOnboardingRoutes.mjs';
 import adminWorkoutLoggerRoutes from '../routes/adminWorkoutLoggerRoutes.mjs';
 import adminReconciliationRoutes from '../routes/adminReconciliationRoutes.mjs';
@@ -552,6 +553,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/renewal-alerts', renewalAlertRoutes); // SWA-138 S10: churn-risk queue (controller existed, never mounted)
   app.use('/api/admin', adminSessionLiabilityRoutes); // SWA-138 S11: unredeemed prepaid-session liability
   app.use('/api/admin', adminOpsAggregateRoutes); // SWA-138 S15: trainer utilization, cancellation impact, activation funnel
+  app.use('/api/admin', adminOpsPipelineRoutes); // SWA-138 S16: voice-ingest health, bootcamp attendance logging
   app.use('/api/admin', adminOnboardingRoutes); // Admin onboarding management API (Phase 1.2)
   app.use('/api/admin', adminWorkoutLoggerRoutes); // Phase 1B: Admin workout logging API
 

@@ -35,6 +35,7 @@ import AiSpendWidget from '../components/AiSpendWidget';
 import {
   ActivationFunnelWidget, CancellationImpactWidget, TrainerUtilizationWidget,
 } from '../components/OpsAggregateWidgets';
+import { BootcampOpsWidget, PlaudHealthWidget } from '../components/OpsPipelineWidgets';
 import WaiverSummaryWidget from '../components/WaiverSummaryWidget';
 import WidgetErrorBoundary from '../shell/WidgetErrorBoundary';
 import AITerminalPanel from '../../../../Shared/AITerminalPanel';
@@ -269,11 +270,13 @@ const AdminOverviewPanel: React.FC = () => {
         id="admin-ops-intelligence"
         eyebrow="Ops Intelligence"
         title="Rollups behind the live queues"
-        lead="Operations shows what is happening now; this band shows what it adds up to — trainer capacity, what cancellation policy costs, and whether new clients actually start training."
+        lead="Operations shows what is happening now; this band shows what it adds up to — trainer capacity, what cancellation policy costs, whether new clients actually start training, and whether the coaching record is being captured at all."
       >
         <BentoThird><WidgetErrorBoundary name="Trainer utilization"><TrainerUtilizationWidget /></WidgetErrorBoundary></BentoThird>
         <BentoThird><WidgetErrorBoundary name="Cancellation impact"><CancellationImpactWidget /></WidgetErrorBoundary></BentoThird>
         <BentoThird><WidgetErrorBoundary name="Activation funnel"><ActivationFunnelWidget /></WidgetErrorBoundary></BentoThird>
+        <BentoHalf><WidgetErrorBoundary name="Voice ingestion"><PlaudHealthWidget /></WidgetErrorBoundary></BentoHalf>
+        <BentoHalf><WidgetErrorBoundary name="Bootcamp ops"><BootcampOpsWidget /></WidgetErrorBoundary></BentoHalf>
       </AdminOverviewSection>
       <AdminOverviewSection
         id="admin-community-safety"

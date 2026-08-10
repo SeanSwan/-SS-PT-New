@@ -20,6 +20,8 @@ vi.mock('../../../../../context/AuthContext', () => ({
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf8');
 const route = read('../backend/routes/adminOpsAggregateRoutes.mjs');
+// SWA-138 S16: window bounding + rounding moved to a shared helper module.
+const helpers = read('../backend/routes/opsAggregateHelpers.mjs');
 const coreRoutes = read('../backend/core/routes.mjs');
 const panel = read('src/components/DashBoard/Pages/admin-dashboard/overview/AdminOverviewPanel.tsx');
 const signalBar = read('src/components/DashBoard/Pages/admin-dashboard/overview/AdminSignalBar.tsx');
@@ -61,7 +63,9 @@ describe('backend aggregate contract (S15)', () => {
   });
 
   it('bounds its own window and states its counting basis in every response', () => {
-    expect(route).toContain('MAX_WINDOW_DAYS');
+    expect(helpers).toContain('MAX_WINDOW_DAYS');
+    expect(helpers).toContain('Math.min(n, MAX_WINDOW_DAYS)');
+    expect(route).toContain('resolveWindowDays(req.query.days)');
     expect(route).toContain('basis:');
   });
 
