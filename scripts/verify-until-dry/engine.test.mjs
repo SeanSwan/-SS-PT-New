@@ -101,3 +101,33 @@ test('rejects a reordered complete result set as an order mismatch', async () =>
     run: async () => [pass('second'), pass('first')], dispose: () => {},
   }), /Gate result order mismatch/);
 });
+
+test('rejects an unknown gate result status instead of coercing it to failure', async () => {
+  await assert.rejects(runDeterministicPass({
+    repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+    select: () => [{ id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
+    run: async () => [{ gateId: 'unit', status: 'skipped', outputHash: 'd'.repeat(64) }],
+    dispose: () => {},
+  }), /Gate result status is invalid/);
+});
+
+test('snapshots the runner result collection before validating identities', async () => {
+  let lengthReads = 0;
+  const result = { gateId: 'unit', status: 'passed', outputHash: 'd'.repeat(64) };
+  const unstable = new Proxy([result], {
+    get(target, property, receiver) {
+      if (property === 'length') {
+        lengthReads += 1;
+        return lengthReads === 1 ? 1 : 2;
+      }
+      return Reflect.get(target, property, receiver);
+    },
+  });
+  const receipt = await runDeterministicPass({
+    repoRoot: 'C:\\repo', tier: 0, surfaces: [], scopeContract: {}, capture: () => snapshot,
+    select: () => [{ id: 'unit' }], create: () => ({ path: 'C:\\fence' }),
+    run: async () => unstable, dispose: () => {},
+  });
+  assert.equal(receipt.gates.unit.status, 'pass');
+  assert.equal(lengthReads, 1);
+});

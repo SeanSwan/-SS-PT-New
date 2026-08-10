@@ -9,6 +9,7 @@ import { createFence, disposeFence, runGates } from './fenced-runner.mjs';
 import { selectGates } from './gate-registry.mjs';
 
 const GATE_ID = /^[a-z][a-z0-9-]*$/;
+const GATE_STATUSES = new Set(['passed', 'failed']);
 
 export async function runDeterministicPass(input) {
   const capture = input.capture ?? ((args) => captureSnapshot(args));
@@ -58,15 +59,25 @@ export async function runDeterministicPass(input) {
   if (primaryError) throw primaryError;
   if (cleanupError) throw cleanupError;
 
-  if (!Array.isArray(results) || results.length !== selected.length) {
+  if (!Array.isArray(results)) throw new Error('Gate result collection is invalid');
+  const resultCount = results.length;
+  if (resultCount !== selected.length) {
     throw new Error('Gate result count mismatch');
   }
+  const stableResults = Object.freeze(Array.from({ length: resultCount }, (_, index) => {
+    const result = results[index];
+    return Object.freeze({
+      gateId: result?.gateId, status: result?.status,
+      outputHash: result?.outputHash, exitCode: result?.exitCode,
+    });
+  }));
   // runGates is sequential; receipt evidence intentionally binds this exact order.
-  for (let index = 0; index < results.length; index += 1) {
-    if (!selectedIds.includes(results[index]?.gateId)) {
+  for (let index = 0; index < stableResults.length; index += 1) {
+    if (!GATE_STATUSES.has(stableResults[index].status)) throw new Error('Gate result status is invalid');
+    if (!selectedIds.includes(stableResults[index].gateId)) {
       throw new Error('Gate result identity mismatch');
     }
-    if (results[index].gateId !== selectedIds[index]) throw new Error('Gate result order mismatch');
+    if (stableResults[index].gateId !== selectedIds[index]) throw new Error('Gate result order mismatch');
   }
 
   let ledger = appendEvent([], {
@@ -76,7 +87,7 @@ export async function runDeterministicPass(input) {
     scopeHash: snapshot.scopeHash,
   });
   const gates = Object.create(null);
-  for (const result of results) {
+  for (const result of stableResults) {
     gates[result.gateId] = {
       status: result.status === 'passed' ? 'pass' : 'fail',
       current: true,
