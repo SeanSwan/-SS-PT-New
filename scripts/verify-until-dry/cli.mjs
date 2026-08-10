@@ -4,12 +4,13 @@
  * @description Command-line adapter for audits, fenced gates, receipt finalization, and verification.
  */
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import config from '../../config/verify-until-dry.config.mjs';
+import { defaultAttemptRoot, readProviderAttempt } from '../context-gateway/src/attempt-journal.mjs';
 import { runDeterministicPass } from './engine.mjs';
 import { executeKimiReview, planKimiReview } from './kimi-escalation.mjs';
 import { buildKimiReceipt, validateKimiReceipt } from './kimi-receipt.mjs';
@@ -22,7 +23,7 @@ export {
   appendUntrackedEvidence, inferSurfaces, partitionKimiEvidencePaths, selectKimiEvidencePaths,
 } from './repository-audit.mjs';
 
-const COMMANDS = new Set(['audit', 'run', 'record-review', 'finalize', 'verify', 'kimi']);
+const COMMANDS = new Set(['audit', 'run', 'record-review', 'finalize', 'verify', 'kimi', 'kimi-status']);
 
 export function parseCli(argv) {
   const command = argv[0] ?? 'audit';
@@ -52,6 +53,21 @@ export function defaultReceiptPath(repoRoot) {
 
 export function kimiReceiptImportAllowed(audit) {
   return audit?.risk?.kimiRequired === true && audit?.kimi?.status === 'BLOCKED_AUTHORIZATION';
+}
+
+export function commandKimiStatus(repoRoot, args, { attemptRoot = defaultAttemptRoot() } = {}) {
+  if (!args.approval) throw new Error('kimi-status requires --approval');
+  const approval = readJson(resolve(repoRoot, args.approval));
+  const callNumber = approval.mode === 'exact-run' ? 1 : approval.callNumber;
+  const attemptId = `${approval.nonce}-${callNumber}`;
+  const status = readProviderAttempt(attemptId, { root: attemptRoot });
+  if (status.status !== 'MISSING') return status;
+  const legacy = join(tmpdir(), 'verify-until-dry', 'kimi-authorization', `${attemptId}.used`);
+  if (existsSync(legacy)) return Object.freeze({
+    attemptId, status: 'UNRESOLVED_LEGACY_AUTHORIZATION', generationId: null,
+    retrySafe: false, events: [],
+  });
+  return status;
 }
 
 
@@ -157,6 +173,10 @@ async function main() {
   const args = parseCli(process.argv.slice(2));
   const repoRoot = process.cwd();
   const hydrated = { ...args, contract: args.contract ? readJson(resolve(repoRoot, args.contract)) : {} };
+  if (args.command === 'kimi-status') {
+    process.stdout.write(`${JSON.stringify(commandKimiStatus(repoRoot, args), null, 2)}\n`);
+    return;
+  }
   if (args.command === 'audit') {
     const audit = auditRepository(repoRoot, hydrated, config);
     process.stdout.write(`${JSON.stringify({
@@ -191,7 +211,8 @@ async function main() {
     const out = args.out ? resolve(repoRoot, args.out) : join(dirname(defaultReceiptPath(repoRoot)), 'latest-kimi-receipt.json');
     writeJson(out, receipt);
     process.stdout.write(`${JSON.stringify({ status: result.status, model: result.model,
-      packetHash: result.packetHash, outputHash: result.outputHash, callCount: result.callCount, receipt: out })}\n`);
+      packetHash: result.packetHash, outputHash: result.outputHash, callCount: result.callCount,
+      attemptId: result.attemptId, generationId: result.generationId, receipt: out })}\n`);
     return;
   }
   if (args.command === 'finalize') {

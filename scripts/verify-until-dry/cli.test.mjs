@@ -24,9 +24,29 @@ test('parses run, finalize, audit, and verify commands without shell syntax', ()
   assert.equal(parseCli(['audit']).command, 'audit');
   assert.equal(parseCli(['finalize', '--receipt', 'r.json', '--reviews', 'v.json']).reviews, 'v.json');
   assert.equal(parseCli(['kimi', '--approval', 'approval.json']).approval, 'approval.json');
+  assert.equal(parseCli(['kimi-status', '--approval', 'approval.json']).command, 'kimi-status');
   assert.throws(() => parseCli(['destroy']), /command/i);
   assert.throws(() => parseCli(['run', '--tier', '9']), /tier/i);
   assert.throws(() => parseCli(['run', '--mode', 'maybe']), /mode/i);
+});
+
+test('kimi-status reads durable attempt state without dispatching', async () => {
+  const cliModule = await import('./cli.mjs');
+  assert.equal(typeof cliModule.commandKimiStatus, 'function');
+  const { recordProviderAttemptEvent } = await import('../context-gateway/src/attempt-journal.mjs');
+  const root = mkdtempSync(join(tmpdir(), 'verify-kimi-status-'));
+  const attemptRoot = mkdtempSync(join(tmpdir(), 'verify-kimi-attempts-'));
+  const approvalDoc = {
+    mode: 'exact-run', nonce: 'approval-status-cli-0001', callNumber: 1,
+  };
+  writeFileSync(join(root, 'approval.json'), JSON.stringify(approvalDoc));
+  recordProviderAttemptEvent('approval-status-cli-0001-1', {
+    state: 'RESPONSE_HEADERS', model: 'moonshotai/kimi-k3', generationId: 'gen-cli-status', status: 200,
+  }, { root: attemptRoot });
+  const result = cliModule.commandKimiStatus(root, { approval: 'approval.json' }, { attemptRoot });
+  assert.equal(result.status, 'UNRESOLVED_AFTER_HEADERS');
+  assert.equal(result.generationId, 'gen-cli-status');
+  assert.equal(result.retrySafe, false);
 });
 
 test('surface inference is deterministic and gate-registry compatible', () => {

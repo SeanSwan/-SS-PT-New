@@ -20,6 +20,20 @@ const approval = (extra = {}) => ({
   nonce: 'approval-nonce-0001', expiresAt: '2099-01-01T00:00:00Z', ...extra,
 });
 
+async function recordFakeProviderCompletion(command, attemptRoot) {
+  const { recordProviderAttemptEvent } = await import('../context-gateway/src/attempt-journal.mjs');
+  const attemptId = command.env.SWAN_CONTEXT_ATTEMPT_ID;
+  recordProviderAttemptEvent(attemptId, { state: 'DISPATCH_STARTED', model: config.kimi.model }, { root: attemptRoot });
+  recordProviderAttemptEvent(attemptId, {
+    state: 'RESPONSE_HEADERS', model: config.kimi.model,
+    generationId: `gen-${attemptId}`, status: 200,
+  }, { root: attemptRoot });
+  recordProviderAttemptEvent(attemptId, {
+    state: 'COMPLETED', model: config.kimi.model,
+    generationId: `gen-${attemptId}`, inTok: 10, outTok: 10, cost: 0.001, wallMs: 10,
+  }, { root: attemptRoot });
+}
+
 test('not-required work does not manufacture a paid call', () => {
   const plan = planKimiReview({ required: false, packet, config });
   assert.equal(plan.status, 'NOT_REQUIRED');
@@ -35,9 +49,10 @@ test('required exact-run review blocks until approval matches packet and cap', (
 
   const ready = planKimiReview({
     required: true, packet, config,
-    approval: approval(),
+    approval: approval({ maxUsd: blocked.preflight.worstCaseUsd }),
   });
   assert.equal(ready.status, 'READY');
+  assert.equal(ready.authorization.maxUsd, blocked.preflight.worstCaseUsd);
   assert.equal(ready.command.args[ready.command.args.indexOf('--max-tokens') + 1], '60000');
 });
 
@@ -127,6 +142,10 @@ test('dispatcher makes one call only and never retries a failure', async () => {
 });
 
 test('approved execution materializes one temp packet and returns hashed advisory output', async () => {
+  const { mkdtempSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const attemptRoot = mkdtempSync(join(tmpdir(), 'kimi-approved-test-'));
   const ready = planKimiReview({
     required: true, packet, config,
     approval: approval({ nonce: 'approval-nonce-0003' }),
@@ -135,14 +154,16 @@ test('approved execution materializes one temp packet and returns hashed advisor
   const result = await executeKimiReview({
     plan: ready,
     packet,
-    consume: () => {},
+    attemptRoot,
     execute: async (command) => {
       calls += 1;
       const packetPath = command.args[command.args.indexOf('--document') + 1];
       const outputPath = command.args[command.args.indexOf('--out') + 1];
+      assert.equal(command.env.SWAN_CONTEXT_ATTEMPT_ID, 'approval-nonce-0003-1');
       assert.match(packetPath, /verify-kimi-/);
       const { readFileSync, writeFileSync } = await import('node:fs');
       assert.equal(readFileSync(packetPath, 'utf8'), packet.text);
+      await recordFakeProviderCompletion(command, attemptRoot);
       writeFileSync(outputPath, 'VERDICT: CLEAN\nNo reproducible findings.\n');
       return { code: 0, stdout: '', stderr: '' };
     },
@@ -164,4 +185,55 @@ test('post-approval packet text or manifest substitution is rejected before exec
     execute: async () => { calls += 1; return { code: 0, stdout: '', stderr: '' }; },
   }), /packet integrity/i);
   assert.equal(calls, 0);
+});
+
+test('authorization reservation is journaled once and a duplicate never dispatches', async () => {
+  const { mkdtempSync, readdirSync, readFileSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const attemptRoot = mkdtempSync(join(tmpdir(), 'kimi-reservation-test-'));
+  const nonce = `approval-journal-${process.pid}-${Date.now()}`;
+  let calls = 0;
+  const run = async () => {
+    const ready = planKimiReview({ required: true, packet, config, approval: approval({ nonce }) });
+    return executeKimiReview({
+      plan: ready, packet, attemptRoot, consume: () => {},
+      execute: async (command) => {
+        calls += 1;
+        const outputPath = command.args[command.args.indexOf('--out') + 1];
+        await recordFakeProviderCompletion(command, attemptRoot);
+        writeFileSync(outputPath, 'VERDICT: CLEAN\nNo reproducible findings.\n');
+        return { code: 0, stdout: '', stderr: '' };
+      },
+    });
+  };
+  await run();
+  await assert.rejects(run(), /exist|consum|authoriz/i);
+  assert.equal(calls, 1);
+  const files = readdirSync(attemptRoot).sort();
+  assert.deepEqual(files.map((name) => name.split('.').at(-2)), [
+    'AUTHORIZED', 'COMPLETED', 'DISPATCH_STARTED', 'RESPONSE_HEADERS',
+  ]);
+  const record = readFileSync(join(attemptRoot, files.find((name) => name.includes('.AUTHORIZED.'))), 'utf8');
+  assert.match(record, new RegExp(packet.hash));
+  assert.doesNotMatch(record, /state-machine logic|OPENROUTER_API_KEY/);
+});
+
+test('a fabricated runner output without provider completion evidence is rejected', async () => {
+  const { mkdtempSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const attemptRoot = mkdtempSync(join(tmpdir(), 'kimi-fake-runner-test-'));
+  const ready = planKimiReview({
+    required: true, packet, config,
+    approval: approval({ nonce: `approval-fake-${process.pid}-${Date.now()}` }),
+  });
+  await assert.rejects(executeKimiReview({
+    plan: ready, packet, attemptRoot,
+    execute: async (command) => {
+      const outputPath = command.args[command.args.indexOf('--out') + 1];
+      writeFileSync(outputPath, 'VERDICT: CLEAN\nNo reproducible findings.\n');
+      return { code: 0, stdout: '', stderr: '' };
+    },
+  }), /provider completion|attempt journal/i);
 });

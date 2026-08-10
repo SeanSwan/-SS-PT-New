@@ -5,10 +5,11 @@
  * Kimi remains design-ceiling under repository policy. The original evidence
  * manifest is screened before a sanitized temp packet can reach consult-kimi.
  */
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { enforceCeiling, estimateCost, getProvider } from '../context-gateway/src/providers.mjs';
+import { readProviderAttempt, recordProviderAttemptEvent } from '../context-gateway/src/attempt-journal.mjs';
 import { executeCommand } from './fenced-runner.mjs';
 import { canonicalJson, sha256 } from './ledger.mjs';
 
@@ -108,6 +109,7 @@ export function planKimiReview({ required, packet, config, approval = null, now 
   }
 
   const approvedCap = exactApproval ? approval.maxUsd : approval.maxUsdPerCall;
+  const attemptId = `${approval.nonce}-${exactApproval ? 1 : approval.callNumber}`;
 
   const plan = Object.freeze({
     status: 'READY',
@@ -115,7 +117,7 @@ export function planKimiReview({ required, packet, config, approval = null, now 
     preflight: dryRun,
     authorization: Object.freeze({
       nonce: approval.nonce, callNumber: exactApproval ? 1 : approval.callNumber,
-      mode: approval.mode, expiresAt: approval.expiresAt,
+      mode: approval.mode, expiresAt: approval.expiresAt, attemptId, maxUsd: approvedCap,
     }),
     command: Object.freeze({
       command: process.execPath,
@@ -130,6 +132,7 @@ export function planKimiReview({ required, packet, config, approval = null, now 
       env: Object.freeze({
         SWAN_CONTEXT_MAX_USD: String(approvedCap),
         SWAN_KIMI_MODEL: config.kimi.model,
+        SWAN_CONTEXT_ATTEMPT_ID: attemptId,
       }),
       allowEnv: Object.freeze(['OPENROUTER_API_KEY', 'OPEN_ROUTER_API_KEY']),
       timeoutMs: config.kimi.timeoutMs,
@@ -148,16 +151,19 @@ export async function dispatchKimi(plan, execute) {
   return execute(plan.command);
 }
 
-function consumeAuthorization(authorization) {
+function consumeAuthorization(authorization, binding, { root = undefined } = {}) {
   const directory = join(tmpdir(), 'verify-until-dry', 'kimi-authorization');
-  mkdirSync(directory, { recursive: true });
   const path = join(directory, `${authorization.nonce}-${authorization.callNumber}.used`);
-  writeFileSync(path, authorization.expiresAt, { encoding: 'utf8', flag: 'wx' });
+  if (existsSync(path)) throw new Error('Kimi authorization was already consumed');
+  recordProviderAttemptEvent(authorization.attemptId, {
+    state: 'AUTHORIZED', model: binding.model, packetHash: binding.packetHash,
+    sourceHash: binding.sourceHash, scopeHash: binding.scopeHash, maxUsd: binding.maxUsd,
+  }, { root });
 }
 
 /** Materialize the approved packet, dispatch once, hash output, and remove temporary input. */
 export async function executeKimiReview({
-  plan, packet, outPath = null, execute = executeCommand, consume = consumeAuthorization,
+  plan, packet, outPath = null, execute = executeCommand, attemptRoot = undefined,
 }) {
   if (plan?.status !== 'READY') throw new Error(`Kimi execution is not ready: ${plan?.status ?? 'missing plan'}`);
   if (!packetIntegrityValid(packet) || packet.hash !== plan.preflight.packetHash) {
@@ -175,9 +181,16 @@ export async function executeKimiReview({
     cwd: process.cwd(),
   };
   try {
-    consume(plan.authorization);
+    consumeAuthorization(plan.authorization, {
+      model: plan.preflight.model, packetHash: packet.hash, sourceHash: packet.sourceHash,
+      scopeHash: packet.scopeHash, maxUsd: plan.authorization.maxUsd,
+    }, { root: attemptRoot });
     const raw = await dispatchKimi(plan, () => execute(command));
     if (raw.code !== 0) throw new Error(`Kimi K3 call failed once with exit ${raw.code}: ${raw.stderr ?? ''}`);
+    const attempt = readProviderAttempt(plan.authorization.attemptId, { root: attemptRoot });
+    if (attempt.status !== 'COMPLETED' || !attempt.generationId) {
+      throw new Error(`Kimi provider completion evidence missing from attempt journal: ${attempt.status}`);
+    }
     const text = readFileSync(outputPath, 'utf8');
     return Object.freeze({
       status: 'COMPLETED_ADVISORY',
@@ -187,6 +200,8 @@ export async function executeKimiReview({
       outputPath: outPath ?? null,
       text,
       callCount: 1,
+      attemptId: plan.authorization.attemptId,
+      generationId: attempt.generationId,
     });
   } finally {
     rmSync(temp, { recursive: true, force: true });

@@ -7,10 +7,11 @@ import { buildCompletedReview, parseReviewDecision } from './review-proof.mjs';
 
 function payload(input) {
   return {
-    schema: 'verify-until-dry.kimi-receipt.v1', status: input.status,
+    schema: 'verify-until-dry.kimi-receipt.v2', status: input.status,
     model: input.model, packetHash: input.packetHash, sourceHash: input.sourceHash,
     scopeHash: input.scopeHash, output: input.output, outputHash: input.outputHash,
-    decision: input.decision, callCount: input.callCount,
+    decision: input.decision, callCount: input.callCount, attemptId: input.attemptId ?? null,
+    generationId: input.generationId ?? null,
   };
 }
 
@@ -24,14 +25,16 @@ export function buildKimiReceipt(result, packet) {
 
 export function validateKimiReceipt(receipt, { packet, model }) {
   const fail = (error) => ({ valid: false, clean: false, error, review: null });
-  if (receipt?.schema !== 'verify-until-dry.kimi-receipt.v1') return fail('kimi-receipt-schema');
+  if (receipt?.schema !== 'verify-until-dry.kimi-receipt.v2') return fail('kimi-receipt-schema');
   const { receiptHash, ...body } = receipt;
   if (sha256(canonicalJson(body)) !== receiptHash || sha256(receipt.output) !== receipt.outputHash) {
     return fail('kimi-receipt-integrity');
   }
   if (receipt.status !== 'COMPLETED_ADVISORY' || receipt.callCount !== 1 || receipt.model !== model ||
       receipt.packetHash !== packet.hash || receipt.sourceHash !== packet.sourceHash ||
-      receipt.scopeHash !== packet.scopeHash || receipt.decision !== parseReviewDecision(receipt.output)) {
+      receipt.scopeHash !== packet.scopeHash || receipt.decision !== parseReviewDecision(receipt.output) ||
+      !/^[A-Za-z0-9_-]{16,160}$/.test(receipt.attemptId) ||
+      !/^[A-Za-z0-9_-]{8,200}$/.test(receipt.generationId)) {
     return fail('kimi-receipt-binding');
   }
   const findings = receipt.decision === 'CLEAN' ? [] : [{

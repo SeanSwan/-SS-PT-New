@@ -39,6 +39,14 @@ same fail-closed privacy policy. A Kimi receipt can be imported only when the
 current exact audit is otherwise blocked solely on authorization; cost, privacy,
 packet-size, or no-safe-evidence blockers cannot be replaced by an old receipt.
 
+Every approved call uses an immutable metadata-only attempt journal under OS
+temp. Authorization reservation is the single-use lock. The transport records
+dispatch, response headers and generation ID, and terminal completion/failure
+without prompt, completion, credential, or raw-error content. Run `kimi-status
+--approval <json>` after any interrupted process. An unresolved dispatch or
+header state remains blocked and is never automatic permission to retry; use a
+captured generation ID for read-only provider reconciliation first.
+
 ## CI and deep scans
 
 `.github/workflows/verify-until-dry.yml` installs locked dependencies, runs

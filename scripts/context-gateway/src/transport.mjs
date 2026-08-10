@@ -19,6 +19,7 @@ import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { assertSpend, enforceCeiling, ProviderError } from './providers.mjs';
 import { redactSecrets } from './egress.mjs';
+import { recordProviderAttemptEvent } from './attempt-journal.mjs';
 
 /** CRLF-aware .env loader (the '\n'-split bug class is why this is shared now — Rule 20). */
 export function loadEnv(root, env = process.env) {
@@ -57,7 +58,10 @@ REPO HEAD: ${manifest.headSha}${manifest.issue ? `\nLINEAR ISSUE: ${manifest.iss
  * Call OpenRouter. `fetchImpl` is injectable for tests — production uses global fetch.
  * Returns { text, inTok, outTok, cost, wallMs, model }.
  */
-export async function callProvider(provider, prompt, { maxTokens = 8000, effort = null, fetchImpl = fetch, env = process.env, manifest = null } = {}) {
+export async function callProvider(provider, prompt, {
+  maxTokens = 8000, effort = null, fetchImpl = fetch, env = process.env,
+  manifest = null, attemptRoot = undefined,
+} = {}) {
   assertSpend(provider, Buffer.byteLength(prompt, 'utf8'), maxTokens, env); // defense in depth (T8)
   // Ceiling is enforced HERE too, not only in the CLI — a direct importer must not be able to
   // route sensitive evidence to a design-ceiling provider (hostile-review finding 2026-07-22).
@@ -75,32 +79,52 @@ export async function callProvider(provider, prompt, { maxTokens = 8000, effort 
   };
   if (effort && provider.supportsEffort) body.reasoning = { effort };
   const t0 = Date.now();
-  const res = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': 'https://sswanstudios.com',
-      'X-Title': provider.title,
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(provider.timeoutMs),
-  });
-  if (!res.ok) {
-    const errBody = await res.text().catch(() => '');
-    throw new Error(`OpenRouter ${res.status}: ${errBody.slice(0, 1000)}`);
-  }
-  const data = await res.json();
-  if (data.error) throw new Error(`OpenRouter API error: ${JSON.stringify(data.error).slice(0, 500)}`);
-  const inTok = data.usage?.prompt_tokens ?? 0;
-  const outTok = data.usage?.completion_tokens ?? 0;
-  return {
-    text: data.choices?.[0]?.message?.content || '(empty response)',
-    inTok, outTok,
-    cost: (inTok / 1e6) * provider.priceInPerM + (outTok / 1e6) * provider.priceOutPerM,
-    wallMs: Date.now() - t0,
-    model: provider.model,
+  const report = (event) => {
+    if (env.SWAN_CONTEXT_ATTEMPT_ID) {
+      recordProviderAttemptEvent(env.SWAN_CONTEXT_ATTEMPT_ID, event, { root: attemptRoot });
+    }
   };
+  report({ state: 'DISPATCH_STARTED', model: provider.model });
+  let generationId = null;
+  let responseStatus = null;
+  try {
+    const res = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://sswanstudios.com',
+        'X-Title': provider.title,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(provider.timeoutMs),
+    });
+    generationId = res.headers?.get?.('x-generation-id') ?? null;
+    responseStatus = res.status;
+    report({ state: 'RESPONSE_HEADERS', model: provider.model, generationId, status: responseStatus });
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`OpenRouter ${res.status}: ${errBody.slice(0, 1000)}`);
+    }
+    const data = await res.json();
+    if (data.error) throw new Error(`OpenRouter API error: ${JSON.stringify(data.error).slice(0, 500)}`);
+    const inTok = data.usage?.prompt_tokens ?? 0;
+    const outTok = data.usage?.completion_tokens ?? 0;
+    const result = {
+      text: data.choices?.[0]?.message?.content || '(empty response)',
+      inTok, outTok,
+      cost: (inTok / 1e6) * provider.priceInPerM + (outTok / 1e6) * provider.priceOutPerM,
+      wallMs: Date.now() - t0,
+      model: provider.model, generationId,
+    };
+    report({ state: 'COMPLETED', model: provider.model, generationId,
+      inTok: result.inTok, outTok: result.outTok, cost: result.cost, wallMs: result.wallMs });
+    return result;
+  } catch (error) {
+    report({ state: 'FAILED', model: provider.model, generationId,
+      status: responseStatus, errorCode: String(error?.code ?? error?.name ?? 'PROVIDER_ERROR') });
+    throw error;
+  }
 }
 
 /**

@@ -10,12 +10,19 @@ import { buildKimiReceipt, validateKimiReceipt } from './kimi-receipt.mjs';
 const packet = { hash: 'a'.repeat(64), headSha: 'f'.repeat(40),
   sourceHash: 'b'.repeat(64), scopeHash: 'c'.repeat(64),
   evidencePaths: ['src/state-machine.mjs'] };
+const providerEvidence = {
+  attemptId: 'approval-receipt-0001-1', generationId: 'gen-receipt-0001',
+};
 
 test('binds a clean Kimi output to model, packet, source, and scope', () => {
   const receipt = buildKimiReceipt({
+    ...providerEvidence,
     status: 'COMPLETED_ADVISORY', model: 'moonshotai/kimi-k3', packetHash: packet.hash,
     outputHash: 'd'.repeat(64), text: 'VERDICT: CLEAN\nNo reproducible findings.', callCount: 1,
   }, packet);
+  assert.equal(receipt.schema, 'verify-until-dry.kimi-receipt.v2');
+  assert.equal(receipt.attemptId, 'approval-receipt-0001-1');
+  assert.equal(receipt.generationId, 'gen-receipt-0001');
   const verified = validateKimiReceipt(receipt, { packet, model: 'moonshotai/kimi-k3' });
   assert.equal(verified.valid, true);
   assert.equal(verified.clean, true);
@@ -24,6 +31,7 @@ test('binds a clean Kimi output to model, packet, source, and scope', () => {
 
 test('tampering, source drift, revise, and malformed output fail closed', () => {
   const revise = buildKimiReceipt({
+    ...providerEvidence,
     status: 'COMPLETED_ADVISORY', model: 'moonshotai/kimi-k3', packetHash: packet.hash,
     outputHash: 'd'.repeat(64), text: 'VERDICT: REVISE\nRace found.', callCount: 1,
   }, packet);
@@ -38,6 +46,7 @@ test('tampering, source drift, revise, and malformed output fail closed', () => 
 
 test('a contradictory CLEAN Kimi body is malformed and cannot become a clean review', () => {
   const receipt = buildKimiReceipt({
+    ...providerEvidence,
     status: 'COMPLETED_ADVISORY', model: 'moonshotai/kimi-k3', packetHash: packet.hash,
     outputHash: 'd'.repeat(64),
     text: 'VERDICT: CLEAN\nSEVERITY: HIGH\nFINDING: division by zero is reproducible.', callCount: 1,
@@ -63,6 +72,7 @@ test('parses the canonical consult launcher envelope before a REVISE verdict', (
     'Race found.',
   ].join('\n');
   const receipt = buildKimiReceipt({
+    ...providerEvidence,
     status: 'COMPLETED_ADVISORY', model: 'moonshotai/kimi-k3', packetHash: packet.hash,
     outputHash: 'd'.repeat(64), text, callCount: 1,
   }, packet);
@@ -82,6 +92,7 @@ test('parses a canonical consult envelope without allowing arbitrary pre-verdict
     '---',
   ];
   const clean = buildKimiReceipt({
+    ...providerEvidence,
     status: 'COMPLETED_ADVISORY', model: 'moonshotai/kimi-k3', packetHash: packet.hash,
     outputHash: 'd'.repeat(64), text: [...envelope, 'VERDICT: CLEAN', 'No reproducible findings.'].join('\n'),
     callCount: 1,
@@ -89,6 +100,7 @@ test('parses a canonical consult envelope without allowing arbitrary pre-verdict
   assert.equal(validateKimiReceipt(clean, { packet, model: 'moonshotai/kimi-k3' }).clean, true);
 
   const spoof = buildKimiReceipt({
+    ...providerEvidence,
     status: 'COMPLETED_ADVISORY', model: 'moonshotai/kimi-k3', packetHash: packet.hash,
     outputHash: 'd'.repeat(64),
     text: ['FINDING: hidden defect', 'VERDICT: CLEAN', 'No reproducible findings.'].join('\n'),

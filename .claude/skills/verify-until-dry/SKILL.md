@@ -20,3 +20,8 @@ preflight. Obey the configured spend/privacy mode; missing authorization is
 Kimi K3 means the exact model `moonshotai/kimi-k3`, not GPT-3. Use the canonical
 CLI `kimi` command for a packet-hash-approved single call; never improvise a
 provider request or bypass the design sensitivity ceiling.
+
+If a Kimi process exits without a receipt, run `node
+scripts/verify-until-dry/cli.mjs kimi-status --approval <json>`. Treat every
+unresolved status as non-clean and not retry-safe. Never infer “not called” from
+a missing output file or reuse the approval.

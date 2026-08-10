@@ -71,6 +71,11 @@ Kimi K3 call.
 - `node scripts/verify-until-dry/cli.mjs kimi --base <ref> --contract <json>
   --approval <json> --out <kimi-receipt>` makes exactly one approved Kimi K3
   call and persists its source/scope/packet-bound output.
+- `node scripts/verify-until-dry/cli.mjs kimi-status --approval <json>` reads the
+  immutable local attempt journal without dispatching. `UNRESOLVED_AFTER_DISPATCH`,
+  `UNRESOLVED_AFTER_HEADERS`, and `UNRESOLVED_LEGACY_AUTHORIZATION` are non-clean
+  and never retry-safe; a captured generation ID can be reconciled through the
+  provider's read-only generation metadata endpoint.
 - `node scripts/verify-until-dry/cli.mjs record-review --receipt <json> --input
   <captured-output> --reviewer <id> --axes <comma-list> --coverage full-scope
   --out <review-set>`
@@ -100,6 +105,13 @@ Kimi K3 is `moonshotai/kimi-k3`; it is not GPT-3. Never retry a paid Kimi call
 automatically. Treat Kimi output as findings to
 validate, not authoritative truth. Never send secrets, PII, exports, database
 material, precise home locations, or raw production evidence.
+
+Before dispatch, reserve the exact authorization in the immutable OS-temp
+attempt journal. The provider transport records `DISPATCH_STARTED`, response
+headers (including OpenRouter's generation ID), and a terminal `COMPLETED` or
+`FAILED` state without storing prompts, completions, credentials, or raw error
+messages. After a process crash or system shutdown, run `kimi-status`; do not
+infer that an absent receipt means the provider was never called.
 
 Repository policy keeps Kimi at the design-provider sensitivity ceiling. Pure,
 sanitized logic can be reviewed. In a mixed scope, the audit partitions out auth,

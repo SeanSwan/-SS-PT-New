@@ -5,7 +5,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -115,6 +115,105 @@ test('callProvider: happy path via injected fetch, cost from usage', async () =>
   const r = await callProvider(getProvider('sol'), 'p'.repeat(300), { maxTokens: 1000, fetchImpl: fake, env: { SWAN_CONTEXT_MAX_USD: '1', OPENROUTER_API_KEY: 'test-key' } });
   assert.equal(r.inTok, 1000);
   assert.ok(Math.abs(r.cost - (0.001 * 5 + 0.0005 * 30)) < 1e-9);
+});
+
+test('callProvider: reports the generation id before parsing the response body', async () => {
+  const attemptRoot = mkdtempSync(join(tmpdir(), 'swan-attempt-headers-'));
+  let releaseBody;
+  const bodyReady = new Promise((resolve) => { releaseBody = resolve; });
+  const fake = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: (name) => name.toLowerCase() === 'x-generation-id' ? 'gen-crash-safe-1' : null },
+    json: async () => {
+      await bodyReady;
+      return { choices: [{ message: { content: 'answer' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } };
+    },
+  });
+  const pending = callProvider(getProvider('sol'), 'p', {
+    maxTokens: 1000,
+    fetchImpl: fake,
+    env: {
+      SWAN_CONTEXT_MAX_USD: '1', OPENROUTER_API_KEY: 'test-key',
+      SWAN_CONTEXT_ATTEMPT_ID: 'approval-headers-0001-1',
+    },
+    attemptRoot,
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  const { readProviderAttempt } = await import('../src/attempt-journal.mjs');
+  const beforeBody = readProviderAttempt('approval-headers-0001-1', { root: attemptRoot });
+  assert.equal(beforeBody.status, 'UNRESOLVED_AFTER_HEADERS');
+  assert.equal(beforeBody.generationId, 'gen-crash-safe-1');
+  releaseBody();
+  const result = await pending;
+  assert.equal(result.generationId, 'gen-crash-safe-1');
+  assert.equal(readProviderAttempt('approval-headers-0001-1', { root: attemptRoot }).status, 'COMPLETED');
+});
+
+test('callProvider: durable attempt journal keeps metadata but no credentials or content', async () => {
+  const attemptRoot = mkdtempSync(join(tmpdir(), 'swan-attempt-test-'));
+  const secret = 'test-key-must-not-be-journaled';
+  const prompt = 'private prompt body must not be journaled';
+  const answer = 'private completion body must not be journaled';
+  const fake = async () => ({
+    ok: true,
+    status: 200,
+    headers: { get: () => 'gen-journal-1' },
+    json: async () => ({ choices: [{ message: { content: answer } }], usage: { prompt_tokens: 2, completion_tokens: 3 } }),
+  });
+  await callProvider(getProvider('sol'), prompt, {
+    maxTokens: 1000,
+    fetchImpl: fake,
+    env: {
+      SWAN_CONTEXT_MAX_USD: '1', OPENROUTER_API_KEY: secret,
+      SWAN_CONTEXT_ATTEMPT_ID: 'approval-journal-0001-1',
+    },
+    attemptRoot,
+  });
+  const files = readdirSync(attemptRoot).sort();
+  assert.deepEqual(files.map((name) => name.split('.').at(-2)), ['COMPLETED', 'DISPATCH_STARTED', 'RESPONSE_HEADERS']);
+  const journal = files.map((name) => readFileSync(join(attemptRoot, name), 'utf8')).join('\n');
+  assert.match(journal, /gen-journal-1/);
+  assert.doesNotMatch(journal, new RegExp(secret));
+  assert.doesNotMatch(journal, new RegExp(prompt));
+  assert.doesNotMatch(journal, new RegExp(answer));
+});
+
+test('callProvider: terminal failures are journaled without the raw error message', async () => {
+  const attemptRoot = mkdtempSync(join(tmpdir(), 'swan-attempt-failure-'));
+  const privateMessage = 'network failed beside C:\\private\\customer-file.txt';
+  const failure = Object.assign(new Error(privateMessage), { code: 'EAI_AGAIN' });
+  await assert.rejects(callProvider(getProvider('sol'), 'p', {
+    maxTokens: 1000,
+    fetchImpl: async () => { throw failure; },
+    env: {
+      SWAN_CONTEXT_MAX_USD: '1', OPENROUTER_API_KEY: 'test-key',
+      SWAN_CONTEXT_ATTEMPT_ID: 'approval-journal-0002-1',
+    },
+    attemptRoot,
+  }), /network failed/);
+  const files = readdirSync(attemptRoot).sort();
+  assert.deepEqual(files.map((name) => name.split('.').at(-2)), ['DISPATCH_STARTED', 'FAILED']);
+  const journal = files.map((name) => readFileSync(join(attemptRoot, name), 'utf8')).join('\n');
+  assert.match(journal, /EAI_AGAIN/);
+  assert.doesNotMatch(journal, /customer-file/);
+});
+
+test('attempt journal reports the latest crash-reconciliation state', async () => {
+  const journalModule = await import('../src/attempt-journal.mjs');
+  assert.equal(typeof journalModule.readProviderAttempt, 'function');
+  const attemptRoot = mkdtempSync(join(tmpdir(), 'swan-attempt-status-'));
+  journalModule.recordProviderAttemptEvent('approval-status-0001-1', {
+    state: 'AUTHORIZED', model: 'moonshotai/kimi-k3', packetHash: 'a'.repeat(64),
+  }, { root: attemptRoot, now: '2026-08-10T00:00:00.000Z' });
+  journalModule.recordProviderAttemptEvent('approval-status-0001-1', {
+    state: 'RESPONSE_HEADERS', model: 'moonshotai/kimi-k3',
+    generationId: 'gen-status-1', status: 200,
+  }, { root: attemptRoot, now: '2026-08-10T00:00:01.000Z' });
+  const status = journalModule.readProviderAttempt('approval-status-0001-1', { root: attemptRoot });
+  assert.equal(status.status, 'UNRESOLVED_AFTER_HEADERS');
+  assert.equal(status.generationId, 'gen-status-1');
+  assert.equal(status.retrySafe, false);
 });
 
 test('callProvider: design-ceiling provider refused without manifest, and with sensitive manifest (bypass regression)', async () => {
