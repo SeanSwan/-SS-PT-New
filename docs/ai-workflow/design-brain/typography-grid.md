@@ -16,7 +16,19 @@ Every value below ships as a CSS custom property with a fallback (`var(--token, 
 
 ---
 
-## 1. Breakpoints — ⚠ THREE-WAY CONFLICT, UNRESOLVED
+## 1. Breakpoints — ✅ RESOLVED 2026-08-11
+
+**Fix applied:** `frontend/src/styles/breakpoints.ts` gained an additive **`xsPlus: '414px'`** tier (+ `device.xsPlus`, `device.maxXsPlus`), sitting between `xs` (375) and `s` (430). `430` is retained — both are real device classes (XR/Plus 414, Pro Max 430).
+
+**Why it was safe `[VERIFIED]`:** sibling sweep showed 8 files import `breakpoints.ts`, but `size.s` / `device.s` / `device.maxS` are referenced **only inside `breakpoints.ts` itself — zero external consumers.** Nothing could break. Proof: `tsc 5.9.3 --noEmit --skipLibCheck` on the edited file → **exit 0, zero diagnostics.**
+
+**Canonical binding `[VERIFIED]` (rule 26 receipt):** `App.tsx:225` renders `<CosmicEleganceGlobalStyle deviceCapability={…} />` and `App.tsx:256` renders `<SwanStyleLensGlobalStyles />` — **JSX usage, the mount proof**. `App.tsx:88` carries the comment *"ImprovedGlobalStyle import removed because it was imported but never rendered."* Classification: **`CosmicEleganceGlobalStyle` + `SwanStyleLensGlobalStyles` = CANONICAL; `GlobalStyle`, `GlobalStyles`, `ImprovedGlobalStyle` = LEGACY (not mounted).** B7 tokens bind to the canonical pair only.
+
+`breakpoints.ts` remains the single source for breakpoints. **B7 does not define its own** — it consumes them. Everything below is breakpoint-independent.
+
+<details><summary>Original conflict record (kept for audit)</summary>
+
+## 1a. Breakpoints — the three-way conflict as found
 
 **B7 does NOT define breakpoints.** `frontend/src/styles/breakpoints.ts` already exists and is the canonical module. Writing a second set here would make B7 a fourth competing source — the exact drift disease this whole workstream exists to kill.
 
@@ -39,7 +51,9 @@ Every value below ships as a CSS custom property with a fallback (`var(--token, 
 
 **Nothing in B7 consumes a breakpoint until this is resolved.** Everything below (type, spacing, grid, elevation) is breakpoint-independent and proceeds.
 
-**Rule 20 sibling-sweep note:** `frontend/src/styles/` also contains **four** global-style modules — `GlobalStyle.ts`, `GlobalStyles.ts`, `ImprovedGlobalStyle.ts`, `CosmicEleganceGlobalStyle.ts` — plus `crystallineSwanTheme.ts` and eight CSS files defining custom properties. Which is canonical is `[UNKNOWN]`. B7 must bind to exactly one; a canonical-surface receipt (rule 26) is required before the token module lands. **Flagged, not resolved.**
+**Rule 20 sibling-sweep note:** `frontend/src/styles/` also contains **four** global-style modules plus `crystallineSwanTheme.ts` and eight CSS files defining custom properties. Canonical binding was `[UNKNOWN]` at the time of writing — **now resolved above via rule-26 receipt.**
+
+</details>
 
 ---
 

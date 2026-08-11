@@ -10,6 +10,7 @@
 export const size = {
   xxs: '320px',   // Tiny phones (iPhone SE 1st gen, Galaxy Fold)
   xs: '375px',    // Extra small devices (iPhone SE, small phones)
+  xsPlus: '414px', // iPhone XR / Plus-class portrait — MANDATED by CLAUDE.md rule 24
   s: '430px',     // Small-medium phones (iPhone Pro Max, large phones)
   sm: '576px',    // Small devices (phones in landscape)
   md: '768px',    // Medium devices (tablets)
@@ -26,6 +27,7 @@ export const device = {
   // Min-width queries (mobile-first approach)
   xxs: `@media (min-width: ${size.xxs})`,
   xs: `@media (min-width: ${size.xs})`,
+  xsPlus: `@media (min-width: ${size.xsPlus})`,
   s: `@media (min-width: ${size.s})`,
   sm: `@media (min-width: ${size.sm})`,
   md: `@media (min-width: ${size.md})`,
@@ -39,6 +41,7 @@ export const device = {
   // Max-width queries (for specific overrides)
   maxXxs: `@media (max-width: ${size.xxs})`,
   maxXs: `@media (max-width: ${size.xs})`,
+  maxXsPlus: `@media (max-width: ${size.xsPlus})`,
   maxS: `@media (max-width: ${size.s})`,
   maxSm: `@media (max-width: ${size.sm})`,
   maxMd: `@media (max-width: ${size.md})`,
