@@ -18,7 +18,13 @@ vi.mock('../../../../../context/AuthContext', () => ({
   useAuth: () => ({ authAxios: mockAuthAxios }),
 }));
 
-const read = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf8');
+// Normalise CRLF. Assertions below match multi-line snippets containing a
+// literal \n, so on a Windows checkout (where git hands these files back with
+// \r\n) they fail against source that is perfectly correct. That makes this a
+// green-on-CI / red-on-Sean's-machine test — the worst kind, because the red
+// is invisible to whoever wrote it. Same normalisation the gallery-referral
+// guard already uses.
+const read = (p: string) => readFileSync(resolve(process.cwd(), p), 'utf8').replace(/\r\n/g, '\n');
 const route = read('../backend/routes/adminOpsAggregateRoutes.mjs');
 // SWA-138 S16: window bounding + rounding moved to a shared helper module.
 const helpers = read('../backend/routes/opsAggregateHelpers.mjs');
