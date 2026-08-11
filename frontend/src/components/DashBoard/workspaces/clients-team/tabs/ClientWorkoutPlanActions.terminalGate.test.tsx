@@ -91,3 +91,49 @@ describe('terminal lifecycle confirmation gate', () => {
     expect(onLifecycle).toHaveBeenCalledWith(plan, 'complete');
   });
 });
+
+/**
+ * R4 — keyboard and double-submit, vantages the mouse-path tests above miss.
+ *
+ * A destructive gate that only works with a mouse is a real defect class: a
+ * hostile review earlier this same session found exactly that (a confirm a
+ * keyboard user could not reach). And an irreversible archive that fires twice
+ * on a fast double-click is worse than one that fires once.
+ */
+describe('terminal gate — keyboard and double-submit', () => {
+  it('cancels on Escape without performing the action', () => {
+    const onLifecycle = vi.fn();
+    renderActions(onLifecycle);
+
+    fireEvent.click(screen.getByRole('button', { name: /archive plan/i }));
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+
+    expect(onLifecycle).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('puts initial focus on cancel, not on the destructive button', () => {
+    // Focus landing on Confirm means a stray Enter archives the plan.
+    const onLifecycle = vi.fn();
+    renderActions(onLifecycle);
+
+    fireEvent.click(screen.getByRole('button', { name: /archive plan/i }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(document.activeElement).toBe(
+      within(dialog).getByRole('button', { name: /cancel/i }),
+    );
+  });
+
+  it('archives exactly once when confirm is double-clicked', () => {
+    const onLifecycle = vi.fn();
+    renderActions(onLifecycle);
+
+    fireEvent.click(screen.getByRole('button', { name: /archive plan/i }));
+    const confirm = within(screen.getByRole('dialog')).getByRole('button', { name: 'Archive plan' });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+
+    expect(onLifecycle).toHaveBeenCalledTimes(1);
+  });
+});
