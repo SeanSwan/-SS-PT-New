@@ -97,6 +97,49 @@ test('assertLawful throws E_LAW_VIOLATION naming the slot, and never strips', ()
   assert.equal(slots.subject, 'a dragon');
 });
 
+// ── Regressions: three defects found by adversarial dry-loop rounds ──────────
+
+test('REGRESSION: hyphenated purple-to-cyan does not bypass (round 1)', () => {
+  // Original pattern matched only "->", "→" and a spaced " to ".
+  assert.equal(applyLaws({ palette: 'purple-to-cyan diagonal' }).passed, false);
+  assert.equal(applyLaws({ palette: 'purple – to – cyan' }).passed, false);
+});
+
+test('REGRESSION: plural and possessive creatures do not bypass (round 1)', () => {
+  // \bswan\b cannot match inside "swans" — plurals escaped the original pattern.
+  for (const s of ['two swans landing', 'a pack of wolves', 'foxes in snow', "a swan's wing"]) {
+    assert.equal(applyLaws({ subject: s }).passed, false, `should block: ${s}`);
+  }
+});
+
+test("REGRESSION: bird's-eye view is a CAMERA POSITION, not a creature (round 2)", () => {
+  // Swan's own composition vocabulary. Rejecting it would train the operator
+  // to fight the filter — the exact failure this filter exists to avoid.
+  for (const c of ["bird's-eye view of the surface", 'birds eye view', "worm's-eye view"]) {
+    assert.equal(applyLaws({ composition: c }).passed, true, `should allow: ${c}`);
+  }
+  assert.equal(applyLaws({ optics: 'fish-eye lens, aperture 1.2' }).passed, true);
+});
+
+test('REGRESSION: the idiom allowance is not itself a bypass (round 3)', () => {
+  assert.equal(applyLaws({ subject: "bird's-eye view of a bird in flight" }).passed, false);
+  assert.equal(applyLaws({ composition: "bird's-eye view", subject: 'a swan' }).passed, false);
+});
+
+test('no false positives on legitimate Swan vocabulary', () => {
+  for (const slots of [
+    { light: 'a soft glow at the horizon' },
+    { palette: 'ice wing cyan accent on midnight sapphire' },
+    { intent: 'a stretching and flexibility session' },
+    { material: 'caustic refraction through crystal' },
+    { material: 'dust motes lit by a shaft of window light' },
+    { composition: 'low-vantage point view, symmetrical' },
+  ]) {
+    const r = applyLaws(slots);
+    assert.equal(r.passed, true, `false positive: ${JSON.stringify(slots)} -> ${r.violations[0]?.detail}`);
+  }
+});
+
 test('empty and partial slot maps do not crash', () => {
   assert.equal(applyLaws({}).passed, true);
   assert.equal(applyLaws({ subject: undefined, intent: '' }).passed, true);
