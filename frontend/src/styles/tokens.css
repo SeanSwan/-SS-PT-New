@@ -174,3 +174,99 @@ html[data-motion='off'] *::after {
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * SECTION: B7 Substrate — Type, Spacing, Grid
+ * PURPOSE: The geometry every surface renders onto. Contract lives at
+ * docs/ai-workflow/design-brain/typography-grid.md.
+ * Breakpoints are NOT defined here — styles/breakpoints.ts is their single
+ * source. This section is deliberately breakpoint-independent.
+ * ───────────────────────────────────────────────────────────── */
+:root {
+  /* Type scale — 1.25 major third on a 16px base.
+   * 16px floor is deliberate: 14px body is the most common "looks cheap"
+   * tell on dark surfaces, where reduced contrast already costs legibility. */
+  --type-2xs: 0.64rem;   /* attribution/legal only — never body */
+  --type-xs: 0.8rem;     /* metadata, timestamps, chip labels */
+  --type-sm: 0.9rem;     /* secondary body, table cells */
+  --type-base: 1rem;     /* body — the default */
+  --type-md: 1.25rem;    /* lead paragraph, card titles */
+  --type-lg: 1.563rem;   /* section headings */
+  --type-xl: 1.953rem;   /* page headings */
+  --type-2xl: 2.441rem;  /* hero secondary */
+  --type-3xl: 3.052rem;  /* hero primary — in-app ceiling */
+  --type-display: clamp(3.05rem, 8vw, 7.45rem); /* PUBLIC surfaces only */
+
+  /* Families — --font-heading and --font-body are ALREADY DEFINED above
+   * (lines ~73-74). Do not redeclare them here: a later declaration wins and
+   * would silently re-font the whole app. Only the missing roles are added.
+   * NOTE (unresolved, flagged not fixed): shipped --font-heading is 'Sora',
+   * but the Active Palette doctrine names Plus Jakarta Sans for headings and
+   * Sora for UI/gaming. Doctrine-vs-code drift — Sean's call, not a token edit. */
+  --font-data: 'Fira Code', ui-monospace, monospace;
+  --font-drama: 'Cormorant Garamond', Georgia, serif; /* one moment per surface */
+
+  /* Leading + measure. Optical rule: as size rises, leading falls and
+   * tracking goes negative. Headings at body leading is an amateur tell. */
+  --leading-tight: 1.1;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+  --tracking-display: -0.02em;
+  --measure: 66ch;
+  --measure-narrow: 45ch;
+
+  /* Spacing — 4px base, 8px rhythm. --space-1 is for optical correction
+   * (icon nudges, border compensation), NOT layout.
+   * Proximity law: related elements 8-12px, unrelated groups 32px+.
+   * Uniform spacing everywhere is what reads "engineer-built". */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;   /* default gap */
+  --space-5: 24px;   /* card padding */
+  --space-6: 32px;
+  --space-8: 48px;
+  --space-10: 64px;
+  --space-12: 96px;  /* public-surface section rhythm */
+  --space-16: 128px; /* hero padding, public only */
+
+  /* Grid */
+  --grid-cols: 12;
+  --grid-cols-tablet: 8;
+  --grid-cols-handset: 4;
+  --grid-gutter: var(--space-5);
+  --content-max: 1280px;
+  --content-max-prose: 66ch;
+  --content-max-wide: 1600px; /* dashboards/tables only */
+
+  /* Radius — ALREADY DEFINED above (lines ~98-102) as 6/8/12/16/9999.
+   * Redeclaring here would silently re-round every corner in the app.
+   * B7 consumes the shipped scale; it does not restate it. */
+
+  /* Elevation — ALWAYS border + shadow. Shadow alone is invisible on dark;
+   * frosted-on-frosted is banned (kill-list). */
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --elev-2: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --elev-3: 0 12px 32px rgba(0, 0, 0, 0.55);
+
+  /* Touch + focus. 44px applies to the visual box OR an expanded hit area. */
+  --target-min: 44px;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* Motion durations. In-app budget only; reduced-motion collapse is
+   * handled above AND must be honored in JS (framer-motion ignores the
+   * CSS media query — see LAW 5 R1). */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* Handset gutter is tighter; grid column counts are consumed by layout
+ * components via the breakpoints.ts helpers, not redefined here. */
+@media (max-width: 414px) {
+  :root { --grid-gutter: var(--space-4); }
+}
