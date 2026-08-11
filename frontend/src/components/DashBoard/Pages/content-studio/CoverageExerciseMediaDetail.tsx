@@ -138,7 +138,7 @@ const DetailShell = styled.aside`
   );
   background: linear-gradient(135deg, var(--bg-elevated, #141419), var(--bg-secondary, #1A1A24));
 
-  @media (max-width: 720px) {
+  @media (max-width: 768px) {
     grid-template-columns: 96px minmax(0, 1fr);
   }
 `;
@@ -252,7 +252,7 @@ const OpenLink = styled.a`
     outline-offset: 2px;
   }
 
-  @media (max-width: 720px) {
+  @media (max-width: 768px) {
     grid-column: 1 / -1;
     width: 100%;
   }

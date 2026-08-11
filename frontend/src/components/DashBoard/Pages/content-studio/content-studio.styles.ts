@@ -21,7 +21,10 @@ export const SplitLayout = styled.div`
   display: flex;
   gap: 24px;
 
-  @media (max-width: 900px) { flex-direction: column; }
+  /* Matrix breakpoint: below tablet-landscape the side panel cannot hold 280px
+     beside a fluid main column without crushing both. 900px was arbitrary. */
+  @media (max-width: 1024px) { flex-direction: column; }
+  @media (max-width: 414px) { padding: 16px 12px; gap: 16px; }
 `;
 
 export const MainPanel = styled.div`
@@ -39,7 +42,7 @@ export const SidePanel = styled.div<{ $width?: number }>`
   flex-direction: column;
   gap: 12px;
 
-  @media (max-width: 900px) { width: 100%; }
+  @media (max-width: 1024px) { width: 100%; }
 `;
 
 // ─── Typography ──────────────────────────────────────────────

@@ -165,7 +165,7 @@ const Hint = styled.span`
   font-size: 0.68rem;
   color: var(--text-muted, rgba(224, 236, 244, 0.55));
 
-  @media (min-width: 720px) {
+  @media (min-width: 768px) {
     flex: 0 1 auto;
   }
 `;

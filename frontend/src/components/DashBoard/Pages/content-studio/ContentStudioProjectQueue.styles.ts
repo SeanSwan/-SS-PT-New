@@ -42,7 +42,9 @@ export const ProjectCreateForm = styled.form`
   grid-template-columns: minmax(min(100%, 220px), 1fr) auto;
   gap: 10px;
 
-  @media (max-width: 640px) {
+  /* Matrix breakpoint. A 220px input beside an auto button cannot coexist with
+     page padding on a 375px handset; stack at tablet-portrait and below. */
+  @media (max-width: 768px) {
     grid-template-columns: 1fr;
   }
 `;

@@ -21,6 +21,13 @@ export const Header = styled.div`
   padding: 24px 24px 0;
   gap: 16px;
   flex-wrap: wrap;
+
+  /* This file previously had ZERO media queries — the hub shell was structurally
+     unaware that small viewports exist. Reclaim gutter on handsets. */
+  @media (max-width: 414px) {
+    padding: 16px 12px 0;
+    gap: 12px;
+  }
 `;
 
 export const TitleGroup = styled.div`
@@ -194,6 +201,11 @@ export const WorkflowPanel = styled.section`
   display: grid;
   gap: 18px;
   padding: clamp(18px, 3vw, 28px) 24px 32px;
+
+  @media (max-width: 414px) {
+    padding: 16px 12px 24px;
+    gap: 14px;
+  }
 `;
 
 export const WorkflowHeader = styled.div`
