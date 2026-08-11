@@ -32,7 +32,6 @@ import {
   FileText,
   Film,
   Hexagon,
-  Mic2,
   PackageCheck,
   Scissors,
   Sparkles,
@@ -53,32 +52,28 @@ import {
 
 const VideoLibraryV3 = React.lazy(() => import('../../../../pages/VideoLibraryV3'));
 const CrystallineCoverageTracker = React.lazy(() => import('./CrystallineCoverageTracker'));
-const VoiceStudioPanel = React.lazy(() => import('./VoiceStudioPanel'));
 const NanoBananaBadgeCreator = React.lazy(() => import('./NanoBananaBadgeCreator'));
-const BlogWriterTab = React.lazy(() => import('./BlogWriterTab'));
 const VideoOptimizerPanel = React.lazy(() => import('./VideoOptimizerPanel'));
 
 type StudioTab =
-  | 'workflow' | 'library' | 'coverage' | 'video-optimizer'
-  | 'nano-banana' | 'voice' | 'blog-writer';
+  | 'workflow' | 'library' | 'coverage' | 'video-optimizer' | 'nano-banana';
 
 /**
- * Tab gating has two distinct kinds, and mixing them up is what shipped a
+ * Tab gating has two distinct kinds, and conflating them is what shipped a
  * permanently-broken Blog tab to production:
  *
- * - `requiresService` — an EXTERNAL provider key must be configured. Correct for
- *   integrations we proxy (ElevenLabs). Key present => the feature genuinely works.
- * - `requiresFlag`    — the BACKEND for this tab is not built (or not finished) yet.
- *   Key presence says nothing about whether the endpoints exist, so a feature whose
- *   routes are missing must be flag-gated, never key-gated.
+ * - `requiresService` — an EXTERNAL provider key is configured. Only meaningful for
+ *   an integration we proxy, where a key genuinely means the feature works.
+ * - `requiresFlag`    — OUR OWN backend for this tab exists. Key presence says nothing
+ *   about whether our routes were ever written, so a feature whose endpoints are
+ *   missing must be flag-gated, never key-gated.
  *
- * Blog Drafts is flag-gated OFF: BlogWriterTab calls /blog/outline, /blog/draft and
- * /blog/save, none of which exist in backend/routes/contentStudioRoutes.mjs. It was
- * previously ungated, so every admin saw a tab where every action 404s.
+ * Blog Drafts and Voice Studio were removed entirely (2026-08-11) rather than gated:
+ * their endpoints (/blog/outline, /blog/draft, /blog/save, /synthesize-voice) do not
+ * exist in backend/routes/contentStudioRoutes.mjs. Gating alone still shipped their
+ * chunks to every admin. They return as actions on objects when real backends exist.
  */
-const FEATURE_FLAGS: Record<string, boolean> = {
-  blogWriter: false, // backend routes not implemented — see BlogWriterTab
-};
+const FEATURE_FLAGS: Record<string, boolean> = {};
 
 const TABS: {
   id: StudioTab; label: string; icon: React.ReactNode;
@@ -89,8 +84,6 @@ const TABS: {
   { id: 'coverage', label: 'Coverage Tracker', icon: <Hexagon size={16} /> },
   { id: 'video-optimizer', label: 'Video Optimizer', icon: <Film size={16} /> },
   { id: 'nano-banana', label: 'Badge Assets', icon: <Sparkles size={16} /> },
-  { id: 'blog-writer', label: 'Blog Drafts', icon: <FileText size={16} />, requiresFlag: 'blogWriter' },
-  { id: 'voice', label: 'Voice Studio', icon: <Mic2 size={16} />, requiresService: 'elevenlabs' },
 ];
 
 interface WorkflowStage {
@@ -114,7 +107,6 @@ const WORKFLOW_STAGES: WorkflowStage[] = [
 
 const WORKFLOW_ACTIONS: { label: string; tab: StudioTab; icon: React.ReactNode }[] = [
   { label: 'Create Project From Coverage', tab: 'coverage', icon: <Hexagon size={16} /> },
-  { label: 'Generate Script', tab: 'blog-writer', icon: <FileText size={16} /> },
   { label: 'Prep Editing Handoff', tab: 'video-optimizer', icon: <Film size={16} /> },
   { label: 'Open Video Library', tab: 'library', icon: <Video size={16} /> },
 ];
@@ -141,7 +133,8 @@ const ContentStudioHub: React.FC = () => {
     (!tab.requiresService || serviceConfig[tab.requiresService])
     && (!tab.requiresFlag || FEATURE_FLAGS[tab.requiresFlag] === true)
   ));
-  const currentTier: 'bootstrap' | 'full' = serviceConfig.elevenlabs ? 'full' : 'bootstrap';
+  // No provider-gated tools remain in this hub, so a "Provider Tools Ready" tier would
+  // advertise a capability that does not exist. The badge states what this surface IS.
 
   const fallback = (msg: string) => <LoadingFallback>{msg}</LoadingFallback>;
 
@@ -183,8 +176,6 @@ const ContentStudioHub: React.FC = () => {
       case 'coverage': return <Suspense fallback={fallback('Loading coverage...')}><CrystallineCoverageTracker /></Suspense>;
       case 'video-optimizer': return <Suspense fallback={fallback('Loading optimizer...')}><VideoOptimizerPanel /></Suspense>;
       case 'nano-banana': return <Suspense fallback={fallback('Loading badge creator...')}><NanoBananaBadgeCreator /></Suspense>;
-      case 'blog-writer': return <Suspense fallback={fallback('Loading blog writer...')}><BlogWriterTab /></Suspense>;
-      case 'voice': return <Suspense fallback={fallback('Loading voice studio...')}><VoiceStudioPanel /></Suspense>;
       default: return null;
     }
   };
@@ -195,7 +186,7 @@ const ContentStudioHub: React.FC = () => {
         <TitleGroup>
           <HeaderIcon><Video size={22} /></HeaderIcon>
           <Title>Content Studio</Title>
-          <TierBadge $tier={currentTier}>{currentTier === 'full' ? 'Provider Tools Ready' : 'Creator Mode'}</TierBadge>
+          <TierBadge $tier="bootstrap">Creator Mode</TierBadge>
         </TitleGroup>
         <StudioBrief>
           Create assets here: exercise videos, education coverage, badges, and blog drafts.

@@ -68,16 +68,15 @@ describe('ContentStudioHub tab gating', () => {
       .forEach(label => expect(names.some(n => n.includes(label))).toBe(true));
   });
 
-  it('key-gating still works: Voice Studio appears only with an ElevenLabs key', async () => {
-    mockGet.mockResolvedValue(serviceStatus());
-    const { unmount } = render(<ContentStudioHub />);
+  it('Voice Studio stays absent even WITH its provider key — its endpoint does not exist', async () => {
+    // Voice Studio was key-gated on elevenlabs, so configuring that key REVEALED a tab
+    // whose only endpoint (/synthesize-voice) 404s. Having the credential for a service
+    // says nothing about whether we ever wrote the route that calls it. The panel is
+    // deleted; this guards against it returning as a key-gated tab.
+    mockGet.mockResolvedValue(serviceStatus({ elevenlabs: true, blotato: true }));
+    render(<ContentStudioHub />);
     await waitFor(() => expect(screen.getAllByRole('tab').length).toBeGreaterThan(0));
     expect(screen.queryByRole('tab', { name: /Voice Studio/i })).toBeNull();
-    unmount();
-
-    mockGet.mockResolvedValue(serviceStatus({ elevenlabs: true }));
-    render(<ContentStudioHub />);
-    await waitFor(() => expect(screen.getByRole('tab', { name: /Voice Studio/i })).toBeTruthy());
   });
 
   it('degrades to the ungated tabs when service-status is unsuccessful', async () => {

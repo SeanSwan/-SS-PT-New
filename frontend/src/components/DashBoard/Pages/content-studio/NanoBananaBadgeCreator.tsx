@@ -607,7 +607,7 @@ const ResultsSection = styled.div`
 
 const ImageGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
   gap: 12px;
 `;
 

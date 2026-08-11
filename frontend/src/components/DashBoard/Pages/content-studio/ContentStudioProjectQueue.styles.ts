@@ -39,7 +39,7 @@ export const ProjectQueueCopy = styled.p`
 
 export const ProjectCreateForm = styled.form`
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(min(100%, 220px), 1fr) auto;
   gap: 10px;
 
   @media (max-width: 640px) {

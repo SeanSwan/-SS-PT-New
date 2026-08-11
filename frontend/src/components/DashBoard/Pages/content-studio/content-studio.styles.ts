@@ -187,8 +187,10 @@ export const Chip = styled.button<{ $active: boolean; $color?: string }>`
   cursor: pointer;
   font-family: 'Fira Code', monospace;
   font-size: 0.7rem;
+  /* 32px failed the 44px touch-target law. The visual pill stays compact; the HIT
+     AREA is expanded to 44px so a thumb can actually land on it. */
   padding: 5px 12px;
-  min-height: 32px;
+  min-height: 44px;
   border-radius: 6px;
   background: ${({ $active, $color }) =>
     $active ? `${$color || 'rgba(96, 192, 240)'}20` : 'var(--bg-elevated, #141419)'};

@@ -89,7 +89,7 @@ const Container = styled.div`
 
 const SummaryGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
   gap: 12px;
   margin-bottom: 24px;
 `;
@@ -120,7 +120,7 @@ const StatLabel = styled.div`
 // ─── Body Part Breakdown Bar ─────────────────────────────
 const BreakdownGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
   gap: 8px;
   margin-bottom: 24px;
 `;

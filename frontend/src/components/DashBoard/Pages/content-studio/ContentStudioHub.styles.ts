@@ -75,7 +75,7 @@ export const TierBadge = styled.span<{ $tier: 'bootstrap' | 'full' }>`
 
 export const ServiceGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
   gap: 12px;
   padding: 16px 24px;
 `;
@@ -128,10 +128,28 @@ export const TabBar = styled.div`
   display: flex;
   gap: 2px;
   padding: 0 24px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
+  /* 8% alpha reads as nothing outside OLED; a divider that carries layout meaning
+     needs to survive an average panel. */
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 16%, transparent);
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
+
+  /* The hidden scrollbar is deliberate, but on its own it left NO signal that tabs
+     existed past the viewport edge — on a phone the later tabs were simply invisible.
+     A narrow edge fade restores the "there is more this way" cue without reinstating
+     a scrollbar, and proximity snapping stops a tab from resting half-clipped. */
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 24px;
+
+  /* 48px of gutter on a 375px screen is 13% of the viewport spent on nothing. */
+  @media (max-width: 414px) {
+    padding: 0 12px;
+    scroll-padding-inline: 12px;
+  }
 `;
 
 export const Tab = styled.button<{ $active: boolean; $locked?: boolean }>`
@@ -152,6 +170,7 @@ export const Tab = styled.button<{ $active: boolean; $locked?: boolean }>`
     : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 60%, transparent)'};
   border-bottom: 2px solid ${({ $active }) => ($active ? 'var(--accent-secondary, #8B5CF6)' : 'transparent')};
   white-space: nowrap;
+  scroll-snap-align: start;
   transition: all 0.2s ease;
   opacity: ${({ $locked }) => ($locked ? 0.5 : 1)};
 
@@ -200,7 +219,7 @@ export const WorkflowCopy = styled.p`
 
 export const WorkflowGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 10px;
 `;
 
