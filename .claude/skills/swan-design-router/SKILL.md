@@ -287,7 +287,7 @@ KILL-LIST CHECK: [confirm zero LAW-3 material]
 ```
 
 Mobbin MCP reference gate applies to net-new pages / major redesigns; see `docs/ai-workflow/design-brain/external-reference-mcp.md` and classify every call P/S/D/X; Inspect and legacy aliases are refused.
-I is the default for a named surface. S is ambiguous, capped, and disabled by default; D is Sean hand-edit only; X source-corpus intake is blocked absent exact clearance.
+**P (Probe) is the only enabled mode and the default for a named surface.** There is no `I`/Inspect mode — it and every legacy letter are refused with `E_LEGACY_MODE_REFUSED` and are never privilege-mapped, so never name one in a plan, a receipt, or a sweep. S is ambiguous, capped, and disabled by default; D is Sean hand-edit only; X source-corpus intake is blocked absent exact clearance.
 Mark [MOBBIN UNAVAILABLE] and proceed from Swan canon/accepted claims if absent; external references are research only and Swan source docs win.
 
 **Pattern library:** the C1-C13 layout/interaction patterns live in
