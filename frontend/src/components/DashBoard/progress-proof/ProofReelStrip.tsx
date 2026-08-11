@@ -4,7 +4,7 @@
  *   record, biggest gain) — the celebratory, community-trophy format the progress deck
  *   feeds into. Each slide can be shared as a truthful text caption.
  * DATA POLICY: every slide is a genuine fact (proofReel core); renders nothing when there's
- *   nothing real to celebrate. NOT an AI-generated video — a Seedance video export is a
+ *   nothing real to celebrate. NOT an AI-generated video — a rendered video export is a
  *   future backend hook, deliberately not faked here (Rule 74/75).
  * A11Y/MOTION: no autoplay — the user swipes/scrolls (reduced-motion-safe by construction);
  *   scroll-snap only. Share button is a real 44px+ target with a focus ring and a polite

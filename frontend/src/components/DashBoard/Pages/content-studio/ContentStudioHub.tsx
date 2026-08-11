@@ -2,15 +2,19 @@
  * ============================================================================
  * FILE: ContentStudioHub.tsx
  * PURPOSE: Creator workflow hub plus Content Studio production tools
- * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-04-06
- * PHASE: 10 - Content Studio Upgrades (3 new tabs + Settings extracted)
+ * AUTHOR: Claude Opus 4.6 | LAST MODIFIED: 2026-08-11
+ * PHASE: 10 - Content Studio Upgrades; 2026-08 - hosted-video removal
  * ============================================================================
  *
- * PHASE 10 ADDITIONS:
- * - SeedanceVideoPanel (Seedance 2.0 AI video generation)
- * - BlogWriterTab (SEO-optimized long-form content)
- * - Publishing and provider settings are intentionally outside this workspace
- * - Styled components extracted to ContentStudioHub.styles.ts
+ * CURRENT TABS: Workflow, Video Library, Coverage Tracker, Video Optimizer,
+ * Badge Assets, Blog Drafts (flag-gated OFF), Voice Studio (key-gated).
+ *
+ * 2026-08-11 — the third-party AI-video panel and its backend service were
+ * deleted. The generate endpoint returned a provider job id that nothing could
+ * ever poll, so no generated video was ever retrievable. Video generation is
+ * being rebuilt as a model harness (local GPU + hosted providers behind one
+ * contract) with a durable job queue. Until that ships there is deliberately
+ * NO AI-video tab rather than a broken one.
  *
  * COMPONENT: ContentStudioHub
  * PURPOSE: Two-tier Content Studio with service status and creator workflow
@@ -51,22 +55,41 @@ const VideoLibraryV3 = React.lazy(() => import('../../../../pages/VideoLibraryV3
 const CrystallineCoverageTracker = React.lazy(() => import('./CrystallineCoverageTracker'));
 const VoiceStudioPanel = React.lazy(() => import('./VoiceStudioPanel'));
 const NanoBananaBadgeCreator = React.lazy(() => import('./NanoBananaBadgeCreator'));
-const SeedanceVideoPanel = React.lazy(() => import('./SeedanceVideoPanel'));
 const BlogWriterTab = React.lazy(() => import('./BlogWriterTab'));
 const VideoOptimizerPanel = React.lazy(() => import('./VideoOptimizerPanel'));
 
 type StudioTab =
-  | 'workflow' | 'library' | 'coverage' | 'video-optimizer' | 'seedance-video'
+  | 'workflow' | 'library' | 'coverage' | 'video-optimizer'
   | 'nano-banana' | 'voice' | 'blog-writer';
 
-const TABS: { id: StudioTab; label: string; icon: React.ReactNode; requiresService?: string }[] = [
+/**
+ * Tab gating has two distinct kinds, and mixing them up is what shipped a
+ * permanently-broken Blog tab to production:
+ *
+ * - `requiresService` — an EXTERNAL provider key must be configured. Correct for
+ *   integrations we proxy (ElevenLabs). Key present => the feature genuinely works.
+ * - `requiresFlag`    — the BACKEND for this tab is not built (or not finished) yet.
+ *   Key presence says nothing about whether the endpoints exist, so a feature whose
+ *   routes are missing must be flag-gated, never key-gated.
+ *
+ * Blog Drafts is flag-gated OFF: BlogWriterTab calls /blog/outline, /blog/draft and
+ * /blog/save, none of which exist in backend/routes/contentStudioRoutes.mjs. It was
+ * previously ungated, so every admin saw a tab where every action 404s.
+ */
+const FEATURE_FLAGS: Record<string, boolean> = {
+  blogWriter: false, // backend routes not implemented — see BlogWriterTab
+};
+
+const TABS: {
+  id: StudioTab; label: string; icon: React.ReactNode;
+  requiresService?: string; requiresFlag?: string;
+}[] = [
   { id: 'workflow', label: 'Workflow', icon: <ClipboardList size={16} /> },
   { id: 'library', label: 'Video Library', icon: <Video size={16} /> },
   { id: 'coverage', label: 'Coverage Tracker', icon: <Hexagon size={16} /> },
   { id: 'video-optimizer', label: 'Video Optimizer', icon: <Film size={16} /> },
   { id: 'nano-banana', label: 'Badge Assets', icon: <Sparkles size={16} /> },
-  { id: 'blog-writer', label: 'Blog Drafts', icon: <FileText size={16} /> },
-  { id: 'seedance-video', label: 'Seedance Video', icon: <Sparkles size={16} />, requiresService: 'seedance' },
+  { id: 'blog-writer', label: 'Blog Drafts', icon: <FileText size={16} />, requiresFlag: 'blogWriter' },
   { id: 'voice', label: 'Voice Studio', icon: <Mic2 size={16} />, requiresService: 'elevenlabs' },
 ];
 
@@ -100,7 +123,7 @@ const ContentStudioHub: React.FC = () => {
   const { authAxios } = useAuth();
   const [activeTab, setActiveTab] = useState<StudioTab>('workflow');
   const [serviceConfig, setServiceConfig] = useState<Record<string, boolean>>({
-    remotion: true, seedance: false, elevenlabs: false, blotato: false,
+    remotion: true, elevenlabs: false, blotato: false,
   });
   const [, setLoadingConfig] = useState(true);
 
@@ -114,8 +137,11 @@ const ContentStudioHub: React.FC = () => {
 
   useEffect(() => { fetchServiceStatus(); }, [fetchServiceStatus]);
 
-  const visibleTabs = TABS.filter(tab => !tab.requiresService || serviceConfig[tab.requiresService]);
-  const currentTier: 'bootstrap' | 'full' = serviceConfig.seedance || serviceConfig.elevenlabs ? 'full' : 'bootstrap';
+  const visibleTabs = TABS.filter(tab => (
+    (!tab.requiresService || serviceConfig[tab.requiresService])
+    && (!tab.requiresFlag || FEATURE_FLAGS[tab.requiresFlag] === true)
+  ));
+  const currentTier: 'bootstrap' | 'full' = serviceConfig.elevenlabs ? 'full' : 'bootstrap';
 
   const fallback = (msg: string) => <LoadingFallback>{msg}</LoadingFallback>;
 
@@ -158,7 +184,6 @@ const ContentStudioHub: React.FC = () => {
       case 'video-optimizer': return <Suspense fallback={fallback('Loading optimizer...')}><VideoOptimizerPanel /></Suspense>;
       case 'nano-banana': return <Suspense fallback={fallback('Loading badge creator...')}><NanoBananaBadgeCreator /></Suspense>;
       case 'blog-writer': return <Suspense fallback={fallback('Loading blog writer...')}><BlogWriterTab /></Suspense>;
-      case 'seedance-video': return <Suspense fallback={fallback('Loading Seedance video...')}><SeedanceVideoPanel /></Suspense>;
       case 'voice': return <Suspense fallback={fallback('Loading voice studio...')}><VoiceStudioPanel /></Suspense>;
       default: return null;
     }

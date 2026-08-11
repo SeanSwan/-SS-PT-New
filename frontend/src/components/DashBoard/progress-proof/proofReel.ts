@@ -7,8 +7,8 @@
  *   an early-stage client with nothing to celebrate gets an empty reel (the strip then
  *   renders nothing). shareCaption reuses the existing truthful buildChartMomentCaption.
  * SCOPE (honest, Rule 74/75): this is a montage of the client's OWN real proof cards — it is
- *   NOT an AI-generated video. A Seedance-rendered video export is a genuine FUTURE backend
- *   hook (Seedance -> R2 pipeline), deliberately not built here and not faked.
+ *   NOT an AI-generated video. A rendered video export is a genuine FUTURE backend
+ *   hook (render pipeline -> R2), deliberately not built here and not faked.
  */
 
 import type { CanonicalProgressCharts } from '../../../hooks/analytics/useClientProgressCharts.types';
