@@ -16,6 +16,7 @@ import type { MarketingCampaign, CampaignStatus } from './marketing.types';
 import { CAMPAIGN_OBJECTIVES, CAMPAIGN_STATUSES } from './marketing.types';
 import CampaignForm, { type CampaignDraft } from './CampaignForm';
 import * as S from './CampaignManager.styles';
+import ConfirmActionDialog from '../../../Shared/ConfirmActionDialog';
 
 const OBJECTIVE_LABEL: Record<string, string> = Object.fromEntries(
   CAMPAIGN_OBJECTIVES.map((o) => [o.value, o.label]),
@@ -39,6 +40,7 @@ const CampaignManager: React.FC = () => {
   const [campaigns, setCampaigns] = useState<MarketingCampaign[]>([]);
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [showForm, setShowForm] = useState(false);
+  const [pendingArchive, setPendingArchive] = useState<MarketingCampaign | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [filter, setFilter] = useState<CampaignStatus | 'all'>('all');
 
@@ -71,8 +73,16 @@ const CampaignManager: React.FC = () => {
     }
   };
 
+  // Archiving hides a campaign from the active list; it confirms through the
+  // branded dialog rather than the browser's grey system prompt.
   const archive = async (c: MarketingCampaign) => {
-    if (!window.confirm(`Archive "${c.name}"? It will be hidden from the active list.`)) return;
+    setPendingArchive(c);
+  };
+
+  const confirmArchive = async () => {
+    const c = pendingArchive;
+    if (!c) return;
+    setPendingArchive(null);
     setCampaigns((list) => list.filter((x) => x.id !== c.id)); // optimistic
     try {
       await authAxios.delete(`/api/admin/marketing-campaigns/${c.id}`);
@@ -160,6 +170,15 @@ const CampaignManager: React.FC = () => {
           ))}
         </S.List>
       )}
+      <ConfirmActionDialog
+        open={pendingArchive !== null}
+        title="Archive campaign?"
+        message={pendingArchive ? `Archive "${pendingArchive.name}"? It will be hidden from the active list.` : ''}
+        confirmLabel="Archive campaign"
+        tone="warning"
+        onCancel={() => setPendingArchive(null)}
+        onConfirm={confirmArchive}
+      />
     </S.Panel>
   );
 };

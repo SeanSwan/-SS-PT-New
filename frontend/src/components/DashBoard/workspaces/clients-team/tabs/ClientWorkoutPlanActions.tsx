@@ -2,12 +2,13 @@
  * Explicit, non-nested staff controls for one saved client plan.
  * PDF state is revision-aware; terminal lifecycle actions require confirmation.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Archive, CheckCircle2, Eye, FileText, MoreHorizontal,
   Pause, Pencil, Play, RefreshCw,
 } from 'lucide-react';
 import { buildClientWorkoutPlanEditRoute } from '../clientDailyTrainingRoutes';
+import ConfirmActionDialog from '../../../../Shared/ConfirmActionDialog';
 import type { ClientHubAudience } from '../clientHubAudience';
 import { describeClientWorkoutPlanPdfState } from './ClientWorkoutPlanPdfState.logic';
 import type { ClientPlanSummary } from './ClientWorkoutPlansPanel.types';
@@ -64,13 +65,24 @@ const PlanDetailsDisclosure: React.FC<{
   );
 };
 
-const terminalConfirmation = (plan: ClientPlanSummary, action: 'complete' | 'archive') => (
-  window.confirm(
-    action === 'archive'
-      ? `Archive ${plan.name}? The plan will leave the active library.`
-      : `Mark ${plan.name} complete? This records a terminal lifecycle transition.`,
-  )
-);
+// Copy for the two terminal transitions. Kept as data so the dialog and any
+// future surface read the same wording instead of drifting apart.
+const TERMINAL_COPY = {
+  archive: {
+    title: 'Archive plan?',
+    confirmLabel: 'Archive plan',
+    tone: 'danger' as const,
+    message: (plan: ClientPlanSummary) =>
+      `Archive ${plan.name}? The plan will leave the active library.`,
+  },
+  complete: {
+    title: 'Mark plan complete?',
+    confirmLabel: 'Mark complete',
+    tone: 'warning' as const,
+    message: (plan: ClientPlanSummary) =>
+      `Mark ${plan.name} complete? This records a terminal lifecycle transition.`,
+  },
+};
 
 const LifecycleActions: React.FC<Pick<ClientWorkoutPlanActionsProps,
   'busyActionKey' | 'onLifecycle' | 'plan'
@@ -79,9 +91,9 @@ const LifecycleActions: React.FC<Pick<ClientWorkoutPlanActionsProps,
   const active = plan.status.trim().toLowerCase() === 'active';
   const primaryAction: ClientPlanLifecycleAction = active ? 'pause' : 'activate';
   const primaryBusy = isBusy(busyActionKey, plan, primaryAction);
-  const requestTerminal = (action: 'complete' | 'archive') => {
-    if (terminalConfirmation(plan, action)) onLifecycle(plan, action);
-  };
+  const [pendingTerminal, setPendingTerminal] = useState<'complete' | 'archive' | null>(null);
+  const requestTerminal = (action: 'complete' | 'archive') => setPendingTerminal(action);
+  const copy = pendingTerminal ? TERMINAL_COPY[pendingTerminal] : null;
 
   return (
     <>
@@ -114,6 +126,18 @@ const LifecycleActions: React.FC<Pick<ClientWorkoutPlanActionsProps,
           )}
         </ActionMenuPanel>
       </ActionMenu>
+      <ConfirmActionDialog
+        open={pendingTerminal !== null}
+        title={copy?.title ?? ''}
+        message={copy ? copy.message(plan) : ''}
+        confirmLabel={copy?.confirmLabel ?? ''}
+        tone={copy?.tone ?? 'danger'}
+        onCancel={() => setPendingTerminal(null)}
+        onConfirm={() => {
+          if (pendingTerminal) onLifecycle(plan, pendingTerminal);
+          setPendingTerminal(null);
+        }}
+      />
     </>
   );
 };

@@ -29,16 +29,14 @@ import { describe, expect, it } from 'vitest';
 const ROOTS = ['src/components/DashBoard', 'src/components/Admin'];
 
 /**
- * Pre-existing native-confirm usages, recorded 2026-08-05. Each is a real
- * violation awaiting conversion to ConfirmActionDialog — NOT an approved
- * exception. Delete the entry when the surface is converted; the test then
- * defends it permanently.
+ * EMPTY, and it should stay that way.
+ *
+ * This held three pre-existing violations for about an hour on 2026-08-05 —
+ * variant delete, campaign archive, and the plan complete/archive pair — all
+ * of which have since been converted to ConfirmActionDialog. An entry here is
+ * debt awaiting conversion, never an approved exception.
  */
-const KNOWN_VIOLATIONS = new Set([
-  'src/components/DashBoard/Pages/admin-packages/ProductVariantsManager.tsx',
-  'src/components/DashBoard/workspaces/clients-team/tabs/ClientWorkoutPlanActions.tsx',
-  'src/components/DashBoard/workspaces/marketing/CampaignManager.tsx',
-]);
+const KNOWN_VIOLATIONS = new Set<string>([]);
 
 const toPosix = (value: string) => value.split(sep).join('/');
 

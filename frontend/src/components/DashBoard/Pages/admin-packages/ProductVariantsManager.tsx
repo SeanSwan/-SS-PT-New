@@ -58,6 +58,7 @@ import {
   SwitchTrack,
 } from './admin-packages-view.formStyles';
 import { AddBtn, Editor, Hint, IconBtn, Meta, Row, RowLabel, Title, Wrap } from './ProductVariantsManager.styles';
+import ConfirmActionDialog from '../../../Shared/ConfirmActionDialog';
 import { StyledBox } from '@/components/ui/StyledBox';
 
 interface Variant {
@@ -104,6 +105,7 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({ itemId 
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Variant | null>(null);
   const [dLabel, setDLabel] = useState('');
   const [dPrice, setDPrice] = useState('');
   const [dStock, setDStock] = useState('');
@@ -166,8 +168,16 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({ itemId 
     }
   };
 
+  // Deleting a variant is irreversible and buyer-facing, so it confirms through
+  // the branded dialog rather than the browser's grey system prompt.
   const handleDelete = async (variant: Variant) => {
-    if (!window.confirm(`Delete ${variant.label}? This removes it from the buyer variant list.`)) return;
+    setPendingDelete(variant);
+  };
+
+  const confirmDelete = async () => {
+    const variant = pendingDelete;
+    if (!variant) return;
+    setPendingDelete(null);
     setBusyId(variant.id);
     try {
       await authAxios.delete(`${ADMIN_STOREFRONT_BASE}/variants/${variant.id}`);
@@ -240,6 +250,18 @@ const ProductVariantsManager: React.FC<ProductVariantsManagerProps> = ({ itemId 
           <IconBtn type="button" onClick={resetDraft} aria-label="Cancel edit" title="Cancel"><X size={15} /></IconBtn>
         )}
       </StyledBox>
+      <ConfirmActionDialog
+        open={pendingDelete !== null}
+        title="Delete variant?"
+        message={pendingDelete
+          ? `Delete ${pendingDelete.label}? This removes it from the buyer variant list.`
+          : ''}
+        confirmLabel="Delete variant"
+        tone="danger"
+        busy={busyId !== null && busyId === pendingDelete?.id}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+      />
     </Wrap>
   );
 };

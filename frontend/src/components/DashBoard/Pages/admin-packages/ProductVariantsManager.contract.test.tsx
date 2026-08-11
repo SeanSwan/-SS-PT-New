@@ -34,7 +34,9 @@ describe('ProductVariantsManager admin variant controls', () => {
   });
 
   it('keeps destructive and busy controls explicit and accessible', () => {
-    expect(manager).toContain('window.confirm');
+    // Was window.confirm; converted to the branded dialog 2026-08-05.
+    expect(manager).toContain('<ConfirmActionDialog');
+    expect(manager).toContain('setPendingDelete');
     expect(manager).toContain('aria-label={`${variant.isActive ?');
     expect(manager).toContain('aria-label={`Edit ${variant.label}`');
     expect(manager).toContain('aria-label={`Delete ${variant.label}`');

@@ -33,7 +33,10 @@ describe('CampaignManager contract', () => {
   });
 
   it('confirms before the destructive archive', () => {
-    expect(mgr).toContain('window.confirm');
+    // Was window.confirm; converted to the branded dialog 2026-08-05. The
+    // contract is that archiving is GATED, not which prompt does the gating.
+    expect(mgr).toContain('<ConfirmActionDialog');
+    expect(mgr).toContain('setPendingArchive');
     expect(mgr).toMatch(/authAxios\.delete/);
   });
 
