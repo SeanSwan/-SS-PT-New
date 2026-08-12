@@ -1,72 +1,92 @@
-# Live Pair-Coding Coordination Ledger (LCL)
+# Live Coordination Ledger (Rule 67 v2)
 
-> **Created:** 2026-06-13 by Sean (CEO Orchestrator).
-> **Purpose:** Let **Claude** and **Codex** code the SAME working tree at the SAME time without stepping on each other — and hand each other work for **hostile review**. This is the active coding process while we run two agents in parallel (through ~mid-July 2026, until Fable 5 returns).
-> **Full spec:** `docs/ai-workflow/references/AI-PAIR-CODING-PROTOCOL.md`
+> **Created** 2026-06-13 by Sean. **Rebuilt** 2026-08-12 after three hostile reviews found the
+> v1 ledger had silently stopped working. **Full procedure:** the `agent-lane` skill
+> (`.claude/skills/agent-lane/SKILL.md`). **Engine:** `scripts/lib/lane-core.mjs`.
 
-## Why this exists (and why it's gitignored)
+## What this is
 
-Claude (VS Code) and Codex run in the **same working tree on Sean's machine**. They share a filesystem, so they can see each other's live state **instantly** through plain local files — no git, no network. These runtime files are **gitignored on purpose**: committing a constantly-rewritten "what I'm editing right now" file would create commit churn and merge conflicts — i.e. it would *cause* the very collision we're preventing.
+Several AI agents (Claude sessions, Codex, sometimes Fable, sometimes a cloud agent) work
+this repo at the same time, across ~110 git worktrees. They publish here what they are doing
+and which files they hold, so they do not overwrite each other, sweep each other's work into
+a commit, or build on something another agent already deleted.
 
-- **Real-time, same-machine collision avoidance** → this directory (gitignored, live).
-- **Cross-session / cross-machine memory** → the committed continuity bridge (`.ai-workflow/continuity/`) + `docs/ai-workflow/AI-HANDOFF/`. Different jobs; both stay.
+**Locks are advisory broadcast, not exclusion. Nothing here blocks an edit.** The recorded
+wins of this system have all come from *visibility*; no lock has ever prevented a collision.
+
+## Use the commands — do not hand-write these files
+
+```bash
+node scripts/lane.mjs digest      # who holds what right now + my delivery state
+node scripts/lane.mjs claim  --task "<one line>" --files "a.tsx,b.mjs" [--next "…"] [--notes "…"]
+node scripts/lane.mjs release --outcome "<one line>"
+node scripts/lane.mjs doctor      # orphaned ledgers, oversized artifacts (reports only, never deletes)
+node scripts/lane.mjs whoami      # my lane filename
+```
+
+`digest` also runs automatically at session start via `scripts/hooks/lane-session-start.mjs`.
 
 ## Files
 
 | File | Tracked? | Purpose |
 |---|---|---|
-| `README.md` | ✅ tracked | This file. Schema + rules. |
-| `claude.lane.md` | ❌ gitignored | Claude's LIVE claim: status, task, files locked NOW, last commit, next intent, timestamp. Overwritten each claim. |
-| `codex.lane.md` | ❌ gitignored | Codex's LIVE claim, same shape. Overwritten each claim. |
-| `review-queue.md` | ❌ gitignored | Append log: "X → Y: please hostile-review slice Z" + verdicts (APPROVE/REVISE/REJECT + findings). The mutual-review channel. |
-| `activity.log.md` | ❌ gitignored | Append log of claims/releases for collision forensics. Pruned. |
+| `README.md` | ✅ | this file |
+| `<agent>--<worktree>-<hash>.lane.md` | ❌ gitignored | ONE PER SESSION. Written only by `lane.mjs`, only by its owner. |
+| `review-queue.md` | ❌ gitignored | append log: review requests + `APPROVE`/`REVISE`/`REJECT` verdicts |
+| `activity.log.md` | ❌ gitignored | append log of claims/releases |
+| `archive/` | ❌ gitignored | retired artifacts, moved never deleted (Rule 34) |
 
-An agent **only ever writes its own** `*.lane.md`. It **reads the other's**. Neither edits the other's lane file.
+### Lane naming is load-bearing — do NOT go back to `claude.lane.md`
 
-## The protocol (every agent, every slice)
+v1 used one file per agent *name*. With several Claude sessions running at once that is
+**last-writer-wins**: one session's claim silently erases another's, and the surviving file
+still reads as authoritative. Two hostile reviewers independently called that the worst
+defect in the system — *a false-negative collision detector*, worse than having none,
+because it looks like success.
 
-**Before editing ANY file:**
-1. Read the OTHER agent's lane file. If a file you're about to touch is in their **🔒 EDITING NOW** list → **do not edit it.** Pick another file, or append a request in `review-queue.md`, or ask Sean.
-2. **Staleness:** if their lane `Updated:` timestamp is > 30 min old and status is still `in-progress`, the claim may be abandoned (agent stopped). Don't assume it's locked forever — flag to Sean before taking over their files.
+Identity is therefore **agent + worktree + a hash of the worktree's full path**. The hash is
+not decoration: with ~110 worktrees, two checkouts sharing a directory basename (or one
+literally named `main`) would otherwise collide.
 
-**When you START a slice / claim files:**
-3. Overwrite your own lane file (template below). List the exact files in **🔒 EDITING NOW**. Stamp `Updated:`.
+### One ledger, reachable from every worktree
 
-**When you FINISH a slice:**
-4. Update your lane file: status → `idle` or `awaiting-review`, clear **🔒 EDITING NOW**, record what changed + commit SHA (if any).
-5. Append one line to `activity.log.md`.
+The ledger is resolved from `git rev-parse --path-format=absolute --git-common-dir`, so it is
+the same directory whether you are in the main tree, a linked worktree, or a subdirectory of
+either. v1 resolved it from the current directory: with 187 worktrees that forked the ledger
+into private copies, and **nine published claims sat where no other agent could ever read
+them**, the oldest for four weeks. `node scripts/lane.mjs doctor` reports any that remain.
 
-**Commits (per existing reality — coordinated):**
-6. Before `git add`, read the other lane. **Never stage/commit a file in the other agent's 🔒 EDITING NOW list.** Codex coordinates commit timing on shared slices.
+## The rules
 
-**Hostile review (Sean's #1 ask — catch each other's work):**
-7. Finishing a substantial slice → append a review request to `review-queue.md`.
-8. The other agent picks it up, runs a hostile review (rule 17 dual-pass + rule 41 closeout gate + the Business-Logic Audit in `HANDOFF-PROTOCOL.md`), and writes back `APPROVE | REVISE | REJECT` + findings.
+- **R1 Read before you edit.** The session-start digest does this for you. If a file you are
+  about to touch is held by a LIVE lane, don't edit it — pick another, ask in
+  `review-queue.md`, or ask Sean.
+- **R2/R3 Claim on start, release on finish.** A claim is cheap; a stale claim is a lie. If
+  the slice grows, re-run `claim` with the fuller list.
+- **R4 Never write another session's lane file.** You read theirs; you write only yours.
+- **R5 A stale claim is not a dead claim.** Over `FRESH_MIN` (120 min) a lane shows as stale —
+  flag it, never silently seize. On 2026-08-12 a 27-day-old lane turned out to be protecting
+  191 uncommitted files.
+- **R6 Stage explicit paths.** Never `git add -A` while another lane holds a lock.
+- **R7 Hostile-review each other.** Append a request to `review-queue.md`; the other agent
+  returns a verdict plus findings. It is the highest-value review available and it is free.
 
-## Lane file template
+## Committed is not delivered
 
-```markdown
-# Claude — Live Lane
-Updated: 2026-06-13T17:55:00Z
-Status: in-progress | idle | awaiting-review | blocked
-Task: <one line>
-🔒 EDITING NOW:
-- path/to/file.tsx
-- path/to/other.mjs
-Lane (owned area): <e.g. admin product/catalog UI + money-path safety tests>
-Last commit: <sha or "none this session (Codex coordinates)">
-Next intent: <files/areas I plan to touch next>
-Notes for the other agent: <anything>
-```
+`Delivery:` in each lane is computed from git on every read, never asserted:
+`local-commit` (invisible to everyone else) → `pushed-branch` → `merged-to-main`. An artifact
+is delivered only when it exists where its reader looks.
 
-## Read at session start
+## Before you push
 
-Both agents, after CLAUDE.md/AGENTS.md + the continuity bridge:
-1. Read `.ai-workflow/coordination/claude.lane.md` AND `codex.lane.md` (know what the other is doing).
-2. Read `.ai-workflow/coordination/review-queue.md` (any open review requests for me?).
-3. Run `node scripts/coordination-prune.mjs` (trims the append logs; safe + local-only).
+`scripts/hooks/push-blast-radius.mjs` prints the blast radius on any `git push` — advisory,
+never blocking. On this repo `render.yaml` builds with `npm run migrate:production`, so **a
+push to a deploy-linked branch runs migrations against the production database.** The hook
+cannot see `gh pr merge`, the GitHub API, or agents on other machines; server-side branch
+protection on `main` is the only control that reaches those.
 
-## Retention (Sean's call: 30 days)
+## Retention
 
-- **Lane files** are overwritten in place → single current state, never grow → **no retention needed.**
-- **`review-queue.md` + `activity.log.md`** are append logs → pruned by `scripts/coordination-prune.mjs`: drop entries older than **30 days**, with a **256 KB** size backstop (whichever hits first). These are gitignored + local, so pruning loses no git history; durable outcomes get promoted to committed handoff/debate/closeout docs anyway. Bump `RETENTION_DAYS` in the script to 60 if Sean wants a longer window.
+Lane files are overwritten in place and never grow. The append logs are trimmed by
+`node scripts/coordination-prune.mjs` (30 days / 256 KB); nothing invokes it automatically, so
+run it when `doctor` flags an oversized artifact.

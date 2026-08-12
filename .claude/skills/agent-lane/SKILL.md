@@ -42,12 +42,18 @@ cheap and a stale claim is a lie.
 
 ## 3. Identity: one lane per SESSION, never per agent name
 
-Your lane file is `<agent>--<worktree>-<hash>.lane.md` (e.g.
-`vs-claude--ss-creator-local-video-a71588.lane.md`); the main tree is just
-`<agent>--main.lane.md`. The hash is six characters of the worktree's full path — with 184
-worktrees, two checkouts whose directories share a basename would otherwise write the same
-lane file and overwrite each other, and a linked worktree named `main` would collide with
-the main tree. All identity and lane parsing lives in one place, `scripts/lib/lane-core.mjs`;
+Your lane file is `<agent>--<worktree>-<pathhash>-s<session>.lane.md` (e.g.
+`vs-claude--ss-creator-local-video-a71588b9f9-saea5fafb.lane.md`); on the main tree the
+worktree part is just `main`. Run `node scripts/lane.mjs whoami` rather than constructing
+the name by hand.
+
+Both discriminators earn their place. The **path hash** (10 hex of the worktree's full path)
+exists because two checkouts sharing a directory basename — or one literally named `main` —
+would otherwise write the same file. The **session id** exists because agent+worktree alone
+still collided: two concurrent sessions in the *same* worktree shared one lane, and since the
+main tree is the common case, that quietly recreated the clobbering this scheme was built to
+prevent. Where no session id is available the suffix is omitted, which is no worse than
+before but does reintroduce that risk. All identity and lane parsing lives in one place, `scripts/lib/lane-core.mjs`;
 three drifted copies of that logic was itself a defect (one had silently dropped an env var,
 so the push hook warned agents about their own locks).
 
@@ -78,7 +84,11 @@ dead sessions, which R4 and R5 both forbid. Report to Sean; let him decide.
 
 ## 5. Committed is not delivered
 
-The lane's `Delivery:` field is **computed from git on every read**, never asserted by you:
+The lane's `Delivery:` field is computed from git — but read the caveat before trusting it.
+It is recomputed whenever *you* run `claim`, `release`, or `digest`, and the `digest` line
+about **your own** session is always live. Every **other** lane's `Delivery:` is file content
+frozen at that agent's last write, so it can be hours old. Judge a peer's state from git, not
+from their lane. The states:
 
 | state | meaning |
 |---|---|
@@ -105,7 +115,9 @@ it is in — and say that state out loud.
   Push the safe half now; hold the risky half for review. The safe half should never wait on
   the risky half's review, and the risky half should never ride the safe half's momentum.
 - **Does it carry a file another live session has locked?** Stage explicit paths.
-  `git add -A` is forbidden while another lane holds a lock.
+  `git add -A` is forbidden while another lane holds a lock — but note that **nothing
+  enforces this**: no hook observes `git add`, so it is a discipline you keep, not a guard
+  that catches you. The push advisory only sees the result, after the commit exists.
 - **Force-push?** `--force` without `--force-with-lease` can destroy another agent's pushed
   commits.
 

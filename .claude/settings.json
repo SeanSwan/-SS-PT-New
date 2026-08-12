@@ -310,8 +310,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/hooks/push-blast-radius.mjs",
-            "timeout": 15
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/push-blast-radius.mjs\"",
+            "timeout": 30
           }
         ]
       }
@@ -325,8 +325,8 @@
           },
           {
             "type": "command",
-            "command": "node scripts/hooks/lane-session-start.mjs",
-            "timeout": 15
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/lane-session-start.mjs\"",
+            "timeout": 30
           }
         ]
       }

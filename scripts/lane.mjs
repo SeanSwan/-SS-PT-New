@@ -27,7 +27,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync, appendFileSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { FRESH_MIN, sh, normPath, samePath, ledgerDir, identity, safeRef, readLanes } from './lib/lane-core.mjs';
+import { FRESH_MIN, sh, normPath, samePath, ledgerDir, identity, safeRef, readLanes, parseLane } from './lib/lane-core.mjs';
 
 const ARGV = process.argv.slice(2);
 const CMD = ARGV[0] ?? 'digest';
@@ -146,19 +146,32 @@ function release() {
   const head = lines.findIndex((l) => /^#{1,6}\s.*EDITING NOW/i.test(l));
   let removed = 0;
   if (head !== -1) {
+    /* Clear the WHOLE section to its terminator, not just lines starting with `- `.
+     * parseLane accepts `*`/`+` bullets, numbered lists, checkboxes and bare lines
+     * inside fenced blocks; release only understood `- `, so a lane written in any
+     * other format kept every lock while printing "released" — the parser and the
+     * releaser disagreeing about what a lock is, which is the phantom-lock class. */
+    const level = (lines[head].match(/^#+/) || ['#'])[0].length;
     let end = head + 1;
-    while (end < lines.length && (lines[end].trim() === '' || lines[end].trim().startsWith('- '))) {
-      if (lines[end].trim().startsWith('- ')) removed += 1;
+    while (end < lines.length) {
+      const t = lines[end].trim();
+      const m = t.match(/^(#{1,6})\s/);
+      if (m && m[1].length <= level) break;        // same-or-higher heading
+      if (/^[A-Z][a-z]+ intent:/.test(t)) break;   // "Next intent:"
+      if (t) removed += 1;
       end += 1;
     }
     lines.splice(head + 1, end - (head + 1), '- (released)', '');
   }
   const cleared = lines.join(eol);
-  const leftover = cleared.split(/\r?\n/)
-    .slice(head + 1, head + 1 + removed + 2)
-    .filter((l) => l.trim().startsWith('- ') && !/\(released\)/.test(l));
-  if (head === -1 || leftover.length) {
-    console.error('[lane] WARNING: lock list may not have cleared — verify the lane file by hand.');
+  /* Verify with the SAME parser every other consumer uses, rather than a
+   * bullet-prefix heuristic. The old check only looked for `- ` lines, so it
+   * agreed with a releaser that had the identical blind spot and passed while
+   * locks remained. Ask the authority: does anything still parse as a lock? */
+  const stillLocked = parseLane(cleared, resolve(LEDGER, '..', '..')).locks;
+  if (head === -1 || stillLocked.length) {
+    console.error(`[lane] WARNING: ${stillLocked.length} lock(s) still parse after release — verify by hand:`);
+    for (const l of stillLocked.slice(0, 5)) console.error(`[lane]   ${l}`);
   }
   if (statSync(LANE_PATH).mtimeMs !== mtimeAtRead) {
     console.error('[lane] ABORTED release: the lane changed while I was reading it — a concurrent');

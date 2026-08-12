@@ -84,7 +84,22 @@ export function identity(cwd = process.cwd()) {
     const short = createHash('sha1').update(full.toLowerCase()).digest('hex').slice(0, 10);
     slug = `${basename(full)}-${short}`;
   }
-  return { agent, top: normPath(top || cwd), isMain, slug, laneName: `${agent}--${slug}.lane.md` };
+  /* SESSION discriminator, not just worktree. agent+worktree alone meant two
+   * concurrent sessions in the SAME worktree shared one lane file — and the main
+   * tree is the common case, so this quietly recreated the last-writer-wins
+   * clobbering that this naming scheme exists to prevent, in the one place
+   * concurrency is most likely. The doc promised "one lane per SESSION"; without
+   * this it delivered one lane per worktree. Falls back to the old shape when no
+   * session id is available, which is no worse than before. */
+  const sid = process.env.CLAUDE_CODE_SESSION_ID || process.env.CLAUDE_SESSION_ID || '';
+  const sess = sid ? `-s${sid.replace(/[^A-Za-z0-9]/g, '').slice(0, 8)}` : '';
+  return {
+    agent,
+    top: normPath(top || cwd),
+    isMain,
+    slug: `${slug}${sess}`,
+    laneName: `${agent}--${slug}${sess}.lane.md`,
+  };
 }
 
 /** Git refnames may legally contain `$ ( ) ; \`` — all shell-active. Refuse to
@@ -111,9 +126,16 @@ export function parseLane(src, root = null) {
   const head = all.findIndex((l) => /^#{1,6}\s.*EDITING NOW/i.test(l));
   const body = [];
   if (head !== -1) {
+    /* The section ends at a heading of the SAME OR HIGHER level, not at ANY
+     * heading. Breaking on any `#` meant a lane that groups its locks under
+     * sub-headings — `## EDITING NOW` / `### backend` / `- a.ts` — parsed to ZERO
+     * locks, the whole section invisible. Sub-headings are structure WITHIN the
+     * section, not the end of it. */
+    const level = (all[head].match(/^#+/) || ['#'])[0].length;
     for (let i = head + 1; i < all.length; i += 1) {
       const t = all[i].trim();
-      if (/^#{1,6}\s/.test(t)) break;            // next heading ends the section
+      const m = t.match(/^(#{1,6})\s/);
+      if (m && m[1].length <= level) break;      // same-or-higher heading ends it
       if (/^[A-Z][a-z]+ intent:/.test(t)) break; // "Next intent:" ends it
       body.push(all[i]);
     }
@@ -122,52 +144,42 @@ export function parseLane(src, root = null) {
    * parse to ZERO locks: the live claude.lane.md listed its locked paths inside a
    * fenced code block, so an entire locked directory tree was invisible to every
    * consumer. Agents also write `*`/`+` bullets, numbered lists and `- [ ]`
-   * checkboxes. Accept any line, strip whatever list/fence decoration it carries,
-   * and let the path-shape test below decide — that test is what keeps prose out,
-   * so being liberal about decoration costs nothing.
+   * checkboxes. Accept any line, strip whatever list decoration it carries, and
+   * let the path-shape test decide.
    *
-   * The path-shape test is load-bearing in the other direction: agents write prose
-   * bullets in the lock section ("- I work in an isolated worktree and rebase onto
-   * origin/main before each push,") which rendered verbatim under "DO NOT edit
-   * these". It also drops the `(released)` / `(none declared yet)` placeholders
-   * that release() and claim() write. An entry that cannot match a file path
-   * cannot do a lock's job, and false locks are what train a reader to ignore the
-   * digest. Trailing commentary is dropped: "docs/x.md (new, mine only)" → "docs/x.md". */
+   * SPLITTING IS CONDITIONAL, and that condition is load-bearing in both directions.
+   * Splitting every line on whitespace picks up `b.ts` from `- a.ts b.ts` (good) but
+   * also turns `origin/main` inside a prose sentence into a lock (bad — verified
+   * regression). Splitting on commas only does the reverse. So: a line becomes a
+   * LIST only when every token on it is path-shaped; otherwise it is treated as one
+   * path plus commentary, and prose yields nothing at all. */
+  const clean = (t) => t.trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/[,;:]+$/, '')
+    .replace(/^\*\*(.+?)\*\*$/, '$1')   // markdown bold TOKEN, not glob syntax
+    .replace(/^\.\//, '');               // "./src/a.ts" never matched a repo-relative path
+  const pathish = (t) => Boolean(t)
+    && !/^\(/.test(t)                     // "(released)" / "(none declared yet)"
+    && (/[/\\*]/.test(t)
+      || /\.[A-Za-z0-9]{1,6}$/.test(t)
+      || EXTENSIONLESS.has(t)
+      || (root && existsSync(resolve(root, t))));
+
   const locks = body.map((l) => l.trim())
     .filter((l) => l && !/^```/.test(l))
     .map((l) => l
       .replace(/^(?:[-*+]\s+|\d+[.)]\s+)/, '')   // bullet or numbered marker
-      .replace(/^\[[ xX]\]\s*/, '')               // checkbox
-      // Strip backticks only. `*` is NOT decoration here — it is glob syntax
-      // (`docs/x/**`, `services/contentStudio*`), and stripping it silently
-      // narrowed a directory-wide claim to a single nonexistent path. Markdown
-      // bold like `**Nothing.**` survives this but is dropped by the path test.
-      .replace(/`/g, '')
+      .replace(/^\[[ xX]\]\s*/, '')              // checkbox
+      .replace(/`/g, '')                          // backticks; `*` is glob syntax, kept
       .trim())
-    // A bullet may list several comma-separated files ("- a.ts, b.ts").
-    .flatMap((l) => l.split(','))
-    .map((l) => l.trim().replace(/^["']|["']$/g, '').split(/\s+/)[0].replace(/[,;:]+$/, ''))
-    /* Strip a fully-wrapped `**bold**` TOKEN. This has to run on the token, not the
-     * line: `- **Nothing.** Every slice is pushed.` is not wrapped as a whole, but
-     * its first token is — and because `*` is kept for globs, that token otherwise
-     * passed the shape test and rendered as a lock. */
-    .map((l) => l.replace(/^\*\*(.+?)\*\*$/, '$1'))
-    .map((l) => l.replace(/^\.\//, ''))   // "./src/a.ts" never matched a repo-relative path
-    .filter(Boolean)
-    .filter((l) => !/^\(/.test(l))
-    /* Shape test, plus two escape hatches. The shape test alone silently dropped
-     * the BROADEST locks an agent can declare — `- docs`, `- backend`, and
-     * crucially `- Dockerfile`, which is itself in the push hook's
-     * executes-on-deploy list. The ledger would have reported "clear" on exactly
-     * the files that trigger a production migration. Extensionless real paths are
-     * admitted by an existence check when we know the repo root, and by a small
-     * list of conventional extensionless files when we do not. Prose still fails
-     * all three ("work", "isolated", "rebase" are neither paths nor files). */
-    .filter((l) => /[/\\*]/.test(l)
-      || /\.[A-Za-z0-9]{1,6}$/.test(l)
-      || EXTENSIONLESS.has(l)
-      || (root && existsSync(resolve(root, l))))
-    .map((l) => l.slice(0, 120)); // lane files are untrusted input
+    .flatMap((line) => {
+      const toks = line.split(/[,\s]+/).map(clean).filter(Boolean);
+      if (!toks.length) return [];
+      if (toks.length > 1 && toks.every(pathish)) return toks;      // a list of paths
+      return pathish(toks[0]) ? [toks[0]] : [];                     // path + commentary, or prose
+    })
+    .map((t) => t.slice(0, 120));               // lane files are untrusted input
+
   const heads = [...src.matchAll(/^#{1,6}\s+(.+)$/gm)].map((h) => h[1].trim())
     .filter((h) => !/EDITING NOW/i.test(h));
   const task = (src.match(/^Task:\s*(.+)$/m) || [])[1]?.trim() || heads[0] || '(no task stated)';
@@ -180,12 +192,20 @@ export function readLanes(ledger, selfName = null) {
   const root = resolve(ledger, '..', '..');
   return readdirSync(ledger).filter((f) => f.endsWith('.lane.md')).map((file) => {
     const path = resolve(ledger, file);
-    const { locks, task } = parseLane(readFileSync(path, 'utf8'), root);
+    const raw = readFileSync(path, 'utf8');
+    const { locks, task } = parseLane(raw, root);
+    /* A lane that declares itself idle is not holding locks, whatever its body
+     * still contains. release() bumps mtime, so a clear that only half-worked
+     * would otherwise convert stale phantom locks into FRESH ones for another
+     * FRESH_MIN minutes — released work reappearing as live, *because* release ran.
+     * Trust the declared status as well as the parsed body. */
+    const idle = /^Status:\s*(idle|released|done)/mi.test(raw);
     return {
       file,
       self: file === selfName,
       ageMin: Math.round((Date.now() - statSync(path).mtimeMs) / 60000),
-      locks,
+      locks: idle ? [] : locks,
+      idle,
       task,
     };
   });
@@ -206,7 +226,13 @@ export function lockMatches(changedPath, lock) {
     const body = raw.split('**')
       .map((seg) => seg.split('*').map(esc).join('[^/]*'))
       .join('.*');
-    return new RegExp(`^${body}(?:/.*)?$`).test(c);
+    /* Only `**` may cross a directory boundary. The unconditional `(?:/.*)?` made
+     * `src/*` match `src/foo/bar`, silently widening a single-level claim into the
+     * whole subtree — an over-report, and over-reports are what teach a reader to
+     * ignore the digest. A trailing subtree match is allowed only when the pattern
+     * actually asked for one. */
+    const subtree = raw.includes('**') || raw.endsWith('/');
+    return new RegExp(`^${body}${subtree ? '(?:/.*)?' : ''}$`).test(c);
   }
   const stem = raw.replace(/\/+$/, '');
   if (!stem) return false;
