@@ -201,6 +201,16 @@ function digest() {
   ];
   if (!existsSync(LANE_PATH)) {
     out.push('[lane] ⚠ you have NOT published a lane this session — run: node scripts/lane.mjs claim --task "..." --files "..."');
+    /* If a lane exists for this agent+worktree under a DIFFERENT session suffix, say
+     * so. Without a session id the name falls back to the old shape, and a manual
+     * `release` from a terminal would then target a name the hook never wrote —
+     * releasing nothing while the real lane keeps its locks. Naming the sibling is
+     * the difference between noticing that and not. */
+    const stem = ME.laneName.replace(/-s[A-Za-z0-9]+\.lane\.md$/, '').replace(/\.lane\.md$/, '');
+    const siblings = lanes.filter((x) => x.file.startsWith(stem) && x.file !== ME.laneName);
+    for (const s of siblings) {
+      out.push(`[lane]   note: ${s.file} is the same agent+worktree from another session (${s.ageMin}m old, ${Array.isArray(s.locks) ? s.locks.length : 0} lock(s)).`);
+    }
   }
   if (live.length) {
     out.push(`[lane] ${live.length} agent(s) hold locks right now — DO NOT edit these:`);
@@ -237,7 +247,24 @@ function doctor() {
       .map((f) => ({ f, kb: Math.round(statSync(resolve(LEDGER, f)).size / 1024) }))
       .filter((x) => x.kb > 128 || /\.tmp-\d+$/.test(x.f))
     : [];
-  if (JSON_MODE) { console.log(JSON.stringify({ ledger: LEDGER, orphans, rot, lanes }, null, 2)); return; }
+  /* Hand-written lanes stack historical entries, so a file can hold several
+   * `EDITING NOW` sections. Every consumer reads the FIRST one, which assumes
+   * newest-at-top. That assumption holds for most lanes and is silently violated by
+   * others — on 2026-08-12, two of three multi-section lanes put the newest first
+   * and one put it last, so the stale section was the one being read. Reading all
+   * sections instead would resurrect dead locks (the phantom-lock direction, which
+   * is worse), so the convention stays and the exception gets surfaced here. */
+  const multi = [];
+  for (const l of lanes) {
+    const src = readFileSync(resolve(LEDGER, l.file), 'utf8');
+    const n = src.split(/\r?\n/).filter((x) => /^#{1,6}\s.*EDITING NOW/i.test(x)).length;
+    if (n > 1) multi.push({ file: l.file, sections: n });
+  }
+  if (JSON_MODE) { console.log(JSON.stringify({ ledger: LEDGER, orphans, rot, multi, lanes }, null, 2)); return; }
+  for (const m of multi) {
+    console.log(`[lane doctor] ⚠ ${m.file} has ${m.sections} EDITING NOW sections — only the FIRST is read.`);
+    console.log('[lane doctor]    Verify the newest entry is at the top, or the ledger reads a stale claim.');
+  }
   console.log(`[lane doctor] canonical ledger: ${LEDGER}`);
   console.log(`[lane doctor] lanes present: ${lanes.length}`);
   if (orphans.length) {
