@@ -37,7 +37,12 @@ export const VIDEO_JOB_STATUSES = Object.freeze([
 ]);
 
 export const VIDEO_JOB_KINDS = Object.freeze([
-  'generate',    // AI clip (Wan 2.2 via ComfyUI)
+  // The cheap first rung of the cost ladder: render low-res (cents), approve the
+  // art direction, THEN promote to full res (dollars). This lives in the job KIND
+  // rather than the UI on purpose — if only the UI enforces the ladder, any other
+  // caller bypasses the most valuable cost control in the system.
+  'preview',
+  'generate',    // full-resolution render
   'transcode',   // format/rendition conversion
   'upscale',
   'interpolate',
@@ -80,6 +85,17 @@ VideoRenderJob.init({
   workflowVersion: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1, field: 'workflow_version' },
 
   prompt: { type: DataTypes.TEXT, allowNull: false },
+
+  // REPRODUCIBILITY. prompt is what the human asked for; compiledPrompt is the exact
+  // string that reached the model after the prompt-brain expanded it, and brainVersion
+  // is the compiler semver that produced it. Without these, "regenerate the one from
+  // last week" is impossible and nobody can answer WHY an output looked as it did.
+  // They cannot be backfilled — the information is gone once the render completes.
+  compiledPrompt: { type: DataTypes.TEXT, allowNull: true, field: 'compiled_prompt' },
+  brainVersion: { type: DataTypes.STRING(40), allowNull: true, field: 'brain_version' },
+
+  // A promoted full-res render points back at the preview it was approved from.
+  parentJobId: { type: DataTypes.UUID, allowNull: true, field: 'parent_job_id' },
   negativePrompt: { type: DataTypes.TEXT, allowNull: true, field: 'negative_prompt' },
   params: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
 

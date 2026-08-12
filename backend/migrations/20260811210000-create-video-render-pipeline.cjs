@@ -104,8 +104,18 @@ module.exports = {
           -- or occupy the GPU twice.
           idempotency_key       VARCHAR(80) NOT NULL,
 
+          -- 'preview' is the cheap first rung of the cost ladder: generate at low
+          -- resolution (cents), approve the art direction, THEN promote to full
+          -- resolution (dollars). Without it as a job KIND the ladder can only be
+          -- faked in the UI, which means any other caller bypasses the single most
+          -- valuable cost control in the system.
           kind                  VARCHAR(16) NOT NULL DEFAULT 'generate'
-                                CHECK (kind IN ('generate','transcode','upscale','interpolate')),
+                                CHECK (kind IN ('preview','generate','transcode','upscale','interpolate')),
+
+          -- Promotion link: a full-resolution render points at the preview it was
+          -- approved from. Self-referential, nullable, ON DELETE SET NULL so deleting
+          -- a preview never cascades away the finished asset derived from it.
+          parent_job_id         UUID REFERENCES video_render_jobs(id) ON DELETE SET NULL,
 
           -- workflow_id + workflow_version make a render reproducible. Storing only
           -- a prompt string makes debugging a bad output archaeology.
@@ -113,6 +123,15 @@ module.exports = {
           workflow_version      INTEGER NOT NULL DEFAULT 1,
 
           prompt                TEXT NOT NULL CHECK (char_length(prompt) <= 4000),
+
+          -- REPRODUCIBILITY TRIO. prompt is what the human asked for; compiled_prompt
+          -- is the exact string that reached the model after the prompt-brain expanded
+          -- it. Without the compiled form, "regenerate last week's" is impossible and
+          -- nobody can answer WHY an output looked the way it did. brain_version lets
+          -- two compiler generations be A/B compared. Backfilling these is impossible —
+          -- the information is gone the moment the render completes.
+          compiled_prompt       TEXT,
+          brain_version         VARCHAR(40),
           negative_prompt       TEXT CHECK (negative_prompt IS NULL OR char_length(negative_prompt) <= 2000),
           params                JSONB NOT NULL DEFAULT '{}'::jsonb,
 

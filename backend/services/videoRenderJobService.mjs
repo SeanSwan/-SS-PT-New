@@ -109,6 +109,9 @@ export async function createJob(input = {}) {
       prompt,
       negativePrompt: input.negativePrompt ?? null,
       params: input.params ?? {},
+      compiledPrompt: input.compiledPrompt ?? null,
+      brainVersion: input.brainVersion ?? null,
+      parentJobId: input.parentJobId ?? null,
       requiredCapabilities: input.requiredCapabilities ?? [],
       priority: input.priority ?? 100,
     });
