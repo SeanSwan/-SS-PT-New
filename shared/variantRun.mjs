@@ -33,19 +33,30 @@
 import { appendFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
+// Imported for LOCAL use (line ~256 reads ASPECT_TOLERANCE) and separately
+// re-exported below. `export ... from` alone creates no local binding — the
+// third time that has bitten this codebase, and the second time in one session.
+import { aspectDeviation, ASPECT_TOLERANCE } from './aspect.mjs';
 
 export const RUN_DIR = '.ai-workflow/forge-runs';
 export const LEDGER_FILE = join(RUN_DIR, 'runs.jsonl');
 
 /** Bump when a field changes meaning, so old rows stay interpretable. */
-export const RECORD_VERSION = 1;
+export const RECORD_VERSION = 2;
+
+/**
+ * Bounded prompt storage. The ledger is an unencrypted file on disk; a record
+ * should not become an unbounded sink for whatever a caller hands it. The hash
+ * is computed over the FULL text, so truncation never breaks equality.
+ */
+export const PROMPT_STORE_LIMIT = 1024;
 
 export const STATUSES = Object.freeze(['ok', 'safety-reject', 'error']);
 
 /** Tri-state, same discipline as provider capabilities. */
 export const SEED_HONORED = Object.freeze(['unknown', 'yes', 'no']);
 
-class RunError extends Error {
+export class RunError extends Error {
   constructor(code, message) { super(message); this.name = 'RunError'; this.code = code; }
 }
 
@@ -60,49 +71,10 @@ export function newVariantId() {
 
 const ID_SHAPE = /^v_[0-9a-f]{16}$/;
 
-/**
- * Parse "16:9" into a number. Returns null for anything that is not a ratio,
- * rather than a plausible-looking wrong number — the lesson from a dimension
- * parser that read a JPEG with PNG offsets and reported 65536x4293722192
- * without complaint. A confident wrong answer is worse than an admitted gap.
- */
-export function ratioToNumber(ratio) {
-  const m = /^(\d{1,3}):(\d{1,3})$/.exec(String(ratio ?? '').trim());
-  if (!m) return null;
-  const w = Number(m[1]);
-  const h = Number(m[2]);
-  if (!w || !h) return null;
-  return w / h;
-}
-
-/**
- * Fractional difference between what was asked for and what came back.
- * Returns null when either side is unknown — an unmeasurable deviation must not
- * masquerade as a measured zero.
- */
-export function aspectDeviation(requestedRatio, actualWidth, actualHeight) {
-  const want = ratioToNumber(requestedRatio);
-  if (!want || !actualWidth || !actualHeight) return null;
-  const got = actualWidth / actualHeight;
-  return Math.abs(got - want) / want;
-}
-
-/**
- * Deviation above this is worth telling a human about. Not an error.
- *
- * CALIBRATION, stated because it is not obvious: ordinary provider clamping sits
- * BELOW this line and is therefore recorded but not alarmed on. Gemini answering
- * a 16:9 request with 1376x768 is a measured 0.78% deviation — real, harmless,
- * and not worth a warning on every single generation. What this flag is for is
- * the wrong-SHAPE case: a 1024x1024 square returned for a cinematic brief is
- * 43.75% off, and that went undetected for an entire session because nothing
- * ever compared the request to the response.
- *
- * `actualWidth`/`actualHeight`/`actualAspect` are recorded unconditionally, so
- * sub-tolerance clamping is always visible to anyone who looks — it just does
- * not shout.
- */
-export const ASPECT_TOLERANCE = 0.01;
+// Ratio maths lives in aspect.mjs — split at the 300-line cap, and so the
+// provider can get geometry without importing the persistence layer.
+export { ratioToNumber } from './aspect.mjs';
+export { aspectDeviation, ASPECT_TOLERANCE };
 
 /**
  * Build a validated run record. Pure — no clock unless you omit `createdAt`,
@@ -151,40 +123,9 @@ function assertShape(r) {
  * also silently inherits the parent's `createdAt`, which would date a round-two
  * variant to round one.
  */
-function isBuilt(r) {
+export function isBuilt(r) {
   return Boolean(r) && r.recordVersion === RECORD_VERSION
     && typeof r.promptSha === 'string' && ID_SHAPE.test(r.variantId ?? '');
-}
-
-/**
- * Derive a child variant from a winner. THE sanctioned way to build round N+1.
- *
- * Inherits only what identifies the lineage and the setup (brief, provider,
- * model, serializer) and deliberately does NOT inherit per-generation facts —
- * cost, latency, measured dimensions, status, safety events. Those describe an
- * image that has not been made yet, and copying them forward would let a child
- * inherit its parent's evidence.
- */
-export function refine(parent, changes = {}) {
-  if (!isBuilt(parent)) {
-    throw new RunError('E_RUN_INVALID',
-      'refine() needs a built parent record with a valid variantId — pass the winner from readRuns(), not raw input.');
-  }
-  return buildRecord({
-    briefId: parent.briefId,
-    runId: parent.runId,
-    provider: parent.provider,
-    model: parent.model,
-    brainVersion: parent.brainVersion,
-    serializer: parent.serializer,
-    // Inherited so a plain re-roll (same prompt, new seed) is one call. Pass
-    // `promptText` in `changes` to actually change the wording.
-    promptText: parent.promptText,
-    ...changes,
-    parentVariantId: parent.variantId,
-    variantId: undefined,      // always a fresh identity
-    createdAt: changes.createdAt,
-  });
 }
 
 export function buildRecord(input = {}) {
@@ -195,7 +136,7 @@ export function buildRecord(input = {}) {
     seedHonored = 'unknown',
     aspectRequested = null, actualWidth = null, actualHeight = null,
     costUsd = null, wallMs = null, status,
-    safetyEvents = [], outputPath = null, notes = null,
+    safetyEvents = [], notes = null,
   } = input;
 
   const variantId = input.variantId || newVariantId();
@@ -215,12 +156,20 @@ export function buildRecord(input = {}) {
     provider,
     model,
     brainVersion,
+    // WHY this row exists: 'root' (first generation), 'reroll' (same prompt,
+    // new dice), 'refine' (changed wording), 'probe'. Without it a bracket of
+    // three options and three refinements look identical in the ledger.
+    intent: input.intent || (parentVariantId ? 'refine' : 'root'),
     serializer,
     // THE PROMPT ITSELF, not only its hash. Storing `promptSha` alone let the
     // ledger identify a winner and never re-issue it — seed without prompt is
     // half a reproduction. Safe to keep: prompts are design language, the ledger
     // is gitignored, and it is never transmitted. Hash retained for grouping.
-    promptText: String(promptText ?? ''),
+    // CAPPED: the ledger is an unencrypted on-disk file, so it stores a bounded
+    // amount of whatever a caller passes. The hash below is of the FULL text, so
+    // truncation never breaks equality checks.
+    promptText: String(promptText ?? '').slice(0, PROMPT_STORE_LIMIT),
+    promptTruncated: String(promptText ?? '').length > PROMPT_STORE_LIMIT,
     promptSha: promptSha(promptText),
     promptChars: String(promptText ?? '').length,
     seedRequested,
@@ -237,7 +186,21 @@ export function buildRecord(input = {}) {
     wallMs,
     status,
     safetyEvents,
-    outputPath,
+    /**
+     * WHERE THE IMAGE ACTUALLY IS. Without this the ledger is decorative: a UI
+     * cannot render a row it has no artifact for, so whoever builds the Create
+     * surface would invent their own provenance and bypass this record entirely.
+     *
+     * Every image generated before this field was populated — five of them,
+     * about two cents — was hashed, measured, and thrown away. The system could
+     * describe what it made and could not show it.
+     */
+    imageRef: input.imageRef ?? null,
+    imageSha: input.imageSha ?? null,
+    imageBytes: input.imageBytes ?? null,
+    // `outputPath` was removed at RECORD_VERSION 2: it was populated by nothing
+    // and `imageRef` supersedes it. Two fields naming one thing is how the
+    // aspect-ratio defect started.
     notes,
     createdAt: input.createdAt || new Date().toISOString(),
   };
@@ -293,4 +256,4 @@ export function lineage(variantId, runs) {
   return chain;
 }
 
-export { RunError };
+

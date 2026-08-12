@@ -307,7 +307,33 @@ export function compileImage(brief = {}, caps = {}) {
 
   const promptStyle = strategyFor(caps);
   const rendered = serializeFor(promptStyle, slots);
-  const fitted = fitToBudget(rendered, caps.maxPromptChars);
+
+  /**
+   * THE KILL-LIST, INLINED INTO THE PROMPT — because the parameter channel is
+   * dead twice over.
+   *
+   * `negativeText` is only populated when `honorsNegativePrompt` is 'verified'
+   * (it is 'claimed' on every provider), AND the request body has no negative
+   * field at all — so even flipping the capability would transmit nothing. Two
+   * independent reasons the constraints could never reach a model. Every image
+   * this system has produced was generated with ZERO anti-generic constraints:
+   * no ban on iridescent gradients, glassmorphism, fantasy wallpaper, or
+   * literal creature form. Those bans are most of what separates Swan output
+   * from stock AI art.
+   *
+   * So it goes through the channel that IS honoured: the prompt.
+   *
+   * KNOWN RISK, stated rather than buried — caption-trained models can FIXATE on
+   * nouns they are told to avoid ("no swans" is a known way to get swans). The
+   * clause is therefore terse, placed last, and phrased as a rendering
+   * instruction rather than a list of subjects. It is a candidate for A/B once
+   * the bracket exists, which is exactly what a bracket is for.
+   */
+  const withAvoid = slots.negative
+    ? `${rendered} Rendering constraints — avoid: ${slots.negative}.`
+    : rendered;
+
+  const fitted = fitToBudget(withAvoid, caps.maxPromptChars);
   const promptText = fitted.text;
 
   // OVERRIDE-VALIDATION GUARD — named honestly.

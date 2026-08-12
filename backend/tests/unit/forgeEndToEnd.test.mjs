@@ -5,7 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { compileImage } from '../../../shared/swanPromptCompiler.mjs';
 import { generate, capabilities, DEFAULT_MODEL } from '../../../shared/providers/openrouterImage.mjs';
-import { appendRun, readRuns, lineage, buildRecord, refine } from '../../../shared/variantRun.mjs';
+import { appendRun, readRuns, lineage, buildRecord } from '../../../shared/variantRun.mjs';
+import { refine } from '../../../shared/variantLineage.mjs';
 
 /**
  * THE COMPOSITION TEST.

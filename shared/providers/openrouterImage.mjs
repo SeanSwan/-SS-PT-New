@@ -26,7 +26,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { imageDimensions } from '../imageDimensions.mjs';
-import { aspectDeviation, ASPECT_TOLERANCE } from '../variantRun.mjs';
+import { aspectDeviation, ASPECT_TOLERANCE } from '../aspect.mjs';
 
 /**
  * THE IMAGE API — not chat/completions.

@@ -6,8 +6,9 @@ import { join } from 'node:path';
 import {
   buildRecord, appendRun, readRuns, lineage, newVariantId,
   ratioToNumber, aspectDeviation, promptSha,
-  RunError, RECORD_VERSION, ASPECT_TOLERANCE, RUN_DIR, LEDGER_FILE, refine,
+  RunError, RECORD_VERSION, ASPECT_TOLERANCE, RUN_DIR, LEDGER_FILE,
 } from '../../../shared/variantRun.mjs';
+import { refine, reroll } from '../../../shared/variantLineage.mjs';
 
 const BASE = Object.freeze({
   briefId: 'b_hero_01', provider: 'openai/gpt-5.4-image-2',
@@ -150,6 +151,32 @@ test('a prompt containing NEWLINES cannot split one record into two ledger rows'
     assert.equal(runs.length, 1, 'exactly one row, not four');
     assert.equal(skipped, 0);
     assert.equal(runs[0].promptText, nasty, 'and it round-trips byte-for-byte');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('LEGACY rows survive a RECORD_VERSION bump without being coerced', () => {
+  // The live ledger holds v1 rows (written before `intent` and a working cost
+  // field existed) beside v2 rows. readRuns must return them untouched: a
+  // missing intent must stay undefined and a null cost must stay NULL, because
+  // a consumer that renders null as "$0.0000" tells the reader the run was FREE
+  // when it means UNKNOWN. That is the same null-shown-as-zero lie that
+  // aspectDeviation refuses to tell.
+  const root = tmpRoot();
+  try {
+    const legacy = { ...buildRecord(BASE), recordVersion: 1, costUsd: null };
+    delete legacy.intent;
+    mkdirSync(join(root, RUN_DIR), { recursive: true });
+    writeFileSync(join(root, LEDGER_FILE), `${JSON.stringify(legacy)}\n`);
+    appendRun({ ...BASE, costUsd: 0.00428, promptText: 'new' }, root);
+
+    const { runs, skipped } = readRuns(root);
+    assert.equal(skipped, 0);
+    assert.equal(runs.length, 2);
+    assert.equal(runs[0].costUsd, null, 'unknown must NOT become 0');
+    assert.equal(runs[0].intent, undefined, 'absent must NOT become the string "undefined"');
+    assert.equal(runs[0].recordVersion, 1, 'and the row still declares which version it is');
+    assert.equal(runs[1].costUsd, 0.00428);
+    assert.equal(runs[1].intent, 'root');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
