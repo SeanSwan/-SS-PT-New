@@ -230,10 +230,18 @@ export function correlate(reference, target, maxLagFrames, {
  * VIDEO input, or trim nothing from the audio. A NEGATIVE offset means
  * `-ss |offset|` on the AUDIO input.
  *
+ * There is deliberately NO blended `confidence` score. An earlier version returned
+ * `peak*0.5 + prominence*0.5`, which nothing consumed and which a UI would inevitably
+ * have thresholded on — hiding WHICH gate was close to failing. `marginToRefusal`
+ * replaces it: 1.0 is exactly the refusal boundary, and `bindingTerm` names the gate
+ * that is binding, so a marginal result explains itself.
+ *
  * @returns {{
  *   offsetFrames: number, offsetSeconds: number,
- *   peak: number, prominence: number, confidence: number,
- *   usable: boolean, reason: string|null
+ *   peak: number, prominence: number,
+ *   marginToRefusal: number, bindingTerm: 'peak'|'prominence',
+ *   usable: boolean, reason: string|null,
+ *   searchedSeconds: number, searchTruncated: boolean, lowOverlap: boolean
  * }}
  */
 export function findOffset(referenceSamples, targetSamples, {
