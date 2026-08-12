@@ -227,10 +227,35 @@ export function paletteAudit(input, opts = {}) {
   const { rgb } = decoded;
   const step = 7 * 3;
   let n = 0;
+  /**
+   * UNION, NOT SUM — per-anchor hits double-count and the totals become
+   * nonsense. Obsidian Black, Carbon and Graphite are all near-black and sit
+   * within one radius of each other, so a single dark pixel matches all three.
+   * Summing per-anchor coverage reported **236.9% Swan coverage** on a dark
+   * image, which is impossible for a fraction and made the metric useless for
+   * exactly the dark, moody images Swan generates most.
+   *
+   * So the totals count each PIXEL once — did it match any Swan anchor, did it
+   * match any discriminating retired anchor — while per-anchor hits are kept
+   * for the "which token dominates" readout.
+   */
+  let swanPixels = 0;
+  let retiredPixels = 0;
+  const scoringRetired = retiredAll.filter((r) => r.discriminating);
   for (let i = 0; i + 2 < rgb.length; i += step) {
     const px = { r: rgb[i], g: rgb[i + 1], b: rgb[i + 2] };
     n += 1;
-    for (const a of anchors) if (colorDistance(px, a.rgb) <= radius) a.hits += 1;
+    let hitSwan = false;
+    let hitRetired = false;
+    for (const a of anchors) {
+      if (colorDistance(px, a.rgb) <= radius) {
+        a.hits += 1;
+        if (!a.retired) hitSwan = true;
+      }
+    }
+    for (const r of scoringRetired) if (colorDistance(px, r.rgb) <= radius) hitRetired = true;
+    if (hitSwan) swanPixels += 1;
+    if (hitRetired) retiredPixels += 1;
   }
 
   const cover = (a) => ({
@@ -239,9 +264,10 @@ export function paletteAudit(input, opts = {}) {
   });
   const swan = swanAnchors.map(cover).sort((x, y) => y.coverage - x.coverage);
   const retired = retiredAll.map(cover).sort((x, y) => y.coverage - x.coverage);
-  // Only DISCRIMINATING anchors count toward the verdict.
+  // Only DISCRIMINATING anchors count toward the verdict, and the totals are
+  // per-PIXEL unions computed above — never sums of overlapping anchors.
   const scoring = retired.filter((r) => r.discriminating);
-  const retiredTotal = scoring.reduce((s, r) => s + r.coverage, 0);
+  const retiredTotal = n ? retiredPixels / n : 0;
 
   return {
     decoded: true,
@@ -250,7 +276,7 @@ export function paletteAudit(input, opts = {}) {
     sampled: n,
     averageHex: toHex(avg),          // informational only — never a verdict
     average: avg,
-    swanCoverage: Number(swan.reduce((s, r) => s + r.coverage, 0).toFixed(4)),
+    swanCoverage: Number((n ? swanPixels / n : 0).toFixed(4)),
     topSwan: swan[0],
     retiredCoverage: Number(retiredTotal.toFixed(4)),
     topRetired: scoring[0] ?? null,

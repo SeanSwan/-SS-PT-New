@@ -27,6 +27,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { imageDimensions } from '../imageDimensions.mjs';
 import { aspectDeviation, ASPECT_TOLERANCE } from '../aspect.mjs';
+import { withRetry } from './transportRetry.mjs';
 
 /**
  * THE IMAGE API — not chat/completions.
@@ -145,7 +146,21 @@ export async function generate(compiled, opts = {}) {
   const seedSent = Number.isInteger(opts.seed) ? opts.seed
     : (Number.isInteger(compiled?.params?.seed) ? compiled.params.seed : null);
 
-  const res = await fetchImpl(ENDPOINT, {
+  const requestBody = {
+    model,
+    prompt: compiled.promptText,
+    // Aspect ratio is a PARAMETER here, which is the entire point. Providers
+    // clamp to their nearest supported tier (Gemini returns 1376x768 = 1.792
+    // rather than exactly 1.778); GPT returns 1536x864 = 1.778 exactly.
+    aspect_ratio: aspectOf(compiled),
+    resolution: opts.resolution || '1K',
+    n: 1,
+    ...(seedSent === null ? {} : { seed: seedSent }),
+  };
+
+  // Retry policy lives in transportRetry.mjs: 5xx and thrown transport errors
+  // are retried, 4xx never is. A 400 is a statement about the prompt's shape.
+  const { res, retries } = await withRetry(() => fetchImpl(ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -153,19 +168,9 @@ export async function generate(compiled, opts = {}) {
       'HTTP-Referer': 'https://sswanstudios.com',
       'X-Title': 'SwanStudios Forge',
     },
-    body: JSON.stringify({
-      model,
-      prompt: compiled.promptText,
-      // Aspect ratio is a PARAMETER here, which is the entire point. Providers
-      // clamp to their nearest supported tier (Gemini returns 1376x768 = 1.792
-      // rather than exactly 1.778); GPT returns 1536x864 = 1.778 exactly.
-      aspect_ratio: aspectOf(compiled),
-      resolution: opts.resolution || '1K',
-      n: 1,
-      ...(seedSent === null ? {} : { seed: seedSent }),
-    }),
+    body: JSON.stringify(requestBody),
     signal: AbortSignal.timeout(timeoutMs),
-  });
+  }), opts);
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
@@ -262,6 +267,8 @@ export async function generate(compiled, opts = {}) {
     promptStyle: compiled.promptStyle,
     seed: compiled.seed,
     seedSent,
+    // Recorded, not hidden: a generation that needed help says so.
+    retries,
     brainVersion: compiled.brainVersion,
   };
 }
