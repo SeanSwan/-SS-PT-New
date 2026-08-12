@@ -140,6 +140,22 @@ test('no false positives on legitimate Swan vocabulary', () => {
   }
 });
 
+test('REGRESSION: the `negative` slot is EXEMPT — it exists to name banned things', () => {
+  // Found when the compiler first ran: the negative prompt legitimately contains
+  // every kill-list term, so scanning it made every lawful compile self-reject.
+  // A term here is an instruction to AVOID it — the desired behaviour, not a bypass.
+  const r = applyLaws({
+    ...clean,
+    negative: 'iridescent gradient, lens flare, causeless particles, glassmorphism, literal creature form',
+  });
+  assert.equal(r.passed, true);
+});
+
+test('the exemption is scoped to `negative` only — other slots still scanned', () => {
+  assert.equal(applyLaws({ material: 'iridescent gradient wash' }).passed, false);
+  assert.equal(applyLaws({ subject: 'a dragon' }).passed, false);
+});
+
 test('empty and partial slot maps do not crash', () => {
   assert.equal(applyLaws({}).passed, true);
   assert.equal(applyLaws({ subject: undefined, intent: '' }).passed, true);
