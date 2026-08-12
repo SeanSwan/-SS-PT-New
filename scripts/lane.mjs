@@ -55,7 +55,14 @@ function deliveryState() {
   if (!ref) return { branch, state: 'unknown (unsafe refname)', unpushed: 0 };
   const onRemote = Boolean(sh(`git rev-parse --verify --quiet origin/${ref}`));
   const mergedMain = Boolean(sh('git branch --remotes --contains HEAD --list origin/main'));
-  const unpushed = Number(sh(`git rev-list --count ${onRemote ? `origin/${ref}` : 'origin/main'}..HEAD`) ?? 0) || 0;
+  /* `?? 0` here was the incident's own bug class landing on the field the incident
+   * created: sh() returns null on FAILURE, and coercing that to 0 made a shallow
+   * clone (no merge base) report `Delivery: pushed-branch` while HEAD was
+   * arbitrarily far ahead. An agent reading that field to decide a branch is safe
+   * to abandon would be reading a lie. Failure is `unknown`, never a count. */
+  const rawCount = sh(`git rev-list --count ${onRemote ? `origin/${ref}` : 'origin/main'}..HEAD`);
+  if (rawCount === null) return { branch, state: 'unknown (count unavailable)', unpushed: 0, onRemote };
+  const unpushed = Number(rawCount) || 0;
   let state = 'local-commit';
   if (mergedMain) state = 'merged-to-main';
   else if (onRemote && unpushed === 0) state = 'pushed-branch';
@@ -114,6 +121,12 @@ Notes for other agents: ${flag('notes', '—')}
 function release() {
   if (!existsSync(LANE_PATH)) { console.log('[lane] no lane to release.'); return; }
   const d = deliveryState();
+  /* release() is a read-modify-write; tmp+rename makes each WRITE atomic but not
+   * the sequence. A concurrent claim() landing between the read and the rename
+   * would be silently overwritten — the new locks vanish while claim already
+   * printed "claimed". Same-lane concurrency is real here (a Stop hook releasing
+   * while the main loop re-claims), so re-stat before committing the write. */
+  const mtimeAtRead = statSync(LANE_PATH).mtimeMs;
   const src = readFileSync(LANE_PATH, 'utf8');
   // CRLF-tolerant. A bare-\n pattern silently no-ops on a hand-edited CRLF lane,
   // leaving every lock in place while printing "released" — phantom locks for
@@ -146,6 +159,11 @@ function release() {
     .filter((l) => l.trim().startsWith('- ') && !/\(released\)/.test(l));
   if (head === -1 || leftover.length) {
     console.error('[lane] WARNING: lock list may not have cleared — verify the lane file by hand.');
+  }
+  if (statSync(LANE_PATH).mtimeMs !== mtimeAtRead) {
+    console.error('[lane] ABORTED release: the lane changed while I was reading it — a concurrent');
+    console.error('[lane] claim would have been erased. Nothing written. Re-run to release.');
+    process.exit(3);
   }
   atomicWrite(LANE_PATH, `${cleared}\nOutcome: ${flag('outcome', '—')}\n`);
   logActivity(`${new Date().toISOString()} RELEASE ${ME.agent}@${ME.slug} :: ${flag('outcome', '—')} :: delivery=${d.state}`);

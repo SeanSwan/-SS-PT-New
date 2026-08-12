@@ -33,6 +33,8 @@ const EXECUTES_ON_PUSH = [
   { re: /\.sql$/i, what: 'raw SQL' },
   { re: /^render\.yaml$/i, what: 'deploy manifest — changes the build/migrate command itself' },
   { re: /(^|\/)package\.json$/i, what: 'package.json — postinstall/engines run at build' },
+  { re: /(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml)$/i, what: 'lockfile — repoints what npm install executes at build' },
+  { re: /(^|\/)\.npmrc$/i, what: '.npmrc — controls the registry npm install pulls from' },
   { re: /^\.github\/workflows\//i, what: 'CI workflow — executes on push' },
   { re: /(^|\/)Dockerfile$/i, what: 'container build' },
 ];
@@ -68,6 +70,12 @@ function main() {
 
   /* An explicit refspec, --all, or a tag push means the range below (which is
    * HEAD-based) is NOT what is being pushed. Disclose rather than mislead. */
+  /* PreToolUse fires BEFORE the command runs, so every fact below describes the
+   * CURRENT branch. `git checkout main && git push` — a routine compound command —
+   * would be analysed against the feature branch: not deploy-linked, wrong diff,
+   * reassuring silence on a push to main. Detect the switch and say the analysis
+   * cannot be trusted. */
+  const switchesBranch = /\b(checkout|switch|merge|reset|rebase)\b[\s\S]*\bpush\b/i.test(bare);
   const explicitRefspec = /\s\S+:\S+/.test(bare) || /\s--all\b|\s--tags\b|\s--mirror\b/i.test(bare);
 
   let changed = null;
@@ -97,7 +105,7 @@ function main() {
         if (file === mine) continue;
         const p = resolve(ledger, file);
         if ((Date.now() - statSync(p).mtimeMs) / 60000 > FRESH_MIN) continue;
-        for (const lock of parseLane(readFileSync(p, 'utf8')).locks) {
+        for (const lock of parseLane(readFileSync(p, 'utf8'), resolve(ledger, '..', '..')).locks) {
           if (changed.some((c) => lockMatches(c, lock))) {
             lockClash.push(`${file.replace('.lane.md', '')} :: ${lock}`);
           }
@@ -106,11 +114,15 @@ function main() {
     }
   } catch { /* advisory only */ }
 
-  if (!hits.length && !forced && !leased && !lockClash.length && !rangeNote && !explicitRefspec) return;
+  if (!hits.length && !forced && !leased && !lockClash.length && !rangeNote && !explicitRefspec && !switchesBranch) return;
 
   const out = ['⚠ PUSH BLAST RADIUS — read before you confirm this push.', ''];
   out.push(`branch: ${branch || '(unknown)'}${targetsDeployRef ? '   ⚠ DEPLOY-LINKED' : ''}`);
   if (rangeNote) out.push(`🟠 ${rangeNote}  Treat the file list below as INCOMPLETE.`);
+  if (switchesBranch) {
+    out.push('🟠 this command changes branch before pushing. Everything below describes the');
+    out.push('   CURRENT branch, not the one that will be pushed. Treat it as UNVERIFIED.');
+  }
   if (explicitRefspec) {
     out.push('🟠 this push names an explicit refspec / --all / --tags. The file list below is');
     out.push('   computed from HEAD and may describe DIFFERENT commits than the ones pushed.');
@@ -136,5 +148,13 @@ function main() {
   console.error(out.join('\n'));
 }
 
-try { main(); } catch { /* fail-open: never break a push on this hook's own bug */ }
+try {
+  main();
+} catch (err) {
+  /* Fail-OPEN so this hook can never break a push — but not fail-SILENT. A thrown
+   * bug used to exit 0 with no output, indistinguishable from "nothing to warn
+   * about", which is the reports-success-while-doing-nothing class this whole
+   * system exists to kill. */
+  console.error(`⚠ push blast-radius check FAILED to run (${err?.code || err?.message}) — this push is UNCHECKED.`);
+}
 process.exit(0);

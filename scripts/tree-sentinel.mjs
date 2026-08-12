@@ -130,7 +130,7 @@ for (const file of laneFiles) {
    * release() rewrite bumps it) — it is simply harder to get wrong by accident,
    * which is the actual failure mode here. Advisory either way. */
   const ageMin = Math.round((Date.now() - statSync(lanePath).mtimeMs) / 60000);
-  const { locks } = parseLane(readFileSync(lanePath, 'utf8'));
+  const { locks } = parseLane(readFileSync(lanePath, 'utf8'), `${LEDGER_DIR}/../..`);
   // Back-compat: `laneLocks[agent]` keeps its original string | string[] shape for
   // any existing --json consumer; freshness rides alongside in `laneAges`.
   lanes[agent] = locks.length ? locks : 'released';

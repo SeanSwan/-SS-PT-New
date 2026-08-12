@@ -21,6 +21,12 @@ import { createHash } from 'node:crypto';
  *  duplicated as a bare 120 in two files. */
 export const FRESH_MIN = 120;
 
+/** Conventional extensionless files that are real lock targets. `Dockerfile` is in
+ *  the push hook's executes-on-deploy list, so dropping it was the worst case. */
+export const EXTENSIONLESS = new Set([
+  'Dockerfile', 'Makefile', 'README', 'LICENSE', 'Procfile', 'Jenkinsfile', 'CODEOWNERS', '.env',
+]);
+
 /** Run git. Returns null on failure — NEVER '' — so callers can distinguish
  *  "empty result" from "command failed". Conflating those made the push hook
  *  fail-open: a failed `git diff` produced an empty file list and the guard
@@ -75,7 +81,7 @@ export function identity(cwd = process.cwd()) {
   let slug = 'main';
   if (!isMain) {
     const full = normPath(top || cwd);
-    const short = createHash('sha1').update(full.toLowerCase()).digest('hex').slice(0, 6);
+    const short = createHash('sha1').update(full.toLowerCase()).digest('hex').slice(0, 10);
     slug = `${basename(full)}-${short}`;
   }
   return { agent, top: normPath(top || cwd), isMain, slug, laneName: `${agent}--${slug}.lane.md` };
@@ -92,7 +98,7 @@ export function safeRef(ref) {
 
 /** Parse one lane file's body. CRLF-tolerant everywhere: these files are written
  *  by tools AND edited by hand, and a bare-\n assumption silently no-ops. */
-export function parseLane(src) {
+export function parseLane(src, root = null) {
   /* Line-wise, deliberately — TWICE now this logic was written as one clever regex
    * and both times `$` inside a lookahead under the /m flag (where `$` means
    * end-of-LINE, not end-of-string) made the lazy quantifier stop at the first
@@ -112,22 +118,55 @@ export function parseLane(src) {
       body.push(all[i]);
     }
   }
+  /* FORMAT-AGNOSTIC, and it has to be. Requiring a `- ` bullet made a real lane
+   * parse to ZERO locks: the live claude.lane.md listed its locked paths inside a
+   * fenced code block, so an entire locked directory tree was invisible to every
+   * consumer. Agents also write `*`/`+` bullets, numbered lists and `- [ ]`
+   * checkboxes. Accept any line, strip whatever list/fence decoration it carries,
+   * and let the path-shape test below decide — that test is what keeps prose out,
+   * so being liberal about decoration costs nothing.
+   *
+   * The path-shape test is load-bearing in the other direction: agents write prose
+   * bullets in the lock section ("- I work in an isolated worktree and rebase onto
+   * origin/main before each push,") which rendered verbatim under "DO NOT edit
+   * these". It also drops the `(released)` / `(none declared yet)` placeholders
+   * that release() and claim() write. An entry that cannot match a file path
+   * cannot do a lock's job, and false locks are what train a reader to ignore the
+   * digest. Trailing commentary is dropped: "docs/x.md (new, mine only)" → "docs/x.md". */
   const locks = body.map((l) => l.trim())
-    // `\(` is load-bearing: release() writes `- (released)` and claim() writes
-    // `- (none declared yet)`. Without it a RELEASED lane renders under
-    // "DO NOT edit these" — a false lock, and false locks are what get a digest ignored.
-    .filter((l) => l.startsWith('- ') && !/^-\s*[`'"*]*\s*(nothing|none|_|\()/i.test(l))
-    .map((l) => l.replace(/^-\s*/, '').replace(/[`*]/g, '').trim())
+    .filter((l) => l && !/^```/.test(l))
+    .map((l) => l
+      .replace(/^(?:[-*+]\s+|\d+[.)]\s+)/, '')   // bullet or numbered marker
+      .replace(/^\[[ xX]\]\s*/, '')               // checkbox
+      // Strip backticks only. `*` is NOT decoration here — it is glob syntax
+      // (`docs/x/**`, `services/contentStudio*`), and stripping it silently
+      // narrowed a directory-wide claim to a single nonexistent path. Markdown
+      // bold like `**Nothing.**` survives this but is dropped by the path test.
+      .replace(/`/g, '')
+      .trim())
+    // A bullet may list several comma-separated files ("- a.ts, b.ts").
+    .flatMap((l) => l.split(','))
+    .map((l) => l.trim().replace(/^["']|["']$/g, '').split(/\s+/)[0].replace(/[,;:]+$/, ''))
+    /* Strip a fully-wrapped `**bold**` TOKEN. This has to run on the token, not the
+     * line: `- **Nothing.** Every slice is pushed.` is not wrapped as a whole, but
+     * its first token is — and because `*` is kept for globs, that token otherwise
+     * passed the shape test and rendered as a lock. */
+    .map((l) => l.replace(/^\*\*(.+?)\*\*$/, '$1'))
+    .map((l) => l.replace(/^\.\//, ''))   // "./src/a.ts" never matched a repo-relative path
     .filter(Boolean)
-    /* Keep only the path token, and only if it LOOKS like a path. Agents write
-     * prose bullets inside the lock section ("- I work in an isolated worktree and
-     * rebase onto origin/main before each push,"), which rendered verbatim under
-     * "DO NOT edit these" — a false lock. False locks are precisely what train a
-     * reader to ignore the digest, and an entry that cannot match a file path
-     * cannot do a lock's job anyway. Trailing commentary is dropped:
-     * "docs/x.md (new, my worktree only)" → "docs/x.md". */
-    .map((l) => l.split(/\s+/)[0].replace(/[,;]$/, ''))
-    .filter((l) => /[/\\]/.test(l) || /\.[A-Za-z0-9]{1,6}$/.test(l))
+    .filter((l) => !/^\(/.test(l))
+    /* Shape test, plus two escape hatches. The shape test alone silently dropped
+     * the BROADEST locks an agent can declare — `- docs`, `- backend`, and
+     * crucially `- Dockerfile`, which is itself in the push hook's
+     * executes-on-deploy list. The ledger would have reported "clear" on exactly
+     * the files that trigger a production migration. Extensionless real paths are
+     * admitted by an existence check when we know the repo root, and by a small
+     * list of conventional extensionless files when we do not. Prose still fails
+     * all three ("work", "isolated", "rebase" are neither paths nor files). */
+    .filter((l) => /[/\\*]/.test(l)
+      || /\.[A-Za-z0-9]{1,6}$/.test(l)
+      || EXTENSIONLESS.has(l)
+      || (root && existsSync(resolve(root, l))))
     .map((l) => l.slice(0, 120)); // lane files are untrusted input
   const heads = [...src.matchAll(/^#{1,6}\s+(.+)$/gm)].map((h) => h[1].trim())
     .filter((h) => !/EDITING NOW/i.test(h));
@@ -138,9 +177,10 @@ export function parseLane(src) {
 /** Every lane in the canonical ledger, with freshness from file mtime. */
 export function readLanes(ledger, selfName = null) {
   if (!ledger || !existsSync(ledger)) return [];
+  const root = resolve(ledger, '..', '..');
   return readdirSync(ledger).filter((f) => f.endsWith('.lane.md')).map((file) => {
     const path = resolve(ledger, file);
-    const { locks, task } = parseLane(readFileSync(path, 'utf8'));
+    const { locks, task } = parseLane(readFileSync(path, 'utf8'), root);
     return {
       file,
       self: file === selfName,
@@ -156,8 +196,19 @@ export function readLanes(ledger, selfName = null) {
  *  may use backslashes or different casing. Supports `dir/**` and `dir/*`. */
 export function lockMatches(changedPath, lock) {
   const c = normPath(changedPath).toLowerCase();
-  const raw = normPath(lock).toLowerCase().replace(/^["']|["']$/g, '');
-  const stem = raw.replace(/\/\*+.*$/, '').replace(/\/+$/, '');
+  const raw = normPath(lock).toLowerCase().replace(/^["']|["']$/g, '').replace(/^\.\//, '');
+  if (raw.includes('*')) {
+    /* Compile the glob rather than prefix-matching it. Prefix-only made
+     * `src/*.js` lock the whole of `src/`, discarding the extension constraint —
+     * an over-report, and over-reports are what get a digest ignored. `**`
+     * crosses directory separators; a single `*` does not. */
+    const esc = (lit) => lit.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+    const body = raw.split('**')
+      .map((seg) => seg.split('*').map(esc).join('[^/]*'))
+      .join('.*');
+    return new RegExp(`^${body}(?:/.*)?$`).test(c);
+  }
+  const stem = raw.replace(/\/+$/, '');
   if (!stem) return false;
-  return c === raw || c === stem || c.startsWith(`${stem}/`);
+  return c === stem || c.startsWith(`${stem}/`);
 }
