@@ -21,12 +21,12 @@ import {
   NO_ISSUES,
   compactIssues,
   createCrawlState,
-  flushCrawlReport,
   formatCoverageLine,
   overTruncationBudget,
   summarizeCoverage,
   type CrawlIssueState,
 } from './production-dashboard-crawl.report';
+import { flushCrawlReport } from './crawlWorklist';
 
 const ROUTES = ['/a', '/b', '/c', '/d'];
 

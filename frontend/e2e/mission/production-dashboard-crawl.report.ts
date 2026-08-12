@@ -16,13 +16,25 @@
  * dropped.
  */
 
-import { writeFileSync } from 'node:fs';
-import type { TestInfo } from '@playwright/test';
 
 export type DashboardRole = 'admin' | 'trainer' | 'client' | 'user';
 
 /** Terminal status for a single route. `unreached` is derived, never assigned. */
 export type RouteStatus = 'visited' | 'failed';
+
+/**
+ * Half-open [start, end) indices into each issue array, marking what this route
+ * contributed. Console/network events arrive on page-level listeners with no
+ * route attached, so the crawl records where each route's slice begins and ends
+ * instead. Without this a worklist can say "TypeError: x is undefined" but not
+ * WHICH page produced it, which is the one thing a repairer needs.
+ */
+export interface IssueSpan {
+  consoleErrors: [number, number];
+  pageErrors: [number, number];
+  requestFailures: [number, number];
+  readFailures: [number, number];
+}
 
 export interface RouteResult {
   route: string;
@@ -31,6 +43,27 @@ export interface RouteResult {
   clicks: number;
   /** Present only when status === 'failed'. */
   error?: string;
+  span?: IssueSpan;
+}
+
+/** Snapshot the current lengths, to be closed into a span after the route runs. */
+export function markIssueCursor(state: CrawlIssueState): IssueSpan {
+  return {
+    consoleErrors: [state.consoleErrors.length, state.consoleErrors.length],
+    pageErrors: [state.pageErrors.length, state.pageErrors.length],
+    requestFailures: [state.requestFailures.length, state.requestFailures.length],
+    readFailures: [state.readFailures.length, state.readFailures.length],
+  };
+}
+
+/** Close a span at the current lengths, capturing everything the route emitted. */
+export function closeIssueCursor(state: CrawlIssueState, start: IssueSpan): IssueSpan {
+  return {
+    consoleErrors: [start.consoleErrors[0], state.consoleErrors.length],
+    pageErrors: [start.pageErrors[0], state.pageErrors.length],
+    requestFailures: [start.requestFailures[0], state.requestFailures.length],
+    readFailures: [start.readFailures[0], state.readFailures.length],
+  };
 }
 
 export interface CrawlIssueState {
@@ -191,42 +224,3 @@ export const NO_ISSUES: ActionableIssues = {
   routeFailures: [],
   unreachedRoutes: [],
 };
-
-/**
- * Write the report to the test output directory. Called after EVERY route, so a
- * hard crash still leaves complete evidence for everything already crawled.
- * Never throws — a reporting failure must not mask a crawl finding.
- */
-export function flushCrawlReport(
-  testInfo: TestInfo,
-  state: CrawlIssueState,
-  role: DashboardRole,
-  allRoutes: string[],
-): string | null {
-  const path = testInfo.outputPath(`dashboard-crawl-${role}.json`);
-  try {
-    const summary = summarizeCoverage(role, allRoutes.length, state);
-    writeFileSync(
-      path,
-      JSON.stringify({ summary, ...state, actionable: compactIssues(state, allRoutes) }, null, 2),
-      'utf-8',
-    );
-    return path;
-  } catch {
-    return null;
-  }
-}
-
-/** Attach the final report to the Playwright run. Safe to call after flushing. */
-export async function attachCrawlReport(
-  testInfo: TestInfo,
-  state: CrawlIssueState,
-  role: DashboardRole,
-  allRoutes: string[],
-) {
-  const summary = summarizeCoverage(role, allRoutes.length, state);
-  await testInfo.attach(`dashboard-crawl-${role}.json`, {
-    body: JSON.stringify({ summary, ...state, actionable: compactIssues(state, allRoutes) }, null, 2),
-    contentType: 'application/json',
-  });
-}

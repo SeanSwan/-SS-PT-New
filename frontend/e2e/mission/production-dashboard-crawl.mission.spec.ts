@@ -5,31 +5,27 @@
  * clicks safe navigation/tab/menu controls, blocks write methods, and reports
  * console/page/network failures with enough context to repair the live surface.
  *
- * SLICE 0 (2026-08-11) — durability + honest coverage. Four defects fixed:
- *   1. A throw on any route aborted the remaining routes AND discarded the
- *      report (it was attached after the loop). Each route is now isolated and
- *      the report is flushed to disk after every one.
- *   2. Interaction truncation at `maxClicksPerRoute` was silent. It is now an
- *      explicit finding naming the count not exercised.
- *   3. Missing auth state silently skipped, so an untested run reported green.
- *      It is now a hard failure unless explicitly opted out of.
- *   4. Coverage was never reported. `visited / total` is now always printed and
- *      routes the crawl never reached fail the assertion.
+ * SLICE 0 (2026-08-11) — per-route isolation, crash-durable report, truncation as
+ * a failing finding, missing auth as a hard failure, always-printed coverage.
+ * SLICE 1 (2026-08-12) — ranked repair list with route attribution and expiring
+ * suppressions. Rationale in production-dashboard-crawl.report.ts + crawlWorklist.ts.
  */
 
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
 import { roleRoutes, type DashboardRole } from './production-dashboard-crawl.routes';
 import {
   NO_ISSUES,
-  attachCrawlReport,
+  closeIssueCursor,
   compactIssues,
   createCrawlState,
-  flushCrawlReport,
   formatCoverageLine,
+  markIssueCursor,
   overTruncationBudget,
   summarizeCoverage,
   type CrawlIssueState,
 } from './production-dashboard-crawl.report';
+import { attachCrawlReport, buildWorklist, flushCrawlReport, formatWorklist } from './crawlWorklist';
+import { QA_SUPPRESSIONS } from './qaSuppressions';
 
 test.describe.configure({ retries: 0 });
 
@@ -55,9 +51,8 @@ const networkIdleTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_NETWORK_IDL
 const settleDelayMs = Number(process.env.SWAN_DASHBOARD_CRAWL_SETTLE_MS || '125');
 
 /**
- * Escape hatch for partial runs (e.g. only an admin auth state is available).
- * Defaults OFF: strict is the correct default, because a silently skipped crawl
- * is indistinguishable from a passing one in CI summary output.
+ * Escape hatch for partial runs. Defaults OFF: a silently skipped crawl is
+ * indistinguishable from a passing one in CI summary output.
  */
 const allowMissingAuth = process.env.SWAN_DASHBOARD_CRAWL_ALLOW_MISSING_AUTH === '1';
 
@@ -227,10 +222,9 @@ function declareRoleCrawl(role: DashboardRole) {
       expect(process.env.SWAN_MISSION_QA_ALLOW_WRITES || '0').toBe('0');
 
       const routes = roleRoutes[role];
-      // An empty route table would satisfy every other assertion vacuously and
-      // report `0/0 routes visited · complete` — the same "green on nothing"
-      // failure as a missing auth state. The manifest decaying to empty must be
-      // loud, not a pass.
+      const today = new Date().toISOString().slice(0, 10);
+      // An empty route table satisfies every other assertion vacuously and reports
+      // `0/0 · complete` — the same green-on-nothing failure as missing auth.
       expect(
         routes.length,
         `${role}: route table is empty. A crawl with no routes would report success `
@@ -241,20 +235,25 @@ function declareRoleCrawl(role: DashboardRole) {
       await installReadOnlyGuard(page, state);
 
       for (const route of routes) {
-        // Fix 1: one bad route can no longer end the crawl or destroy evidence.
-        try {
+        // Console/network listeners fire without route context, so bracket each
+        // route to attribute what it emitted (Slice 1 — a worklist must say WHERE).
+        const cursor = markIssueCursor(state);
+        try {  // Fix 1: one bad route cannot end the crawl or destroy evidence.
           const clicks = await crawlRoute(page, state, role, route, testInfo);
-          state.routeResults.push({ route, status: 'visited', clicks });
+          state.routeResults.push({
+            route, status: 'visited', clicks, span: closeIssueCursor(state, cursor),
+          });
         } catch (error) {
           state.routeResults.push({
             route,
             status: 'failed',
             clicks: 0,
             error: error instanceof Error ? error.message.split('\n')[0] : String(error),
+            span: closeIssueCursor(state, cursor),
           });
         }
-        // Fix 1 (cont.): crash-durable — evidence survives even a hard abort.
-        flushCrawlReport(testInfo, state, role, routes);
+        // Crash-durable: evidence survives even a hard abort.
+        flushCrawlReport(testInfo, state, role, routes, QA_SUPPRESSIONS, today);
       }
 
       const summary = summarizeCoverage(role, routes.length, state);
@@ -262,13 +261,21 @@ function declareRoleCrawl(role: DashboardRole) {
       // eslint-disable-next-line no-console
       console.log(formatCoverageLine(summary));
 
-      await attachCrawlReport(testInfo, state, role, routes);
+      // Slice 1: ranked repair list, not one enormous diff — the same defect on
+      // 30 routes collapses to a single row naming all 30.
+      const worklist = buildWorklist(state, role, QA_SUPPRESSIONS, today);
+      if (worklist.findings.length > 0) {
+        // eslint-disable-next-line no-console
+        console.log(`[dashboard-crawl] ${role} worklist:
+${formatWorklist(worklist.findings)}`);
+      }
 
-      // Fix 2: truncation FAILS by default. If it only reported, the cheapest way
-      // to keep the suite green would be to let pages outgrow the budget — the
-      // same incentive that produced the console-noise suppression list. The
-      // allowance is a number someone must deliberately raise, so coverage debt
-      // is visible and costed rather than silent.
+      await attachCrawlReport(testInfo, state, role, routes, QA_SUPPRESSIONS, today);
+
+      // Fix 2: truncation FAILS by default. Reporting alone would make letting
+      // pages outgrow the budget the cheapest path to green — the same incentive
+      // that grew the console-noise allowlist. The allowance must be raised
+      // deliberately, so coverage debt is visible and costed.
       const allowedTruncations = Number(process.env.SWAN_DASHBOARD_CRAWL_ALLOWED_TRUNCATIONS || '0');
       expect(
         overTruncationBudget(state.truncations, allowedTruncations),
