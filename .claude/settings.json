@@ -304,12 +304,29 @@
         ]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/push-blast-radius.mjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "node scripts/hooks/hermes-inbox-reminder.mjs"
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/lane-session-start.mjs",
+            "timeout": 15
           }
         ]
       }

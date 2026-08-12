@@ -23,7 +23,7 @@
  * Exit codes: 0 = ran (digest printed). 2 = git unavailable. Never fails on findings.
  */
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 
 const ROOT = process.cwd();
 const JSON_MODE = process.argv.includes('--json');
@@ -111,20 +111,31 @@ for (const [idx, wt] of worktrees.entries()) {
 }
 
 /* ---------- 3. Rule-67 lane locks ---------- */
+/* Was a hardcoded ['claude','codex'] resolved against process.cwd(). Two bugs:
+ * (a) ten lane files exist, so six agents' locks were invisible to the tool whose
+ * job is reporting locks; (b) cwd resolution reads a WORKTREE-LOCAL ledger, which
+ * is how nine published claims ended up unreadable. Glob the canonical ledger. */
+const LEDGER_DIR = (() => {
+  const common = sh('git rev-parse --path-format=absolute --git-common-dir') || sh('git rev-parse --git-common-dir');
+  return common ? `${common}/../.ai-workflow/coordination` : `${ROOT}/.ai-workflow/coordination`;
+})();
 const lanes = {};
-for (const agent of ['claude', 'codex']) {
-  const lanePath = `${ROOT}/.ai-workflow/coordination/${agent}.lane.md`;
-  if (!existsSync(lanePath)) {
-    lanes[agent] = 'no lane file';
-    continue;
-  }
+const laneFiles = existsSync(LEDGER_DIR)
+  ? readdirSync(LEDGER_DIR).filter((f) => f.endsWith('.lane.md'))
+  : [];
+for (const file of laneFiles) {
+  const agent = file.replace(/\.lane\.md$/, '');
+  const lanePath = `${LEDGER_DIR}/${file}`;
+  /* Freshness from mtime, not the agent-authored `Updated:` prose — a model can
+   * hallucinate a timestamp; it cannot fake an mtime. */
+  const ageMin = Math.round((Date.now() - statSync(lanePath).mtimeMs) / 60000);
   const src = readFileSync(lanePath, 'utf8');
   const section = src.split(/EDITING NOW/i)[1]?.split(/\n#{1,3}\s/)[0] ?? '';
   const locked = section
     .split('\n')
     .map((l) => l.trim())
-    .filter((l) => l.startsWith('- ') && !/^- Nothing/i.test(l));
-  lanes[agent] = locked.length ? locked : 'released';
+    .filter((l) => l.startsWith('- ') && !/^-\s*(Nothing|None|\()/i.test(l));
+  lanes[agent] = locked.length ? { ageMin, locked } : { ageMin, locked: 'released' };
 }
 
 /* ---------- output ---------- */
@@ -167,9 +178,13 @@ if (JSON_MODE) {
       console.log(`  +${w.ahead} ahead, ${d}  ${w.branch}  ${w.path}`);
     }
   }
-  console.log(`\nLane locks:`);
+  console.log(`\nLane locks (canonical ledger — all sessions):`);
+  if (!Object.keys(lanes).length) console.log('  (no lane files)');
   for (const [agent, v] of Object.entries(lanes)) {
-    console.log(`  ${agent}: ${Array.isArray(v) ? `\n    ${v.join('\n    ')}` : v}`);
+    const fresh = v.ageMin <= 120 ? 'LIVE' : `stale ${v.ageMin}m`;
+    console.log(
+      `  ${agent} [${fresh}]: ${Array.isArray(v.locked) ? `\n    ${v.locked.join('\n    ')}` : v.locked}`,
+    );
   }
   console.log(
     `\n(read-only digest — cleanup of MERGED-CLEAN candidates stays Sean-gated per Rule 34; see Linear SWA-11)`,
