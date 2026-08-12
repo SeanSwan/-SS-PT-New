@@ -345,7 +345,17 @@ export function findOffset(referenceSamples, targetSamples, {
   //
   // This instead answers the only question a reviewer asks: how close was this to being
   // refused. 1.0 sits exactly on the boundary; below 1.0 it IS refused; higher is safer.
-  const marginToRefusal = Math.min(peak / 0.3, prominence / 0.1);
+  const peakMargin = peak / 0.3;
+  const prominenceMargin = prominence / 0.1;
+  const marginToRefusal = Math.min(peakMargin, prominenceMargin);
+
+  // WHICH TERM BINDS. min() hides whether the peak or the prominence is the thing
+  // nearly failing, and those call for different operator actions: a peak-limited
+  // result means widen the window or supply better audio, a prominence-limited one
+  // means suspect periodic content (music bed, hum, metronome). Derived here rather
+  // than stored as a label because near the boundary noise flips which term is
+  // smaller, so it must reflect the values actually returned.
+  const bindingTerm = peakMargin <= prominenceMargin ? 'peak' : 'prominence';
 
   // BOUNDARY HIT — the strongest available evidence that the TRUE peak lies outside
   // the search window. A DJI recorder left running between takes routinely produces
@@ -387,6 +397,7 @@ export function findOffset(referenceSamples, targetSamples, {
     peak,
     prominence,
     marginToRefusal,
+    bindingTerm,
     usable: reason === null,
     reason,
     // How far the search could actually reach, and whether that fell short of what
