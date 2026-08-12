@@ -154,9 +154,10 @@ test('the seed capability is RESOLVED by probe, not left claimed', () => {
   // Probed 2026-08-12 on three live generations: same prompt + same seed gave
   // different bytes. The parameter is accepted and does nothing.
   const caps = capabilities(DEFAULT_MODEL);
-  assert.equal(caps.supportsSeed, false);
-  assert.equal(caps.seedIsDeterministic, false);
-  assert.notEqual(caps.supportsSeed, 'claimed', 'a probed capability must not revert to claimed');
+  // Probed dead, then QUARANTINED: absent from the exposed surface entirely.
+  assert.equal(caps.supportsSeed, undefined);
+  assert.equal(caps.seedIsDeterministic, undefined);
+  assert.equal(Object.hasOwn(caps, 'supportsSeed'), false, 'unrepresentable, not merely falsy');
   // And the consequence: the compiler must not put a seed in params.
   const compiled = compileImage(BRIEF, caps);
   assert.equal(compiled.params.seed, undefined);
@@ -172,9 +173,10 @@ test('a PROBE may send a seed explicitly, and what was sent is what is recorded'
     assert.equal(sent[0].seed, 424242);
     assert.equal(res.seedSent, 424242);
     // Sending a parameter is not evidence it was honoured — which is exactly
-    // what the probe established here: the seed IS accepted and does nothing.
-    // The override stays, because it is how the next model gets probed too.
-    assert.equal(capabilities(DEFAULT_MODEL).seedIsDeterministic, false);
+    // what the probe established: the seed IS accepted and does nothing. The
+    // override stays, because it is how the NEXT model gets probed; but the
+    // capability itself is quarantined out of the compiler's reach.
+    assert.equal(capabilities(DEFAULT_MODEL).seedIsDeterministic, undefined);
   } finally { delete process.env.OPENROUTER_API_KEY; }
 });
 

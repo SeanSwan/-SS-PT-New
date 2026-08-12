@@ -64,6 +64,45 @@ export const MODELS = Object.freeze({
  * the tri-state exists to prevent — and the lie that cost this subsystem a full
  * session when a declared aspect ratio was never checked against the response.
  */
+/**
+ * QUARANTINE — capabilities that are NOT offered to the compiler.
+ *
+ * The tri-state did its job: it caught two capabilities that are accepted,
+ * billed, and inert. Now that they are settled, keeping `false` in the hot path
+ * is a loaded footgun with documentation — the compiler can still *see* a key
+ * for something proven to be a lie, and a future edit could read it as an option.
+ *
+ * So the resolved-dead capabilities live here, out of reach of `capabilities()`,
+ * where the compiler cannot import them. `caps.supportsSeed` is now `undefined`
+ * rather than `false`: unrepresentable, not merely falsy.
+ *
+ * The evidence stays with them, because "why is this quarantined" must survive
+ * longer than my memory of probing it.
+ */
+export const QUARANTINED_CAPABILITIES = Object.freeze({
+  supportsSeed: {
+    verdict: false, probedOn: '2026-08-12', probe: 'scripts/forge-seed-probe.mjs',
+    evidence: 'identical prompt + identical seed produced different bytes (3 arms + control); '
+      + 'parameter accepted, no 400, no effect',
+  },
+  seedIsDeterministic: {
+    verdict: false, probedOn: '2026-08-12', probe: 'scripts/forge-seed-probe.mjs',
+    // Stated, not cross-referenced. A pointer to a sibling entry is not evidence
+    // — the test that enforces this table caught exactly that shortcut.
+    evidence: 'arms A and B sent the identical prompt with seed 424242 and returned '
+      + 'sha a58a6b8d5a9e4792 vs 3ccf25fff1d0a726 — different images from identical inputs',
+  },
+  supportsImageInit: {
+    verdict: false, probedOn: '2026-08-12', probe: 'scripts/forge-i2i-influence.mjs',
+    evidence: 'blue input #002882 -> #fbde5e (yellow), identical to the no-input control '
+      + '#fcd158; accepted AND billed more ($0.006136 vs $0.003736) yet inert',
+  },
+  supportsInpainting: {
+    verdict: false, probedOn: null, probe: null,
+    evidence: 'never offered by this endpoint',
+  },
+});
+
 export function capabilities(model = DEFAULT_MODEL) {
   const spec = MODELS[model];
   if (!spec) {
@@ -77,58 +116,9 @@ export function capabilities(model = DEFAULT_MODEL) {
     promptStyle: spec.promptStyle,     // DECLARED, not inferred
     maxPromptChars: spec.maxPromptChars,
     supportedAspectRatios: ['1:1', '16:9', '9:16', '4:5'],
-    /**
-     * IMAGE-TO-IMAGE — RESOLVED to false by INFLUENCE PROBE, 2026-08-12.
-     * Journey: bare `true` (never probed) -> 'claimed' (accepted but untested)
-     * -> false (measured). Evidence: `scripts/forge-i2i-influence.mjs`.
-     *
-     * One prompt — "preserve the dominant colour of the supplied image exactly"
-     * — with three arms, output colour measured by decoding the returned pixels:
-     *
-     *   BLUE input  #002882  ->  output #fbde5e      (yellow)
-     *   AMBER input #d28c14  ->  output #f8c288
-     *   NO input    (control) ->  output #fcd158     (yellow)
-     *
-     * The blue-seeded output is YELLOW and lands essentially on top of the
-     * no-input control. The outputs do not track their inputs in any direction.
-     * The `image` parameter is ACCEPTED (HTTP 200, and it even bills more —
-     * $0.006136 vs $0.003736 — consistent with input tokens being counted) and
-     * is INERT, exactly like the seed parameter on the same endpoint.
-     *
-     * Two capabilities on this model now share that shape: billed, accepted,
-     * and without effect. Acceptance is not influence, and cost is not evidence
-     * of use either.
-     *
-     * CONSEQUENCE, already reflected in the architecture: "refine the winner"
-     * can only mean prompt-replay plus a fresh roll. The bracket was built that
-     * way, so this verdict confirms the design rather than changing it.
-     */
-    supportsImageInit: false,
-    supportsInpainting: false,
-
-    /**
-     * SEED — resolved from 'claimed' to false by PROBE, 2026-08-12.
-     * Evidence: `scripts/forge-seed-probe.mjs`, 3 live generations on
-     * `openai/gpt-5.4-image-2`, identical prompt.
-     *
-     *   A  seed=424242  sha=a58a6b8d5a9e4792  2321148 B
-     *   B  seed=424242  sha=3ccf25fff1d0a726  2351454 B   <- same seed, DIFFERENT bytes
-     *   C  seed=999001  sha=a9cb1935100f77fe  1965924 B
-     *
-     * The parameter is ACCEPTED (no 400) and has no observable effect, which is
-     * the worst of the three possible answers: a rejection would at least be
-     * loud. Recorded as false rather than true-but-useless, because the only
-     * decision a caller makes from this flag is "is it worth sending", and it
-     * is not.
-     *
-     * CONSEQUENCE FOR THE CONVERGENCE LOOP: reproduction cannot be bought with a
-     * seed on this model. A winner is re-issued by keeping its exact PROMPT and
-     * accepting a new roll, or by image-to-image from the winning image itself.
-     * The run ledger stores prompt text for exactly this reason.
-     */
-    supportsSeed: false,
-    seedIsDeterministic: false,
-
+    // supportsSeed / seedIsDeterministic / supportsImageInit / supportsInpainting
+    // are NOT here. They are probed-false and live in QUARANTINED_CAPABILITIES
+    // above, unreachable from the compiler. See that table for the evidence.
     honorsNegativePrompt: 'claimed',
   };
 }

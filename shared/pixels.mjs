@@ -180,7 +180,7 @@ export const RETIRED_PRESENCE_THRESHOLD = 0.02;
  * anchor and flagged whichever was nearer. Run against four real generated
  * photographs it flagged all four as drifting to the retired Galaxy identity,
  * which is nonsense: a desaturated grey (#9095a0) is numerically closer to the
- * muted #7851A9 than to the more saturated Swan Lavender, so EVERY photograph
+ * muted retired purple than to the more saturated Swan Lavender, so EVERY photograph
  * fails. An average is a centroid, and a centroid is not a colour that appears
  * in the picture.
  *

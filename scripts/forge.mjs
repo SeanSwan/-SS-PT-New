@@ -15,7 +15,7 @@ import { compileImage } from '../shared/swanPromptCompiler.mjs';
 import { assertLawful } from '../shared/swanLawFilter.mjs';
 import { generate, capabilities } from '../shared/providers/openrouterImage.mjs';
 import { generateBracket, findVariant, saveImage } from '../shared/bracket.mjs';
-import { appendRun, readRuns, lineage } from '../shared/variantRun.mjs';
+import { appendRun, readRuns, lineage, markWinner } from '../shared/variantRun.mjs';
 import { refine as refineRecord } from '../shared/variantLineage.mjs';
 
 const argv = process.argv.slice(2);
@@ -56,6 +56,7 @@ function usage() {
 
   bracket "<brief text>" [--n 3] [--aspect 16:9] --confirm-spend
   pick    <variantId-prefix>
+  pick    <variantId-prefix> --winner        mark it as the chosen option
   refine  <variantId-prefix> "<what to change>" --confirm-spend
   list    [--brief <briefId>]
 
@@ -99,8 +100,16 @@ async function cmdBracket() {
 
 function cmdPick() {
   const v = findVariant(argv[1] || '', ROOT);
+  // --winner RECORDS the choice. Without it `pick` only ever printed, so the one
+  // quality signal this system has evaporated when the terminal scrolled.
+  if (argv.includes('--winner')) {
+    const w = markWinner(v.variantId, ROOT);
+    console.log(`marked WINNER: ${w.variantId}  (siblings in run ${w.runId || '—'} marked not-winner)
+`);
+  }
   const chain = lineage(v.variantId, readRuns(ROOT).runs);
-  console.log(`${v.variantId}  [${v.intent}]  ${v.status}`);
+  const fresh = findVariant(v.variantId, ROOT);
+  console.log(`${fresh.variantId}  [${fresh.intent}]  ${fresh.status}${fresh.winner ? '  ★ WINNER' : ''}`);
   console.log(`  image   ${v.imageRef || '(none)'}`);
   console.log(`  size    ${v.actualWidth}x${v.actualHeight}  (asked ${v.aspectRequested}${v.aspectOutOfTolerance ? ' — OUT OF TOLERANCE' : ''})`);
   console.log(`  cost    $${v.costUsd ?? '?'}  in ${v.wallMs}ms`);
@@ -175,7 +184,8 @@ function cmdList() {
     // about aspect deviation. `intent` is likewise absent on pre-v2 rows.
     const cost = typeof r.costUsd === 'number' ? `$${r.costUsd.toFixed(4)}` : '   ?    ';
     const intent = r.intent || '—';
-    console.log(`  ${r.variantId.slice(0, 10)}  ${intent.padEnd(6)}  ${r.status.padEnd(13)}  ${size.padEnd(10)}  ${cost}  ${r.imageRef || ''}`);
+    const star = r.winner ? ' ★' : '  ';
+    console.log(`  ${r.variantId.slice(0, 10)}${star} ${intent.padEnd(6)}  ${r.status.padEnd(13)}  ${size.padEnd(10)}  ${cost}  ${r.imageRef || ''}`);
   }
   console.log(`\n  ${rows.length} run(s), $${spend.toFixed(4)} across ${rows.length - unpriced} priced`
     + `${unpriced ? `, ${unpriced} with UNKNOWN cost (written before the cost field was fixed)` : ''}`

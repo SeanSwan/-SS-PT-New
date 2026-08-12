@@ -37,59 +37,12 @@ export { strategyFor, serializeFor, fitToBudget, SERIALIZERS };
  */
 export const BRAIN_VERSION = '0.2.0';
 
-/**
- * Curated facet vocabulary — deliberately ~60, not the full ~765 of the source
- * taxonomy. Ship what the LAWs actually reference; grow only when a direction
- * cannot be expressed. The taxonomy is a garden, not a foundation.
- */
-export const FACETS = Object.freeze({
-  'Temperature>Arctic':   { light: 'cold rim light, 5600K falling to blue in shadow', palette: 'ice wing cyan over midnight sapphire' },
-  // Ember must NOT reach for gold as a palette wash. LAW 2 allows gold only as a
-  // PR numeral, <=1px filigree, a focus ring, or one badge — so a warm direction
-  // is expressed as light temperature, never as metallic colour. The first
-  // version of this facet said "gilded fern warmth" and was correctly rejected
-  // by the LAW filter's own facet-lawfulness test.
-  'Temperature>Ember':    { light: 'low warm key, 2700K, deep falloff', palette: 'warm ember tones over obsidian, no metallics' },
-  'Mood>Subdued':         { material: 'matte surfaces, restrained contrast' },
-  'Mood>Moody':           { light: 'single source, most of the frame in shadow' },
-  'Mood>Dark':            { palette: 'obsidian dominant, one lit plane' },
-  'Mark>FineLines':       { medium: 'fine-line rendering, precise edges' },
-  'Mark>BroadStroke':     { medium: 'broad painterly strokes, visible mark-making' },
-  'Form>Geometric':       { composition: 'strict geometric construction, symmetrical' },
-  'Form>Patterns':        { composition: 'repeating modular pattern, seamless' },
-  'Form>Abstract':        { subject: '', composition: 'non-representational, pure phenomenon' },
-  'Form>Minimalist':      { composition: 'extreme negative space, single focal element' },
-  'Render>Realistic':     { medium: 'photograph', optics: 'full-frame, natural perspective' },
-  'Render>Cinematic':     { optics: 'anamorphic framing, shallow depth of field' },
-  'Render>Documentary':   { optics: '35mm, available light, unstaged' },
-  'Colour>BW':            { palette: 'monochrome, full tonal range, no colour cast' },
-  'Optics>Caustics':      { material: 'caustic light through crystal, real refraction' },
-  'Optics>Dispersion':    { material: 'spectral dispersion, red outside violet inside' },
-  'Optics>Interference':  { material: 'thin-film interference banding' },
-  'Scale>Macro':          { composition: 'extreme macro, subject fills frame' },
-  'Scale>Vast':           { composition: 'wide, human figure for scale or none at all' },
-  'Surface>Crystalline':  { material: 'faceted crystalline surfaces, internal reflection' },
-  'Surface>Frost':        { material: 'frost bloom, dendritic ice growth' },
-  'Surface>Metal':        { material: 'brushed metal, anisotropic highlight' },
-});
+// Vocabulary (FACETS / INTENT_DEFAULTS / SURFACE_RULES) lives in
+// swanVocabulary.mjs — DATA, not behaviour, same split as the model catalogue.
+// Imported for local use AND re-exported (bare `export ... from` binds nothing).
+import { FACETS, INTENT_DEFAULTS, SURFACE_RULES } from './swanVocabulary.mjs';
 
-// OPTICS (lens/stock/light picklists) removed at the rule-4 split: exported and
-// read by nothing. Recover from git if a facet ever needs it.
-
-const INTENT_DEFAULTS = {
-  hero:      { intent: 'full-bleed hero plate carrying the page', composition: 'single dominant gesture, generous negative space' },
-  substrate: { intent: 'background substrate beneath content', composition: 'low-contrast, nothing competing with text' },
-  texture:   { intent: 'tileable surface texture', output: 'seamless, edge-matched' },
-  icon:      { intent: 'small-scale mark, legible at 24px', composition: 'centred, high contrast' },
-  editorial: { intent: 'editorial illustration supporting a story', composition: 'asymmetric, one focal point' },
-  demo:      { intent: 'instructional demonstration frame', composition: 'clear, unobstructed, side view' },
-};
-
-/** Public surfaces get the full enchantment budget; in-app stays calm (LAW 6). */
-const SURFACE_RULES = {
-  'public':  { abstraction: 'high variety, one impossible phenomenon, cinematic' },
-  'in-app':  { abstraction: 'low variety, calm, nothing competing with data' },
-};
+export { FACETS };
 
 /**
  * The personification formula — slot 4's only legal form.
@@ -102,6 +55,27 @@ export function personify(artist, artistMedium, subject) {
   const med = String(artistMedium || 'work').trim();
   const what = String(subject || '').trim();
   return what ? `${who}'s ${med} depicting ${what}` : `${who}'s ${med}`;
+}
+
+/**
+ * A brief may ask for a capability this provider cannot honour. Both seed and
+ * image-init are accepted, BILLED, and inert here (probed 2026-08-12), so the
+ * request must fail loudly and name the evidence rather than quietly no-op.
+ */
+function requireCapability(brief, caps) {
+  const dead = [];
+  if (brief.requireSeed && !capOk(caps.seedIsDeterministic)) {
+    dead.push('seed — accepted and ignored; identical prompt + seed gave different bytes. '
+      + 'Reproduction here means replaying the exact prompt, which the ledger stores.');
+  }
+  if (brief.initImage && !capOk(caps.supportsImageInit)) {
+    dead.push('image-init — accepted, billed more, inert; a blue input produced a yellow '
+      + 'output identical to the no-input control. Refine by re-prompting.');
+  }
+  if (!dead.length) return;
+  const err = new Error(`E_CAPABILITY_UNAVAILABLE: ${dead.join(' | ')}`);
+  err.code = 'E_CAPABILITY_UNAVAILABLE';
+  throw err;
 }
 
 function capOk(value) {
@@ -231,6 +205,11 @@ export function compileImage(brief = {}, caps = {}) {
     err.code = 'E_EMPTY_PROMPT';
     throw err;
   }
+
+  // ASKING FOR A DEAD CAPABILITY IS AN ERROR, not a silent no-op. Silently
+  // ignoring the request is how a caller believes they got reproducibility they
+  // never had — the same lie as an unchecked aspect ratio.
+  requireCapability(brief, caps);
 
   const seed = Number.isInteger(brief.seed) ? brief.seed : seedFrom(promptText);
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { capabilities as apiCaps, MODELS } from '../../../shared/providers/openrouterModels.mjs';
+import { capabilities as apiCaps, MODELS, QUARANTINED_CAPABILITIES as QUARANTINED } from '../../../shared/providers/openrouterModels.mjs';
 import { capabilities as dropCaps } from '../../../shared/providers/dropFolderImage.mjs';
 
 /**
@@ -54,8 +54,14 @@ test('a PROBED capability records its verdict, and the probes that ran are pinne
   // Probed 2026-08-12 with real spend. If either flips back to 'claimed' or true
   // without a new probe, someone has undone evidence.
   const caps = apiCaps();
-  assert.equal(caps.supportsSeed, false, 'probe: same prompt + same seed gave different bytes');
-  assert.equal(caps.seedIsDeterministic, false);
+  // QUARANTINED, not merely false. A probed-dead capability is now absent from
+  // the exposed surface entirely — the compiler cannot see a key for something
+  // proven to be a lie. `false` in the hot path was a footgun with docs.
+  assert.equal(caps.supportsSeed, undefined, 'quarantined, not exposed as false');
+  assert.equal(caps.seedIsDeterministic, undefined);
+  assert.equal(QUARANTINED.supportsSeed.verdict, false);
+  assert.match(QUARANTINED.supportsSeed.evidence, /different bytes/);
+  assert.equal(QUARANTINED.supportsSeed.probedOn, '2026-08-12');
 
   // IMAGE-INIT: resolved 'claimed' -> false by the INFLUENCE probe the same day.
   // One prompt ("preserve the dominant colour of the supplied image exactly"),
@@ -66,13 +72,16 @@ test('a PROBED capability records its verdict, and the probes that ran are pinne
   // The blue-seeded output lands on top of the no-input control. The parameter
   // is accepted, BILLED MORE ($0.006136 vs $0.003736), and inert — so neither
   // acceptance nor cost is evidence of use.
-  assert.equal(caps.supportsImageInit, false,
-    'the influence probe measured no tracking between input and output');
+  assert.equal(caps.supportsImageInit, undefined, 'quarantined');
+  assert.equal(QUARANTINED.supportsImageInit.verdict, false);
+  assert.match(QUARANTINED.supportsImageInit.evidence, /billed more/);
 
-  // Two capabilities on this model now share that exact shape. If a third ever
-  // gets promoted, it needs an influence-style probe, not an acceptance one.
-  assert.equal(caps.supportsSeed, caps.supportsImageInit,
-    'seed and image-init are both accepted-and-inert');
+  // Every quarantined entry must carry its evidence — "why is this dead" has to
+  // outlive my memory of probing it.
+  for (const [name, q] of Object.entries(QUARANTINED)) {
+    assert.equal(q.verdict, false, `${name} must be a verdict, not a maybe`);
+    assert.ok(q.evidence && q.evidence.length > 20, `${name} needs stated evidence`);
+  }
 });
 
 test('drop-folder does not promise what its request sheet cannot ask for', () => {

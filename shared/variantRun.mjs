@@ -30,7 +30,7 @@
  *   keeps `supportsSeed: 'claimed'` from being read as a capability.
  */
 
-import { appendFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 // Imported for LOCAL use (line ~256 reads ASPECT_TOLERANCE) and separately
@@ -48,6 +48,12 @@ export const RECORD_VERSION = 2;
  * Bounded prompt storage. The ledger is an unencrypted file on disk; a record
  * should not become an unbounded sink for whatever a caller hands it. The hash
  * is computed over the FULL text, so truncation never breaks equality.
+ *
+ * PROVENANCE: bounded because real compiled prompts are OBSERVED at 375-410
+ * characters (measured across every generation in this ledger), and the provider
+ * caps prompts at 4000. 1024 leaves ~2.5x headroom over anything actually sent
+ * while keeping a 1000-row ledger near 1 MB rather than unbounded. Re-derive
+ * from measured prompt lengths if the compiler grows.
  */
 export const PROMPT_STORE_LIMIT = 1024;
 
@@ -195,6 +201,14 @@ export function buildRecord(input = {}) {
      * about two cents — was hashed, measured, and thrown away. The system could
      * describe what it made and could not show it.
      */
+    /**
+     * THE HUMAN'S VERDICT. `pick` used to only PRINT — the loop described a
+     * choice and never recorded one, so the one quality signal this system has
+     * (Sean's eye) evaporated the moment the terminal scrolled. Marking it makes
+     * "which options actually get chosen" a queryable fact, which is the only
+     * honest path to knowing whether the law filter correlates with taste.
+     */
+    winner: input.winner === true,
     imageRef: input.imageRef ?? null,
     imageSha: input.imageSha ?? null,
     imageBytes: input.imageBytes ?? null,
@@ -236,6 +250,34 @@ export function readRuns(root = process.cwd()) {
     try { runs.push(JSON.parse(line)); } catch { skipped += 1; }
   }
   return { runs, skipped };
+}
+
+/**
+ * Record a human's pick. Annotates an existing row rather than appending a new
+ * one: a verdict is not a generation, and appending would inflate the spend
+ * ledger with rows that cost nothing. Siblings in the same run are UNMARKED, so
+ * "the winner" stays singular per run.
+ */
+export function markWinner(variantId, root = process.cwd()) {
+  const p = join(root, LEDGER_FILE);
+  if (!existsSync(p)) throw new RunError('E_RUN_INVALID', 'No ledger to mark.');
+  const { runs } = readRuns(root);
+  const target = runs.find((r) => r.variantId === variantId);
+  if (!target) throw new RunError('E_RUN_INVALID', `No variant ${variantId}.`);
+
+  const out = readFileSync(p, 'utf8').split('\n').map((line) => {
+    if (!line.trim()) return line;
+    try {
+      const row = JSON.parse(line);
+      if (row.variantId === variantId) return JSON.stringify({ ...row, winner: true });
+      // Same run, different variant: it lost. Explicit, so a stale winner from
+      // an earlier pick cannot linger beside the new one.
+      if (target.runId && row.runId === target.runId) return JSON.stringify({ ...row, winner: false });
+      return line;
+    } catch { return line; }
+  }).join('\n');
+  writeFileSync(p, out, 'utf8');
+  return { ...target, winner: true };
 }
 
 /**
