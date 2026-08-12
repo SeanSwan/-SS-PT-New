@@ -281,3 +281,124 @@ describe('history must be ordered by what happened, not by what is planned', () 
     expect(orderFields).not.toContain('scheduledAt');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RETRY. Keeping the draft on a partial failure (the previous slice) made the
+// natural recovery — press Publish again — re-post to the platforms that already
+// succeeded. Retry is scoped to the ORIGINAL job and skips accounts that already
+// have a published Attempt for it, so recovery cannot duplicate.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A job that half-succeeded: acct-1 published, acct-2 failed. */
+const partialJob = () => ({
+  id: 'job-1',
+  content: 'hello world',
+  status: 'partial_failed',
+  scheduledAt: new Date('2026-08-12T12:00:00Z'),
+  platformAccountIds: ['acct-1', 'acct-2'],
+  media: [],
+  complianceSnapshot: {},
+  platformResults: [
+    { provider: 'bluesky', accountId: 'acct-1', status: 'published', providerPostId: 'at://one' },
+    { provider: 'bluesky', accountId: 'acct-2', status: 'failed', error: 'rate limited' },
+  ],
+});
+
+const makeRetryService = ({ job = partialJob(), publishedAccountIds = ['acct-1'], adapter = okAdapter } = {}) => {
+  const accounts = [{ ...ACCOUNT, id: 'acct-1' }, { ...ACCOUNT, id: 'acct-2' }];
+  const jobRow = makeRow(job);
+  const attempts = publishedAccountIds.map(accountId => ({ jobId: job.id, accountId, provider: 'bluesky', status: 'published' }));
+  const AttemptModel = {
+    findAll: vi.fn(async () => attempts.map(makeRow)),
+    create: vi.fn(async (p) => makeRow({ id: 'attempt-x', ...p })),
+  };
+  const AccountModel = {
+    findAll: vi.fn(async () => accounts.map(makeRow)),
+    findByPk: vi.fn(async (id) => { const a = accounts.find(x => x.id === id); return a ? makeRow(a) : null; }),
+    create: vi.fn(async () => makeRow({})),
+  };
+  const JobModel = {
+    findByPk: vi.fn(async (id) => (String(id) === String(job.id) ? jobRow : null)),
+    findAll: vi.fn(async () => [jobRow]),
+    create: vi.fn(async () => makeRow({ id: 'should-not-be-called' })),
+  };
+  return {
+    service: createNativeSocialPublishingService({
+      AccountModel, JobModel, AttemptModel,
+      providerAdapters: { bluesky: adapter },
+      decryptCredentials: vi.fn(() => ({ accessJwt: 'x', serviceUrl: 'https://bsky.social' })),
+      encryptCredentials: vi.fn(() => ({ cipher: Buffer.from('c'), iv: Buffer.alloc(12), tag: Buffer.alloc(16), keyId: 'T' })),
+      isCredentialStoreReady: vi.fn(() => true),
+    }),
+    jobRow, JobModel, AttemptModel, adapter,
+  };
+};
+
+describe('retrying a partial failure must not re-post what already went out', () => {
+  it('publishes ONLY to the account that failed', async () => {
+    const { service, adapter } = makeRetryService();
+
+    await service.retryJob('job-1', { userId: 1 });
+
+    expect(adapter.publish).toHaveBeenCalledTimes(1);
+    const accountsTried = adapter.publish.mock.calls.map(([arg]) => arg.account.id);
+    expect(accountsTried).toEqual(['acct-2']);
+    expect(accountsTried, 'acct-1 already published — retrying it duplicates the post').not.toContain('acct-1');
+  });
+
+  it('updates the ORIGINAL job rather than creating a second one', async () => {
+    const { service, JobModel, jobRow } = makeRetryService();
+
+    await service.retryJob('job-1', { userId: 1 });
+
+    expect(JobModel.create).not.toHaveBeenCalled();
+    expect(jobRow.update).toHaveBeenCalled();
+  });
+
+  it('keeps the earlier success in platformResults instead of forgetting it', async () => {
+    const { service, jobRow } = makeRetryService();
+
+    await service.retryJob('job-1', { userId: 1 });
+
+    const patch = jobRow.update.mock.calls.at(-1)[0];
+    expect(patch.status).toBe('published');
+    const byAccount = Object.fromEntries((patch.platformResults || []).map(r => [r.accountId, r.status]));
+    expect(byAccount['acct-1'], 'the original success must survive the retry').toBe('published');
+    expect(byAccount['acct-2']).toBe('published');
+  });
+
+  it('reports still-partial when the retry fails again', async () => {
+    const stillFailing = { publish: vi.fn(async () => { throw new Error('rate limited'); }) };
+    const { service, jobRow } = makeRetryService({ adapter: stillFailing });
+
+    const result = await service.retryJob('job-1', { userId: 1 });
+
+    expect(result.status).toBe('partial_failed');
+    const patch = jobRow.update.mock.calls.at(-1)[0];
+    expect(patch.status).toBe('partial_failed');
+  });
+
+  it('is a no-op on a job where every platform already published', async () => {
+    const { service, adapter } = makeRetryService({ publishedAccountIds: ['acct-1', 'acct-2'] });
+
+    const result = await service.retryJob('job-1', { userId: 1 });
+
+    expect(adapter.publish).not.toHaveBeenCalled();
+    expect(result.status).toBe('published');
+  });
+
+  it('rejects an unknown job rather than silently doing nothing', async () => {
+    const { service } = makeRetryService();
+
+    await expect(service.retryJob('nope', { userId: 1 })).rejects.toThrow(/not found/i);
+  });
+
+  it('never leaves the job in running after a retry', async () => {
+    const { service, jobRow } = makeRetryService();
+
+    await service.retryJob('job-1', { userId: 1 });
+
+    const statuses = jobRow.update.mock.calls.map(([p]) => p.status);
+    expect(statuses.at(-1)).not.toBe('running');
+  });
+});

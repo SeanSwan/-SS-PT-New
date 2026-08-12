@@ -34,6 +34,7 @@ const nativePublisherMock = vi.hoisted(() => ({
   listAccounts: vi.fn(),
   getHistory: vi.fn(),
   publish: vi.fn(),
+  retryJob: vi.fn(),
 }));
 
 const loggerMock = vi.hoisted(() => ({
@@ -236,5 +237,68 @@ describe('POST /publish — compliance is a gate, not a suggestion', () => {
     expect(response.status).toBe(200);
     expect(nativePublisherMock.publish).toHaveBeenCalled();
     expect(auditLines().join('\n')).toMatch(/override/i);
+  });
+});
+
+describe('POST /publish/:jobId/retry — recovery must not duplicate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const retry = (jobId = 'job-1') =>
+    request(buildApp()).post('/api/admin/social-publishing/publish/' + jobId + '/retry').send({});
+
+  it('reports the merged outcome with the same truthful contract as publish', async () => {
+    nativePublisherMock.retryJob.mockResolvedValueOnce({
+      status: 'published',
+      jobId: 'job-1',
+      retried: ['acct-2'],
+      results: [
+        { provider: 'bluesky', accountId: 'acct-1', status: 'published' },
+        { provider: 'bluesky', accountId: 'acct-2', status: 'published' },
+      ],
+    });
+
+    const response = await retry();
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('published');
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.retried).toEqual(['acct-2']);
+  });
+
+  it('still reports failure honestly when the retry fails again', async () => {
+    nativePublisherMock.retryJob.mockResolvedValueOnce({
+      status: 'partial_failed',
+      jobId: 'job-1',
+      retried: ['acct-2'],
+      results: [
+        { provider: 'bluesky', accountId: 'acct-1', status: 'published' },
+        { provider: 'bluesky', accountId: 'acct-2', status: 'failed', error: 'rate limited' },
+      ],
+    });
+
+    const response = await retry();
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('partial_failed');
+    expect(response.body.success).toBe(false);
+  });
+
+  it('404s an unknown job instead of pretending it retried', async () => {
+    nativePublisherMock.retryJob.mockRejectedValueOnce(new Error('Social publishing job nope not found'));
+
+    const response = await retry('nope');
+
+    expect(response.status).toBe(404);
+    expect(response.body.success).toBe(false);
+  });
+
+  it('records the retry in the audit trail', async () => {
+    nativePublisherMock.retryJob.mockResolvedValueOnce({ status: 'published', jobId: 'job-1', retried: ['acct-2'], results: [] });
+
+    await retry();
+
+    expect(auditLines().join('\n')).toMatch(/retry/i);
   });
 });
