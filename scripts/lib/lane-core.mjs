@@ -93,13 +93,26 @@ export function safeRef(ref) {
 /** Parse one lane file's body. CRLF-tolerant everywhere: these files are written
  *  by tools AND edited by hand, and a bare-\n assumption silently no-ops. */
 export function parseLane(src) {
-  /* Anchor on the HEADING, not the first occurrence of the phrase anywhere in the
-   * file: `Task: stop editing now button handlers` precedes the heading in the
-   * claim template, so a bare `split(/EDITING NOW/i)` sliced mid-task-line and the
-   * real lock list was never parsed — locks silently absent from every consumer. */
-  const m = src.match(/^#{1,6}\s*[^\n]*EDITING NOW[^\n]*\r?\n([\s\S]*?)(?=\r?\n#{1,6}\s|\r?\n[A-Z][a-z]+ intent:|$)/mi);
-  const section = m ? m[1] : '';
-  const locks = section.split(/\r?\n/).map((l) => l.trim())
+  /* Line-wise, deliberately — TWICE now this logic was written as one clever regex
+   * and both times `$` inside a lookahead under the /m flag (where `$` means
+   * end-of-LINE, not end-of-string) made the lazy quantifier stop at the first
+   * newline. In release() that cleared one lock of three; here it returned ONE lock
+   * for a lane holding sixteen — a digest reporting a locked file as free, which is
+   * the false-negative collision detector this whole rebuild exists to prevent.
+   * Anchor on the HEADING, not the phrase: `Task: stop editing now buttons`
+   * precedes the heading in the claim template. */
+  const all = src.split(/\r?\n/);
+  const head = all.findIndex((l) => /^#{1,6}\s.*EDITING NOW/i.test(l));
+  const body = [];
+  if (head !== -1) {
+    for (let i = head + 1; i < all.length; i += 1) {
+      const t = all[i].trim();
+      if (/^#{1,6}\s/.test(t)) break;            // next heading ends the section
+      if (/^[A-Z][a-z]+ intent:/.test(t)) break; // "Next intent:" ends it
+      body.push(all[i]);
+    }
+  }
+  const locks = body.map((l) => l.trim())
     // `\(` is load-bearing: release() writes `- (released)` and claim() writes
     // `- (none declared yet)`. Without it a RELEASED lane renders under
     // "DO NOT edit these" — a false lock, and false locks are what get a digest ignored.
