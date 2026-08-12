@@ -26,7 +26,25 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+/**
+ * THE IMAGE API — not chat/completions.
+ *
+ * The first implementation posted to `/api/v1/chat/completions`, which has no
+ * dimension control at all. That single wrong endpoint caused every problem
+ * measured on 2026-08-11:
+ *
+ *   endpoint              model               cost      wall     output
+ *   chat/completions      gpt-5.4-image-2     $0.2274   148.8s   1024x1024 SQUARE
+ *   images                gpt-5.4-image-2     $0.0039    19.4s   1536x864  = 16:9 exactly
+ *
+ * 58x cheaper, 7.7x faster, and correct. chat/completions bills the image as
+ * completion tokens (7,024 of them) and cannot honour an aspect ratio, so the
+ * "aspect ratio in the prompt text" workaround was compensating for calling
+ * the wrong door rather than for a model limitation.
+ *
+ * Every cost and latency figure gathered before this discovery is void.
+ */
+const ENDPOINT = 'https://openrouter.ai/api/v1/images';
 
 /**
  * Declared model capabilities. `promptStyle` is DECLARED here rather than
@@ -72,6 +90,16 @@ export const MODELS = Object.freeze({
     maxPromptChars: 4000, tier: 'cheap',
   },
 });
+
+/**
+ * Extract the aspect ratio the brief asked for. The compiler stores it in the
+ * output slot; falls back to 16:9 rather than letting the provider pick.
+ */
+function aspectOf(compiled) {
+  const raw = String(compiled?.slots?.output || '');
+  const m = raw.match(/(\d{1,2}:\d{1,2})/);
+  return m ? m[1] : '16:9';
+}
 
 class ProviderError extends Error {
   constructor(code, message) { super(message); this.name = 'ProviderError'; this.code = code; }
@@ -161,8 +189,13 @@ export async function generate(compiled, opts = {}) {
     },
     body: JSON.stringify({
       model,
-      messages: [{ role: 'user', content: compiled.promptText }],
-      modalities: ['image', 'text'],
+      prompt: compiled.promptText,
+      // Aspect ratio is a PARAMETER here, which is the entire point. Providers
+      // clamp to their nearest supported tier (Gemini returns 1376x768 = 1.792
+      // rather than exactly 1.778); GPT returns 1536x864 = 1.778 exactly.
+      aspect_ratio: aspectOf(compiled),
+      resolution: opts.resolution || '1K',
+      n: 1,
     }),
     signal: AbortSignal.timeout(timeoutMs),
   });
@@ -177,21 +210,24 @@ export async function generate(compiled, opts = {}) {
   const data = await res.json();
   if (data.error) throw new ProviderError('E_PROVIDER_ERROR', data.error.message || 'unknown provider error');
 
-  const message = data.choices?.[0]?.message ?? {};
-  const images = (message.images || [])
-    .map((i) => i?.image_url?.url || i?.url)
-    .filter(Boolean);
+  // Image API shape: data[].b64_json | data[].url. The old chat/completions
+  // shape is still read as a fallback so a provider that only answers there
+  // keeps working rather than silently returning nothing.
+  const images = [
+    ...(data.data || []).map((d) => d?.b64_json || d?.url),
+    ...((data.choices?.[0]?.message?.images) || []).map((i) => i?.image_url?.url || i?.url),
+  ].filter(Boolean);
 
   if (images.length === 0) {
     throw new ProviderError('E_NO_IMAGE',
-      `Model returned no image. text="${String(message.content || '').slice(0, 200)}"`);
+      `Model returned no image. keys=${JSON.stringify(Object.keys(data)).slice(0, 120)}`);
   }
 
   return {
     model,
-    images,                       // data: URIs or URLs, provider-dependent
+    images,                       // base64 payloads or URLs, provider-dependent
     usage: data.usage ?? null,    // log actual vs estimate from call one
-    finishReason: data.choices?.[0]?.finish_reason ?? null,
+    aspectRequested: aspectOf(compiled),
     promptStyle: compiled.promptStyle,
     seed: compiled.seed,
     brainVersion: compiled.brainVersion,
