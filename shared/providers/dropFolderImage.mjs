@@ -114,7 +114,12 @@ export function requestDrop(compiled, root = process.cwd()) {
     compiled.promptText,
     '',
     '## Required output',
-    `- aspect ratio: **${compiled.slots?.output || '16:9'}**  <- set this in the tool, do not rely on the prompt text`,
+    // Reads the compiler's TYPED aspect field. This used to print
+    // `compiled.slots.output`, which is a composed prose blob — so the sheet
+    // told a human operator "aspect ratio: **16:9, seamless, edge-matched**"
+    // and left them to guess which part was the ratio. Same parse-the-prose
+    // defect as the API provider had, just aimed at a person instead of a param.
+    `- aspect ratio: **${compiled.aspect || '16:9'}**  <- set this in the tool, do not rely on the prompt text`,
     `- save the image as: **${id}.png**  (or .jpg / .webp)`,
     `- drop it in: \`${READY_DIR}/\``,
     '',

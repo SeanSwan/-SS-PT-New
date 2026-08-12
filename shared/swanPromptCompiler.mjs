@@ -23,7 +23,14 @@
 
 import { assertLawful } from './swanLawFilter.mjs';
 
-export const BRAIN_VERSION = '0.1.0';
+/**
+ * 0.2.0 — the compiled object gained `aspect` (typed) and `aspectDivergence`.
+ * Bumped because run records persist `brainVersion`: comparing a 0.1.0 run to a
+ * 0.2.0 run compares outputs from two different compilers, and the ledger has to
+ * be able to say so. A shape change with a frozen version number is how a
+ * dataset quietly becomes uninterpretable.
+ */
+export const BRAIN_VERSION = '0.2.0';
 
 /**
  * Curated facet vocabulary — deliberately ~60, not the full ~765 of the source
@@ -339,11 +346,39 @@ export function compileImage(brief = {}, caps = {}) {
   if (capOk(caps.seedIsDeterministic)) params.seed = seed;
   const negativeText = capOk(caps.honorsNegativePrompt) ? slots.negative : undefined;
 
+  /**
+   * ASPECT IS STRUCTURE, AND PROSE IS ITS PROJECTION — never the reverse.
+   *
+   * The provider used to recover the aspect ratio by running a regex over
+   * `slots.output`, a string this compiler also serializes into the prompt text.
+   * One field, two consumers, one structured and one prose. That breaks the
+   * moment a brief carries an incidental ratio: an output slot reading
+   * "10:30 golden hour light, 16:9" sends `aspect_ratio: "10:30"` to the
+   * provider, because the first regex match wins — and nothing notices.
+   *
+   * So the ratio is now a typed field, and the provider reads THIS.
+   */
+  const aspect = brief.aspect || '16:9';
+
+  /**
+   * Divergence detector. This still parses the prose — but only to RAISE A FLAG,
+   * never to decide anything. `aspect` above is the single source of truth for
+   * the request. If a `slotOverrides.output` injects a conflicting ratio, the
+   * prompt text and the API parameter would silently disagree about the frame;
+   * previously that disagreement was undetectable, and the prose quietly won.
+   */
+  const proseRatio = /(\d{1,3}:\d{1,3})/.exec(String(slots.output || ''));
+  const aspectDivergence = (proseRatio && proseRatio[1] !== aspect)
+    ? { declared: aspect, inProse: proseRatio[1] }
+    : null;
+
   return {
     briefId: brief.briefId || null,
     brainVersion: BRAIN_VERSION,
     provider: caps.provider || 'unconfigured',
     modelVersion: caps.modelVersion || 'unspecified',
+    aspect,
+    aspectDivergence,
     promptStyle,
     promptText,
     truncated: fitted.truncated,

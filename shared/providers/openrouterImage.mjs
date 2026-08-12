@@ -25,6 +25,8 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { imageDimensions } from '../imageDimensions.mjs';
+import { aspectDeviation, ASPECT_TOLERANCE } from '../variantRun.mjs';
 
 /**
  * THE IMAGE API — not chat/completions.
@@ -47,58 +49,32 @@ import { join } from 'node:path';
 const ENDPOINT = 'https://openrouter.ai/api/v1/images';
 
 /**
- * Declared model capabilities. `promptStyle` is DECLARED here rather than
- * guessed from the provider name — a name-regex would read
- * "stable-diffusion-3-api" as tag-conditioned when SD3 is caption-trained.
- *
- * All of these are caption-trained multimodal models, so all declare 'sentence'.
- * When a genuinely CLIP-conditioned model is added, it declares 'tag' and the
- * compiler adapts with no code change.
+ * The model catalogue and its declared capabilities live next door in
+ * `openrouterModels.mjs` — data, not behaviour — and are re-exported here so
+ * every existing import of this module keeps working unchanged. Split when this
+ * file crossed the 300-line cap (rule 4).
  */
-/**
- * DEFAULT MODEL — Sean's standing instruction (2026-08-11): the ChatGPT image
- * generator is the default for all Forge work.
- *
- * Verified against the live OpenRouter catalogue on the same day: this is the
- * NEWEST OpenAI image model that exists. GPT-5.5 and GPT-5.6 shipped (twelve
- * 5.6 variants — luna/terra/sol, each with a batch mode) and every one of them
- * is TEXT-ONLY. OpenAI's image line has not followed its text line, so
- * "upgrade to 5.6" is not available for image output. Re-check this when a
- * newer `openai/*-image*` id appears in the catalogue.
- */
-export const DEFAULT_MODEL = 'openai/gpt-5.4-image-2';
+// NOTE: imported AND re-exported. `export ... from` alone is a pure re-export
+// and does NOT create local bindings, so `verify()` below would have thrown
+// ReferenceError on MODELS at runtime while every static check stayed silent.
+import { DEFAULT_MODEL, MODELS, capabilities, ModelError } from './openrouterModels.mjs';
 
-export const MODELS = Object.freeze({
-  'google/gemini-3.1-flash-lite-image': {
-    label: 'Gemini 3.1 Flash Lite Image', promptStyle: 'sentence',
-    maxPromptChars: 4000, tier: 'cheapest',
-  },
-  'google/gemini-3.1-flash-image': {
-    label: 'Gemini 3.1 Flash Image', promptStyle: 'sentence',
-    maxPromptChars: 4000, tier: 'cheap',
-  },
-  'google/gemini-3-pro-image': {
-    label: 'Gemini 3 Pro Image', promptStyle: 'sentence',
-    maxPromptChars: 4000, tier: 'quality',
-  },
-  'openai/gpt-5.4-image-2': {
-    label: 'GPT-5.4 Image 2', promptStyle: 'sentence',
-    maxPromptChars: 4000, tier: 'quality',
-  },
-  'openai/gpt-5-image-mini': {
-    label: 'GPT-5 Image Mini', promptStyle: 'sentence',
-    maxPromptChars: 4000, tier: 'cheap',
-  },
-});
+export { DEFAULT_MODEL, MODELS, capabilities, ModelError };
 
 /**
- * Extract the aspect ratio the brief asked for. The compiler stores it in the
- * output slot; falls back to 16:9 rather than letting the provider pick.
+ * The aspect ratio the brief asked for — read from the compiler's TYPED field.
+ *
+ * This used to regex `/(\d{1,2}:\d{1,2})/` out of `compiled.slots.output`, a
+ * string the compiler also serializes into the prompt. Parsing your own prose
+ * back into a parameter means an output slot reading "10:30 golden hour, 16:9"
+ * ships `aspect_ratio: "10:30"` — first match wins, silently. The compiler now
+ * carries `aspect` as structure and renders prose FROM it.
+ *
+ * The fallback is a constant, deliberately: an older compiled object without the
+ * field gets the documented default rather than a re-parse of its prose.
  */
 function aspectOf(compiled) {
-  const raw = String(compiled?.slots?.output || '');
-  const m = raw.match(/(\d{1,2}:\d{1,2})/);
-  return m ? m[1] : '16:9';
+  return compiled?.aspect || '16:9';
 }
 
 class ProviderError extends Error {
@@ -121,32 +97,6 @@ function apiKey(root = process.cwd()) {
     }
   }
   return null;
-}
-
-/**
- * Declared capabilities for a model, in the shape the compiler consumes.
- * Everything unproven is 'claimed', which the compiler treats as absent.
- */
-export function capabilities(model = DEFAULT_MODEL) {
-  const spec = MODELS[model];
-  if (!spec) {
-    throw new ProviderError('E_UNKNOWN_MODEL',
-      `Unknown model "${model}". Known: ${Object.keys(MODELS).join(', ')}`);
-  }
-  return {
-    provider: model,
-    modelVersion: model,
-    label: spec.label,
-    promptStyle: spec.promptStyle,     // DECLARED, not inferred
-    maxPromptChars: spec.maxPromptChars,
-    supportedAspectRatios: ['1:1', '16:9', '9:16', '4:5'],
-    supportsImageInit: true,
-    // Unproven until a probe says otherwise. 'claimed' === absent to the compiler.
-    supportsInpainting: false,
-    supportsSeed: 'claimed',
-    seedIsDeterministic: 'claimed',
-    honorsNegativePrompt: 'claimed',
-  };
 }
 
 /** Is the provider actually usable? Cheap, no spend, no generation. */
@@ -179,6 +129,22 @@ export async function generate(compiled, opts = {}) {
   }
 
   const key = apiKey(root);
+
+  /**
+   * SEED — sent only when someone has grounds to send it.
+   *
+   * The compiler withholds `params.seed` while `seedIsDeterministic` is
+   * 'claimed', which is correct: an unverified capability is treated as absent.
+   * But that left the Forge permanently unable to reproduce any output, and a
+   * tournament whose winner cannot be re-rendered is a casino, not a workflow.
+   *
+   * `opts.seed` is the explicit override the capability PROBE uses to find out
+   * whether the parameter is honoured at all. It is not a default, and it does
+   * not upgrade the capability — only a probe's evidence may do that.
+   */
+  const seedSent = Number.isInteger(opts.seed) ? opts.seed
+    : (Number.isInteger(compiled?.params?.seed) ? compiled.params.seed : null);
+
   const res = await fetchImpl(ENDPOINT, {
     method: 'POST',
     headers: {
@@ -196,6 +162,7 @@ export async function generate(compiled, opts = {}) {
       aspect_ratio: aspectOf(compiled),
       resolution: opts.resolution || '1K',
       n: 1,
+      ...(seedSent === null ? {} : { seed: seedSent }),
     }),
     signal: AbortSignal.timeout(timeoutMs),
   });
@@ -250,13 +217,34 @@ export async function generate(compiled, opts = {}) {
       `Model returned no image. keys=${JSON.stringify(Object.keys(data)).slice(0, 120)}`);
   }
 
+  /**
+   * MEASURE WHAT CAME BACK. The provider is ground truth; `aspect_ratio` is a
+   * request, not a guarantee — providers clamp to their own supported tiers
+   * (Gemini answers a 1.778 request with 1376x768 = 1.792). A clamped image is
+   * usable; a SILENTLY clamped image is the same 'claimed'-read-as-'verified'
+   * failure that caused every other defect here.
+   *
+   * Flagged, never fatal (the reviewer's call, and the right one): a 1376x768
+   * hero is fine, being lied to about it is not. URL-delivered images are not
+   * fetched just to measure them, so they honestly report null.
+   */
+  const dims = imageDimensions(images[0]);
+  const requested = aspectOf(compiled);
+  const deviation = dims ? aspectDeviation(requested, dims.width, dims.height) : null;
+
   return {
     model,
     images,                       // base64 payloads or URLs, provider-dependent
     usage: data.usage ?? null,    // log actual vs estimate from call one
-    aspectRequested: aspectOf(compiled),
+    aspectRequested: requested,
+    actualWidth: dims?.width ?? null,
+    actualHeight: dims?.height ?? null,
+    actualFormat: dims?.format ?? null,
+    aspectDeviation: deviation === null ? null : Number(deviation.toFixed(4)),
+    aspectOutOfTolerance: deviation === null ? null : deviation > ASPECT_TOLERANCE,
     promptStyle: compiled.promptStyle,
     seed: compiled.seed,
+    seedSent,
     brainVersion: compiled.brainVersion,
   };
 }
