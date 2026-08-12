@@ -15,7 +15,11 @@ import { compileImage } from '../shared/swanPromptCompiler.mjs';
 import { assertLawful } from '../shared/swanLawFilter.mjs';
 import { generate, capabilities } from '../shared/providers/openrouterImage.mjs';
 import { generateBracket, findVariant, saveImage } from '../shared/bracket.mjs';
-import { appendRun, readRuns, lineage, markWinner } from '../shared/variantRun.mjs';
+import { buildContactSheet, RUBRIC } from '../shared/contactSheet.mjs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { appendRun, readRuns, lineage, RUN_DIR as RUN_DIR_LOCAL } from '../shared/variantRun.mjs';
+import { markWinner, annotateRun } from '../shared/variantVerdict.mjs';
 import { refine as refineRecord } from '../shared/variantLineage.mjs';
 
 const argv = process.argv.slice(2);
@@ -59,6 +63,8 @@ function usage() {
   pick    <variantId-prefix> --winner        mark it as the chosen option
   refine  <variantId-prefix> "<what to change>" --confirm-spend
   list    [--brief <briefId>]
+  review  <runId|variantId-prefix>           contact sheet for a human eye
+  review-answer <variantId-prefix> --usable <v> --onBrand <v> --note "<text>"
 
 Generation requires --confirm-spend. pick and list are free.`);
 }
@@ -168,6 +174,48 @@ async function cmdRefine() {
   console.log(`      ${rec.imageRef}`);
 }
 
+function cmdReview() {
+  const { runs } = readRuns(ROOT);
+  const key = argv[1] || '';
+  // Accept either a runId or any variant in the run — a human should not have to
+  // remember which identifier they have.
+  const seed = runs.find((r) => r.runId === key) || runs.find((r) => r.variantId.startsWith(key));
+  if (!seed) { console.error(`No run or variant matching "${key}".`); process.exit(1); }
+  const rows = seed.runId ? runs.filter((r) => r.runId === seed.runId) : [seed];
+
+  const html = buildContactSheet(rows, ROOT, { runId: seed.runId, briefId: seed.briefId });
+  const out = join(RUN_DIR_LOCAL, `review-${seed.runId || seed.variantId.slice(0, 10)}.html`);
+  mkdirSync(join(ROOT, RUN_DIR_LOCAL), { recursive: true });
+  writeFileSync(join(ROOT, out), html, 'utf8');
+  console.log(`contact sheet: ${out}`);
+  console.log(`  ${rows.filter((r) => r.status === 'ok').length} option(s). Open it, then:`);
+  for (const q of RUBRIC) console.log(`    ${q.q}${q.options ? `  [${q.options.join(' | ')}]` : ''}`);
+  console.log(`
+  forge review-answer ${rows[0].variantId.slice(0, 10)} --usable yes --onBrand swan --note "..."`);
+}
+
+function cmdReviewAnswer() {
+  const v = findVariant(argv[1] || '', ROOT);
+  const answers = {};
+  for (const q of RUBRIC) {
+    const val = flag(q.key, null);
+    if (val === null) continue;
+    if (q.options && !q.options.includes(val)) {
+      console.error(`--${q.key} must be one of: ${q.options.join(', ')}`);
+      process.exit(2);
+    }
+    answers[q.key] = val;
+  }
+  if (!Object.keys(answers).length) {
+    console.error(`Nothing to record. Use ${RUBRIC.map((q) => `--${q.key}`).join(' ')}`);
+    process.exit(2);
+  }
+  // A human verdict ANNOTATES the generation it is about — same reasoning as
+  // markWinner. It is not a new generation and must not inflate the spend ledger.
+  const saved = annotateRun(v.variantId, { review: { ...(v.review || {}), ...answers } }, ROOT);
+  console.log(`recorded on ${saved.variantId.slice(0, 10)}: ${JSON.stringify(saved.review)}`);
+}
+
 function cmdList() {
   const { runs, skipped } = readRuns(ROOT);
   const briefId = flag('brief', null);
@@ -194,6 +242,8 @@ function cmdList() {
 
 try {
   if (cmd === 'bracket') await cmdBracket();
+  else if (cmd === 'review') cmdReview();
+  else if (cmd === 'review-answer') cmdReviewAnswer();
   else if (cmd === 'pick') cmdPick();
   else if (cmd === 'refine') await cmdRefine();
   else if (cmd === 'list') cmdList();

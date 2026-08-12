@@ -253,34 +253,6 @@ export function readRuns(root = process.cwd()) {
 }
 
 /**
- * Record a human's pick. Annotates an existing row rather than appending a new
- * one: a verdict is not a generation, and appending would inflate the spend
- * ledger with rows that cost nothing. Siblings in the same run are UNMARKED, so
- * "the winner" stays singular per run.
- */
-export function markWinner(variantId, root = process.cwd()) {
-  const p = join(root, LEDGER_FILE);
-  if (!existsSync(p)) throw new RunError('E_RUN_INVALID', 'No ledger to mark.');
-  const { runs } = readRuns(root);
-  const target = runs.find((r) => r.variantId === variantId);
-  if (!target) throw new RunError('E_RUN_INVALID', `No variant ${variantId}.`);
-
-  const out = readFileSync(p, 'utf8').split('\n').map((line) => {
-    if (!line.trim()) return line;
-    try {
-      const row = JSON.parse(line);
-      if (row.variantId === variantId) return JSON.stringify({ ...row, winner: true });
-      // Same run, different variant: it lost. Explicit, so a stale winner from
-      // an earlier pick cannot linger beside the new one.
-      if (target.runId && row.runId === target.runId) return JSON.stringify({ ...row, winner: false });
-      return line;
-    } catch { return line; }
-  }).join('\n');
-  writeFileSync(p, out, 'utf8');
-  return { ...target, winner: true };
-}
-
-/**
  * Walk a variant back to its root. This is what `parentVariantId` buys: the
  * answer to "how did we get to this image", which a flat list of outputs cannot
  * give. Cycle-guarded — a malformed ledger must not hang a caller.

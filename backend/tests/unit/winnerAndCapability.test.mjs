@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { appendRun, readRuns, markWinner, RunError } from '../../../shared/variantRun.mjs';
+import { appendRun, readRuns, RunError } from '../../../shared/variantRun.mjs';
+import { markWinner } from '../../../shared/variantVerdict.mjs';
 import { compileImage } from '../../../shared/swanPromptCompiler.mjs';
 import { capabilities } from '../../../shared/providers/openrouterModels.mjs';
 
