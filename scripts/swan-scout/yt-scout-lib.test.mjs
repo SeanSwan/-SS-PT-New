@@ -20,8 +20,9 @@ import {
 } from './yt-scout-lib.mjs';
 import {
   parseJson3, fmtTimestamp, searchTranscript, cachePath, pruneCache, estimateTokens,
+  effectivePruneDays, CACHE_TTL_DAYS, fetchTranscript,
 } from './yt-scout-transcript.mjs';
-import { capText, HARD_TEXT_CAP } from '../mcp/swan-scout-server.mjs';
+import { capText, HARD_TEXT_CAP, TOOLS } from '../mcp/swan-scout-server.mjs';
 
 test('isVideoId accepts exactly 11 legal chars and nothing else', () => {
   assert.equal(isVideoId('7xTGNNLPyMI'), true);
@@ -166,8 +167,13 @@ test('pruneCache removes stale files and keeps fresh ones', () => {
   try {
     const dir = join(root, '.ai-workflow', 'scout-cache');
     cachePath(root, '7xTGNNLPyMI'); // creates the dir
-    const stale = join(dir, 'stale.txt');
-    const fresh = join(dir, 'fresh.txt');
+    // These must be filenames the module actually CREATES (11-char video ids).
+    // The original fixtures were `stale.txt` / `fresh.txt`, which prune now
+    // deliberately refuses to touch — see the "only delete files it created"
+    // regression below. Asserting deletion of a name this code can never write
+    // was testing a case that cannot occur.
+    const stale = join(dir, 'aaaaaaaaaaa.txt');
+    const fresh = join(dir, 'bbbbbbbbbbb.txt');
     writeFileSync(stale, 'old');
     writeFileSync(fresh, 'new');
     // Backdate one file by 60 days.
@@ -224,4 +230,88 @@ test('capText enforces a hard ceiling so one tool call cannot flood the window',
   assert.ok(out.length < huge.length, 'over the cap is truncated');
   assert.match(out, /TRUNCATED at/, 'truncation is announced, never silent');
   assert.match(out, /yt_find_in_video/, 'points the caller at the cheap path');
+});
+// ─────────────────────────────────────────────────────────────────────────────
+// REGRESSIONS from the 2026-08-12 hostile review of this module. All three were
+// reproduced empirically before being fixed; each assertion below fails against
+// the previous revision.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('REGRESSION: a lowercase-expanding char must not desync cue offsets', () => {
+  // 'İ' (U+0130) lowercases to TWO code units. Offsets were measured on the
+  // original-case text while the haystack was lowercased, so every offset after
+  // such a char drifted and the match walked to the wrong cue — returning a
+  // confident excerpt, timestamp and jump-to URL for the WRONG moment.
+  const cues = [
+    { ms: 0, text: 'İ'.repeat(40) },
+    { ms: 10_000, text: 'alpha' },
+    { ms: 20_000, text: 'beta' },
+    { ms: 30_000, text: 'SIGNAL' },
+    { ms: 40_000, text: 'gamma' },
+    { ms: 50_000, text: 'delta' },
+    { ms: 60_000, text: 'epsilon' },
+  ];
+  const hits = searchTranscript(cues, 'SIGNAL', { context: 0, limit: 3, videoId: 'aaaaaaaaaaa' });
+  assert.equal(hits.length, 1, 'the phrase is present exactly once');
+  assert.equal(hits[0].ms, 30_000, 'the timestamp must point at the cue the phrase is in');
+  assert.equal(hits[0].excerpt, 'SIGNAL', 'the excerpt must be the matching cue, not a later one');
+  assert.match(hits[0].url, /&t=30s$/, 'the jump-to URL must agree with the timestamp');
+});
+
+test('REGRESSION: case-insensitive matching still works after the offset fix', () => {
+  const cues = [{ ms: 0, text: 'The Context Window Is Large' }, { ms: 5_000, text: 'tail' }];
+  const hits = searchTranscript(cues, 'CONTEXT window', { context: 0, videoId: 'aaaaaaaaaaa' });
+  assert.equal(hits.length, 1, 'matching remains case-insensitive across the fix');
+  assert.equal(hits[0].ms, 0);
+});
+
+test('REGRESSION: days:null must mean "the default", not "reap everything"', () => {
+  // Number(null) === 0 is finite, so a finite-check on the raw value read an
+  // absent field as zero, set cutoff = now, and deleted the whole cache.
+  assert.equal(effectivePruneDays(null), CACHE_TTL_DAYS, 'null means not-supplied');
+  assert.equal(effectivePruneDays(undefined), CACHE_TTL_DAYS, 'undefined means not-supplied');
+  assert.equal(effectivePruneDays(''), CACHE_TTL_DAYS, 'empty string means not-supplied');
+  assert.equal(effectivePruneDays(0), 0, 'an EXPLICIT 0 still means "clear it all"');
+  assert.equal(effectivePruneDays(7), 7, 'a real value passes through');
+  assert.equal(effectivePruneDays(-5), 0, 'negatives clamp to the floor');
+});
+
+test('REGRESSION: prune must only delete files it created', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'scout-prune-'));
+  const cache = join(dir, '.ai-workflow', 'scout-cache');
+  cachePath(dir, 'aaaaaaaaaaa'); // creates the cache dir
+  const old = new Date(Date.now() - 90 * 86_400_000);
+  const mk = (name) => { const p = join(cache, name); writeFileSync(p, 'x'); utimesSync(p, old, old); return p; };
+
+  const mine = mk('aaaaaaaaaaa.txt');
+  const mineCues = mk('bbbbbbbbbbb.cues.json');
+  const theirs = mk('IMPORTANT-not-a-transcript.md');
+  const alsoTheirs = mk('notes.txt');
+
+  const removed = pruneCache(dir, { days: 30 });
+
+  assert.equal(existsSync(mine), false, 'our stale transcript is reaped');
+  assert.equal(existsSync(mineCues), false, 'our stale cue file is reaped');
+  assert.equal(existsSync(theirs), true, 'a foreign file is NOT ours to delete');
+  assert.equal(existsSync(alsoTheirs), true, 'a non-id .txt is NOT ours either');
+  assert.equal(removed, 2, 'only the two files we created are counted');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('REGRESSION: a corrupt cues cache self-heals instead of failing forever', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'scout-corrupt-'));
+  const txt = cachePath(dir, 'aaaaaaaaaaa', 'txt');
+  const cues = cachePath(dir, 'aaaaaaaaaaa', 'cues.json');
+  writeFileSync(txt, 'some transcript text');
+  writeFileSync(cues, '[{"ms":0,"text":"trunca');  // killed mid-write
+
+  // Previously this threw a raw SyntaxError from JSON.parse. It must now treat
+  // the corrupt cache as a MISS — which, with no yt-dlp reachable in this test,
+  // surfaces as a YtScoutError rather than an opaque SyntaxError.
+  let err;
+  try { fetchTranscript('aaaaaaaaaaa', { root: dir }); } catch (e) { err = e; }
+  assert.ok(err, 'it does not silently return a corrupt cache');
+  assert.notEqual(err.name, 'SyntaxError', 'the failure must not be a raw JSON parse error');
+  assert.equal(existsSync(cues), false, 'the corrupt cue file is discarded so the next call is clean');
+  rmSync(dir, { recursive: true, force: true });
 });

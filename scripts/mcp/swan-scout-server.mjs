@@ -37,7 +37,7 @@ import {
   YtScoutError, searchYouTube, listChannelVideos, videoIdFrom, resolveYtDlp,
 } from '../swan-scout/yt-scout-lib.mjs';
 import {
-  fetchTranscript, searchTranscript, pruneCache, estimateTokens, fmtTimestamp, CACHE_TTL_DAYS,
+  fetchTranscript, searchTranscript, pruneCache, estimateTokens, fmtTimestamp, effectivePruneDays,
 } from '../swan-scout/yt-scout-transcript.mjs';
 
 // Derive the repo root from THIS FILE's location, not process.cwd(). An MCP
@@ -51,6 +51,8 @@ const logErr = (...a) => process.stderr.write(`[swan-scout] ${a.join(' ')}\n`);
 
 /** Truncate a returned body so no single tool call can flood the window. */
 const HARD_TEXT_CAP = 40_000; // chars ≈ 10k tokens — a deliberate ceiling
+/** Ceiling on one newline-delimited JSON-RPC frame, so `buf` cannot grow forever. */
+const MAX_LINE_BYTES = 4 * 1024 * 1024;
 
 function capText(text) {
   const s = String(text || '');
@@ -194,7 +196,11 @@ const TOOLS = {
       properties: { days: { type: 'number', description: 'Age threshold in days. Default 30.' } },
     },
     run(a) {
-      const days = Number.isFinite(Number(a.days)) ? Number(a.days) : CACHE_TTL_DAYS;
+      // Hand `days` straight to the library and let its clamp decide. An
+      // `Number.isFinite(Number(a.days))` pre-check here re-introduced the exact
+      // trap clampOpt exists to prevent: Number(null) === 0 is finite, so
+      // `days: null` became "cutoff = now" and reaped the entire cache.
+      const days = effectivePruneDays(a.days);
       const removed = pruneCache(ROOT, { days });
       return { ok: true, text: `Pruned ${removed} cached transcript file(s) older than ${days} day(s).` };
     },
@@ -256,6 +262,16 @@ function main() {
   process.stdin.setEncoding('utf-8');
   process.stdin.on('data', (chunk) => {
     buf += chunk;
+    // A peer that never sends a newline would otherwise grow `buf` without bound
+    // until the process dies of memory exhaustion. No legitimate JSON-RPC frame
+    // approaches this, so a line over the cap is garbage: drop the buffer and
+    // resynchronize at the next newline rather than accumulating forever.
+    if (buf.length > MAX_LINE_BYTES) {
+      logErr(`input line exceeded ${MAX_LINE_BYTES} chars — dropping buffer and resyncing`);
+      const nl = buf.lastIndexOf('\n');
+      buf = nl === -1 ? '' : buf.slice(nl + 1);
+      if (buf.length > MAX_LINE_BYTES) buf = '';
+    }
     let nl;
     while ((nl = buf.indexOf('\n')) !== -1) {
       const line = buf.slice(0, nl).trim();
