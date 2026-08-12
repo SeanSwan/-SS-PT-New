@@ -14,57 +14,11 @@ import {
   isSocialTokenCipherConfigured,
 } from './socialTokenCipher.mjs';
 import blueskyAdapter from './socialProviders/blueskyPublisher.mjs';
+import { createSocialPublishFanOut } from './socialPublishFanOut.mjs';
+import logger from '../utils/logger.mjs';
 
-export const PROVIDER_CAPABILITIES = [
-  {
-    id: 'bluesky',
-    name: 'Bluesky',
-    native: true,
-    implementationStatus: 'available',
-    connectionType: 'app_password',
-    notes: 'Uses AT Protocol app-password login and com.atproto.repo.createRecord.',
-  },
-  {
-    id: 'youtube',
-    name: 'YouTube',
-    native: true,
-    implementationStatus: 'oauth_required',
-    connectionType: 'google_oauth',
-    notes: 'Requires Google OAuth client and YouTube Data API quota.',
-  },
-  {
-    id: 'facebook',
-    name: 'Facebook',
-    native: true,
-    implementationStatus: 'oauth_required',
-    connectionType: 'meta_oauth',
-    notes: 'Requires Meta app review and Page publishing permissions.',
-  },
-  {
-    id: 'instagram',
-    name: 'Instagram',
-    native: true,
-    implementationStatus: 'oauth_required',
-    connectionType: 'meta_oauth',
-    notes: 'Requires Instagram professional account and Meta publishing permissions.',
-  },
-  {
-    id: 'tiktok',
-    name: 'TikTok',
-    native: true,
-    implementationStatus: 'approval_required',
-    connectionType: 'tiktok_oauth',
-    notes: 'Direct Post requires TikTok Content Posting API approval.',
-  },
-  {
-    id: 'nextdoor',
-    name: 'Nextdoor',
-    native: true,
-    implementationStatus: 'partner_required',
-    connectionType: 'partner_api',
-    notes: 'Publish API requires Nextdoor developer/partner approval.',
-  },
-];
+export { PROVIDER_CAPABILITIES } from './socialProviderCapabilities.mjs';
+import { PROVIDER_CAPABILITIES } from './socialProviderCapabilities.mjs';
 
 const POSTIZ_OPTIONAL = {
   optional: true,
@@ -194,56 +148,16 @@ export function createNativeSocialPublishingService({
     return true;
   };
 
-  const loadAccounts = async (ids) => Promise.all(ids.map(async (id) => {
-    const row = await AccountModel.findByPk(id);
-    if (!row) throw new Error(`Social account ${id} not found`);
-    const account = getPlain(row);
-    if (account.status !== 'connected') throw new Error(`Social account ${id} is not connected`);
-    return account;
-  }));
+  // The per-account publish loop lives in its own module (300-line rule). It is
+  // constructed with the same injected models/adapters, so tests that inject
+  // fakes into this service reach it unchanged.
+  const { publishToAccounts } = createSocialPublishFanOut({
+    AccountModel,
+    AttemptModel,
+    providerAdapters,
+    decryptCredentials,
+  });
 
-  const publishToAccounts = async ({ content, accountIds, mediaUrl, jobId = null }) => {
-    const accounts = await loadAccounts(accountIds);
-    const results = [];
-
-    for (const account of accounts) {
-      const adapter = providerAdapters[account.provider];
-      if (!adapter?.publish) {
-        const error = `${account.provider} native publishing is not enabled yet`;
-        await AttemptModel.create({ jobId, accountId: account.id, provider: account.provider, status: 'failed', error });
-        results.push({ provider: account.provider, accountId: account.id, status: 'failed', error });
-        continue;
-      }
-
-      try {
-        const credentials = decryptCredentials({
-          cipher: toBuffer(account.credentialCipher),
-          iv: toBuffer(account.credentialIv),
-          tag: toBuffer(account.credentialTag),
-          keyId: account.credentialKeyId,
-        });
-        const result = await adapter.publish({ account, credentials, content, mediaUrl });
-        await AttemptModel.create({
-          jobId,
-          accountId: account.id,
-          provider: account.provider,
-          status: 'published',
-          providerPostId: result.providerPostId || null,
-          response: result.raw || result,
-        });
-        results.push({ accountId: account.id, ...result });
-      } catch (err) {
-        await AttemptModel.create({ jobId, accountId: account.id, provider: account.provider, status: 'failed', error: err.message });
-        results.push({ provider: account.provider, accountId: account.id, status: 'failed', error: err.message });
-      }
-    }
-
-    const failures = results.filter(result => result.status !== 'published');
-    return {
-      status: failures.length === 0 ? 'published' : failures.length === results.length ? 'failed' : 'partial_failed',
-      results,
-    };
-  };
 
   const publish = async (payload, { userId, now = new Date(), source = 'dashboard' } = {}) => {
     const content = String(payload.content || '').trim();
@@ -268,11 +182,61 @@ export function createNativeSocialPublishingService({
       return { status: 'scheduled', jobId: String(job.id), data: serializeJob(job) };
     }
 
-    return publishToAccounts({ content, accountIds, mediaUrl: payload.mediaUrl });
+    // Immediate path. This MUST create a Job even though it publishes right now:
+    // getHistory reads Jobs only, so without one an immediate post is invisible
+    // forever, and every Attempt row it writes is orphaned because jobId
+    // defaults to null.
+    //
+    // The status it is created in matters more than it looks. runDueJobs claims
+    // `status: 'scheduled' AND scheduledAt <= now` — which is exactly the shape
+    // of an immediate job — so creating it as 'scheduled' (the model default)
+    // would let the 60s worker pick it up and publish it a SECOND time, to a
+    // live account. It is created 'running' and moved to a terminal state below.
+    const job = await JobModel.create({
+      content,
+      status: 'running',
+      scheduledAt,
+      platformAccountIds: accountIds,
+      media: payload.mediaUrl ? [{ url: payload.mediaUrl }] : [],
+      complianceSnapshot: payload.compliance || {},
+      source,
+      createdBy: userId ?? null,
+    });
+
+    let result;
+    try {
+      result = await publishToAccounts({ content, accountIds, mediaUrl: payload.mediaUrl, jobId: job.id });
+    } catch (err) {
+      // A throw out of the fan-out must still land the Job in a terminal state.
+      // Otherwise this fix introduces a brand-new orphan class — a 'running' row
+      // no reaper handles and no claim query will ever revisit.
+      await job.update({
+        status: 'failed',
+        failedAt: new Date(),
+        failureReason: err.message,
+      }).catch(() => {});
+      throw err;
+    }
+
+    await job.update({
+      status: result.status,
+      platformResults: result.results,
+      publishedAt: result.status === 'published' ? now : null,
+      failedAt: result.status !== 'published' ? now : null,
+      failureReason: result.results.find(item => item.error)?.error || null,
+    });
+
+    return { ...result, jobId: String(job.id) };
   };
 
   const getHistory = async (limit = 20) => {
-    const rows = await JobModel.findAll({ limit, order: [['scheduledAt', 'DESC']] });
+    // Ordered by creation, not by scheduledAt. Sorting a HISTORY view by
+    // scheduledAt put a post scheduled for next week — which has not gone out at
+    // all — above one published a minute ago. That was survivable while only
+    // scheduled jobs existed here; now that immediate posts are recorded too, the
+    // top row of "history" would routinely be something that never happened yet.
+    // `id` is a tiebreak so the order is deterministic within a timestamp.
+    const rows = await JobModel.findAll({ limit, order: [['createdAt', 'DESC'], ['id', 'DESC']] });
     return rows.map(serializeJob);
   };
 
