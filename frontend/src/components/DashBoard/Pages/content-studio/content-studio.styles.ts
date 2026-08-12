@@ -7,6 +7,7 @@
  */
 
 import styled from 'styled-components';
+import { device } from '../../../../styles/breakpoints';
 
 // ─── Layout ──────────────────────────────────────────────────
 export const PanelContainer = styled.div`
@@ -24,7 +25,7 @@ export const SplitLayout = styled.div`
   /* Matrix breakpoint: below tablet-landscape the side panel cannot hold 280px
      beside a fluid main column without crushing both. 900px was arbitrary. */
   @media (max-width: 1024px) { flex-direction: column; }
-  @media (max-width: 414px) { padding: 16px 12px; gap: 16px; }
+  ${device.maxXsPlus} { padding: 16px 12px; gap: 16px; }
 `;
 
 export const MainPanel = styled.div`
