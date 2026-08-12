@@ -245,8 +245,34 @@ export async function extractMono(filePath, {
   }
 
   const buf = Buffer.concat(chunks, bytes);
-  const samples = new Float32Array(bytes / 4);
-  for (let i = 0; i < samples.length; i += 1) samples[i] = buf.readFloatLE(i * 4);
+  const samples = new Float32Array(bytes / BYTES_PER_SAMPLE);
+  // readFloatLE rather than a typed-array view: the view would use platform endianness,
+  // and we explicitly asked ffmpeg for LITTLE-endian floats.
+  //
+  // Finiteness is checked in this same pass because it is free here and because a
+  // single NaN is catastrophic downstream in a way that looks like a different bug
+  // entirely: it propagates through the envelope into every correlation score, so the
+  // engine reports `peak: NaN`, an offset pinned at the search edge, and the reason
+  // "search-range-too-narrow-to-judge" — sending the operator off to widen a window
+  // when the real cause is one corrupt sample. Refuse here, where we can say so.
+  let nonFinite = 0;
+  let firstBadIndex = -1;
+  for (let i = 0; i < samples.length; i += 1) {
+    const v = buf.readFloatLE(i * BYTES_PER_SAMPLE);
+    if (!Number.isFinite(v)) {
+      nonFinite += 1;
+      if (firstBadIndex < 0) firstBadIndex = i;
+      continue;                 // leave it as 0 so the message, not the maths, reports it
+    }
+    samples[i] = v;
+  }
+  if (nonFinite > 0) {
+    throw new AudioExtractError(
+      `decoded ${nonFinite} non-finite sample(s), first at ${(firstBadIndex / sampleRate).toFixed(3)}s `
+      + '— the audio stream is corrupt',
+      { nonFinite, firstBadIndex, firstBadSeconds: firstBadIndex / sampleRate },
+    );
+  }
 
   const durationSec = samples.length / sampleRate;
 

@@ -37,12 +37,27 @@ import { extractMono, DEFAULT_EXTRACT_RATE } from '../services/mediaSync/audioEx
 import { findOffset } from '../services/mediaSync/crossCorrelation.mjs';
 import { modelDrift } from '../services/mediaSync/driftModel.mjs';
 
+/**
+ * Validate here rather than letting a bad number reach the engine. Both failure modes
+ * were observed: `--rate abc` surfaced as a raw ffmpeg option-parser error, and
+ * `--max-offset -5` produced a REFUSAL reading `insufficient-audio` against 90s and
+ * 102s files — a diagnosis that sends the operator hunting for longer footage when the
+ * actual fault is their own flag. A wrong reason is worse than an error.
+ */
+function positive(raw, flag) {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new Error(`${flag} needs a positive number, got ${JSON.stringify(raw)}`);
+  }
+  return n;
+}
+
 function parseArgs(argv) {
   const opts = { rate: DEFAULT_EXTRACT_RATE, maxOffset: 120, drift: false, json: false, files: [] };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
-    if (a === '--rate') { opts.rate = Number(argv[++i]); }
-    else if (a === '--max-offset') { opts.maxOffset = Number(argv[++i]); }
+    if (a === '--rate') { opts.rate = positive(argv[++i], '--rate'); }
+    else if (a === '--max-offset') { opts.maxOffset = positive(argv[++i], '--max-offset'); }
     else if (a === '--drift') { opts.drift = true; }
     else if (a === '--json') { opts.json = true; }
     else if (a.startsWith('--')) { throw new Error(`unknown flag ${a}`); }
@@ -75,7 +90,13 @@ function fmtSource(label, r) {
 }
 
 async function main() {
-  const opts = parseArgs(process.argv.slice(2));
+  let opts;
+  try {
+    opts = parseArgs(process.argv.slice(2));
+  } catch (err) {
+    process.stderr.write(`\n  ${err.message}\n${USAGE}`);
+    process.exit(2);
+  }
   if (opts.files.length !== 2) {
     process.stderr.write(USAGE);
     process.exit(2);

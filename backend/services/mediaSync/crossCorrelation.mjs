@@ -46,6 +46,15 @@
  * trap: channel-0 selection on such a file yields a flat signal, which this module
  * does refuse (`*-silent`), but the right fix is still an explicit downmix.
  *
+ * SECOND OBLIGATION: every sample must be FINITE. One NaN or Infinity anywhere in the
+ * signal propagates through the envelope into every correlation score, and the failure
+ * disguises itself — measured on a 40s signal with a single NaN, the engine returns
+ * `peak: NaN`, an offset pinned at the search boundary, and the reason
+ * "search-range-too-narrow-to-judge", which sends the reader off to widen a window
+ * that was never the problem. It refuses rather than lying, but the diagnosis is
+ * actively misleading, so `audioExtract` rejects non-finite samples at decode time
+ * where the true cause can still be named. A caller building arrays by hand owns this.
+ *
  * Nothing in the current test suite covers this — every fixture is synthesized mono.
  */
 export const ENVELOPE_HZ = 100;
@@ -396,6 +405,25 @@ export function findOffset(referenceSamples, targetSamples, {
 
   let reason = null;
   if (atBoundary) reason = 'peak-at-search-boundary-widen-window';
+  // Below the overlap floor the 0.3 peak gate is calibrated for a distribution that no
+  // longer applies, so passing it means nothing. Measured worst spurious correlation
+  // between UNRELATED speech envelopes, 400 trials per length:
+  //
+  //     1s -> 0.963    3s -> 0.682    6s -> 0.403    12s -> 0.271
+  //     2s -> 0.651    4s -> 0.461    8s -> 0.349    16s -> 0.242
+  //
+  // At 1s, pure chance reaches 0.963 — indistinguishable from a perfect match. The
+  // previous behaviour degraded the floor to whatever geometry allowed and returned
+  // `usable: true` anyway: a 3s clip sharing NO content with a 90s take produced
+  // offset -1.3376s at peak 0.5566, exactly where that table predicts junk lands.
+  //
+  // No replacement curve is fitted here on purpose. Two independent measurements of
+  // the 8s point disagreed (0.268 vs 0.349) because the result is sensitive to the
+  // synthetic envelope model — so a curve derived from that model would repeat the
+  // original mistake of calibrating against a chosen distribution rather than the real
+  // one. The offset is still returned so a UI can offer it for verification by ear;
+  // what is withheld is the CLAIM that it is trustworthy.
+  else if (scores.lowOverlap === true) reason = 'insufficient-overlap-to-judge';
   else if (peak < 0.3) reason = 'weak-correlation';
   else if (prominence < 0.1) reason = 'ambiguous-periodic-content';
 

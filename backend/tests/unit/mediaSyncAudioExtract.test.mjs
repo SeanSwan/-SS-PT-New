@@ -242,6 +242,34 @@ describe('audio extraction from real encoded media', () => {
       .rejects.toThrow(AudioExtractError);
   }, 90_000);
 
+  /**
+   * Two files that share NO content must not produce a usable answer.
+   *
+   * They used to. The overlap floor degrades to whatever geometry allows and flags
+   * `lowOverlap`, but the peak gate stayed at 0.3 — a threshold calibrated for 8s of
+   * overlap. Measured worst spurious correlation between UNRELATED speech envelopes is
+   * 0.682 at 3s and 0.963 at 1s, so below the floor that gate passes junk routinely.
+   * A 3s clip against a 90s take returned offset -1.3376s at peak 0.5566, `usable:true`.
+   */
+  maybe()('refuses a clip too short to share meaningful overlap', async () => {
+    const tiny = join(dir, 'tiny.m4a');
+    await run(['-y', '-v', 'error', '-t', '3', '-i', join(dir, 'mic.m4a'), '-c:a', 'aac', tiny]);
+
+    const [cam, small] = await Promise.all([
+      extractMono(join(dir, 'camera.mp4'), { sampleRate: RATE }),
+      extractMono(tiny, { sampleRate: RATE }),
+    ]);
+    const r = findOffset(cam.samples, small.samples, {
+      referenceSampleRate: RATE, targetSampleRate: RATE, maxOffsetSeconds: 60,
+    });
+    expect(r.usable).toBe(false);
+    expect(r.reason).toBe('insufficient-overlap-to-judge');
+    expect(r.lowOverlap).toBe(true);
+    // The offset is still reported — a UI may offer it for verification by ear. What is
+    // withheld is the claim that it can be trusted.
+    expect(Number.isFinite(r.offsetSeconds)).toBe(true);
+  }, 90_000);
+
   maybe()('refuses a file it cannot decode rather than returning empty audio', async () => {
     const bogus = join(dir, 'not-media.mp4');
     writeFileSync(bogus, Buffer.from('this is not a media file'));
@@ -284,6 +312,42 @@ describe('interleaving guard', () => {
     expect(interleavingSuspected(10, null)).toBe(false);
     expect(interleavingSuspected(10, undefined)).toBe(false);
     expect(interleavingSuspected(2, 0.5)).toBe(false);   // too short to be meaningful
+  });
+
+  /**
+   * A single NaN is catastrophic and DISGUISES ITSELF. Measured on a 40s signal with
+   * one NaN sample: peak NaN, offset pinned at the search edge, reason
+   * "search-range-too-narrow-to-judge". Safe (it refuses) but the diagnosis points at
+   * the wrong problem, so extraction refuses first, where the true cause is nameable.
+   */
+  it('a single non-finite sample corrupts the whole measurement', async () => {
+    const { findOffset: fo } = await import('../../services/mediaSync/crossCorrelation.mjs');
+    const SR = 800; const secs = 40; const n = SR * secs;
+    const a = new Float32Array(n); const b = new Float32Array(n);
+    let s = 7;
+    const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+    let i = 0;
+    while (i < n) {
+      i += Math.floor((0.05 + rnd() * 0.3) * SR);
+      const bl = Math.floor((0.08 + rnd() * 0.2) * SR); const amp = 0.3 + rnd() * 0.6;
+      for (let k = 0; k < bl && i + k < n; k += 1) a[i + k] = (rnd() * 2 - 1) * amp;
+      i += bl;
+    }
+    const shift = 3 * SR;
+    for (let j = 0; j < n; j += 1) b[j] = j - shift >= 0 ? a[j - shift] : 0;
+
+    const clean = fo(a, b, { sampleRate: SR, maxOffsetSeconds: 10 });
+    expect(clean.usable).toBe(true);
+    expect(clean.offsetSeconds).toBeCloseTo(3, 2);
+
+    // One bad sample out of 32,000 destroys it — and does NOT report why.
+    const poisoned = Float32Array.from(a);
+    poisoned[Math.floor(n / 2)] = NaN;
+    const bad = fo(poisoned, b, { sampleRate: SR, maxOffsetSeconds: 10 });
+    expect(bad.usable).toBe(false);
+    expect(Number.isNaN(bad.peak)).toBe(true);
+    // Documented so the misleading reason is a known property, not a surprise.
+    expect(bad.reason).toBe('search-range-too-narrow-to-judge');
   });
 
   it('sits below the smallest real failure and above normal slop', () => {
