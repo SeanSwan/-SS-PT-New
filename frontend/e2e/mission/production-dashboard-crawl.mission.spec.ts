@@ -4,21 +4,34 @@
  * Exercises authenticated dashboard routes in read-only mode. The crawler
  * clicks safe navigation/tab/menu controls, blocks write methods, and reports
  * console/page/network failures with enough context to repair the live surface.
+ *
+ * SLICE 0 (2026-08-11) — durability + honest coverage. Four defects fixed:
+ *   1. A throw on any route aborted the remaining routes AND discarded the
+ *      report (it was attached after the loop). Each route is now isolated and
+ *      the report is flushed to disk after every one.
+ *   2. Interaction truncation at `maxClicksPerRoute` was silent. It is now an
+ *      explicit finding naming the count not exercised.
+ *   3. Missing auth state silently skipped, so an untested run reported green.
+ *      It is now a hard failure unless explicitly opted out of.
+ *   4. Coverage was never reported. `visited / total` is now always printed and
+ *      routes the crawl never reached fail the assertion.
  */
 
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
 import { roleRoutes, type DashboardRole } from './production-dashboard-crawl.routes';
+import {
+  NO_ISSUES,
+  attachCrawlReport,
+  compactIssues,
+  createCrawlState,
+  flushCrawlReport,
+  formatCoverageLine,
+  overTruncationBudget,
+  summarizeCoverage,
+  type CrawlIssueState,
+} from './production-dashboard-crawl.report';
 
 test.describe.configure({ retries: 0 });
-
-interface CrawlIssueState {
-  blockedWrites: string[];
-  readFailures: string[];
-  requestFailures: string[];
-  consoleErrors: string[];
-  pageErrors: string[];
-  clicks: Array<{ role: DashboardRole; route: string; label: string; url: string }>;
-}
 
 interface CrawlCandidate {
   id: string;
@@ -41,39 +54,15 @@ const crawlTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS |
 const networkIdleTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_NETWORK_IDLE_TIMEOUT_MS || '1000');
 const settleDelayMs = Number(process.env.SWAN_DASHBOARD_CRAWL_SETTLE_MS || '125');
 
-function isSocketPollingUrl(rawUrl: string) {
-  try {
-    const url = new URL(rawUrl);
-    return url.pathname === '/socket.io/' && url.searchParams.get('transport') === 'polling';
-  } catch {
-    return false;
-  }
-}
+/**
+ * Escape hatch for partial runs (e.g. only an admin auth state is available).
+ * Defaults OFF: strict is the correct default, because a silently skipped crawl
+ * is indistinguishable from a passing one in CI summary output.
+ */
+const allowMissingAuth = process.env.SWAN_DASHBOARD_CRAWL_ALLOW_MISSING_AUTH === '1';
 
 function isNavigationAbort(request: { failure(): { errorText: string } | null }) {
   return /net::ERR_ABORTED|NS_BINDING_ABORTED|Target closed/i.test(request.failure()?.errorText || '');
-}
-
-function allowedConsoleNoise(message: string, state: CrawlIssueState) {
-  if (/preloaded using link preload/i.test(message)) return true;
-  if (/Service Worker: PWA functionality temporarily disabled/i.test(message)) return true;
-  if (/Failed to load resource: the server responded with a status of 400/i.test(message)) {
-    return state.requestFailures.some(isSocketPollingUrl) || state.readFailures.some((entry) => /\/socket\.io\//.test(entry));
-  }
-  if (/Failed to load resource: the server responded with a status of 405/i.test(message)) {
-    return state.blockedWrites.length > 0;
-  }
-  return false;
-}
-
-function compactIssues(state: CrawlIssueState) {
-  return {
-    readFailures: state.readFailures,
-    requestFailures: state.requestFailures.filter((entry) => !isSocketPollingUrl(entry)),
-    consoleErrors: state.consoleErrors.filter((entry) => !allowedConsoleNoise(entry, state)),
-    pageErrors: state.pageErrors,
-    blockedWrites: state.blockedWrites.filter((entry) => !/^POST \/api\/dashboard\/track-pageview$/.test(entry)),
-  };
 }
 
 async function installReadOnlyGuard(page: Page, state: CrawlIssueState) {
@@ -177,13 +166,27 @@ async function crawlRoute(page: Page, state: CrawlIssueState, role: DashboardRol
   const bodyText = await page.locator('body').innerText({ timeout: 20_000 }).catch(() => '');
   await assertDashboardRouteLoaded(page, bodyText);
 
-  const candidates = (await markSafeCandidates(page)).slice(0, maxClicksPerRoute);
+  const allCandidates = await markSafeCandidates(page);
+  const candidates = allCandidates.slice(0, maxClicksPerRoute);
+
+  // Truncation is a finding, never a silent cap — otherwise an under-explored
+  // page is indistinguishable from a fully exercised one.
+  if (allCandidates.length > candidates.length) {
+    state.truncations.push({
+      route,
+      exercised: candidates.length,
+      skipped: allCandidates.length - candidates.length,
+    });
+  }
+
+  let clicked = 0;
   for (const candidate of candidates) {
     const locator = page.locator(`[data-dashboard-crawl-id="${candidate.id}"]`).first();
     if (!(await locator.isVisible().catch(() => false))) continue;
 
     await locator.scrollIntoViewIfNeeded().catch(() => undefined);
     await locator.click({ timeout: 5_000 }).catch(() => undefined);
+    clicked += 1;
     state.clicks.push({ role, route, label: candidate.label, url: page.url() });
     await page.keyboard.press('Escape').catch(() => undefined);
     await settle(page);
@@ -194,14 +197,17 @@ async function crawlRoute(page: Page, state: CrawlIssueState, role: DashboardRol
     }
   }
 
-  await page.screenshot({ path: testInfo.outputPath(`${role}-${route.replace(/[^a-z0-9]+/gi, '-')}.png`), fullPage: false });
+  await page.screenshot({ path: testInfo.outputPath(`${role}-${route.replace(/[^a-z0-9]+/gi, '-')}.png`), fullPage: false })
+    .catch(() => undefined);
+
+  return clicked;
 }
 
-async function attachCrawlReport(testInfo: TestInfo, state: CrawlIssueState) {
-  await testInfo.attach('dashboard-crawl-report.json', {
-    body: JSON.stringify({ ...state, actionable: compactIssues(state) }, null, 2),
-    contentType: 'application/json',
-  });
+function missingAuthMessage(role: DashboardRole) {
+  return `No production auth state for "${role}" (set SWAN_PROD_${role.toUpperCase()}_AUTH_STATE). `
+    + 'A crawl that cannot authenticate has tested nothing, so failing loudly rather than '
+    + 'reporting green. Set SWAN_DASHBOARD_CRAWL_ALLOW_MISSING_AUTH=1 to downgrade to a skip '
+    + 'for deliberate partial runs.';
 }
 
 function declareRoleCrawl(role: DashboardRole) {
@@ -210,32 +216,59 @@ function declareRoleCrawl(role: DashboardRole) {
 
     test(`@mission @prod-live-readonly @readonly @dashboard-crawl ${role} dashboard has no actionable console errors`, async ({ page }, testInfo) => {
       test.setTimeout(crawlTimeoutMs);
-      test.skip(!authStates[role], `Set SWAN_PROD_${role.toUpperCase()}_AUTH_STATE to crawl ${role} production dashboard.`);
+
+      if (!authStates[role]) {
+        // Strict by default (fix 3). Opt-out is explicit and named in the message.
+        test.skip(allowMissingAuth, missingAuthMessage(role));
+        throw new Error(missingAuthMessage(role));
+      }
+
       expect(process.env.SWAN_MISSION_QA_LIVE_API || '0').toBe('1');
       expect(process.env.SWAN_MISSION_QA_ALLOW_WRITES || '0').toBe('0');
 
-      const state: CrawlIssueState = {
-        blockedWrites: [],
-        readFailures: [],
-        requestFailures: [],
-        consoleErrors: [],
-        pageErrors: [],
-        clicks: [],
-      };
+      const routes = roleRoutes[role];
+      const state = createCrawlState();
       await installReadOnlyGuard(page, state);
 
-      for (const route of roleRoutes[role]) {
-        await crawlRoute(page, state, role, route, testInfo);
+      for (const route of routes) {
+        // Fix 1: one bad route can no longer end the crawl or destroy evidence.
+        try {
+          const clicks = await crawlRoute(page, state, role, route, testInfo);
+          state.routeResults.push({ route, status: 'visited', clicks });
+        } catch (error) {
+          state.routeResults.push({
+            route,
+            status: 'failed',
+            clicks: 0,
+            error: error instanceof Error ? error.message.split('\n')[0] : String(error),
+          });
+        }
+        // Fix 1 (cont.): crash-durable — evidence survives even a hard abort.
+        flushCrawlReport(testInfo, state, role, routes);
       }
 
-      await attachCrawlReport(testInfo, state);
-      expect(compactIssues(state)).toEqual({
-        readFailures: [],
-        requestFailures: [],
-        consoleErrors: [],
-        pageErrors: [],
-        blockedWrites: [],
-      });
+      const summary = summarizeCoverage(role, routes.length, state);
+      // Fix 4: coverage is always visible; a partial run cannot look like a full one.
+      // eslint-disable-next-line no-console
+      console.log(formatCoverageLine(summary));
+
+      await attachCrawlReport(testInfo, state, role, routes);
+
+      // Fix 2: truncation FAILS by default. If it only reported, the cheapest way
+      // to keep the suite green would be to let pages outgrow the budget — the
+      // same incentive that produced the console-noise suppression list. The
+      // allowance is a number someone must deliberately raise, so coverage debt
+      // is visible and costed rather than silent.
+      const allowedTruncations = Number(process.env.SWAN_DASHBOARD_CRAWL_ALLOWED_TRUNCATIONS || '0');
+      expect(
+        overTruncationBudget(state.truncations, allowedTruncations),
+        `${role}: ${state.truncations.length} route(s) exceeded the ${maxClicksPerRoute}-interaction `
+        + `budget (allowance ${allowedTruncations}), so part of each page was never exercised. `
+        + 'Raise SWAN_DASHBOARD_CRAWL_MAX_CLICKS_PER_ROUTE to cover them, or set '
+        + 'SWAN_DASHBOARD_CRAWL_ALLOWED_TRUNCATIONS to acknowledge the debt explicitly.',
+      ).toEqual([]);
+
+      expect(compactIssues(state, routes)).toEqual(NO_ISSUES);
     });
   });
 }
