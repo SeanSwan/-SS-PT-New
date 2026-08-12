@@ -65,11 +65,70 @@ function getOpenRouterKey() {
 // OpenRouter call (mirrors validation-orchestrator pattern)
 // ─────────────────────────────────────────────
 
+/**
+ * Is the flat-rate Codex CLI available and logged in?
+ *
+ * Sean pays a monthly Codex subscription. Until now this script always called
+ * the METERED OpenRouter API, so every consult was billed twice over: once by
+ * the subscription he already owns, and again per token. Verified 2026-08-11:
+ * `codex login status` reports "Logged in using ChatGPT" and `codex exec`
+ * returns correctly non-interactively.
+ */
+function codexCliAvailable() {
+  try {
+    execSync('codex --version', { stdio: 'pipe', timeout: 15_000 });
+    // `codex login status` writes to STDERR, not stdout. Reading only stdout
+    // returns an empty string, the regex fails, and this function reports
+    // "unavailable" while the subscription is live — silently routing every
+    // consult to the METERED API. Verified: stdout is empty, stderr carries
+    // "Logged in using ChatGPT". Merge both streams.
+    const status = execSync('codex login status 2>&1', {
+      stdio: 'pipe', timeout: 15_000, shell: true,
+    }).toString();
+    return /logged in/i.test(status);
+  } catch (e) {
+    // A non-zero exit still carries the message on stderr; check it before
+    // giving up, otherwise a "not logged in" exit code hides a logged-in state.
+    const merged = `${e?.stdout ?? ''}${e?.stderr ?? ''}`;
+    return /logged in/i.test(merged);
+  }
+}
+
+/** Run the consult through the flat-rate CLI. Zero marginal cost. */
+function callCodexCli(prompt) {
+  // --skip-git-repo-check so the consult works from any cwd, including a
+  // worktree or a scratch dir.
+  const out = execSync('codex exec --skip-git-repo-check -', {
+    input: prompt,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    timeout: 900_000,
+    maxBuffer: 64 * 1024 * 1024,
+  }).toString();
+  return {
+    text: out.trim() || '(no response)',
+    inputTokens: 0,        // not billed per token on the subscription
+    outputTokens: 0,
+    model: 'codex-cli (flat-rate subscription)',
+    billed: false,
+  };
+}
+
 async function callCodex(prompt) {
+  // FLAT-RATE FIRST. The metered API is now an explicit opt-out, not the
+  // default — set SWAN_CODEX_FORCE_API=1 to force paid billing.
+  const forceApi = process.env.SWAN_CODEX_FORCE_API === '1';
+  if (!forceApi && codexCliAvailable()) {
+    console.log('[consult-codex] transport=codex-cli billing=FLAT-RATE (subscription, $0 marginal)');
+    return callCodexCli(prompt);
+  }
+
   const apiKey = getOpenRouterKey();
   if (!apiKey) {
-    throw new Error('No OPENROUTER_API_KEY found in .env');
+    throw new Error('No OPENROUTER_API_KEY found in .env, and the flat-rate Codex CLI is unavailable. '
+      + 'Run `codex login` to use the subscription you already pay for.');
   }
+  console.log(`[consult-codex] transport=openrouter-api billing=METERED model=${MODEL}`
+    + `${forceApi ? ' (forced via SWAN_CODEX_FORCE_API=1)' : ' (CLI unavailable — falling back)'}`);
 
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',

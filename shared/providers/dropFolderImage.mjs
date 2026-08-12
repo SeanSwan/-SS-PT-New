@@ -82,9 +82,30 @@ export function verify(root = process.cwd()) {
  * Publish a request. Writes a human-readable brief the producer can act on,
  * and returns the id they should name the resulting image with.
  */
+/**
+ * Reduce any caller-supplied id to a single safe path segment.
+ *
+ * Found by an adversarial probe: a `briefId` of "../../escaped" produced an id
+ * that `join()` resolved OUTSIDE the requests directory, writing an arbitrary
+ * file into `.ai-workflow/`. That is a file-write primitive, and briefId is
+ * exactly the kind of field that will one day carry user input.
+ *
+ * Strategy: allowlist, not blocklist. Anything that is not [A-Za-z0-9._-] is
+ * replaced, which kills `/`, `\`, `..`, drive letters, NUL and unicode
+ * separators in one rule rather than playing whack-a-mole with escapes.
+ */
+export function safeId(raw, fallback = 'brief') {
+  const cleaned = String(raw ?? '')
+    .replace(/[^A-Za-z0-9._-]+/g, '-')   // any separator or oddity becomes a dash
+    .replace(/^[.-]+/, '')                // no leading dots (hidden files) or dashes
+    .replace(/\.+/g, '.')                 // collapse dot runs so ".." cannot survive
+    .slice(0, 80);
+  return cleaned.length ? cleaned : fallback;
+}
+
 export function requestDrop(compiled, root = process.cwd()) {
   ensureDirs(root);
-  const id = `${compiled.briefId || 'brief'}-${compiled.seed}`;
+  const id = `${safeId(compiled.briefId)}-${compiled.seed}`;
   const body = [
     `# Forge request  ${id}`,
     '',
