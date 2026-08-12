@@ -34,6 +34,16 @@
 export const ENVELOPE_HZ = 100;
 
 /**
+ * Minimum overlap before a lag is scored at all, as a fraction of the SHORTER
+ * signal. Two recordings of the same take overlap almost entirely; a candidate
+ * alignment that requires them to share only a sliver is not a real alignment.
+ */
+export const MIN_OVERLAP_RATIO = 0.5;
+
+/** Absolute floor regardless of ratio: 2 seconds of envelope. */
+export const MIN_OVERLAP_FRAMES = ENVELOPE_HZ * 2;
+
+/**
  * Reduce a raw sample array to an RMS energy envelope at ENVELOPE_HZ.
  *
  * RMS rather than peak: peak is dominated by isolated clicks, and a click that
@@ -93,19 +103,45 @@ export function standardize(env) {
  * means the target starts earlier (the recorder was rolling before the camera,
  * which is the normal case when someone hits record on the transmitter first).
  */
-export function correlate(reference, target, maxLagFrames) {
+export function correlate(reference, target, maxLagFrames, {
+  minOverlapRatio = MIN_OVERLAP_RATIO,
+  minOverlapFrames = MIN_OVERLAP_FRAMES,
+} = {}) {
   const scores = [];
-  const maxLag = Math.min(maxLagFrames, Math.max(reference.length, target.length));
+  const shorter = Math.min(reference.length, target.length);
+
+  // Never search further than the signal can support. A lag beyond the shorter
+  // signal's length leaves nothing meaningful to compare.
+  const maxLag = Math.min(maxLagFrames, shorter);
+
+  // MINIMUM OVERLAP — this bound is load-bearing, and the original value (8 frames,
+  // i.e. 80ms) was badly wrong. At an extreme lag the overlap shrinks to a sliver,
+  // and a sliver correlates near-perfectly BY CHANCE. Measured: a 60s take searched
+  // at +/-60s produced a spurious peak of 1.07 at -59.27s — scoring HIGHER than the
+  // true peak of 1.01 at the correct offset. The engine refused it, but only by
+  // luck of where the confidence thresholds sat; it had already picked the wrong lag.
+  const minOverlap = Math.max(minOverlapFrames, Math.floor(shorter * minOverlapRatio));
+
   for (let lag = -maxLag; lag <= maxLag; lag += 1) {
-    // Overlapping region only. Comparing a region where one signal does not exist
-    // would reward lags that simply minimise overlap.
     const start = Math.max(0, -lag);
     const end = Math.min(reference.length, target.length - lag);
     const n = end - start;
-    if (n < 8) continue; // too little overlap to mean anything
-    let sum = 0;
-    for (let i = start; i < end; i += 1) sum += reference[i] * target[i + lag];
-    scores.push({ lag, score: sum / n });
+    if (n < minOverlap) continue;
+
+    // Correlate AND normalize over the same window. Standardizing the whole signal
+    // then scoring a sub-window leaves the sub-window's local statistics arbitrary,
+    // so scores from different overlap sizes are not comparable — which is how a
+    // score above 1.0 (impossible for a true NCC) appeared at all. Normalizing per
+    // window makes every lag's score directly comparable and bounded by +/-1.
+    let sxy = 0; let sxx = 0; let syy = 0;
+    for (let i = start; i < end; i += 1) {
+      const x = reference[i];
+      const y = target[i + lag];
+      sxy += x * y; sxx += x * x; syy += y * y;
+    }
+    const denom = Math.sqrt(sxx * syy);
+    if (denom === 0) continue; // one window is flat — no shape to compare
+    scores.push({ lag, score: sxy / denom, overlap: n });
   }
   return scores;
 }

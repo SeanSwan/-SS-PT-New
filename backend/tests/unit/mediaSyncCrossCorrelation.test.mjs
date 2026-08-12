@@ -247,3 +247,57 @@ describe('envelope helpers', () => {
     expect(env.length).toBeCloseTo(10 * ENVELOPE_HZ, -1);
   });
 });
+
+/**
+ * SHORT TAKES vs A WIDE SEARCH — the defect a benchmark found, not a unit test.
+ *
+ * Searching +/-60s on a 60-second take let the overlap shrink to a sliver at extreme
+ * lags, and a sliver correlates near-perfectly BY CHANCE. Measured before the fix:
+ * a spurious peak of 1.07 at -59.27s, scoring HIGHER than the true peak of 1.01 at
+ * the correct -1.50s. Two things were wrong:
+ *
+ *   1. The minimum overlap (8 envelope frames = 80ms) was far too permissive.
+ *   2. Scores were not normalized per window, so a score could exceed 1.0 — which is
+ *      impossible for a true normalized cross-correlation and is the tell that
+ *      different lags were not being compared on equal terms.
+ *
+ * The engine did refuse that answer, but only because the confidence thresholds
+ * happened to sit where they did. It had already selected the wrong lag. These cases
+ * pin both the correctness and the invariant.
+ */
+describe('short takes searched over a wide range', () => {
+  const shortTake = (seconds, trueOffset) => {
+    const clean = speechLike(seconds, { seed: 3 });
+    const scratch = asScratchTrack(shift(clean, -trueOffset, { noise: 0.02 }));
+    return { clean, scratch };
+  };
+
+  for (const maxOffsetSeconds of [60, 30, 10]) {
+    it(`finds the true offset on a 60s take searched at +/-${maxOffsetSeconds}s`, () => {
+      const { clean, scratch } = shortTake(60, 1.5);
+      const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds });
+      expect(r.usable).toBe(true);
+      expect(withinOneFrame(r.offsetSeconds, 1.5)).toBe(true);
+    });
+  }
+
+  it('never produces a correlation score above 1.0 (NCC invariant)', () => {
+    // A score >1 means windows of different sizes were compared without
+    // normalization — the exact condition that produced the spurious peak.
+    for (const seconds of [20, 60, 120]) {
+      const { clean, scratch } = shortTake(seconds, 1.5);
+      const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
+      expect(r.peak).toBeLessThanOrEqual(1.0000001);
+      expect(r.peak).toBeGreaterThanOrEqual(-1.0000001);
+    }
+  });
+
+  it('refuses rather than aligning on a sliver when the search dwarfs the signal', () => {
+    // A 3-second clip searched at +/-60s: there is no honest answer here.
+    const clean = speechLike(3, { seed: 12 });
+    const scratch = asScratchTrack(speechLike(3, { seed: 77 })); // unrelated
+    const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
+    expect(r.usable).toBe(false);
+  });
+});
+
