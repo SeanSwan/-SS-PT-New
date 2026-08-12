@@ -15,6 +15,7 @@ import {
 } from './socialTokenCipher.mjs';
 import blueskyAdapter from './socialProviders/blueskyPublisher.mjs';
 import { createSocialPublishFanOut } from './socialPublishFanOut.mjs';
+import { createSocialJobRetry } from './socialJobRetry.mjs';
 import logger from '../utils/logger.mjs';
 
 export { PROVIDER_CAPABILITIES } from './socialProviderCapabilities.mjs';
@@ -158,6 +159,10 @@ export function createNativeSocialPublishingService({
     decryptCredentials,
   });
 
+  // Retry lives in its own module (300-line rule) but shares this fan-out, so a
+  // retry goes through exactly the same publish path as an original attempt.
+  const { retryJob } = createSocialJobRetry({ JobModel, AttemptModel, publishToAccounts });
+
 
   const publish = async (payload, { userId, now = new Date(), source = 'dashboard' } = {}) => {
     const content = String(payload.content || '').trim();
@@ -277,6 +282,7 @@ export function createNativeSocialPublishingService({
     getHistory,
     getJob,
     runDueJobs,
+    retryJob,
   };
 }
 export default createNativeSocialPublishingService();

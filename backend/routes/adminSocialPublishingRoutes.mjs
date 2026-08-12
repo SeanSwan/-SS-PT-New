@@ -20,46 +20,17 @@ import {
 } from '../services/socialPublishingPlanningService.mjs';
 import { isSocialPublishingStorageUnavailableError } from '../services/socialPublishingStorageErrors.mjs';
 import logger from '../utils/logger.mjs';
+import {
+  getAdminSafeConnectError,
+  getSchedulerStatus,
+  buildStorageUnavailableResponse,
+  buildStorageUnavailableHealth,
+  STORAGE_UNAVAILABLE_MESSAGE,
+} from './adminSocialPublishingHelpers.mjs';
 
 const router = express.Router();
 const SUPPORTED_PLATFORMS = PROVIDER_CAPABILITIES.map(provider => provider.id);
 const PROVIDER_BY_ID = new Map(PROVIDER_CAPABILITIES.map(provider => [provider.id, provider]));
-const STORAGE_UNAVAILABLE_MESSAGE = 'Native social publishing storage is unavailable.';
-
-const getAdminSafeConnectError = (err) => {
-  const message = String(err?.message || '');
-  if (message.startsWith('Native credential encryption is not configured.')) return message;
-  if (message.startsWith('Bluesky session failed:')) return message;
-  return 'Failed to initiate connection';
-};
-
-const getSchedulerStatus = () => ({
-  enabled: process.env.MARKETING_PUBLISHER_WORKER_ENABLED !== 'false',
-  intervalMs: Number(process.env.MARKETING_PUBLISHER_WORKER_INTERVAL_MS || 60000),
-});
-
-const buildStorageUnavailableStatus = () => ({
-  ok: false,
-  reason: 'storage_unavailable',
-  message: STORAGE_UNAVAILABLE_MESSAGE,
-});
-
-const buildStorageUnavailableResponse = data => ({
-  success: true,
-  degraded: true,
-  data,
-  storage: buildStorageUnavailableStatus(),
-  message: STORAGE_UNAVAILABLE_MESSAGE,
-});
-
-const buildStorageUnavailableHealth = () => buildStorageUnavailableResponse({
-  mode: 'native',
-  configured: false,
-  accountCount: 0,
-  providers: PROVIDER_CAPABILITIES,
-  scheduler: getSchedulerStatus(),
-  storage: buildStorageUnavailableStatus(),
-});
 
 router.use(protect, adminOnly);
 
@@ -230,6 +201,36 @@ router.post('/publish', async (req, res) => {
   } catch (err) {
     logger.error('Failed to publish social post:', err.message);
     return res.status(500).json({ success: false, status: 'error', message: 'Failed to publish' });
+  }
+});
+
+/**
+ * Re-publish only the accounts of an existing job that have not already
+ * succeeded. Recovery from a partial failure has to live here rather than in
+ * "press Publish again", because a fresh publish targets every selected account
+ * and would re-post to the ones that already went out.
+ *
+ * Same truthful contract as /publish: the outcome is data, `success` is derived
+ * from `status`, and 200 covers every business outcome.
+ */
+router.post('/publish/:jobId/retry', async (req, res) => {
+  try {
+    const result = await nativePublisher.retryJob(req.params.jobId, { userId: req.user?.id });
+    const status = result.status || 'failed';
+    const success = status === 'published' || status === 'scheduled';
+
+    logger.info(
+      `[AUDIT] Admin ${req.user.id} retry job=${req.params.jobId} outcome=${status} ` +
+      `accounts=${(result.retried || []).length}`,
+    );
+
+    return res.json({ success, status, data: result });
+  } catch (err) {
+    if (/not found/i.test(err.message || '')) {
+      return res.status(404).json({ success: false, status: 'not_found', message: 'Social publishing job not found' });
+    }
+    logger.error('Failed to retry social post:', err.message);
+    return res.status(500).json({ success: false, status: 'error', message: 'Failed to retry' });
   }
 });
 
