@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   compileImage, compileVideo, resolveSlots, personify, BRAIN_VERSION, FACETS,
-  SERIALIZERS, serializeFor, strategyFor,
+  SERIALIZERS, serializeFor, strategyFor, fitToBudget,
 } from '../../../shared/swanPromptCompiler.mjs';
 
 const VERIFIED_CAPS = {
   provider: 'gemini-image-flash',
+  promptStyle: 'sentence', // declared, as a real caption-trained provider would
   modelVersion: 'gemini-3.1-flash-image-preview',
   seedIsDeterministic: 'verified',
   honorsNegativePrompt: 'verified',
@@ -156,21 +157,51 @@ test('sentence strategy produces prose, tag strategy produces a comma stack', ()
   assert.ok(tag.split(',').length >= 5, 'tag should be a comma stack');
 });
 
-test('strategy is inferred from provider, sentence is the safe default', () => {
-  assert.equal(strategyFor({ provider: 'gemini-image-flash' }), 'sentence');
-  assert.equal(strategyFor({ provider: 'minimax-h3-hosted' }), 'sentence');
-  assert.equal(strategyFor({ provider: 'sdxl-local' }), 'tag');
-  assert.equal(strategyFor({ provider: 'comfyui-wan22' }), 'tag');
-  // Unknown provider gets sentence — an unknown model is far likelier to be
-  // caption-trained than CLIP-tag-trained.
-  assert.equal(strategyFor({ provider: 'something-new' }), 'sentence');
-  assert.equal(strategyFor({}), 'sentence');
+test('precedence: DECLARED promptStyle beats a provider-name hint', () => {
+  // Provider names are marketing, not architecture. "stable-diffusion-3-api"
+  // serves SD3, which is caption-trained via T5 and wants prose — the brand
+  // string says the opposite. A declared capability must always win.
+  assert.equal(strategyFor({ provider: 'sdxl-local', promptStyle: 'sentence' }), 'sentence');
+  assert.equal(strategyFor({ provider: 'stable-diffusion-3-api', promptStyle: 'sentence' }), 'sentence');
+  assert.equal(strategyFor({ provider: 'gemini', promptStyle: 'tag' }), 'tag');
 });
 
-test('an explicit promptStyle overrides provider inference', () => {
-  assert.equal(strategyFor({ provider: 'sdxl-local', promptStyle: 'sentence' }), 'sentence');
-  // An unknown explicit style falls back rather than throwing at selection time.
-  assert.equal(strategyFor({ provider: 'gemini', promptStyle: 'nonsense' }), 'sentence');
+test('an undeclared provider gets the FLATTEST-FAILURE default, not the prettiest', () => {
+  // Deliberately NOT 'sentence'. Under an unknown token limit a truncated
+  // sentence loses grammatical coherence AND its tail content; a truncated
+  // delimited list loses only tail items. Defaulting to prose promoted a cheap
+  // unvalidated assumption into an expensive one.
+  assert.equal(strategyFor({ provider: 'something-new' }), 'fragment');
+  assert.equal(strategyFor({}), 'fragment');
+  assert.equal(strategyFor({ provider: 'minimax-h3-hosted' }), 'fragment');
+});
+
+test('provider-name hints remain, but only as a last resort', () => {
+  assert.equal(strategyFor({ provider: 'sdxl-local' }), 'tag');
+  assert.equal(strategyFor({ provider: 'comfyui-wan22' }), 'tag');
+});
+
+test('an unknown explicit style falls back rather than throwing at selection time', () => {
+  assert.equal(strategyFor({ provider: 'gemini', promptStyle: 'nonsense' }), 'fragment');
+});
+
+test('token budget drops TAIL SEGMENTS, never cuts mid-string', () => {
+  const long = 'alpha one. beta two. gamma three. delta four. epsilon five.';
+  const fitted = fitToBudget(long, 30);
+  assert.ok(fitted.text.length <= 30);
+  assert.equal(fitted.truncated, true);
+  assert.ok(fitted.droppedSegments > 0);
+  assert.ok(long.startsWith(fitted.text.split('.')[0]), 'head must be preserved intact');
+  // No budget declared = untouched.
+  assert.equal(fitToBudget(long, 0).text, long);
+  assert.equal(fitToBudget(long, undefined).truncated, false);
+});
+
+test('compile honours a provider prompt budget and reports the truncation', () => {
+  const c = compileImage({ ...brief }, { ...VERIFIED_CAPS, maxPromptChars: 60 });
+  assert.ok(c.promptText.length <= 60);
+  assert.equal(c.truncated, true);
+  assert.ok(c.droppedSegments > 0);
 });
 
 test('an unknown serializer throws rather than silently emitting nothing', () => {

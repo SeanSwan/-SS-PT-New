@@ -164,18 +164,60 @@ export const SERIALIZERS = Object.freeze({
   },
 });
 
-/** Providers whose conditioning genuinely prefers tags over prose. */
-const TAG_PROVIDERS = /sdxl|stable-?diffusion|comfy/i;
+/**
+ * Last-resort name hints. Provider NAMES are marketing, not architecture:
+ * "stable-diffusion-3-api" serves SD3, which is caption-trained via T5 and
+ * would want prose — the brand says otherwise. So this is a hint of last
+ * resort, never the primary signal. Declare `promptStyle` in capabilities.
+ */
+const TAG_NAME_HINT = /sdxl|comfy|automatic1111|invoke/i;
 
 /**
- * Pick a strategy. Explicit `caps.promptStyle` wins; otherwise infer from the
- * provider; otherwise sentence. Never silently guesses a non-default for an
- * unknown provider — an unknown model is far likelier to be caption-trained.
+ * Default when a provider declares nothing.
+ *
+ * NOT 'sentence'. Under an unknown token limit, a truncated sentence loses
+ * grammatical coherence AND its tail content, while a truncated delimited list
+ * loses only tail items. The right default is the one with the FLATTEST FAILURE
+ * CURVE, not the one that reads best when everything goes right. Promoting
+ * 'sentence' to the unknown-provider default turned a cheap unvalidated
+ * assumption into an expensive one.
+ */
+const UNDECLARED_DEFAULT = 'fragment';
+
+/**
+ * Pick a strategy. Precedence, strongest signal first:
+ *   1. `caps.promptStyle` — a DECLARED capability. This is the real answer.
+ *   2. Provider-name hint — marketing string, last resort, tag-family only.
+ *   3. `UNDECLARED_DEFAULT` — flattest failure curve.
+ * Two of three tiers used to be guesses; now only the bottom one is.
  */
 export function strategyFor(caps = {}) {
   if (caps.promptStyle && SERIALIZERS[caps.promptStyle]) return caps.promptStyle;
-  if (caps.provider && TAG_PROVIDERS.test(caps.provider)) return 'tag';
-  return 'sentence';
+  if (caps.provider && TAG_NAME_HINT.test(caps.provider)) return 'tag';
+  return UNDECLARED_DEFAULT;
+}
+
+/**
+ * Truncate to a provider's prompt budget by DROPPING TAIL SEGMENTS, never by
+ * cutting mid-string. A CLIP-conditioned model with a 77-token window silently
+ * drops the overflow, and "why did my materials vanish" is a day of debugging.
+ * Segment-wise truncation at least fails legibly.
+ */
+export function fitToBudget(text, maxChars) {
+  if (!Number.isFinite(maxChars) || maxChars <= 0 || text.length <= maxChars) {
+    return { text, truncated: false, droppedSegments: 0 };
+  }
+  const sep = text.includes(', ') && !text.includes('. ') ? ', ' : '. ';
+  const segs = text.split(sep);
+  let out = [];
+  let dropped = 0;
+  for (const s of segs) {
+    const candidate = [...out, s].join(sep);
+    if (candidate.length <= maxChars) out.push(s);
+    else dropped += 1;
+  }
+  if (out.length === 0) return { text: text.slice(0, maxChars), truncated: true, droppedSegments: segs.length };
+  return { text: out.join(sep), truncated: true, droppedSegments: dropped };
 }
 
 /** Render the IR to a string under a named strategy. */
@@ -253,16 +295,22 @@ export function compileImage(brief = {}, caps = {}) {
   }
 
   const promptStyle = strategyFor(caps);
-  const promptText = serializeFor(promptStyle, slots);
+  const rendered = serializeFor(promptStyle, slots);
+  const fitted = fitToBudget(rendered, caps.maxPromptChars);
+  const promptText = fitted.text;
 
-  // Fail closed on a SUBSTANCELESS prompt. An empty slot map serializes to a
-  // bare "." — which would be submitted to a paid provider and billed for.
+  // OVERRIDE-VALIDATION GUARD — named honestly.
   //
-  // The threshold is deliberately tiny. A first version used 12 characters and
-  // refused "a frozen lake" (11 stripped chars) — a legitimate terse brief.
-  // That is the same false-positive failure the LAW filter's must-pass corpus
-  // exists to prevent: a guard that blocks real work gets disabled. This checks
-  // for the ABSENCE OF CONTENT, not for brevity.
+  // This cannot fire on a normal brief: resolveSlots always applies intent and
+  // surface defaults, so the only way to reach an empty render is by blanking
+  // every slot through slotOverrides. So it is an input-validation check on
+  // OVERRIDES, not a general prompt-emptiness guarantee. The error code keeps
+  // its name for callers, but do not read it as broader protection than it is.
+  //
+  // Threshold is deliberately tiny (absence of content, not brevity). A first
+  // version used 12 characters and refused "a frozen lake" (11 stripped) — a
+  // legitimate terse brief, and the same false-positive class the must-pass
+  // corpus exists to prevent.
   if (promptText.replace(/[^\p{L}\p{N}]/gu, '').length < 3) {
     const err = new Error('E_EMPTY_PROMPT: the brief resolved to no substantive content '
       + `(rendered: ${JSON.stringify(promptText)}). Refusing to submit a paid request.`);
@@ -283,6 +331,8 @@ export function compileImage(brief = {}, caps = {}) {
     modelVersion: caps.modelVersion || 'unspecified',
     promptStyle,
     promptText,
+    truncated: fitted.truncated,
+    droppedSegments: fitted.droppedSegments,
     negativeText,
     seed,
     params,
