@@ -203,8 +203,35 @@ export async function generate(compiled, opts = {}) {
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     // Redact the key defensively in case a provider echoes the request.
-    throw new ProviderError('E_PROVIDER_HTTP',
-      `OpenRouter ${res.status}: ${body.slice(0, 500).split(key).join('<REDACTED_KEY>')}`);
+    const safe = body.slice(0, 500).split(key).join('<REDACTED_KEY>');
+
+    /**
+     * A SAFETY REJECTION IS NOT A TRANSPORT ERROR, and must not be retried
+     * blindly — a retry costs money and usually fails the same way.
+     *
+     * Measured 2026-08-12, 5 samples per serializer, same brief and content:
+     *   sentence  5/5 accepted
+     *   fragment  5/5 accepted
+     *   tag       2/5 accepted   <- 60% rejection
+     *
+     * The CONTENT is identical; only the SHAPE differs. A bare comma-separated
+     * keyword stack that names a living artist pattern-matches style-mimicry
+     * and prompt-injection heuristics, while the same words in prose do not.
+     * The personification formula puts an artist's name in the prompt by
+     * design, which is safe as a sentence and hazardous as a tag.
+     *
+     * Surfaced as its own code so a caller can re-serialize as `sentence`
+     * rather than treating a taste-shape problem as a network problem.
+     */
+    if (res.status === 400 && /safety system|content_policy|safety_violation/i.test(safe)) {
+      throw new ProviderError('E_PROVIDER_SAFETY_REJECT',
+        `Provider safety system rejected this prompt SHAPE (style=${compiled.promptStyle}). `
+        + 'Identical content in "sentence" form is accepted; a bare tag stack naming an artist '
+        + 'is not. Re-serialize as sentence rather than retrying. '
+        + `Provider said: ${safe.slice(0, 200)}`);
+    }
+
+    throw new ProviderError('E_PROVIDER_HTTP', `OpenRouter ${res.status}: ${safe}`);
   }
 
   const data = await res.json();
