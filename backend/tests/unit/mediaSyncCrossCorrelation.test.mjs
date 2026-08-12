@@ -114,7 +114,7 @@ describe('findOffset — recovers a KNOWN offset within one video frame', () => 
 
       expect(r.usable).toBe(true);
       expect(withinOneFrame(r.offsetSeconds, trueOffset)).toBe(true);
-      expect(r.confidence).toBeGreaterThan(0.5);
+      expect(r.marginToRefusal).toBeGreaterThan(1);
     });
   }
 
@@ -191,7 +191,7 @@ describe('findOffset — REPORTS ITS OWN FAILURE (the property that matters most
     const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 10 });
     expect(r.usable).toBe(false);
     expect(r.reason).toBe('scratch-track-silent');
-    expect(r.confidence).toBe(0);
+    expect(r.marginToRefusal).toBe(0);
   });
 
   it('refuses when the clean track is silent', () => {
@@ -208,7 +208,7 @@ describe('findOffset — REPORTS ITS OWN FAILURE (the property that matters most
     const b = speechLike(30, { seed: 99, rate: 3.9 });
     const r = findOffset(a, b, { sampleRate: SR, maxOffsetSeconds: 10 });
     expect(r.usable).toBe(false);
-    expect(r.confidence).toBeLessThan(0.5);
+    expect(r.marginToRefusal).toBeLessThan(1);
   });
 
   it('refuses periodic content rather than locking onto the wrong cycle', () => {
@@ -414,8 +414,10 @@ describe('effective search ceiling', () => {
   it('reports how far it could actually search, and that it fell short of the request', () => {
     const { clean, scratch } = sixtySecondTake(5);
     const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
-    // 60s file, 50% overlap floor -> 30s reachable, not the 60s requested.
-    expect(r.searchedSeconds).toBeCloseTo(30, 0);
+    // 60s file minus the 4s variance floor -> 56s reachable, not the 60s requested.
+    // This was 30s under the old 50%-of-shorter ratio; the measured absolute floor
+    // recovered 26 seconds of search range without weakening the guard.
+    expect(r.searchedSeconds).toBeCloseTo(56, 0);
     expect(r.searchTruncated).toBe(true);
   });
 
@@ -425,8 +427,9 @@ describe('effective search ceiling', () => {
     expect(r.searchTruncated).toBe(false);
   });
 
-  it('accepts offsets comfortably inside the effective ceiling', () => {
-    for (const off of [5, 25, 29]) {
+  it('accepts offsets across the WHOLE reachable range, including ones the ratio refused', () => {
+    // 35s was previously beyond reach on a 60s file and was refused. It now syncs.
+    for (const off of [5, 25, 29, 35, 45]) {
       const { clean, scratch } = sixtySecondTake(off);
       const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
       expect(r.usable).toBe(true);
@@ -434,16 +437,38 @@ describe('effective search ceiling', () => {
     }
   });
 
-  it('FIRES the boundary guard at the effective edge (it previously could not)', () => {
-    const { clean, scratch } = sixtySecondTake(29.8);
+  it('FIRES the boundary guard at the NEW effective edge', () => {
+    const { clean, scratch } = sixtySecondTake(55.8);
     const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
     expect(r.usable).toBe(false);
     expect(r.reason).toBe('peak-at-search-boundary-widen-window');
   });
 
   it('still refuses — never asserts — when the truth is beyond any reachable lag', () => {
-    const { clean, scratch } = sixtySecondTake(35);
+    // 58s on a 60s file leaves 2s of overlap, under the 4s variance floor.
+    const { clean, scratch } = sixtySecondTake(58);
     const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
     expect(r.usable).toBe(false);
+  });
+});
+
+/**
+ * PARTIAL-OVERLAP PAIRINGS — refused by the old 50%-of-shorter ratio, which was
+ * ~7.5x stricter than the variance guard actually requires. Measured worst spurious
+ * peak from uncorrelated noise: 0.888 at 0.1s, 0.410 at 0.5s, 0.179 at 2s, 0.159 at
+ * 4s. Four seconds is comfortably safe against the 0.3 gate, so the floor is an
+ * absolute duration now, not a proportion of file length.
+ */
+describe('partial-overlap pairings', () => {
+  it('syncs a short clip against a long take sharing well under half the clip', () => {
+    // Transmitter clip 30s; camera take 3 min; they share ~12s.
+    const content = speechLike(180, { seed: 55 });
+    const clipLen = Math.round(30 * SR);
+    const clip = content.slice(0, clipLen);
+    const cameraStart = Math.round(18 * SR);       // camera rolls 18s into the clip
+    const camera = asScratchTrack(content).slice(cameraStart);
+    const r = findOffset(camera, clip, { sampleRate: SR, maxOffsetSeconds: 60 });
+    expect(r.usable).toBe(true);
+    expect(withinOneFrame(Math.abs(r.offsetSeconds), 18)).toBe(true);
   });
 });

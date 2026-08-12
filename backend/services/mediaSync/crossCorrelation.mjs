@@ -31,17 +31,49 @@
  */
 
 /** Envelope resolution. 100 Hz = 10ms buckets — finer than one video frame at 30fps (33ms). */
+/**
+ * ── INPUT CONTRACT (violating this produces a CONFIDENTLY WRONG answer) ──────
+ *
+ * Both signals MUST be single-channel, already downmixed. Decoded stereo arrives
+ * interleaved as L R L R; consumed as if it were mono, the apparent sample rate
+ * DOUBLES, so every reported offset is 2x wrong — and because both channels carry
+ * the same program material the correlation peak still clears the confidence gate.
+ * That is the worst failure this module can produce: wrong, and confident.
+ *
+ * It cannot be detected from the samples alone, which is exactly why it is stated
+ * here as a caller obligation. The extraction layer must downmix explicitly and
+ * assert `channels === 1` before calling in. A silent first channel is the adjacent
+ * trap: channel-0 selection on such a file yields a flat signal, which this module
+ * does refuse (`*-silent`), but the right fix is still an explicit downmix.
+ *
+ * Nothing in the current test suite covers this — every fixture is synthesized mono.
+ */
 export const ENVELOPE_HZ = 100;
 
 /**
- * Minimum overlap before a lag is scored at all, as a fraction of the SHORTER
- * signal. Two recordings of the same take overlap almost entirely; a candidate
- * alignment that requires them to share only a sliver is not a real alignment.
+ * Minimum overlap before a lag is scored at all — an ABSOLUTE duration, derived
+ * from measurement rather than chosen as a fraction.
+ *
+ * The floor exists because NCC is normalized, so a short window can score high by
+ * chance. That is a VARIANCE property (variance ~ 1/n), not a geometric one, so the
+ * requirement is an amount of audio, not a proportion of the file. Measured worst
+ * spurious peak across 400 uncorrelated trials:
+ *
+ *     0.1s -> 0.888   catastrophic (this was the original 8-frame bug)
+ *     0.5s -> 0.410   still able to fake a peak
+ *     1.0s -> 0.285   marginal against the 0.3 gate
+ *     2.0s -> 0.179   safe
+ *     4.0s -> 0.159   comfortably safe
+ *
+ * 4 seconds it is. The previous 50%-of-the-shorter-signal ratio was ~7.5x stricter
+ * than statistics require and refused real pairings because of it: a 30s transmitter
+ * clip against a 3-minute take sharing 10s of true overlap demanded 15s and never
+ * scored the correct lag — a pair a human syncs by ear in seconds. An absolute floor
+ * keeps the variance guard at full strength AND recovers that capability. It also
+ * still blocks the sliver case that motivated the floor: at lag 59s on a 60s file the
+ * overlap is 1s, well under 4s, so it is never scored.
  */
-export const MIN_OVERLAP_RATIO = 0.5;
-
-/** Absolute floor regardless of ratio: 2 seconds of envelope. */
-export const MIN_OVERLAP_FRAMES = ENVELOPE_HZ * 2;
+export const MIN_OVERLAP_FRAMES = ENVELOPE_HZ * 4;
 
 /**
  * Reduce a raw sample array to an RMS energy envelope at ENVELOPE_HZ.
@@ -104,11 +136,11 @@ export function standardize(env) {
  * which is the normal case when someone hits record on the transmitter first).
  */
 export function correlate(reference, target, maxLagFrames, {
-  minOverlapRatio = MIN_OVERLAP_RATIO,
   minOverlapFrames = MIN_OVERLAP_FRAMES,
 } = {}) {
   const scores = [];
   const shorter = Math.min(reference.length, target.length);
+  void shorter;
 
   // Never search further than the signal can support. A lag beyond the shorter
   // signal's length leaves nothing meaningful to compare.
@@ -120,7 +152,28 @@ export function correlate(reference, target, maxLagFrames, {
   // at +/-60s produced a spurious peak of 1.07 at -59.27s — scoring HIGHER than the
   // true peak of 1.01 at the correct offset. The engine refused it, but only by
   // luck of where the confidence thresholds sat; it had already picked the wrong lag.
-  const minOverlap = Math.max(minOverlapFrames, Math.floor(shorter * minOverlapRatio));
+  // ANCHOR THE FLOOR TO ACHIEVABLE GEOMETRY, NOT TO THE SHORTER SIGNAL.
+  //
+  // The floor exists because NCC is normalized, so a tiny overlap can score
+  // spuriously high — it is a VARIANCE guard, not a statement about geometry. Anchored
+  // naively to 50% of the shorter signal it rejects real pairings: operator starts the
+  // transmitter, starts the camera 20s later, transmitter clip is 30s and the take is
+  // 3 minutes. True alignment shares only 10s, the floor demands 15s, and the correct
+  // lag is never even scored — a refusal on a pair a human syncs by ear in seconds.
+  // Same shape whenever a clip is truncated at a take boundary: battery died, late
+  // start, early stop.
+  //
+  // So: keep the variance guard at full strength when the geometry permits it, and
+  // degrade to what is actually achievable when it does not.
+  let maxAchievableOverlap = 0;
+  for (let lag = -maxLag; lag <= maxLag; lag += 1) {
+    const o = Math.min(reference.length, target.length - lag) - Math.max(0, -lag);
+    if (o > maxAchievableOverlap) maxAchievableOverlap = o;
+  }
+  // Cap by what the geometry can actually deliver, so a pair that simply cannot reach
+  // the floor is flagged rather than silently yielding nothing at all.
+  const minOverlap = Math.min(minOverlapFrames, maxAchievableOverlap);
+  const lowOverlap = minOverlap < minOverlapFrames;
 
   for (let lag = -maxLag; lag <= maxLag; lag += 1) {
     const start = Math.max(0, -lag);
@@ -143,6 +196,9 @@ export function correlate(reference, target, maxLagFrames, {
     if (denom === 0) continue; // one window is flat — no shape to compare
     scores.push({ lag, score: sxy / denom, overlap: n });
   }
+  // lowOverlap rides along so findOffset can flag a result whose variance guard had
+  // to be relaxed — the caller deserves to know the answer rests on less evidence.
+  scores.lowOverlap = lowOverlap;
   return scores;
 }
 
@@ -189,7 +245,7 @@ export function findOffset(referenceSamples, targetSamples, {
   const tgtRate = targetSampleRate || sampleRate;
   const empty = {
     offsetFrames: 0, offsetSeconds: 0, peak: 0, prominence: 0,
-    confidence: 0, usable: false, reason: 'insufficient-audio',
+    marginToRefusal: 0, usable: false, reason: 'insufficient-audio',
   };
   if (!refRate || !tgtRate || !referenceSamples?.length || !targetSamples?.length) return empty;
 
@@ -210,7 +266,32 @@ export function findOffset(referenceSamples, targetSamples, {
   if (!scores.length) return empty;
 
   let best = scores[0];
-  for (const s of scores) if (s.score > best.score) best = s;
+  let bestIndex = 0;
+  for (let i = 0; i < scores.length; i += 1) {
+    if (scores[i].score > best.score) { best = scores[i]; bestIndex = i; }
+  }
+
+  // SUB-BIN REFINEMENT. The envelope quantizes lag to 10ms, which is fine against a
+  // 33.3ms video frame but NOT fine for drift: a drift rate is a DIFFERENCE of two
+  // offsets, so it inherits a full quantum of error, and over a short span that noise
+  // dwarfs the signal (10ms over 30s is 333ppm against real rates of 10-100ppm).
+  //
+  // Fitting a parabola through the three scores bracketing the peak recovers the true
+  // maximum to roughly a tenth of a bin — ~1ms — which cuts the drift noise floor by
+  // an order of magnitude. This is far cheaper than raising the envelope rate, which
+  // would multiply the cost of scoring EVERY lag to fix a two-measurement problem.
+  let refinedLag = best.lag;
+  const prev = scores[bestIndex - 1];
+  const next = scores[bestIndex + 1];
+  if (prev && next && prev.lag === best.lag - 1 && next.lag === best.lag + 1) {
+    const denomP = prev.score - 2 * best.score + next.score;
+    if (denomP !== 0) {
+      const delta = (0.5 * (prev.score - next.score)) / denomP;
+      // A well-formed peak sits within half a bin of the sampled maximum. Anything
+      // further means the parabola is not describing a peak; keep the integer lag.
+      if (Number.isFinite(delta) && Math.abs(delta) <= 0.5) refinedLag = best.lag + delta;
+    }
+  }
 
   // PROMINENCE: the best score outside a guard band around the peak. A genuine
   // alignment produces one sharp peak; periodic content (a hum, a metronome,
@@ -234,7 +315,7 @@ export function findOffset(referenceSamples, targetSamples, {
       offsetSeconds: best.lag / envelopeHz,
       peak: best.score,
       prominence: 0,
-      confidence: 0,
+      marginToRefusal: 0,
       usable: false,
       reason: 'search-range-too-narrow-to-judge',
     };
@@ -246,7 +327,14 @@ export function findOffset(referenceSamples, targetSamples, {
   // Confidence blends "do they match at all" with "is this the ONLY place they
   // match". Either alone is misleading: a high peak with no prominence is a hum;
   // high prominence with a low peak is two signals that barely relate.
-  const confidence = Math.max(0, Math.min(1, peak * 0.5 + prominence * 0.5));
+  // MARGIN TO REFUSAL, not a blend. `peak*0.5 + prominence*0.5` mixed two terms with
+  // different gates (0.3 and 0.1) and different distributions, so a value of 0.2 could
+  // mean "both nearly failed" or "one failed while the other was excellent" — different
+  // situations, hidden behind one number a UI would inevitably threshold on.
+  //
+  // This instead answers the only question a reviewer asks: how close was this to being
+  // refused. 1.0 sits exactly on the boundary; below 1.0 it IS refused; higher is safer.
+  const marginToRefusal = Math.min(peak / 0.3, prominence / 0.1);
 
   // BOUNDARY HIT — the strongest available evidence that the TRUE peak lies outside
   // the search window. A DJI recorder left running between takes routinely produces
@@ -283,11 +371,11 @@ export function findOffset(referenceSamples, targetSamples, {
   else if (prominence < 0.1) reason = 'ambiguous-periodic-content';
 
   return {
-    offsetFrames: best.lag,
-    offsetSeconds: best.lag / envelopeHz,
+    offsetFrames: refinedLag,
+    offsetSeconds: refinedLag / envelopeHz,
     peak,
     prominence,
-    confidence,
+    marginToRefusal,
     usable: reason === null,
     reason,
     // How far the search could actually reach, and whether that fell short of what
@@ -295,5 +383,8 @@ export function findOffset(referenceSamples, targetSamples, {
     // knows to supply longer audio rather than a wider window.
     searchedSeconds: effectiveMaxLag / envelopeHz,
     searchTruncated,
+    // True when the geometry forced the variance guard below its desired strength.
+    // The answer may still be right; it simply rests on less overlapping audio.
+    lowOverlap: scores.lowOverlap === true,
   };
 }

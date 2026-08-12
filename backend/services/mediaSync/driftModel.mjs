@@ -26,6 +26,48 @@
 /** Below this, correction costs more (resampling artifacts) than it buys. */
 export const NEGLIGIBLE_DRIFT_PPM = 5;
 
+/**
+ * Offset measurements are quantized by the envelope resolution (10ms at 100Hz).
+ * A drift rate is a DIFFERENCE of two such measurements, so it carries up to one
+ * full quantum of error — and dividing that by the span turns it into a ppm floor
+ * below which any "drift" is indistinguishable from rounding.
+ */
+export const MEASUREMENT_RESOLUTION_SECONDS = 0.01;
+
+/**
+ * How far above the noise floor a rate must sit before it is believed. A value at
+ * the floor is a coin flip; 2x is the smallest ratio that is not self-deception.
+ */
+export const NOISE_FLOOR_MARGIN = 2;
+
+/**
+ * The largest drift rate worth being able to detect. Consumer crystals run tens of
+ * ppm; the 29.97-vs-30fps timebase trap is ~1000ppm and is the worst realistic case.
+ * If a span's noise floor exceeds this, the pair cannot distinguish ANY rate that
+ * actually occurs, so the measurement is useless rather than merely imprecise —
+ * which is a different statement and deserves a different answer.
+ */
+export const MAX_TARGET_DRIFT_PPM = 1000;
+
+/**
+ * The ppm resolution limit for a given measurement span. THIS IS THE NUMBER THAT
+ * WAS MISSING. Measured against the previous gates:
+ *
+ *   span   30s -> +/- 333.3 ppm      span  600s -> +/- 16.7 ppm
+ *   span   60s -> +/- 166.7 ppm      span 1200s -> +/-  8.3 ppm
+ *   span  300s -> +/-  33.3 ppm      span 2000s -> +/-  5.0 ppm
+ *
+ * NEGLIGIBLE_DRIFT_PPM is 5, so at EVERY realistic take length the old code could
+ * "detect" a drift rate that was pure rounding and resample on it. At the old 30s
+ * minimum span that is up to 333ppm of fabricated correction — on a 20-minute take,
+ * 400ms of desync INTRODUCED by correcting nothing. The engine has to know what it
+ * cannot resolve.
+ */
+export function noiseFloorPpm(spanSeconds, resolution = MEASUREMENT_RESOLUTION_SECONDS) {
+  if (!spanSeconds || spanSeconds <= 0) return Infinity;
+  return (resolution / spanSeconds) * 1e6;
+}
+
 /** Above this, two measurements probably disagree for a reason other than drift. */
 export const IMPLAUSIBLE_DRIFT_PPM = 10000; // 1%
 
@@ -61,7 +103,7 @@ export const IMPLAUSIBLE_DRIFT_PPM = 10000; // 1%
  *   errorAcrossMeasuredSpanMs:number
  * }}
  */
-export function modelDrift(head, tail) {
+export function modelDrift(head, tail, { resolution = MEASUREMENT_RESOLUTION_SECONDS } = {}) {
   const none = {
     driftPpm: 0,
     driftSecondsPerHour: 0,
@@ -70,6 +112,8 @@ export function modelDrift(head, tail) {
     plausible: true,
     reason: null,
     errorAcrossMeasuredSpanMs: 0,
+    noiseFloorPpm: Infinity,
+    belowNoiseFloor: true,
   };
   if (!head || !tail) return { ...none, plausible: false, reason: 'need-two-measurements' };
 
@@ -81,10 +125,16 @@ export function modelDrift(head, tail) {
   }
 
   const span = tail.atSeconds - head.atSeconds;
-  // Two measurements taken close together cannot separate drift from measurement
-  // noise: a 10ms envelope resolution over a 5-second span implies a 2000ppm
-  // "drift" that is entirely quantization.
-  if (span < 30) {
+
+  // The floor is derived, not guessed. The previous gate was a flat span >= 30s,
+  // which admits a +/-333ppm noise floor — 66x the threshold it then compared
+  // against. Measure across the LONGEST span available (head near the start, tail
+  // near the end); the floor falls linearly with span and there is no other lever.
+  const floor = noiseFloorPpm(span, resolution);
+  // A span whose noise floor swamps every rate that actually occurs cannot support a
+  // conclusion at all. This replaces a flat span >= 30s guess with the span at which
+  // the measurement stops being able to see anything real (~10s at 10ms resolution).
+  if (!Number.isFinite(floor) || span <= 0 || floor > MAX_TARGET_DRIFT_PPM) {
     return { ...none, plausible: false, reason: 'measurement-span-too-short' };
   }
 
@@ -98,17 +148,27 @@ export function modelDrift(head, tail) {
     return { ...none, plausible: false, reason: 'implausible-drift-likely-bad-measurement' };
   }
 
-  const correctionNeeded = Math.abs(driftPpm) >= NEGLIGIBLE_DRIFT_PPM;
+  // A rate is only believed when it clears BOTH the "worth correcting" threshold and
+  // the "distinguishable from rounding" floor. Below the floor the sign itself is a
+  // coin flip, so applying a correction is as likely to add desync as remove it.
+  const believable = Math.abs(driftPpm) >= floor * NOISE_FLOOR_MARGIN;
+  const worthCorrecting = Math.abs(driftPpm) >= NEGLIGIBLE_DRIFT_PPM;
+  const correctionNeeded = believable && worthCorrecting;
 
   // The clean track must be stretched/compressed by this factor to match the
   // camera timebase. Positive drift means the target fell progressively later, so
   // it must be sped up slightly (ratio < 1).
-  const resampleRatio = 1 / (1 + driftPpm / 1e6);
+  const resampleRatioRaw = 1 / (1 + driftPpm / 1e6);
+  const resampleRatio = resampleRatioRaw;
 
   return {
     driftPpm,
     driftSecondsPerHour: (driftPpm / 1e6) * 3600,
-    resampleRatio,
+    // Below the floor the measurement cannot support a correction. Surfaced so a UI
+    // can say "no measurable drift over this span" rather than implying zero drift.
+    noiseFloorPpm: floor,
+    belowNoiseFloor: !believable,
+    resampleRatio: correctionNeeded ? resampleRatio : 1,
     correctionNeeded,
     plausible: true,
     reason: null,
