@@ -56,17 +56,38 @@ function main() {
   /* `push` must be the git SUBCOMMAND, not merely a later word: `git config
    * push.default simple` and `git log --grep=push` both fired the old pattern.
    * Case-insensitive because cmd.exe happily runs `GIT PUSH`. */
-  if (!/\bgit\b(?:\s+(?:-[A-Za-z-]+|--[a-z-]+=\S+|-C\s+\S+|-c\s+\S+))*\s+push\b/i.test(bare)) return;
+  /* Long options with a SEPARATE argument (`--git-dir <path>`, `--work-tree <path>`,
+   * `--namespace <n>`) matched none of the branches. Detection then depended on an
+   * accident of backtracking rather than on the pattern being right. */
+  if (!/\bgit\b(?:\s+(?:--(?:git-dir|work-tree|namespace|exec-path)[= ]\S+|-[Cc]\s+\S+|--?[A-Za-z][A-Za-z-]*(?:=\S+)?))*\s+push\b/i.test(bare)) return;
 
-  const branch = sh('git rev-parse --abbrev-ref HEAD');
+  /* `git -C <dir> push` operates on ANOTHER repository. Analysing the current
+   * directory instead reported the wrong branch, the wrong diff and the wrong
+   * deploy-linked verdict, with no hint that it had done so — verified:
+   * `git -C C:/tmp/ss-apex push` printed this repo's branch. Honour -C. */
+  const dashC = bare.match(/\s-C\s+("?)([^\s"]+)\1/);
+  const REPO = dashC && existsSync(dashC[2]) ? dashC[2] : process.cwd();
+  const shx = (cmd) => sh(cmd, REPO);
+
+  const branch = shx('git rev-parse --abbrev-ref HEAD');
   const ref = safeRef(branch || '');
   /* `-f` combined into a cluster (`-uf`, `-fv`) was undetected. */
   const forced = /--force(?!-with-lease)\b|(?:^|\s)-[A-Za-z]*f[A-Za-z]*(?:\s|$)/i.test(bare);
   const leased = /--force-with-lease/i.test(bare);
   /* Token-exact: `\b(main)\b` flagged `feature/main-fix` and `production-notes`,
    * because `-` and `/` are non-word chars. Match whole ref tokens only. */
-  const targetsDeployRef = /(?:^|[\s:])(?:origin\/)?(main|master|production)(?:\s|$)/i.test(bare)
-    || ['main', 'master', 'production'].includes(branch || '');
+  /* Strip ref namespaces first: `HEAD:refs/heads/main` has `main` preceded by `/`,
+   * so the token test missed it and a push straight at production carried no
+   * DEPLOY-LINKED flag. And do NOT infer deploy-linked from the CURRENT branch
+   * when the command names an explicit target — sitting on `main` while pushing a
+   * feature branch produced the production lecture for no reason. */
+  const deRef = bare.replace(/refs\/(heads|remotes|tags)\//gi, '').replace(/origin\//gi, ' ');
+  const deployRefNamed = /(?:^|[\s:\/])(main|master|production)(?:\s|$)/i.test(deRef);
+  const pushIdx = bare.split(/\s+/).findIndex((t) => /^push$/i.test(t));
+  const pushArgs = pushIdx === -1 ? [] : bare.split(/\s+/).slice(pushIdx + 1).filter((t) => !t.startsWith("-"));
+  const namesAnyRef = pushArgs.length > 1;
+  const targetsDeployRef = deployRefNamed
+    || (!namesAnyRef && ['main', 'master', 'production'].includes(branch || ''));
 
   /* An explicit refspec, --all, or a tag push means the range below (which is
    * HEAD-based) is NOT what is being pushed. Disclose rather than mislead. */
@@ -76,16 +97,24 @@ function main() {
    * reassuring silence on a push to main. Detect the switch and say the analysis
    * cannot be trusted. */
   const switchesBranch = /\b(checkout|switch|merge|reset|rebase)\b[\s\S]*\bpush\b/i.test(bare);
-  const explicitRefspec = /\s\S+:\S+/.test(bare) || /\s--all\b|\s--tags\b|\s--mirror\b/i.test(bare);
+  /* A refspec is `src:dst`. `C:/tmp/x` is a Windows path, and matching it as a
+   * refspec fired the warning on any git command carrying an absolute path —
+   * a false positive on one of the most common shapes in this repo. Exclude
+   * single-letter drive prefixes. */
+  const refspecToken = bare.split(/\s+/).some((t) => /^[^:]+:[^:]+$/.test(t) && !/^[A-Za-z]:[\\/]/.test(t));
+  const explicitRefspec = refspecToken || /\s--all\b|\s--tags\b|\s--mirror\b/i.test(bare);
 
   let changed = null;
   let rangeNote = '';
   if (ref) {
-    const remoteRef = sh(`git rev-parse --verify --quiet origin/${ref}`) ? `origin/${ref}` : 'origin/main';
+    const remoteRef = shx(`git rev-parse --verify --quiet origin/${ref}`) ? `origin/${ref}` : 'origin/main';
     /* sh() returns NULL on failure and '' on empty. Conflating them made this
      * fail-open: a failed `git diff` looked like "nothing to push" and the hook
      * returned silently on a migration push. */
-    const raw = sh(`git diff --name-only ${remoteRef}...HEAD`);
+    /* `-c core.quotePath=false`: git C-quotes paths with spaces or non-ASCII by
+     * default, so `"backend/migrations/014 add col.sql"` matched no anchored
+     * pattern — the hook's own worst case, a migration push, produced nothing. */
+    const raw = shx(`git -c core.quotePath=false diff --name-only ${remoteRef}...HEAD`);
     if (raw === null) rangeNote = `⚠ could not compute the diff against ${remoteRef} — this check did NOT run.`;
     else changed = raw.split('\n').filter(Boolean);
   } else {
@@ -118,6 +147,7 @@ function main() {
 
   const out = ['⚠ PUSH BLAST RADIUS — read before you confirm this push.', ''];
   out.push(`branch: ${branch || '(unknown)'}${targetsDeployRef ? '   ⚠ DEPLOY-LINKED' : ''}`);
+  if (REPO !== process.cwd()) out.push(`repo:   ${REPO}  (via -C — analysed there, not here)`);
   if (rangeNote) out.push(`🟠 ${rangeNote}  Treat the file list below as INCOMPLETE.`);
   if (switchesBranch) {
     out.push('🟠 this command changes branch before pushing. Everything below describes the');
@@ -130,7 +160,9 @@ function main() {
   if (forced) out.push("🔴 FORCE PUSH without --force-with-lease — can destroy another agent's pushed commits.");
   else if (leased) out.push('🟠 force-with-lease — history rewrite; safe only if you know what the remote holds.');
   if (hits.length) {
-    out.push('', `🔴 ${hits.length} file(s) in this range are EXECUTED by automation on deploy:`);
+    out.push('', targetsDeployRef
+      ? `🔴 ${hits.length} file(s) in this range are EXECUTED by automation on deploy:`
+      : `🟠 ${hits.length} file(s) in this range WOULD be executed by automation once this reaches a deploy-linked branch:`);
     for (const h of hits.slice(0, 12)) out.push(`   ${h.f}  → ${h.what}`);
     if (hits.length > 12) out.push(`   … +${hits.length - 12} more`);
     if (targetsDeployRef && hits.some((h) => /migration|seeder|SQL/i.test(h.what))) {
