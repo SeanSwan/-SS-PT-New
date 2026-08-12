@@ -135,6 +135,10 @@ export const SERIALIZERS = Object.freeze({
     if (setting) parts.push(`Framed ${setting}`);
     if (look) parts.push(`Lit and surfaced with ${look}`);
     if (slots.abstraction) parts.push(slots.abstraction);
+    // The output contract MUST reach the model. Dropping it produced a portrait
+    // image from a 16:9 brief on the very first real generation — sentence and
+    // tag only got the right ratio by luck, inferring it from "cinematic".
+    if (slots.output) parts.push(`Composed for a ${slots.output} frame`);
     return `${parts.join('. ')}.`;
   },
 
@@ -149,7 +153,7 @@ export const SERIALIZERS = Object.freeze({
     const anchorHasSubject = Boolean(slots.styleAnchor && slots.subject
       && slots.styleAnchor.toLowerCase().includes(slots.subject.toLowerCase().trim()));
     const order = [anchorHasSubject ? null : 'subject', 'styleAnchor', 'medium',
-      'composition', 'optics', 'light', 'palette', 'material', 'abstraction'].filter(Boolean);
+      'composition', 'optics', 'light', 'palette', 'material', 'abstraction', 'output'].filter(Boolean);
     return order.map((k) => slots[k]).filter((v) => v && v.trim()).join(', ');
   },
 
@@ -159,7 +163,7 @@ export const SERIALIZERS = Object.freeze({
    */
   fragment(slots) {
     const order = ['intent', 'subject', 'styleAnchor', 'medium', 'composition',
-      'optics', 'light', 'palette', 'material', 'abstraction'];
+      'optics', 'light', 'palette', 'material', 'abstraction', 'output'];
     return `${order.map((k) => slots[k]).filter((v) => v && v.trim()).join('. ')}.`;
   },
 });
@@ -311,7 +315,18 @@ export function compileImage(brief = {}, caps = {}) {
   // version used 12 characters and refused "a frozen lake" (11 stripped) — a
   // legitimate terse brief, and the same false-positive class the must-pass
   // corpus exists to prevent.
-  if (promptText.replace(/[^\p{L}\p{N}]/gu, '').length < 3) {
+  // Measure CONTENT slots, not the rendered string. Once the output contract
+  // ("16:9") started being serialized, a fully-blanked brief still rendered
+  // "Composed for a 16:9 frame." — substantive-looking, but it says nothing
+  // about what to draw, and the guard silently became unreachable.
+  const CONTENT_SLOTS = ['intent', 'subject', 'styleAnchor', 'medium', 'composition',
+    'optics', 'light', 'palette', 'material', 'abstraction'];
+  const contentChars = CONTENT_SLOTS
+    .map((k) => String(slots[k] || ''))
+    .join('')
+    .replace(/[^\p{L}\p{N}]/gu, '')
+    .length;
+  if (contentChars < 3) {
     const err = new Error('E_EMPTY_PROMPT: the brief resolved to no substantive content '
       + `(rendered: ${JSON.stringify(promptText)}). Refusing to submit a paid request.`);
     err.code = 'E_EMPTY_PROMPT';
