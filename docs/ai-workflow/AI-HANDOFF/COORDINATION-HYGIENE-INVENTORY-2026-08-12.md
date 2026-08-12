@@ -81,10 +81,74 @@ reference check at execution time.
 
 ---
 
+## 5. EXECUTION RECORD — 2026-08-12, Sean-approved
+
+Sean approved step 4 and "the rest of what you suggest" on 2026-08-12. What actually happened:
+
+### Step 4 — merged-clean worktree removal: **DONE**
+**187 → 108 worktrees. 79 removed, 0 failures, main tree untouched.**
+
+Executed in batches (20, then 15/15/15/6) with re-verification between. Every candidate was
+re-derived at the moment of removal — 0 commits ahead of `origin/main` AND a completely clean
+working copy — rather than trusted from the table above, because a worktree can be dirtied
+between listing and acting. `git worktree remove` was used **without `--force`** throughout,
+so git itself refused anything dirty. That refusal did real work: the final passes reported
+**107 skips against 0 removals**, i.e. the guard correctly declined everything that no longer
+qualified. The count removed (79) matches group A exactly — nothing outside the approved set
+was touched.
+
+Verified after completion: main tree still at `SS-PT` on its branch; the PR worktree survived;
+the group-B worktree holding 191 uncommitted files survived.
+
+### Step 1 — stale lane release: **NOT DONE, recommendation reversed**
+`codex-comms-recovery` (27 days, 186 locks) targets `C:/tmp/sspt-comms-recovery-20260715`,
+which is merged **but holds 191 uncommitted files**. It is group B, not a dead worktree. Its
+locks are protecting real unsaved work, so releasing the lane would have told every agent
+those files were free. **Left claimed.** Sean's call on the 191 files first.
+
+### Step 2 — archive the merge artifact: **DONE**
+`review-queue.md.orig` (220 KB, 2026-07-19) moved to
+`.ai-workflow/coordination/archive/2026-08-12/`. Moved, not deleted. Still gitignored
+(`.gitignore:461` covers the whole ledger directory). `doctor` no longer flags it.
+The proposed `*.orig` ignore rule was **not added** — it would be a no-op, since the entire
+ledger directory is already ignored.
+
+### Step 3 — orphaned ledgers: **left in place, as recommended**
+8 → 5. Three aged out with their removed worktrees, which was the intended path. Merging any
+forward would mean writing other agents' lanes (R4) and importing phantom locks (R5).
+
+### Step 5 — group B triage: **DONE (read-only)**
+See section 6. 42 worktrees hold **3,661 modified tracked files + 574 untracked = 4,235 files**
+that `--force` would have destroyed and git could not recover. This is why group B is a
+per-item decision, not a sweep.
+
+### Steps 6 — groups C and D: **untouched**, as planned.
+
+### NEW FINDING — not in the approved plan, not acted on
+`C:/tmp/ss-nutrition-v1-20260804` is registered as a worktree but **has lost its `.git` file**
+— `git status` there reports "not a git repository". Its directory still holds 5 entries
+(`scripts`, `shared`, `skills-lock.json`, `tests`, `tools`). `git worktree prune` would clear
+the dangling registration; it would NOT remove those files. Because this was discovered during
+execution rather than approved in advance, it is reported only. Recommend: prune the
+registration, then decide on the leftover directory separately.
+
+### Tooling regression caught during this slice
+Running the ledger tools against the mutated worktree registry surfaced a false-lock class:
+prose written as a bullet inside a lock section ("- I work in an isolated worktree and rebase
+onto origin/main before each push,") rendered verbatim under "DO NOT edit these". Lock entries
+are now reduced to their path token and dropped when they cannot be a path. False locks are
+what train a reader to ignore the digest, and an entry that cannot match a file path cannot do
+a lock's job. Verified: the 186-lock legacy lane still parses 186; a mixed prose+paths lane
+yields only the paths.
+
+---
+
 MAIN TREE: C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
 TOTAL WORKTREES: 187  (main + 186 linked)
 
-## A. MERGED-CLEAN — 79 (fully merged into origin/main, zero uncommitted files)
+## 6. Per-worktree tables (state at inventory time, BEFORE the step-4 removal)
+
+### A. MERGED-CLEAN — 79 (fully merged into origin/main, zero uncommitted files)
 | path | branch | ahead | dirty | last commit |
 |---|---|---|---|---|
 | `tmp/ss-brain-fable-20260707` | claude/second-brain-fable-mode-20260707 | 0 | 0 | 2026-07-08 |
@@ -285,3 +349,54 @@ TOTAL WORKTREES: 187  (main + 186 linked)
 | `Users/BigotSmasher/.hermes/runner-repo` | (detached) | — | 0 | 2026-07-29 |
 | `Users/BigotSmasher/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/99b24a8a-bf2c-4b79-8876-0c48f5596d3c/scratchpad/main-audit` | (detached) | — | 0 | 2026-08-04 |
 | `Users/BigotSmasher/AppData/Local/Temp/lane4-baseline` | (detached) | — | 0 | 2026-08-02 |
+## Group B — merged worktrees holding UNCOMMITTED files (42)
+
+`modified` = tracked edits that would be lost. `untracked` = new files that would be lost.
+Both are destroyed by `git worktree remove --force`. Neither is recoverable from git.
+
+| worktree | branch | total | modified | untracked | where | last commit |
+|---|---|---:|---:|---:|---|---|
+| `tmp/sspt-prelaunch-audit-20260716` | codex/prelaunch-audit-20260716 | 1361 | 1327 | 34 | frontend(1319) backend(36) docs(2) | 2026-07-15 |
+| `tmp/sspt-prelaunch-integration-20260716` | codex/prelaunch-integration-20260716 | 1336 | 1336 | 0 | frontend(1277) backend(37) archive(18) | 2026-07-16 |
+| `tmp/sspt-recursive-audit-slice1-20260629` | codex/recursive-audit-slice1-20260629 | 383 | 295 | 88 | frontend(236) backend(146) ackend(1) | 2026-06-28 |
+| `tmp/sspt-comms-recovery-20260715` | codex/comms-recovery-20260715 | 191 | 68 | 123 | frontend(102) backend(85) docs(3) | 2026-07-15 |
+| `tmp/sspt-challenge-render-20260630` | codex/challenge-render-20260630 | 139 | 65 | 74 | frontend(75) backend(63) ackend(1) | 2026-06-30 |
+| `tmp/ss-trainer-dash` | fix/trainer-dashboard-pixel | 133 | 69 | 64 | frontend(102) backend(28) (root)(2) | 2026-07-25 |
+| `tmp/sspt-swan-lens-direction-a-release-20260801` | codex/swan-lens-direction-a-release-20260801 | 87 | 60 | 27 | frontend(64) scripts(18) docs(3) | 2026-08-01 |
+| `tmp/sspt-nutrition-origin-main-20260625` | codex/nutrition-aaa-release-20260625 | 53 | 53 | 0 | frontend(36) backend(17) | 2026-06-25 |
+| `Users/BigotSmasher/Desktop/quick-pt/SS-PT/tmp/worktrees/coach-hive-ui-20260809` | codex/coach-hive-ui-20260809 | 53 | 30 | 23 | backend(21) frontend(21) docs(9) | 2026-08-06 |
+| `tmp/sspt-swan-lens-runner-audit-20260801` | codex/swan-lens-runner-audit-20260801 | 51 | 51 | 0 | frontend(47) docs(2) ai-workflow(1) | 2026-08-01 |
+| `tmp/sspt-nutrition-staged-replay-20260626` | codex/nutrition-staged-replay-20260626 | 47 | 47 | 0 | frontend(32) backend(15) | 2026-06-25 |
+| `tmp/sspt-hermes-privacy-router-20260731` | codex/hermes-privacy-router-20260731 | 45 | 6 | 39 | scripts(38) docs(6) ocs(1) | 2026-07-31 |
+| `tmp/ss-fable-vision-20260705` | fable/vision-arc-20260705 | 39 | 38 | 1 | frontend(35) backend(3) ackend(1) | 2026-07-07 |
+| `tmp/sspt-workout-unified-20260628` | codex/workout-unified-20260628 | 38 | 32 | 6 | frontend(37) rontend(1) | 2026-06-27 |
+| `tmp/sspt-lens-world-fusion-20260714` | codex/lens-world-fusion-20260714 | 34 | 14 | 20 | frontend(25) docs(5) backend(3) | 2026-07-14 |
+| `tmp/sspt-google-linking-20260730` | codex/google-linking-20260730 | 33 | 25 | 8 | backend(19) frontend(13) ackend(1) | 2026-07-30 |
+| `tmp/sspt-coach-command-release-20260627` | codex/coach-command-center-pro-ux-20260627 | 30 | 30 | 0 | frontend(30) | 2026-06-26 |
+| `tmp/sspt-trainer-home-shell-release-20260625` | codex/trainer-home-shell-release-20260625 | 25 | 24 | 1 | frontend(24) rontend(1) | 2026-06-25 |
+| `tmp/ss-pt-four-surface-clean` | codex/user-dashboard-v3-style-ownership | 24 | 22 | 2 | frontend(18) backend(3) docs(2) | 2026-05-09 |
+| `tmp/ss-homepage-v2-20260804` | claude/homepage-redesign-20260804 | 19 | 16 | 3 | frontend(15) docs(2) ocs(1) | 2026-08-04 |
+| `tmp/sspt-swan-design-brain-upgrade-20260809` | codex/swan-design-brain-upgrade-20260809 | 18 | 4 | 14 | scripts(15) cripts(1) .ai-workflow(1) | 2026-08-06 |
+| `tmp/ss-hermes-cosmic-os-20260807` | codex/hermes-cosmic-os-20260807 | 17 | 13 | 4 | scripts(16) ocs(1) | 2026-08-06 |
+| `tmp/ss-coach-hostile-fix-20260725` | codex/coach-hive-hostile-fixes-20260725 | 12 | 11 | 1 | frontend(8) backend(3) ackend(1) | 2026-07-25 |
+| `tmp/sspt-jarvis-s2-20260731` | codex/jarvis-s2-vocab-bias-20260731 | 12 | 0 | 12 | (root)(12) | 2026-08-01 |
+| `tmp/sspt-recovery-mobbin-phase2-20260721` | codex/recovery-mobbin-phase2-20260721 | 11 | 3 | 8 | docs(9) ocs(1) scripts(1) | 2026-07-21 |
+| `tmp/sspt-challenge-render-core-20260630` | codex/challenge-render-core-20260630 | 6 | 6 | 0 | frontend(5) rontend(1) | 2026-06-30 |
+| `tmp/ss-bootcamp-v2-20260731` | claude/bootcamp-v2-20260731 | 5 | 0 | 5 | docs(4) .ai-workflow(1) | 2026-08-04 |
+| `tmp/sspt-swan-coach-voice-20260629` | codex/swan-coach-voice-20260629 | 5 | 3 | 2 | frontend(4) rontend(1) | 2026-06-28 |
+| `tmp/sspt-workout-suite-audit-20260709` | codex/workout-concept-lab-20260709 | 5 | 3 | 2 | frontend(4) rontend(1) | 2026-07-09 |
+| `tmp/sspt-arctic-dawn-contrast-20260715` | codex/arctic-dawn-contrast-20260715 | 4 | 3 | 1 | frontend(3) rontend(1) | 2026-07-14 |
+| `tmp/ss-launch-audit-lane4-20260803` | claude/launch-audit-lane4-20260803 | 3 | 1 | 2 | AI-Village-Documentation(2) ocs(1) | 2026-08-04 |
+| `tmp/ss-pt-creative-release-20260625` | codex/creative-dashboard-release-20260625 | 3 | 3 | 0 | frontend(2) rontend(1) | 2026-06-24 |
+| `tmp/ss-brain-20260708` | claude/brain-cockpit-slice2-20260708 | 2 | 2 | 0 | cripts(1) scripts(1) | 2026-07-10 |
+| `tmp/ss-trust-triple-20260706` | claude/wave16-compliance-buttons-20260706 | 2 | 0 | 2 | (root)(2) | 2026-07-06 |
+| `tmp/sspt-client-onboarding-handoff-20260628` | codex/client-onboarding-handoff-20260628 | 2 | 1 | 1 | rontend(1) backend(1) | 2026-06-27 |
+| `tmp/ss-build-swan-lens` | claude/build-swan-lens | 1 | 0 | 1 | frontend(1) | 2026-07-30 |
+| `tmp/ss-kimi-blueprints-20260717` | claude/kimi-design-blueprints-20260717 | 1 | 0 | 1 | scripts(1) | 2026-07-17 |
+| `tmp/ss-lane1-20260713` | claude/lane1-batch2-20260713 | 1 | 0 | 1 | docs(1) | 2026-07-13 |
+| `tmp/ss-pt-workout-clienthub-unify` | codex/workout-clienthub-unify | 1 | 0 | 1 | docs(1) | 2026-06-21 |
+| `tmp/ss-social-distribution` | claude/social-distribution-plan-20260811 | 1 | 0 | 1 | docs(1) | 2026-08-10 |
+| `tmp/sspt-codex-launch-core-20260728` | codex/launch-core-audit-20260728 | 1 | 0 | 1 | docs(1) | 2026-07-28 |
+| `tmp/sspt-user-dashboard-carousel-pan-20260626` | codex/user-dashboard-carousel-pan-release-20260626 | 1 | 0 | 1 | qa(1) | 2026-06-26 |
+
+**Totals:** 3661 modified tracked files and 574 untracked files across 42 worktrees.

@@ -119,6 +119,15 @@ export function parseLane(src) {
     .filter((l) => l.startsWith('- ') && !/^-\s*[`'"*]*\s*(nothing|none|_|\()/i.test(l))
     .map((l) => l.replace(/^-\s*/, '').replace(/[`*]/g, '').trim())
     .filter(Boolean)
+    /* Keep only the path token, and only if it LOOKS like a path. Agents write
+     * prose bullets inside the lock section ("- I work in an isolated worktree and
+     * rebase onto origin/main before each push,"), which rendered verbatim under
+     * "DO NOT edit these" — a false lock. False locks are precisely what train a
+     * reader to ignore the digest, and an entry that cannot match a file path
+     * cannot do a lock's job anyway. Trailing commentary is dropped:
+     * "docs/x.md (new, my worktree only)" → "docs/x.md". */
+    .map((l) => l.split(/\s+/)[0].replace(/[,;]$/, ''))
+    .filter((l) => /[/\\]/.test(l) || /\.[A-Za-z0-9]{1,6}$/.test(l))
     .map((l) => l.slice(0, 120)); // lane files are untrusted input
   const heads = [...src.matchAll(/^#{1,6}\s+(.+)$/gm)].map((h) => h[1].trim())
     .filter((h) => !/EDITING NOW/i.test(h));
