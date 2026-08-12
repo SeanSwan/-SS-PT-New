@@ -122,7 +122,11 @@ function tally(sources) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function parseArgs(argv) {
-  const out = { handles: {}, credentials: {} };
+  // `handles` is null-prototype: with a plain object, `--__proto__ <value>` set the
+  // prototype instead of an own key, so it was invisible to Object.keys and the
+  // unknown-source guard below SILENTLY IGNORED it rather than refusing. Any flag
+  // the caller typed must either be a real source or be rejected — never absorbed.
+  const out = { handles: Object.create(null), credentials: {} };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
     if (!flag.startsWith('--')) continue;
