@@ -346,15 +346,23 @@ DailyWorkoutForm.init(
     tableName: 'daily_workout_forms',
     timestamps: true, // Enables createdAt and updatedAt (mapped to created_at / updated_at above)
     paranoid: false, // Hard deletes only (forms are permanent records)
+    // NOTE (2026-08-12): index `fields` must be DATABASE COLUMN names, not model
+    // attribute names. Every attribute above carries an explicit `field:` mapping
+    // to snake_case, so 'clientId' here produced
+    //     CREATE INDEX ... ON daily_workout_forms ("clientId")
+    // against a column that is actually `client_id` — meaning this table could
+    // not be created on a fresh database at all. Production is unaffected at
+    // runtime (indexes are only emitted during sync, and production does not
+    // sync), which is exactly why it went unnoticed.
     indexes: [
       // Optimize for common queries
       {
         name: 'idx_daily_workout_forms_client_id',
-        fields: ['clientId']
+        fields: ['client_id']
       },
       {
         name: 'idx_daily_workout_forms_trainer_id',
-        fields: ['trainerId']
+        fields: ['trainer_id']
       },
       {
         name: 'idx_daily_workout_forms_date',
@@ -362,31 +370,31 @@ DailyWorkoutForm.init(
       },
       {
         name: 'idx_daily_workout_forms_session_id',
-        fields: ['sessionId']
+        fields: ['session_id']
       },
       // Optimize for MCP processing queries
       {
         name: 'idx_daily_workout_forms_mcp_processed',
-        fields: ['mcpProcessed']
+        fields: ['mcp_processed']
       },
       {
         name: 'idx_daily_workout_forms_session_deducted',
-        fields: ['sessionDeducted']
+        fields: ['session_deducted']
       },
       // Optimize for client progress queries (date range)
       {
         name: 'idx_daily_workout_forms_client_date',
-        fields: ['clientId', 'date']
+        fields: ['client_id', 'date']
       },
       // Optimize for trainer performance queries
       {
         name: 'idx_daily_workout_forms_trainer_date',
-        fields: ['trainerId', 'date']
+        fields: ['trainer_id', 'date']
       },
       // JSONB indexes for form data queries
       {
         name: 'idx_daily_workout_forms_form_data_gin',
-        fields: ['formData'],
+        fields: ['form_data'],
         using: 'gin' // GIN index for JSONB queries
       }
     ],

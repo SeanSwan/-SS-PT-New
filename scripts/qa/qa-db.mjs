@@ -26,12 +26,14 @@
  *   node scripts/qa/qa-db.mjs bootstrap   # create sentinel (run once after `up`)
  *   node scripts/qa/qa-db.mjs assert      # exit 0 only if safe to write
  *   node scripts/qa/qa-db.mjs status      # human-readable, never throws on unsafe
+ *   node scripts/qa/qa-db.mjs migrate     # assert, THEN run Sequelize migrations
  *   node scripts/qa/qa-db.mjs reset       # drop all data, keep the sentinel
  *
  * The connection string comes from SWAN_QA_DATABASE_URL. It is deliberately NOT
  * DATABASE_URL: reusing that name is how a QA run ends up pointed at production.
  */
 
+import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -226,6 +228,53 @@ const commands = {
     } finally {
       await client.end();
     }
+  },
+
+  /**
+   * Run the application's migrations against the QA database — but only after
+   * the sentinel proves it is disposable. Migrations are the single most
+   * destructive thing pointed at a database, so this deliberately does not exist
+   * as a bare npm script: there is no invocation that skips the assertion.
+   */
+  async migrate() {
+    preflight();
+    const client = await connect();
+    try {
+      await assertSentinel(client);
+      await assertNotPopulated(client);
+    } finally {
+      await client.end();
+    }
+
+    const backend = path.join(repoRoot, 'backend');
+    // Invoke the CLI's JS entrypoint with the current Node binary rather than
+    // going through npx. On Windows, spawning `npx.cmd` without a shell throws
+    // EINVAL (Node's CVE-2024-27980 fix), and enabling a shell would add an
+    // injection surface to a script that guards production data.
+    const cli = path.join(backend, 'node_modules', 'sequelize-cli', 'lib', 'sequelize');
+    const result = spawnSync(
+      process.execPath,
+      [
+        cli, 'db:migrate',
+        '--config', path.join('config', 'config.qa.cjs'),
+        '--migrations-path', 'migrations',
+        '--models-path', 'models',
+        '--env', 'qa',
+      ],
+      {
+        cwd: backend,
+        stdio: 'inherit',
+        // Strip anything that could redirect the CLI at a real database. The QA
+        // config ignores dotenv, but the CLI process would still inherit these.
+        env: { ...process.env, DATABASE_URL: '', PG_HOST: '', PG_PORT: '', PG_DB: '', NODE_ENV: 'qa' },
+      },
+    );
+
+    if (result.error) fail(`could not start sequelize-cli: ${result.error.message}`);
+    if (result.status !== 0) {
+      fail(`migrations failed (exit ${result.status}) — the QA schema is incomplete`);
+    }
+    console.log('migrations applied to the QA database');
   },
 
   /** Wipe data between runs without destroying the container or the sentinel. */
