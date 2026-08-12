@@ -150,6 +150,19 @@ export function correlate(reference, target, maxLagFrames, {
  * Find the offset between a camera scratch track and a separately-recorded
  * clean track, with a confidence the caller can act on.
  *
+ * ── SIGN CONVENTION (write it down or the ffmpeg wiring guesses) ─────────────
+ *   offsetSeconds > 0  the CLEAN track's content occurs LATER than the scratch
+ *                      track's, i.e. the clean recording must be moved EARLIER
+ *                      (or the video later) to align. Equivalently: delay the
+ *                      scratch/video by offsetSeconds.
+ *   offsetSeconds < 0  the clean recording started FIRST (the usual case when
+ *                      someone hits record on the transmitter before the camera);
+ *                      trim |offsetSeconds| from its head to align.
+ *
+ * To apply with ffmpeg: a POSITIVE offset means `-itsoffset <offset>` on the
+ * VIDEO input, or trim nothing from the audio. A NEGATIVE offset means
+ * `-ss |offset|` on the AUDIO input.
+ *
  * @returns {{
  *   offsetFrames: number, offsetSeconds: number,
  *   peak: number, prominence: number, confidence: number,
@@ -158,17 +171,30 @@ export function correlate(reference, target, maxLagFrames, {
  */
 export function findOffset(referenceSamples, targetSamples, {
   sampleRate,
+  referenceSampleRate,
+  targetSampleRate,
   maxOffsetSeconds = 60,
   envelopeHz = ENVELOPE_HZ,
 } = {}) {
+  // Two rates are accepted so a 48kHz camera and a 44.1kHz recorder can be compared
+  // without a resample step: each signal is bucketed on ITS OWN rate, and both
+  // envelopes then share the same real timebase. `sampleRate` remains supported as
+  // the matched-pair shorthand.
+  //
+  // This matters beyond mismatched pairs: bucket size is round(rate / envelopeHz),
+  // so passing a WRONG rate for a matched pair scales every reported offset by
+  // passed/actual — 44100 against true 48000 is an 8.8% error, silent, with
+  // healthy-looking confidence. Rates must come from file metadata, never a default.
+  const refRate = referenceSampleRate || sampleRate;
+  const tgtRate = targetSampleRate || sampleRate;
   const empty = {
     offsetFrames: 0, offsetSeconds: 0, peak: 0, prominence: 0,
     confidence: 0, usable: false, reason: 'insufficient-audio',
   };
-  if (!sampleRate || !referenceSamples?.length || !targetSamples?.length) return empty;
+  if (!refRate || !tgtRate || !referenceSamples?.length || !targetSamples?.length) return empty;
 
-  const ref = standardize(toEnvelope(referenceSamples, sampleRate, envelopeHz));
-  const tgt = standardize(toEnvelope(targetSamples, sampleRate, envelopeHz));
+  const ref = standardize(toEnvelope(referenceSamples, refRate, envelopeHz));
+  const tgt = standardize(toEnvelope(targetSamples, tgtRate, envelopeHz));
   if (ref.length < 8 || tgt.length < 8) return empty;
 
   // A standardized signal that is all zeros had no variance — silence, or a
@@ -196,7 +222,23 @@ export function findOffset(referenceSamples, targetSamples, {
     if (Math.abs(s.lag - best.lag) <= guard) continue;
     if (s.score > runnerUp) runnerUp = s.score;
   }
-  if (runnerUp === -Infinity) runnerUp = 0;
+
+  // DEGENERATE CASE: if every scored lag falls inside the guard band there is no
+  // runner-up at all. Clamping to 0 here would make prominence equal the peak and
+  // manufacture MAXIMUM confidence by construction — the opposite of the intent.
+  // There is genuinely nothing to compare against, so say so.
+  const haveRunnerUp = runnerUp !== -Infinity;
+  if (!haveRunnerUp) {
+    return {
+      offsetFrames: best.lag,
+      offsetSeconds: best.lag / envelopeHz,
+      peak: best.score,
+      prominence: 0,
+      confidence: 0,
+      usable: false,
+      reason: 'search-range-too-narrow-to-judge',
+    };
+  }
 
   const peak = best.score;
   const prominence = peak - Math.max(0, runnerUp);
@@ -206,8 +248,22 @@ export function findOffset(referenceSamples, targetSamples, {
   // high prominence with a low peak is two signals that barely relate.
   const confidence = Math.max(0, Math.min(1, peak * 0.5 + prominence * 0.5));
 
+  // BOUNDARY HIT — the strongest available evidence that the TRUE peak lies outside
+  // the search window. A DJI recorder left running between takes routinely produces
+  // offsets of minutes; if the real alignment is beyond maxOffsetSeconds, the best
+  // in-window sidelobe can score cleanly and would otherwise be returned as a
+  // confident WRONG answer. Refusing and asking for a wider window is the only
+  // honest response, and this is the common case for separately-started devices,
+  // not an edge case.
+  const searchedLagFrames = Math.min(
+    Math.round(maxOffsetSeconds * envelopeHz),
+    Math.min(ref.length, tgt.length),
+  );
+  const atBoundary = Math.abs(best.lag) >= searchedLagFrames - guard;
+
   let reason = null;
-  if (peak < 0.3) reason = 'weak-correlation';
+  if (atBoundary) reason = 'peak-at-search-boundary-widen-window';
+  else if (peak < 0.3) reason = 'weak-correlation';
   else if (prominence < 0.1) reason = 'ambiguous-periodic-content';
 
   return {

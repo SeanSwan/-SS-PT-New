@@ -135,3 +135,47 @@ describe('the 29.97 vs 30 fps trap', () => {
     expect(isPerceptible(ppm, 1200).errorMs).toBeGreaterThan(1000);
   });
 });
+
+/**
+ * MEASUREMENT VALIDITY — every gate in modelDrift is downstream of two offset
+ * measurements, so consuming one that findOffset already declined makes all of
+ * them worthless. A head window of room tone locking one syllable off (~200ms)
+ * reads as 167ppm over a 1200s span: inside the plausibility bound, and enough to
+ * resample a clean recording by a rate that was never real.
+ */
+describe('modelDrift — refuses measurements its own detector declined', () => {
+  const good = (at, off) => ({ atSeconds: at, offsetSeconds: off, usable: true });
+
+  it('refuses when the HEAD measurement was not usable', () => {
+    const m = modelDrift(
+      { atSeconds: 5, offsetSeconds: 1.5, usable: false },
+      good(1200, 1.62),
+    );
+    expect(m.plausible).toBe(false);
+    expect(m.reason).toBe('measurement-not-usable');
+    expect(m.correctionNeeded).toBe(false);
+    expect(m.resampleRatio).toBe(1);
+  });
+
+  it('refuses when the TAIL measurement was not usable', () => {
+    const m = modelDrift(good(5, 1.5), { atSeconds: 1200, offsetSeconds: 1.62, usable: false });
+    expect(m.plausible).toBe(false);
+    expect(m.reason).toBe('measurement-not-usable');
+  });
+
+  it('still accepts plain measurements with no usable field (already verified)', () => {
+    const m = modelDrift({ atSeconds: 5, offsetSeconds: 1.5 }, { atSeconds: 1200, offsetSeconds: 1.62 });
+    expect(m.plausible).toBe(true);
+    expect(m.correctionNeeded).toBe(true);
+  });
+
+  it('reports span error under an honest name, not as end-of-take error', () => {
+    // head 0s, tail 60s of a 1200s take: the span error is 1/20th of the real end
+    // error. Naming it "predictedErrorAtEnd" would be false comfort in a QA readout.
+    const m = modelDrift(good(0, 0), good(60, 0.006));
+    expect(m.errorAcrossMeasuredSpanMs).toBeCloseTo(6, 1);
+    expect(m.predictedErrorAtEndMs).toBeUndefined();
+    // The real end-of-take number comes from isPerceptible with the take duration.
+    expect(isPerceptible(m.driftPpm, 1200).errorMs).toBeGreaterThan(100);
+  });
+});

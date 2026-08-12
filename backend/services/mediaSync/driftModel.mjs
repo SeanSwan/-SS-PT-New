@@ -32,12 +32,33 @@ export const IMPLAUSIBLE_DRIFT_PPM = 10000; // 1%
 /**
  * Derive a drift model from two offset measurements taken at different points.
  *
- * @param {{atSeconds:number, offsetSeconds:number}} head measured near the start
- * @param {{atSeconds:number, offsetSeconds:number}} tail measured near the end
+ * ── MEASUREMENT VALIDITY IS CHECKED HERE, NOT ASSUMED ────────────────────────
+ * Every gate below is downstream of two measurements, so consuming a measurement
+ * that findOffset already declined would make all of them worthless. A head window
+ * containing only room tone can lock one syllable off — say 200ms — which over a
+ * 1200s span reads as 167ppm: comfortably inside the plausibility bound, and enough
+ * to make this function resample a perfectly clean recording by a fabricated rate.
+ * Pass the findOffset results through directly (they carry `usable`), or omit the
+ * field only for measurements you have separately verified.
+ *
+ * ── SIGN CONVENTION ─────────────────────────────────────────────────────────
+ * Offsets follow findOffset: positive means the clean track's content occurs later.
+ * A positive driftPpm therefore means the clean track falls progressively FURTHER
+ * behind, so it must be SPED UP — resampleRatio < 1 shortens it to match.
+ *
+ * ── ORDER OF OPERATIONS (the wiring depends on this) ─────────────────────────
+ * Apply drift FIRST, then offset. The offset returned by a whole-file correlation
+ * on drifted signals is roughly the mid-take average, not the head offset, so
+ * shifting by it before removing the ramp leaves both ends wrong. Correct order:
+ * resample by resampleRatio, re-measure the offset on the corrected audio, then
+ * apply that offset.
+ *
+ * @param {{atSeconds:number, offsetSeconds:number, usable?:boolean}} head
+ * @param {{atSeconds:number, offsetSeconds:number, usable?:boolean}} tail
  * @returns {{
  *   driftPpm:number, driftSecondsPerHour:number, resampleRatio:number,
  *   correctionNeeded:boolean, plausible:boolean, reason:string|null,
- *   predictedErrorAtEndMs:number
+ *   errorAcrossMeasuredSpanMs:number
  * }}
  */
 export function modelDrift(head, tail) {
@@ -48,9 +69,16 @@ export function modelDrift(head, tail) {
     correctionNeeded: false,
     plausible: true,
     reason: null,
-    predictedErrorAtEndMs: 0,
+    errorAcrossMeasuredSpanMs: 0,
   };
   if (!head || !tail) return { ...none, plausible: false, reason: 'need-two-measurements' };
+
+  // Refuse to build a rate out of a measurement its own detector declined. Only an
+  // EXPLICIT false is treated as unusable, so callers passing plain {atSeconds,
+  // offsetSeconds} (already-verified measurements) still work.
+  if (head.usable === false || tail.usable === false) {
+    return { ...none, plausible: false, reason: 'measurement-not-usable' };
+  }
 
   const span = tail.atSeconds - head.atSeconds;
   // Two measurements taken close together cannot separate drift from measurement
@@ -84,7 +112,12 @@ export function modelDrift(head, tail) {
     correctionNeeded,
     plausible: true,
     reason: null,
-    predictedErrorAtEndMs: Math.abs(delta) * 1000,
+    // Named for what it IS: drift accumulated across the measured span. It is NOT
+    // the error at end of take unless the tail window sits at the very end — head
+    // at 0s and tail at 60s of a 1200s take would understate the real end error by
+    // 20x, which is false comfort to anyone reading it as a QA number. Use
+    // isPerceptible(driftPpm, takeDurationSeconds) for end-of-take error.
+    errorAcrossMeasuredSpanMs: Math.abs(delta) * 1000,
   };
 }
 

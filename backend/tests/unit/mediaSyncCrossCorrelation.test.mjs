@@ -301,3 +301,92 @@ describe('short takes searched over a wide range', () => {
   });
 });
 
+/**
+ * BOUNDARY HITS — the failure the whole "refuse rather than assert" philosophy
+ * exists to catch, and it was unguarded until a hostile review found it.
+ *
+ * A DJI transmitter left running between takes routinely produces offsets of
+ * minutes. If the true alignment lies outside the search window, the best
+ * IN-window sidelobe can score cleanly — and after per-window normalization it
+ * scores even more cleanly — so it would be returned as a confident wrong answer.
+ * A peak sitting at the edge of the search space is the strongest available
+ * evidence that the real peak is outside it.
+ */
+describe('boundary-hit detection', () => {
+  /**
+   * MEASURED BEHAVIOUR, not assumed. With per-window NCC normalization an
+   * out-of-window search produces a genuinely WEAK best peak (0.07-0.10 across
+   * windows of 4s, 8s, 11s and 11.8s against a true +12s offset), so
+   * `weak-correlation` refuses first and the boundary guard is defense-in-depth.
+   *
+   * That was NOT true before normalization: unnormalized sub-windows could score
+   * 1.07 — higher than the true peak — which is precisely the "healthy-looking
+   * confident wrong answer" this guard was added for. Both protections stay; the
+   * property under test is that it NEVER asserts a wrong offset, by whichever
+   * route it declines.
+   */
+  for (const maxOffsetSeconds of [4, 8, 11, 11.8]) {
+    it(`refuses a true +12s offset searched at only +/-${maxOffsetSeconds}s`, () => {
+      const clean = speechLike(60, { seed: 31 });
+      const scratch = asScratchTrack(shift(clean, -12, { noise: 0.02 }));
+      const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds });
+      expect(r.usable).toBe(false);
+      expect(['weak-correlation', 'peak-at-search-boundary-widen-window', 'search-range-too-narrow-to-judge'])
+        .toContain(r.reason);
+    });
+  }
+
+  it('accepts the same pair once the window is wide enough', () => {
+    const clean = speechLike(60, { seed: 31 });
+    const scratch = asScratchTrack(shift(clean, -12, { noise: 0.02 }));
+    const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 25 });
+    expect(r.usable).toBe(true);
+    expect(withinOneFrame(r.offsetSeconds, 12)).toBe(true);
+  });
+
+  it('refuses when the search range is too narrow to have any runner-up', () => {
+    // Every scored lag inside the guard band leaves no comparison point. Clamping
+    // the missing runner-up to 0 would have made prominence equal the peak and
+    // manufactured MAXIMUM confidence by construction.
+    const clean = speechLike(30, { seed: 33 });
+    const scratch = asScratchTrack(clean);
+    const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 0.2 });
+    expect(r.usable).toBe(false);
+    expect(['search-range-too-narrow-to-judge', 'peak-at-search-boundary-widen-window'])
+      .toContain(r.reason);
+  });
+});
+
+/**
+ * SAMPLE RATES come from file metadata, never a default. Bucket size is
+ * round(rate / envelopeHz), so a wrong rate silently scales every reported offset —
+ * 44100 passed for true 48000 is an 8.8% error with healthy-looking confidence.
+ */
+describe('sample-rate handling', () => {
+  it('supports two different rates without a resample step', () => {
+    // Same content, different rates: 8000 vs 16000. Both bucket to the same real
+    // timebase, so the offset must come out identical.
+    const cleanLo = speechLike(40, { seed: 41 });
+    const cleanHi = new Float32Array(cleanLo.length * 2);
+    for (let i = 0; i < cleanHi.length; i += 1) cleanHi[i] = cleanLo[Math.floor(i / 2)];
+    const scratchLo = asScratchTrack(shift(cleanLo, -2.0, { noise: 0.02 }));
+
+    const r = findOffset(scratchLo, cleanHi, {
+      referenceSampleRate: SR,
+      targetSampleRate: SR * 2,
+      maxOffsetSeconds: 10,
+    });
+    expect(r.usable).toBe(true);
+    expect(withinOneFrame(r.offsetSeconds, 2.0)).toBe(true);
+  });
+
+  it('a WRONG rate visibly scales the answer — which is why rates must come from metadata', () => {
+    const clean = speechLike(40, { seed: 43 });
+    const scratch = asScratchTrack(shift(clean, -4.0, { noise: 0.02 }));
+    const right = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 15 });
+    const wrong = findOffset(scratch, clean, { sampleRate: SR * 2, maxOffsetSeconds: 15 });
+    expect(withinOneFrame(right.offsetSeconds, 4.0)).toBe(true);
+    // Documented consequence, asserted so nobody assumes the engine self-corrects.
+    expect(Math.abs(wrong.offsetSeconds - 4.0)).toBeGreaterThan(0.5);
+  });
+});
