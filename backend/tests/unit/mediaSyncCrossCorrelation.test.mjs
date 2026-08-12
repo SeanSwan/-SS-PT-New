@@ -390,3 +390,60 @@ describe('sample-rate handling', () => {
     expect(Math.abs(wrong.offsetSeconds - 4.0)).toBeGreaterThan(0.5);
   });
 });
+
+/**
+ * THE BOUNDARY GUARD WAS DEAD CODE — a defect introduced by the FIX for the
+ * overlap defect, found by testing my own remediation rather than the original.
+ *
+ * The minimum-overlap floor caps how far the search can actually reach: for
+ * equal-length signals, no lag beyond 50% of the file is ever scored. But the
+ * boundary threshold was computed from the REQUESTED window, so on a 60s file
+ * asking for +/-60s the guard sat at 59.5s while the search could only reach 30s.
+ * It could never fire — in exactly the short-take case it was written for.
+ *
+ * The threshold is now derived from the lags ACTUALLY scored, which cannot drift
+ * from the overlap rule the way a re-derived formula would.
+ */
+describe('effective search ceiling', () => {
+  const sixtySecondTake = (trueOffset) => {
+    const clean = speechLike(60, { seed: 31 });
+    const scratch = asScratchTrack(shift(clean, -trueOffset, { noise: 0.02 }));
+    return { clean, scratch };
+  };
+
+  it('reports how far it could actually search, and that it fell short of the request', () => {
+    const { clean, scratch } = sixtySecondTake(5);
+    const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
+    // 60s file, 50% overlap floor -> 30s reachable, not the 60s requested.
+    expect(r.searchedSeconds).toBeCloseTo(30, 0);
+    expect(r.searchTruncated).toBe(true);
+  });
+
+  it('does NOT flag truncation when the request fits inside the reachable range', () => {
+    const { clean, scratch } = sixtySecondTake(5);
+    const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 10 });
+    expect(r.searchTruncated).toBe(false);
+  });
+
+  it('accepts offsets comfortably inside the effective ceiling', () => {
+    for (const off of [5, 25, 29]) {
+      const { clean, scratch } = sixtySecondTake(off);
+      const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
+      expect(r.usable).toBe(true);
+      expect(withinOneFrame(r.offsetSeconds, off)).toBe(true);
+    }
+  });
+
+  it('FIRES the boundary guard at the effective edge (it previously could not)', () => {
+    const { clean, scratch } = sixtySecondTake(29.8);
+    const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
+    expect(r.usable).toBe(false);
+    expect(r.reason).toBe('peak-at-search-boundary-widen-window');
+  });
+
+  it('still refuses — never asserts — when the truth is beyond any reachable lag', () => {
+    const { clean, scratch } = sixtySecondTake(35);
+    const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
+    expect(r.usable).toBe(false);
+  });
+});

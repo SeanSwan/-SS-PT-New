@@ -255,11 +255,27 @@ export function findOffset(referenceSamples, targetSamples, {
   // confident WRONG answer. Refusing and asking for a wider window is the only
   // honest response, and this is the common case for separately-started devices,
   // not an edge case.
-  const searchedLagFrames = Math.min(
-    Math.round(maxOffsetSeconds * envelopeHz),
-    Math.min(ref.length, tgt.length),
-  );
-  const atBoundary = Math.abs(best.lag) >= searchedLagFrames - guard;
+  // EFFECTIVE ceiling, not the requested one. The minimum-overlap floor caps how far
+  // the search can actually reach: for equal-length signals no lag beyond 50% of the
+  // file is ever scored. Computing the boundary threshold from `maxOffsetSeconds`
+  // therefore made this guard DEAD CODE on any file shorter than twice the requested
+  // window — measured: a 60s file asking for +/-60s can only reach +/-30s, while the
+  // threshold sat at 59.5s. The guard existed only on paper in exactly the short-take
+  // case it was written for.
+  //
+  // Deriving it from the lags actually scored is exact and cannot drift from the
+  // overlap rule the way a re-derived formula would.
+  let effectiveMaxLag = 0;
+  for (const s of scores) {
+    const a = Math.abs(s.lag);
+    if (a > effectiveMaxLag) effectiveMaxLag = a;
+  }
+  const atBoundary = Math.abs(best.lag) >= effectiveMaxLag - guard;
+
+  // The caller asked for a window we may not have been able to honour. Saying so is
+  // the difference between "no alignment exists within 60s" and "I only looked at 30s".
+  const requestedLagFrames = Math.round(maxOffsetSeconds * envelopeHz);
+  const searchTruncated = effectiveMaxLag < requestedLagFrames;
 
   let reason = null;
   if (atBoundary) reason = 'peak-at-search-boundary-widen-window';
@@ -274,5 +290,10 @@ export function findOffset(referenceSamples, targetSamples, {
     confidence,
     usable: reason === null,
     reason,
+    // How far the search could actually reach, and whether that fell short of what
+    // was asked for. A caller that gets `searchTruncated: true` with no usable result
+    // knows to supply longer audio rather than a wider window.
+    searchedSeconds: effectiveMaxLag / envelopeHz,
+    searchTruncated,
   };
 }
