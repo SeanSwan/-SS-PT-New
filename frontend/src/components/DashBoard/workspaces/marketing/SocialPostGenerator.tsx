@@ -42,6 +42,7 @@ import SocialPostAccounts from './SocialPostAccounts';
 import SocialPostComplianceResult from './SocialPostComplianceResult';
 import SocialPostPreview from './SocialPostPreview';
 import apiService from '../../../../services/api.service';
+import { describeFailure, describeThrown } from './SocialPostGenerator.outcome';
 
 const getMinimumScheduleDateTime = () => {
   const date = new Date();
@@ -138,19 +139,28 @@ const SocialPostGenerator: React.FC = () => {
         ...(scheduleMode && scheduleDate && { scheduledAt: new Date(scheduleDate).toISOString() }),
       });
       const data = response.data;
-      if (data.success) {
+      // Read `status`, not `success`. The route used to hardcode success:true, so
+      // a publish where every platform failed reported success — and the branch
+      // below cleared the composer, destroying the draft for a post that never
+      // went out. The draft is only discarded on an outcome that actually
+      // published; anything else keeps the text so it can be retried or copied.
+      if (data.status === 'published' || data.status === 'scheduled') {
         setPublishStatus(
-          scheduleMode && scheduleDate
+          data.status === 'scheduled'
             ? `Post scheduled for ${new Date(scheduleDate).toLocaleString()}!`
             : 'Post published successfully!',
         );
         setCaption('');
         setComplianceResult(null);
       } else {
-        setPublishStatus(data.message || 'Failed to publish. Check native account connection.');
+        setPublishStatus(describeFailure(data));
       }
-    } catch {
-      setPublishStatus('Network error. Native publisher did not respond.');
+    } catch (err) {
+      // A non-2xx rejects here, so this must distinguish a real transport
+      // failure from a server response that carries a reason. Reporting a 422
+      // compliance refusal as "Network error" was the same class of lie this
+      // whole change exists to remove.
+      setPublishStatus(describeThrown(err));
     } finally {
       setPublishing(false);
     }

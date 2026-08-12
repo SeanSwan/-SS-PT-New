@@ -120,6 +120,12 @@ const NATIVE_SOCIAL_PUBLISHING_SERVICE_FILE = join(
   'services',
   'nativeSocialPublishingService.mjs',
 );
+const SOCIAL_PROVIDER_CAPABILITIES_FILE = join(
+  REPO_ROOT,
+  'backend',
+  'services',
+  'socialProviderCapabilities.mjs',
+);
 const APPROVAL_QUEUE_FILES = [
   'SocialPostAccounts.tsx',
   'SocialPostComplianceResult.tsx',
@@ -157,6 +163,7 @@ describe('MarketingWorkspace command-center contract', () => {
   const socialPostGeneratorStylesSource = readFileSync(SOCIAL_POST_GENERATOR_STYLES_FILE, 'utf-8');
   const adminSocialPublishingRoutesSource = readFileSync(ADMIN_SOCIAL_PUBLISHING_ROUTES_FILE, 'utf-8');
   const nativeSocialPublishingServiceSource = readFileSync(NATIVE_SOCIAL_PUBLISHING_SERVICE_FILE, 'utf-8');
+  const socialProviderCapabilitiesSource = readFileSync(SOCIAL_PROVIDER_CAPABILITIES_FILE, 'utf-8');
   const approvalQueueSources = APPROVAL_QUEUE_FILES.map(file => ({
     file,
     source: readFileSync(file, 'utf-8'),
@@ -263,8 +270,15 @@ describe('MarketingWorkspace command-center contract', () => {
     expect(nativePublishingSource).toContain('appPassword');
     expect(nativePublishingSource).toContain('nextdoor');
     expect(adminSocialPublishingRoutesSource).toContain('PROVIDER_CAPABILITIES');
-    expect(nativeSocialPublishingServiceSource).toContain("id: 'nextdoor'");
-    expect(nativeSocialPublishingServiceSource).toContain('partner_required');
+    // RE-ANCHORED: the provider matrix moved to its own module when the publish
+    // -truth fixes pushed nativeSocialPublishingService past the 300-line rule.
+    // The assertion follows the config to its new home; the service must still
+    // RE-EXPORT it, which is checked below, so the public API this test really
+    // cares about is pinned more tightly than before rather than less.
+    expect(socialProviderCapabilitiesSource).toContain("id: 'nextdoor'");
+    expect(socialProviderCapabilitiesSource).toContain('partner_required');
+    expect(nativeSocialPublishingServiceSource)
+      .toContain("export { PROVIDER_CAPABILITIES } from './socialProviderCapabilities.mjs'");
   });
 
   it('returns immediate native publish results instead of only scheduled-job data', () => {
