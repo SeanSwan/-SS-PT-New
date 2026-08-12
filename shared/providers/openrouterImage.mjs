@@ -232,10 +232,27 @@ export async function generate(compiled, opts = {}) {
   const requested = aspectOf(compiled);
   const deviation = dims ? aspectDeviation(requested, dims.width, dims.height) : null;
 
+  /**
+   * COST, NORMALISED HERE so no caller has to know a provider's response shape.
+   *
+   * The field is `usage.cost` — verified against a live response, not assumed.
+   * An earlier version read `usage.total_cost`, which does not exist on this
+   * endpoint, so every run wrote `costUsd: null` into the ledger while the
+   * ledger advertised that it recorded spend. Same disease as the aspect ratio:
+   * a field that is declared, plumbed, and never checked against reality.
+   *
+   * `total_cost` is kept as a fallback because the chat/completions shape (still
+   * read above for providers that only answer there) uses it. There is no `id`
+   * on this response, so cost cannot be resolved by a later lookup — if it is
+   * not captured here it is lost.
+   */
+  const costUsd = data.usage?.cost ?? data.usage?.total_cost ?? null;
+
   return {
     model,
     images,                       // base64 payloads or URLs, provider-dependent
-    usage: data.usage ?? null,    // log actual vs estimate from call one
+    usage: data.usage ?? null,    // raw, for anything that wants the token detail
+    costUsd,                      // normalised — this is what the ledger records
     aspectRequested: requested,
     actualWidth: dims?.width ?? null,
     actualHeight: dims?.height ?? null,

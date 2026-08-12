@@ -79,8 +79,30 @@ export function capabilities(model = DEFAULT_MODEL) {
     supportedAspectRatios: ['1:1', '16:9', '9:16', '4:5'],
     supportsImageInit: true,
     supportsInpainting: false,
-    supportsSeed: 'claimed',
-    seedIsDeterministic: 'claimed',
+
+    /**
+     * SEED — resolved from 'claimed' to false by PROBE, 2026-08-12.
+     * Evidence: `scripts/forge-seed-probe.mjs`, 3 live generations on
+     * `openai/gpt-5.4-image-2`, identical prompt.
+     *
+     *   A  seed=424242  sha=a58a6b8d5a9e4792  2321148 B
+     *   B  seed=424242  sha=3ccf25fff1d0a726  2351454 B   <- same seed, DIFFERENT bytes
+     *   C  seed=999001  sha=a9cb1935100f77fe  1965924 B
+     *
+     * The parameter is ACCEPTED (no 400) and has no observable effect, which is
+     * the worst of the three possible answers: a rejection would at least be
+     * loud. Recorded as false rather than true-but-useless, because the only
+     * decision a caller makes from this flag is "is it worth sending", and it
+     * is not.
+     *
+     * CONSEQUENCE FOR THE CONVERGENCE LOOP: reproduction cannot be bought with a
+     * seed on this model. A winner is re-issued by keeping its exact PROMPT and
+     * accepting a new roll, or by image-to-image from the winning image itself.
+     * The run ledger stores prompt text for exactly this reason.
+     */
+    supportsSeed: false,
+    seedIsDeterministic: false,
+
     honorsNegativePrompt: 'claimed',
   };
 }

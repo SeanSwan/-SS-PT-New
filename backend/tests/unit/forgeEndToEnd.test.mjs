@@ -114,6 +114,54 @@ test('compile -> generate -> record -> ledger -> lineage, end to end', async () 
   }
 });
 
+test('COST is read from usage.cost — the field the live API actually returns', async () => {
+  // Regression. The provider read `usage.total_cost`, which does not exist on
+  // this endpoint, so every real generation wrote costUsd: null into a ledger
+  // that advertised recording spend. Verified against a live response:
+  // usage = { prompt_tokens, completion_tokens, total_tokens, cost, ... }.
+  // There is no `id` on the response either, so an uncaptured cost is lost —
+  // it cannot be resolved by a follow-up lookup.
+  process.env.OPENROUTER_API_KEY = 'test-key-not-a-real-credential';
+  try {
+    const compiled = compileImage(BRIEF, capabilities(DEFAULT_MODEL));
+    const withCost = async () => ({
+      ok: true, status: 200,
+      json: async () => ({
+        data: [{ b64_json: png(1536, 864), media_type: 'image/png' }],
+        usage: { prompt_tokens: 17, completion_tokens: 120, total_tokens: 137, cost: 0.003736 },
+      }),
+    });
+    const res = await generate(compiled, { root: '.', fetchImpl: withCost });
+    assert.equal(res.costUsd, 0.003736);
+
+    // The chat/completions shape uses total_cost; still read as a fallback.
+    const legacy = async () => ({
+      ok: true, status: 200,
+      json: async () => ({ data: [{ b64_json: png(1536, 864) }], usage: { total_cost: 0.2274 } }),
+    });
+    assert.equal((await generate(compiled, { root: '.', fetchImpl: legacy })).costUsd, 0.2274);
+
+    // Absent usage is null, not zero. A silent 0 would read as "this was free".
+    const none = async () => ({
+      ok: true, status: 200, json: async () => ({ data: [{ b64_json: png(1536, 864) }] }),
+    });
+    assert.equal((await generate(compiled, { root: '.', fetchImpl: none })).costUsd, null);
+  } finally { delete process.env.OPENROUTER_API_KEY; }
+});
+
+test('the seed capability is RESOLVED by probe, not left claimed', () => {
+  // Probed 2026-08-12 on three live generations: same prompt + same seed gave
+  // different bytes. The parameter is accepted and does nothing.
+  const caps = capabilities(DEFAULT_MODEL);
+  assert.equal(caps.supportsSeed, false);
+  assert.equal(caps.seedIsDeterministic, false);
+  assert.notEqual(caps.supportsSeed, 'claimed', 'a probed capability must not revert to claimed');
+  // And the consequence: the compiler must not put a seed in params.
+  const compiled = compileImage(BRIEF, caps);
+  assert.equal(compiled.params.seed, undefined);
+  assert.ok(Number.isInteger(compiled.seed), 'still recorded for the ledger, just not transmitted');
+});
+
 test('a PROBE may send a seed explicitly, and what was sent is what is recorded', async () => {
   process.env.OPENROUTER_API_KEY = 'test-key-not-a-real-credential';
   try {
@@ -122,9 +170,10 @@ test('a PROBE may send a seed explicitly, and what was sent is what is recorded'
     const res = await generate(compiled, { root: '.', fetchImpl: stubFetch(sent), seed: 424242 });
     assert.equal(sent[0].seed, 424242);
     assert.equal(res.seedSent, 424242);
-    // The capability is still unproven — sending a parameter is not evidence it
-    // was honoured. Only a repeat-generation probe may promote it.
-    assert.equal(capabilities(DEFAULT_MODEL).seedIsDeterministic, 'claimed');
+    // Sending a parameter is not evidence it was honoured — which is exactly
+    // what the probe established here: the seed IS accepted and does nothing.
+    // The override stays, because it is how the next model gets probed too.
+    assert.equal(capabilities(DEFAULT_MODEL).seedIsDeterministic, false);
   } finally { delete process.env.OPENROUTER_API_KEY; }
 });
 
