@@ -57,11 +57,22 @@ test('a PROBED capability records its verdict, and the probes that ran are pinne
   assert.equal(caps.supportsSeed, false, 'probe: same prompt + same seed gave different bytes');
   assert.equal(caps.seedIsDeterministic, false);
 
-  // Probed the same day: the `image` parameter is ACCEPTED (HTTP 200) but its
-  // INFLUENCE is untested, and acceptance is not evidence — the seed parameter
-  // is accepted too and does nothing. So this must stay 'claimed'.
-  assert.equal(caps.supportsImageInit, 'claimed',
-    'acceptance is not influence; do not promote this without an influence test');
+  // IMAGE-INIT: resolved 'claimed' -> false by the INFLUENCE probe the same day.
+  // One prompt ("preserve the dominant colour of the supplied image exactly"),
+  // three arms, output colour measured by decoding pixels:
+  //   BLUE  #002882 -> #fbde5e (yellow)
+  //   AMBER #d28c14 -> #f8c288
+  //   none  control -> #fcd158 (yellow)
+  // The blue-seeded output lands on top of the no-input control. The parameter
+  // is accepted, BILLED MORE ($0.006136 vs $0.003736), and inert — so neither
+  // acceptance nor cost is evidence of use.
+  assert.equal(caps.supportsImageInit, false,
+    'the influence probe measured no tracking between input and output');
+
+  // Two capabilities on this model now share that exact shape. If a third ever
+  // gets promoted, it needs an influence-style probe, not an acceptance one.
+  assert.equal(caps.supportsSeed, caps.supportsImageInit,
+    'seed and image-init are both accepted-and-inert');
 });
 
 test('drop-folder does not promise what its request sheet cannot ask for', () => {

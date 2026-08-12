@@ -78,23 +78,32 @@ export function capabilities(model = DEFAULT_MODEL) {
     maxPromptChars: spec.maxPromptChars,
     supportedAspectRatios: ['1:1', '16:9', '9:16', '4:5'],
     /**
-     * IMAGE-TO-IMAGE — DOWNGRADED from a bare `true` to 'claimed', 2026-08-12.
+     * IMAGE-TO-IMAGE — RESOLVED to false by INFLUENCE PROBE, 2026-08-12.
+     * Journey: bare `true` (never probed) -> 'claimed' (accepted but untested)
+     * -> false (measured). Evidence: `scripts/forge-i2i-influence.mjs`.
      *
-     * Probed (`scripts/forge-i2i-probe.mjs`): an `image` parameter carrying a
-     * data URI is ACCEPTED on /api/v1/images — HTTP 200, returned 1024x1024,
-     * cost $0.006072 (vs $0.003736 text-only, consistent with input tokens).
+     * One prompt — "preserve the dominant colour of the supplied image exactly"
+     * — with three arms, output colour measured by decoding the returned pixels:
      *
-     * That proves the request is well-formed and NOTHING MORE. The seed
-     * parameter is also accepted on this same endpoint and demonstrably does
-     * nothing, so acceptance is not evidence of influence. The original `true`
-     * was never probed at all; 'claimed' is what the evidence supports, and the
-     * compiler treats it as absent, which is the correct conservative default.
+     *   BLUE input  #002882  ->  output #fbde5e      (yellow)
+     *   AMBER input #d28c14  ->  output #f8c288
+     *   NO input    (control) ->  output #fcd158     (yellow)
      *
-     * To promote it: same prompt, two inputs of markedly different dominant
-     * colour, compare the average colour of the two outputs. Acceptance tests
-     * the parameter; only influence tests the capability.
+     * The blue-seeded output is YELLOW and lands essentially on top of the
+     * no-input control. The outputs do not track their inputs in any direction.
+     * The `image` parameter is ACCEPTED (HTTP 200, and it even bills more —
+     * $0.006136 vs $0.003736 — consistent with input tokens being counted) and
+     * is INERT, exactly like the seed parameter on the same endpoint.
+     *
+     * Two capabilities on this model now share that shape: billed, accepted,
+     * and without effect. Acceptance is not influence, and cost is not evidence
+     * of use either.
+     *
+     * CONSEQUENCE, already reflected in the architecture: "refine the winner"
+     * can only mean prompt-replay plus a fresh roll. The bracket was built that
+     * way, so this verdict confirms the design rather than changing it.
      */
-    supportsImageInit: 'claimed',
+    supportsImageInit: false,
     supportsInpainting: false,
 
     /**
