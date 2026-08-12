@@ -23,8 +23,18 @@ import path from 'path';
 const outIdx = process.argv.indexOf('--out');
 const outPath = outIdx > -1 ? process.argv[outIdx + 1] : 'schema-drift-report.json';
 
-if (!process.env.DATABASE_URL) {
-  console.error('FATAL: DATABASE_URL not set. Pass --env-file to node.');
+// DATABASE_URL is the production path (database.mjs treats a set DATABASE_URL as
+// "connect to the production DB", with SSL required). PG_HOST is the local path,
+// used to run this auditor against the disposable QA container.
+//
+// Added 2026-08-12: previously DATABASE_URL was mandatory, which meant this tool
+// could ONLY ever be pointed at production and could never be exercised safely
+// before being aimed there. An audit tool nobody can rehearse is one more thing
+// that is trusted without evidence.
+if (!process.env.DATABASE_URL && !process.env.PG_HOST) {
+  console.error(
+    'FATAL: set DATABASE_URL (production, via --env-file) or PG_HOST (local QA container).',
+  );
   process.exit(2);
 }
 
@@ -97,6 +107,23 @@ const [dbUniques] = await sequelize.query(`
   WHERE n.nspname = 'public' AND ix.indisunique AND c.relkind = 'r'
   GROUP BY c.relname, i.relname
 `);
+// ---- live DB: ALL indexes per table (added 2026-08-12) ----
+// Kimi K3 review: a model whose `indexes:` block names ATTRIBUTE names instead of
+// COLUMN names emits CREATE INDEX against a column that does not exist. The
+// statement fails, the index is never created, and NOTHING reports it — the app
+// keeps working, just without the index. `daily_workout_forms` was exactly this.
+// So a declared-but-absent index is invisible until it becomes a slow-query
+// incident under volume. Read-only: pg_indexes is a catalog view.
+const [dbIndexes] = await sequelize.query(`
+  SELECT tablename AS table_name, indexname AS index_name
+  FROM pg_indexes WHERE schemaname = 'public'
+`);
+const indexesByTable = new Map();
+for (const row of dbIndexes) {
+  if (!indexesByTable.has(row.table_name)) indexesByTable.set(row.table_name, new Set());
+  indexesByTable.get(row.table_name).add(row.index_name);
+}
+
 const uniquesByTable = new Map();
 for (const u of dbUniques) {
   if (!uniquesByTable.has(u.table_name)) uniquesByTable.set(u.table_name, []);
@@ -280,6 +307,25 @@ for (const [name, model] of Object.entries(models)) {
   modelSummaries.push({ model: name, table: tn,
     status: missing || typeConf || deepConf ? 'DRIFT' : 'CLEAN',
     attrs: attrs.length, missing, typeConf, deepConf });
+}
+
+// Declared indexes that do not exist in the live DB (added 2026-08-12).
+// Reported at HIGH, not CRITICAL: the app functions without them, which is
+// precisely why they go unnoticed. The cost shows up as query latency at volume.
+for (const { model: name, table: tn } of modelSummaries) {
+  const declared = (models[name]?.options?.indexes) || [];
+  const live = indexesByTable.get(tn) || new Set();
+  for (const idx of declared) {
+    if (!idx?.name) continue;             // unnamed indexes get generated names; skip
+    if (live.has(idx.name)) continue;
+    findings.push({
+      class: 'index-missing-in-db', severity: 'HIGH', model: name, table: tn,
+      index: idx.name, fields: idx.fields || [],
+      note: 'Model declares this index but the live DB does not have it. A common cause is '
+        + '`fields` naming model ATTRIBUTES where the DB column differs (e.g. clientId vs client_id), '
+        + 'which makes CREATE INDEX fail silently at table-creation time.',
+    });
+  }
 }
 
 // FK constraints referencing the dead lowercase `users` table
