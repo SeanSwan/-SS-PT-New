@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   compileImage, compileVideo, resolveSlots, personify, BRAIN_VERSION, FACETS,
+  SERIALIZERS, serializeFor, strategyFor,
 } from '../../../shared/swanPromptCompiler.mjs';
 
 const VERIFIED_CAPS = {
@@ -130,6 +131,107 @@ test('video compile with an approved still carries the init image through', () =
   assert.equal(v.initImageAssetId, 'asset-9');
   assert.equal(v.params.init_image, 'asset-9');
   assert.ok(v.promptText.length > 40);
+});
+
+// ── Serializer strategies (from the shipped-code hostile review) ────────────
+
+test('the same IR renders differently under different strategies', () => {
+  // The whole point: slots are the IR, serialization is provider-dependent.
+  const slots = resolveSlots(brief);
+  const sentence = serializeFor('sentence', slots);
+  const tag = serializeFor('tag', slots);
+  const fragment = serializeFor('fragment', slots);
+  assert.notEqual(sentence, tag);
+  assert.notEqual(sentence, fragment);
+  assert.notEqual(tag, fragment);
+});
+
+test('sentence strategy produces prose, tag strategy produces a comma stack', () => {
+  const slots = resolveSlots(brief);
+  const sentence = serializeFor('sentence', slots);
+  const tag = serializeFor('tag', slots);
+  assert.match(sentence, /^A .+:/, 'sentence should open with a medium clause');
+  assert.match(sentence, /Framed |Lit and surfaced with /, 'sentence should use binding clauses');
+  assert.doesNotMatch(tag, /Framed |Lit and surfaced with /, 'tag should be bare');
+  assert.ok(tag.split(',').length >= 5, 'tag should be a comma stack');
+});
+
+test('strategy is inferred from provider, sentence is the safe default', () => {
+  assert.equal(strategyFor({ provider: 'gemini-image-flash' }), 'sentence');
+  assert.equal(strategyFor({ provider: 'minimax-h3-hosted' }), 'sentence');
+  assert.equal(strategyFor({ provider: 'sdxl-local' }), 'tag');
+  assert.equal(strategyFor({ provider: 'comfyui-wan22' }), 'tag');
+  // Unknown provider gets sentence — an unknown model is far likelier to be
+  // caption-trained than CLIP-tag-trained.
+  assert.equal(strategyFor({ provider: 'something-new' }), 'sentence');
+  assert.equal(strategyFor({}), 'sentence');
+});
+
+test('an explicit promptStyle overrides provider inference', () => {
+  assert.equal(strategyFor({ provider: 'sdxl-local', promptStyle: 'sentence' }), 'sentence');
+  // An unknown explicit style falls back rather than throwing at selection time.
+  assert.equal(strategyFor({ provider: 'gemini', promptStyle: 'nonsense' }), 'sentence');
+});
+
+test('an unknown serializer throws rather than silently emitting nothing', () => {
+  assert.throws(() => serializeFor('nope', resolveSlots(brief)), (e) => e.code === 'E_UNKNOWN_SERIALIZER');
+});
+
+test('compile records which strategy produced the text', () => {
+  const c = compileImage(brief, VERIFIED_CAPS);
+  assert.equal(c.promptStyle, 'sentence');
+  assert.equal(c.promptText, serializeFor('sentence', c.slots));
+});
+
+test('REGRESSION: tag strategy does not duplicate the subject inside styleAnchor', () => {
+  // The personification formula embeds the subject; emitting both repeats it.
+  const withArtist = { ...brief, artist: 'Anton Corbijn', artistMedium: 'classical photograph' };
+  const tag = serializeFor('tag', resolveSlots(withArtist));
+  const subject = brief.text;
+  const occurrences = tag.toLowerCase().split(subject.toLowerCase()).length - 1;
+  assert.equal(occurrences, 1, `subject appears ${occurrences}x in tag output`);
+});
+
+test('every strategy still yields a lawful, non-empty string', () => {
+  const slots = resolveSlots(brief);
+  for (const name of Object.keys(SERIALIZERS)) {
+    const out = serializeFor(name, slots);
+    assert.ok(out && out.trim().length > 20, `${name} produced a degenerate string`);
+  }
+});
+
+test('REGRESSION: a substanceless prompt is REFUSED, not billed for', () => {
+  const blank = {
+    intent: '', subject: '', medium: '', styleAnchor: '', composition: '',
+    optics: '', light: '', palette: '', material: '', abstraction: '',
+  };
+  assert.throws(
+    () => compileImage({ ...brief, slotOverrides: blank }, VERIFIED_CAPS),
+    (e) => e.code === 'E_EMPTY_PROMPT',
+  );
+  assert.throws(
+    () => compileImage({ ...brief, slotOverrides: { ...blank, subject: '...' } }, VERIFIED_CAPS),
+    (e) => e.code === 'E_EMPTY_PROMPT',
+  );
+});
+
+test('REGRESSION: the empty-prompt guard does NOT refuse terse-but-real briefs', () => {
+  // A first threshold of 12 chars refused "a frozen lake" (11 stripped). Same
+  // false-positive class the must-pass corpus exists to prevent: a guard that
+  // blocks real work gets disabled. It checks for absence of content, not brevity.
+  const blank = {
+    intent: '', subject: '', medium: '', styleAnchor: '', composition: '',
+    optics: '', light: '', palette: '', material: '', abstraction: '',
+  };
+  for (const t of ['ice', 'fog', 'a frozen lake', 'light']) {
+    const c = compileImage({ ...brief, slotOverrides: { ...blank, subject: t } }, VERIFIED_CAPS);
+    assert.ok(c.promptText.includes(t), `terse brief "${t}" must survive`);
+  }
+});
+
+test('REGRESSION: sentence strategy does not drop a medium that has no lead', () => {
+  // "A photograph" used to vanish entirely, yielding a bare ".".
+  assert.equal(serializeFor('sentence', { medium: 'photograph' }), 'A photograph.');
 });
 
 test('every curated facet is well-formed and patches only real slot names', () => {

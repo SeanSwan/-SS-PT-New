@@ -100,6 +100,95 @@ function capOk(value) {
   return value === 'verified' || value === true;
 }
 
+/**
+ * SERIALIZATION STRATEGIES.
+ *
+ * The 12-slot map is the intermediate representation — it is the audit trail
+ * (lawChecks can name WHICH slot failed), the diff surface (a facet change is
+ * visible), and the capability-gating boundary (negative is separable). That
+ * part is substance.
+ *
+ * How the IR becomes a STRING is a separate, provider-dependent question, and
+ * the first implementation joined slots with '. ' — a telegraphic keyword stack.
+ * Two independent hostile reviews said the same thing: natural-language image
+ * models are trained on captions, and a 12-fragment staccato string carries no
+ * syntactic signal about which modifier binds to which subject. Worse, 18 tests
+ * asserted that one arbitrary serializer's output, locking the choice in.
+ *
+ * So: strategies. The IR is unchanged; only the rendering differs.
+ */
+export const SERIALIZERS = Object.freeze({
+  /**
+   * Flowing caption for natural-language models (Gemini, GPT-image, MiniMax).
+   * Subject and style lead, modifiers attach as clauses. This is the DEFAULT
+   * because it matches every provider currently on the roadmap.
+   */
+  sentence(slots) {
+    const lead = [slots.styleAnchor, slots.subject].filter(Boolean)[0] || slots.intent;
+    const setting = [slots.composition, slots.optics].filter(Boolean).join(', ');
+    const look = [slots.light, slots.palette, slots.material].filter(Boolean).join(', ');
+    const parts = [];
+    if (slots.medium && lead) parts.push(`A ${slots.medium}: ${lead}`);
+    else if (lead) parts.push(lead);
+    // A medium with no lead used to vanish entirely, yielding a bare ".".
+    else if (slots.medium) parts.push(`A ${slots.medium}`);
+    if (setting) parts.push(`Framed ${setting}`);
+    if (look) parts.push(`Lit and surfaced with ${look}`);
+    if (slots.abstraction) parts.push(slots.abstraction);
+    return `${parts.join('. ')}.`;
+  },
+
+  /**
+   * Comma-delimited tag stack for CLIP-conditioned models (SDXL-class), which
+   * genuinely do better with tags than prose.
+   */
+  tag(slots) {
+    // The personification formula embeds the subject inside styleAnchor, so
+    // emitting both duplicates it verbatim. Drop the bare subject when the
+    // style anchor already contains it.
+    const anchorHasSubject = Boolean(slots.styleAnchor && slots.subject
+      && slots.styleAnchor.toLowerCase().includes(slots.subject.toLowerCase().trim()));
+    const order = [anchorHasSubject ? null : 'subject', 'styleAnchor', 'medium',
+      'composition', 'optics', 'light', 'palette', 'material', 'abstraction'].filter(Boolean);
+    return order.map((k) => slots[k]).filter((v) => v && v.trim()).join(', ');
+  },
+
+  /**
+   * The original '. '-join. Retained so the behaviour is available and testable
+   * rather than deleted — but it is no longer the silent default.
+   */
+  fragment(slots) {
+    const order = ['intent', 'subject', 'styleAnchor', 'medium', 'composition',
+      'optics', 'light', 'palette', 'material', 'abstraction'];
+    return `${order.map((k) => slots[k]).filter((v) => v && v.trim()).join('. ')}.`;
+  },
+});
+
+/** Providers whose conditioning genuinely prefers tags over prose. */
+const TAG_PROVIDERS = /sdxl|stable-?diffusion|comfy/i;
+
+/**
+ * Pick a strategy. Explicit `caps.promptStyle` wins; otherwise infer from the
+ * provider; otherwise sentence. Never silently guesses a non-default for an
+ * unknown provider — an unknown model is far likelier to be caption-trained.
+ */
+export function strategyFor(caps = {}) {
+  if (caps.promptStyle && SERIALIZERS[caps.promptStyle]) return caps.promptStyle;
+  if (caps.provider && TAG_PROVIDERS.test(caps.provider)) return 'tag';
+  return 'sentence';
+}
+
+/** Render the IR to a string under a named strategy. */
+export function serializeFor(strategy, slots) {
+  const fn = SERIALIZERS[strategy];
+  if (!fn) {
+    const err = new Error(`E_UNKNOWN_SERIALIZER: "${strategy}". Known: ${Object.keys(SERIALIZERS).join(', ')}`);
+    err.code = 'E_UNKNOWN_SERIALIZER';
+    throw err;
+  }
+  return fn(slots);
+}
+
 /** Deterministic-ish seed from a string, used only when no seed is supplied. */
 function seedFrom(text) {
   let h = 2166136261;
@@ -163,9 +252,23 @@ export function compileImage(brief = {}, caps = {}) {
     throw err;
   }
 
-  const ordered = ['intent', 'subject', 'styleAnchor', 'medium', 'composition',
-    'optics', 'light', 'palette', 'material', 'abstraction'];
-  const promptText = ordered.map((k) => slots[k]).filter((v) => v && v.trim()).join('. ') + '.';
+  const promptStyle = strategyFor(caps);
+  const promptText = serializeFor(promptStyle, slots);
+
+  // Fail closed on a SUBSTANCELESS prompt. An empty slot map serializes to a
+  // bare "." — which would be submitted to a paid provider and billed for.
+  //
+  // The threshold is deliberately tiny. A first version used 12 characters and
+  // refused "a frozen lake" (11 stripped chars) — a legitimate terse brief.
+  // That is the same false-positive failure the LAW filter's must-pass corpus
+  // exists to prevent: a guard that blocks real work gets disabled. This checks
+  // for the ABSENCE OF CONTENT, not for brevity.
+  if (promptText.replace(/[^\p{L}\p{N}]/gu, '').length < 3) {
+    const err = new Error('E_EMPTY_PROMPT: the brief resolved to no substantive content '
+      + `(rendered: ${JSON.stringify(promptText)}). Refusing to submit a paid request.`);
+    err.code = 'E_EMPTY_PROMPT';
+    throw err;
+  }
 
   const seed = Number.isInteger(brief.seed) ? brief.seed : seedFrom(promptText);
 
@@ -178,6 +281,7 @@ export function compileImage(brief = {}, caps = {}) {
     brainVersion: BRAIN_VERSION,
     provider: caps.provider || 'unconfigured',
     modelVersion: caps.modelVersion || 'unspecified',
+    promptStyle,
     promptText,
     negativeText,
     seed,
