@@ -1,44 +1,35 @@
 #!/usr/bin/env node
 /**
- * push-blast-radius.mjs — PreToolUse advisory on `git push` (Rule 67 v2)
- * ======================================================================
- * THE GAP THIS CLOSES: on this repo a push is not a publish, it is a DEPLOY AND A
- * MIGRATION RUN — `render.yaml` builds with `cd backend && npm install && npm run
+ * push-blast-radius.mjs — PreToolUse advisory on `git push` (Rule 67 v2.1)
+ * ========================================================================
+ * THE GAP: on this repo a push is not a publish, it is a DEPLOY AND A MIGRATION
+ * RUN — `render.yaml` builds with `cd backend && npm install && npm run
  * migrate:production`. On 2026-08-11 an agent came within one command of executing
  * an unreviewed production schema change as a side effect of publishing a document.
- * `db-blast-radius-gate.mjs` matches migration RUNNER commands; it has never seen a push.
+ * The existing db-blast-radius gate matches migration RUNNER commands; it has never
+ * seen a push.
  *
- * WHY ADVISORY, NOT BLOCKING (hostile review, Kimi K3 + Tencent HY3, 2026-08-11 —
- * both reviewers, independently):
- *  - "migration + main => block" is too BROAD: migrations are the normal deploy
- *    path, so blocking them trains rubber-stamping, or blocks deploys while Sean
- *    sleeps until an agent helpfully routes around via `gh`. A gate that annoys is
- *    a gate that gets removed.
- *  - It is also too NARROW: `gh pr merge`, the GitHub API, a cloud agent's own git
- *    client, force-push, and tag-triggered releases all perform the same
- *    irreversible act with zero characters matching `git push`.
- *  - Therefore: this hook is EARLY-WARNING UX — it makes the agent find out before
- *    the push, not after the deploy. The real enforcement is server-side branch
- *    protection on `main` (a Sean action; see the skill). This hook never blocks,
- *    so it cannot produce the false-positive fatigue that gets hooks disabled.
+ * ADVISORY, NEVER BLOCKING — both design reviewers, independently: "migration+main
+ * => block" is too broad (migrations are the normal deploy path, so it trains
+ * rubber-stamping or blocks deploys until someone routes around via `gh`) and too
+ * narrow (`gh pr merge`, the API, force-push and tag releases do the same
+ * irreversible thing without matching `git push`). So this is early-warning UX.
+ * Real enforcement is server-side branch protection on `main`.
  *
- * Contract: stdin = { tool_name, tool_input }. Always exit 0. Fail-open on any throw.
+ * Because its whole value is being rare enough to still be read, every false
+ * positive is a real cost. v2.1 fixed four of them found in review.
+ *
+ * Contract: stdin = { tool_name, tool_input }. ALWAYS exit 0. Fail-open on throw.
  */
-import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { existsSync, readdirSync, statSync } from 'node:fs';
-import { resolve, basename } from 'node:path';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { FRESH_MIN, sh, ledgerDir, identity, safeRef, parseLane, lockMatches } from '../lib/lane-core.mjs';
 
-const sh = (cmd) => {
-  try { return execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); }
-  catch { return ''; }
-};
-
-/** Paths automation EXECUTES on deploy. Enumerated from render.yaml + CI reality,
- *  not just `backend/migrations/**` — the narrow predicate both reviewers rejected. */
+/** Paths automation EXECUTES on deploy — enumerated from render.yaml and CI reality,
+ *  not just `backend/migrations/**`, which was the narrow predicate reviewers rejected. */
 const EXECUTES_ON_PUSH = [
   { re: /^backend\/migrations\//i, what: 'DB migration — runs against PRODUCTION on deploy' },
-  { re: /^backend\/seeders\//i, what: 'seeder — may mutate production rows' },
+  { re: /^(backend\/)?seeders\//i, what: 'seeder — may mutate production rows' },
   { re: /\.sql$/i, what: 'raw SQL' },
   { re: /^render\.yaml$/i, what: 'deploy manifest — changes the build/migrate command itself' },
   { re: /(^|\/)package\.json$/i, what: 'package.json — postinstall/engines run at build' },
@@ -47,81 +38,103 @@ const EXECUTES_ON_PUSH = [
 ];
 
 function main() {
-  let payload = {};
+  let payload;
   try { payload = JSON.parse(readFileSync(0, 'utf8')); } catch { return; }
-  if ((payload.tool_name || '') !== 'Bash') return;
+  if ((payload?.tool_name || '') !== 'Bash') return;
   const cmd = String(payload.tool_input?.command || '');
-  /* Strip quoted strings BEFORE matching. Without this, `git commit -m "fix: push
-   * handling"` fires the advisory — verified false positive, hostile round 1. That
-   * is the exact false-positive-fatigue class that gets a hook disabled, and this
-   * hook's whole value is that it is rare enough to still be read. */
-  const bare = cmd.replace(/"[^"]*"/g, '""').replace(/'[^']*'/g, "''");
-  if (!/\bgit\b[^|;&]*\bpush\b/.test(bare)) return;
+
+  /* Strip quoted strings BEFORE any matching. `git commit -m "fix: push handling"`
+   * fired this advisory — verified false positive. Handles escaped quotes, which the
+   * first version did not. ALL later regexes run on `bare`, not `cmd`: the force-push
+   * test used to run on the raw string and flagged `git commit -m "try -f first"`. */
+  const bare = cmd
+    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
+    .replace(/'(?:[^'\\]|\\.)*'/g, "''");
+
+  /* `push` must be the git SUBCOMMAND, not merely a later word: `git config
+   * push.default simple` and `git log --grep=push` both fired the old pattern.
+   * Case-insensitive because cmd.exe happily runs `GIT PUSH`. */
+  if (!/\bgit\b(?:\s+(?:-[A-Za-z-]+|--[a-z-]+=\S+|-C\s+\S+|-c\s+\S+))*\s+push\b/i.test(bare)) return;
 
   const branch = sh('git rev-parse --abbrev-ref HEAD');
-  const forced = /--force(?!-with-lease)|(?:^|\s)-f(?:\s|$)/.test(cmd);
-  const leased = /--force-with-lease/.test(cmd);
-  const deployLinked = /\b(main|master|production)\b/.test(cmd) || ['main', 'master', 'production'].includes(branch);
+  const ref = safeRef(branch || '');
+  /* `-f` combined into a cluster (`-uf`, `-fv`) was undetected. */
+  const forced = /--force(?!-with-lease)\b|(?:^|\s)-[A-Za-z]*f[A-Za-z]*(?:\s|$)/i.test(bare);
+  const leased = /--force-with-lease/i.test(bare);
+  /* Token-exact: `\b(main)\b` flagged `feature/main-fix` and `production-notes`,
+   * because `-` and `/` are non-word chars. Match whole ref tokens only. */
+  const targetsDeployRef = /(?:^|[\s:])(?:origin\/)?(main|master|production)(?:\s|$)/i.test(bare)
+    || ['main', 'master', 'production'].includes(branch || '');
 
-  // Range vs the remote's ACTUAL state — not path patterns over the whole local
-  // branch. A branch merely CONTAINING an already-shipped migration must not warn.
-  const remoteRef = sh(`git rev-parse --verify --quiet origin/${branch}`) ? `origin/${branch}` : 'origin/main';
-  const changed = sh(`git diff --name-only ${remoteRef}...HEAD`).split('\n').filter(Boolean);
-  if (!changed.length && !forced && !leased) return;
+  /* An explicit refspec, --all, or a tag push means the range below (which is
+   * HEAD-based) is NOT what is being pushed. Disclose rather than mislead. */
+  const explicitRefspec = /\s\S+:\S+/.test(bare) || /\s--all\b|\s--tags\b|\s--mirror\b/i.test(bare);
+
+  let changed = null;
+  let rangeNote = '';
+  if (ref) {
+    const remoteRef = sh(`git rev-parse --verify --quiet origin/${ref}`) ? `origin/${ref}` : 'origin/main';
+    /* sh() returns NULL on failure and '' on empty. Conflating them made this
+     * fail-open: a failed `git diff` looked like "nothing to push" and the hook
+     * returned silently on a migration push. */
+    const raw = sh(`git diff --name-only ${remoteRef}...HEAD`);
+    if (raw === null) rangeNote = `⚠ could not compute the diff against ${remoteRef} — this check did NOT run.`;
+    else changed = raw.split('\n').filter(Boolean);
+  } else {
+    rangeNote = '⚠ could not resolve a safe branch name — file-level checks did NOT run.';
+  }
 
   const hits = [];
-  for (const f of changed) for (const p of EXECUTES_ON_PUSH) if (p.re.test(f)) hits.push({ f, what: p.what });
+  for (const f of changed ?? []) for (const p of EXECUTES_ON_PUSH) if (p.re.test(f)) hits.push({ f, what: p.what });
 
-  // Does this push carry a file another LIVE session has locked? (advisory)
-  let lockClash = [];
+  /* Files another LIVE session has locked (advisory, Rule 67 R6). */
+  const lockClash = [];
   try {
-    let common = sh('git rev-parse --path-format=absolute --git-common-dir') || sh('git rev-parse --git-common-dir');
-    const ledger = resolve(common, '..', '.ai-workflow', 'coordination');
-    /* Skip only MY OWN session's lane — not every lane sharing my agent name.
-     * Matching on the `vs-claude--` prefix made a SECOND vs-claude session's locks
-     * invisible here, which is the same same-agent-collision class this rebuild
-     * exists to kill (found in hostile round 4). Identity is agent + worktree. */
-    const top = sh('git rev-parse --show-toplevel');
-    const isMain = resolve(top || '.') === resolve(ledger, '..', '..');
-    const mine = `${process.env.SWAN_AGENT_SURFACE || 'vs-claude'}--${isMain ? 'main' : basename(top || '')}.lane.md`;
-    if (existsSync(ledger)) {
+    const ledger = ledgerDir();
+    const mine = identity().laneName; // exact session lane — NOT the agent-name prefix
+    if (ledger && existsSync(ledger) && changed?.length) {
       for (const file of readdirSync(ledger).filter((x) => x.endsWith('.lane.md'))) {
         if (file === mine) continue;
-        if ((Date.now() - statSync(resolve(ledger, file)).mtimeMs) / 60000 > 120) continue;
-        const sec = readFileSync(resolve(ledger, file), 'utf8').split(/EDITING NOW/i)[1]?.split(/\n#{1,3}\s/)[0] ?? '';
-        for (const l of sec.split('\n').map((s) => s.trim()).filter((s) => s.startsWith('- '))) {
-          const lock = l.replace(/^-\s*/, '').replace(/`/g, '').replace(/\*+$/, '');
-          if (!lock || /^\(/.test(lock)) continue;
-          const stem = lock.replace(/\/\*\*.*$/, '');
-          if (changed.some((c) => c === lock || c.startsWith(stem))) lockClash.push(`${basename(file, '.lane.md')} :: ${lock}`);
+        const p = resolve(ledger, file);
+        if ((Date.now() - statSync(p).mtimeMs) / 60000 > FRESH_MIN) continue;
+        for (const lock of parseLane(readFileSync(p, 'utf8')).locks) {
+          if (changed.some((c) => lockMatches(c, lock))) {
+            lockClash.push(`${file.replace('.lane.md', '')} :: ${lock}`);
+          }
         }
       }
     }
   } catch { /* advisory only */ }
 
-  if (!hits.length && !forced && !leased && !lockClash.length) return;
+  if (!hits.length && !forced && !leased && !lockClash.length && !rangeNote && !explicitRefspec) return;
 
   const out = ['⚠ PUSH BLAST RADIUS — read before you confirm this push.', ''];
-  out.push(`branch: ${branch} → ${remoteRef}${deployLinked ? '   ⚠ DEPLOY-LINKED' : ''}`);
-  if (forced) out.push('🔴 FORCE PUSH without --force-with-lease — this can destroy another agent\'s pushed commits.');
-  if (leased) out.push('🟠 force-with-lease — history rewrite; safe only if you know what the remote holds.');
+  out.push(`branch: ${branch || '(unknown)'}${targetsDeployRef ? '   ⚠ DEPLOY-LINKED' : ''}`);
+  if (rangeNote) out.push(`🟠 ${rangeNote}  Treat the file list below as INCOMPLETE.`);
+  if (explicitRefspec) {
+    out.push('🟠 this push names an explicit refspec / --all / --tags. The file list below is');
+    out.push('   computed from HEAD and may describe DIFFERENT commits than the ones pushed.');
+  }
+  if (forced) out.push("🔴 FORCE PUSH without --force-with-lease — can destroy another agent's pushed commits.");
+  else if (leased) out.push('🟠 force-with-lease — history rewrite; safe only if you know what the remote holds.');
   if (hits.length) {
     out.push('', `🔴 ${hits.length} file(s) in this range are EXECUTED by automation on deploy:`);
     for (const h of hits.slice(0, 12)) out.push(`   ${h.f}  → ${h.what}`);
-    if (deployLinked && hits.some((h) => /migration|seeder|SQL/i.test(h.what))) {
+    if (hits.length > 12) out.push(`   … +${hits.length - 12} more`);
+    if (targetsDeployRef && hits.some((h) => /migration|seeder|SQL/i.test(h.what))) {
       out.push('', '   render.yaml runs `npm run migrate:production` in the build.');
       out.push('   Pushing this to a deploy-linked branch RUNS THESE AGAINST PRODUCTION.');
-      out.push('   Rule 70 / 2026-08-11 incident: split the batch by blast radius — push the');
-      out.push('   reversible commits now, hold the schema commits for review + Sean\'s approval.');
+      out.push('   Split the batch by blast radius: push the reversible commits now, hold the');
+      out.push("   schema commits for review and Sean's approval.");
     }
   }
   if (lockClash.length) {
-    out.push('', `🟠 this push carries file(s) another LIVE session has locked (Rule 67 R6):`);
+    out.push('', '🟠 this push carries file(s) another LIVE session has locked (R6):');
     for (const c of lockClash.slice(0, 8)) out.push(`   ${c}`);
   }
   out.push('', 'Advisory only — nothing is blocked. Real enforcement is branch protection on main.');
   console.error(out.join('\n'));
 }
 
-try { main(); } catch { /* fail-open */ }
+try { main(); } catch { /* fail-open: never break a push on this hook's own bug */ }
 process.exit(0);

@@ -24,6 +24,7 @@
  */
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { ledgerDir, parseLane, FRESH_MIN } from './lib/lane-core.mjs';
 
 const ROOT = process.cwd();
 const JSON_MODE = process.argv.includes('--json');
@@ -115,27 +116,25 @@ for (const [idx, wt] of worktrees.entries()) {
  * (a) ten lane files exist, so six agents' locks were invisible to the tool whose
  * job is reporting locks; (b) cwd resolution reads a WORKTREE-LOCAL ledger, which
  * is how nine published claims ended up unreadable. Glob the canonical ledger. */
-const LEDGER_DIR = (() => {
-  const common = sh('git rev-parse --path-format=absolute --git-common-dir') || sh('git rev-parse --git-common-dir');
-  return common ? `${common}/../.ai-workflow/coordination` : `${ROOT}/.ai-workflow/coordination`;
-})();
+const LEDGER_DIR = ledgerDir(ROOT);
 const lanes = {};
-const laneFiles = existsSync(LEDGER_DIR)
+const laneAges = {};
+const laneFiles = LEDGER_DIR && existsSync(LEDGER_DIR)
   ? readdirSync(LEDGER_DIR).filter((f) => f.endsWith('.lane.md'))
   : [];
 for (const file of laneFiles) {
   const agent = file.replace(/\.lane\.md$/, '');
   const lanePath = `${LEDGER_DIR}/${file}`;
   /* Freshness from mtime, not the agent-authored `Updated:` prose — a model can
-   * hallucinate a timestamp; it cannot fake an mtime. */
+   * hallucinate a timestamp. mtime is not unforgeable (`touch` exists, and a
+   * release() rewrite bumps it) — it is simply harder to get wrong by accident,
+   * which is the actual failure mode here. Advisory either way. */
   const ageMin = Math.round((Date.now() - statSync(lanePath).mtimeMs) / 60000);
-  const src = readFileSync(lanePath, 'utf8');
-  const section = src.split(/EDITING NOW/i)[1]?.split(/\n#{1,3}\s/)[0] ?? '';
-  const locked = section
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.startsWith('- ') && !/^-\s*(Nothing|None|\()/i.test(l));
-  lanes[agent] = locked.length ? { ageMin, locked } : { ageMin, locked: 'released' };
+  const { locks } = parseLane(readFileSync(lanePath, 'utf8'));
+  // Back-compat: `laneLocks[agent]` keeps its original string | string[] shape for
+  // any existing --json consumer; freshness rides alongside in `laneAges`.
+  lanes[agent] = locks.length ? locks : 'released';
+  laneAges[agent] = ageMin;
 }
 
 /* ---------- output ---------- */
@@ -154,6 +153,8 @@ const summary = {
     .filter((w) => w.klass?.startsWith('UNMERGED'))
     .map((w) => ({ path: w.path, branch: w.branch, ahead: w.ahead, dirty: w.dirty })),
   laneLocks: lanes,
+  laneAgesMin: laneAges,
+  ledgerDir: LEDGER_DIR,
 };
 
 if (JSON_MODE) {
@@ -181,10 +182,9 @@ if (JSON_MODE) {
   console.log(`\nLane locks (canonical ledger — all sessions):`);
   if (!Object.keys(lanes).length) console.log('  (no lane files)');
   for (const [agent, v] of Object.entries(lanes)) {
-    const fresh = v.ageMin <= 120 ? 'LIVE' : `stale ${v.ageMin}m`;
-    console.log(
-      `  ${agent} [${fresh}]: ${Array.isArray(v.locked) ? `\n    ${v.locked.join('\n    ')}` : v.locked}`,
-    );
+    const age = laneAges[agent];
+    const fresh = age <= FRESH_MIN ? 'LIVE' : `stale ${age}m`;
+    console.log(`  ${agent} [${fresh}]: ${Array.isArray(v) ? `\n    ${v.join('\n    ')}` : v}`);
   }
   console.log(
     `\n(read-only digest — cleanup of MERGED-CLEAN candidates stays Sean-gated per Rule 34; see Linear SWA-11)`,

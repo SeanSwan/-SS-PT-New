@@ -5,25 +5,39 @@
  * Prints the DELTA digest (who holds locks right now, my delivery state) so an
  * agent is oriented before its first edit. Never blocks.
  *
- * WHY DELTA AND CAPPED (hostile review, Kimi K3 + Tencent HY3, 2026-08-11 — both,
- * independently): a digest that reports EVERYTHING — 10 lanes, 184 worktrees, 225
- * dirty files — trains the reader to skim NOTHING. Because it never blocks it will
- * not be removed; it will be IGNORED, which fails silently while everyone believes
- * orientation is happening. So it reports only what intersects the next action:
- * fresh locks, my own delivery state, and counts (not lists) for everything else.
+ * v2.1 — the first version ran `execSync('node scripts/lane.mjs digest')`, which
+ * only resolves when the session's cwd happens to be the repo root. A session
+ * started in `backend/` got ENOENT, the catch swallowed it, and NOTHING printed
+ * (verified: running this from `backend/` produced zero output). That is exactly
+ * the failure this hook exists to prevent — orientation believed, not happening.
+ * The script path now resolves from THIS FILE's location, so cwd is irrelevant.
  *
- * Delegates to scripts/lane.mjs so there is ONE implementation of ledger truth.
- * Fail-open: any error prints nothing and exits 0.
+ * Delegates to lane.mjs so there is one implementation of ledger truth.
+ * Fail-open on any error, but not fail-SILENT: a broken guard says so.
  */
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { existsSync } from 'node:fs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const LANE = resolve(HERE, '..', 'lane.mjs');
 
 try {
-  const out = execSync('node scripts/lane.mjs digest', {
-    encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 10_000,
-  }).trim();
-  if (out) {
-    console.log(out);
-    console.log('[lane] claim before your first edit: node scripts/lane.mjs claim --task "<one line>" --files "a,b"');
+  if (!existsSync(LANE)) {
+    console.log(`[lane] orientation unavailable — ${LANE} not found.`);
+  } else {
+    const out = execFileSync(process.execPath, [LANE, 'digest'], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 10_000,
+    }).trim();
+    if (out) {
+      console.log(out);
+      console.log('[lane] claim before your first edit: node scripts/lane.mjs claim --task "<one line>" --files "a,b"');
+    }
   }
-} catch { /* fail-open — orientation is never worth failing a session start */ }
+} catch (err) {
+  // Say so rather than vanish — a silent orientation hook is indistinguishable
+  // from a healthy one, which is how the ledger went unread for weeks.
+  console.log(`[lane] orientation check failed (${err.code || err.message}) — run \`node scripts/lane.mjs digest\` manually.`);
+}
 process.exit(0);

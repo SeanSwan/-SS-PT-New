@@ -42,7 +42,14 @@ cheap and a stale claim is a lie.
 
 ## 3. Identity: one lane per SESSION, never per agent name
 
-Your lane file is `<agent>--<worktree>.lane.md` (e.g. `vs-claude--ss-creator-local-video.lane.md`).
+Your lane file is `<agent>--<worktree>-<hash>.lane.md` (e.g.
+`vs-claude--ss-creator-local-video-a71588.lane.md`); the main tree is just
+`<agent>--main.lane.md`. The hash is six characters of the worktree's full path — with 184
+worktrees, two checkouts whose directories share a basename would otherwise write the same
+lane file and overwrite each other, and a linked worktree named `main` would collide with
+the main tree. All identity and lane parsing lives in one place, `scripts/lib/lane-core.mjs`;
+three drifted copies of that logic was itself a defect (one had silently dropped an env var,
+so the push hook warned agents about their own locks).
 
 This matters more than it looks. v1 used a bare `claude.lane.md`. With several Claude
 sessions running at once that is **last-writer-wins**: one session's claim silently erases
@@ -149,3 +156,11 @@ State these honestly rather than implying coverage:
 - **TOCTOU.** Two agents can both read "file free" in the same second. There is no mutex.
 - **Sean is an unnamed agent.** He edits files too, and publishes no lane.
 - **Stale locks.** A crashed session leaves locks behind. R5: flag, never silently seize.
+- **Freshness is advisory, not proof.** Lane age comes from file mtime rather than the
+  agent-authored `Updated:` line, because prose is easy to get wrong by accident. mtime is
+  not unforgeable — `touch` exists, and releasing a lane bumps it — so treat "LIVE" as a
+  hint, never as evidence that someone is actually at the keyboard.
+- **The push advisory reads HEAD.** For an explicit refspec, `--all`, or a tag push it says
+  so and tells you the file list may describe different commits; it does not parse refspecs.
+- **`gh pr merge`, the GitHub API, and off-machine agents bypass every hook here.** Only
+  branch protection reaches them.
