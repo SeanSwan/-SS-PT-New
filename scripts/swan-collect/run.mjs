@@ -175,6 +175,19 @@ Credentials come from the environment: YOUTUBE_API_KEY, SWAN_VENDOR_KEY.`);
     return;
   }
 
+  // parseArgs lets any unrecognized --flag fall through to handles, because
+  // source keys are dynamic and cannot be enumerated in the parser. The cost is
+  // that a typo (--blueksy) becomes a handle for a source that does not exist,
+  // gets skipped, and the run still prints "0 source(s) failed" and exits 0 —
+  // a green result for a source that was never contacted. Refuse instead.
+  const unknownSources = Object.keys(args.handles).filter((k) => !registry.has(k));
+  if (unknownSources.length) {
+    const valid = registry.list().map((a) => a.key).join(', ');
+    console.error(`REFUSED (unknown-source): no adapter for ${unknownSources.map((k) => `--${k}`).join(', ')}. Valid sources: ${valid}`);
+    process.exitCode = 2;
+    return;
+  }
+
   const store = createStore(args.dir || '.ai-workflow/collect-store');
   const receipt = await collectEntity(
     { name: args.name, category: args.category, citation: args.citation, handles: args.handles },
