@@ -223,12 +223,26 @@ export async function heartbeat({ jobId, agentId, progress, message }) {
  * self-report about state the server can check.
  */
 export async function completeJob({ jobId, agentId, r2Key, mime = 'video/mp4', ...meta }, options = {}) {
+  if (!r2Key) throw new VideoRenderJobError(400, 'VALIDATION_ERROR', 'r2Key is required.');
+
   const job = await VideoRenderJob.findByPk(jobId);
   if (!job) throw new VideoRenderJobError(404, 'NOT_FOUND', 'Job not found.');
-  if (job.leasedBy !== agentId && !job.isTerminal) {
+
+  // AUTHORIZATION. The obvious form of this check —
+  //   if (leasedBy !== agentId && !isTerminal) throw
+  // — inverts on terminal jobs: `!isTerminal` is false, the && short-circuits, and ANY
+  // caller can "complete" a job that already failed or was cancelled. That would mint a
+  // MediaAsset for output nobody verified and drop it into the library as a draft.
+  //
+  // Only two callers may proceed: the agent that currently holds the lease, or an
+  // idempotent replay of a completion that already happened with this exact key. A
+  // failed or cancelled job satisfies neither, because it is not 'ready'.
+  const holdsLease = job.leasedBy === agentId;
+  const isIdempotentReplay = job.status === 'ready' && job.r2Key === r2Key;
+  if (!holdsLease && !isIdempotentReplay) {
     throw new VideoRenderJobError(409, 'LEASE_CONFLICT', 'You do not hold the lease for this job.');
   }
-  if (!r2Key) throw new VideoRenderJobError(400, 'VALIDATION_ERROR', 'r2Key is required.');
+
 
   if (typeof options.verifyObject === 'function') {
     const ok = await options.verifyObject(r2Key);

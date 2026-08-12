@@ -15,6 +15,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   createJob,
+  completeJob,
   r2KeyForJob,
   VideoRenderJobError,
 } from '../../services/videoRenderJobService.mjs';
@@ -91,5 +92,61 @@ describe('videoRenderJobService — deterministic R2 keys', () => {
 
   it('never collides across jobs', () => {
     expect(r2KeyForJob('job-a')).not.toBe(r2KeyForJob('job-b'));
+  });
+});
+
+describe('videoRenderJobService — completeJob refuses before it reaches the database', () => {
+  it('rejects a missing r2Key before any DB access, so the value cannot be used unvalidated', async () => {
+    // Ordering matters: r2Key participates in the idempotent-replay authorization check
+    // below, so it must be validated BEFORE it is compared against anything.
+    const err = await completeJob({ jobId: 'x', agentId: 'a', r2Key: '' }).catch((e) => e);
+    expect(err).toBeInstanceOf(VideoRenderJobError);
+    expect(err.code).toBe('VALIDATION_ERROR');
+    expect(err.statusCode).toBe(400);
+  });
+});
+
+/**
+ * completeJob AUTHORIZATION — the guard shape, asserted directly.
+ *
+ * The original check was `leasedBy !== agentId && !isTerminal`, which INVERTS on
+ * terminal jobs: `!isTerminal` is false, the && short-circuits, and any caller could
+ * "complete" a failed or cancelled job — minting a MediaAsset for output nobody
+ * verified. Found by hostile review, not by any test, because the leasing paths have
+ * no database coverage.
+ *
+ * This asserts the predicate itself. The full path still needs Postgres; that gap is
+ * stated in this file's header rather than implied away.
+ */
+describe('completeJob authorization predicate', () => {
+  const blocked = (leasedBy, agentId, status, jobKey, submittedKey) => {
+    const holdsLease = leasedBy === agentId;
+    const isIdempotentReplay = status === 'ready' && jobKey === submittedKey;
+    return !holdsLease && !isIdempotentReplay;
+  };
+
+  it('allows the lease holder to complete an active job', () => {
+    expect(blocked('agent-a', 'agent-a', 'rendering', 'k', 'k')).toBe(false);
+  });
+
+  it('blocks a stranger on an active job', () => {
+    expect(blocked('agent-a', 'EVIL', 'rendering', 'k', 'k')).toBe(true);
+  });
+
+  it('blocks a stranger completing a FAILED job (the inversion bug)', () => {
+    expect(blocked('agent-a', 'EVIL', 'failed', 'k', 'k')).toBe(true);
+  });
+
+  it('blocks a stranger completing a CANCELLED job (the inversion bug)', () => {
+    expect(blocked('agent-a', 'EVIL', 'cancelled', 'k', 'k')).toBe(true);
+  });
+
+  it('allows an idempotent replay of a ready job with the same key', () => {
+    // leasedBy is nulled on completion, so replay cannot rely on lease identity.
+    expect(blocked(null, 'agent-a', 'ready', 'k', 'k')).toBe(false);
+  });
+
+  it('blocks a replay claiming a DIFFERENT key on a ready job', () => {
+    expect(blocked('agent-a', 'EVIL', 'ready', 'k', 'other')).toBe(true);
   });
 });

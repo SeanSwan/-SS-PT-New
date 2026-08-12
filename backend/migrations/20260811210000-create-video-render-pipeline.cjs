@@ -219,7 +219,14 @@ module.exports = {
 
           -- UNIQUE is what makes a duplicate completion idempotent rather than
           -- creating a second row for the same bytes.
-          r2_key          VARCHAR(500) NOT NULL UNIQUE,
+          -- NOT a plain UNIQUE. A plain unique index counts soft-deleted rows, so once
+          -- an asset is soft-deleted its key is permanently burned: findOrCreate's
+          -- paranoid-scoped lookup misses the dead row, the INSERT hits the index, and
+          -- Sequelize's own retry re-runs the SAME scoped find, gets null, and rethrows
+          -- — a poison state on the one path whose entire job is idempotency.
+          -- The real invariant is "one LIVE asset per key"; the partial index below
+          -- states exactly that. See vrj_media_r2_live_uniq.
+          r2_key          VARCHAR(500) NOT NULL,
           poster_r2_key   VARCHAR(500),
           mime            VARCHAR(80) NOT NULL,
           width           INTEGER,
@@ -242,6 +249,14 @@ module.exports = {
           created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
           updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
         );
+      `);
+
+      // One LIVE asset per key. Soft-deleted rows are excluded, so re-rendering a job
+      // whose previous asset was deleted succeeds instead of deadlocking on a burned key.
+      await run(`
+        CREATE UNIQUE INDEX IF NOT EXISTS ma_r2_key_live_uniq
+          ON media_assets (r2_key)
+          WHERE deleted_at IS NULL;
       `);
 
       await run(`

@@ -57,7 +57,10 @@ MediaAsset.init({
   },
 
   // Deterministic and UNIQUE — see IDEMPOTENCY above.
-  r2Key: { type: DataTypes.STRING(500), allowNull: false, unique: true, field: 'r2_key' },
+  // Uniqueness is enforced by a PARTIAL index (WHERE deleted_at IS NULL), not here:
+  // a model-level `unique: true` would emit a plain unique index that counts
+  // soft-deleted rows and permanently burns the key. See the migration.
+  r2Key: { type: DataTypes.STRING(500), allowNull: false, field: 'r2_key' },
   posterR2Key: { type: DataTypes.STRING(500), allowNull: true, field: 'poster_r2_key' },
   mime: { type: DataTypes.STRING(80), allowNull: false },
   width: { type: DataTypes.INTEGER, allowNull: true },
