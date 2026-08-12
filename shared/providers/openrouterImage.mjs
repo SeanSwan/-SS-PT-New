@@ -37,6 +37,19 @@ const ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
  * When a genuinely CLIP-conditioned model is added, it declares 'tag' and the
  * compiler adapts with no code change.
  */
+/**
+ * DEFAULT MODEL — Sean's standing instruction (2026-08-11): the ChatGPT image
+ * generator is the default for all Forge work.
+ *
+ * Verified against the live OpenRouter catalogue on the same day: this is the
+ * NEWEST OpenAI image model that exists. GPT-5.5 and GPT-5.6 shipped (twelve
+ * 5.6 variants — luna/terra/sol, each with a batch mode) and every one of them
+ * is TEXT-ONLY. OpenAI's image line has not followed its text line, so
+ * "upgrade to 5.6" is not available for image output. Re-check this when a
+ * newer `openai/*-image*` id appears in the catalogue.
+ */
+export const DEFAULT_MODEL = 'openai/gpt-5.4-image-2';
+
 export const MODELS = Object.freeze({
   'google/gemini-3.1-flash-lite-image': {
     label: 'Gemini 3.1 Flash Lite Image', promptStyle: 'sentence',
@@ -86,7 +99,7 @@ function apiKey(root = process.cwd()) {
  * Declared capabilities for a model, in the shape the compiler consumes.
  * Everything unproven is 'claimed', which the compiler treats as absent.
  */
-export function capabilities(model) {
+export function capabilities(model = DEFAULT_MODEL) {
   const spec = MODELS[model];
   if (!spec) {
     throw new ProviderError('E_UNKNOWN_MODEL',
@@ -109,7 +122,7 @@ export function capabilities(model) {
 }
 
 /** Is the provider actually usable? Cheap, no spend, no generation. */
-export function verify(model, root = process.cwd()) {
+export function verify(model = DEFAULT_MODEL, root = process.cwd()) {
   const problems = [];
   if (!MODELS[model]) problems.push(`unknown model "${model}"`);
   if (!apiKey(root)) problems.push('OPENROUTER_API_KEY not found');
