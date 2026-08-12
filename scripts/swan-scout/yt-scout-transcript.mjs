@@ -84,15 +84,24 @@ export function searchTranscript(cues, query, { context = 2, limit = 8, videoId 
   const cap = clampOpt(limit, 8, 1, 40);
 
   // Build the joined haystack plus the char offset at which each cue begins.
+  //
+  // Lowercase EACH CUE BEFORE measuring it. Lowercasing the joined string instead
+  // desynchronizes every offset after the first character whose lowercase form is
+  // longer than the original — 'İ' (U+0130) lowercases to two code units — and
+  // once `starts[]` disagrees with `hay`, the offset→cue mapping walks to the
+  // wrong cue and the excerpt, timestamp and jump-to URL are all confidently
+  // wrong. Verified 2026-08-12: 40 such chars in cue 0 made a phrase in cue 3
+  // report as cue 6 ("epsilon" @ 1:00 instead of "SIGNAL" @ 0:30).
   const starts = new Array(cues.length);
   const parts = [];
   let offset = 0;
   for (let i = 0; i < cues.length; i += 1) {
+    const lower = String(cues[i].text ?? '').toLowerCase();
     starts[i] = offset;
-    parts.push(cues[i].text);
-    offset += cues[i].text.length + 1; // +1 for the joining space
+    parts.push(lower);
+    offset += lower.length + 1; // +1 for the joining space
   }
-  const hay = parts.join(' ').toLowerCase();
+  const hay = parts.join(' ');
 
   const hits = [];
   let cueIdx = 0;   // monotonic pointer — offset→cue mapping stays O(n) overall
@@ -137,18 +146,39 @@ export function cachePath(root, videoId, ext = 'txt') {
   return join(cacheDir(root), `${videoId}.${ext}`);
 }
 
+/**
+ * Files this module is allowed to delete: only the ones it creates. `<id>.txt`,
+ * `<id>.cues.json`, and the `_raw_<id>.*.json3` intermediates. Anything else in
+ * the directory belongs to someone else and is not ours to reap — an unfiltered
+ * `readdirSync` + `unlink` loop is a delete primitive pointed at whatever happens
+ * to share the folder, and `SWAN_SCOUT_ROOT` can repoint that folder.
+ */
+const OURS = /^(?:[A-Za-z0-9_-]{11}\.(?:txt|cues\.json)|_raw_[A-Za-z0-9_-]{11}\..*\.json3)$/;
+
 /** Delete cached transcripts older than `days`. Returns the count removed. */
 export function pruneCache(root, { days = CACHE_TTL_DAYS } = {}) {
   const dir = cacheDir(root);
-  const cutoff = Date.now() - clampOpt(days, CACHE_TTL_DAYS, 0, 3650) * 86_400_000;
+  const cutoff = Date.now() - effectivePruneDays(days) * 86_400_000;
   let removed = 0;
   for (const name of readdirSync(dir)) {
+    if (!OURS.test(name)) continue; // not ours — leave it alone
     const p = join(dir, name);
     try {
       if (statSync(p).mtimeMs < cutoff) { unlinkSync(p); removed += 1; }
     } catch { /* a file vanishing under us is not an error worth failing on */ }
   }
   return removed;
+}
+
+/**
+ * The single source of truth for how `days` is interpreted, exported so a caller
+ * can report the value it will actually get instead of re-deriving it. Callers
+ * MUST NOT pre-convert with `Number(x)`: `Number(null) === 0` is finite, so a
+ * client sending `days: null` would mean "cutoff = now" and reap the whole cache.
+ * Verified 2026-08-12 — that is exactly what happened before this existed.
+ */
+export function effectivePruneDays(days) {
+  return clampOpt(days, CACHE_TTL_DAYS, 0, 3650);
 }
 
 /** Rough token estimate. 4 chars/token is the usual English approximation. */
@@ -173,12 +203,22 @@ export function fetchTranscript(videoId, { root, refresh = false, lang = 'en' } 
   const cuesPath = join(dir, `${id}.cues.json`);
 
   if (!refresh && existsSync(txtPath) && existsSync(cuesPath)) {
-    const text = readFileSync(txtPath, 'utf-8');
-    return {
-      videoId: id, cached: true, path: txtPath,
-      cues: JSON.parse(readFileSync(cuesPath, 'utf-8')),
-      chars: text.length, tokens: estimateTokens(text),
-    };
+    // The two cache files are written sequentially, so a crash or a kill between
+    // them can leave a truncated cues.json. Reading it with a bare JSON.parse
+    // threw a raw SyntaxError that surfaced as an opaque "tool error" and made
+    // the video permanently unreadable until someone guessed `refresh: true`.
+    // A corrupt cache is a cache miss, not a dead end — fall through and refetch.
+    try {
+      const text = readFileSync(txtPath, 'utf-8');
+      const cues = JSON.parse(readFileSync(cuesPath, 'utf-8'));
+      if (!Array.isArray(cues)) throw new Error('cues cache is not an array');
+      return {
+        videoId: id, cached: true, path: txtPath,
+        cues, chars: text.length, tokens: estimateTokens(text),
+      };
+    } catch {
+      try { unlinkSync(cuesPath); } catch { /* best effort */ }
+    }
   }
 
   const stem = join(dir, `_raw_${id}`);
