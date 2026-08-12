@@ -92,6 +92,11 @@ const commands = {
 
   async list() {
     const limit = Number(opt('limit') || '30');
+    // NaN serialises to null and the API rejects it with a GraphQL type error
+    // that says nothing about the actual mistake, which was a typo'd flag.
+    if (!Number.isInteger(limit) || limit < 1) {
+      throw new Error(`--limit must be a positive integer (got "${opt('limit')}")`);
+    }
     const data = await gql(
       `query($k:String!,$n:Int!){ issues(filter:{team:{key:{eq:$k}}}, first:$n, orderBy:updatedAt){ nodes { ${ISSUE_FIELDS} } } }`,
       { k: TEAM, n: limit },
@@ -126,9 +131,13 @@ const commands = {
   async create() {
     const title = opt('title');
     if (!title) throw new Error('--title="..." is required');
+    // Read the body BEFORE any network call: argument-evaluation order would
+    // otherwise resolve teamId() first, so a typo'd path surfaces as a confusing
+    // API error after a wasted round trip instead of "file not found".
+    const description = bodyFromFile();
     const data = await gql(
       'mutation($input: IssueCreateInput!){ issueCreate(input:$input){ success issue { identifier url } } }',
-      { input: { teamId: await teamId(), title, description: bodyFromFile() } },
+      { input: { teamId: await teamId(), title, description } },
     );
     console.log(`CREATED: ${data.issueCreate.issue.identifier}`);
     console.log(`URL: ${data.issueCreate.issue.url}`);
@@ -137,15 +146,20 @@ const commands = {
   async comment() {
     const identifier = opt('issue');
     if (!identifier) throw new Error('--issue=SWA-123 is required');
+    const body = bodyFromFile();  // validate the file before spending a round trip
+    // Linear types `number` as Float, not String — passing the raw identifier
+    // suffix fails GraphQL validation before it ever reaches the board.
+    const number = Number(identifier.split('-')[1]);
+    if (!Number.isFinite(number)) throw new Error(`malformed issue id "${identifier}" — expected e.g. SWA-157`);
     const found = await gql(
-      'query($id:String!){ issues(filter:{number:{eq:$id}}){ nodes { id identifier } } }',
-      { id: identifier.split('-')[1] },
+      'query($k:String!,$n:Float!){ issues(filter:{team:{key:{eq:$k}},number:{eq:$n}}){ nodes { id identifier } } }',
+      { k: TEAM, n: number },
     );
     const issue = found.issues.nodes.find((node) => node.identifier === identifier);
     if (!issue) throw new Error(`issue ${identifier} not found in team ${TEAM}`);
     await gql(
       'mutation($input: CommentCreateInput!){ commentCreate(input:$input){ success } }',
-      { input: { issueId: issue.id, body: bodyFromFile() } },
+      { input: { issueId: issue.id, body } },
     );
     console.log(`COMMENTED on ${identifier}`);
   },
