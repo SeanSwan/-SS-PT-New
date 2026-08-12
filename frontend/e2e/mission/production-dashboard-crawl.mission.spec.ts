@@ -227,6 +227,16 @@ function declareRoleCrawl(role: DashboardRole) {
       expect(process.env.SWAN_MISSION_QA_ALLOW_WRITES || '0').toBe('0');
 
       const routes = roleRoutes[role];
+      // An empty route table would satisfy every other assertion vacuously and
+      // report `0/0 routes visited · complete` — the same "green on nothing"
+      // failure as a missing auth state. The manifest decaying to empty must be
+      // loud, not a pass.
+      expect(
+        routes.length,
+        `${role}: route table is empty. A crawl with no routes would report success `
+        + 'having tested nothing.',
+      ).toBeGreaterThan(0);
+
       const state = createCrawlState();
       await installReadOnlyGuard(page, state);
 

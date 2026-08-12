@@ -93,6 +93,18 @@ test.describe('@mission @contract dashboard crawl report contract', () => {
     expect(overTruncationBudget(truncations, 1)).toEqual([]);
   });
 
+  test('an empty route table is a vacuous pass, so the spec must guard route count', () => {
+    // Found in dry-loop round 5. With no routes, every other assertion is
+    // satisfied trivially and coverage reports "0/0 · complete" — the same
+    // green-on-nothing failure as a missing auth state. The spec guards this
+    // with an explicit routes.length > 0 assertion; this test pins WHY.
+    const empty = summarizeCoverage('admin', 0, createCrawlState());
+    expect(empty.complete).toBe(true);
+    expect(compactIssues(createCrawlState(), [])).toEqual(NO_ISSUES);
+    // ...therefore coverage alone cannot detect it, and the guard is required.
+    expect(ROUTES.length).toBeGreaterThan(0);
+  });
+
   test('the report is flushed to disk mid-crawl, so a crash still leaves evidence', () => {
     const dir = mkdtempSync(join(tmpdir(), 'swan-crawl-report-'));
     try {
