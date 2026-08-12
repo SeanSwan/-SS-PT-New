@@ -1,0 +1,51 @@
+# Isolated Postgres for QA write-lane tests. NOT a dev database.
+#
+# WHY THIS EXISTS:
+# CLAUDE.md states local dev uses the PRODUCTION database via DATABASE_URL. That
+# makes "just run the write tests locally" a way to write workout records against
+# live client data. This container is the safe place to write instead.
+#
+# It is deliberately hard to confuse with anything else:
+#   - non-standard port 15433 (dev Postgres owns 5432)
+#   - container and volume names carry the "swan-qa" prefix
+#   - credentials are fixed, local-only, and obviously non-production
+#   - the volume is disposable; `down -v` leaves nothing behind
+#
+# It is never enough on its own. scripts/qa/qa-db.mjs writes a sentinel table into
+# this database and every write-lane command refuses to run unless that sentinel
+# is present — positive proof of identity, rather than a blocklist of production
+# hostnames that fails open on anything it has not seen.
+#
+# USAGE:
+#   docker compose -f docker-compose.qa.yml up -d
+#   node scripts/qa/qa-db.mjs bootstrap
+#   ... run the write lane ...
+#   docker compose -f docker-compose.qa.yml down -v
+
+services:
+  swan-qa-postgres:
+    # Pinned deliberately. Production's major version is not recorded in this
+    # repo and was not probed (that would mean connecting to prod). Align this
+    # tag once it is known — a major-version gap can mask migration defects.
+    image: postgres:17-alpine
+    container_name: swan-qa-postgres
+    restart: "no"
+    environment:
+      POSTGRES_USER: swan_qa
+      POSTGRES_PASSWORD: swan_qa_local_only
+      POSTGRES_DB: swan_qa
+    ports:
+      # 15433, not 5432: a mistyped host in a connection string then fails to
+      # connect rather than silently reaching the developer's real database.
+      - "127.0.0.1:15433:5432"
+    volumes:
+      - swan-qa-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U swan_qa -d swan_qa"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  swan-qa-pgdata:
+    name: swan-qa-pgdata
