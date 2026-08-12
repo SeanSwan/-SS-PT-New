@@ -67,7 +67,22 @@ function findReports(dir) {
     if (entry.isDirectory()) found.push(...findReports(full));
     else if (/^dashboard-crawl-.*\.json$/.test(entry.name)) found.push(full);
   }
-  return found.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
+  // mtime is read ONCE per file and guarded: statSync inside a comparator throws
+  // ENOENT when a parallel Playwright worker or an artifact sweep removes a file
+  // between readdirSync and the sort. Rare locally, real in CI.
+  return found
+    .map((file) => ({ file, mtimeMs: safeMtime(file) }))
+    .filter((entry) => entry.mtimeMs !== null)
+    .sort((a, b) => b.mtimeMs - a.mtimeMs)
+    .map((entry) => entry.file);
+}
+
+function safeMtime(file) {
+  try {
+    return statSync(file).mtimeMs;
+  } catch {
+    return null;
+  }
 }
 
 function loadReports(files) {
@@ -86,8 +101,6 @@ function loadReports(files) {
   return [...byRole.values()];
 }
 
-const SEVERITY_ORDER = { critical: 0, high: 1, medium: 2, low: 3 };
-
 function mergeWorklists(reports) {
   const merged = new Map();
   for (const report of reports) {
@@ -96,9 +109,10 @@ function mergeWorklists(reports) {
       if (!merged.has(key)) merged.set(key, { ...finding, role: report.summary.role });
     }
   }
+  // `rank` is serialised by the crawl so this script never re-declares a severity
+  // table that would silently drift from the TypeScript one.
   return [...merged.values()].sort((a, b) => (
-    (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9)
-    || (b.occurrences ?? 0) - (a.occurrences ?? 0)
+    (a.rank ?? 9) - (b.rank ?? 9) || (b.occurrences ?? 0) - (a.occurrences ?? 0)
   ));
 }
 
@@ -147,6 +161,16 @@ if (reports.length === 0) {
   process.exit(1);
 }
 
+const STALE_AFTER_MS = Number(process.env.SWAN_QA_REPORT_MAX_AGE_MS || 24 * 60 * 60 * 1000);
+const newestMs = Math.max(...reports.map((report) => safeMtime(report.file) ?? 0));
+const ageMs = Date.now() - newestMs;
+// "No evidence is not a clean bill of health" has to cover OLD evidence too: a
+// crawl run once in August would otherwise render as current fact in December.
+const staleBanner = ageMs > STALE_AFTER_MS
+  ? `\n> ⚠ **STALE:** newest crawl result is ${Math.round(ageMs / 3600000)}h old. `
+    + 'This report describes a past run, not the current site.\n'
+  : '';
+
 const findings = mergeWorklists(reports);
 const blocking = findings.filter((finding) => finding.severity !== 'low');
 
@@ -154,6 +178,7 @@ const markdown = `# SWANSTUDIOS-MISSION-QA-REPORT
 
 Generated: ${new Date().toISOString()}
 Source: ${reports.length} crawl result file(s) under \`${path.relative(repoRoot, resultsDir)}\`
+${staleBanner}
 
 ## Coverage
 
@@ -172,7 +197,13 @@ ${suppressionSection(reports)}
 
 mkdirSync(path.dirname(outputPath), { recursive: true });
 writeFileSync(outputPath, markdown, 'utf8');
+const incomplete = reports.filter((report) => report.summary?.complete === false);
 process.stdout.write(
   `Wrote ${path.relative(repoRoot, outputPath)} — ${reports.length} role(s), `
-  + `${blocking.length} blocking finding(s)\n`,
+  + `${blocking.length} blocking finding(s), ${incomplete.length} incomplete role(s)\n`,
 );
+
+// The exit code is the CI contract. Writing a report is not success: a report
+// carrying critical findings previously exited 0, so any pipeline step gating on
+// this script passed on a broken site.
+process.exit(blocking.length > 0 || incomplete.length > 0 ? 2 : 0);

@@ -11,17 +11,20 @@
 import { writeFileSync } from 'node:fs';
 import type { TestInfo } from '@playwright/test';
 import {
-  applySuppressions,
   blockingFindings,
   buildFindings,
   rankFindings,
-  suppressionFindings,
+  severityRank,
   type Finding,
   type FindingCategory,
   type RawIssue,
+} from './qaFindings';
+import {
+  applySuppressions,
+  suppressionFindings,
   type Suppression,
   type SuppressionAudit,
-} from './qaFindings';
+} from './qaSuppressions.audit';
 import {
   compactIssues,
   summarizeCoverage,
@@ -36,7 +39,11 @@ import {
  * route rather than dropped — losing a real error because it landed in a gap
  * would be the same silent-coverage failure this harness exists to remove.
  */
-export function toRawIssues(state: CrawlIssueState, role: DashboardRole): RawIssue[] {
+export function toRawIssues(
+  state: CrawlIssueState,
+  role: DashboardRole,
+  allRoutes: string[] = [],
+): RawIssue[] {
   const issues: RawIssue[] = [];
   const claimed = { consoleErrors: 0, pageErrors: 0, requestFailures: 0, readFailures: 0 };
 
@@ -87,6 +94,25 @@ export function toRawIssues(state: CrawlIssueState, role: DashboardRole): RawIss
     });
   }
 
+  // BUG-4 (Kimi review): these two were asserted by compactIssues but never
+  // emitted here, so the worklist could print "(no findings)" moments before the
+  // gate failed on them — two sources of truth, which is what this refactor
+  // exists to remove.
+  for (const entry of state.blockedWrites) {
+    if (/^POST \/api\/dashboard\/track-pageview$/.test(entry)) continue;
+    issues.push({ category: 'blocked-write', message: entry, role });
+  }
+
+  const attempted = new Set(state.routeResults.map((entry) => entry.route));
+  for (const route of allRoutes.filter((candidate) => !attempted.has(candidate))) {
+    issues.push({
+      category: 'route-failure',
+      message: 'route never reached — the crawl ended before visiting it',
+      route,
+      role,
+    });
+  }
+
   return issues;
 }
 
@@ -106,9 +132,10 @@ export function buildWorklist(
   role: DashboardRole,
   suppressions: Suppression[],
   today: string,
+  allRoutes: string[] = [],
 ): Worklist {
   const { surviving, audit } = applySuppressions(
-    buildFindings(toRawIssues(state, role)),
+    buildFindings(toRawIssues(state, role, allRoutes)),
     suppressions,
     today,
   );
@@ -144,12 +171,12 @@ function reportPayload(
   suppressions: Suppression[],
   today: string,
 ) {
-  const { findings, audit } = buildWorklist(state, role, suppressions, today);
+  const { findings, audit } = buildWorklist(state, role, suppressions, today, allRoutes);
   return {
     summary: summarizeCoverage(role, allRoutes.length, state),
     // The ranked worklist is embedded so downstream consumers (scripts/qa/
     // mission-report.mjs) read plain JSON and never import TypeScript.
-    worklist: findings,
+    worklist: findings.map((finding) => ({ ...finding, rank: severityRank(finding.severity) })),
     suppressionAudit: audit,
     ...state,
     actionable: compactIssues(state, allRoutes),
@@ -161,8 +188,8 @@ export function flushCrawlReport(
   state: CrawlIssueState,
   role: DashboardRole,
   allRoutes: string[],
-  suppressions: Suppression[] = [],
-  today: string = new Date().toISOString().slice(0, 10),
+  suppressions: Suppression[],
+  today: string,
 ): string | null {
   const path = testInfo.outputPath(`dashboard-crawl-${role}.json`);
   try {
@@ -172,7 +199,14 @@ export function flushCrawlReport(
       'utf-8',
     );
     return path;
-  } catch {
+  } catch (error) {
+    // Never throw — a reporting failure must not mask a crawl finding. But never
+    // stay silent either: an unwritable output dir would silently no-op every
+    // flush and leave no evidence after a crash, recreating the exact Slice-0
+    // failure mode this function exists to prevent.
+    // eslint-disable-next-line no-console
+    console.error(`[dashboard-crawl] FAILED to flush evidence to ${path}: ${
+      error instanceof Error ? error.message : String(error)}`);
     return null;
   }
 }
@@ -183,8 +217,8 @@ export async function attachCrawlReport(
   state: CrawlIssueState,
   role: DashboardRole,
   allRoutes: string[],
-  suppressions: Suppression[] = [],
-  today: string = new Date().toISOString().slice(0, 10),
+  suppressions: Suppression[],
+  today: string,
 ) {
   await testInfo.attach(`dashboard-crawl-${role}.json`, {
     body: JSON.stringify(reportPayload(state, role, allRoutes, suppressions, today), null, 2),

@@ -3,24 +3,34 @@
  * PURPOSE: Regression tests for the ranked worklist and expiring suppressions.
  * OWNER: SwanStudios Mission QA.
  *
- * WHY: Slice 1's value is entirely in behaviour that is easy to regress silently
- * — dedupe collapsing, severity ranking, route attribution, and above all the
- * suppression expiry rules. A suppression that quietly stops expiring restores
- * exactly the incentive this slice removed, and nothing else would notice.
+ * Slice 1's value is behaviour that regresses silently: dedupe collapsing,
+ * ranking, route attribution, and above all the suppression rules. A suppression
+ * that quietly stops expiring restores the exact incentive this removed, and
+ * nothing else in the suite would notice.
  */
 
 import { expect, test } from '@playwright/test';
 import {
-  applySuppressions,
   blockingFindings,
   buildFindings,
   fingerprintOf,
-  suppressionFindings,
   type RawIssue,
-  type Suppression,
 } from './qaFindings';
+import {
+  applySuppressions,
+  inDateSuppressionMatcher,
+  suppressionFindings,
+  type Suppression,
+} from './qaSuppressions.audit';
 import { buildWorklist, toRawIssues } from './crawlWorklist';
-import { closeIssueCursor, createCrawlState, markIssueCursor } from './production-dashboard-crawl.report';
+import { QA_SUPPRESSIONS } from './qaSuppressions';
+import {
+  NO_ISSUES,
+  closeIssueCursor,
+  compactIssues,
+  createCrawlState,
+  markIssueCursor,
+} from './production-dashboard-crawl.report';
 
 const TODAY = '2026-08-12';
 
@@ -30,6 +40,7 @@ function suppression(overrides: Partial<Suppression> = {}): Suppression {
     pattern: 'tolerated noise',
     reason: 'documented and understood',
     expires: '2026-12-01',
+    owner: 'mission-qa',
     ...overrides,
   };
 }
@@ -169,6 +180,111 @@ test.describe('@mission @contract qa findings worklist', () => {
     const issues = toRawIssues(state, 'admin');
     expect(issues).toHaveLength(1);
     expect(issues[0].route).toBeUndefined();
+  });
+
+  // ---- Fixes from the Kimi K3 hostile code review (2026-08-12) ----
+
+  test('overlapping suppressions are BOTH active — neither is mislabelled stale', () => {
+    // BUG-6. First-hit attribution marked only the first matcher active, so an
+    // operator following "stale — delete it" would delete a load-bearing entry.
+    const findings = buildFindings([{ category: 'console-error', message: 'tolerated noise here' }]);
+    const a = suppression({ id: 'a', pattern: 'tolerated' });
+    const b = suppression({ id: 'b', pattern: 'noise here' });
+
+    const { audit } = applySuppressions(findings, [a, b], TODAY);
+
+    expect(audit.active.map((entry) => entry.id).sort()).toEqual(['a', 'b']);
+    expect(audit.stale).toHaveLength(0);
+    expect(audit.matchCounts).toEqual({ a: 1, b: 1 });
+  });
+
+  test('an over-broad pattern is rejected, not silently honoured', () => {
+    // A `.` pattern silences everything while reading as one innocuous line.
+    const findings = buildFindings([{ category: 'page-error', message: 'boom' }]);
+    const { surviving, audit } = applySuppressions(findings, [suppression({ pattern: '.' })], TODAY);
+
+    expect(audit.invalid[0].problem).toContain('over-broad');
+    expect(surviving).toHaveLength(1);
+  });
+
+  test('an unattributed suppression is rejected — owner is required', () => {
+    const findings = buildFindings([{ category: 'console-error', message: 'tolerated noise here' }]);
+    const { surviving, audit } = applySuppressions(
+      findings, [{ ...suppression(), owner: '' }], TODAY,
+    );
+
+    expect(audit.invalid[0].problem).toBe('missing owner');
+    expect(surviving).toHaveLength(1);
+  });
+
+  test('duplicate suppression ids are rejected — id is the registry identity key', () => {
+    const { audit } = applySuppressions([], [suppression(), suppression()], TODAY);
+    expect(audit.invalid[0].problem).toContain('duplicate id');
+  });
+
+  test('blocked writes reach the worklist, so it cannot disagree with the gate', () => {
+    // BUG-4: the category existed but was never emitted, so the worklist could
+    // print "(no findings)" moments before the assertion failed on blocked writes.
+    const state = createCrawlState();
+    state.blockedWrites.push('POST /api/sessions');
+    state.blockedWrites.push('POST /api/dashboard/track-pageview'); // harness's own, excluded
+
+    const issues = toRawIssues(state, 'admin', []);
+    const blocked = issues.filter((entry) => entry.category === 'blocked-write');
+
+    expect(blocked.map((entry) => entry.message)).toEqual(['POST /api/sessions']);
+  });
+
+  test('routes the crawl never reached reach the worklist too', () => {
+    const state = createCrawlState();
+    state.routeResults.push({ route: '/a', status: 'visited', clicks: 0 });
+
+    const issues = toRawIssues(state, 'admin', ['/a', '/b']);
+    const unreached = issues.filter((entry) => entry.message.includes('never reached'));
+
+    expect(unreached).toHaveLength(1);
+    expect(unreached[0].route).toBe('/b');
+  });
+
+  test('the in-date matcher is the SINGLE source of product suppressions', () => {
+    // BUG-2: compactIssues used to hardcode its own copies of registry patterns,
+    // so an entry could expire while the real gate kept swallowing the defect.
+    const live = inDateSuppressionMatcher([suppression()], TODAY);
+    const dead = inDateSuppressionMatcher([suppression({ expires: '2026-01-01' })], TODAY);
+
+    expect(live('tolerated noise here')).toBe(true);
+    expect(dead('tolerated noise here')).toBe(false);
+    expect(live('an unrelated TypeError')).toBe(false);
+  });
+
+  test('an expired suppression ALONE fails the gate, with no other defect present', () => {
+    // BUG-1, the review's headline. The crawl asserts compactIssues AND
+    // worklist.blocking. Here compactIssues is completely clean, so ONLY the
+    // worklist gate can catch this. Before the fix, worklist.blocking was
+    // computed, logged and discarded — the expiry mechanism was wired to a
+    // console.log and the test went green. This pins the WIRING, not the
+    // function: the difference between an incentive fix and a description of one.
+    const state = createCrawlState();
+    state.routeResults.push({ route: '/a', status: 'visited', clicks: 0 });
+
+    const worklist = buildWorklist(
+      state, 'admin', [suppression({ expires: '2026-01-01' })], TODAY, ['/a'],
+    );
+
+    expect(compactIssues(state, ['/a'])).toEqual(NO_ISSUES);
+    expect(worklist.blocking.map((entry) => entry.category)).toEqual(['expired-suppression']);
+  });
+
+  test('the SHIPPED registry itself passes the stricter validation', () => {
+    // Slice 1 tightened validation (owner required, duplicate ids rejected,
+    // over-broad patterns rejected). If the registry's own entries fail those
+    // rules, every crawl reports critical invalid-suppression findings and the
+    // build breaks on our own configuration. Validate the real thing, not a stub.
+    const { audit } = applySuppressions([], QA_SUPPRESSIONS, TODAY);
+
+    expect(audit.invalid).toEqual([]);
+    // And nothing shipped already expired.
+    expect(audit.expired).toEqual([]);
   });
 
   test('the worklist folds suppression problems in alongside real defects', () => {

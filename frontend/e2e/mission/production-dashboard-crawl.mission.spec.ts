@@ -1,14 +1,9 @@
 /**
- * Mission QA: production dashboard crawl.
+ * Mission QA: production dashboard crawl. Walks authenticated dashboard routes
+ * read-only, clicking safe controls and reporting console/page/network failures.
  *
- * Exercises authenticated dashboard routes in read-only mode. The crawler
- * clicks safe navigation/tab/menu controls, blocks write methods, and reports
- * console/page/network failures with enough context to repair the live surface.
- *
- * SLICE 0 (2026-08-11) — per-route isolation, crash-durable report, truncation as
- * a failing finding, missing auth as a hard failure, always-printed coverage.
- * SLICE 1 (2026-08-12) — ranked repair list with route attribution and expiring
- * suppressions. Rationale in production-dashboard-crawl.report.ts + crawlWorklist.ts.
+ * Slices 0-1 made it durable and its reporting honest; rationale lives in
+ * production-dashboard-crawl.report.ts, crawlWorklist.ts and qaFindings.ts.
  */
 
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
@@ -26,6 +21,9 @@ import {
 } from './production-dashboard-crawl.report';
 import { attachCrawlReport, buildWorklist, flushCrawlReport, formatWorklist } from './crawlWorklist';
 import { QA_SUPPRESSIONS } from './qaSuppressions';
+import {
+  inDateSuppressionMatcher,
+} from './qaSuppressions.audit';
 
 test.describe.configure({ retries: 0 });
 
@@ -50,10 +48,8 @@ const crawlTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS |
 const networkIdleTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_NETWORK_IDLE_TIMEOUT_MS || '1000');
 const settleDelayMs = Number(process.env.SWAN_DASHBOARD_CRAWL_SETTLE_MS || '125');
 
-/**
- * Escape hatch for partial runs. Defaults OFF: a silently skipped crawl is
- * indistinguishable from a passing one in CI summary output.
- */
+// Escape hatch for partial runs. OFF by default: a silently skipped crawl is
+// indistinguishable from a passing one in CI summary output.
 const allowMissingAuth = process.env.SWAN_DASHBOARD_CRAWL_ALLOW_MISSING_AUTH === '1';
 
 function isNavigationAbort(request: { failure(): { errorText: string } | null }) {
@@ -200,9 +196,8 @@ async function crawlRoute(page: Page, state: CrawlIssueState, role: DashboardRol
 
 function missingAuthMessage(role: DashboardRole) {
   return `No production auth state for "${role}" (set SWAN_PROD_${role.toUpperCase()}_AUTH_STATE). `
-    + 'A crawl that cannot authenticate has tested nothing, so failing loudly rather than '
-    + 'reporting green. Set SWAN_DASHBOARD_CRAWL_ALLOW_MISSING_AUTH=1 to downgrade to a skip '
-    + 'for deliberate partial runs.';
+    + 'A crawl that cannot authenticate has tested nothing, so this fails loudly rather than '
+    + 'reporting green. SWAN_DASHBOARD_CRAWL_ALLOW_MISSING_AUTH=1 downgrades it to a skip.';
 }
 
 function declareRoleCrawl(role: DashboardRole) {
@@ -222,7 +217,9 @@ function declareRoleCrawl(role: DashboardRole) {
       expect(process.env.SWAN_MISSION_QA_ALLOW_WRITES || '0').toBe('0');
 
       const routes = roleRoutes[role];
+      // Captured ONCE: per-call expiry could straddle midnight UTC mid-crawl.
       const today = new Date().toISOString().slice(0, 10);
+      const isSuppressed = inDateSuppressionMatcher(QA_SUPPRESSIONS, today);
       // An empty route table satisfies every other assertion vacuously and reports
       // `0/0 · complete` — the same green-on-nothing failure as missing auth.
       expect(
@@ -235,9 +232,7 @@ function declareRoleCrawl(role: DashboardRole) {
       await installReadOnlyGuard(page, state);
 
       for (const route of routes) {
-        // Console/network listeners fire without route context, so bracket each
-        // route to attribute what it emitted (Slice 1 — a worklist must say WHERE).
-        const cursor = markIssueCursor(state);
+          const cursor = markIssueCursor(state);  // attribute what this route emits
         try {  // Fix 1: one bad route cannot end the crawl or destroy evidence.
           const clicks = await crawlRoute(page, state, role, route, testInfo);
           state.routeResults.push({
@@ -261,21 +256,22 @@ function declareRoleCrawl(role: DashboardRole) {
       // eslint-disable-next-line no-console
       console.log(formatCoverageLine(summary));
 
-      // Slice 1: ranked repair list, not one enormous diff — the same defect on
-      // 30 routes collapses to a single row naming all 30.
-      const worklist = buildWorklist(state, role, QA_SUPPRESSIONS, today);
+      const worklist = buildWorklist(state, role, QA_SUPPRESSIONS, today, routes);
       if (worklist.findings.length > 0) {
         // eslint-disable-next-line no-console
         console.log(`[dashboard-crawl] ${role} worklist:
 ${formatWorklist(worklist.findings)}`);
       }
 
-      await attachCrawlReport(testInfo, state, role, routes, QA_SUPPRESSIONS, today);
+      // Attaching must never mask the findings underneath it.
+      await attachCrawlReport(testInfo, state, role, routes, QA_SUPPRESSIONS, today)
+        .catch((error: unknown) => {
+          // eslint-disable-next-line no-console
+          console.error(`[dashboard-crawl] attach failed: ${
+            error instanceof Error ? error.message : String(error)}`);
+        });
 
-      // Fix 2: truncation FAILS by default. Reporting alone would make letting
-      // pages outgrow the budget the cheapest path to green — the same incentive
-      // that grew the console-noise allowlist. The allowance must be raised
-      // deliberately, so coverage debt is visible and costed.
+      // Truncation FAILS by default; the allowance must be raised deliberately.
       const allowedTruncations = Number(process.env.SWAN_DASHBOARD_CRAWL_ALLOWED_TRUNCATIONS || '0');
       expect(
         overTruncationBudget(state.truncations, allowedTruncations),
@@ -285,7 +281,15 @@ ${formatWorklist(worklist.findings)}`);
         + 'SWAN_DASHBOARD_CRAWL_ALLOWED_TRUNCATIONS to acknowledge the debt explicitly.',
       ).toEqual([]);
 
-      expect(compactIssues(state, routes)).toEqual(NO_ISSUES);
+      // THE gate for suppression health: without it, expiry was wired to a log line.
+      expect(
+        worklist.blocking,
+        `${role}: ${worklist.blocking.length} blocking finding(s)\n${formatWorklist(worklist.blocking)}`,
+      ).toEqual([]);
+
+      // Product suppressions come from the expiring registry ONLY — otherwise this
+      // assertion becomes a second, permanent suppression system.
+      expect(compactIssues(state, routes, isSuppressed)).toEqual(NO_ISSUES);
     });
   });
 }

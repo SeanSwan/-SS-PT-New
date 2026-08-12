@@ -150,17 +150,38 @@ export function isSocketPollingUrl(rawUrl: string) {
   }
 }
 
-function allowedConsoleNoise(message: string, state: CrawlIssueState) {
-  if (/preloaded using link preload/i.test(message)) return true;
-  if (/Service Worker: PWA functionality temporarily disabled/i.test(message)) return true;
-  if (/Failed to load resource: the server responded with a status of 400/i.test(message)) {
-    return state.requestFailures.some(isSocketPollingUrl)
-      || state.readFailures.some((entry) => /\/socket\.io\//.test(entry));
-  }
-  if (/Failed to load resource: the server responded with a status of 405/i.test(message)) {
-    return state.blockedWrites.length > 0;
-  }
-  return false;
+/**
+ * Filter for the crawl's OWN exhaust — the 405s its write-blocking interceptor
+ * injects, and the 400s Chromium reports when Socket.IO polling is torn down.
+ * These are not tolerated product defects, so they are not registry suppressions.
+ *
+ * Correlation is BUDGETED, not existential. The previous form asked
+ * `state.requestFailures.some(isSocketPollingUrl)` — once a single teardown 400
+ * had occurred (which it always does, early), EVERY later "status of 400"
+ * console error from any endpoint for any reason was whitelisted for the rest of
+ * the run, hiding real regressions behind the harness's own noise. Now each
+ * suppressed message consumes one unit of budget, and a message that names a URL
+ * is judged on that URL alone.
+ */
+export function harnessExhaustFilter(state: CrawlIssueState): (message: string) => boolean {
+  let socket400Budget = state.requestFailures.filter(isSocketPollingUrl).length
+    + state.readFailures.filter((entry) => /\/socket\.io\//.test(entry)).length;
+  let blocked405Budget = state.blockedWrites.length;
+
+  return (message: string) => {
+    const url = message.match(/https?:\/\/\S+/)?.[0];
+
+    if (/Failed to load resource: the server responded with a status of 400/i.test(message)) {
+      if (url) return isSocketPollingUrl(url);
+      if (socket400Budget > 0) { socket400Budget -= 1; return true; }
+      return false;
+    }
+    if (/Failed to load resource: the server responded with a status of 405/i.test(message)) {
+      if (blocked405Budget > 0) { blocked405Budget -= 1; return true; }
+      return false;
+    }
+    return false;
+  };
 }
 
 export interface ActionableIssues {
@@ -181,14 +202,25 @@ export interface ActionableIssues {
 export function compactIssues(
   state: CrawlIssueState,
   allRoutes: string[] = [],
+  /**
+   * Product-defect suppressions, supplied by the caller from the expiring
+   * registry. Previously this function hardcoded its own copies of two registry
+   * patterns, so there were TWO suppression systems: the registry (advisory) and
+   * these regexes (the actual gate). A registry entry could expire and this
+   * function would keep swallowing the defect forever. The registry is now the
+   * only source of product suppressions; the default suppresses nothing.
+   */
+  isSuppressed: (message: string) => boolean = () => false,
 ): ActionableIssues {
   const attempted = new Set(state.routeResults.map((entry) => entry.route));
+  const isExhaust = harnessExhaustFilter(state);
 
   return {
     readFailures: state.readFailures,
     requestFailures: state.requestFailures.filter((entry) => !isSocketPollingUrl(entry)),
-    consoleErrors: state.consoleErrors.filter((entry) => !allowedConsoleNoise(entry, state)),
-    pageErrors: state.pageErrors,
+    consoleErrors: state.consoleErrors
+      .filter((entry) => !isExhaust(entry) && !isSuppressed(entry)),
+    pageErrors: state.pageErrors.filter((entry) => !isSuppressed(entry)),
     blockedWrites: state.blockedWrites
       .filter((entry) => !/^POST \/api\/dashboard\/track-pageview$/.test(entry)),
     routeFailures: state.routeResults

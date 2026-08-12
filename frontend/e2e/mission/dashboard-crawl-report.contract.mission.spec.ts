@@ -22,6 +22,7 @@ import {
   compactIssues,
   createCrawlState,
   formatCoverageLine,
+  harnessExhaustFilter,
   overTruncationBudget,
   summarizeCoverage,
   type CrawlIssueState,
@@ -29,6 +30,7 @@ import {
 import { flushCrawlReport } from './crawlWorklist';
 
 const ROUTES = ['/a', '/b', '/c', '/d'];
+const TODAY = '2026-08-12';
 
 function stateWith(overrides: Partial<CrawlIssueState> = {}): CrawlIssueState {
   return { ...createCrawlState(), ...overrides };
@@ -114,7 +116,7 @@ test.describe('@mission @contract dashboard crawl report contract', () => {
         consoleErrors: ['TypeError: nope'],
       });
 
-      const written = flushCrawlReport(testInfo, state, 'admin', ROUTES);
+      const written = flushCrawlReport(testInfo, state, 'admin', ROUTES, [], TODAY);
       expect(written).not.toBeNull();
 
       const report = JSON.parse(readFileSync(written as string, 'utf-8'));
@@ -128,11 +130,49 @@ test.describe('@mission @contract dashboard crawl report contract', () => {
     }
   });
 
+  test('harness exhaust is BUDGETED, so one benign 400 cannot whitelist the rest', () => {
+    // BUG-5 (Kimi review). The old form asked `requestFailures.some(isSocketPollingUrl)`
+    // — existential over the whole run. One Socket.IO teardown 400 (which always
+    // happens, early) whitelisted EVERY later "status of 400" console error from
+    // any endpoint, hiding real regressions behind the harness's own noise.
+    const state = stateWith({
+      requestFailures: ['https://example.test/socket.io/?transport=polling'],
+    });
+    const isExhaust = harnessExhaustFilter(state);
+
+    const noise = 'Failed to load resource: the server responded with a status of 400 ()';
+    expect(isExhaust(noise)).toBe(true);   // one teardown failure buys one pass...
+    expect(isExhaust(noise)).toBe(false);  // ...and no more.
+  });
+
+  test('a 400 naming a non-socket URL is never treated as harness exhaust', () => {
+    const state = stateWith({
+      requestFailures: ['https://example.test/socket.io/?transport=polling'],
+    });
+    expect(harnessExhaustFilter(state)(
+      'Failed to load resource: the server responded with a status of 400 (https://example.test/api/orders)',
+    )).toBe(false);
+  });
+
+  test('product suppressions reach the gate only through the injected matcher', () => {
+    // BUG-2: this assertion used to carry its own permanent copies of registry
+    // patterns, so a registry entry could expire and the gate kept suppressing.
+    const state = stateWith({
+      consoleErrors: ['preloaded using link preload'],
+      routeResults: ROUTES.map((route) => ({ route, status: 'visited' as const, clicks: 1 })),
+    });
+
+    // No matcher supplied -> nothing suppressed, so the defect stays visible.
+    expect(compactIssues(state, ROUTES).consoleErrors).toEqual(['preloaded using link preload']);
+    // With the matcher -> suppressed, exactly as the registry intends.
+    expect(compactIssues(state, ROUTES, (m) => /preloaded/.test(m)).consoleErrors).toEqual([]);
+  });
+
   test('a failing flush never masks a crawl finding', () => {
     const testInfo = {
       outputPath: () => join('\0invalid', 'nope.json'),
     } as never;
-    expect(() => flushCrawlReport(testInfo, createCrawlState(), 'admin', ROUTES)).not.toThrow();
-    expect(flushCrawlReport(testInfo, createCrawlState(), 'admin', ROUTES)).toBeNull();
+    expect(() => flushCrawlReport(testInfo, createCrawlState(), 'admin', ROUTES, [], TODAY)).not.toThrow();
+    expect(flushCrawlReport(testInfo, createCrawlState(), 'admin', ROUTES, [], TODAY)).toBeNull();
   });
 });

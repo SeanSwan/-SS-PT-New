@@ -46,6 +46,12 @@ export const CATEGORY_SEVERITY: Record<FindingCategory, Severity> = {
 
 const SEVERITY_RANK: Record<Severity, number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
+/** Numeric rank, serialised with each finding so non-TypeScript consumers
+ *  (scripts/qa/mission-report.mjs) never re-declare a table that can drift. */
+export function severityRank(severity: Severity): number {
+  return SEVERITY_RANK[severity];
+}
+
 export interface Finding {
   /** Stable dedupe key: same defect on 30 routes collapses to one row. */
   fingerprint: string;
@@ -59,17 +65,6 @@ export interface Finding {
   occurrences: number;
   /** Best guess at the file to open, when the message carries a URL/frame. */
   owningFile?: string;
-}
-
-export interface Suppression {
-  id: string;
-  /** Regex source, matched case-insensitively against the finding message. */
-  pattern: string;
-  /** Required. "known issue" is not a reason — say what and why it is acceptable. */
-  reason: string;
-  /** Required, YYYY-MM-DD. Past this date the suppression FAILS the build. */
-  expires: string;
-  owner?: string;
 }
 
 /**
@@ -152,109 +147,6 @@ export function rankFindings(a: Finding, b: Finding): number {
   if (b.routes.length !== a.routes.length) return b.routes.length - a.routes.length;
   return a.fingerprint.localeCompare(b.fingerprint);
 }
-
-export interface SuppressionAudit {
-  /** Suppressions past their expiry date — each becomes a critical finding. */
-  expired: Suppression[];
-  /** Valid, in-date, and actually matched something this run. */
-  active: Suppression[];
-  /** In-date but matched nothing — the defect may be fixed; candidate for deletion. */
-  stale: Suppression[];
-  /** Malformed (missing reason/expiry, unparseable date or pattern). */
-  invalid: Array<{ suppression: Suppression; problem: string }>;
-}
-
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-function compilePattern(pattern: string): RegExp | null {
-  try {
-    return new RegExp(pattern, 'i');
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Apply suppressions and audit them in the same pass. `today` is injected rather
- * than read from the clock so expiry behaviour is testable and deterministic.
- */
-export function applySuppressions(
-  findings: Finding[],
-  suppressions: Suppression[],
-  today: string,
-): { surviving: Finding[]; audit: SuppressionAudit } {
-  const audit: SuppressionAudit = { expired: [], active: [], stale: [], invalid: [] };
-  const usable: Array<{ suppression: Suppression; regex: RegExp }> = [];
-
-  for (const suppression of suppressions) {
-    const regex = compilePattern(suppression.pattern);
-    if (!suppression.reason?.trim()) {
-      audit.invalid.push({ suppression, problem: 'missing reason' });
-    } else if (!ISO_DATE.test(suppression.expires || '')) {
-      audit.invalid.push({ suppression, problem: 'missing or malformed expires (want YYYY-MM-DD)' });
-    } else if (!regex) {
-      audit.invalid.push({ suppression, problem: 'pattern is not a valid regular expression' });
-    } else if (suppression.expires < today) {
-      // Expired: it does NOT suppress. Whatever it was hiding comes back, and the
-      // stale suppression is itself reported.
-      audit.expired.push(suppression);
-    } else {
-      usable.push({ suppression, regex });
-    }
-  }
-
-  const matched = new Set<string>();
-  const surviving = findings.filter((finding) => {
-    const hit = usable.find(({ regex }) => regex.test(finding.message));
-    if (!hit) return true;
-    matched.add(hit.suppression.id);
-    return false;
-  });
-
-  for (const { suppression } of usable) {
-    (matched.has(suppression.id) ? audit.active : audit.stale).push(suppression);
-  }
-
-  return { surviving, audit };
-}
-
-/** Turn suppression problems into findings so they rank alongside real defects. */
-export function suppressionFindings(audit: SuppressionAudit): Finding[] {
-  const rows: Finding[] = [];
-
-  for (const suppression of audit.expired) {
-    rows.push(makeSuppressionFinding(
-      'expired-suppression',
-      `Suppression "${suppression.id}" expired ${suppression.expires} — fix the underlying defect or renew it with a new reason. (${suppression.reason})`,
-    ));
-  }
-  for (const { suppression, problem } of audit.invalid) {
-    rows.push(makeSuppressionFinding(
-      'expired-suppression',
-      `Suppression "${suppression.id}" is invalid: ${problem}.`,
-    ));
-  }
-  for (const suppression of audit.stale) {
-    rows.push(makeSuppressionFinding(
-      'stale-suppression',
-      `Suppression "${suppression.id}" matched nothing this run — the defect may be fixed; delete it.`,
-    ));
-  }
-
-  return rows.sort(rankFindings);
-}
-
-function makeSuppressionFinding(category: FindingCategory, message: string): Finding {
-  return {
-    fingerprint: fingerprintOf(category, message),
-    category,
-    severity: CATEGORY_SEVERITY[category],
-    message,
-    routes: [],
-    occurrences: 1,
-  };
-}
-
 /** Findings that must fail the build: everything except the informational tail. */
 export function blockingFindings(findings: Finding[]): Finding[] {
   return findings.filter((finding) => finding.severity !== 'low');

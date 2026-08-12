@@ -25,7 +25,7 @@
  *   output would fail the build for no product reason.
  */
 
-import type { Suppression } from './qaFindings';
+import type { Suppression } from './qaSuppressions.audit';
 
 export const QA_SUPPRESSIONS: Suppression[] = [
   {
