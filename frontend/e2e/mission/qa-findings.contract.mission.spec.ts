@@ -258,12 +258,10 @@ test.describe('@mission @contract qa findings worklist', () => {
   });
 
   test('an expired suppression ALONE fails the gate, with no other defect present', () => {
-    // BUG-1, the review's headline. The crawl asserts compactIssues AND
-    // worklist.blocking. Here compactIssues is completely clean, so ONLY the
-    // worklist gate can catch this. Before the fix, worklist.blocking was
-    // computed, logged and discarded — the expiry mechanism was wired to a
-    // console.log and the test went green. This pins the WIRING, not the
-    // function: the difference between an incentive fix and a description of one.
+    // BUG-1, the review's headline. compactIssues is clean here, so ONLY the
+    // worklist gate can catch this. Pre-fix, worklist.blocking was computed,
+    // logged and discarded, so the test went green. Pins the WIRING, not the
+    // function — the difference between an incentive fix and a description of one.
     const state = createCrawlState();
     state.routeResults.push({ route: '/a', status: 'visited', clicks: 0 });
 
