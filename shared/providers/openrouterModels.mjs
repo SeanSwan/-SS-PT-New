@@ -77,7 +77,24 @@ export function capabilities(model = DEFAULT_MODEL) {
     promptStyle: spec.promptStyle,     // DECLARED, not inferred
     maxPromptChars: spec.maxPromptChars,
     supportedAspectRatios: ['1:1', '16:9', '9:16', '4:5'],
-    supportsImageInit: true,
+    /**
+     * IMAGE-TO-IMAGE — DOWNGRADED from a bare `true` to 'claimed', 2026-08-12.
+     *
+     * Probed (`scripts/forge-i2i-probe.mjs`): an `image` parameter carrying a
+     * data URI is ACCEPTED on /api/v1/images — HTTP 200, returned 1024x1024,
+     * cost $0.006072 (vs $0.003736 text-only, consistent with input tokens).
+     *
+     * That proves the request is well-formed and NOTHING MORE. The seed
+     * parameter is also accepted on this same endpoint and demonstrably does
+     * nothing, so acceptance is not evidence of influence. The original `true`
+     * was never probed at all; 'claimed' is what the evidence supports, and the
+     * compiler treats it as absent, which is the correct conservative default.
+     *
+     * To promote it: same prompt, two inputs of markedly different dominant
+     * colour, compare the average colour of the two outputs. Acceptance tests
+     * the parameter; only influence tests the capability.
+     */
+    supportsImageInit: 'claimed',
     supportsInpainting: false,
 
     /**

@@ -95,7 +95,11 @@ if (data.id) {
       if (row[f] !== undefined) console.log(`  ${f.padEnd(26)} ${describe(row[f])}`);
     }
   } else {
-    console.log(`  body: ${(await g.text()).slice(0, 200)}`);
+    // Redacted defensively, matching forge-i2i-probe: a provider that echoes the
+    // request back in an error body would otherwise print the key to stdout.
+    // The sibling probe already did this; this one did not, which is exactly the
+    // kind of inconsistency that makes a safety habit unreliable.
+    console.log(`  body: ${(await g.text()).slice(0, 200).split(key).join('<REDACTED_KEY>')}`);
   }
 } else {
   console.log('\n  NO `id` on the response — cost cannot be resolved by follow-up lookup.');
