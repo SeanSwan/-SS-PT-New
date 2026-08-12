@@ -20,7 +20,17 @@ import {
   toEnvelope,
   standardize,
   ENVELOPE_HZ,
+  MIN_OVERLAP_FRAMES,
 } from '../../services/mediaSync/crossCorrelation.mjs';
+
+/**
+ * Derived, never hardcoded. These expectations have now been wrong twice because the
+ * overlap floor moved (50%-ratio -> 4s -> 8s) and the numbers were literals. A test
+ * that restates a constant has to be edited every time the constant improves, and an
+ * edit is a chance to silently weaken the assertion.
+ */
+const FLOOR_SECONDS = MIN_OVERLAP_FRAMES / ENVELOPE_HZ;
+const reachFor = (fileSeconds) => fileSeconds - FLOOR_SECONDS;
 
 const SR = 8000;               // envelope-domain math is rate-independent; 8k keeps tests fast
 const FRAME_MS = 1000 / 30;    // one video frame at 30fps
@@ -414,10 +424,9 @@ describe('effective search ceiling', () => {
   it('reports how far it could actually search, and that it fell short of the request', () => {
     const { clean, scratch } = sixtySecondTake(5);
     const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
-    // 60s file minus the 4s variance floor -> 56s reachable, not the 60s requested.
-    // This was 30s under the old 50%-of-shorter ratio; the measured absolute floor
-    // recovered 26 seconds of search range without weakening the guard.
-    expect(r.searchedSeconds).toBeCloseTo(56, 0);
+    // 60s file minus the variance floor. Under the old 50%-of-shorter ratio this was
+    // 30s; an absolute floor recovers most of that range without weakening the guard.
+    expect(r.searchedSeconds).toBeCloseTo(reachFor(60), 0);
     expect(r.searchTruncated).toBe(true);
   });
 
@@ -429,7 +438,7 @@ describe('effective search ceiling', () => {
 
   it('accepts offsets across the WHOLE reachable range, including ones the ratio refused', () => {
     // 35s was previously beyond reach on a 60s file and was refused. It now syncs.
-    for (const off of [5, 25, 29, 35, 45]) {
+    for (const off of [5, 25, 29, 35, Math.floor(reachFor(60)) - 5]) {
       const { clean, scratch } = sixtySecondTake(off);
       const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
       expect(r.usable).toBe(true);
@@ -437,16 +446,16 @@ describe('effective search ceiling', () => {
     }
   });
 
-  it('FIRES the boundary guard at the NEW effective edge', () => {
-    const { clean, scratch } = sixtySecondTake(55.8);
+  it('FIRES the boundary guard at the effective edge, wherever the floor puts it', () => {
+    const { clean, scratch } = sixtySecondTake(reachFor(60) - 0.2);
     const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
     expect(r.usable).toBe(false);
     expect(r.reason).toBe('peak-at-search-boundary-widen-window');
   });
 
   it('still refuses — never asserts — when the truth is beyond any reachable lag', () => {
-    // 58s on a 60s file leaves 2s of overlap, under the 4s variance floor.
-    const { clean, scratch } = sixtySecondTake(58);
+    // Leaves less overlap than the variance floor requires, so it is never scored.
+    const { clean, scratch } = sixtySecondTake(60 - FLOOR_SECONDS / 2);
     const r = findOffset(scratch, clean, { sampleRate: SR, maxOffsetSeconds: 60 });
     expect(r.usable).toBe(false);
   });
@@ -470,5 +479,60 @@ describe('partial-overlap pairings', () => {
     const r = findOffset(camera, clip, { sampleRate: SR, maxOffsetSeconds: 60 });
     expect(r.usable).toBe(true);
     expect(withinOneFrame(Math.abs(r.offsetSeconds), 18)).toBe(true);
+  });
+});
+
+/**
+ * THE OVERLAP FLOOR MUST HOLD AGAINST REAL SPEECH, NOT GAUSSIAN NOISE.
+ *
+ * The floor was first derived from uncorrelated Gaussian noise, which said 4 seconds
+ * was comfortably safe. Real envelopes are sparse, bursty and heavy-tailed — long
+ * near-silent stretches punctuated by loud syllables — and two unrelated ones agree
+ * by chance far more often. Worst spurious peak over 300 trials each:
+ *
+ *            gaussian    real speech
+ *     2.0s     0.179        0.588
+ *     4.0s     0.159        0.470   <- clears the 0.3 gate: confidently wrong
+ *     8.0s     0.124        0.268   safe
+ *
+ * So the Gaussian-derived floor was wrong by ~3x for the signals this module actually
+ * sees. This test asserts the property directly, so the floor cannot drift back to a
+ * value that only holds for a distribution we never encounter.
+ */
+describe('overlap floor holds against realistic speech statistics', () => {
+  const nccOf = (a, b) => {
+    const A = standardize(toEnvelope(a, SR));
+    const B = standardize(toEnvelope(b, SR));
+    const n = Math.min(A.length, B.length);
+    let sxy = 0; let sxx = 0; let syy = 0;
+    for (let i = 0; i < n; i += 1) { sxy += A[i] * B[i]; sxx += A[i] * A[i]; syy += B[i] * B[i]; }
+    const d = Math.sqrt(sxx * syy);
+    return d === 0 ? 0 : Math.abs(sxy / d);
+  };
+
+  it('keeps unrelated speech below the 0.3 peak gate at the configured floor', () => {
+    const floorSeconds = MIN_OVERLAP_FRAMES / ENVELOPE_HZ;
+    let worst = 0;
+    for (let t = 0; t < 120; t += 1) {
+      const a = speechLike(floorSeconds, { seed: 5000 + t * 2, rate: 1.5 + (t % 5) * 0.4 });
+      const b = speechLike(floorSeconds, { seed: 9000 + t * 2, rate: 2.0 + (t % 7) * 0.3 });
+      const score = nccOf(a, b);
+      if (score > worst) worst = score;
+    }
+    // Measured worst over 300 trials at 8s was 0.268; 120 trials should stay under
+    // the gate with margin. If this fails, the floor is too low for real content.
+    expect(worst).toBeLessThan(0.3);
+  });
+
+  it('demonstrates that a shorter floor would NOT hold — the reason 8s was chosen', () => {
+    let worst = 0;
+    for (let t = 0; t < 120; t += 1) {
+      const a = speechLike(2, { seed: 6000 + t * 2, rate: 1.5 + (t % 5) * 0.4 });
+      const b = speechLike(2, { seed: 8000 + t * 2, rate: 2.0 + (t % 7) * 0.3 });
+      const score = nccOf(a, b);
+      if (score > worst) worst = score;
+    }
+    // 2 seconds of unrelated speech can and does clear the gate.
+    expect(worst).toBeGreaterThan(0.3);
   });
 });

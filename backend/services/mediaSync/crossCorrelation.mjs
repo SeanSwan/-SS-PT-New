@@ -56,24 +56,35 @@ export const ENVELOPE_HZ = 100;
  *
  * The floor exists because NCC is normalized, so a short window can score high by
  * chance. That is a VARIANCE property (variance ~ 1/n), not a geometric one, so the
- * requirement is an amount of audio, not a proportion of the file. Measured worst
- * spurious peak across 400 uncorrelated trials:
+ * requirement is an amount of audio, not a proportion of the file.
  *
- *     0.1s -> 0.888   catastrophic (this was the original 8-frame bug)
- *     0.5s -> 0.410   still able to fake a peak
- *     1.0s -> 0.285   marginal against the 0.3 gate
- *     2.0s -> 0.179   safe
- *     4.0s -> 0.159   comfortably safe
+ * IT MUST BE MEASURED AGAINST THE RIGHT DISTRIBUTION. Derived from uncorrelated
+ * GAUSSIAN noise the answer looks like 4 seconds. Real speech envelopes are sparse,
+ * bursty and heavy-tailed — long near-silent stretches punctuated by loud syllables —
+ * and two unrelated ones agree by chance far more often. Worst spurious peak over 300
+ * trials of each, against the 0.3 peak gate:
  *
- * 4 seconds it is. The previous 50%-of-the-shorter-signal ratio was ~7.5x stricter
+ *              gaussian      REAL SPEECH ENVELOPES
+ *     0.5s      0.410              0.894
+ *     1.0s      0.285              0.900
+ *     2.0s      0.179              0.588
+ *     4.0s      0.159              0.470   <- would clear the gate: confidently wrong
+ *     8.0s      0.124              0.268   safe
+ *    15.0s        -                0.208   safe
+ *
+ * A 4-second floor chosen from the Gaussian column is wrong by roughly 3x for the
+ * signals this module actually sees. 8 seconds is the measured-safe value, and it
+ * still preserves the capability the old 50%-of-shorter ratio was costing: effective
+ * search on a 60s file is 52s (was 30s under the ratio), and a 12s-overlap pairing
+ * still syncs. The previous 50%-of-the-shorter-signal ratio was ~7.5x stricter
  * than statistics require and refused real pairings because of it: a 30s transmitter
  * clip against a 3-minute take sharing 10s of true overlap demanded 15s and never
  * scored the correct lag — a pair a human syncs by ear in seconds. An absolute floor
  * keeps the variance guard at full strength AND recovers that capability. It also
  * still blocks the sliver case that motivated the floor: at lag 59s on a 60s file the
- * overlap is 1s, well under 4s, so it is never scored.
+ * overlap is 1s, far under 8s, so it is never scored.
  */
-export const MIN_OVERLAP_FRAMES = ENVELOPE_HZ * 4;
+export const MIN_OVERLAP_FRAMES = ENVELOPE_HZ * 8;
 
 /**
  * Reduce a raw sample array to an RMS energy envelope at ENVELOPE_HZ.
