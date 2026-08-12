@@ -45,7 +45,11 @@ export function clampOpt(value, fallback, min, max) {
   // then clamp it to `min` (a client sending limit:null silently got 1 result).
   const supplied = value !== null && value !== undefined && value !== '';
   const n = supplied ? Number(value) : fallback;
-  return Math.min(Math.max(Number.isFinite(n) ? n : fallback, min), max);
+  // Truncate: every consumer feeds this into an argv slot (`ytsearch7.5:`,
+  // `--playlist-end 7.5`) or an array index, and a float there produces an opaque
+  // yt-dlp failure rather than a clear error. Truncate toward zero AFTER clamping
+  // so a fractional value inside the range cannot round out of it.
+  return Math.trunc(Math.min(Math.max(Number.isFinite(n) ? n : fallback, min), max));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,6 +78,15 @@ export function videoIdFrom(input) {
   if (typeof input !== 'string') return null;
   const s = input.trim();
   if (isVideoId(s)) return s;
+  // Anchor the host. Without it, ANY string carrying `?v=<11 safe chars>` yielded
+  // an id — including a non-YouTube URL — so a mistaken paste was accepted and
+  // then failed later as a confusing yt-dlp error instead of a clear rejection.
+  // There is no injection either way (the capture is charset-safe and we rebuild
+  // the URL rather than passing input through); this is about not accepting input
+  // we have no business accepting. A bare 11-char id is still fine, above.
+  if (!/(?:^|\.)(?:youtube\.com|youtube-nocookie\.com|youtu\.be)(?::\d+)?(?:\/|$|\?)/i.test(
+    s.replace(/^[a-z]+:\/\//i, '').split(/[/?#]/)[0] + '/',
+  )) return null;
   const patterns = [
     /[?&]v=([A-Za-z0-9_-]{11})(?:[&#]|$)/,
     /youtu\.be\/([A-Za-z0-9_-]{11})(?:[?&#/]|$)/,
@@ -111,15 +124,24 @@ export function channelUrlFrom(input) {
 
 /**
  * Resolve how to invoke yt-dlp. Prefers a yt-dlp already on PATH (instant);
- * falls back to `uvx yt-dlp`, which fetches a pinned copy on first use. uv is
- * present on this machine (0.11.25, verified 2026-08-11).
+ * falls back to `uvx yt-dlp`. uv is present on this machine (0.11.25, verified
+ * 2026-08-11). NOTE: the argv carries NO version pin — `uvx yt-dlp` resolves
+ * whatever PyPI serves that day. An earlier version of this comment claimed it
+ * fetched "a pinned copy", which was never true. Add `yt-dlp@<version>` here if
+ * supply-chain drift ever matters.
  *
  * Cached per-process: the probe costs a subprocess spawn, and a server handling
  * many calls should pay it once.
  */
 let _binCache;
 export function resolveYtDlp({ force } = {}) {
-  if (_binCache !== undefined && !force) return _binCache;
+  // Only a SUCCESSFUL probe is cached. Caching a null was a trap: the uvx probe
+  // has a 20s timeout, so a cold uv cache on a slow network reports "missing" for
+  // a yt-dlp that is merely slow to fetch — and that verdict then stuck for the
+  // life of the process, failing every later call with "yt-dlp is not available"
+  // even after the install finished. Re-probing costs one spawn per call, and
+  // only in the state that is already broken.
+  if (_binCache && !force) return _binCache;
   const probe = (file, args) => {
     try {
       execFileSync(file, args, { stdio: ['ignore', 'pipe', 'ignore'], timeout: 20_000, windowsHide: true });
@@ -170,7 +192,13 @@ export function parsePrintRows(stdout, fields) {
     .filter(Boolean)
     .map((line) => {
       const parts = line.split('\t');
-      if (parts.length < fields.length) return null;
+      // A row must have EXACTLY the expected field count. Too few was always
+      // dropped; too many used to be accepted and silently misaligned — a title
+      // containing a literal TAB shifted `channel` and every later field one
+      // right, so the channel rendered as the tail of the title and the agent
+      // recorded a wrong attribution as fact. `id` is field 0 so it survives
+      // either way, but a row we cannot align is not a row we can trust.
+      if (parts.length !== fields.length) return null;
       // yt-dlp prints the literal string "NA" for fields a flat listing does not
       // populate (upload_date on search results, for one). Normalize to null so
       // formatters render "?" instead of a bogus-looking "NA".

@@ -17,24 +17,19 @@
  * @module yt-scout-transcript
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, unlinkSync } from 'node:fs';
-import { join } from 'node:path';
-import { YtScoutError, clampOpt, isVideoId, videoIdFrom, runYtDlp } from './yt-scout-lib.mjs';
+import { YtScoutError, clampOpt } from './yt-scout-lib.mjs';
 
-export const CACHE_DIRNAME = join('.ai-workflow', 'scout-cache');
-/** Transcripts older than this are pruned by `pruneCache` (bytes are cheap, staleness is not). */
-export const CACHE_TTL_DAYS = 30;
-/** Subtitle language tags we will accept — keeps caller input out of an argv slot unchecked. */
-const LANG = /^[a-zA-Z]{2,3}(-[A-Za-z0-9]{1,8})?$/;
 
 /**
  * json3 → { text, cues }. json3 is YouTube's timed-text format: events carry
  * `tStartMs` plus `segs[]` word chunks. We keep cue timings because timestamped
  * excerpts are what make `searchTranscript` worth ~91 tokens instead of ~54,000.
  *
- * Auto-generated tracks emit rolling duplicate lines (each cue repeats the
- * previous one plus a word); dropping a cue wholly contained in its predecessor
- * removes the dominant noise without touching real repetition in the speech.
+ * Auto-generated tracks emit rolling duplicate lines; dropping a cue wholly
+ * contained in its predecessor removes the dominant noise. This DOES also drop a
+ * genuine consecutive repeat — see the tradeoff note at the check itself. An
+ * earlier version of this comment claimed real repetition was untouched, which
+ * was false.
  */
 export function parseJson3(raw) {
   let doc;
@@ -49,6 +44,14 @@ export function parseJson3(raw) {
     if (!ev.segs) continue;
     const text = ev.segs.map((s) => s.utf8 || '').join('').replace(/\s+/g, ' ').trim();
     if (!text) continue;
+    // KNOWN TRADEOFF, deliberately kept: this also drops a genuine consecutive
+    // repeat ("No." / "No."), losing that occurrence and its timestamp. Requiring
+    // a strict length decrease would preserve real repetition — but the dominant
+    // auto-caption noise pattern IS an exact duplicate line, so that change
+    // readmits the noise this exists to remove (verified: it turned a 2-cue parse
+    // into 3 on the canonical fixture). Noise suppression wins; exact-repeat loss
+    // is the accepted cost. The earlier claim that this left "real repetition"
+    // untouched was simply false.
     if (prev && prev.includes(text)) continue;
     cues.push({ ms: Number(ev.tStartMs) || 0, text });
     prev = text;
@@ -77,9 +80,26 @@ export function fmtTimestamp(ms) {
  * what keeps the timestamp pointing at the cue the phrase actually starts in
  * rather than a couple of cues early.
  */
+/** A cue is only usable if it carries both a numeric offset and real text. */
+const isCue = (c) => !!c && typeof c === 'object' && typeof c.ms === 'number' && typeof c.text === 'string';
+
 export function searchTranscript(cues, query, { context = 2, limit = 8, videoId } = {}) {
+  // Reject a wrong-shaped cue array loudly. `[1,2,3]` is valid JSON and passes an
+  // Array.isArray check, but every `.text` is undefined, the haystack becomes
+  // empty, and EVERY search then reports "No match" forever — while the cache
+  // entry is never re-fetched because validation "passed". Silent permanent
+  // blindness is the worst outcome available here.
+  if (!Array.isArray(cues) || !cues.every(isCue)) {
+    throw new YtScoutError('transcript cues are malformed — re-fetch with refresh:true');
+  }
   if (typeof query !== 'string' || !query.trim()) throw new YtScoutError('search query is required');
-  const needle = query.trim().toLowerCase();
+  // Collapse internal whitespace to match the haystack. parseJson3 already
+  // collapses `\s+` in every cue and the cues are joined with single spaces, so
+  // a query carrying a double space or a newline — routine when a phrase is
+  // pasted from wrapped text — could never match, and the tool answered with a
+  // confident "No match … try a shorter phrasing". A false negative reported as
+  // fact is worse than no answer, because the agent acts on it.
+  const needle = query.trim().replace(/\s+/g, ' ').toLowerCase();
   const ctx = clampOpt(context, 2, 0, 10);
   const cap = clampOpt(limit, 8, 1, 40);
 
@@ -118,10 +138,19 @@ export function searchTranscript(cues, query, { context = 2, limit = 8, videoId 
     const start = Math.max(0, cueIdx - ctx);
     const end = Math.min(cues.length - 1, cueIdx + ctx);
     lastEnd = end;
+    // `ms`/`timestamp`/`url` MUST stamp the cue the phrase is actually in, not
+    // the first cue of the surrounding context. Stamping cues[start] put the
+    // deep link `ctx` cues early — 20s early at the default context:2, and up to
+    // a minute at the permitted context:10. That is the whole threat model of
+    // this tool: an agent reads "he says X at 1:23:45", writes it into a repo
+    // rule, and the citation points somewhere he wasn't talking about it.
+    // excerptStart is kept separately for callers that want the window's head.
+    const match = cues[cueIdx];
     hits.push({
-      ms: cues[start].ms,
-      timestamp: fmtTimestamp(cues[start].ms),
-      url: videoId ? `https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(cues[start].ms / 1000)}s` : undefined,
+      ms: match.ms,
+      timestamp: fmtTimestamp(match.ms),
+      url: videoId ? `https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(match.ms / 1000)}s` : undefined,
+      excerptStartMs: cues[start].ms,
       excerpt: cues.slice(start, end + 1).map((c) => c.text).join(' '),
     });
     if (hits.length >= cap) break;
@@ -129,118 +158,19 @@ export function searchTranscript(cues, query, { context = 2, limit = 8, videoId 
   return hits;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Cache — full transcripts live on disk, never in a chat turn by default.
-// .ai-workflow/* is gitignored (verified via `git check-ignore`), so nothing
-// cached here can be committed by an `git add` sweep.
-// ─────────────────────────────────────────────────────────────────────────────
-
-export function cacheDir(root) {
-  const dir = join(root || process.cwd(), CACHE_DIRNAME);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-export function cachePath(root, videoId, ext = 'txt') {
-  if (!isVideoId(videoId)) throw new YtScoutError(`refusing to build a cache path for invalid id '${videoId}'`);
-  return join(cacheDir(root), `${videoId}.${ext}`);
-}
-
-/**
- * Files this module is allowed to delete: only the ones it creates. `<id>.txt`,
- * `<id>.cues.json`, and the `_raw_<id>.*.json3` intermediates. Anything else in
- * the directory belongs to someone else and is not ours to reap — an unfiltered
- * `readdirSync` + `unlink` loop is a delete primitive pointed at whatever happens
- * to share the folder, and `SWAN_SCOUT_ROOT` can repoint that folder.
- */
-const OURS = /^(?:[A-Za-z0-9_-]{11}\.(?:txt|cues\.json)|_raw_[A-Za-z0-9_-]{11}\..*\.json3)$/;
-
-/** Delete cached transcripts older than `days`. Returns the count removed. */
-export function pruneCache(root, { days = CACHE_TTL_DAYS } = {}) {
-  const dir = cacheDir(root);
-  const cutoff = Date.now() - effectivePruneDays(days) * 86_400_000;
-  let removed = 0;
-  for (const name of readdirSync(dir)) {
-    if (!OURS.test(name)) continue; // not ours — leave it alone
-    const p = join(dir, name);
-    try {
-      if (statSync(p).mtimeMs < cutoff) { unlinkSync(p); removed += 1; }
-    } catch { /* a file vanishing under us is not an error worth failing on */ }
-  }
-  return removed;
-}
-
-/**
- * The single source of truth for how `days` is interpreted, exported so a caller
- * can report the value it will actually get instead of re-deriving it. Callers
- * MUST NOT pre-convert with `Number(x)`: `Number(null) === 0` is finite, so a
- * client sending `days: null` would mean "cutoff = now" and reap the whole cache.
- * Verified 2026-08-12 — that is exactly what happened before this existed.
- */
-export function effectivePruneDays(days) {
-  return clampOpt(days, CACHE_TTL_DAYS, 0, 3650);
-}
-
 /** Rough token estimate. 4 chars/token is the usual English approximation. */
 export const estimateTokens = (text) => Math.round(String(text || '').length / 4);
 
-/**
- * Fetch (or reuse) a transcript. Always writes the full text to the cache and
- * returns a COMPACT receipt — never the body — so a caller must consciously ask
- * for text via `searchTranscript` or by reading the file.
- *
- * Prefers a human-written track and falls back to the auto-generated one. The
- * exact suffix yt-dlp emits varies by track (`.en.json3`, `.en-orig.json3`), so
- * we glob the output directory rather than guessing.
- */
-export function fetchTranscript(videoId, { root, refresh = false, lang = 'en' } = {}) {
-  const id = videoIdFrom(videoId);
-  if (!id) throw new YtScoutError(`'${videoId}' is not a YouTube video id or URL`);
-  if (!LANG.test(lang)) throw new YtScoutError(`'${lang}' is not a valid language tag`);
+// ─────────────────────────────────────────────────────────────────────────────
+// Cache — re-exported from yt-scout-cache.mjs.
+//
+// The implementations moved when the packet-8 fixes pushed this file past the
+// Rule 4 300-line cap. They are re-exported here, rather than leaving callers to
+// chase a new path, so this module stays the single import surface for
+// "transcript things" and the split is an internal detail.
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const dir = cacheDir(root);
-  const txtPath = join(dir, `${id}.txt`);
-  const cuesPath = join(dir, `${id}.cues.json`);
-
-  if (!refresh && existsSync(txtPath) && existsSync(cuesPath)) {
-    // The two cache files are written sequentially, so a crash or a kill between
-    // them can leave a truncated cues.json. Reading it with a bare JSON.parse
-    // threw a raw SyntaxError that surfaced as an opaque "tool error" and made
-    // the video permanently unreadable until someone guessed `refresh: true`.
-    // A corrupt cache is a cache miss, not a dead end — fall through and refetch.
-    try {
-      const text = readFileSync(txtPath, 'utf-8');
-      const cues = JSON.parse(readFileSync(cuesPath, 'utf-8'));
-      if (!Array.isArray(cues)) throw new Error('cues cache is not an array');
-      return {
-        videoId: id, cached: true, path: txtPath,
-        cues, chars: text.length, tokens: estimateTokens(text),
-      };
-    } catch {
-      try { unlinkSync(cuesPath); } catch { /* best effort */ }
-    }
-  }
-
-  const stem = join(dir, `_raw_${id}`);
-  runYtDlp([
-    `https://www.youtube.com/watch?v=${id}`,
-    '--skip-download', '--write-subs', '--write-auto-subs',
-    '--sub-langs', `${lang}.*`, '--sub-format', 'json3',
-    '--no-warnings', '-o', `${stem}.%(ext)s`,
-  ], { timeout: 180_000 });
-
-  // Prefer the non-"orig" (human/edited) track when both landed.
-  const produced = readdirSync(dir)
-    .filter((f) => f.startsWith(`_raw_${id}.`) && f.endsWith('.json3'))
-    .sort((a, b) => Number(a.includes('-orig')) - Number(b.includes('-orig')));
-  if (!produced.length) {
-    throw new YtScoutError(`no ${lang} transcript is published for ${id} (captions may be disabled)`);
-  }
-
-  const { text, cues } = parseJson3(readFileSync(join(dir, produced[0]), 'utf-8'));
-  writeFileSync(txtPath, text, 'utf-8');
-  writeFileSync(cuesPath, JSON.stringify(cues), 'utf-8');
-  for (const f of produced) { try { unlinkSync(join(dir, f)); } catch { /* best effort */ } }
-
-  return { videoId: id, cached: false, path: txtPath, cues, chars: text.length, tokens: estimateTokens(text) };
-}
+export {
+  CACHE_DIRNAME, CACHE_TTL_DAYS, cacheDir, cachePath, langCachePaths, textToken,
+  pruneCache, effectivePruneDays, fetchTranscript,
+} from './yt-scout-cache.mjs';

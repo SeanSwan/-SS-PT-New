@@ -12,7 +12,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync, existsSync, utimesSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, existsSync, utimesSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -20,7 +20,7 @@ import {
 } from './yt-scout-lib.mjs';
 import {
   parseJson3, fmtTimestamp, searchTranscript, cachePath, pruneCache, estimateTokens,
-  effectivePruneDays, CACHE_TTL_DAYS, fetchTranscript,
+  effectivePruneDays, CACHE_TTL_DAYS, fetchTranscript, langCachePaths, textToken,
 } from './yt-scout-transcript.mjs';
 import { capText, HARD_TEXT_CAP, TOOLS } from '../mcp/swan-scout-server.mjs';
 
@@ -118,7 +118,10 @@ test('searchTranscript finds a phrase that straddles a cue boundary', () => {
   assert.match(hits[0].excerpt, /context/);
 });
 
-test('searchTranscript stamps a jump-to URL at the excerpt start', () => {
+// RENAMED: this used to be called "stamps a jump-to URL at the excerpt start",
+// which described the defect. With context:0 the two coincide, so the old test
+// passed either way and locked nothing — the context>0 case below is the real lock.
+test('searchTranscript stamps the jump-to URL at the MATCH cue', () => {
   const [hit] = searchTranscript(CUES, 'entirely different', { context: 0, videoId: '7xTGNNLPyMI' });
   assert.equal(hit.timestamp, '0:20');
   assert.equal(hit.url, 'https://www.youtube.com/watch?v=7xTGNNLPyMI&t=20s');
@@ -271,9 +274,29 @@ test('REGRESSION: days:null must mean "the default", not "reap everything"', () 
   assert.equal(effectivePruneDays(null), CACHE_TTL_DAYS, 'null means not-supplied');
   assert.equal(effectivePruneDays(undefined), CACHE_TTL_DAYS, 'undefined means not-supplied');
   assert.equal(effectivePruneDays(''), CACHE_TTL_DAYS, 'empty string means not-supplied');
-  assert.equal(effectivePruneDays(0), 0, 'an EXPLICIT 0 still means "clear it all"');
   assert.equal(effectivePruneDays(7), 7, 'a real value passes through');
-  assert.equal(effectivePruneDays(-5), 0, 'negatives clamp to the floor');
+  // RE-ANCHORED: the floor was 0, so `days: 0` (and negatives clamping up to 0)
+  // meant "cutoff = now" = reap everything. Closing the null hole left that open
+  // to any caller that COMPUTED the value. The floor is now 1 and a full reap
+  // requires an explicit all:true, so 0 no longer expresses "delete everything".
+  assert.equal(effectivePruneDays(0), 1, 'an explicit 0 no longer means "reap all" — floor is 1');
+  assert.equal(effectivePruneDays(-5), 1, 'negatives clamp to the floor of 1, not 0');
+});
+
+test('REGRESSION: a full cache reap requires all:true, not arithmetic', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'scout-all-'));
+  const cache = join(dir, '.ai-workflow', 'scout-cache');
+  cachePath(dir, 'aaaaaaaaaaa');
+  // Written NOW, so no age-based prune should ever touch them.
+  for (const n of ['aaaaaaaaaaa.en.txt', 'bbbbbbbbbbb.en.txt']) writeFileSync(join(cache, n), 'fresh');
+
+  assert.equal(pruneCache(dir, { days: 0 }), 0, 'days:0 must NOT reap fresh files any more');
+  assert.equal(pruneCache(dir, { days: -30 }), 0, 'a negative must NOT reap fresh files');
+  assert.equal(readdirSync(cache).length, 2, 'both files survive age-based pruning');
+
+  assert.equal(pruneCache(dir, { all: true }), 2, 'all:true reaps regardless of age');
+  assert.equal(readdirSync(cache).length, 0, 'and the cache is empty only when asked explicitly');
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test('REGRESSION: prune must only delete files it created', () => {
@@ -300,8 +323,11 @@ test('REGRESSION: prune must only delete files it created', () => {
 
 test('REGRESSION: a corrupt cues cache self-heals instead of failing forever', () => {
   const dir = mkdtempSync(join(tmpdir(), 'scout-corrupt-'));
-  const txt = cachePath(dir, 'aaaaaaaaaaa', 'txt');
-  const cues = cachePath(dir, 'aaaaaaaaaaa', 'cues.json');
+  // RE-ANCHORED to the lang-keyed filenames. Cache paths are now `<id>.<lang>.*`
+  // because keying on the id alone served the first-fetched language for every
+  // later language request. With the old names this test planted files
+  // fetchTranscript never looks at, so it proved nothing.
+  const { txtPath: txt, cuesPath: cues } = langCachePaths(dir, 'aaaaaaaaaaa', 'en');
   writeFileSync(txt, 'some transcript text');
   writeFileSync(cues, '[{"ms":0,"text":"trunca');  // killed mid-write
 
@@ -314,4 +340,108 @@ test('REGRESSION: a corrupt cues cache self-heals instead of failing forever', (
   assert.notEqual(err.name, 'SyntaxError', 'the failure must not be a raw JSON parse error');
   assert.equal(existsSync(cues), false, 'the corrupt cue file is discarded so the next call is clean');
   rmSync(dir, { recursive: true, force: true });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REGRESSIONS from the Kimi K3 packet-8 review (2026-08-12). Every finding below
+// was reproduced against the prior revision before being fixed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('KIMI F1: the timestamp points at the match cue, NOT the context start', () => {
+  // Previously stamped cues[cueIdx - context], putting the deep link `context`
+  // cues early — 20s at the default, up to a minute at the permitted context:10.
+  // "he says X at 1:23:45" pointing somewhere he wasn't is the core threat here.
+  const [hit] = searchTranscript(CUES, 'entirely different', { context: 2, videoId: '7xTGNNLPyMI' });
+  assert.equal(hit.ms, 20_000, 'ms is the cue containing the phrase');
+  assert.equal(hit.timestamp, '0:20');
+  assert.match(hit.url, /&t=20s$/, 'the deep link agrees with the timestamp');
+  assert.equal(hit.excerptStartMs, 10_000, 'the window head is exposed separately, not as the timestamp');
+  assert.match(hit.excerpt, /window and how it fills up/, 'the excerpt still spans the context window');
+});
+
+test('KIMI F4: a query with collapsed-whitespace variance still matches', () => {
+  // The haystack collapses \s+ per cue; the needle did not, so a double space or
+  // a newline — routine in pasted text — produced a confident false "No match".
+  assert.equal(searchTranscript(CUES, 'the  context', { context: 0 }).length,
+    searchTranscript(CUES, 'the context', { context: 0 }).length,
+    'a double space matches exactly like a single space');
+  assert.ok(searchTranscript(CUES, 'context\nwindow', { context: 0 }).length > 0, 'a newline in the query still matches');
+  assert.ok(searchTranscript(CUES, '  entirely   different  ', { context: 0 }).length > 0, 'ragged whitespace still matches');
+});
+
+test('KIMI F2: cache paths are keyed by language, not just video id', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'scout-lang-'));
+  const en = langCachePaths(dir, 'aaaaaaaaaaa', 'en');
+  const fr = langCachePaths(dir, 'aaaaaaaaaaa', 'fr');
+  assert.notEqual(en.txtPath, fr.txtPath, 'two languages cannot share one text cache');
+  assert.notEqual(en.cuesPath, fr.cuesPath, 'two languages cannot share one cue cache');
+  assert.match(en.txtPath, /aaaaaaaaaaa\.en\.txt$/);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('KIMI F3: cues bound to a stale generation are rejected, not served', () => {
+  // The killer case: a refresh killed between the two writes leaves a NEW txt with
+  // the PREVIOUS cues — valid JSON, correct shape, so no structural check catches
+  // it. Excerpts and timestamps would come from the old generation while the
+  // receipt reported the new size. The token binds cues to the text they describe.
+  const a = textToken('the original transcript text');
+  const b = textToken('a DIFFERENT generation of the transcript');
+  assert.notEqual(a, b, 'different text yields a different token');
+  assert.equal(a, textToken('the original transcript text'), 'the token is deterministic');
+
+  const dir = mkdtempSync(join(tmpdir(), 'scout-gen-'));
+  const { txtPath, cuesPath } = langCachePaths(dir, 'aaaaaaaaaaa', 'en');
+  writeFileSync(txtPath, 'a DIFFERENT generation of the transcript');
+  // Well-formed cues, but carrying the token of the PREVIOUS text.
+  writeFileSync(cuesPath, JSON.stringify({ token: a, lang: 'en', cues: [{ ms: 0, text: 'stale cue' }] }));
+  let err;
+  try { fetchTranscript('aaaaaaaaaaa', { root: dir }); } catch (e) { err = e; }
+  assert.ok(err, 'a generation mismatch must not be served as truth');
+  assert.equal(existsSync(cuesPath), false, 'the mismatched cues are discarded');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('KIMI F17: malformed cues throw instead of reporting "No match" forever', () => {
+  // [1,2,3] is valid JSON and passes Array.isArray, but every .text is undefined,
+  // so the haystack is empty and EVERY search silently missed — permanently,
+  // because the entry was never re-fetched.
+  assert.throws(() => searchTranscript([1, 2, 3], 'anything', {}), YtScoutError);
+  assert.throws(() => searchTranscript([{ ms: 'x', text: 'y' }], 'anything', {}), YtScoutError);
+  assert.throws(() => searchTranscript([{ ms: 0 }], 'anything', {}), YtScoutError);
+  assert.throws(() => searchTranscript(null, 'anything', {}), YtScoutError);
+});
+
+test('KIMI F14: an inherited property name is not a tool', () => {
+  // TOOLS[name] resolved built-ins, so name:"constructor" was truthy, bypassed the
+  // unknown-tool error, and failed down the wrong path.
+  for (const name of ['constructor', 'hasOwnProperty', '__proto__', 'toString']) {
+    assert.equal(Object.hasOwn(TOOLS, name), false, `${name} must not resolve as a tool`);
+  }
+  assert.equal(Object.hasOwn(TOOLS, 'yt_search'), true, 'real tools still resolve');
+});
+
+test('KIMI F16: a fractional limit is truncated before it reaches an argv slot', () => {
+  assert.equal(clampOpt(7.5, 8, 1, 50), 7, 'floats truncate — `ytsearch7.5:` is an opaque yt-dlp failure');
+  assert.equal(clampOpt(0.4, 8, 1, 50), 1, 'truncation happens after clamping, so it cannot fall below min');
+  assert.equal(clampOpt(50.9, 8, 1, 50), 50, 'nor above max');
+  assert.equal(Number.isInteger(clampOpt(2.7, 8, 0, 10)), true);
+});
+
+test('KIMI F8: a row that cannot be aligned is dropped, not misaligned', () => {
+  // A literal TAB in a title shifted channel/duration/date/views one field right,
+  // so the channel rendered as the tail of the title — a wrong attribution as fact.
+  const fields = ['id', 'title', 'channel'];
+  assert.equal(parsePrintRows('abc\tTi\ttle\tChan', fields).length, 0, 'too many fields is untrustworthy');
+  assert.equal(parsePrintRows('abc\tTitle\tChan', fields).length, 1, 'an exact row is still kept');
+  assert.equal(parsePrintRows('abc\tTitle', fields).length, 0, 'too few is still dropped');
+});
+
+test('KIMI F13: a non-YouTube host carrying a v= param is rejected', () => {
+  const id = '7xTGNNLPyMI';
+  assert.equal(videoIdFrom(`https://evil.com/watch?v=${id}`), null);
+  assert.equal(videoIdFrom(`https://youtube.com.evil.io/watch?v=${id}`), null, 'a suffix impostor is not YouTube');
+  // Everything legitimate still resolves.
+  assert.equal(videoIdFrom(`https://m.youtube.com/watch?v=${id}`), id);
+  assert.equal(videoIdFrom(`https://www.youtube-nocookie.com/embed/${id}`), id);
+  assert.equal(videoIdFrom(`youtube.com/watch?v=${id}`), id, 'a scheme-less host still works');
 });
