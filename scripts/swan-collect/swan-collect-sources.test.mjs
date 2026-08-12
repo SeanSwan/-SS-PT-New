@@ -7,6 +7,8 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 import { CollectError, decodeAndStrip, decodeEntities } from './core/item.mjs';
 import { extractFeed, normalizeFeedDate, splitEntries, tagText, feedUrlFor, unwrapCdata } from './adapters/rss.mjs';
@@ -487,4 +489,29 @@ test('parseArgs maps flags to handles and reserved keys correctly', () => {
   assert.equal(a.handles.bluesky, 'reuters.com');
   assert.equal(a.sources, true);
   assert.equal(a.handles.name, undefined, 'reserved flags must not become handles');
+});
+
+// REGRESSION: parseArgs must let unknown flags fall through to handles (source
+// keys are dynamic), so a typo like --blueksy used to become a handle for a
+// non-existent source, get skipped, and still exit 0 with "0 source(s) failed".
+// A green result for a source that was never contacted is worse than an error.
+// Driven through the real CLI entry point — the refusal happens before any
+// network call, so this stays offline and fast.
+test('REGRESSION: a typo\'d source key is refused, not silently reported green', () => {
+  const cli = fileURLToPath(new URL('./run.mjs', import.meta.url));
+  const r = spawnSync(process.execPath,
+    [cli, '--name', 'Reuters', '--category', 'organization', '--blueksy', 'reuters.com'],
+    { encoding: 'utf8' });
+
+  assert.equal(r.status, 2, `a typo'd source must exit non-zero, got ${r.status}\n${r.stdout}${r.stderr}`);
+  assert.match(r.stderr, /unknown-source/, 'it must name the failure class');
+  assert.match(r.stderr, /--blueksy/, 'it must echo the offending flag back');
+  assert.match(r.stderr, /bluesky/, 'it must list the valid sources so the typo is obvious');
+  assert.doesNotMatch(r.stdout, /0 source\(s\) failed/, 'it must not print a success summary');
+});
+
+test('a valid source key is still accepted by the same guard', () => {
+  const a = parseArgs(['--name', 'NPR', '--category', 'organization', '--rss', 'https://example.com/f.xml']);
+  assert.equal(a.handles.rss, 'https://example.com/f.xml');
+  assert.deepEqual(Object.keys(a.handles), ['rss'], 'only the real source key lands in handles');
 });
