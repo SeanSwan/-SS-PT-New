@@ -95,11 +95,16 @@ try {
       SELECT count(*)::int AS tables FROM information_schema.tables
       WHERE table_schema = 'public'
     `);
+    // Table names are NOT uniformly cased in this schema: `Users` is quoted
+    // PascalCase while the workout tables are snake_case. Checking for
+    // "WorkoutSessions" reported a missing table that was present all along as
+    // workout_sessions — a verifier that lies is worse than no verifier.
     const [core] = await sequelize.query(`
       SELECT
-        to_regclass('public."Users"')          IS NOT NULL AS users,
-        to_regclass('public."WorkoutSessions"') IS NOT NULL AS workout_sessions,
-        to_regclass('public.swan_qa_sentinel') IS NOT NULL AS sentinel
+        to_regclass('public."Users"')              IS NOT NULL AS users,
+        to_regclass('public.workout_sessions')     IS NOT NULL AS workout_sessions,
+        to_regclass('public.daily_workout_forms')  IS NOT NULL AS daily_workout_forms,
+        to_regclass('public.swan_qa_sentinel')     IS NOT NULL AS sentinel
     `);
     console.log(`models registered : ${modelCount}`);
     console.log(`tables in public  : ${rows[0].tables}`);
