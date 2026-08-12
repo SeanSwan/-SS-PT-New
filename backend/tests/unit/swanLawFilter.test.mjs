@@ -156,6 +156,82 @@ test('the exemption is scoped to `negative` only — other slots still scanned',
   assert.equal(applyLaws({ subject: 'a dragon' }).passed, false);
 });
 
+// ── Regressions from the shipped-code hostile review (Kimi K3) ──────────────
+
+test('REGRESSION: "golden hour" is LIGHT, not gold ornament', () => {
+  // The highest-damage false positive found: the most on-brand photographic
+  // phrase Swan has was being blocked by LAW 2.
+  assert.equal(applyLaws({ light: 'golden hour light through Baltic amber' }).passed, true);
+  assert.equal(applyLaws({ composition: 'golden ratio grid' }).passed, true);
+  // Gold as ornament is still blocked — the idiom is not a general amnesty.
+  assert.equal(applyLaws({ palette: 'gilded surfaces throughout' }).passed, false);
+});
+
+test('REGRESSION: occluder framing is a SHAPE allowance, not a rendering licence', () => {
+  // Presence of lawful framing is not absence of unlawful rendering.
+  assert.equal(applyLaws({
+    subject: 'a photorealistic swan rendered as a dark occluder in a caustic field, feathers visible, eyes detailed',
+  }).passed, false);
+  assert.equal(applyLaws({ subject: 'swan as dark occluder, feathers visible' }).passed, false);
+  // The legitimate form still passes.
+  assert.equal(applyLaws({ subject: 'a swan as a dark occluder in a caustic field' }).passed, true);
+});
+
+test('REGRESSION: unicode and spacing evasion is normalized before matching', () => {
+  assert.equal(applyLaws({ material: 'iridescent​ gradient wash' }).passed, false, 'zero-width');
+  assert.equal(applyLaws({ material: 'ｉｒｉｄｅｓｃｅｎｔ gradient' }).passed, false, 'fullwidth');
+  assert.equal(applyLaws({ material: 'i r i d e s c e n t gradient' }).passed, false, 'spaced letters');
+});
+
+test('normalization does not mangle ordinary prose', () => {
+  // The spaced-letter collapse only fires on runs of 4+ single letters.
+  assert.equal(applyLaws({ light: 'a soft glow at the horizon' }).passed, true);
+  assert.equal(applyLaws({ intent: 'I do not want a lens flare' }).passed, false); // still catches the real term
+});
+
+// ── Regressions from the HY3 shipped-code hostile review ────────────────────
+
+test('REGRESSION: a lawful phrase elsewhere in the slot is not a shield (HY3 F3)', () => {
+  // "occluder" appearing anywhere used to license any creature in the same slot.
+  assert.equal(applyLaws({
+    subject: 'a dark occluder in a caustic field - and a smiling swan paddling in the foreground',
+  }).passed, false);
+  // A static light-blocking shape is still lawful.
+  assert.equal(applyLaws({ subject: 'a swan as a dark occluder in a caustic field' }).passed, true);
+});
+
+test('REGRESSION: LAW 10 applies to the negative slot — exempt from taste, not content (HY3 F4)', () => {
+  // The negative slot reaches a verified provider verbatim and is persisted to
+  // the generation record. Taste exemption is not a content-law exemption.
+  assert.equal(applyLaws({ intent: 'hero', negative: 'yoga, meditation' }).passed, false);
+  // Naming banned AESTHETICS in negative remains correct and must keep passing.
+  assert.equal(applyLaws({
+    intent: 'hero',
+    negative: 'iridescent gradient, lens flare, literal creature form',
+  }).passed, true);
+});
+
+test('REGRESSION: retired palette is reachable by NAME, not only hex (HY3 F5)', () => {
+  assert.equal(applyLaws({ palette: 'fill with galaxy purple' }).passed, false);
+  assert.equal(applyLaws({ palette: 'nebula blue wash' }).passed, false);
+  // "cosmic" in ordinary prose is not a palette claim.
+  assert.equal(applyLaws({ intent: 'a vast cosmic scale' }).passed, true);
+});
+
+test('REGRESSION: non-English creature lemmas are caught (HY3 F2)', () => {
+  // An image model understands "cygne" even though an ASCII regex does not.
+  for (const s of ['a cygne rendered as bent light', 'ein schwan im licht', 'un cisne']) {
+    assert.equal(applyLaws({ subject: s }).passed, false, `should block: ${s}`);
+  }
+});
+
+test('DISPROVEN CLAIM (kept as a guard): bird-eye idiom variants all pass', () => {
+  // HY3 claimed only the exact string was masked. It was not — but pin it.
+  for (const v of ["bird's-eye view", 'birds-eye view', 'bird eye view', "bird's eye view", 'birds eye view']) {
+    assert.equal(applyLaws({ composition: `${v} of the fjord` }).passed, true, `should allow: ${v}`);
+  }
+});
+
 test('empty and partial slot maps do not crash', () => {
   assert.equal(applyLaws({}).passed, true);
   assert.equal(applyLaws({ subject: undefined, intent: '' }).passed, true);
