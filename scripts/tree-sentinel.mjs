@@ -24,7 +24,7 @@
  */
 import { execSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { ledgerDir, parseLane, FRESH_MIN } from './lib/lane-core.mjs';
+import { ledgerDir, activeLocks, FRESH_MIN } from './lib/lane-core.mjs';
 
 const ROOT = process.cwd();
 const JSON_MODE = process.argv.includes('--json');
@@ -93,6 +93,11 @@ for (const [idx, wt] of worktrees.entries()) {
     const [behind, ahead] = counts.split(/\s+/).map(Number);
     wt.behind = behind;
     wt.ahead = ahead;
+  } else {
+    /* A failed rev-list used to leave `ahead` undefined; `undefined === 0` is false,
+     * so every worktree fell through to UNMERGED and printed "+undefined ahead" in
+     * the tool whose output drives cleanup decisions. Unknown is its own state. */
+    wt.ahead = null;
   }
   if (FAST) {
     wt.dirty = -1; // not checked in fast mode
@@ -105,6 +110,7 @@ for (const [idx, wt] of worktrees.entries()) {
   // hide its branch from the UNMERGED list (bug caught 2026-07-21 final audit).
   if (wt.isPrimary) wt.klass = 'MAIN-TREE';
   else if (wt.detached) wt.klass = wt.dirty > 0 ? 'DETACHED-DIRTY' : 'DETACHED';
+  else if (wt.ahead === null) wt.klass = 'AHEAD-UNKNOWN';
   else if (wt.ahead === 0)
     // dirty unknown (--fast) → plain MERGED, never claim CLEAN without checking (Rule 19)
     wt.klass = wt.dirty === 0 ? 'MERGED-CLEAN' : wt.dirty > 0 ? 'MERGED-DIRTY' : 'MERGED';
@@ -130,7 +136,11 @@ for (const file of laneFiles) {
    * release() rewrite bumps it) — it is simply harder to get wrong by accident,
    * which is the actual failure mode here. Advisory either way. */
   const ageMin = Math.round((Date.now() - statSync(lanePath).mtimeMs) / 60000);
-  const { locks } = parseLane(readFileSync(lanePath, 'utf8'), `${LEDGER_DIR}/../..`);
+  /* activeLocks, not parseLane: a lane declaring itself idle holds nothing. The
+   * digest and the push hook were fixed to honour that; this file was the THIRD
+   * consumer and was left behind, so a released lane still showed locks here —
+   * the same two-readers-disagree bug, one file over. One helper, all three. */
+  const locks = activeLocks(readFileSync(lanePath, 'utf8'), `${LEDGER_DIR}/../..`);
   // Back-compat: `laneLocks[agent]` keeps its original string | string[] shape for
   // any existing --json consumer; freshness rides alongside in `laneAges`.
   lanes[agent] = locks.length ? locks : 'released';

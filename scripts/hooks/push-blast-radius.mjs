@@ -23,7 +23,7 @@
  */
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { FRESH_MIN, sh, ledgerDir, identity, safeRef, parseLane, lockMatches } from '../lib/lane-core.mjs';
+import { FRESH_MIN, sh, ledgerDir, identity, safeRef, parseLane, activeLocks, lockMatches } from '../lib/lane-core.mjs';
 
 /** Paths automation EXECUTES on deploy — enumerated from render.yaml and CI reality,
  *  not just `backend/migrations/**`, which was the narrow predicate reviewers rejected. */
@@ -65,8 +65,19 @@ function main() {
    * directory instead reported the wrong branch, the wrong diff and the wrong
    * deploy-linked verdict, with no hint that it had done so — verified:
    * `git -C C:/tmp/ss-apex push` printed this repo's branch. Honour -C. */
-  const dashC = bare.match(/\s-C\s+("?)([^\s"]+)\1/);
-  const REPO = dashC && existsSync(dashC[2]) ? dashC[2] : process.cwd();
+  /* Quoted paths are the norm on Windows and the old pattern could not span one, so
+   * `git -C "C:/My Repo" push` fell through to cwd and reported THIS repo as fact.
+   * Silent fallback is the failure this fix exists to kill, so an unresolvable -C now
+   * fails CLOSED: the analysis is skipped and the skip is stated. Also accepts the
+   * `=` form and --git-dir/--work-tree, which the detection regex already admitted. */
+  /* Match on the RAW command, not the quote-stripped copy:  blanks quoted
+   * runs, so a quoted -C path was gone before this ever looked for it. */
+  const dashC = cmd.match(/\s-C(?:\s+|=)(?:"([^"]+)"|'([^']+)'|(\S+))/)
+    || bare.match(/\s--(?:git-dir|work-tree)(?:\s+|=)(?:"([^"]+)"|'([^']+)'|(\S+))/);
+  const dashCRaw = dashC ? (dashC[1] ?? dashC[2] ?? dashC[3]) : null;
+  const dashCPath = dashCRaw ? dashCRaw.replace(/[/\\]\.git$/, '') : null;
+  const dashCBroken = Boolean(dashCPath) && !existsSync(dashCPath);
+  const REPO = dashCPath && !dashCBroken ? dashCPath : process.cwd();
   const shx = (cmd) => sh(cmd, REPO);
 
   const branch = shx('git rev-parse --abbrev-ref HEAD');
@@ -81,7 +92,12 @@ function main() {
    * DEPLOY-LINKED flag. And do NOT infer deploy-linked from the CURRENT branch
    * when the command names an explicit target — sitting on `main` while pushing a
    * feature branch produced the production lecture for no reason. */
-  const deRef = bare.replace(/refs\/(heads|remotes|tags)\//gi, '').replace(/origin\//gi, ' ');
+  /* Only the text AFTER `push` describes the target. Scanning the whole command
+   * meant `git pull origin main && git push origin feature-x` — the single most
+   * common flow here — raised DEPLOY-LINKED on a feature push, training readers to
+   * ignore the highest-severity flag this hook has. */
+  const afterPush = bare.slice(bare.search(/\bpush\b/i) + 4);
+  const deRef = afterPush.replace(/refs\/(heads|remotes|tags)\//gi, '').replace(/origin\//gi, ' ');
   const deployRefNamed = /(?:^|[\s:\/])(main|master|production)(?:\s|$)/i.test(deRef);
   const pushIdx = bare.split(/\s+/).findIndex((t) => /^push$/i.test(t));
   const pushArgs = pushIdx === -1 ? [] : bare.split(/\s+/).slice(pushIdx + 1).filter((t) => !t.startsWith("-"));
@@ -101,7 +117,11 @@ function main() {
    * refspec fired the warning on any git command carrying an absolute path —
    * a false positive on one of the most common shapes in this repo. Exclude
    * single-letter drive prefixes. */
-  const refspecToken = bare.split(/\s+/).some((t) => /^[^:]+:[^:]+$/.test(t) && !/^[A-Za-z]:[\\/]/.test(t));
+  /* `git@github.com:org/repo.git` is an scp-style remote, not a refspec, and it fired
+   * this warning on every SSH push with a perfectly trustworthy range below it. */
+  const refspecToken = bare.split(/\s+/).some((t) => /^[^:]+:[^:]+$/.test(t)
+    && !/^[A-Za-z]:[\\/]/.test(t)
+    && !/@/.test(t.split(':')[0]));
   const explicitRefspec = refspecToken || /\s--all\b|\s--tags\b|\s--mirror\b/i.test(bare);
 
   let changed = null;
@@ -127,14 +147,14 @@ function main() {
   /* Files another LIVE session has locked (advisory, Rule 67 R6). */
   const lockClash = [];
   try {
-    const ledger = ledgerDir();
+    const ledger = ledgerDir(REPO);   // the repo being pushed, not necessarily the cwd
     const mine = identity().laneName; // exact session lane — NOT the agent-name prefix
     if (ledger && existsSync(ledger) && changed?.length) {
       for (const file of readdirSync(ledger).filter((x) => x.endsWith('.lane.md'))) {
         if (file === mine) continue;
         const p = resolve(ledger, file);
         if ((Date.now() - statSync(p).mtimeMs) / 60000 > FRESH_MIN) continue;
-        for (const lock of parseLane(readFileSync(p, 'utf8'), resolve(ledger, '..', '..')).locks) {
+        for (const lock of activeLocks(readFileSync(p, 'utf8'), resolve(ledger, '..', '..'))) {
           if (changed.some((c) => lockMatches(c, lock))) {
             lockClash.push(`${file.replace('.lane.md', '')} :: ${lock}`);
           }
@@ -143,11 +163,15 @@ function main() {
     }
   } catch { /* advisory only */ }
 
-  if (!hits.length && !forced && !leased && !lockClash.length && !rangeNote && !explicitRefspec && !switchesBranch) return;
+  if (!hits.length && !forced && !leased && !lockClash.length && !rangeNote && !explicitRefspec && !switchesBranch && !dashCBroken) return;
 
   const out = ['⚠ PUSH BLAST RADIUS — read before you confirm this push.', ''];
   out.push(`branch: ${branch || '(unknown)'}${targetsDeployRef ? '   ⚠ DEPLOY-LINKED' : ''}`);
   if (REPO !== process.cwd()) out.push(`repo:   ${REPO}  (via -C — analysed there, not here)`);
+  if (dashCBroken) {
+    out.push(`🔴 -C target ${dashCPath} does not exist — NOTHING below was analysed for it.`);
+    out.push('   The figures shown describe the current directory instead. Treat as UNCHECKED.');
+  }
   if (rangeNote) out.push(`🟠 ${rangeNote}  Treat the file list below as INCOMPLETE.`);
   if (switchesBranch) {
     out.push('🟠 this command changes branch before pushing. Everything below describes the');

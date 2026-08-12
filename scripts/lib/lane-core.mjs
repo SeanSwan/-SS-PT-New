@@ -114,6 +114,8 @@ export function safeRef(ref) {
 /** Parse one lane file's body. CRLF-tolerant everywhere: these files are written
  *  by tools AND edited by hand, and a bare-\n assumption silently no-ops. */
 export function parseLane(src, root = null) {
+  /* A lane declares its own worktree; use it as a second root for existence checks. */
+  const altRoot = (src.match(/^Worktree:\s*(\S+)/m) || [])[1] || null;
   /* Line-wise, deliberately — TWICE now this logic was written as one clever regex
    * and both times `$` inside a lookahead under the /m flag (where `$` means
    * end-of-LINE, not end-of-string) made the lazy quantifier stop at the first
@@ -140,50 +142,99 @@ export function parseLane(src, root = null) {
       body.push(all[i]);
     }
   }
-  /* FORMAT-AGNOSTIC, and it has to be. Requiring a `- ` bullet made a real lane
-   * parse to ZERO locks: the live claude.lane.md listed its locked paths inside a
-   * fenced code block, so an entire locked directory tree was invisible to every
-   * consumer. Agents also write `*`/`+` bullets, numbered lists and `- [ ]`
-   * checkboxes. Accept any line, strip whatever list decoration it carries, and
-   * let the path-shape test decide.
+  /* FORMAT-AGNOSTIC, because requiring a specific bullet made a real lane parse to
+   * ZERO locks: the live claude.lane.md listed its paths inside a fenced code block.
+   * Accept any line, strip list decoration, then decide per line.
    *
-   * SPLITTING IS CONDITIONAL, and that condition is load-bearing in both directions.
-   * Splitting every line on whitespace picks up `b.ts` from `- a.ts b.ts` (good) but
-   * also turns `origin/main` inside a prose sentence into a lock (bad — verified
-   * regression). Splitting on commas only does the reverse. So: a line becomes a
-   * LIST only when every token on it is path-shaped; otherwise it is treated as one
-   * path plus commentary, and prose yields nothing at all. */
+   * QUOTED SEGMENTS ARE EXTRACTED FIRST. Splitting on whitespace before honouring
+   * quotes tore "backend/migrations/014 add col.sql" into three tokens and kept
+   * "backend/migrations/014" — a path that exists nowhere, so the lock could never
+   * match. That directly undid the push hook's core.quotePath=false fix: git was
+   * finally emitting space-bearing migration paths and the parser could not
+   * represent them.
+   *
+   * SPLITTING IS CONDITIONAL. Splitting every line picks up b.ts from "- a.ts b.ts"
+   * but also turns origin/main inside a sentence into a lock. So a line becomes a
+   * LIST only when every token is path-shaped; otherwise it is one path plus
+   * commentary, and only when the remainder LOOKS like commentary — parenthesised,
+   * dashed, or a single trailing word. "- origin/main is my upstream" is prose and
+   * yields nothing. */
   const clean = (t) => t.trim()
     .replace(/^["']|["']$/g, '')
     .replace(/[,;:]+$/, '')
-    .replace(/^\*\*(.+?)\*\*$/, '$1')   // markdown bold TOKEN, not glob syntax
-    .replace(/^\.\//, '');               // "./src/a.ts" never matched a repo-relative path
+    // Markdown bold ONLY. `**/migrations/**` is a valid glob and must survive, so
+    // refuse to unwrap when the inner text carries path or glob syntax.
+    .replace(/^\*\*(.+?)\*\*$/, (m, inner) => (/[\/\\*]/.test(inner) ? m : inner))
+    .replace(/^\.\//, '');
   const pathish = (t) => Boolean(t)
-    && !/^\(/.test(t)                     // "(released)" / "(none declared yet)"
+    && !/^\(/.test(t)
     && (/[/\\*]/.test(t)
       || /\.[A-Za-z0-9]{1,6}$/.test(t)
       || EXTENSIONLESS.has(t)
-      || (root && existsSync(resolve(root, t))));
+      /* Try the lane's own worktree as well as the main tree. The escape hatch
+       * that admits extensionless locks (`Dockerfile`, `backend`) resolved only
+       * against the main checkout, so a brand-new extensionless file living in a
+       * linked worktree failed the test and was dropped — an under-report, in a
+       * repo with ~110 worktrees. */
+      || (root && existsSync(resolve(root, t)))
+      || (altRoot && existsSync(resolve(altRoot, t))));
+  /* Bracketed comments are the real convention in these lanes — "(all)",
+   * "(whole directory)". A dash is NOT reliable: prose such as
+   * "audit-write-paths.mjs — those belong to the other branch" starts with one and
+   * is a sentence, not an annotation, so it minted a lock for a file the lane was
+   * explicitly disclaiming. Dashes count only when the remainder is short. */
+  const bracketed = /^[([{#]|^\/\//;
+  const dashed = /^(?:[—–]|-{1,2}\s)/;
 
   const locks = body.map((l) => l.trim())
-    .filter((l) => l && !/^```/.test(l))
+    .filter((l) => l && !/^[`]{3}/.test(l))
     .map((l) => l
-      .replace(/^(?:[-*+]\s+|\d+[.)]\s+)/, '')   // bullet or numbered marker
-      .replace(/^\[[ xX]\]\s*/, '')              // checkbox
-      .replace(/`/g, '')                          // backticks; `*` is glob syntax, kept
+      .replace(/^(?:[-*+]\s+|\d+[.)]\s+)/, '')
+      .replace(/^\[[ xX]\]\s*/, '')
+      .replace(/[`]/g, '')
       .trim())
     .flatMap((line) => {
-      const toks = line.split(/[,\s]+/).map(clean).filter(Boolean);
+      // Pull quoted runs out whole so their internal spaces survive the split.
+      const quoted = [];
+      const rest = line.replace(/"([^"]+)"|'([^']+)'/g, (_m, a, b) => {
+        quoted.push(a ?? b);
+        return ' ';
+      });
+      const loose = rest.split(/[,\s]+/).map(clean).filter(Boolean);
+      const toks = [...quoted.map(clean).filter(Boolean), ...loose];
       if (!toks.length) return [];
-      if (toks.length > 1 && toks.every(pathish)) return toks;      // a list of paths
-      return pathish(toks[0]) ? [toks[0]] : [];                     // path + commentary, or prose
+      if (toks.every(pathish)) return toks;                 // a list of paths
+      if (!pathish(toks[0])) return [];                     // prose
+      const remainder = rest.replace(/^\S+\s*/, '').trim();
+      const words = remainder ? remainder.split(/\s+/).length : 0;
+      const looksLikeComment = bracketed.test(remainder) || words <= 1
+        || (dashed.test(remainder) && words <= 4);
+      return looksLikeComment ? [toks[0]] : [];             // path + commentary, else prose
     })
-    .map((t) => t.slice(0, 120));               // lane files are untrusted input
-
+    .map((t) => t.slice(0, 120));                           // lane files are untrusted input
   const heads = [...src.matchAll(/^#{1,6}\s+(.+)$/gm)].map((h) => h[1].trim())
     .filter((h) => !/EDITING NOW/i.test(h));
   const task = (src.match(/^Task:\s*(.+)$/m) || [])[1]?.trim() || heads[0] || '(no task stated)';
-  return { locks, task: task.slice(0, 90) };
+  const idle = /^Status:\s*(idle|released|done)/mi.test(src);
+  return { locks, idle, task: task.slice(0, 90) };
+}
+
+/** What a lane is holding RIGHT NOW — the question every consumer actually asks.
+ *
+ *  This exists because the two consumers disagreed. `digest` applied the idle check
+ *  (a lane declaring `Status: idle` holds nothing, whatever its body still says)
+ *  while the push hook called `parseLane` directly and did not — so a released lane
+ *  was invisible in the digest yet still produced a lock-clash warning on push. A
+ *  writer and a reader disagreeing about the same format produced the two worst bugs
+ *  in this module already; one definition is the only fix that stays fixed.
+ *
+ *  Deliberately NOT folded into `parseLane`: release() verifies its own work by
+ *  re-parsing the cleared text, and that text says `Status: idle`, so an idle-aware
+ *  parse would return [] and make the verification vacuously pass. release() needs
+ *  the RAW parse; everyone else needs this. */
+export function activeLocks(src, root = null) {
+  const { locks, idle } = parseLane(src, root);
+  return idle ? [] : locks;
 }
 
 /** Every lane in the canonical ledger, with freshness from file mtime. */
@@ -193,13 +244,7 @@ export function readLanes(ledger, selfName = null) {
   return readdirSync(ledger).filter((f) => f.endsWith('.lane.md')).map((file) => {
     const path = resolve(ledger, file);
     const raw = readFileSync(path, 'utf8');
-    const { locks, task } = parseLane(raw, root);
-    /* A lane that declares itself idle is not holding locks, whatever its body
-     * still contains. release() bumps mtime, so a clear that only half-worked
-     * would otherwise convert stale phantom locks into FRESH ones for another
-     * FRESH_MIN minutes — released work reappearing as live, *because* release ran.
-     * Trust the declared status as well as the parsed body. */
-    const idle = /^Status:\s*(idle|released|done)/mi.test(raw);
+    const { locks, idle, task } = parseLane(raw, root);
     return {
       file,
       self: file === selfName,

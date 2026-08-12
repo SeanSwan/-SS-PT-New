@@ -30,9 +30,12 @@ try {
     const out = execFileSync(process.execPath, [LANE, 'digest'], {
       encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 10_000,
     }).trim();
+    if (!out) console.log('[lane] digest produced no output — ledger may be empty or unreadable.');
     if (out) {
       console.log(out);
-      console.log('[lane] claim before your first edit: node scripts/lane.mjs claim --task "<one line>" --files "a,b"');
+      // Print the RESOLVED path. Advertising a relative command reintroduced, in the
+      // hint, the exact cwd bug this hook was rewritten to fix.
+      console.log(`[lane] claim before your first edit: node "${LANE}" claim --task "<one line>" --files "a,b"`);
     }
   }
 } catch (err) {
