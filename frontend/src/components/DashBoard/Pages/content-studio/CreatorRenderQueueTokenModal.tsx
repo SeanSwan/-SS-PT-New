@@ -36,8 +36,46 @@ const CreatorRenderQueueTokenModal: React.FC<Props> = ({ token, agentId, onClose
   const [saved, setSaved] = useState(false);
   const [nagged, setNagged] = useState(false);
   const copyRef = useRef<HTMLButtonElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const restoreFocusTo = useRef<HTMLElement | null>(null);
 
-  useEffect(() => { copyRef.current?.focus(); }, []);
+  useEffect(() => {
+    restoreFocusTo.current = document.activeElement as HTMLElement | null;
+    copyRef.current?.focus();
+    // Return focus where it came from. Without this a keyboard user lands at the top of
+    // the document after closing, with no idea where they were.
+    return () => restoreFocusTo.current?.focus?.();
+  }, []);
+
+  /**
+   * FOCUS TRAP. `aria-modal="true"` is a PROMISE of modality, and without this the promise
+   * is false: Tab walks straight out onto the obscured page behind. That is a defect
+   * anywhere, but it is acute here — tabbing away from an unrecoverable credential is
+   * precisely the accidental loss this modal exists to prevent.
+   */
+  useEffect(() => {
+    const onTab = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !modalRef.current) return;
+      const focusables = modalRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+
+      // Wrap at both ends, and pull focus back in if it has already escaped.
+      if (e.shiftKey && (active === first || !modalRef.current.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !modalRef.current.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onTab, true);
+    return () => document.removeEventListener('keydown', onTab, true);
+  }, []);
 
   const blockExit = useCallback(() => {
     if (saved) { onClose(); return; }
@@ -90,7 +128,7 @@ const CreatorRenderQueueTokenModal: React.FC<Props> = ({ token, agentId, onClose
       aria-labelledby="token-modal-title"
       onMouseDown={(e) => { if (e.target === e.currentTarget) blockExit(); }}
     >
-      <Modal onMouseDown={(e) => e.stopPropagation()}>
+      <Modal ref={modalRef} onMouseDown={(e) => e.stopPropagation()}>
         <CardTitle id="token-modal-title">
           <ShieldAlert size={18} style={{ verticalAlign: '-3px', marginRight: 8, color: '#C6A84B' }} />
           Save this token now

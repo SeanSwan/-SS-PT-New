@@ -94,3 +94,25 @@ describe('ContentStudioHub tab gating', () => {
     expect(tabNames().some(n => n.includes('Workflow'))).toBe(true);
   });
 });
+
+describe('Render Queue tab', () => {
+  /**
+   * The whole pipeline existed with no UI — its only entry point was curl. This asserts
+   * the surface is actually REACHABLE, at the rendered level, because a missing icon
+   * import already shipped past a green `vite build` once: bundlers do not evaluate
+   * modules, so a module-load ReferenceError is invisible to a build and only a render
+   * catches it.
+   */
+  it('is always visible — it gates on nothing', async () => {
+    mockGet.mockResolvedValue(serviceStatus());
+    render(<ContentStudioHub />);
+    await waitFor(() => expect(tabNames()).toContain('Render Queue'));
+  });
+
+  it('stays visible even with every external service key absent', async () => {
+    // It depends on first-party infrastructure (the worker queue), not a vendor key.
+    mockGet.mockResolvedValue(serviceStatus({ remotion: false, elevenlabs: false, blotato: false }));
+    render(<ContentStudioHub />);
+    await waitFor(() => expect(tabNames()).toContain('Render Queue'));
+  });
+});

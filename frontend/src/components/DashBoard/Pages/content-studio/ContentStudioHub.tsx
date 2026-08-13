@@ -34,6 +34,7 @@ import {
   Hexagon,
   PackageCheck,
   Scissors,
+  Server,
   Sparkles,
   UploadCloud,
   Video,

@@ -37,16 +37,32 @@ describe('the same status string, two opposite truths', () => {
       const d = describeJob(job({ startable: false, workerState: ws }));
       expect(d.text).not.toBe('Queued');
       expect(d.text.toLowerCase()).toContain('queued');
-      // The reason is what makes it honest.
-      expect(d.text).toMatch(/no (worker|capable)/i);
+      // Assert the PROPERTY (a reason is attached), not the exact wording — an earlier
+      // version hard-coded /no (worker|capable)/ and broke the moment the copy improved,
+      // which is a test measuring the implementation rather than the guarantee.
+      const reason = d.text.replace(/^queued\s*·\s*/i, '');
+      expect(reason.length).toBeGreaterThan(0);
+      expect(reason.toLowerCase()).not.toBe('queued');
     }
   });
 
-  it('distinguishes "no capable worker" from "no worker online" in the label', () => {
-    expect(describeJob(job({ workerState: 'NO_WORKER_WITH_CAPABILITY' })).text)
-      .toMatch(/no capable worker/i);
-    expect(describeJob(job({ workerState: 'NO_WORKER_ONLINE' })).text)
-      .toMatch(/no worker online/i);
+  /**
+   * All THREE blocked states must read differently, because each has a DIFFERENT fix.
+   * A first version collapsed NO_WORKER_ENROLLED into "no worker online" — implying a
+   * machine exists and is merely switched off, when none had ever been registered.
+   */
+  it('gives each blocked state its own words — they have different fixes', () => {
+    const enrolled = describeJob(job({ workerState: 'NO_WORKER_ENROLLED' })).text;
+    const offline = describeJob(job({ workerState: 'NO_WORKER_ONLINE' })).text;
+    const incapable = describeJob(job({ workerState: 'NO_WORKER_WITH_CAPABILITY' })).text;
+
+    expect(new Set([enrolled, offline, incapable]).size).toBe(3);
+    expect(enrolled).toMatch(/no machine connected/i);
+    expect(offline).toMatch(/offline/i);
+    expect(incapable).toMatch(/no capable worker/i);
+
+    // "never enrolled" must NOT claim something is merely offline.
+    expect(enrolled).not.toMatch(/offline/i);
   });
 });
 

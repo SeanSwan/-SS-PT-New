@@ -70,7 +70,17 @@ export function describeJob(job: RenderJobView) {
 
   // queued — the case where the same word means two opposite things.
   if (job.startable) return { tone: 'working' as const, text: 'Queued · worker available', blocked: false };
-  const why = job.workerState === 'NO_WORKER_WITH_CAPABILITY' ? 'no capable worker' : 'no worker online';
+
+  // All THREE blocked states get their own words. An earlier version collapsed
+  // NO_WORKER_ENROLLED into "no worker online", which implies a machine exists and is
+  // merely switched off — when the truth is none has ever been registered. That is the
+  // precise distinction the backend goes to trouble to make, because the operator fix
+  // differs: enrol a machine vs start the one you have vs enrol one that can do this job.
+  // Flattening it here would have re-introduced, in miniature, the exact vagueness this
+  // whole surface exists to remove.
+  const why = job.workerState === 'NO_WORKER_WITH_CAPABILITY' ? 'no capable worker'
+    : job.workerState === 'NO_WORKER_ENROLLED' ? 'no machine connected'
+      : 'worker offline';
   return { tone: 'blocked' as const, text: `Queued · ${why}`, blocked: true };
 }
 
