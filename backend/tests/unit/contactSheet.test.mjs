@@ -51,9 +51,11 @@ test("single quotes are escaped even though nothing uses single-quoted attribute
   assert.match(html, /it&#39;s a lake/);
 });
 
-test('the sheet is SELF-CONTAINED — no external fetch of any kind', () => {
-  // It opens from disk with no server. A remote reference would silently fail
-  // or leak a request, and neither is acceptable for a local review artifact.
+test('the sheet makes NO NETWORK REQUEST — images are local siblings, not remote', () => {
+  // Renamed from "self-contained", which became a lie the moment images were
+  // linked rather than inlined: the sheet now references files beside it. The
+  // property that actually matters is unchanged and is what this asserts — it
+  // opens from disk, fetches nothing, and runs no script.
   const html = buildContactSheet([ROW], '.', {});
   assert.ok(!/https?:\/\//.test(html), 'no remote URLs');
   assert.ok(!/<script/i.test(html), 'no scripts at all');

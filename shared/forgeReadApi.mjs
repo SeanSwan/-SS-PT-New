@@ -10,6 +10,17 @@
  * READ ONLY. Nothing here generates, deletes, or spends. A UI asking for a
  * picture goes through the CLI or a future job endpoint, never through this.
  *
+ * ON PROBATION, with a named condition — the reviewer's call was DELETE THIS,
+ * and the reasoning is fair: it has no consumer today, and I shipped it despite
+ * having agreed to build it only once the UI agent had started. It survives on
+ * one specific ground: that agent's Slice 5 IS the Create surface, so a consumer
+ * is imminent rather than hypothetical, and the alternative is that they scrape
+ * `runs.jsonl` and freeze the ledger's internals as someone else's public API.
+ *
+ * THE CONDITION: if no consumer imports this by the time the next Forge slice
+ * lands, delete it. Git remembers. A module kept "just in case" past a named
+ * deadline is how a codebase silts up.
+ *
  * THE SHAPE IS DELIBERATELY NARROWER THAN THE LEDGER. Fields a renderer has no
  * business seeing (promptSha, brainVersion, recordVersion, safetyEvents' inner
  * structure) are omitted, so internal churn does not break a consumer.
@@ -31,6 +42,7 @@ export const READ_API_VERSION = 1;
 function toOption(r) {
   return {
     id: r.variantId,
+    groupKey: r.runId || `single:${r.variantId}`,
     parentId: r.parentVariantId ?? null,
     runId: r.runId ?? null,
     briefId: r.briefId,
@@ -54,7 +66,27 @@ function toOption(r) {
   };
 }
 
-/** Every run, newest first, grouped as a UI would show them. */
+/**
+ * Timestamp for ordering. PARSED, not string-compared.
+ *
+ * Lexicographic sorting of `createdAt` is only correct while every row is strict
+ * ISO-8601 with the same offset and the same precision. One row with `Z` against
+ * one with `+00:00`, or milliseconds against none, and the order is silently
+ * wrong — and this ledger already holds rows written by three different code
+ * paths across two record versions.
+ */
+function ts(r) {
+  const t = Date.parse(r?.createdAt ?? '');
+  return Number.isFinite(t) ? t : -Infinity;
+}
+
+/**
+ * Every run, newest first.
+ *
+ * `groupKey` is exposed so a consumer can group as IT sees fit; the DTO does not
+ * decide presentation. Grouping orphan rows into `single:<id>` buckets was fine
+ * for a CLI and would fragment a dashboard into N one-item groups.
+ */
 export function listRuns(root = process.cwd()) {
   const { runs, skipped } = readRuns(root);
   const byRun = new Map();
@@ -69,6 +101,7 @@ export function listRuns(root = process.cwd()) {
     const options = rows.map(toOption);
     const ok = options.filter((o) => o.status === 'ok');
     out.push({
+      groupKey: runId,
       runId: runId.startsWith('single:') ? null : runId,
       briefId: rows[0].briefId,
       prompt: rows[0].promptText ?? null,
@@ -83,7 +116,9 @@ export function listRuns(root = process.cwd()) {
       winnerId: options.find((o) => o.winner)?.id ?? null,
     });
   }
-  out.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  // Numeric, with a deterministic tiebreak so equal timestamps never reorder
+  // between calls.
+  out.sort((a, b) => ts(b) - ts(a) || String(a.groupKey).localeCompare(String(b.groupKey)));
   return { apiVersion: READ_API_VERSION, runs: out, corruptRows: skipped };
 }
 

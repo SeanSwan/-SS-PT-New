@@ -46,13 +46,27 @@ export const JITTER_FRACTION = 0.25;
 /**
  * Total wall-clock budget across all attempts.
  *
- * PROVENANCE: one generation is OBSERVED at 12-40s (measured across every run in
- * this ledger; slowest recorded 40.2s). Two retries at 1s+4s plus three attempts
- * at the observed worst case is ~125s, so 180s leaves headroom without letting a
- * single option hold a bracket open for minutes. A retry policy with no total
- * budget can wait longer than a human will.
+ * PROVENANCE: DERIVED, and here is the arithmetic so it can be checked. One
+ * generation is OBSERVED at 12-40s (measured across every run in this ledger;
+ * slowest recorded 40.2s). Three attempts at the observed worst case is ~120s,
+ * plus 1s+4s of backoff, is ~125s. 180s leaves ~45% headroom over that without
+ * letting a single option hold a bracket open for minutes.
  */
 export const TOTAL_BUDGET_MS = 180_000;
+
+/**
+ * The longest server-suggested wait we will actually serve.
+ *
+ * `Retry-After` is an UNAUTHENTICATED HINT from a network peer. Clamping it to
+ * the total budget meant "obey anything up to three minutes" — a provider asking
+ * for 120s would park a whole bracket on one sleep, converting their problem
+ * into our latency. Past this, the option ABORTS and the bracket moves on.
+ *
+ * PROVENANCE: none — arbitrary. No provider hint has been observed in this
+ * system yet, so there is no p99 to derive from. Stated as arbitrary rather than
+ * dressed up: an honest "no data" beats a fake citation.
+ */
+export const MAX_RETRY_AFTER_MS = 30_000;
 
 export class TransportError extends Error {
   constructor(message, attempts) {
@@ -68,17 +82,18 @@ export class TransportError extends Error {
  *
  * `Retry-After` is either delta-seconds or an HTTP date. A provider that tells
  * you when to come back knows more than your backoff table does, so its value
- * wins — clamped, because a hostile or broken header must not be able to park
- * the process for an hour.
+ * wins — up to MAX_RETRY_AFTER_MS, past which the caller aborts. This function
+ * REPORTS the hint faithfully; the decision to serve or refuse it belongs to the
+ * retry loop, not to the parser.
  */
 export function retryAfterMs(res, now = Date.now()) {
   const raw = res?.headers?.get?.('retry-after');
   if (!raw) return null;
   const secs = Number(raw);
-  if (Number.isFinite(secs) && secs >= 0) return Math.min(secs * 1000, TOTAL_BUDGET_MS);
+  if (Number.isFinite(secs) && secs >= 0) return secs * 1000;
   const at = Date.parse(raw);
   if (Number.isNaN(at)) return null;
-  return Math.min(Math.max(0, at - now), TOTAL_BUDGET_MS);
+  return Math.max(0, at - now);
 }
 
 /**
@@ -115,8 +130,16 @@ export async function withRetry(doFetch, opts = {}) {
       return { res, retries, waitedMs };
     }
 
-    // The provider's own guidance beats the local table when it offers any.
+    // The provider's own guidance beats the local table when it offers any —
+    // but a hint longer than we are willing to serve aborts instead of waiting.
     const advised = res ? retryAfterMs(res, now()) : null;
+    if (advised !== null && advised > MAX_RETRY_AFTER_MS) {
+      throw new TransportError(
+        `Provider asked for a ${Math.round(advised / 1000)}s Retry-After, over the `
+        + `${MAX_RETRY_AFTER_MS / 1000}s we will serve. Aborting rather than parking the bracket.`,
+        attempt + 1,
+      );
+    }
     const base = advised ?? backoffMs[Math.min(attempt, backoffMs.length - 1)];
     const jitter = base * JITTER_FRACTION * (random() * 2 - 1);
     const wait = Math.max(0, Math.round(base + jitter));

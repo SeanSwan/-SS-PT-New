@@ -92,7 +92,19 @@ export async function generateBracket(brief, deps, opts = {}) {
    * of $0.50 tolerates roughly 27x the expected spend before refusing — loose
    * enough never to fire in normal use, tight enough that a runaway is bounded
    * in cents rather than discovered on an invoice.
+   *
+   * IT IS A SOFT BOUND AND SAYS SO. The check runs BEFORE each option, so the
+   * final option may carry spend past the line — the true guarantee is
+   * "ceiling + at most one option", not "never exceeds ceiling". Pre-authorising
+   * would need a reliable per-call estimate, and the observed range spans 65%.
+   *
+   * FAILED ATTEMPTS COUNT TOO. Counting only successful `costUsd` was a silent
+   * under-count: a safety-rejected call may still have been billed, and a spend
+   * control that only observes successes is a success message, not a control.
+   * An attempt whose cost is unknown is charged at the OBSERVED CEILING of the
+   * range, because guessing low on a spend guard defeats the guard.
    */
+  const ASSUMED_COST_ON_UNKNOWN = 0.0061;
   const ceilingUsd = opts.maxSpendUsd ?? 0.50;
   let spent = 0;
 
@@ -122,13 +134,17 @@ export async function generateBracket(brief, deps, opts = {}) {
       const res = await generate(compiled, { root });
       const rec = buildRecord({ ...base, status: 'ok' });
       const img = saveImage(rec.variantId, res.images[0], root);
-      spent += res.costUsd || 0;
+      spent += typeof res.costUsd === 'number' ? res.costUsd : ASSUMED_COST_ON_UNKNOWN;
       options.push(appendRun({
         ...base, variantId: rec.variantId, status: 'ok',
         actualWidth: res.actualWidth, actualHeight: res.actualHeight,
         costUsd: res.costUsd, wallMs: Date.now() - t0, retries: res.retries ?? 0, ...img,
       }, root));
     } catch (e) {
+      // A failed call may STILL HAVE BEEN BILLED — a safety rejection happens
+      // after the provider has read the prompt. Charge it against the ceiling at
+      // the observed worst case rather than pretending it was free.
+      spent += ASSUMED_COST_ON_UNKNOWN;
       // A rejected option must not void the bracket. Two options is still a choice.
       options.push(appendRun({
         ...base,
@@ -145,6 +161,9 @@ export async function generateBracket(brief, deps, opts = {}) {
     runId,
     ceilingUsd,
     ceilingHit: options.some((o) => String(o.notes || '').startsWith('E_SPEND_CEILING')),
+    // What the ceiling actually counted, including attempts billed but not
+    // returned. `costUsd` below is the narrower "what we can prove we paid".
+    spendCounted: Number(spent.toFixed(6)),
     promptText: compiled.promptText,
     options,
     ok,

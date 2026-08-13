@@ -64,6 +64,7 @@ function usage() {
   refine  <variantId-prefix> "<what to change>" --confirm-spend
   list    [--brief <briefId>]
   store                                      how big the artifact store is
+  prune  [--days 30] [--max-mb 500] [--apply]  what retention would remove
   review  <runId|variantId-prefix>           contact sheet for a human eye
   review-answer <variantId-prefix> --usable <v> --onBrand <v> --note "<text>"
 
@@ -230,8 +231,8 @@ function reportRetention() {
   if (!st.overBudget) return;
   console.log(`
   RETENTION: ${st.files} image(s), ${st.mb} MB — over the ${st.budgetMb} MB budget.`);
-  console.log('    Review what would go:  node scripts/forge-prune.mjs --root <dir>');
-  console.log('    Then delete:           ... --apply       (winners and lineage parents are never pruned)');
+  console.log('    Review what would go:  forge prune');
+  console.log('    Then delete:           forge prune --apply   (winners and lineage parents are never pruned)');
 }
 
 function cmdList() {
@@ -265,6 +266,17 @@ try {
   else if (cmd === 'pick') cmdPick();
   else if (cmd === 'refine') await cmdRefine();
   else if (cmd === 'list') cmdList();
+  else if (cmd === 'prune') {
+    // Delegated to the script so there is exactly ONE implementation of
+    // deletion, with its allowlist and its acknowledgement flags intact. A
+    // second copy of destructive logic is how the two diverge.
+    const { spawnSync } = await import('node:child_process');
+    const here = new URL('./forge-prune.mjs', import.meta.url);
+    const r = spawnSync(process.execPath,
+      [here.pathname.replace(/^\/([A-Za-z]:)/, '$1'), '--root', ROOT, ...argv.slice(1)],
+      { stdio: 'inherit' });
+    process.exit(r.status ?? 1);
+  }
   else if (cmd === 'store') {
     const st = storeStatus(ROOT);
     console.log(`  ${st.files} image(s), ${st.mb} MB of a ${st.budgetMb} MB budget`

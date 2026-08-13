@@ -101,7 +101,7 @@ const MINIMAL_VALID_ARGS = {
   retryAfterMs: [{ headers: { get: () => null } }],
   listRuns: null, getRun: null, spendSummary: null,   // disk
   storeStatus: null,                                  // disk
-  buildContactSheet: [[], '.', {}],
+  buildContactSheet: [[], '.', {}], sheetSrc: ['/a', '/a/b.png'],
   assertInsideArtifactRoot: ['.ai-workflow/forge-runs', '.'],
   applyLaws: [{ subject: 'a frozen lake' }, []],
   listReady: null, safeId: ['abc'],         // listReady touches disk

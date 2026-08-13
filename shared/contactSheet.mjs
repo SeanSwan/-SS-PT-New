@@ -17,7 +17,11 @@
  */
 
 import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative, sep, resolve, dirname } from 'node:path';
+import { RUN_DIR } from './variantRun.mjs';
+
+/** The run dir as it appears inside an imageRef (always POSIX separators). */
+const RUN_DIR_POSIX = RUN_DIR.replace(/\\/g, '/');
 
 /** The three questions. Deliberately few — a long rubric gets abandoned. */
 export const RUBRIC = Object.freeze([
@@ -27,40 +31,32 @@ export const RUBRIC = Object.freeze([
 ]);
 
 /**
- * Total inlined image bytes a sheet may carry.
+ * The path from the sheet to an image. ONE code path, always relative.
  *
- * PROVENANCE: generated images are OBSERVED at 1.7-2.4 MB each (measured across
- * every PNG in this ledger), and base64 inflates by ~33%. A 4-option sheet is
- * therefore ~10 MB of markup — enough to make a browser tab crawl, and the
- * artifact exists to be looked at. 6 MB holds two full-size options inline; past
- * that, images are LINKED from beside the file instead, which every browser
- * opens fine from disk.
+ * There used to be two — inline base64 under a size budget, link above it — and
+ * the link branch SHIPPED BROKEN precisely because the inline branch was the one
+ * ever exercised. It hardcoded `images/<basename>`, correct for
+ * `forge-runs/images/` and silently wrong for every sibling directory, so an A/B
+ * image in `forge-runs/ab-avoid/` pointed at a file that did not exist.
+ *
+ * Collapsing to one path deletes that entire bug class, the size threshold, and
+ * the ~33% base64 inflation with it. The sheet is written beside its images and
+ * opened from disk, so a relative link is all it ever needed. Computed with
+ * `relative()` rather than string surgery, and URI-encoded because a filename is
+ * not automatically a valid URL component.
  */
-export const MAX_INLINE_BYTES = 6 * 1024 * 1024;
+export function sheetSrc(sheetDir, imageAbsPath) {
+  const rel = relative(sheetDir, imageAbsPath).split(sep).join('/');
+  return encodeURI(rel.startsWith('.') ? rel : `./${rel}`);
+}
 
-/**
- * Inline an image if the budget allows, otherwise link to it relatively.
- *
- * Falling back to a relative `src` keeps the sheet openable from disk — the
- * images already live beside it — so exceeding the budget degrades presentation
- * rather than breaking the artifact. Returns `null` only when the file is
- * genuinely missing, which the caller renders as an explicit absence.
- */
-function imageSrc(root, ref, budget) {
-  if (!ref) return { src: null, used: 0 };
+function imageSrc(root, ref, sheetDir, emitted) {
+  if (!ref) return { src: null };
   const p = join(root, ref);
-  if (!existsSync(p)) return { src: null, used: 0 };
-  const bytes = readFileSync(p);
-  const ext = ref.split('.').pop().toLowerCase();
-  const mime = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }[ext] || 'application/octet-stream';
-  const inlineCost = Math.ceil(bytes.length * 4 / 3);
-  if (inlineCost > budget.remaining) {
-    budget.linked += 1;
-    // Relative to the sheet, which is written into the same run directory.
-    return { src: `images/${ref.split('/').pop()}`, used: 0, linked: true };
-  }
-  budget.remaining -= inlineCost;
-  return { src: `data:${mime};base64,${bytes.toString('base64')}`, used: inlineCost };
+  if (!existsSync(p)) return { src: null };
+  const src = sheetSrc(sheetDir, p);
+  emitted.push({ src, abs: p });
+  return { src };
 }
 
 /**
@@ -85,9 +81,11 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
  */
 export function buildContactSheet(rows, root = process.cwd(), meta = {}) {
   const ok = rows.filter((r) => r.status === 'ok');
-  const budget = { remaining: meta.maxInlineBytes ?? MAX_INLINE_BYTES, linked: 0 };
+  // Where the sheet will be written. Every src is relative to THIS.
+  const sheetDir = meta.sheetDir ? resolve(meta.sheetDir) : resolve(root, RUN_DIR_POSIX);
+  const emitted = [];
   const cards = ok.map((r, i) => {
-    const { src } = imageSrc(root, r.imageRef, budget);
+    const { src } = imageSrc(root, r.imageRef, sheetDir, emitted);
     return `
     <figure class="card${r.winner ? ' winner' : ''}">
       <div class="frame">${src
@@ -108,6 +106,24 @@ export function buildContactSheet(rows, root = process.cwd(), meta = {}) {
     : '<span class="opts">(free text)</span>'}
       <div class="answer">forge review-answer &lt;variantId&gt; --${esc(q.key)} &lt;value&gt;</div>
     </li>`).join('\n');
+
+  /**
+   * VERIFY EFFECT, NOT INTENT — the check that would have caught the shipped bug.
+   *
+   * The old sheet reported "N image(s) linked", counting `src` strings WRITTEN.
+   * Every one of those links for `ab-avoid/` was broken and it still reported
+   * success. A count of attempts is not a count of outcomes, and this subsystem
+   * has now produced that exact lie three times (pruner marks, sheet links,
+   * retention size). So: resolve every emitted link back to disk before the
+   * caller is handed anything.
+   */
+  const broken = emitted.filter((e) => !existsSync(resolve(sheetDir, decodeURI(e.src))));
+  if (broken.length) {
+    const err = new Error(`E_SHEET_LINK_BROKEN: ${broken.length} link(s) do not resolve `
+      + `from ${sheetDir}: ${broken.map((b) => b.src).join(', ').slice(0, 200)}`);
+    err.code = 'E_SHEET_LINK_BROKEN';
+    throw err;
+  }
 
   return `<meta charset="utf-8"><title>Forge review — ${esc(meta.runId || '')}</title>
 <style>
@@ -139,9 +155,7 @@ export function buildContactSheet(rows, root = process.cwd(), meta = {}) {
 <div class="sub">${ok.length} option(s) · $${ok.reduce((s, r) => s + (r.costUsd || 0), 0).toFixed(4)} total
   · brief <code>${esc(meta.briefId || rows[0]?.briefId || '')}</code></div>
 <div class="grid">${cards}</div>
-${budget.linked ? `<div class="sub">${budget.linked} image(s) linked rather than inlined `
-    + `(the sheet stayed under ${Math.round((meta.maxInlineBytes ?? MAX_INLINE_BYTES) / 1048576)} MB). `
-    + 'They load from the images/ folder beside this file.</div>' : ''}
+<div class="sub">${emitted.length} image(s) linked from beside this file.</div>
 <div class="prompt">${esc(ok[0]?.promptText || '')}</div>
 <h1>Rubric</h1>
 <div class="sub">Answers append to the run ledger, so "what actually gets picked" becomes queryable.</div>
