@@ -249,8 +249,29 @@ function main() {
   // 435 local refs minus the remotes. That number is a CLONE-MAPPING artifact — a plain clone only
   // materialises refs/heads and refs/tags — not a statement about bundle contents. Measure coverage
   // with `git bundle list-heads <file>`, never with the restore test's ref count.
+  /* `--all` IS NOT EVERYTHING — proven 2026-08-13 by cloning a bundle and checking membership:
+   *   - a detached worktree HEAD reachable from NO ref was absent. `--all` walks refs/; a
+   *     detached HEAD is not a ref. That is the class git deletes on its own once the reflog
+   *     expires (default 90 days).
+   *   - only 1 of 5 stashes survived. Only the current `refs/stash` is a ref; older stashes
+   *     live in its reflog.
+   * Naming both explicitly gives 387/387 machine-only commits, 5/5 stashes, 105/105 worktree
+   * HEADs, 4/4 tags. Without them this script shipped an incomplete backup every night since
+   * 2026-07-29 while reporting success. */
+  const extraRefs = [];
   try {
-    execFileSync('git', ['bundle', 'create', bundlePath, '--all'], { stdio: ['ignore', 'ignore', 'pipe'] });
+    const wtOut = execFileSync('git', ['worktree', 'list', '--porcelain'], { encoding: 'utf8' });
+    for (const ln of wtOut.split('\n')) if (ln.startsWith('HEAD ')) extraRefs.push(ln.slice(5).trim());
+  } catch { /* no worktrees is fine */ }
+  try {
+    const stOut = execFileSync('git', ['stash', 'list', '--format=%H'], { encoding: 'utf8' }).trim();
+    if (stOut) extraRefs.push(...stOut.split('\n').filter(Boolean));
+  } catch { /* no stashes is fine */ }
+  const uniqueExtra = [...new Set(extraRefs)].filter(Boolean);
+  console.log(`  extra refs beyond --all (worktree HEADs + stashes): ${uniqueExtra.length}`);
+
+  try {
+    execFileSync('git', ['bundle', 'create', bundlePath, '--all', ...uniqueExtra], { stdio: ['ignore', 'ignore', 'pipe'] });
   } catch (error) {
     console.error(`  bundle creation FAILED: ${String(error.message).split('\n')[0]}`);
     // Never leave a partial file that looks like a backup.
@@ -283,7 +304,14 @@ function main() {
     try { fs.unlinkSync(s.p); console.log(`  pruned       : ${s.f}`); } catch { /* */ }
   }
   console.log(`  retained     : ${Math.min(all.length, KEEP)} bundle(s) (keep=${KEEP})`);
-  console.log('\n  RESTORE:  git clone <bundle-file> <new-dir>');
+  console.log('\n  RESTORE:  git -c core.longpaths=true clone <bundle-file> <new-dir>');
+  console.log('            The core.longpaths flag is REQUIRED, not optional. This repo has');
+  console.log('            paths over the Windows 260-char limit; a plain `git clone` recovers');
+  console.log('            all history and then checks out ZERO files ("Clone succeeded, but');
+  console.log('            checkout failed"). That flag lives in this repo LOCAL .git/config,');
+  console.log('            and a bundle carries objects and refs, never config, so a restore on');
+  console.log('            a fresh machine inherits none of it. Verified 2026-08-13: with the');
+  console.log('            flag, 11491/11491 tracked files check out.');
   console.log('            (then `git remote set-url origin <real-url>`)\n');
   process.exit(0);
 }
