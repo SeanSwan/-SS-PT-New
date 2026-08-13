@@ -190,6 +190,9 @@ export function buildRecord(input = {}) {
     aspectOutOfTolerance: deviation === null ? null : deviation > ASPECT_TOLERANCE,
     costUsd,
     wallMs,
+    // How many transport retries this generation needed. A generation that
+    // needed help says so, instead of looking identical to one that did not.
+    retries: input.retries ?? 0,
     status,
     safetyEvents,
     /**

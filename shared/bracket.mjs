@@ -26,7 +26,7 @@
  */
 
 import { createHash } from 'node:crypto';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { compileImage } from './swanPromptCompiler.mjs';
 import { appendRun, buildRecord, readRuns, RUN_DIR } from './variantRun.mjs';
@@ -78,7 +78,35 @@ export async function generateBracket(brief, deps, opts = {}) {
   const compiled = compileImage(brief, caps);          // throws on law violation
   const options = [];
 
+  /**
+   * PER-BRACKET COST CEILING — stop the bracket, not the wallet.
+   *
+   * Retries mean one option can now cost several times its nominal price, and a
+   * provider having a bad day multiplies that across every option. Nothing
+   * previously bounded the total: a bracket would keep buying until it ran out
+   * of options to try.
+   *
+   * PROVENANCE: a generation is OBSERVED at $0.0037-$0.0061 (measured across
+   * every run in this ledger; dearest was an image-input call at $0.006136). A
+   * 3-option bracket at the top of that range is ~$0.018, so the default ceiling
+   * of $0.50 tolerates roughly 27x the expected spend before refusing — loose
+   * enough never to fire in normal use, tight enough that a runaway is bounded
+   * in cents rather than discovered on an invoice.
+   */
+  const ceilingUsd = opts.maxSpendUsd ?? 0.50;
+  let spent = 0;
+
   for (let i = 0; i < n; i += 1) {
+    if (spent >= ceilingUsd) {
+      options.push(appendRun({
+        briefId: brief.briefId || 'unnamed', runId,
+        provider: caps.provider, model: caps.modelVersion || caps.provider,
+        serializer: compiled.promptStyle, promptText: compiled.promptText,
+        status: 'error', intent: 'reroll', parentVariantId: null,
+        notes: `E_SPEND_CEILING: stopped at $${spent.toFixed(4)} of $${ceilingUsd} after ${i} option(s)`,
+      }, root));
+      break;
+    }
     const t0 = Date.now();
     const base = {
       briefId: brief.briefId || 'unnamed', runId,
@@ -94,10 +122,11 @@ export async function generateBracket(brief, deps, opts = {}) {
       const res = await generate(compiled, { root });
       const rec = buildRecord({ ...base, status: 'ok' });
       const img = saveImage(rec.variantId, res.images[0], root);
+      spent += res.costUsd || 0;
       options.push(appendRun({
         ...base, variantId: rec.variantId, status: 'ok',
         actualWidth: res.actualWidth, actualHeight: res.actualHeight,
-        costUsd: res.costUsd, wallMs: Date.now() - t0, ...img,
+        costUsd: res.costUsd, wallMs: Date.now() - t0, retries: res.retries ?? 0, ...img,
       }, root));
     } catch (e) {
       // A rejected option must not void the bracket. Two options is still a choice.
@@ -114,12 +143,60 @@ export async function generateBracket(brief, deps, opts = {}) {
   const ok = options.filter((o) => o.status === 'ok');
   return {
     runId,
+    ceilingUsd,
+    ceilingHit: options.some((o) => String(o.notes || '').startsWith('E_SPEND_CEILING')),
     promptText: compiled.promptText,
     options,
     ok,
     costUsd: ok.reduce((s, o) => s + (o.costUsd || 0), 0),
     // Honest about partial failure rather than reporting a clean count.
     failed: options.length - ok.length,
+  };
+}
+
+/**
+ * How big the artifact store has grown, and whether retention is overdue.
+ *
+ * WHY THIS EXISTS: a retention policy that has never executed is a DOCUMENT, not
+ * a policy. `forge-prune.mjs` was written, tested, and then never run — so the
+ * true statement about this store was "runs accumulate forever; a pruning script
+ * exists and has never been used."
+ *
+ * This makes the check automatic and free: every generation reports the store's
+ * size against the budget. DELETION stays manual and opt-in, because it is
+ * irreversible and Rule 34 says so — but "nobody ever looked" is no longer one of
+ * the failure modes.
+ *
+ * PROVENANCE for the default: generated images are OBSERVED at 1.7-2.4 MB each,
+ * so 500 MB is roughly 200-300 images — months of ordinary use before a human is
+ * ever asked to think about it.
+ */
+export function storeStatus(root = process.cwd(), budgetMb = 500) {
+  // WALKS THE WHOLE ARTIFACT ROOT, not just IMAGE_DIR. The first version counted
+  // only `forge-runs/images/` and reported 3.6 MB while 14.1 MB sat on disk —
+  // the A/B harness writes to a SIBLING directory (`ab-avoid/`) that retention
+  // never looked at. A budget that guards one subdirectory and lets another grow
+  // without limit is not a budget; it is a budget-shaped object.
+  const base = join(root, RUN_DIR);
+  if (!existsSync(base)) return { files: 0, mb: 0, budgetMb, overBudget: false, dirs: [] };
+  let bytes = 0;
+  let files = 0;
+  const dirs = new Set();
+  const walk = (dir, label) => {
+    let entries;
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) { walk(p, label || e.name); continue; }
+      if (!/\.(png|jpe?g|webp|gif)$/i.test(e.name)) continue;
+      try { bytes += statSync(p).size; files += 1; if (label) dirs.add(label); } catch { /* raced deletion */ }
+    }
+  };
+  walk(base, null);
+  const mb = bytes / 1_048_576;
+  return {
+    files, mb: Number(mb.toFixed(1)), budgetMb, overBudget: mb > budgetMb,
+    dirs: [...dirs].sort(),
   };
 }
 

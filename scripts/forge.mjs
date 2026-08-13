@@ -14,7 +14,7 @@
 import { compileImage } from '../shared/swanPromptCompiler.mjs';
 import { assertLawful } from '../shared/swanLawFilter.mjs';
 import { generate, capabilities } from '../shared/providers/openrouterImage.mjs';
-import { generateBracket, findVariant, saveImage } from '../shared/bracket.mjs';
+import { generateBracket, findVariant, saveImage, storeStatus } from '../shared/bracket.mjs';
 import { buildContactSheet, RUBRIC } from '../shared/contactSheet.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -63,6 +63,7 @@ function usage() {
   pick    <variantId-prefix> --winner        mark it as the chosen option
   refine  <variantId-prefix> "<what to change>" --confirm-spend
   list    [--brief <briefId>]
+  store                                      how big the artifact store is
   review  <runId|variantId-prefix>           contact sheet for a human eye
   review-answer <variantId-prefix> --usable <v> --onBrand <v> --note "<text>"
 
@@ -216,6 +217,23 @@ function cmdReviewAnswer() {
   console.log(`recorded on ${saved.variantId.slice(0, 10)}: ${JSON.stringify(saved.review)}`);
 }
 
+/**
+ * Retention is CHECKED automatically and DELETES manually.
+ *
+ * The check is free and runs after every generation, so "nobody ever looked" is
+ * no longer a failure mode. Deletion stays a deliberate human act because it is
+ * irreversible — and because I have already deleted live artifacts once by
+ * running the pruner casually.
+ */
+function reportRetention() {
+  const st = storeStatus(ROOT);
+  if (!st.overBudget) return;
+  console.log(`
+  RETENTION: ${st.files} image(s), ${st.mb} MB — over the ${st.budgetMb} MB budget.`);
+  console.log('    Review what would go:  node scripts/forge-prune.mjs --root <dir>');
+  console.log('    Then delete:           ... --apply       (winners and lineage parents are never pruned)');
+}
+
 function cmdList() {
   const { runs, skipped } = readRuns(ROOT);
   const briefId = flag('brief', null);
@@ -247,6 +265,11 @@ try {
   else if (cmd === 'pick') cmdPick();
   else if (cmd === 'refine') await cmdRefine();
   else if (cmd === 'list') cmdList();
+  else if (cmd === 'store') {
+    const st = storeStatus(ROOT);
+    console.log(`  ${st.files} image(s), ${st.mb} MB of a ${st.budgetMb} MB budget`
+      + `${st.overBudget ? '  — OVER, prune is overdue' : ''}`);
+  }
   else usage();
 } catch (e) {
   console.error(`${e.code || 'ERROR'}: ${e.message}`);
