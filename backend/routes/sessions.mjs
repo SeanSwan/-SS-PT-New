@@ -26,6 +26,7 @@ import crypto from 'node:crypto';
 import express from "express";
 import { protect, adminOnly, trainerOrAdminOnly } from "../middleware/authMiddleware.mjs";
 import unifiedSessionService from "../services/sessions/session.service.mjs";
+import { resolveBlockedTimeSubject } from "../services/sessions/sessionBlockAuthorization.mjs";
 import ConflictService from "../services/conflictService.mjs";
 import trainerAssignmentService from "../services/TrainerAssignmentService.mjs";
 import Session from "../models/Session.mjs";
@@ -2063,14 +2064,26 @@ router.delete("/recurring/:groupId", protect, adminOnly, async (req, res) => {
  */
 router.post("/block", protect, trainerOrAdminOnly, async (req, res) => {
   try {
-    const result = await unifiedSessionService.createBlockedSessions(req.body, req.user);
+    // `trainerOrAdminOnly` gates on ROLE only — it never inspects WHICH trainer is
+    // being targeted. The subject is therefore resolved here, before the service is
+    // entered, so an unauthorized target cannot reach a transaction at all. The
+    // service applies the identical rule for callers that bypass this route.
+    const subjectTrainerId = resolveBlockedTimeSubject({
+      requestedTrainerId: req.body?.trainerId,
+      user: req.user
+    });
+
+    const result = await unifiedSessionService.createBlockedSessions(
+      { ...req.body, trainerId: subjectTrainerId },
+      req.user
+    );
     return res.status(201).json(result);
   } catch (error) {
     logger.error('Error in POST /api/sessions/block:', error);
     const rawMessage = typeof error === 'string' ? error : (error?.message || '');
     const normalizedMessage = rawMessage.toLowerCase();
 
-    if (normalizedMessage.includes('admin or trainer')) {
+    if (normalizedMessage.includes('admin or trainer') || normalizedMessage.includes('not authorized')) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to block time'
