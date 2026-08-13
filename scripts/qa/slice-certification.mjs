@@ -171,15 +171,6 @@ const checkBackendDrift = () => {
     : { ok: false, detail: `${drift.length} backend file(s) would be missing on the remote` };
 };
 
-/** Targeted suites — named explicitly, because the full backend suite is red on baseline. */
-const CERTIFIED_SUITES = [
-  'tests/unit/sessionBlockAuthorization.test.mjs',
-  'tests/api/sessionBlockAuthorization.test.mjs',
-  'tests/api/onboardingStaffNameContract.test.mjs',
-  'tests/api/onboardingFieldDictionary.test.mjs',
-  'tests/unit/sessionsRouteOrder.test.mjs',
-];
-
 /**
  * Frontend suites certifying frontend fixes.
  *
@@ -194,22 +185,36 @@ const CERTIFIED_FRONTEND_SUITES = [
   'src/components/WorkoutLogger/workoutCoachContext.test.ts',
 ];
 
-const checkTargetedSuites = () => {
-  const present = CERTIFIED_SUITES.filter((s) => existsSync(path.join(backendDir, s)));
-  if (present.length !== CERTIFIED_SUITES.length) {
-    const missing = CERTIFIED_SUITES.filter((s) => !present.includes(s));
-    // A named suite that has vanished must FAIL, not silently shrink the gate.
-    return { ok: false, detail: `certified suite missing: ${missing.join(', ')}` };
+/**
+ * Backend regressions, delegated to the baseline gate that already exists.
+ *
+ * Kimi K3 P1: naming suites explicitly makes "green by omission" the DEFAULT —
+ * any change outside those files is certified untested, which is most future
+ * work. Kimi proposed a coverage manifest. A better answer already landed on
+ * main while this was being built (`backend/scripts/test-baseline-gate.mjs`,
+ * 133ab0fdc): run the WHOLE suite and fail only on failures that are NEW
+ * relative to a recorded baseline of known-red files.
+ *
+ * That solves the same red-baseline problem this gate was built around, covers
+ * everything instead of seven files, and is already proven by falsification (a
+ * planted canary made it exit 1). Reusing it beats both my hardcoded list and
+ * the manifest I was about to write — and its baseline independently lists the
+ * same pre-existing red file this slice identified.
+ *
+ * Exit codes it defines: 0 = no new failures, 1 = regression, 2 = no baseline.
+ */
+const checkBackendRegressions = () => {
+  const gate = path.join(backendDir, 'scripts', 'test-baseline-gate.mjs');
+  if (!existsSync(gate)) {
+    return { ok: null, substrate: true, detail: 'backend baseline gate not present' };
   }
 
-  const result = run(
-    path.join('node_modules', '.bin', bin('vitest')),
-    ['run', ...present, '--no-coverage'],
-    backendDir,
-  );
-  return result.code === 0
-    ? { ok: true, detail: `${present.length} certified backend suites pass` }
-    : { ok: false, detail: 'a certified backend suite failed' };
+  const result = run('node', ['scripts/test-baseline-gate.mjs'], backendDir);
+  if (result.code === 0) return { ok: true, detail: 'no NEW backend test failures vs baseline' };
+  if (result.code === 2) {
+    return { ok: null, substrate: true, detail: 'no baseline recorded — run the gate with --update' };
+  }
+  return { ok: false, detail: 'backend regression: a file fails that is not in the baseline' };
 };
 
 const checkFrontendSuites = () => {
@@ -290,7 +295,7 @@ const CHECKS = [
   ['diff whitespace', checkWhitespace],
   ['backend module syntax', checkBackendSyntax],
   ['backend commit drift (rule 42)', checkBackendDrift],
-  ['certified backend suites', checkTargetedSuites],
+  ['backend regressions vs baseline', checkBackendRegressions],
   ['certified frontend suites', checkFrontendSuites],
   ['migrations static review', checkMigrationsStatic],
   ['secret scan', checkSecrets],
