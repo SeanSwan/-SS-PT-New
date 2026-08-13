@@ -43,7 +43,14 @@ try {
    * nothing ever invoked it, so activity.log.md grew unbounded and doctor would have
    * flagged it forever — a permanent unclearable warning is its own fatigue source.
    * Best-effort and silent on failure: retention is not worth failing orientation. */
-  try { if (existsSync(PRUNE)) execFileSync(process.execPath, [PRUNE], { stdio: 'ignore', timeout: 10_000 }); } catch { /* non-fatal */ }
+  try {
+    if (existsSync(PRUNE)) execFileSync(process.execPath, [PRUNE], { stdio: 'ignore', timeout: 60_000 });
+  } catch (e) {
+    // Not silent. An empty catch here is the exact pattern this file's own error
+    // path warns about: prune quietly stops working, doctor's unclearable warning
+    // returns, and the fatigue loop that motivated wiring it up resumes.
+    console.log(`[lane] log prune failed (${e?.code || e?.message}) — run node scripts/coordination-prune.mjs by hand.`);
+  }
 } catch (err) {
   // Say so rather than vanish — a silent orientation hook is indistinguishable
   // from a healthy one, which is how the ledger went unread for weeks.

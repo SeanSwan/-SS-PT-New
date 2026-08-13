@@ -461,6 +461,10 @@ bearer-token.*
 # carry zero commit churn and can never cause a merge conflict between Claude & Codex.
 .ai-workflow/coordination/*
 !.ai-workflow/coordination/README.md
+# Generated, manual-only broadcast so off-machine agents can see who holds what.
+# The LIVE lane files stay ignored: tracking those would cause the merge conflicts
+# the ledger exists to prevent. This one changes only when someone runs `lane snapshot`.
+!.ai-workflow/coordination/SNAPSHOT.md
 # Hermes Inbox (2026-07-06, Rule 69): the WHOLE subtree is TRACKED — unlike continuity/
 # coordination (local-only runtime scratch), the inbox IS the transport: memos must travel
 # via git to reach Hermes on the Pi. Committed + LLM-read, so IDs/roles only + secret-scanned.
