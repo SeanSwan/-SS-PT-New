@@ -74,18 +74,6 @@ async function main() {
   const { QueryTypes } = await import('sequelize');
   const { default: sequelize } = await import(pathToFileURL(path.join(BACKEND, 'database.mjs')).href);
 
-  // Connect explicitly so an unreachable database reports ONE readable line instead of falling
-  // through to the catch-all, which printed a 30-line Sequelize/pg stack trace and buried the
-  // actual cause. audit-model-health already does this; the two behaved differently on the same
-  // failure, and the noisier one is the one you meet at 2am. Exit 2 either way — the audit could
-  // not run, which is never a clean bill of health.
-  try {
-    await sequelize.authenticate();
-  } catch (error) {
-    console.error(`Could not connect to the database: ${String(error.message).split('\n')[0]}`);
-    process.exit(2);
-  }
-
   // Every column the database will refuse to default for us.
   const rows = await sequelize.query(
     `SELECT table_name::text AS t, column_name::text AS c

@@ -76,19 +76,6 @@ async function fksTargeting(queryInterface, transaction, target) {
     // FOREIGN KEY (a, b) REFERENCES <tbl>(x, y) [ON UPDATE ...] [ON DELETE ...]
     const m = r.def.match(/FOREIGN KEY \(([^)]+)\) REFERENCES [^(]+\(([^)]+)\)(.*)$/);
     if (!m) throw new Error(`could not parse constraint ${r.name}: ${r.def}`);
-    // REFUSE composite FKs rather than half-checking them. The offender pre-flight inspects only
-    // the FIRST column, so a multi-column FK would be recreated correctly but VALIDATED partially —
-    // the pre-flight could pass while ADD CONSTRAINT fails mid-migration. Measured 2026-08-04: zero
-    // composite FKs exist anywhere in this database, so this cannot fire today. It is here because
-    // "silently checks one column" is a limitation nobody reads at 2am; a throw announces itself
-    // the moment it becomes reachable.
-    if (m[1].includes(',')) {
-      throw new Error(
-        `[SWA-92] ABORT: ${r.name} on ${r.src} is a COMPOSITE foreign key (${m[1].trim()}). `
-        + 'This migration validates only the first column and must not guess at the rest. '
-        + 'Extend the pre-flight to all columns before running it.',
-      );
-    }
     return {
       name: r.name,
       src: r.src,
@@ -97,65 +84,6 @@ async function fksTargeting(queryInterface, transaction, target) {
       actions: (m[3] || '').trim(),
     };
   });
-}
-
-/**
- * Bound how long this transaction will WAIT for a lock. Measured 2026-08-04: the server has
- * `lock_timeout`, `statement_timeout` and `idle_in_transaction_session_timeout` all set to 0 —
- * wait forever. This migration takes DDL locks across 31 tables in ONE transaction, so a single
- * conflicting long-running query would block it indefinitely AND queue every subsequent query on
- * `sessions`, `orders`, `notifications` and 28 others behind it. That is an outage, not a slow
- * migration.
- *
- * 5s, and FAILING, is the better outcome: the transaction rolls back whole (nothing is left
- * half-repointed) and can be retried in a quieter moment. This matters most for `down()`, which by
- * definition runs during an incident — the worst possible time to hold a queue open.
- *
- * SET LOCAL scopes it to this transaction only; the session default is untouched.
- *
- * Today the risk is small — 17 live rows across all 31 tables, which is why `up()` ran instantly —
- * but the guard costs one statement and the row count only goes up.
- */
-async function boundLockWait(queryInterface, transaction) {
-  await queryInterface.sequelize.query("SET LOCAL lock_timeout = '5s'", { transaction });
-}
-
-/**
- * Refuse if any existing row would violate the PROPOSED target. Runs before the first ALTER so a
- * bad dataset fails loudly instead of half-migrating.
- *
- * SHARED BY up() AND down() — and `down()` is why this is a separate function. It used to drop and
- * re-add blind. That was survivable only while the two tables happened to agree; the moment this
- * migration SUCCEEDS at its actual purpose — the first client places an order — `orders.userId`
- * holds an id present in `"Users"` and absent from `users`, and a blind `down()` fails on ADD
- * CONSTRAINT partway through. That failure would land during an incident, after someone had already
- * committed to rolling back. A revert path that quietly expires the day the feature starts working
- * is worse than no revert path, because it changes what you reach for under pressure. Now it
- * refuses up front and names the rows to reconcile.
- *
- * `target` is the SQL identifier to check against, quoted by the caller ('"Users"' / 'users').
- */
-async function assertNoOffenders(queryInterface, transaction, fks, target) {
-  const offenders = [];
-  for (const fk of fks) {
-    const col = fk.cols.split(',')[0].trim().replace(/"/g, '');
-    const refCol = fk.refCols.split(',')[0].trim().replace(/"/g, '');
-    const [rows] = await queryInterface.sequelize.query(
-      `SELECT COUNT(*)::int AS n
-         FROM ${fk.src} t
-        WHERE t."${col}" IS NOT NULL
-          AND NOT EXISTS (SELECT 1 FROM ${target} u WHERE u."${refCol}" = t."${col}")`,
-      { transaction },
-    );
-    if (rows[0].n > 0) offenders.push(`${fk.src}.${col} (${rows[0].n} row(s))`);
-  }
-  if (offenders.length) {
-    throw new Error(
-      `[SWA-92] ABORT: ${offenders.length} column(s) reference ids absent from ${target}. `
-      + `Reconcile the two tables first — proceeding would fail mid-migration.\n  `
-      + offenders.join('\n  '),
-    );
-  }
 }
 
 /** Repoint every FK from `from` to `to`, preserving columns and action clauses. */
@@ -167,7 +95,28 @@ async function repoint(queryInterface, transaction, from, to) {
     return 0;
   }
 
-  await assertNoOffenders(queryInterface, transaction, fks, `"${to}"`);
+  // PRE-FLIGHT: refuse if any existing row would violate the new target. Doing this
+  // before the first ALTER means a bad dataset fails loudly instead of half-migrating.
+  const offenders = [];
+  for (const fk of fks) {
+    const col = fk.cols.split(',')[0].trim().replace(/"/g, '');
+    const refCol = fk.refCols.split(',')[0].trim().replace(/"/g, '');
+    const [rows] = await queryInterface.sequelize.query(
+      `SELECT COUNT(*)::int AS n
+         FROM ${fk.src} t
+        WHERE t."${col}" IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM "${to}" u WHERE u."${refCol}" = t."${col}")`,
+      { transaction },
+    );
+    if (rows[0].n > 0) offenders.push(`${fk.src}.${col} (${rows[0].n} row(s))`);
+  }
+  if (offenders.length) {
+    throw new Error(
+      `[SWA-92] ABORT: ${offenders.length} column(s) reference ids absent from "${to}". `
+      + `Reconcile the two tables first — repointing now would fail mid-migration.\n  `
+      + offenders.join('\n  '),
+    );
+  }
 
   for (const fk of fks) {
     await queryInterface.sequelize.query(
@@ -186,7 +135,6 @@ async function repoint(queryInterface, transaction, from, to) {
 module.exports = {
   async up(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
-      await boundLockWait(queryInterface, transaction);
       // Targets are passed as SQL identifiers: bare `users` folds to lowercase, `"Users"`
       // must stay quoted or Postgres would fold it to `users` and resolve the WRONG table.
       await repoint(queryInterface, transaction, 'users', 'Users');
@@ -199,23 +147,12 @@ module.exports = {
    */
   async down(queryInterface) {
     await queryInterface.sequelize.transaction(async (transaction) => {
-      await boundLockWait(queryInterface, transaction);
       // '"Users"' — quoted. The bare form resolves to lowercase `users` and finds nothing,
       // which is exactly the bug this line used to have.
       const fks = await fksTargeting(queryInterface, transaction, '"Users"');
-      // Only move back the ones this migration created; everything else legitimately targeted
-      // "Users" beforehand and must be left alone. Matched on TABLE + NAME, not name alone:
-      // Postgres scopes constraint names to their table, so a bare-name match could drag an
-      // unrelated table's identically-named FK onto the broken target. Measured 2026-08-04: zero
-      // FK names are reused across tables here — the key shape makes that a fact the code enforces
-      // rather than an assumption it inherits.
-      const ours = fks.filter((f) => MOVED.has(`${f.src}|${f.name}`));
-
-      // Refuse if CURRENT data cannot satisfy the restored constraints. Without this, down() fails
-      // partway through ADD CONSTRAINT as soon as a client id exists in "Users" but not in `users`
-      // — i.e. the moment this migration has done its job. See assertNoOffenders.
-      await assertNoOffenders(queryInterface, transaction, ours, 'users');
-
+      // Only move back the ones this migration created; everything else legitimately
+      // targeted "Users" beforehand and must be left alone.
+      const ours = fks.filter((f) => MOVED.has(f.name));
       for (const fk of ours) {
         await queryInterface.sequelize.query(
           `ALTER TABLE ${fk.src} DROP CONSTRAINT "${fk.name}"`, { transaction },
@@ -237,54 +174,29 @@ module.exports = {
  * already targeted `"Users"` back onto the broken table.
  */
 const MOVED = new Set([
-  'admin_specials|admin_specials_createdBy_fkey',
-  'client_baseline_measurements|client_baseline_measurements_recordedBy_fkey',
-  'client_baseline_measurements|client_baseline_measurements_userId_fkey',
-  'client_notes|client_notes_trainerId_fkey',
-  'client_notes|client_notes_userId_fkey',
-  'client_nutrition_plans|client_nutrition_plans_createdBy_fkey',
-  'client_nutrition_plans|client_nutrition_plans_userId_fkey',
-  'client_opt_phases|client_opt_phases_client_id_fkey',
-  'client_photos|client_photos_uploadedBy_fkey',
-  'client_photos|client_photos_userId_fkey',
-  'client_progress|client_progress_userId_fkey',
-  'clients_pii|clients_pii_created_by_fkey',
-  'clients_pii|clients_pii_last_modified_by_fkey',
-  '"Communities"|Communities_createdBy_fkey',
-  'corrective_homework_logs|corrective_homework_logs_client_id_fkey',
-  'corrective_protocols|corrective_protocols_assigned_by_trainer_id_fkey',
-  'corrective_protocols|corrective_protocols_client_id_fkey',
-  'custom_packages|custom_packages_clientId_fkey',
-  'custom_packages|custom_packages_createdByAdminId_fkey',
-  '"EnhancedSocialPosts"|EnhancedSocialPosts_moderatedBy_fkey',
-  '"EnhancedSocialPosts"|EnhancedSocialPosts_userId_fkey',
-  'exercise_library|exercise_library_created_by_admin_id_fkey',
-  'food_scan_history|food_scan_history_userId_fkey',
-  'movement_assessments|movement_assessments_assessor_trainer_id_fkey',
-  'movement_assessments|movement_assessments_client_id_fkey',
-  'notifications|notifications_senderId_fkey',
-  'orders|orders_trainer_id_fkey',
-  'orders|orders_userId_fkey',
-  'orientations|orientations_userId_fkey',
-  'phase_progression_history|phase_progression_history_client_id_fkey',
-  'phase_progression_history|phase_progression_history_trainer_id_fkey',
-  'progress_reports|progress_reports_userId_fkey',
-  'renewal_alerts|renewal_alerts_contactedBy_fkey',
-  'renewal_alerts|renewal_alerts_userId_fkey',
-  'session_logs|session_logs_client_id_fkey',
-  'session_logs|session_logs_trainer_id_fkey',
-  'sessions|sessions_cancellationReviewedBy_fkey',
-  'sessions|sessions_markedPresentBy_fkey',
-  '"SocialConnections"|SocialConnections_followerId_fkey',
-  '"SocialConnections"|SocialConnections_followingId_fkey',
-  'study_progress|study_progress_user_id_fkey',
-  'trainer_availability|trainer_availability_trainer_id_fkey',
-  'trainer_certifications|trainer_certifications_trainer_id_fkey',
-  'trainer_certifications|trainer_certifications_verified_by_admin_id_fkey',
-  'trainer_permissions|trainer_permissions_grantedBy_fkey',
-  'trainer_permissions|trainer_permissions_trainerId_fkey',
-  'variation_logs|variation_logs_clientId_fkey',
-  'variation_logs|variation_logs_trainerId_fkey',
-  'workout_templates|workout_templates_created_by_admin_id_fkey',
-  'workout_templates|workout_templates_userId_fkey',
+  'Communities_createdBy_fkey', 'EnhancedSocialPosts_moderatedBy_fkey',
+  'EnhancedSocialPosts_userId_fkey', 'SocialConnections_followerId_fkey',
+  'SocialConnections_followingId_fkey', 'admin_specials_createdBy_fkey',
+  'client_baseline_measurements_recordedBy_fkey', 'client_baseline_measurements_userId_fkey',
+  'client_notes_trainerId_fkey', 'client_notes_userId_fkey',
+  'client_nutrition_plans_createdBy_fkey', 'client_nutrition_plans_userId_fkey',
+  'client_opt_phases_client_id_fkey', 'client_photos_uploadedBy_fkey',
+  'client_photos_userId_fkey', 'client_progress_userId_fkey',
+  'clients_pii_created_by_fkey', 'clients_pii_last_modified_by_fkey',
+  'corrective_homework_logs_client_id_fkey', 'corrective_protocols_assigned_by_trainer_id_fkey',
+  'corrective_protocols_client_id_fkey', 'custom_packages_clientId_fkey',
+  'custom_packages_createdByAdminId_fkey', 'exercise_library_created_by_admin_id_fkey',
+  'food_scan_history_userId_fkey', 'movement_assessments_assessor_trainer_id_fkey',
+  'movement_assessments_client_id_fkey', 'notifications_senderId_fkey',
+  'orders_trainer_id_fkey', 'orders_userId_fkey',
+  'orientations_userId_fkey', 'phase_progression_history_client_id_fkey',
+  'phase_progression_history_trainer_id_fkey', 'progress_reports_userId_fkey',
+  'renewal_alerts_contactedBy_fkey', 'renewal_alerts_userId_fkey',
+  'session_logs_client_id_fkey', 'session_logs_trainer_id_fkey',
+  'sessions_cancellationReviewedBy_fkey', 'sessions_markedPresentBy_fkey',
+  'study_progress_user_id_fkey', 'trainer_availability_trainer_id_fkey',
+  'trainer_certifications_trainer_id_fkey', 'trainer_certifications_verified_by_admin_id_fkey',
+  'trainer_permissions_grantedBy_fkey', 'trainer_permissions_trainerId_fkey',
+  'variation_logs_clientId_fkey', 'variation_logs_trainerId_fkey',
+  'workout_templates_created_by_admin_id_fkey', 'workout_templates_userId_fkey',
 ]);
