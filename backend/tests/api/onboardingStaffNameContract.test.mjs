@@ -172,6 +172,50 @@ describe('POST /api/onboarding — staff wizard name contract (F1)', () => {
     expect(String(bodyOf(res)?.error)).toMatch(/name/i);
   });
 
+  it.each([
+    ['number', 12345],
+    ['object', { a: 1 }],
+    ['array', ['Stone']],
+  ])('refuses a non-string %s lastName instead of silently dropping it', async (_label, lastName) => {
+    // Found by probing the fix, not by the tests written for it: this used to
+    // create a client with NO surname and return 201. Silent data loss, and
+    // inconsistent with rejecting a non-string firstName.
+    const { res, mockUser } = await run(mountedWizardPayload({ lastName }));
+
+    expect(statusOf(res)).toBe(400);
+    expect(String(bodyOf(res)?.error)).toMatch(/text/i);
+    expect(mockUser.create).not.toHaveBeenCalled();
+  });
+
+  it('normalizes internal whitespace runs in a legacy fullName', async () => {
+    // The split already used /\s+/, but the STORED fullName kept the raw runs,
+    // so the display name and the split disagreed about the same person.
+    const { mockUser } = await run({
+      fullName: 'Ava   Marie   Stone',
+      email: 'ava.stone@example.test',
+      primaryGoal: 'Build strength',
+    });
+
+    expect(mockUser.create).toHaveBeenCalledWith(
+      expect.objectContaining({ firstName: 'Ava', lastName: 'Marie Stone' }),
+    );
+  });
+
+  it('falls back to fullName when the split parts are whitespace-only', async () => {
+    const { res, mockUser } = await run({
+      firstName: '  ',
+      lastName: ' ',
+      fullName: 'Ava Stone',
+      email: 'ava.stone@example.test',
+      primaryGoal: 'Build strength',
+    });
+
+    expect(statusOf(res)).not.toBe(400);
+    expect(mockUser.create).toHaveBeenCalledWith(
+      expect.objectContaining({ firstName: 'Ava', lastName: 'Stone' }),
+    );
+  });
+
   it('still accepts a legacy fullName-only payload', async () => {
     // Backward compatibility: any existing integration posting fullName keeps working.
     const { res, mockUser } = await run({

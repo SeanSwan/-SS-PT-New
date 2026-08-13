@@ -32,6 +32,13 @@
 
 const asTrimmedString = (value) => (typeof value === 'string' ? value.trim() : '');
 
+/** Present but not a string — a value we must refuse rather than quietly discard. */
+const isUnusableName = (value) =>
+  value !== undefined && value !== null && typeof value !== 'string';
+
+/** Collapse internal whitespace runs so the derived display name is clean. */
+const collapseSpaces = (value) => value.replace(/\s+/g, ' ');
+
 /**
  * Resolve the canonical name for an onboarding payload.
  *
@@ -40,8 +47,16 @@ const asTrimmedString = (value) => (typeof value === 'string' ? value.trim() : '
  *          | { ok: false, field: 'name', reason: string }}
  */
 export const resolveOnboardingName = (formData = {}) => {
-  const firstName = asTrimmedString(formData.firstName);
-  const lastName = asTrimmedString(formData.lastName);
+  // Refuse a present-but-non-string name part rather than coercing or dropping it.
+  // Found by probing the fix itself: {firstName:'Ava', lastName: 12345} used to
+  // create a client with NO surname and NO error — silent data loss, and
+  // inconsistent with rejecting a non-string firstName.
+  if (isUnusableName(formData.firstName) || isUnusableName(formData.lastName)) {
+    return { ok: false, field: 'name', reason: 'Name fields must be text' };
+  }
+
+  const firstName = collapseSpaces(asTrimmedString(formData.firstName));
+  const lastName = collapseSpaces(asTrimmedString(formData.lastName));
 
   if (firstName || lastName) {
     // The split the client collected wins. Never reconstruct what was given.
@@ -53,13 +68,20 @@ export const resolveOnboardingName = (formData = {}) => {
     };
   }
 
-  const fullName = asTrimmedString(formData.fullName);
+  if (isUnusableName(formData.fullName)) {
+    return { ok: false, field: 'name', reason: 'Name fields must be text' };
+  }
+
+  const fullName = collapseSpaces(asTrimmedString(formData.fullName));
   if (fullName) {
-    const parts = fullName.split(/\s+/);
+    const parts = fullName.split(' ');
     return {
       ok: true,
       firstName: parts[0],
       lastName: parts.slice(1).join(' '),
+      // Normalized, not the raw input: 'Ava   Marie   Stone' was being split
+      // correctly but STORED with its whitespace runs intact, so the display
+      // name and the split disagreed about the same person.
       fullName,
     };
   }
