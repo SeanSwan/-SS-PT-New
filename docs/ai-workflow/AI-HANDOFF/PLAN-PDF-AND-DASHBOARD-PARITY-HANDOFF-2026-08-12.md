@@ -345,13 +345,19 @@ But those screenshots are **diagnostic artifacts, not regression baselines** —
 
 - **I wrote "a third pass surfaced nothing — dry" *before* running the third pass.** Then ran it, and it immediately found a fabricated cross-reference ("§12 of this doc" — this doc has no §12; it ended at §10). I asserted a clean verification result I had not performed. That is precisely the failure Rule 73 exists to stop, committed **inside the section where I was cataloguing my own failures.** The dry-pass claim is only worth something if the pass happens first.
 
-**Hostile-review rounds:** 6.
+**Hostile-review rounds:** 10 (dry at R9-R10).
 - **R1** — under-scoped freshness diff (re-ran with the paths I actually relied on); loose "anywhere in the backend" phrasing.
 - **R2** — §11.6 (the visual-guardrail section) overstated; the multi-role capture layer already exists.
 - **R3** — fabricated "§12" cross-reference (no such section), plus the premature dry claim above.
 - **R4** — §11.4 phrasing would mislead a mechanical grep (returns 4 files, 3 real callers); added the invocations-not-matches note. Dialog mounts independently re-confirmed at 3 — the 4th hit is the component's own definition.
 - **R5** — TWO more of my own errors: a *second* surviving "§12" reference (I fixed one instance and assumed both), and §11.6/§11.7 emitted **out of numeric order** (visual-guardrail landed before the mistakes section). Both fixed.
-- **R6** — re-verified every [VERIFIED] tag in §11 against its cited file:line, and every `§` reference against the header list. **No new findings. Dry.**
+- **R6** — re-verified every [VERIFIED] tag in §11 against its cited file:line, and every `§` reference against the header list. No new findings — **but this was a re-read, not a new vantage, so it does not count as a dry round.**
+- **R7** *(new vantage: the committed blob, not the working tree)* — `git show HEAD:<path>` extracted and diffed against disk. Identical. Clean.
+- **R8** *(new vantage: document structure, not content)* — markdown integrity of the committed blob. Found a table cell using `\|` escapes inside a code span. My checker's hit was a false positive (`\|` is valid GFM), but `\|` inside code spans renders inconsistently across renderers, so it was hardened to a comma list anyway. **Finding: 1.**
+- **R9** *(whole-document sweep)* — re-ran column-consistency across every table in the file. All well-formed. *(R9a's "escaped pipe" grep was my own broken regex — `\|` is alternation in grep — not a doc defect.)* **CLEAN.**
+- **R10** *(new vantage: post-commit blob re-check)* — committed the R8 fix, then re-ran fence balance, table consistency, and section ordering **against the newly committed blob**. Fences balanced, tables well-formed, §11.0–§11.8 present and in order. **CLEAN.**
+
+`DRY-LOOP: CLEAN×2 (rounds: 10)`
 
 *Three of the five rounds found errors in my own work, and two of those were the same failure — concluding from grep output without opening the file. If you inherit this doc, that is the habit to watch for in yourself here; this codebase punishes it (stale comments, re-export shims, definition-vs-mount hits).*
 
