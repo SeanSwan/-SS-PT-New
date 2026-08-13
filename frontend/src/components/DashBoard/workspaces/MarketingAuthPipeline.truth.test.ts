@@ -46,16 +46,32 @@ describe('marketing workspace auth pipeline', () => {
 
   it('keeps active marketing calls on the shared API service', () => {
     const generatorSource = readSource('frontend/src/components/DashBoard/workspaces/marketing/SocialPostGenerator.tsx');
+    const publishHookSource = readSource('frontend/src/components/DashBoard/workspaces/marketing/useSocialPublish.ts');
     const calendarApiSource = readSource('frontend/src/components/DashBoard/workspaces/marketing/MarketingCalendar.api.ts');
     const analyticsSource = readSource('frontend/src/components/DashBoard/workspaces/marketing/SocialAnalyticsDashboard.tsx');
     const connectSource = readSource('frontend/src/components/DashBoard/workspaces/marketing/SocialConnectPanel.tsx');
-    const combinedSource = `${generatorSource}\n${calendarApiSource}\n${analyticsSource}\n${connectSource}`;
+    // The hook is part of the combined surface: the publish/compliance/retry
+    // calls moved into it, so leaving it out would let a raw fetch() or a
+    // hand-rolled Authorization header slip past the checks at the bottom of
+    // this test — the very calls those checks exist to police.
+    const combinedSource = `${generatorSource}\n${publishHookSource}\n${calendarApiSource}\n${analyticsSource}\n${connectSource}`;
 
     expect(generatorSource).toContain("import apiService from '../../../../services/api.service'");
     expect(generatorSource).toContain("apiService.get('/api/admin/social-publishing/health')");
     expect(generatorSource).toContain("apiService.get('/api/admin/social-publishing/accounts')");
-    expect(generatorSource).toContain("apiService.post('/api/admin/social-publishing/compliance-check'");
-    expect(generatorSource).toContain("apiService.post('/api/admin/social-publishing/publish'");
+    // RE-ANCHORED: the publish and compliance calls moved into useSocialPublish
+    // when the composer hit the 300-line rule and could not grow a retry
+    // affordance. The assertions follow them to their new home rather than
+    // being relaxed — and they now also pin the retry route, so this test
+    // covers MORE of the publishing surface than it did before the move.
+    expect(publishHookSource).toContain("import apiService from '../../../../services/api.service'");
+    expect(publishHookSource).toContain("apiService.post('/api/admin/social-publishing/compliance-check'");
+    expect(publishHookSource).toContain("apiService.post('/api/admin/social-publishing/publish'");
+    expect(publishHookSource).toContain('apiService.post(`/api/admin/social-publishing/publish/${target.jobId}/retry`)');
+    // The composer must reach the API only through the hook — a direct publish
+    // call reappearing here would bypass the draft-safety choke point.
+    expect(generatorSource).toContain("import { useSocialPublish } from './useSocialPublish'");
+    expect(generatorSource).not.toContain("apiService.post('/api/admin/social-publishing/publish'");
 
     expect(calendarApiSource).toContain("import apiService from '../../../../services/api.service'");
     expect(calendarApiSource).toContain('apiService.get(`${API_PATH}?${params.toString()}`)');
