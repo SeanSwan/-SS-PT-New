@@ -212,6 +212,88 @@ router.post('/render-job', protect, adminOnly, async (req, res) => {
   }
 });
 
+// ─── POST /api/content-studio/sync-job ────────────────────
+// Queues an audio-sync measurement for a camera/recorder pair.
+//
+// PATHS ARE THE AGENT'S, NOT THE SERVER'S. A Sony A7R IV take is ~15GB; uploading one to
+// Render to compute a sub-frame offset is not viable, and the audio never needs to leave
+// the machine. So the job carries file paths that the WORKER resolves locally, and only
+// the measurement travels back. The server cannot validate these paths — the agent fails
+// the job permanently if they do not resolve.
+//
+// That makes this an admin-only surface by necessity, not just by convention: a caller
+// who can queue arbitrary paths gets a file-existence oracle on the operator's machine.
+// It reads nothing back except an offset, but the gate belongs here regardless.
+//
+// `kind` is 'transcode' because the schema's CHECK allows only
+// preview|generate|transcode|upscale|interpolate — there is no 'sync'. The job's first
+// act genuinely IS an ffmpeg transcode (decode to mono PCM), so the label is defensible
+// rather than invented. `kind` is descriptive only: leasing routes on
+// required_capabilities and dispatch routes on workflowId. Adding a 'sync' kind is a
+// production schema change and is Sean's call, not a side effect of a build loop.
+router.post('/sync-job', protect, adminOnly, async (req, res) => {
+  try {
+    const { referencePath, targetPath, maxOffsetSeconds, sampleRate } = req.body || {};
+    if (!referencePath || !targetPath) {
+      return res.status(400).json({
+        success: false,
+        error: 'referencePath and targetPath are required (paths on the render agent\'s machine)',
+      });
+    }
+    if (referencePath === targetPath) {
+      // Correlating a file with itself always returns offset 0 at peak 1.0 — a perfect,
+      // useless answer that looks like a successful sync.
+      return res.status(400).json({ success: false, error: 'referencePath and targetPath must differ' });
+    }
+
+    const headerKey = req.get('Idempotency-Key');
+    const bucket = Math.floor(Date.now() / DERIVED_KEY_BUCKET_MS);
+    const idempotencyKey = (typeof headerKey === 'string' && headerKey.trim())
+      ? headerKey.trim()
+      : createHash('sha256').update(JSON.stringify({
+        u: req.user?.id, referencePath, targetPath, bucket,
+      })).digest('hex').slice(0, 40);
+
+    const requiredCapabilities = ['mediasync'];
+
+    const { job, replayed } = await createJob({
+      userId: req.user?.id,
+      idempotencyKey,
+      kind: 'transcode',
+      workflowId: 'mediasync:pair',
+      prompt: `sync ${referencePath} <-> ${targetPath}`,
+      params: {
+        referencePath,
+        targetPath,
+        maxOffsetSeconds: Number(maxOffsetSeconds) || 120,
+        sampleRate: Number(sampleRate) || 8000,
+      },
+      requiredCapabilities,
+    });
+
+    const presence = describePresence(await workerPresence({ requiredCapabilities }));
+
+    return res.status(replayed ? 200 : 202).json({
+      success: true,
+      message: presence.message,
+      data: {
+        jobId: job.id,
+        status: job.status,
+        replayed,
+        startable: presence.startable,
+        workerState: presence.code,
+        statusUrl: `/api/content-studio/render-job/${job.id}`,
+      },
+    });
+  } catch (err) {
+    if (err instanceof VideoRenderJobError) {
+      return res.status(err.statusCode).json({ success: false, error: err.message, code: err.code });
+    }
+    console.error('[ContentStudio] Sync job creation failed:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to queue sync job' });
+  }
+});
+
 // ─── GET /api/content-studio/render-job/:id ───────────────
 // A queue you cannot poll is a queue that can only be trusted, and trust was the
 // original bug. Owner-scoped: a job id must not be a read primitive for other users.

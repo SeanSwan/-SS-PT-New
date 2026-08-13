@@ -278,3 +278,55 @@ describe('GET /render-job/:id — pollable, and owner-scoped', () => {
     expect(res.body.data.workerState).toBeNull();
   });
 });
+
+describe('POST /sync-job — queues real measurement work for the agent', () => {
+  beforeEach(() => {
+    createJob.mockResolvedValue({ job: { id: 'sync-1', status: 'queued' }, replayed: false });
+    workerPresence.mockResolvedValue({ live: 1, total: 1, missingCapabilities: [] });
+  });
+
+  it('queues a mediasync job the agent can actually dispatch on', async () => {
+    const res = await request(app).post('/api/content-studio/sync-job')
+      .send({ referencePath: '/media/A001.MP4', targetPath: '/media/DJI_01.WAV' });
+
+    expect(res.status).toBe(202);
+    const arg = createJob.mock.calls[0][0];
+    // workflowId is the dispatch key the agent splits on; capability is what leasing
+    // filters on. Both must be right or the job is unleasable or unrunnable.
+    expect(arg.workflowId).toBe('mediasync:pair');
+    expect(arg.requiredCapabilities).toEqual(['mediasync']);
+    expect(arg.params.referencePath).toBe('/media/A001.MP4');
+    expect(arg.params.targetPath).toBe('/media/DJI_01.WAV');
+    expect(arg.params.maxOffsetSeconds).toBe(120);
+  });
+
+  it('refuses a file paired with itself', async () => {
+    // Self-correlation returns offset 0 at peak 1.0 — a perfect, useless answer that
+    // looks exactly like a successful sync.
+    const res = await request(app).post('/api/content-studio/sync-job')
+      .send({ referencePath: '/media/A001.MP4', targetPath: '/media/A001.MP4' });
+    expect(res.status).toBe(400);
+    expect(createJob).not.toHaveBeenCalled();
+  });
+
+  it('requires both paths', async () => {
+    for (const body of [{}, { referencePath: '/a' }, { targetPath: '/b' }]) {
+      expect((await request(app).post('/api/content-studio/sync-job').send(body)).status).toBe(400);
+    }
+    expect(createJob).not.toHaveBeenCalled();
+  });
+
+  it('tells the truth when no capable worker is online', async () => {
+    workerPresence.mockResolvedValue({ live: 0, total: 0, missingCapabilities: ['mediasync'] });
+    const res = await request(app).post('/api/content-studio/sync-job')
+      .send({ referencePath: '/a', targetPath: '/b' });
+    expect(res.body.data.startable).toBe(false);
+    expect(res.body.data.workerState).toBe('NO_WORKER_ENROLLED');
+  });
+
+  it('is pollable through the same status endpoint', async () => {
+    const res = await request(app).post('/api/content-studio/sync-job')
+      .send({ referencePath: '/a', targetPath: '/b' });
+    expect(res.body.data.statusUrl).toBe('/api/content-studio/render-job/sync-1');
+  });
+});
