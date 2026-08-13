@@ -197,7 +197,16 @@ export const PlatformCheck = styled.label<{ $color: string; $checked: boolean }>
   }
 `;
 
-export const ComplianceBox = styled.div<{ $type: 'warning' | 'pass' }>`
+// A hard refusal must not wear the same amber as an advisory the checker
+// already fixed for you — they are opposite outcomes. A map rather than nested
+// ternaries so a fourth tone costs one line, not three branches.
+const COMPLIANCE_TONES = {
+  blocked: ['rgba(239, 68, 68, 0.08)', 'rgba(239, 68, 68, 0.3)', 'var(--danger, #EF4444)'],
+  warning: ['rgba(245, 158, 11, 0.08)', 'rgba(245, 158, 11, 0.25)', 'var(--warning, #F59E0B)'],
+  pass: ['rgba(16, 185, 129, 0.08)', 'rgba(16, 185, 129, 0.25)', 'var(--success, #10B981)'],
+} as const;
+
+export const ComplianceBox = styled.div<{ $type: keyof typeof COMPLIANCE_TONES }>`
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -206,15 +215,9 @@ export const ComplianceBox = styled.div<{ $type: 'warning' | 'pass' }>`
   margin-bottom: 16px;
   font-family: 'Sora', sans-serif;
   font-size: 13px;
-  background: ${({ $type }) =>
-    $type === 'warning'
-      ? 'var(--warning-surface, rgba(245, 158, 11, 0.08))'
-      : 'var(--success-surface, rgba(16, 185, 129, 0.08))'};
-  border: 1px solid ${({ $type }) =>
-    $type === 'warning'
-      ? 'var(--warning-border, rgba(245, 158, 11, 0.25))'
-      : 'var(--success-border, rgba(16, 185, 129, 0.25))'};
-  color: ${({ $type }) => ($type === 'warning' ? 'var(--warning, #F59E0B)' : 'var(--success, #10B981)')};
+  background: ${({ $type }) => COMPLIANCE_TONES[$type][0]};
+  border: 1px solid ${({ $type }) => COMPLIANCE_TONES[$type][1]};
+  color: ${({ $type }) => COMPLIANCE_TONES[$type][2]};
 `;
 
 export const FeedbackIcon = styled.span`
