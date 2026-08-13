@@ -2,9 +2,10 @@ import Friendship from './Friendship.mjs';
 import SocialPost from './SocialPost.mjs';
 import SocialComment from './SocialComment.mjs';
 import SocialLike from './SocialLike.mjs';
-import Challenge from './Challenge.mjs';
-import ChallengeParticipant from './ChallengeParticipant.mjs';
-import ChallengeTeam from './ChallengeTeam.mjs';
+// SWA-96 merge (2026-08-13): Challenge/ChallengeParticipant/ChallengeTeam retired.
+// The canonical challenge family lives in the root models (`challenges` table, 18 live
+// rows, /api/v1/gamification lane). These PascalCase twins mapped to empty tables and
+// their only route consumer (routes/social/challenges.mjs legacy endpoints) is removed.
 import PostReport from './PostReport.mjs';
 import ModerationAction from './ModerationAction.mjs';
 import Hashtag from './Hashtag.mjs';
@@ -65,9 +66,6 @@ export {
   SocialPost,
   SocialComment,
   SocialLike,
-  Challenge,
-  ChallengeParticipant,
-  ChallengeTeam,
   PostReport,
   ModerationAction,
   Hashtag,
@@ -87,9 +85,6 @@ export default {
   SocialPost,
   SocialComment,
   SocialLike,
-  Challenge,
-  ChallengeParticipant,
-  ChallengeTeam,
   PostReport,
   ModerationAction,
   Hashtag,

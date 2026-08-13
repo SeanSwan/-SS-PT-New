@@ -127,14 +127,16 @@ const ChallengeParticipant = db.define('ChallengeParticipant', {
     allowNull: true
   },
   
-  // Team Participation (if challenge allows teams)
+  // Team Participation (if challenge allows teams).
+  // SWA-159 (2026-08-13): the `references` block was a dangling pointer. It named
+  // 'ChallengeTeams' — a table owned by the now-retired SOCIAL family whose id was
+  // int4, so this uuid FK was never creatable anywhere (prod verified: no FK
+  // exists, column is plain uuid). The root family has no teams model yet. A
+  // plain uuid column matches production exactly = zero drift; the FK returns
+  // when a root-family teams feature actually ships.
   teamId: {
     type: DataTypes.UUID,
     allowNull: true,
-    references: {
-      model: 'ChallengeTeams',
-      key: 'id'
-    }
   },
   
   isTeamLeader: {
