@@ -36,13 +36,27 @@ let consecutiveFailures = 0;
 
 async function runSweep() {
   try {
-    const reclaimed = await sweepExpiredLeases();
+    // `sweepExpiredLeases()` returns { requeued, failed } — read from the service, not
+    // assumed. The first version here guessed at an array-or-number and did
+    // `Number(result || 0)`, which on an object is NaN; `NaN > 0` is false, so the
+    // reaper would have run correctly and logged NOTHING, forever. An agent crash-loop
+    // stranding jobs every minute would have produced zero output — a dead monitoring
+    // path that looks identical to a healthy quiet one.
+    const { requeued = 0, failed = 0 } = (await sweepExpiredLeases()) ?? {};
     consecutiveFailures = 0;
+
     // Only speak when something happened. A reaper that logs every minute trains
     // everyone to filter it out, which is how the interesting line gets missed.
-    const count = Array.isArray(reclaimed) ? reclaimed.length : Number(reclaimed || 0);
-    if (count > 0) {
-      logger.warn(`[RenderLeaseSweeper] reclaimed ${count} job(s) from dead workers`);
+    if (requeued > 0) {
+      logger.warn(`[RenderLeaseSweeper] requeued ${requeued} job(s) from dead workers`);
+    }
+    // Distinct level and distinct sentence: these are NOT retried. Someone has a render
+    // that will never complete, and that is the line worth paging on.
+    if (failed > 0) {
+      logger.error(
+        `[RenderLeaseSweeper] ${failed} job(s) exhausted their attempts after worker death `
+        + '— these will not retry',
+      );
     }
   } catch (err) {
     consecutiveFailures += 1;

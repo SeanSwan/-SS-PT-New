@@ -133,6 +133,13 @@ const VALID_TEMPLATES = [
   'team-intro-carousel', 'nasm-phase-explainer',
 ];
 
+/**
+ * Window over which a DERIVED (header-less) idempotency key stays stable. Long enough to
+ * swallow a double-click and an impatient retry; short enough that a deliberate
+ * re-render minutes later is a new job rather than a permanent replay.
+ */
+const DERIVED_KEY_BUCKET_MS = 60 * 1000;
+
 router.post('/render-job', protect, adminOnly, async (req, res) => {
   try {
     const { templateId, branding, clientName, exerciseName, customText } = req.body || {};
@@ -144,14 +151,27 @@ router.post('/render-job', protect, adminOnly, async (req, res) => {
     }
 
     // Idempotency is required by the queue: without it, a double-click is two renders
-    // and two GPU-minutes. Accept the standard header; fall back to a deterministic key
-    // derived from the request so an older client cannot be charged twice for one click.
+    // and two GPU-minutes. Prefer the client's own key; derive one only as a safety net
+    // for callers that send none.
+    //
+    // THE DERIVED KEY IS TIME-BUCKETED, and that bucket is load-bearing. `createJob`
+    // matches on {userId, idempotencyKey} with NO time bound, so a purely
+    // content-derived key would return the first job FOREVER: the operator could never
+    // deliberately re-render the same template, and — worse — could never retry after a
+    // FAILED render, because the replay hands back the failed row. Idempotency without a
+    // window quietly becomes "you may render this once, ever".
+    //
+    // A bucket restores the intent: collapse the double-submit (which happens in
+    // seconds) without locking the input combination for life. Two clicks straddling a
+    // bucket edge produce two jobs — the safe direction to be wrong, since one extra
+    // render beats a permanent lockout.
     const headerKey = req.get('Idempotency-Key');
+    const bucket = Math.floor(Date.now() / DERIVED_KEY_BUCKET_MS);
     const idempotencyKey = (typeof headerKey === 'string' && headerKey.trim())
       ? headerKey.trim()
       : createHash('sha256').update(JSON.stringify({
         u: req.user?.id, templateId, branding, clientName: clientName ?? null,
-        exerciseName: exerciseName ?? null, customText: customText ?? null,
+        exerciseName: exerciseName ?? null, customText: customText ?? null, bucket,
       })).digest('hex').slice(0, 40);
 
     const requiredCapabilities = ['remotion'];

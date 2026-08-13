@@ -48,8 +48,14 @@ vi.mock('../../services/renderWorkerPresence.mjs', async () => {
   return { ...real, workerPresence: (...a) => workerPresence(...a) };
 });
 
+// Mutable so a test can switch identity WITHOUT vi.resetModules(). An earlier version
+// used resetModules + doMock to build a second app as user 8; that re-registered the
+// auth mock globally and every later test in this file ran as user 8, so owner-scoped
+// GETs started 404ing. The test contaminated its neighbours rather than finding a bug.
+let currentUser = { id: 7, role: 'admin' };
+
 vi.mock('../../middleware/authMiddleware.mjs', () => ({
-  protect: (req, _res, next) => { req.user = { id: 7, role: 'admin' }; next(); },
+  protect: (req, _res, next) => { req.user = currentUser; next(); },
   adminOnly: (_req, _res, next) => next(),
 }));
 
@@ -64,6 +70,7 @@ vi.mock('../../services/contentStudioStorageUsageService.mjs', () => ({
 let app;
 beforeEach(async () => {
   vi.clearAllMocks();
+  currentUser = { id: 7, role: 'admin' };   // undo any identity a prior test switched to
   const { default: router } = await import('../../routes/contentStudioRoutes.mjs');
   app = express();
   app.use(express.json());
@@ -109,6 +116,61 @@ describe('POST /render-job — creates a REAL job, not a message', () => {
 
     expect(first).toBeTruthy();
     expect(second).toBe(first);               // identical request -> identical key
+  });
+
+  it('isolates derived keys per user', async () => {
+    // A shared key across users would hand one operator another operator's job.
+    createJob.mockResolvedValue({ job: { id: 'j', status: 'queued' }, replayed: false });
+    workerPresence.mockResolvedValue({ live: 1, total: 1, missingCapabilities: [] });
+
+    await request(app).post('/api/content-studio/render-job').send(VALID);
+    const asUser7 = createJob.mock.calls[0][0].idempotencyKey;
+
+    createJob.mockClear();
+    currentUser = { id: 8, role: 'admin' };          // restored in beforeEach
+    await request(app).post('/api/content-studio/render-job').send(VALID);
+    expect(createJob.mock.calls[0][0].idempotencyKey).not.toBe(asUser7);
+  });
+
+  /**
+   * A derived key with no time bound would return the FIRST job forever: the operator
+   * could never deliberately re-render, and could never retry a FAILED render, because
+   * the replay hands back the failed row. The bucket is what keeps idempotency from
+   * meaning "you may render this once, ever".
+   */
+  it('lets the same request become a new job once the dedupe window passes', async () => {
+    createJob.mockResolvedValue({ job: { id: 'j', status: 'queued' }, replayed: false });
+    workerPresence.mockResolvedValue({ live: 1, total: 1, missingCapabilities: [] });
+
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date('2026-08-12T00:00:00Z'));
+      await request(app).post('/api/content-studio/render-job').send(VALID);
+      const early = createJob.mock.calls[0][0].idempotencyKey;
+
+      // Same second-ish: still one job.
+      createJob.mockClear();
+      vi.setSystemTime(new Date('2026-08-12T00:00:30Z'));
+      await request(app).post('/api/content-studio/render-job').send(VALID);
+      expect(createJob.mock.calls[0][0].idempotencyKey).toBe(early);
+
+      // Minutes later: a deliberate re-render must be allowed through.
+      createJob.mockClear();
+      vi.setSystemTime(new Date('2026-08-12T00:05:00Z'));
+      await request(app).post('/api/content-studio/render-job').send(VALID);
+      expect(createJob.mock.calls[0][0].idempotencyKey).not.toBe(early);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('always prefers an explicit client key over the derived one', async () => {
+    // A client that manages its own retries must not be second-guessed.
+    createJob.mockResolvedValue({ job: { id: 'j', status: 'queued' }, replayed: false });
+    workerPresence.mockResolvedValue({ live: 1, total: 1, missingCapabilities: [] });
+    await request(app).post('/api/content-studio/render-job')
+      .set('Idempotency-Key', '  explicit-key  ').send(VALID);
+    expect(createJob.mock.calls[0][0].idempotencyKey).toBe('explicit-key');   // trimmed
   });
 
   it('reports a replay as 200, not as fresh work', async () => {

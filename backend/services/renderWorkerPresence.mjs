@@ -37,24 +37,33 @@ export const WORKER_STALE_AFTER_SECONDS = 180;
 export async function workerPresence({ requiredCapabilities = [] } = {}) {
   // Raw SQL rather than the model: this must not depend on a Sequelize model existing
   // for a table the agent subsystem owns, and it is a single aggregate read.
+  //
+  // COUNTS AND CAPABILITIES ARE AGGREGATED SEPARATELY, DELIBERATELY. The first version
+  // did `COUNT(*) ... FROM render_agents LEFT JOIN LATERAL jsonb_array_elements_text(
+  // capabilities)`, which counts JOINED ROWS, not agents — an agent with three
+  // capabilities was counted three times. Verified against synthetic rows: 3 agents / 2
+  // live reported as total 5 / live 4.
+  //
+  // It read correctly against production only because zero agents are enrolled, so the
+  // bug was invisible until the first worker connects — the moment the number starts
+  // being used for anything. An inflated `live` makes `startable` true when no capable
+  // worker exists, which defeats the entire purpose of this module.
   const rows = await sequelize.query(
-    `SELECT
-       COUNT(*)                                             AS total,
-       COUNT(*) FILTER (
-         WHERE revoked_at IS NULL
-           AND last_seen_at IS NOT NULL
-           AND last_seen_at > now() - (:staleSeconds * INTERVAL '1 second')
-       )                                                    AS live,
-       MAX(last_seen_at) FILTER (WHERE revoked_at IS NULL)  AS newest_seen_at,
-       COALESCE(
-         jsonb_agg(DISTINCT c) FILTER (
-           WHERE revoked_at IS NULL
-             AND last_seen_at > now() - (:staleSeconds * INTERVAL '1 second')
-         ),
-         '[]'::jsonb
-       )                                                    AS capabilities
-     FROM render_agents
-     LEFT JOIN LATERAL jsonb_array_elements_text(capabilities) AS c ON TRUE`,
+    `WITH live_agents AS (
+       SELECT id, capabilities
+       FROM render_agents
+       WHERE revoked_at IS NULL
+         AND last_seen_at IS NOT NULL
+         AND last_seen_at > now() - (:staleSeconds * INTERVAL '1 second')
+     )
+     SELECT
+       (SELECT COUNT(*) FROM render_agents)                                   AS total,
+       (SELECT COUNT(*) FROM live_agents)                                     AS live,
+       (SELECT MAX(last_seen_at) FROM render_agents WHERE revoked_at IS NULL) AS newest_seen_at,
+       COALESCE((
+         SELECT jsonb_agg(DISTINCT c)
+         FROM live_agents, jsonb_array_elements_text(live_agents.capabilities) AS c
+       ), '[]'::jsonb)                                                        AS capabilities`,
     { replacements: { staleSeconds: WORKER_STALE_AFTER_SECONDS }, type: QueryTypes.SELECT },
   );
 
