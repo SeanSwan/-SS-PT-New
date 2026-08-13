@@ -1,0 +1,149 @@
+/**
+ * receiptV1.mjs — allowlisted, structured audit record for the CONSULT lane (S0 of the flywheel).
+ * ===============================================================================================
+ * WHY THIS EXISTS, AND WHY IT IS NOT `receipt.mjs`:
+ * `writeReceipt` (receipt.mjs) serves the PACKET lane — it needs a real manifest (question, headSha,
+ * per-window tier/sha/line-ranges) and a citation audit. The consult lane has neither: it builds a
+ * `pseudoManifest` of `{id, path}` only, and never audits citations. Passing that to `writeReceipt`
+ * emits `undefined` for every window field and throws on `audit.invalid.length`. That mismatch is
+ * producer/consumer schema drift, so the consult lane gets its own record type instead of a forced
+ * reuse. (Diagnosed 2026-08-13; the two lanes stay separate on purpose.)
+ *
+ * ALLOWLIST — this is the security contract, enforced by construction in `buildReceiptV1`:
+ *   RECORDED: provider/model/ceiling, effort, token counts, cost, wall time, spend estimate+cap,
+ *             redaction COUNT and KIND LABELS, content SHA-256 + byte length, outcome + error code,
+ *             event/attempt IDs, originating-model provenance tag.
+ *   NEVER RECORDED: prompts, responses, model reasoning, document or seed CONTENT, free text of any
+ *             kind, or absolute filesystem paths. The object is assembled field-by-field from an
+ *             explicit list — a caller cannot widen it by passing extra keys.
+ *
+ * PATHS ARE DELIBERATELY NOT STORED VERBATIM. The consult lane accepts any `--document`, including
+ * one outside the repo (e.g. a temp dir under a user's home), so a raw path can carry the OS
+ * username — quasi-PII under Rule 8. `relativizePath` emits a repo-relative path when the file is
+ * inside the repo and the literal `<external>` when it is not. Content identity is preserved by
+ * `sha256` instead, which is what dedup and idempotency actually need.
+ *
+ * ONE FILE PER EVENT, never an appended log: concurrent consults (this repo runs three at once)
+ * would interleave or truncate a shared JSONL. A fresh filename per event is atomic on every OS and
+ * aggregates trivially. Idempotency: `eventId` is derived from stable inputs, so a retry of the SAME
+ * attempt overwrites its own record rather than inventing a second one.
+ *
+ * PURE + CALLER-STAMPED: no `Date.now()` here (matching receipt.mjs) so the writer stays
+ * deterministic and testable; the caller supplies `stamp`.
+ *
+ * @module context-gateway/receiptV1
+ */
+import { createHash } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join, relative, isAbsolute, resolve } from 'node:path';
+
+export const RECEIPT_SCHEMA = 'ReceiptV1';
+
+/** Outcome enum — bounded on purpose; anything unrecognized normalizes to 'error'. */
+export const OUTCOMES = Object.freeze(['ok', 'refused', 'error']);
+
+/**
+ * Error-code enum. The first four mirror ProviderError codes (providers.mjs); the last two cover
+ * the remaining failure shapes runConsult can exit on. Unknown input normalizes to 'UNKNOWN'.
+ */
+export const ERROR_CODES = Object.freeze([
+  'UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP', 'NO_KEY', 'TRANSPORT',
+  // DENY_PATH has no ProviderError equivalent: that branch exits directly from consult.mjs rather
+  // than throwing, so it is recorded at the call site. It is the secret-bearing-path jail firing.
+  'DENY_PATH', 'UNKNOWN',
+]);
+
+export const sha256 = (s) => createHash('sha256').update(String(s ?? ''), 'utf8').digest('hex');
+
+/**
+ * Repo-relative path, or '<external>' when the target lives outside `root`.
+ * Returns null for a missing path so an absent --seed stays absent rather than becoming '<external>'.
+ */
+export function relativizePath(root, p) {
+  if (!p) return null;
+  const abs = isAbsolute(p) ? p : resolve(root, p);
+  const rel = relative(resolve(root), abs).replaceAll('\\', '/');
+  // '' means the path IS the root; a leading '..' or a drive-absolute result means outside it.
+  if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) return '<external>';
+  return rel;
+}
+
+const num = (v) => (Number.isFinite(v) ? v : null);
+const oneOf = (list, v, fallback) => (list.includes(v) ? v : fallback);
+
+/**
+ * Build the allowlisted record. Pure — no I/O, no clock. Every field is copied explicitly, so an
+ * unexpected key on any input object (a whole prompt hiding on `result.text`, for instance) cannot
+ * reach the output.
+ */
+export function buildReceiptV1({
+  stamp, root, providerName, provider = {}, result = {}, spend = {}, effort = null,
+  maxTokens = null, docPath = null, seedPath = null, docSha = null, docBytes = null,
+  redactions = 0, redactionKinds = [], outcome = 'ok', errorCode = null,
+  originatingModel = null, attempt = 1,
+}) {
+  const normalizedOutcome = oneOf(OUTCOMES, outcome, 'error');
+  const normalizedError = errorCode == null ? null : oneOf(ERROR_CODES, errorCode, 'UNKNOWN');
+  const docRel = relativizePath(root, docPath);
+  const seedRel = relativizePath(root, seedPath);
+
+  // Stable across retries of the same attempt; distinct across different documents/providers.
+  // effort + maxTokens are included because the stamp is only second-granular: two GENUINELY
+  // different calls (same doc, same provider, different --effort) inside one second would otherwise
+  // collide on eventId AND filename, silently losing one record. A true retry keeps the same
+  // effort/maxTokens, so the idempotent-overwrite property survives.
+  const eventId = sha256(
+    [stamp, providerName, docSha ?? '', String(attempt), effort ?? '', String(maxTokens ?? '')].join('|'),
+  ).slice(0, 16);
+
+  return {
+    schema: RECEIPT_SCHEMA,
+    eventId,
+    attempt: num(attempt) ?? 1,
+    stamp,
+    lane: 'consult',
+    provider: providerName ?? null,
+    model: result.model ?? provider.model ?? null,
+    ceiling: provider.ceiling ?? null,
+    effort: effort ?? null,
+    maxTokens: num(maxTokens),
+    outcome: normalizedOutcome,
+    errorCode: normalizedError,
+    finishReason: result.finishReason ?? null,
+    inTok: num(result.inTok),
+    outTok: num(result.outTok),
+    costUsd: num(result.cost),
+    wallMs: num(result.wallMs),
+    spendEstimateUsd: num(spend.estimate),
+    spendCapUsd: num(spend.cap),
+    redactions: num(redactions) ?? 0,
+    // Kind LABELS only ('EMAIL', 'JWT') — a bounded class name, never the matched value.
+    redactionKinds: Array.isArray(redactionKinds) ? [...new Set(redactionKinds.map(String))] : [],
+    docPath: docRel,
+    seedPath: seedRel,
+    docSha: docSha ?? null,
+    docBytes: num(docBytes),
+    originatingModel: originatingModel ?? null,
+  };
+}
+
+/** Write one JSON record. Returns its path. Directory matches the packet lane's receipts store. */
+export function writeReceiptV1(record, root) {
+  const dir = join(root, '.ai-workflow', 'context-gateway', 'receipts');
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, `${record.stamp}-${record.provider ?? 'unknown'}-${record.eventId}.json`);
+  writeFileSync(file, `${JSON.stringify(record, null, 2)}\n`, 'utf-8');
+  return file;
+}
+
+/**
+ * Build + write in one call. NEVER throws: a telemetry failure must not take down a consult that
+ * already succeeded and already cost money. Returns the path, or null when recording failed.
+ */
+export function recordConsult(args) {
+  try {
+    return writeReceiptV1(buildReceiptV1(args), args.root);
+  } catch {
+    return null;
+  }
+}

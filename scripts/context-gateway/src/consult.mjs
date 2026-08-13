@@ -18,17 +18,52 @@ import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
 import { redactSecrets } from './egress.mjs';
 import { DENY_PATTERNS } from './safeRead.mjs';
+import { recordConsult, sha256 } from './receiptV1.mjs';
 
 const arg = (name, def = null) => {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : def;
 };
 
+/**
+ * Caller-supplied stamp (receiptV1 stays clock-free so it is deterministic under test).
+ * Filename-safe UTC: 20260813T170000Z.
+ */
+const utcStamp = () => new Date().toISOString().replaceAll(/[:-]/g, '').replace(/\.\d{3}/, '');
+
+/**
+ * Provider errors carry a code; the missing-key case does not, so it is mapped by message. Anything
+ * unrecognized is TRANSPORT — an unexpected throw still gets recorded rather than vanishing.
+ */
+const errorCodeOf = (e) => {
+  if (e?.message?.includes('OPENROUTER_API_KEY')) return 'NO_KEY';
+  if (e?.code && ['UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP'].includes(e.code)) return e.code;
+  return 'TRANSPORT';
+};
+
 /** Run a document consult for one provider. `defaultRemit` and `defaultOut` come from the wrapper. */
 export async function runConsult(providerName, defaultRemit, defaultOut) {
+  // Progressively populated by runConsultInner so a FAILURE records everything known at the moment
+  // it failed. Two defects this fixes: (1) a refusal used to carry no task identity, so the flywheel
+  // could not answer "which class of request keeps getting refused"; (2) a throw AFTER a successful
+  // paid call (e.g. the --out write failing) recorded costUsd:null, silently losing real spend.
+  const ctx = {};
   try {
-    return await runConsultInner(providerName, defaultRemit, defaultOut);
+    return await runConsultInner(providerName, defaultRemit, defaultOut, ctx);
   } catch (e) {
+    // S0 flywheel: a REFUSAL is the most decision-relevant event the gateway produces (it is the
+    // ceiling/spend gate actually firing), so it is recorded before the process exits. Recording
+    // never throws and never changes the exit code — telemetry must not alter control flow.
+    const code = errorCodeOf(e);
+    recordConsult({
+      ...ctx,
+      stamp: utcStamp(), root: process.cwd(), providerName,
+      // A call that already returned a result before the throw DID cost money — record it as 'ok'
+      // spend with an error code rather than pretending the spend never happened.
+      outcome: code === 'TRANSPORT' ? 'error' : 'refused', errorCode: code,
+      originatingModel: process.env.SWAN_ORIGINATING_MODEL ?? null,
+    });
+
     // Refusals (ceiling/spend/unknown-provider) are expected outcomes, not crashes (T8/T10).
     if (e?.message?.includes('OPENROUTER_API_KEY')) { console.error(`[consult-${providerName}] ${e.message}`); process.exit(1); }
     if (e?.code && ['UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP'].includes(e.code)) {
@@ -40,21 +75,35 @@ export async function runConsult(providerName, defaultRemit, defaultOut) {
   }
 }
 
-async function runConsultInner(providerName, defaultRemit, defaultOut) {
+async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {}) {
   const docPath = arg('document');
   if (!docPath) { console.error(`usage: node scripts/consult-${providerName}.mjs --document <path> [--seed <path>] [--out <path>] [--remit "..."] [--effort high] [--max-tokens N]`); process.exit(1); }
   if (!existsSync(docPath)) { console.error(`document not found: ${docPath}`); process.exit(1); }
 
+  ctx.docPath = docPath;
   loadEnv(process.cwd());
   const provider = getProvider(providerName);
+  ctx.provider = provider;
   const seedPath = arg('seed');
+  ctx.seedPath = seedPath;
 
   // DENY jail (Rule 59 / hostile pass 5, finding 2): the consult lane read arbitrary files — a
   // .env/secrets.*/*.pem passed as --document or --seed would egress with only best-effort shape
   // redaction. Refuse secret-bearing paths outright, like the safeRead lane does.
   for (const pth of [docPath, seedPath].filter(Boolean)) {
     const rel = String(pth).replaceAll('\\', '/');
-    if (DENY_PATTERNS.some((re) => re.test(rel))) { console.error(`[consult-${providerName}] REFUSED secret-bearing path: ${rel}`); process.exit(2); }
+    if (DENY_PATTERNS.some((re) => re.test(rel))) {
+      console.error(`[consult-${providerName}] REFUSED secret-bearing path: ${rel}`);
+      // This branch exits DIRECTLY rather than throwing, so it never reaches runConsult's catch.
+      // An attempt to egress a .env/*.pem is the most security-relevant event this lane produces —
+      // record it here or it is lost entirely. No docSha: the file is deliberately never read.
+      recordConsult({
+        ...ctx, stamp: utcStamp(), root: process.cwd(), providerName,
+        outcome: 'refused', errorCode: 'DENY_PATH',
+        originatingModel: process.env.SWAN_ORIGINATING_MODEL ?? null,
+      });
+      process.exit(2);
+    }
   }
   // Ceiling screen BOTH paths — the old pseudoManifest only screened --document, so a design
   // provider (Kimi) would accept a sensitive --seed (hostile pass 5, finding 1: seed bypass).
@@ -75,16 +124,37 @@ async function runConsultInner(providerName, defaultRemit, defaultOut) {
   const remit = arg('remit', defaultRemit);
   const maxTokens = Number(arg('max-tokens', process.env[`SWAN_${providerName.toUpperCase()}_MAX_TOKENS`])) || 16000;
   const effort = arg('effort', process.env[`SWAN_${providerName.toUpperCase()}_EFFORT`] || (provider.supportsEffort ? 'high' : null));
+  // Task identity + egress facts are known now — record them so a LATER refusal (ceiling/spend,
+  // both of which fire below) still says WHICH document class was refused.
+  Object.assign(ctx, {
+    effort, maxTokens,
+    docSha: sha256(doc), docBytes: Buffer.byteLength(doc, 'utf8'),
+    redactions: totalRedactions,
+    redactionKinds: [...(docC.kinds ?? []), ...(seedC.kinds ?? [])],
+  });
 
   const prompt = `${remit}\n\n=====================  DOCUMENT UNDER REVIEW  =====================\n\n${doc}\n\n=====================  SEED CONTEXT (optional)  =====================\n\n${seed || '(no seed provided)'}\n\n=====================  END CONTEXT — PRODUCE YOUR REVIEW NOW  =====================`;
   const spend = assertSpend(provider, Buffer.byteLength(prompt, 'utf8'), maxTokens);
+  ctx.spend = spend;
 
   console.log(`[consult-${providerName}] model=${provider.model}${effort ? ` effort=${effort}` : ''}`);
   console.log(`[consult-${providerName}] prompt ~${Math.round(prompt.length / 4)} tok — est ~$${spend.estimate.toFixed(4)} (cap $${spend.cap})`);
   const r = await callProvider(provider, prompt, { maxTokens, effort, manifest: pseudoManifest });
+  // Money is now spent. Record the result on ctx BEFORE anything else can throw, so a downstream
+  // failure cannot erase the fact that this call cost real credits.
+  ctx.result = r;
   console.log(`[consult-${providerName}] ${r.inTok} in / ${r.outTok} out — $${r.cost.toFixed(4)} — ${(r.wallMs / 1000).toFixed(1)}s`);
 
   const outPath = arg('out', defaultOut);
   writeFileSync(outPath, `# ${provider.title}\n\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s\n\n---\n\n${r.text}\n`, 'utf-8');
   console.log(`[consult-${providerName}] saved -> ${outPath}`);
+
+  // S0 flywheel: record the completed call. `doc` is the POST-redaction text, so the SHA identifies
+  // exactly what egressed. Only the hash and byte length are stored — never the content itself.
+  const receiptPath = recordConsult({
+    ...ctx,
+    stamp: utcStamp(), root: process.cwd(), providerName,
+    outcome: 'ok', originatingModel: process.env.SWAN_ORIGINATING_MODEL ?? null,
+  });
+  if (receiptPath) console.log(`[consult-${providerName}] receipt -> ${receiptPath}`);
 }
