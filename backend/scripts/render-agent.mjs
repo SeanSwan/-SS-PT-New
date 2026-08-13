@@ -33,8 +33,52 @@
  */
 
 import { setTimeout as sleep } from 'node:timers/promises';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { extractMono } from '../services/mediaSync/audioExtract.mjs';
 import { findOffset } from '../services/mediaSync/crossCorrelation.mjs';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Where the credential may live, in priority order. Env var first so CI and one-off runs
+ * keep working; then a gitignored file, because the alternative is pasting a 75-character
+ * secret into a shell on every launch — which is both miserable and puts the token in
+ * shell history, where it outlives the session and gets read back by anything scraping it.
+ *
+ * The file form also matches what the enrolment modal's "Download .env" button produces,
+ * so the operator can save it once and never handle the string again.
+ */
+const TOKEN_FILE_CANDIDATES = [
+  join(HERE, '..', '.swan-agent.env'),        // backend/.swan-agent.env
+  join(HERE, '..', '..', '.swan-agent.env'),  // <repo>/.swan-agent.env
+];
+
+/** Parse `SWAN_AGENT_TOKEN=...` without pulling the whole file into env. */
+function tokenFromFile(path) {
+  try {
+    const line = readFileSync(path, 'utf8')
+      .split(/\r?\n/)
+      .find((l) => /^\s*SWAN_AGENT_TOKEN\s*=/.test(l));
+    if (!line) return '';
+    // Strip an optional quote pair; a token pasted with quotes is the common slip.
+    return line.replace(/^\s*SWAN_AGENT_TOKEN\s*=\s*/, '').trim().replace(/^["']|["']$/g, '');
+  } catch {
+    return '';
+  }
+}
+
+function resolveToken(explicitFile) {
+  if (process.env.SWAN_AGENT_TOKEN) return { token: process.env.SWAN_AGENT_TOKEN, from: 'SWAN_AGENT_TOKEN env var' };
+  const candidates = explicitFile ? [resolve(explicitFile)] : TOKEN_FILE_CANDIDATES;
+  for (const path of candidates) {
+    if (!existsSync(path)) continue;
+    const token = tokenFromFile(path);
+    if (token) return { token, from: path };
+  }
+  return { token: '', from: null };
+}
 
 const args = process.argv.slice(2);
 const flag = (name, dflt) => {
@@ -43,7 +87,7 @@ const flag = (name, dflt) => {
 };
 
 const API = (flag('api', process.env.SWAN_AGENT_API || 'http://localhost:10000')).replace(/\/$/, '');
-const TOKEN = process.env.SWAN_AGENT_TOKEN || '';
+const { token: TOKEN, from: TOKEN_SOURCE } = resolveToken(flag('token-file', ''));
 const CAPABILITIES = String(flag('capabilities', 'ffmpeg,mediasync')).split(',').map((s) => s.trim()).filter(Boolean);
 const IDLE_POLL_MS = Number(flag('idle-poll-ms', 5000));
 const HEARTBEAT_MS = Number(flag('heartbeat-ms', 20000));
@@ -228,6 +272,8 @@ async function handleJob(job) {
 
 async function main() {
   log(`starting — api=${API} capabilities=${CAPABILITIES.join(',')}`);
+  // The SOURCE, never the value. A token echoed into a log is a token in a log.
+  log(`credential loaded from ${TOKEN_SOURCE}`);
   let idleLogged = false;
 
   while (!stopping) {
@@ -261,7 +307,15 @@ async function main() {
 
 if (invokedDirectly) {
   if (!TOKEN) {
-    process.stderr.write('\n  SWAN_AGENT_TOKEN is required (from POST /api/render-agents/enrol)\n\n');
+    process.stderr.write(
+      '\n  No agent token found.\n\n'
+      + '  Give it to me either way:\n'
+      + '    1. Save it to a file (recommended — keeps it out of shell history):\n'
+      + `         ${TOKEN_FILE_CANDIDATES[0]}\n`
+      + '       containing one line:  SWAN_AGENT_TOKEN=swan_agent_...\n'
+      + '    2. Or set the SWAN_AGENT_TOKEN environment variable.\n\n'
+      + '  Get a token from Content Studio -> Render Queue -> Enrol this machine.\n\n',
+    );
     process.exit(2);
   }
   main().catch((err) => {
