@@ -4,7 +4,6 @@
  * but publishing no longer depends on a paid aggregator service.
  */
 
-import { Op } from 'sequelize';
 import SocialPublishingAccount from '../models/SocialPublishingAccount.mjs';
 import SocialPublishingJob from '../models/SocialPublishingJob.mjs';
 import SocialPublishingAttempt from '../models/SocialPublishingAttempt.mjs';
@@ -16,6 +15,7 @@ import {
 import blueskyAdapter from './socialProviders/blueskyPublisher.mjs';
 import { createSocialPublishFanOut } from './socialPublishFanOut.mjs';
 import { createSocialJobRetry } from './socialJobRetry.mjs';
+import { createSocialJobScheduler } from './socialJobScheduler.mjs';
 import logger from '../utils/logger.mjs';
 
 export { PROVIDER_CAPABILITIES } from './socialProviderCapabilities.mjs';
@@ -157,11 +157,24 @@ export function createNativeSocialPublishingService({
     AttemptModel,
     providerAdapters,
     decryptCredentials,
+    // Needed so a refreshed session can be written back: the fan-out rotates
+    // credentials on an auth failure, and an unstored refreshJwt leaves the
+    // account unable to refresh at the next expiry.
+    encryptCredentials,
   });
 
   // Retry lives in its own module (300-line rule) but shares this fan-out, so a
   // retry goes through exactly the same publish path as an original attempt.
   const { retryJob } = createSocialJobRetry({ JobModel, AttemptModel, publishToAccounts });
+
+  // Scheduling and reaping share the atomic-claim idiom and are both driven by
+  // the worker rather than by a request, so they live together in their own
+  // module — same 300-line rule, same injected models.
+  const { runDueJobs, reapStuckJobs } = createSocialJobScheduler({
+    JobModel,
+    AttemptModel,
+    publishToAccounts,
+  });
 
 
   const publish = async (payload, { userId, now = new Date(), source = 'dashboard' } = {}) => {
@@ -250,28 +263,6 @@ export function createNativeSocialPublishingService({
     return row ? serializeJob(row) : null;
   };
 
-  const runDueJobs = async ({ now = new Date(), limit = 10 } = {}) => {
-    const rows = await JobModel.findAll({
-      where: { status: 'scheduled', scheduledAt: { [Op.lte]: now } },
-      order: [['scheduledAt', 'ASC']],
-      limit,
-    });
-    const processed = [];
-    for (const row of rows) {
-      const job = getPlain(row);
-      await row.update({ status: 'running' });
-      const result = await publishToAccounts({ content: job.content, accountIds: job.platformAccountIds || [], jobId: job.id });
-      await row.update({
-        status: result.status,
-        platformResults: result.results,
-        publishedAt: result.status === 'published' ? now : null,
-        failedAt: result.status !== 'published' ? now : null,
-        failureReason: result.results.find(item => item.error)?.error || null,
-      });
-      processed.push({ jobId: String(job.id), ...result });
-    }
-    return processed;
-  };
 
   return {
     getHealth,
@@ -282,6 +273,7 @@ export function createNativeSocialPublishingService({
     getHistory,
     getJob,
     runDueJobs,
+    reapStuckJobs,
     retryJob,
   };
 }
