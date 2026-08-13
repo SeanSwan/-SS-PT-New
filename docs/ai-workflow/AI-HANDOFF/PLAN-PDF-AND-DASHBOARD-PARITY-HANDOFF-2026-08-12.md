@@ -243,7 +243,7 @@ The renderer is **228 lines of hand-rolled raw PDF-1.4 string concatenation**, t
 | File | `admin-workout-planner/workoutPlannerPlanPdfAdapter.ts` (160 ln) | `services/workoutPlanPdfRenderer.mjs` (228 ln) |
 | Engine | `jspdf` ^4.2.0, dynamic `import('jspdf')` `:151` | hand-rolled PDF-1.4 |
 | Fonts | **`helvetica` only** (`:40,60,76,86,92,125`) | Helvetica, Helvetica-Bold, Times-Bold, Courier (`:193-196`) |
-| Images / logo | **none** — no `addImage`, no `addFont` | **none** — 0 hits for `XObject\|DCTDecode\|/Image` |
+| Images / logo | **none** — no `addImage`, no `addFont` | **none** — 0 hits for `XObject`, `DCTDecode`, `/Image` |
 | Brand color | via `resolveBrandIdentity` | RGB fills incl. Swan palette — `[0,32,96]` Midnight Sapphire, `[139,92,246]` Wing Purple, `[198,168,75]` Gilded Fern (`:114-118`) |
 
 **Both are text-only. Neither embeds a logo or a custom font.** Server-owned is not a downgrade — it carries *more* typeface variety and explicit palette fills. The last substantive objection to §6's recommendation is gone. [VERIFIED]
