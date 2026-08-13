@@ -263,7 +263,23 @@ export function createNativeSocialPublishingService({
     const processed = [];
     for (const row of rows) {
       const job = getPlain(row);
-      await row.update({ status: 'running' });
+
+      // Claim atomically. `findAll` above is only a candidate list: nothing
+      // between the SELECT and a plain row.update() stops a second instance
+      // from finding the same row, and both would then publish — a duplicate
+      // post to a live account, which no database cleanup can undo. The
+      // conditional UPDATE is the claim; 0 rows affected means someone else
+      // already moved it out of 'scheduled', so this instance must not publish
+      // AND must not write to the row, which the winner now owns.
+      const [claimed] = await JobModel.update(
+        { status: 'running' },
+        { where: { id: job.id, status: 'scheduled' } },
+      );
+      if (!claimed) {
+        logger.info(`[social-publish] job ${job.id} was claimed by another worker; skipping`);
+        continue;
+      }
+
       const result = await publishToAccounts({ content: job.content, accountIds: job.platformAccountIds || [], jobId: job.id });
       await row.update({
         status: result.status,
