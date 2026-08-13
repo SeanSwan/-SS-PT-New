@@ -41,6 +41,7 @@ describe('WorkoutLoggerCoachTerminal', () => {
         scheduledSessionCreditHint={1}
         exerciseCount={2}
         coachCommandRoute={coachCommandRoute}
+        userRole="trainer"
       />,
     );
 
@@ -179,5 +180,29 @@ describe('WorkoutLoggerCoachTerminal', () => {
     );
 
     expect(screen.queryByRole('link', { name: /open full coach command center/i })).not.toBeInTheDocument();
+  });
+
+  // ADDED 2026-08-13 (S3/F3). The trainer case above previously ran with NO
+  // userRole and asserted `workout_generation` — which is exactly what shipped
+  // to clients on /log-workout, a client route the server forbids that context
+  // on. The trainer case is now explicit about its role, and these two cover
+  // the client path that was 403-ing.
+  it.each([
+    ['client', 'client'],
+    ['no role at all (fails closed)', undefined],
+  ])('opens a client-safe context for %s', (_label, userRole) => {
+    render(
+      <WorkoutLoggerCoachTerminal
+        clientId={9}
+        equipmentProfileId={null}
+        workoutDate="2026-06-14"
+        exerciseCount={1}
+        userRole={userRole as string | undefined}
+      />,
+    );
+
+    const lastProps = panelPropsMock.mock.calls.at(-1)?.[0];
+    expect(lastProps.context).not.toBe('workout_generation');
+    expect(lastProps.context).toBe('workout_suggestions');
   });
 });

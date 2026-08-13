@@ -4,6 +4,7 @@ import { CheckCircle2, CalendarDays, Repeat2, Sparkles } from 'lucide-react';
 import AITerminalPanel from '../Shared/AITerminalPanel';
 import type { AIRequestContext } from '../../hooks/useAIChat';
 import type { AITerminalQuickPrompt } from '../Shared/AITerminalPanel.types';
+import { resolveWorkoutCoachContext } from './workoutCoachContext';
 
 interface WorkoutLoggerCoachTerminalProps {
   clientId?: number;
@@ -14,6 +15,8 @@ interface WorkoutLoggerCoachTerminalProps {
   scheduledSessionCreditHint?: number | null;
   exerciseCount: number;
   selfMode?: boolean;
+  /** Authenticated role. Drives the AI context the server will actually allow. */
+  userRole?: string | null;
 }
 
 const labelForDate = (date?: string | null): string =>
@@ -34,6 +37,7 @@ const WorkoutLoggerCoachTerminal: React.FC<WorkoutLoggerCoachTerminalProps> = ({
   scheduledSessionCreditHint,
   exerciseCount,
   selfMode = false,
+  userRole,
 }) => {
   const dateLabel = labelForDate(scheduledSessionDate || workoutDate);
   const workoutSubject = selfMode ? 'your workout' : 'the selected client';
@@ -125,7 +129,7 @@ const WorkoutLoggerCoachTerminal: React.FC<WorkoutLoggerCoachTerminalProps> = ({
       </StripHeader>
 
       <AITerminalPanel
-        context="workout_generation"
+        context={resolveWorkoutCoachContext(userRole)}
         clientId={clientId}
         equipmentProfileId={equipmentProfileId}
         requestContext={requestContext}

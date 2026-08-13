@@ -299,7 +299,16 @@ describe('Phase 16.1-UX — Swan Coach workout-generation entry point preserved'
       'utf8',
     );
     expect(COACH_TERMINAL).toMatch(/AITerminalPanel/);
-    expect(COACH_TERMINAL).toMatch(/context=\s*["']workout_generation["']/);
+    // RE-ANCHORED 2026-08-13 (S3/F4). The context is no longer a hardcoded
+    // literal: /log-workout is a CLIENT route, and the server allowlist
+    // (aiChatRoutes.mjs ROLE_CONTEXTS) does not grant clients
+    // `workout_generation` — so the literal produced a deterministic 403 for
+    // every client from a panel that opens itself. The INTENT of this test —
+    // "the Swan Coach entry point is not stranded" — is preserved by asserting
+    // the terminal still wires a resolved context into the panel.
+    // Role-vs-allowlist correctness is proven against the real server source in
+    // workoutCoachContext.test.ts.
+    expect(COACH_TERMINAL).toMatch(/context=\{resolveWorkoutCoachContext\(/);
   });
 });
 
