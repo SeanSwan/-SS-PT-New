@@ -157,6 +157,10 @@ export function createNativeSocialPublishingService({
     AttemptModel,
     providerAdapters,
     decryptCredentials,
+    // Needed so a refreshed session can be written back: the fan-out rotates
+    // credentials on an auth failure, and an unstored refreshJwt leaves the
+    // account unable to refresh at the next expiry.
+    encryptCredentials,
   });
 
   // Retry lives in its own module (300-line rule) but shares this fan-out, so a
