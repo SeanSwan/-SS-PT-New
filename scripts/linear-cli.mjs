@@ -112,16 +112,25 @@ const commands = {
     const termInput = args.slice(1).filter((a) => !a.startsWith('--')).join(' ').toLowerCase();
     if (!termInput) throw new Error('usage: search "<words>"');
     const terms = termInput.split(/\s+/);
-    const data = await gql(
-      `query($k:String!){ issues(filter:{team:{key:{eq:$k}}}, first:250, orderBy:updatedAt){ nodes { ${ISSUE_FIELDS} } } }`,
-      { k: TEAM },
-    );
-    const hits = data.issues.nodes.filter((issue) => {
+    // BUG-9 (Kimi 2026-08-13): a flat first:250 silently truncated the sweep, so
+    // "(no matches — safe to create)" was confidence the tool had not earned the
+    // moment the board passed 250 issues. Paginate to exhaustion.
+    const nodes = [];
+    let after = null;
+    do {
+      const data = await gql(
+        `query($k:String!,$after:String){ issues(filter:{team:{key:{eq:$k}}}, first:100, after:$after, orderBy:updatedAt){ nodes { ${ISSUE_FIELDS} } pageInfo { hasNextPage endCursor } } }`,
+        { k: TEAM, after },
+      );
+      nodes.push(...data.issues.nodes);
+      after = data.issues.pageInfo.hasNextPage ? data.issues.pageInfo.endCursor : null;
+    } while (after);
+    const hits = nodes.filter((issue) => {
       const haystack = issue.title.toLowerCase();
       return terms.some((term) => haystack.includes(term));
     });
     if (!hits.length) {
-      console.log('(no matches — safe to create)');
+      console.log(`(no matches across all ${nodes.length} issues — safe to create)`);
       return;
     }
     for (const issue of hits) console.log(`${issue.identifier}  [${issue.state.name}]  ${issue.title}`);

@@ -493,3 +493,4 @@ SOUL.archive/**
 
 # Swan World Engine factory outputs (local, ignored proofs only)
 experiments/world-factory/
+scripts/qa/.qa-schema-manifest.json
