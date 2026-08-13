@@ -1,4 +1,6 @@
-#!/usr/bin/env node
+// NOTE: no shebang, deliberately. esbuild (vitest) fails on a shebang in a
+// NON-entry module, and with a CRLF checkout the line ends in a carriage return
+// that reports as 'Invalid or unexpected token'. Invoke with `node <path>`.
 /**
  * Build REAL media files with a KNOWN offset, to test the extraction layer end to end.
  * ============================================================================

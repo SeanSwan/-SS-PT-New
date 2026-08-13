@@ -1,4 +1,9 @@
-#!/usr/bin/env node
+// NOTE: deliberately NO shebang, and it must stay absent.
+// This module is imported by tests, and esbuild (vitest) fails on a shebang in a
+// NON-entry module. With a CRLF checkout the shebang line ends in a carriage
+// return, and that CR is the reported 'Invalid or unexpected token'. Invoke this
+// as `node backend/scripts/render-agent.mjs` - the shebang bought nothing on
+// Windows and cost the whole file its testability.
 /**
  * render-agent — the worker. Runs on YOUR machine, not on Render.
  * ============================================================================
