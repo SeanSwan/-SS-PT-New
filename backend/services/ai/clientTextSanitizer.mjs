@@ -20,7 +20,23 @@ const INJECTION_PATTERNS = [
   /```+/g,                                                   // code fences
   /<\|[^|>]*\|>/g,                                           // chat control tokens
   /\b(ignore|disregard|forget|override)\s+(all\s+|any\s+)?(previous|prior|above|earlier|system)\s+(instructions?|prompts?|rules?|messages?)\b/gi,
-  /\b(system|assistant|developer|tool)\s*:/gi,               // role markers
+  // Role markers, anchored to a LINE START.
+  //
+  // Kimi K3 review 3, finding 1 — verified against this function: the previous
+  // pattern was `\b(system|assistant|developer|tool)\s*:` with no anchor, so it
+  // fired anywhere in the string and ate ordinary clinical and occupational text:
+  //   "Digestive system: sensitive to dairy"      -> "Digestive sensitive to dairy"
+  //   "Physician assistant: shift work"           -> "Physician shift work"
+  //   "Occupation: software developer: 10h seated"-> "Occupation: software 10h seated"
+  // Health intake is precisely where "digestive system:" and an occupation of
+  // "developer" or "physician assistant" appear. The onboarding field-dictionary
+  // slice newly routes health free text through here, which is what exposed it.
+  //
+  // A genuine injected role marker sits at a line boundary; a body-system name
+  // sits mid-sentence. Anchoring keeps the control and returns the meaning.
+  // Applied BEFORE whitespace collapse (see sanitizeClientText) or the anchor
+  // would have nothing to bind to.
+  /^\s*(system|assistant|developer|tool)\s*:/gim,            // role markers
 ];
 
 const DEFAULT_MAX_LEN = 280;
@@ -31,11 +47,15 @@ const DEFAULT_MAX_LEN = 280;
  */
 export function sanitizeClientText(text, { maxLen = DEFAULT_MAX_LEN } = {}) {
   if (text == null) return '';
-  let s = String(text).replace(/\s+/g, ' ').trim();
-  if (!s) return '';
+  let s = String(text);
+  if (!s.trim()) return '';
+  // Injection patterns run BEFORE whitespace collapse: the role-marker pattern is
+  // anchored to a line start, and collapsing newlines first would leave it nothing
+  // to bind to (only the very start of the string would ever match). See the
+  // pattern's own note for why the anchor exists.
   for (const pattern of INJECTION_PATTERNS) s = s.replace(pattern, ' ');
   s = s.replace(/<[^>]*>/g, ' ');            // any markup/tag shapes
-  s = s.replace(/\s{2,}/g, ' ').trim();
+  s = s.replace(/\s+/g, ' ').trim();
   if (s.length > maxLen) s = `${s.slice(0, maxLen - 1)}…`;
   return s;
 }

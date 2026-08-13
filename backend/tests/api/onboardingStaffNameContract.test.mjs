@@ -153,12 +153,43 @@ describe('POST /api/onboarding — staff wizard name contract (F1)', () => {
     );
   });
 
-  it('promotes a surname-only payload rather than storing a blank first name', async () => {
+  it('does NOT transpose a surname-only payload into the given-name column', async () => {
+    // RE-ANCHORED 2026-08-13 (Kimi K3 review 3, finding 2). This previously
+    // asserted the surname was PROMOTED to firstName — I chose that deliberately
+    // and it was wrong. Storing a surname in the given-name column corrupts every
+    // `Dear {firstName}` and every legal/billing use of the split, and the module
+    // comment said "never reconstruct what was given" while doing exactly that.
+    // The split is now stored as supplied.
     const { mockUser } = await run(mountedWizardPayload({ firstName: '', lastName: 'Stone' }));
 
     expect(mockUser.create).toHaveBeenCalledWith(
-      expect.objectContaining({ firstName: 'Stone', lastName: '' }),
+      expect.objectContaining({ firstName: '', lastName: 'Stone' }),
     );
+  });
+
+  it('completes a partial split from a legacy fullName instead of discarding it', async () => {
+    // Kimi K3 review 3, finding 3 — the legacy-migration shape. Previously the
+    // split branch won and the supplied fullName was dropped, so this returned
+    // firstName 'Ava' with NO surname: half the name gone, silently.
+    const { mockUser } = await run({
+      firstName: 'Ava',
+      fullName: 'Ava Stone',
+      email: 'ava.stone@example.test',
+      primaryGoal: 'Build strength',
+    });
+
+    expect(mockUser.create).toHaveBeenCalledWith(
+      expect.objectContaining({ firstName: 'Ava', lastName: 'Stone' }),
+    );
+  });
+
+  it('rejects a null body instead of throwing a 500', async () => {
+    // Kimi K3 review 3, finding 4: a default parameter does not cover explicit
+    // null, so this threw a TypeError. The sibling helper guarded null; this one
+    // did not.
+    const { res } = await run(null);
+
+    expect(statusOf(res)).toBe(400);
   });
 
   it.each([

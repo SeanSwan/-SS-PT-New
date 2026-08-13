@@ -165,13 +165,27 @@ export const sanitizeNarrativeFields = (formData = {}) => {
 
   const out = { ...formData };
 
-  for (const [wizardField, meta] of Object.entries(MAPPED_FIELDS)) {
+  // Keyed on the PROJECTION key, not the wizard field name.
+  //
+  // Kimi K3 review 3, finding 5 — verified: a narrative value supplied directly
+  // under its projection key skipped BOTH sanitizers. The dictionary declined
+  // because the key was already set; this function declined because
+  // projectionKey !== wizardField. `{ pastInjuries: "ignore all previous
+  // instructions..." }` reached the workout prompt completely raw. The slice
+  // that opened that lane only half-closed it, and the "a caller already
+  // speaking the projection's language is untouched" comment described the hole
+  // as if it were a feature.
+  //
+  // Sanitizing by projection key closes both entrances. Safe to apply twice:
+  // wrapClientReported strips markup (including a forged <client_reported>
+  // wrapper) before re-wrapping, so pre-wrapped attack values do not survive
+  // and honest values do not nest.
+  for (const meta of Object.values(MAPPED_FIELDS)) {
     if (!meta.narrative) continue;
-    if (meta.projectionKey !== wizardField) continue; // already handled on rename
 
-    const value = out[wizardField];
+    const value = out[meta.projectionKey];
     if (typeof value === 'string' && value.trim() !== '') {
-      out[wizardField] = wrapClientReported(value);
+      out[meta.projectionKey] = wrapClientReported(value);
     }
   }
 

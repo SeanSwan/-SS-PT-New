@@ -47,6 +47,14 @@ const collapseSpaces = (value) => value.replace(/\s+/g, ' ');
  *          | { ok: false, field: 'name', reason: string }}
  */
 export const resolveOnboardingName = (formData = {}) => {
+  // Kimi K3 review 3, finding 4 — verified: a default parameter does not cover an
+  // explicit null, so `resolveOnboardingName(null)` threw a TypeError and became a
+  // 500. The sibling helper guarded null; this one did not. Same slice, two
+  // helpers, two different answers to the same question.
+  if (!formData || typeof formData !== 'object') {
+    return { ok: false, field: 'name', reason: 'A first name (or full name) is required' };
+  }
+
   // Refuse a present-but-non-string name part rather than coercing or dropping it.
   // Found by probing the fix itself: {firstName:'Ava', lastName: 12345} used to
   // create a client with NO surname and NO error — silent data loss, and
@@ -59,11 +67,35 @@ export const resolveOnboardingName = (formData = {}) => {
   const lastName = collapseSpaces(asTrimmedString(formData.lastName));
 
   if (firstName || lastName) {
-    // The split the client collected wins. Never reconstruct what was given.
+    // Kimi K3 review 3, finding 3 — verified: when only ONE split part arrived
+    // alongside a legacy `fullName`, this branch won and the fullName was
+    // discarded entirely. `{firstName:'Ava', fullName:'Ava Smith'}` returned
+    // `fullName: 'Ava'` — half the name gone, silently, from a module whose
+    // stated ethos is "refuse rather than quietly discard". That is exactly the
+    // shape a legacy integration sends while migrating to the split fields.
+    const legacy = collapseSpaces(asTrimmedString(formData.fullName));
+    if (legacy && (!firstName || !lastName)) {
+      const parts = legacy.split(' ');
+      const derivedFirst = firstName || parts[0];
+      const derivedLast = lastName || parts.slice(1).join(' ');
+      return {
+        ok: true,
+        firstName: derivedFirst,
+        lastName: derivedLast,
+        fullName: [derivedFirst, derivedLast].filter(Boolean).join(' '),
+      };
+    }
+
+    // Kimi K3 review 3, finding 2 — verified: this used to read
+    // `firstName || lastName`, so `{firstName:'', lastName:'Smith'}` stored the
+    // SURNAME in the given-name column. The comment said "never reconstruct what
+    // was given" while the code reconstructed. Every `Dear {firstName}` and every
+    // legal or billing use of the split was then wrong. The split is now returned
+    // exactly as supplied.
     return {
       ok: true,
-      firstName: firstName || lastName,
-      lastName: firstName ? lastName : '',
+      firstName,
+      lastName,
       fullName: [firstName, lastName].filter(Boolean).join(' '),
     };
   }
