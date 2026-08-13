@@ -40,35 +40,50 @@ const FTC_PROMO_PATTERNS = [
  * Check content for FDA and FTC compliance issues
  * @param {string} content - The post content to check
  * @param {boolean} isAIGenerated - Whether the content was AI-generated
- * @returns {{ compliant: boolean, warnings: string[], autoTags: string[] }}
+ * @returns {{ compliant: boolean, blocked: boolean, warnings: string[], blockers: string[], autoTags: string[] }}
  */
 export function checkCompliance(content, isAIGenerated = false) {
   const warnings = [];
   const autoTags = [];
+  // `blockers` is the subset of warnings that describe a problem this function
+  // did NOT remedy. It exists because `compliant` cannot be used as a publish
+  // gate: it is `warnings.length === 0`, and the promotional branch below pushes
+  // a warning *alongside* the #ad tag that already fixes the issue. Gating on
+  // `!compliant` would therefore refuse nearly every marketing post.
+  //
+  // Nor can a caller infer this by counting — content that trips FDA *and* the
+  // promo rule yields 2 warnings and 1 autoTag and must still be blocked. The
+  // classification only exists at the point each warning is raised, so it is
+  // recorded here rather than derived later.
+  const blockers = [];
   const lower = content.toLowerCase();
 
-  // FDA: Check for medical claims
+  // FDA: Check for medical claims — no auto-remedy exists; a medical claim can
+  // only be fixed by rewriting it, so this always blocks.
   for (const term of FDA_BLOCKED_TERMS) {
     if (lower.includes(term.toLowerCase())) {
-      warnings.push(
-        `FDA: Content contains "${term}" which may constitute a medical claim. ` +
-        `Reframe as general wellness (e.g., "supports mobility" instead of "treats").`
-      );
+      const message = `FDA: Content contains "${term}" which may constitute a medical claim. ` +
+        `Reframe as general wellness (e.g., "supports mobility" instead of "treats").`;
+      warnings.push(message);
+      blockers.push(message);
     }
   }
 
   // FTC: Check for testimonial patterns
+  // FTC testimonials: also unremediable automatically — whether permission
+  // exists is a fact about the world that only a human knows, so this blocks
+  // and the human either rewrites it or records an explicit override.
   for (const pattern of FTC_TESTIMONIAL_PATTERNS) {
     if (pattern.test(content)) {
-      warnings.push(
-        'FTC: Content resembles a client testimonial. If this quotes a real client, ' +
-        'ensure you have written permission and add appropriate disclosure.'
-      );
+      const message = 'FTC: Content resembles a client testimonial. If this quotes a real client, ' +
+        'ensure you have written permission and add appropriate disclosure.';
+      warnings.push(message);
+      blockers.push(message);
       if (isAIGenerated) {
-        warnings.push(
-          'FTC: AI-generated content that mimics testimonials violates FTC Endorsement Guides (Oct 2024). ' +
-          'Remove testimonial-style language or clearly label as illustrative.'
-        );
+        const aiMessage = 'FTC: AI-generated content that mimics testimonials violates FTC Endorsement Guides (Oct 2024). ' +
+          'Remove testimonial-style language or clearly label as illustrative.';
+        warnings.push(aiMessage);
+        blockers.push(aiMessage);
       }
       break; // One warning is enough
     }
@@ -79,6 +94,8 @@ export function checkCompliance(content, isAIGenerated = false) {
     if (pattern.test(content)) {
       if (!content.includes('#ad') && !content.includes('#sponsored') && !content.includes('Sponsored')) {
         autoTags.push('#ad');
+        // NOT a blocker: the #ad tag above already remedies this. The warning is
+        // advisory ("remove if organic"), not a refusal.
         warnings.push(
           'FTC: Promotional content detected. Auto-adding #ad tag. ' +
           'Remove if this is organic editorial content.'
@@ -89,8 +106,14 @@ export function checkCompliance(content, isAIGenerated = false) {
   }
 
   return {
+    // `compliant` is unchanged for backward compatibility — existing callers and
+    // the /compliance-check endpoint still read it as "is anything flagged".
     compliant: warnings.length === 0,
+    // `blocked` is the publish gate. Distinct from `compliant` on purpose: a post
+    // can be non-compliant (an #ad tag was added) yet perfectly publishable.
+    blocked: blockers.length > 0,
     warnings,
+    blockers,
     autoTags,
   };
 }

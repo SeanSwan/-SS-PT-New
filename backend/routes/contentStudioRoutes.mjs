@@ -7,12 +7,15 @@
  */
 
 import { Router } from 'express';
+import { createHash } from 'node:crypto';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import { loadContentStudioCoveragePayload } from '../services/contentStudioCoverageService.mjs';
 import {
   EMPTY_CONTENT_STUDIO_STORAGE_USAGE,
   loadContentStudioStorageUsage,
 } from '../services/contentStudioStorageUsageService.mjs';
+import { createJob, getJob, VideoRenderJobError } from '../services/videoRenderJobService.mjs';
+import { workerPresence, describePresence } from '../services/renderWorkerPresence.mjs';
 
 const router = Router();
 
@@ -112,54 +115,133 @@ router.get('/storage-usage', protect, adminOnly, async (req, res) => {
 });
 
 // ─── POST /api/content-studio/render-job ──────────────────
-// Queues a Remotion motion graphics render job
+// Queues a motion-graphics render job onto the real worker queue.
+//
+// WHAT THIS USED TO DO, AND WHY IT WAS REPLACED: it validated a template id, made a
+// best-effort write to VideoJobLog, and returned `success: true, status: 'waiting'`.
+// Nothing rendered. No row entered `video_render_jobs`, so no worker could ever lease
+// it — the operator was told work had started and waited forever. Same defect class as
+// the marketing publisher that "reported success when every platform failed".
+//
+// It now creates a real leasable job AND reports whether a worker is actually online,
+// because a real row in a queue with no worker is the same false promise in better
+// clothing. Safe to change the contract: repo-wide grep found NO caller of this path
+// in `frontend/src` at the time of the change.
+const VALID_TEMPLATES = [
+  'workout-intro', 'exercise-demo-card', 'client-highlight-reel',
+  'social-story-promo', 'brand-logo-reveal', 'class-schedule-board',
+  'team-intro-carousel', 'nasm-phase-explainer',
+];
+
+/**
+ * Window over which a DERIVED (header-less) idempotency key stays stable. Long enough to
+ * swallow a double-click and an impatient retry; short enough that a deliberate
+ * re-render minutes later is a new job rather than a permanent replay.
+ */
+const DERIVED_KEY_BUCKET_MS = 60 * 1000;
+
 router.post('/render-job', protect, adminOnly, async (req, res) => {
   try {
-    const { templateId, branding, clientName, exerciseName, customText } = req.body;
+    const { templateId, branding, clientName, exerciseName, customText } = req.body || {};
     if (!templateId || !branding) {
       return res.status(400).json({ success: false, error: 'templateId and branding are required' });
     }
-
-    // Validate template ID against known templates
-    const validTemplates = [
-      'workout-intro', 'exercise-demo-card', 'client-highlight-reel',
-      'social-story-promo', 'brand-logo-reveal', 'class-schedule-board',
-      'team-intro-carousel', 'nasm-phase-explainer',
-    ];
-    if (!validTemplates.includes(templateId)) {
+    if (!VALID_TEMPLATES.includes(templateId)) {
       return res.status(400).json({ success: false, error: 'Unknown template ID' });
     }
 
-    // Try to log to VideoJobLog if it exists
-    try {
-      const { getAllModels } = await import('../models/index.mjs');
-      const { VideoJobLog } = getAllModels();
-      if (VideoJobLog) {
-        await VideoJobLog.create({
-          jobType: 'remotion_render',
-          status: 'waiting',
-          metadata: JSON.stringify({
-            templateId,
-            branding,
-            clientName: clientName || null,
-            exerciseName: exerciseName || null,
-            customText: customText || null,
-            requestedBy: req.user?.id,
-          }),
-        });
-      }
-    } catch {
-      // VideoJobLog table may not exist — non-fatal
-    }
+    // Idempotency is required by the queue: without it, a double-click is two renders
+    // and two GPU-minutes. Prefer the client's own key; derive one only as a safety net
+    // for callers that send none.
+    //
+    // THE DERIVED KEY IS TIME-BUCKETED, and that bucket is load-bearing. `createJob`
+    // matches on {userId, idempotencyKey} with NO time bound, so a purely
+    // content-derived key would return the first job FOREVER: the operator could never
+    // deliberately re-render the same template, and — worse — could never retry after a
+    // FAILED render, because the replay hands back the failed row. Idempotency without a
+    // window quietly becomes "you may render this once, ever".
+    //
+    // A bucket restores the intent: collapse the double-submit (which happens in
+    // seconds) without locking the input combination for life. Two clicks straddling a
+    // bucket edge produce two jobs — the safe direction to be wrong, since one extra
+    // render beats a permanent lockout.
+    const headerKey = req.get('Idempotency-Key');
+    const bucket = Math.floor(Date.now() / DERIVED_KEY_BUCKET_MS);
+    const idempotencyKey = (typeof headerKey === 'string' && headerKey.trim())
+      ? headerKey.trim()
+      : createHash('sha256').update(JSON.stringify({
+        u: req.user?.id, templateId, branding, clientName: clientName ?? null,
+        exerciseName: exerciseName ?? null, customText: customText ?? null, bucket,
+      })).digest('hex').slice(0, 40);
 
-    res.json({
+    const requiredCapabilities = ['remotion'];
+
+    const { job, replayed } = await createJob({
+      userId: req.user?.id,
+      idempotencyKey,
+      kind: 'generate',
+      workflowId: `remotion:${templateId}`,
+      prompt: customText || exerciseName || clientName || templateId,
+      params: { templateId, branding, clientName: clientName ?? null, exerciseName: exerciseName ?? null, customText: customText ?? null },
+      requiredCapabilities,
+    });
+
+    // The honesty half of this endpoint. Never say "queued" in a way that implies
+    // motion when nothing is listening.
+    const presence = describePresence(await workerPresence({ requiredCapabilities }));
+
+    return res.status(replayed ? 200 : 202).json({
       success: true,
-      message: `Render job queued for template "${templateId}"`,
-      data: { templateId, status: 'waiting' },
+      message: presence.message,
+      data: {
+        jobId: job.id,
+        status: job.status,
+        templateId,
+        replayed,
+        startable: presence.startable,
+        workerState: presence.code,
+        statusUrl: `/api/content-studio/render-job/${job.id}`,
+      },
     });
   } catch (err) {
+    if (err instanceof VideoRenderJobError) {
+      return res.status(err.statusCode).json({ success: false, error: err.message, code: err.code });
+    }
     console.error('[ContentStudio] Render job creation failed:', err.message);
-    res.status(500).json({ success: false, error: 'Failed to queue render job' });
+    return res.status(500).json({ success: false, error: 'Failed to queue render job' });
+  }
+});
+
+// ─── GET /api/content-studio/render-job/:id ───────────────
+// A queue you cannot poll is a queue that can only be trusted, and trust was the
+// original bug. Owner-scoped: a job id must not be a read primitive for other users.
+router.get('/render-job/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const job = await getJob(req.params.id);
+    if (!job || String(job.userId) !== String(req.user?.id)) {
+      return res.status(404).json({ success: false, error: 'Job not found' });
+    }
+    const presence = describePresence(
+      await workerPresence({ requiredCapabilities: job.requiredCapabilities ?? [] }),
+    );
+    return res.json({
+      success: true,
+      data: {
+        jobId: job.id,
+        status: job.status,
+        progress: job.progress ?? null,
+        errorCode: job.errorCode ?? null,
+        errorMessage: job.errorMessage ?? null,
+        r2Key: job.r2Key ?? null,
+        // Only meaningful while the job is still waiting; once it is leased or done,
+        // worker presence is history, not a prediction.
+        startable: job.status === 'queued' ? presence.startable : true,
+        workerState: job.status === 'queued' ? presence.code : null,
+      },
+    });
+  } catch (err) {
+    console.error('[ContentStudio] Render job status failed:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to read job status' });
   }
 });
 

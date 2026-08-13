@@ -20,46 +20,17 @@ import {
 } from '../services/socialPublishingPlanningService.mjs';
 import { isSocialPublishingStorageUnavailableError } from '../services/socialPublishingStorageErrors.mjs';
 import logger from '../utils/logger.mjs';
+import {
+  getAdminSafeConnectError,
+  getSchedulerStatus,
+  buildStorageUnavailableResponse,
+  buildStorageUnavailableHealth,
+  STORAGE_UNAVAILABLE_MESSAGE,
+} from './adminSocialPublishingHelpers.mjs';
 
 const router = express.Router();
 const SUPPORTED_PLATFORMS = PROVIDER_CAPABILITIES.map(provider => provider.id);
 const PROVIDER_BY_ID = new Map(PROVIDER_CAPABILITIES.map(provider => [provider.id, provider]));
-const STORAGE_UNAVAILABLE_MESSAGE = 'Native social publishing storage is unavailable.';
-
-const getAdminSafeConnectError = (err) => {
-  const message = String(err?.message || '');
-  if (message.startsWith('Native credential encryption is not configured.')) return message;
-  if (message.startsWith('Bluesky session failed:')) return message;
-  return 'Failed to initiate connection';
-};
-
-const getSchedulerStatus = () => ({
-  enabled: process.env.MARKETING_PUBLISHER_WORKER_ENABLED !== 'false',
-  intervalMs: Number(process.env.MARKETING_PUBLISHER_WORKER_INTERVAL_MS || 60000),
-});
-
-const buildStorageUnavailableStatus = () => ({
-  ok: false,
-  reason: 'storage_unavailable',
-  message: STORAGE_UNAVAILABLE_MESSAGE,
-});
-
-const buildStorageUnavailableResponse = data => ({
-  success: true,
-  degraded: true,
-  data,
-  storage: buildStorageUnavailableStatus(),
-  message: STORAGE_UNAVAILABLE_MESSAGE,
-});
-
-const buildStorageUnavailableHealth = () => buildStorageUnavailableResponse({
-  mode: 'native',
-  configured: false,
-  accountCount: 0,
-  providers: PROVIDER_CAPABILITIES,
-  scheduler: getSchedulerStatus(),
-  storage: buildStorageUnavailableStatus(),
-});
 
 router.use(protect, adminOnly);
 
@@ -157,6 +128,31 @@ router.post('/publish', async (req, res) => {
   }
 
   const compliance = checkCompliance(content, !!isAIGenerated);
+  const override = req.body.complianceOverride === true;
+
+  // Fail-closed gate. Gate on `blocked`, NOT on `compliant`: `compliant` is
+  // `warnings.length === 0`, and the checker raises a warning even when it has
+  // already remedied the issue by appending #ad — so gating on `compliant`
+  // would refuse nearly every promotional post. `blocked` is only true for
+  // problems no automatic remedy exists for (medical claims, testimonials).
+  if (compliance.blocked && !override) {
+    logger.warn(
+      `[AUDIT] Admin ${req.user.id} publish REFUSED by compliance gate ` +
+      `(${compliance.blockers.length} blocker(s))`,
+    );
+    return res.status(422).json({
+      success: false,
+      status: 'blocked',
+      message: 'Content did not pass the compliance gate and was not published.',
+      compliance: {
+        blocked: true,
+        blockers: compliance.blockers,
+        warnings: compliance.warnings,
+        autoTags: compliance.autoTags,
+      },
+    });
+  }
+
   const finalContent = compliance.autoTags.length > 0
     ? `${content}\n\n${compliance.autoTags.join(' ')}`
     : content;
@@ -170,22 +166,71 @@ router.post('/publish', async (req, res) => {
       compliance,
     }, { userId: req.user?.id });
 
+    // The service already derives the truthful outcome; the route's only job is
+    // to report it faithfully. `success` is DERIVED here rather than assigned so
+    // it cannot drift from `status` again — that drift was the original bug: a
+    // publish where every platform failed answered `success: true`, and the
+    // frontend cleared the composer on it, destroying the draft.
+    const status = result.status || 'published';
+    const success = status === 'published' || status === 'scheduled';
+
     logger.info(
-      `[AUDIT] Admin ${req.user.id} ${scheduledAt ? 'scheduled' : 'published'} social post ` +
-      `to ${platformIds.length} platform(s)${compliance.warnings.length ? ' with compliance warnings' : ''}`,
+      `[AUDIT] Admin ${req.user.id} publish outcome=${status} ` +
+      `platforms=${platformIds.length}` +
+      `${override ? ' complianceOverride=true' : ''}` +
+      `${compliance.warnings.length ? ` warnings=${compliance.warnings.length}` : ''}`,
     );
 
+    // Business outcomes are DATA, not transport: `failed` and `partial_failed`
+    // return 200 with the truth in the body. Non-2xx is reserved for 400/422/500.
+    // The frontend's handler is a bare `catch {}` that reports any rejection as
+    // "Network error", and axios rejects non-2xx — so a 502 here would replace
+    // one lie with a differently-worded one.
     return res.json({
-      success: true,
+      success,
+      status,
       data: result.data || result,
       compliance: {
+        blocked: compliance.blocked,
+        overridden: override && compliance.blocked,
+        blockers: compliance.blockers,
         warnings: compliance.warnings,
         autoTags: compliance.autoTags,
       },
     });
   } catch (err) {
     logger.error('Failed to publish social post:', err.message);
-    return res.status(500).json({ success: false, message: 'Failed to publish' });
+    return res.status(500).json({ success: false, status: 'error', message: 'Failed to publish' });
+  }
+});
+
+/**
+ * Re-publish only the accounts of an existing job that have not already
+ * succeeded. Recovery from a partial failure has to live here rather than in
+ * "press Publish again", because a fresh publish targets every selected account
+ * and would re-post to the ones that already went out.
+ *
+ * Same truthful contract as /publish: the outcome is data, `success` is derived
+ * from `status`, and 200 covers every business outcome.
+ */
+router.post('/publish/:jobId/retry', async (req, res) => {
+  try {
+    const result = await nativePublisher.retryJob(req.params.jobId, { userId: req.user?.id });
+    const status = result.status || 'failed';
+    const success = status === 'published' || status === 'scheduled';
+
+    logger.info(
+      `[AUDIT] Admin ${req.user.id} retry job=${req.params.jobId} outcome=${status} ` +
+      `accounts=${(result.retried || []).length}`,
+    );
+
+    return res.json({ success, status, data: result });
+  } catch (err) {
+    if (/not found/i.test(err.message || '')) {
+      return res.status(404).json({ success: false, status: 'not_found', message: 'Social publishing job not found' });
+    }
+    logger.error('Failed to retry social post:', err.message);
+    return res.status(500).json({ success: false, status: 'error', message: 'Failed to retry' });
   }
 });
 

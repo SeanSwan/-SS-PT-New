@@ -23,7 +23,8 @@
  * Exit codes: 0 = ran (digest printed). 2 = git unavailable. Never fails on findings.
  */
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { ledgerDir, activeLocks, FRESH_MIN } from './lib/lane-core.mjs';
 
 const ROOT = process.cwd();
 const JSON_MODE = process.argv.includes('--json');
@@ -92,6 +93,11 @@ for (const [idx, wt] of worktrees.entries()) {
     const [behind, ahead] = counts.split(/\s+/).map(Number);
     wt.behind = behind;
     wt.ahead = ahead;
+  } else {
+    /* A failed rev-list used to leave `ahead` undefined; `undefined === 0` is false,
+     * so every worktree fell through to UNMERGED and printed "+undefined ahead" in
+     * the tool whose output drives cleanup decisions. Unknown is its own state. */
+    wt.ahead = null;
   }
   if (FAST) {
     wt.dirty = -1; // not checked in fast mode
@@ -104,6 +110,7 @@ for (const [idx, wt] of worktrees.entries()) {
   // hide its branch from the UNMERGED list (bug caught 2026-07-21 final audit).
   if (wt.isPrimary) wt.klass = 'MAIN-TREE';
   else if (wt.detached) wt.klass = wt.dirty > 0 ? 'DETACHED-DIRTY' : 'DETACHED';
+  else if (wt.ahead === null) wt.klass = 'AHEAD-UNKNOWN';
   else if (wt.ahead === 0)
     // dirty unknown (--fast) → plain MERGED, never claim CLEAN without checking (Rule 19)
     wt.klass = wt.dirty === 0 ? 'MERGED-CLEAN' : wt.dirty > 0 ? 'MERGED-DIRTY' : 'MERGED';
@@ -111,20 +118,33 @@ for (const [idx, wt] of worktrees.entries()) {
 }
 
 /* ---------- 3. Rule-67 lane locks ---------- */
+/* Was a hardcoded ['claude','codex'] resolved against process.cwd(). Two bugs:
+ * (a) ten lane files exist, so six agents' locks were invisible to the tool whose
+ * job is reporting locks; (b) cwd resolution reads a WORKTREE-LOCAL ledger, which
+ * is how nine published claims ended up unreadable. Glob the canonical ledger. */
+const LEDGER_DIR = ledgerDir(ROOT);
 const lanes = {};
-for (const agent of ['claude', 'codex']) {
-  const lanePath = `${ROOT}/.ai-workflow/coordination/${agent}.lane.md`;
-  if (!existsSync(lanePath)) {
-    lanes[agent] = 'no lane file';
-    continue;
-  }
-  const src = readFileSync(lanePath, 'utf8');
-  const section = src.split(/EDITING NOW/i)[1]?.split(/\n#{1,3}\s/)[0] ?? '';
-  const locked = section
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.startsWith('- ') && !/^- Nothing/i.test(l));
-  lanes[agent] = locked.length ? locked : 'released';
+const laneAges = {};
+const laneFiles = LEDGER_DIR && existsSync(LEDGER_DIR)
+  ? readdirSync(LEDGER_DIR).filter((f) => f.endsWith('.lane.md'))
+  : [];
+for (const file of laneFiles) {
+  const agent = file.replace(/\.lane\.md$/, '');
+  const lanePath = `${LEDGER_DIR}/${file}`;
+  /* Freshness from mtime, not the agent-authored `Updated:` prose — a model can
+   * hallucinate a timestamp. mtime is not unforgeable (`touch` exists, and a
+   * release() rewrite bumps it) — it is simply harder to get wrong by accident,
+   * which is the actual failure mode here. Advisory either way. */
+  const ageMin = Math.round((Date.now() - statSync(lanePath).mtimeMs) / 60000);
+  /* activeLocks, not parseLane: a lane declaring itself idle holds nothing. The
+   * digest and the push hook were fixed to honour that; this file was the THIRD
+   * consumer and was left behind, so a released lane still showed locks here —
+   * the same two-readers-disagree bug, one file over. One helper, all three. */
+  const locks = activeLocks(readFileSync(lanePath, 'utf8'), `${LEDGER_DIR}/../..`);
+  // Back-compat: `laneLocks[agent]` keeps its original string | string[] shape for
+  // any existing --json consumer; freshness rides alongside in `laneAges`.
+  lanes[agent] = locks.length ? locks : 'released';
+  laneAges[agent] = ageMin;
 }
 
 /* ---------- output ---------- */
@@ -143,6 +163,8 @@ const summary = {
     .filter((w) => w.klass?.startsWith('UNMERGED'))
     .map((w) => ({ path: w.path, branch: w.branch, ahead: w.ahead, dirty: w.dirty })),
   laneLocks: lanes,
+  laneAgesMin: laneAges,
+  ledgerDir: LEDGER_DIR,
 };
 
 if (JSON_MODE) {
@@ -167,9 +189,12 @@ if (JSON_MODE) {
       console.log(`  +${w.ahead} ahead, ${d}  ${w.branch}  ${w.path}`);
     }
   }
-  console.log(`\nLane locks:`);
+  console.log(`\nLane locks (canonical ledger — all sessions):`);
+  if (!Object.keys(lanes).length) console.log('  (no lane files)');
   for (const [agent, v] of Object.entries(lanes)) {
-    console.log(`  ${agent}: ${Array.isArray(v) ? `\n    ${v.join('\n    ')}` : v}`);
+    const age = laneAges[agent];
+    const fresh = age <= FRESH_MIN ? 'LIVE' : `stale ${age}m`;
+    console.log(`  ${agent} [${fresh}]: ${Array.isArray(v) ? `\n    ${v.join('\n    ')}` : v}`);
   }
   console.log(
     `\n(read-only digest — cleanup of MERGED-CLEAN candidates stays Sean-gated per Rule 34; see Linear SWA-11)`,

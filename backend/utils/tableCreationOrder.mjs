@@ -104,6 +104,15 @@ const TABLE_CREATION_ORDER = [
   'progress_data',               // ProgressData — /api/gamification progress endpoints
   'user_follows',                // UserFollow — social follow/leaderboard/feed endpoints
   'session_packages',            // SessionPackage — gallery VIP Stripe fulfillment
+  // 2026-08-12 drift audit (SWA-157): `packages` was registered in getModels() but absent from
+  // this list, and createTablesInOrder iterates ONLY this list — so the table was never created
+  // in production and four admin routes (finance/revenue/charge-card/package) query a table that
+  // does not exist. Second instance of the same failure shape as MISSING_COLUMNS: a "self-healing"
+  // boot that heals only what someone remembered to enumerate. FK verified: createdBy INTEGER ->
+  // quoted "Users"(id); DDL proven by the QA-container rebuild creating this table cleanly.
+  // NOTE: PainEntryCorrectiveExercises (the other missing table) is deliberately NOT added — its
+  // FK-type defect (exerciseId vs Exercises.id UUID) would error on every boot until fixed.
+  'packages',                    // Package — admin finance/revenue/charge-card/package routes
   'video_sessions',              // VideoSession — /api/video-sessions (VideoChat/ROM)
   'olympic_events',              // OlympicEvent — /api/olympics (Virtual Olympics)
   'marketing_calendar_items',    // MarketingCalendarItem — admin marketing calendar

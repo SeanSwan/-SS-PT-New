@@ -10,6 +10,14 @@
         "@playwright/mcp@latest"
       ],
       "env": {}
+    },
+    "swan-scout": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "scripts/mcp/swan-scout-server.mjs"
+      ],
+      "env": {}
     }
   }
 }

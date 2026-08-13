@@ -622,6 +622,16 @@ export const initializeServer = async (app) => {
         }
 
         try {
+          // Reclaims render jobs whose worker died mid-render. Deliberately NOT behind a
+          // kill switch: the lease design already assumes a reaper exists, so disabling
+          // it does not pause a feature, it strands jobs in `leased` forever.
+          const { startRenderLeaseSweeper } = await import('../services/renderLeaseSweeperCron.mjs');
+          startRenderLeaseSweeper();
+        } catch (sweeperErr) {
+          logger.warn(`Render lease sweeper failed to start: ${sweeperErr.message}`);
+        }
+
+        try {
           // Workout-OS C6b. No-op unless ENABLE_STALE_CLIENT_NUDGES=true (kill switch).
           const { startStaleClientNudgeScheduler } = await import('../services/staleClientNudgeCron.mjs');
           startStaleClientNudgeScheduler();
