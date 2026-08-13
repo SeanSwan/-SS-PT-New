@@ -53,6 +53,27 @@ const redact = (text) =>
     .replace(/(postgres(?:ql)?:\/\/)\S+/gi, '$1<REDACTED>')
     .replace(/(DATABASE_URL\s*=\s*)\S+/gi, '$1<REDACTED>');
 
+/**
+ * The range the PUSH will ship — not the tip commit.
+ *
+ * Kimi K3 hostile review (2026-08-13, P2): `HEAD~1..HEAD` certifies only the tip
+ * while the push ships the whole unpushed stack, so a destructive migration in
+ * commit 1 of a 4-commit slice was never examined. Worse, the discovered
+ * workaround for a legitimate FAIL was "commit anything on top" — the false-fail
+ * and the bypass were the same line of code. Verified against this worktree:
+ * 7 commits unpushed, exactly 1 scanned.
+ *
+ * Returns null when the base cannot be determined. Callers MUST treat that as
+ * substrate failure, never as an empty file list.
+ */
+const pushRange = () => {
+  for (const ref of ['origin/main', 'origin/HEAD']) {
+    const base = run('git', ['merge-base', ref, 'HEAD']);
+    if (base.code === 0 && base.out.trim()) return `${base.out.trim()}..HEAD`;
+  }
+  return null;
+};
+
 const run = (command, commandArgs, cwd = repoRoot) => {
   const result = spawnSync(command, commandArgs, {
     cwd,
@@ -105,16 +126,24 @@ const checkWhitespace = () => {
 
 /** Every touched backend module parses. Cheap, and catches the class rule 42 exists for. */
 const checkBackendSyntax = () => {
-  const listed = run('git', ['ls-files', 'backend/**/*.mjs']);
-  if (listed.code !== 0) return { ok: null, detail: 'could not list backend modules' };
+  // Kimi K3 P5: this previously discarded a FAILED git result into an empty
+  // string, producing `files = []` and then ok:true. Probed and confirmed: with
+  // git failing it reported "no backend modules changed" and PASSED. A helper
+  // command that fails can never produce a pass — that is substrate failure,
+  // not evidence of a clean tree. (The unused `ls-files` call it also ran is
+  // deleted; dead computation in a certification gate is a finding by itself.)
+  const range = pushRange();
+  if (!range) return { ok: null, substrate: true, detail: 'cannot determine push range' };
 
-  const changed = run('git', ['diff', '--name-only', 'HEAD~1..HEAD', '--', 'backend']);
-  const files = (changed.code === 0 ? changed.out : '')
+  const changed = run('git', ['diff', '--name-only', range, '--', 'backend']);
+  if (changed.code !== 0) return { ok: null, substrate: true, detail: 'git diff failed' };
+
+  const files = changed.out
     .split('\n')
     .map((f) => f.trim())
     .filter((f) => f.endsWith('.mjs') && existsSync(path.join(repoRoot, f)));
 
-  if (files.length === 0) return { ok: true, detail: 'no backend modules changed in HEAD' };
+  if (files.length === 0) return { ok: true, detail: `no backend modules changed in ${range}` };
 
   const bad = files.filter((f) => run('node', ['--check', f]).code !== 0);
   return bad.length === 0
@@ -129,6 +158,10 @@ const checkBackendSyntax = () => {
 const checkBackendDrift = () => {
   const untracked = run('git', ['ls-files', '--others', '--exclude-standard', 'backend/']);
   const modified = run('git', ['diff', '--name-only', 'HEAD', '--', 'backend/']);
+  // Kimi K3 P5: either command failing used to yield an empty drift list and a PASS.
+  if (untracked.code !== 0 || modified.code !== 0) {
+    return { ok: null, substrate: true, detail: 'git could not enumerate backend drift' };
+  }
   const drift = [
     ...untracked.out.split('\n').filter((l) => l.trim()),
     ...modified.out.split('\n').filter((l) => l.trim()),
@@ -147,6 +180,20 @@ const CERTIFIED_SUITES = [
   'tests/unit/sessionsRouteOrder.test.mjs',
 ];
 
+/**
+ * Frontend suites certifying frontend fixes.
+ *
+ * Kimi K3 P1 corollary, verified: every backend suite above is backend, and the
+ * Workout Coach acknowledgement fix is a FRONTEND change. It had NO certifying
+ * suite in this gate at all — a revert of that fix would have kept the gate
+ * green. The list is still hardcoded, which Kimi correctly calls the deeper
+ * flaw; the coverage-manifest replacement is queued, not done.
+ */
+const CERTIFIED_FRONTEND_SUITES = [
+  'src/components/WorkoutLogger/useWorkoutSubmit.aiAckTruth.test.tsx',
+  'src/components/WorkoutLogger/workoutCoachContext.test.ts',
+];
+
 const checkTargetedSuites = () => {
   const present = CERTIFIED_SUITES.filter((s) => existsSync(path.join(backendDir, s)));
   if (present.length !== CERTIFIED_SUITES.length) {
@@ -161,8 +208,32 @@ const checkTargetedSuites = () => {
     backendDir,
   );
   return result.code === 0
-    ? { ok: true, detail: `${present.length} certified suites pass` }
-    : { ok: false, detail: 'a certified suite failed' };
+    ? { ok: true, detail: `${present.length} certified backend suites pass` }
+    : { ok: false, detail: 'a certified backend suite failed' };
+};
+
+const checkFrontendSuites = () => {
+  const frontendDir = path.join(repoRoot, 'frontend');
+  const missing = CERTIFIED_FRONTEND_SUITES.filter(
+    (s) => !existsSync(path.join(frontendDir, s)),
+  );
+  if (missing.length) {
+    return { ok: false, detail: `certified frontend suite missing: ${missing.join(', ')}` };
+  }
+  if (!existsSync(path.join(frontendDir, 'node_modules', '.bin'))) {
+    // Kimi K3 F3: fail closed, but say WHAT is missing so it reads as setup
+    // rather than as the gate lying.
+    return { ok: null, substrate: true, detail: 'frontend deps absent — run npm ci in frontend/' };
+  }
+
+  const result = run(
+    path.join('node_modules', '.bin', bin('vitest')),
+    ['run', ...CERTIFIED_FRONTEND_SUITES, '--no-coverage'],
+    frontendDir,
+  );
+  return result.code === 0
+    ? { ok: true, detail: `${CERTIFIED_FRONTEND_SUITES.length} certified frontend suites pass` }
+    : { ok: false, detail: 'a certified frontend suite failed' };
 };
 
 /** Migrations are reviewed statically. This gate NEVER executes one. */
@@ -170,13 +241,19 @@ const checkMigrationsStatic = () => {
   const dir = path.join(backendDir, 'migrations');
   if (!existsSync(dir)) return { ok: null, detail: 'no migrations directory' };
 
-  const changed = run('git', ['diff', '--name-only', 'HEAD~1..HEAD', '--', 'backend/migrations']);
-  const touched = (changed.code === 0 ? changed.out : '')
+  const range = pushRange();
+  if (!range) return { ok: null, substrate: true, detail: 'cannot determine push range' };
+
+  const changed = run('git', ['diff', '--name-only', range, '--', 'backend/migrations']);
+  // Kimi K3 P5: a failed diff used to read as "no migration changed" and PASS.
+  if (changed.code !== 0) return { ok: null, substrate: true, detail: 'git diff failed' };
+
+  const touched = changed.out
     .split('\n')
     .map((f) => f.trim())
     .filter(Boolean);
 
-  if (touched.length === 0) return { ok: true, detail: 'no migration changed in HEAD' };
+  if (touched.length === 0) return { ok: true, detail: `no migration changed in ${range}` };
 
   const destructive = /\b(DROP\s+(TABLE|COLUMN|DATABASE)|TRUNCATE|DELETE\s+FROM)\b/i;
   const offenders = touched.filter((f) => {
@@ -213,7 +290,8 @@ const CHECKS = [
   ['diff whitespace', checkWhitespace],
   ['backend module syntax', checkBackendSyntax],
   ['backend commit drift (rule 42)', checkBackendDrift],
-  ['certified suites', checkTargetedSuites],
+  ['certified backend suites', checkTargetedSuites],
+  ['certified frontend suites', checkFrontendSuites],
   ['migrations static review', checkMigrationsStatic],
   ['secret scan', checkSecrets],
   ['live topology', checkLiveTopology],
@@ -250,15 +328,37 @@ for (const [name, check] of CHECKS) {
 
 const failed = results.filter((r) => r.ok === false);
 const unproven = results.filter((r) => r.ok === null);
+// Kimi K3 Q5: "live topology is undecidable" and "git did not run" are different
+// animals. Git is the substrate for every other check — when it fails, the other
+// results are fabricated. Scope-UNPROVEN exits 0 and downgrades the banner to
+// PROVISIONAL; SUBSTRATE-UNPROVEN exits 2 so automation can tell "unsafe" from
+// "unexaminable". This does not recreate a permanently-red gate: substrate
+// failure is transient and fixable, not constitutional.
+const substrate = unproven.filter((r) => r.substrate === true);
 
 if (jsonOut) {
   process.stdout.write(`${JSON.stringify({ results, failed: failed.length, unproven: unproven.length }, null, 2)}\n`);
 } else {
   process.stdout.write('\n== Slice Certification ==\n');
   process.stdout.write(`${results.length - failed.length - unproven.length} passed, ${failed.length} failed, ${unproven.length} unproven\n`);
-  if (unproven.length) {
-    process.stdout.write('UNPROVEN items are not passes. They are owner checks.\n');
+
+  const head = run('git', ['rev-parse', 'HEAD']).out.trim();
+  if (substrate.length) {
+    process.stdout.write('SUBSTRATE FAILURE — checks could not run. No verdict.\n');
+  } else if (failed.length) {
+    process.stdout.write('NOT CERTIFIED.\n');
+  } else if (unproven.length) {
+    // Kimi K3 Q5(1): a pass wearing a disclaimer is still a pass to anything
+    // reading the exit code. The word changes, so the artifact never claims
+    // certification while owner checks are outstanding.
+    process.stdout.write(`PROVISIONAL — owner checks outstanding: ${unproven.map((u) => u.name).join(', ')}\n`);
+    process.stdout.write(`Tree ${head} passed every decidable check. Owner sign-off required before schema work.\n`);
+  } else {
+    // Kimi K3 P4: the verdict must be an instruction, not an adjective. Nothing
+    // binds a run to the ref that later gets pushed unless it says so.
+    process.stdout.write(`CERTIFIED: ${head} — push exactly this ref, then confirm with: git ls-remote origin main\n`);
   }
 }
 
+if (substrate.length) process.exit(2);
 process.exit(failed.length === 0 ? 0 : 1);
