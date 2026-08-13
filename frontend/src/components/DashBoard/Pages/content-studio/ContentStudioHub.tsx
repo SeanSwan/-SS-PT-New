@@ -54,9 +54,10 @@ const VideoLibraryV3 = React.lazy(() => import('../../../../pages/VideoLibraryV3
 const CrystallineCoverageTracker = React.lazy(() => import('./CrystallineCoverageTracker'));
 const NanoBananaBadgeCreator = React.lazy(() => import('./NanoBananaBadgeCreator'));
 const VideoOptimizerPanel = React.lazy(() => import('./VideoOptimizerPanel'));
+const CreatorRenderQueue = React.lazy(() => import('./CreatorRenderQueue'));
 
 type StudioTab =
-  | 'workflow' | 'library' | 'coverage' | 'video-optimizer' | 'nano-banana';
+  | 'workflow' | 'library' | 'coverage' | 'video-optimizer' | 'nano-banana' | 'render-queue';
 
 /**
  * Tab gating has two distinct kinds, and conflating them is what shipped a
@@ -84,6 +85,7 @@ const TABS: {
   { id: 'coverage', label: 'Coverage Tracker', icon: <Hexagon size={16} /> },
   { id: 'video-optimizer', label: 'Video Optimizer', icon: <Film size={16} /> },
   { id: 'nano-banana', label: 'Badge Assets', icon: <Sparkles size={16} /> },
+  { id: 'render-queue', label: 'Render Queue', icon: <Server size={16} /> },
 ];
 
 interface WorkflowStage {
@@ -176,6 +178,7 @@ const ContentStudioHub: React.FC = () => {
       case 'coverage': return <Suspense fallback={fallback('Loading coverage...')}><CrystallineCoverageTracker /></Suspense>;
       case 'video-optimizer': return <Suspense fallback={fallback('Loading optimizer...')}><VideoOptimizerPanel /></Suspense>;
       case 'nano-banana': return <Suspense fallback={fallback('Loading badge creator...')}><NanoBananaBadgeCreator /></Suspense>;
+      case 'render-queue': return <Suspense fallback={fallback('Loading render queue...')}><CreatorRenderQueue api={authAxios} /></Suspense>;
       default: return null;
     }
   };
