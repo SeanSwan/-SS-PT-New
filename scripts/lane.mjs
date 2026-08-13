@@ -27,7 +27,7 @@
  */
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync, appendFileSync, unlinkSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { FRESH_MIN, sh, normPath, samePath, ledgerDir, identity, safeRef, readLanes, parseLane } from './lib/lane-core.mjs';
+import { FRESH_MIN, sh, normPath, samePath, ledgerDir, identity, safeRef, readLanes, parseLane, siblingLanes } from './lib/lane-core.mjs';
 
 const ARGV = process.argv.slice(2);
 const CMD = ARGV[0] ?? 'digest';
@@ -207,11 +207,8 @@ function digest() {
      * releasing nothing while the real lane keeps its locks. Naming the sibling is
      * the difference between noticing that and not. */
     const stem = ME.laneName.replace(/-s[A-Za-z0-9]+\.lane\.md$/, '').replace(/\.lane\.md$/, '');
-    /* Anchor on the session boundary. A bare startsWith made a worktree named
-     * "maintenance" read as a sibling of "main" — a false notice, which is the
-     * fatigue class, in a notice added this same round. */
-    const siblings = lanes.filter((x) => x.file !== ME.laneName
-      && (x.file.startsWith(`${stem}-s`) || x.file === `${stem}.lane.md`));
+    const siblingNames = siblingLanes(ME.laneName, lanes.map((x) => x.file));
+    const siblings = lanes.filter((x) => siblingNames.includes(x.file));
     for (const s of siblings) {
       out.push(`[lane]   note: ${s.file} is the same agent+worktree from another session (${s.ageMin}m old, ${Array.isArray(s.locks) ? s.locks.length : 0} lock(s)).`);
     }
@@ -278,7 +275,59 @@ function doctor() {
   for (const r of rot) console.log(`[lane doctor] ⚠ ledger artifact: ${r.f} (${r.kb} KB) — candidate for prune, pending approval.`);
 }
 
-const COMMANDS = { claim, release, digest, doctor, whoami: () => console.log(`${ME.agent}@${ME.slug} → ${LANE_PATH}`) };
+/* ── snapshot — the ONLY thing off-machine agents can see ────────────────────
+ * The live ledger is gitignored, and correctly so: a constantly-rewritten "editing
+ * now" file, if tracked, would generate the merge conflicts it exists to prevent.
+ * But that means an agent not on this filesystem — a cloud session, Codex in another
+ * app, Hermes reading the repo — sees NOTHING. The system's stated purpose fails at
+ * the repo boundary.
+ *
+ * This writes ONE tracked file summarising who holds what, and it is MANUAL ONLY.
+ * Nothing invokes it automatically, so it cannot churn: it changes only when someone
+ * deliberately publishes. Run it before you push if you want the world to see your
+ * claims; the file is a courtesy broadcast, never the source of truth. */
+function snapshot() {
+  const lanes = readLanes(LEDGER, ME.laneName);
+  const live = lanes.filter((l) => l.ageMin <= FRESH_MIN && l.locks.length);
+  const stale = lanes.filter((l) => l.ageMin > FRESH_MIN && l.locks.length);
+  const out = [
+    '# Coordination snapshot (generated — do not hand-edit)',
+    '',
+    '> Written by \`node scripts/lane.mjs snapshot\`, manually. The LIVE ledger is',
+    '> gitignored and local; this file exists so agents that are not on that filesystem',
+    '> can see who holds what. It is a point-in-time courtesy broadcast, **not** the',
+    '> source of truth, and it is stale the moment anyone claims or releases.',
+    '',
+    `Generated: ${new Date().toISOString()}`,
+    `Lanes: ${lanes.length} · holding locks now: ${live.length} · stale but still holding: ${stale.length}`,
+    '',
+  ];
+  if (live.length) {
+    out.push('## Held right now', '');
+    for (const l of live) {
+      out.push(`### ${l.file.replace('.lane.md', '')}  (${l.ageMin}m ago)`);
+      out.push(`_${l.task}_`, '');
+      for (const f of l.locks.slice(0, 40)) out.push(`- \`${f}\``);
+      if (l.locks.length > 40) out.push(`- … +${l.locks.length - 40} more`);
+      out.push('');
+    }
+  } else {
+    out.push('## Held right now', '', '_Nothing._', '');
+  }
+  if (stale.length) {
+    out.push('## Stale, still holding (advisory — never silently seize, R5)', '');
+    for (const l of stale) {
+      out.push(`- **${l.file.replace('.lane.md', '')}** — ${Math.round(l.ageMin / 60)}h old, ${l.locks.length} lock(s)`);
+    }
+    out.push('');
+  }
+  const path = resolve(LEDGER, 'SNAPSHOT.md');
+  atomicWrite(path, `${out.join('\n')}\n`);
+  console.log(`[lane] snapshot → ${path}`);
+  console.log('[lane] it is gitignored by default — \`git add -f\` it if you want it committed.');
+}
+
+const COMMANDS = { claim, release, digest, doctor, snapshot, whoami: () => console.log(`${ME.agent}@${ME.slug} → ${LANE_PATH}`) };
 if (!COMMANDS[CMD]) {
   // A typo used to fall through to `digest` and exit 0 — the agent believed it had
   // published a claim nobody could see. Silent failure on the primary write path.

@@ -16,9 +16,25 @@
  * Run at session start (cheap, idempotent). Bump RETENTION_DAYS to 60 for a
  * longer window. CREATED 2026-06-13 — see .ai-workflow/coordination/README.md.
  */
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, rmSync, renameSync, unlinkSync } from 'fs';
 import { fileURLToPath } from 'url';
 import path from 'path';
+
+/* Atomic write. This script rewrites append logs in place, and it is now invoked
+ * from the session-start hook under a timeout. A kill landing between truncate and
+ * write would destroy the very history it exists to preserve — and the first run
+ * after wiring it up is the largest and slowest there will ever be. tmp+rename makes
+ * a killed run a no-op instead of a data loss. */
+function atomicWrite(file, body) {
+  const tmp = file + ".tmp-" + process.pid;
+  try {
+    writeFileSync(tmp, body);
+    renameSync(tmp, file);
+  } catch (err) {
+    try { if (existsSync(tmp)) unlinkSync(tmp); } catch { /* leave no litter */ }
+    throw err;
+  }
+}
 
 const RETENTION_DAYS = 30;
 const SIZE_CAP_BYTES = 256 * 1024;
@@ -55,7 +71,7 @@ const pruneReviewQueue = (file) => {
     dropped += 1;
     return false;
   });
-  writeFileSync(file, sizeCap([header, ...kept].join('\n')));
+  atomicWrite(file, sizeCap([header, ...kept].join('\n')));
   return dropped;
 };
 
@@ -69,7 +85,7 @@ const pruneActivityLog = (file) => {
     dropped += 1;
     return false;
   });
-  writeFileSync(file, sizeCap(kept.join('\n')));
+  atomicWrite(file, sizeCap(kept.join('\n')));
   return dropped;
 };
 

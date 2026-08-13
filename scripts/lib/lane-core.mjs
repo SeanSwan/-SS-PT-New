@@ -105,6 +105,19 @@ export function identity(cwd = process.cwd()) {
 /** Git refnames may legally contain `$ ( ) ; \`` — all shell-active. Refuse to
  *  interpolate anything outside a conservative safe set rather than hand it to a
  *  shell. Returns null when the ref is not provably safe. */
+/** Session-suffix shape this tool actually generates: `-s` + 8 hex from the session id.
+ *  Pinning the shape matters — a loose `-s\w+` made a worktree named `main-sandbox`
+ *  read as a session sibling of every real `main-s*` lane, a false notice inside the
+ *  fix for a false notice. Exported so the fixture can see it; it lived in lane.mjs,
+ *  which the suite does not import, so the bug was structurally untestable. */
+export const SESSION_SUFFIX = /-s[0-9a-f]{6,12}\.lane\.md$/i;
+
+export function siblingLanes(laneName, files) {
+  const stem = laneName.replace(SESSION_SUFFIX, '').replace(/\.lane\.md$/, '');
+  return files.filter((f) => f !== laneName
+    && (f === `${stem}.lane.md` || (f.startsWith(`${stem}-s`) && SESSION_SUFFIX.test(f))));
+}
+
 export function safeRef(ref) {
   return typeof ref === 'string' && /^[A-Za-z0-9._\/-]{1,255}$/.test(ref) && !ref.includes('..')
     ? ref
@@ -212,7 +225,14 @@ export function parseLane(src, root = null) {
       if (!toks.length) return [];
       if (toks.every((t) => pathish(t.text))) return toks.map((t) => t.text);
       if (!pathish(toks[0].text)) return [];
-      if (toks[0].quoted) return [toks[0].text];   // deliberate quoting = deliberate lock
+      /* Quoting is an explicit lock signal ONLY when the quoted text looks like a path
+       * that needed quoting. An unconditional rule turned `- "backend" is where I
+       * work` into a lock on the entire backend tree — prose minting a tree-wide
+       * claim, which is the over-lock fatigue class, from the commonest shape in
+       * English: quoting a noun. A bare quoted word falls through to the commentary
+       * test like any other token. */
+      const worthQuoting = /[\s/\\*]/.test(toks[0].text) || /\.[A-Za-z0-9]{1,6}$/.test(toks[0].text);
+      if (toks[0].quoted && worthQuoting) return [toks[0].text];
       const rest = toks.slice(1).map((t) => t.text);
       const ok = rest.length <= 1
         || bracketed.test(rest[0])
@@ -261,13 +281,22 @@ export function parseLane(src, root = null) {
       let stop = head;
       for (let i = parent + 1; i < head; i += 1) {
         const hl = headingLevel(all[i]);
-        if (hl && hl <= lvl) { stop = i; break; }
+        /* ANY heading ends the parent preamble, not merely one at or above this
+         * level. A deeper `#### Notes` block sitting between the parent and this
+         * section did not stop the scan, so a Status written inside it governed
+         * these locks — and hand-edited lanes are exactly where such nesting lives. */
+        if (hl) { stop = i; break; }
       }
       scope = all.slice(parent + 1, stop);
     }
   }
-  const statusLine = scope.map((l) => l.trim()).find((l) => /^Status:/i.test(l));
-  const idle = Boolean(statusLine) && /^Status:\s*(idle|released|done)\s*$/i.test(statusLine);
+  /* Several Status lines can share a block after hand edits. First-wins is the one
+   * choice that favours SUPPRESSION — a stale `idle` above a fresh `in-progress`
+   * would hide live locks, the same class as the round-6 headline. Any non-idle
+   * status in scope therefore wins: bias toward showing locks. */
+  const statusLines = scope.map((l) => l.trim()).filter((l) => /^Status:/i.test(l));
+  const idle = statusLines.length > 0
+    && statusLines.every((l) => /^Status:\s*(idle|released|done)\s*$/i.test(l));
   return { locks, idle, task: task.slice(0, 90) };
 }
 
