@@ -1,0 +1,15 @@
+{
+  "recordedAt": "2026-08-13T06:43:14.607Z",
+  "note": "Files failing for reasons that predate current work. Shrink this list; never grow it casually.",
+  "failingFiles": [
+    "__tests__/equipmentScanService.multi.test.mjs",
+    "__tests__/equipmentScanService.retry.test.mjs",
+    "tests/unit/adminWorkoutLoggerHistoryDate.test.mjs",
+    "tests/unit/editWorkoutDateParsing.test.mjs",
+    "tests/unit/missionQaAutomation.test.mjs",
+    "tests/unit/providerPricing.test.mjs",
+    "tests/unit/swanLawFilter.corpus.test.mjs",
+    "tests/unit/swanLawFilter.test.mjs",
+    "tests/unit/swanPromptCompiler.test.mjs"
+  ]
+}
