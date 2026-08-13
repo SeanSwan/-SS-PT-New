@@ -22,6 +22,7 @@ import { existsSync } from 'node:fs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const LANE = resolve(HERE, '..', 'lane.mjs');
+const PRUNE = resolve(HERE, '..', 'coordination-prune.mjs');
 
 try {
   if (!existsSync(LANE)) {
@@ -38,6 +39,11 @@ try {
       console.log(`[lane] claim before your first edit: node "${LANE}" claim --task "<one line>" --files "a,b"`);
     }
   }
+  /* Trim the append logs while we are here. The script has existed since June and
+   * nothing ever invoked it, so activity.log.md grew unbounded and doctor would have
+   * flagged it forever — a permanent unclearable warning is its own fatigue source.
+   * Best-effort and silent on failure: retention is not worth failing orientation. */
+  try { if (existsSync(PRUNE)) execFileSync(process.execPath, [PRUNE], { stdio: 'ignore', timeout: 10_000 }); } catch { /* non-fatal */ }
 } catch (err) {
   // Say so rather than vanish — a silent orientation hook is indistinguishable
   // from a healthy one, which is how the ledger went unread for weeks.

@@ -194,28 +194,80 @@ export function parseLane(src, root = null) {
       .replace(/[`]/g, '')
       .trim())
     .flatMap((line) => {
-      // Pull quoted runs out whole so their internal spaces survive the split.
-      const quoted = [];
-      const rest = line.replace(/"([^"]+)"|'([^']+)'/g, (_m, a, b) => {
-        quoted.push(a ?? b);
-        return ' ';
-      });
-      const loose = rest.split(/[,\s]+/).map(clean).filter(Boolean);
-      const toks = [...quoted.map(clean).filter(Boolean), ...loose];
+      /* Tokenize IN PLACE. The previous version hoisted quoted runs to the front,
+       * so `- backend/a.ts "do not touch"` put the note at toks[0], failed the
+       * path test and dropped a real lock — and a quoted path followed by a plain
+       * note was rejected too, which is precisely the shape quoted extraction was
+       * added to support. Order is preserved here, and QUOTING IS TREATED AS AN
+       * EXPLICIT LOCK SIGNAL: someone who quotes a path meant it as a path. */
+      const raw = [];
+      const re = /"([^"]*)"|'([^']*)'|(\S+)/g;
+      let mt;
+      while ((mt = re.exec(line)) !== null) {
+        const quotedTok = mt[1] ?? mt[2];
+        if (quotedTok !== undefined) raw.push({ text: quotedTok, quoted: true });
+        else for (const piece of mt[3].split(',')) raw.push({ text: piece, quoted: false });
+      }
+      const toks = raw.map((t) => ({ ...t, text: clean(t.text) })).filter((t) => t.text);
       if (!toks.length) return [];
-      if (toks.every(pathish)) return toks;                 // a list of paths
-      if (!pathish(toks[0])) return [];                     // prose
-      const remainder = rest.replace(/^\S+\s*/, '').trim();
-      const words = remainder ? remainder.split(/\s+/).length : 0;
-      const looksLikeComment = bracketed.test(remainder) || words <= 1
-        || (dashed.test(remainder) && words <= 4);
-      return looksLikeComment ? [toks[0]] : [];             // path + commentary, else prose
+      if (toks.every((t) => pathish(t.text))) return toks.map((t) => t.text);
+      if (!pathish(toks[0].text)) return [];
+      if (toks[0].quoted) return [toks[0].text];   // deliberate quoting = deliberate lock
+      const rest = toks.slice(1).map((t) => t.text);
+      const ok = rest.length <= 1
+        || bracketed.test(rest[0])
+        || (dashed.test(rest[0]) && rest.length <= 4);
+      return ok ? [toks[0].text] : [];
     })
     .map((t) => t.slice(0, 120));                           // lane files are untrusted input
   const heads = [...src.matchAll(/^#{1,6}\s+(.+)$/gm)].map((h) => h[1].trim())
     .filter((h) => !/EDITING NOW/i.test(h));
   const task = (src.match(/^Task:\s*(.+)$/m) || [])[1]?.trim() || heads[0] || '(no task stated)';
-  const idle = /^Status:\s*(idle|released|done)/mi.test(src);
+  /* Scope `idle` to the SAME section the locks came from, and anchor the match.
+   * It was computed against the whole file while locks come from the first
+   * EDITING NOW section, so a hand-edited lane whose OLD entry said "Status: idle"
+   * suppressed the locks of its NEW entry. Unifying all three consumers on
+   * activeLocks turned that from one reader disagreeing into a simultaneous,
+   * silent, three-channel suppression of live locks — including the push-time
+   * clash warning, the only signal that fires at the moment of irreversibility.
+   * Two defensible fixes, worse together than either alone. */
+  /* The governing Status is the one inside the SAME entry block: between the
+   * nearest preceding heading of same-or-higher level and this section. Taking
+   * merely the nearest preceding Status still read a sibling entry's status — in a
+   * lane whose earlier "## DONE" block said idle, the live locks of the current
+   * block were still suppressed. A block with no Status of its own is not idle. */
+  /* The governing Status comes from the section's OWN body, or failing that from
+   * the enclosing parent preamble — never from a SIBLING section. A lane whose
+   * earlier "## DONE" block said idle was suppressing the live locks of its current
+   * block, because the nearest preceding Status belonged to the sibling. A block
+   * with no Status of its own, under a parent that declares none, is not idle. */
+  const lvl = head === -1 ? 1 : (all[head].match(/^#+/) || ['#'])[0].length;
+  const headingLevel = (l) => { const m2 = l.match(/^(#{1,6})\s/); return m2 ? m2[1].length : 0; };
+  let scope;
+  if (head === -1) {
+    scope = all;
+  } else {
+    const own = body.filter((l) => /^Status:/i.test(l.trim()));
+    if (own.length) {
+      scope = own;
+    } else {
+      // Walk back to the nearest STRICTLY higher-level heading (the parent).
+      let parent = -1;
+      for (let i = head - 1; i >= 0; i -= 1) {
+        const hl = headingLevel(all[i]);
+        if (hl && hl < lvl) { parent = i; break; }
+      }
+      // The parent preamble ends at its first child heading of level <= lvl.
+      let stop = head;
+      for (let i = parent + 1; i < head; i += 1) {
+        const hl = headingLevel(all[i]);
+        if (hl && hl <= lvl) { stop = i; break; }
+      }
+      scope = all.slice(parent + 1, stop);
+    }
+  }
+  const statusLine = scope.map((l) => l.trim()).find((l) => /^Status:/i.test(l));
+  const idle = Boolean(statusLine) && /^Status:\s*(idle|released|done)\s*$/i.test(statusLine);
   return { locks, idle, task: task.slice(0, 90) };
 }
 

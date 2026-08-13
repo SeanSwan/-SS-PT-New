@@ -207,7 +207,11 @@ function digest() {
      * releasing nothing while the real lane keeps its locks. Naming the sibling is
      * the difference between noticing that and not. */
     const stem = ME.laneName.replace(/-s[A-Za-z0-9]+\.lane\.md$/, '').replace(/\.lane\.md$/, '');
-    const siblings = lanes.filter((x) => x.file.startsWith(stem) && x.file !== ME.laneName);
+    /* Anchor on the session boundary. A bare startsWith made a worktree named
+     * "maintenance" read as a sibling of "main" — a false notice, which is the
+     * fatigue class, in a notice added this same round. */
+    const siblings = lanes.filter((x) => x.file !== ME.laneName
+      && (x.file.startsWith(`${stem}-s`) || x.file === `${stem}.lane.md`));
     for (const s of siblings) {
       out.push(`[lane]   note: ${s.file} is the same agent+worktree from another session (${s.ageMin}m old, ${Array.isArray(s.locks) ? s.locks.length : 0} lock(s)).`);
     }
