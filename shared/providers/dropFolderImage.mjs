@@ -63,10 +63,19 @@ export function capabilities() {
     promptStyle: 'sentence',      // a person reads prose better than tags
     maxPromptChars: 4000,
     supportedAspectRatios: ['1:1', '16:9', '9:16', '4:5', '21:9'],
-    supportsImageInit: true,
+    // 'claimed', not true: this promises nothing the surface can keep. The
+    // request sheet this provider writes never asks the operator for an input
+    // image, so a caller trusting `supportsImageInit` would hand a human a
+    // sheet with no way to supply one. Same reasoning as inpainting below —
+    // it depends entirely on the tool the person uses.
+    supportsImageInit: 'claimed',
     supportsInpainting: 'claimed', // depends entirely on the tool the human uses
     supportsSeed: false,
-    seedIsDeterministic: 'false',
+    // BOOLEAN false, not the string 'false'. The string is TRUTHY in JavaScript,
+    // so any `if (caps.seedIsDeterministic)` read it as YES. capOk() rejected it
+    // by luck (it tests === true / === 'verified'), which is exactly how a bug
+    // like this survives: correct behaviour for the wrong reason.
+    seedIsDeterministic: false,
     honorsNegativePrompt: 'claimed',
     costCents: 0,                  // the entire point
   };
@@ -114,7 +123,12 @@ export function requestDrop(compiled, root = process.cwd()) {
     compiled.promptText,
     '',
     '## Required output',
-    `- aspect ratio: **${compiled.slots?.output || '16:9'}**  <- set this in the tool, do not rely on the prompt text`,
+    // Reads the compiler's TYPED aspect field. This used to print
+    // `compiled.slots.output`, which is a composed prose blob — so the sheet
+    // told a human operator "aspect ratio: **16:9, seamless, edge-matched**"
+    // and left them to guess which part was the ratio. Same parse-the-prose
+    // defect as the API provider had, just aimed at a person instead of a param.
+    `- aspect ratio: **${compiled.aspect || '16:9'}**  <- set this in the tool, do not rely on the prompt text`,
     `- save the image as: **${id}.png**  (or .jpg / .webp)`,
     `- drop it in: \`${READY_DIR}/\``,
     '',

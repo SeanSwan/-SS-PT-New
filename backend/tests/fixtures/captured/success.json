@@ -1,0 +1,28 @@
+{
+  "created": 1786564707,
+  "data": [
+    {
+      "b64_json": "<SEE real-desaturated.png>",
+      "media_type": "image/png"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 27,
+    "completion_tokens": 120,
+    "total_tokens": 147,
+    "cost": 0.003816,
+    "is_byok": false,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "cost_details": {
+      "upstream_inference_cost": 0.003816,
+      "upstream_inference_prompt_cost": 0.000216,
+      "upstream_inference_completions_cost": 0.0036
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 120
+    }
+  }
+}

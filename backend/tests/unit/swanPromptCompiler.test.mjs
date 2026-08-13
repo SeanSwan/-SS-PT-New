@@ -211,7 +211,19 @@ test('an unknown serializer throws rather than silently emitting nothing', () =>
 test('compile records which strategy produced the text', () => {
   const c = compileImage(brief, VERIFIED_CAPS);
   assert.equal(c.promptStyle, 'sentence');
+  // The serialized body is the head of the prompt; the kill-list is appended
+  // after it. This assertion used to be a strict equality, which broke when the
+  // avoid-clause landed. RE-ANCHORED, not relaxed: it still proves the recorded
+  // strategy is the one that produced the text, and now also pins where the
+  // constraints go.
+  assert.ok(c.promptText.startsWith(serializeFor('sentence', c.slots)),
+    'the recorded strategy must be the one that produced the body');
+  // The kill-list is OFF by default, so the default prompt IS the serialized body.
   assert.equal(c.promptText, serializeFor('sentence', c.slots));
+  // ...and when explicitly enabled it appends, leaving the body untouched.
+  const withList = compileImage({ ...brief, killList: true }, VERIFIED_CAPS);
+  assert.ok(withList.promptText.startsWith(serializeFor('sentence', withList.slots)));
+  assert.match(withList.promptText, /Rendering constraints — avoid: .*iridescent gradient/);
 });
 
 test('REGRESSION: tag strategy does not duplicate the subject inside styleAnchor', () => {
