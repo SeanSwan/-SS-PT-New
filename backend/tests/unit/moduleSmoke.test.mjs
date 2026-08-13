@@ -98,6 +98,9 @@ const MINIMAL_VALID_ARGS = {
   saveImage: null, findVariant: null, generateBracket: null,
   appendRun: null, readRuns: null, markWinner: null, annotateRun: null, // disk
   withRetry: null,                          // real timers
+  retryAfterMs: [{ headers: { get: () => null } }],
+  listRuns: null, getRun: null, spendSummary: null,   // disk
+  storeStatus: null,                                  // disk
   buildContactSheet: [[], '.', {}],
   assertInsideArtifactRoot: ['.ai-workflow/forge-runs', '.'],
   applyLaws: [{ subject: 'a frozen lake' }, []],
@@ -117,7 +120,7 @@ const FORGE_OWNED = new Set([
   'aspect.mjs', 'bracket.mjs', 'contactSheet.mjs', 'forgeConfig.mjs',
   'imageDimensions.mjs', 'pixels.mjs', 'swanLawFilter.mjs', 'swanPromptCompiler.mjs',
   'swanPromptSerializers.mjs', 'swanVocabulary.mjs', 'variantLineage.mjs',
-  'variantRun.mjs', 'variantVerdict.mjs',
+  'variantRun.mjs', 'variantVerdict.mjs', 'forgeReadApi.mjs',
   'dropFolderImage.mjs', 'openrouterImage.mjs', 'openrouterModels.mjs', 'transportRetry.mjs',
 ]);
 
@@ -183,7 +186,14 @@ test('no NUMERIC TOLERANCE ships without stated provenance', () => {
   // Every threshold in this subsystem that was chosen by eye has been refuted by
   // the first real measurement. A tolerance must say where its number came from.
   const OFFENDERS = [];
-  const TOLERANCE_NAMES = /^export const ([A-Z_]*(TOLERANCE|RADIUS|THRESHOLD|LIMIT)[A-Z_]*) = ([\d.]+)/;
+  // WIDENED. The first version matched TOLERANCE|RADIUS|THRESHOLD|LIMIT — which
+  // is to say, exactly the constants I had already thought to justify. It walked
+  // straight past MAX_RETRIES, SLEEP_MS, BUDGET and FRACTION: survivorship bias
+  // as a test suite. Any exported bare number that reads like a tuned knob now
+  // has to say where it came from.
+  const TOLERANCE_NAMES = new RegExp('^export const ([A-Z_]*(TOLERANCE|RADIUS|THRESHOLD|LIMIT'
+    + '|RETRIES|RETRY|SLEEP|BACKOFF|BUDGET|FRACTION|JITTER|CEILING|MAX_|MIN_|_MS|_COUNT)[A-Z_]*)'
+    + ' = ([\d.]+)');
 
   for (const path of forgeModules()) {
     const lines = readFileSync(path, 'utf8').split('\n');

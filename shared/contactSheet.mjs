@@ -26,13 +26,41 @@ export const RUBRIC = Object.freeze([
   { key: 'note', q: 'One sentence: what would you change?', options: null },
 ]);
 
-function dataUri(root, ref) {
-  if (!ref) return null;
+/**
+ * Total inlined image bytes a sheet may carry.
+ *
+ * PROVENANCE: generated images are OBSERVED at 1.7-2.4 MB each (measured across
+ * every PNG in this ledger), and base64 inflates by ~33%. A 4-option sheet is
+ * therefore ~10 MB of markup — enough to make a browser tab crawl, and the
+ * artifact exists to be looked at. 6 MB holds two full-size options inline; past
+ * that, images are LINKED from beside the file instead, which every browser
+ * opens fine from disk.
+ */
+export const MAX_INLINE_BYTES = 6 * 1024 * 1024;
+
+/**
+ * Inline an image if the budget allows, otherwise link to it relatively.
+ *
+ * Falling back to a relative `src` keeps the sheet openable from disk — the
+ * images already live beside it — so exceeding the budget degrades presentation
+ * rather than breaking the artifact. Returns `null` only when the file is
+ * genuinely missing, which the caller renders as an explicit absence.
+ */
+function imageSrc(root, ref, budget) {
+  if (!ref) return { src: null, used: 0 };
   const p = join(root, ref);
-  if (!existsSync(p)) return null;
+  if (!existsSync(p)) return { src: null, used: 0 };
+  const bytes = readFileSync(p);
   const ext = ref.split('.').pop().toLowerCase();
   const mime = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' }[ext] || 'application/octet-stream';
-  return `data:${mime};base64,${readFileSync(p).toString('base64')}`;
+  const inlineCost = Math.ceil(bytes.length * 4 / 3);
+  if (inlineCost > budget.remaining) {
+    budget.linked += 1;
+    // Relative to the sheet, which is written into the same run directory.
+    return { src: `images/${ref.split('/').pop()}`, used: 0, linked: true };
+  }
+  budget.remaining -= inlineCost;
+  return { src: `data:${mime};base64,${bytes.toString('base64')}`, used: inlineCost };
 }
 
 /**
@@ -57,8 +85,9 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
  */
 export function buildContactSheet(rows, root = process.cwd(), meta = {}) {
   const ok = rows.filter((r) => r.status === 'ok');
+  const budget = { remaining: meta.maxInlineBytes ?? MAX_INLINE_BYTES, linked: 0 };
   const cards = ok.map((r, i) => {
-    const src = dataUri(root, r.imageRef);
+    const { src } = imageSrc(root, r.imageRef, budget);
     return `
     <figure class="card${r.winner ? ' winner' : ''}">
       <div class="frame">${src
@@ -110,6 +139,9 @@ export function buildContactSheet(rows, root = process.cwd(), meta = {}) {
 <div class="sub">${ok.length} option(s) · $${ok.reduce((s, r) => s + (r.costUsd || 0), 0).toFixed(4)} total
   · brief <code>${esc(meta.briefId || rows[0]?.briefId || '')}</code></div>
 <div class="grid">${cards}</div>
+${budget.linked ? `<div class="sub">${budget.linked} image(s) linked rather than inlined `
+    + `(the sheet stayed under ${Math.round((meta.maxInlineBytes ?? MAX_INLINE_BYTES) / 1048576)} MB). `
+    + 'They load from the images/ folder beside this file.</div>' : ''}
 <div class="prompt">${esc(ok[0]?.promptText || '')}</div>
 <h1>Rubric</h1>
 <div class="sub">Answers append to the run ledger, so "what actually gets picked" becomes queryable.</div>

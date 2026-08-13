@@ -73,7 +73,14 @@ async function call(body) {
     signal: AbortSignal.timeout(180_000),
   });
   const text = await res.text();
-  return { status: res.status, ok: res.ok, text: text.split(key).join('<REDACTED_KEY>') };
+  return {
+    status: res.status, ok: res.ok,
+    // The key is redacted in case a provider echoes the request. Provider
+    // REQUEST IDs are scrubbed too: they are not credentials, but they are real
+    // identifiers from a real account and a committed fixture is permanent.
+    // Scrubbed at capture so it can never be a thing someone remembers to do.
+    text: text.split(key).join('<REDACTED_KEY>').replace(/req_[A-Za-z0-9]{10,}/g, 'req_redacted'),
+  };
 }
 
 /* ---------- 1. a real SUCCESS envelope ---------- */

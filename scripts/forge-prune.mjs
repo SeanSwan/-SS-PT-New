@@ -31,7 +31,7 @@
 
 import { readFileSync, writeFileSync, readdirSync, statSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { readRuns, LEDGER_FILE } from '../shared/variantRun.mjs';
+import { readRuns, LEDGER_FILE, RUN_DIR } from '../shared/variantRun.mjs';
 import { IMAGE_DIR } from '../shared/bracket.mjs';
 import { assertInsideArtifactRoot } from '../shared/forgeConfig.mjs';
 
@@ -42,8 +42,30 @@ const DAYS = Number(flag('days', 30));
 const MAX_MB = Number(flag('max-mb', 500));
 const APPLY = args.includes('--apply');
 
-const dir = assertInsideArtifactRoot(join(ROOT, IMAGE_DIR), ROOT);
-if (!existsSync(dir)) { console.log(`No image store at ${IMAGE_DIR} — nothing to prune.`); process.exit(0); }
+/**
+ * EVERY image directory under the artifact root, not just `images/`.
+ *
+ * The first version looked only at IMAGE_DIR and therefore reported 3.6 MB while
+ * 14.1 MB sat on disk: the A/B harness writes to a SIBLING directory it never
+ * saw. A retention pass that guards one subdirectory while another grows without
+ * limit is worse than none, because it reports a reassuring number.
+ *
+ * Each directory is still allowlist-checked individually — widening the sweep
+ * must not widen what may be deleted.
+ */
+const base = assertInsideArtifactRoot(join(ROOT, RUN_DIR), ROOT);
+if (!existsSync(base)) { console.log(`No artifact store at ${RUN_DIR} — nothing to prune.`); process.exit(0); }
+
+function imageDirs(dir) {
+  const out = [];
+  let entries;
+  try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return out; }
+  if (entries.some((e) => e.isFile() && /\.(png|jpe?g|webp|gif)$/i.test(e.name))) out.push(dir);
+  for (const e of entries) if (e.isDirectory()) out.push(...imageDirs(join(dir, e.name)));
+  return out;
+}
+const dirs = imageDirs(base).map((d) => assertInsideArtifactRoot(d, ROOT));
+if (!dirs.length) { console.log(`No images under ${RUN_DIR} — nothing to prune.`); process.exit(0); }
 
 const { runs, skipped } = readRuns(ROOT);
 const byRef = new Map(runs.filter((r) => r.imageRef).map((r) => [r.imageRef.split('/').pop(), r]));
@@ -67,7 +89,9 @@ const protectedIds = new Set([
 ]);
 
 const cutoff = Date.now() - DAYS * 86_400_000;
-const files = readdirSync(dir).map((f) => {
+const files = dirs.flatMap((dir) => readdirSync(dir)
+  .filter((f) => /\.(png|jpe?g|webp|gif)$/i.test(f))
+  .map((f) => {
   const p = join(dir, f);
   const st = statSync(p);
   const row = byRef.get(f);
@@ -78,7 +102,7 @@ const files = readdirSync(dir).map((f) => {
     protectedByLineage: protectedIds.has(variantId),
     alreadyPruned: Boolean(row?.imagePruned),
   };
-}).sort((a, b) => a.mtime - b.mtime);
+})).sort((a, b) => a.mtime - b.mtime);
 
 const totalMb = files.reduce((s, f) => s + f.bytes, 0) / 1_048_576;
 
@@ -92,7 +116,7 @@ for (const f of files) {
   if (tooOld || tooBig) { doomed.push({ ...f, why: tooOld ? `older than ${DAYS}d` : `store over ${MAX_MB}MB` }); running -= f.bytes / 1_048_576; }
 }
 
-console.log(`store    ${IMAGE_DIR}`);
+console.log(`store    ${RUN_DIR}  (${dirs.length} image dir(s))`);
 console.log(`files    ${files.length}  (${totalMb.toFixed(1)} MB)   ledger ${runs.length} rows${skipped ? `, ${skipped} corrupt` : ''}`);
 console.log(`policy   images older than ${DAYS}d, or oldest-first over ${MAX_MB}MB. Ledger rows are NEVER deleted.`);
 console.log(`kept     ${files.filter((f) => f.protectedByLineage).length} protected as lineage parents\n`);
