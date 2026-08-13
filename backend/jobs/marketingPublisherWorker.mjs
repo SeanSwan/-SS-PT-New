@@ -47,6 +47,16 @@ export function createMarketingPublisherWorker({
     if (running) return [];
     running = true;
     try {
+      // Reap first. A job stranded in 'running' by a crash or a deploy is
+      // invisible to the claim query below (which only looks at 'scheduled'),
+      // so without this it stays in-flight forever and its history row never
+      // resolves. Reaping only CLOSES jobs — it never publishes or requeues —
+      // so it cannot interfere with the due-job pass that follows.
+      if (typeof service.reapStuckJobs === 'function') {
+        const reaped = await service.reapStuckJobs({});
+        if (reaped.length > 0) log.warn(`[marketingPublisher] reaped ${reaped.length} stuck job(s)`);
+      }
+
       const result = await service.runDueJobs({ limit });
       if (result.length > 0) log.info(`[marketingPublisher] processed ${result.length} due job(s)`);
       return result;
