@@ -34,7 +34,7 @@
 
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const guard = path.join(repoRoot, 'scripts', 'qa', 'qa-db.mjs');
@@ -72,7 +72,7 @@ process.env.PG_DB = name;
 process.env.PG_PASSWORD = pass;
 process.env.DATABASE_URL = '';              // must not win over the PG_* vars
 
-const { default: sequelize } = await import(`file://${path.join(repoRoot, 'backend', 'database.mjs')}`);
+const { default: sequelize } = await import(pathToFileURL(path.join(repoRoot, 'backend', 'database.mjs')).href);
 
 // Belt and braces: confirm the ORM actually landed on the QA container. A config
 // precedence surprise here would mean syncing models over a real database.
@@ -85,7 +85,7 @@ if (String(cfg.port) !== String(port) || !['127.0.0.1', 'localhost'].includes(cf
   process.exit(1);
 }
 
-const { default: getModels } = await import(`file://${path.join(repoRoot, 'backend', 'models', 'associations.mjs')}`);
+const { default: getModels } = await import(pathToFileURL(path.join(repoRoot, 'backend', 'models', 'associations.mjs')).href);
 const models = await getModels();
 
 // The registry is not the whole truth. Several model families (SocialGroup,
@@ -120,7 +120,7 @@ const walk = (dir) => readdirSync(dir).flatMap((f) => {
 });
 for (const file of walk(modelsDir)) {
   try {
-    await import(`file://${file}`);
+    await import(pathToFileURL(file).href);
   } catch (error) {
     importFailures.push(`${path.relative(modelsDir, file)}: ${String(error.message).split('\n')[0].slice(0, 90)}`);
   }
@@ -156,6 +156,46 @@ try {
     console.log(`models registered : ${modelCount}`);
     console.log(`tables in public  : ${rows[0].tables}`);
     console.log(`core tables       : ${JSON.stringify(core[0])}`);
+
+    // BUG-2 (Kimi 2026-08-13): "196 tables" proves PRESENCE, not shape.
+    // model.sync() on an existing table with wrong columns succeeds silently —
+    // the indexes-that-never-existed class, one level up. So verify compares
+    // every import-graph model's declared columns against the live table and
+    // fails on gaps. Upgrade 3 from the same review: the sentinel check now
+    // reads the ROW, reusing qa-db's positive-identity primitive — an empty
+    // table anyone created is no longer proof of anything.
+    const [{ marker } = {}] = (await sequelize.query(
+      `SELECT marker FROM swan_qa_sentinel LIMIT 1`,
+    ).then(([r]) => r).catch(() => []));
+    if (marker !== 'SWAN-QA-DISPOSABLE-DATABASE') {
+      console.error(`SENTINEL CONTENT WRONG: ${JSON.stringify(marker)} — not a bootstrapped QA database`);
+      process.exitCode = 1;
+    }
+
+    const [allCols] = await sequelize.query(
+      `SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public'`,
+    );
+    const colsByTable = new Map();
+    for (const r of allCols) {
+      if (!colsByTable.has(r.table_name)) colsByTable.set(r.table_name, new Set());
+      colsByTable.get(r.table_name).add(r.column_name);
+    }
+    let columnGaps = 0;
+    for (const model of Object.values(models)) {
+      if (!model?.getTableName || !model.rawAttributes) continue;
+      const table = String(model.getTableName()).replace(/"/g, '');
+      const live = colsByTable.get(table);
+      if (!live) continue; // table-level absence is already reported elsewhere
+      const missing = Object.entries(model.rawAttributes)
+        .map(([attr, def]) => def.field || attr)
+        .filter((col) => !live.has(col));
+      if (missing.length) {
+        columnGaps += missing.length;
+        console.error(`  COLUMN GAP ${table}: ${missing.join(', ')}`);
+      }
+    }
+    console.log(`column-level check: ${columnGaps === 0 ? 'CLEAN' : columnGaps + ' missing column(s)'} across ${colsByTable.size} tables`);
+    if (columnGaps > 0) process.exitCode = 1;
   } else {
     // sequelize.sync() creates tables in registration order and does NOT fully
     // topologically sort them: `challenge_submissions` references `challenges`
@@ -196,6 +236,26 @@ try {
     `);
     console.log(`schema ${mode}: ${unique.size} models, ${passes} pass(es) -> ${rows[0].tables} tables`);
 
+    // Upgrade 2 (Kimi 2026-08-13): a machine-readable manifest, so the next tool
+    // in the chain (the write-lane runner) asserts schema completeness from JSON
+    // instead of parsing prose — or worse, not checking at all.
+    const { writeFileSync } = await import('node:fs');
+    const manifestPath = path.join(repoRoot, 'scripts', 'qa', '.qa-schema-manifest.json');
+    writeFileSync(manifestPath, JSON.stringify({
+      generatedAt: new Date().toISOString(),
+      mode,
+      models: unique.size,
+      passes,
+      tables: rows[0].tables,
+      results: [...unique.values()].map((m) => ({
+        table: m.tableName,
+        tier: preGlobDefined.has(m) ? 'import-graph' : 'glob-only',
+        status: pending.includes(m) ? 'FAILED' : 'created',
+        error: pending.includes(m) ? lastErrors.get(m.tableName) : undefined,
+      })),
+    }, null, 2));
+    console.log(`manifest: ${manifestPath}`);
+
     if (pending.length > 0) {
       // Two tiers. Runtime-reachable models (the registry plus everything the
       // app's own import graph defines) hold the exit code: a partial schema
@@ -207,7 +267,7 @@ try {
       const fatal = pending.filter((m) => preGlobDefined.has(m));
       const dormant = pending.filter((m) => !preGlobDefined.has(m));
       if (fatal.length) {
-        console.error(`\n${fatal.length} RUNTIME-REACHABLE model(s) could not be created (FATAL):`);
+        console.error(`\n${fatal.length} model(s) reachable via the associations import graph could not be created (FATAL):`);
         for (const model of fatal) console.error(`  ${model.tableName}: ${lastErrors.get(model.tableName)}`);
         process.exitCode = 1;
       }

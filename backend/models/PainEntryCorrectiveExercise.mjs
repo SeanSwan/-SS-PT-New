@@ -40,7 +40,12 @@ PainEntryCorrectiveExercise.init(
       allowNull: false,
     },
     exerciseId: {
-      type: DataTypes.INTEGER,
+      // 2026-08-13 (SWA-157 drift evidence): the live "Exercises".id is UUID —
+      // verified read-only against production. INTEGER here made the FK
+      // "cannot be implemented" on any fresh build, so this table has never
+      // been creatable. Kimi's rule applied: fix models toward the LIVE schema,
+      // never toward whatever makes sync happy.
+      type: DataTypes.UUID,
       allowNull: false,
     },
     phase: {

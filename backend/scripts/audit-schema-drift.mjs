@@ -18,6 +18,7 @@
  * Output: JSON report at --out (schema metadata only — no data rows, no secrets).
  */
 import fs from 'fs';
+import { resolveDeclaredIndexes, columnsFromIndexDef } from './lib/declaredIndexes.mjs';
 import path from 'path';
 
 const outIdx = process.argv.indexOf('--out');
@@ -115,13 +116,15 @@ const [dbUniques] = await sequelize.query(`
 // So a declared-but-absent index is invisible until it becomes a slow-query
 // incident under volume. Read-only: pg_indexes is a catalog view.
 const [dbIndexes] = await sequelize.query(`
-  SELECT tablename AS table_name, indexname AS index_name
+  SELECT tablename AS table_name, indexname AS index_name, indexdef
   FROM pg_indexes WHERE schemaname = 'public'
 `);
 const indexesByTable = new Map();
+const indexDefByName = new Map();
 for (const row of dbIndexes) {
   if (!indexesByTable.has(row.table_name)) indexesByTable.set(row.table_name, new Set());
   indexesByTable.get(row.table_name).add(row.index_name);
+  indexDefByName.set(`${row.table_name}::${row.index_name}`, row.indexdef);
 }
 
 const uniquesByTable = new Map();
@@ -309,22 +312,54 @@ for (const [name, model] of Object.entries(models)) {
     attrs: attrs.length, missing, typeConf, deepConf });
 }
 
-// Declared indexes that do not exist in the live DB (added 2026-08-12).
-// Reported at HIGH, not CRITICAL: the app functions without them, which is
-// precisely why they go unnoticed. The cost shows up as query latency at volume.
+// Declared-index drift (added 2026-08-12; rebuilt 2026-08-13 on the shared
+// resolver after Kimi's review — BUG-5). Name-presence was a weak proxy: an
+// index can EXIST by name with different columns than declared (created by
+// hand, or by an old migration), and name-equality calls that healthy. Three
+// classes now, all derived from lib/declaredIndexes.mjs — the same intermediate
+// representation the remediation generator emits SQL from, so report and fix
+// can never disagree about what "declared" means.
 for (const { model: name, table: tn } of modelSummaries) {
-  const declared = (models[name]?.options?.indexes) || [];
+  const model = models[name];
+  if (!model) continue;
   const live = indexesByTable.get(tn) || new Set();
-  for (const idx of declared) {
-    if (!idx?.name) continue;             // unnamed indexes get generated names; skip
-    if (live.has(idx.name)) continue;
+  const liveColsMap = dbTables.get(tn);
+  if (!liveColsMap) continue; // table-missing is already its own finding
+  const liveColSet = new Set(liveColsMap.keys());
+  const { resolvable, skipped } = resolveDeclaredIndexes(model, liveColSet);
+
+  for (const skip of skipped) {
     findings.push({
-      class: 'index-missing-in-db', severity: 'HIGH', model: name, table: tn,
-      index: idx.name, fields: idx.fields || [],
-      note: 'Model declares this index but the live DB does not have it. A common cause is '
-        + '`fields` naming model ATTRIBUTES where the DB column differs (e.g. clientId vs client_id), '
-        + 'which makes CREATE INDEX fail silently at table-creation time.',
+      class: 'index-unresolvable', severity: 'HIGH', model: name, table: tn,
+      index: skip.name, note: `Declared index cannot be resolved against the live schema: ${skip.reason}. `
+        + 'It has therefore never been creatable — fix the model declaration.',
     });
+  }
+  for (const idx of resolvable) {
+    if (!live.has(idx.name)) {
+      findings.push({
+        class: 'index-missing-in-db', severity: 'HIGH', model: name, table: tn,
+        index: idx.name, fields: idx.columns,
+        note: 'Model declares this index but the live DB does not have it. A common cause is '
+          + '`fields` naming model ATTRIBUTES where the DB column differs (e.g. clientId vs client_id), '
+          + 'which makes CREATE INDEX fail silently at table-creation time.',
+      });
+      continue;
+    }
+    // Present by name — but with the DECLARED columns? (BUG-5's actual class.)
+    const def = indexDefByName.get(`${tn}::${idx.name}`);
+    const liveIdxCols = def ? columnsFromIndexDef(def) : null;
+    if (liveIdxCols === null) continue; // expression index or unknown — do not guess
+    const same = liveIdxCols.length === idx.columns.length
+      && liveIdxCols.every((c, i) => c === idx.columns[i]);
+    if (!same) {
+      findings.push({
+        class: 'index-column-mismatch', severity: 'HIGH', model: name, table: tn,
+        index: idx.name, declared: idx.columns, live: liveIdxCols,
+        note: 'An index with this NAME exists but covers different columns than the model declares. '
+          + 'Name-equality audits call this healthy; queries relying on the declared shape are not covered.',
+      });
+    }
   }
 }
 

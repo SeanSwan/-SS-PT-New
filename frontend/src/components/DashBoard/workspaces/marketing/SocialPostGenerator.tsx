@@ -5,7 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Calendar, Clock, Send, Shield } from 'lucide-react';
+import { Calendar, Clock, RefreshCw, Send, Shield } from 'lucide-react';
 import { hexAlpha } from '../../../../components/Charts/chartTheme';
 import {
   MarketingCard,
@@ -37,12 +37,12 @@ import {
   StatusBanner,
   TextArea,
 } from './SocialPostGenerator.styles';
-import type { ComplianceResult, ConnectedAccount } from './SocialPostGenerator.types';
+import type { ConnectedAccount } from './SocialPostGenerator.types';
 import SocialPostAccounts from './SocialPostAccounts';
 import SocialPostComplianceResult from './SocialPostComplianceResult';
 import SocialPostPreview from './SocialPostPreview';
 import apiService from '../../../../services/api.service';
-import { describeFailure, describeThrown } from './SocialPostGenerator.outcome';
+import { useSocialPublish } from './useSocialPublish';
 
 const getMinimumScheduleDateTime = () => {
   const date = new Date();
@@ -61,11 +61,17 @@ const SocialPostGenerator: React.FC = () => {
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>([]);
   const [nativeConfigured, setNativeConfigured] = useState<boolean | null>(null);
-  const [complianceResult, setComplianceResult] = useState<ComplianceResult | null>(null);
-  const [publishing, setPublishing] = useState(false);
-  const [publishStatus, setPublishStatus] = useState<string | null>(null);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleMode, setScheduleMode] = useState(false);
+
+  // The draft is discarded HERE and nowhere else, and the hook calls this only
+  // for an outcome that actually published. That single choke point is what
+  // stops a failed publish from destroying the user's text again.
+  const handlePublished = useCallback(() => setCaption(''), []);
+  const {
+    publishing, retrying, publishStatus, failed, complianceResult,
+    setComplianceResult, retryTarget, runComplianceCheck, publish, retry,
+  } = useSocialPublish({ onPublished: handlePublished });
 
   const config = PLATFORMS[platform];
   const charCount = caption.length;
@@ -110,61 +116,27 @@ const SocialPostGenerator: React.FC = () => {
     );
   };
 
-  const runComplianceCheck = useCallback(async () => {
-    if (!caption.trim()) return;
+  const handleCheckCompliance = useCallback(
+    () => runComplianceCheck(caption, selectedTags),
+    [runComplianceCheck, caption, selectedTags],
+  );
 
-    try {
-      const response = await apiService.post('/api/admin/social-publishing/compliance-check', {
-        content: `${caption}\n\n${selectedTags.join(' ')}`,
-        isAIGenerated: false,
-      });
-      const data = response.data;
-      if (data.success) setComplianceResult(data.data);
-    } catch {
-      // Compliance check is optional and must not block manual review.
-    }
-  }, [caption, selectedTags]);
+  const fullContent = caption + (selectedTags.length ? `\n\n${selectedTags.join(' ')}` : '');
 
-  const handlePublish = useCallback(async () => {
-    if (!caption.trim() || selectedAccountIds.length === 0) return;
+  // A retry re-sends the ORIGINAL job's text, so once the composer has been
+  // edited the button must stop implying it will post what is on screen.
+  const retryIsStale = Boolean(retryTarget && retryTarget.content !== fullContent);
 
-    setPublishing(true);
-    setPublishStatus(null);
-    try {
-      const fullContent = caption + (selectedTags.length ? `\n\n${selectedTags.join(' ')}` : '');
-      const response = await apiService.post('/api/admin/social-publishing/publish', {
-        content: fullContent,
-        platformIds: selectedAccountIds,
-        isAIGenerated: false,
-        ...(scheduleMode && scheduleDate && { scheduledAt: new Date(scheduleDate).toISOString() }),
-      });
-      const data = response.data;
-      // Read `status`, not `success`. The route used to hardcode success:true, so
-      // a publish where every platform failed reported success — and the branch
-      // below cleared the composer, destroying the draft for a post that never
-      // went out. The draft is only discarded on an outcome that actually
-      // published; anything else keeps the text so it can be retried or copied.
-      if (data.status === 'published' || data.status === 'scheduled') {
-        setPublishStatus(
-          data.status === 'scheduled'
-            ? `Post scheduled for ${new Date(scheduleDate).toLocaleString()}!`
-            : 'Post published successfully!',
-        );
-        setCaption('');
-        setComplianceResult(null);
-      } else {
-        setPublishStatus(describeFailure(data));
-      }
-    } catch (err) {
-      // A non-2xx rejects here, so this must distinguish a real transport
-      // failure from a server response that carries a reason. Reporting a 422
-      // compliance refusal as "Network error" was the same class of lie this
-      // whole change exists to remove.
-      setPublishStatus(describeThrown(err));
-    } finally {
-      setPublishing(false);
-    }
-  }, [caption, selectedTags, selectedAccountIds, scheduleMode, scheduleDate]);
+  const handlePublish = useCallback(() => {
+    if (!caption.trim() || selectedAccountIds.length === 0) return undefined;
+
+    const scheduled = scheduleMode && scheduleDate ? new Date(scheduleDate) : null;
+    return publish({
+      content: fullContent,
+      platformIds: selectedAccountIds,
+      ...(scheduled ? { scheduledAt: scheduled.toISOString(), scheduleLabel: scheduled.toLocaleString() } : {}),
+    });
+  }, [publish, caption, fullContent, selectedAccountIds, scheduleMode, scheduleDate]);
 
   return (
     <Grid>
@@ -231,10 +203,22 @@ const SocialPostGenerator: React.FC = () => {
         <SocialPostComplianceResult result={complianceResult} />
 
         {publishStatus && (
-          <StatusBanner>
+          <StatusBanner $tone={failed ? 'warning' : 'default'} role="status" aria-live="polite">
             <Shield size={16} />
             {publishStatus}
           </StatusBanner>
+        )}
+
+        {retryTarget && (
+          <ActionRow>
+            <ComposerActionButton onClick={retry} disabled={retrying}>
+              <RefreshCw size={14} />
+              {retrying
+                ? 'Retrying...'
+                : `Retry ${retryTarget.failedCount} failed platform${retryTarget.failedCount !== 1 ? 's' : ''}`
+                  + (retryIsStale ? ' with the original text' : '')}
+            </ComposerActionButton>
+          </ActionRow>
         )}
 
         <ScheduleRow>
@@ -257,12 +241,12 @@ const SocialPostGenerator: React.FC = () => {
         </ScheduleRow>
 
         <ActionRow>
-          <ComposerActionButton $variant="secondary" onClick={runComplianceCheck} disabled={!caption.trim()}>
+          <ComposerActionButton $variant="secondary" onClick={handleCheckCompliance} disabled={!caption.trim()}>
             <Shield size={14} />
             Check Compliance
           </ComposerActionButton>
           <ComposerActionButton
-            disabled={!caption.trim() || isOver || selectedAccountIds.length === 0 || publishing || (scheduleMode && !scheduleDate)}
+            disabled={!caption.trim() || isOver || selectedAccountIds.length === 0 || publishing || retrying || (scheduleMode && !scheduleDate)}
             onClick={handlePublish}
           >
             {scheduleMode ? <Calendar size={14} /> : <Send size={14} />}

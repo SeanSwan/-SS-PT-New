@@ -33,6 +33,16 @@
  */
 
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { resolveDeclaredIndexes } from './lib/declaredIndexes.mjs';
+
+// BUG-1 (Kimi 2026-08-13): imports were hardcoded to file:///C:/tmp/... — a tool
+// that runs on exactly one machine until its temp dir is cleaned. A generator
+// nobody else can re-run makes its artifact untrustworthy: the exact
+// "artifact trusted, generator unverifiable" shape this tooling exists to kill.
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+const fromRepo = (rel) => pathToFileURL(path.join(repoRoot, rel)).href;
 
 if (!process.env.DATABASE_URL && !process.env.PG_HOST) {
   console.error('FATAL: set DATABASE_URL (production, via --env-file) or PG_HOST (QA container).');
@@ -42,8 +52,8 @@ if (!process.env.DATABASE_URL && !process.env.PG_HOST) {
 const outIdx = process.argv.indexOf('--out');
 const outPath = outIdx > -1 ? process.argv[outIdx + 1] : 'index-remediation.sql';
 
-const { default: sequelize } = await import('file:///C:/tmp/ss-qa-harness-slice0/backend/database.mjs');
-const { default: getModels } = await import('file:///C:/tmp/ss-qa-harness-slice0/backend/models/associations.mjs');
+const { default: sequelize } = await import(fromRepo('backend/database.mjs'));
+const { default: getModels } = await import(fromRepo('backend/models/associations.mjs'));
 
 const models = await getModels();
 
@@ -74,41 +84,18 @@ for (const [name, model] of Object.entries(models)) {
   const tableColumns = liveColumns.get(table);
   if (!tableColumns) continue; // table absent from this DB — separate finding, not an index problem
 
-  // attribute name -> column name; also accept already-column-named fields.
-  const toColumn = new Map();
-  for (const [attr, def] of Object.entries(model.rawAttributes)) {
-    const column = def.field || attr;
-    toColumn.set(attr, column);
-    toColumn.set(column, column);
-  }
-
-  for (const idx of model.options.indexes) {
-    if (!idx?.name || !Array.isArray(idx.fields) || idx.fields.length === 0) continue;
-    if (liveIndexes.get(table)?.has(idx.name)) continue; // already present
-
-    const resolved = [];
-    let unresolvable = null;
-    for (const field of idx.fields) {
-      const fieldName = typeof field === 'string' ? field : field?.name;
-      const column = toColumn.get(fieldName);
-      if (!column || !tableColumns.has(column)) {
-        unresolvable = `field "${fieldName}" -> column "${column ?? '?'}" not in live ${table}`;
-        break;
-      }
-      resolved.push(column);
+    // Resolution + validation live in lib/declaredIndexes.mjs — ONE definition
+    // of declared-index truth, shared with the drift auditor (Kimi Upgrade 1).
+    const { resolvable, skipped: modelSkips } = resolveDeclaredIndexes(model, tableColumns);
+    for (const skip of modelSkips) skipped.push({ model: name, table, index: skip.name, reason: skip.reason });
+    for (const idx of resolvable) {
+      if (liveIndexes.get(table)?.has(idx.name)) continue; // already present
+      const unique = idx.unique ? 'UNIQUE ' : '';
+      const using = idx.using ? ` USING ${idx.using}` : '';
+      statements.push(
+        `CREATE ${unique}INDEX CONCURRENTLY IF NOT EXISTS "${idx.name}" ON "${table}"${using} (${idx.columnsSql});`,
+      );
     }
-    if (unresolvable) {
-      skipped.push({ model: name, table, index: idx.name, reason: unresolvable });
-      continue;
-    }
-
-    const unique = idx.unique ? 'UNIQUE ' : '';
-    const using = idx.using ? ` USING ${idx.using}` : '';
-    const cols = resolved.map((c) => `"${c}"`).join(', ');
-    statements.push(
-      `CREATE ${unique}INDEX CONCURRENTLY IF NOT EXISTS "${idx.name}" ON "${table}"${using} (${cols});`,
-    );
-  }
 }
 
 // The waiver idempotency promise (model comment: "unique when present so a
@@ -139,7 +126,11 @@ ${skipped.map((s) => `--   ${s.table} :: ${s.index} — ${s.reason}`).join('\n')
 `;
 
 fs.writeFileSync(outPath, header, 'utf8');
-console.log(`wrote ${outPath}: ${statements.length} statement(s), ${skipped.length} skipped`);
+// Upgrade 5 (Kimi 2026-08-13): skips as a machine-readable sidecar, so
+// "unresolvable" is a tracked finding a tool can diff — not a comment at the
+// bottom of a SQL file nobody reads.
+fs.writeFileSync(outPath + '.skipped.json', JSON.stringify({ generatedAt: new Date().toISOString(), skipped }, null, 2), 'utf8');
+console.log(`wrote ${outPath}: ${statements.length} statement(s), ${skipped.length} skipped (sidecar: ${outPath}.skipped.json)`);
 for (const s of skipped.slice(0, 10)) console.log(`  SKIP ${s.table} :: ${s.index} — ${s.reason}`);
 if (skipped.length > 10) console.log(`  ... +${skipped.length - 10} more (see file)`);
 

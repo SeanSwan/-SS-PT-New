@@ -136,6 +136,9 @@ const APPROVAL_QUEUE_FILES = [
   'SocialPostGenerator.types.ts',
   'SocialPostPreview.styles.ts',
   'SocialPostPreview.tsx',
+  // Extracting the publish/retry logic out of the composer must not become a
+  // way to escape the file-size rule — the hook is held to it too.
+  'useSocialPublish.ts',
 ].map(fileName =>
   join(
     REPO_ROOT,
