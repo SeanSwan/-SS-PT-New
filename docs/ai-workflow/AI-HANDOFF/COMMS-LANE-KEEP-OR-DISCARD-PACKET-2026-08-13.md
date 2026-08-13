@@ -272,3 +272,188 @@ re-integration, and the only question is whether it is worth the hours.*
 Kimi's remaining open item, not run: the blob-hash recount of section 1's 437 "already on
 main" files (path equality is not content equality). It affects the accounting narrative,
 not any lane verdict.
+
+---
+
+## 8. ROUND 2 — I ran Kimi's deferred check. It was not "accounting only." It found a whole lane I missed.
+
+I dismissed the blob-hash recount as narrative cleanup. **That dismissal was wrong**, and it
+is the fourth instance of the same error class in one session: I predicted a check's result in
+order to justify not running it.
+
+### 8.1 The recount
+
+`git ls-tree -r` both trees, compare blob SHAs (per-file `rev-parse` timed out — 2,374 process
+spawns on Windows; batching is the only viable instrument here):
+
+| | count |
+|---|---|
+| added by the 72 branch-only commits | 1,187 |
+| absent from main | 751 |
+| on main, **content IDENTICAL** | **268** |
+| on main, **content DIVERGENT** | **166** |
+| not in branch HEAD | 2 |
+
+**My "437 already on main" was path existence. Only 268 are actually the same file.** 166 share
+a path and differ in content — exactly Kimi's Finding 3.
+
+### 8.2 A concrete error the recount exposed
+
+Section 2 states the audit-script family is "Absent — only `check-main-parity.mjs` landed."
+**False.** They are on main under a different directory:
+
+```
+scripts/audit-model-health.mjs          -> absent
+backend/scripts/audit-model-health.mjs  -> ON MAIN (divergent)
+backend/scripts/audit-named-exports.mjs -> ON MAIN
+backend/scripts/audit-write-paths.mjs   -> ON MAIN (divergent)
+```
+
+I hand-typed those paths from memory for the spot-check instead of reading them off the
+commits. The aggregate 751 figure is computed from real commit paths and stands; **the
+per-lane prose verdict for audit scripts does not.**
+
+### 8.3 The finding that actually matters: 88 files of branch-only work in no lane I named
+
+For the 166 divergent files, which side is ahead? Timestamps first (30 main-newer, 88
+branch-newer), then the rigorous test — is the branch's last commit touching each file already
+an ancestor of `origin/main`?
+
+```
+of the 88 branch-newer files:
+  last change IS in main : 0
+  last change NOT in main: 88     <- genuinely branch-only
+```
+
+**88 for 88.** By area: 54 `frontend/src`, 13 `scripts/design-brain`, 8 `backend/tests`,
+6 `backend/services`, plus `consult-kimi.mjs`, `consult-sol.mjs`,
+`consult-openrouter-panel.mjs`, a hook, and a skill.
+
+They trace overwhelmingly to **one commit — `409b90d41 chore(wip): preserve uncommitted
+working-tree snapshot + unbreak git in this tree`.** So this is not a coherent feature lane; it
+is a **safety commit** someone made to stop uncommitted work being lost. That reframes it: the
+content is preserved, but it was never reviewed, never integrated, and my entire section-5
+taxonomy (comms / gym-ops / economics / audit / docs / scratch) **does not mention it at all.**
+
+Named lanes covered the *added* files. This category is invisible to that method because these
+files exist on both sides — they are modifications, not additions.
+
+### 8.4 Corrected accounting
+
+- "25 landed, that work is safe" — still true for the 25 commits (cherry-equivalence is a
+  content test, not a path test).
+- "437 already on main" — **retract; 268 identical, 166 divergent.**
+- "audit scripts absent from main" — **retract; present at `backend/scripts/`, divergent.**
+- **New, unlisted in any prior section: 88 branch-only modified files**, mostly a WIP-preservation
+  commit. Not superseded, not evaluated, not in the keep/discard table.
+
+### 8.5 What this does to the recommendation
+
+It does not flip a verdict — it shows the verdicts were **scoped to the wrong file set.** A
+keep/discard call built only on *added* files silently ignores every *modified* file, and here
+that is 88 files including 54 frontend components. Any future decision on this branch needs
+both halves.
+
+---
+
+## 9. ROUND 3 — Kimi round 2 was right on every count, and acting on it flipped three lane verdicts
+
+Kimi R2 (`KIMI-COMMS-LANE-REVIEW-R2-2026-08-13.md`, $0.1444) said the scope error was *not*
+fixed, the 88/88 instrument was wrong, and the proxy-as-proof pattern recurred. All three
+confirmed. The corrections below are larger than anything in sections 7–8.
+
+### 9.1 The scope was still wrong (Kimi R2 #2) — confirmed
+
+The correct instrument is the merge-base diff, not an added-file list:
+
+```
+git diff --name-status $(git merge-base origin/main HEAD) HEAD     merge-base 40791570a (2026-06-28)
+  1,842 changed files  —  1,239 added · 398 MODIFIED · 201 DELETED · 4 renamed
+```
+
+**398 modified and 201 deleted files were never in any inventory I produced.** Every figure in
+sections 1–8 was computed over the 1,187 added files: 65% of the change set.
+
+**Deletion hazard, checked for the first time:** of the 201 branch-side deletions, **180 still
+exist on main** — i.e. landing this branch would delete them. Composition:
+`AI-Village-Documentation/validation-prompts` ×180. **Non-doc dangerous deletions: 0.** The
+hazard is real as a class and empty in fact.
+
+The 48 "silently dropped" files Kimi flagged were docs, removed by my own non-doc filter —
+correct arithmetic, but I never stated the filter, so the reader could only see 30+88≠166.
+
+### 9.2 The decision-record claim was the biggest error, and it reversed two lanes
+
+Section 7.2 concluded: *"No deletion, no decision record. Absence from main is not a decision."*
+I ran that check on **six hand-typed model paths and one notification-term grep**, then
+generalised the null result to **every lane**. Searching by ticket ID instead:
+
+**SWA-62 trainer economics — SUPERSEDED. My KEEP was wrong.**
+Main commit `2d2c12c28` (2026-07-29) is titled *"the branch fix does NOT close the money hole —
+corrected (SWA-62)"* and evaluates **`0b60de7db` by SHA** — the exact commit I recommended
+keeping:
+> *"I wrote 'the fix already exists, unlanded (0b60de7db)'. Verified: it does not close the
+> creditsController underpayment… an ABSENT type is defaulted, not thrown, and lands on the
+> same 65%… `git show 0b60de7db --name-only` does not include creditsController.mjs."*
+
+Main then shipped `aa783fb80` — the real fix, with supertest proof (3 of 5 assertions red on
+unfixed code, 27/27 green after). **Main is ahead, the branch fix was assessed by name and
+found insufficient, and it does not even touch the file containing the bug.**
+
+**SWA-87 schema — SUPERSEDED.** Main has `0c86154f2` *"land SWA-87 — three models could not read
+or write at all"*, naming the same three models (TrainerPermissions, FoodScanHistory,
+UserAchievement) as the branch's `94da72ce8`. That is why the cherry-pick reported 0/1: **it is
+already there.** I read "does not apply" as "needs re-implementation" when it meant "landed."
+
+**SWA-74 gym-ops — KEEP, now with a decision record that supports it.** Main has
+`e0fa82e82 revert(controllers): remove locationController.mjs — I pushed unmerged branch work
+to main`, which is not a rejection:
+> *"The one-character fix stays where it belongs — on the branch that owns the feature — and
+> reaches main when SWA-74 does."*
+
+Main **expects SWA-74 to land.** My `--diff-filter=D` check missed this because I tested
+`backend/models/Location.mjs`, never `backend/controllers/locationController.mjs`.
+
+### 9.3 The conflict-cost claim was inflated (Kimi R2 #4) — confirmed
+
+Section 7.3 asserted conflicts mean "re-implementation." I never opened one. The trainer-econ
+conflict is **4 hunks across 2 files**, and the first is a straight semantic choice:
+
+```
+main:   const trainerType = trainer.trainerType || 'affiliated';        // silent default
+branch: validate against TRAINER_TYPES; logger.error(...); then fall back  // loud
+```
+
+Both sides fix the same bug. That is a merge decision measured in minutes, not a rebuild.
+Kimi: *"One conflicted import block could be five minutes of work"* — it directly distorted
+Sean's economics, and it did.
+
+### 9.4 The 88/88 instrument (Kimi R2 #3) — conceded, not re-proven
+
+Ancestry cannot detect a cherry-picked change (new SHA ⇒ never an ancestor), and the files were
+pre-filtered by timestamp, so the test could hardly return anything else. The correct instrument
+is `git log --cherry-pick --right-only` — **it timed out across a 1,838-commit range and I did
+not obtain a result.** The 88 figure is therefore **unproven, not retracted.** Kimi's mitigation
+stands and I missed it: `409b90d41` is the *remote* head, so those files are already pushed and
+were never at risk.
+
+### 9.5 Corrected verdicts (supersedes 7.5)
+
+| Lane | 7.5 said | NOW | Evidence |
+|---|---|---|---|
+| Comms/notifications | KEEP | **KEEP** | 7.1 schema comparison holds |
+| Gym-ops SWA-74 | KEEP, re-implement | **KEEP** | `e0fa82e82` — main expects it to land |
+| Trainer econ SWA-62 | KEEP, 0/4 apply | **DISCARD — superseded** | `2d2c12c28` rejects `0b60de7db` by SHA; `aa783fb80` ships better |
+| Schema SWA-87 | KEEP, 0/1 applies | **DISCARD — already landed** | `0c86154f2` |
+| Audit scripts | KEEP, 0/5 apply | **UNRESOLVED** | premise retracted in 8.2; verdict never re-derived |
+| drift-check | KEEP | **KEEP** | applies cleanly |
+| 462 docs / 36 scratch | keep / discard | unchanged | |
+
+### 9.6 The pattern, stated plainly
+
+Six times in one session I have run a narrow check, got a null result, and reported it as a
+general finding: the porcelain hash, the filename grep for secrets, the "superseded" proxies,
+the un-run blob recount, the six hand-typed deletion paths, and the notification-only decision
+grep. **Every single one was caught by a reviewer, not by me.** The common shape is not
+carelessness about evidence — it is *choosing the search scope and then forgetting the scope was
+a choice.*
