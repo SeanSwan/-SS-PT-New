@@ -87,6 +87,53 @@ if (String(cfg.port) !== String(port) || !['127.0.0.1', 'localhost'].includes(cf
 
 const { default: getModels } = await import(`file://${path.join(repoRoot, 'backend', 'models', 'associations.mjs')}`);
 const models = await getModels();
+
+// The registry is not the whole truth. Several model families (SocialGroup,
+// Hashtag/Faction/Party, NutritionSourceRecord) are db.define'd during import
+// but never placed in the registry — runtime code reaches them by direct file
+// import instead. They still land in sequelize.models, so sweep that too (the
+// same discovery the drift auditor uses). Without this, QA sync skipped their
+// tables and SocialPosts/SocialComments/daily_macro_logs failed on missing
+// relations that production actually has.
+// NOTE deliberately NOT "fixed" by registering them in associations.mjs: the
+// direct-import path already defines their associations, and re-registering
+// risks duplicate-alias errors at boot. Registry unification is a baseline-
+// slice concern, filed on SWA-157.
+// Some models are imported ONLY by their service (NutritionSourceRecord) — no
+// transitive path from the registry defines them. A hardcoded list of such files
+// would be the same enumeration disease this session keeps finding, so import
+// every model file under models/ instead. QA-only tooling: per-file try/catch,
+// failures reported not fatal (some files are type/helper modules, not models).
+// Snapshot BEFORE the glob: everything the app's own import graph defines is
+// runtime-reachable and holds the exit code. (Service-only imports like
+// NutritionSourceRecord land in the glob tier — acceptable: only the tier label
+// differs, the table still gets created, and anything runtime-reachable that
+// DEPENDS on it, like daily_macro_logs, is still fatal on failure.)
+const preGlobDefined = new Set(Object.values(sequelize.models));
+const { readdirSync, statSync } = await import('node:fs');
+const modelsDir = path.join(repoRoot, 'backend', 'models');
+const importFailures = [];
+const walk = (dir) => readdirSync(dir).flatMap((f) => {
+  const full = path.join(dir, f);
+  if (statSync(full).isDirectory()) return walk(full);
+  return /\.mjs$/.test(f) ? [full] : [];
+});
+for (const file of walk(modelsDir)) {
+  try {
+    await import(`file://${file}`);
+  } catch (error) {
+    importFailures.push(`${path.relative(modelsDir, file)}: ${String(error.message).split('\n')[0].slice(0, 90)}`);
+  }
+}
+if (importFailures.length) {
+  console.log(`note: ${importFailures.length} model-dir file(s) failed to import (helpers or broken):`);
+  for (const f of importFailures.slice(0, 8)) console.log(`  ${f}`);
+}
+
+const registered = new Set(Object.values(models));
+for (const m of Object.values(sequelize.models)) {
+  if (!registered.has(m)) models['unregistered::' + m.name] = m;
+}
 const modelCount = Object.keys(models).length;
 
 try {
@@ -150,13 +197,24 @@ try {
     console.log(`schema ${mode}: ${unique.size} models, ${passes} pass(es) -> ${rows[0].tables} tables`);
 
     if (pending.length > 0) {
-      // Never report a partial schema as success: the write lane would then fail
-      // later with a confusing error instead of here with an accurate one.
-      console.error(`\n${pending.length} model(s) could not be created:`);
-      for (const model of pending) {
-        console.error(`  ${model.tableName}: ${lastErrors.get(model.tableName)}`);
+      // Two tiers. Runtime-reachable models (the registry plus everything the
+      // app's own import graph defines) hold the exit code: a partial schema
+      // there must fail loudly, or the write lane fails later with a confusing
+      // error. Glob-only discoveries include dormant families (LiveStream,
+      // SocialProducts, Analytics) full of rule-58 FK-type defects that have
+      // never loaded at runtime — reported, filed, but a graveyard of dead
+      // files does not get to hold the live QA lane hostage.
+      const fatal = pending.filter((m) => preGlobDefined.has(m));
+      const dormant = pending.filter((m) => !preGlobDefined.has(m));
+      if (fatal.length) {
+        console.error(`\n${fatal.length} RUNTIME-REACHABLE model(s) could not be created (FATAL):`);
+        for (const model of fatal) console.error(`  ${model.tableName}: ${lastErrors.get(model.tableName)}`);
+        process.exitCode = 1;
       }
-      process.exitCode = 1;
+      if (dormant.length) {
+        console.log(`\nnote: ${dormant.length} dormant (glob-only) model(s) failed — filed, not fatal:`);
+        for (const model of dormant) console.log(`  ${model.tableName}: ${lastErrors.get(model.tableName)}`);
+      }
     }
   }
 } catch (error) {
