@@ -9,6 +9,7 @@ import { transformQuestionnaireToMasterPrompt } from '../services/onboardingMast
 import { computeDerivedFields } from '../utils/onboardingHelpers.mjs';
 import logger from '../utils/logger.mjs';
 import { buildOnboardingResetLinkHandoff } from '../services/onboardingResetHandoffService.mjs';
+import { resolveOnboardingName } from '../utils/onboardingNameContract.mjs';
 import {
   parseHeightInches,
   parseOptionalFloat,
@@ -60,13 +61,31 @@ export const createClientOnboarding = async (req, res) => {
   try {
     const formData = req.body;
 
-    // Validate required fields
-    if (!formData.fullName || !formData.email || !formData.primaryGoal) {
+    // Validate required fields.
+    // Field-SPECIFIC on purpose: the previous message listed all three fields on
+    // any failure, so a caller could not tell which one it got wrong — and the
+    // staff wizard, which sends firstName/lastName, was told it was missing a
+    // `fullName` it has no input for. Errors name the field, never the value.
+    const resolvedName = resolveOnboardingName(formData);
+    if (!resolvedName.ok) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: fullName, email, primaryGoal'
+        error: `Missing required field: name — ${resolvedName.reason}`
       });
     }
+
+    if (!formData.email) {
+      return res.status(400).json({ success: false, error: 'Missing required field: email' });
+    }
+
+    if (!formData.primaryGoal) {
+      return res.status(400).json({ success: false, error: 'Missing required field: primaryGoal' });
+    }
+
+    // Downstream code (master prompt, notifications, automation payloads) reads
+    // formData.fullName. Normalize it once here so every later reference is fed
+    // the same derived value regardless of which shape arrived.
+    formData.fullName = resolvedName.fullName;
 
     // Transform questionnaire data to Master Prompt JSON
     const masterPromptJson = transformQuestionnaireToMasterPrompt(formData, null);
@@ -120,8 +139,8 @@ export const createClientOnboarding = async (req, res) => {
 
       // Update existing user
       await user.update({
-        firstName: formData.fullName.split(' ')[0],
-        lastName: formData.fullName.split(' ').slice(1).join(' '),
+        firstName: resolvedName.firstName,
+        lastName: resolvedName.lastName,
         phone: formData.phone,
         // Only promote a plain signup into a client; never rewrite an existing role.
         role: user.role === 'user' ? 'client' : user.role,
@@ -180,8 +199,8 @@ export const createClientOnboarding = async (req, res) => {
       const accountSeedPassword = `Seed${randomBytes(12).toString('base64url')}!A1`;
 
       user = await User.create({
-        firstName: formData.fullName.split(' ')[0],
-        lastName: formData.fullName.split(' ').slice(1).join(' '),
+        firstName: resolvedName.firstName,
+        lastName: resolvedName.lastName,
         email: formData.email,
         username: formData.email.split('@')[0], // Use email prefix as username
         password: accountSeedPassword,
