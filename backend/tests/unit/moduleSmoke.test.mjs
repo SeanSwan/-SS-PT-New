@@ -60,6 +60,95 @@ test('EVERY shared module imports, and every export resolves to a real value', a
   }
 });
 
+/**
+ * MINIMAL VALID ARGUMENTS, hand-maintained.
+ *
+ * THE REASON THIS TOIL EXISTS: `markWinner` once called an undefined
+ * `annotateRun` and walked straight past the no-argument version of this guard,
+ * because it throws on its argument check BEFORE reaching the missing call. A
+ * guard with a known hole is worse than no guard — it converts future failures
+ * into confident ones. So every export gets arguments good enough to reach its
+ * body, and an export with no entry FAILS THE SUITE rather than being skipped.
+ *
+ * `null` means "invoking this is unsafe or meaningless here" and is an explicit,
+ * reviewable decision — not an accidental omission.
+ */
+const MINIMAL_VALID_ARGS = {
+  // pure helpers
+  promptSha: ['x'], newVariantId: [], ratioToNumber: ['16:9'],
+  aspectDeviation: ['16:9', 1536, 864], colorDistance: [{ r: 0, g: 0, b: 0 }, { r: 1, g: 1, b: 1 }],
+  toHex: [{ r: 0, g: 32, b: 96 }], toBuffer: ['']  , imageDimensions: [Buffer.alloc(4)],
+  decodePng: [Buffer.alloc(4)], averageColor: [null], paletteAudit: [Buffer.alloc(4)],
+  personify: ['Anton Corbijn', 'photograph', 'a lake'],
+  // compiler / serializers
+  resolveSlots: [{ text: 'a lake' }],
+  serializeFor: ['sentence', { subject: 'a lake', medium: 'photograph' }],
+  strategyFor: [{ promptStyle: 'sentence' }], fitToBudget: ['some text', 4000],
+  compileImage: [{ text: 'a frozen lake', aspect: '16:9' }, { promptStyle: 'sentence', maxPromptChars: 4000 }],
+  compileVideo: null,                       // throws E_IMAGE_FIRST_REQUIRED by design
+  assertLawful: [{ subject: 'a frozen lake' }, []],
+  // records — buildRecord reaches its body with these and validates
+  buildRecord: [{ briefId: 'b', provider: 'p', model: 'm', serializer: 'sentence', status: 'ok' }],
+  isBuilt: [{}],
+  lineage: ['v_0000000000000000', []],
+  refine: [null], reroll: [null],           // reach the isBuilt guard, then throw
+  // capabilities / providers
+  capabilities: [], verify: [], requestDrop: null, awaitDrop: null, consumeDrop: null,
+  checkDrop: null, generate: null,          // all touch disk or network
+  saveImage: null, findVariant: null, generateBracket: null,
+  appendRun: null, readRuns: null, markWinner: null, annotateRun: null, // disk
+  withRetry: null,                          // real timers
+  buildContactSheet: [[], '.', {}],
+  assertInsideArtifactRoot: ['.ai-workflow/forge-runs', '.'],
+  applyLaws: [{ subject: 'a frozen lake' }, []],
+  listReady: null, safeId: ['abc'],         // listReady touches disk
+};
+
+/**
+ * The strict arg requirement covers FORGE-OWNED modules only.
+ *
+ * `shared/` also holds files this workstream did not write. Demanding a
+ * hand-maintained argument entry for someone else's export would either bloat
+ * this map with guesses or push the next author to delete the guard. The
+ * import/undefined-export check above still covers everything in `shared/`;
+ * only the invoke-with-valid-args contract is scoped to what I own.
+ */
+const FORGE_OWNED = new Set([
+  'aspect.mjs', 'bracket.mjs', 'contactSheet.mjs', 'forgeConfig.mjs',
+  'imageDimensions.mjs', 'pixels.mjs', 'swanLawFilter.mjs', 'swanPromptCompiler.mjs',
+  'swanPromptSerializers.mjs', 'swanVocabulary.mjs', 'variantLineage.mjs',
+  'variantRun.mjs', 'variantVerdict.mjs',
+  'dropFolderImage.mjs', 'openrouterImage.mjs', 'openrouterModels.mjs', 'transportRetry.mjs',
+]);
+
+test('EVERY exported function is INVOKED with valid args — no unreachable bodies', async () => {
+  // The version of this that only imported the barrel let `markWinner` ship
+  // calling an undefined function. This one reaches function bodies.
+  const missing = [];
+  const broke = [];
+  for (const path of forgeModules()) {
+    const ns = await import(pathToFileURL(path).href);
+    const file = path.split(/[\\/]/).pop();
+    if (!FORGE_OWNED.has(file)) continue;
+    for (const [name, v] of Object.entries(ns)) {
+      if (typeof v !== 'function' || /^[A-Z]/.test(name)) continue;
+      if (!(name in MINIMAL_VALID_ARGS)) { missing.push(`${file}:${name}`); continue; }
+      const args = MINIMAL_VALID_ARGS[name];
+      if (args === null) continue;           // deliberate, reviewed exclusion
+      try { v(...args); } catch (e) {
+        if (e instanceof ReferenceError || e instanceof TypeError) {
+          broke.push(`${file}:${name}() -> ${e.constructor.name}: ${e.message}`);
+        }
+        // Any other throw is legitimate validation on minimal input.
+      }
+    }
+  }
+  assert.deepEqual(missing, [],
+    `these exports have no MINIMAL_VALID_ARGS entry — add one (or an explicit null):\n  ${missing.join('\n  ')}`);
+  assert.deepEqual(broke, [],
+    `these exports failed on valid arguments:\n  ${broke.join('\n  ')}`);
+});
+
 test('every FUNCTION exported by a shared module is callable', async () => {
   // A `export { x } from` of a function still yields a function; the binding gap
   // shows up INSIDE a function that references a moved symbol. So each one is

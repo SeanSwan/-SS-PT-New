@@ -139,17 +139,22 @@ test('options are RE-ROLLS of one prompt, and the ledger says so', async () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('the KILL-LIST now reaches the model, inlined in the prompt', async () => {
-  // It could not before: negativeText is gated on a 'claimed' capability AND the
-  // request body has no negative field, so every image ever made was generated
-  // with no anti-generic constraints at all.
+test('the KILL-LIST is OFF by default and ON only when explicitly asked for', async () => {
+  // It reaches the model through the prompt when enabled — the parameter channel
+  // is dead twice over. But it ships OFF: its aesthetic effect is unmeasured, and
+  // caption models can fixate on nouns they are told to avoid. Measured cost of
+  // being wrong: ON-and-bad contaminates every run until the ruling; OFF-and-good
+  // loses a ~7% premium. See forgeConfig.KILL_LIST_ENABLED for the gate.
   const root = tmpRoot();
   try {
-    const r = await generateBracket(BRIEF, fakeProvider(), { n: 1, root });
-    assert.match(r.promptText, /avoid:/i);
-    assert.match(r.promptText, /iridescent gradient/);
-    assert.match(r.promptText, /glassmorphism/);
-    assert.equal(r.ok[0].promptText.includes('avoid:'), true, 'and the ledger records what was actually sent');
+    const off = await generateBracket(BRIEF, fakeProvider(), { n: 1, root });
+    assert.ok(!/avoid:/i.test(off.promptText), 'default OFF');
+
+    const on = await generateBracket({ ...BRIEF, killList: true }, fakeProvider(), { n: 1, root });
+    assert.match(on.promptText, /avoid:/i);
+    assert.match(on.promptText, /iridescent gradient/);
+    assert.match(on.promptText, /glassmorphism/);
+    assert.ok(on.ok[0].promptText.includes('avoid:'), 'and the ledger records what was actually sent');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -162,7 +167,10 @@ test('REGRESSION: a compiled prompt must never be re-compiled as a raw subject',
   // found "iridescent gradient" sitting in the subject slot.
   const root = tmpRoot();
   try {
-    const r = await generateBracket(BRIEF, fakeProvider(), { n: 1, root });
+    // Uses the kill-list arm deliberately: a clause-bearing prompt is the one
+    // that makes the double-compile fail LOUDLY, which is the behaviour worth
+    // pinning. Without it the re-compile is still wrong, just silent.
+    const r = await generateBracket({ ...BRIEF, killList: true }, fakeProvider(), { n: 1, root });
     const compiledPrompt = r.ok[0].promptText;
     assert.match(compiledPrompt, /avoid: .*iridescent gradient/);
 

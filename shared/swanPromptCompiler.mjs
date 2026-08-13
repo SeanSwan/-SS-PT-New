@@ -22,6 +22,7 @@
  */
 
 import { assertLawful } from './swanLawFilter.mjs';
+import { KILL_LIST_ENABLED } from './forgeConfig.mjs';
 // Rendering lives next door (rule-4 split). Imported for LOCAL use AND
 // re-exported — `export ... from` alone creates no local binding (bitten 3×).
 import { strategyFor, serializeFor, fitToBudget, SERIALIZERS } from './swanPromptSerializers.mjs';
@@ -169,7 +170,11 @@ export function compileImage(brief = {}, caps = {}) {
    * instruction rather than a list of subjects. It is a candidate for A/B once
    * the bracket exists, which is exactly what a bracket is for.
    */
-  const withAvoid = slots.negative
+  // OFF by default — see forgeConfig.KILL_LIST_ENABLED for why and for the named
+  // gate condition that may flip it. `brief.killList` allows a per-call override
+  // so the A/B harness can compare arms without mutating global config.
+  const killList = brief.killList ?? KILL_LIST_ENABLED;
+  const withAvoid = (killList && slots.negative)
     ? `${rendered} Rendering constraints — avoid: ${slots.negative}.`
     : rendered;
 

@@ -218,7 +218,12 @@ test('compile records which strategy produced the text', () => {
   // constraints go.
   assert.ok(c.promptText.startsWith(serializeFor('sentence', c.slots)),
     'the recorded strategy must be the one that produced the body');
-  assert.match(c.promptText, /Rendering constraints — avoid: .*iridescent gradient/);
+  // The kill-list is OFF by default, so the default prompt IS the serialized body.
+  assert.equal(c.promptText, serializeFor('sentence', c.slots));
+  // ...and when explicitly enabled it appends, leaving the body untouched.
+  const withList = compileImage({ ...brief, killList: true }, VERIFIED_CAPS);
+  assert.ok(withList.promptText.startsWith(serializeFor('sentence', withList.slots)));
+  assert.match(withList.promptText, /Rendering constraints — avoid: .*iridescent gradient/);
 });
 
 test('REGRESSION: tag strategy does not duplicate the subject inside styleAnchor', () => {
