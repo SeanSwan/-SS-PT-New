@@ -13,6 +13,7 @@ import contactRoutes from './contactRoutes.mjs';
 import adminFinanceRoutes from './admin/adminFinanceRoutes.mjs';
 import featureFlagRoutes from './featureFlagRoutes.mjs';
 import contentStudioRoutes from './contentStudioRoutes.mjs';
+import renderAgentRoutes from './renderAgentRoutes.mjs';
 import contentStudioProjectRoutes from './contentStudioProjectRoutes.mjs';
 import bodyMapEvidenceRoutes from './bodyMapEvidenceRoutes.mjs';
 
@@ -44,5 +45,8 @@ router.use('/feature-flags', featureFlagRoutes);
 router.use('/body-map-evidence', bodyMapEvidenceRoutes);
 router.use('/content-studio/projects', contentStudioProjectRoutes);
 router.use('/content-studio', contentStudioRoutes);
+// Worker-facing surface: agents PULL from here (see renderAgentRoutes header for why
+// nothing is ever pushed to the worker's machine).
+router.use('/render-agents', renderAgentRoutes);
 
 export default router;
