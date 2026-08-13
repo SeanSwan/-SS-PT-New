@@ -30,6 +30,8 @@
  * like an answer.
  */
 
+import { wrapClientReported } from './ai/clientTextSanitizer.mjs';
+
 export const ONBOARDING_DICTIONARY_VERSION = 1;
 
 /**
@@ -41,8 +43,8 @@ export const ONBOARDING_DICTIONARY_VERSION = 1;
  */
 export const MAPPED_FIELDS = Object.freeze({
   // ---- safety: these were the drops that matter ----
-  injuries: { projectionKey: 'pastInjuries', group: 'health', safety: true },
-  movementLimitations: { projectionKey: 'movementLimitations', group: 'health', safety: true },
+  injuries: { projectionKey: 'pastInjuries', group: 'health', safety: true, narrative: true },
+  movementLimitations: { projectionKey: 'movementLimitations', group: 'health', safety: true, narrative: true },
   chestPain: { projectionKey: 'chestPain', group: 'health', safety: true },
   heartCondition: { projectionKey: 'heartCondition', group: 'health', safety: true },
   doctorClearance: { projectionKey: 'doctorCleared', group: 'health', safety: true },
@@ -61,11 +63,11 @@ export const MAPPED_FIELDS = Object.freeze({
   sessionDuration: { projectionKey: 'sessionDuration', group: 'training', safety: false },
 
   // ---- goals ----
-  customGoal: { projectionKey: 'primaryGoal', group: 'goals', safety: false },
+  customGoal: { projectionKey: 'primaryGoal', group: 'goals', safety: false, narrative: true },
   desiredTimeline: { projectionKey: 'desiredTimeline', group: 'goals', safety: false },
-  successIn6Months: { projectionKey: 'successIn6Months', group: 'goals', safety: false },
-  whyGoalMatters: { projectionKey: 'whyGoalMatters', group: 'goals', safety: false },
-  mostExcitedAbout: { projectionKey: 'mostExcitedAbout', group: 'goals', safety: false },
+  successIn6Months: { projectionKey: 'successIn6Months', group: 'goals', safety: false, narrative: true },
+  whyGoalMatters: { projectionKey: 'whyGoalMatters', group: 'goals', safety: false, narrative: true },
+  mostExcitedAbout: { projectionKey: 'mostExcitedAbout', group: 'goals', safety: false, narrative: true },
 
   // ---- lifestyle ----
   dateOfBirth: { projectionKey: 'age', group: 'profile', safety: false },
@@ -80,7 +82,7 @@ export const MAPPED_FIELDS = Object.freeze({
   // ---- coaching admin ----
   checkInMethod: { projectionKey: 'checkInMethod', group: 'coaching', safety: false },
   checkInTime: { projectionKey: 'checkInTime', group: 'coaching', safety: false },
-  questionsForTrainer: { projectionKey: 'questionsForTrainer', group: 'coaching', safety: false },
+  questionsForTrainer: { projectionKey: 'questionsForTrainer', group: 'coaching', safety: false, narrative: true },
   preferredName: { projectionKey: 'preferredName', group: 'profile', safety: false },
   phone: { projectionKey: 'phone', group: 'profile', safety: false },
   email: { projectionKey: 'email', group: 'profile', safety: false },
@@ -140,7 +142,36 @@ export const applyOnboardingFieldDictionary = (formData = {}) => {
     const missing = alreadySet === undefined || alreadySet === null || alreadySet === '';
 
     if (incoming !== undefined && incoming !== null && incoming !== '' && missing) {
-      out[projectionKey] = incoming;
+      out[projectionKey] = meta.narrative ? wrapClientReported(incoming) : incoming;
+    }
+  }
+
+  return out;
+};
+
+/**
+ * Sanitize the narrative fields whose wizard name ALREADY matches the projection
+ * key — those skip the rename loop above and would otherwise reach the prompt raw.
+ *
+ * Routing these fields into the projection is what made this necessary. Before
+ * the field-dictionary fix they never arrived, so client free text could not
+ * carry instructions into a workout prompt; now it can, and this closes that
+ * lane in the same slice that opened it. Uses the sanitizer that already exists
+ * for exactly this threat (services/ai/clientTextSanitizer.mjs) rather than a
+ * second one.
+ */
+export const sanitizeNarrativeFields = (formData = {}) => {
+  if (!formData || typeof formData !== 'object') return formData;
+
+  const out = { ...formData };
+
+  for (const [wizardField, meta] of Object.entries(MAPPED_FIELDS)) {
+    if (!meta.narrative) continue;
+    if (meta.projectionKey !== wizardField) continue; // already handled on rename
+
+    const value = out[wizardField];
+    if (typeof value === 'string' && value.trim() !== '') {
+      out[wizardField] = wrapClientReported(value);
     }
   }
 

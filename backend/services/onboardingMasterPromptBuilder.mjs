@@ -19,6 +19,7 @@
 
 import {
   applyOnboardingFieldDictionary,
+  sanitizeNarrativeFields,
   ONBOARDING_DICTIONARY_VERSION,
 } from './onboardingFieldDictionary.mjs';
 
@@ -224,7 +225,7 @@ export const transformQuestionnaireToMasterPrompt = (rawFormData, userId) => {
   // projection still looked complete. The rewrite is additive: an already
   // canonical key always wins, so callers that speak this projection's
   // language are untouched. Contract: onboardingFieldDictionary.mjs.
-  const formData = applyOnboardingFieldDictionary(rawFormData);
+  const formData = sanitizeNarrativeFields(applyOnboardingFieldDictionary(rawFormData));
 
   return {
     version: '3.0',
