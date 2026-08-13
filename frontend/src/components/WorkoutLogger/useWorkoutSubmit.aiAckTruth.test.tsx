@@ -160,6 +160,46 @@ describe('AI_SUBMIT_WORKOUT acknowledgement truth (F4)', () => {
   });
 });
 
+describe('the acknowledgement fires exactly once per submit', () => {
+  // The fix introduced an ack call at every decision point in handleSubmit.
+  // Two firing on one path would double-record the coach intent log, and the
+  // second would overwrite the first's verdict. Proven, not assumed.
+  const countAcks = async (over: Record<string, unknown> = {}) => {
+    const ack = vi.fn();
+    const params = makeParams(over);
+    const { result } = renderHook(() => useWorkoutSubmit(params as never));
+    await (result.current as {
+      handleSubmit: (o?: unknown) => Promise<string>;
+    }).handleSubmit({ acknowledge: ack });
+    return ack;
+  };
+
+  it.each([
+    ['a successful save', {}],
+    ['a validation refusal', { exercises: [] }],
+    ['a busy lock', { isSubmittingRef: { current: true } }],
+    ['an offline queue', { offlineQueue: { isOnline: false, queueSubmission: vi.fn() } }],
+  ])('acks once for %s', async (_label, over) => {
+    const ack = await countAcks(over);
+
+    expect(ack).toHaveBeenCalledTimes(1);
+  });
+
+  it('acks once even when the request throws', async () => {
+    submitWorkoutForm.mockRejectedValue(new Error('network down'));
+    const ack = await countAcks();
+
+    expect(ack).toHaveBeenCalledTimes(1);
+  });
+
+  it('acks once when the server rejects the save', async () => {
+    submitWorkoutForm.mockResolvedValue({ success: false, message: 'nope' });
+    const ack = await countAcks();
+
+    expect(ack).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('handleSubmit outcome contract', () => {
   const runDirect = async (over: Record<string, unknown> = {}) => {
     const params = makeParams(over);
