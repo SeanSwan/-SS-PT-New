@@ -222,6 +222,37 @@ describe('POST /block route ownership — the shadow copy must stay unreachable'
     expect(retiredSource).toContain('router.post("/block"');
   });
 
+  /**
+   * Sibling audit, pinned.
+   *
+   * Kimi K3 review 2 argued the same body-trusted-subject class likely exists in
+   * unblock / recurring-series handlers, since the recurrence multiplier lives
+   * there. Verified against current source and DISPROVEN: no unblock route
+   * exists at all, the recurring-series mutators are adminOnly (a trainer cannot
+   * reach them), and /book-recurring resolves its subject from req.user.id.
+   *
+   * /block was the only trainer-reachable calendar-mutating route carrying the
+   * defect. That is a fact about today's route table, not a permanent property —
+   * so it is asserted rather than remembered.
+   */
+  it('has no trainer-reachable calendar mutator other than the one that was fixed', () => {
+    const trainerReachable = [...sessionsSource.matchAll(/router\.(post|put|delete|patch)\(\s*["']([^"']+)["']([^\n]*)/g)]
+      .filter(([, , , guards]) => !guards.includes('adminOnly'))
+      .filter(([, , routePath]) => /block|recurring/i.test(routePath))
+      .map(([, method, routePath]) => `${method.toUpperCase()} ${routePath}`);
+
+    // /block is fixed; /book-recurring binds its subject to req.user.id.
+    expect(trainerReachable.sort()).toEqual(['POST /block', 'POST /book-recurring']);
+  });
+
+  it('binds /book-recurring to the authenticated user, not a submitted id', () => {
+    const idx = sessionsSource.indexOf('router.post("/book-recurring"');
+    const handler = sessionsSource.slice(idx, idx + 2500);
+
+    expect(handler).toMatch(/User\.findByPk\(req\.user\.id/);
+    expect(handler).not.toMatch(/req\.body\.trainerId/);
+  });
+
   it('keeps the retired copy actor-bound too, so a mount reorder cannot reopen F7', () => {
     // Defence in depth against the ordering assumption above. The retired copy
     // already binds the actor first; this pins it so nobody "harmonises" it toward
