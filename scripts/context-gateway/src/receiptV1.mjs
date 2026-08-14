@@ -53,15 +53,17 @@ export const RECEIPT_SCHEMA = 'ReceiptV1';
 export const OUTCOMES = Object.freeze(['ok', 'refused', 'error']);
 
 /**
- * Error-code enum. The first four mirror ProviderError codes (providers.mjs); the last two cover
- * the remaining failure shapes runConsult can exit on. Unknown input normalizes to 'UNKNOWN'.
+ * Error-code enum. It covers ProviderError, consult-lane exits, and panel schema/abort failures.
+ * Unknown input normalizes to 'UNKNOWN'.
  */
 export const ERROR_CODES = Object.freeze([
   'UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP', 'NO_KEY', 'TRANSPORT',
   // DENY_PATH has no ProviderError equivalent: that branch exits directly from consult.mjs rather
   // than throwing, so it is recorded at the call site. It is the secret-bearing-path jail firing.
-  'DENY_PATH', 'UNKNOWN',
+  'DENY_PATH', 'BAD_OUTPUT', 'TRUNCATED', 'PANEL_ABORT', 'ADJUDICATION_INCOMPLETE', 'UNKNOWN',
 ]);
+
+const PANEL_STAGES = Object.freeze(['opus-first', 'fanout', 'adjudication', 'opus-verify']);
 
 /**
  * Redaction class labels egress.mjs can emit. The header calls these "a bounded class name"; this
@@ -95,7 +97,8 @@ export function buildReceiptV1({
   stamp, root, providerName, provider = {}, result = {}, spend = {}, effort = null,
   maxTokens = null, docPath = null, seedPath = null, docSha = null, docBytes = null,
   redactions = 0, redactionKinds = [], outcome = 'ok', errorCode = null,
-  originatingModel = null, attempt = 1,
+  originatingModel = null, attempt = 1, panelRunId = null, panelStage = null,
+  findingsRaised = null, findingsUpheld = null,
 }) {
   const normalizedOutcome = oneOf(OUTCOMES, outcome, 'error');
   const normalizedError = errorCode == null ? null : oneOf(ERROR_CODES, errorCode, 'UNKNOWN');
@@ -107,7 +110,8 @@ export function buildReceiptV1({
   // otherwise collide on eventId AND filename, silently losing one record. This is collision
   // avoidance, NOT deduplication — see the append-only note in the module header.
   const eventId = sha256(
-    [stamp, providerName, docSha ?? '', String(attempt), effort ?? '', String(maxTokens ?? ''), normalizedOutcome].join('|'),
+    [stamp, providerName, docSha ?? '', String(attempt), effort ?? '', String(maxTokens ?? ''),
+      normalizedOutcome, panelRunId ?? '', panelStage ?? ''].join('|'),
   ).slice(0, 16);
 
   return {
@@ -141,6 +145,10 @@ export function buildReceiptV1({
     docSha: docSha ?? null,
     docBytes: num(docBytes),
     originatingModel: originatingModel ?? null,
+    panelRunId: /^[a-f0-9]{16,64}$/i.test(String(panelRunId ?? '')) ? panelRunId : null,
+    panelStage: oneOf(PANEL_STAGES, panelStage, null),
+    findingsRaised: num(findingsRaised),
+    findingsUpheld: num(findingsUpheld),
   };
 }
 

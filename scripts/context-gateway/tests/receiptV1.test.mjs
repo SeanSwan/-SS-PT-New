@@ -37,6 +37,19 @@ test('records the operational fields a routing decision needs', () => {
   assert.equal(r.outcome, 'ok');
 });
 
+test('panel calls can record stage, run provenance, and finding calibration without content', () => {
+  const r = buildReceiptV1(base({
+    panelRunId: 'aabbccddeeff0011', panelStage: 'fanout',
+    findingsRaised: 7, findingsUpheld: 5,
+    findingClaims: ['must never be recorded'],
+  }));
+  assert.equal(r.panelRunId, 'aabbccddeeff0011');
+  assert.equal(r.panelStage, 'fanout');
+  assert.equal(r.findingsRaised, 7);
+  assert.equal(r.findingsUpheld, 5);
+  assert.ok(!JSON.stringify(r).includes('must never be recorded'));
+});
+
 // ---- the allowlist is the security contract -------------------------------------------------
 
 test('NEVER records prompt or response content, even when handed it', () => {
