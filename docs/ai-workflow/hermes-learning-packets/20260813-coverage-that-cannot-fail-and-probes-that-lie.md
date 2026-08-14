@@ -180,3 +180,62 @@ No external or paid model was consulted this turn, so there is nothing to calibr
 absence deliberately: the 45-route finding came from parsing the app's own source, and the two
 gate defects came from self-review. Neither would have been better bought. One Kimi review is
 authorised for after the remaining slices land, and its findings should be calibrated then.
+
+---
+
+## RECURRENCE — 2026-08-14 (appended by claude-opus-5, Fable-tier)
+
+**This packet was written on 2026-08-13. The class it documents recurred four times on 2026-08-14,
+twice by an agent that had read this file.** Recording the repeat here rather than opening a new
+packet, because a second overlapping entry would dilute both — and because the repeat count is the
+finding.
+
+### The four instances
+
+| # | Instrument | What it claimed | Truth |
+|---|---|---|---|
+| 1 | `git cat-file -e` on six commit SHAs | all six present → "right branch" | Dangling objects still resolve after a rebase. 5 of 6 were not ancestors of HEAD. |
+| 2 | `backend/routes/*.mjs` (shell glob) | 33 route files in the authz gap | Non-recursive. Hid 34 subdirectory files incl. the entire `social/` family. True count 37. |
+| 3 | Vite's documented `NODE_ENV` replacement | a dev-mode auth bypass is dead code in production | Never verified in-repo: no `define` in vite config, no build to grep. Unproven, asserted as "verified". |
+| 4 | `grep -oE "[A-Za-z/]+\.mjs"` | a document's file list mismatched reality | Digit-blind; split `gamificationV1Routes.mjs` at the `1`. The document was already correct. |
+
+### What this changes about the packet above
+
+**The original scope is too narrow.** This packet was framed around probes that lie by returning a
+*false negative* — "it's missing / it's broken" when the thing exists. Instances 2 and 4 are
+different shapes of the same failure and are not covered by that framing:
+
+- **False counts** (2) — the instrument answers a *narrower question* than the one asked, and the
+  number it returns is confidently wrong rather than absent. Nothing looks like an error.
+- **False positives** (4) — the instrument invents a discrepancy. The near-miss here was
+  "correcting" a document that was right.
+
+Instance 2 is the most dangerous: it would have produced a security test matrix built with the
+`social/` routes — the most likely home of user-to-user IDOR — entirely absent, which would then
+have reported **full coverage of its own target list**. A coverage instrument that is blind and
+self-consistent is worse than one that fails.
+
+### The correction that actually survives
+
+Documenting this class did not prevent it. Four recurrences in ~24 hours, two of them post-read,
+is proof that a written lesson is not a control. Resolutional phrasing ("be careful with tools",
+"validate the instrument") failed because it names a virtue, not an action.
+
+**Procedural replacement — executable, and the only form worth keeping:**
+
+> Before any **count**, **absence claim**, or **presence claim** becomes load-bearing, re-derive it
+> with a **second instrument of a different shape** and require the two to agree. Shell glob vs
+> `git grep`. `cat-file` vs `merge-base --is-ancestor`. Documented default behavior vs grepping the
+> actual build output. If the two disagree, the disagreement is the finding — investigate it before
+> reporting either number.
+
+Corollary learned from instance 3: **"the tool usually does X" is not evidence.** A safety property
+taken from a framework's documented default, with no command run against this repo, must be tagged
+`[LIKELY]` and converted into a required check — never reported as `[VERIFIED]`.
+
+### Routing note
+
+All four were caught by the *same* mechanism: re-deriving the fact a different way during a dry
+loop. None were caught by recall. Weight dry-loop rounds accordingly — for any claim shaped as a
+number or an absence, a round that merely re-reads the prior reasoning is worthless; only a round
+that re-measures counts.
