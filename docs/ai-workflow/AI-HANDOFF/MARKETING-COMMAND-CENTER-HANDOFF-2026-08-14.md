@@ -203,6 +203,31 @@ of the class already proven closed.
 **Explicitly NOT to build:** cold-outreach lead scraping. Wrong motion for a trainer-led
 B2B2C product regardless of what the course teaches.
 
+### Queued for Linear — could not be filed 2026-08-14 (token rejected)
+
+`node scripts/check-mcp-health.mjs linear` → **CONFIGURED BUT TOKEN REJECTED (HTTP 401)**.
+`linear-server` IS declared in `~/.claude.json` at USER scope; the credential is
+expired/revoked, so it registers ZERO tools. **This is not "Linear is not configured"** —
+that conclusion has been wrong every previous time. Remedy: generate a fresh token,
+replace the Authorization header value for that server, restart Claude Code fully
+(MCP servers connect at startup). Until then, file these by hand or after the fix:
+
+1. **Wire fuzzy variables into the send path** — `renderInstantReplyEmail` gains an
+   optional clause slot; `speedToLeadService` resolves it, null → static copy. Unblocked.
+2. **`run-top-ai-panel.ps1` bills Kimi during a preflight.** It passes `--confirm-spend`
+   and `--cap-usd` to three CLIs; the gateway-based `consult-kimi.mjs` ignores both and
+   calls the API. Also hardcodes an unlowerable `MaxTokens = 60000`, which at
+   `effort=high` is the documented way to get an empty final message. Real money already
+   lost to this once.
+3. **`consult-sol.mjs` has no spend gate at all** — no cap, no confirm, hardcoded
+   `max_tokens: 60_000`. It spends the moment it runs. Four consult scripts, four
+   different spend contracts.
+4. **`enforceCeiling` screens filenames, not content** — `fuzzyVariableService.mjs` and
+   `clientTextSanitizer.mjs` both PASS the design ceiling while a file merely *named*
+   `privacy-notes.md` is REFUSED.
+5. **Kimi review truncated** (`finish=length`) and was not retried — a paid retry needs
+   fresh approval.
+
 ## 7. Environment gotchas that cost time
 
 - Worktrees have no `node_modules`. Junction them from the main tree via a `.bat`

@@ -226,4 +226,6 @@ export async function resolveFuzzyVariables({
   }
 }
 
-export default { resolveFuzzyVariables, validateClause, deterministicGenerator, MAX_WORDS };
+export default {
+  resolveFuzzyVariables, validateClause, deterministicGenerator, MAX_WORDS, MAX_CHARS,
+};
