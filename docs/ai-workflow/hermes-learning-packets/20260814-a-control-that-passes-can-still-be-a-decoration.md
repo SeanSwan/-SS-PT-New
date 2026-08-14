@@ -112,15 +112,18 @@ Eleven hostile rounds on the review, then nine more on the handoff. The producti
 Re-reading the reader would never have found the non-recursive scan. Re-reading a finished document
 would never have revealed it was two commits stale.
 
-**Of twenty rounds — eleven on the review, nine on the handoff — only five came back clean. Fifteen
-found something.** A round hit-rate of 75% is not a sign of thoroughness; it is a measure of how
-much a single pass misses. The handoff phase was the worse of the two: **eight of nine rounds found
-a defect in a document I had already considered finished and committed.**
+**Across both phases, roughly three rounds in four found something.** That hit-rate is not a sign of
+thoroughness — it measures how much a single pass misses. The worse phase was reviewing my *own
+finished, committed* handoff: nearly every round found a stale count, a dead citation, or a
+disagreement between two documents that were each internally consistent.
 
-*(An earlier version of this packet said "seven were clean … the thirteen that were not." Recounted
-from the ledger: 4 clean of 11, then 1 of 9. The error ran in the self-flattering direction, in the
-packet whose subject is instruments that report a better world than exists. Caught by a round whose
-only vantage was counting.)*
+*(Two notes on this paragraph, both earned. It first said "seven were clean … the thirteen that were
+not" — wrong, and wrong in the **self-flattering direction**, inside the packet whose subject is
+instruments reporting a better world than exists. Recounted: 4 clean of 11, then 1 of 9. Then the
+corrected absolute count went stale too, because the rounds kept running after it was written. So
+the number is gone and the ratio stays. **A durable document should not contain a figure that its
+own process keeps invalidating** — which is the same rule as "ship the command, not the number,"
+applied to a packet instead of a handoff.)*
 
 ## Who did what
 
