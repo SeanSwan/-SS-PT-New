@@ -216,8 +216,20 @@ describe('mission QA automation guards', () => {
 
     const reportSource = readFileSync(reportPath, 'utf8');
     expect(reportSource).toContain('SWANSTUDIOS-MISSION-QA-REPORT');
-    expect(reportSource).toContain('residualRisks');
-    expect(reportSource).toContain('blockedWrites');
+
+    // RE-ANCHORED 2026-08-14. These two assertions named `residualRisks` and
+    // `blockedWrites` — internal variables of the read-nothing facade that Slice 1
+    // replaced (d528fd25f). Neither string has existed since, so this test has
+    // been red ever since and nobody noticed: the guard on the QA report was
+    // itself unguarded. The INTENT is unchanged — the report must still surface
+    // coverage, the ranked findings, and what is being tolerated — so it now
+    // asserts the sections the generator really emits, plus the exit-code
+    // contract that is the actual CI gate (a report full of critical findings
+    // used to exit 0).
+    expect(reportSource).toContain('## Coverage');
+    expect(reportSource).toContain('## Ranked repair list');
+    expect(reportSource).toContain('## Suppressions');
+    expect(reportSource).toMatch(/process\.exit\(\s*blocking\.length/);
   });
 
   it('covers the admin and trainer proof-loop workflow in the mission suite', () => {

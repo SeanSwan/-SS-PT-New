@@ -28,6 +28,7 @@ import {
   type CrawlIssueState,
 } from './production-dashboard-crawl.report';
 import { flushCrawlReport } from './crawlWorklist';
+import { BENIGN_WRITE_BEACONS, isBenignWriteBeacon, mentionsBenignBeacon } from './benignBeacons';
 
 const ROUTES = ['/a', '/b', '/c', '/d'];
 const TODAY = '2026-08-12';
@@ -174,5 +175,62 @@ test.describe('@mission @contract dashboard crawl report contract', () => {
     } as never;
     expect(() => flushCrawlReport(testInfo, createCrawlState(), 'admin', ROUTES, [], TODAY)).not.toThrow();
     expect(flushCrawlReport(testInfo, createCrawlState(), 'admin', ROUTES, [], TODAY)).toBeNull();
+  });
+
+  test('the gate excludes EVERY registered benign beacon, not just track-pageview', () => {
+    // The 2026-08-14 production audit failed on `POST /api/telemetry/funnel`.
+    // The endpoint was hardcoded in four copies, so shipping a second beacon
+    // turned a fire-and-forget analytics call into a finding on every route.
+    const state = stateWith({
+      blockedWrites: [
+        'POST /api/sessions',
+        ...BENIGN_WRITE_BEACONS.map((beacon) => `${beacon.method} ${beacon.path}`),
+      ],
+      routeResults: ROUTES.map((route) => ({ route, status: 'visited' as const, clicks: 1 })),
+    });
+
+    expect(compactIssues(state, ROUTES).blockedWrites).toEqual(['POST /api/sessions']);
+  });
+});
+
+test.describe('@mission @contract benign write-beacon registry', () => {
+  test('the registry is non-empty and names both shipped beacons', () => {
+    const entries = BENIGN_WRITE_BEACONS.map((beacon) => `${beacon.method} ${beacon.path}`);
+
+    expect(entries).toContain('POST /api/dashboard/track-pageview');
+    expect(entries).toContain('POST /api/telemetry/funnel');
+  });
+
+  test('every registered beacon carries the reason it is safe to tolerate', () => {
+    // An allowlist entry with no stated reason is how a real write sneaks in
+    // later wearing a beacon's clothes.
+    for (const beacon of BENIGN_WRITE_BEACONS) {
+      expect(beacon.reason.length, `${beacon.path} needs a reason`).toBeGreaterThan(20);
+    }
+  });
+
+  test('a business write is never benign', () => {
+    expect(isBenignWriteBeacon('POST /api/sessions')).toBe(false);
+    expect(isBenignWriteBeacon('DELETE /api/clients/42')).toBe(false);
+  });
+
+  test('beacon transport noise is recognised for EVERY beacon, in console prose', () => {
+    // A console line wraps the path in prose and a full URL, so this matcher is
+    // substring-based by necessity — and must therefore cover every beacon, or a
+    // new one's noise reads as a real console error.
+    for (const beacon of BENIGN_WRITE_BEACONS) {
+      const line = `Failed to load resource: https://sswanstudios.com${beacon.path} 405`;
+      expect(mentionsBenignBeacon(line), `${beacon.path} noise unrecognised`).toBe(true);
+    }
+    expect(mentionsBenignBeacon('TypeError: cannot read properties of undefined')).toBe(false);
+  });
+
+  test('the match is exact — method, path, and no prefix creep', () => {
+    // `DELETE /api/telemetry/funnel` is NOT the beacon; a substring match here
+    // would tolerate a destructive call against the same path.
+    expect(isBenignWriteBeacon('POST /api/telemetry/funnel')).toBe(true);
+    expect(isBenignWriteBeacon('DELETE /api/telemetry/funnel')).toBe(false);
+    expect(isBenignWriteBeacon('POST /api/telemetry/funnel/admin')).toBe(false);
+    expect(isBenignWriteBeacon('POST /api/telemetry/funnelx')).toBe(false);
   });
 });

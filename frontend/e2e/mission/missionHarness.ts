@@ -13,7 +13,26 @@
 
 import type { Page, Route } from '@playwright/test';
 
-export const missionClientUser = {
+/**
+ * A user the harness can install into localStorage. The client-only fields are
+ * optional because the harness installs trainers and admins too — inferring the
+ * parameter type from the client fixture alone made every non-client caller a
+ * type error (swan-coach's trainer). Playwright never typechecks specs, so that
+ * error sat unseen until the mission dir got a scoped tsconfig.
+ */
+export interface MissionUser {
+  id: number;
+  email: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  isActive: boolean;
+  clientSource?: string;
+  availableSessions?: number;
+}
+
+export const missionClientUser: MissionUser = {
   id: 101,
   email: 'client.proof@swanstudios-qa.local',
   username: 'client_proof',
@@ -48,7 +67,7 @@ export async function fulfillJson(route: Route, body: unknown, status = 200) {
   });
 }
 
-export async function installMissionUser(page: Page, user = missionClientUser) {
+export async function installMissionUser(page: Page, user: MissionUser = missionClientUser) {
   await page.addInitScript(
     ({ token, currentUser }) => {
       localStorage.setItem('token', token);

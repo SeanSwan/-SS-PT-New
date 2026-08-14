@@ -10,6 +10,7 @@
 
 import { writeFileSync } from 'node:fs';
 import type { TestInfo } from '@playwright/test';
+import { isBenignWriteBeacon } from './benignBeacons';
 import {
   blockingFindings,
   buildFindings,
@@ -99,7 +100,7 @@ export function toRawIssues(
   // gate failed on them — two sources of truth, which is what this refactor
   // exists to remove.
   for (const entry of state.blockedWrites) {
-    if (/^POST \/api\/dashboard\/track-pageview$/.test(entry)) continue;
+    if (isBenignWriteBeacon(entry)) continue;
     issues.push({ category: 'blocked-write', message: entry, role });
   }
 

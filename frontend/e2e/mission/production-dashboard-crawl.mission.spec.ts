@@ -8,6 +8,7 @@
 
 import { expect, test, type Page, type Route, type TestInfo } from '@playwright/test';
 import { roleRoutes, type DashboardRole } from './production-dashboard-crawl.routes';
+import { isBenignBeaconRequest } from './benignBeacons';
 import {
   NO_ISSUES,
   closeIssueCursor,
@@ -79,7 +80,10 @@ async function installReadOnlyGuard(page: Page, state: CrawlIssueState) {
     const endpoint = new URL(request.url()).pathname;
     if (endpoint === '/socket.io/') return route.continue();
     state.blockedWrites.push(`${request.method()} ${endpoint}`);
-    if (request.method() === 'POST' && endpoint === '/api/dashboard/track-pageview') {
+    // Registered beacons are still BLOCKED (QA traffic must never reach production
+    // analytics), but answered 204 like the real endpoint so the app's own error
+    // path never fires and invents console noise the audit would then report.
+    if (isBenignBeaconRequest(request.method(), endpoint)) {
       return route.fulfill({ status: 204, body: '' });
     }
     return route.fulfill({

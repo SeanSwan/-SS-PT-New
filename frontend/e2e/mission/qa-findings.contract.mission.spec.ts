@@ -23,6 +23,7 @@ import {
   type Suppression,
 } from './qaSuppressions.audit';
 import { buildWorklist, toRawIssues } from './crawlWorklist';
+import { BENIGN_WRITE_BEACONS, isBenignWriteBeacon } from './benignBeacons';
 import { QA_SUPPRESSIONS } from './qaSuppressions';
 import {
   NO_ISSUES,
@@ -228,6 +229,23 @@ test.describe('@mission @contract qa findings worklist', () => {
     const state = createCrawlState();
     state.blockedWrites.push('POST /api/sessions');
     state.blockedWrites.push('POST /api/dashboard/track-pageview'); // harness's own, excluded
+
+    const issues = toRawIssues(state, 'admin', []);
+    const blocked = issues.filter((entry) => entry.category === 'blocked-write');
+
+    expect(blocked.map((entry) => entry.message)).toEqual(['POST /api/sessions']);
+  });
+
+  test('EVERY benign beacon is excluded from the worklist, not just the first one', () => {
+    // The live production audit failed on `POST /api/telemetry/funnel` (SWA-29),
+    // a second fire-and-forget beacon that shipped after the allowlist was
+    // written. The allowlist named ONE endpoint in four separate copies, so a
+    // new beacon reads as a real finding on every route and buries the real ones.
+    const state = createCrawlState();
+    state.blockedWrites.push('POST /api/sessions');
+    for (const beacon of BENIGN_WRITE_BEACONS) {
+      state.blockedWrites.push(`${beacon.method} ${beacon.path}`);
+    }
 
     const issues = toRawIssues(state, 'admin', []);
     const blocked = issues.filter((entry) => entry.category === 'blocked-write');

@@ -7,6 +7,7 @@
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isBenignBeaconRequest, isBenignWriteBeacon, mentionsBenignBeacon } from './benignBeacons';
 
 test.describe.configure({ retries: 0 });
 
@@ -24,7 +25,10 @@ const clientAuthState = process.env.SWAN_PROD_CLIENT_AUTH_STATE || legacyClientA
 function expectedConsoleNoise(message: string, state: LiveApiState) {
   if (/preloaded using link preload/i.test(message)) return true;
   if (/Service Worker: PWA functionality temporarily disabled/i.test(message)) return true;
-  if (/track-pageview/i.test(message) && /405|Request failed|ERR_BAD_RESPONSE|Response error/i.test(message)) {
+  // Transport noise from a registered beacon. Registry-driven for the same reason
+  // the write allowlist is: hardcoding ONE endpoint here meant a second beacon's
+  // noise was never covered, and a stale suppression silences by accident.
+  if (mentionsBenignBeacon(message) && /405|Request failed|ERR_BAD_RESPONSE|Response error/i.test(message)) {
     return true;
   }
   if (/Failed to load resource: the server responded with a status of 405/i.test(message)) {
@@ -36,12 +40,14 @@ function expectedConsoleNoise(message: string, state: LiveApiState) {
 }
 
 function allowedBlockedWrite(entry: string) {
-  return /^POST \/api\/dashboard\/track-pageview$/.test(entry);
+  return isBenignWriteBeacon(entry);
 }
 
 async function fulfillWriteBlock(route: Route, state: LiveApiState, endpoint: string) {
   state.blockedWrites.push(`${route.request().method()} ${endpoint}`);
-  if (route.request().method() === 'POST' && endpoint === '/api/dashboard/track-pageview') {
+  // Still blocked — QA traffic must never pollute production analytics — but
+  // answered 204 like the real endpoint so the app's error path stays quiet.
+  if (isBenignBeaconRequest(route.request().method(), endpoint)) {
     await route.fulfill({ status: 204, body: '' });
     return;
   }

@@ -16,6 +16,7 @@
  * dropped.
  */
 
+import { isBenignWriteBeacon } from './benignBeacons';
 
 export type DashboardRole = 'admin' | 'trainer' | 'client' | 'user';
 
@@ -221,8 +222,7 @@ export function compactIssues(
     consoleErrors: state.consoleErrors
       .filter((entry) => !isExhaust(entry) && !isSuppressed(entry)),
     pageErrors: state.pageErrors.filter((entry) => !isSuppressed(entry)),
-    blockedWrites: state.blockedWrites
-      .filter((entry) => !/^POST \/api\/dashboard\/track-pageview$/.test(entry)),
+    blockedWrites: state.blockedWrites.filter((entry) => !isBenignWriteBeacon(entry)),
     routeFailures: state.routeResults
       .filter((entry) => entry.status === 'failed')
       .map((entry) => `${entry.route} — ${entry.error ?? 'unknown error'}`),

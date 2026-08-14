@@ -1,0 +1,27 @@
+// Scoped typecheck for the mission QA harness (frontend/e2e/mission).
+//
+// WHY: `tsc --noEmit` over the whole frontend exhausts the V8 heap on this repo
+// (OOM at both the default limit and --max-old-space-size=8192), so there is no
+// way to prove a change to the harness typechecks using the project config.
+// Playwright transpiles specs with esbuild and never typechecks them, so without
+// this file the mission directory has NO type gate at all.
+//
+// Usage: npx tsc -p tsconfig.mission-check.json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "types": ["node"]
+  },
+  "include": ["e2e/mission/**/*.ts"]
+}
