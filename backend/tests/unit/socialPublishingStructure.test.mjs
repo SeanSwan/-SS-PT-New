@@ -26,6 +26,7 @@ const GOVERNED_FILES = [
   'services/nativeSocialPublishingService.mjs',
   'services/socialPublishFanOut.mjs',
   'services/socialCredentialRefresh.mjs',
+  'services/socialImmediatePublish.mjs',
   'services/socialJobScheduler.mjs',
   'services/socialJobRetry.mjs',
   'services/socialProviders/blueskyPublisher.mjs',

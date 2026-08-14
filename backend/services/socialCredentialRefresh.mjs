@@ -26,6 +26,20 @@ const getPlain = row => (row?.get ? row.get({ plain: true }) : row);
 const toBuffer = value => (Buffer.isBuffer(value) ? value : Buffer.from(value || ''));
 
 /**
+ * Reject if `promise` has not settled in time. The underlying call is NOT
+ * cancelled — nothing in the provider layer accepts an AbortSignal — but the
+ * waiter is released, which is what stops one hung socket from holding every
+ * subsequent publish for the account behind it.
+ */
+const withTimeout = (promise, ms, message) => {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); }),
+  ]).finally(() => clearTimeout(timer));
+};
+
+/**
  * An auth-class failure means the stored credential no longer works, and no
  * retry of the same credential will change that.
  *
@@ -40,7 +54,23 @@ export const canRefresh = (err, adapter, credentials) => AUTH_FAILURE.test(err?.
   && typeof adapter?.refreshSession === 'function'
   && Boolean(credentials?.refreshJwt);
 
-export function createCredentialRefresher({ AccountModel, decryptCredentials, encryptCredentials }) {
+/**
+ * A refresh failure is only proof the account is dead when the PROVIDER says the
+ * grant is dead. A dropped socket, a DNS blip or a 5xx says nothing about the
+ * token — demoting on those makes Sean reconnect a working account, and blocks
+ * every later publish for it until he does.
+ */
+const GRANT_IS_DEAD = /invalid_?grant|expired ?token|invalid_?token|unauthorized|\b401\b|\b403\b|already been used/i;
+
+/** How long to wait for a provider refresh before treating it as unreachable. */
+export const DEFAULT_REFRESH_TIMEOUT_MS = 30 * 1000;
+
+export function createCredentialRefresher({
+  AccountModel,
+  decryptCredentials,
+  encryptCredentials,
+  refreshTimeoutMs = DEFAULT_REFRESH_TIMEOUT_MS,
+}) {
   /**
    * Store rotated credentials. Best-effort ON PURPOSE: at this point we already
    * hold a working access token in memory, so a storage failure must not lose
@@ -101,10 +131,20 @@ export function createCredentialRefresher({ AccountModel, decryptCredentials, en
 
     let session;
     try {
-      session = await adapter.refreshSession({
-        refreshJwt: credentials.refreshJwt,
-        serviceUrl: credentials.serviceUrl,
-      });
+      // Bounded on purpose. The provider layer has no AbortSignal, so a hung
+      // socket used to leave this promise pending forever — and because the
+      // single-flight map hands the SAME promise to every later caller, one hung
+      // refresh wedged the account for the lifetime of the process. That is
+      // worse than the racing it replaced, so the timeout is what makes
+      // single-flight safe rather than merely correct.
+      session = await withTimeout(
+        adapter.refreshSession({
+          refreshJwt: credentials.refreshJwt,
+          serviceUrl: credentials.serviceUrl,
+        }),
+        refreshTimeoutMs,
+        `${account.provider} session refresh did not respond within ${refreshTimeoutMs}ms`,
+      );
     } catch (err) {
       // A failed refresh is only conclusive if the credential we presented is
       // still the stored one. Another process — a second Render instance, which
@@ -115,6 +155,18 @@ export function createCredentialRefresher({ AccountModel, decryptCredentials, en
       if (stored?.refreshJwt && stored.refreshJwt !== credentials.refreshJwt) {
         logger.info(`[social-publish] account ${account.id} was refreshed elsewhere; using the stored credentials`);
         return stored;
+      }
+      // Only a provider verdict that the GRANT is dead justifies demoting the
+      // account. Anything else — a reset socket, a timeout, a PDS 5xx — fails
+      // this post and leaves the connection alone, because it would very likely
+      // have worked on the next attempt.
+      if (!GRANT_IS_DEAD.test(err?.message || '')) {
+        const transient = new Error(
+          `${account.provider} session refresh could not be completed: ${err.message}`
+          + ' — the post did not go out; the connection was left untouched',
+        );
+        transient.reconnectRequired = false;
+        throw transient;
       }
       throw reconnect(err.message);
     }
