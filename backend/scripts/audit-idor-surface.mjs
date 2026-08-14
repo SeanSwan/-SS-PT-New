@@ -67,7 +67,34 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
 }
 
 // Params that name a user other than "me".
-const USER_PARAM = /:(userId|clientId|trainerId|user_id|client_id|trainer_id|memberId|athleteId)\b/;
+//
+// The `/users/:id` shape has to be listed explicitly: a bare `:id` is far too common to treat as
+// user-scoped, but on a `/users` or `/user` path it names a person. Five handlers were invisible
+// without it (`adminRoutes:35`, `authRoutes:855,925`, `userManagementRoutes:562,692`) — all five
+// traced and guarded, but absent from the denominator, which is its own kind of wrong.
+export const USER_PARAM = /:(userId|clientId|trainerId|user_id|client_id|trainer_id|memberId|athleteId)\b|\/users?\/:id\b/;
+
+/**
+ * Every `.mjs` under routes/, RECURSIVELY, relative to ROUTES.
+ *
+ * `fs.readdirSync` is not recursive, so this audit scanned 196 of 230 route files and was **silent**
+ * about six whole subdirectories — admin, dashboard, masterPrompt, plaud, print, social — containing
+ * 7 user-scoped handlers that never appeared in any total. Silence is worse than imprecision: an
+ * over-clearing reader at least names the handler it got wrong.
+ *
+ * This exact class — a non-recursive glob hiding these same 34 files including `social/` — is
+ * already recorded as a past instrument failure in SESSION-HANDOFF §10. It was written down, and
+ * then recurred inside the security tool itself. Documenting a defect does not install the fix.
+ */
+export function collectRouteFiles(dir = ROUTES, prefix = '') {
+  const out = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) out.push(...collectRouteFiles(path.join(dir, entry.name), rel));
+    else if (entry.name.endsWith('.mjs')) out.push(rel);
+  }
+  return out;
+}
 
 // Any of these, on or near the route, counts as a visible check.
 //
@@ -233,8 +260,13 @@ function localFnBody(src, name) {
  * wider list would only move the boundary; reading the function body removes it. Returns a
  * reason string, or null.
  */
-function routerUseGate(src) {
+function routerUseGate(src, beforeOffset = Infinity) {
   for (const m of src.matchAll(/router\.use\(\s*([A-Za-z_$][\w$]*)/g)) {
+    // Express applies `router.use` only to handlers declared AFTER it. Ignoring position meant a
+    // gate at the bottom of a file cleared genuinely unprotected handlers above it. Zero live
+    // instances today; latent exactly like the window bleed was, until someone adds a handler
+    // above the gate.
+    if (m.index > beforeOffset) break;
     const name = m[1];
     if (AUTHN_ONLY.test(name)) continue;
     if (ROLE_GATE_NAME.test(name)) return `router.use(${name})`;
@@ -298,7 +330,7 @@ function controllerHop(src, window) {
 function main() {
   let files;
   try {
-    files = fs.readdirSync(ROUTES).filter((f) => f.endsWith('.mjs'));
+    files = collectRouteFiles();
   } catch {
     console.error(`could not read ${ROUTES}`);
     process.exit(2);
@@ -330,7 +362,7 @@ function main() {
       const window = handlerBody(src, m.index, nextDecl);
       const body = expandSpreads(src, window);
       const why = routeClearance(body)
-        || routerUseGate(src)
+        || routerUseGate(src, m.index)
         || controllerHop(src, window);
       // A handler that names the actor but never compares it is the highest-value thing to review
       // by hand, so it is ranked as sensitive even when its path is not.

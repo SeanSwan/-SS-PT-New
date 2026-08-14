@@ -1,8 +1,8 @@
 {
   "_comment": "Accepted findings for this audit. NEW findings fail; these are known and tolerated. Regenerate deliberately with --update-baseline after reviewing the diff.",
-  "recordedAt": "2026-08-14T18:24:59.427Z",
+  "recordedAt": "2026-08-14T19:00:51.621Z",
   "audit": "idor-surface",
-  "scanned": 199,
+  "scanned": 211,
   "accepted": [
     "GET|/:trainerId/slots|availability.mjs",
     "GET|/:trainerId|availability.mjs",

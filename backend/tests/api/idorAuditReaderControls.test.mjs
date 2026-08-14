@@ -22,7 +22,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  routeClearance, comparesActor, handlerBody, ROUTE_DECL,
+  routeClearance, comparesActor, handlerBody, ROUTE_DECL, collectRouteFiles, USER_PARAM,
 } from '../../scripts/audit-idor-surface.mjs';
 
 /** Reproduces what `main()` does per file: bound each handler at the next declaration. */
@@ -95,5 +95,38 @@ router.get('/echo/:userId', async (req, res) => {
   it('a named guard clears on presence, no comparison required', () => {
     expect(routeClearance(`router.get('/x/:clientId', verifyClientAccessByUserId(), h);`))
       .toBe('route');
+  });
+});
+
+describe('IDOR audit reader — coverage controls', () => {
+  // DEFECT D. `fs.readdirSync` is not recursive, so the audit scanned 196 of 230 route files and
+  // was SILENT about six subdirectories — including the whole `social/` family. An over-clearing
+  // reader at least names the handler it got wrong; a non-recursive one reports a total that
+  // simply excludes them. This exact class was already recorded as a past failure and recurred
+  // inside the security tool anyway, so it is asserted here rather than remembered.
+  it('DEFECT D: the scan reaches into subdirectories', () => {
+    const files = collectRouteFiles();
+    const nested = files.filter((f) => f.includes('/'));
+    expect(nested.length).toBeGreaterThan(0);
+    // The six directories that were invisible. Named individually so that deleting one is a
+    // deliberate act with a failing test attached, not a silent shrinking of the audit surface.
+    for (const dir of ['admin', 'dashboard', 'masterPrompt', 'plaud', 'print', 'social']) {
+      expect(nested.some((f) => f.startsWith(`${dir}/`))).toBe(true);
+    }
+  });
+
+  it('DEFECT D: every scanned path is a .mjs file, so the walk cannot inflate the denominator', () => {
+    expect(collectRouteFiles().every((f) => f.endsWith('.mjs'))).toBe(true);
+  });
+
+  // The `/users/:id` shape hid 5 more handlers. A bare `:id` must still NOT count, or the audit
+  // drowns in every non-user resource in the app.
+  it('USER_PARAM covers the /users/:id shape without swallowing every bare :id', () => {
+    for (const p of ['/users/:id', '/user/:id', '/:userId', '/clients/:clientId', '/:trainerId/slots']) {
+      expect(USER_PARAM.test(p)).toBe(true);
+    }
+    for (const p of ['/orders/:id', '/:id', '/posts/:id/comments', '/exercises/:id']) {
+      expect(USER_PARAM.test(p)).toBe(false);
+    }
   });
 });
