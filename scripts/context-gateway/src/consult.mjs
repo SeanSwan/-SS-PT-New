@@ -14,7 +14,7 @@
  * @module context-gateway/consult
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { relative } from 'node:path';
+import { relative, resolve, basename } from 'node:path';
 import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
 import { redactSecrets } from './egress.mjs';
@@ -91,7 +91,7 @@ export async function runConsult(providerName, defaultRemit, defaultOut) {
 async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {}) {
   const docPath = arg('document');
   if (!docPath) { console.error(`usage: node scripts/consult-${providerName}.mjs --document <path> [--seed <path>] [--out <path>] [--remit "..."] [--effort high] [--max-tokens N]`); process.exit(1); }
-  if (!existsSync(docPath)) { console.error(`document not found: ${docPath}`); process.exit(1); }
+  if (!existsSync(docPath)) { console.error(`document not found: .../${basename(docPath)}`); process.exit(1); }
 
   ctx.docPath = docPath;
   loadEnv(process.cwd());
@@ -108,7 +108,7 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
     if (DENY_PATTERNS.some((re) => re.test(rel))) {
       // Print the basename only: transcripts capture stderr, and the full path carries the OS
       // username the receipt deliberately relativizes away. Enough to identify what was refused.
-      console.error(`[consult-${providerName}] REFUSED secret-bearing path: .../${rel.split('/').pop()}`);
+      console.error(`[consult-${providerName}] REFUSED secret-bearing path: .../${basename(rel)}`);
       // This branch exits DIRECTLY rather than throwing, so it never reaches runConsult's catch.
       // An attempt to egress a .env/*.pem is the most security-relevant event this lane produces —
       // record it here or it is lost entirely. No docSha: the file is deliberately never read.
@@ -162,7 +162,9 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
 
   const outPath = arg('out', defaultOut);
   writeFileSync(outPath, `# ${provider.title}\n\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s\n\n---\n\n${r.text}\n`, 'utf-8');
-  console.log(`[consult-${providerName}] saved -> ${outPath}`);
+  // Relative, matching the receipt line: an absolute --out carries the OS username into the
+  // transcript. The basename-only principle is the LANE's, not just the DENY branch's (Kimi r3, N2).
+  console.log(`[consult-${providerName}] saved -> ${relative(process.cwd(), resolve(outPath))}`);
 
   // S0 flywheel: record the completed call. `doc` is the POST-redaction text, so the SHA identifies
   // exactly what egressed. Only the hash and byte length are stored — never the content itself.

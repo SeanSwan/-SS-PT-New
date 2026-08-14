@@ -66,10 +66,15 @@ const redactProjectKey = (k) => (/[\\/]/.test(String(k)) ? `<path, ${String(k).l
  * redacted `projects[...]` keys but kept printing `C:\Users\<name>\.claude.json` verbatim, which the
  * header in this same file forbids.)
  */
-const displayPath = (p) => {
-  const home = homedir();
+export const displayPath = (p, home = homedir()) => {
   const s = String(p);
-  return s.startsWith(home) ? `~${s.slice(home.length)}` : s;
+  // Require a separator (or exact match) after the prefix, so a sibling directory that merely shares
+  // the prefix — C:\Users\sean2 when home is C:\Users\sean — is not mangled into `~2\...` (Kimi r3, O3).
+  // The class MUST contain a literal backslash: Windows paths use it as the separator, and a version
+  // of this line that only matched `/` silently disabled the redaction on Windows entirely.
+  if (!s.startsWith(home)) return s;
+  const rest = s.slice(home.length);
+  return rest === '' || /^[\\/]/.test(rest) ? `~${rest}` : s;
 };
 
 /** Collect `{name, def, source, scope}` for every declared server across every location. */
@@ -149,7 +154,9 @@ async function probeHttp(def) {
     const text = await r.text();
     const { verdict, remedy } = diagnose(r.status, text);
     // `text` dies here. A 401 body from an auth proxy routinely echoes the credential.
-    return { status: r.status, bytes: text.length, verdict, remedy };
+    // Buffer.byteLength, not .length: the header promises a BYTE count and stdout prints "B";
+    // String.length counts UTF-16 code units and undercounts any multibyte body (Kimi r3, N1).
+    return { status: r.status, bytes: Buffer.byteLength(text, 'utf8'), verdict, remedy };
   } catch (e) {
     // e.message can embed the request URL, which the contract forbids printing — so only the class.
     const cause = e.name === 'AbortError' ? 'timeout after 15s' : e.constructor?.name ?? 'error';

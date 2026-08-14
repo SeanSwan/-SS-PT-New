@@ -10,7 +10,39 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { diagnose } from '../check-mcp-health.mjs';
+import { diagnose, displayPath } from '../check-mcp-health.mjs';
+
+// --- path redaction -----------------------------------------------------------------------------
+// This is a security control (the home dir carries the OS username) and it had ZERO coverage until
+// a one-character escaping slip silently disabled it on Windows — the regex was written `[\/]`
+// instead of `[\\/]`, so no backslash path ever matched and every absolute path printed in full.
+// A redaction with no test is a redaction that can be turned off by accident.
+
+test('a Windows home path collapses to ~ (the backslash separator must be matched)', () => {
+  assert.equal(displayPath('C:\\Users\\sean\\.claude.json', 'C:\\Users\\sean'), '~\\.claude.json');
+});
+
+test('a POSIX home path collapses to ~', () => {
+  assert.equal(displayPath('/home/sean/.claude.json', '/home/sean'), '~/.claude.json');
+});
+
+test('a sibling directory sharing the home prefix is NOT mangled', () => {
+  // Over-redacting `C:\Users\sean2` into `~2\...` would misname the file the reader must open.
+  assert.equal(displayPath('C:\\Users\\sean2\\.claude.json', 'C:\\Users\\sean'), 'C:\\Users\\sean2\\.claude.json');
+});
+
+test('a path outside home is returned unchanged', () => {
+  assert.equal(displayPath('.mcp.json', '/home/sean'), '.mcp.json');
+});
+
+test('the home directory itself collapses to ~', () => {
+  assert.equal(displayPath('/home/sean', '/home/sean'), '~');
+});
+
+test('no redacted output ever contains the username segment', () => {
+  const out = displayPath('C:\\Users\\BigotSmasher\\.claude.json', 'C:\\Users\\BigotSmasher');
+  assert.ok(!out.includes('BigotSmasher'), 'OS username survived redaction');
+});
 
 test('401 and 403 are token rejection, not "not configured"', () => {
   for (const s of [401, 403]) {
