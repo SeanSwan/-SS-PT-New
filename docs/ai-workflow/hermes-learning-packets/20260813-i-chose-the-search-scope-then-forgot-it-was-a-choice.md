@@ -123,3 +123,56 @@ Which is the same error as all seven above, one level up: **I accepted a scope h
 noticing it was a choice.** A gate's condition is a floor, not a ceiling. Seven repetitions of a
 single error class in one session is a permanent lesson by any reading, and permanent lessons belong
 here — in the committed, compounding record — not only in a local working memo.
+
+## 6. Mistakes I made
+
+Section 1 is the enumerated list; these are the ones with a distinct correction attached.
+
+- **Verified a restore using the tool I had just indicted** → caught by Kimi R1 → *never place an
+  instrument on the evidence side of an argument where you have placed it on the defect side.*
+- **Called a feature "superseded" from a filename, a date and one grep, and recommended discarding
+  it** → caught by Kimi R1; the schema comparison showed the designs were disjoint → *supersession is
+  a behavioural-coverage claim; compare what each schema can represent.*
+- **Predicted a check's result to avoid running it** ("accounting only") → caught by Kimi R2 → *if a
+  check is cheap enough to dismiss, it is cheap enough to run.*
+- **Generalised a six-path deletion check to every work-lane** → caught by searching by ticket ID,
+  which surfaced three decision records, one rejecting my recommended commit *by SHA* → *state the
+  search scope in the claim, and search the way things are actually labelled.*
+- **Inventoried only added files and called it the change set** → caught by Kimi R2 → *`git diff
+  --name-status <merge-base> HEAD`; an added-file list cannot see 398 modifications or 201 deletions.*
+- **Asserted "re-implementation" for conflicts I never opened** → caught by Kimi R2 → *open the
+  conflict before pricing the work; cost estimates are the part the human cannot check.*
+- **Used ancestry to prove branch-only content after using patch-id correctly earlier in the same
+  document** → caught by Kimi R2 → *ancestry cannot detect a cherry-pick.*
+- **Declared an `index.lock` stale, committed on it, and destroyed 728 lines — then asserted the
+  commit was docs-only under a proof gate** → caught two turns later by an unrelated question →
+  *`git diff --cached --name-only` before every commit; a lock is a symptom of a dirty index.*
+- **REPEAT, and the one that matters most: I wrote up the narrow-check-reported-as-general-finding
+  lesson twice today and then committed it five more times.** Writing a lesson down is not the same
+  as installing it. The correction that survives is procedural (run this command), never resolutional
+  (be more careful).
+- **REPEAT, one level up: I deferred to a gate's condition instead of judging durability myself**,
+  which is the identical error applied to my own protocol rather than to a repo — and it is why Sean
+  had to ask for this packet at all.
+- **A `while read` loop silently did nothing** during the first restore attempt, and a pipeline
+  reported exit 0 while the `git checkout` inside it had failed against the lock → *verify the effect,
+  never the exit code.*
+- **Ran a background secret scan while continuing to commit in the same repo**, which is how the
+  index became contended in the first place.
+
+## 7. External-model calibration
+
+**Kimi K3, three hostile rounds (~$0.23 total). Every round changed the outcome.**
+
+- **R1** found the load-bearing error (the "superseded" verdict) and, more valuably, noticed the
+  *internal* tell: a recommendation table sitting above my own list of unverified premises.
+- **R2** attacked my *correction* and found it scoped to the same wrong file set as the original —
+  plus caught that a retracted premise had left a live verdict standing, and that the files I framed
+  as at-risk were already on the remote. Its recommended highest-value action (push the branch) was
+  right and is done.
+- **Real vs disproven:** every decision-ranked finding across both rounds verified as real. One item
+  (submodules/LFS) did not apply here — 0 and 0 — but was correct to demand checking rather than
+  assuming. Nothing it raised was disproven on verification.
+- **Where it is worth paying:** attacking a *decision document*. It reliably locates the point where
+  confidence outran evidence. It is not the tool for finding code defects, and I should stop reaching
+  for it there.
