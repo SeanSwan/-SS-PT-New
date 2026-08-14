@@ -14,6 +14,13 @@
 /**
  * Header names that actually carry a credential. Allowlist on purpose — see the note at the
  * `hasCredential` call site for why unrecognized headers must read as "no credential".
+ *
+ * KNOWN AND DELIBERATELY ABSENT: `apikey` (Supabase), `x-goog-api-key` (Google), `private-token`
+ * (GitLab). All three authenticate in practice, so a server using one reads as "no credential" and
+ * its expired token reports CANNOT VERIFY instead of TOKEN REJECTED. That is the under-claiming
+ * direction — it withholds a rotation instruction rather than issuing a wrong one — and matches
+ * this module's documented asymmetry. Recorded so the next reviewer does not re-litigate it as an
+ * oversight; add them only alongside a test for each (Kimi round 16, informational).
  */
 const AUTH_HEADERS = new Set([
   'authorization', 'proxy-authorization', 'x-api-key', 'api-key', 'x-auth-token', 'x-access-token',

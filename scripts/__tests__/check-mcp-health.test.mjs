@@ -7,6 +7,13 @@
  * answer. These tests pin the two directions of that failure —
  *   false NEGATIVE: a rejected token reported as anything else -> the recurrence continues
  *   false POSITIVE: a healthy server reported as token-rejected -> Sean rotates a working credential
+ *
+ * SIBLING SUITES — this file no longer covers the whole CLI. Nothing globs these automatically
+ * (there is no CI runner and no npm script), so running only this file silently skips them:
+ *   scripts/__tests__/display-path.test.mjs  — home-directory redaction
+ *   scripts/__tests__/read-capped.test.mjs   — the bounded body read
+ * Run all three: node --test scripts/__tests__/check-mcp-health.test.mjs \
+ *   scripts/__tests__/display-path.test.mjs scripts/__tests__/read-capped.test.mjs
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
