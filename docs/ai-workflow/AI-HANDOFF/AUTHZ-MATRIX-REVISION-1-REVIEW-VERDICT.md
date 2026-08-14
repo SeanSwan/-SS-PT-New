@@ -159,6 +159,19 @@ draft of this appendix reported three, having folded F4 into R1.2. Corrected abo
 cheapest attack in the review (no account required) and stands alone.
 
 The four CRITICAL findings share one shape: the design specified assertions whose *preconditions it
-never created* — fixtures that cannot express the crossing, denials with nothing proving the request
-was authenticated, and a verb restriction that excludes the endpoints capable of invalidating every
-other result. Each would have produced green cells. None would have produced evidence.
+never created*.
+
+1. **F1** — fixtures that cannot express the crossing being asserted.
+2. **F2** — denials with nothing proving the request ever arrived authenticated.
+3. **F4** — a threat model that assumed every attacker holds an account, so the cheapest one (who
+   holds none) was never modelled.
+4. **F3** — a verb restriction that excludes the endpoints capable of invalidating every other
+   result.
+
+Each would have produced green cells. None would have produced evidence.
+
+The meta-lesson, worth more than the findings: **every one of these passed a four-round self-review
+in which every checked fact was correct.** The defects were not wrong facts but missing
+preconditions and unstated assumptions — the space between individually-correct sections. That
+space is invisible to a reviewer checking its own work, because checking presupposes knowing what
+to check. It is the specific thing an outside reader is for.
