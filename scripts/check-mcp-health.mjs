@@ -138,8 +138,11 @@ export function diagnose(status, body = '') {
     // moved endpoint, so "update the url in config" would be wrong advice — and read-capped's header
     // lists 304 among the null-body statuses, so leaving it here would have the verdict layer
     // contradicting a sibling module's documentation (Kimi round 10, O1).
+    // NOT "UNEXPECTED HTTP 304": that string is reserved for the genuinely-unhandled fallback, and
+    // 304 now has a dedicated branch — calling a handled status unexpected is false, and it would
+    // merge with tool-gap verdicts for anything aggregating them (Kimi round 11, N1).
     return {
-      verdict: 'UNEXPECTED HTTP 304',
+      verdict: 'REACHABLE — HTTP 304 (cache validation, no body)',
       remedy: 'Cache-validation response to a POST — the server is reachable but returned no '
         + 'initialize payload. Check the server\'s own logs; this is not a URL problem.',
     };

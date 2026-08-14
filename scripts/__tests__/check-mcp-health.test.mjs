@@ -160,8 +160,25 @@ test('304 is not a redirect to follow — it is a cache validation with no body'
   // ("update the url in config") would have the verdict layer contradicting a sibling module's
   // documentation. Near-untriggerable for a POST initialize, pinned because the doc now names it.
   const { verdict, remedy } = diagnose(304, '');
+
+  // POSITIVE pins. The first version of this test asserted only absences, so ANY rewrite of the
+  // carve-out passed green — including one that deleted it. Pinning content means the branch has to
+  // still exist AND still say the right thing.
+  assert.equal(verdict, 'REACHABLE — HTTP 304 (cache validation, no body)');
+  assert.match(remedy, /Cache-validation/i);
+
+  // EXIT-CODE pin, the asymmetry round 11 caught: the 204/205 test explicitly pins HEALTHY with
+  // "exit-code semantics must stay unchanged", and this test had no equivalent. Someone noticing
+  // 304 is a null-body status like 204/205 could "harmonize" it into HEALTHY and silently flip this
+  // server's exit code from 1 to 0 — a green suite the whole time. Exit logic keys on the exact
+  // string 'HEALTHY', so asserting non-equality is the real guard.
+  assert.notEqual(verdict, 'HEALTHY', '304 must stay non-HEALTHY — reclassifying flips exit 1 -> 0');
+
+  // NEGATIVE pins: the original misclassification must not come back.
   assert.doesNotMatch(verdict, /REDIRECT/i);
   assert.doesNotMatch(remedy, /Update the url/i);
+  // ...and it must not be labelled UNEXPECTED, which is reserved for genuinely unhandled statuses.
+  assert.doesNotMatch(verdict, /UNEXPECTED/i);
 });
 
 test('401 and 403 are token rejection, not "not configured"', () => {
