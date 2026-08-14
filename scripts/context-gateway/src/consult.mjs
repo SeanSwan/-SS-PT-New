@@ -240,4 +240,11 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   // stdout. Hardening the RECORD against the OS-username leak while spraying the same path to the
   // console would defeat the point (Kimi round 2, F1).
   if (receiptPath) console.log(`[consult-${providerName}] receipt -> ${shortPath(receiptPath)}`);
+
+  // A paid call that returned nothing must fail for AUTOMATION too, not just for a human reading
+  // stderr. The banner and the warning are interaction affordances; a pipeline sees only the exit
+  // code, so leaving it 0 made the failure invisible to exactly the consumer that cannot ask
+  // questions — the worst of both worlds (HY3, S3). `exitCode` rather than `exit()`: the receipt
+  // and artifact are already written and must not be cut short.
+  if (r.empty) process.exitCode = 1;
 }

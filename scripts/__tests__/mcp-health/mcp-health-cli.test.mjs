@@ -1,6 +1,6 @@
 /**
  * mcp-health-cli.test.mjs — the CLI's EXIT-CODE contract, exercised as a subprocess.
- * Run via: node --test scripts/__tests__/index.test.mjs
+ * Run via: node --test scripts/__tests__/mcp-health/index.test.mjs
  *
  * WHY SEPARATE FROM check-mcp-health.test.mjs: that file tests `diagnose` — pure verdict logic,
  * in-process. These tests spawn the real CLI and assert what an AUTOMATION consuming it sees.
@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const CLI = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'check-mcp-health.mjs');
+const CLI = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'check-mcp-health.mjs');
 
 /** Same as runCli but returns stdout too — the exit-3 MESSAGE was unpinned for 13 rounds. */
 const runCliOut = (args, cwd) => {

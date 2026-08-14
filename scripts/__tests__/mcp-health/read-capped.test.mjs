@@ -1,6 +1,6 @@
 /**
  * read-capped.test.mjs — the bounded response read.
- * Run: node --test scripts/__tests__/read-capped.test.mjs
+ * Run: node --test scripts/__tests__/mcp-health/read-capped.test.mjs
  *
  * WHY THIS FILE EXISTS SEPARATELY: these four tests lived in `check-mcp-health.test.mjs`, which
  * carried them past the 300-line cap (Rule 4). They test a DIFFERENT module than that file's
@@ -14,7 +14,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { readCapped } from '../lib/read-capped.mjs';
+import { readCapped } from '../../lib/read-capped.mjs';
 
 test('REGRESSION: a null-body status returns zero bytes instead of throwing', () => {
   // 101/204/205/304 have `body === null` per the fetch spec. A previous version asserted a stream

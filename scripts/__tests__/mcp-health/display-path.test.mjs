@@ -1,6 +1,6 @@
 /**
  * display-path.test.mjs — home-directory redaction for anything the health checker prints.
- * Run: node --test scripts/__tests__/display-path.test.mjs
+ * Run: node --test scripts/__tests__/mcp-health/display-path.test.mjs
  *
  * WHY THIS FILE EXISTS SEPARATELY: extracted from `check-mcp-health.test.mjs` to bring that file
  * back under the 300-line cap (Rule 4 prescribes extraction, not comment-shaving — Kimi round 16,
@@ -15,7 +15,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { displayPath } from '../check-mcp-health.mjs';
+import { displayPath } from '../../check-mcp-health.mjs';
 
 test('a Windows home path collapses to ~ (the backslash separator must be matched)', () => {
   assert.equal(displayPath('C:\\Users\\sean\\.claude.json', 'C:\\Users\\sean'), '~\\.claude.json');

@@ -1,6 +1,6 @@
 /**
  * check-mcp-health.test.mjs — the verdict logic that tells "expired token" from "not configured".
- * Run: node --test scripts/__tests__/check-mcp-health.test.mjs
+ * Run: node --test scripts/__tests__/mcp-health/check-mcp-health.test.mjs
  *
  * This tool exists because agents guess wrong about MCP availability (5 recurrences to 2026-08-13).
  * A WRONG verdict is therefore worse than no tool: it launders a guess into an authoritative-looking
@@ -8,20 +8,20 @@
  *   false NEGATIVE: a rejected token reported as anything else -> the recurrence continues
  *   false POSITIVE: a healthy server reported as token-rejected -> Sean rotates a working credential
  *
- * SIBLING SUITES — this file no longer covers the whole CLI. Run `index.test.mjs`, which IMPORTS
- * this file plus `display-path.test.mjs` (home-directory redaction) and `read-capped.test.mjs`
- * (the bounded body read):
+ * SIBLING SUITES — this file no longer covers the whole CLI. Run the folder's runner:
  *
- *     node --test scripts/__tests__/index.test.mjs
+ *     node --test scripts/__tests__/mcp-health/index.test.mjs
  *
- * That runner is the mechanism. This paragraph is only a signpost — the previous version of this
- * comment WAS the mechanism, which is prose pretending to be enforcement and is precisely the
- * class this slice exists to delete (Kimi round 17, finding 1).
+ * It imports every suite in this directory and FAILS if one is not wired, so the folder is the
+ * family and no list has to be maintained anywhere. Deliberately NOT enumerated here: the previous
+ * version of this paragraph named three siblings, went stale the moment a fourth was extracted,
+ * and — worse — was itself the only "mechanism" for discovering them. Prose pretending to be
+ * enforcement is the class this slice exists to delete (Kimi round 17 F1; HY3 S1/S4).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { diagnose, credentialHeadersIn, BUCKETS } from '../check-mcp-health.mjs';
+import { diagnose, credentialHeadersIn, BUCKETS } from '../../check-mcp-health.mjs';
 
 // This file is now PURE UNIT TESTS of `diagnose` — no subprocess, no filesystem. Three concerns
 // were extracted, each to the module it actually tests, keeping every file under the 300-line cap

@@ -68,6 +68,36 @@ export const isWindowsAbsolute = (p) => WIN_ABS.test(String(p));
  * OUTPUT was left platform-dependent, so detection improved and the leak stayed. Fixing the class
  * rather than the named instance is the point (Kimi round 16, S1b — self-found on re-verification).
  */
+/**
+ * Collapse a home-directory prefix to `~`, preserving the original separators.
+ *
+ * WHY IT LIVES HERE: `check-mcp-health.mjs` had its own copy of this policy, with its own separator
+ * class and its own escaping history — the `[\/]`-instead-of-`[\\/]` slip that silently disabled
+ * redaction on Windows happened in THAT copy. Two reviewers independently flagged the duplication
+ * (Kimi round 17 cross-lane; HY3 S2), and the second was right that "they answer different
+ * questions" was doing more work than it should: the QUESTIONS differ (collapse-a-prefix vs
+ * escape-a-base) but the POLICY — never emit an OS username — is one policy, and it belongs in the
+ * module that owns it. The two callers stay separate; the primitive is shared.
+ *
+ * Three properties, each earned by a defect this redaction actually shipped with:
+ *  - a separator is REQUIRED after the prefix, so a sibling sharing it (`…\sean2` vs home `…\sean`)
+ *    is not mangled into `~2\…`;
+ *  - the separator class must contain a literal BACKSLASH — a version matching only `/` disabled
+ *    redaction on Windows entirely, with every test still green;
+ *  - the compare is case-INSENSITIVE, because `homedir()` can disagree with an env-supplied path on
+ *    case (junctions, 8.3 names, USERPROFILE drift) and a byte-exact match leaves it UNREDACTED.
+ *
+ * Separators are deliberately NOT normalized: the output names a file the reader will open, and
+ * rewriting `~\.claude.json` to `~/.claude.json` would misreport the path on Windows.
+ */
+export function collapseHome(p, home) {
+  const s = String(p);
+  const h = String(home);
+  if (!h || !s.toLowerCase().startsWith(h.toLowerCase())) return s;
+  const rest = s.slice(h.length);
+  return rest === '' || /^[\\/]/.test(rest) ? `~${rest}` : s;
+}
+
 export const finalSegment = (p) => {
   const segs = String(p).split(/[\\/]/).filter(Boolean);
   return segs.length ? segs[segs.length - 1] : '';

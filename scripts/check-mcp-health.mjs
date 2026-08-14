@@ -46,6 +46,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCapped } from './lib/read-capped.mjs';
 import { diagnose, credentialHeadersIn, BUCKETS } from './lib/mcp-verdict.mjs';
+import { collapseHome } from './context-gateway/src/paths.mjs';
 
 export { diagnose, credentialHeadersIn, BUCKETS };
 
@@ -72,21 +73,12 @@ const redactProjectKey = (k) => (/[\\/]/.test(String(k)) ? `<path, ${String(k).l
  * redacted `projects[...]` keys but kept printing `C:\Users\<name>\.claude.json` verbatim, which the
  * header in this same file forbids.)
  */
-export const displayPath = (p, home = homedir()) => {
-  const s = String(p);
-  // Three properties, each earned by a defect this redaction actually shipped with:
-  //  - separator required after the prefix, so a sibling sharing it (C:\Users\sean2 vs home
-  //    C:\Users\sean) is not mangled into `~2\...`;
-  //  - the class MUST contain a literal backslash — a version matching only `/` silently disabled
-  //    redaction on Windows entirely, with every test still green;
-  //  - case-INSENSITIVE compare, because homedir() can disagree with an env-supplied path on case
-  //    (junctions, 8.3 names, USERPROFILE drift) and a byte-exact match leaves it UNREDACTED.
-  // Over-redacting on POSIX is the safe direction. (Kimi rounds 3-O3 and 4-N2.)
-  const h = String(home);
-  if (!s.toLowerCase().startsWith(h.toLowerCase())) return s;
-  const rest = s.slice(h.length);
-  return rest === '' || /^[\\/]/.test(rest) ? `~${rest}` : s;
-};
+// Delegates to the ONE owner of "never emit an OS username" (`context-gateway/src/paths.mjs`).
+// This function used to carry its own copy of the separator/casing logic — and the historic
+// `[\/]`-instead-of-`[\\/]` slip that silently disabled redaction on Windows happened in that copy.
+// Two reviewers independently flagged the duplication as a drift surface (Kimi r17; HY3 S2). The
+// behaviour is unchanged: same properties, same output, one implementation.
+export const displayPath = (p, home = homedir()) => collapseHome(p, home);
 
 /** Collect `{name, def, source, scope}` for every declared server across every location. */
 export function collectServers() {
