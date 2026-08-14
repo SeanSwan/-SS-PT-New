@@ -20,6 +20,28 @@ import { isBenignWriteBeacon } from './benignBeacons';
 
 export type DashboardRole = 'admin' | 'trainer' | 'client' | 'user';
 
+/**
+ * Per-route wall-clock allowance: navigation + networkidle wait + settle delay +
+ * the interaction budget, with headroom for a slow production response.
+ */
+export const CRAWL_MS_PER_ROUTE = 12_000;
+
+/**
+ * The crawl timeout must track the SIZE OF THE WORK, not sit at a constant that
+ * silently becomes too small the moment the route table grows.
+ *
+ * This bit: the route-manifest drift gate added 38 previously-unvisited routes,
+ * taking admin from 28 to 61. Against the flat 600s default the admin crawl
+ * would have run out of time partway, and the crash-durable report would have
+ * correctly reported a partial run — an audit that can never pass, for no
+ * product reason. An explicit env override still wins, so a human can pin it.
+ */
+export function crawlTimeoutFor(routeCount: number, floorMs = 600_000): number {
+  const override = process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS;
+  if (override) return Number(override);
+  return Math.max(floorMs, routeCount * CRAWL_MS_PER_ROUTE);
+}
+
 /** Terminal status for a single route. `unreached` is derived, never assigned. */
 export type RouteStatus = 'visited' | 'failed';
 

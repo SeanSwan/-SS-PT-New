@@ -87,6 +87,45 @@ export function readDashboardRouteManifest(source = ROUTES_SOURCE): Record<Manif
   return manifest;
 }
 
+/**
+ * The `user` role is NOT in roleConfigurations — /user-dashboard/:tab is a single
+ * parameterised route, and the crawl's entries are TAB values, not routes. Their
+ * canonical list lives here.
+ */
+export const USER_TABS_SOURCE = path.resolve(
+  here,
+  '../../src/components/UserDashboard/types/UserDashboardTypes.ts',
+);
+
+/**
+ * Crawlable /user-dashboard paths. `home` is the bare `/user-dashboard`, so it is
+ * emitted in that form rather than as `/user-dashboard/home`.
+ *
+ * Without this, the user role had no drift check at all and `/user-dashboard/groups`
+ * — a shipped feature — was never visited by the audit.
+ */
+export function readUserDashboardRoutes(source = USER_TABS_SOURCE): string[] {
+  const text = readFileSync(source, 'utf8');
+
+  const at = text.indexOf('export const USER_DASHBOARD_TAB_IDS');
+  if (at === -1) {
+    throw new Error(
+      `dashboardRouteManifest: "USER_DASHBOARD_TAB_IDS" not found in ${source}. The canonical `
+      + 'user tab list moved or was renamed — fix this parser rather than letting the crawl '
+      + 'silently stop checking for new tabs.',
+    );
+  }
+
+  const end = text.indexOf('];', at);
+  const tabs = [...text.slice(at, end).matchAll(/'([a-z-]+)'/g)].map((match) => match[1]);
+
+  if (tabs.length === 0) {
+    throw new Error('dashboardRouteManifest: parsed ZERO user tabs. Refusing to return an empty set.');
+  }
+
+  return tabs.map((tab) => (tab === 'home' ? '/user-dashboard' : `/user-dashboard/${tab}`));
+}
+
 /** Strip the query string a crawl entry may carry (`/x?intent=y` visits route `/x`). */
 export function routeWithoutQuery(entry: string): string {
   const at = entry.indexOf('?');

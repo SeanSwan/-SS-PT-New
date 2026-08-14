@@ -120,6 +120,7 @@ export const roleRoutes: Record<DashboardRole, string[]> = {
   ],
   user: [
     '/user-dashboard',
+    '/user-dashboard/groups',
     '/user-dashboard/reels',
     '/user-dashboard/friends',
     '/user-dashboard/challenges',

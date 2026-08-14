@@ -18,9 +18,11 @@
 import { expect, test } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
 import { roleRoutes } from './production-dashboard-crawl.routes';
+import { CRAWL_MS_PER_ROUTE, crawlTimeoutFor } from './production-dashboard-crawl.report';
 import {
   MANIFEST_ROLES,
   readDashboardRouteManifest,
+  readUserDashboardRoutes,
   routeWithoutQuery,
   type ManifestRole,
 } from './dashboardRouteManifest';
@@ -82,6 +84,47 @@ test.describe('@mission @contract dashboard route manifest drift', () => {
       expect(dead, `${role}: crawl visits route(s) the app no longer defines`).toEqual([]);
     });
   }
+
+  test('the user role is drift-checked too — it had NO gate at all', () => {
+    // /user-dashboard/:tab is one parameterised route, so the user role is absent
+    // from roleConfigurations and the first version of this gate skipped it
+    // entirely. That hole hid /user-dashboard/groups — a shipped feature the
+    // audit had never visited.
+    const app = readUserDashboardRoutes();
+    expect(app.length).toBeGreaterThan(5);
+
+    const crawled = new Set(roleRoutes.user.map(routeWithoutQuery));
+    const unaccounted = app.filter((routePath) => !crawled.has(routePath));
+
+    expect(
+      unaccounted,
+      `${unaccounted.length} user tab(s) exist in the app but are never crawled`,
+    ).toEqual([]);
+  });
+
+  test('every crawled user route is still a real tab', () => {
+    const app = new Set(readUserDashboardRoutes());
+    const dead = roleRoutes.user.map(routeWithoutQuery).filter((routePath) => !app.has(routePath));
+    expect(dead, 'crawl visits user tab(s) the app no longer defines').toEqual([]);
+  });
+
+  test('the crawl timeout tracks the route count, not a constant that goes stale', () => {
+    // Adding 38 routes took admin from 28 to 61. Against the old flat 600s the
+    // crawl would have run out of time partway and reported a partial run — an
+    // audit that can never pass, for no product reason.
+    const small = crawlTimeoutFor(10);
+    const large = crawlTimeoutFor(61);
+
+    expect(large).toBeGreaterThan(small);
+    expect(large).toBeGreaterThanOrEqual(61 * CRAWL_MS_PER_ROUTE);
+    // A small table never drops BELOW the historical floor.
+    expect(small).toBeGreaterThanOrEqual(600_000);
+    // And the real tables all get more than the floor's worth of headroom.
+    for (const role of MANIFEST_ROLES) {
+      expect(crawlTimeoutFor(roleRoutes[role].length))
+        .toBeGreaterThanOrEqual(roleRoutes[role].length * CRAWL_MS_PER_ROUTE);
+    }
+  });
 
   test('every acknowledged uncrawled route is real, reasoned, and still needed', () => {
     const all = new Set(MANIFEST_ROLES.flatMap((role) => readDashboardRouteManifest()[role]));

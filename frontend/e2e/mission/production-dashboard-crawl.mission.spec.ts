@@ -13,6 +13,7 @@ import {
   NO_ISSUES,
   closeIssueCursor,
   compactIssues,
+  crawlTimeoutFor,
   createCrawlState,
   formatCoverageLine,
   markIssueCursor,
@@ -45,7 +46,6 @@ const authStates: Record<DashboardRole, string | undefined> = {
 const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const unsafeClickPattern = /\b(delete|remove|submit|save|send|share|post|upload|logout|log out|sign out|checkout|pay|buy|purchase|confirm|approve|archive|block|charge|grant|revoke|publish|enable|disable|start|join|assign|allocate|arm|run|launch)\b/i;
 const maxClicksPerRoute = Number(process.env.SWAN_DASHBOARD_CRAWL_MAX_CLICKS_PER_ROUTE || '24');
-const crawlTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS || '600000');
 const networkIdleTimeoutMs = Number(process.env.SWAN_DASHBOARD_CRAWL_NETWORK_IDLE_TIMEOUT_MS || '1000');
 const settleDelayMs = Number(process.env.SWAN_DASHBOARD_CRAWL_SETTLE_MS || '125');
 
@@ -209,7 +209,7 @@ function declareRoleCrawl(role: DashboardRole) {
     test.use({ storageState: authStates[role] || { cookies: [], origins: [] } });
 
     test(`@mission @prod-live-readonly @readonly @dashboard-crawl ${role} dashboard has no actionable console errors`, async ({ page }, testInfo) => {
-      test.setTimeout(crawlTimeoutMs);
+      test.setTimeout(crawlTimeoutFor(roleRoutes[role].length));
 
       if (!authStates[role]) {
         // Strict by default (fix 3). Opt-out is explicit and named in the message.
