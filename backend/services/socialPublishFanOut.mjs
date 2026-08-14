@@ -27,6 +27,7 @@ export function createSocialPublishFanOut({
   providerAdapters,
   decryptCredentials,
   encryptCredentials,
+  refreshTimeoutMs,
 }) {
 /**
  * A publish attempt against an account that is not connected is a per-account
@@ -50,7 +51,7 @@ const loadAccounts = async (ids) => Promise.all(ids.map(async (id) => {
 }));
 
 const { refreshCredentials } = createCredentialRefresher({
-  AccountModel, decryptCredentials, encryptCredentials,
+  AccountModel, decryptCredentials, encryptCredentials, refreshTimeoutMs,
 });
 
 /**
@@ -130,7 +131,11 @@ const publishToAccounts = async ({ content, accountIds, mediaUrl, jobId = null }
       });
       // Normalize the shape so every entry carries provider AND status even if
       // a future adapter forgets one — the per-platform report depends on both.
-      results.push({ provider: account.provider, status: 'published', ...result, accountId: account.id });
+      // status LAST, deliberately. The fan-out decides published/failed; the
+      // adapter supplies detail. With the spread after it, any adapter that
+      // returns its own `status` (an HTTP code, 'ok', a spread response body)
+      // overwrote the verdict and rolled a post that went out up as a failure.
+      results.push({ provider: account.provider, ...result, accountId: account.id, status: 'published' });
     } catch (err) {
       await recordAttempt({ jobId, accountId: account.id, provider: account.provider, status: 'failed', error: err.message });
       results.push({ provider: account.provider, accountId: account.id, status: 'failed', error: err.message });

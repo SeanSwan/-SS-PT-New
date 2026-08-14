@@ -135,8 +135,27 @@ export function createSocialJobScheduler({
         result = await publishToAccounts({
           content: job.content,
           accountIds: job.platformAccountIds || [],
+          // The job STORES its media at creation and this was the only one of the
+          // three publish paths that never read it back, so every scheduled post
+          // with an image went out as text — silently, and a post that has gone
+          // out cannot be un-posted. The immediate path and retry both pass it.
+          mediaUrl: job.media?.[0]?.url,
           jobId: job.id,
         });
+      } catch (err) {
+        // A throw out of the fan-out is reachable — loadAccounts throws for an
+        // account id that has been deleted. Without this the claimed job stays
+        // in 'running' with nothing to close it but the reaper, which 15 minutes
+        // later reports UNKNOWN: "this may have gone out" about a post that was
+        // never sent. The throw also escaped the loop, cancelling every other
+        // due job in the tick.
+        log.error(`[social-publish] job ${job.id} failed before any outcome was recorded: ${err.message}`);
+        await claim(job.id, 'running', {
+          status: 'failed',
+          failedAt: now,
+          failureReason: err.message,
+        }).catch(() => {});
+        continue;
       } finally {
         clearInterval(beat);
       }
