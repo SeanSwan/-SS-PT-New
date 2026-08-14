@@ -16,15 +16,29 @@ supersedes: none
 The previous revision of this file told the next agent to do three things. **Two of them
 were wrong and one would have spent money.** Corrected here with executed evidence.
 
-**1. `consult-kimi.mjs` has NO preflight mode. There is no `--confirm-spend` flag.**
-The old instruction — "preflight first with no `--confirm-spend`, then re-run with it" —
-does not describe this script. `runConsultInner` calls `assertSpend()` and then
-`callProvider()` on the very next line; there is no gap to approve in. Verified:
-`grep -rn "confirm-spend" scripts/context-gateway/src/ scripts/consult-kimi.mjs` → no
-matches. Following that instruction literally would have billed a second call while
-believing it was a dry run. **The only real brake is `SWAN_CONTEXT_MAX_USD`, which is
-fail-closed when unset** (`NO_CAP` refusal before any network call). It is currently unset.
-A true preflight is registry math — see §5.
+**1. TWO different `consult-kimi.mjs` exist, and only one has a preflight.** *(Corrected
+2026-08-14 after I got this wrong myself — I read one copy and invoked the other.)*
+
+| copy | lines | dry by default | `--cap-usd` | spend gate |
+|---|---|---|---|---|
+| current `origin/main` (gateway wrapper) | 26 | **NO** | **ignored** | `SWAN_CONTEXT_MAX_USD` env |
+| the `wip/comms-*` main tree (older standalone) | 233 | **YES** | honored | own `$3` cap |
+
+The migration to the context-gateway **removed the dry-run default and the `--cap-usd`
+flag** from the Kimi lane. So the old handoff's "preflight with no `--confirm-spend`"
+instruction is correct for the older copy and **silently wrong for the shipping one**,
+where `runConsultInner` calls `assertSpend()` and then `callProvider()` on the next line
+with no gap to approve in. On that copy the only brake is `SWAN_CONTEXT_MAX_USD`,
+fail-closed when unset. A true preflight is registry math — see §5.
+
+**This also explains the lost money precisely.** `run-top-ai-panel.ps1` passes
+`--confirm-spend` and `--cap-usd` to all three CLIs. Opus5 and HY3 honor both and no-op
+during a preflight; **the gateway-based Kimi ignores both and calls the API anyway.** That
+is exactly the reported `status=preflight-only` followed by `model_calls=1`. The panel's
+dry-run contract is broken for the Kimi leg. It also hardcodes
+`[ValidateRange(60000,60000)]$MaxTokens = 60000`, which cannot be lowered — and at
+`effort=high` that is 60k tokens of permitted reasoning, which is the documented way to
+get an empty final message. **Both halves of the failure were the launcher, not the model.**
 
 **2. The timeout was almost certainly configuration, not packet size.**
 The old note blamed the 16k-char packet against a 60k ceiling. But `origin/main` now carries
@@ -132,6 +146,24 @@ clean re-author, not a merge.
    input, every failure path returns null.
 3. `93c487aad` — the confusable/invisible/bidi hardening above.
 4. `dd6a400bf` — two durable Hermes learning packets.
+
+## 4b. The external panel ran — 14 more bypasses closed
+
+Sean authorised Kimi K3 + HY3 + Sol (overriding the design-ceiling policy for Kimi).
+**Total $1.0222.** 24 concrete claims, every one probed against the real module before
+being accepted; **20 reproduced, 4 were wrong.** 14 were real bypasses and are fixed
+(commit `f6920b39a`); reviews kept verbatim in `*-FUZZY-VALIDATOR-REVIEW.md`.
+
+| reviewer | cost | value |
+|---|---|---|
+| **Sol** | $0.7447 | 29 findings, deepest. Attacked the module's stated INVARIANTS, not its inputs — found the missing generator timeout, unreachable VT/FF branches, pre-normalization cost hole, `\p{Mn}`-vs-`\p{Me}`, lone surrogates, and correctly called my substring claim false. 2 claims wrong. |
+| **HY3** | $0.0094 | 5 findings, 4 real. Best value-per-dollar by two orders of magnitude; the rendering lens caught U+061C, unclosed tags, entity markup and the auto-link TLD gap. Wrong that NFKC folds ß→ss. |
+| **Kimi** | $0.2681 | TRUNCATED (`finish=length`), least useful. Reproduced the documented failure exactly — empty content channel at effort=high, answer recovered from the reasoning channel, then cut off. **Not retried; a paid retry needs fresh approval.** |
+
+**The lesson worth keeping:** I ran four hostile rounds to dry and still shipped 14
+bypasses. Not for lack of effort — I kept attacking INPUTS while Sol attacked CLAIMS. A
+hostile loop run by the author converges on the author's blind spots. Buy the different
+lens, not more rounds.
 
 ## 5. If Sean still wants external spend — the real preflight
 
