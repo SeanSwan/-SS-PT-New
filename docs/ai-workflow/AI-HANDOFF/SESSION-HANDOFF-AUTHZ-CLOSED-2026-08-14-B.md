@@ -193,7 +193,13 @@ be deleted so a future reader cannot re-introduce a consumer. Ticket, not a bloc
 - Reader negative controls: **10 tests pass**.
 - Production bypass dead — real build, grep with positive control, 0 reads, 0 sourcemaps.
 - `backend/routes/` is **byte-identical to `origin/main`** — so every count here describes the real
-  production route surface. Branch is 46 behind / 19 ahead.
+  production route surface. **Re-derive both before trusting them; they drift every commit:**
+  ```
+  git diff --stat origin/main HEAD -- backend/routes/     # empty = the counts here still apply
+  git rev-list --left-right --count origin/main...HEAD    # behind <TAB> ahead
+  ```
+  At the moment of writing: 46 behind / 27 ahead, routes identical. That "27" was "19" two commits
+  earlier in this same session — which is exactly why the command, not the number, is the artifact.
 
 **NOT established:**
 - **No test has hit *production*.** The suites mock models and `authMiddleware`, so they prove
