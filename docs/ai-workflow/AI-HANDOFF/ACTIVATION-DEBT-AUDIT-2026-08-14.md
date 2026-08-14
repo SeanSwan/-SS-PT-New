@@ -195,8 +195,10 @@ model, admin surface, and retention worker already exist.
 
 ## 5. Dead code — verified zero importers
 
-Every row below was re-verified by hand after a delegated sweep (which was **77% accurate** —
-3 of its 13 headline claims were false and are excluded here).
+Every row below was re-verified by hand — importer counts **and** line counts (`wc -l` totals
+exactly 1,146) — after a delegated sweep that was **77% accurate** (3 of 13 headline claims
+false, excluded here). A fourth false claim from that sweep escaped into an earlier revision
+of this document; it is retracted immediately below the table rather than silently removed.
 
 | File | Lines | Class |
 |---|---|---|
@@ -221,9 +223,35 @@ pending approval*, not "safe to delete."
   `TrainerClientsWorkspace` at `routes.tsx:186`
 
 **Orphan (built, never wired, no successor):**
-- `TrainerVideosPage` — lazy-exported at `routeComponents.tsx:83`, in **no** route.
-  Textbook Rule 26: a lazy `import()` is not a mount.
-- 12 `DesignPlayground` concept homepages absent from `playgroundRegistry.ts`
+- `TrainerVideosPage` — lazy-exported at `routeComponents.tsx:83` and appearing in **no**
+  route table (`UniversalDashboardLayout.routes.tsx` **or** `main-routes.tsx`). Textbook
+  Rule 26: a lazy `import()` is not a mount. **Re-verified after the retraction below.**
+
+> ### ⚠ RETRACTED — the "12 orphaned DesignPlayground concepts" claim was FALSE
+>
+> An earlier revision of this document listed 12 `DesignPlayground` concept homepages as
+> orphans absent from `playgroundRegistry.ts`. **That was wrong, and acting on it would have
+> deleted 12 live files.**
+>
+> The claim came from a delegated sweep and I published it **without verifying it myself** —
+> a direct Rule 30 violation, in the same document where I wrote that delegated findings are
+> hypotheses.
+>
+> The truth: there are **two** registries. `playgroundRegistry.ts` is the *parked-surface
+> manifest* for vNext pages (7 entries: home, store, about, contact, video, gallery,
+> dashboard). The concept homepages live in a **different** file —
+> `concepts/shared/conceptRegistry.ts:53-64` — where **all 12 are registered**, and the chain
+> is fully live: `main-routes.tsx:902` renders `<LegacyConceptPreviewPage />` → that page
+> imports `./concepts/shared/conceptRegistry` (`:15`) → the 12 lazy entries.
+> The only unregistered file in `concepts/` is `shared/ConceptWrapper.tsx`, a helper, which is
+> correctly absent.
+>
+> Two lessons, both already in this document and both violated anyway:
+> 1. **Rule 30** — I relayed a subagent claim as fact. The sweep checked a plausible-looking
+>    registry with the right name and the wrong contents.
+> 2. **§3.1a's own lesson, repeated** — the registry's header calls it a *"Design Studio
+>    parked-surface manifest"*. Like the nurture engine, this is **deliberate**, not neglect.
+>    I made the "assumed neglect without checking for a stated reason" error twice in one audit.
 
 Backend darkness is **flag-based, not mount-based** — no genuine unmounted route orphans were
 found. An initial "25 unmounted routes" list was entirely false positives: a second aggregator
@@ -268,7 +296,7 @@ path. Conceded — see §10.
 | 1 | Flip `SPEED_TO_LEAD_REPLY_ENABLED` + run the existing runbook's live test | **Sean** | ~20 min | The only revenue item one flip from live. Worst case ≈ today (no auto-reply), and the runbook's Step 3 live test catches a silent failure *at flip time*. |
 | 2 | Flip `PRISM_CAPTURE_ENABLED` via Launch Control + 5-min smoke | **Sean** | ~10 min | Acquisition lever, one-click revert, no deploy. **Omitted entirely from my first draft — the biggest gap in it**, given acquisition is the weakest link. Note: this makes a capture form appear on the home hero (`f3e450d18`), so it is a visible change, not just an API. Double-capture checked: the route 404s when off and is separate from the contact form. |
 | 3 | Flip `dashboardV2Finance` + `postSaveHandoff`, **role-targeted to owner** | **Sean** | ~10 min | Launch Control supports role targeting — Sean is the head trainer, so he is the free canary. |
-| 4 | One decide-and-delete sitting | agent | ~30 min | 10 verified-dead files (1,146 lines), 12 playground pages, `TrainerVideosPage`, the superseded corpses. Rule 34 grep first. Every deletion shrinks all downstream work. |
+| 4 | One decide-and-delete sitting | agent | ~30 min | 10 verified-dead files (1,146 lines, counts re-verified), `TrainerVideosPage`, the 3 superseded corpses. **NOT the 12 playground concepts — that claim is retracted, see §5.** Rule 34 grep before each. Every deletion shrinks all downstream work. |
 | 5 | Land S2L branch **half A** (cockpit visibility) | agent | ~30 min | Cost is mostly sunk; 27/27 green; merges clean. Same week, **not** flip-gating. |
 | 6 | Wire send failures into existing `adminAlertService` | agent | ~1–2 h | The correct fix for the ongoing-operation gap — placed after revenue, not before it. |
 | 7 | Declare all env flags in `render.yaml` + a key-diff sync check | agent | ~30–60 min | ~19 flags exist only as Render dashboard state with no record in the repo. **I underweighted this**; see §10 #7. |
@@ -349,7 +377,10 @@ deleted per §7 step 9, and the class dies with them.
   "= dark" conclusion; and a naive mount check that produced 25 false-positive orphans.
   All three would have shipped wrong findings if output had been trusted over exit status.
 - **Haiku ×3 (delegated sweeps)** — backend orphans, frontend dark surfaces, flag census.
-  Combined accuracy ~77%; every load-bearing claim re-verified by hand. The flag census
+  Combined accuracy ~77% on the claims I *did* check. **I did not check all of them** — the
+  "12 orphaned playground concepts" claim shipped unverified and was false (§5 retraction).
+  Corrected posture: every claim in this document has now been hand-verified, and the one
+  that was not is retracted rather than quietly fixed. The flag census
   **missed `SPEED_TO_LEAD_REPLY_ENABLED`** and 7 others in the `_ENABLED` family — its counts
   are directional only; §3 uses my own scan.
 - **Kimi K3** — process/sequencing lens on §7 and §8. See §10.
