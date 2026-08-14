@@ -132,6 +132,14 @@ you will actually invoke, from the tree you will invoke it in.**
    hostile review convened to catch it.
    **Why it did not bind: Rule 80 is in `AGENTS.md` and returns ZERO matches in `CLAUDE.md`.**
    Claude loads CLAUDE.md. The rule was real, mandatory, and invisible.
+   Scale, verified on `origin/main` @ `c4a5a396e`: **AGENTS.md carries 74 numbered rules,
+   CLAUDE.md carries 66.** Missing from Claude: 75 Trailhead-Truth, 76 Create-With-Context,
+   77 Dead-File Quarantine, 78 Workflow Mode Router, 79 Tests Can Encode The Bug,
+   80 Second-Vantage Verification, 81 Test-Delta Disclosure, plus the Kimi Hostile-Review Gate.
+   They also disagree on the commit gate — CLAUDE.md says Fable, AGENTS.md Rule 46 (amended
+   2026-07-26) says Kimi K3. And the repair the session-start hook recommends,
+   `sync-agents-mirror.mjs`, writes CLAUDE.md **over** AGENTS.md — it would delete every rule
+   in that list.
    So the governing question is not "is this written down?" but **"is it written down in the
    file this agent actually reads?"** A rule in the wrong file is indistinguishable from no
    rule at all — and worse, it makes the corpus *look* complete. See
