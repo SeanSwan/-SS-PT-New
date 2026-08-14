@@ -113,7 +113,7 @@ export function buildReceiptV1({
   // otherwise collide on eventId AND filename, silently losing one record. This is collision
   // avoidance, NOT deduplication — see the append-only note in the module header.
   const eventId = sha256(
-    [stamp, providerName, docSha ?? '', String(attempt), effort ?? '', String(maxTokens ?? '')].join('|'),
+    [stamp, providerName, docSha ?? '', String(attempt), effort ?? '', String(maxTokens ?? ''), normalizedOutcome].join('|'),
   ).slice(0, 16);
 
   return {
@@ -171,7 +171,12 @@ export function writeReceiptV1(record, root) {
 export function recordConsult(args) {
   try {
     return writeReceiptV1(buildReceiptV1(args), args.root);
-  } catch {
+  } catch (e) {
+    // Never throw — but never fail INVISIBLY either. A schema regression or a permissions change on
+    // the store would otherwise produce zero receipts and zero signal, and "no data" would read as
+    // "no events" — the same absence-is-not-a-fact trap this whole slice exists to close (r4 N3).
+    // Class only: an error message can embed filesystem paths, and Rule 59 applies to telemetry too.
+    console.error(`[receiptV1] record failed (${e?.constructor?.name ?? 'Error'}) — consult unaffected`);
     return null;
   }
 }

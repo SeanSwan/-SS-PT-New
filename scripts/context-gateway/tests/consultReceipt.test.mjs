@@ -7,18 +7,22 @@
  * well-tested writer had NO production caller — unit tests cannot see that. So these tests run
  * `consult-kimi.mjs` as a real subprocess and assert a receipt file appears on disk.
  *
- * Two branches are covered, both flagged as uncovered in the Kimi hostile review 2026-08-13:
- *   - DENY_PATH: exits via `process.exit(2)` DIRECTLY, bypassing runConsult's catch entirely. If the
- *     call-site recording is ever dropped, the most security-relevant event in the lane goes dark.
- *   - NO_CAP:    the ordinary throw path, which must classify as `refused` (a gate firing).
+ * Branches covered:
+ *   - DENY_PATH:  exits via `process.exit(2)` DIRECTLY, bypassing runConsult's catch entirely. If the
+ *                 call-site recording is ever dropped, the most security-relevant event goes dark.
+ *   - NO_CAP:     the ordinary throw path. Classifies as `error` — an unset SWAN_CONTEXT_MAX_USD is
+ *                 misconfiguration, NOT the gate biting.
+ *   - SPEND_CAP:  a real gate firing. Classifies as `refused`.
+ * The last two are deliberately paired: pinning only one direction would let "everything is an
+ * error" (or "everything is refused") pass the suite while destroying the signal.
  *
- * No network and no spend: both branches exit before any provider call. `cwd` is a temp dir, so the
+ * No network and no spend: every branch exits before any provider call. `cwd` is a temp dir, so the
  * receipts land there and never touch the repo's real store.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readdirSync, readFileSync, existsSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,8 +35,10 @@ const LAUNCHER = join(REPO, 'scripts', 'consult-kimi.mjs');
  * Console output is CAPTURED, not discarded: an absolute-path leak to stdout survived round 1
  * precisely because the tests only inspected the on-disk record (Kimi round 2, F1).
  */
-function runLauncher(docRelPath, { writeDoc = true } = {}) {
-  const cwd = mkdtempSync(join(tmpdir(), 'swan-consult-'));
+function runLauncher(docRelPath, { writeDoc = true, env = {} } = {}) {
+  // realpath: on macOS mkdtemp returns /var/folders/... which is a symlink to /private/var/...,
+  // so a raw `stdout.includes(cwd)` assertion could pass while a resolved path leaked.
+  const cwd = realpathSync(mkdtempSync(join(tmpdir(), 'swan-consult-')));
   const docPath = join(cwd, docRelPath);
   mkdirSync(dirname(docPath), { recursive: true });
   if (writeDoc) writeFileSync(docPath, 'placeholder body, never egressed\n', 'utf-8');
@@ -41,7 +47,7 @@ function runLauncher(docRelPath, { writeDoc = true } = {}) {
   let stderr = '';
   try {
     stdout = execFileSync(process.execPath, [LAUNCHER, '--document', docPath, '--out', join(cwd, 'out.md')], {
-      cwd, stdio: 'pipe', env: { ...process.env, SWAN_CONTEXT_MAX_USD: '' },
+      cwd, stdio: 'pipe', env: { ...process.env, SWAN_CONTEXT_MAX_USD: '', ...env },
     }).toString();
   } catch (e) {
     // Non-zero exit is the expected outcome for both refusal branches.
@@ -79,14 +85,26 @@ test('E2E: the DENY receipt never persists the offending path', () => {
   assert.ok(!serialized.includes('Users'), 'an OS user directory leaked into the receipt');
 });
 
-test('E2E: a spend-cap refusal is classed as `refused` and carries task identity', () => {
+test('E2E: an UNSET cap is misconfiguration (`error`), not the gate biting', () => {
   // Benign path -> DENY does not fire -> the doc IS read -> assertSpend throws NO_CAP.
+  // This assertion previously read `refused`, which PINNED a misclassification: NO_CAP means
+  // SWAN_CONTEXT_MAX_USD was never set, so every run on an uncapped workstation inflated the
+  // "spend gate is biting" signal the flywheel exists to measure (Rule 79 — the test encoded the bug).
   const r = runAndReadReceipt('packet.md');
   assert.ok(r, 'the ordinary refusal path wrote no receipt');
   assert.equal(r.errorCode, 'NO_CAP');
-  assert.equal(r.outcome, 'refused', 'a gate firing must class as refused, not error');
+  assert.equal(r.outcome, 'error', 'an unset cap is misconfiguration, not gate pressure');
   assert.ok(r.docSha, 'a refusal must carry task identity or the flywheel cannot group it');
   assert.equal(r.provider, 'kimi');
+});
+
+test('E2E: a REAL spend gate firing is classed as `refused`', () => {
+  // The other direction must stay pinned too, or "everything is an error" would also pass the
+  // suite. A cap this small is guaranteed to be exceeded by any prompt, so SPEND_CAP genuinely fires.
+  const r = runLauncher('packet.md', { env: { SWAN_CONTEXT_MAX_USD: '0.0000001' } }).receipt;
+  assert.ok(r, 'the spend-cap path wrote no receipt');
+  assert.equal(r.errorCode, 'SPEND_CAP');
+  assert.equal(r.outcome, 'refused', 'a gate deliberately stopping the call IS gate pressure');
 });
 
 test('E2E: a receipt never contains the document body', () => {

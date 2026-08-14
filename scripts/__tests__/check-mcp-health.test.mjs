@@ -39,6 +39,12 @@ test('the home directory itself collapses to ~', () => {
   assert.equal(displayPath('/home/sean', '/home/sean'), '~');
 });
 
+test('prefix matching is case-insensitive (Windows paths are)', () => {
+  // homedir() can disagree with an env-supplied path on case via junctions, 8.3 names, or
+  // USERPROFILE drift. A byte-exact compare would leave this path fully unredacted.
+  assert.equal(displayPath('C:\\Users\\SEAN\\.claude.json', 'C:\\Users\\sean'), '~\\.claude.json');
+});
+
 test('no redacted output ever contains the username segment', () => {
   const out = displayPath('C:\\Users\\BigotSmasher\\.claude.json', 'C:\\Users\\BigotSmasher');
   assert.ok(!out.includes('BigotSmasher'), 'OS username survived redaction');

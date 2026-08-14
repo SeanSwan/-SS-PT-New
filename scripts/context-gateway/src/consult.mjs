@@ -14,12 +14,22 @@
  * @module context-gateway/consult
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { relative, resolve, basename } from 'node:path';
+import { relative, resolve, basename, isAbsolute } from 'node:path';
 import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
 import { redactSecrets } from './egress.mjs';
 import { DENY_PATTERNS } from './safeRead.mjs';
 import { recordConsult, sha256 } from './receiptV1.mjs';
+
+/**
+ * Console-safe path. `relative()` returns an ABSOLUTE path when the target sits on a different drive
+ * (Windows `--out D:\...`), which would reopen the OS-username leak that r2/F1 closed. Falling back
+ * to the basename keeps the message useful without the prefix (Kimi round 4, O2).
+ */
+const shortPath = (p) => {
+  const r = relative(process.cwd(), resolve(p));
+  return isAbsolute(r) ? `.../${basename(p)}` : r;
+};
 
 const arg = (name, def = null) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -39,11 +49,21 @@ const utcStamp = () => new Date().toISOString().replaceAll(/[:-]/g, '').replace(
 /**
  * Codes that are operator/config errors rather than a gate firing. Keeping them out of `refused`
  * protects the one signal the flywheel exists to measure: how often the ceiling/spend gates bite.
- * UNKNOWN_PROVIDER belongs here for the same reason NO_KEY does — a typo'd wrapper or a missing
- * providers.mjs entry is misconfiguration, not gate pressure (Kimi round 2, F5: round 1's fix was
- * applied to the code that was named, not to the principle that was stated).
+ *
+ * Membership is decided by ONE question: did a gate deliberately stop this, or is something simply
+ * unconfigured? NO_KEY (no OPENROUTER_API_KEY), UNKNOWN_PROVIDER (typo'd wrapper / missing
+ * providers.mjs entry), and NO_CAP (SWAN_CONTEXT_MAX_USD unset) are all "unconfigured". Only
+ * CEILING and SPEND_CAP are gates actually biting.
+ *
+ * This set was extended three times because the principle kept being applied to the specific code
+ * that a reviewer named rather than to every code it covers (Kimi rounds 1, 2, and 4 — NO_KEY, then
+ * UNKNOWN_PROVIDER, then NO_CAP). NO_CAP was the costliest: it fires on every run of an uncapped
+ * workstation, so the aggregate read "the spend gate is biting constantly" when the truth was "no
+ * cap was ever set" — and the E2E test asserted that wrong classification, pinning it in place
+ * (Rule 79: a test can encode the bug). If a new error code is added, answer the ONE question above
+ * before deciding where it goes.
  */
-const NON_GATE = new Set(['TRANSPORT', 'NO_KEY', 'UNKNOWN_PROVIDER']);
+const NON_GATE = new Set(['TRANSPORT', 'NO_KEY', 'UNKNOWN_PROVIDER', 'NO_CAP']);
 
 const errorCodeOf = (e) => {
   if (e?.message?.includes('OPENROUTER_API_KEY')) return 'NO_KEY';
@@ -164,7 +184,7 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   writeFileSync(outPath, `# ${provider.title}\n\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s\n\n---\n\n${r.text}\n`, 'utf-8');
   // Relative, matching the receipt line: an absolute --out carries the OS username into the
   // transcript. The basename-only principle is the LANE's, not just the DENY branch's (Kimi r3, N2).
-  console.log(`[consult-${providerName}] saved -> ${relative(process.cwd(), resolve(outPath))}`);
+  console.log(`[consult-${providerName}] saved -> ${shortPath(outPath)}`);
 
   // S0 flywheel: record the completed call. `doc` is the POST-redaction text, so the SHA identifies
   // exactly what egressed. Only the hash and byte length are stored — never the content itself.
@@ -176,5 +196,5 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   // Relative, not absolute: writeReceiptV1 returns join(process.cwd(), …), and transcripts capture
   // stdout. Hardening the RECORD against the OS-username leak while spraying the same path to the
   // console would defeat the point (Kimi round 2, F1).
-  if (receiptPath) console.log(`[consult-${providerName}] receipt -> ${relative(process.cwd(), receiptPath)}`);
+  if (receiptPath) console.log(`[consult-${providerName}] receipt -> ${shortPath(receiptPath)}`);
 }

@@ -36,7 +36,9 @@
  *   node scripts/check-mcp-health.mjs                # all servers, all config locations
  *   node scripts/check-mcp-health.mjs linear         # only servers whose name contains "linear"
  *
- * Exit: 0 = every PROBED server healthy · 1 = at least one unhealthy · 2 = nothing probeable.
+ * Exit: 0 = every probed server healthy · 1 = at least one unhealthy
+ *       2 = declared but nothing probeable (stdio/sse only) — "0 unhealthy" means "0 verified"
+ *       3 = nothing declared anywhere — the ONLY state that justifies saying "not configured"
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -72,8 +74,14 @@ export const displayPath = (p, home = homedir()) => {
   // the prefix — C:\Users\sean2 when home is C:\Users\sean — is not mangled into `~2\...` (Kimi r3, O3).
   // The class MUST contain a literal backslash: Windows paths use it as the separator, and a version
   // of this line that only matched `/` silently disabled the redaction on Windows entirely.
-  if (!s.startsWith(home)) return s;
-  const rest = s.slice(home.length);
+  // Case-INSENSITIVE prefix match: Windows paths are case-insensitive, and homedir() can disagree
+  // with an env-supplied path on case (junctions, 8.3 names, USERPROFILE drift). A byte-exact
+  // compare would return `C:\Users\Sean\...` UNREDACTED against a home of `C:\Users\sean` — the same
+  // silent-disable failure as the eaten backslash, one layer up. Over-redacting on POSIX is the safe
+  // direction (Kimi round 4, N2).
+  const h = String(home);
+  if (!s.toLowerCase().startsWith(h.toLowerCase())) return s;
+  const rest = s.slice(h.length);
   return rest === '' || /^[\\/]/.test(rest) ? `~${rest}` : s;
 };
 
@@ -188,7 +196,9 @@ for (const { path, scope } of CONFIG_LOCATIONS) console.log(`  ${existsSync(path
 if (!servers.length) {
   console.log(`\nNo MCP servers${filter ? ` matching "${filter}"` : ''} declared in ANY location above.`);
   console.log('This is the ONLY state that justifies saying "not configured".');
-  process.exit(2);
+  // Exit 3, distinct from 2: automation must be able to tell "definitively not configured" from
+  // "cannot tell". A disambiguation tool shipping an ambiguous contract defeats itself (r4 N1).
+  process.exit(3);
 }
 
 let unhealthy = 0;
