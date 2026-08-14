@@ -133,6 +133,17 @@ export function diagnose(status, body = '') {
   if (status === null) {
     return { verdict: 'UNREACHABLE', remedy: 'Network/DNS/timeout — not an auth problem. Check connectivity, then retry.' };
   }
+  if (status === 304) {
+    // Carved out BEFORE the redirect branch: 304 is a cache-validation response with no body, not a
+    // moved endpoint, so "update the url in config" would be wrong advice — and read-capped's header
+    // lists 304 among the null-body statuses, so leaving it here would have the verdict layer
+    // contradicting a sibling module's documentation (Kimi round 10, O1).
+    return {
+      verdict: 'UNEXPECTED HTTP 304',
+      remedy: 'Cache-validation response to a POST — the server is reachable but returned no '
+        + 'initialize payload. Check the server\'s own logs; this is not a URL problem.',
+    };
+  }
   if (status >= 300 && status < 400) {
     // Never print Location — a redirect target can itself carry a tokenized URL.
     return {

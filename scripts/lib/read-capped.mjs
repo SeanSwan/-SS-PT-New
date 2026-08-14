@@ -1,5 +1,6 @@
 /**
- * read-capped.mjs — read at most N bytes from a fetch Response, cancelling rather than draining.
+ * read-capped.mjs — read at most N bytes (plus at most one in-flight chunk) from a fetch Response,
+ * cancelling rather than draining.
  * ================================================================================================
  * Extracted from check-mcp-health.mjs when that file crossed the 300-line cap (Rule 4 prescribes
  * extraction over comment-shaving). It is a general HTTP utility with no MCP knowledge, it is

@@ -141,6 +141,29 @@ test('a body over the cap is truncated, reported as such, and the stream is canc
   assert.ok(cancelled, 'the stream must be cancelled, not drained');
 });
 
+test('REGRESSION: a bodiless 204/205 is HEALTHY but must not claim the credential was ACCEPTED', () => {
+  // The hedge this pins was itself a fix for an overclaim — and arrived with no test, which is the
+  // same gap this file calls out for redactions: an untested guarantee can be switched off by
+  // accident. A refactor restoring the affirmative wording would otherwise pass green.
+  for (const s of [204, 205]) {
+    const { verdict, remedy } = diagnose(s, '');
+    assert.equal(verdict, 'HEALTHY', 'exit-code semantics must stay unchanged');
+    assert.match(remedy, /NOT rejected/i, 'the hedge must survive');
+    assert.doesNotMatch(remedy, /accepts the credential/i, 'regression: overclaiming acceptance');
+  }
+  // ...and the affirmative remedy must stay EXCLUSIVE to a response that actually evidences it.
+  assert.match(diagnose(200, '{}').remedy, /accepts the credential/i);
+});
+
+test('304 is not a redirect to follow — it is a cache validation with no body', () => {
+  // read-capped's header lists 304 among the null-body statuses, so routing it into the 3xx branch
+  // ("update the url in config") would have the verdict layer contradicting a sibling module's
+  // documentation. Near-untriggerable for a POST initialize, pinned because the doc now names it.
+  const { verdict, remedy } = diagnose(304, '');
+  assert.doesNotMatch(verdict, /REDIRECT/i);
+  assert.doesNotMatch(remedy, /Update the url/i);
+});
+
 test('401 and 403 are token rejection, not "not configured"', () => {
   for (const s of [401, 403]) {
     assert.equal(diagnose(s, '{"error":"invalid_token"}').verdict, 'CONFIGURED BUT TOKEN REJECTED');
