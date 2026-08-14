@@ -241,7 +241,23 @@ be deleted so a future reader cannot re-introduce a consumer. Ticket, not a bloc
 | `fe38e3d11` | Six hostile rounds — two corrections + the defect that makes the audit silent (docs-only) |
 | `31e28cb3c` | *(sibling)* reader fixes **A+B**, crediting the review |
 | `ea70a8290` | *(sibling)* reader fixes **C+D+E** — "the audit was silent about 34 route files and 12 handlers" |
-| `3025c475c` | This handoff |
+| `3025c475c` | This handoff (first version) |
+| *…and later* | corrections to this handoff, the detail doc, and the learning packet — each one a hostile round that found a stale count, a dead citation, or a cross-document disagreement |
+
+**Do not trust this table to be complete** — it was already 8 commits stale once. Current list:
+```
+git log --oneline origin/main..HEAD
+```
+
+**The full artifact set** (read in this order):
+1. **This file** — state, what is left, how to act.
+2. `docs/ai-workflow/AI-HANDOFF/AUTHZ-CONTROLLER-HOP-VERIFICATION-2026-08-14.md` — all evidence:
+   per-handler traces with file:line, the probes, the measured blast radii, the round ledger.
+3. `docs/ai-workflow/hermes-learning-packets/20260814-a-control-that-passes-can-still-be-a-decoration.md`
+   — the durable lesson. **Read this one even if you are not picking up this lane**: it is about
+   negative controls that pass while testing the wrong arrangement, which is not specific to authz.
+4. `docs/ai-workflow/hermes-learning-packets/20260814-the-three-recurring-failures-are-one.md` —
+   the corpus-wide parent lesson that (3) extends.
 
 **Working tree is clean** apart from one untracked Hermes memo predating this session. Note:
 `frontend/dist/` (54 MB) was built during §6 and left in place — it is gitignored, and leaving it
