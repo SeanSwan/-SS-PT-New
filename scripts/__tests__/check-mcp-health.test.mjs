@@ -190,7 +190,12 @@ test('401 and 403 are token rejection, not "not configured"', () => {
 test('the remedy for a rejected token forbids reporting it as unconfigured', () => {
   // The remedy text is the payload an agent acts on — it must carry the correction explicitly.
   const { remedy } = diagnose(401, '');
-  assert.match(remedy, /not configured/i);
+  // NOT `match(/not configured/i)`: the current remedy passes that by containing the phrase inside a
+  // NEGATION (`Do NOT report this as "not configured"`) — but so would a harmful rewrite that simply
+  // ASSERTS it ("This server is not configured..."). The regex cannot tell the correction from the
+  // falsehood, so the one failure this entire tool exists to prevent could pass green (round 12, L1).
+  assert.match(remedy, /IS configured/i, 'the remedy must affirmatively state the server IS configured');
+  assert.doesNotMatch(remedy, /is not configured/i, 'regression: the remedy must never assert the falsehood');
   assert.match(remedy, /RESTART/i, 'MCP servers connect at startup; a restart is required after a token swap');
 });
 

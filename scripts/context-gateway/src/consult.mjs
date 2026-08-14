@@ -57,9 +57,19 @@ const utcStamp = () => new Date().toISOString().replaceAll(/[:-]/g, '').replace(
  */
 const NON_GATE = new Set(['TRANSPORT', 'NO_KEY', 'UNKNOWN_PROVIDER', 'NO_CAP']);
 
+/**
+ * The ProviderError codes this lane recognizes. ONE list, referenced by both the classifier and the
+ * exit branch — they used to be two identical literals, which is precisely the shape paths.mjs's
+ * header warns about: two copies of one policy is how the next edit lands in only one of them. A
+ * code added to the exit list but not here would record TRANSPORT/`error` on the receipt while
+ * exiting as a recognized refusal, silently corrupting the signal NON_GATE protects (round 12, N1).
+ * Deliberately local to this module: provider vocabulary, not receipt vocabulary (ERROR_CODES).
+ */
+const KNOWN_PROVIDER_CODES = ['UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP'];
+
 const errorCodeOf = (e) => {
   if (e?.message?.includes('OPENROUTER_API_KEY')) return 'NO_KEY';
-  if (e?.code && ['UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP'].includes(e.code)) return e.code;
+  if (e?.code && KNOWN_PROVIDER_CODES.includes(e.code)) return e.code;
   return 'TRANSPORT';
 };
 
@@ -91,7 +101,7 @@ export async function runConsult(providerName, defaultRemit, defaultOut) {
 
     // Refusals (ceiling/spend/unknown-provider) are expected outcomes, not crashes (T8/T10).
     if (e?.message?.includes('OPENROUTER_API_KEY')) { console.error(`[consult-${providerName}] ${e.message}`); process.exit(1); }
-    if (e?.code && ['UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP'].includes(e.code)) {
+    if (e?.code && KNOWN_PROVIDER_CODES.includes(e.code)) {
       console.error(`[consult-${providerName}] REFUSED ${e.message}`);
       if (Array.isArray(e.detail)) for (const d of e.detail) console.error(`  - ${d}`);
       process.exit(2);
