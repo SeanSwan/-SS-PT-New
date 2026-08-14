@@ -113,6 +113,36 @@ exclusive-open probe, the mtime re-check at the moment of action, confirming zer
 files staged fleet-wide, and `fsck`. **The panel supplied the reasoning; the local
 evidence supplied the license to act.** Neither alone would have been enough.
 
+## Mistakes I made
+
+- **I orphaned a second index lock myself, mid-cleanup.** Wrote
+  `git commit -o -- <path> -F-`; after `--` everything is a pathspec, so `-F-` was
+  read as a filename. Git had already taken the lock before failing on argument
+  parsing and stranded it. Caught by the next commit failing with the same error I
+  was there to fix. **Rule that prevents the repeat:** pass the message with
+  `-F <file>` *before* the `--`, never after.
+- **I set a spend cap below the tool's own worst-case ceiling**, so the first Kimi
+  call was refused with zero output and zero spend ($0.60 cap vs $0.91 ceiling;
+  actual cost when it ran was $0.076). Caught by reading the tool's preflight line.
+  **Rule:** cap against observed historical cost, not the ceiling — a ceiling is
+  not a forecast.
+- **I passed an absolute path to a consult script that joins paths to cwd**,
+  producing a nonsense doubled path and a failed run. Caught by the error output.
+  **Rule:** check how a script resolves paths before invoking it.
+- **I retried a denied command verbatim once** before changing approach. Caught by
+  the second identical denial. **Rule:** a denial is a signal — change the
+  mechanism or stop and ask; never re-send the same string. *This one I had
+  already been told, and did anyway — the highest-signal entry here.*
+- **I nearly reported a truncated model response as a complete answer.** Kimi
+  returned `finish_reason: error` having answered 1 of 6 questions; I noticed only
+  because the file was 39 lines. **Rule:** check `finish_reason` and output length,
+  not merely that output exists.
+- **I did not detect the outage — Sean did.** Nine hours of every agent failing to
+  commit, and my own first sign was a single failed commit that I initially framed
+  as a local blocker rather than a fleet-wide one. **Rule:** when an operation
+  fails on shared infrastructure, check whether it is failing for *everyone* before
+  characterising it as your own problem.
+
 ## Error → fix → repeat ledger
 
 | Error class | Times this session | Written up before? | What actually stopped it |
