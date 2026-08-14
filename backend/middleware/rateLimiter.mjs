@@ -239,6 +239,48 @@ export const foodScannerLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * E2EE key-bundle fetch — GET /api/encryption/keys/:userId
+ *
+ * Every call CONSUMES one of the target's one-time prekeys
+ * (keyStoreService.mjs::fetchKeyBundle marks it isUsed) and nothing replaces it
+ * until that user's client replenishes. So any authenticated account can drain
+ * another user's prekey pool by looping this endpoint.
+ *
+ * Severity is genuinely LOW and should not be inflated: the Signal design
+ * degrades gracefully. Once the pool is empty the bundle still returns with
+ * `oneTimePreKey: null` and sessions still establish off the signed prekey —
+ * the loss is the extra forward-secrecy the one-time key would have given that
+ * first message, not availability of messaging.
+ *
+ * KEYED PER (actor, target), NOT PER IP — deliberately unlike every other
+ * limiter in this file. The attacker here is authenticated, so an IP key is both
+ * evadable (rotate egress) and harmful (a gym's shared NAT would throttle real
+ * clients). A legitimate actor needs a given target's bundle a handful of times
+ * — once per device session, then it is cached — so 20/hour per pair is far
+ * above real use while forcing pool exhaustion to cost many distinct accounts.
+ *
+ * The IP fallback should never fire: `protect` is mounted before this on the
+ * only route that uses it. It exists so a future re-mount without auth degrades
+ * to throttling rather than to one shared bucket for every caller.
+ */
+export const preKeyFetchLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20,
+  keyGenerator: (req) => {
+    const actor = req.user?.id;
+    const target = req.params?.userId;
+    return actor ? `u:${actor}:t:${target}` : `ip:${req.ip}:t:${target}`;
+  },
+  message: {
+    success: false,
+    error: 'Too many key-bundle requests for this user. Please try again later.',
+    retryAfter: '1 hour'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export default {
   apiLimiter,
   authLimiter,
@@ -249,4 +291,5 @@ export default {
   orientationLimiter,
   handoffLimiter,
   foodScannerLimiter,
+  preKeyFetchLimiter,
 };

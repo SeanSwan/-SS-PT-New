@@ -14,6 +14,7 @@
 import { Router } from 'express';
 import { body, param, query } from 'express-validator';
 import { protect } from '../middleware/auth.mjs';
+import { preKeyFetchLimiter } from '../middleware/rateLimiter.mjs';
 import {
   uploadKeyBundle,
   fetchKeyBundle,
@@ -77,7 +78,10 @@ router.post('/keys/upload', protect, [
 // ---------------------------------------------------------------------------
 // GET /api/encryption/keys/:userId — Fetch a user's key bundle
 // ---------------------------------------------------------------------------
-router.get('/keys/:userId', protect, [
+// Rate limited per (actor, target): each fetch CONSUMES one of the target's
+// one-time prekeys, so without a limit any authenticated account can drain
+// another user's pool. See preKeyFetchLimiter for the sizing rationale.
+router.get('/keys/:userId', protect, preKeyFetchLimiter, [
   param('userId').isInt(),
 ], async (req, res) => {
   try {
