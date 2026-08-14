@@ -608,6 +608,7 @@ const WorkoutLogger: React.FC<WorkoutLoggerProps> = ({
               scheduledSessionCreditHint={scheduledSessionCreditHint}
               exerciseCount={exercises.length}
               selfMode={isClientSelfMode}
+              userRole={user?.role}
             />
           }
           reference={

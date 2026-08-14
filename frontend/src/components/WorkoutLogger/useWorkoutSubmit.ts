@@ -30,6 +30,10 @@ import {
   hasIncompleteWorkoutSets,
   isWorkoutSubmitCanceled,
 } from './WorkoutLogger.helpers';
+import {
+  WORKOUT_SUBMIT_OUTCOME,
+  type WorkoutSubmitOutcome,
+} from './workoutSubmitOutcome';
 import type { PlannedAssignment, WorkoutLoggerClient } from './WorkoutLogger.localTypes';
 import type { useOfflineQueue } from './useOfflineQueue';
 
@@ -83,9 +87,15 @@ export function useWorkoutSubmit({
   workoutDraft,
 }: WorkoutSubmitParams) {
   const handleSubmit = useCallback(async (
-    submitOverrides?: { overallIntensity?: number | null; sessionNotes?: string },
+    submitOverrides?: {
+      overallIntensity?: number | null;
+      sessionNotes?: string;
+      /** Synchronous seam ack. Called exactly once, before the first await. */
+      acknowledge?: (handled?: boolean) => void;
+    },
   ) => {
-    if (isSubmittingRef.current) return;
+    const ack = submitOverrides?.acknowledge;
+    if (isSubmittingRef.current) { ack?.(false); return WORKOUT_SUBMIT_OUTCOME.BUSY; }
     isSubmittingRef.current = true; // Set IMMEDIATELY after check to close race window
     setIsSubmitting(true);
     const submitIntensity = typeof submitOverrides?.overallIntensity === 'number'
@@ -95,8 +105,8 @@ export function useWorkoutSubmit({
       ? submitOverrides.sessionNotes
       : sessionNotes;
 
-    if (exercises.length === 0) { toast.error('Please add at least one exercise'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
-    if (!client) { toast.error('Client information not loaded'); isSubmittingRef.current = false; setIsSubmitting(false); return; }
+    if (exercises.length === 0) { toast.error('Please add at least one exercise'); isSubmittingRef.current = false; setIsSubmitting(false); ack?.(false); return WORKOUT_SUBMIT_OUTCOME.NEEDS_REVIEW; }
+    if (!client) { toast.error('Client information not loaded'); isSubmittingRef.current = false; setIsSubmitting(false); ack?.(false); return WORKOUT_SUBMIT_OUTCOME.NEEDS_REVIEW; }
     // Null balances and linked scheduled sessions pass through to backend billing validation.
     if (shouldBlockWorkoutSubmitForSessionBalance({
       availableSessions: client.availableSessions,
@@ -104,18 +114,19 @@ export function useWorkoutSubmit({
       clientSource: client.clientSource,
       scheduledSessionId,
     })) {
-      toast.error('Client has no available sessions remaining'); isSubmittingRef.current = false; setIsSubmitting(false); return;
+      toast.error('Client has no available sessions remaining'); isSubmittingRef.current = false; setIsSubmitting(false); ack?.(false); return WORKOUT_SUBMIT_OUTCOME.NEEDS_REVIEW;
     }
 
     if (hasIncompleteWorkoutSets(exercises)) {
-      toast.error('Please complete all exercise sets before submitting'); isSubmittingRef.current = false; setIsSubmitting(false); return;
+      toast.error('Please complete all exercise sets before submitting'); isSubmittingRef.current = false; setIsSubmitting(false); ack?.(false); return WORKOUT_SUBMIT_OUTCOME.NEEDS_REVIEW;
     }
 
     if (typeof effectiveClientId !== 'number') {
       toast.error('No client context - unable to submit');
       isSubmittingRef.current = false;
       setIsSubmitting(false);
-      return;
+      ack?.(false);
+      return WORKOUT_SUBMIT_OUTCOME.NEEDS_REVIEW;
     }
     const formData = buildWorkoutFormSubmitBody({
       clientId: effectiveClientId,
@@ -135,13 +146,20 @@ export function useWorkoutSubmit({
       offlineQueue.queueSubmission(formData);
       isSubmittingRef.current = false;
       setIsSubmitting(false);
-      return;
+      ack?.(true);
+      return WORKOUT_SUBMIT_OUTCOME.KEPT_LOCAL;
     }
 
     setLastChallengeProgress(null);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    let outcome: WorkoutSubmitOutcome = WORKOUT_SUBMIT_OUTCOME.FAILED;
+
+    // Last synchronous instant: the request is about to be issued. This says
+    // ACCEPTED, not saved. See the seam limitation note at the AI bridge.
+    ack?.(true);
 
     try {
       const response = await dailyWorkoutFormService.submitWorkoutForm(
@@ -161,6 +179,7 @@ export function useWorkoutSubmit({
         // Phase 2.1a: onComplete deferred to SaveSuccessPanel's Done action.
         setLastSaveResponse(response.data);
         workoutDraft.clear();
+        outcome = WORKOUT_SUBMIT_OUTCOME.SAVED;
       } else {
         setLastChallengeProgress(null);
         const existingFormId = response.data?.id || response.data?.formId || null;
@@ -170,8 +189,12 @@ export function useWorkoutSubmit({
           // save already owns the date; clearing would destroy the only copy
           // of the just-entered workout (probe finding #2).
           toast.warning(response.message || 'A workout already exists for this date. Summary tools are unlocked — your current entries stay saved as a draft.');
+          // A DIFFERENT save owns this date. Nothing of THIS workout reached the
+          // server, so it is a review item, never a success.
+          outcome = WORKOUT_SUBMIT_OUTCOME.NEEDS_REVIEW;
         } else {
           toast.error(response.message || 'Workout was not saved. Please review and try again.');
+          outcome = WORKOUT_SUBMIT_OUTCOME.FAILED;
         }
       }
     } catch (error: unknown) {
@@ -188,14 +211,18 @@ export function useWorkoutSubmit({
       ) {
         const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message;
         toast.error(message || 'Workout was not saved. Please review and try again.');
+        outcome = WORKOUT_SUBMIT_OUTCOME.FAILED;
       } else {
         offlineQueue.queueSubmission(formData);
+        outcome = WORKOUT_SUBMIT_OUTCOME.KEPT_LOCAL;
       }
     } finally {
       clearTimeout(timeoutId);
       isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
+
+    return outcome;
   }, [
     client,
     effectiveClientId,
@@ -225,8 +252,30 @@ export function useWorkoutSubmit({
       if (typeof detail.intensity === 'number') setOverallIntensity(detail.intensity);
       if (typeof detail.notes === 'string') setSessionNotes(detail.notes);
 
-      detail.acknowledgeAIWorkoutEvent?.();
-      void handleSubmit({ overallIntensity: nextIntensity, sessionNotes: nextNotes });
+      // The acknowledge seam is SYNCHRONOUS: dispatchWithAcknowledgement reads
+      // `handled` on the line after window.dispatchEvent and returns it, so an
+      // ack that arrives after an awaited save is never seen. Probe:
+      //   ack-then-save  -> {acknowledged: true,  handled: true}
+      //   save-then-ack  -> {acknowledged: false, handled: false}
+      // The first is what shipped: an unconditional no-argument ack defaults
+      // `didHandle` to true, so resolveOutcome(true, true) logged EVERY submit as
+      // `applied` — including ones refused by validation that never left the
+      // browser. The second is a different lie ("nobody was listening").
+      //
+      // So this acks only what is knowable synchronously. A settled refusal is a
+      // truthful `noop`. Whether an ATTEMPTED save succeeded is not knowable here
+      // and the boolean seam cannot express "accepted, outcome pending" — that
+      // gap is real and belongs to the coach-seam decision, not to this hook.
+      // The ack is handed INTO handleSubmit rather than re-deciding out here. A
+      // second copy of the refusal rules beside the real ones is precisely how
+      // the trainer-calendar defect (F7) was born. Every refusal path runs
+      // before the first `await`, so handleSubmit can still answer the seam
+      // synchronously from the one place that actually knows.
+      void handleSubmit({
+        overallIntensity: nextIntensity,
+        sessionNotes: nextNotes,
+        acknowledge: detail.acknowledgeAIWorkoutEvent,
+      });
     };
 
     window.addEventListener(AI_SUBMIT_WORKOUT, onSubmitWorkout);

@@ -494,3 +494,7 @@ SOUL.archive/**
 # Swan World Engine factory outputs (local, ignored proofs only)
 experiments/world-factory/
 scripts/qa/.qa-schema-manifest.json
+
+# Render agent credential — a token that can lease jobs and report completions.
+.swan-agent.env
+**/.swan-agent.env

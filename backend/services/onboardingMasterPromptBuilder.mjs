@@ -17,6 +17,12 @@
  * - A serializable object ready for User.masterPromptJson.
  */
 
+import {
+  applyOnboardingFieldDictionary,
+  sanitizeNarrativeFields,
+  ONBOARDING_DICTIONARY_VERSION,
+} from './onboardingFieldDictionary.mjs';
+
 const toInt = (value) => Number.parseInt(value, 10);
 const toFloat = (value) => Number.parseFloat(value);
 const yes = (value) => value === 'yes';
@@ -65,6 +71,17 @@ const buildHealth = (formData) => ({
   injuries: formData.pastInjuries || [],
   surgeries: formData.pastSurgeries || [],
   currentPain: formData.currentPain || [],
+  // Added 2026-08-13 (S5/F10). The wizard has asked every client these four
+  // questions all along and the projection had nowhere to put the answers, so
+  // they were collected and discarded. Movement limits and the two PAR-Q
+  // cardiac screens are exactly the inputs that should constrain programming.
+  // Blood pressure is carried as the raw reading the wizard collects rather
+  // than parsed into systolic/diastolic — guessing at the format of a
+  // free-text vital is a worse failure than passing it through verbatim.
+  movementLimitations: formData.movementLimitations || '',
+  chestPain: yes(formData.chestPain),
+  heartCondition: yes(formData.heartCondition),
+  bloodPressureReading: formData.bloodPressureReading || '',
 });
 
 const buildNutrition = (formData) => ({
@@ -199,11 +216,20 @@ const buildMetadata = (formData) => ({
   lastUpdated: new Date().toISOString(),
 });
 
-export const transformQuestionnaireToMasterPrompt = (formData, userId) => {
+export const transformQuestionnaireToMasterPrompt = (rawFormData, userId) => {
   void userId;
+
+  // Reconcile wizard field names to the names this projection reads, BEFORE
+  // any section is built. The wizard collects `injuries`; every builder below
+  // reads `pastInjuries || []` — so the answer was defaulted away and the
+  // projection still looked complete. The rewrite is additive: an already
+  // canonical key always wins, so callers that speak this projection's
+  // language are untouched. Contract: onboardingFieldDictionary.mjs.
+  const formData = sanitizeNarrativeFields(applyOnboardingFieldDictionary(rawFormData));
 
   return {
     version: '3.0',
+    dictionaryVersion: ONBOARDING_DICTIONARY_VERSION,
     client: buildClientProfile(formData),
     measurements: buildMeasurements(formData),
     goals: buildGoals(formData),

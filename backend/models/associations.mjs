@@ -59,7 +59,8 @@ const setupAssociations = async () => {
 
     // Social Models (Sequelize)
     const SocialModels = await import('./social/index.mjs');
-    const { SocialPost, SocialComment, SocialLike, Friendship, Challenge: SocialChallenge, ChallengeParticipant: SocialChallengeParticipant, ChallengeTeam, PostReport, ModerationAction } = SocialModels;
+    // SWA-96 merge: social challenge trio retired from the registry (empty-table twins).
+    const { SocialPost, SocialComment, SocialLike, Friendship, PostReport, ModerationAction } = SocialModels;
 
     // Workout Models (Sequelize)
     const WorkoutPlanModule = await import('./WorkoutPlan.mjs');
@@ -505,7 +506,7 @@ const setupAssociations = async () => {
         UserAchievement, UserReward, UserMilestone, Reward, Milestone,
         PointTransaction, StorefrontItem, ProductVariant, ShoppingCart, CartItem, Order,
         OrderItem, SessionPackage, Package, AdminSpecial, FoodIngredient, FoodProduct, FoodScanHistory,
-        SocialPost, SocialComment, SocialLike, Friendship, SocialChallenge, SocialChallengeParticipant, ChallengeTeam,
+        SocialPost, SocialComment, SocialLike, Friendship,
         PostReport, ModerationAction,
         Challenge, ChallengeParticipant, Goal, ProgressData, UserFollow,
         Streak, GoalSupporter, GoalComment, GoalLike, GoalMilestone,
@@ -1437,9 +1438,6 @@ const setupAssociations = async () => {
       SocialComment,
       SocialLike,
       Friendship,
-      SocialChallenge,
-      SocialChallengeParticipant,
-      ChallengeTeam,
       
       // Content Moderation Models
       PostReport,

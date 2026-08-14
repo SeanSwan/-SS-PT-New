@@ -504,8 +504,27 @@ describe('Phase 16.2 - Phase 16 + 16.1-UX contracts preserved', () => {
 
   it('AI_SUBMIT_WORKOUT bridge submits through the same save path', () => {
     expect(SOURCE).toMatch(/addEventListener\(\s*AI_SUBMIT_WORKOUT\s*,/);
-    expect(SOURCE).toMatch(/acknowledgeAIWorkoutEvent\?\.\(\)/);
-    expect(SOURCE).toMatch(/handleSubmit\(\{\s*overallIntensity:\s*nextIntensity,\s*sessionNotes:\s*nextNotes\s*\}\)/);
+    expect(SOURCE).toMatch(/handleSubmit\(\{[\s\S]{0,200}overallIntensity:\s*nextIntensity/);
+  });
+
+  it('AI_SUBMIT_WORKOUT does NOT acknowledge unconditionally before the save (F4)', () => {
+    // RE-ANCHORED 2026-08-13 (S3/F4). The previous version of the test above
+    // asserted `acknowledgeAIWorkoutEvent?.()` — a no-argument call, which
+    // defaults `didHandle` to TRUE — as a required source shape. It was pinning
+    // the defect in place: every submit, including ones refused by validation
+    // that never reached the network, was acked true and logged `applied` by
+    // resolveOutcome(true, true).
+    //
+    // The sibling AI_UPDATE_SET test below already required a CONDITIONAL ack
+    // (`next !== prev`). Submit was the only bridge exempt from that rule.
+    const idx = SOURCE.indexOf('const onSubmitWorkout');
+    expect(idx).toBeGreaterThan(-1);
+    const body = SOURCE.slice(idx, idx + 1800);
+
+    expect(body).not.toMatch(/acknowledgeAIWorkoutEvent\?\.\(\)\s*;/);
+    // The ack is handed INTO handleSubmit, which answers from the one place
+    // that knows the refusal rules — rather than a second copy of them here.
+    expect(body).toMatch(/acknowledge:\s*detail\.acknowledgeAIWorkoutEvent/);
   });
 
   it('AI_UPDATE_SET bridge only acknowledges once the form state actually changes', () => {

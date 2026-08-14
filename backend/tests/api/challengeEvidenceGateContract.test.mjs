@@ -17,16 +17,10 @@ import path from 'path';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(path.resolve(here, rel), 'utf8');
 
-describe('social challenge manual progress gates fitness categories', () => {
-  const src = read('../../routes/social/challenges.mjs');
-  it('defines the evidence-required category set (workout)', () => {
-    expect(src).toMatch(/EVIDENCE_REQUIRED_CATEGORIES = new Set\(\['workout'\]\)/);
-  });
-  it('rejects manual progress for evidence-required categories with a 409 code', () => {
-    expect(src).toMatch(/EVIDENCE_REQUIRED_CATEGORIES\.has\(challenge\.category\)/);
-    expect(src).toContain('CHALLENGE_REQUIRES_WORKOUT_EVIDENCE');
-  });
-});
+// SWA-96 retirement (2026-08-13): the social manual-progress endpoint was REMOVED
+// with the PascalCase family, so its evidence gate is vacuously satisfied — there
+// is nothing to self-report against. Absence is asserted by
+// socialChallengeRetirementContract.test.mjs. The V1 gate below remains live.
 
 describe('V1 challenge manual progress gates fitness + streak', () => {
   const src = read('../../controllers/challengeController.mjs');

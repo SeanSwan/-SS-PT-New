@@ -50,6 +50,7 @@ import { triggerSequence } from '../automationService.mjs';
 import { extractOrderSessionData, hasPaymentNoteItems } from '../orderSessionExtraction.mjs';
 import { accrueFlatSessionEarning } from '../trainerSessionEarningService.mjs';
 import { getSessionCreditsToRestore } from './sessionCreditReceiptService.mjs';
+import { resolveBlockedTimeSubject } from './sessionBlockAuthorization.mjs';
 
 // Import Real-Time Schedule Service for WebSocket broadcasting
 import realTimeScheduleService from '../realTimeScheduleService.mjs';
@@ -1240,6 +1241,11 @@ class UnifiedSessionService {
       throw new Error('Missing required parameters for blocked time');
     }
 
+    // Resolve the subject BEFORE any date expansion or transaction. Doing it here
+    // means a refused request cannot have written a single row, and a recurrence
+    // rule cannot multiply an unauthorized subject across N occurrences.
+    const subjectTrainerId = resolveBlockedTimeSubject({ requestedTrainerId: trainerId, user });
+
     const dates = buildRecurrenceDates(sessionDate, recurrenceRule);
     const recurringGroupId = dates.length > 1 ? uuidv4() : null;
     const resolvedNotifyClient = notifyClient !== undefined ? notifyClient : false;
@@ -1257,7 +1263,7 @@ class UnifiedSessionService {
           endDate,
           duration: duration || 60,
           status: 'blocked',
-          trainerId: trainerId || (user.role === 'trainer' ? user.id : null),
+          trainerId: subjectTrainerId,
           location: location || 'Main Studio',
           sessionTypeId: null, // Blocked time has no session type
           reason: reason || 'Blocked time',
