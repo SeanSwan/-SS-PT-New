@@ -36,13 +36,26 @@ test('a `..`-prefixed path escapes on either separator', () => {
   assert.equal(escapes('../../Users/someone/out.md'), true);
 });
 
-test('an absolute path escapes (the Windows cross-drive case relative() cannot express)', () => {
-  // A `/`-rooted path is absolute on BOTH platforms — win32 `isAbsolute('/tmp/x')` is true, it is
-  // simply drive-relative rather than drive-qualified. The first draft of this test asserted the
-  // POSIX-only answer and failed on Windows; the CODE was right, the assertion was wrong.
+test('an absolute path escapes, on EVERY platform', () => {
+  // A `/`-rooted path is absolute on both — win32 `isAbsolute('/tmp/x')` is true, it is simply
+  // drive-relative rather than drive-qualified.
   assert.equal(escapes('/tmp/out.md'), true);
-  // A drive-qualified path is absolute only where drives exist; elsewhere it is an ordinary filename.
-  assert.equal(escapes('D:\\other\\out.md'), process.platform === 'win32');
+  // Drive-qualified MUST escape everywhere. This assertion used to read
+  // `process.platform === 'win32'`, which pinned the platform-DEPENDENT behaviour as correct —
+  // while receiptV1.test.mjs asserted the POSIX-impossible unconditionally. The two files
+  // contradicted each other, and the real consequence was a security hole: on POSIX the receipt
+  // recorded `C:/Users/<name>/...` verbatim. Redaction is not allowed to be platform-conditional
+  // (round 16, S1).
+  assert.equal(escapes('D:\\other\\out.md'), true);
+  assert.equal(escapes('C:/Users/someone/packet.md'), true);
+});
+
+test('REGRESSION: a Windows path is redacted even when the runtime does not recognise it', () => {
+  // The exact leak: POSIX isAbsolute() says false, resolve() nests it under the root, relative()
+  // hands it straight back, and the username lands in the receipt.
+  const out = relativizePath('/repo', 'C:/Users/SomePerson/AppData/Local/Temp/packet.md');
+  assert.equal(out, '<external>');
+  assert.ok(!String(out).includes('SomePerson'), 'OS username survived on this platform');
 });
 
 test('a sibling whose NAME begins with dots is NOT an escape', () => {

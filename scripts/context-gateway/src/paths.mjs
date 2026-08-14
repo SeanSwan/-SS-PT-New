@@ -29,8 +29,19 @@ import { relative, resolve, isAbsolute, sep, basename } from 'node:path';
  * A path merely STARTING with the characters `..` (`..foo/bar`) is NOT an escape — it is a sibling
  * whose name begins with dots, and redacting it would lose real information for no safety gain.
  */
+/**
+ * Drive-qualified (`C:\…`, `D:/…`) is absolute on win32 but reads as an ordinary FILENAME on POSIX,
+ * where `isAbsolute` returns false. Without this, `relativizePath('/repo','C:/Users/<name>/x.md')`
+ * resolves to `/repo/C:/Users/<name>/x.md`, relativizes back to `C:/Users/<name>/x.md`, escapes()
+ * says false — and the receipt records the OS username VERBATIM. A username does not stop being PII
+ * because the runtime stopped recognising the path shape, so redaction must be platform-independent
+ * even though `isAbsolute` is not. Proven with path.posix: leaked on Linux/macOS/WSL, invisible on
+ * Windows — which is why 15 review rounds on a Windows box never saw it (Kimi round 16, S1).
+ */
+const WIN_ABS = /^[A-Za-z]:[\\/]/;
+
 export function escapes(rel) {
-  if (isAbsolute(rel)) return true;
+  if (isAbsolute(rel) || WIN_ABS.test(rel)) return true;
   return rel === '..' || rel.startsWith(`..${sep}`) || rel.startsWith('../');
 }
 
