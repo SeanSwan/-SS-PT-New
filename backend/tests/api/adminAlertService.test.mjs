@@ -132,14 +132,40 @@ describe('raiseSendFailureAlert', () => {
     expect(created.metadata).not.toContain('someone@real.com');
   });
 
-  it('REDACTS a phone number in either channel', async () => {
+  it.each([
+    ['NA with separators', 'sms fallback failed for +1 (555) 867-5309'],
+    ['NA bare 10-digit', 'callback to 5558675309 failed'],
+    ['NA hyphenated', 'call 555-867-5309 now'],
+    ['E.164', 'sms to +15558675309 bounced'],
+    ['international with spaces', 'sms to +44 20 7946 0958 bounced'],
+  ])('REDACTS a phone number — %s', async (_label, msg) => {
     const created = await raiseSendFailureAlert({
-      lane: 'sendgrid',
-      error: new Error('sms fallback failed for +1 (555) 867-5309'),
-      context: { leadId: 9 },
+      lane: 'sendgrid', error: new Error(msg), context: { leadId: 9 },
     });
-    expect(created.message).not.toContain('867-5309');
     expect(created.message).toContain('<redacted-phone>');
+  });
+
+  /**
+   * The other half of the guard, and the reason it was rewritten.
+   *
+   * The first phone pattern (`/\+?\d[\d\s().-]{7,}\d/`) redacted the exact
+   * fields this alert exists to surface: it turned `2026-08-14 10:30:00` and
+   * the request id `7f3a-1122-3344-5566` into `<redacted-phone>`. A privacy
+   * guard that eats the timestamp and correlation id has destroyed the alert
+   * while looking like it protected it. These inputs defeated that form — do
+   * not loosen the pattern back.
+   */
+  it.each([
+    ['ISO-ish timestamp', 'rejected at 2026-08-14 10:30:00 UTC'],
+    ['ISO-T timestamp', 'retry after 2026-08-14T10:30:00Z'],
+    ['hyphenated request id', 'request id 7f3a-1122-3344-5566 failed'],
+    ['duration in ms', 'HTTP 429 after 12345678 ms'],
+    ['order number', 'order 90210 line 4'],
+  ])('KEEPS diagnostics intact — %s', async (_label, msg) => {
+    const created = await raiseSendFailureAlert({
+      lane: 'sendgrid', error: new Error(msg), context: { leadId: 9 },
+    });
+    expect(created.message).not.toContain('<redacted-phone>');
   });
 
   it('never throws when the model layer explodes — an alert must not create a failure', async () => {

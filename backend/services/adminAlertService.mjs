@@ -100,8 +100,32 @@ export async function raiseMoneyWriteAlert({ lane, error, context = {} } = {}) {
  * fails most often.
  */
 const REDACT_EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-const REDACT_PHONE = /\+?\d[\d\s().-]{7,}\d/g;
+
+/**
+ * Each branch carries the input that defeated its previous form — do not
+ * "simplify" one back open (same discipline as fuzzyClauseGuards).
+ *
+ * The first form here was `/\+?\d[\d\s().-]{7,}\d/g`. It redacted the things
+ * this alert exists to show: `2026-08-14 10:30:00` became `<redacted-phone>`,
+ * and so did the request id `7f3a-1122-3344-5566`. A guard that eats the
+ * timestamp and the correlation id out of a delivery-failure alert has
+ * destroyed the alert while appearing to protect it.
+ *
+ * Branch 1 — international, `+`-anchored and permissive. Safe to be loose
+ *   precisely BECAUSE of the `+`: no timestamp, UUID, duration, or order
+ *   number starts with one. Defeated the strict E.164 form on `+44 20 7946 0958`.
+ * Branch 2 — North American, structure-required (3-3-4 with optional
+ *   separators or a parenthesised area code). The structure is what keeps
+ *   `2026-08-14`, `12345678 ms`, and hyphenated ids intact.
+ *
+ * Input is capped before matching: both branches use bounded quantifiers, so
+ * backtracking is linear, but an unbounded error string is still not worth
+ * scanning.
+ */
+const REDACT_PHONE = /\+\d[\d\s.()-]{5,17}\d|(?:\(\d{3}\)|\b\d{3})[\s.-]?\d{3}[\s.-]?\d{4}\b/g;
+const SCRUB_MAX_CHARS = 2000;
 const scrubIdentity = (value) => String(value ?? '')
+  .slice(0, SCRUB_MAX_CHARS)
   .replace(REDACT_EMAIL, '<redacted-email>')
   .replace(REDACT_PHONE, '<redacted-phone>');
 
