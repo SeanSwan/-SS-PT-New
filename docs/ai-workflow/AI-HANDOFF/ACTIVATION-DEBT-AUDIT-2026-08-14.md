@@ -1,5 +1,5 @@
 ---
-decision: SwanStudios has an activation problem, not a building problem. Land the S2L cockpit half before flipping any outbound flag, then run a tiered activation wave.
+decision: Nothing forces a decision when a flag or file stops being needed, so dark code accumulates. Sean flips S2L + PRISM + the two Launch Control flags in one ~40-minute sitting; an agent then deletes the corpses, lands the cockpit merge, wires send-failure alerting, and replaces the wave pattern with a self-firing expiry assert.
 status: open
 supersedes: none
 ---
@@ -148,10 +148,12 @@ state with no infrastructure-as-code record — a service rebuilt from blueprint
 The lane author's central claim — *the flag is the constraint, more code does not move it* —
 is correct and independently confirmed.
 
-### 4.2 The correction: ordering is backwards
+### 4.2 A real gap in the cockpit — but NOT a reason to delay the flip
 
-The lane's handoff recommends **flip the flag first, observability fourth**. That is wrong,
-and the reason is already in the repo.
+> **Superseded in part.** This section originally argued the lane's "flip first, observability
+> fourth" ordering was backwards. External review overturned that (§10 #1) and §7 now flips
+> first. What survives is the underlying defect, which is real and still worth fixing — it is
+> just step 5, not step 1.
 
 **On `main`, the readiness cockpit is blind to the flag it exists to report.**
 `marketingReadinessService.mjs` reports `sendgridConfigured` (`:149`) but contains **zero**
@@ -169,8 +171,8 @@ fuzzy import; `speedToLeadReadiness.mjs` imports only `./readinessStatus.mjs`). 
 merge into current `main` with **zero conflicts**.
 
 So the branch is **two deliverables**, not one:
-- **A — cockpit visibility.** Merge-ready, 27/27 tests green, zero product risk, and it is the instrument that
-  tells you whether the flip worked. **Land this first.**
+- **A — cockpit visibility.** Merge-ready, 27/27 tests green, low-risk and test-covered, and it is the instrument that
+  tells you whether the flip worked. **Land it in the same week (§7 step 5) — not ahead of the flip.**
 - **B — fuzzy-variable validator.** Genuinely unwired (zero non-test importers confirmed).
   Its flag `MARKETING_FUZZY_VARS_ENABLED` is read only inside its own service — no consumer
   exists. Needs a build slice. **Defer.**
@@ -229,18 +231,23 @@ found. An initial "25 unmounted routes" list was entirely false positives: a sec
 
 ---
 
-## 6. Blast-radius tiers — this drives the safe order
+## 6. Sort by REVERSIBILITY, not by external visibility
 
-- **Tier 1 — internal / read-only.** `DASHBOARD_V2_FINANCE`, `SESSION_SETTLEMENT_WORKER_ENABLED`,
-  `ENABLE_POST_SAVE_HANDOFF`. Two are already on Launch Control: flip, watch, revert in one click.
-- **Tier 2 — in-app visible, no outbound send.** Planner IA V2, Voice Mode V2, planner
-  templates/lenses. Needs rebuild+redeploy, so it carries deploy risk and no instant revert.
-  `voiceModeV2Flag.ts:5` documents its own activation gate ("10 real dictations") — never run.
-- **Tier 3 — reaches real humans.** `SPEED_TO_LEAD_REPLY_ENABLED` (one transactional email in
-  direct response to a form the person just submitted — fail-closed, non-blocking; the
-  *lowest-risk* T3), `PRISM_CAPTURE_ENABLED`, and at the top of the range
-  `SWAN_AUTOMATION_CRON_ENABLED` (bulk scheduled outbound — 59 days dark, the single most
-  dangerous flip in the inventory).
+My first draft tiered these by blast radius (internal → in-app → reaches humans). Kimi K3
+showed that axis is wrong for a solo operator, and the counter-example is decisive:
+
+> *One click flips the settlement worker; no click un-settles a 45-day backlog. Meanwhile
+> PRISM — which I filed as the riskiest tier — is one-click revertible.*
+
+External visibility is not the thing that hurts. **Irreversibility** is. Re-sorted:
+
+| Revert cost | Flags | Why |
+|---|---|---|
+| **One click, no deploy** | `PRISM_CAPTURE_ENABLED`, `DASHBOARD_V2_FINANCE`, `ENABLE_POST_SAVE_HANDOFF` | Launch Control DB overrides, role-targetable. Safest things in the inventory despite two being user-visible. |
+| **One env flip + redeploy** | `SPEED_TO_LEAD_REPLY_ENABLED` | Fail-closed, non-blocking, transactional-class. Rollback is the same switch. |
+| **Redeploy, no instant revert** | `VITE_ENABLE_PLANNER_IA_V2`, `VOICE_MODE_V2`, templates, lenses | Build-time. Batch all four into ONE deploy — deploys are the scarce resource. |
+| **NOT REVERSIBLE** | `SESSION_SETTLEMENT_WORKER_ENABLED` | Settling a 45-day backlog cannot be undone. **Investigate before flipping** (§7 step 8). |
+| **Reputation-coupled** | `SWAN_AUTOMATION_CRON_ENABLED` | A deliverability incident degrades the sender reputation S2L now depends on. The two lanes are coupled. |
 
 ---
 
@@ -248,29 +255,36 @@ found. An initial "25 unmounted routes" list was entirely false positives: a sec
 
 Ordered by value per minute of Sean's attention.
 
+**This sequence was rewritten after external review.** My first version put two code slices
+ahead of the only revenue item. Kimi K3 pointed out I had refuted myself in my own document:
+I endorsed *"the flag is the constraint; more code does not move it"* and then scheduled two
+code slices before flipping it. If code does not move it, code cannot be on its critical
+path. Conceded — see §10.
+
+**Sean's part is ONE ~40-minute sitting (steps 1–3). Everything else is an agent's.**
+
 | # | Action | Owner | Time | Why here |
 |---|---|---|---|---|
-| 1 | Land S2L branch **half A** (cockpit visibility) | agent | ~30 min | Builds the instrument before the flip. Merges clean, 27/27 tests green, zero product risk. |
-| 2 | Wire send failures into existing `adminAlertService` | agent | ~1 h | Small — infra exists. Turns silent failure into a signal *before* anything is armed. |
-| 3 | Flip `SPEED_TO_LEAD_REPLY_ENABLED`, run the existing runbook's live test | **Sean** | ~5 min + deploy | Highest-value single action in the lane. Now instrumented. |
-| 4 | Tier-1 flips via Launch Control | **Sean** | ~2 min | One-click revert; 99 feature-days recovered. |
-| 5 | Delete the 10 verified-dead files (Rule 34 approval) | agent | ~30 min | Removes 1,146 lines of agent-confusing noise. |
-| 6 | Tier-2 (planner/voice V2) behind one deploy | agent + Sean | ~1 h | Run `voiceModeV2Flag`'s own "10 real dictations" gate first. |
-| 7 | Fuzzy-variable wiring (S2L branch half B) | agent | ~2 h | Only after 1–3 prove the send path works end to end. |
-| 8 | Nurture unsubscribe + suppression build slice, **then** `SWAN_AUTOMATION_CRON_ENABLED` | agent, then **Sean** | ~1 day | **Not a flip.** Blocked on a legal prerequisite (one-click unsubscribe in every nurture email, CAN-SPAM/GDPR) that does not exist yet — see §3.1a. |
-| 9 | Write down *why* the 3 undocumented flags are off | agent | ~20 min | Settlement worker (45d), planner V2 (14d), voice V2 (13d) have **zero** docs. Cheapest possible fix for the gap §8 describes. |
+| 1 | Flip `SPEED_TO_LEAD_REPLY_ENABLED` + run the existing runbook's live test | **Sean** | ~20 min | The only revenue item one flip from live. Worst case ≈ today (no auto-reply), and the runbook's Step 3 live test catches a silent failure *at flip time*. |
+| 2 | Flip `PRISM_CAPTURE_ENABLED` via Launch Control + 5-min smoke | **Sean** | ~10 min | Acquisition lever, one-click revert, no deploy. **Omitted entirely from my first draft — the biggest gap in it**, given acquisition is the weakest link. Note: this makes a capture form appear on the home hero (`f3e450d18`), so it is a visible change, not just an API. Double-capture checked: the route 404s when off and is separate from the contact form. |
+| 3 | Flip `dashboardV2Finance` + `postSaveHandoff`, **role-targeted to owner** | **Sean** | ~10 min | Launch Control supports role targeting — Sean is the head trainer, so he is the free canary. |
+| 4 | One decide-and-delete sitting | agent | ~30 min | 10 verified-dead files (1,146 lines), 12 playground pages, `TrainerVideosPage`, the superseded corpses. Rule 34 grep first. Every deletion shrinks all downstream work. |
+| 5 | Land S2L branch **half A** (cockpit visibility) | agent | ~30 min | Cost is mostly sunk; 27/27 green; merges clean. Same week, **not** flip-gating. |
+| 6 | Wire send failures into existing `adminAlertService` | agent | ~1–2 h | The correct fix for the ongoing-operation gap — placed after revenue, not before it. |
+| 7 | Declare all env flags in `render.yaml` + a key-diff sync check | agent | ~30–60 min | ~19 flags exist only as Render dashboard state with no record in the repo. **I underweighted this**; see §10 #7. |
+| 8 | **Investigate** the settlement worker, then flip-or-delete | agent | ~1 h | 45 days off. There *is* an inline path (`sessionDeductionService.mjs`, `sessionSettlementPolicy.mjs`), so the worker is likely a backstop — but whether a backlog accumulated is **unverified** and needs a read-only query. Not a flip: settling a backlog cannot be undone. |
+| 9 | Voice 10-dictation gate, then **ONE batched deploy** of all four `VITE_*` V2 flags | agent + **Sean** | ~1 h | `voiceModeV2Flag.ts:5` names its own gate and it was never run. Never four deploys for four flags. |
+| 10 | Automation cron: **decide backlog-or-delete. Do not flip.** | **Sean** decides | — | Two independent blocks: a legal prerequisite that does not exist (one-click unsubscribe, §3.1a) *and* sender-reputation coupling — a deliverability incident here degrades the reputation S2L now depends on. |
+| 11 | Fuzzy-variable wiring (S2L branch half B) | agent | ~2 h | Only after 1 and 5–6 prove the send path works end to end. |
 
-### 7.1 Why steps 1 and 3 must be two deploys, not one
+### 7.1 A note on an argument I made and then dropped
 
-It is tempting to land half A and set the env var in the same deploy window — Render
-redeploys on an env change anyway, so it looks like a free saving. It is not.
-
-Landing A **first**, alone, and confirming the cockpit reports **DARK**, proves the gauge
-works *while the feature is still off* — a zero-risk test of the instrument. If you change
-both at once and the cockpit says "live," you cannot tell whether the flag worked, the
-cockpit worked, or both are lying in the same direction. One extra deploy cycle (which runs
-unattended) buys an unambiguous reading. Sean's attention cost is unchanged; only wall-clock
-moves.
+An earlier revision argued at length that the cockpit merge and the flag flip must be two
+separate deploys, so that confirming the cockpit reports DARK proves the gauge before the
+lever moves. That reasoning is sound **in isolation** and is now moot: once the flip moves
+to step 1 and the merge to step 5, they are already separate, and the runbook's live test —
+not the cockpit — is what verifies the flip. Recorded because the argument was committed
+(`f4701e8bc`) and a future reader will otherwise wonder where it went.
 
 **Explicitly not recommended:** cold-outreach lead scraping (wrong motion for trainer-led
 B2B2C), and migrating all ~20 backend env flags onto Launch Control (over-engineering for a
@@ -283,16 +297,47 @@ single-operator product — §8's comment-with-expiry is the cheaper fix).
 The mechanism that failed is not code — it is that **a flag can be created with no owner, no
 activation criterion, and no expiry**, so "ship it dark" has no natural end.
 
-Proposed, cheapest-first:
+### 8.1 The correction that matters most: governance was never the binding constraint
 
-1. **Every new flag is born with an expiry date in a comment beside its read.** No registry to
-   curate — the date lives where the flag is read, so it cannot drift from the code.
-2. **A flag past expiry is a build warning, not a silent state.** Either flip it or delete
-   the branch of code it guards.
-3. **`voiceModeV2Flag.ts:5` already does the right thing** ("Gate to flip: 10 real
-   dictations") — it names its own activation criterion. Make that the house pattern.
+My §3.1a concluded *"the governance gap and the documentation gap are the same gap"* and
+implied the fix was to govern more flags. **My own data refutes that**, and Kimi K3 caught it:
 
-Open for review — see §9.
+> Three flags were fully governed on Launch Control — visible, revertible, targetable —
+> **and still sat dark 26–27 days.**
+
+Governance coverage was already 100% for those three and they rotted anyway. What was missing
+was never visibility. It was a **forcing function**. The same document proves it twice more:
+a runbook written 2026-07-21 and never executed, and a commit announcing an activation wave
+that never ran. Unenforced artifacts decay on exactly the timescale the flags did.
+
+**So: do not grow the control plane. Grow the assert.**
+
+### 8.2 Revised mechanism — zero-maintenance, cheapest first
+
+1. **One flags module.** A single file declaring every env flag with
+   `{description, shippedDate, expiresOn}`. A mechanical refactor of ~23 reads, done once.
+   The file *is* the inventory — code, not a wiki nobody curates.
+2. **A boot-time expiry assert that fires itself.** Any flag past `expiresOn` raises an alert
+   through the **existing `adminAlertService`** — the channel already carrying the money
+   alerts Sean demonstrably acts on. No curation; the failure is automatic; the alert says
+   "flip or delete." Permanent flags carry `expiresOn: never` plus a reason.
+   **Alert, do not crash** — a boot crash on an expired flag is a self-inflicted outage.
+3. **`render.yaml` as the declaration of record**, sync-checked by a ~20-line key-diff script.
+   Kills the dashboard-only-state class and the blueprint-loss risk in one move.
+4. **Flips go on Sean's calendar at flag-creation time.** A head trainer's appointment book is
+   the one system he provably never ignores.
+5. **Kill the "wave" pattern permanently.** Batching eight activations into one future event
+   is what guaranteed deferral. `f2be2c592` planned a wave; the wave never ran. That was not a
+   discipline failure — it was a bad plan shape.
+
+**Do not migrate the ~20 env flags onto Launch Control.** Worker on/off switches cannot use
+percentage bucketing or role targeting, each migration is a risky diff, and their real
+deficits (record, expiry, visibility) are fixed far cheaper by 1–3 above. Migrate
+opportunistically — only when a flag actually needs a staged rollout.
+
+**For the frontend: stop minting build-time `VITE_*` feature flags.** New ones resolve at
+runtime through the flags API, fixed as you touch them. The existing four get flipped or
+deleted per §7 step 9, and the class dies with them.
 
 ---
 
@@ -311,6 +356,55 @@ Open for review — see §9.
 
 ---
 
-## 10. Kimi K3 — external review
+## 10. Kimi K3 — external review, and what I conceded
 
-_(pending — appended on return)_
+**Run:** `moonshotai/kimi-k3`, effort medium, 3,153 in / 16,322 out, **$0.2543**, 612s,
+`finish_reason: stop` (not truncated). Full text:
+`scratchpad/KIMI-ACTIVATION-DEBT-REVIEW.md`. Remit was deliberately narrow — process and
+sequencing, explicitly *not* re-deriving code facts, because the code truth was already
+proven and buying a second pass with my own lens is what §11 warns against.
+
+### Conceded — these changed the document
+
+| # | Kimi's finding | Verdict | What changed |
+|---|---|---|---|
+| 1 | My ordering put two code slices ahead of the only revenue item, guarding a failure mode ≈ the status quo — and I had refuted myself in my own text | **CONCEDED** | §7 rewritten; flip is now step 1 |
+| 2 | PRISM had **no slot at all** in my sequence — the largest omission given acquisition is the weakest link | **CONCEDED** | §7 step 2; double-capture probed and clean |
+| 3 | Sort by **reversibility**, not external visibility; settlement is irreversible, PRISM is one-click | **CONCEDED** | §6 fully re-sorted |
+| 4 | 3/3 *governed* flags also sat dark ~4 weeks → governance is not the binding constraint; grow the assert, not the control plane | **CONCEDED** | §8.1 / §8.2 rewritten |
+| 5 | "235 feature-days" is a vanity metric — the units are not commensurable across a revenue feature, corpses, and an unwanted engine | **CONCEDED** | §1 headline de-emphasised |
+| 6 | "Zero product risk" is a categorical claim; evidence supports "low-risk, test-covered" | **CONCEDED** | wording fixed throughout |
+| 7 | I underweighted `render.yaml` — ~19 flags have no record in the repo at all | **PARTLY** | promoted to §7 step 7. I do **not** adopt "most dangerous fact in the document": Render's blueprint-sync semantics were not verified here, so the *severity* is `[HYPOTHESIS]`. The *recommendation* stands regardless — no repo record is bad on its own terms. |
+| 8 | Settlement worker may be a billing leak, not a flag question | **PARTLY** | §7 step 8. Probed: an inline path exists (`sessionDeductionService.mjs`), so the worker is likely a backstop. Whether a backlog accrued is genuinely **unverified** and needs a read-only query — a valid question, not a proven bug. |
+| 9 | Automation cron: delete, don't flip — the lanes are reputation-coupled to S2L | **PARTLY** | §7 step 10 states both blocks. Framed as *Sean decides backlog-or-delete* rather than auto-delete: nurture may still be wanted once unsubscribe exists, and that is his call, not an agent's. |
+| 10 | Days-dark measured from first commit rather than merge-to-main inflates the figures | **CONCEDED** | noted; the metric is de-emphasised anyway per #5 |
+
+### Not conceded
+
+- **"Activation problem, not a building problem" overreaches.** Partly fair — roughly a third
+  is deletion work and some is build work, and §2 already said so. But the framing survives
+  because the *cause* is identical across all four classes: nothing forces a decision at the
+  point a flag or a file stops being needed. I sharpened §1 rather than retracting it.
+
+### Calibration — worth recording against the prior note
+
+The lane handoff rated Kimi *"truncated, least useful here"* on a code-validator review and
+recommended buying a different lens instead. On this **process/sequencing** task it was the
+single highest-value input of the session: ~10 findings, most valid, several inverting my
+conclusions, for $0.25 and no truncation. **The earlier rating was task-class-specific and
+should not be generalised** — Kimi was weak at attacking a regex validator and strong at
+attacking a plan.
+
+---
+
+## 11. The thing most worth keeping
+
+The lane handoff I inherited ended with: *a hostile loop run by the author converges on the
+author's blind spots.* This audit reproduced that exactly. Four self-hostile rounds found
+three instrument artifacts and one genuine self-correction (§3.1a) — real work, and all of it
+still inside my own frame. It took an outside lens to notice I had scheduled two code slices
+in front of the one action I had just finished proving was the only constraint.
+
+The rounds were not wasted; they are what made the packet good enough to get a sharp answer.
+But the lesson holds in both directions: **when your own loop runs dry, that is the moment to
+buy a different lens — not to run another round.**
