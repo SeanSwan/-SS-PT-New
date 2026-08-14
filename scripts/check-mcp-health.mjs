@@ -147,14 +147,23 @@ const MAX_BODY = 65536;
  * Returns the decoded text (for matching), the byte count actually read, and whether more remained.
  * Falls back to `.text()` only when the runtime exposes no readable stream.
  */
-async function readCapped(r, cap) {
+export async function readCapped(r, cap) {
   // NO `await r.text()` FALLBACK. An earlier version had one, which reintroduced the exact
   // unbounded-buffer defect this function exists to remove — one branch over, where the "TRULY
-  // bounded" claim above did not reach. On Node >= 18 (undici) a fetch Response ALWAYS exposes a
-  // web ReadableStream, so that branch was unreachable dead code carrying a live defect: pure risk
-  // for zero benefit. Throwing makes the bound unconditional; probeHttp's catch reports it as
-  // UNREACHABLE rather than crashing (Kimi round 7, N1).
-  if (!r.body?.getReader) throw new Error('runtime without web streams is unsupported');
+  // bounded" claim above did not reach (Kimi round 7, N1).
+  //
+  // A fetch Response exposes a web ReadableStream for every status EXCEPT the null-body statuses
+  // (101/204/205/304 per the fetch spec), where `body` is null. An earlier version of this comment
+  // claimed "ALWAYS a stream" and threw on those — so a server answering 204 to `initialize` was
+  // reported UNREACHABLE despite having been reached, and the previous fallback had degraded it to
+  // HEALTHY (Kimi round 8, L1: an over-broad universal, the same Rule 75 class this file exists to
+  // delete, in the comment written to fix one).
+  //
+  // A null body is ZERO BYTES — trivially bounded, so returning it is not the deleted fallback:
+  // nothing is buffered. Only a genuinely stream-less runtime throws, which probeHttp's catch
+  // reports as UNREACHABLE rather than crashing.
+  if (!r.body) return { text: '', bytes: 0, truncated: false };
+  if (!r.body.getReader) throw new Error('runtime without web streams is unsupported');
   const reader = r.body.getReader();
   const chunks = [];
   let n = 0;

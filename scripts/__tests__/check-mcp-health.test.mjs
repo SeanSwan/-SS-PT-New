@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { diagnose, displayPath } from '../check-mcp-health.mjs';
+import { diagnose, displayPath, readCapped } from '../check-mcp-health.mjs';
 
 const CLI = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'check-mcp-health.mjs');
 
@@ -91,6 +91,49 @@ test('prefix matching is case-insensitive (Windows paths are)', () => {
 test('no redacted output ever contains the username segment', () => {
   const out = displayPath('C:\\Users\\BigotSmasher\\.claude.json', 'C:\\Users\\BigotSmasher');
   assert.ok(!out.includes('BigotSmasher'), 'OS username survived redaction');
+});
+
+// --- bounded body read ---------------------------------------------------------------------------
+
+test('REGRESSION: a null-body status returns zero bytes instead of throwing', () => {
+  // 101/204/205/304 have `body === null` per the fetch spec. A previous version asserted a stream
+  // ALWAYS exists and threw here, so a server answering 204 to `initialize` reported UNREACHABLE
+  // despite having been reached. A null body is zero bytes — bounded by definition, not a fallback.
+  return readCapped({ body: null }, 1024).then((r) => {
+    assert.deepEqual(r, { text: '', bytes: 0, truncated: false });
+  });
+});
+
+test('a genuinely stream-less runtime throws rather than buffering', async () => {
+  // The one case that SHOULD throw: a body object with no getReader. Throwing keeps the bound
+  // unconditional; silently falling back to .text() is the unbounded defect this replaced.
+  await assert.rejects(() => readCapped({ body: {} }, 1024), /web streams/);
+});
+
+test('a body under the cap is returned whole and not marked truncated', async () => {
+  const body = 'hello world';
+  const stream = { getReader: () => { let sent = false; return {
+    read: async () => (sent ? { done: true } : (sent = true, { done: false, value: Buffer.from(body) })),
+    cancel: async () => {},
+  }; } };
+  const r = await readCapped({ body: stream }, 1024);
+  assert.equal(r.text, body);
+  assert.equal(r.bytes, body.length);
+  assert.equal(r.truncated, false);
+});
+
+test('a body over the cap is truncated, reported as such, and the stream is cancelled', async () => {
+  let cancelled = false;
+  const chunk = Buffer.alloc(64, 0x61); // 'a' * 64
+  const stream = { getReader: () => ({
+    read: async () => ({ done: false, value: chunk }), // infinite — the cap must stop it
+    cancel: async () => { cancelled = true; },
+  }) };
+  const r = await readCapped({ body: stream }, 100);
+  assert.equal(r.truncated, true);
+  assert.equal(r.text.length, 100, 'text must be clamped to the cap');
+  assert.ok(r.bytes > 100, 'bytes reports what was actually read');
+  assert.ok(cancelled, 'the stream must be cancelled, not drained');
 });
 
 test('401 and 403 are token rejection, not "not configured"', () => {
