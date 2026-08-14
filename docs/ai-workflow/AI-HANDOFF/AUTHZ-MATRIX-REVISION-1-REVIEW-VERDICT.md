@@ -29,7 +29,7 @@ plus an **ownership-graph fixture** — "post X belongs to B, not A". Without th
 criterion ("200 with another party's data") is uncheckable: the harness sees *that* a 200 came back,
 never *whose data* it carried. **§3's pass criterion presumed fixture data the design never creates.**
 
-## R1.2 — CRITICAL: no positive control; every denial is ambiguous (F2, F4)
+## R1.2 — CRITICAL: no positive control; every denial is ambiguous (F2)
 
 "Expect 401/403/404" is meaningless unless the request provably arrived authenticated. Three ways
 this goes fully green having asserted nothing:
@@ -41,10 +41,25 @@ this goes fully green having asserted nothing:
 - No canary: the owning principal's own token must return 200 on each endpoint **before** any
   denial elsewhere counts as evidence.
 
-**Required:** a per-endpoint positive control, plus two negative-control rows the matrix never had —
-**anonymous** and **expired/garbage token**. Twelve authenticated roles correctly denying each other
-is fully consistent with an endpoint mounted *before* the auth middleware being open to the whole
-internet. Attacker cost: no account required.
+**Required:** a per-endpoint positive control — the owning principal's own token must return 200
+before any denial elsewhere is evidence.
+
+## R1.2b — CRITICAL: there is no anonymous row; the matrix has four roles and needs five (F4)
+
+Kimi rates this `Critical for PII targets` with attacker cost **"None — no account required"** —
+the cheapest attack in the entire review. It was originally folded into R1.2 above as a sub-point,
+which under-billed it. It is independently critical and gets its own heading.
+
+Twelve cells of *authenticated* roles correctly denying each other is fully consistent with an
+endpoint mounted **before** the auth middleware being open to the entire internet — and the matrix
+reports all-green. The threat model enumerated four roles and silently assumed an attacker has an
+account. The cheapest attacker has none.
+
+**Required:** two control rows the matrix never had — **anonymous** (no token) and
+**expired/garbage token**. This is not "token forgery/replay" (fairly excluded as a separate
+discipline); it is a **negative control**, without which the positive results are uninterpretable.
+Same validity argument as R1.2: a denial only means something when you can prove a non-denial was
+achievable.
 
 ## R1.3 — CRITICAL: GET-only defers the endpoints that mint privilege (F3)
 
@@ -137,9 +152,13 @@ made without that; a *trust property* cannot.
 
 ---
 
-**Status: NOT ready to build. Revision 2 must fold in R1.1-R1.6 before any code is written.**
+**Status: NOT ready to build. Revision 2 must fold in R1.1-R1.6 (including R1.2b) before any code.**
 
-The three CRITICAL findings share one shape: the design specified assertions whose *preconditions it
+Kimi labelled **four** rows Critical — F1, F2, F3, and F4 (`Critical for PII targets`). An earlier
+draft of this appendix reported three, having folded F4 into R1.2. Corrected above: F4 is the
+cheapest attack in the review (no account required) and stands alone.
+
+The four CRITICAL findings share one shape: the design specified assertions whose *preconditions it
 never created* — fixtures that cannot express the crossing, denials with nothing proving the request
 was authenticated, and a verb restriction that excludes the endpoints capable of invalidating every
 other result. Each would have produced green cells. None would have produced evidence.

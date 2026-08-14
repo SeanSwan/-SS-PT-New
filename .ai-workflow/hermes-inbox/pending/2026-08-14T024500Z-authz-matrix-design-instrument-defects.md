@@ -23,7 +23,7 @@ and HY3 for hostile review before implementation.
 - **claude-opus-5 (me)** — verified the prior session's artifacts existed, measured authz coverage,
   wrote the design, ran a 4-round dry loop against my own work, found and corrected three of my own
   errors. Cost: subscription, $0 marginal.
-- **Kimi K3** — hostile review. Found 3 CRITICAL defects that killed the design. Worth the $0.25.
+- **Kimi K3** — hostile review. Found 4 Critical-rated defects that killed the design. Worth the $0.25.
 - **HY3** — same remit, returned nothing (reasoning consumed the whole token budget). ~$0.03.
   Both owner-authorized, one call each, `--confirm-spend`, $3 cap per script. See calibration below.
 - **codex** — working a separate worktree (`C:/tmp/sspt-dashboard-hostile-audit-...`) with active
@@ -110,7 +110,9 @@ false negatives. The existing packet's title under-scopes the failure.
 Identical adversarial remit to both, so the verdicts are comparable.
 
 **Kimi K3 (moonshotai/kimi-k3, effort=high) — WORTH IT. $0.2495, 4188 in / 15794 out, 611s, finish=stop.**
-14 findings. **3 CRITICAL and correct**, and they killed the design: (F1) four auth fixtures cannot
+14 findings, **4 of them Critical by its own ledger** (I first reported 3 — I folded F4 into F2 and
+under-billed it; F4 is the cheapest attack in the review, needing no account at all). They killed
+the design: (F1) four auth fixtures cannot
 express a same-role crossing, so 5 of 12 rows — including the P0 user-to-user rows — are structurally
 unexecutable and would read green when skipped; (F2) no positive control, so expired fixtures or a
 token the request never carries produce all-401 = all-green = nothing asserted; (F3) GET-only defers
@@ -118,7 +120,9 @@ the verbs that mint privilege, and mass assignment (PUT profile role=admin) was 
 threat model entirely. **2 findings DISPROVEN on verification** — the 25+37/55 arithmetic does close
 (18 of 25 guard files also take params, 7 do not), and the section-5 hazard files are byte-identical
 to origin/main. Both disproven findings still carried a valid methodology criticism I accepted.
-**Hit rate ~12/14 real.** Best value: it found a self-contradiction I had introduced *during my own
+**Hit rate: 12 of 14 survived verification; 2 disproven.** Note "survived" is not "confirmed" —
+Kimi explicitly marks two (F8 sockets, F13 CDN/cache) as conditional pending infra verification, so
+the honest count is 10 solid + 2 conditional + 2 disproven. Calling all 12 "real" would overstate. Best value: it found a self-contradiction I had introduced *during my own
 review pass* — I elevated the user-to-user rows to P0 and then specified fixtures that cannot test
 them. A dry loop checking my facts could not catch that; it needed a reader reasoning about the
 design as a whole.

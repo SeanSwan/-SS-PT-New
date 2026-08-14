@@ -284,7 +284,8 @@ Attack this **design**, not the codebase. Specifically:
 
 ---
 
-**REVISION 1 (2026-08-14):** external hostile review found three CRITICAL defects in this design.
+**REVISION 1 (2026-08-14):** external hostile review found four CRITICAL defects in this design.
 It is **NOT ready to build** as written. See `AUTHZ-MATRIX-REVISION-1-REVIEW-VERDICT.md` — the
 fixtures cannot execute 5 of the 12 rows, there is no positive control so every denial is
-ambiguous, and GET-only defers the endpoints that mint privilege.
+ambiguous, there is no anonymous row (cheapest attacker has no account), and GET-only defers the
+endpoints that mint privilege.
