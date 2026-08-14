@@ -86,6 +86,7 @@ const setupAssociations = async () => {
     // Notification and Admin Models (Sequelize)
     const OrientationModule = await import('./Orientation.mjs');
     const NotificationModule = await import('./Notification.mjs');
+    const RenewalAlertModule = await import('./RenewalAlert.mjs');
     const NotificationSettingsModule = await import('./NotificationSettings.mjs');
     const AdminSettingsModule = await import('./AdminSettings.mjs');
     const ContactModule = await import('./contact.mjs');
@@ -306,6 +307,7 @@ const setupAssociations = async () => {
     // Notification and Admin Models
     const Orientation = OrientationModule.default;
     const Notification = NotificationModule.default;
+    const RenewalAlert = RenewalAlertModule.default;
     const NotificationSettings = NotificationSettingsModule.default;
     const AdminSettings = AdminSettingsModule.default;
     const Contact = ContactModule.default;
@@ -921,6 +923,16 @@ const setupAssociations = async () => {
     User.hasMany(Contact, { foreignKey: 'userId', as: 'contacts' });
     Contact.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+    // RenewalAlert — churn-risk queue (SWA-138 S10). renewalAlertService queries
+    // with `include: [{ model: User, as: 'user' }]`, so registering the model
+    // alone is not enough: without this association Sequelize throws
+    // "User is not associated to RenewalAlert" and the feature stays dead.
+    // `contactedBy` is a second FK to Users and needs its own alias, or the two
+    // associations collide on the default one.
+    User.hasMany(RenewalAlert, { foreignKey: 'userId', as: 'renewalAlerts' });
+    RenewalAlert.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    RenewalAlert.belongsTo(User, { foreignKey: 'contactedBy', as: 'contactedByUser' });
+
     // FINANCIAL ASSOCIATIONS
     // ======================
     // User -> Financial Transactions
@@ -1484,6 +1496,7 @@ const setupAssociations = async () => {
       NotificationSettings,
       AdminSettings,
       Contact,
+      RenewalAlert,
       SupportIssue,
       SupportIssueEvent,
       
