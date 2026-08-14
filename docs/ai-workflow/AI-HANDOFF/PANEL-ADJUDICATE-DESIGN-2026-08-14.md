@@ -18,30 +18,108 @@ we review all their stuff."*
 ```
   evidence packet
         │
-        ├──► model A ─┐   ALL RUN BLIND, IN PARALLEL.
-        ├──► model B ─┤   No model sees another's output.
-        ├──► model C ─┤   Independence is the entire point: shared
-        ├──► model D ─┤   context makes them converge, which destroys
-        └──► model E ─┘   the coverage the panel exists to buy.
+        ├──► OPUS 5  ────┐  ← runs FIRST and BLIND, before dispatching anything.
+        │   (orchestrator)│    Must not be anchored by what the panel found.
+        │                │    $0 — subscription. Findings tagged SELF-REVIEW
+        │                │    when Opus authored the code under review (§2a).
+        ├──► model A ────┤
+        ├──► model B ────┤  ALL RUN BLIND, IN PARALLEL.
+        ├──► model C ────┤  No model sees another's output. Independence is the
+        ├──► model D ────┤  entire point: shared context makes them converge,
+        └──► model E ────┘  which destroys the coverage the panel exists to buy.
                      │
-              findings pool  (deduped by file:line + claim)
+              findings pool  (deduped by file:line + claim; origin model kept)
                      │
                      ▼
               ┌─────────────┐
-              │  KIMI K3    │  gets: every finding + the ORIGINAL evidence
-              │ ADJUDICATOR │  (never a summary — see §3)
+              │  KIMI K3    │  gets: EVERY finding (Opus's included) + the
+              │ ADJUDICATOR │  ORIGINAL evidence — never a summary (§3.2)
               └─────────────┘
                      │
         REAL / NOT REAL / NEEDS-PROOF per finding
                      │
                      ▼
-        single verdict → optional gated DEBATE
+              ┌─────────────┐
+              │  OPUS 5     │  ← second pass, different job: verify the
+              │  VERIFIER   │    ADJUDICATION, especially the dismissals (§2b)
+              └─────────────┘
+                     │
+        final verdict → optional gated DEBATE
 ```
 
 **Why this order and not a debate:** a debate is N models arguing across R rounds — cost scales
 `N × R`. This is N models once, plus one adjudication: cost scales `N + 1`. Measured, adding eight
 panel models to Kimi is **~2-3¢** on a 50k-char packet. Rounds are what cost money, which is why
 debate stays behind an explicit confirm.
+
+## 2a. Opus 5 as a panel member — and why its findings are tagged
+
+Sean, 2026-08-14: *"currently this is Opus 5, the main AI making the calls… I want them to throw
+their hostile review in there as well."* Correct, and free — Opus 5 is subscription capacity, so it
+costs $0 at the margin.
+
+**It runs FIRST and BLIND**, before any panel model is dispatched. If it read the panel's findings
+first it would be anchored by them, and the orchestrator's independent view is precisely what would
+be lost.
+
+**But its findings carry a `SELF_REVIEW` flag whenever Opus 5 authored the code under review**, and
+the adjudicator is told to weight them accordingly. This is not modesty — it is measured. In this
+session Kimi caught, in code Opus 5 had written and re-read repeatedly:
+
+- a fix reported to Sean as landed that had **never been applied** (the patch silently no-op'd)
+- a test that **could not fail** — it asserted against an empty string
+- a security control that **only worked on Windows** and leaked the OS username elsewhere
+- a counter incremented but never read, letting an unverified run exit green
+
+Self-review is structurally blind: the context that produced the mistake is the context checking
+for it. Opus 5's value on the panel is real but it is **not** a substitute for an outside reader,
+and the flag keeps that honest instead of implicit.
+
+## 2b. Opus 5 as post-adjudication verifier
+
+Kimi's ruling is not the last word either. Measured over 16 rounds: **~56 findings, 55 verified
+real, 1 inaccurate, 0 hallucinated** — its *detection* is excellent. But the one thing it got wrong
+was an **exoneration**: it called a defect "pre-existing, not yours" when Opus 5 had in fact
+introduced it. Verified in one command (`git show origin/main:<path> | cat -A`) and fixed.
+
+**The asymmetry that matters:** accusations get checked because acting on them costs work.
+Exonerations get waved through because accepting them is free — which makes them the cheapest place
+for an error to survive. So Opus 5's second pass exists specifically to **re-check the dismissals**,
+not the confirmations.
+
+Standing rule: **trust Kimi's findings enough to act; verify its dismissals before relaxing.**
+
+## 2c. WHICH adjudicator — routed by task class, not by preference
+
+Sean, 2026-08-14: *"for [reviewing] code extension, it should be Sol 5.6 high… but if we're using
+codex."* Correct, and there is a hard constraint underneath it that makes this mandatory rather
+than optional.
+
+**Kimi and HY3 are `ceiling: 'design'` in `providers.mjs`.** They REFUSE, in code, any packet whose
+evidence paths match auth / billing / payments / PII / secrets / credentials / migrations /
+middleware / admin (`SENSITIVE_PATH_RE`). Fail-closed, no override flag — widening it is a
+Sean-gated code change. **So Kimi structurally cannot adjudicate most real backend work.**
+
+Direct evidence from this session: an infrastructure/economics packet sent to Kimi and HY3 produced
+nothing usable — Kimi opened with *"category error in the submission"* and reviewed it as if it were
+a UI. **Sol engaged it properly and caught a Rule 8 violation** (a proposal to route PII through a
+local model) that neither design-scoped reviewer could see. Packet-fit is not a nicety; it decides
+whether the spend buys anything.
+
+| Task class | Adjudicator | Why |
+|---|---|---|
+| Design, front-end, UI, copy | **Kimi K3** | design ceiling is its lane; 16-round record of precision |
+| Code correctness, architecture, refactors | **`openai/gpt-5.6-sol`, effort high** | standard ceiling; the strongest code reader available |
+| Anything touching auth / billing / PII / secrets / migrations | **Sol ONLY** | Kimi/HY3 are refused in code — not a choice |
+| Bounded, in-repo code review with no packet needed | **the Codex lane** (Rule 67) | subscription, $0 at the margin |
+
+**Cost note:** the Codex lane is flat-rate and should be preferred wherever the work can be done
+in-repo. `gpt-5.6-sol` via OpenRouter is metered ($5/$30 per M, `priceVerified` 2026-07-17) and is
+for bounded packet-based adjudication where an independent outside read is the point.
+
+**The panel itself does not change** — the same nine cheap models fan out blind regardless of task
+class. Only the ADJUDICATOR is routed. Panel = coverage; adjudicator = truth; the right truth-teller
+depends on what is being judged.
 
 ## 2. Why panel-then-adjudicate rather than panel-alone
 
