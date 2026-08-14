@@ -94,10 +94,17 @@ Measured 2026-08-14. **Verified identical on `HEAD` and `origin/main`** —
 > confidently about a scope narrower than the question. Any reviewer or builder extending this
 > target list must re-derive with a recursive instrument, not a shell glob.
 
-**These 33 are a test-target list, not a findings list.** Absence of `verifyClientAccess` is not
+**These 37 are a test-target list, not a findings list.** Absence of `verifyClientAccess` is not
 proof of a vulnerability — many are legitimately admin-only (guarded by `adminMiddleware`),
 self-scoped to `req.user.id`, or use a different guard. Each must be *tested*, not assumed broken.
-Reporting them as 33 vulnerabilities would repeat the previous audit's false-finding failure.
+Reporting them as 37 vulnerabilities would repeat the previous audit's false-finding failure.
+
+**Derivation of the 37, published because it was challenged on review:** of the 25 files using
+`verifyClientAccess`, **18** also take a `:userId`/`:clientId` URL parameter and **7** do not (they
+guard via body fields, or import the helper directly rather than mounting it as route middleware).
+So 55 − 18 = 37. A reviewer read 25 + 37 = 62 > 55 as an arithmetic failure; it is not, because the
+25 are not a subset of the 55. The challenge was fair regardless — the number was asserted without
+its working, which is the same habit this document criticizes elsewhere.
 
 Ordered by consequence:
 
@@ -274,3 +281,10 @@ Attack this **design**, not the codebase. Specifically:
   from Vite's default behavior, not evidence). All three are corrected in place with the error
   shown rather than silently overwritten. Assume there is a fourth I did not catch, and look for
   it in the places where I state something confidently without an adjacent command.
+
+---
+
+**REVISION 1 (2026-08-14):** external hostile review found three CRITICAL defects in this design.
+It is **NOT ready to build** as written. See `AUTHZ-MATRIX-REVISION-1-REVIEW-VERDICT.md` — the
+fixtures cannot execute 5 of the 12 rows, there is no positive control so every denial is
+ambiguous, and GET-only defers the endpoints that mint privilege.
