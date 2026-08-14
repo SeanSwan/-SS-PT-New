@@ -26,27 +26,39 @@ import { fileURLToPath } from 'node:url';
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const LAUNCHER = join(REPO, 'scripts', 'consult-kimi.mjs');
 
-/** Run the real launcher in an isolated cwd. Returns the parsed receipt, or null if none appeared. */
-function runAndReadReceipt(docRelPath, { writeDoc = true } = {}) {
+/**
+ * Run the real launcher in an isolated cwd. Returns `{receipt, stdout, stderr, cwd}`.
+ * Console output is CAPTURED, not discarded: an absolute-path leak to stdout survived round 1
+ * precisely because the tests only inspected the on-disk record (Kimi round 2, F1).
+ */
+function runLauncher(docRelPath, { writeDoc = true } = {}) {
   const cwd = mkdtempSync(join(tmpdir(), 'swan-consult-'));
   const docPath = join(cwd, docRelPath);
   mkdirSync(dirname(docPath), { recursive: true });
   if (writeDoc) writeFileSync(docPath, 'placeholder body, never egressed\n', 'utf-8');
 
+  let stdout = '';
+  let stderr = '';
   try {
-    execFileSync(process.execPath, [LAUNCHER, '--document', docPath, '--out', join(cwd, 'out.md')], {
+    stdout = execFileSync(process.execPath, [LAUNCHER, '--document', docPath, '--out', join(cwd, 'out.md')], {
       cwd, stdio: 'pipe', env: { ...process.env, SWAN_CONTEXT_MAX_USD: '' },
-    });
-  } catch {
-    /* non-zero exit is the expected outcome for both refusal branches */
+    }).toString();
+  } catch (e) {
+    // Non-zero exit is the expected outcome for both refusal branches.
+    stdout = e.stdout?.toString() ?? '';
+    stderr = e.stderr?.toString() ?? '';
   }
 
   const dir = join(cwd, '.ai-workflow', 'context-gateway', 'receipts');
-  if (!existsSync(dir)) return null;
-  const files = readdirSync(dir).filter((f) => f.endsWith('.json'));
-  if (!files.length) return null;
-  return JSON.parse(readFileSync(join(dir, files[0]), 'utf-8'));
+  let receipt = null;
+  if (existsSync(dir)) {
+    const files = readdirSync(dir).filter((f) => f.endsWith('.json'));
+    if (files.length) receipt = JSON.parse(readFileSync(join(dir, files[0]), 'utf-8'));
+  }
+  return { receipt, stdout, stderr, cwd };
 }
+
+const runAndReadReceipt = (p, o) => runLauncher(p, o).receipt;
 
 test('E2E: the DENY secret-path jail writes a receipt (it exits directly, bypassing the catch)', () => {
   // `.env` at a path-segment start is what DENY_PATTERNS actually matches — a file merely ENDING in
@@ -81,4 +93,18 @@ test('E2E: a receipt never contains the document body', () => {
   const r = runAndReadReceipt('packet.md');
   assert.ok(r);
   assert.ok(!JSON.stringify(r).includes('never egressed'), 'document content leaked into the receipt');
+});
+
+test('E2E: no absolute path reaches stdout or stderr on the refusal path', () => {
+  // Transcripts capture console output, so a path printed there is as bad as one persisted.
+  const { stdout, stderr, cwd } = runLauncher('packet.md');
+  assert.ok(!stdout.includes(cwd), `absolute cwd leaked to stdout: ${stdout.slice(0, 200)}`);
+  assert.ok(!stderr.includes(cwd), `absolute cwd leaked to stderr: ${stderr.slice(0, 200)}`);
+});
+
+test('E2E: the DENY branch does not print the full secret-bearing path', () => {
+  const { stdout, stderr, cwd } = runLauncher('.env');
+  const all = stdout + stderr;
+  assert.ok(all.includes('REFUSED'), 'expected the DENY refusal to be announced');
+  assert.ok(!all.includes(cwd), 'the full path to the secret-bearing file leaked to the console');
 });

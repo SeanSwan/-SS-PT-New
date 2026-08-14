@@ -40,7 +40,8 @@
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /** Every place Claude Code reads MCP servers from. `~/.claude.json` is the one agents forget. */
 const CONFIG_LOCATIONS = [
@@ -93,21 +94,34 @@ export function collectServers() {
  * `body` is matched here and NEVER returned — the caller only receives the verdict.
  */
 export function diagnose(status, body = '') {
-  if (status === 401 || status === 403 || /invalid_token|invalid access token|unauthorized/i.test(body)) {
-    return {
-      verdict: 'CONFIGURED BUT TOKEN REJECTED',
-      remedy: 'The server IS configured — the credential is expired/revoked, so it registers ZERO tools. '
-        + 'Do NOT report this as "not configured". Fix: generate a fresh token, replace the Authorization '
-        + 'header value for this server, then RESTART Claude Code fully (MCP servers connect at startup).',
-    };
+  const REJECTED = {
+    verdict: 'CONFIGURED BUT TOKEN REJECTED',
+    remedy: 'The server IS configured — the credential is expired/revoked, so it registers ZERO tools. '
+      + 'Do NOT report this as "not configured". Fix: generate a fresh token, replace the Authorization '
+      + 'header value for this server, then RESTART Claude Code fully (MCP servers connect at startup).',
+  };
+  // STATUS FIRST, body only as a last-resort tiebreaker. The body regex used to be OR'd with the
+  // status check, so it ran against EVERY response — a healthy 200 whose payload merely contained
+  // the word "unauthorized" was reported as a rejected token, telling Sean to rotate a working
+  // credential. That is the fifth-recurrence failure in the opposite direction (Kimi round 2, F2).
+  if (status === 401 || status === 403) return REJECTED;
+  if (status !== null && status >= 200 && status < 300) {
+    return { verdict: 'HEALTHY', remedy: 'Server answers and accepts the credential. If tools still are not listed, RESTART Claude Code.' };
   }
   if (status === null) {
     return { verdict: 'UNREACHABLE', remedy: 'Network/DNS/timeout — not an auth problem. Check connectivity, then retry.' };
   }
-  if (status >= 500) return { verdict: 'SERVER ERROR', remedy: 'Upstream is failing. Not a local config problem. Retry later.' };
-  if (status >= 200 && status < 300) {
-    return { verdict: 'HEALTHY', remedy: 'Server answers and accepts the credential. If tools still are not listed, RESTART Claude Code.' };
+  if (status >= 300 && status < 400) {
+    // Never print Location — a redirect target can itself carry a tokenized URL.
+    return {
+      verdict: `REDIRECT (HTTP ${status})`,
+      remedy: 'Endpoint redirects. Update the url in config to the final location. NOT followed on purpose: '
+        + 'the credential is never forwarded to another origin.',
+    };
   }
+  if (status >= 500) return { verdict: 'SERVER ERROR', remedy: 'Upstream is failing. Not a local config problem. Retry later.' };
+  // Non-2xx, non-auth, non-redirect: the body is the only signal left, so the regex is legitimate here.
+  if (/invalid_token|invalid access token|unauthorized/i.test(body)) return REJECTED;
   return { verdict: `UNEXPECTED HTTP ${status}`, remedy: 'Unhandled status — check the server\'s own logs.' };
 }
 
@@ -126,6 +140,10 @@ async function probeHttp(def) {
   try {
     const r = await fetch(def.url, {
       method: 'POST', signal: ac.signal, body,
+      // `manual`: whether undici strips Authorization on a cross-origin or HTTPS->HTTP redirect has
+      // varied by Node version. A tool held to a Rule 59 contract does not get to inherit its own
+      // core guarantee from the runtime — the credential goes to the configured origin or nowhere.
+      redirect: 'manual',
       headers: { ...(def.headers ?? {}), 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
     });
     const text = await r.text();
@@ -140,8 +158,21 @@ async function probeHttp(def) {
   } finally { clearTimeout(timer); }
 }
 
+/**
+ * Only run the CLI when executed directly. Without this guard, importing `diagnose` for unit tests
+ * executes the whole probe-and-exit body and kills the test runner — so the verdict logic that this
+ * tool's entire value rests on would be untestable.
+ */
+const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+if (isMain) await main();
+
+async function main() {
 const filter = (process.argv[2] ?? '').toLowerCase();
-const servers = collectServers().filter((s) => !filter || s.name.toLowerCase().includes(filter));
+// A parse failure is a LOCATION-level fact, not a server-name match, so it survives any filter.
+// Otherwise a corrupt ~/.claude.json plus `check-mcp-health.mjs linear` prints "no servers declared
+// in ANY location" — the one message this tool treats as justification for "not configured" — while
+// the corruption is itself a plausible cause of zero tools registering (Kimi round 2, F4).
+const servers = collectServers().filter((s) => s.def === null || !filter || s.name.toLowerCase().includes(filter));
 
 console.log('=== MCP server health ===');
 console.log('Config locations checked:');
@@ -197,3 +228,4 @@ if (!probed && !unhealthy) {
   process.exit(2);
 }
 process.exit(unhealthy ? 1 : 0);
+}

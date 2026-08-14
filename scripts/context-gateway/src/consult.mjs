@@ -14,6 +14,7 @@
  * @module context-gateway/consult
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { relative } from 'node:path';
 import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
 import { redactSecrets } from './egress.mjs';
@@ -35,6 +36,15 @@ const utcStamp = () => new Date().toISOString().replaceAll(/[:-]/g, '').replace(
  * Provider errors carry a code; the missing-key case does not, so it is mapped by message. Anything
  * unrecognized is TRANSPORT — an unexpected throw still gets recorded rather than vanishing.
  */
+/**
+ * Codes that are operator/config errors rather than a gate firing. Keeping them out of `refused`
+ * protects the one signal the flywheel exists to measure: how often the ceiling/spend gates bite.
+ * UNKNOWN_PROVIDER belongs here for the same reason NO_KEY does — a typo'd wrapper or a missing
+ * providers.mjs entry is misconfiguration, not gate pressure (Kimi round 2, F5: round 1's fix was
+ * applied to the code that was named, not to the principle that was stated).
+ */
+const NON_GATE = new Set(['TRANSPORT', 'NO_KEY', 'UNKNOWN_PROVIDER']);
+
 const errorCodeOf = (e) => {
   if (e?.message?.includes('OPENROUTER_API_KEY')) return 'NO_KEY';
   if (e?.code && ['UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP'].includes(e.code)) return e.code;
@@ -59,10 +69,10 @@ export async function runConsult(providerName, defaultRemit, defaultOut) {
       ...ctx,
       stamp: utcStamp(), root: process.cwd(), providerName,
       // `refused` means a GATE fired (ceiling/spend) — that is the signal the flywheel aggregates to
-      // tune ceilings and caps. NO_KEY is operator misconfiguration, not gate pressure; classing it
-      // as a refusal would overstate how often the gates actually bite. TRANSPORT likewise.
+      // tune ceilings and caps. Operator/config errors are NOT gate pressure and would overstate how
+      // often the gates actually bite, so they class as `error` (see NON_GATE).
       // `ctx.result` survives here, so a throw AFTER a paid call still carries its real cost.
-      outcome: code === 'TRANSPORT' || code === 'NO_KEY' ? 'error' : 'refused',
+      outcome: NON_GATE.has(code) ? 'error' : 'refused',
       errorCode: code,
       originatingModel: process.env.SWAN_ORIGINATING_MODEL ?? null,
     });
@@ -161,5 +171,8 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
     stamp: utcStamp(), root: process.cwd(), providerName,
     outcome: 'ok', originatingModel: process.env.SWAN_ORIGINATING_MODEL ?? null,
   });
-  if (receiptPath) console.log(`[consult-${providerName}] receipt -> ${receiptPath}`);
+  // Relative, not absolute: writeReceiptV1 returns join(process.cwd(), …), and transcripts capture
+  // stdout. Hardening the RECORD against the OS-username leak while spraying the same path to the
+  // console would defeat the point (Kimi round 2, F1).
+  if (receiptPath) console.log(`[consult-${providerName}] receipt -> ${relative(process.cwd(), receiptPath)}`);
 }

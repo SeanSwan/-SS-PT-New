@@ -67,6 +67,14 @@ test('redaction KINDS are recorded but never the matched values', () => {
   assert.deepEqual(r.redactionKinds, ['EMAIL', 'JWT'], 'kinds should dedupe');
 });
 
+test('an unknown redaction kind normalizes to OTHER instead of storing caller text', () => {
+  // "bounded class name" must be true by construction, not by trusting the producer. A leaked
+  // VALUE arriving in the kinds array must not be persisted verbatim.
+  const r = buildReceiptV1(base({ redactionKinds: ['EMAIL', 'sk-live-totally-a-secret-value'] }));
+  assert.deepEqual(r.redactionKinds, ['EMAIL', 'OTHER']);
+  assert.ok(!JSON.stringify(r).includes('sk-live-totally'), 'caller text leaked via redactionKinds');
+});
+
 // ---- paths: quasi-PII, so absolute paths must not survive --------------------------------------
 
 test('a path outside the repo is recorded as <external>, not the real path', () => {
@@ -109,12 +117,14 @@ test('a refusal is recorded with its real gate code', () => {
   assert.equal(r.errorCode, 'CEILING');
 });
 
-test('eventId is stable for the same attempt and differs across documents', () => {
+test('eventId is DETERMINISTIC for identical inputs and differs across documents', () => {
+  // Determinism, NOT idempotency — the store is append-only and does not collapse retries
+  // (see the module header). Naming this "idempotent" contradicted the contract it enforces.
   const a = buildReceiptV1(base({ docSha: 'aaa', attempt: 1 }));
   const again = buildReceiptV1(base({ docSha: 'aaa', attempt: 1 }));
   const other = buildReceiptV1(base({ docSha: 'bbb', attempt: 1 }));
   const retry = buildReceiptV1(base({ docSha: 'aaa', attempt: 2 }));
-  assert.equal(a.eventId, again.eventId, 'same attempt must be idempotent');
+  assert.equal(a.eventId, again.eventId, 'identical inputs must hash identically');
   assert.notEqual(a.eventId, other.eventId, 'different document must differ');
   assert.notEqual(a.eventId, retry.eventId, 'a retry is a distinct attempt');
 });

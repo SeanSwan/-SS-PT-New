@@ -62,6 +62,18 @@ export const ERROR_CODES = Object.freeze([
   'DENY_PATH', 'UNKNOWN',
 ]);
 
+/**
+ * Redaction class labels egress.mjs can emit. The header calls these "a bounded class name"; this
+ * enum makes that true BY CONSTRUCTION rather than by trusting the caller, matching how OUTCOMES and
+ * ERROR_CODES are already handled. An unrecognized label normalizes to 'OTHER' — so a future rule
+ * added to egress.mjs degrades to a safe bucket instead of writing an arbitrary string into the
+ * record. Deliberately labels only: a KIND is a category, never the matched value.
+ */
+export const REDACTION_KINDS = Object.freeze([
+  'JWT', 'PRIVATE_KEY', 'STRIPE', 'STRIPE_WHSEC', 'OPENAI', 'GOOGLE', 'SLACK', 'TELEGRAM',
+  'DB_URL', 'HTTP_AUTH_URL', 'AWS_AKID', 'GITHUB', 'GITHUB_PAT', 'ANTHROPIC', 'EMAIL', 'SSN', 'OTHER',
+]);
+
 export const sha256 = (s) => createHash('sha256').update(String(s ?? ''), 'utf8').digest('hex');
 
 /**
@@ -125,8 +137,11 @@ export function buildReceiptV1({
     spendEstimateUsd: num(spend.estimate),
     spendCapUsd: num(spend.cap),
     redactions: num(redactions) ?? 0,
-    // Kind LABELS only ('EMAIL', 'JWT') — a bounded class name, never the matched value.
-    redactionKinds: Array.isArray(redactionKinds) ? [...new Set(redactionKinds.map(String))] : [],
+    // Kind LABELS only ('EMAIL', 'JWT') — a bounded class name, never the matched value. Normalized
+    // against REDACTION_KINDS so an unknown label becomes 'OTHER' rather than arbitrary caller text.
+    redactionKinds: Array.isArray(redactionKinds)
+      ? [...new Set(redactionKinds.map((k) => oneOf(REDACTION_KINDS, String(k), 'OTHER')))]
+      : [],
     docPath: docRel,
     seedPath: seedRel,
     docSha: docSha ?? null,
