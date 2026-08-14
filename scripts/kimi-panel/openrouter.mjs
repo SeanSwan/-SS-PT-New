@@ -9,7 +9,51 @@
  * @module kimi-panel/openrouter
  */
 import { redactSecrets } from '../context-gateway/src/egress.mjs';
-import { MAX_OUTPUT_TOKENS, estimateWorstCase } from './config.mjs';
+import { MAX_FINDINGS_PER_REVIEW, MAX_OUTPUT_TOKENS, estimateWorstCase } from './config.mjs';
+
+const text = (maxLength) => ({ type: 'string', minLength: 1, maxLength });
+const finding = {
+  type: 'object', additionalProperties: false,
+  properties: {
+    path: text(400), startLine: { type: 'integer', minimum: 1, maximum: 10_000_000 },
+    endLine: { type: 'integer', minimum: 1, maximum: 10_000_000 }, claim: text(600),
+    severity: { type: 'string', enum: ['critical', 'high', 'medium', 'low', 'note'] },
+    category: text(80), evidence: text(800),
+  },
+  required: ['path', 'startLine', 'endLine', 'claim', 'severity', 'category', 'evidence'],
+};
+
+const formats = {
+  review: {
+    name: 'panel_findings', strict: true,
+    schema: { type: 'object', additionalProperties: false, properties: {
+      findings: { type: 'array', maxItems: MAX_FINDINGS_PER_REVIEW, items: finding },
+    }, required: ['findings'] },
+  },
+  adjudication: {
+    name: 'kimi_adjudication', strict: true,
+    schema: { type: 'object', additionalProperties: false, properties: {
+      overall: { type: 'string', enum: ['CLEAN', 'REVISE', 'NEEDS_PROOF'] },
+      verdicts: { type: 'array', items: { type: 'object', additionalProperties: false,
+        properties: { findingId: text(64), ruling: { type: 'string', enum: ['REAL', 'NOT_REAL', 'NEEDS_PROOF'] }, rationale: text(1_200) },
+        required: ['findingId', 'ruling', 'rationale'] } },
+    }, required: ['overall', 'verdicts'] },
+  },
+  verification: {
+    name: 'opus_verification', strict: true,
+    schema: { type: 'object', additionalProperties: false, properties: {
+      dismissals: { type: 'array', items: { type: 'object', additionalProperties: false,
+        properties: { findingId: text(64), verdict: { type: 'string', enum: ['UPHOLD_DISMISSAL', 'REOPEN', 'NEEDS_PROOF'] }, rationale: text(1_200) },
+        required: ['findingId', 'verdict', 'rationale'] } },
+    }, required: ['dismissals'] },
+  },
+};
+
+function responseFormat(stage) {
+  if (stage === 'adjudication') return formats.adjudication;
+  if (stage === 'opus-verify') return formats.verification;
+  return formats.review;
+}
 
 export class PanelCallError extends Error {
   constructor(code, message, result = null) {
@@ -40,7 +84,7 @@ export async function callOpenRouter({
     },
   };
   if (seat.supportsJson) {
-    body.response_format = { type: 'json_object' };
+    body.response_format = { type: 'json_schema', json_schema: responseFormat(seat.stage) };
     body.provider.require_parameters = true;
   }
   if (seat.supportsEffort) body.reasoning = { effort: 'high' };

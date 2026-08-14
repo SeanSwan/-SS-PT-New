@@ -40,7 +40,11 @@ test('request pins no fallback, deny-data routing, and a server-enforced max pri
   assert.equal(body.provider.allow_fallbacks, false);
   assert.equal(body.provider.data_collection, 'deny');
   assert.equal(body.provider.require_parameters, true);
-  assert.deepEqual(body.response_format, { type: 'json_object' });
+  assert.equal(body.response_format.type, 'json_schema');
+  assert.equal(body.response_format.json_schema.strict, true);
+  assert.equal(body.response_format.json_schema.schema.properties.findings.maxItems, 4);
+  assert.deepEqual(body.response_format.json_schema.schema.properties.findings.items.properties.severity.enum,
+    ['critical', 'high', 'medium', 'low', 'note']);
   assert.equal(body.max_tokens, 1000);
   assert.equal(headers['HTTP-Referer'], undefined, 'product-neutral runtime leaked a product URL');
   assert.equal(headers['X-Title'], 'Kimi Panel Runtime');

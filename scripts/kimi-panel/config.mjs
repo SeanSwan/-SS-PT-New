@@ -69,6 +69,12 @@ export const KIMI_SEAT = makeSeat({
   title: 'Kimi K3 finding adjudicator', remit: 'Rule every candidate REAL, NOT_REAL, or NEEDS_PROOF against the original evidence. Never vote.',
 });
 
+export const KIMI_DIRECT_SEAT = makeSeat({
+  ...KIMI_SEAT, id: 'kimi-direct', stage: 'kimi-direct', outputTokens: 8_000,
+  title: 'Kimi K3 direct hostile reviewer',
+  remit: 'Perform the primary hostile review yourself. Find the most consequential visual, artistic, interaction, architecture, safety, and proof defects.',
+});
+
 export const OPUS_VERIFY_SEAT = makeSeat({
   ...OPUS_FIRST_SEAT, id: 'opus-verify', stage: 'opus-verify', outputTokens: 16_000,
   title: 'Kimi Panel Opus 5 dismissal verifier',
