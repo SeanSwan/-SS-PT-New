@@ -181,12 +181,16 @@ that only accepts emitter output cannot migrate 18 hand-written packets.
 
 ```
 branch    wip/comms-notifications-2026-07-05
-HEAD      2d6d4aafa          unpushed: 1        (see ⚠ below)
-vs main   1,885 behind, 109 ahead
-main tip  0638bfe4b
+HEAD      906b1dbaf          unpushed: 0        (this handoff's own commit)
+vs main   1,885 behind, 109 ahead               (as measured 2026-08-14; RE-CHECK, main moves hourly)
+main tip  0638bfe4b                             (already stale by the time you read this)
 tree      ~1,260 uncommitted entries (long-standing; NOT yours, do not sweep)
 validator 18 packets → 2 clean · 3 warnings-only · 14 FAILING
 ```
+
+**These numbers were true when written and are the first thing that will rot.** `main` gained
+commits *during* this session and another agent is committing to this branch. Treat every figure
+above as a starting hypothesis and re-run §9 — that is exactly what §7 is about.
 
 **⚠ ANOTHER AGENT IS COMMITTING TO THIS SAME BRANCH.** `ed65bd909 feat(gates): Slice 1` and
 `2d6d4aafa fix(consult-kimi)` are **not mine**. `.ai-workflow/hermes-inbox/pending/` also holds ~20
