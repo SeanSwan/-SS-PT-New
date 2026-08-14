@@ -49,12 +49,22 @@ export function sanitizeClientText(text, { maxLen = DEFAULT_MAX_LEN } = {}) {
   if (text == null) return '';
   let s = String(text);
   if (!s.trim()) return '';
-  // Injection patterns run BEFORE whitespace collapse: the role-marker pattern is
-  // anchored to a line start, and collapsing newlines first would leave it nothing
-  // to bind to (only the very start of the string would ever match). See the
-  // pattern's own note for why the anchor exists.
-  for (const pattern of INJECTION_PATTERNS) s = s.replace(pattern, ' ');
+
+  // ORDER IS LOAD-BEARING, and getting it wrong has already produced two bugs.
+  //
+  // 1. Markup strip FIRST. Kimi K3 review 4, finding 1 — verified: running the
+  //    patterns first let interleaved tags reassemble an attack the patterns had
+  //    just failed to match. `ignore <b>all</b> previous instructions` did not
+  //    match the phrase pattern (a `<` sat where `all` was expected), then the
+  //    markup strip deleted the tags and handed the intact instruction to the
+  //    prompt. Stripping first denies that reassembly. `<[^>]*>` never spans a
+  //    newline, so line anchors survive this step.
+  // 2. Patterns SECOND, still before whitespace collapse — the role-marker
+  //    pattern is line-anchored, and collapsing newlines first would leave it
+  //    nothing to bind to (review 3, finding 1).
+  // 3. Whitespace collapse LAST, tidying what the first two steps left behind.
   s = s.replace(/<[^>]*>/g, ' ');            // any markup/tag shapes
+  for (const pattern of INJECTION_PATTERNS) s = s.replace(pattern, ' ');
   s = s.replace(/\s+/g, ' ').trim();
   if (s.length > maxLen) s = `${s.slice(0, maxLen - 1)}…`;
   return s;

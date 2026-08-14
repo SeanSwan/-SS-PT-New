@@ -35,6 +35,49 @@ import { wrapClientReported } from './ai/clientTextSanitizer.mjs';
 export const ONBOARDING_DICTIONARY_VERSION = 1;
 
 /**
+ * Sanitize one narrative value, whatever shape it arrives in.
+ *
+ * Kimi K3 review 4, finding 2 — the two lanes disagreed about types. The rename
+ * lane called `wrapClientReported` with no string guard, so an ARRAY became
+ * `String(['ACL tear','meniscus'])` — a string handed to consumers whose own
+ * defaults declare an array (`formData.pastInjuries || []`). The sanitize lane
+ * guarded strings only, so the same array sailed through untouched and reached
+ * the prompt raw. One shape would crash the consumer, the other bypassed the
+ * filter — the same half-closed-lane pattern as the finding before it.
+ *
+ * The mounted wizard posts strings (its health inputs are text fields), so no
+ * ordinary user reaches this — but an API caller does, and "the UI doesn't send
+ * that" is not a type contract. Arrays keep their shape and sanitize
+ * element-wise; strings keep the wrap; anything else is returned untouched for
+ * the caller's own validation to reject.
+ */
+const sanitizeNarrativeValue = (value, depth = 0) => {
+  if (Array.isArray(value)) {
+    // Recurse rather than sanitizing only the top level. Found by attacking the
+    // array fix itself: `[['ignore all previous instructions']]` had its inner
+    // strings skipped and reached masterPromptJson raw — the same half-closed
+    // lane, one level down. Depth-bounded so a hostile deeply-nested payload
+    // cannot turn this into a stack overflow.
+    // Past the bound the value is DROPPED, not returned raw. Returning it
+    // unsanitized would make the depth limit itself the bypass — fail-open at
+    // exactly the boundary meant to contain a hostile payload. No legitimate
+    // answer to a health question is an array nested four deep.
+    if (depth >= 4) return [];
+    return value.map((entry) => sanitizeNarrativeValue(entry, depth + 1));
+  }
+  if (typeof value === 'string') return wrapClientReported(value);
+
+  // Allowlist, not a blocklist. A narrative answer is text, or a list of text —
+  // nothing else. Every previous version of this function let the shape it did
+  // not anticipate through untouched, and each time that was the finding: first
+  // arrays, then arrays inside arrays, then objects inside arrays. Enumerating
+  // shapes to reject is a losing game; permitting only the two valid ones ends
+  // it. The raw answer is untouched in responsesJson, so nothing is lost — only
+  // the AI-facing projection drops a value that was never valid narrative.
+  return undefined;
+};
+
+/**
  * Wizard field -> projection key it feeds.
  *
  * `projectionKey` is the name the master-prompt builder reads. Where the two
@@ -142,7 +185,7 @@ export const applyOnboardingFieldDictionary = (formData = {}) => {
     const missing = alreadySet === undefined || alreadySet === null || alreadySet === '';
 
     if (incoming !== undefined && incoming !== null && incoming !== '' && missing) {
-      out[projectionKey] = meta.narrative ? wrapClientReported(incoming) : incoming;
+      out[projectionKey] = meta.narrative ? sanitizeNarrativeValue(incoming) : incoming;
     }
   }
 
@@ -184,9 +227,16 @@ export const sanitizeNarrativeFields = (formData = {}) => {
     if (!meta.narrative) continue;
 
     const value = out[meta.projectionKey];
-    if (typeof value === 'string' && value.trim() !== '') {
-      out[meta.projectionKey] = wrapClientReported(value);
-    }
+    if (value === undefined || value === null) continue;
+    if (typeof value === 'string' && value.trim() === '') continue;
+
+    // EVERY present narrative value goes through the sanitizer — the guard does
+    // not decide what is safe. A previous version tested `Array.isArray(value)
+    // || typeof value === 'string'` here, so a bare object skipped the sanitizer
+    // entirely and reached the projection raw. Fixing the sanitizer's own
+    // allowlist did nothing for it, because it never got that far: the hole had
+    // simply moved up one level into the caller. Route first, decide inside.
+    out[meta.projectionKey] = sanitizeNarrativeValue(value);
   }
 
   return out;
