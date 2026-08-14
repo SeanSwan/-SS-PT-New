@@ -79,8 +79,12 @@ failed here with "file has been modified since read" — that guard is doing rea
   `social/posts.mjs:615` (friendship gate). All guarded.
 - **`/users/:id` family** — `adminRoutes:35`, `authRoutes:855,925`, `userManagementRoutes:562,692`.
   All guarded. `authRoutes:855` is worth reading as a model: it documents *why* it string-coerces
-  (`req.user.id` is a string per `authMiddleware:631`, so strict `===` against `parseInt` was locking
-  users out of their own profile) and tiers attribute exclusion by role.
+  (`req.user.id` is a string, so strict `===` against a `parseInt` result was locking users out of
+  their own profile) and tiers attribute exclusion by role.
+  **Verified independently:** `authMiddleware.mjs:356-357` sets `req.user = { id: toStringId(user.id), … }`.
+  Note the in-source comment cites `authMiddleware.mjs:631`, which is now a **blank line** — the
+  claim is true, the line number has drifted. Do not conclude the comment is wrong; re-grep
+  `toStringId` instead. This is why the guard belongs in a test, not a comment.
 
 **Disproven hypotheses** (both were escalated to Sean before being checked — that was an error;
 both were answerable from the repo): trainers cannot self-assign clients; the `user`→`client` alias
