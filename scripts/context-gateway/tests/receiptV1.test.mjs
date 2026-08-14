@@ -160,6 +160,13 @@ test('REGRESSION: two different calls in the same second do not collide', () => 
   const c = buildReceiptV1(base({ docSha: 'aaa', effort: 'high', maxTokens: 16000 }));
   assert.notEqual(a.eventId, b.eventId, 'differing effort must not collide');
   assert.notEqual(a.eventId, c.eventId, 'differing maxTokens must not collide');
+  // --seed is a parameter too, and the header claims eventId separates differently-parameterized
+  // calls. It was omitted from the hash, so two same-second consults differing only by seed
+  // overwrote each other (Kimi round 16, L2).
+  const d = buildReceiptV1(base({ docSha: 'aaa', effort: 'high', maxTokens: 60000, seedPath: 'seeds/one.md' }));
+  const e = buildReceiptV1(base({ docSha: 'aaa', effort: 'high', maxTokens: 60000, seedPath: 'seeds/two.md' }));
+  assert.notEqual(a.eventId, d.eventId, 'adding a seed must not collide with no seed');
+  assert.notEqual(d.eventId, e.eventId, 'differing seed must not collide');
 
   const root = mkdtempSync(join(tmpdir(), 'swan-receipt-'));
   for (const rec of [a, b, c]) writeReceiptV1(rec, root);

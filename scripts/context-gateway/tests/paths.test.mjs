@@ -17,7 +17,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sep, join } from 'node:path';
 
-import { escapes, escapesFrom, shortPath, relativizePath } from '../src/paths.mjs';
+import { escapes, escapesFrom, shortPath, relativizePath, finalSegment } from '../src/paths.mjs';
 
 // --- the predicate ------------------------------------------------------------------------------
 
@@ -141,4 +141,38 @@ test('the ROOT ITSELF is the one documented divergence — pinned so nobody "sim
   // different questions. Unifying them would silently change what a receipt means.
   assert.equal(escapesFrom('/repo', '/repo'), false);
   assert.equal(relativizePath('/repo', '/repo'), '<external>');
+});
+
+test('S1b: a BACKSLASH drive path is redacted on every platform — basename() alone is not enough', () => {
+  // The S1 fix corrected escapes() so a drive-qualified path is DETECTED as escaping everywhere.
+  // It left shortPath's redaction output using node's basename(), which splits only on the HOST
+  // separator — so on POSIX the "redacted" render of C:\Users\<name>\packet.md was the whole
+  // string, username intact. Detection improved, the leak survived: the class outlived the fix.
+  // String.raw, NOT a quoted literal: '\U' is an unrecognized escape that JS silently drops the
+  // backslash from, so the fixture becomes 'C:UsersSomePerson...' and the test proves nothing
+  // about separator handling. Hit live while writing this very test (round 16 build note).
+  const win = String.raw`C:\Users\SomePerson\AppData\Local\Temp\packet.md`;
+
+  // Assert the PRIMITIVE, not just shortPath's composed output. node's basename() returns
+  // 'packet.md' for this fixture ON WINDOWS, so a shortPath-only assertion passes against the
+  // BUGGY code on the only machine this repo is developed on — vacuous exactly where S1 hid for
+  // 15 rounds. finalSegment splits on a regex, so its behaviour is identical on every platform
+  // and this assertion has teeth regardless of host.
+  assert.equal(finalSegment(win), 'packet.md');
+  assert.equal(finalSegment('C:/Users/SomePerson/packet.md'), 'packet.md');
+  assert.equal(finalSegment('/home/someone/packet.md'), 'packet.md');
+  // NOT String.raw here: a raw template ending in a backslash still escapes the closing backtick,
+  // so the literal never terminates (SyntaxError at EOF). Explicit escapes for trailing-separator
+  // fixtures only. A trailing separator yields the last real segment, matching basename semantics.
+  assert.equal(finalSegment('C:\\Users\\SomePerson\\'), 'SomePerson');
+  assert.equal(finalSegment('/'), '');
+
+  const rendered = shortPath(win, '/repo');
+  assert.equal(rendered, '.../packet.md');
+  assert.ok(!rendered.includes('SomePerson'), 'the username must never survive redaction');
+  // Forward-slash drive paths were already safe on POSIX; pin both so neither regresses alone.
+  assert.equal(shortPath('C:/Users/SomePerson/packet.md', '/repo'), '.../packet.md');
+  // And the receipt renderer, which shares the predicate, still answers <external> for both.
+  assert.equal(relativizePath('/repo', win), '<external>');
+  assert.equal(relativizePath('/repo', 'C:/Users/SomePerson/packet.md'), '<external>');
 });

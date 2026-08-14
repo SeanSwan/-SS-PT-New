@@ -19,7 +19,7 @@
  *
  * @module context-gateway/paths
  */
-import { relative, resolve, isAbsolute, sep, basename } from 'node:path';
+import { relative, resolve, isAbsolute, sep } from 'node:path';
 
 /**
  * True when `rel` (already the output of `relative()`) points outside its base.
@@ -40,6 +40,20 @@ import { relative, resolve, isAbsolute, sep, basename } from 'node:path';
  */
 const WIN_ABS = /^[A-Za-z]:[\\/]/;
 
+/**
+ * Final path segment, split on BOTH separators regardless of the running platform.
+ * `node:path.basename` splits only on the host separator, so on POSIX
+ * `basename('C:\\Users\\<name>\\packet.md')` returns the ENTIRE string — username included — and
+ * `shortPath`'s redaction emits verbatim the PII it exists to strip. This is the same
+ * platform-relativity as S1 one function over: `escapes()` was corrected while the redaction
+ * OUTPUT was left platform-dependent, so detection improved and the leak stayed. Fixing the class
+ * rather than the named instance is the point (Kimi round 16, S1b — self-found on re-verification).
+ */
+export const finalSegment = (p) => {
+  const segs = String(p).split(/[\\/]/).filter(Boolean);
+  return segs.length ? segs[segs.length - 1] : '';
+};
+
 export function escapes(rel) {
   if (isAbsolute(rel) || WIN_ABS.test(rel)) return true;
   return rel === '..' || rel.startsWith(`..${sep}`) || rel.startsWith('../');
@@ -56,7 +70,7 @@ export const escapesFrom = (from, target) => escapes(relative(resolve(from), res
  */
 export function shortPath(p, from = process.cwd()) {
   const rel = relative(resolve(from), resolve(p));
-  return escapes(rel) ? `.../${basename(p)}` : rel;
+  return escapes(rel) ? `.../${finalSegment(p)}` : rel;
 }
 
 /**

@@ -106,8 +106,14 @@ export function buildReceiptV1({
   // GENUINELY different calls (same doc, same provider, different --effort) inside one second would
   // otherwise collide on eventId AND filename, silently losing one record. This is collision
   // avoidance, NOT deduplication — see the append-only note in the module header.
+  // `seedRel` is in the hash because the header promises eventId separates "differently-
+  // parameterized" calls, and --seed IS a parameter: two same-second, same-doc, same-provider
+  // consults differing only by seed collided on eventId AND filename, silently overwriting one
+  // record. Either the hash covers the parameter or the header stops claiming it — and narrowing a
+  // true-sounding header is the Rule 75 direction this slice exists to delete (Kimi round 16, L2).
   const eventId = sha256(
-    [stamp, providerName, docSha ?? '', String(attempt), effort ?? '', String(maxTokens ?? ''), normalizedOutcome].join('|'),
+    [stamp, providerName, docSha ?? '', String(attempt), effort ?? '', String(maxTokens ?? ''),
+      normalizedOutcome, seedRel ?? ''].join('|'),
   ).slice(0, 16);
 
   return {

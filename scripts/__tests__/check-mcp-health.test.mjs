@@ -16,37 +16,13 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { diagnose, displayPath, credentialHeadersIn } from '../check-mcp-health.mjs';
-import { readCapped } from '../lib/read-capped.mjs';
+import { diagnose, credentialHeadersIn, BUCKETS } from '../check-mcp-health.mjs';
 
 const CLI = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'check-mcp-health.mjs');
 
-// --- path redaction -----------------------------------------------------------------------------
-// This is a security control (the home dir carries the OS username) and it had ZERO coverage until
-// a one-character escaping slip silently disabled it on Windows — the regex was written `[\/]`
-// instead of `[\\/]`, so no backslash path ever matched and every absolute path printed in full.
-// A redaction with no test is a redaction that can be turned off by accident.
-
-test('a Windows home path collapses to ~ (the backslash separator must be matched)', () => {
-  assert.equal(displayPath('C:\\Users\\sean\\.claude.json', 'C:\\Users\\sean'), '~\\.claude.json');
-});
-
-test('a POSIX home path collapses to ~', () => {
-  assert.equal(displayPath('/home/sean/.claude.json', '/home/sean'), '~/.claude.json');
-});
-
-test('a sibling directory sharing the home prefix is NOT mangled', () => {
-  // Over-redacting `C:\Users\sean2` into `~2\...` would misname the file the reader must open.
-  assert.equal(displayPath('C:\\Users\\sean2\\.claude.json', 'C:\\Users\\sean'), 'C:\\Users\\sean2\\.claude.json');
-});
-
-test('a path outside home is returned unchanged', () => {
-  assert.equal(displayPath('.mcp.json', '/home/sean'), '.mcp.json');
-});
-
-test('the home directory itself collapses to ~', () => {
-  assert.equal(displayPath('/home/sean', '/home/sean'), '~');
-});
+// The path-redaction tests moved to `display-path.test.mjs` — a separate security concern from the
+// verdict logic and exit-code contract pinned here, and keeping them pushed this file past the
+// 300-line cap (Kimi round 16, L1).
 
 // --- exit-code contract ------------------------------------------------------------------------
 // The whole point of this tool is disambiguating "not configured" from "cannot tell". That
@@ -120,76 +96,23 @@ test('exit 3 and exit 2 are DISTINCT — a disambiguation tool must not ship an 
   assert.notEqual(runCli(['zzz-no-such-server-anywhere'], none), runCli(['swanteststdio'], stdio));
 });
 
-test('prefix matching is case-insensitive (Windows paths are)', () => {
-  // homedir() can disagree with an env-supplied path on case via junctions, 8.3 names, or
-  // USERPROFILE drift. A byte-exact compare would leave this path fully unredacted.
-  assert.equal(displayPath('C:\\Users\\SEAN\\.claude.json', 'C:\\Users\\sean'), '~\\.claude.json');
-});
-
-test('no redacted output ever contains the username segment', () => {
-  const out = displayPath('C:\\Users\\BigotSmasher\\.claude.json', 'C:\\Users\\BigotSmasher');
-  assert.ok(!out.includes('BigotSmasher'), 'OS username survived redaction');
-});
-
-// --- bounded body read ---------------------------------------------------------------------------
-
-test('REGRESSION: a null-body status returns zero bytes instead of throwing', () => {
-  // 101/204/205/304 have `body === null` per the fetch spec. A previous version asserted a stream
-  // ALWAYS exists and threw here, so a server answering 204 to `initialize` reported UNREACHABLE
-  // despite having been reached. A null body is zero bytes — bounded by definition, not a fallback.
-  return readCapped({ body: null }, 1024).then((r) => {
-    assert.deepEqual(r, { text: '', bytes: 0, truncated: false });
-  });
-});
-
-test('a genuinely stream-less runtime throws rather than buffering', async () => {
-  // The one case that SHOULD throw: a body object with no getReader. Throwing keeps the bound
-  // unconditional; silently falling back to .text() is the unbounded defect this replaced.
-  await assert.rejects(() => readCapped({ body: {} }, 1024), /web streams/);
-});
-
-test('a body under the cap is returned whole and not marked truncated', async () => {
-  const body = 'hello world';
-  const stream = { getReader: () => { let sent = false; return {
-    read: async () => (sent ? { done: true } : (sent = true, { done: false, value: Buffer.from(body) })),
-    cancel: async () => {},
-  }; } };
-  const r = await readCapped({ body: stream }, 1024);
-  assert.equal(r.text, body);
-  assert.equal(r.bytes, body.length);
-  assert.equal(r.truncated, false);
-});
-
-// `timeout` matters here: this test feeds an INFINITE stream, so a regression in the cap check
-// does not fail — it HANGS. node:test has no default timeout, so the suite would stall rather than
-// go red, and a stuck runner reads as "still working" in CI. 5s is ~100x the passing runtime, which
-// turns a cap regression into a fast, explicit failure (Kimi round 9, N1).
-test('a body over the cap is truncated, reported as such, and the stream is cancelled', { timeout: 5000 }, async () => {
-  let cancelled = false;
-  const chunk = Buffer.alloc(64, 0x61); // 'a' * 64
-  const stream = { getReader: () => ({
-    read: async () => ({ done: false, value: chunk }), // infinite — the cap must stop it
-    cancel: async () => { cancelled = true; },
-  }) };
-  const r = await readCapped({ body: stream }, 100);
-  assert.equal(r.truncated, true);
-  assert.equal(r.text.length, 100, 'text must be clamped to the cap');
-  assert.ok(r.bytes > 100, 'bytes reports what was actually read');
-  assert.ok(cancelled, 'the stream must be cancelled, not drained');
-});
+// The bounded-body-read tests moved to `read-capped.test.mjs` — different module, and keeping them
+// here pushed this file past the 300-line cap (Kimi round 16, L1).
 
 test('REGRESSION: a bodiless 204/205 is HEALTHY but must not claim the credential was ACCEPTED', () => {
   // The hedge this pins was itself a fix for an overclaim — and arrived with no test, which is the
   // same gap this file calls out for redactions: an untested guarantee can be switched off by
   // accident. A refactor restoring the affirmative wording would otherwise pass green.
+  // `true` is explicit at every credential-asserting call site — `hasCredential` now defaults to
+  // FALSE so an omitted argument under-claims instead of ungating these branches (round 16, L3).
   for (const s of [204, 205]) {
-    const { verdict, remedy } = diagnose(s, '');
+    const { verdict, remedy } = diagnose(s, '', true);
     assert.equal(verdict, 'HEALTHY', 'exit-code semantics must stay unchanged');
     assert.match(remedy, /NOT rejected/i, 'the hedge must survive');
     assert.doesNotMatch(remedy, /accepts the credential/i, 'regression: overclaiming acceptance');
   }
   // ...and the affirmative remedy must stay EXCLUSIVE to a response that actually evidences it.
-  assert.match(diagnose(200, '{}').remedy, /accepts the credential/i);
+  assert.match(diagnose(200, '{}', true).remedy, /accepts the credential/i);
 });
 
 test('304 is not a redirect to follow — it is a cache validation with no body', () => {
@@ -254,13 +177,13 @@ test('every credential-asserting branch is gated, not just 401/403', () => {
 
 test('401 and 403 are token rejection, not "not configured"', () => {
   for (const s of [401, 403]) {
-    assert.equal(diagnose(s, '{"error":"invalid_token"}').verdict, 'CONFIGURED BUT TOKEN REJECTED');
+    assert.equal(diagnose(s, '{"error":"invalid_token"}', true).verdict, 'CONFIGURED BUT TOKEN REJECTED');
   }
 });
 
 test('the remedy for a rejected token forbids reporting it as unconfigured', () => {
   // The remedy text is the payload an agent acts on — it must carry the correction explicitly.
-  const { remedy } = diagnose(401, '');
+  const { remedy } = diagnose(401, '', true);
   // NOT `match(/not configured/i)`: the current remedy passes that by containing the phrase inside a
   // NEGATION (`Do NOT report this as "not configured"`) — but so would a harmful rewrite that simply
   // ASSERTS it ("This server is not configured..."). The regex cannot tell the correction from the
@@ -274,13 +197,13 @@ test('REGRESSION: a healthy 200 is never misdiagnosed because its body says "una
   // The body regex used to be OR'd with the status check, so it ran against EVERY response. A 200
   // whose payload merely mentions the word would tell Sean to rotate a perfectly good credential.
   const body = '{"result":{"notice":"previously unauthorized clients must re-handshake"}}';
-  assert.equal(diagnose(200, body).verdict, 'HEALTHY');
+  assert.equal(diagnose(200, body, true).verdict, 'HEALTHY');
 });
 
 test('body text is only a tiebreaker for statuses that carry no verdict of their own', () => {
   // 418 is not auth, not success, not redirect, not server-error — here the body legitimately decides.
-  assert.equal(diagnose(418, 'invalid_token').verdict, 'CONFIGURED BUT TOKEN REJECTED');
-  assert.match(diagnose(418, 'teapot').verdict, /UNEXPECTED HTTP 418/);
+  assert.equal(diagnose(418, 'invalid_token', true).verdict, 'CONFIGURED BUT TOKEN REJECTED');
+  assert.match(diagnose(418, 'teapot', true).verdict, /UNEXPECTED HTTP 418/);
 });
 
 test('a redirect is reported as such and never followed', () => {
@@ -302,7 +225,68 @@ test('5xx is an upstream fault, explicitly not a local config problem', () => {
 
 test('no verdict or remedy ever echoes the response body', () => {
   const secretish = 'Bearer abcdef0123456789 invalid_token';
-  const { verdict, remedy } = diagnose(401, secretish);
+  const { verdict, remedy } = diagnose(401, secretish, true);
   assert.ok(!verdict.includes('abcdef'), 'body echoed into verdict');
   assert.ok(!remedy.includes('abcdef'), 'body echoed into remedy');
+});
+
+// --- bucket routing --------------------------------------------------------------------------
+// The exit code is computed from `bucket`, so an unpinned bucket is an unpinned exit code. The
+// router used to re-derive it with `verdict.startsWith('REACHABLE')`, which also caught the 304
+// verdict and silently moved a BROKEN endpoint from unhealthy to unverified — flipping exit 1 -> 2
+// and letting a config with one 304 server exit 0 (Kimi round 16, S2).
+
+test('every verdict-producing condition lands in exactly one bucket — all nine pinned', () => {
+  const cases = [
+    // [label,                        args,                        expected bucket]
+    ['no credential + 401',           [401, '', false],            BUCKETS.UNVERIFIED],
+    ['unauthenticated 2xx',           [200, '{}', false],          BUCKETS.UNVERIFIED],
+    ['token rejected',                [401, '{"e":"x"}', true],    BUCKETS.UNHEALTHY],
+    ['healthy',                       [200, '{}', true],           BUCKETS.VERIFIED],
+    ['unreachable',                   [null, '', true],            BUCKETS.UNHEALTHY],
+    ['304 cache validation',          [304, '', true],             BUCKETS.UNHEALTHY],
+    ['redirect',                      [302, '', true],             BUCKETS.UNHEALTHY],
+    ['server error',                  [503, '', true],             BUCKETS.UNHEALTHY],
+    ['unexpected status',             [418, 'teapot', true],       BUCKETS.UNHEALTHY],
+  ];
+  for (const [label, args, expected] of cases) {
+    const { bucket, verdict } = diagnose(...args);
+    assert.equal(bucket, expected, `${label} ("${verdict}") bucketed as ${bucket}, expected ${expected}`);
+  }
+  assert.equal(cases.length, 9, 'a new verdict branch was added without pinning its bucket');
+});
+
+test('304 stays UNHEALTHY — a POST initialize drawing a cache response is broken, not unprobeable', () => {
+  // Round 11 pinned 304's exit code as load-bearing. This asserts the bucket DIRECTLY rather than
+  // via `notEqual(verdict, 'HEALTHY')`, which survived the round-16 regression while no longer
+  // guarding the thing it was written to guard.
+  const { bucket, verdict } = diagnose(304, '', true);
+  assert.equal(bucket, BUCKETS.UNHEALTHY);
+  assert.match(verdict, /^REACHABLE/, 'the prose still starts with REACHABLE — that is why prefix routing was unsafe');
+});
+
+test('omitting hasCredential fails toward "no credential" — the under-claiming direction', () => {
+  // The default used to be `true`, so any call site forgetting the third argument silently ungated
+  // every credential-asserting branch — the round-15 S2.3 defect re-armed for the next caller.
+  // These four calls omit it deliberately: each must behave as if NO credential was sent.
+  assert.match(diagnose(401, '').verdict, /CANNOT VERIFY/i, 'a bare 401 must not accuse a token that was never sent');
+  assert.match(diagnose(200, '{}').verdict, /credential not tested/i);
+  assert.doesNotMatch(diagnose(200, '{}').remedy, /accepts the credential/i);
+  assert.match(diagnose(400, 'unauthorized').verdict, /CANNOT VERIFY/i);
+  // ...and the credential-independent verdicts are unchanged by the default, which is why their
+  // call sites above legitimately stay two-argument.
+  assert.equal(diagnose(503, '').verdict, 'SERVER ERROR');
+  assert.equal(diagnose(null).verdict, 'UNREACHABLE');
+});
+
+test('no diagnose() result can ship without a bucket, and only the three are valid', () => {
+  // The router treats an unrecognized bucket as unhealthy, so a missing one fails safe rather than
+  // silently green — but it would still be a defect. Catch it here instead of in an exit code.
+  const valid = new Set(Object.values(BUCKETS));
+  for (const args of [[401, '', false], [200, '{}', false], [401, '{}', true], [200, '{}', true],
+    [null, '', true], [304, '', true], [302, '', true], [503, '', true], [418, 'teapot', true],
+    [204, '', true], [400, 'unauthorized', false], [400, 'unauthorized', true]]) {
+    const { bucket, verdict } = diagnose(...args);
+    assert.ok(valid.has(bucket), `verdict "${verdict}" carries invalid bucket ${JSON.stringify(bucket)}`);
+  }
 });

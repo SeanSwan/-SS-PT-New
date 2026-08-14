@@ -45,9 +45,9 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCapped } from './lib/read-capped.mjs';
-import { diagnose, credentialHeadersIn } from './lib/mcp-verdict.mjs';
+import { diagnose, credentialHeadersIn, BUCKETS } from './lib/mcp-verdict.mjs';
 
-export { diagnose, credentialHeadersIn };
+export { diagnose, credentialHeadersIn, BUCKETS };
 
 /** Every place Claude Code reads MCP servers from. `~/.claude.json` is the one agents forget. */
 const CONFIG_LOCATIONS = [
@@ -145,16 +145,16 @@ async function probeHttp(def) {
     // gigabytes before the slice ran. The previous comment here claimed a bound the code did not
     // have, which is the untrue-doc-claim class this whole slice exists to delete (round 6, S3).
     const { text, bytes, truncated } = await readCapped(r, MAX_BODY);
-    const { verdict, remedy } = diagnose(r.status, text, hasCredential);
+    const { verdict, remedy, bucket } = diagnose(r.status, text, hasCredential);
     // `text` dies here. A 401 body from an auth proxy routinely echoes the credential.
     // Buffer.byteLength, not .length: the header promises a BYTE count and stdout prints "B";
     // String.length counts UTF-16 code units and undercounts any multibyte body (Kimi r3, N1).
-    return { status: r.status, bytes, truncated, verdict, remedy };
+    return { status: r.status, bytes, truncated, verdict, remedy, bucket };
   } catch (e) {
     // e.message can embed the request URL, which the contract forbids printing — so only the class.
     const cause = e.name === 'AbortError' ? 'timeout after 15s' : e.constructor?.name ?? 'error';
-    const { verdict, remedy } = diagnose(null, '', hasCredential);
-    return { status: null, bytes: 0, truncated: false, verdict, remedy: `${remedy} (cause class: ${cause})` };
+    const { verdict, remedy, bucket } = diagnose(null, '', hasCredential);
+    return { status: null, bytes: 0, truncated: false, verdict, bucket, remedy: `${remedy} (cause class: ${cause})` };
   } finally { clearTimeout(timer); }
 }
 
@@ -234,7 +234,7 @@ for (const { name, def, source, scope } of servers) {
     continue;
   }
 
-  const { status, bytes, truncated, verdict, remedy } = await probeHttp(def);
+  const { status, bytes, truncated, verdict, remedy, bucket } = await probeHttp(def);
   probed += 1;
   console.log(`    HTTP        : ${status ?? 'n/a'}  (body ${bytes}B${truncated ? '+ truncated' : ''}, not printed — Rule 59)`);
   console.log(`    VERDICT     : ${verdict}`);
@@ -243,8 +243,14 @@ for (const { name, def, source, scope } of servers) {
   // (the server authenticates elsewhere) but they are NOT successes either — nothing was proven.
   // Collapsing them into "not unhealthy" is what let an OAuth-only config exit 0 with zero
   // verification, re-opening the ambiguity exit 2 exists to kill (Kimi round 15, S1).
-  if (verdict.startsWith('CANNOT VERIFY') || verdict.startsWith('REACHABLE')) unverified += 1;
-  else if (verdict === 'HEALTHY') verified += 1;
+  //
+  // The bucket is READ from the verdict, never re-derived by matching its prose. The previous
+  // `verdict.startsWith('REACHABLE')` also matched the 304 verdict — a broken endpoint — and
+  // silently moved it from unhealthy to unverified, flipping exit 1 -> 2 (Kimi round 16, S2).
+  // An unrecognized bucket counts as UNHEALTHY: a router that cannot classify a result must not
+  // answer "fine", and this is the branch a newly-added verdict would fall into if it forgot one.
+  if (bucket === BUCKETS.UNVERIFIED) unverified += 1;
+  else if (bucket === BUCKETS.VERIFIED) verified += 1;
   else unhealthy += 1;
 }
 
