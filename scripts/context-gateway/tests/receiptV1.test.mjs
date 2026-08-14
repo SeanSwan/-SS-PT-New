@@ -197,6 +197,16 @@ test('REGRESSION: the secret-path jail is recordable and never stores the offend
   assert.equal(r.docSha, null, 'a denied file is never read, so it has no content hash');
 });
 
+test('REGRESSION: filename segments are sanitized, so a hostile provider name cannot escape the store', () => {
+  // writeReceiptV1 is exported public API — a `../` in any segment must not traverse out.
+  const root = mkdtempSync(join(tmpdir(), 'swan-receipt-'));
+  const rec = buildReceiptV1(base({ root, providerName: '../../evil', docSha: 'aaa' }));
+  const file = writeReceiptV1(rec, root);
+  const dir = join(root, '.ai-workflow', 'context-gateway', 'receipts');
+  assert.ok(file.startsWith(dir), `receipt escaped the store: ${file}`);
+  assert.equal(readdirSync(dir).length, 1);
+});
+
 test('recordConsult returns null instead of throwing when the write fails', () => {
   // A telemetry failure must never take down a consult that already succeeded and already cost money.
   assert.equal(recordConsult({ stamp: STAMP, root: '\0invalid', providerName: 'kimi' }), null);

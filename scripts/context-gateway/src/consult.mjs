@@ -58,9 +58,12 @@ export async function runConsult(providerName, defaultRemit, defaultOut) {
     recordConsult({
       ...ctx,
       stamp: utcStamp(), root: process.cwd(), providerName,
-      // A call that already returned a result before the throw DID cost money — record it as 'ok'
-      // spend with an error code rather than pretending the spend never happened.
-      outcome: code === 'TRANSPORT' ? 'error' : 'refused', errorCode: code,
+      // `refused` means a GATE fired (ceiling/spend) — that is the signal the flywheel aggregates to
+      // tune ceilings and caps. NO_KEY is operator misconfiguration, not gate pressure; classing it
+      // as a refusal would overstate how often the gates actually bite. TRANSPORT likewise.
+      // `ctx.result` survives here, so a throw AFTER a paid call still carries its real cost.
+      outcome: code === 'TRANSPORT' || code === 'NO_KEY' ? 'error' : 'refused',
+      errorCode: code,
       originatingModel: process.env.SWAN_ORIGINATING_MODEL ?? null,
     });
 
@@ -93,7 +96,9 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   for (const pth of [docPath, seedPath].filter(Boolean)) {
     const rel = String(pth).replaceAll('\\', '/');
     if (DENY_PATTERNS.some((re) => re.test(rel))) {
-      console.error(`[consult-${providerName}] REFUSED secret-bearing path: ${rel}`);
+      // Print the basename only: transcripts capture stderr, and the full path carries the OS
+      // username the receipt deliberately relativizes away. Enough to identify what was refused.
+      console.error(`[consult-${providerName}] REFUSED secret-bearing path: .../${rel.split('/').pop()}`);
       // This branch exits DIRECTLY rather than throwing, so it never reaches runConsult's catch.
       // An attempt to egress a .env/*.pem is the most security-relevant event this lane produces —
       // record it here or it is lost entirely. No docSha: the file is deliberately never read.

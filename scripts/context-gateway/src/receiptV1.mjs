@@ -25,8 +25,17 @@
  *
  * ONE FILE PER EVENT, never an appended log: concurrent consults (this repo runs three at once)
  * would interleave or truncate a shared JSONL. A fresh filename per event is atomic on every OS and
- * aggregates trivially. Idempotency: `eventId` is derived from stable inputs, so a retry of the SAME
- * attempt overwrites its own record rather than inventing a second one.
+ * aggregates trivially.
+ *
+ * THIS STORE IS APPEND-ONLY, NOT DEDUPLICATED. `eventId` distinguishes concurrent or differently-
+ * parameterized calls that share a wall-clock second; it does NOT collapse retries. `stamp` is part
+ * of the hash and advances every run, so a retry minutes later is a SEPARATE record — which is the
+ * right behaviour for an audit log (you want both attempts) but is NOT idempotency. An earlier
+ * version of this header claimed "a retry of the SAME attempt overwrites its own record"; that was
+ * false, and `attempt` was never wired by any caller. Removed rather than half-implemented — the
+ * commit that added this module exists to delete exactly that class of untrue doc claim (Rule 75).
+ * `attempt` remains an optional caller-supplied field for when retries are genuinely automated;
+ * today every production caller leaves it at 1.
  *
  * PURE + CALLER-STAMPED: no `Date.now()` here (matching receipt.mjs) so the writer stays
  * deterministic and testable; the caller supplies `stamp`.
@@ -87,11 +96,10 @@ export function buildReceiptV1({
   const docRel = relativizePath(root, docPath);
   const seedRel = relativizePath(root, seedPath);
 
-  // Stable across retries of the same attempt; distinct across different documents/providers.
-  // effort + maxTokens are included because the stamp is only second-granular: two GENUINELY
-  // different calls (same doc, same provider, different --effort) inside one second would otherwise
-  // collide on eventId AND filename, silently losing one record. A true retry keeps the same
-  // effort/maxTokens, so the idempotent-overwrite property survives.
+  // Distinguishes calls that share a wall-clock second. The stamp is only second-granular, so two
+  // GENUINELY different calls (same doc, same provider, different --effort) inside one second would
+  // otherwise collide on eventId AND filename, silently losing one record. This is collision
+  // avoidance, NOT deduplication — see the append-only note in the module header.
   const eventId = sha256(
     [stamp, providerName, docSha ?? '', String(attempt), effort ?? '', String(maxTokens ?? '')].join('|'),
   ).slice(0, 16);
@@ -127,11 +135,16 @@ export function buildReceiptV1({
   };
 }
 
+/** Filename segments are sanitized, not trusted: this is exported public API, so a provider name
+ * or stamp containing `../` must never escape the receipts directory. Today's only caller passes
+ * safe values; the guard makes that independent of the caller. */
+const safeSeg = (s) => String(s ?? '').replaceAll(/[^A-Za-z0-9_-]/g, '') || 'unknown';
+
 /** Write one JSON record. Returns its path. Directory matches the packet lane's receipts store. */
 export function writeReceiptV1(record, root) {
   const dir = join(root, '.ai-workflow', 'context-gateway', 'receipts');
   mkdirSync(dir, { recursive: true });
-  const file = join(dir, `${record.stamp}-${record.provider ?? 'unknown'}-${record.eventId}.json`);
+  const file = join(dir, `${safeSeg(record.stamp)}-${safeSeg(record.provider)}-${safeSeg(record.eventId)}.json`);
   writeFileSync(file, `${JSON.stringify(record, null, 2)}\n`, 'utf-8');
   return file;
 }
