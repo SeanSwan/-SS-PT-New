@@ -124,7 +124,7 @@ noticing it was a choice.** A gate's condition is a floor, not a ceiling. Seven 
 single error class in one session is a permanent lesson by any reading, and permanent lessons belong
 here — in the committed, compounding record — not only in a local working memo.
 
-## 6. Mistakes I made
+## Mistakes I made
 
 Section 1 is the enumerated list; these are the ones with a distinct correction attached.
 
@@ -160,7 +160,7 @@ Section 1 is the enumerated list; these are the ones with a distinct correction 
 - **Ran a background secret scan while continuing to commit in the same repo**, which is how the
   index became contended in the first place.
 
-## 7. External-model calibration
+## External-model calibration
 
 **Kimi K3, three hostile rounds (~$0.23 total). Every round changed the outcome.**
 
