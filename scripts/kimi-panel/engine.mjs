@@ -2,9 +2,9 @@
  * Kimi Panel deterministic orchestration engine.
  * ==============================================
  * Sequence: Opus blind first review -> ten blind parallel lenses (nine cheap + Gemini) -> Kimi
- * adjudication against original evidence -> Opus dismissal verification. Any stage failure aborts
- * the next stage; every network seat is attempted at most once. Preflight reserves conservative
- * worst-case spend for all thirteen calls under one shared cap before the first call can execute.
+ * adjudication against original evidence -> Opus dismissal verification. HY3 Preview has one
+ * explicitly authorized full-HY3 fallback; every other network seat is attempted once. Preflight
+ * reserves the fourteen-call maximum path under one shared cap before the first call can execute.
  *
  * @module kimi-panel/engine
  */
@@ -12,7 +12,7 @@ import { randomBytes } from 'node:crypto';
 import { redactSecrets } from '../context-gateway/src/egress.mjs';
 import { sha256 } from '../context-gateway/src/receiptV1.mjs';
 import {
-  BLIND_PANEL_SEATS, OPUS_FIRST_SEAT, KIMI_SEAT, OPUS_VERIFY_SEAT,
+  BLIND_PANEL_SEATS, OPUS_FIRST_SEAT, KIMI_SEAT, OPUS_VERIFY_SEAT, HY3_FALLBACK_SEAT,
   MAX_OUTPUT_TOKENS, buildPreflight, estimateWorstCase,
 } from './config.mjs';
 import {
@@ -47,6 +47,7 @@ export async function runKimiPanel({
   const id = runId ?? sha256(`${preflight.packetSha256}:${randomBytes(12).toString('hex')}`).slice(0, 16);
   const allocation = new Map(preflight.roster.map((entry) => [entry.id, entry]));
   let spentUsd = 0;
+  let modelCallsExecuted = 0;
 
   async function invoke(seat, prompt, findings = []) {
     const planned = allocation.get(seat.id);
@@ -55,6 +56,7 @@ export async function runKimiPanel({
     const estimate = estimateWorstCase(seat, promptBytes, planned.maxTokens);
     if (spentUsd + estimate > capUsd) throw new Error(`shared cap blocked ${seat.id} before call`);
     try {
+      modelCallsExecuted += 1;
       const result = await callModel({ seat, prompt, findings, maxTokens: planned.maxTokens, env });
       if (!Number.isFinite(result?.cost) || result.cost < 0) throw new Error('provider returned invalid cost');
       if (result.cost > estimate + 0.000001) {
@@ -97,11 +99,19 @@ export async function runKimiPanel({
     });
   } catch (error) { failOutput(opusCall, error); }
 
-  const fanout = await Promise.allSettled(BLIND_PANEL_SEATS.map(async (seat) => {
-    const call = await invoke(seat, buildReviewerPrompt(seat, sanitized));
+  async function reviewSeat(seat, promptSeat = seat) {
+    const call = await invoke(seat, buildReviewerPrompt(promptSeat, sanitized));
     try {
       return { ...call, findings: parseReviewerFindings(call.result.text, { originModel: seat.model }) };
     } catch (error) { failOutput(call, error); }
+  }
+
+  const fanout = await Promise.allSettled(BLIND_PANEL_SEATS.map(async (seat) => {
+    try { return await reviewSeat(seat); }
+    catch (error) {
+      if (seat.id !== 'hy3') throw error;
+      return reviewSeat(HY3_FALLBACK_SEAT, seat);
+    }
   }));
   const failed = fanout.filter((result) => result.status === 'rejected');
   if (failed.length) {
@@ -145,7 +155,7 @@ export async function runKimiPanel({
 
   return {
     status: 'complete', runId: id, packetSha256: preflight.packetSha256,
-    modelCallsExecuted: preflight.meteredCallCount, spendUsd: spentUsd,
+    modelCallsExecuted, spendUsd: spentUsd,
     preflight, findings, adjudication, verification, final,
   };
 }

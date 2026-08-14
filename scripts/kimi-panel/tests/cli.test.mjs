@@ -23,9 +23,11 @@ test('CLI is dry by default and prints the complete zero-call allocation', () =>
   });
   assert.match(output, /status=preflight-only/);
   assert.match(output, /model_calls_executed=0/);
-  assert.match(output, /metered_calls=13/);
+  assert.match(output, /logical_seats=13/);
+  assert.match(output, /max_metered_calls=14/);
   assert.match(output, /google\/gemini-3\.7-flash/);
   assert.match(output, /tencent\/hy3-preview/);
+  assert.match(output, /tencent\/hy3/);
   assert.match(output, /max_output_tokens=8000/);
   assert.match(output, /shared_cap_usd=3\.2766/);
 });

@@ -57,7 +57,7 @@ test('confirmed run fans ten blind prompts before Kimi sees original evidence an
   assert.equal(run.status, 'complete');
   assert.equal(run.adjudication.verdicts.length, 11, 'ten panel findings plus Opus first pass');
   assert.equal(run.final.verdict, 'REVISE', 'real findings prevent a false clean');
-  assert.equal(run.spendUsd, 0.021);
+  assert.equal(run.spendUsd, 0.0211);
   assert.equal(receipts.length, 13);
   assert.deepEqual(receipts.map((receipt) => receipt.seat.stage), [
     'opus-first', ...Array(10).fill('fanout'), 'adjudication', 'opus-verify',
@@ -90,6 +90,38 @@ test('one failed blind reviewer aborts before Kimi and is never retried', async 
   assert.equal(attempts.size, 11, 'Opus first plus all ten blind panel seats were attempted');
   assert.ok([...attempts.values()].every((count) => count === 1), 'a paid call was retried');
   assert.equal(attempts.has('kimi-adjudicator'), false);
+});
+
+test('HY3 preview failure uses full HY3 once, then mandatory Kimi adjudication continues', async () => {
+  const calls = [];
+  const callModel = async ({ seat, findings }) => {
+    calls.push(seat);
+    if (seat.id === 'hy3') {
+      const error = new Error('preview unavailable');
+      error.code = 'TRANSPORT';
+      throw error;
+    }
+    if (seat.stage === 'adjudication') {
+      return { text: JSON.stringify({ overall: 'REVISE', verdicts: findings.map((item) => ({
+        findingId: item.findingId, ruling: 'REAL', rationale: 'Verified against evidence.',
+      })) }), inTok: 1, outTok: 1, cost: 0.001, wallMs: 1, model: seat.model };
+    }
+    if (seat.stage === 'opus-verify') {
+      return { text: JSON.stringify({ dismissals: [] }), inTok: 1, outTok: 1,
+        cost: 0.001, wallMs: 1, model: seat.model };
+    }
+    return { text: reviewerReply(seat), inTok: 1, outTok: 1,
+      cost: 0.000001, wallMs: 1, model: seat.model };
+  };
+  const run = await runKimiPanel({
+    packet: 'safe visualizer evidence', documentPath: 'docs/safe.md', capUsd: 5,
+    confirmed: true, callModel,
+  });
+  assert.equal(calls.filter((seat) => seat.id === 'hy3').length, 1);
+  assert.equal(calls.filter((seat) => seat.id === 'hy3-full').length, 1);
+  assert.equal(calls.filter((seat) => seat.id === 'kimi-adjudicator').length, 1);
+  assert.equal(run.modelCallsExecuted, 14);
+  assert.equal(run.status, 'complete');
 });
 
 test('a cap below conservative worst case blocks every call', async () => {

@@ -1,9 +1,8 @@
 /**
  * Kimi Panel CLI: dry by default, explicit confirmation for the exact printed allocation.
  * ======================================================================================
- * The CLI performs sanitization and the full thirteen-call cost preflight without loading an API
- * key. `--confirm-spend` is the only live boundary. Outputs and receipts remain local; no retry or
- * debate behavior exists in this runner.
+ * The CLI performs sanitization and reserves thirteen logical seats plus one conditional full-HY3
+ * fallback without loading an API key. `--confirm-spend` is the only live boundary.
  *
  * @module kimi-panel/cli
  */
@@ -46,7 +45,7 @@ function usage() {
 
 function printPreflight(preflight) {
   console.log(`[kimi-panel] status=preflight-only packet_sha256=${preflight.packetSha256}`);
-  console.log(`[kimi-panel] metered_calls=${preflight.meteredCallCount} model_calls_executed=0 max_output_tokens=${preflight.maxOutputTokens}`);
+  console.log(`[kimi-panel] logical_seats=${preflight.logicalSeatCount} max_metered_calls=${preflight.maxMeteredCallCount} model_calls_executed=0 max_output_tokens=${preflight.maxOutputTokens}`);
   console.log(`[kimi-panel] shared_cap_usd=${preflight.sharedCapUsd.toFixed(4)} total_worst_case_usd=${preflight.totalWorstCaseUsd.toFixed(4)} allowed=${preflight.allowed}`);
   for (const entry of preflight.roster) {
     console.log(`[kimi-panel] stage=${entry.stage} model=${entry.model} tokens=${entry.maxTokens} worst_case_usd=${entry.worstCaseUsd.toFixed(4)}`);

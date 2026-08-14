@@ -39,6 +39,10 @@ export async function callOpenRouter({
       max_price: { prompt: seat.priceInPerM, completion: seat.priceOutPerM, request: 0 },
     },
   };
+  if (seat.supportsJson) {
+    body.response_format = { type: 'json_object' };
+    body.provider.require_parameters = true;
+  }
   if (seat.supportsEffort) body.reasoning = { effort: 'high' };
   const started = Date.now();
   const response = await fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
