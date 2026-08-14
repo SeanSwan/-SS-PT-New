@@ -154,25 +154,29 @@ be deleted so a future reader cannot re-introduce a consumer. Ticket, not a bloc
 
 ## 7. What is actually left, ranked
 
-1. **`--update-baseline` and commit it.** The 3 by-design-public flags (§5) are traced and accepted
-   but not yet recorded. Until then the ratchet reports a standing backlog of 3. **~2 minutes.**
-2. **Executed authz coverage — the real gap.** `clientResourceIdorExecution.test.mjs` is an
+> **Baseline: DONE, nothing owed.** An earlier draft listed re-baselining as item 1. It is already
+> committed — `backend/scripts/baselines/idor-surface.json` records `scanned: 211, accepted: 3`, and
+> the 3 accepted keys are exactly the by-design-public trio traced in §5
+> (`GET /:trainerId`, `GET /:trainerId/slots`, `GET /keys/:userId`). The ratchet is armed correctly:
+> those 3 are tolerated, and anything new fails the build.
+
+1. **Executed authz coverage — the real gap.** `clientResourceIdorExecution.test.mjs` is an
    excellent template (real routers via supertest, `it.each` tables, **positive controls**, and a
    non-disclosure assertion `expect(JSON.stringify(res.body)).not.toContain(String(CLIENT_B_ID))`).
    It covers **3 surfaces of ~211**. Extending it is the highest-value security work remaining —
    and the static audit now gives a clean, trustworthy target list to point it at.
-3. **Delete the dead bypass writes** in `EmergencyDashboard` (§6).
-4. **Rate-limit `GET /api/encryption/keys/:userId`.** It consumes a one-time prekey per call
+2. **Delete the dead bypass writes** in `EmergencyDashboard` (§6).
+3. **Rate-limit `GET /api/encryption/keys/:userId`.** It consumes a one-time prekey per call
    (`keyStoreService.mjs:221-223`) with no limiter — any authenticated user can exhaust another
    user's prekey pool. Standard E2EE availability concern. Low severity.
-5. **Two pre-existing `main` test failures** (Codex's lane, flagged not fixed per Rule 52) —
+4. **Two pre-existing `main` test failures** (Codex's lane, flagged not fixed per Rule 52) —
    `associationsModelRegistryParity` (`RenewalAlert` in the full-setup literal, missing from the
    early return — schema-drift class) and `phase1bControllers`
    (`<client_reported>strength</client_reported>` vs expected `strength`), plus
    `memberDirectoryLateralProbe` failing at file level. All five files verified **byte-identical to
    `origin/main`**. Checked the first for authz impact: **none** — `requireStaff` is fail-closed and
    mounted before every handler.
-6. **Do NOT build the cross-role matrix.** Kimi's rejection stands, and §5's existing tests already
+5. **Do NOT build the cross-role matrix.** Kimi's rejection stands, and §5's existing tests already
    solve the F2 all-401-reads-as-green defect it was rejected for.
 
 ---
