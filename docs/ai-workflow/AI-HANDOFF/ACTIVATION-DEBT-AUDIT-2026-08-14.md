@@ -260,9 +260,21 @@ Ordered by value per minute of Sean's attention.
 | 8 | Nurture unsubscribe + suppression build slice, **then** `SWAN_AUTOMATION_CRON_ENABLED` | agent, then **Sean** | ~1 day | **Not a flip.** Blocked on a legal prerequisite (one-click unsubscribe in every nurture email, CAN-SPAM/GDPR) that does not exist yet — see §3.1a. |
 | 9 | Write down *why* the 3 undocumented flags are off | agent | ~20 min | Settlement worker (45d), planner V2 (14d), voice V2 (13d) have **zero** docs. Cheapest possible fix for the gap §8 describes. |
 
+### 7.1 Why steps 1 and 3 must be two deploys, not one
+
+It is tempting to land half A and set the env var in the same deploy window — Render
+redeploys on an env change anyway, so it looks like a free saving. It is not.
+
+Landing A **first**, alone, and confirming the cockpit reports **DARK**, proves the gauge
+works *while the feature is still off* — a zero-risk test of the instrument. If you change
+both at once and the cockpit says "live," you cannot tell whether the flag worked, the
+cockpit worked, or both are lying in the same direction. One extra deploy cycle (which runs
+unattended) buys an unambiguous reading. Sean's attention cost is unchanged; only wall-clock
+moves.
+
 **Explicitly not recommended:** cold-outreach lead scraping (wrong motion for trainer-led
 B2B2C), and migrating all ~20 backend env flags onto Launch Control (over-engineering for a
-single-operator product).
+single-operator product — §8's comment-with-expiry is the cheaper fix).
 
 ---
 
