@@ -146,3 +146,35 @@ HY3 did not.
 3. Can trainers self-serve their own client assignments?
 4. `npm run build && grep -rl "bypass_admin_verification" dist/` — ten seconds, gates a potential
    browser-side admin bypass.
+
+## Corpus mining — what actually recurs (783 memos + 21 packets, 2026-08-14)
+
+Sean asked for the recurring issues across ~a month of agent work. Measured with `grep -rlia` over
+`.ai-workflow/hermes-inbox/` + `docs/ai-workflow/hermes-learning-packets/`:
+
+| Class | Files | Share |
+|---|---|---|
+| stale state (branch/doc/session behind reality) | 241 | 31% |
+| fake-green / tests that lie | 204 | 26% |
+| schema drift | 200 | 26% |
+| unverified claims treated as fact | 127 | 16% |
+| wrong instrument / tool lied | 101 | 13% |
+| not-mounted / dormant / orphan surfaces | 91 | 12% |
+| IDOR / authz | 90 | 12% |
+| silently skipped tests | 67 | 9% |
+
+**The top three are one failure, not three.** Each is a *source of truth that isn't* — a branch
+that isn't current, a test that asserts nothing, a model that doesn't match the DB. In every case
+something **reported success while describing a world that did not exist**. That is the thing a
+hostile review here must hunt: not "is the code wrong" but "is the thing telling me the code is
+right actually looking at the code."
+
+Corroborated live five times in this one session (dangling-SHA check, non-recursive glob, Vite
+NODE_ENV assumption, digit-blind regex, IDOR script that can't follow `router.use()`), and
+independently by the parallel Codex audit, which found a planner test reading source instead of
+behavior, a skipped security test, and suites reporting empty-as-pass.
+
+**Routing consequence for Hermes:** when an agent reports a green gate, the highest-value next
+question is not "what else should we test" but "what would this gate look like if it were blind?"
+Four of seven flags from the standing IDOR tool were false positives today; a gate that cries wolf
+gets ignored, which is how a real finding eventually slips through.
