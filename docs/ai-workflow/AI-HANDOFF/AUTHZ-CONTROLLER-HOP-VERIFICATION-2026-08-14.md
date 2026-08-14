@@ -272,7 +272,9 @@ against `req.user.id`"*. The implementation has always been a bare match. This i
 rather than a debate.
 
 Also confirmed Round 1: `backend/routes/` is **byte-identical to `origin/main`**
-(`git diff --stat origin/main HEAD -- backend/routes/` → empty). Branch is 46 behind / 19 ahead. So
+(`git diff --stat origin/main HEAD -- backend/routes/` → empty). Branch position drifts every
+commit — re-derive with `git rev-list --left-right --count origin/main...HEAD` rather than trusting
+any number written here; it was 19 ahead at this line's writing and 27 by session end. So
 every count in this document describes the real production route surface.
 
 ### CORRECTION 2 — §7's "no test has hit a live endpoint" was too broad
