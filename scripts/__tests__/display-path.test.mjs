@@ -48,3 +48,27 @@ test('no redacted output ever contains the username segment', () => {
   const out = displayPath('C:\\Users\\BigotSmasher\\.claude.json', 'C:\\Users\\BigotSmasher');
   assert.ok(!out.includes('BigotSmasher'), 'OS username survived redaction');
 });
+
+test('redaction here is PLATFORM-INDEPENDENT — pinned against drift from the paths.mjs policy', () => {
+  // This module is a SECOND redaction implementation, living outside `context-gateway/paths.mjs`
+  // which exists to hold that policy in one place. Flagged in Kimi round 17 as a possible repeat of
+  // the "named instance fixed, class alive" pattern. Probed before acting: it is NOT — it decides
+  // separators with a regex CLASS (`/^[\\/]/`), not with a platform primitive like `isAbsolute` or
+  // `basename`, so it has no platform-relative failure. The two answer different questions
+  // (escape-a-base vs collapse-the-home-prefix), so merging them would be a worse design than
+  // keeping them apart.
+  //
+  // What was genuinely missing is this pin. Nothing stopped a future edit from swapping the class
+  // for `sep` or `basename` and reintroducing S1 here, in the one module whose redaction regex has
+  // ALREADY been silently disabled once by a `[\/]`-instead-of-`[\\/]` slip.
+  for (const [p, home] of [
+    ['C:\\Users\\sean\\.claude.json', 'C:\\Users\\sean'],   // backslash
+    ['C:/Users/sean/.claude.json', 'C:/Users/sean'],         // forward slash
+    ['/home/sean/.claude.json', '/home/sean'],               // posix
+    ['C:\\Users\\sean/.claude.json', 'C:\\Users\\sean'],     // mixed — the shape a regex class catches and `sep` does not
+  ]) {
+    const out = displayPath(p, home);
+    assert.ok(out.startsWith('~'), `home prefix not collapsed for ${p}`);
+    assert.ok(!out.includes('sean'), `username survived for ${p}`);
+  }
+});

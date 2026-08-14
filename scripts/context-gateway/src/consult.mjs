@@ -120,7 +120,12 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   // HOST separator — so on POSIX a Windows-shaped path (copied config, WSL boundary) returns the
   // whole string and this "redacted" error line prints the OS username. Same platform-relativity as
   // round 16 S1/S1b, one file over — which is exactly the class paths.mjs exists to hold in ONE
-  // place. Every redaction in this lane goes through that module or it will drift again.
+  // place. Every redaction in the CONSULT lane (`context-gateway/`) goes through that module or it
+  // will drift again. Scope stated explicitly because the unqualified version read as a repo-wide
+  // claim it does not support: `check-mcp-health.mjs` has its own `displayPath`, deliberately —
+  // it answers a different question (collapse the home prefix, not escape a base). It was probed
+  // and does NOT carry the platform-relative flaw, and is now pinned against acquiring it
+  // (Kimi round 17, cross-lane flag — verified narrower than reported).
   if (!existsSync(docPath)) { console.error(`document not found: .../${finalSegment(docPath)}`); process.exit(1); }
 
   ctx.docPath = docPath;
