@@ -16,6 +16,7 @@
  */
 
 import logger from '../utils/logger.mjs';
+import { AUTH_FAILURE, canRefresh, createCredentialRefresher } from './socialCredentialRefresh.mjs';
 
 const getPlain = row => (row?.get ? row.get({ plain: true }) : row);
 const toBuffer = value => (Buffer.isBuffer(value) ? value : Buffer.from(value || ''));
@@ -48,18 +49,15 @@ const loadAccounts = async (ids) => Promise.all(ids.map(async (id) => {
   return account;
 }));
 
-/**
- * An auth-class failure means the stored credential no longer works, and no
- * retry of the same credential will change that. Record it on the account so
- * the UI can stop asserting "connected" — before this, SocialPublishingAccount
- * had no update path at all, so an expired token displayed as healthy forever
- * while every publish 401'd.
- *
- * Deliberately narrow: a rate limit or a network blip is not a broken
- * connection, and demoting on those would make Sean reconnect for no reason.
- */
-const AUTH_FAILURE = /\b(401|403)\b|expiredtoken|invalidtoken|authentication|unauthorized|invalid_?grant/i;
+const { refreshCredentials } = createCredentialRefresher({
+  AccountModel, decryptCredentials, encryptCredentials,
+});
 
+/**
+ * Record an auth failure on the account so the UI stops asserting "connected".
+ * Before this, SocialPublishingAccount had no update path at all, so an expired
+ * token displayed as healthy forever while every publish 401'd.
+ */
 const markAccountUnhealthy = async (accountId, reason) => {
   try {
     const row = await AccountModel.findByPk(accountId);
@@ -68,78 +66,6 @@ const markAccountUnhealthy = async (accountId, reason) => {
     // Never let health bookkeeping turn a reported publish outcome into a 500.
   }
 };
-
-/**
- * Store rotated credentials. Best-effort ON PURPOSE: at this point we already
- * hold a working access token in memory, so a storage failure must not lose the
- * post. The cost of not persisting is that the next publish refreshes again,
- * which is harmless; the cost of throwing here would be a post that never went
- * out because of a bookkeeping problem.
- */
-const persistCredentials = async (accountId, credentials) => {
-  if (typeof encryptCredentials !== 'function') return;
-  try {
-    const encrypted = encryptCredentials(credentials);
-    const row = await AccountModel.findByPk(accountId);
-    if (row) {
-      await row.update({
-        credentialCipher: encrypted.cipher,
-        credentialIv: encrypted.iv,
-        credentialTag: encrypted.tag,
-        credentialKeyId: encrypted.keyId,
-      });
-    }
-  } catch (err) {
-    logger.error(`[social-publish] failed to persist refreshed credentials for account ${accountId}: ${err.message}`);
-  }
-};
-
-/**
- * Refresh a provider session and hand back usable credentials.
- *
- * Throws a `reconnectRequired` error when the refresh itself fails, because
- * "your connection expired, reconnect it" is a different problem for Sean than
- * "the post did not go out" — reporting the former as the latter sends him
- * hunting for a publishing bug that does not exist.
- */
-const refreshCredentials = async (account, credentials, adapter) => {
-  const reconnect = (detail) => {
-    const err = new Error(
-      `${account.provider} session expired and could not be refreshed — reconnect the account${detail ? ` (${detail})` : ''}`,
-    );
-    err.reconnectRequired = true;
-    return err;
-  };
-
-  let session;
-  try {
-    session = await adapter.refreshSession({
-      refreshJwt: credentials.refreshJwt,
-      serviceUrl: credentials.serviceUrl,
-    });
-  } catch (err) {
-    throw reconnect(err.message);
-  }
-  if (!session?.accessJwt) throw reconnect('refresh returned no access token');
-
-  // Merge field-by-field rather than spreading the whole session: a provider
-  // that omits an optional field (handle, did) would otherwise overwrite a good
-  // stored value with undefined. The rotated refreshJwt is the one that matters
-  // — AT Protocol issues a NEW one, and keeping the old leaves the account
-  // unable to refresh at the next expiry.
-  const rotated = { ...credentials };
-  for (const field of ['accessJwt', 'refreshJwt', 'serviceUrl', 'did', 'handle']) {
-    if (session[field]) rotated[field] = session[field];
-  }
-
-  await persistCredentials(account.id, rotated);
-  return rotated;
-};
-
-/** A refresh is worth attempting only for an auth failure we can actually act on. */
-const canRefresh = (err, adapter, credentials) => AUTH_FAILURE.test(err?.message || '')
-  && typeof adapter.refreshSession === 'function'
-  && Boolean(credentials?.refreshJwt);
 
 const publishToAccounts = async ({ content, accountIds, mediaUrl, jobId = null }) => {
   const accounts = await loadAccounts(accountIds);

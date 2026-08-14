@@ -94,12 +94,17 @@ describe('a scheduled job is claimed atomically', () => {
 
     await service.runDueJobs({ now: new Date() });
 
-    expect(JobModel.update).toHaveBeenCalledTimes(1);
     const [values, options] = JobModel.update.mock.calls[0];
     expect(values).toMatchObject({ status: 'running' });
     // Without `status: 'scheduled'` in the WHERE, this is find-then-update
     // wearing a different syntax and two instances still both win.
     expect(options.where).toMatchObject({ id: 'job-1', status: 'scheduled' });
+    // Exactly one write may move the job OUT of 'scheduled'. This used to be
+    // asserted as "update called once", which broke when the terminal write
+    // became conditional too — a stricter guarantee, not a weaker one.
+    const claims = JobModel.update.mock.calls
+      .filter(([, opts]) => opts?.where?.status === 'scheduled');
+    expect(claims).toHaveLength(1);
   });
 
   it('publishes the job when it wins the claim', async () => {
@@ -147,11 +152,16 @@ describe('a scheduled job is claimed atomically', () => {
   });
 
   it('records the terminal outcome on the job it did claim', async () => {
-    const { service, jobRow } = makeService({ claimResult: [1] });
+    const { service, JobModel } = makeService({ claimResult: [1] });
 
     await service.runDueJobs({ now: new Date() });
 
-    const patches = jobRow.update.mock.calls.map(call => call[0]);
-    expect(patches.some(p => p.status === 'published')).toBe(true);
+    // The terminal write moved from an unguarded row.update to the same
+    // conditional claim used to take the job, so that a reaper which closed
+    // this row mid-flight cannot have its verdict silently overwritten.
+    const terminal = JobModel.update.mock.calls
+      .filter(([patch]) => patch.status === 'published');
+    expect(terminal).toHaveLength(1);
+    expect(terminal[0][1].where).toMatchObject({ id: 'job-1', status: 'running' });
   });
 });

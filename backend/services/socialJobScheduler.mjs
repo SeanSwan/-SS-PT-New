@@ -76,7 +76,21 @@ const reconstructResults = (job, attempts) => {
   });
 };
 
-export function createSocialJobScheduler({ JobModel, AttemptModel, publishToAccounts, log = logger }) {
+/**
+ * How often a running job proves it is still alive.
+ *
+ * Must stay well under DEFAULT_STUCK_AFTER_MS: the gap between them is the
+ * margin by which a healthy-but-slow publish avoids being declared dead.
+ */
+export const DEFAULT_HEARTBEAT_MS = 60 * 1000;
+
+export function createSocialJobScheduler({
+  JobModel,
+  AttemptModel,
+  publishToAccounts,
+  log = logger,
+  heartbeatMs = DEFAULT_HEARTBEAT_MS,
+}) {
   /**
    * Take ownership of a row by moving it between statuses in one statement.
    * Returns false when someone else got there first — the caller must then do
@@ -103,18 +117,48 @@ export function createSocialJobScheduler({ JobModel, AttemptModel, publishToAcco
         continue;
       }
 
-      const result = await publishToAccounts({
-        content: job.content,
-        accountIds: job.platformAccountIds || [],
-        jobId: job.id,
-      });
-      await row.update({
+      // Staleness is measured on updatedAt, which is bumped at claim and at the
+      // terminal write but NOT during the fan-out — so a publish across several
+      // slow providers that outlasts the threshold was reaped while still
+      // running. Sean then saw 'failed' for a post that was at that instant
+      // still going out, and the retry button re-sent it: a duplicate post to a
+      // live account, which is the exact harm the atomic claim exists to stop.
+      // The heartbeat is what distinguishes slow from dead.
+      const beat = setInterval(() => {
+        JobModel.update({ updatedAt: new Date() }, { where: { id: job.id, status: 'running' } })
+          .catch(err => log.warn(`[social-publish] heartbeat failed for job ${job.id}: ${err.message}`));
+      }, heartbeatMs);
+      if (typeof beat.unref === 'function') beat.unref();
+
+      let result;
+      try {
+        result = await publishToAccounts({
+          content: job.content,
+          accountIds: job.platformAccountIds || [],
+          jobId: job.id,
+        });
+      } finally {
+        clearInterval(beat);
+      }
+
+      // Guarded exactly like the claim. An unguarded write here gives back the
+      // atomicity the claim buys: if a reaper closed this row while we were in
+      // flight, overwriting its verdict would erase the record that the job was
+      // presumed dead — including any retry that verdict has already triggered.
+      const closed = await claim(job.id, 'running', {
         status: result.status,
         platformResults: result.results,
         publishedAt: result.status === 'published' ? now : null,
         failedAt: result.status !== 'published' ? now : null,
         failureReason: result.results.find(item => item.error)?.error || null,
       });
+      if (!closed) {
+        log.warn(
+          `[social-publish] job ${job.id} finished as ${result.status} but was no longer 'running' — `
+          + 'another writer (most likely the reaper) already closed it; leaving its verdict in place',
+        );
+        continue;
+      }
       processed.push({ jobId: String(job.id), ...result });
     }
     return processed;
