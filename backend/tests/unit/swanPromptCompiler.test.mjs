@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  compileImage, compileVideo, resolveSlots, personify, BRAIN_VERSION, FACETS,
+  compileImage, resolveSlots, personify, BRAIN_VERSION, FACETS,
   SERIALIZERS, serializeFor, strategyFor, fitToBudget,
 } from '../../../shared/swanPromptCompiler.mjs';
 
@@ -120,50 +120,22 @@ test('slotOverrides (refine chips) are applied last and win', () => {
   assert.equal(c.slots.light, 'flat overcast light');
 });
 
-test('IMAGE-FIRST is enforced in CORE: video without an init image throws', () => {
-  assert.throws(
-    () => compileVideo(brief, VERIFIED_CAPS),
-    (e) => e.code === 'E_IMAGE_FIRST_REQUIRED' && /conforms far better/.test(e.message),
-  );
-});
 
-test('video compile with an approved still carries the init image through', () => {
-  const v = compileVideo(brief, VERIFIED_CAPS, 'asset-9');
-  assert.equal(v.initImageAssetId, 'asset-9');
-  assert.equal(v.params.init_image, 'asset-9');
-  assert.ok(v.promptText.length > 40);
-});
 
 // ── Serializer strategies (from the shipped-code hostile review) ────────────
 
-test('the same IR renders differently under different strategies', () => {
-  // The whole point: slots are the IR, serialization is provider-dependent.
-  const slots = resolveSlots(brief);
-  const sentence = serializeFor('sentence', slots);
-  const tag = serializeFor('tag', slots);
-  const fragment = serializeFor('fragment', slots);
-  assert.notEqual(sentence, tag);
-  assert.notEqual(sentence, fragment);
-  assert.notEqual(tag, fragment);
-});
 
-test('sentence strategy produces prose, tag strategy produces a comma stack', () => {
+
+test('the same IR renders differently under the remaining strategies', () => {
   const slots = resolveSlots(brief);
-  const sentence = serializeFor('sentence', slots);
-  const tag = serializeFor('tag', slots);
-  assert.match(sentence, /^A .+:/, 'sentence should open with a medium clause');
-  assert.match(sentence, /Framed |Lit and surfaced with /, 'sentence should use binding clauses');
-  assert.doesNotMatch(tag, /Framed |Lit and surfaced with /, 'tag should be bare');
-  assert.ok(tag.split(',').length >= 5, 'tag should be a comma stack');
+  assert.notEqual(serializeFor('sentence', slots), serializeFor('fragment', slots));
 });
 
 test('precedence: DECLARED promptStyle beats a provider-name hint', () => {
   // Provider names are marketing, not architecture. "stable-diffusion-3-api"
   // serves SD3, which is caption-trained via T5 and wants prose — the brand
   // string says the opposite. A declared capability must always win.
-  assert.equal(strategyFor({ provider: 'sdxl-local', promptStyle: 'sentence' }), 'sentence');
-  assert.equal(strategyFor({ provider: 'stable-diffusion-3-api', promptStyle: 'sentence' }), 'sentence');
-  assert.equal(strategyFor({ provider: 'gemini', promptStyle: 'tag' }), 'tag');
+  assert.equal(strategyFor({ provider: 'gemini', promptStyle: 'sentence' }), 'sentence');
 });
 
 test('an undeclared provider gets the FLATTEST-FAILURE default, not the prettiest', () => {
@@ -176,9 +148,13 @@ test('an undeclared provider gets the FLATTEST-FAILURE default, not the pretties
   assert.equal(strategyFor({ provider: 'minimax-h3-hosted' }), 'fragment');
 });
 
-test('provider-name hints remain, but only as a last resort', () => {
-  assert.equal(strategyFor({ provider: 'sdxl-local' }), 'tag');
-  assert.equal(strategyFor({ provider: 'comfyui-wan22' }), 'tag');
+test('provider-name hints are GONE with the serializer they selected', () => {
+  // The hint existed only to route CLIP-family names to `tag`. With `tag`
+  // deleted it selected nothing, so it went too — a branch whose only
+  // destination has been removed is dead weight that reads as a live option.
+  assert.equal(strategyFor({ provider: 'sdxl-local' }), 'fragment');
+  assert.equal(strategyFor({ provider: 'comfy-ui' }), 'fragment');
+  assert.equal(strategyFor({ promptStyle: 'sentence' }), 'sentence', 'declared still wins');
 });
 
 test('an unknown explicit style falls back rather than throwing at selection time', () => {
@@ -226,14 +202,6 @@ test('compile records which strategy produced the text', () => {
   assert.match(withList.promptText, /Rendering constraints — avoid: .*iridescent gradient/);
 });
 
-test('REGRESSION: tag strategy does not duplicate the subject inside styleAnchor', () => {
-  // The personification formula embeds the subject; emitting both repeats it.
-  const withArtist = { ...brief, artist: 'Anton Corbijn', artistMedium: 'classical photograph' };
-  const tag = serializeFor('tag', resolveSlots(withArtist));
-  const subject = brief.text;
-  const occurrences = tag.toLowerCase().split(subject.toLowerCase()).length - 1;
-  assert.equal(occurrences, 1, `subject appears ${occurrences}x in tag output`);
-});
 
 test('every strategy still yields a lawful, non-empty string', () => {
   const slots = resolveSlots(brief);

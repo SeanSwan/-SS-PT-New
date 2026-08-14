@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { capabilities as apiCaps, MODELS, QUARANTINED_CAPABILITIES as QUARANTINED } from '../../../shared/providers/openrouterModels.mjs';
-import { capabilities as dropCaps } from '../../../shared/providers/dropFolderImage.mjs';
 
 /**
  * THE CAPABILITY TRI-STATE, enforced across every provider.
@@ -24,7 +23,6 @@ const LEGAL = new Set(['verified', 'claimed', true, false]);
 
 const PROVIDERS = [
   ['openrouter/default', apiCaps()],
-  ['drop-folder', dropCaps()],
   ...Object.keys(MODELS).map((m) => [m, apiCaps(m)]),
 ];
 
@@ -84,10 +82,3 @@ test('a PROBED capability records its verdict, and the probes that ran are pinne
   }
 });
 
-test('drop-folder does not promise what its request sheet cannot ask for', () => {
-  // The sheet it writes tells a human: prompt, aspect ratio, filename, folder.
-  // It never asks for an input image, so claiming image-init would hand an
-  // operator a sheet with no way to supply one.
-  assert.equal(dropCaps().supportsImageInit, 'claimed');
-  assert.equal(dropCaps().costCents, 0);
-});

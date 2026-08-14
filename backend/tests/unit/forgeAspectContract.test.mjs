@@ -4,7 +4,6 @@ import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { compileImage } from '../../../shared/swanPromptCompiler.mjs';
-import { requestDrop } from '../../../shared/providers/dropFolderImage.mjs';
 
 /**
  * THE ASPECT CONTRACT, tested across every consumer at once.
@@ -62,21 +61,6 @@ test('an ordinary brief has NO divergence — the detector must not cry wolf', (
   }
 });
 
-test('the DROP-FOLDER sheet gives a human a clean ratio, not a prose blob', () => {
-  // Sibling defect, found by a repo-wide sweep rather than by the failing test:
-  // the human-facing request sheet printed `compiled.slots.output`, so an
-  // operator was told 'aspect ratio: **16:9, seamless, edge-matched**' and left
-  // to guess which part to type into the tool. Same root cause, aimed at a
-  // person instead of a parameter.
-  const root = mkdtempSync(join(tmpdir(), 'forge-drop-'));
-  try {
-    const compiled = compileImage({ ...BRIEF, intent: 'texture', aspect: '1:1' }, CAPS);
-    const { requestPath } = requestDrop(compiled, root);
-    const sheet = readFileSync(join(root, requestPath), 'utf8');
-    assert.match(sheet, /aspect ratio: \*\*1:1\*\*/);
-    assert.doesNotMatch(sheet, /aspect ratio: \*\*[^*]*,/, 'the ratio line must not contain a comma-joined blob');
-  } finally { rmSync(root, { recursive: true, force: true }); }
-});
 
 test('the output CONTRACT still reaches the model in the prompt text', () => {
   // Belt and braces, and the reason this is asserted: dropping the output

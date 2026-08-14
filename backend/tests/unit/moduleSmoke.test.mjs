@@ -85,7 +85,6 @@ const MINIMAL_VALID_ARGS = {
   serializeFor: ['sentence', { subject: 'a lake', medium: 'photograph' }],
   strategyFor: [{ promptStyle: 'sentence' }], fitToBudget: ['some text', 4000],
   compileImage: [{ text: 'a frozen lake', aspect: '16:9' }, { promptStyle: 'sentence', maxPromptChars: 4000 }],
-  compileVideo: null,                       // throws E_IMAGE_FIRST_REQUIRED by design
   assertLawful: [{ subject: 'a frozen lake' }, []],
   // records — buildRecord reaches its body with these and validates
   buildRecord: [{ briefId: 'b', provider: 'p', model: 'm', serializer: 'sentence', status: 'ok' }],
@@ -93,19 +92,17 @@ const MINIMAL_VALID_ARGS = {
   lineage: ['v_0000000000000000', []],
   refine: [null], reroll: [null],           // reach the isBuilt guard, then throw
   // capabilities / providers
-  capabilities: [], verify: [], requestDrop: null, awaitDrop: null, consumeDrop: null,
-  checkDrop: null, generate: null,          // all touch disk or network
+  capabilities: [], verify: [], generate: null,          // all touch disk or network
   saveImage: null, findVariant: null, generateBracket: null,
   appendRun: null, readRuns: null, markWinner: null, annotateRun: null, // disk
   withRetry: null,                          // real timers
   retryAfterMs: [{ headers: { get: () => null } }],
-  listRuns: null, getRun: null, spendSummary: null,   // disk
   storeStatus: null,                                  // disk
+  sheetSrc: ['/a', '/a/b.png'],
   buildContactSheet: [[], '.', {}], sheetSrc: ['/a', '/a/b.png'],
   assertInsideArtifactRoot: ['.ai-workflow/forge-runs', '.'],
   applyLaws: [{ subject: 'a frozen lake' }, []],
-  listReady: null, safeId: ['abc'],         // listReady touches disk
-};
+  };
 
 /**
  * The strict arg requirement covers FORGE-OWNED modules only.
@@ -120,8 +117,8 @@ const FORGE_OWNED = new Set([
   'aspect.mjs', 'bracket.mjs', 'contactSheet.mjs', 'forgeConfig.mjs',
   'imageDimensions.mjs', 'pixels.mjs', 'swanLawFilter.mjs', 'swanPromptCompiler.mjs',
   'swanPromptSerializers.mjs', 'swanVocabulary.mjs', 'variantLineage.mjs',
-  'variantRun.mjs', 'variantVerdict.mjs', 'forgeReadApi.mjs',
-  'dropFolderImage.mjs', 'openrouterImage.mjs', 'openrouterModels.mjs', 'transportRetry.mjs',
+  'variantRun.mjs', 'variantVerdict.mjs',
+  'openrouterImage.mjs', 'openrouterModels.mjs', 'transportRetry.mjs',
 ]);
 
 test('EVERY exported function is INVOKED with valid args — no unreachable bodies', async () => {

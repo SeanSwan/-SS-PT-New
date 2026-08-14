@@ -268,14 +268,7 @@ export function compileImage(brief = {}, caps = {}) {
   };
 }
 
-/** Video compile. Image-first is enforced HERE, in core — never only in a UI. */
-export function compileVideo(brief = {}, caps = {}, initImageAssetId) {
-  if (!initImageAssetId) {
-    const err = new Error('E_IMAGE_FIRST_REQUIRED: video must be initialised from an approved still. '
-      + 'Stills cost cents; video costs dollars, and image-to-video conforms far better than text-to-video.');
-    err.code = 'E_IMAGE_FIRST_REQUIRED';
-    throw err;
-  }
-  const compiled = compileImage(brief, caps);
-  return { ...compiled, initImageAssetId, params: { ...compiled.params, init_image: initImageAssetId } };
-}
+// compileVideo REMOVED. It enforced image-first for a video lane that lives in
+// the OTHER agent's tree, not this one — a guard on a door in someone else's
+// house. The rule it encoded (stills cost cents, video costs dollars, and
+// image-to-video conforms far better) belongs with the lane that has the door.

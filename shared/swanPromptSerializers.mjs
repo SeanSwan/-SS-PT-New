@@ -53,20 +53,11 @@ export const SERIALIZERS = Object.freeze({
     return `${parts.join('. ')}.`;
   },
 
-  /**
-   * Comma-delimited tag stack for CLIP-conditioned models (SDXL-class), which
-   * genuinely do better with tags than prose.
-   */
-  tag(slots) {
-    // The personification formula embeds the subject inside styleAnchor, so
-    // emitting both duplicates it verbatim. Drop the bare subject when the
-    // style anchor already contains it.
-    const anchorHasSubject = Boolean(slots.styleAnchor && slots.subject
-      && slots.styleAnchor.toLowerCase().includes(slots.subject.toLowerCase().trim()));
-    const order = [anchorHasSubject ? null : 'subject', 'styleAnchor', 'medium',
-      'composition', 'optics', 'light', 'palette', 'material', 'abstraction', 'output'].filter(Boolean);
-    return order.map((k) => slots[k]).filter((v) => v && v.trim()).join(', ');
-  },
+  // `tag` REMOVED. Measured 60% safety-rejection on the default provider (the
+  // shape reads as style-mimicry; identical content as prose passes 5/5) and it
+  // was never selected by any caller. A serializer nobody picks and that fails
+  // three times in five is not an option, it is a trap for the next agent.
+  // Recover from git if a genuinely CLIP-conditioned model is ever added.
 
   /**
    * The original '. '-join. Retained so the behaviour is available and testable
@@ -85,7 +76,7 @@ export const SERIALIZERS = Object.freeze({
  * would want prose — the brand says otherwise. So this is a hint of last
  * resort, never the primary signal. Declare `promptStyle` in capabilities.
  */
-const TAG_NAME_HINT = /sdxl|comfy|automatic1111|invoke/i;
+// TAG_NAME_HINT removed with the tag serializer it selected.
 
 /**
  * Default when a provider declares nothing.
@@ -108,7 +99,6 @@ const UNDECLARED_DEFAULT = 'fragment';
  */
 export function strategyFor(caps = {}) {
   if (caps.promptStyle && SERIALIZERS[caps.promptStyle]) return caps.promptStyle;
-  if (caps.provider && TAG_NAME_HINT.test(caps.provider)) return 'tag';
   return UNDECLARED_DEFAULT;
 }
 
