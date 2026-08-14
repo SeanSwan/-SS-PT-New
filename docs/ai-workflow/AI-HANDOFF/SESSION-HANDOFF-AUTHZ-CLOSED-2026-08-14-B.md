@@ -1,7 +1,7 @@
 ---
 decision: Authorization question CLOSED — 0 vulnerabilities across ~29 hand-traced handlers, the
   prod admin bypass proven dead, and all 5 audit-reader defects fixed. Remaining work is test
-  COVERAGE (3 surfaces of 199), not enforcement.
+  COVERAGE (3 surfaces of 211), not enforcement.
 status: open
 supersedes: none
 extends: SESSION-HANDOFF-AUTHZ-AND-CORPUS-2026-08-14.md
@@ -108,9 +108,12 @@ added (controller hop, `router.use` gate, optional-chaining `req.user?.id` — a
 was a genuine improvement.
 
 **Permanent negative controls now exist:** `backend/tests/api/idorAuditReaderControls.test.mjs`,
-7 tests, passing — covering both probe arrangements **plus** the aliased-comparison idiom
-(`const requestingUserId = req.user.id; ... String(requestingUserId) !== String(x)`), which is the
-dominant in-repo pattern and the exact false-positive *this session's own detector* suffered from.
+**10 tests, passing** — both probe arrangements, the aliased-comparison idiom
+(`const requestingUserId = req.user.id; ... String(requestingUserId) !== String(x)`, the dominant
+in-repo pattern and the exact false-positive *this session's own detector* suffered from), optional
+chaining on both sides, subdirectory reach for Defect D, the `/users/:id` shape — and the sharpest
+one: *"every scanned path is a `.mjs` file, so the walk cannot inflate the denominator."* That last
+control guards the fix against becoming its own lie, by making a bigger number impossible to fake.
 
 **Current audit state:** `230 scanned · 211 user-scoped handlers · 208 guarded · 3 flagged`.
 The 3 are `availability.mjs:44,64` and `encryptionRoutes.mjs:80` — **all three traced and
@@ -182,8 +185,8 @@ be deleted so a future reader cannot re-introduce a consumer. Ticket, not a bloc
 - ID parser behavior — probed with **positive and negative controls**.
 - All 5 reader defects — root cause read at file:line; A/B/D demonstrated by executable probe;
   C measured (0 live instances); blast radius of A measured by an independent second instrument.
-- 7 security suites: **57 tests pass, 0 skipped**, mounting real routers via supertest.
-- Reader negative controls: **7 tests pass**.
+- 8 suites incl. reader controls: **67 tests pass, 0 skipped**, mounting real routers via supertest.
+- Reader negative controls: **10 tests pass**.
 - Production bypass dead — real build, grep with positive control, 0 reads, 0 sourcemaps.
 - `backend/routes/` is **byte-identical to `origin/main`** — so every count here describes the real
   production route surface. Branch is 46 behind / 19 ahead.
@@ -222,8 +225,13 @@ be deleted so a future reader cannot re-introduce a consumer. Ticket, not a bloc
 |---|---|
 | `16d60dde5` | Findings doc — 3 handlers guarded, reader not sound (docs-only) |
 | `fe38e3d11` | Six hostile rounds — two corrections + the defect that makes the audit silent (docs-only) |
-| `31e28cb3c` | *(sibling)* reader fixes A+B, crediting the review |
-| *uncommitted* | *(sibling)* reader fixes C+D+E — recursive scan, position-aware gate, widened vocabulary |
+| `31e28cb3c` | *(sibling)* reader fixes **A+B**, crediting the review |
+| `ea70a8290` | *(sibling)* reader fixes **C+D+E** — "the audit was silent about 34 route files and 12 handlers" |
+| `3025c475c` | This handoff |
+
+**Working tree is clean** apart from one untracked Hermes memo predating this session. Note:
+`frontend/dist/` (54 MB) was built during §6 and left in place — it is gitignored, and leaving it
+lets the next agent re-run the bypass grep without a rebuild. Delete it freely.
 
 Plus a Hermes inbox memo at
 `.ai-workflow/hermes-inbox/pending/2026-08-14T183000Z-security-the-reader-that-clears-everything.md`
