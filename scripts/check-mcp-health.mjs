@@ -33,8 +33,10 @@
  *   node scripts/check-mcp-health.mjs                # all servers, all config locations
  *   node scripts/check-mcp-health.mjs linear         # only servers whose name contains "linear"
  *
- * Exit: 0 = every probed server healthy · 1 = at least one unhealthy
- *       2 = declared but nothing probeable (stdio/sse only) — "0 unhealthy" means "0 verified"
+ * Exit: 0 = at least one server VERIFIED healthy and none unhealthy
+ *       1 = at least one unhealthy (outranks everything else)
+ *       2 = nothing VERIFIED — either nothing was probeable (stdio/sse) or every probed server
+ *           authenticates elsewhere. "0 unhealthy" here means "0 verified", NOT "all good".
  *       3 = nothing declared matching the query — with NO filter this is the ONLY state that
  *           justifies saying "not configured"; WITH a filter it means only that nothing matched
  */
@@ -43,6 +45,9 @@ import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCapped } from './lib/read-capped.mjs';
+import { diagnose, credentialHeadersIn } from './lib/mcp-verdict.mjs';
+
+export { diagnose, credentialHeadersIn };
 
 /** Every place Claude Code reads MCP servers from. `~/.claude.json` is the one agents forget. */
 const CONFIG_LOCATIONS = [
@@ -100,82 +105,6 @@ export function collectServers() {
   return found;
 }
 
-/**
- * Map an observed result to a plain-language cause + the exact action that fixes it.
- * `body` is matched here and NEVER returned — the caller only receives the verdict.
- */
-export function diagnose(status, body = '', hasCredential = true) {
-  // A 401 proves the token is BAD only if a token was actually SENT. Servers whose credential lives
-  // outside the config — Claude Code's interactive OAuth, for instance — have no Authorization
-  // header here, so this probe is unauthenticated by construction and its 401 says nothing about
-  // their health. Reporting those as TOKEN REJECTED tells Sean to rotate a WORKING credential: the
-  // exact inverse of the failure this tool exists to kill. Caught live on a real server whose tools
-  // were registered and working while this tool called its token rejected (round 14, self-found).
-  if (!hasCredential && (status === 401 || status === 403)) {
-    return {
-      verdict: 'CANNOT VERIFY — no credential in config',
-      remedy: 'This probe sent no Authorization header because the config carries none, so the 401 is '
-        + 'the probe being unauthenticated — NOT evidence about the server. Its credential is handled '
-        + 'elsewhere (typically interactive OAuth via Claude Code). Do NOT rotate anything on this '
-        + 'basis. If its tools are missing, re-authenticate it in an interactive session and restart.',
-    };
-  }
-  const REJECTED = {
-    verdict: 'CONFIGURED BUT TOKEN REJECTED',
-    remedy: 'The server IS configured — the credential is expired/revoked, so it registers ZERO tools. '
-      + 'Do NOT report this as "not configured". Fix: generate a fresh token, replace the Authorization '
-      + 'header value for this server, then RESTART Claude Code fully (MCP servers connect at startup).',
-  };
-  // STATUS FIRST, body only as a last-resort tiebreaker. The body regex used to be OR'd with the
-  // status check, so it ran against EVERY response — a healthy 200 whose payload merely contained
-  // the word "unauthorized" was reported as a rejected token, telling Sean to rotate a working
-  // credential. That is the fifth-recurrence failure in the opposite direction (Kimi round 2, F2).
-  if (status === 401 || status === 403) return REJECTED;
-  if (status !== null && status >= 200 && status < 300) {
-    // A null-body status (204/205) proves the server was REACHED and did not reject the credential —
-    // it does not prove acceptance, since a proxy can answer 204 without ever challenging auth.
-    // Same HEALTHY bucket (so the exit code is unchanged) but the remedy stops overclaiming, which
-    // is the Rule 75 class this file exists to delete (Kimi round 9, O1).
-    const bodiless = status === 204 || status === 205;
-    return {
-      verdict: 'HEALTHY',
-      remedy: bodiless
-        ? 'Reached, and the credential was NOT rejected — but a bodiless response does not prove it '
-          + 'was accepted. If tools are missing, RESTART Claude Code and check the server\'s own logs.'
-        : 'Server answers and accepts the credential. If tools still are not listed, RESTART Claude Code.',
-    };
-  }
-  if (status === null) {
-    return { verdict: 'UNREACHABLE', remedy: 'Network/DNS/timeout — not an auth problem. Check connectivity, then retry.' };
-  }
-  if (status === 304) {
-    // Carved out BEFORE the redirect branch: 304 is a cache-validation response with no body, not a
-    // moved endpoint, so "update the url in config" would be wrong advice — and read-capped's header
-    // lists 304 among the null-body statuses, so leaving it here would have the verdict layer
-    // contradicting a sibling module's documentation (Kimi round 10, O1).
-    // NOT "UNEXPECTED HTTP 304": that string is reserved for the genuinely-unhandled fallback, and
-    // 304 now has a dedicated branch — calling a handled status unexpected is false, and it would
-    // merge with tool-gap verdicts for anything aggregating them (Kimi round 11, N1).
-    return {
-      verdict: 'REACHABLE — HTTP 304 (cache validation, no body)',
-      remedy: 'Cache-validation response to a POST — the server is reachable but returned no '
-        + 'initialize payload. Check the server\'s own logs; this is not a URL problem.',
-    };
-  }
-  if (status >= 300 && status < 400) {
-    // Never print Location — a redirect target can itself carry a tokenized URL.
-    return {
-      verdict: `REDIRECT (HTTP ${status})`,
-      remedy: 'Endpoint redirects. Update the url in config to the final location. NOT followed on purpose: '
-        + 'the credential is never forwarded to another origin.',
-    };
-  }
-  if (status >= 500) return { verdict: 'SERVER ERROR', remedy: 'Upstream is failing. Not a local config problem. Retry later.' };
-  // Non-2xx, non-auth, non-redirect: the body is the only signal left, so the regex is legitimate here.
-  if (/invalid_token|invalid access token|unauthorized/i.test(body)) return REJECTED;
-  return { verdict: `UNEXPECTED HTTP ${status}`, remedy: 'Unhandled status — check the server\'s own logs.' };
-}
-
 /** Hard ceiling on how much of a response body is read into memory. An initialize reply is ~1 KB. */
 const MAX_BODY = 65536;
 
@@ -187,10 +116,15 @@ const MAX_BODY = 65536;
 async function probeHttp(def) {
   // Auth material present in CONFIG. Absent => this probe cannot authenticate, so a 401 is a
   // statement about the probe, not the server (see diagnose's hasCredential branch).
-  const hasCredential = Boolean(
-    Object.keys(def.headers ?? {}).some((k) => k.toLowerCase() === 'authorization')
-    || Object.keys(def.env ?? {}).length,
-  );
+  // Derived from what is ACTUALLY TRANSMITTED, not from what the config happens to contain.
+  //  - `def.env` is NOT counted: only `def.headers` is spread into the fetch, so an env block
+  //    authenticates nothing here. Counting it produced the round-14 inverse failure one clause
+  //    over — an unauthenticated probe reporting TOKEN REJECTED against a working credential.
+  //  - Detection is an ALLOWLIST, and unrecognized headers deliberately read as NO credential.
+  //    The two error directions are not symmetric: over-detecting accuses a working token
+  //    (tells Sean to rotate); under-detecting yields CANNOT VERIFY, which accuses nothing and
+  //    says plainly that it could not tell. Fail toward the honest answer. (Kimi round 15, S2.)
+  const hasCredential = credentialHeadersIn(def.headers);
   const body = JSON.stringify({
     jsonrpc: '2.0', id: 1, method: 'initialize',
     params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'swan-check', version: '1' } },
@@ -266,6 +200,7 @@ if (!servers.length) {
 let unhealthy = 0;
 let probed = 0;
 let unverified = 0;
+let verified = 0;
 for (const { name, def, source, scope } of servers) {
   console.log(`\n--- ${name}`);
   console.log(`    declared in : ${source}  [${scope}]`);
@@ -304,16 +239,31 @@ for (const { name, def, source, scope } of servers) {
   console.log(`    HTTP        : ${status ?? 'n/a'}  (body ${bytes}B${truncated ? '+ truncated' : ''}, not printed — Rule 59)`);
   console.log(`    VERDICT     : ${verdict}`);
   console.log(`    REMEDY      : ${remedy}`);
-  // 'CANNOT VERIFY' is not a fault: counting it unhealthy would flip the exit code because a
-  // server authenticates elsewhere. It is unverified, exactly like the stdio case.
-  if (verdict.startsWith('CANNOT VERIFY')) unverified += 1;
-  else if (verdict !== 'HEALTHY') unhealthy += 1;
+  // Three buckets, not two. 'CANNOT VERIFY' / 'REACHABLE — credential not tested' are not faults
+  // (the server authenticates elsewhere) but they are NOT successes either — nothing was proven.
+  // Collapsing them into "not unhealthy" is what let an OAuth-only config exit 0 with zero
+  // verification, re-opening the ambiguity exit 2 exists to kill (Kimi round 15, S1).
+  if (verdict.startsWith('CANNOT VERIFY') || verdict.startsWith('REACHABLE')) unverified += 1;
+  else if (verdict === 'HEALTHY') verified += 1;
+  else unhealthy += 1;
 }
 
-console.log(`\n=== ${servers.length} declared, ${probed} probed, ${unhealthy} unhealthy ===`);
-if (!probed && !unhealthy) {
-  console.log('NOTE: nothing was probeable (stdio/sse only) — "0 unhealthy" here means "0 verified", not "all good".');
+console.log(
+  `\n=== ${servers.length} declared, ${probed} probed, ${verified} verified, `
+  + `${unhealthy} unhealthy, ${unverified} unverified ===`,
+);
+// Exit 1 whenever anything is genuinely broken — that outranks everything else.
+if (unhealthy) process.exit(1);
+// Otherwise: exit 0 requires something to have been VERIFIED. "Nothing verified" is exit 2 whether
+// the cause was stdio/sse (unprobeable) or a server that authenticates elsewhere (unverified) —
+// both are the documented "0 unhealthy here means 0 verified" state, and the earlier code let the
+// second one through as green (Kimi round 15, S1).
+if (!verified) {
+  const why = probed
+    ? 'every probed server authenticates elsewhere, so nothing could be checked'
+    : 'nothing was probeable (stdio/sse only)';
+  console.log(`NOTE: ${why} — "0 unhealthy" here means "0 verified", not "all good".`);
   process.exit(2);
 }
-process.exit(unhealthy ? 1 : 0);
+process.exit(0);
 }

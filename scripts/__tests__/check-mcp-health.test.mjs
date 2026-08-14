@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { diagnose, displayPath } from '../check-mcp-health.mjs';
+import { diagnose, displayPath, credentialHeadersIn } from '../check-mcp-health.mjs';
 import { readCapped } from '../lib/read-capped.mjs';
 
 const CLI = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'check-mcp-health.mjs');
@@ -216,6 +216,40 @@ test('304 is not a redirect to follow — it is a cache validation with no body'
   assert.doesNotMatch(remedy, /Update the url/i);
   // ...and it must not be labelled UNEXPECTED, which is reserved for genuinely unhandled statuses.
   assert.doesNotMatch(verdict, /UNEXPECTED/i);
+});
+
+// --- credential detection: must reflect what is TRANSMITTED, not what config contains ----------
+
+test('an env block is NOT a credential — only headers are transmitted', () => {
+  // Counting env as auth made an unauthenticated probe report TOKEN REJECTED against a working
+  // credential: the round-14 inverse failure, alive one clause over (round 15, S2.1).
+  assert.equal(credentialHeadersIn(undefined), false);
+  assert.equal(credentialHeadersIn({}), false);
+  assert.equal(credentialHeadersIn({ 'Content-Type': 'application/json' }), false);
+});
+
+test('recognized auth headers count, in any casing', () => {
+  for (const h of ['Authorization', 'authorization', 'X-API-Key', 'api-key', 'X-Auth-Token']) {
+    assert.equal(credentialHeadersIn({ [h]: 'v' }), true, `${h} should count`);
+  }
+});
+
+test('an UNRECOGNIZED header fails toward "no credential" — the honest direction', () => {
+  // Asymmetric errors: over-detecting accuses a working token (tells Sean to rotate);
+  // under-detecting yields CANNOT VERIFY, which accuses nothing.
+  assert.equal(credentialHeadersIn({ 'X-Weird-Custom-Auth': 'v' }), false);
+});
+
+test('every credential-asserting branch is gated, not just 401/403', () => {
+  // The 2xx remedy claimed "accepts the credential"; the body tiebreaker returned REJECTED —
+  // both while no credential had been sent. Gating only the branch a reviewer names is how this
+  // file shipped the same defect three times (round 15, S2.3).
+  assert.match(diagnose(200, '{}', false).verdict, /credential not tested/i);
+  assert.doesNotMatch(diagnose(200, '{}', false).remedy, /accepts the credential/i);
+  assert.match(diagnose(400, 'unauthorized', false).verdict, /CANNOT VERIFY/i);
+  // ...and with a credential, the accusations are still available.
+  assert.match(diagnose(200, '{}', true).remedy, /accepts the credential/i);
+  assert.match(diagnose(400, 'unauthorized', true).verdict, /TOKEN REJECTED/i);
 });
 
 test('401 and 403 are token rejection, not "not configured"', () => {
