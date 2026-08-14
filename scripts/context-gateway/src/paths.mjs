@@ -105,8 +105,22 @@ export function collapseHome(p, home = homedir()) {
   // falsy argument that means "skip redaction"; falsy now means "use the real home", which
   // over-redacts at worst and is the direction this module documents as safe (HY3 final, W#1).
   const h = String(home || homedir() || '');
-  if (!h || !s.toLowerCase().startsWith(h.toLowerCase())) return s;
+  if (!h) return s;
+  // Compare on a normalized separator, EMIT with the original separators (hostile review F5).
+  // A raw `startsWith` made the comparison separator-DIRECTION dependent: `homedir()` returns
+  // `C:\Users\<name>` on Windows, but a path can arrive forward-slashed (a hardcoded literal, a
+  // value read from JSON config, a WSL boundary, a copied string). The two then disagreed at the
+  // first separator, the prefix test failed, and the function returned the path UNREDACTED — the
+  // one outcome this module exists to prevent, in the direction it documents as unsafe.
+  // Normalization is for COMPARISON ONLY: `\` and `/` are folded to one class to decide whether
+  // the prefix matches, and the ORIGINAL slice is returned, because the output names a file the
+  // reader will open and rewriting `~/x` to `~\x` would misreport it. Length is preserved by both
+  // transforms (1:1 char swap + ASCII case fold), so the index into the original stays valid.
+  const fold = (x) => x.replaceAll('\\', '/').toLowerCase();
+  if (!fold(s).startsWith(fold(h))) return s;
   const rest = s.slice(h.length);
+  // Separator still REQUIRED after the prefix, so `…\<name>2` is not mangled into `~2` — that
+  // property predates this fix and must survive it.
   return rest === '' || /^[\\/]/.test(rest) ? `~${rest}` : s;
 }
 
@@ -115,9 +129,27 @@ export const finalSegment = (p) => {
   return segs.length ? segs[segs.length - 1] : '';
 };
 
+/**
+ * A `..`-prefixed path escapes on EITHER separator, on EVERY host.
+ *
+ * The previous body read ``rel === '..' || rel.startsWith(`..${sep}`) || rel.startsWith('../')``.
+ * `sep` is the HOST separator, so on POSIX that tested `../` twice and never `..\` — and
+ * `relativizePath('/repo', '..\\Users\\<name>\\out.md')` returned
+ * `../Users/<name>/out.md`, emitting the OS username VERBATIM into the receipt (it even
+ * normalizes the backslashes on the way out, so the leak looks tidy). Invisible on Windows,
+ * where `sep` is `\` and the second clause happens to cover it.
+ *
+ * This is the SAME defect as S1/S1b one shape over: those fixed the ABSOLUTE Windows shapes
+ * platform-independently via `isWindowsAbsolute`, and left the RELATIVE shape keyed to the host.
+ * Fixing the named instance while the class survives is the pattern this module was written to
+ * end — so the separator class is now literal, exactly like `WIN_ABS` (hostile review F1).
+ *
+ * `[\\/]` is REQUIRED after the `..`, preserving the documented precise-not-blunt policy: a
+ * sibling directory named `..foo` is not a traversal and must not be redacted.
+ */
 export function escapes(rel) {
   if (isAbsolute(rel) || isWindowsAbsolute(rel)) return true;
-  return rel === '..' || rel.startsWith(`..${sep}`) || rel.startsWith('../');
+  return rel === '..' || /^\.\.[\\/]/.test(String(rel));
 }
 
 /** True when `target` resolves outside `from`. */

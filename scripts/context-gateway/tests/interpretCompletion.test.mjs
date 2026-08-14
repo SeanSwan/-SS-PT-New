@@ -48,6 +48,34 @@ test('finish_reason is captured — receiptV1 has always read it and always got 
   assert.equal(interpretCompletion(withContent('x')).finishReason, null, 'absent stays null, not undefined');
 });
 
+test('F6: content with no VISIBLE characters is empty, even when trim() cannot see it', () => {
+  // `.trim()` strips the Unicode WhiteSpace class, which includes ﻿ — but NOT the zero-width
+  // format characters ​/‌/‍/⁠. A completion of only those was `empty:false`,
+  // so it recorded outcome:'ok', exited 0, and its artifact was consumable as a review. Raised by
+  // HY3 2026-08-14; probe-confirmed for ​ and ‍. HY3 also named ﻿, which trim()
+  // already handled — the finding was right, one of its two examples was not.
+  const mk = (c) => ({ choices: [{ message: { content: c } }] });
+  for (const [label, ch] of [
+    ['zero-width space', '​'],
+    ['zero-width non-joiner', '‌'],
+    ['zero-width joiner', '‍'],
+    ['word joiner', '⁠'],
+    ['BOM', '﻿'],
+    ['invisibles mixed with real whitespace', ' ​ \n‍\t'],
+  ]) {
+    assert.equal(interpretCompletion(mk(ch)).empty, true, `${label} must count as empty`);
+  }
+});
+
+test('F6: real content is NOT mangled by the invisible-character strip', () => {
+  // The strip decides EMPTINESS only; the returned text must remain byte-identical to what the
+  // provider sent. A fix that sanitized `text` would silently alter a paid review.
+  const withZwj = 'family: \u{1F468}‍\u{1F469} and a verdict';
+  const r = interpretCompletion({ choices: [{ message: { content: withZwj } }] });
+  assert.equal(r.empty, false, 'visible content must not be classed empty');
+  assert.equal(r.text, withZwj, 'returned text must be unmodified');
+});
+
 test('reasoning is measured but NEVER returned — Rule 59', () => {
   const secretish = 'thinking about Bearer abcdef0123456789 and other things';
   const r = interpretCompletion({ choices: [{ message: { content: '', reasoning: secretish } }] });

@@ -31,10 +31,60 @@ test('a bare `..` escapes', () => {
   assert.equal(escapes('..'), true);
 });
 
-test('a `..`-prefixed path escapes on either separator', () => {
-  assert.equal(escapes(`..${sep}out.md`), true);
-  assert.equal(escapes('../out.md'), true);
+test('a `..`-prefixed path escapes on either separator — LITERALLY both, on every host', () => {
+  // This assertion used to read `escapes(`..${sep}out.md`)` — the HOST separator. On Windows that
+  // is `..\` and the sibling line covers `../`, so it looked like both were tested; on POSIX `sep`
+  // is `/` and the SAME shape was asserted twice while `..\` was never tested at all. The title
+  // claimed "either separator" and the body could only ever deliver one — a Rule 75 violation in a
+  // test name, and it is why F1 (username emitted verbatim from relativizePath on POSIX) survived
+  // every prior round. Both separators are now literal, so this cannot go vacuous on any platform.
+  assert.equal(escapes('..\\out.md'), true, 'backslash parent must escape even where sep is "/"');
+  assert.equal(escapes('../out.md'), true, 'forward-slash parent must escape even where sep is "\\"');
   assert.equal(escapes('../../Users/someone/out.md'), true);
+  assert.equal(escapes('..\\..\\Users\\someone\\out.md'), true);
+});
+
+test('REGRESSION F5: collapseHome redacts when the path and home disagree on separator', () => {
+  // Reported by HY3 (2026-08-14) and probe-confirmed. `homedir()` on Windows yields `C:\Users\x`,
+  // but a path can reach this function forward-slashed (hardcoded literal, config value, WSL
+  // boundary, copied string). The prefix test was a raw `startsWith`, so the two disagreed at the
+  // first separator and the function returned the path UNREDACTED — username intact.
+  // NOTE ON SEVERITY: this is a latent primitive defect, not a live leak. HY3 rated it CRITICAL on
+  // the claim that check-mcp-health's displayPath leaks today; that claim is FALSE — CONFIG_LOCATIONS
+  // builds every path with join(), so separators always agree there. It is fixed anyway because this
+  // module's stated contract is that the primitive is correct independent of its callers, and
+  // because it is exported public API.
+  const home = 'C:\\Users\\SomePerson';
+  for (const shape of ['C:\\Users\\SomePerson\\.claude.json', 'C:/Users/SomePerson/.claude.json']) {
+    const out = collapseHome(shape, home);
+    assert.ok(!out.includes('SomePerson'), `username survived: ${shape} -> ${out}`);
+    assert.ok(out.startsWith('~'), `expected a ~-collapsed path, got ${out}`);
+  }
+});
+
+test('F5: collapseHome preserves the ORIGINAL separators in its output', () => {
+  // The output names a file the reader will open. Normalizing `~/x` to `~\x` (or the reverse)
+  // misreports the path, so normalization is for COMPARISON only.
+  const home = 'C:\\Users\\SomePerson';
+  assert.equal(collapseHome('C:/Users/SomePerson/.claude.json', home), '~/.claude.json');
+  assert.equal(collapseHome('C:\\Users\\SomePerson\\.claude.json', home), '~\\.claude.json');
+});
+
+test('F5: a sibling directory sharing the home prefix is still not mangled', () => {
+  // The separator-required property must survive the cross-separator fix: `…\SomePerson2` is a
+  // DIFFERENT directory and must not become `~2`.
+  const home = 'C:\\Users\\SomePerson';
+  assert.equal(collapseHome('C:/Users/SomePerson2/x.json', home), 'C:/Users/SomePerson2/x.json');
+});
+
+test('REGRESSION F1: a Windows-RELATIVE escape is redacted, not normalized into a clean leak', () => {
+  // relativizePath ends with `.replaceAll('\\','/')`, so a missed `..\` escape did not merely leak —
+  // it emitted a tidy `../Users/<name>/out.md` that reads like an intentional relative path.
+  for (const shape of ['..\\Users\\SomePerson\\out.md', '../Users/SomePerson/out.md']) {
+    const out = relativizePath('/repo', shape);
+    assert.equal(out, '<external>', `${shape} was not treated as external`);
+    assert.ok(!String(out).includes('SomePerson'), 'OS username survived on this platform');
+  }
 });
 
 test('an absolute path escapes, on EVERY platform', () => {

@@ -21,7 +21,27 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { diagnose, credentialHeadersIn, BUCKETS } from '../../check-mcp-health.mjs';
+
+/** A verdict's stable part: everything before the first interpolation (`REDIRECT (HTTP ${status})`). */
+const staticPrefix = (v) => String(v).split(/\d/)[0].trim();
+
+/**
+ * Every verdict string `diagnose()` can return, read FROM SOURCE so the list cannot drift from the
+ * implementation. Fails loudly rather than returning an empty set — an empty set would make the
+ * loop below vacuous, which is the exact defect this replaced (F7).
+ */
+function declaredVerdictPrefixes() {
+  const src = readFileSync(join(import.meta.dirname, '..', '..', 'lib', 'mcp-verdict.mjs'), 'utf8');
+  const found = [...src.matchAll(/verdict:\s*[`'"]([^`'"$]*)/g)].map((m) => staticPrefix(m[1]));
+  const unique = [...new Set(found.filter(Boolean))];
+  if (unique.length < 5) {
+    throw new Error(`verdict extraction found only ${unique.length} literals — the probe is broken, not the code`);
+  }
+  return unique;
+}
 
 // This file is now PURE UNIT TESTS of `diagnose` — no subprocess, no filesystem. Three concerns
 // were extracted, each to the module it actually tests, keeping every file under the 300-line cap
@@ -182,11 +202,29 @@ test('every verdict-producing condition lands in exactly one bucket — all nine
     ['server error',                  [503, '', true],             BUCKETS.UNHEALTHY],
     ['unexpected status',             [418, 'teapot', true],       BUCKETS.UNHEALTHY],
   ];
+  const covered = new Set();
   for (const [label, args, expected] of cases) {
     const { bucket, verdict } = diagnose(...args);
     assert.equal(bucket, expected, `${label} ("${verdict}") bucketed as ${bucket}, expected ${expected}`);
+    covered.add(staticPrefix(verdict));
   }
-  assert.equal(cases.length, 9, 'a new verdict branch was added without pinning its bucket');
+
+  // This used to read `assert.equal(cases.length, 9, 'a new verdict branch was added without
+  // pinning its bucket')`. `cases` is a literal array declared fifteen lines above, so the
+  // assertion compared a literal to a literal: it could only fail if someone edited the array and
+  // forgot to edit the number, and it could NEVER detect the thing its own message claimed to
+  // detect — a new branch in diagnose(). Rule 75 in an assertion message, and precisely the
+  // "which assertions would still pass if the code were changed" class this review was asked to
+  // hunt (raised by HY3, confirmed).
+  //
+  // Membership is now DERIVED FROM THE SOURCE, the same principle the mcp-health runner already
+  // applies to test discovery ("membership is the folder — no enumeration exists to drift").
+  // Add a verdict branch to mcp-verdict.mjs without pinning its bucket here and this fails.
+  for (const declared of declaredVerdictPrefixes()) {
+    assert.ok(covered.has(declared),
+      `diagnose() can return the verdict "${declared}…" but no case above pins its bucket — `
+      + 'add it to the table (a new branch must not default into an untested bucket)');
+  }
 });
 
 test('304 stays UNHEALTHY — a POST initialize drawing a cache response is broken, not unprobeable', () => {

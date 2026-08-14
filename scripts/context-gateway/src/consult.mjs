@@ -19,7 +19,7 @@ import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
 import { redactSecrets } from './egress.mjs';
 import { DENY_PATTERNS } from './safeRead.mjs';
-import { recordConsult, sha256 } from './receiptV1.mjs';
+import { recordConsult, sha256, classifyCompletion } from './receiptV1.mjs';
 
 const arg = (name, def = null) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -31,6 +31,22 @@ const arg = (name, def = null) => {
  * Filename-safe UTC: 20260813T170000Z.
  */
 const utcStamp = () => new Date().toISOString().replaceAll(/[:-]/g, '').replace(/\.\d{3}/, '');
+
+/**
+ * Where the receipt ledger lives. EXPLICIT, not implicit-from-cwd (hostile review F8, 2026-08-14).
+ *
+ * These wrappers are spawned by `tests/consult.test.mjs` with `cwd: <repo root>` — it needs the
+ * real scripts, so it cannot run from a sandbox — and the ledger root was `process.cwd()`. The
+ * result: every run of the test suite forged FOUR synthetic audit records in the repo's production
+ * spend ledger, carrying outcome:error and naming providers that were never called. Bisected: full
+ * glob +4, receiptV1 suite +0. A ledger whose own tests write fiction into it cannot answer the one
+ * question this lane exists to answer.
+ *
+ * Default is unchanged for every real invocation; only a caller that sets the variable is
+ * redirected, and the tests assert BOTH that the repo ledger stays untouched AND that the record
+ * still lands somewhere — so "fix" by silently not recording would fail.
+ */
+const receiptsRoot = () => process.env.SWAN_RECEIPTS_ROOT || process.cwd();
 
 /**
  * Provider errors carry a code; the missing-key case does not, so it is mapped by message. Anything
@@ -87,7 +103,7 @@ export async function runConsult(providerName, defaultRemit, defaultOut) {
     const code = errorCodeOf(e);
     recordConsult({
       ...ctx,
-      stamp: utcStamp(), root: process.cwd(), providerName,
+      stamp: utcStamp(), root: receiptsRoot(), providerName,
       // `refused` means a GATE fired (ceiling/spend) — that is the signal the flywheel aggregates to
       // tune ceilings and caps. Operator/config errors are NOT gate pressure and would overstate how
       // often the gates actually bite, so they class as `error` (see NON_GATE).
@@ -152,7 +168,7 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
       // An attempt to egress a .env/*.pem is the most security-relevant event this lane produces —
       // record it here or it is lost entirely. No docSha: the file is deliberately never read.
       recordConsult({
-        ...ctx, stamp: utcStamp(), root: process.cwd(), providerName,
+        ...ctx, stamp: utcStamp(), root: receiptsRoot(), providerName,
         outcome: 'refused', errorCode: 'DENY_PATH',
         originatingModel: process.env.SWAN_ORIGINATING_MODEL ?? null,
       });
@@ -199,25 +215,39 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   ctx.result = r;
   console.log(`[consult-${providerName}] ${r.inTok} in / ${r.outTok} out — $${r.cost.toFixed(4)} — ${(r.wallMs / 1000).toFixed(1)}s`
     + `${r.finishReason ? ` — finish:${r.finishReason}` : ''}`);
-  if (r.empty) {
+  const verdict = classifyCompletion(r);
+  if (verdict.errorCode === 'EMPTY_RESPONSE') {
     // Loud, on stderr, before the artifact path is printed — otherwise a `saved ->` line reads as
     // success and the empty file gets picked up as if it were a review.
     console.error(`[consult-${providerName}] EMPTY RESPONSE — ${r.outTok} completion tokens billed `
       + `($${r.cost.toFixed(4)}) but the model returned no content`
       + `${r.reasoningTokensSeen ? ' (it emitted reasoning instead — raise --max-tokens or lower --effort)' : ''}`
       + '. The artifact below is a FAILURE RECORD, not a review. Do not consume it as one.');
+  } else if (verdict.errorCode === 'TRUNCATED') {
+    console.error(`[consult-${providerName}] TRUNCATED — hit max_tokens (${maxTokens}) before the model `
+      + `finished; ${r.outTok} completion tokens billed ($${r.cost.toFixed(4)}). The artifact below is `
+      + 'an INCOMPLETE review — its later sections are missing and its verdict may be absent. '
+      + 'Re-run with a higher --max-tokens or a lower --effort; do not consume it as a full review.');
   }
 
   const outPath = arg('out', defaultOut);
   // The banner is part of the ARTIFACT, not just the console: verdict files get read back weeks
   // later, pasted into prompts, and fed to other agents. An empty one must announce itself in the
   // file, or the failure survives only in a terminal nobody kept (round 18).
-  const failBanner = r.empty
+  // A TRUNCATED artifact is the more dangerous of the two to read back: unlike an empty one it
+  // LOOKS like a review, so without a banner a downstream reader consumes a fragment as a verdict.
+  const failBanner = verdict.errorCode === 'EMPTY_RESPONSE'
     ? `\n> **⚠ EMPTY RESPONSE — THIS IS NOT A REVIEW.** The call was billed (${r.outTok} completion `
       + `tokens, $${r.cost.toFixed(4)}) but returned no content`
       + `${r.finishReason ? `; finish_reason: \`${r.finishReason}\`` : ''}. `
       + 'Do not treat anything below as a verdict.\n'
-    : '';
+    : verdict.errorCode === 'TRUNCATED'
+      ? `\n> **⚠ TRUNCATED — THIS REVIEW IS INCOMPLETE.** The call was billed (${r.outTok} completion `
+        + `tokens, $${r.cost.toFixed(4)}) and stopped at max_tokens (${maxTokens}) before finishing`
+        + `${r.finishReason ? `; finish_reason: \`${r.finishReason}\`` : ''}. `
+        + 'Later sections and any final verdict are MISSING. Do not treat the absence of a finding '
+        + 'below as evidence that none exists.\n'
+      : '';
   writeFileSync(outPath, `# ${provider.title}\n${failBanner}\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${shortPath(docPath)}\n**Seed:** ${seedPath ? shortPath(seedPath) : '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s${r.finishReason ? ` · **finish_reason:** ${r.finishReason}` : ''}\n\n---\n\n${r.text}\n`, 'utf-8');
   // Relative, matching the receipt line: an absolute --out carries the OS username into the
   // transcript. The basename-only principle is the LANE's, not just the DENY branch's (Kimi r3, N2).
@@ -231,9 +261,9 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   // working call, which is the one thing a spend ledger exists to prevent (round 18, found live).
   const receiptPath = recordConsult({
     ...ctx,
-    stamp: utcStamp(), root: process.cwd(), providerName,
-    outcome: r.empty ? 'error' : 'ok',
-    errorCode: r.empty ? 'EMPTY_RESPONSE' : null,
+    stamp: utcStamp(), root: receiptsRoot(), providerName,
+    outcome: verdict.outcome,
+    errorCode: verdict.errorCode,
     originatingModel: process.env.SWAN_ORIGINATING_MODEL ?? null,
   });
   // Relative, not absolute: writeReceiptV1 returns join(process.cwd(), …), and transcripts capture
@@ -246,5 +276,5 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   // code, so leaving it 0 made the failure invisible to exactly the consumer that cannot ask
   // questions — the worst of both worlds (HY3, S3). `exitCode` rather than `exit()`: the receipt
   // and artifact are already written and must not be cut short.
-  if (r.empty) process.exitCode = 1;
+  if (verdict.outcome !== 'ok') process.exitCode = 1;
 }

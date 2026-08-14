@@ -63,10 +63,43 @@ export const ERROR_CODES = Object.freeze([
   // its own code because "you paid and got nothing" is operationally different from both a working
   // call and a gate that refused before spending (round 18, found live).
   'EMPTY_RESPONSE',
+  // TRUNCATED is the same failure one notch down: the call completed, tokens were billed, and the
+  // model returned a REVIEW CUT OFF MID-SENTENCE (finish_reason 'length'). It was previously
+  // recorded `ok` — the only failure gate was "content is completely empty" — so a half-written
+  // verdict entered the ledger indistinguishable from a complete one and exited 0. Observed live
+  // twice on 2026-08-14. Distinct from EMPTY_RESPONSE because "you paid and got a fragment" needs
+  // a different response than "you paid and got nothing": raise max_tokens vs lower effort
+  // (hostile review F3).
+  'TRUNCATED',
   // DENY_PATH has no ProviderError equivalent: that branch exits directly from consult.mjs rather
   // than throwing, so it is recorded at the call site. It is the secret-bearing-path jail firing.
   'DENY_PATH', 'UNKNOWN',
 ]);
+
+/**
+ * Decide what a COMPLETED (paid) call actually produced, in this module's own vocabulary.
+ *
+ * Lives here, not in consult.mjs, because its OUTPUT is receipt vocabulary — it returns an OUTCOMES
+ * value and an ERROR_CODES value, and a classifier that can emit a code the enum does not allow is
+ * the drift this module exists to prevent. Pure and exported so the contract is testable without a
+ * network call, the same reason `interpretCompletion` is pure.
+ *
+ * WHAT THIS FIXES: the outcome used to be `r.empty ? 'error' : 'ok'`, and NOTHING in the lane ever
+ * read `finish_reason`. It was captured, printed, and written to the receipt — but never acted on.
+ * So a response cut off at max_tokens (the ordinary way a reasoning model fails on a large packet)
+ * was recorded as a successful review, exited 0, and carried no warning into the artifact. That is
+ * the empty-response defect one notch down: same money, same false success, a fragment instead of
+ * nothing. Both shapes were observed live on 2026-08-14, and the standalone consult-hy3-design.mjs
+ * already guarded truncation while the lane that OWNS this contract did not (hostile review F3).
+ *
+ * Order matters: a reasoning model that burns its budget returns BOTH empty content and
+ * finish_reason 'length'. EMPTY_RESPONSE is the more actionable code, so it wins.
+ */
+export function classifyCompletion(r) {
+  if (r?.empty) return { outcome: 'error', errorCode: 'EMPTY_RESPONSE' };
+  if (r?.finishReason === 'length') return { outcome: 'error', errorCode: 'TRUNCATED' };
+  return { outcome: 'ok', errorCode: null };
+}
 
 /**
  * Redaction class labels egress.mjs can emit. The header calls these "a bounded class name"; this

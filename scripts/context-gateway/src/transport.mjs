@@ -73,7 +73,14 @@ REPO HEAD: ${manifest.headSha}${manifest.issue ? `\nLINEAR ISSUE: ${manifest.iss
 export function interpretCompletion(data) {
   const choice = data?.choices?.[0];
   const content = typeof choice?.message?.content === 'string' ? choice.message.content : '';
-  const empty = content.trim() === '';
+  // `.trim()` strips the Unicode WhiteSpace class (which does include U+FEFF) but NOT the
+  // zero-width FORMAT characters. A completion consisting only of those was `empty:false`, so a
+  // paid call that produced nothing visible was recorded `outcome:'ok'` with exit 0 and its
+  // artifact was consumable as a review — the empty-response contract defeated by characters it
+  // could not see (hostile review F6, raised by HY3, probe-confirmed).
+  // The strip decides EMPTINESS ONLY. `text` below is the provider's bytes, unmodified: sanitizing
+  // a paid review before returning it would be a silent edit of evidence.
+  const empty = content.replaceAll(/[​-‍⁠﻿]/g, '').trim() === '';
   return {
     text: empty ? '(empty response)' : content,
     empty,
