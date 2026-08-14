@@ -76,15 +76,21 @@ const USER_PARAM = /:(userId|clientId|trainerId|user_id|client_id|trainer_id|mem
 // "no visible check" while actually carrying `verifyClientAccessByUserId` on every route AND a
 // controller-level `requester.role === 'client' && requester.id !== userId` 403. A linter whose
 // vocabulary is smaller than the codebase's reports the gap between the two as findings.
-const CHECK = [
-  // `req.user?.id` must match as well as `req.user.id`. The optional-chaining form is used in 89
-  // files against 143 for the dot form — so the v1 regexes, which required the dot, were blind to
-  // roughly the same number of ownership checks as they could see. It never showed up as mass
-  // over-flagging because most of those routes also carry middleware that matched another pattern;
-  // it degraded quietly, which is worse. Found while tracing why a controller hop cleared a handler
-  // whose only visible check is `req.user?.role === 'admin'`.
+/**
+ * WEAK evidence: a reference to the actor. Clears a handler ONLY when `comparesActor()` also holds.
+ *
+ * Optional chaining must match as well as the dot form — `req.user?.id` appears in 89 files against
+ * 143 for `req.user.id`, so requiring the dot made this blind to roughly as many ownership checks
+ * as it could see. But widening reach without requiring a comparison made the weaker problem worse:
+ * these two patterns match logging and response payloads, not just checks. Split out deliberately.
+ */
+const USER_REF = [
   /req\.user\??\.(id|userId)/,
   /req\.user\??\.role/,
+];
+
+// STRONG evidence: named guards, role gates and ownership helpers. These clear on presence.
+const CHECK = [
   // ownership / relationship guards
   /verifyClientAccessBy(UserId|PlanId)|verifyClientAccess/,
   /checkTrainerClientRelationship|assertTrainerAssignedToClient|assertAssignmentOrAdmin/,
@@ -102,7 +108,15 @@ const CHECK = [
   // ownership with helpers defined inside the route file rather than imported middleware.
   // `clientPhotoRoutes` calls `ensureClientAccess(req, req.params.userId)` and was being flagged
   // purely because that name was absent here. Every miss of this kind is a false accusation.
-  /ensureClientAccess|ensureTrainerAccess|canAccess[A-Za-z]*|hasAccess/,
+  // Enumerated by grepping controllers/middleware/utils for `(check|verify|assert|ensure|can|has)
+  // [A-Za-z]*Access`, then reading each definition — not guessed. Counts at time of writing:
+  // ensureClientAccess 16, verifyClientAccess 9, assertGoalAccess 4, ensureTrainerAccess 3,
+  // ensureScopedClientAccess 3, checkClientAccess 3. `checkClientAccess` and
+  // `ensureScopedClientAccess` were both absent and are both real fail-closed 403 gates —
+  // `profileController.mjs:46-52` denies before it touches storage or the DB.
+  // \b matters: unanchored `hasAccess` also matched `hasAccessibilityAccess`, which is a feature
+  // flag, not an authorization gate.
+  /\b(ensureClientAccess|ensureScopedClientAccess|ensureTrainerAccess|checkClientAccess|assertGoalAccess|canAccess[A-Za-z]*|hasAccess)\b/,
   // explicit annotation, including an explicit public declaration
   /\/\/\s*authz:/i,
 ];
@@ -110,10 +124,65 @@ const CHECK = [
 // Route paths whose data is most sensitive — used only to rank the queue.
 const SENSITIVE = /pii|waiver|measurement|movement|progress|photo|note|medical|injury|pain|nutrition|order|payment|session/i;
 
-function handlerBody(src, from) {
-  // Take a generous window from the route declaration; handlers here are short and this only needs
-  // to be good enough to spot a check, not to parse JavaScript.
-  return src.slice(from, from + 2200);
+export const ROUTE_DECL = /router\.(get|post|put|patch|delete)\(\s*(['"`])([^'"`]+)\2/g;
+
+/**
+ * Window for one handler — bounded at the NEXT route declaration.
+ *
+ * v1 took a flat 2200-character slice with no handler boundary, so any guard-shaped string within
+ * 2200 chars AFTER a declaration cleared it, including text belonging to later handlers. An
+ * unguarded handler sitting ABOVE a guarded one was cleared by its sibling. Measured by an
+ * independent instrument: 12 of 182 `route` clearances (6.6%) rested on that bleed, some on a log
+ * line from a different handler entirely.
+ *
+ * This was invisible to the negative controls that "proved" the widening safe, because those
+ * probes put the unguarded handler in a file of its own — the isolated case, which already passed.
+ * The arrangement that occurs in real route files was never tested. Found by session 4911ff52.
+ */
+export function handlerBody(src, from, nextDecl) {
+  return src.slice(from, nextDecl === undefined ? from + 2200 : Math.min(nextDecl, from + 2200));
+}
+
+/**
+ * Does the body actually COMPARE the actor, or merely mention it?
+ *
+ * `/req\.user\??\.id/` matches a `console.log` as happily as an ownership check, so a handler with
+ * zero authorization whose only `req.user.id` sits in an audit log was cleared. That inverts the
+ * incentive: the more diligently someone writes actor-attributed logging, the more likely their
+ * unguarded handler passes. Follows ONE level of local aliasing, because
+ * `const requestingUserId = req.user.id` … `if (String(requestingUserId) !== …)` is the dominant
+ * in-repo idiom and refusing to follow it would just move the false-positive class into this file.
+ */
+const SINK = /^(json|send|sendStatus|status|end|write|render|redirect|log|warn|error|info|debug|trace|emit|push|set|header|append)$/;
+
+export function comparesActor(body) {
+  const OPS = '===|!==|==|!=|<|>';
+  if (new RegExp(`req\\.user\\??\\.\\w+\\s*(?:${OPS})`).test(body)) return true;
+  if (new RegExp(`(?:${OPS})\\s*req\\.user\\??\\.\\w+`).test(body)) return true;
+  // Passed into a guard/comparison helper: `ensureClientAccess(req, req.user.id)`, `String(req.user.id)`.
+  // SINKS are excluded. Without that exclusion this rule re-creates the exact defect it sits beside:
+  // `console.log(\`actor ${req.user.id}\`)` and `res.json({ viewer: req.user?.role })` are calls that
+  // take the actor and authorize nothing, and both cleared until the denylist was added.
+  for (const m of body.matchAll(/\b([A-Za-z_$][\w$]*)\(\s*[^)]*req\.user\??\.\w+/g)) {
+    if (!SINK.test(m[1])) return true;
+  }
+  for (const m of body.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*req\.user\??\.\w+/g)) {
+    const alias = m[1];
+    if (new RegExp(`\\b${alias}\\b\\s*(?:${OPS})|(?:${OPS})\\s*\\b${alias}\\b`).test(body)) return true;
+    if (new RegExp(`\\b[A-Za-z_$][\\w$]*\\(\\s*[^)]*\\b${alias}\\b`).test(body)) return true;
+  }
+  return false;
+}
+
+/**
+ * Route-level clearance for one handler. Pure — no filesystem — so the two probe shapes that
+ * defeated v1 can be asserted permanently in a test instead of re-discovered by hand.
+ * Returns 'route' or null.
+ */
+export function routeClearance(body) {
+  const strong = CHECK.some((r) => r.test(body));
+  if (strong) return 'route';
+  return USER_REF.some((r) => r.test(body)) && comparesActor(body) ? 'route' : null;
 }
 
 /**
@@ -170,7 +239,7 @@ function routerUseGate(src) {
     if (AUTHN_ONLY.test(name)) continue;
     if (ROLE_GATE_NAME.test(name)) return `router.use(${name})`;
     const body = localFnBody(src, name);
-    if (body && CHECK.some((r) => r.test(body))) return `router.use(${name}) -> local fn`;
+    if (body && routeClearance(body)) return `router.use(${name}) -> local fn`;
   }
   return null;
 }
@@ -219,7 +288,7 @@ function controllerHop(src, window) {
     if (!body) continue;
     const at = fnRe.exec(body);
     if (!at) continue;
-    if (CHECK.some((r) => r.test(body.slice(at.index, at.index + 2200)))) {
+    if (routeClearance(body.slice(at.index, at.index + 2200))) {
       return `controller ${path.basename(target)}:${fnName}`;
     }
   }
@@ -243,11 +312,13 @@ function main() {
     let src;
     try { src = fs.readFileSync(full, 'utf8'); } catch { continue; }
 
-    const re = /router\.(get|post|put|patch|delete)\(\s*(['"`])([^'"`]+)\2/g;
-    let m;
-    while ((m = re.exec(src)) !== null) {
+    // Collected up front so each handler's window can be bounded at the NEXT declaration.
+    const decls = [...src.matchAll(new RegExp(ROUTE_DECL.source, 'g'))];
+    for (let d = 0; d < decls.length; d += 1) {
+      const m = decls[d];
       const [, verb, , routePath] = m;
       if (!USER_PARAM.test(routePath)) continue;
+      const nextDecl = decls[d + 1]?.index;
 
       // A file-level ROLE gate authorizes the whole router: if `router.use(authorize(['admin']))`
       // runs before every handler, a client cannot reach any of them and per-route ownership is
@@ -256,17 +327,20 @@ function main() {
       // Every clearance records WHY. A boolean makes this tool's own reasoning unauditable, which
       // is the same defect it hunts: something reporting success while describing a world nobody
       // can check. `--verbose` prints the reason so a human can falsify any one of them.
-      const window = handlerBody(src, m.index);
+      const window = handlerBody(src, m.index, nextDecl);
       const body = expandSpreads(src, window);
-      const why = CHECK.some((r) => r.test(body)) ? 'route'
-        : routerUseGate(src)
+      const why = routeClearance(body)
+        || routerUseGate(src)
         || controllerHop(src, window);
+      // A handler that names the actor but never compares it is the highest-value thing to review
+      // by hand, so it is ranked as sensitive even when its path is not.
+      const mentionOnly = !why && USER_REF.some((r) => r.test(body));
       const row = {
         file: f,
         verb: verb.toUpperCase(),
         route: routePath,
         line: src.slice(0, m.index).split('\n').length,
-        sensitive: SENSITIVE.test(routePath) || SENSITIVE.test(f),
+        sensitive: SENSITIVE.test(routePath) || SENSITIVE.test(f) || mentionOnly,
         why,
       };
       (why ? guarded : unchecked).push(row);
@@ -344,4 +418,10 @@ function main() {
   }));
 }
 
-main();
+// Run only when invoked directly. Importing this file used to execute the whole audit and call
+// `process.exit()`, which is precisely why its detection logic had never been unit-tested — and
+// why two defects survived in it. A script that cannot be imported cannot be given a regression
+// test, so the absence of tests was a property of the file, not an oversight.
+const invokedDirectly = process.argv[1]
+  && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url));
+if (invokedDirectly) main();
