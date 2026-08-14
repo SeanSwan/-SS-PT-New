@@ -158,6 +158,35 @@ be deleted so a future reader cannot re-introduce a consumer. Ticket, not a bloc
 
 ## 7. What is actually left, ranked
 
+> ### ⚠ ADDENDUM — three of these shipped while this handoff was being written
+>
+> The sibling session kept working. Verified at `7b76c7f53`:
+>
+> | Was item | Now | Commit |
+> |---|---|---|
+> | Delete dead bypass writes | **DONE** — `EmergencyDashboard` only *clears* the flags now (`:112`), with a comment at `:133`; pinned by `frontend/src/routes/adminBypassFlagsUnwritten.contract.test.ts` asserting they are never written | `89db1f740` |
+> | Rate-limit the prekey fetch | **DONE** — `preKeyFetchLimiter` imported at `encryptionRoutes.mjs:17` | `7b76c7f53` |
+> | Executed authz coverage | **STARTED** — went from **1** execution file to **9** | `d103344f9`, `64efe4afc` |
+>
+> New execution suites: `badgeConsentAuthzExecution`, `bootcampGenerateProfileIdor`,
+> `cartUserIdCoercionIdor`, `clientOnboardingAuthzExecution`, `clientPhotoUploadAuthzExecution`,
+> `groupParticipantAuthzExecution`, `variationRoutesEquipmentIdor` (+ the original
+> `clientResourceIdorExecution` and `idorAuditReaderControls`).
+>
+> **Verified:** 6 of those 9 files ran green — **121 tests**. The remaining 3 and the 6 older
+> security suites were **NOT re-verified**, because the toolchain became unusable mid-check (below).
+> Re-run before quoting any total.
+>
+> **⚠ SHARED-`node_modules` HAZARD — new, and it will bite you.** This worktree's `node_modules` is
+> shared with whatever else is running against it. Mid-session, `npx vitest` degraded through three
+> stages within minutes: a `.vite-temp` timestamp-config race → `Cannot find package 'vitest'` →
+> `'vitest' is not recognized`. `node_modules/vitest` was present the whole time; **265 node
+> processes** were running. Nothing was broken — another agent was installing.
+> **Do not conclude the toolchain is broken from a vitest failure here.** Re-check
+> `ls node_modules/vitest/package.json` and the process count first, wait, and retry. This is the
+> cross-env-verify rule in its most literal form: one toolchain's failure is not a fact about the
+> world.
+
 > **Baseline: DONE, nothing owed.** An earlier draft listed re-baselining as item 1. It is already
 > committed — `backend/scripts/baselines/idor-surface.json` records `scanned: 211, accepted: 3`, and
 > the 3 accepted keys are exactly the by-design-public trio traced in §5
