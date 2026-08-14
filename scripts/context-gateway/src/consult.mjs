@@ -14,8 +14,7 @@
  * @module context-gateway/consult
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { basename } from 'node:path';
-import { shortPath } from './paths.mjs';
+import { shortPath, finalSegment } from './paths.mjs';
 import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
 import { redactSecrets } from './egress.mjs';
@@ -117,7 +116,12 @@ export async function runConsult(providerName, defaultRemit, defaultOut) {
 async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {}) {
   const docPath = arg('document');
   if (!docPath) { console.error(`usage: node scripts/consult-${providerName}.mjs --document <path> [--seed <path>] [--out <path>] [--remit "..."] [--effort high] [--max-tokens N]`); process.exit(1); }
-  if (!existsSync(docPath)) { console.error(`document not found: .../${basename(docPath)}`); process.exit(1); }
+  // finalSegment, NOT basename: `docPath` is raw user input, and node's basename splits only on the
+  // HOST separator — so on POSIX a Windows-shaped path (copied config, WSL boundary) returns the
+  // whole string and this "redacted" error line prints the OS username. Same platform-relativity as
+  // round 16 S1/S1b, one file over — which is exactly the class paths.mjs exists to hold in ONE
+  // place. Every redaction in this lane goes through that module or it will drift again.
+  if (!existsSync(docPath)) { console.error(`document not found: .../${finalSegment(docPath)}`); process.exit(1); }
 
   ctx.docPath = docPath;
   loadEnv(process.cwd());
@@ -132,9 +136,13 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   for (const pth of [docPath, seedPath].filter(Boolean)) {
     const rel = String(pth).replaceAll('\\', '/');
     if (DENY_PATTERNS.some((re) => re.test(rel))) {
-      // Print the basename only: transcripts capture stderr, and the full path carries the OS
+      // Print the final segment only: transcripts capture stderr, and the full path carries the OS
       // username the receipt deliberately relativizes away. Enough to identify what was refused.
-      console.error(`[consult-${providerName}] REFUSED secret-bearing path: .../${basename(rel)}`);
+      // finalSegment, not basename — `rel` happens to be backslash-normalized two lines up, so
+      // basename was correct here only BY ACCIDENT. A redaction that depends on an upstream
+      // normalization staying put is one refactor from leaking, and this is the most
+      // security-relevant line the lane emits (round 16, S1b sweep).
+      console.error(`[consult-${providerName}] REFUSED secret-bearing path: .../${finalSegment(rel)}`);
       // This branch exits DIRECTLY rather than throwing, so it never reaches runConsult's catch.
       // An attempt to egress a .env/*.pem is the most security-relevant event this lane produces —
       // record it here or it is lost entirely. No docSha: the file is deliberately never read.
