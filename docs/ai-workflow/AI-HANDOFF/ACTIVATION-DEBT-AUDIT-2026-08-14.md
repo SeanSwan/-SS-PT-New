@@ -537,6 +537,29 @@ attacking a plan.
 
 ---
 
+## 10b. Linear — what belongs on the board, held here because the board is down
+
+Probed **this session**, not carried forward from a handoff:
+`node scripts/check-mcp-health.mjs linear` → `linear-server` declared in `~/.claude.json`
+(USER scope), transport http, **HTTP 401 — CONFIGURED BUT TOKEN REJECTED**, registering
+**zero tools**. Writing to the board is physically impossible until the credential is
+refreshed and Claude Code is fully restarted. It is **not** unconfigured — that conclusion has
+been wrong every time it has been reached.
+
+These are held here so the backlog survives the outage:
+
+| Target | What to file / update |
+|---|---|
+| **NEW — highest** | *"CLAUDE.md and AGENTS.md are two different constitutions."* Claude missing ~8 binding rules; `sync-agents-mirror.mjs` would delete them; Rule 46 decider conflict (Fable vs Kimi). Blocked on Sean's direction. Evidence: §0. |
+| **SWA-71** (backend orphan inventory) | Corroborated from an independent method: 10 files / 1,146 lines re-verified zero-importer, line counts by `wc -l`. Two of them (`adminController`, `progressSyncController`) are Category C — a test reads their source. Still **zero deleted**, still correct per "do nothing before launch." |
+| **SWA-75** (frontend orphan inventory) | Add the retraction: my "12 orphaned DesignPlayground concepts" claim was FALSE — all 12 registered at `conceptRegistry.ts:53-64`, live via `main-routes.tsx:902`. Genuine orphan found: `TrainerVideosPage`. |
+| **SWA-40** (speed-to-lead) | Flag still dark at 24 days. Cockpit-visibility half merges clean, 27/27. Send-failure alerting now **shipped** (`raiseSendFailureAlert`, 35/35). Remaining: Sean's flip + runbook live test. |
+| **NEW** | *"~19 env flags exist only as Render dashboard state"* — no repo record; declare in `render.yaml` + key-diff sync check. |
+| **NEW** | *"Settlement worker: investigate before flipping."* 45 days off, irreversible on flip, inline path exists — backlog status `[UNKNOWN]`, needs a read-only query. |
+| **NEW** | *"5 other `sendGridEmail` callers still fail silently"* — newsletter, notification, consult, leadCapture, template. Out of scope for this slice. |
+
+---
+
 ## 11. The thing most worth keeping
 
 The lane handoff I inherited ended with: *a hostile loop run by the author converges on the
