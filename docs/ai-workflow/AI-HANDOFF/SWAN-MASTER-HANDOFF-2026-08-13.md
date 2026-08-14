@@ -8,6 +8,12 @@ supersedes: none
 privacy: IDs/roles only; no PII, no secrets, no absolute paths
 ---
 
+> ⚠ **SUPERSEDED 2026-08-14 by `docs/ai-workflow/AI-HANDOFF/SWAN-CONTINUATION-HANDOFF-2026-08-14.md`.**
+> Read that instead. Two known-wrong claims below: the Forge module count (16, not 18 — this
+> file counted the `shared/` folder rather than the feature), and `ab-blind.html`, which exists
+> ONLY in the primary checkout because `.ai-workflow/` is gitignored — it is absent from any
+> worktree. Cost figures here are also stale; rule 16 in CLAUDE.md carries the recounted set.
+
 # MASTER HANDOFF
 
 **You are picking up a long session. This document replaces reading it.**
