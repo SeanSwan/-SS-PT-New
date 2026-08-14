@@ -111,7 +111,7 @@ and the reason is already in the repo.
 references to `SPEED_TO_LEAD_REPLY_ENABLED`. It can say "ready" while the feature is off.
 
 **The instrument is already built** — on branch `claude/marketing-readiness-s2l-clean-2026-08-14`:
-`speedToLeadReadiness.mjs` (148 lines) + 13 tests, which specifically assert it:
+`speedToLeadReadiness.mjs` (148 lines) + tests — **27/27 passing, verified this session** (`npx vitest run __tests__/speedToLeadReadiness.test.mjs`). They specifically assert it:
 - `blocks when armed without SENDGRID_API_KEY` (`speedToLeadReadiness.test.mjs:71`)
 - `blocks when armed without SENDGRID_FROM_EMAIL` (`:77`)
 - `degrades when armed with an off-domain from-address (SPF/DKIM misalignment)` (`:83`)
@@ -122,7 +122,7 @@ fuzzy import; `speedToLeadReadiness.mjs` imports only `./readinessStatus.mjs`). 
 merge into current `main` with **zero conflicts**.
 
 So the branch is **two deliverables**, not one:
-- **A — cockpit visibility.** Merge-ready, zero product risk, and it is the instrument that
+- **A — cockpit visibility.** Merge-ready, 27/27 tests green, zero product risk, and it is the instrument that
   tells you whether the flip worked. **Land this first.**
 - **B — fuzzy-variable validator.** Genuinely unwired (zero non-test importers confirmed).
   Its flag `MARKETING_FUZZY_VARS_ENABLED` is read only inside its own service — no consumer
@@ -203,7 +203,7 @@ Ordered by value per minute of Sean's attention.
 
 | # | Action | Owner | Time | Why here |
 |---|---|---|---|---|
-| 1 | Land S2L branch **half A** (cockpit visibility) | agent | ~30 min | Builds the instrument before the flip. Merges clean, 13 tests, zero product risk. |
+| 1 | Land S2L branch **half A** (cockpit visibility) | agent | ~30 min | Builds the instrument before the flip. Merges clean, 27/27 tests green, zero product risk. |
 | 2 | Wire send failures into existing `adminAlertService` | agent | ~1 h | Small — infra exists. Turns silent failure into a signal *before* anything is armed. |
 | 3 | Flip `SPEED_TO_LEAD_REPLY_ENABLED`, run the existing runbook's live test | **Sean** | ~5 min + deploy | Highest-value single action in the lane. Now instrumented. |
 | 4 | Tier-1 flips via Launch Control | **Sean** | ~2 min | One-click revert; 99 feature-days recovered. |
