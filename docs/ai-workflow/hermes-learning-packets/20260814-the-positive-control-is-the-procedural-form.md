@@ -133,12 +133,19 @@ under, and a bare number carries none of them.
   runs**, which watched vitest degrade through three wrong errors while nothing was broken.
 - **Wrote a cleanup trap that restored with `git checkout`**, discarding my own uncommitted edits
   → rule: restore from a copy, not from git, when the file has uncommitted work.
+- **Printed a success line for a command that failed — while committing this packet.**
+  `git add ... 2>&1 | tail -2 && echo "STAGED OK"` printed `STAGED OK` on a `git add` that was
+  blocked by a stale index lock, because `tail` exited 0 and `&&` saw the pipeline's status, not
+  git's. Caught only because I printed the staged list immediately after and it was empty →
+  rule: **never emit a verdict in the same statement as the command it reports on** — the exact
+  mechanical rule the previous packet proposed, violated by me inside the commit describing it.
 
 ## Error → fix → repeat ledger
 
 | Error class | Times this session | Already written up before? | What actually stopped it |
 |---|---|---|---|
 | Probe blind to part of its search space, silence read as absence | **2** (glob-restricted grep; test-file-blind scanner) | **YES — twice, in two packets dated the same day** | A committed test carrying three explicit reach-assertions. Not the packets, not the memory. |
+| Verdict line emitted unconditionally after a command that can fail | **1** (`git add … \| tail -2 && echo "STAGED OK"` on a lock-blocked add) | **YES — the previous packet proposed the exact mechanical rule against it** | Printing the staged file list immediately afterward, which was empty. Nothing else would have caught it. |
 | Believing a count measured in another environment | 1 (cost 3 full test runs) | Partially — prior packets covered branch counts, never test counts | Measuring the number's *stability* across four environments instead of its value |
 | Overclaim surviving in a field nobody re-reads | 1 (frontmatter vs body) | No | Reading my own document start-to-finish as a stranger |
 | Count in a commit subject not matching its own body | 1 | No | Re-reading the message before moving on; fixed forward, never amended |
