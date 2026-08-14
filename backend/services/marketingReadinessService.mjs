@@ -23,18 +23,10 @@ import { getAllModels } from '../models/index.mjs';
 import nativePublisher, { PROVIDER_CAPABILITIES } from './nativeSocialPublishingService.mjs';
 import { isAutomationArmed } from './automationArmState.mjs';
 import logger from '../utils/logger.mjs';
-
-const STATUS = { READY: 'ready', DEGRADED: 'degraded', BLOCKED: 'blocked', DEMO: 'demo' };
-
-// Worst-of rollup across operational (non-demo) subsystems. 'demo' never worsens overall.
-const SEVERITY = { ready: 0, demo: 0, degraded: 1, blocked: 2 };
-const rollup = (subsystems) => {
-  let worst = STATUS.READY;
-  for (const s of subsystems) {
-    if ((SEVERITY[s?.status] ?? 0) > (SEVERITY[worst] ?? 0)) worst = s.status;
-  }
-  return worst;
-};
+// STATUS/SEVERITY/rollup lifted to their own module 2026-08-14 so subsystem
+// builders can live in separate files without importing back into this one.
+import { STATUS, rollup } from './marketingReadiness/readinessStatus.mjs';
+import { buildSpeedToLeadReadiness } from './marketingReadiness/speedToLeadReadiness.mjs';
 
 export function createMarketingReadinessService({
   models = null,
@@ -257,12 +249,16 @@ export function createMarketingReadinessService({
       buildCalendar(),
       buildCampaigns(),
     ]);
+    // Pure env reads — synchronous, no DB, so they stay out of the Promise.all.
     const contentTools = buildContentTools();
-    const overall = rollup([socialPublishing, automation, email, leadCapture, calendar, campaigns]);
+    const speedToLead = buildSpeedToLeadReadiness({ env, logger });
+    // speedToLead IS operational (unlike contentTools) so it moves the rollup:
+    // an armed-but-broken sender is exactly the alarm this cockpit exists for.
+    const overall = rollup([socialPublishing, automation, email, leadCapture, calendar, campaigns, speedToLead]);
     return {
       overall,
       generatedAt: new Date().toISOString(),
-      subsystems: { socialPublishing, automation, email, leadCapture, calendar, campaigns, contentTools },
+      subsystems: { socialPublishing, automation, email, speedToLead, leadCapture, calendar, campaigns, contentTools },
     };
   };
 

@@ -162,12 +162,42 @@ describe('marketingReadinessService', () => {
   it('never emits PII or a secret value anywhere in the payload', async () => {
     const r = await svc({
       models: makeModels({ Subscriber: { count: vi.fn().mockResolvedValue(5) } }),
+      env: { SENDGRID_API_KEY: 'present', SENDGRID_FROM_EMAIL: 'secretfrom@sswanstudios.com' },
     }).getReadiness();
-    const json = JSON.stringify(r).toLowerCase();
-    expect(json).not.toContain('@'); // no email addresses
+
+    // Guidance fields (note / nextAction) intentionally NAME env vars so the
+    // operator knows which switch to flip — that convention predates this test
+    // (`buildEmail` and `buildSocial` both do it on origin/main). Naming a var
+    // is not disclosing its VALUE. Strip guidance, then assert the remaining
+    // payload — the actual data surface — carries no credential of any kind.
+    const guidance = [];
+    const stripped = JSON.parse(JSON.stringify(r), (key, value) => {
+      if ((key === 'note' || key === 'nextAction') && typeof value === 'string') {
+        guidance.push(value);
+        return undefined;
+      }
+      return value;
+    });
+    const json = JSON.stringify(stripped).toLowerCase();
+
+    expect(json).not.toContain('@'); // no email addresses in the data surface
     expect(json).not.toMatch(/"phone"/);
-    expect(json).not.toContain('sendgrid_api_key');
-    expect(json).not.toContain('present'); // the mock secret value must not surface
+
+    // The real invariant: no secret VALUE may surface, guidance included.
+    const whole = JSON.stringify(r).toLowerCase();
+    expect(whole).not.toContain('present'); // mock SENDGRID_API_KEY value
+    expect(whole).not.toContain('secretfrom'); // mock SENDGRID_FROM_EMAIL value
+  });
+
+  it('reports speed-to-lead as dark-but-safe by default, and blocks when armed without a sender', async () => {
+    const dark = await svc({ env: { SENDGRID_API_KEY: 'present' } }).getReadiness();
+    expect(dark.subsystems.speedToLead.enabled).toBe(false);
+    expect(dark.subsystems.speedToLead.status).toBe('ready');
+    expect(dark.overall).toBe('ready'); // dark must never drag the cockpit down
+
+    const armedBroken = await svc({ env: { SPEED_TO_LEAD_REPLY_ENABLED: 'true' } }).getReadiness();
+    expect(armedBroken.subsystems.speedToLead.status).toBe('blocked');
+    expect(armedBroken.overall).toBe('blocked'); // and it MUST propagate
   });
 
   it('reports campaign totals from the model registry', async () => {

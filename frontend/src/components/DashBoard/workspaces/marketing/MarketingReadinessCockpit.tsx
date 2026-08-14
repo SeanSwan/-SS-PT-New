@@ -10,7 +10,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  AlertTriangle, CalendarDays, GaugeCircle, Mail, RefreshCw, Share2, Users, Zap, FlaskConical, Loader2, Megaphone,
+  AlertTriangle, CalendarDays, GaugeCircle, Mail, RefreshCw, Share2, Users, Zap, FlaskConical, Loader2, Megaphone, Send,
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import * as S from './MarketingReadinessCockpit.styles';
@@ -31,6 +31,9 @@ interface Subsystem {
   armed?: boolean; cronEnvConfigured?: boolean; activeSequences?: number; leadNurtureActive?: boolean; pendingScheduled?: number; emailSenderBuilt?: boolean;
   // email
   sendgridConfigured?: boolean; confirmedSubscribers?: number; pendingSubscribers?: number; unsubscribed?: number; broadcastBuilt?: boolean;
+  // speed-to-lead (booleans only — never a credential value)
+  enabled?: boolean; fromEmailConfigured?: boolean; fromEmailOnBrandDomain?: boolean;
+  businessAddressConfigured?: boolean; consultUrlConfigured?: boolean; replyPoints?: Record<string, boolean>;
   // lead
   totalLeads?: number; capturePoints?: Record<string, boolean>;
   // calendar
@@ -45,6 +48,7 @@ interface Readiness {
   generatedAt: string;
   subsystems: {
     socialPublishing: Subsystem; automation: Subsystem; email: Subsystem;
+    speedToLead: Subsystem;
     leadCapture: Subsystem; calendar: Subsystem; campaigns: Subsystem; contentTools: Subsystem;
   };
 }
@@ -71,10 +75,15 @@ const buildCards = (s: Readiness['subsystems']): CardModel[] => {
   const social = s.socialPublishing;
   const auto = s.automation;
   const email = s.email;
+  const s2l = s.speedToLead;
   const lead = s.leadCapture;
   const cal = s.calendar;
   const camp = s.campaigns;
   const tools = s.contentTools;
+
+  // Count only the surfaces that genuinely send the instant reply, so the card
+  // states real coverage instead of implying every capture point replies.
+  const replyPointCount = Object.values(s2l?.replyPoints ?? {}).filter(Boolean).length;
 
   return [
     {
@@ -104,6 +113,20 @@ const buildCards = (s: Readiness['subsystems']): CardModel[] => {
         { k: 'Pending', v: String(num(email.pendingSubscribers)), tone: 'muted' },
         { k: 'Unsubscribed', v: String(num(email.unsubscribed)), tone: 'muted' },
         { k: 'Broadcast send', v: email.broadcastBuilt ? 'Built' : 'Not built', tone: email.broadcastBuilt ? 'good' : 'muted' },
+      ],
+    },
+    {
+      // The revenue-first card: whether a prospect who just raised their hand
+      // actually hears back. Dark is a legitimate resting state, so it reads
+      // "Dark (safe)" in muted tone rather than as a failure.
+      key: 'speedToLead', name: 'Speed-to-Lead Reply', icon: <Send size={16} />, sub: s2l,
+      metrics: [
+        { k: 'Instant reply', v: s2l.enabled ? 'LIVE' : 'Dark (safe)', tone: s2l.enabled ? 'good' : 'muted' },
+        { k: 'Sender', v: s2l.sendgridConfigured && s2l.fromEmailConfigured ? 'Configured' : 'Incomplete', tone: s2l.sendgridConfigured && s2l.fromEmailConfigured ? 'good' : (s2l.enabled ? 'bad' : 'warn') },
+        // Alignment only matters once mail is actually flowing.
+        { k: 'From-address alignment', v: s2l.fromEmailOnBrandDomain ? 'On brand domain' : 'Off domain', tone: s2l.fromEmailOnBrandDomain ? 'good' : (s2l.enabled ? 'bad' : 'muted') },
+        { k: 'Replying surfaces', v: `${replyPointCount} of ${Object.keys(s2l.replyPoints ?? {}).length}`, tone: 'muted' },
+        { k: 'Footer postal address', v: s2l.businessAddressConfigured ? 'Set' : 'Placeholder', tone: s2l.businessAddressConfigured ? 'good' : 'warn' },
       ],
     },
     {

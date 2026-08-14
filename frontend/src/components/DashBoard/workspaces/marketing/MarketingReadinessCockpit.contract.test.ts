@@ -34,10 +34,27 @@ describe('MarketingReadinessCockpit contract', () => {
     expect(src).not.toContain('/publish');
   });
 
-  it('surfaces all seven marketing subsystems', () => {
-    for (const key of ['socialPublishing', 'automation', 'email', 'leadCapture', 'calendar', 'campaigns', 'contentTools']) {
+  it('surfaces all eight marketing subsystems', () => {
+    for (const key of ['socialPublishing', 'automation', 'email', 'speedToLead', 'leadCapture', 'calendar', 'campaigns', 'contentTools']) {
       expect(src).toContain(key);
     }
+  });
+
+  it('renders speed-to-lead state without ever rendering a credential value', () => {
+    // The card may report PRESENCE booleans and may NAME env vars in guidance,
+    // but the from-address, API key, postal address and consult URL values must
+    // never reach the DOM. Assert the component reads only the boolean fields.
+    expect(src).toContain('s2l.enabled');
+    expect(src).toContain('s2l.fromEmailOnBrandDomain');
+    expect(src).not.toMatch(/fromEmail\s*\}/);       // no raw address interpolation
+    expect(src).not.toContain('sendgridApiKey');
+    expect(src).not.toContain('businessAddress}');   // presence flag only, never the value
+  });
+
+  it('treats dark speed-to-lead as a safe resting state, not a failure', () => {
+    // Regression guard: an intentionally-dark feature must not render as an
+    // alarm, or the cockpit trains the operator to ignore real alarms.
+    expect(src).toContain("'Dark (safe)'");
   });
 
   it('keeps the refresh control at the 44px touch-target minimum', () => {
