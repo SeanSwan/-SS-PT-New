@@ -3,7 +3,7 @@ surface: security / launch-readiness
 task: Cross-role authorization matrix — design (not built)
 author_model: claude-opus-5
 date_utc: 2026-08-14T02:45:00Z
-status: design committed, external review in flight
+status: design committed; external review returned — design REJECTED, revision 1 required
 ---
 
 # Cross-role authz matrix design + four instrument defects in one session
@@ -23,8 +23,9 @@ and HY3 for hostile review before implementation.
 - **claude-opus-5 (me)** — verified the prior session's artifacts existed, measured authz coverage,
   wrote the design, ran a 4-round dry loop against my own work, found and corrected three of my own
   errors. Cost: subscription, $0 marginal.
-- **Kimi K3 + HY3** — hostile review of the design, in flight at time of writing. Owner-authorized,
-  one call each, `--confirm-spend`, $3 cap per script. Calibration pending; record it when they land.
+- **Kimi K3** — hostile review. Found 3 CRITICAL defects that killed the design. Worth the $0.25.
+- **HY3** — same remit, returned nothing (reasoning consumed the whole token budget). ~$0.03.
+  Both owner-authorized, one call each, `--confirm-spend`, $3 cap per script. See calibration below.
 - **codex** — working a separate worktree (`C:/tmp/sspt-dashboard-hostile-audit-...`) with active
   file locks. No overlap with my lane. Also rebased a shared branch, which orphaned the SHAs a
   previous session had cited (see below).
@@ -73,6 +74,18 @@ and a second overlapping entry weakens both.
 - **My round-4 verification regex was digit-blind** (`[A-Za-z/]+\.mjs`), splitting
   `gamificationV1Routes.mjs` at the `1` and reporting a phantom mismatch. A false *positive* —
   I nearly "fixed" a document that was already correct.
+- **I specified fixtures that cannot test the rows I had just elevated to P0.** In dry-loop round 2
+  I promoted user-to-user crossings to P0, correctly calling them the most likely breach class —
+  then section 6 reused the brief's four auth states, one account per role. One account per role
+  crosses each account against *itself*. Five of twelve rows were structurally unexecutable, all of
+  them P0, and skipped cells read as green. **My dry loop could not have caught this**: every round
+  verified a *fact* (counts, line numbers, file lists) and every fact was right. The defect was a
+  contradiction between two sections that were each individually correct. Lesson: fact-checking
+  rounds do not substitute for one round that asks "can this design actually execute what it
+  claims to test?" — and that round is the one worth paying an external reviewer for.
+- **I set --effort high on both external calls reflexively.** Rule 71 says pick the cheapest tier
+  that meets the bar and warns that top effort can produce worse output. HY3 then burned its entire
+  60k budget on reasoning and emitted nothing. The rule was in context and I did not apply it.
 - **I initially objected to pushing the harness branch on stale-tree grounds that were wrong.**
   I read "1926 commits behind" from the session-start hook and attached it to the harness branch;
   it described a different branch. The harness branch is 5 ahead / 42 behind with identical
@@ -94,8 +107,31 @@ false negatives. The existing packet's title under-scopes the failure.
 
 ## External-model calibration
 
-Kimi K3 and HY3 in flight; findings-real-vs-disproven and cost to be appended when they return.
-Both were given an identical adversarial remit so the two verdicts stay independent and comparable.
+Identical adversarial remit to both, so the verdicts are comparable.
+
+**Kimi K3 (moonshotai/kimi-k3, effort=high) — WORTH IT. $0.2495, 4188 in / 15794 out, 611s, finish=stop.**
+14 findings. **3 CRITICAL and correct**, and they killed the design: (F1) four auth fixtures cannot
+express a same-role crossing, so 5 of 12 rows — including the P0 user-to-user rows — are structurally
+unexecutable and would read green when skipped; (F2) no positive control, so expired fixtures or a
+token the request never carries produce all-401 = all-green = nothing asserted; (F3) GET-only defers
+the verbs that mint privilege, and mass assignment (PUT profile role=admin) was absent from the
+threat model entirely. **2 findings DISPROVEN on verification** — the 25+37/55 arithmetic does close
+(18 of 25 guard files also take params, 7 do not), and the section-5 hazard files are byte-identical
+to origin/main. Both disproven findings still carried a valid methodology criticism I accepted.
+**Hit rate ~12/14 real.** Best value: it found a self-contradiction I had introduced *during my own
+review pass* — I elevated the user-to-user rows to P0 and then specified fixtures that cannot test
+them. A dry loop checking my facts could not catch that; it needed a reader reasoning about the
+design as a whole.
+
+**HY3 (tencent/hy3, effort=high) — NOTHING. ~$0.03, 60000 max_tokens consumed by reasoning, zero
+visible text emitted, no output file.** Not a bad review — no review. Routing lesson (Rule 71): for
+a ~17k-char document with a five-part remit, high effort on this model risks the token ceiling
+rather than improving quality. Route it low, or route the work to Kimi. My reflexive --effort high
+on both was the error.
+
+**Routing rule learned:** on a long adversarial-review document, effort=high is not a quality dial —
+it is a gamble against max_tokens on reasoning-heavy models. Kimi absorbed it (15.8k output tokens);
+HY3 did not.
 
 ## Owner-gated items
 
