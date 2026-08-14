@@ -22,6 +22,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Op } from 'sequelize';
 import { createNativeSocialPublishingService } from '../../services/nativeSocialPublishingService.mjs';
 
 // The adapters below are module-level mocks shared by every test, so their call
@@ -321,6 +322,15 @@ const makeRetryService = ({ job = partialJob(), publishedAccountIds = ['acct-1']
     findByPk: vi.fn(async (id) => (String(id) === String(job.id) ? jobRow : null)),
     findAll: vi.fn(async () => [jobRow]),
     create: vi.fn(async () => makeRow({ id: 'should-not-be-called' })),
+    // Retry now claims the job and writes its outcome conditionally, the same
+    // way the scheduler does. Honouring the WHERE here matters: a mock that
+    // always reports 1 row would let a lost claim look like a won one.
+    update: vi.fn(async (patch, { where } = {}) => {
+      const wanted = where?.status?.[Op.in] ?? (where?.status ? [where.status] : null);
+      if (wanted && !wanted.includes(jobRow.status)) return [0];
+      Object.assign(jobRow, patch);
+      return [1];
+    }),
   };
   return {
     service: createNativeSocialPublishingService({
@@ -347,20 +357,22 @@ describe('retrying a partial failure must not re-post what already went out', ()
   });
 
   it('updates the ORIGINAL job rather than creating a second one', async () => {
-    const { service, JobModel, jobRow } = makeRetryService();
+    const { service, JobModel } = makeRetryService();
 
     await service.retryJob('job-1', { userId: 1 });
 
     expect(JobModel.create).not.toHaveBeenCalled();
-    expect(jobRow.update).toHaveBeenCalled();
+    // The outcome write is now the conditional claim rather than an instance
+    // update, so that a reaper which closed this row cannot be overwritten.
+    expect(JobModel.update).toHaveBeenCalled();
   });
 
   it('keeps the earlier success in platformResults instead of forgetting it', async () => {
-    const { service, jobRow } = makeRetryService();
+    const { service, JobModel } = makeRetryService();
 
     await service.retryJob('job-1', { userId: 1 });
 
-    const patch = jobRow.update.mock.calls.at(-1)[0];
+    const patch = JobModel.update.mock.calls.at(-1)[0];
     expect(patch.status).toBe('published');
     const byAccount = Object.fromEntries((patch.platformResults || []).map(r => [r.accountId, r.status]));
     expect(byAccount['acct-1'], 'the original success must survive the retry').toBe('published');
@@ -369,12 +381,12 @@ describe('retrying a partial failure must not re-post what already went out', ()
 
   it('reports still-partial when the retry fails again', async () => {
     const stillFailing = { publish: vi.fn(async () => { throw new Error('rate limited'); }) };
-    const { service, jobRow } = makeRetryService({ adapter: stillFailing });
+    const { service, JobModel } = makeRetryService({ adapter: stillFailing });
 
     const result = await service.retryJob('job-1', { userId: 1 });
 
     expect(result.status).toBe('partial_failed');
-    const patch = jobRow.update.mock.calls.at(-1)[0];
+    const patch = JobModel.update.mock.calls.at(-1)[0];
     expect(patch.status).toBe('partial_failed');
   });
 

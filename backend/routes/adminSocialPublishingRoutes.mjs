@@ -229,6 +229,12 @@ router.post('/publish/:jobId/retry', async (req, res) => {
     if (/not found/i.test(err.message || '')) {
       return res.status(404).json({ success: false, status: 'not_found', message: 'Social publishing job not found' });
     }
+    // A job that is still publishing is not a server fault, and reporting it as
+    // one tells Sean the retry is broken when the correct advice is "wait".
+    // The message is surfaced verbatim because it names what to do next.
+    if (err.conflict) {
+      return res.status(409).json({ success: false, status: 'conflict', message: err.message });
+    }
     logger.error('Failed to retry social post:', err.message);
     return res.status(500).json({ success: false, status: 'error', message: 'Failed to retry' });
   }

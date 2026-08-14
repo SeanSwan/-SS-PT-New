@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Op } from 'sequelize';
 import { createSocialPublishFanOut } from '../../services/socialPublishFanOut.mjs';
 import { createSocialJobScheduler } from '../../services/socialJobScheduler.mjs';
+import { createSocialJobRetry } from '../../services/socialJobRetry.mjs';
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -330,5 +331,87 @@ describe('a publish that is slow must not be mistaken for a publish that died', 
     for (const [, options] of terminalWrites) {
       expect(options.where).toHaveProperty('status');
     }
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Found during THIS review, not on the inherited attack list:
+ * retry has no idea whether the job is already publishing
+ * ------------------------------------------------------------------ */
+
+/**
+ * retryJob decides what to re-send from the Attempt ledger, which is written
+ * AFTER each provider call returns. A job that is still 'running' therefore has
+ * no attempt row yet for the accounts currently in flight — so retry reads them
+ * as "never tried" and posts to them a second time.
+ *
+ * Nothing guards this: neither retryJob nor the route checks job.status. It is
+ * reachable by a human pressing a button on a job that looks stuck, and the
+ * heartbeat added for 4.2 makes jobs legitimately sit in 'running' for longer,
+ * which widens exactly this window.
+ */
+const makeRetryHarness = ({ status }) => {
+  const jobRow = makeRow({
+    id: 'job-1',
+    content: 'hello',
+    status,
+    platformAccountIds: ['acct-1', 'acct-2'],
+    platformResults: [],
+    media: [],
+  });
+
+  const JobModel = {
+    findByPk: vi.fn(async () => jobRow),
+    update: vi.fn(async (patch, { where }) => {
+      const wanted = where.status?.[Op.in] ?? (where.status ? [where.status] : null);
+      if (wanted && !wanted.includes(jobRow.status)) return [0];
+      Object.assign(jobRow, { updatedAt: new Date(), ...patch });
+      return [1];
+    }),
+  };
+
+  const publishToAccounts = vi.fn(async () => ({
+    status: 'published',
+    results: [
+      { accountId: 'acct-1', provider: 'bluesky', status: 'published' },
+      { accountId: 'acct-2', provider: 'bluesky', status: 'published' },
+    ],
+  }));
+
+  const retry = createSocialJobRetry({
+    JobModel,
+    // No attempt rows: the in-flight publish has not written any yet.
+    AttemptModel: { findAll: vi.fn(async () => []), create: vi.fn(async () => ({})) },
+    publishToAccounts,
+  });
+
+  return { retry, publishToAccounts, jobRow };
+};
+
+describe('retry must not fire at a job that is already publishing', () => {
+  it('refuses to re-publish a job still in running', async () => {
+    const { retry, publishToAccounts } = makeRetryHarness({ status: 'running' });
+
+    await expect(retry.retryJob('job-1', { userId: 1 })).rejects.toThrow(/publish|running|progress/i);
+
+    // If this fires, both the worker and the retry are posting the same content
+    // to the same live accounts.
+    expect(publishToAccounts).not.toHaveBeenCalled();
+  });
+
+  it('refuses a job that has not run yet', async () => {
+    const { retry, publishToAccounts } = makeRetryHarness({ status: 'scheduled' });
+
+    await expect(retry.retryJob('job-1', { userId: 1 })).rejects.toThrow();
+    expect(publishToAccounts).not.toHaveBeenCalled();
+  });
+
+  it('still retries a job that genuinely finished failing', async () => {
+    const { retry, publishToAccounts } = makeRetryHarness({ status: 'partial_failed' });
+
+    const result = await retry.retryJob('job-1', { userId: 1 });
+
+    expect(publishToAccounts).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe('published');
   });
 });

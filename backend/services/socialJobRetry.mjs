@@ -8,9 +8,40 @@
  * @module socialJobRetry
  */
 
+import { Op } from 'sequelize';
+
 const getPlain = row => (row?.get ? row.get({ plain: true }) : row);
 
-export function createSocialJobRetry({ JobModel, AttemptModel, publishToAccounts }) {
+/**
+ * The only states a retry may act on — all terminal.
+ *
+ * 'running' is excluded because retry derives what to re-send from the Attempt
+ * ledger, and attempts are written AFTER each provider call returns. A job that
+ * is still publishing therefore has no attempt row for the accounts currently
+ * in flight, so retry reads them as never-tried and posts to them a SECOND
+ * time. 'scheduled' is excluded because the worker has not run it yet and will.
+ *
+ * 'published' stays retryable: it is the no-op path that simply reports done.
+ */
+const RETRYABLE_STATUSES = ['published', 'partial_failed', 'failed'];
+
+const conflict = (message) => {
+  const err = new Error(message);
+  err.conflict = true;
+  return err;
+};
+
+export function createSocialJobRetry({ JobModel, AttemptModel, publishToAccounts, heartbeatMs = 60 * 1000 }) {
+  /**
+   * Move the job out of a terminal state and into 'running' in one statement,
+   * so two operators double-clicking Retry cannot both fan out.
+   */
+  const claimForRetry = async (jobId, patch) => {
+    const [affected] = await JobModel.update(patch, {
+      where: { id: jobId, status: { [Op.in]: RETRYABLE_STATUSES } },
+    });
+    return Boolean(affected);
+  };
 /**
  * Re-publish only the accounts of an existing job that have NOT already
  * succeeded.
@@ -32,6 +63,16 @@ const retryJob = async (jobId, { userId, now = new Date() } = {}) => {
   if (!row) throw new Error(`Social publishing job ${jobId} not found`);
   const job = getPlain(row);
 
+  // Checked before anything is read or written: a job that is mid-publish must
+  // not be reasoned about from a ledger that is still being written.
+  if (!RETRYABLE_STATUSES.includes(job.status)) {
+    throw conflict(
+      job.status === 'running'
+        ? `Social publishing job ${jobId} is still publishing — wait for it to finish before retrying`
+        : `Social publishing job ${jobId} has not run yet (status: ${job.status}); it is scheduled to publish on its own`,
+    );
+  }
+
   const priorAttempts = (await AttemptModel.findAll({ where: { jobId: job.id, status: 'published' } }))
     .map(getPlain);
   const alreadyPublished = new Set(priorAttempts.map(attempt => String(attempt.accountId)));
@@ -49,12 +90,33 @@ const retryJob = async (jobId, { userId, now = new Date() } = {}) => {
     return { status: 'published', results, jobId: String(job.id), retried: [] };
   }
 
+  // Take the job before fanning out. Two operators double-clicking Retry, or a
+  // retry racing the worker, would otherwise both publish to the same pending
+  // accounts — the same duplicate-post harm the scheduler's claim prevents.
+  if (!(await claimForRetry(job.id, { status: 'running' }))) {
+    throw conflict(`Social publishing job ${jobId} was already picked up by another retry`);
+  }
+
+  // Claiming into 'running' makes this job visible to the reaper, so it needs
+  // the same proof-of-life the scheduler's fan-out has. Without it a retry
+  // slower than the stuck threshold would be closed underneath itself.
+  const beat = setInterval(() => {
+    JobModel.update({ updatedAt: new Date() }, { where: { id: job.id, status: 'running' } })
+      .catch(() => {});
+  }, heartbeatMs);
+  if (typeof beat.unref === 'function') beat.unref();
+
   let result;
   try {
     result = await publishToAccounts({ content: job.content, accountIds: pending, mediaUrl: job.media?.[0]?.url, jobId: job.id });
   } catch (err) {
-    await row.update({ status: 'failed', failedAt: now, failureReason: err.message }).catch(() => {});
+    await JobModel.update(
+      { status: 'failed', failedAt: now, failureReason: err.message },
+      { where: { id: job.id, status: 'running' } },
+    ).catch(() => {});
     throw err;
+  } finally {
+    clearInterval(beat);
   }
 
   // Merge, do not replace. Replacing would erase the earlier success from the
@@ -68,13 +130,13 @@ const retryJob = async (jobId, { userId, now = new Date() } = {}) => {
     ? 'published'
     : failures.length === merged.length ? 'failed' : 'partial_failed';
 
-  await row.update({
+  await JobModel.update({
     status,
     platformResults: merged,
     publishedAt: status === 'published' ? now : null,
     failedAt: status !== 'published' ? now : null,
     failureReason: merged.find(item => item.error)?.error || null,
-  });
+  }, { where: { id: job.id, status: 'running' } });
 
   return { status, results: merged, jobId: String(job.id), retried: pending };
 };
