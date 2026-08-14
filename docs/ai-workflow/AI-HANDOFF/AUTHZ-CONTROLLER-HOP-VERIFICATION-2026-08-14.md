@@ -406,8 +406,16 @@ actively fixing the reader in this shared worktree — `backend/scripts/audit-id
 |---|---|
 | **A** — 2200-char window | **FIXED** — `handlerBody(src, from, nextDecl)` at `:142-144`, bounded at the next declaration |
 | **B** — mention vs comparison | **FIXED** — a dedicated "does the body actually COMPARE the actor" pass at `:146+` |
-| **C** — `routerUseGate` position | **OPEN** — still `routerUseGate(src)` at `:236`, no handler offset |
-| **D** — non-recursive scan | **OPEN** — still `fs.readdirSync(ROUTES)` at `:301`. **34 files / 12% of the route surface remain unaudited.** |
+| **C** — `routerUseGate` position | **FIXED** *(later, in `ea70a8290`)* — now `routerUseGate(src, beforeOffset)`. Was OPEN when this section was first written. |
+| **D** — non-recursive scan | **FIXED** *(later, in `ea70a8290`)* — recursive walk; audit went 196 → **230** files and 199 → **211** handlers. Was OPEN when this section was first written. |
+| **E** — `USER_PARAM` missed `/users/:id` | **FIXED** *(later, in `ea70a8290`)* — `\/users?\/:id\b` added. |
+
+> **Status as of session end: all five FIXED**, baseline committed at `scanned: 211, accepted: 3`,
+> and **10** permanent negative controls passing. This table was written mid-flight and its C/D rows
+> said OPEN for about twenty minutes — corrected here rather than deleted, because the drift is the
+> point: a status column is a timestamp, not a fact. **Current source of truth for status is
+> `SESSION-HANDOFF-AUTHZ-CLOSED-2026-08-14-B.md` §5**, and above that, the audit itself:
+> `node backend/scripts/audit-idor-surface.mjs`.
 
 Their negative controls are **better than what §6 proposed**: 7 tests, all passing, covering both of
 my probe arrangements *plus* `'an aliased comparison still clears — the dominant in-repo idiom'` —
