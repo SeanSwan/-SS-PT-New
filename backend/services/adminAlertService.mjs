@@ -83,4 +83,101 @@ export async function raiseMoneyWriteAlert({ lane, error, context = {} } = {}) {
   }
 }
 
-export default { raiseMoneyWriteAlert };
+/**
+ * Strip anything that looks like a lead's identity before it reaches the DB.
+ *
+ * WHY THIS IS NOT OPTIONAL: the send lanes this guards (`speed_to_lead`,
+ * `sendgrid`) hold the LEAD'S OWN EMAIL in scope at the call site, and an
+ * AdminNotification row is admin-visible AND read by LLM tooling. One careless
+ * `context: { email }` at a future call site would put a real person's address
+ * into a surface Rule 8 forbids. The call sites are also written to pass IDs
+ * only — this is the second layer, because the first depends on every future
+ * caller remembering.
+ *
+ * SendGrid error strings are a live example: they routinely embed the failing
+ * recipient ("...does not comply... to=lead@example.com"), so redacting only
+ * `context` and trusting `error.message` would leak on the exact path that
+ * fails most often.
+ */
+const REDACT_EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const REDACT_PHONE = /\+?\d[\d\s().-]{7,}\d/g;
+const scrubIdentity = (value) => String(value ?? '')
+  .replace(REDACT_EMAIL, '<redacted-email>')
+  .replace(REDACT_PHONE, '<redacted-phone>');
+
+/**
+ * Raise an admin alert for a lead-email send failure.
+ *
+ * WHY: `speedToLeadService` and `sendgridService` swallow every failure by
+ * design so a broken email provider can never lose a lead — correct posture,
+ * but it means an expired key, a blown quota, or a bounce storm produces
+ * `logger.warn` and nothing else. Nobody watches logs. After the
+ * SPEED_TO_LEAD_REPLY_ENABLED flag is armed, silence is indistinguishable from
+ * success, which is the failure mode this closes.
+ *
+ * Priority is 'high', not 'critical': a missed acknowledgment costs a lead's
+ * first impression, not a trainer's pay. 'critical' is reserved for money.
+ *
+ * @param {Object} params
+ * @param {string} params.lane - 'speed_to_lead' | 'sendgrid'
+ * @param {Error|string} params.error - the swallowed failure
+ * @param {Object} [params.context] - IDs ONLY (Rule 8): leadId / source
+ * @returns {Object|null} created notification, or null (deduped/unavailable/failed)
+ */
+export async function raiseSendFailureAlert({ lane, error, context = {} } = {}) {
+  try {
+    const AdminNotification = getModel('AdminNotification');
+    if (!AdminNotification) {
+      logger.error('[AdminAlert] AdminNotification model unavailable — send alert dropped', { lane });
+      return null;
+    }
+
+    const title = `Lead email send FAILED (${lane})`;
+
+    // Dedupe per lane, same contract as the money lane: a bounce storm across
+    // 200 leads raises ONE alert, not 200. Admin reading it re-arms the lane.
+    const existing = await AdminNotification.findOne({
+      where: { type: 'system_alert', title, isRead: false },
+      attributes: ['id'],
+    });
+    if (existing) return null;
+
+    const reason = scrubIdentity(error?.message ?? error ?? 'unknown');
+    const safeContext = Object.fromEntries(
+      Object.entries(context).map(([k, v]) => [k, scrubIdentity(v)]),
+    );
+
+    const record = await AdminNotification.create({
+      type: 'system_alert',
+      priority: 'high',
+      actionRequired: true,
+      title,
+      message:
+        `A ${lane} send failed and was swallowed so lead capture could not break. `
+        + `The lead was captured; the acknowledgment email was NOT delivered. `
+        + `Check the sender key, quota, and domain authentication. `
+        + `Context: ${Object.entries(safeContext).map(([k, v]) => `${k}=${v}`).join(' ') || 'none'} `
+        + `Error: ${reason}`,
+      userId: null, // a lead is not a User; never guess an id here
+      metadata: JSON.stringify({
+        lane,
+        ...safeContext,
+        error: reason,
+        raisedBy: 'adminAlertService',
+      }),
+    });
+
+    logger.error('[AdminAlert] send-failure alert raised', { lane, notificationId: record.id });
+    return record;
+  } catch (alertError) {
+    // Same invariant as the money lane: an alert about a failure must never
+    // create a new failure.
+    logger.error('[AdminAlert] failed to raise send-failure alert (original failure still stands)', {
+      lane,
+      alertError: alertError.message,
+    });
+    return null;
+  }
+}
+
+export default { raiseMoneyWriteAlert, raiseSendFailureAlert };

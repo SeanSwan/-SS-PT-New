@@ -19,7 +19,30 @@
  */
 import { sendGridEmail } from './sendgridService.mjs';
 import { renderInstantReplyEmail } from './emailTemplateService.mjs';
+import { raiseSendFailureAlert } from './adminAlertService.mjs';
 import logger from '../utils/logger.mjs';
+
+/**
+ * Surface a swallowed send failure WITHOUT re-introducing a way to block capture.
+ *
+ * Every failure path below is deliberately swallowed so a broken email provider
+ * can never lose a lead. That made failures invisible: `logger.warn` and nothing
+ * else, on a service nobody watches. Once the flag is armed, silence reads
+ * exactly like success — which is the whole reason a lead could go unanswered
+ * for weeks without anyone noticing.
+ *
+ * Fire-and-forget on purpose: not awaited, and `.catch()`-guarded even though
+ * `raiseSendFailureAlert` already promises never to throw. Belt and braces,
+ * because the one thing this must never do is turn an undelivered email into a
+ * lost lead. Identity is scrubbed on the alert side (Rule 8) — pass IDs only.
+ */
+const alertSendFailure = (lane, error, context) => {
+  try {
+    Promise.resolve(raiseSendFailureAlert({ lane, error, context })).catch(() => {});
+  } catch {
+    // unreachable in practice; a throw here would defeat the point of the guard
+  }
+};
 
 const flagEnabled = () => process.env.SPEED_TO_LEAD_REPLY_ENABLED === 'true';
 
@@ -42,6 +65,7 @@ export async function sendSpeedToLeadReply({ email, name, leadId, source } = {})
     const result = await sendGridEmail({ to: email, subject, text, html });
     if (result?.success === false) {
       logger.warn(`[speed-to-lead] send failed (non-blocking) lead#${leadId ?? '?'} src=${source ?? '?'}: ${result?.error?.message ?? result?.error ?? 'unknown'}`);
+      alertSendFailure('speed_to_lead', result?.error, { leadId: leadId ?? 'unknown', source: source ?? 'unknown' });
       return { sent: false, error: 'send_failed' };
     }
     logger.info(`[speed-to-lead] instant reply sent lead#${leadId ?? '?'} src=${source ?? '?'}`);
@@ -49,6 +73,7 @@ export async function sendSpeedToLeadReply({ email, name, leadId, source } = {})
   } catch (err) {
     // Capture must never be blocked by acknowledgment failure — swallow and log.
     logger.error(`[speed-to-lead] unexpected error (non-blocking) lead#${leadId ?? '?'}: ${err?.message}`);
+    alertSendFailure('speed_to_lead', err, { leadId: leadId ?? 'unknown', source: source ?? 'unknown' });
     return { sent: false, error: 'unexpected' };
   }
 }
