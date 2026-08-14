@@ -17,7 +17,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sep, join } from 'node:path';
 
-import { escapes, escapesFrom, shortPath, relativizePath, finalSegment, isWindowsAbsolute } from '../src/paths.mjs';
+import { escapes, escapesFrom, shortPath, relativizePath, finalSegment, isWindowsAbsolute, collapseHome } from '../src/paths.mjs';
+import { homedir } from 'node:os';
 
 // --- the predicate ------------------------------------------------------------------------------
 
@@ -195,4 +196,20 @@ test('ALL THREE Windows-absolute shapes escape, not just the drive-qualified one
   assert.equal(isWindowsAbsolute('..foo/bar.md'), false);
   assert.equal(escapes('docs/a.md'), false);
   assert.equal(escapes('..foo/bar.md'), false, 'a sibling whose name begins with dots is NOT an escape');
+});
+
+test('collapseHome fails CLOSED when `home` is omitted — it must not silently skip redaction', () => {
+  // Without a default, `collapseHome(p)` returned the path untouched: no redaction, no error, in
+  // the module whose documented asymmetry is "a false negative leaks a username". A primitive that
+  // does nothing when under-called contradicts the ownership claim it was extracted to make
+  // (HY3 W3). Asserted against the REAL home so the default is exercised, not assumed.
+  const home = homedir();
+  assert.equal(collapseHome(join(home, 'somefile.json')), `~${sep}somefile.json`);
+  assert.equal(collapseHome(home), '~');
+  // Explicit home still wins, and separators are preserved rather than normalized.
+  assert.equal(collapseHome(String.raw`C:\Users\sean\.claude.json`, String.raw`C:\Users\sean`), String.raw`~\.claude.json`);
+  assert.equal(collapseHome('/home/sean/.claude.json', '/home/sean'), '~/.claude.json');
+  // A sibling sharing the prefix is not mangled, and an unrelated path is untouched.
+  assert.equal(collapseHome(String.raw`C:\Users\sean2\x.json`, String.raw`C:\Users\sean`), String.raw`C:\Users\sean2\x.json`);
+  assert.equal(collapseHome('/elsewhere/x.json', '/home/sean'), '/elsewhere/x.json');
 });

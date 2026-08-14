@@ -20,6 +20,7 @@
  * @module context-gateway/paths
  */
 import { relative, resolve, isAbsolute, sep } from 'node:path';
+import { homedir } from 'node:os';
 
 /**
  * True when `rel` (already the output of `relative()`) points outside its base.
@@ -90,9 +91,14 @@ export const isWindowsAbsolute = (p) => WIN_ABS.test(String(p));
  * Separators are deliberately NOT normalized: the output names a file the reader will open, and
  * rewriting `~\.claude.json` to `~/.claude.json` would misreport the path on Windows.
  */
-export function collapseHome(p, home) {
+export function collapseHome(p, home = homedir()) {
   const s = String(p);
-  const h = String(home);
+  // Defaults to the real home rather than accepting undefined. Without the default, a future
+  // caller writing `collapseHome(p)` gets NO redaction and no error — it fails OPEN, in the one
+  // module whose stated asymmetry is "a false positive costs display detail, a false negative
+  // leaks a username". A redaction primitive that silently does nothing when under-called
+  // contradicts the ownership claim this function was extracted to make (HY3 W3).
+  const h = String(home ?? '');
   if (!h || !s.toLowerCase().startsWith(h.toLowerCase())) return s;
   const rest = s.slice(h.length);
   return rest === '' || /^[\\/]/.test(rest) ? `~${rest}` : s;
