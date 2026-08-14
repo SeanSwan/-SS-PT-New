@@ -101,7 +101,7 @@ function usage() {
   return [
     'Kimi-only review (dry-run by default)',
     'node scripts/consult-kimi.mjs --document <path> [--seed <path>] [--out <path>]',
-    '  [--remit "<text>"] [--effort low|medium|high] [--max-tokens 16000]',
+    '  [--remit "<text>"] [--effort low|medium|high] [--max-tokens 60000]',
     '  [--cap-usd 3] [--confirm-spend]',
   ].join('\n');
 }
@@ -133,6 +133,14 @@ async function main() {
   const apiKey = loadOpenRouterKey();
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not found for confirmed run');
   console.log('[consult-kimi] status=running model_calls=1');
+  // Always leave visible-output headroom: a cap that could swallow the whole
+  // ceiling is the bug this exists to prevent, so it scales with --max-tokens
+  // rather than sitting at a flat number that only suits the default.
+  const reasoningCap = Math.min(
+    Number(process.env.SWAN_KIMI_REASONING_MAX) || 30_000,
+    Math.floor(options.maxTokens * 0.6),
+  );
+
   const started = Date.now();
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -142,7 +150,15 @@ async function main() {
     },
     body: JSON.stringify({
       model, messages: [{ role: 'user', content: prompt }],
-      max_tokens: options.maxTokens, temperature: 0.3, reasoning: { effort: options.effort },
+      max_tokens: options.maxTokens, temperature: 0.3,
+      // Effort ALONE is not a budget. At effort:'high' Kimi K3 can spend the
+      // entire max_tokens on hidden reasoning and return empty content with
+      // finish_reason 'stop' — a fully billed call that delivers nothing, and
+      // which the guard below used to report as "no visible response", sending
+      // the operator hunting a transport bug that does not exist. Observed
+      // 2026-08-14. consult-openrouter-panel.mjs already capped reasoning for
+      // exactly this reason; this file did not.
+      reasoning: { effort: options.effort, max_tokens: reasoningCap },
     }),
     signal: AbortSignal.timeout(Number(process.env.SWAN_KIMI_TIMEOUT_MS) || 900_000),
   });
@@ -159,21 +175,31 @@ async function main() {
   const finish = data.choices?.[0]?.finish_reason ?? data.choices?.[0]?.native_finish_reason ?? null;
   const truncated = finish === 'length' || finish === 'max_tokens';
 
+  // Costed BEFORE the empty-content guard. A call that returns nothing is still
+  // a call that was billed — reasoning tokens bill as output — and reporting the
+  // spend only on the success path meant a failed run looked free.
+  const inputTokens = Number(data.usage?.prompt_tokens) || 0;
+  const outputTokens = Number(data.usage?.completion_tokens) || 0;
+  const reasoningTokens = Number(data.usage?.completion_tokens_details?.reasoning_tokens) || 0;
+  const actualUsd = (inputTokens / 1_000_000) * PRICE_IN_PER_MILLION
+    + (outputTokens / 1_000_000) * PRICE_OUT_PER_MILLION;
+
   const text = data.choices?.[0]?.message?.content;
   if (!text?.trim()) {
+    const spent = `Billed anyway: in=${inputTokens} out=${outputTokens}`
+      + ` (reasoning=${reasoningTokens}) ≈ $${actualUsd.toFixed(4)}.`;
     if (truncated) {
       throw new Error(
         `TRUNCATED WITH NO CONTENT — hit max_tokens (${options.maxTokens}) before emitting visible text`
-        + ` (reasoning consumed the budget). Re-run with a higher --max-tokens or --effort low.`,
+        + ` (reasoning consumed the budget). Re-run with a higher --max-tokens or --effort low. ${spent}`,
       );
     }
-    throw new Error('OpenRouter returned no visible Kimi response');
+    throw new Error(
+      `No visible Kimi response (finish_reason=${finish}, reasoning_cap=${reasoningCap}). ${spent}`
+      + ' If reasoning_tokens is near the cap the model thought without answering —'
+      + ' lower SWAN_KIMI_REASONING_MAX or --effort. NOTHING WAS WRITTEN; do not retry without approval.',
+    );
   }
-
-  const inputTokens = Number(data.usage?.prompt_tokens) || 0;
-  const outputTokens = Number(data.usage?.completion_tokens) || 0;
-  const actualUsd = (inputTokens / 1_000_000) * PRICE_IN_PER_MILLION
-    + (outputTokens / 1_000_000) * PRICE_OUT_PER_MILLION;
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
 
   // Truncation guard: a reply cut off at max_tokens must never be read as finished.
