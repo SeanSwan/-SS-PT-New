@@ -150,6 +150,16 @@ test('two concurrent providers do not collide on one filename', () => {
   assert.equal(readdirSync(dir).length, 3, 'same stamp + same doc must still yield 3 records');
 });
 
+test('EMPTY_RESPONSE is a real error code — a paid call that returned nothing is not "ok"', () => {
+  // Round 18, found live: 4354 completion tokens billed, $0.0843, content empty, receipt said
+  // outcome:'ok'. The cost MUST still be recorded (that is what the ledger is for) while the
+  // outcome stops claiming a review happened. If this code ever normalizes to 'UNKNOWN', those
+  // rows become unqueryable and the waste hides among ordinary errors again.
+  const r = buildReceiptV1(base({ outcome: 'error', errorCode: 'EMPTY_RESPONSE', docSha: 'aaa' }));
+  assert.equal(r.outcome, 'error');
+  assert.equal(r.errorCode, 'EMPTY_RESPONSE', 'must survive enum normalization, not fall back to UNKNOWN');
+});
+
 // ---- regressions from the hostile pass ---------------------------------------------------------
 
 test('REGRESSION: two different calls in the same second do not collide', () => {

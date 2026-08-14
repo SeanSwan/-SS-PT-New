@@ -57,6 +57,36 @@ REPO HEAD: ${manifest.headSha}${manifest.issue ? `\nLINEAR ISSUE: ${manifest.iss
  * Call OpenRouter. `fetchImpl` is injectable for tests — production uses global fetch.
  * Returns { text, inTok, outTok, cost, wallMs, model }.
  */
+/**
+ * Decide what a completion actually CONTAINS. Pure, and exported, so the decision is testable
+ * without a network call — testing it only through `callProvider` would mean testing the transport
+ * instead of the contract, which is how a payload bug hides behind a green pipeline.
+ *
+ * WHY THIS EXISTS: a reasoning model at high effort can spend its entire completion budget on
+ * thinking tokens and return EMPTY content. The previous code substituted the literal string
+ * '(empty response)' and returned it as an ordinary success — so the artifact was written, the
+ * receipt recorded outcome:'ok', and a paid call that produced nothing was indistinguishable from
+ * a working review. Found live in round 18: 4354 completion tokens, $0.0843 billed, receipt said
+ * 'ok', payload empty. Transport's job is to stop reporting nothing as something; the caller
+ * decides what to do about it.
+ */
+export function interpretCompletion(data) {
+  const choice = data?.choices?.[0];
+  const content = typeof choice?.message?.content === 'string' ? choice.message.content : '';
+  const empty = content.trim() === '';
+  return {
+    text: empty ? '(empty response)' : content,
+    empty,
+    // `receiptV1` has always read `result.finishReason`; transport never set it, so every receipt
+    // ever written recorded null. A schema column that cannot be populated is a claim the record
+    // does not support — the exact class this lane exists to delete.
+    finishReason: choice?.finish_reason ?? null,
+    // Reasoning models put their output here; when content is empty this is where the money went.
+    // LENGTH ONLY — the reasoning text is never stored, returned, or printed (Rule 59).
+    reasoningTokensSeen: typeof choice?.message?.reasoning === 'string' ? choice.message.reasoning.length : 0,
+  };
+}
+
 export async function callProvider(provider, prompt, { maxTokens = 8000, effort = null, fetchImpl = fetch, env = process.env, manifest = null } = {}) {
   assertSpend(provider, Buffer.byteLength(prompt, 'utf8'), maxTokens, env); // defense in depth (T8)
   // Ceiling is enforced HERE too, not only in the CLI — a direct importer must not be able to
@@ -95,7 +125,7 @@ export async function callProvider(provider, prompt, { maxTokens = 8000, effort 
   const inTok = data.usage?.prompt_tokens ?? 0;
   const outTok = data.usage?.completion_tokens ?? 0;
   return {
-    text: data.choices?.[0]?.message?.content || '(empty response)',
+    ...interpretCompletion(data),
     inTok, outTok,
     cost: (inTok / 1e6) * provider.priceInPerM + (outTok / 1e6) * provider.priceOutPerM,
     wallMs: Date.now() - t0,

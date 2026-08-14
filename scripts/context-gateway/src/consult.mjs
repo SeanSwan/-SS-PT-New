@@ -197,20 +197,44 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   // Money is now spent. Record the result on ctx BEFORE anything else can throw, so a downstream
   // failure cannot erase the fact that this call cost real credits.
   ctx.result = r;
-  console.log(`[consult-${providerName}] ${r.inTok} in / ${r.outTok} out — $${r.cost.toFixed(4)} — ${(r.wallMs / 1000).toFixed(1)}s`);
+  console.log(`[consult-${providerName}] ${r.inTok} in / ${r.outTok} out — $${r.cost.toFixed(4)} — ${(r.wallMs / 1000).toFixed(1)}s`
+    + `${r.finishReason ? ` — finish:${r.finishReason}` : ''}`);
+  if (r.empty) {
+    // Loud, on stderr, before the artifact path is printed — otherwise a `saved ->` line reads as
+    // success and the empty file gets picked up as if it were a review.
+    console.error(`[consult-${providerName}] EMPTY RESPONSE — ${r.outTok} completion tokens billed `
+      + `($${r.cost.toFixed(4)}) but the model returned no content`
+      + `${r.reasoningTokensSeen ? ' (it emitted reasoning instead — raise --max-tokens or lower --effort)' : ''}`
+      + '. The artifact below is a FAILURE RECORD, not a review. Do not consume it as one.');
+  }
 
   const outPath = arg('out', defaultOut);
-  writeFileSync(outPath, `# ${provider.title}\n\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${shortPath(docPath)}\n**Seed:** ${seedPath ? shortPath(seedPath) : '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s\n\n---\n\n${r.text}\n`, 'utf-8');
+  // The banner is part of the ARTIFACT, not just the console: verdict files get read back weeks
+  // later, pasted into prompts, and fed to other agents. An empty one must announce itself in the
+  // file, or the failure survives only in a terminal nobody kept (round 18).
+  const failBanner = r.empty
+    ? `\n> **⚠ EMPTY RESPONSE — THIS IS NOT A REVIEW.** The call was billed (${r.outTok} completion `
+      + `tokens, $${r.cost.toFixed(4)}) but returned no content`
+      + `${r.finishReason ? `; finish_reason: \`${r.finishReason}\`` : ''}. `
+      + 'Do not treat anything below as a verdict.\n'
+    : '';
+  writeFileSync(outPath, `# ${provider.title}\n${failBanner}\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${shortPath(docPath)}\n**Seed:** ${seedPath ? shortPath(seedPath) : '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s${r.finishReason ? ` · **finish_reason:** ${r.finishReason}` : ''}\n\n---\n\n${r.text}\n`, 'utf-8');
   // Relative, matching the receipt line: an absolute --out carries the OS username into the
   // transcript. The basename-only principle is the LANE's, not just the DENY branch's (Kimi r3, N2).
   console.log(`[consult-${providerName}] saved -> ${shortPath(outPath)}`);
 
   // S0 flywheel: record the completed call. `doc` is the POST-redaction text, so the SHA identifies
   // exactly what egressed. Only the hash and byte length are stored — never the content itself.
+  // An empty completion is NOT 'ok'. The money is spent either way — so the receipt still records
+  // the full cost and token counts (that is the whole point of the ledger) — but the outcome must
+  // not claim a review happened. Recording 'ok' here made the spend indistinguishable from a
+  // working call, which is the one thing a spend ledger exists to prevent (round 18, found live).
   const receiptPath = recordConsult({
     ...ctx,
     stamp: utcStamp(), root: process.cwd(), providerName,
-    outcome: 'ok', originatingModel: process.env.SWAN_ORIGINATING_MODEL ?? null,
+    outcome: r.empty ? 'error' : 'ok',
+    errorCode: r.empty ? 'EMPTY_RESPONSE' : null,
+    originatingModel: process.env.SWAN_ORIGINATING_MODEL ?? null,
   });
   // Relative, not absolute: writeReceiptV1 returns join(process.cwd(), …), and transcripts capture
   // stdout. Hardening the RECORD against the OS-username leak while spraying the same path to the

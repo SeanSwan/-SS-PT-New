@@ -58,6 +58,11 @@ export const OUTCOMES = Object.freeze(['ok', 'refused', 'error']);
  */
 export const ERROR_CODES = Object.freeze([
   'UNKNOWN_PROVIDER', 'CEILING', 'SPEND_CAP', 'NO_CAP', 'NO_KEY', 'TRANSPORT',
+  // EMPTY_RESPONSE is a PAID failure, not a refusal: the call completed, tokens were billed, and
+  // the model returned no content (a reasoning model can spend its whole budget thinking). It gets
+  // its own code because "you paid and got nothing" is operationally different from both a working
+  // call and a gate that refused before spending (round 18, found live).
+  'EMPTY_RESPONSE',
   // DENY_PATH has no ProviderError equivalent: that branch exits directly from consult.mjs rather
   // than throwing, so it is recorded at the call site. It is the secret-bearing-path jail firing.
   'DENY_PATH', 'UNKNOWN',
