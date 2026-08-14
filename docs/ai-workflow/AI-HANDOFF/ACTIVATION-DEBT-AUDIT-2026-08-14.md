@@ -1,5 +1,5 @@
 ---
-decision: Nothing forces a decision when a flag or file stops being needed, so dark code accumulates. Sean flips S2L + PRISM + the two Launch Control flags in one ~40-minute sitting; an agent then deletes the corpses, lands the cockpit merge, wires send-failure alerting, and replaces the wave pattern with a self-firing expiry assert.
+decision: "TOP FINDING (§0): CLAUDE.md and AGENTS.md have diverged into two constitutions — Claude is missing ~8 binding rules Codex has, and the sanctioned mirror-sync repair would delete them permanently. BLOCKED on Sean's direction. Underneath that, nothing forces a decision when a flag or file stops being needed, so dark code accumulates: Sean flips S2L + PRISM + the two Launch Control flags in one ~40-minute sitting; an agent lands the cockpit merge, wires send-failure alerting, and replaces the wave pattern with a self-firing expiry assert. The delete slice is WITHDRAWN — two prior inventories (SWA-71, SWA-75) already classified 255 candidates and deliberately deleted zero."
 status: open
 supersedes: none
 ---
@@ -401,6 +401,7 @@ path. Conceded — see §10.
 
 | # | Action | Owner | Time | Why here |
 |---|---|---|---|---|
+| **0** | **Call the direction on the CLAUDE.md / AGENTS.md split (§0)** | **Sean** | ~5 min | Outranks every row below. Until it is called, every Claude session runs without ~8 binding rules — including the one that forbids the error class I hit four times here — and one command in the session-start hook deletes them. Mechanical repair is ~1 h **after** the call. |
 | 1 | Flip `SPEED_TO_LEAD_REPLY_ENABLED` + run the existing runbook's live test | **Sean** | ~20 min | The only revenue item one flip from live. Worst case ≈ today (no auto-reply), and the runbook's Step 3 live test catches a silent failure *at flip time*. |
 | 2 | Flip `PRISM_CAPTURE_ENABLED` via Launch Control + 5-min smoke | **Sean** | ~10 min | Acquisition lever, one-click revert, no deploy. **Omitted entirely from my first draft — the biggest gap in it**, given acquisition is the weakest link. Note: this makes a capture form appear on the home hero (`f3e450d18`), so it is a visible change, not just an API. Double-capture checked: the route 404s when off and is separate from the contact form. |
 | 3 | Flip `dashboardV2Finance` + `postSaveHandoff`, **role-targeted to owner** | **Sean** | ~10 min | Launch Control supports role targeting — Sean is the head trainer, so he is the free canary. |
