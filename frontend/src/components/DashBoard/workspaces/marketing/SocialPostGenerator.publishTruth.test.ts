@@ -93,3 +93,35 @@ describe('describeThrown', () => {
     expect(message).toMatch(/draft is kept/i);
   });
 });
+
+/**
+ * A 409 conflict is a NEW response shape, added when retry learned to refuse a
+ * job that is still publishing. Its whole value is the sentence it carries —
+ * "wait for it to finish" is what stops an operator hammering a button that
+ * would double-post. That sentence survives today only because it falls through
+ * every branch of describeFailure to the `body.message` default, which nothing
+ * pinned. A branch added above it would swallow the advice silently, and the
+ * user would see a generic failure for a post that is going out fine.
+ */
+describe('a retry refused because the job is still publishing', () => {
+  const conflictBody = {
+    status: 'conflict',
+    message: 'Social publishing job 42 is still publishing — wait for it to finish before retrying',
+  };
+
+  it('shows the server sentence rather than a generic failure', () => {
+    expect(describeFailure(conflictBody)).toBe(conflictBody.message);
+  });
+
+  it('survives the thrown path, because axios rejects a 409', () => {
+    // The composer only ever sees this through catch — a non-2xx never reaches
+    // the success branch.
+    expect(describeThrown({ response: { data: conflictBody } })).toBe(conflictBody.message);
+  });
+
+  it('is not reported as a network error', () => {
+    // Calling a deliberate, well-formed server refusal "Network error" is the
+    // same class of lie the publish-truth work exists to remove.
+    expect(describeThrown({ response: { data: conflictBody } })).not.toMatch(/network/i);
+  });
+});
