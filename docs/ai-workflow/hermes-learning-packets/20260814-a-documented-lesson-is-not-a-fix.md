@@ -93,7 +93,7 @@ form**, which is the most useful thing in this packet. See the ledger.
 
 | Error class | Times this session | Documented before? | What actually stopped it |
 |---|---|---|---|
-| **Trusting output over exit status** | **3** | **YES — a memory names this exact error** | **Nothing.** It recurred three times *after* being written up. The write-up was resolutional ("validate the instrument"); what is needed is procedural: never put a verdict line in the same shell statement as the command that produces it. |
+| **Trusting output over exit status** | **4** | **YES — twice over. A memory names it, AND it is codified as MANDATORY Rule 80 "Second-Vantage Verification": _"one tool's failure is NEVER proof something is broken."_** | **Nothing.** Four times, including once *inside the hostile review convened to catch it* — an `rg -c \|\| echo` whose "not found" branch fired on ripgrep's zero-matches exit. The write-up was resolutional; the fix is procedural: never put a verdict line in the same shell statement as the command that produces it. |
 | Delegated claim accepted unverified | 0 shipped, 3 caught | Yes (Rule 30) | Hand-verified every load-bearing claim before use |
 | Counting instead of executing | 1 | No | Ran the suite; 27 ≠ 13 |
 | Categorical risk language | 1 | Yes (Rule 34) | External reviewer, not me |
@@ -124,9 +124,18 @@ you will actually invoke, from the tree you will invoke it in.**
 
 ## The transferable lessons
 
-1. **A documented lesson is not a fix.** If a correction can be violated by an agent who has
-   the correction loaded in context, it is not a correction — it is a wish. Convert it to
-   something mechanical or expect the repeat.
+1. **A documented lesson is not a fix — and neither is a MANDATORY rule, if it lives in a file
+   the agent does not load.** This is the sharpened form, found late and worth more than the
+   original. The "validate the instrument" lesson was not merely a memory: it is codified as
+   **Rule 80, Second-Vantage Verification, a HARD GATE** — *"one tool's failure is NEVER proof
+   something is broken."* I broke it **four times in one session anyway**, once inside the
+   hostile review convened to catch it.
+   **Why it did not bind: Rule 80 is in `AGENTS.md` and returns ZERO matches in `CLAUDE.md`.**
+   Claude loads CLAUDE.md. The rule was real, mandatory, and invisible.
+   So the governing question is not "is this written down?" but **"is it written down in the
+   file this agent actually reads?"** A rule in the wrong file is indistinguishable from no
+   rule at all — and worse, it makes the corpus *look* complete. See
+   `ACTIVATION-DEBT-AUDIT-2026-08-14.md` §0.
 2. **A hostile loop run by the author converges on the author's blind spots — and the blind
    spot moves.** Four rounds thoroughly attacked my inventory and never once looked at my
    sequence. When your loop runs dry, buy a different lens; do not run another round.
