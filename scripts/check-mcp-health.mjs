@@ -148,11 +148,13 @@ const MAX_BODY = 65536;
  * Falls back to `.text()` only when the runtime exposes no readable stream.
  */
 async function readCapped(r, cap) {
-  if (!r.body?.getReader) {
-    const t = await r.text();
-    const b = Buffer.from(t, 'utf8');
-    return { text: b.subarray(0, cap).toString('utf8'), bytes: b.byteLength, truncated: b.byteLength > cap };
-  }
+  // NO `await r.text()` FALLBACK. An earlier version had one, which reintroduced the exact
+  // unbounded-buffer defect this function exists to remove — one branch over, where the "TRULY
+  // bounded" claim above did not reach. On Node >= 18 (undici) a fetch Response ALWAYS exposes a
+  // web ReadableStream, so that branch was unreachable dead code carrying a live defect: pure risk
+  // for zero benefit. Throwing makes the bound unconditional; probeHttp's catch reports it as
+  // UNREACHABLE rather than crashing (Kimi round 7, N1).
+  if (!r.body?.getReader) throw new Error('runtime without web streams is unsupported');
   const reader = r.body.getReader();
   const chunks = [];
   let n = 0;
@@ -261,6 +263,11 @@ for (const { name, def, source, scope } of servers) {
   }
   let url;
   try { url = new URL(def.url); } catch { console.log('    STATUS      : malformed url in config'); unhealthy += 1; continue; }
+  // DELIBERATE: loopback (`http://localhost`) is refused too, even though it carries no network
+  // egress. Every MCP server in this repo is remote HTTPS, so the carve-out would add a
+  // hostname allowlist to buy nothing today — and the conservative direction is the safe one for a
+  // credential. If a local HTTP MCP server ever ships, exempt ['localhost','127.0.0.1','::1'] here
+  // rather than dropping the check (Kimi round 7, N3 — recorded rather than left implicit).
   if (url.protocol !== 'https:') {
     // Refuse to send the Authorization header over cleartext just to run a diagnostic.
     console.log(`    WARNING     : non-HTTPS (${url.protocol}) — credentials would egress in cleartext; NOT probed`);

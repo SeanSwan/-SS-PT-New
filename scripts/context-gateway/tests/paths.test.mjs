@@ -106,8 +106,11 @@ test('REGRESSION: relativizePath no longer over-redacts a dotted sibling', () =>
   assert.equal(relativizePath('/repo', '/repo/..foo/bar.md'), '..foo/bar.md');
 });
 
-test('shortPath and relativizePath agree on WHETHER a path escapes', () => {
+test('shortPath and relativizePath agree on whether a path escapes — for any path but the root', () => {
   // Different renderings, one policy. Divergence here is how a fix lands in only one of them.
+  // The qualifier matters: an earlier summary claimed unconditional agreement, which is FALSE for
+  // the root itself (pinned separately below). An over-broad claim about what a test proves is the
+  // same Rule 75 failure as an over-broad claim in a header (Kimi round 7, N2).
   for (const [root, p] of [
     ['/repo', '/repo/a/b.md'],
     ['/repo', '/home/someone/b.md'],
@@ -117,4 +120,12 @@ test('shortPath and relativizePath agree on WHETHER a path escapes', () => {
     assert.equal(shortPath(p, root).startsWith('.../'), escaped, `shortPath disagrees for ${p}`);
     assert.equal(relativizePath(root, p) === '<external>', escaped, `relativizePath disagrees for ${p}`);
   }
+});
+
+test('the ROOT ITSELF is the one documented divergence — pinned so nobody "simplifies" it away', () => {
+  // The root does not escape (it is the base), but it is not a FILE INSIDE the repo either, so the
+  // receipt records it as <external> on purpose. Both statements are correct; they just answer
+  // different questions. Unifying them would silently change what a receipt means.
+  assert.equal(escapesFrom('/repo', '/repo'), false);
+  assert.equal(relativizePath('/repo', '/repo'), '<external>');
 });
