@@ -15,7 +15,7 @@ import {
 import blueskyAdapter from './socialProviders/blueskyPublisher.mjs';
 import { createSocialPublishFanOut } from './socialPublishFanOut.mjs';
 import { createSocialJobRetry } from './socialJobRetry.mjs';
-import { createSocialJobScheduler } from './socialJobScheduler.mjs';
+import { createSocialJobScheduler, DEFAULT_HEARTBEAT_MS } from './socialJobScheduler.mjs';
 import logger from '../utils/logger.mjs';
 
 export { PROVIDER_CAPABILITIES } from './socialProviderCapabilities.mjs';
@@ -221,6 +221,17 @@ export function createNativeSocialPublishingService({
       createdBy: userId ?? null,
     });
 
+    // This row is created 'running', which makes it the reaper's business. The
+    // HTTP client may be long gone — Render times the connection out — while
+    // this fan-out keeps going, so it needs the same proof-of-life the worker
+    // and retry paths have, or a slow immediate publish is closed underneath
+    // itself and its terminal write fights the reaper's verdict.
+    const beat = setInterval(() => {
+      JobModel.update({ updatedAt: new Date() }, { where: { id: job.id, status: 'running' } })
+        .catch(() => {});
+    }, DEFAULT_HEARTBEAT_MS);
+    if (typeof beat.unref === 'function') beat.unref();
+
     let result;
     try {
       result = await publishToAccounts({ content, accountIds, mediaUrl: payload.mediaUrl, jobId: job.id });
@@ -228,21 +239,25 @@ export function createNativeSocialPublishingService({
       // A throw out of the fan-out must still land the Job in a terminal state.
       // Otherwise this fix introduces a brand-new orphan class — a 'running' row
       // no reaper handles and no claim query will ever revisit.
-      await job.update({
+      await JobModel.update({
         status: 'failed',
         failedAt: new Date(),
         failureReason: err.message,
-      }).catch(() => {});
+      }, { where: { id: job.id, status: 'running' } }).catch(() => {});
       throw err;
+    } finally {
+      clearInterval(beat);
     }
 
-    await job.update({
+    // Guarded, like every other write that moves a job out of 'running'. All
+    // three writers in this module now follow one rule.
+    await JobModel.update({
       status: result.status,
       platformResults: result.results,
       publishedAt: result.status === 'published' ? now : null,
       failedAt: result.status !== 'published' ? now : null,
       failureReason: result.results.find(item => item.error)?.error || null,
-    });
+    }, { where: { id: job.id, status: 'running' } });
 
     return { ...result, jobId: String(job.id) };
   };

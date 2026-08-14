@@ -30,13 +30,29 @@ const makeService = ({
     }),
     create: vi.fn(async (payload) => makeRow({ id: 'native-account-1', createdAt: new Date(), updatedAt: new Date(), ...payload })),
   };
+  const createdJobRows = [];
   const JobModel = {
     findAll: vi.fn(async () => jobs.map(makeRow)),
     findByPk: vi.fn(async (id) => {
       const row = jobs.find(job => String(job.id) === String(id));
       return row ? makeRow(row) : null;
     }),
-    create: vi.fn(async (payload) => makeRow({ id: 'job-1', createdAt: new Date(), updatedAt: new Date(), ...payload })),
+    create: vi.fn(async (payload) => {
+      const row = makeRow({ id: 'job-1', createdAt: new Date(), updatedAt: new Date(), ...payload });
+      createdJobRows.push(row);
+      return row;
+    }),
+    // Writes that move a job out of 'running' are conditional now, so the fake
+    // has to honour the WHERE — always reporting one affected row would make a
+    // lost claim indistinguishable from a won one.
+    update: vi.fn(async (patch, { where } = {}) => {
+      const row = createdJobRows.find(r => String(r.id) === String(where?.id))
+        || createdJobRows[0];
+      if (!row) return [0];
+      if (where?.status && where.status !== row.status) return [0];
+      Object.assign(row, patch);
+      return [1];
+    }),
   };
   const AttemptModel = {
     findAll: vi.fn(async () => attempts.map(makeRow)),

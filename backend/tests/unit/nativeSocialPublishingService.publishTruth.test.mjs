@@ -74,6 +74,14 @@ const makeService = ({ accounts = [ACCOUNT], adapter = {} } = {}) => {
       jobRows.push(row);
       return row;
     }),
+    // See the retry harness below: honouring the WHERE is the whole point.
+    update: vi.fn(async (patch, { where } = {}) => {
+      const row = jobRows.find(r => String(r.id) === String(where?.id)) || jobRows[0];
+      if (!row) return [0];
+      if (where?.status && where.status !== row.status) return [0];
+      Object.assign(row, patch);
+      return [1];
+    }),
   };
   const AttemptModel = {
     findAll: vi.fn(async () => []),
@@ -129,13 +137,13 @@ describe('immediate publish must leave a durable, reachable record', () => {
   });
 
   it('moves the Job to a terminal status carrying the per-platform truth', async () => {
-    const { service, jobRows } = makeService({ adapter: okAdapter });
+    const { service, JobModel } = makeService({ adapter: okAdapter });
 
     await service.publish({ content: 'hello', platformIds: ['acct-1'] }, { userId: 1 });
 
-    const job = jobRows[0];
-    expect(job.update).toHaveBeenCalled();
-    const patch = job.update.mock.calls.at(-1)[0];
+    // The terminal write is the guarded model update now, not an instance one.
+    expect(JobModel.update).toHaveBeenCalled();
+    const patch = JobModel.update.mock.calls.at(-1)[0];
     expect(patch.status).toBe('published');
     expect(Array.isArray(patch.platformResults)).toBe(true);
     expect(patch.platformResults[0]).toEqual(expect.objectContaining({ accountId: 'acct-1', status: 'published' }));
@@ -159,7 +167,7 @@ describe('immediate publish must leave a durable, reachable record', () => {
 
     expect(result.status).toBe('failed');
     expect(JobModel.create).toHaveBeenCalledTimes(1);
-    const patch = jobRows[0].update.mock.calls.at(-1)[0];
+    const patch = JobModel.update.mock.calls.at(-1)[0];
     expect(patch.status).toBe('failed');
     expect(patch.failureReason).toMatch(/401/);
   });
@@ -170,14 +178,16 @@ describe('immediate publish must leave a durable, reachable record', () => {
     const throwingAdapter = {
       get publish() { throw new Error('adapter exploded before any attempt'); },
     };
-    const { service, jobRows } = makeService({ adapter: throwingAdapter });
+    const { service, JobModel } = makeService({ adapter: throwingAdapter });
 
     await service.publish({ content: 'hello', platformIds: ['acct-1'] }, { userId: 1 }).catch(() => {});
 
-    if (jobRows.length) {
-      const patch = jobRows[0].update.mock.calls.at(-1)?.[0];
-      expect(patch?.status, 'a Job must never be left in running/scheduled after a throw').not.toBe('running');
-    }
+    // Asserted unconditionally on purpose. The previous form read an instance
+    // update behind `if (jobRows.length)` and `?.`, so once the write moved to
+    // the model it passed while checking nothing at all.
+    expect(JobModel.update).toHaveBeenCalled();
+    const patch = JobModel.update.mock.calls.at(-1)[0];
+    expect(patch.status, 'a Job must never be left in running/scheduled after a throw').toBe('failed');
   });
 });
 
