@@ -14,27 +14,14 @@
  * @module context-gateway/consult
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { relative, resolve, basename, isAbsolute, sep } from 'node:path';
+import { basename } from 'node:path';
+import { shortPath } from './paths.mjs';
 import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
 import { redactSecrets } from './egress.mjs';
 import { DENY_PATTERNS } from './safeRead.mjs';
 import { recordConsult, sha256 } from './receiptV1.mjs';
 
-/**
- * Console-safe path. `relative()` returns an ABSOLUTE path when the target sits on a different drive
- * (Windows `--out D:\...`), which would reopen the OS-username leak that r2/F1 closed. Falling back
- * to the basename keeps the message useful without the prefix (Kimi round 4, O2).
- */
-const shortPath = (p) => {
-  const r = relative(process.cwd(), resolve(p));
-  // Two escape shapes, same leak family. `isAbsolute` catches the Windows cross-drive case; a
-  // `..`-prefixed result is the OTHER one and is far more reachable — on POSIX or same-drive
-  // Windows, an --out outside cwd yields `../../Users/<name>/out.md`, printing the OS username
-  // through the very helper added to stop that (Kimi round 5, N1: a hole inside the r4/O2 fix).
-  const escapes = r === '..' || r.startsWith(`..${sep}`) || r.startsWith('../');
-  return isAbsolute(r) || escapes ? `.../${basename(p)}` : r;
-};
 
 const arg = (name, def = null) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -186,7 +173,7 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   console.log(`[consult-${providerName}] ${r.inTok} in / ${r.outTok} out — $${r.cost.toFixed(4)} — ${(r.wallMs / 1000).toFixed(1)}s`);
 
   const outPath = arg('out', defaultOut);
-  writeFileSync(outPath, `# ${provider.title}\n\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s\n\n---\n\n${r.text}\n`, 'utf-8');
+  writeFileSync(outPath, `# ${provider.title}\n\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${shortPath(docPath)}\n**Seed:** ${seedPath ? shortPath(seedPath) : '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s\n\n---\n\n${r.text}\n`, 'utf-8');
   // Relative, matching the receipt line: an absolute --out carries the OS username into the
   // transcript. The basename-only principle is the LANE's, not just the DENY branch's (Kimi r3, N2).
   console.log(`[consult-${providerName}] saved -> ${shortPath(outPath)}`);

@@ -120,15 +120,12 @@ test('E2E: no absolute path reaches stdout or stderr on the refusal path', () =>
   assert.ok(!stderr.includes(cwd), `absolute cwd leaked to stderr: ${stderr.slice(0, 200)}`);
 });
 
-test('E2E: an --out OUTSIDE cwd prints the basename, never a ../ path', () => {
-  // The previous stdout tests all used an --out INSIDE cwd — the one case that always passes.
-  // A target outside cwd yields `../../Users/<name>/out.md`, which carries the OS username straight
-  // through the helper added to prevent exactly that (Kimi round 5, N1: a hole inside the r4 fix).
-  const outDir = realpathSync(mkdtempSync(join(tmpdir(), 'swan-outside-')));
-  const { stdout } = runLauncher('packet.md', { outPath: join(outDir, 'out.md') });
-  assert.ok(!stdout.includes(outDir), 'the outside-cwd path leaked verbatim');
-  assert.ok(!/\.\.[\\/]/.test(stdout), 'a ../ prefix can traverse through the home directory');
-});
+// REMOVED — an E2E here asserting that an outside-cwd `--out` prints no `../` was VACUOUS: the
+// process exits at the spend gate before `shortPath` is ever reached, so stdout was empty ('') and
+// both assertions passed trivially. Measured: `stdout length: 0`. `shortPath` is only reachable on
+// the paid success path, so it cannot be exercised end-to-end without a transport stub; it is
+// exported and unit-tested directly in tests/paths.test.mjs instead (Kimi round 6, S2).
+// A test that cannot fail is worse than no test — it reads as coverage.
 
 test('E2E: the DENY branch does not print the full secret-bearing path', () => {
   const { stdout, stderr, cwd } = runLauncher('.env');

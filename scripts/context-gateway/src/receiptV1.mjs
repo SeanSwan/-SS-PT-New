@@ -44,7 +44,8 @@
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { join, relative, isAbsolute, resolve } from 'node:path';
+import { join } from 'node:path';
+import { relativizePath } from './paths.mjs';
 
 export const RECEIPT_SCHEMA = 'ReceiptV1';
 
@@ -76,18 +77,11 @@ export const REDACTION_KINDS = Object.freeze([
 
 export const sha256 = (s) => createHash('sha256').update(String(s ?? ''), 'utf8').digest('hex');
 
-/**
- * Repo-relative path, or '<external>' when the target lives outside `root`.
- * Returns null for a missing path so an absent --seed stays absent rather than becoming '<external>'.
- */
-export function relativizePath(root, p) {
-  if (!p) return null;
-  const abs = isAbsolute(p) ? p : resolve(root, p);
-  const rel = relative(resolve(root), abs).replaceAll('\\', '/');
-  // '' means the path IS the root; a leading '..' or a drive-absolute result means outside it.
-  if (rel === '' || rel.startsWith('..') || isAbsolute(rel)) return '<external>';
-  return rel;
-}
+// Re-exported from paths.mjs so this module's public surface is unchanged for existing callers and
+// tests, while the escape policy lives in exactly ONE place. Previously this file used a blunt
+// `startsWith('..')` while consult.mjs used a precise separator-aware check — two policies for one
+// threat, which is how a fix lands in only one of them (Kimi round 6, S6).
+export { relativizePath } from './paths.mjs';
 
 const num = (v) => (Number.isFinite(v) ? v : null);
 const oneOf = (list, v, fallback) => (list.includes(v) ? v : fallback);

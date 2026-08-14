@@ -54,7 +54,10 @@ test('the home directory itself collapses to ~', () => {
 
 const runCli = (args, cwd) => {
   try {
-    execFileSync(process.execPath, [CLI, ...args], { cwd, stdio: 'pipe' });
+    // HOME/USERPROFILE point homedir() INSIDE the temp dir: without this the CLI reads the
+    // developer's real ~/.claude.json, so an unrelated config edit could flip these results
+    // (round 6, S5 — a non-hermetic test fails for reasons that have nothing to do with the code).
+    execFileSync(process.execPath, [CLI, ...args], { cwd, stdio: 'pipe', env: { ...process.env, HOME: cwd, USERPROFILE: cwd } });
     return 0;
   } catch (e) {
     return e.status;

@@ -38,7 +38,8 @@
  *
  * Exit: 0 = every probed server healthy · 1 = at least one unhealthy
  *       2 = declared but nothing probeable (stdio/sse only) — "0 unhealthy" means "0 verified"
- *       3 = nothing declared anywhere — the ONLY state that justifies saying "not configured"
+ *       3 = nothing declared matching the query — with NO filter this is the ONLY state that
+ *           justifies saying "not configured"; WITH a filter it means only that nothing matched
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -138,6 +139,38 @@ export function diagnose(status, body = '') {
   return { verdict: `UNEXPECTED HTTP ${status}`, remedy: 'Unhandled status — check the server\'s own logs.' };
 }
 
+/** Hard ceiling on how much of a response body is read into memory. An initialize reply is ~1 KB. */
+const MAX_BODY = 65536;
+
+/**
+ * Read at most `cap` bytes from a response, cancelling the stream rather than draining it.
+ * Returns the decoded text (for matching), the byte count actually read, and whether more remained.
+ * Falls back to `.text()` only when the runtime exposes no readable stream.
+ */
+async function readCapped(r, cap) {
+  if (!r.body?.getReader) {
+    const t = await r.text();
+    const b = Buffer.from(t, 'utf8');
+    return { text: b.subarray(0, cap).toString('utf8'), bytes: b.byteLength, truncated: b.byteLength > cap };
+  }
+  const reader = r.body.getReader();
+  const chunks = [];
+  let n = 0;
+  let truncated = false;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      n += value.byteLength;
+      if (n > cap) { truncated = true; break; }
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+  }
+  return { text: Buffer.concat(chunks).subarray(0, cap).toString('utf8'), bytes: n, truncated };
+}
+
 /**
  * Probe an HTTP MCP server with a real `initialize` call. This is the ONLY way to tell
  * "expired token" apart from "not configured" — the distinction that keeps costing Sean rounds.
@@ -159,20 +192,21 @@ async function probeHttp(def) {
       redirect: 'manual',
       headers: { ...(def.headers ?? {}), 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
     });
-    // Bounded read: the 15s timer is not a size bound, so a broken or hostile endpoint could
-    // stream arbitrarily much within it. 64 KB is far more than any initialize response.
-    const raw = await r.text();
-    const text = raw.length > 65536 ? raw.slice(0, 65536) : raw;
+    // TRULY bounded read. `await r.text()` buffers the ENTIRE body first and only then slices, so
+    // the 15s timer bounds time, not memory — an endpoint streaming fast enough could buffer
+    // gigabytes before the slice ran. The previous comment here claimed a bound the code did not
+    // have, which is the untrue-doc-claim class this whole slice exists to delete (round 6, S3).
+    const { text, bytes, truncated } = await readCapped(r, MAX_BODY);
     const { verdict, remedy } = diagnose(r.status, text);
     // `text` dies here. A 401 body from an auth proxy routinely echoes the credential.
     // Buffer.byteLength, not .length: the header promises a BYTE count and stdout prints "B";
     // String.length counts UTF-16 code units and undercounts any multibyte body (Kimi r3, N1).
-    return { status: r.status, bytes: Buffer.byteLength(raw, 'utf8'), verdict, remedy };
+    return { status: r.status, bytes, truncated, verdict, remedy };
   } catch (e) {
     // e.message can embed the request URL, which the contract forbids printing — so only the class.
     const cause = e.name === 'AbortError' ? 'timeout after 15s' : e.constructor?.name ?? 'error';
     const { verdict, remedy } = diagnose(null);
-    return { status: null, bytes: 0, verdict, remedy: `${remedy} (cause class: ${cause})` };
+    return { status: null, bytes: 0, truncated: false, verdict, remedy: `${remedy} (cause class: ${cause})` };
   } finally { clearTimeout(timer); }
 }
 
@@ -234,9 +268,9 @@ for (const { name, def, source, scope } of servers) {
     continue;
   }
 
-  const { status, bytes, verdict, remedy } = await probeHttp(def);
+  const { status, bytes, truncated, verdict, remedy } = await probeHttp(def);
   probed += 1;
-  console.log(`    HTTP        : ${status ?? 'n/a'}  (body ${bytes}B, not printed — Rule 59)`);
+  console.log(`    HTTP        : ${status ?? 'n/a'}  (body ${bytes}B${truncated ? '+ truncated' : ''}, not printed — Rule 59)`);
   console.log(`    VERDICT     : ${verdict}`);
   console.log(`    REMEDY      : ${remedy}`);
   if (verdict !== 'HEALTHY') unhealthy += 1;
