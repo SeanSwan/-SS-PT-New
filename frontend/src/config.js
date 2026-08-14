@@ -3,16 +3,17 @@ import { logger } from '@/utils/logger';
 
 const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production';
 
-// Create a forceDev utility for development mode
+// Dev-only auth inspection/reset utility.
+//
+// `force()` was removed 2026-08-14. It wrote `bypass_admin_verification` and
+// `admin_emergency_mode`, and NOTHING has read either flag since the emergency
+// bypass branch was retired from protected-route.tsx — verified by grepping a
+// production build (0 reads, 0 sourcemaps). A writer with no reader is not a
+// feature, it is bait: the next person to find these keys re-adds the consumer
+// and silently restores an admin bypass. The remaining helpers only CLEAR and
+// REPORT local state, which stays useful for users carrying stale flags.
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   window.adminAccess = {
-    force: function() {
-      localStorage.setItem('bypass_admin_verification', 'true');
-      localStorage.setItem('admin_emergency_mode', 'true');
-      logger.log('Admin access bypass flag set. Reloading...');
-      window.location.reload();
-      return 'Forced admin access and reloaded';
-    },
     reset: function() {
       localStorage.removeItem('bypass_admin_verification');
       localStorage.removeItem('token');
@@ -31,7 +32,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       };
     }
   };
-  logger.log('[DEV MODE] Admin access utility available. Type window.adminAccess.force() in console to force admin access.');
+  logger.log('[DEV MODE] Auth utility available: window.adminAccess.reset() clears local auth state, .showUser() inspects it.');
 }
 
 // API URLs

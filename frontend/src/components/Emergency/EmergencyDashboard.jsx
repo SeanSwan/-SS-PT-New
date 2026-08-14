@@ -129,12 +129,15 @@ class EmergencyDashboard extends React.Component {
       emergency: true,
     };
 
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('bypass_admin_verification', 'true');
-      localStorage.setItem('admin_emergency_mode', 'true');
-      localStorage.setItem('emergency_dashboard_loaded', 'true');
-    }
-
+    // Deliberately writes NO localStorage flags. Until 2026-08-14 this constructor
+    // set `bypass_admin_verification` and `admin_emergency_mode`; nothing has read
+    // either since the bypass branch left protected-route.tsx in production, so
+    // they were dead writes whose only remaining effect was to make a future
+    // reader think an emergency bypass still existed and wire a consumer back up.
+    // This component is already admin-gated at main-routes.tsx — see
+    // routes/emergencyAdminGate.contract.test.ts — so it has no need to grant
+    // itself anything. `resetEmergencyMode` below still CLEARS the legacy flags,
+    // which matters for users whose browsers hold them from an older build.
     logger.log('[EMERGENCY DASHBOARD] Emergency Dashboard loaded');
   }
 
@@ -153,12 +156,9 @@ class EmergencyDashboard extends React.Component {
   goToAdminDashboard = () => {
     logger.log('[EMERGENCY DASHBOARD] Attempting to access admin dashboard...');
 
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('bypass_admin_verification', 'true');
-      localStorage.setItem('admin_emergency_mode', 'true');
-      localStorage.setItem('use_emergency_admin_route', 'true');
-    }
-
+    // No flags written — see the constructor note. Navigation alone is the whole
+    // behaviour: the admin dashboard authorizes from the session, never from
+    // localStorage. `use_emergency_admin_route` had no reader either.
     window.location.assign('/dashboard/default');
   };
 
