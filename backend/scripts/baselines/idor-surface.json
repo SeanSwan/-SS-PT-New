@@ -1,16 +1,7 @@
 {
   "_comment": "Accepted findings for this audit. NEW findings fail; these are known and tolerated. Regenerate deliberately with --update-baseline after reviewing the diff.",
-  "recordedAt": "2026-08-04T21:44:20.184Z",
+  "recordedAt": "2026-08-14T18:03:36.542Z",
   "audit": "idor-surface",
-  "scanned": 213,
-  "accepted": [
-    "DELETE|/conversations/:id/participants/:userId|messagingRoutes.mjs",
-    "DELETE|/users/:userId/block|messagingRoutes.mjs",
-    "GET|/:userId/questionnaire|clientOnboardingRoutes.mjs",
-    "PATCH|/conversations/:id/participants/:userId|messagingRoutes.mjs",
-    "POST|/:userId/movement-screen|clientOnboardingRoutes.mjs",
-    "POST|/:userId/questionnaire|clientOnboardingRoutes.mjs",
-    "POST|/users/:userId/block|messagingRoutes.mjs",
-    "PUT|/user/:userId/:badgeId/display|badgeRoutes.mjs"
-  ]
+  "scanned": 199,
+  "accepted": []
 }

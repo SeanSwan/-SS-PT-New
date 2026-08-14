@@ -77,8 +77,14 @@ const USER_PARAM = /:(userId|clientId|trainerId|user_id|client_id|trainer_id|mem
 // controller-level `requester.role === 'client' && requester.id !== userId` 403. A linter whose
 // vocabulary is smaller than the codebase's reports the gap between the two as findings.
 const CHECK = [
-  /req\.user\.(id|userId)/,
-  /req\.user\.role/,
+  // `req.user?.id` must match as well as `req.user.id`. The optional-chaining form is used in 89
+  // files against 143 for the dot form — so the v1 regexes, which required the dot, were blind to
+  // roughly the same number of ownership checks as they could see. It never showed up as mass
+  // over-flagging because most of those routes also carry middleware that matched another pattern;
+  // it degraded quietly, which is worse. Found while tracing why a controller hop cleared a handler
+  // whose only visible check is `req.user?.role === 'admin'`.
+  /req\.user\??\.(id|userId)/,
+  /req\.user\??\.role/,
   // ownership / relationship guards
   /verifyClientAccessBy(UserId|PlanId)|verifyClientAccess/,
   /checkTrainerClientRelationship|assertTrainerAssignedToClient|assertAssignmentOrAdmin/,
@@ -130,6 +136,96 @@ function expandSpreads(src, line) {
   return out;
 }
 
+/**
+ * Middleware that authenticates but does NOT authorize. These must never clear a handler:
+ * a logged-in client hitting someone else's `:userId` passes every one of them. Conflating
+ * authn with authz is the exact bug this audit exists to find, so the audit must not make it.
+ */
+const AUTHN_ONLY = /^(protect|authenticateToken|authMiddleware|optionalAuth|injectUserId)$/;
+
+/** Named role/relationship gates. Same vocabulary as CHECK — kept as one source of truth. */
+const ROLE_GATE_NAME = /^(authorize\w*|adminOnly|requireAdmin|requireSuperAdmin|requireTrainerOrAdmin|requireAnyRole|ownerAdminOnly|trainerOrAdminOnly|trainerOnly|clientOnly|requireStaff|require\w*Permission)$/;
+
+/** Body of a function/const declared in THIS file, so a file-local gate can be read. */
+function localFnBody(src, name) {
+  const re = new RegExp(
+    `(?:async\\s+)?function\\s+${name}\\s*\\(|(?:const|let|var)\\s+${name}\\s*=\\s*(?:async\\s*)?\\(`,
+  );
+  const at = re.exec(src);
+  return at ? src.slice(at.index, at.index + 1200) : null;
+}
+
+/**
+ * Resolve every `router.use(...)` into a verdict, instead of matching a hardcoded name list.
+ *
+ * The v1 regex knew six names. `renewalAlertRoutes` gates its whole router with a file-local
+ * `requireStaff` (admin-or-trainer, 403 otherwise) declared at :42 — a real role gate that the
+ * name list had never heard of, so every handler under it was reported unguarded. Guessing a
+ * wider list would only move the boundary; reading the function body removes it. Returns a
+ * reason string, or null.
+ */
+function routerUseGate(src) {
+  for (const m of src.matchAll(/router\.use\(\s*([A-Za-z_$][\w$]*)/g)) {
+    const name = m[1];
+    if (AUTHN_ONLY.test(name)) continue;
+    if (ROLE_GATE_NAME.test(name)) return `router.use(${name})`;
+    const body = localFnBody(src, name);
+    if (body && CHECK.some((r) => r.test(body))) return `router.use(${name}) -> local fn`;
+  }
+  return null;
+}
+
+/**
+ * One hop from the route line into the controller that handles it.
+ *
+ * `expandSpreads` already follows one hop for middleware arrays; this is the same idea for the
+ * other direction. `badgeRoutes` passes `badgeController.setUserBadgeDisplay`, whose ownership
+ * check (`role === 'admin' || isOwnProfile`, else 403) lives in the controller file — invisible
+ * to a reader that only ever sees the routes directory. Three of today's seven flags were this.
+ *
+ * Deliberately ONE hop: a controller that delegates to a service is still reported unguarded.
+ * Following arbitrary depth would let this tool clear almost anything, which is the failure mode
+ * that matters most here — a false negative is worse than a false positive.
+ */
+function controllerHop(src, window) {
+  const decl = window.slice(0, window.indexOf(';') + 1 || window.length);
+  for (const m of decl.matchAll(/\b([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)|,\s*([A-Za-z_$][\w$]*)\s*\)/g)) {
+    const [root, prop] = m[1] ? [m[1], m[2]] : [null, m[3]];
+    const fnName = prop;
+    const importRe = root
+      ? new RegExp(`import\\s+${root}\\s+from\\s+['"]([^'"]+)['"]`)
+      : new RegExp(`import\\s*\\{[^}]*\\b${fnName}\\b[^}]*\\}\\s*from\\s+['"]([^'"]+)['"]`);
+    const imp = importRe.exec(src);
+    if (!imp) continue;
+    const fnRe = new RegExp(
+      `(?:async\\s+)?${fnName}\\s*\\(|(?:const|let|var|export\\s+const)\\s+${fnName}\\s*=`,
+    );
+    // Follow `export { NAME } from './real/module.mjs'` facades. `messagingController.mjs` is 23
+    // lines of pure re-export; the guard lives in `messaging/groupController.mjs`. A barrel is
+    // file organisation, not a second layer of authorization logic, so resolving it does not
+    // widen how deep this reader looks — it just stops the reader from being defeated by a
+    // directory layout. Capped at two facades so a cycle cannot hang the audit.
+    let target = path.join(ROUTES, imp[1]);
+    let body = null;
+    for (let hop = 0; hop < 3; hop += 1) {
+      try { body = fs.readFileSync(target, 'utf8'); } catch { body = null; break; }
+      if (fnRe.test(body)) break;
+      const reExport = new RegExp(`export\\s*\\{[^}]*\\b${fnName}\\b[^}]*\\}\\s*from\\s+['"]([^'"]+)['"]`)
+        .exec(body);
+      if (!reExport) break;
+      target = path.join(path.dirname(target), reExport[1]);
+      body = null;
+    }
+    if (!body) continue;
+    const at = fnRe.exec(body);
+    if (!at) continue;
+    if (CHECK.some((r) => r.test(body.slice(at.index, at.index + 2200)))) {
+      return `controller ${path.basename(target)}:${fnName}`;
+    }
+  }
+  return null;
+}
+
 function main() {
   let files;
   try {
@@ -155,20 +251,25 @@ function main() {
 
       // A file-level ROLE gate authorizes the whole router: if `router.use(authorize(['admin']))`
       // runs before every handler, a client cannot reach any of them and per-route ownership is
-      // moot. A bare `router.use(protect)` does NOT count — that is authentication, and a logged-in
-      // client hitting someone else's :userId still passes it. Conflating the two is precisely the
-      // authn-for-authz mistake this audit exists to find, so the audit must not make it itself.
-      const fileRoleGate = /router\.use\(\s*(authorize\w*\s*\(|adminOnly|requireAdmin|requireSuperAdmin|requireTrainerOrAdmin|requireAnyRole|ownerAdminOnly)/.test(src);
-      const body = expandSpreads(src, handlerBody(src, m.index));
-      const hasCheck = fileRoleGate || CHECK.some((r) => r.test(body));
+      // moot. A bare `router.use(protect)` does NOT count — see AUTHN_ONLY.
+      //
+      // Every clearance records WHY. A boolean makes this tool's own reasoning unauditable, which
+      // is the same defect it hunts: something reporting success while describing a world nobody
+      // can check. `--verbose` prints the reason so a human can falsify any one of them.
+      const window = handlerBody(src, m.index);
+      const body = expandSpreads(src, window);
+      const why = CHECK.some((r) => r.test(body)) ? 'route'
+        : routerUseGate(src)
+        || controllerHop(src, window);
       const row = {
         file: f,
         verb: verb.toUpperCase(),
         route: routePath,
         line: src.slice(0, m.index).split('\n').length,
         sensitive: SENSITIVE.test(routePath) || SENSITIVE.test(f),
+        why,
       };
-      (hasCheck ? guarded : unchecked).push(row);
+      (why ? guarded : unchecked).push(row);
     }
   }
 
@@ -200,9 +301,17 @@ function main() {
     if (rest.length > 25) console.log(`    … and ${rest.length - 25} more`);
   }
 
+  // How each clearance was reached. An indirect mechanism clearing a large share is the signal
+  // that this reader has been widened too far — read it as a prompt to spot-check, not comfort.
+  const byWhy = guarded.reduce((acc, r) => { acc[r.why] = (acc[r.why] || 0) + 1; return acc; }, {});
+  console.log('\n  cleared by:');
+  for (const [k, n] of Object.entries(byWhy).sort((a, b) => b[1] - a[1])) {
+    console.log(`    ${String(n).padStart(4)}  ${k.startsWith('router.use') || k.startsWith('controller') ? `INDIRECT — ${k}` : k}`);
+  }
+
   if (verbose && guarded.length) {
     console.log(`\n  --- shows a visible check (${guarded.length}) ---`);
-    for (const r of guarded) console.log(`    ${r.verb.padEnd(6)} ${r.route.padEnd(52)} ${r.file}:${r.line}`);
+    for (const r of guarded) console.log(`    ${r.verb.padEnd(6)} ${r.route.padEnd(52)} ${r.file}:${r.line}  [${r.why}]`);
   }
 
   console.log('\n  NOTE: a flagged handler may still be safe via a service-layer check this reader');
