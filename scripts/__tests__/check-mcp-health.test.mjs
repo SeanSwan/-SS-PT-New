@@ -16,7 +16,8 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { diagnose, displayPath, readCapped } from '../check-mcp-health.mjs';
+import { diagnose, displayPath } from '../check-mcp-health.mjs';
+import { readCapped } from '../lib/read-capped.mjs';
 
 const CLI = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'check-mcp-health.mjs');
 
@@ -122,7 +123,11 @@ test('a body under the cap is returned whole and not marked truncated', async ()
   assert.equal(r.truncated, false);
 });
 
-test('a body over the cap is truncated, reported as such, and the stream is cancelled', async () => {
+// `timeout` matters here: this test feeds an INFINITE stream, so a regression in the cap check
+// does not fail — it HANGS. node:test has no default timeout, so the suite would stall rather than
+// go red, and a stuck runner reads as "still working" in CI. 5s is ~100x the passing runtime, which
+// turns a cap regression into a fast, explicit failure (Kimi round 9, N1).
+test('a body over the cap is truncated, reported as such, and the stream is cancelled', { timeout: 5000 }, async () => {
   let cancelled = false;
   const chunk = Buffer.alloc(64, 0x61); // 'a' * 64
   const stream = { getReader: () => ({

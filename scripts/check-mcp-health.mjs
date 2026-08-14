@@ -14,23 +14,20 @@
  *   configured + token EXPIRED  -> server fails to initialize, ZERO tools register
  *   not configured at all       -> zero tools register
  *
- * The last two are indistinguishable from the agent's side, so the agent guesses — and guessing
- * "not configured" when the truth is "expired token" sends Sean in circles. This is the Rule 80
- * failure exactly: absence of tools is one vantage; it is not a fact about the world.
+ * The last two look identical from the agent's side, so it guesses — and guessing "not configured"
+ * when the truth is "expired token" sends Sean in circles. Rule 80 exactly: absence of tools is one
+ * vantage, not a fact about the world. The other half of the trap: config lives in FIVE places, and
+ * the one holding the user-scoped HTTP servers (`~/.claude.json`) is the one nobody checks — agents
+ * look at `.mcp.json` and `.env`, find nothing, and stop.
  *
- * The other half of the trap: config lives in FIVE places, and the one that actually holds the
- * user-scoped HTTP servers (`~/.claude.json`) is the one nobody checks. Agents look at `.mcp.json`
- * and `.env`, find nothing, and stop.
- *
- * SECURITY CONTRACT (Rule 59) — and this file is held to it, having violated it in review:
+ * SECURITY CONTRACT (Rule 59) — this file is held to it, having violated it in review:
  *   NEVER printed: tokens, header VALUES, URLs, remote response BODIES, or absolute paths.
- *   Remote bodies are matched in-process and discarded; only a byte count and a derived verdict
- *   escape. Project keys in `~/.claude.json` are absolute directories carrying the OS username, so
- *   they are redacted to a length. (Kimi hostile review 2026-08-13 caught both leaks: the tool
- *   printed 200 raw chars of remote response — where a 401 proxy body echoes the credential — and
- *   sprayed absolute project paths to stdout while its sibling module existed to prevent exactly
- *   that in files. A diagnostic that breaks its own stated contract teaches that contracts are
- *   decorative.)
+ *   Bodies are matched in-process and discarded (only a byte count + derived verdict escape);
+ *   project keys and config paths carry the OS username, so they redact to a length or to `~`.
+ *   Hostile review 2026-08-13 caught this file printing 200 raw chars of remote response — where a
+ *   401 proxy body echoes the credential — and spraying absolute paths to stdout, while its sibling
+ *   module existed to stop exactly that. A diagnostic that breaks its own contract teaches that
+ *   contracts are decorative.
  *
  * Usage:
  *   node scripts/check-mcp-health.mjs                # all servers, all config locations
@@ -45,6 +42,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readCapped } from './lib/read-capped.mjs';
 
 /** Every place Claude Code reads MCP servers from. `~/.claude.json` is the one agents forget. */
 const CONFIG_LOCATIONS = [
@@ -71,15 +69,14 @@ const redactProjectKey = (k) => (/[\\/]/.test(String(k)) ? `<path, ${String(k).l
  */
 export const displayPath = (p, home = homedir()) => {
   const s = String(p);
-  // Require a separator (or exact match) after the prefix, so a sibling directory that merely shares
-  // the prefix — C:\Users\sean2 when home is C:\Users\sean — is not mangled into `~2\...` (Kimi r3, O3).
-  // The class MUST contain a literal backslash: Windows paths use it as the separator, and a version
-  // of this line that only matched `/` silently disabled the redaction on Windows entirely.
-  // Case-INSENSITIVE prefix match: Windows paths are case-insensitive, and homedir() can disagree
-  // with an env-supplied path on case (junctions, 8.3 names, USERPROFILE drift). A byte-exact
-  // compare would return `C:\Users\Sean\...` UNREDACTED against a home of `C:\Users\sean` — the same
-  // silent-disable failure as the eaten backslash, one layer up. Over-redacting on POSIX is the safe
-  // direction (Kimi round 4, N2).
+  // Three properties, each earned by a defect this redaction actually shipped with:
+  //  - separator required after the prefix, so a sibling sharing it (C:\Users\sean2 vs home
+  //    C:\Users\sean) is not mangled into `~2\...`;
+  //  - the class MUST contain a literal backslash — a version matching only `/` silently disabled
+  //    redaction on Windows entirely, with every test still green;
+  //  - case-INSENSITIVE compare, because homedir() can disagree with an env-supplied path on case
+  //    (junctions, 8.3 names, USERPROFILE drift) and a byte-exact match leaves it UNREDACTED.
+  // Over-redacting on POSIX is the safe direction. (Kimi rounds 3-O3 and 4-N2.)
   const h = String(home);
   if (!s.toLowerCase().startsWith(h.toLowerCase())) return s;
   const rest = s.slice(h.length);
@@ -120,7 +117,18 @@ export function diagnose(status, body = '') {
   // credential. That is the fifth-recurrence failure in the opposite direction (Kimi round 2, F2).
   if (status === 401 || status === 403) return REJECTED;
   if (status !== null && status >= 200 && status < 300) {
-    return { verdict: 'HEALTHY', remedy: 'Server answers and accepts the credential. If tools still are not listed, RESTART Claude Code.' };
+    // A null-body status (204/205) proves the server was REACHED and did not reject the credential —
+    // it does not prove acceptance, since a proxy can answer 204 without ever challenging auth.
+    // Same HEALTHY bucket (so the exit code is unchanged) but the remedy stops overclaiming, which
+    // is the Rule 75 class this file exists to delete (Kimi round 9, O1).
+    const bodiless = status === 204 || status === 205;
+    return {
+      verdict: 'HEALTHY',
+      remedy: bodiless
+        ? 'Reached, and the credential was NOT rejected — but a bodiless response does not prove it '
+          + 'was accepted. If tools are missing, RESTART Claude Code and check the server\'s own logs.'
+        : 'Server answers and accepts the credential. If tools still are not listed, RESTART Claude Code.',
+    };
   }
   if (status === null) {
     return { verdict: 'UNREACHABLE', remedy: 'Network/DNS/timeout — not an auth problem. Check connectivity, then retry.' };
@@ -141,46 +149,6 @@ export function diagnose(status, body = '') {
 
 /** Hard ceiling on how much of a response body is read into memory. An initialize reply is ~1 KB. */
 const MAX_BODY = 65536;
-
-/**
- * Read at most `cap` bytes from a response, cancelling the stream rather than draining it.
- * Returns the decoded text (for matching), the byte count actually read, and whether more remained.
- * Falls back to `.text()` only when the runtime exposes no readable stream.
- */
-export async function readCapped(r, cap) {
-  // NO `await r.text()` FALLBACK. An earlier version had one, which reintroduced the exact
-  // unbounded-buffer defect this function exists to remove — one branch over, where the "TRULY
-  // bounded" claim above did not reach (Kimi round 7, N1).
-  //
-  // A fetch Response exposes a web ReadableStream for every status EXCEPT the null-body statuses
-  // (101/204/205/304 per the fetch spec), where `body` is null. An earlier version of this comment
-  // claimed "ALWAYS a stream" and threw on those — so a server answering 204 to `initialize` was
-  // reported UNREACHABLE despite having been reached, and the previous fallback had degraded it to
-  // HEALTHY (Kimi round 8, L1: an over-broad universal, the same Rule 75 class this file exists to
-  // delete, in the comment written to fix one).
-  //
-  // A null body is ZERO BYTES — trivially bounded, so returning it is not the deleted fallback:
-  // nothing is buffered. Only a genuinely stream-less runtime throws, which probeHttp's catch
-  // reports as UNREACHABLE rather than crashing.
-  if (!r.body) return { text: '', bytes: 0, truncated: false };
-  if (!r.body.getReader) throw new Error('runtime without web streams is unsupported');
-  const reader = r.body.getReader();
-  const chunks = [];
-  let n = 0;
-  let truncated = false;
-  try {
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      n += value.byteLength;
-      if (n > cap) { truncated = true; break; }
-    }
-  } finally {
-    await reader.cancel().catch(() => {});
-  }
-  return { text: Buffer.concat(chunks).subarray(0, cap).toString('utf8'), bytes: n, truncated };
-}
 
 /**
  * Probe an HTTP MCP server with a real `initialize` call. This is the ONLY way to tell
