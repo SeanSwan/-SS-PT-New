@@ -38,106 +38,22 @@
 import { sanitizeClientText } from '../ai/clientTextSanitizer.mjs';
 import logger from '../../utils/logger.mjs';
 
-/** Hard ceiling on generated clause length. Short is the entire point. */
-export const MAX_WORDS = 10;
+import {
+  MAX_WORDS, MAX_CHARS, MAX_RAW_CHARS, GENERATOR_TIMEOUT_MS,
+  INVISIBLE_RE, CONTROL_RE, LONE_SURROGATE_RE, COMBINING_STACK_RE,
+  BARE_DOMAIN_RE, FORBIDDEN_SHAPES, META_PHRASES,
+  hasNonAsciiDigit, hasMixedScriptToken,
+} from './fuzzyClauseGuards.mjs';
 
-/**
- * Absolute character ceiling, because a WORD cap is not a SIZE cap. Hostile
- * round 2 against the hardened validator: ten tokens of 500 characters each
- * passed a ten-word ceiling at 5,009 characters, and one 3,000-character token
- * passed as a single word. Ten ordinary words are ~60 characters; 120 leaves
- * room for long compounds while bounding the blast radius of the LLM seam this
- * validator exists to guard.
- */
-export const MAX_CHARS = 120;
+export { MAX_WORDS, MAX_CHARS };
 
-/**
- * C0/C1 controls, excluding the whitespace ones (TAB/LF/CR) that the collapse
- * below legitimately folds to a space. U+0007 BEL reached output otherwise.
- */
-const CONTROL_RE = new RegExp(
-  '[\u0000-\u0008'   // NUL..BS  (TAB u0009 / LF u000A excluded)
-  + '\u000B\u000C'   // VT, FF
-  + '\u000E-\u001F'  // SO..US   (CR u000D excluded)
-  + '\u007F-\u009F]',// DEL + C1 block
-);
-
-/**
- * Stacked combining marks ("zalgo") carry no forbidden shape and few words, but
- * render as vertical noise that overflows the line. Three or more in a row is
- * abusive in a short English marketing clause; NFKC composes the legitimate
- * accented forms, so ordinary prospect text reaches here with none at all.
- */
-const COMBINING_STACK_RE = /\p{Mn}{3,}/u;
-
-/** Feature flag — exact-match 'true', mirroring every other marketing flag. */
+/** Feature flag - exact-match 'true', mirroring every other marketing flag. */
 const flagEnabled = (env) => env?.MARKETING_FUZZY_VARS_ENABLED === 'true';
-
-/**
- * Shapes that must never appear in generated copy. If the generator emits any
- * of these it has either leaked source data or hallucinated a contact detail,
- * and the clause is discarded rather than repaired — a validator that "fixes"
- * output is a validator that can be talked into passing something.
- */
-const FORBIDDEN_SHAPES = [
-  /[\w.+-]+@[\w-]+\.[\w.]+/,          // email address
-  /\+?\d[\d\s().-]{7,}\d/,            // phone-ish digit run
-  /https?:\/\//i,                     // URL
-  /\bwww\./i,                         // bare domain
-  /\p{Sc}\s?\d/u,                     // price / money claim, ANY currency symbol
-                                      // (`\$` alone missed €1200, £1200, ¥1200)
-  /\d{1,3}\s?%/,                      // percentage claim
-  /<[^>]*>/,                          // markup
-  /[{}]/,                             // unresolved template braces
-];
-
-/**
- * Phrases that indicate the generator answered the PROMPT instead of doing the
- * job — the classic failure where a model narrates its task back at you.
- */
-const META_PHRASES = [
-  /\b(as an ai|language model|i cannot|i can't help|sorry,)\b/i,
-  /\b(paraphrase|summary|summarize|the (customer|lead|user) (said|wrote))\b/i,
-  /\bhere('s| is)\b/i,
-];
 
 const wordCount = (s) => s.trim().split(/\s+/).filter(Boolean).length;
 
-/**
- * Invisible and bidirectional format characters. None of these has a legitimate
- * place in an eight-word marketing clause, and each defeats a different guard:
- * a zero-width space splits `https://` so the URL shape misses it and joins 40
- * words into one so the word cap misses them too; an RTL override reverses the
- * DISPLAY of the human-written sentence it was interpolated into. Rejected
- * outright rather than stripped — see the "rejects, never repairs" note above.
- */
-const INVISIBLE_RE = new RegExp(
-  '[\\u00AD'           // soft hyphen
-  + '\\u200B-\\u200F'  // zero-width space/non-joiner/joiner, LTR & RTL marks
-  + '\\u202A-\\u202E'  // bidi embedding / override
-  + '\\u2060-\\u2064'  // word joiner, invisible operators
-  + '\\u2066-\\u2069'  // bidi isolates
-  + '\\uFEFF]',        // BOM / zero-width no-break space
-);
-
-/** Latin vs Cyrillic/Greek — the confusable pairs that make homoglyph domains work. */
-const LATIN_RE = /[A-Za-z]/;
-const CONFUSABLE_SCRIPT_RE = /[Ͱ-ϿЀ-ӿ]/;
-
-/**
- * A bare domain carries no scheme and no `www.`, so neither URL guard sees it.
- * A curated TLD list keeps ordinary prose ("cooling.The") from tripping it; a
- * false positive costs only a fallback to static copy, which is the safe side.
- */
-const BARE_DOMAIN_RE = /\b[a-z0-9][a-z0-9-]*\.(?:com|net|org|io|co|us|uk|ca|info|biz|test|example|invalid|dev|app|xyz|online|site|shop|me|tv|cc)\b/i;
-
-/** Any Unicode decimal digit that is not an ASCII digit (Arabic-Indic, Devanagari...). */
-const hasNonAsciiDigit = (s) => [...s].some((ch) => /\p{Nd}/u.test(ch) && (ch < '0' || ch > '9'));
-
-/** A single token carrying both Latin and Cyrillic/Greek letters is a homoglyph, not a word. */
-const hasMixedScriptToken = (s) => s.split(/\s+/).some(
-  (tok) => LATIN_RE.test(tok) && CONFUSABLE_SCRIPT_RE.test(tok),
-);
+/** Unique sentinel so a generator returning any real value can never impersonate a timeout. */
+const TIMED_OUT = Symbol('fuzzy-vars-generator-timeout');
 
 /**
  * Validate a generated clause as hostile input.
@@ -145,6 +61,12 @@ const hasMixedScriptToken = (s) => s.split(/\s+/).some(
  */
 export function validateClause(raw, { maxWords = MAX_WORDS } = {}) {
   if (typeof raw !== 'string') return { ok: false, reason: 'not_a_string' };
+
+  // RAW ceiling BEFORE normalization (Sol FVS-02). `MAX_CHARS` is checked only
+  // after NFKC, a full regex replace, a trim and a split, so a 5,000,000-char
+  // return value was fully processed before being rejected. NFKC can also
+  // expand. This bounds the work at the hostile-generator seam.
+  if (raw.length > MAX_RAW_CHARS) return { ok: false, reason: 'too_long_raw' };
 
   // NFKC FIRST, and the normalized string is what every later check sees AND
   // what we return. Every FORBIDDEN_SHAPE below is an ASCII character class,
@@ -171,6 +93,9 @@ export function validateClause(raw, { maxWords = MAX_WORDS } = {}) {
   // Checked after the collapse, so the TAB/LF/CR that the collapse legitimately
   // folds are already gone and anything left is a genuine control character.
   if (CONTROL_RE.test(value)) return { ok: false, reason: 'control_char' };
+  // An unpaired surrogate is not valid text and is commonly replaced in
+  // transport, so what the prospect receives is not what validated (Sol FVS-12).
+  if (LONE_SURROGATE_RE.test(value)) return { ok: false, reason: 'lone_surrogate' };
   if (COMBINING_STACK_RE.test(value)) return { ok: false, reason: 'combining_stack' };
   if (wordCount(value) > maxWords) return { ok: false, reason: 'too_long' };
   // A word cap is not a size cap: ten 500-character tokens satisfy `maxWords`.
@@ -207,10 +132,19 @@ export function validateClause(raw, { maxWords = MAX_WORDS } = {}) {
 /**
  * Deterministic generator — no model, no network, no cost.
  *
- * Extracts the prospect's own leading clause and trims it to the cap. It cannot
- * invent a fact, because it only ever returns a substring of what they wrote.
- * That property is why it is the safe default: the worst case is an awkward
- * clause, never a fabricated one.
+ * Extracts the prospect's own leading clause and trims it to the cap.
+ *
+ * CLAIM CORRECTED (Sol FVS-19): earlier wording here said it "only ever returns
+ * a SUBSTRING of what they wrote". That is false — `.toLowerCase()` and the
+ * re-join on single spaces both mean the output need not appear verbatim in the
+ * input. The accurate and still-useful property is weaker: it only ever returns
+ * WORDS THE PROSPECT WROTE, in their original order, so it cannot invent a fact.
+ *
+ * It CAN still mislead by truncation (Sol FVS-20): cutting at the word cap can
+ * drop a negation or leave a dangling fragment, e.g. "the upstairs unit is
+ * definitely not cooling the bedrooms at". That is a copy-quality risk, not a
+ * safety one, and it is the strongest argument for keeping the generated
+ * proportion small.
  */
 export function deterministicGenerator({ noteText }) {
   if (!noteText) return null;
@@ -250,7 +184,28 @@ export async function resolveFuzzyVariables({
     const safeNote = sanitizeClientText(noteText, { maxLen: 280 });
     if (!safeNote) return null;
 
-    const raw = await generator({ noteText: safeNote, source });
+    // TIMEOUT (Sol FVS-22). "Never blocks a send" was false: `await generator()`
+    // on a promise that never settles hangs the send forever, and the LLM
+    // generator this seam exists for is exactly the kind that can hang. Losing
+    // the race yields null — the same safe fallback as any other failure.
+    //
+    // The timer is CLEARED on the winning path rather than unref'd. An unref'd
+    // timer does not hold the event loop open, so when nothing else is pending
+    // the process can exit before it fires and the promise never settles at all
+    // — reintroducing the hang it was added to fix (observed: a standalone probe
+    // produced no output and exited silently). clearTimeout gives both
+    // properties: the timeout always fires, and no handle outlives the call.
+    let timer;
+    const raw = await Promise.race([
+      generator({ noteText: safeNote, source }),
+      new Promise((resolve) => { timer = setTimeout(() => resolve(TIMED_OUT), GENERATOR_TIMEOUT_MS); }),
+    ]).finally(() => clearTimeout(timer));
+
+    if (raw === TIMED_OUT) {
+      logger.warn(`[fuzzy-vars] generator timed out after ${GENERATOR_TIMEOUT_MS}ms src=${source ?? '?'}`);
+      return null;
+    }
+
     const verdict = validateClause(raw);
 
     if (!verdict.ok) {

@@ -323,8 +323,17 @@ describe('validateClause — size, controls and combining marks', () => {
   it('rejects ten words that are five thousand characters', () => {
     // MAX_WORDS is a WORD cap, not a SIZE cap. Ten 500-character tokens satisfy
     // it exactly and would render as a wall of text mid-sentence.
+    // RE-ANCHORED 2026-08-14: this 5,009-char input now trips the RAW ceiling
+    // (MAX_RAW_CHARS, added for Sol FVS-02) before normalization, so the reason
+    // is `too_long_raw`. Still rejected, one guard earlier and far more cheaply.
     const wall = Array.from({ length: 10 }, () => 'a'.repeat(500)).join(' ');
-    expect(validateClause(wall)).toEqual({ ok: false, reason: 'too_long_chars' });
+    expect(validateClause(wall)).toEqual({ ok: false, reason: 'too_long_raw' });
+
+    // `too_long_chars` still has to be reachable, or the raw ceiling would have
+    // silently replaced it rather than fronted it: 509 chars is under the raw
+    // ceiling and over MAX_CHARS.
+    const modest = Array.from({ length: 10 }, () => 'a'.repeat(50)).join(' ');
+    expect(validateClause(modest)).toEqual({ ok: false, reason: 'too_long_chars' });
   });
 
   it('rejects a single enormous token', () => {
@@ -361,5 +370,105 @@ describe('validateClause — size, controls and combining marks', () => {
 
   it('collapses line and paragraph separators to a space', () => {
     expect(validateClause('the upstairs \u2028stays hot').value).toBe('the upstairs stays hot');
+  });
+});
+
+/**
+ * External review panel, 2026-08-14 — Kimi K3 / Tencent HY3 / GPT-5.6 Sol.
+ *
+ * 24 concrete claims were probed against the real module; 20 reproduced. These
+ * are the regressions for the ones that were real bypasses. Each name carries
+ * the finding id so the review documents stay traceable from the test output.
+ *
+ * Two panel claims were DISPROVEN and are asserted here as correct behavior, so
+ * a future reader does not "fix" them back: NFKC does NOT fold ß to ss (HY3),
+ * and an IDN domain is already caught by the mixed-script guard (Sol FVS-04).
+ */
+describe('validateClause — external panel findings', () => {
+  it.each([
+    ['HY3-1  U+061C arabic letter mark', 'the upstairs \u061C is not cooling'],
+    ['Sol-06 U+061C splits a phone',     'call 555\u061C123\u061C4567 now'],
+    ['Sol-07 U+034F grapheme joiner',    'call 555\u034F123\u034F4567 now'],
+  ])('rejects %s as an invisible/bidi control', (_l, input) => {
+    expect(validateClause(input)).toEqual({ ok: false, reason: 'invisible_control' });
+  });
+
+  it.each([
+    ['HY3-2 unclosed comment opener', 'the <!-- upstairs stays hot'],
+    ['HY3-2 unclosed start tag',      'the <script upstairs stays hot'],
+    ['HY3-3 entity-encoded markup',   'the &lt;b&gt;urgent&lt;/b&gt; unit'],
+    ['Sol-05 short local phone',      'call 555 1234 today'],
+    ['Sol-05 short phone hyphenated', 'call 555-1234 today'],
+    ['Sol-08 currency after digits',  'the quote was 1200 € last time'],
+    ['Sol-09 spelled-out percent',    'output dropped 40 percent this month'],
+    ['Sol-09 spelled-out dollars',    'the quote was 1200 dollars'],
+  ])('rejects %s as a forbidden shape', (_l, input) => {
+    expect(validateClause(input)).toEqual({ ok: false, reason: 'forbidden_shape' });
+  });
+
+  it.each([
+    ['HY3-4 .cloud', 'visit example.cloud today'],
+    ['HY3-4 .ai',    'visit example.ai today'],
+  ])('rejects %s — the curated TLD list missed it and mail clients auto-link it', (_l, input) => {
+    expect(validateClause(input)).toEqual({ ok: false, reason: 'bare_domain' });
+  });
+
+  it('Sol-12 rejects a lone UTF-16 surrogate', () => {
+    expect(validateClause('the upstairs \uD800 stays hot')).toEqual({
+      ok: false, reason: 'lone_surrogate',
+    });
+  });
+
+  it('Sol-13 rejects stacked ENCLOSING marks, which \p{Mn} could not see', () => {
+    const enclosed = 'the u' + '\u20DD\u20DE\u20E0'.repeat(6) + 'pstairs hot';
+    expect(validateClause(enclosed)).toEqual({ ok: false, reason: 'combining_stack' });
+  });
+
+  it('Sol-02 rejects an enormous raw string before doing any normalization work', () => {
+    const huge = 'a'.repeat(5_000_000);
+    const t0 = Date.now();
+    expect(validateClause(huge)).toEqual({ ok: false, reason: 'too_long_raw' });
+    // Cheap because it never normalized, replaced, split or scanned.
+    expect(Date.now() - t0).toBeLessThan(100);
+  });
+
+  it('Sol-01 treats VT and FF as whitespace, and says so', () => {
+    // They are NOT in CONTROL_RE: `\s` collapses them first, so listing them
+    // implied a rejection that could never fire. Documented as repaired.
+    expect(validateClause('the upstairs\u000Bstays hot').value).toBe('the upstairs stays hot');
+    expect(validateClause('the upstairs\u000Cstays hot').value).toBe('the upstairs stays hot');
+  });
+
+  it('DISPROVEN (HY3): NFKC does not fold ß to ss', () => {
+    expect('straße'.normalize('NFKC')).toBe('straße');
+    expect(validateClause('the straße is not cooling').ok).toBe(true);
+  });
+
+  it('DISPROVEN (Sol FVS-04): an IDN domain is already caught by mixed-script', () => {
+    expect(validateClause('found you on пример.com today')).toEqual({
+      ok: false, reason: 'mixed_script',
+    });
+  });
+});
+
+describe('resolveFuzzyVariables — the generator cannot hang a send (Sol FVS-22)', () => {
+  it('times out a generator that never settles, and returns the static fallback', async () => {
+    const t0 = Date.now();
+    const r = await resolveFuzzyVariables({
+      noteText: 'the upstairs stays hot',
+      generator: () => new Promise(() => {}), // never settles
+      env: ON,
+    });
+    expect(r).toBeNull();
+    expect(Date.now() - t0).toBeGreaterThanOrEqual(1900);
+  }, 10_000);
+
+  it('does not penalise a generator that answers inside the budget', async () => {
+    const r = await resolveFuzzyVariables({
+      noteText: 'ignored',
+      generator: () => new Promise((res) => setTimeout(() => res('the upstairs stays hot'), 50)),
+      env: ON,
+    });
+    expect(r?.paraphrasedNeed).toBe('the upstairs stays hot');
   });
 });
