@@ -110,8 +110,17 @@ Eleven hostile rounds on the review, then nine more on the handoff. The producti
 | is the doc *usable*? | read as a fresh agent | 2 of 11 cited paths were dead |
 
 Re-reading the reader would never have found the non-recursive scan. Re-reading a finished document
-would never have revealed it was two commits stale. **Of twenty rounds, seven were clean and cost
-almost nothing — the price of the thirteen that were not.**
+would never have revealed it was two commits stale.
+
+**Of twenty rounds — eleven on the review, nine on the handoff — only five came back clean. Fifteen
+found something.** A round hit-rate of 75% is not a sign of thoroughness; it is a measure of how
+much a single pass misses. The handoff phase was the worse of the two: **eight of nine rounds found
+a defect in a document I had already considered finished and committed.**
+
+*(An earlier version of this packet said "seven were clean … the thirteen that were not." Recounted
+from the ledger: 4 clean of 11, then 1 of 9. The error ran in the self-flattering direction, in the
+packet whose subject is instruments that report a better world than exists. Caught by a round whose
+only vantage was counting.)*
 
 ## Who did what
 
