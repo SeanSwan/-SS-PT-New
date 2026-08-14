@@ -6,13 +6,19 @@ architecture was reviewed and partly rejected the next day, and its cost figures
 
 - **Author:** Opus 5, session `ad7c842d`, working tree `c:/tmp/ss-forge-variantrun` on `main`.
 - **Delivery state of everything below:** `merged-to-main` unless explicitly marked otherwise.
-- **Head at writing:** `0638bfe4b`.
+- **Head when drafted:** `0638bfe4b`. **Delivered at** `5447fc8e7` — the remote moved 37
+  commits from parallel agents while this was being written, which is the normal condition
+  here, not an anomaly. Re-read `git log origin/main` rather than trusting either SHA.
 
 **Two facts that will waste your day if you skip them:**
 
 1. **The primary checkout `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT` is on a wip branch
-   ~1885 commits behind `origin/main`.** Work there and your fixes never reach production;
-   audit there and tooling that exists will appear missing. **Use a worktree on `main`.**
+   roughly 1,900 commits behind `origin/main`, and drifting further every hour.** Measure it
+   rather than trusting that figure — it read 1885 while this was being drafted and 1926
+   forty minutes later:
+   `git -C c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT rev-list --count HEAD..origin/main`.
+   Work there and your fixes never reach production; audit there and tooling that exists
+   will appear missing. **Use a worktree on `main`.**
    This has already cost multiple sessions — a blocker was re-reported four times because
    the file had been fixed on `main` days earlier.
 2. **A push to `main` is a production deploy AND runs migrations** (`render.yaml` →
@@ -41,7 +47,10 @@ whenever I paused for permission mid-batch. Assume that stance still holds.
 
 ## 2.1 The Swan Forge
 
-CLI at `scripts/forge.mjs`; library in `shared/`. 18 modules:
+CLI at `scripts/forge.mjs`; library in `shared/`. **16 modules** — 13 in `shared/` plus 3
+providers. (`shared/` also holds `clientOnboardingQuestionBank.mjs` and `sectionPatterns.mjs`,
+which are **not** Forge modules; counting the folder instead of the feature is how this
+document first said "18".)
 
 ```
 swanPromptCompiler.mjs   brief → 12-slot IR (typed `aspect` field, not regexed from prose)
@@ -83,17 +92,25 @@ Only varying the input, measuring output tracking, **and running a control arm**
 - Skills: **`stale-check`** (re-verify a carried claim before repeating it; ship
   `CLAIM / CHECK / AS-OF`), **`design-dialogue`** (a brainstorming *partner*, not an
   interviewer — see Part 4.3).
-- `CLAUDE.md` rule 16's Village cost corrected to the receipt-based **$0.44–$1.89, mean
-  ~$1.10** (it had said $0.33; I then "corrected" it to $27–147; both were wrong — Part 6).
+- `CLAUDE.md` rule 16's Village cost corrected to the receipt-based **$0.4396–$1.8937, mean
+  ~$1.01 across ten distinct runs** (it had said $0.33; I "corrected" that to $27–147, then
+  published "eight runs, mean ~$1.10" — **all three were wrong**; see Part 6).
 
 ---
 
 # PART 3 — WHAT SEAN OWES (blocking)
 
-1. **The blind A/B ruling.** `.ai-workflow/forge-runs/ab-blind.html`, arms tagged A–F,
-   decoder in a separate `ab-blind-key.json`. It settles whether the negative-prompt
-   "kill list" helps. **It ships OFF (`FORGE_KILL_LIST=1` to enable) until he rules.**
-   Known residual: filenames and mtimes are neutralised, byte-size is not — disclosed.
+1. **The blind A/B ruling.** Arms tagged A–F; decoder in a separate `ab-blind-key.json`.
+   It settles whether the negative-prompt "kill list" helps. **It ships OFF
+   (`FORGE_KILL_LIST=1` to enable) until he rules.** Known residual: filenames and mtimes
+   are neutralised, byte-size is not — disclosed.
+
+   ⚠ **The file is at `.ai-workflow/forge-runs/ab-blind.html` in the PRIMARY CHECKOUT
+   ONLY** — `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/`. `.ai-workflow/` is gitignored,
+   so it does **not** exist in the `main` worktree this document tells you to work from.
+   Verified 2026-08-14 (3072 bytes, 245-byte key, both dated Aug 13 18:32). This is the
+   document's own "delivered where its reader looks" lesson biting the document itself:
+   the artifact Sean must open lives in the one tree I told him not to use.
 2. **Village panel on taste curation — or not.** Kimi's blueprint (Part 4) may be enough.
    Receipts put a Village run at **~$1–2**, not the $27 the gate estimates. Sean's budget
    is tight and explicit: *"I only got, like, thirty bucks on there."*
@@ -126,7 +143,7 @@ specifically he likes**; the system takes notes; next 50; repeat; then create fr
 50 images through model context fails the same way. The fix is the Forge's own pattern:
 images to a **local gallery**, only Sean's picks and reasons return to the model.
 
-## 4.3 The reviewed plan — `KIMI-TASTE-CURATION-BLUEPRINT.md` (211 lines, $0.2479)
+## 4.3 The reviewed plan — `docs/ai-workflow/AI-HANDOFF/KIMI-TASTE-CURATION-BLUEPRINT.md` (211 lines, $0.2479)
 
 **Verdict: REJECT AS WRITTEN, APPROVE CONDITIONALLY** on (a) Slice 0 landing first and
 (b) a dual-input deck replacing keyboard-only. All seven open questions were settled:
@@ -239,10 +256,13 @@ fixed it — because I always work with a lot of agents at once."*
   Ten rounds this session at **$0.027–$0.2479** each, delivering the workstream's highest-
   value findings. **Excellent on sequencing, severity and what to delete; verify anything it
   asserts about current code.** Roughly a fifth of a Village run.
-- **AI Village: real cost $0.44–$1.89 (mean ~$1.10)**, from eight `cost-summary.md`
-  receipts. The pre-run gate estimates $27–147 — that is a **safety ceiling, not a
-  forecast**, and it makes `SWAN_VILLAGE_MAX_USD` unusable at any sane value. Fixing the
-  estimator to price against observed history is a small unclaimed slice.
+- **AI Village: real cost $0.4396–$1.8937, mean ~$1.01**, from **ten distinct** runs
+  (11 `cost-summary.md` files; `latest/` duplicates the newest). The pre-run gate estimates
+  $27–147 — a **safety ceiling, not a forecast** — which makes `SWAN_VILLAGE_MAX_USD`
+  unusable at any sane value. Fixing the estimator to price against observed history is a
+  small unclaimed slice. *(I first published "eight runs, mean ~$1.10" — a miscount of the
+  very receipts I was citing to correct someone else's number. Re-count with `find
+  AI-Village-Documentation -name cost-summary.md` before quoting; new runs land often.)*
 - **`fusion-triangle.mjs` is not standalone.** It is a shared-folder polling board that waits
   for other *live* agent sessions. With no siblings it waits ~280s and aborts. Free and real
   — but only when other agents are actually running.
