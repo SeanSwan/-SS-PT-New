@@ -70,7 +70,15 @@ const BLOCK_REASON =
   'substantial net-new work with no issue, capture one (linear-todo Mode 1, dedup first); (c) claim ' +
   'the sync explicitly as `LINEAR: SWA-<n>` (a bare "SWA-123" mention no longer counts — citing an ' +
   'issue is not syncing it); or (d) if this build genuinely maps to no issue, state ' +
-  '`LINEAR: N/A — <reason>`. See closeout-evidence-lock Section 6.6. Do not fabricate an SWA id.';
+  '`LINEAR: N/A — <reason>`. See closeout-evidence-lock Section 6.6. Do not fabricate an SWA id.\n' +
+  'IF NO `mcp__linear-server__*` TOOL IS REGISTERED: do NOT conclude "Linear is not configured" — ' +
+  'that conclusion has been WRONG every time (5th recurrence 2026-08-13, Sean: "the API key is ' +
+  'already there ... I keep going through this"). Two reasons agents get it wrong: (1) the server is ' +
+  'declared in `~/.claude.json` at USER scope — NOT `.mcp.json`, NOT `.env`, which are the only two ' +
+  'places agents check; (2) an EXPIRED token makes the server register ZERO tools, which is ' +
+  'indistinguishable from "absent" from the agent side. Run `node scripts/check-mcp-health.mjs linear` — ' +
+  'it enumerates every config location and probes the endpoint, returning healthy / token-rejected / ' +
+  'unreachable plus the exact remedy. ONLY "no server declared in ANY location" justifies (d).';
 
 /**
  * A Stop hook's own feedback is written back into the transcript as a `user` entry.

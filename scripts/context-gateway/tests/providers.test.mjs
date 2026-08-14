@@ -58,9 +58,18 @@ test('finding 5: ceiling travels with the resolved MODEL, not the static slot', 
   } finally { delete process.env.SWAN_FUSION_JUDGE_MODEL; }
 });
 
-test('ceiling: sensitive classes cover the Phase 0 list', () => {
-  for (const p of ['backend/services/stripeService.mjs', 'backend/models/UserToken.mjs', 'backend/migrations/x.cjs', 'frontend/src/admin/PermissionsPanel.tsx']) {
+test('ceiling: sensitive classes cover the protected list (NARROWED 2026-08-14)', () => {
+  // RE-ANCHOR, not a silence. Sean narrowed the ceiling on 2026-08-14: token / migration / admin /
+  // permission / middleware / session / webhook are ordinary backend code carrying no protected
+  // data, and blocking them stopped a design reviewer from doing real work while protecting
+  // nothing. This test previously asserted those WERE sensitive — it encoded the old contract, so
+  // it had to move with the decision. What must still block is unchanged and asserted below.
+  for (const p of ['backend/services/stripeService.mjs', 'backend/middleware/authMiddleware.mjs', 'backend/.env.example', 'docs/family/immigration.md']) {
     assert.ok(SENSITIVE_PATH_RE.test(p), `expected sensitive: ${p}`);
+  }
+  // Deliberately reviewable now — this is the friction Sean asked to remove.
+  for (const p of ['backend/models/UserToken.mjs', 'backend/migrations/x.cjs', 'frontend/src/admin/PermissionsPanel.tsx']) {
+    assert.ok(!SENSITIVE_PATH_RE.test(p), `expected reviewable after the narrowing: ${p}`);
   }
   assert.ok(!SENSITIVE_PATH_RE.test('frontend/src/components/HeroSection.tsx'));
 });

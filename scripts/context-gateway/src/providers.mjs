@@ -39,7 +39,32 @@ export const PROVIDERS = {
  * Evidence-path classes above the 'design' ceiling. Matched case-insensitively. Includes Sean's
  * life-critical admin-only data classes (immigration, medical) per Rule 8 (hostile pass 3 finding 2).
  */
-export const SENSITIVE_PATH_RE = /auth|oauth|jwt|login|session|password|billing|payment|stripe|checkout|payout|refund|payroll|bank|plaid|webhook|pii|ssn|privacy|secret|credential|token|migration|middleware|\.env|admin|permission|immigration|medical|patient|health/i;
+/**
+ * NARROWED 2026-08-14 by Sean's explicit decision, with the tradeoff stated and chosen.
+ *
+ * REMOVED, exactly the list Sean approved: `session|webhook|token|migration|middleware|admin|
+ * permission`. Those match ordinary backend code carrying no protected data — a routes file, a
+ * logger, a schema change — and blocked a design reviewer from most real work while protecting
+ * nothing. That block was the friction Sean asked to remove.
+ *
+ * DELIBERATELY KEPT — `auth|login|privacy` were NOT on Sean's list. A first pass removed them too
+ * (they would unblock `authMiddleware.mjs`, `useAuth.ts`, and friends), but auth LOGIC is
+ * attack-surface knowledge: how tokens are validated, how sessions are established. Removing them
+ * also broke nine existing ceiling tests, all of which use an auth path as their canonical
+ * sensitive fixture — churn incurred for a change that was never authorised. Restored. Removing
+ * them is a one-word change if Sean decides the review value outweighs it.
+ *
+ * ALSO KEPT: credentials and live money paths (a design-ceiling provider has no business reading
+ * them), and Sean's life-critical data classes — immigration, medical, patient, health, ssn, pii —
+ * which are Rule 8 categorical and are family data, not code.
+ *
+ * This is a PATH filter and always was belt-and-braces: `egress.mjs` already strips secret VALUES
+ * (keys, JWTs, DB URLs, PEM, emails, SSNs) from every byte that crosses to any provider, so
+ * narrowing the path list does not expose secrets — it exposes filenames and code structure.
+ *
+ * Still fail-closed, still no override flag, still a Sean-gated change to widen further.
+ */
+export const SENSITIVE_PATH_RE = /auth|oauth|jwt|login|password|billing|payment|stripe|checkout|payout|refund|payroll|bank|plaid|pii|ssn|privacy|secret|credential|\.env|immigration|medical|patient|health/i;
 
 export class ProviderError extends Error {
   constructor(code, message, detail = null) {

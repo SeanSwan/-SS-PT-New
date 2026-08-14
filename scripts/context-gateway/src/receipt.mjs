@@ -1,10 +1,17 @@
 /**
  * receipt.mjs — sanitized local audit receipts + packet reconstruction for answer verification.
  * =============================================================================================
- * Every provider call leaves a receipt at .ai-workflow/context-gateway/receipts/ (gitignored
- * operational store — NEVER the tracked AI-HANDOFF lane, which would pollute the catalog).
- * Receipts carry the manifest (paths/windows/shas/tiers — no content), provider, model, token
- * counts, cost, and the citation audit. No secrets, no evidence bodies, no PII (Rule 8/44).
+ * PACKET-LANE writer. A packet call that invokes writeReceipt leaves a receipt at
+ * .ai-workflow/context-gateway/receipts/ (gitignored operational store — NEVER the tracked
+ * AI-HANDOFF lane, which would pollute the catalog). Receipts carry the manifest
+ * (paths/windows/shas/tiers — no content), provider, model, token counts, cost, and the citation
+ * audit. No secrets, no evidence bodies, no PII (Rule 8/44).
+ *
+ * SCOPE (corrected 2026-08-13 — the previous header read "Every provider call leaves a receipt",
+ * which was never true and is exactly the Rule 75 failure): this writer requires a real manifest
+ * and a citation audit, so it serves the PACKET lane only. The CONSULT lane (consult.mjs) has
+ * neither — it records via receiptV1.mjs instead. Between them every provider call is now
+ * recorded, but by two different writers; do not assume this one covers consults.
  *
  * reconstructPacket rebuilds a packet object from a saved packet JSON so `verify` can audit an
  * answer offline ($0): IDs are ordinal, so same-order addEvidence reproduces them; a manifest
