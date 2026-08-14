@@ -101,7 +101,12 @@ export async function runConsult(providerName, defaultRemit, defaultOut) {
     // Refusals (ceiling/spend/unknown-provider) are expected outcomes, not crashes (T8/T10).
     if (e?.message?.includes('OPENROUTER_API_KEY')) { console.error(`[consult-${providerName}] ${e.message}`); process.exit(1); }
     if (e?.code && KNOWN_PROVIDER_CODES.includes(e.code)) {
-      console.error(`[consult-${providerName}] REFUSED ${e.message}`);
+      // The console must agree with the receipt. NON_GATE codes are recorded as `error`
+      // (misconfiguration), not `refused` (a gate biting) — printing REFUSED for all of them made
+      // stderr and the audit record tell two different truths about one event, in a file that
+      // elsewhere enforces one-word-one-meaning (Kimi round 14, F2).
+      const label = NON_GATE.has(e.code) ? 'CONFIG ERROR' : 'REFUSED';
+      console.error(`[consult-${providerName}] ${label} ${e.message}`);
       if (Array.isArray(e.detail)) for (const d of e.detail) console.error(`  - ${d}`);
       process.exit(2);
     }

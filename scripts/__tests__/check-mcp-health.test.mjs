@@ -53,6 +53,43 @@ test('the home directory itself collapses to ~', () => {
 // distinction lives ONLY in the exit code for any automation consuming it, and it was verified by
 // hand rather than pinned — so it could regress silently (Rule 79; Kimi round 5, O2).
 
+/** Same as runCli but returns stdout too — the exit-3 MESSAGE was unpinned for 13 rounds. */
+const runCliOut = (args, cwd) => {
+  try {
+    return {
+      status: 0,
+      out: execFileSync(process.execPath, [CLI, ...args], {
+        cwd, stdio: 'pipe', env: { ...process.env, HOME: cwd, USERPROFILE: cwd },
+      }).toString(),
+    };
+  } catch (e) {
+    return { status: e.status, out: e.stdout?.toString() ?? '' };
+  }
+};
+
+test('REGRESSION: a filter that matches nothing must NOT claim "not configured" is justified', () => {
+  // This is the tool's own failure mode, on the exact command linear-sync-gate.mjs recommends.
+  // A one-character typo (`linaer`) used to print "This is the ONLY state that justifies saying
+  // 'not configured'" — handing an agent the precise false conclusion the tool exists to kill,
+  // while the module header already documented that as false under a filter. Exit codes were
+  // right; the WORDS lied. Nothing pinned stdout on this path, so 13 review rounds missed it.
+  const cwd = mkdtempSync(join(tmpdir(), 'swan-mcp-filter-'));
+  const { status, out } = runCliOut(['zzz-typo-that-matches-nothing'], cwd);
+  assert.equal(status, 3, 'exit code stays 3');
+  assert.doesNotMatch(out, /ONLY state that justifies/i, 'must not justify "not configured" under a filter');
+  assert.match(out, /nothing matched/i, 'must say what actually happened');
+  assert.match(out, /Re-run with NO filter/i, 'must tell the reader how to get the real answer');
+});
+
+test('with NO filter, the justification IS printed — the correction must not gut the true case', () => {
+  // The blunt fix (delete the sentence entirely) would pass the test above while destroying the
+  // one state where the claim is legitimate. Pin both directions, as the 204/200 pair does.
+  const cwd = mkdtempSync(join(tmpdir(), 'swan-mcp-nofilter-'));
+  const { status, out } = runCliOut([], cwd);
+  assert.equal(status, 3);
+  assert.match(out, /ONLY state that justifies/i, 'unfiltered exit-3 IS the justified state');
+});
+
 const runCli = (args, cwd) => {
   try {
     // HOME/USERPROFILE point homedir() INSIDE the temp dir: without this the CLI reads the

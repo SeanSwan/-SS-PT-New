@@ -104,7 +104,22 @@ export function collectServers() {
  * Map an observed result to a plain-language cause + the exact action that fixes it.
  * `body` is matched here and NEVER returned — the caller only receives the verdict.
  */
-export function diagnose(status, body = '') {
+export function diagnose(status, body = '', hasCredential = true) {
+  // A 401 proves the token is BAD only if a token was actually SENT. Servers whose credential lives
+  // outside the config — Claude Code's interactive OAuth, for instance — have no Authorization
+  // header here, so this probe is unauthenticated by construction and its 401 says nothing about
+  // their health. Reporting those as TOKEN REJECTED tells Sean to rotate a WORKING credential: the
+  // exact inverse of the failure this tool exists to kill. Caught live on a real server whose tools
+  // were registered and working while this tool called its token rejected (round 14, self-found).
+  if (!hasCredential && (status === 401 || status === 403)) {
+    return {
+      verdict: 'CANNOT VERIFY — no credential in config',
+      remedy: 'This probe sent no Authorization header because the config carries none, so the 401 is '
+        + 'the probe being unauthenticated — NOT evidence about the server. Its credential is handled '
+        + 'elsewhere (typically interactive OAuth via Claude Code). Do NOT rotate anything on this '
+        + 'basis. If its tools are missing, re-authenticate it in an interactive session and restart.',
+    };
+  }
   const REJECTED = {
     verdict: 'CONFIGURED BUT TOKEN REJECTED',
     remedy: 'The server IS configured — the credential is expired/revoked, so it registers ZERO tools. '
@@ -170,6 +185,12 @@ const MAX_BODY = 65536;
  * The response body is consumed for matching and discarded; only its LENGTH escapes.
  */
 async function probeHttp(def) {
+  // Auth material present in CONFIG. Absent => this probe cannot authenticate, so a 401 is a
+  // statement about the probe, not the server (see diagnose's hasCredential branch).
+  const hasCredential = Boolean(
+    Object.keys(def.headers ?? {}).some((k) => k.toLowerCase() === 'authorization')
+    || Object.keys(def.env ?? {}).length,
+  );
   const body = JSON.stringify({
     jsonrpc: '2.0', id: 1, method: 'initialize',
     params: { protocolVersion: '2024-11-05', capabilities: {}, clientInfo: { name: 'swan-check', version: '1' } },
@@ -190,7 +211,7 @@ async function probeHttp(def) {
     // gigabytes before the slice ran. The previous comment here claimed a bound the code did not
     // have, which is the untrue-doc-claim class this whole slice exists to delete (round 6, S3).
     const { text, bytes, truncated } = await readCapped(r, MAX_BODY);
-    const { verdict, remedy } = diagnose(r.status, text);
+    const { verdict, remedy } = diagnose(r.status, text, hasCredential);
     // `text` dies here. A 401 body from an auth proxy routinely echoes the credential.
     // Buffer.byteLength, not .length: the header promises a BYTE count and stdout prints "B";
     // String.length counts UTF-16 code units and undercounts any multibyte body (Kimi r3, N1).
@@ -198,7 +219,7 @@ async function probeHttp(def) {
   } catch (e) {
     // e.message can embed the request URL, which the contract forbids printing — so only the class.
     const cause = e.name === 'AbortError' ? 'timeout after 15s' : e.constructor?.name ?? 'error';
-    const { verdict, remedy } = diagnose(null);
+    const { verdict, remedy } = diagnose(null, '', hasCredential);
     return { status: null, bytes: 0, truncated: false, verdict, remedy: `${remedy} (cause class: ${cause})` };
   } finally { clearTimeout(timer); }
 }
@@ -225,7 +246,18 @@ for (const { path, scope } of CONFIG_LOCATIONS) console.log(`  ${existsSync(path
 
 if (!servers.length) {
   console.log(`\nNo MCP servers${filter ? ` matching "${filter}"` : ''} declared in ANY location above.`);
-  console.log('This is the ONLY state that justifies saying "not configured".');
+  if (filter) {
+    // A filter matching nothing means NOTHING MATCHED — not "not configured". Printing the
+    // justification here hands an agent the exact false conclusion this tool exists to kill,
+    // triggered by nothing more than a typo'd filter (`linaer`) or a renamed server — on the very
+    // command linear-sync-gate.mjs tells agents to run. The header already said this was false
+    // under a filter while main() printed it unconditionally: the Rule 75 failure inside the
+    // Rule 75 tool (Kimi round 14, F1).
+    console.log(`A filter was applied, so this means only "nothing matched ${filter}" — NOT "not configured".`);
+    console.log('Re-run with NO filter before drawing that conclusion.');
+  } else {
+    console.log('This is the ONLY state that justifies saying "not configured".');
+  }
   // Exit 3, distinct from 2: automation must be able to tell "definitively not configured" from
   // "cannot tell". A disambiguation tool shipping an ambiguous contract defeats itself (r4 N1).
   process.exit(3);
@@ -233,6 +265,7 @@ if (!servers.length) {
 
 let unhealthy = 0;
 let probed = 0;
+let unverified = 0;
 for (const { name, def, source, scope } of servers) {
   console.log(`\n--- ${name}`);
   console.log(`    declared in : ${source}  [${scope}]`);
@@ -271,7 +304,10 @@ for (const { name, def, source, scope } of servers) {
   console.log(`    HTTP        : ${status ?? 'n/a'}  (body ${bytes}B${truncated ? '+ truncated' : ''}, not printed — Rule 59)`);
   console.log(`    VERDICT     : ${verdict}`);
   console.log(`    REMEDY      : ${remedy}`);
-  if (verdict !== 'HEALTHY') unhealthy += 1;
+  // 'CANNOT VERIFY' is not a fault: counting it unhealthy would flip the exit code because a
+  // server authenticates elsewhere. It is unverified, exactly like the stdio case.
+  if (verdict.startsWith('CANNOT VERIFY')) unverified += 1;
+  else if (verdict !== 'HEALTHY') unhealthy += 1;
 }
 
 console.log(`\n=== ${servers.length} declared, ${probed} probed, ${unhealthy} unhealthy ===`);
