@@ -41,14 +41,31 @@ C:/tmp/ss-qa-harness-slice0        branch: claude/qa-harness-slice0-20260811
 
 The harness was substantially rebuilt on 2026-08-13/14 and **those commits are not on `main`**. If
 you run from the main checkout you will use a version that is blind to 39 dashboard routes and has
-a stale write-allowlist. Confirm before starting:
+a stale write-allowlist.
+
+**Confirm by FILE, not by commit SHA.** This branch has been rebased at least once — commit hashes
+recorded earlier in the session are already orphaned, so a SHA check reports "wrong branch" on a
+perfectly correct tree and sends you back to `main`, which is the exact mistake this section exists
+to prevent.
 
 ```bash
 cd C:/tmp/ss-qa-harness-slice0
-git log --oneline -6      # expect 72332f5ae, 3dc7be425, ec4090e6e, 3c8a038c4, 72e07364d
+ls frontend/e2e/mission/dashboardRouteManifest.ts \
+   frontend/e2e/mission/benignBeacons.ts \
+   frontend/e2e/mission/productNoise.ts \
+   frontend/e2e/mission/uncrawledRoutes.ts \
+   backend/utils/modelRegistryAudit.mjs \
+   backend/models/dormantModels.mjs
+grep -c "user-dashboard/groups" frontend/e2e/mission/production-dashboard-crawl.routes.ts   # expect 1
 ```
 
-If that worktree is gone, ask the owner to push the branch rather than falling back to `main`.
+All six files present and the grep returning 1 means you have the current harness. Any missing file
+means you are on an older tree — stop and ask the owner to push the branch rather than falling back
+to `main`.
+
+**Other agents commit into this repo concurrently.** Before you edit anything, read the coordination
+ledger (`node scripts/lane.mjs` from the main checkout) and claim your files. Do not `git add -A`,
+and do not rebase or amend shared history.
 
 **Known traps — all of these have already cost someone hours:**
 
