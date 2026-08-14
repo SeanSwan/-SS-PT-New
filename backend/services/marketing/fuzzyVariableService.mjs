@@ -41,6 +41,35 @@ import logger from '../../utils/logger.mjs';
 /** Hard ceiling on generated clause length. Short is the entire point. */
 export const MAX_WORDS = 10;
 
+/**
+ * Absolute character ceiling, because a WORD cap is not a SIZE cap. Hostile
+ * round 2 against the hardened validator: ten tokens of 500 characters each
+ * passed a ten-word ceiling at 5,009 characters, and one 3,000-character token
+ * passed as a single word. Ten ordinary words are ~60 characters; 120 leaves
+ * room for long compounds while bounding the blast radius of the LLM seam this
+ * validator exists to guard.
+ */
+export const MAX_CHARS = 120;
+
+/**
+ * C0/C1 controls, excluding the whitespace ones (TAB/LF/CR) that the collapse
+ * below legitimately folds to a space. U+0007 BEL reached output otherwise.
+ */
+const CONTROL_RE = new RegExp(
+  '[\u0000-\u0008'   // NUL..BS  (TAB u0009 / LF u000A excluded)
+  + '\u000B\u000C'   // VT, FF
+  + '\u000E-\u001F'  // SO..US   (CR u000D excluded)
+  + '\u007F-\u009F]',// DEL + C1 block
+);
+
+/**
+ * Stacked combining marks ("zalgo") carry no forbidden shape and few words, but
+ * render as vertical noise that overflows the line. Three or more in a row is
+ * abusive in a short English marketing clause; NFKC composes the legitimate
+ * accented forms, so ordinary prospect text reaches here with none at all.
+ */
+const COMBINING_STACK_RE = /\p{Mn}{3,}/u;
+
 /** Feature flag — exact-match 'true', mirroring every other marketing flag. */
 const flagEnabled = (env) => env?.MARKETING_FUZZY_VARS_ENABLED === 'true';
 
@@ -139,7 +168,13 @@ export function validateClause(raw, { maxWords = MAX_WORDS } = {}) {
   const value = normalized.replace(/\s+/g, ' ').trim();
 
   if (!value) return { ok: false, reason: 'empty' };
+  // Checked after the collapse, so the TAB/LF/CR that the collapse legitimately
+  // folds are already gone and anything left is a genuine control character.
+  if (CONTROL_RE.test(value)) return { ok: false, reason: 'control_char' };
+  if (COMBINING_STACK_RE.test(value)) return { ok: false, reason: 'combining_stack' };
   if (wordCount(value) > maxWords) return { ok: false, reason: 'too_long' };
+  // A word cap is not a size cap: ten 500-character tokens satisfy `maxWords`.
+  if (value.length > MAX_CHARS) return { ok: false, reason: 'too_long_chars' };
   for (const shape of FORBIDDEN_SHAPES) {
     if (shape.test(value)) return { ok: false, reason: 'forbidden_shape' };
   }

@@ -312,3 +312,54 @@ describe('resolveFuzzyVariables — confusable payloads never reach output', () 
     expect(validateClause('i found you on evil-example.test').ok).toBe(false);
   });
 });
+
+/**
+ * Hostile round 2, run against the ALREADY-hardened validator. The confusable
+ * class was closed; these are the classes that closing it revealed. All three
+ * share the round-1 threat model — text that renders wrong in a prospect's
+ * inbox while carrying no forbidden shape at all.
+ */
+describe('validateClause — size, controls and combining marks', () => {
+  it('rejects ten words that are five thousand characters', () => {
+    // MAX_WORDS is a WORD cap, not a SIZE cap. Ten 500-character tokens satisfy
+    // it exactly and would render as a wall of text mid-sentence.
+    const wall = Array.from({ length: 10 }, () => 'a'.repeat(500)).join(' ');
+    expect(validateClause(wall)).toEqual({ ok: false, reason: 'too_long_chars' });
+  });
+
+  it('rejects a single enormous token', () => {
+    expect(validateClause('a'.repeat(3000)).reason).toBe('too_long_chars');
+  });
+
+  it('rejects a C0 control character that whitespace collapse does not remove', () => {
+    // U+0007 BEL is not `\s`, so the collapse left it intact and it reached output.
+    expect(validateClause('the upstairs \u0007stays hot')).toEqual({
+      ok: false, reason: 'control_char',
+    });
+  });
+
+  it('rejects stacked combining marks (zalgo) that carry no forbidden shape', () => {
+    // Pure Latin combining marks, U+0300-U+036F. These are NOT in the Cyrillic or
+    // Greek blocks, so mixed_script cannot be what catches them — an earlier probe
+    // appeared to reject zalgo only because the sample happened to include U+0489,
+    // which lives in the Cyrillic block. This asserts the real guard.
+    const zalgo = 'the u' + '\u0300\u0301\u0302\u0303\u0304\u0305'.repeat(10) + 'pstairs stays hot';
+    expect(validateClause(zalgo)).toEqual({ ok: false, reason: 'combining_stack' });
+  });
+
+  it('still accepts ordinary accented text, which NFKC leaves precomposed', () => {
+    // café / piñata carry ZERO combining marks after NFKC, so the zalgo guard
+    // must not touch them.
+    expect(validateClause('the café piñata is not cooling').ok).toBe(true);
+  });
+
+  it('folds enclosed and fullwidth letters rather than rejecting them', () => {
+    // Not a bypass — this is normalization doing its job. Asserted so a future
+    // change cannot quietly turn correct folding into a rejection.
+    expect(validateClause('the ⓤⓟⓢⓣⓐⓘⓡⓢ stays hot').value).toBe('the upstairs stays hot');
+  });
+
+  it('collapses line and paragraph separators to a space', () => {
+    expect(validateClause('the upstairs \u2028stays hot').value).toBe('the upstairs stays hot');
+  });
+});
