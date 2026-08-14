@@ -206,6 +206,15 @@ test('collapseHome fails CLOSED when `home` is omitted — it must not silently 
   const home = homedir();
   assert.equal(collapseHome(join(home, 'somefile.json')), `~${sep}somefile.json`);
   assert.equal(collapseHome(home), '~');
+
+  // EXPLICIT falsy is the hole a default parameter does NOT close: `= homedir()` fires only on
+  // `undefined`, so a caller forwarding an unset config value as null/'' got NO redaction and no
+  // error. Verified by probe before fixing: it returned a full home path, username intact. Falsy
+  // must mean "use the real home", never "skip redaction" (HY3 final, W#1).
+  for (const falsy of [null, '', undefined, 0, false]) {
+    const out = collapseHome(join(home, 'secret.json'), falsy);
+    assert.equal(out, `~${sep}secret.json`, `home=${JSON.stringify(falsy)} must still redact`);
+  }
   // Explicit home still wins, and separators are preserved rather than normalized.
   assert.equal(collapseHome(String.raw`C:\Users\sean\.claude.json`, String.raw`C:\Users\sean`), String.raw`~\.claude.json`);
   assert.equal(collapseHome('/home/sean/.claude.json', '/home/sean'), '~/.claude.json');

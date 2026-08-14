@@ -98,7 +98,13 @@ export function collapseHome(p, home = homedir()) {
   // module whose stated asymmetry is "a false positive costs display detail, a false negative
   // leaks a username". A redaction primitive that silently does nothing when under-called
   // contradicts the ownership claim this function was extracted to make (HY3 W3).
-  const h = String(home ?? '');
+  // `home || homedir()`, NOT `home ?? ''`. A default parameter only fires on `undefined`, so an
+  // explicit `null`/`''` — the shape a caller produces by forwarding an unset config value — sailed
+  // past it into `!h`, and the function returned the path UNREDACTED. Verified by probe: passing
+  // null printed a full home path with the username intact. A redaction primitive must not have a
+  // falsy argument that means "skip redaction"; falsy now means "use the real home", which
+  // over-redacts at worst and is the direction this module documents as safe (HY3 final, W#1).
+  const h = String(home || homedir() || '');
   if (!h || !s.toLowerCase().startsWith(h.toLowerCase())) return s;
   const rest = s.slice(h.length);
   return rest === '' || /^[\\/]/.test(rest) ? `~${rest}` : s;
