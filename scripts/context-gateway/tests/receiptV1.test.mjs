@@ -168,6 +168,16 @@ test('REGRESSION: two different calls in the same second do not collide', () => 
   assert.notEqual(a.eventId, d.eventId, 'adding a seed must not collide with no seed');
   assert.notEqual(d.eventId, e.eventId, 'differing seed must not collide');
 
+  // EXTERNAL seeds too. Both relativize to the constant '<external>', so hashing the relativized
+  // form left these colliding exactly as before the fix — the instance closed, the class alive.
+  const x = buildReceiptV1(base({ docSha: 'aaa', effort: 'high', maxTokens: 60000, seedPath: 'C:/Users/X/seedONE.md' }));
+  const y = buildReceiptV1(base({ docSha: 'aaa', effort: 'high', maxTokens: 60000, seedPath: 'C:/Users/X/seedTWO.md' }));
+  assert.equal(x.seedPath, '<external>', 'the RECORD still redacts — only the digest sees the original');
+  assert.equal(y.seedPath, '<external>');
+  assert.notEqual(x.eventId, y.eventId, 'two different external seeds must not collide');
+  // ...and the digest must not leak what it hashed.
+  assert.ok(!JSON.stringify(x).includes('seedONE'), 'the original seed name must not appear anywhere in the record');
+
   const root = mkdtempSync(join(tmpdir(), 'swan-receipt-'));
   for (const rec of [a, b, c]) writeReceiptV1(rec, root);
   const dir = join(root, '.ai-workflow', 'context-gateway', 'receipts');
