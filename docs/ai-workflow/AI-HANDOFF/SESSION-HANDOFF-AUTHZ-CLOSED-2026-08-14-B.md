@@ -17,6 +17,17 @@ extends: SESSION-HANDOFF-AUTHZ-AND-CORPUS-2026-08-14.md
 > **Self-contained.** Read this file, then `.ai-workflow/coordination/*.lane.md`, then act.
 > You do not need to read the predecessor handoff unless you want the origin story.
 
+> ⚠️ **SUPERSEDED IN PART — read `SESSION-HANDOFF-AUTHZ-EXECUTED-2026-08-14-C.md` first.**
+> This document's authorization findings still stand. Three things in it are now stale:
+> **§7 items 2 and 3 are DONE** (dead bypass writes deleted and pinned by a contract test; the
+> prekey limiter added). **§7 item 1 is ADVANCED, NOT DONE** — the 8 controller-hop handlers,
+> the audit's weakest clearances, now execute and are mutation-verified, but ~203 of 211
+> handlers still have no executed test, so this stays the top of the list.
+> **§8's "`backend/routes/` is byte-identical to `origin/main`" is FALSE** since
+> `encryptionRoutes.mjs` gained the limiter; and **§8's "2577 passed" is not a reconcilable
+> figure** — that suite's passed/skipped split moves with the environment, so only its
+> collected total (2661) and failure count (2) hold still. C carries the evidence for each.
+
 ---
 
 ## 1. The one-paragraph version
