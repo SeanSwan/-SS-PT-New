@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const livePackage = {
   id: 7701,
@@ -172,7 +173,7 @@ async function consoleIssueCollector(page: Page) {
   page.on('pageerror', (error) => consoleErrors.push(error.message));
   return {
     actionable: () => consoleErrors.filter((item) => {
-      if (/preloaded using link preload/i.test(item)) return false;
+      if (isSuppressedProductNoise(item)) return false;
       if (isKnownRealtimeTransportNoise(item, failedResources)) return false;
       return true;
     }),

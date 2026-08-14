@@ -6,6 +6,7 @@
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const adminUser = {
   id: 1,
@@ -134,5 +135,5 @@ test('admin Marketing native publishing smoke', async ({ page }, testInfo) => {
   await page.screenshot({ path: testInfo.outputPath('marketing-smoke.png'), fullPage: false });
   expect(layout.bodyLength).toBeGreaterThan(100);
   expect(layout.overflowX).toBeLessThanOrEqual(12);
-  expect(consoleErrors.filter(item => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleErrors.filter(item => !isSuppressedProductNoise(item))).toEqual([]);
 });

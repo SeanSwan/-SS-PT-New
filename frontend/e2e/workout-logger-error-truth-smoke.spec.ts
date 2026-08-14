@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const trainerUser = {
   id: 7,
@@ -104,7 +105,7 @@ test('trainer workout logger failed client load does not fall back to demo mode'
   const layout = await inspectLayout(page);
   expect(layout.overflowX).toBeLessThanOrEqual(12);
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !/Failed to load resource: the server responded with a status of 403/i.test(item)
     && !/\/api\/workout-forms\/client\/77\/info/i.test(item)
     && !isKnownRealtimeTransportNoise(item, failedResources)

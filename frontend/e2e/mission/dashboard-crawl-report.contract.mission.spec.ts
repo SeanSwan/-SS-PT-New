@@ -29,6 +29,9 @@ import {
 } from './production-dashboard-crawl.report';
 import { flushCrawlReport } from './crawlWorklist';
 import { BENIGN_WRITE_BEACONS, isBenignWriteBeacon, mentionsBenignBeacon } from './benignBeacons';
+import { isSuppressedProductNoise } from './productNoise';
+import { isExpectedMissionConsoleNoise } from './missionHarness';
+import { isKnownConsoleNoise } from '../client-card-responsive-layout';
 
 const ROUTES = ['/a', '/b', '/c', '/d'];
 const TODAY = '2026-08-12';
@@ -190,6 +193,43 @@ test.describe('@mission @contract dashboard crawl report contract', () => {
     });
 
     expect(compactIssues(state, ROUTES).blockedWrites).toEqual(['POST /api/sessions']);
+  });
+});
+
+test.describe('@mission @contract product-noise suppression reaches EVERY gate', () => {
+  // SWA-157. qaSuppressions exists so tolerating a defect expires. That promise
+  // held only for the crawl: three other gates carried permanent hardcoded copies
+  // of the same patterns, so on the registry's expiry date the crawl would start
+  // failing as designed while those three swallowed the identical message forever.
+  // Each test below fails against the pre-migration behaviour.
+  const PRELOAD = 'preloaded using link preload';
+  const AFTER_EVERY_EXPIRY = '2099-01-01';
+
+  test('an in-date registry entry is still suppressed', () => {
+    expect(isSuppressedProductNoise(PRELOAD, '2026-08-13')).toBe(true);
+  });
+
+  test('an EXPIRED registry entry is no longer suppressed — the expiry actually bites', () => {
+    expect(isSuppressedProductNoise(PRELOAD, AFTER_EVERY_EXPIRY)).toBe(false);
+  });
+
+  test('the mission harness gate honours expiry instead of suppressing forever', () => {
+    expect(isExpectedMissionConsoleNoise(PRELOAD, '2026-08-13')).toBe(true);
+    expect(isExpectedMissionConsoleNoise(PRELOAD, AFTER_EVERY_EXPIRY)).toBe(false);
+  });
+
+  test('the client-card layout gate honours expiry instead of suppressing forever', () => {
+    expect(isKnownConsoleNoise(PRELOAD, '2026-08-13')).toBe(true);
+    expect(isKnownConsoleNoise(PRELOAD, AFTER_EVERY_EXPIRY)).toBe(false);
+  });
+
+  test('harness exhaust is NOT registry-driven — it must never expire', () => {
+    // The rig's own output is not a product defect on a deadline. If these ever
+    // start expiring, the build fails for no product reason and someone silences
+    // the gate to make it stop — the exact outcome the registry exists to prevent.
+    const socketCors = 'GET http://x/socket.io/?transport=polling blocked by CORS';
+    expect(isKnownConsoleNoise(socketCors, AFTER_EVERY_EXPIRY)).toBe(true);
+    expect(isSuppressedProductNoise(socketCors, '2026-08-13')).toBe(false);
   });
 });
 

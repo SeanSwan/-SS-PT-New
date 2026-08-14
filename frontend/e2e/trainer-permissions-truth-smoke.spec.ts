@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const adminUser = {
   id: 1,
@@ -244,7 +245,7 @@ test('admin trainer permissions uses live trainers and functional controls', asy
   const layout = await inspectLayout(page);
   expect(layout.bodyText).not.toMatch(/john\.smith@example\.com|sarah\.johnson@example\.com|mike\.wilson@example\.com/i);
   expect(layout.overflowX).toBeLessThanOrEqual(12);
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isSuppressedProductNoise(item))).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('trainer-permissions-truth-smoke.png'), fullPage: false });
 });

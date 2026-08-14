@@ -5,6 +5,7 @@
  * and unexpected browser errors without capturing production data.
  */
 import type { Page } from '@playwright/test';
+import { isSuppressedProductNoise, todayIso } from './mission/productNoise';
 
 export async function inspectCardLayout(page: Page) {
   return page.evaluate(() => {
@@ -305,8 +306,14 @@ export function collectUnexpectedConsoleErrors(page: Page) {
   return consoleErrors;
 }
 
-export const isKnownConsoleNoise = (message: string) => (
-  /preloaded using link preload/i.test(message)
+/**
+ * PRODUCT noise routes through the expiring suppressions registry (SWA-157); the
+ * remaining branches are HARNESS EXHAUST and must never expire. This used to
+ * hardcode 'preloaded using link preload' permanently, which meant the registry
+ * entry could expire and fail the crawl while this gate swallowed it forever.
+ */
+export const isKnownConsoleNoise = (message: string, today: string = todayIso()) => (
+  isSuppressedProductNoise(message, today)
   || /^Failed to load resource: the server responded with a status of 400 \(Bad Request\)$/.test(message)
   || /\/socket\.io\/.*blocked by CORS/i.test(message)
 );

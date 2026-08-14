@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const demoUser = {
   id: '101',
@@ -30,7 +31,7 @@ function isKnownRealtimeTransportNoise(message: string, failedResources: FailedR
 
 function actionableConsoleErrors(consoleErrors: string[], failedResources: FailedResource[]) {
   return consoleErrors.filter((item) => {
-    if (/preloaded using link preload/i.test(item)) return false;
+    if (isSuppressedProductNoise(item)) return false;
     if (isKnownRealtimeTransportNoise(item, failedResources)) return false;
     return true;
   });

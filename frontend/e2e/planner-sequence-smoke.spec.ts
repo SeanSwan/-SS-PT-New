@@ -8,6 +8,7 @@
  * receipt with one-tap Undo → guarded undo.
  */
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const adminUser = {
   id: 1,
@@ -130,5 +131,5 @@ test('rearrange command reorders the draft, shows an Undo receipt, and undo rest
   await receiptFeed.getByRole('button', { name: 'Undo' }).click();
   await expect(receiptFeed).toContainText('Rearrangement undone.');
 
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isSuppressedProductNoise(item))).toEqual([]);
 });

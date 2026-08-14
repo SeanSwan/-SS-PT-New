@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 test.describe.configure({ retries: 0 });
 
@@ -75,7 +76,7 @@ function isKnownRealtimeTransportNoise(message: string, failedResources: FailedR
 function actionableConsoleErrors(consoleErrors: string[], failedResources: FailedResource[]) {
   const socketCorsNoise = consoleErrors.some((item) => /\/socket\.io\/.*blocked by CORS/i.test(item));
   return consoleErrors.filter((item) => {
-    if (/preloaded using link preload/i.test(item)) return false;
+    if (isSuppressedProductNoise(item)) return false;
     if (/\/socket\.io\/.*blocked by CORS/i.test(item) || (socketCorsNoise && /Failed to load resource: net::ERR_FAILED/i.test(item))) return false;
     if (isKnownRealtimeTransportNoise(item, failedResources)) return false;
     return true;
@@ -330,7 +331,7 @@ test('client overview lens buttons stay inside the observatory route', async ({ 
     expect(new URL(page.url()).pathname.startsWith('/social')).toBe(false);
   }
 
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isSuppressedProductNoise(item))).toEqual([]);
 });
 
 test('client dashboard feed navigation releases bottom scroll and mobile body lock', async ({ page }, testInfo) => {

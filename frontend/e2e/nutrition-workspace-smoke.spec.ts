@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { openNutritionManualReview } from './nutrition-workspace-smoke.helpers';
+import { isSuppressedProductNoise } from './mission/productNoise';
 const clientUser = {
   id: '101',
   email: 'qa.client@swanstudios.local',
@@ -282,7 +283,7 @@ test('client nutrition workspace enforces review-first logging across the respon
   expect(layout.overflowX).toBeLessThanOrEqual(12);
   expect(layout.smallTargets).toEqual([]);
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !isKnownRealtimeTransportNoise(item, failedResources)
     && !/React Router Future Flag Warning/i.test(item)
     && !/Service Worker registration blocked by Playwright/i.test(item)

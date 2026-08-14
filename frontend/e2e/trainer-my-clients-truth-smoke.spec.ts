@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const trainerUser = {
   id: 7,
@@ -115,7 +116,7 @@ test('trainer My Clients renders live assignments without demo wrapper data', as
 
   const layout = await layoutSnapshot(page);
   expect(layout.overflowX).toBeLessThanOrEqual(12);
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isSuppressedProductNoise(item))).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('trainer-my-clients-live-truth-smoke.png'), fullPage: false });
 });
@@ -136,7 +137,7 @@ test('trainer My Clients shows an honest API error instead of demo clients', asy
   const layout = await layoutSnapshot(page);
   expect(layout.overflowX).toBeLessThanOrEqual(12);
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\[ClientHub\] roster load failed/i.test(item)
     && !/Error loading clients:/i.test(item)

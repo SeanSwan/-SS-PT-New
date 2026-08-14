@@ -5,6 +5,7 @@ import {
   seedAdminAuth,
   watchAdminConsole,
 } from './adminComplianceTruthSmoke.helpers';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 test('admin compliance widget shows unavailable state instead of demo at-risk clients', async ({ page }, testInfo) => {
   const { consoleErrors, failedResources } = watchAdminConsole(page);
@@ -28,7 +29,7 @@ test('admin compliance widget shows unavailable state instead of demo at-risk cl
   const overflowX = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - window.innerWidth));
   expect(overflowX).toBeLessThanOrEqual(12);
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !isKnownRealtimeTransportNoise(item, failedResources)
@@ -57,7 +58,7 @@ test('admin business KPI widget shows unavailable state instead of demo revenue 
   await expect(page.getByText(/^Avg Client LTV$/i)).toHaveCount(0);
 
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !/\/api\/admin\/analytics\/business-kpis/i.test(item)
@@ -84,7 +85,7 @@ test('admin revenue chart shows unavailable state instead of demo revenue trend'
   await expect(page.getByText(/Avg:\s*\$186/i)).toHaveCount(0);
 
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !/\/api\/admin\/analytics\/revenue/i.test(item)
@@ -111,7 +112,7 @@ test('admin user growth chart shows unavailable state instead of demo growth tre
   await expect(page.getByText(/\+3 this week/i)).toHaveCount(0);
 
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !/\/api\/admin\/analytics\/users/i.test(item)
@@ -138,7 +139,7 @@ test('admin session tracking widget shows unavailable state instead of demo sess
   await expect(page.getByText(/Avg session:\s*52 min/i)).toHaveCount(0);
 
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !/\/api\/admin\/analytics\/statistics\/workouts/i.test(item)
@@ -161,7 +162,7 @@ test('admin recent activity feed shows unavailable state instead of demo platfor
   await expect(page.getByText(/Payment received.*186|Daily backup completed|Training session scheduled/i)).toHaveCount(0);
 
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !/Failed to load resource: the server responded with a status of 500/i.test(item)
     && !/\/api\/admin\/compliance\/at-risk/i.test(item)
     && !/\/api\/gamification\/activity-feed/i.test(item)

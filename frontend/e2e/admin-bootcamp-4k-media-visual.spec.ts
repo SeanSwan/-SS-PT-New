@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
 import path from 'node:path';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const adminUser = {
   id: 1,
@@ -210,7 +211,7 @@ test('admin Bootcamp Demo Mode renders uploaded exercise videos on a 4K TV viewp
   }).toBeGreaterThan(0.35);
   await page.screenshot({ path: testInfo.outputPath('bootcamp-demo-video-modal-4k.png'), fullPage: false });
 
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isSuppressedProductNoise(item))).toEqual([]);
 });
 
 test('admin Bootcamp Demo Mode keeps uploaded videos usable on mobile', async ({ page }, testInfo) => {

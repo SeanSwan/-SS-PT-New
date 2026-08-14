@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 type FailedResource = {
   failureText?: string;
@@ -60,7 +61,7 @@ export function watchSocialSmokeConsole(page: Page) {
 
   return {
     actionableErrors: () => consoleErrors.filter((item) => {
-      if (/preloaded using link preload/i.test(item)) return false;
+      if (isSuppressedProductNoise(item)) return false;
       if (isKnownRealtimeTransportNoise(item, failedResources)) return false;
       return true;
     }),

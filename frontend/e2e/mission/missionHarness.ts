@@ -12,6 +12,7 @@
  */
 
 import type { Page, Route } from '@playwright/test';
+import { isSuppressedProductNoise, todayIso } from './productNoise';
 
 /**
  * A user the harness can install into localStorage. The client-only fields are
@@ -90,9 +91,14 @@ export function watchConsoleErrors(page: Page) {
   return consoleErrors;
 }
 
-export function isExpectedMissionConsoleNoise(message: string) {
-  if (/preloaded using link preload/i.test(message)) return true;
+export function isExpectedMissionConsoleNoise(message: string, today: string = todayIso()) {
+  // PRODUCT noise routes through the expiring registry (SWA-157). This used to be
+  // a permanent hardcoded copy of the same pattern, so the registry entry could
+  // expire and fail the crawl while this gate swallowed it forever.
+  if (isSuppressedProductNoise(message, today)) return true;
 
+  // Everything below is HARNESS EXHAUST — the rig's own output, state-dependent
+  // rather than message-matchable. It must NOT expire; see productNoise.ts.
   if (
     /Failed to load resource: net::ERR_CONNECTION_FAILED/i.test(message)
     && /https:\/\/fonts\.googleapis\.com\/css2\?/i.test(message)

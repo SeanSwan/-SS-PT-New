@@ -8,6 +8,7 @@
 
 import { expect, test, type Page, type Route } from '@playwright/test';
 import { isBenignBeaconRequest, isBenignWriteBeacon, mentionsBenignBeacon } from './benignBeacons';
+import { isSuppressedProductNoise } from './productNoise';
 
 test.describe.configure({ retries: 0 });
 
@@ -23,8 +24,10 @@ const trainerAuthState = process.env.SWAN_PROD_TRAINER_AUTH_STATE;
 const clientAuthState = process.env.SWAN_PROD_CLIENT_AUTH_STATE || legacyClientAuthState;
 
 function expectedConsoleNoise(message: string, state: LiveApiState) {
-  if (/preloaded using link preload/i.test(message)) return true;
-  if (/Service Worker: PWA functionality temporarily disabled/i.test(message)) return true;
+  // PRODUCT noise routes through the expiring registry (SWA-157). Both of these
+  // were permanent hardcoded copies of registry entries, so the entries could
+  // expire and fail the crawl while this gate swallowed them forever.
+  if (isSuppressedProductNoise(message)) return true;
   // Transport noise from a registered beacon. Registry-driven for the same reason
   // the write allowlist is: hardcoding ONE endpoint here meant a second beacon's
   // noise was never covered, and a stale suppression silences by accident.

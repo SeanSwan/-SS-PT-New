@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const adminUser = {
   id: 1,
@@ -200,7 +201,7 @@ test('admin session allocation renders live balances and posts quick add', async
   expect(layout.bodyText).not.toMatch(/Premium Training Package|Elite Performance Package|Starter Fitness Package|Sarah|Michael|Emma/i);
   expect(layout.overflowX).toBeLessThanOrEqual(12);
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !isKnownRealtimeTransportNoise(item, failedResources)
   ));
   expect(unexpectedConsoleErrors).toEqual([]);

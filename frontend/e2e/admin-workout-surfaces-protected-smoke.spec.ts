@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const adminUser = {
   id: 1,
@@ -278,7 +279,7 @@ test('protected admin workout planner renders rolodex without SVG NaN or horizon
   expect(new URL(page.url()).pathname).toBe('/dashboard/admin/workout-planner');
   expect(layout.overflowX).toBeLessThanOrEqual(12);
   expect(layout.clippedRows.length).toBeGreaterThan(0);
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isSuppressedProductNoise(item))).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('admin-workout-planner-protected-smoke.png'), fullPage: false });
 });
@@ -307,7 +308,7 @@ test('protected admin bootcamp builder renders manual rolodex and accepts exerci
   const layout = await inspectRoute(page);
   expect(new URL(page.url()).pathname).toBe('/dashboard/admin/bootcamp');
   expect(layout.overflowX).toBeLessThanOrEqual(12);
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isSuppressedProductNoise(item))).toEqual([]);
 
   await page.screenshot({ path: testInfo.outputPath('admin-bootcamp-protected-smoke.png'), fullPage: false });
 });
@@ -360,5 +361,5 @@ test('protected admin theme-connected schedule nutrition store and revenue surfa
     await page.screenshot({ path: testInfo.outputPath(surface.screenshot), fullPage: false });
   }
 
-  expect(consoleErrors.filter((item) => !/preloaded using link preload/i.test(item))).toEqual([]);
+  expect(consoleErrors.filter((item) => !isSuppressedProductNoise(item))).toEqual([]);
 });

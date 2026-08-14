@@ -7,6 +7,7 @@
  */
 
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { isSuppressedProductNoise } from './mission/productNoise';
 
 const trainerUser = {
   id: 202,
@@ -246,7 +247,7 @@ test('trainer PLAUD workspace loads clip bytes into native audio playback', asyn
 
   await page.screenshot({ path: testInfo.outputPath('plaud-playback-smoke.png'), fullPage: false });
   const unexpectedConsoleErrors = consoleErrors.filter((item) => (
-    !/preloaded using link preload/i.test(item)
+    !isSuppressedProductNoise(item)
     && !isKnownRealtimeTransportNoise(item, failedResources)
   ));
   expect(unexpectedConsoleErrors).toEqual([]);
