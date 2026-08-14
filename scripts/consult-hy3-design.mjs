@@ -8,6 +8,7 @@
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const ROOT = process.cwd();
 const DEFAULT_MODEL = 'tencent/hy3';
@@ -75,13 +76,48 @@ function assertSafeInputPath(path, label) {
   if (!existsSync(path)) throw new Error(`${label} not found: ${path}`);
 }
 
-function sanitizeOutboundText(value) {
-  return String(value ?? '')
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '<REDACTED_EMAIL>')
-    .replace(/\+?1?[\s.(-]*\d{3}[\s.)-]*\d{3}[\s.-]*\d{4}/g, '<REDACTED_PHONE>')
-    .replace(/sk-or-[A-Za-z0-9_-]{8,}/g, '<REDACTED_KEY>')
-    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer <REDACTED_KEY>')
-    .replace(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '<REDACTED_JWT>');
+/**
+ * Outbound redaction rules, in application order.
+ *
+ * The PHONE rule was rebuilt 2026-08-14 (hostile review F4). The original
+ * `\+?1?[\s.(-]*\d{3}[\s.)-]*\d{3}[\s.-]*\d{4}` matched ANY ten digits with any run of separators
+ * and no boundaries, so on a CODE packet it rewrote a git blob SHA into `index 000<REDACTED_PHONE>2e3ba`
+ * and mangled two security-test fixtures. The external reviewer then filed a CRITICAL saying those
+ * tests were vacuous — true of the packet it received, false of the repo. A redactor that silently
+ * edits evidence manufactures findings.
+ *
+ * Two precision guards, both chosen because they cannot cost true-positive coverage:
+ *  - BOUNDARIES: a phone number is never embedded inside a longer alphanumeric run, but a hash
+ *    always is. This alone removes the SHA corruption at zero security cost.
+ *  - NANP AREA CODE `[2-9]`: North American area codes cannot begin with 0 or 1. The original
+ *    pattern was already NANP-shaped (`+1`, 3-3-4), so this narrows nothing it used to catch —
+ *    while killing the `0000000…` / `1234567890…` shapes that dominate hashes and id runs.
+ * Separators are `?` (at most one) rather than `*` (any run): `..` is diff syntax, never a phone.
+ */
+const REDACTION_RULES = [
+  ['EMAIL', /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '<REDACTED_EMAIL>'],
+  ['PHONE', /(?<![0-9A-Za-z])(?:\+?1[\s.-]?)?(?:\([2-9]\d{2}\)|[2-9]\d{2})[\s.-]?\d{3}[\s.-]?\d{4}(?![0-9A-Za-z])/g, '<REDACTED_PHONE>'],
+  ['KEY', /sk-or-[A-Za-z0-9_-]{8,}/g, '<REDACTED_KEY>'],
+  // Deliberately NOT narrowed: the redactor cannot tell a live token from a test fixture, so it
+  // must fail safe and redact both. That is why redaction is now DISCLOSED to the reviewer
+  // (see redactionNotice) rather than made quieter — the fix for a fixture being rewritten is to
+  // say so, not to stop redacting it.
+  ['KEY', /Bearer\s+[A-Za-z0-9._-]+/gi, 'Bearer <REDACTED_KEY>'],
+  ['JWT', /eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g, '<REDACTED_JWT>'],
+];
+
+/** Redact and REPORT. Returns the substitution count so the caller can disclose it (F4). */
+export function redactOutbound(value) {
+  let text = String(value ?? '');
+  let count = 0;
+  for (const [, pattern, replacement] of REDACTION_RULES) {
+    text = text.replace(pattern, () => { count += 1; return replacement; });
+  }
+  return { text, count };
+}
+
+export function sanitizeOutboundText(value) {
+  return redactOutbound(value).text;
 }
 
 function estimateWorstCaseUsd(prompt, maxTokens) {
@@ -115,10 +151,31 @@ async function main() {
   const model = process.env.SWAN_HY3_MODEL || DEFAULT_MODEL;
   if (!/^tencent\/hy3$/i.test(model)) throw new Error(`Hy3 design policy blocks non-Hy3 model override: ${model}`);
 
-  const document = sanitizeOutboundText(readFileSync(options.document, 'utf8'));
-  const seed = options.seed ? sanitizeOutboundText(readFileSync(options.seed, 'utf8')) : '(no seed provided)';
-  const remit = sanitizeOutboundText(options.remit || defaultRemit);
-  const prompt = `${remit}\n\n=== DOCUMENT UNDER REVIEW ===\n\n${document}\n\n=== SEED CONTEXT ===\n\n${seed}\n\n=== END CONTEXT ===`;
+  const documentR = redactOutbound(readFileSync(options.document, 'utf8'));
+  const seedR = options.seed ? redactOutbound(readFileSync(options.seed, 'utf8')) : { text: '(no seed provided)', count: 0 };
+  const remitR = redactOutbound(options.remit || defaultRemit);
+  const document = documentR.text;
+  const seed = seedR.text;
+  const remit = remitR.text;
+  const redactionCount = documentR.count + seedR.count + remitR.count;
+
+  // A silent substitution is indistinguishable from source text, so the reviewer reads
+  // `<REDACTED_KEY>` as what the file says and reports the code as defective. That produced a false
+  // CRITICAL on 2026-08-14 ("these assertions check for a string absent from the fixture" — the
+  // string was present in the repo and removed by this very function). Disclosing the substitution
+  // is what makes the corruption legible; it costs a sentence (F4).
+  const redactionNotice = redactionCount > 0
+    ? `\n\n> ⚠ EGRESS REDACTION: ${redactionCount} substitution(s) were applied to the text below before`
+      + ' it was sent to you. Any `<REDACTED_EMAIL>` / `<REDACTED_PHONE>` / `<REDACTED_KEY>` /'
+      + ' `<REDACTED_JWT>` marker is a REPLACEMENT made by the sending tool, NOT the literal source.'
+      + ' Do NOT report a defect whose evidence is one of these markers — the original value is'
+      + ' present in the repository. Flag it as "unreviewable — redacted" instead.\n'
+    : '';
+
+  const prompt = `${remit}${redactionNotice}\n\n=== DOCUMENT UNDER REVIEW ===\n\n${document}\n\n=== SEED CONTEXT ===\n\n${seed}\n\n=== END CONTEXT ===`;
+  if (redactionCount > 0) {
+    console.log(`[consult-hy3-design] redacted ${redactionCount} inline value(s) before egress — disclosed to reviewer`);
+  }
   const estimateUsd = estimateWorstCaseUsd(prompt, options.maxTokens);
 
   console.log(`[consult-hy3-design] status=preflight model_calls=0 model=${model}`);
@@ -195,7 +252,14 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(`[consult-hy3-design] ${error.message}`);
-  process.exitCode = 1;
-});
+// Only run when invoked as a script. Without this guard the module executes on import, so its
+// redaction rules — a security control — could not be unit-tested at all (F4: no test file existed).
+const invokedDirectly = process.argv[1]
+  && pathToFileURL(process.argv[1]).href === import.meta.url;
+
+if (invokedDirectly) {
+  main().catch((error) => {
+    console.error(`[consult-hy3-design] ${error.message}`);
+    process.exitCode = 1;
+  });
+}
