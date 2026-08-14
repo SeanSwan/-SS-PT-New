@@ -22,7 +22,6 @@ import { redactSecrets } from './egress.mjs';
 import { DENY_PATTERNS } from './safeRead.mjs';
 import { recordConsult, sha256 } from './receiptV1.mjs';
 
-
 const arg = (name, def = null) => {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : def;
