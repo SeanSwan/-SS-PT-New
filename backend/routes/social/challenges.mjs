@@ -53,7 +53,7 @@ router.get('/active', async (req, res) => {
         where: activeWhere,
         limit,
         offset,
-        order: [['startDate', 'DESC']],
+        order: [['startDate', 'DESC'], ['id', 'DESC']], // K7: tiebreaker — offset pages were nondeterministic on tied startDates
       }),
       CanonicalChallenge.count({ where: activeWhere }),
     ]);
@@ -81,6 +81,13 @@ router.get('/active', async (req, res) => {
     // A genuinely absent relation can degrade in a fresh environment. Missing
     // columns and every other database failure stay visible as real 500s.
     if (isMissingTableError(error)) {
+      // K2 (Kimi) vs HY3 timing dispute, resolved as both suggested: the
+      // degradation now shields the CANONICAL tables, so silence here would hide
+      // exactly what the drift campaign hunts. It stays (load-bearing against the
+      // enumeration boot until the tripwire+baseline land) but it SCREAMS:
+      // error-level, endpoint-tagged, so a vanished canonical table is telemetry,
+      // not an invisibly empty community page.
+      logger.error('[drift-telemetry] /api/social/challenges/active degraded to empty: a CANONICAL table is missing', { error: error.message });
       return res.status(200).json({ success: true, challenges: [], pagination: { limit, offset, total: 0 } });
     }
     logger.error('Error fetching active challenges:', { error: error.message, stack: error.stack });
