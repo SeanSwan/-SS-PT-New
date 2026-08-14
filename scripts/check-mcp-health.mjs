@@ -159,12 +159,15 @@ async function probeHttp(def) {
       redirect: 'manual',
       headers: { ...(def.headers ?? {}), 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
     });
-    const text = await r.text();
+    // Bounded read: the 15s timer is not a size bound, so a broken or hostile endpoint could
+    // stream arbitrarily much within it. 64 KB is far more than any initialize response.
+    const raw = await r.text();
+    const text = raw.length > 65536 ? raw.slice(0, 65536) : raw;
     const { verdict, remedy } = diagnose(r.status, text);
     // `text` dies here. A 401 body from an auth proxy routinely echoes the credential.
     // Buffer.byteLength, not .length: the header promises a BYTE count and stdout prints "B";
     // String.length counts UTF-16 code units and undercounts any multibyte body (Kimi r3, N1).
-    return { status: r.status, bytes: Buffer.byteLength(text, 'utf8'), verdict, remedy };
+    return { status: r.status, bytes: Buffer.byteLength(raw, 'utf8'), verdict, remedy };
   } catch (e) {
     // e.message can embed the request URL, which the contract forbids printing — so only the class.
     const cause = e.name === 'AbortError' ? 'timeout after 15s' : e.constructor?.name ?? 'error';

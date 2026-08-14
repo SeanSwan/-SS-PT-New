@@ -10,7 +10,15 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 import { diagnose, displayPath } from '../check-mcp-health.mjs';
+
+const CLI = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'check-mcp-health.mjs');
 
 // --- path redaction -----------------------------------------------------------------------------
 // This is a security control (the home dir carries the OS username) and it had ZERO coverage until
@@ -37,6 +45,38 @@ test('a path outside home is returned unchanged', () => {
 
 test('the home directory itself collapses to ~', () => {
   assert.equal(displayPath('/home/sean', '/home/sean'), '~');
+});
+
+// --- exit-code contract ------------------------------------------------------------------------
+// The whole point of this tool is disambiguating "not configured" from "cannot tell". That
+// distinction lives ONLY in the exit code for any automation consuming it, and it was verified by
+// hand rather than pinned — so it could regress silently (Rule 79; Kimi round 5, O2).
+
+const runCli = (args, cwd) => {
+  try {
+    execFileSync(process.execPath, [CLI, ...args], { cwd, stdio: 'pipe' });
+    return 0;
+  } catch (e) {
+    return e.status;
+  }
+};
+
+test('exit 3 = nothing declared anywhere (the ONLY "not configured" state)', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'swan-mcp-none-'));
+  assert.equal(runCli(['zzz-no-such-server-anywhere'], cwd), 3);
+});
+
+test('exit 2 = declared but nothing probeable — "0 unhealthy" is not "all good"', () => {
+  const cwd = mkdtempSync(join(tmpdir(), 'swan-mcp-stdio-'));
+  writeFileSync(join(cwd, '.mcp.json'), JSON.stringify({ mcpServers: { swanteststdio: { command: 'node' } } }), 'utf8');
+  assert.equal(runCli(['swanteststdio'], cwd), 2);
+});
+
+test('exit 3 and exit 2 are DISTINCT — a disambiguation tool must not ship an ambiguous contract', () => {
+  const none = mkdtempSync(join(tmpdir(), 'swan-mcp-none2-'));
+  const stdio = mkdtempSync(join(tmpdir(), 'swan-mcp-stdio2-'));
+  writeFileSync(join(stdio, '.mcp.json'), JSON.stringify({ mcpServers: { swanteststdio: { command: 'node' } } }), 'utf8');
+  assert.notEqual(runCli(['zzz-no-such-server-anywhere'], none), runCli(['swanteststdio'], stdio));
 });
 
 test('prefix matching is case-insensitive (Windows paths are)', () => {

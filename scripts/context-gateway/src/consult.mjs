@@ -14,7 +14,7 @@
  * @module context-gateway/consult
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { relative, resolve, basename, isAbsolute } from 'node:path';
+import { relative, resolve, basename, isAbsolute, sep } from 'node:path';
 import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
 import { redactSecrets } from './egress.mjs';
@@ -28,7 +28,12 @@ import { recordConsult, sha256 } from './receiptV1.mjs';
  */
 const shortPath = (p) => {
   const r = relative(process.cwd(), resolve(p));
-  return isAbsolute(r) ? `.../${basename(p)}` : r;
+  // Two escape shapes, same leak family. `isAbsolute` catches the Windows cross-drive case; a
+  // `..`-prefixed result is the OTHER one and is far more reachable — on POSIX or same-drive
+  // Windows, an --out outside cwd yields `../../Users/<name>/out.md`, printing the OS username
+  // through the very helper added to stop that (Kimi round 5, N1: a hole inside the r4/O2 fix).
+  const escapes = r === '..' || r.startsWith(`..${sep}`) || r.startsWith('../');
+  return isAbsolute(r) || escapes ? `.../${basename(p)}` : r;
 };
 
 const arg = (name, def = null) => {

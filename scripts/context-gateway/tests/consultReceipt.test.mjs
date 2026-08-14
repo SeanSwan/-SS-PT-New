@@ -35,7 +35,7 @@ const LAUNCHER = join(REPO, 'scripts', 'consult-kimi.mjs');
  * Console output is CAPTURED, not discarded: an absolute-path leak to stdout survived round 1
  * precisely because the tests only inspected the on-disk record (Kimi round 2, F1).
  */
-function runLauncher(docRelPath, { writeDoc = true, env = {} } = {}) {
+function runLauncher(docRelPath, { writeDoc = true, env = {}, outPath = null } = {}) {
   // realpath: on macOS mkdtemp returns /var/folders/... which is a symlink to /private/var/...,
   // so a raw `stdout.includes(cwd)` assertion could pass while a resolved path leaked.
   const cwd = realpathSync(mkdtempSync(join(tmpdir(), 'swan-consult-')));
@@ -46,7 +46,7 @@ function runLauncher(docRelPath, { writeDoc = true, env = {} } = {}) {
   let stdout = '';
   let stderr = '';
   try {
-    stdout = execFileSync(process.execPath, [LAUNCHER, '--document', docPath, '--out', join(cwd, 'out.md')], {
+    stdout = execFileSync(process.execPath, [LAUNCHER, '--document', docPath, '--out', outPath ?? join(cwd, 'out.md')], {
       cwd, stdio: 'pipe', env: { ...process.env, SWAN_CONTEXT_MAX_USD: '', ...env },
     }).toString();
   } catch (e) {
@@ -118,6 +118,16 @@ test('E2E: no absolute path reaches stdout or stderr on the refusal path', () =>
   const { stdout, stderr, cwd } = runLauncher('packet.md');
   assert.ok(!stdout.includes(cwd), `absolute cwd leaked to stdout: ${stdout.slice(0, 200)}`);
   assert.ok(!stderr.includes(cwd), `absolute cwd leaked to stderr: ${stderr.slice(0, 200)}`);
+});
+
+test('E2E: an --out OUTSIDE cwd prints the basename, never a ../ path', () => {
+  // The previous stdout tests all used an --out INSIDE cwd — the one case that always passes.
+  // A target outside cwd yields `../../Users/<name>/out.md`, which carries the OS username straight
+  // through the helper added to prevent exactly that (Kimi round 5, N1: a hole inside the r4 fix).
+  const outDir = realpathSync(mkdtempSync(join(tmpdir(), 'swan-outside-')));
+  const { stdout } = runLauncher('packet.md', { outPath: join(outDir, 'out.md') });
+  assert.ok(!stdout.includes(outDir), 'the outside-cwd path leaked verbatim');
+  assert.ok(!/\.\.[\\/]/.test(stdout), 'a ../ prefix can traverse through the home directory');
 });
 
 test('E2E: the DENY branch does not print the full secret-bearing path', () => {
