@@ -223,6 +223,24 @@ test.describe('@mission @contract product-noise suppression reaches EVERY gate',
     expect(isKnownConsoleNoise(PRELOAD, AFTER_EVERY_EXPIRY)).toBe(false);
   });
 
+  test('a REAL error is never suppressed — 28 gates now depend on this one predicate', () => {
+    // External review (HY3, 2026-08-14): the 15 smoke specs whose predicate was
+    // swapped to this function were typechecked, not executed. If it over-matched,
+    // all 15 would silently swallow real console errors and still ship green —
+    // the exact "gate people learn to ignore" failure this work exists to remove.
+    // The registry's own validator already rejects over-broad patterns; this pins
+    // the behaviour at the entry point every gate actually calls.
+    for (const real of [
+      'Uncaught TypeError: cannot read properties of undefined (reading "id")',
+      'Failed to load resource: the server responded with a status of 500',
+      'Error: Network request failed',
+      'Warning: Each child in a list should have a unique "key" prop',
+      '',
+    ]) {
+      expect(isSuppressedProductNoise(real, '2026-08-13'), `wrongly suppressed: "${real}"`).toBe(false);
+    }
+  });
+
   test('harness exhaust is NOT registry-driven — it must never expire', () => {
     // The rig's own output is not a product defect on a deadline. If these ever
     // start expiring, the build fails for no product reason and someone silences

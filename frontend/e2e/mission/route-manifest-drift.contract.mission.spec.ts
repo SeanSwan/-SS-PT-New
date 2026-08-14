@@ -17,6 +17,9 @@
 
 import { expect, test } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { roleRoutes } from './production-dashboard-crawl.routes';
 import { CRAWL_MS_PER_ROUTE, crawlTimeoutFor } from './production-dashboard-crawl.report';
 import {
@@ -50,10 +53,22 @@ test.describe('@mission @contract dashboard route manifest drift', () => {
 
   test('the parser throws loudly if the canonical route table moves', () => {
     // Silence here would mean the crawl quietly stops noticing new routes forever.
-    // This spec file is a real, readable .ts file that does NOT declare
-    // roleConfigurations — exactly the shape of "the table was moved or renamed".
-    const notTheRouteTable = fileURLToPath(import.meta.url);
-    expect(() => readDashboardRouteManifest(notTheRouteTable)).toThrow(/roleConfigurations/);
+    //
+    // This used to pass THIS SPEC FILE as the "table is missing" case. That broke
+    // the moment the file gained parser-hardening fixtures that legitimately
+    // contain the string `roleConfigurations` — the anchor was found, the parse
+    // continued, and the test failed on a different error. Same incidental-text
+    // fragility Kimi found in the backend twin (which passed only because its
+    // FILENAME contained "Registry"). A guard test must not depend on what happens
+    // to be written elsewhere in its own file.
+    const dir = mkdtempSync(join(tmpdir(), 'swan-no-table-'));
+    try {
+      const file = join(dir, 'not-the-route-table.tsx');
+      writeFileSync(file, 'export const somethingElse = { a: 1 };\n', 'utf8');
+      expect(() => readDashboardRouteManifest(file)).toThrow(/roleConfigurations/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   for (const role of MANIFEST_ROLES) {
@@ -112,18 +127,120 @@ test.describe('@mission @contract dashboard route manifest drift', () => {
     // Adding 38 routes took admin from 28 to 61. Against the old flat 600s the
     // crawl would have run out of time partway and reported a partial run — an
     // audit that can never pass, for no product reason.
-    const small = crawlTimeoutFor(10);
-    const large = crawlTimeoutFor(61);
+    //
+    // THE ENV OVERRIDE MUST BE CLEARED (Kimi K3, 2026-08-14): crawlTimeoutFor
+    // returns the override BEFORE any route-count math, so if CI sets
+    // SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS — which is the documented way to pin
+    // it — every assertion below passed while the function was a flat constant.
+    // The test would have been green with the exact defect it names fully present.
+    const saved = process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS;
+    delete process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS;
 
-    expect(large).toBeGreaterThan(small);
-    expect(large).toBeGreaterThanOrEqual(61 * CRAWL_MS_PER_ROUTE);
-    // A small table never drops BELOW the historical floor.
-    expect(small).toBeGreaterThanOrEqual(600_000);
-    // And the real tables all get more than the floor's worth of headroom.
-    for (const role of MANIFEST_ROLES) {
-      expect(crawlTimeoutFor(roleRoutes[role].length))
-        .toBeGreaterThanOrEqual(roleRoutes[role].length * CRAWL_MS_PER_ROUTE);
+    try {
+      const small = crawlTimeoutFor(10);
+      const large = crawlTimeoutFor(61);
+
+      expect(large).toBeGreaterThan(small);
+      expect(large).toBeGreaterThanOrEqual(61 * CRAWL_MS_PER_ROUTE);
+      // A small table never drops BELOW the historical floor.
+      expect(small).toBeGreaterThanOrEqual(600_000);
+      // And the real tables all get more than the floor's worth of headroom.
+      for (const role of MANIFEST_ROLES) {
+        expect(crawlTimeoutFor(roleRoutes[role].length))
+          .toBeGreaterThanOrEqual(roleRoutes[role].length * CRAWL_MS_PER_ROUTE);
+      }
+
+      // The override still wins when it IS set — pin the documented behaviour too.
+      process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS = '1234';
+      expect(crawlTimeoutFor(999)).toBe(1234);
+    } finally {
+      if (saved === undefined) delete process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS;
+      else process.env.SWAN_DASHBOARD_CRAWL_TEST_TIMEOUT_MS = saved;
     }
+  });
+
+  test.describe('parser hardening — every fix below is proven, not asserted', () => {
+    // External review (Kimi K3, 2026-08-14) named four ways this parser could
+    // return a WRONG-BUT-NONEMPTY manifest, so the fail-loud guard never trips and
+    // the gate silently checks fewer routes than it claims. Each is pinned here.
+    const withSource = (body: string, run: (file: string) => void) => {
+      const dir = mkdtempSync(join(tmpdir(), 'swan-manifest-'));
+      try {
+        const file = join(dir, 'routes.tsx');
+        writeFileSync(file, body, 'utf8');
+        run(file);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    };
+
+    const source = (adminRoutes: string) => `
+export const roleConfigurations = {
+  admin: {
+    routes: [
+${adminRoutes}
+    ],
+    defaultPath: '/overview',
+  },
+  trainer: {
+    routes: [
+      { path: '/overview', component: T, title: 't', description: 'd' },
+      { path: '/clients', component: T, title: 't', description: 'd' },
+    ],
+    defaultPath: '/overview',
+  },
+  client: {
+    routes: [
+      { path: '/overview', component: C, title: 't', description: 'd' },
+      { path: '/progress', component: C, title: 't', description: 'd' },
+    ],
+    defaultPath: '/overview',
+  },
+};
+`;
+
+    test('a DOUBLE-QUOTED path is parsed, not silently dropped', () => {
+      withSource(source(`      { path: '/a', component: A, title: 't', description: 'd' },
+      { path: "/b", component: A, title: 't', description: 'd' },`), (file) => {
+        expect(readDashboardRouteManifest(file).admin)
+          .toEqual(['/dashboard/admin/a', '/dashboard/admin/b']);
+      });
+    });
+
+    test('an UNPARSEABLE path form THROWS rather than shrinking the manifest', () => {
+      // Widening the regex alone would leave the NEXT unanticipated syntax just as
+      // quiet. The count-check is what makes it loud.
+      withSource(source(`      { path: '/a', component: A, title: 't', description: 'd' },
+      { path: ROUTE_CONST, component: A, title: 't', description: 'd' },`), (file) => {
+        expect(() => readDashboardRouteManifest(file)).toThrow(/parsed 1 of 2/);
+      });
+    });
+
+    test('a renamed role key cannot make one role inherit ANOTHER role\'s routes', () => {
+      // The old unbounded indexOf('routes: [') searched past the role block, so
+      // admin silently adopted trainer's array — full, plausible, entirely wrong.
+      const body = source('').replace('  admin: {\n    routes: [\n\n    ],', '  admin: {\n    adminRoutes: [\n    ],');
+      withSource(body, (file) => {
+        const parsed = (() => {
+          try { return readDashboardRouteManifest(file).admin; } catch (error) { return error; }
+        })();
+        // Either it throws, or it returns admin's own (empty→throw) — what it must
+        // NEVER do is return trainer's routes relabelled as admin's.
+        expect(parsed).not.toEqual(['/dashboard/admin/overview', '/dashboard/admin/clients']);
+      });
+    });
+
+    test('a user tab id with uppercase or digits is parsed, not dropped', () => {
+      const dir = mkdtempSync(join(tmpdir(), 'swan-tabs-'));
+      try {
+        const file = join(dir, 'tabs.ts');
+        writeFileSync(file, `export const USER_DASHBOARD_TAB_IDS = [\n  'home',\n  'aiTools',\n  'group2',\n];\n`, 'utf8');
+        expect(readUserDashboardRoutes(file))
+          .toEqual(['/user-dashboard', '/user-dashboard/aiTools', '/user-dashboard/group2']);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
   });
 
   test('every acknowledged uncrawled route is real, reasoned, and still needed', () => {

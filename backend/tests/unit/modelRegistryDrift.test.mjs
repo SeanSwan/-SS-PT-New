@@ -15,10 +15,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import path from 'node:path';
+import { existsSync } from 'node:fs';
 import {
+  BACKEND_ROOT,
   readGetModelCallSites,
   readModelFiles,
   readRegisteredModels,
+  readRegistryBindingProblems,
 } from '../../utils/modelRegistryAudit.mjs';
 import { DORMANT_MODELS, DORMANT_MODEL_NAMES } from '../../models/dormantModels.mjs';
 
@@ -33,8 +37,20 @@ describe('model registry drift tripwire', () => {
   });
 
   it('throws loudly if the registry object moves, rather than checking nothing', () => {
-    expect(() => readRegisteredModels(new URL(import.meta.url).pathname))
-      .toThrow(/return \{|registry/i);
+    // THIS TEST USED TO PASS FOR THE WRONG REASON (Kimi K3, 2026-08-14).
+    // It passed `new URL(import.meta.url).pathname`, which on Windows is
+    // "/C:/..." — an invalid path, so readFileSync threw ENOENT rather than the
+    // guard. The assertion still went green only because this FILE'S NAME
+    // contains "Registry" and the matcher was /return \{|registry/i. It would
+    // have passed on literally any error.
+    //
+    // Now: a real, readable file that genuinely lacks the anchor, and an
+    // assertion on the guard's own wording rather than an incidental substring.
+    const realFileWithoutRegistry = path.join(BACKEND_ROOT, 'models', 'RenewalAlert.mjs');
+    expect(existsSync(realFileWithoutRegistry)).toBe(true);
+
+    expect(() => readRegisteredModels(realFileWithoutRegistry))
+      .toThrow(/no "return \{"/);
   });
 
   it('every getModel() call site names a REGISTERED model', () => {
@@ -91,6 +107,14 @@ describe('model registry drift tripwire', () => {
       'acknowledged as dormant, but a getModel() call site names it — that combination is a '
       + 'guaranteed throw and may never be acknowledged',
     ).toEqual([]);
+  });
+
+  it('every registry entry is shorthand and actually bound — a NAME check is not a VALUE check', () => {
+    // External review (HY3, 2026-08-14): proving a name appears in the returned
+    // object cannot prove it is bound to the right model. `RenewalAlert: Notification`,
+    // or keeping the key while deleting the import, passes a name-only check and
+    // still throws at runtime — the exact failure this tripwire exists to catch.
+    expect(readRegistryBindingProblems()).toEqual([]);
   });
 
   it('every dormant entry carries a real reason and a valid kind', () => {

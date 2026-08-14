@@ -31,7 +31,14 @@ function expectedConsoleNoise(message: string, state: LiveApiState) {
   // Transport noise from a registered beacon. Registry-driven for the same reason
   // the write allowlist is: hardcoding ONE endpoint here meant a second beacon's
   // noise was never covered, and a stale suppression silences by accident.
-  if (mentionsBenignBeacon(message) && /405|Request failed|ERR_BAD_RESPONSE|Response error/i.test(message)) {
+  //
+  // NARROWED to 405 only (external review, Kimi K3, 2026-08-14). The previous
+  // form also matched "Request failed" / "Response error", so if a beacon
+  // endpoint started genuinely failing — a 500 — the browser would log
+  // "POST /api/telemetry/funnel Request failed ... 500" and this branch would
+  // swallow a real production outage as harness noise. 405 is the status THIS
+  // HARNESS fulfils for a blocked write; nothing else here is ours to excuse.
+  if (mentionsBenignBeacon(message) && /\b405\b/.test(message)) {
     return true;
   }
   if (/Failed to load resource: the server responded with a status of 405/i.test(message)) {

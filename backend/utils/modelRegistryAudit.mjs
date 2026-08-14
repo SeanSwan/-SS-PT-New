@@ -82,7 +82,13 @@ function stripComments(source) {
  * "unregistered" findings.
  */
 export function readRegisteredModels(source = ASSOCIATIONS) {
-  const text = readFileSync(source, 'utf8');
+  // Comments MUST be stripped here, not only in the call-site scanner (external
+  // review, Kimi K3, 2026-08-14). A line like
+  //   // TODO: register PaymentPlan, DisputeBatch next sprint
+  // inside the returned object seeded both names into the "registered" set, so a
+  // `getModel('PaymentPlan')` call site passed the highest-severity assertion
+  // while the model was unregistered — the exact RenewalAlert failure, green.
+  const text = stripComments(readFileSync(source, 'utf8'));
 
   const at = text.lastIndexOf('return {');
   if (at === -1) {
@@ -120,11 +126,90 @@ export function readRegisteredModels(source = ASSOCIATIONS) {
  * enumeration off the filename reported it as unregistered — a finding invented
  * by the instrument rather than found in the code.
  */
-function declaredModelName(file) {
-  const text = readFileSync(file, 'utf8');
-  const declared = /modelName:\s*['"]([A-Za-z_$][\w$]*)['"]/.exec(text)
-    || /sequelize\.define\(\s*['"]([A-Za-z_$][\w$]*)['"]/.exec(text);
-  return declared ? declared[1] : path.basename(file, '.mjs');
+function declaredModelNames(file) {
+  const text = stripComments(readFileSync(file, 'utf8'));
+
+  // ALL declarations, not the first (Kimi K3, 2026-08-14): one file defining two
+  // models yielded a single entry, so if the second were unregistered and
+  // unacknowledged the enumeration under-counted by construction and the
+  // "registered or dormant" assertion passed over it.
+  const names = new Set([
+    ...[...text.matchAll(/modelName:\s*['"`]([A-Za-z_$][\w$]*)['"`]/g)].map((m) => m[1]),
+    ...[...text.matchAll(/sequelize\.define\(\s*['"`]([A-Za-z_$][\w$]*)['"`]/g)].map((m) => m[1]),
+  ]);
+
+  return names.size > 0 ? [...names] : [path.basename(file, '.mjs')];
+}
+
+/**
+ * Registry entries that are NOT plain shorthand, plus any name with no visible
+ * binding in the file.
+ *
+ * WHY (external review, HY3, 2026-08-14): `readRegisteredModels` proves a NAME
+ * appears in the returned object. It cannot prove the name is bound to the right
+ * VALUE. Someone writing `RenewalAlert: Notification` — or keeping the key while
+ * deleting the `await import(...)` — passes the name check and still throws at
+ * runtime, which is the exact failure the tripwire exists to catch.
+ *
+ * The registry is 100% shorthand today (159 entries plus 3 conditional spreads),
+ * so key === value by construction. Nothing ENFORCED that. This does: anything
+ * other than shorthand or a recognised conditional spread is reported for human
+ * review rather than silently trusted.
+ *
+ * A name may be bound by `const X =`, by destructuring (`const { X, Y } = ...`),
+ * or by a conditional spread. All three are real and in use.
+ */
+export function readRegistryBindingProblems(source = ASSOCIATIONS) {
+  // Block comments too — a per-line `//` strip does not remove a `/* ... */`
+  // spanning the registry object.
+  const text = stripComments(readFileSync(source, 'utf8'));
+  const at = text.lastIndexOf('return {');
+  if (at === -1) throw new Error(`modelRegistryAudit: no "return {" in ${source}`);
+
+  const rest = text.slice(at);
+  const close = /^[ \t]*\};/m.exec(rest);
+  if (!close) throw new Error(`modelRegistryAudit: unterminated registry object in ${source}`);
+
+  const block = rest.slice('return {'.length, close.index);
+  const problems = [];
+  const names = [];
+
+  for (const rawLine of block.split(/\r?\n/)) {
+    const line = rawLine.replace(/\/\/.*$/, '').trim();
+    if (!line) continue;
+
+    // `...(X ? { X } : {})` — an intentional conditional entry, key === value.
+    if (/^\.\.\.\(/.test(line)) {
+      const spread = /\{\s*([A-Za-z_$][\w$]*)\s*\}/.exec(line);
+      if (spread) names.push(spread[1]);
+      else problems.push(`unrecognised conditional spread: ${line}`);
+      continue;
+    }
+
+    for (const part of line.split(',')) {
+      const entry = part.trim();
+      if (!entry) continue;
+      if (/^[A-Za-z_$][\w$]*$/.test(entry)) {
+        names.push(entry);
+      } else if (/^([A-Za-z_$][\w$]*)\s*:\s*([A-Za-z_$][\w$]*)$/.test(entry)) {
+        // Key:value is where a mis-binding hides. Never silently accepted.
+        problems.push(`non-shorthand entry "${entry}" — key and value can disagree; use shorthand`);
+      } else {
+        problems.push(`unparsed registry entry: ${entry}`);
+      }
+    }
+  }
+
+  const bound = (name) => (
+    new RegExp(`\\bconst\\s+${name}\\s*=`).test(text)
+    || new RegExp(`\\bconst\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*=`).test(text)
+  );
+
+  for (const name of names) {
+    if (!bound(name)) problems.push(`"${name}" is returned but never bound in ${path.basename(source)}`);
+  }
+
+  return problems;
 }
 
 /** Model files on disk that actually define a Sequelize model. */
@@ -142,10 +227,10 @@ export function readModelFiles(dir = MODELS_DIR) {
     throw new Error('modelRegistryAudit: found ZERO model files. Refusing an empty enumeration.');
   }
 
-  return files.map((file) => ({
-    name: declaredModelName(file),
-    file: path.relative(BACKEND_ROOT, file).split(path.sep).join('/'),
-  }));
+  return files.flatMap((file) => {
+    const relative = path.relative(BACKEND_ROOT, file).split(path.sep).join('/');
+    return declaredModelNames(file).map((name) => ({ name, file: relative }));
+  });
 }
 
 /**
@@ -168,7 +253,10 @@ export function readGetModelCallSites(root = BACKEND_ROOT) {
       if (path.resolve(file) === selfPath) continue;
 
       const text = stripComments(readFileSync(file, 'utf8'));
-      for (const match of text.matchAll(/getModel\(\s*['"]([A-Za-z_$][\w$]*)['"]\s*\)/g)) {
+      // Backticks included: a refactor to template literals would otherwise turn a
+      // guaranteed-throw call site into one this scanner never sees, so the
+      // assertion passes while production 500s (Kimi K3, 2026-08-14).
+      for (const match of text.matchAll(/getModel\(\s*['"`]([A-Za-z_$][\w$]*)['"`]\s*\)/g)) {
         sites.push({
           model: match[1],
           file: path.relative(root, file).split(path.sep).join('/'),

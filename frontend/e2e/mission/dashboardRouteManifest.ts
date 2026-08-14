@@ -65,14 +65,40 @@ export function readDashboardRouteManifest(source = ROUTES_SOURCE): Record<Manif
       throw new Error(`dashboardRouteManifest: no "${role}:" block in ${source}`);
     }
 
-    const routesAt = text.indexOf('routes: [', roleAt);
-    const routesEnd = text.indexOf('\n    ],', routesAt);
+    // BOUND the search to this role's own block (external review, Kimi K3,
+    // 2026-08-14). `indexOf('routes: [', roleAt)` searched forward without a
+    // limit, so renaming or reordering one role's key made the search land on the
+    // NEXT role's array — producing a full, plausible, entirely wrong manifest
+    // with no throw.
+    const nextRoleAt = MANIFEST_ROLES
+      .map((other) => text.indexOf(`\n  ${other}: {`, roleAt + 1))
+      .filter((index) => index > roleAt)
+      .reduce((lowest, index) => Math.min(lowest, index), text.length);
+
+    const roleBlock = text.slice(roleAt, nextRoleAt);
+    const routesAt = roleBlock.indexOf('routes: [');
+    const routesEnd = roleBlock.indexOf('\n    ],', routesAt);
     if (routesAt === -1 || routesEnd === -1) {
       throw new Error(`dashboardRouteManifest: unterminated routes array for "${role}" in ${source}`);
     }
 
-    const block = text.slice(routesAt, routesEnd);
-    const paths = [...block.matchAll(/\bpath:\s*'([^']+)'/g)].map((match) => match[1]);
+    const block = roleBlock.slice(routesAt, routesEnd);
+    // Accept every quote style. A double-quoted or template-literal path used to
+    // be dropped SILENTLY while its single-quoted siblings parsed, so the gate
+    // checked N-1 routes while reporting full coverage.
+    const paths = [...block.matchAll(/\bpath:\s*(['"`])([^'"`]+)\1/g)].map((match) => match[2]);
+
+    // Widening the regex is not enough on its own: the next unanticipated syntax
+    // would be dropped just as quietly. Assert we captured EVERY `path:` in the
+    // block, so an unparsed form fails loudly instead of shrinking the manifest.
+    const declared = (block.match(/\bpath:/g) || []).length;
+    if (paths.length !== declared) {
+      throw new Error(
+        `dashboardRouteManifest: parsed ${paths.length} of ${declared} "path:" entries for `
+        + `"${role}" in ${source}. An unrecognised path syntax would silently shrink the `
+        + 'manifest and shrink coverage with it — fix this parser.',
+      );
+    }
 
     if (paths.length === 0) {
       throw new Error(
@@ -117,7 +143,19 @@ export function readUserDashboardRoutes(source = USER_TABS_SOURCE): string[] {
   }
 
   const end = text.indexOf('];', at);
-  const tabs = [...text.slice(at, end).matchAll(/'([a-z-]+)'/g)].map((match) => match[1]);
+  const block = text.slice(at, end);
+  // `[a-z-]` silently dropped any tab id with uppercase or digits — 'aiTools',
+  // 'group2' — and a dropped tab cannot fail the drift check, so the gate would
+  // claim the user role was covered while ignoring that tab (Kimi K3, 2026-08-14).
+  const tabs = [...block.matchAll(/(['"`])([A-Za-z0-9_-]+)\1/g)].map((match) => match[2]);
+
+  const quoted = (block.match(/(['"`])[^'"`]*\1/g) || []).length;
+  if (tabs.length !== quoted) {
+    throw new Error(
+      `dashboardRouteManifest: parsed ${tabs.length} of ${quoted} quoted user tab ids. An `
+      + 'unrecognised id syntax would silently drop a tab from the drift check — fix this parser.',
+    );
+  }
 
   if (tabs.length === 0) {
     throw new Error('dashboardRouteManifest: parsed ZERO user tabs. Refusing to return an empty set.');
