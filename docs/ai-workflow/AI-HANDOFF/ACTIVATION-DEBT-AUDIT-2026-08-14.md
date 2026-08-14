@@ -21,7 +21,18 @@ SwanStudios does not have a building problem. It has an **activation** problem.
 
 Roughly **235 cumulative feature-days** of finished, tested, shipped code sits behind
 off-by-default switches that were never flipped — plus ~1,146 lines of backend code with
-**zero importers**. There is no inventory, no owner, and no expiry attached to any of it.
+**zero importers**.
+
+Important nuance, found by attacking my own first draft (§3.1a): **that 235 is not all
+neglect.** About 139 feature-days are either governed by Launch Control or deliberately
+gated for a documented reason — the nurture engine in particular is disarmed on purpose
+because arming it without one-click unsubscribe would be a CAN-SPAM/GDPR problem. The
+genuinely undocumented drift is **~72 feature-days**: settlement worker (45), planner V2
+(14), voice V2 (13) — three programs where nobody recorded why they are off or what would
+turn them on.
+
+The pattern underneath both halves is the same: **a flag can be created with no owner, no
+activation criterion, and no expiry**, so "ship it dark" has no natural end.
 
 A commit from 2026-07-20 (`f2be2c592`) says it in the repo's own words:
 **"program 8/8 built, 0/8 activated; activation wave = next."** That wave never ran.
@@ -59,6 +70,42 @@ Conflating these is why the problem feels unbounded. The remedies are different 
 Also flag-OFF: gallery vNext, print storefront, Prodigi fulfilment, print Stripe Tax,
 store V4 lens seam, home vNext optics hero, dashboards V2 shell, billing session-completion
 policy, Hermes OS headless runner.
+
+### 3.1a NOT all of this is neglect — and the split is the real finding
+
+A hostile round against my own table above changed it materially. Some of these are
+**deliberately gated with a documented reason**, and calling them debt is wrong:
+
+- **`SWAN_AUTOMATION_CRON_ENABLED` is a compliance gate, not forgotten debt.**
+  `ACQUISITION-FUNNEL-ACTIVATION-BUILD-PROMPT-2026-07-21.md:198-209` states the day-0/1/3/7
+  nurture sequence is *"deliberately disarmed"*, that `automationService.mjs:72-77` seeds
+  `isActive:false` **on purpose**, and that arming requires **lawful basis + one-click
+  unsubscribe in every nurture email** (CAN-SPAM / GDPR) — a drip is marketing, not
+  transactional. It explicitly says a builder **may not** flip it.
+  **Correction to §7:** this is not "flip it last." It is *blocked on a build slice*
+  (unsubscribe + suppression check) that does not yet exist. Flipping it before that would
+  be a legal problem, not just a risky deploy.
+
+Cross-checking which flags carry a documented reason splits the inventory cleanly:
+
+| Flag | Days dark | Docs referencing it | On Launch Control? |
+|---|---|---|---|
+| `DASHBOARD_V2_FINANCE` | 27 | 9 | **yes** |
+| `ENABLE_POST_SAVE_HANDOFF` | 27 | 9 | **yes** |
+| `PRISM_CAPTURE_ENABLED` | 26 | 8 | **yes** |
+| `SWAN_AUTOMATION_CRON_ENABLED` | 59 | documented (legal gate) | no |
+| `SESSION_SETTLEMENT_WORKER_ENABLED` | 45 | **0** | no |
+| `VITE_ENABLE_PLANNER_IA_V2` | 14 | **0** | no |
+| `VITE_ENABLE_VOICE_MODE_V2` | 13 | **0** | no |
+
+**The flags on Launch Control are the flags that are documented. The flags off it are the
+flags nobody wrote down.** The governance gap and the documentation gap are the same gap —
+which is what §8 has to fix.
+
+So the honest headline is not "235 days of neglect." It is: **~139 feature-days are governed
+or deliberately gated, and ~72 feature-days (settlement worker 45, planner V2 14, voice V2 13)
+are genuinely undocumented drift** — nobody recorded why they are off or what would turn
+them on.
 
 ### 3.2 Three activation mechanics — only one is governed
 
@@ -210,7 +257,8 @@ Ordered by value per minute of Sean's attention.
 | 5 | Delete the 10 verified-dead files (Rule 34 approval) | agent | ~30 min | Removes 1,146 lines of agent-confusing noise. |
 | 6 | Tier-2 (planner/voice V2) behind one deploy | agent + Sean | ~1 h | Run `voiceModeV2Flag`'s own "10 real dictations" gate first. |
 | 7 | Fuzzy-variable wiring (S2L branch half B) | agent | ~2 h | Only after 1–3 prove the send path works end to end. |
-| 8 | `SWAN_AUTOMATION_CRON_ENABLED` | **Sean** | — | Last. Bulk outbound; needs 1–3 proven first. |
+| 8 | Nurture unsubscribe + suppression build slice, **then** `SWAN_AUTOMATION_CRON_ENABLED` | agent, then **Sean** | ~1 day | **Not a flip.** Blocked on a legal prerequisite (one-click unsubscribe in every nurture email, CAN-SPAM/GDPR) that does not exist yet — see §3.1a. |
+| 9 | Write down *why* the 3 undocumented flags are off | agent | ~20 min | Settlement worker (45d), planner V2 (14d), voice V2 (13d) have **zero** docs. Cheapest possible fix for the gap §8 describes. |
 
 **Explicitly not recommended:** cold-outreach lead scraping (wrong motion for trainer-led
 B2B2C), and migrating all ~20 backend env flags onto Launch Control (over-engineering for a
