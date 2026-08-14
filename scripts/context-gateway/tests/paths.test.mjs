@@ -17,7 +17,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { sep, join } from 'node:path';
 
-import { escapes, escapesFrom, shortPath, relativizePath, finalSegment } from '../src/paths.mjs';
+import { escapes, escapesFrom, shortPath, relativizePath, finalSegment, isWindowsAbsolute } from '../src/paths.mjs';
 
 // --- the predicate ------------------------------------------------------------------------------
 
@@ -175,4 +175,24 @@ test('S1b: a BACKSLASH drive path is redacted on every platform — basename() a
   // And the receipt renderer, which shares the predicate, still answers <external> for both.
   assert.equal(relativizePath('/repo', win), '<external>');
   assert.equal(relativizePath('/repo', 'C:/Users/SomePerson/packet.md'), '<external>');
+});
+
+test('ALL THREE Windows-absolute shapes escape, not just the drive-qualified one', () => {
+  // The first pass caught `C:\...` and stopped there, leaving two shapes recording verbatim on
+  // POSIX: a UNC share (which leaks the SERVER name as well as the username) and a drive-less
+  // rooted path. `escapes` takes the output of relative(), so these are asserted directly —
+  // on Windows isAbsolute() would answer true for its own reasons and prove nothing about POSIX.
+  // isWindowsAbsolute, NOT escapes: on Windows `isAbsolute` returns true for all three shapes for
+  // its OWN reasons, so asserting through escapes() passes even with the shape predicate broken —
+  // verified by mutation, the drive-letter-only regex left this test green on Windows. The
+  // exported predicate is pure regex, so it means the same thing on every host.
+  assert.equal(isWindowsAbsolute('C:\\Users\\SomePerson\\f.md'), true, 'drive + backslash');
+  assert.equal(isWindowsAbsolute('C:/Users/SomePerson/f.md'), true, 'drive + forward slash');
+  assert.equal(isWindowsAbsolute('\\\\fileserver\\share\\SomePerson\\f.md'), true, 'UNC share');
+  assert.equal(isWindowsAbsolute('\\Users\\SomePerson\\f.md'), true, 'rooted, no drive letter');
+  // ...and ordinary in-repo paths are untouched — over-redaction is safe, but not free.
+  assert.equal(isWindowsAbsolute('docs/a.md'), false);
+  assert.equal(isWindowsAbsolute('..foo/bar.md'), false);
+  assert.equal(escapes('docs/a.md'), false);
+  assert.equal(escapes('..foo/bar.md'), false, 'a sibling whose name begins with dots is NOT an escape');
 });

@@ -37,8 +37,27 @@ import { relative, resolve, isAbsolute, sep } from 'node:path';
  * because the runtime stopped recognising the path shape, so redaction must be platform-independent
  * even though `isAbsolute` is not. Proven with path.posix: leaked on Linux/macOS/WSL, invisible on
  * Windows — which is why 15 review rounds on a Windows box never saw it (Kimi round 16, S1).
+ *
+ * THREE Windows-absolute shapes, not one. The first fix caught only drive-qualified paths, so a
+ * UNC share (`\\fileserver\share\<name>\x.md` — leaks the SERVER name as well as the username) and
+ * a drive-less rooted path (`\Users\<name>\x.md`) both still recorded verbatim on POSIX. Any
+ * leading backslash covers both, and covers them without enumerating shapes a future Windows adds.
+ * Fixing the drive-letter INSTANCE while the class survived is the pattern this chain keeps
+ * repeating; the alternation is the class (hostile round 4, self-found).
+ *
+ * Over-redaction is the documented safe direction: an in-repo file whose name begins with a
+ * backslash is not expressible on Windows and pathological on POSIX, so the false-positive costs
+ * nothing worth having.
  */
-const WIN_ABS = /^[A-Za-z]:[\\/]/;
+const WIN_ABS = /^([A-Za-z]:[\\/]|\\)/;
+
+/**
+ * True for a Windows-absolute path SHAPE, on any host. Exported so the contract is testable
+ * without a POSIX machine: on Windows `isAbsolute` already returns true for all three shapes for
+ * its own reasons, so a test written against `escapes` passes even with this predicate broken —
+ * vacuous exactly where the platform bug lives. Assert this directly instead.
+ */
+export const isWindowsAbsolute = (p) => WIN_ABS.test(String(p));
 
 /**
  * Final path segment, split on BOTH separators regardless of the running platform.
@@ -55,7 +74,7 @@ export const finalSegment = (p) => {
 };
 
 export function escapes(rel) {
-  if (isAbsolute(rel) || WIN_ABS.test(rel)) return true;
+  if (isAbsolute(rel) || isWindowsAbsolute(rel)) return true;
   return rel === '..' || rel.startsWith(`..${sep}`) || rel.startsWith('../');
 }
 
