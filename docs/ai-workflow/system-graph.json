@@ -1,0 +1,3772 @@
+{
+  "generatedAt": "2026-08-14T07:37:56.720Z",
+  "nodes": [
+    {
+      "id": "Achievements",
+      "rows": 1067,
+      "bytes": 1867776,
+      "indexes": 10,
+      "degree": 2
+    },
+    {
+      "id": "BadgeCollections",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "Badges",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 2
+    },
+    {
+      "id": "ComebackChallenges",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "CommunicationDrafts",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "Communities",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "EnhancedSocialPosts",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 4
+    },
+    {
+      "id": "EventAttendances",
+      "rows": 1,
+      "bytes": 32768,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "Exercises",
+      "rows": 916,
+      "bytes": 2064384,
+      "indexes": 8,
+      "degree": 9
+    },
+    {
+      "id": "FactionMemberships",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 4,
+      "degree": 1
+    },
+    {
+      "id": "Factions",
+      "rows": 3,
+      "bytes": 65536,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "Friendships",
+      "rows": 2,
+      "bytes": 40960,
+      "indexes": 2,
+      "degree": 2
+    },
+    {
+      "id": "GamificationSettings",
+      "rows": 1,
+      "bytes": 32768,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "Gamifications",
+      "rows": 1,
+      "bytes": 32768,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "Hashtags",
+      "rows": 8,
+      "bytes": 106496,
+      "indexes": 6,
+      "degree": 2
+    },
+    {
+      "id": "Milestones",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "ModerationActions",
+      "rows": 0,
+      "bytes": 73728,
+      "indexes": 8,
+      "degree": 3
+    },
+    {
+      "id": "Parties",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "PartyMembers",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 4,
+      "degree": 1
+    },
+    {
+      "id": "PointTransactions",
+      "rows": 9,
+      "bytes": 114688,
+      "indexes": 6,
+      "degree": 2
+    },
+    {
+      "id": "PostHashtags",
+      "rows": 4,
+      "bytes": 57344,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "PostReports",
+      "rows": 0,
+      "bytes": 65536,
+      "indexes": 7,
+      "degree": 4
+    },
+    {
+      "id": "Rewards",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "SequelizeMeta",
+      "rows": 371,
+      "bytes": 106496,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "SocialComments",
+      "rows": 0,
+      "bytes": 163840,
+      "indexes": 9,
+      "degree": 6
+    },
+    {
+      "id": "SocialConnections",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 2
+    },
+    {
+      "id": "SocialEvents",
+      "rows": 1,
+      "bytes": 229376,
+      "indexes": 13,
+      "degree": 0
+    },
+    {
+      "id": "SocialGroupMembers",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "SocialGroups",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 3
+    },
+    {
+      "id": "SocialLikes",
+      "rows": 14,
+      "bytes": 57344,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "SocialPosts",
+      "rows": 2,
+      "bytes": 180224,
+      "indexes": 11,
+      "degree": 8
+    },
+    {
+      "id": "UserAchievements",
+      "rows": 0,
+      "bytes": 65536,
+      "indexes": 5,
+      "degree": 2
+    },
+    {
+      "id": "UserBadges",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 6,
+      "degree": 2
+    },
+    {
+      "id": "UserHashtagFollows",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "UserMilestones",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 2,
+      "degree": 2
+    },
+    {
+      "id": "UserRewards",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 3
+    },
+    {
+      "id": "Users",
+      "rows": 7,
+      "bytes": 327680,
+      "indexes": 9,
+      "degree": 238
+    },
+    {
+      "id": "WearableData",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 6,
+      "degree": 1
+    },
+    {
+      "id": "_dead_WorkoutPlans_20260803",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 2
+    },
+    {
+      "id": "_dead_WorkoutSessions_20260803",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 3
+    },
+    {
+      "id": "_dead_users_20260803",
+      "rows": 9,
+      "bytes": 65536,
+      "indexes": 3,
+      "degree": 0
+    },
+    {
+      "id": "_v3b3_seeder_log",
+      "rows": 32,
+      "bytes": 24576,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "achievement_crystallizations",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 2,
+      "degree": 2
+    },
+    {
+      "id": "acquisition_events",
+      "rows": 214,
+      "bytes": 131072,
+      "indexes": 4,
+      "degree": 0
+    },
+    {
+      "id": "admin_account_audit_logs",
+      "rows": 6,
+      "bytes": 114688,
+      "indexes": 4,
+      "degree": 2
+    },
+    {
+      "id": "admin_notifications",
+      "rows": 0,
+      "bytes": 65536,
+      "indexes": 7,
+      "degree": 3
+    },
+    {
+      "id": "admin_settings",
+      "rows": 2,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 0
+    },
+    {
+      "id": "admin_specials",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 1
+    },
+    {
+      "id": "ai_command_audit_logs",
+      "rows": 20,
+      "bytes": 98304,
+      "indexes": 5,
+      "degree": 1
+    },
+    {
+      "id": "ai_consent_logs",
+      "rows": 13,
+      "bytes": 65536,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "ai_conversations",
+      "rows": 94,
+      "bytes": 499712,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "ai_interaction_logs",
+      "rows": 6,
+      "bytes": 98304,
+      "indexes": 5,
+      "degree": 2
+    },
+    {
+      "id": "ai_metrics_bucket_users",
+      "rows": 28,
+      "bytes": 40960,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "ai_metrics_buckets",
+      "rows": 28,
+      "bytes": 90112,
+      "indexes": 5,
+      "degree": 1
+    },
+    {
+      "id": "ai_monitoring_alerts",
+      "rows": 6,
+      "bytes": 98304,
+      "indexes": 5,
+      "degree": 0
+    },
+    {
+      "id": "ai_privacy_profiles",
+      "rows": 1,
+      "bytes": 73728,
+      "indexes": 4,
+      "degree": 1
+    },
+    {
+      "id": "auth_identities",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 4,
+      "degree": 1
+    },
+    {
+      "id": "automation_logs",
+      "rows": 3,
+      "bytes": 196608,
+      "indexes": 11,
+      "degree": 2
+    },
+    {
+      "id": "automation_sequences",
+      "rows": 4,
+      "bytes": 81920,
+      "indexes": 4,
+      "degree": 1
+    },
+    {
+      "id": "avatar_homes",
+      "rows": 1,
+      "bytes": 65536,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "body_map_evidence",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 4
+    },
+    {
+      "id": "body_measurements",
+      "rows": 6,
+      "bytes": 147456,
+      "indexes": 6,
+      "degree": 5
+    },
+    {
+      "id": "bootcamp_class_log",
+      "rows": 1,
+      "bytes": 81920,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "bootcamp_exercises",
+      "rows": 225,
+      "bytes": 204800,
+      "indexes": 6,
+      "degree": 3
+    },
+    {
+      "id": "bootcamp_overflow_plans",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "bootcamp_space_profiles",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 3
+    },
+    {
+      "id": "bootcamp_sprints",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 7
+    },
+    {
+      "id": "bootcamp_stations",
+      "rows": 21,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 2
+    },
+    {
+      "id": "bootcamp_stretches",
+      "rows": 30,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "bootcamp_templates",
+      "rows": 6,
+      "bytes": 114688,
+      "indexes": 6,
+      "degree": 9
+    },
+    {
+      "id": "business_metrics",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 5,
+      "degree": 1
+    },
+    {
+      "id": "cart_items",
+      "rows": 0,
+      "bytes": 65536,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "challenge_participants",
+      "rows": 0,
+      "bytes": 229376,
+      "indexes": 17,
+      "degree": 3
+    },
+    {
+      "id": "challenge_submissions",
+      "rows": 0,
+      "bytes": 81920,
+      "indexes": 9,
+      "degree": 4
+    },
+    {
+      "id": "challenges",
+      "rows": 18,
+      "bytes": 262144,
+      "indexes": 15,
+      "degree": 3
+    },
+    {
+      "id": "client_baseline_measurements",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 3
+    },
+    {
+      "id": "client_notes",
+      "rows": 0,
+      "bytes": 81920,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "client_nutrition_plans",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 2
+    },
+    {
+      "id": "client_onboarding_coverage_items",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 6,
+      "degree": 2
+    },
+    {
+      "id": "client_onboarding_questionnaires",
+      "rows": 2,
+      "bytes": 81920,
+      "indexes": 4,
+      "degree": 2
+    },
+    {
+      "id": "client_opt_phases",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "client_pain_entries",
+      "rows": 0,
+      "bytes": 73728,
+      "indexes": 4,
+      "degree": 5
+    },
+    {
+      "id": "client_photos",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "client_progress",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "client_trainer_assignments",
+      "rows": 11,
+      "bytes": 131072,
+      "indexes": 5,
+      "degree": 4
+    },
+    {
+      "id": "clients_pii",
+      "rows": 1,
+      "bytes": 98304,
+      "indexes": 5,
+      "degree": 2
+    },
+    {
+      "id": "coach_action_proposals",
+      "rows": 5,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "coach_intake_events",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "coach_intake_items",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 4
+    },
+    {
+      "id": "contacts",
+      "rows": 14,
+      "bytes": 32768,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "content_projects",
+      "rows": 1,
+      "bytes": 163840,
+      "indexes": 9,
+      "degree": 4
+    },
+    {
+      "id": "continuing_education",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 2
+    },
+    {
+      "id": "conversation_participants",
+      "rows": 7,
+      "bytes": 106496,
+      "indexes": 6,
+      "degree": 2
+    },
+    {
+      "id": "conversations",
+      "rows": 8,
+      "bytes": 24576,
+      "indexes": 1,
+      "degree": 2
+    },
+    {
+      "id": "corrective_homework_logs",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 2
+    },
+    {
+      "id": "corrective_protocols",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 4
+    },
+    {
+      "id": "credentials",
+      "rows": 1,
+      "bytes": 32768,
+      "indexes": 1,
+      "degree": 2
+    },
+    {
+      "id": "custom_exercises",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 6,
+      "degree": 4
+    },
+    {
+      "id": "custom_packages",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 3
+    },
+    {
+      "id": "daily_hydrations",
+      "rows": 44,
+      "bytes": 57344,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "daily_macro_logs",
+      "rows": 1,
+      "bytes": 155648,
+      "indexes": 9,
+      "degree": 5
+    },
+    {
+      "id": "daily_workout_forms",
+      "rows": 108,
+      "bytes": 622592,
+      "indexes": 10,
+      "degree": 5
+    },
+    {
+      "id": "e2ee_key_bundles",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 1
+    },
+    {
+      "id": "e2ee_one_time_prekeys",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "equipment",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "equipment_exercise_map",
+      "rows": 8,
+      "bytes": 106496,
+      "indexes": 6,
+      "degree": 2
+    },
+    {
+      "id": "equipment_items",
+      "rows": 10,
+      "bytes": 147456,
+      "indexes": 6,
+      "degree": 4
+    },
+    {
+      "id": "equipment_profiles",
+      "rows": 3,
+      "bytes": 131072,
+      "indexes": 5,
+      "degree": 6
+    },
+    {
+      "id": "equipment_scan_candidates",
+      "rows": 0,
+      "bytes": 81920,
+      "indexes": 9,
+      "degree": 5
+    },
+    {
+      "id": "equipment_scan_sessions",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 3
+    },
+    {
+      "id": "exercise_equipment",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 2
+    },
+    {
+      "id": "exercise_library",
+      "rows": 0,
+      "bytes": 81920,
+      "indexes": 7,
+      "degree": 4
+    },
+    {
+      "id": "exercise_muscle_groups",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 2
+    },
+    {
+      "id": "exercise_trends",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "exercise_videos",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "exercises",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 0
+    },
+    {
+      "id": "financial_transactions",
+      "rows": 0,
+      "bytes": 73728,
+      "indexes": 8,
+      "degree": 4
+    },
+    {
+      "id": "flag_audit",
+      "rows": 8,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 0
+    },
+    {
+      "id": "flag_health",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 0
+    },
+    {
+      "id": "flag_overrides",
+      "rows": 2,
+      "bytes": 32768,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "flags",
+      "rows": 3,
+      "bytes": 32768,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "food_ingredients",
+      "rows": 35,
+      "bytes": 81920,
+      "indexes": 2,
+      "degree": 0
+    },
+    {
+      "id": "food_products",
+      "rows": 1,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 0
+    },
+    {
+      "id": "food_scan_history",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "form_analyses",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 2
+    },
+    {
+      "id": "gallery_donations",
+      "rows": 4,
+      "bytes": 98304,
+      "indexes": 5,
+      "degree": 2
+    },
+    {
+      "id": "gallery_enhancement_requests",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 7,
+      "degree": 2
+    },
+    {
+      "id": "gallery_events",
+      "rows": 5,
+      "bytes": 147456,
+      "indexes": 8,
+      "degree": 5
+    },
+    {
+      "id": "gallery_messages",
+      "rows": 1,
+      "bytes": 147456,
+      "indexes": 8,
+      "degree": 2
+    },
+    {
+      "id": "gallery_photo_votes",
+      "rows": 0,
+      "bytes": 122880,
+      "indexes": 8,
+      "degree": 2
+    },
+    {
+      "id": "gallery_photos",
+      "rows": 793,
+      "bytes": 933888,
+      "indexes": 5,
+      "degree": 3
+    },
+    {
+      "id": "gallery_referrals",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 6,
+      "degree": 2
+    },
+    {
+      "id": "gallery_visitors",
+      "rows": 36,
+      "bytes": 131072,
+      "indexes": 7,
+      "degree": 6
+    },
+    {
+      "id": "goal_comments",
+      "rows": 0,
+      "bytes": 65536,
+      "indexes": 7,
+      "degree": 2
+    },
+    {
+      "id": "goal_likes",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 7,
+      "degree": 2
+    },
+    {
+      "id": "goal_milestones",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 1
+    },
+    {
+      "id": "goal_supporters",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 7,
+      "degree": 2
+    },
+    {
+      "id": "goals",
+      "rows": 4,
+      "bytes": 229376,
+      "indexes": 13,
+      "degree": 5
+    },
+    {
+      "id": "hermes_tasks",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 2
+    },
+    {
+      "id": "history_backfill_runs",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "immigration_documents",
+      "rows": 41,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "immigration_tasks",
+      "rows": 53,
+      "bytes": 81920,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "knowledge_concepts",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 0
+    },
+    {
+      "id": "knowledge_rules",
+      "rows": 0,
+      "bytes": 98304,
+      "indexes": 5,
+      "degree": 6
+    },
+    {
+      "id": "knowledge_sources",
+      "rows": 10,
+      "bytes": 81920,
+      "indexes": 4,
+      "degree": 7
+    },
+    {
+      "id": "lead_activities",
+      "rows": 18,
+      "bytes": 81920,
+      "indexes": 4,
+      "degree": 1
+    },
+    {
+      "id": "leads",
+      "rows": 11,
+      "bytes": 180224,
+      "indexes": 10,
+      "degree": 1
+    },
+    {
+      "id": "long_term_program_plans",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 5
+    },
+    {
+      "id": "magic_login_tokens",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 5,
+      "degree": 1
+    },
+    {
+      "id": "marketing_calendar_items",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "marketing_campaigns",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 2
+    },
+    {
+      "id": "measurement_milestones",
+      "rows": 0,
+      "bytes": 114688,
+      "indexes": 6,
+      "degree": 2
+    },
+    {
+      "id": "media_assets",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 4
+    },
+    {
+      "id": "message_receipts",
+      "rows": 0,
+      "bytes": 90112,
+      "indexes": 5,
+      "degree": 2
+    },
+    {
+      "id": "messages",
+      "rows": 9,
+      "bytes": 81920,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "migration_quarantine",
+      "rows": 1,
+      "bytes": 32768,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "movement_analyses",
+      "rows": 3,
+      "bytes": 131072,
+      "indexes": 7,
+      "degree": 3
+    },
+    {
+      "id": "movement_assessments",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 3
+    },
+    {
+      "id": "movement_profiles",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "muscle_groups",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "notification_read_state",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "notification_settings",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 0
+    },
+    {
+      "id": "notifications",
+      "rows": 3,
+      "bytes": 81920,
+      "indexes": 4,
+      "degree": 2
+    },
+    {
+      "id": "nudge_dispatches",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "nutrition_log_revisions",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 0
+    },
+    {
+      "id": "nutrition_source_records",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 3
+    },
+    {
+      "id": "nutrition_targets",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "olympic_events",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 1
+    },
+    {
+      "id": "order_items",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 3
+    },
+    {
+      "id": "orders",
+      "rows": 1,
+      "bytes": 196608,
+      "indexes": 11,
+      "degree": 5
+    },
+    {
+      "id": "orientations",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "packages",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "page_views",
+      "rows": 393,
+      "bytes": 516096,
+      "indexes": 5,
+      "degree": 0
+    },
+    {
+      "id": "pain_entry_revisions",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "pending_movement_analysis_matches",
+      "rows": 4,
+      "bytes": 73728,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "pending_waiver_matches",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "personal_records",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "phase_progression_history",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "plaud_clip_mirror_jobs",
+      "rows": 2,
+      "bytes": 65536,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "plaud_clips",
+      "rows": 2,
+      "bytes": 98304,
+      "indexes": 6,
+      "degree": 3
+    },
+    {
+      "id": "plaud_merge_locks",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "plaud_merge_requests",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "plaud_webhook_nonces",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 2,
+      "degree": 0
+    },
+    {
+      "id": "print_orders",
+      "rows": 0,
+      "bytes": 65536,
+      "indexes": 7,
+      "degree": 0
+    },
+    {
+      "id": "processed_stripe_sessions",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 2,
+      "degree": 0
+    },
+    {
+      "id": "product_variants",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 3
+    },
+    {
+      "id": "program_mesocycle_blocks",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "progress_data",
+      "rows": 0,
+      "bytes": 98304,
+      "indexes": 11,
+      "degree": 1
+    },
+    {
+      "id": "progress_reports",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 3
+    },
+    {
+      "id": "recovery_activity_logs",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "recovery_completions",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 1
+    },
+    {
+      "id": "render_agents",
+      "rows": 2,
+      "bytes": 32768,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "renewal_alerts",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 2
+    },
+    {
+      "id": "rule_conflicts",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 3
+    },
+    {
+      "id": "rule_sources",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 2,
+      "degree": 2
+    },
+    {
+      "id": "rule_versions",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 2
+    },
+    {
+      "id": "service_credentials",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "session_logs",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 3
+    },
+    {
+      "id": "session_packages",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "session_types",
+      "rows": 10,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "sessions",
+      "rows": 12,
+      "bytes": 311296,
+      "indexes": 17,
+      "degree": 7
+    },
+    {
+      "id": "sets",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "shopping_carts",
+      "rows": 8,
+      "bytes": 147456,
+      "indexes": 6,
+      "degree": 3
+    },
+    {
+      "id": "sms_suppressions",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 0
+    },
+    {
+      "id": "social_publishing_accounts",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "social_publishing_attempts",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "social_publishing_jobs",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 0
+    },
+    {
+      "id": "source_files",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "sprint_class_slots",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 5
+    },
+    {
+      "id": "sprint_exercise_memory",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 4,
+      "degree": 2
+    },
+    {
+      "id": "sprint_weeks",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "storefront_items",
+      "rows": 7,
+      "bytes": 155648,
+      "indexes": 6,
+      "degree": 6
+    },
+    {
+      "id": "streaks",
+      "rows": 0,
+      "bytes": 65536,
+      "indexes": 7,
+      "degree": 1
+    },
+    {
+      "id": "study_progress",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 1
+    },
+    {
+      "id": "subscribers",
+      "rows": 1,
+      "bytes": 98304,
+      "indexes": 5,
+      "degree": 0
+    },
+    {
+      "id": "subscriptions",
+      "rows": 3,
+      "bytes": 90112,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "support_issue_events",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "support_issues",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 6,
+      "degree": 5
+    },
+    {
+      "id": "tax_config",
+      "rows": 1,
+      "bytes": 81920,
+      "indexes": 4,
+      "degree": 0
+    },
+    {
+      "id": "trainer_availability",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 1
+    },
+    {
+      "id": "trainer_certifications",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 2
+    },
+    {
+      "id": "trainer_commissions",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 7,
+      "degree": 4
+    },
+    {
+      "id": "trainer_permissions",
+      "rows": 0,
+      "bytes": 188416,
+      "indexes": 12,
+      "degree": 2
+    },
+    {
+      "id": "user_appearance_profiles",
+      "rows": 1,
+      "bytes": 65536,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "user_dietary_identities",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 2
+    },
+    {
+      "id": "user_feature_flags",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 0
+    },
+    {
+      "id": "user_follows",
+      "rows": 0,
+      "bytes": 73728,
+      "indexes": 8,
+      "degree": 2
+    },
+    {
+      "id": "user_watch_history",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 6,
+      "degree": 2
+    },
+    {
+      "id": "variation_logs",
+      "rows": 0,
+      "bytes": 114688,
+      "indexes": 6,
+      "degree": 3
+    },
+    {
+      "id": "video_access_grants",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 5,
+      "degree": 4
+    },
+    {
+      "id": "video_analytics",
+      "rows": 0,
+      "bytes": 40960,
+      "indexes": 4,
+      "degree": 2
+    },
+    {
+      "id": "video_catalog",
+      "rows": 0,
+      "bytes": 196608,
+      "indexes": 12,
+      "degree": 6
+    },
+    {
+      "id": "video_collection_items",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 3,
+      "degree": 2
+    },
+    {
+      "id": "video_collections",
+      "rows": 1,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 3
+    },
+    {
+      "id": "video_job_log",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 3,
+      "degree": 0
+    },
+    {
+      "id": "video_outbound_clicks",
+      "rows": 0,
+      "bytes": 32768,
+      "indexes": 4,
+      "degree": 2
+    },
+    {
+      "id": "video_render_jobs",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 6,
+      "degree": 7
+    },
+    {
+      "id": "video_sessions",
+      "rows": 0,
+      "bytes": 57344,
+      "indexes": 6,
+      "degree": 2
+    },
+    {
+      "id": "waiver_consent_flags",
+      "rows": 12,
+      "bytes": 24576,
+      "indexes": 1,
+      "degree": 1
+    },
+    {
+      "id": "waiver_record_versions",
+      "rows": 42,
+      "bytes": 40960,
+      "indexes": 2,
+      "degree": 2
+    },
+    {
+      "id": "waiver_records",
+      "rows": 12,
+      "bytes": 434176,
+      "indexes": 8,
+      "degree": 4
+    },
+    {
+      "id": "waiver_versions",
+      "rows": 5,
+      "bytes": 49152,
+      "indexes": 2,
+      "degree": 2
+    },
+    {
+      "id": "workout_exercises",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 3
+    },
+    {
+      "id": "workout_logs",
+      "rows": 1139,
+      "bytes": 393216,
+      "indexes": 3,
+      "degree": 1
+    },
+    {
+      "id": "workout_plan_completion_receipts",
+      "rows": 0,
+      "bytes": 98304,
+      "indexes": 5,
+      "degree": 4
+    },
+    {
+      "id": "workout_plan_day_exercises",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 3
+    },
+    {
+      "id": "workout_plan_days",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 3
+    },
+    {
+      "id": "workout_plan_lifecycle_receipts",
+      "rows": 0,
+      "bytes": 24576,
+      "indexes": 2,
+      "degree": 2
+    },
+    {
+      "id": "workout_plan_pdf_derivatives",
+      "rows": 0,
+      "bytes": 49152,
+      "indexes": 5,
+      "degree": 2
+    },
+    {
+      "id": "workout_plans",
+      "rows": 4,
+      "bytes": 270336,
+      "indexes": 6,
+      "degree": 7
+    },
+    {
+      "id": "workout_sessions",
+      "rows": 53,
+      "bytes": 196608,
+      "indexes": 9,
+      "degree": 6
+    },
+    {
+      "id": "workout_templates",
+      "rows": 0,
+      "bytes": 65536,
+      "indexes": 7,
+      "degree": 3
+    },
+    {
+      "id": "workshop_notes",
+      "rows": 0,
+      "bytes": 16384,
+      "indexes": 1,
+      "degree": 2
+    },
+    {
+      "id": "workshops",
+      "rows": 1,
+      "bytes": 32768,
+      "indexes": 1,
+      "degree": 3
+    }
+  ],
+  "edges": [
+    {
+      "source": "bootcamp_stretches",
+      "target": "bootcamp_templates",
+      "name": "bootcamp_stretches_templateId_fkey"
+    },
+    {
+      "source": "achievement_crystallizations",
+      "target": "Users",
+      "name": "achievement_crystallizations_userId_fkey"
+    },
+    {
+      "source": "achievement_crystallizations",
+      "target": "Achievements",
+      "name": "achievement_crystallizations_achievementId_fkey"
+    },
+    {
+      "source": "WearableData",
+      "target": "Users",
+      "name": "WearableData_userId_fkey"
+    },
+    {
+      "source": "exercise_videos",
+      "target": "exercise_library",
+      "name": "exercise_videos_exercise_id_fkey"
+    },
+    {
+      "source": "exercise_videos",
+      "target": "Users",
+      "name": "exercise_videos_uploader_id_fkey"
+    },
+    {
+      "source": "PointTransactions",
+      "target": "Users",
+      "name": "PointTransactions_userId_fkey"
+    },
+    {
+      "source": "video_analytics",
+      "target": "exercise_videos",
+      "name": "video_analytics_video_id_fkey"
+    },
+    {
+      "source": "video_analytics",
+      "target": "Users",
+      "name": "video_analytics_user_id_fkey"
+    },
+    {
+      "source": "exercise_library",
+      "target": "Users",
+      "name": "exercise_library_created_by_fkey"
+    },
+    {
+      "source": "cart_items",
+      "target": "shopping_carts",
+      "name": "cart_items_cartId_fkey"
+    },
+    {
+      "source": "cart_items",
+      "target": "storefront_items",
+      "name": "cart_items_storefrontItemId_fkey"
+    },
+    {
+      "source": "order_items",
+      "target": "orders",
+      "name": "order_items_orderId_fkey"
+    },
+    {
+      "source": "movement_analyses",
+      "target": "Users",
+      "name": "movement_analyses_userId_fkey"
+    },
+    {
+      "source": "movement_analyses",
+      "target": "Users",
+      "name": "movement_analyses_conductedBy_fkey"
+    },
+    {
+      "source": "Gamifications",
+      "target": "Users",
+      "name": "Gamifications_userId_fkey"
+    },
+    {
+      "source": "UserRewards",
+      "target": "Users",
+      "name": "UserRewards_userId_fkey"
+    },
+    {
+      "source": "UserRewards",
+      "target": "Rewards",
+      "name": "UserRewards_rewardId_fkey"
+    },
+    {
+      "source": "UserRewards",
+      "target": "Users",
+      "name": "UserRewards_fulfilledBy_fkey"
+    },
+    {
+      "source": "UserMilestones",
+      "target": "Users",
+      "name": "UserMilestones_userId_fkey"
+    },
+    {
+      "source": "UserMilestones",
+      "target": "Milestones",
+      "name": "UserMilestones_milestoneId_fkey"
+    },
+    {
+      "source": "PointTransactions",
+      "target": "Users",
+      "name": "PointTransactions_awardedBy_fkey"
+    },
+    {
+      "source": "SocialPosts",
+      "target": "Users",
+      "name": "SocialPosts_userId_fkey"
+    },
+    {
+      "source": "SocialPosts",
+      "target": "Achievements",
+      "name": "SocialPosts_achievementId_fkey"
+    },
+    {
+      "source": "SocialPosts",
+      "target": "UserAchievements",
+      "name": "SocialPosts_userAchievementId_fkey"
+    },
+    {
+      "source": "SocialComments",
+      "target": "SocialPosts",
+      "name": "SocialComments_postId_fkey"
+    },
+    {
+      "source": "SocialComments",
+      "target": "Users",
+      "name": "SocialComments_userId_fkey"
+    },
+    {
+      "source": "SocialLikes",
+      "target": "Users",
+      "name": "SocialLikes_userId_fkey"
+    },
+    {
+      "source": "Friendships",
+      "target": "Users",
+      "name": "Friendships_requesterId_fkey"
+    },
+    {
+      "source": "Friendships",
+      "target": "Users",
+      "name": "Friendships_recipientId_fkey"
+    },
+    {
+      "source": "PostReports",
+      "target": "Users",
+      "name": "PostReports_reporterId_fkey"
+    },
+    {
+      "source": "PostReports",
+      "target": "Users",
+      "name": "PostReports_contentAuthorId_fkey"
+    },
+    {
+      "source": "PostReports",
+      "target": "Users",
+      "name": "PostReports_resolvedBy_fkey"
+    },
+    {
+      "source": "product_variants",
+      "target": "storefront_items",
+      "name": "product_variants_storefrontItemId_fkey"
+    },
+    {
+      "source": "waiver_records",
+      "target": "Users",
+      "name": "waiver_records_userId_fkey"
+    },
+    {
+      "source": "sessions",
+      "target": "session_types",
+      "name": "sessions_sessionTypeId_fkey"
+    },
+    {
+      "source": "waiver_record_versions",
+      "target": "waiver_records",
+      "name": "waiver_record_versions_waiverRecordId_fkey"
+    },
+    {
+      "source": "EnhancedSocialPosts",
+      "target": "EnhancedSocialPosts",
+      "name": "EnhancedSocialPosts_originalPostId_fkey"
+    },
+    {
+      "source": "video_sessions",
+      "target": "Users",
+      "name": "video_sessions_trainerId_fkey"
+    },
+    {
+      "source": "video_sessions",
+      "target": "Users",
+      "name": "video_sessions_clientId_fkey"
+    },
+    {
+      "source": "olympic_events",
+      "target": "Users",
+      "name": "olympic_events_userId_fkey"
+    },
+    {
+      "source": "_dead_WorkoutPlans_20260803",
+      "target": "Users",
+      "name": "WorkoutPlans_userId_fkey"
+    },
+    {
+      "source": "SocialComments",
+      "target": "Users",
+      "name": "SocialComments_flaggedBy_fkey"
+    },
+    {
+      "source": "_dead_WorkoutSessions_20260803",
+      "target": "Users",
+      "name": "WorkoutSessions_userId_fkey"
+    },
+    {
+      "source": "_dead_WorkoutSessions_20260803",
+      "target": "_dead_WorkoutPlans_20260803",
+      "name": "WorkoutSessions_workoutPlanId_fkey"
+    },
+    {
+      "source": "_dead_WorkoutSessions_20260803",
+      "target": "workout_plan_days",
+      "name": "WorkoutSessions_workoutPlanDayId_fkey"
+    },
+    {
+      "source": "SocialComments",
+      "target": "Users",
+      "name": "SocialComments_lastModeratedBy_fkey"
+    },
+    {
+      "source": "SocialPosts",
+      "target": "Users",
+      "name": "SocialPosts_flaggedBy_fkey"
+    },
+    {
+      "source": "SocialPosts",
+      "target": "Users",
+      "name": "SocialPosts_lastModeratedBy_fkey"
+    },
+    {
+      "source": "ModerationActions",
+      "target": "Users",
+      "name": "ModerationActions_moderatorId_fkey"
+    },
+    {
+      "source": "ModerationActions",
+      "target": "Users",
+      "name": "ModerationActions_contentAuthorId_fkey"
+    },
+    {
+      "source": "ModerationActions",
+      "target": "PostReports",
+      "name": "ModerationActions_relatedReportId_fkey"
+    },
+    {
+      "source": "daily_hydrations",
+      "target": "Users",
+      "name": "daily_hydrations_userId_fkey"
+    },
+    {
+      "source": "workout_exercises",
+      "target": "Exercises",
+      "name": "workout_exercises_exerciseId_fkey"
+    },
+    {
+      "source": "trainer_commissions",
+      "target": "storefront_items",
+      "name": "trainer_commissions_package_id_fkey"
+    },
+    {
+      "source": "measurement_milestones",
+      "target": "body_measurements",
+      "name": "measurement_milestones_measurementId_fkey"
+    },
+    {
+      "source": "progress_reports",
+      "target": "body_measurements",
+      "name": "progress_reports_baselineMeasurementId_fkey"
+    },
+    {
+      "source": "progress_reports",
+      "target": "body_measurements",
+      "name": "progress_reports_latestMeasurementId_fkey"
+    },
+    {
+      "source": "Badges",
+      "target": "BadgeCollections",
+      "name": "Badges_collectionId_fkey"
+    },
+    {
+      "source": "UserBadges",
+      "target": "Users",
+      "name": "UserBadges_userId_fkey"
+    },
+    {
+      "source": "UserBadges",
+      "target": "Badges",
+      "name": "UserBadges_badgeId_fkey"
+    },
+    {
+      "source": "pending_movement_analysis_matches",
+      "target": "movement_analyses",
+      "name": "pending_movement_analysis_matches_movementAnalysisId_fkey"
+    },
+    {
+      "source": "pending_movement_analysis_matches",
+      "target": "Users",
+      "name": "pending_movement_analysis_matches_candidateUserId_fkey"
+    },
+    {
+      "source": "pending_movement_analysis_matches",
+      "target": "Users",
+      "name": "pending_movement_analysis_matches_reviewedByUserId_fkey"
+    },
+    {
+      "source": "bootcamp_class_log",
+      "target": "bootcamp_templates",
+      "name": "bootcamp_class_log_templateId_fkey"
+    },
+    {
+      "source": "waiver_record_versions",
+      "target": "waiver_versions",
+      "name": "waiver_record_versions_waiverVersionId_fkey"
+    },
+    {
+      "source": "waiver_consent_flags",
+      "target": "waiver_records",
+      "name": "waiver_consent_flags_waiverRecordId_fkey"
+    },
+    {
+      "source": "pending_waiver_matches",
+      "target": "waiver_records",
+      "name": "pending_waiver_matches_waiverRecordId_fkey"
+    },
+    {
+      "source": "goals",
+      "target": "Users",
+      "name": "goals_userId_fkey"
+    },
+    {
+      "source": "goal_supporters",
+      "target": "goals",
+      "name": "goal_supporters_goalId_fkey"
+    },
+    {
+      "source": "goal_supporters",
+      "target": "Users",
+      "name": "goal_supporters_supporterId_fkey"
+    },
+    {
+      "source": "goal_comments",
+      "target": "goals",
+      "name": "goal_comments_goalId_fkey"
+    },
+    {
+      "source": "goal_comments",
+      "target": "Users",
+      "name": "goal_comments_userId_fkey"
+    },
+    {
+      "source": "goal_likes",
+      "target": "goals",
+      "name": "goal_likes_goalId_fkey"
+    },
+    {
+      "source": "progress_data",
+      "target": "Users",
+      "name": "progress_data_userId_fkey"
+    },
+    {
+      "source": "corrective_protocols",
+      "target": "movement_assessments",
+      "name": "corrective_protocols_assessment_id_fkey"
+    },
+    {
+      "source": "session_logs",
+      "target": "workout_templates",
+      "name": "session_logs_workout_template_id_fkey"
+    },
+    {
+      "source": "corrective_homework_logs",
+      "target": "corrective_protocols",
+      "name": "corrective_homework_logs_protocol_id_fkey"
+    },
+    {
+      "source": "pending_waiver_matches",
+      "target": "Users",
+      "name": "pending_waiver_matches_candidateUserId_fkey"
+    },
+    {
+      "source": "pending_waiver_matches",
+      "target": "Users",
+      "name": "pending_waiver_matches_reviewedByUserId_fkey"
+    },
+    {
+      "source": "UserAchievements",
+      "target": "Users",
+      "name": "UserAchievements_userId_fkey"
+    },
+    {
+      "source": "long_term_program_plans",
+      "target": "Users",
+      "name": "long_term_program_plans_userId_fkey"
+    },
+    {
+      "source": "long_term_program_plans",
+      "target": "ai_interaction_logs",
+      "name": "long_term_program_plans_aiGenerationRequestId_fkey"
+    },
+    {
+      "source": "long_term_program_plans",
+      "target": "Users",
+      "name": "long_term_program_plans_createdByUserId_fkey"
+    },
+    {
+      "source": "long_term_program_plans",
+      "target": "Users",
+      "name": "long_term_program_plans_approvedByUserId_fkey"
+    },
+    {
+      "source": "program_mesocycle_blocks",
+      "target": "long_term_program_plans",
+      "name": "program_mesocycle_blocks_planId_fkey"
+    },
+    {
+      "source": "workout_plans",
+      "target": "Users",
+      "name": "workout_plans_userId_fkey"
+    },
+    {
+      "source": "challenges",
+      "target": "Users",
+      "name": "challenges_createdBy_fkey"
+    },
+    {
+      "source": "goal_likes",
+      "target": "Users",
+      "name": "goal_likes_userId_fkey"
+    },
+    {
+      "source": "workout_plan_day_exercises",
+      "target": "workout_plan_days",
+      "name": "workout_plan_day_exercises_workoutPlanDayId_fkey"
+    },
+    {
+      "source": "workout_plan_day_exercises",
+      "target": "Exercises",
+      "name": "workout_plan_day_exercises_exerciseId_fkey"
+    },
+    {
+      "source": "workout_plan_day_exercises",
+      "target": "Exercises",
+      "name": "workout_plan_day_exercises_alternateExerciseId_fkey"
+    },
+    {
+      "source": "exercise_muscle_groups",
+      "target": "Exercises",
+      "name": "exercise_muscle_groups_exerciseId_fkey"
+    },
+    {
+      "source": "exercise_muscle_groups",
+      "target": "muscle_groups",
+      "name": "exercise_muscle_groups_muscleGroupId_fkey"
+    },
+    {
+      "source": "goal_milestones",
+      "target": "goals",
+      "name": "goal_milestones_goalId_fkey"
+    },
+    {
+      "source": "sets",
+      "target": "workout_exercises",
+      "name": "sets_workoutExerciseId_fkey"
+    },
+    {
+      "source": "workout_logs",
+      "target": "workout_sessions",
+      "name": "workout_logs_sessionId_fkey"
+    },
+    {
+      "source": "body_measurements",
+      "target": "Users",
+      "name": "body_measurements_userId_fkey"
+    },
+    {
+      "source": "client_onboarding_questionnaires",
+      "target": "Users",
+      "name": "client_onboarding_questionnaires_userId_Users_fk"
+    },
+    {
+      "source": "client_onboarding_questionnaires",
+      "target": "Users",
+      "name": "client_onboarding_questionnaires_createdBy_Users_fk"
+    },
+    {
+      "source": "workout_sessions",
+      "target": "Users",
+      "name": "workout_sessions_userId_Users_fk"
+    },
+    {
+      "source": "workout_sessions",
+      "target": "Users",
+      "name": "workout_sessions_trainerId_Users_fk"
+    },
+    {
+      "source": "challenge_participants",
+      "target": "Users",
+      "name": "challenge_participants_userId_fkey"
+    },
+    {
+      "source": "challenge_participants",
+      "target": "challenges",
+      "name": "challenge_participants_challengeId_fkey"
+    },
+    {
+      "source": "body_measurements",
+      "target": "Users",
+      "name": "body_measurements_recordedBy_fkey"
+    },
+    {
+      "source": "user_follows",
+      "target": "Users",
+      "name": "user_follows_followerId_fkey"
+    },
+    {
+      "source": "client_baseline_measurements",
+      "target": "sessions",
+      "name": "client_baseline_measurements_sessionId_fkey"
+    },
+    {
+      "source": "user_follows",
+      "target": "Users",
+      "name": "user_follows_followingId_fkey"
+    },
+    {
+      "source": "client_notes",
+      "target": "sessions",
+      "name": "client_notes_relatedSessionId_fkey"
+    },
+    {
+      "source": "conversation_participants",
+      "target": "conversations",
+      "name": "conversation_participants_conversation_id_fkey"
+    },
+    {
+      "source": "messages",
+      "target": "conversations",
+      "name": "messages_conversation_id_fkey"
+    },
+    {
+      "source": "custom_packages",
+      "target": "storefront_items",
+      "name": "custom_packages_storefrontItemId_fkey"
+    },
+    {
+      "source": "message_receipts",
+      "target": "messages",
+      "name": "message_receipts_message_id_fkey"
+    },
+    {
+      "source": "cart_items",
+      "target": "product_variants",
+      "name": "cart_items_productVariantId_fkey"
+    },
+    {
+      "source": "bootcamp_class_log",
+      "target": "Users",
+      "name": "bootcamp_class_log_trainerId_fkey"
+    },
+    {
+      "source": "exercise_trends",
+      "target": "Users",
+      "name": "exercise_trends_approvedBy_fkey"
+    },
+    {
+      "source": "automation_logs",
+      "target": "automation_sequences",
+      "name": "automation_logs_sequenceId_fkey"
+    },
+    {
+      "source": "automation_logs",
+      "target": "Users",
+      "name": "automation_logs_userId_fkey"
+    },
+    {
+      "source": "challenge_participants",
+      "target": "Users",
+      "name": "challenge_participants_verifiedBy_fkey"
+    },
+    {
+      "source": "streaks",
+      "target": "Users",
+      "name": "streaks_userId_fkey"
+    },
+    {
+      "source": "ai_conversations",
+      "target": "Users",
+      "name": "ai_conversations_userId_fkey"
+    },
+    {
+      "source": "daily_macro_logs",
+      "target": "Users",
+      "name": "daily_macro_logs_userId_fkey"
+    },
+    {
+      "source": "daily_macro_logs",
+      "target": "ai_conversations",
+      "name": "daily_macro_logs_aiConversationId_fkey"
+    },
+    {
+      "source": "order_items",
+      "target": "product_variants",
+      "name": "order_items_productVariantId_fkey"
+    },
+    {
+      "source": "shopping_carts",
+      "target": "Users",
+      "name": "shopping_carts_userId_fkey"
+    },
+    {
+      "source": "ai_privacy_profiles",
+      "target": "Users",
+      "name": "ai_privacy_profiles_userId_fkey"
+    },
+    {
+      "source": "video_catalog",
+      "target": "exercise_library",
+      "name": "video_catalog_exercise_id_fkey"
+    },
+    {
+      "source": "video_catalog",
+      "target": "Users",
+      "name": "video_catalog_creator_id_fkey"
+    },
+    {
+      "source": "video_collections",
+      "target": "Users",
+      "name": "video_collections_creatorId_fkey"
+    },
+    {
+      "source": "client_pain_entries",
+      "target": "Users",
+      "name": "client_pain_entries_userId_fkey"
+    },
+    {
+      "source": "client_pain_entries",
+      "target": "Users",
+      "name": "client_pain_entries_createdById_fkey"
+    },
+    {
+      "source": "workout_plans",
+      "target": "Users",
+      "name": "workout_plans_trainer_id_fkey"
+    },
+    {
+      "source": "ai_metrics_bucket_users",
+      "target": "ai_metrics_buckets",
+      "name": "ai_metrics_bucket_users_bucketId_fkey"
+    },
+    {
+      "source": "video_collection_items",
+      "target": "video_collections",
+      "name": "video_collection_items_collectionId_fkey"
+    },
+    {
+      "source": "video_collection_items",
+      "target": "video_catalog",
+      "name": "video_collection_items_videoId_fkey"
+    },
+    {
+      "source": "user_watch_history",
+      "target": "Users",
+      "name": "user_watch_history_user_id_fkey"
+    },
+    {
+      "source": "user_watch_history",
+      "target": "video_catalog",
+      "name": "user_watch_history_video_id_fkey"
+    },
+    {
+      "source": "video_access_grants",
+      "target": "Users",
+      "name": "video_access_grants_user_id_fkey"
+    },
+    {
+      "source": "video_access_grants",
+      "target": "video_catalog",
+      "name": "video_access_grants_video_id_fkey"
+    },
+    {
+      "source": "video_access_grants",
+      "target": "video_collections",
+      "name": "video_access_grants_collection_id_fkey"
+    },
+    {
+      "source": "video_access_grants",
+      "target": "Users",
+      "name": "video_access_grants_granted_by_fkey"
+    },
+    {
+      "source": "video_outbound_clicks",
+      "target": "video_catalog",
+      "name": "video_outbound_clicks_video_id_fkey"
+    },
+    {
+      "source": "video_outbound_clicks",
+      "target": "Users",
+      "name": "video_outbound_clicks_user_id_fkey"
+    },
+    {
+      "source": "workout_plan_days",
+      "target": "workout_plans",
+      "name": "workout_plan_days_workoutPlanId_fkey"
+    },
+    {
+      "source": "workout_exercises",
+      "target": "workout_sessions",
+      "name": "workout_exercises_workoutSessionId_fkey"
+    },
+    {
+      "source": "custom_exercises",
+      "target": "Users",
+      "name": "custom_exercises_trainerId_fkey"
+    },
+    {
+      "source": "custom_exercises",
+      "target": "custom_exercises",
+      "name": "custom_exercises_parentVersionId_fkey"
+    },
+    {
+      "source": "form_analyses",
+      "target": "Users",
+      "name": "form_analyses_userId_fkey"
+    },
+    {
+      "source": "form_analyses",
+      "target": "Users",
+      "name": "form_analyses_trainerId_fkey"
+    },
+    {
+      "source": "waiver_versions",
+      "target": "Users",
+      "name": "waiver_versions_createdByUserId_fkey"
+    },
+    {
+      "source": "ai_consent_logs",
+      "target": "Users",
+      "name": "ai_consent_logs_userId_fkey"
+    },
+    {
+      "source": "sessions",
+      "target": "Users",
+      "name": "sessions_trainerId_fkey"
+    },
+    {
+      "source": "sessions",
+      "target": "Users",
+      "name": "sessions_userId_fkey"
+    },
+    {
+      "source": "ai_consent_logs",
+      "target": "Users",
+      "name": "ai_consent_logs_actorUserId_fkey"
+    },
+    {
+      "source": "contacts",
+      "target": "Users",
+      "name": "contacts_userid_fkey"
+    },
+    {
+      "source": "ai_conversations",
+      "target": "Users",
+      "name": "ai_conversations_targetUserId_fkey"
+    },
+    {
+      "source": "movement_profiles",
+      "target": "Users",
+      "name": "movement_profiles_userId_fkey"
+    },
+    {
+      "source": "equipment_items",
+      "target": "equipment_profiles",
+      "name": "equipment_items_profileId_fkey"
+    },
+    {
+      "source": "equipment_exercise_map",
+      "target": "equipment_items",
+      "name": "equipment_exercise_map_equipmentItemId_fkey"
+    },
+    {
+      "source": "equipment_exercise_map",
+      "target": "custom_exercises",
+      "name": "equipment_exercise_map_customExerciseId_fkey"
+    },
+    {
+      "source": "variation_logs",
+      "target": "equipment_profiles",
+      "name": "variation_logs_equipmentProfileId_fkey"
+    },
+    {
+      "source": "conversation_participants",
+      "target": "Users",
+      "name": "conversation_participants_user_id_fkey"
+    },
+    {
+      "source": "messages",
+      "target": "Users",
+      "name": "messages_sender_id_fkey"
+    },
+    {
+      "source": "message_receipts",
+      "target": "Users",
+      "name": "message_receipts_user_id_fkey"
+    },
+    {
+      "source": "bootcamp_space_profiles",
+      "target": "Users",
+      "name": "bootcamp_space_profiles_trainerId_fkey"
+    },
+    {
+      "source": "bootcamp_templates",
+      "target": "Users",
+      "name": "bootcamp_templates_trainerId_fkey"
+    },
+    {
+      "source": "bootcamp_templates",
+      "target": "equipment_profiles",
+      "name": "bootcamp_templates_equipmentProfileId_fkey"
+    },
+    {
+      "source": "bootcamp_templates",
+      "target": "bootcamp_space_profiles",
+      "name": "bootcamp_templates_spaceProfileId_fkey"
+    },
+    {
+      "source": "bootcamp_stations",
+      "target": "bootcamp_templates",
+      "name": "bootcamp_stations_templateId_fkey"
+    },
+    {
+      "source": "bootcamp_exercises",
+      "target": "bootcamp_templates",
+      "name": "bootcamp_exercises_templateId_fkey"
+    },
+    {
+      "source": "bootcamp_exercises",
+      "target": "bootcamp_stations",
+      "name": "bootcamp_exercises_stationId_fkey"
+    },
+    {
+      "source": "bootcamp_overflow_plans",
+      "target": "bootcamp_templates",
+      "name": "bootcamp_overflow_plans_templateId_fkey"
+    },
+    {
+      "source": "plaud_clips",
+      "target": "Users",
+      "name": "plaud_clips_user_id_fkey"
+    },
+    {
+      "source": "plaud_clips",
+      "target": "Users",
+      "name": "plaud_clips_client_id_fkey"
+    },
+    {
+      "source": "ComebackChallenges",
+      "target": "Users",
+      "name": "ComebackChallenges_userId_fkey"
+    },
+    {
+      "source": "gallery_photos",
+      "target": "gallery_events",
+      "name": "gallery_photos_event_id_fkey"
+    },
+    {
+      "source": "gallery_visitors",
+      "target": "gallery_events",
+      "name": "gallery_visitors_event_id_fkey"
+    },
+    {
+      "source": "gallery_enhancement_requests",
+      "target": "gallery_visitors",
+      "name": "gallery_enhancement_requests_visitor_id_fkey"
+    },
+    {
+      "source": "gallery_enhancement_requests",
+      "target": "gallery_photos",
+      "name": "gallery_enhancement_requests_photo_id_fkey"
+    },
+    {
+      "source": "gallery_donations",
+      "target": "gallery_visitors",
+      "name": "gallery_donations_visitor_id_fkey"
+    },
+    {
+      "source": "gallery_donations",
+      "target": "gallery_events",
+      "name": "gallery_donations_event_id_fkey"
+    },
+    {
+      "source": "gallery_referrals",
+      "target": "gallery_visitors",
+      "name": "gallery_referrals_visitor_id_fkey"
+    },
+    {
+      "source": "gallery_referrals",
+      "target": "gallery_events",
+      "name": "gallery_referrals_event_id_fkey"
+    },
+    {
+      "source": "bootcamp_sprints",
+      "target": "Users",
+      "name": "bootcamp_sprints_trainerId_fkey"
+    },
+    {
+      "source": "bootcamp_sprints",
+      "target": "bootcamp_space_profiles",
+      "name": "bootcamp_sprints_spaceProfileId_fkey"
+    },
+    {
+      "source": "bootcamp_sprints",
+      "target": "bootcamp_sprints",
+      "name": "bootcamp_sprints_previousSprintId_fkey"
+    },
+    {
+      "source": "sprint_weeks",
+      "target": "bootcamp_sprints",
+      "name": "sprint_weeks_sprintId_fkey"
+    },
+    {
+      "source": "lead_activities",
+      "target": "leads",
+      "name": "lead_activities_lead_id_fkey"
+    },
+    {
+      "source": "FactionMemberships",
+      "target": "Factions",
+      "name": "FactionMemberships_factionId_fkey"
+    },
+    {
+      "source": "PartyMembers",
+      "target": "Parties",
+      "name": "PartyMembers_partyId_fkey"
+    },
+    {
+      "source": "daily_workout_forms",
+      "target": "Users",
+      "name": "daily_workout_forms_client_id_fkey"
+    },
+    {
+      "source": "daily_workout_forms",
+      "target": "Users",
+      "name": "daily_workout_forms_trainer_id_fkey"
+    },
+    {
+      "source": "sprint_class_slots",
+      "target": "sprint_weeks",
+      "name": "sprint_class_slots_weekId_fkey"
+    },
+    {
+      "source": "sprint_class_slots",
+      "target": "bootcamp_sprints",
+      "name": "sprint_class_slots_sprintId_fkey"
+    },
+    {
+      "source": "sprint_class_slots",
+      "target": "bootcamp_templates",
+      "name": "sprint_class_slots_templateId_fkey"
+    },
+    {
+      "source": "sprint_class_slots",
+      "target": "bootcamp_class_log",
+      "name": "sprint_class_slots_classLogId_fkey"
+    },
+    {
+      "source": "sprint_exercise_memory",
+      "target": "bootcamp_sprints",
+      "name": "sprint_exercise_memory_sprintId_fkey"
+    },
+    {
+      "source": "sprint_exercise_memory",
+      "target": "sprint_class_slots",
+      "name": "sprint_exercise_memory_slotId_fkey"
+    },
+    {
+      "source": "plaud_merge_requests",
+      "target": "Users",
+      "name": "plaud_merge_requests_user_id_fkey"
+    },
+    {
+      "source": "plaud_merge_requests",
+      "target": "Users",
+      "name": "plaud_merge_requests_client_id_fkey"
+    },
+    {
+      "source": "gallery_messages",
+      "target": "gallery_visitors",
+      "name": "gallery_messages_visitor_id_fkey"
+    },
+    {
+      "source": "gallery_messages",
+      "target": "gallery_events",
+      "name": "gallery_messages_event_id_fkey"
+    },
+    {
+      "source": "plaud_merge_requests",
+      "target": "daily_workout_forms",
+      "name": "plaud_merge_requests_approved_workout_form_id_fkey"
+    },
+    {
+      "source": "client_trainer_assignments",
+      "target": "Users",
+      "name": "client_trainer_assignments_client_id_fkey"
+    },
+    {
+      "source": "client_trainer_assignments",
+      "target": "Users",
+      "name": "client_trainer_assignments_trainer_id_fkey"
+    },
+    {
+      "source": "client_trainer_assignments",
+      "target": "Users",
+      "name": "client_trainer_assignments_assigned_by_fkey"
+    },
+    {
+      "source": "client_trainer_assignments",
+      "target": "Users",
+      "name": "client_trainer_assignments_last_modified_by_fkey"
+    },
+    {
+      "source": "client_pain_entries",
+      "target": "Users",
+      "name": "client_pain_entries_createdById_fkey1"
+    },
+    {
+      "source": "e2ee_one_time_prekeys",
+      "target": "e2ee_key_bundles",
+      "name": "e2ee_one_time_prekeys_bundle_id_fkey"
+    },
+    {
+      "source": "CommunicationDrafts",
+      "target": "Users",
+      "name": "CommunicationDrafts_clientId_fkey"
+    },
+    {
+      "source": "CommunicationDrafts",
+      "target": "Users",
+      "name": "CommunicationDrafts_trainerId_fkey"
+    },
+    {
+      "source": "CommunicationDrafts",
+      "target": "Users",
+      "name": "CommunicationDrafts_approvedBy_fkey"
+    },
+    {
+      "source": "plaud_clip_mirror_jobs",
+      "target": "plaud_clips",
+      "name": "plaud_clip_mirror_jobs_clip_id_fkey"
+    },
+    {
+      "source": "nutrition_targets",
+      "target": "Users",
+      "name": "nutrition_targets_userId_fkey"
+    },
+    {
+      "source": "nutrition_targets",
+      "target": "Users",
+      "name": "nutrition_targets_createdBy_fkey"
+    },
+    {
+      "source": "nutrition_targets",
+      "target": "Users",
+      "name": "nutrition_targets_activatedBy_fkey"
+    },
+    {
+      "source": "SocialComments",
+      "target": "SocialComments",
+      "name": "SocialComments_parentCommentId_fkey"
+    },
+    {
+      "source": "gallery_photo_votes",
+      "target": "gallery_photos",
+      "name": "gallery_photo_votes_photo_id_fkey"
+    },
+    {
+      "source": "gallery_photo_votes",
+      "target": "gallery_visitors",
+      "name": "gallery_photo_votes_visitor_id_fkey"
+    },
+    {
+      "source": "plaud_merge_locks",
+      "target": "Users",
+      "name": "plaud_merge_locks_user_id_fkey"
+    },
+    {
+      "source": "nudge_dispatches",
+      "target": "Users",
+      "name": "nudge_dispatches_userId_fkey"
+    },
+    {
+      "source": "daily_workout_forms",
+      "target": "workout_sessions",
+      "name": "daily_workout_forms_session_id_fkey"
+    },
+    {
+      "source": "admin_notifications",
+      "target": "Users",
+      "name": "admin_notifications_userId_fkey"
+    },
+    {
+      "source": "admin_notifications",
+      "target": "financial_transactions",
+      "name": "admin_notifications_transactionId_fkey"
+    },
+    {
+      "source": "admin_notifications",
+      "target": "Users",
+      "name": "admin_notifications_readBy_fkey"
+    },
+    {
+      "source": "PostHashtags",
+      "target": "SocialPosts",
+      "name": "PostHashtags_postId_fkey"
+    },
+    {
+      "source": "PostHashtags",
+      "target": "Hashtags",
+      "name": "PostHashtags_hashtagId_fkey"
+    },
+    {
+      "source": "UserHashtagFollows",
+      "target": "Users",
+      "name": "UserHashtagFollows_userId_fkey"
+    },
+    {
+      "source": "UserHashtagFollows",
+      "target": "Hashtags",
+      "name": "UserHashtagFollows_hashtagId_fkey"
+    },
+    {
+      "source": "avatar_homes",
+      "target": "Users",
+      "name": "avatar_homes_userId_fkey"
+    },
+    {
+      "source": "user_dietary_identities",
+      "target": "Users",
+      "name": "user_dietary_identities_userId_fkey"
+    },
+    {
+      "source": "user_dietary_identities",
+      "target": "Users",
+      "name": "user_dietary_identities_capturedBy_fkey"
+    },
+    {
+      "source": "subscriptions",
+      "target": "Users",
+      "name": "subscriptions_userId_fkey"
+    },
+    {
+      "source": "admin_account_audit_logs",
+      "target": "Users",
+      "name": "admin_account_audit_logs_actorUserId_fkey"
+    },
+    {
+      "source": "admin_account_audit_logs",
+      "target": "Users",
+      "name": "admin_account_audit_logs_targetUserId_fkey"
+    },
+    {
+      "source": "content_projects",
+      "target": "Users",
+      "name": "content_projects_created_by_fkey"
+    },
+    {
+      "source": "content_projects",
+      "target": "Users",
+      "name": "content_projects_updated_by_fkey"
+    },
+    {
+      "source": "equipment_scan_candidates",
+      "target": "equipment_items",
+      "name": "equipment_scan_candidates_equipmentItemId_fkey"
+    },
+    {
+      "source": "equipment_scan_candidates",
+      "target": "equipment_items",
+      "name": "equipment_scan_candidates_duplicateOfItemId_fkey"
+    },
+    {
+      "source": "equipment_scan_candidates",
+      "target": "Users",
+      "name": "equipment_scan_candidates_reviewedBy_fkey"
+    },
+    {
+      "source": "challenge_submissions",
+      "target": "Users",
+      "name": "challenge_submissions_submitted_by_user_id_fkey"
+    },
+    {
+      "source": "challenge_submissions",
+      "target": "Users",
+      "name": "challenge_submissions_assigned_trainer_id_fkey"
+    },
+    {
+      "source": "challenge_submissions",
+      "target": "Users",
+      "name": "challenge_submissions_reviewed_by_user_id_fkey"
+    },
+    {
+      "source": "challenge_submissions",
+      "target": "challenges",
+      "name": "challenge_submissions_approved_challenge_id_fkey"
+    },
+    {
+      "source": "hermes_tasks",
+      "target": "Users",
+      "name": "hermes_tasks_requested_by_fkey"
+    },
+    {
+      "source": "hermes_tasks",
+      "target": "Users",
+      "name": "hermes_tasks_completed_by_fkey"
+    },
+    {
+      "source": "body_map_evidence",
+      "target": "client_pain_entries",
+      "name": "body_map_evidence_painEntryId_fkey"
+    },
+    {
+      "source": "body_map_evidence",
+      "target": "Users",
+      "name": "body_map_evidence_userId_fkey"
+    },
+    {
+      "source": "body_map_evidence",
+      "target": "Users",
+      "name": "body_map_evidence_uploadedById_fkey"
+    },
+    {
+      "source": "body_map_evidence",
+      "target": "Users",
+      "name": "body_map_evidence_reviewedById_fkey"
+    },
+    {
+      "source": "marketing_campaigns",
+      "target": "Users",
+      "name": "marketing_campaigns_createdBy_fkey"
+    },
+    {
+      "source": "marketing_campaigns",
+      "target": "Users",
+      "name": "marketing_campaigns_updatedBy_fkey"
+    },
+    {
+      "source": "personal_records",
+      "target": "Users",
+      "name": "personal_records_userId_fkey"
+    },
+    {
+      "source": "recovery_completions",
+      "target": "Users",
+      "name": "recovery_completions_userId_fkey"
+    },
+    {
+      "source": "pain_entry_revisions",
+      "target": "client_pain_entries",
+      "name": "pain_entry_revisions_painEntryId_fkey"
+    },
+    {
+      "source": "coach_intake_items",
+      "target": "Users",
+      "name": "coach_intake_items_user_id_fkey"
+    },
+    {
+      "source": "coach_intake_items",
+      "target": "Users",
+      "name": "coach_intake_items_created_by_user_id_fkey"
+    },
+    {
+      "source": "coach_intake_items",
+      "target": "Users",
+      "name": "coach_intake_items_resolved_client_id_fkey"
+    },
+    {
+      "source": "coach_action_proposals",
+      "target": "Users",
+      "name": "coach_action_proposals_created_by_user_id_fkey"
+    },
+    {
+      "source": "ai_command_audit_logs",
+      "target": "Users",
+      "name": "ai_command_audit_logs_userId_fkey"
+    },
+    {
+      "source": "exercise_equipment",
+      "target": "Exercises",
+      "name": "exercise_equipment_exerciseId_fkey"
+    },
+    {
+      "source": "exercise_equipment",
+      "target": "equipment",
+      "name": "exercise_equipment_equipmentId_fkey"
+    },
+    {
+      "source": "financial_transactions",
+      "target": "Users",
+      "name": "financial_transactions_userId_fkey"
+    },
+    {
+      "source": "financial_transactions",
+      "target": "orders",
+      "name": "financial_transactions_orderId_fkey"
+    },
+    {
+      "source": "financial_transactions",
+      "target": "shopping_carts",
+      "name": "financial_transactions_cartId_fkey"
+    },
+    {
+      "source": "coach_intake_events",
+      "target": "coach_intake_items",
+      "name": "coach_intake_events_intake_item_id_fkey"
+    },
+    {
+      "source": "notification_read_state",
+      "target": "Users",
+      "name": "notification_read_state_adminId_fkey"
+    },
+    {
+      "source": "business_metrics",
+      "target": "storefront_items",
+      "name": "business_metrics_topPackageId_fkey"
+    },
+    {
+      "source": "bootcamp_exercises",
+      "target": "Exercises",
+      "name": "fk_bootcamp_exercises_exercise_uuid"
+    },
+    {
+      "source": "client_onboarding_coverage_items",
+      "target": "Users",
+      "name": "client_onboarding_coverage_items_clientId_fkey"
+    },
+    {
+      "source": "client_onboarding_coverage_items",
+      "target": "Users",
+      "name": "client_onboarding_coverage_items_lastMarkedBy_fkey"
+    },
+    {
+      "source": "equipment_scan_sessions",
+      "target": "equipment_profiles",
+      "name": "equipment_scan_sessions_profileId_fkey"
+    },
+    {
+      "source": "equipment_scan_sessions",
+      "target": "Users",
+      "name": "equipment_scan_sessions_trainerId_fkey"
+    },
+    {
+      "source": "equipment_scan_candidates",
+      "target": "equipment_scan_sessions",
+      "name": "equipment_scan_candidates_sessionId_fkey"
+    },
+    {
+      "source": "equipment_scan_candidates",
+      "target": "equipment_profiles",
+      "name": "equipment_scan_candidates_profileId_fkey"
+    },
+    {
+      "source": "history_backfill_runs",
+      "target": "Users",
+      "name": "history_backfill_runs_userId_fkey"
+    },
+    {
+      "source": "history_backfill_runs",
+      "target": "Users",
+      "name": "history_backfill_runs_trainerId_fkey"
+    },
+    {
+      "source": "immigration_documents",
+      "target": "Users",
+      "name": "immigration_documents_user_id_Users_fkey"
+    },
+    {
+      "source": "immigration_tasks",
+      "target": "Users",
+      "name": "immigration_tasks_user_id_Users_fkey"
+    },
+    {
+      "source": "notifications",
+      "target": "Users",
+      "name": "notifications_userId_Users_fkey"
+    },
+    {
+      "source": "ai_interaction_logs",
+      "target": "Users",
+      "name": "ai_interaction_logs_userId_Users_fkey"
+    },
+    {
+      "source": "equipment_profiles",
+      "target": "Users",
+      "name": "equipment_profiles_trainerId_Users_fkey"
+    },
+    {
+      "source": "measurement_milestones",
+      "target": "Users",
+      "name": "measurement_milestones_userId_Users_fkey"
+    },
+    {
+      "source": "nutrition_source_records",
+      "target": "Users",
+      "name": "nutrition_source_records_userId_fkey"
+    },
+    {
+      "source": "nutrition_source_records",
+      "target": "Users",
+      "name": "nutrition_source_records_loggedByUserId_fkey"
+    },
+    {
+      "source": "daily_macro_logs",
+      "target": "nutrition_source_records",
+      "name": "daily_macro_logs_sourceRecordId_fkey"
+    },
+    {
+      "source": "daily_macro_logs",
+      "target": "Users",
+      "name": "daily_macro_logs_loggedByUserId_fkey"
+    },
+    {
+      "source": "daily_macro_logs",
+      "target": "Users",
+      "name": "daily_macro_logs_reviewedByUserId_fkey"
+    },
+    {
+      "source": "order_items",
+      "target": "storefront_items",
+      "name": "order_items_storefront_item_id_fkey_v2"
+    },
+    {
+      "source": "knowledge_sources",
+      "target": "Users",
+      "name": "knowledge_sources_reviewedByUserId_fkey"
+    },
+    {
+      "source": "knowledge_sources",
+      "target": "Users",
+      "name": "knowledge_sources_createdByUserId_fkey"
+    },
+    {
+      "source": "source_files",
+      "target": "knowledge_sources",
+      "name": "source_files_sourceId_fkey"
+    },
+    {
+      "source": "credentials",
+      "target": "knowledge_sources",
+      "name": "credentials_sourceId_fkey"
+    },
+    {
+      "source": "credentials",
+      "target": "Users",
+      "name": "credentials_holderUserId_fkey"
+    },
+    {
+      "source": "continuing_education",
+      "target": "knowledge_sources",
+      "name": "continuing_education_sourceId_fkey"
+    },
+    {
+      "source": "continuing_education",
+      "target": "Users",
+      "name": "continuing_education_holderUserId_fkey"
+    },
+    {
+      "source": "workshops",
+      "target": "knowledge_sources",
+      "name": "workshops_sourceId_fkey"
+    },
+    {
+      "source": "workshops",
+      "target": "Users",
+      "name": "workshops_attendeeUserId_fkey"
+    },
+    {
+      "source": "workshop_notes",
+      "target": "workshops",
+      "name": "workshop_notes_workshopId_fkey"
+    },
+    {
+      "source": "workshop_notes",
+      "target": "Users",
+      "name": "workshop_notes_createdByUserId_fkey"
+    },
+    {
+      "source": "video_render_jobs",
+      "target": "Users",
+      "name": "video_render_jobs_user_id_fkey"
+    },
+    {
+      "source": "video_render_jobs",
+      "target": "content_projects",
+      "name": "video_render_jobs_project_id_fkey"
+    },
+    {
+      "source": "video_render_jobs",
+      "target": "Exercises",
+      "name": "video_render_jobs_exercise_id_fkey"
+    },
+    {
+      "source": "knowledge_rules",
+      "target": "Users",
+      "name": "knowledge_rules_approvedByUserId_fkey"
+    },
+    {
+      "source": "knowledge_rules",
+      "target": "Users",
+      "name": "knowledge_rules_createdByUserId_fkey"
+    },
+    {
+      "source": "rule_sources",
+      "target": "knowledge_rules",
+      "name": "rule_sources_ruleId_fkey"
+    },
+    {
+      "source": "rule_sources",
+      "target": "knowledge_sources",
+      "name": "rule_sources_sourceId_fkey"
+    },
+    {
+      "source": "rule_versions",
+      "target": "knowledge_rules",
+      "name": "rule_versions_ruleId_fkey"
+    },
+    {
+      "source": "rule_versions",
+      "target": "Users",
+      "name": "rule_versions_changedByUserId_fkey"
+    },
+    {
+      "source": "rule_conflicts",
+      "target": "knowledge_rules",
+      "name": "rule_conflicts_ruleAId_fkey"
+    },
+    {
+      "source": "rule_conflicts",
+      "target": "knowledge_rules",
+      "name": "rule_conflicts_ruleBId_fkey"
+    },
+    {
+      "source": "rule_conflicts",
+      "target": "Users",
+      "name": "rule_conflicts_resolvedByUserId_fkey"
+    },
+    {
+      "source": "trainer_commissions",
+      "target": "orders",
+      "name": "trainer_commissions_order_id_fkey"
+    },
+    {
+      "source": "trainer_commissions",
+      "target": "Users",
+      "name": "trainer_commissions_client_id_fkey"
+    },
+    {
+      "source": "trainer_commissions",
+      "target": "Users",
+      "name": "trainer_commissions_trainer_id_fkey"
+    },
+    {
+      "source": "SocialGroups",
+      "target": "Users",
+      "name": "SocialGroups_ownerId_fkey"
+    },
+    {
+      "source": "SocialGroupMembers",
+      "target": "SocialGroups",
+      "name": "SocialGroupMembers_groupId_fkey"
+    },
+    {
+      "source": "SocialGroupMembers",
+      "target": "Users",
+      "name": "SocialGroupMembers_userId_fkey"
+    },
+    {
+      "source": "SocialPosts",
+      "target": "SocialGroups",
+      "name": "SocialPosts_groupId_fkey"
+    },
+    {
+      "source": "workout_plan_completion_receipts",
+      "target": "workout_plans",
+      "name": "workout_plan_completion_receipts_workout_plan_id_fkey"
+    },
+    {
+      "source": "workout_plan_completion_receipts",
+      "target": "Users",
+      "name": "workout_plan_completion_receipts_client_id_fkey"
+    },
+    {
+      "source": "workout_plan_completion_receipts",
+      "target": "daily_workout_forms",
+      "name": "workout_plan_completion_receipts_daily_workout_form_id_fkey"
+    },
+    {
+      "source": "workout_plan_completion_receipts",
+      "target": "workout_sessions",
+      "name": "workout_plan_completion_receipts_workout_session_id_fkey"
+    },
+    {
+      "source": "workout_plan_pdf_derivatives",
+      "target": "workout_plans",
+      "name": "workout_plan_pdf_derivatives_plan_id_fkey"
+    },
+    {
+      "source": "workout_plan_pdf_derivatives",
+      "target": "Users",
+      "name": "workout_plan_pdf_derivatives_requested_by_fkey"
+    },
+    {
+      "source": "workout_plans",
+      "target": "Users",
+      "name": "workout_plans_archived_by_fkey"
+    },
+    {
+      "source": "workout_plan_lifecycle_receipts",
+      "target": "workout_plans",
+      "name": "workout_plan_lifecycle_receipts_plan_id_fkey"
+    },
+    {
+      "source": "workout_plan_lifecycle_receipts",
+      "target": "Users",
+      "name": "workout_plan_lifecycle_receipts_actor_id_fkey"
+    },
+    {
+      "source": "video_render_jobs",
+      "target": "video_render_jobs",
+      "name": "video_render_jobs_parent_job_id_fkey"
+    },
+    {
+      "source": "support_issues",
+      "target": "Users",
+      "name": "support_issues_reporter_user_id_fkey"
+    },
+    {
+      "source": "support_issues",
+      "target": "Users",
+      "name": "support_issues_assigned_owner_user_id_fkey"
+    },
+    {
+      "source": "support_issues",
+      "target": "support_issues",
+      "name": "support_issues_duplicate_of_issue_id_fkey"
+    },
+    {
+      "source": "support_issue_events",
+      "target": "support_issues",
+      "name": "support_issue_events_issue_id_fkey"
+    },
+    {
+      "source": "support_issue_events",
+      "target": "Users",
+      "name": "support_issue_events_actor_user_id_fkey"
+    },
+    {
+      "source": "video_render_jobs",
+      "target": "render_agents",
+      "name": "video_render_jobs_leased_by_fkey"
+    },
+    {
+      "source": "user_appearance_profiles",
+      "target": "Users",
+      "name": "user_appearance_profiles_userId_fkey"
+    },
+    {
+      "source": "flag_overrides",
+      "target": "flags",
+      "name": "flag_overrides_flag_fkey"
+    },
+    {
+      "source": "recovery_activity_logs",
+      "target": "Users",
+      "name": "recovery_activity_logs_userId_fkey"
+    },
+    {
+      "source": "recovery_activity_logs",
+      "target": "Exercises",
+      "name": "recovery_activity_logs_exerciseId_fkey"
+    },
+    {
+      "source": "auth_identities",
+      "target": "Users",
+      "name": "auth_identities_userId_fkey"
+    },
+    {
+      "source": "magic_login_tokens",
+      "target": "Users",
+      "name": "magic_login_tokens_userId_fkey"
+    },
+    {
+      "source": "media_assets",
+      "target": "Users",
+      "name": "media_assets_owner_user_id_fkey"
+    },
+    {
+      "source": "media_assets",
+      "target": "video_render_jobs",
+      "name": "media_assets_job_id_fkey"
+    },
+    {
+      "source": "media_assets",
+      "target": "Exercises",
+      "name": "media_assets_exercise_id_fkey"
+    },
+    {
+      "source": "media_assets",
+      "target": "content_projects",
+      "name": "media_assets_project_id_fkey"
+    },
+    {
+      "source": "packages",
+      "target": "Users",
+      "name": "packages_createdBy_fkey"
+    },
+    {
+      "source": "Communities",
+      "target": "Users",
+      "name": "Communities_createdBy_fkey"
+    },
+    {
+      "source": "EnhancedSocialPosts",
+      "target": "Users",
+      "name": "EnhancedSocialPosts_moderatedBy_fkey"
+    },
+    {
+      "source": "EnhancedSocialPosts",
+      "target": "Users",
+      "name": "EnhancedSocialPosts_userId_fkey"
+    },
+    {
+      "source": "SocialConnections",
+      "target": "Users",
+      "name": "SocialConnections_followerId_fkey"
+    },
+    {
+      "source": "SocialConnections",
+      "target": "Users",
+      "name": "SocialConnections_followingId_fkey"
+    },
+    {
+      "source": "admin_specials",
+      "target": "Users",
+      "name": "admin_specials_createdBy_fkey"
+    },
+    {
+      "source": "client_baseline_measurements",
+      "target": "Users",
+      "name": "client_baseline_measurements_recordedBy_fkey"
+    },
+    {
+      "source": "client_baseline_measurements",
+      "target": "Users",
+      "name": "client_baseline_measurements_userId_fkey"
+    },
+    {
+      "source": "client_notes",
+      "target": "Users",
+      "name": "client_notes_trainerId_fkey"
+    },
+    {
+      "source": "client_notes",
+      "target": "Users",
+      "name": "client_notes_userId_fkey"
+    },
+    {
+      "source": "client_nutrition_plans",
+      "target": "Users",
+      "name": "client_nutrition_plans_createdBy_fkey"
+    },
+    {
+      "source": "client_nutrition_plans",
+      "target": "Users",
+      "name": "client_nutrition_plans_userId_fkey"
+    },
+    {
+      "source": "client_opt_phases",
+      "target": "Users",
+      "name": "client_opt_phases_client_id_fkey"
+    },
+    {
+      "source": "client_photos",
+      "target": "Users",
+      "name": "client_photos_uploadedBy_fkey"
+    },
+    {
+      "source": "client_photos",
+      "target": "Users",
+      "name": "client_photos_userId_fkey"
+    },
+    {
+      "source": "client_progress",
+      "target": "Users",
+      "name": "client_progress_userId_fkey"
+    },
+    {
+      "source": "clients_pii",
+      "target": "Users",
+      "name": "clients_pii_created_by_fkey"
+    },
+    {
+      "source": "clients_pii",
+      "target": "Users",
+      "name": "clients_pii_last_modified_by_fkey"
+    },
+    {
+      "source": "corrective_homework_logs",
+      "target": "Users",
+      "name": "corrective_homework_logs_client_id_fkey"
+    },
+    {
+      "source": "corrective_protocols",
+      "target": "Users",
+      "name": "corrective_protocols_assigned_by_trainer_id_fkey"
+    },
+    {
+      "source": "corrective_protocols",
+      "target": "Users",
+      "name": "corrective_protocols_client_id_fkey"
+    },
+    {
+      "source": "custom_packages",
+      "target": "Users",
+      "name": "custom_packages_clientId_fkey"
+    },
+    {
+      "source": "custom_packages",
+      "target": "Users",
+      "name": "custom_packages_createdByAdminId_fkey"
+    },
+    {
+      "source": "exercise_library",
+      "target": "Users",
+      "name": "exercise_library_created_by_admin_id_fkey"
+    },
+    {
+      "source": "food_scan_history",
+      "target": "Users",
+      "name": "food_scan_history_userId_fkey"
+    },
+    {
+      "source": "movement_assessments",
+      "target": "Users",
+      "name": "movement_assessments_assessor_trainer_id_fkey"
+    },
+    {
+      "source": "movement_assessments",
+      "target": "Users",
+      "name": "movement_assessments_client_id_fkey"
+    },
+    {
+      "source": "notifications",
+      "target": "Users",
+      "name": "notifications_senderId_fkey"
+    },
+    {
+      "source": "orders",
+      "target": "Users",
+      "name": "orders_trainer_id_fkey"
+    },
+    {
+      "source": "orders",
+      "target": "Users",
+      "name": "orders_userId_fkey"
+    },
+    {
+      "source": "orientations",
+      "target": "Users",
+      "name": "orientations_userId_fkey"
+    },
+    {
+      "source": "phase_progression_history",
+      "target": "Users",
+      "name": "phase_progression_history_client_id_fkey"
+    },
+    {
+      "source": "phase_progression_history",
+      "target": "Users",
+      "name": "phase_progression_history_trainer_id_fkey"
+    },
+    {
+      "source": "progress_reports",
+      "target": "Users",
+      "name": "progress_reports_userId_fkey"
+    },
+    {
+      "source": "renewal_alerts",
+      "target": "Users",
+      "name": "renewal_alerts_contactedBy_fkey"
+    },
+    {
+      "source": "renewal_alerts",
+      "target": "Users",
+      "name": "renewal_alerts_userId_fkey"
+    },
+    {
+      "source": "session_logs",
+      "target": "Users",
+      "name": "session_logs_client_id_fkey"
+    },
+    {
+      "source": "session_logs",
+      "target": "Users",
+      "name": "session_logs_trainer_id_fkey"
+    },
+    {
+      "source": "sessions",
+      "target": "Users",
+      "name": "sessions_cancellationReviewedBy_fkey"
+    },
+    {
+      "source": "sessions",
+      "target": "Users",
+      "name": "sessions_markedPresentBy_fkey"
+    },
+    {
+      "source": "study_progress",
+      "target": "Users",
+      "name": "study_progress_user_id_fkey"
+    },
+    {
+      "source": "trainer_availability",
+      "target": "Users",
+      "name": "trainer_availability_trainer_id_fkey"
+    },
+    {
+      "source": "trainer_certifications",
+      "target": "Users",
+      "name": "trainer_certifications_trainer_id_fkey"
+    },
+    {
+      "source": "trainer_certifications",
+      "target": "Users",
+      "name": "trainer_certifications_verified_by_admin_id_fkey"
+    },
+    {
+      "source": "trainer_permissions",
+      "target": "Users",
+      "name": "trainer_permissions_grantedBy_fkey"
+    },
+    {
+      "source": "trainer_permissions",
+      "target": "Users",
+      "name": "trainer_permissions_trainerId_fkey"
+    },
+    {
+      "source": "variation_logs",
+      "target": "Users",
+      "name": "variation_logs_clientId_fkey"
+    },
+    {
+      "source": "variation_logs",
+      "target": "Users",
+      "name": "variation_logs_trainerId_fkey"
+    },
+    {
+      "source": "workout_templates",
+      "target": "Users",
+      "name": "workout_templates_created_by_admin_id_fkey"
+    },
+    {
+      "source": "workout_templates",
+      "target": "Users",
+      "name": "workout_templates_userId_fkey"
+    }
+  ],
+  "summary": {
+    "tables": 254,
+    "foreignKeys": 396,
+    "isolated": 33,
+    "emptyTables": 158,
+    "totalRows": 6162
+  }
+}
