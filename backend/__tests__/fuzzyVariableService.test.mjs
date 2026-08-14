@@ -184,3 +184,131 @@ describe('resolveFuzzyVariables — fails to null, never to garbage', () => {
     expect(await resolveFuzzyVariables({ env: ON })).toBeNull();
   });
 });
+
+/**
+ * The confusable / invisible / bidi class.
+ *
+ * Every FORBIDDEN_SHAPE in the validator was written with an ASCII character
+ * class (`\w`, `\d`, literal `$`, `%`, `<`, `{`). JavaScript's `\w` and `\d` are
+ * ASCII-only without the `u` flag, so the same payload written in fullwidth
+ * forms, Arabic-Indic digits, or split by a zero-width space walked straight
+ * past all eight of them. Probed 2026-08-14: 21/21 crafted inputs were accepted
+ * by validateClause and 8/9 reached prospect-facing output end-to-end.
+ *
+ * These are the regression tests for that class. The fix is NFKC normalization
+ * before every check (so the ASCII guards see ASCII), plus outright rejection of
+ * invisible/bidi format characters and single-token mixed-script confusables.
+ */
+const ZWSP = '\u200B';
+const RLO = '\u202E';
+
+describe('validateClause — confusable, invisible and bidi payloads', () => {
+  it.each([
+    ['fullwidth email',        'the ｏｗｎｅｒ＠ｅｘａｍｐｌｅ．ｃｏｍ inbox is stale'],
+    ['fullwidth phone',        'call ５５５１２３４５６７ today'],
+    ['arabic-indic phone',     'call ٠١٢٣٤٥٦٧٨٩٠ today'],
+    ['fullwidth url scheme',   'see ｈｔｔｐｓ://evil.example now'],
+    ['fullwidth dollar',       'quote was ＄1200 last time'],
+    ['fullwidth percent',      'we saw a 40％ drop'],
+    ['fullwidth markup',       'the ＜script＞ tag broke'],
+    ['fullwidth braces',       'the ｛firstName｝ token leaked'],
+  ])('rejects %s (NFKC folds it onto the ASCII guard)', (_label, input) => {
+    expect(validateClause(input).ok).toBe(false);
+  });
+
+  it.each([
+    ['zero-width space',       `the up${ZWSP}stairs stays hot`],
+    ['zero-width non-joiner',  'the up\u200Cstairs stays hot'],
+    ['byte order mark',        'the upstairs \uFEFFstays hot'],
+    ['RTL override',           `the upstairs ${RLO}sloohcs rieht llac`],
+    ['RTL mark',               'the upstairs \u200Fstays hot'],
+    ['LTR embedding',          'the upstairs \u202Astays hot'],
+  ])('rejects %s as an invisible/bidi control', (_label, input) => {
+    expect(validateClause(input)).toEqual({ ok: false, reason: 'invisible_control' });
+  });
+
+  it('rejects a zero-width-joined blob that reads as one word but renders as many', () => {
+    // 40 words joined by ZWSP counted as ONE word, defeating the MAX_WORDS cap
+    // entirely — 269 characters passed a 10-word ceiling.
+    const blob = Array.from({ length: 40 }, (_, i) => `word${i}`).join(ZWSP);
+    expect(validateClause(blob).ok).toBe(false);
+  });
+
+  it('rejects a single token mixing Latin with Cyrillic (homoglyph domain)', () => {
+    // `examplе.com` — the `е` is U+0435 CYRILLIC SMALL LETTER IE. NFKC does not
+    // fold it (it is a distinct letter, not a compatibility form), so the email
+    // guard still cannot see it. Mixed script INSIDE one token is the signature.
+    expect(validateClause('mail owner@examplе.com bounced')).toEqual({
+      ok: false, reason: 'mixed_script',
+    });
+  });
+
+  it('rejects a bare domain with no scheme and no www', () => {
+    expect(validateClause('found you on evil-example.test today').ok).toBe(false);
+  });
+
+  it('rejects a punycode/IDN domain', () => {
+    // Punycode was named in the commissioned review scope. It is pure ASCII, so
+    // it defeats nothing the shapes already catch — but only if a domain guard
+    // exists at all, which before the bare-domain backstop it did not.
+    expect(validateClause('found you on xn--80ak6aa92e.com today').ok).toBe(false);
+    expect(validateClause('see https://xn--80ak6aa92e.com now').ok).toBe(false);
+  });
+
+  it.each([
+    ['euro',        'the quote was €1200 last time'],
+    ['pound',       'the quote was £1200 last time'],
+    ['yen',         'the quote was ¥1200 last time'],
+    ['rupee',       'the quote was ₹1200 last time'],
+  ])('rejects a %s price claim, not just a dollar one', (_label, input) => {
+    expect(validateClause(input).reason).toBe('forbidden_shape');
+  });
+
+  it('rejects ideographic terminal punctuation and enumeration commas', () => {
+    expect(validateClause('the upstairs never cools。').ok).toBe(false);
+    expect(validateClause('heating、cooling、ducts、vents').ok).toBe(false);
+  });
+
+  it('still accepts legitimate accented prospect text', () => {
+    // The fix must not reject a real prospect writing in their own language —
+    // rejecting everything non-ASCII would be a correctness regression, and
+    // NFKC preserves precomposed accented letters.
+    expect(validateClause('the café upstairs is not cooling')).toEqual({
+      ok: true, value: 'the café upstairs is not cooling',
+    });
+  });
+
+  it('returns the normalized form it actually checked, never the raw input', () => {
+    // Checking one form and shipping another is the gap that lets a validated
+    // clause render differently than it validated.
+    const v = validateClause('the ｕｐｓｔａｉｒｓ stays hot');
+    expect(v).toEqual({ ok: true, value: 'the upstairs stays hot' });
+  });
+});
+
+describe('resolveFuzzyVariables — confusable payloads never reach output', () => {
+  it.each([
+    ['fullwidth email',    'the ｏｗｎｅｒ＠ｅｘａｍｐｌｅ．ｃｏｍ inbox is stale'],
+    ['arabic-indic phone', 'please call ٠١٢٣٤٥٦٧٨٩٠ instead'],
+    ['fullwidth url',      'i saw ｈｔｔｐｓ://evil.example last week'],
+    ['fullwidth money',    'the quote was ＄1200 last visit'],
+    ['fullwidth percent',  'output dropped by 40％ this month'],
+    ['RTL override',       `the upstairs ${RLO}sloohcs rieht llac never cools`],
+    ['zwsp inside a word', `the up${ZWSP}stairs is not cooling down`],
+  ])('falls back to static copy for %s', async (_label, noteText) => {
+    expect(await resolveFuzzyVariables({ noteText, source: 'consult', env: ON })).toBeNull();
+  });
+
+  it('neuters a bare domain by clause-splitting before the validator sees it', () => {
+    // Deliberately NOT asserting null. The default generator splits the note on
+    // the ASCII `.`, so "evil-example.test" is truncated to "evil-example" — a
+    // harmless word, correctly allowed through. The bare-domain guard exists for
+    // the LLM generator seam, which is under no such constraint; asserting null
+    // here would have been asserting a behavior this path does not (and need
+    // not) have.
+    expect(validateClause('i found you on evil-example')).toEqual({
+      ok: true, value: 'i found you on evil-example',
+    });
+    expect(validateClause('i found you on evil-example.test').ok).toBe(false);
+  });
+});

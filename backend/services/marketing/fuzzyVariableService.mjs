@@ -55,7 +55,8 @@ const FORBIDDEN_SHAPES = [
   /\+?\d[\d\s().-]{7,}\d/,            // phone-ish digit run
   /https?:\/\//i,                     // URL
   /\bwww\./i,                         // bare domain
-  /\$\s?\d/,                          // price / money claim
+  /\p{Sc}\s?\d/u,                     // price / money claim, ANY currency symbol
+                                      // (`\$` alone missed €1200, £1200, ¥1200)
   /\d{1,3}\s?%/,                      // percentage claim
   /<[^>]*>/,                          // markup
   /[{}]/,                             // unresolved template braces
@@ -74,32 +75,96 @@ const META_PHRASES = [
 const wordCount = (s) => s.trim().split(/\s+/).filter(Boolean).length;
 
 /**
+ * Invisible and bidirectional format characters. None of these has a legitimate
+ * place in an eight-word marketing clause, and each defeats a different guard:
+ * a zero-width space splits `https://` so the URL shape misses it and joins 40
+ * words into one so the word cap misses them too; an RTL override reverses the
+ * DISPLAY of the human-written sentence it was interpolated into. Rejected
+ * outright rather than stripped — see the "rejects, never repairs" note above.
+ */
+const INVISIBLE_RE = new RegExp(
+  '[\\u00AD'           // soft hyphen
+  + '\\u200B-\\u200F'  // zero-width space/non-joiner/joiner, LTR & RTL marks
+  + '\\u202A-\\u202E'  // bidi embedding / override
+  + '\\u2060-\\u2064'  // word joiner, invisible operators
+  + '\\u2066-\\u2069'  // bidi isolates
+  + '\\uFEFF]',        // BOM / zero-width no-break space
+);
+
+/** Latin vs Cyrillic/Greek — the confusable pairs that make homoglyph domains work. */
+const LATIN_RE = /[A-Za-z]/;
+const CONFUSABLE_SCRIPT_RE = /[Ͱ-ϿЀ-ӿ]/;
+
+/**
+ * A bare domain carries no scheme and no `www.`, so neither URL guard sees it.
+ * A curated TLD list keeps ordinary prose ("cooling.The") from tripping it; a
+ * false positive costs only a fallback to static copy, which is the safe side.
+ */
+const BARE_DOMAIN_RE = /\b[a-z0-9][a-z0-9-]*\.(?:com|net|org|io|co|us|uk|ca|info|biz|test|example|invalid|dev|app|xyz|online|site|shop|me|tv|cc)\b/i;
+
+/** Any Unicode decimal digit that is not an ASCII digit (Arabic-Indic, Devanagari...). */
+const hasNonAsciiDigit = (s) => [...s].some((ch) => /\p{Nd}/u.test(ch) && (ch < '0' || ch > '9'));
+
+/** A single token carrying both Latin and Cyrillic/Greek letters is a homoglyph, not a word. */
+const hasMixedScriptToken = (s) => s.split(/\s+/).some(
+  (tok) => LATIN_RE.test(tok) && CONFUSABLE_SCRIPT_RE.test(tok),
+);
+
+/**
  * Validate a generated clause as hostile input.
  * @returns {{ok:true, value:string} | {ok:false, reason:string}}
  */
 export function validateClause(raw, { maxWords = MAX_WORDS } = {}) {
   if (typeof raw !== 'string') return { ok: false, reason: 'not_a_string' };
 
+  // NFKC FIRST, and the normalized string is what every later check sees AND
+  // what we return. Every FORBIDDEN_SHAPE below is an ASCII character class,
+  // and JS `\w`/`\d` are ASCII-only, so the same payload written in fullwidth
+  // forms walked past all eight of them (probed 2026-08-14: `＄1200`, `40％`,
+  // `＜script＞`, `ｈｔｔｐｓ://`, and a fullwidth email were all accepted).
+  // Folding first is what makes the existing guards actually load-bearing.
+  //
+  // This is canonicalization, not repair: it is total, deterministic and
+  // idempotent, it runs before every check, and the value returned is the exact
+  // string that was checked — closing the "validate one form, ship another" gap
+  // rather than opening a negotiate-with-the-validator seam.
+  const normalized = raw.normalize('NFKC');
+
+  // Before whitespace collapse: `\s` does not include U+200B, so an invisible
+  // payload would survive the collapse untouched.
+  if (INVISIBLE_RE.test(normalized)) return { ok: false, reason: 'invisible_control' };
+
   // Collapse whitespace/newlines: the clause is interpolated mid-sentence, so a
   // newline would visibly break the human-written sentence around it.
-  const value = raw.replace(/\s+/g, ' ').trim();
+  const value = normalized.replace(/\s+/g, ' ').trim();
 
   if (!value) return { ok: false, reason: 'empty' };
   if (wordCount(value) > maxWords) return { ok: false, reason: 'too_long' };
-
   for (const shape of FORBIDDEN_SHAPES) {
     if (shape.test(value)) return { ok: false, reason: 'forbidden_shape' };
   }
+
+  // These three run AFTER the shape loop on purpose: they are backstops for what
+  // the ASCII shapes structurally CANNOT see, not replacements for them. Ordering
+  // them first silently reclassified `dana@example.com` from `forbidden_shape` to
+  // `bare_domain` — same rejection, but it churns a reason code three existing
+  // tests pin, and reason codes are the only forensic signal this module logs.
+  if (hasMixedScriptToken(value)) return { ok: false, reason: 'mixed_script' };
+  if (hasNonAsciiDigit(value)) return { ok: false, reason: 'non_ascii_digit' };
+  if (BARE_DOMAIN_RE.test(value)) return { ok: false, reason: 'bare_domain' };
   for (const meta of META_PHRASES) {
     if (meta.test(value)) return { ok: false, reason: 'meta_output' };
   }
-  // Must read as a clause, not a sentence or a list.
-  if (/[.!?]$/.test(value)) return { ok: false, reason: 'terminal_punctuation' };
+  // Must read as a clause, not a sentence or a list. NFKC folds `！` and `？`
+  // onto ASCII but leaves U+3002 IDEOGRAPHIC FULL STOP alone, so it is listed.
+  if (/[.!?。]$/.test(value)) return { ok: false, reason: 'terminal_punctuation' };
   // Comma COUNT, not length. A short list ("heating, cooling, ducts, vents")
   // is only 4 words and would have slipped a word-count guard, yet reads badly
   // interpolated mid-sentence. One comma is a legitimate subordinate clause
   // ("the upstairs, which stays hot"); two or more is an enumeration.
-  if ((value.match(/,/g) || []).length >= 2) return { ok: false, reason: 'list_like' };
+  // U+3001 IDEOGRAPHIC COMMA enumerates identically but survives NFKC, and an
+  // ideographic list is a single whitespace-token so the word cap never sees it.
+  if ((value.match(/[,、]/g) || []).length >= 2) return { ok: false, reason: 'list_like' };
 
   return { ok: true, value };
 }
