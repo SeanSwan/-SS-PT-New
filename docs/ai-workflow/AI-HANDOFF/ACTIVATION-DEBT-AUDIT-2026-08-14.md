@@ -15,6 +15,76 @@ systemic.
 
 ---
 
+## 0. FOUND DURING HOSTILE REVIEW — the rules themselves are unwired, and the repair destroys them
+
+This outranks everything else in this document, and it was found only because a citation to
+"Rule 77" did not match any rule I had loaded.
+
+**`CLAUDE.md` and `AGENTS.md` have diverged into two different constitutions**, on
+`origin/main`, right now. AGENTS.md carries **74** numbered rules; CLAUDE.md carries **66**.
+Claude loads CLAUDE.md. Codex loads AGENTS.md. They are not operating under the same rules.
+
+### 0.1 Rules that exist for Codex and NOT for Claude
+
+Verified by direct match count on `origin/main` — each returns ≥1 in AGENTS.md and **0** in
+CLAUDE.md:
+
+| Rule | Title | Why its absence bit *this* session |
+|---|---|---|
+| 75 | Trailhead-Truth | in my memory index; absent from my loaded rules |
+| 76 | Create-With-Context | — |
+| 77 | **Dead-File Quarantine** | why my §7 delete slice was wrong — the house rule is *quarantine to `archive/pending-deletion/`*, never delete |
+| 78 | Agent Workflow Mode Router | — |
+| 79 | Tests Can Encode The Bug | — |
+| 80 | **Second-Vantage Verification** | *"one tool's failure is NEVER proof something is broken."* This is **exactly** the class of error I made four times in this audit |
+| 81 | Test-Delta Disclosure | in my memory index; absent from my loaded rules |
+| — | ADW Discipline, **Kimi Hostile-Review Gate**, Linear to-do spine | see §0.3 |
+
+### 0.2 The sanctioned repair would make the loss permanent
+
+The session-start drift-check hook tells **every** agent: *"AGENTS.md mirror body != CLAUDE.md.
+Fix: `node scripts/sync-agents-mirror.mjs`."*
+
+`scripts/sync-agents-mirror.mjs:4` states the contract: *"AGENTS.md = Codex adapter header + a
+byte-exact UTF-8 mirror of CLAUDE.md."* **CLAUDE.md is the source; AGENTS.md is the target.**
+Running the recommended fix would overwrite AGENTS.md's body with CLAUDE.md's — **deleting
+rules 75–81 outright**, from the only file that still has them.
+
+I read that drift warning at session start and moved on. It is not a formatting nit; it is a
+live trap with a one-command detonator.
+
+### 0.3 The two files disagree about who gates commits
+
+| Question | `CLAUDE.md` (what Claude loads) | `AGENTS.md` (what Codex loads) |
+|---|---|---|
+| Commit gate / Final Decider | **Fable 5**, "FINAL DECIDER on EVERYTHING" (2026-06-10) | **Kimi K3**, "standard Final Reviewer and commit gate" (**amended 2026-07-26**) |
+| Fable's role | standing gate + fallback chain (Opus 4.8 → 4.x → Sonnet) | **"EXPLICIT OPT-IN ONLY… not a standing gate, fallback, or automatic expense"** |
+| Design authority | Gemini 3.1 Pro (CTO) | **Kimi K3 + Opus 5** (Sean 2026-07-25) |
+
+AGENTS.md Rule 46 states it supersedes *"every conflicting active Fable-gate or
+fallback-decider statement elsewhere in this file."* CLAUDE.md's load-order section states
+*"If docs conflict: CLAUDE.md > …"*. So each file claims priority, and the newer amendment
+lives in the one Claude never reads.
+
+**Consequence for this session:** I invoked Kimi as an optional external lens and asked it for
+findings. Under AGENTS.md Rule 46 it is the **commit gate**, and step 3 requires it to return
+**APPROVE / REVISE / REJECT**. I did not request a verdict. The review was still valuable, but
+I ran the wrong procedure because I could not see the rule.
+
+### 0.4 What must NOT happen
+
+- **Do not run `scripts/sync-agents-mirror.mjs`** until this is resolved. It deletes rules.
+- **Do not assume CLAUDE.md is right because the load order says so** — its Fable statement is
+  dated 2026-06-10; the Kimi amendment is 2026-07-26.
+
+**This needs Sean's decision on direction, and it is `[BLOCKED]` on that.** The mechanical work
+(porting rules 75–81 into CLAUDE.md, reconciling Rule 46 and the Co-Orchestrator section,
+renumbering CLAUDE.md's rule 73 → 74 to close the off-by-one) is ~1 hour once the direction is
+called. I did not do it unilaterally: CLAUDE.md is the root operating index, its rule numbers
+are cited across the repo, and the two files have diverged in **both** directions.
+
+---
+
 ## 1. The finding
 
 SwanStudios does not have a building problem. It has an **activation** problem.
@@ -193,7 +263,45 @@ model, admin surface, and retention worker already exist.
 
 ---
 
-## 5. Dead code — verified zero importers
+## 5. Dead code — and the prior inventory I did not look for
+
+> ### ⚠ THIS SECTION LARGELY DUPLICATES EXISTING WORK — and my proposed remedy was wrong
+>
+> `docs/ai-workflow/AI-HANDOFF/BACKEND-ORPHAN-INVENTORY-2026-07-28.md` (Linear **SWA-71**,
+> 2026-07-28) already classified **19 backend candidates**, and a frontend twin (**SWA-75**)
+> classified **236**. Both concluded **ZERO deleted**. Nine of my ten files are already in it.
+> I did not check whether this work existed before redoing it.
+>
+> **Its method is better than mine.** It builds an index of every imported basename across all
+> `.mjs`/`.cjs` matching *both* quote styles, then re-checks survivors with a bare-name grep —
+> because an earlier sweep in that same session produced **22 confident false positives** by
+> matching only single-quoted paths, and sent someone chasing an imaginary production bug.
+>
+> **It reclassifies two of my ten.** `adminController.mjs` and `progressSyncController.mjs` are
+> **Category C — TEST-REF-ONLY**: no runtime importer, but a test `read()`s the source and
+> asserts on its text. My grep excluded `__tests__/` so I saw "zero importers" and missed this.
+> Its warning is worth quoting: *"A green test on unreachable code reads as coverage. It is not.
+> Deleting the file breaks the test, which makes the file look load-bearing — the test is
+> defending a corpse."*
+>
+> **And the zero-deletions is a DECISION, not neglect:** *"Do nothing before launch. None of
+> this is a bug; it is weight. Deleting ~3,900 lines of backend code during a launch is the
+> drive-by this discipline exists to prevent."* It also requires **Rule 77 quarantine** to
+> `archive/pending-deletion/<date>/` with a `MANIFEST.md` — never outright deletion.
+>
+> **Therefore §7 step 4 ("one decide-and-delete sitting") is WITHDRAWN.** It contradicted a
+> standing reasoned decision, proposed deletion where the house rule requires quarantine, and
+> would have bulk-deleted two files that need a per-file call. See §7 for the replacement.
+>
+> **This is the third time in this audit I read deliberate restraint as neglect** — after the
+> nurture engine (§3.1a) and the parked design manifest (retraction below). The pattern in my
+> own work is now unmistakable: *I do not check for a stated reason before calling something
+> forgotten.* That is the same failure the audit accuses the repo of, committed by the auditor.
+>
+> What still stands: the importer and line-count verification below is independently correct
+> (`wc -l` = 1,146 exactly), and it corroborates SWA-71 from a different method.
+
+### 5.1 Verified zero importers (corroborating SWA-71, not replacing it)
 
 Every row below was re-verified by hand — importer counts **and** line counts (`wc -l` totals
 exactly 1,146) — after a delegated sweep that was **77% accurate** (3 of 13 headline claims
@@ -296,7 +404,7 @@ path. Conceded — see §10.
 | 1 | Flip `SPEED_TO_LEAD_REPLY_ENABLED` + run the existing runbook's live test | **Sean** | ~20 min | The only revenue item one flip from live. Worst case ≈ today (no auto-reply), and the runbook's Step 3 live test catches a silent failure *at flip time*. |
 | 2 | Flip `PRISM_CAPTURE_ENABLED` via Launch Control + 5-min smoke | **Sean** | ~10 min | Acquisition lever, one-click revert, no deploy. **Omitted entirely from my first draft — the biggest gap in it**, given acquisition is the weakest link. Note: this makes a capture form appear on the home hero (`f3e450d18`), so it is a visible change, not just an API. Double-capture checked: the route 404s when off and is separate from the contact form. |
 | 3 | Flip `dashboardV2Finance` + `postSaveHandoff`, **role-targeted to owner** | **Sean** | ~10 min | Launch Control supports role targeting — Sean is the head trainer, so he is the free canary. |
-| 4 | One decide-and-delete sitting | agent | ~30 min | 10 verified-dead files (1,146 lines, counts re-verified), `TrainerVideosPage`, the 3 superseded corpses. **NOT the 12 playground concepts — that claim is retracted, see §5.** Rule 34 grep before each. Every deletion shrinks all downstream work. |
+| 4 | ~~One decide-and-delete sitting~~ **WITHDRAWN** → instead: get a **decision** on the two inventories that already exist | **Sean** decides | ~10 min | SWA-71 (19 backend) and SWA-75 (236 frontend) already classified 255 candidates and deleted zero — **deliberately**, because "do nothing before launch." The bottleneck was never a missing inventory; it is a missing decision, which is this audit's own thesis. Producing a third inventory would repeat the error. When the answer is yes, it is **Rule 77 quarantine** to `archive/pending-deletion/`, not deletion, and Category-C files (`adminController`, `progressSyncController`) need a per-file call because a test reads their source. |
 | 5 | Land S2L branch **half A** (cockpit visibility) | agent | ~30 min | Cost is mostly sunk; 27/27 green; merges clean. Same week, **not** flip-gating. |
 | 6 | Wire send failures into existing `adminAlertService` | agent | ~1–2 h | The correct fix for the ongoing-operation gap — placed after revenue, not before it. |
 | 7 | Declare all env flags in `render.yaml` + a key-diff sync check | agent | ~30–60 min | ~19 flags exist only as Render dashboard state with no record in the repo. **I underweighted this**; see §10 #7. |
