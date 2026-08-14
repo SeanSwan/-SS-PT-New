@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { analyzeTurn, decide, parseTranscript } from './hermes-closeout-gate.mjs';
+import { analyzeTurn, decide, isMemoFile, parseTranscript } from './hermes-closeout-gate.mjs';
 
 // Resolved from this file, not process.cwd(): read relatively, the suite failed
 // outright from any other directory (found 2026-08-03 by running it from C:/tmp).
@@ -120,4 +120,28 @@ test('counts a memo citation in string-form assistant content (no false re-block
 test('tolerates malformed transcript lines (fail-open per line)', () => {
   const raw = ['not-json{{{', userText('hi'), 'also-bad', assistantText('hello')].join('\n');
   assert.equal(decide({}, raw), null);
+});
+
+// --- support files in the emission dirs are NOT memos (regression, 2026-08-13) ---------------
+// The gate demanded a markdown "## Mistakes I made" heading inside _schema.json — a JSON file
+// that is corpus infrastructure, not a report. Complying would have corrupted the schema, so
+// the gate was asking for damage. It collected every write under the emission path as a memo.
+test('isMemoFile: corpus support files are not treated as memos', () => {
+  for (const p of [
+    'docs/ai-workflow/hermes-learning-packets/_schema.json',
+    'docs/ai-workflow/hermes-learning-packets/INDEX.md',
+    '.ai-workflow/hermes-inbox/pending/ENTRY-TEMPLATE.md',
+    '.ai-workflow/hermes-inbox/README.md',
+  ]) {
+    assert.equal(isMemoFile(p), false, `${p} must NOT be treated as a memo`);
+  }
+});
+
+test('isMemoFile: real memos still are memos, on both path separators', () => {
+  for (const p of [
+    'docs/ai-workflow/hermes-learning-packets/20260813-a-real-packet.md',
+    String.raw`.ai-workflow\hermes-inbox\pending\20260814T000000Z-vs-claude-a-real-memo.md`,
+  ]) {
+    assert.equal(isMemoFile(p), true, `${p} MUST be treated as a memo`);
+  }
 });

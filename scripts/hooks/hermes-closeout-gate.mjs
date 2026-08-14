@@ -26,6 +26,36 @@
 import { readFileSync } from 'node:fs';
 
 const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]pending[\\/]|hermes-learning-packets[\\/]/;
+
+/**
+ * Is this emitted path an actual MEMO (which must confess mistakes), or a support file?
+ *
+ * The emission directories also hold `_schema.json`, `INDEX.md` and `ENTRY-TEMPLATE.md`.
+ * Those are infrastructure, not reports — they have no author and no task to be wrong about.
+ * On 2026-08-13 this gate demanded a markdown "## Mistakes I made" heading inside a JSON
+ * schema file; satisfying it would have corrupted the schema, so the gate was asking for
+ * damage. Mirrors the filter in scripts/hermes-learning-validate.mjs.
+ */
+export function isMemoFile(p) {
+  const base = String(p).replace(/\\/g, '/').split('/').pop() ?? '';
+  return base.toLowerCase().endsWith('.md')
+    && !base.startsWith('_')
+    && base !== 'INDEX.md'
+    && base !== 'ENTRY-TEMPLATE.md'
+    && base !== 'README.md';
+}
+
+const MISTAKES_BLOCK_REASON = (p) =>
+  `Hermes memo is missing its mistakes section (Sean 2026-08-04: "give a report to Hermes, ` +
+  `especially about the mistakes that you made so I can learn from them… this should be ` +
+  `automatic"). File: ${p}. Add a "## Mistakes I made" section listing YOUR OWN errors this ` +
+  `task — one line each: what you got wrong -> how it was caught -> the rule that prevents the ` +
+  `repeat. Include mistakes you caught and fixed yourself, tools that reported false success, ` +
+  `wrong severity calls, and claims you walked back; if you repeated a mistake you had already ` +
+  `written up, say so explicitly (highest signal). If a paid/external model was consulted, add ` +
+  `its calibration (findings real vs disproven on verification). Honest-empty is allowed ONLY ` +
+  `after a hostile pass genuinely ran dry: "## Mistakes I made — none surfaced this task". ` +
+  `Never omit the heading — an absent section reads as "nothing went wrong".`;
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
 const GIT_ACTIVITY_RE = /git\s+(commit|push)\b/;
 
@@ -97,7 +127,7 @@ export function parseTranscript(raw) {
 export function analyzeTurn(entries) {
   const lastUserIdx = entries.reduce((acc, e, i) => (isRealUserLine(e) ? i : acc), -1);
   const turn = entries.slice(lastUserIdx + 1);
-  const signals = { fileWrites: 0, gitActivity: false, memoEmitted: false };
+  const signals = { fileWrites: 0, gitActivity: false, memoEmitted: false, memoPaths: [] };
 
   for (const entry of turn) {
     if (entry?.type !== 'assistant') continue;
@@ -114,8 +144,16 @@ export function analyzeTurn(entries) {
         const input = item.input ?? {};
         const target = String(input.file_path ?? input.path ?? '');
         if (WRITE_TOOLS.has(item.name)) {
-          if (EMISSION_PATH_RE.test(target)) signals.memoEmitted = true;
-          else if (target) signals.fileWrites += 1;
+          if (EMISSION_PATH_RE.test(target)) {
+            signals.memoEmitted = true;
+            // Only MEMOS carry a mistakes section. The corpus dir also holds support files —
+            // _schema.json, INDEX.md, ENTRY-TEMPLATE.md — which are not reports and have no
+            // author to confess. Without this filter the gate demanded a markdown "## Mistakes
+            // I made" heading inside a JSON schema (observed 2026-08-13); complying would have
+            // corrupted the file, so the gate was asking for damage. Same convention as
+            // scripts/hermes-learning-validate.mjs: .md, not underscore-prefixed, not INDEX.
+            if (isMemoFile(target)) signals.memoPaths.push(target);
+          } else if (target) signals.fileWrites += 1;
         } else if (item.name === 'Bash' && GIT_ACTIVITY_RE.test(String(input.command ?? ''))) {
           signals.gitActivity = true;
         }
@@ -127,11 +165,36 @@ export function analyzeTurn(entries) {
   return signals;
 }
 
+/**
+ * A memo without a mistakes section teaches Hermes nothing about how the work
+ * actually went (Sean 2026-08-04: "especially about the mistakes that you made
+ * so I can learn from them… this should be automatic"). Detecting the FILE was
+ * never enough — the section is the payload. Reads the memo Write tool actually
+ * produced; unreadable/absent file -> fail-open (this gate is heuristic, and a
+ * false block is worse than a missed nudge).
+ */
+export function memoMissingMistakes(memoPaths, readFile) {
+  for (const p of memoPaths) {
+    let text;
+    try {
+      text = readFile(p);
+    } catch {
+      continue; // cannot read -> do not punish
+    }
+    // Accept the honest-empty form too; only a MISSING heading blocks.
+    if (!/^\s*#{1,4}\s*Mistakes\b/im.test(text)) return p;
+  }
+  return null;
+}
+
 /** Pure decision: returns null (allow) or a block reason string. */
-export function decide(hookInput, transcriptRaw) {
+export function decide(hookInput, transcriptRaw, readFile = (p) => readFileSync(p, 'utf8')) {
   if (hookInput?.stop_hook_active) return null;
   const signals = analyzeTurn(parseTranscript(transcriptRaw));
-  if (signals.memoEmitted) return null;
+  if (signals.memoEmitted) {
+    const bad = memoMissingMistakes(signals.memoPaths, readFile);
+    return bad ? MISTAKES_BLOCK_REASON(bad) : null;
+  }
   if (signals.fileWrites >= 3 || signals.gitActivity) return BLOCK_REASON;
   return null;
 }
