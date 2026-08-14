@@ -249,9 +249,177 @@ baseline is untouched.
 
 ---
 
-## 8. Next slice
+## 8. Hostile rounds 1-6 — corrections and three further findings
 
-**Hand Defect A + B to `main-s2e2f8326`** (they hold the file). Fix is ~10 lines plus two permanent
-negative controls, then re-baseline. Until then, treat **"199/199 guarded" as "199/199 contain a
-guard-shaped string near the declaration"** — a review queue, not a verdict. Which is what the
-script's own footer already says, and is now measured rather than asserted.
+Sections 1-7 were written after the tracing pass. Six hostile rounds then ran, each from a vantage
+not previously used. They corrected two claims above and found three more defects.
+
+### CORRECTION 1 — Defects A and B are inherited from `origin/main`, NOT introduced by `6b3f5f7be`
+
+Round 1 vantage: a different branch. `origin/main`'s copy of the reader has the **identical**
+`handlerBody` (`src.slice(from, from + 2200)`, at `:107-111` there) and the **same** bare-mention
+CHECK patterns (`/req\.user\.(id|userId)/`, `/req\.user\.role/`). Both defects predate the widening.
+
+What `6b3f5f7be` actually changed: added `controllerHop` (0→2), `routerUseGate` (0→2), and
+optional-chaining `req\.user\??\.` (0→2). Main's reader is **blind to `req.user?.id` entirely** —
+the form used in 89 files against 143 for the dot form. **The widening is a genuine improvement.**
+§3 and the review-queue entry framed both defects as that session's; that attribution was wrong and
+is withdrawn.
+
+Sharper framing of Defect B: main's own header at `:22` documents the intent as *"a comparison
+against `req.user.id`"*. The implementation has always been a bare match. This is a
+**contract-vs-implementation gap**, not a design choice — which makes it a straightforward fix
+rather than a debate.
+
+Also confirmed Round 1: `backend/routes/` is **byte-identical to `origin/main`**
+(`git diff --stat origin/main HEAD -- backend/routes/` → empty). Branch is 46 behind / 19 ahead. So
+every count in this document describes the real production route surface.
+
+### CORRECTION 2 — §7's "no test has hit a live endpoint" was too broad
+
+Round 2 vantage: executed behavior. Seven security suites exist and **pass: 7 files, 57 tests,
+1.38s**, zero skipped.
+
+`clientResourceIdorExecution.test.mjs` mounts **real routers** (`photoRoutes`, `noteRoutes`,
+`nutritionRoutes`) on a real express app via supertest; models and `authMiddleware` are mocked so
+identity can be controlled. It is 8 `it.each` tables (which is why 37 tests come from 11 `expect`
+lines — not fake-green), and it **ships positive controls**: *"client A reading their OWN record
+succeeds (control)"*, *"an ASSIGNED trainer is allowed (control)"*, *"an ASSIGNED trainer CAN write
+(control: the denials above are not blanket)"*. It also asserts non-disclosure, not just status:
+`expect(JSON.stringify(res.body)).not.toContain(String(CLIENT_B_ID))`.
+
+That is the F2 defect Kimi found in the matrix *design*, already correctly solved in the *existing*
+tests — further support for §5's "do not build the matrix."
+
+**Honest scope:** these cover **3 surfaces of 199**. And because `authMiddleware` is mocked, they
+prove authorization given a correctly-populated `req.user`; they do not prove `protect` populates it
+correctly. **196 handlers have no executed authz test.** That, not the static audit, is the true
+state of authorization assurance.
+
+### FINDING — Defect C: `routerUseGate` ignores position (latent, 0 live instances)
+
+Round 3 vantage: ordering. `routerUseGate(src)` at `:221-230` receives the whole file and **never
+receives the handler's offset**. Express applies `router.use` only to handlers declared *after* it,
+so a gate at the bottom of a file would clear handlers above it that are genuinely unprotected.
+
+Measured across all 20 files that carry a `router.use` role gate: **0 user-scoped handlers are
+declared before their gate.** Latent, same as Defect A — it bites the first time someone adds a
+handler above the gate.
+
+### FINDING — the audit never scans 34 route files, including 6 whole subdirectories
+
+Round 4 vantage: what the instrument does not look at. `fs.readdirSync(ROUTES)` is **non-recursive**.
+
+```
+files the audit scans      : 196
+route .mjs files that exist: 230
+unscanned                  :  34   (routes/{admin,dashboard,masterPrompt,plaud,print,social})
+```
+
+Four unscanned files carry **7 user-scoped handlers** absent from the 199 entirely:
+`masterPrompt/privacy.mjs:177` (`GET /user-data/:userId`), `social/friendships.mjs:343,408`,
+`social/groupMembership.mjs:166,197,227`, `social/posts.mjs:615`.
+
+**All 7 traced, all guarded** — `privacy.mjs` via `requirePermissionWithAccessibility(
+'personal_data_access')` plus an explicit self-or-admin 403; the group-membership writes via
+`groups.mjs:44 router.use(protect)` (mounted at `:279`) plus `getGroupWithMembership(groupId,
+req.user.id)` → 404 and `canModerateGroup` / `isGroupOwner` → 403; `posts.mjs` via `protect` at
+`:56` plus a friendship gate.
+
+**This is the most important finding in the document.** "199/199 guarded" is not merely
+over-clearing — it is silent about an entire class of routes. And `SESSION-HANDOFF §10` already
+records a non-recursive glob hiding *these same 34 files including the `social/` family* as a past
+instrument failure. **The lesson was written down, and the same class then recurred inside the
+security tool.** Documenting a defect does not install the fix.
+
+### FINDING — `USER_PARAM` misses 5 user-scoped handlers that use `:id`
+
+Round 5 vantage: the parameter vocabulary. `USER_PARAM` lists `:userId|clientId|trainerId|…` but not
+the `/users/:id` shape:
+
+| Handler | Gate | Verdict |
+|---|---|---|
+| `PUT /users/:id` `adminRoutes:35` | `router.use(authenticateToken)` + `router.use(authorizeAdmin)` `:30-31` | GUARDED |
+| `GET /users/:id` `authRoutes:855` | `isAdmin \|\| isSameUser \|\| assigned-trainer` → 403; role-tiered attribute exclusion | GUARDED |
+| `PUT /users/:id` `authRoutes:925` | `protect, adminOnly` | GUARDED |
+| `PUT /user/:id` `userManagementRoutes:562` | `protect, adminOnly` | GUARDED |
+| `DELETE /user/:id` `userManagementRoutes:692` | `protect, adminOnly` | GUARDED |
+
+`authRoutes:855` is worth reading as a model: it documents *why* it coerces
+(`String(req.user.id) === String(userId)` — `req.user.id` is a string per `authMiddleware:631`, so
+strict `===` against a `parseInt` was locking users out of their own profile). That is the corpus's
+type-drift class, already found and fixed with the reason recorded.
+
+### Round 6 — CLEAN
+
+Vantage: the declaration vocabulary. No `router.route()` chains carry a user param; the four
+`router.all()` uses are retired/disabled stubs (`retiredMcpManagementResponse`,
+`disabledMasterPromptMcpRoute`) with no user params; no dynamic or loop registration. No user-scoped
+handler hides in an alternate declaration form.
+
+### Revised totals
+
+| | |
+|---|---|
+| Handlers hand-traced across all rounds | **~29** |
+| Confirmed authorization vulnerabilities | **0** |
+| Reader defects found | **4** (A window, B mention, C position, D non-recursive scan) + 1 vocabulary gap |
+| Live instances of A / C | 12 mis-attributed / 0 |
+| Handlers structurally invisible to the audit | **12** (7 in unscanned dirs + 5 via `:id`) |
+
+---
+
+## 9. Next slice
+
+**Hand Defects A-D to `main-s2e2f8326`** (they hold the file). Priority order changed by the rounds:
+
+1. **D — recurse into subdirectories.** One-line fix, largest blind spot: 34 files, 12% of the route
+   surface, currently unaudited.
+2. **B — require a comparison, not a mention.** Honors the header's own documented contract.
+3. **A — bound the window** at the next declaration. Removes 12 false attributions.
+4. **C — pass the handler offset to `routerUseGate`** and require the gate to precede it.
+5. **Widen `USER_PARAM`** to the `/users/:id` shape.
+6. **Then** re-baseline, with the two probes from §3 plus an unscanned-subdir probe as permanent
+   negative controls.
+
+Until then, treat **"199/199 guarded" as "199 of the 211 handlers it can see contain a guard-shaped
+string near the declaration."** A review queue, not a verdict — which is what the script's own
+footer says, and is now measured rather than asserted.
+
+**Standing:** authorization posture is genuinely good. Across ~29 handlers traced by hand and 57
+executed tests, zero vulnerabilities. The gap is instrumentation and test coverage (3 surfaces of
+199), not enforcement.
+
+---
+
+## 10. ADDENDUM (round 7) — the reader changed underneath this document
+
+Round 7 re-derived the headline numbers with a second instrument and re-ran both suites. The audit's
+output had **changed mid-session**: `NO visible check` went `0 → 3`. Session `main-s2e2f8326` is
+actively fixing the reader in this shared worktree — `backend/scripts/audit-idor-surface.mjs` and
+`baselines/idor-surface.json` are modified-uncommitted, with a new
+`backend/tests/api/idorAuditReaderControls.test.mjs`.
+
+**Sections 1-8 describe the PRE-FIX reader.** Current state, verified just now:
+
+| Defect | Status |
+|---|---|
+| **A** — 2200-char window | **FIXED** — `handlerBody(src, from, nextDecl)` at `:142-144`, bounded at the next declaration |
+| **B** — mention vs comparison | **FIXED** — a dedicated "does the body actually COMPARE the actor" pass at `:146+` |
+| **C** — `routerUseGate` position | **OPEN** — still `routerUseGate(src)` at `:236`, no handler offset |
+| **D** — non-recursive scan | **OPEN** — still `fs.readdirSync(ROUTES)` at `:301`. **34 files / 12% of the route surface remain unaudited.** |
+
+Their negative controls are **better than what §6 proposed**: 7 tests, all passing, covering both of
+my probe arrangements *plus* `'an aliased comparison still clears — the dominant in-repo idiom'` —
+which is precisely the false-positive class my own detector suffered from in §5. They fixed my bug
+as well as theirs.
+
+**The 3 handlers the fixed reader now flags are already answered in §4** — all three are by-design
+public and were traced this session:
+`availability.mjs:44,64` (trainer booking availability an authenticated client must read) and
+`encryptionRoutes.mjs:80` (Signal-style **public** prekey bundle; `keyStoreService.mjs:225-232`
+returns no private material). They belong in the accepted baseline, with the prekey-exhaustion
+rate-limit note from §4 as a separate low-severity ticket.
+
+**Highest-value remaining item is D**, unchanged: one line, and it is the only defect that makes the
+audit silent rather than merely imprecise.
