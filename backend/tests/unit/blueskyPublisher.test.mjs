@@ -50,6 +50,43 @@ describe('blueskyPublisher', () => {
     }));
   });
 
+  it('refreshes a session by presenting the refresh token as the bearer', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({
+      did: 'did:plc:swan',
+      handle: 'swanstudios.bsky.social',
+      accessJwt: 'access-2',
+      refreshJwt: 'refresh-2',
+    }));
+
+    const { refreshBlueskySession } = await import('../../services/socialProviders/blueskyPublisher.mjs');
+    const session = await refreshBlueskySession({ refreshJwt: 'refresh-1', fetchImpl: fetchMock });
+
+    // AT Protocol authenticates com.atproto.server.refreshSession with the
+    // REFRESH token, not the access token. Getting this wrong fails 100% in
+    // production while every mocked test stays green.
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://bsky.social/xrpc/com.atproto.server.refreshSession',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { Authorization: 'Bearer refresh-1' },
+      }),
+    );
+    expect(session).toEqual(expect.objectContaining({ accessJwt: 'access-2', refreshJwt: 'refresh-2' }));
+  });
+
+  it('rejects a refresh response that omits the rotated refresh token', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ accessJwt: 'access-2' }));
+
+    const { refreshBlueskySession } = await import('../../services/socialProviders/blueskyPublisher.mjs');
+
+    // createSession validates its required fields; refresh did not. Returning
+    // silently here leaves the CONSUMED refresh token in storage, so the very
+    // next expiry kills the account — and nothing fails at the moment the bug
+    // actually happens, which is what makes it invisible for months.
+    await expect(refreshBlueskySession({ refreshJwt: 'refresh-1', fetchImpl: fetchMock }))
+      .rejects.toThrow(/refreshJwt/);
+  });
+
   it('publishes text posts through com.atproto.repo.createRecord', async () => {
     const fetchMock = vi.fn(async () => jsonResponse({
       uri: 'at://did:plc:swan/app.bsky.feed.post/post-1',

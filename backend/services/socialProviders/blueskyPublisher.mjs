@@ -65,6 +65,17 @@ export async function refreshBlueskySession({
     headers: { Authorization: `Bearer ${refreshJwt}` },
   });
   const payload = await readJson(response, 'refreshSession');
+
+  // Mirrors the createSession validation above. Without it a response missing
+  // the rotated refreshJwt returns "successfully" and the caller keeps storing
+  // the token it just consumed — so the account is guaranteed to die at the
+  // NEXT expiry, with nothing failing at the moment the fault occurs. did and
+  // handle stay optional: they are not load-bearing for a refresh, and a PDS
+  // that omits one should not cost a working session.
+  for (const field of ['accessJwt', 'refreshJwt']) {
+    if (!payload[field]) throw new Error(`Bluesky refreshSession response missing ${field}`);
+  }
+
   return {
     did: payload.did,
     handle: payload.handle,
