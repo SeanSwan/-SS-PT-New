@@ -361,6 +361,36 @@ test('PASSES an honest passive rewording that preserves the prohibition', () => 
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 
+// Found by probing the shipped scanner (Kimi round 5 prompted the look, though its
+// own scenario did not reproduce): an adverb between the polarity word and its
+// subject stole the attachment, so deleting the negation went UNDETECTED.
+test('BLOCKS a negation deletion even when filler words sit between it and the subject', () => {
+  const r = repo();
+  try {
+    const orig = '46. **Secret Handling** — (MANDATORY) Established 2026-07-01. You should never, ever, commit credentials here.';
+    const dropped = '46. **Secret Handling Policy** — (MANDATORY) Established 2026-07-01. You should commit credentials here.';
+    commitDocs(r, claudeDoc(BASE, { bodies: { 46: orig } }));
+    stageDocs(r, claudeDoc(BASE, { bodies: { 46: dropped } }));
+    const out = runGuard(r, { SWAN_RULE_RENAME: '46=46' });
+    assert.equal(out.status, 1, 'a filler word must not let a dropped negation through');
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+// The reviewer predicted this would FALSE-BLOCK. Probed against the real scanner, it
+// does not — the scan attaches to the first content word and stops. Pinned so the
+// non-reproduction stays true if the scanner is touched again.
+test('PASSES an honest reword across a comma (reviewer predicted a false block here)', () => {
+  const r = repo();
+  try {
+    const orig = '46. **Commit Size** — (MANDATORY) Established 2026-07-01. Please avoid large commits, keep them small.';
+    const reworded = '46. **Commit Size Policy** — (MANDATORY) Established 2026-07-01. Please keep commits small.';
+    commitDocs(r, claudeDoc(BASE, { bodies: { 46: orig } }));
+    stageDocs(r, claudeDoc(BASE, { bodies: { 46: reworded } }));
+    const out = runGuard(r, { SWAN_RULE_RENAME: '46=46' });
+    assert.equal(out.status, 0, `honest reword must PASS, not false-block. stderr: ${out.stderr}`);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
 test('D1: an honest expansion that ADDS clauses is not mistaken for an inversion', () => {
   const r = repo();
   try {

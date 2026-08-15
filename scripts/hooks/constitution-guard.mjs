@@ -221,6 +221,24 @@ const POSITIVE = new Set(['always', 'required']);
 const POLARITY = new Set([...NEGATIVE, ...POSITIVE]);
 const STRENGTH = new Set(['must', 'shall', 'may', 'should']);
 const direction = (w) => (NEGATIVE.has(w) ? 'NEGATIVE' : 'POSITIVE');
+
+/**
+ * Adverbs and intensifiers that sit between a polarity word and the thing it
+ * actually governs. Found by probing the shipped scanner rather than by reading it:
+ * "never, ever, commit secrets" attached NEGATIVE to "ever", so deleting the `never`
+ * left "commit" unpolarised in BOTH versions and the deletion check stayed silent —
+ * a false NEGATIVE, the dangerous direction. Skipped like modals so the polarity
+ * lands on the real subject.
+ */
+const FILLER = new Set(['ever', 'also', 'then', 'still', 'generally', 'typically',
+  'simply', 'merely', 'just', 'again', 'else', 'even', 'more', 'most', 'very',
+  'really', 'quite', 'ONLY_PLACEHOLDER_NEVER_MATCHES']);
+
+/** Hard clause terminators. A polarity does not reach across a sentence end. */
+const CLAUSE_END = new Set(['.', ';', ':', '—', '?', '!']);
+
+/** Copulas — the marker that a polarity word is doing passive duty ("is forbidden"). */
+const COPULA = new Set(['is', 'are', 'was', 'were', 'be', 'been', 'being', 'remains', 'stays']);
 const MODALS = new Set([...POLARITY, ...STRENGTH]);
 
 /**
@@ -245,7 +263,13 @@ const MODALS = new Set([...POLARITY, ...STRENGTH]);
  */
 function modalInversions(oldBody, newBody) {
   const pairs = (s) => {
-    const w = s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+    // Sentence terminators are kept as their own tokens so a polarity cannot reach
+    // across a sentence boundary (Kimi round 5). Commas are NOT terminators —
+    // appositives like "never, under any circumstance, commit X" are one clause.
+    const w = s.toLowerCase()
+      .replace(/([.;:?!—])/g, ' $1 ')
+      .replace(/[^a-z0-9\s.;:?!—]/g, ' ')
+      .split(/\s+/).filter(Boolean);
     const out = new Map(); // content word -> Set(polarity DIRECTIONS governing it)
     const attach = (word, modal) => {
       if (!out.has(word)) out.set(word, new Set());
@@ -256,12 +280,22 @@ function modalInversions(oldBody, newBody) {
       // Look FORWARD for the imperative form ("never commit X") and BACKWARD for
       // the passive form ("committing X is forbidden"). Forward-only scanning made
       // every passive rewording look like a dropped negation.
-      for (let j = i + 1; j < Math.min(i + 4, w.length); j += 1) {
-        if (MODALS.has(w[j]) || w[j].length <= 3) continue;
+      for (let j = i + 1; j < Math.min(i + 6, w.length); j += 1) {
+        if (CLAUSE_END.has(w[j])) break;                                  // do not cross a sentence
+        if (MODALS.has(w[j]) || FILLER.has(w[j]) || w[j].length <= 3) continue;
         attach(w[j], w[i]); break;
       }
-      for (let j = i - 1; j >= Math.max(i - 3, 0); j -= 1) {
-        if (MODALS.has(w[j]) || w[j].length <= 3) continue;
+      // Scan BACKWARD only for a genuine passive construction — "committing X is
+      // forbidden" — signalled by a copula immediately before the polarity word.
+      // Scanning backward unconditionally attached "avoid" to the "please" in
+      // "please avoid large commits", and since "please" survives any rewording
+      // unpolarised, every such reword false-blocked. That is the exact
+      // false-positive the reviewer predicted, arriving through the fix for
+      // passives rather than through the window width they expected.
+      if (!COPULA.has(w[i - 1])) continue;
+      for (let j = i - 2; j >= Math.max(i - 6, 0); j -= 1) {
+        if (CLAUSE_END.has(w[j])) break;
+        if (MODALS.has(w[j]) || FILLER.has(w[j]) || COPULA.has(w[j]) || w[j].length <= 3) continue;
         attach(w[j], w[i]); break;
       }
     }
