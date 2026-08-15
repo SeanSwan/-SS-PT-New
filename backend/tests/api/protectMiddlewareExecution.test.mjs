@@ -41,11 +41,19 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 const TEST_SECRET = 'test-only-jwt-secret-for-protect-execution-suite-0123456789';
 process.env.JWT_SECRET = TEST_SECRET;
 
-const mocks = vi.hoisted(() => ({ findByPk: vi.fn() }));
+const mocks = vi.hoisted(() => ({ findByPk: vi.fn(), waiverFindOne: vi.fn() }));
 
 // The DATABASE is mocked. The middleware under test is not.
+//
+// `getModel` is here because protect does NOT call next() itself — it ends with
+// `await requireLinkedWaiver(req, res, next)` (authMiddleware.mjs:385), so the
+// real waiver gate runs inside every request below and looks up WaiverRecord.
 vi.mock('../../models/index.mjs', () => ({
   getUser: () => ({ findByPk: mocks.findByPk }),
+  getModel: (name) => {
+    if (name === 'WaiverRecord') return { findOne: mocks.waiverFindOne };
+    throw new Error(`unexpected getModel(${name})`);
+  },
 }));
 
 const { protect } = await import('../../middleware/authMiddleware.mjs');
@@ -72,7 +80,11 @@ function app() {
   const a = express();
   a.use(express.json());
   // Echo whatever protect produced, so assertions read the real object.
-  a.get('/probe', protect, (req, res) => res.json({ user: req.user, impersonation: req.impersonation ?? null }));
+  const echo = (req, res) => res.json({ user: req.user, impersonation: req.impersonation ?? null });
+  a.get('/probe', protect, echo);
+  // A path under a GATED_API_PREFIX, so the waiver gate actually engages for
+  // client/user roles instead of short-circuiting on the path check.
+  a.get('/api/workouts/probe', protect, echo);
   return a;
 }
 
@@ -90,7 +102,12 @@ beforeAll(() => {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.findByPk.mockResolvedValue(dbUser());
+  // Default: a signed waiver on file, so the gate is never the reason a test
+  // above fails. The waiver-specific block overrides this explicitly.
+  mocks.waiverFindOne.mockResolvedValue({ id: 1, status: 'linked', signedAt: new Date() });
 });
+
+const getGated = (token) => request(app()).get('/api/workouts/probe').set('Authorization', `Bearer ${token}`);
 
 describe('protect — the middleware every other authz suite assumes', () => {
   it('CONTROL — a valid token populates req.user and reaches the handler', async () => {
@@ -310,6 +327,65 @@ describe('protect — the middleware every other authz suite assumes', () => {
       const res = await get(sign({}));
 
       expect(res.body.impersonation).toBeNull();
+    });
+
+    // The tests above pin the FLAG. These pin its EFFECT — the waiver gate runs
+    // inside protect (it owns the final next()), so on a gated prefix the
+    // bypass is reachable end-to-end and can be executed rather than argued.
+    describe('and its effect, executed on a gated path', () => {
+      it('CONTROL — a client WITH a signed waiver reaches the handler', async () => {
+        // Without this, the block below would pass against a gate that refuses
+        // everyone for some unrelated reason.
+        mocks.waiverFindOne.mockResolvedValue({ id: 1, status: 'linked', signedAt: new Date() });
+
+        const res = await getGated(sign({}));
+
+        expect(res.status).toBe(200);
+      });
+
+      it('a client with NO signed waiver is blocked on a gated path', async () => {
+        mocks.waiverFindOne.mockResolvedValue(null);
+
+        const res = await getGated(sign({}));
+
+        expect(res.status).not.toBe(200);
+      });
+
+      it('THE BYPASS — admin impersonation lets the same blocked request through', async () => {
+        // Deliberate (Sean 2026-07-14): an owner-admin reviewing a client must
+        // not be stopped by that client's unsigned waiver. Same user, same path,
+        // same missing waiver — only the impersonation claims differ.
+        mocks.waiverFindOne.mockResolvedValue(null);
+
+        const res = await getGated(sign({
+          impersonation: true, impersonatedBy: 77, impersonationActorRole: 'admin',
+        }));
+
+        expect(res.status).toBe(200);
+      });
+
+      it('a NON-ADMIN impersonation claim does NOT unlock the gate', async () => {
+        // The security assertion. If the actor-role check ever loosened, this
+        // is the request that would start succeeding.
+        mocks.waiverFindOne.mockResolvedValue(null);
+
+        const res = await getGated(sign({
+          impersonation: true, impersonatedBy: 77, impersonationActorRole: 'client',
+        }));
+
+        expect(res.status).not.toBe(200);
+      });
+
+      it('a TRAINER is not waiver-gated at all, waiver or not', async () => {
+        // Pins the role scope: only client/user are gated. A change that widened
+        // WAIVER_REQUIRED_ROLES would lock trainers out of the product.
+        mocks.findByPk.mockResolvedValue(dbUser({ role: 'trainer' }));
+        mocks.waiverFindOne.mockResolvedValue(null);
+
+        const res = await getGated(sign({}));
+
+        expect(res.status).toBe(200);
+      });
     });
   });
 
