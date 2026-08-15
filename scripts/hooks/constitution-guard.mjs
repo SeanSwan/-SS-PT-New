@@ -207,9 +207,20 @@ const YEARISH = /^\d{4}(-\d{2})*$/;
 // "X is required" -> "X is recommended" is a downgrade expressed with no modal verb
 // at all, so a strength-only classification would never see it. Treated as polarity,
 // the governed word loses its polarity entirely and the deletion branch below fires.
-const POLARITY = new Set(['never', 'always', 'not', 'cannot', 'no', 'avoid', 'refuse',
-  'forbidden', 'prohibited', 'banned', 'only', 'except', 'required']);
+// Compared by DIRECTION, not by token identity. Comparing tokens makes an honest
+// passive rewording look like an attack: "never commit X" -> "committing X is
+// forbidden" swaps the token while preserving the prohibition exactly. Both are
+// NEGATIVE, so direction-comparison passes it, while never -> always still flips.
+const NEGATIVE = new Set(['never', 'not', 'cannot', 'no', 'avoid', 'refuse',
+  'forbidden', 'prohibited', 'banned', 'only', 'except']);
+// `must` belongs in STRENGTH, not POSITIVE. Classifying it as a polarity made
+// "must never commit X" register BOTH directions on the same word, so dropping the
+// `never` still left POSITIVE shared and the negation-deletion check went quiet —
+// re-opening the exact hole it had just been built to close. Its own test caught it.
+const POSITIVE = new Set(['always', 'required']);
+const POLARITY = new Set([...NEGATIVE, ...POSITIVE]);
 const STRENGTH = new Set(['must', 'shall', 'may', 'should']);
+const direction = (w) => (NEGATIVE.has(w) ? 'NEGATIVE' : 'POSITIVE');
 const MODALS = new Set([...POLARITY, ...STRENGTH]);
 
 /**
@@ -235,15 +246,23 @@ const MODALS = new Set([...POLARITY, ...STRENGTH]);
 function modalInversions(oldBody, newBody) {
   const pairs = (s) => {
     const w = s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
-    const out = new Map(); // content word -> Set(POLARITY modals governing it)
+    const out = new Map(); // content word -> Set(polarity DIRECTIONS governing it)
+    const attach = (word, modal) => {
+      if (!out.has(word)) out.set(word, new Set());
+      out.get(word).add(direction(modal));
+    };
     for (let i = 0; i < w.length; i += 1) {
       if (!POLARITY.has(w[i])) continue; // strength modals do not invert meaning
-      // the next few non-modal words are what this modality governs
+      // Look FORWARD for the imperative form ("never commit X") and BACKWARD for
+      // the passive form ("committing X is forbidden"). Forward-only scanning made
+      // every passive rewording look like a dropped negation.
       for (let j = i + 1; j < Math.min(i + 4, w.length); j += 1) {
         if (MODALS.has(w[j]) || w[j].length <= 3) continue;
-        if (!out.has(w[j])) out.set(w[j], new Set());
-        out.get(w[j]).add(w[i]);
-        break;
+        attach(w[j], w[i]); break;
+      }
+      for (let j = i - 1; j >= Math.max(i - 3, 0); j -= 1) {
+        if (MODALS.has(w[j]) || w[j].length <= 3) continue;
+        attach(w[j], w[i]); break;
       }
     }
     return out;
@@ -266,7 +285,7 @@ function modalInversions(oldBody, newBody) {
       // aggregate shrink checks already own; only survival-without-polarity is this
       // check's business.
       if (newWords.has(word)) {
-        flipped.push(`"${word}" was governed by ${[...oldModals].join('/')} and is now governed by NOTHING — the negation was dropped while the subject survived, which turns a prohibition into a permission`);
+        flipped.push(`"${word}" was governed by ${[...oldModals].join("/")} and is now governed by NOTHING — the negation was dropped while the subject survived, which turns a prohibition into a permission`);
       }
       continue;
     }

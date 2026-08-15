@@ -346,6 +346,21 @@ test('REJECTS a rename that downgrades "required" to "recommended"', () => {
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 
+// Self-found: forward-only scanning made an honest PASSIVE rewording look like a
+// dropped negation. Direction-comparison plus a backward scan fixes it, and this
+// test pins the false positive so it cannot come back.
+test('PASSES an honest passive rewording that preserves the prohibition', () => {
+  const r = repo();
+  try {
+    const active = '46. **Secret Handling** — (MANDATORY) Established 2026-07-01. You must never commit credentials into this repository.';
+    const passive = '46. **Secret Handling Policy** — (MANDATORY) Established 2026-07-01. Committing credentials into this repository is forbidden, always, without exception.';
+    commitDocs(r, claudeDoc(BASE, { bodies: { 46: active } }));
+    stageDocs(r, claudeDoc(BASE, { bodies: { 46: passive } }));
+    const out = runGuard(r, { SWAN_RULE_RENAME: '46=46' });
+    assert.equal(out.status, 0, `a prohibition restated passively is still a prohibition. stderr: ${out.stderr}`);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
 test('D1: an honest expansion that ADDS clauses is not mistaken for an inversion', () => {
   const r = repo();
   try {
