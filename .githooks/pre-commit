@@ -50,22 +50,46 @@ fi
 
 # Constitution integrity (added 2026-08-14 after commit 10a3e7fa1 silently
 # reverted 9 MANDATORY rules from CLAUDE.md while shipping two correct edits).
-# Blocks: rule deletion, silent renumbering, and CLAUDE.md/AGENTS.md mirror drift.
+# Blocks: rule deletion, silent renumbering, body reversion, and mirror drift.
 # Only runs when a constitution file is staged; skips otherwise.
-echo "[pre-commit] Running constitution guard..."
-if ! node "$REPO_ROOT/scripts/hooks/constitution-guard.mjs"; then
+#
+# Absence is announced, never silent. `core.hooksPath` is relative (`.githooks`),
+# so every worktree runs ITS OWN committed hooks — but a worktree checked out
+# before this guard existed has the hook file without the script. Failing there
+# would break commits on old branches for no safety gain; failing SILENTLY would
+# reproduce the exact defect this guard exists to catch. So: say so, loudly.
+CONSTITUTION_GUARD="$REPO_ROOT/scripts/hooks/constitution-guard.mjs"
+if [[ -f "$CONSTITUTION_GUARD" ]]; then
+  echo "[pre-commit] Running constitution guard..."
+  if ! node "$CONSTITUTION_GUARD"; then
+    exit 1
+  fi
+elif git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md)$'; then
+  # Editing the constitution in a checkout too old to carry its guard is the
+  # highest-risk case there is. Refuse rather than wave it through.
+  echo "COMMIT BLOCKED: you are editing a constitution file, but this checkout" >&2
+  echo "  has no scripts/hooks/constitution-guard.mjs (it predates 2026-08-14)." >&2
+  echo "  Rebase/merge onto current main before editing CLAUDE.md or AGENTS.md," >&2
+  echo "  or the same silent rule-deletion that caused 10a3e7fa1 can recur here." >&2
   exit 1
+else
+  echo "[pre-commit] constitution guard: SCRIPT ABSENT (pre-2026-08-14 checkout) — skipped; no constitution file staged"
 fi
 
 # Skill-advertising parity (added 2026-08-14, Kimi finding D7). The routing table
 # in CLAUDE.md IS the router: a skill absent from it never fires. That table had
 # drifted 43% (23 advertised vs 42 installed) while entrypoint validation passed
 # the whole time, because existence is not advertisement.
+SKILL_REGISTRY="$REPO_ROOT/scripts/ai-workflow/validate-skill-registry.mjs"
 if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.claude/skills/|\.agents/skills/)'; then
-  echo "[pre-commit] Running skill-advertising parity check..."
-  if ! node "$REPO_ROOT/scripts/ai-workflow/validate-skill-registry.mjs" --check; then
-    echo "COMMIT BLOCKED: skill registry / advertising parity (see FAIL lines above)." >&2
-    exit 1
+  if [[ -f "$SKILL_REGISTRY" ]]; then
+    echo "[pre-commit] Running skill-advertising parity check..."
+    if ! node "$SKILL_REGISTRY" --check; then
+      echo "COMMIT BLOCKED: skill registry / advertising parity (see FAIL lines above)." >&2
+      exit 1
+    fi
+  else
+    echo "[pre-commit] skill-advertising check: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
   fi
 fi
 
