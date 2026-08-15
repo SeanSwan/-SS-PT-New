@@ -73,3 +73,39 @@ references (was 2) · 0 stale decider references · valid UTF-8, no mojibake, no
 
 If any row above is wrong, fix the rule in `CLAUDE.md`, regenerate the mirror, and
 amend this table with the reason. Do **not** hand-edit `AGENTS.md` below the marker.
+
+---
+
+## Board backlog — recorded here because Linear is unreachable
+
+Probed this turn, not carried forward: `node scripts/check-mcp-health.mjs linear` →
+`linear-server` is declared at USER scope in `~/.claude.json`, returns **HTTP 401**,
+verdict **CONFIGURED BUT TOKEN REJECTED**, registering **zero tools**. The server is
+configured; the credential is expired. Writing to the board is impossible, not skipped.
+No SWA id is invented here. These are recorded in git so the outage cannot lose them.
+
+**B1 — the constitution guard is committed but NOT firing locally. (highest priority)**
+`git config core.hooksPath` resolves to an absolute path into the MAIN working tree's
+`.githooks`, so every worktree runs that copy regardless of its own branch. That tree sits
+~1933 commits behind main and its `pre-commit` has no guard.
+Check: `grep -c constitution-guard "$(git config core.hooksPath)/pre-commit"` — `0` = exposed.
+Fix: add the guard block to that file. Additive, ~8 lines. Not done unilaterally: it is a
+shared tree with another agent's uncommitted work, and it changes every agent's commit path.
+
+**B2 — the `drift-check` hook still prescribes the destructive remedy.**
+On divergence it advises `node scripts/sync-agents-mirror.mjs`, which copies CLAUDE.md over
+AGENTS.md. That is precisely what would have made the 10a3e7fa1 loss permanent. It should
+prescribe *investigation* (diff by rule NAME, decide newer per rule) instead. Cannot be fixed
+from a worktree off main: `drift-check` exists only in unpushed local commits.
+
+**B3 — no CI enforcement; pre-commit is bypassable.**
+`--no-verify` and direct pushes skip the guard entirely. Kimi Q3 recommends the same script as
+a required PR check. Caveat worth verifying before promising it works: per the inbox pattern
+report §7d, CI in this repo has never successfully started (30/30 recent runs `startup_failure`),
+and §7e notes branch protection returns 403 on the current GitHub plan.
+
+**B4 — Hermes runs a third, older constitution.**
+`~/.hermes/runner-repo` is a worktree pinned at `d8ac5c03e` (2026-07-29) carrying **77** rules.
+It has never seen rules 78-81 and predates this repair. Separately, Sean has asked whether
+Hermes should carry its OWN goal set rather than mirroring the SwanStudios constitution — that
+is a design question needing a short grill, not an assumed answer.
