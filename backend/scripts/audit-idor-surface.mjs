@@ -72,7 +72,7 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
 // user-scoped, but on a `/users` or `/user` path it names a person. Five handlers were invisible
 // without it (`adminRoutes:35`, `authRoutes:855,925`, `userManagementRoutes:562,692`) — all five
 // traced and guarded, but absent from the denominator, which is its own kind of wrong.
-export const USER_PARAM = /:(userId|clientId|trainerId|user_id|client_id|trainer_id|memberId|athleteId)\b|\/users?\/:id\b/;
+export const USER_PARAM = /:(userId|clientId|trainerId|user_id|client_id|trainer_id|memberId|athleteId)\b|\/(users?|clients?|trainers?|members?|athletes?)\/:id\b/;
 
 /**
  * Every `.mjs` under routes/, RECURSIVELY, relative to ROUTES.
@@ -122,15 +122,10 @@ const CHECK = [
   /verifyClientAccessBy(UserId|PlanId)|verifyClientAccess/,
   /checkTrainerClientRelationship|assertTrainerAssignedToClient|assertAssignmentOrAdmin/,
   /authorizeResourceAccess|requireOwnershipOrTrainer|assertClipOwnership|requireLinkedWaiver/,
-  // role / permission gates
-  /\bauthorize(Roles|Admin)?\s*\(/,
+  // role / permission gates. NOTE: inline `authorize(...)` is handled in routeClearance, not
+  // here, because whether it clears depends on WHICH roles it grants.
   /isAdmin|adminOnly|ownerAdminOnly|ownerOrAdminOnly|requireAdmin|requireSuperAdmin|requireTrainerOrAdmin|requireAnyRole/,
-  // The `<role>Only` / `authorize<Role>` family, applied inline on the route rather than via
-  // router.use. Missing these reported `gamificationRoutes` (authorizeTrainer) and
-  // `sessionMetricsRoutes` (trainerOrAdminOnly) as unguarded when both carry a real role gate.
-  /trainerOnly|clientOnly|trainerOrAdminOnly|authorizeTrainer|authorizeClient|authenticate\b/,
   /require[A-Za-z]*Permission|requireMultiplePermissions|requireAnyPermission/,
-  /requireSubscription|requireTier|requireFeature|requireAiConsent/,
   // FILE-LOCAL access helpers. Enumerated from routes/, not guessed — this codebase also gates
   // ownership with helpers defined inside the route file rather than imported middleware.
   // `clientPhotoRoutes` calls `ensureClientAccess(req, req.params.userId)` and was being flagged
@@ -144,8 +139,9 @@ const CHECK = [
   // \b matters: unanchored `hasAccess` also matched `hasAccessibilityAccess`, which is a feature
   // flag, not an authorization gate.
   /\b(ensureClientAccess|ensureScopedClientAccess|ensureTrainerAccess|checkClientAccess|assertGoalAccess|canAccess[A-Za-z]*|hasAccess)\b/,
-  // explicit annotation, including an explicit public declaration
-  /\/\/\s*authz:/i,
+  // Explicit annotation, including an explicit public declaration. `// authz: TODO — add check
+  // before launch` used to clear: an annotation is a claim, and an unfinished one is its opposite.
+  /\/\/\s*authz:\s*(?!.*\b(todo|fixme|tbd|none|missing|unknown|pending)\b)\S/i,
 ];
 
 // Route paths whose data is most sensitive — used only to rank the queue.
@@ -180,23 +176,89 @@ export function handlerBody(src, from, nextDecl) {
  * `const requestingUserId = req.user.id` … `if (String(requestingUserId) !== …)` is the dominant
  * in-repo idiom and refusing to follow it would just move the false-positive class into this file.
  */
-const SINK = /^(json|send|sendStatus|status|end|write|render|redirect|log|warn|error|info|debug|trace|emit|push|set|header|append)$/;
+/**
+ * Callees that BIND the actor to the resource. An ALLOWLIST, not a denylist.
+ *
+ * The denylist this replaces excluded `console.log` and `res.json` and cleared on every other
+ * callee — so `auditLog('read', req.user.id, req.params.userId)` cleared a handler with no
+ * authorization at all, and this codebase writes actor-attributed audit logging diligently. A
+ * denylist of sinks is an inverted allowlist of guards: it must enumerate every way to NOT
+ * authorize, which is unbounded, instead of the few ways to authorize, which are not.
+ * (External review, Kimi K3, 2026-08-14.)
+ */
+const GUARD_CALLEE = /^(ensureClientAccess|ensureScopedClientAccess|ensureTrainerAccess|checkClientAccess|assertGoalAccess|verifyClientAccess\w*|checkTrainerClientRelationship|assertTrainerAssignedToClient|assertAssignmentOrAdmin|authorizeResourceAccess|requireOwnershipOrTrainer|assertClipOwnership|canAccess\w*|hasAccess)$/;
 
-export function comparesActor(body) {
-  const OPS = '===|!==|==|!=|<|>';
-  if (new RegExp(`req\\.user\\??\\.\\w+\\s*(?:${OPS})`).test(body)) return true;
-  if (new RegExp(`(?:${OPS})\\s*req\\.user\\??\\.\\w+`).test(body)) return true;
-  // Passed into a guard/comparison helper: `ensureClientAccess(req, req.user.id)`, `String(req.user.id)`.
-  // SINKS are excluded. Without that exclusion this rule re-creates the exact defect it sits beside:
-  // `console.log(\`actor ${req.user.id}\`)` and `res.json({ viewer: req.user?.role })` are calls that
-  // take the actor and authorize nothing, and both cleared until the denylist was added.
-  for (const m of body.matchAll(/\b([A-Za-z_$][\w$]*)\(\s*[^)]*req\.user\??\.\w+/g)) {
-    if (!SINK.test(m[1])) return true;
+/**
+ * Does the body COMPARE the actor against THIS handler's route param, or merely mention it?
+ *
+ * Two things had to be true and only one was checked. `req.user.role === 'client'` is a
+ * comparison, and it authorizes nothing about `:clientId`; so is `req.user.id === req.user.id`.
+ * The other operand must be the param — directly, or through one level of local aliasing, which
+ * is the dominant in-repo idiom on BOTH sides (`const requestingUserId = req.user.id;`
+ * `const parsedClientId = parseInt(req.params.clientId)` … `String(a) !== String(b)`).
+ *
+ * `paramName` omitted → param binding is not required. Only the pure unit tests do that.
+ */
+export function comparesActor(body, paramName) {
+  const OPS = '===|!==|==|!=';
+  const actorAliases = ['req\\.user\\??\\.\\w+'];
+  for (const m of body.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*[^;\n]*req\.user\??\.\w+/g)) {
+    actorAliases.push(`\\b${m[1]}\\b`);
   }
-  for (const m of body.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*req\.user\??\.\w+/g)) {
-    const alias = m[1];
-    if (new RegExp(`\\b${alias}\\b\\s*(?:${OPS})|(?:${OPS})\\s*\\b${alias}\\b`).test(body)) return true;
-    if (new RegExp(`\\b[A-Za-z_$][\\w$]*\\(\\s*[^)]*\\b${alias}\\b`).test(body)) return true;
+
+  // A named ownership guard handed the actor is a binding on its own — that IS the check.
+  for (const m of body.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(\s*[^)]*req\.user\??\.\w+/g)) {
+    if (GUARD_CALLEE.test(m[1])) return true;
+  }
+  for (const alias of actorAliases.slice(1)) {
+    if (new RegExp(`\\b([A-Za-z_$][\\w$]*)\\s*\\([^)]*${alias}`).test(body)) {
+      const callee = new RegExp(`\\b([A-Za-z_$][\\w$]*)\\s*\\([^)]*${alias}`).exec(body)[1];
+      if (GUARD_CALLEE.test(callee)) return true;
+    }
+  }
+
+  if (!paramName) {
+    // A short window, not adjacency: the dominant idiom wraps both operands —
+    // `String(req.user.id) !== String(parsedClientId)` — so requiring the operator to sit next to
+    // the reference rejects the most common real check in the codebase.
+    return actorAliases.some((a) => new RegExp(
+      `${a}[^;\\n]{0,40}(?:${OPS})|(?:${OPS})[^;\\n]{0,40}${a}`,
+    ).test(body));
+  }
+
+  // Param side: `req.params.x`, or one alias hop off it.
+  const paramRefs = [`req\\.params\\.${paramName}`, `req\\.params\\[['"\`]${paramName}['"\`]\\]`];
+  for (const m of body.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*[^;\n]*req\.params[.[]/g)) {
+    paramRefs.push(`\\b${m[1]}\\b`);
+  }
+  // Destructured: `const { userId } = req.params;`
+  for (const m of body.matchAll(/(?:const|let|var)\s*\{([^}]*)\}\s*=\s*req\.params/g)) {
+    for (const name of m[1].split(',')) {
+      const clean = name.split(':').pop().trim().replace(/\W/g, '');
+      if (clean) paramRefs.push(`\\b${clean}\\b`);
+    }
+  }
+  // SECOND hop. The real idiom destructures and THEN parses:
+  //   const { clientId } = req.params;
+  //   const parsedClientId = parseStrictPositiveInteger(clientId);
+  //   if (String(requestingUserId) !== String(parsedClientId)) return 403;
+  // One hop stops at `clientId` and never reaches the name actually compared, so the most
+  // careful handlers — the ones that validate before comparing — were the ones reported
+  // unguarded. Two hops, deliberately not a fixpoint: unbounded chasing would let any
+  // derived name satisfy the binding.
+  for (const p of [...paramRefs]) {
+    const bare = p.replace(/\\b/g, '').replace(/\\/g, '');
+    if (!/^[A-Za-z_$][\w$]*$/.test(bare)) continue;
+    for (const m of body.matchAll(new RegExp(`(?:const|let|var)\\s+([A-Za-z_$][\\w$]*)\\s*=\\s*[^;\\n]*\\b${bare}\\b`, 'g'))) {
+      paramRefs.push(`\\b${m[1]}\\b`);
+    }
+  }
+
+  for (const a of actorAliases) {
+    for (const p of paramRefs) {
+      if (new RegExp(`${a}[^;\\n]{0,80}(?:${OPS})[^;\\n]{0,80}${p}`).test(body)) return true;
+      if (new RegExp(`${p}[^;\\n]{0,80}(?:${OPS})[^;\\n]{0,80}${a}`).test(body)) return true;
+    }
   }
   return false;
 }
@@ -206,10 +268,21 @@ export function comparesActor(body) {
  * defeated v1 can be asserted permanently in a test instead of re-discovered by hand.
  * Returns 'route' or null.
  */
-export function routeClearance(body) {
-  const strong = CHECK.some((r) => r.test(body));
-  if (strong) return 'route';
-  return USER_REF.some((r) => r.test(body)) && comparesActor(body) ? 'route' : null;
+export function routeClearance(body, paramName) {
+  if (CHECK.some((r) => r.test(body))) return 'route';
+  // Inline `authorize([...])` clears only when the role list is staff-only. `authorize(['client'])`
+  // on a `:clientId` route lets any client read any client — it was clearing identically to
+  // `authorize(['admin'])`. (External review, Kimi K3, 2026-08-14.)
+  for (const m of body.matchAll(/\bauthorize(?:Roles|Admin)?\s*\(([^)]*)\)/g)) {
+    if (!NON_STAFF_ROLE.test(m[1])) return 'route';
+  }
+  return USER_REF.some((r) => r.test(body)) && comparesActor(body, paramName) ? 'route' : null;
+}
+
+/** The user-identifying param this route actually declares, for the binding check. */
+export function paramNameOf(routePath) {
+  const m = /:(userId|clientId|trainerId|user_id|client_id|trainer_id|memberId|athleteId)\b/.exec(routePath);
+  return m ? m[1] : (/\/(?:users?|clients?|trainers?|members?|athletes?)\/:id\b/.test(routePath) ? 'id' : undefined);
 }
 
 /**
@@ -221,13 +294,28 @@ export function routeClearance(body) {
  * among the most sensitive in the app, and every one of them is in fact defended three ways. A tool
  * that cannot follow one hop of indirection does not produce a short list; it produces a wrong one.
  */
-function expandSpreads(src, line) {
+export function expandSpreads(src, line) {
   let out = line;
   for (const m of line.matchAll(/\.\.\.([A-Za-z_$][\w$]*)/g)) {
     const name = m[1];
-    // `const <name> = [ ... ]` anywhere in the file.
-    const def = new RegExp(`(?:const|let|var)\\s+${name}\\s*=\\s*\\[([\\s\\S]{0,600}?)\\]`).exec(src);
-    if (def) out += `\n/*spread:${name}*/ ${def[1]}`;
+    // `const <name> = [ ... ]` anywhere in the file, captured with a BALANCED scan.
+    //
+    // The non-greedy `[\s\S]{0,600}?\]` this replaces stopped at the FIRST `]` — which is nested
+    // inside `authorize(['trainer', 'admin'])`, truncating the array immediately before
+    // `verifyClientAccessByUserId(...)`, the only member that binds the param. Eight of the most
+    // sensitive handlers in the app are defended three ways and this read them as defended by a
+    // fragment. It stayed invisible only because the old blind `authorize\s*\(` pattern cleared
+    // them anyway — a second defect masking the first.
+    const start = new RegExp(`(?:const|let|var)\\s+${name}\\s*=\\s*\\[`).exec(src);
+    if (!start) continue;
+    const from = start.index + start[0].length - 1;
+    let depth = 0;
+    let end = -1;
+    for (let k = from; k < Math.min(src.length, from + 1200); k += 1) {
+      if (src[k] === '[') depth += 1;
+      else if (src[k] === ']') { depth -= 1; if (depth === 0) { end = k; break; } }
+    }
+    if (end > from) out += `\n/*spread:${name}*/ ${src.slice(from + 1, end)}`;
   }
   return out;
 }
@@ -239,8 +327,20 @@ function expandSpreads(src, line) {
  */
 const AUTHN_ONLY = /^(protect|authenticateToken|authMiddleware|optionalAuth|injectUserId)$/;
 
-/** Named role/relationship gates. Same vocabulary as CHECK — kept as one source of truth. */
-const ROLE_GATE_NAME = /^(authorize\w*|adminOnly|requireAdmin|requireSuperAdmin|requireTrainerOrAdmin|requireAnyRole|ownerAdminOnly|trainerOrAdminOnly|trainerOnly|clientOnly|requireStaff|require\w*Permission)$/;
+/**
+ * STAFF gates only. A router-level gate clears a param-scoped handler under it only when the gate
+ * restricts to roles trusted ACROSS users. `clientOnly` and `authorizeClient` are VERTICAL:
+ * `clientOnly` on `GET /:clientId/pain` means any client reads any client's pain log — the exact
+ * horizontal attack this tool exists to find. They were in the clearing set and are now out.
+ * Same reasoning removed `requireSubscription|requireTier|requireFeature|requireAiConsent` from
+ * CHECK: a subscribed client is still a client. (External review, Kimi K3, 2026-08-14 — which also
+ * caught that this file anchored `hasAccess` because a feature flag is not a gate, and then listed
+ * `requireFeature` as one, in the same comment block.)
+ */
+const STAFF_GATE_NAME = /^(adminOnly|requireAdmin|requireSuperAdmin|requireTrainerOrAdmin|requireAnyRole|ownerAdminOnly|trainerOrAdminOnly|requireStaff|authorizeAdmin|require\w*Permission)$/;
+
+/** Roles that do NOT make a role gate sufficient for a user-scoped param. */
+const NON_STAFF_ROLE = /['"`](client|user|member|athlete)['"`]/;
 
 /** Body of a function/const declared in THIS file, so a file-local gate can be read. */
 function localFnBody(src, name) {
@@ -260,18 +360,31 @@ function localFnBody(src, name) {
  * wider list would only move the boundary; reading the function body removes it. Returns a
  * reason string, or null.
  */
-function routerUseGate(src, beforeOffset = Infinity) {
-  for (const m of src.matchAll(/router\.use\(\s*([A-Za-z_$][\w$]*)/g)) {
-    // Express applies `router.use` only to handlers declared AFTER it. Ignoring position meant a
-    // gate at the bottom of a file cleared genuinely unprotected handlers above it. Zero live
-    // instances today; latent exactly like the window bleed was, until someone adds a handler
-    // above the gate.
+export function routerUseGate(src, beforeOffset = Infinity, paramName) {
+  for (const m of src.matchAll(/router\.use\(/g)) {
     if (m.index > beforeOffset) break;
-    const name = m[1];
-    if (AUTHN_ONLY.test(name)) continue;
-    if (ROLE_GATE_NAME.test(name)) return `router.use(${name})`;
-    const body = localFnBody(src, name);
-    if (body && routeClearance(body)) return `router.use(${name}) -> local fn`;
+    // Read the WHOLE call, not the first identifier: `router.use(protect, adminOnly)` appears in
+    // 5+ files and stopping at `protect` skipped the only gate that mattered.
+    // Strip the `router.use(` prefix BEFORE tokenizing. Leaving it on, the token pattern matched
+    // `use` as a call and its optional `\(([^)]*)\)` group consumed `(authorizeAdmin)` whole — so
+    // the argument was never tokenized and a correctly admin-gated router read as ungated. The
+    // change that introduced this was itself the fix for `router.use(protect, adminOnly)`: widening
+    // from "first identifier" to "all tokens" broke the single-argument case it was extending.
+    const call = src.slice(m.index, m.index + 400).split(';')[0].replace(/^router\.use\(/, '');
+    for (const a of call.matchAll(/\b([A-Za-z_$][\w$]*)\s*(?:\(([^)]*)\))?/g)) {
+      const name = a[1];
+      const args = a[2] || '';
+      if (AUTHN_ONLY.test(name)) continue;
+      if (STAFF_GATE_NAME.test(name)) return `router.use(${name})`;
+      if (/^authorize\w*$/.test(name)) {
+        // `authorize(['admin'])` binds; `authorize(['client'])` does not. Both printed identically
+        // as `router.use(authorize)`, which made 19 clearances unverifiable from the output alone.
+        if (args && !NON_STAFF_ROLE.test(args)) return `router.use(${name}(${args.trim().slice(0, 40)}))`;
+        continue;
+      }
+      const fnBody = localFnBody(src, name);
+      if (fnBody && routeClearance(fnBody, paramName)) return `router.use(${name}) -> local fn`;
+    }
   }
   return null;
 }
@@ -288,7 +401,7 @@ function routerUseGate(src, beforeOffset = Infinity) {
  * Following arbitrary depth would let this tool clear almost anything, which is the failure mode
  * that matters most here — a false negative is worse than a false positive.
  */
-function controllerHop(src, window) {
+function controllerHop(src, window, paramName) {
   const decl = window.slice(0, window.indexOf(';') + 1 || window.length);
   for (const m of decl.matchAll(/\b([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)|,\s*([A-Za-z_$][\w$]*)\s*\)/g)) {
     const [root, prop] = m[1] ? [m[1], m[2]] : [null, m[3]];
@@ -320,7 +433,13 @@ function controllerHop(src, window) {
     if (!body) continue;
     const at = fnRe.exec(body);
     if (!at) continue;
-    if (routeClearance(body.slice(at.index, at.index + 2200))) {
+    // Bounded at the NEXT function declaration. Defect A was fixed for route windows and left
+    // standing one hop away: an unguarded controller method above a guarded sibling was cleared
+    // by the sibling's text. (External review, Kimi K3.)
+    const after = body.slice(at.index + 1);
+    const nextFn = /\n(?:export\s+)?(?:async\s+)?(?:function\s+[A-Za-z_$]|const\s+[A-Za-z_$][\w$]*\s*=)|\n  [A-Za-z_$][\w$]*\s*\(/.exec(after);
+    const end = at.index + 1 + Math.min(nextFn ? nextFn.index : 2200, 2200);
+    if (routeClearance(body.slice(at.index, end), paramName)) {
       return `controller ${path.basename(target)}:${fnName}`;
     }
   }
@@ -361,9 +480,10 @@ function main() {
       // can check. `--verbose` prints the reason so a human can falsify any one of them.
       const window = handlerBody(src, m.index, nextDecl);
       const body = expandSpreads(src, window);
-      const why = routeClearance(body)
-        || routerUseGate(src, m.index)
-        || controllerHop(src, window);
+      const paramName = paramNameOf(routePath);
+      const why = routeClearance(body, paramName)
+        || routerUseGate(src, m.index, paramName)
+        || controllerHop(src, window, paramName);
       // A handler that names the actor but never compares it is the highest-value thing to review
       // by hand, so it is ranked as sensitive even when its path is not.
       const mentionOnly = !why && USER_REF.some((r) => r.test(body));

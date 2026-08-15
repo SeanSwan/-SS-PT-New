@@ -1,11 +1,29 @@
 {
   "_comment": "Accepted findings for this audit. NEW findings fail; these are known and tolerated. Regenerate deliberately with --update-baseline after reviewing the diff.",
-  "recordedAt": "2026-08-14T19:00:51.621Z",
+  "recordedAt": "2026-08-15T17:34:39.585Z",
   "audit": "idor-surface",
   "scanned": 211,
   "accepted": [
+    "DELETE|/:id/members/:userId|social/groupMembership.mjs",
+    "DELETE|/conversations/:id/participants/:userId|messagingRoutes.mjs",
+    "DELETE|/users/:userId/unfollow|gamificationV1Routes.mjs",
     "GET|/:trainerId/slots|availability.mjs",
     "GET|/:trainerId|availability.mjs",
-    "GET|/keys/:userId|encryptionRoutes.mjs"
+    "GET|/:userId/questionnaire|clientOnboardingRoutes.mjs",
+    "GET|/client/:clientId/info|dailyWorkoutFormRoutes.mjs",
+    "GET|/consent/status/:userId|aiRoutes.mjs",
+    "GET|/keys/:userId|encryptionRoutes.mjs",
+    "GET|/safety-number/:userId|encryptionRoutes.mjs",
+    "GET|/trainer/:trainerId/today|sessionMetricsRoutes.mjs",
+    "GET|/users/:userId/follow-status|gamificationV1Routes.mjs",
+    "GET|/users/:userId/followers|gamificationV1Routes.mjs",
+    "GET|/users/:userId/following|gamificationV1Routes.mjs",
+    "GET|/users/:userId/social-stats|gamificationV1Routes.mjs",
+    "PATCH|/:id/members/:userId|social/groupMembership.mjs",
+    "PATCH|/conversations/:id/participants/:userId|messagingRoutes.mjs",
+    "POST|/:id/members/:userId/approve|social/groupMembership.mjs",
+    "POST|/:userId/questionnaire|clientOnboardingRoutes.mjs",
+    "POST|/unblock/:userId|social/friendships.mjs",
+    "POST|/users/:userId/follow|gamificationV1Routes.mjs"
   ]
 }
