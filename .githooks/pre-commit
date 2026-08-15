@@ -48,4 +48,25 @@ if ! node "$REPO_ROOT/scripts/hooks/frontend-guards.mjs" --staged; then
   exit 1
 fi
 
+# Constitution integrity (added 2026-08-14 after commit 10a3e7fa1 silently
+# reverted 9 MANDATORY rules from CLAUDE.md while shipping two correct edits).
+# Blocks: rule deletion, silent renumbering, and CLAUDE.md/AGENTS.md mirror drift.
+# Only runs when a constitution file is staged; skips otherwise.
+echo "[pre-commit] Running constitution guard..."
+if ! node "$REPO_ROOT/scripts/hooks/constitution-guard.mjs"; then
+  exit 1
+fi
+
+# Skill-advertising parity (added 2026-08-14, Kimi finding D7). The routing table
+# in CLAUDE.md IS the router: a skill absent from it never fires. That table had
+# drifted 43% (23 advertised vs 42 installed) while entrypoint validation passed
+# the whole time, because existence is not advertisement.
+if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.claude/skills/|\.agents/skills/)'; then
+  echo "[pre-commit] Running skill-advertising parity check..."
+  if ! node "$REPO_ROOT/scripts/ai-workflow/validate-skill-registry.mjs" --check; then
+    echo "COMMIT BLOCKED: skill registry / advertising parity (see FAIL lines above)." >&2
+    exit 1
+  fi
+fi
+
 exit 0

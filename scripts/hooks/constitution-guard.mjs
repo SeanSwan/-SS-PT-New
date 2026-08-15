@@ -1,0 +1,269 @@
+#!/usr/bin/env node
+/**
+ * constitution-guard.mjs — block a commit that silently deletes MANDATORY rules
+ * from CLAUDE.md / AGENTS.md, or that leaves the two constitutions divergent.
+ *
+ * WHY THIS EXISTS
+ * ---------------
+ * 2026-08-14. Commit 10a3e7fa1 ("feat(skills): design-dialogue — and a cost
+ * figure in rule 16") removed 255 lines from CLAUDE.md. Its two intended edits
+ * were correct and shipped. It ALSO silently reverted nine MANDATORY rules that
+ * had landed since the author's copy of the file was taken:
+ *
+ *     46 Kimi Hostile-Review Gate   (reverted to the retired 3-Brain/Fable loop)
+ *     73 ADW Discipline             75 Trailhead-Truth
+ *     76 Create-With-Context        77 Dead-File Quarantine
+ *     78 Agent Workflow Mode Router 79 Tests Can Encode The Bug
+ *     80 Second-Vantage Verification 81 Test-Delta Disclosure
+ *
+ * and renumbered Proof-Before-Done 74 -> 73, colliding with AGENTS.md. Nothing
+ * failed. The commit was green. Claude read a constitution missing 9 rules for
+ * ~15 hours while Codex read the complete one, and the two agents silently
+ * operated under different law.
+ *
+ * The class is "stale-copy clobber": an agent regenerates a whole file from a
+ * snapshot it holds in context, keeps its own edits, and reverts everything that
+ * landed in between. No tool reports it, because writing a file is not an error.
+ *
+ * WHAT IT CHECKS  (every check prints its verdict — a silent guard is not a guard)
+ *   1. RULE REMOVAL   — a rule present in HEAD is absent from the staged file.
+ *   2. RULE RENUMBER  — a rule NAME whose number changed. This produced the
+ *                       73/74 collision, and it breaks every citation silently.
+ *   3. RULE REVERSION — a rule whose BODY regressed: materially shorter, or it
+ *                       dropped the "MANDATORY" token, or it lost an amendment
+ *                       marker. See "WHY CHECK 3 EXISTS" below.
+ *   4. MIRROR PARITY  — AGENTS.md's body must equal CLAUDE.md byte-for-byte.
+ *
+ * WHY CHECK 3 EXISTS (added after Kimi K3 hostile review, 2026-08-14)
+ * ------------------------------------------------------------------
+ * The first version of this guard did NOT cover its own founding incident.
+ * 10a3e7fa1 damaged rule 46 by reverting its BODY to a superseded policy. The
+ * guard caught that only by luck: the rule had also been renamed, so the
+ * name-keyed check saw a removal. Had the name held constant — the normal case
+ * for a stale-copy clobber, which reverts text without renaming anything —
+ * checks 1, 2 and 4 would all have passed green while the law silently rolled
+ * back. The reviewer's words: "the guard does not catch the actual failure
+ * class it was built for."
+ *
+ * Check 3 is deliberately tuned to REVERSION, not to change. Honest amendment
+ * adds text; a stale-copy clobber restores older, shorter text and drops the
+ * enforcement paragraphs and "AMENDED <date>" markers that accumulated since.
+ * Blocking every body edit would be noise, and a noisy guard teaches people to
+ * reach for --no-verify — which would cost more than it saves.
+ *
+ * WHY CHECK 4 IS NOT A CLOBBER DEFENSE (same review, finding D4)
+ * -------------------------------------------------------------
+ * Mirror parity is a CONSISTENCY check and nothing more. A commit carrying a
+ * damaged CLAUDE.md together with an AGENTS.md regenerated FROM it satisfies
+ * parity by construction. It catches partial commits only. The clobber defenses
+ * are checks 1-3; check 4 is not counted among them.
+ *
+ * ESCAPE HATCH (deliberate changes are legitimate; silent ones are not):
+ *     SWAN_ALLOW_RULE_REMOVAL="46,73" git commit ...
+ * Keyed by the rule's number IN HEAD; authorizes both removal and renumber of
+ * those rules. Naming the numbers makes the change a decision, not an accident.
+ *
+ * EXIT: 0 = pass or not applicable. 1 = blocked.
+ */
+import { spawnSync } from 'node:child_process';
+
+const MIRROR_MARKER = '--- project-doc mirror from CLAUDE.md ---';
+const FILES = ['CLAUDE.md', 'AGENTS.md'];
+
+const git = (args) => {
+  const r = spawnSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  return { ok: r.status === 0, out: r.stdout ?? '', err: r.stderr ?? '' };
+};
+
+/**
+ * Rules as name -> {num, name, body, len, mandatory, amendments}, parsed from the
+ * MANDATORY Rules section only. The body is captured so check 3 can detect a
+ * reversion, which is invisible to name/number comparison.
+ */
+function parseRules(text) {
+  const start = text.indexOf('## MANDATORY Rules');
+  if (start === -1) return null; // shape changed — reported, never silently passed
+  const rest = text.slice(start);
+  const end = rest.indexOf('\n## Dual-Pass Fix/Review Discipline');
+  const section = end === -1 ? rest : rest.slice(0, end);
+
+  const lines = section.split('\n');
+  const heads = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const m = /^(\d{1,3})\. \*\*(.+?)(?:\*\*| — | -- | - )/.exec(lines[i]);
+    if (m) heads.push({ i, num: Number(m[1]), name: m[2].trim() });
+  }
+
+  const rules = new Map();
+  for (let h = 0; h < heads.length; h += 1) {
+    const { i, num, name } = heads[h];
+    const stop = h + 1 < heads.length ? heads[h + 1].i : lines.length;
+    const body = lines.slice(i, stop).join('\n').trim();
+    const key = name.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().slice(0, 48);
+    if (!key) continue;
+    rules.set(key, {
+      num,
+      name,
+      len: body.length,
+      // Reversion signatures: the enforcement word, and the amendment markers
+      // that only ever accumulate forward.
+      mandatory: /MANDATORY/.test(body),
+      amendments: (body.match(/\b(AMENDED|Established|added)\b/gi) ?? []).length,
+    });
+  }
+  return rules;
+}
+
+/** Material shrink threshold. Honest copy-edits trim a little; reversions cut paragraphs. */
+const SHRINK_TOLERANCE = 0.15;
+
+/**
+ * Fail CLOSED. Only ONE condition may fail open — a repo with no HEAD yet, where
+ * there is genuinely nothing to compare against.
+ *
+ * The first version fail-opened on any git error, reasoning that it must not
+ * block unrelated work. The reviewer called that backwards (finding D3), and was
+ * right: a guard against silent clobbers must not go silent exactly when the
+ * tooling is already misbehaving. A shallow clone, a corrupt object, or a `git`
+ * shim earlier on PATH would have waved the clobber straight through.
+ */
+function die(reason) {
+  console.error(`\n[constitution-guard] BLOCKED — cannot verify constitution integrity: ${reason}`);
+  console.error('  This check fails CLOSED. If git is genuinely unavailable here, fix that first.');
+  process.exit(1);
+}
+
+// ---- applicability -------------------------------------------------------
+const staged = git(['diff', '--cached', '--name-only']);
+if (!staged.ok) die(`could not list staged files (${staged.err.trim().slice(0, 120)})`);
+
+const touched = FILES.filter((f) => staged.out.split('\n').includes(f));
+if (touched.length === 0) {
+  console.log('[constitution-guard] no constitution file staged — SKIP');
+  process.exit(0);
+}
+if (!git(['rev-parse', 'HEAD']).ok) {
+  // The one sanctioned fail-open: nothing to compare against yet.
+  console.log('[constitution-guard] no HEAD yet (initial commit) — SKIP');
+  process.exit(0);
+}
+
+const allowed = new Set(
+  (process.env.SWAN_ALLOW_RULE_REMOVAL ?? '')
+    .split(',').map((s) => s.trim()).filter(Boolean),
+);
+const usedHatch = new Set();
+
+const blockers = [];
+let checked = 0;
+
+// ---- checks 1, 2, 3: removal, renumber, reversion ------------------------
+for (const file of touched) {
+  const head = git(['show', `HEAD:${file}`]);
+  const next = git(['show', `:${file}`]);
+  // D3: a file we cannot read is a file we cannot clear. Never skip past it.
+  if (!head.ok) die(`${file}: could not read HEAD version (${head.err.trim().slice(0, 100)})`);
+  if (!next.ok) die(`${file}: could not read staged version (${next.err.trim().slice(0, 100)})`);
+  const beforeText = file === 'AGENTS.md' ? head.out.slice(head.out.indexOf(MIRROR_MARKER)) : head.out;
+  const afterText = file === 'AGENTS.md' ? next.out.slice(next.out.indexOf(MIRROR_MARKER)) : next.out;
+
+  const before = parseRules(beforeText);
+  const after = parseRules(afterText);
+  if (!before || !after) {
+    blockers.push(`${file}: the "## MANDATORY Rules" section could not be parsed — the document shape changed. Verify by hand.`);
+    continue;
+  }
+  checked++;
+
+  const removed = [];
+  const renumbered = [];
+  const reverted = [];
+  for (const [key, was] of before) {
+    const now = after.get(key);
+    // Decide whether this rule is VIOLATING first, and only then consult the
+    // hatch. The obvious order — check the allowlist up front and `continue` —
+    // marks every allowlisted number as "used" even when that rule never
+    // changed, which makes the stale-override warning below unreachable and
+    // prints "OVERRIDE ACTIVE" for rules nobody touched. Caught by its own test.
+    let violation = null;
+    if (!now) {
+      violation = () => removed.push(was);
+    } else if (now.num !== was.num) {
+      violation = () => renumbered.push({ was, now });
+    } else {
+      // Check 3 — body reversion. Tuned to the signatures of restoring OLDER
+      // text, not to change in general, so honest amendment stays quiet.
+      const why = [];
+      const shrink = (was.len - now.len) / Math.max(was.len, 1);
+      if (shrink > SHRINK_TOLERANCE) why.push(`body shrank ${Math.round(shrink * 100)}% (${was.len} -> ${now.len} chars)`);
+      if (was.mandatory && !now.mandatory) why.push('dropped the "MANDATORY" token');
+      if (now.amendments < was.amendments) why.push(`lost ${was.amendments - now.amendments} amendment marker(s)`);
+      if (why.length) violation = () => reverted.push({ was, why });
+    }
+    if (!violation) continue;
+
+    // The allowlist is keyed by the rule's number IN HEAD and authorizes every
+    // intentional change to that rule: removal, renumber, or body reversion.
+    // An unblockable check is a check people learn to bypass wholesale, so
+    // legitimate changes need a sanctioned way through — Proof-Before-Done
+    // genuinely moved 73 -> 74 during this very repair.
+    if (allowed.has(String(was.num))) { usedHatch.add(String(was.num)); continue; }
+    violation();
+  }
+
+  console.log(`[constitution-guard] ${file}: ${before.size} rules in HEAD -> ${after.size} staged; ${removed.length} removed, ${renumbered.length} renumbered, ${reverted.length} reverted`);
+
+  for (const r of removed) blockers.push(`${file}: rule ${r.num} "${r.name.slice(0, 70)}" exists in HEAD and is GONE from the staged file.`);
+  for (const { was, now } of renumbered) blockers.push(`${file}: "${was.name.slice(0, 60)}" renumbered ${was.num} -> ${now.num}. Every "Rule ${was.num}" citation in the repo now points elsewhere.`);
+  for (const { was, why } of reverted) blockers.push(`${file}: rule ${was.num} "${was.name.slice(0, 55)}" looks REVERTED, not edited — ${why.join('; ')}. This is the stale-copy signature: older text restored over newer law.`);
+}
+
+// ---- check 4: mirror parity (consistency only — NOT a clobber defense) ----
+const cRes = git(['show', ':CLAUDE.md']);
+const aRes = git(['show', ':AGENTS.md']);
+if (cRes.ok && aRes.ok) {
+  const mi = aRes.out.indexOf(MIRROR_MARKER);
+  if (mi === -1) {
+    blockers.push('AGENTS.md: mirror marker missing — the Codex adapter header boundary is gone.');
+  } else {
+    const body = aRes.out.slice(mi + MIRROR_MARKER.length).replace(/^(?:\r?\n)+/, '');
+    const parity = body === cRes.out;
+    console.log(`[constitution-guard] mirror parity: ${parity ? 'IN SYNC' : 'DRIFTED'}`);
+    if (!parity) blockers.push('AGENTS.md body != CLAUDE.md. Codex and Claude would read different law. Fix: node scripts/sync-agents-mirror.mjs');
+  }
+} else if (touched.length === 1) {
+  console.log(`[constitution-guard] only ${touched[0]} staged; mirror parity checked against the index copy of the other file`);
+}
+
+// ---- verdict -------------------------------------------------------------
+// D2: the hatch is a standing credential if it is left set in a shell profile or
+// CI env. It cannot be un-invented, so make its use LOUD and its staleness visible.
+if (usedHatch.size) {
+  console.warn(`[constitution-guard] ⚠ OVERRIDE ACTIVE — rule change(s) ${[...usedHatch].sort().join(', ')} were waved through by SWAN_ALLOW_RULE_REMOVAL.`);
+  console.warn('[constitution-guard] ⚠ This authorizes ONLY those numbers. If you did not mean to set it, unset it — it is not scoped to one commit.');
+}
+const unused = [...allowed].filter((n) => !usedHatch.has(n));
+if (unused.length) {
+  console.warn(`[constitution-guard] ⚠ SWAN_ALLOW_RULE_REMOVAL names ${unused.join(', ')}, which changed nothing here — a stale override left set from an earlier commit.`);
+}
+
+if (blockers.length === 0) {
+  console.log(`[constitution-guard] PASS (${checked} file(s) rule-checked)`);
+  process.exit(0);
+}
+
+console.error('\n' + '━'.repeat(60));
+console.error('COMMIT BLOCKED: constitution integrity');
+console.error('━'.repeat(60));
+for (const b of blockers) console.error(`  • ${b}`);
+console.error(`
+This is the 10a3e7fa1 failure class: a whole-file rewrite from a stale copy
+keeps its intended edits and silently reverts everything that landed since.
+
+If the removal is DELIBERATE, name the rule numbers so it is a decision:
+    SWAN_ALLOW_RULE_REMOVAL="46,73" git commit ...
+
+If it is NOT deliberate, you are about to delete law that another agent is
+still operating under. Re-apply your edit onto the CURRENT file instead.
+`);
+process.exit(1);

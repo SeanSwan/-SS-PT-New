@@ -9,7 +9,7 @@
  *   node scripts/ai-workflow/validate-skill-registry.mjs
  *   node scripts/ai-workflow/validate-skill-registry.mjs --json
  */
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -97,6 +97,51 @@ function inspectRoot(relativeRoot) {
   return { root: relativeRoot, entries, errors };
 }
 
+/**
+ * Set-equality between installed skills and the skills CLAUDE.md actually names.
+ *
+ * WHY: on 2026-08-14 the routing table advertised 23 skills while 42 were
+ * installed — 43% invisible, including the very skills that prevent stale-copy
+ * clobbers. It also routed to two skills that no longer existed under those
+ * names. The table IS the router: a skill absent from it is a skill the agent
+ * never reaches. This is the mechanism behind "my skills don't fire."
+ *
+ * Existence validation (the rest of this file) passed the whole time, because
+ * existence is not advertisement. Prose is deliberately ignored — only the
+ * NAME set is compared, so descriptions stay hand-written and useful.
+ */
+export function buildAdvertisingReport() {
+  const errors = [];
+  const constitution = resolve(repoRoot, 'CLAUDE.md');
+  if (!existsSync(constitution)) return { errors: ['CLAUDE.md not found — cannot verify skill advertising'], undocumented: [], phantom: [] };
+  const text = readFileSync(constitution, 'utf8');
+
+  // Default-exposed skills are what MUST be advertised.
+  const installed = inspectRoot(roots[0]).entries.map((e) => e.name);
+  // But a routing target is only phantom if it exists in NEITHER root:
+  // `.agents/skills` legitimately holds reference libraries the router loads
+  // on demand (seedance-loop-prompt, frontend-design, ui-ux-pro-max). Comparing
+  // against `.claude/skills` alone flags those as missing when they are fine.
+  const installedSet = new Set([
+    ...installed,
+    ...inspectRoot(roots[1]).entries.map((e) => e.name),
+  ]);
+  // A skill is advertised if it appears as `name` in a table/prose reference.
+  const advertised = new Set(
+    [...text.matchAll(/`([a-z0-9][a-z0-9-]{2,})`/g)].map((m) => m[1]),
+  );
+
+  const undocumented = installed.filter((n) => !advertised.has(n)).sort();
+  const phantom = [...advertised]
+    .filter((n) => /^(seedance|swan|hermes|grill|closeout|canonical|repo-hygiene|prompt-watcher|attack|copy-tournament|skill-harvest|chromie|fable|dead-file|cross-env|test-delta|stale-check|agent-lane|lesson-recall|design-dialogue|linear-todo|cost-guard|goal-contract|guided-setup|worktree-isolation|wayfinder|create-with-context)/.test(n))
+    .filter((n) => !installedSet.has(n) && !n.endsWith('.md') && !n.endsWith('.mjs'))
+    .sort();
+
+  for (const n of undocumented) errors.push(`skill "${n}" is installed but never named in CLAUDE.md — it is invisible to routing`);
+  for (const n of phantom) errors.push(`CLAUDE.md routes to "${n}", which is not installed in .claude/skills/`);
+  return { errors, undocumented, phantom };
+}
+
 export function buildSkillRegistryReport() {
   const inventory = roots.map(inspectRoot);
   const errors = inventory.flatMap((item) => item.errors);
@@ -121,16 +166,24 @@ export function buildSkillRegistryReport() {
 
 function main() {
   const report = buildSkillRegistryReport();
-  if (process.argv.includes('--json')) console.log(JSON.stringify(report, null, 2));
+  // --check adds the advertising set-equality gate. Kept opt-in so the existing
+  // entrypoint validation keeps its current contract for callers that rely on it.
+  const ads = process.argv.includes('--check') ? buildAdvertisingReport() : { errors: [], undocumented: [], phantom: [] };
+  if (process.argv.includes('--json')) console.log(JSON.stringify({ ...report, advertising: ads }, null, 2));
   else {
     for (const [root, entries] of Object.entries(report.roots)) console.log(`${root}: ${entries.length} valid skill entrypoints`);
     console.log(`shared names: ${report.shared.length}`);
-    if (report.errors.length) {
+    if (process.argv.includes('--check')) {
+      console.log(`advertising: ${ads.undocumented.length} installed-but-undocumented, ${ads.phantom.length} documented-but-missing`);
+    }
+    const all = [...report.errors, ...ads.errors];
+    if (all.length) {
       console.error('Skill registry validation failed:');
-      for (const error of report.errors) console.error(`- ${error}`);
+      for (const error of all) console.error(`- ${error}`);
+      if (ads.errors.length) console.error('\nThe routing table IS the router — an unadvertised skill never fires. Add it to CLAUDE.md, then re-run.');
     } else console.log('OK: skill registry entrypoints and frontmatter are valid.');
   }
-  process.exitCode = report.errors.length ? 1 : 0;
+  process.exitCode = report.errors.length + ads.errors.length ? 1 : 0;
 }
 
 if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url) main();
