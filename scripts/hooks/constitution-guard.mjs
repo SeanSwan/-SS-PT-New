@@ -203,9 +203,13 @@ const YEARISH = /^\d{4}(-\d{2})*$/;
  * the inversion sailed through — its own regression test caught that. Only polarity
  * is compared now.
  */
+// `required` sits in POLARITY, not STRENGTH, on purpose (Kimi round 4, item 2):
+// "X is required" -> "X is recommended" is a downgrade expressed with no modal verb
+// at all, so a strength-only classification would never see it. Treated as polarity,
+// the governed word loses its polarity entirely and the deletion branch below fires.
 const POLARITY = new Set(['never', 'always', 'not', 'cannot', 'no', 'avoid', 'refuse',
-  'forbidden', 'prohibited', 'banned', 'only', 'except']);
-const STRENGTH = new Set(['must', 'shall', 'may', 'required', 'should']);
+  'forbidden', 'prohibited', 'banned', 'only', 'except', 'required']);
+const STRENGTH = new Set(['must', 'shall', 'may', 'should']);
 const MODALS = new Set([...POLARITY, ...STRENGTH]);
 
 /**
@@ -245,10 +249,27 @@ function modalInversions(oldBody, newBody) {
     return out;
   };
   const A = pairs(oldBody); const B = pairs(newBody);
+  // Every content word still present in the new body, so "the clause was deleted"
+  // can be told apart from "the clause survived but lost its negation".
+  const newWords = new Set(newBody.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean));
+
   const flipped = [];
   for (const [word, oldModals] of A) {
     const newModals = B.get(word);
-    if (!newModals) continue;                       // subject dropped — not an inversion
+    if (!newModals) {
+      // Kimi round 4, F1. The first version did `continue` here, treating "no
+      // polarity after" as "not an inversion". That let the MOST dangerous edit
+      // through: drop the negating token and keep everything else, and a MANDATORY
+      // prohibition silently becomes a permission — "never commit credentials"
+      // becomes "commit credentials". Absence IS a polarity value.
+      // A word that vanished entirely is a clause deletion, which the per-rule and
+      // aggregate shrink checks already own; only survival-without-polarity is this
+      // check's business.
+      if (newWords.has(word)) {
+        flipped.push(`"${word}" was governed by ${[...oldModals].join('/')} and is now governed by NOTHING — the negation was dropped while the subject survived, which turns a prohibition into a permission`);
+      }
+      continue;
+    }
     const shared = [...oldModals].some((m) => newModals.has(m));
     if (!shared) flipped.push(`"${word}" was governed by ${[...oldModals].join('/')} and is now governed by ${[...newModals].join('/')}`);
   }
