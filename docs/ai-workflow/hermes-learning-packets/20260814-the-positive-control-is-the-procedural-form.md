@@ -29,15 +29,22 @@ skills_touched:
 
 # The positive control is the procedural form
 
-> **Where this corpus actually lives — check before citing it.** This packet, its two siblings
-> below, `_schema.json`, and `scripts/hermes-learning-validate.mjs` are committed on
-> **`wip/comms-notifications-2026-07-05`** (pushed). They are **absent from `origin/main`** and
-> absent from the feature branch the work in this packet was done on
-> (`claude/qa-harness-slice0-20260811`), which is ~49 commits behind main. Rule 68 calls this
-> corpus durable and machine-independent, and it is — but only for a reader who checks out that
-> branch. From `main`, the corpus does not exist. Verified 2026-08-14 with
-> `git cat-file -e origin/main:<path>` on all four files. Worth reconciling; flagged, not fixed
-> here, because moving the corpus is a Sean-level call, not a side effect of a security slice.
+> **CORRECTION (same day, after this packet first shipped): most of this corpus is not on any
+> remote.** The first version of this note said the packets were "committed on
+> `wip/comms-notifications-2026-07-05` (pushed)". The branch is pushed; **these commits are not.**
+> Re-measured per file against the remote tip rather than against the branch name:
+> **18 of 26 packets exist ONLY on this machine**, including this one, both siblings it cites,
+> and the commit that landed the 16-packet corpus (`b57d21d76`). `_schema.json` IS on the remote;
+> the validator and the recent packets are not. All of it is absent from `origin/main` and from
+> the feature branch this work was done on (`claude/qa-harness-slice0-20260811`, ~49 behind).
+> Verified with `git cat-file -e origin/wip/…:<path>` per file, with `CLAUDE.md` as a positive
+> control proving the probe resolves. Rule 68 calls this corpus durable and machine-independent;
+> **today a disk failure takes 69% of it.** Flagged, not fixed — pushing is Sean's call.
+>
+> The error is in scope for this packet rather than an aside: I checked that the *branch* was
+> pushed and reported that the *files* were. A branch name is not a file's location. That is the
+> same substitution the packet is about — asking an instrument an easier question than the one
+> whose answer I published.
 
 ## The one-line lesson
 
