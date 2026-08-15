@@ -68,6 +68,20 @@ const markAccountUnhealthy = async (accountId, reason) => {
   }
 };
 
+/**
+ * Record why a publish failed WITHOUT touching the connection's status. The
+ * account stays usable — the next attempt may well work — but the operator can
+ * still see that something is repeatedly going wrong.
+ */
+const noteAccountError = async (accountId, reason) => {
+  try {
+    const row = await AccountModel.findByPk(accountId);
+    if (row) await row.update({ lastError: reason });
+  } catch {
+    // Same rule as above: bookkeeping never rewrites a publish outcome.
+  }
+};
+
 const publishToAccounts = async ({ content, accountIds, mediaUrl, jobId = null }) => {
   const accounts = await loadAccounts(accountIds);
   const results = [];
@@ -139,10 +153,22 @@ const publishToAccounts = async ({ content, accountIds, mediaUrl, jobId = null }
     } catch (err) {
       await recordAttempt({ jobId, accountId: account.id, provider: account.provider, status: 'failed', error: err.message });
       results.push({ provider: account.provider, accountId: account.id, status: 'failed', error: err.message });
-      // `reconnectRequired` is set when a refresh was tried and failed, which
-      // is conclusive: the stored credential cannot be recovered.
-      if (err.reconnectRequired || AUTH_FAILURE.test(err.message || '')) {
+      // Whoever attempted the refresh has already ruled on whether the grant is
+      // dead, so their verdict is FINAL here. Re-testing the message was a
+      // second, disagreeing decision: the transient path embeds the provider's
+      // original words, and AUTH_FAILURE carries one term GRANT_IS_DEAD does
+      // not ('authentication'), so a proxy saying "Authentication Required"
+      // demoted the account down the very path whose recorded message reads
+      // "the connection was left untouched" — a history that lied about what
+      // happened. The regex now applies ONLY when no refresh was attempted and
+      // nothing has ruled.
+      if (err.reconnectRequired === true
+        || (err.reconnectRequired === undefined && AUTH_FAILURE.test(err.message || ''))) {
         await markAccountUnhealthy(account.id, err.message);
+      } else if (err.reconnectRequired === false) {
+        // Not demoting must not mean leaving no trace, or a grant that only ever
+        // fails this way fails every post in silence.
+        await noteAccountError(account.id, err.message);
       }
     }
   }

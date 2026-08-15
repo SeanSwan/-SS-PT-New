@@ -130,13 +130,32 @@ const retryJob = async (jobId, { userId, now = new Date() } = {}) => {
     ? 'published'
     : failures.length === merged.length ? 'failed' : 'partial_failed';
 
-  await JobModel.update({
+  const [closed] = await JobModel.update({
     status,
     platformResults: merged,
     publishedAt: status === 'published' ? now : null,
     failedAt: status !== 'published' ? now : null,
     failureReason: merged.find(item => item.error)?.error || null,
   }, { where: { id: job.id, status: 'running' } });
+
+  // Losing this write matters MORE here than anywhere else. The person pressing
+  // Retry is a human recovering from a failure: hand them an unqualified
+  // 'published' while the stored record says failed, and their obvious next
+  // move — publish again — is a duplicate post to a live account. So report the
+  // verdict that was actually RECORDED, not the one held in memory, and say
+  // plainly that the two disagree.
+  if (!closed) {
+    const current = getPlain(await JobModel.findByPk(job.id));
+    return {
+      status: current?.status || 'unknown',
+      results: current?.platformResults || merged,
+      jobId: String(job.id),
+      retried: pending,
+      recordedVerdictDiverged: true,
+      attemptedStatus: status,
+      attemptedResults: merged,
+    };
+  }
 
   return { status, results: merged, jobId: String(job.id), retried: pending };
 };

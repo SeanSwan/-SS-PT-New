@@ -101,9 +101,25 @@ export function createSocialImmediatePublish({
     // if the reaper closed this row first the caller would be handed 'published'
     // while the history says otherwise — and this is the path with a human
     // waiting on the answer.
+    //
+    // Detecting the divergence and then still returning the in-memory status was
+    // only half a fix: any UI keyed on `status === 'published'` renders success
+    // while getHistory — the durable record the user will act on — says failed.
+    // So the RECORDED verdict is what goes back, with the attempted one kept
+    // alongside it for forensics.
     if (!closed) {
       logger.warn(`[social-publish] job ${job.id} finished as ${result.status} but another writer had already closed it`);
-      return { ...result, jobId: String(job.id), recordedVerdictDiverged: true };
+      const current = await JobModel.findByPk(job.id);
+      const recorded = current?.get ? current.get({ plain: true }) : current;
+      return {
+        ...result,
+        status: recorded?.status || 'unknown',
+        results: recorded?.platformResults || result.results,
+        jobId: String(job.id),
+        recordedVerdictDiverged: true,
+        attemptedStatus: result.status,
+        attemptedResults: result.results,
+      };
     }
 
     return { ...result, jobId: String(job.id) };

@@ -55,12 +55,21 @@ export const canRefresh = (err, adapter, credentials) => AUTH_FAILURE.test(err?.
   && Boolean(credentials?.refreshJwt);
 
 /**
- * A refresh failure is only proof the account is dead when the PROVIDER says the
- * grant is dead. A dropped socket, a DNS blip or a 5xx says nothing about the
- * token — demoting on those makes Sean reconnect a working account, and blocks
- * every later publish for it until he does.
+ * A refresh failure is only proof the account is dead when the PROVIDER names
+ * the GRANT.
+ *
+ * This deliberately does NOT include bare 401/403/'unauthorized'/'authentication'.
+ * A PDS behind nginx or Cloudflare emits exactly those during a restart, a
+ * misconfiguration or a WAF event, and in those cases the request never reached
+ * the token endpoint at all — it says nothing about the token. Demotion blocks
+ * every later publish for the account until a human reconnects it, so a false
+ * positive here costs far more than a false negative.
+ *
+ * The trade is explicit: a genuinely dead grant reported ONLY as a bare 401 will
+ * not demote. It fails its posts and records lastError instead of failing them
+ * silently — the recoverable direction to be wrong in.
  */
-const GRANT_IS_DEAD = /invalid_?grant|expired ?token|invalid_?token|unauthorized|\b401\b|\b403\b|already been used/i;
+const GRANT_IS_DEAD = /invalid_?grant|expired ?token|invalid_?token|already been used|revoked/i;
 
 /** How long to wait for a provider refresh before treating it as unreachable. */
 export const DEFAULT_REFRESH_TIMEOUT_MS = 30 * 1000;
@@ -129,19 +138,42 @@ export function createCredentialRefresher({
       return err;
     };
 
-    let session;
+    // Bounded on purpose: the provider layer has no AbortSignal, so a hung
+    // socket would otherwise leave this pending forever — and single-flight
+    // hands the SAME promise to every later caller, so one hung refresh wedged
+    // the account for the life of the process.
+    //
+    // But giving up on the WAIT must not mean discarding the RESULT. The
+    // rotation is chained onto the underlying call, not onto the race, so a
+    // refresh that lands after the timeout still persists. Without that, a
+    // merely-slow PDS was fatal: the refresh consumes the single-use token at
+    // the provider, the replacement pair is dropped on the floor, the stored
+    // credential is now dead, and the re-read guard cannot help because the row
+    // never changed — a healthy account demoted with no copy of the live
+    // credential anywhere in the system. Timing out is recoverable; losing the
+    // rotation is not.
+    const rotation = adapter.refreshSession({
+      refreshJwt: credentials.refreshJwt,
+      serviceUrl: credentials.serviceUrl,
+    }).then(async (session) => {
+      if (!session?.accessJwt) throw reconnect('refresh returned no access token');
+      // Merge field-by-field rather than spreading the whole session: a provider
+      // that omits an optional field (handle, did) would otherwise overwrite a
+      // good stored value with undefined.
+      const merged = { ...credentials };
+      for (const field of ['accessJwt', 'refreshJwt', 'serviceUrl', 'did', 'handle']) {
+        if (session[field]) merged[field] = session[field];
+      }
+      await persistCredentials(account.id, merged);
+      return merged;
+    });
+    // A rotation nobody is waiting for must not surface as an unhandled
+    // rejection when it eventually fails.
+    rotation.catch(() => {});
+
     try {
-      // Bounded on purpose. The provider layer has no AbortSignal, so a hung
-      // socket used to leave this promise pending forever — and because the
-      // single-flight map hands the SAME promise to every later caller, one hung
-      // refresh wedged the account for the lifetime of the process. That is
-      // worse than the racing it replaced, so the timeout is what makes
-      // single-flight safe rather than merely correct.
-      session = await withTimeout(
-        adapter.refreshSession({
-          refreshJwt: credentials.refreshJwt,
-          serviceUrl: credentials.serviceUrl,
-        }),
+      return await withTimeout(
+        rotation,
         refreshTimeoutMs,
         `${account.provider} session refresh did not respond within ${refreshTimeoutMs}ms`,
       );
@@ -170,20 +202,6 @@ export function createCredentialRefresher({
       }
       throw reconnect(err.message);
     }
-    if (!session?.accessJwt) throw reconnect('refresh returned no access token');
-
-    // Merge field-by-field rather than spreading the whole session: a provider
-    // that omits an optional field (handle, did) would otherwise overwrite a
-    // good stored value with undefined. The rotated refreshJwt is the one that
-    // matters — AT Protocol issues a NEW one, and keeping the old leaves the
-    // account unable to refresh at the next expiry.
-    const rotated = { ...credentials };
-    for (const field of ['accessJwt', 'refreshJwt', 'serviceUrl', 'did', 'handle']) {
-      if (session[field]) rotated[field] = session[field];
-    }
-
-    await persistCredentials(account.id, rotated);
-    return rotated;
   };
 
   /**
