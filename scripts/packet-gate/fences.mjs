@@ -63,3 +63,18 @@ export function parseFences(markdown) {
 
   return blocks.map((b) => ({ ...b, body: b.body.join('\n'), cited: typeof b.attrs.path === 'string' }));
 }
+
+/**
+ * Unverified content = ANY fence that is not cited. Language is irrelevant, and that is the whole
+ * point of this function existing.
+ *
+ * The first version of the anchor-free guard filtered on `b.lang && !/^(text|json|yaml|…)$/`, which
+ * meant a BARE fence (no info string at all → falsy `lang`) counted as nothing. Round 1 closed
+ * "anchor-free remit + ```js fake code" and reopened the identical bypass with one FEWER keystroke:
+ * ``` with no language. Both paid reviewers found it independently, and the approval view cheerfully
+ * printed "no code fences present" over a packet full of hand-typed code.
+ *
+ * A single predicate, used by every caller, so the two copies cannot drift apart again — the
+ * duplication was itself flagged as a defect waiting to happen, and it was right.
+ */
+export const isUnverifiedFence = (b) => !b.cited;

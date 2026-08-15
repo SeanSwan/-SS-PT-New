@@ -22,6 +22,8 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary } from './checks.mjs';
+import { gateSourceHash } from './source-hash.mjs';
+import { isUnverifiedFence } from './fences.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const OUT_DIR = path.join(ROOT, 'out', 'packet-gate');
@@ -32,6 +34,8 @@ const FAKE_SRC = ['export function alpha() {', '  return 1;', '}', ''].join('\n'
 const fakeReader = (p) => (p === FAKE_FILE ? FAKE_SRC : null);
 
 const fence = (attrs, body) => ['```js ' + attrs, body, '```'].join('\n');
+/** A cited fence whose language is prose — used to prove R4 is not satisfied by a description. */
+const fenceMd = (attrs, body) => ['```md ' + attrs, body, '```'].join('\n');
 
 const cases = [];
 const red = (name, code, run) => cases.push({ name, expect: code, run });
@@ -134,6 +138,89 @@ red('R15 stale canary record blocks', 'R15', () =>
 green('R15 fresh green canary record passes', () =>
   checkCanary({ ranAt: new Date().toISOString(), total: 10, green: 10, red: 0 }));
 
+// --- Kimi K3 + HY3 hostile-review findings, 2026-08-14 -------------------------------------------
+// Every canary below pins a defect that was LIVE in the first build and shipped all-green. They are
+// the reason "26 canaries passed" was not the same as "the gate works".
+
+// S2 / HY3-S3 — gate 0 was the easiest check in the system to fake.
+red('R15 malformed record ({ranAt} only) is blocked', 'R15', () => checkCanary({ ranAt: new Date().toISOString() }));
+red('R15 zero-canary record {0,0,0} is blocked', 'R15', () =>
+  checkCanary({ ranAt: new Date().toISOString(), total: 0, green: 0, red: 0 }));
+red('R15 future-dated record is blocked (it would never expire)', 'R15', () =>
+  checkCanary({ ranAt: new Date(Date.now() + 400 * 86_400_000).toISOString(), total: 5, green: 5, red: 0 }));
+red('R15 record certifying a DIFFERENT gate source is blocked', 'R15', () =>
+  checkCanary({ ranAt: new Date().toISOString(), total: 5, green: 5, red: 0, sourceHash: 'deadbeef' }, { sourceHash: 'cafe1234' }));
+
+// S4 — the one check whose purpose is "a description of code is not code", cleared by a description.
+red('R4 cited PROSE block does not satisfy the artifact requirement', 'R4', () =>
+  checkArtifact(true, parseFences(fenceMd('path=docs/notes.md lines=1-2', 'some prose'))));
+green('R4 cited CODE block does satisfy it', () =>
+  checkArtifact(true, parseFences(fence('path=backend/x.mjs lines=1-2', 'const a = 1;'))));
+
+// S6.3 / S7 — unusable cited paths were an uncaught EISDIR stack trace, and a read outside the repo.
+const mustNotRead = () => { throw new Error('reader must not be called for an unusable path'); };
+red('R3 empty cited path is refused, never read', 'R3', () =>
+  checkProvenance(parseFences(fence('path="" lines=1-1', 'x')), mustNotRead));
+red('R3 traversal path is refused before any read', 'R3', () =>
+  checkProvenance(parseFences(fence('path=../../.env lines=1-1', 'x')), mustNotRead));
+red('R3 unreadable file is a refusal, not an exception', 'R3', () =>
+  checkProvenance(parseFences(fence('path=backend/somedir lines=1-1', 'x')), () => {
+    const e = new Error('EISDIR'); e.code = 'EISDIR'; throw e;
+  }));
+
+// S6.4 / HY3-S1 — fence content could hijack remit extraction.
+green('a remit: line inside a fence does not hijack extraction', () =>
+  eq(remitFromDoc(['```yaml', 'remit: sample inside a fence', '```', '', '## Remit', 'the real remit'].join('\n')),
+    'the real remit', 'remit'));
+green('a "## Remit" heading inside a fence is ignored', () =>
+  eq(remitFromDoc(['```md', '## Remit', 'fence content', '```', '', 'remit: the real one'].join('\n')),
+    'the real one', 'remit'));
+
+// Dogfooding the packet BUILDER against the gate: a file whose cited range ends on a trailing
+// blank line could never match, because only the packet side was normalized. R3 refused a byte-exact
+// extraction it had just produced — a false refusal on the tool built to prevent false authorship.
+green('R3 a file ending in a blank line can be cited in full', () => {
+  const NL = String.fromCharCode(10);
+  const src = ['const a = 1;', '', ''].join(NL); // normalizes to ['const a = 1;', '']
+  const body = ['const a = 1;', ''].join(NL);
+  return checkProvenance(parseFences(fence('path=x.mjs lines=1-2', body)), () => src);
+});
+
+// --- Round 2 findings, 2026-08-15 ----------------------------------------------------------------
+// Round 1's fix for the anchor-free bypass depended on a filter requiring `b.lang`. A BARE fence
+// has falsy lang, so the identical bypass reopened with one fewer keystroke, and the approval view
+// printed "no code fences present" over hand-typed code. Both reviewers found it independently.
+
+green('a BARE fence (no info string) counts as unverified content', () => {
+  const [b] = parseFences(['```', 'const fabricated = 1;', '```'].join('\n'));
+  if (!isUnverifiedFence(b)) throw new Error('a bare uncited fence must count as unverified');
+  return [];
+});
+green('a json/yaml fence counts as unverified content', () => {
+  const [b] = parseFences(['```json', '{"fabricated": true}', '```'].join('\n'));
+  if (!isUnverifiedFence(b)) throw new Error('language must not exempt a fence from being unverified');
+  return [];
+});
+green('a CITED fence is not unverified', () => {
+  const [b] = parseFences(fence('path=x.mjs lines=1-1', 'x'));
+  if (isUnverifiedFence(b)) throw new Error('a cited block is byte-verified by R3');
+  return [];
+});
+
+// R4 was satisfied by ONE cited block anywhere — cite a real irrelevant file, then hand-type fences
+// purporting to be the file under review. The decoy lends the fabrication credibility.
+red('R4 refuses when no cited block quotes a path the remit names', 'R4', () =>
+  checkArtifact(true, parseFences(fence('path=backend/util/clamp.mjs lines=1-1', 'x')), ['backend/auth/login.mjs']));
+green('R4 passes when a cited block quotes a named path', () =>
+  checkArtifact(true, parseFences(fence('path=backend/auth/login.mjs lines=1-1', 'x')), ['backend/auth/login.mjs']));
+green('R4 unaffected when the remit names no paths (routes/symbols only)', () =>
+  checkArtifact(true, parseFences(fence('path=backend/x.mjs lines=1-1', 'x')), []));
+
+// A falsy source hash silently turned the record-to-code binding OFF — reintroducing the spoofable
+// canary the binding existed to kill, with no alarm.
+red('R15 refuses when the gate source hash cannot be computed', 'R15', () =>
+  checkCanary({ ranAt: new Date().toISOString(), total: 5, green: 5, red: 0, sourceHash: 'abc' }, { sourceHash: '' }));
+
 // ---------------------------------------------------------------------------------------------
 
 const results = cases.map((c) => {
@@ -157,7 +244,9 @@ console.log(`\n${greenCount}/${results.length} canaries green, ${redCount} red`)
 
 mkdirSync(OUT_DIR, { recursive: true });
 writeFileSync(path.join(OUT_DIR, 'selftest.json'), JSON.stringify({
-  ranAt: new Date().toISOString(), total: results.length, green: greenCount, red: redCount, cases: results,
+  ranAt: new Date().toISOString(), total: results.length, green: greenCount, red: redCount,
+  // Binds this run to the gate code it certified — R15 refuses a record whose source has moved.
+  sourceHash: gateSourceHash(), cases: results,
 }, null, 2));
 console.log(`wrote ${path.relative(ROOT, path.join(OUT_DIR, 'selftest.json'))}`);
 

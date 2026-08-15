@@ -25,15 +25,11 @@
  * @module packet-gate/checks
  */
 
-/** Stable codes so refusals are greppable in logs and git history. */
-export const REFUSALS = {
-  R1: 'oversize',
-  R3: 'provenance',
-  R4: 'no-artifact',
-  R5: 'phantom-premise',
-  R6: 'hygiene',
-  R15: 'canary',
-};
+// One source of truth for the codes — ./refusal.mjs — so checks.mjs and canary.mjs cannot drift
+// into two vocabularies. Re-exported here because callers import the gate's vocabulary from checks.
+import { REFUSALS } from './refusal.mjs';
+
+export { REFUSALS };
 
 /** A finding is one refusal reason plus the operator's next action. A refusal with no next
  *  action is a bug in this gate, not the operator's problem (blueprint §5 item 2). */
@@ -51,14 +47,31 @@ const finding = (code, detail, remedy) => ({ code, label: REFUSALS[code], detail
  */
 export function remitFromDoc(md) {
   const lines = String(md).split('\n');
-  const i = lines.findIndex((l) => /^#{2,}\s*remit\s*$/i.test(l.trim()));
-  if (i !== -1) {
-    const rest = lines.slice(i + 1);
-    const stop = rest.findIndex((l) => /^#{1,6}\s/.test(l));
-    return (stop === -1 ? rest : rest.slice(0, stop)).join('\n').trim();
+
+  // FENCE-AWARE. A `## Remit` heading or a `remit:` line INSIDE a code fence is sample content,
+  // not the packet's question. Without this, a packet that merely documents a remit (a YAML sample,
+  // a quoted example) hijacks extraction and the gate evaluates text the model was never asked.
+  const outside = [];
+  let fence = null;
+  for (const line of lines) {
+    const m = /^[ \t]*(`{3,}|~{3,})(.*)$/.exec(line);
+    if (m) {
+      if (!fence) fence = m[1];
+      else if (m[1][0] === fence[0] && m[1].length >= fence.length && m[2].trim() === '') fence = null;
+      outside.push(null);
+      continue;
+    }
+    outside.push(fence ? null : line);
   }
-  const fm = /^remit:\s*(.+)$/im.exec(md);
-  return fm ? fm[1].trim() : '';
+
+  const i = outside.findIndex((l) => l !== null && /^#{2,}\s*remit\s*$/i.test(l.trim()));
+  if (i !== -1) {
+    const rest = outside.slice(i + 1);
+    const stop = rest.findIndex((l) => l !== null && /^#{1,6}\s/.test(l));
+    return (stop === -1 ? rest : rest.slice(0, stop)).filter((l) => l !== null).join('\n').trim();
+  }
+  const fm = outside.find((l) => l !== null && /^remit:\s*.+$/i.test(l));
+  return fm ? /^remit:\s*(.+)$/i.exec(fm)[1].trim() : '';
 }
 
 // Fence parsing lives in ./fences.mjs (rule 4: 300-line cap). Re-exported so callers have one
@@ -94,10 +107,37 @@ function parseRange(spec) {
  * @param {object[]} blocks   from parseFences
  * @param {(p:string)=>string|null} readFile  injected reader; null => file absent
  */
+/** Reject a cited path before it is ever read. `path=""` resolved to the repo ROOT and threw an
+ *  uncaught EISDIR — a stack trace instead of a refusal, which is the least diagnosable failure a
+ *  gate can produce. `path=../../.env` escaped the repo entirely and would have been read and
+ *  diffed. Both found by Kimi K3, 2026-08-14. Lexical check, so it stays pure. */
+function badPath(p) {
+  if (typeof p !== 'string' || p.trim() === '') return 'empty path';
+  const norm = p.replaceAll('\\', '/');
+  if (/^([A-Za-z]:)?\//.test(norm)) return 'absolute path';
+  if (norm.split('/').includes('..')) return 'path escapes the repo (..)';
+  return null;
+}
+
 export function checkProvenance(blocks, readFile) {
   const out = [];
   for (const b of blocks.filter((x) => x.cited)) {
-    const src = readFile(b.attrs.path);
+    const bad = badPath(b.attrs.path);
+    if (bad) {
+      out.push(finding('R3', `block at line ${b.start} cites an unusable path (${bad}): ${JSON.stringify(b.attrs.path)}`,
+        'cite a repo-relative path inside the repository'));
+      continue;
+    }
+    // The injected reader touches the filesystem and can throw (EISDIR on a directory, EACCES,
+    // a FIFO). An I/O error is a refusal with a reason, never an uncaught stack trace.
+    let src;
+    try {
+      src = readFile(b.attrs.path);
+    } catch (err) {
+      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} — cannot read it (${err.code ?? err.message})`,
+        'cite a readable file; the packet claims provenance the gate cannot verify'));
+      continue;
+    }
     if (src == null) {
       out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} — file not found in repo`,
         `correct the path, or drop the block: the packet claims provenance it cannot prove`));
@@ -115,7 +155,12 @@ export function checkProvenance(blocks, readFile) {
         `re-extract at the current commit — the anchor is stale`));
       continue;
     }
-    const expected = all.slice(range.start - 1, range.end).join('\n');
+    // Normalize BOTH sides identically. Normalizing only the packet body made the comparison
+    // asymmetric: a file whose cited range ends on a trailing blank line produced an `expected`
+    // ending in "\n" that the body — which markdown fences cannot represent — could never match, so
+    // R3 refused every full-file citation of such a file. Found by running the packet BUILDER's own
+    // output through the gate: it refused a byte-exact extraction it had just produced.
+    const expected = norm(all.slice(range.start - 1, range.end).join('\n'));
     if (norm(b.body) !== expected) {
       out.push(finding('R3', `block at line ${b.start} does not match ${b.attrs.path} L${range.start}-${range.end} (${firstDivergence(norm(b.body), expected)})`,
         `re-extract verbatim; never retype. Someone hand-typed or hand-"improved" this code`));
@@ -149,11 +194,38 @@ function firstDivergence(got, want) {
  * `remitIsAboutCode` is decided by the caller from anchors (a named path/route/symbol) so the
  * judgment stays in one place and is testable.
  */
-export function checkArtifact(remitIsAboutCode, blocks) {
+/** A cited block counts as CODE only if it is not prose. Citing `path=docs/notes.md` satisfied the
+ *  letter of R4 while carrying zero bytes of code — the one check whose entire purpose is "a
+ *  description of code is not code" was cleared by attaching a description. Kimi K3, 2026-08-14. */
+const PROSE_EXT = /\.(md|mdx|markdown|txt|rst|adoc)$/i;
+const PROSE_LANG = /^(md|mdx|markdown|text|txt|rst|adoc|)$/i;
+export const isCodeBlock = (b) => b.cited && !PROSE_EXT.test(b.attrs.path ?? '') && !PROSE_LANG.test(b.lang ?? '');
+
+export function checkArtifact(remitIsAboutCode, blocks, namedPaths = []) {
   if (!remitIsAboutCode) return [];
-  if (blocks.some((b) => b.cited)) return [];
-  return [finding('R4', 'remit asks about code, but the packet contains no cited code block (```lang path=… lines=…)',
-    'attach the source itself. A description of code is not code — that is the failure this gate exists to prevent')];
+  const codeBlocks = blocks.filter(isCodeBlock);
+  if (!codeBlocks.length) {
+    const citedProse = blocks.filter((b) => b.cited).length;
+    return [finding('R4', `remit asks about code, but the packet contains no cited CODE block${citedProse ? ` (${citedProse} cited block(s) are prose — markdown/text paths do not satisfy this)` : ' (```lang path=… lines=…)'}`,
+      'attach the source itself. A description of code is not code — that is the failure this gate exists to prevent')];
+  }
+
+  // BIND THE ARTIFACT TO THE REMIT. One cited block used to satisfy R4 for a remit about a
+  // completely different file: cite two real lines of some unrelated util, then hand-type fences
+  // purporting to be the file actually under review. R3 verifies the decoy, R4 goes green, and the
+  // real source lends credibility to the fabrication. (Kimi K3 round 2, finding 2.)
+  if (namedPaths.length) {
+    const cite = (p) => String(p).replaceAll('\\', '/');
+    const hit = codeBlocks.some((b) => namedPaths.some((n) => {
+      const a = cite(b.attrs.path); const w = cite(n);
+      return a === w || a.endsWith(`/${w}`) || w.endsWith(`/${a}`);
+    }));
+    if (!hit) {
+      return [finding('R4', `remit names ${namedPaths.join(', ')}, but no cited block quotes any of them (cited: ${codeBlocks.map((b) => b.attrs.path).join(', ')})`,
+        'cite the file the remit is actually about — an unrelated real block does not verify the file under review')];
+    }
+  }
+  return [];
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -229,29 +301,5 @@ export function checkHygiene(scan) {
     'sanitize the source document yourself, then re-run. This gate will not silently redact your prose')];
 }
 
-/**
- * R15 — the gates themselves.
- *
- * Default-deny on tooling failure. A broken checker that exits 0 is precisely the "technically
- * green, substantively decorative" disease this whole gate exists to avoid, so a stale or red
- * canary run blocks every send until it is fixed.
- */
-export function checkCanary(selftest, { maxAgeDays = 30, now = Date.now() } = {}) {
-  if (!selftest) {
-    return [finding('R15', 'no canary run on record — gates are presumed broken',
-      'run: node scripts/packet-gate/selftest.mjs')];
-  }
-  if (selftest.red > 0 || selftest.green !== selftest.total) {
-    return [finding('R15', `canary suite red: ${selftest.green}/${selftest.total} green, ${selftest.red} red`,
-      'fix the failing gate before sending anything. A gate that cannot be made to fail is presumed failed')];
-  }
-  const ageDays = (now - Date.parse(selftest.ranAt)) / 86_400_000;
-  if (!Number.isFinite(ageDays)) {
-    return [finding('R15', `canary record has an unparseable ranAt (${selftest.ranAt})`, 'run: node scripts/packet-gate/selftest.mjs')];
-  }
-  if (ageDays > maxAgeDays) {
-    return [finding('R15', `canary run is ${Math.floor(ageDays)} days old (max ${maxAgeDays})`,
-      'run: node scripts/packet-gate/selftest.mjs')];
-  }
-  return [];
-}
+// R15 lives in ./canary.mjs (rule 4: 300-line cap). Re-exported for one import surface.
+export { checkCanary } from './canary.mjs';

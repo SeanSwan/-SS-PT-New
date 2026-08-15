@@ -23,6 +23,17 @@ const GATE = join(ROOT, 'scripts', 'packet-gate.mjs');
 const SELFTEST = join(ROOT, 'scripts', 'packet-gate', 'selftest.mjs');
 const tmp = () => mkdtempSync(join(tmpdir(), 'packet-gate-'));
 
+/**
+ * Build a phantom route at RUNTIME from fragments.
+ *
+ * A literal phantom written anywhere in a tracked non-test file — including a COMMENT — is found by
+ * `git grep` and RESOLVES, which silently switches R5 off and makes these tests fail for a reason
+ * that looks nothing like the cause. This repo already uses the same trick to test secret scanners
+ * without tripping them. Never spell a phantom route out.
+ */
+const phantomRoute = (tag) => ['/api', 'zz' + tag, 'not' + '-real'].join('/');
+
+
 /** Run the CLI and return its exit code + combined output, without throwing on nonzero. */
 function runGate(args) {
   try {
@@ -187,5 +198,96 @@ test('uncited code fences alongside a cited one are WARNED, not silently accepte
   writeFileSync(f, '## Remit\n\nReview /api/sessions\n\n```js path=package.json lines=1-1\n{\n```\n\n```js\nconst fabricated = 1;\n```\n');
   const { out } = runGate(['--document', f, '--json']);
   const parsed = JSON.parse(out);
-  assert.ok(parsed.warnings.some((w) => /uncited code fence/.test(w)), JSON.stringify(parsed.warnings));
+  // RE-ANCHOR (2026-08-15): wording changed from "uncited code fence(s)" to "uncited fence(s)"
+  // when the language filter was removed — the warning now covers bare and json/yaml fences too,
+  // so this assertion was re-pointed at the new text, not weakened. Verified the warning still
+  // fires before editing the assertion.
+  assert.ok(parsed.warnings.some((w) => /uncited fence/.test(w)), JSON.stringify(parsed.warnings));
+});
+
+// --- Kimi K3 + HY3 hostile-review findings, 2026-08-14 (CLI level) -------------------------------
+
+test('CRITICAL REGRESSION: anchor-free remit + code fences is UNEVALUABLE (exit 2), not "not required"', () => {
+  // The bypass: hand-type fabricated fences with no path=, write a remit naming nothing, and the
+  // gate returned PACKET READY with fabricated code on the wire. It was the DEFAULT outcome for any
+  // plainly-worded remit. Kimi K3 S1 / HY3 S1.
+  const f = join(tmp(), 'bypass.md');
+  writeFileSync(f, '## Remit\n\nReview this module for correctness.\n\n```js\nconst fabricated = "typed from memory";\n```\n');
+  const { code, out } = runGate(['--document', f]);
+  assert.equal(code, 2, out);
+  assert.match(out, /unevaluable/i);
+});
+
+test('a genuinely non-code packet (no code fences) is unaffected by that guard', () => {
+  const f = join(tmp(), 'strategy.md');
+  writeFileSync(f, '## Remit\n\nShould we prioritise retention over acquisition next quarter?\n');
+  const { code } = runGate(['--document', f]);
+  assert.equal(code, 0, 'a pure strategy question needs no artifact');
+});
+
+test('REGRESSION: a negative --overhead-chars cannot shrink the packet past R1', () => {
+  const f = join(tmp(), 'neg.md');
+  writeFileSync(f, `## Remit\n\nReview /api/sessions\n\n${'x'.repeat(30000)}\n`);
+  assert.equal(runGate(['--document', f, '--overhead-chars', '-29000']).code, 2);
+});
+
+test('REGRESSION: a named-but-missing --seed is exit 2, not silently zero bytes', () => {
+  const f = join(tmp(), 'ok.md');
+  writeFileSync(f, '## Remit\n\nReview /api/sessions\n');
+  const { code, out } = runGate(['--document', f, '--seed', join(tmp(), 'absent-seed.md')]);
+  assert.equal(code, 2, out);
+  assert.match(out, /seed not found/i);
+});
+
+test('REGRESSION: an unknown provider is exit 2, not a clean gate with no cost estimate', () => {
+  const f = join(tmp(), 'ok.md');
+  writeFileSync(f, '## Remit\n\nReview /api/sessions\n');
+  const { code, out } = runGate(['--document', f, '--provider', 'kni']);
+  assert.equal(code, 2, out);
+  assert.match(out, /unknown provider/i);
+});
+
+test('REGRESSION: a secret in the --seed is scanned, not waved through as "clean"', () => {
+  // Secret-shaped string assembled at runtime so this committed file trips no scanner.
+  const d = tmp();
+  const doc = join(d, 'doc.md');
+  const seed = join(d, 'seed.md');
+  writeFileSync(doc, '## Remit\n\nReview /api/sessions\n');
+  writeFileSync(seed, `context\nkey = "${'AKIA'}${'ZXCVBNMASDFGHJKL'}"\n`);
+  const { code, out } = runGate(['--document', doc, '--seed', seed, '--json']);
+  assert.equal(code, 1, out);
+  assert.ok(JSON.parse(out).findings.some((x) => x.code === 'R6'), out);
+});
+
+test('the printed send command carries --remit when the gate verified one', () => {
+  const f = join(tmp(), 'ok.md');
+  writeFileSync(f, '# Doc\n\n```js path=package.json lines=1-1\n{\n```\n');
+  const { out } = runGate(['--document', f, '--remit', 'Review package.json packaging']);
+  assert.match(out, /--remit/, 'otherwise the gate certifies remit A while the model answers remit B');
+});
+
+// --- Round 2 findings, 2026-08-15 (CLI level) ----------------------------------------------------
+
+test('CRITICAL REGRESSION: a BARE fence + anchor-free remit is exit 2', () => {
+  // Round 1's guard filtered on `b.lang`; a bare ``` fence has falsy lang, so the identical bypass
+  // reopened with one fewer keystroke and the approval view printed "no code fences present".
+  const f = join(tmp(), 'bare.md');
+  writeFileSync(f, '## Remit\n\nReview this module for correctness.\n\n```\nconst fabricated = 1;\n```\n');
+  const { code, out } = runGate(['--document', f]);
+  assert.equal(code, 2, out);
+});
+
+test('REGRESSION: a json fence + anchor-free remit is exit 2 (language must not exempt)', () => {
+  const f = join(tmp(), 'json.md');
+  writeFileSync(f, '## Remit\n\nReview this configuration.\n\n```json\n{"fabricated": true}\n```\n');
+  assert.equal(runGate(['--document', f]).code, 2);
+});
+
+test('REGRESSION: citing an unrelated real file does not satisfy R4 for a named path', () => {
+  // The decoy attack: one real irrelevant block passes R3 and lends credibility to hand-typed
+  // fences purporting to be the file actually under review.
+  const f = join(tmp(), 'decoy.md');
+  writeFileSync(f, '## Remit\n\nIs backend/services/sessions/sessionBlockAuthorization.mjs correct?\n\n```js path=package.json lines=1-1\n{\n```\n');
+  const { out } = runGate(['--document', f, '--json']);
+  assert.ok(JSON.parse(out).findings.some((x) => x.code === 'R4'), out);
 });

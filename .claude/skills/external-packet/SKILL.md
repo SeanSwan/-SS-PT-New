@@ -111,8 +111,18 @@ and **no** block is cited, R4 refuses.
   Sanitization is an operator decision, then re-run.
 - **An absent remit exits 2, fail-closed.** R4 and R5 derive from the remit's anchors, so no remit
   makes them *unevaluable*, not passing. Without this, omitting the remit is a one-word bypass.
-- **R5 resolves premises against code, never prose.** Markdown is excluded from the lookup: a route
-  documented in a design doc but never implemented must not count as existing.
+- **R5 resolves premises against code, never prose — and never tests.** Markdown, tests, specs and
+  fixtures are excluded: a route documented in a design doc, or named only in a test assertion, is
+  not an implemented route.
+  > ⚠ **Never write a phantom route literally anywhere in this repo — not in a test, and NOT IN A
+  > COMMENT.** `git grep` finds it, the phantom resolves, and R5 goes quiet. This happened twice
+  > during the build: once via the test suite, once via a comment *explaining the first one*.
+  > Describe phantoms; build test needles from fragments at runtime.
+- **An anchor-free remit plus uncited code fences is exit 2, not "artifact not required".** This was
+  the gate's own worst bypass — see §6.
+- **Numeric flags must be non-negative, not merely finite.** A negative `--overhead-chars` shrank
+  the measured total and let an oversize packet through.
+- **R6 scans the document *and* the seed.** Anything that reaches the model gets scanned.
 - **Uncited code fences are WARNED, not refused.** R4 is satisfied by one cited block, so a packet
   can pair real source with hand-typed fences the model reads as equally authoritative. The
   preflight prints how many and where. Refusing would punish legitimate illustrative snippets;
@@ -124,7 +134,8 @@ and **no** block is cited, R4 refuses.
 node scripts/packet-gate/selftest.mjs      # writes out/packet-gate/selftest.json (gitignored)
 ```
 
-26 canaries. Each RED canary must drive its gate red on purpose; each GREEN canary must produce
+37 canaries — the original 26 plus one per defect found by the paid hostile reviews (§6), so none
+of them can rot back. Each RED canary must drive its gate red on purpose; each GREEN canary must produce
 zero findings, because a check that fires on clean input is a bug of equal severity to one that
 never fires. One canary is an **integration** case that runs the real `scan-secrets.sh` against a
 runtime-assembled secret-shaped string — the pure check would stay green forever if the scanner
@@ -194,6 +205,36 @@ Two more receipts worth keeping:
   leading-slash pattern into a Windows path before `git` saw it. The *code* was fine; only the
   shell-based probe was broken. **Validate the instrument before believing a negative** — and note
   that the fix here was a regression test pinning the working behavior, not a change to working code.
+
+### What two paid hostile reviews found that three of my own passes did not
+
+Kimi K3 ($0.1047, 78s) and Tencent HY3 ($0.0172, 343s) reviewed the gate's **source**. Both
+independently found the same critical bypass, and each found real defects the other missed. Every
+claim below was verified by running the code before it was fixed — and every one is now a canary.
+
+- **The bypass the gate shipped with (both reviewers, independently).** `aboutCode` decided whether
+  the artifact invariant applied *at all*, and the packet author writes the remit that sets it. So:
+  hand-type fabricated fences with no `path=`, write a remit naming nothing — R4 returned `[]`, R5
+  had no anchors, and the gate printed **PACKET READY**. It was the *default* outcome for any
+  plainly-worded remit. Review-2's failure, reproduced by the tool built to prevent it.
+- **Gate 0 was the easiest check to fake (Kimi S2, HY3 S3).** `{"ranAt":"<now>"}` passed R15 with
+  zero canaries ever run: `undefined > 0` is false and `undefined !== undefined` is false, so both
+  refusal branches were skipped. A future-dated record never expired at all.
+- **R4 was cleared by a description (Kimi S4).** `cited` meant only "has a `path=`", so
+  ` ```md path=docs/notes.md ` satisfied the one check whose entire purpose is *a description of
+  code is not code*.
+- **R6 never scanned the seed (HY3 S2)** — while the code comment claimed it scanned "the assembled
+  packet" and the preflight printed `HYGIENE clean [ok]`.
+- **A negative `--overhead-chars` defeated R1 (HY3 S5).** A 30,003-char document measured as 1,033.
+- **`path=""` crashed with an uncaught EISDIR stack trace; `path=../../.env` was read happily
+  (Kimi S6/S7).**
+- **Broken-tool and no-match were conflated (Kimi S6.2).** A missing git or wrong cwd made every
+  route in every legitimate remit refuse — a false-refusal machine.
+
+**The lesson, stated plainly: 26 canaries passed and the gate was still bypassable by writing a
+plainly-worded remit.** A green suite proves the cases you thought of. Two adversarial readers of
+the *source* found what the suite was built blind to. That is what the paid call is for — and it
+only worked because the packet contained the code, not a description of it.
 
 **Calibration keying:** identity = the model; slicing = the task class; transport = delivery only.
 `"Hermes"` is never a calibration key — its local and cloud brains are separate records.
