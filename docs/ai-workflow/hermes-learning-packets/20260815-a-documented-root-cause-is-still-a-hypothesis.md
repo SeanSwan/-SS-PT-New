@@ -76,6 +76,20 @@ for *negative* claims and then nearly violated on a *positive* one.
   app's response as my own. One step from reporting a critical routing
   vulnerability that did not exist. Caught only because the headers did not match
   the source.
+- **I created the exact orphaned lock I was reviewing.** My `git commit -o` ran
+  past a 2-minute harness timeout and was killed **while holding
+  `.git/index.lock`** — leaving a 1.6 MB orphan in the shared tree, the fourth of
+  the day. This is the strongest possible confirmation of the corrected root
+  cause (killed mid-write, not malformed arguments) and the worst possible way to
+  get it. `--only` rebuilds a temporary index against the whole tree; on a 706 MB
+  repo with 417 dirty files that exceeds any short timeout. **A git write must
+  never run under a timeout that can kill it** — background it.
+- **My lock-liveness probe was itself broken, and I nearly believed it.** It
+  reported `HELD OPEN` when the real message was *path not found* — I had
+  interpolated a Git Bash `/c/...` path into a Windows API call, producing
+  `C:\c\Users\...`. Had I trusted the verdict label I would have concluded the
+  lock was live and left the tree wedged for the next agent. **Second instrument
+  failure of the session**, same root cause as the first.
 - Killed every `git.exe` on the machine with `taskkill //IM` while reviewing a
   problem caused by killed git processes. No damage — verified `fsck` clean, no
   stranded locks — but it was the wrong instrument.
@@ -87,14 +101,25 @@ for *negative* claims and then nearly violated on a *positive* one.
 
 | Error class | Times this session | Written up before? | What actually stopped it |
 |---|---|---|---|
-| Believed a probe before validating the instrument | 1 (near-miss) | **Yes** — and it still recurred | Assert listener count + served identity BEFORE the first probe. Not "be careful." |
+| Believed a probe before validating the instrument | **2** (port collision; then the lock probe's own bad path) | **Yes** — written up, then recurred TWICE in the session that cited it | Make the probe print what it found (listener count, file size, resolved path) so a wrong instrument is visibly wrong. A verdict string is not evidence. |
+| Killed a git write mid-flight | 1 | Yes — I was reviewing this exact failure | Never run a git write under a kill-capable timeout; background it |
 | Trusted an inherited claim because it was documented | 1 | No | Reproduce the failure before repeating the mitigation |
 | Over-broad process kill | 1 | No | Kill by PID; `//IM` is never right on a shared machine |
 | Exit status read through a pipe | 1 | No | `PIPESTATUS`, or do not pipe the command being judged |
 
-The first row is the important one: that lesson **had already been written down**
-and recurred anyway, which proves the write-up was not a fix. The correction that
-survives is a command you run, not an intention you hold.
+The first two rows are the point of this packet. Both lessons **were already
+written down** — one in my own memory, one in the handoff I was reviewing — and
+both recurred anyway, inside the session that cited them. That proves a write-up
+is not a fix. The corrections that survive are mechanical: a probe that prints
+its evidence, and a git write that cannot be killed by a timeout. Neither is an
+intention.
+
+Note the shape of the second one: I orphaned a lock **while writing the document
+explaining orphaned locks**. The instrument that then told me whether it was safe
+to clear was itself broken. Two layers of tooling failed in the five minutes
+after I declared the analysis complete — which is the argument for
+worktree-per-agent in its most concrete form, since none of it could have touched
+another agent if the index had not been shared.
 
 ## External-model calibration
 
