@@ -106,12 +106,41 @@ severity underestimated). HY3 remains the better first call for security review 
   (`const { userId } = req.params`), which are the more dangerous class because nothing normalizes
   them at all. The requested probe could not have found what it was asked to look for.
 
+## Addendum, same session — it happened again, and the tooling lied too
+
+Written after a second slice, because the title turned out to be more literal than intended.
+
+**A second decorative test of my own.** Testing the `router.use`-cleared tier, I wrote a case
+asserting that a non-canonical id (`'0902'`) cannot walk around the client check. Loosening the
+strict parser from `/^[1-9]\d*$/` to `/^\d+$/` — a real weakening of a real guard — left it green.
+The test used an **unassigned** trainer, who gets 403 either way, so strict-versus-loose could never
+change the outcome. Rewritten to use the **assigned** trainer on their **own** client, where strict
+refuses with 400 and loose would resolve and *allow*. Two suites, two decorative tests, both found
+by mutation and neither by review.
+
+**The sharper, new lesson: a mutation that silently fails to apply is indistinguishable from a
+mutation that survived.** `sed` and then `perl` both failed to match the line I meant to change —
+escaping, not logic. Each printed nothing and exited quietly, the suite ran green, and that green
+looked exactly like "the guard is unpinned." I nearly recorded a surviving mutation and rewrote a
+perfectly good test to chase it.
+
+**A mutation you have not verified was applied is not a mutation.** The procedural form is to grep
+the changed line and read it back *before* running the suite — the same positive-control discipline,
+applied to the instrument that is supposed to be testing the instrument. Every mutation in that
+slice is now confirmed applied before its result is believed.
+
+**And the secret scanner caught me twice.** It flagged a throwaway `postgres://` literal in my own
+test file, then flagged it again in the *comment* explaining why I had removed it. A fail-closed
+gate that fires on its author is the gate working; the instinct to reach for an exemption is the
+thing to distrust.
+
 ## Error → fix → repeat ledger
 
 | Error class | This slice | Session total | Written up before? | What actually stopped it |
 |---|---|---|---|---|
 | A probe cannot find what it is looking for (wrong scope, wrong shape, wrong tree) | 1 (the sweep's blind spot) | **6** | Yes, three sessions running | Positive controls caught five. The sixth needed a different question: *what shape of hit would this pattern never match?* A positive control proves the probe sees something; it does not prove the probe sees everything. **That distinction is new and is the reason this row keeps recurring.** |
-| A test/label asserts something it does not measure | 2 (the alg:none test; the mislabelled probe) | 2 | Yes — this is the "control that passes can still be a decoration" packet, written about someone else two days ago | Mutation for the test. Nothing yet for the label, except reading output before believing the sentence written above it. |
+| A test/label asserts something it does not measure | **4** (the alg:none test; the mislabelled probe; the id-spelling test; the "no scoping" grep that guessed five helper names and missed `ensureClientAccess`) | 4 | Yes — this is the "control that passes can still be a decoration" packet, written about someone else two days ago, and now twice about me | Mutation for the tests — it caught both, review caught neither. For the grep: **stop guessing identifier names and read the file** when it is under ~150 lines. Two route files and a controller were each cleared in one read after three failed greps. |
+| **An instrument that silently no-ops, reported as a result** | 2 (`sed` and `perl` each failing to apply a mutation; the green run then looked like a surviving mutation) | 2 | **No — new this session** | Verify the mutation landed before believing the run: grep the changed line and read it back. A mutation you did not confirm was applied is not a mutation, and its "survival" is a fabrication. |
 | Output shape hides the truth | 0 | 2 | Yes, 3× in the prior session | Redirect to file, measure `$?` unpiped, read afterwards. Held for this whole slice once adopted mechanically. |
 
 **The row that matters is the first one, and its correction changed.** For three sessions the
