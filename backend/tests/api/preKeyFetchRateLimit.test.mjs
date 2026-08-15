@@ -147,4 +147,62 @@ describe('prekey pool cannot be drained by looping the bundle endpoint', () => {
     );
     expect(routeSource).toMatch(/router\.get\(\s*'\/keys\/:userId',\s*protect,\s*preKeyFetchLimiter/);
   });
+
+  // --------------------------------------------------------------------------
+  // Added 2026-08-14 after a three-way hostile review (Kimi K3, HY3, and the
+  // reviewing agent) independently found the same defect: the limiter keyed on
+  // the RAW path text while the handler resolved the target with parseInt. Every
+  // test above uses a canonical integer, so none of them could tell a correct
+  // limiter from one that buckets `902`, `0902` and `902a` separately while all
+  // three drain the same victim. Measured before the fix: 100 requests, 0 × 429,
+  // 100 prekeys consumed from one target.
+  // --------------------------------------------------------------------------
+  describe('the limit follows the VICTIM, not the spelling of their id', () => {
+    it('alternate spellings of one target share a single bucket', async () => {
+      currentUser = { id: 2007, role: 'client' };
+      const victim = 3007;
+      // Each of these is a distinct URL, and parseInt maps every one to `victim`.
+      const spellings = [`${victim}`, `0${victim}`, `00${victim}`, `+${victim}`, `${victim}.0`, `${victim}a`];
+
+      let sent = 0;
+      for (const s of spellings) {
+        for (let i = 0; i < 5; i += 1) { await fetchBundle(s); sent += 1; }
+      }
+
+      // 30 requests against a 20/hour limit: the victim's pool must not have
+      // given up more than the limit, whatever spelling was used to ask.
+      expect(sent).toBeGreaterThan(LIMIT);
+      expect(mocks.fetchKeyBundle.mock.calls.length).toBeLessThanOrEqual(LIMIT);
+      // ...and every consumption that did happen must have hit the same victim,
+      // which is what makes the count above meaningful rather than incidental.
+      expect(mocks.fetchKeyBundle.mock.calls.every((c) => c[0] === victim)).toBe(true);
+    });
+
+    it('unresolvable ids cannot mint unlimited buckets', async () => {
+      // The key is built before express-validator runs, so a target that is not
+      // a user id at all still reaches the keyGenerator. If each distinct string
+      // got its own bucket, an attacker could hold one entry per request in the
+      // in-process store for the full hour window.
+      currentUser = { id: 2008, role: 'client' };
+
+      const statuses = [];
+      for (let i = 0; i < LIMIT + 5; i += 1) {
+        statuses.push((await fetchBundle(`junk-${i}`)).status);
+      }
+
+      expect(statuses.filter((s) => s === 429).length).toBeGreaterThan(0);
+    });
+
+    it('the window is an HOUR — a shortened window would weaken the limit silently', async () => {
+      // Every burst above completes in milliseconds, so `windowMs` could be cut
+      // 60x and each assertion would still pass. Read the advertised reset
+      // instead, which is the only place the window is observable.
+      currentUser = { id: 2009, role: 'client' };
+      const res = await fetchBundle(3009);
+
+      const reset = Number(res.headers['ratelimit-reset']);
+      expect(Number.isFinite(reset)).toBe(true);
+      expect(reset).toBeGreaterThan(1800); // > 30 min: a 1-minute window reads ~60
+    });
+  });
 });

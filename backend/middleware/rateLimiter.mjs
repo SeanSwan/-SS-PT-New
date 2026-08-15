@@ -258,7 +258,23 @@ export const foodScannerLimiter = rateLimit({
  * evadable (rotate egress) and harmful (a gym's shared NAT would throttle real
  * clients). A legitimate actor needs a given target's bundle a handful of times
  * — once per device session, then it is cached — so 20/hour per pair is far
- * above real use while forcing pool exhaustion to cost many distinct accounts.
+ * above real use.
+ *
+ * WHAT THIS DOES NOT DO — do not overstate it. An earlier version of this
+ * comment claimed 20/hour forces pool exhaustion to "cost many distinct
+ * accounts". That is arithmetically false and was corrected on 2026-08-14: a
+ * typical pool is ~100 one-time prekeys, so ONE account at 20/hour drains it in
+ * five hours and sustains ~480/day, which outpaces any realistic client
+ * replenishment. What the limit actually buys is the difference between
+ * draining a pool in seconds and holding it empty at a slow, visible rate — a
+ * fair trade for a LOW-severity issue, but not prevention.
+ *
+ * Two known gaps, deliberately left open rather than papered over:
+ *   - there is no per-ACTOR ceiling, so one account may take 20/hour from every
+ *     user at once; per-pair keying is what protects legitimate group fan-out,
+ *     and the fix is a second, generous per-actor limiter, not a smaller max
+ *   - the default MemoryStore is per-process, so behind N replicas the real
+ *     budget is 20xN per pair
  *
  * The IP fallback should never fire: `protect` is mounted before this on the
  * only route that uses it. It exists so a future re-mount without auth degrades
@@ -269,7 +285,20 @@ export const preKeyFetchLimiter = rateLimit({
   max: 20,
   keyGenerator: (req) => {
     const actor = req.user?.id;
-    const target = req.params?.userId;
+    // Key on the RESOLVED target, never the raw path text. This limiter runs
+    // before express-validator touches the param, so `req.params.userId` here is
+    // whatever the caller typed. The handler resolves it with `parseInt(x, 10)`,
+    // and parseInt is lenient: `902`, `0902`, `+902`, `902.0` and `902a` are all
+    // user 902. Keying on the raw string gave each spelling its own bucket while
+    // every one of them consumed the same victim's prekeys — measured at 100
+    // consumptions against a limit of 20 before this was normalized. The key must
+    // resolve the target exactly the way the handler does, or the limit counts
+    // spellings instead of victims.
+    const parsed = Number.parseInt(req.params?.userId, 10);
+    const target = Number.isInteger(parsed) && parsed > 0 ? String(parsed) : 'invalid';
+    // Everything unresolvable shares one bucket on purpose: those requests cannot
+    // reach a real user's pool, and giving each its own key would let a caller
+    // mint one store entry per request for the full window.
     return actor ? `u:${actor}:t:${target}` : `ip:${req.ip}:t:${target}`;
   },
   message: {
