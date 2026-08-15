@@ -109,6 +109,40 @@ from what the handler actually uses.
 
 ---
 
+## 3b. Sibling sweep (Rule 20) — no second instance
+
+A fix of this class is incomplete without asking where else a guard and a handler resolve the
+same id differently. Swept, with positive controls:
+
+- **9 `keyGenerator`s exist repo-wide**, not one. The other eight key on `req.user.id`,
+  `req.ip`, or `req.galleryAccess.visitorId` — **none reads `req.params`**, so none can have
+  this bug. (`moneyPathRateLimits.mjs` × 4 via `keyByUserThenIp`, `galleryRoutes.mjs` × 3,
+  `gamificationV1Routes.mjs` × 1.)
+- **`authMiddleware.mjs:884` `requireOwnershipOrTrainer`** reads `req.params.userId` raw, but
+  compares `String(req.user.id) === String(targetUserId)`. `"0902"` fails that comparison and
+  falls through to the trainer check — the guard is **stricter** than the handler's parse, which
+  is the safe direction. Not a vulnerability.
+
+**Result: the limiter was the only instance.** It was uniquely exposed because it *bucketed* on
+the id rather than *comparing* on it — a strict comparison fails closed on an odd spelling,
+whereas a bucket key just quietly becomes a different bucket.
+
+> **Correction to handoff D §2b.** It states the new limiter "is the only limiter in the repo
+> keyed on something other than IP." That is false — `keyByUserThenIp` (4 money-path limiters),
+> the 3 gallery limiters and the gamification limiter all key on non-IP identities. The code
+> comment in `rateLimiter.mjs` says "unlike every other limiter **in this file**", which is
+> true; the handoff widened it to the repo and lost the qualifier. Immaterial to the finding,
+> but the next agent should not inherit it.
+
+**Handoff D's other numbers re-derived and confirmed this session:** diff scope 10 files
++1358/−22 · `[controller ` handlers = **8** · `[router.use` handlers = **21** · audit exit 0
+(measured unpiped). Its `--remit` warning is accurate and now verified first-hand rather than
+relayed: `consult-hy3-design.mjs:93` does open "Give only UI/UX and interaction suggestions",
+and both scripts do `options.remit || defaultRemit` at line 120, so an explicit remit replaces
+rather than appends.
+
+---
+
 ## 4. Model calibration (Rule 68 — this is how the routing table gets learned)
 
 | Model | Cost | Findings I checked | Real | Disproven | Notes |
