@@ -68,6 +68,16 @@
  * forcing a legitimate rename through the *removal* hatch is how a check teaches
  * people to reach for --no-verify instead.
  *
+ * ⚠ KNOWN OPEN BYPASS, stated plainly rather than left implicit (Kimi round 2, Q3):
+ * this is a client-side pre-commit hook. `git commit --no-verify`, a direct push, or
+ * a commit made from a checkout without these hooks skips it entirely. There is no
+ * server-side enforcement today — this repo's own audit found all 30 most recent CI
+ * workflow runs ended in `startup_failure`, and branch protection returns 403 on the
+ * current plan, so "add a required status check" is not currently executable. Treat
+ * this guard as a strong seatbelt, NOT as a boundary that holds against intent.
+ * The cheapest real closure available here is detective, not preventive: a scheduled
+ * job running this script against origin/main and alerting on failure.
+ *
  * EXIT: 0 = pass or not applicable. 1 = blocked.
  */
 import { spawnSync } from 'node:child_process';
