@@ -80,6 +80,24 @@ fi
 # in CLAUDE.md IS the router: a skill absent from it never fires. That table had
 # drifted 43% (23 advertised vs 42 installed) while entrypoint validation passed
 # the whole time, because existence is not advertisement.
+# Constitution reference resolution (added 2026-08-15, Kimi round-1 question 6).
+# Four defects in the 2026-08-14 repair were identical in BOTH constitutions, so no
+# diff or mirror-parity check could ever surface them. The mechanical half of
+# "read for contradiction" is: resolve the document's verifiable assertions against
+# ground truth. Cited paths are the cheapest such assertion — first run found five
+# documents that NEVER existed in git, two of them marked MANDATORY.
+CONSTITUTION_REFS="$REPO_ROOT/scripts/hooks/constitution-references.mjs"
+if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md)$'; then
+  if [[ -f "$CONSTITUTION_REFS" ]]; then
+    echo "[pre-commit] Resolving constitution references..."
+    if ! node "$CONSTITUTION_REFS"; then
+      exit 1
+    fi
+  else
+    echo "[pre-commit] constitution-refs: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
+  fi
+fi
+
 SKILL_REGISTRY="$REPO_ROOT/scripts/ai-workflow/validate-skill-registry.mjs"
 if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.claude/skills/|\.agents/skills/)'; then
   if [[ -f "$SKILL_REGISTRY" ]]; then

@@ -58,10 +58,15 @@
  * parity by construction. It catches partial commits only. The clobber defenses
  * are checks 1-3; check 4 is not counted among them.
  *
- * ESCAPE HATCH (deliberate changes are legitimate; silent ones are not):
- *     SWAN_ALLOW_RULE_REMOVAL="46,73" git commit ...
- * Keyed by the rule's number IN HEAD; authorizes both removal and renumber of
- * those rules. Naming the numbers makes the change a decision, not an accident.
+ * ESCAPE HATCHES (deliberate changes are legitimate; silent ones are not):
+ *     SWAN_ALLOW_RULE_REMOVAL="46,73"   removal / renumber / reversion of those rules
+ *     SWAN_RULE_RENAME="46=46"          rule at 46 in HEAD is now the rule at 46
+ *                                        under a NEW name (verified against a real
+ *                                        addition — never accepted on faith)
+ * Both are keyed by the rule's number IN HEAD. Naming the numbers makes the change
+ * a decision on the record, not an accident. Rename gets its own hatch because
+ * forcing a legitimate rename through the *removal* hatch is how a check teaches
+ * people to reach for --no-verify instead.
  *
  * EXIT: 0 = pass or not applicable. 1 = blocked.
  */
@@ -212,6 +217,47 @@ for (const file of touched) {
   }
 
   console.log(`[constitution-guard] ${file}: ${before.size} rules in HEAD -> ${after.size} staged; ${removed.length} removed, ${renumbered.length} renumbered, ${reverted.length} reverted`);
+
+  // Q2 — rename is a first-class operation, not an error.
+  // A rule renamed in place reads as removal-of-X + addition-of-Y, and the only
+  // way through used to be the generic removal hatch. That is how a check trains
+  // people to reach for --no-verify: it calls a legitimate edit a violation and
+  // offers no honest way to say what you meant. Rule 46 was renamed exactly this
+  // way (3-Brain Review Loop -> Kimi Hostile-Review Gate).
+  // SWAN_RULE_RENAME="46=46" declares "the rule at 46 in HEAD is the rule at 46
+  // now, under a new name" — verified against a real addition, never taken on faith.
+  const added = [...after.entries()].filter(([k]) => !before.has(k)).map(([, v]) => v);
+  const renames = new Map(
+    (process.env.SWAN_RULE_RENAME ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+      .map((pair) => pair.split('=').map((s) => s.trim()))
+      .filter((p) => p.length === 2 && p[0] && p[1]),
+  );
+  const acceptedRenames = [];
+  for (let i = removed.length - 1; i >= 0; i -= 1) {
+    const target = renames.get(String(removed[i].num));
+    if (!target) continue;
+    const match = added.find((a) => String(a.num) === target);
+    if (!match) {
+      blockers.push(`${file}: SWAN_RULE_RENAME claims ${removed[i].num}=${target}, but no NEW rule appears at ${target}. A rename must land somewhere.`);
+      continue;
+    }
+    acceptedRenames.push({ from: removed[i], to: match });
+    removed.splice(i, 1);
+  }
+  for (const { from, to } of acceptedRenames) {
+    console.log(`[constitution-guard] rename accepted: ${from.num} "${from.name.slice(0, 40)}" -> ${to.num} "${to.name.slice(0, 40)}"`);
+  }
+
+  // When removals and additions coexist undeclared, name the likely pairing
+  // instead of just refusing. An error that tells you the exact command to run
+  // gets used; one that only says "blocked" gets bypassed.
+  if (removed.length && added.length) {
+    const hint = removed.map((r) => {
+      const guess = added.find((a) => a.num === r.num) ?? added[0];
+      return `${r.num}=${guess.num}`;
+    }).join(',');
+    blockers.push(`${file}: ${removed.length} rule(s) removed and ${added.length} added in the same commit — this may be a RENAME, not a deletion. If so, declare it: SWAN_RULE_RENAME="${hint}"`);
+  }
 
   for (const r of removed) blockers.push(`${file}: rule ${r.num} "${r.name.slice(0, 70)}" exists in HEAD and is GONE from the staged file.`);
   for (const { was, now } of renumbered) blockers.push(`${file}: "${was.name.slice(0, 60)}" renumbered ${was.num} -> ${now.num}. Every "Rule ${was.num}" citation in the repo now points elsewhere.`);

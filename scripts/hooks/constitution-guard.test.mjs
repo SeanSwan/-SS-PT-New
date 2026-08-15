@@ -220,6 +220,46 @@ test('WARNS loudly that a stale override is still set', () => {
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 
+// --- Q2: rename is a first-class operation. Forcing a legitimate rename through
+// the removal hatch is how a check trains people to bypass it wholesale.
+test('BLOCKS an undeclared rename but NAMES the exact command to declare it', () => {
+  const r = repo();
+  try {
+    commitDocs(r, claudeDoc(BASE));
+    // rule 46 renamed in place — exactly what happened to 3-Brain -> Kimi gate
+    const renamed = claudeDoc(BASE).replace('**Kimi Hostile-Review Gate**', '**Consensus Review Gate**');
+    assert.notEqual(renamed, claudeDoc(BASE), 'fixture must differ or the test proves nothing');
+    stageDocs(r, renamed);
+    const out = runGuard(r);
+    assert.equal(out.status, 1, 'undeclared rename must BLOCK');
+    assert.match(out.stderr, /may be a RENAME, not a deletion/);
+    assert.match(out.stderr, /SWAN_RULE_RENAME="46=46"/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('PASSES a DECLARED rename', () => {
+  const r = repo();
+  try {
+    commitDocs(r, claudeDoc(BASE));
+    const renamed = claudeDoc(BASE).replace('**Kimi Hostile-Review Gate**', '**Consensus Review Gate**');
+    stageDocs(r, renamed);
+    const ok = runGuard(r, { SWAN_RULE_RENAME: '46=46' });
+    assert.equal(ok.status, 0, `declared rename must PASS. stderr: ${ok.stderr}`);
+    assert.match(ok.stdout, /rename accepted: 46/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('REJECTS a rename declaration that does not land anywhere', () => {
+  const r = repo();
+  try {
+    commitDocs(r, claudeDoc(BASE));
+    stageDocs(r, claudeDoc(BASE.filter((n) => n !== 46))); // deleted, not renamed
+    const out = runGuard(r, { SWAN_RULE_RENAME: '46=99' });
+    assert.equal(out.status, 1, 'a rename claim with no destination must BLOCK');
+    assert.match(out.stderr, /no NEW rule appears at 99/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
 test('SKIPS cleanly when no constitution file is staged', () => {
   const r = repo();
   try {
