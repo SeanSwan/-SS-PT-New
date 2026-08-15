@@ -209,14 +209,17 @@ test('FAILS CLOSED when git cannot be interrogated', () => {
 });
 
 // --- D2: a hatch left set in a shell profile is a standing bypass credential.
-test('WARNS loudly that a stale override is still set', () => {
+// F6 (Kimi round 2): a warning printed at the moment of misuse is not expiry. A
+// hatch left set in a shell profile must fail the NEXT commit, not lie in wait.
+test('BLOCKS on a stale override rather than merely warning about it', () => {
   const r = repo();
   try {
     commitDocs(r, claudeDoc(BASE));
     stageDocs(r, claudeDoc(BASE).replace('Body text for rule 16.', 'Body text for rule 16, corrected.'));
     const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: '46,73' });
-    assert.equal(out.status, 0, 'an honest edit still passes');
-    assert.match(out.stderr, /stale override left set/);
+    assert.equal(out.status, 1, 'a hatch authorising nothing here must BLOCK, so it cannot be left set');
+    assert.match(out.stderr, /STALE override/);
+    assert.match(out.stderr, /unset SWAN_ALLOW_RULE_REMOVAL/);
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 
@@ -245,7 +248,43 @@ test('PASSES a DECLARED rename', () => {
     stageDocs(r, renamed);
     const ok = runGuard(r, { SWAN_RULE_RENAME: '46=46' });
     assert.equal(ok.status, 0, `declared rename must PASS. stderr: ${ok.stderr}`);
-    assert.match(ok.stdout, /rename accepted: 46/);
+    assert.match(ok.stdout, /rename accepted \([\d.]+% content continuity\): 46/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+// F1 — the worst defect this workstream shipped, and it came from a FIX.
+// The first rename hatch accepted any addition at the target number, so a
+// deletion could be laundered as a rename and reported as a verified PASS.
+test('F1: REJECTS a deletion laundered as a rename (unrelated replacement body)', () => {
+  const r = repo();
+  try {
+    commitDocs(r, claudeDoc(BASE));
+    // delete MANDATORY rule 46, put a completely unrelated rule at 46
+    const laundered = claudeDoc(BASE, {
+      bodies: { 46: '46. **Hydration Reminder** — (MANDATORY) Established 2026-08-15. Drink water regularly throughout the working day.\n    AMENDED 2026-08-15: prefer room temperature.' },
+    });
+    stageDocs(r, laundered);
+    const out = runGuard(r, { SWAN_RULE_RENAME: '46=46' });
+    assert.equal(out.status, 1, 'an unrelated replacement must NOT pass as a rename');
+    assert.match(out.stderr, /RENAME .*REJECTED|SWAN_RULE_RENAME 46=46 REJECTED/);
+    assert.match(out.stderr, /content overlap/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('F1: REJECTS a rename that quietly downgrades a MANDATORY rule', () => {
+  const r = repo();
+  try {
+    commitDocs(r, claudeDoc(BASE));
+    // same content, but MANDATORY silently dropped
+    const downgraded = claudeDoc(BASE).replace(
+      '46. **Kimi Hostile-Review Gate** — (MANDATORY)',
+      '46. **Kimi Review Suggestion** — (optional)',
+    );
+    assert.notEqual(downgraded, claudeDoc(BASE), 'fixture must differ or the test proves nothing');
+    stageDocs(r, downgraded);
+    const out = runGuard(r, { SWAN_RULE_RENAME: '46=46' });
+    assert.equal(out.status, 1, 'a rename must not be a downgrade vector');
+    assert.match(out.stderr, /MANDATORY and the replacement is not/);
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 

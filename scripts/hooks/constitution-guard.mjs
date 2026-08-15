@@ -109,6 +109,7 @@ function parseRules(text) {
     rules.set(key, {
       num,
       name,
+      body, // retained so a declared rename can be checked for content continuity
       len: body.length,
       // Reversion signatures: the enforcement word, and the amendment markers
       // that only ever accumulate forward.
@@ -119,8 +120,67 @@ function parseRules(text) {
   return rules;
 }
 
-/** Material shrink threshold. Honest copy-edits trim a little; reversions cut paragraphs. */
-const SHRINK_TOLERANCE = 0.15;
+/**
+ * Shrink tolerance — DERIVED, not chosen. (Kimi round 2, F4: "15% is asserted,
+ * not derived", and the original 15% was in fact reverse-engineered from one
+ * failing case.)
+ *
+ * Measured across the 73 rules present both before and after the 2026-08-14
+ * repair: 24 changed size, and **zero of them shrank**. Every honest edit in the
+ * observed history GREW. Shrinkage of a MANDATORY rule is the incident signature;
+ * growth is not. So the tolerance is a noise floor, not a budget.
+ *
+ * 2% ≈ a typo or whitespace fix on a 2,000-character rule (~40 chars). Anything
+ * that removes a sentence trips it. This is 7.5x tighter than the original.
+ *
+ * KNOWN LIMIT, stated rather than papered over: a same-length rewrite that inverts
+ * meaning passes every size check by construction. Size cannot detect semantics.
+ * That gap is real and is why MANDATORY-parity and marker checks exist alongside.
+ */
+const SHRINK_TOLERANCE = 0.02;
+
+/**
+ * Minimum token overlap for a DECLARED rename to be believed — also derived.
+ * The one known-legitimate rename in this repo's history (rule 46, "3-Brain
+ * Review Loop" -> "Kimi Hostile-Review Gate") scored **42.5%**. The reviewer
+ * proposed 60%, which would have rejected that real rename. Set at 25%: well
+ * under the observed legitimate case, well over an unrelated rule (an unrelated
+ * pairing scores near zero on content words of 4+ characters).
+ */
+const RENAME_MIN_OVERLAP = 0.25;
+
+/**
+ * Structural scaffolding shared by EVERY rule. Left in, it manufactures false
+ * continuity: the first version of this check scored a deliberately unrelated
+ * replacement at 28.6% — over the threshold — purely because both bodies said
+ * MANDATORY / Established / AMENDED / a year. A short replacement makes that
+ * boilerplate a large fraction of its whole vocabulary. Its own test caught it.
+ */
+const STRUCTURAL = new Set([
+  'mandatory', 'established', 'amended', 'added', 'rule', 'rules', 'body', 'text',
+  'sean', 'claude', 'codex', 'swanstudios', 'this', 'that', 'with', 'from', 'have',
+  'been', 'when', 'then', 'than', 'they', 'their', 'them', 'what', 'which', 'because',
+  'after', 'before', 'every', 'never', 'always', 'must', 'should', 'would', 'could',
+]);
+const YEARISH = /^\d{4}(-\d{2})*$/;
+
+/**
+ * Content-word overlap, scaffolding removed. MEASURED separation on real data:
+ *   legitimate rename (46: 3-Brain -> Kimi gate) ... 33.1%
+ *   unrelated rule pairings ..................... 8.8% - 14.9%
+ *   unrelated short replacement ................. 0.0%
+ * 25% sits ~10 points above the worst unrelated case and ~8 below the real one.
+ */
+function tokenOverlap(a, b) {
+  const words = (s) => new Set(
+    s.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/)
+      .filter((w) => w.length > 3 && !STRUCTURAL.has(w) && !YEARISH.test(w)),
+  );
+  const A = words(a); const B = words(b);
+  if (!A.size || !B.size) return 0;
+  const shared = [...A].filter((w) => B.has(w)).length;
+  return shared / Math.max(Math.min(A.size, B.size), 1);
+}
 
 /**
  * Fail CLOSED. Only ONE condition may fail open — a repo with no HEAD yet, where
@@ -158,6 +218,16 @@ const allowed = new Set(
     .split(',').map((s) => s.trim()).filter(Boolean),
 );
 const usedHatch = new Set();
+
+// Rename declarations are tracked at module scope for the same staleness check as
+// SWAN_ALLOW_RULE_REMOVAL — a rename hatch left set is exactly as dangerous.
+const renameDecls = new Map(
+  (process.env.SWAN_RULE_RENAME ?? '').split(',').map((s) => s.trim()).filter(Boolean)
+    .map((pair) => pair.split('=').map((s) => s.trim()))
+    .filter((p) => p.length === 2 && p[0] && p[1]),
+);
+const renamesDeclared = new Set(renameDecls.keys());
+const usedRenames = new Set();
 
 const blockers = [];
 let checked = 0;
@@ -227,11 +297,7 @@ for (const file of touched) {
   // SWAN_RULE_RENAME="46=46" declares "the rule at 46 in HEAD is the rule at 46
   // now, under a new name" — verified against a real addition, never taken on faith.
   const added = [...after.entries()].filter(([k]) => !before.has(k)).map(([, v]) => v);
-  const renames = new Map(
-    (process.env.SWAN_RULE_RENAME ?? '').split(',').map((s) => s.trim()).filter(Boolean)
-      .map((pair) => pair.split('=').map((s) => s.trim()))
-      .filter((p) => p.length === 2 && p[0] && p[1]),
-  );
+  const renames = renameDecls;
   const acceptedRenames = [];
   for (let i = removed.length - 1; i >= 0; i -= 1) {
     const target = renames.get(String(removed[i].num));
@@ -241,11 +307,29 @@ for (const file of touched) {
       blockers.push(`${file}: SWAN_RULE_RENAME claims ${removed[i].num}=${target}, but no NEW rule appears at ${target}. A rename must land somewhere.`);
       continue;
     }
-    acceptedRenames.push({ from: removed[i], to: match });
+
+    // F1 (Kimi round 2, the worst defect this workstream shipped): the first
+    // version accepted a rename on the mere EXISTENCE of an addition at the target
+    // number. That turned the hatch into a deletion-laundering channel — delete
+    // MANDATORY rule 46, add an unrelated rule 46, declare the rename, and the
+    // guard reports a verified-looking PASS while the law silently changes. It was
+    // strictly worse than no hatch, because it manufactured false confidence.
+    // A rename must now prove CONTINUITY, not just occupancy.
+    const overlap = tokenOverlap(removed[i].body, match.body);
+    const continuity = [];
+    if (overlap < RENAME_MIN_OVERLAP) continuity.push(`content overlap ${(overlap * 100).toFixed(1)}% is below the ${(RENAME_MIN_OVERLAP * 100)}% floor — these read as two different rules, not one renamed`);
+    if (removed[i].mandatory && !match.mandatory) continuity.push('the old rule was MANDATORY and the replacement is not — a rename cannot quietly downgrade a rule');
+    if (continuity.length) {
+      blockers.push(`${file}: SWAN_RULE_RENAME ${removed[i].num}=${target} REJECTED — ${continuity.join('; ')}. If this really is a deletion plus an unrelated new rule, say so with SWAN_ALLOW_RULE_REMOVAL="${removed[i].num}" instead of calling it a rename.`);
+      continue;
+    }
+
+    acceptedRenames.push({ from: removed[i], to: match, overlap });
+    usedRenames.add(String(removed[i].num));
     removed.splice(i, 1);
   }
-  for (const { from, to } of acceptedRenames) {
-    console.log(`[constitution-guard] rename accepted: ${from.num} "${from.name.slice(0, 40)}" -> ${to.num} "${to.name.slice(0, 40)}"`);
+  for (const { from, to, overlap } of acceptedRenames) {
+    console.log(`[constitution-guard] rename accepted (${(overlap * 100).toFixed(1)}% content continuity): ${from.num} "${from.name.slice(0, 36)}" -> ${to.num} "${to.name.slice(0, 36)}"`);
   }
 
   // When removals and additions coexist undeclared, name the likely pairing
@@ -288,9 +372,20 @@ if (usedHatch.size) {
   console.warn(`[constitution-guard] ⚠ OVERRIDE ACTIVE — rule change(s) ${[...usedHatch].sort().join(', ')} were waved through by SWAN_ALLOW_RULE_REMOVAL.`);
   console.warn('[constitution-guard] ⚠ This authorizes ONLY those numbers. If you did not mean to set it, unset it — it is not scoped to one commit.');
 }
+// F6 (Kimi round 2): a warning printed at the moment of misuse is not expiry.
+// The hatch cannot be un-invented, but it CAN be made intolerable to leave set:
+// an entry that authorises nothing in THIS commit blocks the commit outright.
+// A variable left in a shell profile therefore fails the very next commit with an
+// instruction to unset it, instead of lying in wait to silently wave through a
+// removal three commits later. The cost is one loud failure; the alternative is a
+// standing bypass credential nobody remembers granting.
 const unused = [...allowed].filter((n) => !usedHatch.has(n));
 if (unused.length) {
-  console.warn(`[constitution-guard] ⚠ SWAN_ALLOW_RULE_REMOVAL names ${unused.join(', ')}, which changed nothing here — a stale override left set from an earlier commit.`);
+  blockers.push(`SWAN_ALLOW_RULE_REMOVAL names rule(s) ${unused.join(', ')}, which changed nothing in this commit — this is a STALE override still set from earlier work. Unset it: the hatch authorises exactly one commit, never a session. (\`unset SWAN_ALLOW_RULE_REMOVAL\`)`);
+}
+const unusedRenames = [...renamesDeclared].filter((n) => !usedRenames.has(n));
+if (unusedRenames.length) {
+  blockers.push(`SWAN_RULE_RENAME declares ${unusedRenames.join(', ')}, which renamed nothing in this commit — stale override. Unset it.`);
 }
 
 if (blockers.length === 0) {
