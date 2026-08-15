@@ -150,6 +150,17 @@ function parseRules(text) {
 const SHRINK_TOLERANCE = 0.02;
 
 /**
+ * Aggregate budget across all surviving rules (Kimi round 3, D3).
+ * Tighter than the per-rule floor on purpose: individual rules legitimately get
+ * tightened, but the WHOLE constitution shrinking is the clobber signature at a
+ * different scale. In the measured history the aggregate GREW, so any net loss
+ * across the corpus is already anomalous. 0.5% of ~180k chars ≈ 900 characters —
+ * roughly half a rule — which is the point at which "editorial tightening" stops
+ * being a plausible description of what happened.
+ */
+const AGGREGATE_SHRINK_TOLERANCE = 0.005;
+
+/**
  * Minimum token overlap for a DECLARED rename to be believed — also derived.
  * The one known-legitimate rename in this repo's history (rule 46, "3-Brain
  * Review Loop" -> "Kimi Hostile-Review Gate") scored **42.5%**. The reviewer
@@ -170,9 +181,79 @@ const STRUCTURAL = new Set([
   'mandatory', 'established', 'amended', 'added', 'rule', 'rules', 'body', 'text',
   'sean', 'claude', 'codex', 'swanstudios', 'this', 'that', 'with', 'from', 'have',
   'been', 'when', 'then', 'than', 'they', 'their', 'them', 'what', 'which', 'because',
-  'after', 'before', 'every', 'never', 'always', 'must', 'should', 'would', 'could',
+  'after', 'before', 'every',
+  // NOTE: 'never', 'always', 'must', 'should', 'would', 'could' were ALSO stripped
+  // here until Kimi round 3 (D1) pointed out that those words ARE the rule. Stripping
+  // modality from a continuity metric means an exact semantic inversion —
+  // "never commit generated files" -> "always commit generated files" — scores as
+  // near-perfect continuity. The check was blind to the single most damaging
+  // laundering payload in its own threat model. They are content; they stay.
 ]);
 const YEARISH = /^\d{4}(-\d{2})*$/;
+
+/**
+ * Two different jobs, and conflating them defeated the first version of this check.
+ *
+ * POLARITY decides whether a rule permits or forbids: never/always/not/forbidden.
+ * Flipping one inverts the rule. STRENGTH says how binding it is: must/shall/may.
+ * Those do not invert meaning.
+ *
+ * The first implementation compared the union. "You must never commit X" vs "You
+ * must always commit X" both contain `must`, so the shared-modal test passed and
+ * the inversion sailed through — its own regression test caught that. Only polarity
+ * is compared now.
+ */
+const POLARITY = new Set(['never', 'always', 'not', 'cannot', 'no', 'avoid', 'refuse',
+  'forbidden', 'prohibited', 'banned', 'only', 'except']);
+const STRENGTH = new Set(['must', 'shall', 'may', 'required', 'should']);
+const MODALS = new Set([...POLARITY, ...STRENGTH]);
+
+/**
+ * Detect a modality flip on shared subject matter.
+ *
+ * Bag-of-words overlap cannot see inversion: "never commit X; always run Y" and
+ * "always commit X; never run Y" have identical vocabulary. Measured on real data:
+ *   - presence-parity (does the rule still contain 'never'?)  MISSES the attack
+ *     entirely — both texts contain never:1 always:1.
+ *   - ordered-sequence parity BLOCKS the one legitimate rename in this repo's
+ *     history, whose modal sequence legitimately changed.
+ * Neither extreme is usable, so this checks the narrower thing that actually
+ * distinguishes them: a content word that was governed by one modality before and
+ * a DIFFERENT modality after. "commit" governed by 'never' then by 'always' is an
+ * inversion; a rule that simply grew new clauses is not.
+ *
+ * HONEST LIMIT: this is a heuristic, not a proof. A careful rewrite that changes
+ * meaning without reusing the victim's modal-object pairs will pass, as will any
+ * inversion expressed through synonyms. The rename hatch is a convenience for
+ * honest authors, not a boundary against a determined one — consistent with the
+ * `--no-verify` reality stated at the top of this file.
+ */
+function modalInversions(oldBody, newBody) {
+  const pairs = (s) => {
+    const w = s.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+    const out = new Map(); // content word -> Set(POLARITY modals governing it)
+    for (let i = 0; i < w.length; i += 1) {
+      if (!POLARITY.has(w[i])) continue; // strength modals do not invert meaning
+      // the next few non-modal words are what this modality governs
+      for (let j = i + 1; j < Math.min(i + 4, w.length); j += 1) {
+        if (MODALS.has(w[j]) || w[j].length <= 3) continue;
+        if (!out.has(w[j])) out.set(w[j], new Set());
+        out.get(w[j]).add(w[i]);
+        break;
+      }
+    }
+    return out;
+  };
+  const A = pairs(oldBody); const B = pairs(newBody);
+  const flipped = [];
+  for (const [word, oldModals] of A) {
+    const newModals = B.get(word);
+    if (!newModals) continue;                       // subject dropped — not an inversion
+    const shared = [...oldModals].some((m) => newModals.has(m));
+    if (!shared) flipped.push(`"${word}" was governed by ${[...oldModals].join('/')} and is now governed by ${[...newModals].join('/')}`);
+  }
+  return flipped;
+}
 
 /**
  * Content-word overlap, scaffolding removed. MEASURED separation on real data:
@@ -296,7 +377,23 @@ for (const file of touched) {
     violation();
   }
 
-  console.log(`[constitution-guard] ${file}: ${before.size} rules in HEAD -> ${after.size} staged; ${removed.length} removed, ${renumbered.length} renumbered, ${reverted.length} reverted`);
+  // D3 (Kimi round 3): the per-rule floor is per-rule, and the incident signature
+  // is a property of the DIFF. Trim twenty rules by 1.9% each and every one clears
+  // 2% while a rule's worth of constitution quietly disappears. Aggregate is
+  // measured over rules present in BOTH versions, so declared removals — which are
+  // already authorised and loud — do not count against the budget.
+  let aggBefore = 0; let aggAfter = 0;
+  for (const [key, was] of before) {
+    const now = after.get(key);
+    if (!now) continue;
+    aggBefore += was.len; aggAfter += now.len;
+  }
+  const aggShrink = aggBefore ? (aggBefore - aggAfter) / aggBefore : 0;
+  if (aggShrink > AGGREGATE_SHRINK_TOLERANCE) {
+    blockers.push(`${file}: the surviving rules lost ${(aggShrink * 100).toFixed(1)}% of their combined length (${aggBefore} -> ${aggAfter} chars) even though no single rule tripped the per-rule floor. Death by a thousand trims is the same outcome as a clobber. Declare it or split it.`);
+  }
+
+  console.log(`[constitution-guard] ${file}: ${before.size} rules in HEAD -> ${after.size} staged; ${removed.length} removed, ${renumbered.length} renumbered, ${reverted.length} reverted; aggregate body ${aggShrink >= 0 ? '-' : '+'}${Math.abs(aggShrink * 100).toFixed(2)}%`);
 
   // Q2 — rename is a first-class operation, not an error.
   // A rule renamed in place reads as removal-of-X + addition-of-Y, and the only
@@ -329,6 +426,8 @@ for (const file of touched) {
     const continuity = [];
     if (overlap < RENAME_MIN_OVERLAP) continuity.push(`content overlap ${(overlap * 100).toFixed(1)}% is below the ${(RENAME_MIN_OVERLAP * 100)}% floor — these read as two different rules, not one renamed`);
     if (removed[i].mandatory && !match.mandatory) continuity.push('the old rule was MANDATORY and the replacement is not — a rename cannot quietly downgrade a rule');
+    const flips = modalInversions(removed[i].body, match.body);
+    if (flips.length) continuity.push(`the obligation INVERTED on shared subject matter — ${flips.slice(0, 2).join('; ')}. Identical vocabulary with flipped modality is a rewrite, not a rename`);
     if (continuity.length) {
       blockers.push(`${file}: SWAN_RULE_RENAME ${removed[i].num}=${target} REJECTED — ${continuity.join('; ')}. If this really is a deletion plus an unrelated new rule, say so with SWAN_ALLOW_RULE_REMOVAL="${removed[i].num}" instead of calling it a rename.`);
       continue;
