@@ -302,6 +302,18 @@ export function useFreestyleSession(
   const requestDiscard = useCallback(() => {
     discardPendingRef.current = true;
     setDiscardPending(true);
+    /**
+     * Arming INTERRUPTS capture. While the confirm asks "delete this?", the
+     * microphone must not keep filling the very buffer under judgment — an
+     * aside spoken during the decision landed in the kept session (Codex,
+     * round 3). Backing out leaves the session paused; resuming is an explicit
+     * gesture, which iOS requires to re-arm the engine anyway.
+     */
+    if (stateRef.current === 'listening') {
+      pausedAtRef.current = nowRef.current();
+      stateRef.current = 'paused';
+      setState('paused');
+    }
   }, []);
   const cancelDiscard = useCallback(() => {
     discardPendingRef.current = false;

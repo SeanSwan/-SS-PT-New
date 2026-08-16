@@ -175,6 +175,41 @@ describe('CoachFreestyleOverlay — it actually hears (Fable F-2)', () => {
 
     expect(abortCalls).toBeGreaterThan(0);
   });
+
+  /**
+   * ROUND-3 REGRESSION (Codex). Resume only flipped session state; the engine
+   * was then started by a passive effect — outside the tap, which iOS Safari
+   * rejects. Resume now starts the engine inside the gesture, like Start.
+   */
+  it('resume starts the engine inside the tap', () => {
+    renderOverlay();
+    say('something');
+    act(() => { screen.getByLabelText('Pause listening').click(); });
+    const startsBefore = startCalls;
+
+    act(() => { screen.getByLabelText('Resume listening').click(); });
+
+    expect(startCalls).toBeGreaterThan(startsBefore);
+  });
+
+  /**
+   * ROUND-3 REGRESSION (Codex). While the "delete this?" confirm was up the
+   * mic stayed hot — an aside spoken during the decision joined the very
+   * buffer under judgment. Arming now flushes the mid-flight words (so they
+   * are judged with the rest) and releases the microphone.
+   */
+  it('arming the discard releases the microphone and keeps mid-flight words', () => {
+    renderOverlay();
+    say('captured phrase');
+    say('words mid flight', false);                 // interim at the arm
+    const abortsBefore = abortCalls;
+
+    act(() => { screen.getByLabelText('Discard session').click(); });
+
+    expect(abortCalls).toBeGreaterThan(abortsBefore);   // engine released
+    // Both the final and the flushed interim are in the buffer under judgment.
+    expect(screen.getByText('Fragments').previousSibling).toHaveTextContent('2');
+  });
 });
 
 describe('CoachFreestyleOverlay — it stops listening when it should (GLM S1/S4)', () => {
@@ -359,6 +394,27 @@ describe('CoachFreestyleOverlay — failure is told the truth (known R5)', () =>
     expect(screen.getByText(/microphone was disconnected/i)).toBeInTheDocument();
     // The mid-sentence words survived into the failed session's buffer.
     expect(screen.getByText('Fragments').previousSibling).toHaveTextContent('1');
+  });
+
+  /**
+   * ROUND-3 REGRESSION (GLM HIGH). On a browser with no Web Speech at all,
+   * retrying via "Start talking" failed with the IDENTICAL error string — the
+   * failure bridge (keyed on the string alone) never re-fired, the session sat
+   * in 'listening', and the UI promised "Talk as long as you need" over an
+   * engine that can never exist.
+   */
+  it('an unsupported browser can never reach the listening promise', () => {
+    delete (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition;
+    render(
+      <CoachFreestyleOverlay isOpen accountKey="trainer-a" onClose={vi.fn()} />,
+    );
+    expect(screen.getByText(/cannot listen continuously/i)).toBeInTheDocument();
+
+    const startButton = screen.queryByLabelText('Start talking');
+    if (startButton) act(() => { startButton.click(); });   // the designed retry path
+
+    expect(screen.queryByText(/Talk as long as you need/)).not.toBeInTheDocument();
+    expect(screen.getByText(/cannot listen continuously/i)).toBeInTheDocument();
   });
 
   /**

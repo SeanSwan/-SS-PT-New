@@ -208,7 +208,13 @@ describe('freestyle session — discard is two-step', () => {
     expect(result.current.state).toBe('idle');
   });
 
-  it('can be backed out of without losing anything', () => {
+  /**
+   * RE-ANCHORED (Codex round 3). Backing out used to leave the session
+   * 'listening' — but arming now PAUSES capture (the mic must not keep filling
+   * the buffer under judgment), and resuming after "Keep it" is an explicit
+   * gesture. The buffer itself still survives untouched.
+   */
+  it('can be backed out of without losing anything — resuming is explicit', () => {
     const { result } = setup();
     act(() => { result.current.start(); result.current.appendFragment('real work'); });
 
@@ -217,7 +223,24 @@ describe('freestyle session — discard is two-step', () => {
 
     expect(result.current.discardPending).toBe(false);
     expect(result.current.fragments).toHaveLength(1);
-    expect(result.current.state).toBe('listening');
+    expect(result.current.state).toBe('paused');
+    expect(result.current.canResume).toBe(true);
+  });
+
+  /**
+   * ROUND-3 REGRESSION (Codex). Arming only set a flag — the session stayed
+   * 'listening' and anything said while the confirm dialog was up landed in
+   * the very buffer being judged.
+   */
+  it('arming the discard pauses capture', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); result.current.appendFragment('real work'); });
+
+    act(() => { result.current.requestDiscard(); });
+
+    expect(result.current.state).toBe('paused');
+    act(() => { result.current.appendFragment('aside spoken during the confirm'); });
+    expect(result.current.fragments).toHaveLength(1);   // the aside did not land
   });
 
   /**

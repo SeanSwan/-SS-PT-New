@@ -186,8 +186,17 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   const failRef = useRef(fail);
   failRef.current = fail;
   useEffect(() => {
+    /**
+     * Keyed on state AS WELL AS the error string. A retry that fails with the
+     * IDENTICAL error (persistent start failure; unsupported browser) never
+     * changes `speech.error`, so an error-string-only dependency let
+     * handleStart commit the session to 'listening' and nothing ever failed it
+     * — "Talk as long as you need" over an engine that can never start (GLM,
+     * round 3). Re-entering capture re-evaluates the bridge; fail() no-ops
+     * outside listening/paused, so the healthy path is unaffected.
+     */
     if (speech.error) failRef.current(speech.error);
-  }, [speech.error]);
+  }, [speech.error, state]);
 
   const handleStop = useCallback(() => {
     // Order matters: flush promotes the pending interim into the session WHILE
@@ -208,10 +217,36 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
    * speech error — speech.start() re-runs the engine, whose success clears
    * the error that gates the follow effect above.
    */
+  /**
+   * Both gesture starters carry their own isOpen guard. They start the engine
+   * DIRECTLY (inside the tap, as iOS requires) — which bypasses the follow
+   * effect's isOpen gate, so without this check an invisible button press on
+   * the closed overlay would re-arm the microphone behind closed UI: the exact
+   * round-1 HIGH, reintroduced by the round-3 gesture fix and caught by its
+   * regression test.
+   */
   const handleStart = useCallback(() => {
+    if (!isOpen) return;
+    // An unsupported browser can never listen — committing the session to
+    // 'listening' first would flash a promise the engine cannot keep. The
+    // unsupported copy from the failed auto-start stays on screen instead.
+    if (!speech.supported) return;
     start();
     speechStart();
-  }, [start, speechStart]);
+  }, [isOpen, speech.supported, start, speechStart]);
+
+  /** Resume needs the same gesture treatment as Start — iOS requires the engine start inside the tap (Codex, round 3). */
+  const handleResume = useCallback(() => {
+    if (!isOpen) return;
+    resume();
+    speechStart();
+  }, [isOpen, resume, speechStart]);
+
+  /** Arming the discard flushes first, so the words mid-flight at the tap are judged with the rest. The session pause lives in the hook. */
+  const handleRequestDiscard = useCallback(() => {
+    speechFlushRef.current();
+    requestDiscard();
+  }, [requestDiscard]);
 
   const handleDiscard = useCallback(() => {
     discard();
@@ -238,12 +273,12 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (discardPending) cancelDiscard();
-      else if (!isStopped && fragments.length > 0) requestDiscard();
+      else if (!isStopped && fragments.length > 0) handleRequestDiscard();
       else handleClose();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, isStopped, discardPending, fragments.length, cancelDiscard, requestDiscard, handleClose]);
+  }, [isOpen, isStopped, discardPending, fragments.length, cancelDiscard, handleRequestDiscard, handleClose]);
 
   /**
    * FOCUS LIFECYCLE for an aria-modal dialog: focus moves in on open, cycles
@@ -400,7 +435,7 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
           )}
 
           {isPaused && (
-            <ControlButton type="button" onClick={resume} aria-label="Resume listening">
+            <ControlButton type="button" onClick={handleResume} aria-label="Resume listening">
               <Play size={18} aria-hidden="true" /> Resume
             </ControlButton>
           )}
@@ -418,7 +453,7 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
           )}
 
           {fragments.length > 0 && !isStopped && (
-            <ControlButton type="button" $variant="danger" onClick={requestDiscard} aria-label="Discard session">
+            <ControlButton type="button" $variant="danger" onClick={handleRequestDiscard} aria-label="Discard session">
               <Trash2 size={18} aria-hidden="true" /> Discard
             </ControlButton>
           )}
