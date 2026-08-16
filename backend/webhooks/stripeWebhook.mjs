@@ -293,6 +293,16 @@ const stripeWebhookHandler = async (req, res) => {
         }
         break;
       }
+      // Money leaving the business. Neither of these had a handler: an admin could
+      // issue a refund (adminChargeCardRoutes / adminGalleryRoutes both call
+      // stripe.refunds.create) or a customer could file a chargeback, and NOTHING
+      // downstream reacted — the buyer kept every granted session and their `client`
+      // role. Found by a local sweep 2026-08-16.
+      case 'charge.refunded':
+      case 'charge.dispute.created': {
+        await handleChargeReversal(event);
+        break;
+      }
       default:
         // Unexpected event type
         logger.info(`Unhandled event type: ${event.type}`);
@@ -316,6 +326,111 @@ router.post('/', rawBodyMiddleware, stripeWebhookHandler);
 /**
  * Process actions needed after an order is completed
  */
+/**
+ * Handle money flowing BACK out — a refund or a chargeback.
+ *
+ * DELIBERATELY POLICY-NEUTRAL, and that is the whole design.
+ *
+ * Whether a refund should claw back every granted session, only the unused ones, or
+ * none of them is a customer-trust decision, not a technical one, and it has not been
+ * made. Auto-revoking would be irreversible and wrong under two of the three plausible
+ * policies — so this does only what is correct under ALL of them:
+ *
+ *   1. mark the order refunded (dispute: flagged, NOT refunded — a dispute may be won)
+ *   2. raise an ADMIN_NOTIFICATION carrying the amount and the order
+ *   3. say explicitly that sessions were NOT auto-revoked, so nobody assumes they were
+ *
+ * It never touches sessions or roles. When the policy is decided, revocation hangs off
+ * this function; the detection is already in place and tested.
+ *
+ * An UNMATCHED charge still alerts. Silent fall-through on a money event is the defect
+ * (same class as the ACH orphan-payment path), not an acceptable fallback.
+ *
+ * Alert failures are swallowed: a down mail transport must not turn a refund webhook
+ * into a 500, because Stripe retries 500s and sustained failures get the endpoint
+ * disabled — which would kill fulfillment for ALL sales.
+ */
+async function handleChargeReversal(event) {
+  const isDispute = event.type === 'charge.dispute.created';
+  const object = event.data.object;
+
+  // A dispute's object is the dispute; a refund's object is the charge.
+  const paymentIntentId = object?.payment_intent || null;
+  const chargeId = isDispute ? object?.charge : object?.id;
+  const amountCents = (isDispute ? object?.amount : object?.amount_refunded) ?? 0;
+  const amount = Number(amountCents) / 100;
+
+  let order = null;
+  try {
+    if (paymentIntentId) {
+      const { default: Order } = await import('../models/Order.mjs');
+      // Both columns are populated depending on the rail that created the order:
+      // ACH writes `paymentId`, the card path writes `stripePaymentIntentId`.
+      order = await Order.findOne({ where: { stripePaymentIntentId: paymentIntentId } })
+        || await Order.findOne({ where: { paymentId: paymentIntentId } });
+
+      if (order && !isDispute) {
+        // A dispute is not a refund — it can still be won. Only a real refund
+        // moves the order's status.
+        await order.update({ status: 'refunded' });
+      }
+    }
+  } catch (lookupError) {
+    logger.error('[Webhook] Charge reversal: order lookup/update failed', {
+      eventType: event.type,
+      chargeId,
+      errorName: lookupError?.name,
+      errorMessage: lookupError?.message,
+    });
+  }
+
+  const label = isDispute ? 'Chargeback opened' : 'Refund issued';
+  logger.warn(`[Webhook] ${label}`, {
+    eventType: event.type,
+    chargeId,
+    paymentIntentId,
+    amount,
+    orderId: order?.id ?? null,
+    orderNumber: order?.orderNumber ?? null,
+    matched: Boolean(order),
+  });
+
+  try {
+    await sendNotification({
+      type: 'ADMIN_NOTIFICATION',
+      title: order
+        ? `${label} — review granted sessions`
+        : `${label} — NO MATCHING ORDER`,
+      message: order
+        ? `${label}: $${amount.toFixed(2)} on order ${order.orderNumber}. `
+          + 'Sessions and role were NOT changed automatically — review and adjust manually.'
+        : `${label}: $${amount.toFixed(2)} for charge ${chargeId}, but no order matched `
+          + `payment intent ${paymentIntentId}. Investigate — this payment is unreconciled.`,
+      data: {
+        type: isDispute ? 'charge_dispute' : 'charge_refund',
+        eventType: event.type,
+        chargeId,
+        paymentIntentId,
+        amount,
+        orderId: order?.id ?? null,
+        orderNumber: order?.orderNumber ?? null,
+        userId: order?.userId ?? null,
+        cartId: order?.cartId ?? null,
+        sessionsAutoRevoked: false,
+        reason: isDispute ? object?.reason ?? null : null,
+        actionRequired: 'MANUAL_SESSION_REVIEW',
+      },
+    });
+  } catch (notifyError) {
+    // Never rethrow: a 500 here triggers Stripe retries and endpoint disabling.
+    logger.error('[Webhook] Charge reversal: admin notification failed', {
+      chargeId,
+      errorName: notifyError?.name,
+      errorMessage: notifyError?.message,
+    });
+  }
+}
+
 export async function processCompletedOrder(cartId, { grantResult = null, stripeSessionId = null } = {}) {
   try {
     // Retrieve the completed cart with its items
