@@ -1,5 +1,6 @@
 // /backend/routes/cartRoutes.mjs
-// Enhanced cart routes with role-based access control and user role upgrade logic
+// Enhanced cart routes with role-based access control.
+// Role promotion (user -> client) is NOT done here — see the note below.
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
@@ -10,8 +11,7 @@ import {
   getShoppingCart,
   getCartItem, 
   getStorefrontItem,
-  getProductVariant,
-  getUser
+  getProductVariant
 } from '../models/index.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
@@ -263,27 +263,15 @@ const validatePurchaseRole = (req, res, next) => {
   next();
 };
 
-// Check if user role should be upgraded after adding training packages
-const checkUserRoleUpgrade = async (user, cartItems) => {
-  // If user has 'user' role and adds training sessions, they should be upgraded to 'client'
-  if (user.role === 'user') {
-    const hasTrainingPackages = cartItems.some(item => {
-      const itemName = item.storefrontItem?.name || '';
-      return itemName.includes('Gold') || itemName.includes('Platinum') || 
-             itemName.includes('Rhodium') || itemName.includes('Silver');
-    });
-    
-    if (hasTrainingPackages) {
-      const User = getUser(); // 🎯 ENHANCED: Lazy load User model
-      await User.update({ role: 'client' }, { where: { id: user.id } });
-      logger.info('[Cart] User role upgraded after training package detection', {
-        userId: user.id
-      });
-      return true;
-    }
-  }
-  return false;
-};
+// NOTE: role promotion (user -> client) deliberately does NOT live here.
+// It used to run on POST /add, matching a storefront item's *display name*
+// against 'Gold'/'Platinum'/'Rhodium'/'Silver' and writing role: 'client' with
+// no payment — any authenticated user could self-promote by adding a package and
+// removing it again (GLM security audit 2026-08-15, Finding 2).
+// The promotion now happens only on the payment-success path, keyed on sessions
+// actually granted: SessionGrantService.buildUserPurchaseUpdate
+// (`sessionsToAdd > 0 && user.role === 'user'`) and the equivalent in
+// sessionPackageCheckoutFulfillmentService. Do not reintroduce a cart-time write.
 
 // --- Conditionally initialize Stripe ---
 let stripeClient = null;
@@ -379,8 +367,7 @@ router.post('/add', protect, cartMutationLimiter, ensureNumericCartUser, validat
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
     const ProductVariant = getOptionalProductVariant();
-    const User = getUser();
-    
+
     const { storefrontItemId, productVariantId, quantity = 1 } = req.body;
     
     const normalizedStorefrontItemId = parsePositiveInteger(storefrontItemId);
@@ -547,24 +534,6 @@ router.post('/add', protect, cartMutationLimiter, ensureNumericCartUser, validat
       itemsWithStorefrontData: updatedCartItems.filter(item => item.storefrontItem).length
     });
 
-    // Check if user role should be upgraded
-    let userRoleUpgraded = false;
-    try {
-      const user = await User.findByPk(req.authUserId);
-      userRoleUpgraded = await checkUserRoleUpgrade(user, updatedCartItems);
-      if (userRoleUpgraded) {
-        logger.info('[Cart] User role upgraded after cart add', {
-          userId: req.authUserId
-        });
-      }
-    } catch (roleUpgradeError) {
-      logger.warn('[Cart] Role upgrade check failed', {
-        userId: req.authUserId,
-        ...toCartErrorMetadata(roleUpgradeError, 'cart_role_upgrade_failed')
-      });
-      // Don't fail the request if role upgrade fails
-    }
-
     // Use persisted totals or calculate as fallback
     const { total: cartTotal, totalSessions } = getCartTotalsWithFallback({
       id: cart.id,
@@ -580,8 +549,7 @@ router.post('/add', protect, cartMutationLimiter, ensureNumericCartUser, validat
       items: updatedCartItems,
       total: cartTotal,
       totalSessions, // Include session count for future dashboard integration
-      itemCount: updatedCartItems.length,
-      userRoleUpgrade: userRoleUpgraded // Inform frontend about role upgrade
+      itemCount: updatedCartItems.length
     });
   } catch (error) {
     logCartError('[Cart] Failed to add item to cart', error, req);
