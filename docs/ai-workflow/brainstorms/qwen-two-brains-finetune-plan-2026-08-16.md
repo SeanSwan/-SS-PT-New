@@ -7,7 +7,25 @@ sanitized: true
 
 # Three Local Brains — Qwen Fine-Tuning Master Plan
 > Filename says "two-brains" for link stability; Track C (coder+designer) was added mid-session on Sean's directive 2026-08-16.
-**Date:** 2026-08-16 · **Author:** Fable 5 (Final Decider) · **Review round staged:** GLM-5.3 + Kimi K3 (paid, fires only on Sean's go)
+
+---
+
+## ⚖ REVISION R1 — BINDING (post GLM-5.3 + Kimi K3 hostile review, 2026-08-16)
+
+The paid review round ran; both models independently destroyed the plan's **measurement layer** while ratifying its strategy. **Where this block conflicts with the body below, this block wins.** Full verified-findings table, rulings on the two models' disagreements, and the fourteen binding amendments live in [`qwen-finetune-reviews-2026-08-16/03-FABLE-SYNTHESIS.md`](qwen-finetune-reviews-2026-08-16/03-FABLE-SYNTHESIS.md). The load-bearing changes a builder must not miss:
+
+1. **All three acceptance gates are rebuilt** (§3.3, §4.4, §4-C.4 as written are statistically void — a ≥7/10 blinded gate passes a coin-flip model ~17% of the time). New law: dev/frozen-eval split; Track A ≥200 paired prompts + ≥50 brand traps + ≥50 safety probes; blinded position-swapped pairwise judging with paired stats and CIs; promotion = win ≥58% with CI>50% overall AND on the safety slice; Sean authors/approves all safety+voice eval ideals; eval inputs come from a different model family than training rows, with train↔eval dedupe; judge pinned + human-audited (≥25 judgments/run, <80% Sean-agreement → rubric rebuilt); 50-item general-capability canary per track (<5-pt drop).
+2. **S8a runs BEFORE S5:** base Qwen3-4B (and 1.7B fallback) latency on T's actual phone (Android 14) via llama.rn — prefill/decode decomposition, 3 quant levels. Prefill >4s → re-target before any dataset build.
+3. **Track B gate is four-arm:** tuned+grammar / **base+prompt+GBNF-grammar** (the free baseline the plan omitted) / base+prompt / rules-only — with a pre-registered record-matching spec, hallucinated-attribution ≤1% absolute, a false-uncertain rate gate, and **on-device eval by T on her real dumps as a promotion requirement**.
+4. **VRAM law:** the Hermes 30B brain holds ~25GB of the 32GB card. Training and 32k evals require the launcher preflight to stop/pause Ollama-Hermes and refuse to start under headroom threshold (folds into U4).
+5. **Guard layer replaces trained bans:** enumerable rules (banned strings, retired tokens, MUI, hex-vs-token, TTS numbers, css`` lint) move to a deterministic inference-time filter; correction rows may never name forbidden artifacts (no retired hex in any assistant turn); weights keep only non-enumerable judgment.
+6. **Track C is demoted from scheduled work to a gated bet:** new SC0 (base Qwen3-Coder + house-context prompt vs the 100-eval set) runs cheap and first; SC1/SC2 are **blocked** until Track A ships end-to-end AND SC0 shows real headroom; base-model decision tree: dense Qwen3-Coder ≤14B → Qwen2.5-Coder-14B-Instruct → MoE 30B-A3B only after smoke-train → generalist Qwen3-14B.
+7. **Stage-2 shadow logging gets a spec** (write-time redaction, encrypted, ≤30-day purge, Sean-only, aggregate-only reporting, explicit Sean gate) — without it the privacy doctrine leaks on our own workstation. **Stage 3 collapses to a decision gate that expects "no"** — the standing end-state is 5090 + paid frontier for ambiguity.
+8. **Contract freeze becomes an artifact:** versioned JSON Schema + semantics, hash-pinned in the dataset profile; the builder refuses any other hash; rows tagged `contract_version`.
+9. **DPO phase 2 per track:** failure corrections are kept as chosen/rejected pairs (the plan was flattening away half the signal); accessibility slice cut to the two judgment behaviors + contrast pairs with its own 30-prompt eval; **T-voiced fictional-children dumps** (real register, zero child data) become the Track B dev/eval crown jewel — never trained; mined-transcript rows require per-row Sean sign-off (Q5 is a gate now); promotion judged on merged bf16 with a ±3-pt quant-drop check, thinking-mode locked with a round-trip leak probe, and a champion/challenger model registry with one-command rollback.
+
+---
+**Date:** 2026-08-16 · **Author:** Fable 5 (Final Decider) · **Review round:** GLM-5.3 + Kimi K3 — FIRED 2026-08-16 on Sean's go; see Revision R1
 **Source prompt:** Sean's dictated vision + the Unsloth Studio fine-tuning tutorial transcript
 **Grounding:** repo-verified against `C:\Users\BigotSmasher\Desktop\ai-agent-tuning\` and `docs/ai-workflow/brainstorms/classroom-copilot-2026-08-15/` (through R5 synthesis)
 
@@ -23,7 +41,7 @@ Dictation artifacts I resolved — each carries a flag if I guessed:
 | "unsoft / unslot / onslaught setup on my desktop" | `C:\Users\BigotSmasher\Desktop\ai-agent-tuning\` — `Start-AI-Agent-Tuning.cmd` double-click launcher + Unsloth Studio | `[VERIFIED]` — found and read |
 | "set up classroom / classroom copilot" | `docs/ai-workflow/brainstorms/classroom-copilot-2026-08-15/` — the local-first preschool assistant for T | `[VERIFIED]` |
 | "enhance the site … all age ranges, people who can't see" | Accessibility becomes **training data**, not just UI polish — see §7 | interpretation, see §7 |
-| "GLM 5.3 and Kimi K3 as well as Fable create a plan" | Fable (me) authors; GLM+Kimi run the hostile round on this doc via `scripts/consult-glm.mjs` / `consult-kimi.mjs` | staged, §11 |
+| "GLM 5.3 and Kimi K3 as well as Fable create a plan" | Fable (me) authors; GLM+Kimi ran the hostile round on this doc — Revision R1 carries their verdicts | done, §11 + R1 |
 
 **Collision warning:** a parallel session currently holds locks on the classroom-copilot R5 review files and another is building the **Desk deterministic gate + held-out adversarial harness**. This plan *consumes* their outputs (the harness becomes our eval set) and touches none of their files.
 
@@ -293,7 +311,7 @@ Plain truths to plan around, so the dream stays real:
 
 ---
 
-## 11. External review round (staged, not fired)
+## 11. External review round (FIRED 2026-08-16 — see Revision R1 above)
 
 Sean gave the explicit go mid-session 2026-08-16 ("run Kimi K3 and GLM 5.3 on that too, as well as you"). This document is born sanitized (no client names, T/C1..Cn convention preserved, no secrets) and ships as the consult packet as-is via `scripts/consult-glm.mjs` + `scripts/consult-kimi.mjs`. **One round, both models, unlensed, full-spectrum with DISSENT sections** — same shape that worked in classroom R5. Replies + Fable synthesis land in `docs/ai-workflow/brainstorms/qwen-finetune-reviews-2026-08-16/`.
 
