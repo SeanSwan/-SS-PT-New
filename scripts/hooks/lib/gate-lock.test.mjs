@@ -21,7 +21,11 @@ import { mkdtempSync, readFileSync, rmSync, statSync, utimesSync, writeFileSync 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { acquireCounterLock, releaseCounterLock, readLockHolder, LOCK_STALE_MS } from './gate-lock.mjs';
+import { spawn } from 'node:child_process';
+
+import { acquireCounterLock, releaseCounterLock, readLockHolder, LOCK_STALE_MS, stillOwnsLock } from './gate-lock.mjs';
+
+const lockModuleUrl = new URL('./gate-lock.mjs', import.meta.url).href;
 
 let total = 0;
 let passed = 0;
@@ -32,6 +36,7 @@ function freshDir() {
   made.push(dir);
   return dir;
 }
+function lockPath() { return join(freshDir(), 'c.lock'); }
 function check(name, fn) {
   total += 1;
   test(name, async (t) => { await fn(t); passed += 1; });
@@ -162,6 +167,113 @@ check('a corrupted lock file cannot be released by a stale handle', () => {
   writeFileSync(p, 'NOT JSON', 'utf8');
   assert.equal(releaseCounterLock(a), false, 'an unparseable holder record is not proof of ownership');
   assert.equal(readFileSync(p, 'utf8'), 'NOT JSON', 'and the file is left alone');
+});
+
+/* ==========================================================================
+ * GLM-5.3 hostile review (2026-08-16).
+ * ========================================================================== */
+
+check('GLM Q10b (HIGH): the bare-path release form is GONE, not merely discouraged', () => {
+  const p = lockPath();
+  const victim = acquireCounterLock({ lockPath: p });
+  assert.equal(victim.ok, true);
+  // Before the fix: releaseCounterLock(p) unlinked a LIVE holder's lock from any
+  // caller that could import the module, and returned true. Verified by probe.
+  assert.throws(() => releaseCounterLock(p), TypeError, 'a bare path must be refused loudly');
+  assert.equal(stillOwnsLock(victim), true, "the honest holder still holds it");
+  assert.equal(releaseCounterLock(victim), true);
+});
+
+check('GLM Q6: stillOwnsLock catches the seconds-wide steal a long section invites', () => {
+  const p = lockPath();
+  const a = acquireCounterLock({ lockPath: p });
+  assert.equal(a.ok, true);
+  assert.equal(stillOwnsLock(a), true, 'the holder owns it immediately after acquiring');
+
+  // A critical section outruns the TTL; B legitimately reclaims. No race is
+  // needed — this is the ordinary case for a review that runs over two minutes.
+  // Staleness is judged against the lock file real mtime, so the simulated
+  // clock must be an offset from the real one, not an absolute epoch value.
+  const b = acquireCounterLock({ lockPath: p, now: Date.now() + LOCK_STALE_MS + 1000 });
+  assert.equal(b.ok, true);
+  assert.equal(b.stolen, true);
+
+  // A now finishes and is about to write the protected state. Before this
+  // helper existed there was no way for A to discover it had been displaced.
+  assert.equal(stillOwnsLock(a), false, 'A must be able to learn it no longer holds the lock');
+  assert.equal(stillOwnsLock(b), true);
+  assert.equal(releaseCounterLock(a), false, 'and A still must not delete B lock');
+  assert.equal(releaseCounterLock(b), true);
+});
+
+check('GLM Q6: stillOwnsLock is false for a vanished lock and a tokenless handle', () => {
+  const p = lockPath();
+  const a = acquireCounterLock({ lockPath: p });
+  assert.equal(releaseCounterLock(a), true);
+  assert.equal(stillOwnsLock(a), false, 'a released lock is not owned');
+  assert.equal(stillOwnsLock({ path: p }), false, 'no token, no ownership');
+  assert.equal(stillOwnsLock(undefined), false);
+  assert.equal(stillOwnsLock(null), false);
+});
+
+check('GLM Q9: TWO REAL PROCESSES contend for the counter and no increment is lost', async () => {
+  // The gap GLM called the one that worries it most: not one multi-process test
+  // in a module whose reason to exist is two-process mutual exclusion. Every
+  // prior test faked the second party with an injected stat.
+  const dir = freshDir();
+  const p = join(dir, 'storm.lock');
+  const counter = join(dir, 'storm-counter.json');
+  writeFileSync(counter, JSON.stringify({ n: 0 }), 'utf8');
+
+  const worker = join(dir, 'worker.mjs');
+  writeFileSync(worker, [
+    "import { readFileSync, writeFileSync } from 'node:fs';",
+    "import { acquireCounterLock, releaseCounterLock, stillOwnsLock } from " + JSON.stringify(lockModuleUrl) + ";",
+    "const [lockPath, counterPath, iters] = process.argv.slice(2);",
+    "let done = 0;",
+    "for (let i = 0; i < Number(iters); i += 1) {",
+    "  let h = null;",
+    "  for (let attempt = 0; attempt < 20000 && !h; attempt += 1) {",
+    "    const r = acquireCounterLock({ lockPath });",
+    "    if (r.ok) { h = r; break; }",
+    "  }",
+    "  if (!h) continue;",
+    "  const cur = JSON.parse(readFileSync(counterPath, 'utf8'));",
+    "  cur.n += 1;",
+    "  if (stillOwnsLock(h)) { writeFileSync(counterPath, JSON.stringify(cur), 'utf8'); done += 1; }",
+    "  releaseCounterLock(h);",
+    "}",
+    "process.stdout.write(String(done));",
+  ].join('\n'), 'utf8');
+
+  const ITER = 100;
+  const run = (id) => new Promise((resolve) => {
+    const cp = spawn(process.execPath, [worker, p, counter, String(ITER)], { stdio: ['ignore', 'pipe', 'inherit'] });
+    let out = '';
+    cp.stdout.on('data', (d) => { out += d; });
+    cp.on('close', () => resolve(Number(out || 0)));
+  });
+
+  const [d1, d2] = await Promise.all([run(1), run(2)]);
+  const final = JSON.parse(readFileSync(counter, 'utf8')).n;
+  // The invariant: the counter equals the number of increments actually
+  // committed under the lock. A lost update shows up as final < d1 + d2.
+  assert.equal(final, d1 + d2, 'two real processes must not lose an increment (' + d1 + '+' + d2 + ' vs ' + final + ')');
+  assert.ok(final > 0, 'the storm must actually have done work');
+});
+
+check('stillOwnsLock rests on the TOKEN, not the inode (mutation-found gap)', () => {
+  const p = join(freshDir(), 'c.lock');
+  const a = acquireCounterLock({ lockPath: p });
+  assert.equal(stillOwnsLock(a), true);
+  // Every other stillOwnsLock assertion is satisfied by the inode check alone, so
+  // a mutant that made the token comparison `return true` SURVIVED the suite.
+  // Rewriting in place keeps the inode and changes only the token.
+  writeFileSync(p, JSON.stringify({ pid: 1, token: 'someone-elses-token', ts: Date.now() }), 'utf8');
+  assert.equal(stillOwnsLock(a), false, 'an in-place re-claim must revoke ownership');
+  // And a corrupt body is not ownership either.
+  writeFileSync(p, 'not json', 'utf8');
+  assert.equal(stillOwnsLock(a), false);
 });
 
 process.on('exit', () => {

@@ -33,6 +33,21 @@
  *
  * HARD PRECONDITION: same machine, same filesystem. mtime-based staleness across
  * a synced mount (containers sharing a network volume) is simply broken.
+ *
+ * WHAT THIS LOCK IS, HONESTLY (GLM Q2). It is COOPERATIVE SERIALIZATION between
+ * two honest gate processes. It is NOT a defense against the examinee, and no
+ * consumer may treat it as one. The lock file sits in the agent-writable
+ * worktree, so a single line defeats it without touching this module:
+ *
+ *   while true; do touch .ai-workflow/coordination/review-counter.lock; sleep 60; done
+ *
+ * — the lock never ages out, every honest gate gets `contention` forever, and
+ * that DoS converts to a fail-open the moment a consumer handles lock exhaustion
+ * by allowing. `rm`-ing the lock mid-section is equally available. This is why
+ * the injectable `now`/`statFn` seams are KEPT: they are attack-equivalent to a
+ * `utimesSync` the adversary already has, so removing them would buy testability
+ * losses and no security. Integrity of the protected state must come from
+ * verifying that state (fencing tokens, `stillOwnsLock`), never from the lock.
  */
 import { closeSync, fstatSync, mkdirSync, openSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
@@ -147,21 +162,51 @@ export function acquireCounterLock({
 }
 
 /**
- * Release a lock we hold. Pass the handle returned by acquireCounterLock —
- * release then verifies dev/ino/token and refuses to unlink someone else's lock.
+ * Do we STILL hold this lock? (GLM Q6.)
  *
- * Passing a bare path string is the UNCHECKED legacy path: it unlinks whatever
- * is there. It exists only for cleanup tooling that never held the lock, and it
- * is exactly the behaviour that let v1 delete a thief's lock (S2). Do not use it
- * from a gate.
+ * The documented stat→unlink race is microseconds wide and genuinely hard to
+ * close in portable Node. The undocumented one is SECONDS wide and needed no
+ * race at all: a holder whose critical section outruns LOCK_STALE_MS has its
+ * lock legitimately stolen, then finishes its work and writes the protected
+ * state anyway, because nothing ever asked whether it was still the holder. With
+ * a 120s TTL and hostile reviews that routinely run minutes, that is the common
+ * case, not the exotic one. Call this immediately before writing protected
+ * state; if it returns false, discard the work rather than write it.
+ */
+export function stillOwnsLock(handle) {
+  if (!handle?.path || !handle.token) return false;
+  let st;
+  try { st = statSync(handle.path); } catch { return false; }
+  const inoKnown = handle.ino !== undefined && st.ino !== undefined && st.ino !== 0 && handle.ino !== 0;
+  if (inoKnown && st.ino !== handle.ino) return false;
+  let body;
+  try { body = JSON.parse(readFileSync(handle.path, 'utf8')); } catch { return false; }
+  return body?.token === handle.token;
+}
+
+/**
+ * Release a lock we hold. Pass the handle returned by acquireCounterLock —
+ * release verifies inode and token and refuses to unlink someone else's lock.
+ *
+ * GLM Q10b (CRITICAL-adjacent, HIGH, verified 2026-08-16): the bare-string
+ * branch that used to live here unlinked whatever sat at the path,
+ * unconditionally, from any code that could `import` the module. The S2 fix
+ * therefore shipped with S2's weapon still on the public surface —
+ * `releaseCounterLock(counterLockPath())` deleted a live holder's lock and let
+ * the caller take it. A docblock saying "cleanup tooling only, do not use from a
+ * gate" is a comment, not a mechanism, and the examinee is arbitrary code with
+ * repo access. The branch is DELETED. Cleanup tooling calls `unlinkSync` itself
+ * and gets reviewed as the dangerous code it is.
  *
  * @returns {boolean} true if WE removed OUR lock.
  */
-export function releaseCounterLock(handleOrPath) {
-  if (typeof handleOrPath === 'string') {
-    try { unlinkSync(handleOrPath); return true; } catch { return false; }
+export function releaseCounterLock(handle) {
+  if (typeof handle === 'string') {
+    throw new TypeError(
+      'releaseCounterLock requires the handle returned by acquireCounterLock. '
+      + 'The bare-path form was removed: it unlinked any lock unconditionally (GLM Q10b).',
+    );
   }
-  const handle = handleOrPath;
   if (!handle?.path) return false;
   if (!handle.token) return false; // never blind-unlink from a handle-shaped call
 

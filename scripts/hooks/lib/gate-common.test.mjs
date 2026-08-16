@@ -16,12 +16,14 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, statSync, utimesSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
-  appendTelemetry, readJsonResult, readJsonOrDefault, appendJsonl, readJsonl,
+  appendTelemetry, readJsonResult, readJsonUnsafeCollapse, appendJsonl, readJsonl,
+  auditJsonl, disableChannelStatus, setGateRoot, setDisableRoot, sanitizeGateEnv,
+  gitSafeEnv, HOSTILE_GIT_ENV, MAX_TELEMETRY_LINE_BYTES, MAX_REASON_CHARS,
   writeJsonAtomic, isDisabled, listDisabled, failOpen, headSha, sessionId,
   stampSessionStart, sessionAnchor, sessionStartMs, mtimeLooksFresh, fileSha256,
   isFreshForSha, telemetryPath, counterLockPath, disabledDir, qaDir,
@@ -35,8 +37,8 @@ const made = [];
 function freshRoot() {
   const dir = mkdtempSync(join(tmpdir(), 'swan-gate-'));
   made.push(dir);
-  process.env.SWAN_GATE_ROOT = dir;
-  delete process.env.SWAN_DISABLE_ROOT;
+  setGateRoot(dir);
+  setDisableRoot(null);
   return dir;
 }
 function lastLine() {
@@ -108,7 +110,7 @@ check('KIMI S6: readJsonResult discriminates missing / corrupt / unreadable', ()
   const r = readJsonResult(asDir);
   assert.equal(r.ok, false);
   assert.equal(r.error, 'unreadable', 'an I/O fault is not "missing"');
-  assert.equal(readJsonOrDefault(bad, 'FB'), 'FB', 'explicit collapse still available');
+  assert.equal(readJsonUnsafeCollapse(bad, 'FB'), 'FB', 'explicit collapse still available');
 });
 
 check('appendJsonl creates dirs and appends one line per call; readJsonl skips torn lines', () => {
@@ -153,7 +155,7 @@ check('KIMI S5: isDisabled rejects traversal, is case-insensitive, and telemeter
   assert.equal(isDisabled('a/b'), false);
 });
 
-check('HY3 D1: listDisabled enumerates markers, and SWAN_DISABLE_ROOT moves them out of the tree', () => {
+check('HY3 D1: listDisabled enumerates markers, and setDisableRoot moves them out of the tree', () => {
   const dir = freshRoot();
   mkdirSync(disabledDir(), { recursive: true });
   writeFileSync(join(disabledDir(), 'gate-a'), '', 'utf8');
@@ -161,10 +163,10 @@ check('HY3 D1: listDisabled enumerates markers, and SWAN_DISABLE_ROOT moves them
   assert.deepEqual(listDisabled(), ['gate-a', 'gate-b']);
   const outside = join(dir, 'privileged');
   mkdirSync(outside, { recursive: true });
-  process.env.SWAN_DISABLE_ROOT = outside;
+  setDisableRoot(outside);
   assert.deepEqual(listDisabled(), [], 'override reads the privileged root, not the in-tree one');
   assert.equal(isDisabled('gate-a'), false);
-  delete process.env.SWAN_DISABLE_ROOT;
+  setDisableRoot(null);
 });
 
 
@@ -242,6 +244,237 @@ check('fileSha256 hashes bytes and reports null for unreadable paths', () => {
   assert.equal(fileSha256(p), '2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824');
   assert.equal(fileSha256(join(dir, 'missing.txt')), null);
   assert.equal(typeof sessionId(), sessionId() === null ? 'object' : 'string');
+});
+
+/* ==========================================================================
+ * GLM-5.3 hostile review (2026-08-16) — every test below kills a defect that
+ * was CONFIRMED BY EXECUTED PROBE against the shipped code before it was fixed.
+ * ========================================================================== */
+
+check('GLM Q1 (CRITICAL): env vars can no longer relocate the trust root', () => {
+  const real = freshRoot();
+  const evil = mkdtempSync(join(tmpdir(), 'swan-evil-'));
+  made.push(evil);
+  process.env.SWAN_GATE_ROOT = evil;
+  process.env.SWAN_DISABLE_ROOT = evil;
+  try {
+    // Before the fix, one env var moved telemetry, counter, lock, anchor and
+    // disable markers into a directory the examinee had just built.
+    for (const p of [telemetryPath(), counterLockPath(), disabledDir(), qaDir()]) {
+      assert.ok(!String(p).startsWith(evil), 'env must not relocate ' + p);
+      assert.ok(String(p).startsWith(real), 'in-process setter still governs');
+    }
+  } finally {
+    delete process.env.SWAN_GATE_ROOT;
+    delete process.env.SWAN_DISABLE_ROOT;
+  }
+});
+
+check('GLM Q1: sanitizeGateEnv strips the hostile vars and reports the attempt', () => {
+  freshRoot();
+  const env = { SWAN_GATE_ROOT: '/tmp/x', GIT_DIR: '/tmp/y', PATH: '/usr/bin', KEEP: '1' };
+  const found = sanitizeGateEnv(env);
+  assert.ok(found.includes('SWAN_GATE_ROOT') && found.includes('GIT_DIR'), 'attempt is reported, not silently cleaned');
+  assert.equal(env.SWAN_GATE_ROOT, undefined);
+  assert.equal(env.GIT_DIR, undefined);
+  assert.equal(env.KEEP, '1', 'unrelated vars survive');
+});
+
+check('GLM Q10a (CRITICAL): headSha strips GIT_DIR so HEAD cannot be forged', () => {
+  freshRoot();
+  const env = gitSafeEnv({ GIT_DIR: '/tmp/fake/.git', GIT_WORK_TREE: '/tmp/fake', PATH: '/usr/bin' });
+  for (const k of HOSTILE_GIT_ENV) assert.equal(env[k], undefined, k + ' must not reach git');
+  assert.equal(env.PATH, '/usr/bin', 'PATH is preserved (residual risk, documented)');
+  let seen = null;
+  const sha = headSha('/nowhere', { exec: (_b, _a, opts) => { seen = opts.env; return 'deadbeef\n'; } });
+  assert.equal(sha, 'deadbeef');
+  assert.equal(seen.GIT_DIR, undefined, 'the spawned git must not inherit GIT_DIR');
+});
+
+check('GLM Q5: an oversized reason is clamped so telemetry lines cannot tear', () => {
+  freshRoot();
+  appendTelemetry({ gate: 'g', boundary: 'push', result: 'fail-open', reason: 'E'.repeat(8192) });
+  const raw = readFileSync(telemetryPath(), 'utf8').trim().split(/\r?\n/).pop();
+  assert.ok(Buffer.byteLength(raw) <= MAX_TELEMETRY_LINE_BYTES, 'line was ' + Buffer.byteLength(raw) + ' bytes');
+  const parsed = JSON.parse(raw);
+  assert.ok(parsed.reason.length < 8192, 'reason is truncated');
+  assert.ok(parsed.reason.includes('+'), 'truncation is visible, not silent');
+  assert.equal(parsed.result, 'fail-open', 'the record itself survives intact');
+});
+
+check('GLM Q5: auditJsonl reports damage instead of silently skipping it', () => {
+  const dir = freshRoot();
+  const p = join(dir, 'x.jsonl');
+  writeFileSync(p, '{"a":1}\nNOT JSON\n{"b":2}\n', 'utf8');
+  const a = auditJsonl(p);
+  assert.equal(a.lines.length, 2);
+  assert.equal(a.malformed, 1, 'damage on the crash-signal channel must be countable');
+  assert.equal(a.status, 'ok');
+  assert.equal(auditJsonl(join(dir, 'nope.jsonl')).status, 'missing', 'missing != damaged');
+  assert.equal(readJsonl(p).length, 2, 'the lenient reader still works');
+});
+
+check('GLM Q10d: a broken disable channel is reported broken, never "nothing disabled"', () => {
+  freshRoot();
+  mkdirSync(disabledDir(), { recursive: true });
+  writeFileSync(join(disabledDir(), 'review-round-gate'), '', 'utf8');
+  assert.equal(disableChannelStatus().status, 'ok');
+  assert.equal(isDisabled('review-round-gate'), true);
+  // Replace the directory with a FILE -> ENOTDIR. Before the fix this read as [].
+  rmSync(disabledDir(), { recursive: true, force: true });
+  writeFileSync(disabledDir(), 'not a directory', 'utf8');
+  const st = disableChannelStatus();
+  assert.equal(st.status, 'broken', 'an unreadable kill-switch channel is UNKNOWN, not empty');
+  assert.equal(st.markers.length, 0);
+  assert.equal(isDisabled('review-round-gate'), false, 'value unchanged; the push gate must consult status');
+  freshRoot();
+  assert.equal(disableChannelStatus().status, 'missing', 'absent != broken');
+});
+
+check('GLM Q7: marker matching is case-insensitive on BOTH sides', () => {
+  freshRoot();
+  mkdirSync(disabledDir(), { recursive: true });
+  // Marker written with capitals: matched on Windows by luck, missed on Linux.
+  writeFileSync(join(disabledDir(), 'Review-Round-Gate'), '', 'utf8');
+  assert.equal(isDisabled('review-round-gate'), true, 'a capitalised marker must be honored everywhere');
+  assert.equal(isDisabled('REVIEW-ROUND-GATE'), true);
+  assert.equal(listDisabled()[0], 'Review-Round-Gate', 'listing preserves the on-disk name');
+});
+
+check('GLM Q7: a malformed disable name is telemetered, not silently dropped', () => {
+  freshRoot();
+  assert.equal(isDisabled('a/b'), false);
+  const line = lastLine();
+  assert.equal(line.result, 'name-rejected', 'the rejection must be visible on the channel');
+});
+
+check('GLM Q10c: the session anchor refuses future stamps and foreign sessions', () => {
+  freshRoot();
+  const first = stampSessionStart({ when: new Date(), id: 'real-session', sha: 'aaa' });
+  assert.equal(first.ok, true);
+  // Forward move: before the fix this redefined which artifacts looked fresh.
+  const fwd = stampSessionStart({ when: new Date(Date.now() + 86400000), id: 'real-session' });
+  assert.equal(fwd.clamped, true, 'a future stamp must be clamped to now');
+  assert.ok(new Date(fwd.ts).getTime() <= Date.now() + 1000);
+  assert.equal(sessionAnchor().headSha, 'aaa', 'an omitted sha must be inherited, never nulled');
+
+  // Rotation: a NEW session must be able to stamp (found by regression — the
+  // first version of this fix refused, freezing the anchor at session one), but
+  // the prior record must survive the overwrite.
+  const rot = stampSessionStart({ when: new Date(), id: 'session-two', sha: 'bbb' });
+  assert.equal(rot.ok, true, 'a legitimate new session MUST be able to stamp');
+  assert.equal(rot.rotated, true);
+  const after = sessionAnchor();
+  assert.equal(after.sessionId, 'session-two');
+  assert.equal(after.previous.sessionId, 'real-session', 'the prior binding is preserved, not destroyed');
+  assert.equal(after.previous.headSha, 'aaa');
+  assert.equal(lastLine().result, 'session-rotated', 'the rotation is announced on the channel');
+});
+
+check('GLM Q9 mutant 3: the anchor CONTENTS are asserted, not just its mtime', () => {
+  freshRoot();
+  const past = new Date(Date.now() - 3600000);
+  stampSessionStart({ when: new Date(), id: 's1', sha: 'sha1' });
+  const back = stampSessionStart({ when: past, id: 's1', sha: 'sha2' });
+  assert.equal(back.clamped, true);
+  const body = sessionAnchor();
+  assert.ok(new Date(body.ts).getTime() > past.getTime(), 'contents must not claim the clamped-away time');
+  assert.ok(Math.abs(new Date(body.ts).getTime() - sessionStartMs()) < 1000, 'contents and mtime agree');
+});
+
+check('GLM Q9 mutant 4: listDisabled still filters dotfiles', () => {
+  freshRoot();
+  mkdirSync(disabledDir(), { recursive: true });
+  writeFileSync(join(disabledDir(), '.DS_Store'), '', 'utf8');
+  writeFileSync(join(disabledDir(), 'real-gate'), '', 'utf8');
+  assert.equal(listDisabled().length, 1, 'an editor temp file must not disable the world');
+  assert.equal(listDisabled()[0], 'real-gate');
+});
+
+check('GLM Q9 mutant 6: isFreshForSha refuses the String(null) coincidence', () => {
+  freshRoot();
+  assert.equal(isFreshForSha('null', null), false, 'the literal string null must not match a null HEAD');
+  assert.equal(isFreshForSha(null, null), false);
+  assert.equal(isFreshForSha(undefined, 'abc'), false);
+});
+
+check('GLM Q9 mutant 7: empty reason and boundary are preserved verbatim', () => {
+  freshRoot();
+  appendTelemetry({ gate: 'g', boundary: '', result: 'r', reason: '' });
+  const line = lastLine();
+  assert.equal(line.reason, '', 'an empty reason must not become unknown');
+  assert.equal(line.boundary, '', 'an empty boundary must not become unknown');
+});
+
+check('GLM Q9 mutant 9: a failed atomic write leaves no temp orphan', () => {
+  const dir = freshRoot();
+  const target = join(dir, 'sub', 'c.json');
+  const circular = {}; circular.self = circular;          // JSON.stringify throws
+  assert.equal(writeJsonAtomic(target, circular), false);
+  const leftovers = readdirSync(join(dir, 'sub')).filter((f) => f.includes('.tmp.'));
+  assert.equal(leftovers.length, 0, 'the failure path must clean up its temp file');
+});
+
+check('GLM Q4: failOpen carries a block instruction a careless reader still sees', () => {
+  const dir = freshRoot();
+  mkdirSync(join(dir, '.ai-workflow'), { recursive: true });
+  writeFileSync(qaDir(), 'not a directory', 'utf8');       // force telemetry failure
+  const r = failOpen('g', 'push', 'telemetry is down');
+  assert.ok(r, 'telemetry failure must not return a falsy safe-to-allow');
+  assert.equal(r.block, true, 'the sentinel names the required action');
+  assert.equal(r.failOpen, true, 'the legacy field is retained for existing readers');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+check('the re-export surface stays intact for consumers of gate-common', () => {
+  // gate-common is the single import point every gate uses; the primitives now
+  // live in gate-trust / gate-io / gate-lock. If a re-export is dropped during a
+  // future split, consumers break at run time with no compiler to catch it.
+  for (const [name, value] of Object.entries({
+    acquireCounterLock, releaseCounterLock, LOCK_STALE_MS,
+    setGateRoot, setDisableRoot, sanitizeGateEnv, gitSafeEnv, headSha, sessionId,
+    readJsonResult, readJsonUnsafeCollapse, appendJsonl, readJsonl, auditJsonl,
+    writeJsonAtomic, fileSha256, isFreshForSha, mtimeLooksFresh,
+  })) {
+    assert.ok(value !== undefined, name + ' must remain exported from gate-common');
+  }
+  assert.equal(typeof acquireCounterLock, 'function');
+  assert.equal(typeof releaseCounterLock, 'function');
+  assert.equal(LOCK_STALE_MS, 120000, 'the documented TTL is part of the contract');
+});
+
+check('self-review: a broken disable channel must not FLOOD the crash-signal channel', () => {
+  // Found by attacking this slice's own fix. The broken-channel warning fired on
+  // every isDisabled() call, so a gate checking in a loop would bury the
+  // telemetry the warning exists to preserve.
+  freshRoot();
+  mkdirSync(join(qaDir()), { recursive: true });
+  writeFileSync(disabledDir(), 'not a directory', 'utf8');
+  for (let i = 0; i < 50; i += 1) isDisabled('review-round-gate');
+  const lines = readFileSync(telemetryPath(), 'utf8')
+    .split('\n').filter((l) => l.includes('disable-channel-broken'));
+  assert.equal(lines.length, 1, 'the broken channel is announced ONCE, not 50 times');
+});
+
+check('self-review: two DIFFERENT malformed names are both reported', () => {
+  freshRoot();
+  isDisabled('a/b'); isDisabled('a/b');
+  isDisabled('../x'); isDisabled('../x');
+  const lines = readFileSync(telemetryPath(), 'utf8')
+    .split('\n').filter((l) => l.includes('name-rejected'));
+  assert.equal(lines.length, 2, 'dedupe is per offending name, not a global mute');
+});
+
+check('GLM Q5: a MID-SIZE reason is clamped too (mutation-found gap)', () => {
+  freshRoot();
+  // The 8 KB case is caught by the whole-line budget loop, so a mutant that
+  // removed the per-field clamp survived. A 2000-char reason produces a line
+  // well under 4096 bytes: nothing forces it down except MAX_REASON_CHARS.
+  appendTelemetry({ gate: 'g', boundary: 'push', result: 'ok', reason: 'M'.repeat(2000) });
+  const line = lastLine();
+  assert.ok(line.reason.length <= MAX_REASON_CHARS + 32,
+    `reason was ${line.reason.length} chars; the per-field clamp is not enforced`);
+  assert.ok(line.reason.includes('+1488'), 'the truncation marker states how much was dropped');
 });
 
 process.on('exit', () => {

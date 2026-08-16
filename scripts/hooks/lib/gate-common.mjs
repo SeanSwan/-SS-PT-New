@@ -3,14 +3,16 @@
  * FILE: scripts/hooks/lib/gate-common.mjs
  * PURPOSE: Shared primitives for the hostile-review gate system — telemetry,
  *          typed JSON I/O, atomic writes, the disable mechanism, and freshness.
- * AUTHOR: Opus 5 | CREATED: 2026-08-12 | REVISED: 2026-08-13
- * REVIEW:  Kimi K3 (S3-S9) + HY3 (D1-D4) hostile review — both DO-NOT-SHIP on v1.
- *          The lock moved to gate-lock.mjs (Kimi S1/S2, CRITICAL).
+ * AUTHOR: Opus 5 | CREATED: 2026-08-12 | REVISED: 2026-08-13, 2026-08-16
+ * REVIEW:  Kimi K3 (S3-S9) + HY3 (D1-D4) — both DO-NOT-SHIP on v1.
+ *          GLM-5.3 (Q1-Q10) on the shipped v2 — 2 CRITICAL, both confirmed by
+ *          executed probe before any code moved. Trust-root and git resolution
+ *          moved to gate-trust.mjs; the lock lives in gate-lock.mjs.
  * ============================================================================
  *
  * TRUST BOUNDARY: gate decisions may depend only on hook-written state,
  * tool-written state, and git. Agent-written state is a CLAIM, never evidence.
- * Several v1 primitives violated this while appearing to enforce it; the
+ * Several primitives violated this while appearing to enforce it; the
  * corrections are marked inline so nobody re-introduces them.
  *
  * TELEMETRY IS THE CRASH SIGNAL. Every gate run appends one line, so silence
@@ -18,161 +20,74 @@
  * place it mattered: `failOpen` discarded `appendTelemetry`'s return value, so a
  * telemetry failure produced a silent allow — manufactured silence, which is the
  * failure the contract claims to detect (Kimi S3 / HY3 D3). `failOpen` now
- * returns a TRUTHY object when logging failed; a truthy return means DO NOT
- * SILENTLY ALLOW. Consumers must treat it as a block at any fail-closed boundary.
+ * returns a TRUTHY object when logging failed; `block:true` means DO NOT ALLOW.
+ *
+ * TELEMETRY IS NOT EVIDENCE (GLM Q10e). The file is in-repo and agent-writable:
+ * the examinee can append fabricated lines, delete real ones, or truncate the
+ * whole channel. It is a forensics and liveness signal. No gate may treat "a
+ * telemetry line exists" as proof that a gate ran.
  */
-import {
-  appendFileSync, closeSync, existsSync, mkdirSync, openSync,
-  readdirSync, readFileSync, renameSync, statSync, unlinkSync, utimesSync, writeFileSync,
-} from 'node:fs';
-import { createHash, randomUUID } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
-import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const DEFAULT_ROOT = resolve(HERE, '..', '..', '..');
-
-/** Paths resolve at call time so tests can retarget via SWAN_GATE_ROOT. */
-export function gateRoot() {
-  return process.env.SWAN_GATE_ROOT ? resolve(process.env.SWAN_GATE_ROOT) : DEFAULT_ROOT;
-}
-export function qaDir() { return join(gateRoot(), '.ai-workflow', 'qa'); }
-export function coordDir() { return join(gateRoot(), '.ai-workflow', 'coordination'); }
-export function telemetryPath() { return join(qaDir(), 'gate-telemetry.jsonl'); }
-export function counterPath() { return join(coordDir(), 'review-counter.json'); }
-export function counterLockPath() { return join(coordDir(), 'review-counter.lock'); }
-export function sessionAnchorPath() { return join(qaDir(), '.session-start'); }
-
-/**
- * Disable markers. HY3 D1 (BLOCKER): an in-tree directory is a kill switch the
- * examinee can throw. SWAN_DISABLE_ROOT lets a privileged hook host it outside
- * agent-writable space; the in-tree default remains only so the rollback drill
- * works today, and `listDisabled()` exists so the push gate can REFUSE while any
- * gate is disabled — a disable must be loud at the trust boundary, not silent.
- */
-export function disabledDir() {
-  return process.env.SWAN_DISABLE_ROOT
-    ? resolve(process.env.SWAN_DISABLE_ROOT)
-    : join(qaDir(), 'disabled');
-}
-
-/** Append exactly one telemetry line. Key ORDER is contract. Never throws. */
-export function appendTelemetry(entry) {
-  try {
-    mkdirSync(qaDir(), { recursive: true });
-    const line = JSON.stringify({
-      ts: new Date().toISOString(),
-      gate: String(entry?.gate ?? 'unknown'),
-      boundary: String(entry?.boundary ?? 'unknown'),
-      result: String(entry?.result ?? 'unknown'),
-      reason: String(entry?.reason ?? ''),
-      latency_ms: Number.isFinite(Number(entry?.latency_ms)) ? Math.round(Number(entry.latency_ms)) : 0,
-    });
-    // Keep lines well under 4096 bytes: concurrent appendFileSync from two agents
-    // can tear longer lines, and readJsonl's skip-malformed policy would silently
-    // absorb the evidence (Kimi S3 corollary).
-    appendFileSync(telemetryPath(), `${line}\n`, 'utf8');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Record a fail-open.
- * @returns {null} when the telemetry line landed — safe to allow.
- * @returns {object} TRUTHY when logging failed — the caller must NOT silently
- *          allow; at a fail-closed boundary this is a block (HY3 D3).
- */
-export function failOpen(name, boundary, reason, latencyMs = 0) {
-  const logged = appendTelemetry({ gate: name, boundary, result: 'fail-open', reason, latency_ms: latencyMs });
-  if (logged) return null;
-  try { process.stderr.write(`GATE-TELEMETRY-FAILURE ${name} ${reason}\n`); } catch { /* last resort */ }
-  return { failOpen: true, telemetrySound: false, gate: name, reason };
-}
-
-/**
- * Typed JSON read (Kimi S6). v1 collapsed missing/corrupt/unreadable into one
- * fallback, so an EACCES read as "no data yet" and fell open — while the
- * architecture requires fail-CLOSED on a corrupt counter. Callers must opt into
- * collapsing rather than inherit it.
- * @returns {{ok:true,value:any}|{ok:false,error:'missing'|'corrupt'|'unreadable',code?:string}}
- */
-export function readJsonResult(path) {
-  let raw;
-  try {
-    raw = readFileSync(path, 'utf8');
-  } catch (err) {
-    if (err?.code === 'ENOENT') return { ok: false, error: 'missing' };
-    return { ok: false, error: 'unreadable', code: err?.code };
-  }
-  try { return { ok: true, value: JSON.parse(raw) }; } catch { return { ok: false, error: 'corrupt' }; }
-}
-
-/** Convenience collapse. NEVER use where missing-vs-corrupt changes the decision. */
-export function readJsonOrDefault(path, fallback = null) {
-  const r = readJsonResult(path);
-  return r.ok ? r.value : fallback;
-}
-
-/** Append one object as a single JSONL line, creating parent dirs. */
-export function appendJsonl(path, obj) {
-  try {
-    mkdirSync(dirname(path), { recursive: true });
-    appendFileSync(path, `${JSON.stringify(obj)}\n`, 'utf8');
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** Read JSONL, skipping malformed lines — one torn line must not blind a gate. */
-export function readJsonl(path) {
-  const out = [];
-  let raw = '';
-  try { raw = readFileSync(path, 'utf8'); } catch { return out; }
-  for (const line of raw.split(/\r?\n/)) {
-    if (!line.trim()) continue;
-    try { out.push(JSON.parse(line)); } catch { /* skip torn line */ }
-  }
-  return out;
-}
-
-/**
- * Atomic whole-file JSON write (Kimi S8 / amendment A4): temp-then-rename, so an
- * artifact either fully exists or does not. Without this, slice-2 authors reach
- * for writeFileSync and a killed write leaves a truncated file that passes an
- * existence-plus-non-empty check — the exact incident this system was built after.
- */
-export function writeJsonAtomic(path, obj) {
-  const tmp = `${path}.tmp.${process.pid}.${randomUUID()}`;
-  try {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(tmp, JSON.stringify(obj), 'utf8');
-    renameSync(tmp, path);
-    return true;
-  } catch {
-    try { unlinkSync(tmp); } catch { /* best effort */ }
-    return false;
-  }
-}
+import { mkdirSync, readdirSync, statSync, utimesSync, writeFileSync } from 'node:fs';
+import { disabledDir, qaDir, sessionAnchorPath, sessionId } from './gate-trust.mjs';
+import { readJsonResult } from './gate-io.mjs';
+import { announceOnce, appendTelemetry, clampReason } from './gate-telemetry.mjs';
 
 const disabledAnnounced = new Set();
 
 /**
+ * Every active disable marker, and whether the channel could be read at all.
+ *
+ * GLM Q10d (verified): the old `listDisabled` returned `[]` on EACCES/ENOTDIR,
+ * so replacing the disable directory with a FILE made every kill switch read as
+ * absent. During an incident the operator throws the switch and nothing happens,
+ * silently. A channel whose PRESENCE is a control signal must distinguish
+ * "empty" from "broken"; broken must make the push gate refuse.
+ * @returns {{markers:string[], status:'ok'|'missing'|'broken', code?:string}}
+ */
+export function disableChannelStatus() {
+  try {
+    const markers = readdirSync(disabledDir()).filter((f) => !f.startsWith('.')).sort();
+    return { markers, status: 'ok' };
+  } catch (err) {
+    if (err?.code === 'ENOENT') return { markers: [], status: 'missing' };
+    return { markers: [], status: 'broken', code: err?.code };
+  }
+}
+
+/** Marker names only. Prefer `disableChannelStatus()` at any trust boundary. */
+export function listDisabled() { return disableChannelStatus().markers; }
+
+/**
  * Is a component disabled? Emits `disabled-honored` telemetry the first time per
  * process (Kimi S5) — v1 honored a kill switch and told nobody.
- * Names are sanitized: v1 joined an unsanitized name, so `isDisabled('../../x')`
- * traversed. Names are lowercased because macOS/Windows filesystems are
- * case-insensitive and Linux is not (Kimi Q6e).
+ *
+ * GLM Q7 (two defects, both fixed here):
+ *  - Case folding was one-sided. The QUERY was lowercased but the marker on disk
+ *    was not, so `disabled/Review-Round-Gate` matched on Windows/macOS (case-
+ *    insensitive lookup) and MISSED on Linux — a split brain where the per-gate
+ *    check ignores the kill switch while `listDisabled()` still reports it and
+ *    the push gate refuses. Matching now goes through the directory listing,
+ *    compared case-insensitively, so all platforms agree.
+ *  - A malformed name returned `false`, indistinguishable from "no marker". The
+ *    blast direction is safe (a caller doing `if (!isDisabled(n)) enforce()`
+ *    enforces), so the value is unchanged — but the SILENCE was the real defect,
+ *    and a rejection is now telemetered.
  */
 export function isDisabled(name) {
   const raw = String(name);
-  if (!raw || /[\\/]/.test(raw) || raw.includes('..')) return false;
+  if (!raw || /[\\/]/.test(raw) || raw.includes('..')) {
+    // Dedupe per offending name, so a loop over one bad name announces once but
+    // two different bad names are both reported.
+    announceOnce(`rejected:${clampReason(raw, 64)}`, { gate: 'disable-check', boundary: 'tool', result: 'name-rejected', reason: `malformed disable name: ${clampReason(raw, 64)}`, latency_ms: 0 });
+    return false;
+  }
   const key = raw.toLowerCase();
-  let present = false;
-  try { present = existsSync(join(disabledDir(), key)); } catch { return false; }
+  const { markers, status } = disableChannelStatus();
+  if (status === 'broken') {
+    announceOnce('broken-channel', { gate: key, boundary: 'tool', result: 'disable-channel-broken', reason: 'disable dir unreadable — kill switch state UNKNOWN', latency_ms: 0 });
+    return false; // UNKNOWN, not "enabled" — the push gate must consult status.
+  }
+  const present = markers.some((m) => m.toLowerCase() === key);
   if (present && !disabledAnnounced.has(key)) {
     disabledAnnounced.add(key);
     appendTelemetry({ gate: key, boundary: 'tool', result: 'disabled-honored', reason: 'disable marker present', latency_ms: 0 });
@@ -180,48 +95,74 @@ export function isDisabled(name) {
   return present;
 }
 
-/** Every active disable marker. The push gate must refuse PASS while any exists. */
-export function listDisabled() {
-  try { return readdirSync(disabledDir()).filter((f) => !f.startsWith('.')).sort(); } catch { return []; }
-}
-
-/** Current HEAD sha, or null. `exec` is injectable so the empty-output branch is testable. */
-export function headSha(cwd = gateRoot(), { exec = execFileSync } = {}) {
-  try {
-    const out = exec('git', ['-C', cwd, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-    return String(out).trim() || null; // '' is falsy but poisons `sha === null` checks
-  } catch {
-    return null;
-  }
-}
-
-/** Session id from the harness, or null. Null means UNKNOWN — never invent one. */
-export function sessionId() {
-  return process.env.CLAUDE_SESSION_ID || process.env.SWAN_GATE_SESSION_ID || null;
-}
-
 /**
  * Stamp the session anchor. **SessionStart hook only** — this is trust-root state.
  *
  * v1 exported `touchSessionStart(when)` with an attacker-controlled timestamp, so
  * `touchSessionStart(new Date(0))` made every artifact ever written "fresh" — a
- * one-line bypass of the whole freshness contract (Kimi S4 / HY3 D2). The anchor
- * now (a) never moves backwards, (b) carries {sessionId, headSha, ts} so consumers
- * verify contents rather than a bare mtime.
+ * one-line bypass (Kimi S4 / HY3 D2).
+ *
+ * GLM Q10c (verified): clamping only BACKWARDS left two live primitives — a
+ * forward stamp redefined which artifacts look recent, and any call silently
+ * overwrote the harness's record of the real session (forensic loss).
+ *
+ * The first attempt at this fix REFUSED a stamp whose sessionId differed from
+ * the anchor's. My own regression test caught that this breaks the normal case:
+ * every new session legitimately carries a new id, so the anchor would freeze at
+ * the first session forever and the freshness heuristic would anchor to a dead
+ * session. Refusing rotation is worse than the defect it fixed. What is actually
+ * required is that rotation be RECORDED rather than blocked:
+ *   - a future stamp still clamps to now (that was the freshness-redefinition
+ *     primitive, and it has no legitimate use);
+ *   - the anchor still never moves backwards;
+ *   - a rotation preserves the prior record in `previous` and telemeters the
+ *     transition, so the harness's session binding survives the overwrite.
+ * An agent forging a session id therefore gains a rotation it cannot hide, and
+ * moves only `mtimeLooksFresh` — which is HEURISTIC ONLY and may never decide a
+ * gate. That is the honest bound of this control.
  */
-export function stampSessionStart({ when = new Date(), id = sessionId(), sha = null } = {}) {
+export function stampSessionStart({ when = new Date(), id, sha } = {}) {
   try {
     mkdirSync(qaDir(), { recursive: true });
     const path = sessionAnchorPath();
+    const existing = readJsonResult(path);
+    const prior = existing.ok && existing.value && typeof existing.value === 'object' ? existing.value : null;
+    const effectiveId = id !== undefined ? id : (sessionId() ?? prior?.sessionId ?? null);
+    const rotated = Boolean(prior?.sessionId && effectiveId && prior.sessionId !== effectiveId);
+    // Found by this slice's own regression test: a legitimate same-session
+    // re-stamp that omitted `sha` used to overwrite the recorded headSha with
+    // null — the same forensic loss Q10c is about, delivered by the fix for it.
+    // An unspecified field is INHERITED, never nulled.
+    const effectiveSha = sha !== undefined ? sha : (prior?.headSha ?? null);
     let existingMs = null;
     try { existingMs = statSync(path).mtimeMs; } catch { existingMs = null; }
-    const clamped = existingMs !== null && when.getTime() < existingMs;
-    const effective = clamped ? new Date(existingMs) : when;
-    writeFileSync(path, JSON.stringify({ sessionId: id, headSha: sha, ts: effective.toISOString() }), 'utf8');
+    const nowMs = Date.now();
+    // Never backwards (S4) and never into the future (Q10c).
+    let effectiveMs = when.getTime();
+    let clamped = false;
+    if (effectiveMs > nowMs) { effectiveMs = nowMs; clamped = true; }
+    if (existingMs !== null && effectiveMs < existingMs) { effectiveMs = existingMs; clamped = true; }
+    const effective = new Date(effectiveMs);
+    const record = { sessionId: effectiveId, headSha: effectiveSha, ts: effective.toISOString() };
+    // Rotation keeps ONE generation of history — enough to prove what the anchor
+    // said before it moved, without letting the file grow without bound.
+    if (rotated) {
+      record.previous = { sessionId: prior.sessionId, headSha: prior.headSha ?? null, ts: prior.ts ?? null };
+    }
+    writeFileSync(path, JSON.stringify(record), 'utf8');
     utimesSync(path, effective, effective);
-    return { ok: true, clamped, ts: effective.toISOString() };
+    if (rotated) {
+      appendTelemetry({
+        gate: 'session-anchor',
+        boundary: 'tool',
+        result: 'session-rotated',
+        reason: `anchor moved from ${prior.sessionId} to ${effectiveId}`,
+        latency_ms: 0,
+      });
+    }
+    return { ok: true, clamped, rotated, ts: effective.toISOString() };
   } catch {
-    return { ok: false, clamped: false, ts: null };
+    return { ok: false, clamped: false, rotated: false, ts: null, reason: 'io-error' };
   }
 }
 
@@ -236,17 +177,20 @@ export function sessionStartMs() {
   try { return statSync(sessionAnchorPath()).mtimeMs; } catch { return null; }
 }
 
-/** sha256 of a file's bytes, or null if unreadable. */
-export function fileSha256(path) {
-  try { return createHash('sha256').update(readFileSync(path)).digest('hex'); } catch { return null; }
-}
-
 /**
- * A2 — the load-bearing freshness primitive. An artifact is fresh for a subject
- * only if it *states* the sha it covers and that matches the sha the consumer
- * computed from git. Unforgeable by mtime games: the agent cannot mint a binding
- * for code it did not review, because HEAD is recomputed on the trust side.
- * Missing or mismatched → false, and consumers must treat that as a hard block.
+ * A2 — an artifact NAMES the commit it covers, and that name matches the sha the
+ * consumer computed. Nothing more.
+ *
+ * GLM Q3 (CRITICAL, accepted): the previous docblock claimed "the agent cannot
+ * mint a binding for code it did not review, because HEAD is recomputed on the
+ * trust side." That is FALSE and the overclaim was the defect — `printf
+ * '{"subject_sha":"%s"}' "$(git rev-parse HEAD)" > artifact.json` mints a valid
+ * binding in one command, without reviewing anything. What A2 actually buys is
+ * narrow and real: an artifact cannot be REPLAYED across commits, so a genuine
+ * review of an old HEAD no longer satisfies the gate at a new HEAD. Read the
+ * name literally: it checks freshness FOR a sha. It is not evidence of review.
+ * Attestation requires the hook holding the pen or a DAG-anchored hash chain —
+ * see the gate-trust.mjs footer.
  */
 export function isFreshForSha(artifactSubjectSha, currentSha) {
   if (!artifactSubjectSha || !currentSha) return false;
@@ -256,10 +200,8 @@ export function isFreshForSha(artifactSubjectSha, currentSha) {
 /**
  * HEURISTIC ONLY — never a gate decision (Kimi's A2 ruling / HY3 D2).
  * mtime is agent-writable via utimesSync, so this fails OPEN against forgery even
- * though it fails closed against absence. Legitimate uses: a human-facing
- * "claims sha X but is 3 days old" tripwire, and cheap pre-filtering before the
- * sha check. Deliberately renamed from `isFreshThisSession` so no consumer can
- * mistake it for proof.
+ * though it fails closed against absence. Deliberately not named `isFresh…` so no
+ * consumer can mistake it for proof.
  */
 export function mtimeLooksFresh(path) {
   const start = sessionStartMs();
@@ -267,4 +209,21 @@ export function mtimeLooksFresh(path) {
   try { return statSync(path).mtimeMs >= start; } catch { return false; }
 }
 
-export { LOCK_STALE_MS, acquireCounterLock, releaseCounterLock, readLockHolder } from './gate-lock.mjs';
+export {
+  DEFAULT_ROOT, gateRoot, headSha, sessionId,
+  setGateRoot, setDisableRoot, setGitBinary,
+  sanitizeGateEnv, gitSafeEnv, HOSTILE_GIT_ENV, HOSTILE_GATE_ENV,
+} from './gate-trust.mjs';
+export {
+  LOCK_STALE_MS, acquireCounterLock, releaseCounterLock, readLockHolder, stillOwnsLock,
+} from './gate-lock.mjs';
+export {
+  readJsonResult, readJsonUnsafeCollapse, appendJsonl, readJsonl, auditJsonl,
+  writeJsonAtomic, fileSha256,
+} from './gate-io.mjs';
+export {
+  qaDir, coordDir, telemetryPath, counterPath, counterLockPath, sessionAnchorPath, disabledDir,
+} from './gate-trust.mjs';
+export {
+  appendTelemetry, failOpen, MAX_REASON_CHARS, MAX_FIELD_CHARS, MAX_TELEMETRY_LINE_BYTES,
+} from './gate-telemetry.mjs';
