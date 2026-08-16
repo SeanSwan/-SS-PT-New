@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0.0",
+  "_comment": "The CONTRACT for Hermes learning packets. Data, not code (Kimi 2026-08-13 Q2c: a hardcoded schema is not inspectable or diffable). scripts/hermes-learning-validate.mjs reads this; any emitter must satisfy it. Bump schema_version on any change to required_* and record why in changelog.",
+
+  "required_frontmatter": [
+    "title",
+    "originating_model",
+    "tier_basis",
+    "date",
+    "decision",
+    "status"
+  ],
+
+  "required_frontmatter_from": {
+    "_comment": "Keys required only for packets dated on/after this ISO date. Retro-requiring fields on historical packets would make migration impossible and turn the validator into permanent noise.",
+    "2026-08-13": ["models_used", "skills_touched", "privacy"]
+  },
+
+  "required_headings": {
+    "_comment": "Matched LITERALLY at line start. hermes-closeout-gate.mjs matches '## Mistakes I made' exactly - a numbered '## 6. Mistakes I made' does NOT match and silently reads as 'nothing went wrong'. That defect shipped 2026-08-13.",
+    "from": "2026-08-13",
+    "headings": [
+      "## Mistakes I made",
+      "## External-model calibration"
+    ]
+  },
+
+  "recommended_headings": [
+    "## Who did what",
+    "## Skills created or changed",
+    "## Error → fix → repeat ledger"
+  ],
+
+  "tier_allowlist": {
+    "_comment": "FAIL-CLOSED. Sub-Fable output must never enter the durable corpus (Rule 68). Sean's designation 2026-08-10 widened this to Opus 5 and Kimi K3.",
+    "models": [
+      "claude-fable-5",
+      "claude-opus-5",
+      "moonshotai/kimi-k3"
+    ]
+  },
+
+  "status_values": ["draft", "reviewed", "current", "shipped", "superseded", "archived"],
+
+  "lifecycle": {
+    "_comment": "Kimi 2026-08-13 finding 6: status existed in 6/18 packets with no state machine - 'enterprise knowledge without review is a rumor mill with frontmatter'. Advancing past 'reviewed' requires a reviewed_by value.",
+    "requires_reviewed_by": ["reviewed", "current"],
+    "terminal": ["superseded", "archived"]
+  },
+
+  "privacy_forbidden_patterns": {
+    "_comment": "Write-time guard only. Rule 44/59. The repo-history scan is a separate one-time job (Kimi finding 5) - this does NOT cover it.",
+    "absolute_windows_path": "[A-Za-z]:[\\\\/](Users|home)[\\\\/][^\\s`\"']+",
+    "bearer_token": "eyJ[A-Za-z0-9_-]{20,}\\.[A-Za-z0-9_-]{20,}",
+    "openai_key": "sk-[A-Za-z0-9]{20,}",
+    "stripe_live": "(sk|rk)_live_[A-Za-z0-9]{10,}",
+    "webhook_secret": "whsec_[A-Za-z0-9]{10,}",
+    "google_key": "AIza[A-Za-z0-9_-]{30,}",
+    "db_url_with_password": "postgres(ql)?://[^\\s:]+:[^\\s@]+@"
+  },
+
+  "warnings": {
+    "_comment": "Warn, never gate. Kimi Q2/section 2: gating on a field present in 5/18 packets is wrong.",
+    "supersedes_target_must_exist": true,
+    "recommended_headings_present": true,
+    "reviewed_by_present": true
+  },
+
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2026-08-13",
+      "why": "First contract. Motivated by 18 packets carrying 8 distinct frontmatter shapes, because every packet was hand-written from memory and no validator existed. Kimi K3 ranked this the single highest-value thing to build: the validator is the contract, the emitter is merely one producer of it, and a validator that only accepts emitter output cannot migrate the existing corpus."
+    }
+  ]
+}

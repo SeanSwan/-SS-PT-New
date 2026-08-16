@@ -1,7 +1,12 @@
 ---
+title: Environment variables are adversary input, not configuration
 originating_model: claude-opus-5
-tier: fable-tier
+tier_basis: Sean's designation 2026-08-10 — Opus 5 is Fable-tier; claude-opus-5 is on the Rule 68 tier_allowlist
 date: 2026-08-16
+decision: gate trust-root and git resolution move off environment variables to in-process setters; every value entering a gate from outside the code is treated as adversary-controlled input
+status: shipped
+supersedes: none
+privacy: IDs/roles only; no PII, no secrets, no absolute paths
 topic: "Two hostile reviews attacked the gate's logic and passed it. The third enumerated its inputs and found two CRITICALs in one pass. A gate that reads its trust root from the environment is configured by the thing it is examining."
 models_used:
   - model: claude-opus-5
