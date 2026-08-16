@@ -99,12 +99,23 @@ describe('no self-service role escalation on /api/roles', () => {
       .replace(/(^|[^:])\/\/.*$/gm, '$1');
 
     expect(code).not.toContain('test-upgrade');
+
     // The blacklist shape itself: it fails open when NODE_ENV is unset/other.
-    expect(code).not.toContain("NODE_ENV === 'production'");
-    // Every remaining route that can write a role must be admin-gated.
-    for (const match of code.matchAll(/router\.post\(\s*'([^']+)'\s*,\s*([^)]*?)\basync\b/g)) {
-      const [, path, middleware] = match;
-      expect(middleware, `POST ${path} must be adminOnly`).toContain('adminOnly');
+    // Match BOTH comparison directions — the sibling fail-open guard at
+    // routes/api.mjs:33 is `NODE_ENV !== 'production'`, which an assertion
+    // against the `===` spelling alone would sail straight past.
+    expect(code).not.toMatch(/process\.env\.NODE_ENV\s*[!=]==?\s*['"]production['"]/);
+    // And no NODE_ENV reference at all in this file's guard position.
+    expect(code).not.toContain('process.env.NODE_ENV');
+
+    // Every route that can write a role must be admin-gated. Match the
+    // middleware list up to the handler, whether the handler is async, sync,
+    // or a named controller reference.
+    for (const match of code.matchAll(/router\.(post|put|patch)\(\s*'([^']+)'\s*,([^{]*?)(?:async\s*)?\(?\s*req/g)) {
+      const [, verb, routePath, middleware] = match;
+      expect(middleware, `${verb.toUpperCase()} ${routePath} must be adminOnly`).toContain('adminOnly');
     }
+    // Guard the guard: the sweep must actually have found the one write route.
+    expect(code.match(/router\.(post|put|patch)\(/g) ?? []).toHaveLength(1);
   });
 });

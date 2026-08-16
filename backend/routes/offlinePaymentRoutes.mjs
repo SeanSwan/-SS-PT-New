@@ -23,7 +23,7 @@ import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 // NAMED import — validated at link time. Destructuring this off the default
 // export binds `undefined` (it is not on the default object) and silently
 // disables the ceiling below. See the note in cartRoutes.mjs.
-import { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
+import { MAX_CART_ITEM_QUANTITY, MAX_PAYMENT_LINE_ITEMS } from '../utils/cartHelpers.mjs';
 import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
 import {
   claimIdempotentRecord,
@@ -58,6 +58,13 @@ function calculateServerFee(method, subtotal) {
 async function calculateServerTotal(items) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error('Items array is required and must not be empty');
+  }
+
+  // Per-line quantity is capped below, but the REQUEST is what overflows:
+  // repeating a max-quantity line aggregates past Order.totalAmount's
+  // DECIMAL(10,2) ceiling. Bound the line count too. Mirrors achPaymentRoutes.
+  if (items.length > MAX_PAYMENT_LINE_ITEMS) {
+    throw new Error(`An order may contain at most ${MAX_PAYMENT_LINE_ITEMS} line items`);
   }
 
   const itemIds = items.map(i => i.storefrontItemId).filter(Boolean);
@@ -153,9 +160,11 @@ router.post('/offline', protect, async (req, res) => {
       if (!item.storefrontItemId) {
         return res.status(400).json({ success: false, message: 'Each item must have a storefrontItemId' });
       }
-      if (!item.quantity || parseInt(item.quantity, 10) < 1) {
-        return res.status(400).json({ success: false, message: 'Each item must have a valid quantity' });
-      }
+      // Quantity is NOT re-validated here on purpose. A second copy of the
+      // predicate drifts from the real one — this loop used to carry a stale
+      // `parseInt(item.quantity, 10) < 1` that accepted '2.5' and '2abc' after
+      // calculateServerTotal had already been tightened to reject them. One
+      // predicate, one place: calculateServerTotal below.
     }
 
     // ── Server-Side Price Validation ──

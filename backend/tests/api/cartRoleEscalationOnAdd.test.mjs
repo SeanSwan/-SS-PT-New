@@ -19,7 +19,18 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const userUpdateMock = vi.hoisted(() => vi.fn());
+const userUpsertMock = vi.hoisted(() => vi.fn());
+const userQueryMock = vi.hoisted(() => vi.fn());
 const userFindByPkMock = vi.hoisted(() => vi.fn());
+// Instance-level write seams. The original code swallowed its own errors
+// (`catch (roleUpgradeError) { /* don't fail the request */ }`), so a
+// reintroduction copying that shape as `user.role='client'; await user.save()`
+// would TypeError on a method-less mock, get swallowed, still return 200, and
+// leave User.update uncalled — passing a test that only watches User.update.
+// Give the instance real spies so every write shape is observable.
+const userInstanceSaveMock = vi.hoisted(() => vi.fn());
+const userInstanceUpdateMock = vi.hoisted(() => vi.fn());
+const userInstanceSetMock = vi.hoisted(() => vi.fn());
 const shoppingCartFindOrCreateMock = vi.hoisted(() => vi.fn());
 const cartItemFindAllMock = vi.hoisted(() => vi.fn());
 const cartItemFindOneMock = vi.hoisted(() => vi.fn());
@@ -63,7 +74,12 @@ vi.mock('../../models/index.mjs', () => ({
   getProductVariant: () => {
     throw new Error("Model 'ProductVariant' not found in cache");
   },
-  getUser: () => ({ update: userUpdateMock, findByPk: userFindByPkMock }),
+  getUser: () => ({
+    update: userUpdateMock,
+    upsert: userUpsertMock,
+    query: userQueryMock,
+    findByPk: userFindByPkMock,
+  }),
 }));
 
 vi.mock('../../utils/apiKeyChecker.mjs', () => ({ isStripeEnabled: () => false }));
@@ -105,6 +121,11 @@ const ESCALATING_PACKAGE_NAMES = [
 describe('POST /api/cart/add must not escalate user -> client (GLM audit F2)', () => {
   beforeEach(() => {
     userUpdateMock.mockReset();
+    userUpsertMock.mockReset();
+    userQueryMock.mockReset();
+    userInstanceSaveMock.mockReset();
+    userInstanceUpdateMock.mockReset();
+    userInstanceSetMock.mockReset();
     userFindByPkMock.mockReset();
     shoppingCartFindOrCreateMock.mockReset();
     cartItemFindAllMock.mockReset();
@@ -114,7 +135,13 @@ describe('POST /api/cart/add must not escalate user -> client (GLM audit F2)', (
     describeStorefrontTableMock.mockReset();
     updateCartTotalsMock.mockReset();
 
-    userFindByPkMock.mockResolvedValue({ id: 501, role: 'user' });
+    userFindByPkMock.mockResolvedValue({
+      id: 501,
+      role: 'user',
+      save: userInstanceSaveMock,
+      update: userInstanceUpdateMock,
+      set: userInstanceSetMock,
+    });
     shoppingCartFindOrCreateMock.mockResolvedValue([
       { id: 901, status: 'active', userId: 501 },
       false,
@@ -152,7 +179,14 @@ describe('POST /api/cart/add must not escalate user -> client (GLM audit F2)', (
       expect(response.status).toBe(200);
 
       // The actual vulnerability: a role write on an unpaid cart mutation.
+      // Every write seam, not just User.update — a reintroduction that used
+      // user.save(), user.update(), upsert or raw SQL would otherwise slip past.
       expect(userUpdateMock).not.toHaveBeenCalled();
+      expect(userUpsertMock).not.toHaveBeenCalled();
+      expect(userQueryMock).not.toHaveBeenCalled();
+      expect(userInstanceSaveMock).not.toHaveBeenCalled();
+      expect(userInstanceUpdateMock).not.toHaveBeenCalled();
+      expect(userInstanceSetMock).not.toHaveBeenCalled();
 
       // And nothing may tell the frontend an upgrade happened.
       expect(response.body.userRoleUpgrade).toBeFalsy();

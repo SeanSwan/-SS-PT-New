@@ -32,6 +32,22 @@ import { getStorefrontSessionCredits } from '../services/SessionGrantService.mjs
  * would drift, which is the exact defect class this audit kept finding.
  */
 export const MAX_CART_ITEM_QUANTITY = 99;
+
+/**
+ * Upper bound on how many LINE ITEMS a direct-item payment request may carry.
+ *
+ * MAX_CART_ITEM_QUANTITY alone bounds one line, not the request. The ACH and
+ * offline rails take a client-supplied `items` array with no length limit and no
+ * dedupe (two lines CAN legitimately share a storefrontItemId when they differ by
+ * variant, so dedupe is not the right control — a length cap is). Repeating a
+ * max-quantity line a few thousand times fits inside the default JSON body budget
+ * and aggregates past Order.totalAmount's DECIMAL(10,2) ceiling of 99,999,999.99,
+ * which is the same overflow-to-500 the per-line cap exists to prevent.
+ *
+ * 50 is far above any real order (the storefront sells a handful of packages)
+ * while keeping 50 x 99 x the priciest package inside the column.
+ */
+export const MAX_PAYMENT_LINE_ITEMS = 50;
 // 🚀 ENHANCED P0 FIX: Coordinated model imports for production stability
 import { 
   getShoppingCart,

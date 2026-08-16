@@ -21,37 +21,81 @@
  * This suite therefore deliberately uses NO mocks. It asserts against the real
  * module and the real route sources.
  */
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const CONSUMERS = [
-  'routes/cartRoutes.mjs',
-  'routes/achPaymentRoutes.mjs',
-  'routes/offlinePaymentRoutes.mjs',
-  'routes/v2PaymentRoutes.mjs',
-];
+const BACKEND_ROOT = resolve(process.cwd());
+const SKIP_DIRS = new Set(['node_modules', '.git', 'tests', '__tests__', 'coverage', 'dist']);
+const CEILING_NAMES = ['MAX_CART_ITEM_QUANTITY', 'MAX_PAYMENT_LINE_ITEMS'];
+
+/**
+ * Discover consumers by walking the tree, NOT from a hardcoded list — a new
+ * payment rail added later must be covered automatically. A fixed list is
+ * exactly how the original bug stayed invisible in one file while a sibling
+ * did it correctly.
+ */
+const walk = (dir, out = []) => {
+  for (const entry of readdirSync(dir)) {
+    if (SKIP_DIRS.has(entry)) continue;
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) walk(full, out);
+    else if (entry.endsWith('.mjs')) out.push(full);
+  }
+  return out;
+};
+
+const CONSUMERS = walk(BACKEND_ROOT)
+  .filter((full) => {
+    const src = readFileSync(full, 'utf8');
+    return CEILING_NAMES.some((n) => src.includes(n));
+  })
+  .map((full) => relative(BACKEND_ROOT, full).replace(/\\/g, '/'))
+  // The declaring module itself is not a consumer.
+  .filter((p) => p !== 'utils/cartHelpers.mjs');
 
 describe('MAX_CART_ITEM_QUANTITY binds for real in every consumer', () => {
   it('is a usable positive integer on the real (unmocked) module', async () => {
     const mod = await import('../../utils/cartHelpers.mjs');
 
-    expect(Number.isInteger(mod.MAX_CART_ITEM_QUANTITY)).toBe(true);
-    expect(mod.MAX_CART_ITEM_QUANTITY).toBeGreaterThan(0);
+    for (const name of CEILING_NAMES) {
+      expect(Number.isInteger(mod[name]), `${name} must be an integer`).toBe(true);
+      expect(mod[name], `${name} must be positive`).toBeGreaterThan(0);
+    }
+  });
+
+  // Fails loudly if the walk stops finding files (renamed dirs, moved routes) —
+  // a discovery test that silently matches nothing asserts nothing.
+  it('discovers the known consumers', () => {
+    expect(CONSUMERS.length).toBeGreaterThanOrEqual(4);
+    for (const expected of [
+      'routes/cartRoutes.mjs',
+      'routes/achPaymentRoutes.mjs',
+      'routes/offlinePaymentRoutes.mjs',
+      'routes/v2PaymentRoutes.mjs',
+    ]) {
+      expect(CONSUMERS, `${expected} must be discovered`).toContain(expected);
+    }
   });
 
   it('every consumer takes it as a NAMED import, never off the default export', () => {
     for (const path of CONSUMERS) {
-      const source = readFileSync(resolve(process.cwd(), path), 'utf8');
+      const source = readFileSync(resolve(BACKEND_ROOT, path), 'utf8');
 
-      // The exact shape that silently bound `undefined`.
-      expect(source, `${path} destructures the constant off the default export`)
-        .not.toMatch(/const\s*\{[^}]*\bMAX_CART_ITEM_QUANTITY\b[^}]*\}\s*=\s*cartHelpers/);
+      for (const name of CEILING_NAMES) {
+        if (!source.includes(name)) continue;
 
-      // A named import is link-time validated: if the export is removed or
-      // renamed, the module fails to load rather than disabling the guard.
-      expect(source, `${path} must use a named import`)
-        .toMatch(/import\s+(?:\w+\s*,\s*)?\{[^}]*\bMAX_CART_ITEM_QUANTITY\b[^}]*\}\s*from\s*['"][^'"]*cartHelpers\.mjs['"]/);
+        // The exact shape that silently bound `undefined` — and the aliased
+        // variant (`const h = cartHelpers; const { X } = h;`) that a check
+        // anchored on the literal `= cartHelpers` would sail past.
+        expect(source, `${path} destructures ${name} off a default export`)
+          .not.toMatch(new RegExp(`const\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*=\\s*(?!require)\\w+\\s*;`));
+
+        // A named import is link-time validated: if the export is removed or
+        // renamed, the module fails to load rather than disabling the guard.
+        expect(source, `${path} must import ${name} by name`)
+          .toMatch(new RegExp(`import\\s+(?:\\w+\\s*,\\s*)?\\{[^}]*\\b${name}\\b[^}]*\\}\\s*from\\s*['"][^'"]*cartHelpers\\.mjs['"]`));
+      }
     }
   });
 
@@ -71,7 +115,7 @@ describe('MAX_CART_ITEM_QUANTITY binds for real in every consumer', () => {
   it('never interpolates the constant into user-facing copy without a value', () => {
     // "Quantity must be undefined or fewer per item." shipped to users.
     for (const path of CONSUMERS) {
-      const source = readFileSync(resolve(process.cwd(), path), 'utf8');
+      const source = readFileSync(resolve(BACKEND_ROOT, path), 'utf8');
       expect(source, path).not.toContain('undefined or fewer');
     }
   });

@@ -26,7 +26,7 @@ import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 // NAMED import — validated at link time. Destructuring this off the default
 // export binds `undefined` (it is not on the default object) and silently
 // disables the ceiling below. See the note in cartRoutes.mjs.
-import { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
+import { MAX_CART_ITEM_QUANTITY, MAX_PAYMENT_LINE_ITEMS } from '../utils/cartHelpers.mjs';
 import {
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
@@ -61,6 +61,17 @@ router.post('/create-intent', protect, async (req, res) => {
 
     if (!items?.length || !total) {
       return res.status(400).json({ success: false, message: 'Items and total are required' });
+    }
+
+    // Per-line quantity is capped below, but the REQUEST is what overflows:
+    // repeating a max-quantity line aggregates past Order.totalAmount's
+    // DECIMAL(10,2) ceiling. Bound the line count too.
+    if (items.length > MAX_PAYMENT_LINE_ITEMS) {
+      return res.status(400).json({
+        success: false,
+        message: `An order may contain at most ${MAX_PAYMENT_LINE_ITEMS} line items.`,
+        code: 'TOO_MANY_LINE_ITEMS'
+      });
     }
 
     // Launch P1-1: purchasing is invitation-only across all rails

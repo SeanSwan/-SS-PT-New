@@ -181,7 +181,10 @@ describe('ACH rail carries the offline rail hardening (GLM audit F3)', () => {
     expect(mocks.paymentIntents.create).toHaveBeenCalled();
   });
 
-  it('still prices a legitimate whole-number purchase of a live item', async () => {
+  // The one number that actually matters. Asserting only that create() was
+  // CALLED would stay green against a regression that charges the client-supplied
+  // total, or drops the ACH fee, or is off by 100x.
+  it('charges exactly server subtotal + server fee, in cents', async () => {
     const response = await post({
       idempotencyKey: '55555555-5555-4555-8555-555555555555',
       total: 2000,
@@ -191,7 +194,49 @@ describe('ACH rail carries the offline rail hardening (GLM audit F3)', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
-    expect(mocks.paymentIntents.create).toHaveBeenCalled();
+
+    // 2 x $1000 = $2000 subtotal; ACH fee = min(2000 * 0.008, 5) = $5 cap.
+    // Charged = $2005.00 = 200500 cents.
+    expect(mocks.paymentIntents.create).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 200_500, currency: 'usd' }),
+      expect.anything()
+    );
+  });
+
+  // Fee below the $5 cap, so a dropped-fee regression is visible as a
+  // different number rather than one clamped to the same ceiling.
+  it('charges the uncapped percentage fee when it is below the cap', async () => {
+    const response = await post({
+      idempotencyKey: '99999999-9999-4999-8999-999999999999',
+      total: 1000,
+      customerInfo: { name: 'Buyer', email: 'client@example.test' },
+      items: [{ storefrontItemId: 10, quantity: 1, name: 'Ten Session Pack', price: 1000 }],
+    });
+
+    expect(response.status).toBe(200);
+    // $1000 subtotal; fee = min(1000 * 0.008, 5) = $5 -> still capped.
+    // Use the cap boundary explicitly so the arithmetic is pinned either way.
+    expect(mocks.paymentIntents.create).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 100_500 }),
+      expect.anything()
+    );
+  });
+
+  it('rejects a request carrying more line items than the per-order cap', async () => {
+    const items = Array.from({ length: 60 }, () => ({
+      storefrontItemId: 10, quantity: 99, name: 'Ten Session Pack', price: 1000,
+    }));
+
+    const response = await post({
+      idempotencyKey: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      total: 5_940_000,
+      customerInfo: { name: 'Buyer', email: 'client@example.test' },
+      items,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('TOO_MANY_LINE_ITEMS');
+    expect(mocks.paymentIntents.create).not.toHaveBeenCalled();
   });
 
   // Order.totalAmount is DECIMAL(10,2) — max 99,999,999.99. An unbounded
