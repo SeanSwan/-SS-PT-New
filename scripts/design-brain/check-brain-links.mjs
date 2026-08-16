@@ -358,7 +358,10 @@ const orphaned = [...new Set(listedNames)].filter((name) => {
   // the historical failure it was built for — while index.md claimed it "now catches (D3)".
   // That is this branch committing the sin it exists to purge. The exemption now requires the
   // MENTION ITSELF to be marked ATTICKED, so an honest record passes and a live-looking row fails.
-  if (atticBasenames.has(basename(name))) {
+  // Lower-cased: the attic set is keyed lower-case for D6, and comparing a raw basename against
+  // it worked only because every current filename happens to be lower-case already. A guard that
+  // passes by coincidence is a guard that fails the first time someone capitalises a file.
+  if (atticBasenames.has(basename(name).toLowerCase())) {
     const mentioned = indexLines.filter((l) => l.includes(name) || l.includes(basename(name)));
     const allMarked = mentioned.length > 0 && mentioned.every((l) => /ATTICKED/i.test(l));
     if (allMarked) return false;
