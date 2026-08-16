@@ -216,7 +216,7 @@ The posture is strong — the empty socket is genuinely the best control in the 
 
 **E6 · Clipboard auto-clear (90s)** after every handoff and incident export (C4).
 
-**E7 · Roster-setup collision check.** The phonetic matcher's failure mode is two children whose names/aliases collide ("Mia"/"Nia"). On setup day, run the matcher across the roster and *warn on any cross-child collision* — that's the ambiguity path working, but she should meet it on setup day, not mid-rest-window.
+**E7 · Roster-setup collision check.** The phonetic matcher's failure mode is two children whose names/aliases collide (`<REDACTED-EXAMPLE-NAME>`/`<REDACTED-EXAMPLE-NAME>` — model-invented illustrative pair, redacted post-hoc because one matched the project's forbidden-name gate by coincidence; GLM never had access to any real roster). On setup day, run the matcher across the roster and *warn on any cross-child collision* — that's the ambiguity path working, but she should meet it on setup day, not mid-rest-window.
 
 **E8 · Home-language aliases guidance at roster setup** (aliases exist; add the instruction) — cheap now, expensive to backfill after a year of dictation variants.
 
