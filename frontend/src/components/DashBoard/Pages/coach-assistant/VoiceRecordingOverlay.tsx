@@ -6,8 +6,7 @@
 
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import { Mic, X, Send, RefreshCw } from 'lucide-react';
-import { useVoiceRecorder } from './hooks/useVoiceRecorder';
-import { useGeminiTranscription } from './hooks/useGeminiTranscription';
+import { useCoachCapture } from './hooks/useCoachCapture';
 import VoiceTranscriptPreview from './VoiceTranscriptPreview';
 import {
   ActionBtn,
@@ -40,63 +39,68 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
   onTranscribed,
   onEditTranscript,
 }) => {
-  const recorder = useVoiceRecorder();
-  const transcription = useGeminiTranscription();
+  /**
+  * Capture goes through useCoachCapture rather than the raw recorder/transcription
+  * hooks. Those had no lifecycle policy at all, so a recording survived tab-hide,
+  * screen lock and route change with the microphone still open.
+  */
+  const capture = useCoachCapture();
   const [previewReady, setPreviewReady] = useState(false);
 
   useEffect(() => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-    if (isOpen && recorder.state === 'idle' && !isIOS) {
-      recorder.start();
+    if (isOpen && capture.status === 'idle' && !isIOS) {
+      capture.start();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   useEffect(() => {
-    if (recorder.state === 'stopped' && recorder.audioBlob && transcription.state === 'idle') {
-      transcription.transcribe(recorder.audioBlob);
+    // 'ready' means capture finished and audio is held awaiting transcription.
+    // Skip it after an automatic stop: the user left the screen, so sending
+    // their audio to be transcribed anyway would contradict the notice shown.
+    if (capture.status === 'ready' && !capture.stoppedAutomatically) {
+      void capture.transcribe();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recorder.state, recorder.audioBlob]);
+  }, [capture.status, capture.stoppedAutomatically]);
 
   useEffect(() => {
-    if (transcription.state === 'done') {
+    if (capture.status === 'done') {
       setPreviewReady(true);
     }
-  }, [transcription.state]);
+  }, [capture.status]);
 
   const handleClose = useCallback(() => {
-    recorder.reset();
-    transcription.reset();
+    capture.reset();
     setPreviewReady(false);
     onClose();
-  }, [recorder, transcription, onClose]);
+  }, [capture, onClose]);
 
   const handlePreviewSend = useCallback(() => {
-    onTranscribed(transcription.text);
+    onTranscribed(capture.transcript);
     handleClose();
-  }, [transcription.text, onTranscribed, handleClose]);
+  }, [capture.transcript, onTranscribed, handleClose]);
 
   const handlePreviewEdit = useCallback(() => {
-    onEditTranscript?.(transcription.text);
+    onEditTranscript?.(capture.transcript);
     handleClose();
-  }, [transcription.text, onEditTranscript, handleClose]);
+  }, [capture.transcript, onEditTranscript, handleClose]);
 
   const handleRetry = useCallback(async () => {
-    transcription.reset();
-    recorder.reset();
+    capture.reset();
     setPreviewReady(false);
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (!isIOS) {
-      await recorder.start();
+      await capture.start();
     }
-  }, [recorder, transcription]);
+  }, [capture]);
 
   const handleStopAndSend = useCallback(() => {
-    recorder.stop();
-  }, [recorder]);
+    capture.stop();
+  }, [capture]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -111,14 +115,14 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
     return () => document.removeEventListener('keydown', onKey);
   }, [isOpen, handleClose]);
 
-  const isRecording = recorder.state === 'recording';
-  const isTranscribing = transcription.state === 'transcribing';
+  const isRecording = capture.status === 'capturing';
+  const isTranscribing = capture.status === 'transcribing';
 
   return (
     <Overlay $isOpen={isOpen} role="dialog" aria-modal="true" aria-label="Voice recording">
       {previewReady ? (
         <VoiceTranscriptPreview
-          transcript={transcription.text}
+          transcript={capture.transcript}
           onSend={handlePreviewSend}
           onEdit={handlePreviewEdit}
           onRetry={handleRetry}
@@ -132,8 +136,8 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
               $recording={isRecording}
               onClick={isRecording
                 ? handleStopAndSend
-                : recorder.state === 'idle'
-                  ? () => recorder.start()
+                : capture.status === 'idle'
+                  ? () => capture.start()
                   : undefined}
               aria-label={isRecording ? 'Stop recording' : 'Tap to start recording'}
             >
@@ -141,14 +145,13 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
             </RecordingOrb>
           </OrbContainer>
 
-          <DurationText>{formatDuration(recorder.duration)}</DurationText>
+          <DurationText>{formatDuration(capture.duration)}</DurationText>
 
           <StatusText>
-            {recorder.state === 'requesting' && 'Requesting microphone access...'}
+            {capture.status === 'requesting' && 'Requesting microphone access...'}
             {isRecording && 'Listening - tap the orb or press Stop to finish'}
             {isTranscribing && 'Transcribing your voice...'}
-            {recorder.state === 'error' && (recorder.error || 'Recording error')}
-            {transcription.state === 'error' && (transcription.error || 'Transcription error')}
+            {capture.error}
           </StatusText>
 
           <ButtonRow>
@@ -162,7 +165,7 @@ const VoiceRecordingOverlay: React.FC<VoiceRecordingOverlayProps> = memo(({
               </ActionBtn>
             )}
 
-            {(transcription.state === 'error' || recorder.state === 'error') && (
+            {(capture.status === 'error' || capture.stoppedAutomatically) && (
               <ActionBtn type="button" onClick={handleRetry} aria-label="Try recording again">
                 <RefreshCw size={18} /> Try Again
               </ActionBtn>
