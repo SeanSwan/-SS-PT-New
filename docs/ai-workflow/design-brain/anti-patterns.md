@@ -26,7 +26,7 @@
 | **Center-everything symmetry** | Kills hierarchy and rhythm; source §B mandates asymmetry and negative space |
 | **Cards inside cards** | Double chrome, wasted padding, muddy elevation story; flatten to sections within one panel |
 | **Hero-style dashboards** | Dashboards are Phase 1–4 working surfaces, not brand pages; decorative banners bury the data |
-| **Stretched cards filling 4K** | Wide monitors get MORE columns, not bigger cards (design.md §24) |
+| **Stretched cards filling 4K** | Wide monitors get MORE columns, not bigger cards (design.md §10) |
 | **Identical card grids with no hierarchy** | If everything is a medium card, nothing is the next best action |
 
 ## Truth & content bans
@@ -35,7 +35,7 @@
 |---|---|
 | **Fake/mock metrics presented as real** | Violates the Data-truth rule; mock data is a labeled gap, never dressed as proof |
 | **Lorem ipsum shipping** | Placeholder copy in production is an integrity failure; write real SwanStudios-voice copy or a designed empty state |
-| **Bare "No data" empty states** | Empty states are onboarding moments: Cormorant italic explanation + a CTA to create the first real thing (design.md §22) |
+| **Bare "No data" empty states** | Empty states are onboarding moments: Cormorant italic explanation + a CTA to create the first real thing (design.md §12) |
 | **Yoga/meditation language** (rule 9) | Brand rule — use "stretching"/"flexibility" |
 | **"NASM-certified" claims** | Credentials rule: "26+ years training experience," "NASM workshop-trained," "NASM-protocol" |
 | **Calling Swan Coach "AI" user-facing** | Product naming rule (design.md §14) |
@@ -49,7 +49,7 @@
 | **Color as the only signal** | Tier badges, states, deltas always pair color with text/icon (a11y; design.md §15) |
 | **Hidden controls on data cards** | Swan Card Standard: client/trainer/admin cards expose their actions; discovery-by-hover is a desktop myth |
 | **Emoji glyphs as control icons** | Repo standard is lucide-react (the 2026-07-03 cart slice replaced emoji with lucide); emoji render inconsistently across platforms and can't be sized/labeled reliably |
-| **Two stacked modals** | Decision-on-decision; use drawer + modal or sequence the flow (design.md §20) |
+| **Two stacked modals** | Decision-on-decision; use drawer + modal or sequence the flow (design.md §11) |
 | **Destructive action adjacent to submit** | One mis-tap from data loss; separate spatially and by variant (Danger has no glow — destruction isn't celebrated) |
 
 ## Motion & atmosphere bans

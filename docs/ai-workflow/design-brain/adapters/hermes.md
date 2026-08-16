@@ -28,7 +28,7 @@ Notes: this table is `../design.md` §15 verbatim — it reuses EXISTING tokens 
 
 ## 3. Operational-calm rules
 
-- **No ambient motion on data-dense panels.** Queues, logs, receipts, registries: zero looping animation, zero parallax, zero hover-tilt. Motion in operator UI is reserved for state *transitions* (item approved → moves lane) and completes in ≤200ms (design.md §19 / motion.md §4 — adapters translate canon, never relax it). An operator scanning for anomalies must never compete with decoration.
+- **No ambient motion on data-dense panels.** Queues, logs, receipts, registries: zero looping animation, zero parallax, zero hover-tilt. Motion in operator UI is reserved for state *transitions* (item approved → moves lane) and completes in ≤200ms (design.md §5 (ops world) / motion.md §4 — adapters translate canon, never relax it). An operator scanning for anomalies must never compete with decoration.
 - **Receipts render in Fira Code.** Audit receipts (`who · what+tier · target · when · approved-by · outcome · evidence`, per bridge §8 / `../../hermes-agentic-os/audit-receipts.md`) are monospaced, line-oriented, copyable. Never restyled into marketing cards.
 - **Hierarchy is status → attention → action, in that order.** Top: system truth (health, kill-switch states, running automations). Middle: what needs Sean (approval queue, flagged anomalies). Bottom/edge: action affordances with tier badges. A command center that leads with buttons instead of truth is upside down.
 - **Kill switches are a first-class panel** (bridge §9), never buried in settings. The master switch is always visible, always ≥44px.

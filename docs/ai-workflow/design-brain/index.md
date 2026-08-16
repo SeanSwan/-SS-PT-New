@@ -32,6 +32,10 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | `techniques.md` | WFX-01–WFX-13 visual-effect contracts, render ladder, maturity/dependency truth, performance/recovery/fallback law |
 | `psychology.md` | PSY-01–PSY-10 ethical `[HYPOTHESIS]` contracts, evidence posture, psychology + experiment receipts |
 | `experience-mode.md` | M4 license, inheritance, product/Hermes firewall, gate ritual, adaptive-quality and backend-loss rules |
+| `typography-grid.md` | Type scale, grid/breakpoint substrate, elevation + radius contract. **Where it states a token value that `design.md` also states, `design.md` wins** — see the conflict law in `README.md` §3 |
+| `style-taxonomy.md` | Two-axis style model (aesthetic × era) and its Swan mapping. Captured third-party facet counts drift and are reference-only, never doctrine |
+| `field-techniques.md` | Field-tested effect techniques and the CONVERGENCE note on producing hero creative (image-first loop, interpolation, reference ladder) |
+| `forge-compiler-contract.md` | Swan Forge prompt-compiler contract — the 12-slot composer, capability gating, provider-safety classification |
 
 ### Callable World Engine skill (manual-only)
 
@@ -64,16 +68,16 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | File | Purpose |
 |---|---|
 | `obsidian/index.md` | Bridge map |
-| `obsidian/vault-routing.md` | Where design notes land in the vault (raw/wiki/outputs/runs lanes) |
-| `obsidian/design-decision-log-policy.md` | What design decisions get logged, format, retention |
+
+> **ATTICKED 2026-07 (`4d192e5ac`).** `vault-routing.md` and `design-decision-log-policy.md` moved to `docs/_attic/2026-07-wiki-mythos/obsidian/` with the rest of the wiki-mythos material. They are historical reference, not loadable doctrine. This index kept listing them for weeks after the move — the rot `scripts/design-brain/check-brain-links.mjs` now catches (D3).
 
 ### `graphify/` — relationship-graph bridge (parallel agents)
 
 | File | Purpose |
 |---|---|
 | `graphify/index.md` | Bridge map |
-| `graphify/graphify-policy.md` | Import quarantine (`graph-imports/` until promoted), what design entities enter the graph |
-| `graphify/templates.md` | Node/edge templates for design entities (surface, token, pattern, decision) |
+
+> **ATTICKED 2026-07 (`4d192e5ac`).** `graphify-policy.md` and `templates.md` moved to `docs/_attic/2026-07-wiki-mythos/graphify/`. Historical reference only. Graphify itself is not installed (see the Swan Brain architecture decision record); nothing here is a live tool contract.
 
 ## Standing key
 

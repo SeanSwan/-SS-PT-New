@@ -20,7 +20,7 @@ The full matrix (CLAUDE.md Premium Design Critique Loop §5). Check every row th
 | `1280px` | Laptop | Baseline desktop composition |
 | `1440px` | Desktop browser width | ⚠ `1440px` width ≠ 1440p — this is just a browser width |
 | `1920px` | 1080p desktop | Section gaps at full scale; hero media crop |
-| `2560×1440` | **1440p/QHD monitor class (Sean's)** | Density scales by MORE columns, not bigger cards (design.md §24); no stretched cards |
+| `2560×1440` | **1440p/QHD monitor class (Sean's)** | Density scales by MORE columns, not bigger cards (design.md §10); no stretched cards |
 | `3840×2160` | 4K monitor class | Same; prose capped ~72ch; dashboards cap ~1920px centered or add columns |
 | `3440px` | Ultrawide | Full-bleed only for cinematic media; content never ribbon-stretches |
 

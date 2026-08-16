@@ -29,7 +29,7 @@ Animate **`transform` and `opacity`. Nothing else** without an explicit exceptio
 - Banned from animation: `width`, `height`, `top`, `left`, `margin`, `padding`, `box-shadow` (animate a pre-rendered glow layer's `opacity` instead), `filter: blur()` on large surfaces, `background-position` on big images.
 - Glow-on-hover recipe: stack a pseudo-element carrying the full glow `box-shadow`, animate its `opacity 0 → 1`. Same look, compositor-only.
 - `will-change: transform` only while animating; remove after. Standing `will-change` on dozens of cards eats VRAM.
-- `translateZ(0)` creates stacking contexts — give the parent `position: relative; z-index` (design.md §28 / gotchas).
+- `translateZ(0)` creates stacking contexts — give the parent `position: relative; z-index` (design.md §9 — z-scale / stacking).
 
 ## 3. Reduced motion — MANDATORY dual gating
 
@@ -48,8 +48,8 @@ Animate **`transform` and `opacity`. Nothing else** without an explicit exceptio
 
 Data-dense operator and work surfaces stay **calm**: response-tier only, no ambient loops, no narrative beats, no signature moments.
 
-- **Hermes operator surfaces (Cyberforest):** ambient banned, response ≤200ms (design.md §19 — "a cockpit, not a brand page").
-- **Coach Command Center** approval queue / receipt ledger (design.md §18): response-tier only.
+- **Hermes operator surfaces (Cyberforest):** ambient banned, response ≤200ms (design.md §5 (ops world) — "a cockpit, not a brand page").
+- **Coach Command Center** approval queue / receipt ledger (design.md §5 — pro world): response-tier only.
 - **Data cards** (client/trainer/admin/biometrics/program/workout-log): no pointer tracking, no animation loops, no hover-only actions (Swan Card/Button Standard; design.md §9).
 - Tables, forms mid-entry, and anything a trainer uses live in a session (low-tap flows, design.md §17): motion must never delay the next tap.
 

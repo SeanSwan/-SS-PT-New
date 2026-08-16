@@ -111,4 +111,18 @@ if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.claude/sk
   fi
 fi
 
+BRAIN_LINKS="$REPO_ROOT/scripts/design-brain/check-brain-links.mjs"
+if git diff --cached --name-only | grep -qE '^docs/ai-workflow/design-brain/'; then
+  if [[ -f "$BRAIN_LINKS" ]]; then
+    echo "[pre-commit] Running Design Brain structural check (dangling refs / index law)..."
+    if ! node "$BRAIN_LINKS"; then
+      echo "COMMIT BLOCKED: Design Brain structural defect (see D1/D2/D3 above)." >&2
+      echo "  A dangling ref makes an agent silently SKIP the doctrine it cannot find." >&2
+      exit 1
+    fi
+  else
+    echo "[pre-commit] brain-links check: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
+  fi
+fi
+
 exit 0
