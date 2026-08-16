@@ -1,0 +1,1224 @@
+<title>Classroom Copilot Blueprint</title>
+
+<style>
+  :root {
+    --paper:      #FAF9F6;
+    --surface:    #FFFFFF;
+    --surface-2:  #F2F1EB;
+    --ink:        #1A2420;
+    --slate:      #5E6B66;
+    --rule:       #E2E0D9;
+    --accent:     #2F7A5B;
+    --accent-dim: #E4EFE9;
+    --critical:   #B4442E;
+    --critical-dim:#F7E7E2;
+    --warning:    #9A6A18;
+    --warning-dim:#F7EEDC;
+    --mono-bg:    #F4F3ED;
+
+    --f-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --f-serif: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    --f-mono: ui-monospace, "Cascadia Mono", "SF Mono", Consolas, "Liberation Mono", monospace;
+
+    --measure: 68ch;
+    --wide: 1120px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #121614;
+      --surface:    #1A211E;
+      --surface-2:  #212A26;
+      --ink:        #E6E9E6;
+      --slate:      #98A49E;
+      --rule:       #2C3733;
+      --accent:     #5FB08A;
+      --accent-dim: #1B2C25;
+      --critical:   #E0745C;
+      --critical-dim:#33201B;
+      --warning:    #D9A441;
+      --warning-dim:#2E2717;
+      --mono-bg:    #1D2522;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:      #121614;
+    --surface:    #1A211E;
+    --surface-2:  #212A26;
+    --ink:        #E6E9E6;
+    --slate:      #98A49E;
+    --rule:       #2C3733;
+    --accent:     #5FB08A;
+    --accent-dim: #1B2C25;
+    --critical:   #E0745C;
+    --critical-dim:#33201B;
+    --warning:    #D9A441;
+    --warning-dim:#2E2717;
+    --mono-bg:    #1D2522;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-serif);
+    font-size: 17px;
+    line-height: 1.65;
+    margin: 0;
+    padding: 0 20px 96px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: var(--wide); margin: 0 auto; }
+  .col  { max-width: var(--measure); }
+
+  /* ---- masthead ---- */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 56px 0 22px;
+    margin-bottom: 34px;
+  }
+  .eyebrow {
+    font-family: var(--f-sans);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 14px;
+  }
+  h1 {
+    font-family: var(--f-sans);
+    font-size: clamp(34px, 6vw, 54px);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.04;
+    text-wrap: balance;
+    margin: 0 0 18px;
+  }
+  .standfirst {
+    font-size: 19px;
+    color: var(--slate);
+    max-width: var(--measure);
+    margin: 0 0 26px;
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 26px;
+    font-family: var(--f-sans);
+    font-size: 13px;
+    color: var(--slate);
+  }
+  .meta b { color: var(--ink); font-weight: 600; }
+
+  /* ---- structure ---- */
+  section { margin: 0 0 62px; }
+  h2 {
+    font-family: var(--f-sans);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--slate);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 9px;
+    margin: 0 0 28px;
+  }
+  h3 {
+    font-family: var(--f-sans);
+    font-size: 21px;
+    font-weight: 700;
+    letter-spacing: -0.012em;
+    text-wrap: balance;
+    margin: 38px 0 12px;
+  }
+  h4 {
+    font-family: var(--f-sans);
+    font-size: 15px;
+    font-weight: 700;
+    margin: 26px 0 8px;
+  }
+  p { margin: 0 0 15px; max-width: var(--measure); }
+  ul, ol { max-width: var(--measure); padding-left: 22px; margin: 0 0 15px; }
+  li { margin-bottom: 8px; }
+  strong { font-weight: 700; }
+  code {
+    font-family: var(--f-mono);
+    font-size: .87em;
+    background: var(--mono-bg);
+    padding: 1.5px 5px;
+    border-radius: 3px;
+  }
+  a { color: var(--accent); }
+  a:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  /* ---- verdict callout ---- */
+  .verdict {
+    background: var(--accent-dim);
+    border-left: 4px solid var(--accent);
+    padding: 22px 26px;
+    margin: 0 0 34px;
+  }
+  .verdict p:last-child { margin-bottom: 0; }
+
+  /* ---- defect cards, severity rail encodes rank ---- */
+  .defect {
+    display: grid;
+    grid-template-columns: 62px 1fr;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .defect-rail {
+    background: var(--critical);
+    color: var(--paper);
+    font-family: var(--f-sans);
+    font-weight: 800;
+    font-size: 18px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 20px;
+    letter-spacing: -0.02em;
+  }
+  .defect.sev-high .defect-rail { background: var(--warning); }
+  .defect-body { padding: 20px 24px 18px; }
+  .defect-body h3 { margin: 0 0 10px; font-size: 19px; }
+  .defect-body p:last-child { margin-bottom: 0; }
+  .who {
+    display: inline-block;
+    font-family: var(--f-sans);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 3px 9px;
+    border-radius: 2px;
+    margin-bottom: 10px;
+  }
+  .fix {
+    font-family: var(--f-sans);
+    font-size: 15px;
+    background: var(--surface-2);
+    padding: 12px 15px;
+    margin-top: 12px;
+    border-left: 3px solid var(--accent);
+  }
+  .fix b { color: var(--accent); }
+
+  /* ---- fork / question blocks ---- */
+  .fork {
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--warning);
+    background: var(--surface);
+    padding: 20px 24px;
+    margin-bottom: 18px;
+  }
+  .fork h3 { margin-top: 0; }
+  .fork p:last-child { margin-bottom: 0; }
+  .myread {
+    background: var(--warning-dim);
+    padding: 12px 15px;
+    font-family: var(--f-sans);
+    font-size: 15px;
+    margin-top: 12px;
+  }
+
+  .blocker {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 14px;
+    align-items: start;
+    background: var(--critical-dim);
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    border-left: 4px solid var(--critical);
+  }
+  .blocker-n {
+    font-family: var(--f-sans);
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--critical);
+    line-height: 1.3;
+  }
+  .blocker p { margin: 0; }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; margin: 0 0 22px; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 560px;
+    font-family: var(--f-sans);
+    font-size: 14.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--rule);
+  }
+  th {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--slate);
+    border-bottom: 2px solid var(--ink);
+    white-space: nowrap;
+  }
+  tbody tr:hover { background: var(--surface-2); }
+  .yes { color: var(--accent); font-weight: 700; }
+  .no  { color: var(--slate); }
+
+  /* ---- diagrams + wireframes ---- */
+  .figure { margin: 0 0 30px; }
+  .figure figcaption {
+    font-family: var(--f-sans);
+    font-size: 12.5px;
+    color: var(--slate);
+    margin-top: 10px;
+    letter-spacing: .01em;
+  }
+  pre.mermaid {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 22px 18px;
+    margin: 0;
+    overflow-x: auto;
+    text-align: center;
+  }
+  pre.wire {
+    font-family: var(--f-mono);
+    font-size: 12.5px;
+    line-height: 1.45;
+    background: var(--mono-bg);
+    border: 1px solid var(--rule);
+    padding: 18px 20px;
+    margin: 0;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--ink);
+  }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+    gap: 22px;
+    margin-bottom: 26px;
+  }
+
+  /* ---- do-not list ---- */
+  .donot {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 4px 24px 18px;
+    margin-bottom: 20px;
+  }
+  .donot h4 {
+    color: var(--critical);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-size: 12px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 8px;
+  }
+  .donot li::marker { color: var(--critical); font-weight: 700; }
+
+  details {
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    padding: 14px 20px;
+    margin-bottom: 12px;
+  }
+  summary {
+    font-family: var(--f-sans);
+    font-weight: 700;
+    font-size: 15.5px;
+    cursor: pointer;
+  }
+  details[open] summary { margin-bottom: 12px; }
+
+  footer {
+    border-top: 2px solid var(--ink);
+    padding-top: 22px;
+    font-family: var(--f-sans);
+    font-size: 13.5px;
+    color: var(--slate);
+  }
+
+  @media (max-width: 620px) {
+    body { font-size: 16px; padding: 0 15px 64px; }
+    .defect { grid-template-columns: 44px 1fr; }
+    .defect-rail { font-size: 15px; padding-top: 18px; }
+    .defect-body { padding: 16px 16px 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Round 4 · Unlensed Panel</p>
+    <h1>Classroom Copilot Blueprint</h1>
+    <p class="standfirst">
+      Three models re-reviewed the whole project with no assigned lenses — and found six defects
+      the lensed round never surfaced, including one that leaks the child database to Google Drive
+      with zero code written.
+    </p>
+    <div class="meta">
+      <span><b>Panel</b> GLM 5.3 · Kimi K3 · HY3</span>
+      <span><b>Cost</b> $0.32 total</span>
+      <span><b>Date</b> 16 Aug 2026</span>
+      <span><b>Rule 82</b> live on main · <code>8257e42b6</code></span>
+    </div>
+  </header>
+
+  <section>
+    <h2>Did the re-run justify itself</h2>
+    <div class="verdict col">
+      <p>
+        <strong>Yes — decisively.</strong> Unlensed, the panel found defects no earlier round had
+        named at all. Two of three models independently converged on the same structural flaw from
+        different starting angles. That convergence is exactly the signal a lensed panel is
+        <em>designed</em> to suppress, because lensing optimises for non-overlap between reviewers.
+      </p>
+      <p>
+        The cheapest model on the panel ($0.007) produced a legal-risk catch the expensive ones
+        missed. The most expensive ($0.31) found the single worst defect in the project. Neither
+        needed a lens to be useful.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The six defects that must change</h2>
+    <p class="col">
+      Ranked by severity × likelihood × cost-to-fix-later. The rail colour separates
+      <span style="color:var(--critical);font-weight:700">critical</span> from
+      <span style="color:var(--warning);font-weight:700">high</span>.
+    </p>
+
+    <div class="defect">
+      <div class="defect-rail">D1</div>
+      <div class="defect-body">
+        <span class="who">Kimi · unique catch</span>
+        <h3>Android Auto Backup silently exfiltrates the child database</h3>
+        <p>
+          An Expo app has <code>allowBackup</code> on by default. Android copies the app sandbox —
+          including <code>copilot.db</code> — to the teacher's Google Drive. Child data leaves the
+          device with <strong>zero code written and no user action</strong>. Every privacy control
+          designed across three rounds sits downstream of this one manifest flag.
+        </p>
+        <div class="fix"><b>Fix ·</b> <code>android:allowBackup="false"</code>,
+          <code>fullBackupContent="false"</code>, verified on setup day by inspecting the built manifest.</div>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="defect-rail">D2</div>
+      <div class="defect-body">
+        <span class="who">GLM + Kimi · converged independently</span>
+        <h3>The core loop is assigned to the wrong device</h3>
+        <p>
+          Round 1 settled on-phone extraction. Rounds 3–4 locked the extraction tiers to her Mac.
+          Both cannot be true, and nobody reconciled them. At 12:47, in a dark room with sleeping
+          two-year-olds, the Mac is in another building — so the product's one anchored moment has
+          no brain behind it.
+        </p>
+        <p>
+          The open question <em>"where is the laptop at midday?"</em> was never a logistics
+          question. It is an architecture verdict wearing a logistics costume, and the answer is
+          "nowhere useful."
+        </p>
+        <div class="fix"><b>Fix ·</b> <strong>T0 = Qwen3-4B Q4_K_M on the phone</strong> via
+          <code>llama.rn</code>, rules-first, model optional. The Mac becomes the evening engine for
+          work that is already evening-shaped. The open question is <em>dissolved</em>, not answered.</div>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="defect-rail">D3</div>
+      <div class="defect-body">
+        <span class="who">GLM + Kimi</span>
+        <h3>The kill criteria cannot be measured, and the history is unrecoverable</h3>
+        <p>
+          "≥90% accepted without correction" and "wrong child — zero" both require an append-only
+          event log that appears in no schema draft. Day-one behaviour that isn't logged is
+          <strong>gone forever</strong>. This — not the <code>pinned</code> flag — is the true
+          "must exist in v1" item, because a column is a trivial migration but a missing history is
+          a permanent hole.
+        </p>
+        <div class="fix"><b>Fix ·</b> <code>RECORD_EVENT</code> written from the first build, plus
+          <code>attribution_src</code> so a model's guess is distinguishable from her own choice.</div>
+      </div>
+    </div>
+
+    <div class="defect">
+      <div class="defect-rail">D4</div>
+      <div class="defect-body">
+        <span class="who">GLM · unique catch</span>
+        <h3>The product ends one step short of its own deliverable</h3>
+        <p>
+          The value is realised <em>inside the mandated parent app</em>. That handoff — draft, then
+          paste per child, ten to fourteen times, against a pickup deadline — is the most repeated
+          interaction in the product and appears in no brief, no slice, and no kill criterion.
+        </p>
+        <p>
+          If copying is clumsy she drafts in the app twice to be polite, then goes back to typing
+          directly into the parent app — and the habit metric reads false-positive for weeks while
+          the product quietly dies.
+        </p>
+        <div class="fix"><b>Fix ·</b> a Family Notes screen with per-child <strong>Copy note</strong>
+          and a <code>handed_off</code> event logged per copy. Format is blocked on knowing what the
+          parent app records.</div>
+      </div>
+    </div>
+
+    <div class="defect sev-high">
+      <div class="defect-rail">D5</div>
+      <div class="defect-body">
+        <span class="who">GLM + Kimi</span>
+        <h3>The locked input choice violates the locked privacy constraint</h3>
+        <p>
+          "Gboard's on-device dictation" is not provably on-device. It depends on per-device
+          settings, language packs, and account state, and it falls back to network recognition
+          silently. The project already wrote the correct rule — <em>uncertainty always blocks</em> —
+          and then failed to apply it to its own keyboard.
+        </p>
+        <div class="fix"><b>Fix ·</b> long-form dictation moves in-app to <code>whisper.rn</code>,
+          which is <em>provably</em> egress-free once the build carries no network permission —
+          the same guarantee the gateway aspires to, obtained by absence instead of by classification.</div>
+      </div>
+    </div>
+
+    <div class="defect sev-high">
+      <div class="defect-rail">D6</div>
+      <div class="defect-body">
+        <span class="who">GLM · unique · recovery key from Kimi</span>
+        <h3>There is no backup slice, and the data that never expires has no survival story</h3>
+        <p>
+          Incidents are legally protective and exempt from expiry — and a lost phone in October
+          destroys them permanently. Slices S1 through S12 contain no backup slice at all.
+        </p>
+        <div class="fix"><b>Fix ·</b> encrypted backup and <em>tested restore</em> in S1, a
+          hand-written <strong>paper recovery key</strong> in her classroom drawer (never
+          photographed, never in O's vault — a non-technical user will forget a passphrase), and a
+          quarterly restore drill.</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Three forks that need your call</h2>
+    <p class="col">
+      These are genuine disagreements between models, not gaps. Each is cheap to decide now and
+      expensive to change later.
+    </p>
+
+    <div class="fork">
+      <h3>① What happens after a wrong-child error</h3>
+      <p>
+        Locked: <em>two errors and the model path dies permanently, rules-only forever.</em>
+      </p>
+      <ul>
+        <li><strong>GLM —</strong> uphold it. Just define the term precisely and instrument it.</li>
+        <li><strong>Kimi —</strong> it is <em>a suicide pact</em>. Rules-only extraction cannot
+          resolve "the little boy who had a rough drop-off" either, so the day the model path dies,
+          the <strong>product</strong> dies — extraction is the one feature. Proposes graduated
+          degradation: raise the confirmation threshold, then shrink model scope, then
+          rules-plus-manual.</li>
+        <li><strong>HY3 —</strong> trigger on <strong>uncorrected</strong> wrong-child only. An
+          error she caught and fixed during review is the system working, not failing.</li>
+      </ul>
+      <div class="myread">
+        <strong>My read:</strong> Kimi and HY3 are right about different halves. Count
+        <em>uncorrected</em> wrong-child that reaches a family note (HY3), and make the response
+        graduated rather than terminal (Kimi) — but keep the zero-tolerance spirit by making the
+        first strike loud and immediate, because that spirit is what protects her.
+      </div>
+    </div>
+
+    <div class="fork">
+      <h3>② Whether observations should expire by default</h3>
+      <p>
+        HY3 argues that even with <code>pinned</code> and <code>expiryExempt</code> present,
+        defaulting ordinary observations to expire is a legal time bomb: a contemporaneous note
+        about biting that hadn't been promoted yet can be the only thing that protects her in a
+        dispute. Proposes expiry becomes <strong>opt-in per record</strong> — she marks a note
+        "scratch" rather than marking the important ones "keep."
+      </p>
+      <p>GLM and Kimi both accepted the existing amendment as sufficient. This is a real fork.</p>
+    </div>
+
+    <div class="fork">
+      <h3>③ What "no sync" should actually lock</h3>
+      <p>All three say the current lock is mis-framed and makes S6 and S8 unbuildable.</p>
+      <ul>
+        <li><strong>GLM —</strong> deliberate encrypted "briefcase" export, teacher-initiated, weekly.</li>
+        <li><strong>Kimi —</strong> lock <em>"no server, no cloud, no account"</em> instead of "no
+          sync"; same-room end-to-end-encrypted transfer keeps data on her two devices and makes
+          nobody an operator.</li>
+        <li><strong>HY3 —</strong> an explicit local transfer path is <strong>mandatory</strong>,
+          not optional — without it the product is two inert halves.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>Answer these before any code</h2>
+    <div class="blocker">
+      <div class="blocker-n">1</div>
+      <p><strong>Does her employer permit child information on personal devices?</strong>
+        Unanimous across all three models: potentially fatal to everything, and it costs one
+        conversation. It has been mid-ranked for three rounds while an entire tier architecture was
+        designed around an unasked HR question.</p>
+    </div>
+    <div class="blocker">
+      <div class="blocker-n">2</div>
+      <p><strong>What is her real rest window, and when are family notes actually due?</strong>
+        The anchor is the product. It has never been confirmed — only inferred from her schedule.
+        If it's wrong, the product is built around the wrong moment.</p>
+    </div>
+    <div class="blocker">
+      <div class="blocker-n">3</div>
+      <p><strong>What does the parent-comms app already record per child per day?</strong>
+        This determines the handoff format — per-child fields versus one class note, character
+        limits, photo slots — and therefore blocks the interface freeze.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Corrected architecture</h2>
+    <p class="col">
+      The v1 security posture is built almost entirely from <strong>absences</strong>: no network,
+      no accounts, no third-party SDKs, no notifications, no stored audio, no photos, no
+      backup-to-Google. Gates appear only when egress does.
+    </p>
+
+    <figure class="figure">
+      <pre class="mermaid">
+flowchart TB
+  subgraph PHONE["PHONE · Galaxy S24-class — release build has NO INTERNET permission"]
+    direction TB
+    CAP["Capture screen<br/>rest mode + day mode"]
+    WHIS["whisper.rn<br/>audio never written to disk"]
+    RULES["rulesEngine<br/>deterministic · always runs"]
+    MODEL["llama.rn · Qwen3-4B Q4_K_M<br/>OPTIONAL — app fully works without it"]
+    DB[("copilot.db<br/>SQLCipher + Android Keystore<br/>allowBackup = false")]
+    INBOX["Inbox · one-tap correction"]
+    NOTES["Family notes<br/>per-child Copy"]
+    CAP --> WHIS --> RULES
+    CAP --> RULES
+    RULES --> MODEL
+    RULES --> DB
+    MODEL --> DB
+    DB --> INBOX --> NOTES
+  end
+
+  NOTES -.->|"she pastes, by hand"| PARENT["Mandated parent-comms app<br/>outside our boundary"]
+  DB -.->|"encrypted briefcase · manual · weekly"| MAC
+
+  subgraph MAC["MAC · home, evenings"]
+    STUDIO["Briefcase Studio · localhost only<br/>Ollama Qwen3-14B<br/>conference binder · display boards · planning"]
+  end
+
+  subgraph LATER["NOT BUILT IN v1"]
+    T3["T3 · O's 5090 — child-free only"]
+    T4["T4 · cloud vendor — deliberately absent"]
+    GW["Round-3 gateway ships WITH the first egress path, not before"]
+  end
+
+  MAC -.->|"only when egress exists"| GW
+      </pre>
+      <figcaption>
+        The app cannot leak what it cannot send. No network permission holds against bugs, poisoned
+        dependencies, and prompt injection alike — and unlike a classifier, it is machine-auditable
+        with <code>aapt dump permissions</code>.
+      </figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Data model</h2>
+
+    <figure class="figure">
+      <pre class="mermaid">
+erDiagram
+  CHILD ||--o{ RECORD : "attributed to"
+  CHILD ||--o{ INCIDENT : "concerns"
+  CAPTURE ||--o{ RECORD : "extracted into"
+  RECORD ||--o{ RECORD_EVENT : "logs"
+  INCIDENT ||--o{ INCIDENT_EVENT : "appends"
+  RECORD ||--o| DONE_ITEM : "completes"
+
+  CHILD {
+    text id PK
+    text first_name
+    text color
+    text status "active or left"
+    text school_year
+    text join_date
+    text leave_date
+    text aliases "nicknames and dictation variants"
+  }
+  CAPTURE {
+    text id PK
+    text raw_text "retained always - re-extraction source"
+    text source "typed or dictated"
+    int created_at_ut
+    int rest_window
+  }
+  RECORD {
+    text id PK
+    text capture_id FK
+    text child_id FK "NULL means unattributed - shows who chip"
+    text rtype "obs / parent / supply / task / activity / admin"
+    text body
+    real confidence
+    text attribution_src "rule / model / user"
+    text status
+    int pinned
+    int expiry_exempt
+    int expires_at_ut
+    text taint "child or none"
+  }
+  RECORD_EVENT {
+    text id PK
+    text record_id FK
+    text event "accepted / corrected / wrong_child / handed_off / promoted"
+    text from_value
+    text to_value
+    int at_ut
+  }
+  INCIDENT {
+    text id PK
+    text child_id FK
+    text what_happened "her words only - never generated"
+    text response
+    text witnesses
+    int occurred_at_ut
+    int locked_at_ut
+  }
+  INCIDENT_EVENT {
+    text id PK
+    text incident_id FK
+    text kind "append / correction / export"
+    text payload "deltas only - never full rewrites"
+  }
+  DONE_ITEM {
+    text id PK
+    text label
+    text source "auto_from_record or manual"
+    text day
+  }
+      </pre>
+      <figcaption>Every field. <code>UT</code> = Unix milliseconds UTC.</figcaption>
+    </figure>
+
+    <h3>Must exist in v1 — because adding these later is unrecoverable</h3>
+    <p class="col">
+      Ordered by what cannot be reconstructed. Note that column <em>additions</em> are trivial
+      SQLite migrations — the real rewrite risk is missing <em>history</em>, not missing fields.
+    </p>
+    <ol class="col">
+      <li><strong><code>RECORD_EVENT</code> rows written from the first build.</strong> Acceptance
+        rate, wrong-child strikes, and handoff counts are the kill criteria. Unlogged history cannot
+        be reconstructed.</li>
+      <li><strong><code>CAPTURE.raw_text</code> retained.</strong> Re-extraction after a model change,
+        and any audit, both die without it.</li>
+      <li><strong><code>attribution_src</code>.</strong> Strikes must distinguish a model's guess
+        from her own choice, or the kill criterion punishes the wrong thing.</li>
+      <li><strong><code>pinned</code> / <code>expiry_exempt</code>.</strong> Already locked.</li>
+      <li><strong><code>taint</code>.</strong> One column now; a retrofit across every derived object
+        later is the actual rewrite.</li>
+      <li><strong><code>school_year</code>, <code>join_date</code>, <code>leave_date</code>,
+        <code>status</code> on CHILD.</strong> Cheap now, spring-rollover-blocking later.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>The capture loop, with every failure path</h2>
+
+    <figure class="figure">
+      <pre class="mermaid">
+sequenceDiagram
+  actor T as Teacher
+  participant UI as Capture screen
+  participant DB as copilot.db
+  participant R as rulesEngine
+  participant M as Qwen3-4B optional tier
+  participant N as Family notes
+
+  T->>UI: speaks or types one messy paragraph
+  UI->>DB: INSERT capture (raw_text) FIRST
+  Note over UI,DB: if the app dies here, the dump survives
+  DB-->>UI: ok
+  UI->>R: sentence split
+  R->>R: roster match — exact, then fuzzy, then phonetic
+  R->>R: regex classify + due-date resolution
+
+  alt two candidates within threshold
+    R-->>UI: mark ambiguous — render "who?" chip
+    Note over R,UI: rules never guess. Only she resolves.
+  end
+
+  opt fragments still untyped
+    R->>M: one batched call, JSON-schema-constrained
+    alt model missing, OOM, or over 8s
+      M-->>R: cancelled
+      R-->>UI: "Model's asleep — rules sorted 5 of 7."
+    else success
+      M-->>R: fragment, rtype, child, confidence
+      Note over M: may only choose from the enum<br/>and the roster — cannot invent a child
+    end
+  end
+
+  R->>DB: INSERT records + attribution_src
+  DB->>UI: render inbox
+  T->>UI: ✓ accept / ✎ edit / ✕ dismiss
+  UI->>DB: INSERT record_event
+  Note over UI,DB: this is what makes the kill criteria measurable
+  T->>N: open family notes
+  N->>T: per-child draft + [Copy note]
+  T->>DB: handed_off event logged per copy
+  T-->>T: pastes into the mandated parent app
+      </pre>
+      <figcaption>
+        Every failure path resolves to the same interface state: the app degrades to rules-only and
+        says so plainly. Rules-only is a designed feature, not an embarrassment.
+      </figcaption>
+    </figure>
+
+    <figure class="figure">
+      <pre class="mermaid">
+stateDiagram-v2
+  [*] --> pending : extracted from a capture
+  pending --> accepted : she taps ✓ or "Looks right — all N"
+  pending --> corrected : she fixes type or child
+  pending --> dismissed : not useful
+  corrected --> accepted : correction logged
+  accepted --> promoted : one tap — permanent evidence
+  accepted --> expired : +30 days, only if not pinned and not exempt
+  promoted --> [*] : never expires
+  expired --> [*] : hard-deleted after 7-day grace
+  dismissed --> [*]
+
+  note right of expired
+    Purge is guarded by TWO independent checks
+    plus a negative join against incidents,
+    and a unit test that tries to delete
+    exempt fixtures and asserts failure.
+  end note
+
+  note right of promoted
+    Incidents and promoted evidence
+    never expire. This is what
+    legally protects her.
+  end note
+      </pre>
+      <figcaption>A record's lifecycle. The expiry guard is the most safety-critical code in the product.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Wireframes</h2>
+    <p class="col">
+      Phone width. All primary actions bottom-anchored in the thumb zone; every tap target ≥48dp.
+      Loading, empty, and error states are specified for each screen, not just the happy path.
+    </p>
+
+    <h3>1 · Capture — rest mode</h3>
+    <p class="col">
+      The anchor screen. Pure black for a dark room with sleeping toddlers, no animation, no glow
+      loop, manual brightness hint on first use.
+    </p>
+    <pre class="wire">┌──────────────────────────────────────┐
+│                                      │
+│                                      │
+│         ( ▶  MIC · 88dp  ◀ )         │   (tap) hold the phone, talk
+│                                      │
+│   "c4 had a hard time cleaning       │   live transcript, ≥18pt
+│    up… c7 loved the playdough,       │   white on black
+│    counted 5 bears… need wipes…      │   no animation
+│    parent asked about nap…"          │
+│                                      │
+│   [ ⌨ keyboard ]      [ SORT → ]     │   (tap 56dp) bottom-anchored
+└──────────────────────────────────────┘
+
+  loading   "…listening"  mic pulses once, then static
+  empty     "Nothing yet. Dump your brain — the
+             messiest paragraph wins."
+  error     "Mic said no. Type it instead — ⌨ never fails."</pre>
+
+    <h3>2 · Inbox — review and correct</h3>
+    <p class="col">
+      The riskiest moment in the product: seven records, four minutes, one thumb. Ambiguity is
+      surfaced as a visible chip and never silently resolved.
+    </p>
+    <pre class="wire">┌──────────────────────────────────────┐
+│  Tue Sep 8 · rest 12:40         ⚙    │   long-press 2s = settings (O only)
+├──────────────────────────────────────┤
+│  TO REVIEW · 7                       │
+│  ┌────────────────────────────────┐  │
+│  │ ▐C7▌ counted 5 bears at the    │  │   child chip = attribution,
+│  │      playdough table           │  │   shown forever
+│  │ OBS · 0.9        [✓] [✎] [✕]  │  │   (tap each 48dp)
+│  ├────────────────────────────────┤  │
+│  │ ▐C4▌ hard time at cleanup      │  │
+│  │ OBS · 0.7   who? [C4] [C9]     │  │   ambiguity surfaced, never guessed
+│  ├────────────────────────────────┤  │
+│  │ ── wipes running low ──  SUPPLY│  │   no child attached
+│  │ [OBS][PARENT][SUPPLY][TASK][+] │  │   chip rail = one-tap type fix
+│  └────────────────────────────────┘  │
+│                                      │
+│  [ ✓ Looks right — all 7 ]           │   (56dp) bulk accept + 5s undo
+│                              ( + )   │   FAB (64dp)
+└──────────────────────────────────────┘
+
+  loading   "Sorting… model warming (~2s)"  skeleton cards
+  empty     "Clean slate. Nothing to review."
+  error     "Model's asleep — rules sorted 5 of 7.
+             Tap a type on the rest."   amber banner, persists</pre>
+
+    <h3>3 · Correction sheet</h3>
+    <p class="col">
+      Honest naming: type correction really is one tap. Changing the <em>child</em> is two — say so
+      rather than promise falsely.
+    </p>
+    <pre class="wire">┌──────────────────────────────────────┐
+│  Edit record                      ✕  │   (48dp)
+│  ┌────────────────────────────────┐  │
+│  │ counted 5 bears at playdough   │  │   editable text
+│  └────────────────────────────────┘  │
+│                                      │
+│  CHILD                               │
+│  ▐C7▌ ▐C4▌ ▐C2▌ ▐C9▌   ⋯ 9 more     │   64dp colour tiles
+│                                      │
+│  TYPE                                │
+│  [OBS][PARENT][SUPPLY][TASK][ACT]    │   one tap = corrected
+│                                      │
+│  KEEP                                │
+│  ( ) normal · expires in 30 days     │
+│  (•) pinned — never expires          │
+│                                      │
+│      [ Save ]          [ Delete ]    │   (56dp)
+└──────────────────────────────────────┘
+
+  loading   none — local writes are instant
+  error     "Couldn't save — showing unsaved dot ●. Try again."</pre>
+
+    <h3>4 · Family notes — the last 100 feet</h3>
+    <p class="col">
+      The screen that was missing entirely. This is where the product's value is actually realised,
+      and where the habit metric is either earned or faked.
+    </p>
+    <pre class="wire">┌──────────────────────────────────────┐
+│  Family notes · 14:10 · 3 of 12  ⧗   │
+│  Paste into the parent app, per child│
+│  ┌────────────────────────────────┐  │
+│  │ C7 — loved the playdough today │  │
+│  │ and counted five bears all by  │  │
+│  │ herself!                       │  │
+│  │              [ ⧉ Copy note ]   │  │   (56dp) → clipboard
+│  ├────────────────────────────────┤  │        → logs handed_off
+│  │ C4 — worked really hard on     │  │
+│  │ cleanup today, needed two      │  │
+│  │ tries but did it ♡             │  │
+│  │              [ ⧉ Copy note ]   │  │
+│  └────────────────────────────────┘  │
+│                                      │
+│  ✓ copied: C7 C2 C5 · remaining: 9   │
+│  [ ⧉ Copy all as text ]              │   class-note fallback
+└──────────────────────────────────────┘
+
+  empty     "No accepted observations yet. Review first?"
+  error     clipboard fails → notes render as selectable
+            text, "long-press to copy" hint. Never a dead end.</pre>
+
+    <h3>5 · Incident — the never-AI screen</h3>
+    <p class="col">
+      The model makes <strong>zero</strong> calls on this path, enforced architecturally and asserted
+      by a unit test — not requested by a prompt. An LLM-polished incident narrative is a
+      fabrication with good grammar.
+    </p>
+    <pre class="wire">┌──────────────────────────────────────┐
+│  Incident record            ⚑ locked │
+│  Your words only. Nothing is written │
+│  for you.                            │
+│                                      │
+│  CHILD      ▐C4▌  (tap to change)    │
+│  WHEN       Tue Sep 8 · 10:42  (tap) │
+│                                      │
+│  WHAT HAPPENED                       │
+│  ┌────────────────────────────────┐  │
+│  │ C4 bit C9 on the arm during    │  │   her typing only
+│  │ the sand table transition.     │  │   no suggestions
+│  │ Skin not broken.               │  │   no autocomplete
+│  └────────────────────────────────┘  │
+│                                      │
+│  WHAT I DID                          │
+│  ┌────────────────────────────────┐  │
+│  │ Separated, ice pack, comforted │  │
+│  └────────────────────────────────┘  │
+│                                      │
+│  WITNESSES  ┌──────────────────────┐ │
+│             │ none                 │ │
+│             └──────────────────────┘ │
+│                                      │
+│  NOTIFIED   [ ] family  [ ] director │
+│                                      │
+│  [ Save — becomes append-only ]      │   (56dp)
+└──────────────────────────────────────┘
+
+  Never expires. Always in the backup.
+  Any later edit creates revision 2 with
+  revision 1 preserved byte-identical.</pre>
+  </section>
+
+  <section>
+    <h2>Build order</h2>
+    <p class="col">
+      Roughly 43–46 build days after the gate. Every acceptance test is demonstrated, not asserted.
+      <strong>No app code is written before S0 passes.</strong>
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Slice</th><th>Days</th><th>Ships</th><th>Hard acceptance test</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>S0</strong><br>H0 foundation</td>
+            <td>3 hrs<br>+ 5 school days</td>
+            <td><strong>No app.</strong> Ollama + Qwen3 8B on her Mac, three saved prompts. Paper triage sheet, ritual in her own handwriting. Phone capture habit. Employer-policy answer in writing.</td>
+            <td>Mac Wi-Fi <strong>off</strong> → sorting still works. Dictation succeeds in airplane mode. <strong>The gate:</strong> ritual performed unprompted on ≥4 of 5 days, evidenced by file timestamps, with O checking silently and saying nothing.</td>
+          </tr>
+          <tr>
+            <td><strong>S1</strong><br>Capture core</td>
+            <td>12–15</td>
+            <td>The app. Rules-first extraction, roster, one-tap correction, full schema including events and incidents, encrypted backup <em>plus tested import</em>, no INTERNET permission.</td>
+            <td>Over 20 real captures across ≥5 days: ≥18/20 accepted without correction; <strong>zero wrong-child in the entire sample</strong>; every correction exactly one tap; full loop works in airplane mode; kill the app mid-entry → draft intact.</td>
+          </tr>
+          <tr>
+            <td><strong>S2</strong><br>DONE list</td>
+            <td>2</td>
+            <td>DONE list auto-populated from completed records; idea parking lot ≤2 taps from anywhere.</td>
+            <td>On 4 of 5 days it contains ≥3 true items she never typed — and <strong>she opens it unprompted</strong>. If she doesn't look at it, the slice failed even though it works.</td>
+          </tr>
+          <tr>
+            <td><strong>S3</strong><br>Incident record</td>
+            <td>4</td>
+            <td>Fielded, timestamped, append-only. Export assembles her words only. Never expires.</td>
+            <td>Simulated incident → complete record in <strong>≤90 seconds, one-handed, standing up</strong>. Clock +60 days → incident intact while a sibling scratch record expires. Export diff shows <strong>zero model-generated sentences</strong>.</td>
+          </tr>
+          <tr>
+            <td><strong>S4</strong><br>Triage</td>
+            <td>3</td>
+            <td>Today's list auto-sorted MUST / SHOULD / EXTRA, capacity-capped, one-tap override, honest carry-over.</td>
+            <td>4 of 5 mornings she opens triage unprompted before first circle; MUST ≤5 every day with zero manual filing; an unfinished MUST reappears Monday — no silent drops.</td>
+          </tr>
+          <tr>
+            <td><strong>S5</strong><br>Weekly reset</td>
+            <td>2</td>
+            <td>Friday close-out: carry-over rollup, next-week skeleton, DONE-week rollup.</td>
+            <td>First real Friday start-to-finish ≤10 minutes; every unfinished MUST appears Monday with zero re-entry.</td>
+          </tr>
+          <tr>
+            <td><strong>S6</strong><br>Promote + binder</td>
+            <td>4</td>
+            <td>One-tap promote to permanent per-child evidence, grouped by developmental domain; print-ready per child.</td>
+            <td>Promoted record survives +60-day clock advance while an unpromoted twin expires — <em>both directions tested</em>. Binder fits one printed page per child, no manual reformatting.</td>
+          </tr>
+          <tr>
+            <td><strong>S7</strong><br>Sub / sick day</td>
+            <td>2</td>
+            <td>One-page handoff: routines, roster needs, day plan, who to ask.</td>
+            <td>06:30 drill: decision → printed sheet in ≤5 minutes. After removing a child, regeneration contains zero traces of them. Works in airplane mode.</td>
+          </tr>
+          <tr>
+            <td><strong>S8</strong><br>Display boards</td>
+            <td>4</td>
+            <td>Promoted observation → board scaffold. Her words verbatim; model supplies only the skill tag and next-offer options, both swappable.</td>
+            <td>One tap → printable draft, ≤15 min end-to-end against her timed paper baseline. "What happened" text is <strong>byte-identical</strong> to her original record.</td>
+          </tr>
+          <tr>
+            <td><strong>S9</strong><br>Attention equity</td>
+            <td>3</td>
+            <td>Flags any child with no documented observation in N school days; co-occurrence pattern view.</td>
+            <td>Seeded synthetic year: flags <strong>exactly</strong> the one child with 9 silent days, zero false positives, computes in &lt;1s. <strong>Synthetic data only — never her real roster.</strong></td>
+          </tr>
+          <tr>
+            <td><strong>S10</strong><br>Supplies</td>
+            <td>2</td>
+            <td>"Need wipes" inside any dump auto-types to a running list ordered by needed-by.</td>
+            <td>10 seeded supply mentions → 10/10 land in the queue with zero taps; a cleared item never re-enters from the same capture.</td>
+          </tr>
+          <tr>
+            <td><strong>S11</strong><br>Lesson planning</td>
+            <td>5</td>
+            <td>Weekly skeleton from parking lot + observations, shaped to the school spreadsheet's exact column order.</td>
+            <td>Next week's skeleton in ≤15 min; pasting needs <strong>zero column reordering</strong> against last week's real sheet; canary test — a child's name injected into an idea request is blocked.</td>
+          </tr>
+          <tr>
+            <td><strong>S12</strong><br>Trust hardening</td>
+            <td>3</td>
+            <td>Biometric lock with 10-min re-auth, <code>FLAG_SECURE</code>, nightly encrypted backup to her own account, taint propagation, global kill switch.</td>
+            <td>Recents screen shows a blank card. Clean-device restore recovers <strong>100% of pinned and promoted records</strong>. Seeded poisoned record run through the local summarise tool still gets blocked.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="col">
+      <strong>Swap rule:</strong> if week-2 data shows triage-level distress, S4 jumps S3 —
+      knowingly, out loud, with her. Her stated number-one currently lands at slice four, and a
+      roadmap that ignores that has failed at listening.
+    </p>
+  </section>
+
+  <section>
+    <h2>Do NOT build these</h2>
+    <p class="col">The things a builder will be tempted to add that would damage this product.</p>
+
+    <div class="donot">
+      <h4>Product &amp; scope</h4>
+      <ol>
+        <li><strong>No photos of children.</strong> The single most tempting addition. Biometric-class
+          PII of minors that explodes the sensitivity of every downstream control — and the parent
+          app already owns photos, so you'd be rebuilding the mandated system you're banned from
+          duplicating.</li>
+        <li><strong>No stored voice audio.</strong> Transcribe and discard. A stored child's voice is
+          an evidence liability with zero product need.</li>
+        <li><strong>No cross-device sync.</strong> Sync is a conflict-resolution engine wearing a
+          feature costume, and its dominant failure mode is silent record loss on the device holding
+          protective records.</li>
+        <li><strong>No iOS or macOS port.</strong> Zero second users exist. Every week spent there is
+          a week not spent on extraction accuracy, which is the actual product.</li>
+        <li><strong>No accounts, no auth, no "tiny backend."</strong> The entire legal posture is
+          <em>the developer never sees a byte</em>. One relay server touching a child record makes
+          the developer a regulated operator.</li>
+        <li><strong>No streaks, badges, or notification nudges.</strong> Morale features must forgive
+          the bad week; streaks punish exactly the moments she needs the tool most.</li>
+        <li><strong>No analytics dashboards.</strong> She needs flags — "C8 silent for 9 days" — not
+          visualisations. Charts imply an archive posture that contradicts the whole design.</li>
+        <li><strong>No polished export formats early.</strong> The classic week-eater that always
+          arrives before accuracy is proven.</li>
+      </ol>
+    </div>
+
+    <div class="donot">
+      <h4>Data &amp; privacy</h4>
+      <ol start="9">
+        <li><strong>No cloud vendor in the child-data path.</strong> "This is hard" routes upward,
+          locally — never outward. The gateway cannot un-send.</li>
+        <li><strong>Nothing auto-sends to parents.</strong> A wrong-child message to a family is the
+          one error with no recovery. Draft-and-she-sends is the permanent shape, not a v1 limitation.</li>
+        <li><strong>No draft may introduce a fact absent from the record.</strong> Note drafting is
+          assembly and polish of her typed facts. Any generated sentence without a source fact is
+          flagged or deleted.</li>
+        <li><strong>Never weaken the expiry exemptions.</strong> No "simplification" may remove
+          <code>pinned</code> or <code>expiryExempt</code>.</li>
+      </ol>
+    </div>
+
+    <div class="donot">
+      <h4>Security &amp; builder discipline</h4>
+      <ol start="13">
+        <li><strong>Redaction is never primary.</strong> "The little boy whose mum is in hospital"
+          passes every scrubber ever written. Classify and deny; uncertainty blocks.</li>
+        <li><strong>Never merge the vaults.</strong> The school authorised <em>her</em>, not him.</li>
+        <li><strong>Do not police her browser.</strong> A stricter gate makes the vendor tab
+          <em>more</em> attractive. The mitigation is local quality, not surveillance of your own user.</li>
+        <li><strong>No free-form "chat with all my data."</strong> That is the prompt-injection and
+          taint-laundering surface. The model gets typed operations, nothing else.</li>
+        <li><strong>Never auto-update models or extraction logic silently.</strong> The trust contract
+          is "corrections stick." Invisible drift means she stops correcting.</li>
+        <li><strong>Never test with real child data on any machine but hers.</strong> Synthetic
+          rosters everywhere else, full stop. A "quick parse test" on the 5090 is precisely the
+          breach this architecture exists to prevent — and the one with no undo.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <h2>Panel calibration</h2>
+    <p class="col">
+      Required by Rule 82, and the reason it exists: once every model answers every angle, you can
+      measure which model catches what. This is how the routing table becomes learned from evidence
+      instead of asserted.
+    </p>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Model</th><th>Cost</th><th>Declared strongest</th><th>Unique catches nobody else got</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>GLM 5.3</strong></td>
+            <td>$0.00<br><span class="no">subscription</span></td>
+            <td>Systems / architecture</td>
+            <td>Backup slice absent from the entire roadmap while incidents never expire · O's own dev loop is the likeliest first leak · lock-screen notification disclosure · raw-audio retention · school-year rollover fields · multilingual families</td>
+          </tr>
+          <tr>
+            <td><strong>Kimi K3</strong></td>
+            <td>$0.311</td>
+            <td>Security / privacy</td>
+            <td><strong>Android Auto Backup ships the database to Google Drive</strong> · <code>expo-sqlite</code> is unencrypted at rest · paper recovery key · photos belong on the do-NOT list before someone builds them · O bus-factor · hash-only audit logs · roster lifecycle is 3 screens, not a slice</td>
+          </tr>
+          <tr>
+            <td><strong>HY3</strong></td>
+            <td>$0.007</td>
+            <td>Systems / architecture</td>
+            <td>Default expiry is still wrong even with the exemption flags · kill on <em>uncorrected</em> wrong-child, not on a guess she fixed · restore on a new phone without O · a wellbeing nudge for the teacher herself</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="col">
+      <strong>The lesson:</strong> all three produced full-spectrum answers when asked, none needed a
+      lens to be useful, and the cheapest model on the panel found a legal-risk defect the expensive
+      ones missed. A lensed panel would have thrown that away by construction.
+    </p>
+  </section>
+
+  <section>
+    <h2>The principle underneath all of it</h2>
+    <div class="verdict col">
+      <p style="font-size:20px;margin-bottom:12px"><strong>Controls must be verifiable by someone
+        who isn't standing there.</strong></p>
+      <p>
+        No network beats a classifier, because you can <code>aapt dump</code> it. Synthetic fixtures
+        beat a no-real-data policy, because a repo diff proves it. Events beat impressions, because
+        SQL counts them. A paper recovery key beats a remembered passphrase, because paper doesn't
+        depend on memory.
+      </p>
+      <p>
+        This is also why the round-3 gateway — however well designed — is the wrong thing to build
+        first. <strong>In v1, the strongest boundary is an empty socket.</strong>
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    Round 4 · unlensed panel under Rule 82 · GLM 5.3, Kimi K3, HY3 · identical packet, identical
+    remit, all angles required · total spend $0.32 · 16 August 2026.
+    Sources: <code>51-glm-r4-unlensed.md</code>, <code>52-kimi-r4-unlensed.md</code>,
+    <code>53-hy3-r4-unlensed.md</code>, <code>55-glm-r4-tail.md</code>, synthesised in
+    <code>60-R4-SYNTHESIS.md</code>.
+  </footer>
+
+</div>
