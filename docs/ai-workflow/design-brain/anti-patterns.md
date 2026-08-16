@@ -14,7 +14,7 @@
 | **Retired Galaxy-Swan tokens** `#0a0a1a` `#00FFFF` `#7851A9` | Retired brand. Gemini sometimes still proposes them — reject on sight |
 | **Hardcoded hex without `var(--token, #fallback)`** (rule 6) | Kills theming and drift detection; the fallback IS the contract |
 | **Arctic Cyan `#50A0F0` on buttons/glow** | It is the DATA color; on controls it collapses the chart-vs-action distinction |
-| **Cyberforest tokens on client-facing surfaces** | Operator mode is Sean-only (design.md §3); leakage blurs the product/operator boundary |
+| **Cyberforest tokens on client-facing surfaces** | Operator mode is Sean-only (design.md §5); leakage blurs the product/operator boundary |
 | **The quarantined "LILA BAN"** (design-taste-frontend's purple-glow ban) | Directly contradicts the Dual-Button Glow rule. Swan doctrine wins; the skill stays quarantined |
 
 ## Layout & composition bans
@@ -22,7 +22,7 @@
 | Ban | Why |
 |---|---|
 | **Generic SaaS template feel** (centered hero → 3-up features → logo row → CTA) | The #1 AI tell; Swan pages follow a named B2 arc with editorial asymmetry |
-| **`repeat(4, 1fr)` equal card grids as default** | Equal weight says nothing is important; use weighted `minmax` columns (design.md §8) |
+| **`repeat(4, 1fr)` equal card grids as default** | Equal weight says nothing is important; use weighted `minmax` columns (design.md §10) |
 | **Center-everything symmetry** | Kills hierarchy and rhythm; source §B mandates asymmetry and negative space |
 | **Cards inside cards** | Double chrome, wasted padding, muddy elevation story; flatten to sections within one panel |
 | **Hero-style dashboards** | Dashboards are Phase 1–4 working surfaces, not brand pages; decorative banners bury the data |
@@ -59,7 +59,7 @@
 | **Motion without purpose / dead decorative loops** | Fails the earned-motion test (`motion.md`); burns GPU and attention |
 | **Neon overload / chaotic glow** | Glow is a discipline system with recipes (C12); more glow = less premium |
 | **Ambient motion in calm zones** | Operator panels, data cards, forms — the data is the show (`motion.md` calm zones) |
-| **Flat gray shadows** | Swan elevation is glass + tinted glow (design.md §7); gray drop-shadows read as 2015 Bootstrap |
+| **Flat gray shadows** | Swan elevation is glass + tinted glow (design.md §9); gray drop-shadows read as 2015 Bootstrap |
 | **Flat depthless backgrounds on hero/marketing** | Source §B atmospheric rules require layered atmosphere; add gradient depth + 2–5% grain |
 | **Ungated animation (missing reduced-motion)** | Accessibility failure AND a rule-25 violation; DUAL gating (CSS + JS) per `motion.md` |
 
@@ -67,7 +67,7 @@
 
 | Ban | Why |
 |---|---|
-| **Inventing new tokens/components inside a slice** | New tokens are PROPOSALS to Sean (design.md §1.7); silent invention = drift |
+| **Inventing new tokens/components inside a slice** | New tokens are PROPOSALS to Sean (design.md §1); silent invention = drift |
 | **Updating design.html without design.md (or vice versa)** | They ship together; divergence makes the mirror a liar (README enforcement contract) |
 | **Skipping the mounted-surface receipt before a UI fix** | Rule 26 — you may be styling a dormant component |
 | **"Looks good" as a QA verdict** | qa-gates.md verdicts are binary gates with receipts, not vibes (rule 19) |

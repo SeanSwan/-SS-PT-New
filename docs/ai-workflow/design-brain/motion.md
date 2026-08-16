@@ -50,10 +50,10 @@ Data-dense operator and work surfaces stay **calm**: response-tier only, no ambi
 
 - **Hermes operator surfaces (Cyberforest):** ambient banned, response ≤200ms (design.md §5 (ops world) — "a cockpit, not a brand page").
 - **Coach Command Center** approval queue / receipt ledger (design.md §5 — pro world): response-tier only.
-- **Data cards** (client/trainer/admin/biometrics/program/workout-log): no pointer tracking, no animation loops, no hover-only actions (Swan Card/Button Standard; design.md §9).
-- Tables, forms mid-entry, and anything a trainer uses live in a session (low-tap flows, design.md §17): motion must never delay the next tap.
+- **Data cards** (client/trainer/admin/biometrics/program/workout-log): no pointer tracking, no animation loops, no hover-only actions (Swan Card/Button Standard; design.md §11).
+- Tables, forms mid-entry, and anything a trainer uses live in a session (low-tap flows, design.md §11): motion must never delay the next tap.
 
-SheenCard sell/showcase surfaces are the licensed exception (design.md §9) — and even they honor §3.
+SheenCard sell/showcase surfaces are the licensed exception (design.md §11) — and even they honor §3.
 
 ## 5. Signature-moment budget
 

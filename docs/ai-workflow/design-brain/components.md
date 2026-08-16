@@ -8,14 +8,14 @@
 
 ## 1. GlowButton
 
-- **Purpose:** every CTA and action trigger. Variants per design.md §10 (Primary / Accent / Luxury / Ghost / Danger).
+- **Purpose:** every CTA and action trigger. Variants per design.md §11 (Primary / Accent / Luxury / Ghost / Danger).
 - **Anatomy:** 44px+ height, 12px radius, label (Plus Jakarta Sans; Sora on gaming surfaces), optional leading icon, glow layer as pseudo-element (opacity-animated, `motion.md` §2).
-- **Dual-Button Glow (both directions, mandatory — design.md §5):** blue bg (Midnight Sapphire/Royal Depth) → **Wing Purple** glow + focus ring; purple bg (Wing Purple) → **Ice Wing** glow + focus ring. Conflicting library advice (LILA BAN class) is rejected, not adapted.
+- **Dual-Button Glow (both directions, mandatory — design.md §6):** blue bg (Midnight Sapphire/Royal Depth) → **Wing Purple** glow + focus ring; purple bg (Wing Purple) → **Ice Wing** glow + focus ring. Conflicting library advice (LILA BAN class) is rejected, not adapted.
 - **States:** default / hover (glow up + 1–2% scale) / active (0.98) / focus-visible (2px glow-color ring, 2px offset) / disabled (40% opacity, no glow) / loading (inline spinner, label persists).
 - **Do:** one Primary per view region; Danger gets `--danger` bg and NO glow (destruction isn't celebrated).
 - **Don't:** Arctic Cyan anywhere on a button (data-only token); icon-only button without `aria-label`; two primaries side-by-side.
 
-## 2. SheenCard vs low-motion data card (design.md §9)
+## 2. SheenCard vs low-motion data card (design.md §11)
 
 - **SheenCard (sell/showcase):** C12 sapphire or luxury-gold glass + chrome edge + metallic sheen + glints + hover motion (C7 tilt allowed). For storefront/feature/ascension — anything meant to SELL. Family: C5/C6/C7.
 - **Data card (client/trainer/admin/biometrics/program/workout-log):** same geometry and C12 chrome, dark-blue gradient surface, **low-motion**: no pointer tracking, no loops, no hover-only actions, no hidden controls. Compact grouped facts — never the same fact twice on one card; 44px icon buttons; wrap/stack at phone width.
@@ -53,7 +53,7 @@
 ## 7. Command dock
 
 - **Purpose:** operator command entry (Coach Command Center, Hermes surfaces).
-- **Anatomy:** docked bar/panel, Graphite surface, input (§11 field spec), command list rows each carrying exactly one T0–T4 tier badge (design.md §15), keyboard-first (↑/↓/Enter, visible focus).
+- **Anatomy:** docked bar/panel, Graphite surface, input (§11 field spec), command list rows each carrying exactly one T0–T4 tier badge (design.md §11), keyboard-first (↑/↓/Enter, visible focus).
 - **States:** idle / typing (filtered list) / armed (T3+ selection shows confirm affordance inline) / executing (row-level spinner, dock stays interactive) / result (links to receipt row, §9).
 - **Don't:** execute T3/T4 straight from the dock — route through confirm (§17) or two-step arm (§18); ambient motion (calm zone, `motion.md` §4).
 
@@ -67,7 +67,7 @@
 
 ## 9. Approval-queue row + receipt ledger row
 
-- **Approval-queue row (Coach Command Center / operator):** anatomy — tier badge (T0–T4 colors, design.md §15) + action summary + target entity + requester/source + age + approve/reject 44px targets; ≥48px row height; keyboard operable. States: pending / selected (detail panel opens) / processing / done. Don't: color-only tier signal; hover-revealed actions.
+- **Approval-queue row (Coach Command Center / operator):** anatomy — tier badge (T0–T4 colors, design.md §11) + action summary + target entity + requester/source + age + approve/reject 44px targets; ≥48px row height; keyboard operable. States: pending / selected (detail panel opens) / processing / done. Don't: color-only tier signal; hover-revealed actions.
 - **Receipt ledger row:** immutable record of an executed command. Anatomy — timestamp + actor + tier badge + action + target + outcome, values in **Fira Code** (tabular figures, right-aligned numerics per §12 tables); links to rollback note where T4. States: success / failed (single `--danger` accent) / rolled-back. Don't: editable receipts; truncating the target entity on mobile (stack, don't clip).
 
 ## 10. Navigation rail (design.md §11)

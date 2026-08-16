@@ -31,7 +31,7 @@ If the QA tool accepts width only: use `2560px`/`3840px` widths and state the te
 ## Gate 2 — ACCESSIBILITY
 
 1. **Contrast:** 4.5:1 minimum for text (rule 7), checked against the ACTUAL rendered background (glass panels: check against the darkest AND lightest blur state; media: brightest frame per `cinematic-pages.md`). Known trap: raw `--swan-lavender` (#4070C0) text on dark surfaces computes ~4.0:1 — use it for borders/fills, or use lightened text tints.
-2. **Focus:** `:focus-visible` ring on every interactive element (glow-color, 2px, offset 2px per design.md §10); logical tab order; **focus restoration to trigger on modal/drawer close** (WCAG 2.4.3 — a repeat offender in this repo, now source-locked in several suites).
+2. **Focus:** `:focus-visible` ring on every interactive element (glow-color, 2px, offset 2px per design.md §6); logical tab order; **focus restoration to trigger on modal/drawer close** (WCAG 2.4.3 — a repeat offender in this repo, now source-locked in several suites).
 3. **Keyboard paths:** every pointer path has a keyboard path; no hover-only reveals (anti-patterns); ESC closes non-destructive overlays.
 4. **Touch:** ≥44px targets, ≥8px between adjacent targets; no nested interactive elements (invalid DOM + trap).
 5. **Reduced motion:** DUAL gating verified — CSS `@media (prefers-reduced-motion)` AND `useReducedMotion()` for framer-motion/JS (`motion.md` §4; the 2026-06-20 lesson).
@@ -48,7 +48,7 @@ Run AFTER building, in hostile-reviewer mode (rule 23): actively try to prove th
 **The checklist (from the Premium Design Critique Loop, mapped to Design Brain docs):**
 - Generic/template feel? (anti-patterns §layout — is there a named B2 arc and editorial asymmetry?)
 - Weak hierarchy or unclear CTA? (one primary action per view; the biggest thing = the biggest idea)
-- Inconsistent spacing rhythm? (every gap on the design.md §7 scale?)
+- Inconsistent spacing rhythm? (every gap on the design.md §9 scale?)
 - Cheap shadows/borders/icons? (glass + tinted glow only; lucide icons, no emoji controls)
 - Flat, depthless backgrounds? (atmosphere layers + grain on large dark surfaces)
 - Unreadable density / mobile squeeze? (Gate 1 evidence)

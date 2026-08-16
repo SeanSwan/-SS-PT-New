@@ -45,7 +45,7 @@
 DESIGN RECEIPT — <surface name>
 Surface:      <route + mounted component, file:line>   (rule 26 receipt: <link/anchor>)
 Direction:    <Fable direction name, or "polish — no direction gate needed">
-Tokens used:  <list — design.md §4 names only, e.g. --bg-base, --ice-wing, --gilded-fern>
+Tokens used:  <list — design.md §6 names only, e.g. --bg-base, --ice-wing, --gilded-fern>
 Patterns:     <C-patterns / components.md entries reused — e.g. C12 glass panel (obsidian variant), C11 chart env>
 Viewports:    <widths actually checked, with any monitor-class dims>
 Motion:       <framer variants + reduced-motion handling, or "static">
