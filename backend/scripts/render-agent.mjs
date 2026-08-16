@@ -38,6 +38,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extractMono } from '../services/mediaSync/audioExtract.mjs';
 import { findOffset } from '../services/mediaSync/crossCorrelation.mjs';
+import { runGenerate } from './handlers/generateVideo.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -211,7 +212,7 @@ async function runMediaSync(job, onProgress) {
   };
 }
 
-const HANDLERS = { mediasync: runMediaSync };
+const HANDLERS = { mediasync: runMediaSync, generate: runGenerate };
 
 async function handleJob(job) {
   log(`leased ${job.id} kind=${job.kind} workflow=${job.workflowId}`);

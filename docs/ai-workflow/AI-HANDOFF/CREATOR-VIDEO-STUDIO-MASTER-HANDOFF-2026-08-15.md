@@ -215,3 +215,97 @@ Real bugs I shipped and later caught:
 3. **Get Sean generating one video on his 5090.** Not the full studio — one video, one provider, end to end. The queue, worker, and crash recovery already work; what is missing is a `generate` handler and a provider. That is the shortest path from "control panel" to "the thing I asked for."
 
 **Guiding correction for whoever continues:** slice-level proof does not compose into product-level correctness. Periodically re-read §1 — the *original* ask — and state plainly which parts Sean can actually do today.
+
+---
+
+## §12 — PHASES 1 AND 2 ARE BUILT (2026-08-16)
+
+**§4 is settled, with evidence.** Two independent greps (ripgrep + POSIX grep) confirm the
+deleted `contentStudioVideoGenerationService.mjs` left **zero code references** — it appears
+only in documentation, so its removal crashed nothing. But the deletion was **lossy**, and the
+verdict is *right direction, wrong execution*:
+
+| Part of the deleted file | Verdict |
+|---|---|
+| `resolveVideoGenerationConfig` | **Superseded.** `env.DREAMINA_API_URL ? 'dreamina' : 'seedance'` is a two-provider if-statement; it cannot express capability or licence. Left dead. |
+| `validateVideoGenerationInput` | **Restored + improved.** Duration is now bounded by the *provider's* declared maximum instead of a fixed `[5,10,15,30]` set that contradicted every real model's 6s cap. |
+| `normalizeProviderResponse` | **Restored near-verbatim.** Each alternative in its lookup chain is a shape a real API actually returned; re-deriving it would mean re-making the same mistakes. |
+
+### What now exists
+
+| File | Lines | Role |
+|---|---|---|
+| `shared/providers/video/catalogue.mjs` | 148 | DATA — providers, declared capabilities, licence terms |
+| `shared/providers/video/registry.mjs` | 256 | BEHAVIOUR — selection, licence gate, validation, normalization |
+| `shared/providers/video/comfyuiLocal.mjs` | 296 | The local ComfyUI adapter — `capabilities()` / `generate()` / `verify()` |
+| `backend/scripts/handlers/generateVideo.mjs` | 145 | The agent's `generate` handler + retry classification |
+| `backend/tests/unit/videoProviderRegistry.test.mjs` | — | 58 tests |
+
+`render-agent.mjs` gained exactly two lines: an import, and `generate` in `HANDLERS`.
+
+The split mirrors the image lane exactly (`openrouterModels` = DATA, `openrouterImage` =
+BEHAVIOUR), and the three-function provider contract is the one that file's docblock already
+described as *"the same contract creator Claude adopted for the video lane."*
+
+### The licence is now code, not memory
+
+`resolve()` refuses a commercial run of H3 in an excluded territory unless a grant is recorded,
+and **its refusal message states which thing is restricted** — running the weights, not the
+video produced. That sentence is asserted by a test, because the prose version of it decayed
+into "commercial use is blocked" and misled its own author for days.
+
+Enablement and licence grant are **separate acts**: `SWAN_VIDEO_PROVIDERS_ENABLED` switches a
+provider on; `SWAN_VIDEO_LICENCE_GRANTS` records the grant. Switching a provider on does not
+confer the right to run it commercially. Both are fail-closed — unset grants nothing.
+
+**This is what makes the licence outcome survivable.** If the grant is refused, the hosted
+entry is already a registered peer and nothing above it changes.
+
+### Setup on the 5090
+
+```powershell
+# 1. Build the H3 graph once in the ComfyUI GUI, then File > "Save (API format)".
+#    A GUI-format export is rejected with a named error telling you this.
+$env:SWAN_COMFYUI_WORKFLOW   = "C:\path\to\h3-workflow-api.json"
+$env:SWAN_COMFYUI_NODE_PROMPT = "6"        # node id whose text input is the positive prompt
+$env:SWAN_COMFYUI_NODE_DURATION = "7"      # optional
+$env:SWAN_COMFYUI_NODE_SEED     = "8"      # optional
+$env:SWAN_COMFYUI_URL        = "http://127.0.0.1:8188"   # default
+$env:SWAN_VIDEO_PROVIDERS_ENABLED = "comfyui/minimax-h3"
+
+# 2. Non-commercial runs need no grant. Commercial runs in the US do:
+# $env:SWAN_VIDEO_LICENCE_GRANTS = "comfyui/minimax-h3"   # only after the grant arrives
+
+# 3. Advertise the capability when starting the agent:
+node backend/scripts/render-agent.mjs --capabilities ffmpeg,mediasync,generate
+```
+
+`verify()` is the single command that reports which of those pieces is missing, each with the
+variable name to fix it. The default capability list is deliberately unchanged — an agent that
+advertised `generate` without ComfyUI configured would claim work it cannot do.
+
+### What is PROVEN, and what is NOT
+
+**Proven this session:** 58/58 tests pass; the suite is non-vacuous — three mutations (licence
+gate disabled, image-first disabled, retry classification neutered) killed 4, 2 and 5 tests
+respectively. All five modules pass `node --check` and evaluate under a real import.
+
+**NOT proven:** no video has been generated. There is no ComfyUI and no 5090 in this
+environment, so the full submit → poll → download path is proven only against a fake ComfyUI,
+never a real one. **The first person with access to the 5090 should expect to find defects in
+the real transport.** Sean can now *try*, which he could not before — that is the whole claim.
+
+**Known limitations, stated rather than discovered later:**
+- `normalizeProviderResponse` is tested but has **no production caller** until a hosted adapter
+  lands. It is preserved knowledge, not live code.
+- The licence gate necessarily trusts the caller's declared `commercial` flag. No code can know
+  how a video will eventually be used.
+- `render-agent.mjs` is 330 lines, over the rule-4 cap. It was 329 before this work; the import
+  added one. Extracting `runMediaSync` is a separate pass on proven code, not this slice's job.
+- R2 upload is still absent. The handler returns `uploaded: false` rather than claiming an
+  object that does not exist.
+
+### Next
+
+Phase 3 (the studio surface) is unchanged: read the Forge blueprint and **update** it — do not
+invent a new plan. The keystone it depended on now exists.
