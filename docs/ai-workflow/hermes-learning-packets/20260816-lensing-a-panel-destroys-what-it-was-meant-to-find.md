@@ -30,6 +30,12 @@ skills_touched:
   - id: scripts/consult-hy3-design.mjs
     change: proposed
     failure: defaults to "Give only UI/UX and interaction suggestions" — the exact lens Rule 82 forbids, applied by default
+title: Lensing a panel destroys what it was convened to find
+tier_basis: fable-tier
+decision: Lensing a review panel destroys the findings it was convened to produce — and the tooling defaults silently reintroduce it
+status: draft
+privacy: IDs/roles only; no PII, no secrets, no absolute paths
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-tier; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract); privacy<-scanned clean by validator patterns); originating_model untouched
 ---
 
 # Lensing a panel destroys what it was convened to find

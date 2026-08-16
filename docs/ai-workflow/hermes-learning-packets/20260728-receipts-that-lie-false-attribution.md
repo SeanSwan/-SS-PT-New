@@ -3,6 +3,11 @@ originating_model: claude-fable-5
 date: 2026-07-28
 topic: Receipts that lie — false attribution in catch blocks, and why an evidence system fails differently than an app
 provenance: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
+title: a receipt that lies is worse than a crash
+tier_basis: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
+decision: Receipts that lie — false attribution in catch blocks, and why an evidence system fails differently than an app
+status: draft
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-provenance; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 # Learning Packet — a receipt that lies is worse than a crash

@@ -4,6 +4,11 @@ tier_gate: PASS
 date: 2026-07-11
 topic: Paste-ready apply prompt for Hermes — installs the Fable Operating Discipline skill, rewrites memory to pointer form, and executes the session remediations
 surfaces: [hermes-skills-tree, hermes-memory, hermes-inbox]
+title: PROMPT FOR HERMES — execute exactly, in order
+tier_basis: Fable 5 is the reference Fable tier (Rule 68 — the model the corpus is named for)
+decision: Paste-ready apply prompt for Hermes — installs the Fable Operating Discipline skill, rewrites memory to pointer form, and executes the session remediations
+status: draft
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-designation; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 # PROMPT FOR HERMES — execute exactly, in order

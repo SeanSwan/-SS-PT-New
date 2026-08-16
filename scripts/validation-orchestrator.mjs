@@ -108,6 +108,8 @@ const MODELS = {
   // mercury2:     'z-ai/glm-4.7-flash'           — REMOVED: Z-AI/China in escalation role
 };
 
+const budgetProfile = process.env.SWAN_VILLAGE_BUDGET_PROFILE === '3usd';
+
 // ─────────────────────────────────────────────
 // Audit-compliance fail-fast guard
 // Added 2026-04-22 by ORCHESTRATOR-DRIFT-FIX-DEBATE-2026-04-22.md
@@ -122,7 +124,18 @@ const FUSION_JUDGE = {
   priceOutputPerM: Number(process.env.SWAN_FUSION_JUDGE_PRICE_OUT) || 25.0, // Opus 4.8 est. $25/M out
 };
 
-const DISALLOWED_PROVIDER_PREFIXES = ['minimax/', 'stepfun/', 'qwen/', 'deepseek/', 'z-ai/'];
+// POLICY CHANGE 2026-08-03 (Sean): these prefixes were a HARD BLOCK. They are
+// now ADVISORY — the run WARNS and continues so Sean can make the call himself.
+// His ruling: "I want a warning though, so I can choose for myself. [Don't] set
+// up a hard block for Chinese sites. But Kimi K3 has full permission."
+//
+// `moonshotai/` is deliberately ABSENT: Kimi K3 is fully permitted in every
+// slot, including orchestrator, escalation, and synthesis judge.
+//
+// UNCHANGED: Rule 8 (zero PII to LLMs). That is the control that actually
+// protects client data and it binds every provider equally. Provider choice and
+// prompt contents are independent decisions.
+const ADVISORY_PROVIDER_PREFIXES = ['minimax/', 'stepfun/', 'qwen/', 'deepseek/', 'z-ai/'];
 
 /**
  * Hard-fails (process.exit(2)) if any policy-constrained track or escalation slot
@@ -149,26 +162,32 @@ function assertNoChineseProviderInPolicyConstrainedTracks(tracks, escalationMode
   const violations = [];
   for (const track of (tracks || [])) {
     const id = String(track.model || '').toLowerCase();
-    if (DISALLOWED_PROVIDER_PREFIXES.some(p => id.startsWith(p))) {
+    if (ADVISORY_PROVIDER_PREFIXES.some(p => id.startsWith(p))) {
       violations.push(`[${opts.checkpoint}] track "${track.name}" -> ${track.model}`);
     }
   }
   for (const id of (escalationModels || [])) {
     const normalized = String(id || '').toLowerCase();
-    if (DISALLOWED_PROVIDER_PREFIXES.some(p => normalized.startsWith(p))) {
+    if (ADVISORY_PROVIDER_PREFIXES.some(p => normalized.startsWith(p))) {
       violations.push(`[${opts.checkpoint}] escalation slot -> ${id}`);
     }
   }
   if (violations.length) {
-    console.error('');
-    console.error('  [AUDIT-FAIL] Disallowed provider in policy-constrained slot:');
-    violations.forEach(v => console.error(`    - ${v}`));
-    console.error('  See memory/project_validation_orchestrator_drift_2026_04_22.md');
-    console.error('  Phase 2C UX/UI design debate is the only exempt site (separate code path).');
-    console.error('');
-    process.exit(2);
+    // WARN AND CONTINUE (2026-08-03). Sean chooses; the tool informs.
+    console.warn('');
+    console.warn('  ⚠ [PROVIDER NOTICE] Non-US provider in a policy-sensitive slot:');
+    violations.forEach(v => console.warn(`    - ${v}`));
+    console.warn('  This is ADVISORY, not a block — the run continues.');
+    console.warn('  Rule 8 still binds: no PII in any prompt, for any provider.');
+    console.warn('  Set SWAN_STRICT_PROVIDER_POLICY=1 to restore the old hard block.');
+    console.warn('');
+    if (process.env.SWAN_STRICT_PROVIDER_POLICY === '1') {
+      console.error('  [AUDIT-FAIL] SWAN_STRICT_PROVIDER_POLICY=1 — aborting.');
+      process.exit(2);
+    }
+    return;
   }
-  console.log(`  [audit-compliance] OK at ${opts.checkpoint} — no disallowed providers in Phase 1 tracks or escalation`);
+  console.log(`  [audit-compliance] OK at ${opts.checkpoint} — no advisory providers in Phase 1 tracks or escalation`);
 }
 
 const CONFIG = {
@@ -536,7 +555,7 @@ ${codeBundle}`,
 
     {
       name: 'Data Safety & Integrity',
-      model: MODELS.claudeSonnet46,
+      model: budgetProfile ? MODELS.nemotron3Super : MODELS.claudeSonnet46,
       prompt: `You are a DATA SAFETY AUDITOR for a production SaaS platform (SwanStudios — personal training). This is the MOST CRITICAL track. The platform owner's #1 fear is accidentally wiping user data, login credentials, or purchase history during deployments and code changes. ${ctx}
 
 TREAT EVERY FINDING AS IF IT COULD DESTROY A REAL USER'S DATA IN PRODUCTION.
@@ -1518,7 +1537,7 @@ The Creative Director has FINAL SAY on design decisions. You challenge but ultim
 // OpenRouter API Caller (single unified caller)
 // ─────────────────────────────────────────────
 
-async function callOpenRouter(apiKey, model, prompt, maxTokens = 4096) {
+async function callOpenRouter(apiKey, model, prompt, maxTokens = 60_000) {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -1578,7 +1597,7 @@ async function callGeminiDirect(apiKey, model, prompt, opts = {}) {
     contents: [{ parts: [{ text: prompt }] }],
     generationConfig: {
       temperature: 0.3,
-      maxOutputTokens: 8192,
+      maxOutputTokens: 60_000,
     },
   };
 
@@ -1729,7 +1748,7 @@ async function runFusionSynthesisStep({ phase1Results, sink, apiKey, ctx, topic,
   // isn't truncated mid-plan) plus, when SWAN_FUSION_DELIVERABLE=1, an instruction to emit
   // a full build plan + Mermaid diagrams in a single pass. Both env-gated; default run is
   // byte-identical (deliverable='' → base prompt; ceiling only raises an unused cap).
-  const judgeMaxTokens = Number(process.env.SWAN_FUSION_JUDGE_MAX_TOKENS) || 32000;
+  const judgeMaxTokens = Number(process.env.SWAN_FUSION_JUDGE_MAX_TOKENS) || 60_000;
   // Hard dollar cap on the single judge call (Sean 2026-07-08): default 0 = off; set
   // SWAN_FUSION_JUDGE_MAX_USD (e.g. 2) to bound the paid judge (Fable) by dollars, not just
   // tokens — fusion-synthesis computes the safe output ceiling from measured input + price.
@@ -1778,12 +1797,12 @@ function writeFusionSynthesisArtifact(results, outputPaths) {
 // SWAN_VILLAGE_CONFIRM=yes). Post-run: per-model cost summary + cost-summary.md.
 // ─────────────────────────────────────────────
 
-async function spendGate({ tracks, inputChars, debatesEnabled }) {
+async function spendGate({ tracks, inputChars, debatesEnabled, debatePanels }) {
   const synthesisOn = String(process.env.SWAN_FUSION_SYNTHESIS || 'on').toLowerCase() !== 'off';
   const judge = synthesisOn ? { model: FUSION_JUDGE.model } : null;
   const extraPricing = { [FUSION_JUDGE.model]: { in: FUSION_JUDGE.priceInputPerM, out: FUSION_JUDGE.priceOutputPerM } };
   const gate = await evaluateSpendGate({
-    tracks, inputChars, judge, debatesEnabled, extraPricing,
+    tracks, inputChars, judge, debatesEnabled, debatePanels, extraPricing,
     log: (m) => console.log(m),
   });
   if (!gate.proceed) {
@@ -2180,8 +2199,16 @@ async function main() {
     const phase1Tracks = buildPlanningValidatorTracks(planContent, opts.document);
 
     const groundedCount = phase1Tracks.filter(t => t.useGrounding).length;
+    // Mirror of the code-mode gate (line ~2515): without debatePanels the estimator
+    // prices worst-case recursive debates even in flat mode and aborts on the cap.
+    const singlePassDebates = budgetProfile && process.env.SWAN_VILLAGE_SINGLE_PASS_DEBATES === '1';
+    const debatePanels = singlePassDebates ? [
+      [MODELS.nemotron3Nano, MODELS.nemotron3Super],
+      [MODELS.claudeSonnet46, MODELS.nemotron3Super],
+      [MODELS.glm52, MODELS.gemini31Pro],
+    ] : undefined;
     assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2, FUSION_JUDGE.model], { checkpoint: 'phase1-planning' });
-    const gate = await spendGate({ tracks: phase1Tracks, inputChars: planContent.length, debatesEnabled: hasGemini31 });
+    const gate = await spendGate({ tracks: phase1Tracks, inputChars: planContent.length, debatesEnabled: hasGemini31, debatePanels });
     if (!gate.proceed) return;
     console.log(`  Phase 1: Launching ${phase1Tracks.length} planning analysts (staggered 2s apart)...`);
     if (groundedCount > 0) {
@@ -2492,8 +2519,16 @@ async function main() {
   // All tracks are Phase 1 now — Phase 2+3 are recursive debates
   const phase1Tracks = tracks;
   const totalPhases = hasGemini31 ? 3 : 1;
+  const singlePassDebates = budgetProfile && process.env.SWAN_VILLAGE_SINGLE_PASS_DEBATES === '1';
+  const debatePanels = singlePassDebates ? [
+    [MODELS.nemotron3Nano, MODELS.nemotron3Super],
+    [MODELS.claudeSonnet46, MODELS.nemotron3Super],
+    [MODELS.glm52, MODELS.gemini31Flash],
+  ] : undefined;
 
   assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2, FUSION_JUDGE.model], { checkpoint: 'phase1-code-review' });
+  const gate = await spendGate({ tracks: phase1Tracks, inputChars: codeBundle.length, debatesEnabled: hasGemini31, debatePanels });
+  if (!gate.proceed) return;
   console.log(`  Phase 1: Launching ${phase1Tracks.length} validators (staggered 2s apart)...`);
   if (hasGemini31) {
     console.log(`  Phase 2: 3 Specialty Debates (Security, Code Quality, UX/UI)...`);
@@ -2653,9 +2688,9 @@ async function main() {
           role: 'Creative Director (Lead Design Authority)',
         },
         modelB: {
-          name: 'Gemini 3.1 Pro',
-          model: MODELS.gemini31Pro,
-          provider: 'gemini-direct',
+          name: budgetProfile ? 'Gemini 3.1 Flash' : 'Gemini 3.1 Pro',
+          model: budgetProfile ? MODELS.gemini31Flash : MODELS.gemini31Pro,
+          provider: budgetProfile ? 'openrouter' : 'gemini-direct',
           role: 'Design Reviewer & Implementation Challenger',
         },
         finalAuthority: 'A', // GLM 5.2 = Creative Director = final say on design

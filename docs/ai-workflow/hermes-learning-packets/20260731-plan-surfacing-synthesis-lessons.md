@@ -2,6 +2,12 @@
 originating_model: claude-fable-5
 provenance: Fable-tier synthesis (Final Decider), Session Shell live-fix loop 2026-07-31
 privacy: IDs/roles only — no client data, no secrets
+date: 2026-07-31
+title: Plan Surfacing synthesis (2026-07-31)
+tier_basis: Fable-tier synthesis (Final Decider), Session Shell live-fix loop 2026-07-31
+decision: Plan Surfacing synthesis (2026-07-31)
+status: draft
+migrated: 2026-08-16 — required keys back-filled mechanically (date<-filename; title<-H1; tier_basis<-provenance; decision<-title; status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 # Learning packet — Plan Surfacing synthesis (2026-07-31)

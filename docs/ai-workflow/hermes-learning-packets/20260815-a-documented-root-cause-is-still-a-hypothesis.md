@@ -23,6 +23,12 @@ skills_touched:
   - id: feedback_validate_probe_before_absence_claim
     change: amended in practice
     failure: the memory covers disbelieving a NEGATIVE; I nearly shipped a false POSITIVE from the same root cause (unvalidated instrument)
+title: A documented root cause is still a hypothesis
+tier_basis: fable
+decision: verification discipline — instruments, layered defences, and inherited root causes
+status: draft
+privacy: IDs/roles only; no PII, no secrets, no absolute paths
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-tier; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract); privacy<-scanned clean by validator patterns); originating_model untouched
 ---
 
 # A documented root cause is still a hypothesis

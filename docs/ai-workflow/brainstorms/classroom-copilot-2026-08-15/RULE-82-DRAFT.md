@@ -1,4 +1,10 @@
-# Rule 82 — draft for `main`
+# Rule 82 — draft for `main` — ✅ APPLIED, SUPERSEDED (verified 2026-08-16)
+
+> **Do not apply this draft.** Rule 82 already exists on `origin/main` in BOTH constitution
+> files (CLAUDE.md:723, AGENTS.md:726), in a NEWER revision than this draft: it adds the
+> unlensed re-run proof (three structural defects), the consult-script lensed-default
+> warning, a truncation check, and points proof-before-done at Rule 74 (main's numbering).
+> Verified by `git show origin/main:<file>` + diff. Main's text wins; this file is history.
 
 **Apply to BOTH `CLAUDE.md` and `AGENTS.md` on `origin/main`, by hand, identically.**
 Do NOT run the mirror sync (it copies one file over the other and can destroy the newer side).

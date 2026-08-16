@@ -3,6 +3,11 @@ originating_model: claude-fable-5
 date: 2026-07-28
 topic: A narrowed type can hide a capability you already have — probe before you assume an architecture blocker
 provenance: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
+title: the blocker that was a `Pick<>`, and the two bug classes only a real DB finds
+tier_basis: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
+decision: A narrowed type can hide a capability you already have — probe before you assume an architecture blocker
+status: draft
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-provenance; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 # Learning Packet — the blocker that was a `Pick<>`, and the two bug classes only a real DB finds

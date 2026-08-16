@@ -288,10 +288,32 @@
       "Edit(frontend/.env.*)",
       "Edit(package-lock.json)",
       "Edit(.git/**)",
-      "Edit(.ai-workflow/audit/**)"
+      "Edit(.ai-workflow/audit/**)",
+      "Bash(node scripts/blast-radius-approve*)"
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/db-blast-radius-gate.mjs"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/hooks/push-blast-radius.mjs",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "hooks": [
@@ -319,6 +341,11 @@
             "type": "command",
             "command": "node scripts/hooks/linear-sync-gate.mjs",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/dual-tier-gate.mjs",
+            "timeout": 30
           }
         ]
       },
@@ -337,6 +364,16 @@
           {
             "type": "command",
             "command": "node scripts/hooks/drift-check-gate.mjs",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/lane-session-start.mjs",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hermes-learning-surface.mjs --session-start",
             "timeout": 15
           }
         ]

@@ -3,6 +3,11 @@ originating_model: claude-fable-5
 date: 2026-07-29
 topic: Whose clock is authoritative — and why `on conflict do nothing` does not make an insert safe to re-run
 provenance: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
+title: two database facts that break production and pass every unit test
+tier_basis: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
+decision: Whose clock is authoritative — and why `on conflict do nothing` does not make an insert safe to re-run
+status: draft
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-provenance; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 # Learning Packet — two database facts that break production and pass every unit test

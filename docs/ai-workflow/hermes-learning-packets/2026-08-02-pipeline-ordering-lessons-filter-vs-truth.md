@@ -5,6 +5,9 @@ date: 2026-08-02
 decision: Two permanent pipeline-ordering laws for any relevance-filtered data system
 status: shipped
 supersedes: none
+title: "Pipeline ordering: where a personal filter sits determines whether truth survives"
+tier_basis: Fable-tier — OpenRouter panel run `personal-hub-2026-08-02`, receipt in SwanGuard-Newsroom/.ai-workflow/fusion/personal-hub-2026-08-02/fable-5.md (prompt=38314, completion=14376, finish_reason=stop)
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-provenance); originating_model untouched
 ---
 
 # Pipeline ordering: where a personal filter sits determines whether truth survives

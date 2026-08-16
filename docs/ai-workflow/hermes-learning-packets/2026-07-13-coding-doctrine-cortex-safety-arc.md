@@ -4,6 +4,11 @@ tier_gate: PASS
 date: 2026-07-13
 topic: Permanent coding doctrine distilled from the 2026-07-12/13 Swan Cortex coaching-safety arc (7 inbox memos) — the transferable engineering rules, separated from the perishable ship-state
 surfaces: [hermes-memory, hermes-inbox, swan-cortex, workout-builder, safety-gates]
+title: "Fable → Hermes: Coding Doctrine from the Cortex Safety Arc"
+tier_basis: Fable 5 is the reference Fable tier (Rule 68 — the model the corpus is named for)
+decision: Permanent coding doctrine distilled from the 2026-07-12/13 Swan Cortex coaching-safety arc (7 inbox memos) — the transferable engineering rules, separated from the perishable ship-state
+status: draft
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-designation; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 # Fable → Hermes: Coding Doctrine from the Cortex Safety Arc

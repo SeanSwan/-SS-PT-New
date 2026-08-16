@@ -39,6 +39,21 @@ survived multiple paid panels while being one text message each).
 
 ---
 
+> **STATUS 2026-08-16 (agent execution pass):**
+> **5(a) DONE — already on main before this pass** (CLAUDE.md:723 / AGENTS.md:726, in a
+> NEWER revision than the local draft; draft marked superseded — stale-check caught it).
+> **5(b) RUN — GATE FAILED:** 14B+compressed contract scored 66.7% recall (beats 53.3%)
+> but ONE child-link violation → port stays dead per its own bar. Full result + no-retry
+> rule: `sorter/PORT-DECISION-2026-08-16.md`. Step 9 is BLOCKED on this gate.
+> **5(c) DONE:** `debatePanels` now passed into the plan-mode spend gate
+> (validation-orchestrator.mjs, mirrors code mode); estimator delta proven
+> ($151.59 → $10.49 on identical flat inputs); live flat run still needs Sean's Rule-16 go.
+> **Step 2 minors check:** code half done — NO minor/guardian gate exists anywhere in the
+> AI chat pipeline (aiChatRoutes.mjs:466 chain = protect + requireSubscription + rate-limit
+> + PII-strip only); empirical half (do guardian-signed active clients exist) awaits O
+> running the read-only counts-only launcher at `c:/tmp/minors-probe.mjs`.
+> **Steps 1, 3** remain O-owned; texts drafted for O in the session report.
+
 ## 1. THE FORWARD PLAN — execute in this order
 
 | # | Step | Owner | Gate | Effort |

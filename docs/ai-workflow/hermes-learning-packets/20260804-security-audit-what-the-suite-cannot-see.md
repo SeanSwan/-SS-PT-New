@@ -3,7 +3,13 @@ originating_model: claude-fable-5
 captured: 2026-08-04
 surface: backend security + schema truth
 boards: SWA-137, SWA-125, SWA-115
-status: shipped (1e89c33f2, deploy-verified)
+status: shipped
+date: 2026-08-04
+title: What a test suite cannot see — lessons from a security round that found 3 HIGH holes
+tier_basis: Fable 5 is the reference Fable tier (Rule 68 — the model the corpus is named for)
+decision: What a test suite cannot see — lessons from a security round that found 3 HIGH holes
+status_detail: shipped (1e89c33f2, deploy-verified)
+migrated: 2026-08-16 — required keys back-filled mechanically (date<-filename; title<-H1; tier_basis<-designation; decision<-title; status normalised "shipped (1e89c33f2, deploy-verified)" -> "shipped"); originating_model untouched
 ---
 
 # What a test suite cannot see: lessons from a security round that found 3 HIGH holes
