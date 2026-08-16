@@ -5,6 +5,13 @@
 > unlensed re-run proof (three structural defects), the consult-script lensed-default
 > warning, a truncation check, and points proof-before-done at Rule 74 (main's numbering).
 > Verified by `git show origin/main:<file>` + diff. Main's text wins; this file is history.
+>
+> **R2 correction — "richer" is not a strict superset.** Clause-level diff: main ADDS the
+> unlensed re-run proof, the consult-script lensed-default warning, and a truncation check;
+> main DROPS two explanatory parentheticals present only here — "(a structural
+> device-location flaw nobody else saw)" and "(a data-laundering path through the local
+> model)". Trivial loss, but restoring them to main is a Sean-gated constitution edit, not
+> an agent call. Everything else in main's revision is additive.
 
 **Apply to BOTH `CLAUDE.md` and `AGENTS.md` on `origin/main`, by hand, identically.**
 Do NOT run the mirror sync (it copies one file over the other and can destroy the newer side).

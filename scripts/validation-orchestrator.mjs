@@ -2201,12 +2201,18 @@ async function main() {
     const groundedCount = phase1Tracks.filter(t => t.useGrounding).length;
     // Mirror of the code-mode gate (line ~2515): without debatePanels the estimator
     // prices worst-case recursive debates even in flat mode and aborts on the cap.
+    // PLAN_DEBATE_SEATS is the single source of truth — the Phase 2A/2B/2C seat
+    // definitions below consume it too, so the gate always prices the models that
+    // actually run (R2 hostile review: a hardcoded copy drifts fail-open/underpriced).
     const singlePassDebates = budgetProfile && process.env.SWAN_VILLAGE_SINGLE_PASS_DEBATES === '1';
-    const debatePanels = singlePassDebates ? [
-      [MODELS.nemotron3Nano, MODELS.nemotron3Super],
-      [MODELS.claudeSonnet46, MODELS.nemotron3Super],
-      [MODELS.glm52, MODELS.gemini31Pro],
-    ] : undefined;
+    const PLAN_DEBATE_SEATS = {
+      p2a: { a: MODELS.nemotron3Nano, b: MODELS.nemotron3Super },
+      p2b: { a: MODELS.claudeSonnet46, b: MODELS.nemotron3Super },
+      p2c: { a: MODELS.glm52, b: MODELS.gemini31Pro },
+    };
+    const debatePanels = singlePassDebates
+      ? Object.values(PLAN_DEBATE_SEATS).map((s) => [s.a, s.b])
+      : undefined;
     assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2, FUSION_JUDGE.model], { checkpoint: 'phase1-planning' });
     const gate = await spendGate({ tracks: phase1Tracks, inputChars: planContent.length, debatesEnabled: hasGemini31, debatePanels });
     if (!gate.proceed) return;
@@ -2269,8 +2275,8 @@ async function main() {
         const secReport = phase1Results.find(r => r.name === 'Security & Privacy Planning' && r.status === 'SUCCESS')?.text || '';
         const p2aResult = await runRecursiveConsensus({
           topic: 'Security Planning Analysis',
-          modelA: { name: 'Nemotron 3 Nano', model: MODELS.nemotron3Nano, provider: 'openrouter', role: 'Primary Security Planner' },
-          modelB: { name: 'Nemotron 3 Super', model: MODELS.nemotron3Super, provider: 'openrouter', role: 'Secondary Security Planner (120B MoE)' },
+          modelA: { name: 'Nemotron 3 Nano', model: PLAN_DEBATE_SEATS.p2a.a, provider: 'openrouter', role: 'Primary Security Planner' },
+          modelB: { name: 'Nemotron 3 Super', model: PLAN_DEBATE_SEATS.p2a.b, provider: 'openrouter', role: 'Secondary Security Planner (120B MoE)' },
           finalAuthority: 'A',
           initialPrompt: buildPlanDebateSecurityPrompt(planContent, ctx, phase1Summary),
           callModel: callModelForDebate,
@@ -2302,8 +2308,8 @@ async function main() {
         const p2bStart = Date.now();
         const p2bResult = await runRecursiveConsensus({
           topic: 'Architecture & Component Planning',
-          modelA: { name: 'Claude Sonnet 4.6', model: MODELS.claudeSonnet46, provider: 'openrouter', role: 'Senior Architecture Lead' },
-          modelB: { name: 'Nemotron 3 Super', model: MODELS.nemotron3Super, provider: 'openrouter', role: 'Code Architecture Specialist (1M context)' },
+          modelA: { name: 'Claude Sonnet 4.6', model: PLAN_DEBATE_SEATS.p2b.a, provider: 'openrouter', role: 'Senior Architecture Lead' },
+          modelB: { name: 'Nemotron 3 Super', model: PLAN_DEBATE_SEATS.p2b.b, provider: 'openrouter', role: 'Code Architecture Specialist (1M context)' },
           finalAuthority: 'A',
           initialPrompt: buildPlanDebateArchPrompt(planContent, ctx, phase1Summary),
           callModel: callModelForDebate,
@@ -2340,8 +2346,8 @@ async function main() {
           // The audit-compliance guard (assertNoChineseProviderInPolicyConstrainedTracks) intentionally does NOT
           // scan this code path — see policy comment at the MODELS definition.
           // Sean 2026-06-20: GLM 5.2 is now the LEAD designer (final say); Gemini 3.1 Pro reviews.
-          modelA: { name: 'GLM 5.2', model: MODELS.glm52, provider: 'openrouter', role: 'Creative Director (Lead Design Authority)' },
-          modelB: { name: 'Gemini 3.1 Pro', model: MODELS.gemini31Pro, provider: 'gemini-direct', role: 'Design Reviewer & Implementation Challenger' },
+          modelA: { name: 'GLM 5.2', model: PLAN_DEBATE_SEATS.p2c.a, provider: 'openrouter', role: 'Creative Director (Lead Design Authority)' },
+          modelB: { name: 'Gemini 3.1 Pro', model: PLAN_DEBATE_SEATS.p2c.b, provider: 'gemini-direct', role: 'Design Reviewer & Implementation Challenger' },
           finalAuthority: 'A',
           initialPrompt: buildPlanDebateDesignPrompt(planContent, ctx, uxReport),
           callModel: callModelForDebate,

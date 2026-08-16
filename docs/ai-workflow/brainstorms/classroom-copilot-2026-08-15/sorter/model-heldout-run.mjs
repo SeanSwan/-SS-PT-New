@@ -49,17 +49,28 @@ async function modelSort(text) {
   try { parsed = JSON.parse(fence[1]); } catch (e) { return { items: [], parseError: e.message }; }
   if (!Array.isArray(parsed)) return { items: [], parseError: 'JSON was not an array' };
   const validIds = new Set(ROSTER.map((r) => r.id));
+  const VALID_TYPES = new Set(['observation', 'child_followup', 'parent', 'supply', 'prep', 'admin', 'idea']);
+  let linkIntentDropped = 0; // non-null childId that is NOT a roster id — link-intent on a
+  // hallucinated/non-roster child. Silently nulling it would hide a violation class.
+  let invalidTypes = 0; // types outside the 7-value enum — counted, never coerced
   const items = parsed
-    .filter((i) => i && typeof i.type === 'string')
-    .map((i) => ({
-      type: i.type,
-      body: String(i.body ?? ''),
-      confidence: typeof i.confidence === 'number' ? i.confidence : 0,
-      childRef: validIds.has(i.childId) ? i.childId : null,
-      childVia: validIds.has(i.childId) ? 'model' : null,
-      needsReview: i.needsReview === true,
-    }));
-  return { items, parseError: null };
+    .filter((i) => {
+      if (!i || typeof i.type !== 'string') return false;
+      if (!VALID_TYPES.has(i.type)) { invalidTypes += 1; return true; } // keep — scores as FP
+      return true;
+    })
+    .map((i) => {
+      if (i.childId != null && !validIds.has(i.childId)) linkIntentDropped += 1;
+      return {
+        type: i.type,
+        body: String(i.body ?? ''),
+        confidence: typeof i.confidence === 'number' ? i.confidence : 0,
+        childRef: validIds.has(i.childId) ? i.childId : null,
+        childVia: validIds.has(i.childId) ? 'model' : null,
+        needsReview: i.needsReview === true,
+      };
+    });
+  return { items, parseError: null, linkIntentDropped, invalidTypes };
 }
 
 let expectedTotal = 0;
@@ -68,6 +79,8 @@ let falsePositives = 0;
 let childLinkViolations = 0;
 let unflaggedChildItems = 0;
 let parseFailures = 0;
+let totalLinkIntentDropped = 0;
+let totalInvalidTypes = 0;
 
 console.log('='.repeat(72));
 console.log(`HELD-OUT CORPUS vs ${MODEL} + compressed contract — the port decision`);
@@ -75,11 +88,13 @@ console.log('='.repeat(72));
 
 for (const c of HELDOUT) {
   const t0 = Date.now();
-  let items = [], parseError = null;
+  let items = [], parseError = null, linkIntentDropped = 0, invalidTypes = 0;
   try {
-    ({ items, parseError } = await modelSort(c.text));
+    ({ items, parseError, linkIntentDropped = 0, invalidTypes = 0 } = await modelSort(c.text));
   } catch (e) { parseError = e.message; }
   if (parseError) parseFailures += 1;
+  totalLinkIntentDropped += linkIntentDropped;
+  totalInvalidTypes += invalidTypes;
 
   const got = items.map((i) => i.type);
   const remaining = [...c.expect];
@@ -131,8 +146,14 @@ console.log(`False positives           ${falsePositives}  (invented items — th
 console.log(`Child-link violations     ${childLinkViolations}  (must be 0)`);
 console.log(`Unflagged child items     ${unflaggedChildItems}  (must be 0)`);
 console.log(`Parse failures            ${parseFailures}  (model broke the output contract)`);
+console.log(`Link-intent dropped       ${totalLinkIntentDropped}  (non-roster childId — must be 0 for a clean pass)`);
+console.log(`Invalid types             ${totalInvalidTypes}  (outside the 7-value enum — counted, kept as FPs)`);
 console.log('='.repeat(72));
+console.log('NOTE: this harness + seen corpus are ATTRIBUTION/REGRESSION-ONLY as of R2.');
+console.log('Gating retries require the pre-registered gate in PORT-DECISION-2026-08-16.md');
+console.log('(fresh sealed corpus, FP bounds, absolute bars, >=3 seeded runs, shared scorer).');
 
-const pass = recall >= BASELINE && childLinkViolations === 0 && unflaggedChildItems === 0;
-console.log(`\nPORT DECISION: ${pass ? 'GATE PASSED — the compressed contract survives the 14B' : 'GATE FAILED — the port hypothesis does not survive contact with the 14B'}`);
+const pass = recall >= BASELINE && childLinkViolations === 0 && unflaggedChildItems === 0
+  && totalLinkIntentDropped === 0;
+console.log(`\nRESULT: ${pass ? 'clean run (NON-GATING on this seen corpus — see PORT-DECISION R2)' : 'FAILED — the contract-only variant breaks a hard invariant (hypothesis itself unresolved; see PORT-DECISION R2)'}`);
 if (!pass) process.exit(1);

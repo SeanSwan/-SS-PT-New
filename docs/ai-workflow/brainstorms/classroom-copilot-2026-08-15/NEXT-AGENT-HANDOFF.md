@@ -53,10 +53,24 @@ survived multiple paid panels while being one text message each).
 > requireSubscription + rate-limit + PII-strip only). Empirical half (prod DB, 2026-08-16,
 > counts-only probe `backend/scripts/inspect-minors-ai-exposure.mjs`): guardian-signed
 > waivers = 0 · guardian-linked users = 0 · users under 18 by DOB = 0 · either-signal
-> minors with AI conversations = 0. **No minor exists in production today**, so the missing
+> minors with AI conversations = 0. R2 denominators: 7 total users / 12 waiver records
+> (tables non-empty — zeros are real), but **3 of 7 users have NULL DOB (1 of them uses AI
+> chat)** — the DOB signal classifies only 4/7. **No minor is detectable by either
+> available signal**, and the current population is O's handful of personally-known adult
+> users, so the missing
 > gate is a structural gap, not a live exposure. A gating slice is backlog, not queue-jump;
 > when built it hits the Rule 50 Tier-C trigger (minor's-data path → Village review).
 > **Steps 1, 3** remain O-owned; texts drafted for O in the session report.
+>
+> **PLAN LEDGER (R2 review demanded owners — every step, one line):**
+> 1 texts-to-T: **O**, tonight, drafts ready · 2 minors check: **DONE** (dormant; probe =
+> durable script) · 3 install: **O+T**, next evening, printables first · 4 freeze: everyone,
+> starts when T starts · 5a: **DONE** (was already on main) · 5b: **DONE — variant-1 FAILED,
+> pilot; retry gate pre-registered** · 5c: **DONE minus live paid run (O's Rule-16 go)** ·
+> 6 director talk: **T** (O preps questions), post-install · 7 gate read: **O+agent**, day 5 ·
+> 8 two-lanes card: **O+T**, after gate · 9 port slice: **BLOCKED** (needs 5b retry pass
+> under the R2 gate) · 10 month-end + "year or month?" question: **O+T**.
+> New: `89-OPTION-MEMO-FOR-O.md` — the T-facing sorting options (rules-now / retry / hybrid).
 
 ## 1. THE FORWARD PLAN — execute in this order
 

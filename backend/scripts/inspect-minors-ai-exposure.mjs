@@ -40,6 +40,17 @@ await q('guardian_linked_users_with_ai_conversations',
    JOIN "Users" u ON u.id = w."userId"
    JOIN ai_conversations c ON c."userId" = u.id
    WHERE w."submittedByGuardian" = true`);
+// Sanity + coverage denominators (R2 hostile review: zeros are meaningless without them —
+// a null-DOB minor is invisible to the DOB signal, and an empty table manufactures zeros).
+await q('SANITY_total_users',
+  `SELECT COUNT(*)::int AS n FROM "Users"`);
+await q('SANITY_total_waiver_records',
+  `SELECT COUNT(*)::int AS n FROM waiver_records`);
+await q('COVERAGE_users_with_null_dob',
+  `SELECT COUNT(*)::int AS n FROM "Users" WHERE "dateOfBirth" IS NULL`);
+await q('COVERAGE_ai_conversation_users_with_null_dob',
+  `SELECT COUNT(DISTINCT c."userId")::int AS n FROM ai_conversations c
+   JOIN "Users" u ON u.id = c."userId" WHERE u."dateOfBirth" IS NULL`);
 await q('minors_by_dob_all_users',
   `SELECT COUNT(*)::int AS n FROM "Users"
    WHERE "dateOfBirth" IS NOT NULL AND "dateOfBirth" > (CURRENT_DATE - INTERVAL '18 years')`);

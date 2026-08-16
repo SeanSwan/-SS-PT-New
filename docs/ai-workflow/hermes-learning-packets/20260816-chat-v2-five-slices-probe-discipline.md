@@ -1,6 +1,11 @@
 ---
+title: "Chat-v2 five slices in one loop — probe-before-build discipline results"
 originating_model: claude-fable-5
+tier_basis: "Fable 5 is the reference Fable tier (Rule 68 — the model the corpus is named for)"
 date: 2026-08-16
+decision: "A schema doc written before probing carries wrong load-bearing assumptions at a predictable rate (2 of 5 here); budget the first build hour to re-probe every assumption stated as fact, and build a replay harness before wiring — it catches design gaps code review cannot."
+status: draft
+privacy: "IDs/roles only; no PII, no secrets, no absolute paths"
 topic: "Hermes chat-v2 rebuild — all five slices in one loop; probe-before-build discipline results"
 linear: SWA-160
 models_used:
