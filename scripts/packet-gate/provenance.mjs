@@ -65,8 +65,13 @@ export function checkProvenance(blocks, readFile) {
     try {
       src = readFile(b.attrs.path);
     } catch (err) {
-      out.push(finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} — cannot read it (${err.code ?? err.message})`,
-        'cite a readable file; the packet claims provenance the gate cannot verify'));
+      // ESELFCITE gets its own remedy: "cite a readable file" is nonsense advice for a packet that
+      // cited itself, and an undiagnosable refusal is one the operator routes around.
+      out.push(err.code === 'ESELFCITE'
+        ? finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} — that is this packet (or its seed)`,
+          'cite the real source file. A packet citing itself byte-matches by construction, so it proves nothing')
+        : finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} — cannot read it (${err.code ?? err.message})`,
+          'cite a readable file; the packet claims provenance the gate cannot verify'));
       continue;
     }
     if (src == null) {

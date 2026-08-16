@@ -19,6 +19,23 @@
  *     already uses for cited paths: one rule, both places.
  *   - PARSE INTEGRITY. The hidden-character bypass would simply relocate to this channel otherwise.
  *
+ * ASYMMETRY WITH `--document`, DELIBERATE AND UNRESOLVED — do not "fix" it without reading this.
+ * Both round-7 reviewers independently flagged that this module enforces realpath containment while
+ * `--document` does not, and that the rationale above ("the gate would be approving a send command
+ * that ships a non-repo file") applies to the document just as much. Kimi framed the choice exactly:
+ * either the predicate belongs on `--document` too, OR this module's rationale is overstated.
+ *
+ * Containment WAS added to `--document` and immediately failed 21 of the suite's own tests, every
+ * one of which authors its packet in a scratch dir outside the repo. That is not a test artifact —
+ * it is how a packet normally gets written before it is worth committing. So the constraint is wrong
+ * for that channel, and the rationale above is the half that is overstated.
+ *
+ * The seed check STAYS, because it is shipped, canaried, and catches a real accident class (pointing
+ * `--seed` at something you did not mean to send). Removing it on that reasoning would mean
+ * weakening a tested control under time pressure, which is precisely how the round-2
+ * warning-instead-of-refusal hole was made. Left as an open question for the owner rather than
+ * silently resolved in either direction.
+ *
  * @module packet-gate/seed
  */
 import { readFileSync, existsSync, realpathSync } from 'node:fs';

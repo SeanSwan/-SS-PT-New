@@ -31,7 +31,7 @@ import { extractAnchors } from './context-gateway/src/anchors.mjs';
 import { getProvider, estimateCost } from './context-gateway/src/providers.mjs';
 import { gateSourceHash } from './packet-gate/source-hash.mjs';
 import { report } from './packet-gate/report.mjs';
-import { GateUnavailable, makeResolver, scanSecrets, loadSelftest, readCitedFile } from './packet-gate/repo-io.mjs';
+import { GateUnavailable, makeResolver, scanSecrets, loadSelftest, readCitedFile, within } from './packet-gate/repo-io.mjs';
 import { isUnverifiedFence, fenceParseAnomalies } from './packet-gate/fences.mjs';
 import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary, checkUncited, hasBindingAnchors, normPath } from './packet-gate/checks.mjs';
 import { unboundNamedPaths, weakBindingOnly } from './packet-gate/artifact.mjs';
@@ -151,6 +151,7 @@ function main() {
   // A NAMED-BUT-MISSING seed used to measure as zero bytes and pass. The send command resolves the
   // seed independently, so if it existed there the real prompt exceeded what R1 measured by an
   // unbounded amount — fail-open on exactly the quantity R1 exists to bound (Kimi K3 S3).
+  const seedPath = args.seed ? path.resolve(ROOT, args.seed) : null;
   const seed = loadSeed(ROOT, args.seed);
   if (seed.error) { for (const line of seed.error) console.error(line); return 2; }
   const seedText = seed.text;
@@ -207,7 +208,9 @@ ${seedText}` : md);
     // packet whose subject arrived VIA THE SEED was refused for "no cited CODE block" while R3 had
     // just byte-verified it. One predicate, two channel-unions, adjacent lines (Kimi K3 round 6, F2).
     ...checkArtifact(aboutCode, allBlocks, boundPaths, boundContent),
-    ...checkProvenance(allBlocks, (p) => readCitedFile(ROOT, p)),
+    // The document and its seed are NOT citable: a packet citing itself byte-matches by
+    // construction, so R3 would certify arbitrary fabricated code as "byte-verified".
+    ...checkProvenance(allBlocks, (p) => readCitedFile(ROOT, p, [docPath, seedPath])),
     ...checkHygiene(hygiene),
     ...checkSize(assembled.chars, args.budgetChars),
   ];

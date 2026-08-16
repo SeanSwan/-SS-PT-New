@@ -16,7 +16,7 @@
  * @module packet-gate/artifact
  */
 import { finding } from './refusal.mjs';
-import { normPath } from './normalize.mjs';
+import { normPath, foldCase } from './normalize.mjs';
 
 /** A cited block counts as CODE only if it is not prose. Citing `path=docs/notes.md` satisfied the
  *  letter of R4 while carrying zero bytes of code — the one check whose entire purpose is "a
@@ -107,14 +107,14 @@ export function mentions(body, needle) {
  * duplicate-predicate hazard, caught by writing it down rather than by a reviewer.
  */
 export function bindableBlocks(blocks, namedPaths = []) {
-  const namedSet = new Set(namedPaths.map(normPath));
+  const namedSet = new Set(namedPaths.map(foldCase));
   return blocks.filter(isCodeBlock)
-    .filter((b) => !isTestPath(b.attrs.path) || namedSet.has(normPath(b.attrs.path)));
+    .filter((b) => !isTestPath(b.attrs.path) || namedSet.has(foldCase(b.attrs.path)));
 }
 
 export function unboundNamedPaths(blocks, namedPaths = []) {
   const bindable = bindableBlocks(blocks, namedPaths);
-  return namedPaths.filter((n) => !bindable.some((b) => normPath(b.attrs.path) === normPath(n)));
+  return namedPaths.filter((n) => !bindable.some((b) => foldCase(b.attrs.path) === foldCase(n)));
 }
 
 /**
@@ -133,7 +133,7 @@ export function unboundNamedPaths(blocks, namedPaths = []) {
 export function weakBindingOnly(blocks, namedPaths = [], namedContent = []) {
   if (!namedPaths.length || !namedContent.length) return false;
   const bindable = bindableBlocks(blocks, namedPaths);
-  const pathHit = bindable.some((b) => namedPaths.some((n) => normPath(b.attrs.path) === normPath(n)));
+  const pathHit = bindable.some((b) => namedPaths.some((n) => foldCase(b.attrs.path) === foldCase(n)));
   const contentHit = bindable.some((b) => namedContent.some((n) => mentions(String(b.body), n)));
   return !pathHit && contentHit;
 }
@@ -187,6 +187,7 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedCo
   // applies only to a test the remit did NOT name. (Kimi K3 round 6, F4.)
   const bindable = bindableBlocks(blocks, namedPaths);
   const pathHit = bindable.some((b) => namedPaths.some((n) => normPath(b.attrs.path) === normPath(n)));
+  const caseOnlyHit = bindable.some((b) => namedPaths.some((n) => foldCase(b.attrs.path) === foldCase(n)));
   const contentHit = bindable.some((b) => namedContent.some((n) => mentions(String(b.body), n)));
 
   // ROUND-6 SELF-CORRECTION, found by attacking this very fix rather than by waiting for a review.
@@ -202,7 +203,7 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedCo
   // the binding rests only on the weaker one the receipt says so. `weakBinding` is what the caller
   // surfaces. Sixth consecutive round in which a fix created the next defect — the difference this
   // time is that the fix's own author found it.
-  const bound = pathHit || contentHit;
+  const bound = pathHit || caseOnlyHit || contentHit;
   const weakBinding = !pathHit && contentHit && namedPaths.length > 0;
 
   if (!bound) {
@@ -215,4 +216,26 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedCo
   }
   void weakBinding; // surfaced by weakBindingOnly() — see below; kept pure, no module state.
   return [];
+}
+
+/**
+ * True when R4 bound only because two paths differ in CASE.
+ *
+ * On a case-insensitive volume (NTFS, default APFS, WSL /mnt/c) this is one file and the bind is
+ * correct — declaring it costs the operator one line. On a case-SENSITIVE volume it is two different
+ * real files, and the declaration is the whole point: R5 and R3 both pass on their own file, so
+ * without this the operator gets a fully-green approval view for a packet carrying the wrong source.
+ * (Kimi K3 round 7, F1 — round 6 had folded case unconditionally, turning a macOS false-refusal into
+ * a Linux fail-open.)
+ */
+export function caseOnlyBinding(blocks, namedPaths = []) {
+  const bindable = bindableBlocks(blocks, namedPaths);
+  const exact = bindable.some((b) => namedPaths.some((n) => normPath(b.attrs.path) === normPath(n)));
+  if (exact) return null;
+  for (const b of bindable) {
+    for (const n of namedPaths) {
+      if (foldCase(b.attrs.path) === foldCase(n)) return { cited: b.attrs.path, named: n };
+    }
+  }
+  return null;
 }

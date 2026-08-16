@@ -117,5 +117,25 @@ export const normPath = (p) => {
   if (process.platform === 'win32') s = s.replaceAll('\\', '/');
   s = s.replace(/\/{2,}/g, '/').replace(/^\.\//, '');
   while (s.includes('/./')) s = s.replace('/./', '/');
-  return s.toLowerCase();
+  return s;
 };
+
+/**
+ * The same path with case folded — for a SECONDARY, declared comparison only.
+ *
+ * ROUND-7 CORRECTION, and a reversal of round 6's. Round 6 folded case inside `normPath` itself,
+ * reasoning that `win32` was the wrong test for case-insensitivity (true: darwin and WSL `/mnt/c`
+ * are insensitive too, and three checks disagreed about one file). But folding unconditionally
+ * traded a macOS false-refusal for a **Linux fail-open**: on ext4, `src/Config.mjs` and
+ * `src/config.mjs` are two DIFFERENT real files, so a remit naming one could be bound by a
+ * byte-exact citation of the other — R5 green, R3 green, R4 bound, no warning. The round-2 decoy
+ * attack with zero fabrication. (Kimi K3 round 7, F1.)
+ *
+ * Neither "always fold" nor "never fold" is right, because the filesystem's answer differs per
+ * platform and this module is deliberately pure and lexical so the canaries can drive it without
+ * I/O. So the resolution is the pattern this gate already uses for exactly this shape: identity
+ * binds SILENTLY, a case-only match binds but is DECLARED. A macOS operator is not refused, and a
+ * Linux operator citing a genuinely different file is told the binding rested on case alone.
+ * Signal, not veto — the same choice as `weakBindingOnly`.
+ */
+export const foldCase = (p) => normPath(p).toLowerCase();

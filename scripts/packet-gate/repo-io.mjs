@@ -130,9 +130,44 @@ export function scanSecrets(root, content) {
  *
  * Throws on I/O errors; checkProvenance turns that into an R3 refusal rather than a stack trace.
  */
-export function readCitedFile(root, rel) {
+/**
+ * Paths a packet may never cite: the packet document itself, and its seed.
+ *
+ * THE ROUND-7 CRITICAL, and it stood unnoticed through six rounds of hostile review because every
+ * one of them attacked the CHECKS rather than what R3 actually proves. R3 proves "these bytes exist
+ * in a repo file at this line range" — NOT "these bytes are the source they claim to be." A packet
+ * living under ROOT can therefore cite ITSELF, at the exact line range its own fabricated fence body
+ * occupies, and the comparison is byte-identical BY CONSTRUCTION.
+ *
+ * Verified, not theorised: a two-fence packet (one real block to satisfy R4, one self-citing block
+ * containing `export function isAdmin(){ return true; }`) reached `PACKET READY`, exit 0, and the
+ * approval view printed "2 cited block(s), all byte-verified against the repo [ok]". The gate's one
+ * invariant, defeated with no repo write and no clever input — the fabricated code wore the gate's
+ * own verification claim. (GLM-5.3 round 7, F1.)
+ *
+ * The general form is wider than the self-cite: citing ANY in-repo prose file that contains the
+ * fabricated text launders identically. That variant requires the attacker to first commit their
+ * payload into a repo file, which is a far higher bar and is what code review is for. The self-cite
+ * needs nothing but the document the operator is already writing, so it is the one closed here.
+ */
+function isSelfCitation(root, abs, exclude) {
+  for (const other of exclude) {
+    if (!other) continue;
+    try {
+      if (realpathSync(abs) === realpathSync(other)) return true;
+    } catch { /* unreadable — fall through to the normal checks */ }
+  }
+  return false;
+}
+
+export function readCitedFile(root, rel, exclude = []) {
   const abs = path.join(root, rel);
   if (!existsSync(abs)) return null;
+  if (isSelfCitation(root, abs, exclude)) {
+    const e = new Error('a packet may not cite itself or its own seed — the comparison would be byte-identical by construction, which proves nothing');
+    e.code = 'ESELFCITE';
+    throw e;
+  }
   const realRoot = realpathSync(root);
   const real = realpathSync(abs);
   // Case-fold on win32: NTFS is case-insensitive, so a differently-cased but identical path would
@@ -154,3 +189,22 @@ export function loadSelftest(root) {
   try { return JSON.parse(readFileSync(f, 'utf8')); } catch { return null; }
 }
 
+
+/**
+ * Is `abs` inside `root`? ONE predicate for every channel.
+ *
+ * `readCitedFile` had it for cited paths and `loadSeed` grew its own copy for the seed, while the
+ * DOCUMENT — the largest channel — had none: `--document ../../elsewhere.md` was read, measured,
+ * scanned and printed into the send command. Same property, three call sites, two implementations
+ * and one omission. Both round-7 reviewers found the asymmetry independently.
+ */
+export function within(root, abs) {
+  try {
+    const realRoot = realpathSync(root);
+    const real = realpathSync(abs);
+    const fold = (v) => (process.platform === 'win32' ? v.toLowerCase() : v);
+    return fold(real) === fold(realRoot) || fold(real).startsWith(fold(realRoot + path.sep));
+  } catch {
+    return false; // unresolvable → not provably inside → fail closed
+  }
+}

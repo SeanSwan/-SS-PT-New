@@ -13,12 +13,13 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
-import { join, resolve, dirname } from 'node:path';
+import { join, resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseFences, remitFromDoc, checkProvenance, checkPremises, checkSize, checkArtifact, normPath } from '../checks.mjs';
 import { gateSourceFiles } from '../source-hash.mjs';
-import { unboundNamedPaths, weakBindingOnly } from '../artifact.mjs';
+import { unboundNamedPaths, weakBindingOnly, caseOnlyBinding } from '../artifact.mjs';
+import { foldCase } from '../normalize.mjs';
 
 /** A minimal cited CODE block, for the R4 binding tests. */
 const codeBlock = (p, body = 'const x = 1;') => ({ cited: true, attrs: { path: p }, lang: 'js', body });
@@ -571,12 +572,24 @@ test('R4 WARNS (not refuses) when the remit names a path the packet does not car
 test('normPath matches the filesystem it actually runs on', () => {
   // Backslash folding is correct on win32 (it IS the separator) and WRONG on POSIX, where a
   // backslash is a legal filename character and `src\x.mjs` is a different real file.
+  // RE-ANCHOR (round 7): case folding MOVED OUT of normPath into `foldCase`, a declared secondary
+  // comparison. Round 6 folded case inside normPath to fix a macOS/WSL false refusal, and that
+  // traded it for a LINUX FAIL-OPEN — on ext4 `src/Config.mjs` and `src/config.mjs` are two
+  // different real files, so a remit naming one was bound by a byte-exact citation of the other with
+  // every check green and no warning. normPath is identity again; case-only matches still bind (no
+  // false refusal) but are DECLARED via caseOnlyBinding.
+  assert.notEqual(normPath('SRC/App.mjs'), normPath('src/app.mjs'), 'identity must not fold case');
+  assert.equal(foldCase('SRC/App.mjs'), foldCase('src/app.mjs'), 'the secondary comparison folds it');
   if (process.platform === 'win32') {
     assert.equal(normPath('src\\x.mjs'), normPath('src/x.mjs'));
-    assert.equal(normPath('SRC/App.mjs'), normPath('src/app.mjs'), 'NTFS is case-insensitive');
   } else {
     assert.notEqual(normPath('src\\x.mjs'), normPath('src/x.mjs'), 'a backslash filename is its own file');
   }
+  // The bind still happens (macOS is not refused) and the case-only nature is reported.
+  const b = codeBlock('src/app.mjs');
+  assert.equal(checkArtifact(true, [b], ['SRC/App.mjs'], []).length, 0, 'case-only must still bind');
+  assert.deepEqual(caseOnlyBinding([b], ['SRC/App.mjs']), { cited: 'src/app.mjs', named: 'SRC/App.mjs' });
+  assert.equal(caseOnlyBinding([codeBlock('src/app.mjs')], ['src/app.mjs']), null, 'identity is not case-only');
   assert.equal(normPath('src/./x.mjs'), normPath('src/x.mjs'), 'mid-path ./ resolves on disk');
   assert.equal(normPath('./src//x.mjs'), normPath('src/x.mjs'));
 });
@@ -695,4 +708,63 @@ test('REGRESSION: --seed pointed at a directory is a labelled refusal, not a sta
   assert.equal(code, 2, out);
   assert.match(out, /cannot be read/i);
   assert.doesNotMatch(out, /unexpected failure/i, 'a stack trace is the least diagnosable output a gate can give');
+});
+
+// --- Round 7 findings, 2026-08-16 ----------------------------------------------------------------
+
+test('CRITICAL REGRESSION: a packet cannot cite ITSELF into "byte-verified"', () => {
+  // THE ROUND-7 CRITICAL, and it stood through six rounds because every one attacked the CHECKS
+  // rather than what R3 actually proves. R3 proves "these bytes exist in a repo file at this line
+  // range" — not "these bytes are the source they claim to be". A packet under ROOT can cite itself
+  // at the exact lines its own fabricated fence body occupies; the comparison is byte-identical BY
+  // CONSTRUCTION. Verified before the fix: PACKET READY, exit 0, "2 cited block(s), all
+  // byte-verified against the repo [ok]" over `export function isAdmin(){ return true; }`.
+  const d = tmpInRepo();
+  const f = join(d, 'P.md');
+  const rel = relative(ROOT, f).replaceAll('\\', '/');
+  const head = ['## Remit', '', 'Review scripts/packet-gate/refusal.mjs.', ''];
+  const payload = ['export function isAdmin(){ return true; } // FABRICATED'];
+  const bodyStart = head.length + 2;
+  writeFileSync(f, [...head, `\`\`\`js path=${rel} lines=${bodyStart}-${bodyStart + payload.length - 1}`, ...payload, '```', ''].join('\n'));
+  const { code, out } = runGate(['--document', f]);
+  assert.equal(code, 1, out);
+  assert.match(out, /that is this packet/i, out);
+});
+
+test('R4 still binds a case-only path match, but DECLARES it', () => {
+  // Round 6 folded case inside normPath to fix a macOS/WSL false refusal and thereby created a LINUX
+  // FAIL-OPEN: on ext4 `src/Config.mjs` and `src/config.mjs` are two different real files, so a
+  // remit naming one was bound by a byte-exact citation of the other, every check green, no warning.
+  // Signal, not veto — the same resolution as weakBindingOnly.
+  const b = codeBlock('src/app.mjs');
+  assert.equal(checkArtifact(true, [b], ['SRC/App.mjs'], []).length, 0, 'must not false-refuse macOS');
+  assert.deepEqual(caseOnlyBinding([b], ['SRC/App.mjs']), { cited: 'src/app.mjs', named: 'SRC/App.mjs' });
+  assert.equal(caseOnlyBinding([codeBlock('src/app.mjs')], ['src/app.mjs']), null);
+});
+
+test('REGRESSION: `## Remit-to-pay …` does not hijack extraction from the real Remit section', () => {
+  // `\s*[:—–-]` matched `Remit-driven`/`Remit-to-pay`, and findIndex takes the FIRST match — so the
+  // remit became that section's text, aboutCode went false, R4 and R5 went inert, and the
+  // empty-remit guard stayed silent because the remit was non-empty garbage.
+  assert.equal(remitFromDoc('## Remit-to-pay reconciliation\nhijack\n\n## Remit\nthe real remit\n'), 'the real remit');
+  assert.equal(remitFromDoc('## Remit-driven changes\nbody\n'), '');
+  // …while the legitimate inline forms still work.
+  assert.match(remitFromDoc('## Remit: review the refund flow\n'), /refund flow/);
+  assert.match(remitFromDoc('## Remit — review src/x.mjs\n'), /src\/x\.mjs/);
+});
+
+test('the import walker covers side-effect and dynamic imports, not just `from`', () => {
+  // The walker now DEFINES R15's coverage, so its regex defines the blast radius — and the recursive
+  // floor only bounds that for files inside scripts/packet-gate/, which is exactly where anchors.mjs
+  // is NOT. Latent when found (the gate uses only `from`), closed while it was still cheap.
+  const re = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.[^'"]+)['"]/g;
+  for (const [src, want] of [
+    ["import x from './a.mjs'", './a.mjs'],
+    ["import './b.mjs'", './b.mjs'],
+    ["await import('./c.mjs')", './c.mjs'],
+    ['export * from"./d.mjs"', './d.mjs'],
+  ]) {
+    const got = [...src.matchAll(new RegExp(re.source, 'g'))].map((m) => m[1]);
+    assert.deepEqual(got, [want], src);
+  }
 });

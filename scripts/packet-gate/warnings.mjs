@@ -12,7 +12,7 @@
  * @module packet-gate/warnings
  */
 import { isUnverifiedFence } from './fences.mjs';
-import { hasBindingAnchors, unboundNamedPaths, weakBindingOnly } from './artifact.mjs';
+import { hasBindingAnchors, unboundNamedPaths, weakBindingOnly, caseOnlyBinding } from './artifact.mjs';
 
 /**
  * @param {object} ctx  { allBlocks, boundPaths, boundContent, aboutCode, allowUncited, premises }
@@ -28,6 +28,14 @@ export function buildWarnings({ allBlocks, boundPaths, boundContent, aboutCode, 
   const uncited = allBlocks.filter(isUnverifiedFence);
   if (allowUncited && uncited.length) {
     out.push(`${uncited.length} uncited fence(s) at line(s) ${uncited.map((b) => b.start).join(', ')} — NOT byte-verified; accepted deliberately via --allow-uncited`);
+  }
+
+  // R4 bound only because two paths differ in CASE. One file on NTFS/APFS/WSL; TWO DIFFERENT REAL
+  // FILES on ext4, where R5 and R3 each pass on their own file and the operator would otherwise see
+  // a fully-green approval view for a packet carrying the wrong source.
+  const caseOnly = caseOnlyBinding(allBlocks, boundPaths);
+  if (caseOnly) {
+    out.push(`R4 bound ${caseOnly.cited} to the remit's ${caseOnly.named} by CASE-INSENSITIVE match — on a case-sensitive filesystem these are two different files`);
   }
 
   // R4 was satisfied by a MENTION while the remit also named a path. Allowed, because vetoing it

@@ -88,7 +88,14 @@ export function remitFromDoc(md) {
   //
   // Trailing punctuation with no text (`## Remit:`) is also accepted; the inline text, when present,
   // becomes the first line of the remit and the following lines still append.
-  const HEADING_RE = /^#{2,}\s*remit\s*(?:[:—–-]\s*(.*))?$/i;
+  // The separator must be a COLON, or whitespace before a dash. `\s*[:—–-]` matched `Remit-driven`,
+  // `Remit-to-pay`, `Remit-check` — so `## Remit-to-pay reconciliation` anywhere in the document
+  // hijacked extraction (findIndex takes the FIRST match), the remit became "to-pay reconciliation"
+  // plus that section's body, `aboutCode` went false, and R4 and R5 were both inert while the
+  // empty-remit guard stayed silent because the remit was non-empty garbage. That is the exact
+  // Category-2 signature the round-5 subheading fix was written about, reintroduced one round later
+  // by the inline-remit fix. Both reviewers found it independently. (Kimi K3 F3 / GLM-5.3 F4.)
+  const HEADING_RE = /^#{2,}\s*remit\s*(?::\s*(.*)|\s+[—–-]\s*(.*))?$/i;
   const i = outside.findIndex((l) => l !== null && HEADING_RE.test(l.trim()));
   if (i !== -1) {
     // STOP ONLY AT A HEADING OF THE SAME LEVEL OR HIGHER — not at any heading at all.
@@ -120,7 +127,8 @@ export function remitFromDoc(md) {
       const m = /^(#{1,6})\s/.exec(l.trim());
       return Boolean(m) && m[1].length <= level;
     });
-    const inline = HEADING_RE.exec(outside[i].trim())?.[1]?.trim();
+    const hm = HEADING_RE.exec(outside[i].trim());
+    const inline = (hm?.[1] ?? hm?.[2])?.trim();
     const body = (stop === -1 ? rest : rest.slice(0, stop)).filter((l) => l !== null);
     return [inline || null, ...body].filter((l) => l !== null).join('\n').trim();
   }
