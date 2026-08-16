@@ -4,6 +4,12 @@
 **Purpose:** turn the one blocking item into a two-minute action, and reduce three open forks to
 three yes/no decisions with a recommendation each.
 
+> **Status update, same day:** the three recommendations below were **adopted provisionally into
+> the blueprint** (`r4-blueprint.html`, decision log) so the build plan stops carrying open
+> branches. *Provisional* means recorded as a working default, **not ratified by the owner.** Each
+> carries its reversal cost in the blueprint's decision log. The three questions in Part 1 remain
+> genuinely open and blocking — nothing below substitutes for them.
+
 ---
 
 ## Part 1 — The employer-policy question

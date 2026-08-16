@@ -385,6 +385,7 @@
       <span><b>Cost</b> $0.32 total</span>
       <span><b>Date</b> 16 Aug 2026</span>
       <span><b>Rule 82</b> live on main · <code>8257e42b6</code></span>
+      <span><b>Status</b> 3 decisions provisional · 3 questions still open</span>
     </div>
   </header>
 
@@ -524,11 +525,19 @@
   </section>
 
   <section>
-    <h2>Three forks that need your call</h2>
-    <p class="col">
-      These are genuine disagreements between models, not gaps. Each is cheap to decide now and
-      expensive to change later.
-    </p>
+    <h2>Three decisions — provisional</h2>
+    <div class="verdict col">
+      <p>
+        <strong>These were genuine disagreements between models, now resolved provisionally so the
+        blueprint stops carrying open branches and can be built end-to-end.</strong>
+      </p>
+      <p>
+        <strong>Provisional means exactly that.</strong> Each decision below is a recommendation the
+        owner has not ratified, recorded as a working default on <strong>16 Aug 2026</strong> so
+        work is not blocked on a conversation. Each carries its reversal cost. Reversing any one is
+        a small, contained edit — the places it touches are named.
+      </p>
+    </div>
 
     <div class="fork">
       <h3>① What happens after a wrong-child error</h3>
@@ -546,10 +555,32 @@
           error she caught and fixed during review is the system working, not failing.</li>
       </ul>
       <div class="myread">
-        <strong>My read:</strong> Kimi and HY3 are right about different halves. Count
-        <em>uncorrected</em> wrong-child that reaches a family note (HY3), and make the response
-        graduated rather than terminal (Kimi) — but keep the zero-tolerance spirit by making the
-        first strike loud and immediate, because that spirit is what protects her.
+        <strong>Provisional decision ·</strong> Kimi and HY3 are right about different halves. Count
+        <em>uncorrected</em> wrong-child only, and graduate the response rather than terminate it —
+        keeping the zero-tolerance spirit by making the first strike loud and immediate, because
+        that spirit is what protects her.
+        <ul style="margin:10px 0 0">
+          <li><strong>Strike 1 —</strong> model attribution drops to <em>suggest-only</em>: it may
+            propose a child but can never pre-fill one, and every attributed chip needs a
+            confirmation tap.</li>
+          <li><strong>Strike 2 —</strong> the model stops attributing children entirely. Rules-only
+            attribution — explicit name matches and nothing else. It still classifies record
+            <em>types</em>, which is most of its value and carries none of the risk.</li>
+          <li>Never a silent continuation, and never a total shutdown.</li>
+        </ul>
+        <p style="margin:10px 0 0"><strong>What counts as a strike is derivable from the v1 schema
+          — no new field needed.</strong> A <code>child_corrected</code> event whose
+          <code>at_ut</code> is later than a <code>handed_off</code> event on the same
+          <code>record_id</code> means the wrong attribution reached a family note. Earlier means
+          she caught it in review, which is the system working and is not a strike.</p>
+        <p style="margin:10px 0 0"><strong>Known weakness, stated rather than hidden:</strong> this
+          only fires if she notices and corrects the error at all. If she never notices, nothing
+          fires. The counter under-reports by construction and is a <em>lagging indicator, not a
+          safety mechanism</em> — the actual defence is the confirmation tap on low-confidence
+          attributions, which prevents the error instead of counting it. Do not let the counter's
+          existence justify weakening the tap.</p>
+        <p style="margin:10px 0 0"><strong>Reversal cost —</strong> low. Touches the strike rule and
+          the review screen's confirmation behaviour. No schema change either way.</p>
       </div>
     </div>
 
@@ -564,16 +595,30 @@
       </p>
       <p>GLM and Kimi both accepted the existing amendment as sufficient. This is a real fork.</p>
       <div class="myread">
-        <strong>Resolved to a third option since publication.</strong> Both poles are wrong. The
-        storage argument for expiry is false — five years of every record she will ever write is
-        <strong>5 MB</strong>, against a 2,400 MB model file already on the phone. But indefinite
-        retention is also wrong, for data minimisation rather than space: holding behavioural
-        records on named two-year-olds forever is itself a worse privacy posture. Recommendation is
-        a <strong>school-year-aligned window</strong> — the year plus one term — with incidents
-        exempt and opt-in early deletion, and the scratchpad feel delivered by an active/archive
-        <em>view</em> rather than by deleting anything. <strong>Until this is decided, the retention
-        window shown in the diagrams and wireframes above is deliberately marked open — do not
-        implement 30 days.</strong> Full reasoning in <code>61-DECISIONS-PENDING.md</code>.
+        <strong>Provisional decision · neither pole.</strong> The storage argument for expiry is
+        false — five years of every record she will ever write is <strong>5 MB</strong>, against a
+        2,400 MB model file already on the phone. But indefinite retention is also wrong, for data
+        minimisation rather than space: holding behavioural records on named two-year-olds forever
+        is itself a worse privacy posture, and if the school states a retention expectation,
+        "forever" breaks it.
+        <ul style="margin:10px 0 0">
+          <li>Ordinary observations retain <strong>through the end of the school year plus one
+            term</strong> — not 30 days, not forever.</li>
+          <li><strong>Incidents and promoted evidence remain exempt.</strong> Unchanged, and correct.</li>
+          <li>Expiry becomes <strong>opt-in for early deletion</strong> — she marks a note
+            <em>scratch</em> to drop it sooner.</li>
+          <li>The scratchpad feel comes from an active/archive <strong>view</strong>, not from
+            deleting anything. Retention and visibility are separate dials.</li>
+          <li>Year-end rollover runs the retention pass, which is where <code>school_year</code>
+            earns its place in the schema.</li>
+        </ul>
+        <p style="margin:10px 0 0"><strong>Superseded by the school's own number, if one exists.</strong>
+          Question 3 of the employer conversation asks for it. If the school states a retention
+          expectation, that wins over anything chosen here — which is why the purge job should be
+          the last thing built, not the first.</p>
+        <p style="margin:10px 0 0"><strong>Reversal cost —</strong> low <em>now</em>, unrecoverable
+          later. Changing the window is one setting; records already deleted under a wrong window do
+          not come back. This asymmetry is the whole argument for erring long.</p>
       </div>
     </div>
 
@@ -588,11 +633,50 @@
         <li><strong>HY3 —</strong> an explicit local transfer path is <strong>mandatory</strong>,
           not optional — without it the product is two inert halves.</li>
       </ul>
+      <div class="myread">
+        <strong>Provisional decision ·</strong> lock this wording instead:
+        <p style="margin:10px 0;font-size:16px"><strong>"No server. No cloud. No account. No
+          background sync. A deliberate, teacher-initiated, encrypted, same-room transfer is
+          permitted — a <em>briefcase export</em>, never a sync engine."</strong></p>
+        The original lock was defending two real things: the complexity of a conflict-resolution
+        engine, and the developer never becoming an operator. Both survive intact. What it banned by
+        accident was the one-directional <em>export</em>, which the conference binder and
+        display-board slices require and cannot be built without.
+        <p style="margin:10px 0 0">The word matters. "Sync" implies continuous reconciliation and
+          silent record loss on the device holding protective records. "Briefcase" implies she picks
+          it up and carries it, once, on purpose.</p>
+        <p style="margin:10px 0 0"><strong>Sequencing that makes this nearly free —</strong> with the
+          model on the phone, <strong>v1 needs no transfer at all.</strong> The core loop is entirely
+          phone-local. The briefcase is only needed when the Mac-side slices arrive. Decide the
+          wording now; build the mechanism later.</p>
+        <p style="margin:10px 0 0"><strong>Reversal cost —</strong> near zero. It is a wording change
+          until the first Mac-side slice is built.</p>
+      </div>
+    </div>
+
+    <h3>Decision log</h3>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Item</th><th>State</th><th>Set</th><th>Reverse by editing</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Phone gets its own model tier (T0)</td><td class="yes">Settled</td><td>Panel convergence — 2 of 3 independently</td><td>Architecture + tier table</td></tr>
+          <tr><td>No <code>INTERNET</code> permission in the release build</td><td class="yes">Settled</td><td>Panel convergence</td><td>Manifest — but this is the v1 boundary; think hard</td></tr>
+          <tr><td><code>allowBackup=false</code></td><td class="yes">Settled</td><td>D1 — critical</td><td>Nothing. Do not reverse.</td></tr>
+          <tr><td>① Wrong-child response</td><td style="color:var(--warning);font-weight:700">Provisional</td><td>16 Aug 2026</td><td>Strike rule + review-screen confirmation behaviour</td></tr>
+          <tr><td>② Retention window</td><td style="color:var(--warning);font-weight:700">Provisional</td><td>16 Aug 2026</td><td>One setting — but superseded by the school's own number if one exists</td></tr>
+          <tr><td>③ "No sync" wording</td><td style="color:var(--warning);font-weight:700">Provisional</td><td>16 Aug 2026</td><td>Wording only, until the first Mac-side slice</td></tr>
+          <tr><td>Employer policy</td><td style="color:var(--critical);font-weight:700">Open — blocking</td><td>—</td><td>One conversation. Can invalidate the architecture.</td></tr>
+          <tr><td>Real rest window + note deadline</td><td style="color:var(--critical);font-weight:700">Open — blocking</td><td>—</td><td>One question. The anchor is the product.</td></tr>
+          <tr><td>Parent-app field inventory</td><td style="color:var(--critical);font-weight:700">Open — blocking</td><td>—</td><td>Blocks the interface freeze, not the first build day</td></tr>
+        </tbody>
+      </table>
     </div>
   </section>
 
   <section>
-    <h2>Answer these before any code</h2>
+    <h2>Still open — and only these</h2>
     <div class="blocker">
       <div class="blocker-n">1</div>
       <p><strong>Does her employer permit child information on personal devices?</strong>
@@ -825,7 +909,7 @@ stateDiagram-v2
   pending --> dismissed : not useful
   corrected --> accepted : correction logged
   accepted --> promoted : one tap — permanent evidence
-  accepted --> expired : retention window — OPEN DECISION, only if not pinned and not exempt
+  accepted --> expired : end of school year + 1 term, if not pinned and not exempt
   promoted --> [*] : never expires
   expired --> [*] : hard-deleted after 7-day grace
   dismissed --> [*]
@@ -889,7 +973,7 @@ stateDiagram-v2
 │  ┌────────────────────────────────┐  │
 │  │ ▐C7▌ counted 5 bears at the    │  │   child chip = attribution,
 │  │      playdough table           │  │   shown forever
-│  │ OBS · 0.9        [✓] [✎] [✕]  │  │   (tap each 48dp)
+│  │ OBS · 0.9        [✓] [✎] [✕]   │  │   (tap each 48dp)
 │  ├────────────────────────────────┤  │
 │  │ ▐C4▌ hard time at cleanup      │  │
 │  │ OBS · 0.7   who? [C4] [C9]     │  │   ambiguity surfaced, never guessed
@@ -919,13 +1003,13 @@ stateDiagram-v2
 │  └────────────────────────────────┘  │
 │                                      │
 │  CHILD                               │
-│  ▐C7▌ ▐C4▌ ▐C2▌ ▐C9▌   ⋯ 9 more     │   64dp colour tiles
+│  ▐C7▌ ▐C4▌ ▐C2▌ ▐C9▌   ⋯ 9 more      │   64dp colour tiles
 │                                      │
 │  TYPE                                │
 │  [OBS][PARENT][SUPPLY][TASK][ACT]    │   one tap = corrected
 │                                      │
 │  KEEP                                │
-│  ( ) normal · expires — window TBD   │
+│  ( ) normal · keeps to end of year   │
 │  (•) pinned — never expires          │
 │                                      │
 │      [ Save ]          [ Delete ]    │   (56dp)
