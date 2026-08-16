@@ -255,7 +255,7 @@ All under `docs/ai-workflow/brainstorms/classroom-copilot-2026-08-15/`:
 | `for-her.html` | **Published artifact** — plain-language version for T |
 
 Gemini's round-1 reply is at `AI-Village-Documentation/gemini-consults/latest.md`. Note Gemini
-reflexively applied the owner's SwanStudios brand palette to a preschool teacher's tool; its
+reflexively applied the owner's <REDACTED-PROTECTED-TERM> brand palette to a preschool teacher's tool; its
 UX findings were kept, its visual direction rejected.
 
 **Republishing:** call the Artifact tool with the same file path to keep the same URL. Keep
@@ -321,5 +321,5 @@ through the first week while the 5-day gate runs.
 - The owner communicates by voice-to-text; transcription garbles model names ("Gwen three
   point eight" = Qwen3 8B, "Capernasky" = Karpathy, "Efzidian" = Obsidian, "ChemE three" =
   Kimi K3). Read through it rather than asking him to repeat.
-- This is a **side project**, not SwanStudios production work. It lives in `brainstorms/`.
+- This is a **side project**, not <REDACTED-PROTECTED-TERM> production work. It lives in `brainstorms/`.
   Do not let it consume the production lane without the owner saying so.

@@ -10,7 +10,7 @@
 # FULL-SPECTRUM HOSTILE REVIEW + BUILD BLUEPRINT  
 **Project:** Classroom Copilot (T’s phone-first capture tool) + The Switchyard (local privacy/model gateway, dual-use for O)  
 **Reviewer stance:** Single pass, all angles, “locked” treated as target.  
-**Ignored:** SwanStudios branding, Victory charts, palette, component conventions. This is a separate preschool-teacher project.
+**Ignored:** <REDACTED-PROTECTED-TERM> branding, Victory charts, palette, component conventions. This is a separate preschool-teacher project.
 
 ---
 
