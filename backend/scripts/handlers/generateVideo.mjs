@@ -26,6 +26,7 @@ import {
   readGrants, readEnabled,
 } from '../../../shared/providers/video/registry.mjs';
 import * as comfyuiLocal from '../../../shared/providers/video/comfyuiLocal.mjs';
+import { mimeForFilename } from './completion.mjs';
 import { ComfyError } from '../../../shared/providers/video/comfyuiLocal.mjs';
 
 /**
@@ -130,6 +131,12 @@ export async function runGenerate(job, onProgress, deps = {}) {
     localPath: result.outPath,
     bytes: result.bytes,
     filename: result.filename,
+    // The queue's artifact pointer. Without these the agent falls back to mediasync's
+    // literals and records an mp4 as `mediasync.json` / `application/json`.
+    r2Key: `jobs/${job.id}/${result.filename || 'render.mp4'}`,
+    mime: mimeForFilename(result.filename),
+    // What the operator sees in the agent log instead of "offset undefineds".
+    summary: `${result.filename} (${result.bytes} bytes) via ${result.provider}`,
     // Carried through to the caller because the licence requires it to be shown
     // wherever the video is. A field that travels with the artifact is harder to
     // forget than a rule written in a document.

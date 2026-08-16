@@ -39,6 +39,7 @@ import { fileURLToPath } from 'node:url';
 import { extractMono } from '../services/mediaSync/audioExtract.mjs';
 import { findOffset } from '../services/mediaSync/crossCorrelation.mjs';
 import { runGenerate } from './handlers/generateVideo.mjs';
+import { completionBody, completionSummary } from './handlers/completion.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -214,6 +215,7 @@ async function runMediaSync(job, onProgress) {
 
 const HANDLERS = { mediasync: runMediaSync, generate: runGenerate };
 
+
 async function handleJob(job) {
   log(`leased ${job.id} kind=${job.kind} workflow=${job.workflowId}`);
 
@@ -245,13 +247,11 @@ async function handleJob(job) {
     const output = await handler(job, onProgress);
     clearInterval(beat); beat = null;
 
-    // `r2Key` is the queue's required artifact pointer. Sync produces a measurement, not
-    // a file, so the result travels in metadata under a deterministic key. When R2 upload
-    // lands this becomes a real object; the shape does not change.
-    await api(`/jobs/${job.id}/complete`, {
-      body: { r2Key: `jobs/${job.id}/mediasync.json`, mime: 'application/json', output },
-    });
-    log(`completed ${job.id} -> offset ${output.offsetSeconds?.toFixed?.(4)}s usable=${output.usable}`);
+    // Artifact pointer + operator summary. A handler declaring neither gets mediasync's
+    // original shape unchanged; see handlers/completion.mjs for why that is a fallback
+    // rather than a hardcode.
+    await api(`/jobs/${job.id}/complete`, { body: completionBody(job, output) });
+    log(`completed ${job.id} -> ${completionSummary(output)}`);
   } catch (err) {
     if (beat) clearInterval(beat);
     log(`FAILED ${job.id}: ${err.message}`);

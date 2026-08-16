@@ -34,6 +34,7 @@ import {
 import { VIDEO_PROVIDERS, assertSpecShape } from '../../../shared/providers/video/catalogue.mjs';
 import { buildGraph, findOutputFile, resolveConfig, verify, generate } from '../../../shared/providers/video/comfyuiLocal.mjs';
 import { runGenerate, isPermanentCode } from '../../scripts/handlers/generateVideo.mjs';
+import { completionBody, completionSummary, mimeForFilename } from '../../scripts/handlers/completion.mjs';
 
 const LOCAL = 'comfyui/minimax-h3';
 const HOSTED = 'minimax/hailuo-hosted';
@@ -552,6 +553,47 @@ describe('generate handler — retry classification', () => {
     expect(isPermanentCode('E_NO_NODE')).toBe(true);
     expect(isPermanentCode('E_TIMEOUT')).toBe(false);
     expect(isPermanentCode('E_DOWNLOAD_FAILED')).toBe(false);
+  });
+});
+
+describe('queue artifact pointer — the completion payload', () => {
+  it('preserves mediasync exactly when the handler declares nothing', () => {
+    // REGRESSION GUARD. mediasync produces a measurement, not a file, and its recorded
+    // shape must not change just because a second handler exists.
+    const body = completionBody({ id: 'j1' }, { offsetSeconds: 1.25, usable: true });
+    expect(body.r2Key).toBe('jobs/j1/mediasync.json');
+    expect(body.mime).toBe('application/json');
+    expect(completionSummary({ offsetSeconds: 1.25, usable: true }))
+      .toBe('offset 1.2500s usable=true');
+  });
+
+  it('lets a handler override both — an mp4 is not application/json', () => {
+    // The defect: every video job was recorded in the queue as `mediasync.json`
+    // with mime application/json. The queue believed it, having never looked.
+    const out = { r2Key: 'jobs/j2/r4.mp4', mime: 'video/mp4', summary: 'r4.mp4 (19 bytes)' };
+    const body = completionBody({ id: 'j2' }, out);
+    expect(body.r2Key).toBe('jobs/j2/r4.mp4');
+    expect(body.mime).toBe('video/mp4');
+    expect(completionSummary(out)).toBe('r4.mp4 (19 bytes)');
+  });
+
+  it('never prints "offset undefined" for a handler with no offset', () => {
+    expect(completionSummary({ summary: 'x' })).not.toMatch(/offset undefined/);
+  });
+
+  it('the generate handler declares a real mime for each container', async () => {
+    const mk = (filename) => ({
+      generate: async (r, o) => ({ provider: LOCAL, outPath: o.outPath, bytes: 9, filename }),
+    });
+    for (const [file, mime] of [['a.mp4', 'video/mp4'], ['a.webm', 'video/webm'], ['a.gif', 'image/gif']]) {
+      const out = await runGenerate(
+        { id: 'j3', params: { provider: LOCAL, ...validRequest(), commercial: false } },
+        async () => {},
+        { env: { SWAN_VIDEO_PROVIDERS_ENABLED: LOCAL }, adapters: { [LOCAL]: mk(file) }, outDir: '/tmp' },
+      );
+      expect(out.mime).toBe(mime);
+      expect(out.r2Key).toBe(`jobs/j3/${file}`);
+    }
   });
 });
 
