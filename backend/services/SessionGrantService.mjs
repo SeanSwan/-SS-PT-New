@@ -187,8 +187,35 @@ export async function grantSessionsForCart(cartId, userId, grantedBy, { checkout
       throw new Error(`Cart ${cartId} not found for user ${userId}`);
     }
 
-    if (checkoutSessionId && cart.checkoutSessionId !== checkoutSessionId) {
+    // ABSENCE IS NOT MISMATCH.
+    //
+    // This used to be `if (checkoutSessionId && cart.checkoutSessionId !== ...)`, which
+    // treated a NULL cart session id as a mismatch and threw. That is exactly the
+    // crash-window shape: v2PaymentRoutes nulls checkoutSessionId when it claims the
+    // cart, creates a live payable Stripe session, then writes the id back. A process
+    // death in between (deploy, OOM, recycle) leaves an unclaimed cart and a payable
+    // session — so when the customer paid, this threw, the webhook 500'd, Stripe
+    // retried the same failure forever, and sustained failures risk Stripe disabling
+    // the endpoint and killing fulfilment for ALL sales. Money captured, nothing
+    // granted (Kimi K3 CRITICAL-1, 2026-08-16).
+    //
+    // A cart holding NO session id is UNCLAIMED, so the first Stripe-signed event that
+    // names it may adopt it. That is safe: `metadata.cartId` is written server-side at
+    // session creation, and callers derive userId from `cart.userId`, never from the
+    // event — so an adopted grant cannot cross users. A cart holding a DIFFERENT
+    // session id is still a hard error.
+    if (checkoutSessionId && cart.checkoutSessionId && cart.checkoutSessionId !== checkoutSessionId) {
       throw new Error(`Stripe session does not own cart ${cartId}`);
+    }
+
+    if (checkoutSessionId && !cart.checkoutSessionId) {
+      // Adopt the orphaned session so a later redelivery sees a claimed cart rather
+      // than racing this same branch again.
+      cart.checkoutSessionId = checkoutSessionId;
+      logger.warn(`[SessionGrant] Cart ${cartId} adopted orphaned checkout session (crash-window recovery)`, {
+        cartId,
+        grantedBy,
+      });
     }
 
     // IDEMPOTENCY CHECK: Only check sessionsGranted flag

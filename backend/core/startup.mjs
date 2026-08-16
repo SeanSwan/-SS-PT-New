@@ -632,6 +632,18 @@ export const initializeServer = async (app) => {
         }
 
         try {
+          // Releases carts stranded in `pending_payment` with no session id — the
+          // crash-window between claiming the cart and writing back the Stripe
+          // session id. Deliberately NOT behind a kill switch: the claim/finalize
+          // design already assumes something reclaims a failed claim, so disabling
+          // it does not pause a feature, it locks customers out of their carts.
+          const { startCheckoutReconciliationSweeper } = await import('../services/checkoutReconciliationCron.mjs');
+          startCheckoutReconciliationSweeper();
+        } catch (reconcileErr) {
+          logger.warn(`Checkout reconciliation sweeper failed to start: ${reconcileErr.message}`);
+        }
+
+        try {
           // Workout-OS C6b. No-op unless ENABLE_STALE_CLIENT_NUDGES=true (kill switch).
           const { startStaleClientNudgeScheduler } = await import('../services/staleClientNudgeCron.mjs');
           startStaleClientNudgeScheduler();
