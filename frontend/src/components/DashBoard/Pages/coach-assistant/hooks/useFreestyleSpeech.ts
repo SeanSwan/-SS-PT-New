@@ -1,7 +1,8 @@
 /**
  * ============================================================================
  * FILE: useFreestyleSpeech.ts
- * PURPOSE: On-device continuous speech capture for freestyle dictation.
+ * PURPOSE: Web Speech transport for freestyle dictation. NOT "on-device" —
+ *          on Chrome this still reaches a cloud recogniser; see below.
  * AUTHOR: Claude Opus 5 | CREATED: 2026-08-16
  * ============================================================================
  *
@@ -75,11 +76,18 @@ const getRecognitionCtor = (): SpeechRecognitionCtor | null => {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 };
 
+/**
+ * No typing path exists on this surface yet, so the copy must not promise one —
+ * an earlier version said "Type your notes instead" and pointed at nothing.
+ */
 export const FREESTYLE_SPEECH_UNSUPPORTED_COPY =
-  'This browser cannot listen continuously. Type your notes instead, or open Swan Coach in Safari.';
+  'This browser cannot listen continuously. Open Swan Coach in Safari to dictate.';
 
 export const FREESTYLE_SPEECH_DENIED_COPY =
   'Swan Coach needs microphone access to hear you. Enable it in your browser settings, then try again.';
+
+export const FREESTYLE_SPEECH_START_FAILED_COPY =
+  'Listening could not start. Tap Start talking to try again.';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
@@ -101,6 +109,14 @@ export interface UseFreestyleSpeechReturn {
   restarts: number;
   start: () => void;
   stop: () => void;
+  /**
+   * Promotes the pending interim to a final phrase (through `onPhrase`) and
+   * clears it. Callers MUST flush before a session transition that stops
+   * accepting fragments — otherwise the words spoken mid-sentence when the user
+   * taps Done/Pause are silently lost. `stop()` flushes on its own; this exists
+   * so the surface can flush while the session is still `listening`.
+   */
+  flush: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -123,9 +139,41 @@ export function useFreestyleSpeech(
   const onPhraseRef = useRef(onPhrase);
   onPhraseRef.current = onPhrase;
 
+  /**
+   * Mirrors `interim` so flush paths can read it synchronously. The state value
+   * is a render snapshot; `stop()` and `onend` run outside render and must see
+   * the words that are pending RIGHT NOW, or they flush stale text.
+   */
+  const interimRef = useRef('');
+
+  /** Restart pacing (see `onend`): timestamps + a pending backoff timer. */
+  const lastEngineStartRef = useRef(0);
+  const quickRestartsRef = useRef(0);
+  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const supported = getRecognitionCtor() !== null;
 
+  const setInterimBoth = useCallback((text: string) => {
+    interimRef.current = text;
+    setInterim(text);
+  }, []);
+
+  /**
+   * The recogniser finalises trailing speech late or never (Safari worst).
+   * Promoting the pending interim at every deliberate boundary is what keeps
+   * "the words I said as I tapped the button" from silently vanishing.
+   */
+  const flush = useCallback(() => {
+    const pending = interimRef.current.trim();
+    if (pending) onPhraseRef.current(pending);
+    setInterimBoth('');
+  }, [setInterimBoth]);
+
   const teardown = useCallback(() => {
+    if (restartTimerRef.current !== null) {
+      clearTimeout(restartTimerRef.current);
+      restartTimerRef.current = null;
+    }
     const rec = recognitionRef.current;
     if (!rec) return;
     rec.onresult = null;
@@ -146,19 +194,23 @@ export function useFreestyleSpeech(
     rec.lang = lang;
 
     rec.onresult = (event) => {
-      let finalText = '';
+      const finalChunks: string[] = [];
       let interimText = '';
       // Start at resultIndex: earlier results were already emitted, and
       // re-reading them would duplicate every phrase on each event.
       for (let i = event.resultIndex; i < event.results.length; i += 1) {
         const result = event.results[i];
         if (!result) continue;
-        const chunk = result[0]?.transcript ?? '';
-        if (result.isFinal) finalText += chunk;
-        else interimText += chunk;
+        const chunk = (result[0]?.transcript ?? '').trim();
+        if (!chunk) continue;
+        if (result.isFinal) finalChunks.push(chunk);
+        else interimText += (interimText ? ' ' : '') + chunk;
       }
-      if (finalText.trim()) onPhraseRef.current(finalText.trim());
-      setInterim(interimText);
+      // Joined with a space: one event can carry several finals, and naive
+      // concatenation welds the last word of one to the first of the next.
+      if (finalChunks.length) onPhraseRef.current(finalChunks.join(' '));
+      setInterimBoth(interimText);
+      quickRestartsRef.current = 0;   // real results mean the engine is healthy
     };
 
     rec.onerror = (event) => {
@@ -174,42 +226,76 @@ export function useFreestyleSpeech(
     };
 
     rec.onend = () => {
-      setInterim('');
+      // Flush BEFORE clearing: Safari finalises trailing interims late or never,
+      // so whatever is pending at engine-end is the best record of those words.
+      const pending = interimRef.current.trim();
+      if (pending && wantListeningRef.current) onPhraseRef.current(pending);
+      setInterimBoth('');
       if (!wantListeningRef.current) { setListening(false); return; }
       /**
-       * The engine ended but the user is still talking to us. Restart it.
-       * Without this a ten-minute session dies at the first long pause, silently,
-       * with the UI still claiming to listen.
+       * The engine ended but the user is still talking to us. Restart it — but
+       * PACED. An engine that dies instantly (dead zone: Chrome's recogniser
+       * needs network) would otherwise hot-loop start/abort forever. Quick
+       * deaths back off exponentially, capped at 15s; a healthy result resets
+       * the counter (see `onresult`).
        */
       setRestarts(n => n + 1);
-      try { rec.start(); } catch { startEngine(); }
+      const sinceStart = Date.now() - lastEngineStartRef.current;
+      if (sinceStart < 3000) {
+        quickRestartsRef.current += 1;
+        const delay = Math.min(15000, 500 * 2 ** Math.min(quickRestartsRef.current, 5));
+        restartTimerRef.current = setTimeout(() => {
+          restartTimerRef.current = null;
+          if (wantListeningRef.current) startEngine();
+        }, delay);
+        return;
+      }
+      quickRestartsRef.current = 0;
+      try { rec.start(); lastEngineStartRef.current = Date.now(); } catch { startEngine(); }
     };
 
     recognitionRef.current = rec;
     try {
       rec.start();
+      lastEngineStartRef.current = Date.now();
       setListening(true);
       setError(null);
-    } catch {
-      // start() throws if an engine is already running; treat as already-live.
-      setListening(true);
+    } catch (err) {
+      /**
+       * Only InvalidStateError means "already running" — that one is genuinely
+       * already-live. Anything else is a dead engine, and asserting `listening`
+       * over it made the UI say "Talk as long as you need" to a mic that never
+       * opened (iOS auto-start without a gesture lands exactly here).
+       */
+      if ((err as DOMException)?.name === 'InvalidStateError') {
+        setListening(true);
+      } else {
+        wantListeningRef.current = false;
+        setListening(false);
+        setError(FREESTYLE_SPEECH_START_FAILED_COPY);
+      }
     }
-  }, [lang, teardown]);
+  }, [lang, teardown, setInterimBoth]);
 
   const start = useCallback(() => {
     if (!supported) { setError(FREESTYLE_SPEECH_UNSUPPORTED_COPY); return; }
     if (wantListeningRef.current) return;
     wantListeningRef.current = true;
     setRestarts(0);
+    quickRestartsRef.current = 0;
     startEngine();
   }, [supported, startEngine]);
 
   const stop = useCallback(() => {
+    // Flush before teardown: `abort()` discards pending results, so tapping Done
+    // mid-sentence silently dropped the trailing words. Only flush when we were
+    // actually listening — a stop of an idle engine has nothing pending.
+    if (wantListeningRef.current) flush();
     wantListeningRef.current = false;
     setListening(false);
-    setInterim('');
+    setInterimBoth('');
     teardown();
-  }, [teardown]);
+  }, [teardown, flush, setInterimBoth]);
 
   /** Release the microphone on unmount — the engine will not stop itself. */
   useEffect(() => () => {
@@ -217,5 +303,5 @@ export function useFreestyleSpeech(
     teardown();
   }, [teardown]);
 
-  return { supported, listening, interim, error, restarts, start, stop };
+  return { supported, listening, interim, error, restarts, start, stop, flush };
 }

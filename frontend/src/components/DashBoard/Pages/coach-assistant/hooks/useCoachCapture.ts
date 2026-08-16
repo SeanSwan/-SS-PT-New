@@ -68,8 +68,14 @@ export interface UseCoachCaptureReturn {
 export const CAPTURE_PERMISSION_DENIED_COPY =
   'Swan Coach needs microphone access to hear you. Enable it in your browser settings, then try again.';
 
+/**
+ * Precise on purpose. The old copy said "Nothing was saved," while the recorded
+ * audio was (and is) still held in memory on this device — `dismissNotice`
+ * deliberately keeps a usable capture. "Saved"/"sent" claims must match what the
+ * code does: nothing leaves the device or reaches an account without the user.
+ */
 export const CAPTURE_AUTO_STOPPED_COPY =
-  'Recording stopped because you left this screen. Nothing was saved.';
+  'Recording stopped because you left this screen. Nothing was sent or saved to your account — the audio is still on this device for you to review or discard.';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Hook
@@ -213,10 +219,27 @@ export function useCoachCapture(): UseCoachCaptureReturn {
     }
   }, []);
 
+  /**
+   * In-flight guard: a double-tap on a "transcribe" affordance must not upload
+   * the same audio twice (double model cost, and a second copy of PII-dense
+   * audio in transit). Concurrent callers share the one pending promise.
+   *
+   * NOTE — enforcement location: the "never auto-transcribe after an automatic
+   * stop" rule is currently enforced by consumers (VoiceRecordingOverlay checks
+   * `stoppedAutomatically` before calling this). The hook cannot distinguish a
+   * user gesture from an effect, so it cannot own that rule without an API
+   * change; recorded as an open question in the retention contract.
+   */
+  const transcribeInFlightRef = useRef<Promise<string> | null>(null);
   const transcribe = useCallback(async () => {
+    if (transcribeInFlightRef.current) return transcribeInFlightRef.current;
     const blob = recorder.audioBlob;
     if (!blob) return '';
-    return transcriptionRef.current.transcribe(blob);
+    const pending = transcriptionRef.current
+      .transcribe(blob)
+      .finally(() => { transcribeInFlightRef.current = null; });
+    transcribeInFlightRef.current = pending;
+    return pending;
   }, [recorder.audioBlob]);
 
   const reset = useCallback(() => {

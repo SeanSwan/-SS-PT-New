@@ -18,7 +18,11 @@
  */
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Mic, Pause, Play, Check, Trash2, X } from 'lucide-react';
-import { useFreestyleSession, type FreestyleFragment } from './hooks/useFreestyleSession';
+import {
+  useFreestyleSession,
+  type FreestyleSnapshot,
+  type FreestylePurgeReason,
+} from './hooks/useFreestyleSession';
 import { useFreestyleSpeech } from './hooks/useFreestyleSpeech';
 import {
   FreestyleOverlay,
@@ -30,11 +34,15 @@ import {
   BreathOrb,
   LivePhrase,
   StatusLine,
+  QuietCount,
   ControlRow,
   ControlButton,
   DiscardConfirm,
   DiscardCopy,
 } from './CoachFreestyleOverlay.styles';
+
+/** Re-exported so existing consumers keep their import path. */
+export type { FreestyleSnapshot } from './hooks/useFreestyleSession';
 
 interface CoachFreestyleOverlayProps {
   isOpen: boolean;
@@ -42,19 +50,18 @@ interface CoachFreestyleOverlayProps {
   accountKey: string | number | null;
   onClose: () => void;
   /**
-   * Handed a FROZEN SNAPSHOT when the user finishes — never the live buffer.
-   * Passing the session's own array let the parent keep a reference that survived
-   * every purge trigger, which hollowed out the retention contract the moment
-   * Done was tapped.
+   * Handed a FROZEN, OWNER-STAMPED snapshot when the user finishes — never the
+   * live buffer. Passing the session's own array let the parent keep a reference
+   * that survived every purge trigger, which hollowed out the retention contract
+   * the moment Done was tapped.
    */
   onStopped?: (snapshot: FreestyleSnapshot) => void;
-}
-
-/** An immutable copy handed across the purge boundary. */
-export interface FreestyleSnapshot {
-  fragments: readonly FreestyleFragment[];
-  wordCount: number;
-  elapsedMs: number;
+  /**
+   * Purge receipts, passed straight to the session. Without a mount-point sink
+   * every purge — discard, TTL, account switch — happens unreceipted, and the
+   * retention audit the hook promises is fiction.
+   */
+  onPurge?: (reason: FreestylePurgeReason) => void;
 }
 
 const formatElapsed = (ms: number): string => {
@@ -69,21 +76,24 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   accountKey,
   onClose,
   onStopped,
+  onPurge,
 }) => {
-  const session = useFreestyleSession({ accountKey });
+  const session = useFreestyleSession({ accountKey, onPurge });
 
   /**
-   * Freestyle listens ON-DEVICE. It deliberately does not use the RECORD pipeline,
-   * which uploads audio to a server-side model — audio in which Sean says real
-   * client names out loud. Tokenising the transcript would not help.
+   * Freestyle uses the Web Speech API rather than the RECORD pipeline (which
+   * uploads recorded audio — audio in which Sean says real client names out
+   * loud — to a server-side model). That is a TRANSPORT choice, not a privacy
+   * guarantee: on Chrome the recogniser is cloud-backed. See the
+   * useFreestyleSpeech header for the full caveat and the open owner decision.
    */
   const speech = useFreestyleSpeech({
     onPhrase: (text) => session.appendFragment(text),
   });
 
   const {
-    state, fragments, elapsedMs, sinceLastFragmentMs, wordCount,
-    discardPending, start, pause, resume, stop,
+    state, fragments, elapsedMs, sinceLastFragmentMs, wordCount, error,
+    discardPending, start, pause, resume, stop, fail,
     requestDiscard, cancelDiscard, discard, reset,
   } = session;
 
@@ -112,28 +122,69 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   }, [isOpen, state, pause]);
 
   /**
-   * The engine follows the session, not the other way round. Anything that ends
-   * capture — pause, stop, discard, TTL purge, account switch — releases the
-   * microphone, because every one of those states means we must not be hearing.
+   * The engine follows the session AND the surface. Anything that ends capture —
+   * pause, stop, discard, TTL purge, account switch — releases the microphone,
+   * and so does hiding the overlay: without the `isOpen` gate, an invisible
+   * (keyboard-reachable) Resume press could take the microphone live behind
+   * closed UI. No state change may start the engine while the surface is hidden.
    */
   const speechStart = speech.start;
   const speechStop = speech.stop;
   useEffect(() => {
     // Depend on the stable callbacks, not the hook object — that object is new on
     // every render, so this effect would re-run continuously during a session.
-    if (state === 'listening') speechStart();
+    if (isOpen && state === 'listening') speechStart();
     else speechStop();
-  }, [state, speechStart, speechStop]);
+  }, [isOpen, state, speechStart, speechStop]);
+
+  /**
+   * Lifecycle policy, same doctrine as useCoachCapture: tab hide, app
+   * background, and screen lock must not leave a session hearing. Freestyle had
+   * no `visibilitychange`/`pagehide` handling at all — the engine kept its
+   * restart loop alive in a backgrounded tab. Pause (not stop): the user comes
+   * back and taps Resume; resuming is a gesture, which iOS requires anyway.
+   */
+  const pauseRef = useRef(pause);
+  pauseRef.current = pause;
+  useEffect(() => {
+    const onHidden = () => {
+      if (document.visibilityState === 'hidden') pauseRef.current();
+    };
+    const onPageHide = () => pauseRef.current();
+    document.addEventListener('visibilitychange', onHidden);
+    window.addEventListener('pagehide', onPageHide);
+    return () => {
+      document.removeEventListener('visibilitychange', onHidden);
+      window.removeEventListener('pagehide', onPageHide);
+    };
+  }, []);
+
+  /**
+   * A speech failure becomes a SESSION failure. Leaving the session 'listening'
+   * over a dead engine made the quiet counter narrate a lie ("Still listening.
+   * Nothing heard for 47s") next to the denial copy. `fail` keeps the buffer —
+   * words already heard survive the mic dying.
+   */
+  const failRef = useRef(fail);
+  failRef.current = fail;
+  useEffect(() => {
+    if (speech.error) failRef.current(speech.error);
+  }, [speech.error]);
 
   const handleStop = useCallback(() => {
-    stop();
-    // Frozen copy: the live array is about to become purgeable (see F-3 above).
-    onStopped?.({
-      fragments: Object.freeze(fragments.map(f => Object.freeze({ ...f }))),
-      wordCount,
-      elapsedMs,
-    });
-  }, [stop, onStopped, fragments, wordCount, elapsedMs]);
+    // Order matters: flush promotes the pending interim into the session WHILE
+    // it is still 'listening'; stop() then builds the snapshot from refs, so the
+    // just-flushed words are included. The old render-closure copy missed them.
+    speech.flush();
+    const snapshot = stop();
+    if (snapshot) onStopped?.(snapshot);
+  }, [speech, stop, onStopped]);
+
+  /** Flush before pausing — the words spoken as the thumb hits Pause are words. */
+  const handlePause = useCallback(() => {
+    speech.flush();
+    pause();
+  }, [speech, pause]);
 
   const handleDiscard = useCallback(() => {
     discard();
@@ -145,25 +196,76 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     onClose();
   }, [reset, onClose]);
 
+  const isListening = state === 'listening';
+  const isPaused = state === 'paused';
+  const isStopped = state === 'stopped';
+
   /**
    * Escape arms the discard rather than performing it. A stray key must not
    * destroy ten minutes of work — the same reasoning as the two-step control.
+   * Once STOPPED the snapshot has already been handed off, so arming a discard
+   * there was pure theatre guarding data that had already left — close instead.
    */
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (discardPending) cancelDiscard();
-      else if (fragments.length > 0) requestDiscard();
+      else if (!isStopped && fragments.length > 0) requestDiscard();
       else handleClose();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, discardPending, fragments.length, cancelDiscard, requestDiscard, handleClose]);
+  }, [isOpen, isStopped, discardPending, fragments.length, cancelDiscard, requestDiscard, handleClose]);
 
-  const isListening = state === 'listening';
-  const isPaused = state === 'paused';
-  const isStopped = state === 'stopped';
+  /**
+   * FOCUS LIFECYCLE for an aria-modal dialog: focus moves in on open, cycles
+   * inside while open (a modal that lets Tab wander the page behind it is not
+   * modal), jumps to the confirm when discard arms, and returns to the opener
+   * on close. All done by hand — this surface earns no dependency.
+   */
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    openerRef.current = document.activeElement as HTMLElement | null;
+    overlayRef.current?.querySelector<HTMLElement>('button')?.focus();
+    return () => { openerRef.current?.focus?.(); };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !discardPending) return;
+    // The interrupt owns focus: land on "Keep it", the safe answer.
+    overlayRef.current
+      ?.querySelector<HTMLElement>('[role="alertdialog"] button')
+      ?.focus();
+  }, [isOpen, discardPending]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const root = overlayRef.current;
+      if (!root) return;
+      const buttons = Array.from(root.querySelectorAll<HTMLElement>('button'));
+      if (buttons.length === 0) return;
+      const first = buttons[0];
+      const last = buttons[buttons.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (!active || !root.contains(active)) {
+        event.preventDefault();
+        first.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      }
+    };
+    document.addEventListener('keydown', onTab);
+    return () => document.removeEventListener('keydown', onTab);
+  }, [isOpen]);
 
   /** After ~4s of silence, say so — otherwise silence reads as "it broke". */
   const quietFor = Math.floor(sinceLastFragmentMs / 1000);
@@ -181,7 +283,14 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     : (fragments.length > 0 ? tailWords(fragments[fragments.length - 1].text) : '');
 
   return (
-    <FreestyleOverlay $isOpen={isOpen} role="dialog" aria-modal="true" aria-label="Freestyle dictation">
+    <FreestyleOverlay
+      ref={overlayRef}
+      $isOpen={isOpen}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Freestyle dictation"
+      aria-hidden={!isOpen}
+    >
       <SignalStrip aria-live="off">
         <SignalItem>
           <SignalValue>{formatElapsed(elapsedMs)}</SignalValue>
@@ -209,17 +318,22 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
         {latestPhrase && <LivePhrase>{latestPhrase}</LivePhrase>}
 
         {/*
-          One polite live region carries the whole status. Announcing every
-          fragment would make a screen reader unusable during dictation.
+          One polite live region carries the whole status, and every string in it
+          is STABLE for its state. A ticking counter in a live region re-announces
+          every second — the flooding this comment used to claim to prevent — so
+          the seconds live in a separate, aria-hidden element below.
         */}
         <StatusLine role="status" aria-live="polite" $muted={!isListening}>
           {isListening && !isQuiet && 'Listening. Talk as long as you need — no record is created until you review it.'}
-          {isListening && isQuiet && `Still listening. Nothing heard for ${quietFor}s.`}
+          {isListening && isQuiet && 'Still listening. Nothing heard for a little while.'}
           {isPaused && 'Paused. Nothing is being heard.'}
           {isStopped && `Finished — ${wordCount} words captured. No record has been created yet.`}
+          {state === 'error' && (error ?? 'Listening stopped unexpectedly.')}
           {state === 'discarded' && 'Session discarded. Nothing was saved.'}
-          {speech.error && ` ${speech.error}`}
         </StatusLine>
+        {isListening && isQuiet && (
+          <QuietCount aria-hidden="true">{quietFor}s quiet</QuietCount>
+        )}
       </Stage>
 
       {discardPending ? (
@@ -239,7 +353,7 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
       ) : (
         <ControlRow>
           {isListening && (
-            <ControlButton type="button" onClick={pause} aria-label="Pause listening">
+            <ControlButton type="button" onClick={handlePause} aria-label="Pause listening">
               <Pause size={18} aria-hidden="true" /> Pause
             </ControlButton>
           )}
@@ -250,7 +364,7 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
             </ControlButton>
           )}
 
-          {(isListening || isPaused) && (
+          {(isListening || isPaused || (state === 'error' && fragments.length > 0)) && (
             <ControlButton type="button" $variant="primary" onClick={handleStop} aria-label="Finish and review">
               <Check size={18} aria-hidden="true" /> Done
             </ControlButton>

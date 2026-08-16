@@ -36,11 +36,26 @@ export const FreestyleOverlay = styled.div<{ $isOpen: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: center;
+  /*
+   * Plain fallback FIRST: an unsupported color-mix() invalidates the whole
+   * declaration — the var() fallback inside it never runs — leaving this
+   * overlay TRANSPARENT over page content on iOS < 16.2. The cascade pattern
+   * below repeats on every color-mix surface in this file.
+   */
+  background: rgba(10, 10, 15, 0.94);
   background: color-mix(in srgb, var(--bg-base, #0A0A0F) 94%, transparent);
+  -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
   opacity: ${({ $isOpen }) => ($isOpen ? 1 : 0)};
   pointer-events: ${({ $isOpen }) => ($isOpen ? 'auto' : 'none')};
-  transition: opacity 0.25s ease;
+  /*
+   * visibility is the load-bearing line: opacity+pointer-events leave every
+   * invisible button keyboard-focusable and in the accessibility tree — an
+   * unseen "Resume" press could take the microphone live behind closed UI.
+   * The transition delay lets the fade-out finish before the snap to hidden.
+   */
+  visibility: ${({ $isOpen }) => ($isOpen ? 'visible' : 'hidden')};
+  transition: opacity 0.25s ease, visibility 0s linear ${({ $isOpen }) => ($isOpen ? '0s' : '0.25s')};
   padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
   ${motionSafe}
 `;
@@ -57,6 +72,7 @@ export const SignalStrip = styled.div`
   padding: 0.75rem 1rem;
   border-radius: 14px;
   border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.15));
+  background: rgba(26, 26, 36, 0.8);
   background: color-mix(in srgb, var(--bg-surface, #1A1A24) 80%, transparent);
 `;
 
@@ -99,6 +115,12 @@ export const BreathOrb = styled.div<{ $listening: boolean }>`
   border-radius: 50%;
   background: radial-gradient(
     circle at 50% 45%,
+    rgba(96, 192, 240, 0.55),
+    rgba(139, 92, 246, 0.22) 70%,
+    transparent 72%
+  );
+  background: radial-gradient(
+    circle at 50% 45%,
     color-mix(in srgb, var(--accent-primary, #60C0F0) 55%, transparent),
     color-mix(in srgb, var(--accent-secondary, #8B5CF6) 22%, transparent) 70%,
     transparent 72%
@@ -124,6 +146,18 @@ export const LivePhrase = styled.p`
   font-size: 1.0625rem;
   line-height: 1.5;
   color: var(--text-primary, #E0ECF4);
+`;
+
+/**
+ * The running quiet-seconds counter. aria-hidden by the consumer: a number that
+ * changes every second must never live inside the polite live region, or the
+ * screen reader announces the countdown forever.
+ */
+export const QuietCount = styled.span`
+  font-family: 'Fira Code', monospace;
+  font-size: 0.8125rem;
+  color: var(--text-muted, rgba(224, 236, 244, 0.7));
+  font-variant-numeric: tabular-nums;
 `;
 
 export const StatusLine = styled.p<{ $muted?: boolean }>`
@@ -168,20 +202,25 @@ export const ControlButton = styled.button<{ $variant?: 'primary' | 'ghost' | 'd
       return css`
         /* Blue background throws a purple glow — Dual-Button Glow law. */
         background: var(--bg-primary, #002060);
-        border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
+        border: 1px solid rgba(96, 192, 240, 0.4);
+        border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 40%, transparent);
         color: var(--text-primary, #E0ECF4);
         &:hover {
+          box-shadow: 0 0 18px rgba(139, 92, 246, 0.4);
           box-shadow: 0 0 18px color-mix(in srgb, var(--accent-secondary, #8B5CF6) 40%, transparent);
         }
       `;
     }
     if ($variant === 'danger') {
       return css`
+        background: rgba(201, 42, 84, 0.14);
         background: color-mix(in srgb, var(--danger-text, #C92A54) 14%, transparent);
-        border: 1px solid color-mix(in srgb, var(--danger-text, #C92A54) 38%, transparent);
+        border: 1px solid rgba(201, 42, 84, 0.38);
+        border-color: color-mix(in srgb, var(--danger-text, #C92A54) 38%, transparent);
         /* Soft danger value for TEXT: the saturated one fails 4.5:1 on dark. */
         color: var(--danger-soft-text, #FF8FA3);
         &:hover {
+          background: rgba(201, 42, 84, 0.22);
           background: color-mix(in srgb, var(--danger-text, #C92A54) 22%, transparent);
         }
       `;
@@ -191,6 +230,7 @@ export const ControlButton = styled.button<{ $variant?: 'primary' | 'ghost' | 'd
       border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.22));
       color: var(--text-primary, #E0ECF4);
       &:hover {
+        background: rgba(96, 192, 240, 0.1);
         background: color-mix(in srgb, var(--accent-primary, #60C0F0) 10%, transparent);
       }
     `;
@@ -219,7 +259,9 @@ export const DiscardConfirm = styled.div`
   max-width: 560px;
   padding: 1rem;
   border-radius: 14px;
-  border: 1px solid color-mix(in srgb, var(--danger-text, #C92A54) 34%, transparent);
+  border: 1px solid rgba(201, 42, 84, 0.34);
+  border-color: color-mix(in srgb, var(--danger-text, #C92A54) 34%, transparent);
+  background: #231622;
   background: color-mix(in srgb, var(--danger-text, #C92A54) 10%, var(--bg-surface, #1A1A24));
 `;
 

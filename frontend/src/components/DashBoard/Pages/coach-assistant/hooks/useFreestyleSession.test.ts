@@ -129,6 +129,36 @@ describe('freestyle session — pause excluded from elapsed time', () => {
   });
 });
 
+describe('freestyle session — start cannot destroy', () => {
+  /**
+   * ROUND-1 REGRESSION (Kimi / Sol / Codex, independently). `start()` used to be
+   * an unguarded wipe: callable from 'stopped', it silently destroyed a held
+   * buffer with no receipt — reachable from the UI, bypassing the two-step
+   * discard entirely.
+   */
+  it('is a no-op from stopped — a held buffer survives a stray start()', () => {
+    const onPurge = vi.fn();
+    const { result } = setup('trainer-a', onPurge);
+    act(() => { result.current.start(); result.current.appendFragment('ten minutes of work'); });
+    act(() => { result.current.stop(); });
+
+    act(() => { result.current.start(); });
+
+    expect(result.current.state).toBe('stopped');
+    expect(result.current.fragments).toHaveLength(1);
+    expect(onPurge).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op while listening — it cannot silently restart a live session', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); result.current.appendFragment('one'); });
+
+    act(() => { result.current.start(); });
+
+    expect(result.current.fragments).toHaveLength(1);
+  });
+});
+
 describe('freestyle session — discard is two-step', () => {
   /**
    * A ten-minute session is real, unrecoverable work. One mis-tap must not
@@ -160,6 +190,109 @@ describe('freestyle session — discard is two-step', () => {
     expect(result.current.discardPending).toBe(false);
     expect(result.current.fragments).toHaveLength(1);
     expect(result.current.state).toBe('listening');
+  });
+
+  /**
+   * ROUND-1 REGRESSION (Sol). The two-step lived only in the UI's call order —
+   * any other consumer could call discard() cold and destroy the session. The
+   * HOOK now refuses an unarmed discard.
+   */
+  it('refuses an unarmed discard()', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); result.current.appendFragment('real work'); });
+
+    act(() => { result.current.discard(); });        // never armed
+
+    expect(result.current.fragments).toHaveLength(1);
+    expect(result.current.state).toBe('listening');
+  });
+
+  /**
+   * ROUND-1 REGRESSION (Kimi). An armed discard stayed armed forever, so a
+   * stray tap minutes later confirmed a destruction nobody remembered arming.
+   */
+  it('disarms itself after ten seconds', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); result.current.appendFragment('real work'); });
+    act(() => { result.current.requestDiscard(); });
+
+    act(() => { vi.advanceTimersByTime(10_000); });
+
+    expect(result.current.discardPending).toBe(false);
+    act(() => { result.current.discard(); });        // the late tap
+    expect(result.current.fragments).toHaveLength(1);
+  });
+});
+
+describe('freestyle session — fragment timeline uses the session clock', () => {
+  /**
+   * ROUND-1 REGRESSION (Kimi / Sol). `atMs` measured wall time while `elapsedMs`
+   * measured active time, so a 1-minute pause skewed every later fragment by
+   * 60s against the clock S4 will order records with.
+   */
+  it('excludes paused time from atMs, same as elapsedMs', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); });
+    act(() => { advance(2000); result.current.appendFragment('before the pause'); });
+    act(() => { result.current.pause(); });
+    act(() => { advance(60_000); result.current.resume(); });
+    act(() => { advance(1000); result.current.appendFragment('after the pause'); });
+
+    expect(result.current.fragments[0].atMs).toBe(2000);
+    expect(result.current.fragments[1].atMs).toBe(3000);   // NOT 63000
+  });
+});
+
+describe('freestyle session — stop() hands out the snapshot', () => {
+  it('returns a frozen, owner-stamped snapshot built at the moment of the call', () => {
+    const { result } = setup('trainer-a');
+    act(() => { result.current.start(); });
+    act(() => { advance(2000); result.current.appendFragment('four sets of eight'); });
+
+    let snapshot: ReturnType<typeof result.current.stop> = null;
+    act(() => {
+      // Same tick as an append: the render closure cannot see this fragment,
+      // the ref-built snapshot must.
+      result.current.appendFragment('last words mid tap');
+      snapshot = result.current.stop();
+    });
+
+    expect(snapshot).not.toBeNull();
+    expect(Object.isFrozen(snapshot!.fragments)).toBe(true);
+    expect(snapshot!.fragments).toHaveLength(2);
+    expect(snapshot!.fragments[1].text).toBe('last words mid tap');
+    expect(snapshot!.accountKey).toBe('trainer-a');
+    expect(snapshot!.wordCount).toBe(8);
+  });
+
+  it('returns null when there is nothing to stop', () => {
+    const { result } = setup();
+    let snapshot: ReturnType<typeof result.current.stop> = null;
+    act(() => { snapshot = result.current.stop(); });
+    expect(snapshot).toBeNull();
+  });
+});
+
+describe('freestyle session — failure keeps the words', () => {
+  /**
+   * ROUND-1 REGRESSION (known R5). Permission denial never reached session
+   * state: it stayed 'listening' over a dead engine while the quiet counter
+   * narrated a lie. 'error' is now reachable — and KEEPS the buffer, because
+   * five minutes of heard words must survive the mic dying.
+   */
+  it('fail() moves to error, keeps the buffer, and stop() still hands it off', () => {
+    const { result } = setup('trainer-a');
+    act(() => { result.current.start(); result.current.appendFragment('heard before the mic died'); });
+
+    act(() => { result.current.fail('Microphone access was lost.'); });
+
+    expect(result.current.state).toBe('error');
+    expect(result.current.error).toBe('Microphone access was lost.');
+    expect(result.current.fragments).toHaveLength(1);
+
+    let snapshot: ReturnType<typeof result.current.stop> = null;
+    act(() => { snapshot = result.current.stop(); });
+    expect(snapshot!.fragments).toHaveLength(1);
   });
 });
 
@@ -265,6 +398,88 @@ describe('freestyle session — retention contract', () => {
     unmount();
 
     expect(onPurge).toHaveBeenCalledWith('unmount');
+  });
+
+  /**
+   * ROUND-1 REGRESSION (Sol / Codex). Purge receipts fired for EMPTY buffers —
+   * mount cycles, unmount-after-reset, StrictMode replay — putting fictional
+   * destruction events in the audit. A receipt now means words were destroyed.
+   */
+  it('does not receipt a purge when no words existed', () => {
+    const onPurge = vi.fn();
+    const { unmount } = setup('trainer-a', onPurge);
+
+    unmount();                                  // nothing was ever captured
+
+    expect(onPurge).not.toHaveBeenCalled();
+  });
+
+  it('does not double-receipt: reset then unmount emits exactly one receipt', () => {
+    const onPurge = vi.fn();
+    const { result, unmount } = setup('trainer-a', onPurge);
+    act(() => { result.current.start(); result.current.appendFragment('client notes'); });
+
+    act(() => { result.current.reset('completed'); });
+    unmount();
+
+    expect(onPurge).toHaveBeenCalledTimes(1);
+    expect(onPurge).toHaveBeenCalledWith('completed');
+  });
+
+  /**
+   * ROUND-1 REGRESSION (Codex). A transition TO null is a logout; receipting it
+   * as 'account-switch' hid every logout from the audit.
+   */
+  it('receipts a transition to null as logout, not account-switch', () => {
+    const onPurge = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ account }) => useFreestyleSession({ accountKey: account, now, onPurge }),
+      { initialProps: { account: 'trainer-a' as string | null } },
+    );
+    act(() => { result.current.start(); result.current.appendFragment('client notes'); });
+
+    rerender({ account: null });
+
+    expect(onPurge).toHaveBeenCalledWith('logout');
+  });
+
+  /**
+   * ROUND-1 REGRESSION (Sol). "42" and 42 are the same owner arriving from
+   * different auth surfaces — a type coercion must not masquerade as an
+   * account switch and purge the buffer.
+   */
+  it('treats "42" and 42 as the same owner', () => {
+    const onPurge = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ account }) => useFreestyleSession({ accountKey: account, now, onPurge }),
+      { initialProps: { account: 42 as string | number } },
+    );
+    act(() => { result.current.start(); result.current.appendFragment('client notes'); });
+
+    rerender({ account: '42' });
+
+    expect(result.current.fragments).toHaveLength(1);
+    expect(onPurge).not.toHaveBeenCalled();
+  });
+
+  /**
+   * ROUND-1 REGRESSION (Sol). The 24h ceiling is a CEILING — a caller-supplied
+   * ttl of Infinity (or anything larger) must not extend retention.
+   */
+  it('clamps a caller ttl above the contract ceiling', () => {
+    const onPurge = vi.fn();
+    const { result } = renderHook(() =>
+      useFreestyleSession({ accountKey: 'trainer-a', now, onPurge, ttlMs: Infinity }),
+    );
+    act(() => { result.current.start(); result.current.appendFragment('client notes'); });
+
+    act(() => {
+      advance(FREESTYLE_TTL_MS);               // exactly AT the boundary: expired
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(result.current.fragments).toHaveLength(0);
+    expect(onPurge).toHaveBeenCalledWith('ttl');
   });
 });
 

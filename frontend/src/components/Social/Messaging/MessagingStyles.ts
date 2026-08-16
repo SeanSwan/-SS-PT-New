@@ -58,10 +58,12 @@ export const MessagingContainer = styled.div`
   @media (max-width: 768px) {
     flex-direction: column;
     /* The old 520px floor overflowed a 375x667 handset (667-210=457) and pushed
-       the composer below the fold. 240px is low enough to never overflow portrait
-       yet still leaves a usable strip in landscape, where 100dvh-210px is ~165px. */
+       the composer below the fold. 240px is the portrait floor — but in
+       landscape 100dvh-210px is ~165px, so an unconditional 240px floor would
+       recreate the exact overflow this block exists to remove. min() takes the
+       viewport when the viewport is the smaller of the two. */
     height: calc(100dvh - 210px);
-    min-height: 240px;
+    min-height: min(240px, calc(100dvh - 210px));
   }
 `;
 

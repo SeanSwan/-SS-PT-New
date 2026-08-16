@@ -130,14 +130,41 @@ describe('CoachFreestyleOverlay — it actually hears (Fable F-2)', () => {
    * `continuous` is not honoured indefinitely — browsers end recognition after a
    * silence window, iOS Safari most aggressively. Without a restart a ten-minute
    * dictation dies at the first pause while the UI still claims to listen.
+   *
+   * ROUND-1 CHANGE (known R2): restarts are now PACED. An engine that dies
+   * within 3s of starting (dead zone — Chrome's recogniser needs network) backs
+   * off instead of hot-looping start/abort forever. A normal silence-window death
+   * after a healthy run still restarts immediately.
    */
-  it('restarts the engine when the browser ends it mid-session', () => {
-    renderOverlay();
-    const before = startCalls;
+  it('paces the restart when the engine dies quickly, then restarts', () => {
+    vi.useFakeTimers();
+    try {
+      renderOverlay();
+      const before = startCalls;
 
-    act(() => { engine?.onend?.(); });
+      act(() => { engine?.onend?.(); });          // died < 3s after start
 
-    expect(startCalls).toBeGreaterThan(before);
+      expect(startCalls).toBe(before);            // NOT a synchronous hot restart
+      act(() => { vi.advanceTimersByTime(1100); });
+      expect(startCalls).toBeGreaterThan(before); // …but it does come back
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('restarts immediately after a healthy run ends', () => {
+    vi.useFakeTimers();
+    try {
+      renderOverlay();
+      act(() => { vi.advanceTimersByTime(5000); });   // a healthy 5s of life
+      const before = startCalls;
+
+      act(() => { engine?.onend?.(); });
+
+      expect(startCalls).toBeGreaterThan(before);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('stops listening when the session is paused', () => {
@@ -185,6 +212,96 @@ describe('CoachFreestyleOverlay — it stops listening when it should (GLM S1/S4
 
     expect(startCalls).toBe(startsAfterFirstArm);
   });
+
+  /**
+   * ROUND-1 REGRESSION (GLM HIGH). The closed overlay hides with CSS, so its
+   * buttons still exist in the DOM. Activating the invisible "Resume" used to
+   * take the microphone live behind closed UI — the engine-follow effect had no
+   * isOpen gate. The session may change state; the ENGINE must not start.
+   */
+  it('does not start the engine for state changes while the overlay is closed', () => {
+    const { rerender } = renderOverlay();
+    say('something');
+    rerender(
+      <CoachFreestyleOverlay isOpen={false} accountKey="trainer-a" onClose={vi.fn()} />,
+    );                                           // auto-paused by the close effect
+    const startsWhileClosed = startCalls;
+
+    // An invisible Resume press (keyboard reachability is CSS-dependent; the
+    // engine gate must hold even if the click lands).
+    act(() => { screen.getByLabelText('Resume listening').click(); });
+
+    expect(startCalls).toBe(startsWhileClosed);
+  });
+
+  it('marks the closed overlay hidden for assistive technology', () => {
+    const { rerender } = renderOverlay();
+    rerender(
+      <CoachFreestyleOverlay isOpen={false} accountKey="trainer-a" onClose={vi.fn()} />,
+    );
+    expect(screen.getByLabelText('Freestyle dictation')).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  /**
+   * ROUND-1 REGRESSION (Codex HIGH). Freestyle had no visibilitychange/pagehide
+   * handling at all — backgrounding the tab left the recogniser (or its restart
+   * loop) running. Same lifecycle doctrine as useCoachCapture.
+   */
+  it('pauses when the tab is hidden', () => {
+    renderOverlay();
+    say('something');
+    const abortsBefore = abortCalls;
+
+    act(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+
+    expect(abortCalls).toBeGreaterThan(abortsBefore);
+    expect(screen.getByText('Paused. Nothing is being heard.')).toBeInTheDocument();
+  });
+});
+
+describe('CoachFreestyleOverlay — failure is told the truth (known R5)', () => {
+  /**
+   * ROUND-1 REGRESSION. Permission denial used to leave the session 'listening':
+   * the quiet counter narrated "Still listening. Nothing heard for 47s" — a lie
+   * appended to the denial copy. Denial now fails the session.
+   */
+  it('a permission denial becomes a visible session failure, not a fake listen', () => {
+    renderOverlay();
+
+    act(() => { engine?.onerror?.({ error: 'not-allowed' }); });
+
+    expect(screen.getByText(/microphone access/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Still listening/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Talk as long as you need/)).not.toBeInTheDocument();
+  });
+
+  /**
+   * ROUND-1 REGRESSION (Kimi / GLM). The quiet readout used to interpolate a
+   * per-second counter INSIDE the polite live region, so a screen reader
+   * announced the countdown forever. The live string is now stable; the ticking
+   * number lives in a separate aria-hidden element.
+   */
+  it('keeps the ticking quiet counter out of the live region', () => {
+    vi.useFakeTimers();
+    try {
+      renderOverlay();
+      say('a phrase');
+
+      act(() => { vi.advanceTimersByTime(6000); });
+
+      const status = screen.getByRole('status');
+      expect(status).toHaveTextContent('Still listening. Nothing heard for a little while.');
+      expect(status.textContent).not.toMatch(/\d+s/);
+      const counter = screen.getByText(/\d+s quiet/);
+      expect(counter).toHaveAttribute('aria-hidden', 'true');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe('CoachFreestyleOverlay — handoff cannot be purged (Fable F-3)', () => {
@@ -201,6 +318,27 @@ describe('CoachFreestyleOverlay — handoff cannot be purged (Fable F-3)', () =>
     expect(Object.isFrozen(snapshot.fragments)).toBe(true);
     expect(snapshot.fragments).toHaveLength(1);
     expect(snapshot.wordCount).toBe(4);
+    // Owner-stamped: a shared-tablet parent can never mis-attribute the words.
+    expect(snapshot.accountKey).toBe('trainer-a');
+  });
+
+  /**
+   * ROUND-1 REGRESSION (Codex MEDIUM). The words being spoken AS the thumb hits
+   * Done were interim-only, never finalised, and vanished from the snapshot.
+   * Done now flushes the pending interim through the session before stopping.
+   */
+  it('includes the in-flight interim phrase in the snapshot when Done is tapped', () => {
+    const onStopped = vi.fn();
+    renderOverlay(onStopped);
+
+    say('logged the warm up', true);
+    say('and the client hit one seventy five', false);   // still forming at the tap
+
+    act(() => { screen.getByLabelText('Finish and review').click(); });
+
+    const snapshot = onStopped.mock.calls[0][0] as FreestyleSnapshot;
+    expect(snapshot.fragments).toHaveLength(2);
+    expect(snapshot.fragments[1].text).toBe('and the client hit one seventy five');
   });
 
   it('the snapshot survives a later purge of the session buffer', () => {
