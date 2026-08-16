@@ -5,23 +5,28 @@
  * AUTHOR: Claude Opus 5 | CREATED: 2026-08-16
  * ============================================================================
  *
- * WHY ON-DEVICE, AND WHY THIS IS A PRIVACY DECISION
- * -------------------------------------------------
+ * TRANSPORT AND ITS UNRESOLVED PRIVACY PROBLEM — READ BEFORE EXTENDING
+ * --------------------------------------------------------------------
  * The other capture path (useCoachCapture → useGeminiTranscription) uploads the
  * recorded audio to a server-side model. For freestyle that is unacceptable: Sean
- * talks freely about real clients BY NAME, so the audio itself is PII-dense. Every
- * text-tokenisation scheme in this codebase protects the transcript and does
- * nothing for the audio — masking "Sarah" in text is pointless if the recording
- * says "Sarah" out loud.
+ * talks about real clients BY NAME, so the audio itself is PII-dense, and every
+ * text-tokenisation scheme in this repo protects the TRANSCRIPT and does nothing
+ * for the audio.
  *
- * The Web Speech API performs recognition through the browser/OS. No audio blob is
- * created, uploaded, or persisted by this application. That is the whole reason
- * freestyle uses this path rather than the RECORD pipeline.
+ * This hook uses the Web Speech API instead. That removes SwanStudios from the
+ * transport — we create, upload and persist no audio.
  *
- * (Browsers may themselves use a cloud recogniser — Chrome does. That is a
- * platform property outside this app's control and is disclosed in the retention
- * contract; what this hook guarantees is that SwanStudios never transmits or
- * stores the audio.)
+ * IT DOES NOT SATISFY "ZERO PII TO MODELS", AND MUST NOT BE DESCRIBED AS IF IT
+ * DOES. Chrome's implementation streams audio to a Google cloud recogniser. We
+ * invoke that API, so PII-dense audio still reaches a third-party model with us as
+ * the invoking party. Whose servers perform the transmission is not the constraint;
+ * the constraint is whether client audio reaches a model at all.
+ *
+ * What genuinely holds on-device is Safari/WebKit with on-device dictation. What
+ * this hook currently lacks — and what any real fix requires — is capability
+ * detection, a gate that refuses cloud-backed recognisers, and a typed fallback.
+ * Until that exists this path is a TRANSPORT IMPROVEMENT, not a privacy guarantee.
+ * The owner decision (gate, accept-and-document, or on-device model) is open.
  *
  * THE RESTART PROBLEM
  * -------------------
@@ -71,7 +76,7 @@ const getRecognitionCtor = (): SpeechRecognitionCtor | null => {
 };
 
 export const FREESTYLE_SPEECH_UNSUPPORTED_COPY =
-  'This browser cannot listen continuously. Use Chrome or Safari, or type your notes instead.';
+  'This browser cannot listen continuously. Type your notes instead, or open Swan Coach in Safari.';
 
 export const FREESTYLE_SPEECH_DENIED_COPY =
   'Swan Coach needs microphone access to hear you. Enable it in your browser settings, then try again.';

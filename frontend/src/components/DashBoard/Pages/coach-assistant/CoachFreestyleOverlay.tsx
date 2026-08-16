@@ -16,7 +16,7 @@
  * of the road. That boundary is deliberate: a bug here can lose a draft, never
  * corrupt a client's record.
  */
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Mic, Pause, Play, Check, Trash2, X } from 'lucide-react';
 import { useFreestyleSession, type FreestyleFragment } from './hooks/useFreestyleSession';
 import { useFreestyleSpeech } from './hooks/useFreestyleSpeech';
@@ -87,9 +87,29 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     requestDiscard, cancelDiscard, discard, reset,
   } = session;
 
+  /**
+   * Auto-start at most ONCE per open. The previous version keyed on `state ===
+   * 'idle'`, but a TTL purge settles to 'idle' — so an overlay left open on a
+   * shared tablet re-engaged the microphone every cycle, each one legitimately
+   * "purged", listening indefinitely to an empty room.
+   */
+  const autoStartedRef = useRef(false);
   useEffect(() => {
-    if (isOpen && state === 'idle') start();
-  }, [isOpen, state, start]);
+    if (!isOpen) { autoStartedRef.current = false; return; }
+    if (autoStartedRef.current) return;
+    autoStartedRef.current = true;
+    if (state === 'idle') start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  /**
+   * S4: `isOpen` only toggles visibility — the component stays mounted. Without
+   * this, hiding the overlay left the session listening and the recogniser
+   * running behind invisible UI.
+   */
+  useEffect(() => {
+    if (!isOpen && (state === 'listening')) pause();
+  }, [isOpen, state, pause]);
 
   /**
    * The engine follows the session, not the other way round. Anything that ends
@@ -121,7 +141,7 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   }, [discard, onClose]);
 
   const handleClose = useCallback(() => {
-    reset();
+    reset('completed');
     onClose();
   }, [reset, onClose]);
 
@@ -149,9 +169,16 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   const quietFor = Math.floor(sinceLastFragmentMs / 1000);
   const isQuiet = isListening && fragments.length > 0 && quietFor >= 4;
 
-  // Prefer the live partial so the screen moves while a phrase is still forming.
+  /**
+   * Only the tail of the current phrase, never a running transcript. Rendering
+   * whole spoken sentences put client names in large type on a gym floor where
+   * anyone can read them — and contradicted this file's own doctrine line.
+   * Three words is enough to prove Coach is hearing you.
+   */
+  const tailWords = (text: string) => text.trim().split(/\s+/).slice(-3).join(' ');
   const latestPhrase = speech.interim
-    || (fragments.length > 0 ? fragments[fragments.length - 1].text : '');
+    ? tailWords(speech.interim)
+    : (fragments.length > 0 ? tailWords(fragments[fragments.length - 1].text) : '');
 
   return (
     <FreestyleOverlay $isOpen={isOpen} role="dialog" aria-modal="true" aria-label="Freestyle dictation">
@@ -168,6 +195,12 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
           <SignalValue>{fragments.length}</SignalValue>
           <SignalLabel>Fragments</SignalLabel>
         </SignalItem>
+        {speech.restarts > 0 && (
+          <SignalItem>
+            <SignalValue>{speech.restarts}</SignalValue>
+            <SignalLabel>Reconnects</SignalLabel>
+          </SignalItem>
+        )}
       </SignalStrip>
 
       <Stage>
@@ -180,22 +213,22 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
           fragment would make a screen reader unusable during dictation.
         */}
         <StatusLine role="status" aria-live="polite" $muted={!isListening}>
-          {isListening && !isQuiet && 'Listening. Talk as long as you need — nothing is saved yet.'}
+          {isListening && !isQuiet && 'Listening. Talk as long as you need — no record is created until you review it.'}
           {isListening && isQuiet && `Still listening. Nothing heard for ${quietFor}s.`}
           {isPaused && 'Paused. Nothing is being heard.'}
-          {isStopped && `Finished — ${wordCount} words captured. Nothing has been saved yet.`}
+          {isStopped && `Finished — ${wordCount} words captured. No record has been created yet.`}
           {state === 'discarded' && 'Session discarded. Nothing was saved.'}
           {speech.error && ` ${speech.error}`}
         </StatusLine>
       </Stage>
 
       {discardPending ? (
-        <DiscardConfirm role="alertdialog" aria-label="Confirm discard">
+        <DiscardConfirm role="alertdialog" aria-label="Discard this session?">
           <DiscardCopy>
             Discard this session? {wordCount} words will be deleted and cannot be recovered.
           </DiscardCopy>
           <ControlRow>
-            <ControlButton type="button" onClick={cancelDiscard} aria-label="Keep the session">
+            <ControlButton type="button" onClick={cancelDiscard} aria-label="Keep it — do not discard the session">
               <X size={18} aria-hidden="true" /> Keep it
             </ControlButton>
             <ControlButton type="button" $variant="danger" onClick={handleDiscard} aria-label="Confirm discard">

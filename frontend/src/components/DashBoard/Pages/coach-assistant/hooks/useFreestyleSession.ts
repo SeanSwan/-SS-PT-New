@@ -81,7 +81,14 @@ export interface UseFreestyleSessionOptions {
   onPurge?: (reason: FreestylePurgeReason) => void;
 }
 
-export type FreestylePurgeReason = 'discard' | 'account-switch' | 'ttl' | 'unmount';
+export type FreestylePurgeReason =
+  | 'discard'
+  | 'account-switch'
+  | 'logout'
+  | 'ttl'
+  | 'unmount'
+  /** A session that ran to completion and was closed — NOT a discard. */
+  | 'completed';
 
 export interface UseFreestyleSessionReturn extends FreestyleSessionSnapshot {
   isActive: boolean;
@@ -96,7 +103,8 @@ export interface UseFreestyleSessionReturn extends FreestyleSessionSnapshot {
   discardPending: boolean;
   discard: () => void;
   appendFragment: (text: string) => void;
-  reset: () => void;
+  /** `reason` is receipted verbatim; do notcollapse everything into 'discard'. */
+  reset: (reason?: FreestylePurgeReason) => void;
 }
 
 export const FREESTYLE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -227,10 +235,12 @@ export function useFreestyleSession(
     setFragments(list => [...list, { id, text: trimmed, atMs: at - startedAt }]);
   }, []);
 
-  const reset = useCallback(() => {
+  const reset = useCallback((reason: FreestylePurgeReason = 'completed') => {
     setDiscardPending(false);
     setError(null);
-    clearBuffer('discard');
+    // Receipt the real reason. Every close used to be logged as a discard, which
+    // made the retention audit fiction.
+    clearBuffer(reason);
     stateRef.current = 'idle';
     setState('idle');
   }, [clearBuffer]);

@@ -100,12 +100,21 @@ describe('CoachFreestyleOverlay — it actually hears (Fable F-2)', () => {
     expect(screen.getByText('7')).toBeInTheDocument();   // 4 + 3 words
   });
 
-  it('shows the live partial before a phrase is final', () => {
+  /**
+   * RE-ANCHORED (GLM S5). This previously asserted the WHOLE phrase rendered.
+   * That put full spoken sentences — including client names — in large type on a
+   * gym floor where anyone can read them, and contradicted the file's own
+   * "counters, not a transcript" doctrine. Only the tail is shown now, which is
+   * enough to prove Coach is hearing you. The truncation IS the security property,
+   * so the test asserts the leading words are absent.
+   */
+  it('shows only the tail of the live partial, never the whole phrase', () => {
     renderOverlay();
 
-    say('bench press one seven five', false);
+    say('Sarah bench press one seven five', false);
 
-    expect(screen.getByText(/bench press one seven five/)).toBeInTheDocument();
+    expect(screen.getByText('one seven five')).toBeInTheDocument();
+    expect(screen.queryByText(/Sarah/)).not.toBeInTheDocument();
   });
 
   it('does not count an interim phrase as captured', () => {
@@ -138,6 +147,43 @@ describe('CoachFreestyleOverlay — it actually hears (Fable F-2)', () => {
     act(() => { screen.getByLabelText('Pause listening').click(); });
 
     expect(abortCalls).toBeGreaterThan(0);
+  });
+});
+
+describe('CoachFreestyleOverlay — it stops listening when it should (GLM S1/S4)', () => {
+  /**
+   * GLM S4. `isOpen` only toggles visibility — the component stays mounted. The
+   * session previously kept listening and the recogniser kept running behind
+   * invisible UI, appending fragments nobody could see.
+   */
+  it('pauses when the overlay is hidden without unmounting', () => {
+    const { rerender } = renderOverlay();
+    say('something');
+    const abortsBefore = abortCalls;
+
+    rerender(
+      <CoachFreestyleOverlay isOpen={false} accountKey="trainer-a" onClose={vi.fn()} />,
+    );
+
+    expect(abortCalls).toBeGreaterThan(abortsBefore);
+  });
+
+  /**
+   * GLM S1. A TTL purge settles the machine to 'idle'. The old auto-start effect
+   * keyed on `state === 'idle'`, so an overlay left open on a shared tablet
+   * re-engaged the microphone every cycle — each one legitimately "purged" —
+   * listening indefinitely to an empty room.
+   */
+  it('does not re-arm the microphone after the session returns to idle', () => {
+    renderOverlay();
+    say('something');
+    const startsAfterFirstArm = startCalls;
+
+    // Discard settles to 'idle' — the same state a TTL purge produces.
+    act(() => { screen.getByLabelText('Discard session').click(); });
+    act(() => { screen.getByLabelText('Confirm discard').click(); });
+
+    expect(startCalls).toBe(startsAfterFirstArm);
   });
 });
 
