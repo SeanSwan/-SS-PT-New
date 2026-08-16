@@ -19,8 +19,6 @@ export type BlockId = string;
 export type ToolCallId = string;
 /** The gateway's approval rid — `_pending[rid] = (sid, ev)` server-side. */
 export type ApprovalRequestId = string;
-/** Monotonic event cursor for replay/reconnect. Dedupe key when present. */
-export type EventSeq = number;
 
 // ── Blocks ───────────────────────────────────────────────────────────────
 
@@ -35,7 +33,10 @@ export interface TextBlock {
   streaming: boolean;
 }
 
-export type ToolStatus = 'running' | 'ok' | 'error' | 'canceled';
+/** 'unknown' = hydrated from the transcript projection, which carries no
+ *  ok/error/output/duration (probed: _history_to_messages, server.py:7190).
+ *  Rendered neutral — no ✓/✗ glyph. */
+export type ToolStatus = 'running' | 'ok' | 'error' | 'canceled' | 'unknown';
 
 export interface ToolBlock {
   type: 'tool';
@@ -103,8 +104,15 @@ export interface ChatState {
   approvalIndex: Record<ApprovalRequestId, BlockRef>;
   /** tool_call_id → location. Lets tool.complete land after later blocks exist. */
   toolIndex: Record<ToolCallId, BlockRef>;
-  /** Replay cursor: highest event seq folded in (hard case 4). */
-  lastEventSeq: EventSeq;
+  /**
+   * Set when a resumed session reports status "waiting" but the pending
+   * prompt's payload was not re-delivered (the gateway emits approval.request
+   * exactly once — probed 2026-08-16). UI renders a degraded pending notice.
+   * Cleared by the next live approval.request or turn continuation.
+   */
+  resumedPendingKind: string | null;
+  /** message_count from session.resume — sanity check; no pagination exists. */
+  messageCount: number;
   connection: ConnectionState;
 }
 
@@ -122,11 +130,38 @@ export interface UiEphemera {
 // ── Gateway events (discriminated union over probed event names) ─────────
 
 interface EventBase {
-  /** Present when the gateway numbers events; else dedupe by type + stable id. */
-  seq?: EventSeq;
   sessionId: SessionId;
   turnId: TurnId;
   at: number;
+}
+
+/**
+ * Rehydration input — a SNAPSHOT, not events (probed: no journal, no seqs).
+ * session.resume returns the full transcript plus an inflight partial-turn
+ * snapshot; the mapper turns these into sealed turns + one open turn.
+ * Duplicate live frames after hydration dedupe by type + stable id.
+ */
+export interface ResumeSnapshot {
+  sessionId: SessionId;
+  /** Transcript projection rows — tool rows carry name/args/preview only. */
+  messages: Array<{
+    role: 'user' | 'assistant' | 'tool' | 'system';
+    text?: string;
+    name?: string;
+    args?: Record<string, unknown>;
+    context?: string;
+  }>;
+  messageCount: number;
+  status: 'idle' | 'working' | 'waiting' | 'starting';
+  inflight: {
+    user: string;
+    assistant: string;
+    streaming: boolean;
+    corrections?: string[];
+    error?: string;
+    status?: string;
+    recoverable?: boolean;
+  } | null;
 }
 
 export interface MessageStartEvent extends EventBase { type: 'message.start'; role: Role }

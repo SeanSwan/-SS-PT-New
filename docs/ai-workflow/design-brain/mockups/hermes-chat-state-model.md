@@ -25,9 +25,12 @@ ChatState
 │         └─ ApprovalBlock { id, requestId, kind, command, description, state, requestedAt, resolvedAt, resolvedBy }
 ├─ approvalIndex: rid → {turnId, blockId}  ← O(1) out-of-order resolution
 ├─ toolIndex: tool_call_id → {turnId, blockId}
-├─ lastEventSeq                            ← replay/reconnect cursor
+├─ resumedPendingKind                      ← "exec"/"clarify"/… when a resumed session is waiting on a prompt whose payload was not re-delivered (see hard case 4)
+├─ messageCount                            ← session.resume sanity check (no pagination exists)
 └─ connection
 ```
+
+**Transport target (probed):** the dashboard already exposes `/api/ws` — a JSON-RPC WebSocket (`web_server.py:16258` → `tui_gateway.ws.handle_ws`) speaking the full gateway protocol (`session.list/resume`, `prompt.submit`, `approval.respond`, `session.interrupt`) — plus the `/api/pub`→`/api/events` broadcast channel the current sidebar uses. **Slice 4 is client wiring only; zero gateway changes are required.**
 
 Blocks are **append-only in position, mutable in content by id**. Nothing is ever reordered or removed mid-turn.
 
@@ -39,15 +42,16 @@ The gateway's structured events (probed and confirmed 2026-08-16, `tui_gateway/s
 |---|---|
 | `message.start` | Open assistant `Turn` (status `streaming`) with one open `TextBlock` |
 | `message.delta` | Append text to the turn's **open tail** `TextBlock`; if the tail is not an open text block (a tool/approval was appended since), **open a new** `TextBlock` first — this single rule is what makes interleaving free |
-| `message.interim` | Upsert the turn's `interim` text block in place (replace text). ⚠ replace-vs-append semantics unprobed — verify in Slice 4 |
+| `message.interim` | Upsert the turn's `interim` text block in place (replace text). ⚠ replace-vs-append semantics still unprobed — verify in Slice 4 |
+| **Hydration** (`session.resume`) | Not an event, a snapshot: `messages[]` → sealed turns (consecutive assistant/tool rows between user rows group into ONE assistant turn's block list); `inflight` → open streaming turn. See hard case 4 |
 | `message.complete` | Seal all open text blocks (`streaming:false`), turn status → `complete` |
 | `tool.start` | **Seal** the open text block, **append** `ToolBlock` (status `running`), index by `tool_call_id` |
 | `tool.generating` | Update args/progress on the indexed tool block |
 | `tool.complete` | Set `status: ok|error`, `output`, `durationMs` via `toolIndex` — position-independent, so it lands correctly even after later blocks exist |
 | `tool.output_risk` | Set `outputRisk` on the indexed tool block |
 | `approval.request` | Seal open text block, append `ApprovalBlock` (state `pending`), index by `rid` |
-| `approval.respond` | Resolve via `approvalIndex[rid]` — **out-of-order safe by construction**; set `state`, `resolvedAt`, `resolvedBy` (`user` \| `policy` \| `smart_denied`) |
-| Stop / abort | Turn status → `stopped`; running tools → `canceled` (Stop-mid-tool behavior unprobed — model supports it either way) |
+| `approval.respond` | Resolve via `approvalIndex[rid]` — **out-of-order safe by construction**; set `state`, `resolvedAt`, `resolvedBy` (`user` \| `policy` \| `smart_denied`). ⚠ Probed 2026-08-16: the gateway emits **no `approval.resolved` broadcast** — the only `_emit` for approvals is the request (`server.py:1878`). The resolving client transitions optimistically; the turn's continuation (next `message.delta`/`tool.start`) is the confirmation |
+| Stop / abort | Turn status → `stopped`; running tools → `canceled`. Probed: `session.interrupt` releases blocking waits (`server.py:3349`) and cancels in wait slices (`:2084`); the turn closes via the `message.complete` error-status path (`_emit_terminal_turn_error`, `:7851`) |
 | unknown type | Log + ignore. Never throw — forward compatibility with gateway upgrades |
 
 ## 3. The four hard cases, and why this model survives them
@@ -55,7 +59,9 @@ The gateway's structured events (probed and confirmed 2026-08-16, `tui_gateway/s
 1. **Tool call between two paragraphs of the same turn, mid-stream** — `tool.start` seals the text tail; the next `message.delta` opens a fresh text block after the tool row. No special case.
 2. **Approvals resolved out of order** — resolution goes through `approvalIndex[rid]`, never through position. `n of m` labels are event metadata, not array indices.
 3. **Blocks appended while earlier blocks still mutate** — appends touch only the tail; updates touch only indexed ids. The two never conflict.
-4. **Reload / reconnect mid-turn** — state is a pure fold over the event history. Replay from `lastEventSeq`; every transition is **idempotent** (dedupe key = event seq when the gateway provides one, else `type` + stable id). ⚠ Whether pending approvals survive reconnect and whether history is paginated are the two open probes flagged in the master handoff §4 — answer both before Slice 3 fixtures are frozen.
+4. **Reload / reconnect mid-turn** — ~~replay from `lastEventSeq`~~ **CORRECTED after probing the gateway (2026-08-16): there is no event journal and no seq numbers. Rehydration is snapshot-based.** `session.resume` returns the FULL transcript (`messages[]` + `message_count` — **no pagination exists anywhere**) plus an `inflight` snapshot `{user, assistant partial text, streaming, corrections, error, status, recoverable}` (`server.py:7820`). Hydration = map `messages[]` → sealed turns via the block mapper, map `inflight` → one open turn with a single streaming text block, then live events append. Idempotence is still required for duplicate frames — dedupe by `type` + stable id (`tool_call_id`, `rid`), never by a seq that doesn't exist.
+   - **Hydrated tool rows are lossy by design:** the transcript projection (`_history_to_messages`, `server.py:7190`) carries `{name, args, 80-char context preview}` but **no output, duration, or ok/error status** → historical `ToolBlock`s get `status:'unknown'`, rendered neutral (no ✓/✗).
+   - **Pending approvals do NOT survive reconnect as renderable content:** `approval.request` is emitted exactly once by the blocking `_block()` (default timeout 300s); the payload lives server-side in `_pending_prompt_payloads` while pending, but no attach/resume path re-delivers it. A resumed session reports status `"waiting"` (`_session_pending_kind`) with no card content → the UI renders a degraded "approval pending — content unavailable until it times out or is answered elsewhere" state (`ChatState.resumedPendingKind`). Fixing this properly is a small upstream gateway RPC — **Sean-gated patch-queue item, flagged, not built.**
 
 ## 4. Invariants (violations are bugs, not style)
 
