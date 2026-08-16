@@ -20,6 +20,10 @@ import StorefrontItem from '../models/StorefrontItem.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
+// NAMED import — validated at link time. Destructuring this off the default
+// export binds `undefined` (it is not on the default object) and silently
+// disables the ceiling below. See the note in cartRoutes.mjs.
+import { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
 import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
 import {
   claimIdempotentRecord,
@@ -30,6 +34,12 @@ import {
 } from '../services/offlinePaymentOrderItems.mjs';
 
 const router = express.Router();
+
+// One ceiling, shared with the cart routes and the checkout gate (see the
+// no-drift note on the constant itself). The direct-item payment rails bypass
+// the cart entirely, so the cart's own cap never covered them: an unbounded
+// quantity overflows Order.totalAmount — DECIMAL(10,2), max 99,999,999.99 —
+// turning a money-path request into a 500 and littering failed orders.
 
 const VALID_METHODS = ['check', 'zelle', 'venmo'];
 
@@ -86,9 +96,17 @@ async function calculateServerTotal(items) {
     if (!dbPrice) {
       throw new Error(`Item ${item.storefrontItemId} not found in storefront`);
     }
-    const qty = parseInt(item.quantity, 10);
+    // Number() not parseInt(): parseInt('2.5') and parseInt('2abc') both yield a
+    // clean 2 and would silently price a malformed request. typeof guard excludes
+    // `true` -> 1. Matches achPaymentRoutes — the two rails must not drift.
+    const qty = (typeof item.quantity === 'number' || typeof item.quantity === 'string')
+      ? Number(item.quantity)
+      : NaN;
     if (!Number.isInteger(qty) || qty < 1) {
       throw new Error(`Invalid quantity for item ${item.storefrontItemId}`);
+    }
+    if (qty > MAX_CART_ITEM_QUANTITY) {
+      throw new Error(`Quantity for item ${item.storefrontItemId} exceeds the ${MAX_CART_ITEM_QUANTITY} per-item limit`);
     }
     total = total.plus(dbPrice.mul(qty));
   }

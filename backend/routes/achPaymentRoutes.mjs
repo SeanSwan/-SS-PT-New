@@ -23,6 +23,10 @@ import StorefrontItem from '../models/StorefrontItem.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
+// NAMED import — validated at link time. Destructuring this off the default
+// export binds `undefined` (it is not on the default object) and silently
+// disables the ceiling below. See the note in cartRoutes.mjs.
+import { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
 import {
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
@@ -92,6 +96,11 @@ router.post('/create-intent', protect, async (req, res) => {
         }
       })();
       const existingItems = Array.isArray(existingNotes.items) ? existingNotes.items : items;
+      // DELIBERATELY not filtered by isActive (unlike the pricing lookup below).
+      // This is the idempotency REPLAY path: it backfills order-item rows for an
+      // order that was ALREADY legitimately placed. An item retired after that
+      // purchase must still resolve, or a real customer's completed order stops
+      // reconciling. Do not "harden" this to match the pricing lookup.
       const existingDbItems = await StorefrontItem.findAll({
         where: { id: existingItems.map(i => i.storefrontItemId).filter(Boolean), isSpecialOffer: false },
       });
@@ -115,9 +124,18 @@ router.post('/create-intent', protect, async (req, res) => {
       });
     }
 
-    // Server-side price validation (same as offlinePaymentRoutes)
+    // Server-side price validation (same as offlinePaymentRoutes).
+    //
+    // isActive:true (Kimi security audit F1 residual, SWA-129; ported to this rail
+    // by GLM audit 2026-08-15 F3): a retired/unpublished item must not be
+    // purchasable by id even though there is no per-item visibility model — an
+    // id-guessing user should only be able to buy live catalog items. A filtered
+    // item is absent from dbPriceMap and rejected below, so this fails closed.
+    // The offline rail had this; this rail did not, which is the bug F3 names.
     const itemIds = items.map(i => i.storefrontItemId);
-    const dbItems = await StorefrontItem.findAll({ where: { id: itemIds, isSpecialOffer: false } });
+    const dbItems = await StorefrontItem.findAll({
+      where: { id: itemIds, isSpecialOffer: false, isActive: true }
+    });
     const dbPriceMap = new Map(dbItems.map(i => [Number(i.id), new Decimal(i.price || 0)]));
 
     let serverTotal = new Decimal(0);
@@ -126,7 +144,40 @@ router.post('/create-intent', protect, async (req, res) => {
       if (!unitPrice) {
         return res.status(400).json({ success: false, message: `Item ${item.storefrontItemId} not found` });
       }
-      serverTotal = serverTotal.plus(unitPrice.times(item.quantity || 1));
+
+      // Quantity must be a positive whole number (mirrors offlinePaymentRoutes).
+      // Without this, `item.quantity || 1` priced a FRACTIONAL quantity: 0.06 of a
+      // $1,000 package cleared the $0.02 client-total tolerance at $60 and minted
+      // a real PaymentIntent. Reject rather than coerce — a request that asks for
+      // 0.06 of a package is malformed, not roundable.
+      // Number() not parseInt(): parseInt('2.5') and parseInt('2abc') both yield a
+      // clean 2 and would silently price a malformed request. Number() yields 2.5
+      // and NaN, which fail the integer test. typeof guard excludes `true` -> 1.
+      const qty = (typeof item.quantity === 'number' || typeof item.quantity === 'string')
+        ? Number(item.quantity)
+        : NaN;
+      if (!Number.isInteger(qty) || qty < 1) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid quantity for item ${item.storefrontItemId}`,
+          code: 'INVALID_QUANTITY'
+        });
+      }
+
+      // One ceiling, shared with the cart routes, the checkout gate and the
+      // offline rail. The direct-item rails bypass the cart, so the cart's own
+      // cap never covered them: an unbounded quantity overflows
+      // Order.totalAmount — DECIMAL(10,2), max 99,999,999.99 — turning a
+      // money-path request into a 500 and littering failed orders.
+      if (qty > MAX_CART_ITEM_QUANTITY) {
+        return res.status(400).json({
+          success: false,
+          message: `Quantity for item ${item.storefrontItemId} exceeds the ${MAX_CART_ITEM_QUANTITY} per-item limit`,
+          code: 'QUANTITY_LIMIT_EXCEEDED'
+        });
+      }
+
+      serverTotal = serverTotal.plus(unitPrice.times(qty));
     }
 
     // ACH fee: min(total * 0.008, $5)

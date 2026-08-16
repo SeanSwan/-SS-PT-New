@@ -20,7 +20,13 @@ import {
 import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
-import cartHelpers from '../utils/cartHelpers.mjs';
+// MAX_CART_ITEM_QUANTITY is a NAMED import on purpose. It was previously
+// destructured off the DEFAULT export — which never contained it — so it bound
+// `undefined`, every `qty > MAX_CART_ITEM_QUANTITY` check below silently
+// evaluated false, and the ceiling had never fired. A named import is validated
+// at link time: if the export disappears, this module fails to load instead of
+// quietly disabling a money-path guard.
+import cartHelpers, { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
 import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
 import {
   normalizeAuthenticatedUserId,
@@ -28,7 +34,6 @@ import {
   safeLoadCartItemsWithStorefront
 } from '../utils/cartSchemaRecovery.mjs';
 const { updateCartTotals, getCartTotalsWithFallback } = cartHelpers;
-const { MAX_CART_ITEM_QUANTITY } = cartHelpers;
 
 const router = express.Router();
 const STOREFRONT_CART_ATTRIBUTES = [

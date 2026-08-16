@@ -73,8 +73,12 @@ vi.mock('../../services/SessionGrantService.mjs', () => ({
 }));
 
 vi.mock('../../utils/cartHelpers.mjs', () => ({
+  // Named export too: cartRoutes takes MAX_CART_ITEM_QUANTITY as a NAMED import
+  // (it is not on the default object — a default destructure binds undefined and
+  // silently kills the ceiling; see cartQuantityCeilingBinding.test.mjs).
+  MAX_CART_ITEM_QUANTITY: 99,
   default: {
-    MAX_CART_ITEM_QUANTITY: 100,
+    MAX_CART_ITEM_QUANTITY: 99,
     calculateCartTotals: vi.fn(() => ({ total: 0, totalSessions: 0 })),
     getCartTotalsWithFallback: vi.fn(({ total }) => ({
       total: Number(total) || 0,
