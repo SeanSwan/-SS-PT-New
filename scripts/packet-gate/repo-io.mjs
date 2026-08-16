@@ -127,7 +127,10 @@ export function readCitedFile(root, rel) {
   if (!existsSync(abs)) return null;
   const realRoot = realpathSync(root);
   const real = realpathSync(abs);
-  const inside = real === realRoot || real.startsWith(realRoot + path.sep);
+  // Case-fold on win32: NTFS is case-insensitive, so a differently-cased but identical path would
+  // otherwise be judged "outside" and refuse a legitimate citation (Kimi K3 round 3, M3).
+  const fold = (v) => (process.platform === 'win32' ? v.toLowerCase() : v);
+  const inside = fold(real) === fold(realRoot) || fold(real).startsWith(fold(realRoot + path.sep));
   if (!inside) {
     const e = new Error('resolves outside the repository (symlink)');
     e.code = 'EOUTSIDE';

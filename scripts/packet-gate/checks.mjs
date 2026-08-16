@@ -143,13 +143,18 @@ export function checkProvenance(blocks, readFile) {
         `correct the path, or drop the block: the packet claims provenance it cannot prove`));
       continue;
     }
-    const range = parseRange(b.attrs.lines);
+    const all = norm(src).split('\n');
+    // `lines=` OMITTED means the whole file. Requiring it refused an author who correctly cited
+    // `path=foo.mjs` and simply wanted to quote all of it — a pointless refusal with no syntax for
+    // "whole file" (HY3 round 3, finding 4). This is STRICTER, not weaker: the block is now
+    // byte-checked against the entire file, so any drift anywhere in it is caught.
+    // A MALFORMED lines= is still refused — a typo must never silently widen the range.
+    const range = b.attrs.lines === undefined ? { start: 1, end: all.length } : parseRange(b.attrs.lines);
     if (!range) {
-      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} with no usable lines= range`,
-        `add lines=<start>-<end> so the claim can be re-extracted and diffed`));
+      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} with a malformed lines= value (${JSON.stringify(b.attrs.lines)})`,
+        `use lines=<start>-<end>, or omit lines= entirely to cite the whole file`));
       continue;
     }
-    const all = norm(src).split('\n');
     if (range.end > all.length) {
       out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} L${range.start}-${range.end}, but the file has ${all.length} lines`,
         `re-extract at the current commit — the anchor is stale`));
@@ -198,10 +203,21 @@ function firstDivergence(got, want) {
  *  letter of R4 while carrying zero bytes of code — the one check whose entire purpose is "a
  *  description of code is not code" was cleared by attaching a description. Kimi K3, 2026-08-14. */
 const PROSE_EXT = /\.(md|mdx|markdown|txt|rst|adoc)$/i;
-const PROSE_LANG = /^(md|mdx|markdown|text|txt|rst|adoc|)$/i;
-export const isCodeBlock = (b) => b.cited && !PROSE_EXT.test(b.attrs.path ?? '') && !PROSE_LANG.test(b.lang ?? '');
+const PROSE_LANG = /^(md|mdx|markdown|text|txt|rst|adoc)$/i; // NO trailing '|': empty must not match
+/**
+ * A cited block counts as CODE unless something POSITIVELY says it is prose.
+ *
+ * The trailing `|` in the old PROSE_LANG alternation made the EMPTY string match, so a cited block
+ * with no language tag — ```` ``` path=src/x.mjs lines=1-50 ```` — was classified as prose and R4
+ * refused a packet carrying byte-verified source. That is the bare-fence trap from round 2
+ * reappearing on the classification side: absence of a label was again read as a content type.
+ * An unlabelled block is now judged by its PATH extension alone (Kimi K3 round 3, M1).
+ */
+export const isCodeBlock = (b) => b.cited
+  && !PROSE_EXT.test(b.attrs.path ?? '')
+  && !(b.lang && PROSE_LANG.test(b.lang));
 
-export function checkArtifact(remitIsAboutCode, blocks, namedPaths = []) {
+export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedContent = []) {
   if (!remitIsAboutCode) return [];
   const codeBlocks = blocks.filter(isCodeBlock);
   if (!codeBlocks.length) {
@@ -214,18 +230,32 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = []) {
   // completely different file: cite two real lines of some unrelated util, then hand-type fences
   // purporting to be the file actually under review. R3 verifies the decoy, R4 goes green, and the
   // real source lends credibility to the fabrication. (Kimi K3 round 2, finding 2.)
-  if (namedPaths.length) {
-    const cite = (p) => String(p).replaceAll('\\', '/');
-    const hit = codeBlocks.some((b) => namedPaths.some((n) => {
-      const a = cite(b.attrs.path); const w = cite(n);
-      return a === w || a.endsWith(`/${w}`) || w.endsWith(`/${a}`);
-    }));
-    if (!hit) {
-      return [finding('R4', `remit names ${namedPaths.join(', ')}, but no cited block quotes any of them (cited: ${codeBlocks.map((b) => b.attrs.path).join(', ')})`,
-        'cite the file the remit is actually about — an unrelated real block does not verify the file under review')];
-    }
-  }
-  return [];
+  //
+  // TWO ROUND-3 CORRECTIONS to that fix, both from Kimi K3:
+  //   H1 — it bound to `anchors.paths` only, while `aboutCode` is true for routes and symbols too.
+  //        "Review the handler for POST /api/sessions" names no path, so the binding was SKIPPED
+  //        and the decoy attack reopened for the most natural way to phrase a review remit.
+  //   H2 — the match was bidirectional (`w.endsWith('/' + a)`), so citing a repo-root `login.mjs`
+  //        satisfied a remit naming `src/auth/login.mjs`. In any monorepo, basename collisions make
+  //        that exploitable with a real, plausible, WRONG file and no fabrication at all.
+  //
+  // The rule now: at least ONE thing the remit names must be evidenced in the cited artifacts —
+  // a path matched strictly (exact, or cited ends with `/named`), or a route/symbol that literally
+  // appears in a cited body. Unresolvable anchors are excluded so an unbuilt symbol (already an R5
+  // warning, deliberately not a refusal) cannot also trigger a refusal here.
+  const named = [...namedPaths, ...namedContent];
+  if (!named.length) return [];
+
+  const norm = (p) => String(p).replaceAll('\\', '/');
+  const pathHit = codeBlocks.some((b) => namedPaths.some((n) => {
+    const a = norm(b.attrs.path); const w = norm(n);
+    return a === w || a.endsWith(`/${w}`); // strictly: the cited path may be MORE specific, never less
+  }));
+  const contentHit = codeBlocks.some((b) => namedContent.some((n) => String(b.body).includes(n)));
+  if (pathHit || contentHit) return [];
+
+  return [finding('R4', `remit names ${named.join(', ')}, but no cited block quotes any of them (cited: ${codeBlocks.map((b) => b.attrs.path).join(', ')})`,
+    'cite the file the remit is actually about — an unrelated real block verifies nothing about the subject under review')];
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -243,14 +273,24 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = []) {
  *
  * @param {(needle:string, kind:string)=>boolean} resolve  injected repo lookup
  */
-export function checkPremises(anchors, resolve) {
+export function checkPremises(anchors, resolve, allowMissing = []) {
   const out = [];
   const warnings = [];
+  const allowed = new Set(allowMissing.map((p) => String(p).replaceAll('\\', '/')));
 
   for (const p of anchors.paths ?? []) {
+    // A remit may legitimately name a file that does not exist yet ("add src/validate.mjs; here is
+    // the call site"). The old remedy said "state explicitly that it is to be created" — but there
+    // was NO mechanism to state it. An unactionable remedy is a refusal-fatigue generator, and the
+    // symbols branch below had already solved the same problem with a warning (Kimi K3 round 3, M2).
+    // `--allow-missing <path>` is that mechanism: explicit, per-path, and visible in the receipt.
+    if (allowed.has(String(p).replaceAll('\\', '/'))) {
+      warnings.push(`path ${p} does not exist and was explicitly allowed via --allow-missing`);
+      continue;
+    }
     if (!resolve(p, 'path')) {
       out.push(finding('R5', `remit names path ${p} — 0 hits in repo`,
-        `correct the path, or state explicitly that it is to be created`));
+        `correct the path, or pass --allow-missing ${p} if the remit is about creating it`));
     }
   }
   for (const r of anchors.routes ?? []) {

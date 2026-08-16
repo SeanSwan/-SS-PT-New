@@ -51,7 +51,15 @@ function renderReady(args, warnings, stats) {
   console.log(bar);
   console.log(`ARTIFACTS   ${cited} cited block(s), all byte-verified against the repo [ok]`);
   console.log(`PREMISES    ${stats.anchors.paths.length} path(s), ${stats.anchors.routes.length} route(s) — all resolved [ok]`);
-  console.log(`REMIT       ${stats.aboutCode ? 'about code — cited artifact present [ok]' : 'not code-specific — no code fences present'}`);
+  // Say what is actually true. This line printed "no code fences present" over a packet holding
+  // five cited blocks — the approval view describing a state the packet was not in. That is the
+  // same class as the round-2 critical (a gate reporting clean about content it had not examined),
+  // so it gets the same treatment even though here it was only cosmetic.
+  let remitLine;
+  if (stats.aboutCode) remitLine = 'about code — cited artifact present [ok]';
+  else if (cited) remitLine = `names no code handle; ${cited} cited block(s) byte-verified [ok]`;
+  else remitLine = 'not code-specific — no fences present';
+  console.log(`REMIT       ${remitLine}`);
   console.log('HYGIENE     secrets/PII scan of document + seed: clean [ok]');
   console.log(`SIZE        ${A.chars.toLocaleString()} chars <= ${args.budgetChars.toLocaleString()} budget [ok]`);
   console.log(`            = doc ${A.doc.toLocaleString()} + seed ${A.seed.toLocaleString()} + transport overhead ${A.overhead.toLocaleString()}`);

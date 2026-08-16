@@ -23,7 +23,7 @@
  *
  * @module packet-gate
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,10 +49,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TRANSPORT_OVERHEAD_CHARS = 2_200;
 
 function parseArgs(argv) {
-  const a = { budgetChars: 24_000, maxTokens: 60_000, provider: 'kimi', json: false, overheadChars: TRANSPORT_OVERHEAD_CHARS };
+  const a = { budgetChars: 24_000, maxTokens: 60_000, provider: 'kimi', json: false, overheadChars: TRANSPORT_OVERHEAD_CHARS, allowMissing: [], allowUncited: false };
   for (let i = 0; i < argv.length; i += 1) {
     const k = argv[i];
     if (k === '--json') { a.json = true; continue; }
+    if (k === '--allow-uncited') { a.allowUncited = true; continue; }
     const v = argv[i + 1];
     if (k === '--document') { a.document = v; i += 1; }
     else if (k === '--seed') { a.seed = v; i += 1; }
@@ -61,6 +62,9 @@ function parseArgs(argv) {
     else if (k === '--budget-chars') { a.budgetChars = Number(v); i += 1; }
     else if (k === '--overhead-chars') { a.overheadChars = Number(v); i += 1; }
     else if (k === '--max-tokens') { a.maxTokens = Number(v); i += 1; }
+    // The mechanism R5's remedy used to promise but never provided: a remit may legitimately name
+    // a file that does not exist yet ("add src/validate.mjs; here is the call site").
+    else if (k === '--allow-missing') { a.allowMissing.push(v); i += 1; }
   }
   // A non-numeric flag value would make every comparison false and silently disable the check.
   // maxTokens was unvalidated: `--max-tokens abc` produced NaN, and `NaN != null` is TRUE, so the
@@ -136,12 +140,35 @@ function main() {
   // gate that prints "no code fences present" over a packet full of fabricated code, which is what
   // it did before this change.
   const unverifiedFences = blocks.filter(isUnverifiedFence);
-  if (!aboutCode && unverifiedFences.length) {
-    console.error('packet-gate: the remit names no file, route, or symbol, but the packet contains code fences.');
-    console.error('  Refusing to certify: R4 and R5 are unevaluable, so "artifact not required" would be a bypass,');
-    console.error('  not a verdict. Name what the remit is about (a path/route/symbol) and re-run.');
+
+  // THE LAST HOLE THE "WARN, DON'T REFUSE" CHOICE LEFT OPEN.
+  // When the remit DID name code, uncited fences were only appended to `warnings` and the gate
+  // exited 0. So a packet could carry one real byte-verified block — satisfying R3 and R4 — plus an
+  // unlimited amount of hand-typed code the model cannot distinguish from it. The invariant says the
+  // model's context contains the real artifact provably; it said nothing about what ELSE is in
+  // there, and "what else" was the whole attack. (HY3 round 3, finding 1.)
+  //
+  // The warning was chosen to avoid false-refusing illustrative snippets. Both concerns are now
+  // served by making it an EXPLICIT decision instead of a silent one: refuse by default, with a
+  // one-flag acknowledgement that lands in the receipt. Same shape as --allow-missing, same reason
+  // as "spend approval is human" — the risky choice is available, but a human has to make it and it
+  // leaves a trace. This also gives the non-code-remit case (an illustrative ```text block in a
+  // strategy packet) an actionable remedy instead of a dead end.
+  if (unverifiedFences.length && !args.allowUncited) {
+    const where = unverifiedFences.map((b) => b.start).join(', ');
+    console.error(`packet-gate: ${unverifiedFences.length} uncited fence(s) at line(s) ${where} — NOT byte-verified.`);
+    console.error('  The model cannot tell them from the cited source, so they are indistinguishable from fabrication.');
+    console.error('  Cite them (```lang path=… lines=…), delete them, or pass --allow-uncited to accept them deliberately.');
     return 2;
   }
+
+  // The earlier `!aboutCode && unverifiedFences.length` guard lived here and has been REMOVED, not
+  // weakened. It is fully subsumed by the check above: if uncited fences exist, that check already
+  // decides (refuse, or an explicit --allow-uncited acknowledgement); if none exist, this one could
+  // never fire. Keeping both meant two predicates disagreeing about the same flag — --allow-uncited
+  // cleared one and the other still blocked, with no way for the operator to tell why. That is the
+  // duplicate-security-predicate hazard this codebase has now been bitten by three times; the fix is
+  // one predicate, not two that agree today.
 
   // The assembled prompt, not the document alone — see TRANSPORT_OVERHEAD_CHARS.
   // A NAMED-BUT-MISSING seed used to measure as zero bytes and pass. The send command resolves the
@@ -176,10 +203,19 @@ ${seedText}` : md);
     return 2;
   }
 
-  const premises = checkPremises(anchors, resolve);
+  const premises = checkPremises(anchors, resolve, args.allowMissing);
   const findings = [
     ...premises.findings,
-    ...checkArtifact(aboutCode, blocks, anchors.paths),
+    // A path the operator declared as not-yet-existing is excluded from R4's binding too. Clearing
+    // R5 alone was not enough: R4 then demanded a citation of a file that by definition cannot be
+    // cited, so the legitimate "add this file, here is the call site" packet was still impossible to
+    // satisfy — one check's fix contradicting another's requirement.
+    ...checkArtifact(
+      aboutCode,
+      blocks,
+      anchors.paths.filter((p) => !args.allowMissing.includes(p)),
+      [...anchors.routes, ...anchors.symbols].filter((n) => resolve(n, 'symbol')),
+    ),
     ...checkProvenance(blocks, (p) => readCitedFile(ROOT, p)),
     ...checkHygiene(hygiene),
     ...checkSize(assembled.chars, args.budgetChars),
@@ -217,9 +253,41 @@ ${seedText}` : md);
   });
 }
 
-// Only run the CLI when this file IS the entry point. Without the guard, any module that imports
-// a helper from here (the selftest imports the source hash) would execute the gate and exit.
-const isEntry = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+/**
+ * Only run the CLI when this file IS the entry point — but fail toward RUNNING, never toward
+ * silence.
+ *
+ * The first version compared `path.resolve(process.argv[1])` to this module's path. `path.resolve`
+ * does NOT resolve symlinks, so invoking the gate through a symlinked path — an npm-bin shim, a
+ * `~/bin` link, a CI wrapper linking the script onto PATH — made the comparison fail, `main()` never
+ * ran, and the process exited 0 having printed nothing. Every check in this file becomes decorative
+ * and the exit code says "cleared". That is the worst possible failure for a gate, produced by a
+ * completely ordinary deployment pattern. (Kimi K3 round 3, C1.)
+ *
+ * NOTE ON EVIDENCE: the symlink vector could not be reproduced on this machine — Windows refuses
+ * symlink creation without elevation (EPERM). `path.resolve` not following symlinks is documented
+ * Node behaviour, so the defect is [LIKELY] rather than [VERIFIED] here. A drive-letter-case variant
+ * WAS tested and did not reproduce (Node canonicalises argv[1]). Fixed regardless: the cost is three
+ * lines and the failure mode is total.
+ *
+ * Both sides are now realpath-resolved, compared case-insensitively on win32, and ANY error falls
+ * back to running. A spurious run prints a refusal at worst; a spurious skip is a silent no-op.
+ */
+function isEntryPoint() {
+  if (!process.argv[1]) return false;
+  const self = fileURLToPath(import.meta.url);
+  const canon = (p) => {
+    let out = p;
+    try { out = realpathSync(p); } catch { /* not yet on disk — fall back to the raw path */ }
+    return process.platform === 'win32' ? out.toLowerCase() : out;
+  };
+  try {
+    return canon(path.resolve(process.argv[1])) === canon(self);
+  } catch {
+    return true; // undecidable → RUN. Never silently skip every check.
+  }
+}
+const isEntry = isEntryPoint();
 
 // A checker that cannot run exits 2 — never 1 (a refusal) and never 0 (a pass).
 if (isEntry) try {

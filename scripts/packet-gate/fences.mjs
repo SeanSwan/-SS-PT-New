@@ -56,7 +56,11 @@ export function parseFences(markdown) {
 
     const attrs = {};
     for (const a of info.trim().matchAll(/([A-Za-z][\w-]*)=("([^"]*)"|\S+)/g)) attrs[a[1]] = a[3] ?? a[2];
-    open = { lang: info.trim().split(/\s+/)[0] || '', attrs, body: [], start: i + 1, end: -1, fence, indent: indent.length };
+    // The language is the first token ONLY when it is a bare word. With no language but attributes
+    // present — ```` ``` path=x.mjs lines=1-2 ```` — the old code took `path=x.mjs` AS the language,
+    // which is simply wrong and would mis-classify a block the moment anything reasoned about lang.
+    const first = info.trim().split(/\s+/)[0] || '';
+    open = { lang: first.includes('=') ? '' : first, attrs, body: [], start: i + 1, end: -1, fence, indent: indent.length };
   }
   // An unterminated fence is malformed markdown; keep what we have so R3 can still inspect it.
   if (open) { open.end = lines.length; blocks.push(open); }
