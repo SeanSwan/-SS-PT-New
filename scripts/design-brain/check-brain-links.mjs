@@ -13,6 +13,9 @@
  *   D2 UNINDEXED  `index.md` declares "every file in this folder is listed here", then
  *                 does not list the folder's newest files. Index-driven loaders never see them.
  *   D3 ORPHANED   `index.md` lists a file that no longer exists.
+ *   D4 IMPOSSIBLE a bare `§N` (no filename) that resolves under NO reading — it exceeds both
+ *                 canon's highest section and its own file's. Found `components.md` citing
+ *                 `§18` for a two-step-arm modal that is `§17`, in a 17-section file.
  *
  * This checker is deliberately dumb and deterministic: it parses headings and references,
  * it never calls a model, and it exits non-zero so CI and pre-commit can gate on it.
@@ -73,10 +76,8 @@ if (!sections.size) {
  * Covers cross-file refs (e.g. `motion.md §4`), not just references to canon — a satellite
  * citing another satellite's renumbered section rots exactly the same way.
  *
- * KNOWN LIMITATION, deliberately not closed: bare `§N` with no filename is NOT checked.
- * Several files use bare `§N` for their OWN sections, so resolving them against canon would
- * produce false positives — and a gate that cries wolf gets ignored, which is worse than a
- * gate with a documented blind spot. Cite the filename if you want the reference gated.
+ * Bare `§N` (no filename) is handled separately by `impossibleBareRefs` below — it cannot be
+ * attributed to a file, but it can still be proven IMPOSSIBLE. See D4.
  */
 function refsIn(line) {
   const out = [];
@@ -113,6 +114,34 @@ for (const rel of mdFiles) {
       const rec = { file: rel, line: i + 1, target: basename(target), n, raw, ctx: line.trim().slice(0, 110) };
       if (targetSections.has(n)) resolved.push({ ...rec, title: targetSections.get(n) });
       else dangling.push(rec);
+    }
+  });
+}
+
+/**
+ * D4 IMPOSSIBLE BARE REF. A bare `§N` carries no filename, so it cannot be attributed —
+ * it may mean canon or the containing file's own sections. It can still be proven
+ * impossible: if N exceeds BOTH canon's highest section AND the containing file's own
+ * highest, then no reading of it resolves. That is a dangling ref by any interpretation,
+ * with no ambiguity to trade against — so it is safe to gate on.
+ *
+ * This is deliberately the weakest possible claim. A bare `§6` in a file with 17 sections
+ * is NOT flagged even if it was meant as a canon ref to something else, because proving
+ * that needs intent. Under-reporting here is the price of never crying wolf; the fix for
+ * an ambiguous ref is to cite the filename, which promotes it to the D1 check above.
+ */
+const canonMax = Math.max(...[...sections.keys()].map(Number));
+const impossibleBare = [];
+for (const rel of mdFiles) {
+  const ownMax = Math.max(0, ...[...(sectionsByFile.get(basename(rel))?.keys() ?? [])].map(Number));
+  lines(readFileSync(join(BRAIN, rel), 'utf8')).forEach((line, i) => {
+    // Strip attributed refs first so `motion.md §4` is not re-counted as a bare `§4`.
+    const bare = line.replace(/[a-z0-9-]+\.md.{0,3}§+\s*[\d,\s]*\d/gi, '');
+    for (const m of bare.matchAll(/§\s*(\d+)/g)) {
+      const n = Number(m[1]);
+      if (n > canonMax && n > ownMax) {
+        impossibleBare.push({ file: rel, line: i + 1, n, ownMax, ctx: line.trim().slice(0, 110) });
+      }
     }
   });
 }
@@ -177,6 +206,15 @@ if (unindexed.length) {
   for (const f of unindexed) console.log(`  ${f}`);
   console.log('');
 }
+if (impossibleBare.length) {
+  bad += impossibleBare.length;
+  console.log(`D4 IMPOSSIBLE BARE REF — ${impossibleBare.length} bare §N that resolves under NO reading (exceeds canon's §${canonMax} and the file's own sections):`);
+  for (const b of impossibleBare) {
+    const own = b.ownMax > 0 ? `this file has §1–§${b.ownMax}` : 'this file has no numbered sections';
+    console.log(`  ${b.file}:${b.line}  §${b.n} — canon has §1–§${canonMax}, ${own}\n      ${b.ctx}`);
+  }
+  console.log('');
+}
 if (orphaned.length) {
   bad += orphaned.length;
   console.log(`D3 ORPHANED — ${orphaned.length} file(s) listed in index.md but not on disk:`);
@@ -187,7 +225,7 @@ if (orphaned.length) {
 console.log(
   `[brain-links] ${mdFiles.length} files · ${sections.size} canon sections · ` +
   `${resolved.length + dangling.length} refs (${resolved.length} resolve, ${dangling.length} dangle) · ` +
-  `${unindexed.length} unindexed · ${orphaned.length} orphaned`,
+  `${unindexed.length} unindexed · ${orphaned.length} orphaned · ${impossibleBare.length} impossible-bare`,
 );
 if (bad) {
   console.error(`[brain-links] FAIL — ${bad} structural defect(s). Fix the corpus, not this checker.`);

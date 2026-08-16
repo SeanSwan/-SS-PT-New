@@ -24,7 +24,7 @@ Every command, button, and automation rendered in an operator surface shows its 
 | **T3** external-visible | Wing Purple `#8B5CF6` | `var(--wing-purple, #8B5CF6)` | Glow-accent weight; approval + receipt required |
 | **T4** destructive/irreversible | Danger red `#E5484D` | `var(--danger, #E5484D)` | design.md §4's ONE off-palette semantic. No pulse/glow — gravity without alarm theatrics. Two-step confirm chrome mandatory |
 
-Notes: this table is `../design.md` §11 verbatim — it reuses EXISTING tokens and coins none (no `--tier-*` tokens exist; an adapter may never introduce tokens, per `./index.md`). Tier badges appear wherever §15 applies — including the Coach Command Center product surface — not only in Cyberforest mode. Badges are text+color, never color alone (a11y); tier text ("T3") renders in Fira Code. Small badge text on dark uses the lightened text tints noted in design.md §15.
+Notes: this table is `../design.md` §11 verbatim — it reuses EXISTING tokens and coins none (no `--tier-*` tokens exist; an adapter may never introduce tokens, per `./index.md`). Tier badges appear wherever design.md §11 applies — including the Coach Command Center product surface — not only in Cyberforest mode. Badges are text+color, never color alone (a11y); tier text ("T3") renders in Fira Code. Small badge text on dark uses the lightened text tints crystallized in design.md §6 (`--lavender-text` / `--purple-text` / `--danger-text`).
 
 ## 3. Operational-calm rules
 

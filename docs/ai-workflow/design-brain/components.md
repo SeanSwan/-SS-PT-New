@@ -55,7 +55,7 @@
 - **Purpose:** operator command entry (Coach Command Center, Hermes surfaces).
 - **Anatomy:** docked bar/panel, Graphite surface, input (§11 field spec), command list rows each carrying exactly one T0–T4 tier badge (design.md §11), keyboard-first (↑/↓/Enter, visible focus).
 - **States:** idle / typing (filtered list) / armed (T3+ selection shows confirm affordance inline) / executing (row-level spinner, dock stays interactive) / result (links to receipt row, §9).
-- **Don't:** execute T3/T4 straight from the dock — route through confirm (§17) or two-step arm (§18); ambient motion (calm zone, `motion.md` §4).
+- **Don't:** execute T3/T4 straight from the dock — route through confirm (§16) or two-step arm (§17); ambient motion (calm zone, `motion.md` §4).
 
 ## 8. Coach proposal card
 
