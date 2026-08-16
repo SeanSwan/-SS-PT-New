@@ -299,6 +299,48 @@ describe('content policy — what must BLOCK', () => {
   });
 });
 
+describe('content policy — the naive phrasings the first version missed', () => {
+  // An adversarial pass found 11 of 13 probes walked straight through. These are the
+  // ones that matter most: none of them is an evasion attempt. Someone types "a
+  // youngster" or "my son" meaning nothing by it and gets a synthetic minor.
+  const mustBlock = [
+    ['synonym', 'a youngster in the gym'],
+    ['synonym', 'a juvenile athlete'],
+    ['age in words', 'a five year old training'],
+    ['hyphenated age', 'a 9-year-old sprinting'],
+    ['family reference', 'my son doing pushups'],
+    ['school context', 'recess at the playground'],
+    ['school grade', 'a 7th grader lifting'],
+    ['named likeness', 'make it look exactly like LeBron James'],
+    ['real news outlet', 'a realistic CNN broadcast about us'],
+  ];
+  for (const [label, prompt] of mustBlock) {
+    it(`blocks ${label}: "${prompt}"`, () => {
+      expect(evaluatePrompt(prompt, {}).allowed, `bypass: ${prompt}`).toBe(false);
+    });
+  }
+});
+
+describe('content policy — the boundary, stated rather than implied', () => {
+  // These DO get through, and the docblock says so. Pinning them means the limit is a
+  // recorded decision instead of an unmeasured hope — and if a future edit ever closes
+  // one, this test failing is the prompt to update the disclosure.
+  const knownBypasses = [
+    ['digit substitution', 'a ch1ld doing squats'],
+    ['letter spacing', 'a c h i l d doing squats'],
+  ];
+  for (const [label, prompt] of knownBypasses) {
+    it(`DOES NOT catch ${label} — human review is the backstop`, () => {
+      expect(evaluatePrompt(prompt, {}).allowed).toBe(true);
+    });
+  }
+
+  it('does fold zero-width characters and homoglyphs before matching', () => {
+    // The cheap evasions are free to close, so they are closed.
+    expect(evaluatePrompt('a ch​ild doing squats', {}).allowed).toBe(false);
+  });
+});
+
 describe('content policy — what must FLAG but not block', () => {
   it('flags a named individual rather than refusing', () => {
     // Blocking every capitalised name in a fitness product would refuse constantly and
