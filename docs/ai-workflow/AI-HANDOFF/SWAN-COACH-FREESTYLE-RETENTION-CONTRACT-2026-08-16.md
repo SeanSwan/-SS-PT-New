@@ -31,8 +31,14 @@ of that.
 | Structured summary items | Device session store until resolved | **No** |
 | Applied records | Canonical tables, via normal proposals | Yes — as ordinary records |
 
-**Audio never leaves the device except as the transcription stream.** It is never written to disk
-server-side, never to object storage, never to a log.
+**⚠ THE AUDIO TRANSPORT QUESTION IS OPEN — this row is not settled.** "Except as the transcription
+stream" is doing load-bearing work in that sentence: on Chrome, the Web Speech transcription stream
+carries the audio to a cloud recogniser, so the exception licenses the exact exposure the rest of
+this contract exists to prevent. SwanStudios itself never writes audio to disk server-side, to
+object storage, or to a log — that part is true and enforced by not having any such code path. What
+remains OWNER-DECIDED (pending): (a) gate to on-device recognisers only, (b) bundle an on-device
+model, or (c) accept-and-document the cloud transport. This contract cannot be ratified with the
+question open; whichever answer Sean gives becomes this section.
 
 ## 2. Session store requirements
 
@@ -53,6 +59,17 @@ A session's audio, transcript, and summary are purged when **any** of these fire
 6. Session receipt issued
 
 Purge means the data is gone, not flagged. A purge that leaves recoverable bytes fails this contract.
+
+**Receipt semantics (implemented 2026-08-16, dry-loop round 1):** a purge receipt (`onPurge`) is
+emitted **only when words actually existed** — empty wipes (mount cycles, unmount-after-reset,
+StrictMode replay) are silent, so a receipt always means real data was destroyed. A transition of
+the account key TO null is receipted as `logout`, distinct from `account-switch`. The `stop()`
+snapshot is owner-stamped; expiry of the parent's handed-off copy is the S3 store's obligation.
+
+**Open enforcement-location question (from GLM round 1):** the "never auto-transcribe after an
+automatic stop" rule for the RECORD path is enforced by consumers, not by `useCoachCapture` itself —
+the hook cannot distinguish a user gesture from an effect. Resolve when S3 lands (candidate: a
+required `userInitiated` argument).
 
 ## 4. Exclusions
 

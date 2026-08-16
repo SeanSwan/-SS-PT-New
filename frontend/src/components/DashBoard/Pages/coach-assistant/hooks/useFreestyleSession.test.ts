@@ -157,6 +157,34 @@ describe('freestyle session — start cannot destroy', () => {
 
     expect(result.current.fragments).toHaveLength(1);
   });
+
+  /**
+   * ROUND-2 REGRESSION (Codex HIGH). start() from 'error' used to receipt-and-
+   * wipe retained words — one tap on "Start talking" after a mic failure
+   * destroyed the buffer without the two-step discard.
+   */
+  it('refuses to start over a failed session that still holds words', () => {
+    const onPurge = vi.fn();
+    const { result } = setup('trainer-a', onPurge);
+    act(() => { result.current.start(); result.current.appendFragment('heard before failure'); });
+    act(() => { result.current.fail('Mic died.'); });
+
+    act(() => { result.current.start(); });
+
+    expect(result.current.state).toBe('error');
+    expect(result.current.fragments).toHaveLength(1);
+    expect(onPurge).not.toHaveBeenCalled();
+  });
+
+  it('starts normally from an error that holds no words', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); });
+    act(() => { result.current.fail('Mic never opened.'); });
+
+    act(() => { result.current.start(); });
+
+    expect(result.current.state).toBe('listening');
+  });
 });
 
 describe('freestyle session — discard is two-step', () => {

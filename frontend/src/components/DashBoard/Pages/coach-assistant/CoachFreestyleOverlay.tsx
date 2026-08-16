@@ -113,13 +113,28 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   }, [isOpen]);
 
   /**
+   * EVERY pause path flushes first — the words spoken as the screen hides or
+   * the thumb hits Pause are words. handlePause flushed but the lifecycle
+   * paths did not, losing the pending interim on exactly the transitions the
+   * lifecycle policy exists to protect.
+   */
+  const speechFlushRef = useRef(speech.flush);
+  speechFlushRef.current = speech.flush;
+  const pauseRef = useRef(pause);
+  pauseRef.current = pause;
+  const pauseWithFlush = useCallback(() => {
+    speechFlushRef.current();
+    pauseRef.current();
+  }, []);
+
+  /**
    * S4: `isOpen` only toggles visibility — the component stays mounted. Without
    * this, hiding the overlay left the session listening and the recogniser
    * running behind invisible UI.
    */
   useEffect(() => {
-    if (!isOpen && (state === 'listening')) pause();
-  }, [isOpen, state, pause]);
+    if (!isOpen && (state === 'listening')) pauseWithFlush();
+  }, [isOpen, state, pauseWithFlush]);
 
   /**
    * The engine follows the session AND the surface. Anything that ends capture —
@@ -133,9 +148,14 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   useEffect(() => {
     // Depend on the stable callbacks, not the hook object — that object is new on
     // every render, so this effect would re-run continuously during a session.
-    if (isOpen && state === 'listening') speechStart();
+    // The !speech.error gate matters: on the render where a fatal error first
+    // appears the session is still 'listening' (fail() runs in a later effect),
+    // and without the gate this effect immediately re-started the engine the
+    // denial had just killed (Codex, round 2). Recovery from error goes through
+    // handleStart, which clears the error inside a real user gesture.
+    if (isOpen && state === 'listening' && !speech.error) speechStart();
     else speechStop();
-  }, [isOpen, state, speechStart, speechStop]);
+  }, [isOpen, state, speech.error, speechStart, speechStop]);
 
   /**
    * Lifecycle policy, same doctrine as useCoachCapture: tab hide, app
@@ -144,20 +164,18 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
    * restart loop alive in a backgrounded tab. Pause (not stop): the user comes
    * back and taps Resume; resuming is a gesture, which iOS requires anyway.
    */
-  const pauseRef = useRef(pause);
-  pauseRef.current = pause;
   useEffect(() => {
     const onHidden = () => {
-      if (document.visibilityState === 'hidden') pauseRef.current();
+      if (document.visibilityState === 'hidden') pauseWithFlush();
     };
-    const onPageHide = () => pauseRef.current();
+    const onPageHide = () => pauseWithFlush();
     document.addEventListener('visibilitychange', onHidden);
     window.addEventListener('pagehide', onPageHide);
     return () => {
       document.removeEventListener('visibilitychange', onHidden);
       window.removeEventListener('pagehide', onPageHide);
     };
-  }, []);
+  }, [pauseWithFlush]);
 
   /**
    * A speech failure becomes a SESSION failure. Leaving the session 'listening'
@@ -181,10 +199,19 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   }, [speech, stop, onStopped]);
 
   /** Flush before pausing — the words spoken as the thumb hits Pause are words. */
-  const handlePause = useCallback(() => {
-    speech.flush();
-    pause();
-  }, [speech, pause]);
+  const handlePause = pauseWithFlush;
+
+  /**
+   * Explicit start: session first, then the ENGINE inside the same click.
+   * Starting the engine in the gesture (a) satisfies iOS Safari's activation
+   * requirement on the retry path, and (b) is the only route back from a
+   * speech error — speech.start() re-runs the engine, whose success clears
+   * the error that gates the follow effect above.
+   */
+  const handleStart = useCallback(() => {
+    start();
+    speechStart();
+  }, [start, speechStart]);
 
   const handleDiscard = useCallback(() => {
     discard();
@@ -233,12 +260,26 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     return () => { openerRef.current?.focus?.(); };
   }, [isOpen]);
 
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
   useEffect(() => {
     if (!isOpen || !discardPending) return;
     // The interrupt owns focus: land on "Keep it", the safe answer.
     overlayRef.current
       ?.querySelector<HTMLElement>('[role="alertdialog"] button')
       ?.focus();
+    return () => {
+      /**
+       * DISARM also moves focus. The confirm unmounts with the focused button
+       * inside it — via "Keep it", Escape, or the 10s auto-disarm — and focus
+       * fell to <body> inside a still-open modal (GLM, round 2). Restore to
+       * the first main control. Skip when the whole overlay is closing: the
+       * open-effect's cleanup restores the opener, and fighting it would steal
+       * focus back into a hidden dialog.
+       */
+      if (!isOpenRef.current) return;
+      overlayRef.current?.querySelector<HTMLElement>('button')?.focus();
+    };
   }, [isOpen, discardPending]);
 
   useEffect(() => {
@@ -390,9 +431,16 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
         </ControlRow>
       )}
 
-      {!isListening && !isPaused && !isStopped && state !== 'discarded' && (
+      {/*
+        No Start in error-with-words: session.start() refuses there (one tap
+        must not destroy captured words), so offering the button would be a
+        dead control at best and a data-loss affordance at worst. The user
+        chooses Done or a confirmed Discard first.
+      */}
+      {!isListening && !isPaused && !isStopped && state !== 'discarded' &&
+        !(state === 'error' && fragments.length > 0) && (
         <ControlRow>
-          <ControlButton type="button" $variant="primary" onClick={start} aria-label="Start talking">
+          <ControlButton type="button" $variant="primary" onClick={handleStart} aria-label="Start talking">
             <Mic size={18} aria-hidden="true" /> Start talking
           </ControlButton>
         </ControlRow>

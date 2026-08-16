@@ -261,6 +261,25 @@ describe('CoachFreestyleOverlay — it stops listening when it should (GLM S1/S4
     expect(abortCalls).toBeGreaterThan(abortsBefore);
     expect(screen.getByText('Paused. Nothing is being heard.')).toBeInTheDocument();
   });
+
+  /**
+   * ROUND-2 REGRESSION (self-review). handlePause flushed the pending interim
+   * but the lifecycle paths did not — the words spoken as the screen locked
+   * were lost on exactly the transition the lifecycle policy protects.
+   */
+  it('keeps the in-flight interim phrase when the tab hides mid-sentence', () => {
+    renderOverlay();
+    say('finished the last set at', false);        // interim when the screen locks
+
+    act(() => {
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+
+    // The interim was promoted to a real fragment before the pause landed.
+    expect(screen.getByText('Fragments').previousSibling).toHaveTextContent('1');
+  });
 });
 
 describe('CoachFreestyleOverlay — failure is told the truth (known R5)', () => {
@@ -277,6 +296,91 @@ describe('CoachFreestyleOverlay — failure is told the truth (known R5)', () =>
     expect(screen.getByText(/microphone access/i)).toBeInTheDocument();
     expect(screen.queryByText(/Still listening/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Talk as long as you need/)).not.toBeInTheDocument();
+  });
+
+  /**
+   * ROUND-2 REGRESSION (Codex MED). On the render where the fatal error first
+   * appeared, the session was still 'listening' and the engine-follow effect
+   * re-started the engine the denial had just killed.
+   */
+  it('does not restart the engine after a fatal error', () => {
+    renderOverlay();
+    const startsBefore = startCalls;
+
+    act(() => { engine?.onerror?.({ error: 'not-allowed' }); });
+
+    expect(startCalls).toBe(startsBefore);
+  });
+
+  /**
+   * ROUND-2 REGRESSION (Codex MED). Every flush path was gated on the
+   * want-listening flag, which the denial handler had just cleared — a denial
+   * arriving mid-sentence destroyed the pending words with the engine.
+   */
+  it('keeps the mid-sentence words when permission is revoked', () => {
+    renderOverlay();
+    say('client reports shoulder pain', false);   // interim when the denial lands
+
+    act(() => { engine?.onerror?.({ error: 'not-allowed' }); });
+
+    expect(screen.getByText('Fragments').previousSibling).toHaveTextContent('1');
+  });
+
+  /**
+   * ROUND-2 REGRESSION (Codex HIGH). Error-with-words must not offer "Start
+   * talking" — session.start() refuses there, and the affordance itself would
+   * invite destroying captured words. Done and Discard remain.
+   */
+  it('offers Done, not Start talking, when a failed session holds words', () => {
+    renderOverlay();
+    say('captured before the failure');
+
+    act(() => { engine?.onerror?.({ error: 'not-allowed' }); });
+
+    expect(screen.queryByLabelText('Start talking')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Finish and review')).toBeInTheDocument();
+  });
+
+  /**
+   * ROUND-2 REGRESSION (GLM MED). audio-capture — unplugged mic, dead headset —
+   * fell through the error handler into the restart loop: infinite paced
+   * retries, fail() never fired, "Still listening" narrated over a microphone
+   * that would never return.
+   */
+  it('a disconnected microphone fails the session instead of retrying forever', () => {
+    renderOverlay();
+    say('words heard before', false);              // mid-sentence at disconnect
+    const startsBefore = startCalls;
+
+    act(() => { engine?.onerror?.({ error: 'audio-capture' }); });
+    act(() => { engine?.onend?.(); });             // the engine dies after the error
+
+    expect(startCalls).toBe(startsBefore);          // no restart loop
+    expect(screen.getByText(/microphone was disconnected/i)).toBeInTheDocument();
+    // The mid-sentence words survived into the failed session's buffer.
+    expect(screen.getByText('Fragments').previousSibling).toHaveTextContent('1');
+  });
+
+  /**
+   * ROUND-2 REGRESSION (GLM LOW). The 10s auto-disarm unmounted the confirm
+   * with focus inside it, stranding keyboard focus on <body> in an open modal.
+   */
+  it('returns focus to the controls when the discard confirm auto-disarms', () => {
+    vi.useFakeTimers();
+    try {
+      renderOverlay();
+      say('real work');
+      act(() => { screen.getByLabelText('Discard session').click(); });
+      expect(screen.getByLabelText(/Keep it/)).toHaveFocus();
+
+      act(() => { vi.advanceTimersByTime(10_000); });
+
+      const active = document.activeElement;
+      expect(active?.tagName).toBe('BUTTON');
+      expect(screen.getByLabelText('Freestyle dictation').contains(active)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   /**

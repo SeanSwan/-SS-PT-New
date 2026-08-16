@@ -227,17 +227,18 @@ export function useFreestyleSession(
 
   const start = useCallback(() => {
     /**
-     * Start is NOT a wipe. From 'listening'/'paused' it must not restart a live
-     * session; from 'stopped' it must not silently destroy a buffer the two-step
-     * discard exists to protect. Only 'idle' and 'error' — states every path
-     * reaches through a receipted purge or a failure that kept the buffer —
-     * may begin a session. (From 'error' with words retained, the retained
-     * words are receipted before the new session begins.)
+     * Start is NOT a wipe — from ANY state. 'listening'/'paused': no restarting
+     * a live session. 'stopped': no destroying a held buffer. 'error' WITH
+     * retained words: also refused — an earlier version receipted-and-wiped
+     * here, which let one tap on "Start talking" after a mic failure destroy
+     * captured words without the two-step discard this hook itself enforces
+     * (Codex, round 2). From error-with-words the caller must go through Done
+     * or a confirmed discard first.
      */
     const s = stateRef.current;
     if (s !== 'idle' && s !== 'error') return;
-    if (fragmentsRef.current.length > 0) clearBuffer('discard');
-    else wipeRefs();
+    if (s === 'error' && fragmentsRef.current.length > 0) return;
+    wipeRefs();
     setError(null);
     setDiscardPending(false);
     discardPendingRef.current = false;

@@ -89,6 +89,9 @@ export const FREESTYLE_SPEECH_DENIED_COPY =
 export const FREESTYLE_SPEECH_START_FAILED_COPY =
   'Listening could not start. Tap Start talking to try again.';
 
+export const FREESTYLE_SPEECH_MIC_LOST_COPY =
+  'The microphone was disconnected. Check your mic or headset, then tap Start talking.';
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types
 // ─────────────────────────────────────────────────────────────
@@ -215,14 +218,32 @@ export function useFreestyleSpeech(
 
     rec.onerror = (event) => {
       const kind = event?.error ?? '';
-      if (kind === 'not-allowed' || kind === 'service-not-allowed') {
-        wantListeningRef.current = false;      // do not fight a denied permission
-        setError(FREESTYLE_SPEECH_DENIED_COPY);
+      /**
+       * FATAL errors — no restart can fix them, so retrying is a lie machine:
+       * - not-allowed / service-not-allowed: permission denied.
+       * - audio-capture: NO INPUT DEVICE (unplugged mic, dead headset). This
+       *   used to fall through to the restart loop — each restart succeeded at
+       *   start() (permission intact) and died instantly, forever, while the
+       *   UI said "Still listening" over a mic that would never return (GLM,
+       *   round 2).
+       * 'network' deliberately stays retryable — flaky gym wifi recovers;
+       * 'no-speech'/'aborted' are routine engine cycling, not errors.
+       *
+       * Flush BEFORE clearing the want-flag: every other flush path is gated
+       * on it, so a fatal error arriving mid-sentence used to destroy the
+       * pending words along with the engine (Codex, round 2). The session is
+       * still 'listening' at this instant — the fragment lands, and survives
+       * into the failed session's buffer.
+       */
+      const isDenied = kind === 'not-allowed' || kind === 'service-not-allowed';
+      if (isDenied || kind === 'audio-capture') {
+        const pending = interimRef.current.trim();
+        if (pending) onPhraseRef.current(pending);
+        setInterimBoth('');
+        wantListeningRef.current = false;
+        setError(isDenied ? FREESTYLE_SPEECH_DENIED_COPY : FREESTYLE_SPEECH_MIC_LOST_COPY);
         setListening(false);
-        return;
       }
-      // 'no-speech' and 'aborted' are routine during a long dictation: the user
-      // paused, or the engine cycled. Neither is an error worth showing.
     };
 
     rec.onend = () => {
