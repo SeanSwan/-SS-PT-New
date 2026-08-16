@@ -171,13 +171,20 @@ export function renderReport(state) {
     // The uninspectable detail now prints unconditionally below.
   } else {
     out.push(`   ${risky.length} ref(s) touch sensitive paths:`);
-    for (const it of risky.slice(0, 6)) {
+    // `--full` must actually expand THIS list too. Round 5 added the
+    // "[--full to list]" marker here while `full` was consumed only by the
+    // landed list, re-creating the exact silent-no-op defect round 4 had just
+    // fixed -- a marker advertising an action the flag does not perform.
+    const riskyShown = full ? risky.length : 6;
+    for (const it of risky.slice(0, riskyShown)) {
       const files = (it.rec.files ?? []).filter((f) => pathSensitivity([f]) > 0);
       out.push(`   ⚠ ${it.item.ref}: ${files.slice(0, 3).join(', ')}${files.length > 3 ? ` +${files.length - 3}` : ''}`);
     }
     // Unmarked truncation is treated as a defect everywhere else in this file;
     // this list was the one place capping silently at 6 with no total.
-    if (risky.length > 6) out.push(`   + ${risky.length - 6} more sensitive ref(s)  [--full to list]`);
+    if (risky.length > riskyShown) {
+      out.push(`   + ${risky.length - riskyShown} more sensitive ref(s)  [--full to list]`);
+    }
   }
 
   // The uninspectable caveat must print on EVERY path, not only when risky is

@@ -98,6 +98,15 @@ export async function classify(shortRef, base, { untrustedAhead = null } = {}) {
   if (!mb) {
     rec.error = 'no merge-base with base ref';
     signals.push('merge-base:missing');
+    // filesUnknown is REQUIRED here, not merely tidy. This early return never
+    // obtains a file list, so pathSensitivity([]) === 0 and the record cannot
+    // reach `risky`. If the verdict is then ACTIVE_LANE (lane lock, live
+    // worktree, or a commit inside 48h) it also fails every `unresolved`
+    // predicate -- so a ref that was NEVER INSPECTED would be silently absent
+    // from AUDIT DELTA, and the section could assert "NO unpushed changes
+    // detected" over it. Triggers on unrelated histories (vendored/imported
+    // trees) and on a merge-base call that times out.
+    rec.filesUnknown = true;
     return rec;   // unknown, never guessed
   }
   rec.mergeBase = mb;
