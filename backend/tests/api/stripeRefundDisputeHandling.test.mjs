@@ -199,6 +199,114 @@ describe('refund and chargeback webhooks are handled, never silent', () => {
  * When nothing matches at all, ALERT — a captured ACH payment with no order is
  * exactly the condition a human must see.
  */
+/**
+ * Round 5 — the round-4 fixes shipped with source-level assertions only. A fix
+ * without a behavioural test is a claim, not a guarantee; these are the executions.
+ */
+describe('partial refunds are not full refunds', () => {
+  const orderUpdate = vi.fn();
+
+  const chargeWith = ({ total, cumulative, latest }) => ({
+    id: 'ch_p1',
+    payment_intent: 'pi_p1',
+    amount: total,
+    amount_refunded: cumulative,
+    refunds: { data: [{ amount: latest }] },
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    orderUpdate.mockResolvedValue(true);
+    mocks.mockStripeClient.webhooks.constructEvent.mockImplementation(() => mocks.currentEvent);
+    mocks.mockOrderFindOne.mockResolvedValue({
+      id: 91, userId: 3, orderNumber: 'SS-P1', cartId: 42,
+      totalAmount: 8400, status: 'completed', update: orderUpdate,
+    });
+  });
+
+  it('does NOT mark the order refunded on a partial refund', async () => {
+    // $10 refunded on an $8,400 charge. The old code used the cumulative figure and
+    // flipped status on the first cent.
+    mocks.currentEvent = {
+      type: 'charge.refunded',
+      data: { object: chargeWith({ total: 840000, cumulative: 1000, latest: 1000 }) },
+    };
+
+    await post();
+
+    const statusWrites = orderUpdate.mock.calls
+      .filter(([v]) => v && v.status === 'refunded');
+    expect(statusWrites, 'a partial refund must not mark the order refunded').toHaveLength(0);
+  });
+
+  it('reports the LATEST refund delta, not the cumulative total', async () => {
+    // Second partial: $10 more on top of an earlier $10.
+    mocks.currentEvent = {
+      type: 'charge.refunded',
+      data: { object: chargeWith({ total: 840000, cumulative: 2000, latest: 1000 }) },
+    };
+
+    await post();
+
+    const alert = adminNotifications()[0];
+    expect(alert.data.amount).toBe(10);            // this event
+    expect(alert.data.cumulativeRefunded).toBe(20); // running total, separately
+    expect(alert.data.fullyRefunded).toBe(false);
+    expect(alert.title).toMatch(/PARTIAL/);
+  });
+
+  it('DOES mark the order refunded once the cumulative total reaches the charge', async () => {
+    mocks.currentEvent = {
+      type: 'charge.refunded',
+      data: { object: chargeWith({ total: 840000, cumulative: 840000, latest: 838000 }) },
+    };
+
+    await post();
+
+    const statusWrites = orderUpdate.mock.calls
+      .filter(([v]) => v && v.status === 'refunded');
+    expect(statusWrites).toHaveLength(1);
+    expect(adminNotifications()[0].data.fullyRefunded).toBe(true);
+  });
+});
+
+describe('the payment intent is persisted so refunds can find the order', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.mockStripeClient.webhooks.constructEvent.mockImplementation(() => mocks.currentEvent);
+    mocks.mockCartFindByPk.mockResolvedValue({ id: 42, userId: 3 });
+    mocks.mockGrantSessionsForCart.mockResolvedValue({
+      granted: true, sessionsAdded: 10, alreadyProcessed: false,
+    });
+    mocks.mockOrderUpdate.mockResolvedValue([1]);
+    mocks.mockOrderFindOne.mockResolvedValue(null);
+  });
+
+  it('writes stripePaymentIntentId on checkout.session.completed, only when NULL', async () => {
+    mocks.currentEvent = {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_done_1',
+          payment_status: 'paid',
+          payment_intent: 'pi_done_1',
+          amount_total: 840000,
+          metadata: { cartId: '42', userId: '3' },
+        },
+      },
+    };
+
+    await post();
+
+    const piWrite = mocks.mockOrderUpdate.mock.calls
+      .find(([values]) => values && values.stripePaymentIntentId === 'pi_done_1');
+
+    expect(piWrite, 'the PI must be persisted or card refunds can never match').toBeDefined();
+    // Conditional on NULL so a Stripe redelivery is a no-op and never overwrites.
+    expect(piWrite[1].where).toMatchObject({ cartId: 42, stripePaymentIntentId: null });
+  });
+});
+
 describe('ACH success must never silently fail to find its order', () => {
   const achEvent = (over = {}) => ({
     type: 'payment_intent.succeeded',
