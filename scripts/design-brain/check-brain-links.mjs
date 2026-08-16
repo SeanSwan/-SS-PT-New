@@ -2,8 +2,8 @@
 /**
  * check-brain-links.mjs — structural integrity gate for the Design Brain corpus.
  *
- * The Design Brain is markdown that agents load at task time. Three failure modes rot it
- * silently, and all three have shipped to `main` at least once:
+ * The Design Brain is markdown that agents load at task time. Five failure modes rot it
+ * silently, and every one has shipped to `main` at least once:
  *
  *   D1 DANGLING   a file cites `<other>.md §N` for an N that does not exist — canon refs
  *                 (`design.md §N`) and satellite-to-satellite refs (`motion.md §4`) alike.
@@ -16,6 +16,9 @@
  *   D4 IMPOSSIBLE a bare `§N` (no filename) that resolves under NO reading — it exceeds both
  *                 canon's highest section and its own file's. Found `components.md` citing
  *                 `§18` for a two-step-arm modal that is `§17`, in a 17-section file.
+ *   D5 PHANTOM    a `<name>.md §N` citation whose FILE exists nowhere in the repo — a typo,
+ *                 or a deletion that left its citations behind. Only the explicit §-bearing
+ *                 form is gated; see the D5 SCOPE note below for why bare mentions are not.
  *
  * This checker is deliberately dumb and deterministic: it parses headings and references,
  * it never calls a model, and it exits non-zero so CI and pre-commit can gate on it.
@@ -339,6 +342,22 @@ if (showTitles) {
     console.log(`      ${r.ctx}`);
   }
   console.log('');
+}
+
+/**
+ * The gate gates its own docstring. Three separate times in this branch a defect class was
+ * added and the header, the hook message, or the README kept describing the old set — the
+ * exact "doctrine describes what the code no longer does" failure the whole corpus repave
+ * exists to kill. A prose law without a mechanism is decoration, including this file's own.
+ */
+const emittedClasses = [...readFileSync(fileURLToPath(import.meta.url), 'utf8')
+  .matchAll(/console\.log\(`(D\d) /g)].map((m) => m[1]);
+const documentedClasses = [...readFileSync(fileURLToPath(import.meta.url), 'utf8')
+  .matchAll(/^ \*   (D\d) /gm)].map((m) => m[1]);
+const undocumented = [...new Set(emittedClasses)].filter((c) => !documentedClasses.includes(c));
+if (undocumented.length) {
+  console.error(`[brain-links] SELF-CHECK FAILED — this file emits ${undocumented.join(', ')} but its own header does not document ${undocumented.length > 1 ? 'them' : 'it'}. Document the class before shipping it.`);
+  process.exit(2);
 }
 
 let bad = 0;
