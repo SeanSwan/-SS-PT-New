@@ -58,10 +58,13 @@ const lines = (text) => text.split(/\r?\n/);
 function sectionsOf(text) {
   const map = new Map();
   for (const line of lines(text)) {
-    // `## §9 Title` · `## 4. Title` · `## 15.1 Title`. The decimal form is real
-    // (cinematic-pages.md §15.1) and omitting it made the gate report a live section as dangling.
-    const m = /^##\s+(?:§\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\.?)\s+(.*)$/.exec(line);
-    if (m) map.set((m[1] ?? m[2]).replace(/\.$/, ''), m[3].trim());
+    // Four dialects in use: `## §9 Title` · `## 4. Title` · `## 15.1 Title` · `### A2. Title`.
+    // The decimal form is real (cinematic-pages.md §15.1) and the LETTERED form is real
+    // (adapters/reviewers.md A1-A4). Omitting either left a live section looking dangling, or —
+    // worse for letters — left a file with an EMPTY section map, so every ref into it was
+    // permanently unverifiable while reporting nothing.
+    const m = /^#{2,3}\s+(?:§\s*)?([A-Z]?\d+(?:\.\d+)?)\.?\s+(.*)$/.exec(line);
+    if (m) map.set(m[1].toUpperCase(), m[2].trim());
   }
   return map;
 }
@@ -82,6 +85,23 @@ if (!sections.size) {
  * attributed to a file, but it can still be proven IMPOSSIBLE. See D4.
  */
 const MAX_RANGE_SPAN = 50;
+const MAX_REFS_PER_EXPR = 60; // bounds EVERY expansion path, not just dash-ranges
+
+/**
+ * D5 SCOPE — why bare filename mentions are NOT gated, despite a reviewer asking for it.
+ *
+ * The proposal was: any `<name>.md` mention that resolves to nothing is file rot. Implemented
+ * as stated it produced 13 findings, and ALL THIRTEEN were false positives — `adapters/index.md`
+ * carries a table of adapters "originally planned / merged into", and `qa-gates.md` names the
+ * three files it deliberately replaced. **This corpus legitimately names files that never
+ * existed, as history.** A bare mention is not a citation, and telling them apart needs intent.
+ *
+ * So D5 gates only the EXPLICIT form — `<name>.md §N`, where the author demonstrably meant to
+ * cite — and a phantom there is a typo or a deletion, not a planning record. Same discipline as
+ * the bare-`§N` rule: under-report rather than cry wolf, because a gate that fires on honest
+ * prose gets switched off, and then it protects nothing at all.
+ */
+
 function refsIn(line) {
   const out = [];
   // Continuation accepts `,` / `and` / an en-, em- or hyphen RANGE. Ranges are EXPANDED:
@@ -90,28 +110,40 @@ function refsIn(line) {
   // the "Extends" header line of the most-loaded satellite, inside the branch that killed this class.
   // Path component captured too (`adapters/reviewers.md`, `./index.md`) — four files in this
   // corpus are named index.md, so a basename-only match resolves against the wrong one.
-  const re = /((?:\.{0,2}\/)?(?:[a-z0-9-]+\/)*[a-z0-9-]+\.md)[`\s]*\s*§{1,2}\s*(\d+(?:\.\d+)?(?:\s*(?:,|and|[–—-])\s*§?\s*\d+(?:\.\d+)?)*)/gi;
+  // Separator between filename and `§` is `.{0,3}` — prose uses backticks, commas, colons,
+  // dashes and parens, and restricting it to whitespace+backtick is what hid 8 refs behind a
+  // backtick in the first place. Continuations cover `,` `and` `to` `&` `/` and en/em/hyphen
+  // ranges: `§8/§18` was dropping its tail, which is the half-dangling class in a new costume.
+  const re = /((?:\.{0,2}\/)?(?:[a-z0-9._-]+\/)*[a-z0-9._-]+\.md).{0,3}?§{1,2}\s*([A-Z]?\d+(?:\.\d+)?(?:\s*(?:,|and|to|&|\/|[–—-])\s*§{0,2}\s*[A-Z]?\d+(?:\.\d+)?)*)/gi;
   let m;
   while ((m = re.exec(line)) !== null) {
     const body = m[2];
-    // Decimal refs (`§1.7`) are NOT coerced to §1 — a subsection that does not exist is a
-    // dangling ref, and silently truncating it is how anti-patterns.md:70 survived two passes.
-    for (const part of body.split(/\s*(?:,|and)\s*/)) {
-      const range = /^§?\s*(\d+(?:\.\d+)?)\s*[–—-]\s*§?\s*(\d+(?:\.\d+)?)$/.exec(part.trim());
-      if (range && Number.isInteger(+range[1]) && Number.isInteger(+range[2])) {
-        const [lo, hi] = [Math.ceil(+range[1]), Math.floor(+range[2])];
-        // Bound the expansion. No real doc has a 50-section span, so a wider range is a typo
-        // or hostile input — and expanding it verbatim turns one bad character into tens of
-        // thousands of findings that bury every real one. Report the range itself instead.
-        if (hi < lo || hi - lo > MAX_RANGE_SPAN) {
-          out.push({ file: m[1], n: `${lo}-${hi}`, raw: m[0], malformed: true });
+    const before = out.length;
+    for (const part of body.split(/\s*(?:,|and|&|\/|to)\s*/)) {
+      const t = part.trim();
+      if (!t) continue;
+      const range = /^§{0,2}\s*([A-Z]?\d+(?:\.\d+)?)\s*[–—-]\s*§{0,2}\s*([A-Z]?\d+(?:\.\d+)?)$/i.exec(t);
+      if (range) {
+        const [lo, hi] = [range[1], range[2]];
+        // Only a purely-integer range is expandable. Decimal or lettered operands cannot be
+        // enumerated, and silently checking just the low end reintroduces the exact
+        // half-dangling bug this expansion exists to kill — so they are malformed, not partial.
+        if (/^\d+$/.test(lo) && /^\d+$/.test(hi) && +hi >= +lo && +hi - +lo <= MAX_RANGE_SPAN) {
+          for (let i = +lo; i <= +hi; i++) out.push({ file: m[1], n: String(i), raw: m[0] });
         } else {
-          for (let i = lo; i <= hi; i++) out.push({ file: m[1], n: String(i), raw: m[0] });
+          out.push({ file: m[1], n: `${lo}-${hi}`, raw: m[0], malformed: true });
         }
       } else {
-        const one = /§?\s*(\d+(?:\.\d+)?)/.exec(part);
-        if (one) out.push({ file: m[1], n: one[1], raw: m[0] });
+        const one = /§{0,2}\s*([A-Z]?\d+(?:\.\d+)?)/i.exec(t);
+        if (one) out.push({ file: m[1], n: one[1].toUpperCase(), raw: m[0] });
       }
+    }
+    // Bound EVERY expansion path, not just dash-ranges. A comma chain (`§99, 99, 99, …`) was
+    // an unbounded flood one separator over from the DoS already fixed — same failure, and the
+    // bound belongs on refs-emitted-per-expression rather than on any single syntactic form.
+    if (out.length - before > MAX_REFS_PER_EXPR) {
+      out.length = before;
+      out.push({ file: m[1], n: `${body.slice(0, 24)}…`, raw: m[0], malformed: true });
     }
   }
   return out;
@@ -153,19 +185,46 @@ function resolveTarget(cited, fromRel) {
   return null;
 }
 
+/**
+ * Every markdown file reachable in the repo, by basename and by repo-relative path. Lets the
+ * gate tell a legitimate EXTERNAL citation apart from a TYPO or a deleted file — the
+ * distinction I1 asked for and a NOTE could never make, because a note is read once.
+ */
+const REPO_ROOT = join(BRAIN, '..', '..', '..');
+const repoMd = { paths: new Set(), names: new Set() };
+for (const sub of ['docs', '.claude', '.agents', 'scripts', 'AI-Village-Documentation']) {
+  (function walkRepo(dir, rel) {
+    if (!existsSync(dir)) return;
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === 'node_modules' || e.name === '.git') continue;
+      const p = join(dir, e.name);
+      const r = rel ? `${rel}/${e.name}` : e.name;
+      if (e.isDirectory()) walkRepo(p, r);
+      else if (e.name.endsWith('.md')) { repoMd.paths.add(r.toLowerCase()); repoMd.names.add(e.name.toLowerCase()); }
+    }
+  })(join(REPO_ROOT, sub), sub);
+}
+for (const e of readdirSync(REPO_ROOT, { withFileTypes: true })) {
+  if (e.isFile() && e.name.endsWith('.md')) { repoMd.paths.add(e.name.toLowerCase()); repoMd.names.add(e.name.toLowerCase()); }
+}
+const existsInRepo = (cited) => {
+  const c = cited.replace(/^\.{0,2}\//, '').toLowerCase();
+  return repoMd.paths.has(c) || repoMd.names.has(basename(c));
+};
+
 const dangling = [];
 const resolved = [];
-const skippedTargets = new Map(); // target -> count. Silence must be visible, not assumed benign.
+const skippedTargets = new Map(); // resolvable-elsewhere targets: informational only
+const phantomFiles = new Map();   // D5: cited files that exist NOWHERE — typo or deletion
 for (const rel of mdFiles) {
   const fileLines = lines(readFileSync(join(BRAIN, rel), 'utf8'));
   fileLines.forEach((line, i) => {
     for (const { file: target, n, raw, malformed } of refsIn(line)) {
       const hit = resolveTarget(target, rel);
-      // A ref to a file outside this corpus is not ours to validate — but it is indistinguishable
-      // from a TYPO (`motions.md §4`). Counted and reported so the gap is visible rather than silent.
       if (!hit || hit.ambiguous) {
-        const label = hit?.ambiguous ? `${target} (AMBIGUOUS: ${hit.ambiguous.join(' | ')})` : target;
-        skippedTargets.set(label, (skippedTargets.get(label) ?? 0) + 1);
+        const label = hit?.ambiguous ? `${target} (AMBIGUOUS in corpus: ${hit.ambiguous.join(' | ')})` : target;
+        if (!hit && !existsInRepo(target)) phantomFiles.set(`${rel}:${i + 1}  ${target}`, true);
+        else skippedTargets.set(label, (skippedTargets.get(label) ?? 0) + 1);
         continue;
       }
       const rec = { file: rel, line: i + 1, target: hit.key, n, raw, ctx: line.trim().slice(0, 110) };
@@ -175,6 +234,7 @@ for (const rel of mdFiles) {
       else if (hit.sections.has(n)) resolved.push({ ...rec, title: hit.sections.get(n) });
       else dangling.push(rec);
     }
+    // Bare filename mentions (no `§N`) are deliberately NOT gated — see the D5 note above.
   });
 }
 
@@ -190,13 +250,22 @@ for (const rel of mdFiles) {
  * that needs intent. Under-reporting here is the price of never crying wolf; the fix for
  * an ambiguous ref is to cite the filename, which promotes it to the D1 check above.
  */
-const canonMax = Math.max(...[...sections.keys()].map(Number));
+const numeric = (keys) => [...keys].filter((k) => /^\d+$/.test(k)).map(Number);
+const canonMax = Math.max(...numeric(sections.keys()));
 const impossibleBare = [];
 for (const rel of mdFiles) {
-  const ownMax = Math.max(0, ...[...(sectionsByFile.get(basename(rel))?.keys() ?? [])].map(Number));
+  // Keyed by FULL PATH. `basename(rel)` was a stale key left over from the earlier map: every
+  // subdirectory file resolved to undefined (ownMax 0, so valid self-refs false-flagged), and
+  // `obsidian/index.md` silently read the ROOT index's map — the wrong file's data. The
+  // "all four classes re-proven" run could not catch it: it used a root file, where
+  // basename(rel) === rel.
+  const ownMax = Math.max(0, ...numeric(sectionsByFile.get(rel.toLowerCase())?.keys() ?? []));
   lines(readFileSync(join(BRAIN, rel), 'utf8')).forEach((line, i) => {
-    // Strip attributed refs first so `motion.md §4` is not re-counted as a bare `§4`.
-    const bare = line.replace(/[a-z0-9-]+\.md.{0,3}§+\s*[\d,\s]*\d/gi, '');
+    // Strip attributed refs using refsIn's OWN matches, not a second regex. Two regexes
+    // describing "a reference" drift apart — and these already had, so D4 flagged tails that
+    // D1 had legitimately consumed.
+    let bare = line;
+    for (const r of refsIn(line)) bare = bare.split(r.raw).join(' ');
     for (const m of bare.matchAll(/§\s*(\d+)/g)) {
       const n = Number(m[1]);
       if (n > canonMax && n > ownMax) {
@@ -217,7 +286,11 @@ const indexLines = lines(indexText);
 const listedExact = new Set(
   [...indexText.matchAll(/`([A-Za-z0-9._/-]+\.md)`/g)].map((m) => basename(m[1])),
 );
-const unindexed = mdFiles.filter((f) => !IGNORE.has(f) && !isBackup(f) && !listedExact.has(basename(f)));
+// Compare on the corpus-relative PATH where the index gives one, falling back to basename.
+// Basename-only collapsing let all four index.md files be satisfied by the single root listing.
+const listedPaths = new Set([...indexText.matchAll(/`([A-Za-z0-9._/-]+\.md)`/g)].map((m) => m[1].toLowerCase()));
+const unindexed = mdFiles.filter((f) => !IGNORE.has(f) && !isBackup(f)
+  && !listedPaths.has(f.toLowerCase()) && !(f.indexOf('/') === -1 && listedExact.has(basename(f))));
 // index.md legitimately cites docs OUTSIDE this folder (the source-of-truth design system,
 // the world-factory skill). Those are cross-references, not orphans — resolve any listed
 // path against the repo root before calling it missing, or the gate cries wolf and gets ignored.
@@ -297,15 +370,21 @@ if (orphaned.length) {
   console.log('');
 }
 
+if (phantomFiles.size) {
+  bad += phantomFiles.size;
+  console.log(`D5 PHANTOM FILE — ${phantomFiles.size} citation(s) of a markdown file that exists NOWHERE in the repo (typo, or the file was deleted and the citation left behind):`);
+  for (const k of [...phantomFiles.keys()].sort()) console.log(`  ${k}`);
+  console.log('');
+}
 if (skippedTargets.size) {
-  console.log(`NOTE — ${skippedTargets.size} referenced file(s) are outside this corpus and were NOT validated. A typo is indistinguishable from an external doc; confirm each is real:`);
+  console.log(`NOTE — ${skippedTargets.size} referenced file(s) live outside this corpus. Each is confirmed to EXIST in the repo (a citation of a file that exists nowhere fails as D5), but their sections are not parsed, so the §N is unverified:`);
   for (const [t, c] of [...skippedTargets].sort()) console.log(`  ${t} (${c} ref${c > 1 ? 's' : ''})`);
   console.log('');
 }
 console.log(
   `[brain-links] ${mdFiles.length} files · ${sections.size} canon sections · ` +
   `${resolved.length + dangling.length} refs (${resolved.length} resolve, ${dangling.length} dangle) · ` +
-  `${unindexed.length} unindexed · ${orphaned.length} orphaned · ${impossibleBare.length} impossible-bare · ${skippedTargets.size} unvalidated target(s)`,
+  `${unindexed.length} unindexed · ${orphaned.length} orphaned · ${impossibleBare.length} impossible-bare · ${[...skippedTargets.values()].reduce((a,b)=>a+b,0)} external ref(s) · ${phantomFiles.size} phantom`,
 );
 if (bad) {
   console.error(`[brain-links] FAIL — ${bad} structural defect(s). Fix the corpus, not this checker.`);

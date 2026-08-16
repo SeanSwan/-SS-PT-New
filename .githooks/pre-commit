@@ -112,7 +112,7 @@ if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.claude/sk
 fi
 
 BRAIN_LINKS="$REPO_ROOT/scripts/design-brain/check-brain-links.mjs"
-if git diff --cached --name-only | grep -qE '^docs/ai-workflow/design-brain/'; then
+if git diff --cached --name-only | grep -qE '^(docs/ai-workflow/design-brain/|scripts/design-brain/)'; then
   if [[ -f "$BRAIN_LINKS" ]]; then
     # The checker reads the WORKING TREE, not the staged index. If any brain file differs
     # between them, a pass here says nothing about the blob being committed: stage a broken
