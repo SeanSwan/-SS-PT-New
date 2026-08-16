@@ -45,6 +45,14 @@ vi.mock('../../middleware/authMiddleware.mjs', () => ({
   },
 }));
 
+// The rail now carries a real money-path limiter (20 / 15 min, keyed by user).
+// Every case here posts as user 42, so the live limiter would 429 the back half
+// of the suite. Rate-limit COVERAGE lives in moneyPathRateLimits.test.mjs; this
+// suite is about pricing and validation, so the limiter is a pass-through here.
+vi.mock('../../middleware/moneyPathRateLimits.mjs', () => ({
+  checkoutSessionLimiter: (_req, _res, next) => next(),
+}));
+
 vi.mock('../../database.mjs', () => ({
   default: { transaction: vi.fn(async (cb) => cb(mocks.transaction)) },
 }));

@@ -14,6 +14,9 @@
 import express from 'express';
 import Decimal from 'decimal.js';
 import { protect } from '../middleware/authMiddleware.mjs';
+// Money-path rate limit: each accepted call creates a pending Order that lands in
+// the admin confirmation queue. Was unlimited (Kimi MEDIUM-1 / GLM M4).
+import { checkoutSessionLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 import Order from '../models/Order.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
@@ -24,6 +27,9 @@ import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 // export binds `undefined` (it is not on the default object) and silently
 // disables the ceiling below. See the note in cartRoutes.mjs.
 import { MAX_CART_ITEM_QUANTITY, MAX_PAYMENT_LINE_ITEMS } from '../utils/cartHelpers.mjs';
+// Only resolveUnitPrice is needed here: it throws inside calculateServerTotal,
+// which the caller already wraps into a 400 ("Could not validate payment items").
+import { resolveUnitPrice } from '../services/store/itemPricing.mjs';
 import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
 import {
   claimIdempotentRecord,
@@ -83,6 +89,10 @@ async function calculateServerTotal(items) {
     attributes: [
       'id',
       'price',
+      // totalCost MUST be projected: packages carry their real money here and
+      // `price` is nullable. Without it the shared resolver silently degrades to
+      // price-only — the exact defect this change removes.
+      'totalCost',
       'name',
       'description',
       'packageType',
@@ -92,17 +102,18 @@ async function calculateServerTotal(items) {
     ],
   });
 
-  const priceMap = new Map();
-  for (const item of dbItems) {
-    priceMap.set(Number(item.id), new Decimal(item.price));
-  }
+  const dbItemMap = new Map(dbItems.map((item) => [Number(item.id), item]));
 
   let total = new Decimal(0);
   for (const item of items) {
-    const dbPrice = priceMap.get(Number(item.storefrontItemId));
-    if (!dbPrice) {
+    const dbItem = dbItemMap.get(Number(item.storefrontItemId));
+    if (!dbItem) {
       throw new Error(`Item ${item.storefrontItemId} not found in storefront`);
     }
+    // Shared resolver — throws rather than pricing an unpriceable item at zero.
+    // Must match the cart and ACH rails exactly; three copies of "what does this
+    // cost" is the drift class this family keeps re-finding.
+    const dbPrice = resolveUnitPrice(dbItem);
     // Number() not parseInt(): parseInt('2.5') and parseInt('2abc') both yield a
     // clean 2 and would silently price a malformed request. typeof guard excludes
     // `true` -> 1. Matches achPaymentRoutes — the two rails must not drift.
@@ -126,7 +137,7 @@ async function calculateServerTotal(items) {
  * Create a pending order for offline payment (check/zelle/venmo).
  * Requires authentication. Server validates all prices against database.
  */
-router.post('/offline', protect, async (req, res) => {
+router.post('/offline', protect, checkoutSessionLimiter, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {

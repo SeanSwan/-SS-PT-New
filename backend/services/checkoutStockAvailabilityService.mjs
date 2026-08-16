@@ -40,7 +40,14 @@ const checkoutItemName = (item) => {
 
 export function validateCheckoutStockAvailability(cartItems = []) {
   for (const item of cartItems || []) {
-    if (!isPhysicalProductLine(item)) continue;
+    // AVAILABILITY applies to EVERY line. This check used to sit BELOW the
+    // physical-only `continue`, so a training package — itemKind defaults to
+    // 'training_package', no variant — was skipped entirely and a RETIRED
+    // package stayed checkout-able from a stale cart at its snapshot price
+    // (GLM full-family review 2026-08-16, H1). The ACH and offline rails
+    // enforce isActive at purchase time; the cart rail enforced it only at ADD
+    // time, which left this the only gate — and it was not checking.
+    // Retiring an item is how a revoked deal is killed, so this must bind here.
     if (item?.storefrontItem?.isActive === false || item?.productVariant?.isActive === false) {
       return {
         code: CHECKOUT_ITEM_UNAVAILABLE_CODE,
@@ -49,6 +56,11 @@ export function validateCheckoutStockAvailability(cartItems = []) {
         itemName: checkoutItemName(item),
       };
     }
+
+    // STOCK stays physical-only: training packages carry stockQuantity: null and
+    // are not inventoried. Do not hoist this one.
+    if (!isPhysicalProductLine(item)) continue;
+
     const availableStock = resolveCheckoutAvailableStock(item);
     const requestedQuantity = toPositiveQuantity(item?.quantity);
     if (availableStock !== null && requestedQuantity > availableStock) {

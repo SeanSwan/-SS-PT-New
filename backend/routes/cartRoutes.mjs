@@ -27,6 +27,7 @@ import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 // at link time: if the export disappears, this module fails to load instead of
 // quietly disabling a money-path guard.
 import cartHelpers, { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
+import { resolveUnitPrice, UnpriceableItemError } from '../services/store/itemPricing.mjs';
 import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
 import {
   normalizeAuthenticatedUserId,
@@ -129,18 +130,11 @@ const parseOptionalPositiveInteger = (value) => {
   return parsePositiveInteger(value);
 };
 
-const toMoneyNumber = (value) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const firstMoney = (...values) => {
-  for (const value of values) {
-    const parsed = toMoneyNumber(value);
-    if (parsed > 0) return parsed;
-  }
-  return 0;
-};
+// firstMoney/toMoneyNumber lived here and returned 0 when nothing resolved —
+// superseded 2026-08-16 by services/store/itemPricing.mjs resolveUnitPrice, which
+// THROWS instead, and which the ACH and offline rails now share. Do not
+// reintroduce a local price fallback: three divergent copies of "what does this
+// cost" is precisely how a totalCost-only package came to sell for $0 on ACH.
 
 const isPhysicalProduct = (storefrontItem) => (
   storefrontItem?.itemKind === 'physical_product'
@@ -202,11 +196,29 @@ const resolveCartItemSnapshot = async ({
     return { status: 409, message: 'Selected item quantity exceeds available stock' };
   }
 
+  // Shared resolver (services/store/itemPricing.mjs) — same precedence this rail
+  // has always used (variant -> totalCost -> price), now the ONE implementation
+  // the ACH and offline rails call too. Those two priced off `price` alone and
+  // sold totalCost-only packages for $0 (Kimi HIGH-2 / GLM §4.7, 2026-08-16).
+  // An item that cannot be priced is not sellable — refuse instead of carting $0.
+  let price;
+  try {
+    price = resolveUnitPrice(storeFrontItem, variant).toNumber();
+  } catch (priceError) {
+    if (priceError instanceof UnpriceableItemError) {
+      logger.error('[Cart] Refusing to cart an unpriceable item', {
+        storefrontItemId: storeFrontItem?.id
+      });
+      return { status: 409, message: 'This item is not currently available' };
+    }
+    throw priceError;
+  }
+
   return {
     status: 200,
     storefrontItem: storeFrontItem,
     variant,
-    price: firstMoney(variant?.price, storeFrontItem.totalCost, storeFrontItem.price)
+    price
   };
 };
 

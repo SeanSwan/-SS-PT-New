@@ -17,6 +17,9 @@ import express from 'express';
 import Stripe from 'stripe';
 import Decimal from 'decimal.js';
 import { protect } from '../middleware/authMiddleware.mjs';
+// Money-path rate limit: each accepted call mints a real Stripe PaymentIntent and
+// an Order row. It was the only direct rail with no limiter (Kimi MEDIUM-1 / GLM M4).
+import { checkoutSessionLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 import Order from '../models/Order.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
@@ -27,6 +30,7 @@ import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 // export binds `undefined` (it is not on the default object) and silently
 // disables the ceiling below. See the note in cartRoutes.mjs.
 import { MAX_CART_ITEM_QUANTITY, MAX_PAYMENT_LINE_ITEMS } from '../utils/cartHelpers.mjs';
+import { resolveUnitPrice, UnpriceableItemError } from '../services/store/itemPricing.mjs';
 import {
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
@@ -50,7 +54,7 @@ try {
  * POST /api/payments/ach/create-intent
  * Create a Stripe PaymentIntent for ACH/eCheck
  */
-router.post('/create-intent', protect, async (req, res) => {
+router.post('/create-intent', protect, checkoutSessionLimiter, async (req, res) => {
   if (!stripe) {
     return res.status(503).json({ success: false, message: 'Payment processing unavailable' });
   }
@@ -61,6 +65,19 @@ router.post('/create-intent', protect, async (req, res) => {
 
     if (!items?.length || !total) {
       return res.status(400).json({ success: false, message: 'Items and total are required' });
+    }
+
+    // A non-finite client total makes the $0.02 tolerance check below a no-op:
+    // NaN comparisons are always false, so the guard silently stops guarding
+    // (Kimi LOW-3). Reject before any Decimal work — `new Decimal('abc')` also
+    // throws straight into the 500 handler, which is a 400-shaped problem.
+    const clientTotalNumber = Number(total);
+    if (!Number.isFinite(clientTotalNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: 'A valid order total is required',
+        code: 'INVALID_TOTAL'
+      });
     }
 
     // Per-line quantity is capped below, but the REQUEST is what overflows:
@@ -147,13 +164,35 @@ router.post('/create-intent', protect, async (req, res) => {
     const dbItems = await StorefrontItem.findAll({
       where: { id: itemIds, isSpecialOffer: false, isActive: true }
     });
-    const dbPriceMap = new Map(dbItems.map(i => [Number(i.id), new Decimal(i.price || 0)]));
+    // Price via the SHARED resolver, not `new Decimal(i.price || 0)`. Packages carry
+    // their real money in `totalCost` and `price` is nullable, so the old expression
+    // produced a TRUTHY Decimal(0) that passed the not-found check and sold the item
+    // for nothing (Kimi HIGH-2 / GLM §4.7, 2026-08-16). resolveUnitPrice throws
+    // rather than returning 0 — an item we cannot price is not sellable.
+    const dbItemMap = new Map(dbItems.map(i => [Number(i.id), i]));
 
     let serverTotal = new Decimal(0);
     for (const item of items) {
-      const unitPrice = dbPriceMap.get(Number(item.storefrontItemId));
-      if (!unitPrice) {
+      const dbItem = dbItemMap.get(Number(item.storefrontItemId));
+      if (!dbItem) {
         return res.status(400).json({ success: false, message: `Item ${item.storefrontItemId} not found` });
+      }
+
+      let unitPrice;
+      try {
+        unitPrice = resolveUnitPrice(dbItem);
+      } catch (priceError) {
+        if (priceError instanceof UnpriceableItemError) {
+          logger.error('[ACH] Refusing to sell an unpriceable item', {
+            storefrontItemId: item.storefrontItemId
+          });
+          return res.status(400).json({
+            success: false,
+            message: 'This item is not currently available for purchase',
+            code: priceError.code
+          });
+        }
+        throw priceError;
       }
 
       // Quantity must be a positive whole number (mirrors offlinePaymentRoutes).
@@ -322,15 +361,23 @@ router.post('/create-intent', protect, async (req, res) => {
       total: totalWithFee.toNumber(),
     });
   } catch (err) {
-    logger.error('[ACH] Create intent error:', err.message);
+    // supportReference correlates the client's report to this log line. The raw
+    // Stripe/Sequelize message stays SERVER-SIDE — it leaked schema names and
+    // Stripe internals to any authenticated caller (Kimi LOW-1, 2026-08-16).
+    // The v2 rail already returns only a generic detail; match it.
+    const supportReference = `ERR-${Date.now().toString(36).toUpperCase()}`;
+    logger.error('[ACH] Create intent error', {
+      supportReference,
+      errorName: err?.name || 'Error',
+      errorType: err?.type || 'unknown',
+      errorMessage: err?.message,
+    });
     return res.status(500).json({
       success: false,
       code: 'PAYMENT_INTENT_FAILED',
       userMessage: 'We were unable to process your payment information.',
-      technicalMessage: err.message,
-      errorType: err.type || 'unknown',
-      retryable: ['rate_limit_error', 'api_connection_error'].includes(err.type),
-      supportReference: `ERR-${Date.now().toString(36).toUpperCase()}`,
+      retryable: ['rate_limit_error', 'api_connection_error'].includes(err?.type),
+      supportReference,
     });
   }
 });

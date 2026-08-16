@@ -24,7 +24,14 @@ const checkoutStock = read('services/checkoutStockAvailabilityService.mjs');
 
 describe('money-path: cart price authority + variant safety', () => {
   it('resolves the line price server-side from the variant/item (not the client body)', () => {
-    expect(cart).toMatch(/price:\s*firstMoney\(\s*variant\?\.price/);
+    // 2026-08-16: this asserted the local `firstMoney(variant?.price, ...)` helper.
+    // That helper returned 0 when nothing resolved, and the ACH/offline rails had
+    // their own divergent copy that sold totalCost-only packages for $0. All three
+    // rails now share services/store/itemPricing.mjs resolveUnitPrice, which THROWS
+    // instead of returning 0. Same invariant — server-side price authority, never
+    // the request body — asserted against the shared implementation.
+    expect(cart).toMatch(/resolveUnitPrice\(\s*storeFrontItem\s*,\s*variant\s*\)/);
+    expect(cart).toMatch(/from\s*['"][^'"]*itemPricing\.mjs['"]/);
     // the charged price must not be taken straight from the request body
     expect(cart).not.toMatch(/price:\s*req\.body\.price/);
   });
