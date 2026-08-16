@@ -201,9 +201,19 @@ export function auditWorldEngineBundle(bundle) {
   // (b) design.md yields >= 20 canonical tokens at all — a PALETTE-EXTRACTION SANITY check whose
   // subject is still very much alive. Deleting the script silently dropped (b) (Kimi round 2,
   // R2-1). Re-asserted here so a design.md that stops yielding a palette still fails loudly.
-  const canonicalTokens = new Set((bundle.designMd ?? '').match(/#[0-9A-Fa-f]{6}\b/g) ?? []);
+  const canonicalTokens = new Set(((bundle.designMd ?? '').match(/#[0-9A-Fa-f]{6}\b/g) ?? []).map((h) => h.toLowerCase()));
   if (canonicalTokens.size < 20) {
     errors.push(`design.md canonical palette extraction found only ${canonicalTokens.size} unique hex tokens (expected >= 20)`);
+  }
+  // The bare count PASSES FOR THE WRONG REASON on its own — I attacked my own fix and found it.
+  // Of design.md's 23 unique tokens, 3 sit inside code fences and 3 are the RETIRED Galaxy-Swan
+  // palette quoted as do-NOT-use examples. Strip the live palette out entirely and the count can
+  // still clear 20 on fences plus retired examples. So anchor on tokens that must be present:
+  // if these vanish, canon has lost its actual palette regardless of how many hexes remain.
+  const ACTIVE_PALETTE_ANCHORS = ['#002060', '#60c0f0', '#c6a84b', '#8b5cf6', '#0a0a0f'];
+  const missingAnchors = ACTIVE_PALETTE_ANCHORS.filter((h) => !canonicalTokens.has(h));
+  if (missingAnchors.length) {
+    errors.push(`design.md is missing active Crystalline palette anchor(s): ${missingAnchors.join(', ')}`);
   }
   // NEGATIVE sentinel, re-homed from the deleted design.html check (GLM round 2, R2-5). It guards
   // the RETIRED "Reduced-Motion-as-a-fourth-tier" contract from creeping back. The surviving
