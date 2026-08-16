@@ -195,6 +195,16 @@ export function auditWorldEngineBundle(bundle) {
   // them turned a real pre-existing failure ("external-reference receipt/fallback contract is
   // incomplete") into an ENOENT crash that MASKED it — same failure count, worse information.
   // design.md carries the Full/Lean/Still + Reduced-Motion contract on its own, asserted above.
+  //
+  // The retired design-mirror-check.mjs asserted TWO things, and only one died with its subject:
+  // (a) every canonical token in design.md also appears in design.html — dead, no mirror exists;
+  // (b) design.md yields >= 20 canonical tokens at all — a PALETTE-EXTRACTION SANITY check whose
+  // subject is still very much alive. Deleting the script silently dropped (b) (Kimi round 2,
+  // R2-1). Re-asserted here so a design.md that stops yielding a palette still fails loudly.
+  const canonicalTokens = new Set((bundle.designMd ?? '').match(/#[0-9A-Fa-f]{6}\b/g) ?? []);
+  if (canonicalTokens.size < 20) {
+    errors.push(`design.md canonical palette extraction found only ${canonicalTokens.size} unique hex tokens (expected >= 20)`);
+  }
   requirePattern(errors, bundle.motion ?? '', /Licensed M4 pointer[\s\S]*Full\/Lean\/Still/i, 'motion doctrine lacks M4 and runtime-mode stitching');
   requirePattern(errors, bundle.cinematic ?? '', /M4 loss-matrix pointer[\s\S]*B3 failure[\s\S]*B1\/B0/i, 'cinematic doctrine lacks M4 backend-loss stitching');
   requirePattern(errors, bundle.reviewers ?? '', /M4 license and failure safety[\s\S]*automatic REVISE/i, 'reviewer adapter lacks M4 automatic-REVISE gate');
