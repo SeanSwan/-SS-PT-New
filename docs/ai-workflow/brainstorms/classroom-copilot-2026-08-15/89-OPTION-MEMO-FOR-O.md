@@ -13,6 +13,16 @@ boring, deterministic, auditable — and it is the only sorting artifact in this
 that has never once violated a child-safety invariant. The 14B variant beat it on recall
 and lost on everything that matters (precision, fabrications, one forbidden child link).
 
+**Provenance caveat (R2, on the memo's face):** those numbers rest on 12 cases / 15
+scored fragments — an under-sampled corpus (the spec said ≥20) — whose author had read
+the scorer and roster — the contamination argument this
+project levels at the model results applies symmetrically here. Treat 53.3% as indicative,
+not certified. What survives the caveat, because it is structural rather than measured:
+the rules sorter **cannot** fabricate items or link a child it wasn't told about — its
+failure mode is fail-closed (it misses things and leaves them untyped for T's manual pass;
+missed items simply stay in the dump T already reviews in full). The model's failure mode
+is fail-open (it invents). That asymmetry, not the recall number, is the case for (a).
+
 ## Your three options (pick after the H0 gate reads out, step 7)
 
 **(a) Ship the rules sorter as the assistant's sorting engine — available now.**
@@ -31,6 +41,19 @@ The 14B drafts items; the deterministic layer enforces link-suppression, type en
 review flags before anything reaches T. This is the untested variant the panel said the
 pilot should have measured. Cost: the guard from (b) plus integration; the seen corpus can
 regression-test the guard (non-gating) for free.
+
+## One decision that is NOT optional, with a deadline
+
+Separate from T's project (R2 review, accepted): your production SaaS's AI chat has no
+age/guardian gate, and one of its current active chat users has no birth date on file.
+Today that population is your handful of personally-known adults, so nothing is on fire —
+but the review is right that "backlog + no deadline + no active control" is not a
+defensible standing state. **By 2026-08-23 (one week), pick one:** (i) accept the interim
+risk explicitly (a one-line reply suffices — it gets recorded on the tracker issue), or
+(ii) say "schedule the tripwire" — the probe script now has a `--tripwire` mode that exits
+nonzero the moment any minor signal turns up, ready to drop into any scheduler — or
+(iii) order the deny-by-default gate slice built now instead of backlog. Silence past the
+deadline gets re-asked, not assumed.
 
 **Recommendation:** (a) now, silently, as part of week-one — it is invisible to T except
 that some of her dump arrives pre-sorted; then let the step-7 gate reading and T's

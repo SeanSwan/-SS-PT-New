@@ -66,7 +66,7 @@ survived multiple paid panels while being one text message each).
 > 1 texts-to-T: **O**, tonight, drafts ready · 2 minors check: **DONE** (dormant; probe =
 > durable script) · 3 install: **O+T**, next evening, printables first · 4 freeze: everyone,
 > starts when T starts · 5a: **DONE** (was already on main) · 5b: **DONE — variant-1 FAILED,
-> pilot; retry gate pre-registered** · 5c: **DONE minus live paid run (O's Rule-16 go)** ·
+> pilot; retry gate pre-registered** · 5c: **DONE minus live paid run — trigger: O's next Village need or the option-(b) decision, whichever first** ·
 > 6 director talk: **T** (O preps questions), post-install · 7 gate read: **O+agent**, day 5 ·
 > 8 two-lanes card: **O+T**, after gate · 9 port slice: **BLOCKED** (needs 5b retry pass
 > under the R2 gate) · 10 month-end + "year or month?" question: **O+T**.

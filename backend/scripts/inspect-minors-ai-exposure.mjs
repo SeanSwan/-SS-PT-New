@@ -15,12 +15,26 @@ if (!url) { console.log('DATABASE_URL: missing'); process.exit(1); }
 const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false }, statement_timeout: 15000 });
 await client.connect();
 
+// --tripwire: exit 2 (and say so) if ANY minor signal is nonzero — schedulable as an
+// alert (cron/CI); read-only SELECT/COUNTs only, counts-only output, same as always.
+const TRIPWIRE = process.argv.includes('--tripwire');
+const TRIP_LABELS = new Set([
+  'guardian_waivers_total',
+  'minors_by_dob_all_users',
+  'guardian_linked_users_with_ai_conversations',
+  'minors_by_dob_with_ai_conversations',
+]);
+let tripped = false;
+
 const q = async (label, sql) => {
   try {
     const r = await client.query(sql);
-    console.log(label + ':', JSON.stringify(r.rows[0] ?? { n: 0, note: 'empty set' }));
+    const row = r.rows[0] ?? { n: 0, note: 'empty set' };
+    if (TRIP_LABELS.has(label) && Number(row.n) > 0) tripped = true;
+    console.log(label + ':', JSON.stringify(row));
   } catch (e) {
     console.log(label + ': ERROR', e.message.slice(0, 120));
+    if (TRIPWIRE) tripped = true; // fail-closed: a broken signal query counts as a trip
   }
 };
 
@@ -60,3 +74,11 @@ await q('minors_by_dob_with_ai_conversations',
    WHERE u."dateOfBirth" IS NOT NULL AND u."dateOfBirth" > (CURRENT_DATE - INTERVAL '18 years')`);
 
 await client.end();
+
+if (TRIPWIRE) {
+  if (tripped) {
+    console.log('TRIPWIRE: TRIPPED — a minor signal is nonzero (or a signal query failed). The AI chat minor-gate is now a LIVE gap.');
+    process.exit(2);
+  }
+  console.log('TRIPWIRE: clear');
+}
