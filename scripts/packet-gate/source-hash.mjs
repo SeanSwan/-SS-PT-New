@@ -63,7 +63,13 @@ export function gateSourceFiles(root = DEFAULT_ROOT) {
     if (!existsSync(abs)) return;
     let src;
     try { src = readFileSync(abs, 'utf8'); } catch { return; }
-    for (const m of src.matchAll(/\bfrom\s+['"](\.[^'"]+)['"]/g)) {
+    // Three import shapes, not one. The first version matched only `from './x'`, missing side-effect
+    // imports (`import './x.mjs'` — no `from`), dynamic `import('./x.mjs')`, and `from"./x"` with no
+    // whitespace, all legal JS. Nothing in the gate uses those shapes today, so this was latent —
+    // but the walker now DEFINES R15's coverage, and the recursive floor only bounds the blast
+    // radius for files inside scripts/packet-gate/, which is exactly where anchors.mjs is NOT.
+    // (Kimi K3 round 7 F2 / round 8 F4 — round 7 CLAIMED this fix and it never reached the file.)
+    for (const m of src.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)['"](\.[^'"]+)['"]/g)) {
       const next = path.relative(root, path.resolve(path.dirname(abs), m[1])).replaceAll('\\', '/');
       if (covered.has(next)) continue;
       covered.add(next);

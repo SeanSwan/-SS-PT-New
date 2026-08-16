@@ -67,9 +67,14 @@ export function checkProvenance(blocks, readFile) {
     } catch (err) {
       // ESELFCITE gets its own remedy: "cite a readable file" is nonsense advice for a packet that
       // cited itself, and an undiagnosable refusal is one the operator routes around.
-      out.push(err.code === 'ESELFCITE'
-        ? finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} — that is this packet (or its seed)`,
-          'cite the real source file. A packet citing itself byte-matches by construction, so it proves nothing')
+      const SPECIFIC = {
+        ESELFCITE: ['that is this packet (or its seed)',
+          'cite the real source file. A packet citing itself byte-matches by construction, so it proves nothing'],
+        EUNTRACKED: ['it is not tracked by git',
+          'commit the file first, or use --allow-uncited. An untracked scratch copy byte-matches itself and proves nothing'],
+      }[err.code];
+      out.push(SPECIFIC
+        ? finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} — ${SPECIFIC[0]}`, SPECIFIC[1])
         : finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} — cannot read it (${err.code ?? err.message})`,
           'cite a readable file; the packet claims provenance the gate cannot verify'));
       continue;

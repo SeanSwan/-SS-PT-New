@@ -95,7 +95,10 @@ export function remitFromDoc(md) {
   // empty-remit guard stayed silent because the remit was non-empty garbage. That is the exact
   // Category-2 signature the round-5 subheading fix was written about, reintroduced one round later
   // by the inline-remit fix. Both reviewers found it independently. (Kimi K3 F3 / GLM-5.3 F4.)
-  const HEADING_RE = /^#{2,}\s*remit\s*(?::\s*(.*)|\s+[—–-]\s*(.*))?$/i;
+  // `(?:#+\s*)?` accepts the CLOSED ATX form `## Remit ##`, which is valid CommonMark and was
+  // missed — the gate told the operator to add a section the document already had, in a spelling
+  // markdown explicitly permits. (Kimi K3 round 8, F3.)
+  const HEADING_RE = /^#{2,}\s*remit\s*(?:#+\s*)?(?::\s*(.*)|\s+[—–-]\s*(.*))?$/i;
   const i = outside.findIndex((l) => l !== null && HEADING_RE.test(l.trim()));
   if (i !== -1) {
     // STOP ONLY AT A HEADING OF THE SAME LEVEL OR HIGHER — not at any heading at all.

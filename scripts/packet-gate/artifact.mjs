@@ -229,13 +229,16 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedCo
  * a Linux fail-open.)
  */
 export function caseOnlyBinding(blocks, namedPaths = []) {
+  // PER PAIR, not existentially over all pairs.  meant ONE identity match
+  // anywhere suppressed the declaration for every OTHER named path — so a remit naming
+  // src/Config.mjs and src/Other.mjs, with an exact citation of Other and a case-only citation of
+  // config, reported nothing at all. A warning that a single unrelated match can silence is a
+  // warning that does not run. (Kimi K3 round 8, F2.)
   const bindable = bindableBlocks(blocks, namedPaths);
-  const exact = bindable.some((b) => namedPaths.some((n) => normPath(b.attrs.path) === normPath(n)));
-  if (exact) return null;
-  for (const b of bindable) {
-    for (const n of namedPaths) {
-      if (foldCase(b.attrs.path) === foldCase(n)) return { cited: b.attrs.path, named: n };
-    }
+  for (const n of namedPaths) {
+    if (bindable.some((b) => normPath(b.attrs.path) === normPath(n))) continue; // this one is exact
+    const b = bindable.find((x) => foldCase(x.attrs.path) === foldCase(n));
+    if (b) return { cited: b.attrs.path, named: n };
   }
   return null;
 }

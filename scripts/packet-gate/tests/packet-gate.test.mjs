@@ -728,7 +728,13 @@ test('CRITICAL REGRESSION: a packet cannot cite ITSELF into "byte-verified"', ()
   writeFileSync(f, [...head, `\`\`\`js path=${rel} lines=${bodyStart}-${bodyStart + payload.length - 1}`, ...payload, '```', ''].join('\n'));
   const { code, out } = runGate(['--document', f]);
   assert.equal(code, 1, out);
-  assert.match(out, /that is this packet/i, out);
+  // RE-ANCHOR (round 8): round 7 closed this by IDENTITY (the document is not citable). Round 8
+  // showed identity was the wrong axis — `cp packet.md cite.mjs` gives a different inode AND a
+  // different realpath, and the copy contains the payload by construction. The close is now
+  // "cited files must be TRACKED", which subsumes the self-cite, the hardlink and the copy. This
+  // fixture is written under gitignored out/, so it trips the tracked check first; either reason is
+  // the correct refusal, so the assertion pins the CLASS rather than one message.
+  assert.match(out, /that is this packet|not tracked by git/i, out);
 });
 
 test('R4 still binds a case-only path match, but DECLARES it', () => {
