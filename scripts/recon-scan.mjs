@@ -77,6 +77,25 @@ const inv = await census({ laneDir: LANE_DIR });
 notExamined.push('reflog orphans (git fsck) — weekly --deep-reflog only, not run');
 if (inv.stashes.length) notExamined.push(`${inv.stashes.length} stash entries — contents not classified`);
 
+// CONSUME the degraded flags. Computing them and never reading them would leave
+// worktree/stash/lane failures invisible to the human -- the same "wrote it,
+// never wired it" class as the unreachable content-confirm found in round 2.
+// A degraded census is a coverage claim we cannot make, so it must reach print.
+const deg = inv.degraded ?? {};
+if (deg.worktrees) {
+  notExamined.push('⚠ worktree list FAILED — in-flight branches may be misclassified as stranded');
+}
+if (deg.stashes) {
+  notExamined.push('⚠ stash list FAILED — stash contents unknown, not merely unclassified');
+}
+if (deg.lanes) {
+  notExamined.push('⚠ lane directory UNREADABLE — active-agent locks not honoured this run');
+}
+if (deg.status) {
+  notExamined.push('⚠ git status FAILED — uncommitted work is UNKNOWN, not absent');
+}
+const degradedCount = Object.values(deg).filter(Boolean).length;
+
 // --- Phase 1: truth filter ----------------------------------------------------
 const branches = inv.branches;
 process.stderr.write(`recon: classifying ${branches.length} branches against ${BASE}…\n`);
@@ -98,8 +117,12 @@ const finalists = ranked
 process.stderr.write(`recon: deep-confirming ${finalists.length} finalists…\n`);
 await mapLimit(finalists, Math.min(6, CONCURRENCY), async (x) => {
   await deepConfirm(x.rec);
+  // qualifiedRef, NOT item.ref. The short name resolves refs/tags/<name> before
+  // refs/heads/<name> -- the same ambiguity fixed in classify() in round 1, and
+  // missed here. Fixing a bug class at the reported site and not sweeping every
+  // call site is how the same defect ships twice.
   const subjects = x.rec.mergeBase
-    ? await commitSubjects(x.rec.mergeBase, x.item.ref, 40)
+    ? await commitSubjects(x.rec.mergeBase, x.rec.qualifiedRef ?? x.item.ref, 40)
     : [];
   x.subjects = subjects;
 });
@@ -124,6 +147,9 @@ const state = {
   startedAt: started,
   durationMs: Date.now() - started,
   deepCount: finalists.length,
+  full: has('--full'),
+  degraded: deg,
+  degradedCount,
 };
 
 const report = renderReport(state);

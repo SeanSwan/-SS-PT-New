@@ -20,12 +20,17 @@ const execFileAsync = promisify(execFile);
 export const REPO_ROOT = process.env.RECON_REPO_ROOT || process.cwd();
 
 /** Run a git command. Returns {ok, stdout, stderr, code}. Never throws on git failure. */
-export async function git(args, { maxBuffer = 32 * 1024 * 1024 } = {}) {
+export async function git(args, { maxBuffer = 32 * 1024 * 1024, timeout = 60_000 } = {}) {
   try {
     const { stdout, stderr } = await execFileAsync('git', args, {
       cwd: REPO_ROOT,
       encoding: 'utf8',
       maxBuffer,
+      // Without a timeout a single hung git (network ref, lock contention, a
+      // filesystem stall) wedges the whole run forever with no output. A tool
+      // that hangs silently gets killed and then distrusted.
+      timeout,
+      killSignal: 'SIGKILL',
       // Git Bash on Windows mangles <rev>:<path> and /refs/ style args without this.
       env: { ...process.env, MSYS_NO_PATHCONV: '1' },
     });
@@ -199,9 +204,23 @@ export async function blobAt(rev, path) {
  * Comparing blob SHAs is exact, deterministic, ref-only, and checkout-independent.
  * Returns { present, checked, differing, indeterminate }.
  */
-export async function contentPresentInBase(base, tip, files, { limit = 2000, batch = 150 } = {}) {
+export async function contentPresentInBase(base, tip, files, { limit = 2000, maxArgBytes = 24_000 } = {}) {
   if (!files || files.length === 0) return null;
   const subset = files.slice(0, limit);
+
+  // Batch by BYTE LENGTH, not by count. Windows CreateProcess caps the command
+  // line at 32,767 chars; 150 deeply-nested paths (this repo has 90+ char paths)
+  // can exceed that while a count-based batch thinks it is safe.
+  const batches = [];
+  let cur = [];
+  let curBytes = 0;
+  for (const p of subset) {
+    const cost = Buffer.byteLength(p, 'utf8') + 1;
+    if (cur.length && curBytes + cost > maxArgBytes) { batches.push(cur); cur = []; curBytes = 0; }
+    cur.push(p);
+    curBytes += cost;
+  }
+  if (cur.length) batches.push(cur);
 
   // TWO-DOT diff (base tip): lists files whose content differs between the two
   // TREES. Two-dot is essential -- three-dot diffs against the merge-base and
@@ -216,20 +235,21 @@ export async function contentPresentInBase(base, tip, files, { limit = 2000, bat
   // 32,767 chars. 1000 paths x ~40 chars blows past it, spawn fails, and the
   // branch can never be content-confirmed.
   const differing = new Set();
-  for (let i = 0; i < subset.length; i += batch) {
-    const chunk = subset.slice(i, i + batch);
+  let done = 0;
+  for (const chunk of batches) {
     const r = await git([
       '--literal-pathspecs', 'diff', '--name-only', '-z', '--no-renames',
       base, tip, '--', ...chunk,
     ]);
     if (!r.ok) {
       return {
-        present: false, checked: i, total: files.length,
+        present: false, checked: done, total: files.length,
         differing: null, differingSample: [],
         truncated: files.length > limit, failed: true,
       };
     }
     for (const p of r.stdout.split('\0')) if (p) differing.add(p);
+    done += chunk.length;
   }
 
   return {

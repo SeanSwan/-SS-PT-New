@@ -41,7 +41,10 @@ function age(ts) {
 const line = (c = '=') => c.repeat(78);
 
 export function renderReport(state) {
-  const { base, baseSha, items, notExamined, workingTree, startedAt, durationMs, deepCount } = state;
+  const {
+    base, baseSha, items, notExamined, workingTree, startedAt, durationMs, deepCount,
+    degradedCount = 0, full = false,
+  } = state;
   const out = [];
 
   const byVerdict = new Map();
@@ -53,9 +56,12 @@ export function renderReport(state) {
   const g = (v) => byVerdict.get(v) ?? [];
 
   const landed = g(VERDICT.LANDED);
+  // EXPERIMENTAL was assignable but never rendered anywhere -- branches could be
+  // classified and then vanish from every section of the report.
   const decisions = [
     ...g(VERDICT.REGRESSION_RISK), ...g(VERDICT.CONFLICTING),
     ...g(VERDICT.UPGRADE), ...g(VERDICT.WIP), ...g(VERDICT.COST),
+    ...g(VERDICT.EXPERIMENTAL),
   ];
   const unknowns = g(VERDICT.UNKNOWN);
   const inFlight = g(VERDICT.ACTIVE_LANE);
@@ -85,6 +91,13 @@ export function renderReport(state) {
   const needsHuman = decisions.filter(
     (it) => MARK[it.verdict] === '[HUMAN]' || MARK[it.verdict] === '[RISK]' || MARK[it.verdict] === '[PUSH]',
   ).length;
+  // A degraded census must be the FIRST thing read, above any count, because it
+  // invalidates the counts below it.
+  if (degradedCount > 0) {
+    out.push(` ⚠⚠ DEGRADED RUN — ${degradedCount} inventory source(s) failed.`);
+    out.push(`     The counts below are INCOMPLETE. See NOT EXAMINED.`);
+    out.push('');
+  }
   out.push(' DECISION SUMMARY (read this first)');
   out.push(`   [ARCHIVE]  ${landed.length} branches whose content is already on ${base}`);
   out.push(`   [HUMAN]    ${needsHuman} need your call   ·   [IN-FLIGHT] ${inFlight.length} active, untouched`);
@@ -117,12 +130,16 @@ export function renderReport(state) {
 
   if (landed.length) {
     out.push(` ALREADY LANDED — archive-tag candidates (${landed.length})`);
-    landed.slice(0, 8).forEach((it) => {
+    // --full must actually DO something: the report previously advertised it
+    // while recon-scan.mjs never parsed it, so the instructed action was a
+    // silent no-op. An instruction the tool ignores teaches distrust.
+    const shown = full ? landed.length : 8;
+    landed.slice(0, shown).forEach((it) => {
       const ua = it.item.untrustedAhead;
       const note = ua ? ` (reported ahead ${ua} → 0 real)` : '';
       out.push(`   ${it.item.ref}${note}`);
     });
-    if (landed.length > 8) out.push(`   + ${landed.length - 8} more  [--full to list]`);
+    if (landed.length > shown) out.push(`   + ${landed.length - shown} more  [--full to list]`);
     out.push('');
   }
 
@@ -131,7 +148,15 @@ export function renderReport(state) {
   // decision list. Scoping this to `decisions` produced a "covers those
   // surfaces completely" claim while ignoring every deferred and unknown
   // branch -- a coverage claim computed over the wrong population.
-  const nonLanded = items.filter((it) => it.rec.equivalence !== EQUIV.LANDED);
+  // Filter on VERDICT, not equivalence. `equivalence` stays 'already-landed' for
+  // records the classifier explicitly DECLINED to prove -- content check failed,
+  // truncated, or diffStat unavailable. Those keep needsContentConfirm/filesUnknown
+  // and are routed to CONFLICTING, but an equivalence-based filter dropped them
+  // from BOTH `risky` and `unresolved`, so a cart/checkout branch whose only live
+  // copy might be the branch itself could be omitted from the very section whose
+  // job is to say what an audit will miss. VERDICT.LANDED is exactly the
+  // content-proven HIGH set.
+  const nonLanded = items.filter((it) => it.verdict !== VERDICT.LANDED);
   const unresolved = nonLanded.filter(
     (it) => it.rec.filesUnknown || it.verdict === VERDICT.UNKNOWN
       || it.rec.contentCheck?.truncated || it.rec.contentCheck?.failed,
@@ -188,6 +213,11 @@ export function renderJson(state) {
     startedAt: state.startedAt,
     durationMs: state.durationMs,
     deepCount: state.deepCount,
+    // A machine consumer must be able to detect degradation from the JSON alone.
+    // Omitting these would let a downstream tool conclude "safe" from a record
+    // that is merely incomplete.
+    degraded: state.degraded ?? {},
+    degradedCount: state.degradedCount ?? 0,
     notExamined: state.notExamined,
     workingTree: state.workingTree,
     items: state.items.map((it) => ({
@@ -208,6 +238,20 @@ export function renderJson(state) {
       verdict: it.verdict,
       score: it.score,
       error: it.rec.error,
+      // Evidence-quality fields. Without these a consumer cannot tell a
+      // content-proven LANDED from a patch-id guess.
+      needsContentConfirm: it.rec.needsContentConfirm ?? false,
+      filesUnknown: it.rec.filesUnknown ?? false,
+      contentCheck: it.rec.contentCheck
+        ? {
+          present: it.rec.contentCheck.present,
+          differing: it.rec.contentCheck.differing,
+          checked: it.rec.contentCheck.checked,
+          total: it.rec.contentCheck.total,
+          truncated: it.rec.contentCheck.truncated,
+          failed: it.rec.contentCheck.failed,
+        }
+        : null,
     })),
   }, null, 2);
 }

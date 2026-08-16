@@ -188,6 +188,11 @@ export async function classify(shortRef, base, { untrustedAhead = null } = {}) {
       rec.confidence = CONF.HIGH;
       rec.realCommits = 0;
       signals.push('net-diff-empty(no content delta vs base)');
+      // An empty net diff IS the content proof, so the patch-id flag no longer
+      // applies. Leaving it set produced a contradictory HIGH+unconfirmed state
+      // that got rescued into CONFLICTING with a misleading
+      // "landed-by-patch-id-UNCONFIRMED" signal on an empty-diff branch.
+      rec.needsContentConfirm = false;
     }
   } else {
     // diffStat FAILED. rec.files stays empty, which would make pathSensitivity
@@ -210,6 +215,11 @@ export async function classify(shortRef, base, { untrustedAhead = null } = {}) {
       rec.confidence = CONF.HIGH;
       rec.needsContentConfirm = false;
       signals.push(`content:identical-at-base(${res.checked}/${res.total})`);
+    } else if (res?.truncated && res.differing === 0) {
+      // Nothing differed in what we could see, but we did not see all of it.
+      // Labelling this "DIFFERS" with differing=0 was actively misleading.
+      rec.confidence = CONF.LOW;
+      signals.push(`content:TRUNCATED(${res.checked}/${res.total} checked, 0 differing so far)`);
     } else if (res) {
       // patch-id said "applied", content says otherwise: apply-then-revert, or
       // base moved on afterwards. This branch may hold the only live copy.
