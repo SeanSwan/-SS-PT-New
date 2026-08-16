@@ -42,13 +42,57 @@ const DEFAULT_ROOT = path.resolve(HERE, '..', '..');
  * indistinguishable from a valid one, which is the property that made this bug invisible.
  */
 export function gateSourceFiles(root = DEFAULT_ROOT) {
+  const entry = 'scripts/packet-gate.mjs';
+  const covered = new Set([entry]);
+
+  // (1) THE IMPORT GRAPH, walked transitively from the CLI entry point.
+  //
+  // ROUND-6 CORRECTION. Round 5 replaced a hand-written three-file list with a scan of ONE
+  // directory — and the gate's logic lives in two. `extractAnchors` (context-gateway/src/anchors.mjs)
+  // decides anchors.paths/routes/symbols, which decides `aboutCode`, which decides whether R4 runs
+  // AT ALL. Neuter it to return empty arrays and: aboutCode false, R4 returns [], R5 has nothing to
+  // resolve, the canary record still matches because anchors.mjs was never hashed, R15 silent,
+  // PACKET READY. That is round 5's critical exactly, one directory over — the derived list fixed
+  // "someone forgot to add a file" and reintroduced it as "someone forgot the derivation's scope."
+  // `providers.mjs` is the same story for the cost number a human approves.
+  //
+  // Walking imports is the only formulation that cannot drift: whatever the gate actually depends
+  // on is hashed, wherever it lives, including files that do not exist yet.
+  const walk = (rel) => {
+    const abs = path.join(root, rel);
+    if (!existsSync(abs)) return;
+    let src;
+    try { src = readFileSync(abs, 'utf8'); } catch { return; }
+    for (const m of src.matchAll(/\bfrom\s+['"](\.[^'"]+)['"]/g)) {
+      const next = path.relative(root, path.resolve(path.dirname(abs), m[1])).replaceAll('\\', '/');
+      if (covered.has(next)) continue;
+      covered.add(next);
+      walk(next);
+    }
+  };
+  walk(entry);
+
+  // (2) A RECURSIVE FLOOR over the gate's own directory, unioned with the graph.
+  //
+  // The 300-line cap — which caused round 5 — will eventually force a split into a subdirectory, and
+  // `readdirSync` is not recursive, so every file in it would have escaped by construction. This
+  // also covers a module that exists but is not imported YET, which is precisely the window in which
+  // a half-wired check looks green.
   const rel = 'scripts/packet-gate';
-  const dir = path.join(root, rel);
-  // `tests/` is a directory and has no .mjs at this level, so it is excluded by construction —
-  // deliberately: the tests do not decide anything at runtime, and hashing them would make every
-  // test edit invalidate the canary record for no safety gain.
-  const files = readdirSync(dir).filter((f) => f.endsWith('.mjs')).sort().map((f) => `${rel}/${f}`);
-  return ['scripts/packet-gate.mjs', ...files];
+  const scan = (dirRel) => {
+    let entries;
+    try { entries = readdirSync(path.join(root, dirRel), { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      const child = `${dirRel}/${e.name}`;
+      // tests/ is excluded deliberately: tests decide nothing at runtime, and hashing them would
+      // invalidate the canary record on every test edit for no safety gain.
+      if (e.isDirectory()) { if (e.name !== 'tests' && e.name !== '__tests__') scan(child); continue; }
+      if (e.name.endsWith('.mjs')) covered.add(child);
+    }
+  };
+  scan(rel);
+
+  return [...covered].sort();
 }
 
 export function gateSourceHash(root = DEFAULT_ROOT) {

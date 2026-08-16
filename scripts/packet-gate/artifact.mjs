@@ -97,9 +97,45 @@ export function mentions(body, needle) {
  * SURFACED in the approval view rather than blocked: the operator sees exactly which named file is
  * absent and decides. Exported so the CLI and R4 share one notion of "bound".
  */
+/**
+ * The blocks eligible to BIND — one definition, used by checkArtifact and by both warnings.
+ *
+ * A test/fixture path is excluded as a DECOY but never as the SUBJECT: if the remit names it, it is
+ * what the review is about. Three copies of this filter existed for about ten minutes after the
+ * test-exclusion fix, and two of them lacked the named-path exemption — which would have warned
+ * "src/x.test.mjs is NOT carried by this packet" about a file the packet was carrying. Same
+ * duplicate-predicate hazard, caught by writing it down rather than by a reviewer.
+ */
+export function bindableBlocks(blocks, namedPaths = []) {
+  const namedSet = new Set(namedPaths.map(normPath));
+  return blocks.filter(isCodeBlock)
+    .filter((b) => !isTestPath(b.attrs.path) || namedSet.has(normPath(b.attrs.path)));
+}
+
 export function unboundNamedPaths(blocks, namedPaths = []) {
-  const bindable = blocks.filter(isCodeBlock).filter((b) => !isTestPath(b.attrs.path));
+  const bindable = bindableBlocks(blocks, namedPaths);
   return namedPaths.filter((n) => !bindable.some((b) => normPath(b.attrs.path) === normPath(n)));
+}
+
+/**
+ * True when R4 was satisfied ONLY by a route/symbol mention while the remit also named a path.
+ *
+ * The strictest-kind rule is preserved as SIGNAL rather than as a veto: making it a veto refused the
+ * ordinary "does the handler for /api/sessions read package.json?" packet, which names a path in
+ * passing and is really about the route. So the weaker binding is allowed and DECLARED — the
+ * operator sees that the artifact was tied to the remit by a mention, not by identity, which is the
+ * dimension the round-2 decoy attack lived in.
+ *
+ * A separate pure function rather than state hung off checkArtifact: this module is pure by
+ * construction so the canary suite can drive every gate red, and a module-level mutable would go
+ * stale exactly when two packets are checked in one process.
+ */
+export function weakBindingOnly(blocks, namedPaths = [], namedContent = []) {
+  if (!namedPaths.length || !namedContent.length) return false;
+  const bindable = bindableBlocks(blocks, namedPaths);
+  const pathHit = bindable.some((b) => namedPaths.some((n) => normPath(b.attrs.path) === normPath(n)));
+  const contentHit = bindable.some((b) => namedContent.some((n) => mentions(String(b.body), n)));
+  return !pathHit && contentHit;
 }
 
 export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedContent = []) {
@@ -129,7 +165,6 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedCo
   // under R3. R5 already requires every named path to exist at exactly that path, so "more specific"
   // bought nothing and cost a decoy needing zero fabrication. Three rounds, three corrections, all
   // to this one predicate.
-  const named = [...namedPaths, ...namedContent];
   if (!hasBindingAnchors(namedPaths, namedContent)) return [];
 
   // ROUND-6 CORRECTION, fourth consecutive round on this one predicate.
@@ -144,10 +179,31 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedCo
   //     "review the handler for /refunds/run" + tests/refunds.test.mjs byte-verifies and mentions
   //     the route, so R4 went green while the model reviewed the test instead of the handler.
   //     Same exclusion semantics, now applied on both sides.
-  const bindable = codeBlocks.filter((b) => !isTestPath(b.attrs.path));
+  // A test is excluded as a DECOY, never as the SUBJECT. Round 6's first version excluded every
+  // test path unconditionally, which hard-failed the perfectly legitimate remit "review
+  // tests/refunds.test.mjs — is this test actually asserting the refund path?": the only block that
+  // could bind was excluded, R4 refused, and no flag existed to excuse it. A refusal with no remedy
+  // is the refusal-fatigue signature this gate names in three other comments. The exclusion now
+  // applies only to a test the remit did NOT name. (Kimi K3 round 6, F4.)
+  const bindable = bindableBlocks(blocks, namedPaths);
   const pathHit = bindable.some((b) => namedPaths.some((n) => normPath(b.attrs.path) === normPath(n)));
   const contentHit = bindable.some((b) => namedContent.some((n) => mentions(String(b.body), n)));
-  const bound = namedPaths.length ? pathHit : contentHit;
+
+  // ROUND-6 SELF-CORRECTION, found by attacking this very fix rather than by waiting for a review.
+  //
+  // The first version of "strictest anchor kind" was `namedPaths.length ? pathHit : contentHit` —
+  // if the remit named ANY path, only a path could bind. That is a FALSE REFUSAL on a completely
+  // ordinary remit: "Does the handler for /api/sessions correctly read package.json?" names a path
+  // IN PASSING while being about the route, so a packet citing the real handler was refused for
+  // carrying the wrong file. The gate's own doctrine rates a false refusal as severe as a fail-open,
+  // because it is what teaches an operator to bypass.
+  //
+  // So the strictness is preserved as SIGNAL, not as a veto: either anchor kind can bind, but when
+  // the binding rests only on the weaker one the receipt says so. `weakBinding` is what the caller
+  // surfaces. Sixth consecutive round in which a fix created the next defect — the difference this
+  // time is that the fix's own author found it.
+  const bound = pathHit || contentHit;
+  const weakBinding = !pathHit && contentHit && namedPaths.length > 0;
 
   if (!bound) {
     const excluded = codeBlocks.length - bindable.length;
@@ -157,5 +213,6 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedCo
     return [finding('R4', `${why} (cited: ${codeBlocks.map((b) => b.attrs.path).join(', ') || 'none'}${excluded ? `; ${excluded} excluded as test/fixture` : ''})`,
       'cite the file the remit is actually about — an unrelated real block, or the test for it, verifies nothing about the subject under review')];
   }
+  void weakBinding; // surfaced by weakBindingOnly() — see below; kept pure, no module state.
   return [];
 }

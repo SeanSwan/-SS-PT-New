@@ -10,7 +10,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseFences, remitFromDoc, checkProvenance, checkPremises, checkSize, checkArtifact, normPath } from '../checks.mjs';
 import { gateSourceFiles } from '../source-hash.mjs';
-import { unboundNamedPaths } from '../artifact.mjs';
+import { unboundNamedPaths, weakBindingOnly } from '../artifact.mjs';
 
 /** A minimal cited CODE block, for the R4 binding tests. */
 const codeBlock = (p, body = 'const x = 1;') => ({ cited: true, attrs: { path: p }, lang: 'js', body });
@@ -522,13 +522,34 @@ test('HIGH REGRESSION: a subheading inside the Remit section does not truncate i
 
 // --- Round 6 findings, 2026-08-16 (the seven MEDIUM/LOW carried from round 5) --------------------
 
-test('R4 binds by the STRICTEST anchor kind: a symbol mention cannot satisfy a path remit', () => {
-  // `pathHit || contentHit` meant a remit naming a path AND a symbol was satisfied by any file
-  // merely MENTIONING the symbol — the round-2 decoy shape reborn through the other dimension.
+test('R4 DECLARES a weak binding instead of vetoing it', () => {
+  // RE-ANCHOR (same session, round 6), and it is a LOOSENING — so the reasoning matters.
+  // This test first asserted a veto: if the remit named any path, only a path could bind. Running
+  // that revealed a FALSE REFUSAL on an ordinary remit — "does the handler for /api/sessions read
+  // package.json?" names a path in passing while being about the route, so a packet citing the real
+  // handler was refused for carrying the wrong file. The gate rates a false refusal as severe as a
+  // fail-open, because it is what teaches operators to bypass.
+  //
+  // The protection is preserved in a STRONGER form than the veto: the packet is allowed, and the
+  // weak binding is DECLARED in the receipt. This test now pins the declaration, which the veto
+  // version could not express at all — so it asserts more than it did before, not less.
   const mentions = codeBlock('src/other.mjs', 'validateToken()');
-  assert.equal(checkArtifact(true, [mentions], ['src/auth.mjs'], ['validateToken']).length, 1);
-  // With NO path named, content binding is still the right (and only) mechanism.
+  assert.equal(checkArtifact(true, [mentions], ['src/auth.mjs'], ['validateToken']).length, 0);
+  assert.equal(weakBindingOnly([mentions], ['src/auth.mjs'], ['validateToken']), true,
+    'a binding resting only on a mention MUST be declared');
+
+  // Identity binding is not "weak" — citing the named path itself.
+  const real = codeBlock('src/auth.mjs', 'export function validateToken() {}');
+  assert.equal(weakBindingOnly([real], ['src/auth.mjs'], ['validateToken']), false);
+
+  // With NO path named, content binding is the only mechanism and is not flagged as weak.
   assert.equal(checkArtifact(true, [mentions], [], ['validateToken']).length, 0);
+  assert.equal(weakBindingOnly([mentions], [], ['validateToken']), false);
+
+  // The false refusal that caused this re-anchor, pinned so it cannot come back.
+  const handler = codeBlock('backend/routes/sessions.mjs', 'router.get("/api/sessions")');
+  assert.equal(checkArtifact(true, [handler], ['package.json'], ['/api/sessions']).length, 0,
+    'a remit naming a path in passing must not refuse a packet carrying the true subject');
 });
 
 test('R4: a test file cannot serve as the artifact for the code it tests', () => {
@@ -598,4 +619,80 @@ test('REGRESSION: a route can be excused with --allow-missing, like a path', () 
   assert.equal(r.warnings.length, 1, 'and it must still be visible in the receipt');
   // Without the flag it is still a refusal — the phantom-route catch is intact.
   assert.equal(checkPremises(anchors, () => false, []).findings.length, 1);
+});
+
+// --- Round 6 REVIEW findings (Kimi K3 + GLM-5.3, converging on F1/F2) ---------------------------
+
+test('CRITICAL REGRESSION: R15 covers the gate logic that lives OUTSIDE its own directory', () => {
+  // Round 5 replaced a hand-written list with a scan of ONE directory — and the gate's logic lives
+  // in two. `extractAnchors` decides aboutCode, which decides whether R4 runs at all; neuter it and
+  // the canary record still matched. Both reviewers found this independently. The list is now the
+  // transitive import graph unioned with a RECURSIVE directory scan, so a future subdirectory split
+  // (which the 300-line cap makes inevitable) cannot escape either.
+  const files = gateSourceFiles(ROOT);
+  assert.ok(files.some((f) => f.endsWith('context-gateway/src/anchors.mjs')), files.join(', '));
+  assert.ok(files.some((f) => f.endsWith('context-gateway/src/providers.mjs')), files.join(', '));
+  for (const m of ['artifact', 'normalize', 'seed', 'args', 'provenance']) {
+    assert.ok(files.some((f) => f.endsWith(`/${m}.mjs`)), `${m}.mjs uncovered`);
+  }
+});
+
+test('HIGH REGRESSION: R4 sees seed blocks, exactly as R3 and checkUncited already do', () => {
+  // checkArtifact received `blocks` while the adjacent lines passed [...blocks, ...seedBlocks], so a
+  // packet whose subject arrived VIA THE SEED was refused for "no cited CODE block" while R3 had
+  // just byte-verified it — one predicate, two channel-unions, adjacent lines.
+  const d = tmpInRepo();
+  const doc = join(d, 'doc.md');
+  const seed = join(d, 'seed.md');
+  writeFileSync(doc, '## Remit\n\nReview scripts/packet-gate/refusal.mjs — are the codes coherent?\n');
+  execFileSync('node', [join(ROOT, 'scripts/packet-gate/build-packet.mjs'),
+    '--out', seed, '--remit', 'x', '--file', 'scripts/packet-gate/refusal.mjs'], { cwd: ROOT });
+  // strip the builder's own remit heading so the seed carries only the cited block
+  const raw = readFileSync(seed, 'utf8');
+  writeFileSync(seed, raw.slice(raw.indexOf('```')));
+  const { code, out } = runGate(['--document', doc, '--seed', seed]);
+  assert.equal(code, 0, out);
+  assert.match(out, /1 cited block/, 'the approval view must COUNT the seed artifact it cleared on');
+});
+
+test('a test file is excluded as a DECOY but not as the SUBJECT', () => {
+  // The first version excluded every test path unconditionally, which hard-failed "review
+  // tests/refunds.test.mjs — is this test actually asserting the refund path?" with no remedy.
+  assert.equal(checkArtifact(true, [codeBlock('tests/refunds.test.mjs')], ['tests/refunds.test.mjs'], []).length, 0);
+  assert.equal(checkArtifact(true, [codeBlock('tests/refunds.test.mjs', 'it("/refunds/run")')], [], ['/refunds/run']).length, 1);
+  // …and the warning must not then claim the named test is absent.
+  assert.deepEqual(unboundNamedPaths([codeBlock('tests/x.test.mjs')], ['tests/x.test.mjs']), []);
+});
+
+test('REGRESSION: a misspelled flag cannot be swallowed as another flag value', () => {
+  // The unknown-KEY fix and the bad-VALUE fix each closed half; their intersection stayed open:
+  // `--remit --budjet-chars 8000` set remit to "--budjet-chars" (anchor-free, so R4+R5 went inert)
+  // AND silently reverted the budget. Any `--`-prefixed value is now refused.
+  const f = join(tmp(), 'ok.md');
+  writeFileSync(f, '## Remit\n\nReview /api/sessions\n');
+  const { code, out } = runGate(['--document', f, '--remit', '--budjet-chars', '8000']);
+  assert.equal(code, 2, out);
+  // The message names the TYPO rather than the swallowed value — which is the better diagnosis, and
+  // is why this asserts the offending flag rather than one specific wording. (The value guard fires
+  // first and declines to consume `--budjet-chars`, so it then falls through to the unknown-key
+  // check. Asserting the wording would have pinned an implementation detail, not the behaviour.)
+  assert.match(out, /--budjet-chars/, out);
+  assert.match(out, /unrecognized flag|missing a value|another flag as their value/i, out);
+});
+
+test('REGRESSION: the Remit heading may carry the remit inline', () => {
+  // `/^#{2,}\s*remit\s*$/` required the bare word, so `## Remit: review the refund flow` was never
+  // found and the gate told the operator to add a section the document already had.
+  assert.match(remitFromDoc('## Remit: review the refund flow\nand src/a.mjs\n'), /refund flow[\s\S]*src\/a\.mjs/);
+  assert.match(remitFromDoc('## Remit — review src/x.mjs\n'), /src\/x\.mjs/);
+  assert.equal(remitFromDoc('## Remit\nplain body\n'), 'plain body', 'the bare form is unchanged');
+});
+
+test('REGRESSION: --seed pointed at a directory is a labelled refusal, not a stack trace', () => {
+  const doc = join(tmpInRepo(), 'doc.md');
+  writeFileSync(doc, '## Remit\n\nReview /api/sessions\n');
+  const { code, out } = runGate(['--document', doc, '--seed', 'out']);
+  assert.equal(code, 2, out);
+  assert.match(out, /cannot be read/i);
+  assert.doesNotMatch(out, /unexpected failure/i, 'a stack trace is the least diagnosable output a gate can give');
 });

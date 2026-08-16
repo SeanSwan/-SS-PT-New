@@ -66,7 +66,14 @@ export function parseArgs(argv) {
     // `--seed` as the final argument set the seed to undefined and it was silently never measured.
     // All one shape: the parser assumed the next token was a value. Round 3 validated flag VALUES
     // and round 4 validated flag KEYS; neither checked that a value is not itself a key.
-    if (KNOWN_FLAGS.has(k) && k !== '--json' && k !== '--allow-uncited' && (v === undefined || KNOWN_FLAGS.has(v))) {
+    // ANY `--`-prefixed value, not just a KNOWN one. The first version tested `KNOWN_FLAGS.has(v)`,
+    // which left the two halves' intersection open: `--remit --budjet-chars 8000` has an UNKNOWN
+    // value, so it was accepted as the remit text, `8000` was then dropped silently, and the run
+    // proceeded with remit = "--budjet-chars" (naming nothing, so R4 and R5 went inert) AND the
+    // budget reverted to its default. The round-4 unknown-KEY fix and the round-6 bad-VALUE fix each
+    // closed half of this. (GLM-5.3 round 6, F6.) A legitimate value beginning with `--` is not a
+    // shape this CLI has; refusing it is fail-closed and one edit to clear.
+    if (KNOWN_FLAGS.has(k) && k !== '--json' && k !== '--allow-uncited' && (v === undefined || String(v).startsWith('--'))) {
       a.badValue.push(`${k} ${v === undefined ? '(no value)' : `→ ${v}`}`);
       continue;
     }

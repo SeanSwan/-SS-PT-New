@@ -34,7 +34,7 @@ import { report } from './packet-gate/report.mjs';
 import { GateUnavailable, makeResolver, scanSecrets, loadSelftest, readCitedFile } from './packet-gate/repo-io.mjs';
 import { isUnverifiedFence, fenceParseAnomalies } from './packet-gate/fences.mjs';
 import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary, checkUncited, hasBindingAnchors, normPath } from './packet-gate/checks.mjs';
-import { unboundNamedPaths } from './packet-gate/artifact.mjs';
+import { unboundNamedPaths, weakBindingOnly } from './packet-gate/artifact.mjs';
 import { parseArgs, argErrors } from './packet-gate/args.mjs';
 import { loadSeed } from './packet-gate/seed.mjs';
 
@@ -181,18 +181,32 @@ ${seedText}` : md);
   // comparing the same flag two different ways in two files (round 4).
   const allowedMissing = new Set(args.allowMissing.map(normPath));
   const boundPaths = anchors.paths.filter((p) => !allowedMissing.has(normPath(p)));
-  const boundContent = [...anchors.routes, ...anchors.symbols].filter((n) => resolve(n, 'symbol'));
+  // Each anchor resolved under ITS OWN kind. This filtered routes under kind 'symbol' while
+  // checkPremises resolves the same string under 'route' — one string, two kinds, two call sites.
+  // makeResolver only branches on 'path' TODAY, so the two agree and this is a latent drift fuse
+  // rather than a live hole (verified: grep -n kind repo-io.mjs). It is the exact duplication class
+  // normalize.mjs's header records this codebase being bitten by five times, so it is closed while
+  // it is still cheap. (GLM-5.3 round 6, F5.)
+  const boundContent = [
+    ...anchors.routes.filter((n) => resolve(n, 'route')),
+    ...anchors.symbols.filter((n) => resolve(n, 'symbol')),
+  ];
 
+  const allBlocks = [...blocks, ...seedBlocks];
   const premises = checkPremises(anchors, resolve, args.allowMissing);
   const findings = [
     ...premises.findings,
-    ...checkUncited([...blocks, ...seedBlocks], args.allowUncited),
+    ...checkUncited(allBlocks, args.allowUncited),
     // A path the operator declared as not-yet-existing is excluded from R4's binding too. Clearing
     // R5 alone was not enough: R4 then demanded a citation of a file that by definition cannot be
     // cited, so the legitimate "add this file, here is the call site" packet was still impossible to
     // satisfy — one check's fix contradicting another's requirement.
-    ...checkArtifact(aboutCode, blocks, boundPaths, boundContent),
-    ...checkProvenance([...blocks, ...seedBlocks], (p) => readCitedFile(ROOT, p)),
+    // THE SEED IS PACKET CONTENT — R3 and checkUncited already say so, and R4 must agree.
+    // Passing  alone here while the adjacent lines passed [...blocks, ...seedBlocks] meant a
+    // packet whose subject arrived VIA THE SEED was refused for "no cited CODE block" while R3 had
+    // just byte-verified it. One predicate, two channel-unions, adjacent lines (Kimi K3 round 6, F2).
+    ...checkArtifact(aboutCode, allBlocks, boundPaths, boundContent),
+    ...checkProvenance(allBlocks, (p) => readCitedFile(ROOT, p)),
     ...checkHygiene(hygiene),
     ...checkSize(assembled.chars, args.budgetChars),
   ];
@@ -228,7 +242,10 @@ ${seedText}` : md);
   // allow-missing, no resolvable route or symbol — R4's binding returns early and ANY single cited
   // block satisfies R4. That is defensible (there is nothing in the repo left to bind to), but it
   // was SILENT, which is the Category-2 failure this gate is built to refuse in other people's code.
-  const unbound = unboundNamedPaths(blocks, boundPaths);
+  if (weakBindingOnly(allBlocks, boundPaths, boundContent)) {
+    warnings.push(`R4 bound by a route/symbol MENTION, not by the named path(s) ${boundPaths.join(", ")} — the artifact is tied to the remit by a mention, not by identity`);
+  }
+  const unbound = unboundNamedPaths(allBlocks, boundPaths);
   if (unbound.length && unbound.length < boundPaths.length) {
     warnings.push(`remit names ${boundPaths.length} path(s); ${unbound.join(', ')} ${unbound.length === 1 ? 'is' : 'are'} NOT carried by this packet — the model answers about what it cannot see`);
   }
@@ -238,7 +255,10 @@ ${seedText}` : md);
 
   return report({
     args, findings, warnings,
-    stats: { assembled, blocks, anchors, aboutCode, usd, remit },
+    // allBlocks, not blocks: the seed is packet content, and reporting "0 cited block(s)" over a
+    // packet that cleared BECAUSE the seed carried a byte-verified artifact is the approval view
+    // describing a state the packet is not in — the same class as the round-2 critical.
+    stats: { assembled, blocks: allBlocks, anchors, aboutCode, usd, remit },
   });
 }
 

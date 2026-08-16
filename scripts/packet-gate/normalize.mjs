@@ -88,19 +88,34 @@ export const splitDocLines = (s) => normalizeEol(s).split(/[\n\u2028\u2029]/);
  * 2. MID-PATH `./`. Only a LEADING `./` was stripped, so `src/./x.mjs` — which resolves on disk and
  *    which R3 reads happily — never compared equal to `src/x.mjs`, producing an R4 false refusal
  *    over two spellings of one file.
- * 3. CASE, on win32 only. `readCitedFile` already case-folds for containment and `existsSync` is
- *    case-insensitive on NTFS, so R5 passed and R3 passed while R4 refused `SRC/App.mjs` against a
- *    cited `src/app.mjs` — a refusal whose cause is invisible in a terminal. The verdict is
- *    deliberately platform-dependent BECAUSE THE FILESYSTEM IS; pretending otherwise means either
- *    false refusals on Windows or false binds on Linux. Stated rather than hidden.
+ * 3. CASE — folded ALWAYS, not on win32 only, and that is a deliberate trade.
+ *
+ *    The first version gated case folding on `process.platform === 'win32'`, reasoning that the
+ *    verdict should follow the filesystem. GLM-5.3 (round 6, F4) pointed out that `win32` is simply
+ *    the wrong test for "is this filesystem case-insensitive": default APFS/HFS+ on macOS is
+ *    case-insensitive, and so is a repo checked out under WSL on `/mnt/c`, where `platform` reports
+ *    `linux`. On both, `existsSync` and `readCitedFile` treat `src/App.mjs` and `src/app.mjs` as one
+ *    file — R5 green, R3 green — while R4 refused, showing the operator two paths that differ only
+ *    in case with every other check agreeing. Three checks disagreeing about one file.
+ *
+ *    Detecting case-sensitivity properly needs a filesystem probe, and this function is deliberately
+ *    LEXICAL and pure so the canary suite can drive every gate red without I/O. So it folds case
+ *    unconditionally, and the residual is stated: in a repo that genuinely contains BOTH `src/A.mjs`
+ *    and `src/a.mjs` as distinct files, R4 would treat a citation of one as binding a remit about
+ *    the other. That requires a case-colliding repo AND both files being real and byte-verifying —
+ *    contrived — whereas the false-refusal it replaces fires on ordinary macOS work. The gate's own
+ *    doctrine rates a false refusal as severe as a fail-open precisely because it is what teaches
+ *    operators to bypass, so this is the better error to make.
+ *
+ * Backslash folding stays win32-only for the opposite reason: there, `\` is genuinely the separator,
+ * while on POSIX it is a legal filename character and folding invents an equivalence.
  *
  * Order matters: separators first, then `.` segments, then collapse, then case.
  */
 export const normPath = (p) => {
-  const win = process.platform === 'win32';
   let s = String(p);
-  if (win) s = s.replaceAll('\\', '/');
+  if (process.platform === 'win32') s = s.replaceAll('\\', '/');
   s = s.replace(/\/{2,}/g, '/').replace(/^\.\//, '');
   while (s.includes('/./')) s = s.replace('/./', '/');
-  return win ? s.toLowerCase() : s;
+  return s.toLowerCase();
 };

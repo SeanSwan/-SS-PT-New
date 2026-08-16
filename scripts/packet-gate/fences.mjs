@@ -101,6 +101,23 @@ export function parseFences(markdown) {
   // An unterminated fence is malformed markdown; keep what we have so R3 can still inspect it.
   if (open) { open.end = lines.length; blocks.push(open); }
 
+  // CITED means "claims a path", INCLUDING an empty one — and that is deliberate, not an oversight.
+  //
+  // Kimi K3 (round 6, F3) flagged that the `\S+` → `\S*` change makes a bare `path=` produce
+  // `attrs.path === ''`, which is a string, so the fence classifies as CITED and stops being visible
+  // to `checkUncited`. It then sketched two branches: fail-open if provenance skips falsy paths, or
+  // an undiagnosable EISDIR if it reads ROOT. **Neither branch exists here.** `badPath` in
+  // provenance.mjs rejects an empty path BEFORE any read and returns a specific R3 with the reason
+  // "unusable path (empty path)" — verified by a canary that exists precisely for it.
+  //
+  // Requiring a non-empty path here was TRIED and reverted the same round: it reclassified the block
+  // as uncited, so `checkProvenance` skipped it, and `badPath`'s empty-path branch became
+  // UNREACHABLE — the canary went red immediately. That is the "a check that can no longer fire"
+  // defect this whole programme is about, introduced while fixing a finding whose danger was
+  // hypothetical. The canary caught it in under a minute, which is what canaries are for.
+  //
+  // So: an empty path stays CITED and is refused by R3 with the better message. Anyone revisiting
+  // this should read the canary "R3 empty cited path is refused, never read" first.
   return blocks.map((b) => ({ ...b, body: b.body.join('\n'), cited: typeof b.attrs.path === 'string' }));
 }
 

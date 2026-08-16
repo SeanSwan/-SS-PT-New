@@ -54,7 +54,16 @@ export function loadSeed(root, seedArg) {
     return { text: '', blocks: [], error: [`packet-gate: --seed cannot be resolved (${err.code ?? err.message})`] };
   }
 
-  const text = readFileSync(seedPath, 'utf8');
+  // INSIDE a guard: this sat outside one, so `--seed .` (or any in-repo directory) threw EISDIR and
+  // surfaced as "unexpected failure — <stack>", exit 2. Fail-closed but mislabelled, and a stack
+  // trace is the least diagnosable output a gate can produce. (GLM-5.3 round 6, F9.)
+  let text;
+  try {
+    text = readFileSync(seedPath, 'utf8');
+  } catch (err) {
+    return { text: '', blocks: [], error: [`packet-gate: --seed cannot be read (${err.code ?? err.message}): ${seedArg}`,
+      '  Refusing to certify: point --seed at a readable file inside the repository.'] };
+  }
 
   const anomalies = fenceParseAnomalies(text);
   if (anomalies.length) {

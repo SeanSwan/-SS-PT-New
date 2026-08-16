@@ -80,7 +80,16 @@ export function remitFromDoc(md) {
     outside.push(fence ? null : line);
   }
 
-  const i = outside.findIndex((l) => l !== null && /^#{2,}\s*remit\s*$/i.test(l.trim()));
+  // THE HEADING MAY CARRY THE REMIT INLINE. `/^#{2,}\s*remit\s*$/` required the heading to be the
+  // bare word, so `## Remit: review the refund flow` — a completely natural spelling — was not found
+  // at all, and the gate exited 2 telling the operator to "add a `## Remit` section" to a document
+  // that has one. A remedy the operator has already followed is the refusal-fatigue signature this
+  // file names in three other places. (GLM-5.3 round 6, F8.)
+  //
+  // Trailing punctuation with no text (`## Remit:`) is also accepted; the inline text, when present,
+  // becomes the first line of the remit and the following lines still append.
+  const HEADING_RE = /^#{2,}\s*remit\s*(?:[:—–-]\s*(.*))?$/i;
+  const i = outside.findIndex((l) => l !== null && HEADING_RE.test(l.trim()));
   if (i !== -1) {
     // STOP ONLY AT A HEADING OF THE SAME LEVEL OR HIGHER — not at any heading at all.
     //
@@ -111,7 +120,9 @@ export function remitFromDoc(md) {
       const m = /^(#{1,6})\s/.exec(l.trim());
       return Boolean(m) && m[1].length <= level;
     });
-    return (stop === -1 ? rest : rest.slice(0, stop)).filter((l) => l !== null).join('\n').trim();
+    const inline = HEADING_RE.exec(outside[i].trim())?.[1]?.trim();
+    const body = (stop === -1 ? rest : rest.slice(0, stop)).filter((l) => l !== null);
+    return [inline || null, ...body].filter((l) => l !== null).join('\n').trim();
   }
   const fm = outside.find((l) => l !== null && /^remit:\s*.+$/i.test(l));
   return fm ? /^remit:\s*(.+)$/i.exec(fm)[1].trim() : '';
@@ -165,9 +176,14 @@ export function checkUncited(blocks, allowUncited = false) {
 export function checkPremises(anchors, resolve, allowMissing = []) {
   const out = [];
   const warnings = [];
-  // normPath, not a local backslash fold: `./src/x.mjs` and `src//x.mjs` are the same path the
-  // operator meant, and refusing them prints a remedy they have already followed (round 4).
-  const allowed = new Set(allowMissing.map(normPath));
+  // BOTH spellings, so the paths branch and the routes branch cannot disagree about one flag.
+  // Round 6 added `--allow-missing` for routes and compared it RAW (`allowed.has(String(r))`) while
+  // the paths branch compared it NORMALIZED — two comparisons for one flag, in one function, which
+  // is the drift hazard this codebase has now paid for five separate times. A route is not a
+  // filesystem path (normPath would mangle a leading slash), so instead of forcing one normalizer
+  // onto both, the set carries the raw AND normalized form of every allowance and each branch may
+  // match either. (Kimi K3 round 6, F5.)
+  const allowed = new Set(allowMissing.flatMap((p) => [String(p), normPath(p)]));
 
   for (const p of anchors.paths ?? []) {
     // A remit may legitimately name a file that does not exist yet ("add src/validate.mjs; here is
@@ -175,7 +191,7 @@ export function checkPremises(anchors, resolve, allowMissing = []) {
     // was NO mechanism to state it. An unactionable remedy is a refusal-fatigue generator, and the
     // symbols branch below had already solved the same problem with a warning (Kimi K3 round 3, M2).
     // `--allow-missing <path>` is that mechanism: explicit, per-path, and visible in the receipt.
-    if (allowed.has(normPath(p))) {
+    if (allowed.has(String(p)) || allowed.has(normPath(p))) {
       warnings.push(`path ${p} does not exist and was explicitly allowed via --allow-missing`);
       continue;
     }
@@ -191,7 +207,7 @@ export function checkPremises(anchors, resolve, allowMissing = []) {
     // lands. The path-shaped version of that identical packet cleared via one flag while the
     // route-shaped version was a dead end, and an unactionable remedy is what teaches an operator to
     // route around the gate. Same asymmetry the symbols branch already avoided by warning.
-    if (allowed.has(String(r))) {
+    if (allowed.has(String(r)) || allowed.has(normPath(r))) {
       warnings.push(`route ${r} does not resolve and was explicitly allowed via --allow-missing`);
       continue;
     }
