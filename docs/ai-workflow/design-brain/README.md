@@ -27,7 +27,7 @@ It exists to make four brains draw the same picture: same tokens, same patterns,
 
 Every agent that builds or reviews UI agrees to this:
 
-1. **`design.md` is canonical, and now sole.** The `design.html` visual mirror was **retired to `docs/_attic/2026-08-design-html/` on 2026-08-16** — it had drifted into its own section numbering, so citations into it landed on the wrong doctrine. There is no mirror to keep in sync any more; one file, one truth.
+1. **`design.md` is canonical, and now the sole canonical *copy*.** The `design.html` visual mirror was **retired to `docs/_attic/2026-08-design-html/` on 2026-08-16** — it had drifted into its own section numbering, so citations into it landed on the wrong doctrine. There is no mirror to keep in sync any more. **This does not change the layering:** the brain still ADAPTS `SWAN-CINEMATIC-DESIGN-SYSTEM.md` and `SWAN-ASSET-STORYBOARDING.md` and never outranks them — "sole" means one copy, not top of the hierarchy. Humans wanting a visual snapshot can open the frozen, **non-doctrinal** copy in the attic.
 2. **Before any frontend work, read `design.md`.** Not from memory — from disk. Tokens drift; memory drifts faster.
 3. **Reuse documented tokens and components.** If a token or pattern you need exists in `design.md`/`components.md`, use it. Do not fork a near-duplicate.
 4. **Propose — never invent — new tokens.** A new color, spacing step, or radius is a proposal to Sean (and a paired update to `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §B + CLAUDE.md Active Palette per that doc's §G maintenance rules). It is never a hardcoded hex in a component.

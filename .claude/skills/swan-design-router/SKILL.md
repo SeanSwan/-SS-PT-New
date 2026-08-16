@@ -261,7 +261,7 @@ hardcode `p.theme.colors.*` hex; CLAUDE.md Rule 46 + the shipped architecture wi
 |---|---|
 | `SWAN-CINEMATIC-DESIGN-SYSTEM.md` | Cinematic/public builds; deep palette + motion values |
 | `SWAN-ASSET-STORYBOARDING.md` | Any generated/commissioned media |
-| `docs/ai-workflow/design-brain/design.md` | The Crystalline Canon — **sole** source of truth (the `design.html` mirror was retired 2026-08-16; there is no second copy to reconcile) |
+| `docs/ai-workflow/design-brain/design.md` | The Crystalline Canon — **sole canonical copy** (the `design.html` mirror was retired 2026-08-16; no second file to reconcile). Still ADAPTS the two source-of-truth docs above — "sole" means one copy, not top of the precedence chain |
 | `design.md.pre-redo` / `SKILL.md.pre-redo` | Historical context only |
 
 **Precedence on conflict:** this skill > reference docs > existing components >

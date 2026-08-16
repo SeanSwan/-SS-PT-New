@@ -92,7 +92,7 @@ Data classes: `repo` (code/docs) · `app-meta` (routes, configs, non-client data
 | Entry | Owner | Tier | Decision | Notes |
 |---|---|---|---|---|
 | Design Brain bundle | Fable authors · all builders consume | T1 | CREATE → done | `docs/ai-workflow/design-brain/` — adapts, never replaces, SWAN-CINEMATIC-DESIGN-SYSTEM.md |
-| design.md enforcement | Claude Code/Codex | T1 gate | CREATE → done | `design.md` is canonical **and sole** — the `design.html` mirror was retired 2026-08-16, so there is no "update together" obligation any more. Structural enforcement is `npm run brain:links` (pre-commit) |
+| design.md enforcement | Claude Code/Codex | T1 gate | CREATE → done | `design.md` is canonical and the **sole canonical copy** — the `design.html` mirror was retired 2026-08-16, so there is no "update together" obligation any more. It still ADAPTS `SWAN-CINEMATIC-DESIGN-SYSTEM.md`; "sole" means one copy, not top of the hierarchy. Structural enforcement is `npm run brain:links` (pre-commit) |
 | Fable Design Brain adapter | Fable | T1 | CREATE → done | `adapters/fable.md` |
 | Website archetype codex | Fable authors | T1 | CREATE → done | 21 archetypes, one dense doc; #21 is the licensed Experience/World Showcase archetype |
 | World Engine catalog + M4 license | Fable authors · Codex/Claude execute | T1 doctrine / T2 ignored proof | CREATE → done | 18 World DNA recipes, WFX/PSY contracts, product/Hermes firewall, deterministic proof receipts |

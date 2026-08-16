@@ -21,7 +21,7 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 |---|---|
 | `README.md` | What the Design Brain is, load order, enforcement contract, what it does not override |
 | `index.md` | This map |
-| `design.md` | THE dense canonical design system — tokens, modes (Crystalline Swan + Crystalline Cyberforest), type, spacing, surfaces, components-by-surface, states, responsive + a11y rules. **Sole source of truth** — the former `design.html` mirror was retired 2026-08-16 |
+| `design.md` | THE dense canonical design system — tokens, modes (Crystalline Swan + Crystalline Cyberforest), type, spacing, surfaces, components-by-surface, states, responsive + a11y rules. **Sole canonical copy** — the former `design.html` mirror was retired 2026-08-16, so there is no second file to reconcile. (This does **not** elevate it above `SWAN-CINEMATIC-DESIGN-SYSTEM.md`; the brain still ADAPTS the two source-of-truth docs.) |
 | `motion.md` | Motion tiers, GPU-safe rules, reduced-motion gating (CSS + JS), duration/easing tokens, motion bans, signature-moment budget |
 | `components.md` | Component pattern index — purpose / anatomy / states / do–don't / C1–C12 mapping for every canonical pattern |
 | `anti-patterns.md` | The banned list with WHY per item |
