@@ -279,7 +279,7 @@ for (const rel of mdFiles) {
       const nm = m[1].toLowerCase();
       if (!atticBasenames.has(nm)) continue;
       if (sectionsByFile.has(nm) || [...sectionsByFile.keys()].some((k) => basename(k) === nm)) continue;
-      if (ATTIC_CITATION_BASELINE.has(rel)) continue;
+      if (ATTIC_CITATION_BASELINE.has(rel.toLowerCase())) continue;
       atticCitations.push({ file: rel, line: i + 1, cited: m[1], ctx: line.trim().slice(0, 100) });
     }
   });
@@ -330,14 +330,17 @@ const isBackup = (f) => /\.(pre-redo|bak|orig)$/.test(f) || f.endsWith('.pre-red
 // `field-techniques.md`, so a containment test can never see the `techniques.md` row being
 // deleted — the index law would be enforced by a mechanism blind to its own most likely failure.
 const indexLines = lines(indexText);
+// Lower-cased on both sides. Every comparison in this file that mixes raw and normalised case
+// has so far passed only because the corpus happens to be all-lower-case; one capitalised
+// filename would silently reopen the hole. Normalise at the boundary, not by luck.
 const listedExact = new Set(
-  [...indexText.matchAll(/`([A-Za-z0-9._/-]+\.md)`/g)].map((m) => basename(m[1])),
+  [...indexText.matchAll(/`([A-Za-z0-9._/-]+\.md)`/g)].map((m) => basename(m[1]).toLowerCase()),
 );
 // Compare on the corpus-relative PATH where the index gives one, falling back to basename.
 // Basename-only collapsing let all four index.md files be satisfied by the single root listing.
 const listedPaths = new Set([...indexText.matchAll(/`([A-Za-z0-9._/-]+\.md)`/g)].map((m) => m[1].toLowerCase()));
 const unindexed = mdFiles.filter((f) => !IGNORE.has(f) && !isBackup(f)
-  && !listedPaths.has(f.toLowerCase()) && !(f.indexOf('/') === -1 && listedExact.has(basename(f))));
+  && !listedPaths.has(f.toLowerCase()) && !(f.indexOf("/") === -1 && listedExact.has(basename(f).toLowerCase())));
 // index.md legitimately cites docs OUTSIDE this folder (the source-of-truth design system,
 // the world-factory skill). Those are cross-references, not orphans — resolve any listed
 // path against the repo root before calling it missing, or the gate cries wolf and gets ignored.
