@@ -1,8 +1,8 @@
 > **Crystalline Canon — adopted 2026-07-19 (Sean-confirmed)** from KIMI-DESIGN-BRAIN-ENHANCED,
 > the decisive rewrite of the prior Design Brain (killed the hedged "OR" laws; added z/duration/
 > density scales + a `canon:contrast` CI trigger + the SOLID/LIQUID canon lifecycle). Prior version
-> preserved at `design.md.pre-redo`. This canon is the source of truth; `design.html` mirrors it and
-> loses on any conflict. The 6 builder-validated refinements (reduced-motion-in-JS, the fail-closed
+> preserved at `design.md.pre-redo`. This canon is the sole source of truth (the former `design.html`
+> mirror was retired 2026-08-16). The 6 builder-validated refinements (reduced-motion-in-JS, the fail-closed
 > gate/flag scaffold, content-law-scans-comments, Gemini-is-author-not-gate, consult-kimi --effort
 > medium, consumer-vs-emitter world-token boundary) live in the swan-design-router LAWs — canon +
 > law are complementary. Validated by 7 shipped design-overhaul surfaces + their cross-cutting review.
@@ -11,7 +11,7 @@
 
 - **Crystal:** v2.0 · **Status:** CRYSTALLIZED — frozen; change only via §16 thaw · **Date:** 2026-07-04 · **Review pass:** Kimi K3
 - **Supersedes:** Fable draft 2026-07-03. Survives: T0–T4 tiers, dual-glow concept, C11 chart environments, data-only Arctic Cyan, low-motion data cards, 44px discipline. Changes: everything vibes-based is now mechanized or deleted.
-- **Mirror:** `design.html` is GENERATED from this file (`pnpm canon:build`). Hand edits are reverted by CI. One source, one truth.
+- **Mirror: none — retired 2026-08-16.** `design.html` moved to `docs/_attic/2026-08-design-html/`. It was **never** generated: the claim that it was built by `pnpm canon:build` with CI reverting hand edits was false in three ways at once — no such script, no such CI job, and the repo does not use pnpm. Left hand-maintained, it drifted into its own section numbering (its §2/§3 were TYPOGRAPHY/SPACING against canon's Taste Bible/Optics), so every `design.html §N` citation landed on unrelated doctrine. **If a visual reference is wanted again it must be generated from this file by a real, named script — never hand-kept.**
 - **Enforcement — what actually exists** (corrected 2026-08-16; the previous list was fictional):
   - **REAL:** `scripts/ci/check-token-discipline.mjs` (raw-hex discipline only — it does **not** check the radius/spacing scales in §9) · `scripts/ci/check-degalaxy.mjs` (retired-palette ban) · `scripts/design-brain/config/tokens.json` · `scripts/design-brain/check-brain-links.mjs` + `npm run brain:links` (cross-reference gate, pre-commit).
   - **DOES NOT EXIST — do not cite as enforcement:** there is no `canon/` directory anywhere in the repo; no `canon/route-manifest.json`, `canon/signature-moments.json`, `canon/motion-caps.json`, or `canon/copy-lexicon.json`; no `stylelint-config-swan` package; and no `canon:check` / `canon:contrast` / `canon:build` npm script. `tokens.json` is real but lives at `scripts/design-brain/config/`, not `canon/`.

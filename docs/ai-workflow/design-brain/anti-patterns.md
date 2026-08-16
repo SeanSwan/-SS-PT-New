@@ -68,7 +68,7 @@
 | Ban | Why |
 |---|---|
 | **Inventing new tokens/components inside a slice** | New tokens are PROPOSALS to Sean (design.md §1); silent invention = drift |
-| **Updating design.html without design.md (or vice versa)** | They ship together; divergence makes the mirror a liar (README enforcement contract) |
+| **Re-creating a second "visual mirror" of canon** | The old `design.html` mirror drifted into its own section numbering and was retired 2026-08-16. A hand-maintained mirror becomes a liar the first time someone edits one side. If a visual reference is wanted again, it must be **generated** from `design.md`, never hand-kept |
 | **Skipping the mounted-surface receipt before a UI fix** | Rule 26 — you may be styling a dormant component |
 | **"Looks good" as a QA verdict** | qa-gates.md verdicts are binary gates with receipts, not vibes (rule 19) |
 
