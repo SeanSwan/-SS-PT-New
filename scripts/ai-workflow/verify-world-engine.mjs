@@ -201,15 +201,19 @@ export function auditWorldEngineBundle(bundle) {
   // (b) design.md yields >= 20 canonical tokens at all — a PALETTE-EXTRACTION SANITY check whose
   // subject is still very much alive. Deleting the script silently dropped (b) (Kimi round 2,
   // R2-1). Re-asserted here so a design.md that stops yielding a palette still fails loudly.
+  // Palette-existence successor to the retired design-mirror-check.mjs. Deliberately an ANCHOR
+  // check and NOT a token count, after two rounds of getting this wrong:
+  //   v1 (a >= 20 unique-hex floor) PASSED FOR THE WRONG REASON — of design.md's 23 unique tokens,
+  //      3 sit inside code fences and 3 are the RETIRED Galaxy-Swan palette quoted as do-NOT-use
+  //      examples, so deleting the entire live palette still cleared the floor on leftovers.
+  //   v1 also FAILED FOR THE WRONG REASON — 23 observed against a floor of 20 is 3 tokens of
+  //      headroom, so a legitimate 4-token palette revision would have failed a healthy canon
+  //      (Kimi round 3, R3-1). A gate whose false-positive path is "someone edited the palette"
+  //      gets switched off, and then it protects nothing.
+  // Anchoring on the values that MUST be present has neither failure mode: it cannot pass when the
+  // palette is gone, and it cannot fail when the palette is merely revised around these anchors.
+  // Checked: design.md carries no 8-digit #RRGGBBAA tokens, so the 6-digit match drops nothing.
   const canonicalTokens = new Set(((bundle.designMd ?? '').match(/#[0-9A-Fa-f]{6}\b/g) ?? []).map((h) => h.toLowerCase()));
-  if (canonicalTokens.size < 20) {
-    errors.push(`design.md canonical palette extraction found only ${canonicalTokens.size} unique hex tokens (expected >= 20)`);
-  }
-  // The bare count PASSES FOR THE WRONG REASON on its own — I attacked my own fix and found it.
-  // Of design.md's 23 unique tokens, 3 sit inside code fences and 3 are the RETIRED Galaxy-Swan
-  // palette quoted as do-NOT-use examples. Strip the live palette out entirely and the count can
-  // still clear 20 on fences plus retired examples. So anchor on tokens that must be present:
-  // if these vanish, canon has lost its actual palette regardless of how many hexes remain.
   const ACTIVE_PALETTE_ANCHORS = ['#002060', '#60c0f0', '#c6a84b', '#8b5cf6', '#0a0a0f'];
   const missingAnchors = ACTIVE_PALETTE_ANCHORS.filter((h) => !canonicalTokens.has(h));
   if (missingAnchors.length) {
@@ -219,7 +223,12 @@ export function auditWorldEngineBundle(bundle) {
   // the RETIRED "Reduced-Motion-as-a-fourth-tier" contract from creeping back. The surviving
   // positive assertion above states what canon must say; this states what it must NOT say, and a
   // positive check cannot catch a contradiction sitting beside it.
-  if (/Tier 3 — Reduced motion/i.test(bundle.designMd ?? '')) {
+  // SCOPE, stated so no future reader credits this with more than it has (Kimi round 3, R3-2):
+  // this is a VERBATIM tripwire for history-resurrection — the realistic threat is a copy-paste
+  // from git history or an old doc, which preserves the literal string. A *paraphrased*
+  // reintroduction evades it by design; doctrine review owns that case, not this regex. The colon
+  // form is included because it is the one editorial normalisation likely to happen by accident.
+  if (/Tier 3\s*[—:-]\s*Reduced motion/i.test(bundle.designMd ?? '')) {
     errors.push('design.md retains the retired Reduced-Motion-as-tier contract');
   }
   requirePattern(errors, bundle.motion ?? '', /Licensed M4 pointer[\s\S]*Full\/Lean\/Still/i, 'motion doctrine lacks M4 and runtime-mode stitching');
