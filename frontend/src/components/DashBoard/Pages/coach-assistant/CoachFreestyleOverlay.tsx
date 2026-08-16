@@ -19,6 +19,7 @@
 import React, { useCallback, useEffect } from 'react';
 import { Mic, Pause, Play, Check, Trash2, X } from 'lucide-react';
 import { useFreestyleSession, type FreestyleFragment } from './hooks/useFreestyleSession';
+import { useFreestyleSpeech } from './hooks/useFreestyleSpeech';
 import {
   FreestyleOverlay,
   SignalStrip,
@@ -40,8 +41,20 @@ interface CoachFreestyleOverlayProps {
   /** Account that owns the buffer. A change purges it — shared-tablet guarantee. */
   accountKey: string | number | null;
   onClose: () => void;
-  /** Handed the captured fragments when the user finishes. S4 consumes this. */
-  onStopped?: (fragments: FreestyleFragment[]) => void;
+  /**
+   * Handed a FROZEN SNAPSHOT when the user finishes — never the live buffer.
+   * Passing the session's own array let the parent keep a reference that survived
+   * every purge trigger, which hollowed out the retention contract the moment
+   * Done was tapped.
+   */
+  onStopped?: (snapshot: FreestyleSnapshot) => void;
+}
+
+/** An immutable copy handed across the purge boundary. */
+export interface FreestyleSnapshot {
+  fragments: readonly FreestyleFragment[];
+  wordCount: number;
+  elapsedMs: number;
 }
 
 const formatElapsed = (ms: number): string => {
@@ -59,6 +72,15 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
 }) => {
   const session = useFreestyleSession({ accountKey });
 
+  /**
+   * Freestyle listens ON-DEVICE. It deliberately does not use the RECORD pipeline,
+   * which uploads audio to a server-side model — audio in which Sean says real
+   * client names out loud. Tokenising the transcript would not help.
+   */
+  const speech = useFreestyleSpeech({
+    onPhrase: (text) => session.appendFragment(text),
+  });
+
   const {
     state, fragments, elapsedMs, sinceLastFragmentMs, wordCount,
     discardPending, start, pause, resume, stop,
@@ -69,10 +91,29 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     if (isOpen && state === 'idle') start();
   }, [isOpen, state, start]);
 
+  /**
+   * The engine follows the session, not the other way round. Anything that ends
+   * capture — pause, stop, discard, TTL purge, account switch — releases the
+   * microphone, because every one of those states means we must not be hearing.
+   */
+  const speechStart = speech.start;
+  const speechStop = speech.stop;
+  useEffect(() => {
+    // Depend on the stable callbacks, not the hook object — that object is new on
+    // every render, so this effect would re-run continuously during a session.
+    if (state === 'listening') speechStart();
+    else speechStop();
+  }, [state, speechStart, speechStop]);
+
   const handleStop = useCallback(() => {
     stop();
-    onStopped?.(fragments);
-  }, [stop, onStopped, fragments]);
+    // Frozen copy: the live array is about to become purgeable (see F-3 above).
+    onStopped?.({
+      fragments: Object.freeze(fragments.map(f => Object.freeze({ ...f }))),
+      wordCount,
+      elapsedMs,
+    });
+  }, [stop, onStopped, fragments, wordCount, elapsedMs]);
 
   const handleDiscard = useCallback(() => {
     discard();
@@ -108,7 +149,9 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   const quietFor = Math.floor(sinceLastFragmentMs / 1000);
   const isQuiet = isListening && fragments.length > 0 && quietFor >= 4;
 
-  const latestPhrase = fragments.length > 0 ? fragments[fragments.length - 1].text : '';
+  // Prefer the live partial so the screen moves while a phrase is still forming.
+  const latestPhrase = speech.interim
+    || (fragments.length > 0 ? fragments[fragments.length - 1].text : '');
 
   return (
     <FreestyleOverlay $isOpen={isOpen} role="dialog" aria-modal="true" aria-label="Freestyle dictation">
@@ -142,6 +185,7 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
           {isPaused && 'Paused. Nothing is being heard.'}
           {isStopped && `Finished — ${wordCount} words captured. Nothing has been saved yet.`}
           {state === 'discarded' && 'Session discarded. Nothing was saved.'}
+          {speech.error && ` ${speech.error}`}
         </StatusLine>
       </Stage>
 
