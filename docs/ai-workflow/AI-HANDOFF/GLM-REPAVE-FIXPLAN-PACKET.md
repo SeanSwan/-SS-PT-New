@@ -167,7 +167,28 @@ I wrote a scanner reusing the gate's `refsIn()` and `sectionsOf()` regexes **cop
 
 **Instrument validation, mandatory before reporting any absence (§4.2):** the scanner must re-find the known-dead `cinematic-pages.md §18` in both constitutions, or it exits and reports nothing. **It passed** — found the control at `CLAUDE.md:157` and `AGENTS.md:163`.
 
-Scope: `CLAUDE.md`, `AGENTS.md`, `ACTIVE-INDEX.md`, `.claude/`, `.agents/`, `scripts/`, `docs/ai-workflow/references/`, `docs/ai-workflow/AI-HANDOFF/`, `docs/ai-workflow/hermes-agentic-os/`, `AI-Village-Documentation/`. Extensions: md, mjs, js, ts, tsx, json, yaml, yml, sh, ps1. **2,031 files scanned; 428 brain citations found outside the brain.**
+Scope: `CLAUDE.md`, `AGENTS.md`, `ACTIVE-INDEX.md`, `.claude/`, `.agents/`, `scripts/`, `docs/ai-workflow/references/`, `docs/ai-workflow/AI-HANDOFF/`, `docs/ai-workflow/hermes-agentic-os/`, `AI-Village-Documentation/`. Extensions: md, mjs, js, ts, tsx, json, yaml, yml, sh, ps1. **2,031 files scanned; 428 brain citations found outside the brain** — measured at `6798ae029`, *before* this packet and the four reviews existed.
+
+> **⚠ THIS MEASUREMENT PERTURBS ITSELF — found in a dry-loop round after committing.**
+> Re-running the identical scanner after this review round returns ~2,037 files and ~470+
+> citations. Nothing rotted. The delta is *exactly* the documents this review round produced:
+> a packet and four reviews that discuss dead references necessarily **contain** dead references
+> (the quoted-defect vocabulary — `§99`, `§18`, and so on).
+>
+> **Do not read the figures above or below as stable.** The first draft of this very warning
+> pinned an exact count; the next dry-loop round re-ran the scanner and found the count had moved
+> **again, by exactly the two citations this warning paragraph introduced.** A number that changes
+> when you describe it cannot be quoted as a fact — only the *mechanism* can. That is why no
+> current figure is given here: any number printed in this file is falsified by the printing.
+>
+> **So the E-bucket is not merely "expected and harmless" — it is self-inflating, and it grows
+> every time anyone reviews it.** Any future count over `AI-HANDOFF/` is a measurement of how much
+> review has happened, not how much rot exists. This is the §1 lesson in a new costume: the count
+> moved without the world moving, because the instrument's *scope* now includes its own output.
+>
+> **Consequence for the fix plan:** Fable F-5 and Kimi F14 both asked for a quarantine convention
+> for quoted defects. This makes it non-optional — without a marker excluding review documents
+> **by marker rather than by directory**, the number is uninterpretable and trends upward forever.
 
 ### 5.2 Result — the hypothesis was largely DISCONFIRMED
 

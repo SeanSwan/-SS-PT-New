@@ -80,7 +80,7 @@ Each scan ran its own positive control first; each would have exited without rep
 | Skills (`.claude/`, `.agents/`) | 0 dead | `[VERIFIED]` for the `§N` form |
 | Reference docs | 0 dead | `[VERIFIED]` for the `§N` form |
 | `scripts/` | 0 real (1 false positive: the gate's own explanatory comment) | `[VERIFIED]` |
-| AI-HANDOFF records | 111 — review docs *quoting* defects as test vectors | expected, harmless |
+| AI-HANDOFF records | ~111 at the time of scan — review docs *quoting* defects as test vectors. **Do not treat this number as stable: it counts review activity, not rot, and it grew while this very review round was written** (see the packet's §5.1 self-perturbation note). | not rot — but **not "harmless" either**: it is self-inflating and needs a quarantine marker |
 | **`frontend/src` + `backend`** | **8,451 files · 11 in-code citations · 0 dead** | `[VERIFIED]`, snapshot only |
 | Prose/title refs ("the Two-speed law") | **UNMEASURED — no instrument exists** | `[UNKNOWN]` |
 | The 6 externally-cited files' `§N` | **UNVALIDATED — the gate checks existence, never sections** | `[UNKNOWN]` |
