@@ -18,22 +18,34 @@ const router = express.Router();
  */
 router.post('/upgrade-to-client/:userId', protect, adminOnly, async (req, res) => {
   try {
-    const { userId } = req.params;
-    
-    if (!userId) {
+    // Validate SHAPE, not just presence. `findByPk('abc')` inside upgradeToClient
+    // returns falsy, which fell through to a generic 500 — a malformed id is a 400,
+    // and a real id that matches nobody is a 404 (GLM-5.3 L1, 2026-08-16).
+    const normalizedUserId = Number.parseInt(req.params.userId, 10);
+
+    if (!Number.isSafeInteger(normalizedUserId) || normalizedUserId <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'User ID is required'
+        message: 'A valid user ID is required'
       });
     }
-    
-    const success = await upgradeToClient(userId);
+
+    const success = await upgradeToClient(normalizedUserId);
     
     if (success) {
-      const user = await User.findByPk(userId, {
+      const user = await User.findByPk(normalizedUserId, {
         attributes: { exclude: ['password', 'refreshTokenHash'] }
       });
-      
+
+      if (!user) {
+        // upgradeToClient reported success but the row vanished between the two
+        // reads. Rare, but returning `user.id` on null is a 500 with a stack.
+        return res.status(404).json({
+          success: false,
+          message: 'User not found after upgrade'
+        });
+      }
+
       res.status(200).json({
         success: true,
         message: 'User upgraded to client role successfully',
@@ -46,9 +58,13 @@ router.post('/upgrade-to-client/:userId', protect, adminOnly, async (req, res) =
         }
       });
     } else {
-      res.status(500).json({
+      // upgradeToClient returns false for "no such user" as well as for a genuine
+      // failure, and a missing user is a 404, not a server error. It also returns
+      // TRUE for "already a client", so a 200 here does not prove a change occurred —
+      // that ambiguity is tracked in SWA-168 and needs an API change to resolve.
+      res.status(404).json({
         success: false,
-        message: 'Failed to upgrade user to client role'
+        message: 'User not found, or could not be upgraded to client role'
       });
     }
   } catch (error) {
