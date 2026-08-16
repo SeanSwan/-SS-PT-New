@@ -26,6 +26,22 @@ const slideUp = keyframes`
   to { opacity: 1; transform: translateY(0); }
 `;
 
+/**
+ * Reduced-motion guard for the common case: compose this into any styled
+ * component whose own declaration block carries an animation or transition.
+ * Two places cannot use it and guard themselves inline instead — SendButton
+ * (must also neutralise `transform` on :hover/:active, and its media block has
+ * to stay AFTER those rules to win on source order) and TypingDots (the
+ * animation lives on a nested `span`, not the block itself). If you add an
+ * animation here, it composes this or it carries its own guard.
+ */
+const motionSafe = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
+  }
+`;
+
 // ─────────────────────────────────────────────────────────────
 // SECTION: Layout
 // ─────────────────────────────────────────────────────────────
@@ -41,8 +57,11 @@ export const MessagingContainer = styled.div`
 
   @media (max-width: 768px) {
     flex-direction: column;
+    /* The old 520px floor overflowed a 375x667 handset (667-210=457) and pushed
+       the composer below the fold. 240px is low enough to never overflow portrait
+       yet still leaves a usable strip in landscape, where 100dvh-210px is ~165px. */
     height: calc(100dvh - 210px);
-    min-height: 520px;
+    min-height: 240px;
   }
 `;
 
@@ -126,7 +145,10 @@ export const ConversationItem = styled.button<{ $active?: boolean }>`
   width: 100%;
   padding: 0.75rem;
   min-height: 64px;
-  border: none;
+  /* Reserve the border in the base state. It used to be none and only appeared
+     when active, so selecting a row shifted its contents by 1px. */
+  border: 1px solid transparent;
+  border-left: 3px solid transparent;
   border-radius: 10px;
   background: ${({ $active }) =>
     $active
@@ -134,11 +156,13 @@ export const ConversationItem = styled.button<{ $active?: boolean }>`
       : 'transparent'};
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease;
   animation: ${fadeIn} 0.3s ease;
+  ${motionSafe}
 
   ${({ $active }) => $active && css`
-    border: 1px solid color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
+    border-color: color-mix(in srgb, var(--accent-primary, #60C0F0) 25%, transparent);
+    border-left-color: var(--accent-primary, #60C0F0);
   `}
 
   &:hover {
@@ -214,17 +238,20 @@ export const UnreadBadge = styled.span`
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
+  /* The unread count is the single signal that pulls a trainer back into the
+     app, and it was the smallest text on screen (10px) filled with a surface
+     token. Now Ice Wing on Obsidian — ~9.7:1 — at a legible size. */
+  min-width: 22px;
+  height: 22px;
   padding: 0 6px;
-  border-radius: 10px;
-  background: var(--bg-primary, #002060);
+  border-radius: 11px;
+  background: var(--accent-primary, #60C0F0);
   border: 1px solid var(--accent-primary, #60C0F0);
-  box-shadow: 0 0 8px rgba(96, 192, 240, 0.4);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-primary, #60C0F0) 35%, transparent);
   font-family: 'Sora', sans-serif;
-  font-size: 0.625rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  color: var(--text-heading, #E0ECF4);
+  color: var(--bg-base, #0A0A0F);
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -305,16 +332,20 @@ export const MessageBubble = styled.div<{ $isMine: boolean }>`
   padding: 0.625rem 0.875rem;
   border-radius: 14px;
   animation: ${slideUp} 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  ${motionSafe}
   align-self: ${({ $isMine }) => ($isMine ? 'flex-end' : 'flex-start')};
 
+  /* Own-message fill is deepened toward the base so Frost White body text
+     clears 4.5:1. Raw #8B5CF6 under #E0ECF4 measured ~3.5:1 and failed at the
+     13px body size — on the majority of the screen. */
   background: ${({ $isMine }) =>
     $isMine
-      ? 'var(--accent-secondary, #8B5CF6)'
+      ? 'color-mix(in srgb, var(--accent-secondary, #8B5CF6) 72%, var(--bg-base, #0A0A0F))'
       : 'var(--bg-surface, #1A1A24)'};
 
   border: ${({ $isMine }) =>
     $isMine
-      ? 'none'
+      ? '1px solid color-mix(in srgb, var(--accent-secondary, #8B5CF6) 42%, transparent)'
       : '1px solid var(--border-soft, rgba(96, 192, 240, 0.1))'};
 
   ${({ $isMine }) => $isMine && css`
@@ -337,7 +368,9 @@ export const MessageText = styled.p`
 export const MessageTime = styled.span<{ $isMine?: boolean }>`
   display: block;
   font-family: 'Fira Code', monospace;
-  font-size: 0.6rem;
+  /* Raised from 0.6rem (9.6px). 12px is the micro-type floor used across this
+     file (UnreadBadge, ConnectionStatus) so the same class of text matches. */
+  font-size: 0.75rem;
   color: ${({ $isMine }) =>
     $isMine
       ? 'rgba(224, 236, 244, 0.95)'
@@ -416,13 +449,33 @@ export const SendButton = styled.button`
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
+  /* Dual-Button Glow law: a purple background throws a CYAN glow, never purple
+     on purple. Was rgba(139, 92, 246, 0.4) glowing its own fill. */
   &:hover:not(:disabled) {
     transform: scale(1.05);
-    box-shadow: 0 0 16px rgba(139, 92, 246, 0.4);
+    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-primary, #60C0F0) 45%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    /* 3px offset puts the ring on the dark chrome rather than half-overlapping
+       the purple fill, which only reached ~2:1 against it. */
+    outline-offset: 3px;
   }
 
   &:active:not(:disabled) {
     transform: scale(0.95);
+  }
+
+  /* MUST stay below the :hover/:active rules above. A media query adds no
+     specificity, so an equally-weighted rule declared later would win and the
+     guard would silently do nothing for the state it names. */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+      transform: none;
+    }
   }
 
   &:disabled {
@@ -489,6 +542,7 @@ export const SkeletonLine = styled.div<{ $width?: string }>`
   );
   background-size: 200% 100%;
   animation: ${shimmer} 1.5s ease infinite;
+  ${motionSafe}
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -505,6 +559,7 @@ export const ModalOverlay = styled.div`
   justify-content: center;
   z-index: 1000;
   animation: ${fadeIn} 0.2s ease;
+  ${motionSafe}
 `;
 
 export const ModalContent = styled.div`
@@ -518,6 +573,7 @@ export const ModalContent = styled.div`
   flex-direction: column;
   overflow: hidden;
   animation: ${slideUp} 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  ${motionSafe}
 `;
 
 export const ModalHeader = styled.div`
@@ -642,11 +698,19 @@ export const OnlineDot = styled.span<{ $online: boolean }>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: ${({ $online }) => ($online ? '#4ECDC4' : '#4A5568')};
+  /* Was #4ECDC4 / #4A5568 — a framework-default teal and slate that exist
+     nowhere in the Crystalline Swan palette. Presence now reads Ice Wing. */
+  background: ${({ $online }) =>
+    $online
+      ? 'var(--accent-primary, #60C0F0)'
+      : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 25%, transparent)'};
   border: 2px solid var(--bg-surface, #1A1A24);
   flex-shrink: 0;
   transition: background 0.3s ease;
-  ${({ $online }) => $online && `box-shadow: 0 0 6px rgba(78, 205, 196, 0.5);`}
+  ${motionSafe}
+  ${({ $online }) => $online && css`
+    box-shadow: 0 0 6px color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent);
+  `}
 `;
 
 export const AvatarWrap = styled.div`
@@ -661,9 +725,14 @@ export const OnlineBadge = styled.span<{ $online: boolean }>`
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: ${({ $online }) => ($online ? '#4ECDC4' : '#4A5568')};
+  background: ${({ $online }) =>
+    $online
+      ? 'var(--accent-primary, #60C0F0)'
+      : 'color-mix(in srgb, var(--text-primary, #E0ECF4) 25%, transparent)'};
   border: 2px solid var(--bg-surface, #1A1A24);
-  ${({ $online }) => $online && `box-shadow: 0 0 8px rgba(78, 205, 196, 0.5);`}
+  ${({ $online }) => $online && css`
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent);
+  `}
 `;
 
 export const TypingIndicator = styled.div`
@@ -673,6 +742,7 @@ export const TypingIndicator = styled.div`
   padding: 0 1.25rem;
   min-height: 24px;
   animation: ${fadeIn} 0.2s ease;
+  ${motionSafe}
 `;
 
 export const TypingDots = styled.span`
@@ -686,6 +756,7 @@ export const TypingDots = styled.span`
     border-radius: 50%;
     background: var(--accent-primary, #60C0F0);
     animation: ${typingDot} 1.4s ease-in-out infinite;
+    @media (prefers-reduced-motion: reduce) { animation: none; }
 
     &:nth-child(2) { animation-delay: 0.2s; }
     &:nth-child(3) { animation-delay: 0.4s; }
@@ -704,8 +775,16 @@ export const ConnectionStatus = styled.div<{ $connected: boolean }>`
   align-items: center;
   gap: 6px;
   font-family: 'Fira Code', monospace;
-  font-size: 0.6rem;
-  color: ${({ $connected }) => ($connected ? '#4ECDC4' : '#D4A574')};
+  font-size: 0.75rem;
+  /* Was #4ECDC4 / #D4A574 — off-palette teal and tan.
+     TEXT uses the SOFT danger value, not the saturated one: #C92A54 measures
+     3.2-3.7:1 on our dark surfaces and fails 4.5:1 at this size, whereas
+     #FF8FA3 clears it comfortably. The saturated value is reserved below for
+     non-text marks (dots, rails), where the 3:1 non-text threshold applies. */
+  color: ${({ $connected }) =>
+    $connected
+      ? 'var(--accent-primary, #60C0F0)'
+      : 'var(--danger-soft-text, #FF8FA3)'};
   margin-left: auto;
 `;
 
@@ -713,9 +792,16 @@ export const StatusDot = styled.span<{ $connected: boolean }>`
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: ${({ $connected }) => ($connected ? '#4ECDC4' : '#D4A574')};
-  ${({ $connected }) => $connected && `box-shadow: 0 0 4px rgba(78, 205, 196, 0.5);`}
-  ${({ $connected }) => !$connected && `box-shadow: 0 0 4px rgba(212, 165, 116, 0.4);`}
+  background: ${({ $connected }) =>
+    $connected
+      ? 'var(--accent-primary, #60C0F0)'
+      : 'var(--danger-text, #C92A54)'};
+  ${({ $connected }) => $connected && css`
+    box-shadow: 0 0 4px color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent);
+  `}
+  ${({ $connected }) => !$connected && css`
+    box-shadow: 0 0 4px color-mix(in srgb, var(--danger-text, #C92A54) 45%, transparent);
+  `}
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -728,21 +814,54 @@ const bannerSlideDown = keyframes`
 `;
 
 export const ErrorBanner = styled.div<{ $persistent?: boolean }>`
-  background: color-mix(in srgb, #D4A574 15%, var(--bg-surface, #1A1A24));
-  border-bottom: 1px solid color-mix(in srgb, #D4A574 30%, transparent);
-  color: #D4A574;
+  /* Was tinted #D4A574 (off-palette tan) while every other Swan surface codes
+     errors with the danger token. Left rail matches the Coach error-card idiom. */
+  background: color-mix(in srgb, var(--danger-text, #C92A54) 14%, var(--bg-surface, #1A1A24));
+  border-bottom: 1px solid color-mix(in srgb, var(--danger-text, #C92A54) 30%, transparent);
+  border-left: 3px solid var(--danger-text, #C92A54);
+  color: var(--danger-soft-text, #FF8FA3);
   padding: 0.75rem 1.25rem;
+  min-height: 44px;
   font-family: 'Sora', sans-serif;
   font-size: 0.8125rem;
   display: flex;
   align-items: center;
   gap: 8px;
   animation: ${bannerSlideDown} 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  ${motionSafe}
+`;
+
+/**
+ * Dismiss control for ErrorBanner. The banner itself stays a `role="alert"`
+ * div — correct for announcing — but the dismiss action must be a real button:
+ * it previously lived on the div's onClick, which gave keyboard users no way
+ * to clear an error at all.
+ */
+export const ErrorDismissButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--danger-soft-text, #FF8FA3);
   cursor: pointer;
+  transition: background 0.15s ease;
 
   &:hover {
-    background: color-mix(in srgb, #D4A574 25%, var(--bg-surface, #1A1A24));
+    background: color-mix(in srgb, var(--danger-text, #C92A54) 22%, transparent);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: -2px;
+  }
+
+  ${motionSafe}
 `;
 
 export const MessageTextArea = styled.textarea`
@@ -755,7 +874,9 @@ export const MessageTextArea = styled.textarea`
   background: var(--bg-base, #0A0A0F);
   color: var(--text-primary, #E0ECF4);
   font-family: 'Sora', sans-serif;
-  font-size: 0.8125rem;
+  /* 16px is a hard floor on the composer: iOS Safari force-zooms any focused
+     input below it, which yanks the whole thread sideways mid-conversation. */
+  font-size: 1rem;
   line-height: 1.5;
   resize: none;
   overflow-y: auto;

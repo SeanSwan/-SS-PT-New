@@ -1,0 +1,106 @@
+---
+title: Swan Coach Freestyle Intake — Retention Contract (Amendment A6, tightened)
+date: 2026-08-16
+status: draft-awaiting-sean-ratification
+implementation_authorized: false
+supersedes: none
+decision: freestyle session data is ephemeral, account-keyed, and never persisted server-side as audio
+source_pin: origin/main e89ee80d72f6
+---
+
+# Freestyle Intake — Retention Contract
+
+This contract is **load-bearing**, not a default-off courtesy. Per amendment A6 as tightened by the
+2026-08-16 GLM review, **the freestyle path must not ship without this implemented.** The existing
+file-upload PLAUD path keeps the original default-off posture; this contract governs freestyle only.
+
+Freestyle capture is the most PII-dense surface in the product: it is Sean talking freely about real
+clients, by name, including things he would never type into a form. Everything below exists because
+of that.
+
+---
+
+## 1. What may be stored, and where
+
+| Data | Where | Persisted server-side? |
+|---|---|---|
+| Raw audio | Device only, in-session | **Never** |
+| Interim/partial transcript | Device only, encrypted, account-keyed | **Never** |
+| Final transcript text | Device session store, TTL ≤ 24h | **No** |
+| De-identified token stream | In-flight to the consolidation call only | **No** |
+| Structured summary items | Device session store until resolved | **No** |
+| Applied records | Canonical tables, via normal proposals | Yes — as ordinary records |
+
+**Audio never leaves the device except as the transcription stream.** It is never written to disk
+server-side, never to object storage, never to a log.
+
+## 2. Session store requirements
+
+- **Encrypted** at rest on device.
+- **Account-keyed** — a buffer written under trainer A is unreadable under trainer B.
+- **TTL ≤ 24 hours**, enforced independently of any purge trigger.
+- **Session-scoped** — no cross-session accumulation.
+
+## 3. Purge triggers (each independently unit-tested)
+
+A session's audio, transcript, and summary are purged when **any** of these fire:
+
+1. All items save-verified (the session has resolved)
+2. Sean dismisses/discards the session
+3. Logout
+4. Account switch
+5. TTL expiry
+6. Session receipt issued
+
+Purge means the data is gone, not flagged. A purge that leaves recoverable bytes fails this contract.
+
+## 4. Exclusions
+
+Freestyle transcript text and summary content are **excluded from**:
+
+- Application logs
+- Analytics and telemetry
+- Error reports and crash dumps
+- Any model context **beyond the single consolidation call itself**, and that call receives
+  de-identified tokens only
+
+## 5. PII boundary
+
+Client names are mapped to tokens **client-side, before any transcript leaves the device**.
+Consolidation operates on tokenized text. Real names are re-hydrated at render, in trainer
+role-scoped views only.
+
+**Adversarial test required before the consolidation slice ships:** the tokenizer must be exercised
+against the full range of ways Sean actually refers to people out loud — formal first names,
+shortened forms, two-letter initials, possessive references to a relative, and purely descriptive
+references (an activity or trait instead of a name). A tokenizer that only catches formal first
+names violates the zero-PII mandate in letter while appearing to pass.
+
+**Fixture rule:** the test fixture uses **synthetic names only**. Real client names must not enter
+the repo, the test suite, or any committed doc — including as illustrative examples. Sean supplies
+the *shapes* of his naming variety; the fixture instantiates them with invented names.
+
+## 6. Shared-device test (extends amendment A5)
+
+On a shared gym tablet:
+
+1. Trainer A starts a freestyle session and talks.
+2. Account switches to trainer B mid-session.
+3. **Trainer B must see nothing** — no buffer, no partial transcript, no summary, no indication a
+   session existed.
+
+## 7. What this contract does not cover
+
+- The file-upload PLAUD path (`uploadTranscript`) — unchanged, keeps the original A6 default-off posture.
+- Records that have been applied — once confirmed, they are ordinary records under ordinary retention.
+- Server-side scheduling of already-confirmed writes (the dormant lease machinery) — separately adjudicated.
+
+---
+
+## Ratification
+
+**Status: draft.** Sean has ratified the contradiction rule and the future-date rule (2026-08-16).
+This retention contract has **not** yet been ratified and no implementation is authorized against it.
+
+Related: `docs/ai-workflow/coach-brain/10-freestyle-intake.md` (draft),
+`docs/ai-workflow/AI-HANDOFF/GLM-COACH-JARVIS-REVIEW-2026-08-15.md` (§A6, §D2, slice S3).

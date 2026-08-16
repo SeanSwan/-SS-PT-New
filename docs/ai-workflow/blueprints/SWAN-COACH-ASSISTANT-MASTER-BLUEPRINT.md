@@ -1,7 +1,41 @@
 # Swan Studios Coach Assistant — Master Blueprint
 
+> ## ⚠️ SUPERSEDED — v1.0 (2026-03-30) is historical context, not a build spec
+>
+> **Superseded 2026-08-16 by:** `docs/ai-workflow/AI-HANDOFF/SWAN-COACH-V3-UX-WIREFRAMES-2026-08-12.md`
+> (as amended) + `docs/ai-workflow/AI-HANDOFF/GLM-COACH-JARVIS-REVIEW-2026-08-15.md` §E build order.
+>
+> **What still stands:** the mobile-first 16px input law (iOS zoom), the touch-target floor
+> (44/56/64px), the landing-route decision, the performance budgets (virtualization, <100ms first
+> render), the accessibility requirements, and the core instinct that **voice is the primary input
+> on the gym floor**. That instinct was right and is now the whole product direction.
+>
+> **What is now wrong — do not build from these:**
+> 1. **Off-palette fallback hex.** `#030712` and `#141419` are not Crystalline Swan tokens. Correct
+>    fallbacks: `--bg-base → #0A0A0F`, elevation from the `#002060` family, `--text-primary → #E0ECF4`,
+>    accents from Ice Wing `#60C0F0` / Wing Purple `#8B5CF6` only. Arctic Cyan `#50A0F0` stays
+>    chart-only. No retired Galaxy-Swan values anywhere.
+> 2. **"AI" appears throughout the UI copy** ("AI: Good morning", "AI response text"). Branding law:
+>    it is **Swan Coach**, always. Global copy replacement required.
+> 3. **750ms silence auto-send contradicts freestyle.** A freestyle session runs for minutes with no
+>    send events. Auto-send survives only for short-command mode; freestyle uses explicit
+>    Done / "say stop".
+> 4. **The ~15-file component plan is dead.** The real surface is **210 files** under
+>    `coach-assistant/`. The live consolidation targets are the six proposal cards, the three capture
+>    hooks, and the six chrome components — not this doc's file list.
+> 5. **The quick-actions table is subsumed** by the typed proposal system
+>    (`workout_log | plan_edit | client_data_update | frontend_dispatch | …`). Retire it.
+> 6. **Context-chip auto-detection** survives only as intent classification feeding the proposal
+>    classifier — not as user-visible chip switching.
+>
+> **What was added since:** the freestyle intake pipeline, the Jarvis form-fill contract
+> (`FRONTEND_DISPATCH` stays draft-only; the upgrade is visibility, not permission), and the
+> voice-consolidation posture — one capture engine, with Planner/Nutrition/Bootcamp voice entry
+> points migrating on next touch rather than by big-bang rewrite.
+> Doctrine: `docs/ai-workflow/coach-brain/10-freestyle-intake.md` (draft).
+
 > **Version:** 1.0 | **Author:** Claude Opus 4.6 (CEO) | **Date:** 2026-03-30
-> **Status:** PRE-IMPLEMENTATION — Awaiting AI Village Validation
+> **Status:** SUPERSEDED 2026-08-16 (was: PRE-IMPLEMENTATION — Awaiting AI Village Validation)
 > **Priority:** P0 — This is the admin's primary daily-use interface
 
 ---

@@ -24,7 +24,7 @@ import {
   ThreadPanel, ThreadHeader, BackButton, Avatar, ThreadUserName, ThreadUserRole, MessageArea, MessageBubble,
   MessageText, MessageTime, DateDivider, ComposeBar, SendButton, EmptyState, EmptyIcon, EmptyTitle,
   EmptySubtext, SkeletonLine, AvatarWrap, OnlineBadge, TypingIndicator, TypingDots, TypingText,
-  ConnectionStatus, StatusDot, ErrorBanner, MessageTextArea, PendingBubble,
+  ConnectionStatus, StatusDot, ErrorBanner, ErrorDismissButton, MessageTextArea, PendingBubble,
 } from './MessagingStyles';
 
 interface Props {
@@ -242,7 +242,15 @@ const MessageThread: React.FC<Props> = ({
         onUseSuggestedReply={setInputValue}
       />
 
-      {error && <ErrorBanner $persistent={error.type === 'persistent'} onClick={onDismissError} role="alert"><AlertTriangle size={14} /><ErrorMessageText>{safeErrorMessage}</ErrorMessageText><X size={14} /></ErrorBanner>}
+      {error && (
+        <ErrorBanner $persistent={error.type === 'persistent'} role="alert">
+          <AlertTriangle size={14} aria-hidden="true" />
+          <ErrorMessageText>{safeErrorMessage}</ErrorMessageText>
+          <ErrorDismissButton type="button" onClick={onDismissError} aria-label="Dismiss error">
+            <X size={14} aria-hidden="true" />
+          </ErrorDismissButton>
+        </ErrorBanner>
+      )}
       {isGroupConversation && conversation && <GroupManagementPanel conversation={conversation} currentUserId={currentUserId} searchUsers={searchUsers} onRename={onRenameConversation} onAddParticipants={onAddParticipants} onUpdateParticipantRole={onUpdateParticipantRole} onRemoveParticipant={onRemoveParticipant} />}
 
       <MessageArea ref={messageAreaRef}>
