@@ -21,13 +21,55 @@
  */
 export const TRANSPORT_OVERHEAD_CHARS = 2_200;
 
+/** Every flag this CLI knows. Used to catch a valued flag swallowing the NEXT flag as its value. */
+const KNOWN_FLAGS = new Set([
+  '--json', '--allow-uncited', '--document', '--seed', '--remit', '--provider',
+  '--budget-chars', '--overhead-chars', '--max-tokens', '--allow-missing',
+]);
+
+/**
+ * Everything wrong with the parsed arguments, as printable lines. Empty => proceed.
+ *
+ * Lives beside the parser rather than in the CLI so that "what counts as a usable invocation" is one
+ * concern in one file. All three classes here are the same bug wearing different clothes — an input
+ * accepted without meaning to, which then silently disables a check:
+ *   unknown keys  (`--budjet-chars` reverted to a looser default, round 4)
+ *   bad values    (`--max-tokens abc` printed `$NaN`; `--overhead-chars -29000` shrank the packet)
+ *   eaten flags   (`--remit --json` set the remit to "--json" and turned JSON off, round 6)
+ */
+export function argErrors(a) {
+  if (a.unknown.length) {
+    return [`packet-gate: unrecognized flag(s): ${a.unknown.join(', ')}`,
+      '  Refusing to certify: a misspelled flag silently reverts to a default the operator did not choose.'];
+  }
+  if (a.badValue.length) {
+    return [`packet-gate: flag(s) missing a value, or given another flag as their value: ${a.badValue.join('; ')}`,
+      '  Refusing to certify: `--remit --json` silently sets the remit to "--json" and turns JSON off.'];
+  }
+  if (a.bad) {
+    return ['packet-gate: --budget-chars, --overhead-chars and --max-tokens must be non-negative numbers'];
+  }
+  return [];
+}
+
 export function parseArgs(argv) {
-  const a = { budgetChars: 24_000, maxTokens: 60_000, provider: 'kimi', json: false, overheadChars: TRANSPORT_OVERHEAD_CHARS, allowMissing: [], allowUncited: false, unknown: [] };
+  const a = { budgetChars: 24_000, maxTokens: 60_000, provider: 'kimi', json: false, overheadChars: TRANSPORT_OVERHEAD_CHARS, allowMissing: [], allowUncited: false, unknown: [], badValue: [] };
   for (let i = 0; i < argv.length; i += 1) {
     const k = argv[i];
     if (k === '--json') { a.json = true; continue; }
     if (k === '--allow-uncited') { a.allowUncited = true; continue; }
     const v = argv[i + 1];
+    // A VALUED FLAG MUST NOT EAT THE NEXT FLAG. `--remit --json` set the remit to the literal string
+    // "--json", consumed the flag so JSON mode never turned on, and exited 0 — the gate then
+    // evaluated a two-word remit that names nothing (aboutCode false, R4 and R5 both inert) instead
+    // of the document's own `## Remit`. `--allow-missing --json` pushed "--json" into the allow-list.
+    // `--seed` as the final argument set the seed to undefined and it was silently never measured.
+    // All one shape: the parser assumed the next token was a value. Round 3 validated flag VALUES
+    // and round 4 validated flag KEYS; neither checked that a value is not itself a key.
+    if (KNOWN_FLAGS.has(k) && k !== '--json' && k !== '--allow-uncited' && (v === undefined || KNOWN_FLAGS.has(v))) {
+      a.badValue.push(`${k} ${v === undefined ? '(no value)' : `→ ${v}`}`);
+      continue;
+    }
     if (k === '--document') { a.document = v; i += 1; }
     else if (k === '--seed') { a.seed = v; i += 1; }
     else if (k === '--remit') { a.remit = v; i += 1; }

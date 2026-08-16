@@ -34,7 +34,8 @@ import { report } from './packet-gate/report.mjs';
 import { GateUnavailable, makeResolver, scanSecrets, loadSelftest, readCitedFile } from './packet-gate/repo-io.mjs';
 import { isUnverifiedFence, fenceParseAnomalies } from './packet-gate/fences.mjs';
 import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary, checkUncited, hasBindingAnchors, normPath } from './packet-gate/checks.mjs';
-import { parseArgs } from './packet-gate/args.mjs';
+import { unboundNamedPaths } from './packet-gate/artifact.mjs';
+import { parseArgs, argErrors } from './packet-gate/args.mjs';
 import { loadSeed } from './packet-gate/seed.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -47,13 +48,9 @@ function main() {
     console.error('packet-gate: --document <path> is required');
     return 2;
   }
-  if (args.unknown.length) {
-    console.error(`packet-gate: unrecognized flag(s): ${args.unknown.join(', ')}`);
-    console.error('  Refusing to certify: a misspelled flag silently reverts to a default the operator did not choose.');
-    return 2;
-  }
-  if (args.bad) {
-    console.error('packet-gate: --budget-chars, --overhead-chars and --max-tokens must be non-negative numbers');
+  const argProblems = argErrors(args);
+  if (argProblems.length) {
+    for (const line of argProblems) console.error(line);
     return 2;
   }
   const docPath = path.resolve(ROOT, args.document);
@@ -231,6 +228,10 @@ ${seedText}` : md);
   // allow-missing, no resolvable route or symbol — R4's binding returns early and ANY single cited
   // block satisfies R4. That is defensible (there is nothing in the repo left to bind to), but it
   // was SILENT, which is the Category-2 failure this gate is built to refuse in other people's code.
+  const unbound = unboundNamedPaths(blocks, boundPaths);
+  if (unbound.length && unbound.length < boundPaths.length) {
+    warnings.push(`remit names ${boundPaths.length} path(s); ${unbound.join(', ')} ${unbound.length === 1 ? 'is' : 'are'} NOT carried by this packet — the model answers about what it cannot see`);
+  }
   if (aboutCode && !hasBindingAnchors(boundPaths, boundContent)) {
     warnings.push('R4 binding did not run: every anchor the remit names is allow-missing or unresolvable, so any one cited block satisfies R4');
   }

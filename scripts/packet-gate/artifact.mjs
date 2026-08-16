@@ -47,6 +47,20 @@ export const isCodeBlock = (b) => b.cited
 export const hasBindingAnchors = (namedPaths = [], namedContent = []) => (namedPaths.length + namedContent.length) > 0;
 
 /**
+ * A test, spec or fixture path. Deliberately mirrors `RESOLUTION_EXCLUDES` in repo-io.mjs, which
+ * already refuses to let a test vouch for a route's EXISTENCE. Round 6 found the other half of that
+ * hole: nothing stopped a packet from citing a test as the ARTIFACT under review, so a remit about a
+ * handler was satisfied by the handler's test file — which byte-verifies and mentions the route.
+ *
+ * Two lists for one concept is the drift hazard this codebase keeps paying for, and these two are
+ * still separate because one is a git pathspec and the other a JS predicate. They are pinned
+ * together by a test that asserts both classify the same sample paths; if that test fails, they have
+ * drifted and one of them is wrong.
+ */
+export const isTestPath = (p) => /(^|\/)(tests?|__tests__|fixtures?)\//i.test(String(p ?? '').replaceAll('\\', '/'))
+  || /\.(test|spec)\.[cm]?[jt]sx?$/i.test(String(p ?? ''));
+
+/**
  * Does a cited body actually MENTION the named route/symbol?
  *
  * Was `body.includes(n)`, a bare substring test. A remit naming a common symbol — `main`, `init`,
@@ -73,6 +87,21 @@ export function mentions(body, needle) {
  * `remitIsAboutCode` is decided by the caller from anchors (a named path/route/symbol) so the
  * judgment stays in one place and is testable.
  */
+/**
+ * Named paths the remit asks about that the packet does NOT carry.
+ *
+ * R4 is satisfied by ONE bound artifact, so "review how src/a.mjs and src/b.mjs interact" citing
+ * only `b` passes — and the model then answers a question about an interaction it can only see half
+ * of. Refusing would be defensible but would false-refuse the common case where a remit mentions a
+ * neighbouring file in passing, and refusal fatigue is a first-class failure here. So this is
+ * SURFACED in the approval view rather than blocked: the operator sees exactly which named file is
+ * absent and decides. Exported so the CLI and R4 share one notion of "bound".
+ */
+export function unboundNamedPaths(blocks, namedPaths = []) {
+  const bindable = blocks.filter(isCodeBlock).filter((b) => !isTestPath(b.attrs.path));
+  return namedPaths.filter((n) => !bindable.some((b) => normPath(b.attrs.path) === normPath(n)));
+}
+
 export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedContent = []) {
   if (!remitIsAboutCode) return [];
   const codeBlocks = blocks.filter(isCodeBlock);
@@ -103,10 +132,30 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedCo
   const named = [...namedPaths, ...namedContent];
   if (!hasBindingAnchors(namedPaths, namedContent)) return [];
 
-  const pathHit = codeBlocks.some((b) => namedPaths.some((n) => normPath(b.attrs.path) === normPath(n)));
-  const contentHit = codeBlocks.some((b) => namedContent.some((n) => mentions(String(b.body), n)));
-  if (pathHit || contentHit) return [];
+  // ROUND-6 CORRECTION, fourth consecutive round on this one predicate.
+  //
+  // (a) BIND BY THE STRICTEST ANCHOR KIND PRESENT. The check was `pathHit || contentHit`, so a remit
+  //     naming BOTH a path and a symbol was satisfied by any file merely MENTIONING the symbol —
+  //     the round-2 decoy shape reborn through the other dimension. If the remit names a path, a
+  //     path must be cited; content binding applies only when no path is named at all.
+  //
+  // (b) A TEST FILE IS NOT THE SUBJECT. repo-io excludes tests/fixtures from R5 *resolution* (a test
+  //     cannot prove a route exists), but nothing stopped a packet from CITING one as the artifact:
+  //     "review the handler for /refunds/run" + tests/refunds.test.mjs byte-verifies and mentions
+  //     the route, so R4 went green while the model reviewed the test instead of the handler.
+  //     Same exclusion semantics, now applied on both sides.
+  const bindable = codeBlocks.filter((b) => !isTestPath(b.attrs.path));
+  const pathHit = bindable.some((b) => namedPaths.some((n) => normPath(b.attrs.path) === normPath(n)));
+  const contentHit = bindable.some((b) => namedContent.some((n) => mentions(String(b.body), n)));
+  const bound = namedPaths.length ? pathHit : contentHit;
 
-  return [finding('R4', `remit names ${named.join(', ')}, but no cited block quotes any of them (cited: ${codeBlocks.map((b) => b.attrs.path).join(', ')})`,
-    'cite the file the remit is actually about — an unrelated real block verifies nothing about the subject under review')];
+  if (!bound) {
+    const excluded = codeBlocks.length - bindable.length;
+    const why = namedPaths.length
+      ? `remit names path(s) ${namedPaths.join(', ')}, but no cited non-test block IS one of them`
+      : `remit names ${namedContent.join(', ')}, but no cited non-test block mentions any of them`;
+    return [finding('R4', `${why} (cited: ${codeBlocks.map((b) => b.attrs.path).join(', ') || 'none'}${excluded ? `; ${excluded} excluded as test/fixture` : ''})`,
+      'cite the file the remit is actually about — an unrelated real block, or the test for it, verifies nothing about the subject under review')];
+  }
+  return [];
 }

@@ -77,7 +77,30 @@ export const splitDocLines = (s) => normalizeEol(s).split(/[\n\u2028\u2029]/);
  * resolving something. Containment against `..` and absolute paths is enforced separately, before
  * any read, by `badPath` in provenance.mjs and by the resolver in repo-io.mjs.
  */
-export const normPath = (p) => String(p)
-  .replaceAll('\\', '/')
-  .replace(/^\.\//, '')
-  .replace(/\/{2,}/g, '/');
+/**
+ * ROUND-6 CORRECTIONS — three ways this disagreed with the actual filesystem:
+ *
+ * 1. BACKSLASH FOLDING IS WIN32-ONLY NOW. On POSIX a backslash is a LEGAL filename character, so
+ *    `src\x.mjs` and `src/x.mjs` are two different real files. Folding them together let a packet
+ *    cite one and bind to a remit about the other — the wrong artifact, silently, with everything
+ *    byte-verifying. Folding is correct on win32 (where `\` IS the separator) and wrong everywhere
+ *    else, so it is now conditional.
+ * 2. MID-PATH `./`. Only a LEADING `./` was stripped, so `src/./x.mjs` — which resolves on disk and
+ *    which R3 reads happily — never compared equal to `src/x.mjs`, producing an R4 false refusal
+ *    over two spellings of one file.
+ * 3. CASE, on win32 only. `readCitedFile` already case-folds for containment and `existsSync` is
+ *    case-insensitive on NTFS, so R5 passed and R3 passed while R4 refused `SRC/App.mjs` against a
+ *    cited `src/app.mjs` — a refusal whose cause is invisible in a terminal. The verdict is
+ *    deliberately platform-dependent BECAUSE THE FILESYSTEM IS; pretending otherwise means either
+ *    false refusals on Windows or false binds on Linux. Stated rather than hidden.
+ *
+ * Order matters: separators first, then `.` segments, then collapse, then case.
+ */
+export const normPath = (p) => {
+  const win = process.platform === 'win32';
+  let s = String(p);
+  if (win) s = s.replaceAll('\\', '/');
+  s = s.replace(/\/{2,}/g, '/').replace(/^\.\//, '');
+  while (s.includes('/./')) s = s.replace('/./', '/');
+  return win ? s.toLowerCase() : s;
+};

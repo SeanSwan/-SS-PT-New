@@ -84,7 +84,14 @@ export function parseFences(markdown) {
     }
 
     const attrs = {};
-    for (const a of info.trim().matchAll(/([A-Za-z][\w-]*)=("([^"]*)"|\S+)/g)) attrs[a[1]] = a[3] ?? a[2];
+    // `(\S*)` — NOT `\S+`. With `+`, a key whose value was separated by a space (`lines= 40-118`, a
+    // completely ordinary typo) matched nothing, so the attribute was never captured at all and
+    // `attrs.lines` came back `undefined`. R3 reads undefined as "cite the WHOLE file", so it then
+    // byte-diffed a 78-line excerpt against a 400-line file and printed a whole-file divergence for
+    // a correctly-cited range. provenance.mjs states "a typo must never silently widen the range"
+    // and enforces it in parseRange — but this typo never reached parseRange. Capturing the empty
+    // value routes it there, where it is refused as malformed with an actionable message.
+    for (const a of info.trim().matchAll(/([A-Za-z][\w-]*)=("([^"]*)"|\S*)/g)) attrs[a[1]] = a[3] ?? a[2];
     // The language is the first token ONLY when it is a bare word. With no language but attributes
     // present — ```` ``` path=x.mjs lines=1-2 ```` — the old code took `path=x.mjs` AS the language,
     // which is simply wrong and would mis-classify a block the moment anything reasoned about lang.

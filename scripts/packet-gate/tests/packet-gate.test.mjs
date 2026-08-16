@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseFences, remitFromDoc, checkProvenance, checkPremises, checkSize, checkArtifact, normPath } from '../checks.mjs';
 import { gateSourceFiles } from '../source-hash.mjs';
+import { unboundNamedPaths } from '../artifact.mjs';
 
 /** A minimal cited CODE block, for the R4 binding tests. */
 const codeBlock = (p, body = 'const x = 1;') => ({ cited: true, attrs: { path: p }, lang: 'js', body });
@@ -517,4 +518,84 @@ test('HIGH REGRESSION: a subheading inside the Remit section does not truncate i
   // Start and stop tests now both run on trimmed lines, so an indented ATX heading cannot be
   // absorbed into the remit and inject a path anchor the operator never wrote.
   assert.doesNotMatch(remitFromDoc('## Remit\nReview src/auth/login.mjs\n  ## src/utils/format.mjs\n'), /format\.mjs/);
+});
+
+// --- Round 6 findings, 2026-08-16 (the seven MEDIUM/LOW carried from round 5) --------------------
+
+test('R4 binds by the STRICTEST anchor kind: a symbol mention cannot satisfy a path remit', () => {
+  // `pathHit || contentHit` meant a remit naming a path AND a symbol was satisfied by any file
+  // merely MENTIONING the symbol — the round-2 decoy shape reborn through the other dimension.
+  const mentions = codeBlock('src/other.mjs', 'validateToken()');
+  assert.equal(checkArtifact(true, [mentions], ['src/auth.mjs'], ['validateToken']).length, 1);
+  // With NO path named, content binding is still the right (and only) mechanism.
+  assert.equal(checkArtifact(true, [mentions], [], ['validateToken']).length, 0);
+});
+
+test('R4: a test file cannot serve as the artifact for the code it tests', () => {
+  // repo-io already refuses to let a test vouch for a route's EXISTENCE; nothing stopped a packet
+  // citing one as the SUBJECT, so the model reviewed the test instead of the handler.
+  for (const p of ['tests/refunds.test.mjs', 'src/__tests__/a.mjs', 'src/fixtures/b.mjs', 'src/a.spec.ts']) {
+    assert.equal(checkArtifact(true, [codeBlock(p, 'it("/refunds/run")')], [], ['/refunds/run']).length, 1, p);
+  }
+  assert.equal(checkArtifact(true, [codeBlock('src/refunds/run.mjs', 'router.post("/refunds/run")')], [], ['/refunds/run']).length, 0);
+});
+
+test('R4 WARNS (not refuses) when the remit names a path the packet does not carry', () => {
+  // Refusing would false-refuse the common "…and its neighbour" phrasing; silence let the model
+  // answer about an interaction it could only see half of. Surfaced instead.
+  assert.deepEqual(unboundNamedPaths([codeBlock('src/b.mjs')], ['src/a.mjs', 'src/b.mjs']), ['src/a.mjs']);
+  assert.deepEqual(unboundNamedPaths([codeBlock('src/b.mjs')], ['src/b.mjs']), []);
+});
+
+test('normPath matches the filesystem it actually runs on', () => {
+  // Backslash folding is correct on win32 (it IS the separator) and WRONG on POSIX, where a
+  // backslash is a legal filename character and `src\x.mjs` is a different real file.
+  if (process.platform === 'win32') {
+    assert.equal(normPath('src\\x.mjs'), normPath('src/x.mjs'));
+    assert.equal(normPath('SRC/App.mjs'), normPath('src/app.mjs'), 'NTFS is case-insensitive');
+  } else {
+    assert.notEqual(normPath('src\\x.mjs'), normPath('src/x.mjs'), 'a backslash filename is its own file');
+  }
+  assert.equal(normPath('src/./x.mjs'), normPath('src/x.mjs'), 'mid-path ./ resolves on disk');
+  assert.equal(normPath('./src//x.mjs'), normPath('src/x.mjs'));
+});
+
+test('REGRESSION: `lines= 40-118` is refused as malformed, not silently widened to the whole file', () => {
+  // `\S+` failed to match past the space, so the attribute vanished and R3 read undefined as
+  // "cite the whole file" — printing a whole-file diff for a correctly-cited range.
+  const [b] = parseFences('```js path=a.mjs lines= 40-118\nfoo\n```');
+  assert.equal(b.attrs.lines, '', 'the empty value must be captured, not dropped');
+  const f = checkProvenance([b], () => 'x\ny\nz\n');
+  assert.equal(f.length, 1);
+  assert.match(f[0].detail, /malformed lines=/);
+});
+
+test('REGRESSION: a valued flag cannot swallow the next flag as its value', () => {
+  const f = join(tmp(), 'ok.md');
+  writeFileSync(f, '## Remit\n\nReview /api/sessions\n');
+  // `--remit --json` set the remit to the literal "--json" (naming nothing, so R4/R5 went inert)
+  // AND disabled JSON, at exit 0.
+  const a = runGate(['--document', f, '--remit', '--json']);
+  assert.equal(a.code, 2, a.out);
+  assert.match(a.out, /another flag as their value|missing a value/i);
+  // A flag with no value at all is the same shape: `--seed` last meant the seed was never measured.
+  assert.equal(runGate(['--document', f, '--seed']).code, 2);
+  // …and a legitimate value is untouched: the flag PARSES and the run reaches the real checks.
+  // (This packet then fails R4 — it carries no cited code — which is the correct verdict and is
+  // exactly the distinction being asserted: exit 1 is "the packet is wrong", exit 2 is "the flag
+  // was wrong". Asserting 0 here would have been asserting a bug.)
+  const good = runGate(['--document', f, '--remit', 'Review /api/sessions']);
+  assert.equal(good.code, 1, good.out);
+  assert.doesNotMatch(good.out, /missing a value|another flag as their value/i);
+});
+
+test('REGRESSION: a route can be excused with --allow-missing, like a path', () => {
+  // "review the new handler for POST /api/widget" was a dead end while the path-shaped version of
+  // the same packet cleared via one flag — an unactionable remedy teaches operators to bypass.
+  const anchors = { paths: [], routes: ['/api/widget'], symbols: [] };
+  const r = checkPremises(anchors, () => false, ['/api/widget']);
+  assert.deepEqual(r.findings, [], 'the flag must excuse a route, not just a path');
+  assert.equal(r.warnings.length, 1, 'and it must still be visible in the receipt');
+  // Without the flag it is still a refusal — the phantom-route catch is intact.
+  assert.equal(checkPremises(anchors, () => false, []).findings.length, 1);
 });

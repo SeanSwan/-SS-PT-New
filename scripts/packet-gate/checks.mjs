@@ -185,9 +185,19 @@ export function checkPremises(anchors, resolve, allowMissing = []) {
     }
   }
   for (const r of anchors.routes ?? []) {
+    // ROUTES GET THE SAME MECHANISM PATHS HAVE. The remedy here used to be "correct the route term",
+    // which is unactionable for the perfectly ordinary remit "review the new handler for POST
+    // /api/widget — the route is being added in this change": the route is correct once the change
+    // lands. The path-shaped version of that identical packet cleared via one flag while the
+    // route-shaped version was a dead end, and an unactionable remedy is what teaches an operator to
+    // route around the gate. Same asymmetry the symbols branch already avoided by warning.
+    if (allowed.has(String(r))) {
+      warnings.push(`route ${r} does not resolve and was explicitly allowed via --allow-missing`);
+      continue;
+    }
     if (!resolve(r, 'route')) {
       out.push(finding('R5', `remit names route ${r} — 0 hits in repo`,
-        `correct the route term. Reviewing phantoms is exactly how a paid review burned a finding on /unblock`));
+        `correct the route term, or pass --allow-missing ${r} if the remit is about creating it. Reviewing phantoms is exactly how a paid review burned a finding on /unblock`));
     }
   }
   for (const s of anchors.symbols ?? []) {
