@@ -205,6 +205,13 @@ export function auditWorldEngineBundle(bundle) {
   if (canonicalTokens.size < 20) {
     errors.push(`design.md canonical palette extraction found only ${canonicalTokens.size} unique hex tokens (expected >= 20)`);
   }
+  // NEGATIVE sentinel, re-homed from the deleted design.html check (GLM round 2, R2-5). It guards
+  // the RETIRED "Reduced-Motion-as-a-fourth-tier" contract from creeping back. The surviving
+  // positive assertion above states what canon must say; this states what it must NOT say, and a
+  // positive check cannot catch a contradiction sitting beside it.
+  if (/Tier 3 — Reduced motion/i.test(bundle.designMd ?? '')) {
+    errors.push('design.md retains the retired Reduced-Motion-as-tier contract');
+  }
   requirePattern(errors, bundle.motion ?? '', /Licensed M4 pointer[\s\S]*Full\/Lean\/Still/i, 'motion doctrine lacks M4 and runtime-mode stitching');
   requirePattern(errors, bundle.cinematic ?? '', /M4 loss-matrix pointer[\s\S]*B3 failure[\s\S]*B1\/B0/i, 'cinematic doctrine lacks M4 backend-loss stitching');
   requirePattern(errors, bundle.reviewers ?? '', /M4 license and failure safety[\s\S]*automatic REVISE/i, 'reviewer adapter lacks M4 automatic-REVISE gate');
