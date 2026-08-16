@@ -1,4 +1,4 @@
-# HOSTILE REVIEW PACKET — THE S1 "TRUTH COMMITS"
+# SWAN BRAIN (Design Brain) — the S1 "truth commits" — hostile review packet
 
 - **Branch:** `claude/design-brain-repave-20260816` @ `57360a699` (4 commits, pushed, NOT merged, nothing deploy-linked)
 - **Range under review:** `b258a75dc..57360a699` · **Date:** 2026-08-16

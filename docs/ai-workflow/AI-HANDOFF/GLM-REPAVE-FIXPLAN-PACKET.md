@@ -1,4 +1,4 @@
-# HOSTILE REVIEW PACKET — DESIGN BRAIN REPAVE: THE FIX PLAN, AND THE SPREAD
+# SWAN BRAIN (Design Brain) — repave fix plan + "is this rot spreading?" — hostile review packet
 
 - **Target branch:** `claude/design-brain-repave-20260816` @ `6798ae029` (17 commits, pushed, NOT merged)
 - **Corpus:** `docs/ai-workflow/design-brain/` — 28 markdown files, the doctrine every AI agent loads before building UI

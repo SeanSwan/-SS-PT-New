@@ -218,7 +218,24 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
       + `${r.finishReason ? `; finish_reason: \`${r.finishReason}\`` : ''}. `
       + 'Do not treat anything below as a verdict.\n'
     : '';
-  writeFileSync(outPath, `# ${provider.title}\n${failBanner}\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${shortPath(docPath)}\n**Seed:** ${seedPath ? shortPath(seedPath) : '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s${r.finishReason ? ` · **finish_reason:** ${r.finishReason}` : ''}\n\n---\n\n${r.text}\n`, 'utf-8');
+  // SELF-DESCRIBING HEADER (Sean, 2026-08-16). The H1 used to be a STATIC provider title —
+  // "SwanStudios Kimi K3 Design Review" — which names the TOOL and not the WORK. Open such a file
+  // cold and you cannot tell a Swan Brain review from a storefront audit; Sean's words: "it
+  // completely doesn't let me know what we're really working on." Derive the subject from the
+  // reviewed document's own H1 so every future review is self-describing with zero author effort.
+  // Falls back to the provider title when the document has no H1 — never throws, never blocks a
+  // paid call that already succeeded.
+  // Fenced blocks are stripped FIRST: review packets routinely embed diffs and shell snippets, and
+  // a `# comment` inside a fence sits at line-start exactly like a heading. Without this, a packet
+  // whose first fence precedes its title would be named after a bash comment — a self-describing
+  // header that describes the wrong thing is worse than a generic one.
+  const SUBJECT_MAX = 120;
+  const unfenced = doc.replace(/^```[\s\S]*?^```/gm, '');
+  let subject = (unfenced.match(/^#\s+(.+?)\s*$/m)?.[1] ?? '').replace(/\s+/g, ' ').trim();
+  if (subject.length > SUBJECT_MAX) subject = `${subject.slice(0, SUBJECT_MAX - 1).trimEnd()}…`;
+  const shortTitle = provider.title.replace(/^SwanStudios\s+/, '');
+  const h1 = subject ? `${subject} — reviewed by ${shortTitle}` : provider.title;
+  writeFileSync(outPath, `# ${h1}\n${failBanner}\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${shortPath(docPath)}\n**Seed:** ${seedPath ? shortPath(seedPath) : '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s${r.finishReason ? ` · **finish_reason:** ${r.finishReason}` : ''}\n\n---\n\n${r.text}\n`, 'utf-8');
   // Relative, matching the receipt line: an absolute --out carries the OS username into the
   // transcript. The basename-only principle is the LANE's, not just the DENY branch's (Kimi r3, N2).
   console.log(`[consult-${providerName}] saved -> ${shortPath(outPath)}`);

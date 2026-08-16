@@ -1,4 +1,4 @@
-# SwanStudios Fable Final-Decider
+# SWAN BRAIN — repave fix plan + rot-spread audit — FINAL RULING by Fable 5
 
 **Reviewer:** OpenRouter `anthropic/claude-fable-5`
 **Document:** docs\ai-workflow\AI-HANDOFF\GLM-REPAVE-FIXPLAN-PACKET.md

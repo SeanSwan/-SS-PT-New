@@ -1,4 +1,4 @@
-# GLM Consult
+# SWAN BRAIN — hostile review of the S1 "truth commits" — reviewed by GLM-5.3
 
 **Model:** glm-5.3
 **Document:** docs/ai-workflow/AI-HANDOFF/S1-HOSTILE-PACKET.md

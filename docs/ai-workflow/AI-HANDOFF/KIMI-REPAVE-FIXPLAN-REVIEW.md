@@ -1,4 +1,4 @@
-# SwanStudios Kimi K3 Design Review
+# SWAN BRAIN — repave fix plan + rot-spread audit — reviewed by Kimi K3
 
 **Reviewer:** OpenRouter `moonshotai/kimi-k3` (effort: medium)
 **Document:** docs\ai-workflow\AI-HANDOFF\GLM-REPAVE-FIXPLAN-PACKET.md

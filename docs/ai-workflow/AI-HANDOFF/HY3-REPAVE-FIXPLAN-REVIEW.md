@@ -1,4 +1,4 @@
-# Tencent Hy3 - Design Inspiration
+# SWAN BRAIN — repave fix plan + rot-spread audit — reviewed by HY3
 
 **Reviewer:** `tencent/hy3` (medium)
 **Document:** docs/ai-workflow/AI-HANDOFF/GLM-REPAVE-FIXPLAN-PACKET.md

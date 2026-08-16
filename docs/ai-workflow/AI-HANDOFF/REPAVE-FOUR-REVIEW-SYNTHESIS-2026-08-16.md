@@ -1,4 +1,4 @@
-# THE FOUR OWED REVIEWS — SYNTHESIS AND LOCKED PLAN
+# SWAN BRAIN — the four owed reviews: synthesis and locked plan
 
 - **Date:** 2026-08-16 · **Author:** Claude Opus 5 (vs-claude)
 - **Branch:** `claude/design-brain-repave-20260816` @ `6798ae029` — nothing merged, nothing deploy-linked

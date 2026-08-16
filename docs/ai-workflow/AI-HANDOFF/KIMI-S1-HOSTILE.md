@@ -1,4 +1,4 @@
-# SwanStudios Kimi K3 Design Review
+# SWAN BRAIN — hostile review of the S1 "truth commits" — reviewed by Kimi K3
 
 **Reviewer:** OpenRouter `moonshotai/kimi-k3` (effort: medium)
 **Document:** docs\ai-workflow\AI-HANDOFF\S1-HOSTILE-PACKET.md
