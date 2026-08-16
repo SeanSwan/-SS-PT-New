@@ -133,6 +133,22 @@ export async function getJob(id) {
 }
 
 /**
+ * The frozen provenance record for a job's produced asset, or null.
+ *
+ * Queried directly rather than through an association because MediaAsset declares none —
+ * writing `job.asset.provenance` would have read `undefined` forever and reported "no
+ * provenance" for assets that have it.
+ */
+export async function getAssetProvenance(jobId) {
+  if (!jobId) return null;
+  const asset = await MediaAsset.findOne({
+    where: { jobId },
+    order: [['createdAt', 'DESC']],
+  });
+  return asset?.provenance ?? null;
+}
+
+/**
  * Atomically lease the highest-priority eligible job for an agent.
  *
  * FOR UPDATE SKIP LOCKED is deliberate and non-negotiable: an ORM
@@ -268,6 +284,11 @@ export async function completeJob({ jobId, agentId, r2Key, mime = 'video/mp4', .
         sizeBytes: meta.sizeBytes ?? null,
         exerciseId: job.exerciseId,
         projectId: job.projectId,
+        // `meta` is cherry-picked above, which silently DROPPED the provenance record
+        // the agent builds — so the licensing commitment was unmet at the persistence
+        // layer while every unit test upstream passed. Stored as given; the record is
+        // frozen at the source and must not be reshaped here.
+        provenance: meta.provenance ?? null,
       },
       transaction,
     });

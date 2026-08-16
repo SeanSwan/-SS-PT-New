@@ -14,7 +14,7 @@
  * `prefers-reduced-motion` WITHOUT loss of meaning, because tone + glyph + text already
  * carry it. The test: freeze every animation and the UI still tells the truth.
  *
- * COLOUR IS SEMANTIC, NOT MOOD. Blocked states are Gilded Fern (#C6A84B), never danger
+ * COLOUR IS SEMANTIC, NOT MOOD. Blocked states are Gilded Fern (var(--accent-gold, #C6A84B)), never danger
  * red — red says "broken", gold says "unfinished". A first-run console with no worker is
  * not a fault; it is step one of two, and the palette has to say so.
  */
@@ -46,7 +46,7 @@ export const FleetStrip = styled.div<{ $tone: 'ok' | 'blocked' }>`
   border-radius: 12px;
   background: var(--surface-dark, #1A1A24);
   border: 1px solid ${(p) => (p.$tone === 'ok' ? 'rgba(96,192,240,0.35)' : 'rgba(198,168,75,0.45)')};
-  border-left: 4px solid ${(p) => (p.$tone === 'ok' ? '#60C0F0' : '#C6A84B')};
+  border-left: 4px solid ${(p) => (p.$tone === 'ok' ? 'var(--accent-primary, #60C0F0)' : 'var(--accent-gold, #C6A84B)')};
 `;
 
 export const FleetReadout = styled.code`
@@ -54,7 +54,7 @@ export const FleetReadout = styled.code`
   font-size: 13px;
   letter-spacing: 0.02em;
   /* Arctic Cyan is data-only per the palette rule — a readout is exactly that. */
-  color: #50A0F0;
+  color: var(--data-accent, #50A0F0);
   word-break: break-word;
 `;
 
@@ -62,7 +62,7 @@ export const FleetLabel = styled.span<{ $tone: 'ok' | 'blocked' }>`
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 600;
   font-size: 15px;
-  color: ${(p) => (p.$tone === 'ok' ? '#60C0F0' : '#C6A84B')};
+  color: ${(p) => (p.$tone === 'ok' ? 'var(--accent-primary, #60C0F0)' : 'var(--accent-gold, #C6A84B)')};
 `;
 
 /* ── Layout ──────────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ export const Split = styled.div`
 export const Card = styled.div<{ $accent?: 'gold' | 'ice' | 'none' }>`
   background: var(--card-dark, #141419);
   border: 1px solid rgba(224, 236, 244, 0.08);
-  border-top: 3px solid ${(p) => (p.$accent === 'gold' ? '#C6A84B' : p.$accent === 'ice' ? '#60C0F0' : 'transparent')};
+  border-top: 3px solid ${(p) => (p.$accent === 'gold' ? 'var(--accent-gold, #C6A84B)' : p.$accent === 'ice' ? 'var(--accent-primary, #60C0F0)' : 'transparent')};
   border-radius: 14px;
   padding: 24px;
 
@@ -129,8 +129,8 @@ export const StepIndex = styled.span<{ $state: 'done' | 'current' | 'locked' }>`
   border-radius: 50%;
   font-family: 'Fira Code', monospace;
   font-size: 13px;
-  color: ${(p) => (p.$state === 'locked' ? 'rgba(224,236,244,0.6)' : '#0A0A0F')};
-  background: ${(p) => (p.$state === 'done' ? '#60C0F0' : p.$state === 'current' ? '#C6A84B' : 'rgba(224,236,244,0.14)')};
+  color: ${(p) => (p.$state === 'locked' ? 'rgba(224,236,244,0.6)' : 'var(--bg-base, #0A0A0F)')};
+  background: ${(p) => (p.$state === 'done' ? 'var(--accent-primary, #60C0F0)' : p.$state === 'current' ? 'var(--accent-gold, #C6A84B)' : 'rgba(224,236,244,0.14)')};
 `;
 
 export const StepBody = styled.div`
@@ -152,24 +152,24 @@ const buttonBase = css`
   transition: box-shadow 160ms ease, background 160ms ease, opacity 160ms ease;
 
   &:disabled { cursor: not-allowed; opacity: 0.45; box-shadow: none; }
-  &:focus-visible { outline: 2px solid #8B5CF6; outline-offset: 2px; }
+  &:focus-visible { outline: 2px solid var(--accent-secondary, #8B5CF6); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { transition: none; }
 `;
 
 export const PrimaryButton = styled.button`
   ${buttonBase};
-  color: #E0ECF4;
-  background: #002060;
+  color: var(--text-primary, #E0ECF4);
+  background: var(--midnight-sapphire, #002060);
   border: 1px solid rgba(96, 192, 240, 0.35);
-  &:hover:not(:disabled) { box-shadow: 0 0 0 1px #8B5CF6, 0 0 18px rgba(139, 92, 246, 0.45); }
+  &:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--accent-secondary, #8B5CF6), 0 0 18px rgba(139, 92, 246, 0.45); }
 `;
 
 export const AccentButton = styled.button`
   ${buttonBase};
-  color: #0A0A0F;
-  background: #8B5CF6;
+  color: var(--bg-base, #0A0A0F);
+  background: var(--accent-secondary, #8B5CF6);
   border: 1px solid rgba(139, 92, 246, 0.6);
-  &:hover:not(:disabled) { box-shadow: 0 0 0 1px #60C0F0, 0 0 18px rgba(96, 192, 240, 0.5); }
+  &:hover:not(:disabled) { box-shadow: 0 0 0 1px var(--accent-primary, #60C0F0), 0 0 18px rgba(96, 192, 240, 0.5); }
 `;
 
 export const QuietButton = styled.button`
@@ -198,7 +198,7 @@ export const Input = styled.input`
   font-size: 14px;
 
   &::placeholder { color: rgba(224, 236, 244, 0.32); }
-  &:focus-visible { outline: 2px solid #8B5CF6; outline-offset: 1px; border-color: #60C0F0; }
+  &:focus-visible { outline: 2px solid var(--accent-secondary, #8B5CF6); outline-offset: 1px; border-color: var(--accent-primary, #60C0F0); }
 `;
 
 /* ── Job rows ─────────────────────────────────────────────────────────────── */
@@ -219,7 +219,7 @@ export const JobRow = styled.li<{ $blocked: boolean }>`
   border-radius: 12px;
   background: var(--card-dark, #141419);
   border: 1px ${(p) => (p.$blocked ? 'dashed' : 'solid')} ${(p) => (p.$blocked ? 'rgba(198,168,75,0.55)' : 'rgba(224,236,244,0.1)')};
-  border-left: 3px solid ${(p) => (p.$blocked ? '#C6A84B' : '#60C0F0')};
+  border-left: 3px solid ${(p) => (p.$blocked ? 'var(--accent-gold, #C6A84B)' : 'var(--accent-primary, #60C0F0)')};
 `;
 
 export const JobMeta = styled.div`
@@ -236,9 +236,9 @@ export const StatusLabel = styled.span<{ $tone: 'blocked' | 'ready' | 'working' 
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 14px; font-weight: 600;
   color: ${(p) => (
-    p.$tone === 'blocked' ? '#C6A84B'
-      : p.$tone === 'failed' ? '#E5484D'
-        : '#60C0F0')};
+    p.$tone === 'blocked' ? 'var(--accent-gold, #C6A84B)'
+      : p.$tone === 'failed' ? 'var(--danger, #E5484D)'
+        : 'var(--accent-primary, #60C0F0)')};
 `;
 
 /** Two static bars. Deliberately not a circle — circles read as loading. */
@@ -274,7 +274,7 @@ export const Indeterminate = styled.div`
     content: '';
     position: absolute; inset: 0 auto 0 0;
     width: 25%;
-    background: #60C0F0;
+    background: var(--accent-primary, #60C0F0);
     animation: ${slide} 1.4s ease-in-out infinite;
   }
 
@@ -307,7 +307,7 @@ export const Caption = styled.p`
 export const ErrorText = styled.p`
   margin: 12px 0 0;
   font-size: 13px;
-  color: #E5484D;
+  color: var(--danger, #E5484D);
 `;
 
 /* ── Token modal ──────────────────────────────────────────────────────────── */
@@ -322,7 +322,7 @@ export const Modal = styled.div`
   width: min(560px, 100%);
   background: var(--card-dark, #141419);
   border: 1px solid rgba(198, 168, 75, 0.5);
-  border-top: 3px solid #C6A84B;
+  border-top: 3px solid var(--accent-gold, #C6A84B);
   border-radius: 14px;
   padding: 28px;
   max-height: 90vh; overflow-y: auto;
@@ -337,11 +337,11 @@ export const TokenWell = styled.code`
   padding: 16px;
   border-radius: 10px;
   background: var(--surface-dark, #1A1A24);
-  border: 1px solid #60C0F0;
+  border: 1px solid var(--accent-primary, #60C0F0);
   font-family: 'Fira Code', monospace;
   font-size: 16px;
   line-height: 1.5;
-  color: #E0ECF4;
+  color: var(--text-primary, #E0ECF4);
   user-select: all;
   word-break: break-all;
 
@@ -352,10 +352,30 @@ export const Warning = styled.p`
   margin: 0 0 18px;
   font-size: 14px;
   line-height: 1.55;
-  color: #C6A84B;
+  color: var(--accent-gold, #C6A84B);
 `;
 
 export const ModalActions = styled.div`
   display: flex; gap: 12px; flex-wrap: wrap;
   button { flex: 1 1 160px; }
+`;
+
+/**
+ * Model attribution, shown beside a finished asset.
+ *
+ * The licence requires it displayed prominently, so it is legible body text rather than
+ * a whispered caption — but it sits under the job id, not competing with status, because
+ * the operator's first question is "did it work", not "what made it".
+ */
+export const Attribution = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary, #A9C2D6);
+
+  span {
+    color: var(--accent-gold, #C6A84B);
+  }
 `;

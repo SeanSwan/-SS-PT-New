@@ -27,7 +27,7 @@ import {
   Panel, FleetStrip, FleetReadout, FleetLabel, Split, Card, CardTitle, CardHint,
   Steps, Step, StepIndex, StepBody, PrimaryButton, QuietButton, Field, Input,
   JobList, JobRow, JobMeta, StatusLabel, PauseGlyph, Dot, Indeterminate,
-  GhostRow, GhostBar, Caption, ErrorText,
+  GhostRow, GhostBar, Caption, ErrorText, Attribution,
 } from './CreatorRenderQueue.styles';
 
 interface Props { api: AxiosInstance | null }
@@ -59,6 +59,22 @@ const WORKER_COPY: Record<WorkerState, { label: string; blocked: boolean; hint: 
  * Derived from presence, NOT from the status string — see the honesty contract above.
  * Exported so the honesty rules are TESTABLE rather than asserted in a comment.
  */
+/**
+ * What must be displayed alongside a finished asset, per the model licence.
+ *
+ * Pure and exported so the honesty tests can pin it. Returns null rather than a
+ * placeholder when there is nothing to show: a fabricated attribution is worse than an
+ * absent one, because it asserts a provenance the asset does not have.
+ */
+export function describeAttribution(job: RenderJobView): { text: string; pending: boolean } | null {
+  const text = job.attribution?.trim();
+  if (!text) return null;
+  // A grant that has not arrived is worth surfacing next to the credit: the asset exists
+  // and is attributed, but commercial use of the MODEL is still ungranted.
+  const pending = job.provenance?.grantRecorded === false;
+  return { text, pending };
+}
+
 export function describeJob(job: RenderJobView) {
   if (job.status === 'ready') return { tone: 'ready' as const, text: 'Ready', blocked: false };
   if (job.status === 'failed') {
@@ -125,7 +141,7 @@ const CreatorRenderQueue: React.FC<Props> = ({ api }) => {
       {/* Signature moment: raw backend truth, in monospace, never animated. */}
       <FleetStrip $tone={worker.blocked ? 'blocked' : 'ok'}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <Server size={18} color={worker.blocked ? '#C6A84B' : '#60C0F0'} aria-hidden />
+          <Server size={18} color={worker.blocked ? 'var(--accent-gold, #C6A84B)' : 'var(--accent-primary, #60C0F0)'} aria-hidden />
           <FleetLabel $tone={worker.blocked ? 'blocked' : 'ok'}>{worker.label}</FleetLabel>
         </div>
         <FleetReadout>
@@ -262,6 +278,16 @@ const CreatorRenderQueue: React.FC<Props> = ({ api }) => {
                       </StatusLabel>
                       <code>{job.jobId}</code>
                       {job.errorMessage && <code>{job.errorMessage}</code>}
+                      {(() => {
+                        const a = describeAttribution(job);
+                        if (!a) return null;
+                        return (
+                          <Attribution>
+                            {a.text}
+                            {a.pending && <span> · commercial licence pending</span>}
+                          </Attribution>
+                        );
+                      })()}
                     </JobMeta>
                     {/* The only motion on this surface, and only where work is proven. */}
                     {job.status === 'rendering' && <Indeterminate aria-hidden />}

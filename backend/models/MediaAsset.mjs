@@ -83,6 +83,11 @@ MediaAsset.init({
   },
   tags: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
 
+  // The durable per-asset record promised to a licensor: provider, model version, and a
+  // FROZEN copy of the licence in force at generation time. Nullable on purpose — an
+  // uploaded photo has no provenance, and inventing one would be worse than a null.
+  provenance: { type: DataTypes.JSONB, allowNull: true },
+
   deletedAt: { type: DataTypes.DATE, allowNull: true, field: 'deleted_at' },
 }, {
   sequelize,

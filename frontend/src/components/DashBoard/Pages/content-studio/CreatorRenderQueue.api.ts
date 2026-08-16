@@ -27,6 +27,21 @@ export interface RenderJobView {
   errorCode: string | null;
   errorMessage: string | null;
   r2Key: string | null;
+  /**
+   * The licence requires this DISPLAYED wherever H3-derived output appears. It is a
+   * field on the view rather than a constant in the component because it belongs to the
+   * asset's frozen provenance — a hardcoded string would keep saying "MiniMax H3" after
+   * a future asset came from somewhere else.
+   */
+  attribution?: string | null;
+  provenance?: {
+    provider: string | null;
+    modelVersion: string | null;
+    generatedAt: string | null;
+    licenceName: string | null;
+    licenceRestricts: string | null;
+    grantRecorded: boolean | null;
+  } | null;
   /** FALSE means nothing can pick this up right now. Never render motion when false. */
   startable: boolean;
   workerState: WorkerState | null;
@@ -118,6 +133,8 @@ export function useRenderQueue(api: AxiosInstance | null) {
           errorCode: null,
           errorMessage: null,
           r2Key: null,
+          attribution: null,
+          provenance: null,
           startable: Boolean(d.startable),
           workerState: d.workerState ?? null,
         }, ...prev.filter((j) => j.jobId !== d.jobId)]);

@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { describeJob } from './CreatorRenderQueue';
+import { describeJob, describeAttribution } from './CreatorRenderQueue';
 import type { RenderJobView } from './CreatorRenderQueue.api';
 
 const job = (over: Partial<RenderJobView>): RenderJobView => ({
@@ -92,5 +92,52 @@ describe('motion is a guarantee — only proven work may look like work', () => 
 
   it('does not present a cancelled job as actionable', () => {
     expect(describeJob(job({ status: 'cancelled' })).blocked).toBe(true);
+  });
+});
+
+
+/**
+ * RULE 3 — attribution is DISPLAYED when the asset carries it, and never invented.
+ *
+ * The model licence requires "MiniMax H3" shown prominently wherever H3-derived output
+ * appears. That obligation was stated to a licensor in writing on 2026-08-16, and the
+ * data path existed while nothing rendered it — so these pin the pixel end.
+ */
+describe('attribution honesty', () => {
+  it('shows the attribution the ASSET carries, not a hardcoded string', () => {
+    const a = describeAttribution(job({ status: 'ready', attribution: 'Video generated with MiniMax H3' }));
+    expect(a?.text).toBe('Video generated with MiniMax H3');
+  });
+
+  it('shows NOTHING when the asset has no provenance — a fabricated credit is worse', () => {
+    expect(describeAttribution(job({ status: 'ready' }))).toBeNull();
+    expect(describeAttribution(job({ status: 'ready', attribution: '   ' }))).toBeNull();
+    expect(describeAttribution(job({ status: 'ready', attribution: null }))).toBeNull();
+  });
+
+  it('marks a pending commercial grant beside the credit', () => {
+    const a = describeAttribution(job({
+      status: 'ready',
+      attribution: 'Video generated with MiniMax H3',
+      provenance: {
+        provider: 'comfyui/minimax-h3', modelVersion: 'x', generatedAt: 'y',
+        licenceName: 'MiniMax H3 Model Licence', licenceRestricts: 'model-execution',
+        grantRecorded: false,
+      },
+    }));
+    expect(a?.pending).toBe(true);
+  });
+
+  it('does not claim "pending" when a grant IS recorded', () => {
+    const a = describeAttribution(job({
+      status: 'ready',
+      attribution: 'Video generated with MiniMax H3',
+      provenance: {
+        provider: 'comfyui/minimax-h3', modelVersion: 'x', generatedAt: 'y',
+        licenceName: 'MiniMax H3 Model Licence', licenceRestricts: 'model-execution',
+        grantRecorded: true,
+      },
+    }));
+    expect(a?.pending).toBe(false);
   });
 });

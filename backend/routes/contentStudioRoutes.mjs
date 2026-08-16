@@ -14,7 +14,7 @@ import {
   EMPTY_CONTENT_STUDIO_STORAGE_USAGE,
   loadContentStudioStorageUsage,
 } from '../services/contentStudioStorageUsageService.mjs';
-import { createJob, getJob, VideoRenderJobError } from '../services/videoRenderJobService.mjs';
+import { createJob, getJob, getAssetProvenance, VideoRenderJobError } from '../services/videoRenderJobService.mjs';
 import { workerPresence, describePresence } from '../services/renderWorkerPresence.mjs';
 
 const router = Router();
@@ -306,6 +306,7 @@ router.get('/render-job/:id', protect, adminOnly, async (req, res) => {
     const presence = describePresence(
       await workerPresence({ requiredCapabilities: job.requiredCapabilities ?? [] }),
     );
+    const prov = await getAssetProvenance(job.id);
     return res.json({
       success: true,
       data: {
@@ -315,6 +316,23 @@ router.get('/render-job/:id', protect, adminOnly, async (req, res) => {
         errorCode: job.errorCode ?? null,
         errorMessage: job.errorMessage ?? null,
         r2Key: job.r2Key ?? null,
+        // The licence requires attribution DISPLAYED wherever H3-derived output appears.
+        // It was reaching the server and stopping there, so the UI could not have shown
+        // it however carefully it was written. Read from the asset, which is where the
+        // frozen record lives.
+        attribution: prov?.attribution ?? null,
+        provenance: prov
+          ? {
+            provider: prov.provider ?? null,
+            modelVersion: prov.modelVersion ?? null,
+            generatedAt: prov.generatedAt ?? null,
+            licenceName: prov.licence?.name ?? null,
+            // Carried so the UI can say WHAT is restricted. The ambiguous version of
+            // this sentence cost this project days.
+            licenceRestricts: prov.licence?.restricts ?? null,
+            grantRecorded: prov.licence?.grantRecorded ?? null,
+          }
+          : null,
         // Only meaningful while the job is still waiting; once it is leased or done,
         // worker presence is history, not a prediction.
         startable: job.status === 'queued' ? presence.startable : true,
