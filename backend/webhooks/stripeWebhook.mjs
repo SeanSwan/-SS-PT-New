@@ -196,20 +196,49 @@ const stripeWebhookHandler = async (req, res) => {
       }
       case 'checkout.session.expired': {
         const session = event.data.object;
-        const cartId = session.metadata?.cartId;
-        
-        if (!cartId) {
-          logger.error('No cartId found in session metadata');
+        const rawCartId = session.metadata?.cartId;
+        // Parse rather than trusting the raw metadata string — findByPk('abc')
+        // is a 500 waiting to happen on a signed-but-malformed payload.
+        const cartId = Number.parseInt(rawCartId, 10);
+
+        if (!Number.isSafeInteger(cartId) || cartId <= 0) {
+          if (rawCartId) logger.warn('[Webhook] Expired checkout carried an invalid cartId');
+          else logger.error('No cartId found in session metadata');
           break;
         }
-        
-        // Mark cart checkout as expired
-        const cart = await ShoppingCart.findByPk(cartId);
-        if (cart) {
-          cart.checkoutSessionExpired = true;
-          await cart.save();
-          logger.info(`Checkout session expired for cart ID: ${cartId}`);
-        }
+
+        // RELEASE the cart, don't just flag it. This used to set
+        // `checkoutSessionExpired = true` and stop — leaving the cart in
+        // `pending_payment` with a dead session id. Every later POST /cart/add
+        // then 409s with CART_CHECKOUT_IN_PROGRESS, and /cancel-checkout cannot
+        // recover it because that route requires the session id the customer no
+        // longer has. A customer who merely let the Stripe session time out was
+        // locked out of their own cart indefinitely.
+        //
+        // The legacy /api/cart/webhook mount already did the full reset, so the
+        // two live handlers disagreed and recovery depended on which URL Stripe
+        // was pointed at (Kimi MEDIUM-3 / GLM E4, 2026-08-16).
+        //
+        // The conditional `where` is load-bearing: only a cart still pending on
+        // THIS session is released, so a late-arriving expiry cannot clobber a
+        // cart the customer has since paid for or already recovered.
+        const [releasedCount] = await ShoppingCart.update(
+          {
+            status: 'active',
+            paymentStatus: 'cancelled',
+            checkoutSessionExpired: true,
+            checkoutSessionId: null,
+            paymentIntentId: null,
+          },
+          {
+            where: { id: cartId, status: 'pending_payment', checkoutSessionId: session.id },
+          }
+        );
+
+        logger.info('[Webhook] Checkout session expired for cart', {
+          cartId,
+          released: releasedCount > 0,
+        });
         break;
       }
       // ── ACH / PaymentIntent Events ──────────────────────────────────
