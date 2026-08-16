@@ -32,15 +32,26 @@ description: Turns substantial, high-tier work — ESPECIALLY Fable-authored pla
 
 Write to `docs/ai-workflow/hermes-learning-packets/<YYYY-MM-DD>-<kebab-topic>.md`:
 
+> **The schema is the contract; this template is only a convenience copy of it.** When they
+> disagree, `_schema.json` wins and this block is the bug. That is not hypothetical: between
+> 2026-08-13 and 2026-08-16 this template omitted `title:` entirely, offered `topic:` (not a schema
+> key) and listed `status: open` (not a legal value) — and **every packet written from it failed
+> validation**, 12 of them after the schema had already shipped. Do not trust this block; **run the
+> validator** (below) before you finish.
+
 ```
 ---
+title: <the lesson as a claim, not a subject — this is what the read side surfaces>
 originating_model: claude-opus-5          # MUST be Fable-tier — the source gate
-tier_gate: PASS | QUARANTINE
-tier_basis: <why this model is Fable-tier — Sean's designation + date>
+tier_gate: PASS | QUARANTINE              # the gate RESULT (not schema-required)
+tier_basis: <why this model is Fable-tier — Sean's designation + date>   # REQUIRED
 date: <session date>
-topic: <one line>
 decision: <the one-line rule this packet establishes>
-status: open | shipped | superseded
+status: draft | reviewed | current | shipped | superseded | archived
+                                          # `reviewed` and `current` REQUIRE reviewed_by below.
+                                          # `open` is NOT legal — it was in this template for
+                                          # three days and produced invalid packets.
+reviewed_by: <who/what reviewed it, or omit — omitting only warns>
 supersedes: <path or none>
 models_used:                              # WHO DID WHAT — required (Sean 2026-08-13)
   - model: claude-opus-5
@@ -70,6 +81,20 @@ privacy: IDs/roles only; no PII, no secrets, no absolute paths
 ## Risks / guardrails
 ## Provenance & privacy: originating_model, sanitizer PASS, IDs-only confirmed
 ```
+
+### Validate before you finish — not optional
+
+```bash
+node scripts/hermes-learning-validate.mjs --file <your-packet.md> --check   # exit 2 = malformed
+```
+
+The closeout gate runs this on any packet you emit and **blocks the turn** if it fails, so a
+malformed packet costs you a round trip either way. `--json` gives machine-readable errors you can
+self-repair from inside the same turn.
+
+**Never guess `originating_model` to make the validator pass.** It is the fail-closed Rule 68 tier
+gate; a wrong provenance tag admits sub-Fable output into the corpus permanently, which is far worse
+than a packet that fails validation loudly. If a field is genuinely unrecoverable, write `unknown`.
 
 **The four content sections Sean added 2026-08-13** — *"put what models did what… and the skills
 we're making… and all the errors that the models are making, what they're doing, and how they're

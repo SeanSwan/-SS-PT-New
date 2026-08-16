@@ -24,6 +24,8 @@
  * convention); over-triggering is the failure mode this file exists to kill.
  */
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]pending[\\/]|hermes-learning-packets[\\/]/;
 
@@ -187,19 +189,80 @@ export function memoMissingMistakes(memoPaths, readFile) {
   return null;
 }
 
+/**
+ * A malformed DURABLE packet is worse than a missing one: it lands in the compounding corpus and
+ * stays there. `scripts/hermes-learning-validate.mjs` has been the written contract since
+ * 2026-08-13 but nothing ever called it, so 12 packets written AFTER the schema shipped still
+ * failed it — the corpus kept drifting while every closeout passed. A contract nothing enforces
+ * is a document, not a contract.
+ *
+ * Scope is deliberately narrow: only the durable corpus (`hermes-learning-packets/`). Ephemeral
+ * inbox memos are drained daily and have no schema, so validating them would be noise.
+ */
+const CORPUS_PATH_RE = /hermes-learning-packets[\\/]/;
+
+export function packetErrors(memoPaths, validate) {
+  if (typeof validate !== 'function') return null; // validator unavailable -> never block
+  for (const p of memoPaths) {
+    if (!CORPUS_PATH_RE.test(String(p))) continue;
+    try {
+      const errs = validate(p);
+      if (Array.isArray(errs) && errs.length) return { path: p, errors: errs };
+    } catch {
+      continue; // unreadable/broken -> do not punish (same fail-open rule as memoMissingMistakes)
+    }
+  }
+  return null;
+}
+
+const PACKET_BLOCK_REASON = ({ path, errors }) =>
+  `Durable learning packet fails the corpus schema. File: ${path}\n` +
+  errors.map((e) => `  - ${e}`).join('\n') +
+  `\n\nThe contract is docs/ai-workflow/hermes-learning-packets/_schema.json; fix the packet, not ` +
+  `the schema. Run \`node scripts/hermes-learning-validate.mjs --file ${path} --json\` for ` +
+  `machine-readable errors you can self-repair from in this turn. ` +
+  `NEVER guess originating_model to make this pass — it is the fail-closed Rule 68 tier gate, and ` +
+  `a wrong provenance tag admits sub-Fable output into the permanent corpus. If a field is ` +
+  `genuinely unrecoverable, write "unknown".`;
+
 /** Pure decision: returns null (allow) or a block reason string. */
-export function decide(hookInput, transcriptRaw, readFile = (p) => readFileSync(p, 'utf8')) {
+export function decide(hookInput, transcriptRaw, readFile = (p) => readFileSync(p, 'utf8'), validate) {
   if (hookInput?.stop_hook_active) return null;
   const signals = analyzeTurn(parseTranscript(transcriptRaw));
   if (signals.memoEmitted) {
     const bad = memoMissingMistakes(signals.memoPaths, readFile);
-    return bad ? MISTAKES_BLOCK_REASON(bad) : null;
+    if (bad) return MISTAKES_BLOCK_REASON(bad);
+    const malformed = packetErrors(signals.memoPaths, validate);
+    return malformed ? PACKET_BLOCK_REASON(malformed) : null;
   }
   if (signals.fileWrites >= 3 || signals.gitActivity) return BLOCK_REASON;
   return null;
 }
 
-function main() {
+/**
+ * Load the packet validator LAZILY and defensively.
+ *
+ * A static `import` runs at module load — outside main()'s try/catch — so a missing, syntactically
+ * broken, or unparseable-schema validator would crash the hook process instead of failing open.
+ * That would violate this file's first contract ("a broken gate must never wedge a session") and
+ * would do it at the worst possible moment: while the user is trying to stop.
+ *
+ * Returns null on ANY problem, which makes packetErrors() a no-op.
+ */
+async function loadPacketValidator() {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const schemaPath = join(here, '..', '..', 'docs', 'ai-workflow', 'hermes-learning-packets', '_schema.json');
+    const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
+    const mod = await import('../hermes-learning-validate.mjs');
+    if (typeof mod.validatePacket !== 'function') return null;
+    return (p) => mod.validatePacket(p, readFileSync(p, 'utf8'), schema).errors;
+  } catch {
+    return null; // validator unavailable -> skip the packet check entirely, never block
+  }
+}
+
+async function main() {
   let hookInput = {};
   try {
     hookInput = JSON.parse(readFileSync(0, 'utf8'));
@@ -214,7 +277,8 @@ function main() {
     return; // unreadable transcript -> fail-open
   }
   try {
-    const reason = decide(hookInput, raw);
+    const validate = await loadPacketValidator();
+    const reason = decide(hookInput, raw, (p) => readFileSync(p, 'utf8'), validate);
     if (reason) process.stdout.write(JSON.stringify({ decision: 'block', reason }));
   } catch {
     /* any analysis error -> fail-open */
@@ -222,5 +286,5 @@ function main() {
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/').split('/').pop())) {
-  main();
+  await main();
 }

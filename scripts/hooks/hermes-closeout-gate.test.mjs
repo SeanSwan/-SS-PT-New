@@ -145,3 +145,65 @@ test('isMemoFile: real memos still are memos, on both path separators', () => {
     assert.equal(isMemoFile(p), true, `${p} MUST be treated as a memo`);
   }
 });
+
+// --- durable-packet schema enforcement (added 2026-08-16) -------------------------------------
+// The validator existed as the written contract from 2026-08-13 but NOTHING called it, so the
+// corpus kept drifting: 12 packets written AFTER the schema shipped still failed it. These tests
+// protect the wiring, and — more importantly — the fail-open paths, because a gate that crashes
+// while the user is trying to stop is worse than a gate that misses a malformed packet.
+
+const PACKET = 'docs/ai-workflow/hermes-learning-packets/20260816-x.md';
+const MEMO = '.ai-workflow/hermes-inbox/pending/20260816T000000Z-vs-claude-x.md';
+const withMistakes = () => '## Mistakes I made\n- something\n';
+
+test('packetErrors: blocks a durable packet that fails the schema', () => {
+  const raw = [userText('build'), toolUse('Write', { file_path: PACKET })].join('\n');
+  const reason = decide({}, raw, withMistakes, () => ['missing required frontmatter: title']);
+  assert.match(String(reason), /fails the corpus schema/);
+  assert.match(String(reason), /missing required frontmatter: title/);
+  // Must never coach the agent into faking provenance to get past the gate.
+  assert.match(String(reason), /NEVER guess originating_model/);
+});
+
+test('packetErrors: a schema-clean packet passes', () => {
+  const raw = [userText('build'), toolUse('Write', { file_path: PACKET })].join('\n');
+  assert.equal(decide({}, raw, withMistakes, () => []), null);
+});
+
+test('packetErrors: ephemeral inbox memos are NOT schema-validated', () => {
+  // Inbox memos are drained daily and have no schema; validating them would be pure noise.
+  const raw = [userText('build'), toolUse('Write', { file_path: MEMO })].join('\n');
+  assert.equal(decide({}, raw, withMistakes, () => ['missing required frontmatter: title']), null);
+});
+
+test('packetErrors: FAIL-OPEN when the validator is unavailable', () => {
+  const raw = [userText('build'), toolUse('Write', { file_path: PACKET })].join('\n');
+  assert.equal(decide({}, raw, withMistakes, undefined), null, 'no validator -> must not block');
+  assert.equal(decide({}, raw, withMistakes, null), null, 'null validator -> must not block');
+});
+
+test('packetErrors: FAIL-OPEN when the validator throws', () => {
+  const raw = [userText('build'), toolUse('Write', { file_path: PACKET })].join('\n');
+  const boom = () => { throw new Error('schema unreadable'); };
+  assert.equal(decide({}, raw, withMistakes, boom), null, 'throwing validator -> must not block');
+});
+
+test('the mistakes check still takes precedence over the schema check', () => {
+  // A packet missing BOTH should report the mistakes section first: it is the payload Sean
+  // actually asked for, and fixing frontmatter first would let a contentless packet through.
+  const raw = [userText('build'), toolUse('Write', { file_path: PACKET })].join('\n');
+  const reason = decide({}, raw, () => 'no mistakes heading here', () => ['missing required frontmatter: title']);
+  assert.match(String(reason), /missing its mistakes section/);
+});
+
+test('the real validator module loads and exports validatePacket', async () => {
+  // Guards the dynamic import path in loadPacketValidator(): a rename would silently disable
+  // the whole check, and every fail-open test above would still pass.
+  const mod = await import('../hermes-learning-validate.mjs');
+  assert.equal(typeof mod.validatePacket, 'function');
+  const schema = JSON.parse(
+    readFileSync(join(REPO_ROOT, 'docs/ai-workflow/hermes-learning-packets/_schema.json'), 'utf8'),
+  );
+  const bad = mod.validatePacket('x.md', 'no frontmatter at all', schema);
+  assert.ok(bad.errors.length > 0, 'a packet with no frontmatter must produce errors');
+});
