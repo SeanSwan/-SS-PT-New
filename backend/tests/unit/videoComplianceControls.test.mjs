@@ -171,8 +171,8 @@ describe('spend + volume ceilings', () => {
   it('refuses a malformed cap instead of guessing', () => {
     // Treating "abc" as absent restores the default silently; treating it as Infinity
     // removes the ceiling. Neither is safe, so it throws.
-    expect(() => readLimits({ SWAN_VIDEO_MAX_RUNS_DAILY: 'abc' })).toThrow(/non-negative number/);
-    expect(() => readLimits({ SWAN_VIDEO_MAX_SPEND_USD_DAILY: '-5' })).toThrow(/non-negative number/);
+    expect(() => readLimits({ SWAN_VIDEO_MAX_RUNS_DAILY: 'abc' })).toThrow(/plain non-negative decimal/);
+    expect(() => readLimits({ SWAN_VIDEO_MAX_SPEND_USD_DAILY: '-5' })).toThrow(/plain non-negative decimal/);
   });
 
   it('projects spend before allowing, not after', () => {
@@ -203,23 +203,57 @@ describe('usage ledger', () => {
   it('counts runs and spend per UTC day', () => {
     const fs = fakeFs();
     const led = makeFileLedger('/x.json', fs);
-    expect(led.usageFor('2026-08-16')).toEqual({ runs: 0, spendUsd: 0 });
+    expect(led.usageFor('2026-08-16')).toMatchObject({ runs: 0, spendUsd: 0 });
     led.record('2026-08-16', { runs: 1, spendUsd: 0.5 });
     led.record('2026-08-16', { runs: 1, spendUsd: 0.5 });
-    expect(led.usageFor('2026-08-16')).toEqual({ runs: 2, spendUsd: 1 });
+    expect(led.usageFor('2026-08-16')).toMatchObject({ runs: 2, spendUsd: 1 });
   });
 
   it('keeps days separate — a new day starts clean', () => {
     const fs = fakeFs();
     const led = makeFileLedger('/x.json', fs);
     led.record('2026-08-16', { runs: 5, spendUsd: 2 });
-    expect(led.usageFor('2026-08-17')).toEqual({ runs: 0, spendUsd: 0 });
+    expect(led.usageFor('2026-08-17')).toMatchObject({ runs: 0, spendUsd: 0 });
   });
 
-  it('reads a corrupt ledger as zero rather than turning bookkeeping into an outage', () => {
-    const fs = fakeFs('}{ not json');
-    const led = makeFileLedger('/x.json', fs);
-    expect(led.usageFor('2026-08-16')).toEqual({ runs: 0, spendUsd: 0 });
+  it('distinguishes a MISSING ledger from a CORRUPT one', () => {
+    // External review (Kimi K3) found that conflating them was an exploit: truncating the
+    // file to "{" reset the day's usage, and anyone with disk access to the worker can do
+    // that. Missing = a fresh day. Corrupt = the total is unknown.
+    const missing = makeFileLedger('/x.json', fakeFs());
+    expect(missing.usageFor('2026-08-16').degraded).toBe(false);
+
+    const corrupt = makeFileLedger('/x.json', fakeFs('}{ not json'));
+    const u = corrupt.usageFor('2026-08-16');
+    expect(u.degraded).toBe(true);
+    expect(u.runs).toBe(0);   // still reads as zero — availability is preserved
+  });
+
+  it('degrades ASYMMETRICALLY: free keeps running, billing stops', () => {
+    const corrupt = makeFileLedger('/x.json', fakeFs('}{ not json')).usageFor('d');
+    const limits = readLimits({ SWAN_VIDEO_MAX_SPEND_USD_DAILY: '10' });
+    // A bookkeeping problem must not become an outage for the zero-cost path...
+    expect(() => checkRunAllowed(localCaps(), corrupt, limits)).not.toThrow();
+    // ...but an unknown total cannot be compared against a spend ceiling.
+    const billing = { ...hostedCaps(), costPerRunUsd: 0.64 };
+    expect(() => checkRunAllowed(billing, corrupt, limits)).toThrow(/ledger could not be read/i);
+  });
+
+  it('is MONOTONIC — a negative delta cannot buy back headroom', () => {
+    // Kimi K3 probe: recorded 5 runs / $5 was driven back to 1 / $1, minting quota.
+    const led = makeFileLedger('/x.json', fakeFs());
+    led.record('d', { runs: 5, spendUsd: 5 });
+    led.record('d', { runs: -4, spendUsd: -4 });
+    expect(led.usageFor('d').runs).toBe(5);
+    expect(led.usageFor('d').spendUsd).toBe(5);
+  });
+
+  it('rejects a non-decimal cap instead of coercing it', () => {
+    // Number("0x32") is 50 — a config typo silently became a ceiling nobody chose.
+    expect(() => readLimits({ SWAN_VIDEO_MAX_RUNS_DAILY: '0x32' })).toThrow(/plain non-negative decimal/);
+    expect(() => readLimits({ SWAN_VIDEO_MAX_RUNS_DAILY: '0b11' })).toThrow(/plain non-negative decimal/);
+    expect(readLimits({ SWAN_VIDEO_MAX_RUNS_DAILY: '50' }).maxRunsDaily).toBe(50);
+    expect(readLimits({ SWAN_VIDEO_MAX_SPEND_USD_DAILY: '2.5' }).maxSpendUsdDaily).toBe(2.5);
   });
 
   it('trims to 30 days so the ledger cannot grow forever', () => {
@@ -321,23 +355,49 @@ describe('content policy — the naive phrasings the first version missed', () =
   }
 });
 
-describe('content policy — the boundary, stated rather than implied', () => {
-  // These DO get through, and the docblock says so. Pinning them means the limit is a
-  // recorded decision instead of an unmeasured hope — and if a future edit ever closes
-  // one, this test failing is the prompt to update the disclosure.
-  const knownBypasses = [
+describe('content policy — the two evasions I had rationalised as unclosable', () => {
+  // These were shipped as DOCUMENTED HOLES with tests pinning them as passing, on the
+  // reasoning that closing them would cost false positives. An external reviewer
+  // (GLM-5.3) called that "rationalization-adjacent". It was right: measured against a
+  // 20-prompt corpus of realistic training-video prompts, closing them costs ZERO false
+  // positives. The pins are now inverted — these must BLOCK.
+  const closed = [
     ['digit substitution', 'a ch1ld doing squats'],
     ['letter spacing', 'a c h i l d doing squats'],
+    ['repeated digits', 'a t33n lifting'],
+    ['spaced short word', 'a k i d in the gym'],
+    ['digit in "minor"', 'a m1nor training'],
   ];
-  for (const [label, prompt] of knownBypasses) {
-    it(`DOES NOT catch ${label} — human review is the backstop`, () => {
-      expect(evaluatePrompt(prompt, {}).allowed).toBe(true);
+  for (const [label, prompt] of closed) {
+    it(`catches ${label}: "${prompt}"`, () => {
+      expect(evaluatePrompt(prompt, {}).allowed).toBe(false);
     });
   }
 
-  it('does fold zero-width characters and homoglyphs before matching', () => {
-    // The cheap evasions are free to close, so they are closed.
+  it('folds zero-width characters and homoglyphs before matching', () => {
     expect(evaluatePrompt('a ch​ild doing squats', {}).allowed).toBe(false);
+  });
+
+  it('COSTS NOTHING on realistic training prompts — the whole basis of the change', () => {
+    // Digit substitution never touches a STANDALONE number, which is why "45 year old",
+    // "3 sets of 10", "RPE 8" and "a 1 rep max" all survive. If that ever breaks, this
+    // test is what says so before an operator does.
+    for (const p of [
+      'a 45 year old man performing a barbell back squat',
+      'an 18 year old athlete sprinting',
+      '3 sets of 10 reps, side angle',
+      'V2 of the hero shot, 4K, 24fps',
+      'set 3 of 5, tempo 3 0 1 0',
+      'shot on a Sony A7R IV, 85mm',
+      'an E Z bar curl, close grip',
+      'a 1 rep max attempt',
+      'RPE 8 on the top set',
+      'a 30 second plank hold',
+      'a T bar row demonstration',
+      'a 5k row at steady pace',
+    ]) {
+      expect(evaluatePrompt(p, {}).allowed, `false positive on: "${p}"`).toBe(true);
+    }
   });
 });
 

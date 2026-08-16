@@ -43,9 +43,51 @@ module.exports = {
         ON media_assets ((provenance->>'provider'))
         WHERE provenance IS NOT NULL;
     `);
+
+    // ── WRITE-ONCE ENFORCEMENT ────────────────────────────────────────────
+    // Three independent reviewers (Kimi K3, HY3, GLM-5.3) converged on this as the
+    // blocker, and they were right. `Object.freeze()` in `buildProvenance` protects the
+    // in-process object and NOTHING else — the freeze does not survive serialisation, so
+    // once the record is a JSONB column any admin query, ORM write, or future migration
+    // can rewrite it silently. A "durable record" that a stray UPDATE can edit is not a
+    // durable record; it is a mutable field with a promise attached.
+    //
+    // The rule is deliberately write-ONCE rather than write-never: NULL -> value is how
+    // provenance is first recorded and must be allowed. value -> different value is
+    // rejected. value -> NULL is rejected too, since erasing the record is exactly the
+    // tampering this exists to prevent.
+    await queryInterface.sequelize.query(`
+      CREATE OR REPLACE FUNCTION media_assets_provenance_write_once()
+      RETURNS TRIGGER AS $$
+      BEGIN
+        IF OLD.provenance IS NOT NULL
+           AND NEW.provenance IS DISTINCT FROM OLD.provenance THEN
+          RAISE EXCEPTION
+            'media_assets.provenance is write-once (asset %): it records the licence in force at generation time and cannot be altered afterwards',
+            OLD.id
+            USING ERRCODE = 'integrity_constraint_violation';
+        END IF;
+        RETURN NEW;
+      END;
+      $$ LANGUAGE plpgsql;
+    `);
+
+    await queryInterface.sequelize.query(`
+      DROP TRIGGER IF EXISTS media_assets_provenance_write_once_trg ON media_assets;
+      CREATE TRIGGER media_assets_provenance_write_once_trg
+        BEFORE UPDATE ON media_assets
+        FOR EACH ROW
+        EXECUTE FUNCTION media_assets_provenance_write_once();
+    `);
   },
 
   async down(queryInterface) {
+    await queryInterface.sequelize.query(`
+      DROP TRIGGER IF EXISTS media_assets_provenance_write_once_trg ON media_assets;
+    `);
+    await queryInterface.sequelize.query(`
+      DROP FUNCTION IF EXISTS media_assets_provenance_write_once();
+    `);
     await queryInterface.sequelize.query(`
       DROP INDEX IF EXISTS media_assets_provenance_provider_idx;
     `);

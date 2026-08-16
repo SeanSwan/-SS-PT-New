@@ -81,6 +81,7 @@ export function buildProvenance({
   grantRecorded,
   now = new Date(),
   agentVersion = null,
+  policyFlags = [],
 } = {}) {
   if (!caps || !caps.provider) {
     throw new Error('buildProvenance requires resolved capabilities');
@@ -122,6 +123,25 @@ export function buildProvenance({
       sha256: result?.sha256 ?? null,
       providerJobId: result?.promptId ?? null,
     }),
+
+    // Policy flags travel INSIDE the frozen record, not beside it.
+    //
+    // Three reviewers converged on this independently: a flag emitted as a log line or a
+    // transient response field is analytics, not a control. "No depiction of identifiable
+    // real people without consent" is a condition that has to be answerable at PUBLISH
+    // time, months later, by someone who never saw the job — and it only is if the
+    // unresolved question is welded to the asset.
+    //
+    // `consentConfirmed: false` is the honest starting state. Nothing here decides
+    // consent; it records that consent was never established, so a publish gate has
+    // something real to refuse on.
+    policyFlags: Object.freeze(
+      (policyFlags || []).map(f => Object.freeze({
+        rule: f.rule ?? null,
+        detail: f.detail ?? null,
+        consentConfirmed: false,
+      })),
+    ),
 
     agentVersion,
   });

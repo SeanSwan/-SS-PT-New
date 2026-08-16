@@ -62,6 +62,9 @@ const PERMANENT_CODES = new Set([
   // SPEND and RUN caps themselves are deliberately NOT here: those expire at the UTC
   // day boundary, so tomorrow genuinely succeeds and the job deserves its retry.
   'E_BAD_CAP',
+  // A corrupt ledger file does not repair itself either. Same class: retrying re-reads
+  // the same unparseable bytes, and only a human deleting or fixing the file changes it.
+  'E_LEDGER_DEGRADED',
 ]);
 
 function markPermanence(err) {
@@ -226,6 +229,9 @@ export async function runGenerate(job, onProgress, deps = {}) {
     territory: p.territory || env.SWAN_OPERATOR_TERRITORY || 'US',
     grantRecorded: readGrants(env).has(providerId),
     now: now(),
+    // Welded to the record rather than returned beside it — an unresolved consent
+    // question has to survive to publish time to be a control at all.
+    policyFlags: policy.flags,
   });
 
   return {

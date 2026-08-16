@@ -40,12 +40,20 @@ class SpendGuardError extends Error {
 
 function numberFrom(raw, dflt) {
   if (raw === undefined || raw === null || String(raw).trim() === '') return dflt;
-  const n = Number(raw);
+  const str = String(raw).trim();
+  // Require PLAIN decimal. `Number()` alone accepts "0x32" as 50 and "0b11" as 3, so a
+  // config typo silently becomes a ceiling nobody intended — found by an external
+  // reviewer probing this exact input.
+  if (!/^\d+(\.\d+)?$/.test(str)) {
+    throw new SpendGuardError('E_BAD_CAP',
+      `Cap must be a plain non-negative decimal number; got "${raw}".`);
+  }
+  const n = Number(str);
   // A malformed cap is the most dangerous input here: treating "abc" as absent would
   // silently restore the default, and treating it as Infinity would remove the ceiling
   // entirely. Refusing is the only reading that cannot lose money.
-  if (!Number.isFinite(n) || n < 0) {
-    throw new SpendGuardError('E_BAD_CAP', `Cap must be a non-negative number; got "${raw}".`);
+  if (!Number.isFinite(n)) {
+    throw new SpendGuardError('E_BAD_CAP', `Cap must be a finite number; got "${raw}".`);
   }
   return n;
 }
@@ -92,6 +100,15 @@ export function checkRunAllowed(caps, usage = { runs: 0, spendUsd: 0 }, limits =
     return { allowed: true, projectedSpendUsd: spent, runCost: 0 };
   }
 
+  // An unreadable ledger means the spend total is unknown, and an unknown total cannot be
+  // compared against a ceiling. Free generation continues; billing stops until it is fixed.
+  if (usage.degraded) {
+    throw new SpendGuardError('E_LEDGER_DEGRADED',
+      `The usage ledger could not be read, so today's spend is unknown and "${caps.provider}" `
+      + 'cannot be billed safely. Free local generation is unaffected. Repair or delete the '
+      + 'ledger file to resume paid runs.');
+  }
+
   if (limits.maxSpendUsdDaily === 0) {
     throw new SpendGuardError('E_SPEND_DISABLED',
       `"${caps.provider}" bills per run and no spend ceiling is configured, so paid generation is off. `
@@ -127,15 +144,23 @@ export function checkRunAllowed(caps, usage = { runs: 0, spendUsd: 0 }, limits =
  * moves server-side, which is where the commitment pointed in the first place.
  */
 export function makeFileLedger(path, fs) {
+  let degraded = false;
   const read = () => {
     try {
       const raw = JSON.parse(fs.readFileSync(path, 'utf8'));
+      degraded = false;
       return (raw && typeof raw === 'object') ? raw : {};
-    } catch {
-      // A missing or corrupt ledger reads as "nothing spent today". That is the
-      // fail-OPEN direction and it is deliberate: the alternative — refusing all work
-      // because a counter file is unreadable — turns a bookkeeping problem into an
-      // outage, and the ceiling above still bounds the damage to one day's cap.
+    } catch (err) {
+      // A MISSING ledger is simply a fresh day and reads as zero.
+      //
+      // A CORRUPT one is different, and conflating them was the defect: truncating this
+      // file to "{" resets the day's usage, and anyone with disk access to the worker can
+      // do that. Blanket fail-open turned a counter into an unlimited-quota exploit.
+      //
+      // So corruption is recorded and the ceiling degrades ASYMMETRICALLY: the free local
+      // path keeps running (a bookkeeping problem must not become an outage) while
+      // anything that spends money is refused until the ledger is readable again.
+      degraded = err && err.code !== 'ENOENT' && !/ENOENT/.test(String(err.message));
       return {};
     }
   };
@@ -144,12 +169,25 @@ export function makeFileLedger(path, fs) {
     usageFor(day) {
       const all = read();
       const rec = all[day] || {};
-      return { runs: Number(rec.runs) || 0, spendUsd: Number(rec.spendUsd) || 0 };
+      return {
+        runs: Number(rec.runs) || 0,
+        spendUsd: Number(rec.spendUsd) || 0,
+        // True only when the file existed and could not be parsed. Consumed by
+        // checkRunAllowed to refuse billing providers while leaving free ones alone.
+        degraded,
+      };
     },
     record(day, { runs = 1, spendUsd = 0 } = {}) {
+      // MONOTONIC. A negative delta buys back headroom — an external reviewer probed this
+      // and drove a recorded 5 runs / $5 back down to 1 / $1, which would let any caller
+      // that can reach the ledger mint unlimited quota. Usage only ever goes up; a refund
+      // is not a spend-guard concern, and if it ever becomes one it needs its own audited
+      // path rather than a sign flip on the counter.
+      const dRuns = Math.max(0, Number(runs) || 0);
+      const dSpend = Math.max(0, Number(spendUsd) || 0);
       const all = read();
       const rec = all[day] || { runs: 0, spendUsd: 0 };
-      const next = { runs: (Number(rec.runs) || 0) + runs, spendUsd: (Number(rec.spendUsd) || 0) + spendUsd };
+      const next = { runs: (Number(rec.runs) || 0) + dRuns, spendUsd: (Number(rec.spendUsd) || 0) + dSpend };
       // Keep only the last 30 days. An append-forever ledger is a slow leak, and older
       // rows answer no question this guard asks.
       const trimmed = Object.fromEntries(
