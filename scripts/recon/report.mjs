@@ -167,13 +167,41 @@ export function renderReport(state) {
     out.push(`   Sensitive paths: NO unpushed changes detected across all ${nonLanded.length} non-landed refs.`);
   } else if (risky.length === 0) {
     out.push(`   No sensitive unpushed changes found in the ${nonLanded.length - unresolved.length} refs`);
-    out.push(`   we could fully inspect. ${unresolved.length} refs could NOT be inspected —`);
-    out.push(`   coverage of sensitive surfaces is therefore NOT established.`);
+    out.push(`   we could fully inspect.`);
+    // The uninspectable detail now prints unconditionally below.
   } else {
+    out.push(`   ${risky.length} ref(s) touch sensitive paths:`);
     for (const it of risky.slice(0, 6)) {
       const files = (it.rec.files ?? []).filter((f) => pathSensitivity([f]) > 0);
       out.push(`   ⚠ ${it.item.ref}: ${files.slice(0, 3).join(', ')}${files.length > 3 ? ` +${files.length - 3}` : ''}`);
     }
+    // Unmarked truncation is treated as a defect everywhere else in this file;
+    // this list was the one place capping silently at 6 with no total.
+    if (risky.length > 6) out.push(`   + ${risky.length - 6} more sensitive ref(s)  [--full to list]`);
+  }
+
+  // The uninspectable caveat must print on EVERY path, not only when risky is
+  // empty. Previously it lived solely in the `risky.length === 0` branch, so the
+  // moment a single sensitive ref existed the entire "coverage NOT established"
+  // disclosure vanished -- unreachable in exactly the shipping configuration.
+  // Fix A restored these records to the `unresolved` ARRAY; the renderer then
+  // dropped them from the PAGE. Membership is not disclosure.
+  if (unresolved.length > 0) {
+    out.push('');
+    out.push(`   ⚠ ${unresolved.length} ref(s) could NOT be inspected — sensitive-surface`);
+    out.push(`     coverage is NOT established for them:`);
+    const blind = unresolved.filter(
+      (it) => it.rec.filesUnknown || it.rec.contentCheck?.failed || it.rec.contentCheck?.truncated,
+    );
+    for (const it of blind.slice(0, 6)) {
+      const why = it.rec.filesUnknown ? 'file list unavailable'
+        : it.rec.contentCheck?.failed ? 'content check failed'
+          : 'content check truncated';
+      out.push(`     · ${it.item.ref} (${why})`);
+    }
+    if (blind.length > 6) out.push(`     · + ${blind.length - 6} more`);
+    const rest = unresolved.length - blind.length;
+    if (rest > 0) out.push(`     · + ${rest} ref(s) with insufficient classification evidence`);
   }
   if (workingTree?.statusFailed) {
     out.push(`   ⚠ WORKING TREE STATE UNKNOWN — git status could not be read.`);
