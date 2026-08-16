@@ -244,7 +244,11 @@ async function handleJob(job) {
       throw e;
     }
 
-    const output = await handler(job, onProgress);
+    // `api` is handed to the handler so a handler that produces a FILE can obtain a
+    // presigned upload URL. The agent deliberately holds no R2 credentials and no S3
+    // SDK — it runs from a fresh checkout with zero install — so the server signs and
+    // the handler does a plain PUT. runMediaSync ignores this third argument.
+    const output = await handler(job, onProgress, { api });
     clearInterval(beat); beat = null;
 
     // Artifact pointer + operator summary. A handler declaring neither gets mediasync's

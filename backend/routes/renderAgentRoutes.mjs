@@ -21,6 +21,7 @@
 
 import { Router } from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { createArtifactUploadUrl, ArtifactUploadError } from '../services/videoRenderArtifactUpload.mjs';
 import {
   enrolAgent, revokeAgent, authenticateAgent, RenderAgentAuthError,
 } from '../services/renderAgentAuthService.mjs';
@@ -49,6 +50,13 @@ async function agentAuth(req, res, next) {
 function sendServiceError(res, err, context) {
   if (err instanceof VideoRenderJobError) {
     return res.status(err.statusCode).json({ success: false, error: err.message, code: err.code });
+  }
+  // ArtifactUploadError carries `status` rather than `statusCode`. Without this branch it
+  // fell through to a blanket 500, so "you do not hold this lease" and "that media type is
+  // not accepted" both reached the agent as "upload-url failed" — losing the status the
+  // agent classifies retryability from, and the sentence telling a human what to change.
+  if (err instanceof ArtifactUploadError) {
+    return res.status(err.status).json({ success: false, error: err.message, code: err.code });
   }
   console.error(`[RenderAgent] ${context}:`, err.message);
   return res.status(500).json({ success: false, error: `${context} failed` });
@@ -119,6 +127,28 @@ router.post('/jobs/:jobId/heartbeat', agentAuth, async (req, res) => {
     return res.json({ success: true, data: { job } });
   } catch (err) {
     return sendServiceError(res, err, 'heartbeat');
+  }
+});
+
+/**
+ * POST /api/render-agents/jobs/:jobId/upload-url — a short-lived PUT for one artifact.
+ *
+ * The agent cannot reach R2 itself: it runs from a fresh checkout with no SDK and no
+ * credentials, and keeping it that way is deliberate. So the server signs and the agent
+ * does a plain PUT.
+ *
+ * The object key is derived from the JOB, never from the request body. An agent that
+ * could name its own key could obtain a signed PUT for someone else's object.
+ */
+router.post('/jobs/:jobId/upload-url', agentAuth, async (req, res) => {
+  try {
+    const { filename, contentType, sha256, bytes } = req.body || {};
+    const out = await createArtifactUploadUrl({
+      jobId: req.params.jobId, agentId: req.agent.id, filename, contentType, sha256, bytes,
+    });
+    return res.json({ success: true, data: out });
+  } catch (err) {
+    return sendServiceError(res, err, 'upload-url');
   }
 });
 

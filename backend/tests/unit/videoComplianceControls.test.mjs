@@ -1,0 +1,439 @@
+/**
+ * The three compliance controls promised to a licensor on 2026-08-16.
+ * ============================================================================
+ *
+ * These are not ordinary features. A licensing request went to MiniMax stating that
+ * SwanStudios has per-asset provenance, server-side spend/volume ceilings, and a
+ * content policy filter. These tests are what make those sentences true rather than
+ * aspirational, and they are the reason the claim can be re-verified later by someone
+ * who was not here.
+ *
+ * The highest-value test in this file is the one asserting that a NORMAL adult fitness
+ * prompt passes clean. A safety filter that refuses the product's actual content gets
+ * switched off, and a disabled filter protects nobody.
+ */
+
+import { describe, it, expect } from 'vitest';
+
+import {
+  buildProvenance, auditProvenance, snapshotLicence, PROVENANCE_SCHEMA, PROMPT_KEEP_CHARS,
+} from '../../../shared/providers/video/provenance.mjs';
+import {
+  readLimits, checkRunAllowed, dayKey, makeFileLedger,
+  DEFAULT_MAX_RUNS_DAILY, DEFAULT_MAX_SPEND_USD_DAILY, SpendGuardError,
+} from '../../../shared/providers/video/spendGuard.mjs';
+import {
+  evaluatePrompt, assertPromptAllowed,
+} from '../../../shared/providers/video/promptPolicy.mjs';
+import { resolve, capabilities } from '../../../shared/providers/video/registry.mjs';
+import { runGenerate } from '../../scripts/handlers/generateVideo.mjs';
+
+const LOCAL = 'comfyui/minimax-h3';
+const HOSTED = 'minimax/hailuo-hosted';
+const localCaps = () => resolve(LOCAL, { commercial: false, requireEnabled: false });
+const hostedCaps = () => resolve(HOSTED, { requireEnabled: false });
+
+const req = (over = {}) => ({
+  prompt: 'a swan crossing still water at dawn',
+  category: 'marketing', style: 'cinematic', duration: 5, ...over,
+});
+
+// ───────────────────────────── PROVENANCE ─────────────────────────────
+
+describe('provenance — the record promised to the licensor', () => {
+  const build = (over = {}) => buildProvenance({
+    caps: localCaps(),
+    request: req(),
+    result: { filename: 'a.mp4', bytes: 10, sha256: 'abc', promptId: 'p1' },
+    commercial: false, territory: 'US', grantRecorded: false,
+    now: new Date('2026-08-16T12:00:00Z'),
+    ...over,
+  });
+
+  it('carries provider, model version and generation time', () => {
+    const r = build();
+    expect(r.schema).toBe(PROVENANCE_SCHEMA);
+    expect(r.provider).toBe(LOCAL);
+    expect(r.modelVersion).toBeTruthy();
+    expect(r.generatedAt).toBe('2026-08-16T12:00:00.000Z');
+  });
+
+  it('embeds the licence as it stood AT GENERATION TIME, not by reference', () => {
+    // The whole point: terms change, grants are issued and revoked. A record that
+    // points at the current licence answers a different question than the one asked.
+    const r = build();
+    expect(r.licence.name).toMatch(/MiniMax/);
+    expect(r.licence.restricts).toBe('model-execution');
+    expect(r.licence.grantRecorded).toBe(false);
+    expect(r.licence.territoryAtGeneration).toBe('US');
+    expect(r.licence.usedCommercially).toBe(false);
+  });
+
+  it('records grantRecorded:true separately from the licence terms', () => {
+    const r = build({ grantRecorded: true, commercial: true });
+    expect(r.licence.grantRecorded).toBe(true);
+    expect(r.licence.usedCommercially).toBe(true);
+    // Terms themselves are unchanged by holding a grant.
+    expect(r.licence.commercialUse).toBe('requires-grant');
+  });
+
+  it('carries the attribution the licence requires displayed', () => {
+    expect(build().attribution).toMatch(/MiniMax H3/);
+  });
+
+  it('is immutable — a record that can be edited is not evidence', () => {
+    const r = build();
+    expect(Object.isFrozen(r)).toBe(true);
+    expect(Object.isFrozen(r.licence)).toBe(true);
+    expect(() => { 'use strict'; r.provider = 'tampered'; }).toThrow();
+  });
+
+  it('hashes the prompt and flags truncation rather than silently cutting', () => {
+    const long = 'x'.repeat(PROMPT_KEEP_CHARS + 50);
+    const r = build({ request: req({ prompt: long }) });
+    expect(r.request.prompt.length).toBe(PROMPT_KEEP_CHARS);
+    expect(r.request.promptTruncated).toBe(true);
+    expect(r.request.promptSha256).toHaveLength(64);
+    // The hash is of the FULL prompt, so truncation never breaks comparability.
+    const r2 = build({ request: req({ prompt: long }) });
+    expect(r2.request.promptSha256).toBe(r.request.promptSha256);
+  });
+
+  it('identifies the artifact it describes', () => {
+    const r = build();
+    expect(r.artifact.sha256).toBe('abc');
+    expect(r.artifact.filename).toBe('a.mp4');
+    expect(r.artifact.providerJobId).toBe('p1');
+  });
+
+  it('audit names what is missing rather than returning a bare false', () => {
+    const thin = build({ result: { filename: 'a.mp4', bytes: 1 } });   // no sha256
+    const audit = auditProvenance(thin);
+    expect(audit.ok).toBe(false);
+    expect(audit.missing).toContain('artifact.sha256');
+    expect(auditProvenance(build()).ok).toBe(true);
+  });
+
+  it('refuses to build without resolved capabilities', () => {
+    expect(() => buildProvenance({})).toThrow(/resolved capabilities/);
+  });
+
+  it('snapshotLicence copies the excluded-territory list rather than aliasing it', () => {
+    const snap = snapshotLicence(localCaps(), { commercial: true, territory: 'US', grantRecorded: false });
+    expect(Object.isFrozen(snap.excludedTerritories)).toBe(true);
+    expect(snap.excludedTerritories).toContain('US');
+  });
+});
+
+// ───────────────────────────── SPEND GUARD ─────────────────────────────
+
+describe('spend + volume ceilings', () => {
+  it('defaults are finite for runs and ZERO for spend', () => {
+    const l = readLimits({});
+    expect(l.maxRunsDaily).toBe(DEFAULT_MAX_RUNS_DAILY);
+    expect(Number.isFinite(l.maxRunsDaily)).toBe(true);   // "unset" never means unlimited
+    expect(l.maxSpendUsdDaily).toBe(DEFAULT_MAX_SPEND_USD_DAILY);
+    expect(l.maxSpendUsdDaily).toBe(0);                   // paid runs need an explicit decision
+  });
+
+  it('lets the FREE local provider run without any spend ceiling configured', () => {
+    // Reading "unconfigured cap denies" literally would block the zero-cost path over
+    // money that is never spent — the same mistake as image-first on a free provider.
+    const out = checkRunAllowed(localCaps(), { runs: 0, spendUsd: 0 }, readLimits({}));
+    expect(out.allowed).toBe(true);
+    expect(out.runCost).toBe(0);
+  });
+
+  it('DENIES a billing provider while the spend ceiling is zero', () => {
+    let err;
+    try { checkRunAllowed(hostedCaps(), { runs: 0, spendUsd: 0 }, readLimits({})); }
+    catch (e) { err = e; }
+    expect(err.code).toBe('E_SPEND_DISABLED');
+    expect(err.message).toMatch(/SWAN_VIDEO_MAX_SPEND_USD_DAILY/);
+  });
+
+  it('still refuses a billing provider whose price was never recorded', () => {
+    // costPerRunUsd null. With a ceiling configured, an unpriced provider is unbounded,
+    // so it is refused rather than guessed at zero.
+    const limits = readLimits({ SWAN_VIDEO_MAX_SPEND_USD_DAILY: '10' });
+    let err;
+    try { checkRunAllowed(hostedCaps(), { runs: 0, spendUsd: 0 }, limits); }
+    catch (e) { err = e; }
+    expect(err.code).toBe('E_UNKNOWN_COST');
+  });
+
+  it('enforces the daily run ceiling even when nothing is billed', () => {
+    const limits = readLimits({ SWAN_VIDEO_MAX_RUNS_DAILY: '3' });
+    expect(() => checkRunAllowed(localCaps(), { runs: 3, spendUsd: 0 }, limits)).toThrow(/run cap reached/i);
+    expect(checkRunAllowed(localCaps(), { runs: 2, spendUsd: 0 }, limits).allowed).toBe(true);
+  });
+
+  it('refuses a malformed cap instead of guessing', () => {
+    // Treating "abc" as absent restores the default silently; treating it as Infinity
+    // removes the ceiling. Neither is safe, so it throws.
+    expect(() => readLimits({ SWAN_VIDEO_MAX_RUNS_DAILY: 'abc' })).toThrow(/non-negative number/);
+    expect(() => readLimits({ SWAN_VIDEO_MAX_SPEND_USD_DAILY: '-5' })).toThrow(/non-negative number/);
+  });
+
+  it('projects spend before allowing, not after', () => {
+    const capsPriced = { ...hostedCaps(), costPerRunUsd: 0.64 };
+    const limits = readLimits({ SWAN_VIDEO_MAX_SPEND_USD_DAILY: '1.00' });
+    expect(checkRunAllowed(capsPriced, { runs: 0, spendUsd: 0 }, limits).projectedSpendUsd).toBeCloseTo(0.64);
+    let err;
+    try { checkRunAllowed(capsPriced, { runs: 1, spendUsd: 0.64 }, limits); } catch (e) { err = e; }
+    expect(err.code).toBe('E_SPEND_CAP');
+  });
+
+  it('day key is UTC so a timezone shift cannot silently reset the ledger', () => {
+    expect(dayKey(new Date('2026-08-16T23:59:59Z'))).toBe('2026-08-16');
+    expect(dayKey(new Date('2026-08-17T00:00:01Z'))).toBe('2026-08-17');
+  });
+});
+
+describe('usage ledger', () => {
+  const fakeFs = (initial = null) => {
+    let store = initial;
+    return {
+      readFileSync: () => { if (store === null) throw new Error('ENOENT'); return store; },
+      writeFileSync: (_p, data) => { store = data; },
+      _dump: () => store,
+    };
+  };
+
+  it('counts runs and spend per UTC day', () => {
+    const fs = fakeFs();
+    const led = makeFileLedger('/x.json', fs);
+    expect(led.usageFor('2026-08-16')).toEqual({ runs: 0, spendUsd: 0 });
+    led.record('2026-08-16', { runs: 1, spendUsd: 0.5 });
+    led.record('2026-08-16', { runs: 1, spendUsd: 0.5 });
+    expect(led.usageFor('2026-08-16')).toEqual({ runs: 2, spendUsd: 1 });
+  });
+
+  it('keeps days separate — a new day starts clean', () => {
+    const fs = fakeFs();
+    const led = makeFileLedger('/x.json', fs);
+    led.record('2026-08-16', { runs: 5, spendUsd: 2 });
+    expect(led.usageFor('2026-08-17')).toEqual({ runs: 0, spendUsd: 0 });
+  });
+
+  it('reads a corrupt ledger as zero rather than turning bookkeeping into an outage', () => {
+    const fs = fakeFs('}{ not json');
+    const led = makeFileLedger('/x.json', fs);
+    expect(led.usageFor('2026-08-16')).toEqual({ runs: 0, spendUsd: 0 });
+  });
+
+  it('trims to 30 days so the ledger cannot grow forever', () => {
+    const fs = fakeFs();
+    const led = makeFileLedger('/x.json', fs);
+    for (let d = 1; d <= 40; d += 1) {
+      led.record(`2026-07-${String(d).padStart(2, '0')}`, { runs: 1 });
+    }
+    expect(Object.keys(JSON.parse(fs._dump())).length).toBeLessThanOrEqual(30);
+  });
+});
+
+// ───────────────────────────── PROMPT POLICY ─────────────────────────────
+
+describe('content policy — what must PASS', () => {
+  it('a normal adult fitness prompt passes clean', () => {
+    // THE MOST IMPORTANT TEST HERE. A filter that refuses the product's own content
+    // gets disabled, and a disabled filter protects nobody.
+    for (const p of [
+      'a swan crossing still water at dawn, cinematic',
+      'a 45 year old man performing a barbell back squat, side angle, studio lighting',
+      'close-up of hands gripping a kettlebell, slow motion',
+      'an athlete resting between sets, editorial lighting',
+      'a woman demonstrating a hip hinge with perfect form',
+    ]) {
+      const r = evaluatePrompt(p, {});
+      expect(r.allowed, `blocked a legitimate prompt: "${p}" -> ${JSON.stringify(r.violations)}`).toBe(true);
+    }
+  });
+
+  it('an adult age passes — the product trains adults', () => {
+    expect(evaluatePrompt('a 62 year old client doing a step-up', {}).allowed).toBe(true);
+    expect(evaluatePrompt('an 18 year old athlete sprinting', {}).allowed).toBe(true);
+  });
+});
+
+describe('content policy — what must BLOCK', () => {
+  const blocked = (p) => {
+    const r = evaluatePrompt(p, {});
+    expect(r.allowed, `should have blocked: "${p}"`).toBe(false);
+    return r.violations.map(v => v.rule);
+  };
+
+  it('blocks synthetic depiction of minors', () => {
+    expect(blocked('a child doing jumping jacks')).toContain('minors');
+    expect(blocked('a teenager lifting weights')).toContain('minors');
+    expect(blocked('a 12 year old athlete')).toContain('minors');
+    expect(blocked('kids in a gym class')).toContain('minors');
+  });
+
+  it('blocks impersonation and synthetic likeness', () => {
+    expect(blocked('a deepfake of a famous athlete')).toContain('impersonation');
+    expect(blocked('someone impersonating a well-known trainer')).toContain('impersonation');
+    expect(blocked('a celebrity endorsing the program')).toContain('impersonation');
+  });
+
+  it('blocks deceptive framing', () => {
+    expect(blocked('a fake news report about our results')).toContain('deception');
+    expect(blocked('a forged certificate of completion')).toContain('deception');
+    expect(blocked('an official government notice')).toContain('deception');
+  });
+
+  it('blocks a name on the explicit denylist', () => {
+    const r = evaluatePrompt('a portrait of Jordan Rivera training', { SWAN_VIDEO_BLOCKED_NAMES: 'jordan rivera' });
+    expect(r.allowed).toBe(false);
+    expect(r.violations.map(v => v.rule)).toContain('blocked-name');
+  });
+
+  it('names EVERY violation, not just the first', () => {
+    let err;
+    try { assertPromptAllowed('a deepfake of a child in a fake news report', {}); } catch (e) { err = e; }
+    expect(err.code).toBe('E_POLICY_REFUSED');
+    const rules = err.violations.map(v => v.rule);
+    expect(rules).toContain('minors');
+    expect(rules).toContain('impersonation');
+    expect(rules).toContain('deception');
+  });
+});
+
+describe('content policy — what must FLAG but not block', () => {
+  it('flags a named individual rather than refusing', () => {
+    // Blocking every capitalised name in a fitness product would refuse constantly and
+    // train the operator to switch the filter off.
+    const r = evaluatePrompt('a video of Marcus Webb performing a deadlift', {});
+    expect(r.allowed).toBe(true);
+    expect(r.flags.map(f => f.rule)).toContain('real-person');
+  });
+
+  it('does not flag well-known non-person capitalised phrases', () => {
+    const r = evaluatePrompt('golden hour light over Los Angeles, a swan gliding', {});
+    expect(r.flags.length).toBe(0);
+  });
+});
+
+// ───────────────────────────── HANDLER INTEGRATION ─────────────────────────────
+
+describe('handler — the controls actually run in the generate path', () => {
+  const ENABLED = { SWAN_VIDEO_PROVIDERS_ENABLED: LOCAL };
+  const fakeAdapter = {
+    generate: async (r, o) => ({
+      provider: LOCAL, promptId: 'p9', outPath: o.outPath, bytes: 42,
+      filename: 'out.mp4', sha256: 'deadbeef', attribution: capabilities(LOCAL).attribution,
+    }),
+  };
+  const job = (over = {}) => ({ id: 'j1', params: { provider: LOCAL, ...req(), commercial: false, ...over } });
+
+  it('refuses a policy-violating prompt PERMANENTLY', async () => {
+    const err = await runGenerate(job({ prompt: 'a child doing squats' }), async () => {}, {
+      env: ENABLED, adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp',
+    }).catch(e => e);
+    expect(err.code).toBe('E_POLICY_REFUSED');
+    expect(err.permanent).toBe(true);          // the same words refuse forever
+  });
+
+  it('a malformed ceiling is PERMANENT — a human must fix the environment', async () => {
+    const err = await runGenerate(job(), async () => {}, {
+      env: { ...ENABLED, SWAN_VIDEO_MAX_RUNS_DAILY: 'not-a-number' },
+      adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp',
+    }).catch(e => e);
+    expect(err.code).toBe('E_BAD_CAP');
+    expect(err.permanent).toBe(true);
+  });
+
+  it('a spend/run ceiling is RETRYABLE — it expires on its own', async () => {
+    const err = await runGenerate(job(), async () => {}, {
+      env: { ...ENABLED, SWAN_VIDEO_MAX_RUNS_DAILY: '0' },
+      adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp',
+    }).catch(e => e);
+    expect(err.code).toBe('E_RUN_CAP');
+    expect(err.permanent).toBeUndefined();     // tomorrow genuinely succeeds
+  });
+
+  it('attaches a complete provenance record to a successful run', async () => {
+    const out = await runGenerate(job(), async () => {}, {
+      env: ENABLED, adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp',
+      now: () => new Date('2026-08-16T12:00:00Z'),
+    });
+    expect(auditProvenance(out.provenance).ok).toBe(true);
+    expect(out.provenance.artifact.sha256).toBe('deadbeef');
+    expect(out.provenance.licence.grantRecorded).toBe(false);
+    expect(out.provenance.generatedAt).toBe('2026-08-16T12:00:00.000Z');
+  });
+
+  it('records usage only AFTER the run succeeds', async () => {
+    const calls = [];
+    const ledger = { usageFor: () => ({ runs: 0, spendUsd: 0 }), record: (d, u) => calls.push([d, u]) };
+
+    // A refused prompt must not consume a slot.
+    await runGenerate(job({ prompt: 'a child doing squats' }), async () => {}, {
+      env: ENABLED, adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp', ledger,
+    }).catch(() => {});
+    expect(calls.length).toBe(0);
+
+    await runGenerate(job(), async () => {}, {
+      env: ENABLED, adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp', ledger,
+      now: () => new Date('2026-08-16T12:00:00Z'),
+    });
+    expect(calls).toEqual([['2026-08-16', { runs: 1, spendUsd: 0 }]]);
+  });
+
+  it('leaves the artifact local and says so when no upload channel exists', async () => {
+    const out = await runGenerate(job(), async () => {}, {
+      env: ENABLED, adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp',
+    });
+    expect(out.uploaded).toBe(false);
+    expect(out.r2Key).toBe('jobs/j1/out.mp4');
+  });
+
+  it('uploads via the presigned URL and reports the SERVER-chosen key', async () => {
+    const seen = {};
+    const api = async (path, opts) => {
+      seen.path = path; seen.body = opts.body;
+      return { data: { uploadUrl: 'https://r2.example/renders/j1/out.mp4?sig=x', objectKey: 'renders/j1/out.mp4' } };
+    };
+    const out = await runGenerate(job(), async () => {}, {
+      env: ENABLED, adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp',
+      api, readArtifact: () => Buffer.from('BYTES'),
+      fetchImpl: async () => ({ ok: true, status: 200 }),
+    });
+    expect(seen.path).toBe('/jobs/j1/upload-url');
+    // The hash goes with the request so R2 verifies the bytes it receives.
+    expect(seen.body.sha256).toBe('deadbeef');
+    expect(seen.body.contentType).toBe('video/mp4');
+    expect(out.uploaded).toBe(true);
+    // The key is the SERVER's, never the one the handler would have guessed.
+    expect(out.r2Key).toBe('renders/j1/out.mp4');
+  });
+
+  it('fails RETRYABLY on upload failure and names the intact local render', async () => {
+    // Completing with an r2Key whose object does not exist would put a confident lie in
+    // the queue — the same defect class as recording an mp4 as mediasync.json.
+    const api = async () => ({ data: { uploadUrl: 'https://r2.example/x', objectKey: 'renders/j1/out.mp4' } });
+    const err = await runGenerate(job(), async () => {}, {
+      env: ENABLED, adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp',
+      api, readArtifact: () => Buffer.from('BYTES'),
+      fetchImpl: async () => ({ ok: false, status: 500 }),
+    }).catch(e => e);
+    expect(err.code).toBe('E_UPLOAD_FAILED');
+    expect(err.permanent).toBeUndefined();            // the GPU work is not lost
+    expect(err.message).toMatch(/does not need to be regenerated/);
+  });
+
+  it('refuses to invent a key when the server returns no upload URL', async () => {
+    const err = await runGenerate(job(), async () => {}, {
+      env: ENABLED, adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp',
+      api: async () => ({ data: {} }), readArtifact: () => Buffer.from('B'),
+    }).catch(e => e);
+    expect(err.code).toBe('E_NO_UPLOAD_URL');
+  });
+
+  it('surfaces policy FLAGS on the output for human review', async () => {
+    const out = await runGenerate(job({ prompt: 'a video of Marcus Webb performing a deadlift' }), async () => {}, {
+      env: ENABLED, adapters: { [LOCAL]: fakeAdapter }, outDir: '/tmp',
+    });
+    expect(out.policyFlags.map(f => f.rule)).toContain('real-person');
+  });
+});

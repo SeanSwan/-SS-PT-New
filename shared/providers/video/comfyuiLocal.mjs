@@ -26,6 +26,7 @@
  */
 
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { capabilities as registryCapabilities } from './registry.mjs';
 
 const PROVIDER_ID = 'comfyui/minimax-h3';
@@ -93,12 +94,11 @@ export async function verify(env = process.env, { fetchImpl = fetch } = {}) {
       : 'SWAN_COMFYUI_NODE_PROMPT is unset — set it to the node id whose text input is the positive prompt',
   });
 
-  let reachable = false;
-  let reachDetail = '';
+  let reachable = false; let reachDetail = '';
   try {
     const res = await fetchImpl(`${cfg.host}/system_stats`, { method: 'GET' });
     reachable = res.ok;
-    reachDetail = res.ok ? `${cfg.host} responded ${res.status}` : `${cfg.host} responded ${res.status}`;
+    reachDetail = `${cfg.host} responded ${res.status}`;
   } catch (err) {
     reachDetail = `${cfg.host} unreachable (${err.message}) — is ComfyUI running?`;
   }
@@ -171,7 +171,6 @@ export function buildGraph(request, cfg, { seed } = {}) {
 
   return graph;
 }
-
 const POLL_INTERVAL_MS = 2000;
 
 /**
@@ -270,6 +269,11 @@ export async function generate(request, opts = {}) {
     outPath: finalPath,
     bytes: bytes.length,
     filename: file.filename,
+    // Hashed here, where the bytes are already in hand. Provenance without this is a
+    // record that cannot identify the artifact it claims to describe — it would assert
+    // "this file came from H3 under these terms" while being unable to tell that file
+    // from any other.
+    sha256: createHash('sha256').update(bytes).digest('hex'),
     attribution: capabilities().attribution,
   };
 }

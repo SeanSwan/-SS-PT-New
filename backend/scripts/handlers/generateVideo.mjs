@@ -26,7 +26,11 @@ import {
   readGrants, readEnabled,
 } from '../../../shared/providers/video/registry.mjs';
 import * as comfyuiLocal from '../../../shared/providers/video/comfyuiLocal.mjs';
+import { readFileSync } from 'node:fs';
 import { mimeForFilename } from './completion.mjs';
+import { assertPromptAllowed } from '../../../shared/providers/video/promptPolicy.mjs';
+import { readLimits, dayKey, checkRunAllowed } from '../../../shared/providers/video/spendGuard.mjs';
+import { buildProvenance } from '../../../shared/providers/video/provenance.mjs';
 import { ComfyError } from '../../../shared/providers/video/comfyuiLocal.mjs';
 
 /**
@@ -50,6 +54,14 @@ const PERMANENT_CODES = new Set([
   // E_SUBMIT_FAILED (5xx) is deliberately ABSENT: ComfyUI restarting or briefly
   // out of VRAM is a fact about the moment, and a later attempt may well succeed.
   'E_SUBMIT_REJECTED',
+  // A refused prompt is the same words every time. Retrying it burns the job's whole
+  // attempt budget re-asking a question already answered no — and puts a prompt the
+  // policy filter rejected in front of a model three more times.
+  'E_POLICY_REFUSED',
+  // A malformed ceiling fails identically until a human edits the environment. The
+  // SPEND and RUN caps themselves are deliberately NOT here: those expire at the UTC
+  // day boundary, so tomorrow genuinely succeeds and the job deserves its retry.
+  'E_BAD_CAP',
 ]);
 
 function markPermanence(err) {
@@ -70,6 +82,16 @@ export async function runGenerate(job, onProgress, deps = {}) {
     env = process.env,
     adapters = ADAPTERS,
     outDir = env.SWAN_AGENT_OUT_DIR || process.cwd(),
+    // Injected so the guard, the clock and the record are all testable without a
+    // filesystem or a real date. A null ledger means "count nothing" — used by tests
+    // and by any caller that has not wired persistence yet.
+    ledger = null,
+    now = () => new Date(),
+    // Supplied by the agent. Absent in unit tests and in any caller that has not wired
+    // storage — in which case the artifact stays local and `uploaded` says so.
+    api = null,
+    readArtifact = null,
+    fetchImpl = fetch,
   } = deps;
 
   const p = job.params || {};
@@ -114,6 +136,36 @@ export async function runGenerate(job, onProgress, deps = {}) {
     throw markPermanence(err);
   }
 
+  // CONTENT POLICY — before spend, before GPU time, before anything reaches a model.
+  // A refused prompt is a fact about the request, so it is permanent: resubmitting the
+  // same words produces the same refusal forever.
+  let policy;
+  try {
+    policy = assertPromptAllowed(request.prompt, env);
+  } catch (err) {
+    throw markPermanence(err);
+  }
+
+  // SPEND + VOLUME CEILING. Checked after policy so a refused prompt never consumes a
+  // slot, and before submission so the ceiling is a gate rather than a report.
+  let limits;
+  try {
+    limits = readLimits(env);
+  } catch (err) {
+    throw markPermanence(err);   // E_BAD_CAP — a human must fix the environment
+  }
+  const day = dayKey(now());
+  const usage = ledger ? ledger.usageFor(day) : { runs: 0, spendUsd: 0 };
+  let allowance;
+  try {
+    allowance = checkRunAllowed(caps, usage, limits);
+  } catch (err) {
+    // A cap is a fact about the DAY, not the request. Retrying tomorrow genuinely
+    // succeeds, so this must stay retryable — marking it permanent would discard work
+    // for a ceiling that expires on its own.
+    throw err;
+  }
+
   await onProgress(5, `provider ${providerId} accepted`);
 
   const outPath = `${String(outDir).replace(/[\\/]$/, '')}/job-${job.id}.mp4`;
@@ -125,6 +177,57 @@ export async function runGenerate(job, onProgress, deps = {}) {
     throw markPermanence(err);
   }
 
+  if (ledger) ledger.record(day, { runs: 1, spendUsd: allowance.runCost });
+
+  // ── UPLOAD ────────────────────────────────────────────────────────────────
+  // Only attempted when the agent handed us an authenticated `api`. A failure here is
+  // RETRYABLE and the job fails rather than completing: the render succeeded, but
+  // completing with an r2Key whose object does not exist would put a confident lie in
+  // the queue — the same defect class as recording an mp4 as `mediasync.json`. The
+  // local file is preserved and named in the error so the render is recoverable.
+  const mime = mimeForFilename(result.filename);
+  let uploaded = false;
+  let r2Key = `jobs/${job.id}/${result.filename || 'render.mp4'}`;
+
+  if (api) {
+    await onProgress(90, 'uploading artifact');
+    const readBytes = readArtifact || ((pth) => readFileSync(pth));
+    const body = readBytes(result.outPath);
+    const signed = await api(`/jobs/${job.id}/upload-url`, {
+      body: {
+        filename: result.filename, contentType: mime,
+        sha256: result.sha256, bytes: result.bytes,
+      },
+    });
+    const url = signed?.data?.uploadUrl;
+    const key = signed?.data?.objectKey;
+    if (!url || !key) {
+      const e = new Error('Server did not return an upload URL for this artifact.');
+      e.code = 'E_NO_UPLOAD_URL';
+      throw e;
+    }
+    const put = await fetchImpl(url, { method: 'PUT', headers: { 'content-type': mime }, body });
+    if (!put.ok) {
+      const e = new Error(
+        `Artifact upload failed (${put.status}). The render is intact at ${result.outPath} — `
+        + 'it does not need to be regenerated.');
+      e.code = 'E_UPLOAD_FAILED';
+      throw e;
+    }
+    uploaded = true;
+    r2Key = key;
+  }
+
+  const provenance = buildProvenance({
+    caps,
+    request,
+    result,
+    commercial: p.commercial !== false,
+    territory: p.territory || env.SWAN_OPERATOR_TERRITORY || 'US',
+    grantRecorded: readGrants(env).has(providerId),
+    now: now(),
+  });
+
   return {
     provider: result.provider,
     promptId: result.promptId,
@@ -133,19 +236,25 @@ export async function runGenerate(job, onProgress, deps = {}) {
     filename: result.filename,
     // The queue's artifact pointer. Without these the agent falls back to mediasync's
     // literals and records an mp4 as `mediasync.json` / `application/json`.
-    r2Key: `jobs/${job.id}/${result.filename || 'render.mp4'}`,
-    mime: mimeForFilename(result.filename),
+    r2Key,
+    mime,
     // What the operator sees in the agent log instead of "offset undefineds".
     summary: `${result.filename} (${result.bytes} bytes) via ${result.provider}`,
     // Carried through to the caller because the licence requires it to be shown
     // wherever the video is. A field that travels with the artifact is harder to
     // forget than a rule written in a document.
     attribution: result.attribution,
-    // HONEST STATE: the artifact is on the agent's local disk. Upload is not
-    // implemented in this lane — the mediasync handler has the same gap and says
-    // so. Claiming an R2 object here would be a lie the queue would then store.
-    uploaded: false,
+    // TRUE only when an object actually landed in storage. When no `api` was supplied
+    // the artifact is local-only and this says so rather than implying otherwise.
+    uploaded,
     durationBoundEnforced: request.durationBoundEnforced,
+    // The durable record promised to the licensor. Travels in the job output, which is
+    // what the queue already stores — a second table would be a second source of truth
+    // for a record whose entire job is to be immutable.
+    provenance,
+    // Anything the policy filter flagged but did not block. Surfaced so human review
+    // (the actual backstop) knows what to look at rather than re-reading every prompt.
+    policyFlags: policy.flags.map(f => ({ rule: f.rule, detail: f.detail })),
   };
 }
 
