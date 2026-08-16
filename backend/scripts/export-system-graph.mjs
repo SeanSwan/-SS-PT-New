@@ -6,22 +6,46 @@
  * system can be SEEN rather than described. Touches pg_catalog and issues
  * COUNT(*) only; no DDL, no DML, no writes of any kind.
  *
- * Usage: node scripts/qa/export-system-graph.mjs > graph.json
+ * Usage: node backend/scripts/export-system-graph.mjs > docs/ai-workflow/system-graph.json
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import url from 'node:url';
 import pg from 'pg';
 
-const ENV_PATH = 'C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/backend/.env';
+const HERE = path.dirname(url.fileURLToPath(import.meta.url));
 
+/**
+ * Resolve DATABASE_URL without hardcoding anyone's machine. The first version of
+ * this file pinned an absolute Windows path containing a username, which made the
+ * tool unrunnable for every other machine, agent, and CI runner — and wrote a
+ * local filesystem layout into the repo. Order: real env first (Render, CI, any
+ * shell that already exported it), then .env files resolved RELATIVE to this
+ * script, then an explicit override.
+ */
 function loadDatabaseUrl() {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-  const raw = fs.readFileSync(ENV_PATH, 'utf8');
-  for (const line of raw.split(/\r?\n/)) {
-    const m = /^\s*DATABASE_URL\s*=\s*(.+?)\s*$/.exec(line);
-    if (m) return m[1].replace(/^["']|["']$/g, '');
+
+  const candidates = [
+    process.env.SWAN_ENV_FILE,
+    path.resolve(HERE, '../.env'),          // backend/.env  (this script lives in backend/scripts)
+    path.resolve(HERE, '../../.env'),       // repo-root .env
+    path.resolve(process.cwd(), '.env'),
+    path.resolve(process.cwd(), 'backend/.env'),
+  ].filter(Boolean);
+
+  for (const file of candidates) {
+    if (!fs.existsSync(file)) continue;
+    const raw = fs.readFileSync(file, 'utf8');
+    for (const line of raw.split(/\r?\n/)) {
+      const m = /^\s*DATABASE_URL\s*=\s*(.+?)\s*$/.exec(line);
+      if (m) return m[1].replace(/^["']|["']$/g, '');   // value stays in memory, never printed (Rule 59)
+    }
   }
-  throw new Error('DATABASE_URL not found (value never printed)');
+  throw new Error(
+    'DATABASE_URL not found. Export it, or set SWAN_ENV_FILE to an env file that defines it. '
+    + `Looked in: ${candidates.join(', ')}`
+  );
 }
 
 const TABLES_SQL = `

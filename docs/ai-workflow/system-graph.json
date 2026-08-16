@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-14T07:37:56.720Z",
+  "generatedAt": "2026-08-16T20:22:46.085Z",
   "nodes": [
     {
       "id": "Achievements",
@@ -304,7 +304,7 @@
     },
     {
       "id": "acquisition_events",
-      "rows": 214,
+      "rows": 239,
       "bytes": 131072,
       "indexes": 4,
       "degree": 0
@@ -626,7 +626,7 @@
     },
     {
       "id": "contacts",
-      "rows": 14,
+      "rows": 15,
       "bytes": 32768,
       "indexes": 1,
       "degree": 1
@@ -1018,14 +1018,14 @@
     },
     {
       "id": "lead_activities",
-      "rows": 18,
+      "rows": 19,
       "bytes": 81920,
       "indexes": 4,
       "degree": 1
     },
     {
       "id": "leads",
-      "rows": 11,
+      "rows": 12,
       "bytes": 180224,
       "indexes": 10,
       "degree": 1
@@ -1137,7 +1137,7 @@
     },
     {
       "id": "notifications",
-      "rows": 3,
+      "rows": 5,
       "bytes": 81920,
       "indexes": 4,
       "degree": 2
@@ -1207,8 +1207,8 @@
     },
     {
       "id": "page_views",
-      "rows": 393,
-      "bytes": 516096,
+      "rows": 409,
+      "bytes": 532480,
       "indexes": 5,
       "degree": 0
     },
@@ -3767,6 +3767,6 @@
     "foreignKeys": 396,
     "isolated": 33,
     "emptyTables": 158,
-    "totalRows": 6162
+    "totalRows": 6208
   }
 }
