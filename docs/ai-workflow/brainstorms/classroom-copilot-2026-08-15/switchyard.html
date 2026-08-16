@@ -1,0 +1,409 @@
+<title>The Switchyard</title>
+
+<style>
+  :root{
+    --paper:#F1F3F1; --card:#FFFFFF; --ink:#1C2321; --ink-soft:#4A544F;
+    --ink-faint:#7C8781; --rule:#DCE1DD; --rule-strong:#C3CBC5;
+    --accent:#2F6F62; --accent-soft:#E4EDE9;
+    --block:#B4451F; --review:#9A6B1E; --allow:#3F7A4E;
+    --block-bg:#F8E9E3; --review-bg:#F6EEDD; --allow-bg:#E6F0E8;
+    --shadow:0 1px 2px rgba(28,35,33,.06), 0 8px 24px -12px rgba(28,35,33,.18);
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#15191A; --card:#1D2223; --ink:#E7EDEA; --ink-soft:#AEB8B4;
+      --ink-faint:#7E8A86; --rule:#2C3335; --rule-strong:#3C4547;
+      --accent:#5FA894; --accent-soft:#22302C;
+      --block:#E08055; --review:#D2A34E; --allow:#6FB582;
+      --block-bg:#2E211C; --review-bg:#2C2619; --allow-bg:#1E2A22;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#15191A; --card:#1D2223; --ink:#E7EDEA; --ink-soft:#AEB8B4;
+    --ink-faint:#7E8A86; --rule:#2C3335; --rule-strong:#3C4547;
+    --accent:#5FA894; --accent-soft:#22302C;
+    --block:#E08055; --review:#D2A34E; --allow:#6FB582;
+    --block-bg:#2E211C; --review-bg:#2C2619; --allow-bg:#1E2A22;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:830px;margin:0 auto;padding:0 24px 96px}
+  .mast{padding:64px 0 36px;border-bottom:2px solid var(--ink);margin-bottom:44px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 18px}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(38px,7vw,60px);line-height:1.02;
+    letter-spacing:-.02em;margin:0 0 16px;text-wrap:balance}
+  .standfirst{font-family:var(--serif);font-size:clamp(18px,2.4vw,21px);line-height:1.5;
+    color:var(--ink-soft);margin:0;max-width:60ch;font-style:italic}
+  .mast-meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:26px;
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-faint)}
+  section{margin:0 0 56px}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.6vw,33px);line-height:1.15;
+    letter-spacing:-.015em;margin:0;text-wrap:balance}
+  .sec-head{display:flex;align-items:baseline;gap:14px;padding-bottom:12px;
+    border-bottom:1px solid var(--rule);margin-bottom:26px}
+  .sec-head h2{flex:1}
+  .sec-num{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:.1em;padding-top:6px}
+  h3{font-family:var(--sans);font-weight:650;font-size:15px;margin:32px 0 10px}
+  p{margin:0 0 16px;max-width:70ch}
+  a{color:var(--accent)}
+  ul,ol{margin:0 0 16px;padding-left:22px;max-width:70ch}
+  li{margin-bottom:7px}
+  li::marker{color:var(--ink-faint)}
+  code{font-family:var(--mono);font-size:.88em;background:var(--accent-soft);padding:1px 5px;
+    border-radius:3px;color:var(--ink)}
+  .verdict{background:var(--card);border:1px solid var(--rule-strong);border-left:4px solid var(--accent);
+    border-radius:3px;padding:26px 28px;box-shadow:var(--shadow);margin-bottom:34px}
+  .verdict .lede{font-family:var(--serif);font-size:19px;line-height:1.5}
+  .verdict p:last-child{margin-bottom:0}
+  .callout{background:var(--accent-soft);border:1px solid var(--rule-strong);border-radius:3px;
+    padding:20px 24px;margin:24px 0}
+  .callout p:last-child{margin-bottom:0}
+  .callout .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);display:block;margin-bottom:9px}
+  .warn{background:var(--block-bg);border:1px solid var(--block);border-radius:3px;padding:20px 24px;margin:24px 0}
+  .warn .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--block);display:block;margin-bottom:9px;font-weight:600}
+  .warn p:last-child{margin-bottom:0}
+  .diagram{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:20px;
+    margin:0 0 20px;overflow-x:auto}
+  .diagram pre.mermaid{margin:0;background:transparent;text-align:center}
+  .cap{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin:-8px 0 24px}
+  .tbl-scroll{overflow-x:auto;margin:0 0 20px;border:1px solid var(--rule);border-radius:3px}
+  table{border-collapse:collapse;width:100%;min-width:560px;background:var(--card);font-size:14.5px}
+  th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-faint);font-weight:600;background:var(--paper)}
+  tr:last-child td{border-bottom:none}
+  .matrix td:first-child{font-weight:650;background:var(--paper)}
+  .voice{border-left:2px solid var(--rule-strong);padding:2px 0 2px 18px;margin:0 0 20px}
+  .voice .who{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--accent);display:block;margin-bottom:5px}
+  .voice p{margin:0;color:var(--ink-soft)}
+  .tiers{display:grid;gap:14px;margin:0 0 22px}
+  .tier{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:18px 20px;
+    border-left:4px solid var(--rule-strong)}
+  .tier.allow{border-left-color:var(--allow)}
+  .tier.review{border-left-color:var(--review)}
+  .tier.block{border-left-color:var(--block)}
+  .tier h4{margin:0 0 4px;font-size:14.5px;font-weight:650;display:flex;justify-content:space-between;gap:12px}
+  .tier .pct{font-family:var(--mono);font-size:11px;color:var(--ink-faint);font-weight:400}
+  .tier p{margin:0;font-size:14.5px;color:var(--ink-soft)}
+  .wires{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:22px;margin:0 0 22px}
+  .phone{background:var(--card);border:1px solid var(--rule-strong);border-radius:16px;padding:11px;
+    box-shadow:var(--shadow)}
+  .screen{background:var(--paper);border-radius:9px;padding:14px 13px;min-height:330px;
+    display:flex;flex-direction:column;border:1px solid var(--rule)}
+  .s-title{font-family:var(--serif);font-size:16px;margin:0 0 3px;line-height:1.2}
+  .s-sub{font-family:var(--mono);font-size:9.5px;color:var(--ink-faint);margin:0 0 12px}
+  .w-box{background:var(--card);border:1px solid var(--rule);border-radius:5px;padding:10px;
+    font-size:11.5px;line-height:1.5;margin-bottom:9px}
+  .w-box.dim{color:var(--ink-faint);font-style:italic;font-family:var(--serif)}
+  .redact{background:var(--ink-faint);color:var(--ink-faint);border-radius:2px;user-select:none}
+  .w-btn{background:var(--accent);color:#fff;border-radius:999px;text-align:center;padding:12px;
+    font-weight:650;font-size:12px;margin-top:auto}
+  .w-btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+  .w-cap{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);text-align:center;margin-top:10px}
+  .w-lock{font-family:var(--mono);font-size:9.5px;color:var(--block);background:var(--block-bg);
+    padding:6px 9px;border-radius:4px;margin-bottom:10px}
+  .rules{counter-reset:r}
+  .rule-item{display:grid;grid-template-columns:30px 1fr;gap:12px;padding:13px 0;border-top:1px solid var(--rule)}
+  .rule-item:last-child{border-bottom:1px solid var(--rule)}
+  .rule-item .n{font-family:var(--mono);font-size:12px;color:var(--accent);padding-top:2px}
+  .rule-item p{margin:0}
+  .rule-item .sub{color:var(--ink-faint);font-size:14px;margin-top:3px}
+  footer{margin-top:64px;padding-top:22px;border-top:2px solid var(--ink);
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-faint)}
+  @media (max-width:560px){.wrap{padding:0 18px 72px}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">System architecture · companion to the Classroom Copilot plan</p>
+  <h1>The Switchyard</h1>
+  <p class="standfirst">How a local assistant decides which brain to use, and what is never allowed to leave the building — designed by a six-model panel that spent most of its effort attacking it.</p>
+  <div class="mast-meta">
+    <span>PANEL: Kimi K3 · GLM 5.3 · HY3 · Opus 5</span>
+    <span>TIERS: her 8B · her 14B · your 5090 — no vendor in v1</span>
+    <span>APPLIES TO: her classroom assistant AND your own operator bridge</span>
+  </div>
+</header>
+
+<section>
+  <div class="verdict">
+    <p class="lede">Two axes decide every request: <strong>what it touches</strong> and <strong>how hard it is</strong>. Sensitivity always outranks capability — you never reach for a cloud model to get a better answer about a child, you reach for a bigger <em>local</em> one. And the boundary that enforces it must be installed once by you, not maintained by a teacher.</p>
+    <p style="margin-top:16px">The panel's most useful contribution was not the design. It was three honest limits on what this can ever claim, in §06.</p>
+  </div>
+  <p>This is the layer underneath the classroom app — and it is genuinely dual-use. The same gateway that keeps a two-year-old's developmental notes off a vendor's servers is the one that keeps your family and immigration matters off them too. Build it once.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>The routing matrix</h2></div>
+  <p>Every request gets classified on two independent axes before anything runs.</p>
+  <div class="tbl-scroll">
+  <table class="matrix">
+    <thead><tr><th></th><th>Trivial work</th><th>Hard / creative work</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Touches a person</td>
+        <td><strong>Small local model.</strong> Sorting a dump, tagging, extracting fields. Fast, cheap, constrained output.</td>
+        <td><strong>Big local model.</strong> Conference narratives, incident phrasing, difficult-message drafting. Never leaves the machine <em>no matter how hard it is</em>.</td>
+      </tr>
+      <tr>
+        <td>No personal data</td>
+        <td><strong>Small local model.</strong> Formatting, lists, rewrites. No reason to pay or wait.</td>
+        <td><strong>Your 5090.</strong> Lesson planning, activity ideas, curriculum research, long-form drafting — at 70B quality with no third party anywhere in the path.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout">
+    <span class="tag">The rule that makes it safe</span>
+    <p><strong>Sensitivity outranks capability, always.</strong> "This is hard" is never a reason to escalate outward — it is a reason to escalate <em>upward, locally</em>. That single ordering is what makes the high-RAM laptop load-bearing rather than luxury: it means "I need a smarter answer about this child" has a good answer that never leaves the house.</p>
+  </div>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+    IN["Request"] --> PROV{"Where did this<br/>text come from?"}
+    PROV -->|"from the notes store"| LOCAL["LOCAL ONLY<br/>every outward path closed"]
+    PROV -->|"freshly typed"| GATE["Gateway pipeline<br/>see section 03"]
+    GATE -->|"clean"| HARD{"How hard?"}
+    GATE -->|"any doubt"| LOCAL
+    HARD -->|"trivial"| SMALL["T1 · Qwen3 8B<br/>her Mac, always on"]
+    HARD -->|"hard"| REMOTE{"Is the 5090<br/>reachable?"}
+    REMOTE -->|"yes"| RIG["T3 · your 5090, 70B+<br/>your hardware, no vendor"]
+    REMOTE -->|"no"| BIG
+    LOCAL --> LHARD{"How hard?"}
+    LHARD -->|"trivial"| SMALL
+    LHARD -->|"hard"| BIG["T2 · local 14B<br/>ceiling for child data,<br/>and the fallback for everything"]
+    SMALL --> OUT["Result"]
+    BIG --> HRL["Hostile review<br/>local, same machine"]
+    RIG --> HR["Hostile review<br/>on the 5090"]
+    HR --> OUT
+    HRL --> OUT
+</pre>
+  </div>
+  <p class="cap">Provenance is checked before content. Text from the notes store is blocked by origin — no classifier gets a vote on it, and no amount of difficulty routes it outward.</p>
+
+  <h3>Three tiers — and no vendor at all</h3>
+  <p>Adding your desktop displaces the vendor rather than the local model, and once it does, the vendor turns out to be barely reachable. So <strong>v1 ships with no third party in the architecture whatsoever.</strong></p>
+  <p>That is not a cosmetic simplification. The vendor path is what forced the hardest parts of this design — semantic re-identification on outbound text, the pseudonym question, zero-retention contract terms, auditing a vendor's billing records against your own logs. All of it existed because someone else was on the far end. Remove the vendor and the gateway's job shrinks to <strong>gating one encrypted link to a machine you own</strong>, which is dramatically easier to build correctly and to install in an evening.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Tier</th><th>Runs</th><th>Child data?</th><th>Availability</th></tr></thead>
+    <tbody>
+      <tr><td><strong>T1 · her Mac, small</strong></td><td>Qwen3 8B — same brain as yours, so you can support it</td><td><strong>Yes</strong></td><td>Always</td></tr>
+      <tr><td><strong>T2 · her Mac, big</strong></td><td>14B at Q4 — conference narratives, incident phrasing. Also the fallback for everything.</td><td><strong>Yes — this is the ceiling</strong></td><td>Always</td></tr>
+      <tr><td><strong>T3 · your 5090</strong></td><td>70B+ over an encrypted mesh link to hardware you own</td><td><strong>No</strong> — see below</td><td>Whenever the machine is up</td></tr>
+      <tr><td style="opacity:.55"><strong>T4 · a vendor</strong></td><td colspan="3" style="opacity:.55"><strong>Deliberately not built.</strong> Add one later only if a real gap appears in use — not a theoretical one. Adding it re-opens every hard problem listed above, so it should be a decision with evidence behind it.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="warn">
+    <span class="tag">Why child data stops at T2</span>
+    <p>The school authorised <strong>her</strong> to hold those children's records — not you. Encryption doesn't change that: your desktop is hardware a person outside the authorised circle controls and could read. Legally it sits in the same category as a vendor, with a friendlier face. <em>"Our teacher sends children's developmental notes to her partner's home computer"</em> reads badly to a director, a parent, or a licensor regardless of how good the crypto is.</p>
+    <p style="margin-top:12px">This is a judgement call and it's yours to make — but make it deliberately, not by default, and if you overrule it, do it knowing that's the sentence you'd be defending.</p>
+  </div>
+  <div class="callout">
+    <span class="tag">T3 stays up — but still degrades</span>
+    <p>The desktop is kept on deliberately, so T3 is the normal path for hard child-free work rather than an occasional bonus. Two reasons to keep the fallback anyway: Wake-on-LAN is dead on that machine (the BIOS route was exhausted and shelved), so nothing wakes it remotely — and "stays on" is an intention, while reboots, updates and power cuts are events. <strong>If T3 doesn't answer, the request quietly drops to her 14B</strong> and she never sees an error. It costs nothing and it prevents one genuinely bad midday.</p>
+    <p style="margin-top:12px">Transport: an encrypted peer-to-peer mesh (Tailscale/WireGuard shape) — no open ports, no port-forwarding, nothing exposed to the internet. Worth checking early whether her school network permits it; if it doesn't, T3 simply never fires from work and the fallback already covers that case.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Hostile review, ported</h2></div>
+  <p>Your standing discipline transfers, with one constraint that forces a fork: <strong>hostile review of personal-data work must itself stay local.</strong> You cannot hand a child's observation to a cheap cloud reviewer to critique.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Work</th><th>Reviewed by</th><th>Looking for</th></tr></thead>
+    <tbody>
+      <tr><td>Family notes, conference narratives</td><td>Local 14B, adversarial prompt</td><td>Wrong child, invented detail, tone, anything not supported by the source note</td></tr>
+      <tr><td>Incident records</td><td>Local, <strong>checking her words only</strong></td><td>Missing fields, non-neutral language, absent witness or notification time. <strong>It never writes the account.</strong></td></tr>
+      <tr><td>Lesson plans, activity sets, research</td><td>Cheapest capable cloud reasoner</td><td>Age-appropriateness, safety, feasibility for one adult alone, missing prep</td></tr>
+      <tr><td>The trivial sorting pass</td><td>Nothing</td><td>Reviewing this would double latency inside a 5-minute window for no gain</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <h3>When to review — one testable question</h3>
+  <p>You said it should probably always review. The version that keeps your intent without breaking her midday clock: <strong>review anything that produces an artifact she acts on or sends.</strong> That's a single question the router can answer — <em>does this output leave her head and go somewhere real?</em> — rather than a judgement call it will get wrong.</p>
+  <div class="warn">
+    <span class="tag">Never generate</span>
+    <p>The panel was unanimous and emphatic: <strong>no AI-written incident narratives.</strong> An incident record is a legally protective document, and a model that invents one plausible detail destroys its value precisely when she needs it. She writes it; the machine only checks that she filled in the fields she'll forget at 10:40 with a crying child — time, witness, who was notified, what was said.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>The gateway</h2></div>
+  <p>One component every outbound request passes through. Its job is <strong>refusing</strong>, not scrubbing — because free text cannot be reliably de-identified. <em>"The little boy whose mum is in hospital"</em> contains no name and identifies a child completely.</p>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+    R["Outbound request"] --> P1["1 · Provenance<br/>came from notes store?"]
+    P1 -->|"yes"| B["BLOCK"]
+    P1 -->|"no"| P2["2 · Class policy<br/>minors, health, legal, credentials"]
+    P2 -->|"restricted class"| B
+    P2 -->|"ok"| P3["3 · Deterministic<br/>IDs, keys, contacts"]
+    P3 -->|"hit"| B
+    P3 -->|"clean"| P4["4 · Roster match<br/>names, nicknames, possessives"]
+    P4 -->|"hit"| B
+    P4 -->|"clean"| P5["5 · Local classifier<br/>DENY-ONLY, never authorises"]
+    P5 -->|"veto or unsure"| B
+    P5 -->|"clean"| P6["6 · Specificity re-test<br/>does de-named text still narrow the roster?"]
+    P6 -->|"yes"| B
+    P6 -->|"no"| A["ALLOW → vendor"]
+    B --> LOC["Offer the local path instead"]
+</pre>
+  </div>
+  <p class="cap">Allow is conjunctive — every stage must pass. Deny is disjunctive — any stage can stop it. Uncertainty is always a block.</p>
+
+  <h3>Why the classifier is deny-only</h3>
+  <p>A local model judging whether text is safe is itself an inference step, and it can be wrong. Kimi's resolution is elegant: <strong>the classifier may veto but may never authorise.</strong> It can add a reason to refuse; it can never be the reason something was allowed. A wrong classifier then costs you utility, never secrecy.</p>
+
+  <h3>Enforcement — and the correction that matters</h3>
+  <p>The boundary can't be a convention the app agrees to honour. It has to hold when the app is buggy, compromised, or prompt-injected. That means: the app runs with <strong>no network route off the machine</strong>, and <strong>provider credentials live only in the gateway</strong>, in the OS keystore, readable by nothing else. The app talks to <code>127.0.0.1</code> with a dummy token. Even fully compromised, it has nowhere to send anything and nothing to authenticate with.</p>
+  <div class="warn">
+    <span class="tag">GLM's correction — take this seriously</span>
+    <p><em>"OS-level egress enforcement run by a preschool teacher is fantasy. The honest shippable form is a locked-down profile installed once by O — anything else quietly collapses 'assume the app is untrusted' into 'trust the app.'"</em></p>
+    <p style="margin-top:12px">So: <strong>you install it, once, in person.</strong> She never configures a firewall. And because the most likely real-world failure is the boundary silently drifting — an OS update, a reinstall, both processes ending up under one account — a <strong>watchdog re-verifies the rule continuously and screams if it changed.</strong> Kimi was blunt that boundary drift, not a clever classifier miss, is the probable production failure.</p>
+  </div>
+
+  <h3>Pseudonyms — narrow, or not at all</h3>
+  <p>The panel split, and the strict reading wins for children. Substituting a token for a name is legitimate; substituting one for a <em>circumstance</em> is meaningless, because the circumstance is the identifier. Three rules if used at all:</p>
+  <ul>
+    <li><strong>Names only, never circumstances</strong> — and the de-named text gets re-tested: if it still narrows a 12-child roster, it's blocked anyway.</li>
+    <li><strong>No stored mapping.</strong> Use a keyed function over the small closed roster, key in the OS keystore. There's no table to steal.</li>
+    <li><strong>Task-scoped, never global.</strong> A stable token that co-occurs forty times with "hospital" and "custody" hands a vendor a dossier under a persistent key — and one future identity leak through any other channel retroactively deanonymises the whole accumulated history.</li>
+  </ul>
+  <p>For minors' content specifically, Kimi's position is the safe one and I'd adopt it: <strong>block by class, never substitute.</strong></p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>What she actually sees</h2></div>
+  <p>The failure to design against here is <strong>consent fatigue</strong>. A gate that asks permission for everything trains her to approve everything — which is worse than no gate, because it manufactures false confidence. So the friction is spent unevenly and deliberately.</p>
+  <div class="tiers">
+    <div class="tier allow"><h4>Silent pass <span class="pct">the large majority</span></h4>
+      <p>No screen, no interruption, nothing logged but metadata. She never learns the gateway exists on these.</p></div>
+    <div class="tier review"><h4>Shown once <span class="pct">a small minority</span></h4>
+      <p>A diff: what she wrote, and what would be sent. One glance, one button. Not a permission dialog — a content confirmation.</p></div>
+    <div class="tier block"><h4>Refused <span class="pct">rare, no override</span></h4>
+      <p>Held on the device, explained calmly, and — critically — <strong>paired with a working local alternative</strong>. A refusal that dead-ends is what drives someone to a browser tab.</p></div>
+  </div>
+  <div class="wires">
+    <div>
+      <div class="phone"><div class="screen">
+        <p class="s-title">Before this leaves</p>
+        <p class="s-sub">2 THINGS REMOVED</p>
+        <div class="w-box dim">"…activity for the child who's been struggling with drop-off, her mum's in hospital"</div>
+        <div class="w-box">"…activity for a child struggling with separation at drop-off"<br>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--ink-faint)">2 details removed</span></div>
+        <div class="w-btn">Send this version</div>
+        <div class="w-btn ghost" style="margin-top:8px">Keep it local instead</div>
+      </div></div>
+      <p class="w-cap">Review — shows what changed</p>
+    </div>
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="w-lock">HELD ON YOUR DEVICE</div>
+        <p class="s-title">This one stays here</p>
+        <p class="s-sub">MENTIONS A CHILD'S WELLBEING</p>
+        <div class="w-box">This note is about a specific child, so it can't go to an outside model. That protects both of you.</div>
+        <div class="w-box" style="border-color:var(--accent)">Your own assistant can still do this — and it's good at it.</div>
+        <div class="w-btn">Do it locally</div>
+        <div class="w-btn ghost" style="margin-top:8px">See why</div>
+      </div></div>
+      <p class="w-cap">Refusal — always offers a way forward</p>
+    </div>
+    <div>
+      <div class="phone"><div class="screen">
+        <p class="s-title">Incident</p>
+        <p class="s-sub">LOCKED ON SAVE · NEVER EXPIRES</p>
+        <div class="w-box">Time <span class="redact">██:██</span> · Witness ___<br>What happened — <em>your words</em></div>
+        <div class="w-box" style="border-color:var(--review)">Missing: who was notified, and when</div>
+        <div class="w-box dim" style="font-size:10.5px">The assistant checks your fields. It does not write this for you.</div>
+        <div class="w-btn">Save &amp; lock</div>
+      </div></div>
+      <p class="w-cap">Incident — the one it must never author</p>
+    </div>
+  </div>
+  <p class="cap">If review prompts exceed about one per session, that is a tuning bug the dashboard reports — not something to train her out of.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Her constitution</h2></div>
+  <p>Porting your <code>CLAUDE.md</code> / <code>AGENTS.md</code> pattern is the highest-leverage thing in this whole document — it's how the discipline survives you not being in the room. But port the <em>disciplines</em>, not the domain rules. Hers is about children and mandated systems, not styled-components and Render.</p>
+  <h3>Carried over unchanged</h3>
+  <div class="rules">
+    <div class="rule-item"><span class="n">01</span><div><p><strong>Hostile review before declaring done.</strong></p><p class="sub">Loop until an adversarial pass finds nothing new.</p></div></div>
+    <div class="rule-item"><span class="n">02</span><div><p><strong>Proof before "done."</strong></p><p class="sub">No completion claim without evidence produced in the same session.</p></div></div>
+    <div class="rule-item"><span class="n">03</span><div><p><strong>No speculative success language.</strong></p><p class="sub">Never "should work" — name what was actually checked.</p></div></div>
+    <div class="rule-item"><span class="n">04</span><div><p><strong>Say what you don't know.</strong></p><p class="sub">Uncertainty is stated, not buried in confident prose.</p></div></div>
+  </div>
+  <h3>Replaced with hers</h3>
+  <div class="rules">
+    <div class="rule-item"><span class="n">05</span><div><p><strong>Nothing about a child leaves this machine.</strong></p><p class="sub">Not for quality, not for speed, not ever. Escalate locally instead.</p></div></div>
+    <div class="rule-item"><span class="n">06</span><div><p><strong>Never author an incident record.</strong></p><p class="sub">Check her fields; never write the account.</p></div></div>
+    <div class="rule-item"><span class="n">07</span><div><p><strong>Never send anything to a parent.</strong></p><p class="sub">Every outbound message passes her eyes first. One wrong auto-send ends trust permanently.</p></div></div>
+    <div class="rule-item"><span class="n">08</span><div><p><strong>Never touch the school's systems.</strong></p><p class="sub">They're institutionally owned. Draft for copying; never write into them.</p></div></div>
+    <div class="rule-item"><span class="n">09</span><div><p><strong>Never interrupt her while she's teaching.</strong></p><p class="sub">A tool that exists to reduce overload does not generate notifications.</p></div></div>
+    <div class="rule-item"><span class="n">10</span><div><p><strong>Wrong child is the unrecoverable error.</strong></p><p class="sub">Any draft naming a child gets a verification pass. Two wrong-child errors and the model path is dead for that surface — rules only, permanently.</p></div></div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Three limits, stated honestly</h2></div>
+  <p>The most valuable output of the panel. Each of these is a real hole; none is fixable by better engineering alone.</p>
+
+  <h3>1 · The browser tab voids the claim</h3>
+  <div class="voice"><span class="who">Kimi K3</span>
+    <p>"The humans can and will open a vendor's chat in a browser. That channel is outside every metric proposed and cannot be verified. The honest title is <em>assistant egress guard</em>, not <em>privacy boundary</em>. Treating the control as total is a false proof."</p></div>
+  <p>So don't call it a privacy boundary. And note what actually reduces this risk: it is not a stricter gate — a stricter gate <em>increases</em> it. It's making the local path good enough that she never wants the browser. <strong>The high-RAM laptop is the anti-shadow-IT mechanism.</strong> That is the real reason it matters.</p>
+
+  <h3>2 · The local model can launder the data</h3>
+  <div class="voice"><span class="who">GLM 5.3</span>
+    <p>"The gateway polices the door while the crown jewel walks out rewritten. A prompt-injected local model with tool access can launder tainted notes into clean-sounding prose before egress. This is the weakest joint in my own design."</p></div>
+  <p>The gateway inspects text at the door. If the local assistant has already paraphrased a child's note into generic-sounding prose, the door sees something clean. The fix isn't at the gateway — <strong>taint has to travel with the data through every local transformation</strong>, enforced at the store and tool layer. That is genuinely a separate design problem and I'd scope it as its own slice rather than pretend this design covers it.</p>
+
+  <h3>3 · "Proof" is the wrong standard</h3>
+  <div class="voice"><span class="who">GLM 5.3</span>
+    <p>"Proof requires bounding the adversary's auxiliary information, which is impossible by construction. Chasing proof yields theatre metrics; substitute measured failure rate under adaptive attack, and say so."</p></div>
+  <p>Report what's true: a measured miss-rate against a corpus of known attacks, plus canary values that must never appear outbound, plus a coverage check — <strong>the vendor's own usage records must match the gateway's log exactly.</strong> If the vendor billed for calls your gateway never saw, something bypassed it. That comparison is the single most useful ongoing assurance signal, and it costs nothing.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">07</span><h2>Build order</h2></div>
+  <p>Ordered by risk retired per day. The honest note first: <strong>S1 alone is safe to turn on.</strong> Everything after it buys utility, not safety.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Slice</th><th>Ships</th><th>Retires</th></tr></thead>
+    <tbody>
+      <tr><td><strong>G1 · Boundary</strong></td><td>App has no network route except the encrypted mesh link to your desktop. No vendor credentials exist anywhere, because there is no vendor. You install it in person.</td><td>Arbitrary exfiltration. <strong>Smallest genuinely safe version — and smaller still than the panel assumed, because there's only one destination to trust.</strong></td></tr>
+      <tr><td><strong>G2 · Proof scaffolding</strong></td><td>Canary values, adversarial corpus, decision-only logging, the vendor-records coverage check.</td><td>Silent regression — built early so everything after it is measurable.</td></tr>
+      <tr><td><strong>G3 · Deterministic + roster</strong></td><td>Credential/ID formats; the closed roster of real people with nicknames and possessives.</td><td>Known-entity and credential leaks.</td></tr>
+      <tr><td><strong>G4 · Class policy + refusal UX</strong></td><td>Restricted classes blocked by origin; the refusal screen with its local alternative.</td><td>The whole minors' category — by policy rather than by detection.</td></tr>
+      <tr><td><strong>G5 · Deny-only classifier</strong></td><td>Local semantic veto, corpus in CI, boundary watchdog.</td><td>Unknown free-text phrasings.</td></tr>
+      <tr><td><strong>G6 · Taint propagation</strong></td><td>Provenance labels that survive local transformation.</td><td>The laundering hole in §06.2. Scope this properly; it's not a bolt-on.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="callout">
+    <span class="tag">Zero vendors, not one</span>
+    <p>GLM argued for starting with a single vendor rather than several, since each additional provider multiplies audit surface and correlation risk for no early benefit. The 5090 takes that argument one step further and lands somewhere better: <strong>start with none.</strong> Every vendor-shaped problem — retention terms, billing-record audits, outbound re-identification, pseudonym leakage — is deferred rather than solved, and deferred problems cost nothing to maintain.</p>
+    <p style="margin-top:12px">If a real gap shows up in use, add exactly one, on zero-retention terms, and re-open §03's harder machinery at that point. Not before.</p>
+  </div>
+</section>
+
+<footer>
+  <p>PANEL — Kimi K3 (security architecture) · GLM 5.3 (detection &amp; deployment realism) · HY3 (human factors) · Opus 5 (synthesis)<br>
+  Every reviewer answered a sanitised brief. No name, school, room or child left this machine.<br>
+  Companion document to the Classroom Copilot build plan. This layer is dual-use — it protects your own operator bridge on the same terms.</p>
+</footer>
+
+</div>

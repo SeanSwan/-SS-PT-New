@@ -373,19 +373,32 @@
 <div class="wrap">
 
   <header class="masthead">
-    <p class="eyebrow">Round 4 · Unlensed Panel</p>
+    <p class="eyebrow">Rounds 4–5 · Unlensed Panel · Contract Frozen</p>
     <h1>Classroom Copilot Blueprint</h1>
     <p class="standfirst">
-      Three models re-reviewed the whole project with no assigned lenses — and found six defects
-      the lensed round never surfaced, including one that leaks the child database to Google Drive
-      with zero code written.
+      Three models reviewed the project with no assigned lenses and found six defects the lensed
+      round never surfaced — including one that leaks the child database to Google Drive with zero
+      code written. A second pass then reviewed the decisions made in response, destroyed one of
+      them, and froze the event-emission contract.
     </p>
     <div class="meta">
       <span><b>Panel</b> GLM 5.3 · Kimi K3 · HY3</span>
-      <span><b>Cost</b> $0.32 total</span>
+      <span><b>Cost</b> $0.52 across both rounds</span>
       <span><b>Date</b> 16 Aug 2026</span>
       <span><b>Rule 82</b> live on main · <code>8257e42b6</code></span>
-      <span><b>Status</b> 3 decisions provisional · 3 questions still open</span>
+      <span><b>Status</b> contract frozen · 3 decisions provisional · 3 questions still open</span>
+    </div>
+    <div class="verdict col" style="margin-top:26px">
+      <p style="margin-bottom:8px"><strong>This page supersedes the round-4 model replies wherever
+        they disagree.</strong></p>
+      <p>
+        Those replies are retained as evidence and still hold the fullest technical detail — but
+        they predate the decisions and corrections below, and they still contain a 30-day expiry
+        default, a permanent-death kill criterion, a home-Wi-Fi transfer channel that cannot exist
+        without the network permission, and file-based encryption where SQLCipher is required.
+        <strong>A builder must treat this page as authoritative and read the replies only for
+        detail this page does not carry.</strong>
+      </p>
     </div>
   </header>
 
@@ -425,8 +438,15 @@
           device with <strong>zero code written and no user action</strong>. Every privacy control
           designed across three rounds sits downstream of this one manifest flag.
         </p>
-        <div class="fix"><b>Fix ·</b> <code>android:allowBackup="false"</code>,
-          <code>fullBackupContent="false"</code>, verified on setup day by inspecting the built manifest.</div>
+        <div class="fix"><b>Fix ·</b> <code>android:allowBackup="false"</code> <strong>and</strong>
+          <code>res/xml/data_extraction_rules.xml</code> excluding the database path from
+          <em>both</em> <code>&lt;cloud-backup&gt;</code> and <code>&lt;device-transfer&gt;</code>.
+          <strong>Round 5 correction:</strong> on Android 12+ (API 31), <code>allowBackup</code>
+          alone is <em>ignored</em> and <code>fullBackupContent</code> no longer applies — her S24
+          runs Android 14, so the original fix was half a fix. Verify against the
+          <strong>merged release manifest</strong> of the built APK, not the source, and prove it
+          with a real backup attempt — <code>aapt dump</code> of a flag is not evidence that nothing
+          leaves.</div>
       </div>
     </div>
 
@@ -485,8 +505,9 @@
           the product quietly dies.
         </p>
         <div class="fix"><b>Fix ·</b> a Family Notes screen with per-child <strong>Copy note</strong>
-          and a <code>handed_off</code> event logged per copy. Format is blocked on knowing what the
-          parent app records.</div>
+          and — per the frozen emission contract — one <code>HANDOFF</code> row plus one
+          <code>HANDOFF_ITEM</code> per constituent record, written on clipboard success. Format is
+          blocked on knowing what the parent app records.</div>
       </div>
     </div>
 
@@ -560,19 +581,28 @@
         keeping the zero-tolerance spirit by making the first strike loud and immediate, because
         that spirit is what protects her.
         <ul style="margin:10px 0 0">
-          <li><strong>Strike 1 —</strong> model attribution drops to <em>suggest-only</em>: it may
-            propose a child but can never pre-fill one, and every attributed chip needs a
-            confirmation tap.</li>
+          <li><strong>Day one, unconditionally —</strong> every model-sourced attribution needs a
+            confirmation tap, and confidence is always visible. <strong>Round 5 correction:</strong>
+            this was originally the strike-1 penalty, which was incoherent — the same document
+            called the tap "the real defence." A defence is not a punishment you earn by failing.
+            It ships in S1 for all sub-explicit-name attributions.</li>
+          <li><strong>Strike 1 —</strong> a loud, immediate in-app banner and
+            <code>model_mode = suggest_only</code>: the model may propose but the UI never pre-fills.</li>
           <li><strong>Strike 2 —</strong> the model stops attributing children entirely. Rules-only
             attribution — explicit name matches and nothing else. It still classifies record
             <em>types</em>, which is most of its value and carries none of the risk.</li>
           <li>Never a silent continuation, and never a total shutdown.</li>
         </ul>
-        <p style="margin:10px 0 0"><strong>What counts as a strike is derivable from the v1 schema
-          — no new field needed.</strong> A <code>child_corrected</code> event whose
-          <code>at_ut</code> is later than a <code>handed_off</code> event on the same
-          <code>record_id</code> means the wrong attribution reached a family note. Earlier means
-          she caught it in review, which is the system working and is not a strike.</p>
+        <p style="margin:10px 0 0"><strong>Round 5 correction — my earlier claim that this needed
+          no new fields was wrong, on two independent grounds.</strong> Both reviewers destroyed it.
+          <em>Ordering:</em> <code>RECORD_EVENT.id</code> was a uuid, so the comparison rested on a
+          wall clock that moves backwards on NTP correction — silently reclassifying a real escape
+          as "caught in review," the failure direction that hides harm. <em>Granularity:</em> a
+          handoff was logged per <em>child</em> and corrections per <em>record</em>, so the join the
+          rule needs did not exist in the schema at all. The strike definition now lives in the
+          frozen emission contract above and requires <code>HANDOFF</code>,
+          <code>HANDOFF_ITEM</code> and <code>seq</code>. <strong>The principle survived; the
+          mechanism did not.</strong></p>
         <p style="margin:10px 0 0"><strong>Known weakness, stated rather than hidden:</strong> this
           only fires if she notices and corrects the error at all. If she never notices, nothing
           fires. The counter under-reports by construction and is a <em>lagging indicator, not a
@@ -596,14 +626,29 @@
       <p>GLM and Kimi both accepted the existing amendment as sufficient. This is a real fork.</p>
       <div class="myread">
         <strong>Provisional decision · neither pole.</strong> The storage argument for expiry is
-        false — five years of every record she will ever write is <strong>5 MB</strong>, against a
-        2,400 MB model file already on the phone. But indefinite retention is also wrong, for data
-        minimisation rather than space: holding behavioural records on named two-year-olds forever
-        is itself a worse privacy posture, and if the school states a retention expectation,
-        "forever" breaks it.
+        false. <strong>Round 5 correction:</strong> my original figure was ~10× optimistic — it
+        counted record bodies only, ignoring raw captures, several events per record, and SQLite
+        page overhead. Corrected, five years is tens of megabytes rather than five. The conclusion
+        is unchanged and the argument is still won; the <em>"0.2% of one file"</em> phrasing was
+        rhetoric that outran its arithmetic, and it was quotable, which is worse.
+        Indefinite retention is also wrong — for data minimisation rather than space: holding
+        behavioural records on named two-year-olds forever is itself a worse privacy posture, and if
+        the school states a retention expectation, "forever" breaks it.
         <ul style="margin:10px 0 0">
           <li>Ordinary observations retain <strong>through the end of the school year plus one
-            term</strong> — not 30 days, not forever.</li>
+            term</strong> — not 30 days, not forever. <strong>Open challenge from Round 5:</strong>
+            this assumes disputes surface within ~7 months of year-end, but toddler-room
+            transition-age disputes typically run 12–15 months out. Another full year costs single-
+            digit megabytes. The window is being chosen on the wrong margin and should probably be
+            longer — decide it with the school's own number.</li>
+          <li><strong>Raw captures are purged with their last live record</strong>, not retained
+            forever. The raw dump is the most sensitive artefact in the system — it holds everything
+            she said, including fragments never turned into records. Keeping records a year while
+            keeping their source text indefinitely was incoherent. Captures linked to an incident
+            are permanently exempt.</li>
+          <li><strong>An incident exempts its siblings.</strong> Creating an incident sets
+            <code>expiry_exempt</code> on every record sharing its capture — the surrounding context
+            ("otherwise a calm morning") is often what protects her, and nothing exempted it before.</li>
           <li><strong>Incidents and promoted evidence remain exempt.</strong> Unchanged, and correct.</li>
           <li>Expiry becomes <strong>opt-in for early deletion</strong> — she marks a note
             <em>scratch</em> to drop it sooner.</li>
@@ -664,8 +709,8 @@
           <tr><td>Phone gets its own model tier (T0)</td><td class="yes">Settled</td><td>Panel convergence — 2 of 3 independently</td><td>Architecture + tier table</td></tr>
           <tr><td>No <code>INTERNET</code> permission in the release build</td><td class="yes">Settled</td><td>Panel convergence</td><td>Manifest — but this is the v1 boundary; think hard</td></tr>
           <tr><td><code>allowBackup=false</code></td><td class="yes">Settled</td><td>D1 — critical</td><td>Nothing. Do not reverse.</td></tr>
-          <tr><td>① Wrong-child response</td><td style="color:var(--warning);font-weight:700">Provisional</td><td>16 Aug 2026</td><td>Strike rule + review-screen confirmation behaviour</td></tr>
-          <tr><td>② Retention window</td><td style="color:var(--warning);font-weight:700">Provisional</td><td>16 Aug 2026</td><td>One setting — but superseded by the school's own number if one exists</td></tr>
+          <tr><td>① Wrong-child response</td><td style="color:var(--warning);font-weight:700">Provisional</td><td>16 Aug 2026</td><td><strong>The policy is reversible; the emitted history is not.</strong> Change the rule freely — but events written under the wrong emission contract can never be re-derived, which is why the contract is frozen above.</td></tr>
+          <tr><td>② Retention window</td><td style="color:var(--warning);font-weight:700">Provisional</td><td>16 Aug 2026</td><td><strong>Not reversible once the purge has run.</strong> Lengthening the window later cannot restore what a shorter one already deleted. Superseded by the school's own number if one exists — so do not build the purge job before that answer.</td></tr>
           <tr><td>③ "No sync" wording</td><td style="color:var(--warning);font-weight:700">Provisional</td><td>16 Aug 2026</td><td>Wording only, until the first Mac-side slice</td></tr>
           <tr><td>Employer policy</td><td style="color:var(--critical);font-weight:700">Open — blocking</td><td>—</td><td>One conversation. Can invalidate the architecture.</td></tr>
           <tr><td>Real rest window + note deadline</td><td style="color:var(--critical);font-weight:700">Open — blocking</td><td>—</td><td>One question. The anchor is the product.</td></tr>
@@ -715,7 +760,7 @@ flowchart TB
     WHIS["whisper.rn<br/>audio never written to disk"]
     RULES["rulesEngine<br/>deterministic · always runs"]
     MODEL["llama.rn · Qwen3-4B Q4_K_M<br/>OPTIONAL — app fully works without it"]
-    DB[("copilot.db<br/>SQLCipher + Android Keystore<br/>allowBackup = false")]
+    DB[("copilot.db<br/>SQLCipher + Android Keystore<br/>allowBackup=false AND dataExtractionRules<br/>excluding cloud-backup AND device-transfer")]
     INBOX["Inbox · one-tap correction"]
     NOTES["Family notes<br/>per-child Copy"]
     CAP --> WHIS --> RULES
@@ -757,6 +802,9 @@ flowchart TB
 erDiagram
   CHILD ||--o{ RECORD : "attributed to"
   CHILD ||--o{ INCIDENT : "concerns"
+  CHILD ||--o{ HANDOFF : "note copied for"
+  HANDOFF ||--o{ HANDOFF_ITEM : "contains"
+  RECORD ||--o{ HANDOFF_ITEM : "was sent in"
   CAPTURE ||--o{ RECORD : "extracted into"
   RECORD ||--o{ RECORD_EVENT : "logs"
   INCIDENT ||--o{ INCIDENT_EVENT : "appends"
@@ -774,32 +822,46 @@ erDiagram
   }
   CAPTURE {
     text id PK
-    text raw_text "retained always - re-extraction source"
+    text raw_text "purged with its last live record - NOT retained forever"
     text source "typed or dictated"
     int created_at_ut
     int rest_window
+  }
+  HANDOFF {
+    text id PK
+    text child_id FK
+    int seq "monotonic - the ordering authority"
+    int at_ut "display only"
+  }
+  HANDOFF_ITEM {
+    text handoff_id PK "composite PK with record_id"
+    text record_id PK "no FK - survives the record being purged"
+    text child_snapshot "child_id as sent - survives later correction"
   }
   RECORD {
     text id PK
     text capture_id FK
     text child_id FK "NULL means unattributed - shows who chip"
-    text rtype "obs / parent / supply / task / activity / admin"
+    text rtype "observation / child_followup / parent / supply / prep / idea / admin"
+    text bucket "must / should / extra - computed at sort time"
     text body
     real confidence
     text attribution_src "rule / model / user"
     text status
     int pinned
     int expiry_exempt
+    int scratch "opt-in early deletion - 30d instead of school year"
     int expires_at_ut
     text taint "child or none"
   }
   RECORD_EVENT {
-    text id PK
-    text record_id FK
-    text event "accepted / corrected / wrong_child / handed_off / promoted"
+    int seq PK "INTEGER PRIMARY KEY - monotonic, the ordering authority"
+    text id "uuid, only if sync ever needs it"
+    text record_id "no FK - events outlive purged records"
+    text event "accepted / unaccepted / type_corrected / child_corrected / edited / dismissed / promoted / pinned"
     text from_value
     text to_value
-    int at_ut
+    int at_ut "display only - never used for ordering"
   }
   INCIDENT {
     text id PK
@@ -822,9 +884,113 @@ erDiagram
     text source "auto_from_record or manual"
     text day
   }
+  SETTING {
+    text key PK
+    text value
+    int school_year_end_ut "retention anchor - O-set, reset at rollover"
+    text model_mode "full / suggest_only / rules_only - durable graduation state"
+    text model_ref "pinned model filename + sha256"
+  }
       </pre>
       <figcaption>Every field. <code>UT</code> = Unix milliseconds UTC.</figcaption>
     </figure>
+
+    <h3>The event-emission contract — frozen</h3>
+    <div class="verdict col">
+      <p>
+        <strong>This is the half-page nobody had written, and it is the most urgent artefact in the
+        project.</strong> The unrecoverable risk was never a missing column — it is the
+        <em>semantics</em> of what gets emitted, when. Event history written under the wrong rules
+        cannot be reconstructed, and the first real school day is when it starts accruing.
+      </p>
+    </div>
+    <ol class="col">
+      <li><strong>Ordering is <code>seq</code>, never <code>at_ut</code>.</strong>
+        <code>RECORD_EVENT.seq</code> is <code>INTEGER PRIMARY KEY</code> — SQLite's rowid, which is
+        monotonically increasing within the table. <code>at_ut</code> is a device wall clock; it
+        moves backwards on NTP correction and ties within a millisecond. Every strike, metric, and
+        replay orders by <code>seq</code>. <code>at_ut</code> is for display only.</li>
+      <li><strong>A handoff writes one <code>HANDOFF</code> row plus one <code>HANDOFF_ITEM</code>
+        per constituent record.</strong> The per-child grain alone cannot answer "which observations
+        actually reached a family" — that question is the entire kill criterion.
+        <code>child_snapshot</code> stores the child as sent, so a later correction cannot rewrite
+        what history says went out.</li>
+      <li><strong>Strikes are computed, never emitted.</strong> <code>wrong_child</code> is deleted
+        from the enum — it was a second event for a fact already recorded, and two sources of the
+        same truth diverge. The definition:
+        <div class="fix" style="margin-top:8px">a <code>RECORD</code> with
+          <code>attribution_src = 'model'</code> that appears in <code>HANDOFF_ITEM</code>, and
+          subsequently <em>by <code>seq</code></em> receives a <code>child_corrected</code>
+          <strong>or</strong> a <code>dismissed</code> event.</div>
+        Post-handoff dismissal counts. A wrong attribution she deletes after it was sent is still a
+        wrong attribution that was sent — excluding it was the under-count that hid the worst case.</li>
+      <li><strong>Undo writes a compensating event, never a deletion.</strong> The log is
+        append-only, so the 5-second bulk-accept undo emits <code>unaccepted</code> and flips status
+        back to <code>pending</code>. Acceptance rate is <code>accepted − unaccepted</code>.</li>
+      <li><strong><code>RECORD_EVENT.record_id</code> carries no foreign key.</strong> Deliberately
+        a dangling reference: the event log is the system of record for history and must survive the
+        purge of the record body. With an FK, the retention job would erase the very evidence the
+        kill criteria depend on. Same for <code>HANDOFF_ITEM.record_id</code>.</li>
+      <li><strong>The handoff event is written on clipboard-success, not on button-press</strong> —
+        emitting before the copy actually lands records a handoff that never happened.</li>
+    </ol>
+    <p class="col">
+      <strong>Acceptance test for the contract:</strong> purge a record that was handed off and then
+      expired; assert its <code>RECORD_EVENT</code> and <code>HANDOFF_ITEM</code> rows survive
+      intact. Advance the device clock backwards 48 hours between a handoff and a correction; assert
+      the strike is still detected. Both are unit tests, both ship with S1.
+    </p>
+
+    <h3>Enum reconciliation — the document yielded to the working code</h3>
+    <p class="col">
+      This page previously specified <code>obs · parent · supply · task · activity · admin</code>.
+      A rules-only sorter already exists, is measured, and produces a different and richer
+      vocabulary. <strong>The measured implementation wins over the document</strong> — the enum
+      above is now the sorter's. Emitting under the wrong vocabulary is precisely the
+      unrecoverable-history failure this freeze exists to prevent, and a document has no standing
+      against code that runs.
+    </p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Was (document)</th><th>Now (sorter)</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>obs</code></td><td><code>observation</code></td><td>Same concept, two names. The producer's spelling wins.</td></tr>
+          <tr><td>— <em>absent</em></td><td><code>child_followup</code></td><td><strong>The gap that mattered.</strong> The sorter's highest-sensitivity class — distress, behaviour, and health follow-ups — had no home in the schema at all. It routes to <code>must</code>.</td></tr>
+          <tr><td><code>task</code></td><td><code>prep</code></td><td>Preparation work (print, laminate, cut). <code>task</code> had no producer.</td></tr>
+          <tr><td><code>activity</code></td><td><code>idea</code></td><td>Closest surviving concept; routes to <code>extra</code>. <code>activity</code> had no producer. <strong>Confirm with the sorter's owner</strong> — this is the one mapping I inferred rather than read.</td></tr>
+          <tr><td><code>parent</code> · <code>supply</code> · <code>admin</code></td><td>unchanged</td><td>Identical on both sides.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="col">
+      <strong>Chip labels in the wireframes are display abbreviations, not enum values.</strong> The
+      rail shows <code>OBS</code> and <code>FOLLOW-UP</code> because seven full type names do not fit
+      a phone width; the stored values are <code>observation</code> and <code>child_followup</code>.
+      Storing the abbreviation is the same class of error this reconciliation just fixed.
+    </p>
+    <div class="verdict col">
+      <p>
+        <strong>A second drift, not previously flagged: the sorter already computes triage.</strong>
+        It emits <code>bucket ∈ must · should · extra</code> at sort time — which is the core output
+        of <strong>S4</strong>, four slices later. The schema had no such field. It is added above,
+        because a value the producer already computes must have somewhere to land or it is silently
+        discarded on every record from day one.
+      </p>
+      <p>
+        Consequence for the roadmap: S4 is substantially cheaper than its 3-day estimate — the
+        classification work is done, and what remains is the surface that displays and overrides it.
+      </p>
+    </div>
+    <div class="blocker">
+      <div class="blocker-n">?</div>
+      <p><strong>One open question this reconciliation surfaces — for a human, not a builder.</strong>
+        Family-note drafts assemble from <code>observation</code> and <code>parent</code> records.
+        Should <code>child_followup</code> join them? Health items often <em>should</em> reach a
+        parent; behaviour items are exactly where a careless auto-draft does harm, and the project
+        already forbids AI-written incident narratives. <strong>Deliberately not decided here.</strong>
+        Default until someone decides: <code>child_followup</code> is <em>surfaced</em> on the
+        family-notes screen for her to include by choice, never auto-drafted into the blob.</p>
+    </div>
 
     <h3>Must exist in v1 — because adding these later is unrecoverable</h3>
     <p class="col">
@@ -832,11 +998,18 @@ erDiagram
       SQLite migrations — the real rewrite risk is missing <em>history</em>, not missing fields.
     </p>
     <ol class="col">
-      <li><strong><code>RECORD_EVENT</code> rows written from the first build.</strong> Acceptance
-        rate, wrong-child strikes, and handoff counts are the kill criteria. Unlogged history cannot
-        be reconstructed.</li>
-      <li><strong><code>CAPTURE.raw_text</code> retained.</strong> Re-extraction after a model change,
-        and any audit, both die without it.</li>
+      <li><strong><code>RECORD_EVENT</code> rows written from the first build, ordered by
+        <code>seq</code>.</strong> Acceptance rate, strikes, and handoff counts are the kill
+        criteria. Unlogged history cannot be reconstructed — and history logged without a monotonic
+        ordering key is history whose order can never be recovered, which is the same loss.</li>
+      <li><strong><code>HANDOFF</code> + <code>HANDOFF_ITEM</code> from the first build.</strong>
+        Without the per-record grain, the project's own zero-tolerance criterion is not computable.
+        Retrofitting cannot reconstruct which observations were sent on day one.</li>
+        <li><strong><code>CAPTURE.raw_text</code> retained <em>for as long as any record it
+        produced is live</em>.</strong> Re-extraction after a model change, and any audit, both die
+        without it — but retaining it beyond its records contradicts the minimisation argument, and
+        the raw dump is the most sensitive artefact in the system. Captures linked to an incident
+        are permanently exempt.</li>
       <li><strong><code>attribution_src</code>.</strong> Strikes must distinguish a model's guess
         from her own choice, or the kill criterion punishes the wrong thing.</li>
       <li><strong><code>pinned</code> / <code>expiry_exempt</code>.</strong> Already locked.</li>
@@ -891,7 +1064,8 @@ sequenceDiagram
   Note over UI,DB: this is what makes the kill criteria measurable
   T->>N: open family notes
   N->>T: per-child draft + [Copy note]
-  T->>DB: handed_off event logged per copy
+  T->>DB: one HANDOFF + one HANDOFF_ITEM per record in the note
+  Note over T,DB: written on clipboard SUCCESS, not button press
   T-->>T: pastes into the mandated parent app
       </pre>
       <figcaption>
@@ -979,7 +1153,7 @@ stateDiagram-v2
 │  │ OBS · 0.7   who? [C4] [C9]     │  │   ambiguity surfaced, never guessed
 │  ├────────────────────────────────┤  │
 │  │ ── wipes running low ──  SUPPLY│  │   no child attached
-│  │ [OBS][PARENT][SUPPLY][TASK][+] │  │   chip rail = one-tap type fix
+│  │ [OBS][FOLLOW-UP][PARENT][+]    │  │   chip rail = one-tap type fix
 │  └────────────────────────────────┘  │
 │                                      │
 │  [ ✓ Looks right — all 7 ]           │   (56dp) bulk accept + 5s undo
@@ -1006,7 +1180,8 @@ stateDiagram-v2
 │  ▐C7▌ ▐C4▌ ▐C2▌ ▐C9▌   ⋯ 9 more      │   64dp colour tiles
 │                                      │
 │  TYPE                                │
-│  [OBS][PARENT][SUPPLY][TASK][ACT]    │   one tap = corrected
+│  [OBS][FOLLOW-UP][PARENT][SUPPLY]    │   one tap = corrected
+│  [PREP][IDEA][ADMIN]                 │   FOLLOW-UP routes to MUST
 │                                      │
 │  KEEP                                │
 │  ( ) normal · keeps to end of year   │
@@ -1031,7 +1206,8 @@ stateDiagram-v2
 │  │ and counted five bears all by  │  │
 │  │ herself!                       │  │
 │  │              [ ⧉ Copy note ]   │  │   (56dp) → clipboard
-│  ├────────────────────────────────┤  │        → logs handed_off
+│  ├────────────────────────────────┤  │        → HANDOFF + one HANDOFF_ITEM
+│  │                                │  │          per record, on copy success
 │  │ C4 — worked really hard on     │  │
 │  │ cleanup today, needed two      │  │
 │  │ tries but did it ♡             │  │
@@ -1107,8 +1283,8 @@ stateDiagram-v2
           <tr>
             <td><strong>S1</strong><br>Capture core</td>
             <td>12–15</td>
-            <td>The app. Rules-first extraction, roster, one-tap correction, full schema including events and incidents, encrypted backup <em>plus tested import</em>, no INTERNET permission.</td>
-            <td>Over 20 real captures across ≥5 days: ≥18/20 accepted without correction; <strong>zero wrong-child in the entire sample</strong>; every correction exactly one tap; full loop works in airplane mode; kill the app mid-entry → draft intact.</td>
+            <td>The app. Rules-first extraction, roster, one-tap correction, full schema including events, handoffs and incidents, encrypted backup <em>plus tested import</em>, no INTERNET permission. <strong>Plus the security floor, moved here from S12:</strong> SQLCipher + Keystore, <code>FLAG_SECURE</code>, cold-start app-lock, <code>dataExtractionRules</code>, clipboard hygiene, restore pre-snapshot.</td>
+            <td>Over 20 real captures across ≥5 days: ≥18/20 accepted without correction; <strong>zero wrong-child in the entire sample</strong>; every correction exactly one tap; full loop works in airplane mode; kill the app mid-entry → draft intact. <strong>Security floor proven before real data:</strong> recents screen shows a blank card; a real backup-to-Drive attempt moves nothing; restoring with a wrong key fails closed.</td>
           </tr>
           <tr>
             <td><strong>S2</strong><br>DONE list</td>
@@ -1172,9 +1348,9 @@ stateDiagram-v2
           </tr>
           <tr>
             <td><strong>S12</strong><br>Trust hardening</td>
-            <td>3</td>
-            <td>Biometric lock with 10-min re-auth, <code>FLAG_SECURE</code>, nightly encrypted backup to her own account, taint propagation, global kill switch.</td>
-            <td>Recents screen shows a blank card. Clean-device restore recovers <strong>100% of pinned and promoted records</strong>. Seeded poisoned record run through the local summarise tool still gets blocked.</td>
+            <td>2</td>
+            <td><em>Reduced — the floor moved to S1.</em> What remains: taint propagation through local transforms, global kill switch, quarterly restore drill, watchdog cadence.</td>
+            <td>Clean-device restore recovers <strong>100% of pinned and promoted records</strong>. Seeded poisoned record run through the local summarise tool still gets blocked. <strong>Why this moved:</strong> app-lock and encryption are not "hardening" — they are the admission ticket for real child data, and leaving them at S12 meant S1–S11 ran with a plaintext database and record content in the app switcher.</td>
           </tr>
         </tbody>
       </table>

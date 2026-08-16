@@ -1,0 +1,741 @@
+<title>Classroom Copilot</title>
+
+<style>
+  :root{
+    --paper:#F1F3F1; --card:#FFFFFF; --ink:#1C2321; --ink-soft:#4A544F;
+    --ink-faint:#7C8781; --rule:#DCE1DD; --rule-strong:#C3CBC5;
+    --accent:#2F6F62; --accent-soft:#E4EDE9;
+    --must:#B4451F; --should:#9A6B1E; --extra:#6B7F8C;
+    --must-bg:#F8E9E3; --should-bg:#F6EEDD; --extra-bg:#E9EDEF;
+    --shadow:0 1px 2px rgba(28,35,33,.06), 0 8px 24px -12px rgba(28,35,33,.18);
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#15191A; --card:#1D2223; --ink:#E7EDEA; --ink-soft:#AEB8B4;
+      --ink-faint:#7E8A86; --rule:#2C3335; --rule-strong:#3C4547;
+      --accent:#5FA894; --accent-soft:#22302C;
+      --must:#E08055; --should:#D2A34E; --extra:#93A5AF;
+      --must-bg:#2E211C; --should-bg:#2C2619; --extra-bg:#1F2629;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#15191A; --card:#1D2223; --ink:#E7EDEA; --ink-soft:#AEB8B4;
+    --ink-faint:#7E8A86; --rule:#2C3335; --rule-strong:#3C4547;
+    --accent:#5FA894; --accent-soft:#22302C;
+    --must:#E08055; --should:#D2A34E; --extra:#93A5AF;
+    --must-bg:#2E211C; --should-bg:#2C2619; --extra-bg:#1F2629;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:var(--sans); font-size:16.5px; line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:830px; margin:0 auto; padding:0 24px 96px}
+
+  /* ---- masthead ---- */
+  .mast{padding:64px 0 36px; border-bottom:2px solid var(--ink); margin-bottom:44px}
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--accent); margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:400; font-size:clamp(38px,7vw,60px);
+    line-height:1.02; letter-spacing:-.02em; margin:0 0 16px; text-wrap:balance;
+  }
+  .standfirst{
+    font-family:var(--serif); font-size:clamp(18px,2.4vw,21px); line-height:1.5;
+    color:var(--ink-soft); margin:0; max-width:60ch; font-style:italic;
+  }
+  .mast-meta{
+    display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:26px;
+    font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+  }
+
+  /* ---- sections ---- */
+  section{margin:0 0 56px; scroll-margin-top:24px}
+  h2{
+    font-family:var(--serif); font-weight:400; font-size:clamp(26px,3.6vw,33px);
+    line-height:1.15; letter-spacing:-.015em; margin:0 0 6px; text-wrap:balance;
+  }
+  .sec-head{
+    display:flex; align-items:baseline; gap:14px; padding-bottom:12px;
+    border-bottom:1px solid var(--rule); margin-bottom:26px;
+  }
+  .sec-head h2{flex:1; margin:0}
+  .sec-num{
+    font-family:var(--mono); font-size:11px; color:var(--ink-faint);
+    letter-spacing:.1em; padding-top:6px;
+  }
+  h3{
+    font-family:var(--sans); font-weight:650; font-size:15px; letter-spacing:.01em;
+    margin:32px 0 10px; color:var(--ink);
+  }
+  p{margin:0 0 16px; max-width:70ch}
+  a{color:var(--accent)}
+  strong{font-weight:650}
+  ul,ol{margin:0 0 16px; padding-left:22px; max-width:70ch}
+  li{margin-bottom:7px}
+  li::marker{color:var(--ink-faint)}
+
+  /* ---- verdict panel ---- */
+  .verdict{
+    background:var(--card); border:1px solid var(--rule-strong);
+    border-left:4px solid var(--accent); border-radius:3px;
+    padding:26px 28px; box-shadow:var(--shadow); margin-bottom:34px;
+  }
+  .verdict p:last-child{margin-bottom:0}
+  .verdict .lede{font-family:var(--serif); font-size:19px; line-height:1.5}
+
+  /* ---- callout ---- */
+  .callout{
+    background:var(--accent-soft); border:1px solid var(--rule-strong);
+    border-radius:3px; padding:20px 24px; margin:24px 0;
+  }
+  .callout p:last-child{margin-bottom:0}
+  .callout .tag{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--accent); display:block; margin-bottom:9px;
+  }
+
+  /* ---- horizons ---- */
+  .horizon{
+    display:grid; grid-template-columns:96px 1fr; gap:22px;
+    padding:22px 0; border-top:1px solid var(--rule);
+  }
+  .horizon:last-child{border-bottom:1px solid var(--rule)}
+  .h-key{font-family:var(--mono); font-size:12px; line-height:1.5}
+  .h-key .code{display:block; font-size:15px; color:var(--ink); font-weight:600; letter-spacing:.04em}
+  .h-key .when{display:block; color:var(--ink-faint); margin-top:3px}
+  .horizon h3{margin:0 0 8px}
+  .horizon p:last-child, .horizon ul:last-child{margin-bottom:0}
+
+  /* ---- triage chips ---- */
+  .chip{
+    display:inline-block; font-family:var(--mono); font-size:10.5px; font-weight:600;
+    letter-spacing:.08em; text-transform:uppercase; padding:3px 8px; border-radius:3px;
+    vertical-align:middle;
+  }
+  .chip.must{background:var(--must-bg); color:var(--must)}
+  .chip.should{background:var(--should-bg); color:var(--should)}
+  .chip.extra{background:var(--extra-bg); color:var(--extra)}
+
+  /* ---- table ---- */
+  .tbl-scroll{overflow-x:auto; margin:0 0 20px; border:1px solid var(--rule); border-radius:3px}
+  table{border-collapse:collapse; width:100%; min-width:560px; background:var(--card); font-size:14.5px}
+  th,td{text-align:left; padding:11px 15px; border-bottom:1px solid var(--rule); vertical-align:top}
+  th{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-faint); font-weight:600; background:var(--paper);
+  }
+  tr:last-child td{border-bottom:none}
+  td strong{font-weight:650}
+
+  /* ---- panel voices ---- */
+  .voice{
+    border-left:2px solid var(--rule-strong); padding:2px 0 2px 18px; margin:0 0 20px;
+  }
+  .voice .who{
+    font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--accent); display:block; margin-bottom:5px;
+  }
+  .voice p{margin:0; color:var(--ink-soft)}
+
+  /* ---- diagrams ---- */
+  .diagram{
+    background:var(--card); border:1px solid var(--rule); border-radius:3px;
+    padding:20px; margin:0 0 20px; overflow-x:auto;
+  }
+  .diagram pre.mermaid{margin:0; background:transparent; text-align:center}
+  .cap{
+    font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+    margin:-8px 0 24px; padding-left:2px;
+  }
+
+  /* ---- code ---- */
+  pre.code{
+    background:var(--card); border:1px solid var(--rule); border-radius:3px;
+    padding:16px 18px; overflow-x:auto; font-family:var(--mono); font-size:12.5px;
+    line-height:1.6; margin:0 0 20px; color:var(--ink-soft);
+  }
+  code{font-family:var(--mono); font-size:.88em; background:var(--accent-soft);
+    padding:1px 5px; border-radius:3px; color:var(--ink)}
+  pre.code code{background:none; padding:0}
+
+  /* ---- wireframes ---- */
+  .wires{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr));
+    gap:22px; margin:0 0 22px;
+  }
+  .phone{
+    background:var(--card); border:1px solid var(--rule-strong); border-radius:16px;
+    padding:11px; box-shadow:var(--shadow);
+  }
+  .screen{
+    background:var(--paper); border-radius:9px; padding:13px 12px 14px;
+    min-height:400px; display:flex; flex-direction:column;
+    border:1px solid var(--rule);
+  }
+  .s-bar{
+    display:flex; justify-content:space-between; font-family:var(--mono);
+    font-size:9px; color:var(--ink-faint); margin-bottom:11px;
+  }
+  .s-title{
+    font-family:var(--serif); font-size:16px; margin:0 0 3px; line-height:1.2;
+  }
+  .s-sub{font-family:var(--mono); font-size:9.5px; color:var(--ink-faint); margin:0 0 12px}
+  .w-card{
+    background:var(--card); border:1px solid var(--rule); border-radius:5px;
+    padding:9px 10px; margin-bottom:8px; font-size:11.5px; line-height:1.45;
+  }
+  .w-card .meta{
+    font-family:var(--mono); font-size:9px; color:var(--ink-faint);
+    display:flex; gap:6px; margin-top:6px; align-items:center; flex-wrap:wrap;
+  }
+  .w-chip{
+    font-family:var(--mono); font-size:8.5px; font-weight:600; letter-spacing:.05em;
+    padding:2px 6px; border-radius:3px; text-transform:uppercase;
+  }
+  .w-chip.must{background:var(--must-bg); color:var(--must)}
+  .w-chip.should{background:var(--should-bg); color:var(--should)}
+  .w-chip.extra{background:var(--extra-bg); color:var(--extra)}
+  .w-chip.child{background:var(--accent-soft); color:var(--accent)}
+  .w-chip.q{background:var(--should-bg); color:var(--should); border:1px dashed var(--should)}
+  .w-dump{
+    background:var(--card); border:1px solid var(--rule); border-radius:5px;
+    padding:10px; font-family:var(--serif); font-style:italic; font-size:11.5px;
+    line-height:1.5; color:var(--ink-soft); flex:1; margin-bottom:10px;
+  }
+  .w-fab{
+    background:var(--accent); color:#fff; border-radius:999px; text-align:center;
+    padding:13px; font-family:var(--sans); font-weight:650; font-size:12.5px;
+    margin-top:auto;
+  }
+  .w-fab.ghost{
+    background:transparent; color:var(--accent); border:1.5px solid var(--accent);
+  }
+  .w-group{
+    font-family:var(--mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--ink-faint); margin:10px 0 6px; display:flex; align-items:center; gap:6px;
+  }
+  .w-group::after{content:""; flex:1; height:1px; background:var(--rule)}
+  .w-cap{
+    font-family:var(--mono); font-size:10.5px; color:var(--ink-faint);
+    text-align:center; margin-top:10px;
+  }
+  .w-swipe{
+    font-family:var(--mono); font-size:9px; color:var(--ink-faint);
+    display:flex; justify-content:space-between; margin-top:8px;
+    padding-top:8px; border-top:1px dashed var(--rule);
+  }
+
+  /* ---- kill box ---- */
+  .kill{
+    background:var(--must-bg); border:1px solid var(--must); border-radius:3px;
+    padding:22px 24px; margin:24px 0;
+  }
+  .kill .tag{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--must); display:block; margin-bottom:9px; font-weight:600;
+  }
+  .kill p:last-child{margin-bottom:0}
+
+  /* ---- questions ---- */
+  .q-item{
+    display:grid; grid-template-columns:26px 1fr; gap:12px;
+    padding:14px 0; border-top:1px solid var(--rule);
+  }
+  .q-item:last-child{border-bottom:1px solid var(--rule)}
+  .q-num{font-family:var(--mono); font-size:12px; color:var(--accent); padding-top:2px}
+  .q-item p{margin:0}
+  .q-item .why{color:var(--ink-faint); font-size:14px; margin-top:4px}
+
+  footer{
+    margin-top:64px; padding-top:22px; border-top:2px solid var(--ink);
+    font-family:var(--mono); font-size:11.5px; color:var(--ink-faint);
+  }
+  @media (max-width:560px){
+    .horizon{grid-template-columns:1fr; gap:10px}
+    .wrap{padding:0 18px 72px}
+  }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Build plan · six-model panel · 15 Aug 2026</p>
+  <h1>Classroom Copilot</h1>
+  <p class="standfirst">A private, on-device assistant for one preschool teacher working a room of two-year-olds without an aide — and the honest case for not building most of it.</p>
+  <div class="mast-meta">
+    <span>PANEL: Kimi K3 · GLM 5.3 · HY3 · Gemini 3.1 Pro · Fable 5 · Opus 5</span>
+    <span>DEVICES: Galaxy S24-class Android · MacBook Air, 24–32GB</span>
+  </div>
+</header>
+
+<section>
+  <div class="verdict">
+    <p class="lede"><strong>Build nothing this weekend.</strong> Set up a local AI on her Mac, print a paper triage sheet, and add one phone shortcut. Then watch for five school days. If she uses it unprompted on four of them, build the app in ten working days. If she doesn't, the app was never the answer and you just saved a month.</p>
+    <p style="margin-top:16px">All six models converged on this independently. Not one recommended shipping an app first.</p>
+  </div>
+
+  <p>The transcript you were sent isn't a request for an app. It's a <strong>specification written by accident</strong> — it already names the entire domain model and, more valuably, the interaction model: she talks in a messy paragraph, and something sorts it. That loop is the product. Everything else is furniture.</p>
+
+  <p>Six models reviewed a sanitized version of it. They agreed on more than I expected and split on five points, which Fable settled as Final Decider. Two of their findings overturn assumptions in my own brief.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>The two findings that changed the design</h2></div>
+
+  <h3>The clock was wrong, and it would have killed the product</h3>
+  <p>My brief anchored the daily loop to an "after-school reset." GLM caught that her family notes are due <strong>before pickup</strong> — so a dump that happens after school delivers its payoff <em>after the deadline it exists to serve</em>. She'd do the work, feel no relief, and quit inside three weeks.</p>
+  <p>The real anchor is <strong>the nap window</strong> — roughly the ninety minutes when a preschool teacher's hands are free for the only time all day. Everything moves there. The whole loop, dump through drafted notes, has to finish in under five minutes on a phone. That is now a hard latency budget that constrains the model choice, not a nice-to-have.</p>
+
+  <h3>Local-first solved one governance problem and quietly created another</h3>
+  <p>This is Fable's ruling and it's the sharpest thing in the panel:</p>
+  <div class="callout">
+    <span class="tag">Fable 5 · Final Decider</span>
+    <p>Everyone solved "the developer must not become an operator" and declared privacy done. Nobody noticed the fix creates a <strong>shadow education record in an employee's personal Apple ID</strong>. Developmental observations on a dozen two-year-olds, accumulating for a year in her private iCloud, are invisible to the school, unreachable by a parental-access request, and walk out the door when she changes jobs — the exact governance failure we were worried about, relocated rather than removed.</p>
+  </div>
+  <p style="font-size:15px;color:var(--ink-faint)">Fable wrote that against an iPhone. It transfers to Android unchanged — swap the personal Apple ID for a personal Google account and every word still holds. The governance problem was never about which vendor; it was about a year of children's records living in an employee's private account where the school can't see them.</p>
+  <p>The fix is structural and it inverts a core assumption: <strong>the app is a scratchpad, not an archive.</strong> Anything a child's record actually needs flows into the school's mandated systems the same day — which makes the copy-to-parent-app bridge a compliance feature, not a convenience — and child-linked items expire by default. We designed for data to persist. The correct design is for it to expire.</p>
+
+  <h3>…and expiry, taken literally, would have deleted her only protection</h3>
+  <p>Round 2 caught a contradiction in the sentence above. If child items expire on a rolling window, the app deletes exactly the <strong>contemporaneous incident records that protect her</strong> — at roughly the horizon where an incident becomes a dispute. Both reviewers flagged it independently, and it isn't a detail to resolve later: append-only, never-expiring record <em>types</em> have to exist in the v1 schema, or adding them later is a storage-layer rewrite.</p>
+  <div class="callout">
+    <span class="tag">The amendment</span>
+    <p><strong>Observations expire. Incidents and promoted evidence never do.</strong> Everything unpromoted still ages out, so the app never becomes a shadow archive — but one tap rescues a record-worthy item into her own encrypted store. Two cheap fields in the v1 schema (<code>pinned</code>, <code>expiryExempt</code>) cost about a day and are the entire insurance policy for conferences, assessments, and the day something goes wrong.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>Where the panel agreed</h2></div>
+  <p>Independently, without seeing each other's answers:</p>
+  <ul>
+    <li><strong>One feature only:</strong> messy paragraph in → typed records out → one-tap correction. Every other value in the product is a query over its output.</li>
+    <li><strong>H0 is not an app.</strong> Unanimous, unprompted.</li>
+    <li><strong>Expo, one platform only.</strong> The panel said iOS; her phone is Android, so it's Android — see §03. Either way: reject native-macOS forks outright.</li>
+    <li><strong>Voice is a fallback, not the backbone.</strong> All four attacked this assumption hard, from different angles.</li>
+    <li><strong>Grammar-constrained JSON output.</strong> Free-text JSON from a small model breaks parsing weekly.</li>
+    <li><strong>A rules-based sorter ships in v1</strong> — the app must be useful as a dumb notepad if the model never loads.</li>
+    <li><strong>Roster fuzzy-matching is v1 or never.</strong> Name-garbling is the top-three failure path.</li>
+    <li><strong>Backup goes through her own account</strong>, never yours.</li>
+    <li><strong>A 1.5B–3B model is enough.</strong> Sorting is extraction, not reasoning.</li>
+    <li><strong>Check her employer's data policy before building.</strong> If the center forbids personal-device notes, the architecture is moot.</li>
+  </ul>
+
+  <h3>Why voice loses</h3>
+  <div class="voice">
+    <span class="who">GLM 5.3</span>
+    <p>Toddler rooms run 85–95dB; she's at arm's length while verbally de-escalating; models trained on close, adult-directed speech garble child names precisely where accuracy matters most.</p>
+  </div>
+  <div class="voice">
+    <span class="who">Kimi K3</span>
+    <p>Voice capture fails <em>socially</em> before it fails technically. She will not narrate observations about children in front of those children, or their parents.</p>
+  </div>
+  <div class="voice">
+    <span class="who">HY3</span>
+    <p>Week one she tries dictation during cleanup, it mangles a note, she can't fix it, concludes the app is broken, and reverts to paper permanently.</p>
+  </div>
+  <p>So: <strong>text-first, using Gboard's own on-device voice typing</strong> — already on her phone, free, genuinely good, and already under her thumb. No custom speech engine in v1. Ship none of it.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>Fable's rulings on the five splits</h2></div>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Split</th><th>Ruling</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Expo/RN vs SwiftUI + Foundation Models</strong><br><span style="color:var(--ink-faint)">Kimi argued native is less total code</span></td>
+        <td><strong>Expo wins — and her actual phone settled it harder than Fable could.</strong> She's on Android, so SwiftUI and Apple's Foundation Models were never available. The flip trigger is void; there is nothing to flip to. Expo Android, TypeScript, one target.</td>
+      </tr>
+      <tr>
+        <td><strong>Is "never leaves the device" too strict?</strong></td>
+        <td><strong>Yes — it manufactures data-loss risk to avoid a legal risk that doesn't attach.</strong> The line is <em>no developer-controlled infrastructure</em>, not <em>no bytes leave</em>. Fable ruled this against iCloud; on Android it holds with one extra step — <strong>encrypt in-app with her passphrase before anything reaches her Google Drive</strong>, so neither Google nor you can read it. You never run a server, hold a key, or read a byte.</td>
+      </tr>
+      <tr>
+        <td><strong>Timing anchor</strong></td>
+        <td><strong>The nap window.</strong> Family-note drafting moves <em>into</em> v1 as the daily payoff, not an H2 bolt-on. Success is measured at midday, not after school.</td>
+      </tr>
+      <tr>
+        <td><strong>Build at all, or clone + paper?</strong></td>
+        <td><strong>Both, sequenced, with a gate.</strong> Clone the local assistant and ship paper this weekend regardless. The app build starts only if she does the ritual unprompted on ≥4 of the first 5 school days. If she fails the gate, clone-plus-paper <em>is</em> the product and the next move is an interview, not code.</td>
+      </tr>
+      <tr>
+        <td><strong>Kill criterion</strong></td>
+        <td>At the end of week two with the app, if she has drafted family notes from its output on <strong>fewer than 3 of 5 days</strong> — stop. That one number captures capture, sorting, trust and timing at once.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>The sequence</h2></div>
+
+  <div class="horizon">
+    <div class="h-key"><span class="code">H0</span><span class="when">this weekend<br>one evening</span></div>
+    <div>
+      <h3>Be the aide once, and leave a machine behind</h3>
+      <p>Nothing gets built. Three things get set up:</p>
+      <ul>
+        <li><strong>Her own local AI on the MacBook</strong> — Ollama, one 14B-class model at Q4 (her machine has the headroom for it), one system prompt carrying the assistant persona from her own transcript, one notes folder. Fail-closed: no cloud fallback, ever. Because inference is on-device, <em>child names are safe in it</em> — that's the entire point of the local design.</li>
+        <li><strong>A paper triage sheet</strong> — three columns and a parking-lot box, laminated, dry-erase. This covers the need she herself called most important, on Monday, for the price of a lamination.</li>
+        <li><strong>One phone capture habit</strong> — a home-screen widget or pinned note she can dictate into with Gboard's own on-device voice typing, timestamped, one place. Zero build. It's also the instrument that measures the gate.</li>
+      </ul>
+      <p>Then spend the evening being the aide with a cloud model on generic content only — first-week plan, activity bank, room labels, procedure scripts. Print it all.</p>
+    </div>
+  </div>
+
+  <div class="horizon">
+    <div class="h-key"><span class="code">H1</span><span class="when">10 working days<br>gated on H0</span></div>
+    <div>
+      <h3>The loop, and only the loop</h3>
+      <ul>
+        <li><strong>Days 1–3</strong> — Expo dev-client app, SQLite schema, capture screen, item list, swipe-to-done.</li>
+        <li><strong>Days 4–6</strong> — the sorter: deterministic rules first, then the local model with a grammar forcing valid JSON. Roster fuzzy-match and correction chips.</li>
+        <li><strong>Days 7–8</strong> — Today view (the morning brief is a query, not a feature), quick-add, done count.</li>
+        <li><strong>Days 9–10</strong> — <strong>family-note drafting</strong>, copy to clipboard for the school's app. Encrypted export. Inline-reply notification for all-day capture. You sideload the APK onto her phone yourself — on Android that's a five-minute job with no store review in the way.</li>
+      </ul>
+      <p><strong>Bar:</strong> she runs it unprompted on 4 of 5 days in week two.</p>
+    </div>
+  </div>
+
+  <div class="horizon">
+    <div class="h-key"><span class="code">H2</span><span class="when">rest of year<br>only if the loop holds</span></div>
+    <div>
+      <h3>Earned additions</h3>
+      <p>Weekly reset with triage and a done digest. The learning-narrative drafter for her display boards — blocked until you know the school's developmental vocabulary. Lesson-plan export. Voice capture if she asks for it. A bigger model on the Mac.</p>
+      <p><strong>Never:</strong> photos, analytics, notifications, multi-teacher, cloud sync of child data, a rewards system. Two-year-olds need physical token routines; that is not a software problem.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>The loop</h2></div>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+    A["Nap window begins<br/>hands free, ~90 min"] --> B["Capture<br/>one messy paragraph, typed"]
+    B --> C{"Local model<br/>available?"}
+    C -->|yes| D["Grammar-constrained sort<br/>JSON, 8 fixed types"]
+    C -->|no| E["Rules sorter<br/>keywords + roster match"]
+    D --> F["Review cards<br/>one tap per correction"]
+    E --> F
+    F --> G["Family notes drafted<br/>copy to school app"]
+    F --> H["Today list<br/>MUST / SHOULD / EXTRA"]
+    G --> I["Sent before pickup"]
+    H --> J["Done log<br/>proof she did enough"]
+    I --> K["Child items expire<br/>rolling window"]
+    J --> K
+</pre>
+  </div>
+  <p class="cap">The whole path, capture to sent, must complete in under five minutes.</p>
+
+  <h3>What happens when it guesses wrong</h3>
+  <p>This is the make-or-break interaction. A wrong guess must cost exactly <strong>one tap</strong> — never typing, never a menu. Tapping a type chip cycles it; tapping a child chip opens a grid of coloured squares. Low-confidence guesses show a dashed border so she knows where to look. Corrections are stored and fed back as examples, so the sorter improves on her actual vocabulary.</p>
+  <p>Two hard rules. <strong>Nothing child-linked ever auto-files silently</strong> — a misattributed observation about a two-year-old that nobody catches is worse than no system at all. And <strong>unreviewed items still appear in Today</strong>: an accumulating review queue is a second inbox, which is a design failure, not a feature.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Wireframes</h2></div>
+  <div class="wires">
+
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="s-bar"><span>12:34</span><span>▮▮▮</span></div>
+        <p class="s-title">Dump</p>
+        <p class="s-sub">NAP WINDOW · NO CATEGORIES</p>
+        <div class="w-dump">today was chaos. C4 had a hard time at cleanup again. C7 counted five bears by herself!! need wipes and glue sticks. C2's dad says out friday. apple activity tomorrow, forgot to print the photos</div>
+        <div class="w-fab">Sort 6 things</div>
+        <div class="w-swipe"><span>⌨ keyboard dictation</span><span>0 categories asked</span></div>
+      </div></div>
+      <p class="w-cap">1 · Capture</p>
+    </div>
+
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="s-bar"><span>12:36</span><span>▮▮▮</span></div>
+        <p class="s-title">Review</p>
+        <p class="s-sub">CARD 2 OF 6 · TAP TO FIX</p>
+        <div class="w-card">
+          "C7 counted five bears by herself"
+          <div class="meta"><span class="w-chip child">C7</span><span class="w-chip must">OBSERVATION</span></div>
+        </div>
+        <div class="w-card">
+          "need wipes and glue sticks"
+          <div class="meta"><span class="w-chip should">SUPPLY</span><span>×2 items</span></div>
+        </div>
+        <div class="w-card" style="border-style:dashed">
+          "C2's dad says out friday"
+          <div class="meta"><span class="w-chip child">C2</span><span class="w-chip q">PARENT ?</span></div>
+        </div>
+        <div class="w-swipe"><span>← delete</span><span>confirm →</span></div>
+        <div class="w-fab ghost">Draft family notes</div>
+      </div></div>
+      <p class="w-cap">2 · Sort review</p>
+    </div>
+
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="s-bar"><span>12:41</span><span>▮▮▮</span></div>
+        <p class="s-title">Today</p>
+        <p class="s-sub">4 MUST · 3 SHOULD · 9 EXTRA</p>
+        <div class="w-group">Must</div>
+        <div class="w-card">Print family photos<div class="meta"><span class="w-chip must">BEFORE 2:45</span></div></div>
+        <div class="w-card">Family notes — 11 sent, 1 left<div class="meta"><span class="w-chip must">DUE</span></div></div>
+        <div class="w-group">Should</div>
+        <div class="w-card">Apple activity prep<div class="meta"><span class="w-chip should">TOMORROW</span></div></div>
+        <div class="w-group">Extra · later</div>
+        <div class="w-card" style="opacity:.55">9 parked ideas</div>
+        <div class="w-fab ghost">You did 14 things today</div>
+      </div></div>
+      <p class="w-cap">3 · Today + done</p>
+    </div>
+
+  </div>
+  <p class="cap">Everything reachable one-handed. Primary action bottom-anchored — she is holding a child with the other arm. All-day scraps never open the app at all: they go through an inline-reply notification that lives permanently in her shade.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">07</span><h2>Architecture</h2></div>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+    subgraph PHONE["Galaxy S24 · 12GB — the product"]
+        NOTIF["Inline-reply notification<br/>the capture gesture"]
+        UI["Expo Android + TypeScript<br/>styled-components"]
+        DB[("expo-sqlite<br/>local only")]
+        SORT["Sorter<br/>rules first, then model"]
+        LLM["llama.rn + GGUF<br/>1.5B-3B Q4, GBNF grammar"]
+        NOTIF --> UI --> SORT --> DB
+        SORT -.-> LLM
+    end
+    subgraph MAC["MacBook Air 24-32GB — the stronger brain"]
+        OLL["Ollama, 14B Q4<br/>fail-closed, no cloud"]
+    end
+    subgraph HERS["Her own accounts"]
+        GD["Encrypted export<br/>her Google Drive"]
+    end
+    subgraph SCHOOL["School systems — the real record"]
+        PA["Parent-comms app"]
+        SIS["Attendance SIS"]
+    end
+    DB -->|"AES-256, her passphrase"| GD
+    UI -->|"copy to clipboard"| PA
+    DEV["You"] -.->|"never touches"| DB
+    style DEV stroke-dasharray: 4 4
+</pre>
+  </div>
+  <p class="cap">No server. No account. No API you own. The dashed line is the entire compliance posture.</p>
+
+  <h3>What Android changed</h3>
+  <p>The panel assumed an iPhone, and one of its neater conclusions died with that assumption: <strong>the same build no longer runs on her Mac.</strong> An APK doesn't run on macOS, so the phone and the laptop are now two separate tools that never sync. That's a real loss, and it's the honest cost of the platform she actually owns.</p>
+  <p>Three things got better, though, and they more than pay for it:</p>
+  <ul>
+    <li><strong>The architecture argument is over.</strong> Kimi's strongest dissent was that SwiftUI plus Apple's on-device model framework would beat React Native. Neither exists on Android. Expo wins by default, and you write TypeScript.</li>
+    <li><strong>Distribution stops being a risk.</strong> No developer account, no TestFlight, no review. You build an APK and install it on her phone. The panel's "day 11 dies in a setup screen" failure mode largely evaporates.</li>
+    <li><strong>Android has a capture gesture iOS can't match.</strong> A persistent silent notification with <strong>inline reply</strong> — always in her shade, one tap, type, send, never opens the app. This is a first-class Android primitive with no iOS equivalent, and it's a better answer than anything the original panel designed.</li>
+  </ul>
+
+  <h3>How close is this to your stack?</h3>
+  <p><strong>You keep</strong> TypeScript, React, styled-components and your component instincts. <strong>You drop</strong> Express, Sequelize, Postgres and Render entirely — there is no server here, which <em>is</em> the compliance posture. <strong>You add</strong> Expo, <code>expo-sqlite</code>, and later <code>llama.rn</code>.</p>
+
+  <h3>Inference, now that the hardware is known</h3>
+  <p>A 2024 Samsung flagship carries <strong>12GB of RAM and a Snapdragon 8 Gen 3</strong> — more headroom than most iPhones of the same year. The sorter is extraction into a fixed label set, so it stays small; latency beats eloquence when she's watching a spinner during nap.</p>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Where</th><th>Runs</th><th>Why this one</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Her phone</strong><br>12GB, Snapdragon 8 Gen 3</td><td><code>llama.rn</code> + a 1.5B–3B GGUF at Q4</td><td>Proven in production on Android with React Native, and it's the only path that gives <strong>GBNF grammar-constrained JSON</strong> — which the panel called non-negotiable.</td></tr>
+      <tr><td><strong>Her Mac</strong><br>24–32GB</td><td>Ollama, a 14B-class model at Q4</td><td>Roughly 9GB resident, leaving her everything else. If it's the 32GB machine, a 27–32B model is reachable for maximum drafting quality. Decisively the stronger of her two devices — give it the writing-heavy work.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="callout">
+    <span class="tag">Two Android paths I considered and rejected</span>
+    <p><strong>Gemini Nano</strong> ships on her phone already and costs no download — but it's reached through task-shaped APIs (summarise, rewrite, proofread) with weak structured-output control, and it can't give us a grammar that guarantees valid JSON. <strong>MediaPipe's LLM API is deprecated</strong>, replaced by LiteRT-LM, which has no mature React Native binding yet. Both are worth revisiting in H2; neither is the v1 bet.</p>
+    <p style="margin-top:12px">One hardware caveat worth knowing: these phones throttle GPU hard under sustained load. Our workload is one short extraction per dump, not sustained generation, so this shouldn't bite — but it's the thing to check first if inference gets mysteriously slow.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">08</span><h2>Data model</h2></div>
+  <div class="diagram">
+<pre class="mermaid">
+erDiagram
+    CHILD ||--o{ ITEM : "referenced by"
+    NOTE  ||--o{ ITEM : "sorted into"
+    CHILD {
+        int id PK
+        string display_name "local only, never leaves"
+        string nickname "for fuzzy matching"
+        string colour "one-tap picker"
+        bool active
+    }
+    NOTE {
+        int id PK
+        string raw_text "immutable, never mutated"
+        datetime created_at
+        string source "typed or dictated"
+    }
+    ITEM {
+        int id PK
+        int note_id FK
+        int child_id FK "nullable"
+        string type "8 fixed values"
+        string body
+        date due
+        string bucket "must, should, extra"
+        string status "open, done, parked"
+        float confidence "drives the dashed border"
+        string corrected_from "trains the sorter"
+        datetime expires_at "child items auto-purge"
+    }
+</pre>
+  </div>
+  <p class="cap">Four concepts. The domain list in her transcript suggests forty; nearly all of them are one enum value, not a feature.</p>
+  <p>Two fields carry the architecture. <code>corrected_from</code> is how the sorter learns her actual vocabulary instead of a generic one. <code>expires_at</code> is Fable's ruling made concrete — <strong>child-linked items delete themselves</strong>, so the scratchpad can never quietly become a year-long shadow record.</p>
+  <p>No tags table. No settings screen. No taxonomy editor. She will abandon anything that asks for upkeep.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">09</span><h2>Her own assistant on the Mac — do this first</h2></div>
+  <p>This is the piece you asked about, and after the panel it's clearly the highest-value thing you can do this weekend. It's also the only part that helps her Monday.</p>
+  <p>Mirror the posture of your own setup, not its scope: <strong>local model, fail-closed, no automatic cloud fallback.</strong> That single property is what makes it safe for her to type a child's name into it — which is exactly what a cloud chat assistant can't offer her, and the reason her current workaround has a privacy problem she probably hasn't considered.</p>
+  <ol>
+    <li><strong>Install Ollama, pull one 14B-class model at Q4.</strong> One. Not a menu. Her machine has the headroom, and this tier is a real step up from the 8B class for the drafting work she'll lean on most.</li>
+    <li><strong>Write the system prompt from her own transcript.</strong> She already articulated the assistant she wants, in her own words — that document is the prompt. Don't improve it.</li>
+    <li><strong>One folder, one habit.</strong> Not a system she maintains.</li>
+    <li><strong>Tape the rule to the laptop:</strong> child names go in the local one, never a browser tab.</li>
+  </ol>
+  <div class="callout">
+    <span class="tag">Why this matters more than the app</span>
+    <p>If the local assistant alone carries her through the first fortnight, you've solved her problem for the cost of one evening — and you'll know it from the gate rather than from guessing. If it doesn't, you'll know precisely which part failed, which is worth more than any amount of planning.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">10</span><h2>What she left out</h2></div>
+  <p>A second review round asked a different question: she described her job from inside her own overload, so <strong>what did she systematically fail to mention?</strong> Three models answered independently and converged on things she never once named.</p>
+
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>The absence</th><th>Why she'd never ask for it</th></tr></thead>
+    <tbody>
+      <tr><td><strong>The protective record.</strong> A timestamped, locked, factual log of incidents, injuries and hard conversations — who saw it, who was told, what was said.</td><td>She listed incident <em>communication</em> — the telling. The record that protects <em>her</em> is the part nobody assigns. In a dispute, a parent's screenshot against her memory isn't a fair fight; a same-hour log is what makes it one. Invisible until the day it's needed, and then too late to build.</td></tr>
+      <tr><td><strong>Write once, appear four times.</strong> One observation currently gets hand-rewritten into the daily family note, the display board, conference prep, and assessment evidence.</td><td>She's never seen software do composability, so she can't ask for it. Each copy happens in a different context on a different day, so four rewrites feel like four unrelated tasks. <strong>Her display-board rubric is secretly an assessment instrument</strong> — she's never noticed they're the same object. This is the largest recurring manual labour in her job and it appears nowhere in her list.</td></tr>
+      <tr><td><strong>Attention equity.</strong> Which child has gone nine days without a single documented observation.</td><td>The failure is silent. Loud children generate notes; quiet ones generate nothing; nobody notices until a parent asks. Trivial for software, impossible for a human tracking a dozen toddlers. No tool she's used has ever known who her children are.</td></tr>
+      <tr><td><strong>The pattern view.</strong> Always the same transition, the same two children, both having missed snack.</td><td>Hand-tracking patterns across twelve children is infeasible, so nobody does it, so she doesn't know it's possible — yet it's the entire answer at a parent meeting.</td></tr>
+      <tr><td><strong>A day she isn't there.</strong> One tap producing a sheet a substitute could actually use.</td><td>Solo teachers assume they must never be absent. She has no mental model of a tool that could cover her, so exporting her brain feels like extra work rather than relief.</td></tr>
+      <tr><td><strong>The shadow list.</strong> The parent email she's been not-writing for six days; the promise she made at pickup; the wording for the three hardest messages in toddler teaching.</td><td>Avoidance doesn't file as a task. And asking for help wording a hard message feels like admitting incompetence — which is exactly why she named a morale feature unprompted but couldn't name this one.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">11</span><h2>The slice roadmap</h2></div>
+  <p>Twelve slices, each independently shippable and independently killable, ordered by <strong>risk retired per day</strong> rather than by architectural tidiness. Roughly forty-five days of work in total — but the first four are where nearly all the value sits.</p>
+
+  <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+    S1["S1 · Capture core<br/>12-15d"] --> S2["S2 · DONE list<br/>+ parking lot · 2d"]
+    S1 --> S3["S3 · Incident record<br/>4d"]
+    S2 --> S4["S4 · Triage<br/>3d"]
+    S3 --> S4
+    S4 --> S5["S5 · Weekly reset<br/>2d"]
+    S3 --> S6["S6 · Promote-to-keep<br/>+ conferences · 4d"]
+    S5 --> S7["S7 · Sub / sick sheet<br/>2d"]
+    S6 --> S8["S8 · Display boards<br/>laptop · 4d"]
+    S6 --> S9["S9 · Attention equity<br/>+ patterns · 3d"]
+    S5 --> S10["S10 · Supplies queue<br/>2d"]
+    S5 --> S11["S11 · Lesson planning<br/>5d"]
+    S8 --> S12["S12 · Trust hardening<br/>3d"]
+    style S2 stroke-width:3px
+    style S3 stroke-width:3px
+    style S4 stroke-width:3px
+</pre>
+  </div>
+  <p class="cap">Bold outlines are the three that matter most after v1. Note S3 depends on schema fields that must exist in S1.</p>
+
+  <div class="callout">
+    <span class="tag">If she only ever gets three more slices</span>
+    <p><strong>S2, S3, S4 — in that order.</strong></p>
+    <p style="margin-top:12px"><strong>S2 (two days)</strong> is the difference between a tool she uses and one she abandons in week five. The morale features are load-bearing, not decorative — she named one unprompted, which is the tell.</p>
+    <p style="margin-top:10px"><strong>S3</strong> is the only slice whose absence can <em>harm</em> her rather than merely fail to help. With a dozen two-year-olds the next incident is days away, not months. Every week without it is uninsured exposure.</p>
+    <p style="margin-top:10px"><strong>S4</strong> is the thing she called most important in her own words. A roadmap that ignores the user's stated number one has failed at listening, however clever its ordering.</p>
+  </div>
+
+  <h3>One honest flag on that ordering</h3>
+  <p>Her stated priority lands at slice four. That's defensible on risk grounds — morale and safety genuinely outrank it — but if S2 and S3 take three calendar weeks and she spends those weeks still attempting forty-seven things after work, <strong>we may lose her before her top priority ships</strong>. If week-two data shows triage-level distress, S4 jumps ahead of S3 and we accept that exposure knowingly, out loud, with her — not by default.</p>
+
+  <h3>What "enterprise-grade" honestly means here</h3>
+  <p>All three reviewers reached the same verdict independently: <strong>there is no multi-teacher path that survives the compliance posture</strong>, and the fork is exact — it's the first line of sync code. Before it you hold nothing and operate nothing. After it, even a "harmless" relay, you hold metadata, breach duties, and a school that never signed anything. It can't be retrofitted; end-to-end encryption bolted onto an architecture that assumed a server can read records is a rewrite.</p>
+  <p>There is exactly one posture-compatible expansion, and it isn't multi-teacher: <strong>multi-device for the same teacher</strong>, through her own cloud, under her own key. Three to five days whenever she wants her phone and laptop to share.</p>
+  <p>So for this product, enterprise-grade means <strong>reliability</strong> (the rules-only path works with no model, no network, no account, forever), <strong>recoverability</strong> (restores are drilled, not hoped for), <strong>trustworthiness</strong> (append-only incidents, open export formats), and <strong>longevity</strong> — if the developer disappears, the app and the data both keep working. Two cheap decisions in S1 keep that fork open and cost nothing: record identity is always locally generated, and keys always derive from her passphrase.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">12</span><h2>How this fails</h2></div>
+  <ol>
+    <li><strong>The habit never forms.</strong> She's in extended care until evening; the moment you designed for doesn't exist in her day. <em>Mitigation:</em> anchor to nap, and let the H0 gate prove the habit before you write code.</li>
+    <li><strong>One wrong child, once.</strong> The sorter swaps two children on a behavioural note, a parent hears the wrong story, and she reverts to paper permanently. <em>Mitigation:</em> nothing child-linked auto-files; confidence is visible.</li>
+    <li><strong>Correction fatigue.</strong> More than about three wrong guesses a day, at more than a tap each, and the review becomes a chore she skips. <em>Mitigation:</em> one tap, always; rules-first so the easy cases never reach the model.</li>
+    <li><strong>Silent model rot.</strong> Storage pressure evicts the weights or an OS update breaks the binding; sorting quietly degrades. She won't report an error — she'll just feel the app got worse. <em>Mitigation:</em> health check on launch, and a genuinely good rules path rather than a vestigial one.</li>
+    <li><strong>The phone and the Mac never meet.</strong> Android killed the shared-build story, so there are now two tools holding different things, and she may expect one to know about the other. <em>Mitigation:</em> don't build sync — give them different jobs and say so plainly. The phone captures and sorts; the Mac plans and drafts long-form. If she starts wanting them joined, that's an H2 conversation, not a v1 feature.</li>
+    <li><strong>Her employer says no.</strong> If the centre forbids child notes on personal devices, everything above is moot. <em>Mitigation:</em> a one-page "what this is and how to delete it" for her director, before week two.</li>
+  </ol>
+
+  <div class="kill">
+    <span class="tag">Kill criteria — three, not one</span>
+    <p><strong>Habit.</strong> End of week two: if she has drafted family notes from the app on fewer than three of five school days, stop building and interview her. No rescue feature — that's how a dead product eats another month.</p>
+    <p style="margin-top:12px"><strong>Accuracy.</strong> Round 2's correction: the habit gate alone passes even if the sorter is quietly mangling one record in seven and she's stopped trusting it without being able to say why. <em>A tool used daily and quietly wrong is worse than one that fails the gate.</em> So: at least 90% of extracted records accepted without correction across a logged sample of twenty. Miss it and the rules engine becomes primary, with the model demoted to a suggestion layer — decided in week two, not month three.</p>
+    <p style="margin-top:12px"><strong>Wrong child — the unrecoverable one.</strong> A note about one child sent to another child's parents is a trust-ender and possibly a reportable disclosure. Zero wrong-child fields in shipped drafts, full stop. Two, and the model path is dead for family notes permanently — rules only, forever.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">13</span><h2>What I need before day one</h2></div>
+  <div class="q-item"><span class="q-num">01</span><div>
+    <p><strong>Where is the laptop at midday?</strong></p>
+    <p class="why">The sharpest question of round 2, and nobody had asked it. The midday window is the anchor, the laptop is the stronger machine, and the two devices don't sync — so if the laptop isn't physically in the room at rest time, <strong>the best model is running where the work isn't.</strong> This is structural, not a detail. Either it lives in the classroom, or the phone has to carry the whole midday transform alone.</p>
+  </div></div>
+  <div class="q-item"><span class="q-num">02</span><div>
+    <p><strong>What exactly does the school's app already record, per child, per day?</strong></p>
+    <p class="why">Changes the gap list materially — it's the difference between a feature being a top-five absence and a banned duplicate. One question to her, before anything past v1 is designed.</p>
+  </div></div>
+  <div class="q-item"><span class="q-num">03</span><div>
+    <p><strong>Which Samsung, exactly.</strong> <span style="color:var(--ink-faint)">— "best 2024 flagship" narrows it to a 12GB S24-class device, which is plenty.</span></p>
+    <p class="why">Answered enough to proceed. Confirm the exact model on setup day.</p>
+  </div></div>
+  <div class="q-item"><span class="q-num">04</span><div>
+    <p><strong>Her real nap window and the family-note deadline.</strong></p>
+    <p class="why">I inferred these from her schedule. If I'm wrong the anchor is wrong, and the anchor is the product.</p>
+  </div></div>
+  <div class="q-item"><span class="q-num">05</span><div>
+    <p><strong>Does her employer have a policy on child information on personal devices?</strong></p>
+    <p class="why">This can invalidate the whole design. Better to learn it now than in October.</p>
+  </div></div>
+  <div class="q-item"><span class="q-num">06</span><div>
+    <p><strong>Would she rather have a calm private assistant, or a fast one?</strong></p>
+    <p class="why">The honest trade. Local is private and slower; nothing else about the design changes.</p>
+  </div></div>
+</section>
+
+<footer>
+  <p>PANEL — Kimi K3 (systems) · GLM 5.3 (product) · HY3 (interaction) · Gemini 3.1 Pro (design) · Fable 5 (final decider) · Opus 5 (synthesis)<br>
+  All models reviewed a sanitized brief. No name, school, room or child ever left this machine.<br>
+  AI Village aborted at its own spend gate — $0 spent. Total panel cost well under $1.<br>
+  REV 3 — Android phone (not iPhone); high-RAM MacBook Air. A second review round added the absence analysis (§10), the twelve-slice roadmap (§11), the expiry amendment, and two further kill criteria. Companion document: <em>The Switchyard</em> — model routing and the privacy gateway.</p>
+</footer>
+
+</div>

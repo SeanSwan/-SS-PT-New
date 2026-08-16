@@ -1,0 +1,244 @@
+<title>Your Classroom Copilot</title>
+
+<style>
+  :root{
+    --paper:#F4F2ED; --card:#FFFFFF; --ink:#22262B; --ink-soft:#535C63;
+    --ink-faint:#8A9299; --rule:#E1DED6; --rule-strong:#CFCBC1;
+    --accent:#2F6F62; --accent-soft:#E6EFEB; --warm:#B0763A; --warm-soft:#F6EDE1;
+    --shadow:0 1px 2px rgba(34,38,43,.05), 0 10px 30px -16px rgba(34,38,43,.22);
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#17191C; --card:#1F2328; --ink:#EAE7E1; --ink-soft:#B2B8BD;
+      --ink-faint:#848B91; --rule:#2E3338; --rule-strong:#3E444A;
+      --accent:#63AC98; --accent-soft:#22302C; --warm:#D9A05F; --warm-soft:#2C2419;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.65);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#17191C; --card:#1F2328; --ink:#EAE7E1; --ink-soft:#B2B8BD;
+    --ink-faint:#848B91; --rule:#2E3338; --rule-strong:#3E444A;
+    --accent:#63AC98; --accent-soft:#22302C; --warm:#D9A05F; --warm-soft:#2C2419;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -16px rgba(0,0,0,.65);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:18px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:660px;margin:0 auto;padding:0 26px 110px}
+  .mast{padding:76px 0 40px}
+  .eyebrow{font-size:13px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 20px;font-weight:600}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(40px,9vw,62px);line-height:1.04;
+    letter-spacing:-.02em;margin:0 0 22px;text-wrap:balance}
+  .standfirst{font-family:var(--serif);font-size:clamp(20px,3vw,23px);line-height:1.55;
+    color:var(--ink-soft);margin:0;font-style:italic}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(27px,4.5vw,33px);line-height:1.2;
+    letter-spacing:-.015em;margin:56px 0 16px;text-wrap:balance}
+  h3{font-size:18px;font-weight:650;margin:34px 0 8px}
+  p{margin:0 0 20px}
+  strong{font-weight:650}
+  em{font-style:italic}
+  ul{margin:0 0 20px;padding-left:24px}
+  li{margin-bottom:12px}
+  li::marker{color:var(--accent)}
+  .rule{height:1px;background:var(--rule);border:0;margin:52px 0}
+  .quote{font-family:var(--serif);font-size:21px;line-height:1.5;font-style:italic;
+    color:var(--ink-soft);border-left:3px solid var(--accent);padding:4px 0 4px 22px;margin:0 0 24px}
+  .quote .attrib{display:block;font-family:var(--sans);font-style:normal;font-size:14px;
+    color:var(--ink-faint);margin-top:10px}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:8px;
+    padding:26px 28px;margin:0 0 22px;box-shadow:var(--shadow)}
+  .card p:last-child{margin-bottom:0}
+  .card h3{margin-top:0}
+  .card.warm{background:var(--warm-soft);border-color:var(--warm)}
+  .card.warm h3{color:var(--warm)}
+  .moment{display:grid;grid-template-columns:82px 1fr;gap:20px;padding:22px 0;
+    border-top:1px solid var(--rule)}
+  .moment:last-of-type{border-bottom:1px solid var(--rule)}
+  .moment .when{font-size:14px;font-weight:650;color:var(--accent);padding-top:3px;line-height:1.35}
+  .moment p{margin:0}
+  .moment p + p{margin-top:10px}
+  .said{background:var(--accent-soft);border-radius:8px;padding:20px 24px;margin:0 0 22px;
+    font-family:var(--serif);font-style:italic;font-size:17.5px;line-height:1.6;color:var(--ink-soft)}
+  .steps{counter-reset:s;list-style:none;padding:0;margin:0 0 22px}
+  .steps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:14px;
+    margin-bottom:18px;align-items:start}
+  .steps li::before{content:counter(s);font-family:var(--serif);font-size:20px;color:var(--accent);
+    line-height:1.35}
+  .later{display:grid;gap:14px;margin:0 0 22px}
+  .later-item{border-left:2px solid var(--rule-strong);padding:2px 0 2px 18px}
+  .later-item strong{display:block;margin-bottom:2px}
+  .later-item span{color:var(--ink-soft);font-size:16.5px}
+  footer{margin-top:64px;padding-top:26px;border-top:1px solid var(--rule);
+    font-size:15px;color:var(--ink-faint)}
+  @media (max-width:520px){
+    body{font-size:17px}
+    .wrap{padding:0 20px 80px}
+    .moment{grid-template-columns:1fr;gap:6px}
+    .moment .when{padding-top:0}
+  }
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Something we're building for you</p>
+  <h1>Your Classroom Copilot</h1>
+  <p class="standfirst">An assistant that lives on your own laptop, knows your class, and never tells anyone anything.</p>
+</header>
+
+<p>You said you wanted something that works like an assistant for the whole year — because you're running your room without an aide, and there's nobody to hand things to.</p>
+
+<p>So we spent a while working out what that should actually be. Not a new app to keep up with. Not another system you have to maintain. Something that takes the mess out of your head and hands it back sorted.</p>
+
+<p>Here's what it's going to do.</p>
+
+<hr class="rule">
+
+<h2>It's completely private</h2>
+
+<p>This is the part we care about most, so it's first.</p>
+
+<p>The assistant runs <strong>on your own laptop</strong>. Not on the internet. Not on a company's servers. When you write a note about a child, it stays on your machine — the way a notebook in your bag stays in your bag.</p>
+
+<p>That means you can use children's actual names. You can write what really happened. You don't have to sanitise it or worry about where it's going, because it isn't going anywhere.</p>
+
+<div class="card">
+  <h3>Why this matters more than it sounds</h3>
+  <p>Right now, if you type a child's name into a normal AI chat, that goes to a company. It sits on their servers. Nobody's done anything wrong — it's just how those tools work, and almost nobody thinks about it.</p>
+  <p>Yours won't do that. Ever. It's built so it <em>can't</em>.</p>
+</div>
+
+<hr class="rule">
+
+<h2>You never have to be organised first</h2>
+
+<p>This is the whole idea. It looks like this — you at the end of a long morning, typing the way you'd actually type:</p>
+
+<div class="said">"okay today was chaos lol. one of them had a really hard time at cleanup again. another one counted five bears completely on her own!! need wipes and glue sticks. a mum asked me about nap. apple activity tomorrow, and I forgot to print the family photos"</div>
+
+<p>You dump that in — typed, or spoken into your phone — and it comes back sorted. A note about one child. An observation about another. A supply to reorder. A parent to answer. A thing to prep. A thing to print.</p>
+
+<p>You don't tag anything. You don't pick categories. You don't tidy it up first. <strong>That's the assistant's job, not yours.</strong></p>
+
+<p>If it gets something wrong, fixing it is one tap. Never typing, never a menu. And it learns how you actually talk, so it gets wrong less often as the year goes on.</p>
+
+<hr class="rule">
+
+<h2>It's built around your real day</h2>
+
+<p>Not a made-up day. Yours.</p>
+
+<div class="moment">
+  <div class="when">All day</div>
+  <div><p>Thoughts land the second you have them. There's a little box you can type into without even opening anything — you pull down from the top of your phone, type <em>"need glue sticks"</em>, and it's gone from your head. Three seconds, one hand.</p></div>
+</div>
+
+<div class="moment">
+  <div class="when">Rest time</div>
+  <div><p>This is the one that matters. When the room is finally quiet, you dump the morning, it sorts everything, and it drafts your notes home — <strong>before pickup, not after.</strong></p>
+  <p>That timing was deliberate. Doing it after school means doing the work after the deadline it was meant to help with. This way you leave with it already done.</p></div>
+</div>
+
+<div class="moment">
+  <div class="when">End of day</div>
+  <div><p>A short list of what's actually left, split into <strong>must do</strong>, <strong>should do</strong>, and <strong>would be lovely if there were time</strong> — so you're not carrying forty-seven things home in your head.</p></div>
+</div>
+
+<div class="moment">
+  <div class="when">Friday</div>
+  <div><p>Close the week. What got done, what carries over, what next week needs. So Monday doesn't start from nothing.</p></div>
+</div>
+
+<hr class="rule">
+
+<h2>And a list of what you actually did</h2>
+
+<p>You asked for this one yourself, almost in passing — a <strong>done</strong> list, because otherwise it feels like nothing's getting accomplished when you're actually doing an enormous amount.</p>
+
+<p>We're not treating that as a nice extra. Several of the people who reviewed this said the same thing independently: it might be the most important part. You're alone in a room with a dozen two-year-olds all day, and nobody sees what that takes. The list sees it.</p>
+
+<div class="card">
+  <h3>There's a parking lot too</h3>
+  <p>For every <em>"ooh, we should do that!"</em> idea. It goes somewhere safe, it stops rattling around, and it comes back on Friday when you actually have room to think about it. Putting something there doesn't mean you owe it anything today.</p>
+</div>
+
+<hr class="rule">
+
+<h2>One thing you didn't ask for</h2>
+
+<p>When we asked what was missing from your description, every single reviewer came back with the same answer — and it was something you never mentioned once.</p>
+
+<div class="quote">The record that protects <em>her</em> is the part nobody assigns.
+<span class="attrib">— one of the reviewers</span></div>
+
+<p>If a child gets hurt, or bites, or a parent disagrees about what happened — the thing that protects you is a factual note written <em>that day</em>, with the time, who saw it, and who you told. Not a memory reconstructed three weeks later.</p>
+
+<p>So there'll be a <strong>90-second incident note</strong>. It walks you through the bits that are easy to forget when you've got a crying child in your arms. Once you save it, it locks, with the time on it. Nothing can quietly change it afterwards, which is exactly what makes it worth having.</p>
+
+<div class="card warm">
+  <h3>And it will never write it for you</h3>
+  <p>The assistant checks whether you've filled in the fields that matter. It does <strong>not</strong> write the account. Those are your words about what you saw, and they need to stay that way — that's the entire reason the record is worth anything.</p>
+</div>
+
+<hr class="rule">
+
+<h2>What actually happens first</h2>
+
+<p>Being straight with you, because school starts Monday: <strong>there is no app yet.</strong> Building one properly takes a couple of weeks, and rushing it would produce something you'd quietly stop using by October.</p>
+
+<p>So here's the honest order:</p>
+
+<ol class="steps">
+  <li><strong>This weekend</strong> — your laptop gets the private assistant on it. You can talk to it straight away about planning, activities, wording a tricky email, anything. That part is real on day one.</li>
+  <li><strong>Plus paper</strong> — a simple must / should / would-be-lovely sheet, and one place on your phone to dump thoughts into. Unglamorous, works Monday.</li>
+  <li><strong>Then we watch</strong> — for about a week. Whether the dumping-and-sorting habit actually fits your day, before anyone builds anything around it.</li>
+  <li><strong>Then the app</strong> — if it fits. Roughly two weeks to build, and you'd have it on your phone.</li>
+</ol>
+
+<p>That third step is genuinely a checkpoint, not a formality. If it turns out paper and the laptop assistant are enough, that's a completely fine answer — and much better than being handed an app you didn't need.</p>
+
+<hr class="rule">
+
+<h2>Where it goes after that</h2>
+
+<p>Once the everyday part works, these are the things waiting — roughly in the order they'd arrive:</p>
+
+<div class="later">
+  <div class="later-item"><strong>Write once, appears everywhere</strong>
+    <span>One observation you write turns into the note home, the learning display, conference prep, and your assessment evidence. Right now you write that same thing four separate times, on four different days, and it doesn't feel like one job — but it is.</span></div>
+  <div class="later-item"><strong>Who haven't I noticed?</strong>
+    <span>A quiet nudge when a child hasn't appeared in your notes for a while. The loud ones generate notes on their own; the quiet ones don't, and nobody notices until someone asks.</span></div>
+  <div class="later-item"><strong>Conference prep that isn't a weekend</strong>
+    <span>Ten weeks of small observations, gathered into a draft you can talk from.</span></div>
+  <div class="later-item"><strong>A day you're not there</strong>
+    <span>One tap, one printable page — the rhythm, the routines, who needs what. So being ill stops being a crisis.</span></div>
+  <div class="later-item"><strong>Patterns you can't see by hand</strong>
+    <span>Always the same transition, the same two children, both having missed snack. That's the answer at a parent meeting, and no human tracking twelve toddlers can spot it unaided.</span></div>
+</div>
+
+<hr class="rule">
+
+<h2>What it will never do</h2>
+
+<ul>
+  <li><strong>Send anything to a parent by itself.</strong> Everything passes your eyes first. Always.</li>
+  <li><strong>Interrupt you while you're teaching.</strong> No notifications, no pings. A tool meant to reduce the noise doesn't add to it.</li>
+  <li><strong>Replace the systems your school uses.</strong> It drafts things for you to paste in. It never reaches into them.</li>
+  <li><strong>Ask you to maintain it.</strong> No setup screens, no categories to design, no upkeep. If it ever starts feeling like homework, it's broken.</li>
+</ul>
+
+<hr class="rule">
+
+<p>That's the shape of it. The first version is deliberately small, because the fastest way to end up with something you don't use is to build everything at once.</p>
+
+<p>Start with the part that saves you the most time on a Tuesday. Add the rest once you know it's earning its place.</p>
+
+<footer>
+  <p>The plan was reviewed by six different AI systems, working independently and arguing with each other. The bits about privacy, the incident record, and the timing around rest time all came out of that — several of them spotted the same gaps without being able to see each other's answers.</p>
+  <p style="margin-top:14px">Nothing identifying about you, your school, your room or any child was shared with any of them.</p>
+</footer>
+
+</div>

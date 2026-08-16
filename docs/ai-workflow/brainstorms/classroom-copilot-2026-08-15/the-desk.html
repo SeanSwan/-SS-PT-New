@@ -1,0 +1,362 @@
+<title>The Desk</title>
+
+<style>
+  :root{
+    --paper:#F1F3F1; --card:#FFFFFF; --ink:#1C2321; --ink-soft:#4A544F;
+    --ink-faint:#7C8781; --rule:#DCE1DD; --rule-strong:#C3CBC5;
+    --accent:#2F6F62; --accent-soft:#E4EDE9;
+    --pass:#3F7A4E; --pass-bg:#E6F0E8;
+    --check:#9A6B1E; --check-bg:#F6EEDD;
+    --block:#B4451F; --block-bg:#F8E9E3;
+    --shadow:0 1px 2px rgba(28,35,33,.06), 0 8px 24px -12px rgba(28,35,33,.18);
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --paper:#15191A; --card:#1D2223; --ink:#E7EDEA; --ink-soft:#AEB8B4;
+      --ink-faint:#7E8A86; --rule:#2C3335; --rule-strong:#3C4547;
+      --accent:#5FA894; --accent-soft:#22302C;
+      --pass:#6FB582; --pass-bg:#1E2A22;
+      --check:#D2A34E; --check-bg:#2C2619;
+      --block:#E08055; --block-bg:#2E211C;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#15191A; --card:#1D2223; --ink:#E7EDEA; --ink-soft:#AEB8B4;
+    --ink-faint:#7E8A86; --rule:#2C3335; --rule-strong:#3C4547;
+    --accent:#5FA894; --accent-soft:#22302C;
+    --pass:#6FB582; --pass-bg:#1E2A22;
+    --check:#D2A34E; --check-bg:#2C2619;
+    --block:#E08055; --block-bg:#2E211C;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:16.5px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:840px;margin:0 auto;padding:0 24px 96px}
+  .mast{padding:64px 0 34px;border-bottom:2px solid var(--ink);margin-bottom:42px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 18px}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(38px,7vw,58px);line-height:1.02;
+    letter-spacing:-.02em;margin:0 0 16px;text-wrap:balance}
+  .standfirst{font-family:var(--serif);font-size:clamp(18px,2.4vw,21px);line-height:1.5;
+    color:var(--ink-soft);margin:0;font-style:italic;max-width:60ch}
+  .mast-meta{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:24px;
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-faint)}
+  section{margin:0 0 54px}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.6vw,32px);line-height:1.15;
+    margin:0;text-wrap:balance}
+  .sec-head{display:flex;align-items:baseline;gap:14px;padding-bottom:12px;
+    border-bottom:1px solid var(--rule);margin-bottom:24px}
+  .sec-head h2{flex:1}
+  .sec-num{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:.1em;padding-top:6px}
+  h3{font-size:15px;font-weight:650;margin:30px 0 10px}
+  p{margin:0 0 16px;max-width:70ch}
+  ul,ol{margin:0 0 16px;padding-left:22px;max-width:70ch}
+  li{margin-bottom:8px}
+  li::marker{color:var(--ink-faint)}
+  code{font-family:var(--mono);font-size:.87em;background:var(--accent-soft);padding:1px 5px;
+    border-radius:3px;color:var(--ink)}
+  .verdict{background:var(--card);border:1px solid var(--rule-strong);border-left:4px solid var(--accent);
+    border-radius:3px;padding:26px 28px;box-shadow:var(--shadow);margin-bottom:30px}
+  .verdict .lede{font-family:var(--serif);font-size:19px;line-height:1.5}
+  .verdict p:last-child{margin-bottom:0}
+  .callout{background:var(--accent-soft);border:1px solid var(--rule-strong);border-radius:3px;
+    padding:20px 24px;margin:22px 0}
+  .callout p:last-child{margin-bottom:0}
+  .callout .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent);display:block;margin-bottom:9px}
+  .warn{background:var(--block-bg);border:1px solid var(--block);border-radius:3px;padding:20px 24px;margin:22px 0}
+  .warn .tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--block);display:block;margin-bottom:9px;font-weight:600}
+  .warn p:last-child{margin-bottom:0}
+  .diagram{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:20px;
+    margin:0 0 18px;overflow-x:auto}
+  .diagram pre.mermaid{margin:0;background:transparent;text-align:center}
+  .cap{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin:-6px 0 24px}
+  .tbl-scroll{overflow-x:auto;margin:0 0 20px;border:1px solid var(--rule);border-radius:3px}
+  table{border-collapse:collapse;width:100%;min-width:600px;background:var(--card);font-size:14.5px}
+  th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-faint);font-weight:600;background:var(--paper)}
+  tr:last-child td{border-bottom:none}
+  .voice{border-left:2px solid var(--rule-strong);padding:2px 0 2px 18px;margin:0 0 18px}
+  .voice .who{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--accent);display:block;margin-bottom:5px}
+  .voice p{margin:0;color:var(--ink-soft)}
+  .lanes{display:grid;gap:14px;margin:0 0 22px}
+  .lane{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:18px 20px;
+    border-left:4px solid var(--rule-strong)}
+  .lane.l1{border-left-color:var(--pass)}
+  .lane.l2{border-left-color:var(--check)}
+  .lane.l3{border-left-color:var(--block)}
+  .lane h4{margin:0 0 4px;font-size:15px;font-weight:650;display:flex;justify-content:space-between;gap:12px}
+  .lane .cls{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);font-weight:400;white-space:nowrap}
+  .lane p{margin:0;font-size:14.5px;color:var(--ink-soft)}
+  .wires{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:20px;margin:0 0 20px}
+  .win{background:var(--card);border:1px solid var(--rule-strong);border-radius:8px;overflow:hidden;
+    box-shadow:var(--shadow)}
+  .win .bar{background:var(--paper);border-bottom:1px solid var(--rule);padding:7px 10px;
+    font-family:var(--mono);font-size:9.5px;color:var(--ink-faint);display:flex;gap:5px;align-items:center}
+  .win .bar::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--rule-strong)}
+  .win .body{padding:13px;min-height:300px;display:flex;flex-direction:column}
+  .w-lab{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-faint);margin:0 0 5px}
+  .w-txt{background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:9px;
+    font-size:11.5px;line-height:1.5;margin-bottom:10px;font-family:var(--serif)}
+  .w-txt.was{color:var(--ink-faint);font-style:italic}
+  .w-txt del{text-decoration:none;background:var(--block-bg);color:var(--block);border-radius:2px;padding:0 2px}
+  .w-txt ins{text-decoration:none;background:var(--pass-bg);color:var(--pass);border-radius:2px;padding:0 2px}
+  .w-status{border-radius:4px;padding:8px 10px;font-size:11px;line-height:1.45;margin-bottom:10px;
+    font-family:var(--sans)}
+  .w-status.pass{background:var(--pass-bg);color:var(--pass);border:1px solid var(--pass)}
+  .w-status.check{background:var(--check-bg);color:var(--check);border:1px solid var(--check)}
+  .w-status.block{background:var(--block-bg);color:var(--block);border:1px solid var(--block)}
+  .w-status b{display:block;font-weight:700;margin-bottom:2px}
+  .w-btn{background:var(--accent);color:#fff;border-radius:5px;text-align:center;padding:10px;
+    font-weight:650;font-size:12px;margin-top:auto}
+  .w-btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent);margin-top:8px}
+  .w-btn.dim{background:transparent;color:var(--ink-faint);border:1.5px solid var(--rule-strong);margin-top:8px}
+  .w-cap{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);text-align:center;margin-top:10px}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 20px}
+  .split > div{background:var(--card);border:1px solid var(--rule);border-radius:3px;padding:18px 20px}
+  .split h4{margin:0 0 8px;font-size:14px;font-weight:650}
+  .split p{margin:0;font-size:14px;color:var(--ink-soft)}
+  .split .who{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent);margin:0 0 6px}
+  footer{margin-top:60px;padding-top:22px;border-top:2px solid var(--ink);
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-faint)}
+  @media (max-width:600px){.wrap{padding:0 18px 72px} .split{grid-template-columns:1fr}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Redaction middleware · two-model design · Rule 82 full-spectrum</p>
+  <h1>The Desk</h1>
+  <p class="standfirst">A local tool that decides what may leave — and, more often than anyone expected, refuses. Plus a ruling on whether the production system needs the same treatment.</p>
+  <div class="mast-meta">
+    <span>DESIGNED BY: GLM 5.3 · Kimi K3 · Opus 5</span>
+    <span>BOTH MODELS INDEPENDENT · NEITHER SAW THE OTHER</span>
+  </div>
+</header>
+
+<section>
+  <div class="verdict">
+    <p class="lede">Both models picked the same shape, unprompted: <strong>a paste-through desk tool, not a proxy.</strong> Its decisive property is that it has no network and no keys — <em>it cannot exfiltrate anything because it cannot send anything.</em> And its primary act is not redaction. It's refusal.</p>
+    <p style="margin-top:16px">The honest limit, stated by both up front: the hardest sentences <strong>cannot be made cloud-safe by any transformation that preserves their meaning.</strong> The design's job is to refuse them visibly and make the refusal useful — not to pretend otherwise.</p>
+  </div>
+
+  <h3>Why paste-through beat the proxy — and it wasn't close</h3>
+  <div class="voice">
+    <span class="who">GLM 5.3</span>
+    <p>"Shape A is an enterprise pattern missing its enterprise. A proxy only redacts on the path it owns. Her realistic path is the ChatGPT app on her phone at 9pm on the sofa — a laptop proxy covers neither the phone nor the approved consumer app, only a hypothetical API client nobody approved, paid for, or can maintain."</p>
+  </div>
+  <div class="voice">
+    <span class="who">Kimi K3</span>
+    <p>"Visibility <em>is</em> the control. The diff view teaches her what identifying content looks like. Six months of diffs is six months of calibration. A proxy is invisible — and when an invisible control fails, it fails silently."</p>
+  </div>
+  <p>Three more reasons they converged on: her approval attaches to <strong>the app</strong>, not to an API — routing through a paid endpoint is a different product with different data terms nobody signed. The Desk adds <strong>zero new cloud parties</strong>. And it survives every ChatGPT redesign, because it never touches ChatGPT.</p>
+  <p><strong>What the proxy would have bought, honestly:</strong> on-path enforcement — "cannot" instead of "will not, visibly." That's a real loss. The compensation is that the Desk path must be <em>faster than the bypass</em>: one keystroke to check, one click to copy.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">01</span><h2>Three lanes, decided by content — never by her judgement in the moment</h2></div>
+  <p>A hybrid that depends on someone deciding correctly while tired is not a design. So the Desk classifies the content and the lane follows automatically. <strong>She chooses what to write. She never chooses where it goes.</strong></p>
+
+  <div class="lanes">
+    <div class="lane l1"><h4>Generic <span class="cls">no specific-child predicate</span></h4>
+      <p>Curriculum, activity ideas, songs, room layout, a newsletter about the season. Nothing that predicates anything about one particular child. <strong>Passes silently → paste anywhere, including the browser.</strong></p></div>
+    <div class="lane l2"><h4>Named but ordinary <span class="cls">identifiers only</span></h4>
+      <p>A child named, but the content is unremarkable — "she liked the playdough today". Names swapped for stable placeholders, shown as a diff, copied out. <strong>She sees exactly what changed.</strong></p></div>
+    <div class="lane l3"><h4>Circumstance <span class="cls">re-identifying with no name present</span></h4>
+      <p>Family situations, health, behaviour, incidents, anything unique enough to single a child out in a room of twelve. <strong>Refused. Routed to the local assistant, where it's allowed today.</strong></p></div>
+  </div>
+
+  <div class="callout">
+    <span class="tag">And a structural boundary for the third tool</span>
+    <p>Rather than cutting Claude Code, GLM proposed saving it with a folder: an <strong>Outbox</strong> that only ever contains child-free material, and is the only place a cloud coding tool is ever opened. That's <em>configuration</em>, not a per-message decision — which is the only kind of boundary that survives a tired Tuesday. Files in the Outbox get <strong>re-scanned whenever the rules tighten</strong>, so yesterday's clearance expires.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">02</span><h2>The pipeline</h2></div>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+    P["She pastes raw text"] --> S1["1 · Deterministic scan<br/>IDs, contacts, dates of birth"]
+    S1 -->|"hit"| BLK
+    S1 --> S2["2 · Roster match<br/>names, nicknames, diminutives,<br/>possessives"]
+    S2 --> S3["3 · Specific-child test<br/>does this predicate something<br/>about ONE child?"]
+    S3 -->|"no"| GEN["GENERIC → pass silently"]
+    S3 -->|"yes"| S4["4 · Cohort-identifiability test<br/>could someone who knows the room<br/>pick out the child?"]
+    S4 -->|"yes"| BLK["REFUSED<br/>route to local assistant"]
+    S4 -->|"no"| S5["5 · Substitute names<br/>→ stable placeholders"]
+    S5 --> S6["6 · Re-test the de-named text<br/>does it STILL narrow the roster?"]
+    S6 -->|"yes"| BLK
+    S6 -->|"no"| DIF["SHOW THE DIFF<br/>she copies it out"]
+    S1 -.->|"any error<br/>or uncertainty"| BLK
+    style BLK stroke-width:3px
+</pre>
+  </div>
+  <p class="cap">Allow is conjunctive — every stage must pass. Deny is disjunctive — any stage stops it. Errors and uncertainty always resolve to refusal. Step 6 is the one most designs omit.</p>
+
+  <div class="diagram">
+<pre class="mermaid">
+sequenceDiagram
+    participant T as Teacher
+    participant D as The Desk (local)
+    participant C as ChatGPT (approved app)
+    T->>D: paste raw text
+    D->>D: classify · substitute · re-test
+    alt refused
+        D-->>T: "This one stays here" + open in local assistant
+    else allowed
+        D-->>T: diff — what changed, what will be sent
+        T->>C: paste the sanitised version
+        C-->>T: reply mentioning Child A
+        T->>D: paste the reply back
+        D->>D: scrub leaked real names, then re-hydrate
+        D-->>T: reply with her children's real names restored
+    end
+    Note over D: no network · no keys · cannot send
+</pre>
+  </div>
+  <p class="cap">The return leg is the half most designs forget. Note the ordering: <strong>scrub the model's output for leaked real names first, then re-hydrate placeholders.</strong> Models regurgitate and confabulate identifiers — cleaning after mapping would hide that.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">03</span><h2>What she sees</h2></div>
+  <div class="wires">
+    <div>
+      <div class="win"><div class="bar">The Desk</div><div class="body">
+        <p class="w-lab">Pasted</p>
+        <div class="w-txt">"autumn sensory activities for two-year-olds, nothing with food"</div>
+        <div class="w-status pass"><b>Nothing to remove</b>No child mentioned — safe to send as-is.</div>
+        <div class="w-btn">Copy</div>
+      </div></div>
+      <p class="w-cap">Generic — passes silently</p>
+    </div>
+    <div>
+      <div class="win"><div class="bar">The Desk</div><div class="body">
+        <p class="w-lab">You wrote</p>
+        <div class="w-txt was">"help me word a note home — <del>Priya</del> loved the playdough and stayed with it ages"</div>
+        <p class="w-lab">Will be sent</p>
+        <div class="w-txt">"help me word a note home — <ins>Child A</ins> loved the playdough and stayed with it ages"</div>
+        <div class="w-status check"><b>1 name replaced</b>Her real name comes back when you paste the reply here.</div>
+        <div class="w-btn">Copy this version</div>
+        <div class="w-btn dim">Use the local one instead</div>
+      </div></div>
+      <p class="w-cap">Named but ordinary — shows the diff</p>
+    </div>
+    <div>
+      <div class="win"><div class="bar">The Desk</div><div class="body">
+        <p class="w-lab">You wrote</p>
+        <div class="w-txt was">"the little boy whose mum is in hospital had a rough drop-off again — what can I try?"</div>
+        <div class="w-status block"><b>This one stays here</b>No name in it — but in a room of twelve, that describes exactly one child. Taking the name out wouldn't help.</div>
+        <div class="w-btn">Ask your own assistant</div>
+        <div class="w-btn ghost">See why</div>
+      </div></div>
+      <p class="w-cap">Circumstance — refused, with somewhere to go</p>
+    </div>
+  </div>
+  <p class="cap">The refusal always offers a working alternative. A refusal that dead-ends is what sends someone to the browser — which is the one failure this whole design cannot survive.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">04</span><h2>The sentence that can't be fixed</h2></div>
+  <p>Both models were asked to handle <em>"the little boy whose mum is in hospital had a rough drop-off again"</em> and both refused to pretend.</p>
+  <div class="voice">
+    <span class="who">Kimi K3</span>
+    <p>"No redaction mechanism survives it, and this design does not pretend otherwise. Even the generalised rewrite — 'a toddler whose parent is hospitalised' — still fails, because the re-identification audience isn't only people in the room. The approved account and the school's domain point at the school; the circumstance points from the school to the child. That is pseudonymised data about an identifiable child, not anonymous data."</p>
+  </div>
+  <p>Which is why <strong>step 6 exists</strong> in the pipeline: after names are swapped, the de-named text is tested again. If it still narrows the roster, it's refused anyway. Most redaction designs stop at substitution and ship exactly this class of sentence.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">05</span><h2>Does the production system need the same treatment?</h2></div>
+  <p>Both models agree on the technical fact and <strong>split on what to do about it</strong> — which is where the actual decision lives.</p>
+
+  <div class="callout">
+    <span class="tag">Where they agree</span>
+    <p>The KEEP list — age, gender, height, weight, injury history, medical concerns — is a quasi-identifier bundle. For a coach with a small client book it is close to unique. GLM's example: <em>"62-year-old female client, knee replacement, nut allergy"</em> identifies her to anyone holding the roster. Nobody has tested k-anonymity over the kept fields.</p>
+  </div>
+
+  <div class="split">
+    <div>
+      <p class="who">Kimi K3 — upgrade, narrowly</p>
+      <h4>"A threat-model patch, not a rewrite"</h4>
+      <p>Closed-cohort circumstance flag; k-anonymity cap on the KEEP set; reclassify kept health fields as special-category. Then argued against its own list: <em>"eight of thirteen prior defects came from fixes. Do the paperwork item, trial the cohort flag behind a flag, leave the running system otherwise untouched."</em></p>
+    </div>
+    <div>
+      <p class="who">GLM 5.3 — no structural upgrade</p>
+      <h4>"Their KEEP list is the product"</h4>
+      <p><em>"A fitness assistant forbidden from injury history and medical concerns is worthless."</em> Different threat model: consenting adults who accept residual risk, versus two-year-olds who cannot consent. Correct design for its own users — but it attached a flip condition.</p>
+    </div>
+  </div>
+
+  <div class="warn">
+    <span class="tag">The flip condition — and it may already be met</span>
+    <p>GLM: <em>"If their customer base includes schools, children's services, or coaches serving minors, T's problem becomes theirs, and this becomes a rebuild conversation, not a paragraph."</em></p>
+    <p style="margin-top:12px"><strong>The production waiver model carries <code>submittedByGuardian</code>, <code>guardianName</code> and <code>guardianTypedSignature</code></strong> — the schema supports enrolling minors under a guardian's signature. That is verified. What is <em>not</em> verified is whether minors are active clients today, and whether their records reach the AI pipeline.</p>
+    <p style="margin-top:12px">Those two questions decide which model is right. Worth answering before accepting either verdict.</p>
+  </div>
+
+  <h3>What both agree to leave alone</h3>
+  <p>Fail-closed-by-withholding · bidirectional scrubbing · history-window re-sanitisation · roster-driven term generation · the layer split · the five test suites. Kimi's phrase: <em>"those are the load-bearing walls."</em></p>
+
+  <h3>Cheap, if anything is done at all</h3>
+  <ol>
+    <li><strong>Document the residual risk</strong> in the privacy assessment, with explicit controller-side acceptance. Effort ≈ zero; retires the "nobody considered it" finding entirely.</li>
+    <li><strong>A "tight mode" offered when a roster is small</strong> — coarsen age to bands, band height and weight, suppress rare-condition strings. Rosters are already fetched, so the trigger is free. Off by default; the coach chooses.</li>
+    <li><strong>Promote inbound-scrub hits from silent cleanup to logged events.</strong> Trivial, and it converts an existing control into a detector — right now the system quietly cleans leaked names out of model replies and throws away the signal that it happened.</li>
+  </ol>
+  <p>That third one is free intelligence you're currently discarding.</p>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">06</span><h2>Before any of this ships</h2></div>
+  <div class="warn">
+    <span class="tag">The middleware cannot create permission</span>
+    <p>Kimi: <em>"Without an enterprise account with a data-processing agreement, an impact assessment, a lawful basis, and parent notice, the middleware is a fig leaf over a missing lawful basis."</em></p>
+  </div>
+  <p>Five things to establish with her director — and they're upstream of the build, not parallel to it:</p>
+  <ol>
+    <li><strong>Get the approval's actual wording.</strong> Does it contemplate <em>any</em> child personal data entering prompts, or was it approved for lesson planning?</li>
+    <li><strong>Which tier?</strong> Consumer ChatGPT may train on inputs and carries no processing agreement. Team/Edu tiers offer zero-retention and a DPA. This is not a detail.</li>
+    <li><strong>Who is the data controller</strong>, and is there an agreement covering it?</li>
+    <li><strong>Has an impact assessment been done</strong> for AI use involving children's data?</li>
+    <li><strong>What is the path</strong> if something does leak — including telling parents?</li>
+  </ol>
+  <div class="callout">
+    <span class="tag">The one genuinely reassuring finding</span>
+    <p>GLM: <em>"The middleware's posture — cloud lanes behave as if nothing child-identifying may ever enter — is the correct design under every possible answer. The director conversation changes the school's paperwork, not this architecture."</em></p>
+    <p style="margin-top:12px">So the conversation gates <strong>shipping</strong>, not <strong>designing</strong>. Nothing here has to wait.</p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><span class="sec-num">07</span><h2>The challenge to the whole premise</h2></div>
+  <p>Kimi's dissent is the most important paragraph in either reply, and it argues against the thing you asked for:</p>
+  <div class="voice">
+    <span class="who">Kimi K3 — dissent</span>
+    <p>"The honest conclusion of my own design is that the content she most needs help with <em>never reaches the cloud</em>. So the middleware's real function is traffic policing, not enablement. If the local assistant answers the blocked class adequately, ChatGPT's marginal value for child-specific work is near zero — and the middleware is elaborate plumbing solving a problem the three-lane decision created. The cheaper design: two lanes, and a rule."</p>
+  </div>
+  <p><strong>Two lanes and a rule</strong> means: she uses ChatGPT freely for anything with no child in it — planning, curriculum, newsletters, research — and everything child-shaped goes to the local assistant. No middleware at all. One sentence she can remember instead of a tool she has to run.</p>
+  <p>The case <em>for</em> building the Desk anyway is the middle lane: named-but-ordinary content, which is genuinely common and genuinely safe once names are swapped, and which a bare rule would push to the local model unnecessarily. Whether that lane is worth a tool is a real question, and the way to answer it is to watch how much of what she actually writes lands in it.</p>
+  <div class="callout">
+    <span class="tag">Which suggests an order</span>
+    <p>Ship the rule first. Let her use both lanes for a fortnight. If the middle lane turns out to be most of her traffic, the Desk earns itself. If almost everything is either clearly generic or clearly about a child, the rule was the whole answer — and you'll have saved building a tool to solve a problem that wasn't there.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Designed independently and in parallel by GLM 5.3 and Kimi K3 under Rule 82 (full-spectrum, no assigned lens), synthesised by Opus 5. Neither model saw the other's answer.<br>
+  Both packets sanitised — no names, no school, no children, no credentials. Leak-gated before each call.<br>
+  Production-system findings are advisory and unverified against a running instance; the minors question is the one to answer first.</p>
+</footer>
+
+</div>
