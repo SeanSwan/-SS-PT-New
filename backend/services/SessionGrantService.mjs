@@ -187,6 +187,28 @@ export async function grantSessionsForCart(cartId, userId, grantedBy, { checkout
       throw new Error(`Cart ${cartId} not found for user ${userId}`);
     }
 
+    // IDEMPOTENCY FIRST — before the ownership check, deliberately.
+    //
+    // An already-granted cart needs no further work no matter WHICH session asks, so
+    // answering "already done" is always correct and always safe. Running the
+    // ownership check first meant a second session for an already-fulfilled cart
+    // THREW instead: 500 -> Stripe retries forever -> the endpoint-disabling risk,
+    // on a cart that was in fact correctly granted.
+    //
+    // That is reachable: a customer whose checkout crashed twice has two orphan
+    // sessions naming one cart. The first adopts and grants; the second then sees a
+    // cart holding a different id and threw. Found by attacking my own adoption
+    // change (2026-08-16) — adoption writes an id where there was none, which makes
+    // this ordering bug easier to hit than it was before.
+    //
+    // Do NOT check status === 'completed' here (the webhook sets that before
+    // verify-session runs); `sessionsGranted` is the only true idempotency key.
+    if (cart.sessionsGranted === true) {
+      await transaction.rollback();
+      logger.info(`[SessionGrant] Cart ${cartId} already granted (idempotent, caller: ${grantedBy})`);
+      return { granted: false, sessionsAdded: 0, alreadyProcessed: true };
+    }
+
     // ABSENCE IS NOT MISMATCH.
     //
     // This used to be `if (checkoutSessionId && cart.checkoutSessionId !== ...)`, which
@@ -216,14 +238,6 @@ export async function grantSessionsForCart(cartId, userId, grantedBy, { checkout
         cartId,
         grantedBy,
       });
-    }
-
-    // IDEMPOTENCY CHECK: Only check sessionsGranted flag
-    // Do NOT check status === 'completed' (webhook sets this before verify-session)
-    if (cart.sessionsGranted === true) {
-      await transaction.rollback();
-      logger.info(`[SessionGrant] Cart ${cartId} already granted (idempotent, caller: ${grantedBy})`);
-      return { granted: false, sessionsAdded: 0, alreadyProcessed: true };
     }
 
     cart.cartItems = await hydrateCartCheckoutItems({

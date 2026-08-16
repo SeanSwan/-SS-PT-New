@@ -134,6 +134,25 @@ describe('crash-window: an unclaimed cart may be adopted by the session that nam
     );
   });
 
+  // Found by attacking the adoption change itself: a customer whose checkout crashed
+  // twice has TWO orphan sessions naming one cart. The first adopts and grants; the
+  // second then saw a cart holding a different id and THREW — 500, Stripe retries
+  // forever, on a cart that was already correctly fulfilled. Idempotency must be
+  // answered before ownership, because "already granted" is true regardless of who asks.
+  it('answers idempotency BEFORE the ownership check', () => {
+    const code = grantSource()
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+    const idempotencyAt = code.indexOf('cart.sessionsGranted === true');
+    const ownershipAt = code.indexOf('does not own cart');
+
+    expect(idempotencyAt).toBeGreaterThan(-1);
+    expect(ownershipAt).toBeGreaterThan(-1);
+    expect(idempotencyAt, 'sessionsGranted must be checked before the ownership throw')
+      .toBeLessThan(ownershipAt);
+  });
+
   it('records the adopted session id so the next delivery sees a claimed cart', () => {
     const code = grantSource()
       .replace(/\/\*[\s\S]*?\*\//g, '')
