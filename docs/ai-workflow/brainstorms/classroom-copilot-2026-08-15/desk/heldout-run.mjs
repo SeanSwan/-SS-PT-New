@@ -23,7 +23,7 @@
  * name or canary may ever appear in outbound text.
  */
 import { check, rosterCollisions } from './desk.mjs';
-import { ROSTER, CANARIES } from './roster.fixture.mjs';
+import { ROSTER, CANARIES } from './fixture-children.mjs';
 import { HELDOUT } from './heldout.mjs';
 
 const collisions = rosterCollisions(ROSTER);

@@ -9,7 +9,7 @@
  *              because the thing under test is the roster or the argument type
  */
 import { check, withPlaceholders, rosterCollisions } from './desk.mjs';
-import { ROSTER, CANARIES } from './roster.fixture.mjs';
+import { ROSTER, CANARIES } from './fixture-children.mjs';
 import { CORPUS, PROBES } from './corpus.mjs';
 
 let failed = 0;

@@ -1,6 +1,12 @@
 /**
  * Fixture roster — entirely fictional.
  * ====================================
+ * NAMED `fixture-children`, not `roster.fixture`, deliberately. The repository
+ * ignores `roster*` so that a real roster can never be committed by accident, and
+ * that guard should stay absolute — no negation, no exception. The first version of
+ * this file was called `roster.fixture.mjs`, was silently excluded from the push,
+ * and left the published repository unable to run. Renaming the fixture is the
+ * correct fix; punching a hole in the ignore rule is not.
  * No real child, family, setting, or street appears in this repository, and none
  * ever may. These names are the ones already used as examples in the published
  * artifacts, reused deliberately: inventing fresh names risks colliding with a real
