@@ -18,7 +18,7 @@ const REQUIRED_FILES = Object.freeze({
   registry: 'docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md', archetypes: 'docs/ai-workflow/design-brain/website-archetypes.md',
   sourceSystem: 'docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md', sourceAssets: 'docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md',
   knowledge: 'docs/ai-workflow/design-brain/adapters/knowledge.md', index: 'docs/ai-workflow/design-brain/index.md',
-  designMd: 'docs/ai-workflow/design-brain/design.md', designHtml: 'docs/ai-workflow/design-brain/design.html', motion: 'docs/ai-workflow/design-brain/motion.md',
+  designMd: 'docs/ai-workflow/design-brain/design.md', motion: 'docs/ai-workflow/design-brain/motion.md',
   cinematic: 'docs/ai-workflow/design-brain/cinematic-pages.md', reviewers: 'docs/ai-workflow/design-brain/adapters/reviewers.md',
   externalReference: 'docs/ai-workflow/design-brain/external-reference-mcp.md', handoff: 'docs/ai-workflow/AI-HANDOFF/SWAN-WORLD-ENGINE-BUILD-HANDOFF-2026-07-12.md',
   roulette: 'scripts/ai-workflow/world-roulette.mjs', rouletteVerifier: 'scripts/ai-workflow/verify-world-roulette.mjs',
@@ -191,8 +191,10 @@ export function auditWorldEngineBundle(bundle) {
   requirePattern(errors, bundle.knowledge ?? '', /direct(?:-to-|\s+)wiki\s+writ/i, 'knowledge adapter must prohibit direct wiki writes');
   requirePattern(errors, bundle.index ?? '', /worlds\.md[\s\S]*techniques\.md[\s\S]*psychology\.md[\s\S]*experience-mode\.md[\s\S]*swan-world-factory/i, 'Design Brain index lacks complete World Engine stitching');
   requirePattern(errors, bundle.designMd ?? '', /Full\/Lean\/Still[\s\S]*Reduced Motion is a separate accessibility override/i, 'design.md must define Full/Lean/Still plus separate Reduced Motion');
-  requirePattern(errors, bundle.designHtml ?? '', /Full cinema[\s\S]*Lean cinema[\s\S]*<b>Still<\/b>[\s\S]*Accessibility override — Reduced Motion/i, 'design.html must mirror Full/Lean/Still plus separate Reduced Motion');
-  if (/Tier 3 — Reduced motion/i.test(bundle.designHtml ?? '')) errors.push('design.html retains the retired Reduced-Motion-as-tier contract');
+  // design.html assertions REMOVED 2026-08-16: the mirror was retired to docs/_attic/. Keeping
+  // them turned a real pre-existing failure ("external-reference receipt/fallback contract is
+  // incomplete") into an ENOENT crash that MASKED it — same failure count, worse information.
+  // design.md carries the Full/Lean/Still + Reduced-Motion contract on its own, asserted above.
   requirePattern(errors, bundle.motion ?? '', /Licensed M4 pointer[\s\S]*Full\/Lean\/Still/i, 'motion doctrine lacks M4 and runtime-mode stitching');
   requirePattern(errors, bundle.cinematic ?? '', /M4 loss-matrix pointer[\s\S]*B3 failure[\s\S]*B1\/B0/i, 'cinematic doctrine lacks M4 backend-loss stitching');
   requirePattern(errors, bundle.reviewers ?? '', /M4 license and failure safety[\s\S]*automatic REVISE/i, 'reviewer adapter lacks M4 automatic-REVISE gate');

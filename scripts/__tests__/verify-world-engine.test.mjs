@@ -20,7 +20,9 @@ const WORLD_ENGINE_RELEASE_FILES = Object.freeze([
   'docs/ai-workflow/design-brain/adapters/knowledge.md',
   'docs/ai-workflow/design-brain/adapters/reviewers.md',
   'docs/ai-workflow/design-brain/cinematic-pages.md',
-  'docs/ai-workflow/design-brain/design.html',
+  // design.html removed 2026-08-16 — the mirror was retired to docs/_attic/, so copying it into
+  // the release scope raised ENOENT. Found only because a verification grep returned 1 where the
+  // label predicted 0: the source assertions were fixed and THIS list was missed, one file over.
   'docs/ai-workflow/design-brain/design.md',
   'docs/ai-workflow/design-brain/experience-mode.md',
   'docs/ai-workflow/design-brain/external-reference-mcp.md',

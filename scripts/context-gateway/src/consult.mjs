@@ -233,7 +233,10 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   const unfenced = doc.replace(/^```[\s\S]*?^```/gm, '');
   let subject = (unfenced.match(/^#\s+(.+?)\s*$/m)?.[1] ?? '').replace(/\s+/g, ' ').trim();
   if (subject.length > SUBJECT_MAX) subject = `${subject.slice(0, SUBJECT_MAX - 1).trimEnd()}…`;
-  const shortTitle = provider.title.replace(/^SwanStudios\s+/, '');
+  // Trailing "Review" is stripped too, or the H1 reads "reviewed by Kimi K3 Design Review" —
+  // the word doubled. The FALLBACK deliberately keeps the full untrimmed title, because there it
+  // stands alone as the whole heading rather than following "reviewed by".
+  const shortTitle = provider.title.replace(/^SwanStudios\s+/, '').replace(/\s+(?:Design\s+)?Review$/i, '');
   const h1 = subject ? `${subject} — reviewed by ${shortTitle}` : provider.title;
   writeFileSync(outPath, `# ${h1}\n${failBanner}\n**Reviewer:** OpenRouter \`${r.model}\`${effort ? ` (effort: ${effort})` : ''}\n**Document:** ${shortPath(docPath)}\n**Seed:** ${seedPath ? shortPath(seedPath) : '(none)'}\n**Tokens:** ${r.inTok} in / ${r.outTok} out · **Cost:** ~$${r.cost.toFixed(4)} · **Wall:** ${(r.wallMs / 1000).toFixed(1)}s${r.finishReason ? ` · **finish_reason:** ${r.finishReason}` : ''}\n\n---\n\n${r.text}\n`, 'utf-8');
   // Relative, matching the receipt line: an absolute --out carries the OS username into the
