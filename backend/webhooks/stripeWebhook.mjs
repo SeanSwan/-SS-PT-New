@@ -153,7 +153,12 @@ const stripeWebhookHandler = async (req, res) => {
 
         let grantResult;
         try {
-          grantResult = await grantSessionsForCart(cartIdNumber, cart.userId, 'webhook', { checkoutSessionId: session.id });
+          grantResult = await grantSessionsForCart(cartIdNumber, cart.userId, 'webhook', {
+            checkoutSessionId: session.id,
+            // Amount Stripe actually captured — the adoption branch refuses to grant
+            // when it disagrees with the cart's current total (see SessionGrantService).
+            amountTotalCents: session.amount_total ?? null,
+          });
         } catch (grantError) {
           logger.error('[Webhook] Session grant failed', {
             cartId: cartIdNumber,
@@ -162,6 +167,30 @@ const stripeWebhookHandler = async (req, res) => {
             stack: grantError.stack,
           });
           throw grantError; // Let Stripe retry; grant service is idempotent.
+        }
+
+        // Persist the PaymentIntent so a later refund/chargeback can find this order.
+        // The card rail stores `cart.paymentIntentId || cart.checkoutSessionId` into
+        // Order.paymentId, so whenever the PI is not yet known at session-creation
+        // time it persists a `cs_` id — and a Stripe `charge` only ever carries a
+        // `pi_` id, so refund matching could never succeed on the primary rail
+        // (GLM-5.3 MEDIUM-4, round 2). At `checkout.session.completed` the PI is
+        // always present, so write it here. Conditional on NULL so a redelivery is a
+        // no-op and an existing value is never overwritten.
+        if (session.payment_intent) {
+          try {
+            const { default: Order } = await import('../models/Order.mjs');
+            await Order.update(
+              { stripePaymentIntentId: session.payment_intent },
+              { where: { cartId: cartIdNumber, stripePaymentIntentId: null } },
+            );
+          } catch (piError) {
+            // Never fatal: this is reconciliation metadata, not fulfilment.
+            logger.warn('[Webhook] Could not persist payment intent on order', {
+              cartId: cartIdNumber,
+              errorMessage: piError?.message,
+            });
+          }
         }
 
         try {
@@ -275,10 +304,26 @@ const stripeWebhookHandler = async (req, res) => {
             // combined lookup then matched nothing and the handler fell through in
             // SILENCE — no log, no alert, no fulfilment, surfacing days later because
             // ACH settles slowly (Kimi K3 HIGH-1, 2026-08-16).
-            const order = await Order.findOne({ where: { paymentId: pi.id } })
-              || await Order.findOne({
-                where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id },
-              });
+            // The metadata fallback keys on the ORDER ID ALONE. The previous version
+            // fell back to `{ id, paymentId }` — a strict SUPERSET of the first
+            // query's condition, so it could never match when the first missed. It
+            // was fix-shaped and inert (GLM-5.3 LOW-2, round 2). Keying on the id
+            // alone is what actually recovers a stale-metadata order, and a
+            // divergent paymentId on that row is itself worth surfacing.
+            const metadataOrderId = Number.parseInt(pi.metadata.orderId, 10);
+            let order = await Order.findOne({ where: { paymentId: pi.id } });
+
+            if (!order && Number.isSafeInteger(metadataOrderId) && metadataOrderId > 0) {
+              const byMetadata = await Order.findOne({ where: { id: metadataOrderId } });
+              if (byMetadata) {
+                logger.warn('[ACH Webhook] Order matched by metadata only — paymentId diverges', {
+                  orderId: byMetadata.id,
+                  orderPaymentId: byMetadata.paymentId,
+                  paymentIntentId: pi.id,
+                });
+                order = byMetadata;
+              }
+            }
 
             if (!order) {
               // A captured ACH payment with no order is exactly the condition a human
@@ -429,8 +474,25 @@ async function handleChargeReversal(event) {
   // A dispute's object is the dispute; a refund's object is the charge.
   const paymentIntentId = object?.payment_intent || null;
   const chargeId = isDispute ? object?.charge : object?.id;
-  const amountCents = (isDispute ? object?.amount : object?.amount_refunded) ?? 0;
-  const amount = Number(amountCents) / 100;
+
+  // PARTIAL REFUNDS. `charge.amount_refunded` is CUMULATIVE across every refund on
+  // the charge, so using it as "the amount refunded now" reported a growing total as
+  // if newly refunded on each event, and flipping status on it marked an order fully
+  // refunded on the first $0.01 (GLM-5.3 MEDIUM-6, round 2).
+  // Report the LATEST refund's delta, and only call the order refunded when the
+  // cumulative total has actually reached the charge total.
+  const chargeTotalCents = Number(object?.amount ?? 0);
+  const cumulativeRefundedCents = Number(object?.amount_refunded ?? 0);
+  const latestRefundCents = Number(
+    object?.refunds?.data?.[object.refunds.data.length - 1]?.amount ?? cumulativeRefundedCents
+  );
+  const isFullyRefunded = !isDispute
+    && chargeTotalCents > 0
+    && cumulativeRefundedCents >= chargeTotalCents;
+
+  const amountCents = isDispute ? Number(object?.amount ?? 0) : latestRefundCents;
+  const amount = amountCents / 100;
+  const cumulativeRefunded = cumulativeRefundedCents / 100;
 
   let order = null;
   try {
@@ -441,9 +503,10 @@ async function handleChargeReversal(event) {
       order = await Order.findOne({ where: { stripePaymentIntentId: paymentIntentId } })
         || await Order.findOne({ where: { paymentId: paymentIntentId } });
 
-      if (order && !isDispute) {
-        // A dispute is not a refund — it can still be won. Only a real refund
-        // moves the order's status.
+      if (order && isFullyRefunded) {
+        // A dispute is not a refund — it can still be won — and a PARTIAL refund is
+        // not a refunded order. Only a refund that has reached the full charge
+        // amount moves the order's status.
         await order.update({ status: 'refunded' });
       }
     }
@@ -456,7 +519,9 @@ async function handleChargeReversal(event) {
     });
   }
 
-  const label = isDispute ? 'Chargeback opened' : 'Refund issued';
+  const label = isDispute
+    ? 'Chargeback opened'
+    : (isFullyRefunded ? 'Refund issued (full)' : 'Refund issued (PARTIAL)');
   logger.warn(`[Webhook] ${label}`, {
     eventType: event.type,
     chargeId,
@@ -484,6 +549,9 @@ async function handleChargeReversal(event) {
         chargeId,
         paymentIntentId,
         amount,
+        cumulativeRefunded: isDispute ? null : cumulativeRefunded,
+        chargeTotal: chargeTotalCents / 100,
+        fullyRefunded: isFullyRefunded,
         orderId: order?.id ?? null,
         orderNumber: order?.orderNumber ?? null,
         userId: order?.userId ?? null,

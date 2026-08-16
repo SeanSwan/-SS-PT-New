@@ -80,7 +80,15 @@ export async function reconcileStalePendingCarts({ ShoppingCart, Op, now = new D
           status: 'pending_payment',
           // The crash-window signature: claimed, but never finalized.
           checkoutSessionId: null,
-          lastCheckoutAttempt: { [operators.lt]: cutoff },
+          // `lt` alone never matches SQL NULL, so any pre-column straggler with a
+          // NULL lastCheckoutAttempt would be permanently unsweepable — stuck in
+          // pending_payment forever, which is the exact state this exists to clear
+          // (GLM-5.3 LOW-1, round 2). A row with no recorded attempt and a null
+          // session id cannot be an in-flight checkout, so it is always releasable.
+          [operators.or]: [
+            { lastCheckoutAttempt: { [operators.lt]: cutoff } },
+            { lastCheckoutAttempt: null },
+          ],
         },
       }
     );

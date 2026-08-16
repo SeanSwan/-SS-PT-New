@@ -229,7 +229,14 @@ describe('canonical Stripe webhook session grants', () => {
       .send(Buffer.from('{}'));
 
     expect(response.status).toBe(200);
-    expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(42, 3, 'webhook', { checkoutSessionId: 'cs_test_cart_42' });
+    expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(
+      42, 3, 'webhook',
+      // objectContaining, not an exact literal: the options bag gained
+      // amountTotalCents (2026-08-16) so the adoption branch can refuse a grant
+      // whose charged amount disagrees with the cart. The invariant this asserts
+      // is the cart/user/caller/session delegation, not the bag's exact shape.
+      expect.objectContaining({ checkoutSessionId: 'cs_test_cart_42' }),
+    );
     expect(mocks.mockUser.increment).not.toHaveBeenCalled();
   });
 
@@ -244,7 +251,14 @@ describe('canonical Stripe webhook session grants', () => {
 
     expect(response.status).toBe(500);
     expect(response.text).toContain('Webhook processing error');
-    expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(42, 3, 'webhook', { checkoutSessionId: 'cs_test_cart_42' });
+    expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(
+      42, 3, 'webhook',
+      // objectContaining, not an exact literal: the options bag gained
+      // amountTotalCents (2026-08-16) so the adoption branch can refuse a grant
+      // whose charged amount disagrees with the cart. The invariant this asserts
+      // is the cart/user/caller/session delegation, not the bag's exact shape.
+      expect.objectContaining({ checkoutSessionId: 'cs_test_cart_42' }),
+    );
   });
 
   it('reuses the grant-created order instead of writing a SECOND completed order', async () => {
@@ -327,7 +341,14 @@ describe('canonical Stripe webhook session grants', () => {
 
     expect(response.status).toBe(500);
     expect(response.text).toContain('Webhook processing error');
-    expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(42, 3, 'webhook', { checkoutSessionId: 'cs_test_cart_42' });
+    expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(
+      42, 3, 'webhook',
+      // objectContaining, not an exact literal: the options bag gained
+      // amountTotalCents (2026-08-16) so the adoption branch can refuse a grant
+      // whose charged amount disagrees with the cart. The invariant this asserts
+      // is the cart/user/caller/session delegation, not the bag's exact shape.
+      expect.objectContaining({ checkoutSessionId: 'cs_test_cart_42' }),
+    );
   });
 
   it('does not replay one-time side effects when the order already exists', async () => {
@@ -349,7 +370,14 @@ describe('canonical Stripe webhook session grants', () => {
       .send(Buffer.from('{}'));
 
     expect(response.status).toBe(200);
-    expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(42, 3, 'webhook', { checkoutSessionId: 'cs_test_cart_42' });
+    expect(mocks.mockGrantSessionsForCart).toHaveBeenCalledWith(
+      42, 3, 'webhook',
+      // objectContaining, not an exact literal: the options bag gained
+      // amountTotalCents (2026-08-16) so the adoption branch can refuse a grant
+      // whose charged amount disagrees with the cart. The invariant this asserts
+      // is the cart/user/caller/session delegation, not the bag's exact shape.
+      expect.objectContaining({ checkoutSessionId: 'cs_test_cart_42' }),
+    );
     expect(mocks.mockSendNotification).not.toHaveBeenCalled();
     expect(mocks.mockCreateCommissionForPurchase).not.toHaveBeenCalled();
     expect(mocks.mockRecordLedgerEntry).not.toHaveBeenCalled();

@@ -161,7 +161,7 @@ async function markCartCompleted({ cart, grantedBy, sessionsToAdd, fulfillment, 
  * @param {string} grantedBy - 'verify-session' | 'webhook' | 'reconciliation'
  * @returns {Promise<{granted: boolean, sessionsAdded: number, alreadyProcessed: boolean}>}
  */
-export async function grantSessionsForCart(cartId, userId, grantedBy, { checkoutSessionId } = {}) {
+export async function grantSessionsForCart(cartId, userId, grantedBy, { checkoutSessionId, amountTotalCents = null } = {}) {
   const transaction = await sequelize.transaction();
 
   try {
@@ -231,12 +231,47 @@ export async function grantSessionsForCart(cartId, userId, grantedBy, { checkout
     }
 
     if (checkoutSessionId && !cart.checkoutSessionId) {
+      // ADOPTION REQUIRES THE AMOUNTS TO AGREE.
+      //
+      // Adoption is reached exactly when the finalize write never happened, which is
+      // also exactly when the checkout SNAPSHOT was never written — so hydration falls
+      // through to LIVE cart rows. Meanwhile the sweeper deliberately returns the cart
+      // to `active`, which makes it editable again. Compose the two and a customer can
+      // pay a $60 orphan session, add a $5,000 package to the released cart, and have
+      // the adoption branch grant the full $5,060 (Kimi K3 HIGH-1 / GLM-5.3 MEDIUM-1,
+      // round 2 — found independently by both).
+      //
+      // The user-crossing argument for adoption is sound; it says nothing about VALUE
+      // crossing. So require what Stripe actually charged to match what this cart is
+      // worth right now. Honest recovery (cart untouched) still adopts and grants;
+      // a mutated cart does not.
+      const cartTotalCents = Math.round(Number(cart.total ?? 0) * 100);
+
+      if (amountTotalCents !== null && cartTotalCents > 0
+          && Number(amountTotalCents) !== cartTotalCents) {
+        await transaction.rollback();
+        logger.error('[SessionGrant] REFUSING adoption — charged amount does not match cart', {
+          cartId,
+          grantedBy,
+          amountTotalCents: Number(amountTotalCents),
+          cartTotalCents,
+        });
+        return {
+          granted: false,
+          sessionsAdded: 0,
+          alreadyProcessed: false,
+          adoptionRefused: true,
+          reason: 'AMOUNT_MISMATCH',
+        };
+      }
+
       // Adopt the orphaned session so a later redelivery sees a claimed cart rather
       // than racing this same branch again.
       cart.checkoutSessionId = checkoutSessionId;
       logger.warn(`[SessionGrant] Cart ${cartId} adopted orphaned checkout session (crash-window recovery)`, {
         cartId,
         grantedBy,
+        amountTotalCents: amountTotalCents === null ? null : Number(amountTotalCents),
       });
     }
 

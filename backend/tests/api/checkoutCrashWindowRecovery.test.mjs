@@ -33,6 +33,8 @@
  *     ages. Grant is NOT status-gated (only `sessionsGranted`), so a released cart can
  *     still be fulfilled if that orphan session is paid later.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -78,14 +80,22 @@ describe('crash-window: sweeper releases carts stranded with no session id', () 
     await reconcileStalePendingCarts({ ShoppingCart: { update: mocks.cartUpdate }, now });
 
     const [, options] = mocks.cartUpdate.mock.calls[0];
-    const cutoffClause = options.where.lastCheckoutAttempt;
-    // Sequelize Op keys are SYMBOLS — Object.values() returns [] for them, which
-    // would make this assertion pass against nothing.
-    const [opKey] = Object.getOwnPropertySymbols(cutoffClause);
-    expect(opKey, 'cutoff must use a Sequelize operator').toBeDefined();
-    const cutoff = cutoffClause[opKey];
+    // The clause is an Op.or of [older-than-cutoff, never-attempted]; both keys are
+    // SYMBOLS, so Object.values() returns [] and would assert against nothing.
+    const [orKey] = Object.getOwnPropertySymbols(options.where);
+    expect(orKey, 'staleness must be an Op.or clause').toBeDefined();
+    const branches = options.where[orKey];
+    expect(Array.isArray(branches)).toBe(true);
+
+    const ltBranch = branches.find((b) => b.lastCheckoutAttempt
+      && Object.getOwnPropertySymbols(b.lastCheckoutAttempt).length > 0);
+    const [ltKey] = Object.getOwnPropertySymbols(ltBranch.lastCheckoutAttempt);
+    const cutoff = ltBranch.lastCheckoutAttempt[ltKey];
 
     expect(cutoff.getTime()).toBe(now.getTime() - STALE_CHECKOUT_MS);
+    // A NULL lastCheckoutAttempt never matches `lt`, so it needs its own branch or
+    // those rows are permanently unsweepable.
+    expect(branches.some((b) => b.lastCheckoutAttempt === null)).toBe(true);
     // Stripe session creation never takes minutes; the threshold must be far
     // longer than a slow API call and far shorter than a customer's patience.
     expect(STALE_CHECKOUT_MS).toBeGreaterThanOrEqual(10 * 60 * 1000);
@@ -151,6 +161,41 @@ describe('crash-window: an unclaimed cart may be adopted by the session that nam
     expect(ownershipAt).toBeGreaterThan(-1);
     expect(idempotencyAt, 'sessionsGranted must be checked before the ownership throw')
       .toBeLessThan(ownershipAt);
+  });
+
+  // Found independently by Kimi K3 (HIGH-1) and GLM-5.3 (MEDIUM-1) in round 2 — a
+  // vulnerability the TWO fixes create together, which neither creates alone.
+  // Adoption runs exactly when the finalize write never happened, which is exactly
+  // when the checkout snapshot was never written, so hydration falls through to LIVE
+  // cart rows. The sweeper meanwhile returns the cart to `active`, making it editable.
+  // Compose them: pay a $60 orphan session, add a $5,000 package to the released cart,
+  // and adoption grants $5,060 of sessions for a $60 charge. The user-crossing safety
+  // argument is sound; it says nothing about VALUE crossing.
+  it('refuses adoption when the charged amount disagrees with the cart total', () => {
+    const code = grantSource()
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+    // The amount Stripe actually captured must reach the grant...
+    expect(code).toMatch(/amountTotalCents/);
+    // ...be compared against the cart's own total...
+    expect(code).toMatch(/cartTotalCents/);
+    // ...and REFUSE rather than grant on disagreement.
+    expect(code).toMatch(/adoptionRefused/);
+    expect(code).toMatch(/AMOUNT_MISMATCH/);
+
+    // The comparison must gate the adoption branch, not merely be logged.
+    const adoptAt = code.indexOf('cart.checkoutSessionId = checkoutSessionId');
+    const refuseAt = code.indexOf('AMOUNT_MISMATCH');
+    expect(refuseAt).toBeGreaterThan(-1);
+    expect(refuseAt, 'the refusal must precede the adoption write').toBeLessThan(adoptAt);
+  });
+
+  it('passes the captured amount from the webhook into the grant', () => {
+    const webhook = readFileSync(
+      resolve(process.cwd(), 'webhooks/stripeWebhook.mjs'), 'utf8'
+    );
+    expect(webhook).toMatch(/amountTotalCents:\s*session\.amount_total/);
   });
 
   it('records the adopted session id so the next delivery sees a claimed cart', () => {
