@@ -563,6 +563,18 @@
         "scratch" rather than marking the important ones "keep."
       </p>
       <p>GLM and Kimi both accepted the existing amendment as sufficient. This is a real fork.</p>
+      <div class="myread">
+        <strong>Resolved to a third option since publication.</strong> Both poles are wrong. The
+        storage argument for expiry is false — five years of every record she will ever write is
+        <strong>5 MB</strong>, against a 2,400 MB model file already on the phone. But indefinite
+        retention is also wrong, for data minimisation rather than space: holding behavioural
+        records on named two-year-olds forever is itself a worse privacy posture. Recommendation is
+        a <strong>school-year-aligned window</strong> — the year plus one term — with incidents
+        exempt and opt-in early deletion, and the scratchpad feel delivered by an active/archive
+        <em>view</em> rather than by deleting anything. <strong>Until this is decided, the retention
+        window shown in the diagrams and wireframes above is deliberately marked open — do not
+        implement 30 days.</strong> Full reasoning in <code>61-DECISIONS-PENDING.md</code>.
+      </div>
     </div>
 
     <div class="fork">
@@ -813,7 +825,7 @@ stateDiagram-v2
   pending --> dismissed : not useful
   corrected --> accepted : correction logged
   accepted --> promoted : one tap — permanent evidence
-  accepted --> expired : +30 days, only if not pinned and not exempt
+  accepted --> expired : retention window — OPEN DECISION, only if not pinned and not exempt
   promoted --> [*] : never expires
   expired --> [*] : hard-deleted after 7-day grace
   dismissed --> [*]
@@ -913,7 +925,7 @@ stateDiagram-v2
 │  [OBS][PARENT][SUPPLY][TASK][ACT]    │   one tap = corrected
 │                                      │
 │  KEEP                                │
-│  ( ) normal · expires in 30 days     │
+│  ( ) normal · expires — window TBD   │
 │  (•) pinned — never expires          │
 │                                      │
 │      [ Save ]          [ Delete ]    │   (56dp)
