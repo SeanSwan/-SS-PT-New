@@ -48,10 +48,14 @@ survived multiple paid panels while being one text message each).
 > **5(c) DONE:** `debatePanels` now passed into the plan-mode spend gate
 > (validation-orchestrator.mjs, mirrors code mode); estimator delta proven
 > ($151.59 → $10.49 on identical flat inputs); live flat run still needs Sean's Rule-16 go.
-> **Step 2 minors check:** code half done — NO minor/guardian gate exists anywhere in the
-> AI chat pipeline (aiChatRoutes.mjs:466 chain = protect + requireSubscription + rate-limit
-> + PII-strip only); empirical half (do guardian-signed active clients exist) awaits O
-> running the read-only counts-only launcher at `c:/tmp/minors-probe.mjs`.
+> **Step 2 minors check: ANSWERED — dormant, not live.** Code half: NO minor/guardian gate
+> exists anywhere in the AI chat pipeline (aiChatRoutes.mjs:466 chain = protect +
+> requireSubscription + rate-limit + PII-strip only). Empirical half (prod DB, 2026-08-16,
+> counts-only probe `backend/scripts/inspect-minors-ai-exposure.mjs`): guardian-signed
+> waivers = 0 · guardian-linked users = 0 · users under 18 by DOB = 0 · either-signal
+> minors with AI conversations = 0. **No minor exists in production today**, so the missing
+> gate is a structural gap, not a live exposure. A gating slice is backlog, not queue-jump;
+> when built it hits the Rule 50 Tier-C trigger (minor's-data path → Village review).
 > **Steps 1, 3** remain O-owned; texts drafted for O in the session report.
 
 ## 1. THE FORWARD PLAN — execute in this order
