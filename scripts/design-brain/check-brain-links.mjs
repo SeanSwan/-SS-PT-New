@@ -81,6 +81,7 @@ if (!sections.size) {
  * Bare `§N` (no filename) is handled separately by `impossibleBareRefs` below — it cannot be
  * attributed to a file, but it can still be proven IMPOSSIBLE. See D4.
  */
+const MAX_RANGE_SPAN = 50;
 function refsIn(line) {
   const out = [];
   // Continuation accepts `,` / `and` / an en-, em- or hyphen RANGE. Ranges are EXPANDED:
@@ -98,7 +99,15 @@ function refsIn(line) {
     for (const part of body.split(/\s*(?:,|and)\s*/)) {
       const range = /^§?\s*(\d+(?:\.\d+)?)\s*[–—-]\s*§?\s*(\d+(?:\.\d+)?)$/.exec(part.trim());
       if (range && Number.isInteger(+range[1]) && Number.isInteger(+range[2])) {
-        for (let i = Math.ceil(+range[1]); i <= Math.floor(+range[2]); i++) out.push({ file: m[1], n: String(i), raw: m[0] });
+        const [lo, hi] = [Math.ceil(+range[1]), Math.floor(+range[2])];
+        // Bound the expansion. No real doc has a 50-section span, so a wider range is a typo
+        // or hostile input — and expanding it verbatim turns one bad character into tens of
+        // thousands of findings that bury every real one. Report the range itself instead.
+        if (hi < lo || hi - lo > MAX_RANGE_SPAN) {
+          out.push({ file: m[1], n: `${lo}-${hi}`, raw: m[0], malformed: true });
+        } else {
+          for (let i = lo; i <= hi; i++) out.push({ file: m[1], n: String(i), raw: m[0] });
+        }
       } else {
         const one = /§?\s*(\d+(?:\.\d+)?)/.exec(part);
         if (one) out.push({ file: m[1], n: one[1], raw: m[0] });
@@ -150,7 +159,7 @@ const skippedTargets = new Map(); // target -> count. Silence must be visible, n
 for (const rel of mdFiles) {
   const fileLines = lines(readFileSync(join(BRAIN, rel), 'utf8'));
   fileLines.forEach((line, i) => {
-    for (const { file: target, n, raw } of refsIn(line)) {
+    for (const { file: target, n, raw, malformed } of refsIn(line)) {
       const hit = resolveTarget(target, rel);
       // A ref to a file outside this corpus is not ours to validate — but it is indistinguishable
       // from a TYPO (`motions.md §4`). Counted and reported so the gap is visible rather than silent.
@@ -160,7 +169,10 @@ for (const rel of mdFiles) {
         continue;
       }
       const rec = { file: rel, line: i + 1, target: hit.key, n, raw, ctx: line.trim().slice(0, 110) };
-      if (hit.sections.has(n)) resolved.push({ ...rec, title: hit.sections.get(n) });
+      // A malformed range (reversed, or absurdly wide) can never resolve — it is reported as
+      // one defect, not expanded into thousands.
+      if (malformed) dangling.push(rec);
+      else if (hit.sections.has(n)) resolved.push({ ...rec, title: hit.sections.get(n) });
       else dangling.push(rec);
     }
   });
