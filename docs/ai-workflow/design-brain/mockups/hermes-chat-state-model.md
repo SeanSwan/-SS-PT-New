@@ -40,7 +40,7 @@ The gateway's structured events (probed and confirmed 2026-08-16, `tui_gateway/s
 
 | Event | Transition |
 |---|---|
-| `message.start` | Open assistant `Turn` (status `streaming`) with one open `TextBlock` |
+| `message.start` | Open assistant `Turn` (status `streaming`). Text blocks open **lazily on the first delta** (implementation refinement, Slice 3): a turn that goes straight into a tool call never carries an empty leading text block |
 | `message.delta` | Append text to the turn's **open tail** `TextBlock`; if the tail is not an open text block (a tool/approval was appended since), **open a new** `TextBlock` first — this single rule is what makes interleaving free |
 | `message.interim` | Upsert the turn's `interim` text block in place (replace text). ⚠ replace-vs-append semantics still unprobed — verify in Slice 4 |
 | **Hydration** (`session.resume`) | Not an event, a snapshot: `messages[]` → sealed turns (consecutive assistant/tool rows between user rows group into ONE assistant turn's block list); `inflight` → open streaming turn. See hard case 4 |
