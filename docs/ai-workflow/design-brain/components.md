@@ -1,7 +1,7 @@
 # components.md — Swan Component Pattern Index (Design Brain core)
 
 - **Date:** 2026-07-03 · **Author:** Fable (claude-fable-5) · **Status:** CANONICAL (within its scope)
-- **Extends:** `design.md` §§9–22 (tokens, surfaces, tiers). **Source of truth:** `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §C1–C12 — pattern recipes live there; this file maps components onto them and fixes anatomy/states/do-don't.
+- **Extends:** `design.md` §§6, 11–12 (tokens, components, states). **Source of truth:** `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §C1–C12 — pattern recipes live there; this file maps components onto them and fixes anatomy/states/do-don't.
 - Universal: every interactive element ≥44px (rule 2); `var(--token, #fallback)` only (rule 6); dark-first (rule 3); all data-bearing components ship empty/loading/error/success states (design.md §12); motion per `motion.md`.
 
 ---

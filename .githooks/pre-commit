@@ -114,9 +114,21 @@ fi
 BRAIN_LINKS="$REPO_ROOT/scripts/design-brain/check-brain-links.mjs"
 if git diff --cached --name-only | grep -qE '^docs/ai-workflow/design-brain/'; then
   if [[ -f "$BRAIN_LINKS" ]]; then
+    # The checker reads the WORKING TREE, not the staged index. If any brain file differs
+    # between them, a pass here says nothing about the blob being committed: stage a broken
+    # file, fix it on disk without staging, and the gate waves the broken blob through.
+    # Refuse to certify in that state rather than issue a verdict about the wrong tree.
+    BRAIN_UNSTAGED="$(git diff --name-only -- docs/ai-workflow/design-brain/ scripts/design-brain/)"
+    if [[ -n "$BRAIN_UNSTAGED" ]]; then
+      echo "COMMIT BLOCKED: Design Brain files differ between the working tree and the index." >&2
+      echo "  The structural check reads the working tree, so it CANNOT vouch for what you are committing." >&2
+      echo "  Stage or stash these, then commit:" >&2
+      echo "$BRAIN_UNSTAGED" | sed 's/^/    /' >&2
+      exit 1
+    fi
     echo "[pre-commit] Running Design Brain structural check (dangling refs / index law)..."
     if ! node "$BRAIN_LINKS"; then
-      echo "COMMIT BLOCKED: Design Brain structural defect (see D1/D2/D3 above)." >&2
+      echo "COMMIT BLOCKED: Design Brain structural defect (see D1-D4 above)." >&2
       echo "  A dangling ref makes an agent silently SKIP the doctrine it cannot find." >&2
       exit 1
     fi

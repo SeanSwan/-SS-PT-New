@@ -1,6 +1,6 @@
 # anti-patterns.md — The Banned List (with WHY)
 
-- **Date:** 2026-07-03 · **Author:** Fable (claude-fable-5) · **Status:** CANONICAL (expands `design.md` §27; bans inherited from `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §B "explicit bans" win all conflicts)
+- **Date:** 2026-07-03 · **Author:** Fable (claude-fable-5) · **Status:** CANONICAL (expands `design.md` §14; bans inherited from `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §B "explicit bans" win all conflicts)
 - A PR that reintroduces any item below fails visual QA regardless of how good it looks.
 
 ---

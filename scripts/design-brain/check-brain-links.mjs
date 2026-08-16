@@ -58,8 +58,10 @@ const lines = (text) => text.split(/\r?\n/);
 function sectionsOf(text) {
   const map = new Map();
   for (const line of lines(text)) {
-    const m = /^##\s+(?:§\s*(\d+)|(\d+)\.)\s+(.*)$/.exec(line);
-    if (m) map.set(m[1] ?? m[2], m[3].trim());
+    // `## §9 Title` · `## 4. Title` · `## 15.1 Title`. The decimal form is real
+    // (cinematic-pages.md §15.1) and omitting it made the gate report a live section as dangling.
+    const m = /^##\s+(?:§\s*(\d+(?:\.\d+)?)|(\d+(?:\.\d+)?)\.?)\s+(.*)$/.exec(line);
+    if (m) map.set((m[1] ?? m[2]).replace(/\.$/, ''), m[3].trim());
   }
   return map;
 }
@@ -81,10 +83,27 @@ if (!sections.size) {
  */
 function refsIn(line) {
   const out = [];
-  const re = /([a-z0-9-]+\.md)\s+§{1,2}\s*(\d+(?:\s*(?:,|and)\s*§?\s*\d+)*)/gi;
+  // Continuation accepts `,` / `and` / an en-, em- or hyphen RANGE. Ranges are EXPANDED:
+  // `§§9–22` means every section from 9 to 22, and reading it as a single ref to §9 is how a
+  // half-dangling range ships undetected — which is exactly what happened on components.md:4,
+  // the "Extends" header line of the most-loaded satellite, inside the branch that killed this class.
+  // Path component captured too (`adapters/reviewers.md`, `./index.md`) — four files in this
+  // corpus are named index.md, so a basename-only match resolves against the wrong one.
+  const re = /((?:\.{0,2}\/)?(?:[a-z0-9-]+\/)*[a-z0-9-]+\.md)[`\s]*\s*§{1,2}\s*(\d+(?:\.\d+)?(?:\s*(?:,|and|[–—-])\s*§?\s*\d+(?:\.\d+)?)*)/gi;
   let m;
   while ((m = re.exec(line)) !== null) {
-    for (const n of m[2].match(/\d+/g) ?? []) out.push({ file: m[1], n, raw: m[0] });
+    const body = m[2];
+    // Decimal refs (`§1.7`) are NOT coerced to §1 — a subsection that does not exist is a
+    // dangling ref, and silently truncating it is how anti-patterns.md:70 survived two passes.
+    for (const part of body.split(/\s*(?:,|and)\s*/)) {
+      const range = /^§?\s*(\d+(?:\.\d+)?)\s*[–—-]\s*§?\s*(\d+(?:\.\d+)?)$/.exec(part.trim());
+      if (range && Number.isInteger(+range[1]) && Number.isInteger(+range[2])) {
+        for (let i = Math.ceil(+range[1]); i <= Math.floor(+range[2]); i++) out.push({ file: m[1], n: String(i), raw: m[0] });
+      } else {
+        const one = /§?\s*(\d+(?:\.\d+)?)/.exec(part);
+        if (one) out.push({ file: m[1], n: one[1], raw: m[0] });
+      }
+    }
   }
   return out;
 }
@@ -100,19 +119,48 @@ const mdFiles = [];
 
 /** Section maps for every file in the corpus, keyed by basename, parsed once. */
 const sectionsByFile = new Map();
-for (const rel of mdFiles) sectionsByFile.set(basename(rel), sectionsOf(readFileSync(join(BRAIN, rel), 'utf8')));
+// Keyed by full corpus-relative path, lower-cased. Basename keying collided: FOUR files here
+// are named index.md (top level, adapters/, obsidian/, graphify/), so `index.md §3` silently
+// resolved against whichever was read last.
+for (const rel of mdFiles) sectionsByFile.set(rel.toLowerCase(), sectionsOf(readFileSync(join(BRAIN, rel), 'utf8')));
+
+/**
+ * Resolve a cited path the way a reader would: relative to the citing file's directory first,
+ * then as a corpus-root path, then — only if the basename is UNIQUE — by basename. An ambiguous
+ * bare basename is reported rather than guessed, because guessing is what produced the collision.
+ */
+function resolveTarget(cited, fromRel) {
+  const clean = cited.replace(/^\.\//, '').toLowerCase();
+  const dir = fromRel.includes('/') ? fromRel.slice(0, fromRel.lastIndexOf('/')).toLowerCase() : '';
+  const candidates = [];
+  if (clean.startsWith('../')) candidates.push(clean.replace(/^\.\.\//, ''));
+  if (dir) candidates.push(`${dir}/${clean}`);
+  candidates.push(clean);
+  for (const c of candidates) if (sectionsByFile.has(c)) return { key: c, sections: sectionsByFile.get(c) };
+  const base = basename(clean);
+  const byBase = [...sectionsByFile.keys()].filter((k) => basename(k) === base);
+  if (byBase.length === 1) return { key: byBase[0], sections: sectionsByFile.get(byBase[0]) };
+  if (byBase.length > 1) return { ambiguous: byBase };
+  return null;
+}
 
 const dangling = [];
 const resolved = [];
+const skippedTargets = new Map(); // target -> count. Silence must be visible, not assumed benign.
 for (const rel of mdFiles) {
   const fileLines = lines(readFileSync(join(BRAIN, rel), 'utf8'));
   fileLines.forEach((line, i) => {
     for (const { file: target, n, raw } of refsIn(line)) {
-      const targetSections = sectionsByFile.get(basename(target));
-      // A reference to a file outside this corpus is not ours to validate.
-      if (!targetSections) continue;
-      const rec = { file: rel, line: i + 1, target: basename(target), n, raw, ctx: line.trim().slice(0, 110) };
-      if (targetSections.has(n)) resolved.push({ ...rec, title: targetSections.get(n) });
+      const hit = resolveTarget(target, rel);
+      // A ref to a file outside this corpus is not ours to validate — but it is indistinguishable
+      // from a TYPO (`motions.md §4`). Counted and reported so the gap is visible rather than silent.
+      if (!hit || hit.ambiguous) {
+        const label = hit?.ambiguous ? `${target} (AMBIGUOUS: ${hit.ambiguous.join(' | ')})` : target;
+        skippedTargets.set(label, (skippedTargets.get(label) ?? 0) + 1);
+        continue;
+      }
+      const rec = { file: rel, line: i + 1, target: hit.key, n, raw, ctx: line.trim().slice(0, 110) };
+      if (hit.sections.has(n)) resolved.push({ ...rec, title: hit.sections.get(n) });
       else dangling.push(rec);
     }
   });
@@ -150,7 +198,14 @@ for (const rel of mdFiles) {
 const indexText = existsSync(join(BRAIN, 'index.md')) ? readFileSync(join(BRAIN, 'index.md'), 'utf8') : '';
 const IGNORE = new Set(['index.md']);
 const isBackup = (f) => /\.(pre-redo|bak|orig)$/.test(f) || f.endsWith('.pre-redo');
-const unindexed = mdFiles.filter((f) => !IGNORE.has(f) && !isBackup(f) && !indexText.includes(basename(f)));
+// EXACT names, not substring containment. `techniques.md` is a substring of the listed
+// `field-techniques.md`, so a containment test can never see the `techniques.md` row being
+// deleted — the index law would be enforced by a mechanism blind to its own most likely failure.
+const indexLines = lines(indexText);
+const listedExact = new Set(
+  [...indexText.matchAll(/`([A-Za-z0-9._/-]+\.md)`/g)].map((m) => basename(m[1])),
+);
+const unindexed = mdFiles.filter((f) => !IGNORE.has(f) && !isBackup(f) && !listedExact.has(basename(f)));
 // index.md legitimately cites docs OUTSIDE this folder (the source-of-truth design system,
 // the world-factory skill). Those are cross-references, not orphans — resolve any listed
 // path against the repo root before calling it missing, or the gate cries wolf and gets ignored.
@@ -173,10 +228,18 @@ const orphaned = [...new Set(listedNames)].filter((name) => {
   if (existsSync(join(REPO, name))) return false;                                      // repo-relative cross-ref
   // Bare names may cite the two source-of-truth docs, which live in references/.
   if (existsSync(join(REPO, 'docs', 'ai-workflow', 'references', name))) return false;
-  // Retired docs move to docs/_attic/. An index row that HONESTLY records a file as
-  // atticked (with its new home) is documentation, not an orphan — the D3 defect is an
-  // index pointing at nothing, not an index admitting something moved.
-  if (atticBasenames.has(basename(name))) return false;
+  // Retired docs move to docs/_attic/. An index entry that HONESTLY records a file as atticked
+  // is documentation; a row still presenting it as live doctrine is the 4d192e5ac rot itself.
+  //
+  // Exempting by basename alone could not tell those apart, so the gate was silent on exactly
+  // the historical failure it was built for — while index.md claimed it "now catches (D3)".
+  // That is this branch committing the sin it exists to purge. The exemption now requires the
+  // MENTION ITSELF to be marked ATTICKED, so an honest record passes and a live-looking row fails.
+  if (atticBasenames.has(basename(name))) {
+    const mentioned = indexLines.filter((l) => l.includes(name) || l.includes(basename(name)));
+    const allMarked = mentioned.length > 0 && mentioned.every((l) => /ATTICKED/i.test(l));
+    if (allMarked) return false;
+  }
   return true;
 });
 
@@ -222,10 +285,15 @@ if (orphaned.length) {
   console.log('');
 }
 
+if (skippedTargets.size) {
+  console.log(`NOTE — ${skippedTargets.size} referenced file(s) are outside this corpus and were NOT validated. A typo is indistinguishable from an external doc; confirm each is real:`);
+  for (const [t, c] of [...skippedTargets].sort()) console.log(`  ${t} (${c} ref${c > 1 ? 's' : ''})`);
+  console.log('');
+}
 console.log(
   `[brain-links] ${mdFiles.length} files · ${sections.size} canon sections · ` +
   `${resolved.length + dangling.length} refs (${resolved.length} resolve, ${dangling.length} dangle) · ` +
-  `${unindexed.length} unindexed · ${orphaned.length} orphaned · ${impossibleBare.length} impossible-bare`,
+  `${unindexed.length} unindexed · ${orphaned.length} orphaned · ${impossibleBare.length} impossible-bare · ${skippedTargets.size} unvalidated target(s)`,
 );
 if (bad) {
   console.error(`[brain-links] FAIL — ${bad} structural defect(s). Fix the corpus, not this checker.`);

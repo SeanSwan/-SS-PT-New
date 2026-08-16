@@ -1,0 +1,36 @@
+# GLM Consult
+
+**Model:** glm-5.3
+**Document:** docs/ai-workflow/AI-HANDOFF/GLM-MRI-REPAVE-PACKET.md
+**Tokens:** 26831 in / 32000 out (reasoning: 30150) | total 58831
+**Wall:** 477.3s
+
+---
+
+# Verdict
+
+This is partly sound work that should merge with fixes. The repave itself (16 dangling refs, index honesty, 17 wrong-target redirects) is internally consistent everywhere I can cross-check it against the branch's own canon map, the `authority.mjs` fail-closed fix is correct and correctly tested, and the checker is a genuinely better instrument than the hand grep it replaced. But the branch commits the exact sin it was founded to purge — **three places where new doctrine describes enforcement the code does not actually perform** (the index.md claim that the gate catches D3 attic rot, the README's "fails the build," the hook's own error message) — the gate's wiring validates the **working tree instead of the staged index**, so a broken commit can pass by fixing the file after `git add`, and there is **at least one live dangling ref still in the corpus** (`components.md:4`, invisible to the checker because of an en-dash) — in the header line of the most-loaded satellite file, after a repave whose entire purpose was killing that class. The checker was the right first move; it is not the thing Sean asked for (the manifest generator), and the branch should say so.
+
+---
+
+## 1. Defects in the fix
+
+### WRONG — the fix itself damages or lies
+
+| # | Finding | Where | Severity | Why it costs |
+|---|---|---|---|---|
+| W1 | **`design.md` §§9–22` still cites §18–§22, which don't exist.** The en-dash range form is invisible to `refsIn` — the regex continuation accepts only `,` and `and` (`(?:\s*(?:,\|and)\s*§?\s*\d+)*`), so `§§9–22` parses as a single ref to §9, which resolves. The dangling half of the range ships to main inside the branch that killed it. This is line 4 of `components.md` — the "Extends" line every loader reads first. | `components.md:4`; `check-brain-links.mjs:~100` (`refsIn` regex) | **HIGH** | Same consequence as the original rot: an agent reading the extends-line tries §18–§22, resolves "safely" by skipping. The gate reports CLEAN over it today. |
+| W2 | **The index.md attic note claims the gate catches the exact rot class the gate exempts.** New text: "the rot `check-brain-links.mjs` now catches (D3)." But `orphaned` returns `false` for any listed name whose **basename exists anywhere under `docs/_attic`** (`if (atticBasenames.has(basename(name))) return false;`). Replay the 4d192e5ac incident — file moved to attic, index row still presenting it as live doctrine — and the gate is silent. The injected-defect "proof" tested a row pointing at a file deleted outright, i.e., the class that *didn't* happen. | `index.md:~71–77, ~81–84`; `check-brain-links.mjs:~196` | **HIGH** | This is the branch's own corollary #2 — "a cited mechanism is not an existing mechanism" — committed by the branch, in the corpus, in the same push. And the historical rot class is permanently ungated as written. |
+| W3 | **The gate validates the working tree, not the staged index.** The hook runs `node $BRAIN_LINKS` against files on disk. Stage a broken brain file, fix the file on disk without staging, commit: gate sees the fixed disk, passes, main receives the broken blob. Inverse: unstaged breakage in a *sibling* brain file blocks a commit whose staged content is fine. Both symptoms, one root: checking the wrong tree. | `.githooks/pre-commit:117–121` | **HIGH** | This is the direct answer to "what makes it exit 0 over a broken corpus" — no malice required, ordinary `git add` ordering does it. |
+| W4 | **`anti-patterns.md:49` keeps `design.md §15` for "Tier badges … pair color with text/icon (a11y)".** Commit e9440279 asserts §15 "mentions badges and tints exactly zero times," and every sibling badge ref (hermes:27, components:56,70, website-archetypes:470) was repointed to §11. This one was in neither the redirect list nor the checked-and-left-alone list. Either it's the lone correct §15 (generic a11y pairing rule) or it's the 18th wrong-target ref, missed in both passes. Verify against canon §15 text or repoint. | `anti-patterns.md:49` | MED | If wrong, it's the highest-danger class the branch itself defined: resolves confidently, misleads. |
+| W5 | **`components.md:49` attributes "24px radius" modal chrome to `design.md §11` while README item 7 states canon radius as `20` cards · `12` controls.** Either §11 contains a 24 the README example hides, or the modal spec is off-canon — i.e., the token schism is *live inside a repaved file*, not just between design.md and typography-grid. | `components.md:49` vs `README.md:37` | MED | Sean's pending scale decision cannot be made from the README summary if canon itself carries a third value for modals. Ten-second check. |
+| W6 | **README's gate description is stale within the branch's own lifetime.** "fails the build on a reference to a *canon* section that does not exist" — written before 155d66db widened to satellite refs and e9440279 added D4. It also says "fails the build"; there is no build, only a pre-commit hook and an npm script. The hook's own block message says "(see D1/D2/D3 above)" — D4 absent. Four commits of doctrine drift, in the branch that exists to stop doctrine drift. | `README.md:40`; `.githooks/pre-commit:119` | LOW–MED | The describing text is what future agents will trust; it is already wrong on arrival at main. |
+
+### INCOMPLETE — same-class gaps in coverage
+
+| # | Finding | Where | Severity | Why it costs |
+|---|---|---|---|---|
+| I1 | **Refs to files not in the corpus are silently skipped** (`if (!targetSections) continue;`). A misspelled `motions.md §4`, or a case-mismatched `Design.md §9` (the regex is `/i`, the Map lookup is not — and this is a Windows/MSYS repo where the filesystem is case-insensitive), passes as "not ours to validate." The checker cannot distinguish "external doc" from "typo." At minimum, count skipped targets in the summary so silence becomes visible. | `check-brain-links.mjs:~118` | MED–HIGH | Filename rot is the same failure class as section rot; it is entirely ungated. |
+| I2 | **D2 uses substring containment** (`indexText.includes(basename(f))`). `techniques.md` is currently a substring of the listed `field-techniques.md` — so deleting the `techniques.md` row while leaving `field-techniques.md` listed would go undetected forever. Parse index rows into a set; compare exactly. | `check-brain-links.mjs:~168` | MED | The index law is enforced by a mechanism that can't see row deletions for any suffix-named file. Live latent pair exists today. |
+| I3 | **Decimal refs are silently coerced**: `§1.7` parses as `§1`. The fix for anti-patterns:70 was content-level; the parser still accepts `§9.2` as a valid `§9` ref for every future author. | `refsIn`, `check-brain-links.mjs:~100` | LOW–MED | Precision loss with no signal. |
+| I4 | **Bare filename refs are unvalidated** — `qa-gates.md` cites `cinematic-pages.md`; `hermes.md:27` cites `./index.md`, which resolves to `adapters/index.md` — **[HYPOTHESIS] does that file exist?** If not, the adapter's normative "per `./index.md`" points at a constitution that isn't there, and no check sees it. Renaming/atticking any cited-without-
