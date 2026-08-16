@@ -2,7 +2,7 @@
 /**
  * check-brain-links.mjs — structural integrity gate for the Design Brain corpus.
  *
- * The Design Brain is markdown that agents load at task time. Five failure modes rot it
+ * The Design Brain is markdown that agents load at task time. Six failure modes rot it
  * silently, and every one has shipped to `main` at least once:
  *
  *   D1 DANGLING   a file cites `<other>.md §N` for an N that does not exist — canon refs
@@ -19,6 +19,9 @@
  *   D5 PHANTOM    a `<name>.md §N` citation whose FILE exists nowhere in the repo — a typo,
  *                 or a deletion that left its citations behind. Only the explicit §-bearing
  *                 form is gated; see the D5 SCOPE note below for why bare mentions are not.
+ *   D6 ATTICKED   a citation of a doc that survives only in `docs/_attic/`. It exists, so D5
+ *                 passes and the external-refs NOTE swallows it — while an agent follows
+ *                 retired doctrine. Carries a dated baseline; see the D6 note below.
  *
  * This checker is deliberately dumb and deterministic: it parses headings and references,
  * it never calls a model, and it exits non-zero so CI and pre-commit can gate on it.
@@ -219,6 +222,34 @@ const existsInRepo = (cited) => {
   return repoMd.paths.has(c) || repoMd.names.has(basename(c));
 };
 
+/** Basenames of every markdown file under docs/_attic — the documented home for retired docs. */
+const atticBasenames = new Set();
+(function walkAttic(dir) {
+  if (!existsSync(dir)) return;
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.isDirectory()) walkAttic(join(dir, e.name));
+    else if (e.name.endsWith('.md')) atticBasenames.add(e.name.toLowerCase());
+  }
+})(join(REPO_ROOT, 'docs', '_attic'));
+
+/**
+ * D6 ATTICKED CITATION — a corpus file citing a doc that now lives only in `docs/_attic/`.
+ * It "exists", so D5 passes and the external-refs NOTE swallows it forever, indistinguishable
+ * from a legitimate outside reference. But it is retired doctrine being pointed at as live.
+ *
+ * BASELINE, 2026-08-16: 15 known instances, concentrated in `adapters/knowledge.md`, whose
+ * entire routing table points at four atticked policy docs while its header says "real policy
+ * lives in ../obsidian/ and ../graphify/" — directories that now hold only an index. Whether
+ * that adapter is retired, rewritten, or the policies restored is Sean's call, not a
+ * mechanical repair, so the known set is allowlisted rather than silently fixed or silently
+ * ignored. The gate blocks any NEW occurrence. Shrinking this list is the unit of progress;
+ * it must never grow. Tracked in SWA-163.
+ */
+const ATTIC_CITATION_BASELINE = new Set([
+  'adapters/fable.md', 'adapters/knowledge.md', 'adapters/reviewers.md', 'anti-patterns.md', 'index.md',
+]);
+const atticCitations = [];
+
 const dangling = [];
 const resolved = [];
 const skippedTargets = new Map(); // resolvable-elsewhere targets: informational only
@@ -242,6 +273,15 @@ for (const rel of mdFiles) {
       else dangling.push(rec);
     }
     // Bare filename mentions (no `§N`) are deliberately NOT gated — see the D5 note above.
+    // D6: citing a doc that survives only in the attic. Applies to bare mentions too, because
+    // the harm (an agent following retired policy) does not need a section number.
+    for (const m of line.matchAll(/([a-z0-9._-]+\.md)/gi)) {
+      const nm = m[1].toLowerCase();
+      if (!atticBasenames.has(nm)) continue;
+      if (sectionsByFile.has(nm) || [...sectionsByFile.keys()].some((k) => basename(k) === nm)) continue;
+      if (ATTIC_CITATION_BASELINE.has(rel)) continue;
+      atticCitations.push({ file: rel, line: i + 1, cited: m[1], ctx: line.trim().slice(0, 100) });
+    }
   });
 }
 
@@ -303,15 +343,6 @@ const unindexed = mdFiles.filter((f) => !IGNORE.has(f) && !isBackup(f)
 // path against the repo root before calling it missing, or the gate cries wolf and gets ignored.
 const REPO = join(BRAIN, '..', '..', '..');
 
-/** Basenames of every markdown file under docs/_attic — the documented home for retired docs. */
-const atticBasenames = new Set();
-(function walkAttic(dir) {
-  if (!existsSync(dir)) return;
-  for (const e of readdirSync(dir, { withFileTypes: true })) {
-    if (e.isDirectory()) walkAttic(join(dir, e.name));
-    else if (e.name.endsWith('.md')) atticBasenames.add(e.name);
-  }
-})(join(REPO, 'docs', '_attic'));
 
 const listedNames = [...indexText.matchAll(/`([A-Za-z0-9._/-]+\.md)`/g)].map((m) => m[1]);
 const orphaned = [...new Set(listedNames)].filter((name) => {
@@ -399,6 +430,13 @@ if (orphaned.length) {
   console.log('');
 }
 
+if (atticCitations.length) {
+  bad += atticCitations.length;
+  console.log(`D6 ATTICKED CITATION — ${atticCitations.length} citation(s) of retired doctrine that now lives only in docs/_attic/:`);
+  for (const a of atticCitations) console.log(`  ${a.file}:${a.line}  ${a.cited}
+      ${a.ctx}`);
+  console.log('');
+}
 if (phantomFiles.size) {
   bad += phantomFiles.size;
   console.log(`D5 PHANTOM FILE — ${phantomFiles.size} citation(s) of a markdown file that exists NOWHERE in the repo (typo, or the file was deleted and the citation left behind):`);
@@ -413,7 +451,7 @@ if (skippedTargets.size) {
 console.log(
   `[brain-links] ${mdFiles.length} files · ${sections.size} canon sections · ` +
   `${resolved.length + dangling.length} refs (${resolved.length} resolve, ${dangling.length} dangle) · ` +
-  `${unindexed.length} unindexed · ${orphaned.length} orphaned · ${impossibleBare.length} impossible-bare · ${[...skippedTargets.values()].reduce((a,b)=>a+b,0)} external ref(s) · ${phantomFiles.size} phantom`,
+  `${unindexed.length} unindexed · ${orphaned.length} orphaned · ${impossibleBare.length} impossible-bare · ${[...skippedTargets.values()].reduce((a,b)=>a+b,0)} external ref(s) · ${phantomFiles.size} phantom · ${atticCitations.length} attic-cite (baseline: ${ATTIC_CITATION_BASELINE.size} files)`,
 );
 if (bad) {
   console.error(`[brain-links] FAIL — ${bad} structural defect(s). Fix the corpus, not this checker.`);
