@@ -7,6 +7,7 @@ date: 2026-08-16
 decision: A document that asserts something must be re-checked at the moment it is used, and every instruction in a handoff must be executable as literally written — reading it again will not find either defect
 status: shipped
 supersedes: none
+privacy: repo-relative doc paths, commit SHAs and compliance-control names only. No client PII, no credentials, no licence-application contents, no absolute paths.
 models_used:
   - model: claude-opus-5
     role: builder, reviewer, author of both defective documents

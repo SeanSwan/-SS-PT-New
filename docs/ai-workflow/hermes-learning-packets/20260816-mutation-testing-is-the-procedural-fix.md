@@ -7,6 +7,7 @@ date: 2026-08-16
 decision: A pass count is a claim; a pass count plus a mutation that kills it is evidence. Break the implementation on purpose before believing the suite.
 status: shipped
 supersedes: none
+privacy: repo-relative paths, module names, mutation results and test counts only. No client PII, no credentials, no absolute paths.
 models_used:
   - model: claude-opus-5
     role: builder + hostile reviewer + final decider

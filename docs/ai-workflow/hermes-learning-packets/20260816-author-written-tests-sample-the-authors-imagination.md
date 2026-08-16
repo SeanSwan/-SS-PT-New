@@ -7,6 +7,7 @@ date: 2026-08-16
 decision: For any code whose value is handling inputs nobody enumerated — a filter, a validator, a parser, a guard — write the adversarial probe BEFORE believing the unit tests, because the tests and the implementation were drawn from the same list
 status: shipped
 supersedes: none
+privacy: repo-relative paths, module and function names, test counts, and synthetic example prompts only. No client PII, no credentials, no absolute paths.
 models_used:
   - model: claude-opus-5
     role: builder, adversary, reviewer

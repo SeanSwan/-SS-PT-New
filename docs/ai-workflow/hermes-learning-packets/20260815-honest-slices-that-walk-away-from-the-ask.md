@@ -7,6 +7,7 @@ date: 2026-08-15
 decision: Slice-level proof does not compose into product-level correctness — a chain of individually-verified slices can deliver the wrong product, and only re-reading the ORIGINAL ask catches it
 status: shipped
 supersedes: none
+privacy: repo-relative paths, module names, model costs and test counts only. No client PII, no credentials, no absolute paths.
 models_used:
   - model: claude-opus-5
     role: builder + hostile reviewer + final decider
