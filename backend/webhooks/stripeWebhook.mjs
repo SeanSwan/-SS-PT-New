@@ -265,9 +265,52 @@ const stripeWebhookHandler = async (req, res) => {
           logger.info(`[ACH Webhook] Payment succeeded for order ${pi.metadata.orderNumber} (PI: ${pi.id})`);
           try {
             const { default: Order } = await import('../models/Order.mjs');
-            const order = await Order.findOne({
-              where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id },
-            });
+            // MATCH ON THE PAYMENT INSTRUMENT FIRST. This used to be a single lookup
+            // keyed on BOTH `metadata.orderId` and `paymentId` — and metadata.orderId
+            // can be stale. The ACH route creates the Order and the PaymentIntent in
+            // one DB transaction; if anything after paymentIntents.create fails, the
+            // DB rolls back but the PaymentIntent PERSISTS with a dangling orderId. On
+            // retry with the same idempotency key a NEW Order is created while Stripe
+            // returns the ORIGINAL PaymentIntent, still carrying the old id. The
+            // combined lookup then matched nothing and the handler fell through in
+            // SILENCE — no log, no alert, no fulfilment, surfacing days later because
+            // ACH settles slowly (Kimi K3 HIGH-1, 2026-08-16).
+            const order = await Order.findOne({ where: { paymentId: pi.id } })
+              || await Order.findOne({
+                where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id },
+              });
+
+            if (!order) {
+              // A captured ACH payment with no order is exactly the condition a human
+              // must see. Alerting is the fix for the silence; reconciling the payment
+              // is a manual action.
+              logger.error('[ACH Webhook] Captured payment matched NO order', {
+                paymentIntentId: pi.id,
+                metadataOrderId: pi.metadata?.orderId,
+                orderNumber: pi.metadata?.orderNumber,
+              });
+              try {
+                await sendNotification({
+                  type: 'ADMIN_NOTIFICATION',
+                  title: 'ACH payment received with NO matching order',
+                  message: `ACH payment ${pi.id} succeeded but no order matched. `
+                    + 'The customer has been charged and nothing was fulfilled — reconcile manually.',
+                  data: {
+                    type: 'ach_orphan_payment',
+                    paymentIntentId: pi.id,
+                    metadataOrderId: pi.metadata?.orderId ?? null,
+                    orderNumber: pi.metadata?.orderNumber ?? null,
+                    amount: Number(pi.amount_received ?? 0) / 100,
+                    actionRequired: 'MANUAL_RECONCILIATION',
+                  },
+                });
+              } catch (notifyError) {
+                logger.error('[ACH Webhook] Orphan-payment alert failed', {
+                  errorMessage: notifyError?.message,
+                });
+              }
+            }
+
             if (order && !order.paymentAppliedAt) {
               const completedAt = order.completedAt || new Date();
               if (order.status !== 'completed') {

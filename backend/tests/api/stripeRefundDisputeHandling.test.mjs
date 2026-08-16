@@ -179,3 +179,71 @@ describe('refund and chargeback webhooks are handled, never silent', () => {
     expect(response.status).toBe(200);
   });
 });
+
+/**
+ * SWA-168 item 3 (partial) — Kimi K3 HIGH-1.
+ *
+ * The ACH success handler looked the order up by `metadata.orderId` AND `paymentId`:
+ *     Order.findOne({ where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id } })
+ *
+ * `metadata.orderId` can be STALE. The ACH route creates the Order and the
+ * PaymentIntent inside one DB transaction; if anything after `paymentIntents.create`
+ * fails, the DB rolls back but the PaymentIntent PERSISTS carrying a dangling orderId.
+ * On retry with the same idempotency key a NEW Order is created while Stripe returns
+ * the ORIGINAL PaymentIntent — still carrying the old id.
+ *
+ * The lookup then matched nothing and the handler fell through in SILENCE: no log, no
+ * alert, no fulfilment. ACH settles 1-3 days later, so it surfaced long after the fact.
+ *
+ * The payment instrument is the truth, not the metadata: match on `paymentId` first.
+ * When nothing matches at all, ALERT — a captured ACH payment with no order is
+ * exactly the condition a human must see.
+ */
+describe('ACH success must never silently fail to find its order', () => {
+  const achEvent = (over = {}) => ({
+    type: 'payment_intent.succeeded',
+    data: {
+      object: {
+        id: 'pi_ach_1',
+        metadata: { source: 'swanstudios_ach', orderId: '999', orderNumber: 'SS-ACH-1' },
+        amount_received: 840000,
+        ...over,
+      },
+    },
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.mockStripeClient.webhooks.constructEvent.mockImplementation(() => mocks.currentEvent);
+  });
+
+  it('finds the order by paymentId even when metadata.orderId is stale', async () => {
+    mocks.mockOrderFindOne.mockImplementation(async ({ where }) => (
+      where?.paymentId === 'pi_ach_1' && where?.id === undefined
+        ? { id: 91, userId: 3, orderNumber: 'SS-ACH-1', status: 'completed',
+            paymentAppliedAt: new Date(), update: vi.fn().mockResolvedValue(true) }
+        : null
+    ));
+    mocks.currentEvent = achEvent();
+
+    const response = await post();
+
+    expect(response.status).toBe(200);
+    // First lookup must be by payment instrument alone.
+    const firstWhere = mocks.mockOrderFindOne.mock.calls[0][0].where;
+    expect(firstWhere).toMatchObject({ paymentId: 'pi_ach_1' });
+    expect(firstWhere.id).toBeUndefined();
+  });
+
+  it('alerts when a captured ACH payment matches no order at all', async () => {
+    mocks.mockOrderFindOne.mockResolvedValue(null);
+    mocks.currentEvent = achEvent();
+
+    const response = await post();
+
+    expect(response.status).toBe(200);
+    const alerts = adminNotifications();
+    expect(alerts.length, 'an unmatched ACH payment must alert, not fall through').toBeGreaterThan(0);
+    expect(JSON.stringify(alerts)).toMatch(/ach|orphan|no matching order/i);
+  });
+});
