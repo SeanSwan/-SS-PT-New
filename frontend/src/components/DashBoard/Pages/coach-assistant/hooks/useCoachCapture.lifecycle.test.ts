@@ -160,6 +160,46 @@ describe('useCoachCapture lifecycle policy', () => {
     expect(recorderStop).toHaveBeenCalledTimes(1);
   });
 
+  /**
+   * FABLE F-1 — SMOKE ONLY. THIS TEST DOES NOT PROVE THE FIX.
+   *
+   * The defect lives between `start()` being called and the mirror effect
+   * flushing. `act()` flushes effects synchronously, so by the time this test can
+   * dispatch anything the flag is already set by the effect — reverting the
+   * synchronous assignment in `start()` kills no test here (verified by mutation).
+   *
+   * The fix is kept on Fable's reasoning, which is sound: in a real browser that
+   * window is open, and a pagehide inside it left the stop latch unset, so
+   * permission resolving afterwards took the mic live on a hidden page. Proving it
+   * needs Playwright. This test only guards the surrounding ordering.
+   */
+  it('stops when hidden before permission resolves (smoke — see comment)', async () => {
+    const { result } = renderHook(() => useCoachCapture());
+    await act(async () => { await result.current.start(); });
+
+    // Hide BEFORE granting: the recorder has not reached 'recording' yet.
+    act(() => { window.dispatchEvent(new Event('pagehide')); });
+    act(() => { grantPermission?.(); });
+
+    expect(recorderStop).toHaveBeenCalled();
+    expect(result.current.status).not.toBe('capturing');
+  });
+
+  /**
+   * FABLE F-4. reset() used to clear the stop latch. With getUserMedia still in
+   * flight the late-arrival guard then never fired, so recording could begin
+   * after a reset.
+   */
+  it('reset() does not re-open the permission window', async () => {
+    const { result } = renderHook(() => useCoachCapture());
+    await act(async () => { await result.current.start(); });
+
+    act(() => { result.current.reset(); });
+    act(() => { grantPermission?.(); });   // prompt resolves after the reset
+
+    expect(result.current.status).not.toBe('capturing');
+  });
+
   it('a user-initiated stop is not reported as automatic', async () => {
     const { result } = renderHook(() => useCoachCapture());
     await beginCapture(result);

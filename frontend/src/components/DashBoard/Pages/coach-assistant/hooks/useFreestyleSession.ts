@@ -122,6 +122,8 @@ export function useFreestyleSession(
   const pausedTotalRef = useRef(0);
   const pausedAtRef = useRef<number | null>(null);
   const lastFragmentAtRef = useRef<number | null>(null);
+  /** Freezes the elapsed readout once capture ends (see `at` below). */
+  const stoppedAtRef = useRef<number | null>(null);
   const nextIdRef = useRef(1);
 
   /**
@@ -144,6 +146,7 @@ export function useFreestyleSession(
     pausedTotalRef.current = 0;
     pausedAtRef.current = null;
     lastFragmentAtRef.current = null;
+    stoppedAtRef.current = null;
     nextIdRef.current = 1;
     onPurgeRef.current?.(reason);
   }, []);
@@ -156,6 +159,7 @@ export function useFreestyleSession(
     pausedTotalRef.current = 0;
     pausedAtRef.current = null;
     lastFragmentAtRef.current = null;
+    stoppedAtRef.current = null;
     nextIdRef.current = 1;
     stateRef.current = 'listening';
     setState('listening');
@@ -185,6 +189,7 @@ export function useFreestyleSession(
   const stop = useCallback(() => {
     if (stateRef.current !== 'listening' && stateRef.current !== 'paused') return;
     settlePause();
+    stoppedAtRef.current = nowRef.current();
     stateRef.current = 'stopped';
     setState('stopped');
   }, [settlePause]);
@@ -200,8 +205,13 @@ export function useFreestyleSession(
   const discard = useCallback(() => {
     setDiscardPending(false);
     clearBuffer('discard');
-    stateRef.current = 'discarded';
-    setState('discarded');
+    /**
+     * Settle to 'idle', not 'discarded'. The overlay auto-starts only from 'idle'
+     * and hides Start in terminal states, so parking here left a reopened overlay
+     * with no session and no way to begin one.
+     */
+    stateRef.current = 'idle';
+    setState('idle');
   }, [clearBuffer]);
 
   const appendFragment = useCallback((text: string) => {
@@ -259,7 +269,12 @@ export function useFreestyleSession(
   /** Unmount purges: a buffer must not outlive the surface that owns it. */
   useEffect(() => () => { clearBuffer('unmount'); }, [clearBuffer]);
 
-  const at = now();
+  /**
+   * Elapsed freezes at the moment of stop. Previously `at` was always `now()` and
+   * the 1s ticker kept running in 'stopped', so "Talking 4:12" carried on climbing
+   * next to "Finished — 240 words captured".
+   */
+  const at = stoppedAtRef.current ?? now();
   const startedAt = startedAtRef.current;
   const pausedSpan = pausedAtRef.current !== null ? at - pausedAtRef.current : 0;
   const elapsedMs = startedAt === null

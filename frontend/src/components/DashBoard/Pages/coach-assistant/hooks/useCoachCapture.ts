@@ -193,10 +193,24 @@ export function useCoachCapture(): UseCoachCaptureReturn {
   const start = useCallback(async () => {
     if (isCapturingRef.current) return;   // no double permission prompts
     stopRequestedRef.current = false;
+    /**
+     * Set SYNCHRONOUSLY, before awaiting the recorder. The passive mirror effect
+     * only runs after `recorder.state` commits, so between this call and that
+     * flush the flag would otherwise be false — and a `pagehide` landing in that
+     * window would make `stopInternal` bail on `!isCapturingRef.current`, leaving
+     * the latch unset. Permission would then resolve and the microphone would go
+     * live on a hidden page: the exact hole this hook exists to close.
+     */
+    isCapturingRef.current = true;
     setStoppedAutomatically(false);
     setAutoStopCopy(null);
     transcriptionRef.current.reset();
-    await recorderStartRef.current();
+    try {
+      await recorderStartRef.current();
+    } catch (err) {
+      isCapturingRef.current = false;    // never strand the flag on a failed start
+      throw err;
+    }
   }, []);
 
   const transcribe = useCallback(async () => {
@@ -207,7 +221,12 @@ export function useCoachCapture(): UseCoachCaptureReturn {
 
   const reset = useCallback(() => {
     stopInternal('user');
-    stopRequestedRef.current = false;
+    /**
+     * Deliberately does NOT clear `stopRequestedRef`. Clearing it here removed the
+     * latch while a `getUserMedia` prompt could still be in flight, so the
+     * late-arrival guard never fired and recording could begin after a reset.
+     * Only `start()` clears the latch, because only `start()` means a new capture.
+     */
     isCapturingRef.current = false;
     setStoppedAutomatically(false);
     setAutoStopCopy(null);

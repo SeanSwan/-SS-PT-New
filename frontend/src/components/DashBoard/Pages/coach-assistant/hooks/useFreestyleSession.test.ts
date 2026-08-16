@@ -144,7 +144,10 @@ describe('freestyle session — discard is two-step', () => {
 
     act(() => { result.current.discard(); });
     expect(result.current.fragments).toHaveLength(0);
-    expect(result.current.state).toBe('discarded');
+    // RE-ANCHORED (Fable F-6): discard used to settle in 'discarded', which was a
+    // dead end — the overlay auto-starts only from 'idle' and hides Start in
+    // terminal states, so a reopened overlay had no session and no way to make one.
+    expect(result.current.state).toBe('idle');
   });
 
   it('can be backed out of without losing anything', () => {
@@ -156,6 +159,41 @@ describe('freestyle session — discard is two-step', () => {
 
     expect(result.current.discardPending).toBe(false);
     expect(result.current.fragments).toHaveLength(1);
+    expect(result.current.state).toBe('listening');
+  });
+});
+
+describe('freestyle session — readouts stop when capture does', () => {
+  /** FABLE F-5: "Talking" kept climbing next to "Finished - N words captured". */
+  it('freezes elapsed time at the moment of stop', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); });
+    act(() => { advance(8000); result.current.stop(); });
+    const atStop = result.current.elapsedMs;
+
+    act(() => { advanceAndRender(30_000); });
+
+    expect(atStop).toBe(8000);
+    expect(result.current.elapsedMs).toBe(8000);
+  });
+});
+
+describe('freestyle session — discard leaves a usable surface', () => {
+  /**
+   * FABLE F-6: discard parked the machine in 'discarded'. The overlay auto-starts
+   * only from 'idle' and hides Start in terminal states, so reopening after a
+   * discard gave a dead screen — no session, no way to begin one.
+   */
+  it('settles to idle so a new session can begin', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); result.current.appendFragment('work'); });
+    act(() => { result.current.requestDiscard(); });
+    act(() => { result.current.discard(); });
+
+    expect(result.current.state).toBe('idle');
+    expect(result.current.fragments).toHaveLength(0);
+
+    act(() => { result.current.start(); });
     expect(result.current.state).toBe('listening');
   });
 });
