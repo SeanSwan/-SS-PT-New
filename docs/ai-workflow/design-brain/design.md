@@ -12,7 +12,19 @@
 - **Crystal:** v2.0 · **Status:** CRYSTALLIZED — frozen; change only via §16 thaw · **Date:** 2026-07-04 · **Review pass:** Kimi K3
 - **Supersedes:** Fable draft 2026-07-03. Survives: T0–T4 tiers, dual-glow concept, C11 chart environments, data-only Arctic Cyan, low-motion data cards, 44px discipline. Changes: everything vibes-based is now mechanized or deleted.
 - **Mirror:** `design.html` is GENERATED from this file (`pnpm canon:build`). Hand edits are reverted by CI. One source, one truth.
-- **Enforcement files:** `canon/tokens.json` · `canon/route-manifest.json` · `canon/signature-moments.json` · `canon/motion-caps.json` · `canon/copy-lexicon.json` · `stylelint-config-swan` · gates: `canon:check`, `canon:contrast`, `canon:build`.
+- **Enforcement — what actually exists** (corrected 2026-08-16; the previous list was fictional):
+  - **REAL:** `scripts/ci/check-token-discipline.mjs` (raw-hex discipline only — it does **not** check the radius/spacing scales in §9) · `scripts/ci/check-degalaxy.mjs` (retired-palette ban) · `scripts/design-brain/config/tokens.json` · `scripts/design-brain/check-brain-links.mjs` + `npm run brain:links` (cross-reference gate, pre-commit).
+  - **DOES NOT EXIST — do not cite as enforcement:** there is no `canon/` directory anywhere in the repo; no `canon/route-manifest.json`, `canon/signature-moments.json`, `canon/motion-caps.json`, or `canon/copy-lexicon.json`; no `stylelint-config-swan` package; and no `canon:check` / `canon:contrast` / `canon:build` npm script. `tokens.json` is real but lives at `scripts/design-brain/config/`, not `canon/`.
+  - **Why this line changed:** the previous version named ten mechanisms, nine of which were never built. A cited-but-absent mechanism is worse than no mechanism, because it tells every reader "this is handled" and stops them building it.
+
+> **⚠ §16 IS CURRENTLY UNFOLLOWABLE — flagged for Sean, deliberately not "fixed" here.**
+> This file says *"CRYSTALLIZED — frozen; change only via §16 thaw."* But §16 requires opening a
+> LIQUID proposal in `canon/liquid/`, a `canon:contrast` recompute, and manifest/registry diffs —
+> **none of which exist** (verified 2026-08-16). The protocol that governs changing canon depends
+> on the same apparatus this correction just found missing, so canon is either unchangeable by its
+> own law or the law is decorative. **The edits above are truth-corrections — they delete
+> statements that are factually false — not design-law changes, so they do not need a thaw.**
+> Repairing or retiring §16 is a doctrine decision and belongs to Sean.
 
 ## §1 How canon works — Crystallization
 
