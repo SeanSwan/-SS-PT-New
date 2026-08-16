@@ -33,50 +33,10 @@ import { gateSourceHash } from './packet-gate/source-hash.mjs';
 import { report } from './packet-gate/report.mjs';
 import { GateUnavailable, makeResolver, scanSecrets, loadSelftest, readCitedFile } from './packet-gate/repo-io.mjs';
 import { isUnverifiedFence } from './packet-gate/fences.mjs';
-import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary } from './packet-gate/checks.mjs';
+import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary, checkUncited, hasBindingAnchors, normPath } from './packet-gate/checks.mjs';
+import { parseArgs } from './packet-gate/args.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-
-/**
- * The document is NOT the prompt. `context-gateway/src/consult.mjs` assembles
- *   prompt = <provider remit> + <fence scaffolding> + <document> + <seed>
- * and the wrappers prepend a substantial fixed remit — consult-kimi.mjs alone is ~1,738 chars,
- * plus ~250 chars of `=====` section fencing. Measuring only the document under-reports the very
- * quantity R1 exists to bound, and by an UNBOUNDED amount whenever --seed is used.
- *
- * Conservative default with headroom; override with --overhead-chars when a wrapper's remit grows.
- */
-const TRANSPORT_OVERHEAD_CHARS = 2_200;
-
-function parseArgs(argv) {
-  const a = { budgetChars: 24_000, maxTokens: 60_000, provider: 'kimi', json: false, overheadChars: TRANSPORT_OVERHEAD_CHARS, allowMissing: [], allowUncited: false };
-  for (let i = 0; i < argv.length; i += 1) {
-    const k = argv[i];
-    if (k === '--json') { a.json = true; continue; }
-    if (k === '--allow-uncited') { a.allowUncited = true; continue; }
-    const v = argv[i + 1];
-    if (k === '--document') { a.document = v; i += 1; }
-    else if (k === '--seed') { a.seed = v; i += 1; }
-    else if (k === '--remit') { a.remit = v; i += 1; }
-    else if (k === '--provider') { a.provider = v; i += 1; }
-    else if (k === '--budget-chars') { a.budgetChars = Number(v); i += 1; }
-    else if (k === '--overhead-chars') { a.overheadChars = Number(v); i += 1; }
-    else if (k === '--max-tokens') { a.maxTokens = Number(v); i += 1; }
-    // The mechanism R5's remedy used to promise but never provided: a remit may legitimately name
-    // a file that does not exist yet ("add src/validate.mjs; here is the call site").
-    else if (k === '--allow-missing') { a.allowMissing.push(v); i += 1; }
-  }
-  // A non-numeric flag value would make every comparison false and silently disable the check.
-  // maxTokens was unvalidated: `--max-tokens abc` produced NaN, and `NaN != null` is TRUE, so the
-  // preflight printed `worst_case_usd=~$NaN` and exited 0 — destroying the single piece of cost
-  // information the human approver relies on (Kimi K3 S5, 2026-08-14).
-  // NON-NEGATIVE, not merely finite. `--overhead-chars -29000` passed Number.isFinite and SHRANK
-  // the assembled total: a 30,003-char document measured as 1,033 and R1 stayed silent. A size gate
-  // whose input can go negative is not a size gate (HY3 S5, 2026-08-14).
-  const nonNeg = (n) => Number.isFinite(n) && n >= 0;
-  if (!nonNeg(a.budgetChars) || !nonNeg(a.overheadChars) || !nonNeg(a.maxTokens)) a.bad = true;
-  return a;
-}
 
 // ---------------------------------------------------------------------------------------------
 
@@ -84,6 +44,11 @@ function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.document) {
     console.error('packet-gate: --document <path> is required');
+    return 2;
+  }
+  if (args.unknown.length) {
+    console.error(`packet-gate: unrecognized flag(s): ${args.unknown.join(', ')}`);
+    console.error('  Refusing to certify: a misspelled flag silently reverts to a default the operator did not choose.');
     return 2;
   }
   if (args.bad) {
@@ -154,13 +119,10 @@ function main() {
   // as "spend approval is human" — the risky choice is available, but a human has to make it and it
   // leaves a trace. This also gives the non-code-remit case (an illustrative ```text block in a
   // strategy packet) an actionable remedy instead of a dead end.
-  if (unverifiedFences.length && !args.allowUncited) {
-    const where = unverifiedFences.map((b) => b.start).join(', ');
-    console.error(`packet-gate: ${unverifiedFences.length} uncited fence(s) at line(s) ${where} — NOT byte-verified.`);
-    console.error('  The model cannot tell them from the cited source, so they are indistinguishable from fabrication.');
-    console.error('  Cite them (```lang path=… lines=…), delete them, or pass --allow-uncited to accept them deliberately.');
-    return 2;
-  }
+  // ROUND 4: this guard used to `return 2` from here. It is now `checkUncited` in the findings list
+  // below — same predicate, same blocking outcome, but as a first-class R3 REFUSAL (exit 1) that
+  // carries a remedy, appears in `--json`, and no longer masks every check queued behind it.
+  // See checks.mjs:checkUncited for the full reasoning.
 
   // The earlier `!aboutCode && unverifiedFences.length` guard lived here and has been REMOVED, not
   // weakened. It is fully subsumed by the check above: if uncited fences exist, that check already
@@ -203,19 +165,24 @@ ${seedText}` : md);
     return 2;
   }
 
+  // ONE normalizer, shared with checkPremises and R4's binding. This filter used a raw
+  // `Array.includes`, so `--allow-missing src\validate.mjs` cleared R5 (which folds separators) and
+  // did NOT clear this — leaving the path in R4's binding, which then demanded a citation of a file
+  // that by definition cannot exist. One check's fix contradicting another's requirement, from
+  // comparing the same flag two different ways in two files (round 4).
+  const allowedMissing = new Set(args.allowMissing.map(normPath));
+  const boundPaths = anchors.paths.filter((p) => !allowedMissing.has(normPath(p)));
+  const boundContent = [...anchors.routes, ...anchors.symbols].filter((n) => resolve(n, 'symbol'));
+
   const premises = checkPremises(anchors, resolve, args.allowMissing);
   const findings = [
     ...premises.findings,
+    ...checkUncited(blocks, args.allowUncited),
     // A path the operator declared as not-yet-existing is excluded from R4's binding too. Clearing
     // R5 alone was not enough: R4 then demanded a citation of a file that by definition cannot be
     // cited, so the legitimate "add this file, here is the call site" packet was still impossible to
     // satisfy — one check's fix contradicting another's requirement.
-    ...checkArtifact(
-      aboutCode,
-      blocks,
-      anchors.paths.filter((p) => !args.allowMissing.includes(p)),
-      [...anchors.routes, ...anchors.symbols].filter((n) => resolve(n, 'symbol')),
-    ),
+    ...checkArtifact(aboutCode, blocks, boundPaths, boundContent),
     ...checkProvenance(blocks, (p) => readCitedFile(ROOT, p)),
     ...checkHygiene(hygiene),
     ...checkSize(assembled.chars, args.budgetChars),
@@ -243,8 +210,17 @@ ${seedText}` : md);
   // once: the guard and the warning shared a defect, so the bypass produced neither.
   const uncitedCode = unverifiedFences;
   const warnings = [...premises.warnings];
-  if (aboutCode && uncitedCode.length) {
-    warnings.push(`${uncitedCode.length} uncited fence(s) at line(s) ${uncitedCode.map((b) => b.start).join(', ')} — NOT byte-verified; the model cannot tell them from the cited source`);
+  // Only when the operator ACKNOWLEDGED them: without --allow-uncited this is now an R3 finding, and
+  // reporting the same fences as both a refusal and a warning is how an operator learns to skim.
+  if (args.allowUncited && uncitedCode.length) {
+    warnings.push(`${uncitedCode.length} uncited fence(s) at line(s) ${uncitedCode.map((b) => b.start).join(', ')} — NOT byte-verified; accepted deliberately via --allow-uncited`);
+  }
+  // A CHECK THAT DID NOT RUN MUST SAY SO. If every anchor the remit names was excluded — all paths
+  // allow-missing, no resolvable route or symbol — R4's binding returns early and ANY single cited
+  // block satisfies R4. That is defensible (there is nothing in the repo left to bind to), but it
+  // was SILENT, which is the Category-2 failure this gate is built to refuse in other people's code.
+  if (aboutCode && !hasBindingAnchors(boundPaths, boundContent)) {
+    warnings.push('R4 binding did not run: every anchor the remit names is allow-missing or unresolvable, so any one cited block satisfies R4');
   }
 
   return report({

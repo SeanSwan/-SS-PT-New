@@ -105,7 +105,15 @@ export function scanSecrets(root, content) {
     // to fall into the HIT branch, so every packet refused as R6 forever — a tooling failure
     // reported as a hygiene finding, which is precisely the confusion this module exists to prevent
     // (Kimi K3 round 2, finding 6).
-    if (err.code === 'ENOENT' || err.status === 127) return { unavailable: true, ok: false, lines: [] };
+    // ROUND 4: the test is now "did the scanner REPORT a hit", not "did anything go wrong".
+    // scan-secrets.sh exits 1 for a hit, 0 for clean, and 2 for its own usage/argument errors. The
+    // old mapping sent every status except 127 into the hit branch, so a crashed scanner, a bad
+    // argument, or a permission error on a helper surfaced as `R6 secret/PII scan hit` and told the
+    // operator to "sanitize the source document" when nothing was wrong with it. A tooling failure
+    // reported as a hygiene finding is precisely the confusion this module exists to prevent — and
+    // it is the failure mode that trains operators to bypass the gate. Anything that is not an
+    // explicit hit is now "the gate could not run": exit 2, never a silent pass, never a false R6.
+    if (err.status !== 1) return { unavailable: true, ok: false, lines: [] };
     const out = `${err.stdout ?? ''}${err.stderr ?? ''}`.trim();
     return { ok: false, lines: out ? out.split('\n').filter(Boolean).slice(0, 20) : ['scanner reported a hit (no detail captured)'] };
   }

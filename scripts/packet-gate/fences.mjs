@@ -12,6 +12,17 @@
  * @module packet-gate/fences
  */
 
+/**
+ * THE LINE-ENDING NORMALIZER lives in ./normalize.mjs — imported, never re-declared here.
+ *
+ * It is applied at the PARSER rather than at the one CLI call site, deliberately: these parsers are
+ * exported and called directly by the canaries, the tests and build-packet, so a choke point that
+ * only covered `main()` would leave every other caller holding raw text. Round 4's critical is
+ * written up in full at its definition — read it there before touching this file's regex, because
+ * the regex is exactly what the `\r` defeats.
+ */
+import { normalizeEol } from './normalize.mjs';
+
 /** Remove up to `n` leading spaces/tabs (CommonMark fence de-indentation); never eats content. */
 function stripIndent(line, n) {
   let i = 0;
@@ -32,7 +43,7 @@ function stripIndent(line, n) {
  * @returns {{lang:string, attrs:object, body:string, start:number, end:number, cited:boolean}[]}
  */
 export function parseFences(markdown) {
-  const lines = String(markdown).split('\n');
+  const lines = normalizeEol(markdown).split('\n');
   const blocks = [];
   let open = null;
 

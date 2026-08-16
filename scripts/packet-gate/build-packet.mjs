@@ -25,11 +25,13 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { normalizeEol } from './normalize.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-/** The SAME normalization checks.mjs uses to verify. Divergence here is a self-inflicted R3. */
-const normLines = (text) => text.replace(/\r\n/g, '\n').replace(/\n$/, '').split('\n');
+/** The SAME normalization checks.mjs uses to verify — imported, not re-typed. Divergence here is a
+ *  self-inflicted R3, and a local copy of a normalizer is how three of them drifted already. */
+const normLines = (text) => normalizeEol(text).replace(/\n$/, '').split('\n');
 
 const LANG_BY_EXT = {
   '.mjs': 'js', '.js': 'js', '.cjs': 'js', '.ts': 'ts', '.tsx': 'tsx', '.jsx': 'jsx',

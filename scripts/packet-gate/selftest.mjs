@@ -21,7 +21,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary } from './checks.mjs';
+import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary, checkUncited } from './checks.mjs';
 import { gateSourceHash } from './source-hash.mjs';
 import { isUnverifiedFence } from './fences.mjs';
 
@@ -185,6 +185,30 @@ green('R3 a file ending in a blank line can be cited in full', () => {
   const body = ['const a = 1;', ''].join(NL);
   return checkProvenance(parseFences(fence('path=x.mjs lines=1-2', body)), () => src);
 });
+
+// --- Round 4 findings, 2026-08-15 ----------------------------------------------------------------
+// The uncited-fence guard used to `return 2` from inside main(), where NO canary could reach it —
+// a security predicate that was, by construction, not provably failable. R15's own rule is that a
+// gate which cannot be driven red is presumed failed, so making it a pure check was as much the
+// point as the exit code was.
+
+red('R3 an uncited fence is a refusal', 'R3', () =>
+  checkUncited(parseFences(['```', 'const fabricated = 1;', '```'].join('\n')), false));
+
+green('R3 --allow-uncited accepts uncited fences deliberately', () =>
+  checkUncited(parseFences(['```', 'const illustrative = 1;', '```'].join('\n')), true));
+
+green('R3 a packet whose fences are all cited is not caught by the uncited check', () =>
+  checkUncited(parseFences(fence('path=x.mjs lines=1-1', 'x')), false));
+
+// THE ROUND-4 CRITICAL. `.` does not match '\r' in JS, so a CRLF fence line matched nothing and
+// parseFences returned [] for the whole document — no blocks meant no UNCITED blocks, and the
+// fabrication guard filters on exactly those. Byte-identical content exited 2 as LF and 0 as CRLF.
+red('R3 a CRLF packet cannot smuggle an uncited fence past the guard', 'R3', () =>
+  checkUncited(parseFences('```\r\nconst fabricated = 1;\r\n```\r\n'), false));
+
+red('R3 a lone-CR packet cannot either', 'R3', () =>
+  checkUncited(parseFences('```\rconst fabricated = 1;\r```\r'), false));
 
 // --- Round 2 findings, 2026-08-15 ----------------------------------------------------------------
 // Round 1's fix for the anchor-free bypass depended on a filter requiring `b.lang`. A BARE fence

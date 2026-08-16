@@ -1,8 +1,15 @@
 /**
- * checks.mjs — the six v1 refusal checks for outbound model-call packets.
- * =======================================================================
+ * checks.mjs — remit extraction, R3-uncited, R5, R1, R6 — and the one import surface for all six.
+ * ===============================================================================================
  * THE INVARIANT: the model's context contains the real artifact — provably, mechanically —
  * or the call does not happen.
+ *
+ * WHERE THE CHECKS ACTUALLY LIVE. This file grew to 435 lines in round 4, breaching the 300-line
+ * cap (CLAUDE.md rule 4) — a breach the previous handoff reported as compliant, so it is stated
+ * plainly here: R3's byte-verification moved to ./provenance.mjs and R4's artifact binding to
+ * ./artifact.mjs, both unchanged by the move. This file keeps remit extraction, the uncited-fence
+ * refusal, R5, R1 and R6, and re-exports every check so callers still have ONE import surface and
+ * do not have to know which file a check lives in.
  *
  * SCOPE, and why it is narrow. `scripts/context-gateway/` already compiles packets from the
  * repo mechanically: safeRead pulls line windows, packet.mjs stamps each with a blob SHA,
@@ -27,13 +34,16 @@
 
 // One source of truth for the codes — ./refusal.mjs — so checks.mjs and canary.mjs cannot drift
 // into two vocabularies. Re-exported here because callers import the gate's vocabulary from checks.
-import { REFUSALS } from './refusal.mjs';
+import { REFUSALS, finding } from './refusal.mjs';
+import { normalizeEol, normPath } from './normalize.mjs';
 
-export { REFUSALS };
-
-/** A finding is one refusal reason plus the operator's next action. A refusal with no next
- *  action is a bug in this gate, not the operator's problem (blueprint §5 item 2). */
-const finding = (code, detail, remedy) => ({ code, label: REFUSALS[code], detail, remedy });
+// ONE import surface for the gate's vocabulary. The checks themselves live in four files for the
+// 300-line cap (rule 4); callers should not have to know which.
+export { REFUSALS, normPath, normalizeEol };
+export { parseFences, isUnverifiedFence } from './fences.mjs';
+export { checkProvenance } from './provenance.mjs';         // R3
+export { checkArtifact, isCodeBlock, mentions, hasBindingAnchors } from './artifact.mjs'; // R4
+export { checkCanary } from './canary.mjs';                 // R15
 
 /**
  * Pull the remit out of a packet document: a `## Remit` section, else a `remit:` frontmatter line.
@@ -46,7 +56,10 @@ const finding = (code, detail, remedy) => ({ code, label: REFUSALS[code], detail
  * this module exists to prevent, so the parser is now boring on purpose and canaried below.
  */
 export function remitFromDoc(md) {
-  const lines = String(md).split('\n');
+  // Same CRLF trap as parseFences, and it bit here too: `/^remit:\s*(.+)$/` cannot match a line
+  // ending in `\r`, because `.` excludes line terminators — so frontmatter-style remits vanished
+  // from every CRLF document, taking R4's and R5's anchors with them.
+  const lines = normalizeEol(md).split('\n');
 
   // FENCE-AWARE. A `## Remit` heading or a `remit:` line INSIDE a code fence is sample content,
   // not the packet's question. Without this, a packet that merely documents a remit (a YAML sample,
@@ -74,188 +87,34 @@ export function remitFromDoc(md) {
   return fm ? /^remit:\s*(.+)$/i.exec(fm)[1].trim() : '';
 }
 
-// Fence parsing lives in ./fences.mjs (rule 4: 300-line cap). Re-exported so callers have one
-// import surface for the gate's vocabulary.
-export { parseFences } from './fences.mjs';
-
-/** Normalize for byte-comparison: CRLF→LF and drop one trailing newline. Windows checkouts and
- *  editors differ on both, and neither difference means someone retyped the code. */
-const norm = (s) => String(s).replace(/\r\n/g, '\n').replace(/\n$/, '');
-
-/** Parse `lines=40-118` (or `lines=40`). Returns null when absent/malformed. */
-function parseRange(spec) {
-  if (!spec) return null;
-  const m = /^(\d+)(?:-(\d+))?$/.exec(String(spec).trim());
-  if (!m) return null;
-  const start = Number(m[1]);
-  const end = m[2] ? Number(m[2]) : start;
-  return end < start || start < 1 ? null : { start, end };
-}
-
-// ---------------------------------------------------------------------------------------------
-// R3 — provenance
-// ---------------------------------------------------------------------------------------------
+import { isUnverifiedFence } from './fences.mjs';
 
 /**
- * Every cited block must byte-match a fresh re-extraction from the repo.
+ * Uncited fences are unproven provenance — a REFUSAL (R3), not a bare `return 2` from the CLI.
  *
- * This is the check that makes "hand-typed code wearing a fence" structurally impossible to send.
- * A block that claims `path=` and then disagrees with the file is either stale (the file moved on)
- * or invented (someone typed it from memory) — and the gate cannot tell which, so it refuses and
- * shows the operator both sides.
+ * The behaviour is unchanged in strictness and changed in kind. Round 3 correctly made an uncited
+ * fence block the send; it did so by returning 2 straight out of `main()`, which had three costs:
+ *   - exit 2 is defined in this gate's header as "the gate could not run". An uncited fence is a
+ *     PACKET DEFECT, so automation that distinguishes "refused" from "broken" misfiled the single
+ *     most common refusal.
+ *   - with `--json` the operator got NO machine-readable output at all — two lines on stderr.
+ *   - it ran before every other check, so a packet with an uncited fence AND a phantom premise AND
+ *     a secret reported only the fence. The operator fixes one, re-runs, and meets the next: the
+ *     refusal-fatigue generator this design says it exists to avoid. Measured, not theorised — a
+ *     packet carrying both an uncited fence and a phantom path reported only the fence.
  *
- * @param {object[]} blocks   from parseFences
- * @param {(p:string)=>string|null} readFile  injected reader; null => file absent
+ * As a pure check it is also drivable red by the canary suite, which `return 2` inside `main` was
+ * not. R15's rule is that a gate which cannot be made to fail is presumed failed.
+ *
+ * It stays R3 rather than becoming a seventh code: v1 ships exactly six, and "content whose
+ * provenance is unproven" is precisely what R3 governs.
  */
-/** Reject a cited path before it is ever read. `path=""` resolved to the repo ROOT and threw an
- *  uncaught EISDIR — a stack trace instead of a refusal, which is the least diagnosable failure a
- *  gate can produce. `path=../../.env` escaped the repo entirely and would have been read and
- *  diffed. Both found by Kimi K3, 2026-08-14. Lexical check, so it stays pure. */
-function badPath(p) {
-  if (typeof p !== 'string' || p.trim() === '') return 'empty path';
-  const norm = p.replaceAll('\\', '/');
-  if (/^([A-Za-z]:)?\//.test(norm)) return 'absolute path';
-  if (norm.split('/').includes('..')) return 'path escapes the repo (..)';
-  return null;
-}
-
-export function checkProvenance(blocks, readFile) {
-  const out = [];
-  for (const b of blocks.filter((x) => x.cited)) {
-    const bad = badPath(b.attrs.path);
-    if (bad) {
-      out.push(finding('R3', `block at line ${b.start} cites an unusable path (${bad}): ${JSON.stringify(b.attrs.path)}`,
-        'cite a repo-relative path inside the repository'));
-      continue;
-    }
-    // The injected reader touches the filesystem and can throw (EISDIR on a directory, EACCES,
-    // a FIFO). An I/O error is a refusal with a reason, never an uncaught stack trace.
-    let src;
-    try {
-      src = readFile(b.attrs.path);
-    } catch (err) {
-      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} — cannot read it (${err.code ?? err.message})`,
-        'cite a readable file; the packet claims provenance the gate cannot verify'));
-      continue;
-    }
-    if (src == null) {
-      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} — file not found in repo`,
-        `correct the path, or drop the block: the packet claims provenance it cannot prove`));
-      continue;
-    }
-    const all = norm(src).split('\n');
-    // `lines=` OMITTED means the whole file. Requiring it refused an author who correctly cited
-    // `path=foo.mjs` and simply wanted to quote all of it — a pointless refusal with no syntax for
-    // "whole file" (HY3 round 3, finding 4). This is STRICTER, not weaker: the block is now
-    // byte-checked against the entire file, so any drift anywhere in it is caught.
-    // A MALFORMED lines= is still refused — a typo must never silently widen the range.
-    const range = b.attrs.lines === undefined ? { start: 1, end: all.length } : parseRange(b.attrs.lines);
-    if (!range) {
-      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} with a malformed lines= value (${JSON.stringify(b.attrs.lines)})`,
-        `use lines=<start>-<end>, or omit lines= entirely to cite the whole file`));
-      continue;
-    }
-    if (range.end > all.length) {
-      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} L${range.start}-${range.end}, but the file has ${all.length} lines`,
-        `re-extract at the current commit — the anchor is stale`));
-      continue;
-    }
-    // Normalize BOTH sides identically. Normalizing only the packet body made the comparison
-    // asymmetric: a file whose cited range ends on a trailing blank line produced an `expected`
-    // ending in "\n" that the body — which markdown fences cannot represent — could never match, so
-    // R3 refused every full-file citation of such a file. Found by running the packet BUILDER's own
-    // output through the gate: it refused a byte-exact extraction it had just produced.
-    const expected = norm(all.slice(range.start - 1, range.end).join('\n'));
-    if (norm(b.body) !== expected) {
-      out.push(finding('R3', `block at line ${b.start} does not match ${b.attrs.path} L${range.start}-${range.end} (${firstDivergence(norm(b.body), expected)})`,
-        `re-extract verbatim; never retype. Someone hand-typed or hand-"improved" this code`));
-    }
-  }
-  return out;
-}
-
-/** Report the first differing line so a refusal is diagnosable in 30 seconds — an undiagnosable
- *  refusal becomes an ignored refusal (blueprint §5 item 3, refusal fatigue). */
-function firstDivergence(got, want) {
-  const g = got.split('\n');
-  const w = want.split('\n');
-  for (let i = 0; i < Math.max(g.length, w.length); i += 1) {
-    if (g[i] !== w[i]) return `first divergence at block line ${i + 1}: packet ${JSON.stringify((g[i] ?? '<missing>').slice(0, 60))} vs repo ${JSON.stringify((w[i] ?? '<missing>').slice(0, 60))}`;
-  }
-  return 'lengths differ';
-}
-
-// ---------------------------------------------------------------------------------------------
-// R4 — no artifact
-// ---------------------------------------------------------------------------------------------
-
-/**
- * If the remit asks about code, the packet must carry at least one cited code block.
- *
- * This is the rule that makes review-2 structurally unrepeatable. "Is this implementation
- * correct?" answered against a prose description of the implementation is not a review; it is
- * the model agreeing with your summary of yourself.
- *
- * `remitIsAboutCode` is decided by the caller from anchors (a named path/route/symbol) so the
- * judgment stays in one place and is testable.
- */
-/** A cited block counts as CODE only if it is not prose. Citing `path=docs/notes.md` satisfied the
- *  letter of R4 while carrying zero bytes of code — the one check whose entire purpose is "a
- *  description of code is not code" was cleared by attaching a description. Kimi K3, 2026-08-14. */
-const PROSE_EXT = /\.(md|mdx|markdown|txt|rst|adoc)$/i;
-const PROSE_LANG = /^(md|mdx|markdown|text|txt|rst|adoc)$/i; // NO trailing '|': empty must not match
-/**
- * A cited block counts as CODE unless something POSITIVELY says it is prose.
- *
- * The trailing `|` in the old PROSE_LANG alternation made the EMPTY string match, so a cited block
- * with no language tag — ```` ``` path=src/x.mjs lines=1-50 ```` — was classified as prose and R4
- * refused a packet carrying byte-verified source. That is the bare-fence trap from round 2
- * reappearing on the classification side: absence of a label was again read as a content type.
- * An unlabelled block is now judged by its PATH extension alone (Kimi K3 round 3, M1).
- */
-export const isCodeBlock = (b) => b.cited
-  && !PROSE_EXT.test(b.attrs.path ?? '')
-  && !(b.lang && PROSE_LANG.test(b.lang));
-
-export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedContent = []) {
-  if (!remitIsAboutCode) return [];
-  const codeBlocks = blocks.filter(isCodeBlock);
-  if (!codeBlocks.length) {
-    const citedProse = blocks.filter((b) => b.cited).length;
-    return [finding('R4', `remit asks about code, but the packet contains no cited CODE block${citedProse ? ` (${citedProse} cited block(s) are prose — markdown/text paths do not satisfy this)` : ' (```lang path=… lines=…)'}`,
-      'attach the source itself. A description of code is not code — that is the failure this gate exists to prevent')];
-  }
-
-  // BIND THE ARTIFACT TO THE REMIT. One cited block used to satisfy R4 for a remit about a
-  // completely different file: cite two real lines of some unrelated util, then hand-type fences
-  // purporting to be the file actually under review. R3 verifies the decoy, R4 goes green, and the
-  // real source lends credibility to the fabrication. (Kimi K3 round 2, finding 2.)
-  //
-  // TWO ROUND-3 CORRECTIONS to that fix, both from Kimi K3:
-  //   H1 — it bound to `anchors.paths` only, while `aboutCode` is true for routes and symbols too.
-  //        "Review the handler for POST /api/sessions" names no path, so the binding was SKIPPED
-  //        and the decoy attack reopened for the most natural way to phrase a review remit.
-  //   H2 — the match was bidirectional (`w.endsWith('/' + a)`), so citing a repo-root `login.mjs`
-  //        satisfied a remit naming `src/auth/login.mjs`. In any monorepo, basename collisions make
-  //        that exploitable with a real, plausible, WRONG file and no fabrication at all.
-  //
-  // The rule now: at least ONE thing the remit names must be evidenced in the cited artifacts —
-  // a path matched strictly (exact, or cited ends with `/named`), or a route/symbol that literally
-  // appears in a cited body. Unresolvable anchors are excluded so an unbuilt symbol (already an R5
-  // warning, deliberately not a refusal) cannot also trigger a refusal here.
-  const named = [...namedPaths, ...namedContent];
-  if (!named.length) return [];
-
-  const norm = (p) => String(p).replaceAll('\\', '/');
-  const pathHit = codeBlocks.some((b) => namedPaths.some((n) => {
-    const a = norm(b.attrs.path); const w = norm(n);
-    return a === w || a.endsWith(`/${w}`); // strictly: the cited path may be MORE specific, never less
-  }));
-  const contentHit = codeBlocks.some((b) => namedContent.some((n) => String(b.body).includes(n)));
-  if (pathHit || contentHit) return [];
-
-  return [finding('R4', `remit names ${named.join(', ')}, but no cited block quotes any of them (cited: ${codeBlocks.map((b) => b.attrs.path).join(', ')})`,
-    'cite the file the remit is actually about — an unrelated real block verifies nothing about the subject under review')];
+export function checkUncited(blocks, allowUncited = false) {
+  if (allowUncited) return [];
+  const un = blocks.filter(isUnverifiedFence);
+  if (!un.length) return [];
+  return [finding('R3', `${un.length} uncited fence(s) at line(s) ${un.map((b) => b.start).join(', ')} — NOT byte-verified; the model cannot tell them from the cited source, so they are indistinguishable from fabrication`,
+    'cite them (```lang path=… lines=…), delete them, or pass --allow-uncited to accept them deliberately')];
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -276,7 +135,9 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedCo
 export function checkPremises(anchors, resolve, allowMissing = []) {
   const out = [];
   const warnings = [];
-  const allowed = new Set(allowMissing.map((p) => String(p).replaceAll('\\', '/')));
+  // normPath, not a local backslash fold: `./src/x.mjs` and `src//x.mjs` are the same path the
+  // operator meant, and refusing them prints a remedy they have already followed (round 4).
+  const allowed = new Set(allowMissing.map(normPath));
 
   for (const p of anchors.paths ?? []) {
     // A remit may legitimately name a file that does not exist yet ("add src/validate.mjs; here is
@@ -284,7 +145,7 @@ export function checkPremises(anchors, resolve, allowMissing = []) {
     // was NO mechanism to state it. An unactionable remedy is a refusal-fatigue generator, and the
     // symbols branch below had already solved the same problem with a warning (Kimi K3 round 3, M2).
     // `--allow-missing <path>` is that mechanism: explicit, per-path, and visible in the receipt.
-    if (allowed.has(String(p).replaceAll('\\', '/'))) {
+    if (allowed.has(normPath(p))) {
       warnings.push(`path ${p} does not exist and was explicitly allowed via --allow-missing`);
       continue;
     }
@@ -340,6 +201,3 @@ export function checkHygiene(scan) {
   return [finding('R6', `secret/PII scan hit:\n    ${scan.lines.join('\n    ')}`,
     'sanitize the source document yourself, then re-run. This gate will not silently redact your prose')];
 }
-
-// R15 lives in ./canary.mjs (rule 4: 300-line cap). Re-exported for one import surface.
-export { checkCanary } from './canary.mjs';

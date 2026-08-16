@@ -16,7 +16,10 @@ import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { parseFences, remitFromDoc, checkProvenance, checkPremises, checkSize } from '../checks.mjs';
+import { parseFences, remitFromDoc, checkProvenance, checkPremises, checkSize, checkArtifact, normPath } from '../checks.mjs';
+
+/** A minimal cited CODE block, for the R4 binding tests. */
+const codeBlock = (p, body = 'const x = 1;') => ({ cited: true, attrs: { path: p }, lang: 'js', body });
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const GATE = join(ROOT, 'scripts', 'packet-gate.mjs');
@@ -200,11 +203,19 @@ test('uncited code fences alongside a cited one are REFUSED, not merely warned',
   // hand-typed code exited 0. Behaviour verified BEFORE the assertion was touched — this packet now
   // exits 2 where it used to exit 0. The assertion was re-pointed at STRICTER behaviour, never
   // relaxed to make a red test green.
+  // RE-ANCHOR (2026-08-15, round 4): exit 2 -> exit 1. The BLOCKING behaviour is unchanged — this
+  // packet was refused before and is refused now. What changed is the KIND of refusal: exit 2 is
+  // defined in the gate header as "the gate could not run", while an uncited fence is a packet
+  // defect, so it is now an R3 REFUSAL (exit 1) carrying a remedy and a JSON receipt. Verified by
+  // running the CLI BEFORE this assertion was touched. The assertion is also STRENGTHENED: it now
+  // pins the refusal CODE, which the old exit-2 version could not express at all.
   const f = join(tmp(), 'mixed.md');
   writeFileSync(f, '## Remit\n\nReview /api/sessions\n\n```js path=package.json lines=1-1\n{\n```\n\n```js\nconst fabricated = 1;\n```\n');
   const refused = runGate(['--document', f]);
-  assert.equal(refused.code, 2, refused.out);
+  assert.equal(refused.code, 1, refused.out);
   assert.match(refused.out, /uncited fence/i);
+  const asJson = JSON.parse(runGate(['--document', f, '--json']).out);
+  assert.ok(asJson.findings.some((x) => x.code === 'R3'), asJson.findings.map((x) => x.code).join(','));
 
   // …and the opt-out must still let a deliberate snippet through, or the remedy is a dead end.
   const { out } = runGate(['--document', f, '--allow-uncited', '--json']);
@@ -225,7 +236,10 @@ test('CRITICAL REGRESSION: anchor-free remit + code fences is UNEVALUABLE (exit 
   const f = join(tmp(), 'bypass.md');
   writeFileSync(f, '## Remit\n\nReview this module for correctness.\n\n```js\nconst fabricated = "typed from memory";\n```\n');
   const { code, out } = runGate(['--document', f]);
-  assert.equal(code, 2, out);
+  // RE-ANCHOR (2026-08-15, round 4): exit 2 -> exit 1, same reason as the mixed-fence test above.
+  // The bypass is still closed — this is the assertion that matters and it still holds; only the
+  // refusal channel changed from "gate could not run" to a first-class R3 refusal.
+  assert.equal(code, 1, out);
   // RE-ANCHOR (2026-08-15): the EXIT CODE assertion is unchanged and still passes — the bypass is
   // still closed. Only the message moved: the old `!aboutCode` guard said "unevaluable" and was
   // REMOVED in round 3 as fully subsumed by the uncited-fence refusal (keeping both meant two
@@ -290,13 +304,13 @@ test('CRITICAL REGRESSION: a BARE fence + anchor-free remit is exit 2', () => {
   const f = join(tmp(), 'bare.md');
   writeFileSync(f, '## Remit\n\nReview this module for correctness.\n\n```\nconst fabricated = 1;\n```\n');
   const { code, out } = runGate(['--document', f]);
-  assert.equal(code, 2, out);
+  assert.equal(code, 1, out); // RE-ANCHOR round 4: exit 2 -> exit 1; still blocked, now as R3.
 });
 
 test('REGRESSION: a json fence + anchor-free remit is exit 2 (language must not exempt)', () => {
   const f = join(tmp(), 'json.md');
   writeFileSync(f, '## Remit\n\nReview this configuration.\n\n```json\n{"fabricated": true}\n```\n');
-  assert.equal(runGate(['--document', f]).code, 2);
+  assert.equal(runGate(['--document', f]).code, 1); // RE-ANCHOR round 4: exit 2 -> exit 1, still blocked.
 });
 
 test('REGRESSION: citing an unrelated real file does not satisfy R4 for a named path', () => {
@@ -306,4 +320,108 @@ test('REGRESSION: citing an unrelated real file does not satisfy R4 for a named 
   writeFileSync(f, '## Remit\n\nIs backend/services/sessions/sessionBlockAuthorization.mjs correct?\n\n```js path=package.json lines=1-1\n{\n```\n');
   const { out } = runGate(['--document', f, '--json']);
   assert.ok(JSON.parse(out).findings.some((x) => x.code === 'R4'), out);
+});
+
+// --- Round 4 findings, 2026-08-15 (Kimi K3, all re-verified by execution before any fix) ---------
+
+test('CRITICAL REGRESSION: a CRLF packet cannot bypass the fabrication guard', () => {
+  // THE ROUND-4 CRITICAL, and the worst class this gate has produced. `parseFences` split on '\n'
+  // only, so on a CRLF document every line kept a trailing '\r'. The fence regex uses `.` and `$`,
+  // and in JS `.` does NOT match '\r' — so a CRLF fence line matched nothing and parseFences
+  // returned an EMPTY array for the whole document. No blocks meant no UNCITED blocks either, which
+  // is what the fabrication guard filters on: byte-identical content exited 2 as LF and 0 as CRLF,
+  // printing "no fences present" over hand-typed code. On Windows CRLF is the default save format.
+  const body = '## Remit\n\nReview this module for correctness.\n\n```js\nconst fabricated = 1;\n```\n';
+  const d = tmp();
+  const lf = join(d, 'lf.md');
+  const crlf = join(d, 'crlf.md');
+  writeFileSync(lf, body);
+  writeFileSync(crlf, body.replace(/\n/g, '\r\n'));
+  const a = runGate(['--document', lf]);
+  const b = runGate(['--document', crlf]);
+  assert.equal(a.code, 1, a.out);
+  assert.equal(b.code, b.code === a.code ? a.code : -1,
+    `line endings must not change the verdict: LF=${a.code} CRLF=${b.code}\n${b.out}`);
+});
+
+test('REGRESSION: a CRLF packet with a real cited block still CLEARS (the fix is not "refuse everything")', () => {
+  const f = join(tmp(), 'ok-crlf.md');
+  writeFileSync(f, '## Remit\n\nReview package.json packaging\n\n```js path=package.json lines=1-1\n{\n```\n'.replace(/\n/g, '\r\n'));
+  const { code, out } = runGate(['--document', f]);
+  assert.equal(code, 0, out);
+});
+
+test('REGRESSION: parseFences and remitFromDoc both survive CRLF and lone CR', () => {
+  const doc = '## Remit\n\nReview /api/sessions\n\n```js path=a.mjs lines=1-1\nconst a = 1;\n```\n';
+  for (const [label, eol] of [['CRLF', '\r\n'], ['lone CR', '\r']]) {
+    const converted = doc.replace(/\n/g, eol);
+    assert.equal(parseFences(converted).length, 1, `${label}: fence must still parse`);
+    assert.equal(parseFences(converted)[0].cited, true, `${label}: citation must survive`);
+    assert.match(remitFromDoc(converted), /api\/sessions/, `${label}: remit must still extract`);
+  }
+  // The frontmatter form broke identically: `/^remit:\s*(.+)$/` cannot match a line ending in '\r'.
+  assert.match(remitFromDoc('remit: Review /api/sessions\r\n\nbody\r\n'), /api\/sessions/);
+});
+
+test('REGRESSION: the uncited refusal reaches --json and does not mask later checks', () => {
+  // It used to `return 2` straight out of main(), before report(): no JSON at all, and every check
+  // queued behind it went unreported. A packet with an uncited fence AND a phantom path showed only
+  // the fence, so the operator fixed one and met the next — the refusal-fatigue generator.
+  const f = join(tmp(), 'masked.md');
+  writeFileSync(f, `## Remit\n\nReview ${phantomRoute('r4mask')}\n\n\`\`\`js\nconst fabricated = 1;\n\`\`\`\n`);
+  const { code, out } = runGate(['--document', f, '--json']);
+  assert.equal(code, 1, out);
+  const codes = JSON.parse(out).findings.map((x) => x.code);
+  assert.ok(codes.includes('R3'), `uncited fence must be an R3 refusal: ${codes}`);
+  assert.ok(codes.includes('R5'), `the phantom premise must NOT be masked by it: ${codes}`);
+});
+
+test('REGRESSION: R4 path binding is exact — a different real file with the same basename fails', () => {
+  // H2 closed "root file vouches for deep file"; the reverse stayed open because the match allowed
+  // the cited path to be MORE specific. R5 already proves the named path exists exactly, so the
+  // endsWith allowance bought nothing and cost a decoy that needs zero fabrication.
+  assert.equal(checkArtifact(true, [codeBlock('src/auth/login.mjs')], ['login.mjs'], []).length, 1);
+  assert.equal(checkArtifact(true, [codeBlock('login.mjs')], ['login.mjs'], []).length, 0);
+  // …and separator/prefix spelling still must not cause a FALSE refusal.
+  assert.equal(checkArtifact(true, [codeBlock('src\\a.mjs')], ['./src/a.mjs'], []).length, 0);
+});
+
+test('REGRESSION: R4 content binding requires identifier boundaries, not a bare substring', () => {
+  const body = '// this will remain stable\nexport const x = 1;\n';
+  assert.equal(checkArtifact(true, [codeBlock('src/u.mjs', body)], [], ['main']).length, 1,
+    '"remain" must not satisfy a remit naming the symbol main');
+  assert.equal(checkArtifact(true, [codeBlock('src/u.mjs', 'export function main() {}')], [], ['main']).length, 0);
+  // Routes keep substring semantics: word boundaries around a slash are meaningless.
+  assert.equal(checkArtifact(true, [codeBlock('src/u.mjs', 'router.get("/api/sessions")')], [], ['/api/sessions']).length, 0);
+});
+
+test('REGRESSION: --allow-missing accepts every spelling of the same path, in R5 AND R4', () => {
+  // Two comparisons for one flag: R5 folded backslashes, the CLI filter used a raw Array.includes.
+  // So `--allow-missing src\x.mjs` cleared R5 and left the path in R4's binding, demanding a
+  // citation of a file that by definition cannot be cited — one check contradicting another.
+  const anchors = { paths: ['src/validate.mjs'], routes: [], symbols: [] };
+  for (const spelling of ['src/validate.mjs', 'src\\validate.mjs', './src/validate.mjs', 'src//validate.mjs']) {
+    assert.equal(checkPremises(anchors, () => false, [spelling]).findings.length, 0, `R5 rejected ${spelling}`);
+    const allowed = new Set([spelling].map(normPath));
+    assert.deepEqual(anchors.paths.filter((p) => !allowed.has(normPath(p))), [], `R4 binding kept ${spelling}`);
+  }
+});
+
+test('REGRESSION: an unrecognized flag is exit 2, not a silent revert to the default', () => {
+  // `--budjet-chars 8000` reverted to the 24,000 default — a LOOSER budget than chosen — at exit 0,
+  // with a receipt showing a number the operator never asked for.
+  const f = join(tmp(), 'ok.md');
+  writeFileSync(f, '## Remit\n\nShould we prioritise retention next quarter?\n');
+  assert.equal(runGate(['--document', f]).code, 0, 'control: this packet is otherwise clean');
+  const { code, out } = runGate(['--document', f, '--budjet-chars', '8000']);
+  assert.equal(code, 2, out);
+  assert.match(out, /unrecognized flag/i);
+});
+
+test('NOT-A-BUG PIN: a cited range ending in blank lines matches (round-4 finding 8 was wrong)', () => {
+  // Kimi ranked this LOW; running it disproved it. `norm` strips one trailing newline from BOTH
+  // sides, and a fence body CAN represent trailing blank lines because the closing fence is its own
+  // line. Pinned so a future round does not "fix" a non-bug and break byte-verification doing it.
+  const md = '```js path=a.mjs lines=1-3\nfoo\n\n\n```\n';
+  assert.deepEqual(checkProvenance(parseFences(md), () => 'foo\n\n\n'), []);
 });
