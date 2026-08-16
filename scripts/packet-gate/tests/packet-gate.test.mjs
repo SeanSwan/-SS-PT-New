@@ -193,10 +193,21 @@ test('REGRESSION: an indented (list-nested) verbatim fence does not false-fail R
     'CommonMark strips fence indentation; a false refusal here breeds refusal fatigue');
 });
 
-test('uncited code fences alongside a cited one are WARNED, not silently accepted', () => {
+test('uncited code fences alongside a cited one are REFUSED, not merely warned', () => {
+  // RE-ANCHOR (2026-08-15), classified deliberately: this test previously asserted a WARNING and
+  // exit 0. Round 3 made uncited fences a REFUSAL with an explicit --allow-uncited opt-out, because
+  // HY3 showed the warning left the real hole open: one byte-verified block plus unlimited
+  // hand-typed code exited 0. Behaviour verified BEFORE the assertion was touched — this packet now
+  // exits 2 where it used to exit 0. The assertion was re-pointed at STRICTER behaviour, never
+  // relaxed to make a red test green.
   const f = join(tmp(), 'mixed.md');
   writeFileSync(f, '## Remit\n\nReview /api/sessions\n\n```js path=package.json lines=1-1\n{\n```\n\n```js\nconst fabricated = 1;\n```\n');
-  const { out } = runGate(['--document', f, '--json']);
+  const refused = runGate(['--document', f]);
+  assert.equal(refused.code, 2, refused.out);
+  assert.match(refused.out, /uncited fence/i);
+
+  // …and the opt-out must still let a deliberate snippet through, or the remedy is a dead end.
+  const { out } = runGate(['--document', f, '--allow-uncited', '--json']);
   const parsed = JSON.parse(out);
   // RE-ANCHOR (2026-08-15): wording changed from "uncited code fence(s)" to "uncited fence(s)"
   // when the language filter was removed — the warning now covers bare and json/yaml fences too,
@@ -215,7 +226,12 @@ test('CRITICAL REGRESSION: anchor-free remit + code fences is UNEVALUABLE (exit 
   writeFileSync(f, '## Remit\n\nReview this module for correctness.\n\n```js\nconst fabricated = "typed from memory";\n```\n');
   const { code, out } = runGate(['--document', f]);
   assert.equal(code, 2, out);
-  assert.match(out, /unevaluable/i);
+  // RE-ANCHOR (2026-08-15): the EXIT CODE assertion is unchanged and still passes — the bypass is
+  // still closed. Only the message moved: the old `!aboutCode` guard said "unevaluable" and was
+  // REMOVED in round 3 as fully subsumed by the uncited-fence refusal (keeping both meant two
+  // predicates disagreeing about --allow-uncited). The wording assertion was re-pointed at the
+  // surviving guard's text; the behaviour it protects is identical.
+  assert.match(out, /not byte-verified|unevaluable/i);
 });
 
 test('a genuinely non-code packet (no code fences) is unaffected by that guard', () => {
