@@ -1,6 +1,8 @@
 # MiniMax H3 — US licensing authorization request
 
-- **Date:** 2026-08-11 · **Prepared by:** Opus 5 for Sean · **Status:** READY TO SEND — 4 fields need Sean
+- **Date:** 2026-08-11 · **Prepared by:** Opus 5 for Sean
+- **Status: SENT by Sean on 2026-08-16.** Awaiting reply. **A pending request is not a grant** — see "After sending" below; nothing changes operationally until a written authorization arrives.
+- **⚠ What was sent differs from the body of this document.** The version Sean sent was corrected on 2026-08-16 because the compliance-control list below said "built or in build" for three controls that were **not built**, and omitted the strongest control that now exists. See §"What was actually sent" immediately below — treat that as the record of the submission, and the original block further down as superseded drafting history.
 - **Why:** the MiniMax H3 Community License carves out the **US, EU, UK and South Korea**. Sean is US-based, so running the open weights locally for commercial use requires an explicit grant. The **hosted API needs none of this** — it is a normal paid service and is unblocked today.
 - **What this unlocks:** zero-marginal-dollar generation on the RTX 5090. Sean's words: *"of extreme importance that I have this option."*
 
@@ -24,7 +26,47 @@
 
 ---
 
-## THE EMAIL — copy from here
+## What was actually sent (2026-08-16) — THIS is the record of the submission
+
+The compliance-control block in the draft below claimed six controls as **"built or in build."**
+Checked against the code on 2026-08-16, three were not built, and the strongest control that
+now exists was not claimed at all because it did not exist when the draft was written.
+
+Sending it unchanged would have misrepresented our posture to a licensor. The sent version
+therefore splits the list, and says so explicitly in the body:
+
+**Stated as IMPLEMENTED TODAY:**
+1. **Attribution** — a required field on the provider capability contract; a provider cannot be
+   registered or enabled without its attribution string, and the string travels with every
+   generated artifact. Enforced by `assertSpecShape` in `shared/providers/video/catalogue.mjs`.
+2. **Territorial licence gating** — `resolve()` in `shared/providers/video/registry.mjs` refuses
+   H3 for commercial output in an excluded territory unless a written grant is recorded in
+   `SWAN_VIDEO_LICENCE_GRANTS`. Fail-closed. *(Not claimed in the original draft — it post-dates it.)*
+3. **Human review** — operational.
+4. **No distillation** — policy commitment.
+
+**Stated as COMMITTED, NOT YET BUILT:**
+5. Per-asset provenance with a `licenceSnapshot` of the licence text in force at generation time.
+6. Server-side volume and spend caps, enforced before submission, fail-closed.
+7. A prompt policy filter for the video path. *(The image lane has `swanLawFilter.mjs`; nothing
+   wires it to video.)*
+
+The sent email states that this separation is deliberate — that it represents actual rather than
+intended posture.
+
+**If any of controls 5–7 get built, update this section and consider a short follow-up to
+`api@minimax.io`.** The submission is now a dated claim about a moving system; the delta between
+what was sent and what is true has to stay visible, or this document resumes lying quietly.
+
+**Operational state until a written grant arrives:**
+- H3-local for **commercial** output stays refused — and the code enforces it, so this is not a
+  discipline question.
+- **Non-commercial local runs need no grant and are not blocked.** Testing can proceed today.
+- The hosted lane (`minimax/hailuo-hosted`) needs no grant and is registered as a peer.
+
+---
+
+## THE EMAIL — original draft (SUPERSEDED — see above for what was sent)
 
 > **To:** `api@minimax.io`
 > **Subject:** `MiniMax H3 licensing - authorization request`
@@ -99,7 +141,7 @@ Thank you for considering this request.
 
 ## After sending
 
-- **Log the send date.** No published SLA exists for these requests; the queue length is unknown.
+- **Send date: 2026-08-16** (logged). No published SLA exists for these requests; the queue length is unknown, so do not read silence as refusal.
 - **Keep Slice 9 blocked** until a written grant arrives. A pending request is not a grant.
 - **Do not run H3 weights locally for commercial output in the interim.** The hosted API is the compliant path today and costs ≈$0.64 per 8s 1080p hero.
 - **If declined:** Wan 2.2 (Apache 2.0, no application) carries the local lane, and hosted H3 carries quality work. Nothing in the roadmap dies.
