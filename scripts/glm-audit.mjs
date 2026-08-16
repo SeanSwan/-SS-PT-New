@@ -249,9 +249,24 @@ if (!out.trim()) {
 
 const outPath = `${REPO}/docs/ai-workflow/AI-HANDOFF/GLM-SECURITY-AUDIT-${sliceName}-2026-08-15.md`;
 mkdirSync(dirname(outPath), { recursive: true });
+
+// SAVE THE RAW RESULT FIRST, before any template interpolation can throw.
+// A completed audit costs ~6 minutes of reasoning and real credits; losing it to
+// a formatting bug in the pretty-printer is unacceptable. This exact failure
+// happened once: a stale `json.model` reference in the template below threw
+// AFTER a successful 13,000-char audit, and the findings were destroyed.
+// The raw file is the durable artifact; the formatted one is a convenience.
+const rawPath = `${outPath.replace(/\.md$/, '')}.raw.md`;
+try {
+  writeFileSync(rawPath, out, 'utf8');
+  console.log(`\n  raw findings saved first: ${rawPath}`);
+} catch (e) {
+  console.error(`  WARNING: could not save raw findings: ${e.message}`);
+}
+
 writeFileSync(outPath, `# GLM Security Audit - ${slice.label}
 
-**Model:** ${json.model || MODEL}
+**Model:** ${MODEL}
 **Ref:** ${REF}
 **Files:** ${slice.files.length}
 **Tokens:** ${u.prompt_tokens} in / ${u.completion_tokens} out (reasoning: ${u.completion_tokens_details?.reasoning_tokens ?? 'n/a'}) | total ${u.total_tokens}
