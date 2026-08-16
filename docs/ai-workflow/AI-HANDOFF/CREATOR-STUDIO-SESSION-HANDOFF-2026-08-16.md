@@ -221,15 +221,35 @@ $env:SWAN_VIDEO_PROVIDERS_ENABLED = "comfyui/minimax-h3"
 node backend/scripts/render-agent.mjs --capabilities ffmpeg,mediasync,generate
 ```
 
-`verify()` names whichever piece is missing, each with the variable that fixes it. Run it
-before anything else.
+**Run this FIRST, before the agent and before any job:**
 
-**Two environment problems Sean owns that will bite you:**
-1. The agent script lives in `C:\tmp\ss-mediasync` — **scratch space**. Sean's own repo is on
-   `wip/comms-notifications-2026-07-05`, ~1950 commits behind main, so the script genuinely is
-   not there. **A permanent worktree is owed.**
-2. A GUI-format workflow export is rejected by name — but only if he uses "Save (API format)".
-   Expect this to be the first stumble.
+```bash
+node backend/scripts/verify-video-provider.mjs
+```
+
+It needs no token, no server, no GPU and no `npm install`. It prints every provider, which
+readiness check fails and the exact variable that fixes it, and — reported separately — the
+licence position for commercial vs non-commercial output. Exit 0 means "could attempt a
+render"; **never** "a render will succeed". Verified in all three states: unconfigured →
+exit 1 with three actionable FAILs; configured+enabled → exit 0 with commercial still
+correctly refused; grant recorded → commercial permitted.
+
+It is deliberately a separate script rather than a flag on the agent: the agent exits 2
+without a credential, which would gate the diagnosis behind the setup it diagnoses.
+
+**Environment — one problem solved, one still Sean's:**
+
+1. ~~The agent script lives in scratch space~~ **SOLVED 2026-08-16.** A permanent worktree
+   now exists at `C:\Users\BigotSmasher\Desktop\quick-pt\swan-render-agent`, on branch
+   `swan/render-agent-runtime` tracking `origin/main` (so `git pull` works there). **Proven
+   to run the entire generate path with zero `npm install`** — it imports only repo files and
+   node builtins. Use this, not `C:\tmp`. To remove it:
+   `git worktree remove C:/Users/BigotSmasher/Desktop/quick-pt/swan-render-agent`.
+   Sean's own repo at `Desktop/quick-pt/SS-PT` is untouched — it is on
+   `wip/comms-notifications-2026-07-05` with ~700 uncommitted files. **Do not switch its branch.**
+2. **Still open:** ComfyUI must export **"Save (API format)"**, not the GUI format. A GUI
+   export is rejected by name (`E_GUI_FORMAT_WORKFLOW`) with the fix in the message, but expect
+   this to be the first stumble.
 
 **After one video renders,** Phase 3 is the studio surface: read and **update**
 `SWAN-FORGE-CONTENT-STUDIO-BLUEPRINT-2026-08-11.md`. Sean's instruction was that it be

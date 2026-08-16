@@ -280,8 +280,16 @@ $env:SWAN_VIDEO_PROVIDERS_ENABLED = "comfyui/minimax-h3"
 node backend/scripts/render-agent.mjs --capabilities ffmpeg,mediasync,generate
 ```
 
-`verify()` is the single command that reports which of those pieces is missing, each with the
-variable name to fix it. The default capability list is deliberately unchanged — an agent that
+**The single command that reports which piece is missing:**
+
+```bash
+node backend/scripts/verify-video-provider.mjs
+```
+
+No token, no server, no GPU, no `npm install` required. Exit 0 = could attempt a render.
+It reports the licence position separately from readiness, because they fail for different
+reasons. A permanent worktree now exists at `Desktop/quick-pt/swan-render-agent`
+(branch `swan/render-agent-runtime`, tracks `origin/main`) — use it instead of `C:	mp`. The default capability list is deliberately unchanged — an agent that
 advertised `generate` without ComfyUI configured would claim work it cannot do.
 
 ### What is PROVEN, and what is NOT
