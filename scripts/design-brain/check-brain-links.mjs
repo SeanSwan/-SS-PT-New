@@ -114,7 +114,11 @@ function refsIn(line) {
   // dashes and parens, and restricting it to whitespace+backtick is what hid 8 refs behind a
   // backtick in the first place. Continuations cover `,` `and` `to` `&` `/` and en/em/hyphen
   // ranges: `§8/§18` was dropping its tail, which is the half-dangling class in a new costume.
-  const re = /((?:\.{0,2}\/)?(?:[a-z0-9._-]+\/)*[a-z0-9._-]+\.md).{0,3}?§{1,2}\s*([A-Z]?\d+(?:\.\d+)?(?:\s*(?:,|and|to|&|\/|[–—-])\s*§{0,2}\s*[A-Z]?\d+(?:\.\d+)?)*)/gi;
+  // Separator is an EXPLICIT bounded class, not `.{0,N}`. A wildcard both under-matches
+  // (`` `design.md` — §9 `` needs 4 chars: backtick, space, dash, space) and over-matches into
+  // real prose. Listing the punctuation that actually appears between a filename and its § is
+  // narrower and wider at once.
+  const re = /((?:\.{0,2}\/)?(?:[a-z0-9._-]+\/)*[a-z0-9._-]+\.md)[\s`,:;)\]．.–—-]{0,6}§{1,2}\s*([A-Z]?\d+(?:\.\d+)?(?:\s*(?:,|and|to|&|\/|[–—-])\s*§{0,2}\s*[A-Z]?\d+(?:\.\d+)?)*)/gi;
   let m;
   while ((m = re.exec(line)) !== null) {
     const body = m[2];
@@ -342,8 +346,14 @@ if (dangling.length) {
   bad += dangling.length;
   console.log(`D1 DANGLING — ${dangling.length} reference(s) to a section that does not exist:`);
   for (const d of dangling) {
-    const have = [...(sectionsByFile.get(d.target)?.keys() ?? [])].map(Number).sort((a, b) => a - b);
-    const range = have.length ? `§${have[0]}–§${have[have.length - 1]}` : '(no numbered sections)';
+    // Numeric keys only. Mapping a lettered key (`A2`) through Number gives NaN, and a list of
+    // NaNs is truthy — so a lettered-section file reported its range as "§NaN–§NaN".
+    const allKeys = [...(sectionsByFile.get(d.target)?.keys() ?? [])];
+    const have = numeric(allKeys).sort((a, b) => a - b);
+    const lettered = allKeys.filter((k) => /^[A-Z]/.test(k)).sort();
+    const range = have.length ? `§${have[0]}–§${have[have.length - 1]}`
+      : lettered.length ? `only lettered sections ${lettered[0]}–${lettered[lettered.length - 1]}`
+      : '(no numbered sections)';
     console.log(`  ${d.file}:${d.line}  "${d.raw}" — ${d.target} has ${range}, not §${d.n}\n      ${d.ctx}`);
   }
   console.log('');
