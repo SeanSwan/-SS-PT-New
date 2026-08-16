@@ -37,6 +37,7 @@ import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremise
 import { unboundNamedPaths, weakBindingOnly } from './packet-gate/artifact.mjs';
 import { parseArgs, argErrors } from './packet-gate/args.mjs';
 import { loadSeed } from './packet-gate/seed.mjs';
+import { buildWarnings } from './packet-gate/warnings.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -231,27 +232,7 @@ ${seedText}` : md);
   // Same predicate as the guard above — deliberately the SAME variable, not a second filter.
   // Two copies of a security predicate is a drift canary waiting to fire, and it already fired
   // once: the guard and the warning shared a defect, so the bypass produced neither.
-  const uncitedCode = [...unverifiedFences, ...seedBlocks.filter(isUnverifiedFence)];
-  const warnings = [...premises.warnings];
-  // Only when the operator ACKNOWLEDGED them: without --allow-uncited this is now an R3 finding, and
-  // reporting the same fences as both a refusal and a warning is how an operator learns to skim.
-  if (args.allowUncited && uncitedCode.length) {
-    warnings.push(`${uncitedCode.length} uncited fence(s) at line(s) ${uncitedCode.map((b) => b.start).join(', ')} — NOT byte-verified; accepted deliberately via --allow-uncited`);
-  }
-  // A CHECK THAT DID NOT RUN MUST SAY SO. If every anchor the remit names was excluded — all paths
-  // allow-missing, no resolvable route or symbol — R4's binding returns early and ANY single cited
-  // block satisfies R4. That is defensible (there is nothing in the repo left to bind to), but it
-  // was SILENT, which is the Category-2 failure this gate is built to refuse in other people's code.
-  if (weakBindingOnly(allBlocks, boundPaths, boundContent)) {
-    warnings.push(`R4 bound by a route/symbol MENTION, not by the named path(s) ${boundPaths.join(", ")} — the artifact is tied to the remit by a mention, not by identity`);
-  }
-  const unbound = unboundNamedPaths(allBlocks, boundPaths);
-  if (unbound.length && unbound.length < boundPaths.length) {
-    warnings.push(`remit names ${boundPaths.length} path(s); ${unbound.join(', ')} ${unbound.length === 1 ? 'is' : 'are'} NOT carried by this packet — the model answers about what it cannot see`);
-  }
-  if (aboutCode && !hasBindingAnchors(boundPaths, boundContent)) {
-    warnings.push('R4 binding did not run: every anchor the remit names is allow-missing or unresolvable, so any one cited block satisfies R4');
-  }
+  const warnings = buildWarnings({ allBlocks, boundPaths, boundContent, aboutCode, allowUncited: args.allowUncited, premises });
 
   return report({
     args, findings, warnings,
