@@ -376,10 +376,16 @@ if (showTitles) {
 }
 
 /**
- * The gate gates its own docstring. Three separate times in this branch a defect class was
+ * The gate gates its own docstring. Four separate times in this branch a defect class was
  * added and the header, the hook message, or the README kept describing the old set — the
  * exact "doctrine describes what the code no longer does" failure the whole corpus repave
  * exists to kill. A prose law without a mechanism is decoration, including this file's own.
+ *
+ * SCOPE LIMIT, stated so it is not mistaken for coverage: this checks THIS FILE'S header only.
+ * The README's prose description of the gate is NOT machine-checkable against behaviour, and it
+ * drifted again after this self-check was added — the mechanism worked exactly as far as it
+ * reached and no further. A narrower guard that is honest about its edge beats a wider one that
+ * is trusted past it.
  */
 const emittedClasses = [...readFileSync(fileURLToPath(import.meta.url), 'utf8')
   .matchAll(/console\.log\(`(D\d) /g)].map((m) => m[1]);
