@@ -1,11 +1,12 @@
 ---
-decision: "Fine-tune two local Qwen models on the existing ai-agent-tuning Unsloth workspace — a Swan Coach behavior model and a Classroom Copilot extraction model — with dataset factories, eval gates, and a staged path to a self-hosted app brain"
+decision: "Fine-tune three local Qwen models on the existing ai-agent-tuning Unsloth workspace — a Swan Coach behavior model, a Classroom Copilot extraction model, and a Swan Coder+Designer house-discipline model — with dataset factories, eval gates, and a staged path to a self-hosted app brain"
 status: open
 supersedes: none
 sanitized: true
 ---
 
-# Two Local Brains — Qwen Fine-Tuning Master Plan
+# Three Local Brains — Qwen Fine-Tuning Master Plan
+> Filename says "two-brains" for link stability; Track C (coder+designer) was added mid-session on Sean's directive 2026-08-16.
 **Date:** 2026-08-16 · **Author:** Fable 5 (Final Decider) · **Review round staged:** GLM-5.3 + Kimi K3 (paid, fires only on Sean's go)
 **Source prompt:** Sean's dictated vision + the Unsloth Studio fine-tuning tutorial transcript
 **Grounding:** repo-verified against `C:\Users\BigotSmasher\Desktop\ai-agent-tuning\` and `docs/ai-workflow/brainstorms/classroom-copilot-2026-08-15/` (through R5 synthesis)
@@ -48,7 +49,7 @@ The ai-agent-tuning workspace is further along than the video's starting point. 
 
 ## 2. The strategy in one paragraph
 
-One **shared dataset factory** (the existing pipeline, upgraded with per-track profiles) feeds **two independent fine-tunes** with opposite characters. **Track A — Swan Coach (Qwen3-8B)** is a *behavior* tune: tone, safety escalation, follow-up discipline, tool-use policy, Sean's operating style — facts stay in retrieval/tools per the existing playbook. **Track B — Classroom Copilot (Qwen3-4B)** is a *task* tune: chaotic voice-dump in → strict structured records out, small enough to run on T's phone. Track B is where fine-tuning pays most (small on-device models need it most; the task is narrow and machine-checkable) but it must wait for the classroom **event-emission contract freeze** (R5 slice 1) — training an extractor against a schema about to change wastes the run. So Track A runs first and proves the factory end-to-end on low-stakes material; Track B trains the moment the contract freezes. Every run is accepted only by beating the base model (and, for Track B, the rules-only path) on held-out evals — never because training completed.
+One **shared dataset factory** (the existing pipeline, upgraded with per-track profiles) feeds **three independent fine-tunes** with distinct characters. **Track A — Swan Coach (Qwen3-8B)** is a *behavior* tune: tone, safety escalation, follow-up discipline, tool-use policy, Sean's operating style — facts stay in retrieval/tools per the existing playbook. **Track B — Classroom Copilot (Qwen3-4B)** is a *task* tune: chaotic voice-dump in → strict structured records out, small enough to run on T's phone. Track B is where fine-tuning pays most (small on-device models need it most; the task is narrow and machine-checkable) but it must wait for the classroom **event-emission contract freeze** (R5 slice 1) — training an extractor against a schema about to change wastes the run. **Track C — Swan Coder+Designer (Qwen3-Coder base)** is a *discipline* tune: house coding law and design judgment in the weights, brand tokens kept out of them (§4-C). So Track A runs first and proves the factory end-to-end on low-stakes material; Track B trains the moment the contract freezes; Track C runs on the proven factory using the same acceptance law. Every run is accepted only by beating **base + best system prompt** (and, for Track B, the rules-only path) on held-out evals — never because training completed.
 
 ```mermaid
 flowchart TD
@@ -74,6 +75,13 @@ flowchart TD
         B1 --> B2["eval: tuned vs base vs rules-only, on the Desk adversarial harness"]
         B2 -->|wins| B3["export GGUF → llama.rn on T's phone"]
         B2 -->|loses| RAW
+    end
+
+    subgraph TRACKC["Track C — Swan Coder+Designer discipline tune"]
+        DS --> C1["Unsloth Studio QLoRA on Qwen3-Coder (size per S1 catalog check)"]
+        C1 --> C2["eval: tuned vs base+prompt + blinded design-critique judging"]
+        C2 -->|wins| C3["export GGUF → Ollama: local code-review + design-critique lane"]
+        C2 -->|loses| RAW
     end
 ```
 
@@ -158,6 +166,44 @@ Three-way comparison on the same held-out harness: **tuned Qwen3-4B vs base Qwen
 
 ---
 
+## 4-C. Track C — Swan Coder + Designer Qwen (house-discipline tune)
+
+Added mid-session on Sean's directive: a third model, "extremely efficient and smart in coding — JavaScript, TypeScript, everything in my stack — well-rounded, and *especially* good at design."
+
+### 4-C.1 The honest frame (what a tune can and cannot buy here)
+
+**Raw coding ability comes from the base model, not from our tune.** No dataset we can produce at hundreds-to-thousands of rows teaches a model TypeScript — the Qwen3-Coder family already knows it. What a fine-tune *can* buy, and buys strongly, is **house discipline and design judgment**: our model should code like a SwanStudios senior who has internalized CLAUDE.md, and critique design like the house's hostile design reviewer. So Track C trains:
+
+- **House coding law as reflex:** styled-components never MUI; `var(--token, #fallback)` never hardcoded colors; the `` css`` `` helper for any interpolated style fragment (the Rule 43 mount-crash class); 44px targets; 300-line cap instincts; receipts-before-claims; surgical-diff discipline; "implemented but not yet proven" instead of "done".
+- **Design judgment, not design facts:** hierarchy/spacing/typography reasoning, hostile design critique voice (generic/template/tacky detection per the Anti-AI-Tells doctrine), concept-direction ideation habits, responsive-audit reflexes, premium-vs-cheap discrimination on shadows/borders/motion.
+- **The critical exclusion — brand tokens stay OUT of the weights.** The house has already lived this failure: Gemini still sometimes cites the *retired* Galaxy-Swan palette. A model with the current palette baked into weights becomes a permanent Galaxy-Swan-class regression engine the day the brand evolves. Palette, typography names, and current theme tokens are **injected as context at runtime**; the weights learn how to *think* about design, never which hex to use. This is lesson 3 of this plan (facts mutate, weights don't migrate) applied to design.
+
+### 4-C.2 Base model & config
+
+- **Base:** Qwen3-Coder family, instruct variant; exact size per the Unsloth catalog check at S1. Expectation: a dense mid-size coder (per catalog) for the QLoRA run; **Qwen3-Coder-30B-A3B stays inference-first** per the playbook ladder (MoE tuning on 32GB is experimental — do not start there).
+- Method identical to Track A: QLoRA, defaults, 1 epoch first.
+
+### 4-C.3 Dataset blueprint — `swan-coder-design-v1`
+
+Target: **800–1,500 rows + 100 held-out evals** (the vault playbook already specifies the coding-eval design: 30–50 Swan-style coding evals — route tracing, bug repro, hostile review, dirty-tree preservation, backend route shadowing, responsive checks).
+
+| Slice | Rows | Teaches | Source |
+|---|---|---|---|
+| House-rule code generation | 250 | write the component the CLAUDE.md way, with token-fallback CSS, blueprint headers, css`` discipline | synthetic + real approved diffs, sanitized |
+| Hostile code review voice | 200 | find the real defect, cite file:line, classify severity, refuse speculative-success language | real review verdicts from the debate/handoff corpus (already public-safe in-repo) |
+| **Design critique** | 250 | attack hierarchy, spacing rhythm, cheap shadows, dead motion, template smell; propose the concrete fix; name the signature moment a page lacks | design dual-pass transcripts + synthetic before→after critiques |
+| Design ideation | 100 | 2–3 distinct concept directions with rationale, mood, and motion language — *without* emitting brand hex values (tokens referenced abstractly) | synthetic, seeded from the Cinematic Design System's pattern library |
+| Failure corrections | 150 | prompts where an agent produced the wrong pattern (MUI import, hardcoded hex, plain-string keyframes, retired-theme citation) rewritten to the approved answer | harvested from real session mistakes |
+| Refusal traps | 50 | asked to "just hardcode it" / skip tests / claim done without proof → correct refusal shape | synthetic |
+
+**Eval traps specific to Track C:** must never emit a retired Galaxy-Swan token; must never import MUI; must wrap interpolated fragments in `` css`` ``; design critiques scored against rubrics (the vault playbook's rubric-dataset type, finally used); 15 regression traps where the base coder already behaves well.
+
+### 4-C.4 Acceptance gate
+
+Same law as Track A — beat **base + our best system prompt** on the 100 held-out evals, zero trap failures — plus one Track-C-specific gate: on a 10-item design-critique set, blinded side-by-side judging (Fable-tier judge) must prefer the tuned model's critiques at ≥7/10 before promotion.
+
+---
+
 ## 5. Unsloth Studio workflow (transcript → our machine)
 
 The tutorial's flow, mapped to this workspace — the parts worth keeping and the parts we do better locally:
@@ -235,9 +281,12 @@ Plain truths to plan around, so the dream stays real:
 | S4 | Export GGUF → Ollama → Hermes shadow lane | S3 wins eval | half day |
 | S5 | Track B generator vs the **frozen** classroom contract + 3k rows | classroom R5 slice 1 (contract freeze) | 1–2 days |
 | S6 | Track B train (Qwen3-4B) + three-way eval on Desk harness | S5 + Desk harness lands | half day |
-| S7 | GLM-5.3 + Kimi K3 hostile round on this plan (sanitized packet ready — this doc is born sanitized) | Sean's go (Rule 16 / ask-first) | ~$0.20–0.50 |
+| S7 | GLM-5.3 + Kimi K3 hostile round on this plan — **FIRED 2026-08-16 on Sean's explicit mid-session go**; outputs in `qwen-finetune-reviews-2026-08-16/` | done — synthesis in this doc's review dir | ~$0.20–0.50 |
 | S8 | On-device budget measurement (llama.rn, 8s) with tuned 4B | S6 wins | with classroom team |
 | S9 | Stage-2 shadow A/B design for Swan Coach | S4 + real usage | later |
+| SC1 | Track C dataset v1 (`swan-coder-design-v1`, §4-C.3): 800 rows + 100 evals incl. retired-token/MUI/css`` traps | S1 (+ S2a factory proof) | 1–2 days |
+| SC2 | Track C train (Qwen3-Coder per catalog) + compare scorecard + blinded design-critique judging | SC1 | half day |
+| SC3 | Export → Ollama; wire as the local review/design-critique lane | SC2 wins gate | half day |
 | U4–U6 | Launcher polish, run-card scaffold, Modelfile docs | anytime | small |
 
 **Recommended order: S0 → S1 → S2a → S2 → S3 → S4, with S7 fired right after S1** so the reviewers attack the plan before the datasets calcify.
@@ -246,12 +295,13 @@ Plain truths to plan around, so the dream stays real:
 
 ## 11. External review round (staged, not fired)
 
-Per house law (Kimi = one review, ask first; this prompt was flagged LOCAL_ONLY): this document is written sanitized (no client names, T/C1..Cn convention preserved, no secrets, no absolute private paths beyond Sean's own machine layout already committed elsewhere) and can be shipped as the consult packet as-is via `scripts/consult-glm.mjs` + `scripts/consult-kimi.mjs`. **One round, both models, unlensed, full-spectrum with DISSENT sections** — same shape that worked in classroom R5. Fires only on Sean's explicit go.
+Sean gave the explicit go mid-session 2026-08-16 ("run Kimi K3 and GLM 5.3 on that too, as well as you"). This document is born sanitized (no client names, T/C1..Cn convention preserved, no secrets) and ships as the consult packet as-is via `scripts/consult-glm.mjs` + `scripts/consult-kimi.mjs`. **One round, both models, unlensed, full-spectrum with DISSENT sections** — same shape that worked in classroom R5. Replies + Fable synthesis land in `docs/ai-workflow/brainstorms/qwen-finetune-reviews-2026-08-16/`.
 
 ## 12. Open questions for Sean (grill-me checkpoint — answer in any order)
 
 1. **"Qwen 3.8"** — did you mean the Qwen3 family (my assumption), or a specific newer release?
 2. **Track order** — I sequenced Swan Coach first because classroom training is gated on the contract freeze. If teacher-first matters more to you, S5 generator work can start now against the *provisional* contract, accepting a possible regeneration cost.
-3. **Paid review timing** — fire GLM+Kimi on this plan now (~$0.50), or after S1 makes the factory upgrades reviewable too?
+3. ~~Paid review timing~~ — **ANSWERED 2026-08-16: fire now.** Done (S7).
 4. **Serving appetite** — is Stage 3 (rented GPU, ~$150–500/mo) something to price seriously this year, or is 5090-only the planning horizon?
 5. **Track A source material** — may I mine approved Swan Coach production transcripts (sanitized through the existing redaction builder) for failure-corrections, or synthetic-only until you review the sanitizer's output?
+6. **Track C base size** — comfortable letting the S1 catalog check pick the largest Qwen3-Coder that trains cleanly in 32GB, or do you want a specific size?

@@ -1,7 +1,11 @@
 ---
+title: "Train against frozen contracts, and only against honest baselines"
 originating_model: claude-fable-5
+tier_basis: "Session model is claude-fable-5 (harness-stamped in system context; Sean set /model claude-fable-5 this session) — on the Rule 68 allowlist"
 date: 2026-08-16
-topic: "Fine-tuning program design — contract freezes, honest baselines, and device-bound data law"
+decision: "Two-track Qwen fine-tuning program designed: extraction tunes gate on contract freeze; acceptance baseline is base+best-prompt; device-bound source data forces synthetic-only training sets"
+status: draft
+privacy: "IDs/roles only (T, C1..Cn, demo-client-NNN); no PII, no secrets, no absolute user paths; validated by hermes-learning-validate privacy patterns"
 models_used:
   - model: claude-fable-5
     role: Final Decider / plan author
