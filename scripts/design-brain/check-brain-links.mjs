@@ -5,7 +5,8 @@
  * The Design Brain is markdown that agents load at task time. Three failure modes rot it
  * silently, and all three have shipped to `main` at least once:
  *
- *   D1 DANGLING   a satellite cites `design.md §N` for an N that no longer exists.
+ *   D1 DANGLING   a file cites `<other>.md §N` for an N that does not exist — canon refs
+ *                 (`design.md §N`) and satellite-to-satellite refs (`motion.md §4`) alike.
  *                 A canon rewrite renumbered §1-28 down to §1-17 and no satellite followed.
  *                 An agent that follows a dead pointer resolves safely by SKIPPING the
  *                 doctrine it could not find — so canon supremacy becomes fiction.
@@ -46,29 +47,43 @@ if (!existsSync(join(BRAIN, CANON))) {
  */
 const lines = (text) => text.split(/\r?\n/);
 
-/** Section numbers + headings declared by the canon. */
-const canonText = readFileSync(join(BRAIN, CANON), 'utf8');
-const sections = new Map();
-for (const line of lines(canonText)) {
-  const m = /^##\s+§(\d+)\s+(.*)$/.exec(line);
-  if (m) sections.set(m[1], m[2].trim());
+/**
+ * Section numbers + headings for one file. Two heading dialects are in use:
+ * canon writes `## §9 Space, elevation, z`; satellites write `## 4. Where motion is banned`.
+ * Both are parsed so cross-file references can be validated, not just references to canon.
+ */
+function sectionsOf(text) {
+  const map = new Map();
+  for (const line of lines(text)) {
+    const m = /^##\s+(?:§\s*(\d+)|(\d+)\.)\s+(.*)$/.exec(line);
+    if (m) map.set(m[1] ?? m[2], m[3].trim());
+  }
+  return map;
 }
+
+const canonText = readFileSync(join(BRAIN, CANON), 'utf8');
+const sections = sectionsOf(canonText);
 if (!sections.size) {
   console.error('[brain-links] parsed zero sections from canon — heading format changed; fix this checker before trusting it');
   process.exit(2);
 }
 
 /**
- * Every reference to a canon section, including the `§§14, 18` multi-form.
- * Returns [{ n, raw }] for one line.
+ * Every `<some-file>.md §N` reference on a line, including the `§§14, 18` multi-form.
+ * Covers cross-file refs (e.g. `motion.md §4`), not just references to canon — a satellite
+ * citing another satellite's renumbered section rots exactly the same way.
+ *
+ * KNOWN LIMITATION, deliberately not closed: bare `§N` with no filename is NOT checked.
+ * Several files use bare `§N` for their OWN sections, so resolving them against canon would
+ * produce false positives — and a gate that cries wolf gets ignored, which is worse than a
+ * gate with a documented blind spot. Cite the filename if you want the reference gated.
  */
 function refsIn(line) {
   const out = [];
-  // Match `design.md §N`, `design.md §§N, M`, `design.md §§N and M`.
-  const re = /design\.md\s+§{1,2}\s*(\d+(?:\s*(?:,|and)\s*§?\s*\d+)*)/g;
+  const re = /([a-z0-9-]+\.md)\s+§{1,2}\s*(\d+(?:\s*(?:,|and)\s*§?\s*\d+)*)/gi;
   let m;
   while ((m = re.exec(line)) !== null) {
-    for (const n of m[1].match(/\d+/g) ?? []) out.push({ n, raw: m[0] });
+    for (const n of m[2].match(/\d+/g) ?? []) out.push({ file: m[1], n, raw: m[0] });
   }
   return out;
 }
@@ -82,14 +97,21 @@ const mdFiles = [];
   }
 })(BRAIN);
 
+/** Section maps for every file in the corpus, keyed by basename, parsed once. */
+const sectionsByFile = new Map();
+for (const rel of mdFiles) sectionsByFile.set(basename(rel), sectionsOf(readFileSync(join(BRAIN, rel), 'utf8')));
+
 const dangling = [];
 const resolved = [];
 for (const rel of mdFiles) {
   const fileLines = lines(readFileSync(join(BRAIN, rel), 'utf8'));
   fileLines.forEach((line, i) => {
-    for (const { n, raw } of refsIn(line)) {
-      const rec = { file: rel, line: i + 1, n, raw, ctx: line.trim().slice(0, 110) };
-      if (sections.has(n)) resolved.push(rec);
+    for (const { file: target, n, raw } of refsIn(line)) {
+      const targetSections = sectionsByFile.get(basename(target));
+      // A reference to a file outside this corpus is not ours to validate.
+      if (!targetSections) continue;
+      const rec = { file: rel, line: i + 1, target: basename(target), n, raw, ctx: line.trim().slice(0, 110) };
+      if (targetSections.has(n)) resolved.push({ ...rec, title: targetSections.get(n) });
       else dangling.push(rec);
     }
   });
@@ -132,7 +154,7 @@ const orphaned = [...new Set(listedNames)].filter((name) => {
 if (showTitles) {
   console.log('REFERENCE AUDIT — check each ref against its target heading (wrong-target refs resolve, but mislead):\n');
   for (const r of resolved) {
-    console.log(`  ${r.file}:${r.line}  §${r.n} = ${sections.get(r.n)}`);
+    console.log(`  ${r.file}:${r.line}  ${r.target} §${r.n} = ${r.title}`);
     console.log(`      ${r.ctx}`);
   }
   console.log('');
@@ -141,8 +163,12 @@ if (showTitles) {
 let bad = 0;
 if (dangling.length) {
   bad += dangling.length;
-  console.log(`D1 DANGLING — ${dangling.length} reference(s) to a canon section that does not exist (canon has §1–§${Math.max(...[...sections.keys()].map(Number))}):`);
-  for (const d of dangling) console.log(`  ${d.file}:${d.line}  "${d.raw}"\n      ${d.ctx}`);
+  console.log(`D1 DANGLING — ${dangling.length} reference(s) to a section that does not exist:`);
+  for (const d of dangling) {
+    const have = [...(sectionsByFile.get(d.target)?.keys() ?? [])].map(Number).sort((a, b) => a - b);
+    const range = have.length ? `§${have[0]}–§${have[have.length - 1]}` : '(no numbered sections)';
+    console.log(`  ${d.file}:${d.line}  "${d.raw}" — ${d.target} has ${range}, not §${d.n}\n      ${d.ctx}`);
+  }
   console.log('');
 }
 if (unindexed.length) {
