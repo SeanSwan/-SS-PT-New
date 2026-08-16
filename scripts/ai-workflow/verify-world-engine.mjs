@@ -202,14 +202,20 @@ export function auditWorldEngineBundle(bundle) {
   // subject is still very much alive. Deleting the script silently dropped (b) (Kimi round 2,
   // R2-1). Re-asserted here so a design.md that stops yielding a palette still fails loudly.
   // Palette-existence successor to the retired design-mirror-check.mjs. Deliberately an ANCHOR
-  // check and NOT a token count, after two rounds of getting this wrong:
-  //   v1 (a >= 20 unique-hex floor) PASSED FOR THE WRONG REASON — of design.md's 23 unique tokens,
-  //      3 sit inside code fences and 3 are the RETIRED Galaxy-Swan palette quoted as do-NOT-use
-  //      examples, so deleting the entire live palette still cleared the floor on leftovers.
-  //   v1 also FAILED FOR THE WRONG REASON — 23 observed against a floor of 20 is 3 tokens of
-  //      headroom, so a legitimate 4-token palette revision would have failed a healthy canon
-  //      (Kimi round 3, R3-1). A gate whose false-positive path is "someone edited the palette"
-  //      gets switched off, and then it protects nothing.
+  // check and NOT a token count, after three rounds of getting this wrong:
+  //   v1 (a >= 20 unique-hex floor) COULD PASS FOR THE WRONG REASON — it counts every hex in the
+  //      file, including the 3 inside code fences and the 3 RETIRED Galaxy-Swan values quoted as
+  //      do-NOT-use examples. Whether a real palette deletion slips through therefore depends on
+  //      how much unrelated hex happens to exist, not on the palette. Stated honestly: on TODAY's
+  //      file it would have caught a pure anchor deletion (23 - 5 = 18 < 20); the pass-through was
+  //      demonstrated on a constructed input padded with filler hex. Generalising that constructed
+  //      case to the real file was my error, caught by GLM in the confirming round. The defect is
+  //      real but conditional — one added doc example and the same deletion sails through.
+  //   v1 also FAILED FOR THE WRONG REASON, unconditionally — 23 observed against a floor of 20 is
+  //      3 tokens of headroom, so a legitimate 4-token palette revision would have failed a healthy
+  //      canon (Kimi round 3, R3-1). A gate whose false-positive path is "someone edited the
+  //      palette" gets switched off, and then it protects nothing. This half needs no construction
+  //      to reproduce, which is why it is the half that decided the rewrite.
   // Anchoring on the values that MUST be present has neither failure mode: it cannot pass when the
   // palette is gone, and it cannot fail when the palette is merely revised around these anchors.
   // Checked: design.md carries no 8-digit #RRGGBBAA tokens, so the 6-digit match drops nothing.
@@ -228,6 +234,10 @@ export function auditWorldEngineBundle(bundle) {
   // from git history or an old doc, which preserves the literal string. A *paraphrased*
   // reintroduction evades it by design; doctrine review owns that case, not this regex. The colon
   // form is included because it is the one editorial normalisation likely to happen by accident.
+  // Negative documentation must PARAPHRASE: a future "do NOT use" note quoting the retired string
+  // verbatim will trip this by design — the house style already quotes retired Galaxy-Swan hexes
+  // that way, so the collision is foreseeable. Loud failure with an obvious resolution is the
+  // intended trade (GLM confirming round, observation 1).
   if (/Tier 3\s*[—:-]\s*Reduced motion/i.test(bundle.designMd ?? '')) {
     errors.push('design.md retains the retired Reduced-Motion-as-tier contract');
   }
