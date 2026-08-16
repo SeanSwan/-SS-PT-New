@@ -10,13 +10,14 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseFences, remitFromDoc, checkProvenance, checkPremises, checkSize, checkArtifact, normPath } from '../checks.mjs';
+import { gateSourceFiles } from '../source-hash.mjs';
 
 /** A minimal cited CODE block, for the R4 binding tests. */
 const codeBlock = (p, body = 'const x = 1;') => ({ cited: true, attrs: { path: p }, lang: 'js', body });
@@ -25,6 +26,16 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const GATE = join(ROOT, 'scripts', 'packet-gate.mjs');
 const SELFTEST = join(ROOT, 'scripts', 'packet-gate', 'selftest.mjs');
 const tmp = () => mkdtempSync(join(tmpdir(), 'packet-gate-'));
+
+/**
+ * A scratch dir INSIDE the repo, for fixtures the gate requires to be contained (`--seed`).
+ * Under gitignored out/, so nothing here is ever committed.
+ */
+const tmpInRepo = () => {
+  const base = join(ROOT, 'out', 'packet-gate', 'test-tmp');
+  mkdirSync(base, { recursive: true });
+  return mkdtempSync(join(base, 'seed-'));
+};
 
 /**
  * Build a phantom route at RUNTIME from fragments.
@@ -279,7 +290,10 @@ test('REGRESSION: an unknown provider is exit 2, not a clean gate with no cost e
 
 test('REGRESSION: a secret in the --seed is scanned, not waved through as "clean"', () => {
   // Secret-shaped string assembled at runtime so this committed file trips no scanner.
-  const d = tmp();
+  // FIXTURE MOVED (round 5), assertion untouched: the seed now lives INSIDE the repo because a seed
+  // that resolves outside it is refused for containment. The behaviour under test — a secret in the
+  // seed produces an R6 refusal — is asserted exactly as before; only the fixture's address changed.
+  const d = tmpInRepo();
   const doc = join(d, 'doc.md');
   const seed = join(d, 'seed.md');
   writeFileSync(doc, '## Remit\n\nReview /api/sessions\n');
@@ -424,4 +438,83 @@ test('NOT-A-BUG PIN: a cited range ending in blank lines matches (round-4 findin
   // line. Pinned so a future round does not "fix" a non-bug and break byte-verification doing it.
   const md = '```js path=a.mjs lines=1-3\nfoo\n\n\n```\n';
   assert.deepEqual(checkProvenance(parseFences(md), () => 'foo\n\n\n'), []);
+});
+
+// --- Round 5 findings, 2026-08-16 (Kimi K3 + GLM-5.3 + my own pass on the round-4 diff) ----------
+
+test('CRITICAL REGRESSION: R15 covers every file that defines a check, derived not hand-listed', () => {
+  // The round-4 refactor split checks.mjs for the 300-line cap and left GATE_SOURCES listing three
+  // files. R3, R4 and both normalizers moved OUT of them, so a neutered checkArtifact still passed
+  // R15 and the decoy packet produced zero findings. The list is now derived from the directory.
+  const files = gateSourceFiles(ROOT);
+  for (const must of ['artifact', 'provenance', 'normalize', 'args', 'checks', 'fences', 'repo-io', 'canary']) {
+    assert.ok(files.some((f) => f.endsWith(`/${must}.mjs`)), `${must}.mjs is not covered by R15: ${files.join(', ')}`);
+  }
+  assert.ok(files.includes('scripts/packet-gate.mjs'));
+});
+
+test('CRITICAL REGRESSION: a hidden character cannot hide a fence from the gate', () => {
+  // Round 4 fixed \r. Round 5 found U+2028/U+2029 (same mechanism) and BOM/NBSP (different one:
+  // `^[ \t]*` simply does not admit them). Patching code points one at a time is a losing game, so
+  // the gate now refuses when a LENIENT reading finds a fence-like line the strict parser did not
+  // consume. Both faces of the disagreement are covered: fail-open AND inverted fence parity.
+  const BOM = String.fromCharCode(0xFEFF);
+  const NBSP = String.fromCharCode(0xA0);
+  const LS = String.fromCharCode(0x2028);
+  const cases = {
+    BOM: `${BOM}\`\`\`js path=src/x.mjs lines=1-40\nconst FABRICATED = true;\n\n## Remit\nIs this correct?\n`,
+    NBSP: `## Remit\n\nIs this correct?\n\n${NBSP}\`\`\`js\nconst FABRICATED = true;\n${NBSP}\`\`\`\n`,
+  };
+  for (const [label, body] of Object.entries(cases)) {
+    const f = join(tmp(), `hidden-${label}.md`);
+    writeFileSync(f, body);
+    const { code, out } = runGate(['--document', f]);
+    assert.equal(code, 2, `${label} must not be certifiable:\n${out}`);
+    assert.match(out, /did not consume/i, label);
+  }
+  // U+2028 as the line separator: no \n at all, so every fence sits mid-line where ^ cannot match.
+  const f = join(tmp(), 'ls.md');
+  writeFileSync(f, `## Remit${LS}${LS}Review this module.${LS}${LS}\`\`\`js${LS}const FABRICATED = true;${LS}\`\`\`${LS}`);
+  const { code } = runGate(['--document', f, '--remit', 'Review this module for correctness.']);
+  assert.notEqual(code, 0, 'a U+2028-separated packet must never reach PACKET READY');
+});
+
+test('HIGH REGRESSION: --seed gets the same provenance discipline as the document', () => {
+  // The seed was measured for R1 and scanned for R6 — the gate plainly treats it as prompt content —
+  // but nothing ever parsed it, so fabricated fences in a seed rode along behind a document whose
+  // own approval line read "all byte-verified". Both paid reviewers found this independently.
+  const d = tmpInRepo();
+  const doc = join(d, 'doc.md');
+  const seed = join(d, 'seed.md');
+  writeFileSync(doc, '## Remit\n\nReview /api/sessions\n');
+  writeFileSync(seed, 'As I remember it:\n\n```js\nexport const ADMIN_BYPASS = true;\n```\n');
+  const { code, out } = runGate(['--document', doc, '--seed', seed, '--json']);
+  assert.equal(code, 1, out);
+  const f = JSON.parse(out).findings.find((x) => x.code === 'R3');
+  assert.ok(f, `expected an R3 for the seed's uncited fence: ${out}`);
+  assert.match(f.detail, /seed line/, 'the finding must say WHICH channel, or it is undiagnosable');
+});
+
+test('HIGH REGRESSION: a --seed outside the repository is refused, not read', () => {
+  // The approval view PRINTS the seed into the send command, so an uncontained seed meant the gate
+  // was certifying a command that ships an arbitrary out-of-repo file to a paid model.
+  const doc = join(tmpInRepo(), 'doc.md');
+  writeFileSync(doc, '## Remit\n\nReview /api/sessions\n');
+  const outside = join(tmp(), 'outside.md');
+  writeFileSync(outside, 'context\n');
+  const { code, out } = runGate(['--document', doc, '--seed', outside]);
+  assert.equal(code, 2, out);
+  assert.match(out, /outside the repository/i);
+});
+
+test('HIGH REGRESSION: a subheading inside the Remit section does not truncate its anchors', () => {
+  // The stop test matched ANY heading, so `#### In scope` ended the remit and every anchor below it
+  // vanished before extractAnchors ran: aboutCode went false, R4 returned [] and R5 had nothing to
+  // resolve. Both checks silently did not run, and a phantom route below the subheading was blessed.
+  const remit = remitFromDoc('## Remit\nReview the refund flow.\n#### In scope\nsrc/refunds/run.mjs\n\n## Artifact\nnot the remit\n');
+  assert.match(remit, /run\.mjs/, 'anchors under a subheading must survive');
+  assert.doesNotMatch(remit, /not the remit/, 'a same-level heading must still end the section');
+  // Start and stop tests now both run on trimmed lines, so an indented ATX heading cannot be
+  // absorbed into the remit and inject a path anchor the operator never wrote.
+  assert.doesNotMatch(remitFromDoc('## Remit\nReview src/auth/login.mjs\n  ## src/utils/format.mjs\n'), /format\.mjs/);
 });

@@ -16,6 +16,7 @@
  */
 import { finding } from './refusal.mjs';
 import { normalizeEol } from './normalize.mjs';
+import { blockWhere } from './fences.mjs';
 
 /** Normalize for byte-comparison: line endings folded and one trailing newline dropped. Windows
  *  checkouts and editors differ on both, and neither difference means someone retyped the code. */
@@ -54,7 +55,7 @@ export function checkProvenance(blocks, readFile) {
   for (const b of blocks.filter((x) => x.cited)) {
     const bad = badPath(b.attrs.path);
     if (bad) {
-      out.push(finding('R3', `block at line ${b.start} cites an unusable path (${bad}): ${JSON.stringify(b.attrs.path)}`,
+      out.push(finding('R3', `block at ${blockWhere(b)} cites an unusable path (${bad}): ${JSON.stringify(b.attrs.path)}`,
         'cite a repo-relative path inside the repository'));
       continue;
     }
@@ -64,12 +65,12 @@ export function checkProvenance(blocks, readFile) {
     try {
       src = readFile(b.attrs.path);
     } catch (err) {
-      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} — cannot read it (${err.code ?? err.message})`,
+      out.push(finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} — cannot read it (${err.code ?? err.message})`,
         'cite a readable file; the packet claims provenance the gate cannot verify'));
       continue;
     }
     if (src == null) {
-      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} — file not found in repo`,
+      out.push(finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} — file not found in repo`,
         'correct the path, or drop the block: the packet claims provenance it cannot prove'));
       continue;
     }
@@ -81,12 +82,12 @@ export function checkProvenance(blocks, readFile) {
     // A MALFORMED lines= is still refused — a typo must never silently widen the range.
     const range = b.attrs.lines === undefined ? { start: 1, end: all.length } : parseRange(b.attrs.lines);
     if (!range) {
-      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} with a malformed lines= value (${JSON.stringify(b.attrs.lines)})`,
+      out.push(finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} with a malformed lines= value (${JSON.stringify(b.attrs.lines)})`,
         'use lines=<start>-<end>, or omit lines= entirely to cite the whole file'));
       continue;
     }
     if (range.end > all.length) {
-      out.push(finding('R3', `block at line ${b.start} cites ${b.attrs.path} L${range.start}-${range.end}, but the file has ${all.length} lines`,
+      out.push(finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} L${range.start}-${range.end}, but the file has ${all.length} lines`,
         're-extract at the current commit — the anchor is stale'));
       continue;
     }
@@ -98,7 +99,7 @@ export function checkProvenance(blocks, readFile) {
     // range ending in MULTIPLE blank lines matches — see the NOT-A-BUG PIN in the test suite.)
     const expected = norm(all.slice(range.start - 1, range.end).join('\n'));
     if (norm(b.body) !== expected) {
-      out.push(finding('R3', `block at line ${b.start} does not match ${b.attrs.path} L${range.start}-${range.end} (${firstDivergence(norm(b.body), expected)})`,
+      out.push(finding('R3', `block at ${blockWhere(b)} does not match ${b.attrs.path} L${range.start}-${range.end} (${firstDivergence(norm(b.body), expected)})`,
         're-extract verbatim; never retype. Someone hand-typed or hand-"improved" this code'));
     }
   }

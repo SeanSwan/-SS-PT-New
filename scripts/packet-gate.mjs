@@ -32,9 +32,10 @@ import { getProvider, estimateCost } from './context-gateway/src/providers.mjs';
 import { gateSourceHash } from './packet-gate/source-hash.mjs';
 import { report } from './packet-gate/report.mjs';
 import { GateUnavailable, makeResolver, scanSecrets, loadSelftest, readCitedFile } from './packet-gate/repo-io.mjs';
-import { isUnverifiedFence } from './packet-gate/fences.mjs';
+import { isUnverifiedFence, fenceParseAnomalies } from './packet-gate/fences.mjs';
 import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary, checkUncited, hasBindingAnchors, normPath } from './packet-gate/checks.mjs';
 import { parseArgs } from './packet-gate/args.mjs';
+import { loadSeed } from './packet-gate/seed.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -79,6 +80,22 @@ function main() {
   const anchors = extractAnchors(remit);
   const blocks = parseFences(md);
   const resolve = makeResolver(ROOT);
+
+  // PARSE INTEGRITY, before any verdict is computed from the parse.
+  // A fence-like line the parser did not consume means a lenient reader (the model, a renderer, a
+  // human) and this gate disagree about where the code blocks are. Round 4's critical and three
+  // round-5 variants were all that disagreement wearing different code points: `\r`, U+2028, a BOM,
+  // a non-breaking space. Whichever direction the disagreement runs, every finding computed from
+  // the parse is untrustworthy — so this is exit 2 ("the gate could not run"), not a refusal, and
+  // it is deliberately NOT reported alongside other findings that would look authoritative.
+  const anomalies = fenceParseAnomalies(md);
+  if (anomalies.length) {
+    console.error(`packet-gate: fence-like line(s) the parser did not consume, at line(s) ${anomalies.join(', ')}.`);
+    console.error('  A hidden character (BOM, non-breaking space, U+2028/U+2029) before the backticks makes a fence');
+    console.error('  invisible to this gate while the model still reads the content as code.');
+    console.error('  Refusing to certify: delete the hidden character so the delimiter starts the line.');
+    return 2;
+  }
 
   // A remit "asks about code" when it names a concrete code handle. Mechanical, so it is testable
   // and so the judgment lives in exactly one place.
@@ -136,16 +153,11 @@ function main() {
   // A NAMED-BUT-MISSING seed used to measure as zero bytes and pass. The send command resolves the
   // seed independently, so if it existed there the real prompt exceeded what R1 measured by an
   // unbounded amount — fail-open on exactly the quantity R1 exists to bound (Kimi K3 S3).
-  let seedText = '';
-  if (args.seed) {
-    const seedPath = path.resolve(ROOT, args.seed);
-    if (!existsSync(seedPath)) {
-      console.error(`packet-gate: --seed not found: ${args.seed}`);
-      console.error('  Refusing to certify: an unmeasured seed makes the size check meaningless.');
-      return 2;
-    }
-    seedText = readFileSync(seedPath, 'utf8');
-  }
+  const seed = loadSeed(ROOT, args.seed);
+  if (seed.error) { for (const line of seed.error) console.error(line); return 2; }
+  const seedText = seed.text;
+  const seedBlocks = seed.blocks;
+
   const assembled = {
     doc: md.length,
     seed: seedText.length,
@@ -177,13 +189,13 @@ ${seedText}` : md);
   const premises = checkPremises(anchors, resolve, args.allowMissing);
   const findings = [
     ...premises.findings,
-    ...checkUncited(blocks, args.allowUncited),
+    ...checkUncited([...blocks, ...seedBlocks], args.allowUncited),
     // A path the operator declared as not-yet-existing is excluded from R4's binding too. Clearing
     // R5 alone was not enough: R4 then demanded a citation of a file that by definition cannot be
     // cited, so the legitimate "add this file, here is the call site" packet was still impossible to
     // satisfy — one check's fix contradicting another's requirement.
     ...checkArtifact(aboutCode, blocks, boundPaths, boundContent),
-    ...checkProvenance(blocks, (p) => readCitedFile(ROOT, p)),
+    ...checkProvenance([...blocks, ...seedBlocks], (p) => readCitedFile(ROOT, p)),
     ...checkHygiene(hygiene),
     ...checkSize(assembled.chars, args.budgetChars),
   ];
@@ -208,7 +220,7 @@ ${seedText}` : md);
   // Same predicate as the guard above — deliberately the SAME variable, not a second filter.
   // Two copies of a security predicate is a drift canary waiting to fire, and it already fired
   // once: the guard and the warning shared a defect, so the bypass produced neither.
-  const uncitedCode = unverifiedFences;
+  const uncitedCode = [...unverifiedFences, ...seedBlocks.filter(isUnverifiedFence)];
   const warnings = [...premises.warnings];
   // Only when the operator ACKNOWLEDGED them: without --allow-uncited this is now an R3 finding, and
   // reporting the same fences as both a refusal and a warning is how an operator learns to skim.

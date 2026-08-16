@@ -35,6 +35,34 @@
 export const normalizeEol = (s) => String(s).replace(/\r\n?/g, '\n');
 
 /**
+ * Split a PACKET DOCUMENT into structural lines. Deliberately NOT the same operation as folding a
+ * source file's line endings, and the distinction is load-bearing.
+ *
+ * Round 4's CRLF fix closed `\r` and left the CLASS open. `.` in JavaScript excludes U+2028 LINE
+ * SEPARATOR and U+2029 PARAGRAPH SEPARATOR too, and — worse — a document that uses U+2028 as its
+ * line break has NO `\n` at all, so splitting on `\n` yields ONE line and every fence sits mid-line
+ * where `^` can never match. Such a packet, sent with an explicit `--remit`, reached
+ * `PACKET READY / no fences present / exit 0` carrying hand-typed code: the round-4 critical's exact
+ * signature, one round later. Found by attacking the round-4 fix rather than by waiting for a review.
+ *
+ * WHY THIS IS NOT FOLDED INTO normalizeEol, which would be the obvious tidier thing to do:
+ * `normalizeEol` also feeds R3's byte comparison, where the source file is split into LINES to
+ * resolve `lines=N-M`. A `.mjs` file may legitimately contain U+2028 inside a string literal — it is
+ * valid JavaScript source. Folding it there would split one real line into two, renumbering the file
+ * against what git and the operator's editor show, and silently breaking every citation into it.
+ * Document STRUCTURE and source LINE NUMBERING are different questions; conflating them trades a
+ * fail-open for a silent mis-citation, which is not a trade worth making.
+ *
+ * RESIDUAL, stated rather than hidden: a cited body that itself contains a literal U+2028 has that
+ * character turned into `\n` here while the source file retains it, so R3 refuses with a visible
+ * first-divergence line. That is fail-CLOSED and diagnosable, and the remedy is to cite a range that
+ * does not span the literal separator.
+ */
+// Written as \u escapes ON PURPOSE: a literal U+2028 here would be an invisible character in the
+// very file that exists to handle invisible characters, and unreviewable in a diff.
+export const splitDocLines = (s) => normalizeEol(s).split(/[\n\u2028\u2029]/);
+
+/**
  * Fold a path to one comparable spelling: separators, a leading `./`, and repeated slashes.
  *
  * Used by R4's binding, R5's premise check, and the CLI's `--allow-missing` filter — all three, on

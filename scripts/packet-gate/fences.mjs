@@ -21,7 +21,7 @@
  * written up in full at its definition — read it there before touching this file's regex, because
  * the regex is exactly what the `\r` defeats.
  */
-import { normalizeEol } from './normalize.mjs';
+import { splitDocLines } from './normalize.mjs';
 
 /** Remove up to `n` leading spaces/tabs (CommonMark fence de-indentation); never eats content. */
 function stripIndent(line, n) {
@@ -40,16 +40,34 @@ function stripIndent(line, n) {
  * by markdown, and without this it would fail byte-verification purely because of leading spaces —
  * a FALSE refusal, which is the failure mode that teaches operators to ignore refusals.
  *
+ * THE MATCHER MUST NOT DEPEND ON LINE-TERMINATOR SEMANTICS. Round 4's critical was CRLF: `.` does
+ * not match `\r`, so a CRLF fence line matched nothing and the parser returned [] for the whole
+ * document — no blocks meant no UNCITED blocks, and the fabrication guard filters on exactly those.
+ * Folding line endings fixed CRLF and left the CLASS open: `.` also excludes U+2028 LINE SEPARATOR
+ * and U+2029 PARAGRAPH SEPARATOR. A document using U+2028 as its line break, sent with an explicit
+ * `--remit`, still reached `PACKET READY / no fences present / exit 0` carrying hand-typed code —
+ * the identical signature, one round later, found by attacking the round-4 fix itself.
+ *
+ * So the fix is at both levels, deliberately: normalizeEol folds `\r\n`/`\r` so line SPLITTING is
+ * right, and the matcher below uses `[^\n]*` so no Unicode terminator can make a fence invisible
+ * even if a normalizer is later changed or bypassed. Splitting stays on `\n` ALONE on purpose —
+ * folding U+2028 into a line break would renumber the lines of any source file that legitimately
+ * contains one inside a string literal, and every `lines=N-M` citation into that file would break.
+ * A document that really is U+2028-separated now parses as one enormous unterminated fence, which
+ * is uncited, which is refused. Fail-closed.
+ *
  * @returns {{lang:string, attrs:object, body:string, start:number, end:number, cited:boolean}[]}
  */
 export function parseFences(markdown) {
-  const lines = normalizeEol(markdown).split('\n');
+  const lines = splitDocLines(markdown);
   const blocks = [];
   let open = null;
 
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i];
-    const m = /^([ \t]*)(`{3,}|~{3,})(.*)$/.exec(line);
+    // `[^\n]*`, NOT `.*`. See the note above parseFences: `.` excludes every Unicode line
+    // terminator, so a fence line carrying one silently fails to match and the fence disappears.
+    const m = /^([ \t]*)(`{3,}|~{3,})([^\n]*)$/.exec(line);
     if (!m) { if (open) open.body.push(stripIndent(line, open.indent)); continue; }
 
     const [, indent, fence, info] = m;
@@ -93,3 +111,54 @@ export function parseFences(markdown) {
  * duplication was itself flagged as a defect waiting to happen, and it was right.
  */
 export const isUnverifiedFence = (b) => !b.cited;
+
+/** Where a block came from, for findings: the document, or the `--seed` file appended after it.
+ *  A refusal that says "line 7" when the operator's document has no line 7 is undiagnosable. */
+export const blockWhere = (b) => (b.origin ? `${b.origin} line ${b.start}` : `line ${b.start}`);
+
+/** Tag every block with the channel it arrived on, so one set of checks can police both. */
+export const parseFencesFrom = (text, origin) => parseFences(text).map((b) => ({ ...b, origin }));
+
+/**
+ * Lines that LOOK like fence delimiters but which the parser did not consume as delimiters.
+ *
+ * THE ROUND-5 GENERALIZATION, and the reason this exists instead of a longer character class.
+ * Round 4's critical was `\r`. Round 5 found U+2028/U+2029 (same mechanism), then a BOM and a
+ * non-breaking space before the backticks (different mechanism — `^[ \t]*` simply does not admit
+ * them). Each was patched-and-reopened one code point at a time, which is a losing game: the strict
+ * matcher will always admit a smaller set than some downstream reader, and every gap is a fence the
+ * gate cannot see while the MODEL still reads the content as code.
+ *
+ * Both failure faces come from the same disagreement:
+ *   - FAIL-OPEN: an opener the parser misses means the block never exists, so there are no uncited
+ *     fences to refuse. A BOM'd unterminated block with an anchor-free remit reached exit 0.
+ *   - FALSE REFUSAL: an opener the parser misses turns the intended CLOSER into an opener, inverting
+ *     fence parity so the rest of the document becomes one uncited block. The operator is told to
+ *     "cite" their own closing delimiter — a remedy that cannot be followed.
+ *
+ * So rather than enumerate what may precede a fence, compare a LENIENT reading against the strict
+ * one and refuse when they disagree. `\s` in JavaScript already includes U+00A0, U+FEFF, U+2028,
+ * U+2029, U+000B and U+000C, so it is exactly the "anything a human or renderer would forgive"
+ * class. Any fence-like line that is neither a delimiter the parser used nor inside a block body is
+ * a line the two readings disagree about, and the gate must not certify a document it cannot agree
+ * with itself about.
+ *
+ * Nested fences are NOT anomalies: a ``` inside a ````-delimited body is legitimately not a
+ * delimiter, which is why body ranges are excluded rather than just the delimiter lines.
+ */
+export function fenceParseAnomalies(markdown) {
+  const lines = splitDocLines(markdown);
+  const blocks = parseFences(markdown);
+  const delimiters = new Set();
+  for (const b of blocks) { delimiters.add(b.start); delimiters.add(b.end); }
+  const insideBody = (n) => blocks.some((b) => n > b.start && n < b.end);
+
+  const out = [];
+  for (let i = 0; i < lines.length; i += 1) {
+    const n = i + 1;
+    if (!/^\s*(`{3,}|~{3,})/.test(lines[i])) continue;
+    if (delimiters.has(n) || insideBody(n)) continue;
+    out.push(n);
+  }
+  return out;
+}

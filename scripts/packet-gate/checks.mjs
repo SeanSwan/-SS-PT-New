@@ -35,12 +35,12 @@
 // One source of truth for the codes — ./refusal.mjs — so checks.mjs and canary.mjs cannot drift
 // into two vocabularies. Re-exported here because callers import the gate's vocabulary from checks.
 import { REFUSALS, finding } from './refusal.mjs';
-import { normalizeEol, normPath } from './normalize.mjs';
+import { normalizeEol, normPath, splitDocLines } from './normalize.mjs';
 
 // ONE import surface for the gate's vocabulary. The checks themselves live in four files for the
 // 300-line cap (rule 4); callers should not have to know which.
 export { REFUSALS, normPath, normalizeEol };
-export { parseFences, isUnverifiedFence } from './fences.mjs';
+export { parseFences, isUnverifiedFence, parseFencesFrom, blockWhere, fenceParseAnomalies } from './fences.mjs';
 export { checkProvenance } from './provenance.mjs';         // R3
 export { checkArtifact, isCodeBlock, mentions, hasBindingAnchors } from './artifact.mjs'; // R4
 export { checkCanary } from './canary.mjs';                 // R15
@@ -59,7 +59,7 @@ export function remitFromDoc(md) {
   // Same CRLF trap as parseFences, and it bit here too: `/^remit:\s*(.+)$/` cannot match a line
   // ending in `\r`, because `.` excludes line terminators — so frontmatter-style remits vanished
   // from every CRLF document, taking R4's and R5's anchors with them.
-  const lines = normalizeEol(md).split('\n');
+  const lines = splitDocLines(md);
 
   // FENCE-AWARE. A `## Remit` heading or a `remit:` line INSIDE a code fence is sample content,
   // not the packet's question. Without this, a packet that merely documents a remit (a YAML sample,
@@ -67,7 +67,10 @@ export function remitFromDoc(md) {
   const outside = [];
   let fence = null;
   for (const line of lines) {
-    const m = /^[ \t]*(`{3,}|~{3,})(.*)$/.exec(line);
+    // `[^\n]*`, matching parseFences: `.` excludes Unicode line terminators, so a fence line
+    // carrying one would go unnoticed here and a `## Remit` heading inside that fence would hijack
+    // extraction — the fence-awareness this loop exists for, silently switched off.
+    const m = /^[ \t]*(`{3,}|~{3,})([^\n]*)$/.exec(line);
     if (m) {
       if (!fence) fence = m[1];
       else if (m[1][0] === fence[0] && m[1].length >= fence.length && m[2].trim() === '') fence = null;
@@ -79,15 +82,42 @@ export function remitFromDoc(md) {
 
   const i = outside.findIndex((l) => l !== null && /^#{2,}\s*remit\s*$/i.test(l.trim()));
   if (i !== -1) {
+    // STOP ONLY AT A HEADING OF THE SAME LEVEL OR HIGHER — not at any heading at all.
+    //
+    // The stop test used `/^#{1,6}\s/`, so a SUBHEADING inside the remit section ended it. A remit
+    // written the way people actually write them —
+    //     ## Remit
+    //     Review the refund flow end to end.
+    //     #### In scope
+    //     `src/refunds/run.mjs` and its route
+    // — extracted only the first sentence. Every anchor below the subheading was dropped before
+    // extractAnchors saw it, so `aboutCode` went false, R4 returned [] unconditionally and R5 had
+    // nothing to resolve. Both checks silently did not run, which is the Category-2 failure this
+    // gate exists to refuse in other people's code, reached through the back door: the fail-closed
+    // empty-remit guard never fires because the remit is non-empty, just truncated. A phantom route
+    // below the subheading would be blessed. (GLM-5.3 round 5, F3.)
+    //
+    // This also matches CommonMark, where only a heading of level <= 2 closes a `##` section.
+    //
+    // Both tests now run on `l.trim()`. They disagreed before — start trimmed, stop did not — so an
+    // indented `## path/to/file.mjs` (still an ATX heading in CommonMark at <= 3 spaces) failed the
+    // stop test and was ABSORBED into the remit, injecting a real path anchor the operator never
+    // wrote and letting R4 be satisfied by citing it instead of the true subject. (Kimi K3 round 5,
+    // F6.) One predicate, one spelling, applied at both ends.
+    const level = /^(#{2,})/.exec(outside[i].trim())[1].length;
     const rest = outside.slice(i + 1);
-    const stop = rest.findIndex((l) => l !== null && /^#{1,6}\s/.test(l));
+    const stop = rest.findIndex((l) => {
+      if (l === null) return false;
+      const m = /^(#{1,6})\s/.exec(l.trim());
+      return Boolean(m) && m[1].length <= level;
+    });
     return (stop === -1 ? rest : rest.slice(0, stop)).filter((l) => l !== null).join('\n').trim();
   }
   const fm = outside.find((l) => l !== null && /^remit:\s*.+$/i.test(l));
   return fm ? /^remit:\s*(.+)$/i.exec(fm)[1].trim() : '';
 }
 
-import { isUnverifiedFence } from './fences.mjs';
+import { isUnverifiedFence, blockWhere } from './fences.mjs';
 
 /**
  * Uncited fences are unproven provenance — a REFUSAL (R3), not a bare `return 2` from the CLI.
@@ -113,7 +143,7 @@ export function checkUncited(blocks, allowUncited = false) {
   if (allowUncited) return [];
   const un = blocks.filter(isUnverifiedFence);
   if (!un.length) return [];
-  return [finding('R3', `${un.length} uncited fence(s) at line(s) ${un.map((b) => b.start).join(', ')} — NOT byte-verified; the model cannot tell them from the cited source, so they are indistinguishable from fabrication`,
+  return [finding('R3', `${un.length} uncited fence(s) at ${un.map(blockWhere).join(', ')} — NOT byte-verified; the model cannot tell them from the cited source, so they are indistinguishable from fabrication`,
     'cite them (```lang path=… lines=…), delete them, or pass --allow-uncited to accept them deliberately')];
 }
 

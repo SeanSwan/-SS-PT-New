@@ -17,13 +17,12 @@
  *
  * Run: node scripts/packet-gate/selftest.mjs
  */
-import { writeFileSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary, checkUncited } from './checks.mjs';
-import { gateSourceHash } from './source-hash.mjs';
-import { isUnverifiedFence } from './fences.mjs';
+import { runCanaries } from './canary-harness.mjs';
+import { isUnverifiedFence, fenceParseAnomalies } from './fences.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const OUT_DIR = path.join(ROOT, 'out', 'packet-gate');
@@ -210,6 +209,33 @@ red('R3 a CRLF packet cannot smuggle an uncited fence past the guard', 'R3', () 
 red('R3 a lone-CR packet cannot either', 'R3', () =>
   checkUncited(parseFences('```\rconst fabricated = 1;\r```\r'), false));
 
+// --- Round 5: parse integrity ---------------------------------------------------------------------
+// Patching hidden characters one at a time is a losing game — the strict matcher will always admit a
+// smaller set than a lenient reader, and every gap is a fence the gate cannot see while the model
+// still reads it as code. So the gate compares the two readings and refuses when they disagree.
+// These canaries drive that comparison red for each character class found in round 5.
+const hidden = (cp) => String.fromCharCode(cp);
+const anomalyCanary = (name, cp) => green(name, () => {
+  const doc = `${hidden(cp)}\`\`\`js\nconst fabricated = 1;\n\`\`\`\n`;
+  if (!fenceParseAnomalies(doc).length) throw new Error('a hidden character before the fence must be detected');
+  return [];
+});
+anomalyCanary('parse-integrity detects a BOM before a fence', 0xFEFF);
+anomalyCanary('parse-integrity detects a non-breaking space before a fence', 0xA0);
+anomalyCanary('parse-integrity detects a vertical tab before a fence', 0x0B);
+green('parse-integrity does NOT fire on a clean document', () => {
+  if (fenceParseAnomalies('## Remit\ntext\n```js path=x.mjs lines=1-1\nx\n```\n').length) {
+    throw new Error('false positive: a clean packet must have no anomalies');
+  }
+  return [];
+});
+green('parse-integrity does NOT fire on a nested fence inside a longer one', () => {
+  if (fenceParseAnomalies('````md path=a.md lines=1-3\n```\ninner\n```\n````\n').length) {
+    throw new Error('a fence inside a body is legitimately not a delimiter');
+  }
+  return [];
+});
+
 // --- Round 2 findings, 2026-08-15 ----------------------------------------------------------------
 // Round 1's fix for the anchor-free bypass depended on a filter requiring `b.lang`. A BARE fence
 // has falsy lang, so the identical bypass reopened with one fewer keystroke, and the approval view
@@ -247,31 +273,4 @@ red('R15 refuses when the gate source hash cannot be computed', 'R15', () =>
 
 // ---------------------------------------------------------------------------------------------
 
-const results = cases.map((c) => {
-  try {
-    const findings = c.run();
-    const codes = findings.map((f) => f.code);
-    if (c.expect === null) {
-      return { name: c.name, pass: findings.length === 0, detail: findings.length ? `expected clean, got ${codes.join(',')}` : 'clean' };
-    }
-    return { name: c.name, pass: codes.includes(c.expect), detail: codes.length ? codes.join(',') : 'NO REFUSAL — gate did not fire' };
-  } catch (err) {
-    return { name: c.name, pass: false, detail: `threw: ${err.message}` };
-  }
-});
-
-const greenCount = results.filter((r) => r.pass).length;
-const redCount = results.length - greenCount;
-
-for (const r of results) console.log(`${r.pass ? 'ok  ' : 'FAIL'}  ${r.name}${r.pass ? '' : `  [${r.detail}]`}`);
-console.log(`\n${greenCount}/${results.length} canaries green, ${redCount} red`);
-
-mkdirSync(OUT_DIR, { recursive: true });
-writeFileSync(path.join(OUT_DIR, 'selftest.json'), JSON.stringify({
-  ranAt: new Date().toISOString(), total: results.length, green: greenCount, red: redCount,
-  // Binds this run to the gate code it certified — R15 refuses a record whose source has moved.
-  sourceHash: gateSourceHash(), cases: results,
-}, null, 2));
-console.log(`wrote ${path.relative(ROOT, path.join(OUT_DIR, 'selftest.json'))}`);
-
-process.exit(redCount === 0 ? 0 : 1);
+process.exit(runCanaries(cases, { root: ROOT, outDir: OUT_DIR }));
