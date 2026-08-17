@@ -134,6 +134,46 @@ describe('CoachFreestyleOverlay — it actually hears (Fable F-2)', () => {
     expect(screen.queryByText('client did squats')).not.toBeInTheDocument();
   });
 
+  /**
+   * ROUND-10 REGRESSION (Codex MED). The closing render still reads
+   * 'listening' (the hide-pause is a passive effect), and the overlay stays
+   * visible through a 250ms fade — so the phrase could fade out on screen
+   * with a client-name tail. The isOpen gate hides it on the closing frame.
+   * REMOVAL REGRESSION ONLY: act() flushes the passive pause before this
+   * assertion, so the closing-frame timing itself is not observable here —
+   * the isOpen gate is what makes the closing RENDER safe, by construction.
+   */
+  it('hides the live phrase on the closing frame', () => {
+    const { rerender } = renderOverlay();
+    say('client did squats', false);
+    expect(screen.getByText('client did squats')).toBeInTheDocument();
+
+    rerender(
+      <CoachFreestyleOverlay isOpen={false} accountKey="trainer-a" onClose={vi.fn()} />,
+    );
+
+    expect(screen.queryByText('client did squats')).not.toBeInTheDocument();
+  });
+
+  /**
+   * ROUND-10 REGRESSION (Codex MED). An account switch released the engine
+   * only via the passive follow effect — the cloud-backed recogniser kept
+   * hearing briefly past the ownership boundary. A layout effect now aborts
+   * it before paint. (jsdom cannot observe the paint-timing difference; this
+   * asserts the release happens at all on the switch path.)
+   */
+  it('releases the engine when the account switches', () => {
+    const { rerender } = renderOverlay();
+    say('something');
+    const abortsBefore = abortCalls;
+
+    rerender(
+      <CoachFreestyleOverlay isOpen accountKey="trainer-b" onClose={vi.fn()} />,
+    );
+
+    expect(abortCalls).toBeGreaterThan(abortsBefore);
+  });
+
   it('does not count an interim phrase as captured', () => {
     renderOverlay();
 

@@ -16,7 +16,7 @@
  * of the road. That boundary is deliberate: a bug here can lose a draft, never
  * corrupt a client's record.
  */
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import { Mic, Pause, Play, Check, Trash2, X } from 'lucide-react';
 import {
   useFreestyleSession,
@@ -138,6 +138,22 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     speechStopRef.current();
     pauseRef.current();
   }, []);
+
+  /**
+   * ACCOUNT SWITCH kills the engine BEFORE PAINT. The session view masks to
+   * idle synchronously, but the follow effect that actually releases the
+   * cloud-backed recogniser is passive — so trainer A's microphone kept
+   * hearing briefly under trainer B's boundary (Codex, round 10). Layout
+   * effects run before paint. No flush: at this instant the ownership guard
+   * refuses appends, so A's in-flight words are dropped — fail-closed, never
+   * mis-owned.
+   */
+  const prevAccountRef = useRef(accountKey);
+  useLayoutEffect(() => {
+    if (prevAccountRef.current === accountKey) return;
+    prevAccountRef.current = accountKey;
+    speechStopRef.current();
+  }, [accountKey]);
 
   /**
    * S4: `isOpen` only toggles visibility — the component stays mounted. Without
@@ -374,7 +390,7 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
    * words up on a gym floor was never right anyway. isListening derives from
    * the MASKED state, so the mismatch window reads idle and shows nothing.
    */
-  const latestPhrase = !isListening
+  const latestPhrase = !isOpen || !isListening
     ? ''
     : speech.interim
       ? tailWords(speech.interim)
