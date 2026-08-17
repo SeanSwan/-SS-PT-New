@@ -296,12 +296,27 @@ describe('comfyui workflow injection', () => {
     // ComfyUI ignores an undeclared input, so inventing one renders the template's
     // placeholder prompt at full GPU cost and reports success. Silent wrong output
     // is strictly worse than a loud refusal.
-    const p = writeGraph({ 6: { class_type: 'CLIPTextEncode', inputs: { string: 'PLACEHOLDER' } } });
+    const p = writeGraph({ 6: { class_type: 'WeirdNode', inputs: { unrelated: 1 } } });
     let err;
     try { buildGraph(validRequest(), cfgFor(p)); } catch (e) { err = e; }
     expect(err.code).toBe('E_NO_INPUT');
-    expect(err.message).toMatch(/has no input "text"/);
-    expect(err.message).toMatch(/its inputs are: string/i);
+    expect(err.message).toMatch(/no input for "prompt"/);
+    expect(err.message).toMatch(/tried: text, prompt, string/);
+    expect(err.message).toMatch(/its inputs are: unrelated/i);
+  });
+
+  it('DETECTS the field name instead of assuming one', () => {
+    // Wan's CLIPTextEncode calls it `text`; MiniMax H3's MiniMaxH3ImageToVideo calls it
+    // `prompt`. Hardcoding `text` drove one model and threw on the other — found on the
+    // first real H3 render, by the guard above.
+    const wan = writeGraph({ 6: { class_type: 'CLIPTextEncode', inputs: { text: 'X' } } });
+    expect(buildGraph(validRequest({ prompt: 'a swan' }), cfgFor(wan))['6'].inputs.text).toBe('a swan');
+
+    const h3 = writeGraph({ 6: { class_type: 'MiniMaxH3ImageToVideo', inputs: { prompt: 'X', width: 1344 } } });
+    const g = buildGraph(validRequest({ prompt: 'a swan' }), cfgFor(h3));
+    expect(g['6'].inputs.prompt).toBe('a swan');
+    // and it must not have invented the other name alongside it
+    expect(g['6'].inputs.text).toBeUndefined();
   });
 
   it('throws a named error when the template file is absent', () => {
