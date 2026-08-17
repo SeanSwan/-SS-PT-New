@@ -92,13 +92,24 @@ describe('cart routes security hardening', () => {
   });
 
   it('strictly parses Stripe webhook cart metadata before granting sessions', () => {
-    const webhookRoute = cartRouteSource.slice(cartRouteSource.indexOf("router.post('/webhook'"));
+    // 2026-08-16: this asserted the LEGACY mount's own copy of the parsing. That copy
+    // is gone — /api/cart/webhook now DELEGATES to the canonical handler by identity
+    // (webhookMountParity.test.mjs proves it), because the duplicate switch silently
+    // 200-acked every event type the canonical handler gained, including refunds.
+    // Same invariant — metadata is strictly parsed, never parseInt'd, before a grant —
+    // asserted where the code now lives.
+    expect(cartRouteSource).toMatch(/router\.post\('\/webhook',\s*express\.raw\(/);
+    expect(cartRouteSource).toContain('stripeWebhookHandler(req, res)');
 
-    expect(webhookRoute).toContain('const normalizedCartId = parsePositiveInteger(cartId);');
-    expect(webhookRoute).toContain('const normalizedUserId = parsePositiveInteger(userId);');
-    expect(webhookRoute).toContain("await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook', { checkoutSessionId: session.id })");
-    expect(webhookRoute).not.toContain('parseInt(cartId)');
-    expect(webhookRoute).not.toContain('parseInt(userId)');
+    const canonical = readSource('webhooks/stripeWebhook.mjs');
+    const completed = canonical.slice(canonical.indexOf("case 'checkout.session.completed'"));
+
+    expect(completed).toContain('Number.parseInt(cartId, 10)');
+    expect(completed).toContain('Number.isInteger(cartIdNumber)');
+    // userId is taken from the DB row, never from event metadata — stronger than
+    // parsing it, and the reason a forged metadata userId cannot cross accounts.
+    expect(completed).toContain('grantSessionsForCart(cartIdNumber, cart.userId');
+    expect(completed).not.toContain('parseInt(userId)');
   });
 
   it('skips global express.json for /api/cart/webhook so Stripe raw signature verification can work', () => {

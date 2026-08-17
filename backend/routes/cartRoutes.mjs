@@ -28,7 +28,6 @@ import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 // quietly disabling a money-path guard.
 import cartHelpers, { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
 import { resolveUnitPrice, UnpriceableItemError } from '../services/store/itemPricing.mjs';
-import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
 import {
   normalizeAuthenticatedUserId,
   safeFindOrCreateActiveCart,
@@ -954,126 +953,31 @@ router.post('/cancel-checkout', protect, ensureNumericCartUser, async (req, res)
 /**
  * Webhook handler for Stripe events
  * POST /api/cart/webhook
- * Processes async events from Stripe (payment confirmations, etc.)
+ *
+ * DELEGATES to the canonical handler — it does not reimplement it.
+ *
+ * This route used to carry its own switch covering exactly two events
+ * (checkout.session.completed, checkout.session.expired). Every event type the
+ * canonical handler gained — payment_intent.succeeded/processing/payment_failed,
+ * charge.refunded, charge.dispute.created — fell through to `default` here and was
+ * SILENTLY 200-ACKED. Stripe saw success and never redelivered, so whether a refund
+ * was detected at all depended on which URL the dashboard happened to point at
+ * (Kimi K3 HIGH-2, round 2).
+ *
+ * The two copies had already drifted once, on checkout.session.expired: legacy
+ * released the cart, canonical only flagged it. One handler, one contract.
+ *
+ * express.raw stays HERE because signature verification needs the untouched Buffer
+ * and the global JSON parser is bypassed for this path (see core/middleware).
  */
-router.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
-  // --- Add check for Stripe client ---
-  if (!stripeClient) {
-    logger.error('Received Stripe webhook but Stripe is not enabled/initialized.');
-    return res.status(503).send('Webhook Error: Payment processing is not configured.');
-  }
-  // --- End check ---
-  
-  const signature = req.headers['stripe-signature'];
-  
-  if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
-    logger.error('Missing Stripe webhook signature or secret');
-    return res.status(400).send('Webhook Error: Missing signature or configuration');
-  }
-  
-  let event;
-  
-  try {
-    event = stripeClient.webhooks.constructEvent(
-      req.body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    logger.error('[Webhook] Signature verification failed', {
-      ...toCartErrorMetadata(err, 'cart_webhook_signature_failed')
-    });
-    return res.status(400).send('Webhook Error: Signature verification failed');
-  }
-  
-  // Handle the event
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-
-        if (session.payment_status === 'paid') {
-          const { cartId, userId } = session.metadata || {};
-
-          if (cartId && userId) {
-            const normalizedCartId = parsePositiveInteger(cartId);
-            const normalizedUserId = parsePositiveInteger(userId);
-
-            if (!normalizedCartId || !normalizedUserId) {
-              logger.warn('[Webhook] Ignoring completed checkout with invalid cart metadata');
-              break;
-            }
-
-            // Grant sessions via shared service (transaction + row lock + atomic increment)
-            // If verify-session already ran, this is idempotent (returns alreadyProcessed=true)
-            const result = await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook', { checkoutSessionId: session.id });
-
-            if (result.granted) {
-              logger.info('[Webhook] Sessions granted for cart', {
-                cartId: normalizedCartId,
-                userId: normalizedUserId,
-                sessionsAdded: result.sessionsAdded
-              });
-            } else {
-              logger.info('[Webhook] Cart already processed', {
-                cartId: normalizedCartId,
-                userId: normalizedUserId
-              });
-            }
-
-            // Parity with the canonical /api/webhook/stripe handler. This legacy mount
-            // used to STOP after granting — so if Stripe were ever pointed here, a sale
-            // would credit sessions but create no order, no trainer commission, and no
-            // admin notification (trainers silently unpaid). processCompletedOrder is
-            // idempotent (claims side effects once via Order.paymentAppliedAt), so running
-            // it here is safe whether this endpoint is canonical, legacy, or both are hit.
-            const { processCompletedOrder } = await import('../webhooks/stripeWebhook.mjs');
-            await processCompletedOrder(normalizedCartId, {
-              grantResult: result,
-              stripeSessionId: session.id,
-            });
-          }
-        }
-        break;
-      }
-
-      case 'checkout.session.expired': {
-        const session = event.data.object;
-        const { cartId } = session.metadata || {};
-        const normalizedCartId = parsePositiveInteger(cartId);
-
-        if (normalizedCartId) {
-          const ShoppingCart = getShoppingCart();
-          await ShoppingCart.update(
-            {
-              status: 'active',
-              paymentStatus: 'cancelled',
-              checkoutSessionExpired: true,
-              checkoutSessionId: null,
-              paymentIntentId: null,
-            },
-            {
-              where: { id: normalizedCartId, status: 'pending_payment', checkoutSessionId: session.id },
-            }
-          );
-          logger.info('[Webhook] Checkout session expired for cart', {
-            cartId: normalizedCartId
-          });
-        } else if (cartId) {
-          logger.warn('[Webhook] Ignoring expired checkout with invalid cart metadata');
-        }
-        break;
-      }
-    }
-
-    res.json({ received: true });
-  } catch (err) {
-    // Return 5xx so Stripe retries the webhook (prevents lost credits)
-    logger.error('[Webhook] Processing error', {
-      ...toCartErrorMetadata(err, 'cart_webhook_processing_failed')
-    });
-    res.status(500).send('Webhook processing error');
-  }
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  // LAZY import, deliberately. A static import pulls the canonical handler's entire
+  // dependency graph (models, notification, commission, gamification, session
+  // services) into every module that imports cartRoutes — which broke four test
+  // suites whose mocks legitimately only cover the cart's own dependencies. Node
+  // caches the module, so this resolves once per process.
+  const { stripeWebhookHandler } = await import('../webhooks/stripeWebhook.mjs');
+  return stripeWebhookHandler(req, res);
 });
 
 // DELETE the /api/cart/checkout/success route - It's insecure

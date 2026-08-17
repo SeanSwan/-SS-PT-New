@@ -48,7 +48,11 @@ if (isStripeEnabled()) {
  *   POST /webhook   (legacy: /webhooks/stripe/webhook)
  *   POST /          (alias:  /api/webhook/stripe — matches Stripe dashboard config)
  */
-const stripeWebhookHandler = async (req, res) => {
+// EXPORTED so the legacy /api/cart/webhook mount can delegate to it rather than
+// reimplement the switch. Two implementations of one webhook contract is the
+// divergence class that already produced the expired-cart bug and left the legacy
+// mount silently 200-acking refunds, disputes and every ACH event (Kimi K3 HIGH-2).
+export const stripeWebhookHandler = async (req, res) => {
   // Verify webhook signature
   let event;
   try {

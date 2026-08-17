@@ -133,27 +133,28 @@ describe('canonical webhook releases the cart on checkout.session.expired', () =
     expect(mocks.mockCartUpdate).not.toHaveBeenCalled();
   });
 
-  it('matches the legacy handler so the two mounts cannot diverge again', () => {
-    const canonical = readFileSync(resolve(process.cwd(), 'webhooks/stripeWebhook.mjs'), 'utf8');
+  it('keeps ONE implementation, so the two mounts cannot diverge again', () => {
+    // 2026-08-16: this used to assert BOTH files carried an equivalent expired-case
+    // reset. They no longer both carry one — /api/cart/webhook delegates to the
+    // canonical handler by identity, which makes divergence structurally impossible
+    // rather than merely asserted. Verify the canonical implementation, and that the
+    // legacy mount has no competing copy.
+    const canonical = readFileSync(resolve(process.cwd(), 'webhooks/stripeWebhook.mjs'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+    const start = canonical.indexOf("case 'checkout.session.expired'");
+    expect(start, 'canonical must handle checkout.session.expired').toBeGreaterThan(-1);
+    const nextCase = canonical.indexOf("case '", start + 10);
+    const scoped = canonical.slice(start, nextCase > -1 ? nextCase : start + 2000);
+
+    expect(scoped).toContain("status: 'active'");
+    expect(scoped).toContain('checkoutSessionId: null');
+    expect(scoped).toContain("status: 'pending_payment'");
+    expect(scoped).toContain('checkoutSessionId: session.id');
+
     const legacy = readFileSync(resolve(process.cwd(), 'routes/cartRoutes.mjs'), 'utf8');
-
-    for (const [name, source] of [['canonical', canonical], ['legacy', legacy]]) {
-      // Strip comments before slicing. Both handlers now carry a long explanatory
-      // block, and a fixed-width window over raw source measures prose, not code.
-      const code = source
-        .replace(/\/\*[\s\S]*?\*\//g, '')
-        .replace(/(^|[^:])\/\/.*$/gm, '$1');
-
-      const start = code.indexOf("case 'checkout.session.expired'");
-      expect(start, `${name} must handle checkout.session.expired`).toBeGreaterThan(-1);
-      // Scope to this case only — up to the next `case '` label.
-      const nextCase = code.indexOf("case '", start + 10);
-      const scoped = code.slice(start, nextCase > -1 ? nextCase : start + 2000);
-
-      expect(scoped, `${name} must return the cart to active`).toContain("status: 'active'");
-      expect(scoped, `${name} must clear the dead session id`).toContain('checkoutSessionId: null');
-      expect(scoped, `${name} must scope the write to pending_payment`).toContain("status: 'pending_payment'");
-      expect(scoped, `${name} must scope the write to this session`).toContain('checkoutSessionId: session.id');
-    }
+    expect(legacy).toContain('stripeWebhookHandler');
+    expect(legacy).not.toContain("case 'checkout.session.expired'");
   });
 });
