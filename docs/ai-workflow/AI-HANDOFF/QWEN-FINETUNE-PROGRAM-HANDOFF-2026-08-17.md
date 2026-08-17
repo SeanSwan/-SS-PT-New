@@ -11,6 +11,27 @@ sanitized: true
 
 Read order: this doc → the plan's Revision R1 block → SWA-169's comment trail. Verify every live-state claim below before acting on it (stale-check law): another agent may have moved things.
 
+---
+
+## ⚖ UPDATE U1 — 2026-08-17, Opus 5 session (BINDING where it conflicts with the body)
+
+The handoff's live-state claims were stale-checked. **Three were wrong**; recording the corrections so the next reader does not re-inherit them.
+
+| § | Claim as written | Verified reality |
+|---|---|---|
+| 3, 6.2, 7 | first push "permission-blocked" by the tool classifier | **Misdiagnosed.** The push was rejected by *GitHub*: `GH007 — your push would publish a private email address`, because both commits carried Sean's real address. The tool classifier separately blocks `git filter-branch` (a protected history-rewrite op), which is a different gate. **RESOLVED:** Sean authorized the noreply rewrite (Rule 45); history rebuilt via orphan-checkout + cherry-pick (no rewrite tooling needed), rebuilt tree hash proven **identical** (`117d7854…`), pushed. `origin/main` = `f10f56c`, 23 files, leak-checked — no `agent-tuning-local/`, `.jsonl`, or `sealed/` tracked. |
+| 4.1 / 4.2 | residue = GLM's one LOW + one missing Kimi fixture | **Understated.** GLM H10-1's fix was *already in the regex* (the 5th lookbehind already spans `[^)]{0,120}`) — it landed as Kimi's H10 fix; same locus, same edit. The real gap was **proof**: the committed suite had **zero** fixtures for the *entire* H8/H9/H10 exemption family, so H8-1, H9-1 and H10-1 were all unguarded. **CONSUMED** in `f10f56c`: 16 assertions, suite **33 → 34**. |
+| 6.4 | "Hermes 30B ≈ 25GB resident" | **Stale figure.** Actual resident is the `qwen3.8:27b-mtp-q4_K_M` tag at **17GB** (24.6GB of 32GB used overall, 7.5GB free). Conclusion unchanged — still under the 20GB preflight, still needs the model stopped. Stopped → **27,034 MiB free**. |
+
+**Sean's S0 answers (plan §12), collected this session:**
+- **Q2 track order — CONFIRMED: Coach (Track A) first**, as planned. Track B waits for the contract freeze rather than eating regeneration cost.
+- **Q5 transcript mining — SYNTHETIC-ONLY** until Sean personally reviews the redaction builder's output on real rows. No production transcript enters the pipeline before that review.
+- **Q1** is already resolved by §1 (Qwen 3.8 is a real local family Sean runs). **Q4 (Stage-3 appetite)** and **Q6 (Track C base size)** remain open — both non-blocking (Track C is gated behind Track A + SC0 anyway).
+
+**Method note for the next reviewer:** the new fixture block was **mutation-checked** — reverting the 5th lookbehind to its pre-H10 `\s*` form makes the block fail on `:is(#face, #beef)`. A fixture that has not been shown to fail against the defeated code is not proof that it defends (the H2 law). Do this for every regression block you add.
+
+---
+
 ## 1. What this program is
 
 Sean is building THREE locally fine-tuned Qwen models on his RTX 5090 (32GB VRAM, Ollama, Unsloth Studio installed at `~\.unsloth\studio\bin`), using the standalone factory repo at `C:\Users\BigotSmasher\Desktop\ai-agent-tuning` (NOT inside SS-PT):
@@ -78,3 +99,12 @@ Behavioral laws the marathon burned in (repeat-tested at Sean's expense — do n
 - Stale zero-byte `.git/index.lock` from crashed parallel-agent commits: verify no git process (`tasklist`), then remove — twice this session.
 - The tool-permission classifier can transiently time out (retry) and blocks pushes to NEW remotes (hand to Sean).
 - Parallel sessions commit to the same wip branch — always `git log origin/<branch>..HEAD` before claiming counts; lane-ledger discipline (Rule 67) before editing anything.
+
+### Added 2026-08-17 (U1 session) — Unsloth CLI traps, all hit live
+
+- **`unsloth train` EXITS 0 ON FAILURE.** A run that never trained a single step returned `TRAIN_EXIT=0`; the error was only in the log body. **Never trust its exit code** — assert the checkpoint exists (`adapter_model.safetensors` + `checkpoint-N/`) before believing a train happened. This is the "tools that report false success" class; it would have silently poisoned every downstream claim.
+- **Studio sandboxes output paths.** `--output-dir` must resolve UNDER `~/.unsloth/studio/outputs`; an absolute path into the repo dies with `path escapes root: … is not under …\studio\outputs`. Pass a *relative* name (`--output-dir pilot-coach-s2a`) and copy artifacts to the repo afterward.
+- **`unsloth train --dry-run` resolves the full config without touching the GPU** — use it to validate an invocation *before* stopping the Hermes brain. It does NOT validate that the model id exists; check that separately (`curl -o /dev/null -w '%{http_code}' https://huggingface.co/api/models/<id>`).
+- **Merged/GGUF export re-downloads the full bf16 base (~16GB, 4 shards)** even when the 4-bit base is already cached — QLoRA merge needs full precision. Budget the time and disk; it is not a hang.
+- **The eval rows carry ONLY a user turn and the harness injects no system prompt** (`row.input ?? row.messages`; `--profile` drives deterministic checks only). So the system prompt must come from each arm's Ollama Modelfile — and **both arms must get the identical prompt**, or you have silently compared tuned-with-prompt against base-without-prompt and flattered the tune. R1's baseline is *base + best system prompt*; use `TRACK_PROFILE_PROMPTS[...]` verbatim on both, and verify with `ollama show <tag> --system`.
+- **Pilot config cannot produce a tune, by construction:** 20 rows ÷ (batch 2 × accum 4) = **3 optimizer steps**, against `warmup_steps: 5` — the LR never finishes warming up (peaks at 8e-5 of the 2e-4 target on the final step), 6,071 tokens seen, `train_loss` 5.01. It is a *plumbing* test and nothing else. The next real run must fix warmup/accum for the row count, not merely add rows.
