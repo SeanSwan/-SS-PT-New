@@ -1,0 +1,79 @@
+========================================================================
+HELD-OUT CORPUS vs qwen3:14b + compressed contract — the port decision
+========================================================================
+
+[PASS] negation-supply  (7.0s)
+   trap: Negated need — "don't need" must not become a supply request
+
+[PASS] supply-inside-observation  (1.6s)
+   trap: Supply noun inside a developmental observation should stay an observation
+     -> observation     c=0.9 child=c3(model) ⚑ "Zoe used the glue stick all by herself today"
+
+[PASS] parent-inside-observation  (1.1s)
+   trap: Parent noun inside an observation should not flip it to parent
+     -> observation     c=0.9 child=c6(model) ⚑ "Rafi told his mum about the caterpillar comple"
+
+[PASS] child-name-in-supply  (2.1s)
+   trap: A child name in a supply line must NOT child-link the supply item
+     -> supply          c=0.9 child=c4(model) "need more of the dinosaur blocks Kai likes"
+
+[FAIL] name-word-collision  (2.5s)
+   trap: A child called Summer vs the season; a child called Art vs the activity
+     -> observation     c=0.9 child=c7(model) ⚑ "Summer had a hard time at nap."
+     -> prep            c=0.8 "We did art in the afternoon."
+     MISSED: child_followup
+     FALSE POSITIVE: observation
+
+[FAIL] no-punctuation-runon  (2.6s)
+   trap: Dictation with zero punctuation — the hardest real input
+     -> observation     c=0.9 child=c2(model) ⚑ "Tomas cried at drop off again"
+     -> observation     c=0.8 child=c3(model) ⚑ "Zoe counted to twenty"
+     -> supply          c=0.7 "Need wipes"
+     -> parent          c=0.8 child=c1(model) "Priya's mum asked about the trip"
+     MISSED: child_followup
+     FALSE POSITIVE: observation
+
+[FAIL] pure-emotion  (4.1s)
+   trap: Emotional content with no actionable item — must not invent tasks
+     -> admin           c=0.8 "Teacher needs rest and support — consider self"
+     FALSE POSITIVE: admin
+
+[FAIL] ambiguous-dual  (1.5s)
+   trap: Genuinely two types in one clause — either is defensible
+     -> child_followup  c=1 child=c2(model) ⚑ "incident — complete the school's own form"
+     MISSED: admin
+
+[FAIL] past-tense-done  (1.5s)
+   trap: Already-completed work should not be emitted as a future task
+     -> prep            c=1 "already printed the newsletter and laminated t"
+     MISSED: prep
+
+[PASS] question-to-self  (1.3s)
+   trap: A question is not a task
+     -> idea            c=0.7 "Consider adjusting the nap time to see if it i"
+
+[FAIL] medical-adjacent  (2.3s)
+   trap: Health content must classify, not vanish — it is the highest-sensitivity class
+     -> observation     c=0.9 child=c5(model) ⚑ "Ines has a rash on her arm"
+     -> parent          c=0.8 child=c5(model) "Ines told her dad at pickup about the rash and"
+     MISSED: child_followup
+     FALSE POSITIVE: observation
+
+[FAIL] multi-child-single-clause  (1.9s)
+   trap: Two children in one clause — must not silently pick one
+     -> observation     c=0.9 child=c1(model) ⚑ "Priya managed the stairs by herself today"
+     -> observation     c=0.9 child=c6(model) ⚑ "Rafi managed the stairs by himself today"
+     FALSE POSITIVE: observation
+
+========================================================================
+Expected fragments        15
+Correctly typed           10  (66.7% recall — rules baseline 53.3%)
+False positives           5  (invented items — the expensive error)
+Child-link violations     1  (must be 0)
+Unflagged child items     0  (must be 0)
+Parse failures            0  (model broke the output contract)
+========================================================================
+
+PORT DECISION: GATE FAILED — the port hypothesis does not survive contact with the 14B
+
+[exited with code 1]

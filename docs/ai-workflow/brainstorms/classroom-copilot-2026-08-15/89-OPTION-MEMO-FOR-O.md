@@ -22,6 +22,11 @@ the rules sorter **cannot** fabricate items or link a child it wasn't told about
 failure mode is fail-closed (it misses things and leaves them untyped for T's manual pass;
 missed items simply stay in the dump T already reviews in full). The model's failure mode
 is fail-open (it invents). That asymmetry, not the recall number, is the case for (a).
+**Determinism, scoped precisely:** the rules sorter is deterministic — pure code, same
+input → same output, always. The model variant is measured NON-deterministic even at
+temperature 0 (three runs, same config: recall 60.0–66.7%, a compliance metric flipped) —
+one more structural reason (a) is the safe default and the model belongs, if anywhere,
+behind a deterministic guard.
 
 ## Your three options (pick after the H0 gate reads out, step 7)
 
@@ -53,7 +58,12 @@ risk explicitly (a one-line reply suffices — it gets recorded on the tracker i
 (ii) say "schedule the tripwire" — the probe script now has a `--tripwire` mode that exits
 nonzero the moment any minor signal turns up, ready to drop into any scheduler — or
 (iii) order the deny-by-default gate slice built now instead of backlog. Silence past the
-deadline gets re-asked, not assumed.
+deadline gets re-asked, not assumed — **re-ask owner: whichever agent session next reads
+the board after 2026-08-23, at every session start until you answer** (the dated request
+lives on the tracker issue, so any agent lands on it). One rider so a single reply covers
+all the child-safety items: the reviewers also recorded a proposed constitution amendment
+(whether the paid-panel escalation tier should be recalibrated for tiny personally-known
+populations) — accept, reject, or defer it in the same breath.
 
 **Recommendation:** (a) now, silently, as part of week-one — it is invisible to T except
 that some of her dump arrives pre-sorted; then let the step-7 gate reading and T's
