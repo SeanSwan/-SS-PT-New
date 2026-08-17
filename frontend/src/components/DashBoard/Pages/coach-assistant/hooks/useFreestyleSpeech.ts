@@ -119,6 +119,13 @@ export interface UseFreestyleSpeechReturn {
   start: () => void;
   stop: () => void;
   /**
+   * Clears a latched error so the NEXT open can auto-retry. Deliberately not
+   * inside stop(): fatal errors must survive teardown long enough for the
+   * overlay's fail bridge to consume them — clear only at surface close,
+   * after the bridge has run (Codex, round 18).
+   */
+  clearError: () => void;
+  /**
    * Promotes the pending interim to a final phrase (through `onPhrase`) and
    * clears it. Callers MUST flush before a session transition that stops
    * accepting fragments — otherwise the words spoken mid-sentence when the user
@@ -330,5 +337,7 @@ export function useFreestyleSpeech(
     teardown();
   }, [teardown]);
 
-  return { supported, listening, interim, error, restarts, start, stop, flush };
+  const clearError = useCallback(() => setError(null), []);
+
+  return { supported, listening, interim, error, restarts, start, stop, flush, clearError };
 }

@@ -319,9 +319,13 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     // so a mid-flight phrase lands before reset purges (receipted) — words are
     // never silently dropped between the tap and the close.
     speechStopRef.current();
+    // Clear the latched speech error AT CLOSE, after the fail bridge has long
+    // consumed it — a stale error suppressed the follow effect on the NEXT
+    // open, so a once-failed engine was never auto-retried (Codex, round 18).
+    speech.clearError();
     reset('completed');
     onClose();
-  }, [reset, onClose]);
+  }, [speech, reset, onClose]);
 
   const isListening = state === 'listening';
   const isPaused = state === 'paused';

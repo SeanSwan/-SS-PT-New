@@ -36,6 +36,8 @@ let engine: {
 
 let startCalls = 0;
 let abortCalls = 0;
+/** One-shot switch: the next engine start() throws (transient failure). */
+let throwOnNextEngineStart = false;
 
 class FakeRecognition {
   continuous = false;
@@ -45,7 +47,13 @@ class FakeRecognition {
   onerror: ((e: { error?: string }) => void) | null = null;
   onend: (() => void) | null = null;
   constructor() { engine = this as unknown as typeof engine; }
-  start() { startCalls += 1; }
+  start() {
+    if (throwOnNextEngineStart) {
+      throwOnNextEngineStart = false;
+      throw new DOMException('transient', 'NotAllowedError');
+    }
+    startCalls += 1;
+  }
   stop() { this.onend?.(); }
   abort() { abortCalls += 1; }
 }
@@ -62,6 +70,7 @@ beforeEach(() => {
   engine = null;
   startCalls = 0;
   abortCalls = 0;
+  throwOnNextEngineStart = false;
   (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition = FakeRecognition;
 });
 
@@ -172,6 +181,30 @@ describe('CoachFreestyleOverlay — it actually hears (Fable F-2)', () => {
     );
 
     expect(abortCalls).toBeGreaterThan(abortsBefore);
+  });
+
+  /**
+   * ROUND-18 REGRESSION (Codex MED). A failed engine start latched its error
+   * forever — the follow effect's !speech.error gate then suppressed the
+   * auto-retry on every subsequent open, so one transient failure disabled
+   * dictation until a manual Start. Close now clears the latched error
+   * (after the fail bridge has consumed it).
+   */
+  it('reopening after a failed engine start retries the engine', () => {
+    throwOnNextEngineStart = true;                        // transient failure
+    const { rerender } = renderOverlay();
+    expect(screen.getByText(/could not start/i)).toBeInTheDocument();
+    const startsAfterFailure = startCalls;
+
+    act(() => { screen.getByLabelText('Cancel').click(); });   // close clears the latch
+    rerender(
+      <CoachFreestyleOverlay isOpen={false} accountKey="trainer-a" onClose={vi.fn()} />,
+    );
+    rerender(
+      <CoachFreestyleOverlay isOpen accountKey="trainer-a" onClose={vi.fn()} />,
+    );
+
+    expect(startCalls).toBeGreaterThan(startsAfterFailure);    // engine retried
   });
 
   /**

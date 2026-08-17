@@ -254,6 +254,10 @@ export function useFreestyleSession(
      */
     const hadData = fragmentsRef.current.length > 0;
     wipeRefs();
+    // A purge clears the ERROR too: the shared-tablet guarantee covers failure
+    // text, not just words — account B must not read A's failure message
+    // (Codex, round 18). Every purge path flows through here.
+    setError(null);
     if (hadData) onPurgeRef.current?.(reason);
   }, [wipeRefs]);
 

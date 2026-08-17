@@ -626,6 +626,26 @@ describe('freestyle session — retention contract', () => {
   });
 
   /**
+   * ROUND-18 REGRESSION (Codex LOW). Purges cleared the words but not the
+   * error text — the hook could hand account B a return carrying account A's
+   * failure message. The shared-tablet guarantee covers failure text too.
+   */
+  it('a purge clears the error along with the words', () => {
+    const { result, rerender } = renderHook(
+      ({ account }) => useFreestyleSession({ accountKey: account, now }),
+      { initialProps: { account: 'trainer-a' as string } },
+    );
+    act(() => { result.current.start(); result.current.appendFragment('words'); });
+    act(() => { result.current.fail('A-only failure detail'); });
+    expect(result.current.error).toBe('A-only failure detail');
+
+    rerender({ account: 'trainer-b' });
+
+    expect(result.current.state).toBe('idle');
+    expect(result.current.error).toBeNull();
+  });
+
+  /**
    * ROUND-1 REGRESSION (Codex). A transition TO null is a logout; receipting it
    * as 'account-switch' hid every logout from the audit.
    */
