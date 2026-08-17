@@ -318,16 +318,22 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
    * isOpen-false path deliberately does NOT come here — hiding preserves the
    * session, and only a terminating exit may clear the latch.
    */
+  const { abandon, clearError } = speech;
   const closeSession = useCallback((settle: () => void) => {
     // ABANDON, not stop: both settles destroy the buffer, so flushing the
     // interim on the way out stored words only to purge them a line later —
     // under a receipt naming the wrong act (GLM, round 20). Interim dies as
     // interim here; the deliberate flush points are Done, Pause, discard-arm.
-    speech.abandon();
-    speech.clearError();
+    abandon();
+    clearError();
     settle();
     onClose();
-  }, [speech, onClose]);
+    // Destructured primitives, NOT the `speech` object: that object is new on
+    // every render, so depending on it churned closeSession/handleClose/
+    // handleDiscard identity — and with them the Escape effect's deps — several
+    // times a second during live dictation. Same doctrine this file states for
+    // the engine-follow effect; `abandon` and `clearError` are both stable.
+  }, [abandon, clearError, onClose]);
 
   const handleDiscard = useCallback(() => {
     closeSession(discard);

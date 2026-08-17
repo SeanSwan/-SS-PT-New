@@ -66,6 +66,18 @@ StrictMode replay) are silent, so a receipt always means real data was destroyed
 the account key TO null is receipted as `logout`, distinct from `account-switch`. The `stop()`
 snapshot is owner-stamped; expiry of the parent's handed-off copy is the S3 store's obligation.
 
+**`'unmount'` IS HANDOFF-AMBIGUOUS — do not read it as data loss (GLM, dry-loop round 23).**
+After Done, the buffer deliberately survives in `'stopped'` so the surface can show the Finished
+readout and the Close flow can settle it. If the parent unmounts the overlay before that Close
+(route change, or a parent that auto-dismisses on `onStopped`), the unmount purge receipts
+`'unmount'` for words that were **successfully handed off**. The hook cannot distinguish consumed
+from unconsumed — a `'stopped'` buffer unmounting *without* a handoff genuinely IS a loss, and
+receipting that `'completed'` would be the worse lie — so the ambiguity is recorded here rather
+than guessed at in code. **Audit consumers must treat `'unmount'`-while-`'stopped'` as
+"indeterminate: possibly delivered", never as a loss event.** The alternative (settling
+`reset('completed')` once the parent acknowledges `onStopped`) costs the Finished readout and is a
+product call for S3/S4, not a hook change.
+
 **Open enforcement-location question (from GLM round 1):** the "never auto-transcribe after an
 automatic stop" rule for the RECORD path is enforced by consumers, not by `useCoachCapture` itself —
 the hook cannot distinguish a user gesture from an effect. Resolve when S3 lands (candidate: a

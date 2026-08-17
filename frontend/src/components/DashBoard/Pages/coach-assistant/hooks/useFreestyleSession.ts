@@ -313,7 +313,7 @@ export function useFreestyleSession(
     stateRef.current = 'listening';
     setState('listening');
     return true;
-  }, [ownedNow, clearBuffer, wipeRefs]);
+  }, [ownedNow, wipeRefs]);
 
   const pause = useCallback(() => {
     if (!ownedNow()) return;
