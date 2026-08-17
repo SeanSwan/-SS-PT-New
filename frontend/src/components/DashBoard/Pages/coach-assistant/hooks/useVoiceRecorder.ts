@@ -93,9 +93,21 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
    */
   const flightSeqRef = useRef(0);
 
-  /** Mirrors `state` for callbacks with empty deps — their closures go stale. */
+  /**
+   * Mirrors `state` for callbacks with empty deps — their closures go stale.
+   * Written SYNCHRONOUSLY by every transition via setRecState below: a
+   * render-time mirror alone lags one commit, so a stop() issued in the same
+   * tick as start() read a stale 'idle', skipped the requesting→idle
+   * settlement, and the hook stuck at visible 'requesting' forever after the
+   * cancelled flight was forbidden to repair state (Codex, round 6).
+   */
   const stateRef = useRef<RecordingState>('idle');
   stateRef.current = state;
+
+  const setRecState = useCallback((next: RecordingState) => {
+    stateRef.current = next;
+    setState(next);
+  }, []);
 
   const cleanup = useCallback(() => {
     if (timerRef.current) {
@@ -129,7 +141,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       setError(null);
       setAudioBlob(null);
       setDuration(0);
-      setState('requesting');
+      setRecState('requesting');
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (cancelRequestedRef.current || flight !== flightSeqRef.current) {
@@ -139,7 +151,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         // build nothing, and touch no state that now belongs to the current
         // flight.
         stream.getTracks().forEach(t => t.stop());
-        if (flight === flightSeqRef.current) setState('idle');
+        if (flight === flightSeqRef.current) setRecState('idle');
         return;
       }
       streamRef.current = stream;
@@ -156,19 +168,19 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' });
         setAudioBlob(blob);
-        setState('stopped');
+        setRecState('stopped');
         cleanup();
       };
 
       recorder.onerror = () => {
         setError('Recording failed');
-        setState('error');
+        setRecState('error');
         cleanup();
       };
 
       recorder.start(250); // Collect chunks every 250ms
       startTimeRef.current = Date.now();
-      setState('recording');
+      setRecState('recording');
 
       // Duration timer
       timerRef.current = setInterval(() => {
@@ -178,7 +190,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       // A stale flight's rejection must not clobber the current flight's state.
       if (flight === flightSeqRef.current) {
         setError(safeMicrophoneFailure());
-        setState('error');
+        setRecState('error');
         cleanup();
       }
     }
@@ -197,7 +209,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       // to idle here, because the invalidated flight is no longer allowed to
       // touch state when its grant lands. Only from 'requesting': a stray
       // second stop after a finished capture must not wipe 'stopped' + blob.
-      if (stateRef.current === 'requesting') setState('idle');
+      if (stateRef.current === 'requesting') setRecState('idle');
     }
   }, []);
 
@@ -205,7 +217,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     cancelRequestedRef.current = true;   // a pending grant must not outlive a reset
     flightSeqRef.current += 1;           // …even one a newer start re-cleared the latch for
     cleanup();
-    setState('idle');
+    setRecState('idle');
     setAudioBlob(null);
     setDuration(0);
     setError(null);

@@ -137,6 +137,28 @@ describe('useVoiceRecorder — permission-window cancellation latch (GLM round 4
   });
 
   /**
+   * ROUND-6 REGRESSION (Codex HIGH). The state mirror was render-time only, so
+   * a stop() in the SAME TICK as start() read a stale 'idle', skipped the
+   * requesting→idle settlement, and — because the cancelled flight is
+   * forbidden to repair state — the hook stuck at visible 'requesting'
+   * forever. Transitions now write the mirror synchronously.
+   */
+  it('stop in the same tick as start settles to idle immediately', async () => {
+    const { result } = renderHook(() => useVoiceRecorder());
+
+    act(() => {
+      void result.current.start();
+      result.current.stop();               // same tick — no render in between
+    });
+
+    expect(result.current.state).toBe('idle');
+
+    await act(async () => { resolveGrant(fakeStream); });
+    expect(trackStop).toHaveBeenCalled();  // the late grant still released
+    expect(result.current.state).toBe('idle');
+  });
+
+  /**
    * ROUND-5 REGRESSION (GLM S2). start → stop (latch set) → start again
    * cleared the boolean latch while grant #1 was still pending — grant #1 was
    * then ACCEPTED against the cleared latch, and grant #2 overwrote every ref,
