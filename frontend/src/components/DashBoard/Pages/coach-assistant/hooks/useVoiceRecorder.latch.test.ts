@@ -202,6 +202,67 @@ describe('useVoiceRecorder — permission-window cancellation latch (GLM round 4
   });
 
   /**
+   * ROUND-12 REGRESSION (Codex HIGH). start() while a live recorder existed
+   * overwrote the only refs — the first stream's tracks became unreachable
+   * (mic live until tab close). start() now releases anything held first.
+   */
+  it('a second start releases the first live stream instead of orphaning it', async () => {
+    const track1Stop = vi.fn();
+    const track2Stop = vi.fn();
+    const stream1 = { getTracks: () => [{ stop: track1Stop }] };
+    const stream2 = { getTracks: () => [{ stop: track2Stop }] };
+    const { result } = renderHook(() => useVoiceRecorder());
+
+    act(() => { void result.current.start(); });
+    await act(async () => { grantResolvers[0]?.(stream1); });
+    expect(result.current.state).toBe('recording');
+
+    act(() => { void result.current.start(); });          // no stop() first
+    expect(track1Stop).toHaveBeenCalled();                 // released, not orphaned
+
+    await act(async () => { grantResolvers[1]?.(stream2); });
+    expect(result.current.state).toBe('recording');
+    expect(track2Stop).not.toHaveBeenCalled();
+  });
+
+  /**
+   * ROUND-12 REGRESSION (Codex HIGH). A stopped recorder's QUEUED final
+   * events stayed attached across a new start — the old onstop then built a
+   * blob from the new flight's chunks and cleanup()'d the new refs, killing
+   * the fresh recording. start() detaches the old handlers first; the
+   * unclaimed pending blob is deliberately abandoned.
+   */
+  it('a superseded stop cannot corrupt the next recording', async () => {
+    vi.useFakeTimers();
+    try {
+      const track2Stop = vi.fn();
+      const stream2 = { getTracks: () => [{ stop: track2Stop }] };
+      const { result } = renderHook(() => useVoiceRecorder());
+
+      act(() => { void result.current.start(); });
+      await act(async () => { grantResolvers[0]?.(fakeStream); });
+      const recorderA = FakeMediaRecorder.last!;
+      act(() => { result.current.stop(); });               // A queues its final events
+
+      act(() => { void result.current.start(); });          // supersede before they fire
+      await act(async () => { grantResolvers[1]?.(stream2); });
+      expect(result.current.state).toBe('recording');
+
+      // advanceTimersByTime, NOT runAllTimers: recorder B is still recording,
+      // so its 500ms duration interval never exhausts and runAllTimers spins
+      // forever. A's queued events are setTimeout(0) — 10ms is plenty.
+      act(() => { vi.advanceTimersByTime(10); });           // A's queued events fire
+
+      expect(result.current.state).toBe('recording');       // B untouched
+      expect(result.current.audioBlob).toBeNull();          // A's blob abandoned, not misfiled
+      expect(track2Stop).not.toHaveBeenCalled();            // B's stream still live
+      void recorderA;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /**
    * ROUND-5 REGRESSION (GLM S2). start → stop (latch set) → start again
    * cleared the boolean latch while grant #1 was still pending — grant #1 was
    * then ACCEPTED against the cleared latch, and grant #2 overwrote every ref,

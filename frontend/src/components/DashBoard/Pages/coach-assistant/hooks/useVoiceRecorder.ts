@@ -136,6 +136,18 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
   const start = useCallback(async () => {
     const flight = ++flightSeqRef.current;
+    /**
+     * SUPERSEDE SAFELY. A second start while a recorder/stream exists — live,
+     * or stopped-with-queued-final-events — used to overwrite the only refs:
+     * the old stream's tracks became unreachable (mic live until tab close)
+     * and the old recorder's still-attached onstop then built a blob from the
+     * NEW flight's chunks and cleanup()'d the NEW refs (Codex, round 12).
+     * cleanup() detaches the old handlers and stops the old tracks
+     * synchronously before anything new is created; an unclaimed pending blob
+     * from an immediately-superseded stop is deliberately abandoned — the
+     * user asked for a NEW recording.
+     */
+    if (recorderRef.current || streamRef.current) cleanup();
     try {
       cancelRequestedRef.current = false;   // only a new start clears the latch
       setError(null);
