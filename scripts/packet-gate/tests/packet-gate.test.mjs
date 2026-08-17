@@ -589,8 +589,8 @@ test('normPath matches the filesystem it actually runs on', () => {
   // The bind still happens (macOS is not refused) and the case-only nature is reported.
   const b = codeBlock('src/app.mjs');
   assert.equal(checkArtifact(true, [b], ['SRC/App.mjs'], []).length, 0, 'case-only must still bind');
-  assert.deepEqual(caseOnlyBinding([b], ['SRC/App.mjs']), { cited: 'src/app.mjs', named: 'SRC/App.mjs' });
-  assert.equal(caseOnlyBinding([codeBlock('src/app.mjs')], ['src/app.mjs']), null, 'identity is not case-only');
+  assert.deepEqual(caseOnlyBinding([b], ['SRC/App.mjs']), [{ cited: 'src/app.mjs', named: 'SRC/App.mjs' }]);
+  assert.deepEqual(caseOnlyBinding([codeBlock('src/app.mjs')], ['src/app.mjs']), [], 'identity is not case-only');
   assert.equal(normPath('src/./x.mjs'), normPath('src/x.mjs'), 'mid-path ./ resolves on disk');
   assert.equal(normPath('./src//x.mjs'), normPath('src/x.mjs'));
 });
@@ -745,8 +745,8 @@ test('R4 still binds a case-only path match, but DECLARES it', () => {
   // Signal, not veto — the same resolution as weakBindingOnly.
   const b = codeBlock('src/app.mjs');
   assert.equal(checkArtifact(true, [b], ['SRC/App.mjs'], []).length, 0, 'must not false-refuse macOS');
-  assert.deepEqual(caseOnlyBinding([b], ['SRC/App.mjs']), { cited: 'src/app.mjs', named: 'SRC/App.mjs' });
-  assert.equal(caseOnlyBinding([codeBlock('src/app.mjs')], ['src/app.mjs']), null);
+  assert.deepEqual(caseOnlyBinding([b], ['SRC/App.mjs']), [{ cited: 'src/app.mjs', named: 'SRC/App.mjs' }]);
+  assert.deepEqual(caseOnlyBinding([codeBlock('src/app.mjs')], ['src/app.mjs']), []);
 });
 
 test('REGRESSION: `## Remit-to-pay …` does not hijack extraction from the real Remit section', () => {
@@ -864,4 +864,26 @@ test('REGRESSION: a git failure is "cannot run", not "your file is untracked"', 
     (e) => e instanceof GateUnavailable,
     'a git failure must raise GateUnavailable (exit 2), never a silent "untracked" finding',
   );
+});
+
+// --- Round 9 review findings (GLM-5.3 F5/F6, converging with Kimi on F1-F4) ----------------------
+
+test('REGRESSION: an NBSP after the hashes is a paragraph, not a Remit heading', () => {
+  // Round 8 tightened the SHAPE of a heading (indent, hash count, required space) and left its
+  // WHITESPACE CLASS as JavaScript's: `\s` matches U+00A0, U+2028, U+3000; CommonMark's ATX rule is
+  // a space or a tab. So `##<NBSP>Remit` — a paragraph in every renderer — matched the gate, the
+  // fake heading was found first, and the real `## Remit` below stopped extraction. The same hijack
+  // this parser has now been patched for three times, each time through the previous patch.
+  const NBSP = String.fromCharCode(0xA0);
+  assert.equal(remitFromDoc(`##${NBSP}Remit\nhijacked\n\n## Remit\nthe real remit\n`), 'the real remit');
+  // …and a TAB is still a legitimate ATX separator.
+  assert.equal(remitFromDoc('##\tRemit\nbody\n'), 'body');
+});
+
+test("R6's engine is inside the canary hash, though no import walk can reach it", () => {
+  // The hygiene verdict comes from scripts/scan-secrets.sh. No import graph and no .mjs scan can
+  // ever see it, so R6's actual decision logic sat permanently outside the binding — the round-5
+  // critical's shape (a check the canary does not certify) in the one place the derivation is
+  // structurally blind. It cannot be derived, so it is named.
+  assert.ok(gateSourceFiles(ROOT).includes('scripts/scan-secrets.sh'), gateSourceFiles(ROOT).join(', '));
 });

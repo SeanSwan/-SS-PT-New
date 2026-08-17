@@ -86,6 +86,8 @@ export function checkProvenance(blocks, readFile) {
           'cite the real source file. A packet citing itself byte-matches by construction, so it proves nothing'],
         EUNTRACKED: ['it is not tracked by git',
           'commit the file first, or use --allow-uncited. An untracked scratch copy byte-matches itself and proves nothing'],
+        ESUBMODULE: ['it lives inside a submodule, which the superproject tracks only as a gitlink',
+          'cite a file in this repository, or attach the excerpt with --allow-uncited and say where it came from'],
       }[err.code];
       out.push(SPECIFIC
         ? finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} — ${SPECIFIC[0]}`, SPECIFIC[1])

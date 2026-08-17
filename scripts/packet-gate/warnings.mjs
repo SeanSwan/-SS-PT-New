@@ -33,9 +33,8 @@ export function buildWarnings({ allBlocks, boundPaths, boundContent, aboutCode, 
   // R4 bound only because two paths differ in CASE. One file on NTFS/APFS/WSL; TWO DIFFERENT REAL
   // FILES on ext4, where R5 and R3 each pass on their own file and the operator would otherwise see
   // a fully-green approval view for a packet carrying the wrong source.
-  const caseOnly = caseOnlyBinding(allBlocks, boundPaths);
-  if (caseOnly) {
-    out.push(`R4 bound ${caseOnly.cited} to the remit's ${caseOnly.named} by CASE-INSENSITIVE match — on a case-sensitive filesystem these are two different files`);
+  for (const c of caseOnlyBinding(allBlocks, boundPaths)) {
+    out.push(`R4 bound ${c.cited} to the remit's ${c.named} by CASE-INSENSITIVE match — on a case-sensitive filesystem these are two different files`);
   }
 
   // R4 was satisfied by a MENTION while the remit also named a path. Allowed, because vetoing it

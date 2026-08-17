@@ -219,7 +219,7 @@ export function checkArtifact(remitIsAboutCode, blocks, namedPaths = [], namedCo
 }
 
 /**
- * True when R4 bound only because two paths differ in CASE.
+ * EVERY named path that R4 bound only because of a CASE difference. Empty array = none.
  *
  * On a case-insensitive volume (NTFS, default APFS, WSL /mnt/c) this is one file and the bind is
  * correct — declaring it costs the operator one line. On a case-SENSITIVE volume it is two different
@@ -234,11 +234,16 @@ export function caseOnlyBinding(blocks, namedPaths = []) {
   // src/Config.mjs and src/Other.mjs, with an exact citation of Other and a case-only citation of
   // config, reported nothing at all. A warning that a single unrelated match can silence is a
   // warning that does not run. (Kimi K3 round 8, F2.)
+  // EVERY pair, not the first. Round 8 changed WHICH pair was reported and not HOW MANY: the loop
+  // returned on the first case-only binding and abandoned the rest, so a remit naming two paths that
+  // both bind case-only surfaced one warning and silenced the other exactly as the existential
+  // `some()` had. Half a fix reads like a whole one until someone counts. (Kimi K3 round 9, F5.)
   const bindable = bindableBlocks(blocks, namedPaths);
+  const out = [];
   for (const n of namedPaths) {
     if (bindable.some((b) => normPath(b.attrs.path) === normPath(n))) continue; // this one is exact
     const b = bindable.find((x) => foldCase(x.attrs.path) === foldCase(n));
-    if (b) return { cited: b.attrs.path, named: n };
+    if (b) out.push({ cited: b.attrs.path, named: n });
   }
-  return null;
+  return out;
 }

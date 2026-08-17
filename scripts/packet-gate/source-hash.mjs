@@ -98,6 +98,14 @@ export function gateSourceFiles(root = DEFAULT_ROOT) {
   };
   scan(rel);
 
+  // R6's ENGINE IS NOT JAVASCRIPT. The hygiene verdict comes from `scripts/scan-secrets.sh`, which
+  // no import walk and no `.mjs` scan can ever reach — so R6's actual decision logic sat permanently
+  // outside the canary binding, and rewriting that script would not change the hash by one bit.
+  // That is the round-5 critical's shape (a check the canary does not certify) in the one place the
+  // derivation is structurally blind. Named explicitly because it cannot be derived.
+  // (GLM-5.3 round 9, F5.)
+  covered.add('scripts/scan-secrets.sh');
+
   return [...covered].sort();
 }
 
@@ -114,7 +122,17 @@ export function gateSourceHash(root = DEFAULT_ROOT) {
     h.update(f);
     // split/join rather than a regex: line endings must normalize identically on every checkout,
     // or the hash differs between a CRLF and an LF working tree and R15 refuses for no real reason.
-    h.update(existsSync(abs) ? readFileSync(abs, 'utf8').split('\r\n').join('\n') : '<missing>');
+    //
+    // The per-file READ is inside the try as well. Only the ENUMERATION was guarded, so an
+    // unreadable source file (EACCES, a lock, a file replaced by a directory) threw out of
+    // gateSourceHash and surfaced as an unexpected-failure stack trace rather than a refusal —
+    // fail-noisy rather than fail-open, but the least diagnosable output a gate can produce, and
+    // the caller already treats a falsy hash as "cannot certify". (GLM-5.3 round 9, F5.)
+    try {
+      h.update(existsSync(abs) ? readFileSync(abs, 'utf8').split('\r\n').join('\n') : '<missing>');
+    } catch {
+      return '';
+    }
   }
   return h.digest('hex');
 }
