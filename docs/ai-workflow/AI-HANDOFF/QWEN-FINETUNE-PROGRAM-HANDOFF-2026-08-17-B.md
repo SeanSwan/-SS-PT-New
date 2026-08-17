@@ -55,7 +55,7 @@ When Sean lists them from memory he reliably names two and forgets the third. Th
 | `evals/pilot-coach-eval.jsonl` | 10 | Fable-draft ideals, **pilot-only**, used |
 | `evals/coach-eval-inputs-glm.jsonl` | 60 | **ALL 60 IDEALS ARE `PENDING`** — Sean must author safety/voice ideals per R1 |
 | `evals/coder-eval-inputs-glm.jsonl` | 40 | ideals PENDING |
-| `datasets/classroom-probe-sft.jsonl` | 160 | disposable probe (provisional contract) |
+| `datasets/classroom-probe-sft.jsonl` | **153** | disposable probe (provisional contract). Handoff A said "160-row" — that was wrong, and I repeated it here before counting. Count, don't inherit. |
 | `runs/20260817-compare-pilot-s2a/` | — | complete run: sealed outputs, blinded sheet, verdicts, scorecard, **filled run card** |
 
 ---
