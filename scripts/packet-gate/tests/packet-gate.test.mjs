@@ -774,3 +774,51 @@ test('the import walker covers side-effect and dynamic imports, not just `from`'
     assert.deepEqual(got, [want], src);
   }
 });
+
+// --- Round 8 review findings (GLM-5.3 F4/F6) -----------------------------------------------------
+
+test('CRITICAL REGRESSION: a non-heading line cannot hijack remit extraction', () => {
+  // Round 5 made both the start and stop tests run on `l.trim()`, which opened a worse hole than the
+  // asymmetry it closed: trim() makes lines match that CommonMark does not call headings at all.
+  // The decoy is found FIRST, the real `## Remit` below then STOPS extraction, and the remit becomes
+  // the decoy's text — non-empty (so the empty-remit guard never fires) and naming nothing (so
+  // aboutCode goes false and R4 + R5 are both inert). A phantom route in the REAL remit then ships.
+  const hijack = ['## Sample packet format', '', '    ## Remit', '    review the refund flow', '',
+    '## Remit', 'Review the handler for src/refunds/run.mjs', ''].join('\n');
+  assert.match(remitFromDoc(hijack), /run\.mjs/, 'the indented sample must not win');
+
+  for (const decoy of ['    ## Remit', '##Remit', '#######Remit']) {
+    assert.equal(remitFromDoc(`${decoy}\nhijacked\n\n## Remit\nthe real remit\n`), 'the real remit', decoy);
+  }
+});
+
+test('every legitimate CommonMark Remit spelling still extracts', () => {
+  // The miss direction matters as much as the hijack direction: a heading the operator wrote and the
+  // gate cannot see produces "add a ## Remit section" for a document that has one.
+  assert.equal(remitFromDoc('## Remit\nbody\n'), 'body');
+  assert.equal(remitFromDoc('   ## Remit\nbody\n'), 'body', '<=3 spaces is still a heading');
+  assert.equal(remitFromDoc('## Remit ##\nbody\n'), 'body', 'closed ATX');
+  assert.match(remitFromDoc('## Remit: review the refund flow\n'), /refund flow/);
+  assert.match(remitFromDoc('## Remit — review src/x.mjs\n'), /src\/x\.mjs/);
+  assert.match(remitFromDoc('## Remit (review the refund flow)\n'), /refund flow/, 'parenthesised');
+  // …and the round-7 hijack stays closed in the other direction.
+  assert.equal(remitFromDoc('## Remit-to-pay reconciliation\nbody\n'), '');
+  // …and a subheading inside the section still does not truncate it.
+  assert.match(remitFromDoc('## Remit\nReview refunds.\n#### In scope\nsrc/refunds/run.mjs\n'), /run\.mjs/);
+});
+
+test('NOT-A-BUG PIN: the seed IS held to R3-uncited, R1 and R6 (GLM R8 F3 disproven)', () => {
+  // GLM flagged this as "probable, one run to confirm" because seed.mjs and packet-gate.mjs were not
+  // in its packet. Running it disproves the finding — the seed goes through checkUncited, its bytes
+  // are counted in the R1 total, and its content is scanned for R6. Pinned so the honest hedge is
+  // not later mistaken for an open hole.
+  const d = tmpInRepo();
+  const doc = join(d, 'doc.md');
+  const seed = join(d, 'seed.md');
+  writeFileSync(doc, '## Remit\n\nReview scripts/packet-gate/refusal.mjs\n');
+  writeFileSync(seed, 'prior context\n\n```js\nconst FABRICATED = true;\n```\n');
+  const { code, out } = runGate(['--document', doc, '--seed', seed, '--json']);
+  assert.equal(code, 1, out);
+  const f = JSON.parse(out).findings.find((x) => x.code === 'R3');
+  assert.ok(f && /seed line/.test(f.detail), out);
+});

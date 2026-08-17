@@ -98,8 +98,30 @@ export function remitFromDoc(md) {
   // `(?:#+\s*)?` accepts the CLOSED ATX form `## Remit ##`, which is valid CommonMark and was
   // missed — the gate told the operator to add a section the document already had, in a spelling
   // markdown explicitly permits. (Kimi K3 round 8, F3.)
-  const HEADING_RE = /^#{2,}\s*remit\s*(?:#+\s*)?(?::\s*(.*)|\s+[—–-]\s*(.*))?$/i;
-  const i = outside.findIndex((l) => l !== null && HEADING_RE.test(l.trim()));
+  // COMMONMARK'S HEADING GRAMMAR, MATCHED ON THE RAW LINE — not `trim()` plus a loose regex.
+  //
+  // Round 5 made both the start and stop tests run on `l.trim()` ("one predicate, one spelling"),
+  // which fixed an indentation asymmetry and opened a worse hole: `trim()` makes lines match that
+  // CommonMark does not consider headings AT ALL. Verified, all three:
+  //     `    ## Remit`  4-space indent — a CODE BLOCK, not a heading
+  //     `##Remit`       no space after the hashes — a paragraph
+  //     `#######Remit`  seven hashes — not a valid ATX level
+  // Each is found FIRST by findIndex, and the real `## Remit` below then STOPS extraction (level
+  // <= level), so the remit becomes the decoy's text: non-empty, so the fail-closed empty-remit
+  // guard never fires; naming nothing, so `aboutCode` goes false, R4 returns [] and R5 has no
+  // anchors. A phantom route in the REAL remit — R5's founding failure mode — ships at exit 0 with
+  // both checks silent. The Category-2 signature, reached through the trim fix rather than a regex.
+  // (GLM-5.3 round 8, F4.)
+  //
+  // So: `^ {0,3}` (four spaces is code), `#{2,6}` (capped), and a REQUIRED space after the hashes.
+  // The separator alternatives are unchanged apart from adding the parenthesised form, which was a
+  // pure MISS — `## Remit (review the refund flow)` matched nothing and the gate told the operator
+  // to add a section the document already had. (GLM-5.3 round 8, F6.)
+  //
+  // `[—–-]` still requires whitespace before AND after, which is what keeps `## Remit-to-pay …`
+  // from matching — round 7's fix for the hijack in the other direction. Verified both ways.
+  const HEADING_RE = /^ {0,3}#{2,6}\s+remit\s*(?:#+)?\s*(?::\s*(.*)|[—–-]\s+(.*)|\((.*)\))?\s*$/i;
+  const i = outside.findIndex((l) => l !== null && HEADING_RE.test(l));
   if (i !== -1) {
     // STOP ONLY AT A HEADING OF THE SAME LEVEL OR HIGHER — not at any heading at all.
     //
@@ -123,15 +145,15 @@ export function remitFromDoc(md) {
     // stop test and was ABSORBED into the remit, injecting a real path anchor the operator never
     // wrote and letting R4 be satisfied by citing it instead of the true subject. (Kimi K3 round 5,
     // F6.) One predicate, one spelling, applied at both ends.
-    const level = /^(#{2,})/.exec(outside[i].trim())[1].length;
+    const level = /^ {0,3}(#{2,6})/.exec(outside[i])[1].length;
     const rest = outside.slice(i + 1);
     const stop = rest.findIndex((l) => {
       if (l === null) return false;
       const m = /^(#{1,6})\s/.exec(l.trim());
       return Boolean(m) && m[1].length <= level;
     });
-    const hm = HEADING_RE.exec(outside[i].trim());
-    const inline = (hm?.[1] ?? hm?.[2])?.trim();
+    const hm = HEADING_RE.exec(outside[i]);
+    const inline = (hm?.[1] ?? hm?.[2] ?? hm?.[3])?.trim();
     const body = (stop === -1 ? rest : rest.slice(0, stop)).filter((l) => l !== null);
     return [inline || null, ...body].filter((l) => l !== null).join('\n').trim();
   }
