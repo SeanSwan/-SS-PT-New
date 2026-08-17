@@ -15,7 +15,7 @@
  *   → useGeminiTranscription → POST /api/ai-chat/transcribe → text result
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { safeMicrophoneFailure } from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
@@ -199,6 +199,17 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const stop = useCallback(() => {
     if (recorderRef.current && recorderRef.current.state === 'recording') {
       recorderRef.current.stop();
+      /**
+       * Release the TRACKS synchronously, handlers still attached.
+       * MediaRecorder.stop() only QUEUES the final dataavailable/stop work —
+       * on pagehide/screen-lock the page can freeze before the queue runs,
+       * leaving the microphone live after the event that promised silence
+       * (Codex, round 11 — the round-5 engine fix, one layer lower). The
+       * recorder finalizes from already-captured data, so the blob still
+       * lands when the queued onstop runs; the second track-stop inside
+       * cleanup() is a no-op.
+       */
+      streamRef.current?.getTracks().forEach(t => t.stop());
     } else {
       // Nothing recording — we may be inside the permission window. Latch the
       // cancellation AND invalidate the pending flight so a late grant is
@@ -221,6 +232,20 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     setAudioBlob(null);
     setDuration(0);
     setError(null);
+  }, [cleanup]);
+
+  /**
+   * The primitive is fail-closed BY ITSELF now. This hook shipped for months
+   * with no unmount cleanup at all — the microphone outlived every consumer
+   * that forgot to call stop(), and the wrapper (useCoachCapture) only
+   * protected consumers that adopted it (Codex, round 11). Unmount latches
+   * cancellation, invalidates any pending permission flight, and releases
+   * everything. Wrappers remain the POLICY layer; this is the floor.
+   */
+  useEffect(() => () => {
+    cancelRequestedRef.current = true;
+    flightSeqRef.current += 1;
+    cleanup();
   }, [cleanup]);
 
   return { state, audioBlob, duration, error, start, stop, reset };

@@ -20,12 +20,16 @@
  * while running. Freestyle dictation will need both. This hook owns RECORD only —
  * LIVE stays with `useCoachBrowserSpeechInput` until freestyle needs them together.
  *
- * What was missing — verified by grep, not assumed — is any lifecycle policy.
- * `useVoiceRecorder` contains no `useEffect` at all, so it never releases the
- * MediaStream on unmount, and nothing anywhere listened for `visibilitychange` or
- * `pagehide`. A capture survived tab-hide, screen lock, and in-app navigation with
- * the microphone still open. Closing that is what the freestyle retention contract
- * requires (docs/ai-workflow/AI-HANDOFF/SWAN-COACH-FREESTYLE-RETENTION-CONTRACT-2026-08-16.md).
+ * What was missing when this hook was written — verified by grep, not assumed —
+ * was any lifecycle policy: `useVoiceRecorder` had no `useEffect` at all, never
+ * released the MediaStream on unmount, and nothing listened for
+ * `visibilitychange` or `pagehide`. A capture survived tab-hide, screen lock,
+ * and in-app navigation with the microphone open. As of dry-loop round 11 the
+ * PRIMITIVE is fail-closed by itself (unmount release + synchronous track stop
+ * inside `stop()`); this hook remains the POLICY layer — visibility/pagehide
+ * handling, auto-stop notices, and the transcription boundary the freestyle
+ * retention contract requires
+ * (docs/ai-workflow/AI-HANDOFF/SWAN-COACH-FREESTYLE-RETENTION-CONTRACT-2026-08-16.md).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useVoiceRecorder } from './useVoiceRecorder';

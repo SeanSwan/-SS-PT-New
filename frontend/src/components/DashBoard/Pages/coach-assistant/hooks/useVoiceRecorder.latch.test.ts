@@ -159,6 +159,49 @@ describe('useVoiceRecorder — permission-window cancellation latch (GLM round 4
   });
 
   /**
+   * ROUND-11 REGRESSION (Codex HIGH). MediaRecorder.stop() only QUEUES the
+   * final-chunk work — a pagehide freeze beat the queue and the microphone
+   * track stayed live after the event that promised silence. stop() now
+   * releases the tracks synchronously, handlers attached, so the blob still
+   * lands when the queued onstop runs.
+   */
+  it('stop() releases the microphone tracks synchronously, before the queued onstop', async () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useVoiceRecorder());
+      act(() => { void result.current.start(); });
+      await act(async () => { resolveGrant(fakeStream); });
+      expect(result.current.state).toBe('recording');
+
+      act(() => { result.current.stop(); });
+      expect(trackStop).toHaveBeenCalled();          // BEFORE the queued events run
+
+      act(() => { vi.runAllTimers(); });             // queued onstop still lands
+      expect(result.current.state).toBe('stopped');
+      expect(result.current.audioBlob).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /**
+   * ROUND-11 REGRESSION (Codex HIGH). The primitive itself leaked on
+   * direct-consumer unmount — no useEffect existed at all, the original sin
+   * of this whole workstream, fixed in the wrapper but never in the hook.
+   * On origin/main, VoiceRecordingOverlay consumes this hook DIRECTLY.
+   */
+  it('unmount releases the microphone without any consumer cooperation', async () => {
+    const { result, unmount } = renderHook(() => useVoiceRecorder());
+    act(() => { void result.current.start(); });
+    await act(async () => { resolveGrant(fakeStream); });
+    expect(result.current.state).toBe('recording');
+
+    unmount();                                       // no stop(), no reset()
+
+    expect(trackStop).toHaveBeenCalled();
+  });
+
+  /**
    * ROUND-5 REGRESSION (GLM S2). start → stop (latch set) → start again
    * cleared the boolean latch while grant #1 was still pending — grant #1 was
    * then ACCEPTED against the cleared latch, and grant #2 overwrote every ref,
