@@ -254,6 +254,54 @@ describe('freestyle session — discard is two-step', () => {
     expect(onPurge).toHaveBeenCalledWith('ttl');
   });
 
+  /**
+   * ROUND-16 REGRESSION (Codex). The overlay started the engine even when the
+   * session REFUSED the transition — the boolean is the contract the gesture
+   * handlers gate on.
+   */
+  it('start() and resume() report whether they actually transitioned', () => {
+    const { result } = setup();
+
+    let started = false;
+    act(() => { started = result.current.start(); });
+    expect(started).toBe(true);
+
+    let restarted = true;
+    act(() => { restarted = result.current.start(); });   // refused: already listening
+    expect(restarted).toBe(false);
+
+    act(() => { result.current.pause(); });
+    let resumed = false;
+    act(() => { resumed = result.current.resume(); });
+    expect(resumed).toBe(true);
+
+    let doubleResumed = true;
+    act(() => { doubleResumed = result.current.resume(); }); // refused: not paused
+    expect(doubleResumed).toBe(false);
+  });
+
+  /**
+   * ROUND-16 REGRESSION (Codex). appendFragment's empty dep array pinned the
+   * INITIAL ttl policy — tightening ttlMs mid-session never reached it.
+   */
+  it('appendFragment honours a ttl tightened mid-session', () => {
+    const onPurge = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ ttl }) => useFreestyleSession({ accountKey: 'trainer-a', now, onPurge, ttlMs: ttl }),
+      { initialProps: { ttl: 60_000 } },
+    );
+    act(() => { result.current.start(); result.current.appendFragment('early'); });
+
+    rerender({ ttl: 1000 });                              // policy tightens live
+    act(() => {
+      advance(2000);                                       // expired under the NEW ttl
+      result.current.appendFragment('should be refused');
+    });
+
+    expect(result.current.fragments).toHaveLength(0);
+    expect(onPurge).toHaveBeenCalledWith('ttl');
+  });
+
   it('resume() cannot wake an expired session', () => {
     const onPurge = vi.fn();
     const { result } = renderHook(() =>

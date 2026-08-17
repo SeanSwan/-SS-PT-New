@@ -112,10 +112,11 @@ export type FreestylePurgeReason =
 export interface UseFreestyleSessionReturn extends FreestyleSessionSnapshot {
   isActive: boolean;
   canResume: boolean;
-  /** Legal only from 'idle'/'error'. A live or stopped session is never wiped by start. */
-  start: () => void;
+  /** Legal only from 'idle'/'error'. Returns true only when it actually transitioned to listening. */
+  start: () => boolean;
   pause: () => void;
-  resume: () => void;
+  /** Returns true only when it actually resumed — an expired/refused resume returns false. */
+  resume: () => boolean;
   /**
    * Ends capture and returns the frozen, owner-stamped snapshot — or null if
    * there was nothing to stop. Built from refs at the moment of the call, so it
@@ -275,8 +276,8 @@ export function useFreestyleSession(
   }, [isExpired, clearBuffer]);
 
 
-  const start = useCallback(() => {
-    if (!ownedNow()) return;
+  const start = useCallback((): boolean => {
+    if (!ownedNow()) return false;
     /**
      * Start is NOT a wipe — from ANY state. 'listening'/'paused': no restarting
      * a live session. 'stopped': no destroying a held buffer. 'error' WITH
@@ -287,8 +288,8 @@ export function useFreestyleSession(
      * or a confirmed discard first.
      */
     const s = stateRef.current;
-    if (s !== 'idle' && s !== 'error') return;
-    if (s === 'error' && fragmentsRef.current.length > 0) return;
+    if (s !== 'idle' && s !== 'error') return false;
+    if (s === 'error' && fragmentsRef.current.length > 0) return false;
     wipeRefs();
     setError(null);
     setDiscardPending(false);
@@ -296,6 +297,7 @@ export function useFreestyleSession(
     startedAtRef.current = nowRef.current();
     stateRef.current = 'listening';
     setState('listening');
+    return true;
   }, [ownedNow, clearBuffer, wipeRefs]);
 
   const pause = useCallback(() => {
@@ -321,16 +323,19 @@ export function useFreestyleSession(
     if (lastFragmentAtRef.current !== null) lastFragmentAtRef.current += span;
   }, []);
 
-  const resume = useCallback(() => {
-    if (!ownedNow()) return;
+  const resume = useCallback((): boolean => {
+    if (!ownedNow()) return false;
     // An expired buffer must not resume — purge (receipted) instead of waking
-    // a session past its ceiling (Codex, round 15).
-    if (purgeExpired()) return;
-    if (stateRef.current !== 'paused') return;
+    // a session past its ceiling (Codex, round 15). The BOOLEAN matters: the
+    // overlay used to start the engine even when this refused, opening a live
+    // microphone over an idle session (Codex, round 16).
+    if (purgeExpired()) return false;
+    if (stateRef.current !== 'paused') return false;
     settlePause();
     stateRef.current = 'listening';
     setState('listening');
-  }, [settlePause, purgeExpired]);
+    return true;
+  }, [ownedNow, settlePause, purgeExpired]);
 
   const stop = useCallback((): FreestyleSnapshot | null => {
     // The buffer under a switched account is not this caller's to take, and an
@@ -458,7 +463,9 @@ export function useFreestyleSession(
     const next = [...fragmentsRef.current, { id, text: trimmed, atMs }];
     fragmentsRef.current = next;        // sync mirror FIRST — stop() reads it
     setFragments(next);
-  }, []);
+    // purgeExpired in deps: an empty array pinned the INITIAL ttl policy —
+    // tightening ttlMs mid-session never reached this path (Codex, round 16).
+  }, [purgeExpired]);
 
   const reset = useCallback((reason: FreestylePurgeReason = 'completed') => {
     if (!ownedNow()) return;

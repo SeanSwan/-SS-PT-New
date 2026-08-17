@@ -274,15 +274,19 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     // 'listening' first would flash a promise the engine cannot keep. The
     // unsupported copy from the failed auto-start stays on screen instead.
     if (!speech.supported) return;
-    start();
-    speechStart();
+    // Engine starts ONLY if the session actually transitioned — a refused
+    // start (error-with-words) must not open a microphone over a session
+    // that never began (Codex, round 16 — same class as handleResume).
+    if (start()) speechStart();
   }, [isOpen, speech.supported, start, speechStart]);
 
   /** Resume needs the same gesture treatment as Start — iOS requires the engine start inside the tap (Codex, round 3). */
   const handleResume = useCallback(() => {
     if (!isOpen) return;
-    resume();
-    speechStart();
+    // Engine only on a REAL resume: an expired session purges and refuses,
+    // and starting the recogniser anyway opened a live microphone over an
+    // idle session until the follow effect noticed (Codex, round 16).
+    if (resume()) speechStart();
   }, [isOpen, resume, speechStart]);
 
   /**
