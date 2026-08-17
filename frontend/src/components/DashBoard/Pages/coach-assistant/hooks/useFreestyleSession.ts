@@ -257,8 +257,16 @@ export function useFreestyleSession(
   /** Folds an open pause into the running total. Idempotent. */
   const settlePause = useCallback(() => {
     if (pausedAtRef.current === null) return;
-    pausedTotalRef.current += nowRef.current() - pausedAtRef.current;
+    const span = nowRef.current() - pausedAtRef.current;
+    pausedTotalRef.current += span;
     pausedAtRef.current = null;
+    /**
+     * Shift the quiet-counter anchor past the pause. `sinceLastFragmentMs` is
+     * wall-clock from this anchor, so a 30s pause used to make Resume open
+     * with "Still listening. Nothing heard for a little while" after ZERO
+     * active seconds — paused time is not silence (Codex, round 7).
+     */
+    if (lastFragmentAtRef.current !== null) lastFragmentAtRef.current += span;
   }, []);
 
   const resume = useCallback(() => {

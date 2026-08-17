@@ -293,6 +293,25 @@ describe('freestyle session — discard is two-step', () => {
   });
 });
 
+describe('freestyle session — quiet counter uses the session clock', () => {
+  /**
+   * ROUND-7 REGRESSION (Codex). sinceLastFragmentMs ran on wall clock, so a
+   * 30s pause made Resume open with the quiet notice after ZERO active
+   * seconds of silence. Paused time is not silence.
+   */
+  it('excludes paused time from the silence counter', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); });
+    act(() => { advance(2000); result.current.appendFragment('a phrase'); });
+    act(() => { advance(1000); result.current.pause(); });
+    act(() => { advance(30_000); result.current.resume(); });
+    act(() => { advanceAndRender(500); });
+
+    // 1s of active silence before the pause + 0.5s after — never 31.5s.
+    expect(result.current.sinceLastFragmentMs).toBe(1500);
+  });
+});
+
 describe('freestyle session — fragment timeline uses the session clock', () => {
   /**
    * ROUND-1 REGRESSION (Kimi / Sol). `atMs` measured wall time while `elapsedMs`
