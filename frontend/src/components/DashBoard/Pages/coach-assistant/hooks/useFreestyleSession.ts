@@ -256,6 +256,25 @@ export function useFreestyleSession(
     if (hadData) onPurgeRef.current?.(reason);
   }, [wipeRefs]);
 
+  /** True when the buffer has outlived its ceiling. `>=`: AT the boundary is expired. */
+  const isExpired = useCallback(() => {
+    const startedAt = startedAtRef.current;
+    return startedAt !== null && nowRef.current() - startedAt >= effectiveTtlMs;
+  }, [effectiveTtlMs]);
+
+  const purgeExpired = useCallback(() => {
+    if (!isExpired()) return false;
+    clearBuffer('ttl');
+    // Disarm any pending discard: a confirm left armed over a purged buffer
+    // offered to "delete" words that were already gone (Codex, round 4).
+    discardPendingRef.current = false;
+    setDiscardPending(false);
+    stateRef.current = 'idle';
+    setState('idle');
+    return true;
+  }, [isExpired, clearBuffer]);
+
+
   const start = useCallback(() => {
     if (!ownedNow()) return;
     /**
@@ -304,29 +323,14 @@ export function useFreestyleSession(
 
   const resume = useCallback(() => {
     if (!ownedNow()) return;
+    // An expired buffer must not resume — purge (receipted) instead of waking
+    // a session past its ceiling (Codex, round 15).
+    if (purgeExpired()) return;
     if (stateRef.current !== 'paused') return;
     settlePause();
     stateRef.current = 'listening';
     setState('listening');
-  }, [settlePause]);
-
-  /** True when the buffer has outlived its ceiling. `>=`: AT the boundary is expired. */
-  const isExpired = useCallback(() => {
-    const startedAt = startedAtRef.current;
-    return startedAt !== null && nowRef.current() - startedAt >= effectiveTtlMs;
-  }, [effectiveTtlMs]);
-
-  const purgeExpired = useCallback(() => {
-    if (!isExpired()) return false;
-    clearBuffer('ttl');
-    // Disarm any pending discard: a confirm left armed over a purged buffer
-    // offered to "delete" words that were already gone (Codex, round 4).
-    discardPendingRef.current = false;
-    setDiscardPending(false);
-    stateRef.current = 'idle';
-    setState('idle');
-    return true;
-  }, [isExpired, clearBuffer]);
+  }, [settlePause, purgeExpired]);
 
   const stop = useCallback((): FreestyleSnapshot | null => {
     // The buffer under a switched account is not this caller's to take, and an
@@ -433,6 +437,10 @@ export function useFreestyleSession(
     // Never append across an ownership mismatch: the buffer still belongs to
     // the previous account until the purge effect settles (Codex, round 8).
     if (ownerRef.current !== ownerKeyRef.current) return;
+    // The ceiling is synchronous on EVERY path that extends a live buffer —
+    // the 1s sweep's blind spot let an expired buffer keep accepting words
+    // (Codex, round 15).
+    if (purgeExpired()) return;
     const trimmed = text.trim();
     if (!trimmed) return;               // never store empty interim noise
     // Fragments arriving while paused or stopped are dropped rather than

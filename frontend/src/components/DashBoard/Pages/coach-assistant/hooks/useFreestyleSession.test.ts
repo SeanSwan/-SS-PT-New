@@ -233,6 +233,45 @@ describe('freestyle session — discard is two-step', () => {
    * the very buffer being judged.
    */
   /**
+   * ROUND-15 REGRESSION (Codex). The same sweep blind spot let an EXPIRED
+   * buffer keep accepting words, and resume() could wake a session past its
+   * ceiling. Expiry is now synchronous on every path that extends a live
+   * buffer.
+   */
+  it('an expired buffer refuses new words and purges instead', () => {
+    const onPurge = vi.fn();
+    const { result } = renderHook(() =>
+      useFreestyleSession({ accountKey: 'trainer-a', now, onPurge, ttlMs: 1000 }),
+    );
+    act(() => { result.current.start(); result.current.appendFragment('before'); });
+
+    act(() => {
+      advance(1000);                              // AT the ceiling, before any sweep tick
+      result.current.appendFragment('after');
+    });
+
+    expect(result.current.fragments).toHaveLength(0);
+    expect(onPurge).toHaveBeenCalledWith('ttl');
+  });
+
+  it('resume() cannot wake an expired session', () => {
+    const onPurge = vi.fn();
+    const { result } = renderHook(() =>
+      useFreestyleSession({ accountKey: 'trainer-a', now, onPurge, ttlMs: 1000 }),
+    );
+    act(() => { result.current.start(); result.current.appendFragment('words'); });
+    act(() => { result.current.pause(); });
+
+    act(() => {
+      advance(2000);                              // past the ceiling while paused
+      result.current.resume();
+    });
+
+    expect(result.current.state).toBe('idle');
+    expect(onPurge).toHaveBeenCalledWith('ttl');
+  });
+
+  /**
    * ROUND-8 REGRESSION (Codex). The 1s sweep has a blind spot exactly one
    * handoff wide: stop() could hand off a buffer that had already outlived
    * its ceiling before the sweep tick ran. Expiry is now a synchronous guard

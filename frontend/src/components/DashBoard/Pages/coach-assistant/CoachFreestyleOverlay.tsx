@@ -168,6 +168,15 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   }, [isOpen, state, pauseWithFlush]);
 
   /**
+   * DIRECT UNMOUNT (route change with the overlay still open) was the one
+   * exit left to a passive cleanup — the speech hook's own useEffect teardown
+   * runs in the passive phase, after this layout cleanup. Kill the engine in
+   * the layout phase of the removing commit (Codex, round 15); the hook's
+   * cleanup remains defense-in-depth.
+   */
+  useLayoutEffect(() => () => { speechStopRef.current(); }, []);
+
+  /**
    * The engine follows the session AND the surface. Anything that ends capture —
    * pause, stop, discard, TTL purge, account switch — releases the microphone,
    * and so does hiding the overlay: without the `isOpen` gate, an invisible
