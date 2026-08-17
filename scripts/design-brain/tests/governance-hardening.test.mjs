@@ -101,7 +101,7 @@ test('X clearance is signed, time-bounded, and revocation-aware', () => {
   });
   assert.deepEqual(provenance.validateSourceClearance(clearance, { publicKey, trustedNow: NOW, revokedIds: [] }), { ok: true, errors: [] });
   assert.equal(provenance.validateSourceClearance(clearance, { publicKey, trustedNow: NOW, revokedIds: ['CLR-mobbin-001'] }).ok, false);
-  assert.equal(provenance.validateSourceClearance({ ...clearance, signature: 'tampered' }, { publicKey, trustedNow: NOW }).ok, false);
+  assert.equal(provenance.validateSourceClearance({ ...clearance, signature: 'tampered' }, { publicKey, trustedNow: NOW, revokedIds: [] }).ok, false);
   assert.equal(provenance.validateSourceClearance(clearance, { publicKey }).ok, false, 'missing trusted clock fails closed');
 });
 
@@ -109,7 +109,7 @@ test('Spec enablement requires a valid signed activation record', () => {
   assert.ok(authority, 'authority.mjs must exist');
   const enabled = { schemaVersion: 'spec-mode/2', enabled: true, termsVersion: '2026-05-16', activationRef: 'AUTH-spec-enable-001' };
   assert.throws(() => contract.assertSpecModeEnabled(enabled, {}), (error) => error.code === 'E_SPEC_ACTIVATION_REQUIRED');
-  assert.doesNotThrow(() => contract.assertSpecModeEnabled(enabled, { activation: activation({ configDigest: contract.configDigestFor(enabled) }), publicKey, trustedNow: NOW }));
+  assert.doesNotThrow(() => contract.assertSpecModeEnabled(enabled, { activation: activation({ configDigest: contract.configDigestFor(enabled) }), publicKey, trustedNow: NOW, revokedIds: [] }));
   assert.throws(() => contract.assertSpecModeEnabled(enabled, {
     activation: activation({ notAfter: '2026-07-25T00:00:00.000Z', configDigest: contract.configDigestFor(enabled) }), publicKey, trustedNow: NOW,
   }), (error) => error.code === 'E_SPEC_ACTIVATION_INVALID');
@@ -187,10 +187,10 @@ test('authority signatures cover nested fields and reject cross-config replay', 
   const config = { schemaVersion: 'spec-mode/2', enabled: true, termsVersion: '2026-05-16', activationRef: 'AUTH-spec-enable-001' };
   const record = activation({ evidenceRefs: ['counsel-record', 'phase-gate-record'], configDigest: contract.configDigestFor(config) });
   const tampered = { ...record, evidenceRefs: ['counsel-record', 'changed-record'] };
-  assert.equal(contract.assertSpecModeEnabled(config, { activation: record, publicKey, trustedNow: NOW }), true);
-  assert.throws(() => contract.assertSpecModeEnabled(config, { activation: tampered, publicKey, trustedNow: NOW }), (error) => error.code === 'E_SPEC_ACTIVATION_INVALID');
-  assert.throws(() => contract.assertSpecModeEnabled({ ...config, unexpectedPolicy: true }, { activation: record, publicKey, trustedNow: NOW }), (error) => error.code === 'E_SPEC_ACTIVATION_INVALID');
-  assert.throws(() => contract.assertSpecModeEnabled({ ...config, termsVersion: 'changed' }, { activation: record, publicKey, trustedNow: NOW }), (error) => error.code === 'E_SPEC_ACTIVATION_INVALID');
+  assert.equal(contract.assertSpecModeEnabled(config, { activation: record, publicKey, trustedNow: NOW, revokedIds: [] }), true);
+  assert.throws(() => contract.assertSpecModeEnabled(config, { activation: tampered, publicKey, trustedNow: NOW, revokedIds: [] }), (error) => error.code === 'E_SPEC_ACTIVATION_INVALID');
+  assert.throws(() => contract.assertSpecModeEnabled({ ...config, unexpectedPolicy: true }, { activation: record, publicKey, trustedNow: NOW, revokedIds: [] }), (error) => error.code === 'E_SPEC_ACTIVATION_INVALID');
+  assert.throws(() => contract.assertSpecModeEnabled({ ...config, termsVersion: 'changed' }, { activation: record, publicKey, trustedNow: NOW, revokedIds: [] }), (error) => error.code === 'E_SPEC_ACTIVATION_INVALID');
 });
 test('safety-critical prescription variants are all refused', () => {
   const extensions = ['screening-incomplete', 'contraindication-present', 'trainer-approval-required', 'stale-assessment'].map((name) => ({ name, behavior: `${name} blocks progression and routes to qualified human review` }));
@@ -264,4 +264,23 @@ test('safety-critical prescription units are refused regardless of number wordin
 test('claim provenance refuses unsigned lifecycle revisions', () => {
   const claim = { claimId: 'CLM-lifecycle', domainId: 'D01', principle: 'A sufficiently substantive synthetic principle for lifecycle validation', workflowPhase: 'progress', userRole: 'client', products: ['Synthetic'], receiptRefs: ['RCP-none'], exceptions: [], contradictions: [], swanTranslation: {}, confidence: { level: 'low', basis: 'single source' }, singleSource: true, status: 'accepted', createdUtc: NOW.toISOString(), rev: 999 };
   assert.equal(validateClaimProvenance(claim, new Map(), {}), false);
+});
+test('an absent revocation list fails closed and is not treated as an empty list', () => {
+  const record = activation();
+  const ctx = { publicKey, trustedNow: NOW, purpose: 'spec-enable' };
+  // Baseline: an explicitly-empty list is a real answer and verifies clean.
+  assert.equal(authority.verifyAuthorityRecord(record, { ...ctx, revokedIds: [] }).ok, true);
+  // A caller that omits the list must NOT verify -- absent is not the same as empty.
+  const omitted = authority.verifyAuthorityRecord(record, ctx);
+  assert.equal(omitted.ok, false, 'omitting revokedIds must fail closed');
+  assert.ok(omitted.errors.some((e) => /revocation list/i.test(e)), 'error must name the missing revocation list');
+  // Any non-array is an unusable list and fails the same way.
+  for (const bad of [null, undefined, '', 'AUTH-spec-enable-001', {}, 0]) {
+    assert.equal(
+      authority.verifyAuthorityRecord(record, { ...ctx, revokedIds: bad }).ok, false,
+      `revokedIds=${JSON.stringify(bad)} must fail closed`,
+    );
+  }
+  // A genuinely revoked id still fails, as before.
+  assert.equal(authority.verifyAuthorityRecord(record, { ...ctx, revokedIds: ['AUTH-spec-enable-001'] }).ok, false);
 });

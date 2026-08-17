@@ -99,9 +99,8 @@ test('E6/G-16: readReceipts answers transparently from the archive after prune',
   assert.ok(bad[0].__unparseable, 'corrupt .gz surfaces as an __unparseable marker');
 });
 
-test('E6/G-13: design-mirror check parses and the live pair is in sync', async () => {
-  const { checkMirror } = await import('./design-mirror-check.mjs');
-  const out = checkMirror();
-  assert.equal(out.ok, true, `canonical tokens missing from design.html: ${out.missing.join(', ')}`);
-  assert.ok(out.canonical >= 20, 'canonical token extraction found the palette');
-});
+// E6/G-13 REMOVED 2026-08-16 together with design-mirror-check.mjs. The test asserted that
+// design.md and design.html held the same canonical tokens; design.html was retired to
+// docs/_attic/, so the check had no subject left. It was ALREADY failing before the retirement
+// (3 canonical tokens missing — the mirror had drifted), which is part of why the mirror went.
+// Deleting the check with its subject is the honest fix; leaving it would have crashed on ENOENT.

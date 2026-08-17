@@ -183,7 +183,20 @@ async function main() {
       + `> Re-run with --max-tokens higher, or split the packet into narrower consults.\n\n`
     : '';
 
-  const output = `# Tencent Hy3 - Design Inspiration\n\n**Reviewer:** \`${model}\` (${options.effort})\n`
+  // SELF-DESCRIBING HEADER (Sean, 2026-08-16) — third of three consult paths to get this; the
+  // gateway (consult.mjs) and consult-glm.mjs were fixed first and this one was MISSED, found by
+  // grepping for the old static strings rather than by memory of which files I had touched.
+  // The H1 named the TOOL ("Tencent Hy3 - Design Inspiration") and not the WORK, so a review could
+  // not be identified without opening it. Derive it from the reviewed document's own H1. Fenced
+  // blocks are stripped first: packets embed diffs, and a `# comment` inside a fence sits at line
+  // start exactly like a heading — a header describing the wrong thing is worse than a generic one.
+  const SUBJECT_MAX = 120;
+  let subject = (document.replace(/^```[\s\S]*?^```/gm, '').match(/^#\s+(.+?)\s*$/m)?.[1] ?? '')
+    .replace(/\s+/g, ' ').trim();
+  if (subject.length > SUBJECT_MAX) subject = `${subject.slice(0, SUBJECT_MAX - 1).trimEnd()}…`;
+  const h1 = subject ? `${subject} — reviewed by HY3 (${model})` : 'Tencent Hy3 - Design Inspiration';
+
+  const output = `# ${h1}\n\n**Reviewer:** \`${model}\` (${options.effort})\n`
     + `**Document:** ${options.document}\n**Seed:** ${options.seed || '(none)'}\n`
     + `**Tokens:** ${inputTokens} in / ${outputTokens} out | **Cost:** ~$${actualUsd.toFixed(4)} | **Wall:** ${seconds}s`
     + ` | **finish_reason:** ${finish ?? '?'}\n\n---\n\n${banner}${text}\n`;

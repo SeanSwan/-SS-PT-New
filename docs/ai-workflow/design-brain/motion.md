@@ -1,7 +1,7 @@
 # motion.md — Swan Motion Doctrine (Design Brain core)
 
 - **Date:** 2026-07-03 · **Author:** Fable (claude-fable-5) · **Status:** CANONICAL (within its scope)
-- **Extends:** `design.md` §25 · **Source of truth:** `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §A (motion tools, Full/Lean/Still runtime quality, Reduced Motion override), §B (motion bans), §C1–C12 (per-pattern fallbacks). That doc wins conflicts.
+- **Extends:** `design.md` §8 · **Source of truth:** `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §A (motion tools, Full/Lean/Still runtime quality, Reduced Motion override), §B (motion bans), §C1–C12 (per-pattern fallbacks). That doc wins conflicts.
 
 ---
 
@@ -29,7 +29,7 @@ Animate **`transform` and `opacity`. Nothing else** without an explicit exceptio
 - Banned from animation: `width`, `height`, `top`, `left`, `margin`, `padding`, `box-shadow` (animate a pre-rendered glow layer's `opacity` instead), `filter: blur()` on large surfaces, `background-position` on big images.
 - Glow-on-hover recipe: stack a pseudo-element carrying the full glow `box-shadow`, animate its `opacity 0 → 1`. Same look, compositor-only.
 - `will-change: transform` only while animating; remove after. Standing `will-change` on dozens of cards eats VRAM.
-- `translateZ(0)` creates stacking contexts — give the parent `position: relative; z-index` (design.md §28 / gotchas).
+- `translateZ(0)` creates stacking contexts — give the parent `position: relative; z-index` (design.md §9 — z-scale / stacking).
 
 ## 3. Reduced motion — MANDATORY dual gating
 
@@ -38,7 +38,7 @@ Animate **`transform` and `opacity`. Nothing else** without an explicit exceptio
 1. **CSS gate** — `@media (prefers-reduced-motion: reduce)` inside the styled-component: kill nonessential keyframes, transitions, and scroll effects; keep the complete authored Still composition intact per source §A.
 2. **JS gate** — framer-motion `useReducedMotion()` (or `<MotionConfig reducedMotion="user">` at the surface root) disabling variants, springs, `useMotionValue` count-ups, and rAF loops.
 
-**The CSS media query does NOT govern JS-driven entrances.** Lesson of 2026-06-20: a surface shipped with the CSS query in place and framer springs still animating for reduced-motion users — CSS `@media` cannot stop what framer applies as inline styles from JS. Reviewers reject any slice that gates only one layer (see `adapters/builders.md` §"Reduced motion, both layers", `adapters/reviewers.md` §4).
+**The CSS media query does NOT govern JS-driven entrances.** Lesson of 2026-06-20: a surface shipped with the CSS query in place and framer springs still animating for reduced-motion users — CSS `@media` cannot stop what framer applies as inline styles from JS. Reviewers reject any slice that gates only one layer (see `adapters/builders.md` §"Reduced motion, both layers", `adapters/reviewers.md` §A2 lens 4 (accessibility)).
 
 - Reduced Motion means **reduced, not gutted**: content, layout, and tokens all remain through the authored Still composition (source §A). A blank hero is a failure; a static poster is the spec.
 - Video/canvas under reduced motion: show the poster frame; do not autoplay.
@@ -48,12 +48,12 @@ Animate **`transform` and `opacity`. Nothing else** without an explicit exceptio
 
 Data-dense operator and work surfaces stay **calm**: response-tier only, no ambient loops, no narrative beats, no signature moments.
 
-- **Hermes operator surfaces (Cyberforest):** ambient banned, response ≤200ms (design.md §19 — "a cockpit, not a brand page").
-- **Coach Command Center** approval queue / receipt ledger (design.md §18): response-tier only.
-- **Data cards** (client/trainer/admin/biometrics/program/workout-log): no pointer tracking, no animation loops, no hover-only actions (Swan Card/Button Standard; design.md §9).
-- Tables, forms mid-entry, and anything a trainer uses live in a session (low-tap flows, design.md §17): motion must never delay the next tap.
+- **Hermes operator surfaces (Cyberforest):** ambient banned, response ≤200ms (design.md §5 (ops world) — "a cockpit, not a brand page").
+- **Coach Command Center** approval queue / receipt ledger (design.md §5 — pro world): response-tier only.
+- **Data cards** (client/trainer/admin/biometrics/program/workout-log): no pointer tracking, no animation loops, no hover-only actions (Swan Card/Button Standard; design.md §11).
+- Tables, forms mid-entry, and anything a trainer uses live in a session (low-tap flows, design.md §11): motion must never delay the next tap.
 
-SheenCard sell/showcase surfaces are the licensed exception (design.md §9) — and even they honor §3.
+SheenCard sell/showcase surfaces are the licensed exception (design.md §11) — and even they honor §3.
 
 ## 5. Signature-moment budget
 

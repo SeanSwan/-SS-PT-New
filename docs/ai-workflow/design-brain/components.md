@@ -1,21 +1,21 @@
 # components.md — Swan Component Pattern Index (Design Brain core)
 
 - **Date:** 2026-07-03 · **Author:** Fable (claude-fable-5) · **Status:** CANONICAL (within its scope)
-- **Extends:** `design.md` §§9–22 (tokens, surfaces, tiers). **Source of truth:** `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §C1–C12 — pattern recipes live there; this file maps components onto them and fixes anatomy/states/do-don't.
-- Universal: every interactive element ≥44px (rule 2); `var(--token, #fallback)` only (rule 6); dark-first (rule 3); all data-bearing components ship empty/loading/error/success states (design.md §22); motion per `motion.md`.
+- **Extends:** `design.md` §§6, 11–12 (tokens, components, states). **Source of truth:** `SWAN-CINEMATIC-DESIGN-SYSTEM.md` §C1–C12 — pattern recipes live there; this file maps components onto them and fixes anatomy/states/do-don't.
+- Universal: every interactive element ≥44px (rule 2); `var(--token, #fallback)` only (rule 6); dark-first (rule 3); all data-bearing components ship empty/loading/error/success states (design.md §12); motion per `motion.md`.
 
 ---
 
 ## 1. GlowButton
 
-- **Purpose:** every CTA and action trigger. Variants per design.md §10 (Primary / Accent / Luxury / Ghost / Danger).
+- **Purpose:** every CTA and action trigger. Variants per design.md §11 (Primary / Accent / Luxury / Ghost / Danger).
 - **Anatomy:** 44px+ height, 12px radius, label (Plus Jakarta Sans; Sora on gaming surfaces), optional leading icon, glow layer as pseudo-element (opacity-animated, `motion.md` §2).
-- **Dual-Button Glow (both directions, mandatory — design.md §5):** blue bg (Midnight Sapphire/Royal Depth) → **Wing Purple** glow + focus ring; purple bg (Wing Purple) → **Ice Wing** glow + focus ring. Conflicting library advice (LILA BAN class) is rejected, not adapted.
+- **Dual-Button Glow (both directions, mandatory — design.md §6):** blue bg (Midnight Sapphire/Royal Depth) → **Wing Purple** glow + focus ring; purple bg (Wing Purple) → **Ice Wing** glow + focus ring. Conflicting library advice (LILA BAN class) is rejected, not adapted.
 - **States:** default / hover (glow up + 1–2% scale) / active (0.98) / focus-visible (2px glow-color ring, 2px offset) / disabled (40% opacity, no glow) / loading (inline spinner, label persists).
 - **Do:** one Primary per view region; Danger gets `--danger` bg and NO glow (destruction isn't celebrated).
 - **Don't:** Arctic Cyan anywhere on a button (data-only token); icon-only button without `aria-label`; two primaries side-by-side.
 
-## 2. SheenCard vs low-motion data card (design.md §9)
+## 2. SheenCard vs low-motion data card (design.md §11)
 
 - **SheenCard (sell/showcase):** C12 sapphire or luxury-gold glass + chrome edge + metallic sheen + glints + hover motion (C7 tilt allowed). For storefront/feature/ascension — anything meant to SELL. Family: C5/C6/C7.
 - **Data card (client/trainer/admin/biometrics/program/workout-log):** same geometry and C12 chrome, dark-blue gradient surface, **low-motion**: no pointer tracking, no loops, no hover-only actions, no hidden controls. Compact grouped facts — never the same fact twice on one card; 44px icon buttons; wrap/stack at phone width.
@@ -46,20 +46,20 @@
 ## 6. Drill-down modal
 
 - **Purpose:** expand a chart point / row / KPI into detail without navigation.
-- **Anatomy:** design.md §20 modal chrome (Graphite C12-obsidian glass, 24px radius, blurred overlay); header names the exact entity drilled into; body = C11 mini-environment or data-card facts; footer = next-action CTA.
+- **Anatomy:** design.md §11 modal chrome (Graphite C12-obsidian glass, 24px radius, blurred overlay); header names the exact entity drilled into; body = C11 mini-environment or data-card facts; footer = next-action CTA.
 - **States:** focus-trapped; ESC closes; **focus returns to the trigger element on close** (WCAG 2.4.3); loading skeleton inside, never a blank modal.
 - **Don't:** modal-over-modal (drill again → replace content with breadcrumb back); hover-only drill affordance.
 
 ## 7. Command dock
 
 - **Purpose:** operator command entry (Coach Command Center, Hermes surfaces).
-- **Anatomy:** docked bar/panel, Graphite surface, input (§11 field spec), command list rows each carrying exactly one T0–T4 tier badge (design.md §15), keyboard-first (↑/↓/Enter, visible focus).
+- **Anatomy:** docked bar/panel, Graphite surface, input (§11 field spec), command list rows each carrying exactly one T0–T4 tier badge (design.md §11), keyboard-first (↑/↓/Enter, visible focus).
 - **States:** idle / typing (filtered list) / armed (T3+ selection shows confirm affordance inline) / executing (row-level spinner, dock stays interactive) / result (links to receipt row, §9).
-- **Don't:** execute T3/T4 straight from the dock — route through confirm (§17) or two-step arm (§18); ambient motion (calm zone, `motion.md` §4).
+- **Don't:** execute T3/T4 straight from the dock — route through confirm (§16) or two-step arm (§17); ambient motion (calm zone, `motion.md` §4).
 
 ## 8. Coach proposal card
 
-- **Purpose:** Swan Coach / dictation / PLAUD draft output awaiting human approval (design.md §§14, 18).
+- **Purpose:** Swan Coach / dictation / PLAUD draft output awaiting human approval (design.md §§5, 11).
 - **Anatomy:** T1 data card; **"DRAFT" badge** (Swan Lavender pill, top-left, text+color); proposed content diff-style (what will be written, for whom); approve + dismiss buttons ≥44px; provenance line (source: dictation/PLAUD/chat).
 - **States:** draft / approving (button loading) / approved (morphs to receipt link) / dismissed (undo toast window) / error (why + retry).
 - **Do:** writes land only through approval-gated endpoints (operator bridge §3) — the card is UI over that gate, never a bypass.
@@ -67,10 +67,10 @@
 
 ## 9. Approval-queue row + receipt ledger row
 
-- **Approval-queue row (Coach Command Center / operator):** anatomy — tier badge (T0–T4 colors, design.md §15) + action summary + target entity + requester/source + age + approve/reject 44px targets; ≥48px row height; keyboard operable. States: pending / selected (detail panel opens) / processing / done. Don't: color-only tier signal; hover-revealed actions.
+- **Approval-queue row (Coach Command Center / operator):** anatomy — tier badge (T0–T4 colors, design.md §11) + action summary + target entity + requester/source + age + approve/reject 44px targets; ≥48px row height; keyboard operable. States: pending / selected (detail panel opens) / processing / done. Don't: color-only tier signal; hover-revealed actions.
 - **Receipt ledger row:** immutable record of an executed command. Anatomy — timestamp + actor + tier badge + action + target + outcome, values in **Fira Code** (tabular figures, right-aligned numerics per §12 tables); links to rollback note where T4. States: success / failed (single `--danger` accent) / rolled-back. Don't: editable receipts; truncating the target entity on mobile (stack, don't clip).
 
-## 10. Navigation rail (design.md §21)
+## 10. Navigation rail (design.md §11)
 
 - **Anatomy:** left rail, icons + labels, collapsible to 72px icon rail; active item = Ice Wing edge + tint; 44px targets. Mobile: bottom tab bar ≤5 items, active = glow dot; Progress/workout never buried below social/profile (Product Core Loop).
 - **States:** active / inactive / hover wash / focus-visible ring / collapsed (tooltip labels).
@@ -88,12 +88,12 @@
 - **States:** default / focus (Ice Wing border + soft ring — or Wing Purple, one accent per form) / error (`--danger` border + message + `aria-describedby`) / disabled / success (inline check).
 - **Don't:** destructive action adjacent to submit; error color as the only error signal; clearing user input on failed submit.
 
-## 13. Empty state (design.md §22)
+## 13. Empty state (design.md §12)
 
 - **Anatomy:** Cormorant Garamond Italic explanation (why it's empty), one CTA to create the first real thing, optional on-brand still.
 - **Don't:** bare "No data"; mock-filled chart as placeholder; multiple competing CTAs.
 
-## 14. Skeleton / loading (design.md §22)
+## 14. Skeleton / loading (design.md §12)
 
 - **Anatomy:** skeleton blocks matching final geometry (no shift on swap); shimmer = ambient tier, reduced-motion → static blocks. Spinners only for sub-400ms or inline-button loads.
 - **Don't:** full-page spinner for panel loads; skeletons that don't match the layout they resolve into.
@@ -106,14 +106,14 @@
 
 ## 16. Confirm modal (T3)
 
-- **Purpose:** gate external-visible actions (design.md §§15, 20).
+- **Purpose:** gate external-visible actions (design.md §11).
 - **Anatomy:** modal chrome per §6; names **exact action + target** ("Send reminder SMS to client #482"); Wing Purple T3 tier badge; confirm button carries the action verb — never "OK"; cancel is the safe default focus.
 - **States:** open (focus-trapped) / confirming (loading) / result. Focus returns to trigger on close.
 - **Don't:** generic copy ("Are you sure?"); confirm as the initially-focused element; ESC disabled (allowed to cancel — this is T3, not T4 mid-flow).
 
 ## 17. Two-step arm modal (T4)
 
-- **Purpose:** destructive/irreversible actions (design.md §§15, 20).
+- **Purpose:** destructive/irreversible actions (design.md §11).
 - **Anatomy:** step 1 **arm** — typed target name or explicit toggle; step 2 **execute** — danger button (`--danger` bg, no glow) enabled only after arming; Danger `#E5484D` T4 badge; **rollback plan line** visible before execution.
 - **States:** unarmed (execute disabled) / armed / executing / done (links receipt + rollback note) / failed. ESC allowed before execution, not mid-execution.
 - **Don't:** pre-filled arm input; single-click destructive paths anywhere in Swan; hiding the rollback line to save space.

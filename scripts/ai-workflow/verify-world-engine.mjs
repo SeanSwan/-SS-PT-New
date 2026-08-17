@@ -18,7 +18,7 @@ const REQUIRED_FILES = Object.freeze({
   registry: 'docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AND-OPERATOR-REGISTRY.md', archetypes: 'docs/ai-workflow/design-brain/website-archetypes.md',
   sourceSystem: 'docs/ai-workflow/references/SWAN-CINEMATIC-DESIGN-SYSTEM.md', sourceAssets: 'docs/ai-workflow/references/SWAN-ASSET-STORYBOARDING.md',
   knowledge: 'docs/ai-workflow/design-brain/adapters/knowledge.md', index: 'docs/ai-workflow/design-brain/index.md',
-  designMd: 'docs/ai-workflow/design-brain/design.md', designHtml: 'docs/ai-workflow/design-brain/design.html', motion: 'docs/ai-workflow/design-brain/motion.md',
+  designMd: 'docs/ai-workflow/design-brain/design.md', motion: 'docs/ai-workflow/design-brain/motion.md',
   cinematic: 'docs/ai-workflow/design-brain/cinematic-pages.md', reviewers: 'docs/ai-workflow/design-brain/adapters/reviewers.md',
   externalReference: 'docs/ai-workflow/design-brain/external-reference-mcp.md', handoff: 'docs/ai-workflow/AI-HANDOFF/SWAN-WORLD-ENGINE-BUILD-HANDOFF-2026-07-12.md',
   roulette: 'scripts/ai-workflow/world-roulette.mjs', rouletteVerifier: 'scripts/ai-workflow/verify-world-roulette.mjs',
@@ -191,8 +191,56 @@ export function auditWorldEngineBundle(bundle) {
   requirePattern(errors, bundle.knowledge ?? '', /direct(?:-to-|\s+)wiki\s+writ/i, 'knowledge adapter must prohibit direct wiki writes');
   requirePattern(errors, bundle.index ?? '', /worlds\.md[\s\S]*techniques\.md[\s\S]*psychology\.md[\s\S]*experience-mode\.md[\s\S]*swan-world-factory/i, 'Design Brain index lacks complete World Engine stitching');
   requirePattern(errors, bundle.designMd ?? '', /Full\/Lean\/Still[\s\S]*Reduced Motion is a separate accessibility override/i, 'design.md must define Full/Lean/Still plus separate Reduced Motion');
-  requirePattern(errors, bundle.designHtml ?? '', /Full cinema[\s\S]*Lean cinema[\s\S]*<b>Still<\/b>[\s\S]*Accessibility override — Reduced Motion/i, 'design.html must mirror Full/Lean/Still plus separate Reduced Motion');
-  if (/Tier 3 — Reduced motion/i.test(bundle.designHtml ?? '')) errors.push('design.html retains the retired Reduced-Motion-as-tier contract');
+  // design.html assertions REMOVED 2026-08-16: the mirror was retired to docs/_attic/. Keeping
+  // them turned a real pre-existing failure ("external-reference receipt/fallback contract is
+  // incomplete") into an ENOENT crash that MASKED it — same failure count, worse information.
+  // design.md carries the Full/Lean/Still + Reduced-Motion contract on its own, asserted above.
+  //
+  // The retired design-mirror-check.mjs asserted TWO things, and only one died with its subject:
+  // (a) every canonical token in design.md also appears in design.html — dead, no mirror exists;
+  // (b) design.md yields >= 20 canonical tokens at all — a PALETTE-EXTRACTION SANITY check whose
+  // subject is still very much alive. Deleting the script silently dropped (b) (Kimi round 2,
+  // R2-1). Re-asserted here so a design.md that stops yielding a palette still fails loudly.
+  // Palette-existence successor to the retired design-mirror-check.mjs. Deliberately an ANCHOR
+  // check and NOT a token count, after three rounds of getting this wrong:
+  //   v1 (a >= 20 unique-hex floor) COULD PASS FOR THE WRONG REASON — it counts every hex in the
+  //      file, including the 3 inside code fences and the 3 RETIRED Galaxy-Swan values quoted as
+  //      do-NOT-use examples. Whether a real palette deletion slips through therefore depends on
+  //      how much unrelated hex happens to exist, not on the palette. Stated honestly: on TODAY's
+  //      file it would have caught a pure anchor deletion (23 - 5 = 18 < 20); the pass-through was
+  //      demonstrated on a constructed input padded with filler hex. Generalising that constructed
+  //      case to the real file was my error, caught by GLM in the confirming round. The defect is
+  //      real but conditional — one added doc example and the same deletion sails through.
+  //   v1 also FAILED FOR THE WRONG REASON, unconditionally — 23 observed against a floor of 20 is
+  //      3 tokens of headroom, so a legitimate 4-token palette revision would have failed a healthy
+  //      canon (Kimi round 3, R3-1). A gate whose false-positive path is "someone edited the
+  //      palette" gets switched off, and then it protects nothing. This half needs no construction
+  //      to reproduce, which is why it is the half that decided the rewrite.
+  // Anchoring on the values that MUST be present has neither failure mode: it cannot pass when the
+  // palette is gone, and it cannot fail when the palette is merely revised around these anchors.
+  // Checked: design.md carries no 8-digit #RRGGBBAA tokens, so the 6-digit match drops nothing.
+  const canonicalTokens = new Set(((bundle.designMd ?? '').match(/#[0-9A-Fa-f]{6}\b/g) ?? []).map((h) => h.toLowerCase()));
+  const ACTIVE_PALETTE_ANCHORS = ['#002060', '#60c0f0', '#c6a84b', '#8b5cf6', '#0a0a0f'];
+  const missingAnchors = ACTIVE_PALETTE_ANCHORS.filter((h) => !canonicalTokens.has(h));
+  if (missingAnchors.length) {
+    errors.push(`design.md is missing active Crystalline palette anchor(s): ${missingAnchors.join(', ')}`);
+  }
+  // NEGATIVE sentinel, re-homed from the deleted design.html check (GLM round 2, R2-5). It guards
+  // the RETIRED "Reduced-Motion-as-a-fourth-tier" contract from creeping back. The surviving
+  // positive assertion above states what canon must say; this states what it must NOT say, and a
+  // positive check cannot catch a contradiction sitting beside it.
+  // SCOPE, stated so no future reader credits this with more than it has (Kimi round 3, R3-2):
+  // this is a VERBATIM tripwire for history-resurrection — the realistic threat is a copy-paste
+  // from git history or an old doc, which preserves the literal string. A *paraphrased*
+  // reintroduction evades it by design; doctrine review owns that case, not this regex. The colon
+  // form is included because it is the one editorial normalisation likely to happen by accident.
+  // Negative documentation must PARAPHRASE: a future "do NOT use" note quoting the retired string
+  // verbatim will trip this by design — the house style already quotes retired Galaxy-Swan hexes
+  // that way, so the collision is foreseeable. Loud failure with an obvious resolution is the
+  // intended trade (GLM confirming round, observation 1).
+  if (/Tier 3\s*[—:-]\s*Reduced motion/i.test(bundle.designMd ?? '')) {
+    errors.push('design.md retains the retired Reduced-Motion-as-tier contract');
+  }
   requirePattern(errors, bundle.motion ?? '', /Licensed M4 pointer[\s\S]*Full\/Lean\/Still/i, 'motion doctrine lacks M4 and runtime-mode stitching');
   requirePattern(errors, bundle.cinematic ?? '', /M4 loss-matrix pointer[\s\S]*B3 failure[\s\S]*B1\/B0/i, 'cinematic doctrine lacks M4 backend-loss stitching');
   requirePattern(errors, bundle.reviewers ?? '', /M4 license and failure safety[\s\S]*automatic REVISE/i, 'reviewer adapter lacks M4 automatic-REVISE gate');
