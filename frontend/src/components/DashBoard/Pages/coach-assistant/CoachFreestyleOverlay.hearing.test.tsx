@@ -580,6 +580,22 @@ describe('CoachFreestyleOverlay — every exit from listening kills the engine i
     expect(abortCalls).toBeGreaterThan(abortsBefore);
     act(() => { /* settle */ });
   });
+
+  /**
+   * ROUND-14 REGRESSION (Codex HIGH). Cancel while listening with zero
+   * finalized fragments reached handleClose, which had never received the
+   * synchronous stop — one round after the "every exit" claim was written.
+   * The claim is now true because this test makes the last member load-bearing.
+   */
+  it('Cancel releases the engine synchronously in the click handler', () => {
+    renderOverlay();                                       // listening, 0 fragments
+    const abortsBefore = abortCalls;
+
+    screen.getByLabelText('Cancel').click();                // outside act on purpose
+
+    expect(abortCalls).toBeGreaterThan(abortsBefore);
+    act(() => { /* settle */ });
+  });
 });
 
 describe('CoachFreestyleOverlay — handoff cannot be purged (Fable F-3)', () => {

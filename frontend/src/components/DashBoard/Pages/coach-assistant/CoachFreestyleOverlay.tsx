@@ -290,6 +290,13 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   }, [discard, onClose]);
 
   const handleClose = useCallback(() => {
+    // Synchronous stop FIRST — Cancel while listening (zero fragments) reached
+    // this path and left the engine to the follow effect, falsifying the
+    // "every exit stops synchronously" claim one round after it was made
+    // (Codex, round 14). stop() flushes while the session is still listening,
+    // so a mid-flight phrase lands before reset purges (receipted) — words are
+    // never silently dropped between the tap and the close.
+    speechStopRef.current();
     reset('completed');
     onClose();
   }, [reset, onClose]);
