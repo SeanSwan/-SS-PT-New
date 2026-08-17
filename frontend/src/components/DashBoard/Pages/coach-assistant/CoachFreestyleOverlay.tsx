@@ -319,7 +319,11 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
    * session, and only a terminating exit may clear the latch.
    */
   const closeSession = useCallback((settle: () => void) => {
-    speechStopRef.current();
+    // ABANDON, not stop: both settles destroy the buffer, so flushing the
+    // interim on the way out stored words only to purge them a line later —
+    // under a receipt naming the wrong act (GLM, round 20). Interim dies as
+    // interim here; the deliberate flush points are Done, Pause, discard-arm.
+    speech.abandon();
     speech.clearError();
     settle();
     onClose();
@@ -338,6 +342,15 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   const isStopped = state === 'stopped';
 
   /**
+   * "Has words" includes the VISIBLE interim — Cancel used to render on zero
+   * finalized fragments while an interim phrase was on screen, and one tap
+   * flushed-then-purged those words as 'completed': destruction without the
+   * two-step, under the wrong receipt (Codex, round 20). Arming the discard
+   * flushes the interim into the buffer, so the confirm counts those words.
+   */
+  const hasWords = fragments.length > 0 || speech.interim.trim().length > 0;
+
+  /**
    * Escape arms the discard rather than performing it. A stray key must not
    * destroy ten minutes of work — the same reasoning as the two-step control.
    * Once STOPPED the snapshot has already been handed off, so arming a discard
@@ -348,12 +361,12 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       if (discardPending) cancelDiscard();
-      else if (!isStopped && fragments.length > 0) handleRequestDiscard();
+      else if (!isStopped && hasWords) handleRequestDiscard();
       else handleClose();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [isOpen, isStopped, discardPending, fragments.length, cancelDiscard, handleRequestDiscard, handleClose]);
+  }, [isOpen, isStopped, discardPending, hasWords, cancelDiscard, handleRequestDiscard, handleClose]);
 
   /**
    * FOCUS LIFECYCLE for an aria-modal dialog: focus moves in on open, cycles
@@ -548,13 +561,13 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
             </ControlButton>
           )}
 
-          {fragments.length > 0 && !isStopped && (
+          {hasWords && !isStopped && (
             <ControlButton type="button" $variant="danger" onClick={handleRequestDiscard} aria-label="Discard session">
               <Trash2 size={18} aria-hidden="true" /> Discard
             </ControlButton>
           )}
 
-          {fragments.length === 0 && !isStopped && (
+          {!hasWords && !isStopped && (
             <ControlButton type="button" onClick={handleClose} aria-label="Cancel">
               <X size={18} aria-hidden="true" /> Cancel
             </ControlButton>

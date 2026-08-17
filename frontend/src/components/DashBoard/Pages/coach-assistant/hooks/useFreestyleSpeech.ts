@@ -119,6 +119,14 @@ export interface UseFreestyleSpeechReturn {
   start: () => void;
   stop: () => void;
   /**
+   * Stops WITHOUT flushing: interim dies as interim. For terminating exits
+   * whose settle destroys the buffer — flushing there stored the words into a
+   * session that immediately purged them, under a receipt that named the wrong
+   * act (GLM, round 20). Deliberate flush points (Done, Pause, discard-arm)
+   * keep `stop`.
+   */
+  abandon: () => void;
+  /**
    * Clears a latched error so the NEXT open can auto-retry. Deliberately not
    * inside stop(): fatal errors must survive teardown long enough for the
    * overlay's fail bridge to consume them — clear only at surface close,
@@ -337,7 +345,14 @@ export function useFreestyleSpeech(
     teardown();
   }, [teardown]);
 
+  const abandon = useCallback(() => {
+    wantListeningRef.current = false;
+    setListening(false);
+    setInterimBoth('');          // interim dies as interim — never promoted
+    teardown();
+  }, [teardown, setInterimBoth]);
+
   const clearError = useCallback(() => setError(null), []);
 
-  return { supported, listening, interim, error, restarts, start, stop, flush, clearError };
+  return { supported, listening, interim, error, restarts, start, stop, flush, abandon, clearError };
 }

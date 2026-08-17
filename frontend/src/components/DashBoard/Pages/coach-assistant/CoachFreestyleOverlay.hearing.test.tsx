@@ -197,6 +197,47 @@ describe('CoachFreestyleOverlay — it actually hears (Fable F-2)', () => {
    * failure message whose cause may have since cleared. Both exits now route
    * through one closeSession chokepoint.
    */
+  /**
+   * ROUND-20 REGRESSION (Codex MED). Cancel rendered on zero FINALIZED
+   * fragments while an interim phrase was visible on screen — one tap flushed
+   * those words into the session and purged them as 'completed': destruction
+   * without the two-step, under the wrong receipt. Visible words are words.
+   */
+  it('offers Discard, not Cancel, while an interim phrase is on screen', () => {
+    renderOverlay();
+    say('client is at one seventy five', false);        // interim only, 0 fragments
+
+    expect(screen.queryByLabelText('Cancel')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Discard session')).toBeInTheDocument();
+  });
+
+  /**
+   * ROUND-20 REGRESSION (GLM). Terminating exits flushed the interim into a
+   * buffer they were about to destroy — stored-then-destroyed, receipt naming
+   * the wrong act. closeSession now ABANDONS: interim dies as interim.
+   */
+  it('a terminating exit does not promote interim into the buffer it destroys', () => {
+    const onPurge = vi.fn();
+    render(
+      <CoachFreestyleOverlay
+        isOpen
+        accountKey="trainer-a"
+        onClose={vi.fn()}
+        onPurge={onPurge}
+      />,
+    );
+    say('interim words in flight', false);
+
+    act(() => { screen.getByLabelText('Discard session').click(); });
+    act(() => { screen.getByLabelText('Confirm discard').click(); });
+
+    // The arm flushed deliberately (round 13) so the confirm judged those
+    // words; the close itself must never add more on the way out.
+    const reasons = onPurge.mock.calls.map(c => c[0]);
+    expect(reasons).toContain('discard');
+    expect(reasons).not.toContain('completed');
+  });
+
   it('reopening after discard-exit from a failed session retries the engine', () => {
     const { rerender } = renderOverlay();               // SAME instance throughout
     say('words captured before the failure');
