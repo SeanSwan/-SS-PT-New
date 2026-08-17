@@ -78,8 +78,21 @@ for await (const chunk of res.body) {
 if (!content) content = '(empty)';
 const wall = ((Date.now() - started) / 1000).toFixed(1);
 
+// SELF-DESCRIBING HEADER (Sean, 2026-08-16). The H1 was the static string "GLM Consult", which
+// names the TOOL and not the WORK — cold-open a review and you cannot tell a Swan Brain audit from
+// a storefront one. Derive it from the reviewed document's own H1 so every review is
+// self-describing with zero author effort. Fenced blocks are stripped FIRST: packets routinely
+// embed diffs and shell snippets, and a `# comment` inside a fence sits at line-start exactly like
+// a heading — a header that describes the wrong thing is worse than a generic one. Falls back to
+// the old title when the document has no H1: never throw away a paid call that already succeeded.
+const SUBJECT_MAX = 120;
+let subject = (body.replace(/^```[\s\S]*?^```/gm, '').match(/^#\s+(.+?)\s*$/m)?.[1] ?? '')
+  .replace(/\s+/g, ' ').trim();
+if (subject.length > SUBJECT_MAX) subject = `${subject.slice(0, SUBJECT_MAX - 1).trimEnd()}…`;
+const h1 = subject ? `${subject} — reviewed by GLM (${model})` : 'GLM Consult';
+
 mkdirSync(dirname(out), { recursive: true });
-writeFileSync(out, `# GLM Consult
+writeFileSync(out, `# ${h1}
 
 **Model:** ${model}
 **Document:** ${document}
