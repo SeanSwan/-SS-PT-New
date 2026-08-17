@@ -24,7 +24,7 @@
  * convention); over-triggering is the failure mode this file exists to kill.
  */
 import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]pending[\\/]|hermes-learning-packets[\\/]/;
@@ -252,11 +252,21 @@ export function decide(hookInput, transcriptRaw, readFile = (p) => readFileSync(
 async function loadPacketValidator() {
   try {
     const here = dirname(fileURLToPath(import.meta.url));
-    const schemaPath = join(here, '..', '..', 'docs', 'ai-workflow', 'hermes-learning-packets', '_schema.json');
+    const repoRoot = join(here, '..', '..');
+    const schemaPath = join(repoRoot, 'docs', 'ai-workflow', 'hermes-learning-packets', '_schema.json');
     const schema = JSON.parse(readFileSync(schemaPath, 'utf8'));
     const mod = await import('../hermes-learning-validate.mjs');
     if (typeof mod.validatePacket !== 'function') return null;
-    return (p) => mod.validatePacket(p, readFileSync(p, 'utf8'), schema).errors;
+
+    // Transcripts record repo-RELATIVE paths, so resolving them against process.cwd() only works
+    // when the hook happens to run from the repo root. Run from anywhere else the read threw, the
+    // catch swallowed it, and the gate enforced NOTHING while still exiting 0 -- measured
+    // 2026-08-16 with a two-cwd control. Anchoring the schema script-relative while leaving the
+    // packet cwd-relative was the bug: half the inputs were anchored.
+    return (p) => {
+      const abs = isAbsolute(p) ? p : join(repoRoot, p);
+      return mod.validatePacket(p, readFileSync(abs, 'utf8'), schema).errors;
+    };
   } catch {
     return null; // validator unavailable -> skip the packet check entirely, never block
   }

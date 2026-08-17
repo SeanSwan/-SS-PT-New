@@ -207,3 +207,54 @@ test('the real validator module loads and exports validatePacket', async () => {
   const bad = mod.validatePacket('x.md', 'no frontmatter at all', schema);
   assert.ok(bad.errors.length > 0, 'a packet with no frontmatter must produce errors');
 });
+
+// --- cwd-independence of the packet check (regression, 2026-08-16) ---------------------------
+// The unit tests above inject `validate`, so they proved the DECISION logic and nothing about the
+// wiring that supplies it. loadPacketValidator() resolved the schema script-relative but read the
+// packet relative to process.cwd(); run from anywhere but the repo root the read threw, the catch
+// swallowed it, and the gate enforced NOTHING while still exiting 0. Every test above stayed green.
+// Only a subprocess run from a foreign cwd can catch that, so this test spawns the real binary.
+test('the real hook blocks a malformed packet when run from a foreign cwd', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { writeFileSync, mkdtempSync, rmSync, openSync, closeSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+
+  const packetRel = 'docs/ai-workflow/hermes-learning-packets/_zz-cwd-probe.md';
+  const packetAbs = join(REPO_ROOT, packetRel);
+  const dir = mkdtempSync(join(tmpdir(), 'gate-cwd-'));
+  const transcript = join(dir, 't.jsonl');
+
+  // Underscore-prefixed so a crash mid-test cannot leave a file the corpus validator counts.
+  // isMemoFile() would reject that name, so assert against a non-underscore path instead.
+  const realRel = 'docs/ai-workflow/hermes-learning-packets/zz-cwd-probe.md';
+  const realAbs = join(REPO_ROOT, realRel);
+
+  writeFileSync(realAbs, '---\noriginating_model: claude-opus-5\n---\n\n## Mistakes I made\n- probe\n');
+  writeFileSync(transcript, [
+    JSON.stringify({ type: 'user', message: { content: [{ type: 'text', text: 'build' }] } }),
+    JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Write', input: { file_path: realRel } }] } }),
+  ].join('\n'));
+
+  try {
+    // stdin MUST come from a real file descriptor. Passing `input:` to spawn makes
+    // readFileSync(0) throw on Windows, so the hook takes its "bad stdin -> allow" path and
+    // returns silently — the test then "fails" for a reason that has nothing to do with cwd.
+    // Claude Code pipes hook input for real, so a fd is the faithful harness.
+    const hookInput = join(dir, 'hook-input.json');
+    writeFileSync(hookInput, JSON.stringify({ stop_hook_active: false, transcript_path: transcript }));
+    const fd = openSync(hookInput, 'r');
+    let out;
+    try {
+      out = execFileSync(process.execPath, [join(REPO_ROOT, 'scripts/hooks/hermes-closeout-gate.mjs')], {
+        cwd: dir,                    // <-- the whole point: NOT the repo root
+        encoding: 'utf8',
+        stdio: [fd, 'pipe', 'pipe'],
+      });
+    } finally { closeSync(fd); }
+    assert.match(out, /fails the corpus schema/, 'gate must enforce regardless of cwd');
+  } finally {
+    rmSync(realAbs, { force: true });
+    rmSync(packetAbs, { force: true });
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
