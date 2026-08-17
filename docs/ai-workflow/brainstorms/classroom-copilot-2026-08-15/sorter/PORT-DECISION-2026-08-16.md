@@ -46,9 +46,12 @@ The violation: `child-name-in-supply` — "need more of the dinosaur blocks Kai 
   cannot link an untold child", deterministic) are about IT, and only it.
 - **`(model)` tag** in logs = `childVia: 'model'`, i.e., the link was attributed by the
   model variant. Kai (`c4`) is a ROSTER child — the violation is a forbidden link on a
-  non-person item, NOT a link to an untold/non-roster child. No run ever linked a
-  non-roster child (`linkIntentDropped = 0` where counted). The memo's "cannot link an
-  untold child" (rules-sorter property) is untouched by this evidence.
+  non-person item, NOT a link to an untold/non-roster child. **Non-roster-link scope
+  (GLM R4 P3-2):** runs 2/3 prove zero non-roster link-intent (`linkIntentDropped = 0`);
+  run 1 ran the pre-counter harness, which silently nulled invalid ids — so for run 1 the
+  absence of non-roster link-INTENT is unverifiable in principle, and the claim is scoped
+  to runs 2/3. The memo's "cannot link an untold child" (rules-sorter property) is
+  untouched by this evidence either way.
 - **`unflaggedChildItems`** = emitted items of type `observation`/`child_followup` whose
   `needsReview !== true`, item-level, regardless of child link. The runs-2/3 instance is a
   FABRICATED observation about the TEACHER (`"The teacher is expressing feelings of
@@ -73,11 +76,17 @@ contract `contract-14b.md` · corpus `heldout.mjs`, hash-bracketed
 
 "Identical-config" (R3 wording) is hereby narrowed to: identical MODEL config; harness
 code differed by score-neutral additions (counters, banner) between runs 1 and 2/3.
+The added counters are generation-path-neutral — output-side instrumentation only; no
+change to the request body, prompt, or model parameters (GLM R4 P3-1) — and the
+near-unconfounded pair runs 2↔3 (identical scoring path; wording-only console delta from
+the R3 banner edit) itself diverged: recall 66.7→60.0.
 
-**Per-fragment diff, run 1 → run 3 (from the two committed logs):** every case keeps its
-PASS/FAIL status; the single lost fragment is inside `medical-adjacent` — run 1 missed
-`child_followup` only, run 3 missed `child_followup, parent` (the parent-communication
-item about the rash was not emitted). That one fragment is the whole 66.7→60.0 delta.
+**Per-fragment diff, run 1 → run 3 (from the two committed logs; a runs-1↔3 claim only —
+run 2's fragment-level behavior is attested solely by its run-time summary):** every case
+keeps its PASS/FAIL status; the single lost fragment is inside `medical-adjacent` — run 1
+missed `child_followup` only, run 3 missed `child_followup, parent` (the
+parent-communication item about the rash was not emitted). That one fragment is the whole
+66.7→60.0 delta.
 
 **What the divergence means (amended per GLM's R3 dissent):** the recall delta is
 noise-band; the Unflagged flip is NOT dismissed as noise — it is a run-to-run

@@ -63,7 +63,9 @@ the board after 2026-08-23, at every session start until you answer** (the dated
 lives on the tracker issue, so any agent lands on it). One rider so a single reply covers
 all the child-safety items: the reviewers also recorded a proposed constitution amendment
 (whether the paid-panel escalation tier should be recalibrated for tiny personally-known
-populations) — accept, reject, or defer it in the same breath.
+populations) — accept, reject, or defer it in the same breath. A partial reply leaves the unanswered
+item OPEN and re-asked — silence on the rider is never inherited from an answer to the
+deadline items.
 
 **Recommendation:** (a) now, silently, as part of week-one — it is invisible to T except
 that some of her dump arrives pre-sorted; then let the step-7 gate reading and T's
