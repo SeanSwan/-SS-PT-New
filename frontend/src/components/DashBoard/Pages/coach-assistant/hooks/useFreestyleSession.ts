@@ -418,6 +418,10 @@ export function useFreestyleSession(
   const purgeExpired = useCallback(() => {
     if (!isExpired()) return false;
     clearBuffer('ttl');
+    // Disarm any pending discard: a confirm left armed over a purged buffer
+    // offered to "delete" words that were already gone (Codex, round 4).
+    discardPendingRef.current = false;
+    setDiscardPending(false);
     stateRef.current = 'idle';
     setState('idle');
     return true;

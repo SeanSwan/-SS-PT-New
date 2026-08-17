@@ -86,11 +86,17 @@ export const FREESTYLE_SPEECH_UNSUPPORTED_COPY =
 export const FREESTYLE_SPEECH_DENIED_COPY =
   'Swan Coach needs microphone access to hear you. Enable it in your browser settings, then try again.';
 
+/**
+ * No control names in these strings. The surface decides which recovery
+ * control exists per state (with retained words, Start is deliberately absent)
+ * and appends the instruction itself — a string that names a hidden button is
+ * an instruction to do the impossible (GLM, round 4).
+ */
 export const FREESTYLE_SPEECH_START_FAILED_COPY =
-  'Listening could not start. Tap Start talking to try again.';
+  'Listening could not start.';
 
 export const FREESTYLE_SPEECH_MIC_LOST_COPY =
-  'The microphone was disconnected. Check your mic or headset, then tap Start talking.';
+  'The microphone was disconnected. Check your mic or headset.';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Types

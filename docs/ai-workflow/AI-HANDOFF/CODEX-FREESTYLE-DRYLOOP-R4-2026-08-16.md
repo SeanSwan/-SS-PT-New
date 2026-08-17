@@ -1,0 +1,12 @@
+# Codex (GPT-5.5) Consult — 2026-08-16T23:54:15.734Z
+
+**Model:** openai/gpt-5.5
+**Tokens:** in=25028 out=5771
+**Elapsed:** 87.1s
+
+---
+FINDING [LOW]: Unsupported-browser error leaves a visible no-op “Start talking” button / Evidence: `CoachFreestyleOverlay.tsx:228-236`, `CoachFreestyleOverlay.tsx:475-482`, `useFreestyleSpeech.ts:301-303` / Why: [VERIFIED] `handleStart` returns immediately when `!speech.supported` and does not change state or copy (`CoachFreestyleOverlay.tsx:228-236`). [VERIFIED] The Start button is still rendered for `state === 'error'` with zero fragments because the render condition only excludes listening/paused/stopped/discarded and error-with-words (`CoachFreestyleOverlay.tsx:475-482`). [VERIFIED] On an unsupported browser, `speech.start()` sets `FREESTYLE_SPEECH_UNSUPPORTED_COPY` (`useFreestyleSpeech.ts:301-303`), and the bridge fails the session into `error` (`CoachFreestyleOverlay.tsx:188-199`). Reproduction: use a browser/environment with no `SpeechRecognition`/`webkitSpeechRecognition`; open the overlay; after the unsupported error appears, click “Start talking.” The button remains visible but does nothing. / Fix: Hide or disable the Start button when `!speech.supported`, or make the button perform an actionable fallback/close/help path. Do not render a retry affordance that is guaranteed to no-op.
+
+FINDING [LOW]: TTL purge can leave stale discard confirmation armed after the buffer is already gone / Evidence: `useFreestyleSession.ts:302-317`, `useFreestyleSession.ts:323-330`, `useFreestyleSession.ts:418-424`, `CoachFreestyleOverlay.tsx:415-428` / Why: [VERIFIED] `requestDiscard` sets `discardPendingRef.current = true` and `setDiscardPending(true)` (`useFreestyleSession.ts:302-304`). [VERIFIED] `purgeExpired` clears the buffer and sets state to `idle`, but does not clear `discardPendingRef` or `discardPending` (`useFreestyleSession.ts:418-424`). [VERIFIED] The overlay renders the discard confirmation solely from `discardPending` before normal controls (`CoachFreestyleOverlay.tsx:415-428`). Reproduction: start a session, capture at least one fragment, arm discard shortly before TTL expiry, then let TTL fire before the 10s discard-arm timeout. The buffer is purged by TTL, state becomes `idle`, but the confirm remains visible until the arm timeout clears it; it can display “0 words will be deleted” for data already deleted. / Fix: In `purgeExpired`, also set `discardPendingRef.current = false` and `setDiscardPending(false)` before/after clearing the buffer.
+
+Explicit count: 2 findings.

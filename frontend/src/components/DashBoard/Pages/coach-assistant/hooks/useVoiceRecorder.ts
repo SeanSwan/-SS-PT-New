@@ -70,6 +70,18 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
 
+  /**
+   * Cancellation latch for the permission window. `stop()` during 'requesting'
+   * has nothing to stop — no recorder exists yet — and the in-flight
+   * getUserMedia cannot be aborted. Without this latch, a user could tap stop
+   * (or navigate away, unmounting every guard upstream), THEN click "Allow" on
+   * the still-open permission bubble, and the microphone went live with no
+   * owner and no release path until tab close (GLM, dry-loop round 4). The
+   * latch is checked the moment the promise resolves; a late grant is stopped
+   * before any recorder is built.
+   */
+  const cancelRequestedRef = useRef(false);
+
   const cleanup = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -85,12 +97,20 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
   const start = useCallback(async () => {
     try {
+      cancelRequestedRef.current = false;   // only a new start clears the latch
       setError(null);
       setAudioBlob(null);
       setDuration(0);
       setState('requesting');
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (cancelRequestedRef.current) {
+        // Stop was requested while the permission prompt was open. The grant
+        // arrived anyway — release the tracks immediately, build nothing.
+        stream.getTracks().forEach(t => t.stop());
+        setState('idle');
+        return;
+      }
       streamRef.current = stream;
 
       const mimeType = getSupportedMime();
@@ -133,10 +153,15 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const stop = useCallback(() => {
     if (recorderRef.current && recorderRef.current.state === 'recording') {
       recorderRef.current.stop();
+    } else {
+      // Nothing recording — we may be inside the permission window. Latch the
+      // cancellation so a late grant is stopped on arrival (see the ref above).
+      cancelRequestedRef.current = true;
     }
   }, []);
 
   const reset = useCallback(() => {
+    cancelRequestedRef.current = true;   // a pending grant must not outlive a reset
     cleanup();
     setState('idle');
     setAudioBlob(null);

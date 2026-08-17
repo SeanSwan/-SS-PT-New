@@ -232,6 +232,24 @@ describe('freestyle session — discard is two-step', () => {
    * 'listening' and anything said while the confirm dialog was up landed in
    * the very buffer being judged.
    */
+  /**
+   * ROUND-4 REGRESSION (Codex). A TTL purge cleared the buffer but left an
+   * armed discard confirm up — offering to "delete" words already gone.
+   */
+  it('a TTL purge disarms a pending discard', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); result.current.appendFragment('old words'); });
+    act(() => { result.current.requestDiscard(); });
+
+    act(() => {
+      advance(FREESTYLE_TTL_MS);
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(result.current.fragments).toHaveLength(0);
+    expect(result.current.discardPending).toBe(false);
+  });
+
   it('arming the discard pauses capture', () => {
     const { result } = setup();
     act(() => { result.current.start(); result.current.appendFragment('real work'); });

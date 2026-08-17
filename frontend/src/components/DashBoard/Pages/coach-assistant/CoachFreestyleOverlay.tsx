@@ -404,7 +404,18 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
           {isListening && isQuiet && 'Still listening. Nothing heard for a little while.'}
           {isPaused && 'Paused. Nothing is being heard.'}
           {isStopped && `Finished — ${wordCount} words captured. No record has been created yet.`}
-          {state === 'error' && (error ?? 'Listening stopped unexpectedly.')}
+          {/*
+            The recovery instruction must name a control that is actually
+            rendered in this state (GLM, round 4): with words, Start is hidden
+            (it cannot wipe them) so the instruction points at Done/Discard;
+            with no words on a supported browser, Start is the retry; on an
+            unsupported browser there is no retry to promise.
+          */}
+          {state === 'error' && `${error ?? 'Listening stopped unexpectedly.'}${
+            fragments.length > 0
+              ? ' Finish and review to keep these words, or discard them.'
+              : speech.supported ? ' Tap Start talking to try again.' : ''
+          }`}
           {state === 'discarded' && 'Session discarded. Nothing was saved.'}
         </StatusLine>
         {isListening && isQuiet && (
@@ -470,9 +481,12 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
         No Start in error-with-words: session.start() refuses there (one tap
         must not destroy captured words), so offering the button would be a
         dead control at best and a data-loss affordance at worst. The user
-        chooses Done or a confirmed Discard first.
+        chooses Done or a confirmed Discard first. No Start on an unsupported
+        browser either — handleStart refuses there, and a retry affordance
+        that is guaranteed to no-op is furniture, not a control.
       */}
-      {!isListening && !isPaused && !isStopped && state !== 'discarded' &&
+      {speech.supported &&
+        !isListening && !isPaused && !isStopped && state !== 'discarded' &&
         !(state === 'error' && fragments.length > 0) && (
         <ControlRow>
           <ControlButton type="button" $variant="primary" onClick={handleStart} aria-label="Start talking">

@@ -410,11 +410,10 @@ describe('CoachFreestyleOverlay — failure is told the truth (known R5)', () =>
     );
     expect(screen.getByText(/cannot listen continuously/i)).toBeInTheDocument();
 
-    const startButton = screen.queryByLabelText('Start talking');
-    if (startButton) act(() => { startButton.click(); });   // the designed retry path
-
+    // ROUND-4 (Codex): no retry affordance that is guaranteed to no-op —
+    // the Start button must not render at all on an unsupported browser.
+    expect(screen.queryByLabelText('Start talking')).not.toBeInTheDocument();
     expect(screen.queryByText(/Talk as long as you need/)).not.toBeInTheDocument();
-    expect(screen.getByText(/cannot listen continuously/i)).toBeInTheDocument();
   });
 
   /**

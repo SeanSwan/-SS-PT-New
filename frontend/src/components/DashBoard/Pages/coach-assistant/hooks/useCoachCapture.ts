@@ -210,6 +210,9 @@ export function useCoachCapture(): UseCoachCaptureReturn {
     isCapturingRef.current = true;
     setStoppedAutomatically(false);
     setAutoStopCopy(null);
+    // A new capture inherits nothing: the previous capture's pending upload
+    // must not be handed to this one's transcribe() (GLM, round 4).
+    transcribeInFlightRef.current = null;
     transcriptionRef.current.reset();
     try {
       await recorderStartRef.current();
@@ -230,16 +233,27 @@ export function useCoachCapture(): UseCoachCaptureReturn {
    * user gesture from an effect, so it cannot own that rule without an API
    * change; recorded as an open question in the retention contract.
    */
-  const transcribeInFlightRef = useRef<Promise<string> | null>(null);
+  const transcribeInFlightRef = useRef<{ blob: Blob; promise: Promise<string> } | null>(null);
   const transcribe = useCallback(async () => {
-    if (transcribeInFlightRef.current) return transcribeInFlightRef.current;
     const blob = recorder.audioBlob;
     if (!blob) return '';
-    const pending = transcriptionRef.current
+    /**
+     * The shared flight belongs to THIS blob only. An unkeyed guard returned
+     * whatever promise was pending regardless of which capture spawned it —
+     * so capture B could inherit (and mis-attribute) discarded capture A's
+     * upload, and A's audio finished uploading after its discard (GLM, round 4).
+     */
+    const inFlight = transcribeInFlightRef.current;
+    if (inFlight && inFlight.blob === blob) return inFlight.promise;
+    const promise = transcriptionRef.current
       .transcribe(blob)
-      .finally(() => { transcribeInFlightRef.current = null; });
-    transcribeInFlightRef.current = pending;
-    return pending;
+      .finally(() => {
+        if (transcribeInFlightRef.current?.blob === blob) {
+          transcribeInFlightRef.current = null;
+        }
+      });
+    transcribeInFlightRef.current = { blob, promise };
+    return promise;
   }, [recorder.audioBlob]);
 
   const reset = useCallback(() => {
@@ -253,6 +267,9 @@ export function useCoachCapture(): UseCoachCaptureReturn {
     isCapturingRef.current = false;
     setStoppedAutomatically(false);
     setAutoStopCopy(null);
+    // Reset means abandon: a discarded capture's upload must not survive to be
+    // inherited (or awaited) by whatever comes next (GLM, round 4).
+    transcribeInFlightRef.current = null;
     recorderResetRef.current();
     transcriptionRef.current.reset();
   }, [stopInternal]);

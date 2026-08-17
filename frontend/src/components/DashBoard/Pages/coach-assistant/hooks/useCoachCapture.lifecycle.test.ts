@@ -310,4 +310,35 @@ describe('useCoachCapture unified surface', () => {
     rerender();
     expect(result.current.status).toBe('done');
   });
+
+  /**
+   * ROUND-4 REGRESSION (GLM). The transcribe in-flight guard was keyed to
+   * nothing — a new capture inherited whichever promise was pending, so
+   * capture B could be handed (and mis-attribute) discarded capture A's
+   * upload while B's own audio was never transcribed.
+   */
+  it('a capture after reset() does not inherit the previous pending upload', async () => {
+    const blobA = new Blob(['a'], { type: 'audio/webm' });
+    const blobB = new Blob(['b'], { type: 'audio/webm' });
+    let resolveA: ((v: string) => void) | null = null;
+    transcribeSpy.mockImplementationOnce(
+      () => new Promise<string>((res) => { resolveA = res; }),
+    );
+
+    audioBlob = blobA;
+    const { result, rerender } = renderHook(() => useCoachCapture());
+    act(() => { void result.current.transcribe(); });      // A's upload in flight
+
+    act(() => { result.current.reset(); });                 // A is abandoned
+    audioBlob = blobB;
+    rerender();
+
+    let text = '';
+    await act(async () => { text = await result.current.transcribe(); });
+
+    expect(transcribeSpy).toHaveBeenCalledTimes(2);         // B got its OWN upload
+    expect(transcribeSpy).toHaveBeenLastCalledWith(blobB);
+    expect(text).toBe('transcribed text');
+    resolveA?.('late resolution of the abandoned upload');  // must affect nothing
+  });
 });
