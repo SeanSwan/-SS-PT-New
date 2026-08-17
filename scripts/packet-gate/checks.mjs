@@ -149,7 +149,13 @@ export function remitFromDoc(md) {
     const rest = outside.slice(i + 1);
     const stop = rest.findIndex((l) => {
       if (l === null) return false;
-      const m = /^(#{1,6})\s/.exec(l.trim());
+      // RAW LINE, same grammar as the start test. This still read `l.trim()` after the round-8
+      // rewrite — the fix was HALF-APPLIED, and my own tests did not catch it because they exercise
+      // where extraction STARTS, not what stops it. So an indented `    ## Artifact` (a code block,
+      // not a heading) still terminated the remit early, dropping every anchor below it: aboutCode
+      // false, R4 and R5 inert, empty-remit guard silent because the remit is non-empty. The same
+      // Category-2 shape the start-test fix closed, surviving in its sibling. (Kimi K3 round 9, F2.)
+      const m = /^ {0,3}(#{1,6})\s/.exec(l);
       return Boolean(m) && m[1].length <= level;
     });
     const hm = HEADING_RE.exec(outside[i]);

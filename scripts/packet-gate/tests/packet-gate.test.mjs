@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 import { parseFences, remitFromDoc, checkProvenance, checkPremises, checkSize, checkArtifact, normPath } from '../checks.mjs';
 import { gateSourceFiles } from '../source-hash.mjs';
+import { readCitedFile, makeResolver, GateUnavailable } from '../repo-io.mjs';
 import { unboundNamedPaths, weakBindingOnly, caseOnlyBinding } from '../artifact.mjs';
 import { foldCase } from '../normalize.mjs';
 
@@ -821,4 +822,46 @@ test('NOT-A-BUG PIN: the seed IS held to R3-uncited, R1 and R6 (GLM R8 F3 dispro
   assert.equal(code, 1, out);
   const f = JSON.parse(out).findings.find((x) => x.code === 'R3');
   assert.ok(f && /seed line/.test(f.detail), out);
+});
+
+// --- Round 9 findings (Kimi K3) ------------------------------------------------------------------
+
+test('CRITICAL REGRESSION: a cited path that IS git pathspec magic is refused', () => {
+  // Round 8 closed self-citation by requiring cited files to be tracked. Round 9 defeated that
+  // THROUGH the check: on POSIX `:` and `*` are legal filename characters, so `cp packet.md
+  // ':(glob)**'` makes a real file whose NAME is a pathspec. existsSync passes, and
+  // `git ls-files --error-unmatch -- ':(glob)**'` EXPANDS the magic and matches every tracked file
+  // in the repo — reporting an untracked copy as tracked — while readFileSync reads the copy, which
+  // byte-matches the fabricated fence by construction. `--` ends option parsing, not magic.
+  const blk = { cited: true, attrs: { path: ':(glob)**' }, lang: 'js', body: 'x', start: 1 };
+  const f = checkProvenance([blk], (rel) => readCitedFile(ROOT, rel, []));
+  assert.equal(f.length, 1);
+  assert.match(f[0].detail, /pathspec magic/);
+  // R5's path resolver gets the same rejection — Kimi named it as the sibling that would drift.
+  assert.equal(makeResolver(ROOT)(':(glob)**', 'path'), false);
+});
+
+test('REGRESSION: the remit STOP test uses the raw line too (the round-8 fix was half-applied)', () => {
+  // The start test was rewritten to CommonMark's raw-line grammar; its sibling still ran on
+  // `l.trim()`, so an indented `    ## Artifact` — a code block, not a heading — still terminated
+  // the remit early and dropped every anchor below it. My own tests missed it because they exercise
+  // where extraction STARTS, not what stops it.
+  assert.match(remitFromDoc('## Remit\nReview refunds.\n    ## Artifact\nsrc/refunds/run.mjs\n'), /run\.mjs/);
+  assert.match(remitFromDoc('## Remit\nReview refunds.\n##Artifact\nsrc/refunds/run.mjs\n'), /run\.mjs/);
+  // …and a genuine same-level heading still ends the section.
+  assert.doesNotMatch(remitFromDoc('## Remit\nbody\n\n## Artifact\nnot the remit\n'), /not the remit/);
+});
+
+test('REGRESSION: a git failure is "cannot run", not "your file is untracked"', () => {
+  // isTracked mapped EVERY git failure to false, so a broken tool, a wrong cwd or a safe.directory
+  // refusal would report "not tracked by git" on every cited block — a false-refusal machine, and
+  // inconsistent with makeResolver forty lines away, which has drawn the exit-1 distinction since
+  // round 1. Asserted through a non-repo root, where ls-files exits 128.
+  const outside = tmp(); // an OS temp dir is not a git repository
+  writeFileSync(join(outside, 'a.mjs'), 'x'); // must EXIST, or existsSync short-circuits first
+  assert.throws(
+    () => readCitedFile(outside, 'a.mjs', []),
+    (e) => e instanceof GateUnavailable,
+    'a git failure must raise GateUnavailable (exit 2), never a silent "untracked" finding',
+  );
 });

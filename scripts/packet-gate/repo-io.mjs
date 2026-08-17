@@ -203,10 +203,24 @@ function isSelfCitation(root, abs, exclude) {
  */
 function isTracked(root, rel) {
   try {
-    execFileSync('git', ['ls-files', '--error-unmatch', '--', rel], { cwd: root, stdio: 'ignore' });
+    // GIT_LITERAL_PATHSPECS: `--` ends OPTION parsing but NOT pathspec magic, so a cited path whose
+    // name begins with `:` was still interpreted — `:(glob)**` matched every tracked file in the
+    // repo and reported an untracked copy as tracked. `badPath` rejects a leading `:` lexically
+    // before we ever get here; this is the second layer, because the lexical check lives in a
+    // different module and the two could drift. (Kimi K3 round 9, F1.)
+    execFileSync('git', ['ls-files', '--error-unmatch', '--', rel], {
+      cwd: root, stdio: 'ignore', env: { ...process.env, GIT_LITERAL_PATHSPECS: '1' },
+    });
     return true;
   } catch (err) {
+    // EXIT 1 IS "not tracked". ANYTHING ELSE IS "the check could not run" — the same distinction
+    // makeResolver has drawn since round 1, and for the same reason: mapping every git failure to a
+    // finding turns a broken tool, a wrong cwd, or a safe.directory refusal into "your file is
+    // untracked" on EVERY cited block, which is a false-refusal machine and trains operators to
+    // bypass the gate. It was inconsistent with its own sibling forty lines away.
+    // (Kimi K3 round 9, F3.)
     if (err.code === 'ENOENT') throw new GateUnavailable('git not found — cannot verify that a cited file is tracked');
+    if (err.status !== 1) throw new GateUnavailable(`git ls-files failed (${err.code ?? `exit ${err.status}`}) — cannot verify that a cited file is tracked`);
     return false;
   }
 }

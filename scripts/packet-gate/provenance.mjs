@@ -41,6 +41,20 @@ function badPath(p) {
   const n = p.replaceAll('\\', '/');
   if (/^([A-Za-z]:)?\//.test(n)) return 'absolute path';
   if (n.split('/').includes('..')) return 'path escapes the repo (..)';
+  // A LEADING `:` IS GIT PATHSPEC MAGIC, and `--` does not stop it — `--` ends OPTION parsing only.
+  //
+  // Round 8 closed the self-citation class by requiring cited files to be tracked. Round 9 defeated
+  // that through the check itself: on POSIX, `:` and `*` are legal filename characters, so
+  // `cp packet.md ':(glob)**'` creates a real file whose NAME is a pathspec. existsSync passes (the
+  // file is right there), and `git ls-files --error-unmatch -- ':(glob)**'` then EXPANDS the magic
+  // and matches every tracked file in the repo — exit 0, "tracked" — while readFileSync reads the
+  // untracked copy, which byte-matches the fabricated fence by construction. The round-7/8 critical
+  // reproduced straight through its own fix, with one command and no commit. (Kimi K3 round 9, F1.)
+  //
+  // Rejected lexically here, before any git or fs call, and belt-and-braces with
+  // GIT_LITERAL_PATHSPECS=1 in repo-io — because this is the third round in which an author-supplied
+  // string reached a tool that interprets rather than matches it.
+  if (n.startsWith(':')) return 'path begins with ":" (git pathspec magic)';
   return null;
 }
 
