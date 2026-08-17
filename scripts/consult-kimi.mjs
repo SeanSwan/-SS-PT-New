@@ -158,7 +158,10 @@ async function main() {
       // the operator hunting a transport bug that does not exist. Observed
       // 2026-08-14. consult-openrouter-panel.mjs already capped reasoning for
       // exactly this reason; this file did not.
-      reasoning: { effort: options.effort, max_tokens: reasoningCap },
+      // OpenRouter rejects effort+max_tokens together (400 observed 2026-08-17,
+      // provider-dependent). The CAP is the load-bearing half (2026-08-14 lesson:
+      // uncapped reasoning burns the whole budget) — send only max_tokens.
+      reasoning: { max_tokens: reasoningCap },
     }),
     signal: AbortSignal.timeout(Number(process.env.SWAN_KIMI_TIMEOUT_MS) || 900_000),
   });
