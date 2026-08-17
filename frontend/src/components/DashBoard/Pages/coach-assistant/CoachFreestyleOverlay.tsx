@@ -160,7 +160,10 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
    * this, hiding the overlay left the session listening and the recogniser
    * running behind invisible UI.
    */
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // Layout, not passive (GLM, round 14): a parent-driven close usually means
+    // navigation — exactly when the browser may freeze before passive effects
+    // run. Release before paint, mirroring the account-switch precedent.
     if (!isOpen && (state === 'listening')) pauseWithFlush();
   }, [isOpen, state, pauseWithFlush]);
 
