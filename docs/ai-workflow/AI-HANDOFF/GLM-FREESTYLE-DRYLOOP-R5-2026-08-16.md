@@ -1,0 +1,26 @@
+# GLM Consult
+
+**Model:** glm-5.3
+**Document:** .ai-workflow/review-round5-packet.md
+**Tokens:** 28218 in / 17310 out (reasoning: 16050) | total 45528
+**Wall:** 280.8s
+
+---
+
+Attacked the round-4 latches themselves this round — a latch is only as good as its assumption that one flight exists at a time. That assumption breaks.
+
+**FINDING [S2]: Re-entrant `start()` during a pending permission grant double-arms the microphone — first stream leaks with no release path**
+/ Evidence: `useVoiceRecorder.ts:100` (new `start()` clears `cancelRequestedRef` unconditionally), `useVoiceRecorder.ts:106-113` (post-grant check is a single boolean, not per-flight), `useVoiceRecorder.ts:98` (no guard against a second concurrent `getUserMedia`), `useCoachCapture.ts:200-210` (`capture.start()` proceeds once `stopInternal`/`reset` cleared `isCapturingRef` while grant #1 is still in flight)
+/ Why: Sequence, all via public API: `start()` → gUM#1 pending, state `'requesting'` → `stop()` (user regrets the prompt, or `pagehide` auto-stops): `stopInternal` sets the latch, clears `isCapturingRef`; `recorder.stop()` hits the else-branch and sets `cancelRequestedRef = true` → user taps Start again: `capture.start()` passes its guard, and `recorder.start()` line 100 **clears the latch while gUM#1 is still unresolved** → user clicks "Allow": gUM#1 resolves, latch is false, so stream#1 is accepted — recorder#1 built and started, `timerRef` = interval#1 → gUM#2 resolves: recorder#2 overwrites `recorderRef`, `streamRef` (stream#1's reference dropped), `timerRef` = interval#1's handle is lost. Result: stream#1's tracks are never stopped by anyone — `cleanup()` only touches the current `streamRef` — so the mic stays live until tab close (the exact GLM round-4 class, reintroduced by the retry path the latch was built for). Also: two recorders interleave chunks into the shared `chunksRef` (corrupt blob), and interval#1 leaks past `cleanup()`, ticking `setDuration` forever. The round-4 latch's own comment — "only a new start clears the latch" — is the flaw: the new start cannot know whether the old flight has landed.
+/ Fix: Replace the boolean latch with a per-flight generation token: `const flight = ++flightSeqRef.current` at `start()` entry; after `await getUserMedia`, accept the stream only if `flight === flightSeqRef.current` (else stop tracks and return). `stop()`/`reset()` bump the sequence instead of (or in addition to) setting the boolean. Belt-and-braces: `capture.start()` should treat `recorder.state === 'requesting'` as still occupying, or recorder `start()` should teardown any prior in-flight flight before requesting.
+
+**FINDING [S3]: `onstop` fires after `reset()` and resurrects a discarded capture as `'ready'` — post-discard audio survives and is uploadable**
+/ Evidence: `useVoiceRecorder.ts:125-130` (`onstop` unconditionally sets `audioBlob` + `'stopped'`; it never consults `cancelRequestedRef`), `useVoiceRecorder.ts:163-170` (`reset()` sets the latch and calls `cleanup()`, but the already-queued `dataavailable`/`stop` tasks still run), `useCoachCapture.ts:289` (`recorder.state === 'stopped' && recorder.audioBlob` → status `'ready'`)
+/ Why: `MediaRecorder` events are queued tasks. Concrete sequence: capture is `'recording'`; consumer calls `reset()` (discard-mid-recording flow): `stopInternal` calls `recorder.stop()` (queues final `dataavailable` + `stop`), then `recorder.reset()` sets the latch, `cleanup()` stops tracks and empties `chunksRef`, sets state `'idle'`, blob `null`. The queued tasks then fire: the final `dataavailable` pushes its chunk into the freshly-emptied `chunksRef`, and `onstop` runs `setAudioBlob(blob)`, `setState('stopped')` — hook contract says reset means abandon (the capture hook's own round-4 comment: "Reset means abandon"), but the hook now reports `status: 'ready'` with the abandoned tail audio attached. The consumer offers Done/transcribe on a session the user explicitly discarded; `transcribe()` uploads it. Variant: `stop()` then `reset()` in the same tick resurrects an empty-but-truthy `Blob` → `'ready'` with 0 bytes → wasted upload / server error. The latch that would catch this (`cancelRequestedRef` is true in every one of these interleavings) is checked only on the getUserMedia path, never in `onstop`.
+/ Fix: First line of `onstop`: `if (cancelRequestedRef.current) { chunksRef.current = []; setState('idle'); cleanup(); return; }` (and same check before `setAudioBlob`). The latch already carries exactly the right information; `onstop` just ignores it.
+
+---
+
+Count: **2 findings** (1× S2, 1× S3).
+
+Honest note on scope: both live in the round-4-fixed pair, both are the same structural lesson — the latch is a single boolean guarding a world that can contain two flights (finding 1) or a late event after the latch's owner already acted (finding 2). The freestyle trio (`useFreestyleSession` / `useFreestyleSpeech` / overlay) survived this pass again — I re-walked the pause/flush orderings, the error→fail bridge, the TTL/disarm interplay, the account-switch purge, and the focus lifecycle and found no reachable failure I can stand behind. If the next round fixes these two and turns up nothing further, that's the zero.

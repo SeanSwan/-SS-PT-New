@@ -120,10 +120,22 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
    */
   const speechFlushRef = useRef(speech.flush);
   speechFlushRef.current = speech.flush;
+  const speechStopRef = useRef(speech.stop);
+  speechStopRef.current = speech.stop;
   const pauseRef = useRef(pause);
   pauseRef.current = pause;
+  /**
+   * Flush (session still listening, so the words land), then stop the engine
+   * SYNCHRONOUSLY, then pause. The engine release must not wait for the follow
+   * effect: on pagehide/screen-lock the browser can freeze the page before
+   * React runs another effect, and with `wantListening` still true the
+   * recogniser's onend would restart it — hearing after the lifecycle event
+   * that promised silence (Codex, round 5). The follow effect remains as
+   * defense-in-depth; this is the guarantee.
+   */
   const pauseWithFlush = useCallback(() => {
     speechFlushRef.current();
+    speechStopRef.current();
     pauseRef.current();
   }, []);
 

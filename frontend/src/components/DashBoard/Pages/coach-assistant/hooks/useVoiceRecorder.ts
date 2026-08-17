@@ -82,6 +82,21 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
    */
   const cancelRequestedRef = useRef(false);
 
+  /**
+   * Per-flight generation. The boolean latch alone guards a world that can
+   * contain TWO in-flight getUserMedia requests: start → stop (latch set) →
+   * start again (latch CLEARED, second request issued) → grant #1 resolves
+   * against the cleared latch and is accepted — then grant #2 overwrites every
+   * ref and stream #1's tracks are never stopped by anyone (GLM, round 5).
+   * Each start mints a generation; only the CURRENT generation's grant may
+   * build a recorder. stop()/reset() invalidate any pending generation.
+   */
+  const flightSeqRef = useRef(0);
+
+  /** Mirrors `state` for callbacks with empty deps — their closures go stale. */
+  const stateRef = useRef<RecordingState>('idle');
+  stateRef.current = state;
+
   const cleanup = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -91,11 +106,24 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
+    /**
+     * Detach handlers BEFORE dropping the reference. MediaRecorder queues a
+     * final `dataavailable` (then `stop`) after stop() — with the closures
+     * still attached, that late chunk arrived AFTER a reset, rebuilt the blob,
+     * and flipped state to 'stopped': audio the user had just discarded
+     * resurrected itself (Codex, dry-loop round 5).
+     */
+    if (recorderRef.current) {
+      recorderRef.current.ondataavailable = null;
+      recorderRef.current.onstop = null;
+      recorderRef.current.onerror = null;
+    }
     recorderRef.current = null;
     chunksRef.current = [];
   }, []);
 
   const start = useCallback(async () => {
+    const flight = ++flightSeqRef.current;
     try {
       cancelRequestedRef.current = false;   // only a new start clears the latch
       setError(null);
@@ -104,11 +132,14 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       setState('requesting');
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (cancelRequestedRef.current) {
-        // Stop was requested while the permission prompt was open. The grant
-        // arrived anyway — release the tracks immediately, build nothing.
+      if (cancelRequestedRef.current || flight !== flightSeqRef.current) {
+        // Stop/reset was requested while the prompt was open, or a NEWER start
+        // superseded this flight. Either way the grant arrived for a request
+        // that no longer owns the microphone — release the tracks immediately,
+        // build nothing, and touch no state that now belongs to the current
+        // flight.
         stream.getTracks().forEach(t => t.stop());
-        setState('idle');
+        if (flight === flightSeqRef.current) setState('idle');
         return;
       }
       streamRef.current = stream;
@@ -144,9 +175,12 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
       }, 500);
     } catch {
-      setError(safeMicrophoneFailure());
-      setState('error');
-      cleanup();
+      // A stale flight's rejection must not clobber the current flight's state.
+      if (flight === flightSeqRef.current) {
+        setError(safeMicrophoneFailure());
+        setState('error');
+        cleanup();
+      }
     }
   }, [cleanup]);
 
@@ -155,13 +189,21 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       recorderRef.current.stop();
     } else {
       // Nothing recording — we may be inside the permission window. Latch the
-      // cancellation so a late grant is stopped on arrival (see the ref above).
+      // cancellation AND invalidate the pending flight so a late grant is
+      // stopped on arrival even if a newer start has cleared the latch since.
       cancelRequestedRef.current = true;
+      flightSeqRef.current += 1;
+      // The request is dead from the caller's perspective RIGHT NOW — settle
+      // to idle here, because the invalidated flight is no longer allowed to
+      // touch state when its grant lands. Only from 'requesting': a stray
+      // second stop after a finished capture must not wipe 'stopped' + blob.
+      if (stateRef.current === 'requesting') setState('idle');
     }
   }, []);
 
   const reset = useCallback(() => {
     cancelRequestedRef.current = true;   // a pending grant must not outlive a reset
+    flightSeqRef.current += 1;           // …even one a newer start re-cleared the latch for
     cleanup();
     setState('idle');
     setAudioBlob(null);

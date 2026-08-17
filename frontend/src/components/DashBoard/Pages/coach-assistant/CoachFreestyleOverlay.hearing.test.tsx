@@ -315,6 +315,37 @@ describe('CoachFreestyleOverlay — it stops listening when it should (GLM S1/S4
     // The interim was promoted to a real fragment before the pause landed.
     expect(screen.getByText('Fragments').previousSibling).toHaveTextContent('1');
   });
+
+  /**
+   * ROUND-5 REGRESSION (Codex HIGH). The native lifecycle handlers only paused
+   * the session; the engine stop waited for a React effect the browser may
+   * never run before freezing the page — and with want-listening still set,
+   * the recogniser's onend RESTARTED it. The engine must be dead (and stay
+   * dead through onend) from the native handler itself.
+   */
+  it('the engine cannot restart after a tab-hide pause', () => {
+    renderOverlay();
+    say('something');
+
+    /**
+     * Deliberately OUTSIDE act(): act flushes React effects synchronously,
+     * which is exactly what a freezing browser does NOT do on pagehide. The
+     * engine must be torn down BY THE NATIVE HANDLER ITSELF — if the abort
+     * only happens after a React effect flush, the guarantee is a lie in real
+     * life (the page can freeze before another effect ever runs). The abort
+     * count is the only interleaving-proof observable here: restart paths are
+     * backoff-paced and neutralized on any flush, so jsdom cannot exhibit the
+     * zombie itself. (React act() warnings from this block are the point.)
+     */
+    const abortsBefore = abortCalls;
+    Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    expect(abortCalls).toBeGreaterThan(abortsBefore);   // torn down synchronously
+
+    Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+    act(() => { /* let React settle after the native-only window */ });
+  });
 });
 
 describe('CoachFreestyleOverlay — failure is told the truth (known R5)', () => {

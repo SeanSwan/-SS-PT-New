@@ -18,26 +18,37 @@ import { useVoiceRecorder } from './useVoiceRecorder';
 
 class FakeMediaRecorder {
   static isTypeSupported() { return true; }
+  static last: FakeMediaRecorder | null = null;
   state = 'recording';
-  ondataavailable: unknown = null;
-  onstop: unknown = null;
-  onerror: unknown = null;
+  ondataavailable: ((e: { data: Blob }) => void) | null = null;
+  onstop: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  constructor() { FakeMediaRecorder.last = this; }
   start() { /* recording begins */ }
-  stop() { this.state = 'inactive'; }
+  /** Real recorders deliver a final chunk then stop AFTER stop() returns. */
+  stop() {
+    this.state = 'inactive';
+    setTimeout(() => {
+      this.ondataavailable?.({ data: new Blob(['late final chunk']) });
+      this.onstop?.();
+    }, 0);
+  }
 }
 
-let resolveGrant: ((stream: unknown) => void) | null = null;
+let grantResolvers: Array<(stream: unknown) => void> = [];
+/** The most recent pending grant — single-flight tests use this. */
+const resolveGrant = (stream: unknown) => grantResolvers[grantResolvers.length - 1]?.(stream);
 const trackStop = vi.fn();
 const fakeStream = { getTracks: () => [{ stop: trackStop }] };
 
 beforeEach(() => {
   trackStop.mockClear();
-  resolveGrant = null;
+  grantResolvers = [];
   vi.stubGlobal('MediaRecorder', FakeMediaRecorder);
   Object.defineProperty(navigator, 'mediaDevices', {
     configurable: true,
     value: {
-      getUserMedia: vi.fn(() => new Promise((res) => { resolveGrant = res; })),
+      getUserMedia: vi.fn(() => new Promise((res) => { grantResolvers.push(res); })),
     },
   });
 });
@@ -55,7 +66,7 @@ describe('useVoiceRecorder — permission-window cancellation latch (GLM round 4
 
     act(() => { result.current.stop(); });             // nothing recording → latch
 
-    await act(async () => { resolveGrant?.(fakeStream); });
+    await act(async () => { resolveGrant(fakeStream); });
 
     expect(trackStop).toHaveBeenCalled();              // late grant stopped on arrival
     expect(result.current.state).toBe('idle');
@@ -67,7 +78,7 @@ describe('useVoiceRecorder — permission-window cancellation latch (GLM round 4
     act(() => { void result.current.start(); });
     act(() => { result.current.reset(); });
 
-    await act(async () => { resolveGrant?.(fakeStream); });
+    await act(async () => { resolveGrant(fakeStream); });
 
     expect(trackStop).toHaveBeenCalled();
     expect(result.current.state).toBe('idle');
@@ -77,9 +88,79 @@ describe('useVoiceRecorder — permission-window cancellation latch (GLM round 4
     const { result } = renderHook(() => useVoiceRecorder());
 
     act(() => { void result.current.start(); });
-    await act(async () => { resolveGrant?.(fakeStream); });
+    await act(async () => { resolveGrant(fakeStream); });
 
     expect(result.current.state).toBe('recording');
     expect(trackStop).not.toHaveBeenCalled();
+  });
+
+  /**
+   * ROUND-5 REGRESSION (Codex HIGH). MediaRecorder delivers a final chunk
+   * (then stop) AFTER stop() returns. With the old handlers still attached,
+   * that late chunk arrived after reset(), rebuilt the blob, and flipped state
+   * to 'stopped' — audio the user had just discarded resurrected itself.
+   */
+  it('a discarded recording cannot resurrect from a late final chunk', async () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useVoiceRecorder());
+      act(() => { void result.current.start(); });
+      await act(async () => { resolveGrant(fakeStream); });
+      expect(result.current.state).toBe('recording');
+
+      // stop() queues the late events; reset() lands before they deliver.
+      act(() => { FakeMediaRecorder.last!.stop(); result.current.reset(); });
+      act(() => { vi.runAllTimers(); });        // the late chunk arrives
+
+      expect(result.current.state).toBe('idle');
+      expect(result.current.audioBlob).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a normal stop still produces the blob', async () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useVoiceRecorder());
+      act(() => { void result.current.start(); });
+      await act(async () => { resolveGrant(fakeStream); });
+
+      act(() => { FakeMediaRecorder.last!.stop(); });
+      act(() => { vi.runAllTimers(); });
+
+      expect(result.current.state).toBe('stopped');
+      expect(result.current.audioBlob).not.toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /**
+   * ROUND-5 REGRESSION (GLM S2). start → stop (latch set) → start again
+   * cleared the boolean latch while grant #1 was still pending — grant #1 was
+   * then ACCEPTED against the cleared latch, and grant #2 overwrote every ref,
+   * orphaning stream #1 with its microphone tracks live until tab close. The
+   * per-flight generation makes a superseded grant release its tracks no
+   * matter what the boolean says.
+   */
+  it('a superseded first flight releases its stream when two starts race', async () => {
+    const track1Stop = vi.fn();
+    const track2Stop = vi.fn();
+    const stream1 = { getTracks: () => [{ stop: track1Stop }] };
+    const stream2 = { getTracks: () => [{ stop: track2Stop }] };
+
+    const { result } = renderHook(() => useVoiceRecorder());
+
+    act(() => { void result.current.start(); });      // flight #1 pending
+    act(() => { result.current.stop(); });             // user regrets the prompt
+    act(() => { void result.current.start(); });      // flight #2 pending — old latch semantics cleared
+
+    await act(async () => { grantResolvers[0]?.(stream1); });   // late grant for the DEAD flight
+    expect(track1Stop).toHaveBeenCalled();             // stream #1 released, not adopted
+
+    await act(async () => { grantResolvers[1]?.(stream2); });   // the live flight lands
+    expect(result.current.state).toBe('recording');
+    expect(track2Stop).not.toHaveBeenCalled();
   });
 });
