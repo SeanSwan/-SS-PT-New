@@ -366,9 +366,19 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
    * Three words is enough to prove Coach is hearing you.
    */
   const tailWords = (text: string) => text.trim().split(/\s+/).slice(-3).join(' ');
-  const latestPhrase = speech.interim
-    ? tailWords(speech.interim)
-    : (fragments.length > 0 ? tailWords(fragments[fragments.length - 1].text) : '');
+  /**
+   * Rendered ONLY while the masked session is actively listening. The session
+   * mask does not reach the speech transport's interim state, so during the
+   * account-switch window trainer A's in-flight phrase could still render
+   * under trainer B (Codex, round 9) — and a paused/stopped screen keeping
+   * words up on a gym floor was never right anyway. isListening derives from
+   * the MASKED state, so the mismatch window reads idle and shows nothing.
+   */
+  const latestPhrase = !isListening
+    ? ''
+    : speech.interim
+      ? tailWords(speech.interim)
+      : (fragments.length > 0 ? tailWords(fragments[fragments.length - 1].text) : '');
 
   return (
     <FreestyleOverlay

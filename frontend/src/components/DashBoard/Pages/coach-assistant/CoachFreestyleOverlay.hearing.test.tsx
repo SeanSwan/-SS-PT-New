@@ -117,6 +117,23 @@ describe('CoachFreestyleOverlay — it actually hears (Fable F-2)', () => {
     expect(screen.queryByText(/Sarah/)).not.toBeInTheDocument();
   });
 
+  /**
+   * ROUND-9 REGRESSION (Codex HIGH, adjacent class). The live phrase is the
+   * one surface the session mask cannot reach (speech.interim lives in the
+   * transport hook), so it must be gated on the MASKED listening state — and
+   * a paused screen keeping dictated words up on a gym floor was wrong
+   * regardless of tenancy.
+   */
+  it('hides the live phrase the moment listening ends', () => {
+    renderOverlay();
+    say('client did squats', false);            // interim on screen (3-word tail = whole phrase)
+    expect(screen.getByText('client did squats')).toBeInTheDocument();
+
+    act(() => { screen.getByLabelText('Pause listening').click(); });
+
+    expect(screen.queryByText('client did squats')).not.toBeInTheDocument();
+  });
+
   it('does not count an interim phrase as captured', () => {
     renderOverlay();
 

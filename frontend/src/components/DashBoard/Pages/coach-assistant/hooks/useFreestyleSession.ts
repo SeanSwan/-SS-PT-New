@@ -206,6 +206,18 @@ export function useFreestyleSession(
    * construction (all consumers read the masked values), not by a test.
    */
   const owned = ownerRef.current === ownerKey;
+  /**
+   * Callback-time twin of `owned`. EVERY mutator refuses across the mismatch —
+   * not just the data paths: the masked overlay renders Cancel during the
+   * window, and Cancel's reset('completed') let the NEW account purge the OLD
+   * account's buffer with a forged 'completed' receipt (Codex, round 9). The
+   * account-switch effect is the sole purge path for mismatched-owner data,
+   * so the receipt reason cannot lie.
+   */
+  const ownedNow = useCallback(
+    () => ownerRef.current === ownerKeyRef.current,
+    [],
+  );
 
   /**
    * Mirrors `state` so transition guards can run OUTSIDE a setState updater.
@@ -245,6 +257,7 @@ export function useFreestyleSession(
   }, [wipeRefs]);
 
   const start = useCallback(() => {
+    if (!ownedNow()) return;
     /**
      * Start is NOT a wipe — from ANY state. 'listening'/'paused': no restarting
      * a live session. 'stopped': no destroying a held buffer. 'error' WITH
@@ -264,9 +277,10 @@ export function useFreestyleSession(
     startedAtRef.current = nowRef.current();
     stateRef.current = 'listening';
     setState('listening');
-  }, [clearBuffer, wipeRefs]);
+  }, [ownedNow, clearBuffer, wipeRefs]);
 
   const pause = useCallback(() => {
+    if (!ownedNow()) return;
     if (stateRef.current !== 'listening') return;
     pausedAtRef.current = nowRef.current();
     stateRef.current = 'paused';
@@ -289,6 +303,7 @@ export function useFreestyleSession(
   }, []);
 
   const resume = useCallback(() => {
+    if (!ownedNow()) return;
     if (stateRef.current !== 'paused') return;
     settlePause();
     stateRef.current = 'listening';
@@ -350,6 +365,7 @@ export function useFreestyleSession(
    * cannot confirm a destruction nobody remembers arming.
    */
   const requestDiscard = useCallback(() => {
+    if (!ownedNow()) return;
     discardPendingRef.current = true;
     setDiscardPending(true);
     /**
@@ -366,6 +382,7 @@ export function useFreestyleSession(
     }
   }, []);
   const cancelDiscard = useCallback(() => {
+    if (!ownedNow()) return;
     discardPendingRef.current = false;
     setDiscardPending(false);
   }, []);
@@ -380,6 +397,7 @@ export function useFreestyleSession(
   }, [discardPending]);
 
   const discard = useCallback(() => {
+    if (!ownedNow()) return;
     if (!discardPendingRef.current) return;   // two-step enforced HERE, not in the UI
     discardPendingRef.current = false;
     setDiscardPending(false);
@@ -401,6 +419,7 @@ export function useFreestyleSession(
    * 47s") appended to the denial copy.
    */
   const fail = useCallback((message: string) => {
+    if (!ownedNow()) return;
     const s = stateRef.current;
     if (s !== 'listening' && s !== 'paused') return;
     settlePause();
@@ -434,6 +453,7 @@ export function useFreestyleSession(
   }, []);
 
   const reset = useCallback((reason: FreestylePurgeReason = 'completed') => {
+    if (!ownedNow()) return;
     discardPendingRef.current = false;
     setDiscardPending(false);
     setError(null);
