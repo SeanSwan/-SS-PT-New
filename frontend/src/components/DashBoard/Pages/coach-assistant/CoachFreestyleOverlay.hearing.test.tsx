@@ -551,6 +551,37 @@ describe('CoachFreestyleOverlay — failure is told the truth (known R5)', () =>
   });
 });
 
+describe('CoachFreestyleOverlay — every exit from listening kills the engine in the handler (round 13)', () => {
+  /**
+   * ROUND-13 REGRESSION (Codex MED). Done and discard-arm left the engine to
+   * the passive follow effect — the same still-hearing window closed for
+   * Pause/tab-hide in round 5, surviving on these two buttons. Clicks are
+   * dispatched OUTSIDE act() so the passive effect cannot run before the
+   * assertion: the abort must come from the handler itself.
+   */
+  it('Done releases the engine synchronously in the click handler', () => {
+    renderOverlay();
+    say('something');
+    const abortsBefore = abortCalls;
+
+    screen.getByLabelText('Finish and review').click();   // outside act on purpose
+
+    expect(abortCalls).toBeGreaterThan(abortsBefore);
+    act(() => { /* settle */ });
+  });
+
+  it('arming the discard releases the engine synchronously in the click handler', () => {
+    renderOverlay();
+    say('something');
+    const abortsBefore = abortCalls;
+
+    screen.getByLabelText('Discard session').click();      // outside act on purpose
+
+    expect(abortCalls).toBeGreaterThan(abortsBefore);
+    act(() => { /* settle */ });
+  });
+});
+
 describe('CoachFreestyleOverlay — handoff cannot be purged (Fable F-3)', () => {
   it('hands out a frozen snapshot, not the live buffer', () => {
     const onStopped = vi.fn();

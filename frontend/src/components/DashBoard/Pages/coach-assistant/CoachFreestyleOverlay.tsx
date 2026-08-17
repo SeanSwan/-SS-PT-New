@@ -227,13 +227,16 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
   }, [speech.error, state]);
 
   const handleStop = useCallback(() => {
-    // Order matters: flush promotes the pending interim into the session WHILE
-    // it is still 'listening'; stop() then builds the snapshot from refs, so the
-    // just-flushed words are included. The old render-closure copy missed them.
-    speech.flush();
+    // speech.stop() flushes the pending interim WHILE the session is still
+    // 'listening' (so the words land), then kills the engine SYNCHRONOUSLY —
+    // Done used to leave the recogniser to the passive follow effect, the same
+    // still-hearing window closed for Pause and tab-hide in round 5, surviving
+    // on this button until round 13 (Codex). session.stop() then builds the
+    // snapshot from refs, so the just-flushed words are included.
+    speechStopRef.current();
     const snapshot = stop();
     if (snapshot) onStopped?.(snapshot);
-  }, [speech, stop, onStopped]);
+  }, [stop, onStopped]);
 
   /** Flush before pausing — the words spoken as the thumb hits Pause are words. */
   const handlePause = pauseWithFlush;
@@ -270,9 +273,14 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     speechStart();
   }, [isOpen, resume, speechStart]);
 
-  /** Arming the discard flushes first, so the words mid-flight at the tap are judged with the rest. The session pause lives in the hook. */
+  /**
+   * Arming the discard stops the ENGINE synchronously (speech.stop flushes
+   * first, so the words mid-flight at the tap are judged with the rest) —
+   * leaving it to the follow effect kept the mic hot through the confirm's
+   * first frames (Codex, round 13). The session pause lives in the hook.
+   */
   const handleRequestDiscard = useCallback(() => {
-    speechFlushRef.current();
+    speechStopRef.current();
     requestDiscard();
   }, [requestDiscard]);
 
