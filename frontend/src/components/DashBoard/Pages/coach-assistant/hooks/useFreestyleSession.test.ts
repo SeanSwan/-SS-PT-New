@@ -233,6 +233,30 @@ describe('freestyle session — discard is two-step', () => {
    * the very buffer being judged.
    */
   /**
+   * ROUND-8 REGRESSION (Codex). The 1s sweep has a blind spot exactly one
+   * handoff wide: stop() could hand off a buffer that had already outlived
+   * its ceiling before the sweep tick ran. Expiry is now a synchronous guard
+   * on the handoff path itself.
+   */
+  it('stop() refuses to hand off an expired buffer', () => {
+    const onPurge = vi.fn();
+    const { result } = renderHook(() =>
+      useFreestyleSession({ accountKey: 'trainer-a', now, onPurge, ttlMs: 100 }),
+    );
+    act(() => { result.current.start(); result.current.appendFragment('expired words'); });
+
+    let snapshot: ReturnType<typeof result.current.stop> = null;
+    act(() => {
+      advance(150);                       // past the ceiling, before any sweep tick
+      snapshot = result.current.stop();
+    });
+
+    expect(snapshot).toBeNull();
+    expect(onPurge).toHaveBeenCalledWith('ttl');
+    expect(result.current.state).toBe('idle');
+  });
+
+  /**
    * ROUND-4 REGRESSION (Codex). A TTL purge cleared the buffer but left an
    * armed discard confirm up — offering to "delete" words already gone.
    */

@@ -187,6 +187,25 @@ export function useFreestyleSession(
   const discardPendingRef = useRef(false);
   /** Current owner — stamped onto the stop() snapshot; drives the switch/logout purge. */
   const ownerRef = useRef<string | null>(ownerKey);
+  /** Render-synchronized mirror of the INCOMING owner — see `owned` below. */
+  const ownerKeyRef = useRef<string | null>(ownerKey);
+  ownerKeyRef.current = ownerKey;
+
+  /**
+   * OWNERSHIP MASK. The account-switch purge is a passive effect, which runs
+   * after commit — so there is a paintable frame where the prop says trainer B
+   * while the buffer still holds trainer A's words, and the overlay rendered
+   * A's latest phrase under B's session (Codex, round 8; Sol flagged the class
+   * in round 1 and it was wrongly deferred as store-scoped). Every value this
+   * hook RETURNS is derived from the masked view: during the mismatch window
+   * the surface sees an empty session, and stop()/appendFragment refuse. The
+   * effect still performs the real, receipted purge.
+   *
+   * NOT COVERED BY TESTS: testing-library's act() flushes the passive purge
+   * before any assertion can observe the window — the mask is enforced by
+   * construction (all consumers read the masked values), not by a test.
+   */
+  const owned = ownerRef.current === ownerKey;
 
   /**
    * Mirrors `state` so transition guards can run OUTSIDE a setState updater.
@@ -276,7 +295,30 @@ export function useFreestyleSession(
     setState('listening');
   }, [settlePause]);
 
+  /** True when the buffer has outlived its ceiling. `>=`: AT the boundary is expired. */
+  const isExpired = useCallback(() => {
+    const startedAt = startedAtRef.current;
+    return startedAt !== null && nowRef.current() - startedAt >= effectiveTtlMs;
+  }, [effectiveTtlMs]);
+
+  const purgeExpired = useCallback(() => {
+    if (!isExpired()) return false;
+    clearBuffer('ttl');
+    // Disarm any pending discard: a confirm left armed over a purged buffer
+    // offered to "delete" words that were already gone (Codex, round 4).
+    discardPendingRef.current = false;
+    setDiscardPending(false);
+    stateRef.current = 'idle';
+    setState('idle');
+    return true;
+  }, [isExpired, clearBuffer]);
+
   const stop = useCallback((): FreestyleSnapshot | null => {
+    // The buffer under a switched account is not this caller's to take, and an
+    // expired buffer is nobody's: expiry is enforced HERE, synchronously — the
+    // 1s sweep has a blind spot exactly one handoff wide (Codex, round 8).
+    if (ownerRef.current !== ownerKeyRef.current) return null;
+    if (purgeExpired()) return null;
     const s = stateRef.current;
     // 'error' is stoppable too: a failed session with heard words must still be
     // able to hand its buffer off — the mic dying should not hold words hostage.
@@ -297,7 +339,7 @@ export function useFreestyleSession(
       elapsedMs: Math.max(0, stoppedAt - startedAt - pausedTotalRef.current),
       accountKey: ownerRef.current,
     });
-  }, [settlePause]);
+  }, [settlePause, purgeExpired]);
 
   /**
    * Discard is two-step on purpose, and the hook itself enforces it: a
@@ -369,6 +411,9 @@ export function useFreestyleSession(
   }, [settlePause]);
 
   const appendFragment = useCallback((text: string) => {
+    // Never append across an ownership mismatch: the buffer still belongs to
+    // the previous account until the purge effect settles (Codex, round 8).
+    if (ownerRef.current !== ownerKeyRef.current) return;
     const trimmed = text.trim();
     if (!trimmed) return;               // never store empty interim noise
     // Fragments arriving while paused or stopped are dropped rather than
@@ -416,24 +461,6 @@ export function useFreestyleSession(
     stateRef.current = 'idle';
     setState('idle');
   }, [ownerKey, clearBuffer]);
-
-  /** True when the buffer has outlived its ceiling. `>=`: AT the boundary is expired. */
-  const isExpired = useCallback(() => {
-    const startedAt = startedAtRef.current;
-    return startedAt !== null && nowRef.current() - startedAt >= effectiveTtlMs;
-  }, [effectiveTtlMs]);
-
-  const purgeExpired = useCallback(() => {
-    if (!isExpired()) return false;
-    clearBuffer('ttl');
-    // Disarm any pending discard: a confirm left armed over a purged buffer
-    // offered to "delete" words that were already gone (Codex, round 4).
-    discardPendingRef.current = false;
-    setDiscardPending(false);
-    stateRef.current = 'idle';
-    setState('idle');
-    return true;
-  }, [isExpired, clearBuffer]);
 
   /** TTL purge. Checked on tick rather than by timer so a slept device is caught. */
   useEffect(() => {
@@ -484,15 +511,18 @@ export function useFreestyleSession(
   );
 
   return {
-    state,
-    fragments,
-    elapsedMs,
-    sinceLastFragmentMs,
-    wordCount,
-    error,
-    isActive: state === 'listening' || state === 'paused',
-    canResume: state === 'paused',
-    discardPending,
+    // MASKED VIEW (see `owned` above): during the one-commit ownership
+    // mismatch window the surface sees an empty idle session, never the
+    // previous account's words. The purge effect then makes it true.
+    state: owned ? state : 'idle',
+    fragments: owned ? fragments : [],
+    elapsedMs: owned ? elapsedMs : 0,
+    sinceLastFragmentMs: owned ? sinceLastFragmentMs : 0,
+    wordCount: owned ? wordCount : 0,
+    error: owned ? error : null,
+    isActive: owned && (state === 'listening' || state === 'paused'),
+    canResume: owned && state === 'paused',
+    discardPending: owned && discardPending,
     start,
     pause,
     resume,
