@@ -302,6 +302,30 @@ describe('freestyle session — discard is two-step', () => {
     expect(onPurge).toHaveBeenCalledWith('ttl');
   });
 
+  /**
+   * ROUND-21 REGRESSION (Codex). Arming a discard on an EXPIRED buffer let the
+   * confirm display past-ceiling words and receipted their destruction as
+   * 'discard' — the user's act, not TTL's. Every user-visible transition that
+   * can meet a live expired buffer now purges first.
+   */
+  it('arming a discard on an expired buffer purges it as ttl instead', () => {
+    const onPurge = vi.fn();
+    const { result } = renderHook(() =>
+      useFreestyleSession({ accountKey: 'trainer-a', now, onPurge, ttlMs: 500 }),
+    );
+    act(() => { result.current.start(); result.current.appendFragment('client words'); });
+
+    act(() => {
+      advance(500);                                 // AT the ceiling, before the sweep
+      result.current.requestDiscard();
+    });
+
+    expect(onPurge).toHaveBeenCalledWith('ttl');
+    expect(onPurge).not.toHaveBeenCalledWith('discard');
+    expect(result.current.discardPending).toBe(false);
+    expect(result.current.fragments).toHaveLength(0);
+  });
+
   it('resume() cannot wake an expired session', () => {
     const onPurge = vi.fn();
     const { result } = renderHook(() =>

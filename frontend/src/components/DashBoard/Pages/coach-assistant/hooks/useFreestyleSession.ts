@@ -306,11 +306,12 @@ export function useFreestyleSession(
 
   const pause = useCallback(() => {
     if (!ownedNow()) return;
+    if (purgeExpired()) return;
     if (stateRef.current !== 'listening') return;
     pausedAtRef.current = nowRef.current();
     stateRef.current = 'paused';
     setState('paused');
-  }, []);
+  }, [ownedNow, purgeExpired]);
 
   /** Folds an open pause into the running total. Idempotent. */
   const settlePause = useCallback(() => {
@@ -379,6 +380,12 @@ export function useFreestyleSession(
    */
   const requestDiscard = useCallback(() => {
     if (!ownedNow()) return;
+    // An expired buffer is TTL's to destroy, not the user's: arming here let
+    // the confirm display past-ceiling words and receipt their destruction as
+    // 'discard' (Codex, round 21). Every user-visible transition that can meet
+    // a live expired buffer now checks first — the sweep's blind spot is
+    // closed on all of them, not just the extend paths.
+    if (purgeExpired()) return;
     discardPendingRef.current = true;
     setDiscardPending(true);
     /**
@@ -393,7 +400,7 @@ export function useFreestyleSession(
       stateRef.current = 'paused';
       setState('paused');
     }
-  }, []);
+  }, [ownedNow, purgeExpired]);
   const cancelDiscard = useCallback(() => {
     if (!ownedNow()) return;
     discardPendingRef.current = false;
@@ -433,6 +440,7 @@ export function useFreestyleSession(
    */
   const fail = useCallback((message: string) => {
     if (!ownedNow()) return;
+    if (purgeExpired()) return;
     const s = stateRef.current;
     if (s !== 'listening' && s !== 'paused') return;
     settlePause();
@@ -440,7 +448,7 @@ export function useFreestyleSession(
     setError(message);
     stateRef.current = 'error';
     setState('error');
-  }, [settlePause]);
+  }, [ownedNow, purgeExpired, settlePause]);
 
   const appendFragment = useCallback((text: string) => {
     // Never append across an ownership mismatch: the buffer still belongs to
