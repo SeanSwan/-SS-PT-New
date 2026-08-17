@@ -306,26 +306,32 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
     requestDiscard();
   }, [requestDiscard]);
 
-  const handleDiscard = useCallback(() => {
-    discard();
+  /**
+   * THE ONE WAY OFF THIS SURFACE. Both terminating exits (Close/Cancel and
+   * confirmed Discard) route through here, so the close invariant — stop the
+   * engine synchronously (Codex, round 14), clear the latched transport error
+   * AFTER the bridge has long consumed it (Codex, round 18), settle the
+   * session, then close — is enforced at one chokepoint. Round 18 put the
+   * clearError on ONE of the two exits and round 19 found the other still
+   * resurrecting stale errors on reopen (GLM): the instance-vs-category
+   * mistake, again, cured structurally this time. The parent-driven
+   * isOpen-false path deliberately does NOT come here — hiding preserves the
+   * session, and only a terminating exit may clear the latch.
+   */
+  const closeSession = useCallback((settle: () => void) => {
+    speechStopRef.current();
+    speech.clearError();
+    settle();
     onClose();
-  }, [discard, onClose]);
+  }, [speech, onClose]);
+
+  const handleDiscard = useCallback(() => {
+    closeSession(discard);
+  }, [closeSession, discard]);
 
   const handleClose = useCallback(() => {
-    // Synchronous stop FIRST — Cancel while listening (zero fragments) reached
-    // this path and left the engine to the follow effect, falsifying the
-    // "every exit stops synchronously" claim one round after it was made
-    // (Codex, round 14). stop() flushes while the session is still listening,
-    // so a mid-flight phrase lands before reset purges (receipted) — words are
-    // never silently dropped between the tap and the close.
-    speechStopRef.current();
-    // Clear the latched speech error AT CLOSE, after the fail bridge has long
-    // consumed it — a stale error suppressed the follow effect on the NEXT
-    // open, so a once-failed engine was never auto-retried (Codex, round 18).
-    speech.clearError();
-    reset('completed');
-    onClose();
-  }, [speech, reset, onClose]);
+    closeSession(() => reset('completed'));
+  }, [closeSession, reset]);
 
   const isListening = state === 'listening';
   const isPaused = state === 'paused';

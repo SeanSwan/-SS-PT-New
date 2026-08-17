@@ -190,6 +190,32 @@ describe('CoachFreestyleOverlay — it actually hears (Fable F-2)', () => {
    * dictation until a manual Start. Close now clears the latched error
    * (after the fail bridge has consumed it).
    */
+  /**
+   * ROUND-19 REGRESSION (GLM HIGH). Round 18 cleared the latched error on ONE
+   * of the two terminating exits — the discard-confirm exit still resurrected
+   * the stale error on reopen, killing the auto-retry and re-showing a
+   * failure message whose cause may have since cleared. Both exits now route
+   * through one closeSession chokepoint.
+   */
+  it('reopening after discard-exit from a failed session retries the engine', () => {
+    const { rerender } = renderOverlay();               // SAME instance throughout
+    say('words captured before the failure');
+    act(() => { engine?.onerror?.({ error: 'not-allowed' }); });   // fatal, latched
+    const startsAfterFailure = startCalls;
+
+    act(() => { screen.getByLabelText('Discard session').click(); });
+    act(() => { screen.getByLabelText('Confirm discard').click(); }); // the once-broken exit
+
+    rerender(
+      <CoachFreestyleOverlay isOpen={false} accountKey="trainer-a" onClose={vi.fn()} />,
+    );
+    rerender(
+      <CoachFreestyleOverlay isOpen accountKey="trainer-a" onClose={vi.fn()} />,
+    );
+
+    expect(startCalls).toBeGreaterThan(startsAfterFailure);        // engine retried
+  });
+
   it('reopening after a failed engine start retries the engine', () => {
     throwOnNextEngineStart = true;                        // transient failure
     const { rerender } = renderOverlay();
