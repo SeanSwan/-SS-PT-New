@@ -326,6 +326,81 @@ describe('freestyle session — discard is two-step', () => {
     expect(result.current.fragments).toHaveLength(0);
   });
 
+  /**
+   * ROUND-22 REGRESSION (Codex, both findings). Guarding entry paths left the
+   * DESTRUCTION paths free to mislabel: a discard armed before the ceiling and
+   * confirmed after it, or a Close on a buffer that expired while held, still
+   * receipted the user's act. Expiry now decides the reason inside clearBuffer
+   * — the one place every purge flows through — so the invariant holds by
+   * construction rather than by six guards remembering.
+   */
+  it('a discard confirmed after the ceiling is receipted as ttl, not discard', () => {
+    const onPurge = vi.fn();
+    const { result } = renderHook(() =>
+      useFreestyleSession({ accountKey: 'trainer-a', now, onPurge, ttlMs: 1000 }),
+    );
+    act(() => { result.current.start(); result.current.appendFragment('client words'); });
+
+    act(() => { advance(999); result.current.requestDiscard(); });   // armed in time
+    act(() => { advance(2); result.current.discard(); });            // confirmed past it
+
+    expect(onPurge).toHaveBeenCalledWith('ttl');
+    expect(onPurge).not.toHaveBeenCalledWith('discard');
+  });
+
+  it('a Close on a buffer that expired while held is receipted as ttl, not completed', () => {
+    const onPurge = vi.fn();
+    const { result } = renderHook(() =>
+      useFreestyleSession({ accountKey: 'trainer-a', now, onPurge, ttlMs: 1000 }),
+    );
+    act(() => { result.current.start(); result.current.appendFragment('client words'); });
+    act(() => { result.current.stop(); });
+
+    act(() => { advance(1500); result.current.reset('completed'); });
+
+    expect(onPurge).toHaveBeenCalledWith('ttl');
+    expect(onPurge).not.toHaveBeenCalledWith('completed');
+  });
+
+  /**
+   * ROUND-22 REGRESSION (self-inflicted, caught by the round-16 test). Giving
+   * clearBuffer a changing identity made the unmount effect re-run on a prop
+   * change, and its CLEANUP destroyed the live session with a false 'unmount'
+   * receipt. An unmount purge must fire on unmount and nothing else — no prop
+   * change may wipe a live buffer.
+   */
+  it('a prop change does not purge a live session', () => {
+    const onPurge = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ ttl }) => useFreestyleSession({ accountKey: 'trainer-a', now, onPurge, ttlMs: ttl }),
+      { initialProps: { ttl: 60_000 } },
+    );
+    act(() => { result.current.start(); result.current.appendFragment('live words'); });
+
+    rerender({ ttl: 30_000 });                   // any prop change, session still live
+
+    expect(result.current.fragments).toHaveLength(1);
+    expect(result.current.state).toBe('listening');
+    expect(onPurge).not.toHaveBeenCalled();
+  });
+
+  /**
+   * ROUND-22 REGRESSION (GLM LOW). requestDiscard was the only mutator with no
+   * state precondition, so after a purge landed earlier in the same tap it
+   * armed a confirm over a corpse — "0 words will be deleted" for data already
+   * gone. Every sibling refuses from idle; now so does this.
+   */
+  it('does not arm a discard confirm over an already-purged session', () => {
+    const { result } = setup();
+    act(() => { result.current.start(); result.current.appendFragment('words'); });
+    act(() => { result.current.requestDiscard(); });
+    act(() => { result.current.discard(); });        // session now idle, buffer gone
+
+    act(() => { result.current.requestDiscard(); }); // the corpse-arm attempt
+
+    expect(result.current.discardPending).toBe(false);
+  });
+
   it('resume() cannot wake an expired session', () => {
     const onPurge = vi.fn();
     const { result } = renderHook(() =>

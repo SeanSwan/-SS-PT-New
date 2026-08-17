@@ -246,6 +246,12 @@ export function useFreestyleSession(
     nextIdRef.current = 1;
   }, []);
 
+  /** True when the buffer has outlived its ceiling. `>=`: AT the boundary is expired. */
+  const isExpired = useCallback(() => {
+    const startedAt = startedAtRef.current;
+    return startedAt !== null && nowRef.current() - startedAt >= effectiveTtlMs;
+  }, [effectiveTtlMs]);
+
   const clearBuffer = useCallback((reason: FreestylePurgeReason) => {
     /**
      * Receipt ONLY when words existed. Receipting empty wipes (mount cycles,
@@ -253,19 +259,24 @@ export function useFreestyleSession(
      * in the audit — a log that cries wolf protects nothing.
      */
     const hadData = fragmentsRef.current.length > 0;
+    /**
+     * EXPIRY OWNS THE RECEIPT. Guarding each entry path left the destruction
+     * paths free to mislabel: a discard armed at 999ms and confirmed at 1001ms,
+     * or a Close on a buffer that crossed the ceiling while held, still logged
+     * the user's act (Codex, round 22). Deciding the reason HERE — the one
+     * place every purge already flows through — makes "an expired buffer's
+     * destruction is always receipted 'ttl'" true by construction rather than
+     * by six guards remembering. Computed before wipeRefs nulls the clock.
+     */
+    const truthfulReason: FreestylePurgeReason =
+      hadData && isExpired() ? 'ttl' : reason;
     wipeRefs();
     // A purge clears the ERROR too: the shared-tablet guarantee covers failure
     // text, not just words — account B must not read A's failure message
     // (Codex, round 18). Every purge path flows through here.
     setError(null);
-    if (hadData) onPurgeRef.current?.(reason);
-  }, [wipeRefs]);
-
-  /** True when the buffer has outlived its ceiling. `>=`: AT the boundary is expired. */
-  const isExpired = useCallback(() => {
-    const startedAt = startedAtRef.current;
-    return startedAt !== null && nowRef.current() - startedAt >= effectiveTtlMs;
-  }, [effectiveTtlMs]);
+    if (hadData) onPurgeRef.current?.(truthfulReason);
+  }, [wipeRefs, isExpired]);
 
   const purgeExpired = useCallback(() => {
     if (!isExpired()) return false;
@@ -386,6 +397,14 @@ export function useFreestyleSession(
     // a live expired buffer now checks first — the sweep's blind spot is
     // closed on all of them, not just the extend paths.
     if (purgeExpired()) return;
+    /**
+     * …and never arm over a CORPSE. The surface flushes before arming, so a
+     * pending interim can trigger the purge one call earlier; this method was
+     * the only mutator without a state precondition, so it then offered
+     * "Discard this session? 0 words will be deleted" over data already gone
+     * (GLM, round 22). Every sibling refuses from idle; now so does this.
+     */
+    if (stateRef.current === 'idle') return;
     discardPendingRef.current = true;
     setDiscardPending(true);
     /**
@@ -401,11 +420,14 @@ export function useFreestyleSession(
       setState('paused');
     }
   }, [ownedNow, purgeExpired]);
+
   const cancelDiscard = useCallback(() => {
     if (!ownedNow()) return;
+    // "Keep it" cannot resurrect a buffer that expired while the confirm was up.
+    if (purgeExpired()) return;
     discardPendingRef.current = false;
     setDiscardPending(false);
-  }, []);
+  }, [ownedNow, purgeExpired]);
 
   useEffect(() => {
     if (!discardPending) return;
@@ -418,6 +440,11 @@ export function useFreestyleSession(
 
   const discard = useCallback(() => {
     if (!ownedNow()) return;
+    // Purge-then-refuse, matching every other transition: the clearBuffer
+    // chokepoint already forces a truthful 'ttl' receipt, and this makes the
+    // BEHAVIOUR uniform too — a confirm that lands past the ceiling destroys
+    // nothing of the user's (GLM + Codex converged, round 22).
+    if (purgeExpired()) return;
     if (!discardPendingRef.current) return;   // two-step enforced HERE, not in the UI
     discardPendingRef.current = false;
     setDiscardPending(false);
@@ -429,7 +456,7 @@ export function useFreestyleSession(
      */
     stateRef.current = 'idle';
     setState('idle');
-  }, [clearBuffer]);
+  }, [ownedNow, purgeExpired, clearBuffer]);
 
   /**
    * The failure path (mic denied, engine dead, unsupported browser). KEEPS the
@@ -481,6 +508,8 @@ export function useFreestyleSession(
 
   const reset = useCallback((reason: FreestylePurgeReason = 'completed') => {
     if (!ownedNow()) return;
+    // Same as discard: a buffer that crossed the ceiling while held is TTL's.
+    if (purgeExpired()) return;
     discardPendingRef.current = false;
     setDiscardPending(false);
     setError(null);
@@ -489,7 +518,7 @@ export function useFreestyleSession(
     clearBuffer(reason);
     stateRef.current = 'idle';
     setState('idle');
-  }, [clearBuffer]);
+  }, [ownedNow, purgeExpired, clearBuffer]);
 
   /**
    * ACCOUNT-SWITCH PURGE. The shared-gym-tablet guarantee: trainer A starts a
@@ -534,8 +563,19 @@ export function useFreestyleSession(
     };
   }, [purgeExpired]);
 
-  /** Unmount purges: a buffer must not outlive the surface that owns it. */
-  useEffect(() => () => { clearBuffer('unmount'); }, [clearBuffer]);
+  /**
+   * Unmount purges: a buffer must not outlive the surface that owns it.
+   *
+   * Read through a REF, with EMPTY deps. Depending on `clearBuffer`'s identity
+   * made this effect re-run whenever that callback was recreated — and its
+   * cleanup then destroyed a LIVE session with a false 'unmount' receipt. The
+   * round-22 chokepoint (isExpired in clearBuffer's deps) made the identity
+   * change on any ttl-prop change, and the round-16 regression test caught the
+   * wipe immediately. An unmount purge must fire on unmount and nothing else.
+   */
+  const clearBufferRef = useRef(clearBuffer);
+  clearBufferRef.current = clearBuffer;
+  useEffect(() => () => { clearBufferRef.current('unmount'); }, []);
 
   /**
    * Elapsed freezes at the moment of stop. Previously `at` was always `now()` and
