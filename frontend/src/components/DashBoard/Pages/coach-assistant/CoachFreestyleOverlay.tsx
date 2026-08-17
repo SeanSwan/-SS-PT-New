@@ -148,12 +148,18 @@ const CoachFreestyleOverlay: React.FC<CoachFreestyleOverlayProps> = ({
    * refuses appends, so A's in-flight words are dropped — fail-closed, never
    * mis-owned.
    */
-  const prevAccountRef = useRef(accountKey);
+  // NORMALIZED, matching the session's owner rule (42 === "42"): comparing the
+  // raw prop let a type-only change kill the engine under a session that,
+  // correctly, never switched owners — "Listening" over a dead recogniser
+  // (Codex, round 17). The normalization has been the owner law since round 8;
+  // this consumer had not inherited it.
+  const normalizedAccountKey = accountKey === null ? null : String(accountKey);
+  const prevAccountRef = useRef(normalizedAccountKey);
   useLayoutEffect(() => {
-    if (prevAccountRef.current === accountKey) return;
-    prevAccountRef.current = accountKey;
+    if (prevAccountRef.current === normalizedAccountKey) return;
+    prevAccountRef.current = normalizedAccountKey;
     speechStopRef.current();
-  }, [accountKey]);
+  }, [normalizedAccountKey]);
 
   /**
    * S4: `isOpen` only toggles visibility — the component stays mounted. Without

@@ -174,6 +174,27 @@ describe('CoachFreestyleOverlay — it actually hears (Fable F-2)', () => {
     expect(abortCalls).toBeGreaterThan(abortsBefore);
   });
 
+  /**
+   * ROUND-17 REGRESSION (Codex HIGH). The layout effect compared the RAW prop
+   * while the session normalizes 42 === "42" — a type-only change killed the
+   * engine under a session that never switched owners: "Listening" over a
+   * dead recogniser.
+   */
+  it('a type-only account change does not kill the engine', () => {
+    const { rerender } = render(
+      <CoachFreestyleOverlay isOpen accountKey={42} onClose={vi.fn()} />,
+    );
+    say('something');
+    const abortsBefore = abortCalls;
+
+    rerender(
+      <CoachFreestyleOverlay isOpen accountKey="42" onClose={vi.fn()} />,
+    );
+
+    expect(abortCalls).toBe(abortsBefore);        // same owner — engine untouched
+    expect(screen.getByText(/Listening\. Talk as long as you need/)).toBeInTheDocument();
+  });
+
   it('does not count an interim phrase as captured', () => {
     renderOverlay();
 
