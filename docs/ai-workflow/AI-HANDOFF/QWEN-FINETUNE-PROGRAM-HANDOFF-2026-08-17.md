@@ -5,6 +5,11 @@ supersedes: none
 sanitized: true
 ---
 
+> ## ⛔ SUPERSEDED — read [`QWEN-FINETUNE-PROGRAM-HANDOFF-2026-08-17-B.md`](QWEN-FINETUNE-PROGRAM-HANDOFF-2026-08-17-B.md) FIRST.
+> Handoff B carries the current state (factory published, S2a proven end-to-end, next slices, recommendations).
+> **This file is still worth reading for two things B does not repeat:** §4 (the ten-round marathon's behavioral laws) and §7 (environment gotchas, including the U1 additions).
+> Everything in §3/§6 about push state and VRAM is **stale** — see the U1 block immediately below for the corrections.
+
 # HANDOFF — Three Local Brains Qwen Fine-Tuning Program (SWA-169)
 **Date:** 2026-08-17 · **Author:** Fable 5 (session Final Decider) · **For:** the next AI picking this up cold
 **Board:** SWA-169 (High, In Progress) — related SWA-160 (Hermes Qwen 3.8 upgrade)
