@@ -75,11 +75,45 @@ const INDEX_SQL = `
   WHERE n.nspname = 'public' AND c.relkind = 'r'
   GROUP BY c.relname;`;
 
+// COUNT(*) is a sequential scan under MVCC — it cannot use an index and it holds a
+// snapshot for its whole duration, which blocks autovacuum from reclaiming dead rows
+// behind it. 254 of those serialized against the OLTP primary is fine while the DB is
+// small and becomes an incident the first time a log table crosses a million rows.
+// Above these thresholds we take pg_class's estimate instead and label it as one.
+const EXACT_COUNT_MAX_ROWS = 100_000;
+const EXACT_COUNT_MAX_BYTES = 50 * 1024 * 1024;
+
 async function main() {
+  const conn = loadDatabaseUrl();
+
+  // Provenance: which database did this snapshot actually come from? Without it a
+  // dev .env picked up by the search order produces a file that looks like production
+  // and silently misdirects every downstream reader. Host and database name are not
+  // secrets (Render hostnames are public DNS); the URL itself is never printed.
+  let host = 'unknown', database = 'unknown';
+  try {
+    const u = new URL(conn);
+    host = u.hostname;
+    database = u.pathname.replace(/^\//, '') || 'unknown';
+  } catch { /* non-URL DSN — leave as unknown rather than guess */ }
+
+  // Fail closed when the caller has not said which database they meant. An opt-in is
+  // cheap; a snapshot mislabelled as production is not.
+  const target = process.env.SWAN_GRAPH_TARGET;
+  if (!target) {
+    console.error(`[graph] REFUSING: set SWAN_GRAPH_TARGET to name the database you intend to read.`);
+    console.error(`[graph] resolved connection points at host=${host} db=${database}`);
+    console.error(`[graph] e.g. SWAN_GRAPH_TARGET=production node backend/scripts/export-system-graph.mjs`);
+    process.exit(2);
+  }
+  console.error(`[graph] source host=${host} db=${database} target=${target}`);
+
   const client = new pg.Client({
-    connectionString: loadDatabaseUrl(),
-    ssl: { rejectUnauthorized: false },
-    statement_timeout: 60_000,
+    connectionString: conn,
+    // Render internal hostnames have no MITM surface; a public host does. Default to
+    // verifying and let an operator opt out explicitly rather than silently never checking.
+    ssl: { rejectUnauthorized: process.env.PGSSL_REJECT_UNAUTHORIZED !== '0' },
+    statement_timeout: 5_000,
   });
   await client.connect();
 
@@ -89,14 +123,25 @@ async function main() {
     client.query(INDEX_SQL),
   ]);
 
-  // Exact counts for the graph's weight channel; estimates lie after bulk ops.
   const counts = new Map();
+  const approx = new Set();
+  const countErrors = new Map();
   for (const row of tables.rows) {
+    const est = Number(row.est_rows);
+    if (est > EXACT_COUNT_MAX_ROWS || Number(row.bytes) > EXACT_COUNT_MAX_BYTES) {
+      counts.set(row.table_name, Math.max(0, est));
+      approx.add(row.table_name);
+      continue;
+    }
     try {
       const r = await client.query(`SELECT COUNT(*)::bigint AS n FROM "${row.table_name}"`);
       counts.set(row.table_name, Number(r.rows[0].n));
-    } catch {
-      counts.set(row.table_name, null); // permission or vanished mid-scan
+    } catch (err) {
+      // A silent null here reads downstream as "empty", which is the same mistake this
+      // whole campaign exists to prevent. Say what failed.
+      counts.set(row.table_name, null);
+      countErrors.set(row.table_name, err.message);
+      console.error(`[graph] count failed for ${row.table_name}: ${err.message}`);
     }
   }
   await client.end();
@@ -104,11 +149,19 @@ async function main() {
   const idx = new Map(indexes.rows.map((r) => [r.table_name, Number(r.index_count)]));
   const degree = new Map();
   const bump = (t) => degree.set(t, (degree.get(t) || 0) + 1);
-  for (const e of fks.rows) { bump(e.source_table); bump(e.target_table); }
+  // A self-referencing FK is ONE relationship, not two. Bumping both ends gave such a
+  // table degree=2, so `orphans` (degree-based) excluded it while `components`
+  // (neighbour-based) called it a singleton — the two disagreeing about the same table.
+  for (const e of fks.rows) {
+    if (e.source_table === e.target_table) { bump(e.source_table); continue; }
+    bump(e.source_table); bump(e.target_table);
+  }
 
   const nodes = tables.rows.map((r) => ({
     id: r.table_name,
     rows: counts.get(r.table_name),
+    rowsApprox: approx.has(r.table_name) || undefined,   // estimate, not a count
+    countError: countErrors.get(r.table_name) || undefined,
     bytes: Number(r.bytes),
     indexes: idx.get(r.table_name) || 0,
     degree: degree.get(r.table_name) || 0,
@@ -122,6 +175,7 @@ async function main() {
 
   process.stdout.write(JSON.stringify({
     generatedAt: new Date().toISOString(),
+    source: { host, database, target, sslVerified: process.env.PGSSL_REJECT_UNAUTHORIZED !== '0' },
     nodes,
     edges,
     summary: {
@@ -130,6 +184,8 @@ async function main() {
       isolated: nodes.filter((n) => n.degree === 0).length,
       emptyTables: nodes.filter((n) => n.rows === 0).length,
       totalRows: nodes.reduce((a, n) => a + (n.rows || 0), 0),
+      approximated: approx.size,
+      countFailures: countErrors.size,
     },
   }, null, 2));
 }

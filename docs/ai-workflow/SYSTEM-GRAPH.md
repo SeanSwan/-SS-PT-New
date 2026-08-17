@@ -32,13 +32,38 @@ node backend/scripts/query-system-graph.mjs hubs 10
 Table names resolve case-insensitively, so `users` finds `"Users"` without the
 caller needing to know Postgres folding rules.
 
-## This is a catalog, not a knowledge graph
+## Rule 72 — an UNRESOLVED TENSION, not a compliance claim
 
-Rule 72 stands. There is no vector store, no embedding, no graph engine, no LLM in
-the query path — a generated file and a deterministic script, the same shape as
-`CATALOG.md`. It earns its place because these are genuinely CHAIN questions
-("does anything connect A to B, and through what?") which grep cannot answer.
-Flat lookups still belong to grep.
+This section used to say "Rule 72 stands." GLM-5.2 called that motivated reasoning
+on 2026-08-16 and the criticism lands, so here is the honest version.
+
+**For:** no vector store, no embeddings, no graph engine, no LLM in the query path —
+a generated file plus a deterministic script, the same shape as `CATALOG.md`, which
+the rule already permits.
+
+**Against, and I could not refute it:** this has nodes, edges, BFS, connected
+components and shortest-path. "It's a JSON file, not Neo4j" is the same distinction
+every knowledge-graph advocate makes. Rule 72's *intent* is to stop agents reasoning
+over a derived structure instead of consulting the source of truth — and `path A B`
+against a snapshot does exactly that. "Regenerate before trusting" is functionally
+"re-index before querying," which is the thing the rule exists to prevent.
+
+**Status: Sean's call.** Rule 72 carries an explicit re-decision gate that is his.
+Three outcomes:
+
+1. **Amend Rule 72** with a carve-out — *derived, single-file, deterministically
+   regenerable catalogs are permitted; graph engines, vector stores and
+   embedding-backed retrieval are not; agents must consult the live database before
+   acting on any row.*
+2. **Retract the tool.**
+3. Leave it as-is — **the worst option**: tool exists, rule unchanged, compliance
+   asserted.
+
+Until he decides, this doc claims **no** compliance. The narrower claim it does make
+is verifiable: the tool answers CHAIN questions ("is there a path from A to B, and
+through which constraints?") that grep cannot, and every row stays a pointer that
+must be confirmed against the database before anyone acts on it. Flat lookups still
+belong to grep.
 
 **A row is a pointer, never canon.** The snapshot is true as of `generatedAt`; the
 database is the authority. The query tool warns past 7 days. Regenerate with:

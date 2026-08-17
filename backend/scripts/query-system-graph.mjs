@@ -40,16 +40,36 @@ function load() {
   }
   const g = JSON.parse(fs.readFileSync(SNAPSHOT, 'utf8'));
   const ageH = (Date.now() - Date.parse(g.generatedAt)) / 3.6e6;
-  if (ageH > 168) {
-    console.error(`[graph] WARNING: snapshot is ${Math.round(ageH / 24)} days old — schema may have moved. Regenerate before trusting it.`);
+  const ageD = Math.round(ageH / 24);
+
+  // The staleness signal must reach the SAME stream as the answer. On stderr it was
+  // invisible to every agent that captures stdout, which left "a row is a pointer,
+  // never canon" as a doctrine in a doc rather than a property of the tool.
+  const src = g.source
+    ? ` source=${g.source.host}/${g.source.database} target=${g.source.target}`
+    : ' source=unrecorded';
+  console.log(`# generatedAt=${g.generatedAt} age=${ageD}d${src}${ageH > 168 ? '  STALE — regenerate' : ''}`);
+
+  // 7 days warns and gets ignored; 14 refuses and forces the regenerate. The asymmetry
+  // is the point — a warning nobody acts on is not a control.
+  if (ageH > 336 && !process.argv.includes('--stale-ok')) {
+    console.error(`[graph] REFUSING: snapshot is ${ageD} days old. Regenerate, or pass --stale-ok to override.`);
+    process.exit(3);
   }
+
   g.byId = new Map(g.nodes.map((n) => [n.id, n]));
   g.nbr = new Map(g.nodes.map((n) => [n.id, new Set()]));
+  g.out = new Map(g.nodes.map((n) => [n.id, new Set()]));   // source -> targets (FK direction)
+  g.in = new Map(g.nodes.map((n) => [n.id, new Set()]));    // target -> sources
   for (const e of g.edges) {
     if (!g.nbr.has(e.source) || !g.nbr.has(e.target)) continue;
+    if (e.source === e.target) continue;   // a self-FK is not a neighbour relationship
     g.nbr.get(e.source).add(e.target);
     g.nbr.get(e.target).add(e.source);
+    g.out.get(e.source).add(e.target);
+    g.in.get(e.target).add(e.source);
   }
+  g.fkName = new Map(g.edges.map((e) => [`${e.source}>${e.target}`, e.name]));
   return g;
 }
 
@@ -73,22 +93,53 @@ switch (cmd) {
     const t = resolve(g, args[0]);
     const n = g.byId.get(t);
     const list = [...g.nbr.get(t)].sort();
-    console.log(`${t}  rows=${num(n.rows)}  fks=${n.degree}  indexes=${n.indexes}`);
-    console.log(list.length ? list.map((x) => `  → ${x} (rows=${num(g.byId.get(x).rows)})`).join('\n')
-                            : '  (no foreign key in either direction — isolated)');
+    const approx = n.rowsApprox ? ' (estimate)' : '';
+    console.log(`${t}  rows=${num(n.rows)}${approx}  fks=${n.degree}  indexes=${n.indexes}`);
+    // Direction matters: "X references Y" and "Y is referenced by X" imply opposite
+    // traversals, and printing an undirected arrow for both misleads the reader.
+    console.log(list.length
+      ? list.map((x) => {
+          const outward = g.out.get(t).has(x);
+          const inward = g.in.get(t).has(x);
+          const dir = outward && inward ? '<->' : outward ? ' ->' : ' <-';
+          const how = outward && inward ? 'mutual' : outward ? `${t} references ${x}` : `${x} references ${t}`;
+          return `  ${dir} ${x} (rows=${num(g.byId.get(x).rows)}) — ${how}`;
+        }).join('\n')
+      : '  (no foreign key in either direction — isolated)');
     break;
   }
   case 'path': {
     const a = resolve(g, args[0]); const b = resolve(g, args[1]);
-    const prev = new Map([[a, null]]); const q = [a];
-    while (q.length) {
-      const cur = q.shift();
-      if (cur === b) break;
-      for (const nb of g.nbr.get(cur)) if (!prev.has(nb)) { prev.set(nb, cur); q.push(nb); }
-    }
-    if (!prev.has(b)) { console.log(`no FK path between ${a} and ${b} — they are in different components`); break; }
-    const out = []; for (let c = b; c; c = prev.get(c)) out.unshift(c);
-    console.log(out.join(' → ') + `   (${out.length - 1} hop${out.length === 2 ? '' : 's'})`);
+
+    // Foreign keys point one way. The original BFS walked an undirected neighbour set
+    // and printed bare table names, so it could answer "there is a path" for a route
+    // that is only traversable backwards — and the reader had no way to tell.
+    const bfs = (adj) => {
+      const prev = new Map([[a, null]]); const q = [a];
+      while (q.length) {
+        const cur = q.shift();
+        if (cur === b) return prev;
+        for (const nb of adj.get(cur)) if (!prev.has(nb)) { prev.set(nb, cur); q.push(nb); }
+      }
+      return prev.has(b) ? prev : null;
+    };
+    const render = (prev, label) => {
+      const chain = []; for (let c = b; c; c = prev.get(c)) chain.unshift(c);
+      const hops = chain.slice(1).map((node, i) => {
+        const from = chain[i];
+        const fk = g.fkName.get(`${from}>${node}`) || g.fkName.get(`${node}>${from}`) || '?';
+        return `${node} [${fk}]`;
+      });
+      console.log(`${chain[0]} → ${hops.join(' → ')}   (${chain.length - 1} hop${chain.length === 2 ? '' : 's'}, ${label})`);
+    };
+
+    const directed = bfs(g.out);
+    if (directed) { render(directed, 'directed: each hop references the next'); break; }
+
+    const undirected = bfs(g.nbr);
+    if (!undirected) { console.log(`no FK path between ${a} and ${b} — they are in different components`); break; }
+    console.log(`no DIRECTED path from ${a} to ${b}; an undirected one exists:`);
+    render(undirected, 'UNDIRECTED — at least one hop points the other way');
     break;
   }
   case 'orphans': {
@@ -141,7 +192,8 @@ switch (cmd) {
     break;
   }
   case 'find': {
-    const q = (args[0] || '').toLowerCase();
+    if (!args[0]) { console.error('usage: find <substring>'); process.exit(1); }
+    const q = args[0].toLowerCase();
     for (const n of g.nodes.filter((x) => x.id.toLowerCase().includes(q)))
       console.log(`  ${n.id.padEnd(38)} rows=${String(num(n.rows)).padStart(7)} fks=${n.degree} indexes=${n.indexes}`);
     break;
@@ -150,6 +202,25 @@ switch (cmd) {
     console.log(JSON.stringify({ ...g.summary, generatedAt: g.generatedAt }, null, 2));
     break;
   default:
-    console.log(fs.readFileSync(url.fileURLToPath(import.meta.url), 'utf8')
-      .split('\n').slice(1, 30).map((l) => l.replace(/^ \*ature?\/?/, '').replace(/^ \* ?/, '')).join('\n'));
+    // Building help by re-reading this file's own header meant any edit to the comment
+    // block shifted the slice and leaked raw comment markers into the output.
+    console.log([
+      'query-system-graph.mjs — ask the production FK graph questions',
+      '',
+      '  neighbors <table>     what it connects to, with direction',
+      '  path <a> <b>          shortest DIRECTED FK path (falls back to undirected, labelled)',
+      '  orphans               no foreign key in either direction',
+      '  empty [--connected]   zero rows',
+      '  hubs [n]              most-connected tables',
+      '  components            disconnected clusters',
+      '  unindexed             populated but thin on indexes',
+      '  find <substr>         name search',
+      '  stats                 summary + provenance',
+      '',
+      '  --stale-ok            proceed past the 14-day staleness refusal',
+      '',
+      'A row is a POINTER, never canon — the database is the authority. Regenerate:',
+      '  SWAN_GRAPH_TARGET=production node backend/scripts/export-system-graph.mjs \\',
+      '    > docs/ai-workflow/system-graph.json',
+    ].join('\n'));
 }

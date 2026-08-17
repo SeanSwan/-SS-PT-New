@@ -39,6 +39,13 @@ router.get('/active', async (req, res) => {
     // challenges are joinable content the dashboards should surface (live-DB truth
     // 2026-08-04: most historical challenges have ended; hiding upcoming ones would
     // keep the community page empty for no reason).
+    // `protect` should guarantee this, but reading req.user.id unguarded turns any
+    // gap (token race, a misconfigured test mounting the router without the middleware)
+    // into a TypeError surfacing as an opaque 500 instead of an honest 401.
+    if (!req.user?.id) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
     const CanonicalChallenge = getChallenge();
     const CanonicalParticipant = getChallengeParticipant();
 

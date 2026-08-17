@@ -1,5 +1,11 @@
 {
-  "generatedAt": "2026-08-16T20:22:46.085Z",
+  "generatedAt": "2026-08-16T23:14:24.622Z",
+  "source": {
+    "host": "dpg-cv1qga1u0jms738nc8lg-a.oregon-postgres.render.com",
+    "database": "swanstudios",
+    "target": "production",
+    "sslVerified": true
+  },
   "nodes": [
     {
       "id": "Achievements",
@@ -48,7 +54,7 @@
       "rows": 0,
       "bytes": 16384,
       "indexes": 1,
-      "degree": 4
+      "degree": 3
     },
     {
       "id": "EventAttendances",
@@ -164,7 +170,7 @@
     },
     {
       "id": "SequelizeMeta",
-      "rows": 371,
+      "rows": 372,
       "bytes": 106496,
       "indexes": 1,
       "degree": 0
@@ -174,7 +180,7 @@
       "rows": 0,
       "bytes": 163840,
       "indexes": 9,
-      "degree": 6
+      "degree": 5
     },
     {
       "id": "SocialConnections",
@@ -468,7 +474,7 @@
       "rows": 0,
       "bytes": 40960,
       "indexes": 4,
-      "degree": 7
+      "degree": 6
     },
     {
       "id": "bootcamp_stations",
@@ -685,7 +691,7 @@
       "rows": 0,
       "bytes": 57344,
       "indexes": 6,
-      "degree": 4
+      "degree": 3
     },
     {
       "id": "custom_packages",
@@ -1068,8 +1074,8 @@
     {
       "id": "media_assets",
       "rows": 0,
-      "bytes": 40960,
-      "indexes": 4,
+      "bytes": 49152,
+      "indexes": 5,
       "degree": 4
     },
     {
@@ -1525,7 +1531,7 @@
       "rows": 0,
       "bytes": 57344,
       "indexes": 6,
-      "degree": 5
+      "degree": 4
     },
     {
       "id": "tax_config",
@@ -1658,7 +1664,7 @@
       "rows": 0,
       "bytes": 57344,
       "indexes": 6,
-      "degree": 7
+      "degree": 6
     },
     {
       "id": "video_sessions",
@@ -3767,6 +3773,8 @@
     "foreignKeys": 396,
     "isolated": 33,
     "emptyTables": 158,
-    "totalRows": 6208
+    "totalRows": 6209,
+    "approximated": 0,
+    "countFailures": 0
   }
 }
