@@ -26,7 +26,7 @@ import {
   evaluatePrompt, assertPromptAllowed,
 } from '../../../shared/providers/video/promptPolicy.mjs';
 import { resolve, capabilities } from '../../../shared/providers/video/registry.mjs';
-import { runGenerate } from '../../scripts/handlers/generateVideo.mjs';
+import { runGenerate, seedFromJobId } from '../../scripts/handlers/generateVideo.mjs';
 
 const LOCAL = 'comfyui/minimax-h3';
 const HOSTED = 'minimax/hailuo-hosted';
@@ -417,6 +417,39 @@ describe('content policy — what must FLAG but not block', () => {
 });
 
 // ───────────────────────────── HANDLER INTEGRATION ─────────────────────────────
+
+describe('seed derivation — ComfyUI caches by graph', () => {
+  it('is deterministic for a job, so a RETRY reproduces its render', () => {
+    expect(seedFromJobId('job-abc')).toBe(seedFromJobId('job-abc'));
+  });
+
+  it('differs across jobs, so two jobs never share one cached video', () => {
+    // The real failure: an identical graph returned the previous run's outputs without
+    // re-rendering, and the download 404'd on a file that had since been moved.
+    const seen = new Set();
+    for (let i = 0; i < 500; i += 1) seen.add(seedFromJobId(`job-${i}`));
+    expect(seen.size).toBe(500);
+  });
+
+  it('stays inside the sampler seed range', () => {
+    for (const id of ['a', 'job-999999', 'x'.repeat(64)]) {
+      const s = seedFromJobId(id);
+      expect(Number.isInteger(s)).toBe(true);
+      expect(s).toBeGreaterThanOrEqual(0);
+      expect(s).toBeLessThan(2147483647);
+    }
+  });
+
+  it('an explicitly pinned seed still wins', async () => {
+    let got;
+    const spy = { generate: async (r, o) => { got = o.seed; return { provider: LOCAL, outPath: o.outPath, bytes: 1, filename: 'a.mp4', sha256: 'z' }; } };
+    await runGenerate(
+      { id: 'j-pin', params: { provider: LOCAL, ...req(), commercial: false, seed: 12345 } },
+      async () => {}, { env: { SWAN_VIDEO_PROVIDERS_ENABLED: LOCAL }, adapters: { [LOCAL]: spy }, outDir: '/tmp' },
+    );
+    expect(got).toBe(12345);
+  });
+});
 
 describe('handler — the controls actually run in the generate path', () => {
   const ENABLED = { SWAN_VIDEO_PROVIDERS_ENABLED: LOCAL };

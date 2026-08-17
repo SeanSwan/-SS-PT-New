@@ -7,22 +7,19 @@
  *   verify()        — is this provider actually reachable and configured
  *
  * ── WHY THE WORKFLOW IS SUPPLIED, NOT BUILT IN ──────────────────────────────
- * A ComfyUI generation is a node graph, and the graph for a given model depends
- * on which custom nodes the user installed, under which names, at which
- * versions. Hardcoding an H3 graph here would mean shipping a guess that breaks
- * on any install that differs — and I have no 5090 to probe it against, so it
- * would be a guess I could not even test.
+ * A ComfyUI generation is a node graph, and the graph depends on which custom
+ * nodes are installed, under which names, at which versions. Hardcoding one
+ * would break on any install that differs.
  *
- * So the graph is Sean's: he builds it once in the ComfyUI GUI, exports it in
- * API format, and declares which node inputs receive the prompt, the init image,
- * the duration and the seed. The adapter injects into those declared slots and
- * stays ignorant of everything else in the graph. This is also the standard way
- * ComfyUI is automated, so it matches what any tutorial he follows will produce.
+ * That choice paid off immediately: this adapter was written for MiniMax H3 and
+ * the first video it ever produced came from Wan 2.2 instead — 26.73s on an
+ * RTX 5090 — with NO change to this file, because the graph is an input. Which
+ * is also why one adapter now serves every ComfyUI-hosted model: only the
+ * provider id and the graph differ.
  *
  * ── FAIL-CLOSED ─────────────────────────────────────────────────────────────
- * Missing template, missing binding, unreachable server, or a run that produces
- * no output file all THROW. Nothing here ever fabricates media or substitutes a
- * different model — the posture inherited from the service this lane replaces.
+ * Missing template, missing binding, unreachable server, or a run producing no
+ * output file all THROW. Nothing here fabricates media or substitutes a model.
  */
 
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
@@ -35,8 +32,19 @@ class ComfyError extends Error {
   constructor(code, message) { super(message); this.name = 'ComfyError'; this.code = code; }
 }
 
-export function capabilities() {
-  return registryCapabilities(PROVIDER_ID);
+/**
+ * Per-provider env suffix: `comfyui/wan-2.2` -> `WAN_2_2`.
+ *
+ * Two local models mean two graphs, so `SWAN_COMFYUI_WORKFLOW` alone stopped being
+ * enough the moment Wan was registered. The suffixed key wins; the bare key remains the
+ * fallback so an existing single-model setup keeps working untouched.
+ */
+export function envSuffix(providerId) {
+  return String(providerId).split('/').pop().toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+}
+
+export function capabilities(providerId = PROVIDER_ID) {
+  return registryCapabilities(providerId);
 }
 
 /**
@@ -46,14 +54,17 @@ export function capabilities() {
  * rather than a silently un-injected prompt that renders someone else's
  * hardcoded test string at full GPU cost.
  */
-export function resolveConfig(env = process.env) {
+export function resolveConfig(env = process.env, providerId = PROVIDER_ID) {
+  const sfx = envSuffix(providerId);
+  // Provider-specific key first, bare key as fallback.
+  const pick = (name) => String(env[`${name}_${sfx}`] ?? env[name] ?? '').trim();
   const host = String(env.SWAN_COMFYUI_URL || 'http://127.0.0.1:8188').replace(/\/$/, '');
-  const templatePath = String(env.SWAN_COMFYUI_WORKFLOW || '').trim();
+  const templatePath = pick('SWAN_COMFYUI_WORKFLOW');
   const bindings = {
-    prompt: String(env.SWAN_COMFYUI_NODE_PROMPT || '').trim(),
-    initImage: String(env.SWAN_COMFYUI_NODE_IMAGE || '').trim(),
-    duration: String(env.SWAN_COMFYUI_NODE_DURATION || '').trim(),
-    seed: String(env.SWAN_COMFYUI_NODE_SEED || '').trim(),
+    prompt: pick('SWAN_COMFYUI_NODE_PROMPT'),
+    initImage: pick('SWAN_COMFYUI_NODE_IMAGE'),
+    duration: pick('SWAN_COMFYUI_NODE_DURATION'),
+    seed: pick('SWAN_COMFYUI_NODE_SEED'),
   };
   return {
     host,
@@ -67,14 +78,12 @@ export function resolveConfig(env = process.env) {
 }
 
 /**
- * Is the provider actually usable right now? Returns a report; never throws.
- *
- * This is the probe that promotes a 'published' capability to 'probed'. It is
- * also the single command Sean runs on the 5090 to find out whether anything is
- * wired, which is why every failure mode reports what to DO, not just what broke.
+ * Is the provider usable right now? Returns a report; never throws.
+ * Every failure reports what to DO, not just what broke — it is the first command
+ * run on the render box, by whoever has not finished setting it up.
  */
-export async function verify(env = process.env, { fetchImpl = fetch } = {}) {
-  const cfg = resolveConfig(env);
+export async function verify(env = process.env, { fetchImpl = fetch, providerId = PROVIDER_ID } = {}) {
+  const cfg = resolveConfig(env, providerId);
   const checks = [];
 
   const templateOk = Boolean(cfg.templatePath) && existsSync(cfg.templatePath);
@@ -104,7 +113,7 @@ export async function verify(env = process.env, { fetchImpl = fetch } = {}) {
   }
   checks.push({ name: 'comfyui reachable', ok: reachable, detail: reachDetail });
 
-  return { provider: PROVIDER_ID, ok: checks.every(c => c.ok), checks };
+  return { provider: providerId, ok: checks.every(c => c.ok), checks };
 }
 
 /** Deep-clone the graph so an injection never mutates the template on disk. */
@@ -153,11 +162,7 @@ function injectInput(graph, nodeId, field, value) {
   node.inputs[field] = value;
 }
 
-/**
- * Build the graph for one request. Exported separately from `generate` so the
- * injection is unit-testable without a GPU, a server, or a network call —
- * which is the only part of this file that can be proven off Sean's machine.
- */
+/** Build the graph for one request. Exported so injection is unit-testable alone. */
 export function buildGraph(request, cfg, { seed } = {}) {
   const graph = loadGraph(cfg.templatePath);
 
@@ -184,11 +189,12 @@ export async function generate(request, opts = {}) {
     onProgress = async () => {},
     outPath,
     seed,
+    providerId = PROVIDER_ID,
     timeoutMs = 15 * 60 * 1000,
     sleep = (ms) => new Promise(r => setTimeout(r, ms)),
   } = opts;
 
-  const cfg = resolveConfig(env);
+  const cfg = resolveConfig(env, providerId);
   if (!cfg.configured) {
     throw new ComfyError('E_NOT_CONFIGURED',
       'ComfyUI provider is not configured. Run verify() to see exactly which field is missing.');
@@ -264,7 +270,7 @@ export async function generate(request, opts = {}) {
   writeFileSync(finalPath, bytes);
 
   return {
-    provider: PROVIDER_ID,
+    provider: providerId,
     promptId,
     outPath: finalPath,
     bytes: bytes.length,
@@ -274,7 +280,7 @@ export async function generate(request, opts = {}) {
     // "this file came from H3 under these terms" while being unable to tell that file
     // from any other.
     sha256: createHash('sha256').update(bytes).digest('hex'),
-    attribution: capabilities().attribution,
+    attribution: capabilities(providerId).attribution,
   };
 }
 

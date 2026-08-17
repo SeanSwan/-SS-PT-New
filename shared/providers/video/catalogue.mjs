@@ -85,6 +85,45 @@ export const VIDEO_PROVIDERS = Object.freeze({
     }),
   }),
 
+  /**
+   * Wan 2.2 TI2V-5B — the model that actually rendered first.
+   *
+   * Added after a real 26.73-second generation on an RTX 5090, not from a spec sheet:
+   * every figure below was observed. It is listed second only because H3 was the stated
+   * target, but it is the one with no licence between Sean and a commercial video.
+   *
+   * Apache 2.0: no territorial carve-out, no application, no grant. That is the whole
+   * reason it exists in this catalogue — when the H3 request was still pending, this
+   * turned "waiting on a licensor" into "rendering tonight".
+   */
+  'comfyui/wan-2.2': Object.freeze({
+    label: 'Wan 2.2 TI2V-5B (local, via ComfyUI)',
+    transport: 'comfyui',
+    kind: ['text2video', 'image2video'],
+    costPerRunUsd: 0,
+    enabled: false,
+    // PROBED, not published: measured on this machine at 832x480x49f, 20 steps, 26.73s
+    // wall, 25,385 MiB peak VRAM. The duration figure is frames/fps from that run.
+    maxDurationSec: { value: 5, provenance: PROVENANCE.PROBED },
+    maxResolution: { value: '1280x704', provenance: PROVENANCE.PUBLISHED },
+    honorsNegativePrompt: PROVENANCE.PROBED,
+    seedIsDeterministic: PROVENANCE.CLAIMED,
+    attribution: 'Video generated with Wan 2.2',
+    licence: Object.freeze({
+      name: 'Apache License 2.0',
+      // Apache 2.0 restricts nothing about running the weights anywhere, for any purpose.
+      restricts: 'none',
+      commercialUse: 'permitted',
+      excludedTerritories: [],
+      grantRequestDoc: null,
+      // Apache 2.0 requires the NOTICE/attribution be PRESERVED, not prominently
+      // displayed in a product UI the way H3's licence demands. Marking this false is a
+      // statement about the licence, not a decision to hide the credit — the attribution
+      // string above still travels with every asset's provenance either way.
+      requiresAttribution: false,
+    }),
+  }),
+
   'minimax/hailuo-hosted': Object.freeze({
     label: 'MiniMax Hailuo (hosted API)',
     transport: 'https',

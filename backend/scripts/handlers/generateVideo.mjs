@@ -37,7 +37,12 @@ import { ComfyError } from '../../../shared/providers/video/comfyuiLocal.mjs';
  * Adapters by transport. A second local backend or a hosted vendor registers
  * here; nothing else in the agent changes.
  */
-const ADAPTERS = { 'comfyui/minimax-h3': comfyuiLocal };
+const ADAPTERS = {
+  'comfyui/minimax-h3': comfyuiLocal,
+  // One adapter, two models. The graph is an operator-supplied input, so nothing about
+  // the transport differs — only the provider id and which workflow file it resolves.
+  'comfyui/wan-2.2': comfyuiLocal,
+};
 
 /**
  * Error codes that describe the request rather than the moment. Anything here is
@@ -66,6 +71,22 @@ const PERMANENT_CODES = new Set([
   // the same unparseable bytes, and only a human deleting or fixing the file changes it.
   'E_LEDGER_DEGRADED',
 ]);
+
+/**
+ * A stable seed for a job id.
+ *
+ * Deterministic so a retry of the same job renders the same thing; distinct per job so
+ * ComfyUI's graph cache never hands two jobs one video. Bounded to 2^31-1 because that is
+ * what sampler seed widgets accept.
+ */
+export function seedFromJobId(jobId) {
+  let h = 2166136261;
+  for (const ch of String(jobId)) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 16777619);
+  }
+  return Math.abs(h) % 2147483647;
+}
 
 function markPermanence(err) {
   if (err && PERMANENT_CODES.has(err.code)) err.permanent = true;
@@ -175,7 +196,19 @@ export async function runGenerate(job, onProgress, deps = {}) {
 
   let result;
   try {
-    result = await adapter.generate(request, { env, onProgress, outPath, seed: p.seed });
+    // SEED PER JOB, unless the caller pinned one.
+    //
+    // ComfyUI caches by graph. Submitting an identical graph returns the PREVIOUS run's
+    // outputs without re-rendering — so two jobs with the same prompt silently share one
+    // video, and if that earlier artifact has since been moved or swept, the download
+    // 404s on a file the history still advertises. Both happened here: a repeat
+    // submission failed with E_DOWNLOAD_FAILED pointing at a file relocated minutes
+    // before.
+    //
+    // Derived from the job id rather than random, so retrying the SAME job reproduces
+    // its render while a DIFFERENT job never collides.
+    const seed = p.seed ?? seedFromJobId(job.id);
+    result = await adapter.generate(request, { env, onProgress, outPath, seed, providerId });
   } catch (err) {
     throw markPermanence(err);
   }
