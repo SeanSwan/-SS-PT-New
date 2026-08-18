@@ -110,6 +110,25 @@ t('G5 GREEN: a css-PREFIXED helper is not a primitive (GLM H1-2.2)', () => {
   if (r.code !== 0) throw new Error(`cssValue prefix must not flag: ${r.out}`);
 });
 
+// GLM H1-2.3/2.4/2.5 — three shapes that escaped G5 entirely.
+t('G5 RED: export default template (H1-2.4)', () => {
+  const r = guard('dflt.ts', 'const fadeIn = keyframes`x`;\nexport default `a ${fadeIn}`;\n');
+  if (r.code !== 1) throw new Error(`export default must be scanned: ${r.out}`);
+});
+
+t('G5 RED: an unknown tag whose name merely STARTS with a safe word', () => {
+  // `cssText` half-matched the old tag alternation and then failed, so the fragment was
+  // never scanned at all. An unrecognised tag must be scanned, not assumed safe.
+  const r = guard('tagpfx.ts', 'const fadeIn = keyframes`x`;\nexport const y = cssText`a ${fadeIn}`;\n');
+  if (r.code !== 1) throw new Error(`unknown tag must be scanned: ${r.out}`);
+});
+
+t('G5: a quoted brace inside an interpolation does not desync the scanner (H1-2.5)', () => {
+  // `${map['}']}` previously closed the interpolation early and could hide later fragments.
+  const r = guard('brace.ts', 'const fadeIn = keyframes`x`;\nexport const a = `${map["}"]}`;\nexport const b = `y ${fadeIn}`;\n');
+  if (!/G5 css-helper-required/.test(r.out)) throw new Error(`later fragment was hidden: ${r.out}`);
+});
+
 // ---- G6: line cap --------------------------------------------------------
 // G6 is ADVISORY on purpose: 31 of a 250-file real sample are already over the cap, and
 // hard-failing would block a commit that touches one line of inherited debt (Rule 34).

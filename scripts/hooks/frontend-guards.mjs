@@ -129,10 +129,20 @@ for (const { file, text } of targets) {
   // Scope deliberately narrow to keep false positives at zero: only EXPORTED module-level
   // `const NAME = ` + backtick, containing ${...}, not already css/styled/keyframes/createGlobalStyle
   // tagged. A non-exported local is not a shared fragment and is not our business.
-  const SHARED_FRAGMENT = /^\s*export\s+const\s+([A-Za-z_$][\w$]*)\s*=\s*(css|styled[.(]|keyframes|createGlobalStyle)?\s*`/gm;
+  // GLM H1-2.3/2.4, corrected on verification. GLM's stated shape (`export const cssText =`)
+  // was DISPROVEN — that matches fine. But probing around it found three REAL escapes:
+  //   export const x = cssText`...`      -> tag alternation half-matched then failed: NO match
+  //   export const y = keyframesFor`...` -> same
+  //   export default `...`               -> never matched ^export const at all (2.4)
+  // So: capture ANY tag identifier, and exempt only tags we positively recognise as safe.
+  // An unknown tag gets scanned — for a rule whose failure mode is a production mount
+  // crash, reviewing an unfamiliar tag is the cheaper error.
+  const SAFE_TAG = /^(?:css|keyframes|createGlobalStyle|styled)/;
+  const SHARED_FRAGMENT = /^\s*export\s+(?:default\s*|const\s+([A-Za-z_$][\w$]*)\s*=\s*)(styled[.(][\w.$'"()]*|[A-Za-z_$][\w$]*)?\s*`/gm;
   for (const m of text.matchAll(SHARED_FRAGMENT)) {
-    const [, name, tag] = m;
-    if (tag) continue; // already css`` / styled`` / keyframes`` — correct by construction
+    const [, rawName, tag] = m;
+    const name = rawName || '(default export)';
+    if (tag && SAFE_TAG.test(tag)) continue; // css`` / styled`` / keyframes`` — safe by construction
     // Does THIS template literal interpolate? Read to its closing backtick.
     const start = m.index + m[0].length - 1;
     let i = start + 1;
@@ -143,6 +153,17 @@ for (const { file, text } of targets) {
       const c = text[i];
       if (c === '\\') { i += 2; continue; }
       if (c === '$' && text[i + 1] === '{') { depth += 1; i += 2; expr = ''; continue; }
+      // GLM H1-2.5: a quoted `}` inside an interpolation — `${map['}']}` — desynchronised
+      // the scanner and could terminate the file scan early, hiding every later fragment.
+      // Skip over quoted spans while inside an interpolation.
+      if (depth > 0 && (c === "'" || c === '"')) {
+        const quote = c; expr += c; i += 1;
+        while (i < text.length && text[i] !== quote) {
+          if (text[i] === '\\') { expr += text.slice(i, i + 2); i += 2; continue; }
+          expr += text[i]; i += 1;
+        }
+        expr += text[i] ?? ''; i += 1; continue;
+      }
       if (depth > 0 && c === '}') { depth -= 1; if (depth === 0) exprs.push(expr); i += 1; continue; }
       if (depth > 0) { expr += c; i += 1; continue; }
       if (c === '`') break;
