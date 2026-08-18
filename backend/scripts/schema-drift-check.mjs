@@ -122,7 +122,17 @@ async function main() {
     }
 
     for (const [attr, def] of Object.entries(model.rawAttributes)) {
+      // VIRTUAL attributes are computed, never persisted — they appear in rawAttributes but
+      // have no column, so checking them would manufacture a MISSING_COLUMN. Zero models use
+      // VIRTUAL today (verified 2026-08-18); this is a defensive guard against the first one.
+      // Raised by Qwen in hostile round H1.
+      const typeKey = String(def.type?.key || def.type || '').toUpperCase();
+      if (typeKey.includes('VIRTUAL')) continue;
+
       // `field` is the real column name when it differs from the JS attribute name.
+      // NOTE: `underscored: true` models get `field` auto-populated by Sequelize with the
+      // snake_case name (verified: submittedByUserId -> submitted_by_user_id), so this line
+      // already handles them. Qwen flagged them as a false-positive risk in H1; DISPROVEN.
       const column = def.field || attr;
       attributesChecked += 1;
 
@@ -140,7 +150,13 @@ async function main() {
       const declared = typeFamily(def.type?.key || def.type?.toString?.() || def.type);
       const actual = typeFamily(cols.get(column));
       // UNKNOWN on either side means we could not classify — do not manufacture a finding.
-      if (declared !== 'UNKNOWN' && actual !== 'UNKNOWN' && declared !== actual) {
+      // ENUM is legitimately backed by either a native pg enum or a varchar+CHECK; a model
+      // declaring STRING against either is a valid, deliberate configuration, not drift.
+      // Treating them as incompatible was noise (Qwen H1, accepted).
+      const compatible = (a, b) => (a === b)
+        || ([a, b].every((x) => x === 'ENUM' || x === 'TEXT'));
+
+      if (declared !== 'UNKNOWN' && actual !== 'UNKNOWN' && !compatible(declared, actual)) {
         findings.push({
           severity: 'WARN',
           kind: 'TYPE_DRIFT',
