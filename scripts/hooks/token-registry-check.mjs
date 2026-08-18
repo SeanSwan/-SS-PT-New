@@ -48,8 +48,26 @@ function walk(dir, out = []) {
 
 /** DEFINITIONS: `--token-name: value;` — the registry. */
 const DEFINE_RE = /(^|[;{\s])(--[\w-]+)\s*:\s*([^;}]+)/g;
-/** USES: `var(--token-name, fallback)` or `var(--token-name)`. */
+/**
+ * DEFINITIONS set at RUNTIME from JS: `setProperty('--token', v)`.
+ * Self-review H1: without this, every theme token injected imperatively reads as
+ * "never defined" — a false positive on code that is behaving correctly.
+ */
+const RUNTIME_DEFINE_RE = /setProperty\(\s*['"`](--[\w-]+)['"`]/g;
+/**
+ * USES, fallback-bearing: `var(--token, fallback)`.
+ * NOTE the fallback capture stops at the first `)`, so a nested `var(--a, var(--b, #fff))`
+ * yields a truncated fallback. That is tolerated — the drift comparison only fires when
+ * BOTH sides are literal hex, so a truncated non-hex fallback is simply skipped.
+ */
 const USE_RE = /var\(\s*(--[\w-]+)\s*(?:,\s*([^)]*))?\)/g;
+/**
+ * USES, existence only: every `var(--token` occurrence regardless of nesting.
+ * Self-review H1 found the false negative this fixes: in `var(--a, var(--b, #fff))` the
+ * regex above matches only `--a`, so `--b` was NEVER checked for existence at all — the
+ * exact shape a token-fallback chain uses, and therefore the shape most worth checking.
+ */
+const USE_NAME_RE = /var\(\s*(--[\w-]+)/g;
 
 function normalizeColor(v) {
   const t = String(v || '').trim().toLowerCase();
@@ -79,6 +97,10 @@ function main() {
       const [, , name, value] = m;
       if (!registry.has(name)) registry.set(name, { value: value.trim(), file: f });
     }
+    // Imperatively-set tokens are defined too — just not statically valued.
+    for (const m of text.matchAll(RUNTIME_DEFINE_RE)) {
+      if (!registry.has(m[1])) registry.set(m[1], { value: '(set at runtime)', file: f });
+    }
   }
 
   const targets = fileArgs.length
@@ -92,14 +114,17 @@ function main() {
     const text = readFileSync(f, 'utf8');
     const lines = text.split('\n');
     lines.forEach((line, i) => {
+      // Existence is checked over EVERY var(--x, including ones nested inside another
+      // var()'s fallback — those were previously invisible.
+      for (const m of line.matchAll(USE_NAME_RE)) {
+        if (!registry.has(m[1])) {
+          unknown.push(`${f}:${i + 1} — var(${m[1]}) is never defined; the fallback will render forever`);
+        }
+      }
       for (const m of line.matchAll(USE_RE)) {
         const [, name, fallbackRaw] = m;
         const def = registry.get(name);
-        if (!def) {
-          unknown.push(`${f}:${i + 1} — var(${name}) is never defined; the fallback will render forever`);
-          continue;
-        }
-        if (!fallbackRaw) continue;
+        if (!def || !fallbackRaw) continue;
         const fb = normalizeColor(fallbackRaw);
         const declared = normalizeColor(def.value);
         // Only compare when BOTH sides are literal colors. A token whose value is itself a
