@@ -49,7 +49,8 @@
     "tokens:check": "node scripts/hooks/token-registry-check.mjs",
     "prepare": "node scripts/install-git-hooks.mjs",
     "hooks:install": "node scripts/install-git-hooks.mjs",
-    "hooks:check": "node scripts/install-git-hooks.mjs --check"
+    "hooks:check": "node scripts/install-git-hooks.mjs --check",
+    "db:drift-check": "node backend/scripts/schema-drift-check.mjs"
   },
   "devDependencies": {
     "fallow": "^2.88.3",
