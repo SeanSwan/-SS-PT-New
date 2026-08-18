@@ -32,10 +32,10 @@ skills_touched:
     failure: defaults to "Give only UI/UX and interaction suggestions" — the exact lens Rule 82 forbids, applied by default
 title: Lensing a panel destroys what it was convened to find
 tier_basis: fable-tier
-decision: Lensing a review panel destroys the findings it was convened to produce — and the tooling defaults silently reintroduce it
+decision: unknown
 status: draft
-privacy: IDs/roles only; no PII, no secrets, no absolute paths
-migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-tier; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract); privacy<-scanned clean by validator patterns); originating_model untouched
+privacy: secret-scan clean (key/token/DB-URL shapes only); PII NOT independently verified
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-tier; decision=unknown (CORRECTED 2026-08-16: topic left in place — a subject is not a rule); status=draft (never reviewed against a contract); privacy<-key-shape scan only (PII unverified) [CORRECTED 2026-08-16]); originating_model untouched
 ---
 
 # Lensing a panel destroys what it was convened to find

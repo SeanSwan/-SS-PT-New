@@ -6,9 +6,9 @@ topic: LLM-boundary schema doctrine — the Coach command-lane outage root cause
 surfaces: [backend/services/ai/commandRegistry/baseSchemas.mjs, backend/services/ai/commandRegistry/workoutCommands.mjs, backend/services/ai/intentClassifier.mjs, frontend admin-workout-planner useWorkoutPlannerAiEvents]
 title: Llm boundary schema doctrine
 tier_basis: Fable 5 is the reference Fable tier (Rule 68 — the model the corpus is named for)
-decision: LLM-boundary schema doctrine — the Coach command-lane outage root cause (post-deploy recursive review R1-R5)
+decision: unknown
 status: draft
-migrated: 2026-08-16 — required keys back-filled mechanically (title<-filename; tier_basis<-designation; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract)); originating_model untouched
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-filename; tier_basis<-designation; decision=unknown (CORRECTED 2026-08-16: topic left in place — a subject is not a rule); status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 ## What was decided/built (Fable-tier lesson)

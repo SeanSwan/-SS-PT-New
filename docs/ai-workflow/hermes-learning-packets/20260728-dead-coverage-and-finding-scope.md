@@ -5,9 +5,9 @@ topic: Dead coverage, vacuous greens, and why the first failing case is a sample
 provenance: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
 title: a test you never run is a lie you keep
 tier_basis: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
-decision: Dead coverage, vacuous greens, and why the first failing case is a sample rather than the boundary
+decision: unknown
 status: draft
-migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-provenance; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract)); originating_model untouched
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-provenance; decision=unknown (CORRECTED 2026-08-16: topic left in place — a subject is not a rule); status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 # Learning Packet — a test you never run is a lie you keep

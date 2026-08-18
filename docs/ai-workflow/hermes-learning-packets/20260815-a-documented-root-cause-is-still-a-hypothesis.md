@@ -25,10 +25,10 @@ skills_touched:
     failure: the memory covers disbelieving a NEGATIVE; I nearly shipped a false POSITIVE from the same root cause (unvalidated instrument)
 title: A documented root cause is still a hypothesis
 tier_basis: fable
-decision: verification discipline — instruments, layered defences, and inherited root causes
+decision: unknown
 status: draft
-privacy: IDs/roles only; no PII, no secrets, no absolute paths
-migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-tier; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract); privacy<-scanned clean by validator patterns); originating_model untouched
+privacy: secret-scan clean (key/token/DB-URL shapes only); PII NOT independently verified
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-tier; decision=unknown (CORRECTED 2026-08-16: topic left in place — a subject is not a rule); status=draft (never reviewed against a contract); privacy<-key-shape scan only (PII unverified) [CORRECTED 2026-08-16]); originating_model untouched
 ---
 
 # A documented root cause is still a hypothesis

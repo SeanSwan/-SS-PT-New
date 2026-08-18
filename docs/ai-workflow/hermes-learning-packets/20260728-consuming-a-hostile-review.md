@@ -5,9 +5,9 @@ topic: How to consume an AI hostile review — the verification ratio, and why a
 provenance: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
 title: a review finding is a hypothesis, and obedience to it is a failure mode
 tier_basis: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
-decision: How to consume an AI hostile review — the verification ratio, and why acting on an unverified finding can be destructive
+decision: unknown
 status: draft
-migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-provenance; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract)); originating_model untouched
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-provenance; decision=unknown (CORRECTED 2026-08-16: topic left in place — a subject is not a rule); status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 # Learning Packet — a review finding is a hypothesis, and obedience to it is a failure mode

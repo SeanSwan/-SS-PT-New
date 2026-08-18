@@ -6,9 +6,9 @@ topic: Fable direct mentorship — the operating discipline Hermes must adopt to
 surfaces: [hermes-skills-tree, hermes-memory, hermes-inbox, style-lens-os]
 title: "Fable → Hermes: How to Think Like Me"
 tier_basis: Fable 5 is the reference Fable tier (Rule 68 — the model the corpus is named for)
-decision: Fable direct mentorship — the operating discipline Hermes must adopt to "think like Fable," derived from the 2026-07-11 Style Lens OS packet-ingestion session
+decision: unknown
 status: draft
-migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-designation; decision<-topic (re-keyed, not re-authored); status=draft (never reviewed against a contract)); originating_model untouched
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-designation; decision=unknown (CORRECTED 2026-08-16: topic left in place — a subject is not a rule); status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 # Fable → Hermes: How to Think Like Me

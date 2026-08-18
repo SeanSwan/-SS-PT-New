@@ -72,18 +72,53 @@ function deriveTitle(body, name) {
   return words.join(' ').replace(/^./, (c) => c.toUpperCase());
 }
 
-/** Quote a YAML scalar only when it would otherwise break the block. */
+/**
+ * Quote a YAML scalar whenever a real parser would read it as anything but this exact string.
+ *
+ * The first version omitted `#`, a leading `-`, a leading `?`, and bare true/false/null/date
+ * literals. `#` is the dangerous one: a comment-aware parser AMPUTATES the value at the `#` while
+ * this repo's deliberately naive parser keeps it whole — so the two disagree permanently and the
+ * migration still prints "-> valid" over a corrupted packet.
+ *
+ * Found by GLM-5.3 2026-08-16 (C1), and reproduced by me within the hour: my own learning packet
+ * failed a real YAML parser because a value contained an unquoted `status: open`.
+ */
 function yamlScalar(v) {
   const s = String(v).replace(/\r?\n/g, ' ').trim();
-  if (/^[\s>|&*!%@`]/.test(s) || /:\s/.test(s) || s.includes(': ') || /^["'\[{]/.test(s)) {
-    return JSON.stringify(s);
-  }
-  return s;
+  if (!s) return '""';
+  const hazard =
+    /^[\s>|&*!%@`#-]/.test(s) ||                       // block/anchor/tag/comment/seq indicators
+    /^\?\s/.test(s) ||                                 // complex mapping key indicator
+    /\s#/.test(s) ||                                   // inline comment start ANYWHERE
+    /:\s/.test(s) || s.includes(': ') ||               // mapping-entry lookalike
+    /^["'\[{]/.test(s) ||                              // quote / flow-collection start
+    /^(true|false|null|yes|no|on|off|~)$/i.test(s) ||  // implicit typing
+    /^-?\d[\d.:_-]*$/.test(s);                         // number / date / time lookalike
+  return hazard ? JSON.stringify(s) : s;
+}
+
+/**
+ * applyPlan slices the frontmatter with substring arithmetic on the FIRST `\n---`, which is a
+ * second parser that can disagree with parseFrontmatter. A YAML block scalar (`key: |`) or a
+ * quoted multi-line value can contain a `---` line, and the slice then lands INSIDE it — injecting
+ * keys into a scalar body and leaving the real closer mid-document. Rather than build a third
+ * parser, refuse to touch packets whose frontmatter uses multi-line constructs.
+ * Found by GLM-5.3 2026-08-16 (C2).
+ */
+function hasMultilineFrontmatter(src) {
+  const norm = src.replace(/\r\n/g, '\n');
+  const end = norm.indexOf('\n---', 3);
+  if (end === -1) return true; // unterminated -> the arithmetic is untrustworthy by definition
+  const block = norm.slice(4, end);
+  return /^[A-Za-z_][A-Za-z0-9_]*:\s*[|>]/m.test(block) || /\n---/.test(block);
 }
 
 export function planMigration(name, src, schema) {
   const fm = parseFrontmatter(src);
   if (!fm.ok) return { name, skip: 'no frontmatter block — needs a human, not a script' };
+  if (hasMultilineFrontmatter(src)) {
+    return { name, skip: 'frontmatter uses a block scalar or embedded --- ; slice arithmetic is unsafe here' };
+  }
 
   const before = validatePacket(name, src, schema);
   if (!before.errors.length) return { name, skip: 'already valid' };
@@ -114,11 +149,19 @@ export function planMigration(name, src, schema) {
   }
 
   if (!v.decision) {
-    // Re-key the author's own one-line summary. NOT re-authored — `migrated:` records this so a
-    // reader can tell a derived decision from one the author actually wrote.
-    if (v.topic) { add.decision = v.topic; sources.push('decision<-topic (re-keyed, not re-authored)'); }
-    else if (add.title || v.title) { add.decision = add.title ?? v.title; sources.push('decision<-title'); }
-    else { add.decision = 'unknown'; sources.push('decision=unknown'); }
+    // `decision` is THE RULE THE PACKET ESTABLISHES. `topic` in the dead dialects is a SUBJECT
+    // ("CRLF handling in memos"). Copying one into the other is true at the string level and false
+    // at the meaning level, and the read path then prints it as a top-tier `rule:` — manufacturing
+    // authority for a noun phrase nobody ever asserted. That is precisely what this script's ONE
+    // RULE forbids, so the honest value is `unknown`. The author's words are not lost: the original
+    // `topic:` key is left untouched in the frontmatter.
+    //
+    // Found by GLM-5.3 2026-08-16 (H2). The first version did this while its own receipt claimed
+    // "re-keyed, not re-authored" — a receipt that was true of the string and false of the meaning.
+    add.decision = 'unknown';
+    sources.push(v.topic
+      ? 'decision=unknown (topic left in place — a subject is not a rule)'
+      : 'decision=unknown');
   }
 
   const statusChange = {};
@@ -139,10 +182,14 @@ export function planMigration(name, src, schema) {
 
   const needPrivacy = date && date >= '2026-08-13' && !v.privacy;
   if (needPrivacy) {
-    // Not an assertion of faith: the validator's privacy_forbidden_patterns run over this exact
-    // file below, so this line is only written when the scan is clean.
-    add.privacy = 'IDs/roles only; no PII, no secrets, no absolute paths';
-    sources.push('privacy<-scanned clean by validator patterns');
+    // The scan behind this line is 8 KEY-SHAPE regexes (tokens, API keys, DB URLs, Windows user
+    // paths). It cannot see an email, a name, a phone number, an IP, or an internal hostname — so
+    // "no PII" here would be a positive compliance claim backed by a detector incapable of
+    // supporting it, stamped permanently into the corpus. State only what was actually checked.
+    // Found by GLM-5.3 2026-08-16 (H3) — the clearest derive-vs-invent violation in the file, and
+    // my own comment had called it "not an assertion of faith", which is what it was.
+    add.privacy = 'secret-scan clean (key/token/DB-URL shapes only); PII NOT independently verified';
+    sources.push('privacy<-key-shape scan only (PII unverified)');
   }
 
   for (const key of ['models_used', 'skills_touched']) {
@@ -236,7 +283,13 @@ function main(argv) {
 
     if (!includeUntracked && (untracked === null || untracked.has(name))) {
       heldBack += 1;
-      console.log(`  ${name}\n      HELD BACK — untracked (another agent's in-flight work; no rollback path)`);
+      // Say which of the two it is. Reporting "untracked" when git failed states a fact about the
+      // repository that was never established — in dry-run that is the tool lying to the operator
+      // about tracked state. Found by GLM-5.3 2026-08-16 (H4b).
+      const why = untracked === null
+        ? 'tracked state UNKNOWN (git query failed) — refusing to write without a proven rollback path'
+        : "untracked (another agent's in-flight work; no `git checkout --` rollback path)";
+      console.log(`  ${name}\n      HELD BACK — ${why}`);
       continue;
     }
 
@@ -245,15 +298,31 @@ function main(argv) {
 
     if (!apply) { migrated += 1; continue; }
 
-    writeFileSync(path, applyPlan(src, plan), 'utf8');
+    // VALIDATE THE PRODUCED STRING BEFORE IT TOUCHES DISK.
+    //
+    // The first version wrote first and validated after, which made every escaping or slicing bug
+    // a *committed corpus mutation* that the run then merely reported. Exit 1 is a hope, not a
+    // mechanism — nothing in this repo asserts on it. validatePacket already takes a string, so
+    // checking before the write costs nothing and converts corruption into refusal.
+    // Found by GLM-5.3 2026-08-16 (C3): "the amplifier that turns escape-hole bugs into corpus damage."
+    const candidate = applyPlan(src, plan);
+    const pre = validatePacket(name, candidate, schema);
+    if (pre.errors.length) {
+      failed += 1;
+      console.log(`      REFUSED — migration would not produce a valid packet, nothing written:`);
+      pre.errors.forEach((e) => console.log(`        ERROR ${e}`));
+      continue;
+    }
 
-    // Re-read FROM DISK and re-validate. A silent-replace failure that only checks the in-memory
-    // string would report success while the file on disk is unchanged — that exact class bit this
-    // workstream three times, so the assertion is non-negotiable.
+    writeFileSync(path, candidate, 'utf8');
+
+    // Re-read FROM DISK anyway. The pre-check proves the STRING is good; this proves the string
+    // actually reached the file. A silent-replace failure would otherwise report success over an
+    // unchanged file — that class bit this workstream three times.
     const after = validatePacket(name, readFileSync(path, 'utf8'), schema);
     if (after.errors.length) {
       failed += 1;
-      console.log(`      STILL FAILING after migration:`);
+      console.log(`      WROTE BUT DISK COPY IS INVALID (write did not land as produced):`);
       after.errors.forEach((e) => console.log(`        ERROR ${e}`));
     } else {
       migrated += 1;
