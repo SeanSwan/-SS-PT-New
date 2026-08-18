@@ -137,7 +137,11 @@ for (const { file, text } of targets) {
   // So: capture ANY tag identifier, and exempt only tags we positively recognise as safe.
   // An unknown tag gets scanned — for a rule whose failure mode is a production mount
   // crash, reviewing an unfamiliar tag is the cheaper error.
-  const SAFE_TAG = /^(?:css|keyframes|createGlobalStyle|styled)/;
+  // ANCHORED. The unanchored version matched `cssText` as a prefix and exempted the exact
+  // shape this fix exists to catch — the same prefix-match bug fixed 20 lines above, made
+  // twice in one file. `styled` keeps a prefix form because `styled.div` / `styled(X)` are
+  // legitimately tagged.
+  const SAFE_TAG = /^(?:css|keyframes|createGlobalStyle)$|^styled[.(]/;
   const SHARED_FRAGMENT = /^\s*export\s+(?:default\s*|const\s+([A-Za-z_$][\w$]*)\s*=\s*)(styled[.(][\w.$'"()]*|[A-Za-z_$][\w$]*)?\s*`/gm;
   for (const m of text.matchAll(SHARED_FRAGMENT)) {
     const [, rawName, tag] = m;
