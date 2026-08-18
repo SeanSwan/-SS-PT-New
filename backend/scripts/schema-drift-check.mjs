@@ -60,29 +60,57 @@ function typeFamily(raw) {
   return t.split('(')[0].trim() || 'UNKNOWN';
 }
 
+/**
+ * GLM H1-1.2: hardcoding table_schema='public' declared CRITICAL MISSING_TABLE for any
+ * model defined with `{ schema: 'analytics' }` — a table that plainly exists. Keys are now
+ * "schema.table" and every schema present in the DB is read.
+ * GLM H1-1.3: information_schema reports citext/hstore/geometry/domains all as
+ * 'USER-DEFINED', which the classifier bucketed as ENUM — reviving the exact
+ * DATEONLY/BLOB false-positive class. udt_name disambiguates.
+ */
 async function liveColumns() {
   const [rows] = await sequelize.query(
-    `SELECT table_name, column_name, data_type
+    `SELECT table_schema, table_name, column_name, data_type, udt_name
        FROM information_schema.columns
-      WHERE table_schema = 'public'`,
+      WHERE table_schema NOT IN ('pg_catalog', 'information_schema')`,
   );
   const byTable = new Map();
   for (const r of rows) {
-    if (!byTable.has(r.table_name)) byTable.set(r.table_name, new Map());
-    byTable.get(r.table_name).set(r.column_name, r.data_type);
+    const key = `${r.table_schema}.${r.table_name}`;
+    if (!byTable.has(key)) byTable.set(key, new Map());
+    byTable.get(key).set(r.column_name, { dataType: r.data_type, udtName: r.udt_name });
   }
   return byTable;
 }
 
+/** Which USER-DEFINED types are genuinely enums. Everything else must not be called ENUM. */
+async function enumTypeNames() {
+  const [rows] = await sequelize.query(
+    "SELECT typname FROM pg_type WHERE typtype = 'e'",
+  );
+  return new Set(rows.map((r) => r.typname));
+}
+
+/**
+ * GLM H1-1.5: the information_schema join matched on (constraint_name, table_schema) only.
+ * Postgres constraint names are unique per TABLE, not per schema, and ccu was joined
+ * regardless of constraint type — so two FKs both named `fk_user`, or an FK colliding with
+ * any PK/UNIQUE/CHECK name, produced a cartesian product including phantom rows pointing at
+ * `users`. That is a FALSE CRITICAL in the one check whose whole job is catching the
+ * users-vs-"Users" trap. pg_constraint is unambiguous, and regclass preserves the real
+ * casing directly instead of us reconstructing it.
+ */
 async function foreignKeys() {
   const [rows] = await sequelize.query(
-    `SELECT tc.table_name, kcu.column_name, ccu.table_name AS target_table
-       FROM information_schema.table_constraints tc
-       JOIN information_schema.key_column_usage kcu
-         ON tc.constraint_name = kcu.constraint_name AND tc.table_schema = kcu.table_schema
-       JOIN information_schema.constraint_column_usage ccu
-         ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
-      WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'`,
+    `SELECT rel.relname       AS table_name,
+            att.attname       AS column_name,
+            f.relname         AS target_table
+       FROM pg_constraint con
+       JOIN pg_class rel ON rel.oid = con.conrelid
+       JOIN pg_class f   ON f.oid   = con.confrelid
+       JOIN unnest(con.conkey) WITH ORDINALITY AS k(attnum, ord) ON true
+       JOIN pg_attribute att ON att.attrelid = con.conrelid AND att.attnum = k.attnum
+      WHERE con.contype = 'f'`,
   );
   return rows;
 }
@@ -92,6 +120,7 @@ async function main() {
   const models = await getModels();
   const live = await liveColumns();
   const fks = await foreignKeys();
+  const enumTypes = await enumTypeNames();
 
   const findings = [];
   let modelsChecked = 0;
@@ -108,7 +137,9 @@ async function main() {
     // string invents a MISSING_TABLE for a table that plainly exists. Strip the quotes.
     const table = String(typeof tableRaw === 'string' ? tableRaw : tableRaw?.tableName ?? '')
       .replace(/^"(.*)"$/, '$1');
-    const cols = live.get(table);
+    // GLM H1-1.2: honour a model's explicit schema instead of assuming public.
+    const schema = (typeof tableRaw === 'object' && tableRaw?.schema) ? tableRaw.schema : 'public';
+    const cols = live.get(`${schema}.${table}`);
 
     if (!cols) {
       findings.push({
@@ -116,7 +147,9 @@ async function main() {
         kind: 'MISSING_TABLE',
         model: name,
         table,
-        detail: `model targets table "${table}" which does not exist in public schema`,
+        // GLM H2-6: this said "public schema" unconditionally, contradicting the
+        // schema-qualified lookup installed by the H1 fix in the same file.
+        detail: `model targets table "${table}" which does not exist in schema "${schema}"`,
       });
       continue;
     }
@@ -148,7 +181,12 @@ async function main() {
       }
 
       const declared = typeFamily(def.type?.key || def.type?.toString?.() || def.type);
-      const actual = typeFamily(cols.get(column));
+      const liveCol = cols.get(column);
+      // USER-DEFINED covers enums AND citext/hstore/geometry/domains. Only call it ENUM when
+      // pg_type says so; otherwise UNKNOWN, which the skip below suppresses (GLM H1-1.3).
+      const actual = liveCol.dataType === 'USER-DEFINED'
+        ? (enumTypes.has(liveCol.udtName) ? 'ENUM' : 'UNKNOWN')
+        : typeFamily(liveCol.dataType);
       // UNKNOWN on either side means we could not classify — do not manufacture a finding.
       // ENUM is legitimately backed by either a native pg enum or a varchar+CHECK; a model
       // declaring STRING against either is a valid, deliberate configuration, not drift.
