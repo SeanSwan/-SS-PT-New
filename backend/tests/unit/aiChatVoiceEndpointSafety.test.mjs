@@ -22,9 +22,24 @@ function routeDeclaration(path) {
 
 describe('AI chat voice endpoint safety', () => {
   it('tracks transcription provider usage before accepting the audio upload', () => {
-    expect(routeDeclaration('/transcribe')).toContain(
-      "requireSubscription('pro', { feature: 'generation' }), aiRateLimiter, audioUpload.single('audio')",
-    );
+    // Ordering, not adjacency. The original assertion required these three to
+    // be contiguous, which forbade inserting any further pre-upload gate — and
+    // a pre-upload gate is exactly what the AI-consent check has to be, so a
+    // withdrawn-consent request is refused without buffering 25MB of audio.
+    // This still fails if a usage check moves after the upload, which is the
+    // property the test name claims.
+    const decl = routeDeclaration('/transcribe');
+    const order = [
+      "requireSubscription('pro', { feature: 'generation' })",
+      'aiRateLimiter',
+      "audioUpload.single('audio')",
+    ].map((token) => {
+      const at = decl.indexOf(token);
+      expect(at, `missing from /transcribe declaration: ${token}`).toBeGreaterThan(-1);
+      return at;
+    });
+    expect(order[0]).toBeLessThan(order[1]);
+    expect(order[1]).toBeLessThan(order[2]);
   });
 
   it('sanitizes TTS text after usage checks and before the provider handler', () => {

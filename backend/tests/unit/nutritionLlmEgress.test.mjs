@@ -41,8 +41,14 @@ describe('LLM egress contracts (S0.6)', () => {
   it('gates both workout-log upload routes on the CLIENT\'s consent', () => {
     const routes = read('routes/workoutLogUploadRoutes.mjs');
     expect(routes).toContain('requireSubjectAiConsent');
-    // The subject is the client whose session was recorded, not the uploader.
-    expect(routes).toMatch(/resolveSubjectId|\(req\) => req\.body\?\.clientId/);
+    // The subject is the client whose session was recorded, not the uploader…
+    expect(routes).toMatch(/parseStrictPositiveInteger\(req\.body\?\.clientId\)/);
+    // …and it is resolved through the route's own access scope, so the gate
+    // never looks up a client the caller has no access to. Without this the
+    // gate is a consent oracle: AI_CONSENT_DISABLED would be distinguishable
+    // from the uniform scope refusal for any probed user id.
+    expect(routes).toMatch(/resolveConsentSubject[\s\S]{0,400}resolveVoiceUploadScope/);
+    expect(routes).toMatch(/scope\.allowed \? requestedClientId : undefined/);
 
     // Ordering is inverted from /transcribe on purpose: clientId lives in the
     // multipart body, so the gate can only run once multer has parsed it.

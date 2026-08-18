@@ -130,10 +130,29 @@ function uploadFile(req, res, next) {
  * Fail-open on a MISSING profile only — see `requireSubjectAiConsent`. An
  * explicit opt-out or a withdrawal blocks the upload.
  */
+/**
+ * The subject is resolved through the route's OWN access scope, not straight
+ * from the body. Looking up an arbitrary caller-supplied clientId before
+ * authorization would turn the gate into an oracle: a client could probe any
+ * user id and tell `AI_CONSENT_DISABLED` apart from the uniform scope refusal,
+ * leaking whether that person had opted out of AI. Unauthorized requests
+ * resolve to no subject and fall through to the handler's existing 403, which
+ * is identical for every client id.
+ */
+const resolveConsentSubject = (req) => {
+  const requestedClientId = parseStrictPositiveInteger(req.body?.clientId);
+  const scope = resolveVoiceUploadScope({
+    role: req.user?.role,
+    requestedClientId,
+    userId: parseStrictPositiveInteger(req.user?.id),
+  });
+  return scope.allowed ? requestedClientId : undefined;
+};
+
 const clientConsentGate = requireSubjectAiConsent(
   getAiPrivacyProfile,
-  (req) => req.body?.clientId,
-  { failOpenWhenMissing: true, label: 'workout-log-upload' },
+  resolveConsentSubject,
+  { failOpenWhenMissing: true, skipWhenUnresolved: true, label: 'workout-log-upload' },
 );
 
 async function extractTranscriptFromFile(file) {
