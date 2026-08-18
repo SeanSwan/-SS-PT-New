@@ -107,3 +107,90 @@ export function requireAiConsent(getAiPrivacyProfile) {
     }
   };
 }
+
+/**
+ * Consent gate for routes where the DATA SUBJECT is not the requester.
+ *
+ * A trainer uploading a client's session audio discloses the *client's* voice
+ * and injury history, so the client's consent is what governs — not the
+ * trainer's. `resolveSubjectId` extracts that subject from the request, which
+ * means this gate must be mounted AFTER any body parser (multer) that
+ * populates it.
+ *
+ * `failOpenWhenMissing` exists because consent profiles are created only by the
+ * consent flow and no backfill exists: a client who was never offered the flow
+ * has no row at all. Failing closed on that would block every upload for every
+ * pre-existing client. Fail-open therefore applies ONLY to the absent-row case
+ * — an explicit `aiEnabled: false` or a withdrawal always blocks, which is the
+ * case that carries legal weight. Same posture the chat path already takes.
+ *
+ * `skipWhenUnresolved` defers the "no usable subject id" case to the handler's
+ * own validation, for routes that already reject it with a different error
+ * envelope. It is safe only because such a handler rejects before any egress —
+ * do not set it on a route that would proceed without a subject.
+ *
+ * @param {Function} getAiPrivacyProfile - Getter: () => AiPrivacyProfile model
+ * @param {Function} resolveSubjectId - (req) => subject user id
+ * @param {{ failOpenWhenMissing?: boolean, skipWhenUnresolved?: boolean, label?: string }} [options]
+ */
+export function requireSubjectAiConsent(getAiPrivacyProfile, resolveSubjectId, options = {}) {
+  const { failOpenWhenMissing = false, skipWhenUnresolved = false, label = 'subject' } = options;
+
+  return async (req, res, next) => {
+    try {
+      const subjectId = Number(resolveSubjectId(req));
+
+      if (!Number.isInteger(subjectId) || subjectId <= 0) {
+        if (skipWhenUnresolved) return next();
+        return res.status(400).json({
+          success: false,
+          message: 'Missing or invalid subject user id for the AI consent check.',
+          code: 'AI_CONSENT_SUBJECT_UNRESOLVED',
+        });
+      }
+
+      const AiPrivacyProfile = getAiPrivacyProfile();
+      const profile = await AiPrivacyProfile.findOne({ where: { userId: subjectId } });
+
+      if (!profile) {
+        if (failOpenWhenMissing) {
+          logger.info('[AI Consent] No profile for subject; proceeding (fail-open)', {
+            label,
+            subjectId,
+          });
+          return next();
+        }
+        return res.status(403).json({
+          success: false,
+          message: 'AI consent has not been granted for this account.',
+          code: 'AI_CONSENT_MISSING',
+        });
+      }
+
+      if (!profile.aiEnabled) {
+        return res.status(403).json({
+          success: false,
+          message: 'AI features are disabled for this account. AI processing of their data is not permitted.',
+          code: 'AI_CONSENT_DISABLED',
+        });
+      }
+
+      if (profile.withdrawnAt) {
+        return res.status(403).json({
+          success: false,
+          message: 'AI consent has been withdrawn for this account. AI processing of their data is not permitted.',
+          code: 'AI_CONSENT_WITHDRAWN',
+        });
+      }
+
+      req.aiConsentProfile = profile;
+      next();
+    } catch (error) {
+      logger.error('[AI Consent] Error checking subject consent:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error verifying AI consent status.',
+      });
+    }
+  };
+}
