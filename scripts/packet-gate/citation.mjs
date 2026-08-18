@@ -16,6 +16,7 @@
 import { readFileSync, existsSync, realpathSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
+import { normPath } from './normalize.mjs';
 import { GateUnavailable } from './unavailable.mjs';
 
 /**
@@ -122,6 +123,36 @@ function isCommitted(root, rel) {
   }
 }
 
+/**
+ * Case-insensitive fallback: is some tracked path the same file under a different case?
+ *
+ * Git pathspec matching is case-sensitive REGARDLESS of `core.ignorecase`, while default APFS, NTFS
+ * and WSL `/mnt/c` are not — the exact filesystems rounds 6 and 7 fought over. So a citation typed
+ * in the wrong case had `existsSync` true, R5 resolving, R4 binding via `foldCase`, and then the
+ * newest check refusing EUNTRACKED with the remedy "commit the file first" — which is IMPOSSIBLE,
+ * because it is committed, under another case. Three checks agreeing it is one file and a fourth
+ * saying it has no provenance is the macOS false refusal that `foldCase` was built to remove,
+ * reintroduced through a side door. (GLM-5.3 round 10, F4.)
+ *
+ * A unique fold-match counts as tracked; the existing `caseOnlyBinding` warning already declares the
+ * case difference to the operator, so nothing is hidden. AMBIGUOUS matches (two tracked files
+ * differing only in case, possible on ext4) are NOT accepted — the gate cannot tell which one the
+ * packet meant, and guessing is how the round-2 decoy worked.
+ */
+function trackedUnderOtherCase(root, rel) {
+  try {
+    const out = execFileSync('git', ['ls-files', '--', path.posix.dirname(rel) || '.'], {
+      cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+      env: { ...process.env, GIT_LITERAL_PATHSPECS: '1' },
+    });
+    const want = rel.toLowerCase();
+    const hits = out.split('\n').map((s) => s.trim()).filter((s) => s && s.toLowerCase() === want);
+    return hits.length === 1;
+  } catch {
+    return false;
+  }
+}
+
 function isTracked(root, rel) {
   try {
     // GIT_LITERAL_PATHSPECS: `--` ends OPTION parsing but NOT pathspec magic, so a cited path whose
@@ -142,7 +173,7 @@ function isTracked(root, rel) {
     // (Kimi K3 round 9, F3.)
     if (err.code === 'ENOENT') throw new GateUnavailable('git not found — cannot verify that a cited file is tracked');
     if (err.status !== 1) throw new GateUnavailable(`git ls-files failed (${err.code ?? `exit ${err.status}`}) — cannot verify that a cited file is tracked`);
-    return false;
+    return trackedUnderOtherCase(root, rel);
   }
 }
 
@@ -179,12 +210,19 @@ export function readCitedFile(root, rel, exclude = []) {
   // COMMITTED, not merely staged. `isTracked` (the index) is still consulted first because it gives
   // the better diagnosis for the common case — a genuinely untracked scratch file — while
   // `isCommitted` catches the staged-copy attack the index check cannot see.
-  if (isTracked(root, rel) && !isCommitted(root, rel)) {
+  // NORMALIZED before it reaches git. `path.join` (the read), `normPath` (R4/R5/the CLI) and git
+  // pathspecs disagree about spelling: git takes `src/./x.mjs` and `src/x.mjs/` literally and exits
+  // 1, while every other layer collapses them. So a tracked file cited as `src/./x.mjs` bound under
+  // R4, resolved under R5, READ successfully — and then refused EUNTRACKED. That is the round-6
+  // "two spellings of one path" drift reborn in the newest check, inside the module whose shared
+  // normalizer exists to prevent exactly it. (GLM-5.3 round 10, F5.)
+  const gitRel = normPath(rel).replace(/\/+$/, '');
+  if (isTracked(root, gitRel) && !isCommitted(root, gitRel)) {
     const e = new Error('cited file is staged but never committed — staging is not provenance');
     e.code = 'ESTAGED';
     throw e;
   }
-  if (!isTracked(root, rel)) {
+  if (!isTracked(root, gitRel)) {
     // SUBMODULES get their own diagnosis. `git ls-files` in the superproject lists a submodule's
     // GITLINK, never the files inside it — so "review the vendored dependency we patch" was refused
     // with "commit the file first", which the operator cannot do in the superproject. An
@@ -193,7 +231,7 @@ export function readCitedFile(root, rel, exclude = []) {
     // directory would let anyone `git init` a subdirectory and mint their own "tracked" payload);
     // the operator is simply told the truth about why. (Kimi K3 round 9, F4.)
     const e = new Error('cited file is not tracked by git — an untracked file has no provenance to prove');
-    e.code = inSubmodule(root, rel) ? 'ESUBMODULE' : 'EUNTRACKED';
+    e.code = inSubmodule(root, gitRel) ? 'ESUBMODULE' : 'EUNTRACKED';
     throw e;
   }
   const realRoot = realpathSync(root);

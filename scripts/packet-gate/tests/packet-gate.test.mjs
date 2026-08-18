@@ -17,8 +17,9 @@ import { join, resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { parseFences, remitFromDoc, checkProvenance, checkPremises, checkSize, checkArtifact, normPath } from '../checks.mjs';
-import { gateSourceFiles } from '../source-hash.mjs';
-import { readCitedFile, makeResolver, GateUnavailable } from '../repo-io.mjs';
+import { gateSourceFiles, gateSourceHash } from '../source-hash.mjs';
+import { makeResolver, GateUnavailable } from '../repo-io.mjs';
+import { readCitedFile } from '../citation.mjs';
 import { unboundNamedPaths, weakBindingOnly, caseOnlyBinding } from '../artifact.mjs';
 import { foldCase } from '../normalize.mjs';
 
@@ -930,4 +931,30 @@ test('REGRESSION: the `remit:` fallback is frontmatter, not "anywhere in the doc
   assert.equal(remitFromDoc('intro prose\n\nremit: wrong one\n\nmore prose\n'), '');
   assert.equal(remitFromDoc('remit: check the zone parser\n'), 'check the zone parser');
   assert.equal(remitFromDoc('remit: wrong\n\n## Remit\nright\n'), 'right', 'a heading still wins');
+});
+
+// --- Round 10 review findings (GLM-5.3 F4/F5/F6) -------------------------------------------------
+
+test('REGRESSION: path spellings every other layer normalizes do not refuse as untracked', () => {
+  // git pathspecs are literal; path.join and normPath are not. So a tracked file cited as
+  // `scripts/./x.mjs` bound under R4, resolved under R5, READ successfully — and then the newest
+  // check refused EUNTRACKED. The round-6 "two spellings of one path" drift, reborn inside the
+  // module whose shared normalizer exists to prevent exactly it. (GLM-5.3 round 10, F5.)
+  for (const rel of [
+    'scripts/packet-gate/refusal.mjs',
+    'scripts/./packet-gate/refusal.mjs',
+    'scripts//packet-gate/refusal.mjs',
+    './scripts/packet-gate/refusal.mjs',
+  ]) {
+    assert.ok(readCitedFile(ROOT, rel, []), `${rel} must read`);
+  }
+});
+
+test('REGRESSION: an enumeration failure yields no hash at all, not a partial one', () => {
+  // The docstring promised "'' rather than a hash over a partial set"; the code caught readdir and
+  // returned a real 64-hex digest over the import graph alone, silently dropping the recursive floor
+  // that covers not-yet-imported files. A partial hash that LOOKS valid is the exact property that
+  // made round 5's critical invisible. (GLM-5.3 round 10, F6.)
+  assert.match(gateSourceHash(ROOT), /^[0-9a-f]{64}$/, 'healthy root still hashes');
+  assert.equal(gateSourceHash(join(tmp(), 'no-such-root')), '', 'unenumerable root must not hash');
 });

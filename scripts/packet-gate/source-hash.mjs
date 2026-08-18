@@ -87,7 +87,12 @@ export function gateSourceFiles(root = DEFAULT_ROOT) {
   const rel = 'scripts/packet-gate';
   const scan = (dirRel) => {
     let entries;
-    try { entries = readdirSync(path.join(root, dirRel), { withFileTypes: true }); } catch { return; }
+    // A readdir failure must ABORT, not silently drop the recursive floor. The docstring promised
+    // "we return '' rather than a hash over a partial set" and the code returned a real 64-hex
+    // digest over the import graph alone — losing the layer that covers not-yet-imported files. A
+    // partial hash that LOOKS valid is precisely the property that made round 5's critical
+    // invisible. (GLM-5.3 round 10, F6.)
+    try { entries = readdirSync(path.join(root, dirRel), { withFileTypes: true }); } catch { throw new Error("enumeration failed"); }
     for (const e of entries) {
       const child = `${dirRel}/${e.name}`;
       // tests/ is excluded deliberately: tests decide nothing at runtime, and hashing them would
