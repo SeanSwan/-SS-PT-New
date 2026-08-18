@@ -19,7 +19,8 @@
  * Exit 0 = clean · 1 = violations (one FAIL: line each, actionable) · 2 = usage error.
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
+import { dirname, resolve as resolvePath } from 'node:path';
 
 const args = process.argv.slice(2);
 const STAGED = args.includes('--staged');
@@ -95,9 +96,35 @@ for (const { file, text } of targets) {
   // identifier that this same file defines via keyframes``/css``/styled — the shape that
   // actually crashes. Opt out on a genuine exception with `swan-guard-allow-template`.
   const PRIMITIVES = new Set(
-    [...text.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:keyframes|css|styled[.(])/g)]
+    // GLM H1-2.2: no word boundary meant `css` matched the PREFIX of `cssValue(16)`, so a
+    // plain helper's result was treated as a primitive and its consumers false-positived.
+    // `\b` still matches css` because word→backtick is a boundary.
+    [...text.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:(?:keyframes|css)\b|styled[.(])/g)]
       .map((m) => m[1]),
   );
+
+  // FALSE NEGATIVE found by self-review 2026-08-18, and it was the WORSE one: shared
+  // animations normally live in their own module and are IMPORTED, which is the most likely
+  // real shape of the bug G5 exists to catch — and it sailed straight through, because
+  // same-file detection cannot see it. Resolve relative imports one level and look for the
+  // primitive there. Cross-file is the only way to tell `${fadeIn}` (imported keyframes,
+  // bakes a class name) apart from `${SOME_Z_INDEX}` (imported number, harmless).
+  for (const imp of text.matchAll(/import\s*\{([^}]+)\}\s*from\s*['"](\.[^'"]+)['"]/g)) {
+    const names = imp[1].split(',').map((n) => n.trim().split(/\s+as\s+/).pop().trim()).filter(Boolean);
+    const spec = imp[2];
+    const base = resolvePath(dirname(file), spec);
+    const candidates = ['.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx', '']
+      .map((ext) => `${base}${ext}`);
+    const hit = candidates.find((c) => existsSync(c) && statSync(c).isFile());
+    if (!hit) continue;
+    let src = '';
+    try { src = readFileSync(hit, 'utf8'); } catch { continue; }
+    const exported = new Set(
+      [...src.matchAll(/export\s+const\s+([A-Za-z_$][\w$]*)\s*=\s*(?:keyframes|css|styled[.(])/g)]
+        .map((m) => m[1]),
+    );
+    for (const n of names) if (exported.has(n)) PRIMITIVES.add(n);
+  }
 
   // Scope deliberately narrow to keep false positives at zero: only EXPORTED module-level
   // `const NAME = ` + backtick, containing ${...}, not already css/styled/keyframes/createGlobalStyle

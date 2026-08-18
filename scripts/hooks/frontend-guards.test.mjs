@@ -79,6 +79,37 @@ t('G5: nested ${ } braces do not terminate the scan early', () => {
   if (r.code !== 1) throw new Error(`expected G5, got ${r.code}: ${r.out}`);
 });
 
+// Self-review 2026-08-18 found this FALSE NEGATIVE, and it was the worse one: shared
+// animations normally live in their own module and are imported, so the imported case is
+// the MOST likely real shape of the bug — and same-file detection could not see it.
+t('G5 RED: an IMPORTED keyframes primitive is resolved and caught', () => {
+  writeFileSync(join(root, 'frontend', 'src', 'anim.ts'),
+    'import { keyframes } from "styled-components";\nexport const fadeIn = keyframes`from{opacity:0}`;\n');
+  const r = guard('usesimport.ts', 'import { fadeIn } from "./anim";\nexport const bad = `\n  animation: ${fadeIn} 1s;\n`;\n');
+  if (r.code !== 1) throw new Error(`imported primitive must fire, got ${r.code}: ${r.out}`);
+  if (!/G5 css-helper-required/.test(r.out)) throw new Error(`no G5: ${r.out}`);
+});
+
+t('G5 GREEN: an IMPORTED plain constant is not a primitive', () => {
+  // The counterpart that keeps the CrystallizeOverlay false positive dead: importing a
+  // number must stay clean, or the fix would trade one bug for the other.
+  writeFileSync(join(root, 'frontend', 'src', 'consts.ts'), 'export const Z = 42;\n');
+  const r = guard('usesnum.ts', 'import { Z } from "./consts";\nexport const ok = `\n  z-index: ${Z};\n`;\n');
+  if (r.code !== 0) throw new Error(`imported number must stay clean, got ${r.code}: ${r.out}`);
+});
+
+t('G5: an unresolvable import does not crash the guard', () => {
+  const r = guard('ghost.ts', 'import { x } from "./does-not-exist";\nexport const s = `a ${x}`;\n');
+  if (r.code === 2) throw new Error(`guard crashed on a missing import: ${r.out}`);
+});
+
+t('G5 GREEN: a css-PREFIXED helper is not a primitive (GLM H1-2.2)', () => {
+  // `css` without a word boundary matched the prefix of `cssValue`, so a plain helper's
+  // result was treated as a primitive and every consumer of it false-positived.
+  const r = guard('prefix.ts', 'const gap = cssValue(16);\nexport const track = `gap: ${gap}`;\n');
+  if (r.code !== 0) throw new Error(`cssValue prefix must not flag: ${r.out}`);
+});
+
 // ---- G6: line cap --------------------------------------------------------
 // G6 is ADVISORY on purpose: 31 of a 250-file real sample are already over the cap, and
 // hard-failing would block a commit that touches one line of inherited debt (Rule 34).
