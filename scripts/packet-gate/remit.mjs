@@ -36,7 +36,20 @@ export function remitFromDoc(md) {
   // a quoted example) hijacks extraction and the gate evaluates text the model was never asked.
   const outside = [];
   let fence = null;
+  let html = false;
   for (const line of lines) {
+    // HTML COMMENTS ARE NOT DOCUMENT CONTENT. The fence-aware loop knew ``` and ~~~ and nothing
+    // else, so a `## Remit` inside `<!-- … -->` — invisible in every renderer — was a heading to
+    // findIndex. A superseded draft left in a comment above the real section hijacked extraction:
+    // remit became the comment's text, non-empty (guard silent), naming nothing (R4 and R5 inert).
+    // The parser had been patched three times for the heading's CHARACTER CLASS and never once
+    // asked what CONTAINER the line was in. (GLM-5.3 round 10, F2.)
+    if (!fence && /^\s*<!--/.test(line)) html = true;
+    if (html) {
+      outside.push(null);
+      if (/-->/.test(line)) html = false;
+      continue;
+    }
     // `[^\n]*`, matching parseFences: `.` excludes Unicode line terminators, so a fence line
     // carrying one would go unnoticed here and a `## Remit` heading inside that fence would hijack
     // extraction — the fence-awareness this loop exists for, silently switched off.
@@ -104,7 +117,21 @@ export function remitFromDoc(md) {
   // CommonMark's. (GLM-5.3 round 9, F6 — the same hijack this file has now been patched for three
   // times, each time through the previous patch.)
   const HEADING_RE = /^ {0,3}#{2,6}[ \t]+remit[ \t]*(?:#+)?[ \t]*(?::[ \t]*(.*)|[—–-][ \t]+(.*)|\(([^)]*)\)?)?[ \t]*$/i;
-  const i = outside.findIndex((l) => l !== null && HEADING_RE.test(l));
+  // AMBIGUITY IS REFUSED, not silently resolved by taking the first.
+  //
+  // Every hijack this parser has suffered — five now — worked the same way: get ONE extra
+  // Remit-shaped line above the real one and `findIndex` takes it. Patching container types and
+  // character classes one at a time has failed four consecutive rounds, and round 9's own
+  // parenthesised alternative made it worse by making `## Remit (draft)` a legitimate heading, so an
+  // ordinary draft-above-final layout hijacks with no trickery at all.
+  //
+  // So the first-match rule itself is the defect. A document with two Remit headings is AMBIGUOUS,
+  // and a gate that cannot tell which question it is certifying must not certify either. Returning
+  // '' makes the CLI's fail-closed empty-remit guard fire (exit 2) with an actionable message —
+  // which is the correct outcome for a genuine draft-plus-final document too.
+  const matches = outside.map((l, n) => (l !== null && HEADING_RE.test(l) ? n : -1)).filter((n) => n !== -1);
+  if (matches.length > 1) return '';
+  const i = matches.length ? matches[0] : -1;
   if (i !== -1) {
     // STOP ONLY AT A HEADING OF THE SAME LEVEL OR HIGHER — not at any heading at all.
     //
@@ -146,6 +173,20 @@ export function remitFromDoc(md) {
     const body = (stop === -1 ? rest : rest.slice(0, stop)).filter((l) => l !== null);
     return [inline || null, ...body].filter((l) => l !== null).join('\n').trim();
   }
-  const fm = outside.find((l) => l !== null && /^remit:\s*.+$/i.test(l));
-  return fm ? /^remit:\s*(.+)$/i.exec(fm)[1].trim() : '';
+  // FRONTMATTER MEANS THE TOP OF THE DOCUMENT — it is the one part of this parser no review had
+  // touched, and it carried the same hijack the heading form has now been patched for four times.
+  // `outside.find` scanned the WHOLE document, so any prose line beginning "remit:" — a sentence
+  // like "remit: see below", a quoted example, a changelog entry — became the packet's question when
+  // no `## Remit` heading existed. Same shape as always: non-empty, so the fail-closed empty-remit
+  // guard never fires; naming nothing, so aboutCode goes false and R4 and R5 both go inert.
+  //
+  // Bounded to the leading block (up to the first blank line, and at most the first 10 lines), which
+  // is what "frontmatter" means in every format that has it. Found by my own round-10 pass.
+  const lead = [];
+  for (const l of outside.slice(0, 10)) {
+    if (l === null || l.trim() === '') break;
+    lead.push(l);
+  }
+  const fm = lead.find((l) => /^remit:[ \t]*.+$/i.test(l));
+  return fm ? /^remit:[ \t]*(.+)$/i.exec(fm)[1].trim() : '';
 }

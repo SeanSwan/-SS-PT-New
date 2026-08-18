@@ -88,6 +88,8 @@ export function checkProvenance(blocks, readFile) {
           'commit the file first, or use --allow-uncited. An untracked scratch copy byte-matches itself and proves nothing'],
         ESUBMODULE: ['it lives inside a submodule, which the superproject tracks only as a gitlink',
           'cite a file in this repository, or attach the excerpt with --allow-uncited and say where it came from'],
+        ESTAGED: ['it is staged but never committed — staging is not provenance',
+          'commit the file, or use --allow-uncited. `git add` is a local act by the same author writing the packet'],
       }[err.code];
       out.push(SPECIFIC
         ? finding('R3', `block at ${blockWhere(b)} cites ${b.attrs.path} — ${SPECIFIC[0]}`, SPECIFIC[1])

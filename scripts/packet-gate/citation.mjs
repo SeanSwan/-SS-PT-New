@@ -89,6 +89,39 @@ function isSelfCitation(root, abs, exclude) {
  * `--allow-uncited`. It is the correct trade — R3's whole claim is provenance, and a file with no
  * history has none. R5 has worked this way since round 1 without complaint.
  */
+/**
+ * Is this path in a COMMIT — not merely in the index?
+ *
+ * ROUND-10 CRITICAL, found by attacking the round-9 diff before either reviewer returned.
+ * `git ls-files` reports the INDEX, so `git add` alone satisfies it. The round-8 close ("a cited
+ * file must be tracked") therefore cost exactly one extra command to route around:
+ *
+ *     cp packet.md cite.mjs && git add cite.mjs
+ *
+ * Two commands, no commit, no review, and the fabricated copy is "tracked" — byte-matching itself by
+ * construction, exit 0, "all byte-verified". That is the fourth spelling of the same attack across
+ * four rounds (self-cite -> hardlink -> copy -> staged copy), and each fix closed only the spelling
+ * in front of it.
+ *
+ * `HEAD:<path>` is the property that actually means "this content has history". Staging is not
+ * history: it is a local, uncommitted, unreviewed act by the same author writing the packet.
+ *
+ * NOTE: spawned via execFileSync with an argv array, NOT a shell — under Git Bash, MSYS path
+ * conversion rewrites `HEAD:<path>` into a Windows path before git sees it and every lookup returns
+ * a false negative. That gotcha is documented in this repo and has produced a false ABSENT before.
+ */
+function isCommitted(root, rel) {
+  try {
+    execFileSync('git', ['cat-file', '-e', `HEAD:${rel}`], {
+      cwd: root, stdio: 'ignore', env: { ...process.env, GIT_LITERAL_PATHSPECS: '1', MSYS_NO_PATHCONV: '1' },
+    });
+    return true;
+  } catch (err) {
+    if (err.code === 'ENOENT') throw new GateUnavailable('git not found — cannot verify that a cited file is committed');
+    return false;
+  }
+}
+
 function isTracked(root, rel) {
   try {
     // GIT_LITERAL_PATHSPECS: `--` ends OPTION parsing but NOT pathspec magic, so a cited path whose
@@ -141,6 +174,14 @@ export function readCitedFile(root, rel, exclude = []) {
   if (isSelfCitation(root, abs, exclude)) {
     const e = new Error('a packet may not cite itself or its own seed — the comparison would be byte-identical by construction, which proves nothing');
     e.code = 'ESELFCITE';
+    throw e;
+  }
+  // COMMITTED, not merely staged. `isTracked` (the index) is still consulted first because it gives
+  // the better diagnosis for the common case — a genuinely untracked scratch file — while
+  // `isCommitted` catches the staged-copy attack the index check cannot see.
+  if (isTracked(root, rel) && !isCommitted(root, rel)) {
+    const e = new Error('cited file is staged but never committed — staging is not provenance');
+    e.code = 'ESTAGED';
     throw e;
   }
   if (!isTracked(root, rel)) {

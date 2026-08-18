@@ -171,8 +171,14 @@ red('R3 unreadable file is a refusal, not an exception', 'R3', () =>
 green('a remit: line inside a fence does not hijack extraction', () =>
   eq(remitFromDoc(['```yaml', 'remit: sample inside a fence', '```', '', '## Remit', 'the real remit'].join('\n')),
     'the real remit', 'remit'));
+// RE-ANCHOR (round 10): the FIXTURE moved, the property did not. This canary proves that a
+// `## Remit` heading inside a fence is ignored — and it did so with a `remit:` frontmatter line
+// placed AFTER the fence, which only worked because the fallback scanned the whole document. That
+// looseness is a hijack vector (any prose line beginning "remit:" became the packet's question), so
+// the fallback is now bounded to the leading block, which is what "frontmatter" means. The fixture
+// puts the frontmatter line where frontmatter goes; the assertion is unchanged.
 green('a "## Remit" heading inside a fence is ignored', () =>
-  eq(remitFromDoc(['```md', '## Remit', 'fence content', '```', '', 'remit: the real one'].join('\n')),
+  eq(remitFromDoc(['remit: the real one', '', '```md', '## Remit', 'fence content', '```'].join('\n')),
     'the real one', 'remit'));
 
 // Dogfooding the packet BUILDER against the gate: a file whose cited range ends on a trailing

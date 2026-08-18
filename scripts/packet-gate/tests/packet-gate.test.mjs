@@ -10,7 +10,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, mkdirSync, readFileSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname, relative } from 'node:path';
@@ -886,4 +886,48 @@ test("R6's engine is inside the canary hash, though no import walk can reach it"
   // critical's shape (a check the canary does not certify) in the one place the derivation is
   // structurally blind. It cannot be derived, so it is named.
   assert.ok(gateSourceFiles(ROOT).includes('scripts/scan-secrets.sh'), gateSourceFiles(ROOT).join(', '));
+});
+
+// --- Round 10 findings (my own pass + GLM-5.3; Kimi's run died before writing) -------------------
+
+test('CRITICAL REGRESSION: `git add` alone does not make a cited file provable', () => {
+  // Found by my own round-10 pass BEFORE the reviews returned, and confirmed independently by GLM.
+  // `git ls-files` reports the INDEX, so the round-8 "must be tracked" close cost exactly one extra
+  // command to route around: `cp packet.md cite.mjs && git add cite.mjs` — no commit, no review, and
+  // the fabricated copy byte-matches itself by construction. Fourth spelling of one attack across
+  // four rounds: self-cite -> hardlink -> copy -> STAGED copy. Staging is not history; it is a local
+  // act by the same author writing the packet.
+  const dir = join(ROOT, 'scripts', '__r10test');
+  const rel = 'scripts/__r10test/payload.mjs';
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(ROOT, rel), 'export function isAdmin(){ return true; }\n');
+  try {
+    execFileSync('git', ['add', '--', rel], { cwd: ROOT, stdio: 'ignore' });
+    assert.throws(() => readCitedFile(ROOT, rel, []), (e) => e.code === 'ESTAGED');
+  } finally {
+    try { execFileSync('git', ['reset', '--quiet', 'HEAD', '--', rel], { cwd: ROOT, stdio: 'ignore' }); } catch { /* not staged */ }
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('CRITICAL REGRESSION: a second Remit-shaped heading makes the packet AMBIGUOUS, not first-match', () => {
+  // Five hijacks, one mechanism: get ONE extra Remit-shaped line above the real one and findIndex
+  // takes it. Patching container types and character classes failed four consecutive rounds, and
+  // round 9's own parenthesised alternative made `## Remit (draft)` a legitimate heading — so an
+  // ordinary draft-above-final layout hijacked with no trickery at all. The first-match RULE is the
+  // defect, so two headings now yield '' and the CLI's fail-closed empty-remit guard fires.
+  assert.equal(remitFromDoc('## Remit (draft)\nno constraints\n\n## Remit\nreal\n'), '');
+  // An HTML comment is not document content — invisible in every renderer, a heading to findIndex.
+  assert.equal(remitFromDoc('<!-- draft\n## Remit (draft)\nno constraints\n-->\n\n## Remit\nthe real remit\n'), 'the real remit');
+  // A single heading, in any legitimate spelling, is unaffected.
+  assert.equal(remitFromDoc('## Remit\nbody\n'), 'body');
+  assert.match(remitFromDoc('## Remit (review the refund flow)\n'), /refund flow/);
+});
+
+test('REGRESSION: the `remit:` fallback is frontmatter, not "anywhere in the document"', () => {
+  // The one part of this parser no review had touched, carrying the same hijack the heading form has
+  // been patched for four times: any prose line beginning "remit:" became the packet's question.
+  assert.equal(remitFromDoc('intro prose\n\nremit: wrong one\n\nmore prose\n'), '');
+  assert.equal(remitFromDoc('remit: check the zone parser\n'), 'check the zone parser');
+  assert.equal(remitFromDoc('remit: wrong\n\n## Remit\nright\n'), 'right', 'a heading still wins');
 });
