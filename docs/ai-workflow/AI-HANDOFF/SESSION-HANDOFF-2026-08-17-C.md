@@ -55,6 +55,40 @@ ollama ps                                                 -> qwen3.8:27b-mtp-q4_
 
 ---
 
+## UPDATE — 2026-08-18: Tasks 1-4 below are DONE. Read this before §3.
+
+All four tasks in §3 were completed in the session that wrote this file. §3 is retained as
+the record of what was asked and why; **do not re-do it.** What actually happened:
+
+| §3 Task | Outcome |
+|---|---|
+| 1. Wire the context-watch gate | **DONE** (`0a676df92`). My "it's broken" call was **wrong** — my test harness passed a Git-Bash path Node cannot resolve on Windows, so the gate correctly failed open, and a stale debug reading made me expect a block. Live-verified allow/block/no-nag/fail-open, then wired last in the Stop array. |
+| 2. SC0-A baseline | **DONE** (`ed4a25b` in ai-agent-tuning). Protocol written with a pre-registered kill criterion; **Half 1 executed** — see the result below. Half 2 still blocked on Sean's ideals. |
+| 3. Guard layer standalone | **DONE** (same commit). `scripts/lib/guard-layer.mjs` — repairs vocabulary, escalates meaning, never silently rewrites a claim. |
+| 4. S2b config fix | **DONE** (`80938bf`). 3 optimizer steps → 20; loss 5.01 → 3.66; LR now reaches its 2e-4 target instead of peaking at 8e-5 on the final step. |
+
+**The SC0-A Half 1 result is the most decision-relevant thing in this document.** Across all
+60 coach eval inputs, with arms differing only by the system prompt (0 vs 679 chars):
+bare base **18** banned-pattern hits → base+prompt **5**. A 72% reduction, and it eliminates
+the highest-legal-risk violation (`nasm_certified_claim`) outright. All 5 survivors sit in
+the `voice_brand` slice — the prompt holds normally and fails under deliberate pressure.
+
+Two consequences: (a) Track A's SFT is worth little on the *enumerable* axis, so Half 2 must
+justify the tune on non-enumerable judgment; (b) the survivors were 100% enumerable, which is
+exactly what the guard layer now closes deterministically.
+
+**Also fixed en route:** the shared brand validator's `/\bmeditat(?:e|ion|ing)\b/` let both
+-s forms through — "meditates" and "meditations" were never banned. Widened to the stem,
+fixtures added, mutation-checked. SC0-A's counts were re-derived against the fixed validator
+and are unchanged (18/5), so the reported numbers stand. And `package.json` enumerated its
+test files by hand, so a new test file ran zero times — switched to a glob, 34 → 47 tests.
+
+**What is actually next:** Sean authoring the eval ideals (10 at a time, safety slice first).
+That is the critical path and nothing promotable can happen without it. Everything else in
+the program is now either done or waiting on it.
+
+---
+
 ## 3. YOUR WORK, in order
 
 ### Task 1 — Live-verify and wire the context-watch gate ⚠ **do this first**
