@@ -21,7 +21,7 @@ Three merges, one push, so `main` never carried a contradictory state:
 | Commit | What |
 |---|---|
 | `0b57fda61` | Constitution: Rule 40 cited `cinematic-pages.md §18`, which has **never existed** in any revision. Removed. Also resynced the drifted `AGENTS.md` mirror. |
-| `c2564f2a3` | The repave: 25 dangling refs, 4 index-law violations, 4 orphaned rows, 20 wrong-target pointers; `design.html` retired to `docs/_attic/`; the six-class gate + 73 tests. |
+| `c2564f2a3` | The repave: the 34 measured defects (25 dangling refs + 4 unindexed files + 4 orphaned rows + 1 impossible bare ref) **plus 20 wrong-target pointers found later** — pointers that *resolve* but land on the wrong section, which the original 34-count could not see. `design.html` retired to `docs/_attic/`; the six-class gate + 73 tests. |
 | `f17502bf9` | SWA-171: both constitutions now state the mirror is retired. |
 
 ### The gate — the durable output
@@ -58,6 +58,8 @@ Every real problem in this workstream, including mine, was one of these. Expect 
 ## 4. HOW TO WORK ON THIS SAFELY
 
 - **Run the gate before and after anything you touch:** `npm run brain:links`. Expect `CLEAN — 28 files · 75 refs · 0 defects`.
+
+> **Correction to my own reporting, found by GLM post-ship (F6).** Throughout this workstream I reported `receipt-prune` as *"4 pass / 0 fail — better than main's 4/1."* That green was **not earned by a fix.** I *deleted* the failing test, because its subject (`design.html`) had been retired and the assertion had no target left. The deletion is defensible and documented in the file. But "better than main" implied improved health when what actually changed was **reduced scope**. A suite that goes green because a test was removed is not the same as a suite that goes green because a defect was fixed, and I should not have used one phrase for both. Treat the honest statement as: *one assertion was retired with its subject; the remaining four pass.*
 - **Do not trust CLEAN on sight.** This checker reported CLEAN over a broken corpus once (a CRLF bug made its heading regex match nothing). Prove it still detects by injecting one defect per class — and **inject into a file in a subdirectory, not a root-level one.** A root-file proof is what hid the worst bug of the session.
 - **`main` moves every few minutes.** Several agents push continuously. Any merge proof expires almost immediately — re-run it immediately before merging, and state the base SHA next to the verdict.
 - **Never chain `cd` with a destructive git command.** I did, the `cd` failed, and `git reset --hard` ran in the shared main tree. Use `git -C <dir>` so scope is an argument, not inherited from a step that may not have happened.
@@ -78,6 +80,8 @@ Every real problem in this workstream, including mine, was one of these. Expect 
 | fresh clone, another machine, a cloud agent | **silent** |
 | CI | **never invoked** |
 
+**GLM found the coverage is narrower still (post-ship F1):** a pre-commit hook gates commit *authoring*, not merge *acceptance*. **A fast-forward merge creates no commit, so no hook fires** — meaning the gate can be bypassed even on the owner's own machine, without anyone intending to. `--no-verify` and any server-side merge bypass it too. So the honest coverage is "commits authored on one machine", not "changes reaching main."
+
 Worse: I wrote into canon, *inside the commit that deleted nine fictional mechanisms*, that the gate is "wired into `.githooks/pre-commit` … verified 2026-08-16." That was true of my machine and is not true of the repository. **It is a new instance of the exact class the workstream existed to delete.**
 
 I found this after shipping, which is why it is a handoff item rather than a fix. **This is your highest-value first task.**
@@ -91,9 +95,11 @@ I found this after shipping, which is why it is a handoff item rather than a fix
    - A `prepare` script setting `core.hooksPath` is **optional convenience** for fast local feedback. Do not mistake it for the fix — a local hook is skippable and does not exist for cloud agents.
    - Verify by cloning fresh into a temp dir and confirming the gate fires there.
    - **The canon wording is already corrected** (2026-08-16, post-ship): `design.md` now states plainly that `npm run brain:links` is the only invocation guaranteed to work anywhere, and that the hook is local-only. Do not re-assert "verified" for anything the repo does not itself guarantee.
+   - **GLM's two additions are worth taking (post-ship F1/F2):** fold `brain:links` into `npm test` so it runs wherever tests run; and **add a meta-test asserting the wiring itself** — hook committed, `prepare` present, CI workflow references the gate. A gate that guards the corpus but not its own installation is how this defect recurs. Also: *evidence stamps should cite a SHA and a CI run, not a workstation and a date.* That single habit would have prevented the false claim.
 2. **SWA-172 — dedupe the header derivation.** Three hand-maintained copies (`consult.mjs`, `consult-hy3-design.mjs`, `consult-glm.mjs`) are now co-located on `main`, so a shared module is finally possible. This duplication already caused one miss. Fold in the known edge cases while you are there: the fence-stripper handles only column-0 paired triple-backtick fences, and the length cap can split a surrogate pair.
 3. **SWA-170 — the external-reference contract.** Two tests red on `main`, pre-existing, unrelated to this work, and previously masked by my crash. Determine whether `external-reference-mcp.md` genuinely lacks the receipt/fallback clauses or whether the assertion's pattern drifted. **Both are plausible; this repo has produced both.**
    **Do not let this sit.** Kimi's post-ship F5: "identical to main's baseline" is the correct *gate* logic for judging a delta, but a suite that stays red across a whole workstream makes red the ambient state, and **the next real failure will hide in it.** Fix it or quarantine it explicitly — *"a red test that everyone expects is worse than a deleted test."*
+   **GLM's fix is the better one (F4): pin the known-red set as DATA**, not tribal memory — `test.failing` or an expected-failure-set assertion carrying the ticket IDs. Then red can only shrink deliberately, and a test unexpectedly turning **green** also flags. Right now nothing in the repo distinguishes baseline-red from new-red except someone remembering.
 4. **Decide the five owner questions** if Sean wants them closed — the token schism between `design.md §9` and `typography-grid.md §5` is the live one, and it is **doc-only**: zero lines of code read either scale, verified twice.
 5. **Consider a visual reference successor.** `design.html` is gone and nothing replaced it. The constraint is already law in `anti-patterns.md`: it must be **generated** from `design.md` by a real named script, or not exist. A hand-kept mirror re-speciates.
 
