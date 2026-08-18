@@ -13,7 +13,10 @@
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const GUARD = join(dirname(fileURLToPath(import.meta.url)), 'frontend-guards.mjs');
 
 let pass = 0;
 const fail = [];
@@ -31,7 +34,10 @@ function guard(filename, content) {
   writeFileSync(p, content);
   // spawnSync, not execFileSync: warnings go to stderr, and execFileSync returns ONLY stdout
   // on success — so an advisory G6 was invisible to the test while working correctly.
-  const r = spawnSync('node', ['scripts/hooks/frontend-guards.mjs', '--file', p], { encoding: 'utf8' });
+  // H2 self-review, new vantage (running from a different cwd): a RELATIVE script path made
+  // the suite pass 20/20 from the repo root and 6/20 from anywhere else — a green suite that
+  // silently stops testing depending on where it is invoked. Resolve from this file instead.
+  const r = spawnSync('node', [GUARD, '--file', p], { encoding: 'utf8' });
   return { code: r.status, out: `${r.stdout || ''}${r.stderr || ''}` };
 }
 
