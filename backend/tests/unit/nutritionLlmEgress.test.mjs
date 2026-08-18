@@ -19,6 +19,25 @@ describe('LLM egress contracts (S0.6)', () => {
     expect(routes).toMatch(/analyze-photo'[\s\S]{0,200}selfPhotoConsentGate/);
   });
 
+  /**
+   * Voice egress (added 2026-08-17). The transcribe route sends recorded audio
+   * — client names, injuries and schedules spoken aloud — to a third-party
+   * model. Chat gated its TEXT egress and meal-photo gated its IMAGE egress;
+   * audio was gated by neither, so a user who had withdrawn AI consent could
+   * still have their voice disclosed. Fitness and injury data is consumer
+   * health data under WA My Health My Data / NV SB 370, where third-party
+   * sharing is opt-in.
+   */
+  it('gates /transcribe behind requireAiConsent, before the audio is buffered', () => {
+    const routes = read('routes/aiChatRoutes.mjs');
+    expect(routes).toContain('requireAiConsent');
+    expect(routes).toMatch(/transcribe'[\s\S]{0,200}selfVoiceConsentGate/);
+    // The gate must precede multer: a withdrawn-consent request is refused
+    // without buffering 25MB of audio into memory.
+    const line = routes.split('\n').find((l) => l.includes("router.post('/transcribe'"));
+    expect(line.indexOf('selfVoiceConsentGate')).toBeLessThan(line.indexOf('audioUpload.single'));
+  });
+
   it('gates both workout-log upload routes on the CLIENT\'s consent', () => {
     const routes = read('routes/workoutLogUploadRoutes.mjs');
     expect(routes).toContain('requireSubjectAiConsent');
