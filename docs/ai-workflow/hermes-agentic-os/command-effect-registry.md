@@ -56,6 +56,7 @@ Placeholder/demo content — targets and thresholds are illustrative until Sean 
 | `morning-briefing` | Generate the daily operator briefing (health, receipts digest, queue, stale clients, calendar placeholder) as a DRAFT doc | Hermes | command-center, telegram, runner | none | briefing file path | `SWITCH_MORNING_BRIEFING` |
 | `draft-client-followup` | Draft (never send) a follow-up message for one stale client ID via the Swan Coach proposal path | Hermes | command-center | `client-id` | draft proposal id | `SWITCH_MASTER` |
 | `propose-command` | Draft a new registry row for an unregistered command Sean requested | Hermes | telegram, command-center | `sketch (untrusted)` | proposal doc path | `SWITCH_MASTER` |
+| `handoff` | Produce the cold-start session-transfer document per rule 83: harvest the WHOLE conversation, re-derive every number from a live command, gap-analyse against Sean's vision, then write a DRAFT handoff to `docs/ai-workflow/AI-HANDOFF/`. Proposes and asks; never decides for him | Hermes | command-center, telegram, vscode | `topic (untrusted, ≤200 chars)`, `issue: SWA-<n> \| none` | handoff file path + secret-scan result | `SWITCH_MASTER` |
 
 ### T2 — bounded internal writes (allowlist, audit-logged)
 
