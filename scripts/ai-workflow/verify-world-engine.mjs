@@ -223,7 +223,14 @@ export function auditWorldEngineBundle(bundle) {
   const ACTIVE_PALETTE_ANCHORS = ['#002060', '#60c0f0', '#c6a84b', '#8b5cf6', '#0a0a0f'];
   const missingAnchors = ACTIVE_PALETTE_ANCHORS.filter((h) => !canonicalTokens.has(h));
   if (missingAnchors.length) {
-    errors.push(`design.md is missing active Crystalline palette anchor(s): ${missingAnchors.join(', ')}`);
+    // The message must tell the next agent what to DO, or a legitimate rebrand reads as gate rot
+    // and the gate gets deleted instead of updated (Kimi post-ship, F6).
+    errors.push(
+      `design.md is missing active Crystalline palette anchor(s): ${missingAnchors.join(', ')}. `
+      + 'If canon genuinely lost these, that is the defect this check exists to catch. '
+      + 'If this is an INTENTIONAL rebrand, update ACTIVE_PALETTE_ANCHORS in '
+      + 'scripts/ai-workflow/verify-world-engine.mjs in the same commit — do not delete the check.',
+    );
   }
   // NEGATIVE sentinel, re-homed from the deleted design.html check (GLM round 2, R2-5). It guards
   // the RETIRED "Reduced-Motion-as-a-fourth-tier" contract from creeping back. The surviving
