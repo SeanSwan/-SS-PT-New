@@ -35,7 +35,7 @@ tier_basis: fable-tier
 decision: unknown
 status: draft
 privacy: secret-scan clean (key/token/DB-URL shapes only); PII NOT independently verified
-migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-tier; decision=unknown (CORRECTED 2026-08-16: topic left in place — a subject is not a rule); status=draft (never reviewed against a contract); privacy<-key-shape scan only (PII unverified) [CORRECTED 2026-08-16]); originating_model untouched
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-tier; decision=unknown [CORRECTED 2026-08-16 — topic left in place; a subject is not a rule]; status=draft (never reviewed against a contract); privacy<-key-shape scan only (PII unverified) [CORRECTED 2026-08-16]); originating_model untouched
 ---
 
 # Lensing a panel destroys what it was convened to find

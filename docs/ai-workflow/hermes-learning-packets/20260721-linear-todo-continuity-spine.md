@@ -7,7 +7,7 @@ title: task continuity across parallel agents and interrupted conversations
 tier_basis: Fable-tier session output (verified — this packet authored directly by claude-fable-5)
 decision: unknown
 status: draft
-migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-provenance; decision=unknown (CORRECTED 2026-08-16: topic left in place — a subject is not a rule); status=draft (never reviewed against a contract)); originating_model untouched
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-H1; tier_basis<-provenance; decision=unknown [CORRECTED 2026-08-16 — topic left in place; a subject is not a rule]; status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 # Learning Packet — task continuity across parallel agents and interrupted conversations

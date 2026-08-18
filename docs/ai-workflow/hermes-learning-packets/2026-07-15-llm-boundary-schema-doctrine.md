@@ -8,7 +8,7 @@ title: Llm boundary schema doctrine
 tier_basis: Fable 5 is the reference Fable tier (Rule 68 — the model the corpus is named for)
 decision: unknown
 status: draft
-migrated: 2026-08-16 — required keys back-filled mechanically (title<-filename; tier_basis<-designation; decision=unknown (CORRECTED 2026-08-16: topic left in place — a subject is not a rule); status=draft (never reviewed against a contract)); originating_model untouched
+migrated: 2026-08-16 — required keys back-filled mechanically (title<-filename; tier_basis<-designation; decision=unknown [CORRECTED 2026-08-16 — topic left in place; a subject is not a rule]; status=draft (never reviewed against a contract)); originating_model untouched
 ---
 
 ## What was decided/built (Fable-tier lesson)

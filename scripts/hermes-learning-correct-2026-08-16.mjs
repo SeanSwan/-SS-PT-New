@@ -55,7 +55,7 @@ for (const name of readdirSync(CORPUS).filter((f) => f.endsWith('.md') && !f.sta
   if (/^migrated:.*decision<-topic/m.test(block)) {
     block = block.replace(/^decision:.*$/m, 'decision: unknown');
     block = block.replace(/decision<-topic \(re-keyed, not re-authored\)/,
-      'decision=unknown (CORRECTED 2026-08-16: topic left in place — a subject is not a rule)');
+      'decision=unknown [CORRECTED 2026-08-16 — topic left in place; a subject is not a rule]');
     fixes.push('H2 decision->unknown');
   }
 
