@@ -181,6 +181,17 @@ async function main() {
     }
   }
 
+  // GLM H1-1.4: `--model Users` when the key is `User` matched nothing, printed
+  // "CLEAN — no drift detected" and exited 0. A check that checked NOTHING reporting
+  // success is the exact silent-success class these tools exist to eliminate — and it was
+  // in the tool itself. Fail loudly instead.
+  if (onlyModel && modelsChecked === 0) {
+    console.error(`schema-drift-check: no model named "${onlyModel}" — nothing was checked. `
+      + 'Refusing to report CLEAN on an empty run.');
+    await sequelize.close();
+    process.exit(2);
+  }
+
   const critical = findings.filter((f) => f.severity === 'CRITICAL');
 
   const payload = JSON.stringify({ modelsChecked, attributesChecked, findings }, null, 2);
