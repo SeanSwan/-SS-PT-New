@@ -9,6 +9,10 @@
  *   G3  no retired Galaxy-Swan palette #0a0a1a / #00FFFF / #7851A9 (identity §) — hard fail
  *   G4  no hardcoded hex outside var(--token, #hex) fallback position (Rule 6)
  *       G4 exceptions: lines carrying `swan-guard-allow-hex` (justify in-line) are skipped.
+ * G5  exported style fragment interpolating a styled-components PRIMITIVE must be css`` (Rule 43)
+ *       G5 opt-out: `swan-guard-allow-template` within 3 lines above the fragment.
+ * G6  ADVISORY (warns, never blocks): file over the 300-line cap (Rule 4)
+ *       G6 opt-out: `swan-guard-allow-long-file` anywhere in the file; vendored paths skipped.
  *
  * Usage: node scripts/hooks/frontend-guards.mjs --staged   (from .githooks/pre-commit)
  *        node scripts/hooks/frontend-guards.mjs --file <path>...   (self-test / spot check)
@@ -53,6 +57,7 @@ const VAR_FALLBACK = /var\(\s*--[\w-]+\s*,\s*#[0-9a-fA-F]{3,8}\s*\)/;
 const TEST_FILE = /\.test\.|\.spec\.|__tests__\//;
 
 const failures = [];
+const warnings = [];
 for (const { file, text } of targets) {
   const isTestFile = TEST_FILE.test(file);
   const lines = text.split('\n');
@@ -71,12 +76,88 @@ for (const { file, text } of targets) {
       if (leftover) failures.push(`FAIL: G4 hardcoded-hex (Rule 6) — ${loc} — "${leftover[0]}" must be var(--token, ${leftover[0]}) or line-tagged swan-guard-allow-hex <reason>`);
     }
   });
+
+  if (isTestFile) continue;
+
+  // G5 — Rule 43: a SHARED style fragment that interpolates MUST be css`` tagged.
+  // A plain template string calls toString() on keyframes/helpers and bakes the generated
+  // class name into the output, crashing styled-components at mount with error #12.
+  // The build passes, types pass, nothing warns at dev time — it only dies in the browser.
+  // Incident 2026-04-12: AdminOverviewPanel's bentoItemAnimation took down the whole
+  // admin dashboard exactly this way. This is the one guard whose absence costs a
+  // production outage rather than a lint nag, which is why it is worth an AST-ish check.
+  //
+  // NARROWED after a live false positive (CrystallizeOverlay.tsx, 2026-08-18): that file
+  // deliberately exports raw CSS *text* for a test gate and interpolates a NUMBER. Rule 43's
+  // hazard is not interpolation per se — it is interpolating a styled-components PRIMITIVE
+  // (a keyframes/css object) whose toString() bakes the generated class name in. Interpolating
+  // a number or a plain string is harmless. So: only flag when the fragment interpolates an
+  // identifier that this same file defines via keyframes``/css``/styled — the shape that
+  // actually crashes. Opt out on a genuine exception with `swan-guard-allow-template`.
+  const PRIMITIVES = new Set(
+    [...text.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:keyframes|css|styled[.(])/g)]
+      .map((m) => m[1]),
+  );
+
+  // Scope deliberately narrow to keep false positives at zero: only EXPORTED module-level
+  // `const NAME = ` + backtick, containing ${...}, not already css/styled/keyframes/createGlobalStyle
+  // tagged. A non-exported local is not a shared fragment and is not our business.
+  const SHARED_FRAGMENT = /^\s*export\s+const\s+([A-Za-z_$][\w$]*)\s*=\s*(css|styled[.(]|keyframes|createGlobalStyle)?\s*`/gm;
+  for (const m of text.matchAll(SHARED_FRAGMENT)) {
+    const [, name, tag] = m;
+    if (tag) continue; // already css`` / styled`` / keyframes`` — correct by construction
+    // Does THIS template literal interpolate? Read to its closing backtick.
+    const start = m.index + m[0].length - 1;
+    let i = start + 1;
+    let depth = 0;
+    let expr = '';
+    const exprs = [];
+    while (i < text.length) {
+      const c = text[i];
+      if (c === '\\') { i += 2; continue; }
+      if (c === '$' && text[i + 1] === '{') { depth += 1; i += 2; expr = ''; continue; }
+      if (depth > 0 && c === '}') { depth -= 1; if (depth === 0) exprs.push(expr); i += 1; continue; }
+      if (depth > 0) { expr += c; i += 1; continue; }
+      if (c === '`') break;
+      i += 1;
+    }
+    // Only a styled-components primitive baked into a plain string causes error #12.
+    const bakes = exprs.some((e) => [...e.matchAll(/[A-Za-z_$][\w$]*/g)].some((id) => PRIMITIVES.has(id[0])));
+    if (!bakes) continue;
+    const line = text.slice(0, m.index).split('\n').length;
+    if (/swan-guard-allow-template/.test(text.split('\n').slice(Math.max(0, line - 3), line).join('\n'))) continue;
+    failures.push(
+      `FAIL: G5 css-helper-required (Rule 43) — ${file}:${line} — exported fragment "${name}" `
+      + 'interpolates ${...} in a PLAIN template string. Wrap it with the styled-components '
+      + '`css` helper or it bakes a class name in and crashes at mount (error #12).',
+    );
+  }
+
+  // G6 — Rule 4: max 300 lines per file. Reported once per file, not per line.
+  // VENDORED/reference material is excluded: `assets/**/dashboard-export/**` is a copied
+  // design reference pack, not live code, and linting it is pure noise (2 of 4 hits on the
+  // first 250-file sample were exactly that). Legacy files you merely touched can opt out
+  // with `swan-guard-allow-long-file` — Rule 34 says pre-existing debt is not a blocker you
+  // inherit by editing one line of it.
+  const VENDORED = /(^|\/)(dashboard-export|reference-pack|production-context|vendor|third[-_]party)\//;
+  const loc300 = lines.length;
+  if (!VENDORED.test(file) && !/swan-guard-allow-long-file/.test(text) && loc300 > 300) {
+    // ADVISORY, not a failure. A 250-file sample found 31 pre-existing files over the cap;
+    // making this hard-fail would block any commit that touches one line of legacy debt the
+    // author did not create (Rule 34), and a guard that blocks unfairly is a guard that gets
+    // disabled. It reports every time so the debt stays visible and never silently grows.
+    warnings.push(
+      `WARN: G6 file-max-lines (Rule 4) — ${file} — ${loc300} lines exceeds the 300 cap; `
+      + 'extract hooks, utils, styles, or types when you next work in here.',
+    );
+  }
 }
 
+if (warnings.length) warnings.forEach((w) => console.error(w));
 if (failures.length) {
   failures.forEach((f) => console.error(f));
   console.error(`\n[frontend-guards] ${failures.length} violation(s) in ${targets.length} file(s). CLAUDE.md rules 1/6/10 + retired-palette are enforced mechanically (SWA-32 Slice 0).`);
   process.exit(1);
 }
-console.log(`[frontend-guards] CLEAN — ${targets.length} frontend file(s) checked (G1 MUI, G2 recharts, G3 Galaxy palette, G4 raw hex).`);
+console.log(`[frontend-guards] CLEAN — ${targets.length} frontend file(s) checked (G1 MUI, G2 recharts, G3 Galaxy palette, G4 raw hex, G5 css-helper, G6 300-line cap).`);
 process.exit(0);
