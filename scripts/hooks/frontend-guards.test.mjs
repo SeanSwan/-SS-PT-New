@@ -135,6 +135,14 @@ t('G5: a quoted brace inside an interpolation does not desync the scanner (H1-2.
   if (!/G5 css-helper-required/.test(r.out)) throw new Error(`later fragment was hidden: ${r.out}`);
 });
 
+t('G5: an UNQUOTED brace in an interpolation does not desync the scanner (H2-7)', () => {
+  // The H1 fix closed quoted braces but not object literals: `${fn({a:1}) && g}` let the
+  // object's `}` close the interpolation early, so `g` was never read.
+  writeFileSync(join(root, 'frontend', 'src', 'kf2.ts'), 'export const g = keyframes`x`;\n');
+  const r = guard('brace2.ts', 'const g = keyframes`x`;\nexport const t = `${fn({ a: 1 }) && g}`;\n');
+  if (r.code !== 1) throw new Error(`object literal desynced the scan: ${r.out}`);
+});
+
 // ---- G6: line cap --------------------------------------------------------
 // G6 is ADVISORY on purpose: 31 of a 250-file real sample are already over the cap, and
 // hard-failing would block a commit that touches one line of inherited debt (Rule 34).

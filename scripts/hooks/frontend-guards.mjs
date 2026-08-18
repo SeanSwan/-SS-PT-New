@@ -151,6 +151,7 @@ for (const { file, text } of targets) {
     const start = m.index + m[0].length - 1;
     let i = start + 1;
     let depth = 0;
+    let braces = 0;
     let expr = '';
     const exprs = [];
     while (i < text.length) {
@@ -168,6 +169,12 @@ for (const { file, text } of targets) {
         }
         expr += text[i] ?? ''; i += 1; continue;
       }
+      // GLM H2-7: the H1-2.5 fix closed QUOTES but not BRACES. An object literal inside an
+      // interpolation — `${fn({ a: 1 }) && g}` — let its own `}` close the interpolation
+      // early; the scan then truncated and identifiers after the brace were never read.
+      // Track nested braces so only the matching one closes the interpolation.
+      if (depth > 0 && c === '{') { braces += 1; expr += c; i += 1; continue; }
+      if (depth > 0 && c === '}' && braces > 0) { braces -= 1; expr += c; i += 1; continue; }
       if (depth > 0 && c === '}') { depth -= 1; if (depth === 0) exprs.push(expr); i += 1; continue; }
       if (depth > 0) { expr += c; i += 1; continue; }
       if (c === '`') break;
