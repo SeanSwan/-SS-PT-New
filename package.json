@@ -43,7 +43,8 @@
     "sentinel": "node scripts/tree-sentinel.mjs",
     "sentinel:fast": "node scripts/tree-sentinel.mjs --fast",
     "lint:token-discipline": "node scripts/ci/check-token-discipline.mjs",
-    "lint:swan-lens": "node scripts/ci/check-degalaxy.mjs && node scripts/ci/check-token-discipline.mjs"
+    "lint:swan-lens": "node scripts/ci/check-degalaxy.mjs && node scripts/ci/check-token-discipline.mjs",
+    "tokens:check": "node scripts/hooks/token-registry-check.mjs"
   },
   "devDependencies": {
     "fallow": "^2.88.3",
