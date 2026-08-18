@@ -107,6 +107,16 @@ function main() {
     ? fileArgs.filter((f) => existsSync(f)).map((f) => f.replace(/\\/g, '/'))
     : allFiles;
 
+  // GLM H3-F1: --file paths that do not exist were silently dropped, so a typo'd path
+  // scanned zero files and printed "CLEAN - every var() resolves" with exit 0. That is the
+  // SAME defect fixed in schema-drift-check's --model handling, alive in its sibling because
+  // I fixed one instance and never grepped for the class. Refuse to report on empty work.
+  if (fileArgs.length && targets.length === 0) {
+    console.error('token-registry-check: none of the --file paths exist — nothing was scanned. '
+      + 'Refusing to report CLEAN on an empty run.');
+    process.exit(2);
+  }
+
   const unknown = [];
   const drifted = [];
 
