@@ -117,16 +117,54 @@ shell script and writing a report.
 (`--help` confirms; the job record's `enabled_toolsets` field exists but has no supported writer).
 Cutting this needs an upstream mechanism or an unsupported hand-edit of `jobs.json` — not taken.
 
-### NEW SYSTEMIC FINDING — Hermes underestimates token cost by ~2.3×
+### ~~NEW SYSTEMIC FINDING — Hermes underestimates token cost by ~2.3×~~ — **RETRACTED**
 
-`_CONTEXT_FILE_CHARS_PER_TOKEN = 4` in `prompt_builder.py`. Measured against this model:
-100,410 request chars against a comparable run's 58,251 prompt tokens → **~1.72 chars/token**.
+**This claim was FALSE and is withdrawn.** It was published in commit `e8845e5f5` and is corrected
+here. Kimi round 2 (F2) called it "manufacturing precision" — deriving a correction factor from two
+*unpaired* measurements in a system with demonstrated 4× run-to-run variance. It was right.
 
-Every budget derived from that constant — including the `context_length × 4 × 0.06` context-file
-cap analysed in §3d — is therefore **~2.3× more expensive in real tokens than the code believes.**
-The "deliberate 6% budget" is nearer 14% in practice. This is the mechanism behind the overruns,
-and it is a runtime-wide issue, not specific to this job. (Ratio is approximate: the char count and
-the token count come from different runs of the same job shape.)
+**The decisive test** — tokenize the *exact captured payload* with the model's own tokenizer
+(`num_predict: 0`, read `prompt_eval_count`) instead of comparing across runs:
+
+| component | chars | real tokens | chars/token |
+|---|---|---|---|
+| system | 27,322 | 6,442 | **4.24** |
+| tools (21 defs) | 51,470 | 12,626 | **4.08** |
+| user | 21,618 | 9,712 | 2.23 |
+| **total** | 100,410 | **28,780** | **3.49** |
+
+`_CONTEXT_FILE_CHARS_PER_TOKEN = 4` is **accurate** — 4.24 and 4.08 on the two large blocks. The
+real underestimate is 28,780/25,102 = **1.15×, about 15%**, not 130%. The earlier 1.72 figure came
+from dividing one run's char count by a *different* run's token count. **The "6% budget is really
+14%" corollary is withdrawn with it.**
+
+### The decomposition's sample was unrepresentative (Kimi F3 — correct)
+
+`request_dump_*.json` files carry an `error` key and exist **only for failed runs** — the daily
+06:47 failures. No dump exists for any successful run, so the 51%/27%/22% split came from a run
+that died. Kimi called this availability sampling; that is exactly what it was.
+
+**What survives:** the tool-schema share holds in *token* units and gets slightly stronger —
+**12,626 of 28,780 tokens = 44%**, still the largest single component. The direction of the
+"tools dominate" finding stands; the specific 51% figure does not.
+
+### ⚠️ THE REAL OPEN QUESTION — most of the prompt is outside the captured request body
+
+The captured payload tokenizes to **28,780 tokens**. Runs report **41,407 – 87,608**. So between
+**12,000 and 59,000 tokens per run are not in the request body the runtime captured** — and that
+gap, not the facts payload and not the skills index, is what actually drives this job toward its
+ceiling.
+
+Candidates, none yet ruled out: session/conversation-history replay (Kimi's top prior — the
+20,645 run looks like a reset), chat-template and tool-call encoding overhead, memory injection, or
+an unreliable usage counter. **Cheapest discriminator** (Kimi F1): log the transport-layer request
+byte length beside `prompt_tokens` for five consecutive runs. If bytes track tokens the payload
+genuinely varies; if bytes are flat while tokens swing, the counter is lying and *every token figure
+in this document is void.*
+
+**Until that is settled, treat every prompt-token number here as unverified** — including the
+`134% → 63%` improvement, which is directionally supported by a measured 19,670 → 2,814 B payload
+cut but not by the token counts.
 
 ### CORRECTION — "the growth vector is the 128-skill system prompt" was WRONG
 
