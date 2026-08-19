@@ -19,6 +19,7 @@ import { decrypt } from './encryption/encryptionService.mjs';
 import { getPainTrendFacts, formatTrendFactsForPrompt } from './painTrendService.mjs';
 import { appendCoachActionProposalContract } from './ai/coachActionProposalPromptContract.mjs';
 import { buildIntakeCoverageBlock } from './ai/intakeCoverage.mjs';
+import { recordAiUsage, getAiUsageSummary } from './ai/aiUsageMeter.mjs';
 import { NUTRITION_CARE_COPY_RULES } from './nutrition/nutritionCareCopy.mjs';
 import {
   isNonDeductingClient,
@@ -2043,16 +2044,30 @@ export async function sendChatMessage(messages, options = {}) {
     try {
       const result = await callProvider(provider, messages, { maxTokens, temperature });
       failoverTrace.push(`${provider.name}:success`);
+
+      // SWA-179 slice 1: measure before routing. Cost is attributed to the
+      // provider that actually answered, not the one first attempted.
+      const { costUsd } = recordAiUsage({
+        provider: provider.name,
+        model: result.model,
+        tokenUsage: result.tokenUsage,
+        ok: true,
+      });
+
       return {
         ok: true,
         content: result.content,
         provider: provider.name,
         model: result.model,
         tokenUsage: result.tokenUsage,
+        estimatedCostUsd: costUsd,
         failoverTrace,
       };
     } catch (err) {
       failoverTrace.push(`${provider.name}:provider_error`);
+      // A failed call still consumed an attempt and often real input tokens.
+      // Counting only successes would make a flapping provider look free.
+      recordAiUsage({ provider: provider.name, model: null, tokenUsage: null, ok: false });
       logger.warn(`[AIChatService] ${provider.name} failed: ${err.message}`);
       continue;
     }
@@ -2239,6 +2254,9 @@ export function getAIChatDiagnostics() {
     active: activeNames,
     availableCount: active.length,
     primaryProvider: activeNames[0] || 'none',
+    // SWA-179: the cost baseline. `usage.unpricedModels` being non-empty means
+    // the cost table has drifted and every figure beside it under-reports.
+    usage: getAiUsageSummary(),
   };
 }
 
