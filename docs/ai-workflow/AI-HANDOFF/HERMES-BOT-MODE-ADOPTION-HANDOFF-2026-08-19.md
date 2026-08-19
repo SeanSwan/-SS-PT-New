@@ -87,6 +87,47 @@ resource call): the architecture supports 262,144; the Modelfile pins 65,536. Op
 **Related [P2]: `hermes-fast:latest` is a mutable tag** (GLM #8). One `ollama pull` silently swaps
 weights *and possibly the context ceiling* under the job. Pin by digest.
 
+### SLICE 2 (2026-08-19) — payload cut, and the prompt DECOMPOSED at last
+
+**Fixed:** the facts script emitted a raw listing of every pending memo filename — **17,889 of
+20,432 chars (87.5%) of the fact payload**, growing linearly with a backlog that is structural.
+Replaced with `pending count: N` + the 15 most recent. Script output **19,670 → 2,814 B**, exit 0
+preserved, and the briefing instruction only ever asked for "pending memo count and one-phrase
+topics", so this is closer to spec, not a loss.
+
+**Effect on the ceiling:** prompt tokens `87,608 (134%)` → `41,407 (63%)`. **But do not read that
+as fixed** — five consecutive runs measured 58,251 / 87,608 / 41,407 / 62,481 / 20,645. The spread
+is 20,645–87,608 and **one post-fix run still hit 95%**. The mean dropped; the variance did not.
+
+**The prompt, decomposed from the actual request payload** (`sessions/request_dump_*.json`, sizes
+only — these files are unredacted, Rule 59):
+
+| component | chars | share |
+|---|---|---|
+| **tool schemas (21 defs)** | **51,470** | **51%** |
+| system | 27,322 | 27% |
+| user (facts + instructions) | 21,618 | 22% |
+
+**Tool schemas are the single largest component — larger than the system prompt and the facts
+combined.** This is the third and final correction to the "growth vector" claim: not skills
+(13,097 B index), not facts (now 2,814 B) — *tools*, for a job whose only actions are running a
+shell script and writing a report.
+
+**Blocked, not deferred:** `hermes cron edit` and `cron create` expose **no per-job toolset flag**
+(`--help` confirms; the job record's `enabled_toolsets` field exists but has no supported writer).
+Cutting this needs an upstream mechanism or an unsupported hand-edit of `jobs.json` — not taken.
+
+### NEW SYSTEMIC FINDING — Hermes underestimates token cost by ~2.3×
+
+`_CONTEXT_FILE_CHARS_PER_TOKEN = 4` in `prompt_builder.py`. Measured against this model:
+100,410 request chars against a comparable run's 58,251 prompt tokens → **~1.72 chars/token**.
+
+Every budget derived from that constant — including the `context_length × 4 × 0.06` context-file
+cap analysed in §3d — is therefore **~2.3× more expensive in real tokens than the code believes.**
+The "deliberate 6% budget" is nearer 14% in practice. This is the mechanism behind the overruns,
+and it is a runtime-wide issue, not specific to this job. (Ratio is approximate: the char count and
+the token count come from different runs of the same job shape.)
+
 ### CORRECTION — "the growth vector is the 128-skill system prompt" was WRONG
 
 Measured from the cron's real cwd (`~/.hermes`), not the repo:
