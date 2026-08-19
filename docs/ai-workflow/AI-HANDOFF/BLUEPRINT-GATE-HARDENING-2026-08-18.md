@@ -342,6 +342,54 @@ R3/R4 are independent of each other and can land in any order after R1.
 
 ---
 
+## 7.5 REVIEW RESULTS — three models, and the hole none of us should have missed
+
+All three returned. **GLM and Kimi independently found the same structural defect**, which neither I nor HY3 caught.
+
+### The finding: running is not blocking
+
+> **GLM:** *"A workflow file makes CI run. It does not make CI blocking… You fixed 'the guard didn't travel' and left 'nobody has to pass the guard' unstated."*
+>
+> **Kimi (F-1, CRITICAL):** *"A workflow that runs but isn't required is the local hook defect reproduced one layer up — present, correct, and non-blocking."*
+
+Authority is **four repository settings**, not a file: the check listed as a *required status check*, direct pushes to `main` restricted, and so on. **None appear in my artifact table, and none are visible from a fresh clone — so `wiring.test.mjs` is structurally blind to all of them.**
+
+**This composes with §0.5 into the complete picture, and it is worse than either half:**
+
+| layer | state | consequence |
+|---|---|---|
+| CI executes | **dead** — 15/15 `startup_failure` | nothing runs |
+| CI can block | **impossible** — branch protection needs Pro on a private repo | nothing can be required |
+| workflow ≠ required check | true even with both fixed | running still would not block |
+
+**Enforcement is structurally unreachable on this repository's current plan.** Not "needs a build" — needs a plan change or public visibility. That is an owner decision and no amount of code moves it.
+
+### The best single idea from the round — Kimi F-3 (HIGH)
+
+> *"CI proves the gate is **installed**; nothing proves it still **detects**. A gate neutered to always exit 0 passes all four wiring assertions."*
+
+**Fix: a canary fixture.** A planted dead-ref file the gate must flag, asserting exit ≠ 0. One fixture separates *"the gate ran"* from *"the gate works"* — and this workstream already produced the precedent, when a CRLF bug made the checker report CLEAN over a broken corpus.
+
+### Remaining findings, all accepted into the design
+
+| ID | Severity | Finding | Disposition |
+|---|---|---|---|
+| Kimi F-2 | HIGH | **R2 has no enforcement surface** — no workflow is named that runs `verify-world-engine`, so the pinning is "an npm script wired to nothing, inside the blueprint that exists to fix that defect" | Name the job; assert its existence in the wiring test |
+| Kimi F-4 | MED | Wiring test matches **strings, not semantics** — satisfied by a commented-out job, a `paths:` filter matching nothing, and it cannot detect its own deletion | Strip comments; assert `on:` covers push+PR to `main`; assert every `paths:` entry resolves; self-deletion tripwire |
+| Kimi F-5 | MED | R2's state machine omits the **orphaned entry** — a renamed or deleted test silently drops its quarantine, no signal | An entry matching no executed test fails, same as unexpected green |
+| Kimi F-6 | MED | Both exemptions are **parsing-fragile** — an innocent heading rename re-breaks the gate on the commit that cured the disease | Explicit `<!-- does-not-exist:start/end -->` delimiters; marker scoped to line or fence; report exemption counts so marker-spam is visible |
+| Kimi F-7 | MED | The **unexpected-green message has no design** — "a gate that goes red *because a test passed* violates every agent's mental model of what red means." That is the 2am deletion moment | Spec the copy before build; steady-state output must distinguish expected-red from new-red |
+
+### What this does to the recommendation
+
+**Do not build R1 as an enforcement story.** It cannot be one here. The honest framing:
+
+- **R2, R3, R4 deliver real value with zero infrastructure** — they run locally and in any runner, they are loud, and they catch rot the moment someone runs them. Ship those.
+- **R1 becomes "make it easy and loud", not "make it enforced"** — until the owner decides on plan/visibility.
+- **Canon must say `npm run brain:links` is the invocation, and must not claim CI enforcement.** Writing "enforced by CI" while CI is dead would be the same defect a third time.
+
+---
+
 ## 8. WHAT I WANT FROM THIS REVIEW
 
 1. **Is the CI-authoritative / hook-convenience split right**, or is a hook that silently does nothing worse than no hook at all?
