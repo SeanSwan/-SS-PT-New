@@ -6,128 +6,128 @@
       "x": 0,
       "y": 0,
       "w": 1280,
-      "h": 2600
+      "h": 3400
     },
     {
       "file": "DawnApproach.dc.html",
       "title": "A2 · dawn approach",
-      "x": 1480,
+      "x": 1500,
       "y": 0,
       "w": 1280,
-      "h": 2600
+      "h": 3300
     },
     {
       "file": "HarborLights.dc.html",
       "title": "B1 · harbor lights",
-      "x": 2960,
+      "x": 3000,
       "y": 0,
       "w": 1280,
-      "h": 2600
+      "h": 2900
     },
     {
       "file": "TwoLanterns.dc.html",
       "title": "B2 · two lanterns",
-      "x": 4440,
+      "x": 4500,
       "y": 0,
       "w": 1280,
-      "h": 2600
+      "h": 3000
     },
     {
       "file": "InstrumentFlight.dc.html",
       "title": "C1 · instrument flight",
       "x": 0,
-      "y": 3380,
+      "y": 4300,
       "w": 1280,
-      "h": 2600
+      "h": 2900
     },
     {
       "file": "TheInstrument.dc.html",
       "title": "C2 · the instrument",
-      "x": 1480,
-      "y": 3380,
+      "x": 1500,
+      "y": 4300,
       "w": 1280,
-      "h": 2600
+      "h": 2900
     },
     {
       "file": "BeneathTheWaterline.dc.html",
       "title": "D1 · beneath the waterline",
-      "x": 2960,
-      "y": 3380,
+      "x": 3000,
+      "y": 4300,
       "w": 1280,
-      "h": 2600
+      "h": 3400
     },
     {
       "file": "VegasMile.dc.html",
       "title": "D2 · vegas mile",
-      "x": 4440,
-      "y": 3380,
+      "x": 4500,
+      "y": 4300,
       "w": 1280,
-      "h": 2600
+      "h": 3300
     }
   ],
   "annotations": [
     {
       "id": "note-a1",
       "x": 0,
-      "y": -456,
-      "w": 420,
-      "text": "A1 · A1-still-water\nVOLUME: quiet  |  LIGHT: warm-amber-in-blue\n\nThe surface is mirror-still until the cursor touches it, then the wake bends around the pointer — the water is listening. Reflected light continues past the video edge and moves across the type itself.\n\nTRADEOFF: Weakest product proof of the eight — THE LOOP must sell charts in almost no room, and an impatient visitor gets no spectacle to remember.\n\nREDUCED MOTION: Native. Remove cursor reactivity and the drift; a still frame with the amber reflection baked into the plate loses almost nothing — this is the only design whose fallback is nearly identical to the full version.\n\nfrom: GLM still-water (base) + Claude M1 (light-falls-on-type graft)"
+      "y": -494,
+      "w": 430,
+      "text": "A1 · A1-still-water\nVOLUME: quiet  |  LIGHT: warm amber in blue\n\nLAYOUT: ONE narrow centred column, no nav at all, huge air. Depth = 4 layers (ridge / figures / water / swan).\n\nPHENOMENON: The surface is mirror-still until the cursor touches it, then the wake bends around the pointer — the water is listening. Reflected light continues past the video edge and moves across the type itself.\n\nTRADEOFF: Weakest product proof of the eight — THE LOOP must sell charts in almost no room, and an impatient visitor gets no spectacle to remember.\n\nREDUCED MOTION: Native. Remove cursor reactivity and the drift; a still frame with the amber reflection baked into the plate loses almost nothing — this is the only design whose fallback is nearly identical to the full version."
     },
     {
       "id": "note-a2",
-      "x": 1480,
-      "y": -418,
-      "w": 420,
-      "text": "A2 · A2-dawn-approach\nVOLUME: quiet  |  LIGHT: dawn (deep-night sapphire warming to amber horizon by chapter 3)\n\nThe lake reflection is a live-inverted, blur-shifted duplicate of the video layer — the water responds to the footage with no second asset.\n\nTRADEOFF: Weakest at trainer recruitment — the mood is so trainee-emotional that the business case lands late and soft.\n\nREDUCED MOTION: The light progression becomes per-chapter static plates (night / warming / amber). The parallax silhouettes flatten to a single baked layer. Arc survives; motion does not.\n\nfrom: Kimi dawn-approach"
+      "x": 1500,
+      "y": -437,
+      "w": 430,
+      "text": "A2 · A2-dawn-approach\nVOLUME: quiet  |  LIGHT: dawn\n\nLAYOUT: Full-width alternating BANDS that warm as you descend; content zig-zags left/right. Sticky gradient progress bar. 5 depth layers.\n\nPHENOMENON: The lake reflection is a live-inverted, blur-shifted duplicate of the video layer — the water responds to the footage with no second asset.\n\nTRADEOFF: Weakest at trainer recruitment — the mood is so trainee-emotional that the business case lands late and soft.\n\nREDUCED MOTION: The light progression becomes per-chapter static plates (night / warming / amber). The parallax silhouettes flatten to a single baked layer. Arc survives; motion does not."
     },
     {
       "id": "note-b1",
-      "x": 2960,
-      "y": -399,
-      "w": 420,
-      "text": "B1 · B1-harbor-lights\nVOLUME: people-first  |  LIGHT: dusk\n\nEvery lit window maps to a real workout logged on the platform tonight — the skyline's brightness IS the community's activity.\n\nTRADEOFF: GLM's own warning, accepted: the activity-driven skyline goes dead-static at launch with no user data, and the warmth can bury the product's craft. Needs a designed empty state.\n\nREDUCED MOTION: Swans land as a static populated composition rather than accumulating; windows use a fixed lit pattern rather than live activity.\n\nfrom: GLM harbor-lights"
+      "x": 3000,
+      "y": -437,
+      "w": 430,
+      "text": "B1 · B1-harbor-lights\nVOLUME: people-first  |  LIGHT: dusk\n\nLAYOUT: Left rail nav + a WALL of lit windows; the skyline IS the activity feed. 5 depth layers, 14 drawn figures.\n\nPHENOMENON: Every lit window maps to a real workout logged on the platform tonight — the skyline's brightness IS the community's activity.\n\nTRADEOFF: GLM's own warning, accepted: the activity-driven skyline goes dead-static at launch with no user data, and the warmth can bury the product's craft. Needs a designed empty state.\n\nREDUCED MOTION: Swans land as a static populated composition rather than accumulating; windows use a fixed lit pattern rather than live activity."
     },
     {
       "id": "note-b2",
-      "x": 4440,
+      "x": 4500,
       "y": -513,
-      "w": 420,
-      "text": "B2 · B2-two-lanterns\nVOLUME: people-first  |  LIGHT: cold-crystalline-with-warm-windows\n\nOne video element is CSS-masked into three disjoint regions (hero river, mid-page slit, fork backdrop) so a single swan appears to swim continuously down the whole page.\n\nTRADEOFF: Worst cinematic range — the rigid split-grid caps how big any single moment can get, and THE PROOF feels cramped. NOTE F7: the tall crop yields ~540px of real width; expect softness or substitute a generated plate.\n\nREDUCED MOTION: The masked-swim illusion is the design; without motion the three regions become three still crops of the same frame, which still reads as one continuous river. Survives well.\n\nfrom: Kimi two-lanterns + Claude M3-plaza (warm-window lighting regrade, so the pair contrasts with B1)"
+      "w": 430,
+      "text": "B2 · B2-two-lanterns\nVOLUME: people-first  |  LIGHT: cold crystalline, warm windows\n\nLAYOUT: Strict THREE columns with a sticky 420px river of video down the middle and a door panel on each flank.\n\nPHENOMENON: One video element is CSS-masked into three disjoint regions (hero river, mid-page slit, fork backdrop) so a single swan appears to swim continuously down the whole page.\n\nTRADEOFF: Worst cinematic range — the rigid split-grid caps how big any single moment can get, and THE PROOF feels cramped. NOTE F7: the tall crop yields ~540px of real width; expect softness or substitute a generated plate.\n\nREDUCED MOTION: The masked-swim illusion is the design; without motion the three regions become three still crops of the same frame, which still reads as one continuous river. Survives well."
     },
     {
       "id": "note-c1",
       "x": 0,
-      "y": 2962,
-      "w": 420,
-      "text": "C1 · C1-instrument-flight\nVOLUME: product-forward  |  LIGHT: cold-crystalline\n\nMoving the cursor through the wake re-plots the trend line live, ice crystallising along the new curve.\n\nTRADEOFF: Coldest read of the eight — 'homey' is at real risk and a non-technical trainee may feel lectured by instruments rather than welcomed.\n\nREDUCED MOTION: The wake-chart renders as a finished static plot; the sticky rail becomes a normal column. Legible, but the central idea (the chart being DRAWN by flight) is lost — this design loses the most in fallback of the product-forward pair.\n\nfrom: GLM instrument-flight"
+      "y": 3844,
+      "w": 430,
+      "text": "C1 · C1-instrument-flight\nVOLUME: product-forward  |  LIGHT: cold crystalline\n\nLAYOUT: Nine/three split with a STICKY telemetry rail; the flight path IS the chart. Data reads as instruments.\n\nPHENOMENON: Moving the cursor through the wake re-plots the trend line live, ice crystallising along the new curve.\n\nTRADEOFF: Coldest read of the eight — 'homey' is at real risk and a non-technical trainee may feel lectured by instruments rather than welcomed.\n\nREDUCED MOTION: The wake-chart renders as a finished static plot; the sticky rail becomes a normal column. Legible, but the central idea (the chart being DRAWN by flight) is lost — this design loses the most in fallback of the product-forward pair."
     },
     {
       "id": "note-c2",
-      "x": 1480,
-      "y": 2886,
-      "w": 420,
-      "text": "C2 · C2-the-instrument\nVOLUME: product-forward  |  LIGHT: dusk\n\nThe chart's line is made of the same light as the water — data and world are one substance. The hero's telemetry and THE PROOF's charts are driven by ONE dataset, so the page's data feels continuous rather than decorative.\n\nTRADEOFF: Most likely of the eight to convert a skeptical trainer and least likely to make anyone feel anything; risks becoming a SaaS page wearing a swan.\n\nREDUCED MOTION: The chart appears already drawn, with the light-substance treatment baked in. Loses the reveal, keeps the idea — the strongest fallback of the product-forward pair.\n\nfrom: Claude M4 (base) + Kimi glass-console (shared-dataset graft), regraded to dusk so the pair contrasts with C1"
+      "x": 1500,
+      "y": 3844,
+      "w": 430,
+      "text": "C2 · C2-the-instrument\nVOLUME: product-forward  |  LIGHT: dusk\n\nLAYOUT: Fifty/fifty SPLIT: the left half is fixed and never moves while the right half scrolls past it.\n\nPHENOMENON: The chart's line is made of the same light as the water — data and world are one substance. The hero's telemetry and THE PROOF's charts are driven by ONE dataset, so the page's data feels continuous rather than decorative.\n\nTRADEOFF: Most likely of the eight to convert a skeptical trainer and least likely to make anyone feel anything; risks becoming a SaaS page wearing a swan.\n\nREDUCED MOTION: The chart appears already drawn, with the light-substance treatment baked in. Loses the reveal, keeps the idea — the strongest fallback of the product-forward pair."
     },
     {
       "id": "note-d1",
-      "x": 2960,
-      "y": 2848,
-      "w": 420,
-      "text": "D1 · D1-beneath-the-waterline\nVOLUME: full-cinematic  |  LIGHT: deep-night rising to dawn — the dive descends through night and SURFACES into morning at THE FORK\n\nThe waterline never leaves — surface light refracts down through every chapter, and a set logged in THE LOOP sends a ripple upward that crosses the hero's horizon.\n\nTRADEOFF: The entire premise rests on desktop motion, and it needs the 23.976fps interpolation cost owned up front (F7).\n\nREDUCED MOTION: GLM's own warning, accepted as a requirement: this must ship as a DIFFERENT, still-art-directed page — six full-bleed static plates, one per chapter, carrying the same night-to-dawn arc — not as a long dark scroll with the motion switched off.\n\nfrom: GLM beneath-the-waterline (base) + Claude M2 (surface-into-dawn arc graft, which also differentiates it from D2)"
+      "x": 3000,
+      "y": 3806,
+      "w": 430,
+      "text": "D1 · D1-beneath-the-waterline\nVOLUME: full-cinematic  |  LIGHT: deep night rising to dawn\n\nLAYOUT: Full-bleed STRATA with depth markings (-12m ... -61m), diving through night and surfacing into dawn at the fork.\n\nPHENOMENON: The waterline never leaves — surface light refracts down through every chapter, and a set logged in THE LOOP sends a ripple upward that crosses the hero's horizon.\n\nTRADEOFF: The entire premise rests on desktop motion, and it needs the 23.976fps interpolation cost owned up front (F7).\n\nREDUCED MOTION: GLM's own warning, accepted as a requirement: this must ship as a DIFFERENT, still-art-directed page — six full-bleed static plates, one per chapter, carrying the same night-to-dawn arc — not as a long dark scroll with the motion switched off."
     },
     {
       "id": "note-d2",
-      "x": 4440,
-      "y": 2886,
-      "w": 420,
-      "text": "D2 · D2-vegas-mile\nVOLUME: full-cinematic  |  LIGHT: deep-night (obsidian base, wing-purple + ice-wing neon, gilded-fern as warm window light)\n\nNeon casts real-time blurred colour reflections onto a wet-pavement gradient layer that shifts with scroll velocity — the street feels rained-on.\n\nTRADEOFF: Highest performance risk of the eight and the worst reduced-motion story; also the furthest from 'homey' — closest to Sean's stated Las Vegas reference but at the cost of warmth.\n\nREDUCED MOTION: Kimi's own warning, accepted as a requirement: strip the scroll-binding and this collapses into the exact 14-equal-sections sin the run exists to cure. The fallback must be six deliberately different-sized static blocks, art-directed as a sequence, or this design is disqualified.\n\nfrom: Kimi vegas-mile"
+      "x": 4500,
+      "y": 3825,
+      "w": 430,
+      "text": "D2 · D2-vegas-mile\nVOLUME: full-cinematic  |  LIGHT: deep night neon\n\nLAYOUT: Marquee bulb strip, neon signage blocks, wet-pavement reflections. The loudest of the eight.\n\nPHENOMENON: Neon casts real-time blurred colour reflections onto a wet-pavement gradient layer that shifts with scroll velocity — the street feels rained-on.\n\nTRADEOFF: Highest performance risk of the eight and the worst reduced-motion story; also the furthest from 'homey' — closest to Sean's stated Las Vegas reference but at the cost of warmth.\n\nREDUCED MOTION: Kimi's own warning, accepted as a requirement: strip the scroll-binding and this collapses into the exact 14-equal-sections sin the run exists to cure. The fallback must be six deliberately different-sized static blocks, art-directed as a sequence, or this design is disqualified."
     },
     {
       "id": "run-manifest",
-      "x": -520,
+      "x": -560,
       "y": 0,
-      "w": 460,
-      "text": "EIGHT-DESIGN RUN — 2026-08-19\n\nPrimary axis: VOLUME of the swans moment.\nSecond lever: LIGHTING.\nRow 1 = quiet + people-first. Row 2 = product-forward + full-cinematic.\n\nSHARED BY ALL EIGHT (do not vary):\n• copy verbatim from copy-pack.json — gold tags mark new copy needing Sean's approval\n• 6 chapters: WORLD / MANIFESTO / LOOP / PROOF / FORK / FOOTER\n• living world at distance, real people IN it\n• two EQUAL doors, forking late\n• Swans.mp4 kept — 23.976fps, 25.2s, 17.1MB, loop-seam SSIM 0.694 (does NOT loop cleanly)\n• THE PROOF is dual-track: human evidence + trainer economics\n\nPlates are placeholders. Real backgrounds come from the 30-prompt pack via forge.mjs."
+      "w": 480,
+      "text": "EIGHT DIRECTIONS — REFACTOR v2 (2026-08-19)\n\nv1 was rejected: one template, eight colour swaps. The gate had measured the JSON skeletons, not the rendered pages.\n\nWHAT CHANGED\n• Eight INDEPENDENT layout functions — different nav, grid, hero, chapter arrangement.\n• REAL parallax: CSS perspective + translateZ, 4-6 drawn depth layers per board. No stock plates.\n• People are DRAWN into the world now, not asserted in a text field.\n• SwanStudios is not only training: Dance, Art & Visual Expression, Vocal & Sound Work, Photography & Graphic Design, Community — copy verbatim from CreativeExpressionSection.tsx, which is BUILT but not mounted in HomePage.V4.\n\nSHARED (never varies): the copy pack, the six chapters, two equal doors, the 15%/$1,000 economics, the H3 credit.\n\nGold tags = new copy needing Sean's approval."
     }
   ],
   "launch": {

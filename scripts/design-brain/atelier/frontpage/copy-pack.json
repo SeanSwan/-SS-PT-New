@@ -15,5 +15,16 @@
     "golf_title": "Golf Performance Program",
     "cta_title": "Ready to Be Part of Something Real?",
     "cta_body": "Your health journey deserves a permanent home. Your trainer deserves a fair platform. Your community deserves to own itself. SwanStudios is where all of it lives."
+  },
+  "creative_source": "frontend/src/pages/HomePage/components/CreativeExpressionSection.tsx (464 lines) — BUILT but NOT mounted in HomePage.V4. Sean 2026-08-19: 'it's not just training. It's music, comedy, singing, photography, graphic design.' His approved manifesto already says 'celebrates your creativity'.",
+  "creative": {
+    "dance_title": "Dance",
+    "dance_desc": "Unleash your power through rhythm. Express your warrior spirit through movement that connects your body to your soul.",
+    "art_title": "Art & Visual Expression",
+    "art_desc": "Channel your intensity onto the canvas. Transform your inner fire into visual masterpieces that tell your transformation story.",
+    "vocal_title": "Vocal & Sound Work",
+    "vocal_desc": "Find the strength in your own voice. Unleash the power within through vocal techniques that amplify your inner warrior.",
+    "community_title": "Community & Heart",
+    "community_desc": "Connect with a tribe that shares your fire. Plug into a global family that grinds together, grows together, and celebrates every single victory. No more training alone!"
   }
 }
