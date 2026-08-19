@@ -19,6 +19,12 @@
  *                    decides whether the Desk is worth building at all. If it is
  *                    near zero, Kimi K3's dissent wins: two lanes and a rule, no tool.
  *
+ * THE ONLY HONEST NUMBER THIS HARNESS EVER PRODUCED WAS ITS FIRST ONE.
+ * Untuned first run, 2026-08-16: **50.0% block recall, 15.4% false blocks.**
+ * Everything it prints now (81.8% / 0.0%) is what the code scores after being fixed
+ * against this very corpus — a fit, not a measurement. Quote both or neither. Re-earning
+ * an independent number needs a corpus written by someone who has not read `lexicon.mjs`.
+ *
  * Hard invariants (exit 1): a refusal must never emit outbound text, and no roster
  * name or canary may ever appear in outbound text.
  */
