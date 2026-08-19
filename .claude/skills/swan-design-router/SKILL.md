@@ -167,6 +167,16 @@ order tell the story of a member getting stronger.
 ## Decision procedure — every UI task
 
 **Step 0 — Classify:** NET-NEW / REDESIGN / AUDIT / ASSET.
+**Step 0.5 — HARVEST (hard gate, `docs/ai-workflow/design-brain/asset-harvest.md`):**
+the repo is the first plate. Before any concept, produce the **Asset Manifest** —
+brand marks, existing imagery, motion already shipped, media measured, approved copy,
+resolved tokens — each a real path or an explicit `NONE FOUND (searched: <globs>)`
+**validated by listing the directory**, never by a bare `find` (a wrong glob and a
+missing file are indistinguishable). If you can see images, LOOK at the brand mark and
+record its geometric language; Swan's is **low-poly faceted**, and that is a page-wide
+language, not a corner logo. **A design that could have been produced without opening
+the repo is disqualified.** Harvest beats generation — invent a placeholder only for
+what the product genuinely lacks, and tag it visibly.
 **Step 1 — Locate:** surface class (public vs in-app), route, data contract — real
 API + model, or flag **NEW BACKEND**.
 **Step 2 — Direction (Gate 0):** for NET-NEW pages + major redesigns, run the
@@ -261,6 +271,8 @@ hardcode `p.theme.colors.*` hex; CLAUDE.md Rule 46 + the shipped architecture wi
 |---|---|
 | `SWAN-CINEMATIC-DESIGN-SYSTEM.md` | Cinematic/public builds; deep palette + motion values |
 | `SWAN-ASSET-STORYBOARDING.md` | Any generated/commissioned media |
+| `docs/ai-workflow/design-brain/asset-harvest.md` | **Step 0.5 gate — load on EVERY design task, before concepting.** Asset Manifest, brand-mark-is-the-design-system, absence-claim validation, regression check |
+| `docs/ai-workflow/design-brain/adapters/claude-code.md` | You are Claude Code — additive on top of `builders.md`: view assets/surfaces directly, own the canvas (base64 keying, 70 KB/image cap, `{{token}}` is a prop not a bug), verify against the generator. Codex skips this file; its contract is `builders.md` alone |
 | `docs/ai-workflow/design-brain/design.md` | The Crystalline Canon — **sole canonical copy** (the `design.html` mirror was retired 2026-08-16; no second file to reconcile). Still ADAPTS the two source-of-truth docs above — "sole" means one copy, not top of the precedence chain |
 | `design.md.pre-redo` / `SKILL.md.pre-redo` | Historical context only |
 

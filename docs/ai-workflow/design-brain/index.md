@@ -25,6 +25,7 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | `motion.md` | Motion tiers, GPU-safe rules, reduced-motion gating (CSS + JS), duration/easing tokens, motion bans, signature-moment budget |
 | `components.md` | Component pattern index — purpose / anatomy / states / do–don't / C1–C12 mapping for every canonical pattern |
 | `anti-patterns.md` | The banned list with WHY per item |
+| `asset-harvest.md` | **The pre-design gate — "the repo is the first plate."** Harvest the real brand marks, imagery, shipped motion, media measurements, copy and tokens BEFORE concepting; the Asset Manifest, the brand-mark-is-the-design-system rule, absence-claim validation, and the regression check that stops a mockup being less capable than the page it replaces |
 | `qa-gates.md` | Consolidated responsive + accessibility + visual QA gates with self-applicable pass/fail checks and the QA receipt format |
 | `external-reference-mcp.md` | Mobbin/Mobbin-like shipped-product reference gate; principles-only intake, never a source-of-truth override |
 | `worlds.md` | World Engine catalog: 18 immutable World DNA recipes, family manifest, palette laws, suitability-filtered seeded roulette |
@@ -55,7 +56,8 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | File | Purpose |
 |---|---|
 | `adapters/index.md` | Adapter map + which agent reads which |
-| `adapters/builders.md` | Builder-agent adapter. **Consolidation note: the separately-spec'd claude-code + codex adapters are merged into this one file** — both builders follow identical rules (styled-components-first, rule 43 `css``` helper, lane claims per rule 67) |
+| `adapters/builders.md` | Builder-agent adapter — the **shared** contract both builders load (styled-components-first, rule 43 `css``` helper, lane claims per rule 67). **Consolidation note (amended 2026-08-19): the merge holds for BUILDING; it was partially reversed for DESIGNING — see `adapters/claude-code.md` and `adapters/index.md` §3.1** |
+| `adapters/claude-code.md` | Claude-Code-only layer, **additive on top of `builders.md`** — carries only what Codex cannot execute: viewing brand assets and surfaces directly (`Read` renders images), owning the design canvas + publish path, verifying against the generator. No separate Codex adapter exists by design: a Codex session is this brain *without* this layer |
 | `adapters/fable.md` | Fable as design-synthesis + final-arbitration brain (per 030 spec: directions and hostile review, not unsupervised implementation) |
 | `adapters/hermes.md` | Hermes operator surfaces — Crystalline Cyberforest mode scope, T0–T4 tier badges, calm-motion mandate |
 | `adapters/reviewers.md` | Hostile-review adapter (Codex/Gemini/triangle) — what to attack, verdict format |
