@@ -1,0 +1,147 @@
+{
+  "brief_id": "frontpage-8run-2026-08-19",
+  "archetype_base": "living-world-front-page",
+  "plate_pack_id": "pack-swan-front-01",
+  "copy_pack_id": "copy-swan-front-01",
+  "n": 8,
+  "authorship": "Claude Opus 5 (author). Design peers: GLM-5.3, Kimi K3. Graft-never-merge: each skeleton names its source lineage; ideas are grafted whole, never averaged.",
+  "primary_axis": "volume of the swans moment",
+  "secondary_lever": "lighting range",
+  "shared_constants": {
+    "chapter_count": 6,
+    "chapters": ["THE WORLD", "THE MANIFESTO", "THE LOOP", "THE PROOF", "THE FORK", "FOOTER"],
+    "world_literalism": "living world at distance, real people IN it, resolving inward (D8)",
+    "audience": "one story, two EQUAL doors, forking late (D3)",
+    "copy": "verbatim from copy-pack.json; any new line tagged [new copy - needs Sean approval]",
+    "hero_asset": "Swans.mp4 — KEPT always",
+    "media_slots": "every media position is a named swappable slot; generated default + optional real override (D9)"
+  },
+  "hero_asset_facts_all_designs_must_respect": {
+    "source": "F7 — measured 2026-08-19 from https://sswanstudios.com/Swans.mp4",
+    "resolution": "1920x1080 (16:9)",
+    "fps": 23.976,
+    "duration_s": 25.23,
+    "bytes": 17912742,
+    "audio": "none (autoplay-safe)",
+    "loop_seam_ssim": 0.694,
+    "consequences": [
+      "DOES NOT loop cleanly — no design may specify a naive loop. Use crossfade/ping-pong, fade-out, a trimmed sub-range, or scroll-scrub (which never loops).",
+      "23.976fps is LOW for scroll-scrub — any scrubbing design must interpolate toward ~60fps and own that cost.",
+      "17.1MB is a heavy hero — every design must specify a poster frame and a lower-bitrate mobile rendition.",
+      "Tall crops from 16:9 1080p yield ~540px width — designs cropping to a column must accept softness or accept a regenerated plate instead."
+    ]
+  },
+  "mandatory_per_design_fields_from_hostile_review": {
+    "reduced_motion_fallback": "REQUIRED. Kimi finding 3: the fallback for a scroll-bound page is a different, worse website that nobody designs. Each skeleton states its own.",
+    "proof_is_dual_track": "REQUIRED. Kimi finding 2: trainees need human before/after evidence; trainers need economics. THE PROOF serves both or D3's 'equal doors' is a slogan.",
+    "economics_copy_slot": "REQUIRED. Kimi finding 1: the 15%-capped/no-monthly-fee promise currently has no chapter, no slot and no copy. Tagged [new copy - needs Sean approval].",
+    "no_generated_faces_in_proof": "REQUIRED. Kimi finding 8: generated swans fine, impressionistic mid-layer humans defensible, generated faces in THE PROOF fatal on a platform selling real connection.",
+    "charts_use_labelled_demo_data": "REQUIRED. Kimi finding 6 + S3: never a real member's numbers; a clearly-labelled demo dataset by design, so the artboard and the shipped page agree."
+  },
+  "skeletons": [
+    {
+      "id": "A1-still-water",
+      "lineage": "GLM still-water (base) + Claude M1 (light-falls-on-type graft)",
+      "volume": "quiet",
+      "lighting": "warm-amber-in-blue",
+      "nav_model": "no-nav-until-scroll",
+      "hero_mechanics": "Swans.mp4 near-full-bleed, one unbroken slow drift; the only motion is water, light and the cursor. One line of type low-left.",
+      "grid": "12col-asymmetric-7-5",
+      "phenomenon": "The surface is mirror-still until the cursor touches it, then the wake bends around the pointer — the water is listening. Reflected light continues past the video edge and moves across the type itself.",
+      "anti_specs": ["no parallax deeper than 2 layers — depth is focus falloff, not stacking", "no motion not caused by water, light or cursor", "no chapter taller than 1.5 viewports"],
+      "reduced_motion_fallback": "Native. Remove cursor reactivity and the drift; a still frame with the amber reflection baked into the plate loses almost nothing — this is the only design whose fallback is nearly identical to the full version.",
+      "tradeoff": "Weakest product proof of the eight — THE LOOP must sell charts in almost no room, and an impatient visitor gets no spectacle to remember."
+    },
+    {
+      "id": "A2-dawn-approach",
+      "lineage": "Kimi dawn-approach",
+      "volume": "quiet",
+      "lighting": "dawn (deep-night sapphire warming to amber horizon by chapter 3)",
+      "nav_model": "no-nav-until-scroll; slim top bar fades in after chapter 1",
+      "hero_mechanics": "Swans.mp4 full-bleed at dawn light, swans drifting left-to-right across a still lake, with three parallax layers of distant human silhouettes behind them.",
+      "grid": "12col-centered-6 widening to 8 at THE PROOF",
+      "phenomenon": "The lake reflection is a live-inverted, blur-shifted duplicate of the video layer — the water responds to the footage with no second asset.",
+      "anti_specs": ["no hard cuts — every chapter transition is a light change", "no silhouette resolves to a face before THE PROOF", "no cold blue after chapter 3 — the page only warms"],
+      "reduced_motion_fallback": "The light progression becomes per-chapter static plates (night / warming / amber). The parallax silhouettes flatten to a single baked layer. Arc survives; motion does not.",
+      "tradeoff": "Weakest at trainer recruitment — the mood is so trainee-emotional that the business case lands late and soft."
+    },
+    {
+      "id": "B1-harbor-lights",
+      "lineage": "GLM harbor-lights",
+      "volume": "people-first",
+      "lighting": "dusk",
+      "nav_model": "side-rail-left",
+      "hero_mechanics": "Swans descend INTO a dusk waterfront of lit windows where tiny impressionistic people train; each scroll beat lands one more swan among them until the harbor is populated.",
+      "grid": "12col-interleaved-8-4, human vignettes breaking the right margin",
+      "phenomenon": "Every lit window maps to a real workout logged on the platform tonight — the skyline's brightness IS the community's activity.",
+      "anti_specs": ["no face larger than 15% of viewport before THE PROOF", "no swan alone after chapter 1 — every swan shares the frame with people", "no caption on a human moment beyond name + goal, approval-tagged"],
+      "reduced_motion_fallback": "Swans land as a static populated composition rather than accumulating; windows use a fixed lit pattern rather than live activity.",
+      "tradeoff": "GLM's own warning, accepted: the activity-driven skyline goes dead-static at launch with no user data, and the warmth can bury the product's craft. Needs a designed empty state."
+    },
+    {
+      "id": "B2-two-lanterns",
+      "lineage": "Kimi two-lanterns + Claude M3-plaza (warm-window lighting regrade, so the pair contrasts with B1)",
+      "volume": "people-first",
+      "lighting": "cold-crystalline-with-warm-windows",
+      "nav_model": "side-rail-left with chapter dots (WORLD/MANIFESTO/LOOP/PROOF/FORK), collapsing to a bottom bar on mobile",
+      "hero_mechanics": "Swans.mp4 cropped into a tall central 'river' column flanked by two equal glowing door-panels — Join the Community and Find a Trainer — that brighten on approach.",
+      "grid": "split-grid 3-6-3, the river column fixed",
+      "phenomenon": "One video element is CSS-masked into three disjoint regions (hero river, mid-page slit, fork backdrop) so a single swan appears to swim continuously down the whole page.",
+      "anti_specs": ["never breaks the three-column rhythm", "no full-bleed video anywhere", "the two doors are pixel-identical in weight at every breakpoint"],
+      "reduced_motion_fallback": "The masked-swim illusion is the design; without motion the three regions become three still crops of the same frame, which still reads as one continuous river. Survives well.",
+      "tradeoff": "Worst cinematic range — the rigid split-grid caps how big any single moment can get, and THE PROOF feels cramped. NOTE F7: the tall crop yields ~540px of real width; expect softness or substitute a generated plate."
+    },
+    {
+      "id": "C1-instrument-flight",
+      "lineage": "GLM instrument-flight",
+      "volume": "product-forward",
+      "lighting": "cold-crystalline",
+      "nav_model": "floating-dock-bottom",
+      "hero_mechanics": "A single swan flies a precise instrument pattern through cold night air and its wake IS a line chart — the flight path plots a strength curve as it banks.",
+      "grid": "12col 9-3 with a sticky data rail",
+      "phenomenon": "Moving the cursor through the wake re-plots the trend line live, ice crystallising along the new curve.",
+      "anti_specs": ["never a dashboard grid — data appears as constellations, plaques and in-world instruments", "no device mockups or screenshots", "no chart without a named owner attached"],
+      "reduced_motion_fallback": "The wake-chart renders as a finished static plot; the sticky rail becomes a normal column. Legible, but the central idea (the chart being DRAWN by flight) is lost — this design loses the most in fallback of the product-forward pair.",
+      "tradeoff": "Coldest read of the eight — 'homey' is at real risk and a non-technical trainee may feel lectured by instruments rather than welcomed."
+    },
+    {
+      "id": "C2-the-instrument",
+      "lineage": "Claude M4 (base) + Kimi glass-console (shared-dataset graft), regraded to dusk so the pair contrasts with C1",
+      "volume": "product-forward",
+      "lighting": "dusk",
+      "nav_model": "no-nav-until-scroll",
+      "hero_mechanics": "Swans dimmed and held behind; a real progress chart draws itself in the foreground as the page settles, line by line.",
+      "grid": "12col-split-5-7",
+      "phenomenon": "The chart's line is made of the same light as the water — data and world are one substance. The hero's telemetry and THE PROOF's charts are driven by ONE dataset, so the page's data feels continuous rather than decorative.",
+      "anti_specs": ["no screenshot chrome, browser frames or device mockups", "no floating UI cards or dashboard-preview framing", "the chart is never a static image — it must draw"],
+      "reduced_motion_fallback": "The chart appears already drawn, with the light-substance treatment baked in. Loses the reveal, keeps the idea — the strongest fallback of the product-forward pair.",
+      "tradeoff": "Most likely of the eight to convert a skeptical trainer and least likely to make anyone feel anything; risks becoming a SaaS page wearing a swan."
+    },
+    {
+      "id": "D1-beneath-the-waterline",
+      "lineage": "GLM beneath-the-waterline (base) + Claude M2 (surface-into-dawn arc graft, which also differentiates it from D2)",
+      "volume": "full-cinematic",
+      "lighting": "deep-night rising to dawn — the dive descends through night and SURFACES into morning at THE FORK",
+      "nav_model": "chapter-dot-rail-right, collapsing to a top progress bar on mobile",
+      "hero_mechanics": "Swans.mp4 plays at the surface; scrolling dives beneath the waterline through light shafts and deep night, resolving at depth on one full-size human moment, then rising into dawn for THE FORK.",
+      "grid": "full-bleed chapters, each owning its interior grid (prose 7-5, data 9-3, fork 6-6)",
+      "phenomenon": "The waterline never leaves — surface light refracts down through every chapter, and a set logged in THE LOOP sends a ripple upward that crosses the hero's horizon.",
+      "anti_specs": ["no scroll-jacking or snap traps — native scroll, damped and escapable", "no video after the hero — depth layers are D9 slots, generated stills and canvas only", "no large human figure before THE PROOF"],
+      "reduced_motion_fallback": "GLM's own warning, accepted as a requirement: this must ship as a DIFFERENT, still-art-directed page — six full-bleed static plates, one per chapter, carrying the same night-to-dawn arc — not as a long dark scroll with the motion switched off.",
+      "tradeoff": "The entire premise rests on desktop motion, and it needs the 23.976fps interpolation cost owned up front (F7)."
+    },
+    {
+      "id": "D2-vegas-mile",
+      "lineage": "Kimi vegas-mile",
+      "volume": "full-cinematic",
+      "lighting": "deep-night (obsidian base, wing-purple + ice-wing neon, gilded-fern as warm window light)",
+      "nav_model": "no-nav-until-scroll, then a marquee-style top strip with chapter names in lit-bulb styling",
+      "hero_mechanics": "Swans.mp4 is the marquee of a nighttime boulevard; each chapter is a block of the street with its own lighting state, and scrolling drives down the mile.",
+      "grid": "horizontal-block sequence rendered as vertical scroll, each block full-bleed",
+      "phenomenon": "Neon casts real-time blurred colour reflections onto a wet-pavement gradient layer that shifts with scroll velocity — the street feels rained-on.",
+      "anti_specs": ["no daylight anywhere", "no chapter without its own distinct light temperature", "never shows the whole street at once — always mid-block"],
+      "reduced_motion_fallback": "Kimi's own warning, accepted as a requirement: strip the scroll-binding and this collapses into the exact 14-equal-sections sin the run exists to cure. The fallback must be six deliberately different-sized static blocks, art-directed as a sequence, or this design is disqualified.",
+      "tradeoff": "Highest performance risk of the eight and the worst reduced-motion story; also the furthest from 'homey' — closest to Sean's stated Las Vegas reference but at the cost of warmth."
+    }
+  ]
+}

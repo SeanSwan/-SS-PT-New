@@ -1,0 +1,71 @@
+{
+  "author": "claude-opus-5",
+  "brief_id": "frontpage-8run-2026-08-19",
+  "note": "Authored BEFORE reading GLM/Kimi returns, so the fusion has three independent sources rather than two plus an echo.",
+  "directions": [
+    {
+      "id": "M1-still-water",
+      "nav_model": "no-nav-until-scroll",
+      "hero_mechanics": "Swans.mp4 near-full-bleed and almost motionless; one line of type low-left; world layers drift so slowly the movement is felt rather than seen",
+      "chapter_count": 6,
+      "grid": "12col-centered-6",
+      "volume": "quiet",
+      "lighting": "warm-amber-in-blue",
+      "phenomenon": "the water's light does not stop at the video edge - reflections fall across the page surface and move on the type itself",
+      "anti_specs": [
+        "no top nav bar",
+        "no stat bar, badge row or logo wall above the fold",
+        "nothing animates on load - motion begins only when the visitor scrolls"
+      ],
+      "tradeoff": "lowest immediate wow; a trainer skimming in five seconds may not learn what the product IS before leaving"
+    },
+    {
+      "id": "M2-the-descent",
+      "nav_model": "floating-dock",
+      "hero_mechanics": "scroll position drives the Swans.mp4 playhead; the page travels inward and downward - sky to water to plaza to one person - and never returns to the sky",
+      "chapter_count": 6,
+      "grid": "full-bleed-stage",
+      "volume": "full-cinematic",
+      "lighting": "deep-night-to-dawn",
+      "phenomenon": "the sun rises as you scroll - the page is literally getting lighter as the visitor learns more, and by THE FORK it is morning",
+      "anti_specs": [
+        "no parallel columns anywhere - the page is one continuous descent",
+        "no cards or tiles above the fold",
+        "never cuts back to the opening wide shot"
+      ],
+      "tradeoff": "heaviest to build and the biggest mobile performance risk; the manifesto lands late, so a visitor who bounces early gets atmosphere and no argument"
+    },
+    {
+      "id": "M3-the-plaza",
+      "nav_model": "side-rail-left",
+      "hero_mechanics": "the world seen from above - a lit plaza at night with figures moving through it; the swans pass THROUGH the frame rather than owning it",
+      "chapter_count": 6,
+      "grid": "12col-asymmetric-7-5",
+      "volume": "people-first",
+      "lighting": "cold-crystalline-with-warm-windows",
+      "phenomenon": "every lit window is somebody training - windows warm and pulse as activity happens, so the building is a live activity feed you read as light",
+      "anti_specs": [
+        "hero video is never full-bleed",
+        "no faces above the fold - people stay small until the visitor travels inward",
+        "no empty hero - the world is populated from the first frame"
+      ],
+      "tradeoff": "the closest of the four to reading as a city-builder game rather than a professional training platform, and it demotes the swans from hero to passer-by"
+    },
+    {
+      "id": "M4-the-instrument",
+      "nav_model": "no-nav-until-scroll",
+      "hero_mechanics": "swans dimmed and held behind; a real progress chart draws itself in the foreground as the page settles, line by line",
+      "chapter_count": 6,
+      "grid": "12col-split-5-7",
+      "volume": "product-forward",
+      "lighting": "dusk",
+      "phenomenon": "the chart's line is made of the same light as the water - data and world are one substance, so the product appears to be part of the place rather than pasted onto it",
+      "anti_specs": [
+        "no screenshot chrome, browser frames or device mockups",
+        "no 'dashboard preview' framing or floating UI cards",
+        "the chart is never a static image - it must draw"
+      ],
+      "tradeoff": "most likely of the four to convert a skeptical trainer and least likely to make anyone feel anything; risks becoming a SaaS page wearing a swan"
+    }
+  ]
+}
