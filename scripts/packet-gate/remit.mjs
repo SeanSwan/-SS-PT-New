@@ -25,7 +25,45 @@ import { splitDocLines } from './normalize.mjs';
  * premise check because it had nothing left to check. That is exactly the decorative-gate failure
  * this module exists to prevent, so the parser is now boring on purpose and canaried below.
  */
-export function remitFromDoc(md) {
+/**
+ * Resolve the packet's remit, or explain PRECISELY why it cannot be resolved.
+ *
+ * AMBIGUOUS AND ABSENT ARE DIFFERENT PROBLEMS. Round 10 made two Remit headings return '' —
+ * correctly, since a gate that cannot tell which question it is certifying must not certify either —
+ * and the CLI then printed "add a `## Remit` section" to a document that has TWO. A remedy the
+ * operator has already followed twice over is the refusal-fatigue signature this codebase names in
+ * five other places, and it shipped in the same commit that fixed the hijack.
+ * (Kimi K3 round 11 F4 / GLM-5.3 round 11 F3.)
+ *
+ * @returns {{remit:string, error?:string[]}} `error` present => the caller exits 2.
+ */
+export function resolveRemit(md, override) {
+  const remit = (override ?? remitFromDoc(md)).trim();
+  if (remit) return { remit };
+
+  const n = countRemitHeadings(md);
+  if (n > 1) {
+    return { remit: '', error: [
+      `packet-gate: ${n} "## Remit" sections found — the gate cannot tell which question it is certifying.`,
+      '  Refusing to certify: delete the superseded section, or fence/comment it out, so exactly one remains.'] };
+  }
+  return { remit: '', error: [
+    'packet-gate: no remit found — pass --remit "…" or add a "## Remit" section to the document.',
+    '  Refusing to certify: R4 and R5 are unevaluable without a remit, and an unevaluable gate is not a passing gate.'] };
+}
+
+/**
+ * How many Remit-shaped headings the document has, outside fences and HTML comments.
+ *
+ * Deliberately implemented by re-running `remitFromDoc`'s own traversal rather than re-stating the
+ * heading grammar: a second copy of that regex is the last thing this parser needs, having been
+ * patched five times. It is cheap (one pass over an already-small document) and it cannot drift.
+ */
+export function countRemitHeadings(md) {
+  return remitFromDoc(md, { count: true });
+}
+
+export function remitFromDoc(md, opts) {
   // Same CRLF trap as parseFences, and it bit here too: `/^remit:\s*(.+)$/` cannot match a line
   // ending in `\r`, because `.` excludes line terminators — so frontmatter-style remits vanished
   // from every CRLF document, taking R4's and R5's anchors with them.
@@ -130,6 +168,8 @@ export function remitFromDoc(md) {
   // '' makes the CLI's fail-closed empty-remit guard fire (exit 2) with an actionable message —
   // which is the correct outcome for a genuine draft-plus-final document too.
   const matches = outside.map((l, n) => (l !== null && HEADING_RE.test(l) ? n : -1)).filter((n) => n !== -1);
+  // The counting mode shares this exact traversal and grammar — see countRemitHeadings.
+  if (opts?.count) return matches.length;
   if (matches.length > 1) return '';
   const i = matches.length ? matches[0] : -1;
   if (i !== -1) {

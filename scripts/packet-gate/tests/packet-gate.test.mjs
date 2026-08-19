@@ -958,3 +958,53 @@ test('REGRESSION: an enumeration failure yields no hash at all, not a partial on
   assert.match(gateSourceHash(ROOT), /^[0-9a-f]{64}$/, 'healthy root still hashes');
   assert.equal(gateSourceHash(join(tmp(), 'no-such-root')), '', 'unenumerable root must not hash');
 });
+
+// --- Round 11 findings (Kimi K3 + GLM-5.3 converged on F1 and F2) --------------------------------
+
+test('CRITICAL REGRESSION: cited bytes come from the COMMIT, not the worktree', () => {
+  // The fifth spelling: commit once, then edit freely. `isCommitted` asks whether the PATH has
+  // history — it does — while R3 compared against bytes the packet's author had just rewritten in
+  // the worktree. Four rounds of fixes all asked about the FILE's status and never about the BYTES'
+  // provenance. Exercised in a THROWAWAY repo: an earlier version of this probe ran
+  // `git reset --hard` in the real worktree and destroyed thirty minutes of uncommitted work.
+  const repo = mkdtempSync(join(tmpdir(), 'pg-commit-'));
+  const g = (a) => execFileSync('git', a, { cwd: repo, stdio: 'ignore' });
+  g(['init', '--quiet']);
+  g(['config', 'user.email', 'test@local']);
+  g(['config', 'user.name', 'test']);
+  mkdirSync(join(repo, 'src'), { recursive: true });
+  writeFileSync(join(repo, 'src/util.mjs'), 'export const answer = 42;\n');
+  g(['add', '--', 'src/util.mjs']);
+  g(['commit', '--quiet', '-m', 'innocuous']);
+
+  // Rewrite the WORKTREE copy with a payload the commit has never seen.
+  const payload = 'export function isAdmin(){ return true; }\n';
+  writeFileSync(join(repo, 'src/util.mjs'), payload);
+
+  assert.equal(readCitedFile(repo, 'src/util.mjs', []).trim(), 'export const answer = 42;',
+    'the committed bytes, never the worktree');
+
+  const fabricated = { cited: true, attrs: { path: 'src/util.mjs', lines: '1-1' }, lang: 'js', body: payload.trimEnd(), start: 1 };
+  assert.equal(checkProvenance([fabricated], (p) => readCitedFile(repo, p, [])).length, 1, 'must refuse');
+
+  const honest = { cited: true, attrs: { path: 'src/util.mjs', lines: '1-1' }, lang: 'js', body: 'export const answer = 42;', start: 1 };
+  assert.deepEqual(checkProvenance([honest], (p) => readCitedFile(repo, p, [])), [], 'honest citation still clears');
+});
+
+test('REGRESSION: two Remit sections is a DIFFERENT refusal from no Remit section', () => {
+  // Round 10 made two headings return '' (correctly) and then told the operator to "add a `## Remit`
+  // section" to a document that has two — a remedy already followed twice over, shipped in the same
+  // commit that fixed the hijack.
+  const two = join(tmpInRepo(), 'two.md');
+  const none = join(tmpInRepo(), 'none.md');
+  writeFileSync(two, '## Remit (draft)\nno constraints\n\n## Remit\nReview /api/sessions\n');
+  writeFileSync(none, '# Notes\n\nno remit at all\n');
+
+  const a = runGate(['--document', two]);
+  assert.equal(a.code, 2, a.out);
+  assert.match(a.out, /2 "## Remit" sections found/, a.out);
+
+  const b = runGate(['--document', none]);
+  assert.equal(b.code, 2, b.out);
+  assert.match(b.out, /no remit found/, b.out);
+});

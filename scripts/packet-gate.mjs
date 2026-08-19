@@ -33,6 +33,7 @@ import { gateSourceHash } from './packet-gate/source-hash.mjs';
 import { report } from './packet-gate/report.mjs';
 import { GateUnavailable, makeResolver, scanSecrets, loadSelftest, readCitedFile, within } from './packet-gate/repo-io.mjs';
 import { isUnverifiedFence, fenceParseAnomalies } from './packet-gate/fences.mjs';
+import { resolveRemit } from './packet-gate/remit.mjs';
 import { parseFences, remitFromDoc, checkProvenance, checkArtifact, checkPremises, checkSize, checkHygiene, checkCanary, checkUncited, hasBindingAnchors, normPath } from './packet-gate/checks.mjs';
 import { unboundNamedPaths, weakBindingOnly } from './packet-gate/artifact.mjs';
 import { parseArgs, argErrors } from './packet-gate/args.mjs';
@@ -69,12 +70,15 @@ function main() {
   // empty remit does not make them pass — it makes them unevaluable, and a gate that cannot run
   // must never report clean. Without this, "omit the remit" is a one-word bypass of two checks.
   // Exit 2 (gate could not run), not a seventh refusal code: v1 ships exactly six.
-  const remit = (args.remit ?? remitFromDoc(md)).trim();
-  if (!remit) {
-    console.error('packet-gate: no remit found — pass --remit "…" or add a "## Remit" section to the document.');
-    console.error('  Refusing to certify: R4 and R5 are unevaluable without a remit, and an unevaluable gate is not a passing gate.');
+  // resolveRemit distinguishes ABSENT from AMBIGUOUS: two Remit headings is not "add a Remit
+  // section", and printing that to a document with two is a remedy the operator has already
+  // followed twice over. (Kimi K3 round 11 F4 / GLM-5.3 round 11 F3.)
+  const resolved = resolveRemit(md, args.remit);
+  if (resolved.error) {
+    for (const line of resolved.error) console.error(line);
     return 2;
   }
+  const { remit } = resolved;
   const anchors = extractAnchors(remit);
   const blocks = parseFences(md);
   const resolve = makeResolver(ROOT);
