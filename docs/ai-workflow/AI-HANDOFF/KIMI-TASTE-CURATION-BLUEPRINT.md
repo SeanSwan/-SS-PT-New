@@ -61,6 +61,14 @@
 
 **Ledger row v1 — fixes W7, W8, enables W6:**
 
+
+> ⛔ **SUPERSEDED 2026-08-19.** This row type shipped instead as the Swan Atelier Studio's
+> `rejection-log.jsonl` (`scripts/design-brain/log-atelier-session.mjs`), whose ruling of
+> record forbids a second ledger. **Do not implement the interface below.** Revised plan:
+> `SWAN-TASTE-NEXT-SLICE-HANDOFF-2026-08-19.md`. §4's decisions are retained but PROVISIONAL
+> — they were never re-derived against the shipped row's `skeleton_id` / `lever_deltas` /
+> `axes_to_flip` channels.
+
 ```ts
 type Verdict = 'keep' | 'discard' | 'skip';
 type QueryAngle = 'layout' | 'typography' | 'colour' | 'density' | 'imagery';
@@ -200,7 +208,7 @@ Playwright matrix at all 9 widths + `reducedMotion: 'reduce'` context asserting 
 
 | # | Slice | Exit criteria (measurable) |
 |---|---|---|
-| 0 | Contract: `taste.profile.json` + row type + router consumer stub | Router builds a fixture concept citing 3 refIds |
+| 0 | ⛔ **SUPERSEDED 2026-08-19 — do NOT build this.** The row type shipped as the Atelier's `rejection-log.jsonl`; a ruling of record forbids a second ledger. Revised Slice 0′ (reason capture → reader → distiller → consumer) is in `SWAN-TASTE-NEXT-SLICE-HANDOFF-2026-08-19.md`. Slices 1–6 below are UNREVIEWED against the Atelier — re-check before building any of them. | — |
 | 1 | Harvest module | 5 angles, 150 raw → 0 dupes across a 150-id seenSet despite the 100-cap |
 | 2 | `ReviewDeck` UI | 50 refs verdicted ≤2:30 by dwell timestamps; axe 0; all targets ≥44px @375; reduce = no motion |
 | 3 | Distill loop | Ledger-only input; correction rows logged; profile artifact updates |

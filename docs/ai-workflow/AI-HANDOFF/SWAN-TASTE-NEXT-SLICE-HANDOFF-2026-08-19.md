@@ -4,7 +4,9 @@ originating_model: claude-opus-5
 date: 2026-08-19
 decision: Do NOT build a second taste ledger. The verdict row already shipped; build the READ side.
 status: open
-supersedes: none (extends SWAN-CONTINUATION-HANDOFF-2026-08-14.md)
+supersedes: PARTIAL - SWAN-CONTINUATION-HANDOFF-2026-08-14.md section 4.3 Slice 0 row, and
+  KIMI-TASTE-CURATION-BLUEPRINT.md section 5 Slice 0 / the TasteVerdictRow interface. Both
+  are annotated in place as of 2026-08-19; everything else in both documents still stands.
 ---
 
 # TASTE CURATION — NEXT-SLICE HANDOFF
@@ -53,8 +55,12 @@ directions rather than harvested references, and it shipped first.**
  null_winner, pending?, axes_to_flip?, rounds, wave2_used, cost_usd|null, wall_s|null}
 ```
 
-Reader doctrine, already decided: **append-only; for any `brief_id` the LAST line wins.** A
-`pending` row is superseded by appending the resolved row with the same `brief_id`.
+Reader doctrine, already decided and **citable** — `scripts/design-brain/log-atelier-session.mjs:17`:
+*"READER DOCTRINE: the log is append-only; for any brief_id the LAST line wins."* A `pending`
+row is superseded by appending the resolved row with the same `brief_id`.
+
+**What the writer exports** (so you do not hand-roll a parser): `LOG_PATH` (line 27) and
+`validate(session)` (line 33). It exports **no reader** — that is your slice.
 
 ### The binding constraint this puts on you
 
@@ -78,6 +84,11 @@ git grep -ln "rejection-log" -- . | grep -v log-atelier-session.mjs
   5 × AI-HANDOFF/*.md                              (prose)
 → ZERO code consumers.
 ```
+
+*Caveat on that grep:* it matches a literal string, so a consumer importing `LOG_PATH` without
+naming the file would be missed. I checked that too — a second grep for
+`LOG_PATH|design-brain.*jsonl|rejectionLog|readTaste|killOrder` across `*.mjs`/`*.ts`/`*.tsx`
+returns **only the writer itself**.
 
 And `git ls-files | grep -iE "taste\.profile|profile\.json"` returns **nothing** — no distilled
 profile artifact exists anywhere in the repo.
@@ -112,7 +123,12 @@ So the precise truth is narrower and sharper than "three reasons went missing": 
 for a winner and gave a winner.** The other three rows are inference, and the author labelled
 them as such rather than letting them read as data.
 
-**That is still Sean's original ask failing in production** — his words were *"he picks what he
+**Hold this claim at the mechanism, not the person.** n = 1 resolved session, over a smoke
+fleet. The durable finding is narrow and sufficient: **the capture path lets a kill be
+recorded with no reason and nothing objects.** That alone justifies criterion 1 below. Do
+**not** carry this row as evidence that "Sean's process is broken" — the only thing it
+proves about Sean is that he was asked for a winner and gave one. What he actually wants is
+on record from his own words *"he picks what he
 likes and **says what specifically he likes about each**"*, and from `design-dialogue`, *"a
 rejected option with a recorded reason is permanently settled; without one it comes back every
 session and Sean re-argues a question he already answered."* The loop asked for one field and
@@ -123,62 +139,110 @@ the instrument wants five.
 read programmatically.** A distiller that weights kill-rank will manufacture a taste signal out
 of canvas ordering — a number that looks measured, is not, and gets more confident with every
 session. Treat `reason_code: 'unknown'` as **"not asked"**, and `kill_rank` on such a row as
-**absent**, not as rank data. See Slice 0′ criterion 3.
+**absent**, not as rank data. Enforced in the reader — Slice 0′ criterion 2.
 
 ---
 
-## 3. YOUR NEXT SLICE — do this one
+## 3. YOUR NEXT SLICE - do this one
 
-**Slice 0′ (revised): make the ledger readable, and make one reason mandatory.**
+**Slice 0-prime (revised): stop banking unrecoverable blanks, then make the ledger readable.**
 
-Not "design a contract" — the contract shipped. Build the read side and close the reason gap.
+Not "design a contract" - the contract shipped. Close the capture gap, then build the read side.
 
-**Exit criteria, all measurable:**
+**Order is 1 -> 2 -> 3 -> 4, and criterion 1 is first for a reason:** the ledger is append-only
+and Rule 34 forbids backfilling reasons Sean never gave. **Every session that runs before
+criterion 1 lands banks another permanently-blank row.** The read side can be built any week;
+the blanks cannot be recovered.
 
-1. **`readTasteLedger()`** — parses `rejection-log.jsonl`, applies last-line-wins per
-   `brief_id`, skips `pending` rows. *Test: the 2 real rows + a synthetic pending/resolved
-   pair → correct winner set.* If `log-atelier-session.mjs` already exports usable validation,
-   **import it — do not hand-roll a second parser.**
-2. **Router consumer stub** — `swan-design-router` builds a pre-brief citing ≥3 real
-   `brief_id`/variant ids read from the ledger. *This was the blueprint's original Slice 0 exit
-   criterion and it is still the right one:* the router must prove it can read taste before
-   anything is built on top of it.
-3. **`distil()` → `taste.profile.json`** — surviving skeletons, reason-code histogram,
-   `profileVersion`, 90-day half-life weighting (blueprint §4). **`kill_rank` MUST be excluded
-   from any weighting unless the row proves Sean stated it** — today's values are canvas-order
-   placeholders (§2). If you need ordering later, add a provenance flag distinguishing *stated*
-   from *inferred* and default to inferred; never let a placeholder become a weight.
-   *Test: a fixture with placeholder kill-ranks and `reason_code: unknown` must produce a
-   profile carrying **no** ordering signal — and the test must fail if someone later starts
-   weighting it.*
-4. **Reason capture becomes non-optional at the kill step.** `reason_code: 'unknown'` is
-   permitted by the schema — **do not change the schema**, it is a ruling of record. Change the
-   *capture path* so the Studio asks for a reason and falls back to `unknown` only on an
-   explicit skip. *Test: a kill with no reason supplied is flagged, not silently defaulted.*
-   State in your closeout that historical `unknown` rows **stay** `unknown` — Rule 34, no
-   backfilling data Sean never gave.
+1. **Reason capture becomes non-optional - enforced in the WRITER, not in prose.**
+   `reason_code: 'unknown'` is legal in the schema, and the schema is a ruling of record -
+   **do not change it.** Change the writer so `unknown` requires an explicit opt-out (a
+   `--skip-reason` style flag or equivalent), so *"Sean declined to say"* and *"nobody asked"*
+   stop being the same byte.
+   *Exit: a session JSON with a killed variant and no `reason_code` is REJECTED by `validate()`
+   unless the explicit skip is present. Test both branches.*
+   **Before you touch it:** this is another agent's reviewed, merged artifact. Read **all** of
+   `SWAN-ATELIER-STUDIO-R2-RULINGS-2026-08-18.md` first - this handoff cites only E1/E2/E6 and
+   does **not** know whether the rulings constrain capture-flow changes - then run
+   `node scripts/lane.mjs digest` to find an owner and coordinate. If a ruling forbids it, stop
+   and report; do not route around it.
 
-**Order matters: 1 → 2 → 3.** Getting a reader and a proven consumer in place before the
-distiller means the distiller is written against a known-good sink instead of a guess. Same
-"the consumer determines the schema" lesson that made the original Slice 0 the contract slice.
+2. **`readTasteLedger()`** - last-line-wins per `brief_id`, `pending` rows skipped. Import
+   `validate()` from `log-atelier-session.mjs`; do not hand-roll a second parser.
+   **This is where the placeholder quarantine belongs** (Kimi K3's correction to my first
+   draft, and it is right): the reader must strip `kill_rank` from any row whose
+   `reason_code` is `unknown`, so **every** downstream consumer inherits the protection.
+   Quarantining inside `distil()` protects only `distil()` - the next consumer someone writes
+   re-introduces the bug, and placeholder ordering becomes a taste signal by default.
+   *Exit: a **fixture snapshot** of today's two rows plus a synthetic pending/resolved pair ->
+   correct winner set.* **Test against a fixture, never the live ledger** - it is shared and
+   append-only, so the next Atelier session in any tree would turn a live-file test red for an
+   unrelated agent.
+   *Edge case to decide explicitly and state in your closeout:* a `brief_id` whose only row is
+   `pending` vanishes entirely under "skip pending". Decide whether that is silence or a warning.
+
+3. **`distil()` -> `taste.profile.json`** - surviving skeletons, reason-code histogram,
+   `profileVersion`, 90-day half-life weighting.
+   - **Write it to a TRACKED path** (e.g. `docs/ai-workflow/design-brain/taste.profile.json`).
+     **Not `.ai-workflow/`** - that is gitignored and tree-local, so a profile there would be
+     invisible to every other agent and the loop would still be open.
+   - **`kill_rank` weighting stays forbidden** - but the enforcement lives in the reader
+     (criterion 2), not here. If you ever need ordering, add a provenance flag separating
+     *stated* from *inferred* and default to inferred. *Test at this layer: a fixture with
+     placeholder ranks and `reason_code: unknown` produces a profile with **no** ordering
+     signal - and the test fails if anyone later starts weighting it.*
+   - **The profile must self-mark low confidence at low n.** At n = 1 it is an anecdote. Carry
+     `n` and a trust state; the blueprint's kappa >= 0.3 gate is the eventual bar, not this
+     slice's.
+
+4. **Router consumer - and it must consume the PROFILE, not the raw ledger.**
+   `.claude/skills/swan-design-router/SKILL.md` (verified present on `main`) builds a pre-brief
+   from `taste.profile.json`.
+   *Exit: the pre-brief cites >=3 real **variant ids*** - **not** `brief_id`s, of which only one
+   resolved session exists today, which would make the criterion unsatisfiable.
+   *Plus a mutation test, because citation alone is gameable by pasting three strings:*
+   **change a fixture row -> the pre-brief output must change.** That is the criterion that
+   proves consumption rather than decoration.
+
+**Why this order:** criterion 1 is time-critical and independent. Criteria 3 and 4 ship as a
+**pair** so the distiller lands **with** a consumer - this document kills the Mobbin harvest for
+"filling a ledger nothing consumes," and a profile nothing reads would be the same sin committed
+with the author's own machinery. **If you cannot land 4, defer 3.**
+
+> **Before you build criterion 4, settle open question 3 in section 5.** I specified the
+> `swan-design-router` as the consumer because the blueprint said so - and the blueprint is
+> mine. Kimi K3 pointed out the more obvious candidate, which I had never once mentioned:
+> **the Atelier itself.** Its row already carries `axes_to_flip` and `lever_deltas`, which is a
+> writer anticipating that verdicts feed the *next divergence*. If the profile should steer the
+> Atelier's generation rather than a separate router pre-brief, criterion 4 changes target.
+> **Do not assume my answer; it is the one thing in this slice I have a stake in.**
 
 ### Explicitly NOT in this slice
 
-- **No Mobbin harvest** (blueprint Slice 1). The reference-curation half is real and still
-  wanted, but it is worthless until the read path exists — you would be filling a ledger
-  nothing consumes, at 30 results per call, with images landing in model context.
-- **No `ReviewDeck` UI** (blueprint Slice 2). The Atelier already has a judging surface.
-  Whether Slice 2 is needed at all is now an **open question**, not a scheduled slice — see §5.
+- **No Mobbin harvest** (blueprint Slice 1). Still wanted, but worthless until the read path
+  exists - you would fill a ledger nothing consumes, at 30 results per call, with images landing
+  in model context.
+- **No `ReviewDeck` UI** (blueprint Slice 2). The Atelier already has a judging surface. Whether
+  Slice 2 is needed at all is an **open question** now, not a scheduled slice - see section 5.
 - **No schema change.** Ruling of record from a reviewed, merged build.
 
 ---
 
 ## 4. WHAT IS STILL TRUE FROM 08-14 (do not re-litigate)
 
-Re-verified today on `main` @ `4e8394673`:
+> **One thing here is NOT re-verified: blueprint section 4's decisions.** This handoff says
+> they "still hold." That is **PROVISIONAL** - I did not re-derive them against the shipped
+> row, which carries `skeleton_id`, `lever_deltas` and `axes_to_flip`: taste channels the
+> blueprint never considered. Treat section 4 as a strong prior and re-check it before
+> building on any specific decision. Asserting staleness-free status without re-deriving is
+> the exact sin this document accuses the 08-14 handoff of.
 
-- **Swan Forge: 16 modules** (13 in `shared/` + 3 providers), CLI `scripts/forge.mjs`,
-  **9/9 test files present.** Intact.
+Re-verified today on `main` @ `4e8394673`, with the commands that produced each number:
+
+- **Swan Forge: 16 modules.** `ls shared/*.mjs | wc -l` -> 15, minus the 2 non-Forge files
+  (`clientOnboardingQuestionBank.mjs`, `sectionPatterns.mjs`) = 13; plus
+  `ls shared/providers/*.mjs | wc -l` -> 3. CLI `scripts/forge.mjs` present. **9/9** test
+  files present under `backend/tests/unit/`.
 - **Seed is dead. Image-to-image is dead.** Both probed with a control arm, with real money.
   **Do not re-test.**
 - Images go to OpenRouter **`/api/v1/images`**; the cost field is `usage.cost`.
@@ -200,7 +264,14 @@ Re-verified today on `main` @ `4e8394673`:
 2. **Does the Atelier's judging surface replace `ReviewDeck`?** If yes, blueprint Slice 2
    deletes, and its accessibility criteria (≥44px @375, axe 0, ≤2:30 for 50) transfer to the
    Atelier canvas as a review item.
-3. **The blind A/B is still unruled.** `.ai-workflow/forge-runs/ab-blind.html` — **primary
+3. **Should the taste profile feed the ATELIER directly, instead of a router pre-brief?**
+   Raised by Kimi K3 against my draft, and it is the sharpest question here. The blueprint's
+   answer ("a router pre-brief consuming a profile artifact") predates the Atelier's existence.
+   The Atelier's own row schema carries `axes_to_flip` and `lever_deltas` - fields that only
+   make sense if verdicts are meant to shape the next generation. **The blueprint's answer is
+   mine, so treat my confidence in it as suspect.** Settle this before criterion 4 is built:
+   the wrong answer wires taste into a surface Sean does not actually design through.
+4. **The blind A/B is still unruled.** `.ai-workflow/forge-runs/ab-blind.html` — **primary
    checkout only**, verified present today. Kill-list still ships OFF (`FORGE_KILL_LIST=1`).
    Sixty seconds of Sean's time unblocks a shipped feature.
 
