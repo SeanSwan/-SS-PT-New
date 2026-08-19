@@ -47,6 +47,25 @@ export interface RenderJobView {
   workerState: WorkerState | null;
 }
 
+/**
+ * A provider the operator may pick. `available` is the resolved truth from the licence
+ * gate — a picker that offers a provider the backend will refuse is the same lie as a
+ * queue with no worker, so unavailable ones are shown WITH their reason rather than
+ * hidden (hiding turns a fixable config gap into a mystery).
+ */
+export interface VideoProvider {
+  id: string;
+  label: string;
+  maxDurationSec: number | null;
+  maxResolution: string | null;
+  /** Licence-required credit string. H3 mandates prominent display. */
+  attribution: string | null;
+  local: boolean;
+  available: boolean;
+  reason: string | null;
+  hint: string | null;
+}
+
 export interface EnrolledAgent {
   id: string;
   label: string;
@@ -77,6 +96,7 @@ export function useRenderQueue(api: AxiosInstance | null) {
   const [workerState, setWorkerState] = useState<WorkerState | null>(null);
   const [liveWorkers, setLiveWorkers] = useState<number | null>(null);
   const [enrolledWorkers, setEnrolledWorkers] = useState<number | null>(null);
+  const [providers, setProviders] = useState<VideoProvider[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,6 +136,49 @@ export function useRenderQueue(api: AxiosInstance | null) {
   const track = useCallback((jobId: string) => {
     if (!trackedIds.current.includes(jobId)) trackedIds.current = [jobId, ...trackedIds.current];
   }, []);
+
+  const loadProviders = useCallback(async () => {
+    if (!api) return;
+    try {
+      const { data } = await api.get(`${BASE}/video-providers`);
+      setProviders(Array.isArray(data?.data?.providers) ? data.data.providers : []);
+    } catch {
+      // A registry we cannot read must not present as an empty catalogue — an empty list
+      // reads as 'no models exist' when the truth is 'we could not ask'.
+      setProviders([]);
+      setError('Could not read the video provider registry.');
+    }
+  }, [api]);
+
+  const queueGenerate = useCallback(async (input: {
+    prompt: string; provider: string; category?: string; style?: string; duration?: number;
+  }) => {
+    if (!api) throw new Error('Not authenticated.');
+    setError(null);
+    try {
+      const { data } = await api.post(`${BASE}/generate-video`, input);
+      const d = data?.data;
+      if (d?.jobId) {
+        track(d.jobId);
+        if (d.workerState) setWorkerState(d.workerState);
+        setJobs((prev) => [{
+          jobId: d.jobId,
+          status: d.status ?? 'queued',
+          progress: null,
+          errorCode: null,
+          errorMessage: null,
+          r2Key: null,
+          startable: Boolean(d.startable),
+          workerState: d.workerState ?? null,
+        }, ...prev.filter((j) => j.jobId !== d.jobId)]);
+      }
+      return { message: data?.message as string, attribution: d?.attribution as string | null };
+    } catch (err) {
+      const msg = readError(err, 'Could not queue the generation job.');
+      setError(msg);
+      throw new Error(msg);
+    }
+  }, [api, track]);
 
   const queueSync = useCallback(async (referencePath: string, targetPath: string) => {
     if (!api) throw new Error('Not authenticated.');
@@ -180,7 +243,8 @@ export function useRenderQueue(api: AxiosInstance | null) {
 
   return {
     jobs, workerState, liveWorkers, enrolledWorkers, loading, error,
-    refresh, queueSync, enrol, setLiveWorkers, setEnrolledWorkers,
+    providers, refresh, queueSync, queueGenerate, loadProviders, enrol,
+    setLiveWorkers, setEnrolledWorkers,
   };
 }
 

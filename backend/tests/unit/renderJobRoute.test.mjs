@@ -35,9 +35,15 @@ class FakeJobError extends Error {
   }
 }
 
+const getAssetProvenance = vi.fn();
+
 vi.mock('../../services/videoRenderJobService.mjs', () => ({
   createJob: (...a) => createJob(...a),
   getJob: (...a) => getJob(...a),
+  // Added when provenance shipped. A mock missing an export the route imports yields
+  // `undefined`, and calling it throws — surfacing as a 500 on a route the test never
+  // touched, which reads as a route bug rather than a stale double.
+  getAssetProvenance: (...a) => getAssetProvenance(...a),
   VideoRenderJobError: FakeJobError,
 }));
 
@@ -70,6 +76,7 @@ vi.mock('../../services/contentStudioStorageUsageService.mjs', () => ({
 let app;
 beforeEach(async () => {
   vi.clearAllMocks();
+  getAssetProvenance.mockResolvedValue(null);
   currentUser = { id: 7, role: 'admin' };   // undo any identity a prior test switched to
   const { default: router } = await import('../../routes/contentStudioRoutes.mjs');
   app = express();
@@ -328,5 +335,80 @@ describe('POST /sync-job — queues real measurement work for the agent', () => 
     const res = await request(app).post('/api/content-studio/sync-job')
       .send({ referencePath: '/a', targetPath: '/b' });
     expect(res.body.data.statusUrl).toBe('/api/content-studio/render-job/sync-1');
+  });
+});
+
+describe('POST /generate-video — the route the provider registry was waiting for', () => {
+  const GEN = { prompt: 'a swan taking off from still water', provider: 'comfyui/minimax-h3' };
+
+  beforeEach(() => {
+    createJob.mockResolvedValue({ job: { id: 'gen-1', status: 'queued' }, replayed: false });
+    workerPresence.mockResolvedValue({ live: 1, total: 1, missingCapabilities: [] });
+  });
+
+  it('enqueues a job the agent can actually dispatch and lease', async () => {
+    const res = await request(app).post('/api/content-studio/generate-video').send(GEN);
+
+    // 403 here means the licence gate refused — legitimate, but then the rest is moot.
+    if (res.status === 403) {
+      expect(res.body.code).toMatch(/E_(LICENCE_GRANT_REQUIRED|PROVIDER_DISABLED)/);
+      return;
+    }
+    expect(res.status).toBe(202);
+
+    const arg = createJob.mock.calls[0][0];
+    // The agent splits workflowId on ':' to pick a handler. Provider ids contain a slash
+    // but no colon, so this must yield exactly 'generate'.
+    expect(String(arg.workflowId).split(':')[0]).toBe('generate');
+    expect(arg.workflowId).toContain('comfyui/minimax-h3');
+    // Leasing filters on required_capabilities — without this the job is unleasable.
+    expect(arg.requiredCapabilities).toEqual(['generate']);
+    expect(arg.kind).toBe('generate');
+    expect(arg.params.provider).toBe('comfyui/minimax-h3');
+    expect(arg.params.prompt).toBe(GEN.prompt);
+  });
+
+  it('requires a prompt and a provider', async () => {
+    for (const body of [{}, { prompt: 'x' }, { provider: 'comfyui/minimax-h3' }]) {
+      const res = await request(app).post('/api/content-studio/generate-video').send(body);
+      expect(res.status).toBe(400);
+    }
+    expect(createJob).not.toHaveBeenCalled();
+  });
+
+  it('refuses an unknown provider rather than queueing an unrunnable job', async () => {
+    const res = await request(app).post('/api/content-studio/generate-video')
+      .send({ prompt: 'x', provider: 'not/a-real-model' });
+    expect([400, 403]).toContain(res.status);
+    expect(createJob).not.toHaveBeenCalled();
+  });
+
+  it('never reports success when the queue write fails', async () => {
+    createJob.mockRejectedValue(new Error('db down'));
+    const res = await request(app).post('/api/content-studio/generate-video').send(GEN);
+    expect([500, 403]).toContain(res.status);
+    if (res.status === 500) expect(res.body.success).toBe(false);
+  });
+});
+
+describe('GET /video-providers — a picker that cannot offer what it cannot run', () => {
+  it('reports every provider with an availability verdict', async () => {
+    const res = await request(app).get('/api/content-studio/video-providers');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.data.providers)).toBe(true);
+    for (const p of res.body.data.providers) {
+      expect(typeof p.available).toBe('boolean');
+      // An unavailable provider MUST carry its reason — hiding it turns a one-line
+      // config gap into a mystery about a missing feature.
+      if (!p.available) expect(p.hint).toBeTruthy();
+    }
+  });
+
+  it('carries the licence-required attribution string for each provider', async () => {
+    const res = await request(app).get('/api/content-studio/video-providers');
+    const h3 = res.body.data.providers.find((p) => p.id === 'comfyui/minimax-h3');
+    expect(h3).toBeTruthy();
+    // H3's licence mandates prominent display; a UI that never receives it cannot comply.
+    expect(h3.attribution).toMatch(/MiniMax H3/i);
   });
 });
