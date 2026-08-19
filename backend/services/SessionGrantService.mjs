@@ -161,7 +161,7 @@ async function markCartCompleted({ cart, grantedBy, sessionsToAdd, fulfillment, 
  * @param {string} grantedBy - 'verify-session' | 'webhook' | 'reconciliation'
  * @returns {Promise<{granted: boolean, sessionsAdded: number, alreadyProcessed: boolean}>}
  */
-export async function grantSessionsForCart(cartId, userId, grantedBy, { checkoutSessionId } = {}) {
+export async function grantSessionsForCart(cartId, userId, grantedBy, { checkoutSessionId, amountTotalCents = null } = {}) {
   const transaction = await sequelize.transaction();
 
   try {
@@ -187,16 +187,92 @@ export async function grantSessionsForCart(cartId, userId, grantedBy, { checkout
       throw new Error(`Cart ${cartId} not found for user ${userId}`);
     }
 
-    if (checkoutSessionId && cart.checkoutSessionId !== checkoutSessionId) {
-      throw new Error(`Stripe session does not own cart ${cartId}`);
-    }
-
-    // IDEMPOTENCY CHECK: Only check sessionsGranted flag
-    // Do NOT check status === 'completed' (webhook sets this before verify-session)
+    // IDEMPOTENCY FIRST — before the ownership check, deliberately.
+    //
+    // An already-granted cart needs no further work no matter WHICH session asks, so
+    // answering "already done" is always correct and always safe. Running the
+    // ownership check first meant a second session for an already-fulfilled cart
+    // THREW instead: 500 -> Stripe retries forever -> the endpoint-disabling risk,
+    // on a cart that was in fact correctly granted.
+    //
+    // That is reachable: a customer whose checkout crashed twice has two orphan
+    // sessions naming one cart. The first adopts and grants; the second then sees a
+    // cart holding a different id and threw. Found by attacking my own adoption
+    // change (2026-08-16) — adoption writes an id where there was none, which makes
+    // this ordering bug easier to hit than it was before.
+    //
+    // Do NOT check status === 'completed' here (the webhook sets that before
+    // verify-session runs); `sessionsGranted` is the only true idempotency key.
     if (cart.sessionsGranted === true) {
       await transaction.rollback();
       logger.info(`[SessionGrant] Cart ${cartId} already granted (idempotent, caller: ${grantedBy})`);
       return { granted: false, sessionsAdded: 0, alreadyProcessed: true };
+    }
+
+    // ABSENCE IS NOT MISMATCH.
+    //
+    // This used to be `if (checkoutSessionId && cart.checkoutSessionId !== ...)`, which
+    // treated a NULL cart session id as a mismatch and threw. That is exactly the
+    // crash-window shape: v2PaymentRoutes nulls checkoutSessionId when it claims the
+    // cart, creates a live payable Stripe session, then writes the id back. A process
+    // death in between (deploy, OOM, recycle) leaves an unclaimed cart and a payable
+    // session — so when the customer paid, this threw, the webhook 500'd, Stripe
+    // retried the same failure forever, and sustained failures risk Stripe disabling
+    // the endpoint and killing fulfilment for ALL sales. Money captured, nothing
+    // granted (Kimi K3 CRITICAL-1, 2026-08-16).
+    //
+    // A cart holding NO session id is UNCLAIMED, so the first Stripe-signed event that
+    // names it may adopt it. That is safe: `metadata.cartId` is written server-side at
+    // session creation, and callers derive userId from `cart.userId`, never from the
+    // event — so an adopted grant cannot cross users. A cart holding a DIFFERENT
+    // session id is still a hard error.
+    if (checkoutSessionId && cart.checkoutSessionId && cart.checkoutSessionId !== checkoutSessionId) {
+      throw new Error(`Stripe session does not own cart ${cartId}`);
+    }
+
+    if (checkoutSessionId && !cart.checkoutSessionId) {
+      // ADOPTION REQUIRES THE AMOUNTS TO AGREE.
+      //
+      // Adoption is reached exactly when the finalize write never happened, which is
+      // also exactly when the checkout SNAPSHOT was never written — so hydration falls
+      // through to LIVE cart rows. Meanwhile the sweeper deliberately returns the cart
+      // to `active`, which makes it editable again. Compose the two and a customer can
+      // pay a $60 orphan session, add a $5,000 package to the released cart, and have
+      // the adoption branch grant the full $5,060 (Kimi K3 HIGH-1 / GLM-5.3 MEDIUM-1,
+      // round 2 — found independently by both).
+      //
+      // The user-crossing argument for adoption is sound; it says nothing about VALUE
+      // crossing. So require what Stripe actually charged to match what this cart is
+      // worth right now. Honest recovery (cart untouched) still adopts and grants;
+      // a mutated cart does not.
+      const cartTotalCents = Math.round(Number(cart.total ?? 0) * 100);
+
+      if (amountTotalCents !== null && cartTotalCents > 0
+          && Number(amountTotalCents) !== cartTotalCents) {
+        await transaction.rollback();
+        logger.error('[SessionGrant] REFUSING adoption — charged amount does not match cart', {
+          cartId,
+          grantedBy,
+          amountTotalCents: Number(amountTotalCents),
+          cartTotalCents,
+        });
+        return {
+          granted: false,
+          sessionsAdded: 0,
+          alreadyProcessed: false,
+          adoptionRefused: true,
+          reason: 'AMOUNT_MISMATCH',
+        };
+      }
+
+      // Adopt the orphaned session so a later redelivery sees a claimed cart rather
+      // than racing this same branch again.
+      cart.checkoutSessionId = checkoutSessionId;
+      logger.warn(`[SessionGrant] Cart ${cartId} adopted orphaned checkout session (crash-window recovery)`, {
+        cartId,
+        grantedBy,
+        amountTotalCents: amountTotalCents === null ? null : Number(amountTotalCents),
+      });
     }
 
     cart.cartItems = await hydrateCartCheckoutItems({

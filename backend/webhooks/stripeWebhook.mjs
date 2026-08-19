@@ -48,7 +48,11 @@ if (isStripeEnabled()) {
  *   POST /webhook   (legacy: /webhooks/stripe/webhook)
  *   POST /          (alias:  /api/webhook/stripe — matches Stripe dashboard config)
  */
-const stripeWebhookHandler = async (req, res) => {
+// EXPORTED so the legacy /api/cart/webhook mount can delegate to it rather than
+// reimplement the switch. Two implementations of one webhook contract is the
+// divergence class that already produced the expired-cart bug and left the legacy
+// mount silently 200-acking refunds, disputes and every ACH event (Kimi K3 HIGH-2).
+export const stripeWebhookHandler = async (req, res) => {
   // Verify webhook signature
   let event;
   try {
@@ -153,7 +157,12 @@ const stripeWebhookHandler = async (req, res) => {
 
         let grantResult;
         try {
-          grantResult = await grantSessionsForCart(cartIdNumber, cart.userId, 'webhook', { checkoutSessionId: session.id });
+          grantResult = await grantSessionsForCart(cartIdNumber, cart.userId, 'webhook', {
+            checkoutSessionId: session.id,
+            // Amount Stripe actually captured — the adoption branch refuses to grant
+            // when it disagrees with the cart's current total (see SessionGrantService).
+            amountTotalCents: session.amount_total ?? null,
+          });
         } catch (grantError) {
           logger.error('[Webhook] Session grant failed', {
             cartId: cartIdNumber,
@@ -162,6 +171,30 @@ const stripeWebhookHandler = async (req, res) => {
             stack: grantError.stack,
           });
           throw grantError; // Let Stripe retry; grant service is idempotent.
+        }
+
+        // Persist the PaymentIntent so a later refund/chargeback can find this order.
+        // The card rail stores `cart.paymentIntentId || cart.checkoutSessionId` into
+        // Order.paymentId, so whenever the PI is not yet known at session-creation
+        // time it persists a `cs_` id — and a Stripe `charge` only ever carries a
+        // `pi_` id, so refund matching could never succeed on the primary rail
+        // (GLM-5.3 MEDIUM-4, round 2). At `checkout.session.completed` the PI is
+        // always present, so write it here. Conditional on NULL so a redelivery is a
+        // no-op and an existing value is never overwritten.
+        if (session.payment_intent) {
+          try {
+            const { default: Order } = await import('../models/Order.mjs');
+            await Order.update(
+              { stripePaymentIntentId: session.payment_intent },
+              { where: { cartId: cartIdNumber, stripePaymentIntentId: null } },
+            );
+          } catch (piError) {
+            // Never fatal: this is reconciliation metadata, not fulfilment.
+            logger.warn('[Webhook] Could not persist payment intent on order', {
+              cartId: cartIdNumber,
+              errorMessage: piError?.message,
+            });
+          }
         }
 
         try {
@@ -196,20 +229,49 @@ const stripeWebhookHandler = async (req, res) => {
       }
       case 'checkout.session.expired': {
         const session = event.data.object;
-        const cartId = session.metadata?.cartId;
-        
-        if (!cartId) {
-          logger.error('No cartId found in session metadata');
+        const rawCartId = session.metadata?.cartId;
+        // Parse rather than trusting the raw metadata string — findByPk('abc')
+        // is a 500 waiting to happen on a signed-but-malformed payload.
+        const cartId = Number.parseInt(rawCartId, 10);
+
+        if (!Number.isSafeInteger(cartId) || cartId <= 0) {
+          if (rawCartId) logger.warn('[Webhook] Expired checkout carried an invalid cartId');
+          else logger.error('No cartId found in session metadata');
           break;
         }
-        
-        // Mark cart checkout as expired
-        const cart = await ShoppingCart.findByPk(cartId);
-        if (cart) {
-          cart.checkoutSessionExpired = true;
-          await cart.save();
-          logger.info(`Checkout session expired for cart ID: ${cartId}`);
-        }
+
+        // RELEASE the cart, don't just flag it. This used to set
+        // `checkoutSessionExpired = true` and stop — leaving the cart in
+        // `pending_payment` with a dead session id. Every later POST /cart/add
+        // then 409s with CART_CHECKOUT_IN_PROGRESS, and /cancel-checkout cannot
+        // recover it because that route requires the session id the customer no
+        // longer has. A customer who merely let the Stripe session time out was
+        // locked out of their own cart indefinitely.
+        //
+        // The legacy /api/cart/webhook mount already did the full reset, so the
+        // two live handlers disagreed and recovery depended on which URL Stripe
+        // was pointed at (Kimi MEDIUM-3 / GLM E4, 2026-08-16).
+        //
+        // The conditional `where` is load-bearing: only a cart still pending on
+        // THIS session is released, so a late-arriving expiry cannot clobber a
+        // cart the customer has since paid for or already recovered.
+        const [releasedCount] = await ShoppingCart.update(
+          {
+            status: 'active',
+            paymentStatus: 'cancelled',
+            checkoutSessionExpired: true,
+            checkoutSessionId: null,
+            paymentIntentId: null,
+          },
+          {
+            where: { id: cartId, status: 'pending_payment', checkoutSessionId: session.id },
+          }
+        );
+
+        logger.info('[Webhook] Checkout session expired for cart', {
+          cartId,
+          released: releasedCount > 0,
+        });
         break;
       }
       // ── ACH / PaymentIntent Events ──────────────────────────────────
@@ -236,9 +298,68 @@ const stripeWebhookHandler = async (req, res) => {
           logger.info(`[ACH Webhook] Payment succeeded for order ${pi.metadata.orderNumber} (PI: ${pi.id})`);
           try {
             const { default: Order } = await import('../models/Order.mjs');
-            const order = await Order.findOne({
-              where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id },
-            });
+            // MATCH ON THE PAYMENT INSTRUMENT FIRST. This used to be a single lookup
+            // keyed on BOTH `metadata.orderId` and `paymentId` — and metadata.orderId
+            // can be stale. The ACH route creates the Order and the PaymentIntent in
+            // one DB transaction; if anything after paymentIntents.create fails, the
+            // DB rolls back but the PaymentIntent PERSISTS with a dangling orderId. On
+            // retry with the same idempotency key a NEW Order is created while Stripe
+            // returns the ORIGINAL PaymentIntent, still carrying the old id. The
+            // combined lookup then matched nothing and the handler fell through in
+            // SILENCE — no log, no alert, no fulfilment, surfacing days later because
+            // ACH settles slowly (Kimi K3 HIGH-1, 2026-08-16).
+            // The metadata fallback keys on the ORDER ID ALONE. The previous version
+            // fell back to `{ id, paymentId }` — a strict SUPERSET of the first
+            // query's condition, so it could never match when the first missed. It
+            // was fix-shaped and inert (GLM-5.3 LOW-2, round 2). Keying on the id
+            // alone is what actually recovers a stale-metadata order, and a
+            // divergent paymentId on that row is itself worth surfacing.
+            const metadataOrderId = Number.parseInt(pi.metadata.orderId, 10);
+            let order = await Order.findOne({ where: { paymentId: pi.id } });
+
+            if (!order && Number.isSafeInteger(metadataOrderId) && metadataOrderId > 0) {
+              const byMetadata = await Order.findOne({ where: { id: metadataOrderId } });
+              if (byMetadata) {
+                logger.warn('[ACH Webhook] Order matched by metadata only — paymentId diverges', {
+                  orderId: byMetadata.id,
+                  orderPaymentId: byMetadata.paymentId,
+                  paymentIntentId: pi.id,
+                });
+                order = byMetadata;
+              }
+            }
+
+            if (!order) {
+              // A captured ACH payment with no order is exactly the condition a human
+              // must see. Alerting is the fix for the silence; reconciling the payment
+              // is a manual action.
+              logger.error('[ACH Webhook] Captured payment matched NO order', {
+                paymentIntentId: pi.id,
+                metadataOrderId: pi.metadata?.orderId,
+                orderNumber: pi.metadata?.orderNumber,
+              });
+              try {
+                await sendNotification({
+                  type: 'ADMIN_NOTIFICATION',
+                  title: 'ACH payment received with NO matching order',
+                  message: `ACH payment ${pi.id} succeeded but no order matched. `
+                    + 'The customer has been charged and nothing was fulfilled — reconcile manually.',
+                  data: {
+                    type: 'ach_orphan_payment',
+                    paymentIntentId: pi.id,
+                    metadataOrderId: pi.metadata?.orderId ?? null,
+                    orderNumber: pi.metadata?.orderNumber ?? null,
+                    amount: Number(pi.amount_received ?? 0) / 100,
+                    actionRequired: 'MANUAL_RECONCILIATION',
+                  },
+                });
+              } catch (notifyError) {
+                logger.error('[ACH Webhook] Orphan-payment alert failed', {
+                  errorMessage: notifyError?.message,
+                });
+              }
+            }
+
             if (order && !order.paymentAppliedAt) {
               const completedAt = order.completedAt || new Date();
               if (order.status !== 'completed') {
@@ -293,6 +414,16 @@ const stripeWebhookHandler = async (req, res) => {
         }
         break;
       }
+      // Money leaving the business. Neither of these had a handler: an admin could
+      // issue a refund (adminChargeCardRoutes / adminGalleryRoutes both call
+      // stripe.refunds.create) or a customer could file a chargeback, and NOTHING
+      // downstream reacted — the buyer kept every granted session and their `client`
+      // role. Found by a local sweep 2026-08-16.
+      case 'charge.refunded':
+      case 'charge.dispute.created': {
+        await handleChargeReversal(event);
+        break;
+      }
       default:
         // Unexpected event type
         logger.info(`Unhandled event type: ${event.type}`);
@@ -316,6 +447,134 @@ router.post('/', rawBodyMiddleware, stripeWebhookHandler);
 /**
  * Process actions needed after an order is completed
  */
+/**
+ * Handle money flowing BACK out — a refund or a chargeback.
+ *
+ * DELIBERATELY POLICY-NEUTRAL, and that is the whole design.
+ *
+ * Whether a refund should claw back every granted session, only the unused ones, or
+ * none of them is a customer-trust decision, not a technical one, and it has not been
+ * made. Auto-revoking would be irreversible and wrong under two of the three plausible
+ * policies — so this does only what is correct under ALL of them:
+ *
+ *   1. mark the order refunded (dispute: flagged, NOT refunded — a dispute may be won)
+ *   2. raise an ADMIN_NOTIFICATION carrying the amount and the order
+ *   3. say explicitly that sessions were NOT auto-revoked, so nobody assumes they were
+ *
+ * It never touches sessions or roles. When the policy is decided, revocation hangs off
+ * this function; the detection is already in place and tested.
+ *
+ * An UNMATCHED charge still alerts. Silent fall-through on a money event is the defect
+ * (same class as the ACH orphan-payment path), not an acceptable fallback.
+ *
+ * Alert failures are swallowed: a down mail transport must not turn a refund webhook
+ * into a 500, because Stripe retries 500s and sustained failures get the endpoint
+ * disabled — which would kill fulfillment for ALL sales.
+ */
+async function handleChargeReversal(event) {
+  const isDispute = event.type === 'charge.dispute.created';
+  const object = event.data.object;
+
+  // A dispute's object is the dispute; a refund's object is the charge.
+  const paymentIntentId = object?.payment_intent || null;
+  const chargeId = isDispute ? object?.charge : object?.id;
+
+  // PARTIAL REFUNDS. `charge.amount_refunded` is CUMULATIVE across every refund on
+  // the charge, so using it as "the amount refunded now" reported a growing total as
+  // if newly refunded on each event, and flipping status on it marked an order fully
+  // refunded on the first $0.01 (GLM-5.3 MEDIUM-6, round 2).
+  // Report the LATEST refund's delta, and only call the order refunded when the
+  // cumulative total has actually reached the charge total.
+  const chargeTotalCents = Number(object?.amount ?? 0);
+  const cumulativeRefundedCents = Number(object?.amount_refunded ?? 0);
+  const latestRefundCents = Number(
+    object?.refunds?.data?.[object.refunds.data.length - 1]?.amount ?? cumulativeRefundedCents
+  );
+  const isFullyRefunded = !isDispute
+    && chargeTotalCents > 0
+    && cumulativeRefundedCents >= chargeTotalCents;
+
+  const amountCents = isDispute ? Number(object?.amount ?? 0) : latestRefundCents;
+  const amount = amountCents / 100;
+  const cumulativeRefunded = cumulativeRefundedCents / 100;
+
+  let order = null;
+  try {
+    if (paymentIntentId) {
+      const { default: Order } = await import('../models/Order.mjs');
+      // Both columns are populated depending on the rail that created the order:
+      // ACH writes `paymentId`, the card path writes `stripePaymentIntentId`.
+      order = await Order.findOne({ where: { stripePaymentIntentId: paymentIntentId } })
+        || await Order.findOne({ where: { paymentId: paymentIntentId } });
+
+      if (order && isFullyRefunded) {
+        // A dispute is not a refund — it can still be won — and a PARTIAL refund is
+        // not a refunded order. Only a refund that has reached the full charge
+        // amount moves the order's status.
+        await order.update({ status: 'refunded' });
+      }
+    }
+  } catch (lookupError) {
+    logger.error('[Webhook] Charge reversal: order lookup/update failed', {
+      eventType: event.type,
+      chargeId,
+      errorName: lookupError?.name,
+      errorMessage: lookupError?.message,
+    });
+  }
+
+  const label = isDispute
+    ? 'Chargeback opened'
+    : (isFullyRefunded ? 'Refund issued (full)' : 'Refund issued (PARTIAL)');
+  logger.warn(`[Webhook] ${label}`, {
+    eventType: event.type,
+    chargeId,
+    paymentIntentId,
+    amount,
+    orderId: order?.id ?? null,
+    orderNumber: order?.orderNumber ?? null,
+    matched: Boolean(order),
+  });
+
+  try {
+    await sendNotification({
+      type: 'ADMIN_NOTIFICATION',
+      title: order
+        ? `${label} — review granted sessions`
+        : `${label} — NO MATCHING ORDER`,
+      message: order
+        ? `${label}: $${amount.toFixed(2)} on order ${order.orderNumber}. `
+          + 'Sessions and role were NOT changed automatically — review and adjust manually.'
+        : `${label}: $${amount.toFixed(2)} for charge ${chargeId}, but no order matched `
+          + `payment intent ${paymentIntentId}. Investigate — this payment is unreconciled.`,
+      data: {
+        type: isDispute ? 'charge_dispute' : 'charge_refund',
+        eventType: event.type,
+        chargeId,
+        paymentIntentId,
+        amount,
+        cumulativeRefunded: isDispute ? null : cumulativeRefunded,
+        chargeTotal: chargeTotalCents / 100,
+        fullyRefunded: isFullyRefunded,
+        orderId: order?.id ?? null,
+        orderNumber: order?.orderNumber ?? null,
+        userId: order?.userId ?? null,
+        cartId: order?.cartId ?? null,
+        sessionsAutoRevoked: false,
+        reason: isDispute ? object?.reason ?? null : null,
+        actionRequired: 'MANUAL_SESSION_REVIEW',
+      },
+    });
+  } catch (notifyError) {
+    // Never rethrow: a 500 here triggers Stripe retries and endpoint disabling.
+    logger.error('[Webhook] Charge reversal: admin notification failed', {
+      chargeId,
+      errorName: notifyError?.name,
+      errorMessage: notifyError?.message,
+    });
+  }
+}
+
 export async function processCompletedOrder(cartId, { grantResult = null, stripeSessionId = null } = {}) {
   try {
     // Retrieve the completed cart with its items

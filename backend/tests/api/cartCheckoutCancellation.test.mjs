@@ -48,6 +48,10 @@ vi.mock('../../services/SessionGrantService.mjs', () => ({
 }));
 
 vi.mock('../../utils/cartHelpers.mjs', () => ({
+  // Named export required: cartRoutes imports MAX_CART_ITEM_QUANTITY by name
+  // (2026-08-16 — it used to be destructured off the default export, which never
+  // carried it, silently binding `undefined` and disabling every ceiling check).
+  MAX_CART_ITEM_QUANTITY: 99,
   default: {
     calculateCartTotals: vi.fn(),
     getCartTotalsWithFallback: vi.fn(),
