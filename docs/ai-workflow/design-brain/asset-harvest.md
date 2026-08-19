@@ -18,8 +18,8 @@ Eight front-page directions were produced, gated through six mechanical checks, 
 | What shipped in the mockups | What the shipped product actually has |
 |---|---|
 | A generic `<div>S</div>` monogram | `Logo.png` — a **low-poly crystalline swan**: triangulated facets, ice-white head → Ice Wing cyan body → Wing Purple wing tips, on a Midnight Sapphire disc |
-| Four abstract gradient SVG "plates" invented as placeholders | **Ten finished parallax backgrounds** (~17 MB) already in `frontend/public/images/parallax/` — cosmic swan-in-flight art, per section |
-| Flat sections, zero parallax | Parallax implemented in **ten live components** (`HeroSection`, `ArsenalSection`, `GolfSection`, `TestimonialsSection`, `HomeStyles`, `HeroOptics`, …) |
+| Four abstract gradient SVG "plates" invented as placeholders | **Ten finished parallax backgrounds** (16.6 MiB total) already in `frontend/public/images/parallax/` — cosmic swan-in-flight art, per section |
+| Flat sections, zero parallax | Parallax implemented in **10 HomePage components** (`HeroSection`, `ArsenalSection`, `GolfSection`, `TestimonialsSection`, `HomeStyles`, `HeroOptics`, …) and **42 files across `frontend/src`** |
 | Invented headline and CTAs | The real page copy, which Sean had already approved |
 
 The copy failure was caught by Sean and fixed into a law (`copy-pack.json`, copy-is-material). The asset failure is the same class and gets the same treatment. **The gates could not catch any of it**, because every gate compared the artboards to each other or to their own declared fields. Nothing loaded the product. That is the same lesson the 2026-08-19 learning packet recorded — *validate against the contract, not the artifact* — with the contract here being the shipped app itself.
@@ -37,7 +37,7 @@ Produce an **Asset Manifest** and put it in the run's artifacts. Six rows, each 
 5. **Copy** — the approved words, verbatim, into the run's copy pack (copy-is-material law).
 6. **Tokens** — the palette actually in use on that surface, resolved to values, from the theme/token source rather than memory.
 
-**Validate every absence claim.** A `find` that returns nothing is not proof a file is missing — the glob is as likely to be wrong as the repo. During the run that produced this file, a `find -iname "swan-bg*"` "proved" the hero background was missing; the real file was `hero-swan-bg.png`, present and 1.77 MB. List the containing directory before writing `NONE FOUND`. (See `feedback_validate_probe_before_absence_claim`.)
+**Validate every absence claim.** A `find` that returns nothing is not proof a file is missing — the glob is as likely to be wrong as the repo. During the run that produced this file, a `find -iname "swan-bg*"` "proved" the hero background was missing; the real file was `hero-swan-bg.png`, present at 1,771,771 bytes (1.69 MiB). List the containing directory before writing `NONE FOUND`. (See `feedback_validate_probe_before_absence_claim`.)
 
 ## 4. The brand mark is the design system
 
