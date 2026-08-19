@@ -1,5 +1,16 @@
-#!/usr/bin/env node
 /**
+ * NO SHEBANG — deliberate. This module is BOTH a CLI and the import target of
+ * `tests/api/idorAuditReaderControls.test.mjs`. Vitest's esbuild transform rejects a `#!` line in
+ * an imported module ("SyntaxError: Invalid or unexpected token"), and it reports the failure as
+ * **0 tests**, not as an error in the guilty file — so all 16 controls on this instrument went
+ * silently dead when the toolchain moved, while the CLI kept working perfectly under `node`.
+ * Nothing invokes this file as `./audit-idor-surface.mjs`; both call sites (`npm run audit:idor`
+ * and `audit-all.mjs`) spawn it with `node`, so the shebang bought nothing and cost the controls.
+ *
+ * The two sibling scripts that keep their shebangs are only ever read with `readFileSync` by their
+ * tests, never imported — which is why they were unaffected, and why "the other audits are fine"
+ * was not evidence that this one was.
+ *
  * ============================================================================
  * FILE: backend/scripts/audit-idor-surface.mjs
  * PURPOSE: Find route handlers that take a user-identifying parameter and never
