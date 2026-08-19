@@ -285,6 +285,41 @@ findings real. Accepted and actionable:
 8. **D9 refinement: generated FACES near THE PROOF are fatal** on a platform selling "real connection."
    Generated swans fine; generated impressionistic mid-layer humans defensible; generated faces in the proof, never.
 
+### D12 - TAKE-RATE CAP = $1,000/MONTH, ALL-IN (agent decision, Sean delegated 2026-08-19)
+Sean: *"do what you think is best for the monthly cap dollar amount... will be best for the application as a whole."*
+**Decision: 15%, capped at $1,000/month, card processing INCLUDED.**
+Headline form: `15%. Never more than $1,000 a month. Card processing included. No monthly fee, no setup fee.`
+
+**The trap that shaped it (caught while deciding, not before):** D4/D11 recommended absorbing Stripe's ~2.9% so the
+pitch could be all-in. That is only safe WITHOUT a cap. Under a cap, card fees scale with the trainer's billing
+while Swan's revenue is frozen - so a $500 cap turns LOSS-MAKING at roughly $17k/mo of trainer billing.
+The cap and the all-in promise constrain each other; recommending both without checking was an error.
+
+**Math at $1,000 all-in** (Sean's own $175/session):
+| Trainer billing / mo | Sessions/wk | Swan collects | Effective rate | Approx Stripe cost | Swan net |
+|---|---|---|---|---|---|
+| $6,700 (cap binds here) | ~9 | $1,000 | 15% | ~$195 | ~$805 |
+| $18,800 | ~25 | $1,000 | 5.3% | ~$545 | ~$455 |
+| $26,300 | ~35 (solo max) | $1,000 | 3.8% | ~$808 | ~$192 |
+| $33,600+ | studio-scale | $1,000 | 3.0% | ~$975 | ~$25 (break-even) |
+
+**Why this serves the application as a whole:** supply is the bottleneck (D2) and each trainer arrives with a client
+book, so acquisition outranks per-trainer margin early. Competitors are flat subscriptions (Trainerize ~$5-10/client/mo,
+Mindbody ~$139-599/mo) and none include processing. `[LIKELY]` on competitor pricing - general knowledge, not verified
+this session; verify before the number ships publicly.
+**Known limit, deliberately out of scope:** above ~$30k/mo billing Swan's net approaches zero. That is a multi-trainer
+studio, which needs its own plan tier - NOT a promise this page should make. Do not extend this cap to studios.
+Per S2 this value lives in config, never typed into a design.
+
+### D13 - MANIFESTO STAYS IN CHAPTER 2; the fix is design, not copy (agent decision, 2026-08-19)
+Kimi finding 5 argued chapter 2 is a bounce risk: ~26 seconds of grievance before the product is named, aimed at
+someone who googled "personal trainer near me." **Rejected as a copy change, accepted as a design requirement.**
+Chapter 1's sub-line already orients the reader - *"Where world-class personal training meets a supportive community..."*
+names the product before the manifesto arrives. The risk is real ONLY if that line is treated as decoration.
+**Therefore, binding on all eight designs:** the chapter-1 sub-line is LOAD-BEARING - it must be given real
+typographic weight and must be readable before any scroll. Sean's approved copy is not moved or edited.
+Sean retains the call; this resolves it without touching his voice.
+
 ## Q&A Log
 _(question -> recommended -> Sean's answer -> implication; appended after EVERY exchange)_
 
