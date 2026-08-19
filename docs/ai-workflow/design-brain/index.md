@@ -48,6 +48,7 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 |---|---|
 | `cinematic-pages.md` | How to generate story-arc marketing/cinematic pages (B2.1 acts, C1–C12 sequencing, Seedance briefs) |
 | `website-archetypes.md` | Archetype recipes: landing page, SaaS app, dashboard, client portal, portfolio, e-commerce, community/course page, internal operator tool |
+| `archetypes/` (generated) | A7 recall layer: `archetypes/index.json` routing table (~4KB) + 21 per-archetype splits, GENERATED from `website-archetypes.md` by `npm run brain:archetypes`. Agents read the table, load <=3 splits; hand-edits go to the monolith only, then regenerate. Freshness: `npm run brain:archetypes:check` |
 
 ### `adapters/` — per-agent + per-surface usage guides (parallel agents)
 

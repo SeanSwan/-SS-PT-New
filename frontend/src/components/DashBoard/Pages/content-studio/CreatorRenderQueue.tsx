@@ -18,8 +18,8 @@
  *   2. The word "Queued" never appears alone on a blocked job; the reason is the label.
  */
 
-import React, { useMemo, useState } from 'react';
-import { Server, PlugZap, Waves, RefreshCw } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Server, PlugZap, Waves, RefreshCw, Clapperboard, Lock } from 'lucide-react';
 import type { AxiosInstance } from 'axios';
 import useRenderQueue, { type RenderJobView, type WorkerState } from './CreatorRenderQueue.api';
 import CreatorRenderQueueTokenModal from './CreatorRenderQueueTokenModal';
@@ -109,6 +109,20 @@ const CreatorRenderQueue: React.FC<Props> = ({ api }) => {
   const [busy, setBusy] = useState(false);
   const [reveal, setReveal] = useState<{ token: string; agentId: string } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState('');
+  const [providerId, setProviderId] = useState('');
+  const [duration, setDuration] = useState('');
+
+
+  useEffect(() => { q.loadProviders(); }, [q.loadProviders]);
+
+  // Default to the first provider the licence gate actually permits. Preselecting a
+  // refused one would make the primary action fail on first click.
+  useEffect(() => {
+    if (providerId) return;
+    const first = q.providers.find((p) => p.available);
+    if (first) setProviderId(first.id);
+  }, [q.providers, providerId]);
 
   const worker = q.workerState ? WORKER_COPY[q.workerState] : WORKER_COPY.NO_WORKER_ENROLLED;
   const enrolled = q.workerState !== null && q.workerState !== 'NO_WORKER_ENROLLED';
@@ -122,8 +136,28 @@ const CreatorRenderQueue: React.FC<Props> = ({ api }) => {
     if (!id || !agentLabel.trim()) return;
     setBusy(true); setNotice(null);
     try {
-      const res = await q.enrol(id, agentLabel.trim(), ['ffmpeg', 'mediasync']);
+      // 'generate' MUST be here: leasing filters on required_capabilities, so a machine
+      // enrolled without it can never be offered a generation job — it would sit idle
+      // beside a queue it is not eligible for, which reads as a broken worker.
+      const res = await q.enrol(id, agentLabel.trim(), ['ffmpeg', 'mediasync', 'generate']);
       setReveal({ token: res.token, agentId: res.agent?.id ?? id });
+    } catch { /* surfaced via q.error */ } finally { setBusy(false); }
+  };
+
+  const chosen = q.providers.find((p) => p.id === providerId) || null;
+
+  const doGenerate = async () => {
+    if (!prompt.trim() || !providerId) return;
+    setBusy(true); setNotice(null);
+    try {
+      const res = await q.queueGenerate({
+        prompt: prompt.trim(),
+        provider: providerId,
+        ...(duration.trim() ? { duration: Number(duration) } : {}),
+      });
+      // The licence-required credit is echoed back so the operator sees the exact string
+      // that must accompany the output. H3 mandates prominent display.
+      setNotice(res.attribution ? `${res.message} · Credit required: ${res.attribution}` : res.message);
     } catch { /* surfaced via q.error */ } finally { setBusy(false); }
   };
 
@@ -203,6 +237,83 @@ const CreatorRenderQueue: React.FC<Props> = ({ api }) => {
                 {enrolled ? 'Enrol another machine' : 'Enrol this machine'}
               </PrimaryButton>
             </div>
+          </Card>
+
+          <Card style={{ marginTop: 20 }} $accent={chosen?.available ? 'ice' : 'gold'}>
+            <CardTitle>Generate a video</CardTitle>
+            <CardHint>
+              Renders on your own machine. Nothing is uploaded to a paid API.
+            </CardHint>
+
+            <Field>
+              Model
+              <select
+                value={providerId}
+                onChange={(e) => setProviderId(e.target.value)}
+                aria-label="Video model"
+                style={{
+                  minHeight: 44, padding: '0 14px', borderRadius: 10,
+                  background: 'var(--surface-dark, #1A1A24)',
+                  border: '1px solid rgba(224,236,244,0.16)',
+                  color: 'var(--text-primary, #E0ECF4)',
+                  fontFamily: "'Fira Code', monospace", fontSize: 14,
+                }}
+              >
+                {q.providers.length === 0 && <option value="">No models registered</option>}
+                {q.providers.map((p) => (
+                  <option key={p.id} value={p.id} disabled={!p.available}>
+                    {p.label}{p.local ? ' · local' : ' · hosted'}
+                    {p.available ? '' : ' — unavailable'}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            {/* An unavailable model states WHY and what fixes it. Hiding it would turn a
+                one-line config gap into a mystery about a missing feature. */}
+            {chosen && !chosen.available && (
+              <Caption style={{ color: 'var(--accent-gold, #C6A84B)', marginTop: 0 }}>
+                <Lock size={13} style={{ verticalAlign: '-2px', marginRight: 6 }} />
+                {chosen.hint}
+              </Caption>
+            )}
+
+            <Field>
+              Prompt
+              <Input
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="a swan taking off from still water, slow motion"
+                maxLength={500}
+                aria-label="Prompt"
+              />
+            </Field>
+
+            <Field>
+              Duration (seconds){chosen?.maxDurationSec ? ` — max ${chosen.maxDurationSec}` : ''}
+              <Input
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                placeholder={chosen?.maxDurationSec ? String(chosen.maxDurationSec) : '5'}
+                inputMode="numeric"
+                aria-label="Duration in seconds"
+              />
+            </Field>
+
+            <PrimaryButton
+              type="button"
+              onClick={doGenerate}
+              disabled={busy || !prompt.trim() || !chosen?.available}
+            >
+              <Clapperboard size={16} />
+              Generate
+            </PrimaryButton>
+
+            {/* The credit the licence requires, shown BEFORE the render rather than
+                discovered after — it is a condition of use, not a footnote. */}
+            {chosen?.attribution && (
+              <Caption>Output must be credited: <strong>{chosen.attribution}</strong></Caption>
+            )}
           </Card>
 
           <Card style={{ marginTop: 20 }}>

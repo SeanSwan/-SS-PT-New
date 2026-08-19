@@ -1,0 +1,44 @@
+{
+  "brief_id": "smoke-apex-stride-2026-08-18",
+  "archetype_base": "fitness-coaching (#4, covered)",
+  "plate_pack_id": "pack-smoke-01",
+  "skeletons": [
+    {
+      "id": "S1-field-report",
+      "nav_model": "side-rail-left",
+      "hero_mechanics": "split-asymmetric-text-left-plate-right",
+      "chapter_count": 3,
+      "grid": "12col-asymmetric-7-5",
+      "anti_specs": ["no top nav bar", "hero is NOT full-bleed image with centered text"],
+      "wildcard": false
+    },
+    {
+      "id": "S2-open-road",
+      "nav_model": "none-anchor-dots-right",
+      "hero_mechanics": "full-bleed-plate-overlay-type-baseline-left",
+      "chapter_count": 5,
+      "grid": "single-column-editorial-680px",
+      "anti_specs": ["no navigation bar of any kind", "no card grids anywhere"],
+      "wildcard": false
+    },
+    {
+      "id": "S3-ledger",
+      "nav_model": "top-bar-dense",
+      "hero_mechanics": "no-hero-kpi-strip",
+      "chapter_count": 4,
+      "grid": "2col-data-grid",
+      "anti_specs": ["no hero section at all", "no full-bleed imagery"],
+      "wildcard": false
+    },
+    {
+      "id": "S4-cover-issue",
+      "nav_model": "masthead-centered",
+      "hero_mechanics": "magazine-cover-composite",
+      "chapter_count": 3,
+      "grid": "cover-plus-2col-features",
+      "anti_specs": ["nothing that reads as a SaaS landing page", "no CTA above the fold"],
+      "wildcard": true,
+      "alien_archetype": "editorial-magazine (fitness studio as a magazine issue)"
+    }
+  ]
+}

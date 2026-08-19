@@ -106,13 +106,18 @@ describe('special checkout rail ownership', () => {
 });
 describe('checkout expiration recovery', () => {
   it('reopens only the cart tied to an expired Stripe session', () => {
-    const webhook = handlerBody(cartSource, "router.post('/webhook'");
-    const expired = webhook.slice(webhook.indexOf("case 'checkout.session.expired'"));
+    // 2026-08-16: /api/cart/webhook no longer carries its own switch — it delegates
+    // to the canonical handler, because the duplicate silently 200-acked every event
+    // type the canonical one gained (refunds, disputes, all ACH). Same invariant,
+    // asserted where the implementation now lives.
+    const canonical = readBackend('webhooks/stripeWebhook.mjs');
+    const expired = canonical.slice(canonical.indexOf("case 'checkout.session.expired'"));
+
     expect(expired).toMatch(/status:\s*'active'/);
     expect(expired).toMatch(/paymentStatus:\s*'cancelled'/);
     expect(expired).toMatch(/checkoutSessionExpired:\s*true/);
     expect(expired).toMatch(/checkoutSessionId:\s*null/);
-    expect(expired).toMatch(/where:\s*\{[\s\S]*id:\s*normalizedCartId[\s\S]*status:\s*'pending_payment'[\s\S]*checkoutSessionId:\s*session\.id/);
+    expect(expired).toMatch(/where:\s*\{[\s\S]*status:\s*'pending_payment'[\s\S]*checkoutSessionId:\s*session\.id/);
   });
 });
 

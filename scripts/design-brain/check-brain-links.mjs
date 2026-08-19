@@ -339,7 +339,15 @@ const listedExact = new Set(
 // Compare on the corpus-relative PATH where the index gives one, falling back to basename.
 // Basename-only collapsing let all four index.md files be satisfied by the single root listing.
 const listedPaths = new Set([...indexText.matchAll(/`([A-Za-z0-9._/-]+\.md)`/g)].map((m) => m[1].toLowerCase()));
-const unindexed = mdFiles.filter((f) => !IGNORE.has(f) && !isBackup(f)
+// GENERATED artifacts (archetype splits) are exempt from the index law: they are
+// build outputs of build-archetype-index.mjs, hash-stamped against their source and
+// policed for rot by `--check` + archetype-index.test.mjs — a STRONGER freshness proof
+// than an index row. Hand-listing 21 generated names would re-create the exact rot
+// class this gate kills (regeneration renames -> stale index rows). The exemption is
+// deliberately narrow: archetypes/ dir AND the literal generated-marker first line.
+const isGenerated = (f) => f.startsWith('archetypes/')
+  && readFileSync(join(BRAIN, f), 'utf8').startsWith('<!-- GENERATED from website-archetypes.md');
+const unindexed = mdFiles.filter((f) => !IGNORE.has(f) && !isBackup(f) && !isGenerated(f)
   && !listedPaths.has(f.toLowerCase()) && !(f.indexOf("/") === -1 && listedExact.has(basename(f).toLowerCase())));
 // index.md legitimately cites docs OUTSIDE this folder (the source-of-truth design system,
 // the world-factory skill). Those are cross-references, not orphans — resolve any listed

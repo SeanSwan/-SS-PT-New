@@ -14,12 +14,22 @@
 import express from 'express';
 import Decimal from 'decimal.js';
 import { protect } from '../middleware/authMiddleware.mjs';
+// Money-path rate limit: each accepted call creates a pending Order that lands in
+// the admin confirmation queue. Was unlimited (Kimi MEDIUM-1 / GLM M4).
+import { checkoutSessionLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 import Order from '../models/Order.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
+// NAMED import — validated at link time. Destructuring this off the default
+// export binds `undefined` (it is not on the default object) and silently
+// disables the ceiling below. See the note in cartRoutes.mjs.
+import { MAX_CART_ITEM_QUANTITY, MAX_PAYMENT_LINE_ITEMS } from '../utils/cartHelpers.mjs';
+// Only resolveUnitPrice is needed here: it throws inside calculateServerTotal,
+// which the caller already wraps into a 400 ("Could not validate payment items").
+import { resolveUnitPrice } from '../services/store/itemPricing.mjs';
 import { buildWindowedStripeIdempotencyKey } from '../utils/stripeIdempotency.mjs';
 import {
   claimIdempotentRecord,
@@ -30,6 +40,12 @@ import {
 } from '../services/offlinePaymentOrderItems.mjs';
 
 const router = express.Router();
+
+// One ceiling, shared with the cart routes and the checkout gate (see the
+// no-drift note on the constant itself). The direct-item payment rails bypass
+// the cart entirely, so the cart's own cap never covered them: an unbounded
+// quantity overflows Order.totalAmount — DECIMAL(10,2), max 99,999,999.99 —
+// turning a money-path request into a 500 and littering failed orders.
 
 const VALID_METHODS = ['check', 'zelle', 'venmo'];
 
@@ -50,6 +66,13 @@ async function calculateServerTotal(items) {
     throw new Error('Items array is required and must not be empty');
   }
 
+  // Per-line quantity is capped below, but the REQUEST is what overflows:
+  // repeating a max-quantity line aggregates past Order.totalAmount's
+  // DECIMAL(10,2) ceiling. Bound the line count too. Mirrors achPaymentRoutes.
+  if (items.length > MAX_PAYMENT_LINE_ITEMS) {
+    throw new Error(`An order may contain at most ${MAX_PAYMENT_LINE_ITEMS} line items`);
+  }
+
   const itemIds = items.map(i => i.storefrontItemId).filter(Boolean);
   if (itemIds.length === 0) {
     throw new Error('All items must have a storefrontItemId');
@@ -66,6 +89,10 @@ async function calculateServerTotal(items) {
     attributes: [
       'id',
       'price',
+      // totalCost MUST be projected: packages carry their real money here and
+      // `price` is nullable. Without it the shared resolver silently degrades to
+      // price-only — the exact defect this change removes.
+      'totalCost',
       'name',
       'description',
       'packageType',
@@ -75,20 +102,29 @@ async function calculateServerTotal(items) {
     ],
   });
 
-  const priceMap = new Map();
-  for (const item of dbItems) {
-    priceMap.set(Number(item.id), new Decimal(item.price));
-  }
+  const dbItemMap = new Map(dbItems.map((item) => [Number(item.id), item]));
 
   let total = new Decimal(0);
   for (const item of items) {
-    const dbPrice = priceMap.get(Number(item.storefrontItemId));
-    if (!dbPrice) {
+    const dbItem = dbItemMap.get(Number(item.storefrontItemId));
+    if (!dbItem) {
       throw new Error(`Item ${item.storefrontItemId} not found in storefront`);
     }
-    const qty = parseInt(item.quantity, 10);
+    // Shared resolver — throws rather than pricing an unpriceable item at zero.
+    // Must match the cart and ACH rails exactly; three copies of "what does this
+    // cost" is the drift class this family keeps re-finding.
+    const dbPrice = resolveUnitPrice(dbItem);
+    // Number() not parseInt(): parseInt('2.5') and parseInt('2abc') both yield a
+    // clean 2 and would silently price a malformed request. typeof guard excludes
+    // `true` -> 1. Matches achPaymentRoutes — the two rails must not drift.
+    const qty = (typeof item.quantity === 'number' || typeof item.quantity === 'string')
+      ? Number(item.quantity)
+      : NaN;
     if (!Number.isInteger(qty) || qty < 1) {
       throw new Error(`Invalid quantity for item ${item.storefrontItemId}`);
+    }
+    if (qty > MAX_CART_ITEM_QUANTITY) {
+      throw new Error(`Quantity for item ${item.storefrontItemId} exceeds the ${MAX_CART_ITEM_QUANTITY} per-item limit`);
     }
     total = total.plus(dbPrice.mul(qty));
   }
@@ -101,7 +137,7 @@ async function calculateServerTotal(items) {
  * Create a pending order for offline payment (check/zelle/venmo).
  * Requires authentication. Server validates all prices against database.
  */
-router.post('/offline', protect, async (req, res) => {
+router.post('/offline', protect, checkoutSessionLimiter, async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
@@ -135,9 +171,11 @@ router.post('/offline', protect, async (req, res) => {
       if (!item.storefrontItemId) {
         return res.status(400).json({ success: false, message: 'Each item must have a storefrontItemId' });
       }
-      if (!item.quantity || parseInt(item.quantity, 10) < 1) {
-        return res.status(400).json({ success: false, message: 'Each item must have a valid quantity' });
-      }
+      // Quantity is NOT re-validated here on purpose. A second copy of the
+      // predicate drifts from the real one — this loop used to carry a stale
+      // `parseInt(item.quantity, 10) < 1` that accepted '2.5' and '2abc' after
+      // calculateServerTotal had already been tightened to reject them. One
+      // predicate, one place: calculateServerTotal below.
     }
 
     // ── Server-Side Price Validation ──

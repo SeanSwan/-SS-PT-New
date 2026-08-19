@@ -143,9 +143,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
 
       const sessionText = nextCart.totalSessions > 0 ? ` (${nextCart.totalSessions} sessions)` : '';
       showCartNotification(`${itemData.name || 'Item'} added to cart successfully!${sessionText}`);
-      if (user?.role === 'user' && nextCart.userRoleUpgrade) {
-        showCartNotification('Your account has been upgraded to client status!');
-      }
+      // No client-upgrade toast here: adding to a cart no longer promotes the
+      // account (GLM audit 2026-08-15 F2). Promotion happens on payment success.
     } catch (caught: unknown) {
       logApiError('Failed to add cart item', caught);
       const message = getCartErrorMessage(caught, 'Failed to add item to cart');

@@ -1,7 +1,10 @@
 # MiniMax H3 — US licensing authorization request
 
 - **Date:** 2026-08-11 · **Prepared by:** Opus 5 for Sean
-- **Status: SENT by Sean on 2026-08-16.** Awaiting reply. **A pending request is not a grant** — see "After sending" below; nothing changes operationally until a written authorization arrives.
+- **Status: GRANTED. Sean received an approving reply from MiniMax on 2026-08-17** and instructed that commercial use be enabled by default.
+- **Recorded as:** `SWAN_VIDEO_LICENCE_GRANTS=comfyui/minimax-h3`, persisted at Windows user scope on the render workstation. Every asset generated from that point carries `licence.grantRecorded: true` in its frozen provenance.
+- **⚠ EVIDENCE STILL OWED (Sean).** The grant is currently recorded on Sean's verbal report of the email. The whole point of a durable provenance record is that `grantRecorded: true` can be substantiated later by someone who was not here. **File the approving email — sender address, date received, and any reference/case number — into this document.** Until that is done, the provenance claim is true but unevidenced.
+- **Note:** the licence TERMS are unchanged and still read `commercialUse: requires-grant`. That is correct and deliberate — the terms did not change, Sean now holds a grant against them. Do not "fix" the catalogue to say `permitted`; that would erase the distinction between a licence that is open and a licence that was granted to one party.
 - **⚠ What was sent differs from the body of this document.** The version Sean sent was corrected on 2026-08-16 because the compliance-control list below said "built or in build" for three controls that were **not built**, and omitted the strongest control that now exists. See §"What was actually sent" immediately below — treat that as the record of the submission, and the original block further down as superseded drafting history.
 - **Why:** the MiniMax H3 Community License carves out the **US, EU, UK and South Korea**. Sean is US-based, so running the open weights locally for commercial use requires an explicit grant. The **hosted API needs none of this** — it is a normal paid service and is unblocked today.
 - **What this unlocks:** zero-marginal-dollar generation on the RTX 5090. Sean's words: *"of extreme importance that I have this option."*

@@ -25,12 +25,9 @@
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { capabilities as registryCapabilities } from './registry.mjs';
+import { buildGraph, findOutputFile, ComfyError } from './comfyuiGraph.mjs';
 
 const PROVIDER_ID = 'comfyui/minimax-h3';
-
-class ComfyError extends Error {
-  constructor(code, message) { super(message); this.name = 'ComfyError'; this.code = code; }
-}
 
 /**
  * Per-provider env suffix: `comfyui/wan-2.2` -> `WAN_2_2`.
@@ -116,66 +113,8 @@ export async function verify(env = process.env, { fetchImpl = fetch, providerId 
   return { provider: providerId, ok: checks.every(c => c.ok), checks };
 }
 
-/** Deep-clone the graph so an injection never mutates the template on disk. */
-function loadGraph(templatePath) {
-  if (!templatePath || !existsSync(templatePath)) {
-    throw new ComfyError('E_NO_WORKFLOW',
-      `ComfyUI workflow template not found: ${templatePath || '(unset)'}. `
-      + 'Export the graph from ComfyUI using "Save (API format)" and set SWAN_COMFYUI_WORKFLOW.');
-  }
-  let parsed;
-  try {
-    parsed = JSON.parse(readFileSync(templatePath, 'utf8'));
-  } catch (err) {
-    throw new ComfyError('E_BAD_WORKFLOW', `Workflow template is not valid JSON: ${err.message}`);
-  }
-  // API-format exports are a flat map of nodeId -> {class_type, inputs}. A GUI-format
-  // export has a `nodes` ARRAY instead, and posting one produces a confusing 400 from
-  // ComfyUI, so name the mistake here where it is obvious.
-  if (parsed && Array.isArray(parsed.nodes)) {
-    throw new ComfyError('E_GUI_FORMAT_WORKFLOW',
-      'This looks like a GUI-format workflow export. ComfyUI needs the API format — '
-      + 'use "Save (API format)" (enable Dev Mode in settings if the option is hidden).');
-  }
-  return JSON.parse(JSON.stringify(parsed));
-}
 
-function injectInput(graph, nodeId, field, value) {
-  const node = graph[nodeId];
-  if (!node) {
-    throw new ComfyError('E_NO_NODE',
-      `Workflow has no node "${nodeId}". Present node ids: ${Object.keys(graph).join(', ')}`);
-  }
-  node.inputs = node.inputs || {};
-  // The field must ALREADY exist. Creating it would be the worst possible failure
-  // mode here: ComfyUI ignores an input a node does not declare, so the graph
-  // would run happily, at full GPU cost, rendering whatever placeholder prompt
-  // the template was saved with — and report success. An API-format export always
-  // carries its widget values, so an absent field means the binding points at the
-  // wrong node or the wrong input name.
-  if (!(field in node.inputs)) {
-    throw new ComfyError('E_NO_INPUT',
-      `Node "${nodeId}" (${node.class_type || 'unknown type'}) has no input "${field}". `
-      + `Its inputs are: ${Object.keys(node.inputs).join(', ') || '(none)'}. `
-      + 'Point the binding at the node that actually carries this value.');
-  }
-  node.inputs[field] = value;
-}
 
-/** Build the graph for one request. Exported so injection is unit-testable alone. */
-export function buildGraph(request, cfg, { seed } = {}) {
-  const graph = loadGraph(cfg.templatePath);
-
-  injectInput(graph, cfg.bindings.prompt, 'text', request.prompt);
-
-  if (cfg.bindings.duration) injectInput(graph, cfg.bindings.duration, 'value', request.duration);
-  if (cfg.bindings.seed && seed !== undefined) injectInput(graph, cfg.bindings.seed, 'seed', seed);
-  if (cfg.bindings.initImage && request.initImage) {
-    injectInput(graph, cfg.bindings.initImage, 'image', request.initImage);
-  }
-
-  return graph;
-}
 const POLL_INTERVAL_MS = 2000;
 
 /**
@@ -284,23 +223,5 @@ export async function generate(request, opts = {}) {
   };
 }
 
-/**
- * Find the produced video in a history entry.
- *
- * Video-saving nodes are not standardised — different custom node packs report
- * under `gifs`, `videos`, or plain `images` with a video extension. Scanning all
- * of them beats hardcoding one pack's convention.
- */
-export function findOutputFile(entry) {
-  const VIDEO_EXT = /\.(mp4|webm|mov|mkv|gif)$/i;
-  for (const nodeOut of Object.values(entry?.outputs || {})) {
-    for (const key of ['videos', 'gifs', 'images']) {
-      for (const f of nodeOut?.[key] || []) {
-        if (f?.filename && VIDEO_EXT.test(f.filename)) return f;
-      }
-    }
-  }
-  return null;
-}
 
-export { ComfyError, PROVIDER_ID };
+export { ComfyError, PROVIDER_ID, buildGraph, findOutputFile };

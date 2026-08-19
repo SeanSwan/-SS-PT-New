@@ -30,6 +30,12 @@ status, or corrections. Bias to skipping on small work — this is for creation,
 
 ## The five steps
 
+> **A7 recall contract (R2 ruling 2026-08-18):** before proposing any page/surface
+> layout, read `docs/ai-workflow/design-brain/archetypes/index.json` (a ~4KB routing
+> table) and load **≤3** matching `archetypes/<nn>-<id>.md` splits — never the 61KB
+> monolith. A capability is reachable only if the skill that needs it loads it by
+> contract; this line is that contract.
+
 ### 1. GROUND — find what exists, then make it BETTER
 Audit the **real current state** before designing anything. Spawn an `Explore`/audit
 agent (or run `canonical-surface-audit`) to establish: what's actually shipped, what's
