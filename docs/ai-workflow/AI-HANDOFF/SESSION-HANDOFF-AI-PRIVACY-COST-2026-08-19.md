@@ -20,6 +20,18 @@ privacy: "No secrets, no key values, no client data. Env var NAMES, file paths, 
 > check against. **Sean-owed item #4 is satisfied.** (The review-queue note claiming the deps landed
 > in *root* is wrong on location: root is still 70, backend is 499. Same outcome, wrong reason.)
 >
+> **⚠ Scope this correction carefully — the install is PER-WORKTREE, and I did not say so in
+> my first pass.** Measured: main tree **499**, `C:/tmp/swan-safety-floor` **499**, a freshly
+> created `C:/tmp/ss-mic45` **0** — `import('sequelize')` throws `ERR_MODULE_NOT_FOUND` there.
+> **So a next agent who cuts a new worktree will hit the original symptom and may conclude the
+> blocker returned.** It did not. Junction `backend/node_modules` (and `frontend/node_modules`)
+> from the main tree before running anything, exactly as the Landmines section warns. The
+> re-verify command — which is what this document needed everywhere and had nowhere — is:
+>
+> ```
+> ls <worktree>/backend/node_modules | wc -l     # 0 means junction it, not that the blocker is back
+> ```
+>
 > ### 2. PR #45 does NOT have "zero test evidence" — that claim was never checked against the PR diff
 > `origin/feat/coach-mic-safety-floor` adds `useVoiceRecorder.latch.test.ts` — **292 new lines, 11
 > tests**, absent on `origin/main`. This document asserts twice that #45 carries no test evidence.
@@ -32,7 +44,14 @@ privacy: "No secrets, no key values, no client data. Env var NAMES, file paths, 
 >   landmine cannot apply) → **9 of 11 fail.** Restored → 11/11 green. The tests genuinely guard
 >   the four leaks; they are not vacuous.
 >
-> **→ The 🟡 HOLD on #45 is CLEARED.** Its gate was "until its frontend suite runs." It ran.
+> **→ The 🟡 HOLD on #45 is CLEARED.** Its gate was "until its frontend suite runs."
+>
+> **My first pass cleared it on ONE test file, which does not meet that wording** — caught on my
+> own second hostile round. `useVoiceRecorder` has **three consumers**
+> (`VoiceRecordingOverlay.tsx`, `useGeminiTranscription.ts`, `hooks/voice/useVoiceCapture.ts`), and
+> a 127-line change to a shared hook can pass its own test while breaking a caller. Now closed
+> properly: **`coach-assistant` + `hooks/voice` → 162 files, 890/890 pass** with the PR applied.
+> The hold is cleared on the gate as written, not on a narrower reading of it.
 >
 > ### 3. The provenance caveat on #50's suites is resolved
 > Both re-run on the **pinned 4.0.18** (not the npx-fetched 4.1.11 this document says not to trust),
