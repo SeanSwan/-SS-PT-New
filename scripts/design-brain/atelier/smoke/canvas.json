@@ -1,0 +1,16 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "A · Field Report", "x": 0, "y": 0, "w": 1280, "h": 2000 },
+    { "file": "OpenRoad.dc.html", "title": "B · Open Road", "x": 1480, "y": 0, "w": 1280, "h": 2000 },
+    { "file": "Ledger.dc.html", "title": "C · Ledger", "x": 0, "y": 2300, "w": 1280, "h": 2000 },
+    { "file": "CoverIssue.dc.html", "title": "D · Cover Issue (wildcard)", "x": 1480, "y": 2300, "w": 1280, "h": 2000 }
+  ],
+  "annotations": [
+    { "id": "pack-manifest", "x": -420, "y": 0, "w": 380, "text": "SHARED PLATE PACK (pack-smoke-01) — all four variants compose from the SAME three plates:\n1. plate-hero.svg — hero-bleed ridge\n2. plate-texture.svg — contour texture\n3. plate-proof.svg — pace proof chart\nSame material, different composition. That is the divergence test." },
+    { "id": "note-a", "x": 0, "y": -170, "w": 400, "text": "A · FIELD REPORT — trust-first. Side rail keeps the plan/proof/coach map always visible; split hero states the offer in one line.\nTRADEOFF: less cinematic drama; the plate never goes full-bleed." },
+    { "id": "note-b", "x": 1480, "y": -170, "w": 400, "text": "B · OPEN ROAD — awe-first editorial. Full-bleed hero, five numbered chapters, no nav at all.\nTRADEOFF: slowest route to the CTA; readers must scroll the essay to reach the start line." },
+    { "id": "note-c", "x": 0, "y": 2130, "w": 400, "text": "C · LEDGER — proof-first. No hero; a KPI strip and the actual training log carry the page.\nTRADEOFF: can read as a dashboard, not an invitation; weakest first impression for a stranger." },
+    { "id": "note-d", "x": 1480, "y": 2130, "w": 400, "text": "D · COVER ISSUE (WILDCARD) — the studio as a magazine issue. Alien archetype: editorial-magazine. No CTA above the fold, by contract.\nTRADEOFF: memorable but off-genre; may read as content, not coaching." }
+  ],
+  "launch": { "view": "canvas" }
+}

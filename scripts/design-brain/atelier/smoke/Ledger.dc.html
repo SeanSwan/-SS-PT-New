@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0A0A0F; }
+    a { color: #60C0F0; } a:hover { color: #E0ECF4; }
+  </style>
+</helmet>
+<div style="width: 1280px; min-height: 2000px; background: #0A0A0F; color: #E0ECF4; display: flex; flex-direction: column;">
+  <nav style="display: flex; align-items: center; gap: 26px; padding: 0 40px; height: 64px; border-bottom: 1px solid #1A1A24; background: #141419;">
+    <div style="font-weight: 800; letter-spacing: 0.08em; color: {{accent}};">APEX STRIDE / LEDGER</div>
+    <a href="#week" style="text-decoration: none; font-size: 14px; min-height: 44px; display: inline-flex; align-items: center;">This week</a>
+    <a href="#block" style="text-decoration: none; font-size: 14px; min-height: 44px; display: inline-flex; align-items: center;">The block</a>
+    <a href="#pace" style="text-decoration: none; font-size: 14px; min-height: 44px; display: inline-flex; align-items: center;">Pace</a>
+    <a href="#log" style="text-decoration: none; font-size: 14px; min-height: 44px; display: inline-flex; align-items: center;">Log</a>
+    <a href="#start" style="margin-left: auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border-radius: 8px; background: #002060; color: #E0ECF4; text-decoration: none; font-weight: 700;">Start a block</a>
+  </nav>
+  <section style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #1A1A24; border-bottom: 1px solid #1A1A24;">
+    <div style="background: #0A0A0F; padding: {{pad}}; display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; letter-spacing: 0.2em; color: #9FB6C6;">WEEKS TO RACE</span><span style="font-size: 40px; font-weight: 800; font-family: Consolas, monospace; color: {{accent}};">09</span></div>
+    <div style="background: #0A0A0F; padding: {{pad}}; display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; letter-spacing: 0.2em; color: #9FB6C6;">SESSIONS LOGGED</span><span style="font-size: 40px; font-weight: 800; font-family: Consolas, monospace;">47</span></div>
+    <div style="background: #0A0A0F; padding: {{pad}}; display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; letter-spacing: 0.2em; color: #9FB6C6;">PLAN ADHERENCE</span><span style="font-size: 40px; font-weight: 800; font-family: Consolas, monospace;">86%</span></div>
+    <div style="background: #0A0A0F; padding: {{pad}}; display: flex; flex-direction: column; gap: 6px;"><span style="font-size: 12px; letter-spacing: 0.2em; color: #9FB6C6;">PACE TREND</span><span style="font-size: 40px; font-weight: 800; font-family: Consolas, monospace; color: #50A0F0;">&#9650; 4.1%</span></div>
+  </section>
+  <main style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; padding: 40px;">
+    <section id="pace" style="display: flex; flex-direction: column; gap: 14px; background: #141419; border: 1px solid #1A1A24; border-radius: 14px; padding: 24px;">
+      <h2 style="margin: 0; font-size: 20px;">Pace vs plan</h2>
+      <img src="plate-proof.svg" alt="pace progress chart" style="width: 100%; border-radius: 10px; display: block;">
+      <p style="margin: 0; color: #9FB6C6; font-size: 14px; line-height: 1.6;">Blue is you. Dashed gold is the plan. The gap is closing on schedule.</p>
+    </section>
+    <section id="block" style="display: flex; flex-direction: column; gap: 14px; background: #141419; border: 1px solid #1A1A24; border-radius: 14px; padding: 24px;">
+      <h2 style="margin: 0; font-size: 20px;">Block map</h2>
+      <img src="plate-texture.svg" alt="contour block map" style="width: 100%; border-radius: 10px; display: block;">
+      <p style="margin: 0; color: #9FB6C6; font-size: 14px; line-height: 1.6;">Twelve weeks, four cycles. You are in the third ring.</p>
+    </section>
+    <section id="week" style="grid-column: span 2; display: flex; flex-direction: column; gap: 12px; background: #141419; border: 1px solid #1A1A24; border-radius: 14px; padding: 24px;">
+      <h2 style="margin: 0; font-size: 20px;">This week</h2>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;">
+        <div style="border: 1px solid #1A1A24; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 6px;"><strong>Tue &middot; Threshold</strong><span style="color: #9FB6C6; font-size: 14px;">3 &times; 8 min at half-marathon effort</span></div>
+        <div style="border: 1px solid #1A1A24; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 6px;"><strong>Thu &middot; Hills</strong><span style="color: #9FB6C6; font-size: 14px;">8 &times; 45s strong up, easy down</span></div>
+        <div style="border: 1px solid #1A1A24; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 6px;"><strong>Sun &middot; Long</strong><span style="color: #9FB6C6; font-size: 14px;">90 min easy, last 15 steady</span></div>
+      </div>
+    </section>
+    <section id="log" style="grid-column: span 2; overflow: hidden; border: 1px solid #1A1A24; border-radius: 14px;">
+      <div style="display: grid; grid-template-columns: 120px 1fr 140px 120px; gap: 1px; background: #1A1A24; font-size: 14px;">
+        <div style="background: #141419; padding: 12px 16px; color: #9FB6C6;">DATE</div><div style="background: #141419; padding: 12px 16px; color: #9FB6C6;">SESSION</div><div style="background: #141419; padding: 12px 16px; color: #9FB6C6;">AVG PACE</div><div style="background: #141419; padding: 12px 16px; color: #9FB6C6;">VERDICT</div>
+        <div style="background: #0A0A0F; padding: 12px 16px; font-family: Consolas, monospace;">08-17</div><div style="background: #0A0A0F; padding: 12px 16px;">Long run, rolling</div><div style="background: #0A0A0F; padding: 12px 16px; font-family: Consolas, monospace;">5:42 /km</div><div style="background: #0A0A0F; padding: 12px 16px; color: #50A0F0;">On plan</div>
+        <div style="background: #0A0A0F; padding: 12px 16px; font-family: Consolas, monospace;">08-15</div><div style="background: #0A0A0F; padding: 12px 16px;">Hill repeats &times; 8</div><div style="background: #0A0A0F; padding: 12px 16px; font-family: Consolas, monospace;">&mdash;</div><div style="background: #0A0A0F; padding: 12px 16px; color: #50A0F0;">On plan</div>
+        <div style="background: #0A0A0F; padding: 12px 16px; font-family: Consolas, monospace;">08-13</div><div style="background: #0A0A0F; padding: 12px 16px;">Threshold 3&times;8</div><div style="background: #0A0A0F; padding: 12px 16px; font-family: Consolas, monospace;">4:58 /km</div><div style="background: #0A0A0F; padding: 12px 16px; color: #C6A84B;">Adjusted</div>
+      </div>
+    </section>
+  </main>
+</div>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#8B5CF6","options":["#60C0F0","#8B5CF6","#C6A84B"]},"density":{"editor":"enum","default":"compact","options":["comfortable","compact"]}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#8B5CF6';
+    const pad = (this.props.density ?? 'compact') === 'compact' ? '18px 22px' : '28px 32px';
+    return { accent, pad };
+  }
+}
+</script>
+</body>
+</html>

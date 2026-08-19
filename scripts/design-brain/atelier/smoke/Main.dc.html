@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0A0A0F; }
+    a { color: #60C0F0; } a:hover { color: #E0ECF4; }
+  </style>
+</helmet>
+<div style="display: flex; width: 1280px; min-height: 2000px; background: #0A0A0F; color: #E0ECF4;">
+  <nav style="display: flex; flex-direction: column; gap: 28px; width: 88px; padding: 40px 0; align-items: center; border-right: 1px solid #1A1A24; flex-shrink: 0;">
+    <div style="width: 44px; height: 44px; border-radius: 10px; background: #002060; display: flex; align-items: center; justify-content: center; font-weight: 800; color: {{accent}};">A</div>
+    <a href="#plan" style="writing-mode: vertical-rl; text-decoration: none; font-size: 13px; letter-spacing: 0.2em; min-height: 44px;">THE PLAN</a>
+    <a href="#proof" style="writing-mode: vertical-rl; text-decoration: none; font-size: 13px; letter-spacing: 0.2em; min-height: 44px;">PROOF</a>
+    <a href="#coach" style="writing-mode: vertical-rl; text-decoration: none; font-size: 13px; letter-spacing: 0.2em; min-height: 44px;">YOUR COACH</a>
+  </nav>
+  <main style="flex-grow: 1; padding: {{pad}};">
+    <header style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; align-items: center; min-height: 560px;">
+      <div style="grid-column: span 7; display: flex; flex-direction: column; gap: 22px;">
+        <div style="font-size: 13px; letter-spacing: 0.25em; color: {{accent}};">FIELD REPORT &middot; SEASON 03</div>
+        <h1 style="margin: 0; font-size: 58px; line-height: 1.05; font-weight: 800;">Your next PR is a plan, not a miracle.</h1>
+        <p style="margin: 0; font-size: 18px; line-height: 1.6; color: #9FB6C6; max-width: 46ch;">Apex Stride builds week-by-week running blocks around your actual life &mdash; then proves the progress back to you in your own numbers.</p>
+        <div style="display: flex; gap: 14px;">
+          <a href="#plan" style="display: inline-flex; align-items: center; min-height: 46px; padding: 0 26px; border-radius: 10px; background: #002060; color: #E0ECF4; text-decoration: none; font-weight: 700; box-shadow: 0 0 22px rgba(139,92,246,0.35);">Start my block</a>
+          <a href="#proof" style="display: inline-flex; align-items: center; min-height: 46px; padding: 0 22px; border-radius: 10px; border: 1px solid #1A1A24; color: #E0ECF4; text-decoration: none;">See real progress</a>
+        </div>
+      </div>
+      <div style="grid-column: span 5;"><img src="plate-hero.svg" alt="ridge line at night" style="width: 100%; border-radius: 14px; display: block;"></div>
+    </header>
+    <section id="plan" style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; padding: 56px 0; border-top: 1px solid #1A1A24;">
+      <div style="grid-column: span 5;"><img src="plate-texture.svg" alt="contour grid" style="width: 100%; border-radius: 14px; display: block; opacity: 0.9;"></div>
+      <div style="grid-column: span 7; display: flex; flex-direction: column; gap: 14px; justify-content: center;">
+        <h2 style="margin: 0; font-size: 32px;">Chapter 01 &mdash; The block</h2>
+        <p style="margin: 0; color: #9FB6C6; line-height: 1.7;">Four-week cycles. Three quality sessions a week. Every session has a reason attached &mdash; you will never wonder why Tuesday hurts.</p>
+      </div>
+    </section>
+    <section id="proof" style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; padding: 56px 0; border-top: 1px solid #1A1A24;">
+      <div style="grid-column: span 7; display: flex; flex-direction: column; gap: 14px; justify-content: center;">
+        <h2 style="margin: 0; font-size: 32px;">Chapter 02 &mdash; The receipts</h2>
+        <p style="margin: 0; color: #9FB6C6; line-height: 1.7;">Pace curves from your logged sessions, not vibes. The gold line is your plan; the blue line is you, catching it.</p>
+      </div>
+      <div style="grid-column: span 5;"><img src="plate-proof.svg" alt="pace progress chart" style="width: 100%; border-radius: 14px; display: block;"></div>
+    </section>
+    <section id="coach" style="padding: 56px 0; border-top: 1px solid #1A1A24; display: flex; flex-direction: column; gap: 14px;">
+      <h2 style="margin: 0; font-size: 32px;">Chapter 03 &mdash; The coach in your corner</h2>
+      <p style="margin: 0; color: #9FB6C6; line-height: 1.7; max-width: 60ch;">Weekly check-ins, plan adjustments within a day, and a human who has run the distance you are training for.</p>
+    </section>
+  </main>
+</div>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#60C0F0","options":["#60C0F0","#8B5CF6","#C6A84B"]},"density":{"editor":"enum","default":"comfortable","options":["comfortable","compact"]}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#60C0F0';
+    const pad = (this.props.density ?? 'comfortable') === 'compact' ? '28px 40px' : '48px 64px';
+    return { accent, pad };
+  }
+}
+</script>
+</body>
+</html>

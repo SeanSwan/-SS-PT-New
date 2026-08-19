@@ -30,6 +30,8 @@
     "qa:mission:cleanup": "node scripts/qa/mission-qa-cleanup.mjs",
     "qa:mission:report": "node scripts/qa/mission-report.mjs",
     "brain:links": "node scripts/design-brain/check-brain-links.mjs",
+    "brain:archetypes": "node scripts/design-brain/build-archetype-index.mjs",
+    "brain:archetypes:check": "node scripts/design-brain/build-archetype-index.mjs --check",
     "brain:links:titles": "node scripts/design-brain/check-brain-links.mjs --titles",
     "code-health": "fallow --format json",
     "code-health:audit": "fallow audit --base HEAD --gate all --format json",
