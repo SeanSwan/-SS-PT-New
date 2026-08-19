@@ -71,7 +71,13 @@ import { isTracked, isCommitted, inSubmodule } from './git-provenance.mjs';
 
 
 export function readCitedFile(root, rel, exclude = []) {
-  const abs = path.join(root, rel);
+  // NORMALIZE ONCE, AT THE TOP, before anything is built from it. Round 10 stripped the trailing
+  // slash for git and left `path.join` holding the raw string, so `path=src/real.mjs/` bound under
+  // R4 and resolved under R5 while `existsSync('…/real.mjs/')` — false on POSIX for a regular file —
+  // made R3 report "file not found in repo". The round-6 two-spellings drift surviving inside the
+  // very fix written for it, one layer down. (GLM-5.3 round 11, F5.)
+  const cited = normPath(rel).replace(/\/+$/, '');
+  const abs = path.join(root, cited);
   if (!existsSync(abs)) return null;
   // SELF-CITATION IS CHECKED FIRST, because it is the more specific diagnosis and because the other
   // order produces a two-step refusal loop: an UNTRACKED self-citing packet was told "commit the
@@ -91,7 +97,10 @@ export function readCitedFile(root, rel, exclude = []) {
   // R4, resolved under R5, READ successfully — and then refused EUNTRACKED. That is the round-6
   // "two spellings of one path" drift reborn in the newest check, inside the module whose shared
   // normalizer exists to prevent exactly it. (GLM-5.3 round 10, F5.)
-  const gitRel = normPath(rel).replace(/\/+$/, '');
+  // ONE normalized spelling for the whole function — `cited`, computed at the top. Two separate
+  // normalizations of the same input in one function is how the trailing slash reached existsSync
+  // while git saw it stripped, and duplicate predicates are what this codebase keeps paying for.
+  const gitRel = cited;
   if (isTracked(root, gitRel) && !isCommitted(root, gitRel)) {
     const e = new Error('cited file is staged but never committed — staging is not provenance');
     e.code = 'ESTAGED';

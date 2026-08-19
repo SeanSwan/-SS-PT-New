@@ -20,6 +20,7 @@ import { parseFences, remitFromDoc, checkProvenance, checkPremises, checkSize, c
 import { gateSourceFiles, gateSourceHash } from '../source-hash.mjs';
 import { makeResolver, GateUnavailable } from '../repo-io.mjs';
 import { readCitedFile } from '../citation.mjs';
+import { countRemitHeadings } from '../remit.mjs';
 import { unboundNamedPaths, weakBindingOnly, caseOnlyBinding } from '../artifact.mjs';
 import { foldCase } from '../normalize.mjs';
 
@@ -1007,4 +1008,52 @@ test('REGRESSION: two Remit sections is a DIFFERENT refusal from no Remit sectio
   const b = runGate(['--document', none]);
   assert.equal(b.code, 2, b.out);
   assert.match(b.out, /no remit found/, b.out);
+});
+
+// --- Round 12: the five findings carried out of round 11 -----------------------------------------
+
+test('REGRESSION: the frontmatter bound is a BLOCK, not a line count', () => {
+  // The round-10 bound capped a LINE COUNT at 10 while frontmatter is a block, so an ordinary header
+  // carrying title/author/date/labels pushed `remit:` to line 11 and the gate reported "no remit" on
+  // a document with valid frontmatter. It also broke on `null`, which is what a fence or HTML
+  // comment leaves behind — so a `<!-- generated -->` banner on line 1 truncated the block to empty.
+  // Both are miss-direction false refusals introduced by the fix for a hijack.
+  const deep = ['title: p', 'author: s', 'date: d', 'a: 1', 'b: 2', 'c: 3', 'd: 4', 'e: 5', 'f: 6', 'remit: the real remit'].join('\n');
+  assert.equal(remitFromDoc(deep), 'the real remit');
+  assert.equal(remitFromDoc('<!-- generated -->\nremit: the real remit\n'), 'the real remit');
+  // …and the hijack the bound exists for is still closed: prose is separated by a blank line.
+  assert.equal(remitFromDoc('intro prose\n\nremit: wrong one\n'), '');
+});
+
+test('REGRESSION: ambiguity means two COMPETING sections, not a deeper sub-heading', () => {
+  // The round-10 rule counted every `#{2,6}` match, so a legitimate packet with `## Remit` and a
+  // later `### Remit` recap in an appendix was refused as ambiguous — a false refusal on an ordinary
+  // layout, produced by the fix for the hijack. Only the shallowest level competes.
+  assert.match(remitFromDoc('## Remit\nreal remit\n\n## Appendix\n\n### Remit\nrecap\n'), /real remit/);
+  assert.equal(countRemitHeadings('## Remit\na\n\n### Remit\nb\n'), 1);
+  // Two at the SAME level still ambiguous — every hijack that motivated the rule sits at that level.
+  assert.equal(remitFromDoc('## Remit (draft)\nx\n\n## Remit\nreal\n'), '');
+  assert.equal(countRemitHeadings('## Remit\na\n\n## Remit\nb\n'), 2);
+});
+
+test('REGRESSION: setext headings are headings', () => {
+  // `Remit` underlined by `===` (H1) or `---` (H2) is CommonMark; the ATX-only test could not see it
+  // and told the operator to add a section the document has. Fourth instance of that miss-direction
+  // class in this one parser.
+  assert.match(remitFromDoc('Remit\n=====\nReview scripts/packet-gate/refusal.mjs\n'), /refusal\.mjs/);
+  assert.match(remitFromDoc('Remit\n-----\nReview scripts/packet-gate/refusal.mjs\n'), /refusal\.mjs/);
+  // The underline is consumed, not treated as body text.
+  assert.doesNotMatch(remitFromDoc('Remit\n=====\nbody\n'), /=====/);
+  // And a setext Remit competes with an ATX one at the same level.
+  assert.equal(remitFromDoc('Remit\n-----\nfirst\n\n## Remit\nsecond\n'), '');
+});
+
+test('REGRESSION: a cited path is normalized ONCE, before anything is built from it', () => {
+  // Round 10 stripped the trailing slash for git and left `path.join` holding the raw string, so
+  // `path=src/real.mjs/` bound under R4 and resolved under R5 while existsSync — false on POSIX for
+  // a regular file — made R3 report "file not found". The two-spellings drift surviving inside the
+  // fix written for it, one layer down.
+  for (const rel of ['scripts/packet-gate/refusal.mjs', 'scripts/packet-gate/refusal.mjs/', './scripts/packet-gate/refusal.mjs']) {
+    assert.ok(readCitedFile(ROOT, rel, []), `${rel} must resolve to the same file`);
+  }
 });

@@ -167,7 +167,44 @@ export function remitFromDoc(md, opts) {
   // and a gate that cannot tell which question it is certifying must not certify either. Returning
   // '' makes the CLI's fail-closed empty-remit guard fire (exit 2) with an actionable message —
   // which is the correct outcome for a genuine draft-plus-final document too.
-  const matches = outside.map((l, n) => (l !== null && HEADING_RE.test(l) ? n : -1)).filter((n) => n !== -1);
+  // AMBIGUITY MEANS TWO COMPETING SECTIONS — not a Remit heading at a DEEPER level.
+  //
+  // The round-10 rule counted every `#{2,6}` match in the document, so a legitimate packet with
+  // `## Remit` and a later `### Remit` recap inside an appendix was refused as ambiguous. That is a
+  // false refusal on an ordinary document layout, produced by the fix for the hijack — the same
+  // over-tightening this session has now caused three times. (Kimi K3 round 11, F4.)
+  //
+  // Only the SHALLOWEST level competes: two `## Remit` headings genuinely leave the gate unable to
+  // say which question it is certifying, while a `### Remit` beneath one of them is part of that
+  // section, exactly as CommonMark nests it. The hijacks that motivated the rule — a draft section,
+  // an indented decoy, an HTML comment — all sit at the SAME level as the real heading, so this
+  // keeps every one of them closed.
+  // SETEXT HEADINGS ARE HEADINGS. `Remit` underlined by `===` (H1) or `---` (H2) is CommonMark, and
+  // the ATX-only test simply could not see it — so the document fell through to the frontmatter
+  // fallback and the gate told the operator to add a `## Remit` section to a document that has one,
+  // in a spelling markdown explicitly permits. The fourth instance of that miss-direction class in
+  // this one parser (round 6 F8, round 8 F6, round 9 F6). (GLM-5.3 round 11, F6.)
+  //
+  // Treated as level 1 for `===` and level 2 for `---`, which is what CommonMark assigns them, so
+  // the shallowest-level ambiguity rule above applies to them identically.
+  const setextLevel = (n) => {
+    if (n + 1 >= outside.length) return 0;
+    const text = outside[n];
+    const rule = outside[n + 1];
+    if (text === null || rule === null) return 0;
+    if (!/^ {0,3}remit[ \t]*$/i.test(text)) return 0;
+    if (/^ {0,3}=+[ \t]*$/.test(rule)) return 1;
+    if (/^ {0,3}-+[ \t]*$/.test(rule)) return 2;
+    return 0;
+  };
+
+  const all = outside.map((l, n) => {
+    if (l === null) return -1;
+    return (HEADING_RE.test(l) || setextLevel(n)) ? n : -1;
+  }).filter((n) => n !== -1);
+  const levelAt = (n) => setextLevel(n) || /^ {0,3}(#{2,6})/.exec(outside[n])[1].length;
+  const top = all.length ? Math.min(...all.map(levelAt)) : 0;
+  const matches = all.filter((n) => levelAt(n) === top);
   // The counting mode shares this exact traversal and grammar — see countRemitHeadings.
   if (opts?.count) return matches.length;
   if (matches.length > 1) return '';
@@ -195,8 +232,11 @@ export function remitFromDoc(md, opts) {
     // stop test and was ABSORBED into the remit, injecting a real path anchor the operator never
     // wrote and letting R4 be satisfied by citing it instead of the true subject. (Kimi K3 round 5,
     // F6.) One predicate, one spelling, applied at both ends.
-    const level = /^ {0,3}(#{2,6})/.exec(outside[i])[1].length;
-    const rest = outside.slice(i + 1);
+    // A setext heading occupies TWO lines — the text and its underline — so the section body starts
+    // one line further down, and its level comes from the underline character, not from hashes.
+    const setext = setextLevel(i);
+    const level = levelAt(i);
+    const rest = outside.slice(i + (setext ? 2 : 1));
     const stop = rest.findIndex((l) => {
       if (l === null) return false;
       // RAW LINE, same grammar as the start test. This still read `l.trim()` after the round-8
@@ -208,7 +248,8 @@ export function remitFromDoc(md, opts) {
       const m = /^ {0,3}(#{1,6})[ \t]/.exec(l); // space or tab, per CommonMark — not JS `\s`
       return Boolean(m) && m[1].length <= level;
     });
-    const hm = HEADING_RE.exec(outside[i]);
+    // A setext heading carries no inline remit text — its line is just the bare word.
+    const hm = setext ? null : HEADING_RE.exec(outside[i]);
     const inline = (hm?.[1] ?? hm?.[2] ?? hm?.[3])?.trim();
     const body = (stop === -1 ? rest : rest.slice(0, stop)).filter((l) => l !== null);
     return [inline || null, ...body].filter((l) => l !== null).join('\n').trim();
@@ -220,10 +261,26 @@ export function remitFromDoc(md, opts) {
   // no `## Remit` heading existed. Same shape as always: non-empty, so the fail-closed empty-remit
   // guard never fires; naming nothing, so aboutCode goes false and R4 and R5 both go inert.
   //
-  // Bounded to the leading block (up to the first blank line, and at most the first 10 lines), which
-  // is what "frontmatter" means in every format that has it. Found by my own round-10 pass.
+  // Bounded to the leading BLOCK, which is what "frontmatter" means in every format that has it.
+  //
+  // ROUND-12 CORRECTION, and the bound I wrote in round 10 was measured wrong twice over:
+  //   - it capped a LINE COUNT at 10 while frontmatter is a BLOCK. An ordinary header carrying
+  //     title/author/date/labels/status/reviewer pushed `remit:` to line 11 and the gate reported
+  //     "no remit" on a document with perfectly valid frontmatter.
+  //   - it `break`s on `l === null`, and null is what a fence or an HTML comment leaves behind. So a
+  //     `<!-- generated -->` banner on line 1 — the most ordinary thing a generator emits — truncated
+  //     the block to empty BEFORE the frontmatter that follows it.
+  // Both are miss-direction false refusals introduced by the fix for a hijack. (GLM-5.3 round 11, F4.)
+  //
+  // Now: skip leading container lines (a banner is not content), then take the contiguous non-blank
+  // block however long it is. The hijack this bound exists for — a prose line beginning "remit:"
+  // deep in the document — is still closed, because prose is separated from the header by a blank
+  // line, which is exactly what ends the block.
+  let start = 0;
+  while (start < outside.length && outside[start] === null) start += 1;
   const lead = [];
-  for (const l of outside.slice(0, 10)) {
+  for (let n = start; n < outside.length; n += 1) {
+    const l = outside[n];
     if (l === null || l.trim() === '') break;
     lead.push(l);
   }
