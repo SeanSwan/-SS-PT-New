@@ -13,7 +13,7 @@ An adapter answers one question for one consumer: **"I am agent X about to do de
 | File | Consumer(s) | One-line contract |
 |---|---|---|
 | `builders.md` | Claude Code, Codex | Pre-build load order, the build contract, pre-commit self-check, builder receipt |
-| `claude-code.md` | Claude Code only | What Claude Code can do that Codex cannot: view brand assets and surfaces directly, own the design canvas end-to-end, verify against the generator. Loads on top of `builders.md`, never instead of it |
+| `claude-code.md` | Whoever drives the design-canvas toolchain (today: Claude Code) | Thin **toolchain appendix**: base64 image keying, size caps, `{{token}}`-is-a-prop, republish-to-keep-URL. Loads on top of `builders.md`, never instead of it. **Not** a capability claim about any other agent |
 | `fable.md` | Fable | Concept-direction ideation gate, direction format, doctrine arbitration, spec-only vs hand-to-builder |
 | `hermes.md` | Hermes + Agentic OS surfaces | Crystalline Cyberforest scope, tier-badge colors, operational calm, how Hermes requests design work |
 | `reviewers.md` | AI Village design review; Browser Harness visual QA | Review packet + verdict format; supervised read-only QA sessions + QA receipt |
@@ -35,15 +35,17 @@ The original registry plan (`docs/ai-workflow/references/SWANSTUDIOS-AI-SKILL-AN
 
 If a merged adapter grows past ~150 lines or its consumers' contracts diverge, split it back out and update this record in the same pass.
 
-### 3.1 Split executed 2026-08-19 — `claude-code.md` restored
+### 3.1 Split executed 2026-08-19 — `claude-code.md` restored as a toolchain appendix
 
-The merge held for **building** and fails for **designing**. It was justified on "identical build contract," which remains true; the divergence is upstream of building, in how each agent acquires the design context:
+**The first version of this record justified the split with a false claim and is corrected here rather than deleted.**
 
-> Claude Code's `Read` tool renders images into context, and it owns the `design` canvas + `Artifact` publish path. Codex has neither and consumes design work as text.
+It read: *"Claude Code's `Read` tool renders images into context… Codex has neither and consumes design work as text."* **Codex reads images too.** The claim was never checked against anything — not `AGENTS.md`, not `builders.md`, neither of which documents any such limit — and Sean rejected it on sight. It was written into doctrine in the same pass that created `../asset-harvest.md`, a gate built specifically to stop unverified assertions, which makes it the sharper version of the error the gate exists to catch.
 
-Triggering incident: the 2026-08-19 front-page run built eight directions around a generic `<div>S</div>` monogram because the brief said "the swan logo" and nobody opened the file. Viewing `Logo.png` once yielded "low-poly crystalline, faceted, ice-white → Ice Wing → Wing Purple" — the actual design language, unavailable from the filename. An agent that can look and doesn't is making an unforced error; an agent that cannot look needs a different procedure.
+**What the triggering incident actually proves.** The 2026-08-19 front-page run built eight directions around a generic `<div>S</div>` monogram because the brief said "the swan logo" and nobody opened the file; one look at `Logo.png` yielded "low-poly crystalline, faceted, ice-white → Ice Wing → Wing Purple." That is a real and expensive failure — but it is an argument for a **universal** harvest gate, not for a per-agent split. *Look at the asset before designing with it* binds every agent. It lives in `../asset-harvest.md`, which both builders load.
 
-**The split is deliberately partial.** `builders.md` remains the shared contract and both agents load it. `claude-code.md` is additive and carries **only** what Codex genuinely cannot execute. A rule that applies to both belongs in `builders.md` — a rule appearing only in `claude-code.md` that Codex *could* follow is a bug in the split. No `codex.md` was created: Codex's contract is `builders.md` unmodified, so a Codex session is the design brain *without* the Claude-Code layer, which is the intended shape.
+**What genuinely justifies the file — and it is narrow.** Claude Code drives the design-canvas toolchain (bundled `design` skill → `.dc.html` artboards → seeder → `Artifact` publish). That toolchain has mechanical rules whose failures are all silent — base64 keyed by exact bare filename, ~70 KB/image and 16 MB/page caps, `{{token}}` being a declared prop rather than a bug, republishing the same path to keep the URL. Those would be noise in a shared builder contract. **That is the entire justification: a toolchain appendix.**
+
+**So the split is thinner than first recorded.** `builders.md` remains the shared contract both builders load, unchanged. `claude-code.md` is keyed to the **toolchain, not the agent** — anything driving the canvas loads it, Claude Code or otherwise. No `codex.md` was created, and the reason is *not* that Codex is less capable: it is that Codex's contract is `builders.md`, complete on its own. Test for anything proposed for the appendix: **if the rule would still be correct with the word "Claude" deleted, it belongs upstream.**
 
 ## 4. What belongs here / what does not
 

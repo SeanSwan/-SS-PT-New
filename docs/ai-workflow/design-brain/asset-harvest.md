@@ -39,6 +39,14 @@ Produce an **Asset Manifest** and put it in the run's artifacts. Six rows, each 
 
 **Validate every absence claim.** A `find` that returns nothing is not proof a file is missing — the glob is as likely to be wrong as the repo. During the run that produced this file, a `find -iname "swan-bg*"` "proved" the hero background was missing; the real file was `hero-swan-bg.png`, present at 1,771,771 bytes (1.69 MiB). List the containing directory before writing `NONE FOUND`. (See `feedback_validate_probe_before_absence_claim`.)
 
+### 3.1 Verification discipline (universal — every agent, every run)
+
+These bind whoever is doing the work. They were briefly mis-filed as Claude-Code-specific; they are not.
+
+- **Read the generator before calling a rendered anomaly a defect.** An artifact cannot tell you whether a token is a bug or a binding — only the script that emitted it and the contract that governs it can. Two "defects" filed against the 2026-08-19 artboards (`{{accent}}` unsubstituted, plate paths broken) were both non-bugs, each visible in `build-8run.mjs` or the `design` skill. Opening the generator costs less than filing.
+- **Assert your probes.** A check that matches nothing must fail loudly, not silently pass. A distinctness probe in that run grepped `class="…"`, matched nothing (the artboards use inline styles), hashed empty input, and reported all eight designs sharing the signature `d41d8cd98f00` — the md5 of the empty string, which reads as *all eight are identical*. Assert the match count before trusting any comparison.
+- **Never assert a capability — yours, another agent's, or a tool's — without checking it.** This file's own first companion adapter claimed "Codex cannot see images" and was wrong; nothing in `AGENTS.md` or `builders.md` says any such thing, and no check was run. If a claim about what something *can* or *cannot* do is load-bearing, verify it or write it as `[UNKNOWN]`.
+
 ## 4. The brand mark is the design system
 
 A logo is not a thing to place in a corner — it carries the geometric language every other element should speak. Read it, name its language, and extend that language rather than inventing a parallel one.
@@ -69,6 +77,7 @@ A design run may not present to Sean until:
 - [ ] Motion parity with the live surface is met, or each gap is captioned with its reason
 - [ ] Copy comes from the copy pack; new lines carry the approval tag
 - [ ] Regression check (§5) run and recorded
+- [ ] Verification discipline (§3.1) honored — generators read before defects filed, probes asserted, no unchecked capability claims
 
 Placeholders remain legitimate — for something the product genuinely lacks. They are never a substitute for something it already has.
 
@@ -76,5 +85,5 @@ Placeholders remain legitimate — for something the product genuinely lacks. Th
 
 - `qa-gates.md` — responsive/a11y/visual gates that run *after* this one
 - `anti-patterns.md` — the banned list
-- `adapters/claude-code.md` — the Claude Code harvest procedure (it can view images directly)
+- `adapters/claude-code.md` — design-canvas toolchain appendix (this gate is universal; that file is not)
 - `adapters/builders.md` — the shared build contract

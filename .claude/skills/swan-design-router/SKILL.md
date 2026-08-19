@@ -272,7 +272,7 @@ hardcode `p.theme.colors.*` hex; CLAUDE.md Rule 46 + the shipped architecture wi
 | `SWAN-CINEMATIC-DESIGN-SYSTEM.md` | Cinematic/public builds; deep palette + motion values |
 | `SWAN-ASSET-STORYBOARDING.md` | Any generated/commissioned media |
 | `docs/ai-workflow/design-brain/asset-harvest.md` | **Step 0.5 gate — load on EVERY design task, before concepting.** Asset Manifest, brand-mark-is-the-design-system, absence-claim validation, regression check |
-| `docs/ai-workflow/design-brain/adapters/claude-code.md` | You are Claude Code — additive on top of `builders.md`: view assets/surfaces directly, own the canvas (base64 keying, 70 KB/image cap, `{{token}}` is a prop not a bug), verify against the generator. Codex skips this file; its contract is `builders.md` alone |
+| `docs/ai-workflow/design-brain/adapters/claude-code.md` | **You are seeding or publishing a design canvas** — thin toolchain appendix on top of `builders.md`: base64 keyed by exact bare filename, ~70 KB/image + 16 MB/page caps, `{{token}}` is a declared prop not a bug, republish the same path to keep the URL. Keyed to the toolchain, not the agent |
 | `docs/ai-workflow/design-brain/design.md` | The Crystalline Canon — **sole canonical copy** (the `design.html` mirror was retired 2026-08-16; no second file to reconcile). Still ADAPTS the two source-of-truth docs above — "sole" means one copy, not top of the precedence chain |
 | `design.md.pre-redo` / `SKILL.md.pre-redo` | Historical context only |
 

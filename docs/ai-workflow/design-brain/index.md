@@ -56,8 +56,8 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | File | Purpose |
 |---|---|
 | `adapters/index.md` | Adapter map + which agent reads which |
-| `adapters/builders.md` | Builder-agent adapter — the **shared** contract both builders load (styled-components-first, rule 43 `css``` helper, lane claims per rule 67). **Consolidation note (amended 2026-08-19): the merge holds for BUILDING; it was partially reversed for DESIGNING — see `adapters/claude-code.md` and `adapters/index.md` §3.1** |
-| `adapters/claude-code.md` | Claude-Code-only layer, **additive on top of `builders.md`** — carries only what Codex cannot execute: viewing brand assets and surfaces directly (`Read` renders images), owning the design canvas + publish path, verifying against the generator. No separate Codex adapter exists by design: a Codex session is this brain *without* this layer |
+| `adapters/builders.md` | Builder-agent adapter — the **shared** contract both builders load (styled-components-first, rule 43 `css``` helper, lane claims per rule 67). **Consolidation note (amended 2026-08-19): the merge still holds — both builders load this file. The only thing carved out is the canvas-toolchain appendix in `adapters/claude-code.md`; see `adapters/index.md` §3.1** |
+| `adapters/claude-code.md` | Thin **design-canvas toolchain appendix**, additive on top of `builders.md` — base64 image keying, the 70 KB/16 MB caps, `{{token}}`-is-a-prop, republish-to-keep-URL. Keyed to the **toolchain**, not to agent identity: it applies to whoever drives the canvas. **Corrected 2026-08-19** — the original "Codex cannot see images" justification was false and is retracted |
 | `adapters/fable.md` | Fable as design-synthesis + final-arbitration brain (per 030 spec: directions and hostile review, not unsupervised implementation) |
 | `adapters/hermes.md` | Hermes operator surfaces — Crystalline Cyberforest mode scope, T0–T4 tier badges, calm-motion mandate |
 | `adapters/reviewers.md` | Hostile-review adapter (Codex/Gemini/triangle) — what to attack, verdict format |
