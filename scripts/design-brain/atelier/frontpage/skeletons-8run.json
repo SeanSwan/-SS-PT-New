@@ -9,7 +9,14 @@
   "secondary_lever": "lighting range",
   "shared_constants": {
     "chapter_count": 6,
-    "chapters": ["THE WORLD", "THE MANIFESTO", "THE LOOP", "THE PROOF", "THE FORK", "FOOTER"],
+    "chapters": [
+      "THE WORLD",
+      "THE MANIFESTO",
+      "THE LOOP",
+      "THE PROOF",
+      "THE FORK",
+      "FOOTER"
+    ],
     "world_literalism": "living world at distance, real people IN it, resolving inward (D8)",
     "audience": "one story, two EQUAL doors, forking late (D3)",
     "copy": "verbatim from copy-pack.json; any new line tagged [new copy - needs Sean approval]",
@@ -36,7 +43,8 @@
     "proof_is_dual_track": "REQUIRED. Kimi finding 2: trainees need human before/after evidence; trainers need economics. THE PROOF serves both or D3's 'equal doors' is a slogan.",
     "economics_copy_slot": "REQUIRED. Kimi finding 1: the 15%-capped/no-monthly-fee promise currently has no chapter, no slot and no copy. Tagged [new copy - needs Sean approval].",
     "no_generated_faces_in_proof": "REQUIRED. Kimi finding 8: generated swans fine, impressionistic mid-layer humans defensible, generated faces in THE PROOF fatal on a platform selling real connection.",
-    "charts_use_labelled_demo_data": "REQUIRED. Kimi finding 6 + S3: never a real member's numbers; a clearly-labelled demo dataset by design, so the artboard and the shipped page agree."
+    "charts_use_labelled_demo_data": "REQUIRED. Kimi finding 6 + S3: never a real member's numbers; a clearly-labelled demo dataset by design, so the artboard and the shipped page agree.",
+    "people_in_world": "REQUIRED. Dry-loop round 3 found 4 of 8 skeletons had NO people anywhere in the world, silently violating shared constant D8 and dropping the community half of the page. Every skeleton must now state where people appear in its world."
   },
   "skeletons": [
     {
@@ -48,9 +56,15 @@
       "hero_mechanics": "Swans.mp4 near-full-bleed, one unbroken slow drift; the only motion is water, light and the cursor. One line of type low-left.",
       "grid": "12col-asymmetric-7-5",
       "phenomenon": "The surface is mirror-still until the cursor touches it, then the wake bends around the pointer — the water is listening. Reflected light continues past the video edge and moves across the type itself.",
-      "anti_specs": ["no parallax deeper than 2 layers — depth is focus falloff, not stacking", "no motion not caused by water, light or cursor", "no chapter taller than 1.5 viewports"],
+      "anti_specs": [
+        "no parallax deeper than 2 layers - DECLARED DEVIATION from D8's layer-stacked depth: this design achieves depth by focus falloff instead. Sean should see one design that argues depth can be optical rather than stacked.",
+        "no motion not caused by water, light or cursor",
+        "no chapter taller than 1.5 viewports"
+      ],
       "reduced_motion_fallback": "Native. Remove cursor reactivity and the drift; a still frame with the amber reflection baked into the plate loses almost nothing — this is the only design whose fallback is nearly identical to the full version.",
-      "tradeoff": "Weakest product proof of the eight — THE LOOP must sell charts in almost no room, and an impatient visitor gets no spectacle to remember."
+      "tradeoff": "Weakest product proof of the eight — THE LOOP must sell charts in almost no room, and an impatient visitor gets no spectacle to remember.",
+      "people_in_world": "Two or three figures stand motionless on the far shore, barely resolvable against the amber seam — small enough to be mistaken for reeds until they move once. At THE PROOF the nearest resolves into a single real human moment.",
+      "d8_deviation": "Satisfies D8's 'people in it' and 'resolving inward'; deliberately deviates on the depth MECHANISM (focus falloff, not stacked parallax). Flagged so the deviation is a choice, not an oversight."
     },
     {
       "id": "A2-dawn-approach",
@@ -61,9 +75,14 @@
       "hero_mechanics": "Swans.mp4 full-bleed at dawn light, swans drifting left-to-right across a still lake, with three parallax layers of distant human silhouettes behind them.",
       "grid": "12col-centered-6 widening to 8 at THE PROOF",
       "phenomenon": "The lake reflection is a live-inverted, blur-shifted duplicate of the video layer — the water responds to the footage with no second asset.",
-      "anti_specs": ["no hard cuts — every chapter transition is a light change", "no silhouette resolves to a face before THE PROOF", "no cold blue after chapter 3 — the page only warms"],
+      "anti_specs": [
+        "no hard cuts — every chapter transition is a light change",
+        "no silhouette resolves to a face before THE PROOF",
+        "no cold blue after chapter 3 — the page only warms"
+      ],
       "reduced_motion_fallback": "The light progression becomes per-chapter static plates (night / warming / amber). The parallax silhouettes flatten to a single baked layer. Arc survives; motion does not.",
-      "tradeoff": "Weakest at trainer recruitment — the mood is so trainee-emotional that the business case lands late and soft."
+      "tradeoff": "Weakest at trainer recruitment — the mood is so trainee-emotional that the business case lands late and soft.",
+      "people_in_world": "Three parallax layers of distant human silhouettes stand behind the drifting swans — a lifter, a walker, a pair stretching — none resolving to a face before THE PROOF, per this design's own anti-spec."
     },
     {
       "id": "B1-harbor-lights",
@@ -74,9 +93,14 @@
       "hero_mechanics": "Swans descend INTO a dusk waterfront of lit windows where tiny impressionistic people train; each scroll beat lands one more swan among them until the harbor is populated.",
       "grid": "12col-interleaved-8-4, human vignettes breaking the right margin",
       "phenomenon": "Every lit window maps to a real workout logged on the platform tonight — the skyline's brightness IS the community's activity.",
-      "anti_specs": ["no face larger than 15% of viewport before THE PROOF", "no swan alone after chapter 1 — every swan shares the frame with people", "no caption on a human moment beyond name + goal, approval-tagged"],
+      "anti_specs": [
+        "no face larger than 15% of viewport before THE PROOF",
+        "no swan alone after chapter 1 — every swan shares the frame with people",
+        "no caption on a human moment beyond name + goal, approval-tagged"
+      ],
       "reduced_motion_fallback": "Swans land as a static populated composition rather than accumulating; windows use a fixed lit pattern rather than live activity.",
-      "tradeoff": "GLM's own warning, accepted: the activity-driven skyline goes dead-static at launch with no user data, and the warmth can bury the product's craft. Needs a designed empty state."
+      "tradeoff": "GLM's own warning, accepted: the activity-driven skyline goes dead-static at launch with no user data, and the warmth can bury the product's craft. Needs a designed empty state.",
+      "people_in_world": "The waterfront is the people: every lit window is somebody training, and human vignettes break the right margin at reading height. This design is the most populated of the eight by construction."
     },
     {
       "id": "B2-two-lanterns",
@@ -87,9 +111,14 @@
       "hero_mechanics": "Swans.mp4 cropped into a tall central 'river' column flanked by two equal glowing door-panels — Join the Community and Find a Trainer — that brighten on approach.",
       "grid": "split-grid 3-6-3, the river column fixed",
       "phenomenon": "One video element is CSS-masked into three disjoint regions (hero river, mid-page slit, fork backdrop) so a single swan appears to swim continuously down the whole page.",
-      "anti_specs": ["never breaks the three-column rhythm", "no full-bleed video anywhere", "the two doors are pixel-identical in weight at every breakpoint"],
+      "anti_specs": [
+        "never breaks the three-column rhythm",
+        "no full-bleed video anywhere",
+        "the two doors are pixel-identical in weight at every breakpoint"
+      ],
       "reduced_motion_fallback": "The masked-swim illusion is the design; without motion the three regions become three still crops of the same frame, which still reads as one continuous river. Survives well.",
-      "tradeoff": "Worst cinematic range — the rigid split-grid caps how big any single moment can get, and THE PROOF feels cramped. NOTE F7: the tall crop yields ~540px of real width; expect softness or substitute a generated plate."
+      "tradeoff": "Worst cinematic range — the rigid split-grid caps how big any single moment can get, and THE PROOF feels cramped. NOTE F7: the tall crop yields ~540px of real width; expect softness or substitute a generated plate.",
+      "people_in_world": "Warm windows flank the river column on both flanks, each one an occupied room; figures pass behind the glass at the edges of the two door-panels, never centred, never faced."
     },
     {
       "id": "C1-instrument-flight",
@@ -100,9 +129,14 @@
       "hero_mechanics": "A single swan flies a precise instrument pattern through cold night air and its wake IS a line chart — the flight path plots a strength curve as it banks.",
       "grid": "12col 9-3 with a sticky data rail",
       "phenomenon": "Moving the cursor through the wake re-plots the trend line live, ice crystallising along the new curve.",
-      "anti_specs": ["never a dashboard grid — data appears as constellations, plaques and in-world instruments", "no device mockups or screenshots", "no chart without a named owner attached"],
+      "anti_specs": [
+        "never a dashboard grid — data appears as constellations, plaques and in-world instruments",
+        "no device mockups or screenshots",
+        "no chart without a named owner attached"
+      ],
       "reduced_motion_fallback": "The wake-chart renders as a finished static plot; the sticky rail becomes a normal column. Legible, but the central idea (the chart being DRAWN by flight) is lost — this design loses the most in fallback of the product-forward pair.",
-      "tradeoff": "Coldest read of the eight — 'homey' is at real risk and a non-technical trainee may feel lectured by instruments rather than welcomed."
+      "tradeoff": "Coldest read of the eight — 'homey' is at real risk and a non-technical trainee may feel lectured by instruments rather than welcomed.",
+      "people_in_world": "Far below the swan's flight, a lit ground-plane shows tiny figures training, glimpsed through cloud breaks each time the bird banks — the instrument pattern is flown OVER a populated world, never an empty sky."
     },
     {
       "id": "C2-the-instrument",
@@ -113,9 +147,14 @@
       "hero_mechanics": "Swans dimmed and held behind; a real progress chart draws itself in the foreground as the page settles, line by line.",
       "grid": "12col-split-5-7",
       "phenomenon": "The chart's line is made of the same light as the water — data and world are one substance. The hero's telemetry and THE PROOF's charts are driven by ONE dataset, so the page's data feels continuous rather than decorative.",
-      "anti_specs": ["no screenshot chrome, browser frames or device mockups", "no floating UI cards or dashboard-preview framing", "the chart is never a static image — it must draw"],
+      "anti_specs": [
+        "no screenshot chrome, browser frames or device mockups",
+        "no floating UI cards or dashboard-preview framing",
+        "the chart is never a static image — it must draw"
+      ],
       "reduced_motion_fallback": "The chart appears already drawn, with the light-substance treatment baked in. Loses the reveal, keeps the idea — the strongest fallback of the product-forward pair.",
-      "tradeoff": "Most likely of the eight to convert a skeptical trainer and least likely to make anyone feel anything; risks becoming a SaaS page wearing a swan."
+      "tradeoff": "Most likely of the eight to convert a skeptical trainer and least likely to make anyone feel anything; risks becoming a SaaS page wearing a swan.",
+      "people_in_world": "Mid-distance figures move along the shoreline behind the drawing chart, small, warm-lit and unhurried — the data is being read in a place where people are already training."
     },
     {
       "id": "D1-beneath-the-waterline",
@@ -126,9 +165,14 @@
       "hero_mechanics": "Swans.mp4 plays at the surface; scrolling dives beneath the waterline through light shafts and deep night, resolving at depth on one full-size human moment, then rising into dawn for THE FORK.",
       "grid": "full-bleed chapters, each owning its interior grid (prose 7-5, data 9-3, fork 6-6)",
       "phenomenon": "The waterline never leaves — surface light refracts down through every chapter, and a set logged in THE LOOP sends a ripple upward that crosses the hero's horizon.",
-      "anti_specs": ["no scroll-jacking or snap traps — native scroll, damped and escapable", "no video after the hero — depth layers are D9 slots, generated stills and canvas only", "no large human figure before THE PROOF"],
+      "anti_specs": [
+        "no scroll-jacking or snap traps — native scroll, damped and escapable",
+        "no video after the hero — depth layers are D9 slots, generated stills and canvas only",
+        "no large human figure before THE PROOF"
+      ],
       "reduced_motion_fallback": "GLM's own warning, accepted as a requirement: this must ship as a DIFFERENT, still-art-directed page — six full-bleed static plates, one per chapter, carrying the same night-to-dawn arc — not as a long dark scroll with the motion switched off.",
-      "tradeoff": "The entire premise rests on desktop motion, and it needs the 23.976fps interpolation cost owned up front (F7)."
+      "tradeoff": "The entire premise rests on desktop motion, and it needs the 23.976fps interpolation cost owned up front (F7).",
+      "people_in_world": "Above THE PROOF people exist only as silhouettes and lit windows seen through water; the descent resolves at depth onto one full-size human moment, which is the design's emotional payload."
     },
     {
       "id": "D2-vegas-mile",
@@ -139,9 +183,14 @@
       "hero_mechanics": "Swans.mp4 is the marquee of a nighttime boulevard; each chapter is a block of the street with its own lighting state, and scrolling drives down the mile.",
       "grid": "horizontal-block sequence rendered as vertical scroll, each block full-bleed",
       "phenomenon": "Neon casts real-time blurred colour reflections onto a wet-pavement gradient layer that shifts with scroll velocity — the street feels rained-on.",
-      "anti_specs": ["no daylight anywhere", "no chapter without its own distinct light temperature", "never shows the whole street at once — always mid-block"],
+      "anti_specs": [
+        "no daylight anywhere",
+        "no chapter without its own distinct light temperature",
+        "never shows the whole street at once — always mid-block"
+      ],
       "reduced_motion_fallback": "Kimi's own warning, accepted as a requirement: strip the scroll-binding and this collapses into the exact 14-equal-sections sin the run exists to cure. The fallback must be six deliberately different-sized static blocks, art-directed as a sequence, or this design is disqualified.",
-      "tradeoff": "Highest performance risk of the eight and the worst reduced-motion story; also the furthest from 'homey' — closest to Sean's stated Las Vegas reference but at the cost of warmth."
+      "tradeoff": "Highest performance risk of the eight and the worst reduced-motion story; also the furthest from 'homey' — closest to Sean's stated Las Vegas reference but at the cost of warmth.",
+      "people_in_world": "The mile is populated: silhouettes cross between blocks, backlit by neon and thrown long across wet pavement. Faces are never resolved — the crowd is read as motion and light."
     }
   ]
 }
