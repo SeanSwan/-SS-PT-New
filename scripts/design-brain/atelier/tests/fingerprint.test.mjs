@@ -33,6 +33,19 @@ test('one-field difference is NOT a collision (dressing-level variance allowed)'
   assert.equal(collisions(set).length, 0);
 });
 
-test('fingerprint is exactly the three contract fields', () => {
-  assert.equal(fingerprint(mk('x', 'n', 'h', 'g')), 'n|h|g');
+test('fingerprint is a JSON tuple of the three contract fields', () => {
+  assert.equal(fingerprint(mk('x', 'n', 'h', 'g')), JSON.stringify(['n', 'h', 'g']));
+});
+
+test('POSITIVE CONTROL — pipe characters cannot forge or mask a collision', () => {
+  // Old join('|') format: ('a|b', 'c', 'g') === ('a', 'b|c', 'g'). JSON tuples must differ.
+  assert.notEqual(fingerprint(mk('x', 'a|b', 'c', 'g')), fingerprint(mk('y', 'a', 'b|c', 'g')));
+});
+
+test('POSITIVE CONTROL — two skeletons with the SAME missing fields collide', () => {
+  const set = [
+    { id: 'a', grid: '12col', wildcard: false },
+    { id: 'b', grid: '12col', wildcard: false },
+  ];
+  assert.equal(collisions(set).length, 1);
 });

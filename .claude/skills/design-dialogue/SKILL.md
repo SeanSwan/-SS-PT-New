@@ -33,7 +33,7 @@ get the same outcome, and here is why you might prefer it."
 > **A7 recall contract (R2 ruling 2026-08-18):** before proposing layout alternatives,
 > read `docs/ai-workflow/design-brain/archetypes/index.json` and load **≤3** matching
 > `archetypes/<nn>-<id>.md` splits — the routing table is how proposals stay grounded
-> in the 21 shipped archetypes instead of the model's prior.
+> in the shipped archetype library instead of the model's prior.
 
 ## The method
 

@@ -24,7 +24,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SOURCE = join(ROOT, 'docs', 'ai-workflow', 'design-brain', 'website-archetypes.md');
 const OUT_DIR = join(ROOT, 'docs', 'ai-workflow', 'design-brain', 'archetypes');
 
-export function parseMonolith(text) {
+export function parseMonolith(raw) {
+  const text = raw.replace(/^﻿/, ''); // a BOM would silently unmatch /^## / at offset 0
   const srcSha = createHash('sha256').update(text).digest('hex').slice(0, 12);
   // Numbered archetype sections: "## <n>. <title>"
   const re = /^## (\d+)\. (.+)$/gm;
@@ -67,8 +68,11 @@ export function extractMeta(section) {
 
 export function generate(text) {
   const { srcSha, sections } = parseMonolith(text);
+  const seenIds = new Set();
   const files = sections.map(s => {
     const id = slug(s.title);
+    if (seenIds.has(id)) throw new Error(`slug collision: two archetypes resolve to id "${id}" — retitle one in the monolith`);
+    seenIds.add(id);
     const name = `${String(s.n).padStart(2, '0')}-${id}.md`;
     const meta = extractMeta(s);
     const content = [
@@ -91,21 +95,43 @@ export function generate(text) {
 function main() {
   const check = process.argv.includes('--check');
   const text = readFileSync(SOURCE, 'utf8');
-  const { srcSha, files, index } = generate(text);
+  let srcSha, files, index;
+  try { ({ srcSha, files, index } = generate(text)); }
+  catch (e) { console.error(`[archetype-index] REFUSED — ${e.message}`); process.exit(3); }
   const indexJson = JSON.stringify(index);
 
   if (check) {
+    // Regenerate in memory and BYTE-COMPARE every artifact (final-review blocker, both
+    // reviewers: a hash stamp nothing recomputes is decorative; a poisoned split or a
+    // missing/extra file must fail here, or the D2 exemption's "stronger freshness
+    // proof" is a shipped falsehood).
     const idxPath = join(OUT_DIR, 'index.json');
     if (!existsSync(idxPath)) { console.error('[archetype-index] DRIFT: index.json missing — run the generator'); process.exit(2); }
-    const existing = JSON.parse(readFileSync(idxPath, 'utf8'));
-    if (existing.source_sha !== srcSha) {
-      console.error(`[archetype-index] DRIFT: index @ ${existing.source_sha} != monolith @ ${srcSha} — re-run the generator`);
+    const drift = [];
+    if (readFileSync(idxPath, 'utf8') !== indexJson) drift.push('index.json content differs from in-memory regeneration');
+    const expected = new Set(files.map(f => f.name));
+    const onDisk = existsSync(OUT_DIR) ? readdirSync(OUT_DIR).filter(f => f.endsWith('.md')) : [];
+    for (const f of onDisk) if (!expected.has(f)) drift.push(`extra file not produced by generator: ${f}`);
+    for (const f of files) {
+      const fp = join(OUT_DIR, f.name);
+      if (!existsSync(fp)) { drift.push(`missing split: ${f.name}`); continue; }
+      if (readFileSync(fp, 'utf8') !== f.content) drift.push(`split content differs: ${f.name}`);
+    }
+    if (drift.length) {
+      console.error(`[archetype-index] DRIFT — ${drift.length} finding(s):`);
+      for (const d of drift) console.error(`  - ${d}`);
       process.exit(2);
     }
-    console.log(`[archetype-index] CLEAN — index matches monolith @ ${srcSha} (${existing.archetypes.length} archetypes)`);
+    console.log(`[archetype-index] CLEAN — index + ${files.length} splits byte-match regeneration from monolith @ ${srcSha}`);
     return;
   }
 
+  // Destructive-regen guard (final-review HIGH): if a heading-format drift parses to
+  // near-zero sections, refuse to wipe 20+ good splits and write an empty index.
+  if (files.length < 10) {
+    console.error(`[archetype-index] REFUSED — parsed only ${files.length} archetype(s) from the monolith; expected 20+. Heading format drift? No files were deleted.`);
+    process.exit(3);
+  }
   mkdirSync(OUT_DIR, { recursive: true });
   // Remove stale generated splits (renames leave orphans otherwise).
   for (const f of readdirSync(OUT_DIR)) if (f.endsWith('.md')) rmSync(join(OUT_DIR, f));
