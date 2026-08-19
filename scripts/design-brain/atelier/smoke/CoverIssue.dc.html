@@ -1,0 +1,59 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: Georgia, 'Times New Roman', serif; background: #0A0A0F; }
+    a { color: #60C0F0; } a:hover { color: #E0ECF4; }
+  </style>
+</helmet>
+<div style="width: 1280px; min-height: 2000px; background: #0A0A0F; color: #E0ECF4; display: flex; flex-direction: column;">
+  <header style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 40px 0 24px 0; border-bottom: 3px double #1A1A24;">
+    <div style="font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; letter-spacing: 0.5em; color: #9FB6C6;">ISSUE 03 &middot; RACING SEASON</div>
+    <h1 style="margin: 0; font-size: 84px; letter-spacing: 0.06em; font-weight: 700; font-style: italic;">APEX STRIDE</h1>
+    <div style="font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; letter-spacing: 0.3em; color: {{accent}};">A JOURNAL OF DELIBERATE RUNNING</div>
+  </header>
+  <section style="position: relative; margin: 32px 56px 0 56px; overflow: hidden; border-radius: 6px;">
+    <img src="plate-hero.svg" alt="ridge line at night" style="width: 100%; display: block;">
+    <img src="plate-texture.svg" alt="contour overlay" style="position: absolute; right: -80px; bottom: -120px; width: 420px; opacity: 0.28; display: block;">
+    <div style="position: absolute; left: 40px; top: 40px; display: flex; flex-direction: column; gap: 6px; max-width: 40ch;">
+      <div style="font-size: 30px; font-style: italic; line-height: 1.3;">&ldquo;The season the plan<br>outran the weather.&rdquo;</div>
+      <div style="font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; color: #9FB6C6;">The cover story, p. 2</div>
+    </div>
+  </section>
+  <main style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: {{gap}}; padding: 48px 56px;">
+    <article style="display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #1A1A24; padding-top: 20px;">
+      <div style="font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; letter-spacing: 0.25em; color: {{accent}};">FEATURE</div>
+      <h2 style="margin: 0; font-size: 30px; font-weight: 700;">Nine weeks out: an anatomy of a taper that worked</h2>
+      <p style="margin: 0; line-height: 1.8; color: #9FB6C6; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px;">What the pace ledger shows when a runner stops negotiating with the plan and starts logging against it. A close read of one block, three bad weeks included.</p>
+      <img src="plate-proof.svg" alt="pace chart" style="width: 100%; border-radius: 6px; display: block; margin-top: 6px;">
+    </article>
+    <article style="display: flex; flex-direction: column; gap: 12px; border-top: 1px solid #1A1A24; padding-top: 20px;">
+      <div style="font-family: 'Segoe UI', system-ui, sans-serif; font-size: 12px; letter-spacing: 0.25em; color: {{accent}};">ESSAY</div>
+      <h2 style="margin: 0; font-size: 30px; font-weight: 700;">In defense of the easy run</h2>
+      <p style="margin: 0; line-height: 1.8; color: #9FB6C6; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px;">The hardest discipline in the schedule is the one that feels like nothing is happening. On slowness as a training input, and why the watch stays home on Mondays.</p>
+      <p style="margin: 0; line-height: 1.8; color: #9FB6C6; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px;">Also in this issue: the deload week your ego survives; a field guide to hill repeats; what 86% adherence actually buys.</p>
+      <a href="#subscribe" style="font-family: 'Segoe UI', system-ui, sans-serif; display: inline-flex; align-items: center; min-height: 46px; padding: 0 24px; border: 1px solid {{accent}}; border-radius: 2px; color: #E0ECF4; text-decoration: none; align-self: flex-start; margin-top: 8px; letter-spacing: 0.1em; font-size: 14px;">READ THE ISSUE</a>
+    </article>
+  </main>
+  <footer style="margin-top: auto; padding: 24px 56px; border-top: 3px double #1A1A24; display: flex; justify-content: space-between; font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; color: #9FB6C6;">
+    <span>Apex Stride Journal &middot; published each training block</span>
+    <span>Coached running, written down.</span>
+  </footer>
+</div>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#C6A84B","options":["#60C0F0","#8B5CF6","#C6A84B"]},"spacing":{"editor":"enum","default":"generous","options":["generous","tight"]}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#C6A84B';
+    const gap = (this.props.spacing ?? 'generous') === 'tight' ? '28px' : '48px';
+    return { accent, gap };
+  }
+}
+</script>
+</body>
+</html>
