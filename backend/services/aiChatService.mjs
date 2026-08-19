@@ -2111,21 +2111,94 @@ export function sanitizeAiChatMetadataForClient(metadata) {
   return sanitized;
 }
 
-function getAvailableProviders() {
-  const providers = [];
+/**
+ * Approved AI sub-processors, in failover order.
+ * ===============================================
+ * Chat carries client health data — the system prompt collects injuries,
+ * surgeries, medications and limitations — so every entry here is a company
+ * that receives regulated client data and therefore belongs in the client-
+ * facing disclosure record.
+ *
+ * This list is the ALLOWLIST. Before it existed, a provider was enrolled by
+ * the mere presence of an env var, which meant a new sub-processor could join
+ * the chain as a deployment config change with no code review and no
+ * disclosure. Adding a processor is now a code change that shows up in a diff.
+ *
+ * `envKeys` is ordered: the first name that is set wins. Aliases exist because
+ * `openaiAdapter.mjs` accepts AI_API_KEY, and checking only OPENAI_API_KEY
+ * would report "OpenAI is not in use" while the adapter was using it.
+ *
+ * DO NOT add an entry here without updating the disclosure record.
+ */
+// Deep-frozen, not just Object.freeze on the array. Freezing only the outer
+// array blocks push() but still permits `APPROVED_PROVIDERS[0].envKeys.push(…)`
+// — which would let any in-process code name an attacker-controlled env var as
+// a key source. An allowlist that can be edited at runtime is a suggestion.
+const APPROVED_PROVIDERS = Object.freeze([
+  { name: 'gemini', vendor: 'Google', envKeys: Object.freeze(['GEMINI_API_KEY', 'GOOGLE_API_KEY']) },
+  { name: 'openai', vendor: 'OpenAI', envKeys: Object.freeze(['OPENAI_API_KEY', 'AI_API_KEY']) },
+  { name: 'anthropic', vendor: 'Anthropic', envKeys: Object.freeze(['ANTHROPIC_API_KEY']) },
+  { name: 'venice', vendor: 'Venice', envKeys: Object.freeze(['VENICE_API_KEY']) },
+].map(Object.freeze));
 
-  // Gemini first — primary provider (user has Gemini 3.1 API key)
-  if (process.env.GEMINI_API_KEY) {
-    providers.push({ name: 'gemini', key: process.env.GEMINI_API_KEY });
+const APPROVED_PROVIDER_NAMES = Object.freeze(APPROVED_PROVIDERS.map((p) => p.name));
+
+/**
+ * Optional runtime narrowing via `AI_PROVIDER_ALLOWLIST` (comma-separated).
+ *
+ * NARROWING ONLY — it can never widen beyond APPROVED_PROVIDERS. An unset or
+ * empty value means "all approved". An unrecognised name is dropped with a
+ * warning rather than ignored silently, because a typo would otherwise read as
+ * a working restriction while enrolling nothing.
+ */
+function resolveAllowlist() {
+  const raw = (process.env.AI_PROVIDER_ALLOWLIST || '').trim();
+  if (!raw) return APPROVED_PROVIDER_NAMES;
+
+  const requested = raw.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const permitted = requested.filter((name) => APPROVED_PROVIDER_NAMES.includes(name));
+  const rejected = requested.filter((name) => !APPROVED_PROVIDER_NAMES.includes(name));
+
+  if (rejected.length > 0) {
+    logger.warn(
+      `[AIChatService] AI_PROVIDER_ALLOWLIST names not in APPROVED_PROVIDERS, ignored: ${rejected.join(', ')}. `
+      + `Approved: ${APPROVED_PROVIDER_NAMES.join(', ')}. Adding a processor requires a code change.`,
+    );
   }
-  if (process.env.OPENAI_API_KEY) {
-    providers.push({ name: 'openai', key: process.env.OPENAI_API_KEY });
+
+  // An allowlist that permits nothing is a configuration error, not an
+  // instruction to fall back to everything — fail closed and say why.
+  if (permitted.length === 0) {
+    logger.error(
+      '[AIChatService] AI_PROVIDER_ALLOWLIST matched no approved provider — no provider will be used.',
+    );
   }
-  if (process.env.ANTHROPIC_API_KEY) {
-    providers.push({ name: 'anthropic', key: process.env.ANTHROPIC_API_KEY });
+
+  return permitted;
+}
+
+function getAvailableProviders() {
+  const allowlist = resolveAllowlist();
+  const providers = [];
+  const blocked = [];
+
+  for (const approved of APPROVED_PROVIDERS) {
+    const envKey = approved.envKeys.find((k) => process.env[k]);
+    if (!envKey) continue;
+
+    if (!allowlist.includes(approved.name)) {
+      // A key is configured for a provider the allowlist excludes. Worth
+      // saying out loud: it is the difference between "not configured" and
+      // "configured but deliberately not permitted".
+      blocked.push(approved.name);
+      continue;
+    }
+
+    providers.push({ name: approved.name, key: process.env[envKey] });
   }
-  if (process.env.VENICE_API_KEY) {
-    providers.push({ name: 'venice', key: process.env.VENICE_API_KEY });
+
+  if (blocked.length > 0) {
+    logger.info(`[AIChatService] Providers configured but excluded by allowlist: ${blocked.join(', ')}`);
   }
 
   if (providers.length === 0) {
@@ -2140,18 +2213,32 @@ function getAvailableProviders() {
  * Does NOT reveal actual keys — only shows which are configured.
  */
 export function getAIChatDiagnostics() {
+  const active = getAvailableProviders();
+  const activeNames = active.map((p) => p.name);
+  const allowlist = resolveAllowlist();
+
+  // Derived from APPROVED_PROVIDERS, never a second hand-written list. The
+  // previous version checked only OPENAI_API_KEY, so a deployment using the
+  // AI_API_KEY alias would have reported "openai: false" while OpenAI was
+  // receiving client data — a diagnostic that lies is worse than none.
+  const providers = {};
+  const configuredButBlocked = [];
+  for (const approved of APPROVED_PROVIDERS) {
+    const configured = approved.envKeys.some((k) => !!process.env[k]);
+    providers[approved.name] = configured;
+    if (configured && !allowlist.includes(approved.name)) {
+      configuredButBlocked.push(approved.name);
+    }
+  }
+
   return {
-    providers: {
-      gemini: !!process.env.GEMINI_API_KEY,
-      openai: !!process.env.OPENAI_API_KEY,
-      anthropic: !!process.env.ANTHROPIC_API_KEY,
-      venice: !!process.env.VENICE_API_KEY,
-    },
-    availableCount: getAvailableProviders().length,
-    primaryProvider: process.env.GEMINI_API_KEY ? 'gemini'
-      : process.env.OPENAI_API_KEY ? 'openai'
-      : process.env.ANTHROPIC_API_KEY ? 'anthropic'
-      : 'none',
+    providers,
+    approved: APPROVED_PROVIDER_NAMES,
+    allowlist,
+    configuredButBlocked,
+    active: activeNames,
+    availableCount: active.length,
+    primaryProvider: activeNames[0] || 'none',
   };
 }
 
