@@ -23,6 +23,13 @@
  *   node scripts/hermes-learning-validate.mjs --file <path>    # one packet
  *   node scripts/hermes-learning-validate.mjs --json           # machine-readable, for self-repair
  *   node scripts/hermes-learning-validate.mjs --migration-spec # what the existing corpus fails
+ *   node scripts/hermes-learning-validate.mjs --no-strict-yaml # skip the standards-parser warning
+ *
+ * STRICT-YAML
+ *   Frontmatter that this file's naive parser accepts can still be unreadable to a real YAML
+ *   parser. When js-yaml is resolvable it is used to WARN (never gate) about that. It is not a
+ *   declared dependency, so the header line always states whether the check actually ran —
+ *   absence of a strict warning proves nothing on its own.
  *
  * EXIT CODES
  *   0 = no errors (warnings may exist)   2 = errors present (only with --check)   3 = bad invocation
@@ -94,9 +101,48 @@ export function normaliseModelId(raw) {
     .toLowerCase();
 }
 
+// ---------------------------------------------------------------- strict yaml
+
+/**
+ * Does this frontmatter survive a STANDARDS-COMPLIANT YAML parser?
+ *
+ * WHY THIS EXISTS
+ *   parseFrontmatter above is deliberately naive — presence-of-key and scalar values only. That
+ *   was the right call for reading six keys, but it means the corpus can satisfy its own contract
+ *   while being unreadable to every standard consumer. Measured 2026-08-16: 8 packets passed this
+ *   validator and failed js-yaml, mostly inconsistent indentation inside nested `models_used:`
+ *   blocks. A ninth was produced by our own corrective pass, which emitted a colon-space inside an
+ *   unquoted scalar — the naive parser accepted it, so nothing caught it until a real parser ran.
+ *
+ * WHY IT IS A WARNING, NOT AN ERROR
+ *   Several failing packets belong to other agents' in-flight sessions. Gating on this would block
+ *   work that is not the author's to fix, and a gate that blocks the wrong person gets switched off.
+ *   Same reasoning as the schema's date-scoped requirements: never retro-fail history.
+ *
+ * WHY THE PARSER IS INJECTED AND OPTIONAL
+ *   js-yaml is NOT a declared dependency of this repo — it resolves transitively today and can
+ *   disappear on any install. This file must keep working without it, and must never let
+ *   "could not check" be mistaken for "checked and clean". Absence produces its own distinct
+ *   warning, not silence.
+ */
+export function strictYamlIssue(src, yamlLoad) {
+  if (typeof yamlLoad !== 'function') return { unavailable: true };
+  const norm = src.replace(/\r\n/g, '\n');
+  if (!norm.startsWith('---\n')) return null; // no frontmatter is already an error elsewhere
+  const end = norm.indexOf('\n---', 3);
+  if (end === -1) return null;
+  try {
+    yamlLoad(norm.slice(4, end));
+    return null;
+  } catch (e) {
+    const where = e?.mark?.line != null ? ` (frontmatter line ${e.mark.line + 1})` : '';
+    return { message: `${e?.reason || e?.message || 'parse error'}${where}` };
+  }
+}
+
 // ---------------------------------------------------------------- validation
 
-export function validatePacket(path, src, schema) {
+export function validatePacket(path, src, schema, yamlLoad) {
   const errors = [];
   const warnings = [];
   const name = basename(path);
@@ -178,16 +224,41 @@ export function validatePacket(path, src, schema) {
     warnings.push('no reviewed_by — packet is unreviewed');
   }
 
+  // Strict-YAML conformance. Warning only, and only when a real parser was actually supplied —
+  // an unchecked packet must never read as a clean one.
+  if (schema.warnings?.strict_yaml !== false && yamlLoad) {
+    const strict = strictYamlIssue(src, yamlLoad);
+    if (strict?.message) {
+      warnings.push(`NOT parseable by a standards-compliant YAML parser: ${strict.message} — this packet satisfies our naive parser but is unreadable to any standard consumer`);
+    }
+  }
+
   return { path, name, errors, warnings, date };
 }
 
 // ---------------------------------------------------------------- cli
 
-function main(argv) {
+/**
+ * Load a standards-compliant YAML parser if one happens to be present. js-yaml is NOT a declared
+ * dependency — it resolves transitively and can vanish on any install — so this must degrade to
+ * null rather than throw, and callers must report the degradation rather than hide it.
+ */
+async function loadStrictYaml() {
+  try {
+    const mod = await import('js-yaml');
+    const load = mod.load ?? mod.default?.load;
+    return typeof load === 'function' ? load : null;
+  } catch {
+    return null;
+  }
+}
+
+async function main(argv) {
   const args = new Set(argv);
   const jsonOut = args.has('--json');
   const check = args.has('--check');
   const migrationSpec = args.has('--migration-spec');
+  const yamlLoad = args.has('--no-strict-yaml') ? null : await loadStrictYaml();
 
   if (!existsSync(SCHEMA_PATH)) die(`schema not found at ${SCHEMA_PATH}`);
   let schema;
@@ -209,7 +280,7 @@ function main(argv) {
       .map((f) => join(CORPUS, f));
   }
 
-  const results = files.map((f) => validatePacket(f, readFileSync(f, 'utf8'), schema));
+  const results = files.map((f) => validatePacket(f, readFileSync(f, 'utf8'), schema, yamlLoad));
   const bad = results.filter((r) => r.errors.length);
   const warned = results.filter((r) => !r.errors.length && r.warnings.length);
 
@@ -217,6 +288,8 @@ function main(argv) {
     // Machine-readable so an agent can self-repair inside the turn instead of only being blocked.
     console.log(JSON.stringify({
       schema_version: schema.schema_version,
+      // Machine consumers must be able to tell "checked and clean" from "never checked".
+      strict_yaml_checked: Boolean(yamlLoad),
       total: results.length,
       failed: bad.length,
       results: results.map(({ name, errors, warnings, date }) => ({ name, date, errors, warnings })),
@@ -224,7 +297,12 @@ function main(argv) {
     process.exit(check && bad.length ? 2 : 0);
   }
 
-  console.log(`hermes-learning-validate  schema v${schema.schema_version}  ${results.length} packet(s)\n`);
+  // Say whether the strict pass actually ran. If it did not, the absence of strict warnings below
+  // proves nothing, and a reader must not be allowed to infer conformance from silence.
+  const strictNote = yamlLoad
+    ? 'strict-YAML: ON'
+    : 'strict-YAML: OFF (no parser available — absence of a warning here proves NOTHING)';
+  console.log(`hermes-learning-validate  schema v${schema.schema_version}  ${results.length} packet(s)  ${strictNote}\n`);
 
   if (migrationSpec) {
     // The failure list IS the migration spec (Kimi 2026-08-13 Q6).
@@ -254,5 +332,5 @@ function main(argv) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('hermes-learning-validate.mjs')) {
-  main(process.argv.slice(2));
+  await main(process.argv.slice(2));
 }
