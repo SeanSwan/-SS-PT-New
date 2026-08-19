@@ -73,6 +73,10 @@ export function remitFromDoc(md, opts) {
   // not the packet's question. Without this, a packet that merely documents a remit (a YAML sample,
   // a quoted example) hijacks extraction and the gate evaluates text the model was never asked.
   const outside = [];
+  // WHY a line is a container, not merely THAT it is one. The frontmatter bound needs to skip a
+  // leading `<!-- generated -->` banner while stopping at a leading fence, and inferring that from
+  // the line's own text fails on a MULTI-LINE comment whose middle lines look like ordinary prose.
+  const kind = [];
   let fence = null;
   let html = false;
   for (const line of lines) {
@@ -85,6 +89,7 @@ export function remitFromDoc(md, opts) {
     if (!fence && /^\s*<!--/.test(line)) html = true;
     if (html) {
       outside.push(null);
+      kind.push('html');
       if (/-->/.test(line)) html = false;
       continue;
     }
@@ -96,9 +101,11 @@ export function remitFromDoc(md, opts) {
       if (!fence) fence = m[1];
       else if (m[1][0] === fence[0] && m[1].length >= fence.length && m[2].trim() === '') fence = null;
       outside.push(null);
+      kind.push('fence');
       continue;
     }
     outside.push(fence ? null : line);
+    kind.push(fence ? 'fence' : 'text');
   }
 
   // THE HEADING MAY CARRY THE REMIT INLINE. `/^#{2,}\s*remit\s*$/` required the heading to be the
@@ -276,8 +283,17 @@ export function remitFromDoc(md, opts) {
   // block however long it is. The hijack this bound exists for — a prose line beginning "remit:"
   // deep in the document — is still closed, because prose is separated from the header by a blank
   // line, which is exactly what ends the block.
+  // A LEADING HTML COMMENT IS A BANNER; A LEADING FENCE IS CONTENT.
+  //
+  // The skip exists for `<!-- generated -->` on line 1, which is metadata a generator emits above
+  // real frontmatter. Skipping ALL containers went too far: a packet that opens with a fenced
+  // EXAMPLE and then has prose beginning "remit:" had that prose treated as frontmatter — the exact
+  // smuggle the block bound exists to prevent, reintroduced by the fix for the banner. Found by my
+  // own round-12 pass, attacking the round-12 diff.
+  //
+  // A fence means the document body has begun, so nothing after it is frontmatter.
   let start = 0;
-  while (start < outside.length && outside[start] === null) start += 1;
+  while (start < outside.length && kind[start] === 'html') start += 1;
   const lead = [];
   for (let n = start; n < outside.length; n += 1) {
     const l = outside[n];
