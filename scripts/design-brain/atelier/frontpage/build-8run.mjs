@@ -210,11 +210,14 @@ const noteHeight = (text, w) => {
   const lines = text.split(String.fromCharCode(10)).reduce((n, para) => n + Math.max(1, Math.ceil(para.length / perLine)), 0);
   return lines * 19 + 28;
 };
-for (const n of annotations) {
-  if (n.id === 'run-manifest') continue;           // sits left of the grid, no vertical conflict
-  const board = artboards.find((a) => a.x === n.x);
-  if (board) n.y = board.y - (noteHeight(n.text, n.w) + 48);
-}
+// Match note -> board BY INDEX, not by x: annotations are pushed in artboard order, and
+// find(a => a.x === n.x) returns the FIRST board in that column, so every row-2 note was
+// seated above row 1. (Dry-loop round 3.)
+artboards.forEach((board, i) => {
+  const n = annotations[i];
+  if (!n || n.id === 'run-manifest') return;
+  n.y = board.y - (noteHeight(n.text, n.w) + 48);
+});
 
 fs.writeFileSync(path.join(here, 'canvas-8run.json'), JSON.stringify({
   artboards, annotations, launch: { view: 'canvas' },

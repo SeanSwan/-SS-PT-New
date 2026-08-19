@@ -97,28 +97,28 @@
     {
       "id": "note-c1",
       "x": 0,
-      "y": -418,
+      "y": 2962,
       "w": 420,
       "text": "C1 · C1-instrument-flight\nVOLUME: product-forward  |  LIGHT: cold-crystalline\n\nMoving the cursor through the wake re-plots the trend line live, ice crystallising along the new curve.\n\nTRADEOFF: Coldest read of the eight — 'homey' is at real risk and a non-technical trainee may feel lectured by instruments rather than welcomed.\n\nREDUCED MOTION: The wake-chart renders as a finished static plot; the sticky rail becomes a normal column. Legible, but the central idea (the chart being DRAWN by flight) is lost — this design loses the most in fallback of the product-forward pair.\n\nfrom: GLM instrument-flight"
     },
     {
       "id": "note-c2",
       "x": 1480,
-      "y": -494,
+      "y": 2886,
       "w": 420,
       "text": "C2 · C2-the-instrument\nVOLUME: product-forward  |  LIGHT: dusk\n\nThe chart's line is made of the same light as the water — data and world are one substance. The hero's telemetry and THE PROOF's charts are driven by ONE dataset, so the page's data feels continuous rather than decorative.\n\nTRADEOFF: Most likely of the eight to convert a skeptical trainer and least likely to make anyone feel anything; risks becoming a SaaS page wearing a swan.\n\nREDUCED MOTION: The chart appears already drawn, with the light-substance treatment baked in. Loses the reveal, keeps the idea — the strongest fallback of the product-forward pair.\n\nfrom: Claude M4 (base) + Kimi glass-console (shared-dataset graft), regraded to dusk so the pair contrasts with C1"
     },
     {
       "id": "note-d1",
       "x": 2960,
-      "y": -532,
+      "y": 2848,
       "w": 420,
       "text": "D1 · D1-beneath-the-waterline\nVOLUME: full-cinematic  |  LIGHT: deep-night rising to dawn — the dive descends through night and SURFACES into morning at THE FORK\n\nThe waterline never leaves — surface light refracts down through every chapter, and a set logged in THE LOOP sends a ripple upward that crosses the hero's horizon.\n\nTRADEOFF: The entire premise rests on desktop motion, and it needs the 23.976fps interpolation cost owned up front (F7).\n\nREDUCED MOTION: GLM's own warning, accepted as a requirement: this must ship as a DIFFERENT, still-art-directed page — six full-bleed static plates, one per chapter, carrying the same night-to-dawn arc — not as a long dark scroll with the motion switched off.\n\nfrom: GLM beneath-the-waterline (base) + Claude M2 (surface-into-dawn arc graft, which also differentiates it from D2)"
     },
     {
       "id": "note-d2",
       "x": 4440,
-      "y": -494,
+      "y": 2886,
       "w": 420,
       "text": "D2 · D2-vegas-mile\nVOLUME: full-cinematic  |  LIGHT: deep-night (obsidian base, wing-purple + ice-wing neon, gilded-fern as warm window light)\n\nNeon casts real-time blurred colour reflections onto a wet-pavement gradient layer that shifts with scroll velocity — the street feels rained-on.\n\nTRADEOFF: Highest performance risk of the eight and the worst reduced-motion story; also the furthest from 'homey' — closest to Sean's stated Las Vegas reference but at the cost of warmth.\n\nREDUCED MOTION: Kimi's own warning, accepted as a requirement: strip the scroll-binding and this collapses into the exact 14-equal-sections sin the run exists to cure. The fallback must be six deliberately different-sized static blocks, art-directed as a sequence, or this design is disqualified.\n\nfrom: Kimi vegas-mile"
     },
