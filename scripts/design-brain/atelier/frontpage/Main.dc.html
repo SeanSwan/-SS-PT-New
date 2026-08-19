@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0A0A0F; }
+    a { color: #60C0F0; } a:hover { color: #E0ECF4; }
+  </style>
+</helmet>
+<div style="display: flex; width: 1280px; min-height: 2400px; background: #0A0A0F; color: #E0ECF4;">
+  <nav style="display: flex; flex-direction: column; gap: 26px; width: 88px; padding: 36px 0; align-items: center; border-right: 1px solid #1A1A24; flex-shrink: 0;">
+    <div style="width: 44px; height: 44px; border-radius: 10px; background: #002060; display: flex; align-items: center; justify-content: center; font-weight: 800; color: {{accent}};">S</div>
+    <a href="#become" style="writing-mode: vertical-rl; text-decoration: none; font-size: 12px; letter-spacing: 0.22em; min-height: 44px;">BECOME</a>
+    <a href="#proof" style="writing-mode: vertical-rl; text-decoration: none; font-size: 12px; letter-spacing: 0.22em; min-height: 44px;">PROOF</a>
+    <a href="#train" style="writing-mode: vertical-rl; text-decoration: none; font-size: 12px; letter-spacing: 0.22em; min-height: 44px;">TRAIN</a>
+    <a href="#begin" style="writing-mode: vertical-rl; text-decoration: none; font-size: 12px; letter-spacing: 0.22em; min-height: 44px;">BEGIN</a>
+  </nav>
+  <main style="flex-grow: 1;">
+    <header id="become" style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; align-items: center; min-height: 620px; padding: {{pad}};">
+      <div style="grid-column: span 7; display: flex; flex-direction: column; gap: 22px;">
+        <div style="font-size: 13px; letter-spacing: 0.28em; color: {{accent}};">SWANSTUDIOS &middot; PERSONAL TRAINING</div>
+        <h1 style="margin: 0; font-size: 60px; line-height: 1.04; font-weight: 800;">Become the version of you that keeps the promise.</h1>
+        <p style="margin: 0; font-size: 18px; line-height: 1.65; color: #9FB6C6; max-width: 46ch;">Coaching built on 26+ years of training experience and NASM-protocol methods &mdash; for every body that walks in the door, from first session ever to athletes chasing an edge.</p>
+        <div style="display: flex; gap: 14px;">
+          <a href="#begin" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 28px; border-radius: 10px; background: #002060; color: #E0ECF4; text-decoration: none; font-weight: 700; box-shadow: 0 0 24px rgba(139,92,246,0.35);">Book a consultation</a>
+          <a href="#proof" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 22px; border-radius: 10px; border: 1px solid #1A1A24; color: #E0ECF4; text-decoration: none;">See the proof</a>
+        </div>
+      </div>
+      <div style="grid-column: span 5;"><img src="plate-swanwater.svg" alt="swan on dark water under moonlight" style="width: 100%; border-radius: 14px; display: block;"></div>
+    </header>
+    <section id="proof" style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; padding: 56px 48px; border-top: 1px solid #1A1A24; align-items: center;">
+      <div style="grid-column: span 5;"><img src="plate-proof.svg" alt="plan versus actual progress chart" style="width: 100%; border-radius: 14px; display: block;"></div>
+      <div style="grid-column: span 7; display: flex; flex-direction: column; gap: 14px;">
+        <h2 style="margin: 0; font-size: 34px;">Act 2 &mdash; Proof before promises</h2>
+        <p style="margin: 0; color: #9FB6C6; line-height: 1.7; max-width: 55ch;">Every client trains against a written plan, and every session gets logged. The gold line is the plan; the blue line is a real client catching it. Your chart starts at your consultation. <span style="font-size: 12px; color: #4070C0;">[chart shown is illustrative]</span></p>
+      </div>
+    </section>
+    <section style="position: relative; margin: 40px 0; overflow: hidden;">
+      <img src="plate-threshold.svg" alt="the swans threshold — scroll-driven film passage" style="width: 100%; display: block;">
+    </section>
+    <section id="train" style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 24px; padding: 56px 48px; border-top: 1px solid #1A1A24;">
+      <div style="grid-column: span 7; display: flex; flex-direction: column; gap: 14px; justify-content: center;">
+        <h2 style="margin: 0; font-size: 34px;">Act 3 &mdash; Training that fits your actual life</h2>
+        <p style="margin: 0; color: #9FB6C6; line-height: 1.7; max-width: 55ch;">Strength foundations, athletic performance, golf-specific power, recovery and flexibility work &mdash; one method, tuned to the body in front of it. Programs adjust weekly from what your log says, not what a template hopes.</p>
+      </div>
+      <div style="grid-column: span 5;"><img src="plate-crystal.svg" alt="crystalline structure texture" style="width: 100%; border-radius: 14px; display: block; opacity: 0.9;"></div>
+    </section>
+    <section id="begin" style="padding: 64px 48px 80px 48px; border-top: 1px solid #1A1A24; display: flex; flex-direction: column; gap: 18px; align-items: flex-start;">
+      <h2 style="margin: 0; font-size: 34px;">Act 4 &mdash; It starts with a conversation</h2>
+      <p style="margin: 0; color: #9FB6C6; line-height: 1.7; max-width: 55ch;">One consultation. Your goals, your history, your schedule &mdash; and an honest read on what it will take. No pressure, no scripts.</p>
+      <a href="#book" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 30px; border-radius: 10px; background: #002060; color: #E0ECF4; text-decoration: none; font-weight: 700; box-shadow: 0 0 24px rgba(139,92,246,0.35);">Book your consultation</a>
+    </section>
+  </main>
+</div>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#60C0F0","options":["#60C0F0","#8B5CF6","#C6A84B"]},"density":{"editor":"enum","default":"comfortable","options":["comfortable","compact"]}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#60C0F0';
+    const pad = (this.props.density ?? 'comfortable') === 'compact' ? '32px 40px' : '48px 48px';
+    return { accent, pad };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "title": "A · The Threshold", "x": 0, "y": 0, "w": 1280, "h": 2400 },
+    { "file": "WingbeatLedger.dc.html", "title": "B · Wingbeat Ledger", "x": 1480, "y": 0, "w": 1280, "h": 2400 },
+    { "file": "SeasonArc.dc.html", "title": "C · Season Arc", "x": 0, "y": 2720, "w": 1280, "h": 2400 },
+    { "file": "TheObject.dc.html", "title": "D · The Object (wildcard)", "x": 1480, "y": 2720, "w": 1280, "h": 2000 }
+  ],
+  "annotations": [
+    { "id": "pack-manifest", "x": -430, "y": 0, "w": 390, "text": "SHARED PACK (pack-swan-front-01) — Sean-approved at the pack gate. All four compose from ONLY:\n1. plate-swanwater — night hero\n2. plate-crystal — ice texture\n3. plate-proof — plan-vs-actual chart\n4. plate-threshold — labeled SWANS.MP4 scrub placeholder\nBrief: consult booking · all-comers · ONE threshold moment · 4 acts." },
+    { "id": "note-a", "x": 0, "y": -175, "w": 410, "text": "A · THE THRESHOLD — your Field Report DNA on the real page: side rail, split hero, calm acts; the swans go full-bleed exactly once, at the act 2-to-3 threshold.\nTRADEOFF: the safest of the four — least likely to be remembered a week later." },
+    { "id": "note-b", "x": 1480, "y": -175, "w": 410, "text": "B · WINGBEAT LEDGER — proof-first: the chart IS the hero, no video above the fold; the page earns the swans late.\nTRADEOFF: cold open for a first-time visitor; asks them to care about data before they care about you." },
+    { "id": "note-c", "x": 0, "y": 2545, "w": 410, "text": "C · SEASON ARC — a narrative in four seasons, chapter dots, no nav; threshold turns the season between Prove and Belong.\nTRADEOFF: slowest route to the booking CTA; readers must want the story." },
+    { "id": "note-d", "x": 1480, "y": 2545, "w": 410, "text": "D · THE OBJECT (WILDCARD, alien: e-commerce PDP) — the consultation sold as a single luxury product: gallery, sticky buy-box, $175 visible immediately, specs, record.\nTRADEOFF: boldest and most honest about money — may read as transactional to visitors who wanted to be courted." }
+  ],
+  "launch": { "view": "canvas" }
+}

@@ -1,0 +1,44 @@
+{
+  "brief_id": "swan-front-page-2026-08-18",
+  "archetype_base": "fitness-coaching (#4, M2) + cinematic-scroll (#2) threshold overlay",
+  "plate_pack_id": "pack-swan-front-01",
+  "skeletons": [
+    {
+      "id": "S1-the-threshold",
+      "nav_model": "side-rail-left",
+      "hero_mechanics": "split-statement-left-video-right",
+      "chapter_count": 4,
+      "grid": "12col-asymmetric-7-5",
+      "anti_specs": ["no top nav bar", "hero is NOT full-bleed", "swans go full-bleed ONLY at the act2-to-act3 threshold scrub"],
+      "wildcard": false
+    },
+    {
+      "id": "S2-wingbeat-ledger",
+      "nav_model": "top-bar-dense",
+      "hero_mechanics": "no-hero-proof-strip-above-fold",
+      "chapter_count": 4,
+      "grid": "2col-data-then-1col-calm",
+      "anti_specs": ["no hero section at all", "no full-bleed imagery before the threshold", "charts are REAL-data-shaped, never decorative"],
+      "wildcard": false
+    },
+    {
+      "id": "S3-season-arc",
+      "nav_model": "none-chapter-dots-right",
+      "hero_mechanics": "full-bleed-chapter-plate-with-narrative-divider",
+      "chapter_count": 4,
+      "grid": "single-column-editorial-720px",
+      "anti_specs": ["no persistent nav", "no card grids anywhere", "each season opens with a divider, never a heading alone"],
+      "wildcard": false
+    },
+    {
+      "id": "S4-the-object",
+      "nav_model": "minimal-top-wordmark-only",
+      "hero_mechanics": "pdp-gallery-left-buybox-right",
+      "chapter_count": 3,
+      "grid": "pdp-2col-sticky-buybox",
+      "anti_specs": ["nothing that reads as a fitness landing page", "price visible immediately - burying price is the archetype-4 banned pattern", "no scroll-jacking"],
+      "wildcard": true,
+      "alien_archetype": "e-commerce-product-page (#12): the consult as a single luxury product"
+    }
+  ]
+}

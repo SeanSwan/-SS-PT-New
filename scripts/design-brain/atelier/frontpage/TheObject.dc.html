@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0A0A0F; }
+    a { color: #60C0F0; } a:hover { color: #E0ECF4; }
+  </style>
+</helmet>
+<div style="width: 1280px; min-height: 2000px; background: #0A0A0F; color: #E0ECF4; display: flex; flex-direction: column;">
+  <nav style="display: flex; align-items: center; justify-content: center; height: 60px; border-bottom: 1px solid #1A1A24;">
+    <div style="font-weight: 800; letter-spacing: 0.35em; font-size: 14px; color: #E0ECF4;">SWANSTUDIOS</div>
+  </nav>
+  <main style="display: grid; grid-template-columns: 7fr 5fr; gap: 32px; padding: {{pad}}; align-items: start;">
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="position: relative; overflow: hidden; border-radius: 14px;">
+        <img src="plate-swanwater.svg" alt="the consultation — swan on dark water" style="width: 100%; display: block;">
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+        <img src="plate-proof.svg" alt="progress record view" style="width: 100%; border-radius: 10px; display: block;">
+        <img src="plate-crystal.svg" alt="method structure view" style="width: 100%; border-radius: 10px; display: block; opacity: 0.9;">
+        <div style="position: relative; overflow: hidden; border-radius: 10px;"><img src="plate-threshold.svg" alt="the swans threshold preview" style="width: 300%; max-width: none; display: block; margin-left: -60%;"></div>
+      </div>
+      <section style="display: flex; flex-direction: column; gap: 12px; padding-top: 20px; border-top: 1px solid #1A1A24;">
+        <h2 style="margin: 0; font-size: 22px;">What it is</h2>
+        <p style="margin: 0; color: #9FB6C6; line-height: 1.7;">Sixty minutes with a coach carrying 26+ years of training experience, NASM-protocol methods, and a ledger of logged client sessions behind every recommendation. You leave with a written read on your starting point and exactly what a first block would look like &mdash; whoever you are: first program ever, returning after years off, or an athlete buying an edge.</p>
+      </section>
+      <section style="display: flex; flex-direction: column; gap: 10px; padding-top: 20px; border-top: 1px solid #1A1A24;">
+        <h2 style="margin: 0; font-size: 22px;">Specifications</h2>
+        <div style="display: grid; grid-template-columns: 200px 1fr; gap: 1px; background: #1A1A24; border: 1px solid #1A1A24; border-radius: 10px; overflow: hidden; font-size: 14px;">
+          <div style="background: #141419; padding: 12px 16px; color: #9FB6C6;">Duration</div><div style="background: #0A0A0F; padding: 12px 16px;">60 minutes, one-on-one</div>
+          <div style="background: #141419; padding: 12px 16px; color: #9FB6C6;">Method</div><div style="background: #0A0A0F; padding: 12px 16px;">NASM-protocol assessment + movement screen</div>
+          <div style="background: #141419; padding: 12px 16px; color: #9FB6C6;">You receive</div><div style="background: #0A0A0F; padding: 12px 16px;">Written baseline + first-block outline</div>
+          <div style="background: #141419; padding: 12px 16px; color: #9FB6C6;">Obligation</div><div style="background: #0A0A0F; padding: 12px 16px;">None. The read is yours either way.</div>
+        </div>
+      </section>
+    </div>
+    <aside style="position: sticky; top: 24px; display: flex; flex-direction: column; gap: 16px; background: #141419; border: 1px solid #1A1A24; border-radius: 16px; padding: 28px;">
+      <div style="font-size: 12px; letter-spacing: 0.26em; color: {{accent}};">THE CONSULTATION</div>
+      <h1 style="margin: 0; font-size: 34px; line-height: 1.1; font-weight: 800;">One hour that decides the next year.</h1>
+      <div style="display: flex; align-items: baseline; gap: 10px;">
+        <span style="font-size: 40px; font-weight: 800; font-family: Consolas, monospace;">$175</span>
+        <span style="color: #9FB6C6; font-size: 14px;">/ session &middot; no package required</span>
+      </div>
+      <a href="#book" style="display: inline-flex; align-items: center; justify-content: center; min-height: 50px; border-radius: 10px; background: #002060; color: #E0ECF4; text-decoration: none; font-weight: 700; box-shadow: 0 0 24px rgba(139,92,246,0.35);">Book now</a>
+      <a href="#questions" style="display: inline-flex; align-items: center; justify-content: center; min-height: 46px; border-radius: 10px; border: 1px solid #1A1A24; color: #E0ECF4; text-decoration: none;">Ask a question first</a>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid #1A1A24; font-size: 13px; color: #9FB6C6;">
+        <span>&#10003; 26+ years training experience</span>
+        <span>&#10003; NASM-protocol methods</span>
+        <span>&#10003; Every session logged against a written plan</span>
+        <span>&#10003; All levels &mdash; first-timers to competitive athletes</span>
+      </div>
+    </aside>
+  </main>
+  <section id="reviews" style="padding: 24px 40px 72px 40px; display: flex; flex-direction: column; gap: 14px; max-width: 860px;">
+    <h2 style="margin: 0; font-size: 22px;">The record</h2>
+    <p style="margin: 0; color: #9FB6C6; line-height: 1.7; font-size: 15px;">Client results live in charts, not adjectives &mdash; plan against actual, week over week. Real client stories appear here with consent, never as wallpaper. <span style="font-size: 12px; color: #4070C0;">[testimonial slots — real, consented content only]</span></p>
+  </section>
+</div>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#C6A84B","options":["#60C0F0","#8B5CF6","#C6A84B"]},"density":{"editor":"enum","default":"comfortable","options":["comfortable","compact"]}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#C6A84B';
+    const pad = (this.props.density ?? 'comfortable') === 'compact' ? '28px 32px' : '40px 40px';
+    return { accent, pad };
+  }
+}
+</script>
+</body>
+</html>
