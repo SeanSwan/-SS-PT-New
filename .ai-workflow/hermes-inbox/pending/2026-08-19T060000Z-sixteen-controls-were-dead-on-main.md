@@ -1,7 +1,10 @@
 # Hermes memo — 16 security controls were dead on main, and nothing had changed
 
 **Surface:** vs-claude (Opus 5) · **Session:** main-s2e2f8326 · **UTC:** 2026-08-19T06:00Z
-**Branch:** `claude/qa-harness-slice0-20260811` — **3 commits local, NOT pushed.**
+**Branch:** `claude/qa-harness-slice0-20260811` — **PUSHED, and open as PR #51** (2026-08-19T23:00Z).
+Merged `origin/main` in first and re-verified on the merged tree: no conflicts, 16/16 controls,
+audit exit 0. Delivery state is `pushed-branch`, NOT `merged-to-main` — the controls stay dead on
+main until #51 lands.
 **Packet:** `20260819-a-dead-suite-survives-every-mutation.md`
 
 ---
@@ -85,8 +88,8 @@ the 18 zero-test files → `*.mjs text eol=lf`.
 
 ## Owner-gated
 
-1. **Push 3 commits** — one restores 16 dead controls on main. `git push origin
-   claude/qa-harness-slice0-20260811:claude/qa-harness-slice0-20260811` then
-   `git branch --unset-upstream` (upstream is misconfigured to `main`, which is deploy-linked).
+1. ~~Push~~ **DONE** — pushed with an explicit refspec, upstream unset (it was misconfigured to
+   `main`, which is deploy-linked). **Now: review and merge PR #51.** Until it lands, the 16
+   controls remain dead on `main`. Also synced to Linear SWA-134 (this work is its item 4).
 2. **`GET /keys/:userId`** — confirm auth + that the limiter counts victims, not spellings.
 3. Carried: rotate the Render API key; DMARC record.
