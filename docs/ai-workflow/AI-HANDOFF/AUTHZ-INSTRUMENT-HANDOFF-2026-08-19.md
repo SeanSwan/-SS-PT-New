@@ -43,12 +43,34 @@ git show origin/main:backend/scripts/audit-idor-surface.mjs | grep -c GUARD_CALL
 The reader corrections themselves ARE on main (verified by content above). The shebang is also
 still on main, and that is what kills the controls.
 
-**Mechanism.** Vitest's esbuild transform rejects a `#!` line in an **imported** module. It reports
-that as `(0 test)` against the *importing* file, not as an error in the guilty one. So the CLI kept
-working perfectly under `node` — 230 files, 211 handlers, 190 clear — while every control that
-exists to stop that reader from over-clearing was silently absent. Neither file had changed: the
+**Mechanism — `#!` *plus CRLF*, not `#!` alone.** Isolated with a two-arm experiment, because my
+first diagnosis named the shebang by itself and that was wrong:
+
+| file under test | result |
+|---|---|
+| shebang + **LF** | `16 passed` |
+| shebang + **CRLF** | `no tests` |
+| no shebang + CRLF (what shipped) | `16 passed` |
+
+Vitest's esbuild transform fails to strip a shebang whose line ends `\r\n`, and reports the failure
+as `(0 test)` against the **importing** file rather than as an error in the guilty one. So the CLI
+kept working perfectly under `node` — which strips shebangs correctly — while every control that
+exists to stop this reader from over-clearing was silently absent. Neither file had changed: the
 original blob diffs byte-identical to HEAD ignoring CR. **The toolchain moved under a file that was
-already correct.**
+already correct, and `core.autocrlf=true` supplied the second ingredient at checkout.**
+
+**⚠ This is a latent repo-wide hazard, not a one-file bug.** `git config core.autocrlf` → `true`,
+and `.gitattributes` pins `eol=lf` for `scripts/*.sh` **only** — nothing covers `.mjs`. There are
+**172** shebang-bearing `.mjs` files under `scripts/` + `backend/scripts/`. Any one of them dies
+this way the moment a test imports it. Mine was simply the first to be imported. Derive it fresh:
+
+```bash
+grep -rl "^#!/usr/bin/env node" --include="*.mjs" scripts/ backend/scripts/ | wc -l
+```
+
+The class fix is one line in `.gitattributes` (`*.mjs text eol=lf`) — **not done here on purpose**:
+it renormalizes 172+ files in a single sweep, which is precisely the kind of diff that collides
+with other live agents. It is next-slice §6.7, to be run when the tree is quiet.
 
 Nothing invokes the script as `./audit-idor-surface.mjs`; `npm run audit:idor` and `audit-all.mjs`
 both spawn it with `node`. The shebang bought nothing and cost the controls.
@@ -195,6 +217,8 @@ Full suite when written: `Test Files 23 failed | 1153 passed`, `Tests 8 failed |
    against a Rule 4 cap of 300, and the §1 defect is a direct consequence of one file being both an
    import target and an executable. Splitting fixes the cap violation and the defect class together.
 6. **Resolve the 18 zero-test files** (§5) with the owning lane.
+7. **`*.mjs text eol=lf` in `.gitattributes`** — closes the §1 class for all 172 shebang-bearing
+   scripts. One line, but it renormalizes every one of them; run it when no other agent is live.
 
 ---
 
