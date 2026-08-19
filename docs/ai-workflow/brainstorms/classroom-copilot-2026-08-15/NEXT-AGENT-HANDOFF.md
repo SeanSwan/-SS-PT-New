@@ -95,6 +95,14 @@ survived multiple paid panels while being one text message each).
 - **Desk — defer, not delete:** design docs stay as reference (`the-desk.html`); no build
   unless the tally trigger fires. HY3's "delete" forecloses a lane the tally can measure for
   the cost of a printed card.
+  **CORRECTION 2026-08-19 — this ruling was made without a fact: the gate is already
+  built.** `desk/` holds eight tested ESM modules (committed `c0e27560b`, `312b8394a`,
+  2026-08-16, and published to the private repo) implementing the deterministic floor of the
+  six-stage pipeline. Re-verified green 2026-08-19. **The deferral still stands and is still
+  correct** — no further Desk work until the tally trigger fires, because no user has
+  received anything yet. What changes is only this: it is *sunk*, not pending. **Do not
+  rebuild it at month-end.** If the trigger fires, the next Desk step is the model layer
+  above this floor, plus a fresh held-out corpus (below), not a new gate.
 - **Post-dry edit — REVERTED** (done): the Cmd+W dialog line added after R7's dry verdict was
   removed, restoring the exact bytes two parallel models cleared. The walkthrough teaches
   that dialog live anyway. Standing law: **DRY = frozen; any post-dry edit reopens review
@@ -157,6 +165,17 @@ Everything in `docs/ai-workflow/brainstorms/classroom-copilot-2026-08-15/`:
 
 **Execute from:** this file → `h0-setup/` (runbook, system prompt, 4 printables — DRY,
 frozen) → `sorter/` (prototype + `heldout.mjs`, the port-test baseline).
+**Built but parked — `desk/`** (8 modules, `node measure.mjs` + `node heldout-run.mjs`, both
+exit 0 as of 2026-08-19). The deterministic floor of the Desk pipeline. Read it only if the
+month-end tally trigger fires. **Two distinct held-out corpora now exist and measure
+different things — do not conflate them:** `sorter/heldout.mjs` is the **53.3% port-test
+baseline** that step 5(b) is gated on; `desk/heldout.mjs` measures block recall / false-block
+/ middle-lane occupancy for the privacy gate and has no bearing on the port decision.
+Its numbers carry the same disease as the sorter's 100%: the honest, untuned first run was
+**50.0% block recall / 15.4% false blocks**; the 81.8% / 0.0% it prints today is what the
+code scores after being fixed against that very corpus, so it is a fit, not a measurement.
+Both figures are in the code and the repo README. Re-earning a real number needs a corpus
+written by someone who has not read `lexicon.mjs`.
 **The four program reviews (read §HOSTILE FINDINGS + DISSENT only):** `81-glm-session.md` ·
 `82-kimi-session.md` · `83-hy3-session.md` · `84-fable-session.md` (pre-arbitration).
 **Reference only — do NOT re-read to re-decide:** packets/replies `00`–`72`,
