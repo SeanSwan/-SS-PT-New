@@ -53,6 +53,32 @@ rather than executed. Do not re-run them from §4 — read this section first.
 **Still unproven:** the 06:47 *scheduled* run has not yet fired. Confirm tomorrow with
 `wsl.exe -e bash -lc "hermes cron runs be0178803f69"` — expect a 4th `completed` row.
 
+### New finding from the hostile pass — the restored briefing runs at 91% of its ceiling [P2]
+
+`hermes-fast:latest` is `qwen35moe` (36B). Its architecture reports a 262,144 window, but the
+**Modelfile pins `num_ctx` to 65,536** — and the successful run used:
+
+| | tokens | % of 65,536 |
+|---|---|---|
+| prompt | 58,251 | 88.9% |
+| completion | 1,379 | — |
+| **total** | **59,630** | **91.0%** |
+
+Headroom for output: **7,285 tokens.**
+
+**The memo backlog is NOT the growth risk** — the `pre_llm_call` injection is already effectively
+at its cap every call (standing context 14,000 chars + memos 15,510 = 29,510 of `TOTAL_CAP` 30,000;
+that is also *why* it stopped after 3 memos, not 8). Worst-case extra injection is ~490 chars.
+
+**The growth vector is the system prompt — specifically the 128 enabled skills** (§3c: skills index
+alone is 13.1 KB). Every skill added enlarges the index on every briefing.
+
+**This makes Phase E load-bearing, not just an optimization.** "Prune before you split" was framed
+as a cost/latency argument; it is now also what keeps the briefing from overflowing its window.
+Two cheap mitigations if pruning is deferred: raise `num_ctx` (the architecture supports 262k, so
+this is a Modelfile change, not a model swap), or trim `standing-context.md` (23,747 B, already
+truncated to the 14,000 `STANDING_CAP` — i.e. ~40% of it is being silently dropped today).
+
 ---
 
 ## 1. START HERE — the next slice
