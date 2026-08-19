@@ -1029,8 +1029,15 @@ test('REGRESSION: ambiguity means two COMPETING sections, not a deeper sub-headi
   // The round-10 rule counted every `#{2,6}` match, so a legitimate packet with `## Remit` and a
   // later `### Remit` recap in an appendix was refused as ambiguous — a false refusal on an ordinary
   // layout, produced by the fix for the hijack. Only the shallowest level competes.
-  assert.match(remitFromDoc('## Remit\nreal remit\n\n## Appendix\n\n### Remit\nrecap\n'), /real remit/);
+  // RE-ANCHOR (round 12, after both reviewers): this fixture used `## Appendix` as the separator,
+  // which ENDS the `## Remit` section — so its `### Remit` is NOT nested, and that is precisely the
+  // fail-open layout the round-12 critical was about. It is now correctly ambiguous. The property
+  // this test exists for — a genuinely nested recap does not compete — needs a fixture with no
+  // intervening same-level heading.
+  assert.match(remitFromDoc('## Remit\nreal remit\n\n### Remit\nrecap\n'), /real remit/);
   assert.equal(countRemitHeadings('## Remit\na\n\n### Remit\nb\n'), 1);
+  assert.equal(remitFromDoc('## Remit\nreal remit\n\n## Appendix\n\n### Remit\nrecap\n'), '',
+    'an intervening same-level heading un-nests it, and two competitors are ambiguous');
   // Two at the SAME level still ambiguous — every hijack that motivated the rule sits at that level.
   assert.equal(remitFromDoc('## Remit (draft)\nx\n\n## Remit\nreal\n'), '');
   assert.equal(countRemitHeadings('## Remit\na\n\n## Remit\nb\n'), 2);
@@ -1072,13 +1079,55 @@ test('REGRESSION: a leading BANNER is skipped for frontmatter, a leading FENCE i
   assert.equal(remitFromDoc('intro\n\nremit: wrong\n'), '', 'prose hijack still closed');
 });
 
-test('NOT-A-BUG PIN: a `### Remit` inside a `## Remit` section is that section, not a hijack', () => {
-  // My own round-12 pass flagged "a shallower decoy wins" as a defect. It is not: `## Remit`
-  // enclosing `### Remit` is exactly how CommonMark nests sections, the enclosing section IS the
-  // packet's question, and its anchors survive into extraction so R4 and R5 still bind on them.
-  // Pinned so a later round does not "fix" correct nesting and reopen the appendix false refusal.
-  const doc = '## Remit\nReview scripts/packet-gate/refusal.mjs\n\n### Remit\nrecap\n';
-  const got = remitFromDoc(doc);
-  assert.match(got, /refusal\.mjs/, 'the real anchor survives');
-  assert.equal(countRemitHeadings(doc), 1, 'a deeper heading does not compete');
+test('CRITICAL REGRESSION: a NON-NESTED deeper Remit competes; a nested one does not', () => {
+  // CORRECTED PIN. The previous version of this test asserted that "a shallower decoy wins" was
+  // correct behaviour, on the strength of ONE layout: the decoy immediately above the real section,
+  // where it genuinely encloses it and the real anchors survive. Both reviewers then found the
+  // layout that generalisation missed — put an intervening same-level heading between them and
+  // "deeper" is still true while "nested" is false:
+  //
+  //     ## Remit            <- decoy, names nothing
+  //     ## Implementation   <- ENDS the decoy's section
+  //     ### Remit           <- the real question, now outside it
+  //
+  // The decoy becomes the only competitor, extraction stops at `## Implementation`, aboutCode goes
+  // false and R4 and R5 examine nothing. Verified fail-open before the fix. A wrong pin is worse
+  // than no pin: it tells the next round the hole is not there.
+  const shadow = ['## Remit', 'A quick sanity check.', '', '## Implementation', 'details', '',
+    '### Remit', 'Review scripts/packet-gate/refusal.mjs', ''].join('\n');
+  assert.equal(remitFromDoc(shadow), '', 'a non-nested deeper Remit must compete');
+  assert.equal(countRemitHeadings(shadow), 2);
+
+  // …and a genuinely nested recap is still part of its section, so the appendix layout round 12
+  // un-refused stays un-refused.
+  const nested = '## Remit\nReview scripts/packet-gate/refusal.mjs\n\n### Remit\nrecap\n';
+  assert.match(remitFromDoc(nested), /refusal\.mjs/);
+  assert.equal(countRemitHeadings(nested), 1);
+});
+
+test('REGRESSION: a setext heading TERMINATES the remit section', () => {
+  // Round 12 taught the START test about `Remit\n===` and left the STOP test ATX-only, so
+  // `Appendix\n--------` never terminated the section and every later heading's content was absorbed
+  // into the question. That is round 9's F2 defect VERBATIM, committed one round after its lesson
+  // was written into this parser. Whenever a heading rule changes, BOTH tests change.
+  assert.doesNotMatch(remitFromDoc('## Remit\nthe question\n\nAppendix\n--------\nlater content\n'), /later content/);
+  assert.doesNotMatch(remitFromDoc('## Remit\nbody\n\n## Artifact\nnot the remit\n'), /not the remit/);
+  // A setext separator also un-nests a deeper Remit, exactly as an ATX one does.
+  assert.equal(remitFromDoc(['## Remit', 'check.', '', 'Implementation', '--------------', 'd', '',
+    '### Remit', 'Review x'].join('\n')), '');
+});
+
+test('REGRESSION: an untracked file in a populated directory is not "in a submodule"', () => {
+  // `git ls-files --error-unmatch -- <dir>` succeeds for ANY directory containing tracked files,
+  // because the pathspec matches those files — so the premise "a tracked directory entry is a
+  // gitlink" was false and every untracked file in a populated subdirectory was diagnosed
+  // ESUBMODULE. A gitlink is a tree entry with mode 160000; ask git what the entry IS.
+  const dir = join(ROOT, 'scripts', '__r12test');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'x.mjs'), 'x\n');
+  try {
+    assert.throws(() => readCitedFile(ROOT, 'scripts/__r12test/x.mjs', []), (e) => e.code === 'EUNTRACKED');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

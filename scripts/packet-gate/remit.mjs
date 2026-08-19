@@ -13,7 +13,7 @@
  *
  * @module packet-gate/remit
  */
-import { splitDocLines } from './normalize.mjs';
+import { scanContainers, anySetextLevel as anySetext, atxLevel } from './markdown.mjs';
 
 /**
  * Pull the remit out of a packet document: a `## Remit` section, else a `remit:` frontmatter line.
@@ -67,100 +67,30 @@ export function remitFromDoc(md, opts) {
   // Same CRLF trap as parseFences, and it bit here too: `/^remit:\s*(.+)$/` cannot match a line
   // ending in `\r`, because `.` excludes line terminators — so frontmatter-style remits vanished
   // from every CRLF document, taking R4's and R5's anchors with them.
-  const lines = splitDocLines(md);
+  // Container detection lives in ./markdown.mjs — the only place this gate models markdown
+  // structure. Six hijacks came from disagreeing with CommonMark about what a line IS.
+  const { outside, kind } = scanContainers(md);
 
-  // FENCE-AWARE. A `## Remit` heading or a `remit:` line INSIDE a code fence is sample content,
-  // not the packet's question. Without this, a packet that merely documents a remit (a YAML sample,
-  // a quoted example) hijacks extraction and the gate evaluates text the model was never asked.
-  const outside = [];
-  // WHY a line is a container, not merely THAT it is one. The frontmatter bound needs to skip a
-  // leading `<!-- generated -->` banner while stopping at a leading fence, and inferring that from
-  // the line's own text fails on a MULTI-LINE comment whose middle lines look like ordinary prose.
-  const kind = [];
-  let fence = null;
-  let html = false;
-  for (const line of lines) {
-    // HTML COMMENTS ARE NOT DOCUMENT CONTENT. The fence-aware loop knew ``` and ~~~ and nothing
-    // else, so a `## Remit` inside `<!-- … -->` — invisible in every renderer — was a heading to
-    // findIndex. A superseded draft left in a comment above the real section hijacked extraction:
-    // remit became the comment's text, non-empty (guard silent), naming nothing (R4 and R5 inert).
-    // The parser had been patched three times for the heading's CHARACTER CLASS and never once
-    // asked what CONTAINER the line was in. (GLM-5.3 round 10, F2.)
-    if (!fence && /^\s*<!--/.test(line)) html = true;
-    if (html) {
-      outside.push(null);
-      kind.push('html');
-      if (/-->/.test(line)) html = false;
-      continue;
-    }
-    // `[^\n]*`, matching parseFences: `.` excludes Unicode line terminators, so a fence line
-    // carrying one would go unnoticed here and a `## Remit` heading inside that fence would hijack
-    // extraction — the fence-awareness this loop exists for, silently switched off.
-    const m = /^[ \t]*(`{3,}|~{3,})([^\n]*)$/.exec(line);
-    if (m) {
-      if (!fence) fence = m[1];
-      else if (m[1][0] === fence[0] && m[1].length >= fence.length && m[2].trim() === '') fence = null;
-      outside.push(null);
-      kind.push('fence');
-      continue;
-    }
-    outside.push(fence ? null : line);
-    kind.push(fence ? 'fence' : 'text');
-  }
-
-  // THE HEADING MAY CARRY THE REMIT INLINE. `/^#{2,}\s*remit\s*$/` required the heading to be the
-  // bare word, so `## Remit: review the refund flow` — a completely natural spelling — was not found
-  // at all, and the gate exited 2 telling the operator to "add a `## Remit` section" to a document
-  // that has one. A remedy the operator has already followed is the refusal-fatigue signature this
-  // file names in three other places. (GLM-5.3 round 6, F8.)
+  // THE HEADING GRAMMAR. Every clause below is a patch for a MEASURED defect, and the two failure
+  // directions alternate — a decoy that the gate wrongly accepts as a heading (hijack), or a real
+  // heading it wrongly rejects (a refusal telling the operator to add a section they already have).
+  // Both end the same way when they hit: extraction yields the wrong text, the remit is non-empty so
+  // the fail-closed guard stays silent, it names nothing so `aboutCode` goes false, and R4 and R5
+  // both return [] having examined nothing.
   //
-  // Trailing punctuation with no text (`## Remit:`) is also accepted; the inline text, when present,
-  // becomes the first line of the remit and the following lines still append.
-  // The separator must be a COLON, or whitespace before a dash. `\s*[:—–-]` matched `Remit-driven`,
-  // `Remit-to-pay`, `Remit-check` — so `## Remit-to-pay reconciliation` anywhere in the document
-  // hijacked extraction (findIndex takes the FIRST match), the remit became "to-pay reconciliation"
-  // plus that section's body, `aboutCode` went false, and R4 and R5 were both inert while the
-  // empty-remit guard stayed silent because the remit was non-empty garbage. That is the exact
-  // Category-2 signature the round-5 subheading fix was written about, reintroduced one round later
-  // by the inline-remit fix. Both reviewers found it independently. (Kimi K3 F3 / GLM-5.3 F4.)
-  // `(?:#+\s*)?` accepts the CLOSED ATX form `## Remit ##`, which is valid CommonMark and was
-  // missed — the gate told the operator to add a section the document already had, in a spelling
-  // markdown explicitly permits. (Kimi K3 round 8, F3.)
-  // COMMONMARK'S HEADING GRAMMAR, MATCHED ON THE RAW LINE — not `trim()` plus a loose regex.
+  //   `^ {0,3}`      four spaces is a CODE BLOCK, not a heading            (r8 F4, hijack)
+  //   `#{2,6}`       seven hashes is not a valid ATX level                 (r8 F4, hijack)
+  //   `[ \t]+`       CommonMark's separator; JS `\s` also matches U+00A0,
+  //                  so `##<NBSP>Remit` — a paragraph — matched            (r9 F6, hijack)
+  //   `(?:#+)?`      the CLOSED ATX form `## Remit ##`                     (r8 F3, refusal)
+  //   `:` …          inline remit, `## Remit: review the refund flow`      (r6 F8, refusal)
+  //   `[—–-]` …      dash separator, whitespace REQUIRED both sides, which
+  //                  is what keeps `## Remit-to-pay …` from matching       (r7,  hijack)
+  //   `\(([^)]*)\)?` parenthesised, closing paren optional because the
+  //                  unclosed form is an ordinary typo                     (r8 F6 / r9 F6, refusal)
   //
-  // Round 5 made both the start and stop tests run on `l.trim()` ("one predicate, one spelling"),
-  // which fixed an indentation asymmetry and opened a worse hole: `trim()` makes lines match that
-  // CommonMark does not consider headings AT ALL. Verified, all three:
-  //     `    ## Remit`  4-space indent — a CODE BLOCK, not a heading
-  //     `##Remit`       no space after the hashes — a paragraph
-  //     `#######Remit`  seven hashes — not a valid ATX level
-  // Each is found FIRST by findIndex, and the real `## Remit` below then STOPS extraction (level
-  // <= level), so the remit becomes the decoy's text: non-empty, so the fail-closed empty-remit
-  // guard never fires; naming nothing, so `aboutCode` goes false, R4 returns [] and R5 has no
-  // anchors. A phantom route in the REAL remit — R5's founding failure mode — ships at exit 0 with
-  // both checks silent. The Category-2 signature, reached through the trim fix rather than a regex.
-  // (GLM-5.3 round 8, F4.)
-  //
-  // So: `^ {0,3}` (four spaces is code), `#{2,6}` (capped), and a REQUIRED space after the hashes.
-  // The separator alternatives are unchanged apart from adding the parenthesised form, which was a
-  // pure MISS — `## Remit (review the refund flow)` matched nothing and the gate told the operator
-  // to add a section the document already had. (GLM-5.3 round 8, F6.)
-  //
-  // `[—–-]` still requires whitespace before AND after, which is what keeps `## Remit-to-pay …`
-  // from matching — round 7's fix for the hijack in the other direction. Verified both ways.
-  // `\(([^)]*)\)?` — the closing paren is OPTIONAL. `## Remit (review the refund flow` (unclosed,
-  // a perfectly ordinary typo) matched no alternative, so the trailing `\s*$` failed, the heading
-  // was not found, and the gate told the operator to add a `## Remit` section to a document whose
-  // CommonMark heading is exactly that. Same miss-direction class as the parenthesised form itself,
-  // one alternative over. (Kimi K3 round 9, F6.)
-  // `[ \t]+` after the hashes, NOT `\s+`. CommonMark's ATX rule is a space or a tab; JavaScript's
-  // `\s` also matches U+00A0 NBSP, U+2028, U+3000 and friends. So `##<NBSP>Remit` — a PARAGRAPH in
-  // every markdown renderer — matched this gate's heading test, and round-8's decoy hijack reopened
-  // one invisible byte over: the fake heading is found first, the real `## Remit` below stops
-  // extraction, and the remit becomes the decoy's text while R4 and R5 go inert. The round-8 fix
-  // tightened the *shape* of a heading and left its *whitespace class* as JavaScript's rather than
-  // CommonMark's. (GLM-5.3 round 9, F6 — the same hijack this file has now been patched for three
-  // times, each time through the previous patch.)
+  // Three of those patches were themselves the previous patch's hole. Treat any edit here as
+  // security-relevant, and change the STOP test in the same commit — see round 9's F2.
   const HEADING_RE = /^ {0,3}#{2,6}[ \t]+remit[ \t]*(?:#+)?[ \t]*(?::[ \t]*(.*)|[—–-][ \t]+(.*)|\(([^)]*)\)?)?[ \t]*$/i;
   // AMBIGUITY IS REFUSED, not silently resolved by taking the first.
   //
@@ -194,24 +124,53 @@ export function remitFromDoc(md, opts) {
   //
   // Treated as level 1 for `===` and level 2 for `---`, which is what CommonMark assigns them, so
   // the shallowest-level ambiguity rule above applies to them identically.
-  const setextLevel = (n) => {
-    if (n + 1 >= outside.length) return 0;
-    const text = outside[n];
-    const rule = outside[n + 1];
-    if (text === null || rule === null) return 0;
-    if (!/^ {0,3}remit[ \t]*$/i.test(text)) return 0;
-    if (/^ {0,3}=+[ \t]*$/.test(rule)) return 1;
-    if (/^ {0,3}-+[ \t]*$/.test(rule)) return 2;
-    return 0;
-  };
+  /**
+   * The level of ANY setext heading at line n — 1 for `===`, 2 for `---`, 0 for neither.
+   * Deliberately not Remit-specific: the STOP test needs to recognise `Appendix\n----` as a section
+   * terminator, and the first version of this helper only matched the word "Remit", so the stop test
+   * saw nothing and every later section was absorbed into the question.
+   */
+  const anySetextLevel = (n) => anySetext(outside, n);
+
+  /** A setext heading whose text is exactly `Remit` — the START test's concern. */
+  const setextLevel = (n) => (/^ {0,3}remit[ \t]*$/i.test(outside[n] ?? '') ? anySetextLevel(n) : 0);
 
   const all = outside.map((l, n) => {
     if (l === null) return -1;
     return (HEADING_RE.test(l) || setextLevel(n)) ? n : -1;
   }).filter((n) => n !== -1);
   const levelAt = (n) => setextLevel(n) || /^ {0,3}(#{2,6})/.exec(outside[n])[1].length;
-  const top = all.length ? Math.min(...all.map(levelAt)) : 0;
-  const matches = all.filter((n) => levelAt(n) === top);
+
+  // NESTING, NOT LEVEL. Round 12's first attempt asked "is this heading deeper?" and I pinned the
+  // result as correct nesting after testing ONE layout — the decoy immediately above the real
+  // section, where the decoy genuinely encloses it and the real anchors survive into extraction.
+  //
+  // That generalisation was wrong, and BOTH reviewers found it independently. Put an intervening
+  // same-level heading between them:
+  //     ## Remit            <- decoy, names nothing
+  //     ## Implementation   <- ENDS the decoy's section
+  //     ### Remit           <- the real question, now outside it
+  // "Deeper" is still true and "nested" is now false. The decoy is the only competitor, extraction
+  // stops at `## Implementation`, the remit becomes the decoy's prose, aboutCode goes false and R4
+  // and R5 both examine nothing. Verified: extracted "A quick sanity check.", real anchor gone.
+  //
+  // A deeper Remit is part of a shallower one's section ONLY if no heading of level <= the
+  // shallower one's appears between them — which is exactly how CommonMark bounds a section. Any
+  // Remit heading that is not nested that way COMPETES, and two competitors are ambiguous.
+  // ANY heading bounds a section, not only a Remit-shaped one — and setext counts. Using the
+  // Remit-specific check here would have meant `## Implementation` bounded the section while
+  // `Appendix\n----` did not, which is the same half-applied split that produced round 9's F2.
+  const headingLevels = all.length
+    ? outside.map((l, n) => (l === null ? 0 : (atxLevel(l) || anySetextLevel(n))))
+    : [];
+  const nestedIn = (outer, inner) => {
+    if (levelAt(inner) <= levelAt(outer)) return false;
+    for (let n = outer + 1; n < inner; n += 1) {
+      if (headingLevels[n] && headingLevels[n] <= levelAt(outer)) return false; // section ended
+    }
+    return true;
+  };
+  const matches = all.filter((n) => !all.some((o) => o !== n && o < n && nestedIn(o, n)));
   // The counting mode shares this exact traversal and grammar — see countRemitHeadings.
   if (opts?.count) return matches.length;
   if (matches.length > 1) return '';
@@ -244,8 +203,18 @@ export function remitFromDoc(md, opts) {
     const setext = setextLevel(i);
     const level = levelAt(i);
     const rest = outside.slice(i + (setext ? 2 : 1));
-    const stop = rest.findIndex((l) => {
+    // THE STOP TEST SEES SETEXT HEADINGS TOO. Round 12 taught the START test about `Remit\n===`
+    // and left its sibling ATX-only — so `Appendix\n--------` never terminated the section and every
+    // later heading's content was absorbed into the question. That is the round-9 F2 defect
+    // VERBATIM ("the fix was HALF-APPLIED, and my own tests did not catch it because they exercise
+    // where extraction STARTS, not what stops it"), committed one round after writing that sentence
+    // into this very file, three lines below. Both reviewers quoted it back. The lesson evidently
+    // does not transfer by being written down: whenever a heading rule changes, BOTH tests change.
+    const restOffset = i + (setext ? 2 : 1);
+    const stop = rest.findIndex((l, k) => {
       if (l === null) return false;
+      const sx = anySetextLevel(restOffset + k);
+      if (sx) return sx <= level;
       // RAW LINE, same grammar as the start test. This still read `l.trim()` after the round-8
       // rewrite — the fix was HALF-APPLIED, and my own tests did not catch it because they exercise
       // where extraction STARTS, not what stops it. So an indented `    ## Artifact` (a code block,

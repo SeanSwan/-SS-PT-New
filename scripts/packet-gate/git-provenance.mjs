@@ -161,15 +161,27 @@ export function isTracked(root, rel) {
  * directory, means git is tracking it as a gitlink. Diagnosis only; it never relaxes the check.
  */
 export function inSubmodule(root, rel) {
+  // ASK GIT WHAT THE ENTRY *IS*, not merely whether the path matches something.
+  //
+  // The premise "a tracked DIRECTORY entry is a gitlink" is false, and both round-12 reviewers found
+  // it independently. `git ls-files --error-unmatch -- <dir>` succeeds for ANY directory containing
+  // tracked files, because the pathspec matches those files — so every untracked file in a populated
+  // subdirectory was diagnosed ESUBMODULE ("it lives inside a submodule") instead of EUNTRACKED.
+  // Verified: an untracked file under scripts/packet-gate/ reported as a submodule.
+  //
+  // A gitlink is a tree entry with mode 160000. `ls-tree` reports the mode, which is the property
+  // actually being asked about — the same "check what it IS, not what matches it" correction the
+  // round-11 critical turned on. This is diagnosis only; it never relaxes the tracking requirement.
   const parts = String(rel).replaceAll('\\', '/').split('/');
   for (let i = parts.length - 1; i > 0; i -= 1) {
     const ancestor = parts.slice(0, i).join('/');
     try {
-      execFileSync('git', ['ls-files', '--error-unmatch', '--', ancestor], {
-        cwd: root, stdio: 'ignore', env: { ...process.env, GIT_LITERAL_PATHSPECS: '1' },
+      const out = execFileSync('git', ['ls-tree', '-d', '--', ancestor], {
+        cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+        env: { ...process.env, GIT_LITERAL_PATHSPECS: '1' },
       });
-      return true; // a tracked DIRECTORY entry is a gitlink
-    } catch { /* not tracked at this level — keep walking up */ }
+      if (/^160000 commit /m.test(out)) return true;
+    } catch { /* unreadable at this level — keep walking up */ }
   }
   return false;
 }
