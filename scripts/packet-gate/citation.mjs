@@ -119,6 +119,34 @@ function isCommitted(root, rel) {
     return true;
   } catch (err) {
     if (err.code === 'ENOENT') throw new GateUnavailable('git not found — cannot verify that a cited file is committed');
+    // THE CASE FALLBACK MUST APPLY HERE TOO, or the two round-10 fixes annihilate each other.
+    // `isTracked` gained a case-insensitive fallback (git pathspecs are case-sensitive; APFS, NTFS
+    // and WSL /mnt/c are not) and this check did not — so on those filesystems a wrong-case citation
+    // passed tracking via the fold, failed here on the raw case, and surfaced as ESTAGED: "staged
+    // but never committed", about a file that is committed and not staged at all. Neither fix was
+    // wrong alone; together they produced a refusal whose text is simply false. Both reviewers found
+    // the interaction independently. (Kimi K3 round 11 F2 / GLM-5.3 round 11 F2.)
+    return committedUnderOtherCase(root, rel);
+  }
+}
+
+/**
+ * Does exactly ONE committed path match `rel` case-insensitively?
+ *
+ * Separate from the tracked fallback because "in the index" and "at HEAD" are different questions,
+ * and conflating them is what produced the false ESTAGED above. Ambiguous matches are refused: two
+ * committed files differing only in case (possible on ext4) leave the gate unable to say which one
+ * the packet meant, and guessing between two real files is how the round-2 decoy worked.
+ */
+function committedUnderOtherCase(root, rel) {
+  try {
+    const out = execFileSync('git', ['ls-tree', '-r', '--name-only', 'HEAD', '--', path.posix.dirname(rel) || '.'], {
+      cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
+      env: { ...process.env, GIT_LITERAL_PATHSPECS: '1', MSYS_NO_PATHCONV: '1' },
+    });
+    const want = rel.toLowerCase();
+    return out.split('\n').map((s) => s.trim()).filter((s) => s && s.toLowerCase() === want).length === 1;
+  } catch {
     return false;
   }
 }
@@ -245,7 +273,40 @@ export function readCitedFile(root, rel, exclude = []) {
     e.code = 'EOUTSIDE';
     throw e;
   }
-  return readFileSync(abs, 'utf8');
+  // THE BYTES COME FROM THE COMMIT, NOT THE WORKTREE. Round-11 critical, found independently by
+  // BOTH reviewers, and the fifth spelling of one attack:
+  //
+  //   r7   cite the packet itself         -> closed by identity
+  //   r8   `ln` / `cp` the packet         -> closed by inode, then "must be tracked"
+  //   r10  `git add` without committing   -> closed by "must exist at HEAD"
+  //   r11  COMMIT ONCE, THEN EDIT FREELY  -> every check above still passes
+  //
+  // `isCommitted` asks whether the PATH has history. It does. R3 then compared the fence body
+  // against bytes read from the WORKTREE — which the packet's author had just rewritten. Verified:
+  // commit `export const answer = 42`, replace the worktree copy with
+  // `export function isAdmin(){ return true; }`, cite it, and R3 returned NO FINDING while the
+  // committed blob still read `answer = 42`.
+  //
+  // Four rounds of fixes all asked about the FILE's status — is it this file, this inode, tracked,
+  // committed — and never once about the BYTES' provenance. Asking "what property does this check
+  // actually establish?" is what found round 7's hole too; it is the only question that has ever
+  // produced a real close here.
+  //
+  // ACCEPTED COST, stated plainly: a packet reviewing UNCOMMITTED work is now refused. That is a
+  // real and common workflow, and the remedy is one commit — which is also what makes the work
+  // reviewable by anyone else — or `--allow-uncited` with the excerpt attached. It follows directly
+  // from R3's claim, "provably extracted from the repo", which uncommitted bytes cannot satisfy.
+  try {
+    return execFileSync('git', ['show', `HEAD:${gitRel}`], {
+      cwd: root, encoding: 'utf8', maxBuffer: 32 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'],
+      env: { ...process.env, GIT_LITERAL_PATHSPECS: '1', MSYS_NO_PATHCONV: '1' },
+    });
+  } catch (err) {
+    if (err.code === 'ENOENT') throw new GateUnavailable('git not found — cannot read the committed bytes of a cited file');
+    const e = new Error('cited file could not be read from the commit');
+    e.code = 'ENOBLOB';
+    throw e;
+  }
 }
 
 

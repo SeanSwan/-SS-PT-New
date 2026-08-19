@@ -88,6 +88,8 @@ export function checkProvenance(blocks, readFile) {
           'commit the file first, or use --allow-uncited. An untracked scratch copy byte-matches itself and proves nothing'],
         ESUBMODULE: ['it lives inside a submodule, which the superproject tracks only as a gitlink',
           'cite a file in this repository, or attach the excerpt with --allow-uncited and say where it came from'],
+        ENOBLOB: ['its committed bytes could not be read',
+          'the path exists at HEAD but its blob could not be read — re-check the path, or use --allow-uncited'],
         ESTAGED: ['it is staged but never committed — staging is not provenance',
           'commit the file, or use --allow-uncited. `git add` is a local act by the same author writing the packet'],
       }[err.code];
