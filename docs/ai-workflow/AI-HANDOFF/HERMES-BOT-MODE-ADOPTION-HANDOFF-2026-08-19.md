@@ -41,7 +41,10 @@ rather than executed. Do not re-run them from §4 — read this section first.
   14:37:09 → 14:37:56 local
 - `usage_audit.jsonl`: `model=hermes-fast:latest`, **58,251 prompt / 1,379 completion tokens**
   (the two prior failed runs logged `null` tokens — they died before generating)
-- **Ran LOCAL, not cloud:** newest `cloud-ledger.csv` row is 2026-08-06, well before this run
+- **Ran LOCAL, not cloud:** the *decisive* proof is not the spend ledger (GLM #8 / Qwen #1 are
+  right that ledger silence has multiple explanations). It is that the default cloud provider
+  **demonstrably rejects this model name** — that rejection is the original bug, reproduced 32
+  times. A successful generation with that exact model name therefore cannot have gone there.
 - Output artifact `2026-08-19_14-37-54.md`, 22,384 B / 381 lines, containing a real 4-section
   briefing — **not** the `[SILENT]` suppression response
 - **Independent corroboration:** the `pre_llm_call` drain hook moved the 3 oldest memos into
@@ -52,6 +55,96 @@ rather than executed. Do not re-run them from §4 — read this section first.
 
 **Still unproven:** the 06:47 *scheduled* run has not yet fired. Confirm tomorrow with
 `wsl.exe -e bash -lc "hermes cron runs be0178803f69"` — expect a 4th `completed` row.
+
+### ⛔ P0 — THE BRIEFING IS ALREADY OVER ITS CONTEXT CEILING AND SILENTLY TRUNCATING
+
+**Superseded the "91% [P2]" framing below. Found by the GLM/Kimi/Qwen panel + measurement, 2026-08-19.**
+
+| run | prompt tokens | vs `num_ctx` 65,536 | outcome |
+|---|---|---|---|
+| 21:37Z (post cron-fix) | 58,251 | 89% | completed |
+| 22:13Z (post script-fix) | **87,608** | **134%** | **completed — and still reported success** |
+
+`total_tokens` equals `prompt + completion` exactly in both rows, and each row carries a single
+`fire_id`, so this is one call, not a sum across an agentic loop (GLM #1's alternative explanation
+— checked and rejected).
+
+**Overflow behaviour, probed directly** (`/api/generate`, canary at the head, `num_ctx` 512):
+HTTP **200**, `done_reason: length`, **empty response**, `prompt_eval_count` 1026 > `num_ctx`.
+No error is raised at any layer. The canary at the *head* was lost → truncation drops the
+**beginning** of the prompt.
+
+**Consequence:** the briefing prompt puts the fact data near the front and the numbered
+instructions at the end. Truncation therefore eats **the facts the job exists to report**, leaves
+the instructions intact, and the model dutifully writes a confident briefing from partial data —
+logging `status=completed` the whole time. This is not "one growth event away." **It is happening
+now.**
+
+**Sean-gated, NOT fixed here** (raising `num_ctx` enlarges the KV cache on the 5090 — a hardware
+resource call): the architecture supports 262,144; the Modelfile pins 65,536. Options are raise
+`num_ctx`, cut the injection caps, or shrink the fact payload.
+
+**Related [P2]: `hermes-fast:latest` is a mutable tag** (GLM #8). One `ollama pull` silently swaps
+weights *and possibly the context ceiling* under the job. Pin by digest.
+
+### CORRECTION — "the growth vector is the 128-skill system prompt" was WRONG
+
+Measured from the cron's real cwd (`~/.hermes`), not the repo:
+
+| block | bytes |
+|---|---|
+| **tool schemas (20 tools)** | **48,818** |
+| system prompt total | 30,789 |
+| — of which skills index | 13,097 |
+| — context (AGENTS.md) | **0** |
+
+Tool schemas are **3.7× the skills index** and larger than the entire system prompt. Pruning
+skills recovers ~13 KB at most. Worse, GLM #1 is right that the accounting does not close: the
+measured components total roughly 20k tokens against a 58,251-token prompt, so **~65% remains
+unattributed.** The Phase E "prune skills" prescription rests on an accounting that explains about
+a third of the number — **do not act on it until the prompt is actually decomposed.**
+
+### CORRECTION — §3d is VINDICATED on the production path, by measurement not inference
+
+Qwen and GLM both attacked "leave it" by asking what cwd the scheduled job runs in. Answer:
+`scheduler.py:2719` uses `workdir or str(path.parent)`, the job's `workdir` is null, so the script
+runs from the scripts-dir parent. There is **no AGENTS.md/CLAUDE.md in `~/.hermes/` or
+`~/.hermes/scripts/`**, and `prompt-size` from `~/.hermes` reports **context = 0 B**. The
+truncation does **not** fire on the automated path. (From the repo the *default* profile builds a
+202,469 B system prompt with 170,183 B of context — so the hazard is real for repo-cwd
+invocations, just not for the cron.)
+
+**Still conceded to the panel:** the truncation marker instructs recovery via `read_file` on a
+profile with zero tools, and that defect was left in place. Suppressing the marker when tools=0 is
+a real fix that "leave it" does not deliver.
+
+### CORRECTION — "the backlog was the absence of LLM calls" is FALSIFIED
+
+**662 memos were archived (ctime) *during* the 25-day cron outage.** The drain never stopped;
+interactive sessions kept it running. So:
+- "It resumed automatically once the cron was fixed" is misleading — it never paused.
+- The ~85-day estimate assumed cron-only drain and is wrong.
+- The backlog is **structural**: arrival rate exceeds drain rate, which is capped at ~3 memos per
+  call by `TOTAL_CAP` 30,000 minus `STANDING_CAP` 14,000.
+- GLM #6's starvation point stands: oldest-first injection means **every new memo waits behind
+  ~300 stale ones.**
+
+Method note: `mtime` survives `shutil.move`, so an mtime-based check answers "written in window",
+not "archived in window". Use **ctime**.
+
+### CORRECTION — "silently lost permanently" was overstated (Kimi M2)
+
+The archive is a directory under a no-hard-delete rule; a manual drain is **reversible** by moving
+files back. The reversal's conclusion (don't hand-drain) still holds — the hook is the correct
+drain — but the cost of the alternative was inflated, which is the same "smuggled causal model"
+the §7 doctrine warns about.
+
+### CORRECTION — the disk-loss justification was self-defeating (GLM #2)
+
+"An uncommitted record is one disk failure from gone" was used to justify committing. But `.git`
+is on the same volume: **a local commit does not protect against disk failure at all.** It protects
+against `rm` and bad checkouts. The records are still one disk away from gone until the branch is
+pushed. The rationale as written defeats itself — pushing is the action that makes it true.
 
 ### New finding from the hostile pass — the restored briefing runs at 91% of its ceiling [P2]
 

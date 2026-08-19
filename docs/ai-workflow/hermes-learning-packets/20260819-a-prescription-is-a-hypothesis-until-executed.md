@@ -9,6 +9,7 @@ surface: hermes-bot-mode-adoption
 decision: "An audit's remediations carry a materially higher error rate than its findings. Execute each prescription by measuring its premise first, never by applying it."
 status: shipped
 supersedes: none
+reviewed_by: glm-5.3, moonshotai/kimi-k3, qwen3.8 (local) — 2026-08-19; all three attacked the doctrine as n=5 overreach and one reversal was falsified on review
 linear: SWA-181, SWA-176
 models_used:
   - model: claude-opus-5
@@ -147,6 +148,37 @@ Neither model found the dead cron, the two-profile reality, or the truncation, b
 in the brief**. Direct measurement outperformed both paid reviews here, and the two reviews together
 cost under five cents, which is the correct way to read that result: they were cheap and useful, and
 they were not a substitute for touching the system.
+
+## Panel correction — this packet's own doctrine is n=5 (added after review)
+
+GLM-5.3, Kimi K3 and a local Qwen seat reviewed this work. All three independently attacked the
+doctrine above, and they are right on two counts:
+
+1. **n=5, one author, one session.** The errors are fully correlated; no error *rate* is estimable
+   from them. The generalization is a **hypothesis worth carrying**, not a law. GLM: "written into
+   a permanent knowledge record — the exact overreach the doctrine warns against, made durable."
+2. **It indicts itself.** The three reversals are themselves prescriptions with inherited
+   confidence. One of them was then **falsified on review**: "the memo backlog was caused by the
+   absence of LLM calls" was a causal claim resting on n=1 resumed run. Measurement showed **662
+   memos were archived during the 25-day outage** — the drain never stopped, and the backlog is
+   structural (arrival exceeds a capped drain). The reversal was as wrong as the prescription it
+   replaced, in the same way, for the same reason.
+
+That falsification is the strongest evidence *for* the underlying observation and *against*
+enshrining it as law. Treat the asymmetry as a prior that earns extra verification on any
+"therefore do X", not as a rule.
+
+**Also corrected by the panel:**
+- The headline "the growth vector is the 128-skill system prompt" was **wrong**. Measured from the
+  scheduler's real cwd, tool schemas are 48,818 B against a 13,097 B skills index, and ~65% of the
+  prompt remains unattributed. The claim was argued from an accounting that explains a third of the
+  number.
+- "An uncommitted record is one disk failure from gone" was used to justify committing — but `.git`
+  sits on the same volume, so a **local commit does not address disk failure at all.** The
+  justification defeated itself, and nobody in three self-hostile rounds noticed.
+- The stopping rule ("two consecutive clean rounds") is below this loop's own observed
+  inter-finding gap: findings landed in rounds 4, 5 and 7 after a clean streak of 3. Flagged to
+  Sean rather than changed — the dry-loop law is his.
 
 ## Related
 
