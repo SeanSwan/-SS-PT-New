@@ -9,6 +9,57 @@ supersedes: none
 privacy: "No secrets, no key values, no client data. Env var NAMES, file paths, line numbers only."
 ---
 
+> ## ⚡ UPDATE 2026-08-19T18:45Z — next agent (vs-claude/opus-5@2545428a) executed this handoff
+>
+> **Four of this document's claims are now superseded by executed evidence. Read this before the body.**
+>
+> ### 1. The HARD BLOCKER is CLEARED — do not ask Sean for `npm ci`
+> `backend/node_modules` = **499 entries**, not 0. Verified 18:14Z:
+> `import('sequelize')` from `backend/` **resolves**; `backend/node_modules/.bin/vitest --version`
+> reports **`vitest/4.0.18 win32-x64 node-v22.14.0`** — the pinned version this document says to
+> check against. **Sean-owed item #4 is satisfied.** (The review-queue note claiming the deps landed
+> in *root* is wrong on location: root is still 70, backend is 499. Same outcome, wrong reason.)
+>
+> ### 2. PR #45 does NOT have "zero test evidence" — that claim was never checked against the PR diff
+> `origin/feat/coach-mic-safety-floor` adds `useVoiceRecorder.latch.test.ts` — **292 new lines, 11
+> tests**, absent on `origin/main`. This document asserts twice that #45 carries no test evidence.
+> It carries its own suite; nobody had opened the diff.
+>
+> **Executed, on pinned 4.0.18, worktree `C:/tmp/ss-mic45` @ `dc26cc933`:**
+> - 11/11 pass.
+> - **Mutation-proven**, per this document's own doctrine #2: reverting `useVoiceRecorder.ts` to
+>   `origin/main` (the pre-fix source, `git checkout origin/main -- <path>` — no regex, so the CRLF
+>   landmine cannot apply) → **9 of 11 fail.** Restored → 11/11 green. The tests genuinely guard
+>   the four leaks; they are not vacuous.
+>
+> **→ The 🟡 HOLD on #45 is CLEARED.** Its gate was "until its frontend suite runs." It ran.
+>
+> ### 3. The provenance caveat on #50's suites is resolved
+> Both re-run on the **pinned 4.0.18** (not the npx-fetched 4.1.11 this document says not to trust),
+> in `C:/tmp/swan-safety-floor/backend` @ `a5b93a1ed`:
+> `aiUsageMeter.test.mjs` → **15/15** · `aiProviderAllowlist.test.mjs` → **15/15**.
+> #50's other two gates (§D wiring test, `costConfig.mjs` refresh) are **still open** — 🔴 HOLD stands.
+>
+> ### 4. The credential question is ANSWERED — it is a real exposure, but the repo is clean
+> This document called item #1 "unevaluable" and doubted the leak because "a key-shaped string was a
+> Windows env var NAME, which is not the same as the value leaking." **That reasoning is wrong.**
+> The source record states the variable was created by a `setx` **with name and value swapped** —
+> so the key *value* became the *name*. It entered LLM context when variable names were listed.
+> **Treat as exposed. Rotation is still required and still only Sean can do it.**
+>
+> **Blast radius, scanned (paths-only, values never echoed, Rule 59):** CLEAN on tracked
+> `HEAD` **and** `origin/main`, and on `hermes-learning-packets/`, `hermes-inbox/`, `continuity/`,
+> `AI-HANDOFF/`. **Scanner control-validated both ways** — it returns hits on a planted match and on
+> a known-present string, so the negative is trustworthy rather than silent.
+> **Conclusion: exposure is confined to LLM transcript/context. Nothing synced, committed, or
+> pushed carries it.** Severity for Sean is unchanged (rotate); severity for the repo is nil.
+>
+> ### Still open, unchanged
+> #47's 🟡 HOLD (pre-merge SQL — the three unverified assumptions are still unverified);
+> #50's 🔴 HOLD (§D wiring test + costConfig refresh); `history-preview` authorization gap;
+> DMARC. **`backend/services/aiChatService.mjs` is locked by a stale lane** (`swan-safety-floor`,
+> 13 h, in-progress, 0 dirty) — flagged to Sean per Rule 67 R5, not seized.
+
 # Read this first
 
 **Your job is release-gating and triage, not "continue the workstream."** Production currently
