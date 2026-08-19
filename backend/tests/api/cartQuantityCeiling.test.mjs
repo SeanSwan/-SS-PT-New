@@ -71,7 +71,17 @@ describe('cart quantity ceiling — enforced on every entry point', () => {
     // kept finding.
     const helpers = fs.readFileSync(path.join(backendRoot, 'utils/cartHelpers.mjs'), 'utf8');
     expect(helpers).toMatch(/export const MAX_CART_ITEM_QUANTITY = 99;/);
-    expect(source).toMatch(/MAX_CART_ITEM_QUANTITY \} = cartHelpers/);
+
+    // 2026-08-16: this line used to assert /MAX_CART_ITEM_QUANTITY \} = cartHelpers/
+    // — i.e. destructuring off the DEFAULT export, which never carried the
+    // constant. It bound `undefined`, every ceiling check computed `n > undefined`
+    // (always false), and this assertion PINNED THE BUG IN PLACE as a requirement.
+    // Now it requires the same link-time-validated named import that the checkout
+    // gate below already used. Same intent — one shared value, no local copy —
+    // enforced against a binding that actually resolves.
+    // Runtime proof lives in tests/api/cartQuantityCeilingBinding.test.mjs.
+    expect(source).toMatch(/import\s+(?:\w+\s*,\s*)?\{[^}]*MAX_CART_ITEM_QUANTITY[^}]*\}\s*from\s*['"][^'"]*cartHelpers\.mjs['"]/);
+    expect(source).not.toMatch(/MAX_CART_ITEM_QUANTITY \} = cartHelpers/);
     expect(source).not.toMatch(/const MAX_CART_ITEM_QUANTITY = 99;/);
 
     const checkout = fs.readFileSync(path.join(backendRoot, 'routes/v2PaymentRoutes.mjs'), 'utf8');

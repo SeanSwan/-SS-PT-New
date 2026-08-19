@@ -1,5 +1,6 @@
 // /backend/routes/cartRoutes.mjs
-// Enhanced cart routes with role-based access control and user role upgrade logic
+// Enhanced cart routes with role-based access control.
+// Role promotion (user -> client) is NOT done here — see the note below.
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
@@ -10,8 +11,7 @@ import {
   getShoppingCart,
   getCartItem, 
   getStorefrontItem,
-  getProductVariant,
-  getUser
+  getProductVariant
 } from '../models/index.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
@@ -20,15 +20,20 @@ import {
 import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
-import cartHelpers from '../utils/cartHelpers.mjs';
-import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
+// MAX_CART_ITEM_QUANTITY is a NAMED import on purpose. It was previously
+// destructured off the DEFAULT export — which never contained it — so it bound
+// `undefined`, every `qty > MAX_CART_ITEM_QUANTITY` check below silently
+// evaluated false, and the ceiling had never fired. A named import is validated
+// at link time: if the export disappears, this module fails to load instead of
+// quietly disabling a money-path guard.
+import cartHelpers, { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
+import { resolveUnitPrice, UnpriceableItemError } from '../services/store/itemPricing.mjs';
 import {
   normalizeAuthenticatedUserId,
   safeFindOrCreateActiveCart,
   safeLoadCartItemsWithStorefront
 } from '../utils/cartSchemaRecovery.mjs';
 const { updateCartTotals, getCartTotalsWithFallback } = cartHelpers;
-const { MAX_CART_ITEM_QUANTITY } = cartHelpers;
 
 const router = express.Router();
 const STOREFRONT_CART_ATTRIBUTES = [
@@ -124,18 +129,11 @@ const parseOptionalPositiveInteger = (value) => {
   return parsePositiveInteger(value);
 };
 
-const toMoneyNumber = (value) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const firstMoney = (...values) => {
-  for (const value of values) {
-    const parsed = toMoneyNumber(value);
-    if (parsed > 0) return parsed;
-  }
-  return 0;
-};
+// firstMoney/toMoneyNumber lived here and returned 0 when nothing resolved —
+// superseded 2026-08-16 by services/store/itemPricing.mjs resolveUnitPrice, which
+// THROWS instead, and which the ACH and offline rails now share. Do not
+// reintroduce a local price fallback: three divergent copies of "what does this
+// cost" is precisely how a totalCost-only package came to sell for $0 on ACH.
 
 const isPhysicalProduct = (storefrontItem) => (
   storefrontItem?.itemKind === 'physical_product'
@@ -197,11 +195,29 @@ const resolveCartItemSnapshot = async ({
     return { status: 409, message: 'Selected item quantity exceeds available stock' };
   }
 
+  // Shared resolver (services/store/itemPricing.mjs) — same precedence this rail
+  // has always used (variant -> totalCost -> price), now the ONE implementation
+  // the ACH and offline rails call too. Those two priced off `price` alone and
+  // sold totalCost-only packages for $0 (Kimi HIGH-2 / GLM §4.7, 2026-08-16).
+  // An item that cannot be priced is not sellable — refuse instead of carting $0.
+  let price;
+  try {
+    price = resolveUnitPrice(storeFrontItem, variant).toNumber();
+  } catch (priceError) {
+    if (priceError instanceof UnpriceableItemError) {
+      logger.error('[Cart] Refusing to cart an unpriceable item', {
+        storefrontItemId: storeFrontItem?.id
+      });
+      return { status: 409, message: 'This item is not currently available' };
+    }
+    throw priceError;
+  }
+
   return {
     status: 200,
     storefrontItem: storeFrontItem,
     variant,
-    price: firstMoney(variant?.price, storeFrontItem.totalCost, storeFrontItem.price)
+    price
   };
 };
 
@@ -263,27 +279,15 @@ const validatePurchaseRole = (req, res, next) => {
   next();
 };
 
-// Check if user role should be upgraded after adding training packages
-const checkUserRoleUpgrade = async (user, cartItems) => {
-  // If user has 'user' role and adds training sessions, they should be upgraded to 'client'
-  if (user.role === 'user') {
-    const hasTrainingPackages = cartItems.some(item => {
-      const itemName = item.storefrontItem?.name || '';
-      return itemName.includes('Gold') || itemName.includes('Platinum') || 
-             itemName.includes('Rhodium') || itemName.includes('Silver');
-    });
-    
-    if (hasTrainingPackages) {
-      const User = getUser(); // 🎯 ENHANCED: Lazy load User model
-      await User.update({ role: 'client' }, { where: { id: user.id } });
-      logger.info('[Cart] User role upgraded after training package detection', {
-        userId: user.id
-      });
-      return true;
-    }
-  }
-  return false;
-};
+// NOTE: role promotion (user -> client) deliberately does NOT live here.
+// It used to run on POST /add, matching a storefront item's *display name*
+// against 'Gold'/'Platinum'/'Rhodium'/'Silver' and writing role: 'client' with
+// no payment — any authenticated user could self-promote by adding a package and
+// removing it again (GLM security audit 2026-08-15, Finding 2).
+// The promotion now happens only on the payment-success path, keyed on sessions
+// actually granted: SessionGrantService.buildUserPurchaseUpdate
+// (`sessionsToAdd > 0 && user.role === 'user'`) and the equivalent in
+// sessionPackageCheckoutFulfillmentService. Do not reintroduce a cart-time write.
 
 // --- Conditionally initialize Stripe ---
 let stripeClient = null;
@@ -379,8 +383,7 @@ router.post('/add', protect, cartMutationLimiter, ensureNumericCartUser, validat
     const CartItem = getCartItem();
     const StorefrontItem = getStorefrontItem();
     const ProductVariant = getOptionalProductVariant();
-    const User = getUser();
-    
+
     const { storefrontItemId, productVariantId, quantity = 1 } = req.body;
     
     const normalizedStorefrontItemId = parsePositiveInteger(storefrontItemId);
@@ -547,24 +550,6 @@ router.post('/add', protect, cartMutationLimiter, ensureNumericCartUser, validat
       itemsWithStorefrontData: updatedCartItems.filter(item => item.storefrontItem).length
     });
 
-    // Check if user role should be upgraded
-    let userRoleUpgraded = false;
-    try {
-      const user = await User.findByPk(req.authUserId);
-      userRoleUpgraded = await checkUserRoleUpgrade(user, updatedCartItems);
-      if (userRoleUpgraded) {
-        logger.info('[Cart] User role upgraded after cart add', {
-          userId: req.authUserId
-        });
-      }
-    } catch (roleUpgradeError) {
-      logger.warn('[Cart] Role upgrade check failed', {
-        userId: req.authUserId,
-        ...toCartErrorMetadata(roleUpgradeError, 'cart_role_upgrade_failed')
-      });
-      // Don't fail the request if role upgrade fails
-    }
-
     // Use persisted totals or calculate as fallback
     const { total: cartTotal, totalSessions } = getCartTotalsWithFallback({
       id: cart.id,
@@ -580,8 +565,7 @@ router.post('/add', protect, cartMutationLimiter, ensureNumericCartUser, validat
       items: updatedCartItems,
       total: cartTotal,
       totalSessions, // Include session count for future dashboard integration
-      itemCount: updatedCartItems.length,
-      userRoleUpgrade: userRoleUpgraded // Inform frontend about role upgrade
+      itemCount: updatedCartItems.length
     });
   } catch (error) {
     logCartError('[Cart] Failed to add item to cart', error, req);
@@ -969,126 +953,31 @@ router.post('/cancel-checkout', protect, ensureNumericCartUser, async (req, res)
 /**
  * Webhook handler for Stripe events
  * POST /api/cart/webhook
- * Processes async events from Stripe (payment confirmations, etc.)
+ *
+ * DELEGATES to the canonical handler — it does not reimplement it.
+ *
+ * This route used to carry its own switch covering exactly two events
+ * (checkout.session.completed, checkout.session.expired). Every event type the
+ * canonical handler gained — payment_intent.succeeded/processing/payment_failed,
+ * charge.refunded, charge.dispute.created — fell through to `default` here and was
+ * SILENTLY 200-ACKED. Stripe saw success and never redelivered, so whether a refund
+ * was detected at all depended on which URL the dashboard happened to point at
+ * (Kimi K3 HIGH-2, round 2).
+ *
+ * The two copies had already drifted once, on checkout.session.expired: legacy
+ * released the cart, canonical only flagged it. One handler, one contract.
+ *
+ * express.raw stays HERE because signature verification needs the untouched Buffer
+ * and the global JSON parser is bypassed for this path (see core/middleware).
  */
-router.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
-  // --- Add check for Stripe client ---
-  if (!stripeClient) {
-    logger.error('Received Stripe webhook but Stripe is not enabled/initialized.');
-    return res.status(503).send('Webhook Error: Payment processing is not configured.');
-  }
-  // --- End check ---
-  
-  const signature = req.headers['stripe-signature'];
-  
-  if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
-    logger.error('Missing Stripe webhook signature or secret');
-    return res.status(400).send('Webhook Error: Missing signature or configuration');
-  }
-  
-  let event;
-  
-  try {
-    event = stripeClient.webhooks.constructEvent(
-      req.body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    logger.error('[Webhook] Signature verification failed', {
-      ...toCartErrorMetadata(err, 'cart_webhook_signature_failed')
-    });
-    return res.status(400).send('Webhook Error: Signature verification failed');
-  }
-  
-  // Handle the event
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-
-        if (session.payment_status === 'paid') {
-          const { cartId, userId } = session.metadata || {};
-
-          if (cartId && userId) {
-            const normalizedCartId = parsePositiveInteger(cartId);
-            const normalizedUserId = parsePositiveInteger(userId);
-
-            if (!normalizedCartId || !normalizedUserId) {
-              logger.warn('[Webhook] Ignoring completed checkout with invalid cart metadata');
-              break;
-            }
-
-            // Grant sessions via shared service (transaction + row lock + atomic increment)
-            // If verify-session already ran, this is idempotent (returns alreadyProcessed=true)
-            const result = await grantSessionsForCart(normalizedCartId, normalizedUserId, 'webhook', { checkoutSessionId: session.id });
-
-            if (result.granted) {
-              logger.info('[Webhook] Sessions granted for cart', {
-                cartId: normalizedCartId,
-                userId: normalizedUserId,
-                sessionsAdded: result.sessionsAdded
-              });
-            } else {
-              logger.info('[Webhook] Cart already processed', {
-                cartId: normalizedCartId,
-                userId: normalizedUserId
-              });
-            }
-
-            // Parity with the canonical /api/webhook/stripe handler. This legacy mount
-            // used to STOP after granting — so if Stripe were ever pointed here, a sale
-            // would credit sessions but create no order, no trainer commission, and no
-            // admin notification (trainers silently unpaid). processCompletedOrder is
-            // idempotent (claims side effects once via Order.paymentAppliedAt), so running
-            // it here is safe whether this endpoint is canonical, legacy, or both are hit.
-            const { processCompletedOrder } = await import('../webhooks/stripeWebhook.mjs');
-            await processCompletedOrder(normalizedCartId, {
-              grantResult: result,
-              stripeSessionId: session.id,
-            });
-          }
-        }
-        break;
-      }
-
-      case 'checkout.session.expired': {
-        const session = event.data.object;
-        const { cartId } = session.metadata || {};
-        const normalizedCartId = parsePositiveInteger(cartId);
-
-        if (normalizedCartId) {
-          const ShoppingCart = getShoppingCart();
-          await ShoppingCart.update(
-            {
-              status: 'active',
-              paymentStatus: 'cancelled',
-              checkoutSessionExpired: true,
-              checkoutSessionId: null,
-              paymentIntentId: null,
-            },
-            {
-              where: { id: normalizedCartId, status: 'pending_payment', checkoutSessionId: session.id },
-            }
-          );
-          logger.info('[Webhook] Checkout session expired for cart', {
-            cartId: normalizedCartId
-          });
-        } else if (cartId) {
-          logger.warn('[Webhook] Ignoring expired checkout with invalid cart metadata');
-        }
-        break;
-      }
-    }
-
-    res.json({ received: true });
-  } catch (err) {
-    // Return 5xx so Stripe retries the webhook (prevents lost credits)
-    logger.error('[Webhook] Processing error', {
-      ...toCartErrorMetadata(err, 'cart_webhook_processing_failed')
-    });
-    res.status(500).send('Webhook processing error');
-  }
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  // LAZY import, deliberately. A static import pulls the canonical handler's entire
+  // dependency graph (models, notification, commission, gamification, session
+  // services) into every module that imports cartRoutes — which broke four test
+  // suites whose mocks legitimately only cover the cart's own dependencies. Node
+  // caches the module, so this resolves once per process.
+  const { stripeWebhookHandler } = await import('../webhooks/stripeWebhook.mjs');
+  return stripeWebhookHandler(req, res);
 });
 
 // DELETE the /api/cart/checkout/success route - It's insecure

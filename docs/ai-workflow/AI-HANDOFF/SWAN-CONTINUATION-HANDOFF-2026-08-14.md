@@ -161,7 +161,7 @@ images to a **local gallery**, only Sean's picks and reasons return to the model
 
 | # | Slice | Exit criteria |
 |---|---|---|
-| **0** | **Contract: `taste.profile.json` + `TasteVerdictRow` + router consumer stub** | Router builds a fixture concept citing 3 refIds |
+| **0** | ⛔ **SUPERSEDED 2026-08-19 — do NOT build this.** The verdict row shipped with the Swan Atelier Studio (PRs #48/#49); a ruling of record forbids a second ledger. Read `SWAN-TASTE-NEXT-SLICE-HANDOFF-2026-08-19.md` for the revised Slice 0′. | — |
 | 1 | Harvest | 5 angles, 150 raw → 0 dupes across a 150-id seenSet despite the 100-cap |
 | 2 | `ReviewDeck` UI | 50 refs verdicted ≤2:30 by dwell timestamps; axe 0; all targets ≥44px @375; reduce-motion honoured |
 | 3 | Distil loop | Ledger-only input; correction rows logged; artifact updates |

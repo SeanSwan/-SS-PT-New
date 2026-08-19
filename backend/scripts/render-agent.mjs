@@ -12,7 +12,7 @@
  * service, a lease reaper and a presence guard, and nothing that could ever claim a job.
  *
  *   SWAN_AGENT_TOKEN=swan_agent_... node backend/scripts/render-agent.mjs \
- *     --api https://ss-pt-new.onrender.com --capabilities ffmpeg,mediasync
+ *     --api https://ss-pt-new.onrender.com --capabilities ffmpeg,mediasync,generate
  *
  * ── WHY IT POLLS OUTBOUND ───────────────────────────────────────────────────
  * This process sits behind a home NAT beside ComfyUI, which ships with NO auth. A design
@@ -90,7 +90,11 @@ const flag = (name, dflt) => {
 
 const API = (flag('api', process.env.SWAN_AGENT_API || 'http://localhost:10000')).replace(/\/$/, '');
 const { token: TOKEN, from: TOKEN_SOURCE } = resolveToken(flag('token-file', ''));
-const CAPABILITIES = String(flag('capabilities', 'ffmpeg,mediasync')).split(',').map((s) => s.trim()).filter(Boolean);
+// `generate` is advertised by default now that the ComfyUI provider path exists. A worker
+// that does not advertise it will never be offered a generation job — leasing filters on
+// required_capabilities — so the default omitting it made the whole provider registry
+// unreachable from the queue.
+const CAPABILITIES = String(flag('capabilities', 'ffmpeg,mediasync,generate')).split(',').map((s) => s.trim()).filter(Boolean);
 const IDLE_POLL_MS = Number(flag('idle-poll-ms', 5000));
 const HEARTBEAT_MS = Number(flag('heartbeat-ms', 20000));
 const ONCE = args.includes('--once');

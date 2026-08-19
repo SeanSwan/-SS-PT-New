@@ -48,6 +48,11 @@ vi.mock('../../services/SessionGrantService.mjs', () => ({
 }));
 
 vi.mock('../../utils/cartHelpers.mjs', () => ({
+  // cartRoutes takes MAX_CART_ITEM_QUANTITY as a NAMED import (2026-08-16: it was
+  // destructured off the default export, which never carried it, so the ceiling
+  // silently bound `undefined`). A mock that omits a named export makes Vitest
+  // THROW on access — which is the fail-loud behavior we want; complete the mock.
+  MAX_CART_ITEM_QUANTITY: 99,
   default: {
     calculateCartTotals: vi.fn(() => ({ total: 0, totalSessions: 0 })),
     getCartTotalsWithFallback: vi.fn(({ total }) => ({ total: Number(total) || 0, totalSessions: 0 })),

@@ -786,8 +786,17 @@ export const authorizeResourceAccess = (paramName = 'userId') => {
       // Trainers — only if assigned to this client
       if (req.user.role === 'trainer') {
         const { default: ClientTrainerAssignment } = await import('../models/ClientTrainerAssignment.mjs');
+        // parseInt: `protect` stores req.user.id as a STRING (toStringId), and
+        // trainerId is an INT column. The two sibling copies of this query
+        // (checkTrainerClientRelationship, the analytics guard) were both fixed
+        // this way and say so in their own comments; this third copy was missed.
+        // Fails closed — a trainer legitimately assigned to the client is denied.
         const assignment = await ClientTrainerAssignment.findOne({
-          where: { trainerId: req.user.id, clientId: targetId, status: 'active' }
+          where: {
+            trainerId: parseInt(req.user.id, 10),
+            clientId: parseInt(targetId, 10),
+            status: 'active'
+          }
         });
         if (assignment) {
           return next();

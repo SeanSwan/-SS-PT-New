@@ -17,7 +17,7 @@
 [CmdletBinding()]
 param(
   [string]$Api = 'https://ss-pt-new.onrender.com',
-  [string]$Capabilities = 'ffmpeg,mediasync',
+  [string]$Capabilities = 'ffmpeg,mediasync,generate',
   [switch]$Reset      # discard the saved token and ask again (use after re-enrolling)
 )
 

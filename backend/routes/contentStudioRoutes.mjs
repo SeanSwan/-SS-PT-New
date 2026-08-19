@@ -16,6 +16,10 @@ import {
 } from '../services/contentStudioStorageUsageService.mjs';
 import { createJob, getJob, getAssetProvenance, VideoRenderJobError } from '../services/videoRenderJobService.mjs';
 import { workerPresence, describePresence } from '../services/renderWorkerPresence.mjs';
+import {
+  resolve as resolveProvider, validateVideoRequest, listProviders,
+  capabilities as providerCapabilities, readGrants, readEnabled, ProviderError,
+} from '../../shared/providers/video/registry.mjs';
 
 const router = Router();
 
@@ -231,6 +235,169 @@ router.post('/render-job', protect, adminOnly, async (req, res) => {
 // rather than invented. `kind` is descriptive only: leasing routes on
 // required_capabilities and dispatch routes on workflowId. Adding a 'sync' kind is a
 // production schema change and is Sean's call, not a side effect of a build loop.
+// ─── GET /api/content-studio/video-providers ──────────────
+// What can actually run right now, and for anything that cannot — WHY, in the words the
+// operator needs to act on. A picker that lists a provider the licence gate will refuse
+// is the same lie as a queue with no worker: it implies a capability that does not exist.
+//
+// The refusal reasons are deliberately distinct because their fixes are:
+//   E_PROVIDER_DISABLED      -> add the id to SWAN_VIDEO_PROVIDERS_ENABLED
+//   E_LICENCE_GRANT_REQUIRED -> obtain the grant, then add it to SWAN_VIDEO_LICENCE_GRANTS
+router.get('/video-providers', protect, adminOnly, async (req, res) => {
+  try {
+    const territory = process.env.SWAN_OPERATOR_TERRITORY || 'US';
+    const providers = listProviders().map((id) => {
+      const caps = providerCapabilities(id);
+      const base = {
+        id,
+        label: caps.label || id,
+        maxDurationSec: caps.maxDurationSec?.value ?? null,
+        maxResolution: caps.maxResolution?.value ?? null,
+        // Surfaced so the UI can display it beside the output. H3's licence REQUIRES
+        // prominent display; a UI that never receives the string cannot honour that.
+        attribution: caps.attribution || null,
+        local: String(id).startsWith('comfyui/'),
+      };
+      try {
+        resolveProvider(id, { commercial: true, territory });
+        return { ...base, available: true, reason: null, hint: null };
+      } catch (err) {
+        return {
+          ...base,
+          available: false,
+          reason: err instanceof ProviderError ? err.code : 'E_UNKNOWN',
+          hint: err.message,
+        };
+      }
+    });
+    return res.json({
+      success: true,
+      data: {
+        territory,
+        providers,
+        // Echoed so a misconfigured deploy is diagnosable from the UI rather than by
+        // reading Render's env panel.
+        enabledCount: readEnabled().size,
+        grantedCount: readGrants().size,
+      },
+    });
+  } catch (err) {
+    console.error('[ContentStudio] Provider list failed:', err.message);
+    return res.status(500).json({ success: false, error: 'Could not read the provider registry' });
+  }
+});
+
+// ─── POST /api/content-studio/generate-video ──────────────
+// Enqueues a real generation job the render agent leases and executes on the operator's
+// own GPU. This is the route that was missing: the provider registry, the ComfyUI
+// transport and the agent handler all existed, and nothing could CREATE a job for them.
+//
+// The licence gate is evaluated HERE as well as in the handler, on purpose. Failing at
+// submit time costs nothing and tells the operator immediately; failing only in the agent
+// means the job is queued, leased, and dies on a machine Sean is not looking at.
+router.post('/generate-video', protect, adminOnly, async (req, res) => {
+  try {
+    const {
+      prompt, provider, category = 'exercise-demo', style = 'cinematic',
+      duration, seed,
+    } = req.body || {};
+
+    if (!prompt || !String(prompt).trim()) {
+      return res.status(400).json({ success: false, error: 'A prompt is required.' });
+    }
+    if (!provider) {
+      return res.status(400).json({ success: false, error: 'A provider is required.' });
+    }
+
+    const territory = process.env.SWAN_OPERATOR_TERRITORY || 'US';
+
+    // Licence + enablement first, before any other work. The registry's message already
+    // names WHICH thing is restricted (running the weights, not the output), so pass it
+    // through verbatim rather than paraphrasing it into ambiguity.
+    let caps;
+    try {
+      caps = resolveProvider(provider, { commercial: true, territory });
+    } catch (err) {
+      if (err instanceof ProviderError) {
+        return res.status(403).json({ success: false, error: err.message, code: err.code });
+      }
+      throw err;
+    }
+
+    // Validate against THIS provider's real ceilings, so a 20s request against a 6s model
+    // is refused here rather than after the GPU has spent minutes on it.
+    let request;
+    try {
+      request = validateVideoRequest({
+        prompt: String(prompt).trim(),
+        category,
+        style,
+        duration: Number(duration) || caps.maxDurationSec?.value || 5,
+      }, caps);
+    } catch (err) {
+      if (err instanceof ProviderError) {
+        return res.status(400).json({ success: false, error: err.message, code: err.code });
+      }
+      throw err;
+    }
+
+    const headerKey = req.get('Idempotency-Key');
+    const bucket = Math.floor(Date.now() / DERIVED_KEY_BUCKET_MS);
+    const idempotencyKey = (typeof headerKey === 'string' && headerKey.trim())
+      ? headerKey.trim()
+      : createHash('sha256').update(JSON.stringify({
+        u: req.user?.id, provider, prompt: request.prompt, category, style,
+        duration: request.duration, seed: seed ?? null, bucket,
+      })).digest('hex').slice(0, 40);
+
+    const requiredCapabilities = ['generate'];
+
+    const { job, replayed } = await createJob({
+      userId: req.user?.id,
+      idempotencyKey,
+      kind: 'generate',
+      // The agent dispatches on the segment before the first colon. Provider ids contain
+      // a slash but no colon, so `generate:comfyui/minimax-h3` splits cleanly.
+      workflowId: `generate:${provider}`,
+      prompt: request.prompt,
+      params: {
+        provider,
+        prompt: request.prompt,
+        category: request.category ?? category,
+        style: request.style ?? style,
+        duration: request.duration,
+        territory,
+        commercial: true,
+        ...(seed === undefined ? {} : { seed: Number(seed) }),
+      },
+      requiredCapabilities,
+    });
+
+    const presence = describePresence(await workerPresence({ requiredCapabilities }));
+
+    return res.status(replayed ? 200 : 202).json({
+      success: true,
+      message: presence.message,
+      data: {
+        jobId: job.id,
+        status: job.status,
+        provider,
+        attribution: caps.attribution || null,
+        replayed,
+        startable: presence.startable,
+        workerState: presence.code,
+        statusUrl: `/api/content-studio/render-job/${job.id}`,
+      },
+    });
+  } catch (err) {
+    if (err instanceof VideoRenderJobError) {
+      return res.status(err.statusCode).json({ success: false, error: err.message, code: err.code });
+    }
+    console.error('[ContentStudio] Generate job creation failed:', err.message);
+    return res.status(500).json({ success: false, error: 'Failed to queue the generation job' });
+  }
+});
+
 router.post('/sync-job', protect, adminOnly, async (req, res) => {
   try {
     const { referencePath, targetPath, maxOffsetSeconds, sampleRate } = req.body || {};
