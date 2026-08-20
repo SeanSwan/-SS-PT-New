@@ -56,6 +56,29 @@ export const mergeLeadTags = (currentTags = [], tagsToAdd = []) => (
   ])]
 );
 
+// --- Public capture intent ---------------------------------------------------
+// ONE definition of the intent vocabulary. Both public funnels validate against it:
+// POST /api/leads/capture (leadCaptureRoutes) and the contact form (captureLeadFromContact).
+// Two copies of an enum is the drift bug this repo keeps paying for (rule 58) — a trainer
+// tagged `prism:intent:trainer` by one path and something else by the other is unqueryable.
+export const CAPTURE_INTENTS = Object.freeze(['book', 'trainer', 'spectrum']);
+
+/**
+ * Tag for a self-declared capture intent, or null if it isn't one we recognize.
+ *
+ * ⚠ SELF-DECLARED, NOT A CREDENTIAL. The intent arrives from a URL query param a visitor
+ * can craft (`/contact?intent=trainer`). It is a marketing attribution signal only — it says
+ * "this person clicked the trainer door," never "this person IS a trainer." Nothing may grant
+ * access, pricing, or role on the strength of this tag; public trainer self-registration is
+ * forbidden outright and locked by trainerRecruitmentLinks.contract.test.ts. Allowlisted here
+ * so an arbitrary query string can never become an arbitrary tag in the CRM.
+ */
+export const intentTag = (intent) => (
+  typeof intent === 'string' && CAPTURE_INTENTS.includes(intent)
+    ? `prism:intent:${intent}`
+    : null
+);
+
 // --- Acquisition-channel attribution -----------------------------------------
 // Normalize a marketing channel from utm params / referrer so every lead records
 // WHERE it came from (YouTube, TikTok, IG, Nextdoor, search, referral, direct).

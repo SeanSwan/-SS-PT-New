@@ -752,7 +752,7 @@ const AlertBox = styled.div<{ $type: 'success' | 'error' }>`
   gap: 12px;
   padding: 16px 24px;
   border-radius: 12px;
-  color: #fff;
+  color: var(--text-on-accent, #ffffff);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   min-width: 300px;
   max-width: 520px;
@@ -877,9 +877,13 @@ function prefillFromUrl() {
     const email = EMAIL_RE.test(raw) ? raw : '';
     const intent = p.get('intent');
     const subject = intent === 'trainer' ? 'Trainer inquiry' : intent === 'book' ? 'Free consultation request' : '';
-    return { email, subject, seeded: Boolean(email) };
+    // Carry the raw intent so the submission can tag the CRM lead structurally. Previously it was
+    // used only to prefill `subject`, which the API has no field for — both forms fold it into the
+    // message body, so the trainer signal survived only as prose inside Lead.notes. Sent as-is and
+    // allowlisted server-side (intentTag); an unrecognized value tags nothing.
+    return { email, subject, intent: intent || null, seeded: Boolean(email) };
   } catch {
-    return { email: '', subject: '', seeded: false };
+    return { email: '', subject: '', intent: null, seeded: false };
   }
 }
 
@@ -925,6 +929,7 @@ const ContactV3: React.FC = () => {
         message: message + (subject ? `\n\nSubject: ${subject}` : ''),
         consultationType: 'general',
         priority: 'normal',
+        intent: seedRef.current.intent, // which door they came through → prism:intent:* tag (rule 8 non-PII)
         ...readAcquisitionParams(), // attribute which channel sent this contact (rule 8 non-PII)
       });
 

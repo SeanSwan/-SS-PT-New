@@ -142,9 +142,13 @@ function prefillFromUrl() {
     const email = EMAIL_RE.test(raw) ? raw : '';
     const intent = p.get('intent');
     const subject = intent === 'trainer' ? 'Trainer inquiry' : intent === 'book' ? 'Free consultation request' : '';
-    return { email, subject, seeded: Boolean(email) };
+    // Parity with ContactV3, same reasoning as the attribution note below: carry the raw intent so
+    // the submission can tag the lead structurally. Without it, flipping contactVNext would
+    // silently stop tagging trainer leads with no error — the defect would look like "trainers
+    // stopped knocking" rather than "the form stopped reporting."
+    return { email, subject, intent: intent || null, seeded: Boolean(email) };
   } catch {
-    return { email: '', subject: '', seeded: false };
+    return { email: '', subject: '', intent: null, seeded: false };
   }
 }
 
@@ -185,6 +189,7 @@ export function ContactForm() {
           name,
           email,
           message: message + (subject ? `\n\nSubject: ${subject}` : ''),
+          intent: seedRef.current.intent, // which door they came through → prism:intent:* tag (rule 8 non-PII)
           // Parity with ContactV3: without this the v-next branch silently drops UTM/referrer attribution, so
           // flipping contactVNext would null out channel attribution for every contact lead with no error.
           ...readAcquisitionParams(),

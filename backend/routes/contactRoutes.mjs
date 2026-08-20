@@ -149,7 +149,7 @@ router.post("/", contactLimiter, async (req, res) => {
   console.log('🔥 ENHANCED CONTACT ROUTE - Starting processing...');
   
   try {
-    const { name, email, message, consultationType, priority } = req.body;
+    const { name, email, message, consultationType, priority, intent } = req.body;
     
     // Validate required fields
     if (!name || !email || !message) {
@@ -210,6 +210,10 @@ router.post("/", contactLimiter, async (req, res) => {
       contact: newContact,
       formData: contactData,
       consultationType,
+      // Which door the visitor came through (`/contact?intent=trainer` from the trainer links in
+      // PrismCapture/PrismRefraction). Allowlisted downstream by intentTag — a self-declared
+      // marketing signal, never an authorization. Absent/unknown values simply don't tag.
+      intent,
       attribution: {
         utmSource: req.body?.utmSource,
         utmMedium: req.body?.utmMedium,

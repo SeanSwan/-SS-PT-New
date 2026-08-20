@@ -20,7 +20,7 @@ import crypto from 'crypto';
 import { contactLimiter } from '../middleware/rateLimiter.mjs';
 import { captureLeadFromContact } from '../services/leadCaptureService.mjs';
 import { sendSpeedToLeadReply } from '../services/speedToLeadService.mjs';
-import { mergeLeadTags } from '../services/leadCaptureShared.mjs';
+import { mergeLeadTags, CAPTURE_INTENTS } from '../services/leadCaptureShared.mjs';
 import { createAdminNotification } from '../controllers/notificationController.mjs';
 import { sendSmsMessage } from '../services/smsService.mjs';
 import { sendGridEmail } from '../services/sendgridService.mjs';
@@ -29,7 +29,8 @@ import logger from '../utils/logger.mjs';
 const router = express.Router();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const INTENTS = new Set(['book', 'trainer', 'spectrum']);
+// Shared with the contact form's capture path so the two public funnels tag one vocabulary.
+const INTENTS = new Set(CAPTURE_INTENTS);
 const enabled = () => process.env.PRISM_CAPTURE_ENABLED === 'true';
 
 // Boot-time env-presence WARN (never throw) — the cheap half of the guaranteed-alert loop. The route works

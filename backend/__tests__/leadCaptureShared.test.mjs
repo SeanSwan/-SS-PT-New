@@ -5,7 +5,7 @@
  * non-PII marketing signals (rule 8).
  */
 import { describe, expect, it } from 'vitest';
-import { deriveChannel, channelToLeadSource, channelTags, aggregateLeadChannels } from '../services/leadCaptureShared.mjs';
+import { deriveChannel, channelToLeadSource, channelTags, aggregateLeadChannels, intentTag, CAPTURE_INTENTS } from '../services/leadCaptureShared.mjs';
 
 describe('deriveChannel', () => {
   it('reads utm_source and normalizes case + aliases', () => {
@@ -98,5 +98,54 @@ describe('aggregateLeadChannels', () => {
     expect(aggregateLeadChannels(rows, 3)).toHaveLength(3);
     expect(aggregateLeadChannels()).toEqual([]);
     expect(aggregateLeadChannels(null)).toEqual([]);
+  });
+});
+
+// --- Capture intent ----------------------------------------------------------
+// The trainer funnel's structured marker. Before this existed the signal survived only as the
+// literal text "Subject: Trainer inquiry" folded into Lead.notes, so trainer leads were countable
+// only by full-text-scanning a free-text column. intentTag is pure, so assert it directly.
+describe('intentTag', () => {
+  it('tags every recognized intent', () => {
+    expect(intentTag('trainer')).toBe('prism:intent:trainer');
+    expect(intentTag('book')).toBe('prism:intent:book');
+    expect(intentTag('spectrum')).toBe('prism:intent:spectrum');
+  });
+
+  it('returns null for anything not on the allowlist', () => {
+    // The intent arrives from a visitor-craftable URL param, so an arbitrary query string must
+    // never become an arbitrary CRM tag.
+    expect(intentTag('admin')).toBeNull();
+    expect(intentTag('trainer; DROP TABLE leads')).toBeNull();
+    expect(intentTag('Trainer')).toBeNull();   // case-sensitive: only the exact vocabulary
+    expect(intentTag('')).toBeNull();
+  });
+
+  it('returns null for absent or non-string input rather than throwing', () => {
+    // captureLeadFromContact defaults intent to null; every other caller omits it entirely.
+    expect(intentTag(null)).toBeNull();
+    expect(intentTag(undefined)).toBeNull();
+    expect(intentTag(123)).toBeNull();
+    expect(intentTag({ toString: () => 'trainer' })).toBeNull();
+    expect(intentTag(['trainer'])).toBeNull();
+  });
+
+  it('covers the whole published vocabulary — a new intent cannot be added untested', () => {
+    for (const intent of CAPTURE_INTENTS) {
+      expect(intentTag(intent)).toBe(`prism:intent:${intent}`);
+    }
+  });
+});
+
+describe('CAPTURE_INTENTS', () => {
+  it('is the single source of truth for both public funnels', () => {
+    // leadCaptureRoutes (POST /api/leads/capture) and captureLeadFromContact both validate against
+    // this. Two copies of an enum is the drift class rule 58 exists for — if this list changes,
+    // it must change in exactly one place.
+    expect([...CAPTURE_INTENTS].sort()).toEqual(['book', 'spectrum', 'trainer']);
+  });
+
+  it('is frozen, so no caller can mutate the shared vocabulary at runtime', () => {
+    expect(Object.isFrozen(CAPTURE_INTENTS)).toBe(true);
   });
 });

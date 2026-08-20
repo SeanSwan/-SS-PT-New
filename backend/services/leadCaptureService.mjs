@@ -37,6 +37,7 @@ import {
   channelToLeadSource,
   channelTags,
   deriveChannel,
+  intentTag,
 } from './leadCaptureShared.mjs';
 import { captureLeadFromCheckout } from './leadCaptureCheckout.mjs';
 
@@ -63,7 +64,7 @@ export async function enrollNewLeadInNurture(leadId, firstName) {
  *
  * @returns {Promise<{leadId?:number, created?:boolean, skipped?:string, error?:string}>}
  */
-export async function captureLeadFromContact({ contact, formData, consultationType, attribution = null } = {}) {
+export async function captureLeadFromContact({ contact, formData, consultationType, attribution = null, intent = null } = {}) {
   try {
     const email = String(formData?.email || '').trim().toLowerCase();
     if (!email) return { skipped: 'no_email' };
@@ -77,7 +78,12 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
       ? `Contact form — ${String(consultationType).replace(/-/g, ' ')}`
       : 'Contact form';
     const sourceDetail = channel !== 'direct' ? `${baseDetail} · via ${channel}` : baseDetail;
-    const contactTags = ['contact-form', ...channelTags(channel)];
+    // The declared intent rides the tag array — Lead has no metadata column (see the account-link
+    // note below, rule 58), and tags are the only structured, queryable channel. Without this the
+    // trainer signal survives only as the literal text "Subject: Trainer inquiry" inside `notes`,
+    // so counting trainer leads means full-text-scanning a free-text column and any copy edit
+    // silently breaks the count. Null (unrecognized/absent intent) is filtered out, never tagged.
+    const contactTags = ['contact-form', ...channelTags(channel), intentTag(intent)].filter(Boolean);
 
     const [lead, created] = await Lead.findOrCreate({
       where: { email },
