@@ -2,7 +2,7 @@
 title: "Panel review — AI privacy/cost workstream (GLM x4 + Kimi x1)"
 date: 2026-08-19
 author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (4 rounds) and Kimi K3 (1 round)
-decision: "Merge order corrected to #45 -> #47 -> link. Frame-level findings accepted that the code review had not thought to ask. Round 4 then graded THIS RECORD and found 8 further defects in it -- read the Round 4 section, it supersedes several claims above."
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4 and 5 graded THIS RECORD and found 12 defects in it, including a FALSE premise inside the merge-order rationale (struck as C9). Read the Round 4 and Round 5 sections first -- they supersede claims in the body."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
@@ -287,3 +287,124 @@ evidence contradicts, and parked my own follow-ups one section after condemning 
 **Every one of those is the same failure: the document graded the work and never graded itself.**
 A review round pointed at the summary rather than the subject is not a formality — it found more
 than round 3 did.
+
+---
+
+# Round 5 — the C1 fault recurred, and I caught it by finally applying C1's own rule
+
+R5 was run as a confirmation round. **Not dry.** It found four defects, all in the record. One of
+them — N3 — turned out to be worse than R5 could see, because R5 could only say the claim was
+*uncertified*. I checked it. **It is false.**
+
+## C9 — §1's third merge-order reason is FALSE. Struck. ⚠
+
+§1 gave three reasons for the corrected merge order. The third, from GLM R3 and repeated by me
+without verification:
+
+> *"no feature flags, revert-only rollback. If #47 merges before #45 and later needs reverting,
+> the revert drags #45 with it. #45-first keeps #47 a clean single-commit revert."*
+
+**Both premises are wrong.**
+
+**1. The PRs share no files, so no revert can drag the other.** Measured:
+
+```
+#45 changed files: 2      #47 changed files: 10      OVERLAP: 0
+control: comm(#47,#47) = 10   (proves the comparison works, so 0 is a real 0)
+```
+
+`git revert` of a merge commit undoes that merge's changes. With **zero** overlapping paths, a #47
+revert cannot touch #45's two frontend files **in either merge order**. The scenario the argument
+warns about cannot occur.
+
+**2. "No feature flags" is false as a blanket claim.** `origin/main` carries flag infrastructure —
+`backend/middleware/plaudFeatureFlag.mjs`, `backend/services/launchControlService.mjs`,
+`launchControlResolve.mjs`, `priceVisibilityService.mjs`. Whether that system *covers these PRs* is
+a separate, unasked question; the sweeping premise I propagated is not true of this repo.
+
+**The merge order does not change.** Reasons 1 (non-revertible privacy harm vs revertible
+availability harm) and 2 (a 6-of-7 lockout is the gate working) are analysis, they stand on their
+own, and they were always the load-bearing pair. **Reason 3 is struck entirely.**
+
+### What this actually demonstrates
+
+**C1 said: I check Kimi's facts and give GLM's a pass. I then wrote C1, committed it — and left an
+unverified GLM-origin fact sitting inside the most consequential recommendation in the document.**
+R5 had to point at it before I applied my own rule.
+
+That is the third time in this session a lesson was written down and then broken within the hour
+(the first two are in the Hermes memos: over-claiming scope, and cross-toolchain path assumptions).
+The pattern is now beyond dispute: **writing a rule does not install it. Only running a check
+installs it.** The rule that works is not "be skeptical of GLM"; it is the mechanical one —
+**every repo fact in a recommendation carries a file:line or a command, or it does not ship.**
+§5 already met that bar. §1 did not, and nobody noticed for three rounds.
+
+## C10 — the table built to stop parking parked two more (N1)
+
+R4's C4 convicted the record of parking its own outputs, and the revised table operationalized five
+of R4's corrections — and left two out:
+
+- **C7's BIPA element check** — a needs-a-lawyer item exactly parallel to the MHMDA row that *did*
+  get one. R4 raised three lawyer questions; two got rows.
+- **C8's probe script** — C8 says the probe "needs a written script before it means anything," and
+  then it has no row, no owner, no pass/fail.
+
+Both now added. Also conceded: most rows carry no date, and **"needs a slice" is not an owner.**
+
+## C11 — the record carried two different merge orders (N2)
+
+The reconciled header said **#45 → #47 → link** (three steps); §1 said **#45 → #47 → (probe) →
+admin link** (four). An executor reading the frontmatter would skip a step the body orders, on the
+most load-bearing decision here.
+
+**Canonical, and the only version that governs:** **#45 → #47 → local verification → admin link.**
+"(probe)" is retired as a term — C8 established it was an undefined token, and §7/C2 established it
+must never be a production write. Header and §1 now say the same thing.
+
+## C12 — two more counts that fail C8's own standard (N4)
+
+- R4's intro tallied "one misstatement, two over-claims, and three findings" = **6, against 8
+  corrections**. C2/C3/C7 compete for two over-claim slots and C8 sits outside every bucket.
+  **Withdrawn — the corrections are C1–C8, eight, and the prose summary should not have restated
+  the count in a different taxonomy.**
+- The closing line "the **three** rounds before it" counts GLM rounds only, a convention used
+  nowhere else. **It was four review rounds** (GLM R1, GLM R2, Kimi R1, GLM R3).
+
+---
+
+## Canonical action table (supersedes both prior tables)
+
+| Item | Status | Owner |
+|---|---|---|
+| **#45** | 🟢 MERGE FIRST, unconditionally — verified, mutation-proven, tsc baseline-parity verified | **Sean** |
+| **#47** | 🟡 after #45. **Local** verification only, never a production write | **Sean** |
+| **#50** | 🔴 unreviewed by this panel — wiring never executed, price table 6 months stale | needs a review pass; no owner yet |
+| admin `/ai-consent` link | ⏸ after #47 — do not put UI on a never-executed path | — |
+| **Local verification script for #47** | 📋 **unwritten** — needs written pass/fail (grant → transcribe 200; withdraw → 403; no-profile → 403) before the #47 step means anything | agent can draft |
+| `/history-preview` | ⚠ forced-decision packet: one question, two prepared outcomes, a date | Sean decides; agent drafts |
+| Render key rotation | 🚨 unrotated ≥7 days; local stores clean, provider-side unbounded | **Sean only** |
+| Disclosure-before-grant + versioned consent records | 📋 unstarted | needs a slice |
+| Withdrawal semantics + vendor-deletion path | 📋 unstarted — dormant defect, activates at merge | needs a slice |
+| Minor handling / age signal | 📋 unstarted — product has no age signal | **Sean** |
+| Trainer + bystander voice consent | 📋 unstarted | **Sean** |
+| **User residency (WA/NV/IL?)** | ❓ never asked — gates which statutes are live at all | **Sean, one question** |
+| MHMDA size-threshold question | ❓ `[UNKNOWN]` — two models disagree, neither is a source | **Sean → lawyer** |
+| **BIPA: is transcribed audio a "voiceprint"?** | ❓ `[UNKNOWN]` — element-satisfaction unexamined | **Sean → lawyer** |
+
+---
+
+## The honest summary of five rounds
+
+**Rounds 1–3 hardened the work. Rounds 4–5 graded the record — and found more.**
+
+R4 found 8 defects in the write-up. R5 found 4 more, and the sharpest of them exposed a **false
+claim inside the document's central recommendation** that three prior rounds had read past.
+
+The work itself has held up throughout: the merge order (for two of its three stated reasons),
+#45-first, local-verification-only, and every measured number survived five rounds of attack.
+**What kept failing was the record** — counts that did not reconcile, concessions applied to one
+reviewer and not the other, and claims certified because a model I had labelled "reliable on fact"
+said them.
+
+**A panel that reviews only the work will not catch this class.** The round that reads the summary
+against the evidence is not a formality at the end; here it was the most productive round of the five.
