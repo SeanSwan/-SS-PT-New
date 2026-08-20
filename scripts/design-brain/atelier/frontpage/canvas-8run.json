@@ -2,42 +2,20 @@
   "artboards": [
     {
       "file": "Main.dc.html",
-      "title": "B1 · harbor lights",
+      "title": "D2 · vegas mile — WINNER",
       "x": 0,
       "y": 0,
       "w": 1280,
-      "h": 3600
-    },
-    {
-      "file": "VegasMile.dc.html",
-      "title": "D2 · vegas mile",
-      "x": 1560,
-      "y": 0,
-      "w": 1280,
-      "h": 3700
+      "h": 4600
     }
   ],
   "annotations": [
     {
-      "id": "note-b1",
-      "x": 0,
-      "y": -380,
-      "w": 460,
-      "text": "B1 · HARBOR LIGHTS  — Sean's pick\n\nSean's header is REPLICATED at the top, unchanged: 64px fixed glass, blur(20px) saturate(1.8), real nav (Home / Store / Video Library / Waiver / Contact / Photography / About) + Login / Sign Up. The design adapts BELOW it. Its own left rail is a SECTION rail, not a second nav.\n\nHERO = the Swans.mp4 video slot (real frame shown). Swappable for an H3 film later.\n\n2 MOVIE AREAS: \"The Harbor at Night\" and \"One Session, End to End\".\n\n5 parallax stages: hero · window-wall band · movie 1 · golf band · movie 2."
-    },
-    {
-      "id": "note-d2",
-      "x": 1560,
-      "y": -399,
-      "w": 460,
-      "text": "D2 · VEGAS MILE  — Sean's pick\n\nSean's header is REPLICATED at the top, unchanged. The marquee bulb strip moved BELOW his header so it never competes with it.\n\nHERO = the Swans.mp4 video slot (real frame shown), with neon type over it. Swappable for an H3 film later.\n\n2 MOVIE AREAS: \"Neon Mile, Opening Night\" and \"The Record, In Motion\".\n\n5 parallax stages: hero · movie 1 · skyline band · movie 2 · (block tints).\n\nTRADEOFF: loudest of the eight and the furthest from \"homey\"; highest perf cost."
-    },
-    {
-      "id": "kill-pass",
-      "x": -560,
+      "id": "note-winner",
+      "x": 1420,
       "y": 0,
-      "w": 470,
-      "text": "KILL PASS — 2026-08-19\n\nSean: \"I like d two and b one.\"\nSix directions killed. These two survive.\n\nHIS FOUR INSTRUCTIONS, ALL APPLIED:\n1. KEEP THE HEADER. \"not gonna get rid of my header or change that style in any way. They need to adapt to what I already have.\" Both boards replicate components/Header/header.tsx and lay out below it.\n2. MORE PARALLAX — 5 depth stages per board, not just the hero.\n3. AT LEAST 2 MOVIE AREAS between sections for MiniMax H3 films — both boards have two, each with a brief and a duration.\n4. THE HERO IS THE SWANS VIDEO — real frame from the real Swans.mp4. Kept, and marked as a swappable slot in case an H3 film beats it.\n\nGold tags = new copy needing approval."
+      "w": 480,
+      "text": "D2 · VEGAS MILE — THE WINNER\n\nSean 2026-08-20: \"I like d two.\"\n\nTHIS PASS:\n1. DISCIPLINE CARDS ARE VIDEO BACKGROUNDS. All six (Training / Dance / Art & Visual / Vocal & Sound / Photography & Graphic Design / Community) carry a VIDEO BG badge and a written FILM BRIEF for the H3 film that becomes that card's background.\n2. HIS FOOTER IS BACK, replicated from components/Footer/Footer.tsx — brand + tagline + socials + \"Stay in the loop\", Quick Links / Programs / Contact Us, Privacy Policy + Terms.\n3. HIS ORIGINAL SHEEN GLOW BUTTON, recovered from git 16a18d905 (pre-Crystalline). Eight swatches at the bottom to pick from: his six originals byte-for-byte (primary / neonBlue / purple / emerald=GREEN / ruby=RED / cosmic) plus chrome (silver) and gilded (gold) added by me.\n\nSTILL TRUE: his header replicated and unchanged · the Swans.mp4 video hero (swappable for H3) · 2 movie areas · 4 parallax stages.\n\nHEADS UP: primary and neonBlue carry Galaxy-Swan cyan #00FFFF, a RETIRED token. Shown because they are his originals — say the word and they get regraded."
     }
   ],
   "launch": {
