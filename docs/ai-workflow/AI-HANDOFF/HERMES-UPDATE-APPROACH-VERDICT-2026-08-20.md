@@ -154,15 +154,11 @@ that is now the only load-bearing number.
 | `activeConnectionId` | 3 | **missing** |
 | `paneVisibility` | 3 | **missing** |
 
-**7 of 11 missing, covering 74 of ~146 host call sites — roughly half the plugin's interaction with
-the app.** So Bot Mode would *load* on v0.20.1 and then fail or no-op across half its surface.
+**5 of 11 missing, covering 30 of ~146 host call sites — about 21%.** So Bot Mode would *load* on
+v0.20.1 and then fail or no-op across roughly a fifth of its surface.
 
-**The falsification test does not save us: the update is genuinely required.** But the honest cost of
-"build it locally" is lower than I first said — it is *add 7 host methods to a 325-line SDK*, not
-*build an SDK from nothing*. The blocker is not the SDK; it is the **10,464-line plugin** plus the
-subsystems those 7 methods imply (`agents`, `requestProfile`, `openWorkspace`, `paneVisibility` are
-not thin wrappers). The port still dominates, so the verdict stands — but it stands on the port, not
-on a missing SDK.
+**The falsification test does not save us: the update is genuinely required.** See the corrections
+box above for how this number moved (7/11 and "half" were both wrong, twice).
 
 **Credit where due:** Kimi named the exact failure mode ("the plugin API on v0.20.1 can't express
 part of Bot Mode") and the exact test that would kill it cheaply. The test worked. It killed Kimi's
