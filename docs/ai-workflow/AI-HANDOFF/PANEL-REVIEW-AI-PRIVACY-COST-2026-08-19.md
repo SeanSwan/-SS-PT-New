@@ -1,8 +1,8 @@
 ---
-title: "Panel review — AI privacy/cost workstream (GLM x10 + Kimi x2)"
+title: "Panel review — AI privacy/cost workstream (GLM x11 + Kimi x2)"
 date: 2026-08-19
-author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (10 rounds) and Kimi K3 (2 rounds)
-decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-10 graded THIS RECORD and found 22 defects in it (C1-C22), including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7, 8 AND 9/10 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
+author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (11 rounds) and Kimi K3 (2 rounds)
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-11 graded THIS RECORD and found 24 defects in it (C1-C24), including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7, 8 AND 9/10 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
@@ -11,9 +11,9 @@ privacy: "No secrets, no key values, no client data, no identities. Role counts,
 
 # Panel review — what four hostile rounds changed
 
-**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round. Actual: GLM x10, Kimi x2.**
+**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round. Actual: GLM x11, Kimi x2.**
 GLM R1 (mechanisms), R2 (attack the answers), Kimi R1 (frame), GLM R3 (adjudicate Kimi),
-GLM R4-R6 (grade the record), Kimi R2 (confirm), GLM R7-R10 (confirm).
+GLM R4-R6 (grade the record), Kimi R2 (confirm), GLM R7-R11 (confirm).
 Total Kimi spend: **$0.24** ($0.20 + $0.04); GLM is subscription.
 
 > **Read the Round 4 section at the end before trusting this one.** R4 was pointed at the record
@@ -541,6 +541,13 @@ table." **The canonical table does not carry the figure** — C15 misdescribed w
 The normalization pass did not trim it; it was never there. Correcting the description, not the
 table.
 
+**C24 (Round 11) — that correction has since gone stale by the mechanism it describes.** R9 added
+the admin-gating row, whose Status cell reads "the **6** blocked accounts include an admin" — so the
+figure **is** now in the canonical table. Round 7's evidence covers it and the header pointer
+stands, so no citation is owed; the sentence above was simply true only until R9. Aggravating: this
+same paragraph *was* refreshed for R9 — the row count carries "(after R9 added one)" — so it was
+re-read, and the adjacent claim that R9 falsified still survived the re-reading.
+
 ## C19 — the header went stale again when Round 7 was appended, and the privacy manifest went false
 
 Applied:
@@ -592,7 +599,7 @@ R9 found two record defects and the document recorded neither: the frontmatter s
 parenthetical, with no section and no C-number. **That is C19's own headline complaint** — the
 header going stale when a round is appended — recurring two rounds after C19.
 
-Now reconciled: **rounds 4–10, C1–C22, GLM ×10, Kimi ×2.**
+Now reconciled: **rounds 4–11, C1–C24, GLM ×11, Kimi ×2.**
 
 ## C22 — C19 described a redaction it had not fully performed
 
@@ -611,7 +618,7 @@ link), #45-first, local-verification-only, and every measured number have surviv
 rounds of adversarial attack, including two by a reviewer explicitly told to break them.
 
 **Every finding from round 4 onward has been in the record, not the work** — and there have been
-**twelve of them across seven rounds**, each one a correction that was narrower than the sentence
+**twenty-two of them (C1–C22) across seven rounds**, each one a correction that was narrower than the sentence
 announcing it: a header not updated when a section was appended, a concession made in prose and not
 in the table, a fix applied to one of two places, a count verified by counting rather than reading.
 
