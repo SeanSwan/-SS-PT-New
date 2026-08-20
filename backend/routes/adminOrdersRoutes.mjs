@@ -724,6 +724,37 @@ router.post('/orders/:id(\\d+)/complete', [heavyOrdersRateLimit, validateOrderId
       alreadyProcessed: grantResult.alreadyProcessed
     });
 
+    // A refusal must not be reported as a grant.
+    //
+    // grantSessionsForCart can return `unfulfillable: true` with sessionsAdded:
+    // 0. `alreadyProcessed` is false in that case, so this fell through and told
+    // the admin "Order marked paid and sessions granted" when nothing had been
+    // granted — the admin then has no reason to look again (GLM-5.3 H1 + my own
+    // sweep, 2026-08-20). An admin acting on a false confirmation is how a
+    // customer stays unfulfilled indefinitely.
+    if (grantResult?.unfulfillable) {
+      logger.error('[Admin] Manual grant REFUSED — order not fulfilled', {
+        orderId,
+        userId: order.userId,
+        reason: grantResult.reason ?? 'unknown',
+      });
+
+      return res.status(409).json({
+        success: false,
+        message: 'Sessions were NOT granted — this order could not be verified automatically.',
+        error: {
+          code: 'GRANT_REFUSED',
+          reason: grantResult.reason ?? 'unknown',
+          requiresSupportReview: true,
+        },
+        data: {
+          orderId,
+          userId: order.userId,
+          sessionsAdded: 0,
+        },
+      });
+    }
+
     return res.json({
       success: true,
       message: grantResult.alreadyProcessed

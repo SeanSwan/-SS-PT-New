@@ -38,6 +38,7 @@ import { isPriceAccessGranted } from '../services/store/priceVisibilityService.m
 // 🎯 P0 FIX: Use coordinated model getters to prevent race condition
 import { getShoppingCart, getCartItem, getStorefrontItem, getProductVariant, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+import { sendNotification } from '../services/notificationService.mjs';
 import {
   calculateCartSessionCredits,
   getStorefrontSessionCredits,
@@ -928,6 +929,79 @@ router.post('/verify-session', protect, paymentVerifyLimiter, checkStripeAvailab
       checkoutSessionId: session.id,
       amountTotalCents: session.amount_total ?? null,
     });
+    // THE REFUSAL MUST STOP THIS CALLER TOO.
+    //
+    // grantSessionsForCart gained `unfulfillable: true` for two terminal
+    // conditions — the adoption amount could not be verified, or a paid session
+    // does not own this cart. The webhook was taught to short-circuit on it.
+    // This caller was not, and `unfulfillable` carries `alreadyProcessed:
+    // false`, so it dropped straight into the success branch and told a paying
+    // customer "Order verified and completed successfully" with sessionsAdded:
+    // 0 (GLM-5.3 H1 + my own sweep, 2026-08-20).
+    //
+    // That is round 2's defect exactly — a guard that refuses and a caller that
+    // does not stop — and the crash-window recovery above is what made it
+    // reachable here: this path used to 404 on such a cart, which was confusing
+    // but honest. A false success is worse, because a customer told their order
+    // completed has no reason to contact anyone.
+    //
+    // This must sit ABOVE captureVerifiedCheckoutLead: that records a VERIFIED
+    // CONVERSION, and a refusal is not one.
+    //
+    // The webhook's alert is the only other signal on this money, so alert here
+    // too — if that delivery is lost, captured money would otherwise sit with
+    // no signal at all.
+    if (result?.unfulfillable) {
+      logger.error('[v2 Payment] PAID but NOT fulfilled on verify-session', {
+        userId,
+        cartId: recoveredCart.id,
+        reason: result.reason ?? 'unknown',
+        checkoutSessionId: session.id,
+      });
+
+      try {
+        await sendNotification({
+          type: 'ADMIN_NOTIFICATION',
+          title: 'Payment captured but NOT fulfilled — action required',
+          message: `Cart ${recoveredCart.id} was paid but sessions were NOT granted `
+            + `(${result.reason ?? 'unknown'}). The customer has been charged and has `
+            + 'received nothing. Fulfil manually or refund.',
+          data: {
+            type: 'payment_unfulfilled',
+            source: 'verify-session',
+            reason: result.reason ?? 'unknown',
+            cartId: recoveredCart.id,
+            userId,
+            checkoutSessionId: session.id,
+            amountTotalCents: session.amount_total ?? null,
+            actionRequired: 'MANUAL_FULFIL_OR_REFUND',
+          },
+        });
+      } catch (notifyError) {
+        // Never rethrow: a down transport must not convert a handled refusal
+        // into a 500 the client will retry.
+        logger.error('[v2 Payment] Unfulfilled-payment alert failed', {
+          cartId: recoveredCart.id,
+          errorMessage: notifyError?.message,
+        });
+      }
+
+      // 409 + requiresSupportReview mirrors the CheckoutInventoryError response
+      // below — the same shape this route already uses for "you paid, we cannot
+      // complete it, a human will."
+      return res.status(409).json({
+        success: false,
+        message: 'Payment received, but we could not complete your order automatically. '
+          + 'SwanStudios will review this order — you have not been charged twice.',
+        error: {
+          code: 'CHECKOUT_FULFILMENT_HELD',
+          details: 'Payment could not be matched to your cart with confidence.',
+          reason: result.reason ?? 'unknown',
+          requiresSupportReview: true,
+        },
+      });
+    }
+
     const receiptSummary = await getCheckoutReceiptSummary({ cartId: recoveredCart.id, userId });
     await captureVerifiedCheckoutLead({
       cart: recoveredCart,

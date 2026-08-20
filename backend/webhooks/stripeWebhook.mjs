@@ -306,7 +306,45 @@ export const stripeWebhookHandler = async (req, res) => {
             error: grantError.message,
             stack: grantError.stack,
           });
-          throw grantError; // Let Stripe retry; grant service is idempotent.
+
+          // TERMINAL vs TRANSIENT. Rethrowing yields a 500, and a 500 is only
+          // correct when a redelivery could succeed.
+          //
+          // CheckoutInventoryError is thrown under a row lock when stock ran out
+          // between checkout creation and payment. No redelivery restocks the
+          // shelf, so this was a signed, PAID event retried forever against a
+          // state that can never change — the endpoint-disabling condition this
+          // whole fix family exists to avoid, with no alert anywhere on the path
+          // (GLM-5.3 H2, 2026-08-20).
+          //
+          // The correct classification already existed one file over:
+          // v2PaymentRoutes' verify-session catches this same error and returns
+          // 409 + requiresSupportReview. Same error, two callers, opposite
+          // verdicts — sibling drift, the recurring shape of this whole family.
+          //
+          // Everything else still rethrows: a DB blip or a lock timeout IS
+          // transient, and the grant service is idempotent, so a retry is right.
+          if (grantError?.name === 'CheckoutInventoryError') {
+            await notifyAdminSafely({
+              title: 'Paid order held — inventory ran out before fulfilment',
+              message: `Cart ${cartIdNumber} was PAID but stock ran out before fulfilment `
+                + `(${grantError.itemName ?? 'unknown item'}). Nothing was granted and this `
+                + 'will not retry — fulfil manually, restock, or refund.',
+              data: {
+                type: 'paid_order_inventory_held',
+                cartId: cartIdNumber,
+                userId: cart.userId,
+                checkoutSessionId: session.id,
+                itemName: grantError.itemName ?? null,
+                requestedQuantity: grantError.requestedQuantity ?? null,
+                availableStock: grantError.availableStock ?? null,
+                actionRequired: 'MANUAL_FULFIL_RESTOCK_OR_REFUND',
+              },
+            }, '[Webhook]');
+            break;
+          }
+
+          throw grantError; // Transient — let Stripe retry; the grant is idempotent.
         }
 
         // CAPTURED MONEY THAT WAS NOT FULFILLED MUST NEVER BE SILENT.
