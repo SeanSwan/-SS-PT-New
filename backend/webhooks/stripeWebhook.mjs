@@ -173,6 +173,53 @@ export const stripeWebhookHandler = async (req, res) => {
           throw grantError; // Let Stripe retry; grant service is idempotent.
         }
 
+        // CAPTURED MONEY THAT WAS NOT FULFILLED MUST NEVER BE SILENT.
+        //
+        // grantSessionsForCart can now return `unfulfillable: true` instead of throwing
+        // — either the adoption amount could not be verified (tax/discount/mutated cart
+        // /missing total) or a paid session does not own this cart. Both are TERMINAL:
+        // no Stripe redelivery can change the outcome, so returning 200 is correct and
+        // throwing would only start an endless retry storm.
+        //
+        // But 200 alone is exactly the failure this replaced. The first version of the
+        // amount guard returned quietly, so a legitimate taxable-or-promo customer paid,
+        // received nothing, and NOBODY WAS TOLD (Kimi K3 C1, 2026-08-19). That is worse
+        // than the 500 it replaced, because a 500 at least retried and was visible.
+        //
+        // Terminal + captured money = a human decision (fulfil manually or refund).
+        if (grantResult?.unfulfillable) {
+          const ctx = grantResult.alertContext ?? {};
+          logger.error('[Webhook] PAID but NOT fulfilled — manual action required', {
+            cartId: cartIdNumber,
+            reason: grantResult.reason ?? 'unknown',
+            ...ctx,
+          });
+          try {
+            await sendNotification({
+              type: 'ADMIN_NOTIFICATION',
+              title: 'Payment captured but NOT fulfilled — action required',
+              message: `Cart ${cartIdNumber} was paid but sessions were NOT granted `
+                + `(${grantResult.reason ?? 'unknown'}). The customer has been charged and has `
+                + 'received nothing. Fulfil manually or refund — this will not retry.',
+              data: {
+                type: 'payment_unfulfilled',
+                reason: grantResult.reason ?? 'unknown',
+                checkoutSessionId: session.id,
+                amountTotalCents: session.amount_total ?? null,
+                actionRequired: 'MANUAL_FULFIL_OR_REFUND',
+                ...ctx,
+              },
+            });
+          } catch (notifyError) {
+            // Never rethrow: a down transport must not turn this into a retry storm.
+            logger.error('[Webhook] Unfulfilled-payment alert failed', {
+              cartId: cartIdNumber,
+              errorMessage: notifyError?.message,
+            });
+          }
+          break;
+        }
+
         // Persist the PaymentIntent so a later refund/chargeback can find this order.
         // The card rail stores `cart.paymentIntentId || cart.checkoutSessionId` into
         // Order.paymentId, so whenever the PI is not yet known at session-creation

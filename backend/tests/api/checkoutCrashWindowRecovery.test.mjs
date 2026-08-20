@@ -182,11 +182,13 @@ describe('crash-window: an unclaimed cart may be adopted by the session that nam
     expect(code).toMatch(/cartTotalCents/);
     // ...and REFUSE rather than grant on disagreement.
     expect(code).toMatch(/adoptionRefused/);
-    expect(code).toMatch(/AMOUNT_MISMATCH/);
+    // Renamed 2026-08-19: the guard now HOLDS anything unverifiable (mismatch, zero
+    // cart total, or missing amount), not only a numeric mismatch.
+    expect(code).toMatch(/ADOPTION_UNVERIFIABLE/);
 
     // The comparison must gate the adoption branch, not merely be logged.
     const adoptAt = code.indexOf('cart.checkoutSessionId = checkoutSessionId');
-    const refuseAt = code.indexOf('AMOUNT_MISMATCH');
+    const refuseAt = code.indexOf('ADOPTION_UNVERIFIABLE');
     expect(refuseAt).toBeGreaterThan(-1);
     expect(refuseAt, 'the refusal must precede the adoption write').toBeLessThan(adoptAt);
   });

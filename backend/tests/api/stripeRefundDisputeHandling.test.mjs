@@ -36,6 +36,14 @@ const mocks = vi.hoisted(() => ({
   mockUserIncrement: vi.fn(),
   mockCartFindByPk: vi.fn(),
   mockGrantSessionsForCart: vi.fn(),
+  // Downstream side effects of processCompletedOrder. Declared as real spies so the
+  // "leaks nothing" assertions test something — asserting `not.toHaveBeenCalled()` on
+  // an undeclared mock passes against `undefined` and proves nothing.
+  mockUpgradeToClient: vi.fn(),
+  mockCreateCommissionForPurchase: vi.fn(),
+  mockRecordLedgerEntry: vi.fn(),
+  mockOrderFindOrCreate: vi.fn(),
+  mockUserFindByPk: vi.fn(),
 }));
 
 vi.mock('stripe', () => ({ default: vi.fn(function Stripe() { return mocks.mockStripeClient; }) }));
@@ -46,20 +54,20 @@ vi.mock('../../utils/logger.mjs', () => ({
 vi.mock('../../models/ShoppingCart.mjs', () => ({ default: { findByPk: mocks.mockCartFindByPk, findOne: vi.fn() } }));
 vi.mock('../../models/CartItem.mjs', () => ({ default: {} }));
 vi.mock('../../models/User.mjs', () => ({
-  default: { findByPk: vi.fn(), update: mocks.mockUserUpdate, increment: mocks.mockUserIncrement },
+  default: { findByPk: mocks.mockUserFindByPk, update: mocks.mockUserUpdate, increment: mocks.mockUserIncrement },
 }));
 vi.mock('../../models/StorefrontItem.mjs', () => ({ default: {} }));
 vi.mock('../../models/GalleryVisitor.mjs', () => ({ default: { findByPk: vi.fn(), increment: vi.fn() } }));
 vi.mock('../../models/Lead.mjs', () => ({ default: { findOne: vi.fn() } }));
 vi.mock('../../models/LeadActivity.mjs', () => ({ default: { create: vi.fn() } }));
 vi.mock('../../models/Order.mjs', () => ({
-  default: { findOrCreate: vi.fn(), findOne: mocks.mockOrderFindOne, update: mocks.mockOrderUpdate },
+  default: { findOrCreate: mocks.mockOrderFindOrCreate, findOne: mocks.mockOrderFindOne, update: mocks.mockOrderUpdate },
 }));
-vi.mock('../../services/roleService.mjs', () => ({ upgradeToClient: vi.fn() }));
+vi.mock('../../services/roleService.mjs', () => ({ upgradeToClient: mocks.mockUpgradeToClient }));
 vi.mock('../../services/notificationService.mjs', () => ({ sendNotification: mocks.mockSendNotification }));
-vi.mock('../../services/CommissionService.mjs', () => ({ createCommissionForPurchase: vi.fn() }));
+vi.mock('../../services/CommissionService.mjs', () => ({ createCommissionForPurchase: mocks.mockCreateCommissionForPurchase }));
 vi.mock('../../services/gamification/GamificationPointsService.mjs', () => ({
-  default: { recordLedgerEntry: vi.fn() },
+  default: { recordLedgerEntry: mocks.mockRecordLedgerEntry },
 }));
 vi.mock('../../services/SessionGrantService.mjs', () => ({
   grantSessionsForCart: mocks.mockGrantSessionsForCart,
@@ -353,5 +361,122 @@ describe('ACH success must never silently fail to find its order', () => {
     const alerts = adminNotifications();
     expect(alerts.length, 'an unmatched ACH payment must alert, not fall through').toBeGreaterThan(0);
     expect(JSON.stringify(alerts)).toMatch(/ach|orphan|no matching order/i);
+  });
+});
+
+
+/**
+ * GLM-5.3 H1 / Kimi K3 C1, 2026-08-19 — the most damaging finding of the review.
+ *
+ * The adoption guard REFUSED the session grant and returned normally. The webhook did
+ * not inspect the result, so it carried straight on into processCompletedOrder and
+ * leaked every downstream side effect around the very grant it had just blocked:
+ *
+ *   - `upgradeToClient(userId)` — role promoted to `client` with ZERO sessions granted,
+ *     violating the one invariant this whole workstream exists to protect.
+ *   - `createOrderRecord` — a `completed` Order booked at the MUTATED live-cart total
+ *     ($5,060) against what was actually paid ($60).
+ *   - `createCommissionForPurchase` — trainer commission on money never collected.
+ *   - gamification points and a "New Purchase" admin notification.
+ *
+ * So the fix stopped the grant and leaked everything else — strictly worse than not
+ * having guarded at all, because the money side effects fired without the sessions.
+ *
+ * The handler now terminates the case before any of that runs. These tests assert the
+ * WHOLE downstream chain is dead, not merely that sessions were not granted.
+ */
+describe('an unfulfillable payment leaks NO downstream side effects', () => {
+  const unfulfillableResult = {
+    granted: false,
+    sessionsAdded: 0,
+    alreadyProcessed: false,
+    unfulfillable: true,
+    reason: 'ADOPTION_UNVERIFIABLE',
+    alertContext: { cartId: 42, userId: 3, amountTotalCents: 6000, cartTotalCents: 506000 },
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.mockStripeClient.webhooks.constructEvent.mockImplementation(() => mocks.currentEvent);
+    // The cart MUST carry items and the user MUST resolve, or processCompletedOrder
+    // returns early and the downstream assertions below pass whether or not the
+    // short-circuit exists. Confirmed by mutation: with a bare `{id,userId}` cart,
+    // disabling the guard failed only 1 of 7 cases — the other six could not reach
+    // the code they claimed to protect. This mock reproduces GLM H1's exact scenario:
+    // a sweeper-released cart MUTATED to $5,060 of sessions against a $60 payment.
+    mocks.mockCartFindByPk.mockResolvedValue({
+      id: 42,
+      userId: 3,
+      cartItems: [{
+        id: 9,
+        storefrontItemId: 11,
+        quantity: 1,
+        price: 5060,
+        storefrontItem: { id: 11, name: 'Rhodium Swan Package', sessions: 48, packageType: 'fixed' },
+      }],
+    });
+    mocks.mockUserFindByPk.mockResolvedValue({ id: 3, role: 'user', email: 'buyer@example.test', firstName: 'A', lastName: 'B' });
+    mocks.mockGrantSessionsForCart.mockResolvedValue(unfulfillableResult);
+    mocks.mockOrderFindOne.mockResolvedValue(null);
+    mocks.mockOrderUpdate.mockResolvedValue([1]);
+    // Must resolve a real tuple, or createOrderRecord throws on destructure and the
+    // chain dies before upgradeToClient/commission/gamification — leaving those
+    // assertions unreachable (proven by mutation).
+    mocks.mockOrderFindOrCreate.mockResolvedValue([
+      { id: 91, orderNumber: 'SS-LEAK', totalAmount: 5060, status: 'completed', update: vi.fn().mockResolvedValue(true) },
+      true,
+    ]);
+    mocks.currentEvent = {
+      type: 'checkout.session.completed',
+      data: {
+        object: {
+          id: 'cs_orphan_A',
+          payment_status: 'paid',
+          payment_intent: 'pi_orphan',
+          amount_total: 6000,
+          metadata: { cartId: '42', userId: '3' },
+        },
+      },
+    };
+  });
+
+  it('acknowledges 200 — the condition is terminal, retrying cannot fix it', async () => {
+    const response = await post();
+    expect(response.status).toBe(200);
+  });
+
+  it('RAISES an admin alert — captured money must never be silent', async () => {
+    await post();
+
+    const alerts = adminNotifications();
+    expect(alerts.length, 'captured-but-unfulfilled must alert').toBeGreaterThan(0);
+    expect(JSON.stringify(alerts)).toMatch(/not fulfilled|MANUAL_FULFIL_OR_REFUND/i);
+  });
+
+  it('does NOT promote the user — the invariant this workstream exists to protect', async () => {
+    await post();
+    expect(mocks.mockUpgradeToClient).not.toHaveBeenCalled();
+  });
+
+  it('does NOT pay trainer commission on money that was never collected', async () => {
+    await post();
+    expect(mocks.mockCreateCommissionForPurchase).not.toHaveBeenCalled();
+  });
+
+  it('does NOT book a completed order at the mutated cart total', async () => {
+    await post();
+    expect(mocks.mockOrderFindOrCreate).not.toHaveBeenCalled();
+  });
+
+  it('does NOT award gamification points', async () => {
+    await post();
+    expect(mocks.mockRecordLedgerEntry).not.toHaveBeenCalled();
+  });
+
+  it('does NOT send a "New Purchase" notification for an unfulfilled payment', async () => {
+    await post();
+
+    const purchase = adminNotifications().filter((a) => /new purchase/i.test(a?.title ?? ''));
+    expect(purchase).toHaveLength(0);
   });
 });

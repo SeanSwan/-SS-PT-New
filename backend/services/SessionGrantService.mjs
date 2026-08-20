@@ -226,8 +226,41 @@ export async function grantSessionsForCart(cartId, userId, grantedBy, { checkout
     // session creation, and callers derive userId from `cart.userId`, never from the
     // event — so an adopted grant cannot cross users. A cart holding a DIFFERENT
     // session id is still a hard error.
+    // A DIFFERENT session id is a TERMINAL condition, not a retryable error.
+    //
+    // This threw, and throwing was wrong for a PAID event. Reachable sequence: the
+    // sweeper releases a stranded cart to `active`, the customer re-checks-out (which
+    // writes a NEW checkoutSessionId), and then the ORIGINAL orphan session is paid.
+    // The cart is not granted, so the idempotency short-circuit above does not apply,
+    // and the throw 500s the webhook. Stripe then retries a signed, PAID event forever
+    // against a state that can never change — which is precisely the endpoint-disabling
+    // condition this whole fix family exists to avoid, and the customer's money is
+    // captured with nothing fulfilled and nobody told (Kimi K3 H2, 2026-08-19).
+    //
+    // No redelivery can resolve it, so retrying is pure harm. Terminate and surface it:
+    // captured money that can never own its cart is a refund decision for a human.
     if (checkoutSessionId && cart.checkoutSessionId && cart.checkoutSessionId !== checkoutSessionId) {
-      throw new Error(`Stripe session does not own cart ${cartId}`);
+      await transaction.rollback();
+      logger.error('[SessionGrant] TERMINAL — paid session does not own cart', {
+        cartId,
+        grantedBy,
+        eventSessionId: checkoutSessionId,
+        cartSessionId: cart.checkoutSessionId,
+      });
+      return {
+        granted: false,
+        sessionsAdded: 0,
+        alreadyProcessed: false,
+        unfulfillable: true,
+        reason: 'SESSION_DOES_NOT_OWN_CART',
+        alertContext: {
+          cartId,
+          userId: cart.userId,
+          eventSessionId: checkoutSessionId,
+          cartSessionId: cart.checkoutSessionId,
+          amountTotalCents: amountTotalCents === null ? null : Number(amountTotalCents),
+        },
+      };
     }
 
     if (checkoutSessionId && !cart.checkoutSessionId) {
@@ -245,23 +278,60 @@ export async function grantSessionsForCart(cartId, userId, grantedBy, { checkout
       // crossing. So require what Stripe actually charged to match what this cart is
       // worth right now. Honest recovery (cart untouched) still adopts and grants;
       // a mutated cart does not.
+      // VERIFIABILITY, not equality. The first version of this guard compared
+      // `session.amount_total` to `cart.total` and refused on any difference. Two
+      // defects, both found by Kimi K3 on 2026-08-19:
+      //
+      //   (a) FALSE REFUSALS BY CONSTRUCTION. v2PaymentRoutes creates sessions with
+      //       `automatic_tax` and `allow_promotion_codes`, so `amount_total` INCLUDES
+      //       tax and REFLECTS discounts — while `cart.total` is written pre-tax
+      //       (`const total = subtotal`) and pre-discount. Every taxable or
+      //       promo-code cart therefore mismatched, and an HONEST crash-window
+      //       payment was refused — the exact recovery this branch exists to serve.
+      //
+      //   (b) THE GUARD WAS SKIPPED when `cartTotalCents > 0` was false. Totals
+      //       persistence is explicitly non-fatal in cartRoutes ("Failed to persist
+      //       totals, continuing"), so a cart with a stale/zero total bypassed the
+      //       check entirely and the original $5,060 over-grant survived intact.
+      //
+      // So: auto-grant ONLY when the amounts agree exactly — the clean, common case
+      // of an untaxed, undiscounted cart that nobody touched. Everything else is
+      // UNVERIFIABLE, not necessarily fraudulent, and must be held for a human rather
+      // than silently granted or silently dropped. Unverifiable now includes a zero or
+      // missing cart total, which used to mean "skip the check".
       const cartTotalCents = Math.round(Number(cart.total ?? 0) * 100);
+      const amountKnown = amountTotalCents !== null;
+      const totalKnown = Number.isFinite(cartTotalCents) && cartTotalCents > 0;
+      const amountsAgree = amountKnown && totalKnown
+        && Number(amountTotalCents) === cartTotalCents;
 
-      if (amountTotalCents !== null && cartTotalCents > 0
-          && Number(amountTotalCents) !== cartTotalCents) {
+      if (!amountsAgree) {
         await transaction.rollback();
-        logger.error('[SessionGrant] REFUSING adoption — charged amount does not match cart', {
+        logger.error('[SessionGrant] HOLDING adoption — cannot verify charged amount', {
           cartId,
           grantedBy,
-          amountTotalCents: Number(amountTotalCents),
-          cartTotalCents,
+          amountTotalCents: amountKnown ? Number(amountTotalCents) : null,
+          cartTotalCents: totalKnown ? cartTotalCents : null,
+          reasonDetail: !amountKnown
+            ? 'no amount supplied by caller'
+            : !totalKnown
+              ? 'cart total missing or zero'
+              : 'amount does not match cart total (tax/discount/mutation)',
         });
         return {
           granted: false,
           sessionsAdded: 0,
           alreadyProcessed: false,
+          unfulfillable: true,
+          alertContext: {
+            cartId,
+            userId: cart.userId,
+            eventSessionId: checkoutSessionId,
+            amountTotalCents: amountKnown ? Number(amountTotalCents) : null,
+            cartTotalCents: totalKnown ? cartTotalCents : null,
+          },
           adoptionRefused: true,
-          reason: 'AMOUNT_MISMATCH',
+          reason: 'ADOPTION_UNVERIFIABLE',
         };
       }
 

@@ -93,13 +93,33 @@ describe('grantSessionsForCart — Stripe replay safety', () => {
 
   it('refuses to credit when the webhook names a DIFFERENT checkout session', async () => {
     // Cross-cart protection: a webhook for session B must not credit cart A.
+    //
+    // RE-ANCHORED 2026-08-19. This used to assert `rejects.toThrow()`. Throwing
+    // was wrong as a FINAL state for a session that Stripe already captured:
+    // the webhook 500s, Stripe redelivers the same signed paid event forever,
+    // and sustained 5xx is the endpoint-disabling condition this whole fix
+    // family exists to avoid. Reachable in production via the reconciliation
+    // sweeper: cart released to `active` -> customer re-checks-out (cart now
+    // holds session B) -> customer pays the still-live orphan session A.
+    //
+    // The refusal itself is unchanged and still asserted below. What changed is
+    // that it is now TERMINAL and NAMED, so the webhook can alert an admin and
+    // acknowledge instead of looping. The no-credit invariant is the contract;
+    // the throw was only ever the delivery mechanism.
     findCart.mockResolvedValue(paidCart({ checkoutSessionId: 'cs_test_original' }));
 
-    await expect(
-      grantSessionsForCart(100, 42, 'webhook', { checkoutSessionId: 'cs_test_SOMEONE_ELSE' })
-    ).rejects.toThrow();
+    const result = await grantSessionsForCart(100, 42, 'webhook', {
+      checkoutSessionId: 'cs_test_SOMEONE_ELSE',
+    });
 
     expect(userIncrement).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      granted: false,
+      sessionsAdded: 0,
+      alreadyProcessed: false,
+      unfulfillable: true,
+      reason: 'SESSION_DOES_NOT_OWN_CART',
+    });
   });
 
   it('two concurrent deliveries cannot both credit — the flag is read under the row lock', async () => {
