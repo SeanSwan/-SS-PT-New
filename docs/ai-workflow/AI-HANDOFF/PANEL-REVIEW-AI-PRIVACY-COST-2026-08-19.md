@@ -894,14 +894,14 @@ catch.
 ```
 RULE (verbatim): roster = N from '^# Rounds? N' UNION N,M from '^# Rounds N and M' UNION N from '(Round N)'
 
-headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14, 20]
-annotations contribute : [6, 11, 15, 16, 17, 18, 19, 20, 21]
-ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
+headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14, 20, 21, 22]
+annotations contribute : [6, 11, 15, 16, 17, 18, 19, 20, 21, 22]
+ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
 contiguous 4..max      : True
-HIGHEST round in file  : 21   (must equal the last '# Round N' section)
+HIGHEST round in file  : 22   (must equal the last '# Round N' section)
 
-C-labels defined       : 40
-HIGHEST label defined  : C40
+C-labels defined       : 41
+HIGHEST label defined  : C41
 undefined in range     : none
 
 INVARIANTS — all four must hold, and the last two are the ones contiguity could not catch:
@@ -909,6 +909,8 @@ INVARIANTS — all four must hold, and the last two are the ones contiguity coul
   2. no undefined C-number in range
   3. HIGHEST round == the final round section in the file
   4. HIGHEST label == the final C-label in the file
+  5. EACH component line (headings, annotations) matches the file independently -- C41: the union
+     masked a stale component for a full round, so aggregate agreement is not evidence
 ```
 
 ---
@@ -929,3 +931,20 @@ that rule exists elsewhere.
 **Fixed structurally rather than by correcting the wording:** the author line no longer states a
 rule at all. **There is exactly one derivation rule in this document, in `decision:`.** A rule
 stated twice is a rule that will be corrected once.
+
+---
+
+# Round 22 — the regeneration updated five lines out of six
+
+**C41 (Round 22)** — the two-pass regeneration substituted every line of the trace **except**
+`headings contribute`, for which I had simply never written a substitution. It still listed the
+pre-append set, omitting the `# Round 21` heading. **C13's one-of-two-places class, recurring
+inside C39's own fix.**
+
+**And the four invariants passed anyway**, because the roster is a *union*: the missing 21 was
+supplied by the annotation side, so the union was correct while one of its two components was
+stale. **A check on an aggregate cannot fail on an error in one component when another component
+compensates** — the identical blindness C39 diagnosed in C38, one round later, in the fix for it.
+
+**Fifth invariant added, and it is the one that generalises:** each component line must match the
+file independently. Checking the aggregate was never sufficient; it was only ever sufficient-looking.
