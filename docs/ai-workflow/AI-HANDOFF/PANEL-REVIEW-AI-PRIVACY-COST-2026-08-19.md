@@ -1,8 +1,8 @@
 ---
-title: "Panel review — AI privacy/cost workstream (GLM x15 + Kimi x2)"
+title: "Panel review — AI privacy/cost workstream (GLM + Kimi, multi-round)"
 date: 2026-08-19
-author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (15 rounds) and Kimi K3 (2 rounds)
-decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-14 graded THIS RECORD and found 34 defects in it (C1-C34). Kimi spend $0.24; GLM subscription, including a FALSE premise inside the merge-order rationale (struck, C9). READ EVERY `# Round N` SECTION FROM ROUND 4 ONWARD, IN ORDER, BEFORE THE BODY - they supersede body claims, and the Round 7 section holds the only evidence for the 6-of-7 figure. (C34: this pointer used to enumerate specific rounds and went stale every time a section was appended - most recently omitting Rounds 12-14. Enumerations of a growing set cannot be kept current; a rule over the set can.)"
+author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 and Kimi K3 (round count derivable from the `# Round N` headings)
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Record-grading rounds found a defect in THIS DOCUMENT every time they ran; each is labelled C<N> at its site, so the total is DERIVED by counting C-labels, not stored (C35 - a stored total went stale on append four times: C21, C29, C34, and again here). READ EVERY `# Round N` SECTION FROM ROUND 4 ONWARD, IN ORDER, BEFORE THE BODY - they supersede body claims, and the Round 7 section holds the only evidence for the 6-of-7 figure. Kimi spend $0.24; GLM subscription."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
@@ -780,3 +780,17 @@ first attempt returned an EMPTY response after consuming its entire 32,000-token
 reasoning. That is instrument failure, not a dry verdict, and reading it as "nothing found" would
 have been the same error class as the 319-failed-files run the original handoff warns about. Re-run
 with a forced-brevity remit, which answered in 250 words.)*
+
+**C35 (Round 16)** — the decision line's round range said "Rounds 4-14" while C34 is defined in the
+Round 15 section. **C29's exact defect, one round later, in the same line C29 reconciled** — because
+C29's fix bumped a stored number instead of removing the need to store one.
+
+**Applied C34's own precedent to the last site still storing bookkeeping:** the total is now
+**derived** ("count the C-labels"), the roster is derived ("count the `# Round N` headings"), and
+the read-first pointer is already a rule. **There is no stored count left in this document to go
+stale.** That is the fourth remake of this class (C25, C27, C34, C35) and the first one that removes
+the storage rather than relocating it.
+
+*(The honest reading of needing four attempts: each earlier fix moved the number somewhere I
+believed was safe, and "somewhere safe" does not exist in an append-only document. Only "nowhere"
+does.)*
