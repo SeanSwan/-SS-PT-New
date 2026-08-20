@@ -58,3 +58,19 @@ ADD-5 item-9 amendment: compulsive-exercise/RED-S check-in when a streak repeate
 ADD-6 standing amendment: EAP/AED/meds-location readiness generalized across all scenarios (GLM only) — include? YES/NO
 Also: Kimi's verify-request — should calf pain/swelling join item 10's stop list? YES/NO [verify]
 End with: CONSENSUS: YES/NO (+disputes)
+
+════════════════════════════════════════════
+## ROUND 2 LOG (Fable merge)
+V2: Qwen YES · Kimi YES · GLM NO with ONE exact edit — item 4 self-contradiction it caught in its own r1 edit ("recurrent"→clinician gate vs "any recurrence"→same-day map one client to two actions). Edit applied below; GLM pre-committed to ratify on application.
+ADD-1..4 (concussion, rhabdo, hypoglycemia, heat): 3–0 YES — **PASSED, pending owner approval of scenario texts.**
+2–1 SPLITS: ADD-5 (RED-S check-in) and ADD-6 (standing EAP/AED) — Qwen NO, GLM+Kimi YES. Calf→item-10 stop list — Qwen NO, GLM+Kimi YES[verify].
+
+## CANDIDATE v3 — single change from v2 (everything else stands ratified)
+**4 (final ending):** …A single unexplained episode, or any episode with chest discomfort or palpitations → clinician before the next hard session; any actual fainting (loss of consciousness) or any recurrence → same-day. Documented with date either way.
+
+## ROUND 3 BALLOT — final
+R3-1 Ratify v3's item-4 text above? YES/NO(+exact edit)
+R3-2 ADD-5 RED-S/compulsive-streak check-in. Qwen's dissent: longitudinal behavior coaching, not acute session response — belongs outside an acute-safety key. Majority: an observable behavioral flag (streak surviving illness repeatedly) with a supportive in-scope check-in + referral awareness, deepening item 9. Vote YES/NO — address the OTHER side's argument in one sentence.
+R3-3 ADD-6 standing EAP/AED/meds-readiness preamble. Qwen's dissent: facility compliance, not grading-key content; per-scenario repetition is non-actionable text. Majority: a single standing preamble PREVENTS repetition and matches item 8's existing language. Vote YES/NO — address the other side.
+R3-4 Calf pain/swelling on item 10's stop list. Qwen's dissent: already covered by item 2's clot caution. Rebuttal: item 2 is a knee-trauma context; pregnancy is a hypercoagulable state with independent DVT risk — coverage there is not coverage here. Vote YES/NO[verify] — address the rebuttal.
+End with: CONSENSUS: YES/NO (+any remaining dispute)
