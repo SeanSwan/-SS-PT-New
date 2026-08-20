@@ -1,6 +1,6 @@
 # Brainstorm: Marketing Station on the spare PC
 
-**Date:** 2026-08-20 · **Status:** in-progress · **For:** a dedicated always-on ops box (Ryzen 3600, ~32GB DDR4, SSD, no meaningful GPU)
+**Date:** 2026-08-20 · **Status:** complete (Phase 1 + Phase 2 delivered) · **For:** SWA-70 (SwanGuard → Personal Intelligence Command Center) — the station is its execution surface
 
 ## Summary
 
@@ -166,6 +166,112 @@ would be slow enough to be useless next to the 5090. Do not put a brain on it; p
 - **Implication:** satisfies the "log in and see it work" requirement and the debugging path. But it
   is a *heavy* surface for a 2-minute daily approval task — see Phase 2, which proposes the approval
   queue live somewhere else entirely.
+
+### Q7 (Sean, unprompted — the biggest reframe of the grill): it is a RADAR, not just a marketing box
+
+**Sean's words:** give it **its own Twitter/X account** and other social accounts, so it can *"get
+all the top news first so I can decide what I want to do with it"* across:
+
+| domain | examples he named |
+|---|---|
+| Professional | health, personal training |
+| Interests | gaming, photography |
+| Civic | US politics, world politics |
+| Local — events | concerts, art events, cultural events, "really cool" events in his area |
+| Local — photography subjects | flower shows, flower gardens, nature parks |
+| Family | kids' events, fun stuff for kids |
+| Local — venues | casino line-ups and performing artists (Morongo, Palm Springs area) |
+
+**This reframes the station.** It is primarily an **inbound intelligence radar**; marketing is one
+*consumer* of it, not the whole purpose. Two systems sharing one machine:
+
+- **Radar (inbound):** public news + events + opportunities → ranked → Sean decides. **Pure read.**
+- **Marketing (outbound):** his brand, drafting, approval, posting. **Gated.**
+
+Different jobs, different risk profiles, same hardware and browser.
+
+#### Consequence 1 — this DISSOLVES Phase-2 finding S1
+
+S1 flagged that prospecting collides with Rule 8 (prospect records are PII). **Radar has no prospect
+PII at all** — it reads public news, public event listings, public venue calendars. Making radar
+job #1 instead of prospecting removes the Rule-8 collision from Phase 1 entirely, and defers the
+privacy-proxy design to whenever outbound prospecting actually starts.
+
+**Recommended re-sequencing:** radar becomes job #1; prospecting moves behind the privacy-proxy
+decision.
+
+#### Consequence 2 — 🔴 Rule 12 collision on reading X/Twitter
+
+Hermes's built-in `x_search` toolset is backed by **`grok-4.20-reasoning`** (verified live in
+config). Rule 12 is a hard permanent no on Grok / x-AI. **So the obvious path to "read X" inside
+Hermes is forbidden.**
+
+Note the distinction that matters: *having an X account* is fine. *Using Grok to read X* is not.
+The station must reach X another way — its own logged-in account driven by the browser harness (with
+the ToS caveat GLM raised), an official API path that does not route through Grok, or a third-party
+aggregator. **This needs deciding before X is wired in**, and `moa_policy.banned_providers`
+(`grok`, `x-ai`, `xai`) stays as the guard.
+
+#### Consequence 3 — this is SWA-70, already In Progress
+
+**"SwanGuard → Personal Intelligence Command Center"** is an existing tracked project. This station
+is its **execution surface**, not a new parallel program. The grill should feed SWA-70 rather than
+spawn a competing plan.
+
+#### Why this is a genuinely strong first job
+
+- **Zero credential risk** in Phase 1 (public sources, its own accounts — never Sean's).
+- **Zero PII.** No Rule-8 exposure.
+- **Zero outward action.** Nothing to approve, nothing to ban.
+- **It feeds his actual creative work** — his recorded visual taste is NatGeo-grade nature and
+  wildlife; flower shows, gardens and nature parks are literally photo-subject sourcing for the
+  brand's own visual library, not just leisure.
+- **It has an obvious delivery channel that already exists and was just repaired** — the Morning Ops
+  Briefing. "Top news first" and "a daily briefing at 06:47" are the same product.
+
+### Q8: Must feed SwanGuard AND Hermes — is it compatible?
+
+**Sean:** *"This should feed information into my SwanGuard app... get things coordinated and
+organized and send that data to SwanGuard for it to utilize the files for the APIs."* and
+*"It should be able to feed into my SwanGuard and my Hermes on my desktop."*
+
+**Answer: compatible, and not by luck — SwanGuard was built anticipating exactly this.** Evidence
+from `20260728T002152Z-swanguard-slice1-newsroom-shipped-to-branch.md` (Fable-5, verified session):
+
+| SwanGuard already has | Why it matters to the radar |
+|---|---|
+| A **newsroom** (Slice 1, 14 files under `apps/web/src/newsroom/`) | The consumer surface already exists |
+| A canonical **`StoryNode`** type with **provenance / claims / temporal** fields | **This is the ingest contract.** The radar emits `StoryNode`, not a bespoke format |
+| **`storyService`** boundary — *"UI never touches storage; future MCP layer = thin adapter"* | The integration path was designed in. The radar becomes that adapter's data source |
+| **"Creator RSS"** listed as a remaining pillar, *gated on backend/APIs* | **The radar IS that missing pillar's backend.** It is not new scope — it fills a named gap |
+| Doctrine: *"Evidence-not-oracle… No verdict — you conclude."* | Matches Sean's own words exactly: *"get all the top news first so I **can decide** what I want to do with it"* |
+
+**Architecture: one producer, one canonical type, two consumers.**
+
+```
+   station (radar)                  StoryNode                consumers
+   collect -> dedupe -> rank  ──────────────────►  SwanGuard newsroom (browse, evidence, save)
+                              └─────────────────►  Hermes briefing  (top-N daily digest, 06:47)
+```
+
+- **SwanGuard** gets the full ranked set for browsing, the evidence ledger, and saving.
+- **Hermes** gets the capped top-N as the daily briefing — the Q7 ranking decision.
+- **Neither is a new surface.** Both already exist and both already read a defined shape.
+
+#### ⚠️ Honest dependency
+
+SwanGuard's newsroom is on branch `refactor/shell-rebuild-20260721` — **pushed, NOT merged to main,
+NOT deployed** (Render service was never confirmed watching that branch). Its backend merge was
+still under review on a separate track. So the *consumer* is not live yet.
+
+**This does not block the radar.** Emit `StoryNode` from day one and write to a local store; Hermes
+consumes it immediately via the briefing, and SwanGuard picks it up whenever the newsroom deploys.
+Building to `StoryNode` now is what makes that later connection free instead of a rewrite.
+
+**Build note:** a plain `vite build` with no env resolves to BACKEND mode and renders the *old* app,
+not the newsroom — demo mode needs `VITE_SWANGUARD_API_MODE=demo` +
+`VITE_SWANGUARD_ALLOW_STAGING_DEMO=true`. Recorded so nobody "verifies" the newsroom against a build
+that never contained it.
 
 ## Key Highlights
 
