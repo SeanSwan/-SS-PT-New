@@ -272,9 +272,46 @@ export const stripeWebhookHandler = async (req, res) => {
           break;
         }
 
+        // THE THREE DEAD ENDS BELOW ARE PAID.
+        //
+        // Each of these used to `break` with a log line and nothing else, so
+        // captured money was 200-acked into silence. The alert-the-orphan
+        // convention had been applied to the ACH rail, print, session packages
+        // and the `unfulfillable` path — but not to the cart rail's own dead
+        // ends (GLM-5.3 L1, 2026-08-20). Reachability needs row deletion or
+        // metadata corruption, which is why this is LOW and not HIGH; the cost
+        // of covering it is one alert each.
+        //
+        // All three are TERMINAL: a redelivery cannot conjure a missing cart or
+        // a missing owner, so `break` (200) is right and a rethrow would only
+        // start a retry storm. Alerting is what was missing, not retrying.
+        const alertPaidDeadEnd = async (title, detail, extra = {}) => {
+          logger.error('[Webhook] ' + title, {
+            checkoutSessionId: session.id,
+            cartId,
+            ...extra,
+          });
+          await notifyAdminSafely({
+            title: 'Payment captured but NOT fulfilled — ' + title,
+            message: detail + ' The customer has been charged and has received nothing. '
+              + 'This will not retry — fulfil manually or refund.',
+            data: {
+              type: 'payment_unfulfilled_dead_end',
+              checkoutSessionId: session.id,
+              cartId: cartId ?? null,
+              amountTotalCents: session.amount_total ?? null,
+              actionRequired: 'MANUAL_FULFIL_OR_REFUND',
+              ...extra,
+            },
+          }, '[Webhook]');
+        };
+
         const cartIdNumber = Number.parseInt(cartId, 10);
         if (!Number.isInteger(cartIdNumber) || cartIdNumber <= 0) {
-          logger.error(`[Webhook] Invalid cartId in checkout.session.completed metadata: ${cartId}`);
+          await alertPaidDeadEnd(
+            'checkout metadata carried an unusable cart id',
+            'A paid checkout session named a cart id that is not a positive integer.',
+          );
           break;
         }
 
@@ -282,12 +319,20 @@ export const stripeWebhookHandler = async (req, res) => {
         const cart = await ShoppingCart.findByPk(cartIdNumber);
 
         if (!cart) {
-          logger.error(`Cart with ID ${cartId} not found`);
+          await alertPaidDeadEnd(
+            'the paid cart no longer exists',
+            'A paid checkout session named a cart that could not be found.',
+            { cartId: cartIdNumber },
+          );
           break;
         }
 
         if (!cart.userId) {
-          logger.error(`[Webhook] Cart ${cartIdNumber} has no userId; cannot grant sessions`);
+          await alertPaidDeadEnd(
+            'the paid cart has no owner',
+            'A paid cart carries no userId, so nothing can be granted to anyone.',
+            { cartId: cartIdNumber },
+          );
           break;
         }
 

@@ -211,3 +211,80 @@ describe('session-package checkouts are fulfilled by the webhook, not only by th
     });
   });
 });
+
+/**
+ * GLM-5.3 L1 — three paid dead ends on the cart rail that only logged.
+ *
+ * A cart named by a paid session can be missing, ownerless, or named by
+ * unusable metadata. Each `break`s with a 200, which is CORRECT (a redelivery
+ * cannot conjure a missing cart), but each did so in silence while the money
+ * was already captured. Every sibling rail alerts; this one did not.
+ *
+ * Behavioural, not source-text: mutation proved this round that a source guard
+ * cannot tell `if (x)` from `if (false && x)`.
+ */
+describe('paid dead ends on the cart rail are never silent', () => {
+  const cartSession = (over = {}) => ({
+    id: 'cs_test_cart_1',
+    payment_status: 'paid',
+    amount_total: 506000,
+    metadata: { cartId: '42', userId: '3', totalSessions: '8', source: 'genesis_checkout' },
+    ...over,
+  });
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.mockStripeClient.webhooks.constructEvent.mockImplementation(() => mocks.currentEvent);
+  });
+
+  it('alerts when the paid cart no longer exists', async () => {
+    mocks.currentEvent = { type: 'checkout.session.completed', data: { object: cartSession() } };
+
+    const response = await post();
+
+    expect(response.status).toBe(200);
+    const admin = adminNotifications();
+    expect(admin.length).toBeGreaterThan(0);
+    expect(admin[0].data?.actionRequired).toBe('MANUAL_FULFIL_OR_REFUND');
+  });
+
+  it('alerts when the cart id in metadata is unusable', async () => {
+    mocks.currentEvent = {
+      type: 'checkout.session.completed',
+      data: { object: cartSession({ metadata: { cartId: 'not-a-number', userId: '3' } }) },
+    };
+
+    const response = await post();
+
+    expect(response.status).toBe(200);
+    expect(adminNotifications().length).toBeGreaterThan(0);
+  });
+
+  it('alerts when the paid cart has no owner', async () => {
+    // Cart row exists but carries no userId — nothing can be granted to anyone.
+    const ShoppingCart = (await import('../../models/ShoppingCart.mjs')).default;
+    ShoppingCart.findByPk.mockResolvedValue({ id: 42, userId: null });
+
+    mocks.currentEvent = { type: 'checkout.session.completed', data: { object: cartSession() } };
+
+    const response = await post();
+
+    expect(response.status).toBe(200);
+    expect(adminNotifications().length).toBeGreaterThan(0);
+  });
+
+  it('does NOT alert when the cart resolves normally', async () => {
+    const ShoppingCart = (await import('../../models/ShoppingCart.mjs')).default;
+    ShoppingCart.findByPk.mockResolvedValue({ id: 42, userId: 3 });
+    mocks.mockGrantSessionsForCart.mockResolvedValue({
+      granted: true, sessionsAdded: 8, alreadyProcessed: false,
+    });
+
+    mocks.currentEvent = { type: 'checkout.session.completed', data: { object: cartSession() } };
+    await post();
+
+    const deadEnd = adminNotifications()
+      .filter((a) => a?.data?.type === 'payment_unfulfilled_dead_end');
+    expect(deadEnd).toHaveLength(0);
+  });
+});

@@ -247,7 +247,21 @@ router.post('/create-intent', protect, checkoutSessionLimiter, async (req, res) 
         if (!dbItem) {
           acc.push({ id: clientItem.storefrontItemId, name: clientItem.name || 'Unavailable Item', expectedPrice: clientItem.price, actualPrice: 0, delta: -clientItem.price, status: 'REMOVED' });
         } else if (Number(dbItem.price) !== clientItem.price) {
-          acc.push({ id: dbItem.id, name: dbItem.name, expectedPrice: clientItem.price, actualPrice: Number(dbItem.price), delta: Number(dbItem.price) - clientItem.price, status: 'PRICE_CHANGED' });
+          // Advisory payload only, but it must agree with the authoritative
+          // comparison beside it, which uses resolveUnitPrice. Reading
+          // `dbItem.price` alone reported actualPrice: 0 for every
+          // totalCost-only package — telling the customer the item now costs
+          // nothing while the real check correctly refused the mismatch
+          // (Kimi K3 L3-class / GLM-5.3 L3, 2026-08-20). An unpriceable row
+          // falls back to 0 rather than throwing: this is a 409 explanation,
+          // not a gate, and it must never be the thing that 500s a response.
+          let advisoryPrice = 0;
+          try {
+            advisoryPrice = resolveUnitPrice(dbItem).toNumber();
+          } catch {
+            advisoryPrice = 0;
+          }
+          acc.push({ id: dbItem.id, name: dbItem.name, expectedPrice: clientItem.price, actualPrice: advisoryPrice, delta: advisoryPrice - clientItem.price, status: 'PRICE_CHANGED' });
         }
         return acc;
       }, []);
