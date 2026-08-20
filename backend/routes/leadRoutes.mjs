@@ -148,12 +148,18 @@ router.get('/stats', async (req, res) => {
     // tell "3 trainers" from "3 trainers in the most recent 5000" will eventually misread one as
     // the other. Callers should render the qualifier whenever `sampled` is true.
     //
-    // Compared against `total` (already counted above), NOT against the cap. My first version was
-    // `channelRows.length >= STATS_SAMPLE_CAP`, which cries "sampled" when the table holds EXACTLY
-    // 5000 matching rows and the breakdown is in fact complete. A reviewer proposed this exact form
-    // and I implemented the weaker one anyway; the off-by-one showed up when I went back and tested
-    // the boundary. Comparing to the real total is also self-correcting if the cap ever changes.
-    const sampled = total > channelRows.length;
+    // BOTH conditions, and the order matters.
+    //
+    // The cap check is the authority: if the fetch came back UNDER the cap, it returned everything
+    // matching at fetch time, so the breakdown is complete no matter what `total` says. The `total`
+    // check then kills the off-by-one at exactly 5000 matching rows, where a bare cap comparison
+    // would cry "sampled" over complete data.
+    //
+    // Two earlier versions were each wrong in one direction. `rows >= CAP` alone over-warns at
+    // exactly the cap. `total > rows` alone over-warns whenever a lead is deleted between the count
+    // and the fetch — they are separate queries, NOT one transaction, so `total` can legitimately
+    // exceed `rows` on an uncapped fetch. Gating on the cap first makes that race unobservable.
+    const sampled = channelRows.length >= STATS_SAMPLE_CAP && total > channelRows.length;
 
     return res.json({
       success: true,
