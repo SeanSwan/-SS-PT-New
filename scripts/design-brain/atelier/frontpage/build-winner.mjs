@@ -33,6 +33,21 @@ const l = { sky: '#04060E', deep: '#010204', warm: '#C6A84B', cool: '#8B5CF6', i
    by "silver metal"; the current button pulses instead, which is the "cartoony" one.
    Palette below is byte-for-byte from the recovered file. NOTE: primary/neonBlue carry
    Galaxy-Swan cyan (#00FFFF), which CLAUDE.md retires — flagged, not silently shipped. */
+// The twelve metallic ramps, shared with build-buttonlab.mjs so the button he picks in the lab is
+// the button this page renders. SEAN'S PICK (delegated to me 2026-08-20: "the colors that you
+// recommend too as well... based off the ones that we have"):
+//
+//   primary CTA  = babyBlue  (Ice Wing  #60C0F0) — the brand's accent/glow cyan
+//   second CTA   = purple    (Wing Purple #8B5CF6) — the brand's glow accent
+//   premium      = gilded    (Gilded Fern #C6A84B) — luxury moments only
+//
+// These three are the only members of the twelve that are ALREADY brand tokens; the other nine
+// are hues I authored. The Dual-Button Glow rule (CLAUDE.md) pairs the first two by name — blue
+// background glows purple, purple background glows cyan — so they are not merely compatible, they
+// are each other's documented partner. Arctic Cyan #50A0F0 is deliberately NOT used: it is a
+// data/chart-only token and is banned from buttons and glow.
+import { METALLIC } from './palette-metallic.mjs';
+
 const GLOW_ORIGINAL = {
   primary:  { bg: '#041e2e', shineL: 'rgba(0,160,227,0.5)',  shineR: 'rgba(0,255,255,0.65)',   gs: '#00A0E3', ge: '#00FFFF', note: 'original "primary" — Galaxy-Swan cyan (RETIRED token)' },
   neonBlue: { bg: '#001122', shineL: 'rgba(0,136,255,0.6)',  shineR: 'rgba(0,200,255,0.8)',    gs: '#0088FF', ge: '#00C8FF', note: 'electric blue' },
@@ -52,7 +67,7 @@ function glowBtn(key, t, label, w = 200) {
   return `<div style="position:relative;display:inline-block;">
     <div style="position:absolute;inset:-10px;border-radius:16px;background:linear-gradient(90deg,${t.gs},${t.ge});filter:blur(20px);opacity:0.55;"></div>
     <div style="position:relative;width:${w}px;min-height:48px;border-radius:14px;background:${t.bg};overflow:hidden;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 22px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.10);">
-      <span style="position:absolute;left:-20%;top:-60%;width:140%;height:220%;background:linear-gradient(90deg,${t.shineL},${t.shineR});transform:rotate(18deg);opacity:0.55;"></span>
+      <span style="position:absolute;left:-20%;top:-60%;width:140%;height:220%;background:${t.shine || `linear-gradient(90deg,${t.shineL},${t.shineR})`};transform:rotate(18deg);opacity:${t.shine ? '0.68' : '0.55'};"></span>
       <span style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,0.16),rgba(255,255,255,0) 42%);"></span>
       <span style="position:relative;color:#fff;font-weight:700;font-size:14.5px;letter-spacing:0.02em;">${label}</span>
     </div>
@@ -221,8 +236,8 @@ ${stage(640, [
       <h1 style="font-size:64px;line-height:1.0;font-weight:800;letter-spacing:-0.02em;text-shadow:0 0 34px ${l.cool}77;">${esc(C.headline)}</h1>
       <p style="margin:0;font-size:20px;line-height:1.5;color:#E6DDF6;font-weight:500;max-width:50ch;">${esc(C.sub)}</p>
       <div style="display:flex;gap:14px;align-items:flex-start;">
-        ${glowBtn('cosmic', GLOW_ORIGINAL.cosmic, esc(C.cta_primary), 220)}
-        ${glowBtn('chrome', GLOW_EXTRA.chrome, esc(C.cta_secondary), 200)}
+        ${glowBtn('babyBlue', METALLIC.babyBlue, esc(C.cta_primary), 220)}
+        ${glowBtn('purple', METALLIC.purple, esc(C.cta_secondary), 200)}
       </div></div>` },
 ])}
 
@@ -256,10 +271,10 @@ ${glowChooser()}
     <a href="#" style="display:flex;flex-direction:column;gap:8px;padding:26px;border-radius:16px;background:#002060;text-decoration:none;color:${l.ink};box-shadow:0 0 28px rgba(139,92,246,0.32);min-height:44px;">
       <div style="font-size:22px;font-weight:700;">${esc(C.cta_secondary)}</div>
       <div style="font-size:13px;color:#B9CBDC;">Browse real trainers and creators before you sign up.${NEW}</div></a>
-    <a href="#" style="display:flex;flex-direction:column;gap:8px;padding:26px;border-radius:16px;background:#3B1E7A;text-decoration:none;color:${l.ink};box-shadow:0 0 28px rgba(96,192,240,0.30);min-height:44px;">
+    <a href="/contact?intent=trainer" style="display:flex;flex-direction:column;gap:8px;padding:26px;border-radius:16px;background:#3B1E7A;text-decoration:none;color:${l.ink};box-shadow:0 0 28px rgba(96,192,240,0.30);min-height:44px;">
       <div style="font-size:22px;font-weight:700;">Build your practice here${NEW}</div>
       <div style="font-size:13px;color:#D9CBF0;">Bring your clients. Keep your business. One email to start.${NEW}</div></a></div>
-  <div style="font-size:11px;color:${l.warm};">&#9888; The second door has no destination yet &mdash; /trainers capture funnel is a hard dependency (F5).</div>
+  <div style="font-size:11px;color:${l.warm};">The second door lands on <span style="font-family:'Fira Code',monospace;">/contact?intent=trainer</span> &mdash; a live, intent-tagged destination that already exists (ContactV3 reads the intent and prefills &ldquo;Trainer inquiry&rdquo;; the lead is now tagged <span style="font-family:'Fira Code',monospace;">prism:intent:trainer</span> in the CRM). A dedicated <span style="font-family:'Fira Code',monospace;">/trainers</span> page is option B, not a blocker. It must end in a LEAD, never an account &mdash; public trainer self-registration is forbidden and locked by a contract test.</div>
 </section>
 
 ${swanFooter()}`;

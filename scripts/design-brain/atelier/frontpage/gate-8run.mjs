@@ -139,6 +139,34 @@ for (const f of FILES) {
 }
 
 
+// 4d — SEAN'S BUTTON PICK + the fork's destination. He delegated the colour choice on 2026-08-20
+//      ("the colors that you recommend... based off the ones that we have"), so the pick is now a
+//      test rather than a memory — the same treatment his spoken colour list already gets below.
+//      Asserted against the RENDERED html, never the generator's constants (Law 3).
+console.log(String.fromCharCode(10) + '── BUTTON PICK + FORK DESTINATION ──');
+for (const f of FILES) {
+  const src = read(f).toLowerCase();
+  const iceWing = src.includes('#60c0f0');   // Ice Wing — primary CTA, brand accent/glow cyan
+  const wingPurple = src.includes('#8b5cf6'); // Wing Purple — second CTA, its documented glow partner
+  // Arctic Cyan is a DATA/CHART-ONLY token (CLAUDE.md) and is banned from buttons and glow.
+  // Checked on the button surface specifically: its presence anywhere in a CTA ramp is a defect.
+  const arcticLeak = src.includes('#50a0f0');
+  // The trainer door must point at a real, intent-carrying destination. `href="#"` here means the
+  // highest-value click on the page goes nowhere; the stale "no destination yet" note must be gone.
+  //
+  // Assert the HREF ATTRIBUTE, not the bare string. The first version of this check searched for
+  // `/contact?intent=trainer` anywhere in the document and passed while the door was reverted to
+  // href="#" — because the explanatory note printed BELOW the doors names the same path. The test
+  // was matching my own prose about the door instead of the door. A regression-injection run is
+  // the only reason that surfaced; the check had looked correct and reported ok.
+  const doorWired = /href="\/contact\?intent=trainer"/.test(src);
+  const staleNote = src.includes('no destination yet');
+  const ok = iceWing && wingPurple && doorWired && !arcticLeak && !staleNote;
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${f.padEnd(20)} iceWing=${iceWing} wingPurple=${wingPurple} trainerDoor=${doorWired} arcticCyanLeak=${arcticLeak} staleF5Note=${staleNote}`);
+  if (!ok) fail++;
+}
+
+
 // 6 - BUTTON LAB: the recovered glow button's MECHANISM must survive, not just its colours.
 //     Handoff Law 4: values matching is not the thing matching.
 if (fs.existsSync(path.join(here, LAB))) {
