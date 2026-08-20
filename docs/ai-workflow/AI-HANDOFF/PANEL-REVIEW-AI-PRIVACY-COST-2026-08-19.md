@@ -2,7 +2,7 @@
 title: "Panel review — AI privacy/cost workstream (GLM + Kimi, multi-round)"
 date: 2026-08-19
 author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 and Kimi K3 (round count derivable from the `# Round N` headings)
-decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Record-grading rounds found a defect in THIS DOCUMENT every time they ran; each is labelled C<N> at its site, so the total is DERIVED by counting C-labels, not stored (C35 - a stored total went stale on append four times: C21, C29, C34, and again here). ROUND ROSTER is likewise derived: the set of N in every `(Round N)` C-label annotation and every `# Round N` heading (C36 - the earlier rule said "count Round headings", which cannot work because several rounds are recorded only as inline C-labels). READ EVERY `# Round N` SECTION FROM ROUND 4 ONWARD, IN ORDER, BEFORE THE BODY - they supersede body claims, and the Round 7 section holds the only evidence for the 6-of-7 figure. Per-round Kimi spend is recorded in the round sections; no running total is stored (C36 - spend is append-volatile and C27 had already classed it with the counts)."
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Record-grading rounds found a defect in THIS DOCUMENT every time they ran; each is labelled C<N> at its site, so the total is DERIVED by counting C-labels, not stored (C35 - a stored total went stale on append four times: C21, C29, C34, and again here). ROUND ROSTER is likewise derived, by this EXACT rule (C37): the set of every integer N matching `^# Rounds? N` OR `^# Rounds N and M` (both captured) OR the annotation `(Round N)`. The rule is stated in the form it is executed in - C36 stated a narrower rule than its own script ran, and the script silently covered the plural heading the rule did not mention. READ EVERY `# Round N` SECTION FROM ROUND 4 ONWARD, IN ORDER, BEFORE THE BODY - they supersede body claims, and the Round 7 section holds the only evidence for the 6-of-7 figure. Per-round Kimi spend is recorded in the round sections; no running total is stored (C36 - spend is append-volatile and C27 had already classed it with the counts)."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
@@ -812,3 +812,22 @@ counts. Per-round spend now lives in the round sections; no running total is sto
 
 *(Fifth remake. What finally distinguishes a working fix from a failing one in this record is
 whether the rule was **executed** before being announced. C35 asserted a derivation; C36 ran it.)*
+
+**C37 (Round 18)** — the stated rule and the executed rule were not the same rule. C36 said the
+roster derives from "`# Round N` headings and `(Round N)` annotations", but the section covering
+Rounds 9 and 10 is headed `# Rounds 9 and 10` — a **plural, two-number** form the stated rule does
+not match — and its labels (C20–C22) carry no `(Round N)` annotation, so those two rounds resolve
+through neither stated mechanism. My verification nonetheless reported the full roster, because the
+**script** included a plural-heading pattern the **prose** never mentioned.
+
+**So the execution did not verify the stated rule; it verified a more generous one I had written and
+not described.** That is a sharper version of the class: not a fix narrower than its claim, but a
+*check broader than the rule it was checking*, which is the same defect wearing the opposite sign
+and is strictly harder to see — a passing check is not interrogated.
+
+C36's supporting premise was also false: **"every C-label carries a `(Round N)` annotation"** holds
+for 8 of 36, not all of them.
+
+**Fixed by stating the rule in exactly the form it executes**, plural-heading branch included, and
+re-running it. The derivation and its output are below; if a future append breaks it, the check
+fails loudly instead of quietly succeeding.
