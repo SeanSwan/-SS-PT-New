@@ -1,8 +1,8 @@
 ---
-title: "Panel review — AI privacy/cost workstream (GLM x14 + Kimi x2)"
+title: "Panel review — AI privacy/cost workstream (GLM x15 + Kimi x2)"
 date: 2026-08-19
-author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (14 rounds) and Kimi K3 (2 rounds)
-decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-14 graded THIS RECORD and found 33 defects in it (C1-C33). Kimi spend $0.24; GLM subscription, including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7, 8 AND 9/10 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
+author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (15 rounds) and Kimi K3 (2 rounds)
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-14 graded THIS RECORD and found 34 defects in it (C1-C34). Kimi spend $0.24; GLM subscription, including a FALSE premise inside the merge-order rationale (struck, C9). READ EVERY `# Round N` SECTION FROM ROUND 4 ONWARD, IN ORDER, BEFORE THE BODY - they supersede body claims, and the Round 7 section holds the only evidence for the 6-of-7 figure. (C34: this pointer used to enumerate specific rounds and went stale every time a section was appended - most recently omitting Rounds 12-14. Enumerations of a growing set cannot be kept current; a rule over the set can.)"
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
@@ -762,3 +762,21 @@ superseded text, which are correct and must stay. **One was a live current-state
 counts. This is the first time the count-class was caught by my own check rather than by a reviewer,
 and the only reason is that the check was rewritten to classify by *framing* instead of matching a
 pattern.
+
+**C34 (Round 15)** — the read-first pointer enumerated specific round sections and had gone stale
+again, omitting Rounds 12, 13 and 14 — **inside the same decision line C29 had just reconciled.**
+C19 set the precedent of extending it; extending an enumeration is what guarantees the next
+staleness. Replaced with a rule over the set ("every `# Round N` section from 4 onward"), which
+cannot go stale when a section is appended.
+
+**This is the third time a fix of this class has had to be re-made structurally** (C25 de-counted a
+section, C27 confined counts to one site, C34 replaced an enumeration with a rule). The pattern is
+consistent and worth stating once: **in a document that grows by appending, any sentence that lists
+its own parts is a defect with a delay fuse.** The only stable forms are rules that quantify over
+the parts.
+
+*(Also recorded, per the instrument-error discipline this workstream already earned: Round 15's
+first attempt returned an EMPTY response after consuming its entire 32,000-token output budget on
+reasoning. That is instrument failure, not a dry verdict, and reading it as "nothing found" would
+have been the same error class as the 319-failed-files run the original handoff warns about. Re-run
+with a forced-brevity remit, which answered in 250 words.)*
