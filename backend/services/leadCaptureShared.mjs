@@ -73,11 +73,41 @@ export const CAPTURE_INTENTS = Object.freeze(['book', 'trainer', 'spectrum']);
  * forbidden outright and locked by trainerRecruitmentLinks.contract.test.ts. Allowlisted here
  * so an arbitrary query string can never become an arbitrary tag in the CRM.
  */
+export const INTENT_TAG_PREFIX = 'prism:intent:';
+
 export const intentTag = (intent) => (
   typeof intent === 'string' && CAPTURE_INTENTS.includes(intent)
-    ? `prism:intent:${intent}`
+    ? `${INTENT_TAG_PREFIX}${intent}`
     : null
 );
+
+/**
+ * Tally leads by declared intent — "how many trainers actually knocked".
+ *
+ * Mirrors aggregateLeadChannels and runs over the SAME rows that endpoint already fetched, so it
+ * costs no extra query. Without this the intent tag is technically queryable and practically
+ * invisible: answering "how many trainers came through this month" would mean hand-writing JSONB
+ * SQL, which is the same friction that made the old free-text marker useless.
+ *
+ * DELIBERATELY UNLIKE the channel tally: an untagged lead is skipped rather than bucketed under a
+ * default. Channels have a meaningful fallback ('direct' — everyone arrived somehow); intent does
+ * not. Most leads declare none, and folding them into a catch-all would swamp the real signal and
+ * make the trainer count look like noise in a bucket of thousands.
+ */
+export const aggregateLeadIntents = (rows = []) => {
+  const acc = {};
+  for (const row of (Array.isArray(rows) ? rows : [])) {
+    const tags = Array.isArray(row?.tags) ? row.tags : [];
+    const tag = tags.find((t) => typeof t === 'string' && t.startsWith(INTENT_TAG_PREFIX));
+    if (!tag) continue;
+    const intent = tag.slice(INTENT_TAG_PREFIX.length);
+    if (!intent) continue; // a bare "prism:intent:" is malformed, not a bucket
+    if (!acc[intent]) acc[intent] = { intent, count: 0, converted: 0 };
+    acc[intent].count += 1;
+    if (row?.status === 'converted') acc[intent].converted += 1;
+  }
+  return Object.values(acc).sort((a, b) => b.count - a.count);
+};
 
 // --- Acquisition-channel attribution -----------------------------------------
 // Normalize a marketing channel from utm params / referrer so every lead records

@@ -7,7 +7,7 @@
 import express from 'express';
 import { Op } from 'sequelize';
 import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
-import { aggregateLeadChannels } from '../services/leadCaptureShared.mjs';
+import { aggregateLeadChannels, aggregateLeadIntents } from '../services/leadCaptureShared.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -130,12 +130,14 @@ router.get('/stats', async (req, res) => {
     // fine at early-stage volume; move to a JSONB SQL aggregation past the cap.
     const channelRows = await Lead.findAll({ where, attributes: ['tags', 'source', 'status'], limit: 5000 });
     const byChannel = aggregateLeadChannels(channelRows);
+    // Same rows, second lens: which door the lead came through (prism:intent:*). Free — no extra query.
+    const byIntent = aggregateLeadIntents(channelRows);
 
     return res.json({
       success: true,
       stats: {
         total, new: newLeads, contacted, qualified, scheduled, converted, lost,
-        conversionRate, needsFollowUp, hotLeads, byChannel,
+        conversionRate, needsFollowUp, hotLeads, byChannel, byIntent,
       },
     });
   } catch (err) {

@@ -5,7 +5,7 @@
  * non-PII marketing signals (rule 8).
  */
 import { describe, expect, it } from 'vitest';
-import { deriveChannel, channelToLeadSource, channelTags, aggregateLeadChannels, intentTag, CAPTURE_INTENTS } from '../services/leadCaptureShared.mjs';
+import { deriveChannel, channelToLeadSource, channelTags, aggregateLeadChannels, intentTag, CAPTURE_INTENTS, aggregateLeadIntents } from '../services/leadCaptureShared.mjs';
 
 describe('deriveChannel', () => {
   it('reads utm_source and normalizes case + aliases', () => {
@@ -147,5 +147,54 @@ describe('CAPTURE_INTENTS', () => {
 
   it('is frozen, so no caller can mutate the shared vocabulary at runtime', () => {
     expect(Object.isFrozen(CAPTURE_INTENTS)).toBe(true);
+  });
+});
+
+describe('aggregateLeadIntents', () => {
+  const rows = [
+    { tags: ['contact-form', 'channel:youtube', 'prism:intent:trainer'], status: 'new' },
+    { tags: ['contact-form', 'prism:intent:trainer'], status: 'converted' },
+    { tags: ['contact-form', 'prism:intent:book'], status: 'new' },
+    { tags: ['contact-form', 'channel:tiktok'], status: 'new' },
+    { tags: null, status: 'new' },
+    { tags: ['prism:intent:'], status: 'new' },
+    { status: 'new' },
+  ];
+
+  it('tallies each declared intent and its conversions', () => {
+    const out = aggregateLeadIntents(rows);
+    expect(out).toEqual([
+      { intent: 'trainer', count: 2, converted: 1 },
+      { intent: 'book', count: 1, converted: 0 },
+    ]);
+  });
+
+  it('skips leads with no intent rather than bucketing them', () => {
+    // Deliberately unlike the channel tally, which defaults to 'direct'. Most leads declare no
+    // intent; a catch-all bucket would swamp the trainer count and make real signal look like noise.
+    const out = aggregateLeadIntents(rows);
+    expect(out.reduce((n, r) => n + r.count, 0)).toBe(3); // 7 rows in, only 3 declared an intent
+    expect(out.some((r) => !r.intent)).toBe(false);
+  });
+
+  it('survives malformed and missing tag shapes without throwing', () => {
+    expect(aggregateLeadIntents([{ tags: ['prism:intent:'], status: 'new' }])).toEqual([]);
+    expect(aggregateLeadIntents([])).toEqual([]);
+    expect(aggregateLeadIntents()).toEqual([]);
+    expect(aggregateLeadIntents(null)).toEqual([]);
+    expect(aggregateLeadIntents([{ tags: 'not-an-array' }])).toEqual([]);
+  });
+
+  it('sorts busiest intent first', () => {
+    expect(aggregateLeadIntents(rows)[0].intent).toBe('trainer');
+  });
+
+  it('agrees with intentTag — what capture writes is what the tally reads', () => {
+    // The regression this pins: if either side's prefix changes independently, leads keep being
+    // tagged and the count silently drops to zero. Same failure the free-text marker had.
+    const written = intentTag('trainer');
+    expect(aggregateLeadIntents([{ tags: [written], status: 'new' }])).toEqual([
+      { intent: 'trainer', count: 1, converted: 0 },
+    ]);
   });
 });
