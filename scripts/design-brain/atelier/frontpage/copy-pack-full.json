@@ -274,7 +274,9 @@
     {
       "id": "cta-tension",
       "issue": "The original atelier brief said 'book a consultation' was the single action. The live page's CTAs are 'Join the Community' / 'Find a Trainer'. All built designs use the live pair.",
-      "owner": "Sean — still unresolved from the deep grill."
+      "owner": "Sean — still unresolved from the deep grill.",
+      "status": "RESOLVED 2026-08-20 by Sean (grill batch 2)",
+      "resolution": "Hero keeps the live pair: \"Join the Community\" + \"Find a Trainer\" (dual-button glow law). Page order: community-first with a trainer fast lane below the fold."
     },
     {
       "id": "ownership-claim",
