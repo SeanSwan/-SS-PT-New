@@ -4,7 +4,9 @@
 >
 > Sean, same day: *"I wanted to go ahead and choose c, your recommendation, and everything else you recommend as well as the colors that you recommend too as well."*
 >
-> **Shipped:** the contact API now carries the declared intent, so a trainer inquiry lands in the CRM tagged **`prism:intent:trainer`** instead of only as prose in `Lead.notes`. Both contact forms send it; the vocabulary has one definition shared by both public funnels; the value is allowlisted server-side. The new page's second door is wired to `/contact?intent=trainer` and the gate now fails if it regresses.
+> **Shipped:** the contact API now carries the declared intent, so a trainer inquiry lands in the CRM tagged **`prism:intent:trainer`** instead of only as prose in `Lead.notes`. Both contact forms send it; the vocabulary has one definition shared by both public funnels; the value is allowlisted server-side. `GET /api/leads/stats` returns a **`byIntent`** tally beside the existing `byChannel` one, computed from rows that endpoint already fetches — so the count is free, not a new query. The new page's second door is wired to `/contact?intent=trainer` and the gate fails if it regresses.
+>
+> **One inch short, deliberately.** No UI renders `byIntent` yet. `MarketingCommandOverview.tsx` already fetches this exact response and already renders `byChannel` in the same shape, so the tile is a small mirror — but it is a design-placement call in a file near the 300-line cap, and building it blind is the failure this project keeps paying for. **That is the recommended next slice**, not an oversight.
 >
 > **Not** done, deliberately: option **A** (no live UX change — he chose C) and option **B** (`/trainers` page — still gated on his approval of a build). `HomePage.V4` untouched.
 >
