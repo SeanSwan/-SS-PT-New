@@ -33,6 +33,7 @@ import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { checkoutSessionLimiter, paymentVerifyLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';
+import { findUnpriceableCheckoutLine } from '../services/checkoutLinePriceGuard.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 // 🎯 P0 FIX: Use coordinated model getters to prevent race condition
 import { getShoppingCart, getCartItem, getStorefrontItem, getProductVariant, getUser } from '../models/index.mjs';
@@ -484,6 +485,30 @@ router.post('/create-checkout-session', protect, checkoutSessionLimiter, checkSt
         success: false,
         message: 'Your cart needs to be refreshed before checkout. Please reload the store and try again.',
         error: { code: 'CART_ITEM_QUANTITY_INVALID' }
+      });
+    }
+
+    // The PRICE analogue of the gate above. That gate's own reasoning — never
+    // charge for a line the buyer's displayed total did not include — applied
+    // just as much to price, and price had no gate: `toMoneyNumber` turned a
+    // null / non-numeric / zero price into 0 and charged it, while the sessions
+    // were granted in full (GLM-5.3 M3, 2026-08-19).
+    //
+    // This validates the SNAPSHOT rather than re-resolving from the catalog on
+    // purpose: re-pricing mid-checkout would move the amount out from under the
+    // total the buyer was shown, which is the same invariant read backwards.
+    const unpriceableLine = findUnpriceableCheckoutLine(cart.cartItems);
+    if (unpriceableLine) {
+      logger.error('[v2 Payment] Refusing checkout: cart item price is not chargeable', {
+        cartId: cart.id,
+        cartItemId: unpriceableLine.cartItemId,
+        storefrontItemId: unpriceableLine.storefrontItemId,
+        priceType: unpriceableLine.rawPrice,
+      });
+      return res.status(unpriceableLine.status).json({
+        success: false,
+        message: unpriceableLine.message,
+        error: { code: unpriceableLine.code },
       });
     }
 

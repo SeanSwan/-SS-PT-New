@@ -48,7 +48,27 @@ export function validateCheckoutStockAvailability(cartItems = []) {
     // enforce isActive at purchase time; the cart rail enforced it only at ADD
     // time, which left this the only gate — and it was not checking.
     // Retiring an item is how a revoked deal is killed, so this must bind here.
-    if (item?.storefrontItem?.isActive === false || item?.productVariant?.isActive === false) {
+    //
+    // ABSENCE is not the same as inactive. `item?.storefrontItem?.isActive ===
+    // false` yields `undefined === false` -> false when the catalog row was
+    // DELETED after add-to-cart, so a deleted item sailed through. The grant
+    // side deliberately tolerates a missing catalog record
+    // (`catalogRecordMissing`), which made such an item not just purchasable
+    // but fulfillable, from a stale cart, at its snapshot price. `isActive:
+    // false` was handled; row-absence was the unhandled state (Kimi K3 M3,
+    // 2026-08-19).
+    //
+    // A variant is only REQUIRED when the line claims one: `productVariantId`
+    // set with no `productVariant` loaded means the variant row is gone. A line
+    // that never had a variant is not missing anything.
+    const catalogRowMissing = !item?.storefrontItem
+      || (Boolean(item?.productVariantId) && !item?.productVariant);
+
+    if (
+      catalogRowMissing
+      || item?.storefrontItem?.isActive === false
+      || item?.productVariant?.isActive === false
+    ) {
       return {
         code: CHECKOUT_ITEM_UNAVAILABLE_CODE,
         status: 409,
