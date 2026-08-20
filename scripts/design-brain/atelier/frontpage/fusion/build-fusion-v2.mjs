@@ -3,11 +3,11 @@
  * build-fusion-v2.mjs — the three fusions refactored against three reference sites.
  *
  * Sean 2026-08-20 gave three Mobbin references and asked which ideas we are NOT
- * using. Verified visually via the Mobbin MCP: Shopify Editions and Busy Bee Honey.
- * "Shader" could not be located on Mobbin — the closest verified shader-family
- * artefact was Framer's Liquid Gradient panel (seed/speed/scale/amplitude/
- * frequency/definition/bands/noise), used as the substitute and labelled as such
- * in-artboard. Nothing here is invented from a slug.
+ * using. All THREE verified visually via the Mobbin MCP: Shopify Editions,
+ * Busy Bee Honey and Shader (Norrkoping). My first three queries missed Shader
+ * and I shipped Framer's Liquid Gradient as a labelled substitute; Sean told me
+ * to go back to the MCP and the fourth query found it, so F3 is now derived from
+ * the real page. Nothing here is invented from a URL slug.
  *
  * Borrowed, one cluster per board so the three stay genuinely different:
  *
@@ -22,9 +22,11 @@
  *      map) · trace-your-session provenance · labelled waypoint cards ·
  *      giant footer wordmark · loader-as-content
  *
- *   F3 THE LIQUID MILE     <- shader family (Framer Liquid Gradient)
- *      the harbour->mile transform expressed as ONE parametrised field with
- *      its controls made visible · chrome display type
+ *   F3 THE SIGNAL          <- Shader (Norrkoping)
+ *      warm-cream serif GLOWING out of volumetric fog · the swans frame as the
+ *      hero object inside the haze · instructional microcopy with pointing
+ *      hands · ironic institutional chrome: laurel seals carrying Sean's REAL
+ *      credentials (26+ years, NASM-protocol — never "certified")
  *
  * Everything the kill pass fixed is still asserted by gate-fusion-v2.mjs:
  * Sean's header byte-identical, real Swans.mp4 frame hero, >=2 MiniMax H3 movie
@@ -294,13 +296,13 @@ function flightPath() {
   // the swan travelling it. This IS the map — the answer to F2's "no rail" flaw.
   const thread = (h, d, markAt) => `
     <svg viewBox="0 0 1280 ${h}" width="1280" height="${h}" style="position:absolute;inset:0;pointer-events:none;" aria-hidden="true">
-      <path d="${d}" fill="none" stroke="${T.gold}" stroke-width="1.4" stroke-dasharray="7 9" opacity="0.75"/>
+      <path d="${d}" fill="none" stroke="${T.gold}" stroke-width="1" stroke-dasharray="7 9" opacity="0.75"/>
       ${markAt ? `<circle cx="${markAt[0]}" cy="${markAt[1]}" r="5" fill="${T.gold}"/>` : ''}
     </svg>`;
 
   const waypoint = (n, label) => `
     <div style="display:flex;align-items:center;gap:9px;">
-      <span style="width:20px;height:20px;border-radius:50%;border:1px dashed ${T.gold};color:${T.gold};
+      <span style="width:20px;height:20px;border-radius:50%;border:1px dashed rgba(96,192,240,0.55);color:${T.ice};
         font-size:10px;display:flex;align-items:center;justify-content:center;">${n}</span>
       <span style="font-size:10px;letter-spacing:0.2em;color:#8FA8C8;">${label}</span>
     </div>`;
