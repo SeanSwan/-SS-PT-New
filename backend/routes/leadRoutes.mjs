@@ -147,7 +147,13 @@ router.get('/stats', async (req, res) => {
     // to remove (a number that quietly stops being true and says nothing). A consumer that cannot
     // tell "3 trainers" from "3 trainers in the most recent 5000" will eventually misread one as
     // the other. Callers should render the qualifier whenever `sampled` is true.
-    const sampled = channelRows.length >= STATS_SAMPLE_CAP;
+    //
+    // Compared against `total` (already counted above), NOT against the cap. My first version was
+    // `channelRows.length >= STATS_SAMPLE_CAP`, which cries "sampled" when the table holds EXACTLY
+    // 5000 matching rows and the breakdown is in fact complete. A reviewer proposed this exact form
+    // and I implemented the weaker one anyway; the off-by-one showed up when I went back and tested
+    // the boundary. Comparing to the real total is also self-correcting if the cap ever changes.
+    const sampled = total > channelRows.length;
 
     return res.json({
       success: true,
