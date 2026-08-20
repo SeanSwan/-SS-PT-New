@@ -92,22 +92,56 @@ Kimi's pick was **Approach 5** — skip the update, build Bot Mode locally, on t
 is "a presentation layer over primitives you already have." The reasoning is sound. The approach is
 **disqualified by the cheap dependency audit Kimi itself proposed**:
 
-> **CORRECTED 2026-08-20 by the Phase-0 falsification test. Two claims in the first version of this
-> section were WRONG.** They were derived from name-grepping instead of reading the SDK.
+> **CORRECTED THREE TIMES on 2026-08-20.** Every correction moved the same direction — *toward*
+> the conclusion I had already reached. That is the finding, and it is recorded below the table.
 
-**Wrong claim 1: "`@hermes/plugin-sdk` does not exist in v0.20.1."** It does. It is a path alias —
-`apps/desktop/tsconfig.json:20` and `vite.config.ts:147` both map it to `./src/sdk/index.ts`. The
-import resolves.
+**The falsification test, run properly.** v0.20.1's exported `host` (`apps/desktop/src/sdk/index.ts`
+line 59, 325 lines total) has **11 members**: `logs`, `navigate`, `newChat`, `notify`,
+`notifyError`, `onEvent`, `openSession`, `request`, `restartGateway`, `state`, `status`. It is
+exported from exactly one place, so nothing else extends it.
 
-**Wrong claim 2: "v0.20.1 has no runtime plugin system."** It does. `hello-runtime/plugin.runtime.js`
-exists locally and uses `ctx.register` / `host.state`.
+Bot Mode's `plugin.js` calls 11 host members:
 
-**What the test actually found.** v0.20.1's host exposes **9 members** (`sdk/index.ts`, 325 lines):
-`state`, `logs`, `navigate`, `openSession`, `newChat`, `onEvent`, `restartGateway`, `status`,
-`request`. Bot Mode's `plugin.js` calls 11 host members:
-
-| host API | call sites in Bot Mode | v0.20.1 |
+| host API | call sites | v0.20.1 |
 |---|---|---|
+| `request` | 33 | present |
+| `notify` | 29 | present |
+| `state` | 16 | present |
+| `notifyError` | 15 | present |
+| `requestProfile` | 14 | **missing** |
+| `newChat` | 12 | present |
+| `openSession` | 11 | present |
+| `openWorkspace` | 5 | **missing** |
+| `agents` | 5 | **missing** |
+| `activeConnectionId` | 3 | **missing** |
+| `paneVisibility` | 3 | **missing** |
+
+**5 of 11 missing, covering 30 of ~146 call sites — about 21%.**
+
+### The three wrong versions, and what they have in common
+
+| # | I claimed | Truth | Cause |
+|---|---|---|---|
+| 1 | "`@hermes/plugin-sdk` does not exist" | It is a path alias in `tsconfig.json:20` and `vite.config.ts:147` | Grepped for a package, never checked for an alias |
+| 2 | "v0.20.1 has no runtime plugin system" | `hello-runtime/plugin.runtime.js` exists and uses `ctx.register` / `host.state` | Judged from a directory listing |
+| 3 | "7 of 11 missing, ~51% of call sites" | **5 of 11, ~21%** | My pattern `^  api[:(]` cannot match shorthand properties — `notify,` and `notifyError,` are members declared without a colon |
+
+Each error **overstated the barrier** to building locally — i.e. each one made the update look more
+necessary. Three errors, one direction, is not random; it is motivated reasoning finding the
+evidence it wants. The correction that matters is procedural: **to prove a capability absent, find
+the file that DEFINES the surface and enumerate it. A grep hit-count proves nothing about an aliased
+import, a shorthand property, or a typed interface.**
+
+### Does the verdict change? No — but its basis does.
+
+Building locally means: add **5** host methods to a 325-line SDK, then port a **10,464-line** plugin.
+The SDK work is small. The port is not, and `requestProfile` / `openWorkspace` / `agents` /
+`paneVisibility` are not thin wrappers — they imply profile management, workspace routing, an agent
+roster and pane state that the plugin drives. **The verdict rests on the port and those subsystems,
+never on a missing SDK.** Anyone re-opening this decision should attack the port estimate, because
+that is now the only load-bearing number.
+
+---|---|---|
 | `request` | 33 | present |
 | `notify` | 29 | **missing** |
 | `state` | 16 | present |
