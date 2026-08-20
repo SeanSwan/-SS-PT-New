@@ -1,0 +1,350 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif; background:#06090F; }
+    a { color:#60C0F0; } a:hover { color:#E0ECF4; }
+    h1,h2 { text-wrap:balance; margin:0; }
+    @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+  </style>
+</helmet>
+<div style="width:1280px;background:#06090F;color:#E0ECF4;">
+<header style="position:sticky;top:0;z-index:50;height:64px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 24px;
+      background:rgba(10,16,34,0.72);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);
+      border-bottom:1px solid rgba(96,192,240,0.18);box-shadow:0 1px 0 rgba(255,255,255,0.04);">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <img src="swan-logo.png" alt="SwanStudios" style="width:36px;height:36px;display:block;opacity:1">
+      <span style="font-weight:800;font-size:15px;letter-spacing:0.02em;color:#E0ECF4;white-space:nowrap;">SwanStudios</span>
+    </div>
+    <nav style="display:flex;align-items:center;gap:22px;">
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Home</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Store</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Video Library</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Waiver</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Contact</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Photography</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">About</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;min-height:44px;display:inline-flex;align-items:center;padding:0 12px;">Login</a>
+      <a href="#" style="text-decoration:none;color:#E0ECF4;font-size:13.5px;font-weight:700;min-height:44px;display:inline-flex;align-items:center;padding:0 16px;border-radius:8px;background:#002060;box-shadow:0 0 18px rgba(139,92,246,0.35);">Sign Up</a>
+    </div>
+  </header>
+
+  <section style="position:relative;">
+    
+    <div style="position:relative;height:700px;overflow:hidden;background:#070A16;
+      perspective:1000px;perspective-origin:50% 50%;transform-style:preserve-3d;">
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-280px) scale(1.280);"><img src="store-hero-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.50;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-160px) scale(1.160);mix-blend-mode:screen;"><img src="beyond-the-gym-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.34;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-60px) scale(1.060);"><img src="swans-hero-frame.jpg" alt="the swans, from Sean's own film" style="width:100%;height:100%;
+        object-fit:cover;opacity:0.70;"><div style="position:absolute;left:18px;bottom:14px;font-size:10px;
+        letter-spacing:0.2em;color:#C6A84B;background:rgba(6,9,15,0.66);padding:6px 10px;border-radius:6px;">
+        SWANS.MP4 &middot; REAL FRAME &middot; SWAPPABLE SLOT</div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-10px) scale(1.010);"><div style="position:absolute;left:0;right:0;bottom:0;height:190px;
+        background:linear-gradient(180deg,rgba(6,9,15,0) 0%,rgba(96,192,240,0.10) 40%,rgba(6,9,15,0.92) 100%);
+        filter:blur(1px);"></div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(0px) scale(1.000);"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,9,15,0.06),rgba(6,9,15,0.80));"></div></div>
+    </div>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:0 56px 52px;gap:16px;">
+      <div style="display:flex;gap:6px;align-items:center;"><span style="width:7px;height:7px;border-radius:50%;
+      background:#8B5CF6;box-shadow:0 0 9px #8B5CF6;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#8B5CF6;box-shadow:0 0 9px #8B5CF6;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#8B5CF6;box-shadow:0 0 9px #8B5CF6;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#8B5CF6;box-shadow:0 0 9px #8B5CF6;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#8B5CF6;box-shadow:0 0 9px #8B5CF6;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#8B5CF6;box-shadow:0 0 9px #8B5CF6;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#8B5CF6;box-shadow:0 0 9px #8B5CF6;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#8B5CF6;box-shadow:0 0 9px #8B5CF6;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#8B5CF6;box-shadow:0 0 9px #8B5CF6;"></span><span style="width:7px;height:7px;border-radius:50%;
+      background:#60C0F0;box-shadow:0 0 9px #60C0F0;"></span></div>
+      <div style="font-size:11px;letter-spacing:0.30em;color:#8B5CF6;">SWANSTUDIOS &middot; THE MILE</div>
+      <h1 style="font-size:62px;line-height:1.0;font-weight:800;letter-spacing:-0.02em;">Health First. Community Always.</h1>
+      <p style="font-size:21px;line-height:1.5;color:#D6E4F0;max-width:46ch;font-weight:500;">Where world-class personal training meets a supportive community built around clean living, real connection, and lifelong wellness.</p>
+      
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <a href="#join" style="display:inline-flex;align-items:center;min-height:48px;padding:0 30px;
+            border-radius:10px;background:#002060;color:#E0ECF4;text-decoration:none;font-weight:700;
+            box-shadow:0 0 26px rgba(139,92,246,0.40);">Join the Community</a>
+          <a href="#trainers" style="display:inline-flex;align-items:center;min-height:48px;padding:0 26px;
+            border-radius:10px;border:1px solid #60C0F066;color:#E0ECF4;text-decoration:none;font-weight:600;">Find a Trainer</a>
+        </div>
+    </div>
+  </section>
+
+  <section style="position:relative;">
+    
+    <div style="position:relative;height:260px;overflow:hidden;background:#070A16;
+      perspective:1000px;perspective-origin:50% 50%;transform-style:preserve-3d;">
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-250px) scale(1.250);"><img src="social-hero-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.34;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-140px) scale(1.140);mix-blend-mode:screen;"><img src="beyond-the-gym-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.22;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-70px) scale(1.070);"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(139,92,246,0.14),rgba(6,9,15,0));"></div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-25px) scale(1.025);"><div style="position:absolute;left:56px;top:50%;transform:translateY(-50%) translateZ(-25px);
+        border:1px solid rgba(96,192,240,0.55);border-radius:10px;padding:14px 22px;background:rgba(6,9,15,0.62);
+        font-size:22px;font-weight:800;letter-spacing:0.04em;color:#E0ECF4;
+        box-shadow:0 0 30px rgba(139,92,246,0.35);">HEALTH FIRST</div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(0px) scale(1.000);"><div style="position:absolute;left:0;right:0;bottom:0;height:64px;
+        background:linear-gradient(180deg,rgba(96,192,240,0) 0%,rgba(96,192,240,0.10) 60%,rgba(6,9,15,0.9) 100%);filter:blur(1px);"></div></div>
+    </div>
+    <div style="position:absolute;right:56px;bottom:16px;font-size:10px;letter-spacing:0.24em;color:#8FA8C8;">BLOCK 01 &middot; THE APPROACH</div>
+  </section>
+
+  <section style="padding:78px 56px;background:#06090F;">
+    <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:28px;">
+      <div style="grid-column:span 2;font-size:12px;letter-spacing:0.22em;color:#8B5CF6;">02<br>MANIFESTO</div>
+      <div style="grid-column:span 10;display:flex;flex-direction:column;gap:20px;">
+        <p style="margin:0;font-size:25px;line-height:1.5;color:#E0ECF4;font-weight:500;">The food industry profits from making you sick. Social media profits from your attention. Gaming companies fire the people who made their best games. Healthcare safety nets are disappearing.</p>
+        <p style="margin:0;font-size:18px;line-height:1.65;color:#B9CBDC;max-width:62ch;">SwanStudios exists because we believe you deserve better. A platform that puts your health first, remembers your journey, supports your trainer, celebrates your creativity, and never sells you out.</p>
+        <p style="margin:0;font-size:18px;line-height:1.65;color:#B9CBDC;max-width:62ch;">We're not here to extract value from you. We're here to help you build it — for yourself, and for the people around you.</p>
+        <p style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;
+          font-size:29px;line-height:1.35;color:#C6A84B;">Built by a trainer. Owned by the community. Powered by all of us.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:0 56px 12px;">
+    <div style="position:relative;border:1px solid #5A93D822;border-radius:14px;overflow:hidden;
+      background:linear-gradient(180deg,#0A1430 0%,#06090F 100%);min-height:300px;
+      display:flex;flex-direction:column;justify-content:flex-end;padding:26px;">
+      <img src="swans-frame-b.jpg" alt="" style="position:absolute;inset:0;
+        width:100%;height:100%;object-fit:cover;opacity:0.30;">
+      <div style="position:relative;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:10px;letter-spacing:0.24em;color:#C6A84B;">MOVIE AREA 1 &middot; MINIMAX H3</div>
+        <div style="font-size:26px;font-weight:700;color:#E0ECF4;">Neon Mile Opening Night</div>
+        <div style="font-size:14px;line-height:1.6;color:#B9CBDC;max-width:62ch;">The mile switching on sign by sign, reflections blooming across wet pavement, ending on the SwanStudios marquee.</div>
+        <div style="font-size:11px;letter-spacing:0.14em;color:#8FA8C8;">TARGET 12s &middot; SWAPPABLE SLOT</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="position:relative;">
+    
+    <div style="position:relative;height:260px;overflow:hidden;background:#070A16;
+      perspective:1000px;perspective-origin:50% 50%;transform-style:preserve-3d;">
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-250px) scale(1.250);"><img src="features-swan-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.34;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-140px) scale(1.140);mix-blend-mode:screen;"><img src="beyond-the-gym-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.22;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-70px) scale(1.070);"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(139,92,246,0.14),rgba(6,9,15,0));"></div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-25px) scale(1.025);"><div style="position:absolute;left:56px;top:50%;transform:translateY(-50%) translateZ(-25px);
+        border:1px solid rgba(96,192,240,0.55);border-radius:10px;padding:14px 22px;background:rgba(6,9,15,0.62);
+        font-size:22px;font-weight:800;letter-spacing:0.04em;color:#E0ECF4;
+        box-shadow:0 0 30px rgba(139,92,246,0.35);">COMMUNITY ALWAYS</div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(0px) scale(1.000);"><div style="position:absolute;left:0;right:0;bottom:0;height:64px;
+        background:linear-gradient(180deg,rgba(96,192,240,0) 0%,rgba(96,192,240,0.10) 60%,rgba(6,9,15,0.9) 100%);filter:blur(1px);"></div></div>
+    </div>
+    <div style="position:absolute;right:56px;bottom:16px;font-size:10px;letter-spacing:0.24em;color:#8FA8C8;">BLOCK 02 &middot; THE MAKERS</div>
+  </section>
+
+  <section style="padding:70px 56px;background:#0A1430;">
+    <div style="font-size:12px;letter-spacing:0.22em;color:#8B5CF6;margin-bottom:14px;">03 &middot; MAKE</div>
+    <h2 style="font-size:34px;font-weight:700;color:#E0ECF4;margin-bottom:26px;">Everything a person makes <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;">
+      <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;
+        background:linear-gradient(180deg,rgba(0,32,96,0.35),rgba(6,9,15,0.5));display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Dance</div>
+        <div style="font-size:13px;line-height:1.55;color:#B9CBDC;">Unleash your power through rhythm. Express your warrior spirit through movement that connects your body to your soul.</div>
+      </div>
+      <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;
+        background:linear-gradient(180deg,rgba(0,32,96,0.35),rgba(6,9,15,0.5));display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Art &amp; Visual Expression</div>
+        <div style="font-size:13px;line-height:1.55;color:#B9CBDC;">Channel your intensity onto the canvas. Transform your inner fire into visual masterpieces that tell your transformation story.</div>
+      </div>
+      <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;
+        background:linear-gradient(180deg,rgba(0,32,96,0.35),rgba(6,9,15,0.5));display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Vocal &amp; Sound Work</div>
+        <div style="font-size:13px;line-height:1.55;color:#B9CBDC;">Find the strength in your own voice. Unleash the power within through vocal techniques that amplify your inner warrior.</div>
+      </div>
+      <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;
+        background:linear-gradient(180deg,rgba(0,32,96,0.35),rgba(6,9,15,0.5));display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Community &amp; Heart</div>
+        <div style="font-size:13px;line-height:1.55;color:#B9CBDC;">Connect with a tribe that shares your fire. Plug into a global family that grinds together, grows together, and celebrates every single victory. No more training alone!</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:64px 56px 10px;background:#06090F;">
+    <div style="font-size:12px;letter-spacing:0.22em;color:#8B5CF6;">04 &middot; PROOF &middot; THE WINDOW WALL</div>
+    <h2 style="font-size:32px;font-weight:700;margin:10px 0 18px;">Swan Coach builds it with your trainer <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></h2>
+    <div style="display:grid;grid-template-columns:7fr 5fr;gap:24px;align-items:stretch;">
+      <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;background:rgba(0,32,96,0.24);">
+        <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:6px;"><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(198,168,75,0.85);
+      box-shadow:0 0 10px rgba(198,168,75,0.55);"></div><div style="aspect-ratio:1/1.35;border-radius:2px;background:rgba(27,42,68,0.85);
+      box-shadow:none;"></div></div>
+        <div style="font-size:12px;color:#8FA8C8;margin-top:12px;">Each lit window is one session logged tonight. <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;background:rgba(6,9,15,0.7);">
+          <div style="font-size:11px;letter-spacing:0.18em;color:#60C0F0;">HUMAN EVIDENCE</div>
+          <div style="font-size:15px;line-height:1.6;color:#B9CBDC;margin-top:8px;">The wall is the community, counted. It is dark when nobody trained. <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></div>
+        </div>
+        <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;background:rgba(6,9,15,0.7);">
+          <div style="font-size:11px;letter-spacing:0.18em;color:#C6A84B;">TRAINER ECONOMICS</div>
+          <div style="font-size:15px;line-height:1.6;color:#B9CBDC;margin-top:8px;">A capped platform fee, so a good month is never punished. <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="position:relative;">
+    
+    <div style="position:relative;height:260px;overflow:hidden;background:#070A16;
+      perspective:1000px;perspective-origin:50% 50%;transform-style:preserve-3d;">
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-250px) scale(1.250);"><img src="about-hero-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.34;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-140px) scale(1.140);mix-blend-mode:screen;"><img src="beyond-the-gym-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.22;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-70px) scale(1.070);"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(139,92,246,0.14),rgba(6,9,15,0));"></div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-25px) scale(1.025);"><div style="position:absolute;left:56px;top:50%;transform:translateY(-50%) translateZ(-25px);
+        border:1px solid rgba(96,192,240,0.55);border-radius:10px;padding:14px 22px;background:rgba(6,9,15,0.62);
+        font-size:22px;font-weight:800;letter-spacing:0.04em;color:#E0ECF4;
+        box-shadow:0 0 30px rgba(139,92,246,0.35);">SOMETHING REAL</div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(0px) scale(1.000);"><div style="position:absolute;left:0;right:0;bottom:0;height:64px;
+        background:linear-gradient(180deg,rgba(96,192,240,0) 0%,rgba(96,192,240,0.10) 60%,rgba(6,9,15,0.9) 100%);filter:blur(1px);"></div></div>
+    </div>
+    <div style="position:absolute;right:56px;bottom:16px;font-size:10px;letter-spacing:0.24em;color:#8FA8C8;">BLOCK 03 &middot; THE DOOR</div>
+  </section>
+
+  <section style="padding:0 56px 12px;">
+    <div style="position:relative;border:1px solid #5A93D822;border-radius:14px;overflow:hidden;
+      background:linear-gradient(180deg,#0A1430 0%,#06090F 100%);min-height:300px;
+      display:flex;flex-direction:column;justify-content:flex-end;padding:26px;">
+      <img src="beyond-the-gym-bg.jpg" alt="" style="position:absolute;inset:0;
+        width:100%;height:100%;object-fit:cover;opacity:0.30;">
+      <div style="position:relative;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:10px;letter-spacing:0.24em;color:#C6A84B;">MOVIE AREA 2 &middot; MINIMAX H3</div>
+        <div style="font-size:26px;font-weight:700;color:#E0ECF4;">The Record In Motion</div>
+        <div style="font-size:14px;line-height:1.6;color:#B9CBDC;max-width:62ch;">A logged set condensing into a faceted crystalline record, turning once so every facet catches the neon.</div>
+        <div style="font-size:11px;letter-spacing:0.14em;color:#8FA8C8;">TARGET 15s &middot; SWAPPABLE SLOT</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="join" style="padding:80px 56px 96px;background:#06090F;">
+    <h2 style="font-size:38px;font-weight:800;color:#E0ECF4;margin-bottom:14px;">Ready to Be Part of Something Real?</h2>
+    <p style="font-size:17px;line-height:1.7;color:#B9CBDC;max-width:70ch;margin:0 0 26px;">Your health journey deserves a permanent home. Your trainer deserves a fair platform. Your community deserves to own itself. SwanStudios is where all of it lives.</p>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;">
+      <div style="border:1px solid #5A93D822;border-radius:14px;padding:24px;background:rgba(0,32,96,0.30);">
+        <div style="font-size:11px;letter-spacing:0.2em;color:#8B5CF6;margin-bottom:10px;">IF YOU TRAIN</div>
+        
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <a href="#join" style="display:inline-flex;align-items:center;min-height:48px;padding:0 30px;
+            border-radius:10px;background:#002060;color:#E0ECF4;text-decoration:none;font-weight:700;
+            box-shadow:0 0 26px rgba(139,92,246,0.40);">Join the Community</a>
+          <a href="#trainers" style="display:inline-flex;align-items:center;min-height:48px;padding:0 26px;
+            border-radius:10px;border:1px solid #60C0F066;color:#E0ECF4;text-decoration:none;font-weight:600;">Find a Trainer</a>
+        </div>
+      </div>
+      <div id="trainers" style="border:1px solid #5A93D822;border-radius:14px;padding:24px;background:rgba(139,92,246,0.12);">
+        <div style="font-size:11px;letter-spacing:0.2em;color:#8B5CF6;margin-bottom:10px;">IF YOU ARE A TRAINER OR A CREATOR</div>
+        <p style="font-size:14px;line-height:1.6;color:#B9CBDC;margin:0 0 14px;">Keep your clients, your record and your rate. A capped platform fee, never a cut of who you are. <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></p>
+        <a href="#" style="display:inline-flex;align-items:center;min-height:48px;padding:0 26px;border-radius:10px;
+          background:#8B5CF6;color:#0A0A0F;text-decoration:none;font-weight:700;box-shadow:0 0 26px rgba(96,192,240,0.42);">Find a Trainer</a>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#8B5CF6","options":["#60C0F0","#C6A84B","#8B5CF6","#E0ECF4"]}}'>
+class Component extends DCLogic {
+  renderVals() { return { accent: this.props.accent ?? '#8B5CF6' }; }
+}
+</script>
+</body>
+</html>

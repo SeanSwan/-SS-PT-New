@@ -1,0 +1,258 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif; background:#06090F; }
+    a { color:#60C0F0; } a:hover { color:#E0ECF4; }
+    h1,h2 { text-wrap:balance; margin:0; }
+    @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+  </style>
+</helmet>
+<div style="width:1280px;background:#06090F;color:#E0ECF4;">
+<header style="position:sticky;top:0;z-index:50;height:64px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 24px;
+      background:rgba(10,16,34,0.72);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);
+      border-bottom:1px solid rgba(96,192,240,0.18);box-shadow:0 1px 0 rgba(255,255,255,0.04);">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <img src="swan-logo.png" alt="SwanStudios" style="width:36px;height:36px;display:block;opacity:1">
+      <span style="font-weight:800;font-size:15px;letter-spacing:0.02em;color:#E0ECF4;white-space:nowrap;">SwanStudios</span>
+    </div>
+    <nav style="display:flex;align-items:center;gap:22px;">
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Home</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Store</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Video Library</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Waiver</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Contact</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Photography</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">About</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;min-height:44px;display:inline-flex;align-items:center;padding:0 12px;">Login</a>
+      <a href="#" style="text-decoration:none;color:#E0ECF4;font-size:13.5px;font-weight:700;min-height:44px;display:inline-flex;align-items:center;padding:0 16px;border-radius:8px;background:#002060;box-shadow:0 0 18px rgba(139,92,246,0.35);">Sign Up</a>
+    </div>
+  </header>
+
+  <section style="position:relative;">
+    
+    <div style="position:relative;height:720px;overflow:hidden;background:#0A1430;
+      perspective:1000px;perspective-origin:50% 50%;transform-style:preserve-3d;">
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-260px) scale(1.260);"><img src="hero-swan-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.55;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-150px) scale(1.150);mix-blend-mode:screen;"><img src="social-hero-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.40;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-70px) scale(1.070);"><div style="position:absolute;inset:0;background:radial-gradient(120% 70% at 50% 100%,
+        rgba(198,168,75,0.20) 0%, rgba(0,32,96,0) 62%);"></div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-20px) scale(1.020);"><img src="swans-hero-frame.jpg" alt="the swans, from Sean's own film" style="width:100%;height:100%;
+        object-fit:cover;opacity:0.82;"><div style="position:absolute;left:18px;bottom:14px;font-size:10px;
+        letter-spacing:0.2em;color:#C6A84B;background:rgba(6,9,15,0.66);padding:6px 10px;border-radius:6px;">
+        SWANS.MP4 &middot; REAL FRAME &middot; SWAPPABLE SLOT</div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(0px) scale(1.000);"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,9,15,0.10) 0%,rgba(6,9,15,0.86) 100%);"></div></div>
+    </div>
+    <div style="position:absolute;inset:0;display:flex;">
+      <nav style="width:92px;flex-shrink:0;border-right:1px solid #5A93D822;padding:26px 0;
+        display:flex;flex-direction:column;align-items:center;gap:26px;background:rgba(6,9,15,0.35);">
+        <div style="font-size:9px;letter-spacing:0.24em;color:#C6A84B;writing-mode:vertical-rl;">SECTION RAIL</div>
+        
+        <div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+          <div style="width:11px;height:11px;border-radius:50%;background:#C6A84B;
+            box-shadow:0 0 12px #C6A84B;"></div>
+          <div style="writing-mode:vertical-rl;font-size:10px;letter-spacing:0.26em;color:#8FA8C8;">WORLD</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+          <div style="width:11px;height:11px;border-radius:50%;background:#1B2A44;
+            box-shadow:none;"></div>
+          <div style="writing-mode:vertical-rl;font-size:10px;letter-spacing:0.26em;color:#8FA8C8;">MAKE</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+          <div style="width:11px;height:11px;border-radius:50%;background:#1B2A44;
+            box-shadow:none;"></div>
+          <div style="writing-mode:vertical-rl;font-size:10px;letter-spacing:0.26em;color:#8FA8C8;">PROOF</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:7px;">
+          <div style="width:11px;height:11px;border-radius:50%;background:#1B2A44;
+            box-shadow:none;"></div>
+          <div style="writing-mode:vertical-rl;font-size:10px;letter-spacing:0.26em;color:#8FA8C8;">JOIN</div>
+        </div>
+      </nav>
+      <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px;padding:0 56px;">
+        <div style="font-size:11px;letter-spacing:0.30em;color:#60C0F0;">SWANSTUDIOS &middot; THE HARBOR MILE</div>
+        <h1 style="font-size:57px;line-height:1.02;font-weight:800;letter-spacing:-0.02em;">Health First. Community Always.</h1>
+        <p style="font-size:21px;line-height:1.5;color:#D6E4F0;max-width:44ch;font-weight:500;">Where world-class personal training meets a supportive community built around clean living, real connection, and lifelong wellness.</p>
+        
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <a href="#join" style="display:inline-flex;align-items:center;min-height:48px;padding:0 30px;
+            border-radius:10px;background:#002060;color:#E0ECF4;text-decoration:none;font-weight:700;
+            box-shadow:0 0 26px rgba(139,92,246,0.40);">Join the Community</a>
+          <a href="#trainers" style="display:inline-flex;align-items:center;min-height:48px;padding:0 26px;
+            border-radius:10px;border:1px solid #60C0F066;color:#E0ECF4;text-decoration:none;font-weight:600;">Find a Trainer</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="position:relative;">
+    
+    <div style="position:relative;height:240px;overflow:hidden;background:#0A1430;
+      perspective:1000px;perspective-origin:50% 50%;transform-style:preserve-3d;">
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-230px) scale(1.230);"><img src="social-hero-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.36;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-130px) scale(1.130);mix-blend-mode:screen;"><img src="hero-swan-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.24;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-60px) scale(1.060);"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,32,96,0.34),rgba(6,9,15,0));"></div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(0px) scale(1.000);"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,9,15,0.30),rgba(6,9,15,0.86));"></div></div>
+    </div>
+    <div style="position:absolute;left:92px;bottom:18px;font-size:10px;letter-spacing:0.24em;color:#C6A84B;">BETWEEN &middot; THE WATER IS STILL THERE</div>
+  </section>
+
+  <section style="padding:78px 56px;background:#06090F;">
+    <div style="display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:28px;">
+      <div style="grid-column:span 2;font-size:12px;letter-spacing:0.22em;color:#60C0F0;">02<br>MANIFESTO</div>
+      <div style="grid-column:span 10;display:flex;flex-direction:column;gap:20px;">
+        <p style="margin:0;font-size:25px;line-height:1.5;color:#E0ECF4;font-weight:500;">The food industry profits from making you sick. Social media profits from your attention. Gaming companies fire the people who made their best games. Healthcare safety nets are disappearing.</p>
+        <p style="margin:0;font-size:18px;line-height:1.65;color:#B9CBDC;max-width:62ch;">SwanStudios exists because we believe you deserve better. A platform that puts your health first, remembers your journey, supports your trainer, celebrates your creativity, and never sells you out.</p>
+        <p style="margin:0;font-size:18px;line-height:1.65;color:#B9CBDC;max-width:62ch;">We're not here to extract value from you. We're here to help you build it — for yourself, and for the people around you.</p>
+        <p style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;
+          font-size:29px;line-height:1.35;color:#C6A84B;">Built by a trainer. Owned by the community. Powered by all of us.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="position:relative;">
+    
+    <div style="position:relative;height:240px;overflow:hidden;background:#0A1430;
+      perspective:1000px;perspective-origin:50% 50%;transform-style:preserve-3d;">
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-230px) scale(1.230);"><img src="testimonials-swan-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.36;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-130px) scale(1.130);mix-blend-mode:screen;"><img src="hero-swan-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.24;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-60px) scale(1.060);"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(96,192,240,0.14),rgba(6,9,15,0));"></div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(0px) scale(1.000);"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,9,15,0.30),rgba(6,9,15,0.86));"></div></div>
+    </div>
+    <div style="position:absolute;left:92px;bottom:18px;font-size:10px;letter-spacing:0.24em;color:#C6A84B;">BETWEEN &middot; LIGHTS ACROSS THE BASIN</div>
+  </section>
+
+  <section style="padding:70px 56px;background:#0A1430;">
+    <div style="font-size:12px;letter-spacing:0.22em;color:#60C0F0;margin-bottom:14px;">03 &middot; MAKE</div>
+    <h2 style="font-size:34px;font-weight:700;color:#E0ECF4;margin-bottom:26px;">Everything a person makes <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></h2>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;">
+      <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;
+        background:linear-gradient(180deg,rgba(0,32,96,0.35),rgba(6,9,15,0.5));display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Dance</div>
+        <div style="font-size:13px;line-height:1.55;color:#B9CBDC;">Unleash your power through rhythm. Express your warrior spirit through movement that connects your body to your soul.</div>
+      </div>
+      <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;
+        background:linear-gradient(180deg,rgba(0,32,96,0.35),rgba(6,9,15,0.5));display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Art &amp; Visual Expression</div>
+        <div style="font-size:13px;line-height:1.55;color:#B9CBDC;">Channel your intensity onto the canvas. Transform your inner fire into visual masterpieces that tell your transformation story.</div>
+      </div>
+      <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;
+        background:linear-gradient(180deg,rgba(0,32,96,0.35),rgba(6,9,15,0.5));display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Vocal &amp; Sound Work</div>
+        <div style="font-size:13px;line-height:1.55;color:#B9CBDC;">Find the strength in your own voice. Unleash the power within through vocal techniques that amplify your inner warrior.</div>
+      </div>
+      <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;
+        background:linear-gradient(180deg,rgba(0,32,96,0.35),rgba(6,9,15,0.5));display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Community &amp; Heart</div>
+        <div style="font-size:13px;line-height:1.55;color:#B9CBDC;">Connect with a tribe that shares your fire. Plug into a global family that grinds together, grows together, and celebrates every single victory. No more training alone!</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:0 56px 12px;">
+    <div style="position:relative;border:1px solid #5A93D822;border-radius:14px;overflow:hidden;
+      background:linear-gradient(180deg,#0A1430 0%,#06090F 100%);min-height:300px;
+      display:flex;flex-direction:column;justify-content:flex-end;padding:26px;">
+      <img src="swans-frame-b.jpg" alt="" style="position:absolute;inset:0;
+        width:100%;height:100%;object-fit:cover;opacity:0.30;">
+      <div style="position:relative;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:10px;letter-spacing:0.24em;color:#C6A84B;">MOVIE AREA 1 &middot; MINIMAX H3</div>
+        <div style="font-size:26px;font-weight:700;color:#E0ECF4;">The Harbor at Night</div>
+        <div style="font-size:14px;line-height:1.6;color:#B9CBDC;max-width:62ch;">Slow push across still water toward a shoreline of lit windows; each window is somebody finishing a set. Ends on one window going bright.</div>
+        <div style="font-size:11px;letter-spacing:0.14em;color:#8FA8C8;">TARGET 12s &middot; SWAPPABLE SLOT</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:0 56px 8px;">
+    <div style="font-size:12px;letter-spacing:0.22em;color:#60C0F0;margin:56px 0 14px;">04 &middot; PROOF</div>
+    <h2 style="font-size:32px;font-weight:700;margin-bottom:8px;">Swan Coach builds it with your trainer <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></h2>
+    
+    <div style="position:relative;height:340px;overflow:hidden;background:#0A1430;
+      perspective:1000px;perspective-origin:50% 50%;transform-style:preserve-3d;">
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-200px) scale(1.200);"><img src="video-library-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.34;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-90px) scale(1.090);"><div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,32,96,0.55),rgba(6,9,15,0.1));"></div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(0px) scale(1.000);"><div style="position:absolute;inset:0;display:grid;grid-template-columns:repeat(2,1fr);gap:18px;padding:26px;">
+        <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;background:rgba(6,9,15,0.62);">
+          <div style="font-size:11px;letter-spacing:0.18em;color:#60C0F0;">HUMAN EVIDENCE</div>
+          <div style="font-size:15px;line-height:1.6;color:#B9CBDC;margin-top:8px;">Every lit window is one session logged tonight. The skyline brightens because people trained, not because a designer said so. <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></div>
+        </div>
+        <div style="border:1px solid #5A93D822;border-radius:12px;padding:18px;background:rgba(6,9,15,0.62);">
+          <div style="font-size:11px;letter-spacing:0.18em;color:#C6A84B;">TRAINER ECONOMICS</div>
+          <div style="font-size:15px;line-height:1.6;color:#B9CBDC;margin-top:8px;">A capped platform fee. Your rate stays your rate, and the cap stops it scaling against you. <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></div>
+        </div>
+      </div></div>
+    </div>
+  </section>
+
+  <section style="padding:0 56px 12px;">
+    <div style="position:relative;border:1px solid #5A93D822;border-radius:14px;overflow:hidden;
+      background:linear-gradient(180deg,#0A1430 0%,#06090F 100%);min-height:300px;
+      display:flex;flex-direction:column;justify-content:flex-end;padding:26px;">
+      <img src="beyond-the-gym-bg.jpg" alt="" style="position:absolute;inset:0;
+        width:100%;height:100%;object-fit:cover;opacity:0.30;">
+      <div style="position:relative;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:10px;letter-spacing:0.24em;color:#C6A84B;">MOVIE AREA 2 &middot; MINIMAX H3</div>
+        <div style="font-size:26px;font-weight:700;color:#E0ECF4;">One Session End to End</div>
+        <div style="font-size:14px;line-height:1.6;color:#B9CBDC;max-width:62ch;">A single training session compressed: arrival, the work, the logged record forming as a faceted crystal. No dialogue.</div>
+        <div style="font-size:11px;letter-spacing:0.14em;color:#8FA8C8;">TARGET 20s &middot; SWAPPABLE SLOT</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="join" style="padding:80px 56px 96px;background:#06090F;">
+    <h2 style="font-size:38px;font-weight:800;color:#E0ECF4;margin-bottom:14px;">Ready to Be Part of Something Real?</h2>
+    <p style="font-size:17px;line-height:1.7;color:#B9CBDC;max-width:70ch;margin:0 0 26px;">Your health journey deserves a permanent home. Your trainer deserves a fair platform. Your community deserves to own itself. SwanStudios is where all of it lives.</p>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;">
+      <div style="border:1px solid #5A93D822;border-radius:14px;padding:24px;background:rgba(0,32,96,0.30);">
+        <div style="font-size:11px;letter-spacing:0.2em;color:#60C0F0;margin-bottom:10px;">IF YOU TRAIN</div>
+        
+        <div style="display:flex;gap:14px;flex-wrap:wrap;">
+          <a href="#join" style="display:inline-flex;align-items:center;min-height:48px;padding:0 30px;
+            border-radius:10px;background:#002060;color:#E0ECF4;text-decoration:none;font-weight:700;
+            box-shadow:0 0 26px rgba(139,92,246,0.40);">Join the Community</a>
+          <a href="#trainers" style="display:inline-flex;align-items:center;min-height:48px;padding:0 26px;
+            border-radius:10px;border:1px solid #60C0F066;color:#E0ECF4;text-decoration:none;font-weight:600;">Find a Trainer</a>
+        </div>
+      </div>
+      <div id="trainers" style="border:1px solid #5A93D822;border-radius:14px;padding:24px;background:rgba(139,92,246,0.12);">
+        <div style="font-size:11px;letter-spacing:0.2em;color:#60C0F0;margin-bottom:10px;">IF YOU ARE A TRAINER OR A CREATOR</div>
+        <p style="font-size:14px;line-height:1.6;color:#B9CBDC;margin:0 0 14px;">Keep your clients, your record and your rate. A capped platform fee, never a cut of who you are. <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></p>
+        <a href="#" style="display:inline-flex;align-items:center;min-height:48px;padding:0 26px;border-radius:10px;
+          background:#8B5CF6;color:#0A0A0F;text-decoration:none;font-weight:700;box-shadow:0 0 26px rgba(96,192,240,0.42);">Find a Trainer</a>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#60C0F0","options":["#60C0F0","#C6A84B","#8B5CF6","#E0ECF4"]}}'>
+class Component extends DCLogic {
+  renderVals() { return { accent: this.props.accent ?? '#60C0F0' }; }
+}
+</script>
+</body>
+</html>
