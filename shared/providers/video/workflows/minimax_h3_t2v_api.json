@@ -128,16 +128,5 @@
       "format": "mp4",
       "codec": "h264"
     }
-  },
-  "_readme": {
-    "what": "MiniMax H3 text-to-video, ComfyUI API format. PROVEN: rendered h3_smoke_00001_.mp4 (640x384, 39 frames, 1.625s, h264) on an RTX 5090 in ~59s.",
-    "why_text_only_works": "MiniMaxH3ImageToVideo declares first_frame/last_frame as OPTIONAL (verified against /object_info). Omitting them IS the text-only path \u2014 no keyframe chaining is required, and a review that claimed otherwise was wrong.",
-    "bindings": {
-      "SWAN_COMFYUI_NODE_PROMPT": "6",
-      "SWAN_COMFYUI_NODE_SEED": "8",
-      "SWAN_COMFYUI_NODE_DURATION": "DELIBERATELY UNSET \u2014 see duration_hazard"
-    },
-    "duration_hazard": "The API's duration is SECONDS; node 6's matching input is `length`, which is neither seconds nor a 1:1 frame count (length=25 produced 39 frames). Binding them would silently render a 4-frame clip for a '4 second' request. Leave unbound until the length->seconds relationship is measured, then add an explicit converter rather than relying on FIELD_CANDIDATES name-matching.",
-    "audio": "minimax_h3_audio_vae_fp32.safetensors is installed and this graph does NOT wire it. Output is video-only. Adding audio requires the audio VAE decode plus a muxing node; SaveAudio* and CreateVideo exist for it."
   }
 }
