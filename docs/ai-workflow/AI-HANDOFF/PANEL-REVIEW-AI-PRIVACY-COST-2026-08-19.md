@@ -1,19 +1,20 @@
 ---
-title: "Panel review — AI privacy/cost workstream (GLM x4 + Kimi x1)"
+title: "Panel review — AI privacy/cost workstream (GLM x8 + Kimi x2)"
 date: 2026-08-19
-author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (4 rounds) and Kimi K3 (1 round)
-decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4 and 5 graded THIS RECORD and found 12 defects in it, including a FALSE premise inside the merge-order rationale (struck as C9). Read the Round 4 and Round 5 sections first -- they supersede claims in the body."
+author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (8 rounds) and Kimi K3 (2 rounds)
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-8 graded THIS RECORD and found 19 defects in it (C1-C19), including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7 AND 8 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
-privacy: "No secrets, no key values, no client data. Role counts, file paths, line numbers only."
+privacy: "No secrets, no key values, no client data, no identities. Role counts, file paths, line numbers, and timestamps. Infrastructure identifiers (DB host, server IP) are REDACTED - see C19."
 ---
 
 # Panel review — what four hostile rounds changed
 
-**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round. Actual: GLM x4, Kimi x1.**
-GLM R1 (mechanisms), GLM R2 (attack the answers), Kimi R1 (frame), GLM R3 (adjudicate Kimi),
-GLM R4 (grade this record). Total spend: **$0.20** (Kimi; GLM is subscription).
+**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round. Actual: GLM x8, Kimi x2.**
+GLM R1 (mechanisms), R2 (attack the answers), Kimi R1 (frame), GLM R3 (adjudicate Kimi),
+GLM R4-R6 (grade the record), Kimi R2 (confirm), GLM R7-R8 (confirm).
+Total Kimi spend: **$0.24** ($0.20 + $0.04); GLM is subscription.
 
 > **Read the Round 4 section at the end before trusting this one.** R4 was pointed at the record
 > rather than the work and found 8 defects in it, including one fact I certified without checking
@@ -310,9 +311,9 @@ The evidence exists; it was in the session handoff and never carried into this r
 **Connection identity** (credentials never printed):
 
 ```
-host    : dpg-cv1qga1u0jms738nc8lg-a.oregon-postgres.render.com
+host    : dpg-<REDACTED>.oregon-postgres.render.com   (Render-managed, Oregon)
 database: swanstudios     ssl: on
-SERVER SAYS: current_database=swanstudios  server_addr=10.24.243.105/32
+SERVER SAYS: current_database=swanstudios  server_addr=<REDACTED private RFC1918>
              PostgreSQL 16.14 (Debian 16.14-1.pgdg12+1)
 ```
 
@@ -481,3 +482,81 @@ said them.
 
 **A panel that reviews only the work will not catch this class.** The round that reads the summary
 against the evidence is not a formality at the end; here it was the most productive round of the five.
+
+---
+
+# Round 8 — one substantive finding, and it corrects §5
+
+## C17 — an admin holds a consent profile, which §5's map says is impossible. §5 was incomplete. ⚠
+
+R8 spotted a contradiction nobody had noticed: the one account with a passing profile is
+**admin-role**, yet §5's verified rule summary allows only **client→self** and **admin→client**.
+Neither produces an admin-role consent record. Settled by reading the branch order and querying
+provenance.
+
+**Answer: admins can self-grant, and §5 understated the mint surface.** The RBAC ladder
+(`aiConsentController.mjs:49-56`) is:
+
+```js
+if (requesterRole === 'client' && targetUserId !== requesterId) return 403;  // clients: self only
+if (requesterRole === 'trainer') return 403;                                  // trainers: barred
+if (targetUserId !== requesterId) { /* target must be role 'client' */ }      // SKIPPED when self
+```
+
+When requester and target are the same account, **the third block never runs** — so the
+"target must be a client" constraint applies only to grants *on behalf of someone else*.
+An admin self-granting passes straight through.
+
+**Provenance query confirms it is ordinary, not out-of-band:**
+
+| role | version | created | updated | never_updated |
+|---|---|---|---|---|
+| admin | 1.0 | 2026-03-14 | 2026-03-14 | true |
+
+Created five months ago, never modified, consent version 1.0 — consistent with a normal self-grant
+long before this workstream, not a seed or manual SQL write.
+
+**Two corrections follow, and R8 is right about both:**
+
+1. **"The consent+transcription path has never executed" is imprecise.** The **grant** side has
+   executed — in March 2026. What has never executed is the **egress/transcription** side. The
+   Kimi-claims table and C2 should be read with that split. It does not revive the deletion-backlog
+   claim (no audio has left), but the wording was wrong.
+2. **The admin-link deferral rationale is inaccurately worded.** "Do not put UI on a path that has
+   never executed" — the *grant* path has run. **The deferral survives on the egress ground**
+   (nothing has ever gone out through `/transcribe`), not on "never executed."
+
+**And a point §1 never examined:** the six blocked accounts include an admin, while §1's
+"the lockout is the gate working" was argued entirely about clients. **Whether admin-role accounts
+should be consent-gated for their own recordings was never asked.** Owner question.
+
+## C18 — "16 rows verified" was 16 *lines*, not 16 rows
+
+The canonical table has **14 data rows** plus header and separator. My verification counted lines
+and reported them as rows. Corrected: **14 data rows, each verified at 4 cells.**
+
+Also from R8: C15 states the 6-of-7 figure "appears in §1, the net verdict, and the canonical
+table." **The canonical table does not carry the figure** — C15 misdescribed where it appeared.
+The normalization pass did not trim it; it was never there. Correcting the description, not the
+table.
+
+## C19 — the header went stale again when Round 7 was appended, and the privacy manifest went false
+
+Applied:
+
+- Title, author, decision line, and the ratio paragraph all updated: **GLM ×8, Kimi ×2**, 19
+  corrections (C1–C19), Kimi spend **$0.24**. The read-first pointer now includes Rounds 7 and 8 —
+  **Round 7 holds the only evidence for the 6-of-7 figure**, so omitting it was the same class of
+  defect as C15 itself.
+- **C13/C14 were numbered in Round 6's commit but never given a Round 6 section** — the catches
+  exist only inside C11's and C10's text. Numbering now reconciled: C13 = §1's unperformed
+  reconciliation, C14 = the "needs a slice" owner cells, both fixed under Round 6.
+- **Privacy manifest was false.** Round 7's evidence block introduced a DB hostname, a server IP,
+  and a version string into a document whose manifest promised "role counts, file paths, line
+  numbers only." **Infrastructure identifiers are now redacted** (host suffix and RFC1918 address
+  removed; `current_database` and the Postgres major version retained as non-identifying), and the
+  manifest is amended to describe what the artifact actually contains.
+
+  Worth stating plainly: **the fix that satisfied C15's evidence rule created a privacy-manifest
+  violation.** Attaching evidence and honoring a redaction promise pull in opposite directions, and
+  I resolved it in one direction without re-reading the promise.
