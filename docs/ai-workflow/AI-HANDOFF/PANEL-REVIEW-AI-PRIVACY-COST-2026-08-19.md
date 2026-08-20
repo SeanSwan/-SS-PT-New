@@ -1,7 +1,7 @@
 ---
 title: "Panel review — AI privacy/cost workstream (GLM + Kimi, multi-round)"
 date: 2026-08-19
-author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 and Kimi K3 (round count derivable from the `# Round N` headings)
+author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 and Kimi K3 (C40: this line carried its own derivation rule, which C36 had already falsified; there is now exactly ONE rule and it lives in `decision:` below)
 decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Record-grading rounds found a defect in THIS DOCUMENT every time they ran; each is labelled C<N> at its site, so the total is DERIVED by counting C-labels, not stored (C35 - a stored total went stale on append four times: C21, C29, C34, and again here). ROUND ROSTER is likewise derived, by this EXACT rule (C37): the set of every integer N matching `^# Rounds? N` OR `^# Rounds N and M` (both captured) OR the annotation `(Round N)`. The rule is stated in the form it is executed in - C36 stated a narrower rule than its own script ran, and the script silently covered the plural heading the rule did not mention. READ EVERY `# Round N` SECTION FROM ROUND 4 ONWARD, IN ORDER, BEFORE THE BODY - they supersede body claims, and the Round 7 section holds the only evidence for the 6-of-7 figure. Per-round Kimi spend is recorded in the round sections; no running total is stored (C36 - spend is append-volatile and C27 had already classed it with the counts)."
 status: open
 supersedes: none
@@ -895,13 +895,13 @@ catch.
 RULE (verbatim): roster = N from '^# Rounds? N' UNION N,M from '^# Rounds N and M' UNION N from '(Round N)'
 
 headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14, 20]
-annotations contribute : [6, 11, 15, 16, 17, 18, 19, 20]
-ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+annotations contribute : [6, 11, 15, 16, 17, 18, 19, 20, 21]
+ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]
 contiguous 4..max      : True
-HIGHEST round in file  : 20   (must equal the last '# Round N' section)
+HIGHEST round in file  : 21   (must equal the last '# Round N' section)
 
-C-labels defined       : 39
-HIGHEST label defined  : C39
+C-labels defined       : 40
+HIGHEST label defined  : C40
 undefined in range     : none
 
 INVARIANTS — all four must hold, and the last two are the ones contiguity could not catch:
@@ -910,3 +910,22 @@ INVARIANTS — all four must hold, and the last two are the ones contiguity coul
   3. HIGHEST round == the final round section in the file
   4. HIGHEST label == the final C-label in the file
 ```
+
+---
+
+# Round 21 — the corrected rule had a stale sibling three lines above it
+
+**C40 (Round 21)** — the `author:` line still asserted the roster was "derivable from the
+`# Round N` headings" — **the exact derivation C36 falsified** — while the `decision:` line three
+lines below carried the corrected three-pattern rule. So the frontmatter contradicted itself, and
+the fix had been applied to one of the two sites stating the claim.
+
+**Two prior classes at once, which is why it survived:** C13's (fix applied to one of two places)
+and C25's (swept the site I was looking at and stopped). And the Round 20 two-pass trace, which
+verified the roster against the decision-line rule and all four invariants, **had no reason to look
+at the author line** — a check validates the rule it is given and cannot know a stale sibling of
+that rule exists elsewhere.
+
+**Fixed structurally rather than by correcting the wording:** the author line no longer states a
+rule at all. **There is exactly one derivation rule in this document, in `decision:`.** A rule
+stated twice is a rule that will be corrected once.
