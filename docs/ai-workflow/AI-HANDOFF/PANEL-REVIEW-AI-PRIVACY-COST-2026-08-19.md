@@ -1,8 +1,8 @@
 ---
-title: "Panel review — AI privacy/cost workstream (GLM x11 + Kimi x2)"
+title: "Panel review — AI privacy/cost workstream (GLM x12 + Kimi x2)"
 date: 2026-08-19
-author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (11 rounds) and Kimi K3 (2 rounds)
-decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-11 graded THIS RECORD and found 24 defects in it (C1-C24), including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7, 8 AND 9/10 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
+author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (12 rounds) and Kimi K3 (2 rounds)
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-12 graded THIS RECORD and found 26 defects in it (C1-C26), including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7, 8 AND 9/10 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
@@ -11,9 +11,9 @@ privacy: "No secrets, no key values, no client data, no identities. Role counts,
 
 # Panel review — what four hostile rounds changed
 
-**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round. Actual: GLM x11, Kimi x2.**
+**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round. Actual: GLM x12, Kimi x2.**
 GLM R1 (mechanisms), R2 (attack the answers), Kimi R1 (frame), GLM R3 (adjudicate Kimi),
-GLM R4-R6 (grade the record), Kimi R2 (confirm), GLM R7-R11 (confirm).
+GLM R4-R6 (grade the record), Kimi R2 (confirm), GLM R7-R12 (confirm).
 Total Kimi spend: **$0.24** ($0.20 + $0.04); GLM is subscription.
 
 > **Read the Round 4 section at the end before trusting this one.** R4 was pointed at the record
@@ -599,7 +599,7 @@ R9 found two record defects and the document recorded neither: the frontmatter s
 parenthetical, with no section and no C-number. **That is C19's own headline complaint** — the
 header going stale when a round is appended — recurring two rounds after C19.
 
-Now reconciled: **rounds 4–11, C1–C24, GLM ×11, Kimi ×2.**
+Now reconciled: **rounds 4–12, C1–C26, GLM ×12, Kimi ×2.**
 
 ## C22 — C19 described a redaction it had not fully performed
 
@@ -611,19 +611,60 @@ and the privacy manifest now says *partially* redacted.
 
 ---
 
-## What ten rounds actually established
+## What this exercise established  *(written to be append-safe — see C25)*
 
-**The work has not moved since round 3.** Merge order (#45 → #47 → local verification → admin
-link), #45-first, local-verification-only, and every measured number have survived seven further
-rounds of adversarial attack, including two by a reviewer explicitly told to break them.
+**This section deliberately contains no round counts and no defect counts.** Every previous version
+of it carried both, and every one went stale the moment another round was appended — C21, C23 and
+C25 are all the same defect, and C25 caught it inside the very edit that was supposed to fix C23.
+**The durable fix is not another reconciliation; it is to stop putting volatile numbers in the
+paragraph that gets read last.** The authoritative counts live in the frontmatter, in exactly one
+place, and are reconciled there.
 
-**Every finding from round 4 onward has been in the record, not the work** — and there have been
-**twenty-two of them (C1–C22) across seven rounds**, each one a correction that was narrower than the sentence
-announcing it: a header not updated when a section was appended, a concession made in prose and not
-in the table, a fix applied to one of two places, a count verified by counting rather than reading.
+**The work has not moved since the mechanism rounds closed.** Merge order (#45 → #47 → local
+verification → admin link), #45-first, local-verification-only, and every measured number have
+survived every subsequent adversarial round, including rounds explicitly briefed to break them.
 
-**That is the durable result of this exercise.** Not the merge order — which three rounds settled —
-but the demonstration that **a self-graded record fails in a specific, predictable, and repeatable
-way**, and that the failure is invisible to the author every single time. The only thing that ever
-caught it was a round pointed at the record rather than the subject, and every such round found
-something, including the tenth.
+**Every finding after the mechanism rounds has been in the record, not the work** — and each one
+was a correction narrower than the sentence announcing it: a header not updated when a section was
+appended, a concession made in prose and never in the table, a fix applied to one of two places, a
+count "verified" by counting cells rather than reading columns, and a consistency sweep that swept
+the header and stopped.
+
+**That is the durable result.** Not the merge order — the early rounds settled that — but the
+demonstration that **a self-graded record fails in a specific, predictable, repeatable way, and the
+failure is invisible to its author every single time.** What caught it was always a round pointed
+at the record rather than the subject.
+
+**One honest qualifier, per C26:** not every such round found something. GLM R7 returned
+`DRY - nothing new` with a verification trace, and the catches at that stage came from the other
+reviewer. The claim that survives is the weaker, true one: **record-pointed rounds kept finding
+defects long after work-pointed rounds had gone quiet** — not that they never came back empty.
+
+**And the standing caution this record earns:** the recurrence is now the most reliable prediction
+available about this document. Any future edit should assume the accompanying completion sentence
+is too broad, and check the edit against the claim from the reader's position before shipping it.
+
+---
+
+# Round 12 — C25 and C26, and the structural fix that should end this class
+
+**C25 — the "consistency sweep" swept the header and stopped.** R11's commit claimed it had
+"swept every round/count/ratio claim in the file." It had swept every claim *matching a regex* —
+`Rounds 4-1X`, `C1-C2X`, `GLM xN` — and missed every prose form: "ten rounds", "seven further
+rounds", "including the tenth". The closing section, which is what a linear reader ends on, still
+carried four stale counts. **C23's own edit had touched that very paragraph and left its neighbours
+standing.** Also: C23 was never labelled anywhere, so the header's total was asserted rather than
+reconstructible — C19's complaint about C13/C14, again.
+
+**C26 — a universal with a counterexample one section away.** The closing claimed "every such round
+found something." GLM R7 returned `DRY - nothing new`. Corrected to the weaker true claim.
+
+**The structural fix.** C21, C23 and C25 are one defect recurring: **volatile counts in the section
+that is read last, in a document that grows by appending.** Reconciling them again would only
+schedule the next recurrence. So the closing section has been rewritten to **contain no round
+counts and no defect counts at all** — the authoritative numbers now live in exactly one place, the
+frontmatter. That removes the failure mode rather than resetting it.
+
+*(Which is itself the lesson the record kept arriving at from different directions: the correction
+that survives is procedural, not resolutional. "Reconcile the counts" failed three times.
+"Do not put counts here" cannot fail the same way.)*
