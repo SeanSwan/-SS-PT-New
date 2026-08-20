@@ -201,6 +201,65 @@ export const stripeWebhookHandler = async (req, res) => {
         const cartId = session.metadata?.cartId;
 
         if (!cartId) {
+          // ── Session Package Fulfillment ─────────────────────────────
+          //
+          // This rail was fulfilled ONLY by verify-session, i.e. only if the
+          // browser reached the success page. A buyer who closes the tab, loses
+          // the redirect, sits behind an extension that blocks it, or crashes
+          // has PAID and is never granted — and nothing server-side reconciled
+          // it, because this handler used to 200-ack the event as "no cartId —
+          // ignoring". The "legacy mount silently acked" class, surviving
+          // inside the unified handler (GLM-5.3 M4 / Kimi K3 M4, 2026-08-19).
+          //
+          // Safe to run alongside verify-session: the service is idempotent on
+          // `Order.idempotencyKey = getSessionPackageFulfillmentKey(sessionId)`,
+          // so whichever path arrives second returns alreadyProcessed. That is
+          // why the webhook needs no coordination with the redirect.
+          //
+          // Imported LAZILY on purpose. A static import pulls the whole
+          // Sequelize model graph (CustomPackage and friends) into this hot
+          // module — the same static-import blast radius that broke four
+          // unrelated suites earlier in this workstream when the cart route
+          // imported this handler directly. It also keeps the cost off the
+          // cart path entirely, since only a cartId-less session reaches here.
+          const { isSessionPackageCheckoutSession, fulfillSessionPackageCheckoutSession } =
+            await import('../services/sessionPackageCheckoutFulfillmentService.mjs');
+
+          if (isSessionPackageCheckoutSession(session)) {
+            try {
+              const packageResult = await fulfillSessionPackageCheckoutSession(session);
+              logger.info('[Webhook] Session package fulfilled', {
+                checkoutSessionId: session.id,
+                userId: packageResult.userId,
+                sessionsAdded: packageResult.sessionsAdded,
+                alreadyProcessed: packageResult.alreadyProcessed,
+              });
+            } catch (packageError) {
+              // Money is captured. Silence here is the defect this branch
+              // exists to close, so alert and rethrow. Rethrowing yields a 500,
+              // and a 500 is CORRECT for a transient fulfilment failure:
+              // Stripe redelivers and the service is idempotent.
+              logger.error('[Webhook] Session package fulfilment FAILED on a paid session', {
+                checkoutSessionId: session.id,
+                errorCode: packageError?.code || packageError?.name || 'UNKNOWN',
+                errorMessage: packageError?.message,
+              });
+              await notifyAdminSafely({
+                title: 'Session package paid but NOT fulfilled',
+                message: 'Checkout session ' + session.id + ' was paid but session-package '
+                  + 'fulfilment failed. Stripe will retry; if it keeps failing, grant manually.',
+                data: {
+                  type: 'session_package_fulfilment_failed',
+                  checkoutSessionId: session.id,
+                  errorCode: packageError?.code || null,
+                  actionRequired: 'MONITOR_OR_MANUAL_GRANT',
+                },
+              }, '[Webhook]');
+              throw packageError;
+            }
+            break;
+          }
+
           logger.warn('[Webhook] checkout.session.completed with no cartId or gallery_credits — ignoring');
           break;
         }
