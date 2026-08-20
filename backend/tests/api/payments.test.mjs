@@ -156,7 +156,14 @@ describe('Payment Flow API', () => {
       expect(source).toContain("code: FULFILLMENT_DETAILS_REQUIRED_CODE");
       expect(source).toContain('const stockValidationError = validateCheckoutStockAvailability(cart.cartItems);');
       expect(source).toContain('code: stockValidationError.code');
-      expect(source).toContain('const receiptSummary = await getCheckoutReceiptSummary({ cartId: cart.id, userId });');
+      // RE-ANCHORED 2026-08-20. Was pinned to `cartId: cart.id`. verify-session
+      // now resolves the cart through a crash-window fallback, so the variable
+      // is `recoveredCart` — a cart the SERVER looked up, scoped to the
+      // authenticated user, exactly as before. The invariant this line protects
+      // is that the receipt is computed from a server-resolved cart id and a
+      // server-supplied userId, never from anything the client sent; that is
+      // unchanged. Assert the invariant rather than the identifier.
+      expect(source).toMatch(/getCheckoutReceiptSummary\(\{ cartId: (cart|recoveredCart)\.id, userId \}\)/);
       expect(source).toContain('...receiptSummary');
       expect(source).toContain('fulfillmentIntent: normalizedFulfillmentIntent.mode');
       expect(source).toContain('physicalProductCount: normalizedFulfillmentIntent.itemCount.toString()');

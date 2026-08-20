@@ -174,3 +174,47 @@ describe('the gates are actually wired into the checkout route', () => {
     expect(source).toContain('validateCheckoutStockAvailability');
   });
 });
+
+/**
+ * Kimi K3 M4 — a crash-window cart has `checkoutSessionId: null` by definition,
+ * so verify-session's lookup missed it and a customer who HAD PAID was shown
+ * "Order not found". `/cancel-checkout` was no help either: it needs the
+ * session id the cart does not hold. Their only recovery was the webhook, and
+ * a lost event or a disabled endpoint left them with no path at all.
+ */
+describe('verify-session can recover a crash-window cart', () => {
+  const source = executableSource('../../routes/v2PaymentRoutes.mjs');
+
+  it('falls back to the cart named in the session metadata', () => {
+    expect(source).toContain("Number.parseInt(session?.metadata?.cartId, 10)");
+  });
+
+  it('scopes the fallback to the authenticated user', () => {
+    expect(source).toMatch(/id: metadataCartId,\s*userId,/);
+  });
+
+  it('only adopts a cart that is genuinely unclaimed', () => {
+    // A cart already holding a checkoutSessionId belongs to another session;
+    // recovering it here would be the cross-cart grant the guard exists to stop.
+    expect(source).toMatch(/id: metadataCartId,[\s\S]{0,80}checkoutSessionId: null/);
+  });
+
+  it('rejects a non-safe-integer cart id from metadata', () => {
+    expect(source).toContain('Number.isSafeInteger(metadataCartId)');
+  });
+
+  it('passes the charged amount so the adoption guard can actually decide', () => {
+    // Without it the guard sees an unknown amount and — correctly — fails
+    // closed, so an honest recovery would be refused for want of the one
+    // figure this caller has had in hand the whole time.
+    expect(source).toMatch(/grantSessionsForCart\([\s\S]{0,240}amountTotalCents: session\.amount_total/);
+  });
+
+  it('still 404s when nothing can be recovered', () => {
+    expect(source).toMatch(/if \(!recoveredCart\) \{[\s\S]{0,300}ORDER_NOT_FOUND/);
+  });
+
+  it('leaves no stale reference to the pre-recovery cart in the grant call', () => {
+    expect(source).toContain('grantSessionsForCart(recoveredCart.id, userId');
+  });
+});

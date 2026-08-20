@@ -875,7 +875,38 @@ router.post('/verify-session', protect, paymentVerifyLimiter, checkStripeAvailab
       where: { checkoutSessionId: sessionId, userId }
     });
 
-    if (!cart) {
+    // CRASH-WINDOW RECOVERY.
+    //
+    // A cart stranded in the crash window has `checkoutSessionId: null` by
+    // definition — the Stripe session was created but the finalize write never
+    // landed — so the lookup above cannot find it and a customer who HAS PAID
+    // was shown "Order not found". `/cancel-checkout` was no help either: it
+    // needs the session id the cart does not hold. Their only recovery was the
+    // webhook, and if that event was lost or the endpoint was disabled, they
+    // had no path at all (Kimi K3 M4, 2026-08-19).
+    //
+    // Fall back to the cart named in the session's own metadata, scoped to the
+    // authenticated user. This does NOT weaken anything: adoption is decided
+    // inside grantSessionsForCart, which refuses any cart it cannot verify and
+    // returns `unfulfillable` rather than granting. We are giving that guard a
+    // chance to run, not bypassing it.
+    let recoveredCart = cart;
+    if (!recoveredCart) {
+      const metadataCartId = Number.parseInt(session?.metadata?.cartId, 10);
+      if (Number.isSafeInteger(metadataCartId) && metadataCartId > 0) {
+        recoveredCart = await ShoppingCart.findOne({
+          where: { id: metadataCartId, userId, checkoutSessionId: null },
+        });
+        if (recoveredCart) {
+          logger.warn('[v2 Payment] verify-session recovering a cart stranded in the crash window', {
+            cartId: recoveredCart.id,
+            checkoutSessionId: session.id,
+          });
+        }
+      }
+    }
+
+    if (!recoveredCart) {
       return res.status(404).json({
         success: false,
         message: 'Order not found',
@@ -886,11 +917,20 @@ router.post('/verify-session', protect, paymentVerifyLimiter, checkStripeAvailab
       });
     }
 
-    // Delegate to shared service (handles transaction, row lock, idempotency, atomic increment)
-    const result = await grantSessionsForCart(cart.id, userId, 'verify-session', { checkoutSessionId: session.id });
-    const receiptSummary = await getCheckoutReceiptSummary({ cartId: cart.id, userId });
+    // Delegate to shared service (handles transaction, row lock, idempotency, atomic increment).
+    //
+    // `amountTotalCents` is what lets the adoption guard decide at all. Without
+    // it the guard sees an unknown amount and — correctly — fails closed, so an
+    // honest recovery would be refused for want of the one figure this caller
+    // has had in hand the whole time. The webhook passed it; this caller never
+    // did.
+    const result = await grantSessionsForCart(recoveredCart.id, userId, 'verify-session', {
+      checkoutSessionId: session.id,
+      amountTotalCents: session.amount_total ?? null,
+    });
+    const receiptSummary = await getCheckoutReceiptSummary({ cartId: recoveredCart.id, userId });
     await captureVerifiedCheckoutLead({
-      cart,
+      cart: recoveredCart,
       user: req.user,
       session,
       sessionsAdded: result.sessionsAdded,
