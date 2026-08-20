@@ -1,0 +1,166 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "V1 · The Filter",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 3400
+    },
+    {
+      "file": "Board.dc.html",
+      "title": "V2 · The Board",
+      "x": 1480,
+      "y": 0,
+      "w": 1280,
+      "h": 3400
+    },
+    {
+      "file": "Rail.dc.html",
+      "title": "V3 · The Rail",
+      "x": 2960,
+      "y": 0,
+      "w": 1280,
+      "h": 3400
+    },
+    {
+      "file": "Seam.dc.html",
+      "title": "V4 · The Seam",
+      "x": 4440,
+      "y": 0,
+      "w": 1280,
+      "h": 3400
+    },
+    {
+      "file": "Index.dc.html",
+      "title": "V5 · The Index",
+      "x": 5920,
+      "y": 0,
+      "w": 1280,
+      "h": 3400
+    },
+    {
+      "file": "Feed.dc.html",
+      "title": "V6 · The Feed",
+      "x": 0,
+      "y": 3600,
+      "w": 1280,
+      "h": 3400
+    },
+    {
+      "file": "Object.dc.html",
+      "title": "V7 · The Object",
+      "x": 1480,
+      "y": 3600,
+      "w": 1280,
+      "h": 3400
+    },
+    {
+      "file": "Ledger.dc.html",
+      "title": "V8 · The Ledger",
+      "x": 2960,
+      "y": 3600,
+      "w": 1280,
+      "h": 3400
+    },
+    {
+      "file": "Field.dc.html",
+      "title": "V9 · The Field",
+      "x": 4440,
+      "y": 3600,
+      "w": 1280,
+      "h": 3400
+    },
+    {
+      "file": "Door.dc.html",
+      "title": "V10 · The Door",
+      "x": 5920,
+      "y": 3600,
+      "w": 1280,
+      "h": 3400
+    }
+  ],
+  "annotations": [
+    {
+      "id": "n-v1",
+      "x": 0,
+      "y": -150,
+      "w": 420,
+      "text": "V1 · The Filter\nsentence-as-filter nav (Pentagram); light; answers \"near me\" first"
+    },
+    {
+      "id": "n-v2",
+      "x": 1480,
+      "y": -150,
+      "w": 420,
+      "text": "V2 · The Board\nmasonry wall as hero (mymind); floating pill nav; community IS the argument"
+    },
+    {
+      "id": "n-v3",
+      "x": 2960,
+      "y": -150,
+      "w": 420,
+      "text": "V3 · The Rail\nHORIZONTAL scroll, 6 snap panels + dots (Mistral)"
+    },
+    {
+      "id": "n-v4",
+      "x": 4440,
+      "y": -150,
+      "w": 420,
+      "text": "V4 · The Seam\nmirrored macro split by a lit seam (Oryzo); alternating full-bleed rows"
+    },
+    {
+      "id": "n-v5",
+      "x": 5920,
+      "y": -150,
+      "w": 420,
+      "text": "V5 · The Index\nNO hero image; a typographic contents page, roman numerals (Shopify Editions)"
+    },
+    {
+      "id": "n-v6",
+      "x": 0,
+      "y": 3450,
+      "w": 420,
+      "text": "V6 · The Feed\ndated local entries with times + city chip; the literal neighbourhood answer"
+    },
+    {
+      "id": "n-v7",
+      "x": 1480,
+      "y": 3450,
+      "w": 420,
+      "text": "V7 · The Object\none object on near-empty light ground; slash-separated list, no cards (MOUTHWASH)"
+    },
+    {
+      "id": "n-v8",
+      "x": 2960,
+      "y": 3450,
+      "w": 420,
+      "text": "V8 · The Ledger\nmonospace TABLE, numbers first, no imagery above the fold"
+    },
+    {
+      "id": "n-v9",
+      "x": 4440,
+      "y": 3450,
+      "w": 420,
+      "text": "V9 · The Field\nflat colour field, scattered letterforms, zero cards (KODE) — green is TRIAL only"
+    },
+    {
+      "id": "n-v10",
+      "x": 5920,
+      "y": 3450,
+      "w": 420,
+      "text": "V10 · The Door\nhard 50/50 split; choose an audience before you scroll"
+    },
+    {
+      "id": "ten-manifest",
+      "x": -560,
+      "y": 0,
+      "w": 480,
+      "text": "TEN STRUCTURALLY DIFFERENT VERSIONS — 2026-08-20\n\nSean: \"I'm seeing the same square boxes, the same cards, the same UI, the same fonts, the same everything... the theme changer already does that.\"\n\nHe was right. The previous five were ONE layout function called five times with different colour tokens — which is exactly what his theme changer already produces. That is not design.\n\nTHE RULE THIS RUN ENFORCES ON ITSELF:\nthere is NO shared page() function. Every version owns its layout end to end. gate-ten.mjs measures STRUCTURE — nav model, scroll axis, primary element, hero kind, type family, density — and fails on structural collision, not on palette similarity.\n\nWHAT ACTUALLY VARIES:\n• scroll axis — V3 is horizontal, the rest vertical\n• hero — filter sentence / masonry wall / snap panels / mirrored seam / pure type / dated feed / single object / data table / scattered field / split doors\n• primary element — chips, tiles, panels, rows, index lines, feed entries, slash lists, table rows, free type, half-screens\n• nav — none, floating pill, sideways dots, sticky mark, masthead, city chip, inline links, terminal bar, indexed counter, centred mark\n• type — sans / mono / serif-display / editorial serif\n• ground — 4 are LIGHT, 6 dark\n\nFROM THE PAID PANEL (Grok 4.6 / GLM 5.3 / GPT-5.6 Sol Pro):\n• community-first may be an OVER-correction for a cold \"trainer near me\" visitor. Sean and the panel disagree, so these ten deliberately TEST different orderings instead of assuming.\n• NO board states a fee — the live ~10% and the planned 15%+$1,000 cap contradict, so every board carries a withheld marker instead of a number.\n• \"Owned by the community\" is marked where it appears: Sol flags it as a possible legal ownership claim.\n• Now present because the panel found them missing: city/geo, a trainee-facing price line, and what \"Join the Community\" actually enrols you in.\n\nMOBBIN: L3 evidence only. L6 adjudication and L7 canon are HUMAN-ONLY. Each version names its source so you can accept or reject individually."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

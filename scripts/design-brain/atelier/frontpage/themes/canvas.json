@@ -1,0 +1,91 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "T1 · Obsidian & Gold",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 6200
+    },
+    {
+      "file": "IceWing.dc.html",
+      "title": "T2 · Ice Wing",
+      "x": 1520,
+      "y": 0,
+      "w": 1280,
+      "h": 6200
+    },
+    {
+      "file": "Neighbourhood.dc.html",
+      "title": "T3 · The Neighbourhood",
+      "x": 3040,
+      "y": 0,
+      "w": 1280,
+      "h": 6200
+    },
+    {
+      "file": "TheSignal.dc.html",
+      "title": "T4 · The Signal",
+      "x": 4560,
+      "y": 0,
+      "w": 1280,
+      "h": 6200
+    },
+    {
+      "file": "TheRecord.dc.html",
+      "title": "T5 · The Record",
+      "x": 6080,
+      "y": 0,
+      "w": 1280,
+      "h": 6200
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-t1",
+      "x": 0,
+      "y": -420,
+      "w": 440,
+      "text": "T1 · OBSIDIAN & GOLD — Sean taste profile #1 (black + white + gold). Editorial and high-contrast: square corners, hairline gold rules, no glass. Gold obeys the allowlist — hairline rules, one badge, the CTA.\n\nMOBBIN (L3 evidence, not canon): Shopify Editions — the page as a numbered edition.\n\nTRADEOFF: the most severe. Reads authoritative and expensive, and least like a place you would casually join."
+    },
+    {
+      "id": "note-t2",
+      "x": 1520,
+      "y": -420,
+      "w": 440,
+      "text": "T2 · ICE WING — Sean taste profile #2 (black + white + blue). The Crystalline Swan canon as-is: sapphire surfaces, Ice Wing accents, purple glow on blue buttons, 10px radii.\n\nMOBBIN: none borrowed — this is the house style, included as the control against which the other four are judged.\n\nTRADEOFF: the safest and the most familiar; it is what the site already looks like, so it wins nothing new."
+    },
+    {
+      "id": "note-t3",
+      "x": 3040,
+      "y": -420,
+      "w": 440,
+      "text": "T3 · THE NEIGHBOURHOOD — the answer to Sean's actual note: the client arriving for community, not the trainer. LIGHT ground, serif display, warm paper, deep-green accent. Feels like a notice board in a real place.\n\nMOBBIN: Busy Bee Honey — flat bold colour fields, labelled cards, giant footer wordmark.\n\n⚠ The green here is #0F4C3A used as an ACCENT ONLY. Per swan-element-intelligence §6 there is NO approved client green token; this is a TOKEN_PROPOSAL at TRIAL, not canon. Sean approves or it reverts to gold.\n\nTRADEOFF: breaks dark-first hardest. It is the only one a stranger would call friendly, and the only one that does not look like the rest of the product."
+    },
+    {
+      "id": "note-t4",
+      "x": 4560,
+      "y": -420,
+      "w": 440,
+      "text": "T4 · THE SIGNAL — warm-cream serif GLOWING out of volumetric fog; the swans frame is the object inside the haze.\n\nMOBBIN: Shader (Norrköping) — glow-bloom display type, hero object in fog, institutional chrome.\n\nTRADEOFF: the most atmospheric and the least scannable. Eight community categories in fog is a lot of reading in low contrast — this one most needs a contrast audit before it is real."
+    },
+    {
+      "id": "note-t5",
+      "x": 6080,
+      "y": -420,
+      "w": 440,
+      "text": "T5 · THE RECORD — the page as a printed edition. Serif at light weight, zero radii, violet accent against warm near-black, ink-on-press feeling.\n\nMOBBIN: Shopify Editions (masthead + numbered index) crossed with press-plate texture.\n\nTRADEOFF: the most \"designed\" and the slowest to the point. Beautiful for a brand film, risky for someone who googled a trainer near them."
+    },
+    {
+      "id": "themes-manifest",
+      "x": -540,
+      "y": 0,
+      "w": 470,
+      "text": "FIVE THEMES — 2026-08-20\n\nSean: five completely different themes from the Swan design brain, with the Mobbin MCP informing the elements — AND the client/community half leading instead of the trainer half.\n\nWHAT CHANGED FROM EVERY EARLIER RUN:\n• BEYOND THE GYM and its EIGHT categories now lead, immediately after the hero. The trainer half is kept but demoted to section VI.\n• Copy comes from copy-pack-full.json — 40 blocks. The previous pack carried 12 fields and covered 4 of 13 mounted sections, so every earlier design was built against a third of the page.\n• The full WHAT WE DO list (8), programs with real badges, 3 testimonials with named results, 6 stats, and the trainer features are all present for the first time.\n\nGOVERNANCE (mobbin-learning-system.md):\nMobbin observations enter at L3/L5 as evidence only. L6 adjudication and L7 canon are HUMAN-ONLY. Each theme's note names what it borrowed so you can accept or reject individually. Nothing here has been promoted to canon.\n\nFLAGGED, NOT DECIDED:\n• Trainer fee — the live page says ~10%, the grill decided 15% with a $1,000 cap. Marked in-artboard on every theme.\n• Stats marked NEEDS SEAN NUMBER are marked on the page too, so no theme hardens an unconfirmed figure.\n• T3's green is a TOKEN_PROPOSAL at TRIAL — there is no approved client green.\n\nTHEME 6, NOT BUILT: black + white + green as a full palette. Your taste profile records it as a real preference, but Cyberforest green is operator-only and no client green token exists. Say the word and it becomes a token proposal rather than a mockup pretending to be canon."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

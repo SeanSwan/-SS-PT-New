@@ -1,0 +1,331 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; font-family:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif; background:#0A0A0F; }
+    a { color:#C6A84B; } a:hover { color:#E0ECF4; }
+    h1,h2 { text-wrap:balance; margin:0; }
+    @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+  </style>
+</helmet>
+<div style="width:1280px;background:#0A0A0F;color:#E0ECF4;">
+<header style="position:sticky;top:0;z-index:50;height:64px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:0 24px;
+      background:rgba(10,16,34,0.72);backdrop-filter:blur(20px) saturate(1.8);-webkit-backdrop-filter:blur(20px) saturate(1.8);
+      border-bottom:1px solid rgba(96,192,240,0.18);box-shadow:0 1px 0 rgba(255,255,255,0.04);">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <img src="swan-logo.png" alt="SwanStudios" style="width:36px;height:36px;display:block;opacity:1">
+      <span style="font-weight:800;font-size:15px;letter-spacing:0.02em;color:#E0ECF4;white-space:nowrap;">SwanStudios</span>
+    </div>
+    <nav style="display:flex;align-items:center;gap:22px;">
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Home</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Store</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Video Library</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Waiver</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Contact</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">Photography</a>
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;letter-spacing:0.01em;min-height:44px;display:inline-flex;align-items:center;padding:0 2px;">About</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="#" style="text-decoration:none;color:#D6E4F0;font-size:13.5px;font-weight:600;min-height:44px;display:inline-flex;align-items:center;padding:0 12px;">Login</a>
+      <a href="#" style="text-decoration:none;color:#E0ECF4;font-size:13.5px;font-weight:700;min-height:44px;display:inline-flex;align-items:center;padding:0 16px;border-radius:8px;background:#002060;box-shadow:0 0 18px rgba(139,92,246,0.35);">Sign Up</a>
+    </div>
+  </header>
+
+  <section style="position:relative;">
+    
+    <div style="position:relative;height:700px;overflow:hidden;background:#111119;
+      perspective:1000px;perspective-origin:50% 50%;transform-style:preserve-3d;">
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-280px) scale(1.280);"><img src="beyond-the-gym-bg.jpg" alt="" style="width:100%;height:100%;object-fit:cover;opacity:0.42;display:block;"></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-140px) scale(1.140);"><div style="position:absolute;inset:0;background:radial-gradient(100% 70% at 50% 100%,rgba(198,168,75,0.16),rgba(10,10,15,0) 62%);"></div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(-40px) scale(1.040);"><img src="swans-hero-frame.jpg" alt="the swans, from Sean's own film" style="width:100%;height:100%;object-fit:cover;opacity:0.70;">
+        <div style="position:absolute;left:18px;bottom:14px;font-size:10px;letter-spacing:0.2em;color:#C6A84B;
+          background:rgba(6,9,15,0.66);padding:6px 10px;border-radius:6px;">SWANS.MP4 &middot; REAL FRAME &middot; SWAPPABLE SLOT</div></div>
+      <div style="position:absolute;inset:0;
+        transform:translateZ(0px) scale(1.000);"><div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,15,0.20),rgba(10,10,15,0.92));"></div></div>
+    </div>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:0 56px 56px;gap:16px;">
+      <div style="font-size:11px;letter-spacing:0.30em;color:#C6A84B;">SWANSTUDIOS &middot; THE RECORD OF A COMMUNITY</div>
+      <h1 style="font-size:62px;line-height:1.02;font-weight:800;color:#E0ECF4;max-width:18ch;letter-spacing:-0.035em;">Health First. Community Always.</h1>
+      <p style="font-size:20px;line-height:1.5;color:#B9CBDC;max-width:46ch;margin:0;font-weight:500;">Where world-class personal training meets a supportive community built around clean living, real connection, and lifelong wellness.</p>
+      
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <a href="#join" style="display:inline-flex;align-items:center;min-height:48px;padding:0 30px;border-radius:2px;
+          background:#C6A84B;color:#0A0A0F;text-decoration:none;font-weight:700;box-shadow:0 0 26px rgba(198,168,75,0.28);">Join the Community</a>
+        <a href="#trainers" style="display:inline-flex;align-items:center;min-height:48px;padding:0 26px;border-radius:2px;
+          border:1px solid rgba(198,168,75,0.22);color:#E0ECF4;text-decoration:none;font-weight:600;">Find a Trainer</a>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:72px 56px;background:#111119;">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:8px;">
+      <div style="font-size:11px;letter-spacing:0.26em;color:#C6A84B;">I &middot; BEYOND THE GYM</div>
+      <div style="font-size:11px;letter-spacing:0.16em;color:#7C8A9C;">8 WAYS IN <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></div>
+    </div>
+    <h2 style="font-size:40px;font-weight:800;color:#E0ECF4;margin-bottom:8px;letter-spacing:-0.03em;">Come for one. Stay for the rest. <span style="font-size:10px;letter-spacing:0.06em;color:#C6A84B;">[new copy - needs Sean approval]</span></h2>
+    <p style="font-size:16px;line-height:1.6;color:#B9CBDC;max-width:64ch;margin:0 0 24px;">Where world-class personal training meets a supportive community built around clean living, real connection, and lifelong wellness.</p>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;">
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:16px;
+        background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:10px;letter-spacing:0.18em;color:#7C8A9C;">01</div>
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Fitness &amp; Training</div>
+        <div style="font-size:13px;line-height:1.5;color:#B9CBDC;">Log workouts, track progress, earn XP, challenge your community.</div>
+      </div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:16px;
+        background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:10px;letter-spacing:0.18em;color:#7C8A9C;">02</div>
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Dance &amp; Movement</div>
+        <div style="font-size:13px;line-height:1.5;color:#B9CBDC;">Share choreography, freestyle sessions, and movement art.</div>
+      </div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:16px;
+        background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:10px;letter-spacing:0.18em;color:#7C8A9C;">03</div>
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Music &amp; Singing</div>
+        <div style="font-size:13px;line-height:1.5;color:#B9CBDC;">Produce beats, perform covers, share your creative process.</div>
+      </div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:16px;
+        background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:10px;letter-spacing:0.18em;color:#7C8A9C;">04</div>
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Gaming &amp; Streaming</div>
+        <div style="font-size:13px;line-height:1.5;color:#B9CBDC;">Stream games, find your crew, support independent developers.</div>
+      </div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:16px;
+        background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:10px;letter-spacing:0.18em;color:#7C8A9C;">05</div>
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Art &amp; Expression</div>
+        <div style="font-size:13px;line-height:1.5;color:#B9CBDC;">Showcase artwork, photography, and digital creations.</div>
+      </div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:16px;
+        background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:10px;letter-spacing:0.18em;color:#7C8A9C;">06</div>
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Comedy</div>
+        <div style="font-size:13px;line-height:1.5;color:#B9CBDC;">Skits, memes, stand-up. Make the community laugh.</div>
+      </div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:16px;
+        background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:10px;letter-spacing:0.18em;color:#7C8A9C;">07</div>
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">Community Meetups</div>
+        <div style="font-size:13px;line-height:1.5;color:#B9CBDC;">Local events, walking clubs, group activities. Digital made real.</div>
+      </div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:16px;
+        background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:6px;">
+        <div style="font-size:10px;letter-spacing:0.18em;color:#7C8A9C;">08</div>
+        <div style="font-size:15px;font-weight:700;color:#E0ECF4;">YouTube-Style Video</div>
+        <div style="font-size:13px;line-height:1.5;color:#B9CBDC;">Long-form content, tutorials, vlogs. Your channel, your audience.</div>
+      </div>
+    </div>
+    <div style="margin-top:22px;">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <a href="#join" style="display:inline-flex;align-items:center;min-height:48px;padding:0 30px;border-radius:2px;
+          background:#C6A84B;color:#0A0A0F;text-decoration:none;font-weight:700;box-shadow:0 0 26px rgba(198,168,75,0.28);">Join the Community</a>
+        <a href="#trainers" style="display:inline-flex;align-items:center;min-height:48px;padding:0 26px;border-radius:2px;
+          border:1px solid rgba(198,168,75,0.22);color:#E0ECF4;text-decoration:none;font-weight:600;">Find a Trainer</a>
+      </div></div>
+  </section>
+
+  <section style="padding:0 56px 14px;background:#0A0A0F;">
+    <div style="position:relative;border:1px solid rgba(198,168,75,0.22);border-radius:2px;overflow:hidden;
+      min-height:280px;display:flex;flex-direction:column;justify-content:flex-end;padding:24px;background:rgba(255,255,255,0.03);">
+      <img src="swans-frame-b.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.22;">
+      <div style="position:relative;display:flex;flex-direction:column;gap:7px;">
+        <div style="font-size:10px;letter-spacing:0.24em;color:#C6A84B;">MOVIE AREA 1 &middot; MINIMAX H3</div>
+        <div style="font-size:24px;font-weight:700;color:#E0ECF4;">The Neighbourhood at Night</div>
+        <div style="font-size:13.5px;line-height:1.6;color:#B9CBDC;max-width:62ch;">Doors opening across a neighbourhood — a walking club, a garage band, a late set. The swans pass over all of it once.</div>
+        <div style="font-size:11px;letter-spacing:0.14em;color:#7C8A9C;">TARGET 14s &middot; SWAPPABLE SLOT</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:70px 56px;background:#0A0A0F;">
+    <div style="font-size:11px;letter-spacing:0.26em;color:#C6A84B;margin-bottom:10px;">II &middot; WHAT WE DO</div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;">
+      <div style="border-top:1px solid rgba(198,168,75,0.22);padding-top:12px;">
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:5px;">Elite Personal Training</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Personalized coaching from NCEP-certified experts with 26+ years experience. Science-based programming tailored to your goals.</div></div>
+      <div style="border-top:1px solid rgba(198,168,75,0.22);padding-top:12px;">
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:5px;">Performance Assessment</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Comprehensive evaluation using NASM OPT model to analyze movement patterns and build your optimal program.</div></div>
+      <div style="border-top:1px solid rgba(198,168,75,0.22);padding-top:12px;">
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:5px;">Nutrition Coaching</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Evidence-based nutrition protocols, personalized macro planning, and sustainable eating strategies.</div></div>
+      <div style="border-top:1px solid rgba(198,168,75,0.22);padding-top:12px;">
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:5px;">Recovery &amp; Mobility</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Corrective exercise strategies, mobility training, and myofascial release guided by NASM CES principles.</div></div>
+      <div style="border-top:1px solid rgba(198,168,75,0.22);padding-top:12px;">
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:5px;">Online Coaching</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Expert guidance anywhere with customized programs and regular check-ins through our AI-enhanced platform.</div></div>
+      <div style="border-top:1px solid rgba(198,168,75,0.22);padding-top:12px;">
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:5px;">Group Performance</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Exclusive small-group sessions combining group energy with personalized attention for maximum results.</div></div>
+      <div style="border-top:1px solid rgba(198,168,75,0.22);padding-top:12px;">
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:5px;">Sports-Specific Training</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Specialized programs for golfers, athletes, and weekend warriors. Rotational power and sport-specific conditioning.</div></div>
+      <div style="border-top:1px solid rgba(198,168,75,0.22);padding-top:12px;">
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:5px;">Corporate Wellness</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Comprehensive corporate wellness programs including on-site sessions, workshops, and team challenges.</div></div>
+    </div>
+  </section>
+
+  <section style="padding:76px 56px;background:#111119;">
+    <div style="font-size:11px;letter-spacing:0.26em;color:#C6A84B;margin-bottom:16px;">III &middot; MANIFESTO</div>
+    <p style="margin:0 0 16px;font-size:24px;line-height:1.5;color:#E0ECF4;font-weight:500;max-width:70ch;">The food industry profits from making you sick. Social media profits from your attention. Gaming companies fire the people who made their best games. Healthcare safety nets are disappearing.</p>
+    <p style="margin:0 0 12px;font-size:17px;line-height:1.65;color:#B9CBDC;max-width:64ch;">SwanStudios exists because we believe you deserve better. A platform that puts your health first, remembers your journey, supports your trainer, celebrates your creativity, and never sells you out.</p>
+    <p style="margin:0 0 18px;font-size:17px;line-height:1.65;color:#B9CBDC;max-width:64ch;">We're not here to extract value from you. We're here to help you build it — for yourself, and for the people around you.</p>
+    <p style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:28px;color:#C6A84B;">Built by a trainer. Owned by the community. Powered by all of us.</p>
+  </section>
+
+  <section style="padding:44px 56px;background:#0A0A0F;border-top:1px solid rgba(198,168,75,0.22);border-bottom:1px solid rgba(198,168,75,0.22);">
+    <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;">
+      <div>
+        <div style="font-size:30px;font-weight:800;color:#E0ECF4;letter-spacing:-0.02em;">26+</div>
+        <div style="font-size:10.5px;letter-spacing:0.14em;color:#7C8A9C;margin-top:3px;">YEARS EXPERIENCE</div>
+        
+      </div>
+      <div>
+        <div style="font-size:30px;font-weight:800;color:#E0ECF4;letter-spacing:-0.02em;">500+</div>
+        <div style="font-size:10.5px;letter-spacing:0.14em;color:#7C8A9C;margin-top:3px;">CLIENTS TRANSFORMED</div>
+        <div style="font-size:9px;color:#C6A84B;margin-top:3px;">NEEDS SEAN NUMBER</div>
+      </div>
+      <div>
+        <div style="font-size:30px;font-weight:800;color:#E0ECF4;letter-spacing:-0.02em;">10k+</div>
+        <div style="font-size:10.5px;letter-spacing:0.14em;color:#7C8A9C;margin-top:3px;">SESSIONS DELIVERED</div>
+        <div style="font-size:9px;color:#C6A84B;margin-top:3px;">NEEDS SEAN NUMBER</div>
+      </div>
+      <div>
+        <div style="font-size:30px;font-weight:800;color:#E0ECF4;letter-spacing:-0.02em;">312</div>
+        <div style="font-size:10.5px;letter-spacing:0.14em;color:#7C8A9C;margin-top:3px;">SWIMMERS TAUGHT</div>
+        
+      </div>
+      <div>
+        <div style="font-size:30px;font-weight:800;color:#E0ECF4;letter-spacing:-0.02em;">12.4k+</div>
+        <div style="font-size:10.5px;letter-spacing:0.14em;color:#7C8A9C;margin-top:3px;">LBS LOST TOGETHER</div>
+        <div style="font-size:9px;color:#C6A84B;margin-top:3px;">NEEDS SEAN NUMBER</div>
+      </div>
+      <div>
+        <div style="font-size:30px;font-weight:800;color:#E0ECF4;letter-spacing:-0.02em;">97%</div>
+        <div style="font-size:10.5px;letter-spacing:0.14em;color:#7C8A9C;margin-top:3px;">CLIENT SATISFACTION</div>
+        <div style="font-size:9px;color:#C6A84B;margin-top:3px;">NEEDS SEAN NUMBER</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:66px 56px;background:#111119;">
+    <div style="font-size:11px;letter-spacing:0.26em;color:#C6A84B;margin-bottom:16px;">IV &middot; PROOF FROM PEOPLE</div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;">
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:18px;background:rgba(255,255,255,0.03);">
+        <div style="font-size:14px;line-height:1.6;color:#B9CBDC;">&ldquo;Thanks to SwanStudios personal training, I achieved an incredible transformation. The tailored workouts and nutrition plan helped me lose 42 lbs, and I feel more energetic and confident than ever.&rdquo;</div>
+        <div style="margin-top:12px;font-size:12px;font-weight:700;color:#E0ECF4;">Sarah J. &middot; <span style="font-weight:500;color:#7C8A9C;">Corporate Executive</span></div>
+        <div style="margin-top:5px;display:inline-block;font-size:11px;letter-spacing:0.1em;color:#C6A84B;border:1px solid rgba(198,168,75,0.22);border-radius:99px;padding:3px 10px;">Lost 42 lbs in 7 months</div>
+      </div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:18px;background:rgba(255,255,255,0.03);">
+        <div style="font-size:14px;line-height:1.6;color:#B9CBDC;">&ldquo;Sean Swan completely transformed my golf game. Through targeted core stability work, rotational power training, and flexibility protocols, I added serious distance off the tee.&rdquo;</div>
+        <div style="margin-top:12px;font-size:12px;font-weight:700;color:#E0ECF4;">Robert T. &middot; <span style="font-weight:500;color:#7C8A9C;">Avid Golfer</span></div>
+        <div style="margin-top:5px;display:inline-block;font-size:11px;letter-spacing:0.1em;color:#C6A84B;border:1px solid rgba(198,168,75,0.22);border-radius:99px;padding:3px 10px;">Added 35 yards to drive</div>
+      </div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:18px;background:rgba(255,255,255,0.03);">
+        <div style="font-size:14px;line-height:1.6;color:#B9CBDC;">&ldquo;Training with Sean Swan got me in the best shape of my life. My department fitness test running time improved dramatically, and I feel stronger, faster, and more capable on the job.&rdquo;</div>
+        <div style="margin-top:12px;font-size:12px;font-weight:700;color:#E0ECF4;">Officer Martinez &middot; <span style="font-weight:500;color:#7C8A9C;">Law Enforcement</span></div>
+        <div style="margin-top:5px;display:inline-block;font-size:11px;letter-spacing:0.1em;color:#C6A84B;border:1px solid rgba(198,168,75,0.22);border-radius:99px;padding:3px 10px;">Run improved by 2:30</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding:66px 56px;background:#0A0A0F;">
+    <div style="font-size:11px;letter-spacing:0.26em;color:#C6A84B;margin-bottom:14px;">V &middot; YOUR TRAINING PROGRAMS</div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;">
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:20px;background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:8px;">
+        
+        <div style="font-size:19px;font-weight:800;color:#E0ECF4;">Express Precision</div>
+        <div style="font-size:12px;letter-spacing:0.12em;color:#7C8A9C;">30-MINUTE SESSIONS</div>
+        <ul style="margin:6px 0 0;padding-left:16px;color:#B9CBDC;font-size:13px;line-height:1.65;">
+          <li>Targeted time-optimized training</li><li>Customized workout plans</li><li>Progress tracking</li><li>Flexible scheduling</li>
+        </ul></div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:20px;background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:8px;">
+        <div style="align-self:flex-start;font-size:10px;letter-spacing:0.14em;color:#0A0A0F;background:#C6A84B;padding:3px 9px;border-radius:99px;">MOST POPULAR</div>
+        <div style="font-size:19px;font-weight:800;color:#E0ECF4;">Signature Performance</div>
+        <div style="font-size:12px;letter-spacing:0.12em;color:#7C8A9C;">60-MINUTE SESSIONS</div>
+        <ul style="margin:6px 0 0;padding-left:16px;color:#B9CBDC;font-size:13px;line-height:1.65;">
+          <li>Full biomechanical coaching</li><li>NASM OHSA movement analysis</li><li>Nutrition guidance included</li><li>Priority scheduling</li><li>Monthly progress reports</li>
+        </ul></div>
+      <div style="border:1px solid rgba(198,168,75,0.22);border-radius:2px;padding:20px;background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:8px;">
+        <div style="align-self:flex-start;font-size:10px;letter-spacing:0.14em;color:#0A0A0F;background:#C6A84B;padding:3px 9px;border-radius:99px;">BEST VALUE</div>
+        <div style="font-size:19px;font-weight:800;color:#E0ECF4;">Transformation Programs</div>
+        <div style="font-size:12px;letter-spacing:0.12em;color:#7C8A9C;">MULTI-SESSION PACKAGES</div>
+        <ul style="margin:6px 0 0;padding-left:16px;color:#B9CBDC;font-size:13px;line-height:1.65;">
+          <li>Comprehensive NASM assessment</li><li>Periodized programming</li><li>Priority scheduling</li><li>Weekly check-ins</li><li>Full nutrition plan</li>
+        </ul></div>
+    </div>
+  </section>
+
+  <section style="padding:0 56px 14px;background:#0A0A0F;">
+    <div style="position:relative;border:1px solid rgba(198,168,75,0.22);border-radius:2px;overflow:hidden;
+      min-height:280px;display:flex;flex-direction:column;justify-content:flex-end;padding:24px;background:rgba(255,255,255,0.03);">
+      <img src="beyond-the-gym-bg.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.22;">
+      <div style="position:relative;display:flex;flex-direction:column;gap:7px;">
+        <div style="font-size:10px;letter-spacing:0.24em;color:#C6A84B;">MOVIE AREA 2 &middot; MINIMAX H3</div>
+        <div style="font-size:24px;font-weight:700;color:#E0ECF4;">One Session End to End</div>
+        <div style="font-size:13.5px;line-height:1.6;color:#B9CBDC;max-width:62ch;">Arrival, the work, the record forming. Shot like a black-and-white contact sheet with one gold frame.</div>
+        <div style="font-size:11px;letter-spacing:0.14em;color:#7C8A9C;">TARGET 20s &middot; SWAPPABLE SLOT</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="trainers" style="padding:60px 56px;background:#111119;border-top:1px solid rgba(198,168,75,0.22);">
+    <div style="font-size:11px;letter-spacing:0.26em;color:#C6A84B;margin-bottom:12px;">VI &middot; IF YOU ARE A TRAINER OR A CREATOR</div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:4px;">900+ Exercises</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Full NASM OPT 5-phase periodization library with Swan Coach workout builder.</div>
+        
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:4px;">Voice-First Swan Coach</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Log workouts hands-free, get real-time client insights, and manage sessions by voice.</div>
+        
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:4px;">Fair Fees, Always</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Small transparent fee (~10%). No surprises. Your clients stay yours forever.</div>
+        <div style="font-size:9.5px;color:#C6A84B;margin-top:5px;">⚠ CONTRADICTS the 15% + $1,000 cap decision — Sean to resolve</div>
+      </div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#E0ECF4;margin-bottom:4px;">Works Anywhere</div>
+        <div style="font-size:12.5px;line-height:1.55;color:#B9CBDC;">Run your sessions, collect payments, and build your brand from any city, any country.</div>
+        
+      </div>
+    </div>
+  </section>
+
+  <section id="join" style="padding:76px 56px 88px;background:#0A0A0F;">
+    <h2 style="font-size:44px;font-weight:800;color:#E0ECF4;margin-bottom:12px;letter-spacing:-0.03em;">Ready to Be Part of Something Real?</h2>
+    <p style="font-size:16px;line-height:1.7;color:#B9CBDC;max-width:70ch;margin:0 0 22px;">Your health journey deserves a permanent home. Your trainer deserves a fair platform. Your community deserves to own itself. SwanStudios is where all of it lives.</p>
+    
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <a href="#join" style="display:inline-flex;align-items:center;min-height:48px;padding:0 30px;border-radius:2px;
+          background:#C6A84B;color:#0A0A0F;text-decoration:none;font-weight:700;box-shadow:0 0 26px rgba(198,168,75,0.28);">Join the Community</a>
+        <a href="#trainers" style="display:inline-flex;align-items:center;min-height:48px;padding:0 26px;border-radius:2px;
+          border:1px solid rgba(198,168,75,0.22);color:#E0ECF4;text-decoration:none;font-weight:600;">Find a Trainer</a>
+      </div>
+  </section>
+
+  <section style="background:undefined;padding:28px 40px 24px;">
+    <div style="font-size:88px;line-height:0.9;font-weight:800;letter-spacing:-0.03em;color:undefined;white-space:nowrap;">SWANSTUDIOS</div>
+  </section>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#C6A84B","options":["#60C0F0","#C6A84B","#8B5CF6","#E0ECF4"]}}'>
+class Component extends DCLogic {
+  renderVals() { return { accent: this.props.accent ?? '#C6A84B' }; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin:0; font-family:'Plus Jakarta Sans',system-ui,sans-serif; background:#0F1E17; }
+    a { color:#7CE0A8; } a:hover { color:#EAF3EC; }
+    h1,h2,h3 { margin:0; text-wrap:balance; }
+    @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+  </style>
+</helmet>
+<div style="width:1280px;background:#0F1E17;color:#EAF3EC;">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 34px;font-size:11px;letter-spacing:0.18em;">
+    <span>SWANSTUDIOS</span><span style="color:#7CE0A8;">[ SOUND ON ]&nbsp;&nbsp;[ 008 ] <span style="font-size:9.5px;letter-spacing:0.05em;color:#7CE0A8;">[new copy - needs approval]</span></span><span>JOIN</span>
+  </div>
+  <section style="position:relative;height:560px;overflow:hidden;">
+    <span style="position:absolute;left:10%;top:8%;font-size:30px;font-weight:800;letter-spacing:-0.02em;
+      color:#7CE0A8;opacity:1;">Fitness &amp; Training</span><span style="position:absolute;left:42%;top:20%;font-size:22px;font-weight:800;letter-spacing:-0.02em;
+      color:#EAF3EC;opacity:0.62;">Dance &amp; Movement</span><span style="position:absolute;left:68%;top:12%;font-size:26px;font-weight:800;letter-spacing:-0.02em;
+      color:#EAF3EC;opacity:0.62;">Music &amp; Singing</span><span style="position:absolute;left:22%;top:44%;font-size:19px;font-weight:800;letter-spacing:-0.02em;
+      color:#7CE0A8;opacity:1;">Gaming &amp; Streaming</span><span style="position:absolute;left:56%;top:52%;font-size:34px;font-weight:800;letter-spacing:-0.02em;
+      color:#EAF3EC;opacity:0.62;">Art &amp; Expression</span><span style="position:absolute;left:78%;top:38%;font-size:21px;font-weight:800;letter-spacing:-0.02em;
+      color:#EAF3EC;opacity:0.62;">Comedy</span><span style="position:absolute;left:34%;top:68%;font-size:24px;font-weight:800;letter-spacing:-0.02em;
+      color:#7CE0A8;opacity:1;">Community Meetups</span><span style="position:absolute;left:62%;top:74%;font-size:28px;font-weight:800;letter-spacing:-0.02em;
+      color:#EAF3EC;opacity:0.62;">YouTube-Style Video</span>
+    <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:8px;height:8px;border-radius:50%;background:#7CE0A8;"></div>
+  </section>
+  <section style="padding:24px 34px 60px;border-top:1px solid rgba(234,243,236,0.16);">
+    <h1 style="font-size:44px;font-weight:800;letter-spacing:-0.03em;max-width:20ch;">Health First. Community Always.</h1>
+    <p style="font-size:16px;line-height:1.55;color:#A9C4B4;max-width:58ch;margin-top:12px;">Where world-class personal training meets a supportive community built around clean living, real connection, and lifelong wellness.</p>
+    <div style="display:flex;gap:12px;margin-top:22px;"><a href="#" style="display:inline-flex;align-items:center;min-height:48px;
+  padding:0 28px;border-radius:0px;background:#7CE0A8;color:#0F1E17;text-decoration:none;font-weight:700;box-shadow:0 0 24px rgba(124,224,168,0.28);">Join the Community</a><a href="#" style="display:inline-flex;align-items:center;min-height:48px;
+  padding:0 24px;border-radius:0px;border:1px solid rgba(234,243,236,0.3);color:#EAF3EC;text-decoration:none;font-weight:600;">Find a Trainer</a></div>
+    <div style="font-size:11px;color:#7E9A8B;margin-top:18px;">⚠ GREEN IS A TOKEN_PROPOSAL AT TRIAL — no approved client green exists (swan-element-intelligence §6). Trainers <span style="font-size:9.5px;color:#C6A84B;">[fee number withheld — live page says ~10%, plan says 15% + $1,000 cap · Sean to resolve]</span></div>
+  </section></div>
+</x-dc>
+<script data-dc-script data-props='{"accent":{"editor":"color","default":"#7CE0A8","options":["#60C0F0","#C6A84B","#8B5CF6","#E0ECF4"]}}'>
+class Component extends DCLogic { renderVals() { return { accent: this.props.accent ?? '#7CE0A8' }; } }
+</script>
+</body>
+</html>
