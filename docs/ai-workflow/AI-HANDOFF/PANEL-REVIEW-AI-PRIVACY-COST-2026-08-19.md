@@ -1,8 +1,8 @@
 ---
-title: "Panel review — AI privacy/cost workstream (GLM x12 + Kimi x2)"
+title: "Panel review — AI privacy/cost workstream (GLM x13 + Kimi x2)"
 date: 2026-08-19
-author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (12 rounds) and Kimi K3 (2 rounds)
-decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-12 graded THIS RECORD and found 26 defects in it (C1-C26), including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7, 8 AND 9/10 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
+author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (13 rounds) and Kimi K3 (2 rounds)
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-12 graded THIS RECORD and found 28 defects in it (C1-C28), including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7, 8 AND 9/10 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
@@ -11,10 +11,11 @@ privacy: "No secrets, no key values, no client data, no identities. Role counts,
 
 # Panel review — what four hostile rounds changed
 
-**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round. Actual: GLM x12, Kimi x2.**
-GLM R1 (mechanisms), R2 (attack the answers), Kimi R1 (frame), GLM R3 (adjudicate Kimi),
-GLM R4-R6 (grade the record), Kimi R2 (confirm), GLM R7-R12 (confirm).
-Total Kimi spend: **$0.24** ($0.20 + $0.04); GLM is subscription.
+**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round — honored throughout.**
+Sequence: GLM (mechanisms) → GLM (attack the answers) → Kimi (frame) → GLM (adjudicate Kimi) →
+alternating record-grading and confirmation rounds. **Round counts, defect counts and spend live in
+the frontmatter and nowhere else** — per C27, this paragraph previously carried its own copies and
+they went stale exactly as C21/C23/C25 did.
 
 > **Read the Round 4 section at the end before trusting this one.** R4 was pointed at the record
 > rather than the work and found 8 defects in it, including one fact I certified without checking
@@ -541,6 +542,13 @@ table." **The canonical table does not carry the figure** — C15 misdescribed w
 The normalization pass did not trim it; it was never there. Correcting the description, not the
 table.
 
+**C23 (Round 11) — the closing section's defect count was not reconstructible.** It read
+"twelve of them across seven rounds" while the header asserted a different total, and no taxonomy in
+the document produced twelve; the likeliest source was the review-round total, which contradicted
+"seven rounds" in the same sentence. Restated per the C12 rule, and later removed entirely when C25
+de-counted that section. *(Labelled here per C28 — it had been referenced five times and defined
+zero times, which left the header's total asserted rather than reconstructible.)*
+
 **C24 (Round 11) — that correction has since gone stale by the mechanism it describes.** R9 added
 the admin-gating row, whose Status cell reads "the **6** blocked accounts include an admin" — so the
 figure **is** now in the canonical table. Round 7's evidence covers it and the header pointer
@@ -572,6 +580,21 @@ Applied:
 ---
 
 # Rounds 9 and 10 — the bookkeeping kept failing the way the standing note predicted
+
+## C13 and C14 (Round 6) — labelled here, per the C28 rule
+
+These two were numbered in Round 6's commit and reconciled only inside C10's and C11's prose, never
+defined. A self-audit for "is every C-number defined?" found them missing at the same time C28 found
+C23 missing — same defect, three instances. Defined now:
+
+- **C13 (Round 6) — a reconciliation claimed but half-performed.** C11 stated "header and §1 now say
+  the same thing." The header had been fixed; §1 had not, and still carried the retired "(probe)"
+  token inside the merge-order line. An executor reading the body rather than the frontmatter would
+  have hit an undefined step in the governing sequence.
+- **C14 (Round 6) — a concession made in prose and not in the artifact.** C10 conceded that
+  "needs a slice" is not an owner, and the table built in that same round shipped it in four Owner
+  cells. Replaced with the honest form the #50 row already used.
+
 
 ## C20 — the row added to close C17's gap was column-shifted, and my check counted instead of read
 
@@ -668,3 +691,27 @@ frontmatter. That removes the failure mode rather than resetting it.
 *(Which is itself the lesson the record kept arriving at from different directions: the correction
 that survives is procedural, not resolutional. "Reconcile the counts" failed three times.
 "Do not put counts here" cannot fail the same way.)*
+
+---
+
+# Round 13 — the structural fix was applied to one end of the document
+
+**C27 — "authoritative counts live only in the frontmatter" was false when written.** The closing
+section was de-counted; **the opening paragraph was not.** It still carried the roster, the ratio
+figures and the spend total — all volatile, all requiring reconciliation on every append, which is
+the exact C21/C23/C25 mechanism. And the record proves that paragraph is a *maintained* count site:
+C19 records updating it once already. So the fix removed the class from the section read **last**
+and left it in the section read **first**, while claiming the class was gone. Now genuinely done:
+counts exist in the frontmatter and nowhere else.
+
+**C28 — "C23 labelled in place" was a completion claim without the completion.** C23 was referenced
+five times and defined zero times: no heading, no inline label of the kind C24 and C13/C14 received.
+An auditor counting labelled defects came up one short of the header's total, which is C25's own
+complaint surviving the round that acknowledged it. C23 is now defined at its site in the Round 11
+section.
+
+**Both are the same shape as everything since C13, and the shape is now fully characterised:**
+a fix is applied to the instance that was pointed at, the announcing sentence describes the *class*,
+and the rest of the class survives. The two corrections that have actually held — de-counting a
+section, and defining a label — are the ones stated as *rules about where things may live* rather
+than as repairs to particular sentences.
