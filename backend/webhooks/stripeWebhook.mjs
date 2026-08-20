@@ -23,6 +23,75 @@ import { claimIdempotentRecord } from '../utils/paymentIdempotency.mjs';
 import { fulfillGalleryVipSession } from '../services/galleryVipFulfillmentService.mjs';
 import sequelize from '../database.mjs';
 
+/**
+ * Resolve the Order behind an ACH PaymentIntent.
+ *
+ * Two-step by necessity. `metadata.orderId` can be STALE: the ACH route creates
+ * the Order and the PaymentIntent in one DB transaction, so if anything after
+ * paymentIntents.create fails, the DB rolls back while the PaymentIntent
+ * PERSISTS carrying a dangling orderId. A retry with the same idempotency key
+ * makes a NEW Order while Stripe replays the ORIGINAL intent.
+ *
+ * So: match on the payment instrument first (strong), then fall back to the
+ * metadata id alone (weak). The fallback must NOT re-include `paymentId` — a
+ * strict superset of the first query can never match when the first missed,
+ * which is how the original "fallback" shipped inert.
+ *
+ * `matchedBy` is returned because the two matches do not deserve equal
+ * authority: a caller that moves money must verify a weak match before acting
+ * on it (Kimi K3 M2, 2026-08-19).
+ *
+ * @returns {Promise<{order: object|null, matchedBy: 'paymentId'|'metadata'|null}>}
+ */
+const findAchOrder = async (pi) => {
+  const { default: Order } = await import('../models/Order.mjs');
+
+  const byPaymentId = await Order.findOne({ where: { paymentId: pi.id } });
+  if (byPaymentId) return { order: byPaymentId, matchedBy: 'paymentId' };
+
+  const metadataOrderId = Number.parseInt(pi?.metadata?.orderId, 10);
+  if (!Number.isSafeInteger(metadataOrderId) || metadataOrderId <= 0) {
+    return { order: null, matchedBy: null };
+  }
+
+  const byMetadata = await Order.findOne({ where: { id: metadataOrderId } });
+  if (!byMetadata) return { order: null, matchedBy: null };
+
+  logger.warn('[ACH Webhook] Order matched by metadata only — paymentId diverges', {
+    orderId: byMetadata.id,
+    orderPaymentId: byMetadata.paymentId,
+    paymentIntentId: pi.id,
+  });
+  return { order: byMetadata, matchedBy: 'metadata' };
+};
+
+/**
+ * Cents actually received on an intent. `amount_received` is the truth for a
+ * captured payment; `amount` is the intended figure. Returns null when neither
+ * is usable, so callers can fail CLOSED on an unverifiable amount instead of
+ * treating unknown as zero or as agreement.
+ */
+const receivedCents = (pi) => {
+  for (const candidate of [pi?.amount_received, pi?.amount]) {
+    const value = Number(candidate);
+    if (Number.isFinite(value) && value >= 0) return value;
+  }
+  return null;
+};
+
+/**
+ * Send an ADMIN_NOTIFICATION without letting a notification failure take down
+ * the webhook. A 500 here would make Stripe redeliver a money event we already
+ * processed.
+ */
+const notifyAdminSafely = async (payload, tag) => {
+  try {
+    await sendNotification({ type: 'ADMIN_NOTIFICATION', ...payload });
+  } catch (notifyError) {
+    logger.error(tag + ' admin alert failed', { errorMessage: notifyError?.message });
+  }
+};
+
 const router = express.Router();
 
 // --- Conditionally initialize Stripe ---
@@ -328,11 +397,23 @@ export const stripeWebhookHandler = async (req, res) => {
         if (pi.metadata?.source === 'swanstudios_ach' && pi.metadata?.orderId) {
           logger.info(`[ACH Webhook] Payment processing for order ${pi.metadata.orderNumber} (PI: ${pi.id})`);
           try {
-            const { default: Order } = await import('../models/Order.mjs');
-            await Order.update(
-              { status: 'processing' },
-              { where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id } }
-            );
+            // Was a single combined `{ id: parseInt(...), paymentId: pi.id }`
+            // update — the exact shape that made `succeeded` fall through in
+            // silence on a stale metadata id: zero rows matched, nothing
+            // logged. `succeeded` was fixed in this workstream; its two
+            // siblings were left behind (Kimi M2 / GLM M1, 2026-08-19).
+            const { order } = await findAchOrder(pi);
+            if (!order) {
+              logger.error('[ACH Webhook] processing event matched NO order', {
+                paymentIntentId: pi.id,
+                metadataOrderId: pi.metadata?.orderId,
+                orderNumber: pi.metadata?.orderNumber,
+              });
+              break;
+            }
+            if (order.status === 'pending' || order.status === 'pending_payment') {
+              await order.update({ status: 'processing' });
+            }
           } catch (achErr) {
             logger.error(`[ACH Webhook] Failed to update order to processing: ${achErr.message}`);
           }
@@ -344,66 +425,87 @@ export const stripeWebhookHandler = async (req, res) => {
         if (pi.metadata?.source === 'swanstudios_ach' && pi.metadata?.orderId) {
           logger.info(`[ACH Webhook] Payment succeeded for order ${pi.metadata.orderNumber} (PI: ${pi.id})`);
           try {
-            const { default: Order } = await import('../models/Order.mjs');
-            // MATCH ON THE PAYMENT INSTRUMENT FIRST. This used to be a single lookup
-            // keyed on BOTH `metadata.orderId` and `paymentId` — and metadata.orderId
-            // can be stale. The ACH route creates the Order and the PaymentIntent in
-            // one DB transaction; if anything after paymentIntents.create fails, the
-            // DB rolls back but the PaymentIntent PERSISTS with a dangling orderId. On
-            // retry with the same idempotency key a NEW Order is created while Stripe
-            // returns the ORIGINAL PaymentIntent, still carrying the old id. The
-            // combined lookup then matched nothing and the handler fell through in
-            // SILENCE — no log, no alert, no fulfilment, surfacing days later because
-            // ACH settles slowly (Kimi K3 HIGH-1, 2026-08-16).
-            // The metadata fallback keys on the ORDER ID ALONE. The previous version
-            // fell back to `{ id, paymentId }` — a strict SUPERSET of the first
-            // query's condition, so it could never match when the first missed. It
-            // was fix-shaped and inert (GLM-5.3 LOW-2, round 2). Keying on the id
-            // alone is what actually recovers a stale-metadata order, and a
-            // divergent paymentId on that row is itself worth surfacing.
-            const metadataOrderId = Number.parseInt(pi.metadata.orderId, 10);
-            let order = await Order.findOne({ where: { paymentId: pi.id } });
-
-            if (!order && Number.isSafeInteger(metadataOrderId) && metadataOrderId > 0) {
-              const byMetadata = await Order.findOne({ where: { id: metadataOrderId } });
-              if (byMetadata) {
-                logger.warn('[ACH Webhook] Order matched by metadata only — paymentId diverges', {
-                  orderId: byMetadata.id,
-                  orderPaymentId: byMetadata.paymentId,
-                  paymentIntentId: pi.id,
-                });
-                order = byMetadata;
-              }
-            }
+            // Lookup lives in findAchOrder — shared with processing / failed /
+            // canceled so the four ACH states cannot drift apart again. See
+            // that helper for why the fallback keys on the order id ALONE.
+            const { order: matchedOrder, matchedBy } = await findAchOrder(pi);
+            let order = matchedOrder;
 
             if (!order) {
-              // A captured ACH payment with no order is exactly the condition a human
-              // must see. Alerting is the fix for the silence; reconciling the payment
-              // is a manual action.
+              // A captured ACH payment with no order is exactly the condition a
+              // human must see. Alerting is the fix for the silence;
+              // reconciling the payment is a manual action.
               logger.error('[ACH Webhook] Captured payment matched NO order', {
                 paymentIntentId: pi.id,
                 metadataOrderId: pi.metadata?.orderId,
                 orderNumber: pi.metadata?.orderNumber,
               });
-              try {
-                await sendNotification({
-                  type: 'ADMIN_NOTIFICATION',
-                  title: 'ACH payment received with NO matching order',
-                  message: `ACH payment ${pi.id} succeeded but no order matched. `
-                    + 'The customer has been charged and nothing was fulfilled — reconcile manually.',
+              await notifyAdminSafely({
+                title: 'ACH payment received with NO matching order',
+                message: 'ACH payment ' + pi.id + ' succeeded but no order matched. '
+                  + 'The customer has been charged and nothing was fulfilled — reconcile manually.',
+                data: {
+                  type: 'ach_orphan_payment',
+                  paymentIntentId: pi.id,
+                  metadataOrderId: pi.metadata?.orderId ?? null,
+                  orderNumber: pi.metadata?.orderNumber ?? null,
+                  amount: Number(pi.amount_received ?? 0) / 100,
+                  actionRequired: 'MANUAL_RECONCILIATION',
+                },
+              }, '[ACH Webhook]');
+            }
+
+            // A WEAK match must prove itself before it moves money.
+            //
+            // Matching on paymentId means Stripe itself linked this intent to
+            // this order. Matching on metadata.orderId alone means only that a
+            // row with that id exists — and the ACH route persists orders with
+            // `paymentId: null` on its `incomplete` path, so weakly-matched
+            // orders are a real population, not a theoretical one. Granting a
+            // weak match the same authority as a strong one let an intent
+            // complete and allocate an order whose price it never covered
+            // (Kimi K3 M2, 2026-08-19).
+            //
+            // COVERAGE, not equality: paying more than the order total is fine,
+            // paying less is not. Both figures are `totalWithFee` on this rail
+            // (achPaymentRoutes 276 and 320) — checked before this comparison
+            // was written, because the previous amount guard in this workstream
+            // compared two quantities that were not the same thing and refused
+            // honest payments for it.
+            //
+            // Unverifiable fails CLOSED. Unknown is not agreement.
+            if (order && matchedBy === 'metadata') {
+              const paidCents = receivedCents(pi);
+              const owedCents = Math.round(Number(order.totalAmount ?? 0) * 100);
+              const covers = paidCents !== null
+                && Number.isFinite(owedCents)
+                && owedCents > 0
+                && paidCents >= owedCents;
+
+              if (!covers) {
+                logger.error('[ACH Webhook] Weak (metadata-only) match not verified — refusing to fulfil', {
+                  paymentIntentId: pi.id,
+                  orderId: order.id,
+                  orderNumber: order.orderNumber,
+                  paidCents,
+                  owedCents,
+                });
+                await notifyAdminSafely({
+                  title: 'ACH payment could not be matched to its order safely',
+                  message: 'ACH payment ' + pi.id + ' matched order ' + order.orderNumber
+                    + ' by metadata only, and the amount received does not cover the order total. '
+                    + 'Nothing was fulfilled — reconcile manually.',
                   data: {
-                    type: 'ach_orphan_payment',
+                    type: 'ach_unverified_match',
                     paymentIntentId: pi.id,
-                    metadataOrderId: pi.metadata?.orderId ?? null,
-                    orderNumber: pi.metadata?.orderNumber ?? null,
-                    amount: Number(pi.amount_received ?? 0) / 100,
+                    orderId: order.id,
+                    orderNumber: order.orderNumber ?? null,
+                    amountReceived: paidCents === null ? null : paidCents / 100,
+                    orderTotal: Number(order.totalAmount ?? 0),
                     actionRequired: 'MANUAL_RECONCILIATION',
                   },
-                });
-              } catch (notifyError) {
-                logger.error('[ACH Webhook] Orphan-payment alert failed', {
-                  errorMessage: notifyError?.message,
-                });
+                }, '[ACH Webhook]');
+                order = null;
               }
             }
 
@@ -448,16 +550,81 @@ export const stripeWebhookHandler = async (req, res) => {
         if (pi.metadata?.source === 'swanstudios_ach' && pi.metadata?.orderId) {
           logger.warn(`[ACH Webhook] Payment FAILED for order ${pi.metadata.orderNumber} (PI: ${pi.id})`);
           try {
-            const { default: Order } = await import('../models/Order.mjs');
-            await Order.update(
-              { status: 'failed' },
-              { where: { id: parseInt(pi.metadata.orderId), paymentId: pi.id } }
-            );
+            const { order } = await findAchOrder(pi);
+            if (!order) {
+              // The customer submitted bank details and believes a payment is
+              // in flight. With no order matched, nobody ever tells them it
+              // failed and the row sits `pending` forever.
+              logger.error('[ACH Webhook] FAILED payment matched NO order', {
+                paymentIntentId: pi.id,
+                metadataOrderId: pi.metadata?.orderId,
+                orderNumber: pi.metadata?.orderNumber,
+              });
+              await notifyAdminSafely({
+                title: 'ACH payment FAILED with no matching order',
+                message: 'ACH payment ' + pi.id + ' failed but no order matched. '
+                  + 'The customer believes a payment is in flight — reconcile manually.',
+                data: {
+                  type: 'ach_failed_orphan',
+                  paymentIntentId: pi.id,
+                  metadataOrderId: pi.metadata?.orderId ?? null,
+                  orderNumber: pi.metadata?.orderNumber ?? null,
+                  actionRequired: 'MANUAL_RECONCILIATION',
+                },
+              }, '[ACH Webhook]');
+              break;
+            }
+            if (!order.paymentAppliedAt) {
+              await order.update({ status: 'failed' });
+            }
           } catch (achErr) {
             logger.error(`[ACH Webhook] Failed to mark order as failed: ${achErr.message}`);
           }
         } else {
           logger.info(`Payment failed: ${pi.id}`);
+        }
+        break;
+
+      }
+      // Kimi K3 L5: a PaymentIntent canceled after creation had NO handler, so
+      // its order stayed `pending` with nothing left to move it — invisible to
+      // the customer and to reconciliation alike.
+      //
+      // Terminal status is `failed`, NOT `cancelled`. Order.status is a Postgres
+      // ENUM of ('pending','pending_payment','processing','completed',
+      // 'refunded','failed') — models/Order.mjs:32. Writing 'cancelled' throws
+      // `invalid input value for enum` at runtime, and widening the enum is
+      // production DDL this workstream defers on purpose. The cancellation is
+      // distinguished in the log line, not in the column.
+      case 'payment_intent.canceled': {
+        const pi = event.data.object;
+        if (pi.metadata?.source === 'swanstudios_ach' && pi.metadata?.orderId) {
+          logger.warn('[ACH Webhook] Payment CANCELED', {
+            paymentIntentId: pi.id,
+            orderNumber: pi.metadata?.orderNumber,
+            cancellationReason: pi.cancellation_reason ?? null,
+          });
+          try {
+            const { order } = await findAchOrder(pi);
+            if (!order) {
+              logger.error('[ACH Webhook] canceled event matched NO order', {
+                paymentIntentId: pi.id,
+                metadataOrderId: pi.metadata?.orderId,
+              });
+              break;
+            }
+            // Never walk back an order whose payment already applied — a late
+            // cancellation event must not un-complete a fulfilled purchase.
+            if (!order.paymentAppliedAt && order.status !== 'completed') {
+              await order.update({ status: 'failed' });
+            }
+          } catch (achErr) {
+            logger.error('[ACH Webhook] Failed to close canceled order', {
+              errorMessage: achErr?.message,
+            });
+          }
+        } else {
+          logger.info('Payment canceled: ' + pi.id);
         }
         break;
       }
