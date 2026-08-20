@@ -420,7 +420,20 @@ export const stripeWebhookHandler = async (req, res) => {
       // downstream reacted — the buyer kept every granted session and their `client`
       // role. Found by a local sweep 2026-08-16.
       case 'charge.refunded':
-      case 'charge.dispute.created': {
+      case 'charge.dispute.created':
+      // The CLOSING half of the lifecycle. Opening a reversal was detected; every
+      // transition after it was invisible:
+      //   dispute.closed  — won or lost, weeks later. A LOST dispute means the money
+      //                     is gone permanently while the sessions stay granted, and
+      //                     the only signal ever sent was the opening alert.
+      //   refund.updated  — an issued refund can FAIL (bank rejects, card closed), so
+      //                     the order reads `refunded` while nobody was ever repaid.
+      //   refund.created  — the per-refund event; `charge.refunded` fires on the
+      //                     CHARGE and carries a cumulative total, so a sequence of
+      //                     partials cannot be reconciled from it alone.
+      case 'charge.dispute.closed':
+      case 'charge.refund.updated':
+      case 'charge.refund.created': {
         await handleChargeReversal(event);
         break;
       }
@@ -472,12 +485,34 @@ router.post('/', rawBodyMiddleware, stripeWebhookHandler);
  * disabled — which would kill fulfillment for ALL sales.
  */
 async function handleChargeReversal(event) {
-  const isDispute = event.type === 'charge.dispute.created';
   const object = event.data.object;
 
-  // A dispute's object is the dispute; a refund's object is the charge.
+  // Event taxonomy. Each carries a DIFFERENT object shape, which is why the field
+  // reads below are conditional rather than uniform:
+  //   charge.refunded        -> object is the CHARGE   (amount, amount_refunded, refunds[])
+  //   charge.dispute.created -> object is the DISPUTE  (amount, charge, reason)
+  //   charge.dispute.closed  -> object is the DISPUTE  (+ status: won|lost|warning_*)
+  //   charge.refund.created  -> object is the REFUND   (amount, charge, status)
+  //   charge.refund.updated  -> object is the REFUND   (+ status: failed|succeeded, failure_reason)
+  const isDisputeOpened = event.type === 'charge.dispute.created';
+  const isDisputeClosed = event.type === 'charge.dispute.closed';
+  const isRefundUpdate = event.type === 'charge.refund.updated'
+    || event.type === 'charge.refund.created';
+  const isDispute = isDisputeOpened || isDisputeClosed;
+
+  // A dispute/refund object points AT a charge; a charge object IS one.
   const paymentIntentId = object?.payment_intent || null;
-  const chargeId = isDispute ? object?.charge : object?.id;
+  const chargeId = (isDispute || isRefundUpdate) ? object?.charge : object?.id;
+
+  // Dispute outcome. Stripe uses `won` / `lost` / `warning_*`; only `lost` means the
+  // money is actually gone. A WON dispute must never be booked as a refund.
+  const disputeStatus = isDisputeClosed ? (object?.status ?? 'unknown') : null;
+  const disputeLost = disputeStatus === 'lost';
+
+  // A refund can fail AFTER being issued. That is the case where the books say
+  // "refunded" and the customer was never repaid — the most misleading state here.
+  const refundStatus = isRefundUpdate ? (object?.status ?? 'unknown') : null;
+  const refundFailed = refundStatus === 'failed';
 
   // PARTIAL REFUNDS. `charge.amount_refunded` is CUMULATIVE across every refund on
   // the charge, so using it as "the amount refunded now" reported a growing total as
@@ -490,11 +525,18 @@ async function handleChargeReversal(event) {
   const latestRefundCents = Number(
     object?.refunds?.data?.[object.refunds.data.length - 1]?.amount ?? cumulativeRefundedCents
   );
+  // Only a CHARGE-level refund that has reached the full amount flips order status.
+  // A dispute (won or lost) is not a refund, and a per-refund event does not carry
+  // the charge's cumulative total, so neither may move it.
   const isFullyRefunded = !isDispute
+    && !isRefundUpdate
     && chargeTotalCents > 0
     && cumulativeRefundedCents >= chargeTotalCents;
 
-  const amountCents = isDispute ? Number(object?.amount ?? 0) : latestRefundCents;
+  // For a refund.* event the object IS the refund, so its own amount is the delta.
+  const amountCents = (isDispute || isRefundUpdate)
+    ? Number(object?.amount ?? 0)
+    : latestRefundCents;
   const amount = amountCents / 100;
   const cumulativeRefunded = cumulativeRefundedCents / 100;
 
@@ -523,9 +565,15 @@ async function handleChargeReversal(event) {
     });
   }
 
-  const label = isDispute
-    ? 'Chargeback opened'
-    : (isFullyRefunded ? 'Refund issued (full)' : 'Refund issued (PARTIAL)');
+  const label = isDisputeClosed
+    ? `Chargeback CLOSED — ${disputeLost ? 'LOST' : (disputeStatus === 'won' ? 'WON' : disputeStatus)}`
+    : isDisputeOpened
+      ? 'Chargeback opened'
+      : event.type === 'charge.refund.updated'
+        ? (refundFailed ? `Refund FAILED (${object?.failure_reason ?? 'reason unknown'})` : `Refund updated — ${refundStatus}`)
+        : event.type === 'charge.refund.created'
+          ? 'Refund created'
+          : (isFullyRefunded ? 'Refund issued (full)' : 'Refund issued (PARTIAL)');
   logger.warn(`[Webhook] ${label}`, {
     eventType: event.type,
     chargeId,
@@ -549,6 +597,11 @@ async function handleChargeReversal(event) {
           + `payment intent ${paymentIntentId}. Investigate — this payment is unreconciled.`,
       data: {
         type: isDispute ? 'charge_dispute' : 'charge_refund',
+        disputeStatus,
+        disputeLost: isDisputeClosed ? disputeLost : null,
+        refundStatus,
+        refundFailed: isRefundUpdate ? refundFailed : null,
+        failureReason: refundFailed ? (object?.failure_reason ?? null) : null,
         eventType: event.type,
         chargeId,
         paymentIntentId,
@@ -561,7 +614,7 @@ async function handleChargeReversal(event) {
         userId: order?.userId ?? null,
         cartId: order?.cartId ?? null,
         sessionsAutoRevoked: false,
-        reason: isDispute ? object?.reason ?? null : null,
+        reason: isDispute ? (object?.reason ?? null) : null,
         actionRequired: 'MANUAL_SESSION_REVIEW',
       },
     });
