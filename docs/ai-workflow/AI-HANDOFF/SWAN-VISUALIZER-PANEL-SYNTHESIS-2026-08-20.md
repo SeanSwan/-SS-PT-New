@@ -1,8 +1,8 @@
 # SWAN VISUALIZER — PANEL SYNTHESIS & ONE-MONTH PLAN — 2026-08-20
 
-**Panel:** GPT-5.6 Sol Pro · Kimi K3 · GLM 5.3 · Qwen 3.8 (local). Four seats, four returned clean.
-**Cost:** $0.6498 total (Sol $0.6210, Kimi $0.0288; GLM subscription, Qwen local $0).
-**Grok 4.6:** Sean authorised mid-run; the call was **blocked by the harness permission classifier**, not by policy. Needs a Bash permission rule. See §6 — there is also an unresolved constitution conflict.
+**Panel:** GPT-5.6 Sol Pro · Kimi K3 · GLM 5.3 · Qwen 3.8 (local) · Grok 4.6. **Five seats, five returned clean.**
+**Cost:** $0.7148 total (Sol $0.6210, Grok $0.0650, Kimi $0.0288; GLM subscription, Qwen local $0).
+**Grok 4.6: RAN — verdict REJECT**, the harshest of the five ($0.0650, 9,871 out). Sean repealed rule 12 outright; the seat then executed. It earned its place with the one number nobody else produced: **inverting the occupancy math**, `18 ≈ K(1 − (1 − 1/K)²⁴)` gives **K ≈ 39 distinguishable looks per kernel** — a real support-size estimate, which answers Sol's correct objection that 18 is a sample-capped collision rate. With three of four kernels being one grammar, the ceiling is O(10¹)–O(10²) looks: **hours of material, not 24 hours.** Grok also proposed the two one-day experiments now leading the handoff (§7 note).
 **Packet:** `SWAN-VISUALIZER-VISION-PANEL-PACKET-2026-08-20.md` (9,035 chars).
 **Verdicts:** REVISE (Kimi), REVISE (GLM), "No" on the headline goal (Sol, Qwen). **Zero seats endorsed the current plan.**
 
@@ -94,3 +94,32 @@ Adopted from GLM's ranking, corroborated by Sol and Kimi, with my verified addit
 ## 8. What this changes about the acceptance bar
 
 I failed Pelagos at 1.07 against a 1.5 bar and declined to move the goalposts. The panel's answer is that the bar was measuring the paint box: structure has ~6% effective voice, not 32%. **The bar should be re-derived on a standardised, colour-free, occupancy-restored distance — and Pelagos re-run against it unchanged.** That is not moving the goalposts; it is fixing a ruler whose fault is now quantified, and re-running the same artefact against it. Sean ratifies the new bar before it governs anything.
+
+
+---
+
+## 9. Addendum — Grok 4.6 (ran after Sean repealed rule 12)
+
+**VERDICT: REJECT** — the harshest of the five. "The two claims under test are false on this
+architecture: genome-space covering cannot deliver 24h non-repeat, and 'granular control' does
+not exist as a visible, per-axis authoring surface."
+
+**Its unique contribution — the support-size inversion.** Sol was right that 18 clusters from
+n=24 is a collision rate capped by its own sample. Grok inverted it: `18 ≈ K(1 − (1 − 1/K)²⁴)`
+→ **K ≈ 39 distinguishable looks per kernel.** Three kernels are one grammar and do not multiply
+K, so the true ceiling is O(10¹)–O(10²) looks — **hours, not 24 hours** — and grammar recurrence
+arrives before the covering runs out.
+
+**Its highest-risk statement, which reframes the whole month:**
+> "Shipping descriptor-governed breeding on three copies of one feedback grammar, then telling
+> him 24h is a sampling problem."
+
+**And the cheapest de-risk anyone proposed — two hours on Sean's 5090:**
+1. **Grammar-recurrence clock** — farthest-first playback of *only* `swanFeedback` until he says
+   it repeated. **If under 30 minutes, more genomes are worthless.**
+2. **Throwaway per-axis slider panel** on pelagos + one feedback kernel — can he author a look he
+   would Keep? **If not, the genome is the wrong object.**
+
+Both are one-day experiments; both beat another week of cluster tables. They now lead the
+handoff's first-actions, ahead of the month plan, because either result changes what the month
+should contain.
