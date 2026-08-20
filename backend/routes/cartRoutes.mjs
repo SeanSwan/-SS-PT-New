@@ -4,7 +4,7 @@
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-import { cartMutationLimiter } from '../middleware/moneyPathRateLimits.mjs';
+import { cartMutationLimiter, checkoutSessionLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';
 // 🚀 ENHANCED P0 FIX: Coordinated model imports with associations
 import { 
@@ -878,7 +878,12 @@ router.post('/checkout', protect, ensureNumericCartUser, validatePurchaseRole, a
  * The Stripe session, JWT user, cart metadata, and current pending cart must all
  * agree before state is reopened.
  */
-router.post('/cancel-checkout', protect, ensureNumericCartUser, async (req, res) => {
+// Rate limited because each hit makes 1-2 Stripe API calls
+// (sessions.retrieve / sessions.expire): an authenticated caller could
+// otherwise burn the Stripe quota from a single account (GLM-5.3 L2,
+// 2026-08-19). checkoutSessionLimiter is the right bucket — this route is part
+// of the checkout-session lifecycle, not a cart mutation.
+router.post('/cancel-checkout', protect, checkoutSessionLimiter, ensureNumericCartUser, async (req, res) => {
   if (!stripeClient) {
     return res.status(503).json({ success: false, message: 'Payment processing is not configured.' });
   }

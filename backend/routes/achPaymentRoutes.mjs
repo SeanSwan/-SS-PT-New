@@ -63,7 +63,11 @@ router.post('/create-intent', protect, checkoutSessionLimiter, async (req, res) 
     const userId = req.user.id;
     const { items, customerInfo, total, idempotencyKey } = req.body;
 
-    if (!items?.length || !total) {
+    // `!items?.length` is true for a STRING too — "abc".length is 3 — so a
+    // string body sailed past this and blew up on items.map(), turning a
+    // 400-shaped problem into a 500. The offline rail already used
+    // Array.isArray here; the ACH rail drifted (Kimi K3 L1, 2026-08-19).
+    if (!Array.isArray(items) || items.length === 0 || !total) {
       return res.status(400).json({ success: false, message: 'Items and total are required' });
     }
 

@@ -193,7 +193,15 @@ export const stripeWebhookHandler = async (req, res) => {
             visitorId: session.metadata.galleryVisitorId,
             userId: session.metadata.userId,
             eventId: session.metadata.eventId,
-            amount: 175,
+            // Was hardcoded 175, so a price change or a discounted/promo VIP
+            // session recorded a false amount forever (Kimi K3 L4,
+            // 2026-08-19). What Stripe actually collected is the truth; the
+            // constant remains only as a last-resort floor for an event shape
+            // that carries no total.
+            amount: Number.isFinite(Number(session.amount_total))
+              && Number(session.amount_total) > 0
+              ? Number(session.amount_total) / 100
+              : 175,
           });
           break;
         }
@@ -795,9 +803,30 @@ async function handleChargeReversal(event) {
   // cumulative total has actually reached the charge total.
   const chargeTotalCents = Number(object?.amount ?? 0);
   const cumulativeRefundedCents = Number(object?.amount_refunded ?? 0);
-  const latestRefundCents = Number(
-    object?.refunds?.data?.[object.refunds.data.length - 1]?.amount ?? cumulativeRefundedCents
+  // `refunds.data[length - 1]` was wrong twice over. Stripe list objects come
+  // back NEWEST-FIRST, so the last element is the OLDEST refund, not the latest;
+  // and the embedded list is capped (10 by default, `has_more` set beyond that),
+  // so on a heavily-refunded charge the entry may not be present at all
+  // (Kimi K3 L3 / GLM-5.3 L1, 2026-08-19).
+  //
+  // Pick by `created` rather than by position, and only trust the list when it
+  // is complete. When it is truncated or absent, fall back to the cumulative
+  // figure and SAY SO in the payload — reporting a cumulative total as a
+  // per-event delta is the exact misreport this block was written to kill, and
+  // an alert that quietly lies about an amount is worse than one that admits
+  // it does not know.
+  const refundEntries = Array.isArray(object?.refunds?.data) ? object.refunds.data : [];
+  const refundListTruncated = Boolean(object?.refunds?.has_more) || refundEntries.length === 0;
+  const newestRefund = refundEntries.reduce(
+    (newest, entry) => (
+      newest === null || Number(entry?.created ?? 0) > Number(newest?.created ?? 0) ? entry : newest
+    ),
+    null,
   );
+  const latestRefundCents = (!refundListTruncated && newestRefund)
+    ? Number(newestRefund.amount ?? cumulativeRefundedCents)
+    : cumulativeRefundedCents;
+  const latestRefundAmountIsExact = !refundListTruncated && Boolean(newestRefund);
   // Only a CHARGE-level refund that has reached the full amount flips order status.
   // A dispute (won or lost) is not a refund, and a per-refund event does not carry
   // the charge's cumulative total, so neither may move it.
@@ -880,6 +909,11 @@ async function handleChargeReversal(event) {
         paymentIntentId,
         amount,
         cumulativeRefunded: isDispute ? null : cumulativeRefunded,
+        // False when the embedded refunds list was truncated or absent, in
+        // which case `amount` above is the CUMULATIVE total rather than this
+        // event's delta. An alert that quietly reports the wrong number is
+        // worse than one that admits it does not know.
+        amountIsExactDelta: (isDispute || isRefundUpdate) ? true : latestRefundAmountIsExact,
         chargeTotal: chargeTotalCents / 100,
         fullyRefunded: isFullyRefunded,
         orderId: order?.id ?? null,

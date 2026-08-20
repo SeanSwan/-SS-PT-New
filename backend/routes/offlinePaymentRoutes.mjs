@@ -195,7 +195,24 @@ router.post('/offline', protect, checkoutSessionLimiter, async (req, res) => {
 
     const calculatedFee = calculateServerFee(paymentMethod, calculatedSubtotal);
     const calculatedTotal = calculatedSubtotal.plus(calculatedFee);
-    const expectedTotal = new Decimal(clientTotal || 0).plus(new Decimal(clientFee || 0));
+    // `new Decimal('abc')` THROWS, and the throw lands in the outer catch as a
+    // 500 for what is plainly a 400. The ACH rail added a finite check for
+    // exactly this; the offline rail did not get the same treatment (Kimi K3
+    // L2, 2026-08-19). Reject before any Decimal work.
+    const clientTotalNumber = Number(clientTotal ?? 0);
+    const clientFeeNumber = Number(clientFee ?? 0);
+    if (!Number.isFinite(clientTotalNumber) || !Number.isFinite(clientFeeNumber)) {
+      logger.warn('[OfflinePayment] Non-numeric client total or fee', {
+        clientTotalType: typeof clientTotal,
+        clientFeeType: typeof clientFee,
+      });
+      return res.status(400).json({
+        success: false,
+        message: 'Could not validate payment totals. Please refresh your cart and try again.',
+      });
+    }
+
+    const expectedTotal = new Decimal(clientTotalNumber).plus(new Decimal(clientFeeNumber));
 
     // Exact decimal equality — no tolerance (9-Brain Phase 2 consensus)
     if (!calculatedTotal.equals(expectedTotal)) {

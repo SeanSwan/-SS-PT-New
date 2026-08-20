@@ -49,6 +49,11 @@ vi.mock('../../middleware/authMiddleware.mjs', () => ({
 
 vi.mock('../../middleware/moneyPathRateLimits.mjs', () => ({
   cartMutationLimiter: (_req, _res, next) => next(),
+  // Must cover EVERY limiter cartRoutes imports. A partial mock of this module
+  // fails the whole suite at import time the moment the route file imports one
+  // more limiter, which is how adding the /cancel-checkout limiter broke this
+  // file — the failure is at module load, nowhere near the code under test.
+  checkoutSessionLimiter: (_req, _res, next) => next(),
 }));
 
 // Invitation gate satisfied — this test is about the role write, not the gate.
