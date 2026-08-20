@@ -73,6 +73,7 @@ Data classes: `repo` (code/docs) · `app-meta` (routes, configs, non-client data
 | Hermes headless runner | Hermes | ≤T2 | CREATE (spec only) | Runs only registered commands; spec in `headless-runner-spec.md` |
 | Hermes command effect registry | Fable authors · Hermes enforces | governance | CREATE → done | `command-effect-registry.md` — runtime twin of this file |
 | Linear work-state reader | Hermes | T0 read | CREATE - OAuth pending | Official Linear remote MCP with an explicit read-only `tools.include`; save/delete/upload/customer mutation tools remain unavailable until a hard per-write approval proxy exists |
+| Swan Council MCP (codex_review / ask_kimi / ask_grok / fable_rule) | Hermes + Claude Code share one server | T2 (paid consults, $3 session cap, shared ledger) | CREATE → done (2026-08-20) | `scripts/mcp/swan-council-server.mjs` via `mcp_servers.swan-council` in Hermes config; `fable_rule` stays confirm-gated; ask_grok added on rule-12 repeal (PR #54); Hermes `moa_policy.banned_providers` untouched — council calls OpenRouter with the repo key, never through Hermes's brain routing |
 | Hermes command receipts | Deterministic Script | T2 (append-only) | CREATE (spec) → AUTOMATE | Format in `audit-receipts.md` |
 | Hermes kill switches | Human/Sean | T0 read / T2 flip | CREATE (spec) · BUTTON | Inventory in `kill-switches.md`; master switch per runtime |
 | Telegram command broker | Hermes | broker ≤T2; T3/T4 queue-only | KEEP · REWRITE (per spec) | Chat-id allowlist; safe toolset (2026-04-18 lockdown stays) |

@@ -11,6 +11,8 @@
  *                     fallback. Fires freely.
  *   - ask_kimi      — cheap "more brainpower" brain ($0.08–0.16/call).
  *                     OpenRouter only. Fires freely (Sean pre-authorized).
+ *   - ask_grok      — cheapest council brain (Grok 4.6, ~$0.04–0.10/call).
+ *                     OpenRouter only. Added 2026-08-20 on the rule-12 repeal.
  *   - fable_rule    — the king, expensive. Subscription CLI → OpenRouter
  *                     fallback. SPEND-GATED: refuses to spend unless the caller
  *                     passes confirm:true, so it can NEVER fire silently.
@@ -161,6 +163,25 @@ const TOOLS = {
       const files = Array.isArray(a.files) ? a.files : [];
       const prompt = buildReviewPrompt({ remit: REMITS.kimi, files, question: a.question, root: ROOT });
       return runPaid('kimi', prompt, { reasoningEffort: a.effort || 'high' });
+    },
+  },
+
+  ask_grok: {
+    description: 'Ask Grok 4.6 a question — the cheapest council brain ($2/M in, $6/M out, ~$0.04–0.10/call), a blunt contrarian reviewer. Fires freely under the session cap. Added on the rule-12 repeal (Sean 2026-08-20). Inputs: IDs/roles only, no PII.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        question: { type: 'string', description: 'The question or document to review.' },
+        files: { type: 'array', items: { type: 'string' }, description: 'Optional repo-relative files for context.' },
+        effort: { type: 'string', enum: ['low', 'medium', 'high'], description: 'Reasoning effort (default high).' },
+      },
+      required: ['question'],
+    },
+    async run(a = {}) {
+      if (!a.question) return { ok: false, text: 'ask_grok requires a question.' };
+      const files = Array.isArray(a.files) ? a.files : [];
+      const prompt = buildReviewPrompt({ remit: REMITS.grok, files, question: a.question, root: ROOT });
+      return runPaid('grok', prompt, { reasoningEffort: a.effort || 'high' });
     },
   },
 

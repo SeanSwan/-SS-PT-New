@@ -28,6 +28,12 @@ export const BRAINS = {
     cli: { cmd: 'fable', probeArgs: ['--version'] }, // subscription path (absent today)
     maxTokens: 16000,
   },
+  grok: {
+    model: 'x-ai/grok-4.6',
+    priceIn: 2, priceOut: 6, // OpenRouter catalog verified 2026-08-20 — cheapest council brain
+    cli: null, // OpenRouter-only; added on the rule-12 repeal (PR #54), Sean 2026-08-20
+    maxTokens: 16000,
+  },
 };
 
 /** Session spend cap in USD. Sean 2026-07-22: $3 — he never sees a run exceed ~$2. */

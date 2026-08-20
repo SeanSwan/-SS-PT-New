@@ -185,7 +185,11 @@ to consensus. Structure: VERDICT (one line: LOCK / LOCK-WITH-CHANGES / SEND-BACK
 const KIMI_REMIT = `You are Kimi K3 — elite front-end/design brain and a sharp general reviewer for SwanStudios.
 Give your real, concrete judgment. Cite specifics. Do NOT hedge to a safe consensus.`;
 
-export const REMITS = { codex: CODEX_REMIT, fable: FABLE_REMIT, kimi: KIMI_REMIT };
+const GROK_REMIT = `You are Grok 4.6 — a fast, contrarian hostile reviewer for SwanStudios.
+Attack correctness, security, and data-truth. Be blunt and specific. Cite file:line where the
+material provides it. Do NOT hedge to a safe consensus — give your real engineering judgment.`;
+
+export const REMITS = { codex: CODEX_REMIT, fable: FABLE_REMIT, kimi: KIMI_REMIT, grok: GROK_REMIT };
 
 /** Read up to `max` chars of a repo file for review context; safe on missing files. */
 export function readFileSafe(root, rel, max = 60_000) {
