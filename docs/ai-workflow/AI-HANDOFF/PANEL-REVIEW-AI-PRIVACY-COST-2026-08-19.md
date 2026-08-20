@@ -894,17 +894,20 @@ catch.
 ```
 RULE (verbatim): roster = N from '^# Rounds? N' UNION N,M from '^# Rounds N and M' UNION N from '(Round N)'
 
-headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14, 20, 21, 22]
-annotations contribute : [6, 11, 15, 16, 17, 18, 19, 20, 21, 22]
-ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14, 20, 21, 22, 23]
+annotations contribute : [6, 11, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
 contiguous 4..max      : True
-HIGHEST round in file  : 22   (must equal the last '# Round N' section)
+HIGHEST round in file  : 23   (must equal the last '# Round N' section)
 
-C-labels defined       : 41
-HIGHEST label defined  : C41
+C-labels defined       : 42
+HIGHEST label defined  : C42
 undefined in range     : none
 
-INVARIANTS — all four must hold, and the last two are the ones contiguity could not catch:
+INVARIANTS — EVERY invariant listed below must hold. (C42: this line used to say "all four"
+  and name "the last two" as the ones contiguity cannot catch. C41 appended a fifth and did not
+  regenerate the sentence, so a stored count went stale INSIDE the block whose two-pass
+  regeneration exists to prevent stored counts. Restated over the set, per C34.)
   1. roster contiguous from 4
   2. no undefined C-number in range
   3. HIGHEST round == the final round section in the file
@@ -948,3 +951,20 @@ compensates** — the identical blindness C39 diagnosed in C38, one round later,
 
 **Fifth invariant added, and it is the one that generalises:** each component line must match the
 file independently. Checking the aggregate was never sufficient; it was only ever sufficient-looking.
+
+---
+
+# Round 23 — a stored count inside the anti-stored-count block
+
+**C42 (Round 23)** — the trace block's preamble read *"INVARIANTS — all four must hold, and the
+last two are the ones contiguity could not catch."* C41 appended a fifth invariant and did not
+regenerate that sentence, so **both halves were false**: five must hold, and three of them (3, 4, 5)
+are checks contiguity cannot catch, not two.
+
+**A stored count went stale inside the very block whose two-pass regeneration exists to prevent
+stored counts** — and the verification could not catch it because it checks invariant *values*, and
+had no reason to read the sentence *describing* them. That is C40's lesson (a check validates what
+it is handed) landing on C41's fix.
+
+**Restated over the set** — "every invariant listed below" — per C34's precedent, which is the only
+form in this document that has never had to be re-fixed.
