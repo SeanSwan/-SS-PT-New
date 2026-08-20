@@ -74,3 +74,11 @@ R3-2 ADD-5 RED-S/compulsive-streak check-in. Qwen's dissent: longitudinal behavi
 R3-3 ADD-6 standing EAP/AED/meds-readiness preamble. Qwen's dissent: facility compliance, not grading-key content; per-scenario repetition is non-actionable text. Majority: a single standing preamble PREVENTS repetition and matches item 8's existing language. Vote YES/NO — address the other side.
 R3-4 Calf pain/swelling on item 10's stop list. Qwen's dissent: already covered by item 2's clot caution. Rebuttal: item 2 is a knee-trauma context; pregnancy is a hypercoagulable state with independent DVT risk — coverage there is not coverage here. Vote YES/NO[verify] — address the rebuttal.
 End with: CONSENSUS: YES/NO (+any remaining dispute)
+
+════════════════════════════════════════════
+## FINAL CONSENSUS — ROUND 3, 3–0 ON ALL LINES (3 of 20 rounds used)
+R3-1 v3 item-4 text: 3–0 RATIFIED. R3-2 ADD-5: 3–0 (Qwen flipped, addressing scope; GLM rider: flag-and-check-in language only, never screening/diagnosis; scenario text must establish the repeated pattern). R3-3 ADD-6: 3–0 (rider: 1–2 sentence standing preamble, cross-referenced from item 8, never restated per item). R3-4 calf: 3–0 [verify] (exact text: "new unilateral calf pain or swelling" — bilateral dependent swelling is near-universal in pregnancy).
+Carried [verify] flags for clinician/source check: ACOG stop-list wording · item-9 post-viral return interval · RED-S terminology (IOC-consensus-derived) · pregnancy VTE elevation.
+DEBATE CLOSED. Final wording = v1 items 1,2,3,5*,6*,7,8 + v2 items 9,10 + v3 item 4, with r3 riders. (*v2 revisions applied.)
+Owner approval pending on: the 10 final wordings · ADD-1..4 scenario texts (to be drafted) · ADD-5/6 amendment texts (to be drafted per riders).
+GPT-Pro seat remains open — its position paper folds in as advisory post-consensus if pasted.
