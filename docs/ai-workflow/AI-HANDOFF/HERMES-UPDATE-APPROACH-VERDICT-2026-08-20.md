@@ -92,16 +92,43 @@ Kimi's pick was **Approach 5** — skip the update, build Bot Mode locally, on t
 is "a presentation layer over primitives you already have." The reasoning is sound. The approach is
 **disqualified by the cheap dependency audit Kimi itself proposed**:
 
-- `@hermes/plugin-sdk` — **does not exist** in v0.20.1
-- The plugin imports it, plus React
-- Of 10 host APIs it calls, **6 are missing locally**: `requestProfile`, `newChat`, `openSession`,
-  `openWorkspace`, `activeConnectionId`, `paneVisibility` (present: `request`, `notify`, `state`,
-  `agents`)
-- `plugin.js` is **398,702 B / 10,464 lines** — not a weekend port
+> **CORRECTED 2026-08-20 by the Phase-0 falsification test. Two claims in the first version of this
+> section were WRONG.** They were derived from name-grepping instead of reading the SDK.
 
-Building locally therefore means: build a plugin SDK that does not exist, add 6 host APIs to the
-desktop shell, then re-derive 10,464 lines. That is re-implementing upstream's architecture to avoid
-merging upstream's architecture.
+**Wrong claim 1: "`@hermes/plugin-sdk` does not exist in v0.20.1."** It does. It is a path alias —
+`apps/desktop/tsconfig.json:20` and `vite.config.ts:147` both map it to `./src/sdk/index.ts`. The
+import resolves.
+
+**Wrong claim 2: "v0.20.1 has no runtime plugin system."** It does. `hello-runtime/plugin.runtime.js`
+exists locally and uses `ctx.register` / `host.state`.
+
+**What the test actually found.** v0.20.1's host exposes **9 members** (`sdk/index.ts`, 325 lines):
+`state`, `logs`, `navigate`, `openSession`, `newChat`, `onEvent`, `restartGateway`, `status`,
+`request`. Bot Mode's `plugin.js` calls 11 host members:
+
+| host API | call sites in Bot Mode | v0.20.1 |
+|---|---|---|
+| `request` | 33 | present |
+| `notify` | 29 | **missing** |
+| `state` | 16 | present |
+| `notifyError` | 15 | **missing** |
+| `requestProfile` | 14 | **missing** |
+| `newChat` | 12 | present |
+| `openSession` | 11 | present |
+| `openWorkspace` | 5 | **missing** |
+| `agents` | 5 | **missing** |
+| `activeConnectionId` | 3 | **missing** |
+| `paneVisibility` | 3 | **missing** |
+
+**7 of 11 missing, covering 74 of ~146 host call sites — roughly half the plugin's interaction with
+the app.** So Bot Mode would *load* on v0.20.1 and then fail or no-op across half its surface.
+
+**The falsification test does not save us: the update is genuinely required.** But the honest cost of
+"build it locally" is lower than I first said — it is *add 7 host methods to a 325-line SDK*, not
+*build an SDK from nothing*. The blocker is not the SDK; it is the **10,464-line plugin** plus the
+subsystems those 7 methods imply (`agents`, `requestProfile`, `openWorkspace`, `paneVisibility` are
+not thin wrappers). The port still dominates, so the verdict stands — but it stands on the port, not
+on a missing SDK.
 
 **Credit where due:** Kimi named the exact failure mode ("the plugin API on v0.20.1 can't express
 part of Bot Mode") and the exact test that would kill it cheaply. The test worked. It killed Kimi's
