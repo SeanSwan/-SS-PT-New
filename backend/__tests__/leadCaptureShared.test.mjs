@@ -198,3 +198,41 @@ describe('aggregateLeadIntents', () => {
     ]);
   });
 });
+
+describe('tag aggregators resist prototype pollution', () => {
+  // Lead.tags is writable through the admin lead-update API, so a bucket key is NOT trusted input
+  // even though the public capture path allowlists it. With a plain `{}` accumulator, a tag of
+  // `prism:intent:__proto__` made acc[key] resolve to Object.prototype — truthy, so the init guard
+  // was skipped — and the `+= 1` landed on Object.prototype.count, giving EVERY object in the
+  // process an inherited count:NaN. Both aggregators use Object.create(null) for this reason.
+  const POLLUTION_KEY = ['__proto__', 'constructor', 'prototype'];
+
+  it('does not pollute Object.prototype via a hostile intent tag', () => {
+    for (const key of POLLUTION_KEY) {
+      aggregateLeadIntents([{ tags: [`prism:intent:${key}`], status: 'new' }]);
+    }
+    expect({}.count).toBeUndefined();
+    expect({}.converted).toBeUndefined();
+  });
+
+  it('does not pollute Object.prototype via a hostile channel tag', () => {
+    for (const key of POLLUTION_KEY) {
+      aggregateLeadChannels([{ tags: [`channel:${key}`], status: 'new' }]);
+    }
+    expect({}.count).toBeUndefined();
+    expect({}.converted).toBeUndefined();
+  });
+
+  it('contains the hostile key as an ordinary bucket instead of leaking it', () => {
+    const out = aggregateLeadIntents([{ tags: ['prism:intent:__proto__'], status: 'new' }]);
+    expect(out).toEqual([{ intent: '__proto__', count: 1, converted: 0 }]);
+  });
+
+  it('still tallies normally after hostile input has passed through', () => {
+    aggregateLeadIntents([{ tags: ['prism:intent:__proto__'], status: 'new' }]);
+    expect(aggregateLeadIntents([
+      { tags: ['prism:intent:trainer'], status: 'converted' },
+      { tags: ['prism:intent:trainer'], status: 'new' },
+    ])).toEqual([{ intent: 'trainer', count: 2, converted: 1 }]);
+  });
+});

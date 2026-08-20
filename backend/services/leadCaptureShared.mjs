@@ -72,6 +72,10 @@ export const CAPTURE_INTENTS = Object.freeze(['book', 'trainer', 'spectrum']);
  * access, pricing, or role on the strength of this tag; public trainer self-registration is
  * forbidden outright and locked by trainerRecruitmentLinks.contract.test.ts. Allowlisted here
  * so an arbitrary query string can never become an arbitrary tag in the CRM.
+ *
+ * Note the allowlist does NOT protect the aggregator downstream: `Lead.tags` is writable through
+ * the admin lead-update API, so a tag can exist that this function would never have produced.
+ * That is why aggregateLeadIntents uses a null-prototype accumulator rather than trusting the key.
  */
 export const INTENT_TAG_PREFIX = 'prism:intent:';
 
@@ -95,7 +99,12 @@ export const intentTag = (intent) => (
  * make the trainer count look like noise in a bucket of thousands.
  */
 export const aggregateLeadIntents = (rows = []) => {
-  const acc = {};
+  // Object.create(null), NOT {} — the bucket key comes from a tag, and tags are writable via the
+  // admin lead-update API. With a plain object a tag of `prism:intent:__proto__` makes acc[key]
+  // resolve to Object.prototype (truthy, so the guard below skips init) and the ++ then lands on
+  // Object.prototype.count — polluting EVERY object in the process with count:NaN. Verified, not
+  // theorised. A null-prototype accumulator has no inherited keys to collide with.
+  const acc = Object.create(null);
   for (const row of (Array.isArray(rows) ? rows : [])) {
     const tags = Array.isArray(row?.tags) ? row.tags : [];
     const tag = tags.find((t) => typeof t === 'string' && t.startsWith(INTENT_TAG_PREFIX));
@@ -176,7 +185,9 @@ const CHANNEL_SOURCE_LABEL = { website: 'direct', social_media: 'social', referr
  * @returns {{channel:string, count:number, converted:number}[]}
  */
 export const aggregateLeadChannels = (rows = [], topN = 8) => {
-  const acc = {};
+  // Same null-prototype requirement as aggregateLeadIntents — a `channel:__proto__` tag pollutes
+  // Object.prototype identically. Pre-existing; found by testing the copy, so fixed in the original.
+  const acc = Object.create(null);
   for (const row of (Array.isArray(rows) ? rows : [])) {
     const tags = Array.isArray(row?.tags) ? row.tags : [];
     const tag = tags.find((t) => typeof t === 'string' && t.startsWith('channel:'));
