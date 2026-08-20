@@ -831,3 +831,35 @@ for 8 of 36, not all of them.
 **Fixed by stating the rule in exactly the form it executes**, plural-heading branch included, and
 re-running it. The derivation and its output are below; if a future append breaks it, the check
 fails loudly instead of quietly succeeding.
+
+---
+
+# Derivation output  *(C38 — the trace two rounds promised "below" and never appended)*
+
+**C38 (Round 19)** — C36 said "Verified below by executing the derivation rather than asserting
+it." C37 said "The derivation and its output are below." **Neither appended anything.** The
+document ended at C37's final sentence. Both derivations *were* executed — in a shell, and recorded
+in the commit messages — but **the record promised a trace it did not contain**, which is C31's
+class (a completion sentence citing content that does not exist) committed inside the two
+corrections whose entire subject was that checks must be executed rather than asserted.
+
+Fixed the only way that closes it: **the output is now actually here**, regenerated from this
+file's own text at the moment of writing.
+
+```
+RULE (verbatim, as stated in the frontmatter):
+  roster = N from '^# Rounds? N'  UNION  N,M from '^# Rounds N and M'  UNION  N from '(Round N)'
+
+headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14]
+annotations contribute : [6, 11, 15, 16, 17, 18]
+ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18]
+contiguous 4..max      : True
+
+C-labels defined       : 37
+undefined in range     : none
+```
+
+**Re-run instruction, so this stays checkable rather than becoming another stale assertion:**
+apply the three patterns above to this file. If the roster is not contiguous from 4, or any
+C-number in range is undefined, an append has broken the invariant — which is the "fails loudly"
+property C37 claimed and, until this section existed, did not have.
