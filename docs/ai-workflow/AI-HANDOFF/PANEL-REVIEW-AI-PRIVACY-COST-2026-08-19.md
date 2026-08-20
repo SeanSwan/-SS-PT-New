@@ -1,19 +1,19 @@
 ---
-title: "Panel review — AI privacy/cost workstream (GLM x8 + Kimi x2)"
+title: "Panel review — AI privacy/cost workstream (GLM x10 + Kimi x2)"
 date: 2026-08-19
-author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (8 rounds) and Kimi K3 (2 rounds)
-decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-8 graded THIS RECORD and found 19 defects in it (C1-C19), including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7 AND 8 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
+author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (10 rounds) and Kimi K3 (2 rounds)
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-10 graded THIS RECORD and found 22 defects in it (C1-C22), including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7, 8 AND 9/10 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
-privacy: "No secrets, no key values, no client data, no identities. Role counts, file paths, line numbers, and timestamps. Infrastructure identifiers (DB host, server IP) are REDACTED - see C19."
+privacy: "No secrets, no key values, no client data, no identities. Role counts, file paths, line numbers, and timestamps. Infrastructure identifiers PARTIALLY redacted - DB host slug and server IP removed; Render provider/region retained. See C19/C22."
 ---
 
 # Panel review — what four hostile rounds changed
 
-**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round. Actual: GLM x8, Kimi x2.**
+**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round. Actual: GLM x10, Kimi x2.**
 GLM R1 (mechanisms), R2 (attack the answers), Kimi R1 (frame), GLM R3 (adjudicate Kimi),
-GLM R4-R6 (grade the record), Kimi R2 (confirm), GLM R7-R8 (confirm).
+GLM R4-R6 (grade the record), Kimi R2 (confirm), GLM R7-R10 (confirm).
 Total Kimi spend: **$0.24** ($0.20 + $0.04); GLM is subscription.
 
 > **Read the Round 4 section at the end before trusting this one.** R4 was pointed at the record
@@ -452,19 +452,19 @@ actually performed in both places.** A completion claim is not a completion.
 |---|---|---|---|
 | **#45** | 🟢 MERGE FIRST, unconditionally — verified, mutation-proven, tsc baseline-parity verified | **Sean** | **today** |
 | **#47** | 🟡 after #45. **Local** verification only, never a production write | **Sean** | after #45 + script |
-| **#50** | 🔴 unreviewed by this panel — wiring never executed, price table 6 months stale | **no owner yet — Sean to assign** | owner to set |
-| admin `/ai-consent` link | ⏸ after #47 — deferred on the EGRESS ground: nothing has ever gone out through `/transcribe`. (The "never-executed path" wording is withdrawn per C17 — the grant path ran in March 2026.) | owner to set | owner to set |
-| **Local verification script for #47** | 📋 **unwritten** — needs written pass/fail (grant → transcribe 200; withdraw → 403; no-profile → 403) before the #47 step means anything | agent can draft | owner to set |
-| `/history-preview` | ⚠ forced-decision packet: one question, two prepared outcomes, a date | Sean decides; agent drafts | owner to set |
+| **#50** | 🔴 unreviewed by this panel — wiring never executed, price table 6 months stale | **no owner yet — Sean to assign** | not yet dated |
+| admin `/ai-consent` link | ⏸ after #47 — deferred on the EGRESS ground: nothing has ever gone out through `/transcribe`. (The "never-executed path" wording is withdrawn per C17 — the grant path ran in March 2026.) | — (follows #47) | not yet dated |
+| **Local verification script for #47** | 📋 **unwritten** — needs written pass/fail (grant → transcribe 200; withdraw → 403; no-profile → 403) before the #47 step means anything | agent can draft | not yet dated |
+| `/history-preview` | ⚠ forced-decision packet: one question, two prepared outcomes, a date | Sean decides; agent drafts | not yet dated |
 | Render key rotation | 🚨 unrotated ≥7 days; local stores clean, provider-side unbounded | **Sean only** | **overdue — exposed 2026-08-12** |
-| Disclosure-before-grant + versioned consent records | 📋 unstarted | **no owner yet — Sean to assign** | owner to set |
-| Withdrawal semantics + vendor-deletion path | 📋 unstarted — dormant defect, activates at merge | **no owner yet — Sean to assign** | owner to set |
-| Minor handling / age signal | 📋 unstarted — product has no age signal | **Sean** | owner to set |
-| Trainer + bystander voice consent | 📋 unstarted | **Sean** | owner to set |
-| **User residency (WA/NV/IL?)** | ❓ never asked — gates which statutes are live at all | **Sean, one question** | owner to set |
-| **Admin/user consent-gating for their OWN recordings** | ❓ never asked — the 6 blocked accounts include an admin, but the "lockout is the gate working" argument was made only about clients **Sean, one question** | before #47 | owner to set |
-| MHMDA size-threshold question | ❓ `[UNKNOWN]` — two models disagree, neither is a source | **Sean → lawyer** | owner to set |
-| **BIPA: is transcribed audio a "voiceprint"?** | ❓ `[UNKNOWN]` — element-satisfaction unexamined | **Sean → lawyer** | owner to set |
+| Disclosure-before-grant + versioned consent records | 📋 unstarted | **no owner yet — Sean to assign** | not yet dated |
+| Withdrawal semantics + vendor-deletion path | 📋 unstarted — dormant defect, activates at merge | **no owner yet — Sean to assign** | not yet dated |
+| Minor handling / age signal | 📋 unstarted — product has no age signal | **Sean** | not yet dated |
+| Trainer + bystander voice consent | 📋 unstarted | **Sean** | not yet dated |
+| **User residency (WA/NV/IL?)** | ❓ never asked — gates which statutes are live at all | **Sean, one question** | not yet dated |
+| **Admin/user consent-gating for their OWN recordings** | ❓ never asked — the 6 blocked accounts include an admin, but the "lockout is the gate working" argument was made only about clients | **Sean, one question** | **before #47** |
+| MHMDA size-threshold question | ❓ `[UNKNOWN]` — two models disagree, neither is a source | **Sean → lawyer** | not yet dated |
+| **BIPA: is transcribed audio a "voiceprint"?** | ❓ `[UNKNOWN]` — element-satisfaction unexamined | **Sean → lawyer** | not yet dated |
 
 ---
 
@@ -561,3 +561,62 @@ Applied:
   Worth stating plainly: **the fix that satisfied C15's evidence rule created a privacy-manifest
   violation.** Attaching evidence and honoring a redaction promise pull in opposite directions, and
   I resolved it in one direction without re-reading the promise.
+
+---
+
+# Rounds 9 and 10 — the bookkeeping kept failing the way the standing note predicted
+
+## C20 — the row added to close C17's gap was column-shifted, and my check counted instead of read
+
+R9's fix added an owner-question row. A missing pipe glued `**Sean, one question**` into the
+**Status** cell, pushing `before #47` into **Owner** and `owner to set` into **Date**. So the row
+that gates #47 filed a deadline as an owner and an owner-placeholder as a date.
+
+**The meta-point is the finding.** My verification claim was *"15 data rows × 4 cells, verified."*
+The row **had** 4 cells. The cells were in the wrong columns. **That is exactly C18's diagnosed
+failure — counting instead of reading — recurring inside C18's own correction, one round later.**
+
+Fixed by rewriting the row explicitly and then **reading each cell by column name** rather than
+counting. That read immediately exposed more: my earlier normalizer had padded 11 rows with
+`owner to set` **in the Date column**, which is not a date at all. All 15 rows now audited
+semantically, not structurally.
+
+**Rule that follows, and it is the only form that has worked:** after editing a table, print it
+**column by column with the column names attached**. A cell count cannot detect a shift; a labelled
+read cannot miss one.
+
+## C21 — the header went stale by one round, again
+
+R9 found two record defects and the document recorded neither: the frontmatter still said
+*"Rounds 4-8 … 19 defects (C1-C19)"*, and `R9` appeared exactly once in the whole artifact, in a
+parenthetical, with no section and no C-number. **That is C19's own headline complaint** — the
+header going stale when a round is appended — recurring two rounds after C19.
+
+Now reconciled: **rounds 4–10, C1–C22, GLM ×10, Kimi ×2.**
+
+## C22 — C19 described a redaction it had not fully performed
+
+C19 claimed *"host suffix and RFC1918 address removed."* The artifact reads
+`dpg-<REDACTED>.oregon-postgres.render.com` — the **slug** is redacted; the suffix and the
+annotation "(Render-managed, Oregon)" openly retain provider and region. Corrected to say what was
+actually done: **host identifier and server IP removed, provider and region deliberately retained**,
+and the privacy manifest now says *partially* redacted.
+
+---
+
+## What ten rounds actually established
+
+**The work has not moved since round 3.** Merge order (#45 → #47 → local verification → admin
+link), #45-first, local-verification-only, and every measured number have survived seven further
+rounds of adversarial attack, including two by a reviewer explicitly told to break them.
+
+**Every finding from round 4 onward has been in the record, not the work** — and there have been
+**twelve of them across seven rounds**, each one a correction that was narrower than the sentence
+announcing it: a header not updated when a section was appended, a concession made in prose and not
+in the table, a fix applied to one of two places, a count verified by counting rather than reading.
+
+**That is the durable result of this exercise.** Not the merge order — which three rounds settled —
+but the demonstration that **a self-graded record fails in a specific, predictable, and repeatable
+way**, and that the failure is invisible to the author every single time. The only thing that ever
+caught it was a round pointed at the record rather than the subject, and every such round found
+something, including the tenth.
