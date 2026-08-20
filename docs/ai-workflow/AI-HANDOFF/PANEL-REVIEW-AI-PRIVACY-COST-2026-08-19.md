@@ -836,6 +836,11 @@ fails loudly instead of quietly succeeding.
 
 # Derivation output  *(C38 — the trace two rounds promised "below" and never appended)*
 
+> **SUPERSEDED by the Round 20 trace at the end of this file (C39).** The figures below were
+> correct when written and went stale the moment C38 itself was appended — which is precisely what
+> C39 diagnoses. Retained per the append-don't-merge convention; **do not read these numbers as
+> current.** The authoritative trace is always the LAST one in the file.
+
 **C38 (Round 19)** — C36 said "Verified below by executing the derivation rather than asserting
 it." C37 said "The derivation and its output are below." **Neither appended anything.** The
 document ended at C37's final sentence. Both derivations *were* executed — in a shell, and recorded
@@ -859,7 +864,49 @@ C-labels defined       : 37
 undefined in range     : none
 ```
 
-**Re-run instruction, so this stays checkable rather than becoming another stale assertion:**
-apply the three patterns above to this file. If the roster is not contiguous from 4, or any
+**Re-run instruction (superseded — see C39 for the corrected, two-pass form):**
+apply the three patterns above to **the last trace block in this file, not this one**. If the roster is not contiguous from 4, or any
 C-number in range is undefined, an append has broken the invariant — which is the "fails loudly"
 property C37 claimed and, until this section existed, did not have.
+
+---
+
+# Round 20 — the trace could not contain its own round
+
+**C39 (Round 20)** — C38's trace was computed *before* it was inserted, so it necessarily excluded
+its own round and its own label: it recorded annotations ending at 18 and 37 labels, while the file
+that contains it has 19 and 38. **C35's stored-value-goes-stale-on-append mechanism, recurring
+inside the fix that claimed to eliminate stored values** — because a trace *is* a stored value, and
+appending one changes the thing it measures.
+
+Worse, and this is the part worth keeping: **the "fails loudly" check was structurally blind to
+exactly this staleness.** Its two conditions were non-contiguity and an undefined C-label; omitting
+the *trailing* round preserves contiguity and omitting the *trailing* label leaves no gap. So the
+check passed while the trace was wrong — **a verification that cannot fail on the most likely
+failure mode of the thing it verifies.**
+
+**Two fixes:** the trace is now written in **two passes** — placeholder inserted, then values
+regenerated from the file *including* the placeholder — so it measures the document it lives in.
+And the invariant is strengthened: it now also asserts that the **highest** round and **highest**
+C-label present in the file appear in the trace, which is the condition contiguity could never
+catch.
+
+```
+RULE (verbatim): roster = N from '^# Rounds? N' UNION N,M from '^# Rounds N and M' UNION N from '(Round N)'
+
+headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14, 20]
+annotations contribute : [6, 11, 15, 16, 17, 18, 19, 20]
+ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+contiguous 4..max      : True
+HIGHEST round in file  : 20   (must equal the last '# Round N' section)
+
+C-labels defined       : 39
+HIGHEST label defined  : C39
+undefined in range     : none
+
+INVARIANTS — all four must hold, and the last two are the ones contiguity could not catch:
+  1. roster contiguous from 4
+  2. no undefined C-number in range
+  3. HIGHEST round == the final round section in the file
+  4. HIGHEST label == the final C-label in the file
+```
