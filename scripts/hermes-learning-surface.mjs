@@ -29,6 +29,7 @@
  */
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFrontmatter } from './hermes-learning-validate.mjs';
@@ -38,24 +39,84 @@ const ROOT = join(HERE, '..');
 const CORPUS = join(ROOT, 'docs', 'ai-workflow', 'hermes-learning-packets');
 const REL = 'docs/ai-workflow/hermes-learning-packets';
 
-export function loadCorpus(dir = CORPUS) {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir)
+function parsePacket(name, src, ref = 'worktree') {
+  const fm = parseFrontmatter(src);
+  const fileDate = (/^(\d{4})-?(\d{2})-?(\d{2})/.exec(name) || []).slice(1, 4).join('-');
+  return {
+    name,
+    date: fm.values?.date || fileDate || '',
+    title: unquote(fm.values?.title) || deriveTitleFromName(name),
+    decision: unquote(fm.values?.decision) || '',
+    status: fm.values?.status || '',
+    body: fm.body || src,
+    ref,
+  };
+}
+
+function git(args) {
+  // MSYS_NO_PATHCONV: Git Bash mangles <rev>:<path> and reports false absences.
+  return execFileSync('git', args, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    stdio: ['ignore', 'pipe', 'ignore'],
+    env: { ...process.env, MSYS_NO_PATHCONV: '1' },
+  });
+}
+
+/**
+ * Packets that exist on SOME ref but not in this worktree.
+ *
+ * The corpus forked across branches (SWA-184): 124 distinct packets live across
+ * 143 refs, while any single branch holds far fewer. A worktree-only read gives
+ * confident false negatives -- "no lesson matches" when the lesson exists one
+ * branch over. That is the exact failure the corpus exists to prevent, and it
+ * has already happened at least once.
+ *
+ * One `git log --all` pass yields every packet filename ever added anywhere,
+ * newest commit first, so the first sighting of a name is the newest version.
+ * Blobs are read only for names the worktree lacks. Fails soft: any git problem
+ * degrades to worktree-only rather than breaking the lookup.
+ */
+function loadFromRefs(have) {
+  const out = [];
+  let log;
+  try {
+    log = git(['log', '--all', '--pretty=format:%H', '--name-only', '--diff-filter=AM', '--', REL]);
+  } catch {
+    return out;
+  }
+  const newestCommitFor = new Map();
+  let commit = null;
+  for (const raw of log.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (/^[0-9a-f]{40}$/.test(line)) { commit = line; continue; }
+    if (!line.startsWith(`${REL}/`)) continue;
+    const name = line.slice(REL.length + 1);
+    if (name.includes('/') || !name.endsWith('.md')) continue;
+    if (name.startsWith('_') || name === 'INDEX.md') continue;
+    if (have.has(name) || newestCommitFor.has(name)) continue;
+    newestCommitFor.set(name, commit);
+  }
+  for (const [name, sha] of newestCommitFor) {
+    try {
+      out.push(parsePacket(name, git(['cat-file', '-p', `${sha}:${REL}/${name}`]), sha.slice(0, 9)));
+    } catch { /* unreadable blob: skip it, never fail the whole lookup */ }
+  }
+  return out;
+}
+
+export function loadCorpus(dir = CORPUS, { refs = true } = {}) {
+  const local = !existsSync(dir) ? [] : readdirSync(dir)
     .filter((f) => f.endsWith('.md') && !f.startsWith('_') && f !== 'INDEX.md')
-    .map((name) => {
-      const src = readFileSync(join(dir, name), 'utf8');
-      const fm = parseFrontmatter(src);
-      const fileDate = (/^(\d{4})-?(\d{2})-?(\d{2})/.exec(name) || []).slice(1, 4).join('-');
-      return {
-        name,
-        date: fm.values?.date || fileDate || '',
-        title: unquote(fm.values?.title) || deriveTitleFromName(name),
-        decision: unquote(fm.values?.decision) || '',
-        status: fm.values?.status || '',
-        body: fm.body || src,
-      };
-    })
-    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    .map((name) => parsePacket(name, readFileSync(join(dir, name), 'utf8')));
+
+  const all = refs
+    ? local.concat(loadFromRefs(new Set(local.map((p) => p.name))))
+    : local;
+
+  return all.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
 function unquote(v) {
