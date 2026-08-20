@@ -149,6 +149,13 @@ collect → dedupe → rank ──────────────►  SwanG
 
 ### 🔴 The blocker
 
+> **UPDATE 2026-08-20 (post-grill):** this picture was ~3 weeks stale. Work continued past the
+> refactor branch: `codex/swanguard-newsroom-recovery-20260801` (64 commits ahead of main; main only
+> 2 ahead of it) carries the newsroom fixes, creator-RSS catalog, and `httpStoryService` — it
+> SUPERSEDES `refactor/shell-rebuild-20260721` as the merge source. The grill resolved the rest:
+> see `docs/ai-workflow/brainstorms/swanguard-up-to-speed-2026-08-20.md` (station hosts SwanGuard,
+> one canonical store, old shell retires, xAI Live Search for X).
+
 SwanGuard's newsroom is on branch `refactor/shell-rebuild-20260721` (commits `17e4ac6` docs,
 `12390d3` code) — **pushed, NOT merged to main, NOT deployed.** Its Render service was never
 confirmed watching that branch. Its backend merge was under separate review.

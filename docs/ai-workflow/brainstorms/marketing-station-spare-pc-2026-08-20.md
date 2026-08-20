@@ -1,6 +1,7 @@
 # Brainstorm: Marketing Station on the spare PC
 
 **Date:** 2026-08-20 · **Status:** complete (Phase 1 + Phase 2 delivered) · **For:** SWA-70 (SwanGuard → Personal Intelligence Command Center) — the station is its execution surface
+**Successor:** `swanguard-up-to-speed-2026-08-20.md` — the SwanGuard-side grill (identity, hosting **on this station**, one-store StoryNode architecture, X via xAI Live Search)
 
 ## Summary
 
