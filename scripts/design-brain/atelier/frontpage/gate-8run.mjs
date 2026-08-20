@@ -14,8 +14,15 @@ import path from 'node:path';
 
 const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const pack = JSON.parse(fs.readFileSync(path.join(here, 'copy-pack.json'), 'utf8'));
-const FILES = ['Main.dc.html', 'DawnApproach.dc.html', 'HarborLights.dc.html', 'TwoLanterns.dc.html',
-  'InstrumentFlight.dc.html', 'TheInstrument.dc.html', 'BeneathTheWaterline.dc.html', 'VegasMile.dc.html'];
+// Sean's kill pass 2026-08-19: six directions killed, B1 + D2 survive.
+const FILES = ['Main.dc.html', 'VegasMile.dc.html'];
+// Instruction gates added at the kill pass (each was an explicit Sean requirement):
+const REQUIRE = {
+  header: 'REPLICATED FROM components/Header',   // 1. keep his header, adapt to it
+  heroVideo: 'swans-hero-frame.jpg',             // 4. hero is the swans video he already has
+  movieAreas: 2,                                 // 3. at least two H3 movie areas between sections
+  minStages: 4,                                  // 2. more parallax than just the hero
+};
 
 const read = (f) => fs.readFileSync(path.join(here, f), 'utf8');
 const count = (s, re) => (s.match(re) || []).length;
@@ -113,6 +120,19 @@ const plates = FILES.map((f) => ((read(f).match(/src="([a-z0-9-]+-bg\.jpg)"/) ||
 const dupes = plates.filter((p, i) => p && plates.indexOf(p) !== i);
 console.log(`  ${dupes.length ? 'FAIL' : 'ok  '} distinct plate per board: ${new Set(plates).size}/8`);
 if (dupes.length) fail++;
+
+// 4c — SEAN'S KILL-PASS INSTRUCTIONS (each was an explicit requirement, so each is a gate).
+console.log(String.fromCharCode(10) + '── KILL-PASS INSTRUCTIONS ──');
+for (const f of FILES) {
+  const src = read(f);
+  const hdr = src.includes(REQUIRE.header);
+  const hero = src.includes(REQUIRE.heroVideo);
+  const movies = count(src, /MOVIE AREA/g);
+  const stages = count(src, /perspective:\s*\d/g);
+  const ok = hdr && hero && movies >= REQUIRE.movieAreas && stages >= REQUIRE.minStages;
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${f.padEnd(20)} header=${hdr} swansVideo=${hero} movieAreas=${movies} parallaxStages=${stages}`);
+  if (!ok) fail++;
+}
 
 // 5 — format integrity.
 console.log('\n── FORMAT ──');
