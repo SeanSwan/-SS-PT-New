@@ -2,8 +2,8 @@
 title: Mobbin 30+ site sweep — front-page best-of extraction
 originating_model: claude-fable-5
 date: 2026-08-20
-decision: pending — Sean adjudicates styles in the grill (L6 human-only)
-status: open
+decision: ADJUDICATED 2026-08-20 — Sean locked 8 style decisions in the grill (see Key Decisions)
+status: open — build pending hero-world pick + creative assembly
 supersedes: none
 ---
 
@@ -92,6 +92,26 @@ ClassDojo, Circle, Contra, Microsoft Teams, MindMarket, Spade, Ramp, Varo Bank.
 4. **Community pattern** — Figma map+groups vs Apollo/TheyDo event timeline vs komoot regional feed (or map-hero + timeline-below).
 5. **Proof pattern** — Hims before/after chips vs Function video cards vs Superpower social wall.
 6. **Signature moment** — gilded frames / macro flythrough / chrome-type-over-video / world map.
+
+## KEY DECISIONS — Sean's grill answers, 2026-08-20 (L6 adjudication, binding)
+
+| # | Axis | Sean's call |
+|---|---|---|
+| 1 | Hero archetype | **Cinematic scroll-journey** (§C13) — the film IS the page, scroll drives the playhead |
+| 2 | Temperature | **Hybrid** — Crystalline dark-luxury chrome/type; warm human footage inside it |
+| 3 | Community pattern | **Map + groups** (Figma model) with dated **event-timeline cards below** (Apollo/TheyDo) |
+| 4 | Signature moment | **Liquid-chrome display type over live video** (Posh model) |
+| 5 | Journey world | **Swans.mp4 opens, H3 worlds extend it** — the mediasync agent's 15s films (alpine-mirror / storm-breaking, chained fl2v) are the extension worlds; real training footage lands later when Sean has it. Coordination request posted to mediasync via review-queue. |
+| 6 | Proof pattern | **Before/after result chips** (Hims model) — month-0→month-N pairs + gold result chip |
+| 7 | Hero CTAs | **"Join the Community" + "Find a Trainer"** (live pair; dual-button glow law) |
+| 8 | Ordering | **Community-first + trainer fast lane** — hero carries Find-a-Trainer; slim trainer-search strip right below the fold |
+
+Prior resolutions same day (committed `1e4e7765a`): fee copy stripped from homepage; "Built
+with the community"; NCEP off headline copy — homepage leads with NASM-protocol framing,
+certifications live on a credentials surface.
+
+**Open (blocks assembly):** which world leads the hero — alpine-mirror vs storm-breaking.
+Both films sent to Sean 2026-08-20; his pick is the L6 gate before creative assembly.
 
 ## Notes
 - "Open" (wellness library) is visually strong but meditation-adjacent — harvest the dark
