@@ -13,9 +13,12 @@ privacy: "No secrets, no key values, no client data, no identities. Role counts,
 
 **Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round — honored throughout.**
 Sequence: GLM (mechanisms) → GLM (attack the answers) → Kimi (frame) → GLM (adjudicate Kimi) →
-alternating record-grading and confirmation rounds. **Round counts, defect counts and spend live in
-the frontmatter and nowhere else** — per C27, this paragraph previously carried its own copies and
-they went stale exactly as C21/C23/C25 did.
+alternating record-grading and confirmation rounds. **This document stores no round count, no defect
+total and no spend total anywhere.** The total and roster are **derived** by the rule in
+`decision:`; per-round spend lives in its round section. *(C43: this sentence used to say the counts
+"live in the frontmatter and nowhere else" — true under C27, falsified by C35/C36 which replaced
+storage with derivation. The sentence describing the storage design was not updated when the design
+changed.)*
 
 > **Read the Round 4 section at the end before trusting this one.** R4 was pointed at the record
 > rather than the work and found 8 defects in it, including one fact I certified without checking
@@ -894,14 +897,14 @@ catch.
 ```
 RULE (verbatim): roster = N from '^# Rounds? N' UNION N,M from '^# Rounds N and M' UNION N from '(Round N)'
 
-headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14, 20, 21, 22, 23]
-annotations contribute : [6, 11, 15, 16, 17, 18, 19, 20, 21, 22, 23]
-ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14, 20, 21, 22, 23, 24]
+annotations contribute : [6, 11, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
 contiguous 4..max      : True
-HIGHEST round in file  : 23   (must equal the last '# Round N' section)
+HIGHEST round in file  : 24   (must equal the last '# Round N' section)
 
-C-labels defined       : 42
-HIGHEST label defined  : C42
+C-labels defined       : 43
+HIGHEST label defined  : C43
 undefined in range     : none
 
 INVARIANTS — EVERY invariant listed below must hold. (C42: this line used to say "all four"
@@ -968,3 +971,22 @@ it is handed) landing on C41's fix.
 
 **Restated over the set** — "every invariant listed below" — per C34's precedent, which is the only
 form in this document that has never had to be re-fixed.
+
+---
+
+# Round 24 — the pointer described a design two rounds obsolete
+
+**C43 (Round 24)** — the opening paragraph still announced that "round counts, defect counts and
+spend live in the frontmatter and nowhere else." That was true under C27. **C35 replaced the
+stored total with a derivation and C36 moved spend into the round sections** — so the body's most
+prominent bookkeeping pointer described a design the `decision:` line it points at had already
+abandoned.
+
+**C40's stale-sibling class, across frontmatter and body**, and the regenerated trace could not
+catch it because the trace verifies the roster *derivation*, not prose claims about where counts
+live — **C42's blindness landing one round later.**
+
+**The pattern, stated once for whoever reads this next:** in this document, changing a *mechanism*
+reliably leaves at least one *sentence describing the mechanism* behind, and no value-checking
+verification can find those. They have only ever been found by an outside reader. That is not a
+criticism of the checks — it is the boundary of what a check of this kind can do.
