@@ -162,8 +162,13 @@ if (fs.existsSync(path.join(here, LAB))) {
     if (!ok) fail++;
   }
   const btns = (lab.match(/class="gbtn"/g) || []).length;
-  console.log('  ' + (btns >= 14 ? 'ok  ' : 'FAIL') + ' ' + btns + ' swatches (6 originals + 8 metallic)');
-  if (btns < 14) fail++;
+  console.log('  ' + (btns >= 18 ? 'ok  ' : 'FAIL') + ' ' + btns + ' swatches (6 originals + 12 metallic)');
+  if (btns < 18) fail++;
+  // Sean named ten colours explicitly on 2026-08-20; none may quietly go missing.
+  const NAMED = ['Purple', 'Baby blue', 'Green', 'White', 'Black', 'Yellow', 'Pink', 'Red', 'Brown', 'Orange'];
+  const absent = NAMED.filter((n) => !lab.includes(n + ' ' + String.fromCharCode(8212)));
+  console.log('  ' + (absent.length ? 'FAIL' : 'ok  ') + ' named colours present: ' + (NAMED.length - absent.length) + '/' + NAMED.length + (absent.length ? ' missing ' + absent.join(', ') : ''));
+  if (absent.length) fail++;
 }
 
 // 5 — format integrity.
