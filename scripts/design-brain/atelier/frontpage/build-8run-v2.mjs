@@ -57,6 +57,13 @@ const reeds = (c, o) => `<svg viewBox="0 0 1280 200" preserveAspectRatio="none" 
 
 const swanMark = (c, o = 1, w = 120) => `<svg viewBox="0 0 100 100" style="width:${w}px;height:${w}px;display:block;opacity:${o}"><path d="M62 20 C 48 20, 42 32, 44 44 C 46 56, 40 62, 30 66 C 44 78, 66 76, 76 62 C 86 48, 80 26, 62 20 Z" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"/><path d="M62 20 C 66 12, 74 10, 78 14" stroke="${c}" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>`;
 
+/** REAL brand art, harvested from frontend/public (NOT drawn here).
+ *  These are Sean's shipped cosmic-swan parallax plates + the crystalline low-poly logo —
+ *  the literal source of "Enchanted Apex: Crystalline Swan". v2 drew SVG ridges instead of
+ *  using them, which is the same harvest failure that produced v1. */
+const bg = (file, o = 1) => `<img src="${file}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;opacity:${o}">`;
+const logoMark = (o = 1, w = 120) => `<img src="swan-logo.png" alt="SwanStudios" style="width:${w}px;height:${w}px;display:block;opacity:${o}">`;
+
 /** REAL parallax: perspective on the stage, translateZ on the layers.
  *  Deeper layers are scaled back up so they stay full-bleed. Pure CSS, no JS. */
 function stage(height, layers) {
@@ -168,10 +175,10 @@ function A1() {
   const l = L.A1;
   return shell(l, 'A1 · still-water', `
   ${stage(900, [
-    { z: -9, html: ridge('#0E2149', 1, 300), blur: 2, pos: 'top: 0; height: 62%;' },
+    { z: -11, html: bg('hero-swan-bg.jpg', 0.95), blur: 2.0 }, { z: -9, html: ridge('#0E2149', 1, 300), blur: 2, pos: 'top: 0; height: 62%;' },
     { z: -6, html: figures('#16305F', 3, 0.9, 0.8), pos: 'top: 52%; height: 8%;' },
     { z: -3, html: water('#071026', l.warm), pos: 'top: 58%; bottom: 0;' },
-    { z: 0, html: `<div style="height:100%;display:flex;align-items:flex-end;padding:0 0 96px 120px;">${swanMark(l.warm, 0.5, 96)}</div>`, pos: 'top: 0; bottom: 0;' },
+    { z: 0, html: `<div style="height:100%;display:flex;align-items:flex-end;padding:0 0 96px 120px;">${logoMark(0.92, 96)}</div>`, pos: 'top: 0; bottom: 0;' },
   ])}
   <div style="max-width: 640px; margin: -180px auto 0; position: relative; padding: 0 20px 120px; display: flex; flex-direction: column; gap: 96px;">
     <header style="display: flex; flex-direction: column; gap: 22px;">
@@ -213,11 +220,11 @@ function A2() {
   return shell(l, 'A2 · dawn-approach', `
   <div style="position: sticky; top: 0; z-index: 5; height: 3px; background: linear-gradient(90deg, ${l.warm} 0%, ${l.cool} 100%);"></div>
   ${stage(720, [
-    { z: -9, html: ridge('#101F45', 1, 250), blur: 3, pos: 'top: 0; height: 70%;' },
+    { z: -11, html: bg('features-swan-bg.jpg', 0.95), blur: 2.6 }, { z: -9, html: ridge('#101F45', 1, 250), blur: 3, pos: 'top: 0; height: 70%;' },
     { z: -7, html: ridge('#16294F', 0.9, 320), blur: 1, pos: 'top: 12%; height: 62%;' },
     { z: -4, html: figures('#20365E', 7, 0.95, 0.9), pos: 'top: 60%; height: 9%;' },
     { z: -2, html: water('#0A1330', l.warm), pos: 'top: 66%; bottom: 0;' },
-    { z: 0, html: `<div style="height:100%;display:grid;place-items:center;">${swanMark(l.warm, 0.42, 150)}</div>` },
+    { z: 0, html: `<div style="height:100%;display:grid;place-items:center;">${logoMark(0.9, 140)}</div>` },
   ])}
   <section style="background: ${l.deep}; padding: 54px 64px 42px;">
     <div style="display: grid; grid-template-columns: repeat(12, minmax(0,1fr)); gap: 28px; align-items: end;">
@@ -252,11 +259,11 @@ function B1() {
     </nav>
     <main style="flex-grow: 1; min-width: 0;">
       ${stage(560, [
-        { z: -9, html: `<div style="height:100%;background:linear-gradient(180deg,#0C1226 0%,#16223F 100%)"></div>`, pos: 'top:0;bottom:0;' },
+        { z: -11, html: bg('social-hero-bg.jpg', 0.95), blur: 1.4 }, { z: -9, html: `<div style="height:100%;background:linear-gradient(180deg,#0C1226 0%,#16223F 100%)"></div>`, pos: 'top:0;bottom:0;' },
         { z: -6, html: windows(l.warm, '#1B2740', 30, 8, 0.5), blur: 1.4, pos: 'top: 14%; height: 62%;' },
         { z: -3, html: windows(l.warm, '#22304C', 22, 5, 0.62), pos: 'top: 42%; height: 40%;' },
         { z: -1, html: figures('#050810', 14, 0.95, 1.15), pos: 'bottom: 0; height: 16%;' },
-        { z: 0, html: `<div style="height:100%;display:flex;align-items:flex-start;justify-content:flex-end;padding:32px 44px 0 0;">${swanMark(l.warm, 0.55, 84)}</div>` },
+        { z: 0, html: `<div style="height:100%;display:flex;align-items:flex-start;justify-content:flex-end;padding:32px 44px 0 0;">${logoMark(0.95, 84)}</div>` },
       ])}
       <section style="padding: 34px 44px 26px; display: flex; flex-direction: column; gap: 16px;">
         <h1 style="font-size: 50px; line-height: 1.05; font-weight: 800;">${esc(C.headline)}</h1>
@@ -308,10 +315,10 @@ function B2() {
     `)}
     <div style="position: sticky; top: 0;">
       ${stage(1180, [
-        { z: -9, html: `<div style="height:100%;background:linear-gradient(180deg,#08132C 0%,#0E1F44 55%,#040814 100%)"></div>` },
+        { z: -11, html: bg('testimonials-swan-bg.jpg', 0.95), blur: 1.8 }, { z: -9, html: `<div style="height:100%;background:linear-gradient(180deg,#08132C 0%,#0E1F44 55%,#040814 100%)"></div>` },
         { z: -6, html: water('#0A1730', l.cool), blur: 1.2, pos: 'top: 24%; bottom: 0;' },
         { z: -3, html: figures('#152744', 5, 0.9, 1.0), pos: 'top: 62%; height: 10%;' },
-        { z: 0, html: `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;">${swanMark(l.warm, 0.72, 120)}<div style="font-family:'Fira Code',monospace;font-size:11px;letter-spacing:0.2em;color:${l.warm};">THE RIVER</div></div>` },
+        { z: 0, html: `<div style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;">${logoMark(1, 120)}<div style="font-family:'Fira Code',monospace;font-size:11px;letter-spacing:0.2em;color:${l.warm};">THE RIVER</div></div>` },
       ])}
     </div>
     ${col(`
@@ -341,10 +348,10 @@ function C1() {
   <div style="display: grid; grid-template-columns: 1fr 300px; align-items: start;">
     <main style="min-width:0;">
       ${stage(520, [
-        { z: -9, html: `<div style="height:100%;background:radial-gradient(120% 80% at 50% 0%, #0C2145 0%, #03070F 70%)"></div>` },
+        { z: -11, html: bg('video-library-bg.jpg', 0.95), blur: 2.2 }, { z: -9, html: `<div style="height:100%;background:radial-gradient(120% 80% at 50% 0%, #0C2145 0%, #03070F 70%)"></div>` },
         { z: -6, html: `<svg viewBox="0 0 1280 400" preserveAspectRatio="none" style="width:100%;height:100%"><path d="M0 340 C 300 300, 520 220, 760 170 S 1120 90, 1280 60" stroke="${l.cool}" stroke-width="2" fill="none" opacity="0.55" stroke-dasharray="7 6"/></svg>`, blur: 0.6 },
         { z: -3, html: figures('#0B1830', 9, 0.75, 0.7), pos: 'bottom: 0; height: 14%;' },
-        { z: 0, html: `<div style="height:100%;display:flex;align-items:center;justify-content:flex-end;padding-right:70px;">${swanMark(l.cool, 0.85, 108)}</div>` },
+        { z: 0, html: `<div style="height:100%;display:flex;align-items:center;justify-content:flex-end;padding-right:70px;">${logoMark(0.95, 104)}</div>` },
       ])}
       <section style="padding: 30px 44px 24px; display:flex; flex-direction:column; gap:15px;">
         <h1 style="font-size:48px;line-height:1.05;font-weight:800;">${esc(C.headline)}</h1>
@@ -384,7 +391,7 @@ function C2() {
   <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: start;">
     <div style="position: sticky; top: 0; height: 100vh; min-height: 900px;">
       ${stage(900, [
-        { z: -9, html: `<div style="height:100%;background:linear-gradient(160deg,#0C1226 0%,#1A2340 60%,#06090F 100%)"></div>` },
+        { z: -11, html: bg('about-hero-bg.jpg', 0.95), blur: 1.6 }, { z: -9, html: `<div style="height:100%;background:linear-gradient(160deg,#0C1226 0%,#1A2340 60%,#06090F 100%)"></div>` },
         { z: -6, html: ridge('#152142', 0.9, 300), blur: 2, pos: 'top: 30%; height: 50%;' },
         { z: -3, html: figures('#1E2C4C', 4, 0.9, 1.1), pos: 'top: 68%; height: 10%;' },
         { z: 0, html: `<div style="height:100%;display:flex;flex-direction:column;justify-content:center;gap:22px;padding:0 52px;">
@@ -394,7 +401,7 @@ function C2() {
               <a href="#f" style="display:inline-flex;align-items:center;min-height:48px;padding:0 26px;border-radius:10px;background:#002060;color:${l.ink};text-decoration:none;font-weight:700;box-shadow:0 0 24px rgba(139,92,246,0.35);">${esc(C.cta_primary)}</a>
               <a href="#f" style="display:inline-flex;align-items:center;min-height:48px;padding:0 22px;border-radius:10px;border:1px solid ${l.cool}55;color:${l.ink};text-decoration:none;">${esc(C.cta_secondary)}</a>
             </div>
-            ${swanMark(l.warm, 0.42, 92)}
+            ${logoMark(0.92, 92)}
           </div>` },
       ])}
     </div>
@@ -422,11 +429,12 @@ function D1() {
   </section>`;
   return shell(l, 'D1 · beneath-the-waterline', `
   ${stage(860, [
-    { z: -9, html: `<div style="height:100%;background:linear-gradient(180deg,#0A1938 0%,#050914 55%,#02040A 100%)"></div>` },
+    { z: -11, html: bg('beyond-the-gym-bg.jpg', 0.95), blur: 1.2 }, { z: -9, html: `<div style="height:100%;background:linear-gradient(180deg,#0A1938 0%,#050914 55%,#02040A 100%)"></div>` },
     { z: -7, html: water('#0C1E3E', l.cool), blur: 0.8, pos: 'top: 0; height: 26%;' },
     { z: -5, html: `<svg viewBox="0 0 1280 500" preserveAspectRatio="none" style="width:100%;height:100%;opacity:0.5"><path d="M180 0 L300 500 L120 500 Z" fill="${l.cool}" opacity="0.10"/><path d="M640 0 L790 500 L560 500 Z" fill="${l.cool}" opacity="0.08"/><path d="M1040 0 L1180 500 L960 500 Z" fill="${l.cool}" opacity="0.09"/></svg>`, pos: 'top: 18%; bottom: 0;' },
     { z: -2, html: figures('#0A1428', 6, 0.8, 0.9), pos: 'top: 72%; height: 10%;' },
     { z: 0, html: `<div style="height:100%;display:flex;flex-direction:column;justify-content:flex-end;padding:0 110px 64px;gap:18px;">
+        ${logoMark(0.95, 76)}
         <h1 style="font-size:64px;line-height:1.02;font-weight:800;letter-spacing:-0.02em;">${esc(C.headline)}</h1>
         <p style="margin:0;font-size:21px;line-height:1.5;color:#D6E4F0;font-weight:500;max-width:50ch;">${esc(C.sub)}</p>
         <div style="display:flex;gap:12px;">
@@ -464,12 +472,13 @@ function D2() {
     ${bulbs}
   </div>
   ${stage(760, [
-    { z: -9, html: `<div style="height:100%;background:radial-gradient(90% 70% at 50% 25%, #1A0F3E 0%, #010204 72%)"></div>` },
+    { z: -11, html: bg('store-hero-bg.jpg', 0.95), blur: 1.0 }, { z: -9, html: `<div style="height:100%;background:radial-gradient(90% 70% at 50% 25%, #1A0F3E 0%, #010204 72%)"></div>` },
     { z: -7, html: windows(l.warm, '#0A0820', 34, 9, 0.42), blur: 2.2, pos: 'top: 0; height: 58%;' },
     { z: -5, html: `<svg viewBox="0 0 1280 300" preserveAspectRatio="none" style="width:100%;height:100%;opacity:0.85">${Array.from({ length: 9 }, (_, i) => `<rect x="${60 + i * 140}" y="${40 + ((i * 37) % 90)}" width="88" height="26" rx="5" fill="none" stroke="${i % 2 ? l.cool : l.warm}" stroke-width="2" opacity="0.8"/>`).join('')}</svg>`, pos: 'top: 22%; height: 34%;' },
     { z: -2, html: figures('#050310', 16, 0.95, 1.25), pos: 'top: 62%; height: 14%;' },
     { z: -1, html: `<svg viewBox="0 0 1280 220" preserveAspectRatio="none" style="width:100%;height:100%"><rect width="1280" height="220" fill="#06040F"/>${Array.from({ length: 14 }, (_, i) => `<rect x="${(i * 97) % 1200}" y="${20 + ((i * 53) % 160)}" width="${70 + ((i * 31) % 150)}" height="4" rx="2" fill="${i % 2 ? l.cool : l.warm}" opacity="0.22"/>`).join('')}</svg>`, pos: 'bottom: 0; height: 26%;' },
     { z: 0, html: `<div style="height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 56px;gap:18px;">
+        ${logoMark(1, 84)}
         <h1 style="font-size:66px;line-height:1.0;font-weight:800;letter-spacing:-0.02em;text-shadow:0 0 34px ${l.cool}77;">${esc(C.headline)}</h1>
         <p style="margin:0;font-size:20px;line-height:1.5;color:#E6DDF6;font-weight:500;max-width:50ch;">${esc(C.sub)}</p>
         <div style="display:flex;gap:12px;">

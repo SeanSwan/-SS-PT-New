@@ -94,6 +94,26 @@ for (const f of FILES) {
   if (!ok) fail++;
 }
 
+// 4b — HARVEST: boards must use Sean's SHIPPED brand art, not art drawn in the generator.
+//      v1 and v2 both invented visuals while 10 finished parallax plates and the crystalline
+//      logo sat in frontend/public. A gate that does not demand the real asset invites a third repeat.
+console.log(String.fromCharCode(10) + '── HARVESTED BRAND ART (not drawn here) ──');
+const ART_RE = /src="([a-z0-9-]+\.(?:jpg|png))"/g;
+for (const f of FILES) {
+  const src = read(f);
+  const refs = [...new Set((src.match(ART_RE) || []))];
+  const hasPlate = refs.some((r) => /-bg\.jpg/.test(r));
+  const hasLogo = src.includes('swan-logo.png');
+  const ok = hasPlate && hasLogo;
+  console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${f.padEnd(29)} plate=${hasPlate} logo=${hasLogo}`);
+  if (!ok) fail++;
+}
+// every board must use a DIFFERENT plate — otherwise the art stops being a differentiator
+const plates = FILES.map((f) => ((read(f).match(/src="([a-z0-9-]+-bg\.jpg)"/) || [])[1]));
+const dupes = plates.filter((p, i) => p && plates.indexOf(p) !== i);
+console.log(`  ${dupes.length ? 'FAIL' : 'ok  '} distinct plate per board: ${new Set(plates).size}/8`);
+if (dupes.length) fail++;
+
 // 5 — format integrity.
 console.log('\n── FORMAT ──');
 for (const f of FILES) {
