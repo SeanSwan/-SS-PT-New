@@ -115,4 +115,55 @@ describe('contact form → CRM lead capture (Tier 0.2a)', () => {
     expect(call.defaults.firstName).toBe('Madonna');
     expect(call.defaults.lastName).toBeNull();
   });
+
+  // --- Trainer-intent passthrough (SWA-178 option C) -------------------------------------------
+  // The whole feature is ONE property on ONE call: `intent` forwarded from req.body into
+  // captureLeadFromContact. A refactor that drops it reverts the feature to its pre-fix state —
+  // trainer leads silently untagged, count silently zero, no error anywhere. That is the exact
+  // failure this work exists to remove, so it gets the test the rest of the feature already had.
+  it('forwards a declared intent from the request body into the lead tags', async () => {
+    const res = await request(app)
+      .post('/api/contact')
+      .send({ name: 'Jane Doe', email: 'jane@example.com', message: 'I coach golfers', intent: 'trainer' });
+
+    expect(res.status).toBe(200);
+    const call = leadFindOrCreate.mock.calls[0][0];
+    expect(call.defaults.tags).toContain('prism:intent:trainer');
+  });
+
+  it('tags nothing when no intent is declared', async () => {
+    await request(app)
+      .post('/api/contact')
+      .send({ name: 'Jane Doe', email: 'jane@example.com', message: 'hello' });
+
+    const call = leadFindOrCreate.mock.calls[0][0];
+    expect(call.defaults.tags.some((t) => String(t).startsWith('prism:intent:'))).toBe(false);
+    expect(call.defaults.tags).not.toContain(null); // .filter(Boolean) strips the null tag
+  });
+
+  it('refuses an intent outside the published vocabulary', async () => {
+    // The value rides a visitor-craftable query param, so an arbitrary string must never become an
+    // arbitrary CRM tag. Allowlisted server-side by intentTag(); unknown values tag nothing.
+    await request(app)
+      .post('/api/contact')
+      .send({ name: 'Jane Doe', email: 'jane@example.com', message: 'hi', intent: 'admin' });
+
+    const call = leadFindOrCreate.mock.calls[0][0];
+    expect(call.defaults.tags.some((t) => String(t).startsWith('prism:intent:'))).toBe(false);
+  });
+
+  it('tags a REPEAT submitter too — the merge path, not just the create path', async () => {
+    // Closes a gap a reviewer named precisely: the create path was covered and the repeat path was
+    // only asserted in prose. A returning trainer is the common case, not the edge one.
+    const update = vi.fn().mockResolvedValue(undefined);
+    leadFindOrCreate.mockResolvedValue([{ id: 5, score: 20, contactCount: 1, tags: ['contact-form'], update }, false]);
+
+    await request(app)
+      .post('/api/contact')
+      .send({ name: 'Jane Doe', email: 'jane@example.com', message: 'back again', intent: 'trainer' });
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0][0].tags).toContain('prism:intent:trainer');
+    expect(update.mock.calls[0][0].tags).toContain('contact-form'); // existing tags preserved
+  });
 });

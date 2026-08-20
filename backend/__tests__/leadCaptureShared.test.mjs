@@ -213,6 +213,8 @@ describe('tag aggregators resist prototype pollution', () => {
     }
     expect({}.count).toBeUndefined();
     expect({}.converted).toBeUndefined();
+    // Belt AND braces, deliberately: the allowlist now makes these unreachable, but the
+    // null-prototype accumulator stays as the floor if a future caller forgets to filter.
   });
 
   it('does not pollute Object.prototype via a hostile channel tag', () => {
@@ -223,9 +225,34 @@ describe('tag aggregators resist prototype pollution', () => {
     expect({}.converted).toBeUndefined();
   });
 
-  it('contains the hostile key as an ordinary bucket instead of leaking it', () => {
-    const out = aggregateLeadIntents([{ tags: ['prism:intent:__proto__'], status: 'new' }]);
-    expect(out).toEqual([{ intent: '__proto__', count: 1, converted: 0 }]);
+  it('drops a hostile key entirely rather than reporting it as a bucket', () => {
+    // Superseded a weaker assertion that treated `__proto__` as a legitimate bucket. A reviewer was
+    // right that reporting an intent the vocabulary does not publish is itself the defect: tags are
+    // admin-writable, so unknown keys are unbounded in both COUNT and LENGTH (a tag can be ~1MB).
+    // Now intersected with CAPTURE_INTENTS — unknown intents are not tallied at all.
+    expect(aggregateLeadIntents([{ tags: ['prism:intent:__proto__'], status: 'new' }])).toEqual([]);
+    expect(aggregateLeadIntents([{ tags: ['prism:intent:notathing'], status: 'new' }])).toEqual([]);
+    expect(aggregateLeadIntents([{ tags: [`prism:intent:${'x'.repeat(5000)}`], status: 'new' }])).toEqual([]);
+  });
+
+  it('counts EVERY declared intent on a lead, not just the first', () => {
+    // A repeat submitter through both doors has both tags unioned by mergeLeadTags. `.find()`
+    // counted the row once under whichever sat earlier in the array, making the tally depend on
+    // array order and undercounting exactly the multi-touch leads most worth seeing.
+    const out = aggregateLeadIntents([
+      { tags: ['contact-form', 'prism:intent:book', 'prism:intent:trainer'], status: 'converted' },
+    ]);
+    expect(out).toEqual(expect.arrayContaining([
+      { intent: 'book', count: 1, converted: 1 },
+      { intent: 'trainer', count: 1, converted: 1 },
+    ]));
+    expect(out).toHaveLength(2);
+  });
+
+  it('counts a row once per intent even if a tag is duplicated', () => {
+    expect(aggregateLeadIntents([
+      { tags: ['prism:intent:trainer', 'prism:intent:trainer'], status: 'new' },
+    ])).toEqual([{ intent: 'trainer', count: 1, converted: 0 }]);
   });
 
   it('still tallies normally after hostile input has passed through', () => {

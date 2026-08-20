@@ -104,16 +104,35 @@ export const aggregateLeadIntents = (rows = []) => {
   // resolve to Object.prototype (truthy, so the guard below skips init) and the ++ then lands on
   // Object.prototype.count — polluting EVERY object in the process with count:NaN. Verified, not
   // theorised. A null-prototype accumulator has no inherited keys to collide with.
+  //
+  // The allowlist intersection below makes that unreachable anyway, and both are kept deliberately:
+  // the vocabulary check is the intent, the null prototype is the floor if the vocabulary ever grows
+  // a caller that forgets to filter.
   const acc = Object.create(null);
   for (const row of (Array.isArray(rows) ? rows : [])) {
     const tags = Array.isArray(row?.tags) ? row.tags : [];
-    const tag = tags.find((t) => typeof t === 'string' && t.startsWith(INTENT_TAG_PREFIX));
-    if (!tag) continue;
-    const intent = tag.slice(INTENT_TAG_PREFIX.length);
-    if (!intent) continue; // a bare "prism:intent:" is malformed, not a bucket
-    if (!acc[intent]) acc[intent] = { intent, count: 0, converted: 0 };
-    acc[intent].count += 1;
-    if (row?.status === 'converted') acc[intent].converted += 1;
+    // ALL matching tags, not the first. A lead can legitimately hold several — a repeat submitter
+    // who came through the book door and later the trainer door has both unioned by mergeLeadTags,
+    // and `.find()` counted them once under whichever happened to sit earlier in the array. That
+    // made the tally depend on array order and silently undercount exactly the multi-touch leads
+    // most worth seeing. Consequence, deliberate: sum(byIntent) can exceed the number of leads.
+    const declared = tags.filter((t) => typeof t === 'string' && t.startsWith(INTENT_TAG_PREFIX));
+    if (!declared.length) continue;
+    const seen = new Set(); // one row counts at most once per intent even if a tag is duplicated
+    for (const tag of declared) {
+      const intent = tag.slice(INTENT_TAG_PREFIX.length);
+      // Only tally intents the published vocabulary knows. `Lead.tags` is admin-writable, so an
+      // arbitrary `prism:intent:<anything>` can exist that intentTag() would never have produced —
+      // unbounded distinct keys (a stats-pollution and response-size vector) and unbounded key
+      // LENGTH (a tag can be ~1MB). There is no legitimate reason to report an intent we do not
+      // publish, so unknown ones are dropped rather than bucketed.
+      if (!CAPTURE_INTENTS.includes(intent)) continue;
+      if (seen.has(intent)) continue;
+      seen.add(intent);
+      if (!acc[intent]) acc[intent] = { intent, count: 0, converted: 0 };
+      acc[intent].count += 1;
+      if (row?.status === 'converted') acc[intent].converted += 1;
+    }
   }
   return Object.values(acc).sort((a, b) => b.count - a.count);
 };

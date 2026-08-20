@@ -135,20 +135,37 @@ type Phase = 'form' | 'done';
 // email, and surface a "from your link" hint so the substitution is visible.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+/**
+ * The declared intent, read FRESH from the URL at the moment it is needed.
+ *
+ * Deliberately not snapshotted into the mount-time seedRef the way email/subject are. Those are
+ * form DEFAULTS — freezing them is correct, because re-seeding a field the user has since edited
+ * would be hostile. The intent is ATTRIBUTION, and attribution must describe the visit as it is at
+ * submit time. In an SPA a query param can change without remounting, so a snapshot taken at mount
+ * survives `?intent=trainer` -> `?intent=book` and tags the wrong door; the reverse direction drops
+ * a real one. Reading here makes intent consistent with readAcquisitionParams(), which is already
+ * read at submit for exactly this reason. Flagged independently by three reviewers.
+ */
+function readIntentParam(): string | null {
+  try {
+    return new URLSearchParams(window.location.search).get('intent') || null;
+  } catch {
+    return null;
+  }
+}
+
 function prefillFromUrl() {
   try {
     const p = new URLSearchParams(window.location.search);
     const raw = (p.get('email') || '').slice(0, 254);
     const email = EMAIL_RE.test(raw) ? raw : '';
-    const intent = p.get('intent');
+    // Subject is a form DEFAULT, so it is seeded once from the intent at mount. The intent itself is
+    // NOT carried here — it is read fresh at submit by readIntentParam(). Parity with ContactV3.
+    const intent = readIntentParam();
     const subject = intent === 'trainer' ? 'Trainer inquiry' : intent === 'book' ? 'Free consultation request' : '';
-    // Parity with ContactV3, same reasoning as the attribution note below: carry the raw intent so
-    // the submission can tag the lead structurally. Without it, flipping contactVNext would
-    // silently stop tagging trainer leads with no error — the defect would look like "trainers
-    // stopped knocking" rather than "the form stopped reporting."
-    return { email, subject, intent: intent || null, seeded: Boolean(email) };
+    return { email, subject, seeded: Boolean(email) };
   } catch {
-    return { email: '', subject: '', intent: null, seeded: false };
+    return { email: '', subject: '', seeded: false };
   }
 }
 
@@ -189,7 +206,7 @@ export function ContactForm() {
           name,
           email,
           message: message + (subject ? `\n\nSubject: ${subject}` : ''),
-          intent: seedRef.current.intent, // which door they came through → prism:intent:* tag (rule 8 non-PII)
+          intent: readIntentParam(), // read at SUBMIT, not mount — see readIntentParam (rule 8 non-PII)
           // Parity with ContactV3: without this the v-next branch silently drops UTM/referrer attribution, so
           // flipping contactVNext would null out channel attribution for every contact lead with no error.
           ...readAcquisitionParams(),

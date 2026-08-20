@@ -877,20 +877,35 @@ const faqData = [
 //      the part that actually defeats the attack.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+/**
+ * The declared intent, read FRESH from the URL at the moment it is needed.
+ *
+ * Deliberately not snapshotted into the mount-time seedRef the way email/subject are. Those are
+ * form DEFAULTS — freezing them is correct, because re-seeding a field the user has since edited
+ * would be hostile. The intent is ATTRIBUTION, and attribution must describe the visit as it is at
+ * submit time. In an SPA a query param can change without remounting, so a snapshot taken at mount
+ * survives `?intent=trainer` -> `?intent=book` and tags the wrong door; the reverse direction drops
+ * a real one. Reading here makes intent consistent with readAcquisitionParams(), which is already
+ * read at submit for exactly this reason. Flagged independently by three reviewers.
+ */
+function readIntentParam(): string | null {
+  try {
+    return new URLSearchParams(window.location.search).get('intent') || null;
+  } catch {
+    return null;
+  }
+}
+
 function prefillFromUrl() {
   try {
     const p = new URLSearchParams(window.location.search);
     const raw = (p.get('email') || '').slice(0, 254);
     const email = EMAIL_RE.test(raw) ? raw : '';
-    const intent = p.get('intent');
+    const intent = readIntentParam();
     const subject = intent === 'trainer' ? 'Trainer inquiry' : intent === 'book' ? 'Free consultation request' : '';
-    // Carry the raw intent so the submission can tag the CRM lead structurally. Previously it was
-    // used only to prefill `subject`, which the API has no field for — both forms fold it into the
-    // message body, so the trainer signal survived only as prose inside Lead.notes. Sent as-is and
-    // allowlisted server-side (intentTag); an unrecognized value tags nothing.
-    return { email, subject, intent: intent || null, seeded: Boolean(email) };
+    return { email, subject, seeded: Boolean(email) };
   } catch {
-    return { email: '', subject: '', intent: null, seeded: false };
+    return { email: '', subject: '', seeded: false };
   }
 }
 
@@ -936,7 +951,7 @@ const ContactV3: React.FC = () => {
         message: message + (subject ? `\n\nSubject: ${subject}` : ''),
         consultationType: 'general',
         priority: 'normal',
-        intent: seedRef.current.intent, // which door they came through → prism:intent:* tag (rule 8 non-PII)
+        intent: readIntentParam(), // read at SUBMIT, not mount — see readIntentParam (rule 8 non-PII)
         ...readAcquisitionParams(), // attribute which channel sent this contact (rule 8 non-PII)
       });
 

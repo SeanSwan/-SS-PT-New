@@ -128,16 +128,33 @@ router.get('/stats', async (req, res) => {
 
     // Acquisition-channel breakdown (which channel produces leads). Capped fetch —
     // fine at early-stage volume; move to a JSONB SQL aggregation past the cap.
-    const channelRows = await Lead.findAll({ where, attributes: ['tags', 'source', 'status'], limit: 5000 });
+    // ORDER BY is load-bearing, not cosmetic. A bare LIMIT with no ORDER returns a planner-arbitrary
+    // subset that is unstable across vacuum and index changes, so past the cap the breakdown was a
+    // NONDETERMINISTIC sample — an older trainer-heavy cohort falling outside the scan window reads
+    // as "the trainer funnel died". Newest-first at least makes the bias stable and explainable.
+    const STATS_SAMPLE_CAP = 5000;
+    const channelRows = await Lead.findAll({
+      where,
+      attributes: ['tags', 'source', 'status'],
+      order: [['createdAt', 'DESC']],
+      limit: STATS_SAMPLE_CAP,
+    });
     const byChannel = aggregateLeadChannels(channelRows);
-    // Same rows, second lens: which door the lead came through (prism:intent:*). Free — no extra query.
+    // Same rows, second lens: which door the lead came through (prism:intent:*). No extra query.
     const byIntent = aggregateLeadIntents(channelRows);
+    // Tell the caller when these two are a SAMPLE rather than the whole set. Without this the
+    // breakdowns silently undercount past the cap — which is precisely the failure this work exists
+    // to remove (a number that quietly stops being true and says nothing). A consumer that cannot
+    // tell "3 trainers" from "3 trainers in the most recent 5000" will eventually misread one as
+    // the other. Callers should render the qualifier whenever `sampled` is true.
+    const sampled = channelRows.length >= STATS_SAMPLE_CAP;
 
     return res.json({
       success: true,
       stats: {
         total, new: newLeads, contacted, qualified, scheduled, converted, lost,
         conversionRate, needsFollowUp, hotLeads, byChannel, byIntent,
+        sampled, sampleCap: STATS_SAMPLE_CAP,
       },
     });
   } catch (err) {
