@@ -3,7 +3,7 @@ title: "Panel review — AI privacy/cost workstream (GLM + Kimi, multi-round)"
 date: 2026-08-19
 author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 and Kimi K3 (C40: this line carried its own derivation rule, which C36 had already falsified; there is now exactly ONE rule and it lives in `decision:` below)
 decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Record-grading rounds found a defect in THIS DOCUMENT every time they ran; each is labelled C<N> at its site, so the total is DERIVED by counting C-labels, not stored (C35 - a stored total went stale on append four times: C21, C29, C34, and again here). ROUND ROSTER is likewise derived, by this EXACT rule (C37): the set of every integer N matching `^# Rounds? N` OR `^# Rounds N and M` (both captured) OR the annotation `(Round N)`. The rule is stated in the form it is executed in - C36 stated a narrower rule than its own script ran, and the script silently covered the plural heading the rule did not mention. READ EVERY `# Round N` SECTION FROM ROUND 4 ONWARD, IN ORDER, BEFORE THE BODY - they supersede body claims, and the Round 7 section holds the only evidence for the 6-of-7 figure. Per-round Kimi spend is recorded in the round sections; no running total is stored (C36 - spend is append-volatile and C27 had already classed it with the counts)."
-status: open
+status: closed — frozen at Round 25; new findings go in a new document
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
 privacy: "No secrets, no key values, no client data, no identities. Role counts, file paths, line numbers, and timestamps. Infrastructure identifiers PARTIALLY redacted - DB host slug and server IP removed; Render provider/region retained. See C19/C22."
@@ -897,11 +897,11 @@ catch.
 ```
 RULE (verbatim): roster = N from '^# Rounds? N' UNION N,M from '^# Rounds N and M' UNION N from '(Round N)'
 
-headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14, 20, 21, 22, 23, 24]
+headings contribute    : [4, 5, 7, 8, 9, 10, 12, 13, 14, 20, 21, 22, 23, 24, 25]
 annotations contribute : [6, 11, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
-ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
+ROSTER (union)         : [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25]
 contiguous 4..max      : True
-HIGHEST round in file  : 24   (must equal the last '# Round N' section)
+HIGHEST round in file  : 25 (FINAL - record frozen)   (must equal the last '# Round N' section)
 
 C-labels defined       : 43
 HIGHEST label defined  : C43
@@ -990,3 +990,48 @@ live — **C42's blindness landing one round later.**
 reliably leaves at least one *sentence describing the mechanism* behind, and no value-checking
 verification can find those. They have only ever been found by an outside reader. That is not a
 criticism of the checks — it is the boundary of what a check of this kind can do.
+
+---
+
+# Round 25 — TERMINAL. The work is dry; the bookkeeping loop is not, by construction.
+
+**This is the final section. The record is FROZEN — see the rule at the end.**
+
+## (a) DRY on the work
+
+Every work-level finding has been stable since the mechanism rounds: the merge order (surviving
+C9's strike of its third reason), #45-first, local-verification-only, the measured **exactly 6 of
+7** (exact because of the gate-pass check), and the admin mint-consent path at file:line.
+**Nothing since C17 has touched the work.**
+
+**Dry is not done.** Still unexecuted: #47's pass/fail script is unwritten, **#50 remains
+unreviewed by this panel** — C5's own "the silence is itself a finding" now applies to the panel's
+own fix list — the two owner questions are unanswered, and the key is unrotated.
+
+## (b) The bookkeeping loop is self-sustaining, and here is the mechanism
+
+Every fix ships **prose describing the fix**, and in an append-only document, prose describing a
+mechanism is a defect with a delay fuse. C38's trace created C39; C39's invariant sentence created
+C42; C35's design change left C43's stale pointer. **The two fix-forms that hold — derivation rules
+and set-quantified sentences — killed *value* staleness but not *description* staleness, and per
+C43 no value-checking verification can ever catch that class.**
+
+So each round needs a fresh outside reader, and a fresh outside reader always finds one stale
+sentence. **Rounds 20–24 each returned exactly one cosmetic finding and zero work-relevant ones.**
+The proof is self-demonstrating: appending *this* section makes the trace's highest-round figure
+stale the instant it is written — which is why the trace below is regenerated after this text, and
+why the freeze rule follows it.
+
+## (c) Terminal recommendation
+
+**Stop reviewing this document. Execute instead:** merge #45, write the #47 verification script,
+answer the two one-question items (residency; admin/user gating), rotate the key. Reconvene a panel
+only for a **new subject** — #50 is the obvious one, and it has never been reviewed.
+
+## FREEZE RULE
+
+**This document is closed to appends.** Its purpose — recording what the panel found and what it
+changed — is complete. A further round would find one more stale sentence, and that sentence would
+be created by the round that fixed the last one. **New findings belong in a new document, not
+appended here.** This is the only fix-form in this record that cannot itself go stale: it removes
+the append, not the symptom.
