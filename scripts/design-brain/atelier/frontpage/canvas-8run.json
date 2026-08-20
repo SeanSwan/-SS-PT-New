@@ -2,35 +2,20 @@
   "artboards": [
     {
       "file": "Main.dc.html",
-      "title": "D2 \u00b7 vegas mile \u2014 WINNER",
+      "title": "D2 · vegas mile — WINNER",
       "x": 0,
       "y": 0,
       "w": 1280,
       "h": 4600
-    },
-    {
-      "file": "ButtonLab.dc.html",
-      "title": "BUTTON LAB \u2014 pick one",
-      "x": 1420,
-      "y": 1200,
-      "w": 1280,
-      "h": 1500
     }
   ],
   "annotations": [
     {
       "id": "note-winner",
       "x": 1420,
-      "y": -560,
+      "y": 0,
       "w": 480,
-      "text": "D2 \u00b7 VEGAS MILE \u2014 THE WINNER\n\nSean 2026-08-20: \"I like d two.\"\n\nTHIS PASS:\n1. DISCIPLINE CARDS ARE VIDEO BACKGROUNDS. All six (Training / Dance / Art & Visual / Vocal & Sound / Photography & Graphic Design / Community) carry a VIDEO BG badge and a written FILM BRIEF for the H3 film that becomes that card's background.\n2. HIS FOOTER IS BACK, replicated from components/Footer/Footer.tsx \u2014 brand + tagline + socials + \"Stay in the loop\", Quick Links / Programs / Contact Us, Privacy Policy + Terms.\n3. HIS ORIGINAL SHEEN GLOW BUTTON, recovered from git 16a18d905 (pre-Crystalline). Eight swatches at the bottom to pick from: his six originals byte-for-byte (primary / neonBlue / purple / emerald=GREEN / ruby=RED / cosmic) plus chrome (silver) and gilded (gold) added by me.\n\nSTILL TRUE: his header replicated and unchanged \u00b7 the Swans.mp4 video hero (swappable for H3) \u00b7 2 movie areas \u00b7 4 parallax stages.\n\nHEADS UP: primary and neonBlue carry Galaxy-Swan cyan #00FFFF, a RETIRED token. Shown because they are his originals \u2014 say the word and they get regraded."
-    },
-    {
-      "id": "note-lab",
-      "x": 1420,
-      "y": 900,
-      "w": 470,
-      "text": "BUTTON LAB\n\nSean: \"the glow button I had... when you covered the mouse anywhere inside the button, it would have an animation that would show basically like a pointer, but in the color of the button itself... And the color was more metallic. All the colors you show me look more cartoony.\"\n\nHe was right twice.\n\nWHAT I HAD WRONG: I rendered a flat diagonal gradient bar across the face. The real thing is a gradient-filled CIRCLE, pushed up 44px, ROTATING 360deg every 2s behind a near-black face -- light sweeps around the RIM. That is the metal.\n\nRecovered from the FIRST-EVER commit of the button: 6108f5018, 2025-03-17, frontend/src/components/Button/glowButton.jsx. The palette is identical to what I showed before -- the colours were never the problem.\n\nROW 1: his six originals, byte-for-byte.\nROW 2: METALLIC -- same mechanism, six-stop specular ramp (dark -> hot narrow highlight -> mid -> dark), which is what actually makes a colour read as metal. Includes the green and the red he asked for.\n\nThe rotation IS animating. The cursor-glow is parked because an artboard has no live pointer."
+      "text": "D2 · VEGAS MILE — THE WINNER\n\nSean 2026-08-20: \"I like d two.\"\n\nTHIS PASS:\n1. DISCIPLINE CARDS ARE VIDEO BACKGROUNDS. All six (Training / Dance / Art & Visual / Vocal & Sound / Photography & Graphic Design / Community) carry a VIDEO BG badge and a written FILM BRIEF for the H3 film that becomes that card's background.\n2. HIS FOOTER IS BACK, replicated from components/Footer/Footer.tsx — brand + tagline + socials + \"Stay in the loop\", Quick Links / Programs / Contact Us, Privacy Policy + Terms.\n3. HIS ORIGINAL SHEEN GLOW BUTTON, recovered from git 16a18d905 (pre-Crystalline). Eight swatches at the bottom to pick from: his six originals byte-for-byte (primary / neonBlue / purple / emerald=GREEN / ruby=RED / cosmic) plus chrome (silver) and gilded (gold) added by me.\n\nSTILL TRUE: his header replicated and unchanged · the Swans.mp4 video hero (swappable for H3) · 2 movie areas · 4 parallax stages.\n\nHEADS UP: primary and neonBlue carry Galaxy-Swan cyan #00FFFF, a RETIRED token. Shown because they are his originals — say the word and they get regraded."
     }
   ],
   "launch": {

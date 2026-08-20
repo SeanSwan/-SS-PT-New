@@ -15,7 +15,10 @@ import path from 'node:path';
 const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
 const pack = JSON.parse(fs.readFileSync(path.join(here, 'copy-pack.json'), 'utf8'));
 // Sean's kill pass 2026-08-19: six directions killed, B1 + D2 survive.
-const FILES = ['Main.dc.html', 'VegasMile.dc.html'];
+// Sean picked D2 outright 2026-08-20 ("I like d two"); it lives in Main.dc.html now and
+// VegasMile.dc.html was removed. ButtonLab.dc.html is checked separately below.
+const FILES = ['Main.dc.html'];
+const LAB = 'ButtonLab.dc.html';
 // Instruction gates added at the kill pass (each was an explicit Sean requirement):
 const REQUIRE = {
   header: 'REPLICATED FROM components/Header',   // 1. keep his header, adapt to it
@@ -59,6 +62,7 @@ for (const { f, p } of profiles) {
 // 1 — every PAIR must differ on >= 3 structural axes, and never share the tag shape.
 const AXES = ['gridTemplates', 'depthLayers', 'stickies', 'navs', 'asides', 'sections', 'svgs', 'h1size', 'shape'];
 console.log('\n── PAIRWISE DIVERGENCE (28 pairs, need >=3 differing axes + distinct shape) ──');
+if (profiles.length < 2) console.log('  n/a - a single winner remains (D2). Divergence was the SELECTION gate; the selection is made.');
 let worst = 99, worstPair = '';
 for (let i = 0; i < profiles.length; i++) {
   for (let j = i + 1; j < profiles.length; j++) {
@@ -132,6 +136,34 @@ for (const f of FILES) {
   const ok = hdr && hero && movies >= REQUIRE.movieAreas && stages >= REQUIRE.minStages;
   console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${f.padEnd(20)} header=${hdr} swansVideo=${hero} movieAreas=${movies} parallaxStages=${stages}`);
   if (!ok) fail++;
+}
+
+
+// 6 - BUTTON LAB: the recovered glow button's MECHANISM must survive, not just its colours.
+//     Handoff Law 4: values matching is not the thing matching.
+if (fs.existsSync(path.join(here, LAB))) {
+  console.log(String.fromCharCode(10) + '-- BUTTON LAB, mechanism not palette --');
+  const lab = read(LAB).split(String.fromCharCode(10)).join('');
+  const MECH = [
+    ['rotating circle (border-radius 50%)', 'border-radius:50%'],
+    ['circle sizing (padding-bottom 100%)', 'padding-bottom:100%'],
+    ['lifted 44px + scaled 1.05', 'scale(1.05) translateY(-44px)'],
+    ['rotation keyframe to 360deg', 'rotate(360deg)'],
+    ['animation 2s infinite linear', 'animation:swanRotate linear 2s infinite'],
+    ['radial mask', '-webkit-mask-image:-webkit-radial-gradient'],
+    ['pointer-tracked glow var', 'translate(var(--pointer-x)'],
+    ['LIVE pointer handler', 'getBoundingClientRect'],
+    ['onMouseMove bound', 'onMouseMove'],
+    ['whitened glow core', 'rgba(255,255,255,.92)'],
+  ];
+  for (const [name, needle] of MECH) {
+    const ok = lab.includes(needle);
+    console.log('  ' + (ok ? 'ok  ' : 'FAIL') + ' ' + name);
+    if (!ok) fail++;
+  }
+  const btns = (lab.match(/class="gbtn"/g) || []).length;
+  console.log('  ' + (btns >= 14 ? 'ok  ' : 'FAIL') + ' ' + btns + ' swatches (6 originals + 8 metallic)');
+  if (btns < 14) fail++;
 }
 
 // 5 — format integrity.
