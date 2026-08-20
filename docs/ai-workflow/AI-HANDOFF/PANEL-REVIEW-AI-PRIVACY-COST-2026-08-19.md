@@ -1,8 +1,8 @@
 ---
-title: "Panel review — AI privacy/cost workstream (GLM x13 + Kimi x2)"
+title: "Panel review — AI privacy/cost workstream (GLM x14 + Kimi x2)"
 date: 2026-08-19
-author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (13 rounds) and Kimi K3 (2 rounds)
-decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-12 graded THIS RECORD and found 28 defects in it (C1-C28), including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7, 8 AND 9/10 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
+author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (14 rounds) and Kimi K3 (2 rounds)
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Rounds 4-14 graded THIS RECORD and found 33 defects in it (C1-C33). Kimi spend $0.24; GLM subscription, including a FALSE premise inside the merge-order rationale (struck, C9). READ THE ROUND 4, 5, 7, 8 AND 9/10 SECTIONS FIRST - they supersede claims in the body, and Round 7 holds the only evidence for the 6-of-7 figure."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
@@ -471,7 +471,9 @@ actually performed in both places.** A completion claim is not a completion.
 
 ## The honest summary of five rounds
 
-**Rounds 1–3 hardened the work. Rounds 4–5 graded the record — and found more.**
+**The mechanism rounds hardened the work. The record-grading rounds that followed found more.**
+*(C33: this line originally named specific round ranges and went stale as rounds were appended.
+Re-framed without counts — same rule as C25/C27.)*
 
 R4 found 8 defects in the write-up. R5 found 4 more, and the sharpest of them exposed a **false
 claim inside the document's central recommendation** that three prior rounds had read past.
@@ -546,8 +548,9 @@ table.
 "twelve of them across seven rounds" while the header asserted a different total, and no taxonomy in
 the document produced twelve; the likeliest source was the review-round total, which contradicted
 "seven rounds" in the same sentence. Restated per the C12 rule, and later removed entirely when C25
-de-counted that section. *(Labelled here per C28 — it had been referenced five times and defined
-zero times, which left the header's total asserted rather than reconstructible.)*
+de-counted that section. *(Labelled here per C28 — referenced five times, defined zero times, which left the
+header's total asserted rather than reconstructible. C31: these two are inline labels, not a headed
+section; the sentence that called this "the Round 11 section" was wrong.)*
 
 **C24 (Round 11) — that correction has since gone stale by the mechanism it describes.** R9 added
 the admin-gating row, whose Status cell reads "the **6** blocked accounts include an admin" — so the
@@ -622,7 +625,11 @@ R9 found two record defects and the document recorded neither: the frontmatter s
 parenthetical, with no section and no C-number. **That is C19's own headline complaint** — the
 header going stale when a round is appended — recurring two rounds after C19.
 
-Now reconciled: **rounds 4–12, C1–C26, GLM ×12, Kimi ×2.**
+Reconciled **at Round 11** to the then-current figures. *(C30: this line originally read
+"Now reconciled: ..." with live numbers. Current-state framing in the body is the very class C27
+removed — and my C27 verification grep missed it because I searched ASCII `x` and `-` against a line
+using `×` and en-dashes, which is C25's regex-sweep failure recurring inside the check for C25.
+Current counts: frontmatter only.)*
 
 ## C22 — C19 described a redaction it had not fully performed
 
@@ -707,11 +714,51 @@ counts exist in the frontmatter and nowhere else.
 **C28 — "C23 labelled in place" was a completion claim without the completion.** C23 was referenced
 five times and defined zero times: no heading, no inline label of the kind C24 and C13/C14 received.
 An auditor counting labelled defects came up one short of the header's total, which is C25's own
-complaint surviving the round that acknowledged it. C23 is now defined at its site in the Round 11
-section.
+complaint surviving the round that acknowledged it. C23 is now defined at its site — which, per C31, is **not** a
+"Round 11 section": no such heading exists. C23/C24 are labelled inline between C18 and C19, and
+that is where they live.
 
 **Both are the same shape as everything since C13, and the shape is now fully characterised:**
 a fix is applied to the instance that was pointed at, the announcing sentence describes the *class*,
 and the rest of the class survives. The two corrections that have actually held — de-counting a
 section, and defining a label — are the ones stated as *rules about where things may live* rather
 than as repairs to particular sentences.
+
+---
+
+# Round 14 — the failure moved into the site the fix designated as authoritative
+
+**C29 — the frontmatter contradicted itself.** The decision line read "Rounds 4-12 … 28 defects
+(C1-C28)" while the Round 13 section, present in the same document, defines C27 and C28. Title and
+author had been bumped for Round 13; the round range in the same line had not. **This is C21
+recurring inside the one site C27 designated as authoritative** — which is worse than the original
+class, because concentrating the counts there also concentrated the consequence: a reader trusting
+the reconciled source now gets a wrong range with nothing to cross-check it against.
+
+**C30 — a live count survived in the body, and my verification could not see it.** C21 closed with
+"**Now reconciled:** rounds 4–12, C1–C26, GLM ×12" — current-state framing, in the body, three
+rounds stale. My C27 check grepped `GLM [x×]` with an ASCII pattern and reported zero hits; the line
+uses `×` and en-dashes. **That is C25's regex-sweep failure occurring inside the check written to
+confirm C25's fix.** Reworded to historical framing.
+
+**C31 — a completion sentence cited a section that does not exist** ("defined at its site in the
+Round 11 section"; there is no Round 11 heading). C23/C24 are inline labels between C18 and C19.
+
+**C32 — the spend total was dropped rather than moved.** C27 listed spend among the things that now
+live in the frontmatter; the frontmatter carried none. Restored.
+
+**The generalisation this round forces.** Every structural fix so far has relocated the failure
+rather than removed it: de-counting the closing section moved it to the opening; de-counting the
+opening moved it into the frontmatter; and the verification that was supposed to catch the
+relocation shared a blind spot with the thing it was verifying. **A check written by the same author,
+in the same session, against the same mental model as the fix, inherits the fix's blind spots.**
+That is the strongest available argument for the outside round — not that the reviewer is smarter,
+but that it does not share the author's model of where to look.
+
+**C33 (Round 14, self-caught)** — the Unicode-aware sweep returned 11 body hits, and the point of the
+sweep was to *read* them rather than count them. Ten are historical records or quotations of
+superseded text, which are correct and must stay. **One was a live current-state summary** — "Rounds
+1–3 hardened the work. Rounds 4–5 graded the record" — stale by nine rounds. Re-framed without
+counts. This is the first time the count-class was caught by my own check rather than by a reviewer,
+and the only reason is that the check was rewritten to classify by *framing* instead of matching a
+pattern.
