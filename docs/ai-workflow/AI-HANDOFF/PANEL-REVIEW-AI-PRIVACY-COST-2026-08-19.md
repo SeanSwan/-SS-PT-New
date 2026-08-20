@@ -1,8 +1,8 @@
 ---
-title: "Panel review — AI privacy/cost workstream (GLM×3 + Kimi×1)"
+title: "Panel review — AI privacy/cost workstream (GLM x4 + Kimi x1)"
 date: 2026-08-19
-author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (3 rounds) and Kimi K3 (1 round)
-decision: "Merge order corrected to #45 → #47 → link. Four frame-level findings accepted that no code review would have surfaced. Two of Kimi's factual claims disconfirmed."
+author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 (4 rounds) and Kimi K3 (1 round)
+decision: "Merge order corrected to #45 -> #47 -> link. Frame-level findings accepted that the code review had not thought to ask. Round 4 then graded THIS RECORD and found 8 further defects in it -- read the Round 4 section, it supersedes several claims above."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
@@ -11,13 +11,18 @@ privacy: "No secrets, no key values, no client data. Role counts, file paths, li
 
 # Panel review — what four hostile rounds changed
 
-**Ratio per Sean's instruction: 2 GLM rounds per 1 Kimi round.** Ran GLM R1 (mechanisms),
-GLM R2 (attack the answers), Kimi R1 (frame), GLM R3 (adjudicate Kimi). Total spend: **$0.20**
-(Kimi; GLM is subscription).
+**Ratio per Sean's instruction: at least 2 GLM rounds per 1 Kimi round. Actual: GLM x4, Kimi x1.**
+GLM R1 (mechanisms), GLM R2 (attack the answers), Kimi R1 (frame), GLM R3 (adjudicate Kimi),
+GLM R4 (grade this record). Total spend: **$0.20** (Kimi; GLM is subscription).
+
+> **Read the Round 4 section at the end before trusting this one.** R4 was pointed at the record
+> rather than the work and found 8 defects in it, including one fact I certified without checking
+> and a closing thesis my own evidence contradicts. Corrections are appended, not silently merged.
 
 **The two reviewers have opposite failure modes, and the pairing exploited it.** GLM read the code
 and was reliable on fact, blind on frame. Kimi never read the code and was the reverse: it produced
-the four best findings in the review and **two false factual claims**, both caught by checking.
+the sharpest findings in the review and **two false factual claims**, both caught by checking.
+(Round 4 later downgraded one of those "false" verdicts to "not yet true" — see C2.)
 
 ---
 
