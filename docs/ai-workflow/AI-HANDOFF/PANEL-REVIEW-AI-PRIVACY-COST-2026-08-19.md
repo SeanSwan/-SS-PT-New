@@ -31,7 +31,10 @@ the sharpest findings in the review and **two false factual claims**, both caugh
 ### 1. The merge order was wrong. Corrected.
 
 **Was:** add an admin link to `/ai-consent`, then merge #47.
-**Now:** **#45 → #47 → (probe) → admin link.**
+**Now:** **#45 → #47 → local verification → admin link.**
+> *(This line originally read "(probe)". Retired per C8/C11 — an undefined token, and C2 established
+> the step must never be a production write. Verification is local-only and still needs a written
+> pass/fail script, which does not exist yet — see the canonical table.)*
 
 Three independent reasons, none of which I had:
 
@@ -270,8 +273,8 @@ stands; **element-satisfaction is unexamined.** Legal check, not a code check.
 | admin `/ai-consent` link | ⏸ after #47 | — |
 | `/history-preview` | ⚠ forced-decision packet, not a parking space | Sean decides; agent drafts |
 | Render key | 🚨 unrotated ≥7 days | **Sean only** |
-| Disclosure-before-grant + versioned consent records | 📋 unstarted | needs a slice |
-| Withdrawal semantics + vendor-deletion path | 📋 unstarted — **dormant defect, activates at merge** | needs a slice |
+| Disclosure-before-grant + versioned consent records | 📋 unstarted | **no owner yet — Sean to assign** |
+| Withdrawal semantics + vendor-deletion path | 📋 unstarted — **dormant defect, activates at merge** | **no owner yet — Sean to assign** |
 | **Minor handling / age signal** | 📋 unstarted — product has no age signal at all | Sean |
 | Trainer + bystander voice consent | 📋 unstarted | Sean |
 | **User residency (WA/NV/IL?)** | ❓ **never asked** — gates which statutes are live | **Sean, one question** |
@@ -359,7 +362,8 @@ most load-bearing decision here.
 
 **Canonical, and the only version that governs:** **#45 → #47 → local verification → admin link.**
 "(probe)" is retired as a term — C8 established it was an undefined token, and §7/C2 established it
-must never be a production write. Header and §1 now say the same thing.
+must never be a production write. **Round 6 caught that I fixed the header and not §1 — while writing that both were done. Now
+actually performed in both places.** A completion claim is not a completion.
 
 ## C12 — two more counts that fail C8's own standard (N4)
 
@@ -378,13 +382,13 @@ must never be a production write. Header and §1 now say the same thing.
 |---|---|---|
 | **#45** | 🟢 MERGE FIRST, unconditionally — verified, mutation-proven, tsc baseline-parity verified | **Sean** |
 | **#47** | 🟡 after #45. **Local** verification only, never a production write | **Sean** |
-| **#50** | 🔴 unreviewed by this panel — wiring never executed, price table 6 months stale | needs a review pass; no owner yet |
+| **#50** | 🔴 unreviewed by this panel — wiring never executed, price table 6 months stale | **no owner yet — Sean to assign** |
 | admin `/ai-consent` link | ⏸ after #47 — do not put UI on a never-executed path | — |
 | **Local verification script for #47** | 📋 **unwritten** — needs written pass/fail (grant → transcribe 200; withdraw → 403; no-profile → 403) before the #47 step means anything | agent can draft |
 | `/history-preview` | ⚠ forced-decision packet: one question, two prepared outcomes, a date | Sean decides; agent drafts |
 | Render key rotation | 🚨 unrotated ≥7 days; local stores clean, provider-side unbounded | **Sean only** |
-| Disclosure-before-grant + versioned consent records | 📋 unstarted | needs a slice |
-| Withdrawal semantics + vendor-deletion path | 📋 unstarted — dormant defect, activates at merge | needs a slice |
+| Disclosure-before-grant + versioned consent records | 📋 unstarted | **no owner yet — Sean to assign** |
+| Withdrawal semantics + vendor-deletion path | 📋 unstarted — dormant defect, activates at merge | **no owner yet — Sean to assign** |
 | Minor handling / age signal | 📋 unstarted — product has no age signal | **Sean** |
 | Trainer + bystander voice consent | 📋 unstarted | **Sean** |
 | **User residency (WA/NV/IL?)** | ❓ never asked — gates which statutes are live at all | **Sean, one question** |
