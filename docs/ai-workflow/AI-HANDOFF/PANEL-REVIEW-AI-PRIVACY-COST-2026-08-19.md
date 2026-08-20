@@ -148,3 +148,137 @@ asked who else is audible in the recording.
 
 That is the argument for keeping a frame reviewer in the panel even when it gets facts wrong: the
 facts are checkable in minutes, and the frame was not otherwise going to be questioned.
+
+---
+
+# Round 4 — corrections to THIS document
+
+A fourth GLM round was run as a dryness test against the record above. **It was not dry.** It found
+one misstatement I had certified, two over-claims, and three findings the document's own logic
+demanded and no round had made. Corrections applied below; the sections above are left as written so
+the correction is legible rather than silently absorbed.
+
+## C1 — I broke my own rule in the same document that announced it. ⚠ HIGHEST
+
+§3 records: *"GLM correctly noted MHMDA has size thresholds a 7-user product likely misses."*
+
+**I certified that as correct without checking it — one paragraph after adopting the rule "take its
+frames, check every one of its facts."** I applied that rule to Kimi's claims and never once to
+GLM's, which is precisely the bias the "reliable on fact / blind on frame" thesis would predict me
+to have.
+
+R4's counter-claim: WA MHMDA (RCW 19.373) is notable for having **no entity-size or revenue
+threshold**; what exists is a *staggered compliance date* for small businesses (June 30 vs March 31,
+2024), which is plausibly what "size threshold" was conflated with.
+
+**Status: `[UNKNOWN]` — two AI models now disagree on a statutory fact, and neither is a source.**
+I am not able to settle it from this environment and **will not pick a winner.** What must change
+regardless:
+
+- **The trim in §3 is withdrawn.** "Legal confidence trimmed" was executed on an unverified premise.
+- **The geography argument was applied unevenly.** R3 said Nevada "needs a Nevada consumer" and
+  never applied the identical resident-consumer predicate to Washington.
+- **This needs a lawyer, not a model.** Flagging it as an owner item, not resolving it here.
+
+## C2 — the Kimi disconfirmations are softer than my table claimed
+
+**Claim 1 (tests wrote to prod).** The rebuttal holds — the target is `localhost`, not Render. But
+I published the evidence without remarking an anomaly inside it: `NODE_ENV='test'` was set, yet the
+banner read *"Development database configuration applied."* Now explained: `database.mjs:34` logs
+`isProduction ? 'PRODUCTION' : 'DEVELOPMENT'` — a **binary label with no test case**, so test mode
+prints "DEVELOPMENT" cosmetically. Test *is* genuinely branched (`:25` `else if (!isTest)`,
+`:209` `if (!isTest)`). **So: not production — but the logging is leaky, and Kimi's "the distinction
+is leaky" intuition was partially right in a way I glossed while rebutting it.**
+
+**Claim 2 (deletion unsatisfiable).** Downgrading **"FALSE as stated" → "not yet true."** It is
+false only on *timing*: the path has never executed, so there is no backlog today. But §3 records
+that withdrawal is prospective-only, and **no vendor-deletion path appears anywhere in this record**.
+By §1's own principle — privacy harm is non-revertible once sent — this is a **dormant defect that
+activates at merge**, not a falsehood. I rebutted the tense and let the substance through.
+
+## C3 — my closing thesis is contradicted by my own §5
+
+I wrote that the frame findings were things *"no code review would have surfaced."* **§5 is a
+finding I surfaced by reading the controller** — an admin-supplied `req.body.userId` targeting
+arbitrary client accounts on a consent grant is textbook authorization review, IDOR-adjacent.
+
+**Corrected thesis:** the frame reviewer's value was raising *questions* the code review had not
+thought to ask (is a boolean consent? who else is audible?). Answering them was code work, and code
+work found the answer. **Two different jobs — neither one obviated the other, and my closing line
+claimed otherwise.**
+
+Also: the frontmatter says "four frame-level findings" while §§1–6 list five or more contributions.
+**"Four" is not reconstructible from the document.** Withdrawn as a count.
+
+## C4 — I parked my own outputs, which is the exact fault §6 condemns
+
+§6 says *"surfacing is not prioritizing."* Then §3's parallel workstream (disclosure-before-grant,
+versioned consent records, withdrawal semantics, **minor handling**) and §4's trainer/bystander
+consent exist **only as prose** — no ticket, no owner, no date, no row in the verdict table.
+"Minor handling" appears once and disappears.
+
+**By this document's own standard those are parked.** They are added to the verdict table below.
+
+## C5 — #50 is the new #45 ⚠ NEW
+
+This is titled a **privacy/cost** review. **#50 — the cost half — appears only in the verdict table.**
+Four hostile rounds, one of them explicitly tasked to attack the answers, never touched it. Its
+wiring has still never executed and its price table is still six months stale.
+
+**§2 of this document says: "That silence is itself a finding."** It applies here, to me, one
+section after I wrote it about #45. **Same fault, same document, one round later.**
+
+## C6 — nobody established the jurisdictional predicate ⚠ NEW
+
+Four rounds argued MHMDA thresholds, Nevada consumers, and BIPA scale **without once asking where
+the seven users actually reside.** Residency is the gating fact for WA and NV, and the live question
+for IL. It is one question to the owner and it determines which of these legal workstreams are real
+at all. **Owner question, added below.**
+
+## C7 — the BIPA step is glossed
+
+§4 goes "recordings contain the trainer's voice" → "BIPA enumerates voiceprints" and **skips the
+contested element**: whether stored or transcribed audio constitutes a *voiceprint* (a biometric
+identifier used for identification) rather than merely a recording. The scale-independence point
+stands; **element-satisfaction is unexamined.** Legal check, not a code check.
+
+## C8 — arithmetic and undefined terms
+
+- **Ratio: 3:1, then 4:1 — not the "2:1" recorded.** Sean's instruction was a *floor* (at least two
+  GLM per Kimi), and running extra GLM rounds honors it. But the document stated a ratio it did not
+  match. Actual: **GLM ×4, Kimi ×1. Spend $0.20.**
+- **"Eight rounds"** in the closing section is unexplained — there were four review rounds plus the
+  author's original pass. Withdrawn.
+- **"(probe)"** appears in the merge order and nowhere else: undefined step, no owner, no
+  definition of pass/fail. Given C2 and §7, it must be **local-only** and it needs a written script
+  before it means anything.
+
+---
+
+## Revised verdict table (superseding the one above)
+
+| Item | Status | Owner |
+|---|---|---|
+| **#45** | 🟢 MERGE FIRST, unconditionally | Sean |
+| **#47** | 🟡 after #45. Local verification only — never a prod write | Sean |
+| **#50** | 🔴 **unreviewed by this panel.** Wiring never executed, price table 6 months stale | needs a review pass |
+| admin `/ai-consent` link | ⏸ after #47 | — |
+| `/history-preview` | ⚠ forced-decision packet, not a parking space | Sean decides; agent drafts |
+| Render key | 🚨 unrotated ≥7 days | **Sean only** |
+| Disclosure-before-grant + versioned consent records | 📋 unstarted | needs a slice |
+| Withdrawal semantics + vendor-deletion path | 📋 unstarted — **dormant defect, activates at merge** | needs a slice |
+| **Minor handling / age signal** | 📋 unstarted — product has no age signal at all | Sean |
+| Trainer + bystander voice consent | 📋 unstarted | Sean |
+| **User residency (WA/NV/IL?)** | ❓ **never asked** — gates which statutes are live | **Sean, one question** |
+| MHMDA size-threshold question | ❓ `[UNKNOWN]` — two models disagree; needs a lawyer | Sean |
+
+## What round 4 actually demonstrated
+
+The three rounds before it hardened the *work*. Round 4 attacked the *record of the work* and found
+that I had: certified an unchecked fact one paragraph after adopting a rule against exactly that,
+rebutted a claim on its tense while letting its substance through, closed with a thesis my own
+evidence contradicts, and parked my own follow-ups one section after condemning parking.
+
+**Every one of those is the same failure: the document graded the work and never graded itself.**
+A review round pointed at the summary rather than the subject is not a formality — it found more
+than round 3 did.
