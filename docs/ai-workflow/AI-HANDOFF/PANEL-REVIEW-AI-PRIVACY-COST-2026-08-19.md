@@ -453,7 +453,7 @@ actually performed in both places.** A completion claim is not a completion.
 | **#45** | 🟢 MERGE FIRST, unconditionally — verified, mutation-proven, tsc baseline-parity verified | **Sean** | **today** |
 | **#47** | 🟡 after #45. **Local** verification only, never a production write | **Sean** | after #45 + script |
 | **#50** | 🔴 unreviewed by this panel — wiring never executed, price table 6 months stale | **no owner yet — Sean to assign** | owner to set |
-| admin `/ai-consent` link | ⏸ after #47 — do not put UI on a never-executed path | — | owner to set |
+| admin `/ai-consent` link | ⏸ after #47 — deferred on the EGRESS ground: nothing has ever gone out through `/transcribe`. (The "never-executed path" wording is withdrawn per C17 — the grant path ran in March 2026.) | owner to set | owner to set |
 | **Local verification script for #47** | 📋 **unwritten** — needs written pass/fail (grant → transcribe 200; withdraw → 403; no-profile → 403) before the #47 step means anything | agent can draft | owner to set |
 | `/history-preview` | ⚠ forced-decision packet: one question, two prepared outcomes, a date | Sean decides; agent drafts | owner to set |
 | Render key rotation | 🚨 unrotated ≥7 days; local stores clean, provider-side unbounded | **Sean only** | **overdue — exposed 2026-08-12** |
@@ -462,6 +462,7 @@ actually performed in both places.** A completion claim is not a completion.
 | Minor handling / age signal | 📋 unstarted — product has no age signal | **Sean** | owner to set |
 | Trainer + bystander voice consent | 📋 unstarted | **Sean** | owner to set |
 | **User residency (WA/NV/IL?)** | ❓ never asked — gates which statutes are live at all | **Sean, one question** | owner to set |
+| **Admin/user consent-gating for their OWN recordings** | ❓ never asked — the 6 blocked accounts include an admin, but the "lockout is the gate working" argument was made only about clients **Sean, one question** | before #47 | owner to set |
 | MHMDA size-threshold question | ❓ `[UNKNOWN]` — two models disagree, neither is a source | **Sean → lawyer** | owner to set |
 | **BIPA: is transcribed audio a "voiceprint"?** | ❓ `[UNKNOWN]` — element-satisfaction unexamined | **Sean → lawyer** | owner to set |
 
@@ -532,8 +533,8 @@ should be consent-gated for their own recordings was never asked.** Owner questi
 
 ## C18 — "16 rows verified" was 16 *lines*, not 16 rows
 
-The canonical table has **14 data rows** plus header and separator. My verification counted lines
-and reported them as rows. Corrected: **14 data rows, each verified at 4 cells.**
+The canonical table has **15 data rows** plus header and separator. My verification counted lines
+and reported them as rows. Corrected: **15 data rows (after R9 added one), each verified at 4 cells.**
 
 Also from R8: C15 states the 6-of-7 figure "appears in §1, the net verdict, and the canonical
 table." **The canonical table does not carry the figure** — C15 misdescribed where it appeared.
@@ -554,7 +555,7 @@ Applied:
 - **Privacy manifest was false.** Round 7's evidence block introduced a DB hostname, a server IP,
   and a version string into a document whose manifest promised "role counts, file paths, line
   numbers only." **Infrastructure identifiers are now redacted** (host suffix and RFC1918 address
-  removed; `current_database` and the Postgres major version retained as non-identifying), and the
+  removed; `current_database` and the Postgres version string retained as non-identifying), and the
   manifest is amended to describe what the artifact actually contains.
 
   Worth stating plainly: **the fix that satisfied C15's evidence rule created a privacy-manifest
