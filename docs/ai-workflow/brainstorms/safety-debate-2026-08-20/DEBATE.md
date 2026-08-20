@@ -30,3 +30,31 @@ be sourced; action/script must stay in-scope. These become a grading key — wor
 
 ## ROUND LOG
 (rounds append below)
+
+════════════════════════════════════════════
+## ROUND 1 LOG (Fable merge)
+Qwen: RATIFY all 10, no proposals. GLM: YES + 5 edits (4,5,6,9,10). Kimi: NO on 9 only (pronoun unification, zero content).
+All 6 edits compatible; all applied below. Independent convergence by GLM+Kimi on three new scenarios.
+
+## CANDIDATE v2 — changes only (unchanged items 1,2,3,7,8 stand as v1)
+
+**4 (revised ending):** …Unexplained, recurrent, or with chest discomfort or palpitations → clinician before the next hard session; any actual fainting (loss of consciousness) or any recurrence → same-day. Documented with date either way.
+
+**5 (revised ending):** …Assessment within a few days — routine referral, not urgent; immediate care for foot numbness/weakness, progressive worsening, or any saddle/bladder/bowel change.
+
+**6 (revised sentence):** …Lower body and far-side work that doesn't load or traction that shoulder — provocation is not the safety test for a healing repair.
+
+**9 (revised, pronouns unified):** Session's off. Fever means systemic illness — training worsens recovery, and the gym gets their germs. [Business-judgment label, not safety protocol:] if the streak matters, a logged recovery day can count toward it — my call as coach, not a safety rule. Return: ≥24h fever-free without fever-reducing medication, eating normally, first sessions deliberately lighter — hard intervals stay out several more days after a flu-like illness [verify]. If they arrive febrile, the session is still off. Fever itself escalates to a clinician when high, persistent past a few days, or with chest pain / breathing trouble.
+
+**10 (revised stop-list):** …Stop-signs any session: bleeding, contractions, fluid leakage, dizziness, chest pain, severe headache or visual changes [verify ACOG wording].
+
+## ROUND 2 BALLOT — vote each, brief reason
+V2-RATIFY: ratify candidate v2 as final wording? YES/NO(+exact edit)
+ADD-1 concussion scenario (GLM+Kimi convergent) — include? YES/NO
+ADD-2 rhabdomyolysis scenario (GLM+Kimi convergent) — include? YES/NO
+ADD-3 hypoglycemia/diabetic scenario (GLM+Kimi convergent; Kimi notes fast-carbs is IN-scope first response) — include? YES/NO
+ADD-4 exertional heat illness scenario (GLM only) — include? YES/NO
+ADD-5 item-9 amendment: compulsive-exercise/RED-S check-in when a streak repeatedly survives illness (GLM only) — include? YES/NO
+ADD-6 standing amendment: EAP/AED/meds-location readiness generalized across all scenarios (GLM only) — include? YES/NO
+Also: Kimi's verify-request — should calf pain/swelling join item 10's stop list? YES/NO [verify]
+End with: CONSENSUS: YES/NO (+disputes)
