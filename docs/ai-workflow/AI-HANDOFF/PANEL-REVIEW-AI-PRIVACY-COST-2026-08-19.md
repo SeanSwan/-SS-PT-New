@@ -265,8 +265,8 @@ stands; **element-satisfaction is unexamined.** Legal check, not a code check.
 
 ## Revised verdict table (superseding the one above)
 
-| Item | Status | Owner |
-|---|---|---|
+| Item | Status | Owner | Date |
+|---|---|---|---|
 | **#45** | 🟢 MERGE FIRST, unconditionally | Sean |
 | **#47** | 🟡 after #45. Local verification only — never a prod write | Sean |
 | **#50** | 🔴 **unreviewed by this panel.** Wiring never executed, price table 6 months stale | needs a review pass |
@@ -290,6 +290,75 @@ evidence contradicts, and parked my own follow-ups one section after condemning 
 **Every one of those is the same failure: the document graded the work and never graded itself.**
 A review round pointed at the summary rather than the subject is not a formality — it found more
 than round 3 did.
+
+---
+
+# Round 7 — the C9 fault recurred one round after C9
+
+Confirmation rounds: **GLM R7 returned `DRY - nothing new`** with a verification trace. **Kimi R2
+did not** — it found two more, and the first is C9's own fault, committed one round after I wrote C9.
+
+## C15 — "6 of 7" ships in three places with no evidence attached ⚠
+
+C9 installed the rule: **every repo fact in a recommendation carries a file:line or a command, or it
+does not ship.** The "6 of 7 users blocked" figure then appears in §1, the net verdict, and the
+canonical table — load-bearing for merge-order reason 2 — **citing nothing**. Same defect class as
+the revert-stack claim I struck, one round later, in the document that struck it.
+
+The evidence exists; it was in the session handoff and never carried into this record. Attached now.
+
+**Connection identity** (credentials never printed):
+
+```
+host    : dpg-cv1qga1u0jms738nc8lg-a.oregon-postgres.render.com
+database: swanstudios     ssl: on
+SERVER SAYS: current_database=swanstudios  server_addr=10.24.243.105/32
+             PostgreSQL 16.14 (Debian 16.14-1.pgdg12+1)
+```
+
+**Control before measurement** (so a zero would be a real zero): `Users` = **7**,
+`ai_privacy_profiles` = **1**.
+
+**Query, read-only:**
+
+```sql
+SELECT COALESCE(u.role::text, '(null)') AS role, COUNT(*) AS users_without_profile
+FROM "Users" u
+LEFT JOIN ai_privacy_profiles p ON p."userId" = u.id
+WHERE p.id IS NULL
+GROUP BY u.role::text ORDER BY users_without_profile DESC;
+```
+
+**Result:** client 4 total / 0 with profile / **4 without**; admin 2 / 1 / **1**;
+user 1 / 0 / **1**. → **6 of 7.**
+
+**And the gate-pass check on the one user who has a profile**, because "exactly 6" is only true if
+that account passes: `aiEnabled = true`, `withdrawnAt` null, `passes_gate = true`. So the figure is
+**exactly 6**, not "at least 6".
+
+Measured 2026-08-19. **Snapshot, not an invariant** — any grant or withdrawal moves it, so re-run
+before acting on it.
+
+## C16 — C10 conceded the missing dates and then shipped a table without dates
+
+C10: *"most rows carry no date."* The canonical table built in that same round then shipped with
+none. **The concession is recorded; the fix was not performed** — which is C11's lesson (a
+completion claim is not a completion) applied to C10, and the third consecutive round in which a
+correction was narrower than its own claim.
+
+Dates added below. Where a date is genuinely not mine to set (owner decisions), the row says so
+rather than inventing one.
+
+## Standing note on this document
+
+Rounds 4–7 each caught the previous round's fix being narrower than its claim. **That is now the
+most reliable finding in the review**, and it generalises past this artifact: the failure was never
+the original errors — it was writing the completion sentence in the same motion as the fix, before
+checking that the fix covered what the sentence claimed.
+
+**The mechanical form, which is the only version that has actually worked here:** re-read the
+changed text against the claim *after* editing, from the reader's position, not the author's.
+Every round that did this found something. Every round that asserted completion shipped a gap.
 
 ---
 
@@ -378,22 +447,22 @@ actually performed in both places.** A completion claim is not a completion.
 
 ## Canonical action table (supersedes both prior tables)
 
-| Item | Status | Owner |
-|---|---|---|
-| **#45** | 🟢 MERGE FIRST, unconditionally — verified, mutation-proven, tsc baseline-parity verified | **Sean** |
-| **#47** | 🟡 after #45. **Local** verification only, never a production write | **Sean** |
-| **#50** | 🔴 unreviewed by this panel — wiring never executed, price table 6 months stale | **no owner yet — Sean to assign** |
-| admin `/ai-consent` link | ⏸ after #47 — do not put UI on a never-executed path | — |
-| **Local verification script for #47** | 📋 **unwritten** — needs written pass/fail (grant → transcribe 200; withdraw → 403; no-profile → 403) before the #47 step means anything | agent can draft |
-| `/history-preview` | ⚠ forced-decision packet: one question, two prepared outcomes, a date | Sean decides; agent drafts |
-| Render key rotation | 🚨 unrotated ≥7 days; local stores clean, provider-side unbounded | **Sean only** |
-| Disclosure-before-grant + versioned consent records | 📋 unstarted | **no owner yet — Sean to assign** |
-| Withdrawal semantics + vendor-deletion path | 📋 unstarted — dormant defect, activates at merge | **no owner yet — Sean to assign** |
-| Minor handling / age signal | 📋 unstarted — product has no age signal | **Sean** |
-| Trainer + bystander voice consent | 📋 unstarted | **Sean** |
-| **User residency (WA/NV/IL?)** | ❓ never asked — gates which statutes are live at all | **Sean, one question** |
-| MHMDA size-threshold question | ❓ `[UNKNOWN]` — two models disagree, neither is a source | **Sean → lawyer** |
-| **BIPA: is transcribed audio a "voiceprint"?** | ❓ `[UNKNOWN]` — element-satisfaction unexamined | **Sean → lawyer** |
+| Item | Status | Owner | Date |
+|---|---|---|---|
+| **#45** | 🟢 MERGE FIRST, unconditionally — verified, mutation-proven, tsc baseline-parity verified | **Sean** | **today** |
+| **#47** | 🟡 after #45. **Local** verification only, never a production write | **Sean** | after #45 + script |
+| **#50** | 🔴 unreviewed by this panel — wiring never executed, price table 6 months stale | **no owner yet — Sean to assign** | owner to set |
+| admin `/ai-consent` link | ⏸ after #47 — do not put UI on a never-executed path | — | owner to set |
+| **Local verification script for #47** | 📋 **unwritten** — needs written pass/fail (grant → transcribe 200; withdraw → 403; no-profile → 403) before the #47 step means anything | agent can draft | owner to set |
+| `/history-preview` | ⚠ forced-decision packet: one question, two prepared outcomes, a date | Sean decides; agent drafts | owner to set |
+| Render key rotation | 🚨 unrotated ≥7 days; local stores clean, provider-side unbounded | **Sean only** | **overdue — exposed 2026-08-12** |
+| Disclosure-before-grant + versioned consent records | 📋 unstarted | **no owner yet — Sean to assign** | owner to set |
+| Withdrawal semantics + vendor-deletion path | 📋 unstarted — dormant defect, activates at merge | **no owner yet — Sean to assign** | owner to set |
+| Minor handling / age signal | 📋 unstarted — product has no age signal | **Sean** | owner to set |
+| Trainer + bystander voice consent | 📋 unstarted | **Sean** | owner to set |
+| **User residency (WA/NV/IL?)** | ❓ never asked — gates which statutes are live at all | **Sean, one question** | owner to set |
+| MHMDA size-threshold question | ❓ `[UNKNOWN]` — two models disagree, neither is a source | **Sean → lawyer** | owner to set |
+| **BIPA: is transcribed audio a "voiceprint"?** | ❓ `[UNKNOWN]` — element-satisfaction unexamined | **Sean → lawyer** | owner to set |
 
 ---
 
