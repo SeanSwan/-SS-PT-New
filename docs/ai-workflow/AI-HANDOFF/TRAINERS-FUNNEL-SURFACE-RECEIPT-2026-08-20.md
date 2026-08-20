@@ -1,10 +1,20 @@
 # CANONICAL SURFACE RECEIPT — the trainer funnel
 
+> ## ✅ RESOLVED — Sean chose **option C**, and it is built (2026-08-20)
+>
+> Sean, same day: *"I wanted to go ahead and choose c, your recommendation, and everything else you recommend as well as the colors that you recommend too as well."*
+>
+> **Shipped:** the contact API now carries the declared intent, so a trainer inquiry lands in the CRM tagged **`prism:intent:trainer`** instead of only as prose in `Lead.notes`. Both contact forms send it; the vocabulary has one definition shared by both public funnels; the value is allowlisted server-side. The new page's second door is wired to `/contact?intent=trainer` and the gate now fails if it regresses.
+>
+> **Not** done, deliberately: option **A** (no live UX change — he chose C) and option **B** (`/trainers` page — still gated on his approval of a build). `HomePage.V4` untouched.
+>
+> The findings below are preserved **as written at the time of discovery.** Individual claims that C has since resolved are marked inline — history is annotated, not rewritten.
+
 **Corrects §8 item 3 of `FRONT-PAGE-MASTER-HANDOFF-2026-08-20.md`.** Read this before building `/trainers`.
 
 - **Date:** 2026-08-20 · **Author:** Claude Opus 5 · **Worktree:** `c:/tmp/sspt-atelier-studio` @ `feat/front-page-atelier-run`
 - **Branch freshness:** **5 behind** `origin/main` as of `dd319fd88` (2026-08-19 20:21) — verified via `git rev-list --left-right --count origin/main...HEAD`, not assumed. This base is current; re-run the command rather than trusting this line, the *ahead* count moves with every commit including the ones that wrote this receipt.
-- **Nothing shipped. No runtime file was modified to produce this receipt.**
+- **No runtime file was modified to produce this receipt** (the investigation was read-only). Option C shipped afterwards, in separate commits — see the RESOLVED banner above.
 
 ---
 
@@ -53,9 +63,10 @@ First returns 9 hits: **2 public** (`prismCopy.ts:16,23`), 7 admin/dashboard int
 The backend already accepts a trainer intent:
 
 ```js
-// backend/routes/leadCaptureRoutes.mjs:32
+// backend/routes/leadCaptureRoutes.mjs:32 — AS FOUND (this literal has since moved; see below)
 const INTENTS = new Set(['book', 'trainer', 'spectrum']);
 ```
+> Post-C: the literal moved to `CAPTURE_INTENTS` in `leadCaptureShared.mjs`, and this line now reads `new Set(CAPTURE_INTENTS)` — one vocabulary shared by both public funnels, so they cannot drift into tagging the same thing differently.
 
 It validates it, and tags the CRM lead `prism:intent:trainer` (`leadCaptureRoutes.mjs:158`). Mounted at `core/routes.mjs:762` → `POST /api/leads/capture`.
 
@@ -81,7 +92,9 @@ void submit(value, 'spectrum');   // always 'spectrum', never 'trainer'
 The handoff's phrase was *"the highest-value click **on the new page**."* That is a different surface from the live site, and on it the concern holds:
 
 - `Main.dc.html` chapter **THE FORK** renders `IF YOU ARE A TRAINER OR A CREATOR`.
-- Every link in the artboard is `href="#"`. The second door has **no destination at all** — the design says so itself, in-artboard: *"⚠ The second door has no destination yet — /trainers capture funnel is a hard dependency (F5)."*
+- Every link in the artboard was `href="#"`. The second door had **no destination at all** — the design said so itself, in-artboard: *"⚠ The second door has no destination yet — /trainers capture funnel is a hard dependency (F5)."*
+
+> **✅ RESOLVED by option C.** The door is now `href="/contact?intent=trainer"`, the stale F5 note is replaced by one describing the real destination, and `gate-8run.mjs` asserts the **href attribute** (proven to fail by injecting the regression — an earlier version of that check matched the explanatory prose instead of the link and false-passed).
 
 So the new page's trainer door is genuinely undestined. What is wrong is only the *inference* about where it would land. It would not fall back to the client signup form; a working, intent-carrying destination already exists and is one `to=` away.
 
@@ -99,6 +112,8 @@ Traced to the database, because "the intent is carried" is worth nothing if it d
 
 **Net:** a trainer inquiry does land in the CRM, but its only trainer marker is the literal string `Subject: Trainer inquiry` sitting inside `Lead.notes`. It is **not** a tag, not a field, not an enum — it is prose in a free-text column. Counting trainer leads today requires a full-text scan of `notes`, and any wording change silently breaks the count. Meanwhile `prism:intent:trainer` — the structured tag built for exactly this, already validated and written by the capture route — has zero senders.
 
+> **✅ RESOLVED by option C.** `captureLeadFromContact` now accepts an allowlisted `intent` and folds `prism:intent:trainer` into `contactTags`, so the tag lands on both new and repeat leads through the path that was already there. The signal is a queryable JSONB tag, not prose. The `notes` text still carries the subject line as before — nothing was removed, a structured field was added alongside it.
+
 > Note for whoever implements option C: `Lead` has **no metadata column** (`leadCaptureService.mjs:167`, citing rule 58). `tags` is the only structured channel available, which is why the capture route uses `mergeLeadTags`. Option C therefore means threading `intent` through the contact API (`contactRoutes.mjs:152` currently drops it) and tagging via the same helper — a small backend change plus one frontend field, **not** a pure frontend edit. It is invisible to users, but it is not free.
 
 That is the sharpest form of the finding: **the structured channel exists and is empty; the signal travels as free text in a comment box.**
@@ -114,9 +129,9 @@ That is the sharpest form of the finding: **the structured channel exists and is
 | Contact intake (V3) | `pages/contactpage/ContactV3.tsx` | **canonical** | `main-routes.tsx:396` mounts `ContactPage` → lazy-loads `ContactV3` at `:90` (`ContactV2` is the error fallback at `:92`) |
 | Contact intake (vNext) | `pages/contactpage/vnext/ContactForm.tsx` | **dormant (playground-only)** | reachable only via `DesignPlayground/playgroundRegistry.ts:52` → `ContactVNext.tsx:17`. **Not** on the public route. |
 | Prism trainer ray (post-capture) | `PrismRefraction.tsx:132` | **canonical** | rendered in the success state |
-| `intent:'trainer'` branch | `leadCaptureRoutes.mjs:32` | **dormant** | validated (`:32`) + tagged (`:158`), **zero senders** |
+| `intent:'trainer'` branch | `leadCaptureShared.mjs` `CAPTURE_INTENTS` | **canonical** *(was dormant)* | now the shared vocabulary for BOTH funnels; the contact path sends it via `contactRoutes.mjs` → `captureLeadFromContact` |
 | `/trainers` route | — | **does not exist** | zero matches, probe validated |
-| New page's second door | `Main.dc.html`, THE FORK | **dormant (design only)** | `href="#"`, flagged in-artboard as F5 |
+| New page's second door | `Main.dc.html`, THE FORK | **wired (design only)** | `href="/contact?intent=trainer"`, gated; still a design artboard, not shipped UI |
 | Trainer self-signup | — | **prohibited** | contract test, 4/4 PASS |
 
 ---
