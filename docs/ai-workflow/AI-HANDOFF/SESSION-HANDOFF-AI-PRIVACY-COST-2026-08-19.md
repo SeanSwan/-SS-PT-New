@@ -236,6 +236,95 @@ pointer to #47.
 **Not reviewed by me:** #20, #21, #22, #24 are also open from earlier sessions and are outside this
 workstream. Do not assume they are current.
 
+### ✅ RESOLVED 2026-08-19 — the pre-merge check, executed. Its draft query was wrong on the axis.
+
+**All three assumptions settled, and a fourth thing nobody had questioned turned out to be the actual defect.**
+
+| # | Assumption | Verdict | Evidence |
+|---|---|---|---|
+| 1 | Table is `ai_privacy_profiles` | ✅ **CONFIRMED** | Model sets `tableName: 'ai_privacy_profiles'` explicitly (so Sequelize's `AiPrivacyProfiles` default never applies); migration `createTable('ai_privacy_profiles')`; and **live production code already queries it that way** — `aiChatRoutes.mjs:683` runs `SELECT "aiEnabled", "withdrawnAt" FROM ai_privacy_profiles WHERE "userId" = :userId`. Working code beats a model read |
+| 2 | Role filter `IN ('admin','trainer')` | ❌ **WRONG AXIS** | See below — this is the real finding |
+| 3 | `p."userId"` camelCase | ✅ **CONFIRMED** | Model attribute `userId`, no `underscored`, no `field:` mapping; migration column `userId`; FK → `'Users'` (PascalCase, correct per the dual-table gotcha) |
+| 4 | *(unasked)* `requireAiConsent` is fail-closed | ✅ **CONFIRMED** | `middleware/aiConsent.mjs:74` — `if (!profile) → 403 AI_CONSENT_MISSING` |
+
+**The role filter was wrong because `/transcribe` has no `authorize([...])` at all.** The route is
+`aiChatRoutes.mjs:1064`; its chain is `router.use(protect)` (`:306`) → `requireSubscription('pro')`
+→ `aiRateLimiter` → `selfVoiceConsentGate` → `audioUpload` → `strictPiiMiddleware`.
+
+And **`requireSubscription('pro')` blocks nobody.** `middleware/requireSubscription.mjs:106` returns
+`next()` for admin and trainer, and `:216` returns `next()` for everyone else under the comment
+*"AI is free for everyone — just attach tier info for model routing."* It is telemetry, not a gate.
+
+**So every authenticated user reaches `/transcribe` — clients included — and the draft query,
+by filtering to admin/trainer, was measuring a population that does not correspond to the risk.**
+
+Also worth recording: the gate on #47 is named `selfVoiceConsentGate` (`:132`), a thin wrapper that
+pins `req.body.userId = req.user.id` before delegating to `requireAiConsent`. The handoff referred
+to `requireAiConsent` directly, which is right about semantics and wrong about the symbol.
+
+#### The query that actually runs — and its result against production
+
+```sql
+-- Verified against the live DB 2026-08-19. Read-only.
+-- Note u.role::text — role is a Postgres enum, so COALESCE to a string literal
+-- errors with: invalid input value for enum "enum_Users_role".
+SELECT COALESCE(u.role::text, '(null)') AS role,
+       COUNT(*)                         AS users_without_profile
+FROM "Users" u
+LEFT JOIN ai_privacy_profiles p ON p."userId" = u.id
+WHERE p.id IS NULL
+GROUP BY u.role::text
+ORDER BY users_without_profile DESC;
+```
+
+**Result — 6 of 7 users would get `403 AI_CONSENT_MISSING` on `/transcribe` after #47 merges:**
+
+| role | total | with profile | **without** |
+|---|---|---|---|
+| client | 4 | 0 | **4** |
+| admin | 2 | 1 | **1** |
+| user | 1 | 0 | **1** |
+
+**The draft query would have reported `1`** and read as "basically transparent." The real answer is
+**6 of 7 — effectively everyone.** That gap is the whole reason this check exists.
+
+#### Can they self-remedy? Mostly yes — one account cannot, in-app
+
+`POST /api/ai/consent/grant` (`routes/aiRoutes.mjs:69`) carries **only `protect`** — no `authorize`.
+`aiConsentController.mjs` permits a self-grant unconditionally, and a grant *on behalf of* someone
+else only when that target's role is `client`. **So fail-closed is a gate, not a dead end** — the
+handoff's open question is answered.
+
+The gap is **UI, not authorization**:
+
+- **4 clients + 1 `user`** → covered. `/ai-consent` is mounted at
+  `UniversalDashboardLayout.routes.tsx:224`, and `UniversalDashboardLayout.tsx:64` normalizes
+  `'user' → 'client'`, so the `user`-role account gets the client dashboard and reaches the screen.
+- **1 admin** → **no in-app path.** `/ai-consent` is the only consent route in the entire registry
+  and it sits inside the `client:` block (blocks begin `admin:104`, `trainer:183`, `client:214`).
+  The admin block has 65 routes and none is consent. That account can still self-grant via one
+  authenticated `POST /api/ai/consent/grant` — so this is a missing screen, not a lockout.
+
+#### Verdict on the 🟡 hold
+
+**#47's merge is safe once the 6 accounts are handled, and the handling is cheap** — there is still
+no backfill migration, but one authenticated POST per account clears it, and 5 of the 6 can do it
+themselves from the dashboard. **The one admin needs either an API call or an admin-side link to
+`/ai-consent`.** Adding that link is the smallest change that makes the merge fully self-service.
+
+#### Detector re-proven independently (Hour One §B2)
+
+`nutritionLlmEgress.test.mjs` on `origin/feat/plaud-upload-consent-gate` @ `47acc299a`: **8/8**,
+including *"leaves no transcribeAudio caller ungated."* **Mutation-proven from scratch rather than
+taken on trust:** planted an untracked rogue `transcribeAudio` caller — confirmed `git grep` was
+blind to it (0 tracked hits, the exact blind spot the detector exists to cover) — and the suite
+**failed**. Removed it; back to 8/8, worktree clean.
+
+#### Coverage gap noticed, not fixed
+
+`backend/tests/api/aiPrivacy.test.mjs` covers de-identification only. **Nothing tests the consent
+grant/withdraw flow or the 403 fail-closed path.** Out of scope here; worth a slice.
+
 ### Pre-merge check Sean owes on #46/#47
 
 `requireAiConsent` is **fail-closed on a missing profile**. `AiPrivacyProfile` rows are created
