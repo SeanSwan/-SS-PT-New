@@ -60,7 +60,7 @@ const METALLIC = {
 function btn(key, t, label, w = 208, metallic = false) {
   const shine = metallic ? t.shine : `linear-gradient(90deg, ${t.sl}, ${t.sr})`;
   return `<div class="gwrap">
-    <div class="gbtn" style="--bg:${t.bg};--shine:${shine};--gs:${t.gs};--ge:${t.ge};width:${w}px;">
+    <div class="gbtn" onMouseMove="{{ track }}" onMouseLeave="{{ untrack }}" style="--bg:${t.bg};--shine:${shine};--gs:${t.gs};--ge:${t.ge};width:${w}px;">
       <div class="grad"></div>
       <span class="face">
         <span class="pglow"></span>
@@ -104,12 +104,16 @@ const CSS = `
 }
 /* 3 — the glow that follows the cursor, in the button's own colour */
 .gbtn .pglow {
-  content:''; position:absolute; left:-16px; top:-16px;
-  width:32px; height:32px; border-radius:50%;
-  background-color:var(--gs);
+  content:''; position:absolute; left:-26px; top:-26px;
+  width:52px; height:52px; border-radius:50%;
+  /* whitened CORE fading into the button's own colour, per Sean's description:
+     "it had the color of the button, but it was whitened out a little bit to kinda
+      show the mouse cursor covering above it type feel. It was in a circle." */
+  background:radial-gradient(circle at 50% 50%, rgba(255,255,255,.92) 0%, rgba(255,255,255,.55) 26%, var(--gs) 62%, transparent 74%);
   transform:translate(var(--pointer-x),var(--pointer-y)) translateZ(0);
-  filter:blur(20px); opacity:.95;
-  transition:opacity .5s;
+  filter:blur(14px); opacity:0;
+  transition:opacity .35s;
+  pointer-events:none;
 }
 .gbtn:hover .pglow { opacity:1; }
 .gbtn .lbl { position:relative; z-index:1; color:#fff; font-weight:700; font-size:14.5px; letter-spacing:.02em; padding:0 18px; }
@@ -171,7 +175,7 @@ const html = `<!doctype html>
   <section style="padding:34px 56px 56px;border-top:1px solid rgba(139,92,246,.22);">
     <h2 style="font-size:22px;margin-bottom:12px;">What is still not shown here</h2>
     <ul style="margin:0;padding-left:20px;font-size:13.5px;line-height:1.8;color:#9AA5B1;max-width:88ch;">
-      <li><strong>Live pointer tracking.</strong> The original listens for <code>pointermove</code>, measures the cursor against <code>getBoundingClientRect()</code> and writes <code>--pointer-x</code>/<code>--pointer-y</code>. Static artboards have no pointer, so the blob is parked. Hovering a button here does brighten it.</li>
+      <li><strong>Live pointer tracking is NOW WIRED.</strong> Move your mouse across any button below &mdash; the whitened circle follows your cursor, same contract as the original (<code>getBoundingClientRect()</code> &rarr; <code>--pointer-x</code>/<code>--pointer-y</code>). Sean: <em>&ldquo;it had the color of the button, but it was whitened out a little bit to kinda show the mouse cursor covering above it type feel. It was in a circle.&rdquo;</em></li>
       <li><strong>The click ripple</strong> &mdash; a white circle scaling from the click point over 0.6s.</li>
       <li><strong>The breathing pulse</strong> &mdash; opt-in via <code>isAnimating</code>, 2s ease.</li>
       <li><strong>Retired-token note:</strong> <code>primary</code> and <code>neonBlue</code> carry Galaxy-Swan cyan <code>#00FFFF</code>, which CLAUDE.md retires. Shown unmodified because they are your originals.</li>
@@ -181,7 +185,24 @@ const html = `<!doctype html>
 </div>
 </x-dc>
 <script data-dc-script data-props='{"accent":{"editor":"color","default":"#8B5CF6","options":["#60C0F0","#C6A84B","#8B5CF6","#E0ECF4"]}}'>
-class Component extends DCLogic { renderVals() { return { accent: this.props.accent ?? '#8B5CF6' }; } }
+class Component extends DCLogic {
+  renderVals() {
+    // LIVE pointer tracking, same contract as the original component:
+    // measure the cursor against getBoundingClientRect and write --pointer-x/--pointer-y.
+    const track = (e) => {
+      const el = e.currentTarget; if (!el) return;
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--pointer-x', (e.clientX - r.left) + 'px');
+      el.style.setProperty('--pointer-y', (e.clientY - r.top) + 'px');
+    };
+    const untrack = (e) => {
+      const el = e.currentTarget; if (!el) return;
+      el.style.setProperty('--pointer-x', '50%');
+      el.style.setProperty('--pointer-y', '50%');
+    };
+    return { accent: this.props.accent ?? '#8B5CF6', track, untrack };
+  }
+}
 </script>
 </body>
 </html>
