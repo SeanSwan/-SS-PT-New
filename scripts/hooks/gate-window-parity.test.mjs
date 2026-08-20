@@ -32,6 +32,11 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GATES = ['dry-loop-gate', 'dual-tier-gate', 'hermes-closeout-gate', 'linear-sync-gate'];
 
+// Every gate carrying the inline predicate, closeout gate or not. privacy-boundary-gate
+// (slice 2) windows the turn the same way to find the artifacts it must scan, so it
+// inherits the same window bug and must be held to the same byte-identical copy.
+const PARITY_GATES = [...GATES, 'privacy-boundary-gate'];
+
 /** Extract the predicate source so drift between the copies is detectable. */
 function predicateSource(gate) {
   const src = readFileSync(join(HERE, `${gate}.mjs`), 'utf8').replace(/\r\n/g, '\n');
@@ -49,12 +54,12 @@ const toolResultLine = () => ({
   message: { content: [{ type: 'text', text: 'x' }, { type: 'tool_result', content: 'y' }] },
 });
 
-test('all four gates carry a byte-identical predicate', () => {
-  const [first, ...rest] = GATES.map(predicateSource);
+test('every gate carries a byte-identical predicate', () => {
+  const [first, ...rest] = PARITY_GATES.map(predicateSource);
   for (let i = 0; i < rest.length; i += 1) {
     assert.equal(
       rest[i], first,
-      `${GATES[i + 1]} drifted from ${GATES[0]} — the copies must stay in lockstep`,
+      `${PARITY_GATES[i + 1]} drifted from ${PARITY_GATES[0]} — the copies must stay in lockstep`,
     );
   }
 });
@@ -80,7 +85,7 @@ test('no hook test reads a repo file by bare relative path', () => {
 });
 
 test('a hook-feedback line is NOT the user speaking', async () => {
-  for (const gate of GATES) {
+  for (const gate of PARITY_GATES) {
     const m = await import(`./${gate}.mjs`);
     assert.equal(
       m.isRealUserLine(userLine('Stop hook feedback:\nDry-Loop Law (Sean 2026-07-21): ...')),
@@ -98,7 +103,7 @@ test('a hook-feedback line is NOT the user speaking', async () => {
 });
 
 test('genuine user turns and tool results keep their old meaning', async () => {
-  for (const gate of GATES) {
+  for (const gate of PARITY_GATES) {
     const m = await import(`./${gate}.mjs`);
     assert.equal(m.isRealUserLine(userLine('Next slice: fix the P0')), true, `${gate}: real prompt`);
     assert.equal(m.isRealUserLine({ type: 'user', message: { content: 'go' } }), true, `${gate}: string prompt`);
@@ -152,9 +157,12 @@ test('THE BUG: a build-shaped turn stays visible after its own feedback lands', 
     'dual-tier-gate': (s) => s.plainSeen && s.techSeen && s.plainFirst,
     'hermes-closeout-gate': (s) => s.memoEmitted,
     'linear-sync-gate': (s) => s.markerSeen,
+    // Not a closeout signal — the thing this gate would lose if the window reset
+    // is the artifact list it exists to scan.
+    'privacy-boundary-gate': (s) => s.artifacts.length === 1,
   };
 
-  for (const gate of GATES) {
+  for (const gate of PARITY_GATES) {
     const m = await import(`./${gate}.mjs`);
     const s = m.analyzeTurn(m.parseTranscript(transcript));
     assert.equal(s.fileWrites, 2, `${gate}: lost sight of the file writes after its own feedback`);

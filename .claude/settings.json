@@ -310,6 +310,11 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/privacy-boundary-gate.mjs\" --pretool",
+            "timeout": 30
+          },
+          {
+            "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/push-blast-radius.mjs\"",
             "timeout": 30
           }
@@ -334,6 +339,11 @@
     "Stop": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/privacy-boundary-gate.mjs\"",
+            "timeout": 30
+          },
           {
             "type": "command",
             "command": "node scripts/hooks/hermes-closeout-gate.mjs",
