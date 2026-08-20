@@ -164,6 +164,41 @@ Repo: `Desktop/SwanGuard-Newsroom` (monorepo: `apps/web`, `apps/api`, `packages/
 - **Save from the briefing:** reply "save 3" in the existing Telegram channel (same pattern as the
   station's approval-queue proposal) instead of open app → find → save: **3+ taps → 1 reply**.
 
+## Scope confirmation + expansion (Sean 2026-08-20, verbal)
+
+Sean confirmed all six grill decisions and added scope. Three genuinely-new items:
+
+1. **Security/pentest intelligence is a first-class radar domain.** Threat news, CVEs, exploit
+   techniques, Hacker News / hacking-community feeds, and study material for finishing his
+   penetration-testing certification. Purpose is dual: idea-flow AND defending SwanStudios + clients.
+   → adds a `security` domain to the radar's domain list (alongside health/PT, gaming, photography,
+   civic, local events, etc.). Pure-read, public sources — no new risk tier.
+
+2. **The station is also a build box for coding + penetration-testing environments** (cert lab,
+   isolated targets). This does NOT contradict "hands, not brain" — pentest labs are I/O + light
+   compute + VMs/containers, not LLM inference. **Hard constraint added: the pentest lab is a
+   SEGREGATED trust zone** — isolated VMs / network namespace, its own storage, and it NEVER shares
+   the box with the credential broker that holds brand/marketing/radar tokens. A lab that pops a
+   shell must not be one hop from a live SendGrid/Meta/xAI key. Segmentation is a Phase-0 decision,
+   not a retrofit.
+
+3. **A SECOND consumer: the personal-trainer scheduling assistant** (the one Sean flagged as his
+   real pain — "scheduling is tight… help me schedule people as fast as possible via my phone and
+   Telegram"). This is Hermes-operator scope, NOT in-app Swan Coach (CLAUDE.md boundary), and it
+   rides the existing Swan Coach command lane (v14/v15: availability, view_available_slots) + Hermes
+   Telegram. **It messages real clients → PII + external-visible (T3).** Governed by Rule 8
+   (client IDs only, names merged locally — the privacy-proxy / token-broker pattern) and the
+   station's T2-ceiling+carve-out authority model. It is a NAMED LATER PHASE, not Phase-1 radar work.
+
+**Reframe:** the station is now three systems on one box, three risk tiers:
+- **Radar (inbound, pure read)** — news/events/security intel → SwanGuard StoryNodes. Phase 1.
+- **Pentest/coding lab (isolated, no outbound to strangers)** — segregated zone. Phase 1-parallel.
+- **Operator (outbound, gated)** — marketing drafts + trainer scheduling/reminders. Later phases.
+
+The radar's output also explicitly feeds Sean's creative work: **new/rare exercise discovery, training
+studies, and content research for YouTube + workout videos** are named radar consumers, not just
+leisure — same StoryNode pipeline, a `training-research` domain.
+
 ## Open Flags
 
 - [ ] Which branch the Render `swanguard-staging-demo` service actually watches (Render dashboard check)
