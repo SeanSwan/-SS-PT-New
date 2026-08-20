@@ -26,6 +26,7 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | `components.md` | Component pattern index — purpose / anatomy / states / do–don't / C1–C12 mapping for every canonical pattern |
 | `anti-patterns.md` | The banned list with WHY per item |
 | `asset-harvest.md` | **The pre-design gate — "the repo is the first plate."** Harvest the real brand marks, imagery, shipped motion, media measurements, copy and tokens BEFORE concepting; the Asset Manifest, the brand-mark-is-the-design-system rule, absence-claim validation, and the regression check that stops a mockup being less capable than the page it replaces |
+| (skill, not a file here) `.claude/skills/design-render-gate/SKILL.md` | **Rule 76.** Render in real Chromium, measure dead-space/overflow/broken-images/template-holes, write PNGs, and LOOK at them before presenting. Tool: `scripts/design-brain/render-check.mjs` |
 | `qa-gates.md` | Consolidated responsive + accessibility + visual QA gates with self-applicable pass/fail checks and the QA receipt format |
 | `external-reference-mcp.md` | Mobbin/Mobbin-like shipped-product reference gate; principles-only intake, never a source-of-truth override |
 | `worlds.md` | World Engine catalog: 18 immutable World DNA recipes, family manifest, palette laws, suitability-filtered seeded roulette |
@@ -34,7 +35,7 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | `experience-mode.md` | M4 license, inheritance, product/Hermes firewall, gate ritual, adaptive-quality and backend-loss rules |
 | `typography-grid.md` | Type scale, grid/breakpoint substrate, elevation + radius contract. **Where it states a token value that `design.md` also states, `design.md` wins** — see the conflict law in `README.md` §3 |
 | `style-taxonomy.md` | Two-axis style model (aesthetic × era) and its Swan mapping. Captured third-party facet counts drift and are reference-only, never doctrine |
-| `field-techniques.md` | Field-tested effect techniques and the CONVERGENCE note on producing hero creative (image-first loop, interpolation, reference ladder) |
+| `field-techniques.md` | **THE ANSWER TO "MY SITES LOOK NOTHING LIKE THIS."** Harvested from 6-7 transcripts Sean supplied 2026-08-11. Names the four missing mechanisms (no custom creative / no frame interpolation / no reference depth / no convergence in pixels), the **Reference Quality Ladder** (C = screenshot-only = where vector-slop begins), image-first→video costing, and transparent-PNG-never-vector. **Status DRAFT — T4 duplicated/stale, synthesis unfinished.** ⚠ Was indexed here but NOT loaded by `swan-design-router` until 2026-08-20; that gap is why none of it reached a design run for five weeks |
 | `forge-compiler-contract.md` | Swan Forge prompt-compiler contract — the 12-slot composer, capability gating, provider-safety classification |
 
 ### Callable World Engine skill (manual-only)

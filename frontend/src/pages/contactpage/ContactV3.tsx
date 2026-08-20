@@ -752,7 +752,14 @@ const AlertBox = styled.div<{ $type: 'success' | 'error' }>`
   gap: 12px;
   padding: 16px 24px;
   border-radius: 12px;
-  color: var(--text-on-accent, #ffffff);
+  /* Pure white is correct HERE and a token is actively wrong. This box sits on a saturated
+     success/error background set by $type, not on the button surface. The obvious token,
+     --text-on-accent, resolves to getReadableAccentText(buttonPrimaryBg) (themeUtils.ts:121) — the
+     colour readable against the PRIMARY BUTTON, an unrelated surface. On a light-primary theme that
+     returns DARK text, putting dark-on-saturated in an alert. I made that swap to satisfy the lint
+     rule and two hostile reviewers independently caught it as a live visual change smuggled into an
+     unrelated diff. Reverted. A real on-alert token is the proper fix and is not this slice. */
+  color: #fff; /* swan-guard-allow-hex: see above — token would key this to an unrelated surface */
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   min-width: 300px;
   max-width: 520px;
