@@ -2,7 +2,7 @@
 title: "Panel review — AI privacy/cost workstream (GLM + Kimi, multi-round)"
 date: 2026-08-19
 author: Claude Opus 5 (vs-claude), reviewed by GLM-5.3 and Kimi K3 (round count derivable from the `# Round N` headings)
-decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Record-grading rounds found a defect in THIS DOCUMENT every time they ran; each is labelled C<N> at its site, so the total is DERIVED by counting C-labels, not stored (C35 - a stored total went stale on append four times: C21, C29, C34, and again here). READ EVERY `# Round N` SECTION FROM ROUND 4 ONWARD, IN ORDER, BEFORE THE BODY - they supersede body claims, and the Round 7 section holds the only evidence for the 6-of-7 figure. Kimi spend $0.24; GLM subscription."
+decision: "CANONICAL ORDER: #45 -> #47 -> local verification -> admin link. Record-grading rounds found a defect in THIS DOCUMENT every time they ran; each is labelled C<N> at its site, so the total is DERIVED by counting C-labels, not stored (C35 - a stored total went stale on append four times: C21, C29, C34, and again here). ROUND ROSTER is likewise derived: the set of N in every `(Round N)` C-label annotation and every `# Round N` heading (C36 - the earlier rule said "count Round headings", which cannot work because several rounds are recorded only as inline C-labels). READ EVERY `# Round N` SECTION FROM ROUND 4 ONWARD, IN ORDER, BEFORE THE BODY - they supersede body claims, and the Round 7 section holds the only evidence for the 6-of-7 figure. Per-round Kimi spend is recorded in the round sections; no running total is stored (C36 - spend is append-volatile and C27 had already classed it with the counts)."
 status: open
 supersedes: none
 linear: SWA-107, SWA-179, SWA-180
@@ -794,3 +794,21 @@ the storage rather than relocating it.
 *(The honest reading of needing four attempts: each earlier fix moved the number somewhere I
 believed was safe, and "somewhere safe" does not exist in an append-only document. Only "nowhere"
 does.)*
+
+**C36 (Round 17)** — C35's own derivation rule was unsupported by the structure. It said the roster
+is obtained by "counting `# Round N` headings", but Rounds 6, 11, 15 and 16 have no headings: C13/C14
+sit under a combined "Rounds 9 and 10" heading, C23/C24 are inline between C18 and C19, and C34/C35
+were appended inside an earlier round's section. **Counting headings yields eight against an actual
+thirteen** — so the fix announced a derivation the document makes impossible, which is the exact
+"fix narrower than its claim" class the standing note calls this record's most reliable prediction.
+
+**Corrected to a rule the structure supports:** every C-label carries a `(Round N)` annotation, so
+the roster is the set of N across those annotations *and* the headings. Verified below by executing
+the derivation rather than asserting it.
+
+Also C36: **"verified zero stored counts remain" was imprecise** — `Kimi spend $0.24` was still
+sitting in the decision line C35 had just edited, and C27 had explicitly classed spend with the
+counts. Per-round spend now lives in the round sections; no running total is stored.
+
+*(Fifth remake. What finally distinguishes a working fix from a failing one in this record is
+whether the rule was **executed** before being announced. C35 asserted a derivation; C36 ran it.)*
