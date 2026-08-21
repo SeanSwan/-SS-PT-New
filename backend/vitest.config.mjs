@@ -14,15 +14,24 @@ export default defineConfig({
 
     // Test file patterns
     include: ['__tests__/**/*.test.{js,mjs}', 'tests/**/*.test.{js,mjs}'],
-    // The Sheen Forge suite below is written for node:test, not vitest. Vitest loads
-    // those files, finds no vitest suites, and reports "No test suite found" — which
-    // put 15 perfectly green files (175 passing tests under `npm run test:node`) into
-    // the failing baseline for weeks. They run under their intended runner via
-    // `npm run test:node`; tests/unit/nodeTestRunnerSeparation.test.mjs guards this
-    // list against drift (a new node:test file not listed here fails that guard).
+    // ── node:test runner files, NOT vitest ─────────────────────────────────
+    // These use Node's built-in test runner (`import test from 'node:test'`).
+    // Vitest scans them, finds no suite it recognises, and reports "No test
+    // suite found" as a FAILURE — which is why `npm test` looked permanently
+    // red on a clean checkout: 16 green files (175 passing tests) booked as
+    // sickness. Independently diagnosed twice (S4a on 2026-08-21, stranded
+    // unmerged; re-derived 2026-09-02 — the cost of an unlanded fix).
+    //
+    // They are NOT skipped: `npm run test:node` runs them under their intended
+    // runner, and CI runs both. This is an explicit list, never a glob, so a
+    // NEW node:test file fails loudly in tests/unit/nodeTestRunnerSeparation
+    // .test.mjs (three-way lock: detected set == this list == test:node args).
+    // Known-red VITEST files are deliberately NOT here — they stay visible in
+    // the suite and recorded in tests/known-failing-baseline.json with
+    // classifications; an exclude list must never become a hiding place.
     exclude: [
       'node_modules', 'dist', 'tests/integration/**',
-      'tests/unit/bracket.test.mjs',
+'tests/unit/bracket.test.mjs',
       'tests/unit/capabilityHonesty.test.mjs',
       'tests/unit/capturedFixtures.test.mjs',
       'tests/unit/contactSheet.test.mjs',
