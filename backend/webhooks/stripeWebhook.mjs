@@ -72,11 +72,17 @@ const findAchOrder = async (pi) => {
  * treating unknown as zero or as agreement.
  */
 const receivedCents = (pi) => {
-  for (const candidate of [pi?.amount_received, pi?.amount]) {
-    const value = Number(candidate);
-    if (Number.isFinite(value) && value >= 0) return value;
-  }
-  return null;
+  // ONLY `amount_received`. This used to fall back to `pi.amount`, which is the
+  // INTENDED figure — the docstring above said so and the code then treated it
+  // as truth anyway (Kimi K3 F5, 2026-08-20).
+  //
+  // The single consumer is the weak (metadata-only) match coverage check, whose
+  // entire premise is that this intent may not belong to this order. Using the
+  // intended amount there quietly undoes the fail-closed design in exactly the
+  // case it exists for. If `amount_received` is absent, the amount IS
+  // unverifiable, and null is the honest answer.
+  const value = Number(pi?.amount_received);
+  return Number.isFinite(value) && value >= 0 ? value : null;
 };
 
 /**
@@ -1290,6 +1296,41 @@ async function createOrderRecord(cart, { stripeSessionId = null } = {}) {
  * Fulfill gallery credit purchase or VIP activation after Stripe payment confirmed.
  * Called from the checkout.session.completed handler when metadata.type === 'gallery_credits'.
  */
+/**
+ * Alert on a PAID gallery session that cannot be fulfilled.
+ *
+ * The print rail already did this ("never leave a captured order invisible").
+ * Its two siblings in this same file — credits and donations — returned after a
+ * `logger.error` and nothing else, so captured money was 200-acked into
+ * silence and Stripe never redelivered (Kimi K3 F3, 2026-08-20). Same event,
+ * same preconditions, same money; the convention reached ACH, session packages
+ * and print, and skipped these two.
+ *
+ * Returning (200) is CORRECT — a redelivery cannot conjure a missing visitor —
+ * so what was missing is the alert, not a retry.
+ */
+async function alertGalleryUnfulfilled(session, rail, detail, extra = {}) {
+  logger.error(`[${rail}] PAID but NOT fulfilled — ${detail}`, {
+    checkoutSessionId: session?.id,
+    ...extra,
+  });
+  await notifyAdminSafely({
+    title: `Gallery payment captured but NOT fulfilled — ${rail}`,
+    message: `Checkout session ${session?.id} was paid but could not be fulfilled `
+      + `(${detail}). The customer has been charged and has received nothing. `
+      + 'This will not retry — fulfil manually or refund.',
+    data: {
+      type: 'gallery_payment_unfulfilled',
+      rail,
+      detail,
+      checkoutSessionId: session?.id ?? null,
+      amountTotalCents: session?.amount_total ?? null,
+      actionRequired: 'MANUAL_FULFIL_OR_REFUND',
+      ...extra,
+    },
+  }, `[${rail}]`);
+}
+
 async function fulfillGalleryCredits(session) {
   const meta = session.metadata || {};
   const visitorId = parseInt(meta.visitorId);
@@ -1297,13 +1338,15 @@ async function fulfillGalleryCredits(session) {
   const credits = parseInt(meta.credits) || 0;
 
   if (!visitorId) {
-    logger.error(`[Gallery Webhook] No visitorId in session ${session.id}`);
+    await alertGalleryUnfulfilled(session, 'Gallery Webhook', 'no visitorId in session metadata');
     return;
   }
 
   const visitor = await GalleryVisitor.findByPk(visitorId);
   if (!visitor) {
-    logger.error(`[Gallery Webhook] Visitor ${visitorId} not found for session ${session.id}`);
+    await alertGalleryUnfulfilled(
+      session, 'Gallery Webhook', 'visitor not found', { visitorId },
+    );
     return;
   }
 
@@ -1372,7 +1415,9 @@ async function fulfillGalleryDonation(session) {
     : Number.parseFloat(meta.amount) || 0;
 
   if (!visitorId || !eventId) {
-    logger.error(`[Gallery Donation Webhook] Missing visitor/event metadata in session ${session.id}`);
+    await alertGalleryUnfulfilled(
+      session, 'Gallery Donation Webhook', 'missing visitor/event metadata',
+    );
     return;
   }
 
@@ -1383,7 +1428,10 @@ async function fulfillGalleryDonation(session) {
 
   const visitor = await GalleryVisitor.findOne({ where: { id: visitorId, eventId } });
   if (!visitor) {
-    logger.error(`[Gallery Donation Webhook] Visitor ${visitorId} not found for event ${eventId} in session ${session.id}`);
+    await alertGalleryUnfulfilled(
+      session, 'Gallery Donation Webhook', 'visitor not found for event',
+      { visitorId, eventId },
+    );
     return;
   }
 

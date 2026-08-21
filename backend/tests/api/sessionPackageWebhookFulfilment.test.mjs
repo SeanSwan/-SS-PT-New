@@ -288,3 +288,85 @@ describe('paid dead ends on the cart rail are never silent', () => {
     expect(deadEnd).toHaveLength(0);
   });
 });
+
+/**
+ * Kimi K3 F3 — the gallery rails 200-acked captured money in silence.
+ *
+ * fulfillPrintOrder alerts on a paid session it cannot fulfil ("never leave a
+ * captured order invisible"). Its two siblings in the same file, on the same
+ * event, returned after a logger.error and nothing else. The convention had
+ * reached ACH, session packages and print, and skipped these two.
+ *
+ * Returning 200 is correct — a redelivery cannot conjure a missing visitor — so
+ * the alert was what was missing, not a retry.
+ */
+describe('gallery rails never 200-ack captured money in silence', () => {
+  const gallerySession = (metadata) => ({
+    id: 'cs_test_gallery_1',
+    payment_status: 'paid',
+    amount_total: 5000,
+    metadata,
+  });
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    mocks.mockStripeClient.webhooks.constructEvent.mockImplementation(() => mocks.currentEvent);
+  });
+
+  it('alerts when a paid credits session carries no visitorId', async () => {
+    mocks.currentEvent = {
+      type: 'checkout.session.completed',
+      data: { object: gallerySession({ type: 'gallery_credits', credits: '10' }) },
+    };
+
+    const response = await post();
+
+    expect(response.status).toBe(200);
+    const alerts = adminNotifications()
+      .filter((a) => a?.data?.type === 'gallery_payment_unfulfilled');
+    expect(alerts.length).toBeGreaterThan(0);
+    expect(alerts[0].data?.actionRequired).toBe('MANUAL_FULFIL_OR_REFUND');
+  });
+
+  it('alerts when the credits visitor cannot be found', async () => {
+    const GalleryVisitor = (await import('../../models/GalleryVisitor.mjs')).default;
+    GalleryVisitor.findByPk.mockResolvedValue(null);
+
+    mocks.currentEvent = {
+      type: 'checkout.session.completed',
+      data: { object: gallerySession({ type: 'gallery_credits', visitorId: '7', credits: '10' }) },
+    };
+
+    const response = await post();
+
+    expect(response.status).toBe(200);
+    expect(adminNotifications()
+      .filter((a) => a?.data?.type === 'gallery_payment_unfulfilled').length).toBeGreaterThan(0);
+  });
+
+  it('alerts when a paid donation session is missing visitor/event metadata', async () => {
+    mocks.currentEvent = {
+      type: 'checkout.session.completed',
+      data: { object: gallerySession({ type: 'gallery_donation', amount: '50' }) },
+    };
+
+    const response = await post();
+
+    expect(response.status).toBe(200);
+    expect(adminNotifications()
+      .filter((a) => a?.data?.type === 'gallery_payment_unfulfilled').length).toBeGreaterThan(0);
+  });
+
+  it('names the rail so the alert is actionable', async () => {
+    mocks.currentEvent = {
+      type: 'checkout.session.completed',
+      data: { object: gallerySession({ type: 'gallery_donation', amount: '50' }) },
+    };
+
+    await post();
+
+    const alert = adminNotifications()
+      .find((a) => a?.data?.type === 'gallery_payment_unfulfilled');
+    expect(String(alert?.data?.rail)).toMatch(/Donation/i);
+  });
+});

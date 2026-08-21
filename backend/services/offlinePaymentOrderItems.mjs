@@ -44,13 +44,33 @@ export function buildPaymentOrderItemRows(
 
     const qty = parseInt(item.quantity, 10);
 
-    // The SAME resolver the charge side uses. This used to be
+    // The SAME resolver the charge side uses, with the SAME arguments.
+    //
+    // History, because both halves matter. This began as
     // `new Decimal(storefrontItem.price || 0)`, which recorded $0.00 lines for
     // any `price: 0/null, totalCost: 8400` package while the order total was
-    // correct — so the admin confirmation flow, per-line refund proration, and
+    // correct — so admin confirmation, per-line refund proration and
     // revenue-by-item all read zero on money that was really collected.
-    // If the charge side and this line ever disagree, that IS the bug.
-    const dbPrice = resolveUnitPrice(storefrontItem, item.productVariant ?? null);
+    //
+    // The fix for that passed `item.productVariant` as the variant argument,
+    // and THAT was worse in a different direction: `item` is an element of
+    // `requestItems`, which on both rails is `req.body.items` — the raw client
+    // body (achPaymentRoutes:64) — and resolveUnitPrice puts variant price
+    // FIRST. A request carrying `productVariant: { price: 99999 }` wrote 99999
+    // into a durable money column, inflating any future prorated refund
+    // (Kimi K3 F4, 2026-08-20).
+    //
+    // CATALOG ONLY. The charge side of both rails calls
+    // `resolveUnitPrice(dbItem)` with no variant at all
+    // (achPaymentRoutes:187, offlinePaymentRoutes:116). These rails do not
+    // support variants at charge time, so their durable rows must not either.
+    // If they ever do, load the variant from the DB by id and validate it
+    // against storefrontItemId, as the cart rail's snapshot does — never trust
+    // one off the wire.
+    //
+    // If the charge side and this line ever disagree, that IS the bug. It has
+    // now been the bug twice, in opposite directions.
+    const dbPrice = resolveUnitPrice(storefrontItem);
 
     return {
       orderId,

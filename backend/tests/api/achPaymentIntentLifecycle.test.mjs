@@ -374,6 +374,54 @@ describe('ACH payment_intent lifecycle — every state is visible', () => {
       expect(mocks.mockAllocateSessionsFromOrder).not.toHaveBeenCalled();
     });
 
+    it('refuses when amount_received is ABSENT but amount is present', async () => {
+      // The mutation that exposed this: the old receivedCents fell back to
+      // `pi.amount`, the INTENDED figure, and treated it as money received. The
+      // sole consumer is the weak-match coverage check, whose whole premise is
+      // that this intent may not belong to this order. The earlier
+      // "amount UNKNOWN" test set BOTH fields undefined, so it could not tell
+      // the two implementations apart (Kimi K3 F5, 2026-08-20).
+      mocks.mockOrderFindOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(orderRow({ paymentId: null, totalAmount: 8400 }));
+      mocks.currentEvent = {
+        type: 'payment_intent.succeeded',
+        data: { object: achIntent({ amount: 840000, amount_received: undefined }) },
+      };
+
+      await post();
+
+      expect(mocks.mockAllocateSessionsFromOrder).not.toHaveBeenCalled();
+    });
+
+    it('alerts on that refusal too', async () => {
+      mocks.mockOrderFindOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(orderRow({ paymentId: null, totalAmount: 8400 }));
+      mocks.currentEvent = {
+        type: 'payment_intent.succeeded',
+        data: { object: achIntent({ amount: 840000, amount_received: undefined }) },
+      };
+
+      await post();
+
+      expect(adminNotifications().length).toBeGreaterThan(0);
+    });
+
+    it('a STRONG match still allocates without needing amount_received', async () => {
+      // Coverage is only demanded of the weak (metadata-only) match. A paymentId
+      // match means Stripe itself linked this intent to this order.
+      mocks.mockOrderFindOne.mockResolvedValue(orderRow());
+      mocks.currentEvent = {
+        type: 'payment_intent.succeeded',
+        data: { object: achIntent({ amount_received: undefined }) },
+      };
+
+      await post();
+
+      expect(mocks.mockAllocateSessionsFromOrder).toHaveBeenCalledWith(91, 3);
+    });
+
     it('does not re-allocate an order that was already applied', async () => {
       mocks.mockOrderFindOne.mockResolvedValue(orderRow({ paymentAppliedAt: new Date() }));
       mocks.currentEvent = { type: 'payment_intent.succeeded', data: { object: achIntent() } };
