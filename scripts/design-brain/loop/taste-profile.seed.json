@@ -1,0 +1,42 @@
+{
+  "profile_version": "1.0.0",
+  "scope": { "user": "sean", "domain": "swan_product" },
+  "provenance": "hand-seeded 2026-08-21 from documented standing tastes (panel blueprint S7: no cold start — the ledger UPDATES this file, it does not bootstrap it). Sean-editable by design: a wrong preference dies in a PR.",
+  "levers": [
+    {
+      "lever": "no_card_sprawl",
+      "match": "card",
+      "polarity": "negative",
+      "confidence": 0.9,
+      "source": "hand-seed: standing complaint — generic marketing-card sprawl reads as template"
+    },
+    {
+      "lever": "no_centered_generic_hero",
+      "match": "centered",
+      "polarity": "negative",
+      "confidence": 0.8,
+      "source": "hand-seed: centered full-bleed hero with stacked text is the canonical AI-slop opener"
+    },
+    {
+      "lever": "asymmetric_composition",
+      "match": "asymmetric",
+      "polarity": "positive",
+      "confidence": 0.8,
+      "source": "hand-seed: split/asymmetric heroes carry the cinematic bar better than symmetric ones"
+    },
+    {
+      "lever": "data_forward_surfaces",
+      "match": "kpi",
+      "polarity": "positive",
+      "confidence": 0.6,
+      "source": "hand-seed: first-screen usefulness — real numbers visible before scroll"
+    },
+    {
+      "lever": "editorial_singleflow",
+      "match": "editorial",
+      "polarity": "positive",
+      "confidence": 0.55,
+      "source": "hand-seed: single-column editorial rhythm as a counter-template direction"
+    }
+  ]
+}

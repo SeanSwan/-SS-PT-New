@@ -1,0 +1,87 @@
+{
+  "brief_id": "storefront-hero-2026-08",
+  "surface": "/shop (storefront packages page, first viewport)",
+  "domain": "swan_product",
+  "project": "swanstudios",
+  "archetype": "storefront-packages",
+  "primary_task": "understand what a training package costs and start a purchase or inquiry in one action",
+  "material_strategy": "type_data",
+  "viewports": [375, 1440],
+  "facts": {
+    "primary_claim": "Personal training with 26+ years of coaching experience — sessions from $110.",
+    "cta_label": "Book your first session",
+    "sections": [
+      {
+        "slot": "hero",
+        "heading": "Train with SwanStudios",
+        "facts": [
+          "1-on-1 sessions: $175 per hour",
+          "30-minute express pack: 10 sessions for $1,100",
+          "NASM-protocol programming, 26+ years of coaching experience"
+        ]
+      },
+      {
+        "slot": "packages",
+        "heading": "Commit to a season, not a workout",
+        "facts": [
+          "3-month program: $8,400",
+          "6-month program: $16,800",
+          "12-month transformation: $33,600"
+        ]
+      },
+      {
+        "slot": "proof",
+        "heading": "Every session becomes visible progress",
+        "facts": [
+          "Workout logs turn into progress charts your trainer reviews with you",
+          "736-exercise library backs every program",
+          "Milestones are shareable with the community when YOU choose"
+        ]
+      }
+    ]
+  },
+  "skeleton_library": [
+    {
+      "id": "SF1-split-ledger",
+      "nav_model": "top-bar-minimal",
+      "hero_mechanics": "split-asymmetric-price-ledger-right",
+      "grid": "12col-asymmetric-7-5",
+      "card_budget": 0,
+      "anti_specs": [
+        { "marker": "data-card", "why": "no cards anywhere — the price ledger IS the composition" }
+      ],
+      "wildcard": false
+    },
+    {
+      "id": "SF2-editorial-column",
+      "nav_model": "none-anchor-dots-right",
+      "hero_mechanics": "single-column-editorial-price-inline",
+      "grid": "single-column-editorial-680px",
+      "card_budget": 0,
+      "anti_specs": [
+        { "marker": "data-card", "why": "no card grids — editorial flow only" }
+      ],
+      "wildcard": false
+    },
+    {
+      "id": "SF3-centered-showcase",
+      "nav_model": "top-bar-dense",
+      "hero_mechanics": "centered-fullbleed-stacked-text",
+      "grid": "3col-card-grid",
+      "card_budget": 3,
+      "anti_specs": [],
+      "wildcard": false
+    },
+    {
+      "id": "SF4-kpi-strip",
+      "nav_model": "side-rail-left",
+      "hero_mechanics": "no-hero-kpi-strip-prices-first",
+      "grid": "2col-data-grid",
+      "card_budget": 0,
+      "anti_specs": [
+        { "marker": "data-card", "why": "operational surface — numbers, not cards" }
+      ],
+      "wildcard": true
+    }
+  ]
+}
