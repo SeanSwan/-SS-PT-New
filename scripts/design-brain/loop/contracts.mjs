@@ -13,16 +13,12 @@
  */
 
 import { SECTION_TYPES } from './ir.mjs';
+import { BANNED_REGISTER } from './content-lint.mjs';
 
 const isStr = (v) => typeof v === 'string' && v.length > 0;
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
-/** Words whose presence marks marketing-register slop copy (panel F: content-truth). */
-export const BANNED_REGISTER = [
-  'empower', 'unleash', 'unlock your potential', 'transform your journey',
-  'elevate your fitness', 'take your fitness to the next level', 'revolutionize',
-  'lorem ipsum', 'game-changer', 'next level results',
-];
+export { BANNED_REGISTER };
 
 export function validateBrief(b) {
   const bad = [];
@@ -42,21 +38,29 @@ export function validateContentModel(c) {
   if (!isStr(c.content_model_id)) bad.push('content_model_id required');
   if (!isStr(c.brief_id)) bad.push('brief_id backlink required');
   if (!isStr(c.primary_claim)) bad.push('primary_claim required (the real headline, not lorem)');
+  if (!isStr(c.cta_label)) bad.push('cta_label required');
   if (!Array.isArray(c.sections) || c.sections.length < 2) bad.push('sections[] requires >=2 entries');
   for (const s of c.sections || []) {
     if (!isStr(s.slot)) bad.push('section missing slot id');
     if (!isStr(s.heading)) bad.push(`section ${s.slot}: heading required`);
     if (!Array.isArray(s.facts) || !s.facts.length) bad.push(`section ${s.slot}: facts[] required (real data shapes)`);
+    for (const f of s.facts ?? []) {
+      if (!f || !isStr(f.text)) bad.push(`section ${s.slot}: every fact is {text, source} (S4 provenance objects)`);
+      else if (!isStr(f.source)) bad.push(`section ${s.slot}: fact "${f.text.slice(0, 40)}" missing source (use "unsourced" explicitly, never omit)`);
+    }
+    if (!['data', 'narrative', 'mixed'].includes(s.shape)) bad.push(`section ${s.slot}: shape classification required (content-driven IA input)`);
   }
-  // Content-truth gate: no banned register, and at least one quantified claim.
+  // S4: the linter must have RUN and passed — its report is the evidence.
+  if (!c.linter_report || !Array.isArray(c.linter_report.violations) || !Array.isArray(c.linter_report.unproven)) {
+    bad.push('linter_report {violations[], unproven[]} required — unlinted content is prose');
+  } else if (c.linter_report.violations.length) {
+    bad.push(`linter_report carries ${c.linter_report.violations.length} unresolved violation(s)`);
+  }
+  // Redundant with the linter by design (belt + suspenders on the gate itself).
   const text = JSON.stringify(c).toLowerCase();
   for (const phrase of BANNED_REGISTER) {
     if (text.includes(phrase)) bad.push(`banned register phrase present: "${phrase}"`);
   }
-  if (!/\d/.test(c.primary_claim + JSON.stringify(c.sections ?? ''))) {
-    bad.push('no quantified claim anywhere — real content carries at least one number');
-  }
-  if (!isStr(c.cta_label)) bad.push('cta_label required');
   return bad;
 }
 

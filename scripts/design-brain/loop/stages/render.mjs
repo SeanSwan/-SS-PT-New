@@ -45,18 +45,18 @@ function sectionBody(type, s, textToken) {
   const c = (t) => `color:${v(t)};`;
   switch (type) {
     case 'price-ledger':
-      return s.facts.map((f) => `<div data-row style="display:flex;justify-content:space-between;gap:24px;${c(textToken)}border-bottom:1px solid ${v('accent')};padding:10px 0;"><span>${f}</span></div>`).join('\n      ');
+      return s.facts.map((f) => `<div data-row style="display:flex;justify-content:space-between;gap:24px;${c(textToken)}border-bottom:1px solid ${v('accent')};padding:10px 0;"><span>${f.text}</span></div>`).join('\n      ');
     case 'kpi-strip':
-      return `<div style="display:flex;flex-wrap:wrap;gap:20px;">${s.facts.map((f) => `<div data-kpi style="${c(textToken)}font-family:'Fira Code',monospace;min-width:120px;">${f}</div>`).join('')}</div>`;
+      return `<div style="display:flex;flex-wrap:wrap;gap:20px;">${s.facts.map((f) => `<div data-kpi style="${c(textToken)}font-family:'Fira Code',monospace;min-width:120px;">${f.text}</div>`).join('')}</div>`;
     case 'data-table':
-      return `<table style="${c(textToken)}border-collapse:collapse;width:100%;">${s.facts.map((f) => `<tr><td style="padding:8px 4px;border-bottom:1px solid ${v('surface')};">${f}</td></tr>`).join('')}</table>`;
+      return `<table style="${c(textToken)}border-collapse:collapse;width:100%;">${s.facts.map((f) => `<tr><td style="padding:8px 4px;border-bottom:1px solid ${v('surface')};">${f.text}</td></tr>`).join('')}</table>`;
     case 'narrative-chapter':
     case 'editorial-flow':
-      return s.facts.map((f) => `<p style="${c(textToken)}line-height:1.8;max-width:64ch;">${f}</p>`).join('\n      ');
+      return s.facts.map((f) => `<p style="${c(textToken)}line-height:1.8;max-width:64ch;">${f.text}</p>`).join('\n      ');
     case 'card-grid':
-      return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">${s.facts.map((f) => `<div data-card style="${c(textToken)}background:${v('surface')};padding:16px;border-radius:8px;">${f}</div>`).join('')}</div>`;
+      return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">${s.facts.map((f) => `<div data-card style="${c(textToken)}background:${v('surface')};padding:16px;border-radius:8px;">${f.text}</div>`).join('')}</div>`;
     default:
-      return `<ul style="${c(textToken)}line-height:1.6;">${s.facts.map((f) => `<li>${f}</li>`).join('\n      ')}</ul>`;
+      return `<ul style="${c(textToken)}line-height:1.6;">${s.facts.map((f) => `<li>${f.text}</li>`).join('\n      ')}</ul>`;
   }
 }
 
@@ -84,7 +84,7 @@ export function renderHtml(ir, content, opts = {}) {
            style="padding:56px 24px;background:${v('surface')};${heroLayoutCss(ir.hero_mechanics)}">
     <h1 style="color:${v(textToken)};font-size:2.25rem;max-width:22ch;">${content.primary_claim}</h1>
     <ul style="color:${v(textToken)};line-height:1.7;">
-      ${(hero?.facts ?? []).map((f) => `<li>${f}</li>`).join('\n      ')}
+      ${(hero?.facts ?? []).map((f) => `<li>${f.text}</li>`).join('\n      ')}
     </ul>
     <a href="#book" data-cta style="display:inline-block;min-height:44px;min-width:44px;padding:12px 28px;
        background:${v('accent')};color:${v('bg')};border-radius:8px;font-weight:600;">${content.cta_label}</a>

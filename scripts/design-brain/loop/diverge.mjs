@@ -24,6 +24,7 @@ import { collisions } from '../atelier/fingerprint.mjs';
 import { SECTION_TYPES, MIN_PAIR_DISTANCE, WILDCARD_MIN, irDistance, distanceMatrix, irFingerprint } from './ir.mjs';
 import { slopMatches, loadDenylist } from './slop-denylist.mjs';
 import { killedSkeletons } from './read-ledger.mjs';
+import { typeCompatible } from './content-lint.mjs';
 
 export const FLEET_SIZE = 3;
 export const MAX_RESAMPLES = 6;
@@ -40,6 +41,25 @@ export function scoreSkeleton(skeleton, levers) {
     }
   }
   return score;
+}
+
+/**
+ * Section-plan vs content-shape clashes for one skeleton (S4). A data-only
+ * type planned over narrative facts (or vice versa) is a structural lie about
+ * the content — the skeleton is ineligible for THIS brief, not bad in general.
+ */
+export function contentClashes(skeleton, content) {
+  const plan = skeleton.section_plan ?? {};
+  const clashes = [];
+  for (const s of content.sections) {
+    const type = plan[s.slot];
+    if (!type) continue; // unplanned slots fall back to shape-agnostic defaults
+    const shape = s.shape ?? 'mixed';
+    if (!typeCompatible(type, shape)) {
+      clashes.push({ slot: s.slot, planned_type: type, content_shape: shape });
+    }
+  }
+  return clashes;
 }
 
 /** Compile one skeleton + content model into a LayoutIR v2. */
@@ -80,10 +100,16 @@ export function diverge({ brief, content, profile, ledgerPath, denylist = loadDe
   const killed = killedSkeletons(brief.brief_id, ledgerPath);
   const killedIds = new Set(killed.map((k) => k.skeleton_id));
   const rejected = [];
+  const contentRejected = [];
   const clean = [];
 
   for (const skeleton of brief.skeleton_library ?? []) {
     if (killedIds.has(skeleton.id)) continue;
+    // S4 content-driven IA: a skeleton whose section plan fights the actual
+    // content SHAPE is rejected before sampling — structure serves content,
+    // never the genre prior (GLM F4: "IA is generated from the content model").
+    const clashes = contentClashes(skeleton, content);
+    if (clashes.length) { contentRejected.push({ skeleton_id: skeleton.id, clashes }); continue; }
     const ir = buildIR(skeleton, content, brief);
     const hits = slopMatches(ir, denylist);
     if (hits.length) rejected.push({ skeleton_id: skeleton.id, hits });
@@ -93,8 +119,9 @@ export function diverge({ brief, content, profile, ledgerPath, denylist = loadDe
   const rank = (list) => [...list].sort((a, b) => b.score - a.score);
   const nonWild = rank(clean.filter((c) => !c.skeleton.wildcard));
   const wilds = rank(clean.filter((c) => c.skeleton.wildcard));
-  if (!wilds.length) throw new Error(`diverge: no clean wildcard in the library (denylist rejected ${rejected.length}, killed excluded ${killedIds.size}) — a round-1 fleet requires exactly one`);
-  if (nonWild.length < FLEET_SIZE) throw new Error(`diverge: only ${nonWild.length} clean non-wildcard candidate(s) for a fleet of ${FLEET_SIZE} — re-diverge the skeleton library`);
+  const exclusions = `denylist ${rejected.length}, content-clash ${contentRejected.length}, killed ${killedIds.size}`;
+  if (!wilds.length) throw new Error(`diverge: no clean wildcard in the library (${exclusions}) — a round-1 fleet requires exactly one`);
+  if (nonWild.length < FLEET_SIZE) throw new Error(`diverge: only ${nonWild.length} clean non-wildcard candidate(s) for a fleet of ${FLEET_SIZE} (${exclusions}) — re-diverge the skeleton library`);
 
   const fleet = nonWild.slice(0, FLEET_SIZE);
   let pool = nonWild.slice(FLEET_SIZE);
@@ -158,6 +185,7 @@ export function diverge({ brief, content, profile, ledgerPath, denylist = loadDe
     wildcard_min: WILDCARD_MIN,
     distance: { matrix, min: { value: min.value, pair: min.pair } },
     denylist_rejected: rejected,
+    content_rejected: contentRejected,
     killed_excluded: killed,
     resample_log: resampleLog,
   };

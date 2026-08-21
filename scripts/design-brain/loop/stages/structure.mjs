@@ -44,6 +44,7 @@ export function structureStage(ctx) {
       distance_min_pair: set.distance.min.pair,
       distance_matrix: set.distance.matrix,
       denylist_rejected: set.denylist_rejected,
+      content_rejected: set.content_rejected,
       resample_log: set.resample_log,
     },
   };

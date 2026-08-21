@@ -15,27 +15,27 @@
         "slot": "hero",
         "heading": "Train with SwanStudios",
         "facts": [
-          "1-on-1 sessions: $175 per hour",
-          "30-minute express pack: 10 sessions for $1,100",
-          "NASM-protocol programming, 26+ years of coaching experience"
+          { "text": "1-on-1 sessions: $175 per hour", "source": "seeders/20260407-seed-storefront-packages.mjs" },
+          { "text": "30-minute express pack: 10 sessions for $1,100", "source": "seeders/20260407-seed-storefront-packages.mjs" },
+          { "text": "NASM-protocol programming, 26+ years of coaching experience", "source": "memory/user_trainer_credentials" }
         ]
       },
       {
         "slot": "packages",
         "heading": "Commit to a season, not a workout",
         "facts": [
-          "3-month program: $8,400",
-          "6-month program: $16,800",
-          "12-month transformation: $33,600"
+          { "text": "3-month program: $8,400", "source": "seeders/20260407-seed-storefront-packages.mjs" },
+          { "text": "6-month program: $16,800", "source": "seeders/20260407-seed-storefront-packages.mjs" },
+          { "text": "12-month transformation: $33,600", "source": "seeders/20260407-seed-storefront-packages.mjs" }
         ]
       },
       {
         "slot": "proof",
         "heading": "Every session becomes visible progress",
         "facts": [
-          "Workout logs turn into progress charts your trainer reviews with you",
-          "736-exercise library backs every program",
-          "Milestones are shareable with the community when YOU choose"
+          { "text": "Workout logs turn into progress charts your trainer reviews with you", "source": "product-core-loop" },
+          { "text": "736-exercise library backs every program", "source": "memory/project_exercise_database_736" },
+          { "text": "Milestones are shareable with the community when YOU choose", "source": "product-core-loop" }
         ]
       }
     ]
@@ -93,7 +93,7 @@
       "hero_mechanics": "full-bleed-plate-overlay-baseline-left",
       "grid": "single-column-narrative-880px",
       "card_budget": 0,
-      "section_plan": { "hero": "hero", "packages": "narrative-chapter", "proof": "media-plate" },
+      "section_plan": { "hero": "hero", "packages": "editorial-flow", "proof": "media-plate" },
       "anti_specs": [
         { "marker": "data-card", "why": "scroll narrative — chapters, not cards" }
       ],
