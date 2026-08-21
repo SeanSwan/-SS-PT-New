@@ -201,7 +201,7 @@ export const AvatarStyled = styled.div<{ $size?: number; $coach?: boolean }>`
   justify-content: center;
   font-size: ${props => (props.$size || 44) * 0.35}px;
   font-weight: 600;
-  color: var(--text-primary, #fff);
+  color: var(--text-on-accent, #fff);
   overflow: hidden;
   flex-shrink: 0;
   /* Coach presence (trainer/admin authors): the Gilded Fern luxury ring marks
@@ -479,7 +479,7 @@ export const TransformationEdgeLabel = styled.span<{ $side: 'left' | 'right' }>`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-primary, #fff);
+  color: #fff; /* swan-guard-allow-hex sits on a fixed rgba(0,0,0,0.6) scrim, not a themed surface */
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   padding: 0.25rem 0.625rem;
@@ -863,7 +863,7 @@ export const PlainButton = styled.button`
 export const ContainedButton = styled.button`
   border: none;
   background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--arctic-cyan, #50A0F0));
-  color: var(--text-primary, #fff);
+  color: var(--text-on-accent, #fff);
   padding: 6px 16px;
   font-size: 0.875rem;
   font-family: inherit;

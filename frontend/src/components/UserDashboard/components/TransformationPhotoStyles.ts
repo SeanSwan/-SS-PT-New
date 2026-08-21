@@ -135,7 +135,7 @@ export const PhotoLabel = styled.span<{ $side: 'left' | 'right' }>`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text-primary, #fff);
+  color: #fff; /* swan-guard-allow-hex sits on a fixed rgba(0,0,0,0.6) scrim, not a themed surface */
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   padding: 0.25rem 0.625rem;
