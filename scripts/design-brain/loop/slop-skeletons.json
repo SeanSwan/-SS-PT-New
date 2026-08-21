@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "doctrine": "Machine-checkable fingerprints of the modal AI page (blueprint §S2; Grok 2 'template prior collapse', Kimi F2 'ban-list at generation, not critique'). Entries are STRUCTURAL predicates over the LayoutIR — geometry, sequence, and cardinality. AND-semantics within an entry. Adding an entry is a data change; the gate rejects and resamples on the next round with no code change.",
+  "entries": [
+    {
+      "id": "hero-3card-cta",
+      "why": "The modal SaaS landing page: centered hero, three equal cards, CTA band. The single most recognizable AI-slop skeleton.",
+      "match": { "hero_family": "centered", "min_cards": 3 }
+    },
+    {
+      "id": "card-grid-section",
+      "why": "Any card-grid section — card sprawl is Sean's standing complaint. Predicate is unconditional today; surface-scoped denylist entries arrive when a brief class legitimately needs cards (make it a data change, not a code change).",
+      "match": { "section_present": "card-grid" }
+    },
+    {
+      "id": "glass-bento",
+      "why": "Bento-grid glassmorphism — the 2024-25 template attractor.",
+      "match": { "grid_family": "bento" }
+    },
+    {
+      "id": "icon-bullet-rows",
+      "why": "Icon-left bullet rows in runs — decorative uniformity, zero information scent.",
+      "match": { "section_run": { "type": "icon-bullets", "min_run": 2 } }
+    },
+    {
+      "id": "logo-cloud-then-features",
+      "why": "Logo cloud immediately followed by a feature grid — borrowed-credibility template flow.",
+      "match": { "section_sequence": ["logo-cloud", "card-grid"] }
+    },
+    {
+      "id": "stats-4up-symmetric",
+      "why": "Exactly-four equal KPI tiles — the symmetric stats bar every generator emits under uncertainty.",
+      "match": { "section_cardinality": { "type": "kpi-strip", "equals": 4 } }
+    }
+  ]
+}

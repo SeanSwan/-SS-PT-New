@@ -70,6 +70,12 @@ export function inspectHtml(html, ir) {
   const stamp = html.match(/data-skeleton="([^"]+)"/)?.[1] ?? null;
   meters.push({ meter: 'skeleton_stamp', value: stamp, pass: stamp === ir.skeleton_id });
 
+  // 2b. Section-TYPE sequence round-trips (S2): the closed-vocabulary types the
+  // IR declared must appear in the DOM, in order — structure reached markup.
+  const domTypes = [...html.matchAll(/data-section-type="([^"]+)"/g)].map((m) => m[1]);
+  const irTypes = ir.zones.map((z) => z.section_type);
+  meters.push({ meter: 'section_types_roundtrip', value: { dom: domTypes, ir: irTypes }, pass: JSON.stringify(domTypes) === JSON.stringify(irTypes) });
+
   // 3. WCAG contrast >= 4.5:1 on every used fg/bg token pair (Rule 7).
   for (const p of usedPairs(html)) {
     const ratio = Math.round(contrastRatio(p.fg, p.bg) * 100) / 100;

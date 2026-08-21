@@ -12,6 +12,8 @@
  * machine throws with the state name attached.
  */
 
+import { SECTION_TYPES } from './ir.mjs';
+
 const isStr = (v) => typeof v === 'string' && v.length > 0;
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 
@@ -72,11 +74,27 @@ export function validateLayoutIR(ir) {
   for (const z of ir.zones || []) {
     if (!isStr(z.zone)) bad.push('zone missing id');
     if (!isStr(z.content_slot)) bad.push(`zone ${z.zone}: content_slot required (every zone carries real content)`);
+    if (!SECTION_TYPES.includes(z.section_type)) bad.push(`zone ${z.zone}: section_type must be from the closed vocabulary (got "${z.section_type}")`);
+    if (!Number.isInteger(z.cardinality) || z.cardinality < 0) bad.push(`zone ${z.zone}: cardinality integer required (module count is fingerprint input)`);
     if (slots.has(z.zone)) bad.push(`duplicate zone id: ${z.zone}`);
     slots.add(z.zone);
   }
   if (!Number.isInteger(ir.card_budget) || ir.card_budget < 0) bad.push('card_budget integer required (anti card-sprawl meter input)');
   if (!Array.isArray(ir.anti_specs)) bad.push('anti_specs[] required (what this direction REFUSES to do)');
+  if (!isStr(ir.focal_point)) bad.push('focal_point required (S2 IR)');
+  if (!ir.density_map || typeof ir.density_map !== 'object') bad.push('density_map required (S2 IR)');
+  // S2 divergence evidence — the gate's numbers must ride the artifact.
+  const ds = ir.direction_set;
+  if (!ds || typeof ds !== 'object') bad.push('direction_set evidence required (S2: a lone IR with no proven fleet is a mode sample)');
+  else {
+    if (!Array.isArray(ds.fleet) || ds.fleet.length < 4) bad.push('direction_set.fleet requires >=4 directions (3 + wildcard)');
+    if (!isNum(ds.distance_min) || !isNum(ds.tau) || ds.distance_min < ds.tau) {
+      bad.push(`direction_set.distance_min (${ds?.distance_min}) must be >= tau (${ds?.tau}) — the spread must be proven, not asserted`);
+    }
+    const rejectedIds = new Set((ds.denylist_rejected ?? []).map((r) => r.skeleton_id));
+    if ((ds.fleet ?? []).some((f) => rejectedIds.has(f.skeleton_id))) bad.push('a denylist-rejected skeleton appears in the fleet');
+    if (!Array.isArray(ds.resample_log)) bad.push('direction_set.resample_log[] required (even when empty — silence must be explicit)');
+  }
   return bad;
 }
 

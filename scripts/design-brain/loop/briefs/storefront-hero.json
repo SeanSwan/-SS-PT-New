@@ -47,6 +47,7 @@
       "hero_mechanics": "split-asymmetric-price-ledger-right",
       "grid": "12col-asymmetric-7-5",
       "card_budget": 0,
+      "section_plan": { "hero": "hero", "packages": "price-ledger", "proof": "proof-list" },
       "anti_specs": [
         { "marker": "data-card", "why": "no cards anywhere — the price ledger IS the composition" }
       ],
@@ -58,6 +59,7 @@
       "hero_mechanics": "single-column-editorial-price-inline",
       "grid": "single-column-editorial-680px",
       "card_budget": 0,
+      "section_plan": { "hero": "hero", "packages": "editorial-flow", "proof": "editorial-flow" },
       "anti_specs": [
         { "marker": "data-card", "why": "no card grids — editorial flow only" }
       ],
@@ -69,6 +71,7 @@
       "hero_mechanics": "centered-fullbleed-stacked-text",
       "grid": "3col-card-grid",
       "card_budget": 3,
+      "section_plan": { "hero": "hero", "packages": "card-grid", "proof": "cta-band" },
       "anti_specs": [],
       "wildcard": false
     },
@@ -78,10 +81,35 @@
       "hero_mechanics": "no-hero-kpi-strip-prices-first",
       "grid": "2col-data-grid",
       "card_budget": 0,
+      "section_plan": { "hero": "kpi-strip", "packages": "data-table", "proof": "proof-list" },
       "anti_specs": [
         { "marker": "data-card", "why": "operational surface — numbers, not cards" }
       ],
       "wildcard": true
+    },
+    {
+      "id": "SF5-narrative-scroll",
+      "nav_model": "sticky-progress-rail",
+      "hero_mechanics": "full-bleed-plate-overlay-baseline-left",
+      "grid": "single-column-narrative-880px",
+      "card_budget": 0,
+      "section_plan": { "hero": "hero", "packages": "narrative-chapter", "proof": "media-plate" },
+      "anti_specs": [
+        { "marker": "data-card", "why": "scroll narrative — chapters, not cards" }
+      ],
+      "wildcard": false
+    },
+    {
+      "id": "SF6-table-first",
+      "nav_model": "top-bar-utility",
+      "hero_mechanics": "table-first-no-imagery",
+      "grid": "2col-data-dense",
+      "card_budget": 0,
+      "section_plan": { "hero": "data-table", "packages": "kpi-strip", "proof": "faq" },
+      "anti_specs": [
+        { "marker": "data-card", "why": "dense utility surface — tables and figures only" }
+      ],
+      "wildcard": false
     }
   ]
 }
