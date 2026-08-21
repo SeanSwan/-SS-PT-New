@@ -95,6 +95,39 @@ describe('AI rate limiter — state hygiene (S6)', () => {
     expect(checkRateLimit(USER).allowed).toBe(true);
   });
 
+  it('S6-4: the periodic sweep actually runs without throwing', async () => {
+    // The sweep closure references `rateLimitHits`, which is declared ~145 lines
+    // BELOW the setInterval that uses it. That is legal (the callback runs long
+    // after module evaluation) but it is exactly the shape that produces a silent
+    // ReferenceError if anything is ever reordered — and the timer only fires every
+    // five minutes, so nothing would notice until well into a production process.
+    //
+    // Fake timers must be installed BEFORE the module evaluates, so the interval is
+    // registered against them. Hence resetModules + dynamic import rather than the
+    // top-level import the other tests use.
+    vi.resetModules();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-21T00:00:00.000Z'));
+
+    const mod = await import('../../services/ai/rateLimiter.mjs');
+
+    // Give the sweep something to prune in every map it touches.
+    for (let i = 0; i < 5; i += 1) {
+      mod.checkRateLimit(4242);
+      mod.releaseConcurrent(4242);
+    }
+    mod.checkRateLimit(4243); // leaves a concurrent lock held, never released
+
+    // Past both the cleanup interval and the concurrent-lock timeout.
+    expect(() => vi.advanceTimersByTime(6 * 60 * 1000)).not.toThrow();
+
+    // The swept-away lock must genuinely be gone: the same user is allowed again
+    // WITHOUT relying on the auto-release path inside checkRateLimit.
+    expect(mod.checkRateLimit(4243).allowed).toBe(true);
+
+    mod.resetAll();
+  });
+
   it('S6-3: a stuck concurrent lock auto-releases after the timeout', () => {
     expect(checkRateLimit(USER).allowed).toBe(true);
     // Never released — simulate a crashed request.
