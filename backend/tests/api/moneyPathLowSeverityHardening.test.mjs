@@ -114,6 +114,16 @@ describe('Kimi L4 — VIP amount comes from Stripe, not from a constant', () => 
     expect(source).toMatch(/amount:[\s\S]{0,300}session\.amount_total/);
   });
 
+  it('the PRICE_CHANGED condition resolves the same way its payload does', () => {
+    // The payload was fixed to use resolveUnitPrice while the CONDITION was left
+    // reading dbItem.price, so a correctly-priced totalCost-only package was
+    // still listed as PRICE_CHANGED with a delta of zero — nonsense shown to a
+    // customer already looking at an error.
+    const ach = executableSource('../../routes/achPaymentRoutes.mjs');
+    expect(ach).not.toMatch(/else if \(Number\(dbItem\.price\) !== clientItem\.price\)/);
+    expect(ach).toContain('advisoryPrice !== clientItem.price');
+  });
+
   it('keeps 175 only as a fallback, never as the primary value', () => {
     expect(source).not.toMatch(/^\s*amount: 175,\s*$/m);
   });
