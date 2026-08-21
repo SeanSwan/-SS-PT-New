@@ -15,21 +15,19 @@
  * slices (require OPERATION_SIGNING_KEY; move `pendingOps` to a shared store)
  * cannot weaken the contract while refactoring it.
  *
+ * SPLIT 2026-08-21: the S2 store-seam cases (tamper rejection A15-A17, store
+ * safety guard A18-A22) moved to destructiveOperationsStoreSeam.test.mjs when this
+ * file crossed the 300-line cap (Rule 4). They are a different slice testing a
+ * different subject; this file stays the S11 approval-lane lock.
+ *
  * See: docs/ai-workflow/AI-HANDOFF/SWAN-COACH-JARVIS-READINESS-CORRECTED-2026-08-21.md
  */
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   cancelOperation,
   prepareDestructiveOperation,
   verifyAndRetrieveOperation,
 } from '../../services/ai/destructiveOperations.mjs';
-import {
-  assertStoreIsSafeForEnvironment,
-  createInProcessStore,
-  getPendingOperationStore,
-  resetPendingOperationStore,
-  setPendingOperationStore,
-} from '../../services/ai/pendingOperationStore.mjs';
 
 const OWNER = 1001;
 const ATTACKER = 2002;
@@ -94,8 +92,16 @@ describe('approval lane — adversarial lock (S11)', () => {
   it('A5: params are frozen at mint — the caller cannot alter them at confirm time', () => {
     const pending = mint(OWNER, { commandParams: { id: 184, cascade: false } });
 
-    // The confirm contract takes ONLY (operationId, userId). There is no parameter
-    // channel at confirm time — this is the property the audit claimed was missing.
+    // WHAT THIS DOES AND DOES NOT PROVE. `Function.length` stops counting at the
+    // first parameter with a default, so a third OPTIONAL argument — the most likely
+    // shape for a regression that reintroduced a confirm-time params channel — would
+    // sail past this. It is a cheap tripwire on the service helper's shape, nothing
+    // more. The load-bearing assertion is the stored-params check below: params come
+    // from the record minted earlier, never from the confirm call.
+    //
+    // Neither assertion reaches the HTTP layer. A route handler could still read a
+    // body flag and skip the ceremony; only an API-level test of POST /confirm would
+    // rule that out, and this file does not have one. Tracked in SWA-142.
     expect(verifyAndRetrieveOperation).toHaveLength(2);
 
     const result = verifyAndRetrieveOperation(pending.operationId, OWNER);
@@ -183,145 +189,6 @@ describe('approval lane — adversarial lock (S11)', () => {
     expect(pending.requiresConfirmation).toBe(true);
 
     cancelOperation(pending.operationId, OWNER);
-  });
-});
-
-/**
- * A15-A17 exist because of the S2 store seam. Before it, `pendingOps` was a
- * module-private Map and no test could mutate a stored record between mint and
- * verify — so tamper-rejection could only be READ, never asserted. A6 said so and
- * promised these tests. Here they are.
- */
-describe('approval lane — tamper rejection (S2 seam)', () => {
-  afterEach(() => resetPendingOperationStore());
-
-  /** A store that lets a test mutate the record after it is minted. */
-  function tamperingStore(mutate) {
-    const inner = createInProcessStore();
-    return {
-      ...inner,
-      kind: 'tampering-test-double',
-      durable: false,
-      get: (id) => {
-        const op = inner.get(id);
-        if (!op) return op;
-        mutate(op);
-        return op;
-      },
-      get size() { return inner.size; },
-    };
-  }
-
-  it('A15: tampering with params after mint is rejected, and destroys the operation', () => {
-    setPendingOperationStore(tamperingStore((op) => { op.params = { id: 999 }; }));
-
-    const pending = mint(OWNER, { commandParams: { id: 184 } });
-    const result = verifyAndRetrieveOperation(pending.operationId, OWNER);
-
-    expect(result.verified).toBe(false);
-    expect(result.operation).toBeNull();
-    expect(result.error).toMatch(/signature invalid|tampering/i);
-
-    // Destroyed on detection — a tampered operation must not survive for a retry.
-    expect(getPendingOperationStore().get(pending.operationId)).toBeUndefined();
-  });
-
-  it('A16: tampering with commandType is rejected (the HMAC covers it)', () => {
-    // commandType was added to the signed payload deliberately. If it ever falls out
-    // of signOperation(), an attacker who could reach the store could swap a low-risk
-    // command for a destructive one and keep a valid signature. This test fails if
-    // that regression happens.
-    setPendingOperationStore(tamperingStore((op) => { op.commandType = 'delete_client'; }));
-
-    const pending = mint(OWNER, { commandType: 'cancel_session' });
-    const result = verifyAndRetrieveOperation(pending.operationId, OWNER);
-
-    expect(result.verified).toBe(false);
-    expect(result.error).toMatch(/signature invalid|tampering/i);
-  });
-
-  it('A17: tampering with createdBy is rejected (ownership cannot be reassigned)', () => {
-    setPendingOperationStore(tamperingStore((op) => { op.createdBy = ATTACKER; }));
-
-    const pending = mint(OWNER);
-
-    // The ownership check runs before signature verification, so the attacker is
-    // stopped there. Either gate is an acceptable rejection — what must never happen
-    // is a verified:true.
-    expect(verifyAndRetrieveOperation(pending.operationId, ATTACKER).verified).toBe(false);
-    expect(verifyAndRetrieveOperation(pending.operationId, OWNER).verified).toBe(false);
-  });
-});
-
-describe('store safety guard (S2)', () => {
-  afterEach(() => resetPendingOperationStore());
-
-  it('A18: the in-process store is flagged UNSAFE in production', () => {
-    const logged = [];
-    const result = assertStoreIsSafeForEnvironment({
-      nodeEnv: 'production',
-      store: createInProcessStore(),
-      log: { error: (msg, meta) => logged.push({ msg, meta }) },
-    });
-
-    expect(result.safe).toBe(false);
-    expect(result.reason).toMatch(/cannot be confirmed on another/i);
-    expect(logged).toHaveLength(1);
-    expect(logged[0].meta.durable).toBe(false);
-    expect(logged[0].meta.remedy).toMatch(/REDIS_URL/);
-  });
-
-  it('A19: the in-process store is fine outside production, and never throws', () => {
-    for (const nodeEnv of ['development', 'test', undefined]) {
-      const result = assertStoreIsSafeForEnvironment({
-        nodeEnv,
-        store: createInProcessStore(),
-        log: { error: () => { throw new Error('must not log in non-production'); } },
-      });
-      expect(result.safe).toBe(true);
-    }
-  });
-
-  it('A20: a durable store passes the guard even in production', () => {
-    const durable = { ...createInProcessStore(), kind: 'redis', durable: true };
-    const result = assertStoreIsSafeForEnvironment({
-      nodeEnv: 'production',
-      store: durable,
-      log: { error: () => { throw new Error('must not log for a durable store'); } },
-    });
-
-    expect(result.safe).toBe(true);
-  });
-
-  it('A22: an EXPIRED operation is rejected and destroyed', () => {
-    // Gap found in the S2 hostile round: A12 asserts the TTL is finite but nothing
-    // asserted that expiry is actually ENFORCED. Before the seam this could not be
-    // tested without faking timers, because the stored record was unreachable.
-    const inner = createInProcessStore();
-    setPendingOperationStore({
-      ...inner,
-      get: (id) => {
-        const op = inner.get(id);
-        if (op) op.expiresAt = new Date(Date.now() - 1000).toISOString();
-        return op;
-      },
-      get size() { return inner.size; },
-    });
-
-    const pending = mint(OWNER);
-    const result = verifyAndRetrieveOperation(pending.operationId, OWNER);
-
-    expect(result.verified).toBe(false);
-    expect(result.operation).toBeNull();
-    expect(result.error).toMatch(/expired/i);
-
-    // An expired operation must not linger for a second attempt.
-    expect(getPendingOperationStore().get(pending.operationId)).toBeUndefined();
-  });
-
-  it('A21: setPendingOperationStore rejects a malformed store', () => {
-    expect(() => setPendingOperationStore(null)).toThrow(/requires a store/i);
-    expect(() => setPendingOperationStore({ get: () => {} })).toThrow(/requires a store/i);
   });
 });
 

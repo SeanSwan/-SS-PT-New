@@ -14,9 +14,20 @@ const OPERATION_SECRET = process.env.OPERATION_SIGNING_KEY || crypto.randomBytes
 const MAX_AI_BULK_DELETE = 50;
 const OPERATION_TTL_SECONDS = 120;
 
-// The pending-approval store now lives behind an injectable seam. Default
-// behaviour is byte-for-byte the previous in-process Map; see
-// pendingOperationStore.mjs for WHY the seam exists and what S2b must still do.
+// The pending-approval store now lives behind an injectable seam.
+//
+// This is a PARTIAL Map facade, not a Map. It exposes exactly the five methods this
+// module calls — audited 2026-08-21 across all 14 call sites: get x3, set x2,
+// delete x7, entries x1, values x1. It deliberately does NOT expose size, has,
+// clear, forEach or [Symbol.iterator]. An earlier comment here claimed the facade
+// was "byte-for-byte the previous in-process Map", which was false and was caught in
+// review; three seats independently asked whether a dropped method broke a call site.
+// It does not — but the claim was wider than the evidence, which is the exact failure
+// this workstream exists to correct.
+//
+// If you add a call site needing another Map method, add it here AND to every store
+// implementation, or it will be undefined at runtime rather than a clean error.
+// See pendingOperationStore.mjs for WHY the seam exists and what S2b must still do.
 const pendingOps = {
   get: (id) => getPendingOperationStore().get(id),
   set: (id, op) => getPendingOperationStore().set(id, op),

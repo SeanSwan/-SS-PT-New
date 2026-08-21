@@ -157,6 +157,36 @@ export function releaseConcurrent(userId) {
 }
 
 /**
+ * Test-only inspection of the store sizes.
+ *
+ * WHY THIS EXISTS: the sweep's eviction of `rateLimitHits` and stale
+ * `concurrentUsers` is a pure MEMORY property with NO behavioural signature.
+ * `logSuspicious()` already filters stale hits on every call, so whether or not the
+ * sweep pruned them, the count it computes is identical. A test written against
+ * observable behaviour therefore passes with the sweep loop deleted — verified by
+ * mutation, after a first attempt at exactly such a test did precisely that.
+ *
+ * The sibling limiter in middleware/authMiddleware.mjs hit the same wall, and its
+ * test file records that proving the sweep "would need a test seam in runtime code".
+ * This is that seam: the smallest possible read-only window, so "the sweep evicts"
+ * can be asserted rather than asserted-about.
+ *
+ * Returns COUNTS ONLY — never keys, never timestamps — so it cannot leak user ids
+ * (Rule 8) even if something ever logs its output.
+ *
+ * @returns {{ perMinute: number, perHour: number, global: number, concurrent: number, suspicious: number }}
+ */
+export function __inspectStateSizes() {
+  return {
+    perMinute: userRequestsPerMinute.size,
+    perHour: userRequestsPerHour.size,
+    global: globalRequests.length,
+    concurrent: concurrentUsers.size,
+    suspicious: rateLimitHits.size,
+  };
+}
+
+/**
  * Reset ALL rate limit state, including the suspicious-hit tracker. Used in tests.
  *
  * S6: this previously cleared four of the five state maps and left `rateLimitHits`

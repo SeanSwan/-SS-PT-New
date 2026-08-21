@@ -12,11 +12,16 @@
  *
  * TREAT EVERY NUMBER IN THIS BLOCK AS WRONG. It is a rough category map, never a
  * figure to quote. To get the real number, count:
- *   getAllCommands().length   (after initializeRegistry())
- * and for what each command can actually DO, use getCommandExecutionLane() -- a
- * definition existing is not the same as a capability working. At 2026-08-21,
- * 139 commands split: 112 server_dispatch, 18 frontend_event, 4 debate_async,
- * 4 manual_only, 1 chat_fallback -- so 5 cannot execute at all.
+ *   getAllCommands().length              (after initializeRegistry())
+ * and for what each command can actually DO:
+ *   getCommandExecutionLane(command)     -- a definition existing is not the same
+ *                                           as a capability working.
+ *
+ * No live lane counts are written here on purpose. A first draft of this comment
+ * added a dated snapshot of the split, which is the very mechanism that made 119
+ * and 134 stale — a block that says "every number here is wrong" must not then
+ * mint five more. The authoritative, self-updating split is asserted in
+ * tests/unit/commandRegistryCoverage.test.mjs, which fails when it drifts.
  *
  * A: Client Management (14)   B: Workouts (17)      C: Scheduling (10)
  * D: Health & Pain (8)        E: Nutrition (6)       F: Social (6)

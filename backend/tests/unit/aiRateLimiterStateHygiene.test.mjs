@@ -33,15 +33,18 @@ function provokeRateLimitHits(userId, times) {
       checkRateLimit(userId);
       releaseConcurrent(userId);
     }
-    resetMinuteBudgetOnly(userId);
+    advancePastMinuteWindow();
   }
 }
 
 /**
- * Clear only the per-minute budget so the next burst can hit the limit again,
- * WITHOUT touching rateLimitHits — which is the state under test.
+ * Move the clock past the per-minute window so the next burst can hit the limit
+ * again. Named for what it does: an earlier version was called
+ * `resetMinuteBudgetOnly(userId)` — it took a parameter its signature did not
+ * declare, and it does not reset anything or touch only the minute budget. It
+ * advances the whole clock, which ages every window at once.
  */
-function resetMinuteBudgetOnly() {
+function advancePastMinuteWindow() {
   vi.setSystemTime(new Date(Date.now() + 61_000));
 }
 
@@ -121,9 +124,42 @@ describe('AI rate limiter — state hygiene (S6)', () => {
     // Past both the cleanup interval and the concurrent-lock timeout.
     expect(() => vi.advanceTimersByTime(6 * 60 * 1000)).not.toThrow();
 
-    // The swept-away lock must genuinely be gone: the same user is allowed again
-    // WITHOUT relying on the auto-release path inside checkRateLimit.
-    expect(mod.checkRateLimit(4243).allowed).toBe(true);
+    mod.resetAll();
+  });
+
+  it('S6-5: the sweep EVICTS stale rateLimitHits and concurrentUsers keys', async () => {
+    // MUTATION-VERIFIED: delete either sweep loop in rateLimiter.mjs and this fails.
+    //
+    // A behavioural version of this test was written first and was WRONG: it drove
+    // the suspicious counter and asserted no warning fired after the sweep. It passed
+    // with the sweep loop deleted, because logSuspicious() already filters stale hits
+    // on every call — so eviction has no behavioural signature at all. Only the map
+    // sizes distinguish "pruned" from "merely filtered", hence __inspectStateSizes().
+    vi.resetModules();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-21T00:00:00.000Z'));
+
+    const mod = await import('../../services/ai/rateLimiter.mjs');
+
+    // Arm both maps: user 7777 trips the limit (rateLimitHits), user 8888 takes a
+    // concurrent lock and never releases it (concurrentUsers).
+    for (let i = 0; i < 4; i += 1) {
+      mod.checkRateLimit(7777);
+      mod.releaseConcurrent(7777);
+    }
+    mod.checkRateLimit(8888);
+
+    const armed = mod.__inspectStateSizes();
+    expect(armed.suspicious).toBeGreaterThan(0);
+    expect(armed.concurrent).toBeGreaterThan(0);
+
+    // Past SUSPICIOUS_WINDOW_MS, past CONCURRENT_LOCK_TIMEOUT_MS, and past the
+    // 5-minute cleanup interval so the sweep fires with everything stale.
+    vi.advanceTimersByTime(11 * 60 * 1000);
+
+    const swept = mod.__inspectStateSizes();
+    expect(swept.suspicious).toBe(0);
+    expect(swept.concurrent).toBe(0);
 
     mod.resetAll();
   });

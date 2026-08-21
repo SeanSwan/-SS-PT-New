@@ -23,8 +23,10 @@
  * WHAT THIS MODULE DOES NOT DO: it does not yet ship a Redis implementation.
  * The store API here is deliberately SYNCHRONOUS, matching the existing
  * behaviour exactly, because a Redis implementation could not be verified in
- * this slice (no Redis server and no test double available) and shipping an
- * unproven durable-store path would be worse than shipping none.
+ * this slice — no Redis SERVER was reachable and `ioredis-mock` is not a
+ * dependency — and shipping an unproven durable-store path would be worse than
+ * shipping none. (Hand-written in-process doubles for the seam itself are trivial
+ * and the tests use several; a faithful Redis double is a different problem.)
  *
  * The remaining work is tracked as S2b and is gated on confirming `REDIS_URL`
  * on the Render service. Two things S2b must handle, discovered here:
@@ -78,8 +80,17 @@ export function getPendingOperationStore() {
  * Returns the previous store so a test can restore it in a finally block.
  */
 export function setPendingOperationStore(store) {
-  if (!store || typeof store.get !== 'function' || typeof store.set !== 'function') {
-    throw new Error('setPendingOperationStore requires a store with get/set/delete');
+  // Validate every method the approval lane actually calls. An earlier version
+  // checked only get/set while its own message promised get/set/delete — so a store
+  // that could not CONSUME an operation installed cleanly and would have broken
+  // one-time consumption, which is the whole point of the lane. Flagged by three
+  // review seats; the message and the check now agree.
+  const required = ['get', 'set', 'delete', 'entries', 'values'];
+  const missing = store ? required.filter((m) => typeof store[m] !== 'function') : required;
+  if (missing.length > 0) {
+    throw new Error(
+      `setPendingOperationStore requires a store with ${required.join('/')} — missing: ${missing.join(', ')}`
+    );
   }
   const previous = activeStore;
   activeStore = store;

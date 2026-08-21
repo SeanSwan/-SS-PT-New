@@ -29,6 +29,8 @@ export default defineConfig({
     // Known-red VITEST files are deliberately NOT here — they stay visible in
     // the suite and recorded in tests/known-failing-baseline.json with
     // classifications; an exclude list must never become a hiding place.
+    // Burn-down of those 7 baselined files is tracked: SWA-142 (idorAuditReader
+    // Controls is security-adjacent — highest priority of the seven).
     exclude: [
       'node_modules', 'dist', 'tests/integration/**',
 'tests/unit/bracket.test.mjs',

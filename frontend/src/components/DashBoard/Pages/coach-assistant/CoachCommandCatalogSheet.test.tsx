@@ -124,6 +124,27 @@ describe('CoachCommandCatalogSheet', () => {
     expect(await screen.findByText('Not available')).toBeInTheDocument();
   });
 
+
+  it('falls back to the SAFE label for an unrecognised lane, not to a manual-only claim', async () => {
+    // GLM m2: an earlier version folded default into manual_only, so an unknown lane
+    // string - or canExecute:false with no lane at all - asserted a specific and
+    // possibly false claim ('has to be done by hand') about a lane it did not know.
+    getMock.mockResolvedValue({
+      data: {
+        success: true,
+        commands: [
+          { type: 'future_lane_cmd', category: 'System', examples: ['Do the thing'], executionLane: 'some_future_lane', canExecute: false },
+          { type: 'no_lane_cmd', category: 'System', examples: ['Do the other thing'], canExecute: false },
+        ],
+      },
+    });
+    render(<CoachCommandCatalogSheet open onClose={() => undefined} onUsePrompt={() => undefined} />);
+
+    expect(await screen.findByText('Future lane cmd')).toBeInTheDocument();
+    expect(screen.queryByText('Do it yourself')).not.toBeInTheDocument();
+    expect(screen.queryAllByText('Not available')).toHaveLength(2);
+  });
+
   it('fails honestly when the registry cannot be loaded', async () => {
     getMock.mockRejectedValue(new Error('boom'));
     render(<CoachCommandCatalogSheet open onClose={() => undefined} onUsePrompt={() => undefined} />);

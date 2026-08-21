@@ -70,11 +70,19 @@ function availabilityLabel(command: CatalogCommand): { label: string; reason: st
         reason: 'This is defined but has no action behind it yet.',
       };
     case 'manual_only':
-    default:
       return {
         label: 'Do it yourself',
         reason: command.manualOnlyReason?.trim()
           || 'This one has to be done by hand — Swan Coach can walk you through it, but cannot perform it.',
+      };
+    default:
+      // An unrecognised lane, or `canExecute: false` with no lane at all, must fall
+      // back to the SAFE label. An earlier version folded default into manual_only,
+      // which asserted a specific and possibly false claim ("has to be done by hand")
+      // about a lane it did not recognise.
+      return {
+        label: 'Not available',
+        reason: 'Swan Coach cannot run this one right now.',
       };
   }
 }
