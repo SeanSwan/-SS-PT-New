@@ -19,6 +19,7 @@ import { protect } from '../middleware/authMiddleware.mjs';
 import { aiCommandLaneKillSwitch, aiCommandRateLimiter } from '../middleware/aiCommandGuards.mjs';
 import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { recordCommandAudit } from '../services/ai/commandAudit.mjs';
+import { recordUnhandledUtterance } from '../services/ai/unhandledUtteranceAudit.mjs';
 import sequelize from '../database.mjs';
 import { getModel } from '../models/index.mjs';
 import { createAccessibleClientIdentitySanitizer } from '../services/ai/accessibleClientIdentityPrivacy.mjs';
@@ -235,6 +236,19 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
     });
 
     if (ctx.error) {
+      // F1: an intent the classifier INVENTED (no registry match) is the
+      // classifier-drift signal — record it before the response goes out.
+      // Fire-and-forget: recordUnhandledUtterance never throws.
+      if ((ctx.result?.code || '') === 'UNKNOWN_INTENT') {
+        void recordUnhandledUtterance({
+          userId: user.id,
+          userRole: user.role,
+          input: promptInputs.message,
+          kind: 'unknown_intent',
+          surface: normalizedRouteContext?.surface ?? null,
+          phantomIntent: ctx.intent?.intent ?? null,
+        });
+      }
       return res.json({
         success: false,
         type: 'error',
@@ -250,6 +264,15 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
 
     // Handle different result types
     if (ctx.intent?.intent === 'chat' || ctx.intent?.intent === 'clarification_needed') {
+      // F1: the utterance did not become a command — the product's richest
+      // roadmap signal, previously discarded here (see unhandledUtteranceAudit.mjs).
+      void recordUnhandledUtterance({
+        userId: user.id,
+        userRole: user.role,
+        input: promptInputs.message,
+        kind: ctx.intent.intent === 'chat' ? 'chat' : 'clarification_needed',
+        surface: normalizedRouteContext?.surface ?? null,
+      });
       return res.json({
         success: true,
         type: ctx.intent.intent,
@@ -432,6 +455,25 @@ router.get('/metrics/summary', protect, async (req, res) => {
   } catch (err) {
     logAICommandRouteError('[AICommand] Metrics summary error', err, req);
     res.status(500).json({ success: false, error: 'Failed to build command metrics summary' });
+  }
+});
+
+// ── GET /metrics/unhandled — Top asks Swan Coach could not act on (admin-only) ─
+// F1: the weekly product-discovery read. Cadence: read top-10 weekly, convert
+// 2-3 recurring asks per sprint into registry commands. Same lazy-import pattern
+// as /metrics/summary, same admin gate.
+
+router.get('/metrics/unhandled', protect, async (req, res) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ success: false, error: 'Admin access required' });
+  }
+  try {
+    const { buildUnhandledUtteranceTop } = await import('../services/ai/unhandledUtteranceAudit.mjs');
+    const report = await buildUnhandledUtteranceTop({ days: req.query.days, limit: req.query.limit });
+    res.json({ success: true, ...report });
+  } catch (err) {
+    logAICommandRouteError('[AICommand] Unhandled-utterance report error', err, req);
+    res.status(500).json({ success: false, error: 'Failed to build unhandled-utterance report' });
   }
 });
 
