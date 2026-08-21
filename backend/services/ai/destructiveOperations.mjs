@@ -8,13 +8,22 @@
  */
 import crypto from 'crypto';
 import logger from '../../utils/logger.mjs';
+import { getPendingOperationStore } from './pendingOperationStore.mjs';
 
 const OPERATION_SECRET = process.env.OPERATION_SIGNING_KEY || crypto.randomBytes(32).toString('hex');
 const MAX_AI_BULK_DELETE = 50;
 const OPERATION_TTL_SECONDS = 120;
 
-// In-memory store (fallback when Redis is disabled — which it currently is in production)
-const pendingOps = new Map();
+// The pending-approval store now lives behind an injectable seam. Default
+// behaviour is byte-for-byte the previous in-process Map; see
+// pendingOperationStore.mjs for WHY the seam exists and what S2b must still do.
+const pendingOps = {
+  get: (id) => getPendingOperationStore().get(id),
+  set: (id, op) => getPendingOperationStore().set(id, op),
+  delete: (id) => getPendingOperationStore().delete(id),
+  entries: () => getPendingOperationStore().entries(),
+  values: () => getPendingOperationStore().values(),
+};
 
 // Cleanup expired ops every 60s — unref() allows Node to exit cleanly in tests
 const cleanupTimer = setInterval(() => {

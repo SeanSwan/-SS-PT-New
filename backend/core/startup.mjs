@@ -644,6 +644,20 @@ export const initializeServer = async (app) => {
         }
 
         try {
+          // S2 (2026-08-21). Reports at ERROR level when the destructive-approval
+          // store is in-process while NODE_ENV=production — approvals then cannot
+          // survive a restart or cross instances, and the HMAC guarding them is
+          // inert. Deliberately does NOT throw: the condition has been latent for
+          // months and the remedy (provisioning Redis) is not something the process
+          // can perform for itself, so refusing to boot would convert a silent
+          // defect into an outage. Makes it visible in Render logs and alerting.
+          const { assertStoreIsSafeForEnvironment } = await import('../services/ai/pendingOperationStore.mjs');
+          assertStoreIsSafeForEnvironment();
+        } catch (storeGuardErr) {
+          logger.warn(`Pending-operation store guard failed to run: ${storeGuardErr.message}`);
+        }
+
+        try {
           // Workout-OS C6b. No-op unless ENABLE_STALE_CLIENT_NUDGES=true (kill switch).
           const { startStaleClientNudgeScheduler } = await import('../services/staleClientNudgeCron.mjs');
           startStaleClientNudgeScheduler();
