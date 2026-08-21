@@ -147,13 +147,26 @@ export const ContentWrapper = styled.div<{ $belowCover?: boolean }>`
   }
 `;
 
-export const ContentGrid = styled.div<{ $fullWidth?: boolean }>`
+/**
+ * The profile rail is OPT-IN (`$withSidebar`), not opt-out.
+ *
+ * It used to be opt-out (`$fullWidth`), which meant every tab got a fixed 300px
+ * rail unless it remembered to say otherwise — including Home, whose own
+ * CreatorShell already lays out three rails of its own. Two nested rail systems
+ * left the actual content column badly squeezed at laptop widths.
+ *
+ * The default is inverted deliberately: the two failure modes are not
+ * symmetric. A tab that is accidentally full-width still reads fine; a tab that
+ * is accidentally crushed is the bug this replaced. New tabs are safe by
+ * omission.
+ */
+export const ContentGrid = styled.div<{ $withSidebar?: boolean }>`
   display: grid;
-  grid-template-columns: ${({ $fullWidth }) => $fullWidth ? 'minmax(0, 1fr)' : '300px minmax(0, 1fr)'};
+  grid-template-columns: ${({ $withSidebar }) => $withSidebar ? '300px minmax(0, 1fr)' : 'minmax(0, 1fr)'};
   gap: 2rem;
   min-width: 0;
   width: 100%;
-  margin-top: ${({ $fullWidth }) => $fullWidth ? '1rem' : '2rem'};
+  margin-top: ${({ $withSidebar }) => $withSidebar ? '2rem' : '1rem'};
   /* 2026-05-10 SLICE 1: removed overflow: hidden so the sticky tab strip
      above ContentGrid can pin to the viewport without being clipped to
      ContentGrid's box. The retired clip wasn't load-bearing here -
@@ -171,19 +184,19 @@ export const ContentGrid = styled.div<{ $fullWidth?: boolean }>`
   }
 
   @media (min-width: 1920px) {
-    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? 'minmax(0, 1fr)' : '340px minmax(0, 1fr)'};
+    grid-template-columns: ${({ $withSidebar }) => $withSidebar ? '340px minmax(0, 1fr)' : 'minmax(0, 1fr)'};
     gap: 2.25rem;
     margin-top: 2.5rem;
   }
 
   @media (min-width: 2560px) {
-    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? 'minmax(0, 1fr)' : '420px minmax(0, 1fr)'};
+    grid-template-columns: ${({ $withSidebar }) => $withSidebar ? '420px minmax(0, 1fr)' : 'minmax(0, 1fr)'};
     gap: 2.5rem;
     margin-top: 3rem;
   }
 
   @media (min-width: 3840px) {
-    grid-template-columns: ${({ $fullWidth }) => $fullWidth ? 'minmax(0, 1fr)' : '520px minmax(0, 1fr)'};
+    grid-template-columns: ${({ $withSidebar }) => $withSidebar ? '520px minmax(0, 1fr)' : 'minmax(0, 1fr)'};
     gap: 3rem;
     margin-top: 4rem;
   }

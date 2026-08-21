@@ -18,7 +18,7 @@
  * │  └───────────┴───────────┘                              │
  * │                                                         │
  * ├── [Front] [Side] [Back] ────────────────────────────────┤
- * │  📅 12 weeks apart                    [Upload Photos]   │
+ * │  📅 12 weeks apart                                      │
  * └─────────────────────────────────────────────────────────┘
  *
  * MERMAID ARCHITECTURE:
@@ -31,13 +31,14 @@
  *   B --> G[SliderDivider]
  *
  * DATA FLOW:
- * Props In:  { photos, visibility, isOwnProfile, onUpload }
+ * Props In:  { photos, visibility, isOwnProfile }
  * State:     { sliderPosition, activeAngle }
  * API Calls: GET /api/photos/:userId (via parent hook)
  * Children:  Styled sub-components from TransformationPhotoStyles
  */
-import React, { useState, useCallback, useRef, useMemo } from 'react';
-import { Camera, Eye, EyeOff, Users, Lock, Upload } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Camera, Eye, EyeOff, Users, Lock } from 'lucide-react';
+import { useBeforeAfterSlider } from '../../../hooks/useBeforeAfterSlider';
 import type { TransformationPhoto, PhotoAngle, PhotoVisibility } from './TransformationPhotoTypes';
 import { VISIBILITY_LABELS, ANGLE_LABELS } from './TransformationPhotoTypes';
 import {
@@ -53,7 +54,6 @@ import {
   EmptyState,
   EmptyIcon,
   EmptyText,
-  UploadButton,
   AngleTabs,
   AngleTab,
   FooterRow,
@@ -69,7 +69,6 @@ interface TransformationPhotoShowcaseProps {
   photos: TransformationPhoto[];
   visibility: PhotoVisibility;
   isOwnProfile: boolean;
-  onUpload?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -108,12 +107,9 @@ const TransformationPhotoShowcase: React.FC<TransformationPhotoShowcaseProps> = 
   photos,
   visibility,
   isOwnProfile,
-  onUpload,
 }) => {
-  const [sliderPos, setSliderPos] = useState(50);
+  const { containerRef, containerProps } = useBeforeAfterSlider();
   const [activeAngle, setActiveAngle] = useState<PhotoAngle>('front');
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
 
   // Group photos by angle, sorted by date (oldest first)
   const photosByAngle = useMemo(() => {
@@ -157,29 +153,6 @@ const TransformationPhotoShowcase: React.FC<TransformationPhotoShowcaseProps> = 
     }
   }, [availableAngles, activeAngle, photosByAngle]);
 
-  // Slider drag handlers
-  const updateSlider = useCallback((clientX: number) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const pct = Math.max(5, Math.min(95, ((clientX - rect.left) / rect.width) * 100));
-    setSliderPos(pct);
-  }, []);
-
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    isDragging.current = true;
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    updateSlider(e.clientX);
-  }, [updateSlider]);
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDragging.current) return;
-    updateSlider(e.clientX);
-  }, [updateSlider]);
-
-  const handlePointerUp = useCallback(() => {
-    isDragging.current = false;
-  }, []);
-
   // If hidden and not own profile, show nothing
   if (visibility === 'hidden' && !isOwnProfile) return null;
 
@@ -201,18 +174,7 @@ const TransformationPhotoShowcase: React.FC<TransformationPhotoShowcaseProps> = 
 
       {hasPair ? (
         <>
-          <SliderContainer
-            ref={containerRef}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-            role="slider"
-            aria-label="Before and after photo comparison slider"
-            aria-valuenow={Math.round(sliderPos)}
-            aria-valuemin={5}
-            aria-valuemax={95}
-          >
+          <SliderContainer ref={containerRef} {...containerProps}>
             {/* Before photo (full width background) */}
             <StyledBox as={PhotoLayer}
               $position="before"
@@ -222,13 +184,10 @@ const TransformationPhotoShowcase: React.FC<TransformationPhotoShowcaseProps> = 
             {/* After photo (clipped to right side of slider) */}
             <StyledBox as={PhotoLayer}
               $position="after"
-              $style={{
-                backgroundImage: `url(${currentPair.after.url})`,
-                clipPath: `inset(0 0 0 ${sliderPos}%)`,
-              }}
+              $style={{ backgroundImage: `url(${currentPair.after.url})` }}
             />
 
-            <SliderDivider $x={sliderPos} />
+            <SliderDivider />
 
             <PhotoLabel $side="left">Before</PhotoLabel>
             <PhotoLabel $side="right">After</PhotoLabel>
@@ -259,12 +218,6 @@ const TransformationPhotoShowcase: React.FC<TransformationPhotoShowcaseProps> = 
             <TimeDelta>
               {getTimeDelta(currentPair.before.takenAt, currentPair.after.takenAt)}
             </TimeDelta>
-            {isOwnProfile && onUpload && (
-              <UploadButton onClick={onUpload}>
-                <Upload size={14} />
-                Update Photos
-              </UploadButton>
-            )}
           </FooterRow>
         </>
       ) : (
@@ -274,15 +227,9 @@ const TransformationPhotoShowcase: React.FC<TransformationPhotoShowcaseProps> = 
           </EmptyIcon>
           <EmptyText>
             {hasPhotos
-              ? 'Upload at least 2 photos of the same angle to see your transformation.'
-              : 'Track your transformation journey with before & after photos.'}
+              ? 'Two photos of the same angle are needed to build a comparison. Only one is on record so far.'
+              : 'Progress photos on your record will appear here as a before & after comparison.'}
           </EmptyText>
-          {isOwnProfile && onUpload && (
-            <UploadButton onClick={onUpload}>
-              <Upload size={14} />
-              Upload Progress Photos
-            </UploadButton>
-          )}
         </EmptyState>
       )}
     </ShowcaseContainer>

@@ -22,7 +22,8 @@
  */
 
 import React from 'react';
-import { Clock, Dumbbell, Weight, Flame, Zap, Trophy, Star, Play } from 'lucide-react';
+import { Clock, Dumbbell, Weight, Flame, Zap, Trophy, Star } from 'lucide-react';
+import { useBeforeAfterSlider } from '../../../../hooks/useBeforeAfterSlider';
 import type { PostContentProps } from '../types/PostCardTypes';
 import PostWorkoutDetailsModal from './PostWorkoutDetailsModal';
 import ProofFeedCard from './ProofFeedCard';
@@ -36,6 +37,9 @@ import {
   TransformationImageContainer,
   TransformationImage,
   TransformationSlider,
+  TransformationAfterImage,
+  TransformationSingleImageFrame,
+  TransformationEdgeLabel,
   TryWorkoutButton,
   CenteredFlex,
   AchievementBadge,
@@ -45,7 +49,6 @@ import {
   AchievementSummaryDetails,
   PointsChip,
 } from '../styles/PostCardStyles';
-import { StyledBox } from '@/components/ui/StyledBox';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Workout Stats Renderer
@@ -124,35 +127,58 @@ AchievementBadgeBlock.displayName = 'AchievementBadgeBlock';
 
 const TransformationImages: React.FC<{
   transformationData: NonNullable<PostContentProps['post']['transformationData']>;
-  sliderValue: number;
-}> = React.memo(({ transformationData, sliderValue }) => (
-  <TransformationImageContainer>
-    {transformationData.beforeImageUrl && (
-      <StyledBox as={TransformationImage}
+}> = React.memo(({ transformationData }) => {
+  const { containerRef, containerProps } = useBeforeAfterSlider({
+    label: 'Before and after transformation comparison slider',
+  });
+
+  const hasBoth = Boolean(
+    transformationData.beforeImageUrl && transformationData.afterImageUrl
+  );
+
+  // Without both halves there is nothing to compare — render the single image
+  // plainly rather than a comparison control that cannot do anything.
+  if (!hasBoth) {
+    const soleUrl =
+      transformationData.beforeImageUrl || transformationData.afterImageUrl;
+    if (!soleUrl) return null;
+    return (
+      <TransformationSingleImageFrame as="div">
+        <TransformationImage
+          src={soleUrl}
+          alt={
+            transformationData.beforeImageUrl
+              ? 'Before transformation'
+              : 'After transformation'
+          }
+        />
+      </TransformationSingleImageFrame>
+    );
+  }
+
+  return (
+    <TransformationImageContainer ref={containerRef} {...containerProps}>
+      <TransformationImage
         src={transformationData.beforeImageUrl}
         alt="Before transformation"
-        $style={{ opacity: sliderValue / 100 }}
       />
-    )}
-    {transformationData.afterImageUrl && (
-      <StyledBox as={TransformationImage}
+      <TransformationAfterImage
         src={transformationData.afterImageUrl}
         alt="After transformation"
-        $style={{ opacity: 1 - (sliderValue / 100) }}
       />
-    )}
-    <TransformationSlider>
-      <Play size={16} />
-    </TransformationSlider>
-  </TransformationImageContainer>
-));
+      <TransformationSlider />
+      <TransformationEdgeLabel $side="left">Before</TransformationEdgeLabel>
+      <TransformationEdgeLabel $side="right">After</TransformationEdgeLabel>
+    </TransformationImageContainer>
+  );
+});
 TransformationImages.displayName = 'TransformationImages';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: PostContent Component
 // ─────────────────────────────────────────────────────────────
 
-const PostContent: React.FC<PostContentProps> = React.memo(({ post, transformationSliderValue }) => {
+const PostContent: React.FC<PostContentProps> = React.memo(({ post }) => {
   const [workoutDetailsOpen, setWorkoutDetailsOpen] = React.useState(false);
 
   const handleTryWorkout = () => {
@@ -180,10 +206,7 @@ const PostContent: React.FC<PostContentProps> = React.memo(({ post, transformati
 
         {/* Transformation Images */}
         {post.type === 'transformation' && post.transformationData && (
-          <TransformationImages
-            transformationData={post.transformationData}
-            sliderValue={transformationSliderValue}
-          />
+          <TransformationImages transformationData={post.transformationData} />
         )}
 
         {/* Try Workout CTA */}

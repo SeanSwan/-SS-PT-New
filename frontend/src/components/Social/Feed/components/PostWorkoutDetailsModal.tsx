@@ -1,5 +1,10 @@
 import React from 'react';
 import { Clock, Dumbbell, Flame, FileText, Timer, Weight, X, Zap } from 'lucide-react';
+import { AuthContext } from '../../../../context/authContextState';
+import {
+  getDashboardRolePath,
+  getLogWorkoutDashboardPath,
+} from '../../../UserDashboard/components/swanCoachDashboardRoute';
 import type { WorkoutPostData, WorkoutPostExercise } from '../types/PostCardTypes';
 import {
   ActionLink,
@@ -75,6 +80,15 @@ const PostWorkoutDetailsModal: React.FC<PostWorkoutDetailsModalProps> = React.me
   const titleId = React.useId();
   const closeButtonRef = React.useRef<HTMLButtonElement>(null);
   const hasDetails = hasAttachedWorkoutDetails(workoutData);
+  // Read the context directly rather than via useAuth(): this is a leaf display
+  // modal and must not throw when rendered outside an AuthProvider. An absent
+  // role degrades to the client route, which is the behaviour that shipped
+  // before — just no longer hard-coded for everyone else.
+  const user = React.useContext(AuthContext)?.user;
+  // The `client` segment used to be hard-coded here, so trainers and admins
+  // were sent to a route that is not theirs.
+  const logWorkoutPath = getLogWorkoutDashboardPath(user?.role);
+  const workoutsPath = `/dashboard/${getDashboardRolePath(user?.role)}/workouts`;
   const exercises = workoutData?.exercises?.filter(exercise => hasText(exercise.name)) ?? [];
   const exerciseCount = workoutData?.exerciseCount || (exercises.length ? String(exercises.length) : undefined);
 
@@ -178,7 +192,7 @@ const PostWorkoutDetailsModal: React.FC<PostWorkoutDetailsModalProps> = React.me
               </ModalSubtitle>
               <NotesBlock>{postContent}</NotesBlock>
               <ModalActions>
-                <ActionLink href="/dashboard/client/log-workout">
+                <ActionLink href={logWorkoutPath}>
                   <Zap size={16} />
                   Open Workout Logger
                 </ActionLink>
@@ -188,12 +202,12 @@ const PostWorkoutDetailsModal: React.FC<PostWorkoutDetailsModalProps> = React.me
 
           {hasDetails && (
             <ModalActions>
-              <ActionLink href="/dashboard/client/log-workout">
+              <ActionLink href={logWorkoutPath}>
                 <Timer size={16} />
-                Log This Style
+                Open Workout Logger
               </ActionLink>
               {workoutData?.source === 'pdf' && (
-                <ActionLink href="/dashboard/client/workouts">
+                <ActionLink href={workoutsPath}>
                   <FileText size={16} />
                   View Workouts
                 </ActionLink>

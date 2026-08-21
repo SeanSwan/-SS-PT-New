@@ -4,6 +4,7 @@
 
 import React, { lazy, Suspense } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { isFocusModeTab, shouldShowProfileSidebar } from './dashboardSidebarPolicy';
 import {
   ContentGrid,
   ContentWrapper,
@@ -53,7 +54,10 @@ const UserDashboardV3: React.FC = () => {
   }, [routedTab, setActiveTab]);
 
   const isHomeTab = dashboard.activeTab === 'home';
-  const isNutritionTaskTab = dashboard.activeTab === 'nutrition';
+  // Rail policy lives in dashboardSidebarPolicy.ts so it can be asserted
+  // directly rather than by reading this file as text.
+  const isNutritionTaskTab = isFocusModeTab(dashboard.activeTab);
+  const showProfileSidebar = shouldShowProfileSidebar(dashboard.activeTab);
   const handleTabChange = React.useCallback((tab: TabId) => {
     navigate(tab === 'home' ? '/user-dashboard' : `/user-dashboard/${tab}`);
     resetUserDashboardTabScroll();
@@ -170,8 +174,8 @@ const UserDashboardV3: React.FC = () => {
                   onNavigate={navigate}
                 />
 
-                <ContentGrid $fullWidth={isNutritionTaskTab}>
-                  {!isNutritionTaskTab && (
+                <ContentGrid $withSidebar={showProfileSidebar}>
+                  {showProfileSidebar && (
                     <UserDashboardSidebarV3
                       displayStats={dashboard.displayStats}
                       canonicalLevel={dashboard.canonicalLevel}

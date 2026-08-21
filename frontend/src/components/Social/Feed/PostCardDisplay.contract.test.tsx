@@ -83,7 +83,7 @@ describe('PostCard feed display contract', () => {
 
   it('opens a mobile-friendly achievement summary on tap', async () => {
     const user = userEvent.setup();
-    render(<PostContent post={achievementPost} transformationSliderValue={50} />);
+    render(<PostContent post={achievementPost} />);
 
     expect(screen.queryByText('Completed the first training milestone.')).not.toBeInTheDocument();
 
@@ -94,7 +94,7 @@ describe('PostCard feed display contract', () => {
   });
 
   it('renders milestone posts as premium progress proof cards', () => {
-    render(<PostContent post={milestonePost} transformationSliderValue={50} />);
+    render(<PostContent post={milestonePost} />);
 
     expect(screen.getByRole('group', { name: /apex progress proof milestone/i })).toBeInTheDocument();
     expect(screen.getByText('Progress Proof')).toBeInTheDocument();

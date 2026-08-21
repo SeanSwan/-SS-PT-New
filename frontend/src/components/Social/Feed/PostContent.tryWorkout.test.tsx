@@ -51,7 +51,7 @@ describe('PostContent Try This Workout action', () => {
       },
     };
 
-    render(<PostContent post={workoutPost} transformationSliderValue={50} />);
+    render(<PostContent post={workoutPost} />);
 
     const trigger = screen.getByRole('button', { name: /try this workout/i });
     trigger.focus();
@@ -79,7 +79,7 @@ describe('PostContent Try This Workout action', () => {
   it('explains when an auto-tagged workout post has no attached workout details', async () => {
     const user = userEvent.setup();
 
-    render(<PostContent post={baseWorkoutPost} transformationSliderValue={50} />);
+    render(<PostContent post={baseWorkoutPost} />);
 
     await user.click(screen.getByRole('button', { name: /try this workout/i }));
 

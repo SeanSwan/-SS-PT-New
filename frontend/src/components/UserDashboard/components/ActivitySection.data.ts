@@ -49,7 +49,11 @@ export function buildActivityStats(stats?: ProfileStatsSnapshot | null): Activit
 export function mapPostsToActivities(posts?: ProfileActivityPost[] | null): DashboardActivity[] {
   if (!posts || posts.length === 0) return [];
 
-  return posts.slice(0, 6).map((post, index) => {
+  // NOTE: previously `posts.slice(0, 6)`. That cap ran BEFORE filtering, so
+  // selecting "Workouts" searched only the six most recent posts and reported
+  // "No recent activity yet" to members who did have workouts. The upstream
+  // `loadUserPosts` already bounds this set (default limit 20).
+  return posts.map((post, index) => {
     const typeInfo = ACTIVITY_TYPE_META[post.type as keyof typeof ACTIVITY_TYPE_META] || ACTIVITY_TYPE_META.general;
     const content = post.content || '';
 

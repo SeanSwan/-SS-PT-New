@@ -57,7 +57,7 @@ export const PostCardWrapper = styled.article`
   width: 100%;
   max-width: 100%;
   margin-bottom: 12px;
-  background: #111122;
+  background: var(--bg-base, #111122);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
@@ -123,7 +123,7 @@ export const HeroArea = styled.div<{ $bgImage?: string | null; $gradient: string
           position: absolute;
           bottom: 0; left: 0; right: 0;
           height: 40%;
-          background: linear-gradient(to bottom, rgba(17, 17, 34, 0) 0%, #111122 100%);
+          background: linear-gradient(to bottom, rgba(17, 17, 34, 0) 0%, var(--bg-base, #111122) 100%);
           pointer-events: none;
         }
       `
@@ -195,13 +195,13 @@ export const AvatarStyled = styled.div<{ $size?: number; $coach?: boolean }>`
   width: ${props => props.$size || 44}px;
   height: ${props => props.$size || 44}px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #8B5CF6, #8B5CF6);
+  background: linear-gradient(135deg, var(--wing-purple, #8B5CF6), var(--wing-purple, #8B5CF6));
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: ${props => (props.$size || 44) * 0.35}px;
   font-weight: 600;
-  color: #fff;
+  color: var(--text-primary, #fff);
   overflow: hidden;
   flex-shrink: 0;
   /* Coach presence (trainer/admin authors): the Gilded Fern luxury ring marks
@@ -261,20 +261,20 @@ export const PostType = styled.span<{ $type: string }>`
   border: 1px solid ${props => {
     const map: Record<string, string> = {
       default: 'rgba(255,255,255,0.5)',
-      primary: '#60C0F0',
-      success: '#4ade80',
-      warning: '#fbbf24',
-      secondary: '#c084fc',
+      primary: 'var(--accent-primary, #60C0F0)',
+      success: 'var(--success, #4ade80)',
+      warning: 'var(--warning, #fbbf24)',
+      secondary: 'var(--accent-purple, #c084fc)',
     };
     return map[props.$type] || map.default;
   }};
   color: ${props => {
     const map: Record<string, string> = {
       default: 'rgba(255,255,255,0.5)',
-      primary: '#60C0F0',
-      success: '#4ade80',
-      warning: '#fbbf24',
-      secondary: '#c084fc',
+      primary: 'var(--accent-primary, #60C0F0)',
+      success: 'var(--success, #4ade80)',
+      warning: 'var(--warning, #fbbf24)',
+      secondary: 'var(--accent-purple, #c084fc)',
     };
     return map[props.$type] || map.default;
   }};
@@ -287,7 +287,7 @@ export const PostType = styled.span<{ $type: string }>`
 export const UserName = styled.span`
   font-size: 16px;
   font-weight: 600;
-  color: #FFFFFF;
+  color: var(--text-primary, #FFFFFF);
   display: block;
   line-height: 1.2;
   letter-spacing: -0.01em;
@@ -296,7 +296,7 @@ export const UserName = styled.span`
 export const TimeAgoText = styled.span`
   font-size: 13px;
   font-weight: 400;
-  color: #A0A0B0;
+  color: var(--text-muted, #A0A0B0);
   display: block;
   margin-top: 2px;
 `;
@@ -321,7 +321,7 @@ export const DropdownMenu = styled.div`
   top: 100%; right: 0;
   z-index: 100;
   min-width: 160px;
-  background: #001840;
+  background: var(--bg-surface, #001840);
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -341,7 +341,7 @@ export const DropdownMenuItem = styled.button<{ $danger?: boolean }>`
   font-size: 0.875rem;
   font-family: inherit;
   cursor: pointer;
-  color: ${props => props.$danger ? '#ef4444' : 'rgba(255, 255, 255, 0.8)'};
+  color: ${props => props.$danger ? 'var(--danger, #ef4444)' : 'rgba(255, 255, 255, 0.8)'};
   min-height: 44px;
   line-height: 1.5;
   transition: background 0.15s ease;
@@ -349,7 +349,7 @@ export const DropdownMenuItem = styled.button<{ $danger?: boolean }>`
     background: ${props => props.$danger ? 'rgba(239, 68, 68, 0.1)' : 'rgba(255, 255, 255, 0.06)'};
   }
   &:focus-visible {
-    outline: 2px solid #60C0F0;
+    outline: 2px solid var(--accent-primary, #60C0F0);
     outline-offset: -2px;
   }
 `;
@@ -369,7 +369,7 @@ export const PostText = styled.p`
   font-size: 15px;
   font-weight: 400;
   line-height: 1.6;
-  color: #E0E0E0;
+  color: var(--text-secondary, #E0E0E0);
   word-wrap: break-word;
 `;
 
@@ -381,7 +381,7 @@ export const WorkoutStatsContainer = styled.div`
   padding: 16px;
   background: rgba(96, 192, 240, 0.08);
   border-radius: 10px;
-  border-left: 3px solid #60C0F0;
+  border-left: 3px solid var(--accent-primary, #60C0F0);
 `;
 
 export const WorkoutStatItem = styled.div`
@@ -402,44 +402,96 @@ export const StatLabel = styled.span`
   color: rgba(255, 255, 255, 0.5);
 `;
 
+/**
+ * Before/after comparison, overlaid and clipped — the same mechanism the
+ * dashboard's TransformationPhotoShowcase uses, driven by useBeforeAfterSlider.
+ * Previously these were laid out side-by-side at a permanent 50% opacity with a
+ * decorative handle that had no interaction wired to it.
+ */
 export const TransformationImageContainer = styled.div`
-  display: flex;
-  gap: 8px;
-  margin: 16px 0;
   position: relative;
+  width: 100%;
+  height: 260px;
+  margin: 16px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: col-resize;
+  user-select: none;
+  touch-action: pan-y;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
 `;
 
 export const TransformationImage = styled.img`
-  flex: 1;
-  height: 200px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-  &:hover { transform: scale(1.02); }
+  pointer-events: none;
+`;
+
+/** Single-photo case: nothing to compare, so it is not an interactive track. */
+export const TransformationSingleImageFrame = styled(TransformationImageContainer)`
+  cursor: default;
+`;
+
+/** The "after" half, revealed by clipping against the shared slider variable. */
+export const TransformationAfterImage = styled(TransformationImage)`
+  clip-path: inset(0 0 0 var(--swan-slider-pos, 50%));
 `;
 
 export const TransformationSlider = styled.div`
   position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  border-radius: 50%;
-  width: 40px; height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  &:hover { transform: translate(-50%, -50%) scale(1.1); }
+  top: 0;
+  bottom: 0;
+  left: var(--swan-slider-pos, 50%);
+  width: 3px;
+  background: var(--accent-primary, #60C0F0);
+  z-index: 10;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-primary, #60C0F0) 50%, transparent);
+  pointer-events: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-elevated, #141419);
+    border: 2px solid var(--accent-primary, #60C0F0);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+`;
+
+export const TransformationEdgeLabel = styled.span<{ $side: 'left' | 'right' }>`
+  position: absolute;
+  bottom: 12px;
+  ${({ $side }) => $side}: 12px;
+  z-index: 11;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-primary, #fff);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  padding: 0.25rem 0.625rem;
+  border-radius: 999px;
+  pointer-events: none;
 `;
 
 export const TryWorkoutButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  background: linear-gradient(135deg, var(--accent-warm, #ff6b35), var(--accent-warm-end, #f7931e));
   color: white;
   border: none;
   border-radius: 20px;
@@ -454,7 +506,7 @@ export const TryWorkoutButton = styled.button`
   box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
   transition: all 0.2s ease;
   &:hover {
-    background: linear-gradient(135deg, #e85a2b, #e0851a);
+    background: linear-gradient(135deg, var(--accent-warm-hover, #e85a2b), var(--accent-warm-hover-end, #e0851a));
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4);
   }
@@ -563,12 +615,12 @@ export const ActionButton = styled.button<{ $active?: boolean; $activeColor?: st
   background: transparent;
   cursor: pointer;
   border-radius: 22px;
-  color: ${props => props.$active ? (props.$activeColor || '#f44336') : '#A0A0B0'};
+  color: ${props => props.$active ? (props.$activeColor || 'var(--danger, #f44336)') : 'var(--text-muted, #A0A0B0)'};
   transition: background 0.2s ease, color 0.2s ease;
 
   &:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: ${props => props.$active ? (props.$activeColor || '#f44336') : '#FFFFFF'};
+    color: ${props => props.$active ? (props.$activeColor || 'var(--danger, #f44336)') : 'var(--text-primary, #FFFFFF)'};
   }
 
   &:active svg {
@@ -676,7 +728,7 @@ export const CommentTextarea = styled.textarea`
   color: rgba(255, 255, 255, 0.9);
 
   &:focus {
-    border-color: #60C0F0;
+    border-color: var(--accent-primary, #60C0F0);
     box-shadow: 0 0 0 1px rgba(96, 192, 240, 0.3);
   }
 
@@ -707,8 +759,8 @@ export const Toast = styled.div<{ $visible: boolean }>`
   gap: 8px;
   padding: 12px 20px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #C6A84B, #d4b85a);
-  color: #000B18;
+  background: linear-gradient(135deg, var(--accent-gold, #C6A84B), var(--accent-gold-end, #d4b85a));
+  color: var(--obsidian-black, #000B18);
   font-size: 0.875rem;
   font-weight: 500;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -745,7 +797,7 @@ export const Overlay = styled.div`
 `;
 
 export const ModalContent = styled.div`
-  background: #001840;
+  background: var(--bg-surface, #001840);
   border-radius: 12px;
   padding: 0;
   max-width: 500px;
@@ -791,7 +843,7 @@ export const ModalInputReadonly = styled.input`
   color: rgba(255, 255, 255, 0.9);
   outline: none;
   box-sizing: border-box;
-  &:focus { border-color: #60C0F0; }
+  &:focus { border-color: var(--accent-primary, #60C0F0); }
 `;
 
 export const PlainButton = styled.button`
@@ -810,8 +862,8 @@ export const PlainButton = styled.button`
 
 export const ContainedButton = styled.button`
   border: none;
-  background: linear-gradient(135deg, #60C0F0, #50A0F0);
-  color: #fff;
+  background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--arctic-cyan, #50A0F0));
+  color: var(--text-primary, #fff);
   padding: 6px 16px;
   font-size: 0.875rem;
   font-family: inherit;

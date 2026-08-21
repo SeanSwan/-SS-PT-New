@@ -31,6 +31,10 @@ interface ActivitySectionFeedProps {
   hasMoreActivities: boolean;
   showMore: boolean;
   onToggleShowMore: () => void;
+  /** Label of the active filter, so an empty result says WHICH view is empty. */
+  activeFilterLabel?: string;
+  /** True when the member has activity but none of it matches the filter. */
+  isFilteredView?: boolean;
 }
 
 const ActivitySectionFeed: React.FC<ActivitySectionFeedProps> = ({
@@ -38,6 +42,8 @@ const ActivitySectionFeed: React.FC<ActivitySectionFeedProps> = ({
   hasMoreActivities,
   showMore,
   onToggleShowMore,
+  activeFilterLabel,
+  isFilteredView = false,
 }) => {
   const [expandedAchievementId, setExpandedAchievementId] = useState<string | null>(null);
 
@@ -114,8 +120,18 @@ const ActivitySectionFeed: React.FC<ActivitySectionFeedProps> = ({
           <EmptyIcon>
             <Activity size={32} />
           </EmptyIcon>
-          <EmptyTitle>No recent activity yet</EmptyTitle>
-          <EmptyCopy>Start a workout or create a post!</EmptyCopy>
+          {/* Saying "No recent activity yet" under an active filter told
+              members with real history that they had none. */}
+          <EmptyTitle>
+            {isFilteredView && activeFilterLabel
+              ? `Nothing under ${activeFilterLabel} yet`
+              : 'No recent activity yet'}
+          </EmptyTitle>
+          <EmptyCopy>
+            {isFilteredView
+              ? 'Your other activity is still here — switch filters to see it.'
+              : 'Start a workout or create a post!'}
+          </EmptyCopy>
         </EmptyState>
       )}
 

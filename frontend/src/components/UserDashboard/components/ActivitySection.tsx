@@ -24,6 +24,7 @@ import React, { useMemo, useState } from 'react';
 import { Activity, Loader2 } from 'lucide-react';
 import { useProfile } from '../../../hooks/profile/useProfile';
 import {
+  ACTIVITY_FILTERS,
   buildActivityStats,
   filterActivities,
   mapPostsToActivities,
@@ -104,6 +105,8 @@ const ActivitySection: React.FC = () => {
         hasMoreActivities={hasMoreActivities}
         showMore={showMore}
         onToggleShowMore={() => setShowMore((current) => !current)}
+        activeFilterLabel={ACTIVITY_FILTERS.find((f) => f.id === activeFilter)?.label}
+        isFilteredView={activeFilter !== 'all' && activities.length > 0}
       />
     </ActivityContainer>
   );

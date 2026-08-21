@@ -81,6 +81,11 @@ export const SliderContainer = styled.div`
   cursor: col-resize;
   user-select: none;
   touch-action: pan-y;
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-primary, #60C0F0);
+    outline-offset: 2px;
+  }
 `;
 
 export const PhotoLayer = styled.div<{ $position: 'before' | 'after' }>`
@@ -89,13 +94,19 @@ export const PhotoLayer = styled.div<{ $position: 'before' | 'after' }>`
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+
+  /* The "after" layer is revealed by clipping against the shared slider
+     variable set by useBeforeAfterSlider — same contract the feed uses. */
+  ${({ $position }) => $position === 'after' && `
+    clip-path: inset(0 0 0 var(--swan-slider-pos, 50%));
+  `}
 `;
 
-export const SliderDivider = styled.div<{ $x: number }>`
+export const SliderDivider = styled.div`
   position: absolute;
   top: 0;
   bottom: 0;
-  left: ${({ $x }) => $x}%;
+  left: var(--swan-slider-pos, 50%);
   width: 3px;
   background: var(--accent-primary, #60C0F0);
   z-index: 10;
@@ -107,8 +118,8 @@ export const SliderDivider = styled.div<{ $x: number }>`
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: var(--bg-elevated, #141419);
     border: 2px solid var(--accent-primary, #60C0F0);
@@ -124,7 +135,7 @@ export const PhotoLabel = styled.span<{ $side: 'left' | 'right' }>`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #fff;
+  color: var(--text-primary, #fff);
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   padding: 0.25rem 0.625rem;
@@ -181,32 +192,11 @@ export const EmptyText = styled.p`
   max-width: 280px;
 `;
 
-export const UploadButton = styled.button`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 44px;
-  padding: 0.625rem 1.25rem;
-  border-radius: 10px;
-  border: 1px dashed var(--accent-primary, #60C0F0);
-  background: color-mix(in srgb, var(--accent-primary, #60C0F0) 8%, transparent);
-  color: var(--accent-primary, #60C0F0);
-  font-family: 'Sora', sans-serif;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* UploadButton removed 2026-08-21: its only consumer was the transformation
+   upload affordance, which could never render (no mount site passed `onUpload`
+   and no member-reachable upload path exists). Restore it alongside a real
+   upload leg, not before. */
 
-  &:hover {
-    background: color-mix(in srgb, var(--accent-primary, #60C0F0) 15%, transparent);
-    transform: translateY(-1px);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-primary, #60C0F0);
-    outline-offset: 4px;
-  }
-`;
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Angle Tabs

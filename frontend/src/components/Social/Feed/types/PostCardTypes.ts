@@ -180,7 +180,6 @@ export interface PostHeaderProps {
 
 export interface PostContentProps {
   post: Post;
-  transformationSliderValue: number;
 }
 
 export interface PostActionsProps {

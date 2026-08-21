@@ -53,7 +53,6 @@ const PostCard: React.FC<PostCardProps> = ({
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [commentsRequested, setCommentsRequested] = useState(false);
-  const [transformationSliderValue] = useState(50);
 
   const {
     menuOpen, setMenuOpen, menuRef,
@@ -170,7 +169,6 @@ const PostCard: React.FC<PostCardProps> = ({
         ) : (
           <PostContent
             post={post}
-            transformationSliderValue={transformationSliderValue}
           />
         )}
 
