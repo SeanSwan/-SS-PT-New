@@ -53,9 +53,9 @@
         0
       ],
       "prompt": "a swan taking off from still water, slow motion, cinematic",
-      "width": 640,
-      "height": 384,
-      "length": 25
+      "width": 1280,
+      "height": 720,
+      "length": 97
     }
   },
   "7": {
@@ -124,7 +124,7 @@
         "10",
         0
       ],
-      "filename_prefix": "swan/h3_smoke",
+      "filename_prefix": "swan/h3",
       "format": "mp4",
       "codec": "h264"
     }

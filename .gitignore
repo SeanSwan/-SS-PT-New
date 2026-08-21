@@ -498,3 +498,7 @@ scripts/qa/.qa-schema-manifest.json
 # Render agent credential — a token that can lease jobs and report completions.
 .swan-agent.env
 **/.swan-agent.env
+
+# Rendered video auditions — large binaries, regenerable from the committed prompts
+variants/
+*.mp4
