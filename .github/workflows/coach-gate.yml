@@ -1,0 +1,99 @@
+# S4 — the required check for the Swan Coach lane.
+#
+# The pre-existing ai-eval-gate.yml runs `npm run eval` and nothing else, and `main`
+# had branch protection OFF with zero required contexts, so nothing it reported ever
+# blocked a merge. This workflow is the gate that is meant to become required.
+#
+# It deliberately runs only checks verified GREEN at 66ffde607 before this file was
+# written. A required gate that is red on arrival teaches people to bypass it.
+name: Coach Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: coach-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — vitest + node:test + eval
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        run: npm ci
+
+      # The vitest suite. Includes commandRegistryCoverage.test.mjs — the lock that
+      # fails when a command is added without a dispatcher or an intentional
+      # execution lane. That lock has existed for months and gated nothing, because
+      # it was never a required check.
+      - name: Backend unit tests (vitest)
+        run: npm run test -- tests/unit
+
+      # 16 files in tests/unit use Node's built-in runner, not vitest. Vitest reports
+      # them as "No test suite found" failures, which is why `npm test` was
+      # permanently red on a clean checkout. They hold 178 real, passing tests.
+      - name: Backend unit tests (node:test lane)
+        run: npm run test:node
+
+      # NON-BLOCKING, deliberately, and this must not be quietly flipped to blocking.
+      #
+      # `npm run eval` FAILS on main at 66ffde607 — exit 1, with
+      #   CORRECTNESS FAILURE: warnings_02 — expected warningCount=0 but got 1
+      #   THRESHOLD FAILURE:   warning-generation accuracy 85.7% < 100.0% (6/7)
+      #
+      # So the pre-existing ai-eval-gate.yml has been not merely unenforced but red:
+      # had anyone made it required, it would have blocked every merge. Making it
+      # blocking here would put the Coach Gate in exactly that state on day one.
+      #
+      # It runs and reports so the failure is VISIBLE. Flip continue-on-error off in
+      # the same PR that fixes warnings_02 — not before, and not separately.
+      - name: AI eval harness (deterministic, no network) — non-blocking, see note
+        continue-on-error: true
+        run: npm run eval > ../ai-eval-report.json
+
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-eval-report
+          path: ai-eval-report.json
+          retention-days: 30
+
+  frontend:
+    name: Frontend — typecheck + production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run type-check
+
+      - name: Production build
+        run: npm run build

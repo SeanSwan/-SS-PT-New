@@ -8,7 +8,7 @@
     "build": "vite build",
     "build:check": "npm run type-check && vite build",
     "preview": "vite preview",
-    "type-check": "node --max-old-space-size=8192 ./node_modules/typescript/bin/tsc --noEmit --pretty false",
+    "type-check": "node --max-old-space-size=12288 ./node_modules/typescript/bin/tsc --noEmit --pretty false",
     "test": "vitest",
     "test:run": "node ./scripts/run-vitest-shards.mjs",
     "test:coach-plaud-flow": "vitest run src/components/DashBoard/Pages/coach-assistant src/components/PlaudClipMerge/PlaudMergeReviewFocus.test.tsx src/components/PlaudClipMerge/PlaudMergeWorkspaceOutcome.test.tsx src/pages/dashboard/PlaudIntelligenceWorkspacePage.test.tsx --reporter verbose --testTimeout 10000",
