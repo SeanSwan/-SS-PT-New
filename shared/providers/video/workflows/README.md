@@ -38,3 +38,34 @@ happily and silently render a **4-frame clip for a "4 second" request**. Measure
 
 `minimax_h3_audio_vae_fp32.safetensors` is present; this graph decodes video only. Adding
 audio needs the audio VAE decode plus muxing — `SaveAudio*` and `CreateVideo` both exist.
+
+
+## PAID vs FREE — read the node's CATEGORY, not its name
+
+ComfyUI ships TWO MiniMax families and their names are nearly identical. The category is the
+only reliable tell:
+
+| Category | What it is |
+|---|---|
+| `partner/video/MiniMax` | **HOSTED API.** Sends your prompt to MiniMax's servers and bills credits per run. Shows `NNN credits/Run`, `Status: Waiting for server`, and a `watermark` toggle. |
+| `model/conditioning/minimax`, `model/latent/minimax`, `model/patch/minimax` | **LOCAL.** Runs on your own GPU. Free. |
+
+A node called "MiniMax H3 First-Last-Frame to Video" under `partner/` is the PAID one. The
+free equivalent is `MiniMaxH3ImageToVideo`, whose `first_frame` and `last_frame` inputs are
+optional and do the same job on your own hardware.
+
+**Anything under `partner/` costs money.** The graphs in this folder use only `model/` nodes.
+
+### Honest tradeoff
+
+The paid API node can produce 15 seconds in a single run and exposes a watermark toggle.
+Local generation caps at ~4.46s per clip and reaches 15s by chaining four (see
+`render-swan-procession.mjs`). If a one-shot 15s matters more than cost, the API node is a
+legitimate choice — just a deliberate one.
+
+## minimax_h3_firstframe_api.json
+
+Local first-frame conditioning: `LoadImage -> ImageScale(1280x704) -> first_frame`. The
+scale node is not optional — an encoded first frame must match the sampler's latent stride,
+and 720 fails where 704 succeeds. Proven: rendered `logo_flf_00001_.mp4` from `Logo.png` at
+1280x704 in ~120s, zero credits.
