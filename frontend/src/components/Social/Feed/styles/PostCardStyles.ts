@@ -201,7 +201,7 @@ export const AvatarStyled = styled.div<{ $size?: number; $coach?: boolean }>`
   justify-content: center;
   font-size: ${props => (props.$size || 44) * 0.35}px;
   font-weight: 600;
-  color: var(--text-on-accent, #fff);
+  color: #fff; /* swan-guard-allow-hex on a saturated brand-accent gradient; --text-on-accent is computed against the primary BUTTON fill, not this surface */
   overflow: hidden;
   flex-shrink: 0;
   /* Coach presence (trainer/admin authors): the Gilded Fern luxury ring marks
@@ -863,7 +863,7 @@ export const PlainButton = styled.button`
 export const ContainedButton = styled.button`
   border: none;
   background: linear-gradient(135deg, var(--accent-primary, #60C0F0), var(--arctic-cyan, #50A0F0));
-  color: var(--text-on-accent, #fff);
+  color: #fff; /* swan-guard-allow-hex on a saturated brand-accent gradient; --text-on-accent is computed against the primary BUTTON fill, not this surface */
   padding: 6px 16px;
   font-size: 0.875rem;
   font-family: inherit;

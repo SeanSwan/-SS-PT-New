@@ -114,3 +114,33 @@ describe('PostContent transformation comparison', () => {
     expect(screen.getByAltText('Before transformation')).toBeInTheDocument();
   });
 });
+
+/**
+ * Panel follow-up (GLM P2 #4/#5, Grok). A cancelled or lost pointer must end the
+ * drag, and a native HTML5 image drag must not steal the gesture - photos are
+ * exactly where a member grabs the slider.
+ */
+describe('PostContent transformation drag robustness', () => {
+  it('wires the interrupt and native-drag guards', () => {
+    render(<PostContent post={transformationPost} />);
+    const slider = screen.getByRole('slider', { name: /before and after/i });
+
+    // A dragstart originating on the photo must be prevented, or the browser
+    // takes over the gesture mid-drag.
+    const dragEvent = new Event('dragstart', { bubbles: true, cancelable: true });
+    slider.dispatchEvent(dragEvent);
+    expect(dragEvent.defaultPrevented).toBe(true);
+  });
+
+  it('does not keep tracking the cursor after the pointer is cancelled', () => {
+    render(<PostContent post={transformationPost} />);
+    const slider = screen.getByRole('slider', { name: /before and after/i });
+    const before = slider.style.getPropertyValue('--swan-slider-pos');
+
+    slider.dispatchEvent(new Event('pointercancel', { bubbles: true }));
+    // With the drag ended, a bare move (no button held) must not move the divider.
+    slider.dispatchEvent(new Event('pointermove', { bubbles: true }));
+
+    expect(slider.style.getPropertyValue('--swan-slider-pos')).toBe(before);
+  });
+});

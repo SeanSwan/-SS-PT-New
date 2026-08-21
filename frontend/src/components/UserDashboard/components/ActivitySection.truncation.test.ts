@@ -44,3 +44,26 @@ describe('Activity feed truncation', () => {
     expect(filterActivities(mapPostsToActivities(posts), 'achievement')).toHaveLength(0);
   });
 });
+
+/**
+ * Panel follow-up (Kimi P1 #1). Kimi read `isFilteredView={activeFilter !== 'all'
+ * && activities.length > 0}` and concluded the guard could never be true, because
+ * the empty state only renders when the list is empty. That reading assumed one
+ * array; there are two. `activities` is the UNFILTERED mapped list and
+ * `displayedActivities` (what the feed renders) is the filtered one. This test
+ * pins the distinction so a future refactor collapsing them fails loudly.
+ */
+describe('filtered-vs-unfiltered activity arrays', () => {
+  it('leaves the unfiltered list populated when a filter matches nothing', () => {
+    const posts = Array.from({ length: 8 }, (_, i) => post(i, 'general'));
+
+    const all = mapPostsToActivities(posts);
+    const filtered = filterActivities(all, 'achievement');
+
+    // The empty state renders off `filtered`; the "you do have other activity"
+    // copy is gated on `all`. Both conditions hold at once - that is the point.
+    expect(filtered).toHaveLength(0);
+    expect(all.length).toBeGreaterThan(0);
+    expect(all.length > 0 && filtered.length === 0).toBe(true);
+  });
+});

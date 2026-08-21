@@ -39,9 +39,18 @@ describe('member dashboard rail policy', () => {
   });
 
   it('defaults an unrecognised or future tab to full width rather than crushing it', () => {
-    expect(shouldShowProfileSidebar('some-tab-added-later')).toBe(true);
+    // The panel (Kimi + Grok, independently) caught this returning TRUE, which
+    // was the exact opposite of the rationale written beside it: an exclusion
+    // list hands the rail to every tab nobody has considered yet.
+    expect(shouldShowProfileSidebar('some-tab-added-later')).toBe(false);
     expect(shouldShowProfileSidebar(null)).toBe(false);
     expect(shouldShowProfileSidebar(undefined)).toBe(false);
+  });
+
+  it('does not let a differently-cased tab id reinstate the rail', () => {
+    expect(shouldShowProfileSidebar('Home')).toBe(false);
+    expect(shouldShowProfileSidebar('HOME')).toBe(false);
+    expect(shouldShowProfileSidebar('Friends')).toBe(true);
   });
 
   it('covers every routable tab without throwing', () => {

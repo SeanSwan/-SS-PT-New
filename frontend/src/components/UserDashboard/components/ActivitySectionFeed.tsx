@@ -124,13 +124,13 @@ const ActivitySectionFeed: React.FC<ActivitySectionFeedProps> = ({
               members with real history that they had none. */}
           <EmptyTitle>
             {isFilteredView && activeFilterLabel
-              ? `Nothing under ${activeFilterLabel} yet`
+              ? `No ${activeFilterLabel.toLowerCase()} in your recent activity`
               : 'No recent activity yet'}
           </EmptyTitle>
           <EmptyCopy>
             {isFilteredView
-              ? 'Your other activity is still here — switch filters to see it.'
-              : 'Start a workout or create a post!'}
+              ? 'This only covers your most recent posts — switch filters to see the rest.'
+              : 'Share a post to start building your activity trail.'}
           </EmptyCopy>
         </EmptyState>
       )}

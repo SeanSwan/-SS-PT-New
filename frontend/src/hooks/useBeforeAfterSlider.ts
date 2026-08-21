@@ -78,6 +78,9 @@ export interface UseBeforeAfterSliderResult {
     onPointerMove: (e: React.PointerEvent) => void;
     onPointerUp: () => void;
     onPointerLeave: () => void;
+    onPointerCancel: () => void;
+    onLostPointerCapture: () => void;
+    onDragStart: (e: React.DragEvent) => void;
     onKeyDown: (e: React.KeyboardEvent) => void;
   };
 }
@@ -110,7 +113,13 @@ export function useBeforeAfterSlider(
 
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     isDragging.current = true;
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    // Capture on the TRACK, not e.target. e.target is whichever child sat under
+    // the cursor (a photo, the handle, an edge label); capturing there leaves the
+    // track free to fire pointerleave, which ends the drag the moment the cursor
+    // overshoots the image edge - the exact overshoot capture exists to support.
+    // Capturing the track suppresses its boundary events for the duration, so a
+    // drag survives leaving the element.
+    containerRef.current?.setPointerCapture?.(e.pointerId);
     updateFromClientX(e.clientX);
   }, [updateFromClientX]);
 
@@ -121,6 +130,10 @@ export function useBeforeAfterSlider(
 
   const onPointerUp = useCallback(() => {
     isDragging.current = false;
+  }, []);
+
+  const onDragStart = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
   }, []);
 
   const onKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -166,8 +179,17 @@ export function useBeforeAfterSlider(
     onPointerMove,
     onPointerUp,
     onPointerLeave: onPointerUp,
+    // A cancelled or lost pointer must end the drag too. Without these, an OS
+    // interruption or scroll takeover leaves isDragging true, and the divider
+    // then follows the bare cursor with no button held.
+    onPointerCancel: onPointerUp,
+    onLostPointerCapture: onPointerUp,
+    // Photos are a natural place to grab the slider, and a native HTML5 image
+    // drag starts there and steals the gesture. setPointerCapture does not
+    // suppress dragstart.
+    onDragStart,
     onKeyDown,
-  }), [label, position, onPointerDown, onPointerMove, onPointerUp, onKeyDown]);
+  }), [label, position, onPointerDown, onPointerMove, onPointerUp, onDragStart, onKeyDown]);
 
   return { position, setPosition, containerRef, containerProps };
 }

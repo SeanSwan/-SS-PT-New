@@ -21,19 +21,36 @@
 import type { TabId } from './types/UserDashboardTypes';
 
 /**
- * Tabs that render their own internal rails or are focused task surfaces, and
- * therefore must NOT also receive the outer profile rail.
+ * The tabs that opt IN to the outer profile rail.
+ *
+ * This is an allowlist, not an exclusion list, and the difference is the whole
+ * point. An exclusion list gives the rail to every tab nobody has thought about
+ * yet - including tabs added years from now - which is the crush failure mode
+ * this module exists to prevent. Membership here is a deliberate statement that
+ * the tab is a simple content column with room to spare beside it.
+ *
+ * Deliberately absent: `home` (owns CreatorShell's own three-rail layout) and
+ * `nutrition` (a focus-mode task surface, see ObservatoryShell `focusMode`).
  */
-const TABS_WITHOUT_PROFILE_SIDEBAR: ReadonlySet<string> = new Set<string>([
-  // Owns CreatorShell's three-rail layout.
-  'home',
-  // Focus-mode task surface (see ObservatoryShell `focusMode`).
-  'nutrition',
+const TABS_WITH_PROFILE_SIDEBAR: ReadonlySet<string> = new Set<string>([
+  'groups',
+  'reels',
+  'friends',
+  'challenges',
+  'notifications',
+  'creative',
+  'photos',
+  'about',
+  'activity',
+  'progress',
+  'profile',
 ]);
 
 export function shouldShowProfileSidebar(activeTab: TabId | string | null | undefined): boolean {
   if (!activeTab) return false;
-  return !TABS_WITHOUT_PROFILE_SIDEBAR.has(String(activeTab));
+  // Case-insensitive: the signature accepts a bare string, and a caller passing
+  // 'Home' must not silently reinstate the rail Home was excluded from.
+  return TABS_WITH_PROFILE_SIDEBAR.has(String(activeTab).toLowerCase());
 }
 
 export function isFocusModeTab(activeTab: TabId | string | null | undefined): boolean {

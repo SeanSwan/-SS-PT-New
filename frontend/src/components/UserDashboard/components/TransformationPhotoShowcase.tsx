@@ -227,7 +227,7 @@ const TransformationPhotoShowcase: React.FC<TransformationPhotoShowcaseProps> = 
           </EmptyIcon>
           <EmptyText>
             {hasPhotos
-              ? 'Two photos of the same angle are needed to build a comparison. Only one is on record so far.'
+              ? 'A comparison needs two photos taken from the same angle. None of the angles on your record has two yet.'
               : 'Progress photos on your record will appear here as a before & after comparison.'}
           </EmptyText>
         </EmptyState>
