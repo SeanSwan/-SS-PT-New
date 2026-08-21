@@ -23,12 +23,22 @@ Ran it. Result, stated plainly: **Grok produced no review.**
   related models/consumers... I'll start with the createdAt mapping."* Then it stopped.
   It read as a model expecting tools it did not have.
 - Attempt 2 (remit rewritten to forbid narration, state NO TOOLS, demand findings
-  immediately): no output file written.
-- Attempt 3 (same, foreground): ran >5 minutes with zero bytes emitted; killed.
+  immediately): **`DOMException [TimeoutError]`** after the script's hardcoded 600s.
+- Attempt 3 (same, foreground): killed by me at ~5 min, before it could return.
 
-Net: **1 completed call, 0 findings, ~$0.026.** Not a verdict on Grok's ability — a
-verdict on this harness/remit shape with it. Worth one more try later with a different
-effort setting or a smaller document before drawing conclusions.
+**CORRECTION — I first reported attempts 2 and 3 as "no output" and "zero bytes emitted",
+implying Grok did not answer. That was wrong.** They hit a CLIENT-SIDE TIMEOUT:
+`consult-grok.mjs:104` hardcodes `AbortSignal.timeout(600_000)`. Grok at `effort=high` on
+a 12k-token document simply reasons longer than ten minutes. Attempt 1 returned in 7.2s
+precisely BECAUSE it bailed early with a preamble. I blamed the model for what my
+instrument did — the sixth time this session, and the one I had already written up twice.
+
+Note `consult-kimi.mjs` makes its timeout configurable (`SWAN_KIMI_TIMEOUT_MS`);
+`consult-grok.mjs` does not. That asymmetry is worth closing.
+
+Net: **1 completed call, 0 findings, ~$0.026, plus 2 client timeouts.** The one real
+behavioural datum is that attempt 1 emitted a plan rather than a review. Everything else
+is a harness limit, not a model verdict.
 
 **Because it no-showed, I verified its four assigned questions myself**, and one was a
 real defect:
@@ -51,6 +61,12 @@ real defect:
   matching rows mine claims "this is a sample" when the data is complete. I only found
   it because Grok no-showed and I had to check its questions myself. Advice is only
   taken if you take the version they gave you.
+- **I blamed the model for my instrument's timeout.** Reported attempts 2 and 3 as Grok
+  producing nothing; they were `AbortSignal.timeout(600_000)` firing in the consult
+  script. I had the exit code (0) and no output, and reached for the explanation that
+  suited the story I was already telling instead of reading the stderr that named the
+  cause. This is the sixth instrument-blame this session and the second I have written a
+  durable packet about. Reading the task's stderr took one command.
 - **I nearly let a null result pass as a run.** The first Grok output had a header, a
   cost, a token count and a wall time — everything that makes a result look like a
   result — wrapping zero findings. Had I skimmed it I would have logged "Grok: no

@@ -249,6 +249,16 @@ describe('tag aggregators resist prototype pollution', () => {
     expect(out).toHaveLength(2);
   });
 
+  it('always reports every published intent, even at zero', () => {
+    // The disappearance guard. Without seeded buckets a window with no trainer leads returns no
+    // trainer KEY, so a dashboard renders nothing and "no trainers knocked" is indistinguishable
+    // from "the counter broke" — the exact failure this feature exists to remove, one layer up.
+    expect(aggregateLeadIntents([]).map((r) => r.intent).sort()).toEqual(['book', 'spectrum', 'trainer']);
+    expect(aggregateLeadIntents([]).every((r) => r.count === 0 && r.converted === 0)).toBe(true);
+    const noTrainers = aggregateLeadIntents([{ tags: ['prism:intent:book'], status: 'new' }]);
+    expect(noTrainers.find((r) => r.intent === 'trainer')).toEqual({ intent: 'trainer', count: 0, converted: 0 });
+  });
+
   it('counts a row once per intent even if a tag is duplicated', () => {
     expect(aggregateLeadIntents([
       { tags: ['prism:intent:trainer', 'prism:intent:trainer'], status: 'new' },

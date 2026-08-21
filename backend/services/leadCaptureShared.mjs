@@ -93,10 +93,14 @@ export const intentTag = (intent) => (
  * invisible: answering "how many trainers came through this month" would mean hand-writing JSONB
  * SQL, which is the same friction that made the old free-text marker useless.
  *
- * DELIBERATELY UNLIKE the channel tally: an untagged lead is skipped rather than bucketed under a
- * default. Channels have a meaningful fallback ('direct' — everyone arrived somehow); intent does
- * not. Most leads declare none, and folding them into a catch-all would swamp the real signal and
- * make the trainer count look like noise in a bucket of thousands.
+ * TWO DELIBERATE ASYMMETRIES with the channel tally:
+ *   1. An untagged lead is SKIPPED, not bucketed under a default. Channels have a meaningful
+ *      fallback ('direct' — everyone arrived somehow); intent does not. Most leads declare none,
+ *      and a catch-all would swamp the real signal in a bucket of thousands.
+ *   2. Every published intent is nonetheless SEEDED AT ZERO, so the three known buckets always
+ *      appear. Absent data and zero data must be distinguishable — see the seeding comment below.
+ * These are not in tension: rows without an intent contribute to nothing, but the intents we
+ * publish are always reported, even at zero.
  */
 export const aggregateLeadIntents = (rows = []) => {
   // Object.create(null), NOT {} — the bucket key comes from a tag, and tags are writable via the
@@ -109,6 +113,14 @@ export const aggregateLeadIntents = (rows = []) => {
   // the vocabulary check is the intent, the null prototype is the floor if the vocabulary ever grows
   // a caller that forgets to filter.
   const acc = Object.create(null);
+  // SEED EVERY PUBLISHED INTENT AT ZERO. Without this the accumulator only gains keys that actually
+  // occurred, so a window containing no trainer leads returns NO trainer key at all — and a dashboard
+  // reading `byIntent` renders nothing rather than "trainer: 0". That is the disappearance this whole
+  // feature exists to prevent, reproduced one layer up: a real zero and a missing metric become
+  // indistinguishable, so "no trainers knocked this month" reads identically to "the counter broke".
+  // A reviewer caught it. Every prior reviewer and I missed it, because we all tested windows that
+  // happened to contain the intent we were looking for.
+  for (const intent of CAPTURE_INTENTS) acc[intent] = { intent, count: 0, converted: 0 };
   for (const row of (Array.isArray(rows) ? rows : [])) {
     const tags = Array.isArray(row?.tags) ? row.tags : [];
     // ALL matching tags, not the first. A lead can legitimately hold several — a repeat submitter
@@ -129,8 +141,8 @@ export const aggregateLeadIntents = (rows = []) => {
       if (!CAPTURE_INTENTS.includes(intent)) continue;
       if (seen.has(intent)) continue;
       seen.add(intent);
-      if (!acc[intent]) acc[intent] = { intent, count: 0, converted: 0 };
-      acc[intent].count += 1;
+      acc[intent].count += 1; // bucket pre-seeded above, so no lazy init
+
       if (row?.status === 'converted') acc[intent].converted += 1;
     }
   }
