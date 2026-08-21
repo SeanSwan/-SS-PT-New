@@ -1,5 +1,5 @@
 ---
-decision: SwanGuard continuation — the creator pipeline is built and proven but the database has no creators in it; the goal is a working app that pulls videos and news
+decision: SwanGuard continuation — F0 landed 2026-08-21 and the catalog now holds Sean's 51 creators, all disabled; the next slice is F2b, a trigger for the fetcher that nothing currently calls
 status: open
 supersedes: SWANGUARD-FEED-GAP-HANDOFF-2026-08-20.md
 ---
@@ -91,9 +91,74 @@ creator born disabled.
 
 ---
 
+## 1b. ✅ F0 IS DONE (2026-08-21, Opus 5) — start at F2b
+
+`[VERIFIED 2026-08-21]` The catalog is no longer empty. Commit `41ed295` on
+`merge/newsroom-mainline-v3` (**not pushed** — that branch has no upstream; Sean owns how the
+merge resolves). §0.1's branch warning is resolved: the merge completed, and
+`git merge-base --is-ancestor b47ea52 HEAD` now reports F2 present.
+
+Live dev Postgres: first run inserted 51, second inserted 0 / updated 51 · 51 unique
+identities · **0 enabled** · 51 `added`/`system` audit rows · 40 YouTube channels + 5 Twitch
+channels + 6 Twitch game categories, matching the seed exactly.
+
+Run it with:
+```bash
+cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+DATABASE_MODE=postgres DATABASE_URL=<dev> npm run seed:creators -w @family-first/api
+```
+
+What landed: `packages/domain/src/creatorSeed.ts` (the mapper, moved out of the web service so
+one implementation feeds both consumers; the web keeps a typed pass-through so drift becomes a
+compile error), `apps/api/src/creatorSeedImport.ts`, `creatorSeedImportRunner.ts`,
+`creatorSeedImportCli.ts`, plus 23 tests including a mutation test and 4 gated live ones.
+
+**Two traps this slice added to §5 — read them before writing any runner:**
+
+- **5.8 — `isDirectExecution` is UNDECIDABLE under vite-node.** vite-node consumes the script
+  argument, so `process.argv` is exactly `[node, vite-node/cli.mjs]` and the target path is
+  absent entirely — not at argv[1], not at argv[2]. Any path-based self-detection is always
+  false, so the runner exits 0 having done nothing, which at a shell is indistinguishable from
+  success. The fix is structural: a thin CLI entry file that only the operator invokes, with
+  the logic module kept side-effect-free so tests can import it.
+  **`npm run retention:command-receipts` still has this bug and is currently inert** — left
+  alone deliberately, because fixing it turns a dormant data-purging job live. Sean's call.
+- **5.9 — `cmd | tail` reports tail's exit code.** A backgrounded `npm test | tail` said
+  exit 0 while the api workspace had a failing suite inside it. Use `PIPESTATUS` when the exit
+  code is the thing being claimed.
+
+**Also pre-existing, found here:** `apps/api`'s esbuild step cannot run in this Windows
+checkout — `node_modules/esbuild/bin/esbuild` is a Linux ELF binary (installed from WSL). It
+fails identically on a one-line file, so it is unrelated to any source change.
+`@esbuild/win32-x64` is present, so a targeted reinstall fixes it. Note §0.2's "build exit 0"
+baseline was `npm run build -w @family-first/web` — the web build only, which still passes.
+
+### F2b wiring map (traced 2026-08-21 — do not re-derive)
+
+The ingest capability has to reach the route through the existing feature registry. The chain:
+
+| Step | File | What to add |
+|---|---|---|
+| 1 | `apps/api/src/featureStores.ts` (`FeatureStores`, ~L41 / L79) | a `creatorIngest` capability beside `creatorCatalog` |
+| 2 | `apps/api/src/runtime.ts` (~L183, and the factory list ~L319) | construct it from the catalog store + `createPostgresCreatorItemStore` + the platform clients |
+| 3 | `apps/api/src/featureDispatchOwnerOperator.ts` (~L20-22) | pass it into `handleCreatorCatalogRoute` |
+| 4 | `apps/api/src/creatorCatalogRoutes.ts` | handle `POST /api/creators/ingest` **before** the `parseCreatorPath` branch — that regex would otherwise read `ingest` as a creator id and 404 |
+
+Two safety notes for that route: it is already owner-gated by the `requireRole(user, 'owner')`
+at the top of the handler, and it must **not** accept `itemsPerCreator` from the body (a caller
+could turn one poll into a full-channel backfill — the catalog's two largest channels carry
+~24k videos each). Accept at most an optional `creatorIds` array, which can only narrow, since
+`runCreatorIngest` intersects it with the enabled set. Wrap it as an injected runner interface
+rather than handing the route the platform clients, so API keys never reach the route layer.
+
+Still owed at F2b: add `creator_item`'s load-bearing columns to `requiredSchemaChecks` in
+`packages/database/src/schemaVerification.ts`.
+
+---
+
 ## 2. What to build, in order
 
-### F0 — seed importer (DO THIS FIRST; nothing else produces value without it)
+### F0 — seed importer ✅ DONE 2026-08-21 — see §1b
 
 Import `config/owner-seed.json` into the `creator` table. **Every row born disabled**, which
 the database enforces anyway: `creator_reject_enabled_insert` refuses an INSERT carrying
