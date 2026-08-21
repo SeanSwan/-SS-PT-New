@@ -1,8 +1,9 @@
 ---
 packet_id: 20260821-a-caution-is-not-a-control
+title: A caution is not a control
 date: 2026-08-21
 originating_model: claude-opus-5
-tier: fable
+tier_basis: "Sean's explicit designation 2026-08-10 — Opus 5 is Fable-tier; claude-opus-5 is on the Rule 68 tier_allowlist. Provenance is first-hand — this packet was authored by the running session model, not relayed."
 surface: classroom-hermes, 5090 serving stack, SwanGuard-Newsroom schema
 decision: A lesson phrased as a caution will be violated by the agent that just read it; only a lesson phrased as an executable step survives contact with work.
 status: shipped
