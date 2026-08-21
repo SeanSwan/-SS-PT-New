@@ -113,7 +113,25 @@ export function validateMaterialPlan(m) {
   if (!Array.isArray(m.slots)) bad.push('slots[] required');
   for (const s of m.slots || []) {
     if (!isStr(s.slot)) bad.push('material slot missing id');
-    if (!isStr(s.resolution)) bad.push(`slot ${s.slot}: resolution required (asset ref or explicit "pending:S5")`);
+    if (!isStr(s.resolution)) bad.push(`slot ${s.slot}: resolution required (asset ref, never an empty slot)`);
+  }
+  // S5: an awe surface must prove WHERE its plates came from and that each one
+  // was fitted to this direction's geometry. A plate slot with no crop id is a
+  // shared plate world wearing a per-direction label.
+  if (m.strategy === 'awe_photo') {
+    const ev = m.vault_evidence;
+    if (!ev || typeof ev !== 'object') bad.push('awe_photo: vault_evidence required (which vault steered this, and how much of it was consumable)');
+    else if (!isNum(ev.total) || !isNum(ev.consumable)) bad.push('awe_photo: vault_evidence.total and .consumable must be NUMBERS');
+    if (typeof m.fixtures_allowed !== 'boolean') bad.push('awe_photo: fixtures_allowed boolean required — a fixture-steered run must be visibly not a production run');
+    const plates = (m.slots ?? []).filter((s) => s.plate === true);
+    if (!plates.length) bad.push('awe_photo: no plate slot resolved — an awe surface with zero plates is a type_data surface mislabelled');
+    for (const s of plates) {
+      if (!isStr(s.crop_id)) bad.push(`slot ${s.slot}: crop_id required (plates are fitted to focal geometry, not shared)`);
+      if (!['exemplar', 'lineage'].includes(s.source_kind)) bad.push(`slot ${s.slot}: source_kind must be exemplar | lineage (got "${s.source_kind}")`);
+      if (!isStr(s.source_ref)) bad.push(`slot ${s.slot}: source_ref required (the ranked exemplar id or Forge lineage id)`);
+    }
+    const crops = plates.map((s) => s.crop_id);
+    if (new Set(crops).size !== crops.length) bad.push('awe_photo: two plate slots share a crop_id — one plate world skinned twice');
   }
   return bad;
 }

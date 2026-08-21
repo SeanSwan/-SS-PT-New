@@ -83,8 +83,24 @@ function pageMetrics(viewportHeight) {
     if (r < 4.5) contrastFails.push({ tag: el.tagName.toLowerCase(), ratio: r, text: el.textContent.trim().slice(0, 40) });
   }
 
+  // A declared plate that did not DECODE is the "count of attempts is not a
+  // count of outcomes" bug: the attribute is stamped, the <img> is in the DOM,
+  // every other meter passes, and the page shows a broken image. Measured as an
+  // outcome (naturalWidth), never as the presence of the tag.
+  const plateFails = [];
+  let plateCount = 0;
+  for (const el of document.querySelectorAll('[data-plate]')) {
+    plateCount += 1;
+    if (el.tagName.toLowerCase() !== 'img') continue;
+    if (!el.complete || el.naturalWidth === 0) {
+      plateFails.push({ src: el.getAttribute('src'), reason: el.complete ? 'decoded to zero width' : 'never finished loading' });
+    }
+  }
+
   return {
     overflow,
+    plateFails,
+    plateCount,
     scrollWidth: doc.scrollWidth,
     innerWidth: window.innerWidth,
     tapFails,
@@ -110,6 +126,12 @@ export async function captureAndMeasure(htmlPath, outDir, { viewports = DEFAULT_
     const results = [];
     for (const vp of viewports) {
       await page.setViewportSize(vp);
+      // Chromium can refuse a capture taken in the same tick as a resize
+      // ("Protocol error (Page.captureScreenshot): Unable to capture
+      // screenshot") — intermittently, and more often under load. Waiting two
+      // animation frames lets the compositor settle after the resize. A retry
+      // would have hidden a real race behind a flaky-looking green.
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
       const fold = join(outDir, `${vp.width}-fold.png`);
       const full = join(outDir, `${vp.width}-full.png`);
       await page.screenshot({ path: fold });

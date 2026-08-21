@@ -57,6 +57,14 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
     console.log(`[loop] CLOSED — run ${receipt.run_id}`);
     console.log(`[loop] skeleton: ${ctx.artifacts.ir.skeleton_id} · meters: ${v.meters_total} · all pass: ${v.all_meters_pass} · roundtrip: ${v.skeleton_roundtrip_ok}`);
     if (v.regressions.length) console.log(`[loop] carried regressions: ${v.regressions.map((r) => r.meter).join(', ')}`);
+    const mat = ctx.artifacts.materials;
+    if (mat.strategy === 'awe_photo') {
+      const plates = mat.slots.filter((s) => s.plate);
+      console.log(`[loop] materials: ${mat.strategy} · ${plates.length} plate(s) from ${mat.vault_evidence.consumable}/${mat.vault_evidence.total} consumable exemplar(s)`);
+      // Loud at the CLI, not only in the JSON — a fixture-steered run must be
+      // impossible to mistake for a production one at a glance.
+      if (mat.fixtures_allowed) console.log('[loop] WARNING: FIXTURE-STEERED RUN — exemplars are placeholders, not ranked taste. Not production output.');
+    }
     console.log(`[loop] receipt: ${join(ctx.runDir, 'RECEIPT.json')}`);
     console.log(`[loop] render:  ${(ctx.artifacts.revise ?? ctx.artifacts.render).html_path}`);
     console.log('[loop] session appended as PENDING — Sean\'s pass resolves it (same brief_id supersedes).');

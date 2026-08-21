@@ -119,6 +119,11 @@ export function browserMeters(cap) {
     const w = r.viewport.width;
     meters.push({ meter: `browser:overflow@${w}`, value: { scrollWidth: r.scrollWidth, innerWidth: r.innerWidth }, pass: !r.overflow });
     meters.push({ meter: `browser:computed_contrast@${w}`, value: r.contrastFails, pass: r.contrastFails.length === 0 });
+    // S5: a material plate that never decoded fails the run. Only asserted when
+    // the page declares plates at all, so type_data surfaces are unaffected.
+    if (r.plateCount) {
+      meters.push({ meter: `browser:plates_loaded@${w}`, value: { declared: r.plateCount, failed: r.plateFails }, pass: r.plateFails.length === 0 });
+    }
     if (w <= 480) {
       meters.push({ meter: `browser:tap_targets@${w}`, value: r.tapFails, pass: r.tapFails.length === 0 });
       meters.push({ meter: `browser:cta_fold@${w}`, value: r.ctaTop, pass: r.ctaInFold });
@@ -137,6 +142,17 @@ export function browserMeters(cap) {
 export async function inspectAll(ctx, render) {
   const html = readFileSync(render.html_path, 'utf8');
   const meters = inspectHtml(html, ctx.artifacts.ir);
+
+  // S5 fail-closed: every plate the gated MATERIAL plan declared must be present
+  // in the file actually on disk. Measured against the PLAN, not against the
+  // DOM's own claims — a page that dropped its plates would otherwise report
+  // zero plates and zero plate failures, which reads as success.
+  const declared = (ctx.artifacts.materials?.slots ?? []).filter((s) => s.plate === true).map((s) => s.crop_id);
+  if (declared.length) {
+    const inDom = new Set([...html.matchAll(/data-plate-crop="([^"]+)"/g)].map((m) => m[1]));
+    const missing = declared.filter((c) => !inDom.has(c));
+    meters.push({ meter: 'plates_declared_vs_rendered', value: { declared: declared.length, missing }, pass: missing.length === 0 });
+  }
   let screenshots = null;
 
   if (ctx.browserInspect === false) {

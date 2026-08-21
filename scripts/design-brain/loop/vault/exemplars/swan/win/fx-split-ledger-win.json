@@ -1,0 +1,10 @@
+{
+  "id": "fx-split-ledger-win",
+  "verdict": "win",
+  "skeleton_family": "split-asymmetric",
+  "signature_moment": "the price ledger IS the composition — no card ever appears",
+  "why": "FIXTURE ONLY. Placeholder standing in for a ranked split-asymmetric win so the validator and the materials resolver have something to exercise. Carries no taste signal.",
+  "source": "fixture",
+  "ranked_by": "fixture",
+  "ranked_at": "2026-08-21"
+}

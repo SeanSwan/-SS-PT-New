@@ -12,10 +12,10 @@ import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { renderHtml } from './render.mjs';
+import { renderHtml, platesFromPlan } from './render.mjs';
 
 export function reviseStage(ctx) {
-  const { critique, ir, content, render } = ctx.artifacts;
+  const { critique, ir, content, render, materials } = ctx.artifacts;
   const contrastFails = critique.fix_now.filter((f) => f.safe_auto_apply && f.meter.startsWith('contrast:'));
 
   if (!contrastFails.length) {
@@ -23,7 +23,9 @@ export function reviseStage(ctx) {
     return { ...render, render_id: render.render_id, revision: 'none-needed', unfixed: critique.fix_now.map((f) => f.meter) };
   }
 
-  const html = renderHtml(ir, content, { textToken: 'text' });
+  // Plates ride the revision. Dropping them here shipped an awe surface with no
+  // hero while every meter passed — the plan said one plate, the page had none.
+  const html = renderHtml(ir, content, { textToken: 'text', plates: platesFromPlan(materials, ctx.runDir) });
   const htmlPath = join(ctx.runDir, 'render.revised.html');
   writeFileSync(htmlPath, html);
   return {

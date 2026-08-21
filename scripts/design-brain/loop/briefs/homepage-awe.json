@@ -1,0 +1,168 @@
+{
+  "brief_id": "homepage-awe-2026-08",
+  "surface": "/ (homepage hero + proof, first viewport)",
+  "domain": "swan_product",
+  "project": "swanstudios",
+  "archetype": "homepage-awe",
+  "primary_task": "understand who coaches here and what proof exists, then start a first session",
+  "material_strategy": "awe_photo",
+  "allow_fixture_exemplars": true,
+  "_fixture_note": "allow_fixture_exemplars is TRUE because the vault currently holds only placeholder fixtures. The material plan records fixtures_allowed:true, so any run from this brief is visibly NOT a production run. Set this to false the moment Sean's ranking pass lands real exemplars.",
+  "viewports": [
+    375,
+    1440
+  ],
+  "material_lineage": [],
+  "facts": {
+    "primary_claim": "26+ years of coaching, NASM-protocol programming, sessions from $110.",
+    "cta_label": "Book your first session",
+    "sections": [
+      {
+        "slot": "hero",
+        "heading": "Coaching that leaves a record",
+        "facts": [
+          {
+            "text": "1-on-1 sessions: $175 per hour",
+            "source": "seeders/20260407-seed-storefront-packages.mjs"
+          },
+          {
+            "text": "30-minute express pack: 10 sessions for $1,100",
+            "source": "seeders/20260407-seed-storefront-packages.mjs"
+          },
+          {
+            "text": "NASM-protocol programming, 26+ years of coaching experience",
+            "source": "memory/user_trainer_credentials"
+          }
+        ]
+      },
+      {
+        "slot": "proof",
+        "heading": "Every session becomes visible progress",
+        "facts": [
+          {
+            "text": "Workout logs turn into progress charts your trainer reviews with you",
+            "source": "product-core-loop"
+          },
+          {
+            "text": "736-exercise library backs every program",
+            "source": "memory/project_exercise_database_736"
+          },
+          {
+            "text": "Milestones are shareable with the community when YOU choose",
+            "source": "product-core-loop"
+          }
+        ]
+      },
+      {
+        "slot": "commit",
+        "heading": "Commit to a season, not a workout",
+        "facts": [
+          {
+            "text": "3-month program: $8,400",
+            "source": "seeders/20260407-seed-storefront-packages.mjs"
+          },
+          {
+            "text": "6-month program: $16,800",
+            "source": "seeders/20260407-seed-storefront-packages.mjs"
+          },
+          {
+            "text": "12-month transformation: $33,600",
+            "source": "seeders/20260407-seed-storefront-packages.mjs"
+          }
+        ]
+      }
+    ]
+  },
+  "skeleton_library": [
+    {
+      "id": "AW1-plate-baseline",
+      "nav_model": "top-bar-minimal",
+      "hero_mechanics": "full-bleed-plate-overlay-baseline-left",
+      "grid": "single-column-narrative-880px",
+      "card_budget": 0,
+      "section_plan": {
+        "hero": "hero",
+        "proof": "proof-list",
+        "commit": "price-ledger"
+      },
+      "anti_specs": [
+        {
+          "marker": "data-card",
+          "why": "the plate carries the weight — no cards"
+        }
+      ],
+      "wildcard": false
+    },
+    {
+      "id": "AW2-split-plate-ledger",
+      "nav_model": "none-anchor-dots-right",
+      "hero_mechanics": "split-asymmetric-plate-left-price-right",
+      "grid": "12col-asymmetric-7-5",
+      "card_budget": 0,
+      "section_plan": {
+        "hero": "hero",
+        "proof": "editorial-flow",
+        "commit": "price-ledger"
+      },
+      "anti_specs": [
+        {
+          "marker": "data-card",
+          "why": "price ledger, not price cards"
+        }
+      ],
+      "wildcard": false
+    },
+    {
+      "id": "AW3-editorial-chapters",
+      "nav_model": "sticky-progress-rail",
+      "hero_mechanics": "single-column-editorial-plate-inline",
+      "grid": "single-column-editorial-680px",
+      "card_budget": 0,
+      "section_plan": {
+        "hero": "hero",
+        "proof": "editorial-flow",
+        "commit": "price-ledger"
+      },
+      "anti_specs": [
+        {
+          "marker": "data-card",
+          "why": "editorial flow only"
+        }
+      ],
+      "wildcard": false
+    },
+    {
+      "id": "AW4-kpi-first",
+      "nav_model": "side-rail-left",
+      "hero_mechanics": "no-hero-kpi-strip-prices-first",
+      "grid": "2col-data-grid",
+      "card_budget": 0,
+      "section_plan": {
+        "hero": "kpi-strip",
+        "proof": "media-plate",
+        "commit": "price-ledger"
+      },
+      "anti_specs": [
+        {
+          "marker": "data-card",
+          "why": "operational wildcard — numbers, not cards"
+        }
+      ],
+      "wildcard": true
+    },
+    {
+      "id": "AW5-media-chapters",
+      "nav_model": "top-bar-dense",
+      "hero_mechanics": "centered-fullbleed-plate-stacked-text",
+      "grid": "3col-card-grid",
+      "card_budget": 3,
+      "section_plan": {
+        "hero": "hero",
+        "proof": "card-grid",
+        "commit": "cta-band"
+      },
+      "anti_specs": [],
+      "wildcard": false
+    }
+  ]
+}

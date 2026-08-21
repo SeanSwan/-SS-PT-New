@@ -1,0 +1,10 @@
+{
+  "id": "fx-kpi-strip-borderline",
+  "verdict": "borderline",
+  "skeleton_family": "no-hero",
+  "signature_moment": "numbers first, no hero at all — reads operational, not persuasive",
+  "why": "FIXTURE ONLY. Placeholder for the borderline lane so the three-verdict read path is exercised.",
+  "source": "fixture",
+  "ranked_by": "fixture",
+  "ranked_at": "2026-08-21"
+}

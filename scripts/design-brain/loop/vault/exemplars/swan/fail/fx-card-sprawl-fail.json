@@ -1,0 +1,10 @@
+{
+  "id": "fx-card-sprawl-fail",
+  "verdict": "fail",
+  "skeleton_family": "centered-fullbleed",
+  "signature_moment": "none — three equal cards under a centered headline",
+  "why": "FIXTURE ONLY. Placeholder for the modal attractor the denylist already refuses, kept so critique calibration has a known-bad anchor shape.",
+  "source": "fixture",
+  "ranked_by": "fixture",
+  "ranked_at": "2026-08-21"
+}

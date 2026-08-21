@@ -8,13 +8,20 @@
  *   B4 seeded low COMPUTED contrast (var chain resolved by the browser) caught
  *   B5 explicit config skip is recorded as a meter, never silent
  *   B6 unavailable browser while required FAILS the meter (fail-closed)
+ *   V16 a missing plate file is reported as an outcome failure (S5)
+ *   V17 the real awe render decodes its plate in a real browser (S5)
+ *
+ * ALL browser-launching tests live in THIS file on purpose: node --test runs
+ * files in parallel, and two files each launching headless Chromium made
+ * screenshot capture fail under contention — a suite that passed per-file and
+ * failed as a suite. One owner for the browser lane, no flake.
  *
  * If Playwright cannot be resolved, tests B1–B4 SKIP VISIBLY — a skip is a
  * statement, silence is a lie.
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, copyFileSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -31,6 +38,20 @@ const fresh = () => {
   const dir = mkdtempSync(join(tmpdir(), 'brw-'));
   return { runRoot: join(dir, 'runs'), ledgerPath: join(dir, 'ledger.jsonl'), dir };
 };
+
+const AWE_BRIEF = JSON.parse(readFileSync(join(HERE, '..', 'briefs', 'homepage-awe.json'), 'utf8'));
+const VAULT = join(HERE, '..', 'vault', 'exemplars', 'swan');
+
+/** A scratch vault seeded with the committed fixture exemplars. */
+function scratchVault() {
+  const root = join(mkdtempSync(join(tmpdir(), 'vx-')), 'swan');
+  for (const v of ['win', 'fail', 'borderline']) mkdirSync(join(root, v), { recursive: true });
+  for (const [v, stem] of [['win', 'fx-split-ledger-win'], ['win', 'fx-editorial-column-win'], ['fail', 'fx-card-sprawl-fail'], ['borderline', 'fx-kpi-strip-borderline']]) {
+    copyFileSync(join(VAULT, v, `${stem}.png`), join(root, v, `${stem}.png`));
+    copyFileSync(join(VAULT, v, `${stem}.json`), join(root, v, `${stem}.json`));
+  }
+  return root;
+}
 
 const fixture = (body) => {
   const p = join(mkdtempSync(join(tmpdir(), 'fix-')), 'page.html');
@@ -96,4 +117,29 @@ test('B6 unavailable browser while required fails the lane meter (fail-closed)',
     assert.equal(lane.pass, false);
     assert.equal(ctx.artifacts.verify.all_meters_pass, false, 'a degraded run may finish but must finish RED');
   }
+});
+
+// --- S5 plate lane (moved here so only one file launches a browser) --------
+
+test('V16 a real browser marks a missing plate file as failed', { skip: !resolvePlaywright() && 'playwright unavailable' }, async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'plate-'));
+  const page = join(dir, 'page.html');
+  writeFileSync(page, '<main><img src="./does-not-exist.png" alt="" data-plate style="width:100%"><a data-cta style="display:inline-block;min-width:44px;min-height:44px;color:#0A0A0F;background:#60C0F0;">Go</a></main>');
+  const cap = await captureAndMeasure(page, join(dir, 'shots'));
+  const at375 = cap.viewports.find((v) => v.viewport.width === 375);
+  assert.equal(at375.plateCount, 1);
+  assert.equal(at375.plateFails.length, 1, 'a 404 plate must be reported as an outcome failure');
+  assert.match(at375.plateFails[0].src, /does-not-exist/);
+});
+
+test('V17 the real awe render decodes its plate in a real browser', { skip: !resolvePlaywright() && 'playwright unavailable' }, async () => {
+  const { ctx } = await runLoop({
+    brief: AWE_BRIEF, stages: { ...DEFAULT_STAGES }, profile: loadProfile(),
+    vaultRoot: scratchVault(), ...fresh(),
+  });
+  const names = ctx.artifacts.inspect.meters.map((m) => m.meter);
+  assert.ok(names.includes('browser:plates_loaded@375'), 'the awe surface declares a plate, so the meter must be present');
+  const m = ctx.artifacts.inspect.meters.find((x) => x.meter === 'browser:plates_loaded@1440');
+  assert.equal(m.pass, true, `plate failed to decode: ${JSON.stringify(m.value)}`);
+  assert.equal(ctx.artifacts.verify.all_meters_pass, true);
 });
