@@ -5,11 +5,18 @@
  * Call initializeRegistry() once at server startup.
  *
  * Commands are registered across categories A-N. The per-category counts below
- * are hand-maintained and DRIFT — as of 2026-07-25 they sum to 119 while the
- * registries actually define 134 commands. Treat them as a rough map, never as
- * a figure to quote: two commit messages cited the stale 119 before anyone
- * counted. To get the real number, count definitions rather than trusting this
- * block.
+ * are hand-maintained and DRIFT. As of 2026-07-25 they summed to 119 while the
+ * registries defined 134; re-counted 2026-08-21 the real total is 139 and the
+ * hand list still says 119. Two commit messages once cited the stale 119, and a
+ * 2026-08-20 external audit cited the stale 134 as if it were current.
+ *
+ * TREAT EVERY NUMBER IN THIS BLOCK AS WRONG. It is a rough category map, never a
+ * figure to quote. To get the real number, count:
+ *   getAllCommands().length   (after initializeRegistry())
+ * and for what each command can actually DO, use getCommandExecutionLane() -- a
+ * definition existing is not the same as a capability working. At 2026-08-21,
+ * 139 commands split: 112 server_dispatch, 18 frontend_event, 4 debate_async,
+ * 4 manual_only, 1 chat_fallback -- so 5 cannot execute at all.
  *
  * A: Client Management (14)   B: Workouts (17)      C: Scheduling (10)
  * D: Health & Pain (8)        E: Nutrition (6)       F: Social (6)

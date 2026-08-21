@@ -12,6 +12,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import apiService from '../../../../services/api.service';
 import {
+  SheetAvailability,
+  SheetAvailabilityReason,
   SheetCategory,
   SheetCommandButton,
   SheetHeader,
@@ -21,12 +23,61 @@ import {
   SheetStateText,
 } from './CoachCommandCatalogSheet.styles';
 
+/**
+ * `executionLane` is how the backend registry classifies what a command can
+ * actually DO. The endpoint has always returned it; this sheet used to ignore it.
+ */
+type ExecutionLane =
+  | 'server_dispatch'
+  | 'frontend_event'
+  | 'debate_async'
+  | 'manual_only'
+  | 'chat_fallback'
+  | 'not_wired';
+
 type CatalogCommand = {
   type: string;
   description?: string;
   category?: string;
   examples?: string[];
+  executionLane?: ExecutionLane;
+  canExecute?: boolean;
+  manualOnly?: boolean;
+  manualOnlyReason?: string | null;
 };
+
+/**
+ * What to tell the user about a command Swan Coach cannot execute for them.
+ *
+ * Only lanes that cannot execute get a badge — labelling the 130 working
+ * commands would be noise, and a badge on everything communicates nothing.
+ * `not_wired` is included for safety: the backend coverage lock currently keeps
+ * that bucket empty, but if one ever slips through, the sheet must say so rather
+ * than silently advertise it.
+ */
+function availabilityLabel(command: CatalogCommand): { label: string; reason: string } | null {
+  if (command.canExecute !== false) return null;
+
+  switch (command.executionLane) {
+    case 'chat_fallback':
+      return {
+        label: 'Answered in chat',
+        reason: 'Swan Coach answers this in conversation rather than performing an action.',
+      };
+    case 'not_wired':
+      return {
+        label: 'Not available',
+        reason: 'This is defined but has no action behind it yet.',
+      };
+    case 'manual_only':
+    default:
+      return {
+        label: 'Do it yourself',
+        reason: command.manualOnlyReason?.trim()
+          || 'This one has to be done by hand — Swan Coach can walk you through it, but cannot perform it.',
+      };
+  }
+}
 
 type CoachCommandCatalogSheetProps = {
   open: boolean;
@@ -145,6 +196,8 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
                 <h3>{category}</h3>
                 {groupCommands.map((command) => {
                   const example = command.examples?.[0];
+                  const availability = availabilityLabel(command);
+                  const name = friendlyCommandName(command.type);
                   return (
                     <SheetCommandButton
                       type="button"
@@ -153,10 +206,20 @@ const CoachCommandCatalogSheet: React.FC<CoachCommandCatalogSheetProps> = ({ ope
                         if (example) onUsePrompt(example);
                         onClose();
                       }}
-                      aria-label={`Use example for ${friendlyCommandName(command.type)}`}
+                      // The label carries the availability so a screen-reader user hears it
+                      // with the name, not several elements later.
+                      aria-label={
+                        availability
+                          ? `${name} — ${availability.label}. ${availability.reason} Use example.`
+                          : `Use example for ${name}`
+                      }
                     >
-                      <strong>{friendlyCommandName(command.type)}</strong>
+                      <strong>{name}</strong>
+                      {availability ? <SheetAvailability>{availability.label}</SheetAvailability> : null}
                       {command.description ? <span>{command.description}</span> : null}
+                      {availability ? (
+                        <SheetAvailabilityReason>{availability.reason}</SheetAvailabilityReason>
+                      ) : null}
                       {example ? <em>&ldquo;{example}&rdquo;</em> : null}
                     </SheetCommandButton>
                   );

@@ -44,6 +44,86 @@ describe('CoachCommandCatalogSheet', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+
+  /**
+   * S5 (2026-08-21). The endpoint has always returned canExecute / executionLane /
+   * manualOnlyReason per command; this sheet dropped them, so a panel titled
+   * "What Swan Coach can do" listed commands Swan Coach cannot do — 5 of 139 at
+   * 66ffde607. These lock the honest rendering.
+   */
+  it('flags commands the coach cannot actually execute, and leaves working ones unbadged', async () => {
+    getMock.mockResolvedValue({
+      data: {
+        success: true,
+        commands: [
+          {
+            type: 'log_workout',
+            description: 'Log a workout for a client',
+            category: 'Workouts',
+            examples: ['Log a workout for client 84'],
+            executionLane: 'server_dispatch',
+            canExecute: true,
+          },
+          {
+            type: 'run_ai_village',
+            description: 'Run the validation village',
+            category: 'System',
+            examples: ['Run the AI village'],
+            executionLane: 'manual_only',
+            canExecute: false,
+            manualOnly: true,
+            manualOnlyReason: 'Costs money and needs explicit approval.',
+          },
+          {
+            type: 'nutrition_advice',
+            description: 'Answer a nutrition question',
+            category: 'Nutrition',
+            examples: ['What should I eat after training?'],
+            executionLane: 'chat_fallback',
+            canExecute: false,
+          },
+        ],
+      },
+    });
+    render(<CoachCommandCatalogSheet open onClose={() => undefined} onUsePrompt={() => undefined} />);
+
+    expect(await screen.findByText('Log workout')).toBeInTheDocument();
+
+    // manual_only surfaces its registry-supplied reason verbatim, not a generic string.
+    expect(screen.getByText('Do it yourself')).toBeInTheDocument();
+    expect(screen.getByText('Costs money and needs explicit approval.')).toBeInTheDocument();
+
+    // chat_fallback is a different truth: it works, just not as an action.
+    expect(screen.getByText('Answered in chat')).toBeInTheDocument();
+
+    // Exactly two badges — the executable command must NOT be labelled. A badge on
+    // everything communicates nothing.
+    expect(screen.queryAllByText(/do it yourself|answered in chat|not available/i)).toHaveLength(2);
+
+    // Screen-reader users hear the limitation with the name, not several nodes later.
+    expect(
+      screen.getByRole('button', { name: /run ai village — do it yourself/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /use example for log workout/i })
+    ).toBeInTheDocument();
+  });
+
+  it('treats a not_wired command as unavailable rather than silently advertising it', async () => {
+    // The backend coverage lock keeps this bucket empty today. If one ever slips
+    // through, the sheet must say so.
+    getMock.mockResolvedValue({
+      data: {
+        success: true,
+        commands: [
+          { type: 'ghost_command', category: 'System', examples: ['Do the ghost thing'], executionLane: 'not_wired', canExecute: false },
+        ],
+      },
+    });
+    render(<CoachCommandCatalogSheet open onClose={() => undefined} onUsePrompt={() => undefined} />);
+    expect(await screen.findByText('Not available')).toBeInTheDocument();
+  });
+
   it('fails honestly when the registry cannot be loaded', async () => {
     getMock.mockRejectedValue(new Error('boom'));
     render(<CoachCommandCatalogSheet open onClose={() => undefined} onUsePrompt={() => undefined} />);
