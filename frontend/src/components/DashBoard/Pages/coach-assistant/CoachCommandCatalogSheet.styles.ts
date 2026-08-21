@@ -125,6 +125,15 @@ export const SheetCommandButton = styled.button`
  */
 export const SheetAvailability = styled.span`
   align-self: start;
+  /* The parent is display:grid, where items default to justify-self:stretch. Without
+     this the pill spans the whole column and reads as a full-width banner rather than
+     a badge — the border-radius:999px makes that especially wrong. */
+  justify-self: start;
+  /* Belt and braces at 320px: nowrap keeps the label on one line, so cap the width
+     and ellipsize rather than letting a long future label push the row wider. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: color-mix(in srgb, var(--accent-luxury, #c6a84b) 14%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-luxury, #c6a84b) 42%, transparent);
   border-radius: 999px;
