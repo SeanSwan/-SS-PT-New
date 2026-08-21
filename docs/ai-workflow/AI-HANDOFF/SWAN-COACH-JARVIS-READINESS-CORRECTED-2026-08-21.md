@@ -97,6 +97,36 @@ instinct was right; the blast radius is one line, not a program.
 
 ---
 
+## 2b. Addendum — CI is worse than the audit described (found during the build)
+
+Three of the checks that already exist would **fail if they were enforced**. The audit
+said the gate was unenforced; it never ran the gate.
+
+| Check | State on `main` @ 66ffde607 | Evidence |
+|---|---|---|
+| `npm run eval` (`ai-eval-gate.yml`) | **RED — exit 1** | `CORRECTNESS FAILURE: warnings_02 — expected warningCount=0 but got 1`; `THRESHOLD FAILURE: warning-generation accuracy 85.7% < 100.0% (6/7)` |
+| `npm test` (`bodymap-validation.yml`, `working-directory: backend`) | **RED — exit 1** | 5 files / 6 tests fail: `__tests__/equipmentScanService.multi`, `__tests__/equipmentScanService.retry`, `tests/api/associationsModelRegistryParity`, `tests/api/idorAuditReaderControls`, `tests/api/phase1bControllers` |
+| Full backend suite generally | **RED** | Same 5 files. Reproduced under the **unmodified** `vitest.config.mjs` from 66ffde607, so they pre-date S4a |
+
+This is why "just turn on branch protection and require the existing workflows" would
+have been an outage of its own: it would have blocked every merge on day one. The
+Coach Gate (S4b) therefore requires only the four checks proven green, and marks
+`npm run eval` non-blocking with the reason written into the workflow.
+
+**Correction to S4a's commit message.** `dc091db8d` claims it makes "the backend suite
+green." That is true for `tests/unit` (601 files, 5330 passing) and **false for the
+full suite**, which remains red on the 5 files above. The measurement was scoped to
+`tests/unit` and the claim was not. The gate itself is honest — it runs
+`npm run test -- tests/unit`, which is green — but the message overclaimed, which is
+the same failure class this report exists to document. Recorded here rather than
+amended (Rule 45).
+
+**Not fixed, deliberately.** The 5 pre-existing failures are outside this slice's blast
+radius and touch equipment scanning, model-registry parity, and IDOR audit controls —
+one of which is security-adjacent. They need their own scoped slice, not a drive-by.
+
+---
+
 ## 3. Panel convergence — and where I overrule a reviewer
 
 | Finding | GLM 5.3 | Kimi K3 | Grok 4.6 | Qwen 3.8 | Claude (verifier) |
