@@ -321,7 +321,9 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
    * Update profile
    */
   const updateProfile = useCallback(async (data: Partial<UserProfile>) => {
-    if (!user) return;
+    // Never resolve silently on a missing user: callers treat a resolved promise as
+    // proof the write landed and show a success state. Failing loudly is the contract.
+    if (!user) throw new Error('Cannot update profile: no authenticated user');
     
     setIsLoading(true);
     setError(null);

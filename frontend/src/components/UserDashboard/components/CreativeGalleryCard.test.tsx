@@ -15,7 +15,7 @@ describe('CreativeGalleryCard', () => {
           mediaKind: 'image',
           tags: [],
           duration: '   ',
-          views: Number.POSITIVE_INFINITY,
+          likes: Number.POSITIVE_INFINITY,
         }}
         index={0}
         onPlay={onPlay}
@@ -44,7 +44,7 @@ describe('CreativeGalleryCard', () => {
           mediaKind: 'video',
           tags: ['Dance', 'Workout', 'Motivation', 'Wellness'],
           duration: '0:38',
-          views: 14,
+          likes: 14,
         }}
         index={0}
         onPlay={onPlay}

@@ -28,7 +28,7 @@ describe('mapPostsToCreativeMedia', () => {
         mediaKind: 'image',
         tags: [],
         duration: '',
-        views: 7,
+        likes: 7,
         createdAt: undefined,
       },
     ]);
@@ -47,7 +47,7 @@ describe('mapPostsToCreativeMedia', () => {
         mediaKind: 'image',
         tags: [],
         duration: '',
-        views: 0,
+        likes: 0,
         createdAt: undefined,
       },
       {
@@ -58,7 +58,7 @@ describe('mapPostsToCreativeMedia', () => {
         mediaKind: 'image',
         tags: ['Workout'],
         duration: '',
-        views: 0,
+        likes: 0,
         createdAt: undefined,
       },
     ]);
@@ -85,7 +85,7 @@ describe('mapPostsToCreativeMedia', () => {
         mediaKind: 'image',
         tags: [],
         duration: '',
-        views: 0,
+        likes: 0,
         createdAt: undefined,
       },
     ]);
@@ -105,7 +105,7 @@ describe('mapPostsToCreativeMedia', () => {
         mediaKind: 'image',
         tags: ['Workout'],
         duration: '',
-        views: 7,
+        likes: 7,
         createdAt: undefined,
       },
     ]);

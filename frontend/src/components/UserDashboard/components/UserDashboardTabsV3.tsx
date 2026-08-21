@@ -102,9 +102,6 @@ const TabLoadingFallback = () => (
   </LoadingContainer>
 );
 
-const noopUpdateProfile = async () => undefined;
-const noopOpenEditor = () => undefined;
-
 interface UserDashboardTabsV3Props {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
@@ -119,8 +116,15 @@ interface UserDashboardTabsV3Props {
   homeDisplayName: string;
   homeUsername: string;
   profileSettingsProfile?: UserProfile | null;
-  onUpdateProfile?: (data: Record<string, unknown>) => Promise<void>;
-  onOpenEditProfile?: () => void;
+  /**
+   * REQUIRED. Persists the settings payload. Must actually write.
+   * Deliberately non-optional: a missing handler used to fall back to a no-op that
+   * resolved successfully, so Settings reported "Saved" while writing nothing
+   * (privacy + health fields silently discarded). Absence must fail at compile time.
+   */
+  onUpdateProfile: (data: Record<string, unknown>) => Promise<void>;
+  /** REQUIRED. Opens the profile editor. Same no-op hazard as onUpdateProfile. */
+  onOpenEditProfile: () => void;
 }
 
 const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
@@ -245,8 +249,8 @@ const UserDashboardTabsV3: React.FC<UserDashboardTabsV3Props> = ({
           <TabStack>
             <UserSettingsHub
               profile={profileSettingsProfile ?? homeProfile}
-              onUpdateProfile={onUpdateProfile || noopUpdateProfile}
-              onOpenEditProfile={onOpenEditProfile || noopOpenEditor}
+              onUpdateProfile={onUpdateProfile}
+              onOpenEditProfile={onOpenEditProfile}
             />
             <AboutSection />
             <TransformationPhotoShowcase

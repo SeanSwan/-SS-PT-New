@@ -174,7 +174,6 @@ export interface PostHeaderProps {
   onDelete: () => void;
   onEdit: () => void;
   onCopyLink: () => void;
-  onMute: () => void;
   isOwnPost: boolean;
   readOnly?: boolean;
 }

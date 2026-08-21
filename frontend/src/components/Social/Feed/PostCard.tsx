@@ -61,7 +61,7 @@ const PostCard: React.FC<PostCardProps> = ({
     reportModalOpen, setReportModalOpen,
     shareDialogOpen, setShareDialogOpen,
     deleteConfirmOpen, setDeleteConfirmOpen, isDeletingPost,
-    handleCopyLink, handleMute, handleEditPost, handleSaveEdit,
+    handleCopyLink, handleEditPost, handleSaveEdit,
     handleDeletePost, handleConfirmDeletePost, handleReportSubmit, handleRepost,
   } = usePostCardModeration({ post, onEdit, onDelete, onReport, onRepost });
 
@@ -154,7 +154,6 @@ const PostCard: React.FC<PostCardProps> = ({
           onDelete={handleDeletePost}
           onEdit={handleEditPost}
           onCopyLink={handleCopyLink}
-          onMute={handleMute}
           isOwnPost={isOwnPost}
           readOnly={readOnly}
         />

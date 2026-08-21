@@ -3,7 +3,7 @@
  */
 
 import React from 'react';
-import { Eye, Play } from 'lucide-react';
+import { Heart, Play } from 'lucide-react';
 import {
   CategoryStamp,
   CategoryStampRow,
@@ -29,7 +29,7 @@ interface CreativeGalleryCardProps {
 
 const CreativeGalleryCard: React.FC<CreativeGalleryCardProps> = ({ item, index, onPlay }) => {
   const safeTitle = normalizeCreativeMediaTitle(item.title);
-  const safeViews = normalizeCreativeMetricCount(item.views);
+  const safeLikes = normalizeCreativeMetricCount(item.likes);
   const safeDuration = item.duration.trim();
   const visibleTags = (item.tags?.length ? item.tags : ['Creative']).slice(0, 3);
 
@@ -58,8 +58,8 @@ const CreativeGalleryCard: React.FC<CreativeGalleryCardProps> = ({ item, index, 
         </CategoryStampRow>
         <VideoStats>
           <StatItem>
-            <Eye size={16} aria-hidden="true" />
-            {safeViews.toLocaleString()}
+            <Heart size={16} aria-hidden="true" />
+            <span aria-label={`${safeLikes.toLocaleString()} likes`}>{safeLikes.toLocaleString()}</span>
           </StatItem>
           {safeDuration && <StatItem>{safeDuration}</StatItem>}
         </VideoStats>

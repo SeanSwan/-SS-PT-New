@@ -11,7 +11,7 @@ const buildMediaItem = (overrides: Partial<CreativeMediaItem>): CreativeMediaIte
   mediaKind: 'video',
   tags: [],
   duration: '',
-  views: 0,
+  likes: 0,
   ...overrides,
 });
 

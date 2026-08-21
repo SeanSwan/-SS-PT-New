@@ -8,7 +8,6 @@
  * │ │ [Avatar] Name          [Type Chip] [...]               │  │
  * │ │          2 hours ago              ┌──────────────┐     │  │
  * │ │                                   │ Copy Link    │     │  │
- * │ │                                   │ Mute User    │     │  │
  * │ │                                   │ Report Post  │     │  │
  * │ │                                   │ Delete Post  │     │  │
  * │ │                                   └──────────────┘     │  │
@@ -17,7 +16,6 @@
  * │ CLICK-OUTCOMES:                                             │
  * │ [Menu dots] -> toggles dropdown menu                        │
  * │ [Copy Link] -> copies post URL to clipboard                 │
- * │ [Mute User] -> mutes user's posts (future: POST /api/mute) │
  * │ [Report Post] -> opens ReportPostModal                      │
  * │ [Delete Post] -> confirms & deletes (own-post/admin only)   │
  * │ GAMIFICATION: None                                          │
@@ -25,7 +23,7 @@
  */
 
 import React from 'react';
-import { MoreVertical, User, Link2, VolumeX, Flag, Trash2, Pencil, ShieldCheck } from 'lucide-react';
+import { MoreVertical, User, Link2, Flag, Trash2, Pencil, ShieldCheck } from 'lucide-react';
 import type { PostHeaderProps } from '../types/PostCardTypes';
 import { isCoachRole, postTypeLabels, postTypeColors } from '../types/PostCardTypes';
 import RPGProfileHeader from '../../../Social/RPGProfileHeader';
@@ -103,7 +101,6 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
   onDelete,
   onEdit,
   onCopyLink,
-  onMute,
   isOwnPost,
   readOnly = false,
 }) => {
@@ -172,13 +169,6 @@ const PostHeader: React.FC<PostHeaderProps> = React.memo(({
                   <Link2 size={16} />
                   Copy Link
                 </DropdownMenuItem>
-
-                {!isOwnPost && (
-                  <DropdownMenuItem onClick={() => { onMute(); onMenuClose(); }}>
-                    <VolumeX size={16} />
-                    Mute User
-                  </DropdownMenuItem>
-                )}
 
                 {!isOwnPost && (
                   <DropdownMenuItem onClick={() => { onReport(); onMenuClose(); }} $danger>

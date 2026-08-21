@@ -73,7 +73,6 @@ describe('PostCard feed display contract', () => {
         onDelete={vi.fn()}
         onEdit={vi.fn()}
         onCopyLink={vi.fn()}
-        onMute={vi.fn()}
         isOwnPost={false}
       />
     );

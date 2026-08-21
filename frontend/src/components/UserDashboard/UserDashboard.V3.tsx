@@ -138,6 +138,9 @@ const UserDashboardV3: React.FC = () => {
                 homeFollowStats={dashboard.followStats}
                 homeDisplayName={dashboard.getDisplayName()}
                 homeUsername={dashboard.getUsernameForDisplay()}
+                profileSettingsProfile={dashboard.profile}
+                onUpdateProfile={dashboard.updateProfile}
+                onOpenEditProfile={dashboard.handleEditProfile}
               />
               </>
             ) : (
@@ -191,6 +194,9 @@ const UserDashboardV3: React.FC = () => {
                     homeFollowStats={dashboard.followStats}
                     homeDisplayName={dashboard.getDisplayName()}
                     homeUsername={dashboard.getUsernameForDisplay()}
+                    profileSettingsProfile={dashboard.profile}
+                    onUpdateProfile={dashboard.updateProfile}
+                    onOpenEditProfile={dashboard.handleEditProfile}
                   />
                 </ContentGrid>
               </ObservatoryShell>

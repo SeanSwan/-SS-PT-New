@@ -9,7 +9,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PostCardProps } from '../types/PostCardTypes';
 import { buildSocialPostShareUrl } from '../../../../utils/socialPostShareUrl';
-import { logger } from '@/utils/logger';
 
 type ModerationInput = Pick<PostCardProps, 'post' | 'onEdit' | 'onDelete' | 'onReport' | 'onRepost'>;
 
@@ -43,11 +42,6 @@ export function usePostCardModeration({ post, onEdit, onDelete, onReport, onRepo
       // Fallback silent
     });
   }, [post.id]);
-
-  const handleMute = useCallback(() => {
-    // TODO: Wire to POST /api/social/mute/:userId when backend supports it
-    logger.warn('TODO: implement mute user', post.user.id);
-  }, [post.user.id]);
 
   const handleEditPost = useCallback(() => {
     setEditContent(post.content);
@@ -98,7 +92,7 @@ export function usePostCardModeration({ post, onEdit, onDelete, onReport, onRepo
     reportModalOpen, setReportModalOpen,
     shareDialogOpen, setShareDialogOpen,
     deleteConfirmOpen, setDeleteConfirmOpen, isDeletingPost,
-    handleCopyLink, handleMute, handleEditPost, handleSaveEdit,
+    handleCopyLink, handleEditPost, handleSaveEdit,
     handleDeletePost, handleConfirmDeletePost, handleReportSubmit, handleRepost,
   };
 }

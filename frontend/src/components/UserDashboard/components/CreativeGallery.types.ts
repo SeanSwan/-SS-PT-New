@@ -12,7 +12,8 @@ export interface CreativeMediaItem {
   mediaKind: CreativeMediaKind;
   tags: string[];
   duration: string;
-  views: number;
+  /** Reaction count from the source post. NOT impressions - there is no view tracking yet. */
+  likes: number;
   createdAt?: string;
 }
 

@@ -161,7 +161,7 @@ export function mapPostsToCreativeMedia(posts?: ProfileMediaPost[] | null): Crea
       mediaKind: getCreativeMediaKind(safeUrl),
       tags: getCreativeMediaTags(content, post.type),
       duration: '',
-      views: normalizeCreativeMetricCount(post.likesCount),
+      likes: normalizeCreativeMetricCount(post.likesCount),
       createdAt: createdAt || undefined,
     });
 
