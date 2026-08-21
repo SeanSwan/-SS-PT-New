@@ -170,6 +170,18 @@ export function validateCritiqueReport(c) {
     if (!isStr(f.meter)) bad.push('fix_now finding missing meter reference (every finding cites its evidence)');
     if (typeof f.safe_auto_apply !== 'boolean') bad.push(`fix ${f.meter}: safe_auto_apply boolean required`);
   }
+  // S6: the LLM lane must declare itself either way. A missing record is
+  // indistinguishable from a lane that silently did not run.
+  if (!c.llm_lane || typeof c.llm_lane !== 'object') bad.push('llm_lane record required (available:true with a verdict, or available:false with a reason)');
+  else if (c.llm_lane.available !== true && !isStr(c.llm_lane.reason)) {
+    bad.push('llm_lane.available is false but carries no reason — an unavailable lane must say WHY');
+  } else if (c.llm_lane.available === true && !c.llm_lane.verdict) {
+    bad.push('llm_lane.available is true but no verdict rode along');
+  }
+  // An advisory verdict may never populate the elevate lane.
+  if (c.llm_lane?.verdict?.advisory === true && (c.elevate ?? []).length) {
+    bad.push('elevate[] is populated from an ADVISORY critic — uncalibrated opinion cannot gate');
+  }
   return bad;
 }
 

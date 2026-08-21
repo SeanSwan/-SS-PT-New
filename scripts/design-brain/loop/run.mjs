@@ -52,7 +52,15 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const brief = JSON.parse(readFileSync(briefPath, 'utf8'));
 
   try {
-    const { receipt, ctx } = await runLoop({ brief, stages: DEFAULT_STAGES, profile, runRoot: join(HERE, 'runs') });
+    // Honest provenance: today's render is compiled by deterministic code, not
+    // authored by a model. Naming it keeps the critic's same-family guard armed
+    // (it is inert while the generator is "unknown") and stays true when S8's
+    // compiler or a model takes over authorship.
+    const g = process.argv.indexOf('--generator');
+    const { receipt, ctx } = await runLoop({
+      brief, stages: DEFAULT_STAGES, profile, runRoot: join(HERE, 'runs'),
+      generatorModel: g >= 0 ? process.argv[g + 1] : 'deterministic-compiler',
+    });
     const v = ctx.artifacts.verify;
     console.log(`[loop] CLOSED — run ${receipt.run_id}`);
     console.log(`[loop] skeleton: ${ctx.artifacts.ir.skeleton_id} · meters: ${v.meters_total} · all pass: ${v.all_meters_pass} · roundtrip: ${v.skeleton_roundtrip_ok}`);

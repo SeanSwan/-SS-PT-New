@@ -124,11 +124,33 @@ export function browserMeters(cap) {
     if (r.plateCount) {
       meters.push({ meter: `browser:plates_loaded@${w}`, value: { declared: r.plateCount, failed: r.plateFails }, pass: r.plateFails.length === 0 });
     }
+    // S6 motion lane (deterministic). Emitted ALWAYS, not only when motion
+    // exists: "zero findings" is a measured result, whereas an absent meter is
+    // indistinguishable from a lane that never ran.
+    const layout = (r.motionFindings ?? []).filter((f) => f.kind !== 'infinite-above-fold');
+    const infinite = (r.motionFindings ?? []).filter((f) => f.kind === 'infinite-above-fold');
+    meters.push({ meter: `motion:layout_animation@${w}`, value: layout, pass: layout.length === 0 });
+    meters.push({ meter: `motion:infinite_above_fold@${w}`, value: infinite, pass: infinite.length === 0 });
+    meters.push({ meter: `motion:scroll_strip@${w}`, value: (r.strip ?? []).length, pass: (r.strip ?? []).length === 6 });
     if (w <= 480) {
       meters.push({ meter: `browser:tap_targets@${w}`, value: r.tapFails, pass: r.tapFails.length === 0 });
       meters.push({ meter: `browser:cta_fold@${w}`, value: r.ctaTop, pass: r.ctaInFold });
       meters.push({ meter: `browser:min_font@${w}`, value: r.minFont, pass: r.minFont === null || r.minFont >= 12 });
     }
+  }
+  // Reduced-motion is a page-level property, not a per-viewport one.
+  const rm = cap.reducedMotion;
+  if (rm?.unavailable) {
+    meters.push({ meter: 'motion:reduced_motion', value: `unavailable: ${rm.unavailable}`, pass: false });
+  } else if (rm) {
+    // Under `reduce`, nothing should still be animating. Measured on the
+    // rendered result, not inferred from a media query existing in the CSS.
+    const stillMoving = (rm.motionFindings ?? []).filter((f) => f.kind === 'infinite-above-fold');
+    meters.push({
+      meter: 'motion:reduced_motion',
+      value: { animated: rm.animatedCount, still_looping: stillMoving },
+      pass: stillMoving.length === 0,
+    });
   }
   return meters;
 }
