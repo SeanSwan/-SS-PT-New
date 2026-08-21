@@ -140,7 +140,7 @@ test('A6 the IR contract refuses an IR with no divergence evidence', () => {
 });
 
 test('A7 full loop: receipt carries fleet evidence; section types round-trip in the DOM', async () => {
-  const { ctx } = await runLoop({ brief: BRIEF, stages: { ...DEFAULT_STAGES }, profile: loadProfile(), ...fresh() });
+  const { ctx } = await runLoop({ brief: BRIEF, stages: { ...DEFAULT_STAGES }, profile: loadProfile(), browserInspect: false, ...fresh() });
   const ds = ctx.artifacts.ir.direction_set;
   assert.equal(ds.fleet.length, 4);
   assert.ok(ds.distance_min >= ds.tau);

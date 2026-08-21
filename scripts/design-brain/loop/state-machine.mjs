@@ -64,7 +64,7 @@ export const hash = (obj) => createHash('sha256').update(typeof obj === 'string'
  * inspect, critique, revise, verify, learn, runDir, profile, options}.
  * Returns {receipt, ctx}. Throws StateError on any gate refusal.
  */
-export async function runLoop({ brief, stages, profile, runRoot, ledgerPath, renderOpts, now = () => new Date().toISOString() }) {
+export async function runLoop({ brief, stages, profile, runRoot, ledgerPath, renderOpts, browserInspect, captureFn, now = () => new Date().toISOString() }) {
   if (!profile || typeof profile !== 'object' || !Array.isArray(profile.levers)) {
     // Deleted/absent taste profile must fail LOUDLY at STRUCTURE's prerequisite,
     // not silently produce untasted defaults (S1 acceptance test a).
@@ -74,7 +74,7 @@ export async function runLoop({ brief, stages, profile, runRoot, ledgerPath, ren
   const runDir = join(runRoot, runId);
   mkdirSync(runDir, { recursive: true });
 
-  const ctx = { brief, profile, runDir, ledgerPath, renderOpts, artifacts: {} };
+  const ctx = { brief, profile, runDir, ledgerPath, renderOpts, browserInspect, captureFn, artifacts: {} };
   const stateLog = [];
   const keyFor = {
     BRIEF: 'brief', CONTENT: 'content', STRUCTURE: 'ir', MATERIALS: 'materials',

@@ -9,6 +9,7 @@
  * An LLM call inside this file is a build failure by doctrine.
  */
 import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 import { TOKENS } from './render.mjs';
 
@@ -105,10 +106,59 @@ export function inspectHtml(html, ir) {
   return meters;
 }
 
-export function inspectStage(ctx) {
-  const render = ctx.artifacts.revise ?? ctx.artifacts.render;
+/**
+ * Browser lane (S3): convert a capture manifest into deterministic meters.
+ * Per-viewport: overflow, tap targets (375 is the one that bites), CTA within
+ * the first viewport at 375, REAL computed-style contrast (resolves the full
+ * CSS var/ancestor chain — supersedes the static token-fallback approximation),
+ * and minimum computed font size.
+ */
+export function browserMeters(cap) {
+  const meters = [];
+  for (const r of cap.viewports) {
+    const w = r.viewport.width;
+    meters.push({ meter: `browser:overflow@${w}`, value: { scrollWidth: r.scrollWidth, innerWidth: r.innerWidth }, pass: !r.overflow });
+    meters.push({ meter: `browser:computed_contrast@${w}`, value: r.contrastFails, pass: r.contrastFails.length === 0 });
+    if (w <= 480) {
+      meters.push({ meter: `browser:tap_targets@${w}`, value: r.tapFails, pass: r.tapFails.length === 0 });
+      meters.push({ meter: `browser:cta_fold@${w}`, value: r.ctaTop, pass: r.ctaInFold });
+      meters.push({ meter: `browser:min_font@${w}`, value: r.minFont, pass: r.minFont === null || r.minFont >= 12 });
+    }
+  }
+  return meters;
+}
+
+/**
+ * Full deterministic inspection: static meters + the browser lane.
+ * Degradation policy (blueprint §1.6): explicit config skip is RECORDED and
+ * allowed; an unavailable browser while required FAILS the meter — silent
+ * scope-cut is receipts theater.
+ */
+export async function inspectAll(ctx, render) {
   const html = readFileSync(render.html_path, 'utf8');
-  return { render_id: render.render_id, meters: inspectHtml(html, ctx.artifacts.ir) };
+  const meters = inspectHtml(html, ctx.artifacts.ir);
+  let screenshots = null;
+
+  if (ctx.browserInspect === false) {
+    meters.push({ meter: 'browser_lane', value: 'skipped:config', pass: true });
+  } else {
+    const { captureAndMeasure } = await import('../capture.mjs');
+    const capFn = ctx.captureFn ?? captureAndMeasure;
+    const cap = await capFn(render.html_path, join(ctx.runDir, 'screenshots'));
+    if (!cap.available) {
+      meters.push({ meter: 'browser_lane', value: `unavailable: ${cap.reason}`, pass: false });
+    } else {
+      meters.push(...browserMeters(cap));
+      screenshots = cap.viewports.map((r) => r.shots);
+    }
+  }
+  return { meters, screenshots };
+}
+
+export async function inspectStage(ctx) {
+  const render = ctx.artifacts.revise ?? ctx.artifacts.render;
+  const { meters, screenshots } = await inspectAll(ctx, render);
+  return { render_id: render.render_id, meters, screenshots };
 }
 
 export { TOKENS };

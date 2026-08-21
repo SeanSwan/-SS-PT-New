@@ -1,30 +1,27 @@
 /**
- * stages/verify.mjs — VERIFY stage (S1): re-measure, prove the round-trip, list regressions.
+ * stages/verify.mjs — VERIFY stage (S3): re-measure EVERYTHING on the final file,
+ * browser lane included, prove the round-trip, list regressions.
  * ==========================================================================================
- * Two proofs close the loop's build half:
- *  1. Every meter passes after revision (or the failure is explicitly carried
- *     in `regressions` — a run may finish honest-red, it may not finish vague).
- *  2. Skeleton round-trip: the FILE ON DISK re-inspected fresh must stamp the
- *     gated IR's skeleton and reproduce its zones (Grok 4.1 — the model cannot
- *     emit IR-A and ship code-B; tampering with the render after RENDER is
- *     caught here, not trusted from memory).
+ * Verification re-runs the full deterministic inspection — static meters AND
+ * the real-browser lane — against the file REVISE left on disk. A revision
+ * that fixed one meter and broke a browser meter is caught here, not shipped.
+ * The skeleton round-trip (stamps + zone + section-type sequence re-extracted
+ * fresh from disk) remains the IR-A/code-B forgery check.
  */
-import { readFileSync } from 'node:fs';
+import { inspectAll } from './inspect.mjs';
 
-import { inspectHtml } from './inspect.mjs';
-
-export function verifyStage(ctx) {
+export async function verifyStage(ctx) {
   const finalRender = ctx.artifacts.revise ?? ctx.artifacts.render;
-  const html = readFileSync(finalRender.html_path, 'utf8');
-  const meters = inspectHtml(html, ctx.artifacts.ir);
+  const { meters } = await inspectAll(ctx, finalRender);
 
   const failed = meters.filter((m) => !m.pass);
   const roundtrip = meters.find((m) => m.meter === 'skeleton_stamp');
   const zones = meters.find((m) => m.meter === 'zones_roundtrip');
+  const types = meters.find((m) => m.meter === 'section_types_roundtrip');
 
   return {
     all_meters_pass: failed.length === 0,
-    skeleton_roundtrip_ok: Boolean(roundtrip?.pass && zones?.pass),
+    skeleton_roundtrip_ok: Boolean(roundtrip?.pass && zones?.pass && types?.pass),
     regressions: failed.map((m) => ({ meter: m.meter, value: m.value })),
     meters_total: meters.length,
   };

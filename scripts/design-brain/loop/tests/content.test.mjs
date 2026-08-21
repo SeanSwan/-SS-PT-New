@@ -42,7 +42,7 @@ const briefWith = (mutate) => {
 test('C1 banned register halts at CONTENT with the phrase named', async () => {
   const brief = briefWith((b) => { b.facts.sections[0].facts[0] = { text: 'Unleash your potential and transform your journey', source: 'x' }; });
   await assert.rejects(
-    runLoop({ brief, stages: { ...DEFAULT_STAGES }, profile: loadProfile(), ...fresh() }),
+    runLoop({ brief, stages: { ...DEFAULT_STAGES }, profile: loadProfile(), browserInspect: false, ...fresh() }),
     (err) => err instanceof StateError && err.state === 'CONTENT' && /banned-register/.test(err.message),
   );
 });
@@ -50,7 +50,7 @@ test('C1 banned register halts at CONTENT with the phrase named', async () => {
 test('C2 placeholder text halts at CONTENT', async () => {
   const brief = briefWith((b) => { b.facts.sections[1].facts[1] = { text: 'TODO: write the 6-month pitch', source: 'x' }; });
   await assert.rejects(
-    runLoop({ brief, stages: { ...DEFAULT_STAGES }, profile: loadProfile(), ...fresh() }),
+    runLoop({ brief, stages: { ...DEFAULT_STAGES }, profile: loadProfile(), browserInspect: false, ...fresh() }),
     (err) => err instanceof StateError && err.state === 'CONTENT' && /placeholder-text/.test(err.message),
   );
 });
@@ -124,7 +124,7 @@ test('C6 content-driven IA: same library, different content shape, different fle
 });
 
 test('C7 full loop: linter report and content rejections ride the artifacts', async () => {
-  const { ctx } = await runLoop({ brief: BRIEF, stages: { ...DEFAULT_STAGES }, profile: loadProfile(), ...fresh() });
+  const { ctx } = await runLoop({ brief: BRIEF, stages: { ...DEFAULT_STAGES }, profile: loadProfile(), browserInspect: false, ...fresh() });
   assert.deepEqual(ctx.artifacts.content.linter_report.violations, []);
   assert.deepEqual(ctx.artifacts.content.linter_report.unproven, []);
   assert.ok(ctx.artifacts.content.sections.every((s) => ['data', 'narrative', 'mixed'].includes(s.shape)));

@@ -32,7 +32,9 @@ const fresh = () => {
   const dir = mkdtempSync(join(tmpdir(), 'loop-'));
   return { runRoot: join(dir, 'runs'), ledgerPath: join(dir, 'ledger.jsonl') };
 };
-const baseArgs = () => ({ brief: BRIEF, stages: { ...DEFAULT_STAGES }, profile: loadProfile(), ...fresh() });
+// browserInspect:false — these suites test loop mechanics; the browser lane has
+// its own dedicated suite (browser.test.mjs) plus the real CLI run.
+const baseArgs = () => ({ brief: BRIEF, stages: { ...DEFAULT_STAGES }, profile: loadProfile(), browserInspect: false, ...fresh() });
 
 test('T1a fail-loudly: missing taste profile halts at STRUCTURE', async () => {
   await assert.rejects(
@@ -128,7 +130,7 @@ test('T6 round-trip: tampering with the rendered file after RENDER breaks VERIFY
   const tampered = readFileSync(finalRender.html_path, 'utf8')
     .replace(`data-skeleton="${ctx.artifacts.ir.skeleton_id}"`, 'data-skeleton="SK-FORGED"');
   writeFileSync(finalRender.html_path, tampered);
-  const v = verifyStage(ctx);
+  const v = await verifyStage(ctx);
   assert.equal(v.skeleton_roundtrip_ok, false, 'IR-A/code-B forgery must be caught from the file on disk');
 });
 
