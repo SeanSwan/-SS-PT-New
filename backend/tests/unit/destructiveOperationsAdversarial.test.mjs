@@ -293,6 +293,32 @@ describe('store safety guard (S2)', () => {
     expect(result.safe).toBe(true);
   });
 
+  it('A22: an EXPIRED operation is rejected and destroyed', () => {
+    // Gap found in the S2 hostile round: A12 asserts the TTL is finite but nothing
+    // asserted that expiry is actually ENFORCED. Before the seam this could not be
+    // tested without faking timers, because the stored record was unreachable.
+    const inner = createInProcessStore();
+    setPendingOperationStore({
+      ...inner,
+      get: (id) => {
+        const op = inner.get(id);
+        if (op) op.expiresAt = new Date(Date.now() - 1000).toISOString();
+        return op;
+      },
+      get size() { return inner.size; },
+    });
+
+    const pending = mint(OWNER);
+    const result = verifyAndRetrieveOperation(pending.operationId, OWNER);
+
+    expect(result.verified).toBe(false);
+    expect(result.operation).toBeNull();
+    expect(result.error).toMatch(/expired/i);
+
+    // An expired operation must not linger for a second attempt.
+    expect(getPendingOperationStore().get(pending.operationId)).toBeUndefined();
+  });
+
   it('A21: setPendingOperationStore rejects a malformed store', () => {
     expect(() => setPendingOperationStore(null)).toThrow(/requires a store/i);
     expect(() => setPendingOperationStore({ get: () => {} })).toThrow(/requires a store/i);
