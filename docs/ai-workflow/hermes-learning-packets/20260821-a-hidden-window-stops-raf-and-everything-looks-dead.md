@@ -2,7 +2,10 @@
 title: "A hidden window stops rAF entirely — and every rAF-driven feature reads as broken"
 date: 2026-08-21
 originating_model: claude-fable-5
-provenance: fable-tier
+tier_basis: "claude-fable-5 is Fable itself — the anchor of the Rule 68 allowlist; this session ran as Fable 5 and authored every fix and verification in this packet."
+decision: "A CDP probe of an rAF-driven page must print {visibilityState, rafTicks, renderer} and refuse to report a functional negative unless visible, ticking, and on the real GPU; drive such probes with --headless=new --enable-gpu."
+status: shipped
+privacy: "IDs and roles only. No client names, no PII, no credentials, no key values. Secret-scanned clean before commit."
 surface: swan-visualizer (applies to ANY browser-driven verification on any Swan repo)
 models_used:
   - model: claude-fable-5
