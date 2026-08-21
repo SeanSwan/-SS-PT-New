@@ -6,6 +6,7 @@
 
 import express from 'express';
 import { deriveHealthStatus, readinessHttpStatus } from './healthStatus.mjs';
+import { deriveBuildIdentity } from './buildIdentity.mjs';
 
 // Dynamic import to handle initialization timing
 let getStorefrontItem, Op;
@@ -25,10 +26,20 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     // IMMEDIATE RESPONSE for health checks - no database required
+    // WHICH BUILD IS ANSWERING. Without this, a healthy response from the
+    // previous deploy is indistinguishable from a healthy response from the new
+    // one, so "the deploy succeeded" is an assumption rather than an
+    // observation (money-path deploy, 2026-08-21). Compare against
+    // `git rev-parse --short HEAD`.
+    //
+    // Set BEFORE the database branches below: each of those does
+    // Object.assign(basicStatus, deriveHealthStatus(...)), and this must not be
+    // one of the keys they can overwrite.
     const basicStatus = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      server: 'listening'
+      server: 'listening',
+      build: deriveBuildIdentity()
     };
 
     // Try enhanced status with database (non-blocking)
@@ -107,11 +118,15 @@ router.get('/', async (req, res) => {
 
   } catch (error) {
     // Only fail health check for server-level issues
+    // The build matters MOST here. An operator looking at a failing health
+    // check needs to know which deploy is failing before deciding whether to
+    // roll back.
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
       error: 'Server error',
-      message: 'Health check failed'
+      message: 'Health check failed',
+      build: deriveBuildIdentity()
     });
   }
 });
@@ -217,7 +232,8 @@ router.get('/ready', async (req, res) => {
 
   res.status(readinessHttpStatus(status)).json({
     ...status,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    build: deriveBuildIdentity()
   });
 });
 
