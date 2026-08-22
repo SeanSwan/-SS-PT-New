@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 export interface ActiveClient {
@@ -188,26 +188,62 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // dropped immediately, then the pin for the NEW actor is read from their own
   // namespaced key. This is the shared-kiosk path: Trainer A logs out, Trainer B
   // logs in on the same tab, and B starts with no client selected.
+  // Who the provider currently believes the actor is. Read by in-flight roster
+  // requests so a response that outlived its actor can be discarded. A ref, not
+  // state, because the check must see the CURRENT actor at await-resolution
+  // time, not the one captured when the request started.
+  const actorRef = useRef<{ id: unknown; role: unknown }>({ id: user?.id, role: user?.role });
+
+  /** Stable identity for the current actor; also the stamp carried by a roster. */
+  const currentActorKey = activeClientStorageKey(user?.id, user?.role);
+
+  // Which actor the roster in `clientList` was fetched for. Any roster whose
+  // stamp does not match the current actor is treated as not-yet-loaded.
+  const [rosterActorKey, setRosterActorKey] = useState<string | null>(null);
+
   useEffect(() => {
+    actorRef.current = { id: user?.id, role: user?.role };
     setActiveClientState(null);
     setClientList([]);
+    setRosterActorKey(null);
+    setLoadingClients(false);
     setPinnedClientId(readStoredActiveClientId(sessionStorage, user?.id, user?.role));
   }, [user?.id, user?.role]);
 
   const refreshClients = useCallback(async () => {
     if (!user || !authAxios || (user.role !== 'admin' && user.role !== 'trainer')) return;
+
+    // STALE-RESPONSE GUARD. This callback closes over `user`. On a shared
+    // kiosk, Trainer A can log out and Trainer B log in while A's roster
+    // request is still in flight — and without this guard A's response would
+    // resolve and write A's clients into B's list. That is the very leak the
+    // actor-scoped key above exists to prevent, arriving by a different door.
+    // Capture the actor this request belongs to and discard the response if the
+    // actor has changed by the time it lands.
+    const requestActorId = user.id;
+    const requestActorRole = user.role;
+
     setLoadingClients(true);
     try {
-      const endpoint = user.role === 'admin'
+      const endpoint = requestActorRole === 'admin'
         ? '/api/admin/clients'
-        : `/api/client-trainer-assignments/trainer/${user.id}`;
-      const config = user.role === 'admin' ? { params: { limit: ADMIN_CLIENT_LIST_LIMIT } } : undefined;
+        : `/api/client-trainer-assignments/trainer/${requestActorId}`;
+      const config = requestActorRole === 'admin' ? { params: { limit: ADMIN_CLIENT_LIST_LIMIT } } : undefined;
       const response = await authAxios.get(endpoint, config);
-      setClientList(normalizeClients(response.data, user.role));
+
+      if (actorRef.current.id !== requestActorId || actorRef.current.role !== requestActorRole) {
+        return; // actor changed mid-flight — this roster belongs to someone else
+      }
+      setClientList(normalizeClients(response.data, requestActorRole));
+      // Stamp the roster with the actor it was fetched for, so the rehydrate
+      // effect can refuse to reconcile a pin against someone else's roster.
+      setRosterActorKey(activeClientStorageKey(requestActorId, requestActorRole));
     } catch (err) {
       console.error('[GlobalClientContext] Failed to fetch clients:', err);
     } finally {
-      setLoadingClients(false);
+      if (actorRef.current.id === requestActorId && actorRef.current.role === requestActorRole) {
+        setLoadingClients(false);
+      }
     }
   }, [user, authAxios]);
 
@@ -221,6 +257,15 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // DROPPED — the previous effect returned early here, which is precisely what
   // let an unassigned client stay pinned.
   useEffect(() => {
+    // ACTOR BINDING. Effects in a single commit see that render's values, so on
+    // an A->B switch the actor-change effect above queues a clear while THIS
+    // effect — running in the same pass — still holds A's pin and A's roster,
+    // and would queue A's client straight back in. Last write wins, and A's
+    // client renders under B until B's roster lands: exactly the shared-kiosk
+    // disclosure this whole change exists to close. Binding the roster to the
+    // actor that produced it makes that interleaving inert, because a roster
+    // stamped for A can never be reconciled while B is the actor.
+    if (rosterActorKey !== currentActorKey) return;
     if (loadingClients) return;
     if (!pinnedClientId) {
       setActiveClientState(null);
@@ -238,7 +283,7 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setActiveClientState((current) => (
       JSON.stringify(current) === JSON.stringify(resolved) ? current : resolved
     ));
-  }, [pinnedClientId, clientList, loadingClients, user?.id, user?.role]);
+  }, [pinnedClientId, clientList, loadingClients, rosterActorKey, currentActorKey, user?.id, user?.role]);
 
   const setActiveClient = useCallback((client: ActiveClient | null) => {
     const nextId = client ? Number(client.id) : null;

@@ -122,12 +122,19 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
  * the repo already carries three different shapes of this clamp and a fourth
  * one written inline in a service would be the actual architectural problem.
  *
- * Fail-closed, matching assertAssignmentOrAdmin: any failure — missing model,
- * query throw, malformed cache — returns an EMPTY list, which callers must
- * treat as "no access", never as "no filter".
+ * Fail-closed, matching assertAssignmentOrAdmin: any failure returns NO ids.
+ *
+ * It THROWS on infrastructure failure rather than returning []. A roster of []
+ * and "the assignment table is down" are the same value but opposite meanings:
+ * the first is "this trainer has no clients", the second is "we cannot tell".
+ * Collapsing them turns an outage into a queue that renders "no work today",
+ * so the one person who should act never learns there is anything to act on.
+ * Three review seats independently flagged that collapse. Callers must catch
+ * and surface unavailability — they must NOT treat the throw as an empty roster.
  *
  * @param {number|string} trainerId
- * @returns {Promise<number[]>} active assigned client ids; [] on any failure
+ * @returns {Promise<number[]>} active assigned client ids; [] means genuinely none
+ * @throws {Error} with code 'ASSIGNMENT_LOOKUP_UNAVAILABLE' when the lookup fails
  */
 export async function listAssignedClientIds(trainerId) {
   const requesterId = parseStrictPositiveInteger(trainerId);
@@ -143,10 +150,12 @@ export async function listAssignedClientIds(trainerId) {
       .map((row) => parseStrictPositiveInteger(row?.clientId ?? row?.get?.('clientId')))
       .filter(Boolean);
   } catch (err) {
-    logger.warn('[verifyClientAccess] listAssignedClientIds failed - returning empty roster', {
+    logger.warn('[verifyClientAccess] listAssignedClientIds failed - signalling unavailable', {
       trainerId, error: err?.message,
     });
-    return [];
+    const unavailable = new Error('Assignment lookup unavailable');
+    unavailable.code = 'ASSIGNMENT_LOOKUP_UNAVAILABLE';
+    throw unavailable;
   }
 }
 

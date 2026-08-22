@@ -1,4 +1,5 @@
 import { Op } from '../../database.mjs';
+import logger from '../../utils/logger.mjs';
 import { assertAssignmentOrAdmin, listAssignedClientIds } from '../../middleware/verifyClientAccess.mjs';
 import {
   ChallengeCreationValidationError,
@@ -234,7 +235,20 @@ export async function getManagedChallengeSubmissionQueue({ models = {}, viewer =
   // so `requireTrainer` on the route was the only gate — a ROLE check, which
   // let every trainer read every other trainer's clients' submissions, with
   // those clients named via the `submittedBy` include below.
-  const scope = await resolveSubmitterScope(viewer);
+  let scope;
+  try {
+    scope = await resolveSubmitterScope(viewer);
+  } catch (error) {
+    // The assignment lookup failed. An outage must NOT render as an empty queue
+    // — "no work today" is indistinguishable from "the authorization system is
+    // down", and the trainer who should act never learns anything is waiting.
+    // closedQueue() already carries the honest storage_unavailable shape.
+    logger.warn('[ChallengeSubmissions] roster lookup unavailable - reporting unavailable, not empty', {
+      viewerId: viewer?.id, code: error?.code,
+    });
+    return closedQueue('storage_unavailable', STORAGE_UNAVAILABLE_MESSAGE);
+  }
+
   if (scope && scope.ids.length === 0) {
     return {
       submissions: [],

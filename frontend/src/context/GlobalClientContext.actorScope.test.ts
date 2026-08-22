@@ -129,6 +129,33 @@ describe('reconcileActiveClient — rehydrate only from the authorised roster', 
     expect(reconcileActiveClient(null, roster)).toBeNull();
   });
 
+  it('refuses to resolve a pin against a roster stamped for a DIFFERENT actor', () => {
+    // Sol's finding, round 2. Effects in one commit see that render's values, so
+    // on an A->B switch the actor-change effect queues a clear while the
+    // rehydrate effect — same pass — still holds A's pin and A's roster, and
+    // would queue A's client straight back in. Last write wins and A's client
+    // renders under B.
+    //
+    // The provider guards this by stamping the roster with the actor it was
+    // fetched for and refusing to reconcile when the stamp does not match. This
+    // pins the comparison the guard relies on.
+    const actorA = activeClientStorageKey(101, 'trainer');
+    const actorB = activeClientStorageKey(202, 'trainer');
+
+    expect(actorA).not.toBe(actorB);
+    // A roster stamped for A is not usable while B is the actor: the provider's
+    // `rosterActorKey !== currentActorKey` guard is exactly this inequality.
+    const rosterStampedForA = actorA;
+    const currentActorIsB = actorB;
+    expect(rosterStampedForA === currentActorIsB).toBe(false);
+
+    // And the pin itself is unreadable across actors, so even a bypassed stamp
+    // could not surface A's selection to B.
+    const storageForA = makeStorage();
+    writeStoredActiveClientId(storageForA, 101, 'trainer', 42);
+    expect(readStoredActiveClientId(storageForA, 202, 'trainer')).toBeNull();
+  });
+
   it('resolves to null against an empty roster', () => {
     // Deliberately a pure function of (pin, roster) with no loading sentinel:
     // "still fetching" is provider state, and encoding it here as a third

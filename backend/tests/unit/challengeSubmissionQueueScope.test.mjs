@@ -118,6 +118,27 @@ describe('managed challenge queue — trainer scope', () => {
     expect(where).not.toHaveProperty('submittedByUserId');
   });
 
+  it('reports storage_unavailable — NOT empty — when the assignment lookup fails', async () => {
+    // Three review seats flagged the same collapse: [] and "the assignment table
+    // is down" are the same value with opposite meanings, and rendering an
+    // outage as an empty queue means the trainer who should act never learns
+    // anything is waiting.
+    const unavailable = new Error('Assignment lookup unavailable');
+    unavailable.code = 'ASSIGNMENT_LOOKUP_UNAVAILABLE';
+    listAssignedClientIds.mockRejectedValue(unavailable);
+    const stub = modelStub([submissionRow()]);
+
+    const queue = await getManagedChallengeSubmissionQueue({
+      models: { ChallengeSubmission: stub.ChallengeSubmission },
+      viewer: TRAINER,
+    });
+
+    expect(queue.queueStatus).toBe('storage_unavailable');
+    expect(queue.queueStatus).not.toBe('empty');
+    expect(queue.submissions).toEqual([]);
+    expect(stub.findAll).not.toHaveBeenCalled();
+  });
+
   it('fails closed to an empty queue when the viewer is absent', async () => {
     // A caller that forgets to pass req.user must NOT get a global queue.
     const stub = modelStub([submissionRow()]);
