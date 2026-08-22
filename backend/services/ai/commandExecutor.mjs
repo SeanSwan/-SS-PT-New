@@ -409,6 +409,43 @@ async function stepResolveClient(ctx) {
 
   const selectedClientId = toPositiveInteger(ctx.options.selectedClientId);
   const paramsClientId = toPositiveInteger(ctx.intent.params?.clientId);
+
+  // H1 (2026-08-21): client/user-role callers are scoped to THEMSELVES, always.
+  //
+  // Trainer scoping is enforced inside resolveClient via `trainerId`, and the
+  // route's envelope check (assertAssignmentOrAdmin) covers `selectedClientId`.
+  // Neither covered a client-role caller on the LLM-extracted params path: a
+  // client saying "show client #99's XP" reached resolveClient UNSCOPED (trainerId
+  // is only set for trainers) and read another user's gamification profile — the
+  // command lane mirrored GET /gamification/users/:userId/profile without that
+  // route's authorizeResourceAccess guard. Found in the whole-Coach hostile round 1.
+  //
+  // The guard lives HERE, at the root, so every current and future client-allowed
+  // command with requiresClientRef inherits it — not one-off fixes per command.
+  // A mismatched reference is refused with an honest message rather than silently
+  // rewritten, so a confused client learns the boundary instead of getting the
+  // wrong person's data with no error.
+  if (ctx.user.role === 'client' || ctx.user.role === 'user') {
+    const requested = selectedClientId || paramsClientId;
+    if (requested && requested !== ctx.user.id) {
+      logger.warn('[CommandExecutor] Client-role caller referenced another user', {
+        userId: ctx.user.id,
+        requestedClientId: requested,
+        commandType: ctx.command.type,
+      });
+      ctx.error = 'You can only run this for your own account.';
+      return ctx;
+    }
+    if (ctx.intent.clientRef && !requested) {
+      // A name-based reference from a client is never resolved against the roster.
+      ctx.error = 'You can only run this for your own account.';
+      return ctx;
+    }
+    ctx.resolvedClient = { id: ctx.user.id, firstName: ctx.user.firstName, lastName: ctx.user.lastName };
+    if (ctx.intent.params) ctx.intent.params.clientId = ctx.user.id;
+    return ctx;
+  }
+
   const clientId = selectedClientId || paramsClientId;
   const clientRef = selectedClientId ? null : (ctx.intent.clientRef || ctx.options.selectedClientName);
 
