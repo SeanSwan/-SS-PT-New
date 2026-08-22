@@ -103,7 +103,22 @@ export interface ClientTrainerAssignment {
   trainerId: string;
   assignedBy: string;
   assignedAt: string;
-  isActive: boolean;
+  /**
+   * The wire field. The backend model declares
+   * status: 'active' | 'inactive' | 'pending' and serializes it (see
+   * backend/models/ClientTrainerAssignment.mjs). Predicates MUST read this.
+   */
+  status: 'active' | 'inactive' | 'pending';
+  /**
+   * @deprecated PHANTOM — never present on the wire (SWA-113 C1, SWA-192).
+   * `isActive()` is a Sequelize INSTANCE METHOD on the model, not a column, so
+   * it does not serialize. Anything reading `assignment.isActive` gets
+   * undefined: `.filter(a => a.isActive)` yields [] and
+   * `isClientAssignedToTrainer` returned false for every input. Optional and
+   * deprecated rather than deleted so any straggler still type-checks while it
+   * is migrated to `status`. Do not introduce new reads.
+   */
+  isActive?: boolean;
   notes?: string;
   client?: Client;
   trainer?: Trainer;

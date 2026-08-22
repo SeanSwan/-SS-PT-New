@@ -78,10 +78,21 @@ class ClientTrainerAssignmentService {
    */
   async getClientAssignments(clientId: string): Promise<ClientTrainerAssignment[]> {
     try {
-      const response = await this.apiService.get<ClientTrainerAssignment[]>(
+      const response = await this.apiService.get<any>(
         `/api/client-trainer-assignments/client/${clientId}`
       );
-      return response.data;
+      // The backend replies { success, assignment: <object|null> } — SINGULAR,
+      // and an object. Returning response.data raw made every downstream
+      // `.filter(...)` throw "assignments.filter is not a function", which is
+      // why unassign/reassign never worked. Normalise to an array here and
+      // tolerate the array/wrapper shapes the sibling endpoints use.
+      const payload = response.data;
+      if (Array.isArray(payload)) return payload;
+      if (payload?.assignment) return [payload.assignment];
+      if (payload?.assignment === null) return [];
+      if (Array.isArray(payload?.assignments)) return payload.assignments;
+      if (Array.isArray(payload?.data)) return payload.data;
+      return [];
     } catch (error) {
       console.error('Error fetching client assignments:', error);
       throw error;
@@ -152,7 +163,11 @@ class ClientTrainerAssignmentService {
    */
   async deactivateAssignment(assignmentId: string): Promise<void> {
     try {
-      await this.apiService.put(`/api/client-trainer-assignments/${assignmentId}/deactivate`);
+      // `PUT /:id/deactivate` does not exist on the router (it has POST /,
+      // PUT /:id and DELETE /:id) and returned 404. Deactivation is a status
+      // change on the row, matching the backend's own 'active'|'inactive'|
+      // 'pending' vocabulary.
+      await this.apiService.put(`/api/client-trainer-assignments/${assignmentId}`, { status: 'inactive' });
     } catch (error) {
       console.error('Error deactivating assignment:', error);
       throw error;
@@ -205,7 +220,7 @@ class ClientTrainerAssignmentService {
     try {
       // First, deactivate existing assignments for this client
       const existingAssignments = await this.getClientAssignments(clientId);
-      const activeAssignments = existingAssignments.filter(a => a.isActive);
+      const activeAssignments = existingAssignments.filter(a => a.status === 'active');
       
       // Deactivate all active assignments
       await Promise.all(
@@ -234,7 +249,7 @@ class ClientTrainerAssignmentService {
   async unassignClient(clientId: string): Promise<void> {
     try {
       const assignments = await this.getClientAssignments(clientId);
-      const activeAssignments = assignments.filter(a => a.isActive);
+      const activeAssignments = assignments.filter(a => a.status === 'active');
       
       await Promise.all(
         activeAssignments.map(assignment => 
@@ -473,7 +488,7 @@ class ClientTrainerAssignmentService {
   async isClientAssignedToTrainer(clientId: string, trainerId: string): Promise<boolean> {
     try {
       const assignments = await this.getClientAssignments(clientId);
-      return assignments.some(a => a.trainerId === trainerId && a.isActive);
+      return assignments.some(a => String(a.trainerId) === String(trainerId) && a.status === 'active');
     } catch (error) {
       console.error('Error checking client assignment:', error);
       return false;
