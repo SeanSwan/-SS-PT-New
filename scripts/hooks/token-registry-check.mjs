@@ -22,13 +22,29 @@
  *   node scripts/hooks/token-registry-check.mjs                 # whole frontend
  *   node scripts/hooks/token-registry-check.mjs --file <p>...    # specific files
  *   node scripts/hooks/token-registry-check.mjs --strict         # also fail on fallback drift
+ *   node scripts/hooks/token-registry-check.mjs --added-only --file <p>...
+ *                                                              # gate ONLY on undefined tokens
+ *                                                              # introduced by staged ADDED lines
+ *
+ * --added-only exists because --strict is unusable as a commit gate today: the standing
+ * backlog is 831 undefined tokens across 1,735 use sites plus 610 drift findings, and a
+ * measured 32% of frontend files would block on debt their author never wrote. A gate that
+ * fails on inherited debt gets switched off (Rule 34). --added-only fails ONLY on undefined
+ * tokens on lines the commit is ADDING, so the backlog is reported and never blocks, while a
+ * newly typo'd token name cannot enter the tree. Fallback DRIFT is never gated by this flag:
+ * it is a lower-severity class and pairs a new line against a pre-existing token value.
+ * Reads added-line ranges from `git diff --cached -U0`, so it describes the INDEX. The caller
+ * must ensure the working tree matches the index for the files it passes, or the line numbers
+ * refer to a different tree than the one being committed.
  */
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
 const args = process.argv.slice(2);
 const fileArgs = args.includes('--file') ? args.slice(args.indexOf('--file') + 1) : [];
 const STRICT = args.includes('--strict');
+const ADDED_ONLY = args.includes('--added-only');
 const ROOT = 'frontend/src';
 
 // Vendored/reference material defines its own token universe; including it would produce
@@ -117,7 +133,32 @@ function main() {
     process.exit(2);
   }
 
+  // Map of file -> Set(line numbers added by the staged diff). Only built for --added-only.
+  // `-U0` makes each hunk header name exactly the added range: "@@ -a,b +c,d @@" means d lines
+  // starting at c are new. d is omitted when it is 1.
+  const addedLines = new Map();
+  if (ADDED_ONLY) {
+    for (const f of targets) {
+      const set = new Set();
+      let diff = '';
+      try {
+        diff = execFileSync('git', ['diff', '--cached', '-U0', '--', f], { encoding: 'utf8' });
+      } catch {
+        // A file with no staged diff is not an error - it simply contributes no added lines.
+        diff = '';
+      }
+      for (const m of diff.matchAll(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gm)) {
+        const start = Number(m[1]);
+        const count = m[2] === undefined ? 1 : Number(m[2]);
+        for (let i = 0; i < count; i += 1) set.add(start + i);
+      }
+      addedLines.set(f, set);
+    }
+  }
+  const isAdded = (file, line) => addedLines.get(file)?.has(line) ?? false;
+
   const unknown = [];
+  const unknownAdded = [];
   const drifted = [];
 
   for (const f of targets) {
@@ -128,7 +169,9 @@ function main() {
       // var()'s fallback — those were previously invisible.
       for (const m of line.matchAll(USE_NAME_RE)) {
         if (!registry.has(m[1])) {
-          unknown.push(`${f}:${i + 1} — var(${m[1]}) is never defined; the fallback will render forever`);
+          const finding =`${f}:${i + 1} — var(${m[1]}) is never defined; the fallback will render forever`;
+          unknown.push(finding);
+          if (ADDED_ONLY && isAdded(f, i + 1)) unknownAdded.push(finding);
         }
       }
       for (const m of line.matchAll(USE_RE)) {
@@ -180,6 +223,26 @@ function main() {
   // backlog, not a regression, and a gate that fails on inherited debt gets disabled (Rule 34).
   // --strict makes it a gate, which is the right mode once the backlog is worked down or when
   // scoped to changed files only.
+  // --added-only gates on ONE thing: an undefined token on a line this commit ADDS.
+  // Everything else - the inherited backlog, and fallback drift in any position - is
+  // reported and never blocks. See the --added-only note in the header for why.
+  if (ADDED_ONLY) {
+    if (unknownAdded.length) {
+      console.log(`\n  BLOCKING - ${unknownAdded.length} undefined token use(s) on lines this commit ADDS:\n`);
+      unknownAdded.forEach((u) => console.log(`    ${u}`));
+      console.log('\n  Each renders its fallback forever and can never respond to theming.');
+      console.log('  Fix - pick one:');
+      console.log('    - typo in the token name     -> correct it to a token that exists');
+      console.log('    - the token is genuinely new -> define it in a CSS custom-property block');
+      console.log('    - intentionally raw          -> tag the line swan-guard-allow-hex <reason>\n');
+    }
+    const inherited = unknown.length - unknownAdded.length;
+    if (inherited > 0 || drifted.length) {
+      console.log(`  (not blocking: ${inherited} pre-existing undefined use(s) + ${drifted.length} drift finding(s) - inherited backlog, reported only.)\n`);
+    }
+    process.exit(unknownAdded.length > 0 ? 1 : 0);
+  }
+
   const failing = STRICT ? unknown.length + drifted.length : 0;
   if (!STRICT && (unknown.length || drifted.length)) {
     console.log('\n  (advisory — nothing failed. Re-run with --strict to gate on these.)\n');
