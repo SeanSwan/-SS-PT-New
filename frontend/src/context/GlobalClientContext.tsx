@@ -27,8 +27,95 @@ export interface GlobalClientContextType {
   refreshClients: () => Promise<void>;
 }
 
-const SESSION_KEY = 'ss-active-client';
+/**
+ * The pre-SWA-192 key: unscoped, and it held the FULL client record including
+ * email. Kept only so existing tabs can be purged of it.
+ */
+export const LEGACY_ACTIVE_CLIENT_KEY = 'ss-active-client';
 export const ADMIN_CLIENT_LIST_LIMIT = 500;
+
+/**
+ * Actor-namespaced storage key for the pinned client.
+ *
+ * sessionStorage is per-tab and SURVIVES logout in that tab. Trainers share
+ * front-desk kiosks and floor tablets, so an unscoped key let the next person
+ * to log in on the same tab inherit the previous trainer's pinned client.
+ * Returns null for an unusable actor — deliberately, so there is no shared
+ * fallback key for "unknown actor" to collide on.
+ */
+export const activeClientStorageKey = (
+  actorId: number | string | null | undefined,
+  actorRole: string | null | undefined,
+): string | null => {
+  const id = typeof actorId === 'number' ? actorId : Number(actorId);
+  if (!Number.isFinite(id) || id <= 0) return null;
+  if (!actorRole) return null;
+  return `${LEGACY_ACTIVE_CLIENT_KEY}:${id}:${actorRole}`;
+};
+
+/** Read the pinned client ID for this actor. Anything unparseable means "no pin". */
+export const readStoredActiveClientId = (
+  storage: Storage,
+  actorId: number | string | null | undefined,
+  actorRole: string | null | undefined,
+): number | null => {
+  const key = activeClientStorageKey(actorId, actorRole);
+  if (!key) return null;
+  try {
+    const raw = storage.getItem(key);
+    if (!raw) return null;
+    const id = Number(raw);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Persist ONLY the client id. The record itself (name, email, photo) is never
+ * written to storage — it is re-derived from the authorised roster on every
+ * load, so a pin can never outlive the authorisation that produced it.
+ */
+export const writeStoredActiveClientId = (
+  storage: Storage,
+  actorId: number | string | null | undefined,
+  actorRole: string | null | undefined,
+  clientId: number | null,
+): void => {
+  const key = activeClientStorageKey(actorId, actorRole);
+  if (!key) return;
+  try {
+    if (clientId === null || clientId === undefined) storage.removeItem(key);
+    else storage.setItem(key, String(clientId));
+  } catch {
+    /* storage unavailable (private mode, quota) — the pin is a convenience, not state we owe */
+  }
+};
+
+/** Remove the legacy unscoped record so stale client PII cannot linger in a shared tab. */
+export const purgeLegacyActiveClient = (storage: Storage): void => {
+  try {
+    storage.removeItem(LEGACY_ACTIVE_CLIENT_KEY);
+  } catch {
+    /* nothing to do */
+  }
+};
+
+/**
+ * Resolve a pinned id against the freshly fetched AUTHORISED roster.
+ *
+ * A pin absent from that roster resolves to null — it is dropped, not kept. The
+ * previous effect returned early in exactly this case, which is what let an
+ * unassigned client stay pinned. Pure function of (pin, roster); "roster still
+ * loading" is provider state and is guarded at the call site.
+ */
+export const reconcileActiveClient = (
+  pinnedClientId: number | null,
+  clientList: ActiveClient[],
+): ActiveClient | null => {
+  if (!pinnedClientId) return null;
+  return clientList.find((client) => Number(client.id) === Number(pinnedClientId)) ?? null;
+};
 
 const optionalGender = (value: unknown) => (value ? { gender: String(value) } : {});
 
@@ -88,14 +175,24 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [clientList, setClientList] = useState<ActiveClient[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
 
+  // The pin is now an ID only; the record is re-derived from the roster below.
+  const [pinnedClientId, setPinnedClientId] = useState<number | null>(null);
+
+  // One-time: drop any pre-SWA-192 unscoped record (it held client PII).
   useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem(SESSION_KEY);
-      if (stored) setActiveClientState(JSON.parse(stored));
-    } catch {
-      sessionStorage.removeItem(SESSION_KEY);
-    }
+    purgeLegacyActiveClient(sessionStorage);
   }, []);
+
+  // ACTOR CHANGE. Runs on mount and whenever the authenticated actor or role
+  // changes — including logout (user becomes null). Everything client-bound is
+  // dropped immediately, then the pin for the NEW actor is read from their own
+  // namespaced key. This is the shared-kiosk path: Trainer A logs out, Trainer B
+  // logs in on the same tab, and B starts with no client selected.
+  useEffect(() => {
+    setActiveClientState(null);
+    setClientList([]);
+    setPinnedClientId(readStoredActiveClientId(sessionStorage, user?.id, user?.role));
+  }, [user?.id, user?.role]);
 
   const refreshClients = useCallback(async () => {
     if (!user || !authAxios || (user.role !== 'admin' && user.role !== 'trainer')) return;
@@ -118,28 +215,43 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (user && (user.role === 'admin' || user.role === 'trainer')) refreshClients();
   }, [user?.id, user?.role]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // REHYDRATE FROM THE AUTHORISED ROSTER ONLY.
+  // Guarded on loadingClients so an empty roster mid-fetch is never mistaken for
+  // "not authorised". Once the roster has landed, a pin that is not on it is
+  // DROPPED — the previous effect returned early here, which is precisely what
+  // let an unassigned client stay pinned.
   useEffect(() => {
-    if (!activeClient || clientList.length === 0) return;
-    const fresh = clientList.find((client) => client.id === activeClient.id);
-    if (!fresh) return;
-    const merged = { ...activeClient, ...fresh };
-    const changed = JSON.stringify(merged) !== JSON.stringify(activeClient);
-    if (changed) {
-      setActiveClientState(merged);
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(merged));
+    if (loadingClients) return;
+    if (!pinnedClientId) {
+      setActiveClientState(null);
+      return;
     }
-  }, [activeClient?.id, clientList]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (clientList.length === 0) return;
+
+    const resolved = reconcileActiveClient(pinnedClientId, clientList);
+    if (!resolved) {
+      setPinnedClientId(null);
+      setActiveClientState(null);
+      writeStoredActiveClientId(sessionStorage, user?.id, user?.role, null);
+      return;
+    }
+    setActiveClientState((current) => (
+      JSON.stringify(current) === JSON.stringify(resolved) ? current : resolved
+    ));
+  }, [pinnedClientId, clientList, loadingClients, user?.id, user?.role]);
 
   const setActiveClient = useCallback((client: ActiveClient | null) => {
+    const nextId = client ? Number(client.id) : null;
+    setPinnedClientId(nextId);
     setActiveClientState(client);
-    if (client) sessionStorage.setItem(SESSION_KEY, JSON.stringify(client));
-    else sessionStorage.removeItem(SESSION_KEY);
-  }, []);
+    writeStoredActiveClientId(sessionStorage, user?.id, user?.role, nextId);
+  }, [user?.id, user?.role]);
 
   const clearActiveClient = useCallback(() => {
+    setPinnedClientId(null);
     setActiveClientState(null);
-    sessionStorage.removeItem(SESSION_KEY);
-  }, []);
+    writeStoredActiveClientId(sessionStorage, user?.id, user?.role, null);
+  }, [user?.id, user?.role]);
 
   const value = useMemo<GlobalClientContextType>(() => ({
     activeClient,
