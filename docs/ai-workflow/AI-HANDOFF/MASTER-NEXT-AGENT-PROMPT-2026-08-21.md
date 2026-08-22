@@ -9,8 +9,8 @@ index for three repos and supersedes the per-repo handoffs written earlier the s
 
 **Then verify the world before trusting it.** A stale handoff nearly caused a duplicate rebuild this
 week; the check costs thirty seconds and is in §12 of that document. Expected: taste brain HEAD
-`b36697e` with 40 checks passing, SwanGuard HEAD `ea76189` on `merge/newsroom-mainline-v3`. The
-SwanGuard counts in §2.2 were re-read live on 2026-08-21 (later session) and matched; Docker must be
+`0e73b16` with 52 checks passing, SwanGuard HEAD `c212d41` on `merge/newsroom-mainline-v3`. The
+SwanGuard counts in §2.2 were re-read live on 2026-08-22 (every row, one query); Docker must be
 running for `docker exec` to answer. If anything differs, another agent has moved things: re-orient
 before building.
 
@@ -24,18 +24,24 @@ no model and no network, and it now has real data behind it — 9,521 catalog en
 5,483 descriptions, 51 filter categories.
 
 **Lane B — SwanGuard-Newsroom (news / source trust).** Slice A (the `connectorKey` sweep) is
-**done** at `ea76189`; a tripwire test now fails on any new literal-only comparison. Next is
-**slice B: merge the 107 verified feeds** from `config/verified-feed-candidates.json` — but first
-add a per-outlet listing: `listStatuses()` only enumerates the four literal definitions, so
-per-outlet connectors can be synced by direct URL but never *seen*. Batch-enabling 100+ outlets
-with no listing is not operable. The probe output has no `termsUrl`/`ownership`; supply both per
-outlet, and every entry needs a real terms URL.
+**done** at `c212d41`; a lexical tripwire scanning api/web/domain/database fails on any new literal
+comparison. A hostile panel (2026-08-22) found slice B mis-sized; it is now **B0 → B1 → B2 → B3**
+in handoff §7. Start at **B0: per-outlet listing** — `listStatuses()` only enumerates the four
+literal definitions, so per-outlet connectors can be synced by direct URL but never *seen*. Do NOT
+merge the 107 feeds (B3) before B0–B2; B2 includes re-probing liveness, defining the overlap
+criterion, and supplying `termsUrl`/`ownership` per outlet. Retention/volume budget is owed before
+B3, not before W3.
 
 ## Already done — do not repeat
 
-The agent-written taste data (2 ratings, 3 kept prompts marked `TEST DATA`) was deleted at
-`b36697e`. `taste/kept.md` now reads `(nothing kept yet …)`; `--keep` strips that line on the first
-real keep. If you see ratings or kept prompts, they are Sean's — leave them alone.
+- Agent-written taste data (2 ratings, 3 kept prompts marked `TEST DATA`) deleted at `b36697e` AND
+  retracted from the Hermes vault (re-export + index rebuild, 2026-08-22). `taste/kept.md` reads
+  `(nothing kept yet …)`; `--keep` strips that line on the first real keep. If you see ratings or
+  kept prompts, they are Sean's — leave them alone.
+- The local prompter server's write routes are Origin/Host-gated (`prompter/lib/origin.mjs`). Do
+  not loosen that to "make ComfyUI work" — non-browser callers send no Origin and already pass.
+- The panel has run. Replies in `docs/ai-workflow/AI-HANDOFF/panel-master-handoff-2026-08-22/`;
+  verdicts in handoff §11. Drop Grok from future panels; cap Sol's output.
 
 ## Non-negotiables
 
