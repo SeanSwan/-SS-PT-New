@@ -286,7 +286,6 @@ confirmed live**, 2,951 items, zero overlap with the existing 39. `termsUrl` and
 | **B0** ✅ `0622ca8` | per-outlet listing — DONE, but **not** by widening `listStatuses()`. That array is the console's family wall (one activation-phrase card each); 146 outlet cards would bury the four family controls. Instead: new `listOutletStatuses()` + `GET /api/owner/official-connectors/outlets`, and `listStatuses()` batched in place. Read cost is constant in outlet count (approvals + kill switches + states + registry, one each); `store.listStates()` added. Live-Postgres verified against the real 39-outlet registry. | prerequisite met — outlets are now listable |
 | **B1a** ✅ `9cfcb9b` | owner console truth: `OfficialConnectorKey` mirrors the API (4 families + per-outlet template), `news_rss` activation phrase added — **the news card was a DEAD CONTROL**: correct phrase typed, button stayed disabled, no explanation. Phrase map now typed `Record<FamilyKey,…>` so a forgotten family is a compile error. Read-only `NewsOutletConnectorsPanel` consuming `GET /outlets`, loaded on its own status. | a live-surface defect, plus the review surface B2/B3 need |
 | **B1b** ✅ `5fd3450` | per-outlet batch enable/disable — selection + one phrase + one confirm, sequential per-key PUTs, per-outlet result ledger that cannot round a partial batch up. No per-row switch. **But see the boxed finding above: this console is not in the production bundle.** | done as code; not yet reachable by a user |
-| **B2** | re-probe the 107 candidates, define the overlap criterion, supply `termsUrl` + `ownership` per outlet | data + licence work; unchanged |
 | **B2** | re-probe the 107 candidates (liveness decays; the probe has no date), define the overlap criterion (the "zero overlap" claim was by feed URL string, not by outlet or content), supply `termsUrl` + `ownership` per outlet | data work; the licence posture is the terms URL, not decoration |
 | **B3** | merge the 107 into `config/owner-news-sources.json` (born dormant), enable in batches with a retention/volume budget ALREADY set (§10 #5 moved here from "before W3") | only after B0–B2 |
 | **C** | W0 — wire `news` as a third `WikiSourceModule` | `intelligenceWiki.ts` accepts only comment_intel / influence_intel. Not "one line" (panel): module interface + ingestion mapping + test |
@@ -298,8 +297,10 @@ outlets are just enable + sync.
 
 **[!] `legalApprovalRecorded` is an attestation, not a config flag.** Signed 2026-08-21 on Sean's
 explicit instruction. **Do not sign attestation-shaped gates without his word.**
-**[!] There is no `owner`-role user in the dev DB** — the single user is `member`, so owner HTTP
-routes are unusable as-is. This session drove the service layer directly.
+**[!] The dev DB holds one `member` user and no `owner` row — but that is NOT a blocker**
+(corrected 2026-08-22): `postgresAuth.ts:73` auto-creates the owner when the sign-in email hash
+matches the configured `ownerEmailHash`. Earlier sessions drove the service layer directly; they
+did not have to.
 
 ---
 
