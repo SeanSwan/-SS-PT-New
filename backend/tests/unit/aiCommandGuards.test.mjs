@@ -19,7 +19,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const ENV_KEYS = ['AI_COMMANDS_ENABLED', 'AI_COMMAND_RATE_PER_MINUTE', 'AI_COMMAND_RATE_PER_HOUR'];
+const ENV_KEYS = ['AI_COMMANDS_ENABLED', 'AI_COMMAND_RATE_PER_MINUTE', 'AI_COMMAND_RATE_PER_HOUR', 'AI_COMMAND_GLOBAL_RATE_PER_MINUTE'];
 const savedEnv = {};
 
 function makeRes() {
@@ -167,5 +167,44 @@ describe('route wiring regression', () => {
 
   it('audits cancellations', () => {
     expect(ROUTES_SRC).toMatch(/outcome:\s*'cancelled'/);
+  });
+});
+
+describe('aiCommandRateLimiter global ceiling (H7)', () => {
+  // Hostile round 1 (Grok, DeepSeek Pro, DeepSeek Flash): the lane had per-user
+  // limits only - N users x 10/min was unbounded subscription spend.
+  it('returns 503 AI_COMMAND_GLOBAL_RATE_LIMITED once the fleet-wide minute budget is spent', () => {
+    process.env.AI_COMMAND_GLOBAL_RATE_PER_MINUTE = '3';
+    process.env.AI_COMMAND_RATE_PER_MINUTE = '100'; // per-user must NOT be what trips
+    const outcomes = [];
+    for (let userId = 1; userId <= 4; userId += 1) {
+      const res = makeRes();
+      const next = vi.fn();
+      aiCommandRateLimiter({ user: { id: userId } }, res, next);
+      outcomes.push(next.mock.calls.length === 1 ? 'next' : res.body?.code);
+    }
+    expect(outcomes).toEqual(['next', 'next', 'next', 'AI_COMMAND_GLOBAL_RATE_LIMITED']);
+  });
+
+  it('a single noisy user hits their OWN 429 before the fleet hits the global 503', () => {
+    process.env.AI_COMMAND_GLOBAL_RATE_PER_MINUTE = '5';
+    process.env.AI_COMMAND_RATE_PER_MINUTE = '2';
+    const codes = [];
+    for (let i = 0; i < 3; i += 1) {
+      const res = makeRes();
+      const next = vi.fn();
+      aiCommandRateLimiter({ user: { id: 9 } }, res, next);
+      codes.push(next.mock.calls.length === 1 ? 'next' : `${res.statusCode}:${res.body?.code}`);
+    }
+    expect(codes).toEqual(['next', 'next', '429:AI_COMMAND_RATE_LIMITED']);
+  });
+
+  it('resetCommandRateLimiter clears the global window too', () => {
+    process.env.AI_COMMAND_GLOBAL_RATE_PER_MINUTE = '1';
+    aiCommandRateLimiter({ user: { id: 1 } }, makeRes(), vi.fn());
+    resetCommandRateLimiter();
+    const next = vi.fn();
+    aiCommandRateLimiter({ user: { id: 2 } }, makeRes(), next);
+    expect(next).toHaveBeenCalledTimes(1);
   });
 });
