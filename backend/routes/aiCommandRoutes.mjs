@@ -20,6 +20,7 @@ import { aiCommandLaneKillSwitch, aiCommandRateLimiter } from '../middleware/aiC
 import { assertAssignmentOrAdmin } from '../middleware/verifyClientAccess.mjs';
 import { recordCommandAudit } from '../services/ai/commandAudit.mjs';
 import { recordUnhandledUtterance } from '../services/ai/unhandledUtteranceAudit.mjs';
+import { gateCommandFrontendDispatch, buildDispatchRefusalResponse } from '../services/ai/commandDispatchEligibility.mjs';
 import sequelize from '../database.mjs';
 import { getModel } from '../models/index.mjs';
 import { createAccessibleClientIdentitySanitizer } from '../services/ai/accessibleClientIdentityPrivacy.mjs';
@@ -306,6 +307,21 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
 
     if (ctx.result?.type === 'not_wired') {
       if (ctx.command?.method === 'FRONTEND_DISPATCH' && !ctx.command?.requiresConfirmation) {
+        // H6: the chat lane's eligibility gate, applied to the command lane.
+        const gate = await gateCommandFrontendDispatch({
+          event: ctx.command.frontendEvent || ctx.command.endpoint,
+          payload: ctx.intent?.params || {},
+          targetClientId: normalizedSelectedClientId ?? ctx.resolvedClient?.id ?? null,
+          user,
+        });
+        if (!gate.allowed) {
+          recordCommandAudit({
+            userId: user.id, userRole: user.role, commandType: ctx.command.type,
+            targetClientId: normalizedSelectedClientId ?? null, outcome: 'denied',
+            errorCode: 'DISPATCH_INELIGIBLE', params: ctx.intent?.params || null,
+          });
+          return res.json({ ...buildDispatchRefusalResponse(ctx.command, gate.refusals), timing: ctx.metadata.timing });
+        }
         return res.json({
           success: true,
           type: 'frontend_dispatch',
@@ -404,6 +420,18 @@ router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
     }
 
     const result = await executeConfirmedOperation(operationId, req.user, sequelize);
+
+    // H6: a confirmed frontend dispatch gets the same eligibility gate as an
+    // unconfirmed one — confirmation is about intent, not about client safety.
+    if (result?.type === 'frontend_dispatch' && result?.event) {
+      const gate = await gateCommandFrontendDispatch({
+        event: result.event, payload: result.payload || {},
+        targetClientId: result.client?.id ?? null, user: req.user,
+      });
+      if (!gate.allowed) {
+        return res.json(buildDispatchRefusalResponse({ type: result.command }, gate.refusals));
+      }
+    }
 
     res.json(result);
   } catch (err) {
