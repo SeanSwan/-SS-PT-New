@@ -101,7 +101,15 @@ const GlobalClientContext = createContext<GlobalClientContextType | null>(null);
 
 export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, authAxios } = useAuth();
-  const [activeClient, setActiveClientState] = useState<ActiveClient | null>(null);
+  // The selected client is stored WITH the actor it belongs to, and the exposed
+  // value is derived at RENDER time from that stamp. Clearing it in an effect is
+  // not enough: effects run after commit, so the first render following an actor
+  // change still paints the previous actor's client for one frame. On a shared
+  // kiosk that frame is the disclosure. A render-time derivation cannot have a
+  // transient — there is no commit in which the stamp and the actor disagree.
+  const [activeClientState, setActiveClientRaw] = useState<{ actorKey: string | null; client: ActiveClient | null }>(
+    { actorKey: null, client: null },
+  );
   const [clientList, setClientList] = useState<ActiveClient[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
 
@@ -126,6 +134,27 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   /** Stable identity for the current actor; also the stamp carried by a roster. */
   const currentActorKey = activeClientStorageKey(user?.id, user?.role);
+
+  /**
+   * RENDER-TIME derivation. A selection stamped for a different actor is simply
+   * not visible — no effect has to run first, so there is no frame in which the
+   * previous actor's client is on screen.
+   */
+  const activeClient = activeClientState.actorKey === currentActorKey ? activeClientState.client : null;
+
+  /** Writes always carry the current actor's stamp. */
+  const setActiveClientState = useCallback(
+    (next: ActiveClient | null | ((current: ActiveClient | null) => ActiveClient | null)) => {
+      setActiveClientRaw((prev) => {
+        const prevClient = prev.actorKey === currentActorKey ? prev.client : null;
+        const resolved = typeof next === 'function'
+          ? (next as (c: ActiveClient | null) => ActiveClient | null)(prevClient)
+          : next;
+        return { actorKey: currentActorKey, client: resolved };
+      });
+    },
+    [currentActorKey],
+  );
 
   // Which actor the roster in `clientList` was fetched for. Any roster whose
   // stamp does not match the current actor is treated as not-yet-loaded.
