@@ -9,7 +9,7 @@ index for three repos and supersedes the per-repo handoffs written earlier the s
 
 **Then verify the world before trusting it.** A stale handoff nearly caused a duplicate rebuild this
 week; the check costs thirty seconds and is in §12 of that document. Expected: taste brain HEAD
-`2640e94` with 52 checks passing, SwanGuard HEAD `0622ca8` on `merge/newsroom-mainline-v3`. The
+`2640e94` with 52 checks passing, SwanGuard HEAD `9cfcb9b` on `merge/newsroom-mainline-v3`. The
 SwanGuard counts in §2.2 were re-read live on 2026-08-22 (every row, one query); Docker must be
 running for `docker exec` to answer. If anything differs, another agent has moved things: re-orient
 before building.
@@ -28,9 +28,14 @@ no model and no network, and it now has real data behind it — 9,521 catalog en
 comparison. A hostile panel (2026-08-22) found slice B mis-sized; it is now **B0 → B1 → B2 → B3**
 in handoff §7. **B0 is also done** (`0622ca8`): `GET /api/owner/official-connectors/outlets` lists
 every per-outlet connector at a read cost that does not grow with outlet count, live-Postgres
-verified. Start at **B1: the owner console** — `apps/web`'s `OfficialConnectorKey` has no
-`news_rss` member at all, so no news connector can be enabled from the UI; B1 adds the key, an
-activation phrase, a surface consuming `/outlets`, and a dev-DB owner user (there is none). Do NOT
+verified. **B1a is also done** (`9cfcb9b`): the console's `OfficialConnectorKey` listed three
+families where the API returns four, so the news card was a **dead control** — correct phrase typed,
+button stayed disabled, nothing on screen said why. Fixed (phrase map now typed so a forgotten
+family is a compile error), plus a read-only `NewsOutletConnectorsPanel` consuming `/outlets`.
+Start at **B1b: per-outlet enable from the console** — batch semantics and a confirm step, NOT a
+per-row one-click button, which is how 107 outlets get switched on one careless click at a time.
+Note: a dev owner user is one sign-in away, not a blocker (`postgresAuth.ts:73` auto-creates the
+owner on a matching email hash). Do NOT
 merge the 107 feeds (B3) before B1–B2; B2 includes re-probing liveness, defining the overlap
 criterion, and supplying `termsUrl`/`ownership` per outlet. Retention/volume budget is owed before
 B3, not before W3.
@@ -63,19 +68,21 @@ B3, not before W3.
 8. **Do not spoof a publisher's block.** Several feeds 403 non-browser agents and were dropped on
    purpose. Being able to obtain something is not the question.
 9. **Write scripts to files.** Shell variables die crossing into WSL, heredocs mangle
-   `$POSTGRES_USER` inside `docker exec`, and `npx tsc` resolves to a decoy that exits 1 with a
-   message that reads like a type error. Nine inline-edit attempts failed this session, two
-   reporting success while writing broken strings.
+   `$POSTGRES_USER` inside `docker exec`, and `npx tsc` resolves to a decoy — **which exited 0 on
+   2026-08-22, not 1 as recorded earlier**, i.e. it reports success while checking nothing. Use
+   `npm run type-check`; it immediately found two real errors the decoy had "passed". Nine
+   inline-edit attempts failed in one session, two reporting success while writing broken strings.
 10. **The Karpathy Wiki holds copyrighted personal-library material.** Cite from it; never paste it
     into a repo. Query with `node scripts/swan-brain.mjs`, and scope visual queries to a collection.
 
 ## Owed to Sean, carried forward
 
-- **A hostile panel over all work so far** (GLM-5.3 + Kimi K3 + Grok 4.6). Deferred five times.
-  Command and budget in handoff §11. Always `--dry-run` first and disclose the figure.
-- Six open decisions listed in handoff §10, most importantly how to acquire the 4,016 missing SREF
-  codes (recommendation: email Midlibrary first) and whether Studio rounds need a model at all
-  (recommendation: rules-first).
+- ~~A hostile panel over all work so far~~ **RAN 2026-08-22** (six seats, $0.66). Verdicts and
+  calibration in handoff §11; replies under `panel-master-handoff-2026-08-22/`. Drop Grok next time.
+- **Seven** open decisions in handoff §10 (was six; #6 was re-framed as a fix task and #7 added).
+  Most consequential: how to acquire the 4,016 missing SREF codes (email Midlibrary, but set a dated
+  fallback — the panel showed the email answers permission, not acquisition), and whether Studio
+  rounds need a model at all (the "rules-first" recommendation is contested; see §10).
 
 ## Closeout expectations
 

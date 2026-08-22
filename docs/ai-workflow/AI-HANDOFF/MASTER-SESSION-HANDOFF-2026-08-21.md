@@ -18,10 +18,10 @@ their own repo but predate the catalog merge. **This document is the index.**
 >   `/api/rate` were drive-by writable from any web page; now Host + Origin gated (live curl proof).
 >   `--stats` relabelled. "Kept steers a quarter of every batch" was a guess — **measured 7.5%**.
 >   `node prompter/test.mjs` → 52 checks pass (38 → 40 → 52).
-> - SwanGuard HEAD `0622ca8` (slice A at `c212d41`, then **B0**): slice A sweep found no fourth site; tripwire now scans
+> - SwanGuard HEAD `9cfcb9b` (slice A `c212d41`, B0 `0622ca8`, **B1a** `9cfcb9b`): slice A sweep found no fourth site; tripwire now scans
 >   api + web + domain + database for 8 bug shapes, with a self-test, proven by planting the bug in
 >   `apps/web`. Full `npm test` re-run post-change (§12 baseline updated). §2.2 re-read LIVE.
-> - **B0 DONE 2026-08-22** (`4977bc3`→`0622ca8`): per-outlet listing + `GET /outlets`, read cost constant in outlet count, live-Postgres verified. **Next: B1** (owner console). See §7.
+> - **B0 DONE 2026-08-22** (`4977bc3`→`0622ca8`): per-outlet listing + `GET /outlets`, read cost constant in outlet count, live-Postgres verified. **B1a DONE**: the console listed 3 connector families where the API returns 4, so the news card was a dead control (correct phrase, disabled button, no explanation) — fixed, plus a read-only outlet listing. **Next: B1b** (per-outlet enable, batch semantics). See §7.
 > - Panel calibration (for routing): Kimi K3 / GLM 5.3 / Sol 5.6 Pro each returned real, verified
 >   defects; DeepSeek V4 Pro+Flash mostly restated the others (Flash's Decision-1 challenge was
 >   independent and fair); **Grok 4.6 returned 317 tokens of preamble and zero findings — a dud seat.**
@@ -88,7 +88,7 @@ comment_extracted_claims   0 · comment_claim_fact_checks 0 · influence_wiki_fa
 ```
 
 Re-verify with §12 (the query there now emits every number above). Branch
-`merge/newsroom-mainline-v3`, HEAD `0622ca8`, 2 untracked `.bak` files (pre-existing).
+`merge/newsroom-mainline-v3`, HEAD `9cfcb9b`, 2 untracked `.bak` files (pre-existing).
 
 ### 2.3 SS-PT
 
@@ -136,7 +136,9 @@ before auditing anything here.
 | `c212d41` | 2026-08-22: tripwire widened to api/web/domain/database, 8 shapes, self-test |
 | `4977bc3` | 2026-08-22: slice B0 — per-outlet listing + batched reads (store.listStates, GET /outlets) |
 | `e54c9c0` | 2026-08-22: contract doc — GET /outlets documented, family list corrected |
-| **`0622ca8`** | **2026-08-22: B0 adversarial round (quota bounds, key leakage, dupes)** — current |
+| `0622ca8` | 2026-08-22: B0 adversarial round (quota bounds, key leakage, dupes) |
+| `1d6b8e2` | 2026-08-22: B1a — dead news card fixed; read-only outlet listing in the console |
+| **`9cfcb9b`** | **2026-08-22: B1a scale round (146 outlets)** — current |
 
 **SS-PT:** `5ac95ebda` — `scripts/swan-brain.mjs` + reference doc + CLAUDE.md/AGENTS.md pointers.
 
@@ -189,8 +191,9 @@ before auditing anything here.
     `:label` inside a parenthesised block never retries, and `timeout.exe` fails under redirected
     stdin.
 11. **Verify before believing an absence.** Instruments lied ~10 times: shell vars dying at the
-    Windows-to-WSL boundary, heredocs mangling `$POSTGRES_USER`, `npx tsc` resolving to a decoy that
-    exits 1, FTS5 `OR` under-returning, `pkill` silently not killing Windows processes.
+    Windows-to-WSL boundary, heredocs mangling `$POSTGRES_USER`, `npx tsc` resolving to a decoy
+    (recorded as exiting 1 — on 2026-08-22 it exited **0**, i.e. reported success while checking
+    nothing; use `npm run type-check`), FTS5 `OR` under-returning, `pkill` silently not killing Windows processes.
 12. **Edit files with an editor.** Nine failed inline-script/heredoc attempts, two of which reported
     success while writing a broken string. The fix that worked was removing the escape from the
     problem, not escaping more carefully.
@@ -279,7 +282,8 @@ confirmed live**, 2,951 items, zero overlap with the existing 39. `termsUrl` and
 |---|---|---|
 | **A** ✅ `c212d41` | sweep every `connectorKey` comparison | DONE — no fourth site in api/web/domain/database; lexical tripwire (8 shapes, 4 roots, self-tested) guards against a new one |
 | **B0** ✅ `0622ca8` | per-outlet listing — DONE, but **not** by widening `listStatuses()`. That array is the console's family wall (one activation-phrase card each); 146 outlet cards would bury the four family controls. Instead: new `listOutletStatuses()` + `GET /api/owner/official-connectors/outlets`, and `listStatuses()` batched in place. Read cost is constant in outlet count (approvals + kill switches + states + registry, one each); `store.listStates()` added. Live-Postgres verified against the real 39-outlet registry. | prerequisite met — outlets are now listable |
-| **B1** | owner console: add `news_rss` + per-outlet keys to `apps/web` `OfficialConnectorKey`, activation phrase, and a dev-DB owner user (there is none — §7 note) | without it every enable is a hand-driven service-layer call |
+| **B1a** ✅ `9cfcb9b` | owner console truth: `OfficialConnectorKey` mirrors the API (4 families + per-outlet template), `news_rss` activation phrase added — **the news card was a DEAD CONTROL**: correct phrase typed, button stayed disabled, no explanation. Phrase map now typed `Record<FamilyKey,…>` so a forgotten family is a compile error. Read-only `NewsOutletConnectorsPanel` consuming `GET /outlets`, loaded on its own status. | a live-surface defect, plus the review surface B2/B3 need |
+| **B1b** | per-outlet ENABLE from the console — batch semantics, confirm step, no per-row one-click | deliberately NOT in B1a; a per-row button is how 107 outlets get enabled one careless click at a time |
 | **B2** | re-probe the 107 candidates (liveness decays; the probe has no date), define the overlap criterion (the "zero overlap" claim was by feed URL string, not by outlet or content), supply `termsUrl` + `ownership` per outlet | data work; the licence posture is the terms URL, not decoration |
 | **B3** | merge the 107 into `config/owner-news-sources.json` (born dormant), enable in batches with a retention/volume budget ALREADY set (§10 #5 moved here from "before W3") | only after B0–B2 |
 | **C** | W0 — wire `news` as a third `WikiSourceModule` | `intelligenceWiki.ts` accepts only comment_intel / influence_intel. Not "one line" (panel): module interface + ingestion mapping + test |
@@ -324,7 +328,12 @@ Doc: `docs/ai-workflow/references/SWAN-BRAIN-QUERY.md`.
    **S1** (brain browser). Different repos; neither blocks the other. Do NOT start B3 (merge the
    107) before B1–B2.
 
-**Two findings from B0 that are NOT fixed and belong to whoever takes B1/B2:**
+**Corrected 2026-08-22 — "no owner-role user in the dev DB" is TRUE but is NOT a blocker.**
+`postgresAuth.ts:73` auto-creates the owner when the sign-in email hash matches the configured
+`ownerEmailHash`, so an owner is one sign-in away. The dev DB holding a single `member` row (live
+verified) does not gate console work; the earlier note implied it did.
+
+**Findings NOT fixed, belonging to whoever takes B1b/B2:**
 - `listKillSwitches()` seeds its catalog with nine INSERTs on **every** call (live-verified). It is
   paid once per listing rather than once per outlet, so B0's constant-cost property holds, but a
   read that writes nine rows is a pre-existing defect worth its own slice.
@@ -389,7 +398,7 @@ wsl.exe bash -c 'grep -rl "bioluminescent swell against basalt" /home/bigotsmash
 cd /c/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
 git branch --show-current && git log --oneline -1 && git status --porcelain
 docker exec swanguard-newsroom-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "select (select count(*) from creator) creators,(select count(*) from creator where enabled) creators_enabled,(select count(*) from news_rss_sources) sources,(select count(*) from outlets) outlets,(select count(*) from official_connector_items) items,(select count(*) from official_connector_states) states,(select count(*) from official_connector_states where owner_enabled) states_enabled,(select count(*) from contract_approvals) approvals,(select count(*) from creator_item) creator_items,(select count(*) from comment_extracted_claims) claims"'
-npm test   # baseline 2026-08-22 (post-B0): scripts 138/0 · api 512 pass + 1 PRE-EXISTING red (the ONLY acceptable red: civicOfficialSourcesRoutes.test.ts "returns nothing while gated…") · web 379 · database 90 · domain 242
+npm test   # baseline 2026-08-22 (post-B0): scripts 138/0 · api 512 pass + 1 PRE-EXISTING red (the ONLY acceptable red: civicOfficialSourcesRoutes.test.ts "returns nothing while gated…") · web 387 · database 90 · domain 242
 # B0 live-Postgres proof (read-only; needs Docker up). 3/3 — includes the constant-read-cost claim.
 # Set DATABASE_URL from docker-compose.dev.yml (it declares the dev user/password/db; host port 5434),
 # then from apps/api:  SWANGUARD_ALLOW_POSTGRES_SMOKE=true npx vitest run src/officialConnectorOutletListingLive.test.ts
@@ -398,7 +407,7 @@ npm test   # baseline 2026-08-22 (post-B0): scripts 138/0 · api 512 pass + 1 PR
 
 Expected: taste brain HEAD `2640e94`, clean tree, **52** PASS lines, `catalog entries 9521`,
 `article headings 407`, rated 0 / kept 0 / rejected 1, no TEST DATA, vault grep 0.
-SwanGuard HEAD `0622ca8`, 2 untracked `.bak` only, counts `51|0|39|39|10|1|1|2|0|0`.
+SwanGuard HEAD `9cfcb9b`, 2 untracked `.bak` only, counts `51|0|39|39|10|1|1|2|0|0`.
 **If anything differs, another agent has moved things — re-orient before building. If the api red
 test is any OTHER test, that is new breakage, not the baseline.**
 
