@@ -201,7 +201,18 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setActiveClientState(null);
       return;
     }
-    if (clientList.length === 0) return;
+    // NOTE: there is deliberately no `clientList.length === 0` guard here.
+    // An earlier draft had one, to stop a mount-time or failed-fetch empty list
+    // being misread as "not authorised" — but it also meant a roster that
+    // genuinely loads empty (every assignment ended) kept the pin forever,
+    // contradicting this change's own invariant. Two seats attacked it from
+    // opposite sides and both were right about the real gap: what was missing
+    // was a signal for "loaded SUCCESSFULLY for this actor". `rosterActorKey`
+    // is exactly that signal — it is stamped only in the fetch success path —
+    // so the guard above subsumes both cases and this one can go:
+    //   mount            -> stamp is null        -> returned above
+    //   fetch failed     -> stamp never set      -> returned above
+    //   genuinely empty  -> stamp matches        -> falls through, pin dropped
 
     const resolved = reconcileActiveClient(pinnedClientId, clientList);
     if (!resolved) {

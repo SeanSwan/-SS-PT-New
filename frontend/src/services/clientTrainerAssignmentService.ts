@@ -87,12 +87,29 @@ class ClientTrainerAssignmentService {
       // why unassign/reassign never worked. Normalise to an array here and
       // tolerate the array/wrapper shapes the sibling endpoints use.
       const payload = response.data;
+
+      // A REJECTED request must never look like "this client has no
+      // assignments". This codebase's controllers return { success: false, ... }
+      // with a 2xx in places, and an HTML error page parses to something with
+      // none of the keys below. Falling through to [] there would make
+      // reassignClient believe there is nothing to deactivate, POST a second
+      // assignment, and leave TWO active rows for one client — which
+      // listAssignedClientIds (the authorization source for the moderation
+      // queue and the conflict check) reads as the old trainer still being
+      // active. A tolerant normaliser here would silently defeat the
+      // authorization fixes elsewhere in this branch.
+      if (payload?.success === false) {
+        throw new Error(payload?.message || 'Assignment lookup failed');
+      }
+
       if (Array.isArray(payload)) return payload;
       if (payload?.assignment) return [payload.assignment];
       if (payload?.assignment === null) return [];
       if (Array.isArray(payload?.assignments)) return payload.assignments;
       if (Array.isArray(payload?.data)) return payload.data;
-      return [];
+
+      // Unrecognised shape: refuse rather than assert emptiness.
+      throw new Error('Unrecognised assignment response shape');
     } catch (error) {
       console.error('Error fetching client assignments:', error);
       throw error;

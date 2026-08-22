@@ -59,6 +59,31 @@ describe('getClientAssignments — response shape', () => {
     await expect(service.getClientAssignments('42')).resolves.toEqual([]);
   });
 
+  it('THROWS on a { success: false } envelope instead of reporting no assignments', async () => {
+    // Kimi's find. If a rejected request normalises to [], reassignClient
+    // believes there is nothing to deactivate, POSTs a second assignment, and
+    // leaves two active rows — which listAssignedClientIds then reads as the
+    // OLD trainer still being active, silently defeating the authorization
+    // fixes elsewhere in this branch.
+    get.mockResolvedValue({ data: { success: false, message: 'validation failed' } });
+
+    await expect(service.getClientAssignments('42')).rejects.toThrow(/validation failed/);
+  });
+
+  it('THROWS on an unrecognised body rather than asserting emptiness', async () => {
+    get.mockResolvedValue({ data: '<html>502 Bad Gateway</html>' });
+
+    await expect(service.getClientAssignments('42')).rejects.toThrow(/Unrecognised/);
+  });
+
+  it('does not deactivate or create anything when the lookup fails', async () => {
+    get.mockResolvedValue({ data: { success: false, message: 'boom' } });
+
+    await expect(service.unassignClient('42')).rejects.toThrow();
+    expect(put).not.toHaveBeenCalled();
+    expect(post).not.toHaveBeenCalled();
+  });
+
   it('still accepts a plain array or a wrapped list', async () => {
     get.mockResolvedValue({ data: [activeAssignment] });
     await expect(service.getClientAssignments('42')).resolves.toHaveLength(1);
