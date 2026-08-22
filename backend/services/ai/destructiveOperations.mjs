@@ -96,7 +96,17 @@ export function prepareDestructiveOperation({
     throw new Error('CRITICAL: DELETE requires explicit scope (id, clientId, userId, or dateRange). Mass unscoped deletions are blocked.');
   }
 
-  // V3: Hard cap on affected records
+  // V3: cap on the PREVIEW the caller supplies - NOT a database row cap.
+  //
+  // H8 honesty (2026-08-21 hostile round 1, Sol): this only bounds
+  // `affectedRecords.length`, and the executor populates that with at most the
+  // one resolved client. It cannot see how many rows a dispatcher will touch.
+  // It is SAFE today because every registered destructive command is
+  // single-entity by construction (:clientId, :planId, :sessionId, :postId...),
+  // which tests/unit/destructiveCommandsSingleEntity.test.mjs now locks. If a
+  // bulk/date-range destructive command is ever registered, that test fails and
+  // this cap must be replaced by a DB-side preview count over the frozen
+  // predicate - do not rely on this check for that.
   if (affectedRecords.length > MAX_AI_BULK_DELETE) {
     throw new Error(
       `CRITICAL: Would affect ${affectedRecords.length} records. Max: ${MAX_AI_BULK_DELETE}. Use manual deletion for bulk operations.`
