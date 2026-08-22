@@ -2,7 +2,7 @@
 decision: Hand the User Dashboard trust repair's final gap — the live authenticated pass — to a fresh agent
 status: open
 supersedes: none
-revision: v3 (2026-08-22) — 7-seat hostile panel (6 REVISE + 1 REJECT), then Fable 5 Final-Decider ruling (LOCK-WITH-CHANGES), then 7 self-hostile rounds
+revision: v3.1 (2026-08-22) — 7-seat hostile panel (6 REVISE + 1 REJECT), then Fable 5 Final-Decider ruling (LOCK-WITH-CHANGES), then 7 self-hostile rounds
 originating_model: claude-opus-5
 linear: SWA-187 (this work), SWA-188 (test doctrine, Sean-gated)
 base_ref: origin/main @ 978f5d197
@@ -85,6 +85,22 @@ or add `-i`. Verified working against the live site on 2026-08-22.
 **v1 assumed fixtures that do not exist.** Four seats independently flagged this as the
 point where the next agent stalls or improvises against production. Do not improvise.
 
+> **v3.1 CORRECTION (2026-08-22) — this section over-states the blocker.** Written before
+> I checked `frontend/e2e/`. The established pattern there
+> (`admin-workout-surfaces-protected-smoke.spec.ts:116-135, 229-235`) injects a synthetic
+> JWT into `localStorage` and intercepts `**/api/**` with `route.fulfill` — **no real
+> account, no database, no photo, no PII.** Every journey that tests *frontend behaviour*
+> can run that way in a real browser, **including A2's forced-failure test**, which is
+> better served by `route.fulfill({ status: 500 })` than by DevTools blocking.
+>
+> The only claim a mock cannot make is **"a successful save actually persisted"** — the
+> direct descendant of Wave 1's P0. That, and touch feel on a real device, are the real
+> residue. Provisioning proposal (awaiting Sean):
+> `USER-DASHBOARD-FIXTURE-PROVISIONING-PROPOSAL-2026-08-22.md`, which reduces the
+> footprint to **one synthetic account and no R2 objects**.
+>
+> Read the table below as "what a full live pass would want", not as a gate on starting.
+
 **This section gates A2-A6, B and C — not the whole slice.** S0 and S1 in the Order of
 Work below need none of it and should run first. Do not open this slice by asking Sean
 for fixtures and then waiting.
@@ -142,10 +158,10 @@ first, so the slice produces value on day one regardless of how the fixture gate
 |---|---|---|
 | **S0** | §0.1 bundle-identity check | nothing |
 | **S1** | **D** (layout measurement), **E** (contrast ratios), **A7** (Mute User absent) | a login of any role |
-| **S1.5** | Fixture provisioning — the data backbone (§0.5), Sean-gated | Sean |
-| **S2** | **A2** forced-failure — the core of the slice | synthetic member |
-| **S3** | **A3** slider, **A4** empty states, **A5**, **A6** | full fixtures |
-| **S4** | **B**, **C** trainer/admin capability checks | synthetic trainer + admin |
+| **S1.5** | Fixture provisioning — Sean-gated. **Scope reduced**: one synthetic account, no R2 objects (see the correction in §0.5) | Sean |
+| **S2** | **A2** forced-failure — the core of the slice. **Runnable now via mocked `route.fulfill({status:500})`;** only the *persistence* half needs S1.5 | nothing / S1.5 for persistence |
+| **S3** | **A3** slider, **A4** empty states, **A5**, **A6** | **mocked responses — no fixtures** |
+| **S4** | **B**, **C** trainer/admin capability checks | **mocked role in the JWT — no fixtures** |
 | **S5** | §9 regression recommendations to Sean | nothing |
 
 S1 and S5 alone are a real, reportable result. S2 is the reason the slice exists.
@@ -620,6 +636,8 @@ seats. A review packet is a test fixture; trimming it is mutating the fixture.
 | What | Where |
 |---|---|
 | Panel that produced v2 (7 seats) + Fable's ruling + my dispositions | `docs/ai-workflow/AI-HANDOFF/panel-liveauth-plan-2026-08-22/` |
+| Fixture provisioning proposal (awaiting Sean; reduces §0.5 scope) | `docs/ai-workflow/AI-HANDOFF/USER-DASHBOARD-FIXTURE-PROVISIONING-PROPOSAL-2026-08-22.md` |
+| Existing e2e pattern this slice should reuse | `frontend/e2e/admin-workout-surfaces-protected-smoke.spec.ts` |
 | Master blueprint + mermaid | `docs/ai-workflow/AI-HANDOFF/USER-DASHBOARD-REMEDIATION-MASTER-BLUEPRINT-2026-08-21.md` |
 | Wave 2–3 panel packet + reviews | `docs/ai-workflow/AI-HANDOFF/USER-DASHBOARD-WAVE23-PANEL-PACKET-2026-08-21.md`, `panel-dash-wave23-2026-08-21/` |
 | Wave 1 panel reviews | `docs/ai-workflow/AI-HANDOFF/panel-dashboard-audit-2026-08-21/` |
