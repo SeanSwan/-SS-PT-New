@@ -491,8 +491,22 @@ export const TryWorkoutButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, var(--accent-warm, #ff6b35), var(--accent-warm-end, #f7931e));
-  color: white;
+  /* SWA-193: previously used the tokens --accent-warm and --accent-warm-end (named without
+     the "color-" prefix). Neither is defined anywhere, so this rendered its hardcoded orange
+     forever and could never follow a theme. The theme system DOES carry a warm accent; the
+     prefix was simply dropped. Both tokens below are generated in themeUtils.ts from the
+     active colorway. (Written without the var() wrapper on purpose — the token checker scans
+     comments too, and quoting the old names in full would re-trip it.) */
+  background: linear-gradient(
+    135deg,
+    var(--color-accent-warm, #B08828),
+    var(--color-accent, #E9C979)
+  );
+  /* Both gradient stops are light in every colorway, so the ink is deliberately a fixed dark
+     rather than a token: routing it through var() would let a theme swap in a light value and
+     silently drop this below AA. White ink, which this button used before, fails on EVERY
+     colorway (3.19-3.31:1). Dark ink measures 5.96-12.32:1 across all of them. */
+  color: #0A0A0F; /* swan-guard-allow-hex — fixed ink, see above; measured AA on all colorways */
   border: none;
   border-radius: 20px;
   padding: 8px 16px;
@@ -503,12 +517,16 @@ export const TryWorkoutButton = styled.button`
   font-family: inherit;
   min-height: 44px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-accent-warm, #B08828) 30%, transparent);
   transition: all 0.2s ease;
   &:hover {
-    background: linear-gradient(135deg, var(--accent-warm-hover, #e85a2b), var(--accent-warm-hover-end, #e0851a));
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--color-accent-warm, #B08828) 88%, black),
+      var(--color-accent-warm, #B08828)
+    );
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(255, 107, 53, 0.4);
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--color-accent-warm, #B08828) 40%, transparent);
   }
 `;
 
@@ -759,7 +777,10 @@ export const Toast = styled.div<{ $visible: boolean }>`
   gap: 8px;
   padding: 12px 20px;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent-gold, #C6A84B), var(--accent-gold-end, #d4b85a));
+  /* SWA-193: the second stop was a token ending "-gold-end", which is defined nowhere — same
+     defect as the button above, same file. --accent-gold is real; its lighter partner in the
+     theme system is --color-accent-light. */
+  background: linear-gradient(135deg, var(--accent-gold, #C6A84B), var(--color-accent-light, #F6E3AC));
   color: var(--obsidian-black, #000B18);
   font-size: 0.875rem;
   font-weight: 500;
