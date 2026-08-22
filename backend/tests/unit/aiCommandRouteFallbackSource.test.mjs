@@ -38,10 +38,13 @@ describe('aiCommandRoutes unhandled-utterance wiring source guard (F1)', () => {
     expect(ROUTE_SOURCE).toContain('phantomIntent');
   });
 
-  it('feeds the SANITIZED message, never the raw request body text', () => {
-    // Identity redaction runs before the pipeline; the recorder must use its output.
-    expect(ROUTE_SOURCE).toContain('input: promptInputs.message');
-    expect(ROUTE_SOURCE).not.toContain('input: message');
+  it('feeds the MOST-SCRUBBED text: executor PHI-stripped + route identity-sanitized, never raw body', () => {
+    // Round-1 hostile fix (Grok): an earlier version recorded promptInputs.message,
+    // which is identity-sanitized but NOT yet PHI-stripped. ctx.sanitizedInput has
+    // had both applied by the time the pipeline returns.
+    expect(ROUTE_SOURCE).toContain('input: ctx.sanitizedInput ?? promptInputs.message');
+    expect(ROUTE_SOURCE).not.toContain('input: message,');
+    expect(ROUTE_SOURCE).not.toContain('input: promptInputs.message,');
   });
 
   it('gates the unhandled report behind the admin role like /metrics/summary', () => {

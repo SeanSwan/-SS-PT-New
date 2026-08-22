@@ -136,6 +136,11 @@ export async function buildUnhandledUtteranceTop({ days = 7, limit = 10 } = {}) 
     ],
     where: { outcome: UNHANDLED_OUTCOME, createdAt: { [Op.gte]: since } },
     group: [utteranceCol, col('errorCode')],
+    // Round-1 fix (Sol): the caller's limit was applied only in JS after an
+    // UNBOUNDED grouped read. This is the DB-side bound — ranked by count so the
+    // top-N is still exact, with headroom for per-kind rows that merge below.
+    order: [[fn('COUNT', col('id')), 'DESC']],
+    limit: Math.min(2000, cappedLimit * 20),
     raw: true,
   });
 

@@ -268,6 +268,25 @@ async function stepPHIScan(ctx) {
       matchCount: matches.length,
     });
   }
+
+  // H5 (2026-08-21 hostile round 1 — Sol + Grok independently): previousContext is
+  // a prompt channel too. The route applies roster IDENTITY replacement to it, but
+  // this generic PHI scan ran only on the current message — so an email, phone,
+  // payment or medical detail from an earlier turn reached the classifier
+  // unscrubbed. Every text channel that reaches a model gets the same scrub.
+  const previous = ctx.options?.previousContext;
+  if (typeof previous === 'string' && previous.length > 0) {
+    const prior = scanForPHI(previous);
+    if (prior.hasPHI) {
+      ctx.options.previousContext = stripPHI(previous, prior.matches);
+      ctx.metadata.previousContextPhiMatches = prior.matches.length;
+      logger.info('[CommandExecutor] PHI stripped from previousContext', {
+        userId: ctx.user.id,
+        categories: prior.categories,
+        matchCount: prior.matches.length,
+      });
+    }
+  }
   return ctx;
 }
 

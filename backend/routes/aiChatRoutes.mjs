@@ -77,6 +77,24 @@ import {
 import { strictPiiMiddleware } from '../middleware/piiSanitizationMiddleware.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+
+/**
+ * H2 (2026-08-21 hostile round 1 — Sol/HY3/GLM independently): the legacy
+ * AI_CHAT_CLIENT_ACCESS_SOFT=true escape hatch converted a trainer->client IDOR
+ * denial into a logged allow. An env flag that disables authorization is a
+ * written trap, not a control — one deployment typo or "emergency toggle" opened
+ * every client's chat context to every trainer. It is now honoured ONLY outside
+ * production; in production it is ignored and the denial stands, with a loud log
+ * so nobody believes the flag did something.
+ */
+const clientAccessSoftModeActive = () => {
+  if (process.env.AI_CHAT_CLIENT_ACCESS_SOFT !== 'true') return false;
+  if (process.env.NODE_ENV === 'production') {
+    logger.error('[AIChatRoutes] AI_CHAT_CLIENT_ACCESS_SOFT is set in PRODUCTION and is being IGNORED — client access denials are enforced.');
+    return false;
+  }
+  return true;
+};
 import {
   buildCoachIntakeContextPromptBlock,
   buildCoachIntakeContextFromResult,
@@ -375,7 +393,7 @@ router.post('/conversations', async (req, res) => {
       if (userRole === 'trainer') {
         const access = await checkClientAccess(req.user, resolvedTargetUserId, sequelize);
         if (!access.allowed) {
-          if (process.env.AI_CHAT_CLIENT_ACCESS_SOFT === 'true') {
+          if (clientAccessSoftModeActive()) {
             logger.warn('[AIChatRoutes] SOFT MODE: trainer %d not verified for Client #%d at conversation creation (reason: %s) - allowing per AI_CHAT_CLIENT_ACCESS_SOFT',
               req.user.id, resolvedTargetUserId, access.reason);
           } else {
@@ -652,26 +670,44 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     // ── PHASE 1: CONSENT ENFORCEMENT ──
     // Check that the target user (or self) has granted AI consent
     const consentTargetId = conversation.targetUserId || req.user.id;
+    // H4 (2026-08-21 hostile round 1 — Sol/HY3/GLM independently): this check was
+    // fail-OPEN at three layers — `.catch(() => [[]])` turned any query error into
+    // "no record", the missing-record branch allowed, and the outer catch was
+    // non-fatal. A DB outage, a failed migration or a dropped table therefore
+    // silently PERMITTED sensitive AI processing, while the route claimed consent
+    // was enforced. A query ERROR now fails closed (503 — the system cannot tell
+    // whether consent exists, so it does not proceed).
+    //
+    // DELIBERATELY UNCHANGED and flagged for Sean (product decision, Rule 62):
+    // a user with NO consent record is still allowed, for onboarding
+    // compatibility. That is a policy choice, not an error path, and flipping it
+    // could lock every pre-onboarding user out of chat. It is recorded on
+    // SWA-142 for an explicit decision rather than changed silently here.
+    let consentRows;
     try {
-      const [consentRows] = await sequelize.query(
+      consentRows = await sequelize.query(
         `SELECT "aiEnabled", "withdrawnAt" FROM ai_privacy_profiles WHERE "userId" = :userId LIMIT 1`,
         { replacements: { userId: consentTargetId }, type: sequelize.QueryTypes.SELECT }
-      ).then(r => [r]).catch(() => [[]]);
-
-      const consent = Array.isArray(consentRows) ? consentRows[0] : consentRows;
-      if (consent) {
-        if (!consent.aiEnabled || consent.withdrawnAt) {
-          return res.status(403).json({
-            success: false,
-            error: 'AI consent has been withdrawn for this user. Please re-enable AI features in privacy settings.',
-            code: 'AI_CONSENT_WITHDRAWN',
-          });
-        }
-      }
-      // If no consent record exists, allow (backwards-compatible — user may not have been through onboarding yet)
+      );
     } catch (consentErr) {
-      // Non-fatal: if consent table doesn't exist yet (migration pending), allow through
-      logger.warn('[AIChatRoutes] Consent check failed (non-fatal):', consentErr.message);
+      logger.error('[AIChatRoutes] Consent check FAILED — refusing AI processing (fail-closed)', {
+        userId: req.user.id,
+        consentTargetId,
+        errorName: consentErr?.name ?? 'Error',
+      });
+      return res.status(503).json({
+        success: false,
+        code: 'AI_CONSENT_CHECK_UNAVAILABLE',
+        error: 'Swan Coach cannot verify AI consent right now. Please try again shortly.',
+      });
+    }
+    const consent = Array.isArray(consentRows) ? consentRows[0] : consentRows;
+    if (consent && (!consent.aiEnabled || consent.withdrawnAt)) {
+      return res.status(403).json({
+        success: false,
+        error: 'AI consent has been withdrawn for this user. Please re-enable AI features in privacy settings.',
+        code: 'AI_CONSENT_WITHDRAWN',
+      });
     }
 
     // Guard against unbounded conversation growth
@@ -707,10 +743,11 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     // audience label. This RESTORES the fail-closed gate on a path that
     // skipped it; it does not narrow clientAccess itself (the bounded
     // session-history fallback is Sean's ruling of 2026-07-30 and is untouched).
+    // (Independently found as H3 by the 2026-08-21 hostile panel, 3 seats.)
     if (conversation.targetUserId && req.user.role === 'trainer') {
       const access = await checkClientAccess(req.user, conversation.targetUserId, sequelize);
       if (!access.allowed) {
-        if (process.env.AI_CHAT_CLIENT_ACCESS_SOFT === 'true') {
+        if (clientAccessSoftModeActive()) {
           logger.warn('[AIChatRoutes] SOFT MODE: trainer %d not verified for Client #%d (reason: %s) — allowing per AI_CHAT_CLIENT_ACCESS_SOFT',
             req.user.id, conversation.targetUserId, access.reason);
         } else {

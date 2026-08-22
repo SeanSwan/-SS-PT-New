@@ -109,3 +109,29 @@ describe('client-role self-scoping in the command lane (H1)', () => {
     expect(resolveClient).toHaveBeenCalledWith('#55', expect.anything(), expect.objectContaining({ trainerId: 7 }));
   });
 });
+
+describe('previousContext PHI scrub (H5)', () => {
+  it('H5: an email in previousContext is stripped BEFORE the classifier sees it', async () => {
+    // Sol + Grok (round 1): previousContext was identity-sanitized by the route but
+    // never PHI-scanned by the executor, so an email/phone/payment detail from an
+    // earlier turn reached the external classifier verbatim.
+    vi.resetModules();
+    const classifyIntent = vi.fn(async () => ({ intent: 'chat', params: {}, confidence: 0.9 }));
+    vi.doMock('../../services/ai/intentClassifier.mjs', () => ({ classifyIntent }));
+    vi.doMock('../../services/ai/clientResolver.mjs', () => ({ resolveClient: vi.fn() }));
+    vi.doMock('../../services/ai/commandDispatcher.mjs', () => ({ dispatch: vi.fn(), hasDispatcher: vi.fn(() => false) }));
+    const registry = await import('../../services/ai/commandRegistry/index.mjs');
+    registry.initializeRegistry();
+    const { executeCommandPipeline } = await import('../../services/ai/commandExecutor.mjs');
+
+    await executeCommandPipeline('what next', trainerUser, {
+      sequelize: {},
+      previousContext: 'Earlier the client said: reach me at someone@example.com about the plan',
+    });
+
+    expect(classifyIntent).toHaveBeenCalledTimes(1);
+    const seen = classifyIntent.mock.calls[0][2]?.previousContext ?? '';
+    expect(seen).not.toContain('someone@example.com');
+    expect(seen).toMatch(/about the plan/);
+  });
+});

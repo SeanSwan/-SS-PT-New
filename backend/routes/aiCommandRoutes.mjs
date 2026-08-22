@@ -237,13 +237,17 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
 
     if (ctx.error) {
       // F1: an intent the classifier INVENTED (no registry match) is the
-      // classifier-drift signal — record it before the response goes out.
-      // Fire-and-forget: recordUnhandledUtterance never throws.
+      // classifier-drift signal. Fire-and-forget — NOT awaited, so it is not
+      // guaranteed to have landed before the response is sent; it is guaranteed
+      // not to block or fail the response (recordUnhandledUtterance never throws).
+      // Input is ctx.sanitizedInput: identity-sanitized by the route AND
+      // PHI-stripped by the executor — the most-scrubbed form of the text that
+      // exists (round-1 fix; an earlier version used the pre-PHI-scrub message).
       if ((ctx.result?.code || '') === 'UNKNOWN_INTENT') {
         void recordUnhandledUtterance({
           userId: user.id,
           userRole: user.role,
-          input: promptInputs.message,
+          input: ctx.sanitizedInput ?? promptInputs.message,
           kind: 'unknown_intent',
           surface: normalizedRouteContext?.surface ?? null,
           phantomIntent: ctx.intent?.intent ?? null,
@@ -266,10 +270,13 @@ router.post('/execute', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
     if (ctx.intent?.intent === 'chat' || ctx.intent?.intent === 'clarification_needed') {
       // F1: the utterance did not become a command — the product's richest
       // roadmap signal, previously discarded here (see unhandledUtteranceAudit.mjs).
+      // `chat` means "classified as ordinary conversation", which is NOT a failure;
+      // the report keeps kinds separate so readers can filter it out. Same
+      // fire-and-forget + most-scrubbed-input rules as the UNKNOWN_INTENT site.
       void recordUnhandledUtterance({
         userId: user.id,
         userRole: user.role,
-        input: promptInputs.message,
+        input: ctx.sanitizedInput ?? promptInputs.message,
         kind: ctx.intent.intent === 'chat' ? 'chat' : 'clarification_needed',
         surface: normalizedRouteContext?.surface ?? null,
       });
