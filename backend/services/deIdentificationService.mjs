@@ -66,8 +66,12 @@ const DIRECT_IDENTIFIER_PATHS = [
  * SPLIT the set Fable had grouped together, because denying it wholesale would
  * have removed the inputs that make coaching safe:
  *
- *   DENIED here      — conditions, supplements, sleep, stress. Sensitive, and
- *                      not required to program a session.
+ *   DENIED here      — supplements, sleep, stress. Sensitive, and not required
+ *                      to program a session safely. Matched by KEY NAME at any
+ *                      depth (GATED_KEY_PATTERN), not by an enumerated path
+ *                      list — a path list cannot keep the category claim in the
+ *                      consent copy true, and let medicalConditions slip once
+ *                      already.
  *   NOT denied       — injuries, pain, measurements, medical conditions. These
  *                      are TRAINING-SAFETY data: without them Swan Coach cannot
  *                      avoid a movement that is contraindicated for this client. Removing them
@@ -78,25 +82,9 @@ const DIRECT_IDENTIFIER_PATHS = [
  * signs off. Doing so CHANGES WHAT USERS WERE TOLD — bump AI_CONSENT_VERSION in
  * frontend/src/content/aiConsentCopy.ts and re-consent before enabling.
  */
-const GATED_HEALTH_PATHS = [
-  'health.supplements',
-  'health.sleep',
-  'health.stress',
-  'clientProfile.supplements',
-  'lifestyle.supplements',
-  'lifestyle.sleep',
-  'lifestyle.sleepQuality',
-  'lifestyle.sleepHours',
-  'lifestyle.stress',
-  'lifestyle.stressLevel',
-  'wellness.sleep',
-  'wellness.sleepHours',
-  'wellness.stress',
-  'wellness.supplements',
-];
-
 /**
- * Training-safety paths that must NEVER be added to GATED_HEALTH_PATHS.
+ * Training-safety paths that must NEVER be gated, whatever the category
+ * matcher would otherwise do to them.
  * Documented as an explicit list so a future edit has to argue with it.
  */
 export const TRAINING_SAFETY_PATHS = Object.freeze([

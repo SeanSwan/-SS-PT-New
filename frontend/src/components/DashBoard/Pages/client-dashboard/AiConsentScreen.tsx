@@ -14,7 +14,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, ShieldCheck, ShieldOff, Brain, Lock, Eye, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
-import { AI_CONSENT_VERSION, AI_CONSENT_RECONSENT_PROMPT } from '../../../../content/aiConsentCopy';
+import {
+  AI_CONSENT_DISCLOSURE,
+  AI_CONSENT_RECONSENT_PROMPT,
+  AI_CONSENT_VERSION,
+} from '../../../../content/aiConsentCopy';
 import {
   getConsentStatus,
   grantConsent,
@@ -703,16 +707,7 @@ const AiConsentScreen: React.FC = () => {
           <Shield size={18} />
           Consent Disclosure (v{AI_CONSENT_VERSION})
         </ConsentDisclosureTitle>
-        By granting consent, you agree that SwanStudios may process your de-identified fitness profile
-        through a Swan Coach provider to generate personalized workout plans. Your personal
-        identifiers (name, email, phone, medical details) are never shared with the Swan Coach provider. Only
-        fitness-relevant data — goals, measurements, training preferences, and safety-critical information
-        (injuries, medical conditions) — is used, and only after stripping all identifying information.
-        <br /><br />
-        You may withdraw consent at any time. Withdrawal immediately disables all Swan Coach features.
-        Previously generated workout plans remain in your account but no new Swan Coach requests will be made.
-        <br /><br />
-        This consent applies to Swan Coach workout generation (Consent Version 1.0).
+        {AI_CONSENT_DISCLOSURE}
       </ConsentDisclosure>
 
       {/* Action Buttons */}

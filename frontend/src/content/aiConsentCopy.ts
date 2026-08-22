@@ -17,6 +17,14 @@
  * Consent copy is a compliance surface. It lives in one module so it cannot
  * drift per-component again, and so a future change is a single diff to review.
  *
+ * SCOPE OF THAT CLAIM, stated honestly (Grok, pre-push panel): the long-form
+ * AI_CONSENT_DISCLOSURE and AI_CONSENT_SUBTITLE are rendered from here. The
+ * short bullet lists are still authored inline in AiConsentScreen and
+ * ConsentSection because each styles them differently. AI_CONSENT_PROTECTIONS
+ * exists so those can converge, and a test asserts the inline bullets stay
+ * consistent with it. Until they render from it, "single source of truth"
+ * describes the disclosure, not every bullet — do not read it more broadly.
+ *
  * ── ACCURACY CONTRACT ──────────────────────────────────────────────────────
  * Every claim below was verified against
  * `backend/services/deIdentificationService.mjs` (DIRECT_IDENTIFIER_PATHS +
