@@ -695,7 +695,19 @@ router.post('/conversations/:id/messages', requireSubscription('pro', { feature:
     // ClientTrainerAssignment OR session history; pending grants nothing).
     // Escape hatch: AI_CHAT_CLIENT_ACCESS_SOFT=true restores legacy
     // warn-only behavior if a real workflow breaks. Admins bypass.
-    if (conversation.targetUserId && conversation.role === 'trainer' && req.user.role === 'trainer') {
+    //
+    // SWA-192 P0-2: this branch used to also require
+    // `conversation.role === 'trainer'`, which keyed AUTHORIZATION on the
+    // thread's audience while `enrichUserId` above keys ENRICHMENT on the
+    // ACTOR (`requesterIsStaff`). resolveConversationAudienceRole() explicitly
+    // lets a trainer open a `role: 'client'` thread, so for that shape this
+    // gate was never entered at all — while enrichWithUserData() below still
+    // loaded the target client's live data into the prompt on every message.
+    // Authorization must key on the actor and the subject, never on the
+    // audience label. This RESTORES the fail-closed gate on a path that
+    // skipped it; it does not narrow clientAccess itself (the bounded
+    // session-history fallback is Sean's ruling of 2026-07-30 and is untouched).
+    if (conversation.targetUserId && req.user.role === 'trainer') {
       const access = await checkClientAccess(req.user, conversation.targetUserId, sequelize);
       if (!access.allowed) {
         if (process.env.AI_CHAT_CLIENT_ACCESS_SOFT === 'true') {
