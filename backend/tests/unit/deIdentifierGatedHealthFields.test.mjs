@@ -31,7 +31,8 @@ vi.mock('../../utils/logger.mjs', () => ({
   default: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
-const { deIdentify, TRAINING_SAFETY_PATHS, areGatedHealthFieldsEnabled } =
+const { deIdentify, TRAINING_SAFETY_PATHS, areGatedHealthFieldsEnabled,
+  GATED_FIELDS_REQUIRE_CONSENT_VERSION } =
   await import('../../services/deIdentificationService.mjs');
 const logger = (await import('../../utils/logger.mjs')).default;
 
@@ -66,6 +67,7 @@ const ORIGINAL_FLAG = process.env.COACH_HEALTH_FIELDS_ENABLED;
 beforeEach(() => {
   vi.clearAllMocks();
   delete process.env.COACH_HEALTH_FIELDS_ENABLED;
+  delete process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION;
 });
 
 afterEach(() => {
@@ -104,6 +106,7 @@ describe('gated non-training health fields', () => {
 
   it('forwards the gated set when counsel has signed off and the flag is on', () => {
     process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
+    process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = GATED_FIELDS_REQUIRE_CONSENT_VERSION;
     const { deIdentified } = deIdentify(fullClientPayload(), { clientId: 501 });
 
     expect(deIdentified.health.supplements).toEqual(['creatine']);
@@ -208,5 +211,42 @@ describe('category gating covers unlisted field spellings', () => {
     expect(deIdentified.health.medicalConditions).toEqual(['hypertension']);
     expect(deIdentified.measurements).toEqual({ weightKg: 82 });
     expect(deIdentified.painAndInjuries).toEqual([{ area: 'knee' }]);
+  });
+});
+
+describe('the escape hatch is a control, not a caution', () => {
+  // DeepSeek v4 Pro, pre-push panel: a bare env flag plus a comment saying
+  // "bump the consent version first" is advisory. An operator flipping it in
+  // production would have made every consent surface false instantly. The
+  // coupling is now enforced, and the failure mode is fail-CLOSED.
+  it('stays closed when the flag is set but no consent version is declared', () => {
+    process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
+    expect(areGatedHealthFieldsEnabled()).toBe(false);
+    const { deIdentified } = deIdentify(fullClientPayload(), { clientId: 501 });
+    expect(deIdentified.health.supplements).toBeUndefined();
+  });
+
+  it('stays closed when the declared consent version is the wrong one', () => {
+    process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
+    process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = '2.0';
+    expect(areGatedHealthFieldsEnabled()).toBe(false);
+  });
+
+  it('logs critical rather than failing silently', () => {
+    process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
+    process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = '2.0';
+    areGatedHealthFieldsEnabled();
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('opens only when the declared version matches what this build requires', () => {
+    process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
+    process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = GATED_FIELDS_REQUIRE_CONSENT_VERSION;
+    expect(areGatedHealthFieldsEnabled()).toBe(true);
+  });
+
+  it('requires a consent version NEWER than the one currently shipped', () => {
+    // Enabling must not be possible under the disclosure users already saw.
+    expect(GATED_FIELDS_REQUIRE_CONSENT_VERSION).not.toBe('2.0');
   });
 });

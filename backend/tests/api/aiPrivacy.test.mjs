@@ -13,7 +13,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 // ─── De-Identification Service Tests ────────────────────────────────────────
 
 // Import the service directly (no DB dependency)
-import { deIdentify, hashPayload } from '../../services/deIdentificationService.mjs';
+import {
+  deIdentify,
+  hashPayload,
+  GATED_FIELDS_REQUIRE_CONSENT_VERSION,
+} from '../../services/deIdentificationService.mjs';
 
 /**
  * Realistic masterPromptJson fixture matching the v3.0 schema
@@ -245,7 +249,12 @@ describe('De-Identification Service', () => {
     });
 
     it('restores the gated lifestyle fields when counsel has signed off', () => {
+      // The flag alone is deliberately not enough: enabling these fields also
+      // requires declaring the consent version they are disclosed under, so the
+      // disclosure cannot silently fall out of date. See
+      // areGatedHealthFieldsEnabled.
       process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
+      process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = GATED_FIELDS_REQUIRE_CONSENT_VERSION;
       try {
         const result = deIdentify(createMasterPromptFixture());
         expect(result.deIdentified.lifestyle.sleepHours).toBe(7);
@@ -253,6 +262,7 @@ describe('De-Identification Service', () => {
         expect(result.deIdentified.lifestyle.stressLevel).toBe('moderate');
       } finally {
         delete process.env.COACH_HEALTH_FIELDS_ENABLED;
+        delete process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION;
       }
     });
 

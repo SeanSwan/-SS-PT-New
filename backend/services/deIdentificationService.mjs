@@ -105,10 +105,45 @@ export const TRAINING_SAFETY_PATHS = Object.freeze([
   'clientProfile.measurements',
 ]);
 
-/** Emergency escape hatch — forwards the gated set once counsel approves. */
+/**
+ * Consent version that must be LIVE before the gated categories may be
+ * forwarded. Enabling them changes what users were told, so a new disclosure
+ * has to exist first. Bumping this is a code change, reviewed like any other.
+ */
+export const GATED_FIELDS_REQUIRE_CONSENT_VERSION = '3.0';
+
+/**
+ * Escape hatch for the gated categories — deliberately hard to open.
+ *
+ * The first cut of this was a bare env flag with a comment saying "bump
+ * AI_CONSENT_VERSION and re-consent before enabling". DeepSeek v4 Pro flagged
+ * that on the pre-push panel and was right: a caution is not a control. An
+ * operator flipping COACH_HEALTH_FIELDS_ENABLED in production would have made
+ * every consent surface false the instant it was set, with nothing stopping it.
+ *
+ * The coupling is now structural. The operator must ALSO declare which consent
+ * version they are enabling under, and it must match the version this code
+ * requires. A mismatch fails CLOSED and logs critical, so the failure mode of
+ * getting it wrong is "Coach sees less than it could", never "users were lied
+ * to". Enabling therefore takes a deliberate code change plus a deliberate
+ * deploy-time declaration, which is what the comment only asked for politely.
+ */
 export function areGatedHealthFieldsEnabled() {
   const flag = String(process.env.COACH_HEALTH_FIELDS_ENABLED || '').trim().toLowerCase();
-  return ['true', '1', 'on', 'enabled'].includes(flag);
+  if (!['true', '1', 'on', 'enabled'].includes(flag)) return false;
+
+  const declared = String(process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION || '').trim();
+  if (declared !== GATED_FIELDS_REQUIRE_CONSENT_VERSION) {
+    logger.error(
+      '[DeIdentification] COACH_HEALTH_FIELDS_ENABLED is set but the declared consent '
+      + 'version does not match the version this build requires. Gated health fields '
+      + 'remain WITHHELD. Ship the new disclosure, then set '
+      + 'COACH_HEALTH_FIELDS_CONSENT_VERSION to the required value.',
+      { required: GATED_FIELDS_REQUIRE_CONSENT_VERSION, declared: declared || '(unset)' },
+    );
+    return false;
+  }
+  return true;
 }
 
 /**
