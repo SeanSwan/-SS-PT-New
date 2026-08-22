@@ -25,7 +25,23 @@
 
 ## Fable synthesis
 
-_Pending — Fable fills this in after reading every reply above._
+Written into the document under review — `MASTER-SESSION-HANDOFF-2026-08-21.md` §11 (verdicts,
+disputed items, spend) with each verified finding fixed in place (§2, §4, §7, §9, §10, §12, §13).
+Code fixes: swan-taste-brain `b36697e`→`2640e94`, SwanGuard `ea76189`→`c212d41`.
+
+1. **Consensus** — §12/§2/§9 stale after the addendum (6/6 seats that returned findings); slice B
+   mis-sized (5/5); tripwire api-only (4/5); parser proof narrow (3/5); "quarter of every batch"
+   unmeasured (2/5); taste data still in the Hermes vault (2/5 — the most consequential).
+2. **Contradictions** — DS Flash "Law 5 is a tautology" vs Kimi/Sol treating it as the bar (Kimi/Sol
+   right: it names a concrete step); DS Pro "Law 6 contradicts itself" vs the code (before/after);
+   Sol "tripwire is theatre" vs its own observation that it catches the real shapes (both true —
+   lexical, not a proof; now labelled so).
+3. **Unique insight** — Kimi L4: Law 3's "imports assert and abort" was false (code removed it
+   deliberately); Sol #4: drive-by writable localhost API; GLM #13: jsonb `||` is shallow.
+4. **Blind spots** — no seat ran anything (all static reads of the document); none checked the
+   connector-state vs source-lifecycle conflation ("1 live"); none noticed Grok returned nothing.
+5. **Verified verdict** — REVISE, applied. Every "real" above was reproduced against code or the
+   live vault/DB before being fixed; "disputed" items are recorded with reasons, not dropped.
 
 1. **Consensus** — what two or more seats independently flagged (highest signal).
 2. **Contradictions** — where seats disagree, and which is right on the evidence.

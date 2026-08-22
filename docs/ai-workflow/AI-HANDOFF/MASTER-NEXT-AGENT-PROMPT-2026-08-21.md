@@ -9,7 +9,7 @@ index for three repos and supersedes the per-repo handoffs written earlier the s
 
 **Then verify the world before trusting it.** A stale handoff nearly caused a duplicate rebuild this
 week; the check costs thirty seconds and is in §12 of that document. Expected: taste brain HEAD
-`0e73b16` with 52 checks passing, SwanGuard HEAD `c212d41` on `merge/newsroom-mainline-v3`. The
+`2640e94` with 52 checks passing, SwanGuard HEAD `c212d41` on `merge/newsroom-mainline-v3`. The
 SwanGuard counts in §2.2 were re-read live on 2026-08-22 (every row, one query); Docker must be
 running for `docker exec` to answer. If anything differs, another agent has moved things: re-orient
 before building.

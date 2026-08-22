@@ -10,7 +10,7 @@ their own repo but predate the catalog merge. **This document is the index.**
 
 > **ADDENDUM 2026-08-22 (Claude Fable 5) — §9 steps 1–2 done; the §11 panel has RUN; its
 > verified findings are folded into the body below (every stale section was rewritten, not patched).**
-> - taste brain HEAD `0e73b16`: agent-written taste data deleted locally **and retracted from the
+> - taste brain HEAD `2640e94`: agent-written taste data deleted locally **and retracted from the
 >   Hermes vault** (the 2026-08-21 export had already carried the 3 agent prompts into
 >   `brain-vault/collections/swan-visual-taste/`; re-exported with clean taste, superseded the old
 >   copy, rebuilt the FTS index — search for the deleted text now returns 0 taste hits). Kept-prompt
@@ -48,7 +48,7 @@ the Karpathy Wiki.
 ### 2.1 swan-taste-brain — VERIFIED 2026-08-22 (addendum session)
 
 ```
-HEAD 0e73b16   clean tree   node prompter/test.mjs -> ALL CHECKS PASS (52)
+HEAD 2640e94   clean tree   node prompter/test.mjs -> ALL CHECKS PASS (52)
 
 KNOWLEDGE (sources/, gitignored, replaceable)
   SREF codes            223      <- the only ones with usable --sref numbers
@@ -118,7 +118,8 @@ before auditing anything here.
 | `4f4999d` | merge the real 9,521-entry catalog |
 | `b36697e` | 2026-08-22: delete agent taste data; kept parser scoped to `## Kept`; honest `--stats` labels |
 | `83e24de` | 2026-08-22: write-origin guard on /api/keep + /api/rate; parser edge tests; measured kept weights |
-| **`0e73b16`** | **2026-08-22: correction note (52 checks, not 54)** — current |
+| `0e73b16` | 2026-08-22: correction note (52 checks, not 54) |
+| **`2640e94`** | **2026-08-22: `--stats` shows the kept count (found running §12 verbatim)** — current |
 
 **SwanGuard-Newsroom**
 
@@ -378,7 +379,7 @@ npm test   # baseline 2026-08-22: scripts 138/0 · api 503 pass + 1 PRE-EXISTING
 (cd apps/api && npx vitest run src/officialConnectorKeyUnionSweep.test.ts)   # 5/5 — the tripwire itself
 ```
 
-Expected: taste brain HEAD `0e73b16`, clean tree, **52** PASS lines, `catalog entries 9521`,
+Expected: taste brain HEAD `2640e94`, clean tree, **52** PASS lines, `catalog entries 9521`,
 `article headings 407`, rated 0 / kept 0 / rejected 1, no TEST DATA, vault grep 0.
 SwanGuard HEAD `c212d41`, 2 untracked `.bak` only, counts `51|0|39|39|10|1|1|2|0|0`.
 **If anything differs, another agent has moved things — re-orient before building. If the api red
