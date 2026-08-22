@@ -151,6 +151,22 @@ console.log(`[panel] running: ${seatsToRun.join(', ')}\n`);
 
 mkdirSync(outDir, { recursive: true });
 
+// Per-seat hard wall-clock cap. WHY: Promise.all below waits for EVERY seat, so a
+// single seat that never exits means INDEX.md — the artifact recording which seats
+// actually ran, and therefore whether this panel is COMPLETE — is never written at
+// all. The operator is then left guessing coverage, which is precisely the
+// "silence looks like success" failure the INDEX exists to prevent.
+// Calibration, 2026-08-21 (measured, not guessed): on a ~6.3k-token packet the
+// seven seats returned in 20.9s (kimi), 26.7s (qwen), 157.6s (dspro), 228.9s (glm),
+// 268.0s (grok), 356.9s (sol) and 813.5s (dsflash). DeepSeek V4 Flash spends most
+// of that budget on reasoning deltas that carry no delta.content, so for ~13 minutes
+// it looks identical to a stuck seat while being perfectly healthy — and because
+// consult-grok's idle watchdog pokes on any BYTE received, it would not fire even
+// on a genuinely stuck one. The cap is therefore set well ABOVE the slowest observed
+// healthy seat: it exists to bound a truly stuck child, not to police slow reasoning.
+// Do not lower it toward 813s — that would kill a seat we have watched succeed.
+const SEAT_WALL_MS = Number(process.env.SWAN_PANEL_SEAT_WALL_MS || 1_800_000);
+
 /** Run one seat as a child process. Never rejects — a dead seat must not kill the panel. */
 function runSeat(name) {
   const s = SEATS[name];
@@ -168,18 +184,35 @@ function runSeat(name) {
       shell: false,
       env: { ...process.env, ...(s.env || {}) },
     });
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(wallTimer);
+      settle(result);
+    };
+    const wallTimer = setTimeout(() => {
+      console.error(`[panel] ${name} exceeded ${SEAT_WALL_MS / 1000}s with no exit — killing so the INDEX can be written.`);
+      child.kill('SIGKILL');
+      finish({
+        name, label: s.label, outPath, ok: false, truncated: false,
+        wall: ((Date.now() - t0) / 1000).toFixed(1),
+        error: `hung: no exit within ${SEAT_WALL_MS / 1000}s (killed). A reasoning-only stream can defeat the transport idle watchdog.`,
+      });
+    }, SEAT_WALL_MS);
+
     let stderr = '';
     child.stdout.on('data', (d) => process.stdout.write(`   [${name}] ${d}`));
     child.stderr.on('data', (d) => { stderr += d; process.stderr.write(`   [${name}] ${d}`); });
     child.on('error', (err) => {
-      settle({ name, label: s.label, ok: false, outPath, wall: 0, error: `spawn failed: ${err.message}` });
+      finish({ name, label: s.label, ok: false, outPath, wall: 0, error: `spawn failed: ${err.message}` });
     });
     child.on('close', (code) => {
       const wall = ((Date.now() - t0) / 1000).toFixed(1);
       const wrote = existsSync(outPath);
       // A seat can exit non-zero AND still have written a truncated reply
       // (exit 2 = hit max_tokens). Surface that rather than silently dropping it.
-      settle({
+      finish({
         name, label: s.label, outPath, wall,
         ok: code === 0 && wrote,
         truncated: code === 2 && wrote,
