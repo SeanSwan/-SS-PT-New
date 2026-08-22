@@ -18,10 +18,10 @@ their own repo but predate the catalog merge. **This document is the index.**
 >   `/api/rate` were drive-by writable from any web page; now Host + Origin gated (live curl proof).
 >   `--stats` relabelled. "Kept steers a quarter of every batch" was a guess — **measured 7.5%**.
 >   `node prompter/test.mjs` → 52 checks pass (38 → 40 → 52).
-> - SwanGuard HEAD `c212d41`: slice A sweep found no fourth site; tripwire now scans
+> - SwanGuard HEAD `0622ca8` (slice A at `c212d41`, then **B0**): slice A sweep found no fourth site; tripwire now scans
 >   api + web + domain + database for 8 bug shapes, with a self-test, proven by planting the bug in
 >   `apps/web`. Full `npm test` re-run post-change (§12 baseline updated). §2.2 re-read LIVE.
-> - **Next: slice B0** (per-outlet listing) — slice B was mis-sized; see §7 for the decomposition.
+> - **B0 DONE 2026-08-22** (`4977bc3`→`0622ca8`): per-outlet listing + `GET /outlets`, read cost constant in outlet count, live-Postgres verified. **Next: B1** (owner console). See §7.
 > - Panel calibration (for routing): Kimi K3 / GLM 5.3 / Sol 5.6 Pro each returned real, verified
 >   defects; DeepSeek V4 Pro+Flash mostly restated the others (Flash's Decision-1 challenge was
 >   independent and fair); **Grok 4.6 returned 317 tokens of preamble and zero findings — a dud seat.**
@@ -88,7 +88,7 @@ comment_extracted_claims   0 · comment_claim_fact_checks 0 · influence_wiki_fa
 ```
 
 Re-verify with §12 (the query there now emits every number above). Branch
-`merge/newsroom-mainline-v3`, HEAD `c212d41`, 2 untracked `.bak` files (pre-existing).
+`merge/newsroom-mainline-v3`, HEAD `0622ca8`, 2 untracked `.bak` files (pre-existing).
 
 ### 2.3 SS-PT
 
@@ -133,7 +133,10 @@ before auditing anything here.
 | `01f1e5c` | handoff + 107 verified feed candidates |
 | `670dccd` | handoff addendum |
 | `ea76189` | 2026-08-22: slice A sweep + tripwire (api only) |
-| **`c212d41`** | **2026-08-22: tripwire widened to api/web/domain/database, 8 shapes, self-test** — current |
+| `c212d41` | 2026-08-22: tripwire widened to api/web/domain/database, 8 shapes, self-test |
+| `4977bc3` | 2026-08-22: slice B0 — per-outlet listing + batched reads (store.listStates, GET /outlets) |
+| `e54c9c0` | 2026-08-22: contract doc — GET /outlets documented, family list corrected |
+| **`0622ca8`** | **2026-08-22: B0 adversarial round (quota bounds, key leakage, dupes)** — current |
 
 **SS-PT:** `5ac95ebda` — `scripts/swan-brain.mjs` + reference doc + CLAUDE.md/AGENTS.md pointers.
 
@@ -275,7 +278,7 @@ confirmed live**, 2,951 items, zero overlap with the existing 39. `termsUrl` and
 | Slice | What | Why this order |
 |---|---|---|
 | **A** ✅ `c212d41` | sweep every `connectorKey` comparison | DONE — no fourth site in api/web/domain/database; lexical tripwire (8 shapes, 4 roots, self-tested) guards against a new one |
-| **B0** | per-outlet listing: `listStatuses()` enumerates per-outlet `news_rss:<id>` states from the registry, batching the approvals/switches reads (N outlets must not mean 3N queries) | **prerequisite** — today per-outlet connectors sync by direct URL but are never listed; batch-enabling 100+ blind is not operable |
+| **B0** ✅ `0622ca8` | per-outlet listing — DONE, but **not** by widening `listStatuses()`. That array is the console's family wall (one activation-phrase card each); 146 outlet cards would bury the four family controls. Instead: new `listOutletStatuses()` + `GET /api/owner/official-connectors/outlets`, and `listStatuses()` batched in place. Read cost is constant in outlet count (approvals + kill switches + states + registry, one each); `store.listStates()` added. Live-Postgres verified against the real 39-outlet registry. | prerequisite met — outlets are now listable |
 | **B1** | owner console: add `news_rss` + per-outlet keys to `apps/web` `OfficialConnectorKey`, activation phrase, and a dev-DB owner user (there is none — §7 note) | without it every enable is a hand-driven service-layer call |
 | **B2** | re-probe the 107 candidates (liveness decays; the probe has no date), define the overlap criterion (the "zero overlap" claim was by feed URL string, not by outlet or content), supply `termsUrl` + `ownership` per outlet | data work; the licence posture is the terms URL, not decoration |
 | **B3** | merge the 107 into `config/owner-news-sources.json` (born dormant), enable in batches with a retention/volume budget ALREADY set (§10 #5 moved here from "before W3") | only after B0–B2 |
@@ -315,8 +318,19 @@ Doc: `docs/ai-workflow/references/SWAN-BRAIN-QUERY.md`.
 1. ~~Delete the agent-written taste data~~ **DONE 2026-08-22** (`b36697e`, retracted from the Hermes
    vault too). The "quarter of every batch" urgency figure was a guess; measured 7.5%.
 2. ~~Sweep `connectorKey`~~ **DONE 2026-08-22** (`ea76189` → `c212d41`).
-3. **Now:** SwanGuard **B0** (per-outlet listing) or taste-brain **S1** (brain browser). Different
-   repos; neither blocks the other. Do NOT start B3 (merge the 107) before B0–B2.
+3. ~~SwanGuard B0~~ **DONE 2026-08-22** (`4977bc3` → `0622ca8`); SwanGuard HEAD is now `0622ca8`.
+4. **Now:** SwanGuard **B1** (owner console: `news_rss` in the web `OfficialConnectorKey`, an
+   outlet surface consuming `GET /outlets`, activation phrase, dev-DB owner user) or taste-brain
+   **S1** (brain browser). Different repos; neither blocks the other. Do NOT start B3 (merge the
+   107) before B1–B2.
+
+**Two findings from B0 that are NOT fixed and belong to whoever takes B1/B2:**
+- `listKillSwitches()` seeds its catalog with nine INSERTs on **every** call (live-verified). It is
+  paid once per listing rather than once per outlet, so B0's constant-cost property holds, but a
+  read that writes nine rows is a pre-existing defect worth its own slice.
+- A percent-encoded path (`/official-connectors/out%6Cets`) misses the literal `/outlets` route and
+  falls through to the generic `:connectorKey` matcher → 405. Every sibling route matches the raw
+  pathname the same way, so this is house-wide behaviour, not a B0 regression.
 
 ---
 
@@ -375,13 +389,16 @@ wsl.exe bash -c 'grep -rl "bioluminescent swell against basalt" /home/bigotsmash
 cd /c/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
 git branch --show-current && git log --oneline -1 && git status --porcelain
 docker exec swanguard-newsroom-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "select (select count(*) from creator) creators,(select count(*) from creator where enabled) creators_enabled,(select count(*) from news_rss_sources) sources,(select count(*) from outlets) outlets,(select count(*) from official_connector_items) items,(select count(*) from official_connector_states) states,(select count(*) from official_connector_states where owner_enabled) states_enabled,(select count(*) from contract_approvals) approvals,(select count(*) from creator_item) creator_items,(select count(*) from comment_extracted_claims) claims"'
-npm test   # baseline 2026-08-22: scripts 138/0 · api 503 pass + 1 PRE-EXISTING red (the ONLY acceptable red: civicOfficialSourcesRoutes.test.ts "returns nothing while gated…") · web 379 · database 90 · domain 242
+npm test   # baseline 2026-08-22 (post-B0): scripts 138/0 · api 512 pass + 1 PRE-EXISTING red (the ONLY acceptable red: civicOfficialSourcesRoutes.test.ts "returns nothing while gated…") · web 379 · database 90 · domain 242
+# B0 live-Postgres proof (read-only; needs Docker up). 3/3 — includes the constant-read-cost claim.
+# Set DATABASE_URL from docker-compose.dev.yml (it declares the dev user/password/db; host port 5434),
+# then from apps/api:  SWANGUARD_ALLOW_POSTGRES_SMOKE=true npx vitest run src/officialConnectorOutletListingLive.test.ts
 (cd apps/api && npx vitest run src/officialConnectorKeyUnionSweep.test.ts)   # 5/5 — the tripwire itself
 ```
 
 Expected: taste brain HEAD `2640e94`, clean tree, **52** PASS lines, `catalog entries 9521`,
 `article headings 407`, rated 0 / kept 0 / rejected 1, no TEST DATA, vault grep 0.
-SwanGuard HEAD `c212d41`, 2 untracked `.bak` only, counts `51|0|39|39|10|1|1|2|0|0`.
+SwanGuard HEAD `0622ca8`, 2 untracked `.bak` only, counts `51|0|39|39|10|1|1|2|0|0`.
 **If anything differs, another agent has moved things — re-orient before building. If the api red
 test is any OTHER test, that is new breakage, not the baseline.**
 

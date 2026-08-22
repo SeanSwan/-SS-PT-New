@@ -9,7 +9,7 @@ index for three repos and supersedes the per-repo handoffs written earlier the s
 
 **Then verify the world before trusting it.** A stale handoff nearly caused a duplicate rebuild this
 week; the check costs thirty seconds and is in §12 of that document. Expected: taste brain HEAD
-`2640e94` with 52 checks passing, SwanGuard HEAD `c212d41` on `merge/newsroom-mainline-v3`. The
+`2640e94` with 52 checks passing, SwanGuard HEAD `0622ca8` on `merge/newsroom-mainline-v3`. The
 SwanGuard counts in §2.2 were re-read live on 2026-08-22 (every row, one query); Docker must be
 running for `docker exec` to answer. If anything differs, another agent has moved things: re-orient
 before building.
@@ -26,9 +26,12 @@ no model and no network, and it now has real data behind it — 9,521 catalog en
 **Lane B — SwanGuard-Newsroom (news / source trust).** Slice A (the `connectorKey` sweep) is
 **done** at `c212d41`; a lexical tripwire scanning api/web/domain/database fails on any new literal
 comparison. A hostile panel (2026-08-22) found slice B mis-sized; it is now **B0 → B1 → B2 → B3**
-in handoff §7. Start at **B0: per-outlet listing** — `listStatuses()` only enumerates the four
-literal definitions, so per-outlet connectors can be synced by direct URL but never *seen*. Do NOT
-merge the 107 feeds (B3) before B0–B2; B2 includes re-probing liveness, defining the overlap
+in handoff §7. **B0 is also done** (`0622ca8`): `GET /api/owner/official-connectors/outlets` lists
+every per-outlet connector at a read cost that does not grow with outlet count, live-Postgres
+verified. Start at **B1: the owner console** — `apps/web`'s `OfficialConnectorKey` has no
+`news_rss` member at all, so no news connector can be enabled from the UI; B1 adds the key, an
+activation phrase, a surface consuming `/outlets`, and a dev-DB owner user (there is none). Do NOT
+merge the 107 feeds (B3) before B1–B2; B2 includes re-probing liveness, defining the overlap
 criterion, and supplying `termsUrl`/`ownership` per outlet. Retention/volume budget is owed before
 B3, not before W3.
 
