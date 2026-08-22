@@ -141,6 +141,33 @@ t('file staged with NO diff hunks (unchanged) → does not block', () => {
 });
 
 // ── the pre-existing modes must be untouched by this change ─────────────────────
+t('token bound to a const and set via setProperty(VAR) is DEFINED, not undefined', () => {
+  // The false positive that would have blocked f73663109, a commit already on main.
+  // Caught by replaying real history against the gate; fixtures never produced this shape.
+  const s = sandbox();
+  try {
+    s.file('slider.ts', "export const SLIDER_POSITION_VAR = '--swan-slider-pos';\n"
+      + 'export const set = (el, v) => el.style.setProperty(SLIDER_POSITION_VAR, v);\n');
+    const f = s.file('use.ts', 'export const a = `left: var(--swan-slider-pos, 50%);`;\n');
+    s.git('add', '-A');
+    const r = s.run(['--added-only', '--file', f]);
+    assert.equal(r.code, 0, r.out);
+  } finally { s.cleanup(); }
+});
+
+t('indirection does NOT excuse a token that is never bound anywhere', () => {
+  // The other half: the widening must not turn the gate off. --accent-warm was a REAL
+  // defect on main (used with a hardcoded fallback, defined nowhere) and must still fail.
+  const s = sandbox();
+  try {
+    const f = s.file('warm.ts', 'export const a = `background: var(--accent-warm, #ff6b35);`;\n');
+    s.git('add', f);
+    const r = s.run(['--added-only', '--file', f]);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /--accent-warm/);
+  } finally { s.cleanup(); }
+});
+
 t('REGRESSION: default mode still never fails, even with undefined tokens', () => {
   const s = sandbox();
   try {

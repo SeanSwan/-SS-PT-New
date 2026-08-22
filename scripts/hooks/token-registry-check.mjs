@@ -70,6 +70,16 @@ const DEFINE_RE = /(^|[;{\s])(--[\w-]+)\s*:\s*([^;}]+)/g;
  * "never defined" — a false positive on code that is behaving correctly.
  */
 const RUNTIME_DEFINE_RE = /setProperty\(\s*['"`](--[\w-]+)['"`]/g;
+
+/** A token name bound to a variable is still set at runtime — `const SLIDER_POSITION_VAR =
+ *  '--swan-slider-pos'` followed by `setProperty(SLIDER_POSITION_VAR, v)`. The literal-only
+ *  pattern above cannot see through that indirection, so the token read as UNDEFINED.
+ *
+ *  Found by replaying real merged history against the gate instead of trusting fixtures:
+ *  commit f73663109 — already on main — would have been BLOCKED for exactly this. Deliberately
+ *  broad. A false negative costs one unflagged token; a false positive blocks a legitimate
+ *  commit, and Rule 34 says that is what gets a gate switched off. */
+const INDIRECT_DEFINE_RE = /=\s*['"`](--[\w-]+)['"`]/g;
 /**
  * USES, fallback-bearing: `var(--token, fallback)`.
  * NOTE the fallback capture stops at the first `)`, so a nested `var(--a, var(--b, #fff))`
@@ -116,6 +126,10 @@ function main() {
     // Imperatively-set tokens are defined too — just not statically valued.
     for (const m of text.matchAll(RUNTIME_DEFINE_RE)) {
       if (!registry.has(m[1])) registry.set(m[1], { value: '(set at runtime)', file: f });
+    }
+    // ...including through one level of indirection.
+    for (const m of text.matchAll(INDIRECT_DEFINE_RE)) {
+      if (!registry.has(m[1])) registry.set(m[1], { value: '(bound to a variable, set at runtime)', file: f });
     }
   }
 
