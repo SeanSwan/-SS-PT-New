@@ -45,11 +45,20 @@ const rosterFor = (clients: any[]) => ({ data: { assignments: clients.map((c) =>
  * version of this file did exactly that and passed with the guard disabled.
  */
 const renders: string[] = [];
+/**
+ * The ROSTER per render, recorded separately. Fable's round-2 find: the first
+ * version of this file recorded only the active client, so the identical
+ * one-frame disclosure through `clientList` — names and emails, straight into
+ * the client switcher — was invisible to it. The transient is the finding, so
+ * everything that can carry the transient has to be recorded.
+ */
+const rosterRenders: string[] = [];
 
 function Probe() {
   const { activeClient, clientList } = useGlobalClient();
   const value = activeClient ? `${activeClient.id}:${activeClient.email}` : 'none';
   renders.push(value);
+  rosterRenders.push(clientList.map((c) => c.id).join(',') || 'empty');
   return (
     <div>
       <span data-testid="active">{value}</span>
@@ -64,6 +73,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
   renders.length = 0;
+  rosterRenders.length = 0;
   currentUser = { id: 101, role: 'trainer' };
 });
 
@@ -91,6 +101,11 @@ describe('actor switch on a shared kiosk', () => {
     // roster lands. That transient is exactly what Sol found.
     const rendersAfterSwitch = renders.slice(switchIndex);
     expect(rendersAfterSwitch.some((v) => v.startsWith('42:'))).toBe(false);
+
+    // The same assertion for the ROSTER. A's client ids must not appear in any
+    // render after the switch either — the switcher dropdown renders this list.
+    const rosterAfterSwitch = rosterRenders.slice(switchIndex);
+    expect(rosterAfterSwitch.some((v) => v.split(',').includes('42'))).toBe(false);
   });
 
   it('discards an in-flight roster response that outlived its actor', async () => {

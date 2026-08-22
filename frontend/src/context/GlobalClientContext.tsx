@@ -110,7 +110,14 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [activeClientState, setActiveClientRaw] = useState<{ actorKey: string | null; client: ActiveClient | null }>(
     { actorKey: null, client: null },
   );
-  const [clientList, setClientList] = useState<ActiveClient[]>([]);
+  // Stamped for the same reason activeClient is: the roster is the OTHER door to
+  // the same one-frame disclosure. Cleared only in an effect, a re-render caused
+  // by the auth change commits before that effect runs and exposes the previous
+  // actor's full roster — names and emails — to whatever renders it (the client
+  // switcher does).
+  const [clientListState, setClientListRaw] = useState<{ actorKey: string | null; items: ActiveClient[] }>(
+    { actorKey: null, items: [] },
+  );
   const [loadingClients, setLoadingClients] = useState(false);
 
   // The pin is now an ID only; the record is re-derived from the roster below.
@@ -140,7 +147,20 @@ export const GlobalClientProvider: React.FC<{ children: React.ReactNode }> = ({ 
    * not visible — no effect has to run first, so there is no frame in which the
    * previous actor's client is on screen.
    */
-  const activeClient = activeClientState.actorKey === currentActorKey ? activeClientState.client : null;
+  // `currentActorKey` is null for an unusable actor. Without this explicit
+  // check, `null === null` would MATCH — recreating in memory the shared
+  // fallback key that activeClientStorageKey deliberately refuses to create.
+  const actorIsUsable = currentActorKey !== null;
+  const activeClient = actorIsUsable && activeClientState.actorKey === currentActorKey
+    ? activeClientState.client
+    : null;
+  const clientList = actorIsUsable && clientListState.actorKey === currentActorKey
+    ? clientListState.items
+    : [];
+
+  const setClientList = useCallback((items: ActiveClient[]) => {
+    setClientListRaw({ actorKey: currentActorKey, items });
+  }, [currentActorKey]);
 
   /** Writes always carry the current actor's stamp. */
   const setActiveClientState = useCallback(
