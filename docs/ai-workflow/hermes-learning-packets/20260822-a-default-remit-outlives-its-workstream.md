@@ -56,6 +56,9 @@ skills_touched:
   - id: run-the-instruction-you-are-handing-over
     change: proposed
     motivating_failure: a bundle-identity command shipped in a handoff returned 0 against the live site because it was written case-sensitive against a camelCase minified prop
+  - id: prove-the-blocker-before-writing-it
+    change: proposed
+    motivating_failure: declared fixture provisioning a blocking precondition without opening frontend/e2e/, where an existing mock-based harness made almost all of it unnecessary; seven reviewers ratified the phantom blocker because they were reasoning from my document
 ---
 
 ## The lesson - a plan can carry the disease it was written to cure
@@ -199,6 +202,53 @@ once public. That amendment was right and I had not thought of it.
   a *mechanism*; I checked, and recorded the anomaly as unexplained rather than passing
   along a plausible answer that would then be quoted as settled.
 - **Quoted a cost estimate without a caveat.** $0.2631 estimated, $0.4861 actual.
+
+## Postscript, same day - the third violation of a lesson I authored
+
+Hours after this packet was written, Sean approved the plan's sequencing and I began the
+regression-recommendation step. That step invalidated a load-bearing claim in my own
+handoff.
+
+I had declared fixture provisioning a **blocking precondition**, and the transformation-
+photo pair "genuinely blocked" on hand-placing R2 objects. Four panel seats had flagged
+missing fixtures; Fable ratified the gate. Then I opened `frontend/e2e/` - a directory I
+had never looked at while writing an entire plan about verification - and found ~25
+working specs built on a synthetic `alg:none` JWT in `localStorage` plus
+`page.route('**/api/**')` interception. `/api/profile`, the exact endpoint the Settings
+hub PUTs to, was already mocked in three of them. Four already drove `user-dashboard`
+routes as `role: 'client'`.
+
+Almost nothing was blocked. The forced-failure test - the headline finding of the entire
+panel - is not merely unblocked but *better* automated (`route.fulfill({status:500})`)
+than the manual procedure I had specified.
+
+**Seven reviewers ratified a blocker that did not exist**, because every one of them was
+reasoning from my document, and my document never mentioned the test harness. Panel
+consensus validates your framing, not the world. That is a sharper statement of the
+Full-Spectrum Panel Law's limit than the law itself makes: diverse models cannot correct
+a shared premise none of them can see past.
+
+And it is the **third** time in two sessions that I violated a caution I had personally
+authored:
+
+1. The stale-tree trap - written into the handoff as trap #1, in bold, violated within
+   the hour.
+2. The absence-claim lesson - "a claim of the form *X does not exist, I searched* is the
+   single highest-value thing to re-verify" - recorded in this session's "Who did what"
+   about a *previous* author's handoff, then committed myself, about fixtures, within a
+   day.
+3. This one.
+
+The generalisation is uncomfortable and worth stating plainly: **authoring a warning
+confers a feeling of compliance with it.** The act of writing it down discharges the
+sense of obligation. Every one of these three would have been caught by a single command
+run at a single moment, and in all three cases I had written prose instead.
+
+Executable form, added to the skills list above:
+
+> Before the words "blocked", "does not exist", or "must be created" enter a handoff, run
+> the one command that would disprove them. For tooling: `ls` the directory it would live
+> in. For a symbol: grep for it. The command is the control; the sentence is not.
 
 ## Error -> fix -> repeat ledger
 
