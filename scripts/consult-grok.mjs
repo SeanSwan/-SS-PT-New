@@ -19,8 +19,8 @@
  *        [--remit "<override remit>"] [--effort low|medium|high]
  *
  * Model override:   SWAN_GROK_MODEL  (defaults to x-ai/grok-4.6)
- * Reasoning effort: SWAN_GROK_EFFORT (defaults to high) — passed as reasoning.effort;
- *                   if the provider rejects the reasoning param (4xx), we retry once without it.
+ * Reasoning effort: SWAN_GROK_EFFORT (defaults to high) — passed as reasoning.effort.
+ * Paid-call policy: exactly one request; provider errors are surfaced without retry.
  *
  * Pricing, OpenRouter catalog verified 2026-08-20: $2.00/M in, $6.00/M out
  * (cache reads $0.50/M; 500K context). Re-check with:
@@ -85,62 +85,132 @@ console.log(`[consult-grok] prompt size: ${prompt.length} chars (~${Math.round(p
 console.log('[consult-grok] sending request...');
 const t0 = Date.now();
 
-const call = (withReasoning) =>
-  fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': 'https://sswanstudios.com',
-      'X-Title': 'SwanStudios Grok 4.6 Gate Review',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 16000,
-      temperature: 0.2,
-      ...(withReasoning ? { reasoning: { effort: EFFORT } } : {}),
-    }),
-    signal: AbortSignal.timeout(600_000),
-  });
+// STREAMING is required, not optional (2026-08-21 incident: a Grok 4.6 run that
+// reasoned for >600s was killed by AbortSignal.timeout waiting for response
+// HEADERS, and the ENTIRE response was lost — $0 of value for 25 minutes of
+// reasoning). consult-glm.mjs documented this exact failure class and its fix on
+// 2026-08-16; the fix never swept sideways to this sibling (Rule 20). Streaming
+// returns headers immediately, so the header clock never starts. The remaining
+// hang risk is a stalled STREAM, guarded by an idle watchdog below — the abort
+// fires only after IDLE_MS with no bytes, never on total duration, so a model may
+// reason as long as it keeps the stream alive.
+//
+// CEILING raised 16000 → 48000 default (SWAN_GROK_MAX_TOKENS / --max-tokens to
+// override). 2026-08-21 incident: reasoning models spend output budget on hidden
+// thinking — DeepSeek V4 Flash burned all 16k reasoning and emitted NOTHING
+// ($0.102 for an empty reply); V4 Pro truncated after 1 of 7 remit sections.
+// 16k was a ceiling on the ANSWER sized without accounting for reasoning.
+// Worst case at 48k: grok-4.6 ≈ $0.29 out, deepseek-v4-pro ≈ $0.17 out.
+const MAX_TOKENS = Number(arg('max-tokens', process.env.SWAN_GROK_MAX_TOKENS || '48000'));
+const IDLE_MS = 300_000;
 
-let res = await call(true);
-if (!res.ok && res.status >= 400 && res.status < 500) {
-  // Some providers reject the reasoning param — retry once without it rather
-  // than dying as a failed seat (pattern from consult-openrouter-panel.mjs).
-  console.error(`[consult-grok] HTTP ${res.status} with reasoning param — retrying without it`);
-  res = await call(false);
-}
+const idleController = new AbortController();
+let idleTimer = setTimeout(() => idleController.abort(new Error(`stream idle >${IDLE_MS / 1000}s`)), IDLE_MS);
+const pokeIdle = () => {
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(() => idleController.abort(new Error(`stream idle >${IDLE_MS / 1000}s`)), IDLE_MS);
+};
+
+const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${apiKey}`,
+    'HTTP-Referer': 'https://sswanstudios.com',
+    'X-Title': 'SwanStudios Grok 4.6 Gate Review',
+  },
+  body: JSON.stringify({
+    model: MODEL,
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: MAX_TOKENS,
+    temperature: 0.2,
+    stream: true,
+    // OpenRouter: emits a final SSE chunk carrying usage when asked for it.
+    usage: { include: true },
+    reasoning: { effort: EFFORT },
+  }),
+  signal: idleController.signal,
+});
 
 if (!res.ok) {
+  clearTimeout(idleTimer);
   const errBody = await res.text().catch(() => '');
   console.error(`OpenRouter ${res.status}: ${errBody.slice(0, 1500)}`);
   process.exit(1);
 }
 
-const data = await res.json();
-if (data.error) { console.error('API error:', data.error); process.exit(1); }
+let text = '';
+let finish = null;
+let usage = {};
+let buffer = '';
+let lastTick = Date.now();
+const decoder = new TextDecoder();
+
+try {
+  for await (const chunk of res.body) {
+    pokeIdle();
+    buffer += decoder.decode(chunk, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t.startsWith('data:')) continue;
+      const payload = t.slice(5).trim();
+      if (payload === '[DONE]') continue;
+      try {
+        const j = JSON.parse(payload);
+        if (j.error) { console.error('API error mid-stream:', JSON.stringify(j.error).slice(0, 500)); }
+        const choice = j.choices?.[0];
+        if (choice?.delta?.content) text += choice.delta.content;
+        if (choice?.finish_reason) finish = choice.finish_reason;
+        if (j.usage) usage = j.usage;
+      } catch { /* partial SSE frame — completed by the next chunk */ }
+    }
+    if (Date.now() - lastTick > 20_000) {
+      console.log(`[consult-grok] streaming... ${text.length} chars`);
+      lastTick = Date.now();
+    }
+  }
+} finally {
+  clearTimeout(idleTimer);
+}
+
+if (!text) text = '(empty response)';
 
 // Truncation guard (lesson from the 2026-07-30 Sol incident: a reply that hit
 // max_tokens was reported as success). Exit 2 = partial reply written.
-const finish = data.choices?.[0]?.finish_reason ?? data.choices?.[0]?.native_finish_reason ?? null;
 const truncated = finish === 'length' || finish === 'max_tokens';
 
-const text = data.choices?.[0]?.message?.content || '(empty response)';
-const inTok = data.usage?.prompt_tokens || 0;
-const outTok = data.usage?.completion_tokens || 0;
-// Grok 4.6 pricing, verified against the live OpenRouter catalog 2026-08-20:
-// $2.00/M in, $6.00/M out.
-const cost = (inTok / 1_000_000) * 2 + (outTok / 1_000_000) * 6;
+const inTok = usage?.prompt_tokens || 0;
+const outTok = usage?.completion_tokens || 0;
+// OpenRouter's streamed usage chunk carries authoritative cost when available.
+// Fall back to the known per-model table; anything else reports 'unknown' rather
+// than printing a false number (this header hardcoded Grok pricing while
+// SWAN_GROK_MODEL let any model run through it — DeepSeek runs got Grok math).
+// Pricing verified against the live OpenRouter catalog 2026-08-21, $/M in|out.
+const PRICES = {
+  'x-ai/grok-4.6': [2.0, 6.0],
+  // Catalog re-verified 2026-08-21: the UNDATED alias is far cheaper than the
+  // dated deepseek-v4-pro-0813 snapshot ($1.19/$3.56) this table used to carry.
+  'deepseek/deepseek-v4-pro': [0.48, 0.96],
+  'deepseek/deepseek-v4-pro-0813': [1.19, 3.56],
+  'deepseek/deepseek-v4-flash': [0.073, 0.145],
+};
+const cost = typeof usage?.cost === 'number'
+  ? usage.cost
+  : PRICES[MODEL]
+    ? (inTok / 1_000_000) * PRICES[MODEL][0] + (outTok / 1_000_000) * PRICES[MODEL][1]
+    : null;
+const costLabel = cost === null ? 'unknown (model not in price table)' : `~$${cost.toFixed(4)}`;
 const wallSec = ((Date.now() - t0) / 1000).toFixed(1);
 
-console.log(`[consult-grok] response in ${wallSec}s — tokens ${inTok} in / ${outTok} out — cost ~$${cost.toFixed(4)}`);
+console.log(`[consult-grok] response in ${wallSec}s — tokens ${inTok} in / ${outTok} out — cost ${costLabel}`);
 
 const outPath = arg('out', 'docs/ai-workflow/AI-HANDOFF/GROK-GATE-REVIEW.md');
 const banner = truncated
-  ? `> ⚠ **TRUNCATED** — the model hit max_tokens (16000) and this reply is INCOMPLETE.\n\n`
+  ? `> ⚠ **TRUNCATED** — the model hit max_tokens (${MAX_TOKENS}) and this reply is INCOMPLETE.\n\n`
   : '';
-const outContent = `# Grok 4.6 — Hostile Gate Review\n\n**Reviewer:** OpenRouter \`${MODEL}\` (effort: ${EFFORT})\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ~$${cost.toFixed(4)} · **Wall:** ${wallSec}s · **finish:** ${finish ?? '?'}\n\n---\n\n${banner}${text}\n`;
+const outContent = `# Grok 4.6 — Hostile Gate Review\n\n**Reviewer:** OpenRouter \`${MODEL}\` (effort: ${EFFORT})\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ${costLabel} · **Wall:** ${wallSec}s · **finish:** ${finish ?? '?'}\n\n---\n\n${banner}${text}\n`;
 writeFileSync(outPath, outContent, 'utf-8');
 console.log(`[consult-grok] saved -> ${outPath}`);
 if (truncated) {

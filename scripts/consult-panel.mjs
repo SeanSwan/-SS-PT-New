@@ -18,9 +18,15 @@
  *   glm   consult-glm.mjs     Z.ai coding-plan subscription free-at-margin (burns plan credit)
  *   qwen  consult-qwen.mjs    local Ollama on the 5090      free, private, always on
  *   grok  consult-grok.mjs    OpenRouter $2/M   $6/M        --confirm-spend
+ *   dspro consult-grok.mjs    OpenRouter $0.48/M $0.96/M     --confirm-spend
+ *   dsflsh consult-grok.mjs   OpenRouter $0.07/M $0.15/M     --confirm-spend
+ *
+ * dspro/dsflash added 2026-08-21 by Sean's directive (7-seat trainer-dashboard
+ * audit review). Both ride the consult-grok transport via SWAN_GROK_MODEL.
  *
  * grok added 2026-08-20 by Sean's directive after the rule-12 repeal
- * (constitution PR #54) — the cheapest paid seat on the panel.
+ * (constitution PR #54). It was the cheapest paid seat until the DeepSeek
+ * V4 seats landed 2026-08-21; dsflash is now the floor.
  *
  * WHY NOT ":batch" (the half-price GPT-5.6 Sol Pro listing Sean spotted):
  * `openai/gpt-5.6-sol-pro:batch` IS the same model at exactly 50% off
@@ -35,7 +41,7 @@
  * Usage:
  *   node scripts/consult-panel.mjs --document <path> [--seed <path>]
  *        [--out-dir docs/ai-workflow/AI-HANDOFF/panel-<date>]
- *        [--seats sol,kimi,glm,qwen,grok] [--remit "<override>"]
+ *        [--seats sol,kimi,glm,qwen,grok,dspro,dsflash] [--remit "<override>"]
  *        [--dry-run] [--confirm-spend]
  *
  * Safety: the spend gate protects MONEY, so it covers the PAID seats only.
@@ -55,6 +61,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { DEFAULT_REMIT } from './lib/panel-remit.mjs';
+import { buildSeats } from './lib/panel-seats.mjs';
 
 // Resolve sibling seat scripts from THIS file, not from cwd — the panel must
 // work when invoked from a subdirectory or by a hook.
@@ -75,11 +82,11 @@ const outDir = arg('--out-dir', `docs/ai-workflow/AI-HANDOFF/panel-${stamp}`);
 // Dedupe: `--seats kimi,kimi` is a typo, but without this it would fire a PAID
 // seat twice and bill twice for one review.
 const requested = [...new Set(
-  arg('--seats', 'sol,kimi,glm,qwen,grok').split(',').map((s) => s.trim()).filter(Boolean),
+  arg('--seats', 'sol,kimi,glm,qwen,grok,dspro,dsflash').split(',').map((s) => s.trim()).filter(Boolean),
 )];
 
 if (!documentPath) {
-  console.error('usage: node scripts/consult-panel.mjs --document <path> [--seed <path>] [--seats sol,kimi,glm,qwen,grok] [--confirm-spend]');
+  console.error('usage: node scripts/consult-panel.mjs --document <path> [--seed <path>] [--seats sol,kimi,glm,qwen,grok,dspro,dsflash] [--confirm-spend]');
   process.exit(1);
 }
 if (!existsSync(documentPath)) {
@@ -89,44 +96,9 @@ if (!existsSync(documentPath)) {
 
 const remit = arg('--remit', DEFAULT_REMIT);
 
-// Pricing per 1M tokens, OpenRouter catalog verified 2026-08-18.
-// Free seats are 0/0 so the estimator needs no special-casing.
-const SEATS = {
-  sol: {
-    label: 'GPT-5.6 Sol Pro', script: 'consult-sol.mjs', paid: true,
-    inPerM: 2.5, outPerM: 15, out: 'SOL-PANEL-REVIEW.md',
-    args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high'],
-    // consult-sol.mjs defaults to plain `gpt-5.6-sol`. Sol PRO is the same
-    // weights at the SAME price with reasoning.mode=pro, so there is no reason
-    // to review on the weaker tier — pin it explicitly for this seat.
-    env: { SWAN_SOL_MODEL: 'openai/gpt-5.6-sol-pro' },
-    note: 'reasoning.mode=pro, 1.05M ctx',
-  },
-  kimi: {
-    label: 'Kimi K3', script: 'consult-kimi.mjs', paid: true,
-    inPerM: 3, outPerM: 15, out: 'KIMI-PANEL-REVIEW.md',
-    args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high', '--confirm-spend'],
-    note: 'own $3 hard cap; ONE review per topic (standing rule)',
-  },
-  glm: {
-    label: 'GLM 5.3', script: 'consult-glm.mjs', paid: false,
-    inPerM: 0, outPerM: 0, out: 'GLM-PANEL-REVIEW.md',
-    args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--model', 'glm-5.3'],
-    note: 'Z.ai subscription — no per-token cost, burns coding-plan credit',
-  },
-  qwen: {
-    label: 'Qwen 3.8 (local)', script: 'consult-qwen.mjs', paid: false,
-    inPerM: 0, outPerM: 0, out: 'QWEN-PANEL-REVIEW.md',
-    args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit],
-    note: 'local 5090 via Ollama — $0, fully private, never the lead voice',
-  },
-  grok: {
-    label: 'Grok 4.6', script: 'consult-grok.mjs', paid: true,
-    inPerM: 2, outPerM: 6, out: 'GROK-PANEL-REVIEW.md',
-    args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high'],
-    note: 'x-ai/grok-4.6 via OpenRouter — cheapest paid seat; rule-12 repeal (PR #54)',
-  },
-};
+// Seat roster + pricing live in ./lib/panel-seats.mjs (extracted 2026-08-21
+// when the two DeepSeek V4 seats pushed this file past the 300-line cap).
+const SEATS = buildSeats(remit);
 
 const unknown = requested.filter((s) => !SEATS[s]);
 if (unknown.length) {
@@ -184,7 +156,7 @@ function runSeat(name) {
   const s = SEATS[name];
   const outPath = join(outDir, s.out);
   const args = [join(SCRIPT_DIR, s.script), ...s.args(documentPath, outPath)];
-  if (seedPath && (name === 'sol' || name === 'kimi' || name === 'grok')) args.push('--seed', seedPath);
+  if (seedPath && s.script !== 'consult-qwen.mjs' && s.script !== 'consult-glm.mjs') args.push('--seed', seedPath);
 
   return new Promise((settle) => {
     const t0 = Date.now();
