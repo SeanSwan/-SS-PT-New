@@ -57,13 +57,30 @@ const docPath = arg('document');
 if (!docPath) { console.error('usage: node scripts/consult-grok.mjs --document <path> [--seed <path>] [--out <path>] [--effort high]'); process.exit(1); }
 const seedPath = arg('seed');
 const MODEL = process.env.SWAN_GROK_MODEL || 'x-ai/grok-4.6';
+
+// This transport is SHARED: Grok, both DeepSeek V4 seats and Ox Alpha all ride it via
+// SWAN_GROK_MODEL (one streaming/watchdog/truncation implementation to keep correct).
+// Everything user-visible must therefore name the model ACTUALLY running, not "Grok".
+// Before 2026-08-22 the report title, the OpenRouter X-Title and the default remit all
+// hard-coded "Grok 4.6", so a DeepSeek or Ox review was filed under Grok's name - and the
+// default remit went further and TOLD the model "You are Grok 4.6", handing it a false
+// identity. Misattributed reviews are worse than missing ones: per-model calibration is
+// how we learn which seat is worth what, and that is impossible if three seats file
+// under one name.
+const MODEL_LABELS = {
+  'x-ai/grok-4.6': 'Grok 4.6',
+  'deepseek/deepseek-v4-pro': 'DeepSeek V4 Pro',
+  'deepseek/deepseek-v4-flash': 'DeepSeek V4 Flash',
+  'stealth/ox-alpha': 'Ox Alpha',
+};
+const MODEL_LABEL = MODEL_LABELS[MODEL] || MODEL;
 const EFFORT = arg('effort', process.env.SWAN_GROK_EFFORT || 'high');
 
 if (!existsSync(docPath)) { console.error(`document not found: ${docPath}`); process.exit(1); }
 const doc = readFileSync(docPath, 'utf-8');
 const seed = seedPath && existsSync(seedPath) ? readFileSync(seedPath, 'utf-8') : '';
 
-const defaultRemit = `You are Grok 4.6 — a rigorous, high-reasoning hostile gate reviewer on the SwanStudios review panel (CLAUDE.md Co-Orchestrator Hierarchy). Review the document below at HIGH reasoning effort and try to break it.
+const defaultRemit = `You are ${MODEL_LABEL} — a rigorous, high-reasoning hostile gate reviewer on the SwanStudios review panel (CLAUDE.md Co-Orchestrator Hierarchy). Review the document below at HIGH reasoning effort and try to break it.
 
 Produce:
 (a) VERDICT (one line: APPROVE / REVISE / REJECT), with file:line-grade evidence where the doc provides it.
@@ -117,7 +134,7 @@ const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${apiKey}`,
     'HTTP-Referer': 'https://sswanstudios.com',
-    'X-Title': 'SwanStudios Grok 4.6 Gate Review',
+    'X-Title': `SwanStudios ${MODEL_LABEL} Gate Review`,
   },
   body: JSON.stringify({
     model: MODEL,
@@ -210,7 +227,7 @@ const outPath = arg('out', 'docs/ai-workflow/AI-HANDOFF/GROK-GATE-REVIEW.md');
 const banner = truncated
   ? `> ⚠ **TRUNCATED** — the model hit max_tokens (${MAX_TOKENS}) and this reply is INCOMPLETE.\n\n`
   : '';
-const outContent = `# Grok 4.6 — Hostile Gate Review\n\n**Reviewer:** OpenRouter \`${MODEL}\` (effort: ${EFFORT})\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ${costLabel} · **Wall:** ${wallSec}s · **finish:** ${finish ?? '?'}\n\n---\n\n${banner}${text}\n`;
+const outContent = `# ${MODEL_LABEL} — Hostile Gate Review\n\n**Reviewer:** OpenRouter \`${MODEL}\` (effort: ${EFFORT})\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ${costLabel} · **Wall:** ${wallSec}s · **finish:** ${finish ?? '?'}\n\n---\n\n${banner}${text}\n`;
 writeFileSync(outPath, outContent, 'utf-8');
 console.log(`[consult-grok] saved -> ${outPath}`);
 if (truncated) {
