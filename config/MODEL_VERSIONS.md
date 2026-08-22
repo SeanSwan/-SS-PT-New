@@ -39,6 +39,19 @@ claude-haiku-model:   claude-haiku-4-5
 gemini-pro-model:    gemini-2.5-pro
 gemini-flash-model:  gemini-2.5-flash
 
+
+# Gemini 3.1 Pro (Google, DIRECT API — panel seat) — verified 2026-08-22 by listing
+# generativelanguage.googleapis.com/v1beta/models with Sean's own key: "gemini-3.1-pro-preview"
+# is present and reachable. Consumed by scripts/consult-gemini-panel.mjs.
+# WHY DIRECT, NOT OPENROUTER: Sean 2026-08-22 — "only use that one if it's via the API,
+# I don't wanna be paying extra for that." Routing Gemini through OpenRouter would bill
+# OpenRouter credits on top of an API key he already holds. The seat talks to Google directly.
+# NOTE: this is a SEPARATE key from `gemini-pro-model` below, which is still gemini-2.5-pro and
+# still what scripts/consult-gemini.mjs (the Lead Design Authority console) uses. Changing that
+# one would silently alter every design consult, so it was deliberately left alone.
+# Preview-status ID: re-verify if design consults start 404-ing.
+gemini-31-pro:       gemini-3.1-pro-preview
+
 # OpenRouter (multi-provider gateway, used by validation-orchestrator.mjs today)
 # Verified 2026-04-20 via grep of scripts/validation-orchestrator.mjs live slugs in use.
 openrouter-nemotron-nano:  nvidia/nemotron-3-nano-30b-a3b:free
@@ -76,6 +89,23 @@ openrouter-kimi-k3:        moonshotai/kimi-k3
 # consult-codex-via-openrouter.mjs for new work.
 openrouter-sol-56:         openai/gpt-5.6-sol
 
+
+# Ox Alpha (STEALTH / undisclosed lab — free evaluation seat) — verified 2026-08-22 live via
+# curl -s https://openrouter.ai/api/v1/models  ->  id "stealth/ox-alpha", 1,048,576 ctx,
+# 131,072 max output, pricing "0"/"0" (genuinely $0, not a rounding artifact).
+# WHAT IT IS: launched on OpenRouter 2026-08-20 under a cloaked identity; no lab has claimed it.
+# Community fingerprinting points at a Chinese lab — Zhipu/GLM and MiniMax are both proposed;
+# unresolved as of this entry. Scores ~80% DeepSWE vs Fable 5 ~65%.
+# WHY THE $0: it is a stealth listing. An undisclosed operator is evaluating the model and
+# receives the prompts. Zero dollars, NON-ZERO privacy cost. Sean accepted this trade
+# explicitly on 2026-08-22 for repo/code packets; the zero-PII rule (CLAUDE.md Rule 8) is
+# NOT waived by that acceptance and still applies to every packet sent here.
+# TIER: NOT Fable-tier. Provenance is unknown by construction, so Rule 68 routes anything it
+# authors to QUARANTINE — it may never write the Hermes durable learning corpus.
+# EXPIRY: free preview is ~1 week from 2026-08-20, so this slug is expected to stop resolving
+# or start billing around 2026-08-27. Consumers must fail OPEN (skip the seat, run the rest).
+openrouter-ox-alpha:       stealth/ox-alpha
+
 # OpenAI (direct API) — REMOVED 2026-04-20
 # No consumer script uses direct OpenAI API today. Codex CLI is used instead.
 # If you add a direct-OpenAI consumer, uncomment and verify:
@@ -97,11 +127,28 @@ When a model is rotated or preflight flags a new TODO, edit the fenced `yaml` bl
 ## Consumer scripts (update when adding a new consumer)
 
 - `scripts/consult-gemini.mjs` — reads `gemini-pro-model` + `gemini-flash-model`
+- `scripts/consult-gemini-panel.mjs` — reads `gemini-31-pro` (panel seat; direct Google API)
 - `scripts/validation-orchestrator.mjs` — reads openrouter-* + claude-* entries
 - `scripts/hermes-village.mjs` — reads claude-sonnet-model for code quality track
 - Future `scripts/ai-workflow-run.sh` (Phase 2 loop) — reads claude-primary-model
 
 ## Change log
+
+- **2026-08-22:** Added `gemini-31-pro: gemini-3.1-pro-preview` (Google direct API) and shipped
+  `scripts/consult-gemini-panel.mjs`, giving Gemini 3.1 Pro a seat on the hostile-review panel for
+  the first time. ID verified by listing the live model catalog with Sean's own key rather than
+  recalled. Deliberately a NEW registry key: `gemini-pro-model` stays `gemini-2.5-pro` so the
+  existing design-authority console (`consult-gemini.mjs`) is not silently re-pointed. Also added
+  to the consumer list below.
+
+- **2026-08-22:** Added `openrouter-ox-alpha: stealth/ox-alpha` (1.05M ctx / 131k max out, $0/$0)
+  as a FREE, TIME-BOXED evaluation seat on Sean's explicit directive. Slug + context + pricing
+  verified live against the OpenRouter catalog the same day. Three standing constraints recorded
+  with the entry: (1) the operator is undisclosed and retains prompts, so Rule 8 zero-PII still
+  binds and packets must be scrubbed to full vendor standard; (2) it is NOT Fable-tier — Rule 68
+  quarantines anything it authors, it can never write the durable Hermes corpus; (3) the free
+  window closes ~2026-08-27, so every consumer must fail OPEN when the slug stops resolving
+  rather than taking the whole panel run down with it.
 
 - **2026-07-25:** Added verified `openrouter-opus-5: anthropic/claude-opus-5` ($5/$25 per M, 1M context) for the spend-gated Opus 5 x Kimi K3 consensus brain. Sean explicitly authorized a narrow Kimi provider-policy exception for this brain's analysis, hostile-review, build-planning, enhancement, and Swan-grounded design roles; the runtime limits transmission to exact requested files plus hashed Swan doctrine, rejects secret/data paths, scrubs direct PII and credentials, and still requires explicit approval before each paid run.
 - **2026-07-17:** Added `openrouter-kimi-k3: moonshotai/kimi-k3` (Moonshot Kimi K3 — front-end/design guru + cheaper default orchestrator tier, $3/$15, 1M ctx, #3 overall / #1 Design Arena) and `openrouter-sol-56: openai/gpt-5.6-sol` (GPT-5.6 Sol — high-reasoning gate reviewer, $5/$30, 1M ctx). Slugs + pricing verified live via the OpenRouter model catalog. Shipped the two solo-review scripts `scripts/consult-kimi.mjs` and `scripts/consult-sol.mjs` (parallel to `consult-fable.mjs`), forming the "big three" solo panel (Fable 5 · Sol 5.6 · Kimi K3). **OPEN GOVERNANCE ITEM:** Sean wants Kimi K3 as the cheaper DEFAULT Village orchestrator/synthesis judge. Kimi is a Chinese-provider model; the current Village policy (this file's OpenRouter section + `validation-orchestrator.mjs` `DISALLOWED_PROVIDER_PREFIXES` / `assertNoChineseProviderInPolicyConstrainedTracks`) fences Chinese providers OUT of the orchestrator/security/escalation roles (design slot only). Wiring Kimi as orchestrator therefore requires Sean's explicit ruling on the provider-policy exception — parked until then. `moonshotai/` is NOT yet added to `DISALLOWED_PROVIDER_PREFIXES` pending that ruling.

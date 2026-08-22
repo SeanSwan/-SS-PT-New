@@ -122,6 +122,24 @@ making errors and fixing them and making errors and fixing them":*
 - **`## External-model calibration`** — for every paid/external model consulted: findings real vs
   disproven on verification, cost, and what task class it is actually worth paying for. This is how
   Hermes learns the routing table empirically instead of by assertion.
+  - **Free seats count too.** "External" means *not the author*, not *expensive*. A $0 seat that
+    burns a review slot and returns nothing is a routing fact Hermes needs as much as a costly one.
+  - **UNATTRIBUTABLE / STEALTH SOURCES (added 2026-08-22 — `stealth/ox-alpha` is the first).**
+    A cloaked model has no resolvable identity, so it can NEVER be `originating_model` — there is
+    no lab to designate and `tier_basis` would have to read "unknown." Stealth listings can also
+    swap weights mid-preview, which would retroactively poison every lesson stamped with them,
+    with no way to tell which. **The corpus is append-only and compounds; that risk is not
+    recoverable.** So: a stealth model's findings reach Hermes **only through this calibration
+    section**, recorded by a Fable-tier author who VERIFIED them, with the finding and the verdict
+    kept separate — `ox-alpha claimed X → verified TRUE/FALSE by <who> via <evidence>`.
+    That is strictly MORE useful to Hermes than raw stealth output: it teaches what the seat is
+    worth, which is the thing that improves routing decisions. Sean's standing ask is that Hermes
+    learn "what they did, how they did it, what they fixed" — a verified claim-plus-verdict is
+    exactly that; an unverified one is just volume.
+  - **Promotion path (Rule 69):** a stealth finding that proves a permanent lesson is promoted the
+    normal way — a Fable-tier author verifies it, writes it up in their OWN packet, and credits the
+    source in-body ("surfaced by ox-alpha, confirmed by <evidence>"). The lesson enters the corpus
+    on the VERIFIER's provenance, never the stealth model's. Nothing is lost; only the stamp changes.
 
 Then tell Sean in chat: packet written (path), tier-gate result, and whether the Pi daemon read-list needs the one-time extension for a new store.
 

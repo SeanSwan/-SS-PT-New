@@ -41,7 +41,7 @@
  * Usage:
  *   node scripts/consult-panel.mjs --document <path> [--seed <path>]
  *        [--out-dir docs/ai-workflow/AI-HANDOFF/panel-<date>]
- *        [--seats sol,kimi,glm,qwen,grok,dspro,dsflash] [--remit "<override>"]
+ *        [--seats kimi,glm,qwen,ox,gemini,grok,dspro,dsflash] [--remit "<override>"]
  *        [--dry-run] [--confirm-spend]
  *
  * Safety: the spend gate protects MONEY, so it covers the PAID seats only.
@@ -82,11 +82,11 @@ const outDir = arg('--out-dir', `docs/ai-workflow/AI-HANDOFF/panel-${stamp}`);
 // Dedupe: `--seats kimi,kimi` is a typo, but without this it would fire a PAID
 // seat twice and bill twice for one review.
 const requested = [...new Set(
-  arg('--seats', 'sol,kimi,glm,qwen,grok,dspro,dsflash').split(',').map((s) => s.trim()).filter(Boolean),
+  arg('--seats', 'kimi,glm,qwen,ox,gemini,grok,dspro,dsflash').split(',').map((s) => s.trim()).filter(Boolean),
 )];
 
 if (!documentPath) {
-  console.error('usage: node scripts/consult-panel.mjs --document <path> [--seed <path>] [--seats sol,kimi,glm,qwen,grok,dspro,dsflash] [--confirm-spend]');
+  console.error('usage: node scripts/consult-panel.mjs --document <path> [--seed <path>] [--seats kimi,glm,qwen,ox,gemini,grok,dspro,dsflash] [--confirm-spend]');
   process.exit(1);
 }
 if (!existsSync(documentPath)) {
@@ -127,10 +127,31 @@ for (const name of requested) {
 }
 console.log(`\n[panel] estimated spend for this run: ~$${estimate.toFixed(4)} (assumes ${ASSUMED_OUT_TOK} output tok/seat)`);
 
+// PREMIUM SEATS: priced on EVERY run even when NOT requested. Sean's standing ask
+// (2026-08-22) is to be told what Fable and Sol would cost each time so the yes/no is
+// informed. Printing unconditionally means the answer is already on screen - no second
+// dry-run, no guessing, and no silent omission of the expensive option.
+const premiumAvailable = Object.keys(SEATS).filter((n) => SEATS[n].premium && !requested.includes(n));
+if (premiumAvailable.length) {
+  console.log('\n[panel] PREMIUM seats NOT included - ask Sean before adding:');
+  for (const n of premiumAvailable) {
+    const ps = SEATS[n];
+    const c = (promptTok / 1e6) * ps.inPerM + (ASSUMED_OUT_TOK / 1e6) * ps.outPerM;
+    console.log(`  + ${n.padEnd(6)} ${ps.label.padEnd(18)} would add ~$${c.toFixed(4)}   (--seats ...,${n} --confirm-spend)`);
+  }
+}
+
 // Spend gate. The gate exists to protect MONEY (Rule 16), so it applies to the
 // paid seats only — making the free local/subscription seats demand a spend
 // confirmation would train the reflex of typing --confirm-spend by habit,
 // which is exactly how a real spend gate stops working.
+// Premium seats were removed from the DEFAULT roster, so a bare
+// `--document X --confirm-spend` can never reach Fable's $10/$50. Naming one is the
+// deliberate act that authorises it.
+const premiumRequested = requested.filter((n) => SEATS[n].premium);
+if (premiumRequested.length && confirmSpend) {
+  console.log(`\n[panel] PREMIUM seat(s) explicitly requested and confirmed: ${premiumRequested.join(', ')}`);
+}
 const paidRequested = requested.filter((n) => SEATS[n].paid);
 const skipped = confirmSpend ? [] : paidRequested;
 const seatsToRun = requested.filter((n) => confirmSpend || !SEATS[n].paid);

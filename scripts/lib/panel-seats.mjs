@@ -9,9 +9,23 @@
  *   curl -s https://openrouter.ai/api/v1/models
  * Free seats are 0/0 so the estimator needs no special-casing.
  *
- * Fable is NOT a seat here. It is the FINAL seat and the Final Decider
- * (CLAUDE.md Co-Orchestrator Hierarchy + Rule 46): it reads every reply below
- * and arbitrates. Run it separately via scripts/consult-fable.mjs.
+ * Fable has TWO distinct roles and they must not be confused:
+ *   1. FINAL DECIDER (unchanged, primary) — reads every reply below and arbitrates.
+ *      Run it separately via scripts/consult-fable.mjs AFTER the panel returns.
+ *      This is the role CLAUDE.md's Co-Orchestrator Hierarchy + Rule 46 describe.
+ *   2. PANEL SEAT (added 2026-08-22 by Sean's directive) — reviews the document
+ *      blind, alongside the others, contributing one opinion among many.
+ * These are NOT the same thing. A seat-Fable has not seen the other replies, so its
+ * output is a PEER REVIEW, not a ruling, and must never be reported as an arbitration.
+ * If you want a verdict, run the Final-Decider pass separately.
+ *
+ * PREMIUM SEATS (`premium: true`) - Fable 5 and GPT-5.6 Sol Pro. Sean's directive
+ * 2026-08-22: "ask me each and every time if I want Fable and ChatGPT in it since
+ * they're the most expensive ones, and I can say yes or no, or choose one or the
+ * other." They are therefore NOT in the default roster - they can only run when
+ * named explicitly AND --confirm-spend is passed. consult-panel.mjs still prints
+ * what each WOULD cost on every run, so the choice is always informed and never
+ * requires guessing or a separate dry-run to price.
  *
  * DeepSeek seats ride consult-grok.mjs (it is a generic OpenRouter streaming
  * client with a SWAN_GROK_MODEL override) rather than getting copy-pasted
@@ -26,7 +40,7 @@
 export function buildSeats(remit) {
   return {
     sol: {
-      label: 'GPT-5.6 Sol Pro', script: 'consult-sol.mjs', paid: true,
+      label: 'GPT-5.6 Sol Pro', script: 'consult-sol.mjs', paid: true, premium: true,
       inPerM: 2.5, outPerM: 15, out: 'SOL-PANEL-REVIEW.md',
       args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high'],
       // consult-sol.mjs defaults to plain `gpt-5.6-sol`. Sol PRO is the same
@@ -56,6 +70,17 @@ export function buildSeats(remit) {
       args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit],
       note: 'local 5090 via Ollama — $0, fully private, never the lead voice',
     },
+    gemini: {
+      label: 'Gemini 3.1 Pro', script: 'consult-gemini-panel.mjs', paid: false,
+      inPerM: 0, outPerM: 0, out: 'GEMINI-PANEL-REVIEW.md',
+      args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--max-tokens', '20000'],
+      // paid:false because this rides Sean's OWN Google API key, NOT OpenRouter credits
+      // (his directive 2026-08-22: "only via the API, I don't wanna be paying extra").
+      // That makes it $0 against the panel's OpenRouter wallet, which is what the spend
+      // gate protects — it does NOT mean Google bills nothing. The seat prints real token
+      // counts every run so actual usage stays visible rather than assumed.
+      note: 'direct Google API (not OpenRouter) — $0 OpenRouter cost; Google-side usage still metered',
+    },
     grok: {
       label: 'Grok 4.6', script: 'consult-grok.mjs', paid: true,
       inPerM: 2, outPerM: 6, out: 'GROK-PANEL-REVIEW.md',
@@ -68,6 +93,29 @@ export function buildSeats(remit) {
       args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high'],
       env: { SWAN_GROK_MODEL: 'deepseek/deepseek-v4-pro' },
       note: 'deepseek/deepseek-v4-pro via consult-grok transport',
+    },
+    ox: {
+      label: 'Ox Alpha', script: 'consult-grok.mjs', paid: false,
+      inPerM: 0, outPerM: 0, out: 'OX-ALPHA-PANEL-REVIEW.md',
+      args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high'],
+      env: { SWAN_GROK_MODEL: 'stealth/ox-alpha' },
+      // Free BECAUSE it is a stealth listing: an unnamed lab is evaluating the
+      // model and OpenRouter's stealth terms mean prompts are retained and seen
+      // by that provider. Zero dollars, NON-zero privacy cost. Only send it
+      // packets that are already scrubbed to the standard we would use for any
+      // vendor — never raw config, transcripts, or anything with PII.
+      // 1.05M ctx / 131k max output, added 2026-08-22 by Sean's directive.
+      note: 'stealth/ox-alpha — $0 but prompts are RETAINED by an undisclosed provider',
+    },
+    fable: {
+      label: 'Fable 5', script: 'consult-fable.mjs', paid: true, premium: true,
+      inPerM: 10, outPerM: 50, out: 'FABLE-PANEL-REVIEW.md',
+      args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit],
+      // BY FAR the most expensive seat — ~5x Kimi/Sol per token and ~340x dsflash.
+      // paid:true means the spend gate skips it unless --confirm-spend is passed, so it
+      // appears in the printed estimate on EVERY run but never bills without an explicit yes.
+      // Seat-Fable is a PEER review, not a ruling — see the two-roles note at the top.
+      note: 'PEER seat, not a ruling. $10/$50 per M — the priciest seat; gated behind --confirm-spend',
     },
     dsflash: {
       label: 'DeepSeek V4 Flash', script: 'consult-grok.mjs', paid: true,
