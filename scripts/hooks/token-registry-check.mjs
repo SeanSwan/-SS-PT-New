@@ -37,9 +37,10 @@
  * must ensure the working tree matches the index for the files it passes, or the line numbers
  * refer to a different tree than the one being committed.
  */
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 const args = process.argv.slice(2);
 const fileArgs = args.includes('--file') ? args.slice(args.indexOf('--file') + 1) : [];
@@ -51,15 +52,47 @@ const ROOT = 'frontend/src';
 // phantom "token exists" answers for tokens live code cannot actually see.
 const VENDORED = /(^|[\\/])(dashboard-export|reference-pack|production-context|vendor|node_modules)[\\/]/;
 
+/** Collected during the walk, which already stats every entry — so the fingerprint is free. */
+const stamps = [];
+
 function walk(dir, out = []) {
   for (const e of readdirSync(dir)) {
     const p = join(dir, e);
     if (VENDORED.test(p)) continue;
     const s = statSync(p);
     if (s.isDirectory()) walk(p, out);
-    else if (/\.(css|tsx?|jsx?)$/.test(p)) out.push(p.replace(/\\/g, '/'));
+    else if (/\.(css|tsx?|jsx?)$/.test(p)) {
+      const rel = p.replace(/\\/g, '/');
+      out.push(rel);
+      stamps.push(`${rel}:${s.mtimeMs}:${s.size}`);
+    }
   }
   return out;
+}
+
+/**
+ * REGISTRY CACHE — the gate cost ~3s per frontend commit without it.
+ *
+ * Measured 2026-08-22 on this tree: walk 165ms, regex work 47ms, and ~2,500ms reading
+ * 26.9MB across 5,245 files. The reads dominate, and they are inherent — a token defined
+ * in a file you did not stage is still defined, so the registry cannot be scoped to the
+ * staged set. Meanwhile the sibling gate (frontend-guards) costs 172ms. A 17x tax on every
+ * frontend commit is what trains someone to reach for --no-verify, and a routinely bypassed
+ * gate protects nothing — the same Rule 34 argument that made this gate --added-only rather
+ * than --strict, aimed at the gate itself.
+ *
+ * The cache CANNOT cause a false block. If a cached registry is about to fail a commit, the
+ * registry is rebuilt from disk and the finding re-checked before anything is reported (see
+ * `verifyAgainstFreshRegistry`). So a stale cache can only ever cost one rebuild, never a
+ * wrongly rejected commit. It lives in the OS temp dir rather than the repo: node_modules is
+ * not guaranteed to exist (fresh worktrees have none) and the repo must stay clean.
+ */
+const CACHE_VERSION = 1;
+function cachePath() {
+  let key = 0;
+  const root = process.cwd();
+  for (let i = 0; i < root.length; i += 1) key = (key * 31 + root.charCodeAt(i)) >>> 0;
+  return join(tmpdir(), `swan-token-registry-${CACHE_VERSION}-${key.toString(36)}.json`);
 }
 
 /** DEFINITIONS: `--token-name: value;` — the registry. */
@@ -116,22 +149,57 @@ function main() {
   // Build the registry from EVERY non-vendored file, always — a token defined in a file you
   // did not stage is still a defined token. Scoping the registry to --file would invent
   // UNKNOWN_TOKEN findings for tokens that plainly exist.
-  const registry = new Map();
-  for (const f of allFiles) {
-    const text = readFileSync(f, 'utf8');
-    for (const m of text.matchAll(DEFINE_RE)) {
-      const [, , name, value] = m;
-      if (!registry.has(name)) registry.set(name, { value: value.trim(), file: f });
+  function buildRegistry(files) {
+    const reg = new Map();
+    for (const f of files) {
+      const text = readFileSync(f, 'utf8');
+      for (const m of text.matchAll(DEFINE_RE)) {
+        const [, , name, value] = m;
+        if (!reg.has(name)) reg.set(name, { value: value.trim(), file: f });
+      }
+      // Imperatively-set tokens are defined too — just not statically valued.
+      for (const m of text.matchAll(RUNTIME_DEFINE_RE)) {
+        if (!reg.has(m[1])) reg.set(m[1], { value: '(set at runtime)', file: f });
+      }
+      // ...including through one level of indirection.
+      for (const m of text.matchAll(INDIRECT_DEFINE_RE)) {
+        if (!reg.has(m[1])) reg.set(m[1], { value: '(bound to a variable, set at runtime)', file: f });
+      }
     }
-    // Imperatively-set tokens are defined too — just not statically valued.
-    for (const m of text.matchAll(RUNTIME_DEFINE_RE)) {
-      if (!registry.has(m[1])) registry.set(m[1], { value: '(set at runtime)', file: f });
+    return reg;
+  }
+
+  const fingerprint = stamps.join('\n');
+  const CACHE = cachePath();
+  let registry = null;
+  let fromCache = false;
+  try {
+    const cached = JSON.parse(readFileSync(CACHE, 'utf8'));
+    if (cached?.fingerprint === fingerprint && Array.isArray(cached.entries)) {
+      registry = new Map(cached.entries);
+      fromCache = true;
     }
-    // ...including through one level of indirection.
-    for (const m of text.matchAll(INDIRECT_DEFINE_RE)) {
-      if (!registry.has(m[1])) registry.set(m[1], { value: '(bound to a variable, set at runtime)', file: f });
+  } catch {
+    /* no cache, unreadable, or a different tree — fall through and build */
+  }
+  if (!registry) {
+    registry = buildRegistry(allFiles);
+    try {
+      writeFileSync(CACHE, JSON.stringify({ fingerprint, entries: [...registry] }));
+    } catch {
+      /* an unwritable temp dir costs speed, never correctness */
     }
   }
+
+  /** A cached registry may never fail a commit on its own. Rebuild and re-check first. */
+  const verifyAgainstFreshRegistry = (names) => {
+    if (!fromCache || !names.length) return names;
+    const fresh = buildRegistry(allFiles);
+    try {
+      writeFileSync(CACHE, JSON.stringify({ fingerprint, entries: [...fresh] }));
+    } catch { /* speed only */ }
+    return names.filter((n) => !fresh.has(n));
+  };
 
   const targets = fileArgs.length
     ? fileArgs.filter((f) => existsSync(f)).map((f) => f.replace(/\\/g, '/'))
@@ -241,6 +309,20 @@ function main() {
   // Everything else - the inherited backlog, and fallback drift in any position - is
   // reported and never blocks. See the --added-only note in the header for why.
   if (ADDED_ONLY) {
+    // A cached registry may never fail a commit on its own. If findings survive the cache,
+    // rebuild from disk and keep only the ones the fresh registry also cannot resolve. Costs
+    // one rebuild in the rare stale case; makes a wrongly rejected commit impossible.
+    if (unknownAdded.length && fromCache) {
+      const stillMissing = new Set(
+        verifyAgainstFreshRegistry([...new Set(
+          unknownAdded.map((u) => u.match(/var\((--[\w-]+)\)/)?.[1]).filter(Boolean),
+        )]),
+      );
+      for (let i = unknownAdded.length - 1; i >= 0; i -= 1) {
+        const name = unknownAdded[i].match(/var\((--[\w-]+)\)/)?.[1];
+        if (name && !stillMissing.has(name)) unknownAdded.splice(i, 1);
+      }
+    }
     if (unknownAdded.length) {
       console.log(`\n  BLOCKING - ${unknownAdded.length} undefined token use(s) on lines this commit ADDS:\n`);
       unknownAdded.forEach((u) => console.log(`    ${u}`));

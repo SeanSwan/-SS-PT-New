@@ -168,6 +168,36 @@ t('indirection does NOT excuse a token that is never bound anywhere', () => {
   } finally { s.cleanup(); }
 });
 
+t('CACHE: a second run returns the identical verdict (cache hit changes nothing)', () => {
+  const s = sandbox();
+  try {
+    const f = s.file('cache-a.ts', 'export const a = `var(--totally-made-up, #fff);`;\n');
+    s.git('add', f);
+    const first = s.run(['--added-only', '--file', f]);
+    const second = s.run(['--added-only', '--file', f]);
+    assert.equal(first.code, 1, first.out);
+    assert.equal(second.code, first.code, 'cached run disagreed with the fresh run');
+    assert.match(second.out, /--totally-made-up/);
+  } finally { s.cleanup(); }
+});
+
+t('CACHE: defining a token AFTER the cache was warmed stops the block', () => {
+  // The staleness case that matters. If the cache could veto this, the gate would reject a
+  // commit whose token plainly exists — the false-block class the whole design forbids.
+  const s = sandbox();
+  try {
+    const f = s.file('cache-b.ts', 'export const a = `var(--defined-later, #fff);`;\n');
+    s.git('add', f);
+    const before = s.run(['--added-only', '--file', f]);
+    assert.equal(before.code, 1, 'sanity: should block while genuinely undefined');
+
+    s.file('styles/late.css', ':root { --defined-later: #123456; }\n');
+    s.git('add', '-A');
+    const after = s.run(['--added-only', '--file', f]);
+    assert.equal(after.code, 0, `stale cache wrongly blocked a defined token:\n${after.out}`);
+  } finally { s.cleanup(); }
+});
+
 t('REGRESSION: default mode still never fails, even with undefined tokens', () => {
   const s = sandbox();
   try {
