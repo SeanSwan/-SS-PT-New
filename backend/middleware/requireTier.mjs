@@ -45,7 +45,7 @@ const isActiveTrialSubscription = (subscription) => {
  * the Ascension copy promises a 30-day trial of premium features. The actual tier
  * is still returned in 402 responses for transparency and debugging.
  */
-async function resolveCurrentEntitlement(req) {
+export async function resolveCurrentEntitlement(req) {
   if (req._resolvedEntitlement) return req._resolvedEntitlement;
 
   let actualTier = req.user?.subscriptionTier || 'free';
@@ -90,7 +90,7 @@ async function resolveCurrentEntitlement(req) {
  * Defaults to enabled so premium promises are enforced by the backend. Set
  * TIER_GATING_ENABLED=false only as an emergency rollback switch.
  */
-function isGatingEnabled() {
+export function isGatingEnabled() {
   const flag = String(process.env.TIER_GATING_ENABLED || '').trim().toLowerCase();
   return !['false', '0', 'off', 'disabled'].includes(flag);
 }
