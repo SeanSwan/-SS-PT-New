@@ -225,6 +225,9 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
       const response = await apiInstance.get(HEALTH_CHECK_PATH);
       if (response.status === 200) {
         logger.log('✅ Backend health check SUCCESS - server is running');
+        circuitBreakerRef.current.attempts = 0;
+        circuitBreakerRef.current.isBlocked = false;
+        circuitBreakerRef.current.lastAttempt = 0;
         setConnectionState(CONNECTION_STATES.CONNECTED);
         updateRetryCount(0);
         consecutiveHealthFailuresRef.current = 0;
@@ -479,9 +482,26 @@ export const useBackendConnection = (config: Partial<BackendConnectionConfig> = 
       healthCheckIntervalRef.current = null;
     }
 
-    // Skip periodic health checks if in backend unavailable or not mounted
-    if (connectionState === CONNECTION_STATES.UNAVAILABLE || !isMountedRef.current) {
+    if (!isMountedRef.current) {
       return;
+    }
+
+    // UNAVAILABLE must remain self-healing. Without this probe, exhausting the
+    // initial retries permanently latched a stale "Backend Unavailable" banner
+    // even after /api/health returned 200 again.
+    if (connectionState === CONNECTION_STATES.UNAVAILABLE) {
+      healthCheckIntervalRef.current = setInterval(() => {
+        if (isMountedRef.current) {
+          void checkBackendHealth();
+        }
+      }, fullConfig.healthCheckInterval);
+
+      return () => {
+        if (healthCheckIntervalRef.current) {
+          clearInterval(healthCheckIntervalRef.current);
+          healthCheckIntervalRef.current = null;
+        }
+      };
     }
 
     if (connectionState === CONNECTION_STATES.CONNECTED) {
