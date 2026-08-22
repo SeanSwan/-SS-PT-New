@@ -14,6 +14,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, ShieldCheck, ShieldOff, Brain, Lock, Eye, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { AI_CONSENT_VERSION } from '../../../../content/aiConsentCopy';
 import {
   getConsentStatus,
   grantConsent,
@@ -648,7 +649,7 @@ const AiConsentScreen: React.FC = () => {
           </PrivacyItem>
           <PrivacyItem>
             <PrivacyIcon $color="#10b981"><Eye size={18} /></PrivacyIcon>
-            <div><strong>Training data only.</strong> Only fitness-relevant information (goals, measurements, exercise preferences, injury history) is shared. Medical details like medications, surgeries, and occupation are never sent.</div>
+            <div><strong>What is shared.</strong> Training-relevant information only — goals, fitness level, measurements, training history, exercise preferences, and injury and pain history, so Swan Coach can avoid programming that could hurt you. Medications, surgeries, occupation, date of birth, and insurance details are never sent.</div>
           </PrivacyItem>
           <PrivacyItem>
             <PrivacyIcon $color="#10b981"><Lock size={18} /></PrivacyIcon>
@@ -656,7 +657,7 @@ const AiConsentScreen: React.FC = () => {
           </PrivacyItem>
           <PrivacyItem>
             <PrivacyIcon $color="#10b981"><ShieldCheck size={18} /></PrivacyIcon>
-            <div><strong>Your identity is hidden.</strong> Swan Coach only knows you by an anonymous client ID — your real name and personal details stay private.</div>
+            <div><strong>Pseudonymized, not anonymous.</strong> Swan Coach knows you by a stable client ID rather than your name. Because that ID stays the same across sessions, this is de-identification — not full anonymity.</div>
           </PrivacyItem>
         </PrivacyList>
       </Card>
@@ -665,7 +666,7 @@ const AiConsentScreen: React.FC = () => {
       <ConsentDisclosure>
         <ConsentDisclosureTitle>
           <Shield size={18} />
-          Consent Disclosure (v1.0)
+          Consent Disclosure (v{AI_CONSENT_VERSION})
         </ConsentDisclosureTitle>
         By granting consent, you agree that SwanStudios may process your de-identified fitness profile
         through a Swan Coach provider to generate personalized workout plans. Your personal

@@ -14,6 +14,7 @@ import {
 import { StyledBox } from '@/components/ui/StyledBox';
 import { useAuth } from "../../context/AuthContext";
 import { readDraft, writeDraft, clearDraft } from "./useOnboardingDraft";
+import { AI_CONSENT_CLIENT_ID_NOTE } from '../../content/aiConsentCopy';
 
 /* ── Lazy-loaded wizard sections (code-split for FCP) ── */
 const BasicInfo = React.lazy(() => import("./components/BasicInfoSection"));
@@ -732,7 +733,7 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
               <ModalTitle id="client-onboarding-success-title">Welcome to SwanStudios!</ModalTitle>
 
               <ModalText>
-                Your onboarding is complete. Your anonymous client ID has been assigned:
+                Your onboarding is complete. {AI_CONSENT_CLIENT_ID_NOTE}
               </ModalText>
 
               <HighlightText>

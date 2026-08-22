@@ -59,6 +59,63 @@ const DIRECT_IDENTIFIER_PATHS = [
 ];
 
 /**
+ * NON-TRAINING HEALTH FIELDS — default-DENIED (Wave 1 Slice 5).
+ *
+ * Owner decision Q2 (2026-08-22): health fields do not reach the LLM provider
+ * until counsel approves the list in writing. Owner decision (same day) then
+ * SPLIT the set Fable had grouped together, because denying it wholesale would
+ * have removed the inputs that make coaching safe:
+ *
+ *   DENIED here      — conditions, supplements, sleep, stress. Sensitive, and
+ *                      not required to program a session.
+ *   NOT denied       — injuries, pain, measurements. These are TRAINING-SAFETY
+ *                      data: without them Swan Coach cannot avoid a movement
+ *                      that is contraindicated for this client. Removing them
+ *                      would trade a privacy risk for a physical one. They are
+ *                      disclosed to the user in aiConsentCopy.ts instead.
+ *
+ * Set COACH_HEALTH_FIELDS_ENABLED=true to forward the denied set once counsel
+ * signs off. Doing so CHANGES WHAT USERS WERE TOLD — bump AI_CONSENT_VERSION in
+ * frontend/src/content/aiConsentCopy.ts and re-consent before enabling.
+ */
+const GATED_HEALTH_PATHS = [
+  'health.conditions',
+  'health.medicalConditions',
+  'health.supplements',
+  'health.sleep',
+  'health.stress',
+  'clientProfile.medicalConditions',
+  'clientProfile.supplements',
+  'lifestyle.supplements',
+  'lifestyle.sleep',
+  'lifestyle.sleepQuality',
+  'lifestyle.stress',
+  'lifestyle.stressLevel',
+  'wellness.sleep',
+  'wellness.stress',
+  'wellness.supplements',
+];
+
+/**
+ * Training-safety paths that must NEVER be added to GATED_HEALTH_PATHS.
+ * Documented as an explicit list so a future edit has to argue with it.
+ */
+export const TRAINING_SAFETY_PATHS = Object.freeze([
+  'painAndInjuries',
+  'health.injuries',
+  'health.pain',
+  'health.currentPain',
+  'measurements',
+  'clientProfile.measurements',
+]);
+
+/** Emergency escape hatch — forwards the gated set once counsel approves. */
+export function areGatedHealthFieldsEnabled() {
+  const flag = String(process.env.COACH_HEALTH_FIELDS_ENABLED || '').trim().toLowerCase();
+  return ['true', '1', 'on', 'enabled'].includes(flag);
+}
+
+/**
  * Fields that are safe to keep for workout generation context
  */
 const SAFE_FIELD_PATHS = [
@@ -182,7 +239,11 @@ export function deIdentify(masterPromptJson, options = {}) {
   const anonymousLabel = normalizedSpiritName || (clientId ? `Client #${clientId}` : 'Client');
   const aliasLabel = normalizedSpiritName || normalizedExistingAlias || anonymousLabel;
 
-  // 1. Replace name fields with anonymous client ID
+  // 1. Replace name fields with the STABLE pseudonymous client label.
+  //    NOTE: this is de-identification, not anonymization — the label is
+  //    stable across sessions and travels with injury/measurement data.
+  //    User-facing copy must say "pseudonymized", never "anonymous":
+  //    see frontend/src/content/aiConsentCopy.ts (Wave 1 Slice 3).
   const originalName = getNestedValue(payload, 'client.name');
   if (originalName !== undefined) {
     setNestedValue(payload, 'client.name', anonymousLabel);
@@ -223,6 +284,18 @@ export function deIdentify(masterPromptJson, options = {}) {
 
     if (deleteNestedKey(payload, path)) {
       strippedFields.push(path);
+    }
+  }
+
+  // 2b. Gated non-training health fields — removed unless counsel has signed
+  //     off and COACH_HEALTH_FIELDS_ENABLED is set. Only the field NAME is
+  //     logged, never the value (rules 8/44/59).
+  if (!areGatedHealthFieldsEnabled()) {
+    for (const path of GATED_HEALTH_PATHS) {
+      if (deleteNestedKey(payload, path)) {
+        strippedFields.push(path);
+        logger.info('[DeIdentification] gated health field withheld', { field: path });
+      }
     }
   }
 

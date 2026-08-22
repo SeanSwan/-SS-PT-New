@@ -12,6 +12,11 @@ import React from 'react';
 import styled from 'styled-components';
 import { Shield, ShieldCheck, Eye, Lock, Brain, Info } from 'lucide-react';
 import { StyledBox } from '@/components/ui/StyledBox';
+import {
+  AI_CONSENT_DISCLOSURE,
+  AI_CONSENT_SUBTITLE,
+  AI_CONSENT_VERSION,
+} from '../../../content/aiConsentCopy';
 
 // ── Theme tokens (matching wizard) ──────────────────────────────────────────
 
@@ -205,9 +210,7 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
       </SectionHeader>
 
       <SectionSubtitle>
-        SwanStudios uses Swan Coach to create personalized workout plans. Your identity is
-        never shared — Swan Coach only receives your anonymous client ID. Review the
-        details below.
+        {AI_CONSENT_SUBTITLE}
       </SectionSubtitle>
 
       {/* What AI does */}
@@ -229,15 +232,15 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
         <ProtectionsList>
           <ProtectionItem>
             <ProtectionIcon><ShieldCheck size={16} /></ProtectionIcon>
-            <div><strong>Identity hidden.</strong> Your name, email, and personal details are never sent. Swan Coach only receives your anonymous client ID.</div>
+            <div><strong>Pseudonymized, not anonymous.</strong> Swan Coach sees a stable client ID rather than your name. Because the ID stays the same across sessions, this is de-identification — not full anonymity.</div>
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><Eye size={16} /></ProtectionIcon>
-            <div><strong>Training data only.</strong> Only fitness-relevant information is shared. Medical details like medications are never sent.</div>
+            <div><strong>Removed before sending.</strong> Your name, email, phone, address, date of birth, insurance details, occupation, medications, surgeries, and doctor names are stripped before anything reaches the provider.</div>
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><Lock size={16} /></ProtectionIcon>
-            <div><strong>You stay anonymous.</strong> Swan Coach has no way to identify who you are — it only sees a numeric client ID and your fitness profile.</div>
+            <div><strong>What is shared.</strong> Training-relevant information only: goals, fitness level, measurements, training history, exercise preferences, and injury and pain history — so Swan Coach can avoid programming that could hurt you.</div>
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><ShieldCheck size={16} /></ProtectionIcon>
@@ -250,14 +253,9 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
       <ConsentDisclosure>
         <ConsentDisclosureTitle>
           <Shield size={16} />
-          Consent Disclosure (v1.0)
+          Consent Disclosure (v{AI_CONSENT_VERSION})
         </ConsentDisclosureTitle>
-        By enabling Swan Coach features, you agree that SwanStudios may process your
-        fitness profile through a Swan Coach provider to generate
-        personalized workout plans. Only your anonymous client ID and fitness data
-        are shared — your name, email, and personal identifiers are never sent to
-        the Swan Coach provider. You may withdraw consent at any time from the Swan Coach Privacy
-        &amp; Consent page in your dashboard.
+        {AI_CONSENT_DISCLOSURE}
       </ConsentDisclosure>
 
       {/* Toggle */}

@@ -65,11 +65,25 @@ vi.mock('../../middleware/auth.mjs', () => ({
   authorize: () => (_req, _res, next) => next(),
 }));
 
-// The tier gate is scaffold, not subject. Leaving it live would make every
-// assertion below a test of requireTier instead of a test of group policy.
+// The entitlement gate is scaffold, not subject. Leaving it live would make
+// every assertion below a test of the gate instead of a test of group policy.
+//
+// 2026-08-22 (Wave 1 Slice 1): messagingRoutes swapped requireTier for
+// requireMessagingAccess, so the old requireTier stub no longer intercepted
+// anything and the real middleware ran against a mocked DB. Re-anchored to the
+// middleware the routes actually mount. requireTier is still stubbed because
+// other modules in this graph import it. Coverage of the gate itself lives in
+// messagingRelationshipLane.test.mjs — nothing is being silenced here.
+vi.mock('../../middleware/requireMessagingAccess.mjs', () => ({
+  requireMessagingAccess: () => (_req, _res, next) => next(),
+  default: () => (_req, _res, next) => next(),
+}));
+
 vi.mock('../../middleware/requireTier.mjs', () => ({
   requireTier: () => (_req, _res, next) => next(),
   requireFeature: () => (_req, _res, next) => next(),
+  isGatingEnabled: () => true,
+  resolveCurrentEntitlement: async () => ({ actualTier: 'elite', effectiveTier: 'elite', isTrial: false }),
 }));
 
 const messagingRoutes = (await import('../../routes/messagingRoutes.mjs')).default;
