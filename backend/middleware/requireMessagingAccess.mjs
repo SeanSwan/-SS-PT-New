@@ -233,7 +233,20 @@ export function requireMessagingAccess({ scope = 'conversation' } = {}) {
       return sendTierRequired(res, entitlement);
     }
 
-    if (scope === 'list') return next();
+    if (scope === 'list') {
+      // Relationship-only viewers must not see legacy community threads.
+      //
+      // Pre-push panel (GLM 5.3 and Sol, independently): the list response
+      // carries last-message preview text and participant names/photos. Passing
+      // the gate on "has any assignment" therefore widened access for a
+      // downgraded subscriber who kept a trainer -- previously 402 and nothing,
+      // now previews of threads whose read endpoints 403. Hand the controller
+      // the counterparty set so it can narrow the result to relationship
+      // threads. The gate decides access; the controller decides scope.
+      req.messagingAccessLane = 'relationship';
+      req.messagingCounterparties = counterparties;
+      return next();
+    }
 
     if (scope === 'create') {
       const requested = Array.isArray(req.body?.participantIds) ? req.body.participantIds : [];

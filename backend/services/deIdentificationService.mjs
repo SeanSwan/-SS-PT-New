@@ -223,6 +223,54 @@ export function hashPayload(payload) {
  * @returns {{ deIdentified: Object, strippedFields: string[] } | null}
  *   Returns null if the payload is empty/unsafe after stripping (fail-closed).
  */
+
+/**
+ * Key-name matcher for the gated categories.
+ *
+ * The first cut of this gate was an enumerated PATH list. The consent copy,
+ * however, makes a CATEGORY claim ("sleep, stress and supplement data are
+ * withheld"). A path list cannot keep a category claim true: an unlisted
+ * variant such as `clientProfile.sleep`, `health.sleepQuality` or
+ * `wellness.stressLevel` flows while the copy says it does not. GLM 5.3 flagged
+ * this on the pre-push panel and correctly identified it as the SAME drift
+ * class that had already bitten once in this wave, when `health.medicalConditions`
+ * slipped through an enumerated list.
+ *
+ * Matching on the key NAME at any depth makes the code enforce the category the
+ * copy promises, so new field spellings are covered by default instead of
+ * silently escaping.
+ *
+ * TRAINING-SAFETY OVERRIDE: injuries, pain, measurements and medical conditions
+ * are never gated no matter where they appear — see TRAINING_SAFETY_PATHS.
+ */
+const GATED_KEY_PATTERN = /(sleep|stress|supplement)/i;
+const SAFETY_KEY_PATTERN = /(injur|pain|measurement|condition)/i;
+
+/**
+ * Walk the payload and delete any key whose NAME matches a gated category.
+ * Logs the path only — never the value (rules 8/44/59).
+ */
+function stripGatedHealthFields(node, strippedFields, prefix = '') {
+  if (!node || typeof node !== 'object') return;
+
+  for (const key of Object.keys(node)) {
+    const path = prefix ? `${prefix}.${key}` : key;
+
+    if (GATED_KEY_PATTERN.test(key) && !SAFETY_KEY_PATTERN.test(key)) {
+      delete node[key];
+      strippedFields.push(path);
+      logger.info('[DeIdentification] gated health field withheld', { field: path });
+      continue;
+    }
+
+    const value = node[key];
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      stripGatedHealthFields(value, strippedFields, path);
+    }
+  }
+}
+
+
 export function deIdentify(masterPromptJson, options = {}) {
   if (!masterPromptJson || typeof masterPromptJson !== 'object') {
     logger.warn('[DeIdentification] Received null/invalid masterPromptJson — fail closed');
@@ -299,12 +347,7 @@ export function deIdentify(masterPromptJson, options = {}) {
   //     off and COACH_HEALTH_FIELDS_ENABLED is set. Only the field NAME is
   //     logged, never the value (rules 8/44/59).
   if (!areGatedHealthFieldsEnabled()) {
-    for (const path of GATED_HEALTH_PATHS) {
-      if (deleteNestedKey(payload, path)) {
-        strippedFields.push(path);
-        logger.info('[DeIdentification] gated health field withheld', { field: path });
-      }
-    }
+    stripGatedHealthFields(payload, strippedFields);
   }
 
   // 3. Deep PII scan: search all string values for email/phone patterns and redact

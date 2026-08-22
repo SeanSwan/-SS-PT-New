@@ -57,7 +57,23 @@ export const getConversations = async (req, res) => {
   try {
     await ensureMessagingTables();
     await ensureAdminConversation(userId);
-    const conversations = await getConversationsForViewer(userId);
+    let conversations = await getConversationsForViewer(userId);
+
+    // A relationship-only viewer (no community entitlement) sees ONLY threads
+    // whose other members are all assigned counterparties. Without this they
+    // would keep seeing previews and participant names for legacy community
+    // threads they can no longer open -- see requireMessagingAccess, list scope.
+    if (req.messagingAccessLane === 'relationship' && req.messagingCounterparties) {
+      const allowed = req.messagingCounterparties;
+      const viewerId = Number(userId);
+      conversations = conversations.filter((conversation) => {
+        const participants = Array.isArray(conversation.participants) ? conversation.participants : [];
+        const others = participants
+          .map((participant) => Number(participant?.id))
+          .filter((id) => Number.isInteger(id) && id !== viewerId);
+        return others.length > 0 && others.every((id) => allowed.has(id));
+      });
+    }
     return res.json(conversations);
   } catch (error) {
     console.error('Error fetching conversations:', error);

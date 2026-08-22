@@ -160,3 +160,53 @@ describe('pre-existing protections still hold', () => {
     expect(strippedFields).toContain('lifestyle.sleepQuality');
   });
 });
+
+describe('category gating covers unlisted field spellings', () => {
+  // GLM 5.3, pre-push panel: the consent copy makes a CATEGORY claim while the
+  // first implementation enumerated PATHS. An unlisted variant would flow while
+  // the copy said it did not — the same drift class that let
+  // health.medicalConditions slip through earlier in this wave. Matching on key
+  // NAME at any depth is what actually keeps the category claim true.
+  it('strips sleep/stress/supplement keys the original path list never named', () => {
+    const { deIdentified } = deIdentify({
+      client: { id: 501, goals: ['x'] },
+      training: { level: 'intermediate' },
+      clientProfile: { sleep: 'poor', stress: 'high', supplements: ['zma'] },
+      wellness: { sleepQuality: 'bad', stressLevel: 9 },
+      health: { sleepHours: 4, stressScore: 8, supplementStack: ['creatine'] },
+      recovery: { nested: { sleepDebtHours: 12 } },
+    }, { clientId: 501 });
+
+    expect(deIdentified.clientProfile.sleep).toBeUndefined();
+    expect(deIdentified.clientProfile.stress).toBeUndefined();
+    expect(deIdentified.clientProfile.supplements).toBeUndefined();
+    expect(deIdentified.wellness.sleepQuality).toBeUndefined();
+    expect(deIdentified.wellness.stressLevel).toBeUndefined();
+    expect(deIdentified.health.sleepHours).toBeUndefined();
+    expect(deIdentified.health.stressScore).toBeUndefined();
+    expect(deIdentified.health.supplementStack).toBeUndefined();
+    expect(deIdentified.recovery.nested.sleepDebtHours).toBeUndefined();
+  });
+
+  it('never lets the category matcher eat training-safety data', () => {
+    const { deIdentified } = deIdentify({
+      client: { id: 501, goals: ['x'] },
+      training: { level: 'intermediate' },
+      health: {
+        injuries: ['left knee'],
+        currentPain: 7,
+        conditions: ['asthma'],
+        medicalConditions: ['hypertension'],
+      },
+      measurements: { weightKg: 82 },
+      painAndInjuries: [{ area: 'knee' }],
+    }, { clientId: 501 });
+
+    expect(deIdentified.health.injuries).toEqual(['left knee']);
+    expect(deIdentified.health.currentPain).toBe(7);
+    expect(deIdentified.health.conditions).toEqual(['asthma']);
+    expect(deIdentified.health.medicalConditions).toEqual(['hypertension']);
+    expect(deIdentified.measurements).toEqual({ weightKg: 82 });
+    expect(deIdentified.painAndInjuries).toEqual([{ area: 'knee' }]);
+  });
+});
