@@ -46,6 +46,7 @@ import { isNonDeductingClientSource } from '../../workspaces/clients-team/client
 import { resolveBrandIdentity } from '../../../../services/pdf/brandIdentity';
 import { CANONICAL_SURFACES } from '../../../../config/canonical-surface-names';
 import { StyledBox } from '@/components/ui/StyledBox';
+import { useFocusTrap } from '../../../../hooks/useFocusTrap';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Animations
@@ -141,14 +142,15 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
     return () => document.body.classList.remove('mobile-sidebar-open');
   }, [isMobileOpen, isMobile]);
 
-  useEffect(() => {
-    if (!isMobileOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && onToggleMobile) onToggleMobile();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [isMobileOpen, onToggleMobile]);
+  // Escape + Tab containment + initial focus + focus restore. Previously this
+  // was Escape only, so a keyboard user could Tab straight out of the open
+  // drawer into the page behind it and had no way back. Scroll-lock stays in
+  // the effect above; the hook deliberately does not own it.
+  const handleEscape = useCallback(() => {
+    if (onToggleMobile) onToggleMobile();
+  }, [onToggleMobile]);
+
+  useFocusTrap(sidebarRef, isMobileOpen && isMobile, { onEscape: handleEscape });
 
   const handleNav = useCallback((route: string) => {
     navigate(route);
@@ -189,8 +191,10 @@ const ClientStellarSidebar: React.FC<ClientStellarSidebarProps> = ({
         ref={sidebarRef}
         $collapsed={collapsed}
         $mobileOpen={isMobileOpen}
-        role="navigation"
+        role={isMobile && isMobileOpen ? 'dialog' : 'navigation'}
+        aria-modal={isMobile && isMobileOpen ? true : undefined}
         aria-label="Client navigation"
+        tabIndex={-1}
       >
         <SidebarHeader $collapsed={collapsed}>
           <LogoBrand>
