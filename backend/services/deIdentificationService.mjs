@@ -86,9 +86,11 @@ const GATED_HEALTH_PATHS = [
   'lifestyle.supplements',
   'lifestyle.sleep',
   'lifestyle.sleepQuality',
+  'lifestyle.sleepHours',
   'lifestyle.stress',
   'lifestyle.stressLevel',
   'wellness.sleep',
+  'wellness.sleepHours',
   'wellness.stress',
   'wellness.supplements',
 ];

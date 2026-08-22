@@ -14,13 +14,29 @@ import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, ShieldCheck, ShieldOff, Brain, Lock, Eye, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
-import { AI_CONSENT_VERSION } from '../../../../content/aiConsentCopy';
+import { AI_CONSENT_VERSION, AI_CONSENT_RECONSENT_PROMPT } from '../../../../content/aiConsentCopy';
 import {
   getConsentStatus,
   grantConsent,
   withdrawConsent,
   type ConsentStatusResponse,
 } from '../../../../services/aiConsentService';
+
+const ReconsentNotice = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 16px 0;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--warning-border, rgba(198, 168, 75, 0.4));
+  background: var(--warning-surface, rgba(198, 168, 75, 0.1));
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+
+  svg { color: var(--warning-accent, #C6A84B); flex-shrink: 0; margin-top: 2px; }
+`;
 
 // ── Animations ──────────────────────────────────────────────────────────────
 
@@ -458,7 +474,11 @@ const AiConsentScreen: React.FC = () => {
     try {
       setActionLoading(true);
       setError(null);
-      await grantConsent();
+      // Record the version of the disclosure the user actually read. Without
+      // this the backend defaults to its own CURRENT, so a grant against the
+      // corrected v2.0 text would have been stored indistinguishably from a
+      // v1.0 grant -- defeating the point of correcting the copy.
+      await grantConsent(AI_CONSENT_VERSION);
       await fetchStatus();
       showToast('Swan Coach consent granted successfully.');
     } catch (err: unknown) {
@@ -494,6 +514,14 @@ const AiConsentScreen: React.FC = () => {
   };
 
   const consentState = getConsentState();
+
+  // Owner decision Q5: v1.0 consents were captured under a description that
+  // overstated anonymity, so they are re-prompted rather than silently carried
+  // forward. Detection is a version comparison against the stored grant.
+  const needsReconsent =
+    consentState === 'granted'
+    && !!status?.profile?.consentVersion
+    && status.profile.consentVersion !== AI_CONSENT_VERSION;
 
   const formatDate = (dateStr: string | null | undefined): string => {
     if (!dateStr) return '—';
@@ -585,6 +613,13 @@ const AiConsentScreen: React.FC = () => {
             {consentState === 'none' && <><Shield size={14} /> Not Set</>}
           </StatusBadge>
         </StatusRow>
+
+        {needsReconsent && (
+          <ReconsentNotice role="status">
+            <AlertTriangle size={18} />
+            <div>{AI_CONSENT_RECONSENT_PROMPT}</div>
+          </ReconsentNotice>
+        )}
 
         {status?.profile && (
           <MetaGrid>

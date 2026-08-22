@@ -14,8 +14,16 @@ import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { evaluateWaiverVersionEligibility } from '../services/waivers/waiverVersionEligibilityService.mjs';
 
-const CURRENT_CONSENT_VERSION = '1.0';
-const VALID_CONSENT_VERSIONS = ['1.0'];
+// 2026-08-22 — v2.0 corrects the disclosure: v1.0 told users their identity was
+// "hidden" and they were "anonymous", while de-identification assigns a STABLE
+// pseudonym and forwards training, injury and medical-condition data. v1.0
+// consents were therefore captured under a materially inaccurate description of
+// processing. Both versions stay VALID so existing grants keep working, but
+// CURRENT advances so a stored 1.0 is detectable as stale and can be re-prompted
+// (owner decision Q5: re-consent all). Frontend copy lives in
+// frontend/src/content/aiConsentCopy.ts — the two MUST be bumped together.
+const CURRENT_CONSENT_VERSION = '2.0';
+const VALID_CONSENT_VERSIONS = ['1.0', '2.0'];
 
 function parsePositiveUserId(value) {
   const parsed = Number(value);

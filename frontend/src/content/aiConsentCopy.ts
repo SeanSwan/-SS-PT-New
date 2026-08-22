@@ -26,6 +26,13 @@
  * email/phone patterns anywhere in the payload. Everything else the caller
  * includes is forwarded.
  *
+ * CONSEQUENCE, and why the copy below is worded carefully: a denylist cannot
+ * promise "training-relevant data only". An unrecognised field, or a name typed
+ * into a free-text note, is forwarded. The copy therefore describes what IS
+ * sent and warns about notes, rather than claiming a guarantee the architecture
+ * does not provide. Replacing this with an outbound ALLOWLIST DTO is the real
+ * fix and is tracked separately -- until then, do not restore "only" wording.
+ *
  * REMOVED before anything leaves the server:
  *   supplements, sleep, stress  (GATED_HEALTH_PATHS, owner decision Q2 —
  *     restored only when COACH_HEALTH_FIELDS_ENABLED is set, which requires a
@@ -89,10 +96,11 @@ export const AI_CONSENT_PROTECTIONS: ReadonlyArray<{
     key: 'shared',
     title: 'What is shared.',
     body:
-      'Training-relevant information only: your goals, fitness level, measurements, ' +
-      'training history, exercise preferences, injury and pain history, and any ' +
-      'medical conditions that affect exercise — the last two so Swan Coach can ' +
-      'avoid programming that could hurt you.',
+      'Your goals, fitness level, measurements, training history, exercise ' +
+      'preferences, injury and pain history, and any medical conditions you have ' +
+      'recorded — the last two so Swan Coach can avoid programming that could ' +
+      'hurt you. Anything else you enter in a free-text note travels with it, so ' +
+      'avoid putting names, addresses or ID numbers in notes.',
     tone: 'disclose',
   },
   {

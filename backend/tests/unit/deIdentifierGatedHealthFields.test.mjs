@@ -83,6 +83,7 @@ describe('gated non-training health fields', () => {
 
     expect(deIdentified.health.supplements).toBeUndefined();
     expect(deIdentified.health.sleep).toBeUndefined();
+    expect(deIdentified.lifestyle?.sleepHours).toBeUndefined();
     expect(deIdentified.health.stress).toBeUndefined();
     expect(deIdentified.lifestyle?.stressLevel).toBeUndefined();
     expect(deIdentified.lifestyle?.sleepQuality).toBeUndefined();

@@ -236,7 +236,10 @@ describe('De-Identification Service', () => {
       const result = deIdentify(input);
 
       expect(result).not.toBeNull();
-      expect(result.deIdentified.lifestyle.sleepHours).toBe(7);
+      // sleepHours joined the gated set on 2026-08-22 after the pre-push panel
+      // (Sol) caught the consent copy claiming sleep is withheld while this
+      // field still shipped. Copy and code now agree: no sleep data is sent.
+      expect(result.deIdentified.lifestyle.sleepHours).toBeUndefined();
       expect(result.deIdentified.lifestyle.sleepQuality).toBeUndefined();
       expect(result.deIdentified.lifestyle.stressLevel).toBeUndefined();
     });
@@ -245,6 +248,7 @@ describe('De-Identification Service', () => {
       process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
       try {
         const result = deIdentify(createMasterPromptFixture());
+        expect(result.deIdentified.lifestyle.sleepHours).toBe(7);
         expect(result.deIdentified.lifestyle.sleepQuality).toBe('good');
         expect(result.deIdentified.lifestyle.stressLevel).toBe('moderate');
       } finally {

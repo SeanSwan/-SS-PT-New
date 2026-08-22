@@ -135,6 +135,25 @@ export async function loadConversationMembers(conversationId, actorId) {
   }
 }
 
+/**
+ * True when every participant id in the request body is an assigned
+ * counterparty. Vacuously true when the body carries none.
+ *
+ * Used by BOTH the create and conversation scopes: "who may I put in a thread"
+ * must be one rule, or the stricter scope is bypassable via the looser one.
+ */
+function assertRequestedParticipantsAllowed(req, counterparties, actorId) {
+  // adminIds is included deliberately: promoting an unrelated user to admin of a
+  // coach thread is the same escalation as adding them (Sol, pre-push panel).
+  const requested = [
+    ...(Array.isArray(req.body?.participantIds) ? req.body.participantIds : []),
+    ...(Array.isArray(req.body?.adminIds) ? req.body.adminIds : []),
+  ];
+  const ids = requested.map(toId).filter((id) => id && id !== actorId);
+  if (ids.length === 0) return true;
+  return ids.every((id) => counterparties.has(id));
+}
+
 /** requireTier-compatible 402 so the frontend paywall interceptor is unchanged. */
 function sendTierRequired(res, entitlement) {
   const { actualTier = 'free', effectiveTier = 'free', isTrial = false } = entitlement || {};
@@ -225,8 +244,9 @@ export function requireMessagingAccess({ scope = 'conversation' } = {}) {
           message: 'At least one participant is required.',
         });
       }
-      const allInside = ids.every((id) => counterparties.has(id));
-      if (!allInside) return sendOutsideRelationship(res);
+      if (!assertRequestedParticipantsAllowed(req, counterparties, actorId)) {
+        return sendOutsideRelationship(res);
+      }
       req.messagingAccessLane = 'relationship';
       return next();
     }
@@ -242,6 +262,19 @@ export function requireMessagingAccess({ scope = 'conversation' } = {}) {
 
     const allInside = membership.others.every((id) => counterparties.has(id));
     if (!allInside) return sendOutsideRelationship(res);
+
+    // Validate anyone being ADDED, not just who is already here.
+    //
+    // Found by the pre-push panel (DeepSeek v4 Flash and Qwen 3.8 independently).
+    // POST /conversations/:id/participants carries new users in the body. Without
+    // this check the membership test above passes trivially — the thread's only
+    // other member IS your assigned trainer — and the controller then adds an
+    // arbitrary stranger, handing them the full message history. Creating such a
+    // thread was already blocked by the `create` scope; adding to one was not,
+    // which made the create-scope restriction bypassable in two steps.
+    if (!assertRequestedParticipantsAllowed(req, counterparties, actorId)) {
+      return sendOutsideRelationship(res);
+    }
 
     req.messagingAccessLane = 'relationship';
     return next();
