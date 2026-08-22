@@ -113,6 +113,44 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
 }
 
 /**
+ * List the client ids a trainer is currently assigned to.
+ *
+ * The single-subject sibling of assertAssignmentOrAdmin, for the LIST case:
+ * a queue or roster that must be narrowed to a trainer's own clients cannot use
+ * a per-id check without an N+1. Added for SWA-192 P0-1 (the unscoped challenge
+ * moderation queue). It lives here, on the canonical boundary, deliberately —
+ * the repo already carries three different shapes of this clamp and a fourth
+ * one written inline in a service would be the actual architectural problem.
+ *
+ * Fail-closed, matching assertAssignmentOrAdmin: any failure — missing model,
+ * query throw, malformed cache — returns an EMPTY list, which callers must
+ * treat as "no access", never as "no filter".
+ *
+ * @param {number|string} trainerId
+ * @returns {Promise<number[]>} active assigned client ids; [] on any failure
+ */
+export async function listAssignedClientIds(trainerId) {
+  const requesterId = parseStrictPositiveInteger(trainerId);
+  if (!requesterId) return [];
+
+  try {
+    const Model = getModel('ClientTrainerAssignment');
+    const rows = await Model.findAll({
+      where: { trainerId: requesterId, status: 'active' },
+      attributes: ['clientId'],
+    });
+    return rows
+      .map((row) => parseStrictPositiveInteger(row?.clientId ?? row?.get?.('clientId')))
+      .filter(Boolean);
+  } catch (err) {
+    logger.warn('[verifyClientAccess] listAssignedClientIds failed - returning empty roster', {
+      trainerId, error: err?.message,
+    });
+    return [];
+  }
+}
+
+/**
  * L5 (2026-05-02) - Fresh DB read of the per-client `canGenerateWorkoutPlans`
  * flag. JWT-based reads are explicitly NOT acceptable here: an admin who
  * revokes a client's flag in the middle of an active session must take

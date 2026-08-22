@@ -1,4 +1,5 @@
 import { Op } from '../../database.mjs';
+import { assertAssignmentOrAdmin, listAssignedClientIds } from '../../middleware/verifyClientAccess.mjs';
 import {
   ChallengeCreationValidationError,
   buildChallengeCreatePayload,
@@ -195,14 +196,61 @@ export async function createClientChallengeSubmission({ models = {}, viewer, bod
   };
 }
 
-export async function getManagedChallengeSubmissionQueue({ models = {}, limit = 25 } = {}) {
+/**
+ * Resolve the submitter-id predicate for a viewer (SWA-192 P0-1).
+ *
+ * Returns `null` for a global (admin) scope, or a `{ [Op.in]: ids }` predicate
+ * for a trainer. FAIL-CLOSED: an absent or non-staff viewer, or a trainer with
+ * an empty roster, yields an empty id list — never an absent filter. A caller
+ * that forgets to pass the viewer must get NOTHING, not everything.
+ */
+/**
+ * Assignment gate for a single submission (SWA-192 P0-1). Admins pass. A trainer
+ * passes only if the submitter is on their active roster right now. Fail-closed:
+ * a submission whose submitter cannot be determined is refused, because an
+ * unattributable row cannot be proven to belong to this trainer.
+ */
+const assertViewerMayModerate = async (viewer, submission) => {
+  if (viewer?.role === 'admin') return;
+  const submitterId = submission?.submittedByUserId ?? submission?.get?.('submittedByUserId');
+  const allowed = submitterId
+    ? await assertAssignmentOrAdmin(viewer?.id, viewer?.role, submitterId)
+    : false;
+  if (!allowed) fail('You are not assigned to the client who made this submission', 403);
+};
+
+const resolveSubmitterScope = async (viewer) => {
+  if (viewer?.role === 'admin') return null;
+  if (viewer?.role !== 'trainer' || !viewer?.id) return { ids: [] };
+  const ids = await listAssignedClientIds(viewer.id);
+  return { ids };
+};
+
+export async function getManagedChallengeSubmissionQueue({ models = {}, viewer = null, limit = 25 } = {}) {
   const ChallengeSubmission = models.ChallengeSubmission;
   if (!ChallengeSubmission?.findAll) return closedQueue();
+
+  // Scope BEFORE any query. This function previously accepted no viewer at all,
+  // so `requireTrainer` on the route was the only gate — a ROLE check, which
+  // let every trainer read every other trainer's clients' submissions, with
+  // those clients named via the `submittedBy` include below.
+  const scope = await resolveSubmitterScope(viewer);
+  if (scope && scope.ids.length === 0) {
+    return {
+      submissions: [],
+      queueStatus: 'empty',
+      policy: { ...freshPolicy(), clientCreation: 'disabled_by_default' },
+      message: queueMessage(0),
+    };
+  }
 
   try {
     const safeLimit = Number.isInteger(limit) && limit > 0 ? Math.min(limit, 100) : 25;
     const submissions = await ChallengeSubmission.findAll({
-      where: { status: { [Op.in]: REVIEWABLE_STATUSES } },
+      where: {
+        status: { [Op.in]: REVIEWABLE_STATUSES },
+        ...(scope ? { submittedByUserId: { [Op.in]: scope.ids } } : {}),
+      },
       order: [['submittedAt', 'ASC']],
       limit: safeLimit,
       include: [{
@@ -241,6 +289,15 @@ export async function moderateManagedChallengeSubmission({
       ? requireActionReviewNotes(reviewNotes, REQUEST_CHANGES_NOTES_REQUIRED_MESSAGE)
       : null;
   const submission = await loadSubmission({ models, submissionId, transaction });
+
+  // SUBJECT GATE (SWA-192 P0-1). assertStaffViewer above is a ROLE check; it
+  // never asked WHOSE submission this is. Re-check assignment here, INSIDE the
+  // moderation transaction and against the row we actually loaded — not against
+  // whatever the queue showed the trainer earlier. That closes the
+  // time-of-check/time-of-use window where a trainer is unassigned between
+  // opening the queue and clicking approve.
+  await assertViewerMayModerate(viewer, submission);
+
   assertReviewable(submission, normalizedAction);
 
   if (normalizedAction === 'start_review') {

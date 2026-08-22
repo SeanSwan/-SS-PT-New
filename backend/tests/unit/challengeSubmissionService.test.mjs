@@ -63,8 +63,11 @@ describe('challenge submission service', () => {
       }),
     ]);
 
+    // viewer is now REQUIRED — the queue fails closed to empty without one
+    // (SWA-192 P0-1). Admin preserves this test's original global-scope intent.
     const queue = await getManagedChallengeSubmissionQueue({
       models: { ChallengeSubmission: { findAll } },
+      viewer: { id: 1, role: 'admin' },
       limit: 10,
     });
 
@@ -106,6 +109,7 @@ describe('challenge submission service', () => {
   it('fails closed when submission storage errors instead of crashing the dashboard queue', async () => {
     const queue = await getManagedChallengeSubmissionQueue({
       models: { ChallengeSubmission: { findAll: vi.fn().mockRejectedValue(new Error('relation missing')) } },
+      viewer: { id: 1, role: 'admin' },
     });
 
     expect(queue).toMatchObject({

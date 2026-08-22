@@ -70,7 +70,12 @@ const challengeSubmissionController = {
 
   getManagedChallengeSubmissions: async (req, res) => {
     try {
-      const queue = await getManagedChallengeSubmissionQueue({ models: getAllModels() });
+      // req.user is REQUIRED, not optional: the service fails closed to an empty
+      // queue without it. Omitting it here is what made the queue global.
+      const queue = await getManagedChallengeSubmissionQueue({
+        models: getAllModels(),
+        viewer: req.user,
+      });
       return res.status(200).json({
         success: true,
         ...queue,

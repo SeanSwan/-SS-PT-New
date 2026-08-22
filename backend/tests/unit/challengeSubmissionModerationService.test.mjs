@@ -6,7 +6,23 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { moderateManagedChallengeSubmission } from '../../services/gamification/challengeSubmissionService.mjs';
+
+// SWA-192 P0-1: moderation now re-checks that the viewer is assigned to the
+// SUBMITTER, inside the transaction. This file's subject is state transitions,
+// not authorization, so the boundary is stubbed to ALLOW and the assignment
+// gate itself is covered by challengeSubmissionQueueScope.test.mjs. Without
+// this stub the real helper runs, fails closed on an absent model cache, and
+// every trainer case here 403s for a reason unrelated to what it is testing.
+vi.mock('../../middleware/verifyClientAccess.mjs', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    assertAssignmentOrAdmin: vi.fn(async () => true),
+    listAssignedClientIds: vi.fn(async () => [42]),
+  };
+});
+
+const { moderateManagedChallengeSubmission } = await import('../../services/gamification/challengeSubmissionService.mjs');
 
 const iso = '2026-06-30T12:00:00.000Z';
 const reviewNow = new Date('2026-06-30T15:00:00.000Z');
@@ -22,6 +38,9 @@ const makeSubmission = (overrides = {}) => ({
   archetype: 'consistency',
   proposalPayload: {},
   submittedAt: new Date(iso),
+  // Real rows always carry this (ChallengeSubmission.mjs: allowNull false); the
+  // fixture omitted it, which the SWA-192 assignment gate correctly refuses.
+  submittedByUserId: 42,
   submittedBy: {
     id: 42,
     firstName: 'Jane',
