@@ -7,7 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import styled from 'styled-components';
 import { useAuth } from '../../../context/AuthContext';
-import { useSubscription } from '../../../hooks/useSubscription';
+import { useMessagingCapabilities } from './useMessagingCapabilities';
 import { MessagingContainer } from './MessagingStyles';
 import ConversationListPanel from './ConversationListPanel';
 import MessageThread from './MessageThread';
@@ -23,11 +23,15 @@ const MessagingView: React.FC = () => {
 
   const reduxUser = useSelector((state: any) => state.auth?.user || state.user?.user);
   const { user: authUser } = useAuth();
-  const { isElite, loading: subscriptionLoading } = useSubscription();
   const user = authUser || reduxUser;
   const currentUserId = user?.id || null;
-  const isStaffRole = user?.role === 'admin' || user?.role === 'trainer';
-  const messagingEnabled = isStaffRole || isElite;
+  // Server truth, not a local recomputation. The previous expression tested a
+  // subscription tier as a stand-in for a coaching relationship and disagreed
+  // with the API in both directions — see useMessagingCapabilities for the
+  // full account. A guard in useMessaging.tierGate.test.ts prevents that
+  // expression from being reintroduced, so do not name it here verbatim.
+  const { capabilities, loading: capabilitiesLoading } = useMessagingCapabilities(!!currentUserId);
+  const messagingEnabled = capabilities.canMessageAssignedCoach;
 
   const {
     conversations,
@@ -52,7 +56,7 @@ const MessagingView: React.FC = () => {
     emitTyping,
     dismissError,
     pendingMessages,
-  } = useMessaging(currentUserId, { enabled: messagingEnabled && !subscriptionLoading });
+  } = useMessaging(currentUserId, { enabled: messagingEnabled && !capabilitiesLoading });
 
 
   // Auto-start or switch to conversation if ?composeTo= is in the URL
@@ -99,7 +103,7 @@ const MessagingView: React.FC = () => {
     await createConversation(request);
   }, [createConversation]);
 
-  if (!currentUserId || (subscriptionLoading && !isStaffRole)) {
+  if (!currentUserId || capabilitiesLoading) {
     return (
       <MessagingShell>
         <MessagingContainer>
@@ -113,7 +117,10 @@ const MessagingView: React.FC = () => {
     return (
       <MessagingShell>
         <MessagingContainer>
-          <CenteredMessage>SwanStudios messaging is available with Crystalline Swan access.</CenteredMessage>
+          <CenteredMessage>
+            Messaging opens up when you have an active trainer, or with
+            Crystalline Swan access for member-to-member chat.
+          </CenteredMessage>
         </MessagingContainer>
       </MessagingShell>
     );

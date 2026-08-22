@@ -50,7 +50,8 @@ vi.mock('../../config/tierCatalog.mjs', () => ({
   featureLabel: (k) => k,
 }));
 
-const { requireMessagingAccess } = await import('../../middleware/requireMessagingAccess.mjs');
+const { requireMessagingAccess, resolveMessagingCapabilities } =
+  await import('../../middleware/requireMessagingAccess.mjs');
 
 const CLIENT_ID = 501;
 const TRAINER_ID = 900;
@@ -272,5 +273,71 @@ describe('requireMessagingAccess', () => {
         .post('/conversations/42/messages').send({ content: 'hi' });
       expect(res.status).toBe(200);
     });
+  });
+});
+
+describe('resolveMessagingCapabilities (GET /api/messaging/capabilities)', () => {
+  // The endpoint must be computed by the SAME rules the gate enforces —
+  // a separately-derived answer is how the original divergence survived.
+  const req = (user) => ({ user });
+
+  it('reports the coach lane open and the community lane closed for a free client with a trainer', async () => {
+    resolveEntitlementMock.mockResolvedValue({ actualTier: 'free', effectiveTier: 'free', isTrial: false });
+    mockSql({ counterparties: [TRAINER_ID] });
+    await expect(resolveMessagingCapabilities(req(freeClient))).resolves.toEqual({
+      canMessageAssignedCoach: true,
+      canUseCommunityDirectMessages: false,
+    });
+  });
+
+  it('reports both lanes open for a subscriber with no assignment', async () => {
+    resolveEntitlementMock.mockResolvedValue({ actualTier: 'elite', effectiveTier: 'elite', isTrial: false });
+    mockSql({ counterparties: [] });
+    await expect(resolveMessagingCapabilities(req(freeClient))).resolves.toEqual({
+      canMessageAssignedCoach: true,
+      canUseCommunityDirectMessages: true,
+    });
+  });
+
+  it('reports both lanes open for a live trial, matching what the gate allows', async () => {
+    resolveEntitlementMock.mockResolvedValue({ actualTier: 'free', effectiveTier: 'elite', isTrial: true });
+    mockSql({ counterparties: [] });
+    await expect(resolveMessagingCapabilities(req(freeClient))).resolves.toEqual({
+      canMessageAssignedCoach: true,
+      canUseCommunityDirectMessages: true,
+    });
+  });
+
+  it('reports both closed for a free client with no assignment', async () => {
+    resolveEntitlementMock.mockResolvedValue({ actualTier: 'free', effectiveTier: 'free', isTrial: false });
+    mockSql({ counterparties: [] });
+    await expect(resolveMessagingCapabilities(req(freeClient))).resolves.toEqual({
+      canMessageAssignedCoach: false,
+      canUseCommunityDirectMessages: false,
+    });
+  });
+
+  it('reports both open for staff without touching the DB', async () => {
+    await expect(resolveMessagingCapabilities(req({ id: '900', role: 'trainer' }))).resolves.toEqual({
+      canMessageAssignedCoach: true,
+      canUseCommunityDirectMessages: true,
+    });
+    expect(queryMock).not.toHaveBeenCalled();
+  });
+
+  it('reports both closed when unauthenticated', async () => {
+    await expect(resolveMessagingCapabilities({ user: undefined })).resolves.toEqual({
+      canMessageAssignedCoach: false,
+      canUseCommunityDirectMessages: false,
+    });
+  });
+
+  it('agrees with the gate: capabilities false implies the gate denies', async () => {
+    resolveEntitlementMock.mockResolvedValue({ actualTier: 'free', effectiveTier: 'free', isTrial: false });
+    mockSql({ counterparties: [] });
+    const caps = await resolveMessagingCapabilities(req(freeClient));
+    const res = await request(appWith(freeClient, 'list')).get('/conversations');
+    expect(caps.canMessageAssignedCoach).toBe(false);
+    expect(res.status).toBe(402);
   });
 });

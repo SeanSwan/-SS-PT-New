@@ -46,6 +46,22 @@ vi.mock('react-redux', () => ({ useSelector: () => null }));
 vi.mock('../../../context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 7, role: 'admin' } }),
 }));
+// 2026-08-22 (Wave 1 Slice 2) — RE-ANCHORED. MessagingView no longer computes
+// entitlement from useSubscription; it reads server-issued capabilities. The
+// old stub returned isElite:false, which under the new wiring left the view
+// permanently in its loading branch and the composeTo effect never ran. This
+// stub grants access so these tests stay about ?composeTo= handling, which is
+// their actual subject. Access itself is covered by
+// useMessaging.capabilities.test.tsx and messagingRelationshipLane.test.mjs.
+vi.mock('./useMessagingCapabilities', () => ({
+  useMessagingCapabilities: () => ({
+    capabilities: { canMessageAssignedCoach: true, canUseCommunityDirectMessages: true },
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  }),
+}));
+
 vi.mock('../../../hooks/useSubscription', () => ({
   useSubscription: () => ({ isElite: false, loading: false }),
 }));

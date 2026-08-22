@@ -248,4 +248,42 @@ export function requireMessagingAccess({ scope = 'conversation' } = {}) {
   };
 }
 
+/**
+ * Resolve the two messaging capabilities for the authenticated actor, using the
+ * SAME rules the middleware enforces. Exported so `GET /api/messaging/
+ * capabilities` cannot drift from the gate it describes — a frontend that
+ * recomputes entitlement locally is how the original bug survived (the server
+ * treats a live trial as elite, the UI did not).
+ *
+ * @returns {Promise<{canMessageAssignedCoach:boolean, canUseCommunityDirectMessages:boolean}>}
+ */
+export async function resolveMessagingCapabilities(req) {
+  if (req.user?.role === 'admin' || req.user?.role === 'trainer') {
+    return { canMessageAssignedCoach: true, canUseCommunityDirectMessages: true };
+  }
+  if (!isGatingEnabled()) {
+    return { canMessageAssignedCoach: true, canUseCommunityDirectMessages: true };
+  }
+  if (!req.user) {
+    return { canMessageAssignedCoach: false, canUseCommunityDirectMessages: false };
+  }
+
+  let community = false;
+  try {
+    const entitlement = await resolveCurrentEntitlement(req);
+    community = meetsMinimumTier(entitlement.effectiveTier, COMMUNITY_MIN_TIER);
+  } catch {
+    community = false;
+  }
+
+  const counterparties = await loadAssignedCounterpartyIds(toId(req.user.id));
+  const hasRelationship = !!counterparties && counterparties.size > 0;
+
+  return {
+    // Community access implies the coach thread too.
+    canMessageAssignedCoach: community || hasRelationship,
+    canUseCommunityDirectMessages: community,
+  };
+}
+
 export default requireMessagingAccess;

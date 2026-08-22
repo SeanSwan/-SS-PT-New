@@ -32,7 +32,7 @@ vi.mock('../../../hooks/useSocket', () => ({
 
 const source = (file: string) => readFileSync(resolve(__dirname, file), 'utf8');
 
-describe('useMessaging tier gate', () => {
+describe('useMessaging access gate', () => {
   beforeEach(() => {
     Object.values(apiServiceMocks).forEach((mock) => mock.mockReset());
     socketMocks.emit.mockClear();
@@ -50,11 +50,29 @@ describe('useMessaging tier gate', () => {
     expect(socketMocks.emit).not.toHaveBeenCalled();
   });
 
-  it('passes the page-level tier decision into the live messaging hook', () => {
+  it('passes the page-level access decision into the live messaging hook', () => {
+    // 2026-08-22 (Wave 1 Slice 2) — RE-ANCHORED, not relaxed.
+    //
+    // This previously pinned the literal string
+    //   `const messagingEnabled = isStaffRole || isElite;`
+    // which froze the defect: `isElite` is a SUBSCRIPTION tier standing in for
+    // a COACHING relationship, so clients on training packages (tier stays
+    // 'free') were walled off from their trainer, while live trials were
+    // allowed by the API and blocked by the UI.
+    //
+    // The invariant this test actually exists to protect is the WIRING: the
+    // page-level decision must flow into useMessaging rather than the hook
+    // deciding for itself. That invariant is asserted below, now against the
+    // server-issued capability. Behavioral coverage of the decision itself is
+    // in useMessaging.capabilities.test.tsx and, server-side, in
+    // backend/tests/api/messagingRelationshipLane.test.mjs.
     const messagingViewSource = source('./MessagingView.tsx');
 
-    expect(messagingViewSource).toContain('const messagingEnabled = isStaffRole || isElite;');
-    expect(messagingViewSource).toContain('useMessaging(currentUserId, { enabled: messagingEnabled && !subscriptionLoading })');
+    expect(messagingViewSource).toContain('const messagingEnabled = capabilities.canMessageAssignedCoach;');
+    expect(messagingViewSource).toContain('useMessaging(currentUserId, { enabled: messagingEnabled && !capabilitiesLoading })');
+    // The frontend must not recompute entitlement locally ever again.
+    expect(messagingViewSource).not.toContain('isStaffRole || isElite');
+    expect(messagingViewSource).not.toContain("from '../../../hooks/useSubscription'");
   });
 
   it('returns raw live search arrays from the mounted hook as visible users', async () => {

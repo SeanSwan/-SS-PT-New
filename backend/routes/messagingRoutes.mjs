@@ -22,7 +22,10 @@ import {
   searchUsers,
 } from '../controllers/messagingController.mjs';
 import { protect } from '../middleware/auth.mjs';
-import { requireMessagingAccess } from '../middleware/requireMessagingAccess.mjs';
+import {
+  requireMessagingAccess,
+  resolveMessagingCapabilities,
+} from '../middleware/requireMessagingAccess.mjs';
 
 const router = Router();
 // Wave 1 Slice 1: relationship lane OR community (elite) lane.
@@ -79,6 +82,14 @@ router.get('/conversations/:id/messages', protect, messagingThread, getMessagesF
 
 // Send a message to a conversation (Crystalline+)
 router.post('/conversations/:id/messages', protect, messagingThread, sendMessage);
+
+// What this user may do. The frontend consumes this instead of recomputing
+// entitlement locally — recomputation is how the trial/paying-client
+// divergence survived. Intentionally ungated: it reports access, never grants.
+router.get('/capabilities', protect, async (req, res) => {
+  const capabilities = await resolveMessagingCapabilities(req);
+  return res.json({ success: true, ...capabilities });
+});
 
 // Search for users (open to all authenticated users)
 router.get('/users/search', protect, searchUsers);
