@@ -9,9 +9,10 @@ index for three repos and supersedes the per-repo handoffs written earlier the s
 
 **Then verify the world before trusting it.** A stale handoff nearly caused a duplicate rebuild this
 week; the check costs thirty seconds and is in §12 of that document. Expected: taste brain HEAD
-`4f4999d` with 38 checks passing, SwanGuard HEAD `670dccd`. **Docker was down at handoff**, so the
-SwanGuard database counts in §2.2 are last-known rather than current — start Docker and re-read them.
-If anything differs, another agent has moved things: re-orient before building.
+`b36697e` with 40 checks passing, SwanGuard HEAD `ea76189` on `merge/newsroom-mainline-v3`. The
+SwanGuard counts in §2.2 were re-read live on 2026-08-21 (later session) and matched; Docker must be
+running for `docker exec` to answer. If anything differs, another agent has moved things: re-orient
+before building.
 
 ## Pick your lane
 
@@ -22,18 +23,19 @@ Studio, fully specified in `docs/PROMPT-STUDIO-SPEC.md`. Start at slice S1 (brai
 no model and no network, and it now has real data behind it — 9,521 catalog entries, 4,340 artists,
 5,483 descriptions, 51 filter categories.
 
-**Lane B — SwanGuard-Newsroom (news / source trust).** Next slice is **A: sweep every comparison
-against `connectorKey`** for per-outlet blindness. Three such bugs surfaced this week, all by
-accident and none by deliberate sweep; one silently discarded every fetched item while reporting
-success. Do that **before** merging the 107 verified feeds, because enabling a hundred outlets on
-top of an unswept union-key bug multiplies silent data loss by a hundred.
+**Lane B — SwanGuard-Newsroom (news / source trust).** Slice A (the `connectorKey` sweep) is
+**done** at `ea76189`; a tripwire test now fails on any new literal-only comparison. Next is
+**slice B: merge the 107 verified feeds** from `config/verified-feed-candidates.json` — but first
+add a per-outlet listing: `listStatuses()` only enumerates the four literal definitions, so
+per-outlet connectors can be synced by direct URL but never *seen*. Batch-enabling 100+ outlets
+with no listing is not operable. The probe output has no `termsUrl`/`ownership`; supply both per
+outlet, and every entry needs a real terms URL.
 
-## Before you build anything
+## Already done — do not repeat
 
-**Delete the agent-written taste data.** `taste/loved-srefs.md` holds 2 ratings and `taste/kept.md`
-holds 3 kept prompts that an agent wrote, all marked `TEST DATA`. The kept ones steer roughly a
-quarter of every batch, so until they are gone the output is partly an agent's guess at Sean's taste
-rather than his.
+The agent-written taste data (2 ratings, 3 kept prompts marked `TEST DATA`) was deleted at
+`b36697e`. `taste/kept.md` now reads `(nothing kept yet …)`; `--keep` strips that line on the first
+real keep. If you see ratings or kept prompts, they are Sean's — leave them alone.
 
 ## Non-negotiables
 

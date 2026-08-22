@@ -8,6 +8,18 @@ their own repo but predate the catalog merge. **This document is the index.**
 > anything below. A stale handoff nearly caused a duplicate rebuild this week; verification costs
 > thirty seconds.
 
+> **ADDENDUM 2026-08-21 (later session, Claude Fable 5) — §9 steps 1 and 2 are DONE.**
+> - taste brain is now HEAD `b36697e` (was `4f4999d`): agent-written taste data deleted (rated 0,
+>   kept 0, confidence `themes-only`); kept-prompt parser scoped to `## Kept` (a `## Killed` entry
+>   would have re-entered generation as an exemplar — regression test verified failing→passing);
+>   `--stats` relabelled: `catalog entries 9521` / `article headings 407 (NOT a styles count)`.
+>   40/40 checks pass.
+> - SwanGuard is now HEAD `ea76189` (was `670dccd`): slice A connectorKey sweep complete — no
+>   remaining literal-only comparison in `apps/api/src`; tripwire test
+>   `officialConnectorKeyUnionSweep.test.ts` fails on any new one. §2.2 counts re-read LIVE
+>   (Docker up): 51 / 0 enabled / 39 / 10 / 1 state / 2 approvals — unchanged.
+> - Next: **slice B** (merge the 107 feeds). Two structural gaps found, not fixed, listed in §7.
+
 ---
 
 ## 1. Three repos moved. Know which is which.
@@ -221,8 +233,8 @@ confirmed live**, 2,951 items, zero overlap with the existing 39. `termsUrl` and
 
 | Slice | What | Why this order |
 |---|---|---|
-| **A** | sweep every `connectorKey` comparison | 3 bugs found by accident, 0 by sweep; enabling 100+ outlets on an unswept union bug multiplies silent loss by 100 |
-| **B** | merge the 107 feeds, enable in batches | after A |
+| **A** ✅ `ea76189` | sweep every `connectorKey` comparison | DONE — sweep found no fourth site; tripwire test guards against a new one |
+| **B** | merge the 107 feeds, enable in batches | after A. **Needs a per-outlet listing first:** `listStatuses()` only enumerates the four literal definitions, so per-outlet connectors are reachable by direct URL but never listed — batch-enabling 100+ outlets blind is not operable. Also: `apps/web` `OfficialConnectorKey` has no `news_rss` at all (no activation phrase), so the owner console cannot enable any news connector from the UI; the service layer is the only path today. |
 | **C** | W0 — wire `news` as a third `WikiSourceModule` | `intelligenceWiki.ts` accepts only comment_intel / influence_intel; one line between "has a wiki" and "fed by the world" |
 | **D** | W1 claim extraction | first step to scoring; doc 267 §4 governs the licence boundary |
 
