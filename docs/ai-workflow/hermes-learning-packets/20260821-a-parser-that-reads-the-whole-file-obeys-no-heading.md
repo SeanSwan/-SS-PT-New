@@ -30,6 +30,13 @@ Picked up the 2026-08-21 master handoff. §9 prescribed two no-decision actions:
 placeholder taste data in the prompt generator, then deliberately sweep SwanGuard's connector runtime for
 the fourth instance of a per-outlet-key bug that had already been found three times by accident.
 
+> **CORRECTION (same day, after the hostile panel ran — see the 2026-08-22 packet):** two claims in
+> this packet were overturned. (a) "Deleted the agent-written taste data" — deleted from git only; the
+> prior export had already carried it into the Hermes brain-vault, where it stayed until re-export +
+> index rebuild. A git deletion does not retract an export. (b) "Tripwire fails on any new one" — it
+> scanned one of four source roots and three of eight bug shapes. Both were fixed; the lessons below
+> stand, but read them knowing the author over-claimed the same day he wrote them.
+
 ## The transferable lessons
 
 **1. A sectioned markdown file is only a contract if the parser honours the sections.** `taste/kept.md`
