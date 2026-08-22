@@ -27,6 +27,7 @@ import express from "express";
 import { protect, adminOnly, trainerOrAdminOnly } from "../middleware/authMiddleware.mjs";
 import unifiedSessionService from "../services/sessions/session.service.mjs";
 import { resolveBlockedTimeSubject } from "../services/sessions/sessionBlockAuthorization.mjs";
+import { assertAssignmentOrAdmin } from "../middleware/verifyClientAccess.mjs";
 import ConflictService from "../services/conflictService.mjs";
 import trainerAssignmentService from "../services/TrainerAssignmentService.mjs";
 import Session from "../models/Session.mjs";
@@ -200,11 +201,59 @@ router.post("/check-conflicts", protect, trainerOrAdminOnly, async (req, res) =>
       });
     }
 
+    // SUBJECT SCOPE (SWA-192 P0-3). This route used to hand body-supplied
+    // trainerId/clientId straight to ConflictService, so any authenticated
+    // trainer could probe any other trainer's calendar by id — and the reply
+    // named the conflicting client (see the identity strip below). The role
+    // gate above checks WHAT the caller is, never WHICH subject they asked for.
+    //
+    // DELIBERATE DIVERGENCE from the sibling POST /block clamp
+    // (resolveBlockedTimeSubject, imported above): that helper THROWS when a
+    // trainer names another trainer, because /block WRITES to a calendar and a
+    // mismatch there can only be abuse. This route only READS, and it is on the
+    // UMS drag-drop path — DragDropManager forwards `drop.trainerId`. Throwing
+    // would turn a mis-scoped drag into a visible failure for a paying trainer
+    // mid-session, which is a worse outcome than the leak being closed here.
+    // So: clamp to self and LOG the mismatch. No foreign calendar is ever
+    // queried either way; the log gives us the real-traffic evidence needed
+    // before deciding whether this can be tightened to a hard deny.
+    const requestedTrainerId = trainerId === undefined || trainerId === null || trainerId === ''
+      ? null
+      : Number(trainerId);
+    const isAdmin = req.user?.role === 'admin';
+    const subjectTrainerId = isAdmin ? requestedTrainerId : Number(req.user?.id);
+
+    if (!isAdmin && requestedTrainerId !== null && requestedTrainerId !== subjectTrainerId) {
+      logger.warn(
+        '[Sessions] check-conflicts subject clamped: actor %s requested trainer %s',
+        req.user?.id,
+        requestedTrainerId,
+      );
+    }
+
+    // A trainer may only ask about a client they are actually assigned to.
+    // Admins bypass. assertAssignmentOrAdmin is the canonical boundary
+    // (backend/middleware/verifyClientAccess.mjs) — not a new one.
+    if (clientId !== undefined && clientId !== null && clientId !== '') {
+      const allowed = await assertAssignmentOrAdmin(req.user?.id, req.user?.role, clientId);
+      if (!allowed) {
+        logger.warn('[Sessions] check-conflicts DENIED: actor %s not assigned to client %s', req.user?.id, clientId);
+        return res.status(403).json({
+          success: false,
+          code: 'CLIENT_ACCESS_DENIED',
+          message: 'You are not assigned to this client.'
+        });
+      }
+    }
+
     const conflicts = await ConflictService.checkConflicts({
       startTime,
       endTime,
-      trainerId,
+      trainerId: subjectTrainerId,
       clientId,
+      // Safe to pass through unchanged: the query is now clamped to the caller's
+      // own calendar, so excluding an id that is not theirs is a no-op and
+      // cannot be used as an existence oracle.
       excludeSessionId
     });
 
@@ -213,11 +262,22 @@ router.post("/check-conflicts", protect, trainerOrAdminOnly, async (req, res) =>
     const alternatives = hasHardConflicts
       ? await ConflictService.findAlternatives({
           date: startTime,
-          trainerId,
+          trainerId: subjectTrainerId,
           duration: duration || 60
         })
       : [];
 
+    // NOTE on identity in the payload. conflictService attaches
+    // `conflictingSession.clientName` (conflictService.mjs:22,131,160) and the
+    // audit recommended stripping it. That recommendation assumed the caller
+    // could reach ANOTHER trainer's calendar — which was the actual defect, and
+    // is closed above by the clamp plus the assignment check. With the subject
+    // clamped to the caller, every name in this payload belongs to the caller's
+    // own client, which they are entitled to see. Stripping it here would break
+    // Conflicts/ConflictPanel.logic.ts:41 (it de-duplicates on
+    // `conflict.conflictingSession?.clientName`) and would replace the useful
+    // "you already have <client> at 17:00" with an unactionable
+    // "slot unavailable". The leak was the SCOPE, not the field.
     return res.status(200).json({
       success: true,
       hasConflicts: conflicts.length > 0,
