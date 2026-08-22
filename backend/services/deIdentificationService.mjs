@@ -68,9 +68,9 @@ const DIRECT_IDENTIFIER_PATHS = [
  *
  *   DENIED here      — conditions, supplements, sleep, stress. Sensitive, and
  *                      not required to program a session.
- *   NOT denied       — injuries, pain, measurements. These are TRAINING-SAFETY
- *                      data: without them Swan Coach cannot avoid a movement
- *                      that is contraindicated for this client. Removing them
+ *   NOT denied       — injuries, pain, measurements, medical conditions. These
+ *                      are TRAINING-SAFETY data: without them Swan Coach cannot
+ *                      avoid a movement that is contraindicated for this client. Removing them
  *                      would trade a privacy risk for a physical one. They are
  *                      disclosed to the user in aiConsentCopy.ts instead.
  *
@@ -79,12 +79,9 @@ const DIRECT_IDENTIFIER_PATHS = [
  * frontend/src/content/aiConsentCopy.ts and re-consent before enabling.
  */
 const GATED_HEALTH_PATHS = [
-  'health.conditions',
-  'health.medicalConditions',
   'health.supplements',
   'health.sleep',
   'health.stress',
-  'clientProfile.medicalConditions',
   'clientProfile.supplements',
   'lifestyle.supplements',
   'lifestyle.sleep',
@@ -105,6 +102,15 @@ export const TRAINING_SAFETY_PATHS = Object.freeze([
   'health.injuries',
   'health.pain',
   'health.currentPain',
+  // Medical conditions joined this list on 2026-08-22 after the dry loop caught
+  // the first cut of this gate stripping them. `aiPrivacy.test.mjs` had already
+  // labelled them "safety-critical" with a `mild asthma` fixture, and it is
+  // right: asthma, cardiac conditions and diabetes change what can be safely
+  // programmed. Gating them was the same mistake as gating injuries would have
+  // been — a privacy risk traded for a physical one.
+  'health.conditions',
+  'health.medicalConditions',
+  'clientProfile.medicalConditions',
   'measurements',
   'clientProfile.measurements',
 ]);

@@ -218,14 +218,38 @@ describe('De-Identification Service', () => {
       expect(result.deIdentified.health.injuries).toEqual(['left knee ACL repair 2023']);
     });
 
-    it('should preserve safe lifestyle fields', () => {
+    it('should preserve safe lifestyle fields, minus the owner-gated ones', () => {
+      // 2026-08-22 (Wave 1 Slice 5) — RE-ANCHORED, deliberately narrowed.
+      //
+      // sleepQuality and stressLevel are now default-DENIED behind
+      // COACH_HEALTH_FIELDS_ENABLED (owner decision Q2: no health fields to the
+      // LLM provider until counsel signs off). They are recovery-relevant but
+      // not acutely safety-critical, so unlike injuries, pain and medical
+      // conditions they did NOT survive the split.
+      //
+      // COST, recorded so it is not rediscovered as a bug: Swan Coach can no
+      // longer see sleep or stress, which degrades recovery-aware programming
+      // and readiness inference. Flip the env flag to restore, and bump
+      // AI_CONSENT_VERSION when doing so — enabling it changes what users were
+      // told. sleepHours is NOT gated and is asserted below unchanged.
       const input = createMasterPromptFixture();
       const result = deIdentify(input);
 
       expect(result).not.toBeNull();
       expect(result.deIdentified.lifestyle.sleepHours).toBe(7);
-      expect(result.deIdentified.lifestyle.sleepQuality).toBe('good');
-      expect(result.deIdentified.lifestyle.stressLevel).toBe('moderate');
+      expect(result.deIdentified.lifestyle.sleepQuality).toBeUndefined();
+      expect(result.deIdentified.lifestyle.stressLevel).toBeUndefined();
+    });
+
+    it('restores the gated lifestyle fields when counsel has signed off', () => {
+      process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
+      try {
+        const result = deIdentify(createMasterPromptFixture());
+        expect(result.deIdentified.lifestyle.sleepQuality).toBe('good');
+        expect(result.deIdentified.lifestyle.stressLevel).toBe('moderate');
+      } finally {
+        delete process.env.COACH_HEALTH_FIELDS_ENABLED;
+      }
     });
 
     it('should not mutate the original input', () => {

@@ -9,13 +9,21 @@
  * Owner decision Q2 (2026-08-22): health fields stay off until counsel signs
  * off. Owner decision, same day: SPLIT the set rather than deny it wholesale.
  *
- *   DENIED by default  — conditions, supplements, sleep, stress
- *   NEVER denied       — injuries, pain, measurements (training safety: without
- *                        them Coach cannot avoid a contraindicated movement)
+ *   DENIED by default  — supplements, sleep, stress
+ *   NEVER denied       — injuries, pain, measurements, medical conditions
+ *                        (training safety: without them Coach cannot avoid a
+ *                        contraindicated movement)
+ *
+ * Medical conditions moved to the protected side on 2026-08-22, during the dry
+ * loop. The first cut of this gate denied them, which broke an assertion in
+ * aiPrivacy.test.mjs that had already labelled them "safety-critical" with a
+ * `mild asthma` fixture. That test was right: asthma, cardiac conditions and
+ * diabetes change what can be safely programmed. Gating them was the same
+ * mistake as gating injuries would have been.
  *
  * These tests pin BOTH halves. The second half matters most: a future edit that
- * "tightens privacy" by adding injuries to the gated list would silently make
- * Swan Coach unsafe, and must fail here instead.
+ * "tightens privacy" by adding injuries or conditions to the gated list would
+ * silently make Swan Coach unsafe, and must fail here instead.
  */
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -70,10 +78,9 @@ describe('gated non-training health fields', () => {
     expect(areGatedHealthFieldsEnabled()).toBe(false);
   });
 
-  it('withholds conditions, supplements, sleep and stress by default', () => {
+  it('withholds supplements, sleep and stress by default', () => {
     const { deIdentified } = deIdentify(fullClientPayload(), { clientId: 501 });
 
-    expect(deIdentified.health.conditions).toBeUndefined();
     expect(deIdentified.health.supplements).toBeUndefined();
     expect(deIdentified.health.sleep).toBeUndefined();
     expect(deIdentified.health.stress).toBeUndefined();
@@ -98,7 +105,6 @@ describe('gated non-training health fields', () => {
     process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
     const { deIdentified } = deIdentify(fullClientPayload(), { clientId: 501 });
 
-    expect(deIdentified.health.conditions).toEqual(['hypertension']);
     expect(deIdentified.health.supplements).toEqual(['creatine']);
   });
 });
@@ -113,6 +119,8 @@ describe('training-safety data is NOT gated', () => {
     expect(deIdentified.health.injuries).toEqual(['left knee']);
     expect(deIdentified.health.currentPain).toBe(7);
     expect(deIdentified.measurements).toEqual({ weightKg: 82, bodyFatPct: 18 });
+    // Safety-critical: asthma/cardiac/diabetes change what can be programmed.
+    expect(deIdentified.health.conditions).toEqual(['hypertension']);
   });
 
   it('declares the protected paths so a future edit has to argue with the list', () => {
@@ -120,6 +128,9 @@ describe('training-safety data is NOT gated', () => {
     expect(TRAINING_SAFETY_PATHS).toContain('health.injuries');
     expect(TRAINING_SAFETY_PATHS).toContain('health.currentPain');
     expect(TRAINING_SAFETY_PATHS).toContain('measurements');
+    // Added after the dry loop caught the first cut stripping them.
+    expect(TRAINING_SAFETY_PATHS).toContain('health.medicalConditions');
+    expect(TRAINING_SAFETY_PATHS).toContain('health.conditions');
     expect(Object.isFrozen(TRAINING_SAFETY_PATHS)).toBe(true);
   });
 });
@@ -144,7 +155,7 @@ describe('pre-existing protections still hold', () => {
 
   it('records gated removals in strippedFields for the audit trail', () => {
     const { strippedFields } = deIdentify(fullClientPayload(), { clientId: 501 });
-    expect(strippedFields).toContain('health.conditions');
     expect(strippedFields).toContain('health.supplements');
+    expect(strippedFields).toContain('lifestyle.sleepQuality');
   });
 });

@@ -236,11 +236,11 @@ const ConsentSection: React.FC<ConsentSectionProps> = ({ data, updateData }) => 
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><Eye size={16} /></ProtectionIcon>
-            <div><strong>Removed before sending.</strong> Your name, email, phone, address, date of birth, insurance details, occupation, medications, surgeries, and doctor names are stripped before anything reaches the provider.</div>
+            <div><strong>Removed before sending.</strong> Your name, email, phone, address, date of birth, insurance details, occupation, medications, surgeries, doctor names, supplements, sleep, and stress data are stripped before anything reaches the provider.</div>
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><Lock size={16} /></ProtectionIcon>
-            <div><strong>What is shared.</strong> Training-relevant information only: goals, fitness level, measurements, training history, exercise preferences, and injury and pain history — so Swan Coach can avoid programming that could hurt you.</div>
+            <div><strong>What is shared.</strong> Training-relevant information only: goals, fitness level, measurements, training history, exercise preferences, injury and pain history, and medical conditions that affect exercise — so Swan Coach can avoid programming that could hurt you.</div>
           </ProtectionItem>
           <ProtectionItem>
             <ProtectionIcon><ShieldCheck size={16} /></ProtectionIcon>

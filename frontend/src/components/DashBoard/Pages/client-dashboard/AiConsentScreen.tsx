@@ -649,7 +649,7 @@ const AiConsentScreen: React.FC = () => {
           </PrivacyItem>
           <PrivacyItem>
             <PrivacyIcon $color="#10b981"><Eye size={18} /></PrivacyIcon>
-            <div><strong>What is shared.</strong> Training-relevant information only — goals, fitness level, measurements, training history, exercise preferences, and injury and pain history, so Swan Coach can avoid programming that could hurt you. Medications, surgeries, occupation, date of birth, and insurance details are never sent.</div>
+            <div><strong>What is shared.</strong> Training-relevant information only — goals, fitness level, measurements, training history, exercise preferences, injury and pain history, and medical conditions that affect exercise, so Swan Coach can avoid programming that could hurt you. Medications, surgeries, occupation, date of birth, insurance details, supplements, sleep, and stress data are never sent.</div>
           </PrivacyItem>
           <PrivacyItem>
             <PrivacyIcon $color="#10b981"><Lock size={18} /></PrivacyIcon>

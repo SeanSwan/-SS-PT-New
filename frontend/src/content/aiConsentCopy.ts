@@ -27,6 +27,9 @@
  * includes is forwarded.
  *
  * REMOVED before anything leaves the server:
+ *   supplements, sleep, stress  (GATED_HEALTH_PATHS, owner decision Q2 —
+ *     restored only when COACH_HEALTH_FIELDS_ENABLED is set, which requires a
+ *     consent-version bump because it changes what users were told)
  *   name / preferredName / firstName / lastName / fullName
  *   contact block — email, phone, address, city, state, zip, emergency contact
  *   dateOfBirth / dob, bloodType, ssn, insuranceId, insuranceProvider
@@ -36,7 +39,8 @@
  *
  * FORWARDED (this is the honest part the old copy omitted):
  *   a stable `Client #<id>` label, goals, fitness level, measurements,
- *   training history, exercise preferences, and injury / pain history
+ *   training history, exercise preferences, injury / pain history, and
+ *   exercise-relevant medical conditions
  *
  * The stability of the pseudonym is the material fact: sessions link to one
  * another, so this is de-identification, not anonymization.
@@ -77,7 +81,8 @@ export const AI_CONSENT_PROTECTIONS: ReadonlyArray<{
     body:
       'Your name, email, phone, address, date of birth, blood type, insurance details, ' +
       'occupation and employer, medications, surgeries, and any doctor names are ' +
-      'stripped before anything reaches the Swan Coach provider.',
+      'stripped before anything reaches the Swan Coach provider. Supplements, sleep ' +
+      'and stress data are also withheld.',
     tone: 'protect',
   },
   {
@@ -85,8 +90,9 @@ export const AI_CONSENT_PROTECTIONS: ReadonlyArray<{
     title: 'What is shared.',
     body:
       'Training-relevant information only: your goals, fitness level, measurements, ' +
-      'training history, exercise preferences, and injury and pain history — the last ' +
-      'of these so Swan Coach can avoid programming that could hurt you.',
+      'training history, exercise preferences, injury and pain history, and any ' +
+      'medical conditions that affect exercise — the last two so Swan Coach can ' +
+      'avoid programming that could hurt you.',
     tone: 'disclose',
   },
   {
@@ -113,8 +119,9 @@ export const AI_CONSENT_DISCLOSURE =
   'fitness profile through a Swan Coach provider to generate personalized workout ' +
   'plans. Direct identifiers — your name, contact details, date of birth, insurance ' +
   'information, medications, surgeries, and physician names — are removed before ' +
-  'transmission. Training-relevant data, including your goals, measurements, and ' +
-  'injury and pain history, is sent alongside a stable client ID. Because that ' +
+  'transmission. Training-relevant data, including your goals, measurements, ' +
+  'injury and pain history, and medical conditions that affect exercise, is sent ' +
+  'alongside a stable client ID. Because that ' +
   'identifier is stable, this is de-identified processing rather than anonymous ' +
   'processing. You may withdraw consent at any time from the Swan Coach Privacy & ' +
   'Consent page in your dashboard; withdrawal stops future processing but does not ' +
