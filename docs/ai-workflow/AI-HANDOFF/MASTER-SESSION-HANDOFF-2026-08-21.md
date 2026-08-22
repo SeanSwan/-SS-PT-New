@@ -88,7 +88,7 @@ comment_extracted_claims   0 · comment_claim_fact_checks 0 · influence_wiki_fa
 ```
 
 Re-verify with §12 (the query there now emits every number above). Branch
-`merge/newsroom-mainline-v3`, HEAD `9cfcb9b`, 2 untracked `.bak` files (pre-existing).
+`merge/newsroom-mainline-v3`, HEAD `5fd3450`, 2 untracked `.bak` files (pre-existing).
 
 ### 2.3 SS-PT
 
@@ -138,7 +138,9 @@ before auditing anything here.
 | `e54c9c0` | 2026-08-22: contract doc — GET /outlets documented, family list corrected |
 | `0622ca8` | 2026-08-22: B0 adversarial round (quota bounds, key leakage, dupes) |
 | `1d6b8e2` | 2026-08-22: B1a — dead news card fixed; read-only outlet listing in the console |
-| **`9cfcb9b`** | **2026-08-22: B1a scale round (146 outlets)** — current |
+| `9cfcb9b` | 2026-08-22: B1a scale round (146 outlets) |
+| `366d6ab` | 2026-08-22: kill-switch store — a read must not write (10 queries → 1) |
+| **`5fd3450`** | **2026-08-22: B1b — batch enable/disable, one confirm, per-outlet ledger** — current |
 
 **SS-PT:** `5ac95ebda` — `scripts/swan-brain.mjs` + reference doc + CLAUDE.md/AGENTS.md pointers.
 
@@ -283,7 +285,8 @@ confirmed live**, 2,951 items, zero overlap with the existing 39. `termsUrl` and
 | **A** ✅ `c212d41` | sweep every `connectorKey` comparison | DONE — no fourth site in api/web/domain/database; lexical tripwire (8 shapes, 4 roots, self-tested) guards against a new one |
 | **B0** ✅ `0622ca8` | per-outlet listing — DONE, but **not** by widening `listStatuses()`. That array is the console's family wall (one activation-phrase card each); 146 outlet cards would bury the four family controls. Instead: new `listOutletStatuses()` + `GET /api/owner/official-connectors/outlets`, and `listStatuses()` batched in place. Read cost is constant in outlet count (approvals + kill switches + states + registry, one each); `store.listStates()` added. Live-Postgres verified against the real 39-outlet registry. | prerequisite met — outlets are now listable |
 | **B1a** ✅ `9cfcb9b` | owner console truth: `OfficialConnectorKey` mirrors the API (4 families + per-outlet template), `news_rss` activation phrase added — **the news card was a DEAD CONTROL**: correct phrase typed, button stayed disabled, no explanation. Phrase map now typed `Record<FamilyKey,…>` so a forgotten family is a compile error. Read-only `NewsOutletConnectorsPanel` consuming `GET /outlets`, loaded on its own status. | a live-surface defect, plus the review surface B2/B3 need |
-| **B1b** | per-outlet ENABLE from the console — batch semantics, confirm step, no per-row one-click | deliberately NOT in B1a; a per-row button is how 107 outlets get enabled one careless click at a time |
+| **B1b** ✅ `5fd3450` | per-outlet batch enable/disable — selection + one phrase + one confirm, sequential per-key PUTs, per-outlet result ledger that cannot round a partial batch up. No per-row switch. **But see the boxed finding above: this console is not in the production bundle.** | done as code; not yet reachable by a user |
+| **B2** | re-probe the 107 candidates, define the overlap criterion, supply `termsUrl` + `ownership` per outlet | data + licence work; unchanged |
 | **B2** | re-probe the 107 candidates (liveness decays; the probe has no date), define the overlap criterion (the "zero overlap" claim was by feed URL string, not by outlet or content), supply `termsUrl` + `ownership` per outlet | data work; the licence posture is the terms URL, not decoration |
 | **B3** | merge the 107 into `config/owner-news-sources.json` (born dormant), enable in batches with a retention/volume budget ALREADY set (§10 #5 moved here from "before W3") | only after B0–B2 |
 | **C** | W0 — wire `news` as a third `WikiSourceModule` | `intelligenceWiki.ts` accepts only comment_intel / influence_intel. Not "one line" (panel): module interface + ingestion mapping + test |
@@ -333,10 +336,31 @@ Doc: `docs/ai-workflow/references/SWAN-BRAIN-QUERY.md`.
 `ownerEmailHash`, so an owner is one sign-in away. The dev DB holding a single `member` row (live
 verified) does not gate console work; the earlier note implied it did.
 
+> ### [!] THE OWNER CONSOLE IS NOT IN THE PRODUCTION BUNDLE (found 2026-08-22 during B1b)
+>
+> `apps/web/src/App.tsx` — which renders `WorkspaceContent` and every owner panel, including the
+> connectors wall that predates this session by many phases — is imported by **exactly one file:**
+> `src/testAppHarness.ts`. The production entry is `main.tsx → RootApp`, and `RootApp` renders
+> `AuthGate` + `NewsroomShell` only. Verified: `vite build` transforms 1,673 modules into a single
+> 320 KB chunk containing `createRoot`/`themeEngine` but **zero** occurrences of
+> `official-connectors-title`, `owner-console`, `Kill switch` or `Watchtower`. The build is
+> deterministic — appending a probe line to `main.tsx` moves the hash and removing it restores it
+> exactly — so this is reproducible, not a stale artifact.
+>
+> **Consequence, stated plainly: "vite build emits" is NOT evidence that a console change reaches
+> a user.** I cited it as proof in the B1a closeout; that claim is withdrawn. The B1a and B1b
+> console work is real, tested and type-checked, but it is not on screen for anyone today.
+>
+> **Pre-existing, not caused by B1a/B1b** — the same absence holds for panels that shipped long
+> before. **Sean's call, not an agent's:** whether the owner console is meant to ship from this
+> entry, is deliberately parked, or belongs behind a route in `NewsroomShell`. Do not wire
+> `App` into `RootApp` on your own initiative; that would expose a whole surface by side effect.
+
 **Findings NOT fixed, belonging to whoever takes B1b/B2:**
-- `listKillSwitches()` seeds its catalog with nine INSERTs on **every** call (live-verified). It is
-  paid once per listing rather than once per outlet, so B0's constant-cost property holds, but a
-  read that writes nine rows is a pre-existing defect worth its own slice.
+- ~~`listKillSwitches()` seeds its catalog with nine INSERTs on every call~~ **FIXED 2026-08-22**
+  (`366d6ab`): the select decides; seeding runs only when a default key is genuinely absent, and
+  is one multi-row insert when it does. Live outlet listing went 742ms → 45ms and now issues zero
+  writes (asserted).
 - A percent-encoded path (`/official-connectors/out%6Cets`) misses the literal `/outlets` route and
   falls through to the generic `:connectorKey` matcher → 405. Every sibling route matches the raw
   pathname the same way, so this is house-wide behaviour, not a B0 regression.
@@ -398,7 +422,7 @@ wsl.exe bash -c 'grep -rl "bioluminescent swell against basalt" /home/bigotsmash
 cd /c/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
 git branch --show-current && git log --oneline -1 && git status --porcelain
 docker exec swanguard-newsroom-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "select (select count(*) from creator) creators,(select count(*) from creator where enabled) creators_enabled,(select count(*) from news_rss_sources) sources,(select count(*) from outlets) outlets,(select count(*) from official_connector_items) items,(select count(*) from official_connector_states) states,(select count(*) from official_connector_states where owner_enabled) states_enabled,(select count(*) from contract_approvals) approvals,(select count(*) from creator_item) creator_items,(select count(*) from comment_extracted_claims) claims"'
-npm test   # baseline 2026-08-22 (post-B0): scripts 138/0 · api 512 pass + 1 PRE-EXISTING red (the ONLY acceptable red: civicOfficialSourcesRoutes.test.ts "returns nothing while gated…") · web 387 · database 90 · domain 242
+npm test   # baseline 2026-08-22 (post-B0): scripts 138/0 · api 516 pass + 1 PRE-EXISTING red (the ONLY acceptable red: civicOfficialSourcesRoutes.test.ts "returns nothing while gated…") · web 400 · database 90 · domain 242
 # B0 live-Postgres proof (read-only; needs Docker up). 3/3 — includes the constant-read-cost claim.
 # Set DATABASE_URL from docker-compose.dev.yml (it declares the dev user/password/db; host port 5434),
 # then from apps/api:  SWANGUARD_ALLOW_POSTGRES_SMOKE=true npx vitest run src/officialConnectorOutletListingLive.test.ts
@@ -407,7 +431,7 @@ npm test   # baseline 2026-08-22 (post-B0): scripts 138/0 · api 512 pass + 1 PR
 
 Expected: taste brain HEAD `2640e94`, clean tree, **52** PASS lines, `catalog entries 9521`,
 `article headings 407`, rated 0 / kept 0 / rejected 1, no TEST DATA, vault grep 0.
-SwanGuard HEAD `9cfcb9b`, 2 untracked `.bak` only, counts `51|0|39|39|10|1|1|2|0|0`.
+SwanGuard HEAD `5fd3450`, 2 untracked `.bak` only, counts `51|0|39|39|10|1|1|2|0|0`.
 **If anything differs, another agent has moved things — re-orient before building. If the api red
 test is any OTHER test, that is new breakage, not the baseline.**
 

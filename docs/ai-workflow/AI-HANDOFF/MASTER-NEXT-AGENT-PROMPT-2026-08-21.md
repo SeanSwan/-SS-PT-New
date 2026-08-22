@@ -9,7 +9,7 @@ index for three repos and supersedes the per-repo handoffs written earlier the s
 
 **Then verify the world before trusting it.** A stale handoff nearly caused a duplicate rebuild this
 week; the check costs thirty seconds and is in §12 of that document. Expected: taste brain HEAD
-`2640e94` with 52 checks passing, SwanGuard HEAD `9cfcb9b` on `merge/newsroom-mainline-v3`. The
+`2640e94` with 52 checks passing, SwanGuard HEAD `5fd3450` on `merge/newsroom-mainline-v3`. The
 SwanGuard counts in §2.2 were re-read live on 2026-08-22 (every row, one query); Docker must be
 running for `docker exec` to answer. If anything differs, another agent has moved things: re-orient
 before building.
@@ -32,10 +32,20 @@ verified. **B1a is also done** (`9cfcb9b`): the console's `OfficialConnectorKey`
 families where the API returns four, so the news card was a **dead control** — correct phrase typed,
 button stayed disabled, nothing on screen said why. Fixed (phrase map now typed so a forgotten
 family is a compile error), plus a read-only `NewsOutletConnectorsPanel` consuming `/outlets`.
-Start at **B1b: per-outlet enable from the console** — batch semantics and a confirm step, NOT a
-per-row one-click button, which is how 107 outlets get switched on one careless click at a time.
-Note: a dev owner user is one sign-in away, not a blocker (`postgresAuth.ts:73` auto-creates the
-owner on a matching email hash). Do NOT
+**B1b is also done** (`5fd3450`): batch enable/disable — selection, one activation phrase, one
+confirm, sequential per-key PUTs and a ledger that reports "N of M" and names each failure.
+
+**READ THE BOXED FINDING IN HANDOFF §7 BEFORE TOUCHING THE CONSOLE.** `App.tsx` is imported only by
+`testAppHarness.ts`; the production entry renders `AuthGate` + `NewsroomShell`, so the owner console
+— including panels that shipped many phases ago — is **not in the production bundle**. A green
+`vite build` is therefore not evidence that a console change reaches a user. Whether that console
+should ship, stay parked, or live behind a Newsroom route is **Sean's call**; do not wire it in on
+your own initiative.
+
+Start at **B2** (re-probe the 107 candidates, define the overlap criterion, supply `termsUrl` and
+`ownership` per outlet) unless Sean rules on the console question first. Note: a dev owner user is
+one sign-in away, not a blocker (`postgresAuth.ts:73` auto-creates the owner on a matching email
+hash). Do NOT
 merge the 107 feeds (B3) before B1–B2; B2 includes re-probing liveness, defining the overlap
 criterion, and supplying `termsUrl`/`ownership` per outlet. Retention/volume budget is owed before
 B3, not before W3.
