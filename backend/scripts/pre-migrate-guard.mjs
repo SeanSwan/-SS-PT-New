@@ -68,7 +68,7 @@ export function advisoryLockKey(label = 'swanstudios:deploy-migrate') {
 }
 
 /** @returns {{ok:boolean, reason:string}} — pure, so the decision table is testable. */
-export function decideOutcome({ lockAcquired, backupOk, enforce, checkOnly }) {
+export function decideOutcome({ lockAcquired, lockVerified, backupOk, enforce, checkOnly }) {
   if (checkOnly) return { ok: true, reason: 'check-only: nothing was locked, nothing was backed up' };
   if (!lockAcquired) {
     return {
@@ -77,13 +77,31 @@ export function decideOutcome({ lockAcquired, backupOk, enforce, checkOnly }) {
         + 'at once is the one failure this guard will not wave through, in any mode.',
     };
   }
+  // A lock the database does not report holding is not a lock. Under a transaction-mode
+  // pooler this is the normal case, and it fails in exactly the direction that logs success.
+  // Warn mode proceeds and SAYS SO; enforce refuses to pretend concurrency is protected.
+  if (lockVerified === false && enforce) {
+    return {
+      ok: false,
+      reason: 'the advisory lock was taken but is NOT visible in pg_locks for this backend — '
+        + 'almost certainly a transaction-mode pooler, where session advisory locks do nothing. '
+        + 'SWAN_MIGRATE_GUARD=enforce will not proceed as though concurrency were protected.',
+    };
+  }
+  if (lockVerified === false) {
+    return {
+      ok: true,
+      reason: 'lock UNVERIFIED (not visible in pg_locks) — concurrency is effectively '
+        + 'unprotected; continuing because this guard is warn-only by default',
+    };
+  }
   if (!backupOk && enforce) {
     return { ok: false, reason: 'backup failed and SWAN_MIGRATE_GUARD=enforce' };
   }
   if (!backupOk) {
     return { ok: true, reason: 'backup FAILED — continuing because this guard is warn-only by default' };
   }
-  return { ok: true, reason: 'lock held, backup verified' };
+  return { ok: true, reason: 'lock held and verified, backup verified' };
 }
 
 
@@ -112,6 +130,9 @@ export function attestation(fields) {
     at: new Date(fields.now ?? Date.now()).toISOString(),
     mode: fields.mode,
     locked: Boolean(fields.locked),
+    // false here means the lock did not show up in pg_locks for this backend — almost
+    // always a transaction-mode pooler, where session advisory locks silently do nothing.
+    lockVerified: fields.lockVerified === undefined ? null : Boolean(fields.lockVerified),
     backup: fields.backup,
     pending: fields.pending ?? null,
     outcome: fields.outcome,
@@ -191,6 +212,7 @@ async function main() {
   });
 
   let lockAcquired = false;
+  let lockVerified = false;
   let backupOk = false;
   let pendingCount = null;
 
@@ -206,6 +228,43 @@ async function main() {
       const rows = res.rows;
       lockAcquired = Boolean(rows?.[0]?.locked);
       log(lockAcquired ? 'deploy lock acquired' : 'deploy lock BUSY — another migration is running');
+      // VERIFY THE LOCK IS ACTUALLY HELD — do not assume the connection is direct.
+      //
+      // GLM 5.3, panel 2026-08-23: "if DATABASE_URL transits Render's pgBouncer in
+      // transaction mode, session advisory locks are *unsupported* and the lock is void from
+      // second zero... A control that logs 'held' while guaranteed-vacuous is worse than no
+      // control; it will be cited in the postmortem as a safeguard that existed."
+      //
+      // render.yaml wires DATABASE_URL from a Render MANAGED database via
+      // `property: connectionString`, which is a direct connection — so this SHOULD be fine.
+      // But that is inference from a blueprint whose `databases:` block is commented out, and
+      // the live URL lives in Render's dashboard where this code cannot see it.
+      //
+      // So the guard stops assuming and MEASURES. Under a transaction-mode pooler, a second
+      // query is not guaranteed to land on the backend that took the lock — so the lock will
+      // not be visible in pg_locks for this backend. That makes the failure detectable from
+      // inside, on every real deploy, instead of being an open question in a document.
+      //
+      // Cheap, and it answers a question a human would otherwise have to answer by hand.
+      if (lockAcquired) {
+        try {
+          const held = await lockClient.query(
+            "SELECT EXISTS(SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND pid = pg_backend_pid()) AS held",
+          );
+          lockVerified = Boolean(held.rows?.[0]?.held);
+          if (!lockVerified) {
+            warn('LOCK NOT VISIBLE in pg_locks for this backend. The connection is almost');
+            warn('certainly transiting a pooler in transaction mode, where session advisory');
+            warn('locks do not work. Treat concurrency as UNPROTECTED and see SWA-200 for the');
+            warn('lease-table alternative, which does not depend on session lifetime.');
+          } else {
+            log('lock verified held by this backend');
+          }
+        } catch (e) {
+          warn(`could not verify the lock (${e.message}) — treating it as unverified.`);
+          lockVerified = false;
+        }
+      }
     } else {
       lockAcquired = true;
     }
@@ -258,12 +317,12 @@ async function main() {
     process.exit(0);
   }
 
-  const verdict = decideOutcome({ lockAcquired, backupOk, enforce: ENFORCE, checkOnly: CHECK_ONLY });
+  const verdict = decideOutcome({ lockAcquired, lockVerified, backupOk, enforce: ENFORCE, checkOnly: CHECK_ONLY });
   log(verdict.reason);
 
   if (!verdict.ok) {
     await lockClient.end().catch(() => {});
-    console.log(attestation({ mode: MODE, locked: lockAcquired, backup: backupOk ? 'ok' : 'failed', pending: pendingCount, outcome: 'halted' }));
+    console.log(attestation({ mode: MODE, locked: lockAcquired, lockVerified, backup: backupOk ? 'ok' : 'failed', pending: pendingCount, outcome: 'halted' }));
     warn('HALTING before migrate:production.');
     process.exit(1);
   }
@@ -291,7 +350,7 @@ async function main() {
     process.exit(0);
   }
 
-  console.log(attestation({ mode: MODE, locked: lockAcquired, backup: backupOk ? 'ok' : 'failed', pending: pendingCount, outcome: 'proceeding' }));
+  console.log(attestation({ mode: MODE, locked: lockAcquired, lockVerified, backup: backupOk ? 'ok' : 'failed', pending: pendingCount, outcome: 'proceeding' }));
   log(`holding the deploy lock while running: ${runCmd.join(' ')}`);
   const child = spawnSync(runCmd[0], runCmd.slice(1), { cwd: process.cwd(), stdio: 'inherit' });
   await lockClient.end().catch(() => {});

@@ -135,5 +135,46 @@ t('a malformed attestation line does not hide a good one', () => {
   assert.equal(findAttestation(log).outcome, 'proceeding');
 });
 
+
+// ── lock verification: a lock the database does not report holding is not a lock ──
+// GLM 5.3: "if DATABASE_URL transits a pooler in transaction mode, session advisory locks
+// are unsupported and the lock is void from second zero... a control that logs 'held' while
+// guaranteed-vacuous is worse than no control." The guard now MEASURES this per deploy
+// instead of leaving it an open question in a document.
+
+t('lock acquired but NOT visible in pg_locks → halts in enforce', () => {
+  const r = decideOutcome({ ...S, lockVerified: false, enforce: true });
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /pooler|not visible/i);
+});
+
+t('lock acquired but NOT visible → proceeds in warn mode, and says concurrency is unprotected', () => {
+  const r = decideOutcome({ ...S, lockVerified: false });
+  assert.equal(r.ok, true, 'warn mode must not brick the deploy');
+  assert.match(r.reason, /unprotected|UNVERIFIED/i, 'a silent proceed here is the whole bug');
+});
+
+t('an unverified lock outranks a failed backup — the worse condition is reported', () => {
+  const r = decideOutcome({ ...S, lockVerified: false, backupOk: false, enforce: true });
+  assert.match(r.reason, /pooler|not visible/i);
+});
+
+t('lockVerified undefined (older callers / check-only) does not spuriously halt', () => {
+  assert.equal(decideOutcome({ ...S, lockVerified: undefined, enforce: true }).ok, true);
+});
+
+t('a verified lock plus a good backup reports both', () => {
+  assert.match(decideOutcome({ ...S, lockVerified: true }).reason, /verified/i);
+});
+
+t('the attestation carries lockVerified so a pooler is visible after the fact', () => {
+  const a = findAttestation(attestation({ mode: 'warn-only', locked: true, lockVerified: false, outcome: 'proceeding' }));
+  assert.equal(a.lockVerified, false, 'a vacuous lock must be legible in the deploy log');
+});
+
+t('lockVerified omitted serialises as null, not as false — unknown is not failure', () => {
+  assert.equal(findAttestation(attestation({ mode: 'x', outcome: 'y' })).lockVerified, null);
+});
+
 console.log(`\npre-migrate-guard: ${pass} passed, ${fail.length} failed`);
 if (fail.length) process.exit(1);
