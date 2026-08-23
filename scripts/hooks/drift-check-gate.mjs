@@ -157,14 +157,41 @@ try {
   );
 }
 
+// ---- 8) Hook-registration PROVENANCE --------------------------------------
+//
+// Check 7 asks "does the registered file exist?". This asks the mirror question:
+// does the registration protecting THIS tree exist for anyone else?
+//
+// Found 2026-08-23: the exit-status gate — built against the most recurring defect
+// class in the corpus — was live in one working tree and in NO commit. It ran for
+// the agent that wrote it and existed for nobody else. Five of six hostile panel
+// seats independently ranked this P0. The failure is silent in both directions: the
+// tree that has it sees a healthy guard, and every other tree sees nothing at all
+// while the operator still believes the class is blocked.
+try {
+  const { auditHookProvenance } = await import(
+    new URL('../lib/hook-provenance.mjs', import.meta.url)
+  );
+  const prov = auditHookProvenance(SS_PT);
+  if (prov.findings.length) {
+    findings.push(...prov.findings, `hook-provenance coverage: ${prov.scopeNote}`);
+  }
+} catch (err) {
+  // Same contract as check 7: could-not-run is UNKNOWN and must be said out loud.
+  findings.push(
+    `hook-provenance check could not complete (${err?.message || err}). Whether the live ` +
+    'guards are committed is UNKNOWN this session, not clean.'
+  );
+}
+
 // ---- Emit: silent when clean ----------------------------------------------
 if (findings.length) {
   process.stdout.write(
     '[drift-check] ⚠ ' + findings.length + ' drift finding(s) — a doc that reads as ' +
     'authoritative may be wrong:\n' +
     findings.map((f, i) => `  ${i + 1}. ${f}`).join('\n') +
-    '\nFull procedure (7 checks incl. stale registry, stale index, missing tooling, ' +
-    'guard coverage gaps, hook-registration integrity): .claude/skills/drift-check/SKILL.md\n'
+    '\nFull procedure (8 checks incl. stale registry, stale index, missing tooling, ' +
+    'guard coverage gaps, hook-registration integrity + provenance): .claude/skills/drift-check/SKILL.md\n'
   );
 }
 

@@ -1,6 +1,6 @@
 ---
 name: drift-check
-description: Detect the seven ways Swan repos silently lie to an agent — mirror divergence, stale branch, stale registry, stale index, missing tooling a doc promises, guard coverage gaps, and registered hooks whose files do not exist. Run at session start on any repo, before trusting a governance file, and after any structural change. Use when Sean says "drift check", "are the docs in sync", "is this branch current", or /drift-check.
+description: Detect the eight ways Swan repos silently lie to an agent — mirror divergence, stale branch, stale registry, stale index, missing tooling a doc promises, guard coverage gaps, registered hooks whose files do not exist, and live hooks that exist in no commit. Run at session start on any repo, before trusting a governance file, and after any structural change. Use when Sean says "drift check", "are the docs in sync", "is this branch current", or /drift-check.
 ---
 
 # Drift Check
@@ -20,7 +20,7 @@ Every instance below was found in production on 2026-08-02, in a single session.
 - Whenever an agent's behavior contradicts a rule you know exists. That usually means it
   never read the file carrying the rule.
 
-## The seven checks
+## The eight checks
 
 ### 1. Mirror drift — two files that must be identical, aren't
 
@@ -161,6 +161,49 @@ hooks it declares. Same failure, larger blast radius.
 > the same session (a module imported but never committed) taught nothing about the
 > class until someone ran the loop over every referenced path. Fixing an instance does
 > not generalise. Encode the sweep.
+
+### 8. Hook-registration provenance — a guard that protects only YOU
+
+Check 7 asks *does the registered file exist?* This asks the mirror question:
+
+> **Does the registration that is protecting me exist for anyone else?**
+
+A hook can be live in one working tree and present in **no commit**. In that tree it
+behaves perfectly. In every other tree it does not exist — and its absence is silent,
+because an absent hook and a healthy hook both emit nothing. The operator keeps
+believing the defect class is blocked.
+
+**Registration is not provenance.** One `git checkout -- .claude/settings.json`, one
+fresh clone, or one new worktree removes the protection with no error and no degraded
+mode.
+
+```bash
+node scripts/hooks/drift-check-gate.mjs      # check 8 runs automatically at SessionStart
+node scripts/hooks/hook-provenance.test.mjs  # 37 cases, 5 mutants killed
+```
+
+Both directions are reported, because both are split-brain:
+
+| Direction | Meaning |
+|---|---|
+| `LIVE HERE BUT NOT COMMITTED` | Runs for you, exists for nobody else |
+| `NOT LIVE in this working tree` | Repo says the guard is on; where the work happens it is off |
+
+**Scope, deliberately:** `.claude/settings.json` only. `settings.local.json` is
+gitignored **by design**, so flagging it would fire on every machine forever — and a
+check that always fires is a check that gets deleted. That exclusion is the module's
+most important false-positive guard, and it is pinned by test I1.
+
+> Found 2026-08-23. Five of six hostile panel seats independently ranked this P0.
+> Grok 4.6: *"Enforcement is not a property of the commit; it is a property of who
+> touched the file last."* GLM 5.3: *"A gate that isn't committed isn't shipped; it's
+> a drift bomb."*
+>
+> The first live run found **three** uncommitted hooks, not the one the handoff knew
+> about — including `spend-guard-gate` (the Rule 16 money gate) and
+> `egress-privacy-gate` (the Rule 8 PII gate). The two most safety-critical guards in
+> the repo were protecting exactly one working tree. **Nobody had noticed, because
+> nothing anywhere reported it.**
 
 ## Reporting
 
