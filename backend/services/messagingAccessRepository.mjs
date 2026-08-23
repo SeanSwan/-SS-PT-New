@@ -97,3 +97,43 @@ export async function loadConversationMembers(conversationId, actorId) {
     return null;
   }
 }
+
+
+/**
+ * Is this actor allowed to write into this conversation under the RELATIONSHIP
+ * lane? Shared by the REST middleware and the websocket handler.
+ *
+ * WHY THIS EXISTS. The relationship lane shipped as Express middleware on
+ * messagingRoutes only. `socket/socket.mjs` is a complete second way to send a
+ * message and checked membership alone, so a free-tier client with an active
+ * assignment could be 403'd by REST on an old community thread and still write
+ * to it over the socket. Two post-ship reviewers (ox-alpha, GLM 5.3) flagged the
+ * socket path independently, and that file's OWN comment already says it:
+ * "Fixing only REST would have been a false fix — this socket handler is a
+ * complete second way to send." The lane fix reproduced the exact mistake the
+ * file warns about.
+ *
+ * Returns true when the write is permitted. FAIL-CLOSED: any lookup failure
+ * denies, matching the middleware.
+ *
+ * @param {{id:*, role?:string}} actor
+ * @param {number} conversationId
+ * @param {boolean} hasCommunityAccess  already-resolved entitlement
+ */
+export async function isRelationshipWriteAllowed(actor, conversationId, hasCommunityAccess) {
+  if (actor?.role === 'admin' || actor?.role === 'trainer') return true;
+  if (hasCommunityAccess) return true;
+
+  const actorId = toId(actor?.id);
+  if (!actorId) return false;
+
+  const counterparties = await loadAssignedCounterpartyIds(actorId);
+  if (!counterparties || counterparties.size === 0) return false;
+
+  const membership = await loadConversationMembers(conversationId, actorId);
+  if (membership === null) return false;
+  if (!membership.actorIsMember) return false;
+  if (membership.others.length === 0) return false;
+
+  return membership.others.every((id) => counterparties.has(id));
+}

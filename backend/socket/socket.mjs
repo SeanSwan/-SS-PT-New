@@ -13,6 +13,9 @@ import { getIO as getManagedSocketIO } from './socketManager.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 import { canSendToConversation, BLOCKED_MESSAGE } from '../services/messaging/blockGuard.mjs';
 import { checkMessageRate, MESSAGE_RATE_LIMITED } from '../services/messaging/messageRateLimit.mjs';
+import { isRelationshipWriteAllowed } from '../services/messagingAccessRepository.mjs';
+import { resolveCurrentEntitlement, isGatingEnabled } from '../middleware/requireTier.mjs';
+import { meetsMinimumTier } from '../config/tierCatalog.mjs';
 
 const onlineUsers = new Map();
 const MAX_MESSAGE_LENGTH = 5000;
@@ -123,6 +126,25 @@ export const initializeSocket = () => {
       try {
         if (!(await isActiveParticipant(normalizedConversationId, socket.user.id))) {
           socket.emit('error', { message: 'You are not a member of this conversation.' });
+          return;
+        }
+
+        // Same RELATIONSHIP lane as the REST path. The lane shipped as Express
+        // middleware only, so a free-tier client with an active assignment was
+        // 403'd by REST on an old community thread and could still write to it
+        // here — exactly the failure this file's next comment warns about, and
+        // flagged independently by two post-ship reviewers.
+        let hasCommunityAccess = false;
+        try {
+          const entitlement = await resolveCurrentEntitlement({ user: socket.user });
+          hasCommunityAccess = meetsMinimumTier(entitlement.effectiveTier, 'elite');
+        } catch {
+          hasCommunityAccess = false; // fail closed, same as the middleware
+        }
+        if (!isGatingEnabled()) hasCommunityAccess = true;
+
+        if (!(await isRelationshipWriteAllowed(socket.user, normalizedConversationId, hasCommunityAccess))) {
+          socket.emit('error', { message: 'You can message your assigned trainer here.' });
           return;
         }
 
