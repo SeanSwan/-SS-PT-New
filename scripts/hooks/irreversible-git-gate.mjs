@@ -68,6 +68,17 @@ const IRREVERSIBLE = [
     what: 'discards working-tree and index changes with no stash and no undo.',
   },
   {
+    name: 'commit/push --no-verify',
+    // GLM 5.3, panel 2026-08-23: "the cheapest bypass in the system, ten characters, and
+    // Rule 45's blocklist doesn't include it." Verified — it sailed straight through.
+    // --no-verify disables EVERY .githooks gate at once: the secret scan (Rule 44), the
+    // frontend guards, the constitution guard, the token check, and the Rule 42 backend
+    // audit. Not itself irreversible, but it is the switch that turns off the things
+    // guarding irreversible acts, which puts it in this gate's remit rather than a new one.
+    re: /\bgit\b(?:\s+-[^\s]+(?:\s+[^\s-][^\s]*)?)*\s+(?:commit|push)\b[^\n;|&]*\s(?:--no-verify\b|-n\b)/i,
+    what: 'switches off every pre-commit and pre-push gate at once — including the secret scan. The pre-push hook itself reserves this for a genuine emergency.',
+  },
+  {
     name: 'filter-branch / filter-repo',
     re: /\bgit\b(?:\s+-[^\s]+(?:\s+[^\s-][^\s]*)?)*\s+filter-(?:branch|repo)\b/i,
     what: 'rewrites the entire history. This is the operation that followed the 2026-04-19 credential incident; it is never routine.',

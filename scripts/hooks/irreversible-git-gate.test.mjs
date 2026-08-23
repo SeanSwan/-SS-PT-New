@@ -32,6 +32,10 @@ const BLOCKS = [
   ['git reset --hard', 'git reset --hard HEAD~1'],
   ['git filter-branch', 'git filter-branch --tree-filter rm -rf secrets HEAD'],
   ['git filter-repo', 'git filter-repo --path secrets --invert-paths'],
+  // GLM 5.3, panel 2026-08-23 — verified sailing through before this was added.
+  ['git push --no-verify', 'git push --no-verify origin main'],
+  ['git commit --no-verify', 'git commit --no-verify -m "skip"'],
+  ['git commit -n shorthand', 'git commit -n -m "skip"'],
   ['-C <path> before the subcommand', 'git -C /some/repo rebase main'],
   ['chained after another command', 'npm test && git push --force origin main'],
 ];
@@ -48,6 +52,8 @@ const ALLOWS = [
   ['soft reset', 'git reset --soft HEAD~1'],
   ['plain reset of the index', 'git reset HEAD file.txt'],
   ['status', 'git status --short'],
+  ['commit message merely mentions no-verify', 'git commit -m "no-verify was mentioned here"'],
+  ['git log searching for no-verify', 'git log --grep=no-verify'],
   ['a non-git command', 'npm run build'],
   ['rebase mentioned only inside single quotes', "echo 'git rebase main'"],
 ];
