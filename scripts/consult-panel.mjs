@@ -100,6 +100,17 @@ const remit = arg('--remit', DEFAULT_REMIT);
 // when the two DeepSeek V4 seats pushed this file past the 300-line cap).
 const SEATS = buildSeats(remit);
 
+// An EMPTY seat list is an error, not a no-op. `--seats ""` (or a scripted
+// `--seats "$VAR"` with VAR unset, or a stray comma) previously fell straight
+// through to "nothing was sent, nothing was spent" and exited 0 - a run that
+// reviewed NOTHING while reporting success. That is the same silence-looks-like-
+// success failure the seat wall-clock cap exists to prevent: the operator is left
+// believing a panel covered the document when no seat ever saw it.
+if (!requested.length) {
+  console.error('no seats requested. Pass --seats with at least one of: ' + Object.keys(SEATS).join(', '));
+  process.exit(1);
+}
+
 const unknown = requested.filter((s) => !SEATS[s]);
 if (unknown.length) {
   console.error(`unknown seat(s): ${unknown.join(', ')} — valid: ${Object.keys(SEATS).join(', ')}`);

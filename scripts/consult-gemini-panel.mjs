@@ -26,8 +26,18 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { getModelId } from './lib/model-registry.mjs';
+
+// Repo root from THIS FILE's location, never process.cwd(). consult-panel.mjs spawns
+// each seat as a child that inherits the panel's cwd, so a cwd-relative .env lookup
+// makes this seat the only one that dies when the panel is run from a worktree or a
+// subdirectory - and it dies with "no API key", which reads like a config problem
+// rather than a path problem. Found 2026-08-22 by running this script from a foreign
+// cwd. NOTE: scripts/consult-grok.mjs still uses `ROOT = process.cwd()` and has the
+// same latent defect; not fixed here because this slice does not own that file.
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const argv = process.argv.slice(2);
 const arg = (f, d = '') => { const i = argv.indexOf(f); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
@@ -63,15 +73,34 @@ if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) { console.error('--timeout-ms
 function resolveKey() {
   if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY.trim();
   if (process.env.GOOGLE_AI_KEY) return process.env.GOOGLE_AI_KEY.trim();
-  if (!existsSync('.env')) return null;
-  const env = readFileSync('.env', 'utf8');
-  const m = env.match(/^GEMINI_API_KEY=(.+)$/m) || env.match(/^GOOGLE_AI_KEY=(.+)$/m);
-  return m ? m[1].trim() : null;
+  // Checks both locations, matching consult-grok.mjs. Splits on CR-optional newlines:
+  // these .env files are CRLF, and a `(.+)$` match with the /m flag captures the
+  // trailing CR, which would then be sent as part of the API key. A .trim() masks
+  // that, but parsing it correctly is better than being saved by luck.
+  for (const envPath of [join(ROOT, '.env'), join(ROOT, 'backend', '.env')]) {
+    if (!existsSync(envPath)) continue;
+    for (const line of readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^(GEMINI_API_KEY|GOOGLE_AI_KEY)=(.*)$/);
+      if (m) return m[2].replace(/^[\'"]|[\'"]$/g, '').trim();
+    }
+  }
+  return null;
 }
 
 const apiKey = resolveKey();
 if (!apiKey) {
   console.error('[consult-gemini-panel] no GEMINI_API_KEY / GOOGLE_AI_KEY in env or .env');
+  process.exit(1);
+}
+
+// Create the output directory BEFORE the API call, not after. A bad --out path
+// (missing parent, or a plain FILE sitting where a directory should be) would
+// otherwise surface only once the response was already paid for and in hand,
+// throwing the reply away after spending for it. Fail before you spend.
+try {
+  mkdirSync(dirname(out), { recursive: true });
+} catch (e) {
+  console.error(`[consult-gemini-panel] cannot create output dir for ${out}: ${e.code || e.message}`);
   process.exit(1);
 }
 
@@ -100,7 +129,13 @@ try {
 
   if (!res.ok) {
     // Strip the key out of any echoed URL before it reaches stdout or a log file.
-    const raw = (await res.text()).slice(0, 400).split(apiKey).join('<REDACTED>');
+    // Collapse to ONE line before it escapes. consult-panel.mjs captures seat stderr
+    // verbatim into INDEX.md's Failures list, and a raw multi-line JSON error body
+    // shreds that markdown - INDEX is the coverage record, the artifact that says
+    // which seats actually saw the document, so it must stay readable on the worst day.
+    // The key is stripped regardless of shape: never let it reach stdout or an artifact.
+    const raw = (await res.text()).split(apiKey).join('<REDACTED>')
+      .replace(/\s+/g, ' ').trim().slice(0, 300);
     throw new Error(`Gemini responded ${res.status}: ${raw}`);
   }
 
@@ -136,7 +171,6 @@ try {
     '',
   ].filter((l) => l !== '').join('\n');
 
-  mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, `${header}\n${text}\n`, 'utf8');
   console.error(`[consult-gemini-panel] done ${u.promptTokenCount ?? '?'}in/${u.candidatesTokenCount ?? '?'}out wall=${wall}s finish=${finish}`);
   console.error(`[consult-gemini-panel] saved=${out}`);
