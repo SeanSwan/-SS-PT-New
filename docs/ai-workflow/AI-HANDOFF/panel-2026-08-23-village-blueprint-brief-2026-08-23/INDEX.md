@@ -2,8 +2,8 @@
 
 **Document under review:** `docs/ai-workflow/AI-HANDOFF/VILLAGE-BLUEPRINT-BRIEF-2026-08-23.md`
 **Seed context:** (none)
-**Seats run:** ox, glm · **Estimated spend:** ~$0.0000
-**Coverage:** PARTIAL — 2 of 11 seats ran (sol, kimi, qwen, gemini, grok, dspro, fable, dsflash, hy3 not requested).
+**Seats run:** sol, fable, kimi, grok, dspro, dsflash · **Estimated spend:** ~$0.6136
+**Coverage:** PARTIAL — 6 of 11 seats ran (glm, qwen, gemini, ox, hy3 not requested).
 
 > Fable 5 is the FINAL SEAT and the Final Decider (CLAUDE.md Co-Orchestrator
 > Hierarchy, Rule 46). These seat replies are ADVISORY INPUT. Fable reads all
@@ -13,8 +13,12 @@
 
 | Seat | Model | Status | Wall | Reply |
 |---|---|---|---|---|
-| ox | Ox Alpha | ✅ ok | 165.1s | [reply](./OX-ALPHA-PANEL-REVIEW.md) |
-| glm | GLM 5.3 | ✅ ok | 222.1s | [reply](./GLM-PANEL-REVIEW.md) |
+| sol | GPT-5.6 Sol Pro | ✅ ok | 173.2s | [reply](./SOL-PANEL-REVIEW.md) |
+| fable | Fable 5 | ✅ ok | 121.7s | [reply](./FABLE-PANEL-REVIEW.md) |
+| kimi | Kimi K3 | ✅ ok | 92.0s | [reply](./KIMI-PANEL-REVIEW.md) |
+| grok | Grok 4.6 | ✅ ok | 135.9s | [reply](./GROK-PANEL-REVIEW.md) |
+| dspro | DeepSeek V4 Pro | ✅ ok | 106.5s | [reply](./DEEPSEEK-PRO-PANEL-REVIEW.md) |
+| dsflash | DeepSeek V4 Flash | ✅ ok | 49.7s | [reply](./DEEPSEEK-FLASH-PANEL-REVIEW.md) |
 
 ## Failures
 - none — all seats returned.
