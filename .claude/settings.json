@@ -320,6 +320,11 @@
           },
           {
             "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/spend-guard-gate.mjs\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/irreversible-git-gate.mjs\"",
             "timeout": 30
           },

@@ -510,3 +510,6 @@ variants/
 # wip/comms-notifications-2026-07-05. Whoever lands that gate should revisit whether the
 # snapshot needs to be committed so the gate works on a fresh clone.
 backend/schema-snapshot.json
+
+# Paid-AI spend ledger — machine-local running totals, not repo history
+.ai-workflow/spend/
