@@ -1,3 +1,32 @@
+# Hostile review ROUND 8 — dry-check (2026-08-23)
+
+Rounds 1-7 found 8+6+7+8+4+6+4 defects, all fixed. **This reviews the round-7 fixes.**
+
+Both files below are COMPLETE — top to bottom, nothing elided. (Round 6 shipped an excerpt
+labelled COMPLETE and three seats correctly concluded the file could not run. My error, not a defect.)
+
+## Round-7 fixes to attack
+
+1. Equals-form loader: any candidate starting with `-` is declined as an option, not judged as a path.
+2. Root shape: settings.json whose ROOT is array/string/number/null is now a finding (was silent clean).
+3. Containment: checked on `realpathSync`, so a symlinked dir cannot escape the root (was lexical only).
+4. `scopeNote` is now emitted alongside findings (was computed and dropped by the caller).
+
+## The invariant
+
+Every hook entry returns EXACTLY ONE verdict: OK | MISSING | UNVERIFIED. No path returns nothing.
+OK is the only silent verdict. Assertion is deliberately narrow; it declines whenever uncertain.
+
+## Questions
+
+- Can ANY input still yield zero verdicts (silent clean)? Seven rounds have each found one.
+- Can a HEALTHY registration read MISSING (phantom)?
+- Are the round-7 fixes themselves sound, or did they open something new?
+- **If you find nothing, say so plainly. Do not invent filler.** A clean verdict is useful data.
+
+## FILE: scripts/lib/hook-registration.mjs (COMPLETE, 226 lines)
+
+```javascript
 /**
  * hook-registration.mjs — is every hook a config registers actually there?
  * ========================================================================
@@ -54,13 +83,6 @@ export function classifyCommand(cmd, root) {
   const brief = cmd.length > 90 ? `${cmd.slice(0, 90)}…` : cmd;
   const unver = (why) => ({ kind: 'UNVERIFIED', key: cmd, why: `\`${brief}\` — ${why}; existence NOT verified` });
 
-  // JS `\s` matches U+00A0 and friends; a shell does NOT treat them as separators.
-  // `node ./a<NBSP>b.mjs` is one runnable file, but the split produced `b.mjs` as the
-  // sole candidate and reported a healthy registration MISSING (round 8). Decline
-  // rather than split on whitespace the shell would not have split on.
-  if (/[^\S \t\n\r\f\v]/.test(cmd)) {
-    return unver('contains non-ASCII whitespace, which a shell does not treat as an argument separator');
-  }
   if (/["']/.test(cmd)) return unver('contains quoting (a subcommand, or a path with spaces) that cannot be resolved statically');
   if (SHELL_META.test(cmd)) return unver('uses shell syntax (variable, glob, operator, subshell or escape)');
   if (WIN_ENV.test(cmd)) return unver('uses Windows environment interpolation');
@@ -113,36 +135,11 @@ export function classifyCommand(cmd, root) {
   // enforced in one direction and not the other (round 7). realpathSync is the only
   // form that answers the question actually being asked.
   const abs = resolve(root, tok);
-  // `inside(child, parent)` without the `parent + sep` trap: at a filesystem root
-  // `resolve('/') + sep` is `'//'`, which nothing starts with, so every candidate
-  // would decline. Unlikely for a repo root, but this function is exported and takes
-  // `root` from its caller (round 8).
-  const inside = (child, parent) => child === parent || child.startsWith(parent.endsWith(sep) ? parent : parent + sep);
-
-  if (!inside(abs, resolve(root))) {
+  const rootReal = (() => { try { return realpathSync(root); } catch { return resolve(root); } })();
+  let real = abs;
+  try { real = realpathSync(abs); } catch { /* absent — the lexical check below still applies */ }
+  if (!abs.startsWith(resolve(root) + sep) || !real.startsWith(rootReal + sep)) {
     return unver('resolves outside the repository, so its target cannot be judged from here');
-  }
-
-  // The realpath containment applies ONLY when realpath actually resolved.
-  //
-  // Round 7 fell back to the LEXICAL path when realpathSync threw and then compared
-  // it against the RESOLVED root — so on any checkout whose root contains a symlink
-  // (macOS /tmp -> /private/tmp, CI workspaces, container mounts) the two could never
-  // match, and a genuinely absent hook file was demoted from the loud MISSING alarm
-  // to "could not be verified". That is precisely the alarm this module exists to
-  // raise, neutered by its own containment fix. Three seats found it in round 8.
-  //
-  // Correct shape: an absent file cannot escape through a symlink, because there is
-  // no link to follow. The lexical check above is sufficient for it, and it must be
-  // allowed to fall through to statSync and be reported MISSING.
-  let real = null;
-  try { real = realpathSync(abs); } catch { /* absent — nothing to follow; lexical check stands */ }
-  if (real !== null) {
-    let rootReal;
-    try { rootReal = realpathSync(root); } catch { rootReal = resolve(root); }
-    if (!inside(real, rootReal)) {
-      return unver('resolves outside the repository via a symlink, so its target cannot be judged from here');
-    }
   }
 
   // isFile, not exists: a DIRECTORY named `x.mjs` satisfies existsSync and would let
@@ -203,21 +200,9 @@ export function auditHookRegistrations(root) {
       continue;
     }
 
-    // `hooks` must be a plain object if the key is PRESENT at all.
-    //
-    // Round 7 wrote `cfg.hooks != null`, which is false for null — so `hooks: null`
-    // skipped the guard, `Object.entries(null || {})` iterated zero times, and the
-    // audit reported clean. Every other bad shape (`false`, `"str"`, `42`, `[]`)
-    // produced a finding; only null was silently equated with absent. A duplicate-key
-    // hand-edit or bad merge yielding `{"hooks": {...}, "hooks": null}` parses fine
-    // (last wins), discards every real registration, and read as healthy. That is the
-    // 2026-08-22 outage signature one level up — round EIGHT of the same class.
-    //
-    // `in` distinguishes "key absent" (legitimate) from "key present and null" (a
-    // config that registers nothing), which `!= null` cannot.
-    if ('hooks' in cfg && (cfg.hooks === null || typeof cfg.hooks !== 'object' || Array.isArray(cfg.hooks))) {
-      const what = cfg.hooks === null ? 'null' : Array.isArray(cfg.hooks) ? 'an array' : typeof cfg.hooks;
-      shape.push(`.claude/${name} has a "hooks" value that is ${what}, not an object — nothing it declares can register`);
+    // A truthy non-object `hooks` slips through `|| {}` and yields zero iterations.
+    if (cfg.hooks != null && (typeof cfg.hooks !== 'object' || Array.isArray(cfg.hooks))) {
+      shape.push(`.claude/${name} has a "hooks" value that is ${Array.isArray(cfg.hooks) ? 'an array' : typeof cfg.hooks}, not an object — nothing it declares can register`);
       continue;
     }
 
@@ -268,3 +253,62 @@ export function auditHookRegistrations(root) {
     scopeNote: 'project scope only (.claude/settings.json, settings.local.json); user-global and managed settings are NOT inspected',
   };
 }
+
+```
+
+## FILE: scripts/hooks/drift-check-gate.mjs — check 7 + emit (COMPLETE tail)
+
+```javascript
+// ---- 7) Hook-registration integrity ---------------------------------------
+//
+// A registered guard whose FILE IS ABSENT emits nothing — byte-identical to a
+// healthy guard that found no problems. That ambiguity hid two missing hooks on
+// this branch for weeks (2026-08-22); it was only ever caught by a human noticing
+// a second-order symptom from outside. Registration is not existence.
+//
+// The classifier lives in scripts/lib/hook-registration.mjs so there is ONE
+// implementation and the test imports it rather than mirroring it. Six hostile
+// rounds are recorded there, along with the invariant they produced: every hook
+// entry yields exactly one verdict, so silence is unrepresentable.
+try {
+  const { auditHookRegistrations } = await import(
+    new URL('../lib/hook-registration.mjs', import.meta.url)
+  );
+  const audit = auditHookRegistrations(SS_PT);
+  // The scope note ships WITH the findings. Round 6 computed it and the caller
+  // dropped it on the floor, so a limitation the module deliberately surfaced was
+  // never once seen by an operator — a check advertising "hook-registration
+  // integrity" while silently covering only project scope. Two seats caught that
+  // the deliverable was computed, not emitted. (Round 7.)
+  if (audit.findings.length) {
+    findings.push(...audit.findings, `hook-registration coverage: ${audit.scopeNote}`);
+  }
+} catch (err) {
+  // FAIL-OPEN, NOT FAIL-SILENT. A guard that cannot run must SAY it could not run;
+  // reporting nothing would be the very ambiguity this check exists to remove.
+  findings.push(
+    `hook-registration check could not complete (${err?.message || err}). Phantom-guard ` +
+    'detection did NOT run this session — its silence means "unknown", not "clean".'
+  );
+}
+
+// ---- Emit: silent when clean ----------------------------------------------
+if (findings.length) {
+  process.stdout.write(
+    '[drift-check] ⚠ ' + findings.length + ' drift finding(s) — a doc that reads as ' +
+    'authoritative may be wrong:\n' +
+    findings.map((f, i) => `  ${i + 1}. ${f}`).join('\n') +
+    '\nFull procedure (7 checks incl. stale registry, stale index, missing tooling, ' +
+    'guard coverage gaps, hook-registration integrity): .claude/skills/drift-check/SKILL.md\n'
+  );
+}
+
+// exitCode, NOT process.exit(). When stdout is a pipe — which it always is when the
+// harness runs this — Node queues writes asynchronously, and process.exit() tears the
+// loop down without draining them. The MISSING findings are appended last, so under
+// backpressure the highest-severity alarm is the first to be truncated: a diagnostic
+// whose entire contract is "never silently lose the signal" losing it nondeterministically.
+// Setting exitCode lets Node flush and exit naturally. (Panel round 6.)
+process.exitCode = 0;
+
+```

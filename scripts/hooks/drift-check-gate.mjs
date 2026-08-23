@@ -168,10 +168,25 @@ if (findings.length) {
   );
 }
 
-// exitCode, NOT process.exit(). When stdout is a pipe — which it always is when the
-// harness runs this — Node queues writes asynchronously, and process.exit() tears the
-// loop down without draining them. The MISSING findings are appended last, so under
-// backpressure the highest-severity alarm is the first to be truncated: a diagnostic
-// whose entire contract is "never silently lose the signal" losing it nondeterministically.
-// Setting exitCode lets Node flush and exit naturally. (Panel round 6.)
+// EXIT CODE CONTRACT — always 0, deliberately, even with a confirmed MISSING.
+//
+// Three panel seats read the unconditional 0 as a defect in round 8 ("the gate cannot
+// gate"), and the reasoning is sound for a CI check. It is wrong for THIS one, and the
+// contract was never written down, which is the actual defect they found.
+//
+// This is a SessionStart hook. A non-zero exit here does not fail a build — it risks
+// failing the operator's session, on a repo that is merely drifted. Blocking every
+// session because a hook file is absent would trade a silent gap for a hard stop on
+// unrelated work, and the first thing anyone would do is disable the hook. That is
+// the same outage arriving through the operator's own frustration.
+//
+// The SIGNAL here is stdout, not the exit status, and stdout is silent when clean —
+// so anything printed is already the alarm. Enforcement that must BLOCK belongs in a
+// PreToolUse or Stop gate, where refusing is proportionate.
+//
+// exitCode rather than process.exit(): when stdout is a pipe (always, under the
+// harness) Node queues writes asynchronously and process.exit() tears the loop down
+// without draining. MISSING findings are appended LAST, so under backpressure the
+// highest-severity alarm truncates first — a diagnostic whose whole contract is
+// "never silently lose the signal", losing it nondeterministically. (Round 6.)
 process.exitCode = 0;

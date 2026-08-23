@@ -21,9 +21,11 @@
  *
  * Run: node scripts/hooks/drift-check-gate.test.mjs   (exit 0 = pass)
  */
-import { dirname, resolve } from 'node:path';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { classifyCommand } from '../lib/hook-registration.mjs';
+import { classifyCommand, auditHookRegistrations } from '../lib/hook-registration.mjs';
 
 const SS_PT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const classify = (cmd) => classifyCommand(cmd, SS_PT);
@@ -67,6 +69,7 @@ const cases = [
   ['node /abs/path/hooks/foo.mjs', 'UNVERIFIED', 'R5: absolute is target-machine-relative'],
   ['npm run build', 'UNVERIFIED', 'R4: indirection is not clean'],
   ['curl https://example.com/x.sh', 'UNVERIFIED', 'URL is not a local file'],
+  [`node ./a${String.fromCharCode(0x00A0)}b.mjs`, 'UNVERIFIED', 'R8: NBSP — JS \\s splits it, a shell does not'],
   ['', 'UNVERIFIED', 'empty command registers nothing'],
   [undefined, 'UNVERIFIED', 'missing command key'],
 ];
@@ -91,6 +94,54 @@ for (const f of fuzz) {
     console.log(`  INVARIANT VIOLATION on ${JSON.stringify(f)} -> ${JSON.stringify(v)}`);
   }
 }
+
+// ---- Filesystem cases: shapes and roots that string tests cannot reach -------
+// Round 8 found both of these, and one of them was a REGRESSION introduced by the
+// round-7 containment fix. They need a real temp filesystem, so they live here
+// rather than in the table above.
+const t = mkdtempSync(join(tmpdir(), 'hookaudit-'));
+mkdirSync(join(t, '.claude'));
+for (const [label, body, want] of [
+  // `hooks: null` slipped past `!= null`, iterated zero times and read CLEAN while
+  // every other bad shape was flagged. Round 8, and the eighth round of this class.
+  ['hooks:null', '{"hooks":null}', 1],
+  ['hooks:false', '{"hooks":false}', 1],
+  ['hooks:[]', '{"hooks":[]}', 1],
+  ['root is an array', '[1,2,3]', 1],
+  ['hooks key absent (legitimate)', '{}', 0],
+]) {
+  writeFileSync(join(t, '.claude', 'settings.json'), body);
+  const n = auditHookRegistrations(t).findings.length;
+  const ok = n === want;
+  if (!ok) failed += 1;
+  console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label.padEnd(42)} findings=${n}  want=${want}`);
+}
+rmSync(t, { recursive: true, force: true });
+
+// A symlinked root made realpath(root) !== resolve(root); round 7's fallback then
+// compared a LEXICAL path to a REAL root, so an absent file could never match and
+// MISSING was demoted to UNVERIFIED — the one alarm this module exists to raise,
+// neutered by its own containment fix.
+const base = mkdtempSync(join(tmpdir(), 'hooklink-'));
+const realRoot = join(base, 'realroot');
+mkdirSync(join(realRoot, 'hooks'), { recursive: true });
+writeFileSync(join(realRoot, 'hooks', 'present.mjs'), '// here\n');
+const linkRoot = join(base, 'linkroot');
+try {
+  symlinkSync(realRoot, linkRoot, 'junction');
+  for (const [label, cmd, want] of [
+    ['ABSENT file under symlinked root', 'node hooks/gone.mjs', 'MISSING'],
+    ['PRESENT file under symlinked root', 'node hooks/present.mjs', 'OK'],
+  ]) {
+    const got = classifyCommand(cmd, linkRoot).kind;
+    const ok = got === want;
+    if (!ok) failed += 1;
+    console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label.padEnd(42)} ${got.padEnd(10)} want=${want}`);
+  }
+} catch {
+  console.log('  SKIP  symlink unavailable on this host — symlinked-root case not exercised');
+}
+rmSync(base, { recursive: true, force: true });
 
 console.log(`\n  cases:     ${cases.length - failed}/${cases.length}`);
 console.log(`  invariant: ${fuzz.length - violations}/${fuzz.length} inputs produced exactly one verdict`);
