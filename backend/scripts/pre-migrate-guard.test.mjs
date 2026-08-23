@@ -14,7 +14,7 @@
  * Get either backwards and the guard is either useless or dangerous.
  */
 import assert from 'node:assert/strict';
-import { decideOutcome, advisoryLockKey } from './pre-migrate-guard.mjs';
+import { decideOutcome, advisoryLockKey, attestation, findAttestation, ATTEST_PREFIX } from './pre-migrate-guard.mjs';
 
 let pass = 0;
 const fail = [];
@@ -87,6 +87,52 @@ t('the lock key fits in a signed 64-bit integer (Postgres rejects anything wider
 
 t('a different label yields a different lock — two guards must not collide', () => {
   assert.notEqual(advisoryLockKey('a'), advisoryLockKey('b'));
+});
+
+
+// ── attestation: the positive signal (Kimi K3, panel 2026-08-23) ──────────────────
+// "a safety device that cannot distinguish 'I am working' from 'I am dead'." A fail-open
+// guard whose silence is ambiguous converts "we have no protection" — known and actionable —
+// into "we believe we have protection", which is neither. These pin the fix.
+
+t('an attestation is emitted even when the guard STANDS DOWN', () => {
+  const a = findAttestation(attestation({ mode: 'warn-only', locked: false, backup: 'skipped', outcome: 'stood-down' }));
+  assert.ok(a, 'a stand-down that emits nothing is exactly the ambiguity being fixed');
+  assert.equal(a.outcome, 'stood-down');
+});
+
+t('the line is machine-findable inside noisy deploy output', () => {
+  const log = ['npm install', 'added 900 packages',
+    attestation({ mode: 'enforce', locked: true, backup: 'ok', outcome: 'proceeding' }),
+    'Build succeeded'].join('\n');
+  const a = findAttestation(log);
+  assert.equal(a.outcome, 'proceeding');
+  assert.equal(a.locked, true);
+});
+
+t('ABSENCE is detectable — the whole point', () => {
+  assert.equal(findAttestation('npm install\nBuild succeeded\n'), null);
+});
+
+t('carries mode, lock, backup and outcome — enough to judge without the rest of the log', () => {
+  const a = findAttestation(attestation({ mode: 'warn-only', locked: true, backup: 'failed', pending: 3, outcome: 'proceeding' }));
+  assert.deepEqual(
+    { mode: a.mode, locked: a.locked, backup: a.backup, pending: a.pending, outcome: a.outcome },
+    { mode: 'warn-only', locked: true, backup: 'failed', pending: 3, outcome: 'proceeding' });
+});
+
+t('a backup that FAILED is visible in the attestation, not buried', () => {
+  const a = findAttestation(attestation({ mode: 'warn-only', locked: true, backup: 'failed', outcome: 'proceeding' }));
+  assert.equal(a.backup, 'failed', 'proceeding without a backup must stay legible after the fact');
+});
+
+t('is versioned, so a later format change is detectable rather than silent', () => {
+  assert.equal(findAttestation(attestation({ mode: 'x', outcome: 'y' })).v, 1);
+});
+
+t('a malformed attestation line does not hide a good one', () => {
+  const log = `${ATTEST_PREFIX} {not json}\n${attestation({ mode: 'enforce', outcome: 'proceeding' })}`;
+  assert.equal(findAttestation(log).outcome, 'proceeding');
 });
 
 console.log(`\npre-migrate-guard: ${pass} passed, ${fail.length} failed`);

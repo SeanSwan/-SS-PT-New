@@ -54,6 +54,7 @@ import path from 'node:path';
 const ARGS = process.argv.slice(2);
 const CHECK_ONLY = ARGS.includes('--check');
 const ENFORCE = process.env.SWAN_MIGRATE_GUARD === 'enforce';
+const MODE = CHECK_ONLY ? 'check-only' : ENFORCE ? 'enforce' : 'warn-only';
 
 /**
  * Stable 64-bit key for the deploy-migration lock. Any constant works as long as every
@@ -85,6 +86,48 @@ export function decideOutcome({ lockAcquired, backupOk, enforce, checkOnly }) {
   return { ok: true, reason: 'lock held, backup verified' };
 }
 
+
+/**
+ * ATTESTATION — the positive signal (Kimi K3, panel 2026-08-23).
+ *
+ * "The guard is fail-open with no positive signal, which means its failure state and its
+ *  healthy state produce identical output on a successful deploy. You have built a safety
+ *  device that cannot distinguish 'I am working' from 'I am dead.' It converts 'we have no
+ *  protection' — a known, actionable fact — into 'we believe we have protection', an
+ *  unknown, unactionable falsehood."
+ *
+ * That is correct, and it is the SAME defect GLM found in the hook layer earlier the same
+ * day: nothing distinguished "gate passed" from "gate not installed." I fixed that one and
+ * then rebuilt it here within hours, in a fail-open guard whose silence means nothing.
+ *
+ * So the guard now emits one machine-checkable line on every run, including the runs where
+ * it stands down. Absence of this line in a deploy log is now itself a finding — which is
+ * the whole point: you can check for PRESENCE, not merely for absence of errors.
+ */
+export const ATTEST_PREFIX = 'PRE-MIGRATE-ATTESTATION';
+
+export function attestation(fields) {
+  return `${ATTEST_PREFIX} ${JSON.stringify({
+    v: 1,
+    at: new Date(fields.now ?? Date.now()).toISOString(),
+    mode: fields.mode,
+    locked: Boolean(fields.locked),
+    backup: fields.backup,
+    pending: fields.pending ?? null,
+    outcome: fields.outcome,
+  })}`;
+}
+
+/** Parse a deploy log and answer the only question that matters: did the guard run at all? */
+export function findAttestation(logText) {
+  for (const line of String(logText ?? '').split('\n')) {
+    const i = line.indexOf(ATTEST_PREFIX);
+    if (i === -1) continue;
+    try { return JSON.parse(line.slice(i + ATTEST_PREFIX.length).trim()); } catch { /* keep looking */ }
+  }
+  return null;
+}
+
 const log = (...m) => console.log('[pre-migrate]', ...m);
 const warn = (...m) => console.error('[pre-migrate]', ...m);
 
@@ -92,10 +135,11 @@ async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) {
     warn('DATABASE_URL is not set — nothing to guard. Exiting 0 so a non-DB build is unaffected.');
+    console.log(attestation({ mode: 'no-db-url', locked: false, backup: 'skipped', outcome: 'stood-down' }));
     process.exit(0);
   }
 
-  log(`mode=${CHECK_ONLY ? 'check-only' : ENFORCE ? 'ENFORCE' : 'warn-only'}`);
+  log(`mode=${MODE}`);
 
   // Imported lazily, AFTER the DATABASE_URL check. A top-level import made the guard
   // unloadable wherever sequelize is absent — so it exited 1 before its own fail-open
@@ -105,7 +149,12 @@ async function main() {
     ({ Sequelize } = await import('sequelize'));
   } catch (e) {
     warn(`sequelize unavailable (${e.code || e.message}) — cannot guard this migration.`);
-    if (ENFORCE) { warn('SWAN_MIGRATE_GUARD=enforce — refusing to migrate unguarded.'); process.exit(1); }
+    if (ENFORCE) {
+      warn('SWAN_MIGRATE_GUARD=enforce — refusing to migrate unguarded.');
+      console.log(attestation({ mode: MODE, locked: false, backup: 'skipped', outcome: 'halted-no-sequelize' }));
+      process.exit(1);
+    }
+    console.log(attestation({ mode: MODE, locked: false, backup: 'skipped', outcome: 'stood-down-no-sequelize' }));
     log('continuing (warn-only). The migration is running UNGUARDED.');
     process.exit(0);
   }
@@ -117,6 +166,7 @@ async function main() {
 
   let lockAcquired = false;
   let backupOk = false;
+  let pendingCount = null;
 
   try {
     await sequelize.authenticate();
@@ -141,6 +191,8 @@ async function main() {
       if (existsSync(dir)) {
         const { readdirSync } = await import('node:fs');
         const pending = readdirSync(dir).filter((f) => /\.(c?js)$/.test(f) && !done.has(f)).sort();
+        pendingCount = pending.length;
+        pendingCount = pending.length;
         log(`applied=${done.size} pending=${pending.length}`);
         for (const p of pending.slice(0, 25)) log(`  PENDING  ${p}`);
         if (pending.length > 25) log(`  … and ${pending.length - 25} more`);
@@ -204,6 +256,7 @@ async function main() {
     process.exit(0);
   }
 
+  console.log(attestation({ mode: MODE, locked: lockAcquired, backup: backupOk ? 'ok' : 'failed', pending: pendingCount, outcome: 'proceeding' }));
   log(`holding the deploy lock while running: ${runCmd.join(' ')}`);
   const child = spawnSync(runCmd[0], runCmd.slice(1), { cwd: process.cwd(), stdio: 'inherit' });
   await sequelize.close().catch(() => {});
