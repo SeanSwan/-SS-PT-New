@@ -98,6 +98,51 @@ if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md)$'; then
   fi
 fi
 
+# Token registry — CLAUDE.md Rule 6, the half G4 cannot see.
+# G4 (frontend-guards) proves the SHAPE is right: a raw hex must sit in the fallback
+# position of var(--token, #hex). Nothing proved the TOKEN EXISTS. So `var(--bg-elevatd,
+# #141419)` — one transposed letter — passes G4, renders its fallback forever, and can
+# never respond to theming. Nothing catches it, because it looks correct.
+#
+# Gated with --added-only, NOT --strict. Measured 2026-08-21: the standing backlog is 831
+# undefined token uses across 1,735 sites plus 610 drift findings, and --strict would block
+# a sampled 32% of frontend files on debt their author never wrote. A gate that fails on
+# inherited debt gets switched off (Rule 34). --added-only fails ONLY on undefined tokens
+# introduced by lines this commit ADDS; the backlog is reported and never blocks.
+TOKEN_CHECK="$REPO_ROOT/scripts/hooks/token-registry-check.mjs"
+# Read into an ARRAY, not a string. A string would need to be left unquoted to pass
+# multiple paths as separate argv entries, and word-splitting then breaks any path
+# containing a space into fragments. The checker silently drops --file paths that do
+# not exist, so such a file would be SKIPPED while its siblings passed — a gate that
+# reports green on work it never looked at. frontend/src already contains one path with
+# a space today.
+mapfile -t STAGED_FE < <(git diff --cached --name-only --diff-filter=ACM -- 'frontend/src/*.ts' 'frontend/src/*.tsx' 'frontend/src/*.css')
+if [[ ${#STAGED_FE[@]} -gt 0 ]]; then
+  if [[ -f "$TOKEN_CHECK" ]]; then
+    # The checker reads the WORKING TREE, while --added-only reads added lines from the
+    # INDEX. If a staged file differs between the two, those line numbers describe a
+    # different tree than the one being committed, and a pass here would vouch for the
+    # wrong blob. Refuse to certify rather than issue a verdict about the wrong tree.
+    # (Same reasoning as the Design Brain check below.)
+    TOKEN_UNSTAGED="$(git diff --name-only -- "${STAGED_FE[@]}")"
+    if [[ -n "$TOKEN_UNSTAGED" ]]; then
+      echo "COMMIT BLOCKED: staged frontend files differ between the working tree and the index." >&2
+      echo "  token-registry-check reads the working tree, so it CANNOT vouch for what you are committing." >&2
+      echo "  Stage or stash these, then commit:" >&2
+      echo "$TOKEN_UNSTAGED" | sed 's/^/    /' >&2
+      exit 1
+    fi
+    echo "[pre-commit] Running token registry check on staged frontend files (added lines only)..."
+    if ! node "$TOKEN_CHECK" --added-only --file "${STAGED_FE[@]}"; then
+      echo "COMMIT BLOCKED: a line you are ADDING uses a CSS custom property that is never defined." >&2
+      echo "  This is Rule 6's other half — G4 checks the shape, this checks the token exists." >&2
+      exit 1
+    fi
+  else
+    echo "[pre-commit] token registry check: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
+  fi
+fi
+
 SKILL_REGISTRY="$REPO_ROOT/scripts/ai-workflow/validate-skill-registry.mjs"
 if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.claude/skills/|\.agents/skills/)'; then
   if [[ -f "$SKILL_REGISTRY" ]]; then

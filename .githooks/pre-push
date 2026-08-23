@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# pre-push hook — Swan Studios — CLAUDE.md Rule 42 (Pre-Push Backend Audit)
+# Installed via: git config core.hooksPath .githooks
+#
+# To bypass in emergencies (DO NOT MAKE A HABIT):
+#   git push --no-verify
+#
+# WHY THIS EXISTS
+# ---------------
+# Rule 42 names two audit commands and says to run BOTH before pushing any backend
+# change. Until now nothing ran either one. `push-blast-radius.mjs` guards migration
+# and deploy blast radius, which is adjacent but different — it never looked at
+# whether the tree being pushed is COMPLETE.
+#
+# The stakes are specific and measured, not theoretical. render.yaml:57 deploys from
+# `main`, and render.yaml:66 builds with `cd backend && npm install && npm run
+# migrate:production`. So a push to main is a deploy AND a migration run against
+# production, executed from whatever the remote receives. Two classes of local drift
+# crash that build identically at boot:
+#
+#   1. UNTRACKED backend files  -> remote import resolves to nothing
+#                                  ERR_MODULE_NOT_FOUND, crash loop
+#   2. MODIFIED-UNCOMMITTED     -> remote has the old file without the new export
+#                                  SyntaxError: does not provide an export named 'X'
+#
+# Incident 2026-04-12: a crash-loop series caused by 10 untracked Swan Coach files
+# plus 9 modified-but-uncommitted files whose new exports were missing on the remote.
+# Both checks are sub-second. There is no reason they were ever manual.
+#
+# SCOPE — deliberately narrow
+# ---------------------------
+# Fires ONLY when `main` is among the refs being pushed, because only `main` deploys.
+# Pushing a feature or wip branch runs no build and no migration, so blocking it would
+# be noise that gets the hook disabled (Rule 34). Deleting a ref is likewise exempt.
+#
+# This checks the tree you are pushing FROM, not the diff you are pushing. That is the
+# point: the hazard is the file that is NOT in the push and should have been.
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# --- Does this push include main? -------------------------------------------------
+# stdin lines: <local ref> <local sha> <remote ref> <remote sha>
+# A deletion has an all-zero local sha and carries no build.
+ZERO='0000000000000000000000000000000000000000'
+PUSHING_MAIN=0
+while read -r LOCAL_REF LOCAL_SHA REMOTE_REF REMOTE_SHA; do
+  [[ -z "${REMOTE_REF:-}" ]] && continue
+  [[ "$LOCAL_SHA" == "$ZERO" ]] && continue          # branch deletion — no deploy
+  if [[ "$REMOTE_REF" == "refs/heads/main" ]]; then
+    PUSHING_MAIN=1
+  fi
+done
+
+if [[ "$PUSHING_MAIN" -eq 0 ]]; then
+  echo "[pre-push] Rule 42 backend audit: skipped — main is not among the pushed refs (no deploy)."
+  exit 0
+fi
+
+# --- Rule 42, both commands, verbatim from the rule -------------------------------
+echo "[pre-push] Running Rule 42 backend audit (main is deploying)..."
+
+UNTRACKED="$(git ls-files --others --exclude-standard backend/)"
+MODIFIED="$(git diff --name-only HEAD -- backend/)"
+
+if [[ -z "$UNTRACKED" && -z "$MODIFIED" ]]; then
+  echo "[pre-push] Rule 42 backend audit: CLEAN — backend/ tree is fully committed."
+  exit 0
+fi
+
+{
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "PUSH BLOCKED: backend/ drift would ship an incomplete tree to Render."
+  echo ""
+  echo "You are pushing main. render.yaml deploys main and runs"
+  echo "'npm run migrate:production' against the database. The remote will build"
+  echo "from what it receives — these files are NOT in it:"
+  echo ""
+
+  if [[ -n "$UNTRACKED" ]]; then
+    echo "  UNTRACKED in backend/ — an import of these resolves to nothing on the"
+    echo "  remote (ERR_MODULE_NOT_FOUND at boot):"
+    echo "$UNTRACKED" | sed 's/^/      /'
+    echo ""
+  fi
+
+  if [[ -n "$MODIFIED" ]]; then
+    echo "  MODIFIED but UNCOMMITTED in backend/ — the remote gets the OLD file. If"
+    echo "  anything imports a new export from these, boot dies with"
+    echo "  \"SyntaxError: does not provide an export named 'X'\":"
+    echo "$MODIFIED" | sed 's/^/      /'
+    echo ""
+  fi
+
+  echo "  Fix — pick one per file:"
+  echo "    • it belongs in the deploy   ->  git add <file> && git commit"
+  echo "    • it is local-only scratch   ->  add it to .gitignore (then commit that)"
+  echo ""
+  echo "  Do NOT bypass this to 'push now and fix after'. The failure mode is a"
+  echo "  production crash loop, not a lint warning (incident 2026-04-12)."
+  echo ""
+  echo "  Genuine emergency only:  git push --no-verify"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo ""
+} >&2
+
+exit 1

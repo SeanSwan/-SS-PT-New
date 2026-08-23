@@ -8,3 +8,11 @@
 # LF on scripts/*.sh is required.
 
 scripts/*.sh text eol=lf
+
+# Git hooks are bash and are executed from the WORKING COPY, under WSL/Linux as
+# well as Git Bash. Blobs are already stored LF; the exposure is the checkout —
+# on Windows with core.autocrlf=true, an uncovered path is written to disk with
+# CRLF and then fails under WSL with "bad interpreter: /usr/bin/env bash^M".
+# That is the same reasoning as the scripts/*.sh rule above, and .githooks/ was
+# simply never covered. Added 2026-08-21 with the Rule 42 pre-push gate.
+.githooks/* text eol=lf
