@@ -41,14 +41,22 @@
  * Usage:
  *   node scripts/consult-panel.mjs --document <path> [--seed <path>]
  *        [--out-dir docs/ai-workflow/AI-HANDOFF/panel-<date>]
- *        [--seats kimi,glm,qwen,ox,gemini,grok,dspro,dsflash] [--remit "<override>"]
+ *        [--seats kimi,glm,qwen,gemini,grok,dspro,dsflash] [+opt-in: ox,fable,sol] [--remit "<override>"]
  *        [--dry-run] [--confirm-spend]
  *
- * Safety: the spend gate protects MONEY, so it covers the PAID seats only.
- *   default            -> free seats (glm, qwen) RUN; paid seats are SKIPPED
- *                         with a notice and the INDEX is marked INCOMPLETE.
+ * Safety: TWO INDEPENDENT AXES. Conflating them is how ox shipped default-on.
+ *   MONEY  (`paid`)    -> --confirm-spend. Protects OpenRouter credits.
+ *   OPT-IN (`premium`) -> must be named in --seats; excluded from the default
+ *                         roster. Covers seats too expensive (fable, sol) AND
+ *                         seats whose cost is DATA rather than dollars (ox:
+ *                         $0, but an undisclosed provider RETAINS the prompt).
+ *
+ *   default            -> free non-premium seats RUN and DO send the document
+ *                         (glm, qwen, gemini). Paid seats are SKIPPED with a
+ *                         notice and the INDEX is marked INCOMPLETE.
  *   --confirm-spend    -> all requested seats run, including paid ones.
  *   --dry-run          -> nothing runs at all; prints the plan + cost estimate.
+ *                         This is the ONLY flag that guarantees no egress.
  * Rule 16 spend gate applies; the Kimi standing rule (ONE review per topic,
  * fresh yes for a second) still governs on top of this.
  *
@@ -82,11 +90,11 @@ const outDir = arg('--out-dir', `docs/ai-workflow/AI-HANDOFF/panel-${stamp}`);
 // Dedupe: `--seats kimi,kimi` is a typo, but without this it would fire a PAID
 // seat twice and bill twice for one review.
 const requested = [...new Set(
-  arg('--seats', 'kimi,glm,qwen,ox,gemini,grok,dspro,dsflash').split(',').map((s) => s.trim()).filter(Boolean),
+  arg('--seats', 'kimi,glm,qwen,gemini,grok,dspro,dsflash').split(',').map((s) => s.trim()).filter(Boolean),
 )];
 
 if (!documentPath) {
-  console.error('usage: node scripts/consult-panel.mjs --document <path> [--seed <path>] [--seats kimi,glm,qwen,ox,gemini,grok,dspro,dsflash] [--confirm-spend]');
+  console.error('usage: node scripts/consult-panel.mjs --document <path> [--seed <path>] [--seats kimi,glm,qwen,gemini,grok,dspro,dsflash] [+opt-in: ox,fable,sol] [--confirm-spend]');
   process.exit(1);
 }
 if (!existsSync(documentPath)) {
@@ -126,7 +134,19 @@ const ASSUMED_OUT_TOK = 6000;
 
 console.log(`[panel] document=${documentPath} (${document.length} chars, ~${promptTok} tok)`);
 console.log(`[panel] seats=${requested.join(', ')}  out-dir=${outDir}`);
-console.log(`[panel] mode=${confirmSpend ? 'LIVE' : 'DRY-RUN'}\n`);
+// The mode label describes the SPEND gate, never whether anything is sent. Calling
+// the un-confirmed state "DRY-RUN" was a lie: `--dry-run` is a separate flag that
+// exits before any request, whereas omitting --confirm-spend still RUNS every
+// paid:false seat. With ox (an undisclosed provider that RETAINS prompts) and gemini
+// (a metered Google key) both free-and-default, an operator reading "DRY-RUN" would
+// believe nothing left the machine while the document was already being egressed.
+// Found by two independent panel seats, 2026-08-23, and reproduced directly:
+// `--seats qwen` with no flags printed "mode=DRY-RUN" and then "running: qwen".
+const freeSeats = requested.filter((n) => !SEATS[n].paid);
+const modeLabel = confirmSpend
+  ? 'LIVE (all requested seats)'
+  : `PAID SEATS GATED — ${freeSeats.length} free seat(s) WILL still run and send this document`;
+console.log(`[panel] mode=${modeLabel}\n`);
 
 let estimate = 0;
 for (const name of requested) {
@@ -148,7 +168,13 @@ if (premiumAvailable.length) {
   for (const n of premiumAvailable) {
     const ps = SEATS[n];
     const c = (promptTok / 1e6) * ps.inPerM + (ASSUMED_OUT_TOK / 1e6) * ps.outPerM;
-    console.log(`  + ${n.padEnd(6)} ${ps.label.padEnd(18)} would add ~$${c.toFixed(4)}   (--seats ...,${n} --confirm-spend)`);
+    // The hint must be the command that ACTUALLY works for this seat. A free
+    // opt-in seat (ox) needs naming but not --confirm-spend; printing the money
+    // flag for it teaches a wrong incantation and implies a cost of dollars when
+    // the real cost is disclosure. Say what it costs in its own currency.
+    const how = ps.paid ? `--seats ...,${n} --confirm-spend` : `--seats ...,${n}`;
+    const price = ps.paid ? `would add ~$${c.toFixed(4)}` : 'no $ cost — gated on DATA';
+    console.log(`  + ${n.padEnd(6)} ${ps.label.padEnd(18)} ${price.padEnd(26)} (${how})`);
   }
 }
 

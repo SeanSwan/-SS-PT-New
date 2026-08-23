@@ -29,6 +29,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getModelId } from './lib/model-registry.mjs';
+import { readForEgress, redactForEgress } from './lib/redact-egress.mjs';
 
 // Repo root from THIS FILE's location, never process.cwd(). consult-panel.mjs spawns
 // each seat as a child that inherits the panel's cwd, so a cwd-relative .env lookup
@@ -104,8 +105,22 @@ try {
   process.exit(1);
 }
 
-const body = readFileSync(document, 'utf8');
-const seedText = seed && existsSync(seed) ? readFileSync(seed, 'utf8') : '';
+const body = readForEgress(document, { label: 'document' });
+
+// The SEED goes over the wire exactly like the document, so it gets exactly the
+// same redaction. Three independent panel seats flagged 2026-08-23 that the
+// document was passed through readForEgress while the seed was read raw — with
+// redactForEgress imported and never called, which is the fossil of a half-applied
+// change. A seed is typically prior session notes or a handoff, i.e. the file MOST
+// likely to name a real person. Redacting the safer input and not the riskier one
+// is worse than redacting neither, because the import makes the file read as
+// protected. Egress protection is a property of the request, not of one argument.
+// redactForEgress(text) takes ONE argument — no options object. Matches the
+// existing call shape used by the sibling seat scripts.
+const seedText = seed && existsSync(seed)
+  ? redactForEgress(readFileSync(seed, 'utf8'))
+  : '';
+
 const prompt = [remit, seedText && `## Prior context\n\n${seedText}`, '---', body]
   .filter(Boolean).join('\n\n');
 
@@ -116,10 +131,16 @@ const timer = setTimeout(() => controller.abort(), timeoutMs);
 const started = Date.now();
 
 try {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  // Key travels in a HEADER, never the URL. Two panel seats flagged 2026-08-23 that
+  // `?key=${apiKey}` puts the secret into a string that leaks by default: proxy and
+  // access logs, HAR captures, Node diagnostic channels, and `error.cause` URLs all
+  // record the full URI. The local `.split(apiKey)` scrub only covers the two places
+  // we hand-wrote — it cannot reach anything the runtime logs on its own. Google
+  // supports x-goog-api-key; use the channel that is not designed to be recorded.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { maxOutputTokens: maxTokens, temperature: 0.4 },
@@ -145,11 +166,20 @@ try {
   const finish = cand?.finishReason ?? '?';
 
   if (!text.trim()) {
-    // MAX_TOKENS with no text is the reasoning-ate-the-budget failure the
-    // DeepSeek seats taught us to name explicitly rather than report as "empty".
-    const why = finish === 'MAX_TOKENS'
-      ? `hit maxOutputTokens (${maxTokens}) before emitting visible text — raise --max-tokens`
-      : `empty response (finishReason=${finish})`;
+    // Three distinct causes that all present as "no text". Naming the wrong one
+    // sends the operator down a remediation that cannot work:
+    //  - MAX_TOKENS: reasoning ate the output budget (the DeepSeek failure mode)
+    //  - promptFeedback.blockReason: the API refused the PROMPT outright. There is
+    //    no `candidates` array at all, so finishReason reads '?' and the old code
+    //    reported a generic empty response — the operator then raises --max-tokens
+    //    and retries into the same block forever. Flagged by a panel seat 2026-08-23.
+    //  - anything else: report the raw finishReason rather than guessing.
+    const block = data?.promptFeedback?.blockReason;
+    const why = block
+      ? `PROMPT BLOCKED by the API (blockReason=${block}). Raising --max-tokens will NOT help — the request never ran. Rewrite or narrow the packet.`
+      : finish === 'MAX_TOKENS'
+        ? `hit maxOutputTokens (${maxTokens}) before emitting visible text — raise --max-tokens`
+        : `empty response (finishReason=${finish})`;
     throw new Error(why);
   }
 
@@ -157,6 +187,13 @@ try {
   const wall = ((Date.now() - started) / 1000).toFixed(1);
   const truncated = finish === 'MAX_TOKENS';
 
+  // The blank lines here are STRUCTURAL, not decoration. `.filter(l => l !== '')`
+  // was meant to drop the empty truncated-branch but nuked every separator with it,
+  // so `**Tokens:** …` ended up adjacent to `---` and markdown parsed that pair as a
+  // setext H2 — the metadata line silently became a heading and the rule vanished.
+  // Two panel seats caught it 2026-08-23; the literal `\n` welded onto the truncated
+  // warning is the fossil of someone half-noticing. Build the optional line
+  // conditionally instead of filtering the whole array.
   const header = [
     '# Gemini Panel Review',
     '',
@@ -164,12 +201,12 @@ try {
     `**Document:** ${document}`,
     `**Tokens:** ${u.promptTokenCount ?? '?'} in / ${u.candidatesTokenCount ?? '?'} out | **Wall:** ${wall}s | **finishReason:** ${finish}`,
     '',
-    truncated
-      ? '> ⚠ **TRUNCATED** — hit maxOutputTokens. The tail is NOT a finished thought.\n'
-      : '',
+    ...(truncated
+      ? ['> ⚠ **TRUNCATED** — hit maxOutputTokens. The tail is NOT a finished thought.', '']
+      : []),
     '---',
     '',
-  ].filter((l) => l !== '').join('\n');
+  ].join('\n');
 
   writeFileSync(out, `${header}\n${text}\n`, 'utf8');
   console.error(`[consult-gemini-panel] done ${u.promptTokenCount ?? '?'}in/${u.candidatesTokenCount ?? '?'}out wall=${wall}s finish=${finish}`);

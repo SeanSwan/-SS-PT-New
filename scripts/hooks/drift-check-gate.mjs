@@ -141,8 +141,21 @@ try {
 //
 // Also covers the wider version: an unparseable settings file silently disables EVERY
 // hook it declares, which is the same failure with a larger blast radius.
+//
+// SCOPE OF THE MATCHER — hardened 2026-08-23 after three panel seats independently
+// found that the first version could report clean while a guard was missing:
+//   - it required the path to contain `scripts/` or `.claude/`, so a bare
+//     `node lane-session-start.mjs` (literally the file from the incident) matched
+//     nothing and the check went silent;
+//   - it accepted only .mjs/.js/.sh/.ps1/.py, so renaming a hook to .cjs or .ts
+//     reproduced the whole 2026-08-22 outage with a one-character change.
+// A completeness checker with unenumerated blind spots is worse than a manual
+// checklist, because its "clean" launders confidence. Match any token that looks
+// like a script path, anchored on the EXTENSION rather than on a directory prefix.
 try {
-  const PATH_RE = /(?:scripts|\.claude)[/\\][A-Za-z0-9_./\\-]+\.(?:mjs|js|sh|ps1|py)/g;
+  const PATH_RE = /(?<![\w./\\-])[A-Za-z0-9_.][A-Za-z0-9_./\\-]*\.(?:mjs|cjs|js|ts|mts|cts|sh|bash|ps1|py|rb)(?![\w-])/g;
+  // Tokens that are not repo files: package bins, npm/npx targets, URLs.
+  const NOT_A_FILE = /^(?:https?:|npm$|npx$|node$|bash$|sh$|python3?$)/;
   const missing = [];
   const unreadable = [];
 
@@ -161,15 +174,21 @@ try {
     }
 
     const seen = new Set();
+    // Defensive iteration: a malformed hooks block (an object where an array is
+    // expected, a null group) must not throw. The outer catch would swallow it and
+    // the check would go silent — the precise pathology this check exists to kill.
     for (const [event, groups] of Object.entries(cfg.hooks || {})) {
-      for (const group of groups || []) {
-        for (const hook of group.hooks || []) {
-          for (const m of String(hook.command || '').matchAll(PATH_RE)) {
+      for (const group of Array.isArray(groups) ? groups : []) {
+        for (const hook of Array.isArray(group?.hooks) ? group.hooks : []) {
+          for (const m of String(hook?.command || '').matchAll(PATH_RE)) {
             const rel = m[0].replace(/\\/g, '/');
+            if (NOT_A_FILE.test(rel)) continue;
             const key = `${event}:${rel}`;
             if (seen.has(key)) continue;
             seen.add(key);
-            if (!existsSync(join(SS_PT, rel))) missing.push(`${rel} (${event}, ${name})`);
+            // Absolute paths are used as-is; repo-relative ones resolve from SS_PT.
+            const abs = /^(?:[A-Za-z]:|\/)/.test(rel) ? rel : join(SS_PT, rel);
+            if (!existsSync(abs)) missing.push(`${rel} (${event}, ${name})`);
           }
         }
       }
@@ -190,7 +209,17 @@ try {
       'Restore the file(s) or remove the registration; do not leave a phantom guard.'
     );
   }
-} catch { /* never let the integrity check itself break session start — fail-open */ }
+} catch (err) {
+  // FAIL-OPEN, NOT FAIL-SILENT. The first version swallowed its own errors and
+  // emitted nothing — which is byte-identical to "no phantom guards found", i.e. the
+  // exact ambiguity this check's own header lectures about. Two panel seats caught
+  // the hypocrisy 2026-08-23. A guard that cannot run must SAY it could not run;
+  // it still must not block session start.
+  findings.push(
+    `hook-registration check could not complete (${err?.message || err}). Phantom-guard ` +
+    'detection did NOT run this session — its silence means "unknown", not "clean".'
+  );
+}
 
 // ---- Emit: silent when clean ----------------------------------------------
 if (findings.length) {

@@ -85,7 +85,17 @@ export function buildSeats(remit) {
       label: 'Grok 4.6', script: 'consult-grok.mjs', paid: true,
       inPerM: 2, outPerM: 6, out: 'GROK-PANEL-REVIEW.md',
       args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high'],
-      note: 'x-ai/grok-4.6 via OpenRouter — rule-12 repeal (PR #54)',
+      // PIN THE MODEL EXPLICITLY. consult-grok.mjs falls back to `process.env
+      // .SWAN_GROK_MODEL || 'x-ai/grok-4.6'`, and the child inherits the parent
+      // environment — so an operator shell carrying SWAN_GROK_MODEL from an earlier
+      // manual run would make THIS seat file a different model's review under
+      // GROK-PANEL-REVIEW.md, priced at Grok's rates. That is exactly the
+      // misattribution class the 2026-08-22 fix eliminated, re-entering ambiently
+      // through the environment instead of through a hard-coded string. Every other
+      // seat on this transport pins its model; grok was the only one relying on the
+      // default. Found by two independent panel seats 2026-08-23.
+      env: { SWAN_GROK_MODEL: 'x-ai/grok-4.6' },
+      note: 'x-ai/grok-4.6 via OpenRouter — rule-12 repeal (PR #54); model pinned, not inherited',
     },
     dspro: {
       label: 'DeepSeek V4 Pro', script: 'consult-grok.mjs', paid: true,
@@ -95,10 +105,18 @@ export function buildSeats(remit) {
       note: 'deepseek/deepseek-v4-pro via consult-grok transport',
     },
     ox: {
-      label: 'Ox Alpha', script: 'consult-grok.mjs', paid: false,
+      label: 'Ox Alpha', script: 'consult-grok.mjs', paid: false, premium: true,
       inPerM: 0, outPerM: 0, out: 'OX-ALPHA-PANEL-REVIEW.md',
       args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high'],
       env: { SWAN_GROK_MODEL: 'stealth/ox-alpha' },
+      // premium:true despite paid:false — the gate axis here is DATA, not money.
+      // Two panel seats independently flagged 2026-08-23 that ox shipped in the
+      // DEFAULT roster while its own note says prompts are RETAINED by an
+      // undisclosed provider. Fable and Sol require deliberate opt-in because they
+      // cost dollars; ox costs disclosure to an unidentified party, which is the
+      // less reversible of the two — and it was the one defaulted ON. Money got
+      // opt-in, data got opt-out. `premium` removes it from the default roster, so
+      // reaching a stealth provider now takes an explicit `--seats ...,ox`.
       // Free BECAUSE it is a stealth listing: an unnamed lab is evaluating the
       // model and OpenRouter's stealth terms mean prompts are retained and seen
       // by that provider. Zero dollars, NON-zero privacy cost. Only send it
