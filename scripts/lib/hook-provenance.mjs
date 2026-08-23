@@ -132,11 +132,32 @@ export function auditHookProvenance(root, { readHead = gitShowHead } = {}) {
   try {
     liveRaw = readFileSync(join(root, TRACKED_SETTINGS), 'utf-8');
   } catch (e) {
-    // Absent working file: nothing is live from it, so there is nothing to be
-    // split-brained about. Unreadable is NOT the same and must not collapse into it.
     if (e?.code !== 'ENOENT') {
       findings.push(`${TRACKED_SETTINGS} could not be read (${e?.code || 'unknown'}) — hook provenance was NOT checked. This is UNKNOWN, not clean.`);
+      return { findings, scopeNote };
     }
+    // An absent working file is NOT automatically clean. This originally returned
+    // silently, reasoning that "nothing is live from it, so there is nothing to be
+    // split-brained about" — which was exactly backwards. If HEAD registers hooks and
+    // the working copy of the file is gone, then EVERY committed guard is off in the
+    // tree doing the work while the repo says they are on. That is the split-brain in
+    // its worst form, and it reported as healthy.
+    //
+    // Found by hostile review, minutes after the identical mistake was found in
+    // rule-count.mjs. Two modules, same author, same session, same error class:
+    // treating "input absent" as "nothing to report" instead of asking what the
+    // absence implies.
+    try {
+      const headCfg = JSON.parse(readHead(root, TRACKED_SETTINGS));
+      const { keys } = collectHookCommands(headCfg, `${TRACKED_SETTINGS} (HEAD)`);
+      if (keys.size) {
+        findings.push(
+          `${TRACKED_SETTINGS} is MISSING from this working tree, but HEAD registers ${keys.size} hook(s): ` +
+          `${[...keys].map(pretty).join('; ')}. Every one of those guards is OFF here while the ` +
+          'repo says they are on. Restore the file before trusting any gate.'
+        );
+      }
+    } catch { /* no HEAD blob either — genuinely nothing registered anywhere */ }
     return { findings, scopeNote };
   }
 

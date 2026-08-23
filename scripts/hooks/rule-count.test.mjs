@@ -103,6 +103,14 @@ const repo = (files) => {
   // An absent mirror is legitimate; only the primary file's absence is a finding.
   const r2 = auditRuleCount(repo({ 'CLAUDE.md': doc('## MANDATORY Rules', '1. **A**') }), { files: ['CLAUDE.md', 'AGENTS.md'] });
   check('4e absent mirror is silent', r2.findings.length === 0, JSON.stringify(r2.findings));
+
+  // A DELETED PRIMARY MUST NOT READ AS CLEAN. Found by hostile review of this
+  // module: an absent CLAUDE.md originally produced zero findings, so a repo whose
+  // rulebook had been deleted reported perfect health — the silent-success failure
+  // this entire skill exists to prevent, inside the check that measures it.
+  const r3 = auditRuleCount(repo({}), { files: ['CLAUDE.md', 'AGENTS.md'] });
+  check('4f absent PRIMARY is a finding, not silence', r3.findings.length === 1, JSON.stringify(r3.findings));
+  check('4g and says it is not clean', /DOES NOT EXIST/.test(r3.findings[0] || ''), JSON.stringify(r3.findings));
 }
 
 // ---- 5. CRLF and heading spelling ------------------------------------------

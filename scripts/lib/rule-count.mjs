@@ -95,7 +95,22 @@ export function auditRuleCount(root, { files = ['CLAUDE.md', 'AGENTS.md'] } = {}
     } catch (e) {
       // AGENTS.md may legitimately be absent in a repo that has no mirror. An
       // UNREADABLE file is not the same thing and must not be silently skipped.
-      if (e?.code !== 'ENOENT') {
+      //
+      // The PRIMARY file is different again, and this is a bug found by hostile
+      // review of this very module: an absent CLAUDE.md originally fell through here
+      // and the check reported ZERO findings — a deleted rulebook reading as a clean
+      // rulebook. That is the precise silent-success failure the whole drift-check
+      // doctrine exists to prevent, built into a check whose premise is that silence
+      // must never mean clean. The primary's absence is now the loudest finding this
+      // module can emit.
+      if (e?.code === 'ENOENT') {
+        if (name === files[0]) {
+          findings.push(
+            `${name} DOES NOT EXIST. The rulebook this repo is governed by is absent, so no ` +
+            'rule count could be computed and no rule can be verified. This is not a clean result.'
+          );
+        }
+      } else {
         findings.push(`${name} exists but could not be read (${e?.code || 'unknown'}) — its rule count is UNKNOWN, not clean.`);
       }
       continue;

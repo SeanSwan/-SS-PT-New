@@ -118,9 +118,23 @@ const all = (r) => r.findings.join(' || ');
   check('6d I2: unparseable HEAD blob produces a finding', r3.findings.length > 0, all(r3));
   check('6e I2: and names the blast radius', /fresh checkout runs NONE/.test(all(r3)), all(r3));
 
-  // Absent working file is genuinely nothing to check — the ONE legitimate silence.
+  // A MISSING working settings.json while HEAD registers hooks is the split-brain at
+  // its worst: every committed guard is off in the tree doing the work. This case
+  // originally asserted silence ("nothing is live, so nothing to report"), which was
+  // backwards, and the module was written to match. Caught by hostile review minutes
+  // after the identical mistake surfaced in rule-count.mjs — same author, same
+  // session, same error class: treating absent input as nothing-to-report rather than
+  // asking what the absence implies.
   const r4 = auditHookProvenance(mk(undefined), { readHead: head(hooks('PreToolUse', GATE)) });
-  check('6f absent working settings.json is legitimately silent', r4.findings.length === 0, all(r4));
+  check('6f missing working file + committed hooks IS a finding', r4.findings.length > 0, all(r4));
+  check('6g and says the guards are off here', /OFF here/.test(all(r4)), all(r4));
+  check('6h and names them', all(r4).includes(GATE), all(r4));
+
+  // Absent on BOTH sides registers nothing anywhere — the one legitimate silence.
+  const r5 = auditHookProvenance(mk(undefined), { readHead: head({ permissions: {} }) });
+  check('6i absent both sides is legitimately silent', r5.findings.length === 0, all(r5));
+  const r6 = auditHookProvenance(mk(undefined), { readHead: headMissing });
+  check('6j absent working file and no HEAD blob is silent', r6.findings.length === 0, all(r6));
 }
 
 // ---- 7. Shape traps inherited from check 7's eight hostile rounds ----------
