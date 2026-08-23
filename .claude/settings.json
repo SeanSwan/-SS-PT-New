@@ -310,6 +310,21 @@
             "type": "command",
             "command": "node scripts/hooks/push-blast-radius.mjs",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/spend-guard-gate.mjs",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/egress-privacy-gate.mjs",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "node scripts/hooks/exit-status-gate.mjs",
+            "timeout": 5
           }
         ]
       }
