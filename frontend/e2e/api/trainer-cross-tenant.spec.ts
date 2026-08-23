@@ -119,6 +119,14 @@ test.describe('@readonly cross-tenant: trainer A must not reach trainer B', () =
 
     expect(foreign.status()).toBe(200);
     expect(own.status()).toBe(200);
+
+    // NON-VACUITY GUARD. "Identical" is only meaningful if both replies are
+    // actually conflict-shaped. Two identical ERROR bodies would satisfy a bare
+    // equality check and report green while proving nothing.
+    const ownJson = await own.json();
+    expect(ownJson, 'reply must be conflict-shaped, not an error body')
+      .toHaveProperty('hasConflicts');
+
     // Identical replies mean the subject was clamped to A. Divergence would mean
     // A actually queried B's calendar.
     expect(await foreign.text()).toBe(await own.text());
@@ -146,6 +154,16 @@ test.describe('@readonly cross-tenant: trainer A must not reach trainer B', () =
     };
     const aIds = await idsOf(a);
     const bIds = await idsOf(b);
+
+    // NON-VACUITY GUARD. If BOTH queues are empty the intersection is empty and
+    // this test passes — with the scoping fix reverted, too. It would be a
+    // tautology wearing a green tick. There must be something that COULD leak
+    // before absence of leakage means anything.
+    test.skip(
+      aIds.size === 0 && bIds.size === 0,
+      'both moderation queues are empty — nothing could leak, so this proves nothing. ' +
+      'Seed a challenge submission for a client of each trainer to make it meaningful.',
+    );
 
     // Pre-fix this endpoint returned EVERY trainer's clients' submissions, so
     // the two sets were identical. Any shared id is a scope leak.
