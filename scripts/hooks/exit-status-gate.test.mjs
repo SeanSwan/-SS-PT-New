@@ -109,6 +109,51 @@ for (const cmd of STILL_BLOCKS) {
   });
 }
 
+/*
+ * WRITTEN-NOT-RUN (2026-08-23, self-review after the precision fix). A command may legitimately
+ * contain this pattern without executing it. The gate refused the very command that adds these
+ * tests, and would refuse any attempt to document itself — a guard obstructing its own maintenance
+ * is a guard on its way to being switched off.
+ */
+test('a heredoc body carrying the pattern is written, not run — allowed', () => {
+  assert.equal(pipedStatusRead("cat <<EOF\na | b; echo $?\nEOF"), null);
+});
+
+test("the QUOTED heredoc form is handled — <<'EOF' is what a real command uses", () => {
+  // This is the form that stayed blocked while the unquoted test above passed: masking quotes first
+  // turned `<<'EOF'` into `<<xxxxx`, so the terminator could not be matched. Only the live run
+  // exposed it, because the unit test had picked the easier form.
+  assert.equal(pipedStatusRead("cat > /tmp/x.txt <<'EOF'\nbody: a | b; echo $?\nEOF\necho done"), null);
+  assert.equal(pipedStatusRead('cat > /tmp/x.txt <<"EOF"\nbody: a | b; echo $?\nEOF'), null);
+});
+
+test('a comment carrying the pattern is allowed', () => {
+  assert.equal(pipedStatusRead('# cat a | head; echo $?\nls'), null);
+});
+
+test('a real pipeline on a later line is still caught despite an earlier comment', () => {
+  assert.notEqual(pipedStatusRead('# harmless note\ncat a | head; echo $?'), null);
+});
+
+test('`#` inside a git revision path is not treated as a comment', () => {
+  // git show HEAD:file#frag — masking this would blind the gate to the rest of the line.
+  assert.notEqual(pipedStatusRead('git show HEAD:a#b | head; echo $?'), null);
+});
+
+/*
+ * KNOWN LIMITS — pinned, not assumed away. Each fails in a direction we accept: the brace-group
+ * case is a MISS (quiet), the other two are false BLOCKS (loud, one re-issue). Writing them down as
+ * executable assertions means a future change that alters them fails here instead of surprising
+ * someone who believed the coverage was total.
+ */
+test('KNOWN LIMIT: brace groups are not modelled — this defect is missed', () => {
+  assert.equal(pipedStatusRead('{ cat a | head; }; echo $?'), null, 'documented miss, not a claim of safety');
+});
+
+test('KNOWN LIMIT: a backgrounded pipeline blocks even though $? reads the launch status', () => {
+  assert.notEqual(pipedStatusRead('cat a | head &\necho $?'), null, 'documented false block');
+});
+
 test('gate is registered as a PreToolUse hook on Bash', () => {
   // A correct gate nobody runs is not a gate. This asserts wiring, not logic.
   const settings = JSON.parse(readFileSync(join(REPO_ROOT, '.claude', 'settings.json'), 'utf8'));

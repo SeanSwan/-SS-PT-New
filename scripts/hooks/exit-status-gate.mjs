@@ -40,6 +40,28 @@ const ALLOW = () => process.exit(0);
  * `$?` is deliberately NOT stripped — it most often lives inside double quotes (`echo "x=$?"`),
  * and missing it there would blind the gate to its most common real-world form.
  */
+/**
+ * Blank out heredoc bodies and `#` comments, preserving length so offsets stay valid.
+ *
+ * KNOWN LIMITS, pinned by tests rather than assumed away — this is an approximation, not a shell
+ * parser, and pretending otherwise is how a guard earns false confidence:
+ *   · `{ cat a | head; }; echo $?` is MISSED (brace groups are not modelled). A miss, not a false
+ *     block, so it fails in the quiet direction.
+ *   · `cat a | head & \n echo $?` is BLOCKED though `$?` reads the background launch status.
+ *   · `cat a \| head; echo $?` is BLOCKED though the pipe is escaped.
+ * Each is rare in practice and each costs one re-issue; none silently reports a wrong exit code.
+ */
+export function maskNonExecutedText(cmd) {
+  const blank = (span) => ' '.repeat(span.length);
+  return String(cmd)
+    // <<EOF ... EOF and <<'EOF' ... EOF — body is written to a file, not executed by this shell.
+    // Delimiter may be bare, 'single' or "double" quoted — all three are real shell forms, and the
+    // first version handled only the bare and single cases.
+    .replace(/<<-?\s*['"]?([A-Za-z_][A-Za-z0-9_]*)['"]?[\s\S]*?^\1$/gm, blank)
+    // Trailing comments. Only when `#` starts a word, so `git show HEAD:a#b` is untouched.
+    .replace(/(^|\s)#[^\n]*/g, blank);
+}
+
 export function stripQuoted(cmd) {
   /*
    * LENGTH-PRESERVING (fixed 2026-08-23, second regression on this function).
@@ -93,9 +115,26 @@ export function pipedStatusRead(rawCmd) {
    * It errs toward BLOCKING on anything it cannot segment, because a missed catch is silent and a
    * false block is loud.
    */
-  // `stripQuoted` is length-preserving, so offsets into it and into `cmd` stay aligned — which is
-  // exactly what the segmentation below depends on.
-  const masked = stripQuoted(cmd);
+  /*
+   * Neutralise text that is WRITTEN rather than RUN, before segmenting.
+   *
+   * A command can legitimately contain this pattern without executing it: a heredoc writing a test
+   * file, a comment, a commit message about the gate. The first version inspected the raw string and
+   * blocked all of them — it refused the very command that adds these tests, and it would refuse any
+   * attempt to document the gate. That is a guard obstructing the work of maintaining itself, which
+   * is precisely how a guard gets switched off.
+   *
+   * Both maskers preserve length, so offsets into `masked` and into `cmd` stay aligned — the
+   * property the segmentation below depends on.
+   */
+  /*
+   * ORDER MATTERS, and the live run is what proved it. `stripQuoted` masks `'EOF'` — the quoted
+   * heredoc delimiter — so running it first turns `<<'EOF'` into `<<xxxxx` and the heredoc matcher
+   * can no longer find the terminator to match against. My unit test used the UNQUOTED `<<EOF`
+   * form and passed while the real, quoted form the shell actually receives stayed blocked.
+   * Non-executed text is removed first, quotes second.
+   */
+  const masked = stripQuoted(maskNonExecutedText(cmd));
   const isPipe = (segment) => /(?<!\|)\|(?!\||&)/.test(segment);
 
   // Split into statements, keeping each piece's offset so the $?-bearing one can be located.
