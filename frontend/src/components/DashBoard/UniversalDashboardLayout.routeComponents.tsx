@@ -85,7 +85,11 @@ export const ClientCommunityPage = React.lazy(() => import('./Pages/client-dashb
 export const TrainerHomeTab = React.lazy(() => import('./Pages/trainer-dashboard/TrainerHomeTab'));
 export const TrainerEarningsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerEarningsPage'));
 export const TrainerAssessmentsPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerAssessmentsPage'));
-export const TrainerVideosPage = React.lazy(() => import('./Pages/trainer-dashboard/TrainerVideosPage'));
+// TrainerVideosPage was lazy-exported here with zero consumers — the trainer route
+// table mounts VideoLibraryPage for /videos, not this component. Removed 2026-08-23,
+// same class as the MyClientsView export (P1-a): an unreferenced lazy export makes an
+// unmounted component read as mountable to the next reader. Do NOT re-add it without
+// a JSX usage in the route table — an import() is not a mount.
 export const VideoLibraryPage = React.lazy(() => import('../../pages/VideoLibraryV3'));
 export const EquipmentManagerPage = React.lazy(() => import('../EquipmentManager/EquipmentManagerPage'));
 export const MyEquipmentPage = React.lazy(() => import('../MyEquipment/MyEquipmentPage'));
