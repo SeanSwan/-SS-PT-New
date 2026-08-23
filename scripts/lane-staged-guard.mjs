@@ -55,24 +55,37 @@ export const norm = (p) =>
  */
 export function claimedFiles(laneText) {
   const text = String(laneText || '').replace(/\r\n/g, '\n');
-  const start = text.search(/^#+\s*(?:🔒|🔓)?\s*EDITING NOW\b.*$/im);
-  if (start < 0) return [];
-  const rest = text.slice(start);
-  const afterHeading = rest.slice(rest.indexOf('\n') + 1);
-  const nextHeading = afterHeading.search(/^#+\s/m);
-  const block = nextHeading < 0 ? afterHeading : afterHeading.slice(0, nextHeading);
+  const HEADING = /^#+\s/;
+  const EDITING = /^#+\s*(?:🔒|🔓)?\s*EDITING NOW\b/i;
 
-  const out = [];
-  for (const line of block.split('\n')) {
+  // EVERY `EDITING NOW` block is read, not just the first.
+  //
+  // This used to `search()` for one block and stop at the next heading. A lane file
+  // with two such sections — a state that has actually occurred in this ledger
+  // (fable.lane.md, open item 6.5) — made every file claimed in the second section
+  // INVISIBLE. While the guard was advisory that was merely wrong; now that it runs
+  // in .githooks/pre-commit it blocks a correct commit and tells the agent to claim
+  // a file it has already claimed. A gate that does that gets deleted, and a deleted
+  // gate protects nothing — so the duplicate-block case is a false POSITIVE, which
+  // is the failure direction this guard can least afford.
+  //
+  // Union, not first-wins: a second claim block can only ever ADD paths the agent
+  // said it was editing, and the guard's job is to catch files nobody claimed at all.
+  const out = new Set();
+  let inBlock = false;
+  for (const line of text.split('\n')) {
+    if (EDITING.test(line)) { inBlock = true; continue; }
+    if (HEADING.test(line)) { inBlock = false; continue; }
+    if (!inBlock) continue;
     const m = line.match(/^\s*[-*]\s+(.+?)\s*$/);
     if (!m) continue;
     let v = m[1].replace(/^`|`$/g, '').trim();
     if (!v || /^\(released\)$/i.test(v) || /^—$/.test(v)) continue;
     // A claim may carry a trailing note: "- scripts/x.mjs (restoring from origin/main)"
     v = v.replace(/\s*\(.*\)\s*$/, '').replace(/^`|`$/g, '').trim();
-    if (v) out.push(norm(v));
+    if (v) out.add(norm(v));
   }
-  return out;
+  return [...out];
 }
 
 /** A claim of `dir/**` or a bare directory covers everything beneath it. */
