@@ -2,58 +2,31 @@
 /**
  * drift-check-gate.test.mjs — check 7 (hook-registration integrity) case matrix.
  * ==============================================================================
- * WHY THIS FILE EXISTS: check 7 was rewritten five times in one session, and each
- * rewrite reintroduced the failure it was written to prevent — an input that fell
- * through every branch and produced NO output, which is byte-identical to "checked
- * and healthy". Round 3 even shipped a passing test asserting that a `sh -c '...'`
- * command yields nothing, codifying the outage as correct behaviour.
+ * WHY THIS FILE EXISTS: the classifier was rewritten five times in one session, and
+ * each rewrite reintroduced the failure it was written to prevent — an input that
+ * fell through every branch and produced NO output, which is byte-identical to
+ * "checked and healthy". One round shipped a PASSING test asserting that a
+ * `sh -c '...'` command yields nothing, codifying the outage as correct behaviour.
  *
- * So this file tests TWO different things, and the second one is the important one:
+ * So this tests TWO things, and the second matters more:
  *   1. Known cases classify correctly.
  *   2. THE INVARIANT — every input yields exactly one verdict. Silence is
- *      unrepresentable. Testing answers alone is what let four rewrites ship with a
+ *      unrepresentable. Testing answers alone is what let five rewrites ship with a
  *      silent path; only a completeness check catches that class.
  *
- * Run: node scripts/hooks/drift-check-gate.test.mjs
- * Exit 0 = pass. Non-zero = a case regressed or the invariant broke.
+ * It IMPORTS the real classifier rather than mirroring it. An earlier version kept a
+ * copy in this file and warned in its own header that "a mirror that drifts is worse
+ * than no test" — extracting the classifier to scripts/lib/ (round 6) removed the
+ * need to take that risk at all.
  *
- * This mirrors classifyCommand() rather than importing it, because the gate is a
- * side-effecting hook that reads the real .claude/settings.json at import time.
- * If you change the classifier, change this mirror in the same commit — a mirror
- * that drifts is worse than no test.
+ * Run: node scripts/hooks/drift-check-gate.test.mjs   (exit 0 = pass)
  */
-import { statSync } from 'node:fs';
-import { join, dirname, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { classifyCommand } from '../lib/hook-registration.mjs';
 
 const SS_PT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const SCRIPT_EXT = /\.(?:mjs|cjs|js|ts|mts|cts|sh|bash|ps1|py|rb)$/i;
-const URL_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
-const SHELL_META = /[;&|><`$(){}\[\]*?~!#^\n]|\\/;
-
-/** Mirror of drift-check-gate.mjs classifyCommand(). Total function. */
-function classifyCommand(cmd) {
-  if (typeof cmd !== 'string' || !cmd.trim()) return { kind: 'UNVERIFIED', why: 'no command' };
-  const unver = (why) => ({ kind: 'UNVERIFIED', why });
-  if (/["']/.test(cmd)) return unver('quoting');
-  if (SHELL_META.test(cmd)) return unver('shell syntax');
-  if (/%[A-Za-z_][A-Za-z0-9_]*%/.test(cmd)) return unver('windows env');
-
-  const words = cmd.trim().split(/\s+/);
-  const candidates = words.filter((w) => SCRIPT_EXT.test(w) && !URL_SCHEME.test(w));
-  if (candidates.length === 0) return unver('no script extension');
-  if (candidates.length > 1) return unver('multiple script paths');
-
-  const tok = candidates[0];
-  if (tok.startsWith('/') || /^[A-Za-z]:\//.test(tok)) return unver('absolute path');
-  try {
-    return statSync(join(SS_PT, tok)).isFile()
-      ? { kind: 'OK' } : { kind: 'MISSING', path: tok };
-  } catch (e) {
-    if (e?.code === 'ENOENT') return { kind: 'MISSING', path: tok };
-    return unver(`stat failed: ${e?.code}`);
-  }
-}
+const classify = (cmd) => classifyCommand(cmd, SS_PT);
 
 const REAL = 'scripts/hooks/drift-check-gate.mjs';
 const GONE = 'scripts/hooks/definitely-not-here.mjs';
@@ -68,7 +41,9 @@ const cases = [
   ['node lane-session-start.mjs', 'MISSING', 'bare filename (round 1 blind spot)'],
 
   // round 5 — two script args: cannot tell which is the entrypoint
-  [`node --import ./scripts/preload.mjs ${GONE}`, 'UNVERIFIED', 'R5: first-match picked the loader and missed the guard'],
+  [`node --import ./scripts/preload.mjs ${GONE}`, 'UNVERIFIED', 'R5: two script paths — cannot tell the entrypoint'],
+  [`node --import ${REAL} ./scripts/guard`, 'UNVERIFIED', 'R6: only script arg is a loader operand; entrypoint is extensionless'],
+  ['node ../../other-repo/hook.mjs', 'UNVERIFIED', 'R6: resolves outside the repo'],
 
   // round 4 — these MUST NOT be silent
   [`sh -c 'node ${GONE}'`, 'UNVERIFIED', 'R4: was shipped as a passing "yields nothing" case'],
@@ -96,7 +71,7 @@ const cases = [
 
 let failed = 0;
 for (const [cmd, want, note] of cases) {
-  const got = classifyCommand(cmd).kind;
+  const got = classify(cmd).kind;
   const ok = got === want;
   if (!ok) failed += 1;
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${String(cmd).slice(0, 42).padEnd(42)} ${got.padEnd(10)} ${ok ? '' : `want=${want} `}— ${note}`);
@@ -108,7 +83,7 @@ const fuzz = ['', ' ', '\n', 'x', 'node', '.mjs', '///', 'node  ', 'a.MJS',
   'node a.mjs b.mjs', 'node\ta.mjs', '--flag', 'node -e "x"', 'node ..', 'node ./'];
 let violations = 0;
 for (const f of fuzz) {
-  const v = classifyCommand(f);
+  const v = classify(f);
   if (!v || !['OK', 'MISSING', 'UNVERIFIED'].includes(v.kind)) {
     violations += 1;
     console.log(`  INVARIANT VIOLATION on ${JSON.stringify(f)} -> ${JSON.stringify(v)}`);
