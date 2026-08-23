@@ -93,6 +93,11 @@ const cases = [
   // And the inverse of a false decline: a versioned binary is still just a command
   // word, so its first operand IS the entrypoint and asserting is correct.
   [`python3.12 ${GONE}`, 'MISSING', 'R13: versioned runner still asserts correctly'],
+  // R14 (mutation testing): deleting the command-word-is-a-path rule left BOTH the
+  // suite and the fuzzer green — nothing covered this shape. `hooks/pre load.mjs`
+  // executes `hooks/pre` and passes `load.mjs`, so asserting about `load.mjs` is a
+  // verdict about an argument. The rule was written in R13 and never tested.
+  ['hooks/pre load.mjs', 'UNVERIFIED', 'R14: command word is itself a path (mutation SURVIVED before this)'],
   ['', 'UNVERIFIED', 'empty command registers nothing'],
   [undefined, 'UNVERIFIED', 'missing command key'],
 ];
@@ -140,6 +145,21 @@ for (const [label, body, want] of [
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label.padEnd(42)} findings=${n}  want=${want}`);
 }
 rmSync(t, { recursive: true, force: true });
+
+// R14 (mutation testing): reverting ENOTDIR to "may exist but be unreadable" left
+// both the suite and the fuzzer green — nothing covered it. A path component that
+// must be a directory but is a regular FILE cannot resolve, so that is a certain
+// absence; calling it "unreadable" softens a MISSING into the skim category. Needs a
+// real filesystem, so it lives here rather than in the table.
+const t0 = mkdtempSync(join(tmpdir(), 'hooknotdir-'));
+writeFileSync(join(t0, 'notadir.mjs'), '// a FILE, not a directory\n');
+{
+  const got = classifyCommand('node notadir.mjs/child.mjs', t0).kind;
+  const ok = got === 'MISSING';
+  if (!ok) failed += 1;
+  console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${'R14: ENOTDIR is a certain absence'.padEnd(42)} ${got.padEnd(10)} want=MISSING`);
+}
+rmSync(t0, { recursive: true, force: true });
 
 // A symlinked root made realpath(root) !== resolve(root); round 7's fallback then
 // compared a LEXICAL path to a REAL root, so an absent file could never match and
