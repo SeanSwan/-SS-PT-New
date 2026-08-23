@@ -121,8 +121,19 @@ const seedText = seed && existsSync(seed)
   ? redactForEgress(readFileSync(seed, 'utf8'))
   : '';
 
-const prompt = [remit, seedText && `## Prior context\n\n${seedText}`, '---', body]
-  .filter(Boolean).join('\n\n');
+// The REMIT is operator free-text and goes over the wire exactly like the other two,
+// so it gets the same treatment. Round 2 of the panel caught that fixing the seed
+// left this third path raw — `--remit "review how <trainer> handled <client>'s
+// complaint"` would have egressed names while the redaction imports above made the
+// file read as fully protected. That is the same half-applied shape as the seed bug,
+// one round later, which is the argument for redacting at the BOUNDARY rather than
+// per-input: every string joined into `prompt` is egress, so every one is redacted.
+const prompt = [
+  remit && redactForEgress(remit),
+  seedText && `## Prior context\n\n${seedText}`,
+  '---',
+  body,
+].filter(Boolean).join('\n\n');
 
 console.error(`[consult-gemini-panel] model=${model} doc=${document} chars=${body.length} key=present(${apiKey.length}ch) — direct Google API`);
 

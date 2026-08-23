@@ -146,7 +146,21 @@ const freeSeats = requested.filter((n) => !SEATS[n].paid);
 const modeLabel = confirmSpend
   ? 'LIVE (all requested seats)'
   : `PAID SEATS GATED — ${freeSeats.length} free seat(s) WILL still run and send this document`;
-console.log(`[panel] mode=${modeLabel}\n`);
+console.log(`[panel] mode=${modeLabel}`);
+
+// A DATA crossing must be announced in its own currency. Round 2 of the panel noted
+// that `--seats ox` prints only the money label, priming the operator to think about
+// dollars while a prompt-RETAINING undisclosed provider is about to receive the
+// document. `premium` now covers both axes, so the warning has to name which one.
+const retaining = requested.filter((n) => SEATS[n].premium && !SEATS[n].paid);
+if (retaining.length) {
+  console.log(
+    `[panel] ⚠ DATA EGRESS — ${retaining.map((n) => SEATS[n].label).join(', ')}: ` +
+    'costs $0 but an undisclosed provider RETAINS this prompt. Send only what you ' +
+    'would send any vendor; the spend gate does NOT cover this.'
+  );
+}
+console.log('');
 
 let estimate = 0;
 for (const name of requested) {
@@ -202,8 +216,15 @@ if (skipped.length) {
   console.log('[panel] re-run with --confirm-spend once Sean approves the spend above.');
 }
 if (!seatsToRun.length) {
-  console.log('[panel] no runnable seats — every requested seat is paid and unconfirmed. Nothing spent.');
-  process.exit(0);
+  // NON-ZERO. Zero seats ran, so zero coverage was produced — a caller checking $?
+  // would otherwise read "panel completed successfully" from a run that reviewed
+  // nothing. Same failure the empty-`--seats` guard exists to stop, reached through
+  // a different door (`--seats kimi` with no --confirm-spend), and caught by a panel
+  // seat in round 2. The message was already honest; the EXIT CODE was not, and the
+  // exit code is the half that automation reads.
+  console.error('[panel] no runnable seats — every requested seat is paid and unconfirmed. Nothing spent, and NOTHING REVIEWED.');
+  console.error('[panel] re-run with --confirm-spend, or request a free seat.');
+  process.exit(1);
 }
 console.log(`[panel] running: ${seatsToRun.join(', ')}\n`);
 

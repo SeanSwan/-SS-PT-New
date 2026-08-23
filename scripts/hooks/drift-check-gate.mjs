@@ -142,21 +142,41 @@ try {
 // Also covers the wider version: an unparseable settings file silently disables EVERY
 // hook it declares, which is the same failure with a larger blast radius.
 //
-// SCOPE OF THE MATCHER — hardened 2026-08-23 after three panel seats independently
-// found that the first version could report clean while a guard was missing:
-//   - it required the path to contain `scripts/` or `.claude/`, so a bare
-//     `node lane-session-start.mjs` (literally the file from the incident) matched
-//     nothing and the check went silent;
-//   - it accepted only .mjs/.js/.sh/.ps1/.py, so renaming a hook to .cjs or .ts
-//     reproduced the whole 2026-08-22 outage with a one-character change.
-// A completeness checker with unenumerated blind spots is worse than a manual
-// checklist, because its "clean" launders confidence. Match any token that looks
-// like a script path, anchored on the EXTENSION rather than on a directory prefix.
+// EXTRACTION — rewritten 2026-08-23 (second panel round). Two regex generations both
+// failed, in opposite directions, and a third regex was the wrong answer:
+//   v1 required `scripts/` or `.claude/` in the path, so a bare
+//      `node lane-session-start.mjs` — literally the file from the incident —
+//      matched nothing and the check went silent.
+//   v2 anchored on the extension, which fixed that but broke two new ways:
+//      FALSE POSITIVE: `node $CLAUDE_PROJECT_DIR/scripts/hooks/x.mjs` (the canonical
+//        portable idiom) matched `CLAUDE_PROJECT_DIR/scripts/hooks/x.mjs` and reported
+//        a healthy hook as missing. A phantom finding is not a harmless over-report —
+//        it trains the operator to ignore the gate, which restores the original outage.
+//      FALSE NEGATIVE: no match could ever START with `/` or `X:`, so absolute paths
+//        were invisible, and the `^(?:[A-Za-z]:|\/)` branch written to handle them was
+//        unreachable dead code. `NOT_A_FILE` was dead too — every match ends in an
+//        extension, so it could never equal `npm`/`node`.
+// Tokenising is the honest tool: split the command, look at each argument as an
+// argument. Anything unresolvable is reported as UNVERIFIABLE rather than guessed in
+// either direction — because for this check, a confident wrong answer in EITHER
+// direction is the failure mode.
 try {
-  const PATH_RE = /(?<![\w./\\-])[A-Za-z0-9_.][A-Za-z0-9_./\\-]*\.(?:mjs|cjs|js|ts|mts|cts|sh|bash|ps1|py|rb)(?![\w-])/g;
-  // Tokens that are not repo files: package bins, npm/npx targets, URLs.
-  const NOT_A_FILE = /^(?:https?:|npm$|npx$|node$|bash$|sh$|python3?$)/;
+  const SCRIPT_EXT = /\.(?:mjs|cjs|js|ts|mts|cts|sh|bash|ps1|py|rb)$/i;
+  const URL_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
+  /**
+   * Split a shell-ish command into arguments, honouring simple quoting.
+   *
+   * The alternation must GLUE a quoted run to whatever abuts it: the canonical
+   * portable form is `node "$CLAUDE_PROJECT_DIR"/scripts/hooks/x.mjs`, and a
+   * naive `"[^"]*"|'[^']*'|\S+` splits that into `$CLAUDE_PROJECT_DIR` plus a
+   * dangling `/scripts/hooks/x.mjs`, which then reads as an ABSOLUTE path and is
+   * reported missing — a phantom on a perfectly healthy hook. Caught by this
+   * check's own case matrix 2026-08-23, after a panel seat predicted it.
+   */
+  const tokenize = (cmd) => (String(cmd).match(/(?:"[^"]*"|'[^']*'|[^\s"'])+/g) || [])
+    .map((t) => t.replace(/["']/g, ''));
   const missing = [];
+  const unresolvable = [];
   const unreadable = [];
 
   for (const name of ['settings.json', 'settings.local.json']) {
@@ -174,27 +194,59 @@ try {
     }
 
     const seen = new Set();
-    // Defensive iteration: a malformed hooks block (an object where an array is
-    // expected, a null group) must not throw. The outer catch would swallow it and
-    // the check would go silent — the precise pathology this check exists to kill.
     for (const [event, groups] of Object.entries(cfg.hooks || {})) {
-      for (const group of Array.isArray(groups) ? groups : []) {
-        for (const hook of Array.isArray(group?.hooks) ? group.hooks : []) {
-          for (const m of String(hook?.command || '').matchAll(PATH_RE)) {
-            const rel = m[0].replace(/\\/g, '/');
-            if (NOT_A_FILE.test(rel)) continue;
-            const key = `${event}:${rel}`;
+      // A structurally-wrong hooks block is itself a finding. The previous version
+      // coerced anomalies to [] and enumerated nothing, which reported "clean" for a
+      // config the harness probably cannot run — the silence-means-clean pathology
+      // reborn inside the fix meant to kill it. Flag the shape, then skip it.
+      if (!Array.isArray(groups)) {
+        unresolvable.push(`${event} in ${name} is ${groups === null ? 'null' : typeof groups}, not an array — hooks here may not run at all`);
+        continue;
+      }
+      for (const group of groups) {
+        if (!Array.isArray(group?.hooks)) {
+          unresolvable.push(`a group under ${event} in ${name} has no hooks array — that group registers nothing`);
+          continue;
+        }
+        for (const hook of group.hooks) {
+          for (const rawTok of tokenize(hook?.command || '')) {
+            const tok = rawTok.replace(/\\/g, '/');
+            if (!SCRIPT_EXT.test(tok)) continue;          // not a script argument
+            // A remote URL ending in .sh is not a local file and must never be
+            // reported missing — `curl https://host/x.sh` would otherwise phantom.
+            if (URL_SCHEME.test(tok)) continue;
+
+            const key = `${event}:${tok}`;
             if (seen.has(key)) continue;
             seen.add(key);
-            // Absolute paths are used as-is; repo-relative ones resolve from SS_PT.
-            const abs = /^(?:[A-Za-z]:|\/)/.test(rel) ? rel : join(SS_PT, rel);
-            if (!existsSync(abs)) missing.push(`${rel} (${event}, ${name})`);
+
+            // Unexpanded shell/env interpolation ($VAR, ${VAR}, %VAR%). We cannot
+            // resolve it and must NOT claim it missing — that phantom is what makes
+            // an operator stop reading the gate. Say we could not check it instead.
+            if (/[$%{}]/.test(tok)) {
+              unresolvable.push(`${tok} (${event}, ${name}) — contains an unexpanded variable; existence NOT verified`);
+              continue;
+            }
+
+            // Absolute: POSIX /…, Windows C:/…, or UNC //host/share.
+            const isAbs = tok.startsWith('/') || /^[A-Za-z]:\//.test(tok);
+            const abs = isAbs ? tok : join(SS_PT, tok);
+            if (!existsSync(abs)) missing.push(`${tok} (${event}, ${name})`);
           }
         }
       }
     }
   }
 
+  // Reported at LOWER volume than `missing`: these are "could not check", not
+  // "is broken". Stating the difference is the whole point — an unverified item
+  // must never be laundered into either a clean bill or a phantom alarm.
+  if (unresolvable.length) {
+    findings.push(
+      `${unresolvable.length} hook registration(s) could NOT be verified: ` +
+      `${unresolvable.join('; ')}. This is UNKNOWN, not clean — check these by hand.`
+    );
+  }
   if (unreadable.length) {
     findings.push(
       `.claude/${unreadable.join(' and ')} is not valid JSON — the harness runs NONE of the ` +
