@@ -19,12 +19,19 @@ const workoutLoggerViewSource = readFileSync(
 // 2026-08-23 (audit F3). Those assertions covered `aria-busy="true"`,
 // `aria-label="Loading your clients"` and `onClick={handleRefresh}`.
 //
-// They are NOT re-pointed at the live client hub, because the live hub does not yet satisfy them:
-// ClientsWorkspace.view.tsx:236 renders `<LoadingPulse>Loading clients...</LoadingPulse>` with no
-// aria-busy/role=status, and its load-error path (line ~270) tells the user to "reload the page"
-// instead of offering an in-place retry — the exact anti-pattern this very contract exists to ban.
-// Re-pointing would land a red test on main; deleting silently would retire the guarantee.
-// Tracked instead as a real defect on SWA-64. Restore assertions here once the hub is fixed.
+// They were held out of the tree for one commit because the live hub did not yet satisfy them.
+// The hub has since been fixed (role=status/aria-live/aria-busy on the loading region, and an
+// in-place ErrorNote retry replacing "reload the page"), so the guarantee is restored below —
+// now pointed at the component BOTH audiences actually render, rather than at a legacy view no
+// user ever loaded.
+const clientsWorkspaceViewSource = readFileSync(
+  resolve(srcDir, './components/DashBoard/workspaces/ClientsWorkspace.view.tsx'),
+  'utf8'
+);
+const clientsWorkspaceSource = readFileSync(
+  resolve(srcDir, './components/DashBoard/workspaces/ClientsWorkspace.tsx'),
+  'utf8'
+);
 
 describe('LoadingSpinner retry contract', () => {
   it('restarts its own timeout state instead of reloading the page', () => {
@@ -37,5 +44,32 @@ describe('LoadingSpinner retry contract', () => {
     expect(spinnerSource).toContain('setLoadStartTime(Date.now());');
     expect(spinnerSource).toContain('setRetryNonce(prevNonce => prevNonce + 1);');
     expect(spinnerSource).toContain('}, [timeout, retryNonce]);');
+  });
+
+  it('announces client-roster loading to assistive tech instead of rendering a silent pulse', () => {
+    // A pulse with no live region is invisible to a screen reader: the user hears
+    // nothing between "clients" being requested and the grid appearing.
+    expect(clientsWorkspaceViewSource).toContain('<LoadingPulse role="status" aria-live="polite">');
+  });
+
+  it('keeps aria-busy on the persistent container, never on the transient pulse', () => {
+    // aria-busy="true" on a live region tells AT to defer announcing until it clears.
+    // The pulse unmounts instead of clearing, so a hardcoded aria-busy there can
+    // swallow the announcement. It belongs on ContentArea, which persists and flips
+    // back to false when the fetch settles.
+    expect(clientsWorkspaceViewSource).toContain('<ContentArea aria-busy={props.loading}>');
+    // Matched structurally, not as a bare substring: the comment above LoadingContent
+    // explains why aria-busy="true" is wrong and therefore contains that literal. A
+    // naive not.toContain() fails on the documentation rather than on the defect.
+    expect(clientsWorkspaceViewSource).not.toMatch(/<LoadingPulse[^>]*aria-busy/);
+  });
+
+  it('offers an in-place client-roster retry and never tells the user to reload the page', () => {
+    // "reload the page" is the anti-pattern this whole contract exists to ban —
+    // it throws away app state to recover from one failed fetch.
+    expect(clientsWorkspaceViewSource).not.toContain('reload the page');
+    expect(clientsWorkspaceViewSource).toContain('onRetry={props.onRetryLoad}');
+    // The banner is only honest if the handler is actually wired to the fetch.
+    expect(clientsWorkspaceSource).toContain('onRetryLoad={loadClients}');
   });
 });
