@@ -41,9 +41,22 @@ const ALLOW = () => process.exit(0);
  * and missing it there would blind the gate to its most common real-world form.
  */
 export function stripQuoted(cmd) {
-  return String(cmd)
-    .replace(/'[^']*'/g, "''")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""');
+  /*
+   * LENGTH-PRESERVING (fixed 2026-08-23, second regression on this function).
+   *
+   * The previous version collapsed each quoted span to two characters. That is fine for a boolean
+   * "does an unquoted pipe exist" test, but the statement-segmentation added later builds segment
+   * OFFSETS from the masked string while locating `$?` in the RAW one. Any length change desyncs
+   * the two. Measured: `npm test | tail -5; echo "exit=$?"` is 34 chars raw, 27 masked; statusIdx
+   * 31 fell past the end of the masked string, the segment lookup missed, and the gate returned
+   * null — silently allowing the exact defect it exists to catch, in its MOST COMMON form, since
+   * `$?` usually sits inside double quotes.
+   *
+   * Masking to the same length keeps every offset valid in both strings at once. The filler is `x`
+   * because it is inert to every construct this file inspects: not a pipe, not `;`, `&&`, `||`, a
+   * newline, or `$?`.
+   */
+  return String(cmd).replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, (span) => 'x'.repeat(span.length));
 }
 
 /**
@@ -63,21 +76,48 @@ export function pipedStatusRead(rawCmd) {
   const statusIdx = cmd.search(/\$\?/);
   if (statusIdx < 0) return null;
 
-  // A real pipeline, ignoring quoted spans, `||`, and `|&`.
+  /*
+   * `$?` reads the status of the IMMEDIATELY PRECEDING statement — not of anything earlier on the
+   * line. So the question is not "is there a pipe before the $?" but "was the statement just before
+   * it a pipeline".
+   *
+   * The first rule asked the broader question and blocked correct work: a compound command whose
+   * $? follows a BARE command was refused because some earlier, unrelated statement contained a
+   * pipe. It fired falsely within two commands of going live. That is not a cosmetic problem — the
+   * change request installing this gate says a check that gets in the way of real work is one that
+   * gets switched off, and a gate removed for nagging leaves the 44-hit failure completely
+   * unguarded. Precision here IS the safety property.
+   *
+   * Statement boundaries are `;`, `&&`, `||` and newlines, taken outside quoted spans. This is an
+   * approximation, not a shell parser: it does not model subshells, `{ }` groups, or backgrounding.
+   * It errs toward BLOCKING on anything it cannot segment, because a missed catch is silent and a
+   * false block is loud.
+   */
+  // `stripQuoted` is length-preserving, so offsets into it and into `cmd` stay aligned — which is
+  // exactly what the segmentation below depends on.
   const masked = stripQuoted(cmd);
-  const pipeRe = /(?<!\|)\|(?!\||&)/g;
-  let m;
-  let firstPipe = -1;
-  while ((m = pipeRe.exec(masked)) !== null) {
-    firstPipe = m.index;
-    break;
+  const isPipe = (segment) => /(?<!\|)\|(?!\||&)/.test(segment);
+
+  // Split into statements, keeping each piece's offset so the $?-bearing one can be located.
+  const segments = [];
+  let cursor = 0;
+  const boundaryRe = /(;|&&|\|\||\n)/g;
+  let boundary;
+  while ((boundary = boundaryRe.exec(masked)) !== null) {
+    segments.push({ start: cursor, end: boundary.index, text: masked.slice(cursor, boundary.index) });
+    cursor = boundary.index + boundary[0].length;
   }
-  if (firstPipe < 0) return null;
+  segments.push({ start: cursor, end: masked.length, text: masked.slice(cursor) });
 
-  // The pipe must PRECEDE the status read; `echo $?` before an unrelated later pipe is fine.
-  if (firstPipe > statusIdx) return null;
+  const statusSegment = segments.findIndex((segment) => statusIdx >= segment.start && statusIdx <= segment.end);
+  if (statusSegment < 0) return null;
 
-  return { firstPipe, statusIdx };
+  // The $? may sit in the same statement as its own pipeline (`a | b; echo $?` puts it in the
+  // NEXT statement, but `echo $? | tee x` puts a pipe in the same one and reads a prior status).
+  const previous = segments[statusSegment - 1];
+  if (!previous || !isPipe(previous.text)) return null;
+
+  return { firstPipe: previous.start + previous.text.search(/(?<!\|)\|(?!\||&)/), statusIdx };
 }
 
 /**

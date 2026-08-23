@@ -49,10 +49,65 @@ for (const [label, cmd] of ALLOWS) {
   });
 }
 
-test('stripQuoted removes quoted spans without eating $?', () => {
-  assert.equal(stripQuoted("grep 'a|b' x"), "grep '' x");
-  assert.match(stripQuoted('echo "v=$?"'), /""/);
+test('stripQuoted neutralises quoted spans AND preserves length', () => {
+  // The old assertion pinned the exact output `"grep '' x"`, i.e. the collapsing behaviour. That
+  // detail IS what broke the gate: statement offsets are built on the masked string while `$?` is
+  // located in the raw one, so any length change desyncs them and the gate stops firing. Assert the
+  // two properties that actually matter, not the shape.
+  const a = "grep 'a|b' x";
+  assert.equal(stripQuoted(a).length, a.length, 'length must be preserved or offsets desync');
+  assert.ok(!/(?<!\|)\|(?!\||&)/.test(stripQuoted(a)), 'a quoted pipe must not read as a pipeline');
+
+  const b = 'echo "v=$?"';
+  assert.equal(stripQuoted(b).length, b.length);
+  assert.ok(!stripQuoted(b).includes('"'), 'quoted content is masked');
 });
+
+test('REGRESSION: $? inside double quotes after a pipe still blocks', () => {
+  // The exact command that silently passed while the gate looked healthy. Its most common form.
+  assert.notEqual(pipedStatusRead('npm test | tail -5; echo "exit=$?"'), null);
+});
+
+/*
+ * FALSE-POSITIVE REGRESSION — found in the first two commands after the gate went live
+ * (2026-08-23). One true positive, one false, back to back.
+ *
+ * `$?` reads the status of the IMMEDIATELY PRECEDING statement, not "anything earlier on the line".
+ * The original rule was "a pipe anywhere before a $? anywhere", so a compound command whose $?
+ * correctly follows a BARE command was blocked because an unrelated pipe appeared in an earlier
+ * statement.
+ *
+ * This matters more than an ordinary false positive. The change request that installed this gate
+ * says a check that gets in the way of real work is one that gets switched off — and a gate removed
+ * for nagging leaves the 44-hit failure with no guard at all. Precision here IS the safety property.
+ */
+const ALLOWS_AFTER_BARE = [
+  // $? follows `node x > /dev/null`, a bare command; the earlier pipe is a separate statement.
+  'cat a | head -2; echo hi; node x > /dev/null 2>&1; echo "exit=$?"',
+  'git log | cat; npm test; echo $?',
+  // The pipeline is two statements back — its status was consumed before $? ran.
+  'a | b; c; echo $?',
+  // && chain: the segment immediately before $? is bare `c`.
+  'a | b && c && echo $?'
+];
+
+for (const cmd of ALLOWS_AFTER_BARE) {
+  test(`allows a bare-command status read: ${cmd}`, () => {
+    assert.equal(pipedStatusRead(cmd), null, 'the statement before $? is not a pipeline');
+  });
+}
+
+const STILL_BLOCKS = [
+  'node x 2>&1 | head -2; echo "exit=$?"',
+  'cat a | head; echo $?',
+  'a | b && echo $?'
+];
+
+for (const cmd of STILL_BLOCKS) {
+  test(`still blocks the real defect: ${cmd}`, () => {
+    assert.notEqual(pipedStatusRead(cmd), null, 'the statement immediately before $? IS a pipeline');
+  });
+}
 
 test('gate is registered as a PreToolUse hook on Bash', () => {
   // A correct gate nobody runs is not a gate. This asserts wiring, not logic.
