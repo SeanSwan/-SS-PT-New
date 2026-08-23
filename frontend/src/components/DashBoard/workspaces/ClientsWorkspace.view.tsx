@@ -83,6 +83,8 @@ interface ClientsWorkspaceViewProps {
   loading: boolean;
   /** Honest-state: true when the roster fetch failed (never shown as "no clients"). */
   loadError?: boolean;
+  /** Re-runs the roster fetch in place. Absent means the banner degrades to text-only. */
+  onRetryLoad?: () => void;
   manualCreateOpen: boolean;
   manualCreateTrainers: AssignableTrainer[];
   creationHandoff: ManualClientCreationHandoff | null;
@@ -233,7 +235,15 @@ const ClientGrid: React.FC<Pick<
 );
 
 const DetailContent: ContentRenderer = (props) => <SelectedClientDetail {...props} />;
-const LoadingContent: ContentRenderer = () => <LoadingPulse>Loading clients...</LoadingPulse>;
+// role=status + aria-live make the pulse announce itself; without them a roster
+// fetch is silent to a screen reader. aria-busy is deliberately NOT set here: this
+// node unmounts rather than flipping busy to false, and a live region left busy can
+// have its announcement dropped. aria-busy lives on ContentArea, which persists.
+const LoadingContent: ContentRenderer = () => (
+  <LoadingPulse role="status" aria-live="polite">
+    Loading clients...
+  </LoadingPulse>
+);
 const EmptyContent: ContentRenderer = (props) => {
   const config = getClientHubAudienceConfig(props.audience ?? 'admin');
   return (
@@ -266,8 +276,8 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
     <ClientsWorkspaceLensFrame>
     <HubContainer>
       {props.loadError && !props.loading && (
-        <ErrorNote>
-          Couldn&apos;t load your client roster. Check your connection and reload the page.
+        <ErrorNote onRetry={props.onRetryLoad} retryLabel="Retry">
+          Couldn&apos;t load your client roster.
         </ErrorNote>
       )}
       <ClientsWorkspaceTopBar
@@ -318,7 +328,8 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
           <ClientNutritionEstimateReviewPanel clients={props.clients} hidden={Boolean(props.selectedClient) || props.loading} />
         </>
       )}
-      <ContentArea>
+      {/* Persistent region, so aria-busy has something to flip back to false on. */}
+      <ContentArea aria-busy={props.loading}>
         <ClientsWorkspaceContent {...props} />
       </ContentArea>
     </HubContainer>

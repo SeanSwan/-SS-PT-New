@@ -244,6 +244,7 @@ const ClientsWorkspace: React.FC<ClientsWorkspaceProps> = ({ audience = 'admin' 
       authAxios={authAxios}
       clients={clients}
       loadError={loadError}
+      onRetryLoad={loadClients}
       selectedClient={selectedClient}
       detailClient={detailClient}
       detailTab={detailTab}
