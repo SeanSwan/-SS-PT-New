@@ -317,6 +317,26 @@
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/push-blast-radius.mjs\"",
             "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/irreversible-git-gate.mjs\"",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/secret-read-gate.mjs\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/secret-read-gate.mjs\"",
+            "timeout": 30
           }
         ]
       }
