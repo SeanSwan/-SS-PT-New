@@ -36,6 +36,7 @@
  * dry-loop ledger owes a dual-tier summary. Predictable beats clever.
  */
 import { readFileSync } from 'node:fs';
+import { readSettled, settleNote, closingMessageLanded } from './lib/transcript-settle.mjs';
 
 const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]|hermes-learning-packets[\\/]|memory[\\/]/;
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
@@ -153,6 +154,10 @@ export function analyzeTurn(entries) {
 
   const plain = lastAssistantText.search(PLAIN_RE);
   const tech = lastAssistantText.search(TECH_RE);
+  // SWA-194: distinguishes "no closing message yet" from "closing message, sections missing".
+  // Those produce identical block text today, which is what made the flush race take three
+  // passes to diagnose. The settle logic in main() keys off this.
+  signals.hasClosingText = lastAssistantText.trim().length > 0;
   signals.naSeen = NA_RE.test(lastAssistantText);
   signals.plainSeen = plain !== -1;
   signals.techSeen = tech !== -1;
@@ -179,12 +184,18 @@ function main() {
     return;
   }
   if (hookInput?.stop_hook_active) return;
-  let raw = '';
-  try {
-    raw = readFileSync(String(hookInput.transcript_path ?? ''), 'utf8');
-  } catch {
-    return;
-  }
+  // SWA-194: re-read briefly while the turn looks build-shaped but carries no closing text
+  // at all — that is the one state a flush race and genuine non-compliance are identical in.
+  const slurp = (p) => { try { return readFileSync(p, 'utf8'); } catch { return null; } };
+  const ambiguous = (text) => {
+    const s = analyzeTurn(parseTranscript(text));
+    return (s.fileWrites >= 2 || s.gitActivity) && !closingMessageLanded(text);
+  };
+  const settled = readSettled(String(hookInput.transcript_path ?? ''), ambiguous, slurp);
+  if (settled.raw === null) return;
+  const note = settleNote(settled, 'dual-tier-gate');
+  if (note) console.error(note);
+  const raw = settled.raw;
   try {
     const reason = decide(hookInput, raw);
     if (reason) process.stdout.write(JSON.stringify({ decision: 'block', reason }));

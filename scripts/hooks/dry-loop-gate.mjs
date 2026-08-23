@@ -28,6 +28,7 @@
  *   claim, and claims need the round ledger evidence in the same closeout.
  */
 import { readFileSync } from 'node:fs';
+import { readSettled, settleNote, closingMessageLanded } from './lib/transcript-settle.mjs';
 
 const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]|hermes-learning-packets[\\/]|memory[\\/]/;
 const WRITE_TOOLS = new Set(['Write', 'Edit', 'NotebookEdit', 'write_file', 'patch']);
@@ -190,6 +191,9 @@ export function analyzeTurn(entries) {
       }
     }
   }
+  // SWA-194: "no closing message yet" is not the same as "closing message, marker missing".
+  // The settle logic in main() keys off this so a flush race cannot be read as non-compliance.
+  signals.hasClosingText = lastAssistantText.trim().length > 0;
   signals.markerSeen = MARKER_RE.test(lastAssistantText);
   signals.proofSeen = PROOF_RE.test(lastAssistantText);
   // Review-path signals: did the USER demand a review, did the agent surface a not-clean
@@ -232,12 +236,18 @@ function main() {
     return;
   }
   if (hookInput?.stop_hook_active) return;
-  let raw = '';
-  try {
-    raw = readFileSync(String(hookInput.transcript_path ?? ''), 'utf8');
-  } catch {
-    return;
-  }
+  // SWA-194: re-read briefly while the turn looks build-shaped but carries no closing text
+  // at all — that is the one state a flush race and genuine non-compliance are identical in.
+  const slurp = (p) => { try { return readFileSync(p, 'utf8'); } catch { return null; } };
+  const ambiguous = (text) => {
+    const s = analyzeTurn(parseTranscript(text));
+    return (s.fileWrites >= 2 || s.gitActivity) && !closingMessageLanded(text);
+  };
+  const settled = readSettled(String(hookInput.transcript_path ?? ''), ambiguous, slurp);
+  if (settled.raw === null) return;
+  const note = settleNote(settled, 'dry-loop-gate');
+  if (note) console.error(note);
+  const raw = settled.raw;
   try {
     const reason = decide(hookInput, raw);
     if (reason) process.stdout.write(JSON.stringify({ decision: 'block', reason }));
