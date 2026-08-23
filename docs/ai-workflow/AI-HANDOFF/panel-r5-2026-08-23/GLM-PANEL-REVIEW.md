@@ -1,0 +1,46 @@
+# GLM Consult
+
+**Model:** glm-5.3
+**Document:** docs/ai-workflow/AI-HANDOFF/PANEL-PACKET-R5-2026-08-23.md
+**Tokens:** 2660 in / 20099 out (reasoning: 17763) | total 22759
+**Wall:** 274.2s
+
+---
+
+## VERDICT
+REVISE — the total classifier is sound, but the traversal layer reintroduces the exact silence this round claims to have made unrepresentable (malformed-but-valid JSON settings → zero verdicts), and the ASSERT tokenizer misjudges option-bearing commands in **both** directions.
+
+*(Line numbers below are counted within the pasted block and are approximate.)*
+
+## BLOCKERS
+
+1. **P0 — Silent clean on malformed-but-valid JSON settings. (Panel Q1: YES, an input still produces zero verdicts.)** Evidence: `drift-check-gate.mjs:~81` `Object.entries(cfg.hooks || {})`, plus `:~68-73`.
+   - `.claude/settings.json` containing `[]`, `"ok"`, or `5` (all valid JSON, non-object): `cfg.hooks` is `undefined` → `|| {}` → loop body never runs → check 7 emits **nothing** → byte-identical to healthy, while the harness can run none of the declared gates. This is the same failure class the code *does* flag loudly for unparseable JSON (`:~119-124`) — the fix was applied one level down but not at this level.
+   - `"hooks": null | 0 | false | ""` → falsy → `{}` → silence. (Arguably "no hooks declared" — but then say so or classify UNKNOWN, per the file's own standard.)
+   - `"hooks": 5` or `true` (truthy primitive) → `Object.entries(5)` → `[]` → silence. (`node -e 'console.log(Object.entries(5).length)'` → `0`.)
+   The comment at `:~82-85` says "A structurally-wrong hooks block is itself a finding" — but the shape guard exists only for `groups`, never for `cfg` or `cfg.hooks` themselves. The pathology is reborn one level above the fix that killed it. The fuzz test can't catch this: it fuzzes `classifyCommand` inputs, not settings-file shapes. Fix: ~6 lines of type guards on `cfg` and `cfg.hooks` pushing to `unresolvable`.
+
+2. **P1 — ASSERT branch admits ambiguity in both directions. (Panel Q2: YES, healthy can read MISSING. Q3: NO, not airtight.)** Evidence: `:~41-42` (candidate = first `SCRIPT_EXT`-matching word) + `:~62-63` (statSync miss → MISSING).
+   - **False OK (the original outage shape):** `node --import scripts/env.mjs scripts/server.mjs` — Node ≥20.6 flags legally precede the entrypoint; first script-bearing word is `env.mjs`. Delete `server.mjs` → verdict OK → phantom guard reads healthy. Same for `--require`, `--loader`, `--experimental-loader`, and dual-script commands (`runner.mjs main.mjs`) where only the first is asserted.
+   - **False MISSING:** `node --outFile=dist/preview.mjs scripts/build.mjs` (options first) or any glued `--flag=value.mjs` — candidate becomes `--outFile=dist/preview.mjs`, which ends in `.mjs` and passes `SCRIPT_EXT`; `statSync(join(SS_PT, '--outFile=dist/preview.mjs'))` throws → "registered hook file(s) DO NOT EXIST" reported on a healthy hook. The doc's own `--emit dist/preview.mjs` example is only safe *because it follows the entry* — ordering is not a contract, it's a convention.
+   Fix: strip tokens starting with `-` and take the `=`-suffix before candidate matching.
+
+3. **P1 (conditional) — `read()` null-contract can silently skip unreadable settings.** Evidence: `:~68-69` `const raw = read(cfgPath); if (raw === null) continue;` — comment says "absent is legitimate," but if `read` returns null on *any* failure (EACCES, EISDIR, EMFILE) rather than only ENOENT, a permission-blocked `settings.local.json` is skipped with zero findings — the original pathology via a helper this document doesn't show. Fix is cheap either way: throw on non-ENOENT (the outer catch at `:~132` already reports loudly) — downgrade to non-issue only if `read` provably throws.
+
+4. **P2 — statSync failures misreported as "DO NOT EXIST".** `:~62-63`: a file that exists but is unreadable (EACCES, ELOOP) throws → `ok=false` → MISSING, and the message asserts non-existence — factually wrong output that erodes trust in the loud path. Split on error code: ENOENT → MISSING; anything else → UNVERIFIED ("exists but unreadable").
+
+5. **P2 — dedup collapses distinct malformed entries.** `:~31` key `empty:${String(cmd)}` + `:~99-100`: five hook objects missing `command` all key `empty:undefined` → one finding reading "1 hook registration(s) could NOT be verified" when five are broken. Include the entry index in the key.
+
+6. **P2 — scope omission reads as clean.** `:~66` checks only project `.claude/settings*.json`. Registrations in `~/.claude/settings.json` (user-global) or managed settings are never inspected; a deleted globally-referenced script is a phantom guard this check certifies by omission. Either read those files or scope the silence ("checked project settings only" in the clean emit).
+
+## ATTACKS
+
+- **Correctness:** (a) `split(/\s+/)` splits on Unicode whitespace (`\u00a0`, `\u2028`) — `node scripts/my\u00a0file.mjs` yields candidate `file.mjs` → phantom MISSING on a healthy registration (`:~41`). (b) Windows drive-relative `C:scripts/x.mjs` fails `/^[A-Za-z]:\//` (`:~50`) → treated relative → phantom MISSING. (c) All literal Windows backslash paths are permanently UNVERIFIED (backslash ∈ SHELL_META, `:~20`) — safe direction, but broadens UNKNOWN. (d) `join(SS_PT, tok)` (`:~57`) is correct only if the gate's `SS_PT` equals the hook runtime cwd — monorepo/subdir sessions break the base assumption; unverifiable from the doc. (e) **Q4 (UNVERIFIED breadth):** currently fine per the doc's 13/13-OK claim, but structurally fragile — the first `sh -c` wrapper, quoted path, or Windows contributor lands permanently UNKNOWN with a recurring "check these by hand" instruction and no suppression/tracking. Chronic UNKNOWN noise trains humans to skim past the banner, and a MISSING buried mid-joined-string gets skimmed with it. Alert fatigue is how UNKNOWN becomes the new silence.
+- **Security:** Authn/tenancy/SSRF are genuinely N/A for a local gate — saying so rather than inventing surface. Real minor items: control characters (ESC/\u001b, C0 range) are neither in SHELL_META nor whitespace, so they survive into `tok` and are echoed into `findings` (`:~125-130`) — terminal-escape injection from a hostile `settings.local.json` on shared machines/CI logs. Add `/[\u0000-\u001f\u007f]/` to the meta class; `\r` is currently swallowed silently by `\s` word-splitting. Secret hygiene is decent (`brief` truncates to 90 chars) — keep it that way if findings ever reach logs/an LLM (house rule: IDs only).
+- **Data-truth / schema drift:** The check hard-codes the harness schema (`cfg.hooks` → event → groups → `group.hooks` → `hook.command`; `matcher` and `type` ignored, `:~81-97`). When the harness schema drifts (new hook type without `command`, renamed field), every entry degrades to uniform `empty:undefined` UNVERIFIED — loud but shape-drift-indistinguishable-from-garbage; a schema-version marker in the finding would separate "harness changed" from "registration broke." The file list `['settings.json','settings.local.json']` also duplicates the harness's resolution order — drift between the two lists silently re-opens Blocker 6. PascalCase/snake_case and frontend response-shape rules: not implicated in this artifact.
+
+## HIGHEST RISK
+**Blocker 1.** It falsifies the round's headline invariant ("silence is unrepresentable") with inputs reachable by a botched write or hand edit, it's invisible to the current fuzz suite (which covers `classifyCommand`, not the traversal), and it is the fourth consecutive round where the silence-means-clean pathology survives one level above its fix. Cheapest de-risk: the two type guards (~6 lines), plus one property test that fuzzes *settings-file JSON shapes* (`[]`, `"x"`, `5`, `"hooks":null/5/true`, groups:null) and asserts: for any input, either ≥1 finding is emitted or every enumerated hook entry produced a verdict. That converts the invariant from a property of a function into a property of the check — which is what the header actually promises.
+
+## CONFIDENCE
+Could NOT verify from the document: (1) definitions of `read`, `SCRIPT_EXT`, `URL_SCHEME`, `SS_PT`, and the emit section below the paste — Blocker 2's glued-flag false-MISSING depends on `SCRIPT_EXT` being suffix-anchored without a separator requirement (the false-OK via space-separated pre-entry flags fires regardless); Blocker 3 is entirely conditional on `read`'s null-vs-throw contract. (2) Whether the harness treats `hooks: null` as "no hooks" (if yes, that subcase is legitimate silence — but the `[]`/`"ok"`/`5`/`true` top-level cases remain wrong either way). (3) The 23/23 + 11/11 + 13/13 test claims and whether `~/.claude` is in intended scope. (4) Where `findings` render (terminal vs CI annotations), which sets the real severity of the escape-injection note. (5) Total file length vs the ≤300-line rule. Settling evidence: paste `read`, both regexes, `SS_PT`, and the emit block; plus one scratch run with `settings.json` = `[]` and `"hooks": 5` showing zero findings settles Blocker 1 end-to-end in five minutes. House rules: none implicated — no UI, charts, palette, LLM/PII, or marketing copy in this artifact; only the ≤300-line rule could apply and the excerpt can't judge it.

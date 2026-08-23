@@ -239,33 +239,65 @@ try {
     if (/%[A-Za-z_][A-Za-z0-9_]*%/.test(cmd)) return unver('uses Windows environment interpolation');
 
     // Plain whitespace split is now sound: no quotes and no escapes remain.
+    // (No backslash normalisation here — SHELL_META already routes any command
+    // containing `\` to UNVERIFIED, so a replace would be unreachable. Windows
+    // drive paths therefore report as unverified rather than being half-judged.)
     const words = cmd.trim().split(/\s+/);
-    const candidate = words.find((w) => SCRIPT_EXT.test(w) && !URL_SCHEME.test(w));
-    if (!candidate) {
+    const candidates = words.filter((w) => SCRIPT_EXT.test(w) && !URL_SCHEME.test(w));
+
+    if (candidates.length === 0) {
       // Extensionless or unrecognised. NOT clean — an extensionless registration is
       // exactly as capable of being absent as one ending in .mjs (panel round 4).
       return unver('no argument carries a recognised script extension, so the registered file could not be identified');
     }
-
-    const tok = candidate.replace(/\\/g, '/');
-    const isAbs = tok.startsWith('/') || /^[A-Za-z]:\//.test(tok);
-    // An absolute path is meaningful only on the machine it names. Asserting it from
-    // a different host phantoms on every run (panel round 4) — so report, don't judge.
-    if (isAbs && !existsSync(tok)) {
-      return unver('names an absolute path that is not present on THIS machine — may be valid on the target host');
+    if (candidates.length > 1) {
+      // Which one is the ENTRYPOINT? `node --import ./preload.mjs ./guard.mjs` has
+      // two, and taking the first meant asserting the loader (present -> OK) while
+      // the actually-registered guard was never inspected — silent clean on a
+      // missing hook, the original outage. Found by a panel seat in round 5.
+      // Deciding requires knowing each interpreter's flag grammar; declining is honest.
+      return unver(`names ${candidates.length} script paths (${candidates.join(', ')}) — cannot tell which is the entrypoint`);
     }
-    const abs = isAbs ? tok : join(SS_PT, tok);
+
+    const tok = candidates[0];
+    const isAbs = tok.startsWith('/') || /^[A-Za-z]:\//.test(tok);
+    // An absolute path is meaningful only on the machine it names, whether or not a
+    // file happens to sit there now. Round 4 judged only the absent half, which is
+    // exactly half a claim; decline both.
+    if (isAbs) {
+      return unver('names an absolute path, which is meaningful only on the target machine');
+    }
+
     // isFile, not exists: a DIRECTORY named `x.mjs` satisfies existsSync and would
     // let a phantom registration read as healthy (panel round 3).
-    let ok = false;
-    try { ok = statSync(abs).isFile(); } catch { ok = false; }
-    return ok ? { kind: 'OK', key: tok } : { kind: 'MISSING', key: tok, path: tok };
+    // ENOENT means genuinely absent. Any OTHER errno (EACCES, ELOOP, EISDIR) means
+    // the file may well exist and we simply could not look — reporting that as
+    // "DOES NOT EXIST" is a factually wrong claim that erodes trust in the loud path.
+    try {
+      return statSync(join(SS_PT, tok)).isFile()
+        ? { kind: 'OK', key: tok }
+        : { kind: 'MISSING', key: tok, path: tok };
+    } catch (e) {
+      if (e?.code === 'ENOENT') return { kind: 'MISSING', key: tok, path: tok };
+      return unver(`could not stat ${tok} (${e?.code || 'unknown error'}) — it may exist but be unreadable`);
+    }
   }
 
   for (const name of ['settings.json', 'settings.local.json']) {
     const cfgPath = join(SS_PT, '.claude', name);
-    const raw = read(cfgPath);
-    if (raw === null) continue;              // absent is legitimate — settings.local.json is optional
+    // NOT the shared read() helper here: it collapses every failure to null, so an
+    // unreadable settings.json (EACCES, EISDIR) would be skipped exactly like an
+    // absent optional one — the silence-means-clean pathology one layer above the
+    // hooks it guards. Absent is legitimate; unreadable is a finding. (Panel round 5.)
+    let raw = null;
+    try {
+      raw = readFileSync(cfgPath, 'utf-8');
+    } catch (e) {
+      if (e?.code !== 'ENOENT') {
+        unresolvable.push(`.claude/${name} exists but could not be read (${e?.code || 'unknown'}) — the hooks it registers were NOT checked`);
+      }
+      continue;                              // ENOENT: settings.local.json is optional
+    }
 
     let cfg;
     try {
@@ -295,8 +327,13 @@ try {
           const where = `${event}, ${name}`;
           const verdict = classifyCommand(hook?.command);
 
-          if (seen.has(`${event}:${verdict.key}`)) continue;
-          seen.add(`${event}:${verdict.key}`);
+          // Dedupe only IDENTICAL findings — the same file missing under the same
+          // event, reported once. Keying on the verdict KIND as well means a second
+          // entry can never be silently swallowed by a first one of a different kind,
+          // which is what "the caller cannot skip an entry" has to mean in practice.
+          const dedupe = `${name}:${event}:${verdict.kind}:${verdict.key}`;
+          if (seen.has(dedupe)) continue;
+          seen.add(dedupe);
 
           if (verdict.kind === 'MISSING') missing.push(`${verdict.path} (${where})`);
           else if (verdict.kind === 'UNVERIFIED') unresolvable.push(`${where}: ${verdict.why}`);

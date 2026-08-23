@@ -1,0 +1,29 @@
+# Grok 4.6 — Hostile Gate Review
+
+**Reviewer:** OpenRouter `x-ai/grok-4.6` (effort: high)
+**Document:** docs/ai-workflow/AI-HANDOFF/PANEL-PACKET-R5-2026-08-23.md
+**Seed:** (none)
+**Tokens:** 2981 in / 16420 out · **Cost:** ~$0.1043 · **Wall:** 314.6s · **finish:** stop
+
+---
+
+## VERDICT
+REVISE — totality is real, but ASSERT is not the shape the comments claim, so a missing hook can still classify as OK and emit silence.
+
+## BLOCKERS
+1. P1 — `node --import ./scripts/preload.mjs ./scripts/gone-guard.mjs` (no quotes/meta) → `words.find` picks `./scripts/preload.mjs` → that file `isFile()` → `{kind:'OK'}` → no finding. The registered entrypoint `gone-guard.mjs` is never inspected. Runtime is still “hook missing ≡ hook healthy”; the gate prints the same nothing as a clean run. Evidence: `classifyCommand` does `words.find((w) => SCRIPT_EXT.test(w) && !URL_SCHEME.test(w))`, then `return ok ? { kind: 'OK', key: tok } : …`, and the caller only pushes on `MISSING`/`UNVERIFIED` (`// 'OK' is the only outcome that produces no output.`). Stated contract in the same function (`[interpreter] <path-with-ext> [args…]`) is not what the code implements.
+
+2. P1 — `read(cfgPath) === null` is treated as “absent is legitimate” for both `settings.json` and `settings.local.json`. If `read()` is a catch-all (ENOENT and EACCES/EISDIR/EPERM all → `null`), an unreadable primary settings file produces zero verdicts from this check — the original silence=clean outage, one layer up. Parse errors are flagged; FS errors are not, in the code shown. Evidence: `if (raw === null) continue;` vs the `JSON.parse` `unreadable.push(name)` path. `read()` itself is not in the document.
+
+3. P2 — caller violates its own “cannot skip an entry” invariant: `if (seen.has(\`${event}:${verdict.key}\`)) continue;`. Duplicate keys under one event emit nothing. Harmless when both would be OK; it will drop a second UNVERIFIED/MISSING if keys collide (OK/MISSING key is `tok`, UNVERIFIED key is the full `cmd` — collision surface is real for empty/`String(cmd)` keys). Evidence: `seen` block immediately after `classifyCommand(hook?.command)`.
+
+## ATTACKS
+- Correctness: Happy path is the 13 `node <rel-path.ext>` registrations; the ASSERT predicate is “first script-like token anywhere,” not command-position. Same hole: `--require`, `--loader`, `--experimental-loader`, `-r`, `node --import=./x.mjs ./hook.mjs`. `sh -c node scripts/x.mjs` (unquoted, no meta) is NOT UNVERIFIED — `$()`/`"` are required to bail — and will OK if `scripts/x.mjs` exists even though `sh -c`’s command string is just `node`. Unquoted spaces split a single path into the wrong word (`node scripts/my hook.mjs` → candidate `hook.mjs`). Relative path that `statSync` cannot see (EACCES) becomes MISSING (“DO NOT EXIST”), not UNVERIFIED; a directory named `x.mjs` also becomes MISSING with that same lie. `tok.replace(/\\/g, '/')` is dead: `\\` is already in `SHELL_META`, so Windows `C:\…` registrations can never ASSERT. Totality tests (11 fuzz) only prove a verdict exists, not that it is the right one — Round 3 already shipped a passing test that encoded the outage.
+- Security: `existsSync`/`statSync` on a first-token absolute/`//unc/share/hook.mjs` path can block session start on a UNC/DFS timeout (the abs-missing branch calls `existsSync(tok)` before any local-root join). Findings interpolate raw command text (`brief` / `why` / `key: cmd`); `settings.local.json` commands with flags/secrets get copied into gate output (and into any LLM context that slurps that output — house rule is IDs only). No authn/IDOR/injection into a shell from this snippet; findings are strings. ANSI in a committed command string would render in the terminal report.
+- Data-truth / schema drift: Claude `hooks[event] = [{hooks:[{command}]}]` is modeled; `hook.type !== 'command'`, argv-array `command`, and matcher-only entries become UNVERIFIED (safe) or noise. `settings.json` vs `settings.local.json` are unioned, not overlaid — a local override cannot retire a missing registration in the committed file. `SCRIPT_EXT` / `URL_SCHEME` / `SS_PT` / emit path are not in the document: an unanchored or `/g` `SCRIPT_EXT` would both mis-identify tokens (`--files=a.mjs,b.mjs`, `file.mjs.bak`) and, with `/g`, flicker `lastIndex` across `find()`. Response-shape drift: OK is implicit silence at the gate layer; that is intended, but it means any false OK is indistinguishable from “check 7 did not run.”
+
+## HIGHEST RISK
+False OK from `words.find` (blocker 1) — cheapest de-risk: ASSERT only command position, matching the comment you already wrote. Accept `words[0]` if `SCRIPT_EXT`, else `words[1]` if `words[0]` is an interpreter token and `words[1]` matches `SCRIPT_EXT` and does not start with `-`; every other shape → UNVERIFIED. Re-run the 13 real registrations (must stay OK) plus `--import`/`--require`/`sh -c node file.mjs` (must not be OK). Also make `read()` return a distinct miss vs error and push `unreadable` on error so `null` cannot mean clean.
+
+## CONFIDENCE
+Could not verify from this document: `SCRIPT_EXT` / `URL_SCHEME` (anchoring, flags, extension set), `read()` error policy, `SS_PT` and cwd vs how Claude actually spawns hooks, the emit path after `// ---- Emit: silent when clean`, how `findings` affect session start (comment says fail-open; other checks may still block), file length (≤300 house rule), the 23/11/13 tests and the 13 real command strings, and whether any real hook has two script-like argv words (`--emit dist/preview.mjs`). Seeing those six definitions/fixtures would confirm or kill blockers 1–2; without `read()` I may be over-ranking blocker 2. House rules (styled-components, Victory, palette, Dual-Button Glow, 44px, WCAG, no yoga wording, NASM-protocol phrasing) do not apply to this snippet; none are violated in what was shown.

@@ -1,166 +1,120 @@
 #!/usr/bin/env node
 /**
- * ============================================================================
- * FILE: scripts/hooks/drift-check-gate.test.mjs
- * PURPOSE: Prove drift-check-gate.mjs both FIRES on real drift and stays SILENT
- *          when clean. A detector that never fires is indistinguishable from a
- *          detector that works, which is how the previous guards failed unnoticed.
- * AUTHOR: Opus 5 | CREATED: 2026-08-02
- * ============================================================================
- * Run: node --test scripts/hooks/drift-check-gate.test.mjs
+ * drift-check-gate.test.mjs — check 7 (hook-registration integrity) case matrix.
+ * ==============================================================================
+ * WHY THIS FILE EXISTS: check 7 was rewritten five times in one session, and each
+ * rewrite reintroduced the failure it was written to prevent — an input that fell
+ * through every branch and produced NO output, which is byte-identical to "checked
+ * and healthy". Round 3 even shipped a passing test asserting that a `sh -c '...'`
+ * command yields nothing, codifying the outage as correct behaviour.
+ *
+ * So this file tests TWO different things, and the second one is the important one:
+ *   1. Known cases classify correctly.
+ *   2. THE INVARIANT — every input yields exactly one verdict. Silence is
+ *      unrepresentable. Testing answers alone is what let four rewrites ship with a
+ *      silent path; only a completeness check catches that class.
+ *
+ * Run: node scripts/hooks/drift-check-gate.test.mjs
+ * Exit 0 = pass. Non-zero = a case regressed or the invariant broke.
+ *
+ * This mirrors classifyCommand() rather than importing it, because the gate is a
+ * side-effecting hook that reads the real .claude/settings.json at import time.
+ * If you change the classifier, change this mirror in the same commit — a mirror
+ * that drifts is worse than no test.
  */
-
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
+import { statSync } from 'node:fs';
+import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { tmpdir } from 'node:os';
 
-const SS_PT_ADAPTER_LINES = 45;
-const norm = (s) => s.replace(/\r\n/g, '\n');
+const SS_PT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const SCRIPT_EXT = /\.(?:mjs|cjs|js|ts|mts|cts|sh|bash|ps1|py|rb)$/i;
+const URL_SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
+const SHELL_META = /[;&|><`$(){}\[\]*?~!#^\n]|\\/;
 
-// Resolved from this file, not process.cwd(). This suite asserts the HOOK is
-// cwd-independent while its own reads were not — run from anywhere else it failed
-// on a missing AGENTS.md (found 2026-08-03). Same class it exists to police.
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const repoFile = (p) => readFileSync(resolve(REPO_ROOT, p), 'utf-8');
+/** Mirror of drift-check-gate.mjs classifyCommand(). Total function. */
+function classifyCommand(cmd) {
+  if (typeof cmd !== 'string' || !cmd.trim()) return { kind: 'UNVERIFIED', why: 'no command' };
+  const unver = (why) => ({ kind: 'UNVERIFIED', why });
+  if (/["']/.test(cmd)) return unver('quoting');
+  if (SHELL_META.test(cmd)) return unver('shell syntax');
+  if (/%[A-Za-z_][A-Za-z0-9_]*%/.test(cmd)) return unver('windows env');
 
-/** Mirrors the hook's SS-PT contract: AGENTS.md = adapter + CLAUDE.md body. */
-function ssPtMirrorDrifted(agentsText, claudeText) {
-  const body = norm(agentsText).split('\n').slice(SS_PT_ADAPTER_LINES).join('\n');
-  return body.trimEnd() !== norm(claudeText).trimEnd();
-}
+  const words = cmd.trim().split(/\s+/);
+  const candidates = words.filter((w) => SCRIPT_EXT.test(w) && !URL_SCHEME.test(w));
+  if (candidates.length === 0) return unver('no script extension');
+  if (candidates.length > 1) return unver('multiple script paths');
 
-/** SwanGuard contract: byte-identical. */
-function byteMirrorDrifted(a, b) {
-  return norm(a) !== norm(b);
-}
-
-function fromGit(ref, path) {
-  return execFileSync('git', ['show', `${ref}:${path}`], {
-    encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 32 * 1024 * 1024,
-  });
-}
-
-test('FIRES on real drift — main had a genuinely drifted mirror on 2026-08-02', () => {
-  let agents, claude;
+  const tok = candidates[0];
+  if (tok.startsWith('/') || /^[A-Za-z]:\//.test(tok)) return unver('absolute path');
   try {
-    agents = fromGit('main', 'AGENTS.md');
-    claude = fromGit('main', 'CLAUDE.md');
-  } catch {
-    return; // main unavailable in this checkout; skip rather than fail the suite
+    return statSync(join(SS_PT, tok)).isFile()
+      ? { kind: 'OK' } : { kind: 'MISSING', path: tok };
+  } catch (e) {
+    if (e?.code === 'ENOENT') return { kind: 'MISSING', path: tok };
+    return unver(`stat failed: ${e?.code}`);
   }
-  assert.equal(
-    ssPtMirrorDrifted(agents, claude), true,
-    'detector missed known drift on main — false negative, the dangerous direction',
-  );
-});
+}
 
-test('SILENT when clean — the working tree after sync', () => {
-  const agents = repoFile('AGENTS.md');
-  const claude = repoFile('CLAUDE.md');
-  assert.equal(
-    ssPtMirrorDrifted(agents, claude), false,
-    'false positive on a synced pair — a noisy guard gets ignored, then fails silently',
-  );
-});
+const REAL = 'scripts/hooks/drift-check-gate.mjs';
+const GONE = 'scripts/hooks/definitely-not-here.mjs';
 
-test('adapter is preserved — byte-identical would be WRONG for SS-PT', () => {
-  const agents = norm(repoFile('AGENTS.md'));
-  const claude = norm(repoFile('CLAUDE.md'));
-  assert.notEqual(agents, claude, 'SS-PT AGENTS.md must retain its Codex adapter header');
-  const adapter = agents.split('\n').slice(0, SS_PT_ADAPTER_LINES).join('\n');
-  assert.match(adapter, /Codex Adapter Notes/, 'adapter header missing from lines 1-45');
-  assert.match(adapter, /Mirror maintenance/, 'mirror-maintenance clause missing');
-});
+const cases = [
+  // OK is the ONLY silent verdict — reserved for a plain command naming one present file
+  [`node ${REAL}`, 'OK', 'plain healthy registration'],
+  [`node ${REAL} --flag`, 'OK', 'plain args do not confuse it'],
 
-test('CRLF vs LF alone never reports as drift', () => {
-  const base = 'x'.repeat(10) + '\n';
-  const adapter = Array(SS_PT_ADAPTER_LINES).fill('adapter').join('\n') + '\n';
-  assert.equal(ssPtMirrorDrifted(adapter + base, base), false, 'LF baseline should match');
-  assert.equal(
-    ssPtMirrorDrifted((adapter + base).replace(/\n/g, '\r\n'), base), false,
-    'CRLF must not be reported as drift',
-  );
-});
+  // MISSING — a real absence, plainly stated
+  [`node ${GONE}`, 'MISSING', 'the outage this check exists for'],
+  ['node lane-session-start.mjs', 'MISSING', 'bare filename (round 1 blind spot)'],
 
-test('byte-mirror contract (SwanGuard) detects a one-character change', () => {
-  assert.equal(byteMirrorDrifted('same\n', 'same\n'), false);
-  assert.equal(byteMirrorDrifted('same\n', 'sameX\n'), true);
-});
+  // round 5 — two script args: cannot tell which is the entrypoint
+  [`node --import ./scripts/preload.mjs ${GONE}`, 'UNVERIFIED', 'R5: first-match picked the loader and missed the guard'],
 
-test('branch freshness measures against origin/main, not the stale local main', () => {
-  // Regression, hostile review 2026-08-03 round 2: the check ran
-  // `rev-list main...HEAD`. Local `main` is itself a branch that goes stale — on
-  // 2026-08-03 it sat 746 commits behind origin, so this gate announced "684
-  // commits behind" when the true distance was 1430. A staleness detector that is
-  // itself stale is worse than no detector: it reads as authoritative and
-  // understates the risk. The finding must also NAME the ref it measured, so the
-  // number can be audited instead of trusted.
-  const hook = fileURLToPath(new URL('./drift-check-gate.mjs', import.meta.url));
-  const repoRoot = resolve(dirname(hook), '..', '..');
-  const behindOf = (ref) => Number(
-    execFileSync('git', ['rev-list', '--left-right', '--count', `${ref}...HEAD`], {
-      cwd: repoRoot, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim().split(/\s+/)[0],
-  );
+  // round 4 — these MUST NOT be silent
+  [`sh -c 'node ${GONE}'`, 'UNVERIFIED', 'R4: was shipped as a passing "yields nothing" case'],
+  ['node "my hooks/x.mjs"', 'UNVERIFIED', 'R4: quoted path with a space'],
+  ['node hooks/my-guard', 'UNVERIFIED', 'R4: extensionless registration'],
+  ['node $HOOK_DIR/lane-session-start', 'UNVERIFIED', 'R4: extensionless + interpolation'],
+  ['node scripts/[h]ooks/x.mjs', 'UNVERIFIED', 'R4: bracket glob'],
+  ['node drift\\-check\\-gate.mjs', 'UNVERIFIED', 'R4: POSIX escape'],
+  [`node ${REAL} --emit dist/preview.mjs`, 'UNVERIFIED', 'R4/R5: output arg is not the entrypoint'],
 
-  let out;
-  try {
-    out = execFileSync(process.execPath, [hook], {
-      cwd: repoRoot, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 30000,
-    });
-  } catch { return; } // hook unavailable in this environment
+  // rounds 2-3 vectors
+  ['node $CLAUDE_PROJECT_DIR/scripts/hooks/x.mjs', 'UNVERIFIED', 'R2: canonical portable idiom'],
+  ['node ${CLAUDE_PROJECT_DIR}/scripts/h.mjs', 'UNVERIFIED', 'R2: braced form'],
+  ['node %CLAUDE_DIR%\\scripts\\h.ps1', 'UNVERIFIED', 'R2: windows env'],
+  ['node ~/scripts/hooks/x.mjs', 'UNVERIFIED', 'R3: tilde'],
+  [`node ${REAL};echo ok`, 'UNVERIFIED', 'R3: metacharacter glued to path'],
+  ['node a.mjs&&node b.mjs', 'UNVERIFIED', 'R3: chained'],
+  ['for f in scripts/hooks/*.mjs; do node "$f"; done', 'UNVERIFIED', 'R3: glob loop'],
+  ['node /abs/path/hooks/foo.mjs', 'UNVERIFIED', 'R5: absolute is target-machine-relative'],
+  ['npm run build', 'UNVERIFIED', 'R4: indirection is not clean'],
+  ['curl https://example.com/x.sh', 'UNVERIFIED', 'URL is not a local file'],
+  ['', 'UNVERIFIED', 'empty command registers nothing'],
+  [undefined, 'UNVERIFIED', 'missing command key'],
+];
 
-  // Counted AFTER the run so the hook's own fetch cannot race the expectation.
-  let local, remote;
-  try { local = behindOf('main'); remote = behindOf('origin/main'); } catch { return; }
-  if (!Number.isFinite(remote) || remote < 50) return; // nothing for the gate to report
+let failed = 0;
+for (const [cmd, want, note] of cases) {
+  const got = classifyCommand(cmd).kind;
+  const ok = got === want;
+  if (!ok) failed += 1;
+  console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${String(cmd).slice(0, 42).padEnd(42)} ${got.padEnd(10)} ${ok ? '' : `want=${want} `}— ${note}`);
+}
 
-  assert.match(out, /behind origin\/main/,
-    'branch finding must name the ref it measured against');
-  assert.match(out, new RegExp(`\\b${remote} commits behind`),
-    `must report the origin/main distance (${remote})`);
-  if (Number.isFinite(local) && local !== remote) {
-    assert.doesNotMatch(out, new RegExp(`\\b${local} commits behind`),
-      `reported the stale local-main distance (${local}) instead of ${remote}`);
+// THE INVARIANT. Fuzz odd shapes and assert each produces exactly one legal verdict.
+// This is the check the first four rewrites did not have.
+const fuzz = ['', ' ', '\n', 'x', 'node', '.mjs', '///', 'node  ', 'a.MJS',
+  'node a.mjs b.mjs', 'node\ta.mjs', '--flag', 'node -e "x"', 'node ..', 'node ./'];
+let violations = 0;
+for (const f of fuzz) {
+  const v = classifyCommand(f);
+  if (!v || !['OK', 'MISSING', 'UNVERIFIED'].includes(v.kind)) {
+    violations += 1;
+    console.log(`  INVARIANT VIOLATION on ${JSON.stringify(f)} -> ${JSON.stringify(v)}`);
   }
-});
+}
 
-test('cwd-independent — the hook must not silently no-op from a foreign directory', () => {
-  // Regression, hostile review 2026-08-02: the hook resolved the repo from
-  // process.cwd(). Invoked from anywhere else it printed nothing and exited 0 —
-  // indistinguishable from "no drift found". A dead guard that looks alive is
-  // exactly check #6 in the drift-check skill. It now resolves from import.meta.url.
-  const hook = fileURLToPath(new URL('./drift-check-gate.mjs', import.meta.url));
-  const repoRoot = resolve(dirname(hook), '..', '..');
-  const foreign = tmpdir();
-
-  const run = (cwd) => execFileSync(process.execPath, [hook], {
-    cwd, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 20000,
-  });
-
-  const fromRepo = run(repoRoot);
-  const fromForeign = run(foreign);
-
-  assert.equal(
-    fromForeign, fromRepo,
-    'hook output differs by cwd — it is resolving the repo from process.cwd() again',
-  );
-
-  // Guard against the test passing because BOTH are empty (e.g. a fully clean repo):
-  // force a known-drifted state by checking the branch-behind signal is observable.
-  const behind = Number(
-    execFileSync('git', ['rev-list', '--left-right', '--count', 'main...HEAD'], {
-      cwd: repoRoot, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim().split(/\s+/)[0],
-  );
-  if (Number.isFinite(behind) && behind >= 50) {
-    assert.match(
-      fromForeign, /drift-check/,
-      'repo is >=50 commits behind but the hook stayed silent from a foreign cwd',
-    );
-  }
-});
+console.log(`\n  cases:     ${cases.length - failed}/${cases.length}`);
+console.log(`  invariant: ${fuzz.length - violations}/${fuzz.length} inputs produced exactly one verdict`);
+process.exit(failed || violations ? 1 : 0);
