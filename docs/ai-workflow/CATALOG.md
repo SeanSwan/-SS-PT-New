@@ -1,7 +1,7 @@
 # CATALOG — distilled recall layer (Rule 72)
 
 > **GENERATED FILE — DO NOT HAND-EDIT.** Rows are POINTERS, never canon. Acting on a row requires opening the source file. A row whose source-SHA no longer matches `git ls-files -s <path>` is STALE and must not be trusted. To fix a row: fix the source doc and regenerate via `node scripts/catalog-regen.mjs`. Regeneration is T2 (reads repo, writes only this file).
-> **Scope this generation:** docs/ai-workflow/AI-HANDOFF/ tracked *.md (791 files) · Regenerated 2026-08-23 by scripts/catalog-regen.mjs.
+> **Scope this generation:** docs/ai-workflow/AI-HANDOFF/ tracked *.md (808 files) · Regenerated 2026-08-23 by scripts/catalog-regen.mjs.
 > **Usage:** `rg -i "<topic>" docs/ai-workflow/CATALOG.md` — grep, do not load wholesale.
 
 ## AI-HANDOFF (paths relative to docs/ai-workflow/AI-HANDOFF/)
@@ -111,20 +111,20 @@
 | CONSTITUTION-REPAIR-REVIEW-PACKET-2026-08-14.md | 2026-08-14 | unknown | The repair packet documented a stale-copy clobber incident where a commit deleted nine mandatory rules, causing a divergence between agent constitutions. | open | 1645789cb4ac |
 | CONTINUITY-BRIDGE-PHASE-B-DEBATE-2026-04-22.md | 2026-04-22 | claude | Designed the Phase B cross-surface continuity bridge (rolling log + curated promotions) linking VS Code and Hermes-Telegram Claude/Codex sessions, with locked file layout, atomic lock/append protocol, and sanitizer. | shipped | 42d6963d9d23 |
 | CONTINUITY-GOOD-IDEAS.md | 2026-06-28 | multi | Curated durable-insight log promoted from the rolling continuity file; captures lock-correctness, sanitizer, config, and coordination-ledger lessons. | open | 86a65f2954bd |
-| COORDINATION-APPROVAL-GATE-2026-08-13.md | 2026-08-13 | unknown | NEEDS DISTILLATION | stale | 843ba0439675 |
-| COORDINATION-FINAL-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | NEEDS DISTILLATION | stale | af2eba0a30ac |
-| COORDINATION-HYGIENE-INVENTORY-2026-08-12.md | 2026-08-12 | unknown | NEEDS DISTILLATION | stale | 6910ddbd019d |
-| COORDINATION-LEDGER-HOSTILE-REVIEW-PACKET-2026-08-11.md | 2026-08-11 | unknown | NEEDS DISTILLATION | stale | f734adec8f09 |
-| COORDINATION-LEDGER-IMPL-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | NEEDS DISTILLATION | stale | 13a9657bc8f6 |
-| COORDINATION-POSTMERGE-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | NEEDS DISTILLATION | stale | f871b44a3a75 |
-| COORDINATION-R5-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | NEEDS DISTILLATION | stale | a2e046c264fe |
-| COORDINATION-R6-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | NEEDS DISTILLATION | stale | 378cb0cb8b16 |
-| COORDINATION-R7-PACKET-2026-08-13.md | 2026-08-13 | unknown | NEEDS DISTILLATION | stale | 9bcfae0cd66d |
-| COORDINATION-R8-PACKET-2026-08-13.md | 2026-08-13 | unknown | NEEDS DISTILLATION | stale | 51b7dadab405 |
-| COORDINATION-R9-PACKET-2026-08-13.md | 2026-08-13 | unknown | NEEDS DISTILLATION | stale | 87d5ef049c66 |
-| CREATOR-PIPELINE-HANDOFF-GLM53-2026-08-15.md | 2026-08-15 | unknown | NEEDS DISTILLATION | stale | ac1df32efe29 |
-| CREATOR-STUDIO-SESSION-HANDOFF-2026-08-16.md | 2026-08-16 | unknown | NEEDS DISTILLATION | stale | 9f7d0084cc47 |
-| CREATOR-VIDEO-STUDIO-MASTER-HANDOFF-2026-08-15.md | 2026-08-15 | unknown | NEEDS DISTILLATION | stale | 0413871ac7ce |
+| COORDINATION-APPROVAL-GATE-2026-08-13.md | 2026-08-13 | unknown | This document collects all pending decisions from the coordination cleanup into a single approval gate for Sean. | open | 843ba0439675 |
+| COORDINATION-FINAL-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | This packet requests a final hostile code review of the coordination ledger and worktree pruning script before merging. | open | af2eba0a30ac |
+| COORDINATION-HYGIENE-INVENTORY-2026-08-12.md | 2026-08-12 | unknown | This inventory lists the current state of git worktrees and coordination files to propose non-destructive hygiene actions. | open | 6910ddbd019d |
+| COORDINATION-LEDGER-HOSTILE-REVIEW-PACKET-2026-08-11.md | 2026-08-11 | unknown | This document presents the existing cross-agent coordination ledger system and requests a hostile review of its design and upgrade. | open | f734adec8f09 |
+| COORDINATION-LEDGER-IMPL-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | This packet requests a hostile implementation review of the coordination ledger code, focusing on bugs and security flaws. | open | 13a9657bc8f6 |
+| COORDINATION-POSTMERGE-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | This document requests a hostile post-merge review of Coordination Ledger v2.3 to identify defects warranting a revert. | open | f871b44a3a75 |
+| COORDINATION-R5-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | This packet targets a hostile review of the v2.4 code delta written in response to previous review findings. | open | a2e046c264fe |
+| COORDINATION-R6-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | This document requests a hostile review of the v2.5 delta and prioritized actionable next steps for the system. | open | 378cb0cb8b16 |
+| COORDINATION-R7-PACKET-2026-08-13.md | 2026-08-13 | unknown | This packet requests a hostile review of the v2.6 delta and an executable plan for remaining tasks. | open | 9bcfae0cd66d |
+| COORDINATION-R8-PACKET-2026-08-13.md | 2026-08-13 | unknown | This document presents evidence for a no-approval pass, challenging previous assumptions about repository protection and file counts. | open | 51b7dadab405 |
+| COORDINATION-R9-PACKET-2026-08-13.md | 2026-08-13 | unknown | This document requests a hostile review of a git bundle backup plan and the author's responses to previous findings. | open | 87d5ef049c66 |
+| CREATOR-PIPELINE-HANDOFF-GLM53-2026-08-15.md | 2026-08-15 | unknown | This handoff document explains why the current video pipeline is insufficient and provides context for a hostile review. | open | ac1df32efe29 |
+| CREATOR-STUDIO-SESSION-HANDOFF-2026-08-16.md | 2026-08-16 | unknown | This session handoff instructs the next agent to execute the final step of generating a video locally. | open | 9f7d0084cc47 |
+| CREATOR-VIDEO-STUDIO-MASTER-HANDOFF-2026-08-15.md | 2026-08-15 | unknown | This master handoff summarizes Sean's original requirements and the current honest state of the video studio project. | open | 0413871ac7ce |
 | CREDENTIALS-ROTATION-OPUS-CODEX-DEBATE-2026-04-21.md | 2026-04-21 | claude | Documents that all leaked secrets in settings.local.json were already rotated; plan for cleaning settings.local.json, scrubbing git history of Playwright test files with a leaked admin password, and preventing recurrence. | open | 9d74fa5ae97f |
 | CRITICAL-COMPONENTS-REPORT.md | 2026-02-10 | multi | Identifies root cause of login/data-loss bugs (User beforeUpdate double-hashing null passwords, paranoid soft-deletes) and proposes fixed hook + backup/migration-safety scripts. | open | 4495aa8ca1bf |
 | CRITICAL-FIX-ID-MISMATCH-RESOLVED.md | 2025-12-29 | claude | Fixed revenue-blocking bug where storefront frontend used hardcoded package IDs 1-8 while DB used IDs 50-57, causing 404 on add-to-cart; switched frontend to fetch packages from API. | shipped | 5e6840a6a456 |
@@ -132,13 +132,13 @@
 | CROSS-AI-REVIEW-PROMPT-HERO-REDESIGN.md | unknown | claude | Cross-AI review prompt for the full 10-section homepage Ethereal Wilderness redesign plan (hero video, typography, palette), pointing reviewer to HERO-REDESIGN-ANALYSIS.md. | open | 15a1485b8c86 |
 | CROSS-AI-REVIEW-PROMPT-SOCIAL-FEED.md | unknown | claude | Cross-AI review prompt for the "Follow Our Journey" social feed rewrite (Facebook/Instagram/YouTube cards) checking token consistency, accessibility, reduced motion, and responsive layout. | open | 2399fd292f1a |
 | CROSS-AI-REVIEW-PROMPT-STORE-POLISH.md | unknown | claude | Cross-AI review prompt for the store page Ethereal Wilderness polish (PackageCard, PackagesGrid, HeroSection, cart) checking tokens, accessibility, and business-logic preservation. | open | 2423b6de4b8b |
-| CROSS-ROLE-AUTHZ-MATRIX-DESIGN-2026-08-14.md | 2026-08-14 | unknown | NEEDS DISTILLATION | stale | 88071c3bd8f4 |
+| CROSS-ROLE-AUTHZ-MATRIX-DESIGN-2026-08-14.md | 2026-08-14 | unknown | This design document proposes a cross-role authorization matrix to address broken access control gaps before launch. | open | 88071c3bd8f4 |
 | CRYSTAL-RING-EVOLUTION-SPEC-2026-07-27.md | 2026-07-27 | unknown | Sean decided to evolve the crystal ring every 50 levels with intensified visuals and swan logos at higher tiers. | open | a97b1da53a39 |
 | CURRENT-TASK-ARCHIVE.md | 2026-02-15 | multi | Historical archive of pre-2026-02-15 backlog: Universal Schedule Phase 0 backend complete, plus a list of files locked by ChatGPT-5 during storefront Phase 6 specials work. | archived | 71478b9b0018 |
 | CURRENT-TASK.md | 2026-02-28 | claude | Snapshot of Phase 10 Production Monitoring Dashboard completion (persistent DB metrics, alert engine, 12 API endpoints, ~63 new tests all passing); superseded for Swan Coach by later continuity docs. | shipped | ff5c42533bbe |
 | DASHBOARD-AUDIT-REQUEST.md | 2025-12-31 | sean | Request for AI Village to audit admin/client/trainer dashboards for tab completeness, functionality, UX, and alignment with the product vision. | open | ad222a32137a |
 | DATABASE-MIGRATION-COMPLETION-STATUS.md | 2025-12-29 | claude | Completed all 81 pending Render production migrations by fixing duplicate indexes, Knex-to-Sequelize conversions, and UUID/INTEGER FK mismatches; Sessions table now operational. | shipped | 7264a13ab2d2 |
-| DESIGN-BRAIN-REPAVE-HANDOFF-2026-08-16.md | 2026-08-16 | unknown | NEEDS DISTILLATION | stale | 87191b43f9d7 |
+| DESIGN-BRAIN-REPAVE-HANDOFF-2026-08-16.md | 2026-08-16 | unknown | This document is a session handoff detailing the repair of structural defects in the Design Brain markdown corpus. | open | 87191b43f9d7 |
 | DESIGN-RATIFICATION-FINAL-2026-07-16.md | 2026-07-16 | opus | Ratifies one design language (Crystalline Swan chrome) with a world-layer dimmer switch across marketing vs dashboards, overrules some Village/Gemini framing, sets rollout order A-B-C | consensus | 52931b160d32 |
 | DESIGN-SKILL-BRAIN-REDO-PROPOSAL-2026-07-19.md | 2026-07-19 | claude | Proposes adopting Kimi's rewritten design skill + design brain docs with 6 builder-validated refinements folded in; proposal only, pending Sean confirmation | open | efb4fe0cc1a3 |
 | DICTATION-PLANNER-LOGGER-SYNC-AUDIT-RECORD-2026-07-14.md | 2026-07-14 | fable | Phase audit for dictation-first planner/logger sync feature; all checkpoints passed and shipped, pending Sean's manual QA and deploy verification | shipped | 94b37e0e2e7d |
@@ -146,9 +146,9 @@
 | ELEGANCE-BLUEPRINT-ARC-C-CHARTS-2026-07-22.md | 2026-07-22 | unknown | Arc C blueprint — client charts "on another level": every element clickable with truthful drill-down, lens-connected, worker-executable in Fable+Kimi's vision | open | d0214b5e7fec |
 | ELEGANCE-BLUEPRINT-ARC-L-LOGGER-2026-07-22.md | 2026-07-22 | unknown | Arc L blueprint — logger fluidity to "best it can possibly be" (Mobbin 1.1 full contract), worker-executable in Fable+Kimi's vision | open | 03fde01c0ada |
 | ENTERPRISE-AUDIT-REPORT.md | 2026-02-07 | multi | Audit of UniversalMasterSchedule component identifying P0 type-safety bugs, missing error boundaries/monitoring, no virtualization, and accessibility/testing gaps. | open | 6e11446e907d |
-| EQUIPMENT-HY3-DESIGN-REVIEW-2026-08-04.md | 2026-08-04 | unknown | NEEDS DISTILLATION | stale | af8d3cafbb80 |
+| EQUIPMENT-HY3-DESIGN-REVIEW-2026-08-04.md | 2026-08-04 | unknown | This document presents a visual UX review of the Equipment Intelligence Overhaul blueprint with ranked design suggestions. | open | af8d3cafbb80 |
 | EQUIPMENT-INTELLIGENCE-OVERHAUL-BLUEPRINT-2026-08-04.md | 2026-08-04 | unknown | Overhaul the Equipment system — Scan V3 multi-object intelligence, four-role surfaces, real Swan Coach integration, Crystalline Swan UI rebuild | open | 21923676472d |
-| EQUIPMENT-KIMI-K3-DESIGN-REVIEW-2026-08-04.md | 2026-08-04 | unknown | NEEDS DISTILLATION | stale | 315df112c759 |
+| EQUIPMENT-KIMI-K3-DESIGN-REVIEW-2026-08-04.md | 2026-08-04 | unknown | This document provides a visual UX review of the Equipment Intelligence Overhaul blueprint with ranked design suggestions. | open | 315df112c759 |
 | EQUIPMENT-SUBSYSTEM-DEEP-AUDIT-2026-07-05.md | 2026-07-05 | claude | Deep audit finds Equipment subsystem's AI-collected intelligence is disconnected from generation, reach is limited to admin dashboard only, and main UI is an oversized monolith with silent failures | open | ac8719904d3d |
 | EXTERNAL-INTEL-PIPELINE-RESEARCH-2026-08-11.md | 2026-08-11 | unknown | Build YouTube transcript intel in-repo on yt-dlp (shipped); for social comments use the ALREADY-INSTALLED Playwright MCP persistent logged-in profile before installing or buying anything — Crawl4AI as the step-up, paid aggregator only if it must be unattended | shipped | f2ed6a865dbe |
 | FABLE-CONTROL-LAYER-AUDIT-RECORD-2026-07-04.md | 2026-07-04 | fable | Phase audit for Fable Control Layer + Hermes Agentic OS docs and Slice 1 runtime (receipt/queue spine); docs shipped, slice 1 built and self-reviewed, pending Codex review | shipped | 434b12e5c8e2 |
@@ -318,7 +318,7 @@
 | KIMI-BLUEPRINT-SET-MASTER-REVIEW-REPORT-2026-07-17.md | 2026-07-17 | claude | Consolidated go/no-go report on the 15 blueprints: Swan Lens/Dashboards/Store are build-ready, Home/About/Contact/Video are SEND-BACK pending token sheet | open | 3b7ad736b344 |
 | KIMI-BUILD-PLAN-V2-REVIEW-R1-2026-07-21.md | 2026-07-21 | unknown | The build plan was approved with changes, requiring resolution of five blockers and two internal contradictions. | open | 7a9de02826e9 |
 | KIMI-BUILD-PLAN-V2-REVIEW-R2-2026-07-21.md | 2026-07-21 | unknown | The build plan was approved for shipment after confirming all ten previous review findings were resolved. | open | f8ae189f4684 |
-| KIMI-C5-DIRECTION-DECISION-BRIEF.md | unknown | unknown | NEEDS DISTILLATION | stale | 0c8615c51b02 |
+| KIMI-C5-DIRECTION-DECISION-BRIEF.md | unknown | unknown | This document requests a decision on one of three design directions for the Swan Coach intent bar. | open | 0c8615c51b02 |
 | KIMI-CAMPAIGN-FINAL-2026-08-13.md | 2026-08-13 | unknown | The merge slice was deemed conditionally correct but required fixes for two live defects and a false contract test. | open | 677c861f3e77 |
 | KIMI-CHARTS-CREATIVE-2026-07-24.md | 2026-07-24 | unknown | The charts design brief was approved with changes, requiring specific visual signatures and resolved implementation conflicts. | open | d50bee63ee8a |
 | KIMI-CONSTITUTION-REVIEW-2026-08-14.md | 2026-08-14 | unknown | The constitution repair was approved with changes, noting the guard failed to catch the specific stale-copy clobber incident. | open | 7469fd7412d5 |
@@ -357,8 +357,8 @@
 | KIMI-PACKET-2-SHIPPING-DIFF-2026-08-13.md | 2026-08-13 | claude | The review identified a critical authorization flaw allowing any authenticated trainer to modify a colleague's calendar via the block endpoint. | open | 674dd640db75 |
 | KIMI-PACKET-3-CODE-2026-08-13.md | 2026-08-13 | claude | The review requested a hostile code inspection of four specific modules to verify the fixes identified in previous description-based reviews. | open | a686c728241f |
 | KIMI-PACKET-4-POSTPUSH-2026-08-13.md | 2026-08-13 | claude | The review requested a final post-push code inspection to identify any remaining defects in the live production calendar and session modules. | open | 5fc2145425a2 |
-| KIMI-PACKET-5-SKILL-BLUEPRINT-2026-08-13.md | 2026-08-13 | unknown | NEEDS DISTILLATION | stale | db84d35245ec |
-| KIMI-PACKET-S4-SLICE-CERTIFICATION-2026-08-13.md | 2026-08-13 | unknown | NEEDS DISTILLATION | stale | 76f0d619d2bc |
+| KIMI-PACKET-5-SKILL-BLUEPRINT-2026-08-13.md | 2026-08-13 | claude | This document requests a design blueprint for a skill ensuring external model calls contain real artifacts. | open | db84d35245ec |
+| KIMI-PACKET-S4-SLICE-CERTIFICATION-2026-08-13.md | 2026-08-13 | claude | This document requests a hostile review of a release-certification gate to identify false-pass or false-fail scenarios before schema migrations. | open | 76f0d619d2bc |
 | KIMI-PHOTOGRAPHY-BLUEPRINT-2026-07-17.md | 2026-07-17 | kimi | Kimi hostile review of Photography Gallery blueprint: SHIP-WITH-CHANGES, rename away from cosmic branding, de-Galaxy is a language transplant not a palette swap | open | d4c422786ca6 |
 | KIMI-POSTMERGE-REVIEW-2026-08-12.md | 2026-08-12 | unknown | No revert is warranted, but two urgent patches are required to fix concurrent session lane clobbering and release parsing defects. | open | da602ca8ced0 |
 | KIMI-POSTSHIP.md | unknown | unknown | The gate requires a CI job for enforcement and canon wording must be corrected to reflect only repository-guaranteed properties. | open | ae2a70cd11dd |
@@ -466,9 +466,9 @@
 | NUTRITION-DECISION-LOGGER-FABLE-FINAL-BUILD-PACKET-2026-07-09.md | 2026-07-09 | fable | Final build packet after AI Village run: APPROVE WITH CHANGES verdict, locked 8-slice plan starting with a repo-verification spike | consensus | a5b244acad4a |
 | NUTRITION-DECISION-LOGGER-FABLE-READY-BRIEF-2026-07-09.md | 2026-07-09 | codex | Planning brief converging fragmented nutrition capture tools into one draft/review/save decision-logger pipeline | open | 54eba4aa0bff |
 | NUTRITION-ENTERPRISE-BLUEPRINT-2026-08-04.md | 2026-08-04 | unknown | The nutrition enterprise blueprint is a ratified build plan incorporating panel verdicts, including a load-bearing timezone prerequisite and IDOR fixes. | open | 9af74bec9b74 |
-| NUTRITION-HOSTILE-AUDIT-PACKET-2026-08-04.md | 2026-08-04 | unknown | NEEDS DISTILLATION | stale | 729857ec8688 |
+| NUTRITION-HOSTILE-AUDIT-PACKET-2026-08-04.md | 2026-08-04 | unknown | This packet provides context and current state for a hostile audit of the nutrition system's architecture and user experience. | open | 729857ec8688 |
 | NUTRITION-OVERHAUL-AUDIT-RECORD-2026-08-04.md | 2026-08-04 | unknown | The nutrition system overhaul was audited, built, and successfully shipped to production. | open | 21e056cb4302 |
-| OPEN-SLICES-PACKET-2026-07-29.md | 2026-07-29 | unknown | NEEDS DISTILLATION | stale | 4730c27ee149 |
+| OPEN-SLICES-PACKET-2026-07-29.md | 2026-07-29 | unknown | This packet lists verified shipped fixes and open slices to help reviewers decide the priority and order of remaining development work. | open | 4730c27ee149 |
 | OPUS-48-HERMES-OS-BUILD-HANDOFF-2026-07-04.md | 2026-07-04 | fable | Build handoff for Opus 4.8 as deputy: Hermes Agentic OS runtime state, T0-T4 command tiers, hostile review gaps, ordered enhancement slices | open | 9f17778cbbee |
 | OPUS-CODEX-DEBATE-2026-04-06.md | 2026-04-06 | codex | Archived summary of a 6-round debate fixing field-name mismatches across workout/assessment/session APIs, missing session routes, equipment-scan fallback, mobile nav/tab fixes. | consensus | f13839867508 |
 | OPUS-CODEX-DEBATE-3-BRAIN-PIPELINE-V3-2026-04-19.md | 2026-04-19 | codex | Codex Round 1 REVISE verdict on v3 3-Brain Pipeline plan: secret scanning must cover file writes not just Bash commands, permission pattern syntax must be verified, .gitignore gaps and overly broad script allowlisting must be fixed before Week 1 rollout. | open | 9d43e1bd899e |
@@ -502,10 +502,10 @@
 | OPUS-CODEX-DEBATE-USER-DASHBOARD-TAB-NAV-2026-05-10.md | 2026-05-10 | claude | Root-caused user dashboard tab-nav "inoperable" bug to ObservatoryShell 3-nav-surface architecture + mobile bottom nav missing Progress/Community tabs; cover photo crop bug also diagnosed; fixes proposed (sticky tab bar, img-based banner with reposition) pending Village/Codex review | open | 961fd7dc30e7 |
 | ORCHESTRATOR-DRIFT-FIX-DEBATE-2026-04-22.md | 2026-04-22 | claude | Fixed validation-orchestrator.mjs privacy-policy drift: replaced 2 Chinese-model (MiniMax) slots used outside the allowed design-debate role with US/free Nemotron models, plus cleaned stale model-name labels in banners; implemented under Sean's executive close-out | shipped | e70cb74b2509 |
 | P0-BLOCKERS-BRIEF-2026-04-06.md | 2026-04-06 | sean | Defined 9 P0 blockers (workout plan save 500s, movement analysis submit failure, equipment scan failure, session history 404s, Motion Templates crash, mobile planner usability, storefront fallback data, nav traps) with a fix-order and exit criteria | open | bf8c2dcfb583 |
-| PACKET-GLM53-schema-graph-2026-08-15.md | 2026-08-15 | unknown | NEEDS DISTILLATION | stale | e638c20bae44 |
-| PACKET-slice1-hostile-review-2026-08-13.md | 2026-08-13 | unknown | NEEDS DISTILLATION | stale | d2a69682c0d1 |
-| PACKET-slice1-hostile-review-2026-08-16.md | 2026-08-16 | unknown | NEEDS DISTILLATION | stale | 5b1089bf94b0 |
-| PACKET-video-compliance-hostile-review-2026-08-16.md | 2026-08-16 | unknown | NEEDS DISTILLATION | stale | 97f94c7e38bf |
+| PACKET-GLM53-schema-graph-2026-08-15.md | 2026-08-15 | unknown | This document requests a hostile review of a schema-drift campaign and system graph to identify defects and validate design decisions. | open | e638c20bae44 |
+| PACKET-slice1-hostile-review-2026-08-13.md | 2026-08-13 | unknown | This document requests a hostile review of the shared library code for a gate system to determine if it is safe to ship. | open | d2a69682c0d1 |
+| PACKET-slice1-hostile-review-2026-08-16.md | 2026-08-16 | unknown | This document is a hostile review packet for two production Node modules that form the foundation of a hostile-review gate system. | open | 5b1089bf94b0 |
+| PACKET-video-compliance-hostile-review-2026-08-16.md | 2026-08-16 | unknown | This packet requests a hostile review of video compliance controls, including provenance, spend limits, and content policy filters. | open | 97f94c7e38bf |
 | PANEL-ADJUDICATE-DESIGN-2026-08-14.md | 2026-08-14 | unknown | Panel finds, Kimi adjudicates. N cheap models review the same evidence BLIND and in parallel; Kimi then receives every finding plus the original evidence and rules each one real / not real. Debate is a gated escalation, never automatic. | open | 844dc701703d |
 | PANEL-FABLE-VERDICT-2026-07-17.md | 2026-07-17 | fable | Fable's GO-WITH-CHANGES verdict on the Kimi blueprint set master review: 3 cheap pre-flight blockers before first commit | consensus | e7ba9f915b75 |
 | PANEL-KIMI-VERDICT-2026-07-17.md | 2026-07-17 | kimi | Kimi's ACCURATE-WITH-CORRECTIONS verdict on the blueprint master review, flagging internal contradictions and a weak de-Galaxy grep gate | consensus | de2ffcd2932c |
@@ -560,7 +560,7 @@
 | PLAYWRIGHT-QA-SPEC-2026-04-06.md | 2026-04-06 | claude | Defines required Playwright QA coverage (viewport matrix, shared assertions, monitoring utilities) to prevent regressions and validate fixes from the site-refactor brief | open | a3fb686db3ad |
 | POST-SAVE-HANDOFF-AUDIT-RECORD-2026-07-19.md | 2026-07-19 | multi | Rule-48 audit: Post-Save Handoff (proof/next-action/share) shipped to main after Kimi go-live gate plus 13 hostile-review passes | shipped | a5f49e38fac8 |
 | POST-SAVE-HANDOFF-SLICE-2-HANDOFF-2026-07-18.md | 2026-07-18 | kimi | Slice 2 work order wiring Post-Save Handoff to the real save paths, with Kimi's binding REVISE corrections on data source and money-path safety | open | ddc104f776a8 |
-| POST-SHIP-HOSTILE-PACKET.md | unknown | unknown | NEEDS DISTILLATION | stale | edae0ef32d1b |
+| POST-SHIP-HOSTILE-PACKET.md | unknown | unknown | This document is a post-ship review assessing what was shipped to production, identifying errors, and defining next steps for agents. | open | edae0ef32d1b |
 | PRE-LAUNCH-SECURITY-REVIEW-AUDIT-RECORD-2026-07-16.md | 2026-07-16 | fable | Rule-48 audit: pre-launch security review batch shipped (IDOR fix, JWT algo-pin, PII scrub, CSP hardening) pending Codex hostile review | shipped | 2b11f3924390 |
 | PREREQ-SLICE-CORRECTED-2026-07-16.md | 2026-07-16 | opus | Ground-truth correction to Village design-ratification prerequisites: 5 of 6 prescribed foundations already exist, only Stylelint ban is genuinely net-new | open | a2e56955d5c7 |
 | PRISM-CAPTURE-CANONICAL-RECEIPT-AND-PLAN-2026-07-19.md | 2026-07-19 | claude | Reshaped PRISM CAPTURE to bind to existing public /api/contact lead pipeline instead of duplicating a new /api/leads capture path | open | f579a4d9b8b4 |
@@ -568,8 +568,8 @@
 | PRODUCTION-CONSOLE-CLEANUP-2026-04-06.md | 2026-04-06 | codex | Cleaned up remaining production console noise by routing PerformanceTierProvider and spaRoutingFix diagnostics through the shared production-safe logger, with regression tests added | shipped | 131e4ecc62e8 |
 | PRODUCTION-VERIFICATION-REVIEW.md | 2026-02-10 | multi | Third-party (MinMax) review confirms sswanstudios.com production-ready for promotion, grade A-, with 2 low-priority findings deferred | shipped | da6f626419ff |
 | PROGRESS-DELTA-CODEX-HANDOFF-2026-07-08.md | 2026-07-08 | claude | Corrects stale progress-command-center brief ground truth and hands remaining backend delta (timezone truth, taxonomy unification) to Codex for hostile review | open | 8b7c00ef6bf0 |
-| QA-HARNESS-SLICE01-CODE-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | NEEDS DISTILLATION | stale | a3bdb1b015c2 |
-| QA-TOOLING-REVIEW-PACKET-2026-08-13.md | 2026-08-13 | unknown | NEEDS DISTILLATION | stale | c7a69a6b4730 |
+| QA-HARNESS-SLICE01-CODE-REVIEW-PACKET-2026-08-12.md | 2026-08-12 | unknown | This packet requests a hostile code review of QA harness slices to find correctness bugs and design flaws that allow false positives. | open | a3bdb1b015c2 |
+| QA-TOOLING-REVIEW-PACKET-2026-08-13.md | 2026-08-13 | unknown | This document seeks a hostile review and logic upgrades for schema-drift response tooling to prevent silent failures and false confidence. | open | c7a69a6b4730 |
 | QWEN-ATELIER-STUDIO-R2-2026-08-18.md | 2026-08-18 | unknown | Qwen decided to hold the default option count at 5 and prioritize building the Plate Forge and Divergence engine before implementing the Recall routing table. | open | 65de115867b9 |
 | QWEN-ATELIER-STUDIO-REVIEW-2026-08-18.md | 2026-08-18 | unknown | GLM rejected the proposal, deciding that the N-up engine must become the new program spine and that the current diversity contract will fail due to semantic collapse. | open | b3903ba71b6f |
 | RAIL-NAV-CONSULT-KIMI-2026-07-31.md | 2026-07-31 | unknown | Kimi decided the navigation design ships with changes, requiring desktop-only arrows, expanded active chips with truncated names, and a gold pulse animation for exercise completion. | open | 60614010ad05 |
@@ -788,6 +788,11 @@
 | panel-dash-wave23-2026-08-21/GROK-PANEL-REVIEW.md | 2026-08-21 | unknown | Grok 4.6 issued a REVISE verdict, citing two re-lies and a slider drag abort as blockers. | open | a71b9eeb92dd |
 | panel-dash-wave23-2026-08-21/INDEX.md | 2026-08-21 | unknown | The index records that three panel seats completed reviews while the final Fable synthesis remains pending. | open | 10e092c80833 |
 | panel-dash-wave23-2026-08-21/KIMI-PANEL-REVIEW.md | 2026-08-21 | unknown | Kimi K3 issued a REVISE verdict, identifying three P1 blockers including a self-defeating empty-state guard. | open | 0c371b03311d |
+| panel-idle-reaper-2026-08-23/GLM-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 500b0b5ced6c |
+| panel-idle-reaper-2026-08-23/GROK-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 487f35900143 |
+| panel-idle-reaper-2026-08-23/INDEX.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 402bd2480bd9 |
+| panel-idle-reaper-2026-08-23/KIMI-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 23f2aa1ef463 |
+| panel-idle-reaper-2026-08-23/OX-ALPHA-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 8392f760aa02 |
 | panel-liveauth-plan-2026-08-22/COST-CALIBRATION.md | 2026-08-22 | unknown | The calibration notes that actual panel costs were 1.85x estimates, with Sol Pro running 3.4x higher. | open | 6b46dc5b193b |
 | panel-liveauth-plan-2026-08-22/DEEPSEEK-FLASH-PANEL-REVIEW.md | 2026-08-22 | unknown | DeepSeek Flash issued a REVISE verdict, flagging production database corruption risks and missing error state tests. | open | aa611f6e519e |
 | panel-liveauth-plan-2026-08-22/DEEPSEEK-PRO-PANEL-REVIEW.md | 2026-08-22 | unknown | DeepSeek Pro issued a REVISE verdict, citing PII violations and lack of concrete test data as blockers. | open | 8cac408ba767 |
@@ -799,3 +804,15 @@
 | panel-liveauth-plan-2026-08-22/KIMI-PANEL-REVIEW.md | 2026-08-22 | unknown | Kimi K3 issued a REVISE verdict, blocking the plan for missing test fixtures and forbidding re-verification of code-reading claims. | open | 2ad0313334ff |
 | panel-liveauth-plan-2026-08-22/QWEN-PANEL-REVIEW.md | 2026-08-22 | unknown | Qwen 3.8 issued a REVISE verdict, blocking the plan for irreversible production data mutation risks and unexecutable throwaway account instructions. | open | a95aaf763906 |
 | panel-liveauth-plan-2026-08-22/SOL-PANEL-REVIEW.md | 2026-08-22 | unknown | GPT-5.6 Sol issued a REJECT verdict, blocking the plan for exposing PII to LLMs and failing to prove failed-save honesty. | open | 8ef5fca2b796 |
+| panel-qa-oracle-2026-08-23/DEEPSEEK-FLASH-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | e6afba7afc56 |
+| panel-qa-oracle-2026-08-23/DEEPSEEK-PRO-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | c7e69baa86ca |
+| panel-qa-oracle-2026-08-23/FABLE-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 0888e6bff6fc |
+| panel-qa-oracle-2026-08-23/GEMINI-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 901c52cf6033 |
+| panel-qa-oracle-2026-08-23/GLM-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | c1c290d618f4 |
+| panel-qa-oracle-2026-08-23/GROK-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 7c04957dbe37 |
+| panel-qa-oracle-2026-08-23/HY3-DESIGN-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 4e6870dcb782 |
+| panel-qa-oracle-2026-08-23/INDEX.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 238330159439 |
+| panel-qa-oracle-2026-08-23/KIMI-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 4d0ae693c5ce |
+| panel-qa-oracle-2026-08-23/OX-ALPHA-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 9061c6ef83e9 |
+| panel-qa-oracle-2026-08-23/QWEN-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 56d514af6b7a |
+| panel-qa-oracle-2026-08-23/SOL-PANEL-REVIEW.md | 2026-08-23 | unknown | NEEDS DISTILLATION | stale | 654574020644 |
