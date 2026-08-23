@@ -141,27 +141,53 @@ async function main() {
 
   log(`mode=${MODE}`);
 
-  // Imported lazily, AFTER the DATABASE_URL check. A top-level import made the guard
-  // unloadable wherever sequelize is absent — so it exited 1 before its own fail-open
-  // could run, which is the opposite of the design. A guard must be able to stand down.
-  let Sequelize;
+  // THE LOCK RIDES A DEDICATED, UNPOOLED CLIENT — NEVER THE SEQUELIZE POOL.
+  //
+  // GLM 5.3, panel 2026-08-23, on the previous version of this file: "Lock lifetime = TCP
+  // session lifetime; the thing it protects = the migration's lifetime; the guard's intent =
+  // 'until the child exits.' These are three different clocks and the build assumes they're
+  // one. The lock connection is IDLE for the entire migration, and idle sessions are exactly
+  // what gets reaped."
+  //
+  // Confirmed by reading it back: the guard called `new Sequelize(url)` with no pool config,
+  // so sequelize's defaults applied — min 0, idle 10000. The connection holding the advisory
+  // lock would have been returned to the pool and closed roughly TEN SECONDS into a migration
+  // that can run for minutes, while the log line said "deploy lock acquired". The lock was
+  // vacuous and the logs asserted otherwise — which is worse than no lock, because a
+  // postmortem would cite it as a safeguard that existed.
+  //
+  // This is the third instance today of the same class: a signal that looks right and
+  // discriminates nothing. The phrase is in this file's own comments, written before the
+  // defect below it.
+  //
+  // A raw pg Client has no pool, is never returned to one, and stays open until this process
+  // exits. keepAlive stops a NAT or load balancer silently dropping an idle session mid-run.
+  //
+  // STILL UNPROVEN, and stated rather than assumed: if DATABASE_URL transits a pooler in
+  // TRANSACTION mode, session-scoped advisory locks are unsupported and this is void from
+  // second zero. That cannot be determined from the repo — the URL lives in Render's
+  // dashboard. See SWA-200 for the lease-table alternative, which does not depend on session
+  // lifetime at all.
+  // Imported inside a guarded block for the same reason sequelize was: an unguarded top-level
+  // import makes the guard UNLOADABLE wherever the dependency is absent, so it dies before its
+  // own fail-open can run — the opposite of the design. I fixed exactly this for sequelize and
+  // then reintroduced it with pg in the same file, which is why the attestation below matters:
+  // it is the only thing that makes "the guard was never able to start" visible.
+  let pg;
   try {
-    ({ Sequelize } = await import('sequelize'));
+    ({ default: pg } = await import('pg'));
   } catch (e) {
-    warn(`sequelize unavailable (${e.code || e.message}) — cannot guard this migration.`);
-    if (ENFORCE) {
-      warn('SWAN_MIGRATE_GUARD=enforce — refusing to migrate unguarded.');
-      console.log(attestation({ mode: MODE, locked: false, backup: 'skipped', outcome: 'halted-no-sequelize' }));
-      process.exit(1);
-    }
-    console.log(attestation({ mode: MODE, locked: false, backup: 'skipped', outcome: 'stood-down-no-sequelize' }));
+    console.log(attestation({ mode: MODE, locked: false, backup: 'skipped', outcome: 'stood-down-no-pg' }));
+    warn(`pg unavailable (${e.code || e.message}) — cannot guard this migration.`);
+    if (ENFORCE) { warn('SWAN_MIGRATE_GUARD=enforce — refusing to migrate unguarded.'); process.exit(1); }
     log('continuing (warn-only). The migration is running UNGUARDED.');
     process.exit(0);
   }
-
-  const sequelize = new Sequelize(url, {
-    logging: false,
-    dialectOptions: /localhost|127\.0\.0\.1/.test(url) ? {} : { ssl: { require: true, rejectUnauthorized: false } },
+  const lockClient = new pg.Client({
+    connectionString: url,
+    ssl: /localhost|127\.0\.0\.1/.test(url) ? undefined : { rejectUnauthorized: false },
+    keepAlive: true,
+    application_name: 'swan-pre-migrate-guard',
   });
 
   let lockAcquired = false;
@@ -169,14 +195,15 @@ async function main() {
   let pendingCount = null;
 
   try {
-    await sequelize.authenticate();
+    await lockClient.connect();
 
     // 1. ADVISORY LOCK — session-scoped, so it releases automatically if this process dies.
     //    That matters: a lock that could leak would eventually block every deploy, and the
     //    fix for a stuck deploy is always "remove the guard".
     if (!CHECK_ONLY) {
       const key = advisoryLockKey().toString();
-      const [rows] = await sequelize.query(`SELECT pg_try_advisory_lock(${key}) AS locked`);
+      const res = await lockClient.query(`SELECT pg_try_advisory_lock(${key}) AS locked`);
+      const rows = res.rows;
       lockAcquired = Boolean(rows?.[0]?.locked);
       log(lockAcquired ? 'deploy lock acquired' : 'deploy lock BUSY — another migration is running');
     } else {
@@ -185,7 +212,7 @@ async function main() {
 
     // 2. PENDING SET — say what is about to happen while it can still be stopped.
     try {
-      const [applied] = await sequelize.query('SELECT name FROM "SequelizeMeta" ORDER BY name');
+      const applied = (await lockClient.query('SELECT name FROM "SequelizeMeta" ORDER BY name')).rows;
       const done = new Set(applied.map((r) => r.name));
       const dir = path.resolve(process.cwd(), 'migrations');
       if (existsSync(dir)) {
@@ -214,13 +241,19 @@ async function main() {
       backupOk = true;
     }
   } catch (e) {
+    // Kimi K3: a stand-down that emits nothing is the ambiguity this whole attestation
+    // exists to remove. This path — the guard could not reach the database at all — is the
+    // MOST important one to announce, because it is the one where protection is fully absent.
+    console.log(attestation({ mode: MODE, locked: false, backup: 'skipped', outcome: 'stood-down-guard-error' }));
     warn(`guard could not run: ${e.message}`);
     if (ENFORCE) {
       warn('SWAN_MIGRATE_GUARD=enforce — refusing to migrate behind a guard that did not run.');
-      await sequelize.close().catch(() => {});
+      console.log(attestation({ mode: MODE, locked: lockAcquired, backup: 'unknown', pending: pendingCount, outcome: 'halted-guard-error' }));
+      await lockClient.end().catch(() => {});
       process.exit(1);
     }
-    await sequelize.close().catch(() => {});
+    await lockClient.end().catch(() => {});
+    console.log(attestation({ mode: MODE, locked: lockAcquired, backup: 'unknown', pending: pendingCount, outcome: 'stood-down-guard-error' }));
     log('continuing (warn-only). The migration is running UNGUARDED.');
     process.exit(0);
   }
@@ -229,7 +262,8 @@ async function main() {
   log(verdict.reason);
 
   if (!verdict.ok) {
-    await sequelize.close().catch(() => {});
+    await lockClient.end().catch(() => {});
+    console.log(attestation({ mode: MODE, locked: lockAcquired, backup: backupOk ? 'ok' : 'failed', pending: pendingCount, outcome: 'halted' }));
     warn('HALTING before migrate:production.');
     process.exit(1);
   }
@@ -251,7 +285,8 @@ async function main() {
   const runIdx = ARGS.indexOf('--run');
   const runCmd = runIdx > -1 ? ARGS.slice(runIdx + 1) : null;
   if (!runCmd || runCmd.length === 0) {
-    await sequelize.close().catch(() => {});
+    await lockClient.end().catch(() => {});
+    console.log(attestation({ mode: MODE, locked: lockAcquired, backup: backupOk ? 'ok' : 'skipped', pending: pendingCount, outcome: 'reported-only' }));
     log('no --run command given; lock released. Use --run <cmd...> to hold it across the migration.');
     process.exit(0);
   }
@@ -259,7 +294,7 @@ async function main() {
   console.log(attestation({ mode: MODE, locked: lockAcquired, backup: backupOk ? 'ok' : 'failed', pending: pendingCount, outcome: 'proceeding' }));
   log(`holding the deploy lock while running: ${runCmd.join(' ')}`);
   const child = spawnSync(runCmd[0], runCmd.slice(1), { cwd: process.cwd(), stdio: 'inherit' });
-  await sequelize.close().catch(() => {});
+  await lockClient.end().catch(() => {});
   log(`migration finished with exit ${child.status}; deploy lock released.`);
   process.exit(child.status ?? 1);
 }
