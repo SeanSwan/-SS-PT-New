@@ -51,8 +51,17 @@ const KNOWN_ROLES = new Set(['admin', 'trainer', 'client', 'user']);
  * Commands whose `endpoint` names no mounted route, as of 2026-08-23, each verified
  * by hand against the mount-resolved route table rather than by grep.
  *
- * These are NOT broken commands — four of the five are wired and execute correctly
+ * These are NOT broken commands — three of the four are wired and execute correctly
  * through their dispatcher. The endpoint string is simply stale documentation.
+ *
+ * A fifth entry, set_availability, was here until 2026-08-23 and is now FIXED rather
+ * than pinned: a real route existed (PUT /api/availability/:trainerId, availability
+ * .mjs:93) whose gate `protect, trainerOrAdminOnly` matches the command's declared
+ * roles exactly, so the old value was an unambiguous factual error, not a convention
+ * question. The four that remain have no REST route at all — inventing one would be
+ * fiction, and deciding what `endpoint` should say for a lane-internal command is a
+ * registry-wide convention call for Sean, not something to settle by mutating four
+ * rows into a shape the other 135 do not share.
  * They are pinned here so the count cannot grow silently; the test also fails if one
  * of them STARTS resolving, which forces this list to be pruned rather than rot.
  *
@@ -65,7 +74,6 @@ const KNOWN_UNROUTED = new Map([
   ['request_plan_adjustment', 'POST /api/ai-chat/data-update — no such route; executes via clientPlanAdjustmentDispatcher'],
   ['brief_my_day', 'GET /api/ai-command/brief-my-day — aiCommandRoutes exposes only execute/confirm/cancel/metrics/commands/health'],
   ['brief_client', 'GET /api/ai-command/brief-client — same; executes via dayBriefDispatcher'],
-  ['set_availability', 'POST /api/availability/trainer/:trainerId — real route is PUT /api/availability/:trainerId (availability.mjs:93); both method and path differ'],
 ]);
 
 let commands;
