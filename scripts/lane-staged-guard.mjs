@@ -105,6 +105,12 @@ function main() {
     staged = execFileSync('git', ['diff', '--cached', '--name-only'], {
       cwd: REPO_ROOT,
       encoding: 'utf8',
+      // BOUNDED. This runs inside .githooks/pre-commit, where an unbounded child is
+      // not a slow guard but a frozen repository: every commit hangs with no output
+      // and no indication why. A timeout throws, the catch below allows, and the
+      // agent sees a notice instead of a hang. Worse than a false positive is a
+      // pre-commit hook that never returns.
+      timeout: 10000,
     })
       .split('\n')
       .map((s) => s.trim())
@@ -119,6 +125,9 @@ function main() {
     const out = execFileSync(process.execPath, [join(REPO_ROOT, 'scripts', 'lane.mjs'), 'whoami'], {
       cwd: REPO_ROOT,
       encoding: 'utf8',
+      // Same reasoning, and a sharper edge: lane.mjs is the untested tooling five
+      // hostile seats flagged. A hang in it must not become a hang in every commit.
+      timeout: 10000,
     });
     lanePath = (out.split('→')[1] || '').trim();
   } catch {
