@@ -38,6 +38,7 @@
  */
 import { readFileSync } from 'node:fs';
 import { runGate, FAIL_OPEN } from './lib/gate-run.mjs';
+import { recordBypass } from './lib/bypass-ledger.mjs';
 
 /** Each: the git operation, and what is unrecoverable about it. */
 const IRREVERSIBLE = [
@@ -100,7 +101,14 @@ export function decide(hookInput) {
 
   // Documented, deliberate escape. Rule 45 puts the decision with Sean; a hook cannot
   // read intent, so it reads an explicit marker instead of guessing.
-  if (/\bSWAN_RULE45_OK=1\b/.test(cmd)) return null;
+  if (/\bSWAN_RULE45_OK=1\b/.test(cmd)) {
+    // Ox Alpha, panel 2026-08-23: the marker is "an approval channel with no record of who
+    // approved, what was approved, or why." Recording it cannot stop anyone — but a bypass
+    // that leaves a line is measurable, and a gate whose bypass rate climbs is failing
+    // operationally whatever its test suite says.
+    recordBypass({ gate: 'irreversible-git-gate', escape: 'SWAN_RULE45_OK=1', detail: cmd });
+    return null;
+  }
 
   const bare = bareCommand(cmd);
   const hits = IRREVERSIBLE.filter((op) => op.re.test(bare));

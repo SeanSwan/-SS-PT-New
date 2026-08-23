@@ -513,3 +513,7 @@ backend/schema-snapshot.json
 
 # Paid-AI spend ledger — machine-local running totals, not repo history
 .ai-workflow/spend/
+
+# Bypass ledger — records escape-hatch use (SWA-200). Machine-local, IDs and redacted
+# fragments only, never prompt content. Same posture as the spend ledger.
+.ai-workflow/bypass/
