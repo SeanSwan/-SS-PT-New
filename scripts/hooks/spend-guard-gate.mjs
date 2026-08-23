@@ -102,6 +102,23 @@ try {
 
   // consult-panel fans out to many seats; price it as the whole fan-out.
   const isPanel = scriptName === 'consult-panel.mjs';
+
+  // Price the panel by the seats ACTUALLY REQUESTED, not the full roster.
+  // Flat-rating every fan-out at the whole-roster worst case made a run of two
+  // free seats plus two cheap ones (~$0.15) present as $1.20 and get blocked.
+  // A gate that cries wolf is a gate the human learns to wave through, which is
+  // the failure mode this whole control exists to avoid — so an overstatement
+  // is not the "safe" direction, it is corrosive.
+  const SEAT_WORST_USD = {
+    fable: 1.05, sol: 0.32, kimi: 0.31, grok: 0.11,
+    dspro: 0.03, dsflash: 0.01, glm: 0, qwen: 0, gemini: 0, ox: 0,
+  };
+  const DEFAULT_SEATS = ['kimi', 'glm', 'qwen', 'ox', 'gemini', 'grok', 'dspro', 'dsflash'];
+  const seatsArg = (cmd.match(/--seats\s+([^\s]+)/) || [])[1];
+  const panelSeats = seatsArg
+    ? seatsArg.split(',').map((s) => s.trim()).filter(Boolean)
+    : DEFAULT_SEATS;
+  const panelUsd = panelSeats.reduce((sum, s) => sum + (SEAT_WORST_USD[s] ?? 0.35), 0);
   const price = PRICES[modelKey];
   if (!price && !isPanel) ALLOW(); // unknown model — do not guess a number
 
@@ -120,7 +137,7 @@ try {
   // worst case is honest rather than flattering.
   const ASSUMED_IN_TOK = 26000;
   const worstCaseUsd = isPanel
-    ? 1.20 // whole-panel fan-out, dominated by the paid seats
+    ? panelUsd
     : (ASSUMED_IN_TOK / 1e6) * price[0] + (maxTok / 1e6) * price[1];
 
   // --- topic: what "the whole thing" means --------------------------------
