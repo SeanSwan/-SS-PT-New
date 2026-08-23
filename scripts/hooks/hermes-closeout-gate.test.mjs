@@ -258,3 +258,40 @@ test('the real hook blocks a malformed packet when run from a foreign cwd', asyn
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// ── review debt (rules 46+74+82 merged, 2026-08-23) ───────────────────────────
+// Fable's ruling: three procedurally-correct rules with no emitter produced six deferred panels.
+// These are the negative/positive controls proving the merged obligation actually fires — a gate
+// nobody has watched go red is indistinguishable from one that does nothing.
+const DEBT = [{ id: 'x1', topic: 'the thing', reason: 'owed a hostile review' }];
+const buildTurn = [
+  userText('go'),
+  toolUse('Bash', { command: 'git commit -m "x"' }),
+].join('\n');
+const chatTurn = [userText('what is this?'), assistantText('it is a thing')].join('\n');
+
+test('review debt: NEGATIVE control — a build-shaped turn carrying debt is BLOCKED', () => {
+  const reason = decide({}, buildTurn, undefined, undefined, () => DEBT);
+  assert.match(reason ?? '', /outstanding review debt/i);
+  assert.match(reason ?? '', /review-debt\.mjs close/);
+});
+
+test('review debt: POSITIVE control — same turn with an empty ledger is not blocked on debt', () => {
+  const reason = decide({}, buildTurn, undefined, undefined, () => []);
+  assert.doesNotMatch(reason ?? '', /outstanding review debt/i);
+});
+
+test('review debt: conversational turns are never blocked, even carrying debt', () => {
+  // A gate that blocks chat gets switched off. Scope is the whole safety argument here.
+  assert.equal(decide({}, chatTurn, undefined, undefined, () => DEBT), null);
+});
+
+test('review debt: a THROWING ledger fails open, never wedges the session', () => {
+  const reason = decide({}, buildTurn, undefined, undefined, () => { throw new Error('boom'); });
+  assert.doesNotMatch(reason ?? '', /outstanding review debt/i);
+});
+
+test('review debt: default param means an absent ledger cannot block', () => {
+  const reason = decide({}, buildTurn);
+  assert.doesNotMatch(reason ?? '', /outstanding review debt/i);
+});

@@ -225,10 +225,49 @@ const PACKET_BLOCK_REASON = ({ path, errors }) =>
   `a wrong provenance tag admits sub-Fable output into the permanent corpus. If a field is ` +
   `genuinely unrecoverable, write "unknown".`;
 
+/**
+ * REVIEW DEBT (rules 46 + 74 + 82, merged 2026-08-23 per Fable's Final-Decider ruling).
+ *
+ * All three rules were procedurally correct and none had an emitter, so nothing anywhere held the
+ * state "a review is owed". Measured result in the forensics corpus: `panel deferred` ×3, "the owed
+ * panel is now deferred six times", `unprompted Linear-sync deferred` ×3. One tethered obligation
+ * replaces three untethered ones.
+ *
+ * Scoped to BUILD-SHAPED turns only. Blocking conversational turns would make the gate intolerable
+ * and it would be switched off — the failure mode this repo records more than any other.
+ */
+const DEBT_BLOCK_REASON = (debts) =>
+  `${debts.length} outstanding review debt(s) — you are shipping while a review is owed.\n\n` +
+  debts.map((d) => `  ${d.id}\n    topic : ${d.topic}\n    reason: ${d.reason}`).join('\n') +
+  `\n\nRules 46/74/82 merged into one tracked obligation because three untethered rules produced ` +
+  `six deferred panels. Discharge or record the deferral before closing:\n` +
+  `  node scripts/review-debt.mjs close --id <id> --artifact <path-to-review-output>\n` +
+  `  node scripts/review-debt.mjs waive --id <id> --reason "<why no review is needed>"\n` +
+  `A waiver is a legitimate answer and is recorded permanently. Silence is not.`;
+
 /** Pure decision: returns null (allow) or a block reason string. */
-export function decide(hookInput, transcriptRaw, readFile = (p) => readFileSync(p, 'utf8'), validate) {
+export function decide(
+  hookInput,
+  transcriptRaw,
+  readFile = (p) => readFileSync(p, 'utf8'),
+  validate,
+  listDebts = () => [], // injected; defaults to "no debts" so a missing ledger never blocks
+) {
   if (hookInput?.stop_hook_active) return null;
   const signals = analyzeTurn(parseTranscript(transcriptRaw));
+
+  // Debt is checked BEFORE the memo branch: emitting a memo discharges the Hermes obligation, not
+  // the review obligation. A turn that satisfies one while owing the other must still stop.
+  if (signals.fileWrites >= 3 || signals.gitActivity) {
+    let debts = [];
+    try {
+      debts = listDebts() || [];
+    } catch {
+      debts = []; // broken ledger -> never block
+    }
+    if (debts.length) return DEBT_BLOCK_REASON(debts);
+  }
+
   if (signals.memoEmitted) {
     const bad = memoMissingMistakes(signals.memoPaths, readFile);
     if (bad) return MISTAKES_BLOCK_REASON(bad);
@@ -272,6 +311,29 @@ async function loadPacketValidator() {
   }
 }
 
+/**
+ * Load the review-debt reader LAZILY, same reasoning as loadPacketValidator: a static import runs
+ * outside main()'s try/catch, so a missing or broken ledger module would crash the hook instead of
+ * failing open — and it would do it while the user is trying to stop.
+ *
+ * Returns a function that always yields an array. Any problem -> () => [] -> the gate never blocks.
+ */
+async function loadDebtReader() {
+  try {
+    const mod = await import('../review-debt.mjs');
+    if (typeof mod.openDebts !== 'function') return () => [];
+    return () => {
+      try {
+        return mod.openDebts() || [];
+      } catch {
+        return [];
+      }
+    };
+  } catch {
+    return () => [];
+  }
+}
+
 async function main() {
   let hookInput = {};
   try {
@@ -288,7 +350,8 @@ async function main() {
   }
   try {
     const validate = await loadPacketValidator();
-    const reason = decide(hookInput, raw, (p) => readFileSync(p, 'utf8'), validate);
+    const listDebts = await loadDebtReader();
+    const reason = decide(hookInput, raw, (p) => readFileSync(p, 'utf8'), validate, listDebts);
     if (reason) process.stdout.write(JSON.stringify({ decision: 'block', reason }));
   } catch {
     /* any analysis error -> fail-open */
