@@ -1,11 +1,11 @@
 ---
-title: "A validator that prints FAIL and exits 0 is not a gate — and a proposal queue drains in an order that destroys its newest entries"
+title: "CORRECTED: a working gate that nothing invokes — and a premise inside a review prompt is never reviewed"
 originating_model: "claude-opus-5"
 tier_basis: "Sean's explicit designation 2026-08-10 — Opus 5 IS Fable tier; opus5 writes the durable corpus, not quarantine. This session ran as claude-opus-5 and authored every probe, merge and verification in this packet."
 privacy: "IDs and roles only. No client names, no PII, no credentials, no absolute paths, no key values. Secret-scanned clean before commit."
 date: 2026-08-23
 surface: "Hermes learning corpus durability, corpus schema validator, Hermes self-improvement pending queue"
-decision: "Read the exit code of every check you rely on separately from its printed output — a tool that reports failure in prose and success in status is worse than no tool, because it manufactures the belief that something is watching. And when a queue holds proposals authored at different times against different base states, its drain order decides which lessons survive; a stale whole-file rewrite standing in front of newer patches silently deletes them."
+decision: "SEE THE CORRECTION AT THE END OF THIS FILE — the original thesis was false. A premise inside a review prompt is never reviewed: I asserted a validator could not fail, wrote it into this corpus, shipped it to Linear, then put it in a paid panel's prompt, and 7 of 7 seats agreed because I told them it was true. Consensus measured the prompt, not the world. The validator's gate works (--check exits 2); nothing invokes it. A working gate that nothing calls is indistinguishable from a broken one and costs more to build. Also true and unaffected: a proposal queue's drain order decides which lessons survive."
 status: shipped
 supersedes: none
 models_used:
@@ -148,3 +148,52 @@ the sibling was right and I was not.
 Any agent relying on a checker's exit status; any queue holding proposals authored at different
 times against a moving base; any claim that a file is "backed up" without naming the mechanism
 and stating what that mechanism captures.
+
+---
+
+## CORRECTION — 2026-08-23, same session, by the same author
+
+**The central claim of this packet was wrong.** Disclosed here rather than rewritten, per the
+"disclosed correction over silent rewrite" law this same session merged into `evidence-integrity`.
+
+**What I claimed:** `hermes-learning-validate.mjs` prints `FAILING: 28` and exits `0`, therefore
+"a validator that cannot fail is not a gate."
+
+**What is actually true, verified by running it:**
+
+```
+node scripts/hermes-learning-validate.mjs --check   -> exit 2   (FAILING: 28)
+node scripts/hermes-learning-validate.mjs           -> exit 0   (report-only, BY DESIGN)
+```
+
+The script reads `process.exit(check && bad.length ? 2 : 0)`. **The gate exists and works.**
+Report-only default is a deliberate decision, documented in the source: *"Several failing packets
+belong to other agents' in-flight sessions. Gating on this would block work that is not the
+author's to fix, and a gate that blocks the wrong person gets switched off."* That is sound
+engineering, not an oversight.
+
+**The real defect, verified:** `grep -c hermes-learning-validate .claude/settings.json` -> **0**.
+Twelve hooks are wired; none invokes the validator. The gate mode exists and **nothing calls it**.
+The correct lesson is not "the validator cannot fail" — it is **"a working gate that nothing
+invokes is indistinguishable from a broken one, and costs more to build."**
+
+**How far the error travelled before anyone checked the code — this is the transferable part:**
+
+| Artifact | Carried the false claim |
+|---|---|
+| This packet (committed `97fd6cedd`) | as its title and thesis |
+| SWA-190 Linear ticket | as a "NEW — and this is why nobody caught it" finding |
+| Blueprint v1 + v2 | as evidence for a proposed new rule |
+| The 8-seat panel remit | as a stated fact in the prompt |
+| **7 of 7 panel seats** | **echoed it back and ranked "fix the exit code" the #1 action** |
+
+I asserted it from reading a *summary line and an exit status through a pipe*, never opened the
+exit path, wrote it into the durable corpus, shipped it to Linear, and then **put it in a paid
+panel's prompt as a premise.** Seven independent models agreed with me because I told them it was
+true. Consensus measured the prompt, not the world. The error was caught only because the fix was
+finally attempted and the code had to be read.
+
+**Standing lesson:** a premise inside a review prompt is not reviewed. Panels validate reasoning
+*from* premises; they do not audit the premises. Any claim entering a panel prompt must carry the
+same current-session proof as a claim entering a closeout — otherwise the panel launders an
+assertion into apparent consensus, and the more seats agree, the more convincing the error becomes.
