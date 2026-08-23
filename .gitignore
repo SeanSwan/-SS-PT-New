@@ -489,3 +489,6 @@ SOUL.archive/**
 # `git add -A` re-runs that incident. Ignoring the class makes the accident impossible and keeps
 # `git status` readable enough that real changes are visible.
 .codex-tmp-*
+
+# Paid-AI spend ledger — machine-local running totals, not repo history
+.ai-workflow/spend/
