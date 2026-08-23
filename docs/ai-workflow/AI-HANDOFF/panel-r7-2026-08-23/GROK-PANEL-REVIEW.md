@@ -1,0 +1,27 @@
+# Grok 4.6 — Hostile Gate Review
+
+**Reviewer:** OpenRouter `x-ai/grok-4.6` (effort: high)
+**Document:** docs/ai-workflow/AI-HANDOFF/PANEL-PACKET-R7-2026-08-23.md
+**Seed:** (none)
+**Tokens:** 4092 in / 24094 out · **Cost:** ~$0.1526 · **Wall:** 432.6s · **finish:** stop
+
+---
+
+## VERDICT
+REVISE — `classifyCommand` is now total for the nested schema, but `--import=./preload.mjs ./guard` (the documented Node equals-form of the exact loader case round 6 claimed to close) still yields phantom MISSING, and the caller drops `scopeNote`.
+
+## BLOCKERS
+1. **P1** — Input `node --import=./preload.mjs ./guard` (also `--loader=`, `--experimental-loader=`, `--require=`, `-r=`). `SCRIPT_EXT` treats `--import=./preload.mjs` as the sole script token; `FLAG_TAKES_FILE` only inspects the previous argv word, not `flag=file`. `statSync` then looks for a literal path `--import=./preload.mjs`, gets ENOENT, returns MISSING. A healthy registration of an extensionless entrypoint is reported as a phantom guard. Same class as the space-separated loader bug named in-file at lines 72–76. Evidence: `scripts/lib/hook-registration.mjs:42` (`FLAG_TAKES_FILE` is whole-token only), `:63` (candidates include `flag=*.mjs`), `:77-80` (only `words[idx-1]`), `:104` / `:106` (ENOENT → MISSING).
+
+2. **P2** — `auditHookRegistrations` returns `scopeNote` so project-only coverage cannot be mistaken for a full audit; `drift-check-gate.mjs` does `findings.push(...auditHookRegistrations(SS_PT).findings)` and never reads `scopeNote`. Every emit path (clean or not) hides the limitation. User-global / managed phantom registrations stay the original outage, with no disclosure. Evidence: lib `:189-193`; caller import/push tail.
+
+## ATTACKS
+- Correctness: classify itself no longer has a fall-through; every branch returns OK | MISSING | UNVERIFIED. Residual holes are mis-classification, not silence. `--inspect-brk` is in `FLAG_TAKES_FILE` (`:42`) but takes an optional *port*, so `node --inspect-brk ./guard.mjs` is false UNVERIFIED. `-e` / `--eval` / `-p` / `--print` are absent, so `node -e foo.mjs` is OK if `foo.mjs` exists and MISSING if not (eval string, not a file). `path.resolve` + `startsWith(resolve(root)+sep)` (`:92-93`) is the right prefix check for `..`, but does not `realpath` — a symlink inside the repo that points out still stats as a local file (OK). `JSON.parse('null')` makes `cfg.hooks` at `:143` throw; caller fail-opens rather than lying clean. Dedupe key `${name}:${event}:${v.kind}:${v.key}` (`:160`) can collapse two different UNVERIFIED commands only if `v.key` collides; empty commands share `empty:undefined:undefined` and correctly dedupe. Shape walk is sound for the nested Claude schema (`hooks[event][]`.hooks[].command): non-object `hooks`, non-array groups, missing `group.hooks` all push to `shape` and `continue` — loud, not silent. Flat `event: [{type,command}]` (no nested `hooks` array), if the harness still runs it, is reported as “registers nothing” and the file is never existence-checked. `process.exitCode = 0` is unconditional in the emit tail — this “gate” never fails the process even when MISSING is appended; if anything earlier set a non-zero `exitCode`, this clobbers it.
+- Security: no shell exec, no network, no SSRF. Findings interpolate raw command text into `v.why` (`:55`, first 90 chars). An UNVERIFIED hook whose command embeds a token (`curl -H Authorization: Bearer …` has no SHELL_META hit on `:`) prints that token to stdout. Multi-tenant/IDOR/authn N/A for a local repo walk. `readFileSync` of settings is unbounded — a malicious multi-MB `.claude/settings.json` is a cheap DoS of the gate process, not of other tenants.
+- Data-truth / schema drift: lib↔caller contract drifted — return shape is `{findings, scopeNote}`, caller consumes only `findings`. Column/PascalCase/FK N/A. Assumed hook shape is `cfg.hooks[event] = [{hooks:[{command}]}]` with no `type` filter; `type:"prompt"` (no `command`) becomes UNVERIFIED empty (`:51-52`). Response-shape to operators is a single concatenated string per category (`:172-187`), so N shape errors become one finding — fine, but the unused `scopeNote` is the actual shape leak.
+
+## HIGHEST RISK
+Phantom MISSING on `flag=file` (blocker 1): one false “DOES NOT EXIST” trains operators to ignore the gate, which is the failure mode the header itself names (`:31-32`). Cheapest de-risk: before candidate selection, if any word matches `/^(?:-r|--require|--import|--loader|--experimental-loader)=/`, return UNVERIFIED (“flag=file operand; entrypoint not identified”). Do not invent a parser — decline. Add that string to the existing fuzzer as a must-not-be-MISSING case.
+
+## CONFIDENCE
+Could not run the module, see the test fuzzer, see `SS_PT`, see the rest of `drift-check-gate.mjs`, or see the repo’s real `.claude/settings.json`. If `SS_PT` is not repo root, every relative OK/MISSING verdict is wrong (systematic phantom MISSING) — that would outrank blocker 1; the tail never defines it. If the test already asserts `--import=./preload.mjs ./guard` → UNVERIFIED, this review is stale. Settling evidence: (1) print of `SS_PT` / its assignment site, (2) the fuzzer’s case list, (3) one real `settings.json` from the branch, (4) whether Claude actually accepts a flat (non-nested) hook group on this harness version. I am confident in the equals-form read of this source and not confident the walk matches every hook the harness will execute.

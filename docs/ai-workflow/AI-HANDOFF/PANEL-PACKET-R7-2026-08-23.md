@@ -1,3 +1,32 @@
+# Hostile review ROUND 7 — dry-check (2026-08-23)
+
+Rounds 1-6 found 8+6+7+8+4+6 defects, all fixed. **This reviews the round-6 extraction.**
+
+## NOTE ON THE PREVIOUS PACKET
+
+Round 6 shipped an EXCERPT labelled "COMPLETE" that started below the declarations.
+Three seats correctly concluded the file could not run. That was a packet error, not a defect.
+**This packet contains the ENTIRE module, top to bottom.** Nothing is elided.
+
+## Design
+
+Invariant: every hook entry returns EXACTLY ONE verdict — OK | MISSING | UNVERIFIED. Never zero.
+OK is the only silent verdict. Assertion is narrow by design; it declines whenever uncertain.
+
+Round 6 also: loader-operand detection; `process.exitCode` not `process.exit` (pipe truncation);
+`..` escaping the root declined; non-object `hooks` flagged; scope disclosed; extracted to lib
+so the test IMPORTS the classifier instead of mirroring it.
+
+## Questions
+
+- Can ANY input still yield zero verdicts (silent clean)? Six rounds have each found one.
+- Can a HEALTHY registration read MISSING (phantom)?
+- Is the auditHookRegistrations walk itself sound (dedupe, shape handling, reporting)?
+- If you find nothing, say so plainly. Do not invent filler.
+
+## FILE: scripts/lib/hook-registration.mjs (COMPLETE, 194 lines)
+
+```javascript
 /**
  * hook-registration.mjs — is every hook a config registers actually there?
  * ========================================================================
@@ -31,7 +60,7 @@
  * direction — no phantom findings (which train operators to ignore the gate, which
  * restores the original outage by consent) and no false clean.
  */
-import { readFileSync, statSync, realpathSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { join, resolve, sep } from 'node:path';
 
 const SCRIPT_EXT = /\.(?:mjs|cjs|js|ts|mts|cts|sh|bash|ps1|py|rb)$/i;
@@ -80,16 +109,6 @@ export function classifyCommand(cmd, root) {
   }
 
   const tok = candidates[0];
-
-  // ...and the EQUALS form is the same defect wearing one token. `--import=./x.mjs`
-  // ends in `.mjs`, so it became the sole candidate; the guard above inspects only
-  // the PRECEDING word (`node`), never inside the token; and statSync then looked
-  // for a literal file named `--import=./x.mjs` and reported a healthy registration
-  // as MISSING. All four seats found this in round 7 — round 6 had closed only the
-  // space-separated subset. Any candidate beginning with `-` is a flag, not a path.
-  if (tok.startsWith('-')) {
-    return unver(`its only script path is embedded in the option \`${tok}\`, so the real entrypoint is some other argument`);
-  }
   // An absolute path is meaningful only on the machine it names — whether or not a
   // file happens to sit there now. Judging only one half is half a claim.
   if (tok.startsWith('/') || /^[A-Za-z]:\//.test(tok)) {
@@ -99,17 +118,8 @@ export function classifyCommand(cmd, root) {
   // `..` can resolve outside the repo, where a hit proves nothing about the
   // registered target and a miss is not ours to report. Decline rather than answer
   // confidently about a different file (round 6).
-  //
-  // Checked on the REAL path, not the lexical one: the lexical form stays inside the
-  // root while statSync happily follows a symlinked directory out of it, so `..` was
-  // declined and the symlink route was permitted — the same containment claim
-  // enforced in one direction and not the other (round 7). realpathSync is the only
-  // form that answers the question actually being asked.
   const abs = resolve(root, tok);
-  const rootReal = (() => { try { return realpathSync(root); } catch { return resolve(root); } })();
-  let real = abs;
-  try { real = realpathSync(abs); } catch { /* absent — the lexical check below still applies */ }
-  if (!abs.startsWith(resolve(root) + sep) || !real.startsWith(rootReal + sep)) {
+  if (!abs.startsWith(resolve(root) + sep)) {
     return unver('resolves outside the repository, so its target cannot be judged from here');
   }
 
@@ -155,19 +165,6 @@ export function auditHookRegistrations(root) {
       cfg = JSON.parse(raw);
     } catch {
       shape.push(`.claude/${name} is not valid JSON — the harness runs NONE of the hooks it declares`);
-      continue;
-    }
-
-    // The ROOT must be a plain object before anything is read off it. Round 6 guarded
-    // the `hooks` VALUE and not the document: a settings.json containing `[]`, `42`
-    // or `"str"` left `cfg.hooks` undefined, skipped the guard below, iterated zero
-    // times and reported clean — the 2026-08-22 outage signature, one level up from
-    // the entries whose silence this module exists to make unrepresentable. A literal
-    // `null` was worse: `cfg.hooks` threw, the exception escaped, and the caller's
-    // catch replaced the WHOLE audit — including any already-confirmed MISSING — with
-    // a generic "could not complete", demoting a certain alarm to unknown. (Round 7.)
-    if (cfg === null || typeof cfg !== 'object' || Array.isArray(cfg)) {
-      shape.push(`.claude/${name} is valid JSON but its root is ${cfg === null ? 'null' : Array.isArray(cfg) ? 'an array' : typeof cfg}, not an object — the harness registers NOTHING from it`);
       continue;
     }
 
@@ -224,3 +221,54 @@ export function auditHookRegistrations(root) {
     scopeNote: 'project scope only (.claude/settings.json, settings.local.json); user-global and managed settings are NOT inspected',
   };
 }
+
+```
+
+## Caller: scripts/hooks/drift-check-gate.mjs (check 7 + emit, COMPLETE tail)
+
+```javascript
+// ---- 7) Hook-registration integrity ---------------------------------------
+//
+// A registered guard whose FILE IS ABSENT emits nothing — byte-identical to a
+// healthy guard that found no problems. That ambiguity hid two missing hooks on
+// this branch for weeks (2026-08-22); it was only ever caught by a human noticing
+// a second-order symptom from outside. Registration is not existence.
+//
+// The classifier lives in scripts/lib/hook-registration.mjs so there is ONE
+// implementation and the test imports it rather than mirroring it. Six hostile
+// rounds are recorded there, along with the invariant they produced: every hook
+// entry yields exactly one verdict, so silence is unrepresentable.
+try {
+  const { auditHookRegistrations } = await import(
+    new URL('../lib/hook-registration.mjs', import.meta.url)
+  );
+  findings.push(...auditHookRegistrations(SS_PT).findings);
+} catch (err) {
+  // FAIL-OPEN, NOT FAIL-SILENT. A guard that cannot run must SAY it could not run;
+  // reporting nothing would be the very ambiguity this check exists to remove.
+  findings.push(
+    `hook-registration check could not complete (${err?.message || err}). Phantom-guard ` +
+    'detection did NOT run this session — its silence means "unknown", not "clean".'
+  );
+}
+
+// ---- Emit: silent when clean ----------------------------------------------
+if (findings.length) {
+  process.stdout.write(
+    '[drift-check] ⚠ ' + findings.length + ' drift finding(s) — a doc that reads as ' +
+    'authoritative may be wrong:\n' +
+    findings.map((f, i) => `  ${i + 1}. ${f}`).join('\n') +
+    '\nFull procedure (7 checks incl. stale registry, stale index, missing tooling, ' +
+    'guard coverage gaps, hook-registration integrity): .claude/skills/drift-check/SKILL.md\n'
+  );
+}
+
+// exitCode, NOT process.exit(). When stdout is a pipe — which it always is when the
+// harness runs this — Node queues writes asynchronously, and process.exit() tears the
+// loop down without draining them. The MISSING findings are appended last, so under
+// backpressure the highest-severity alarm is the first to be truncated: a diagnostic
+// whose entire contract is "never silently lose the signal" losing it nondeterministically.
+// Setting exitCode lets Node flush and exit naturally. (Panel round 6.)
+process.exitCode = 0;
+
+```

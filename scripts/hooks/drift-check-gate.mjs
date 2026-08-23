@@ -139,7 +139,15 @@ try {
   const { auditHookRegistrations } = await import(
     new URL('../lib/hook-registration.mjs', import.meta.url)
   );
-  findings.push(...auditHookRegistrations(SS_PT).findings);
+  const audit = auditHookRegistrations(SS_PT);
+  // The scope note ships WITH the findings. Round 6 computed it and the caller
+  // dropped it on the floor, so a limitation the module deliberately surfaced was
+  // never once seen by an operator — a check advertising "hook-registration
+  // integrity" while silently covering only project scope. Two seats caught that
+  // the deliverable was computed, not emitted. (Round 7.)
+  if (audit.findings.length) {
+    findings.push(...audit.findings, `hook-registration coverage: ${audit.scopeNote}`);
+  }
 } catch (err) {
   // FAIL-OPEN, NOT FAIL-SILENT. A guard that cannot run must SAY it could not run;
   // reporting nothing would be the very ambiguity this check exists to remove.

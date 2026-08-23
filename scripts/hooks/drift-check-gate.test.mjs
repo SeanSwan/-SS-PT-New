@@ -43,6 +43,8 @@ const cases = [
   // round 5 — two script args: cannot tell which is the entrypoint
   [`node --import ./scripts/preload.mjs ${GONE}`, 'UNVERIFIED', 'R5: two script paths — cannot tell the entrypoint'],
   [`node --import ${REAL} ./scripts/guard`, 'UNVERIFIED', 'R6: only script arg is a loader operand; entrypoint is extensionless'],
+  [`node --import=${REAL} ./scripts/guard`, 'UNVERIFIED', 'R7: equals-form loader (all 4 seats) — was a PHANTOM MISSING'],
+  [`node --require=./scripts/preload.mjs ./guard`, 'UNVERIFIED', 'R7: equals-form, joined path'],
   ['node ../../other-repo/hook.mjs', 'UNVERIFIED', 'R6: resolves outside the repo'],
 
   // round 4 — these MUST NOT be silent
