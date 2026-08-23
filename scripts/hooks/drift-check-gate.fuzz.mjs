@@ -40,6 +40,16 @@ const arg = (f, d) => {
   return i >= 0 && process.argv[i + 1] !== undefined ? process.argv[i + 1] : d;
 };
 const ITERATIONS = Number(arg('--iterations', '20000'));
+// Validated BEFORE the loop, not after. The guard used to sit past the `for`, so
+// `--iterations Infinity` (or 1e300) never terminated and the check that would have
+// caught it was unreachable: no output, no exit code, a CI job hanging forever. The
+// answer "it never prints the pass line" was true and irrelevant — "tests nothing,
+// silently, forever" was still on the table. (Confirming round, 2026-08-23.)
+const MAX_ITERATIONS = 5_000_000;
+if (!Number.isFinite(ITERATIONS) || ITERATIONS <= 0 || ITERATIONS > MAX_ITERATIONS) {
+  console.error(`  --iterations must be a positive finite number <= ${MAX_ITERATIONS} (got ${arg('--iterations', '20000')})`);
+  process.exit(2);
+}
 const SEED = Number(arg('--seed', '1'));
 
 /** xorshift32 — deterministic, so any failure reproduces from its seed alone. */
@@ -120,10 +130,21 @@ function generate() {
     if (w) p = p.slice(0, 3) + w + p.slice(3);
   }
   if (q) p = q + p + q;
-  const parts = [pick(INTERPRETERS), pick(FLAGS), p].filter(Boolean);
-  if (maybe(0.3)) parts.push(pick(FLAGS));
-  // Adversarial: no ground truth claimed — these drive P1 and the decline paths.
-  return { cmd: parts.join(' ') + pick(NOISE), intended: null };
+  const flag = pick(FLAGS);
+  const parts = [pick(INTERPRETERS), flag, p].filter(Boolean);
+  const extra = maybe(0.3) ? pick(FLAGS) : '';
+  if (extra) parts.push(extra);
+  const noise = pick(NOISE);
+  // Ground truth IS claimable here whenever the shape stays readable. The first
+  // version set intended:null for every adversarial draw, so P4 — added specifically
+  // to catch the loader-operand wrong-file class — never ran on the very shape that
+  // class lives in (`node -r ./present.mjs hooks/present`). A seat found that the
+  // oracle was scoped out of its own purpose. Claim truth unless something makes the
+  // command genuinely unreadable: shell noise, quoting, weird whitespace, or a flag
+  // that itself carries a path (then the entrypoint is ambiguous by construction).
+  const flagCarriesPath = /\s\S+\.(?:mjs|cjs|js|ts|sh|bash|ps1|py|rb)$/.test(flag) || /\s\S+\.(?:mjs|cjs|js|ts|sh|bash|ps1|py|rb)$/.test(extra);
+  const readable = !noise && !q && !/\s/.test(p) && !flagCarriesPath;
+  return { cmd: parts.join(' ') + noise, intended: readable ? p : null };
 }
 
 const KINDS = ['OK', 'MISSING', 'UNVERIFIED'];

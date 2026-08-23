@@ -80,6 +80,19 @@ const cases = [
   ['FOO=bar.mjs node app', 'UNVERIFIED', 'R9: env-assignment value is not a path'],
   ['docker run -v ./a.sh:/a.sh img', 'UNVERIFIED', 'R9: bind-mount spec is not a path'],
   ['node link/../hooks/x.mjs', 'UNVERIFIED', 'R9: `..` collapses lexically before symlinks resolve'],
+  // R13: the RUNNERS whitelist was replaced by a structural rule — the candidate must
+  // be the FIRST bare operand after the command word. All five seats found that a
+  // whitelist cannot enumerate reality; each of these was a false decline under it.
+  ['deno run hooks/gate.ts', 'UNVERIFIED', 'R13: subcommand occupies the operand slot'],
+  ['sudo node hooks/x.mjs', 'UNVERIFIED', 'R13: wrapper occupies the operand slot'],
+  ['/usr/bin/env node hooks/x.mjs', 'UNVERIFIED', 'R13: path-invoked runner'],
+  ['yarn tsx hooks/x.ts', 'UNVERIFIED', 'R13: package-manager indirection'],
+  // The one that mattered most: `-c` takes `node` as its operand, so x.mjs becomes $0
+  // and NEVER executes. The whitelist returned OK here — a dead guard certified healthy.
+  ['sh -c node hooks/x.mjs', 'UNVERIFIED', 'R13: was a FALSE OK under the whitelist'],
+  // And the inverse of a false decline: a versioned binary is still just a command
+  // word, so its first operand IS the entrypoint and asserting is correct.
+  [`python3.12 ${GONE}`, 'MISSING', 'R13: versioned runner still asserts correctly'],
   ['', 'UNVERIFIED', 'empty command registers nothing'],
   [undefined, 'UNVERIFIED', 'missing command key'],
 ];
