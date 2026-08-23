@@ -959,24 +959,34 @@ export const requireOwnershipOrTrainer = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// SECTION: AI Action Authorization Matrix
-// PURPOSE: Role-based action whitelist for AI assistant actions
-// WHY: AI Village CRITICAL — prevents AI prompt injection from escalating privileges
+// SECTION: AI Action Authorization — WHERE IT ACTUALLY LIVES
+//
+// `AI_ACTION_PERMISSIONS` and `isAIActionAllowed` used to sit here, labelled
+// "AI Village CRITICAL — prevents AI prompt injection from escalating privileges".
+// They were removed 2026-08-23 because NOTHING CALLED THEM. The only references in
+// the entire repo were the definitions themselves and one test's vi.mock stub, and
+// their action vocabulary (fill_own_forms / read_client_data / ...) never mapped to
+// any of the ~139 command types the AI lane actually dispatches. It was a parallel
+// design that was drafted and never wired.
+//
+// It was deleted rather than wired because a dead control is worse than an absent
+// one: it answers "is this defended?" with a confident yes, and the next reviewer
+// stops looking. Wiring it would have meant inventing a 139-command -> 6-verb
+// mapping and failing closed on every gap — a live risk to the Coach lane in
+// exchange for a second gate the first one already covers.
+//
+// AI action authorization is enforced, just not here:
+//   - Role gate         backend/services/ai/commandExecutor.mjs  (stepRBAC)
+//                       command.roleRequired vs the caller's role.
+//   - Capability gate   stepCapabilityGate -> authorizeCommandCapability
+//   - Client scoping    middleware/verifyClientAccess.mjs (assertAssignmentOrAdmin)
+//                       plus per-dispatcher scoping, e.g. dispatchListActiveClients
+//                       joins ClientTrainerAssignment for trainers.
+//   - Destructive ops   services/ai/destructiveOperations.mjs — single-use,
+//                       120s TTL, ownership check, HMAC-signed payload.
+//   - Transport         routes/aiCommandRoutes.mjs:154 — protect, kill switch,
+//                       rate limiter, audit, PII sanitizer.
+//
+// If a second, action-verb-shaped gate is ever wanted, add it there and give it
+// tests — do not restore a matrix nothing calls.
 // ─────────────────────────────────────────────────────────────
-export const AI_ACTION_PERMISSIONS = {
-  user: ['fill_own_forms', 'read_own_data', 'read_own_charts'],
-  client: ['fill_own_forms', 'read_own_data', 'read_own_charts'],
-  trainer: ['fill_own_forms', 'fill_client_forms', 'read_client_data', 'read_client_charts', 'draft_email', 'draft_sms'],
-  admin: ['fill_own_forms', 'fill_any_forms', 'read_all_data', 'read_all_charts', 'draft_email', 'draft_sms']
-};
-
-/**
- * Check if a user role is authorized for a specific AI action.
- * @param {string} role - User role (user, client, trainer, admin)
- * @param {string} action - AI action to check
- * @returns {boolean}
- */
-export const isAIActionAllowed = (role, action) => {
-  const allowed = AI_ACTION_PERMISSIONS[role] || AI_ACTION_PERMISSIONS.user;
-  return allowed.includes(action);
-};

@@ -119,7 +119,7 @@ const commands = [
     type: 'set_availability',
     description: 'Set trainer availability for a specific day and time range',
     naturalLanguagePatterns: ['set my availability for {day} {time}-{time}', 'I\'m available on {day} from {time} to {time}'],
-    method: 'POST', endpoint: '/api/availability/trainer/:trainerId',
+    method: 'PUT', endpoint: '/api/availability/:trainerId',
     inputSchema: z.object({
       trainerId: z.number().int().positive(),
       dayOfWeek: z.enum(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']),
