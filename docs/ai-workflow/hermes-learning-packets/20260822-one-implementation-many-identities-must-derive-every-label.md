@@ -1,8 +1,11 @@
 ---
+title: "One implementation, many identities — derive every label"
 name: one-implementation-many-identities-must-derive-every-label
+originating_model: "claude-opus-5"
+tier_basis: "Sean designated claude-opus-5 Fable-tier 2026-08-10; this session ran as Opus 5 and authored the build, the five hostile rounds and every verification in this packet."
+privacy: "IDs, repo-relative paths and roles only. No client names, no PII, no credentials, no key values. The correlation probe was synthetic code written for the purpose — no real SwanStudios source reached the undisclosed provider. Secret-scanned clean before commit."
 date: 2026-08-22
-originating_model: claude-opus-5
-tier_basis: "Opus 5 is Fable-tier by Sean's explicit designation 2026-08-10 (OPUS 5 IS FABLE TIER)"
+surface: "AI review panel / model routing"
 decision: "A shared implementation fanned across N identities must derive every user-visible label from the identity in use — never from the one it was written for."
 status: shipped
 supersedes: none

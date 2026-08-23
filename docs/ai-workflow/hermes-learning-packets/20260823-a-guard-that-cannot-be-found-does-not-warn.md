@@ -1,8 +1,11 @@
 ---
+title: "A guard that cannot be found does not warn"
 name: a-guard-that-cannot-be-found-does-not-warn
+originating_model: "claude-opus-5"
+tier_basis: "Sean designated claude-opus-5 Fable-tier 2026-08-10; this session ran as Opus 5 and authored every diagnosis, restore and verification in this packet."
+privacy: "IDs, repo-relative paths and roles only. No client names, no PII, no credentials, no key values. Secret-scanned clean before commit."
 date: 2026-08-23
-originating_model: claude-opus-5
-tier_basis: "Opus 5 is Fable-tier by Sean's explicit designation 2026-08-10 (OPUS 5 IS FABLE TIER)"
+surface: "pair-coding coordination / hooks / tooling drift"
 decision: "A registered guard whose file is absent produces no output — which is byte-identical to a guard that ran and found nothing. Registration must be audited against the filesystem, because the failure is invisible exactly where it matters."
 status: shipped
 supersedes: none
