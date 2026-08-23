@@ -21,9 +21,24 @@ import logger from '../utils/logger.mjs';
 /** Strict positive-integer coercion. Returns null for anything else. */
 export
 function toId(value) {
-  if (value === null || value === undefined) return null;
-  const n = Number.parseInt(String(value), 10);
-  return Number.isSafeInteger(n) && n > 0 ? n : null;
+  // Deliberately IDENTICAL to the messaging controller's toStrictPositiveInt
+  // (services/messagingGroupPolicy.mjs).
+  //
+  // The first cut used Number.parseInt, which is lenient: '900abc', '0900' and
+  // 900.9 all became 900, while the controller's strict test rejected them. A
+  // probe found four divergent inputs. That particular differential happened to
+  // fail safe — the gate authorized an id the controller then dropped — but a
+  // gate and the code it guards parsing their inputs differently is a latent
+  // bypass waiting for someone to relax the other side. GLM 5.3 flagged the
+  // class on the post-ship panel; the direction was the reverse of its guess,
+  // and the fix is the same either way: ONE parse rule, so "the id the gate
+  // approved" and "the id the controller acts on" cannot diverge.
+  if (typeof value === 'number') return Number.isInteger(value) && value > 0 ? value : null;
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!/^[1-9]\d*$/.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  return Number.isSafeInteger(parsed) ? parsed : null;
 }
 
 /**
