@@ -142,5 +142,19 @@ export function buildSeats(remit) {
       env: { SWAN_GROK_MODEL: 'deepseek/deepseek-v4-flash' },
       note: 'cheapest paid seat; watch for empty replies (reasoning eats output budget)',
     },
+    hy3: {
+      label: 'HY3 (Tencent)', script: 'consult-hy3-design.mjs', paid: true,
+      inPerM: 0.13, outPerM: 0.53, out: 'HY3-PANEL-REVIEW.md',
+      args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high'],
+      // Added 2026-08-23 by Sean's directive. Slug + pricing verified live against the
+      // OpenRouter catalog the same day (tencent/hy3, $0.13/$0.53 per M). It already had
+      // a standalone script speaking the panel contract; it was simply never seated.
+      //
+      // CONTEXT IS 262k, NOT 1M like the other seats. That is the one thing to watch:
+      // a packet the 1M seats swallow whole can overflow this one, and an overflow is
+      // not a truncated review — it is a review of a different, shorter document, which
+      // reads exactly like a real reply. Keep packets well inside the window.
+      note: 'tencent/hy3 — cheap; 262k ctx (SMALLER than the other seats — watch packet size)',
+    },
   };
 }
