@@ -124,14 +124,82 @@ try {
   }
 } catch { /* not a repo / no main / git absent — fail-open */ }
 
+// ---- 7) Hook-registration integrity: a registered guard whose file is absent ----
+//
+// THE FAILURE THIS CATCHES (2026-08-22, found by Sean from outside the system):
+// `.claude/settings.json` registered `lane-session-start.mjs` (SessionStart) and
+// `push-blast-radius.mjs` (PreToolUse). Neither file existed on the branch. The
+// harness cannot run a file it cannot find, so it emitted NOTHING — and nothing is
+// byte-identical to what a healthy guard that found no problems emits. No error, no
+// warning, no degraded mode. Every session read as clean while the Coordination
+// Ledger went unread for weeks and pushes went unguarded.
+//
+// That is the general shape and it is why this check has to be mechanical:
+// REGISTRATION IS NOT EXISTENCE, and a guard's silence is ambiguous by construction.
+// You cannot notice this from inside a session; the only prior detection was a human
+// spotting a second-order symptom (agents ignoring each other's notes).
+//
+// Also covers the wider version: an unparseable settings file silently disables EVERY
+// hook it declares, which is the same failure with a larger blast radius.
+try {
+  const PATH_RE = /(?:scripts|\.claude)[/\\][A-Za-z0-9_./\\-]+\.(?:mjs|js|sh|ps1|py)/g;
+  const missing = [];
+  const unreadable = [];
+
+  for (const name of ['settings.json', 'settings.local.json']) {
+    const cfgPath = join(SS_PT, '.claude', name);
+    const raw = read(cfgPath);
+    if (raw === null) continue;              // absent is legitimate — settings.local.json is optional
+
+    let cfg;
+    try {
+      cfg = JSON.parse(raw);
+    } catch {
+      // Not fail-open: a settings file the harness cannot parse runs NO hooks at all.
+      unreadable.push(name);
+      continue;
+    }
+
+    const seen = new Set();
+    for (const [event, groups] of Object.entries(cfg.hooks || {})) {
+      for (const group of groups || []) {
+        for (const hook of group.hooks || []) {
+          for (const m of String(hook.command || '').matchAll(PATH_RE)) {
+            const rel = m[0].replace(/\\/g, '/');
+            const key = `${event}:${rel}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            if (!existsSync(join(SS_PT, rel))) missing.push(`${rel} (${event}, ${name})`);
+          }
+        }
+      }
+    }
+  }
+
+  if (unreadable.length) {
+    findings.push(
+      `.claude/${unreadable.join(' and ')} is not valid JSON — the harness runs NONE of the ` +
+      'hooks it declares. Every gate those files register is silently inactive right now.'
+    );
+  }
+  if (missing.length) {
+    findings.push(
+      `${missing.length} registered hook file(s) DO NOT EXIST: ${missing.join('; ')}. ` +
+      'A hook the harness cannot find emits nothing, which is indistinguishable from a ' +
+      'hook that ran and found no problems — so this protection is off and reads as on. ' +
+      'Restore the file(s) or remove the registration; do not leave a phantom guard.'
+    );
+  }
+} catch { /* never let the integrity check itself break session start — fail-open */ }
+
 // ---- Emit: silent when clean ----------------------------------------------
 if (findings.length) {
   process.stdout.write(
     '[drift-check] ⚠ ' + findings.length + ' drift finding(s) — a doc that reads as ' +
     'authoritative may be wrong:\n' +
     findings.map((f, i) => `  ${i + 1}. ${f}`).join('\n') +
-    '\nFull procedure (6 checks incl. stale registry, stale index, missing tooling, ' +
-    'guard coverage gaps): .claude/skills/drift-check/SKILL.md\n'
+    '\nFull procedure (7 checks incl. stale registry, stale index, missing tooling, ' +
+    'guard coverage gaps, hook-registration integrity): .claude/skills/drift-check/SKILL.md\n'
   );
 }
 

@@ -1,6 +1,6 @@
 ---
 name: drift-check
-description: Detect the six ways Swan repos silently lie to an agent — mirror divergence, stale branch, stale registry, stale index, missing tooling a doc promises, and guard coverage gaps. Run at session start on any repo, before trusting a governance file, and after any structural change. Use when Sean says "drift check", "are the docs in sync", "is this branch current", or /drift-check.
+description: Detect the seven ways Swan repos silently lie to an agent — mirror divergence, stale branch, stale registry, stale index, missing tooling a doc promises, guard coverage gaps, and registered hooks whose files do not exist. Run at session start on any repo, before trusting a governance file, and after any structural change. Use when Sean says "drift check", "are the docs in sync", "is this branch current", or /drift-check.
 ---
 
 # Drift Check
@@ -20,7 +20,7 @@ Every instance below was found in production on 2026-08-02, in a single session.
 - Whenever an agent's behavior contradicts a rule you know exists. That usually means it
   never read the file carrying the rule.
 
-## The six checks
+## The seven checks
 
 ### 1. Mirror drift — two files that must be identical, aren't
 
@@ -125,6 +125,42 @@ loading none, because it imports another product's law.
 > Found 2026-08-02: a rule router existed for one product only. For the other, no
 > repository law loaded at all. A build ran with no product boundary and adopted a
 > blueprint belonging to a different application.
+
+### 7. Hook-registration integrity — a registered guard whose file is absent
+
+**Worse than check 6, because check 6's guard at least runs.** Here the guard does not
+exist at all, and *the harness reports that identically to success.*
+
+A hook the harness cannot find emits nothing. A healthy hook that finds no problems
+also emits nothing. They are byte-identical from inside the session — no error, no
+warning, no degraded mode. The system reports perfect health precisely because the
+component that would report ill health is the one that is gone.
+
+**Registration is not existence.** Any config naming an executable — hooks, cron
+entries, CI steps, systemd units, MCP servers — must be checked against the filesystem.
+
+```bash
+node scripts/hooks/drift-check-gate.mjs      # check 7 runs automatically at SessionStart
+```
+
+This is now mechanical, and it must stay mechanical: **you cannot detect this from
+inside a session by observation.** The only prior detection was a human noticing a
+second-order symptom from outside — agents ignoring each other's notes for weeks.
+
+Also covers the wider case: a settings file that is not valid JSON runs **none** of the
+hooks it declares. Same failure, larger blast radius.
+
+> Found 2026-08-22 by Sean, from outside the system: `.claude/settings.json` registered
+> `lane-session-start.mjs` (SessionStart) and `push-blast-radius.mjs` (PreToolUse), and
+> neither file existed on the branch. Every agent session skipped its coordination
+> briefing and every push went unguarded — silently, for weeks. The branch had forked
+> from `main` before those hooks were written; the settings naming them came across and
+> the files did not.
+>
+> The lesson that made this a mechanical check rather than a note: the *previous* fix in
+> the same session (a module imported but never committed) taught nothing about the
+> class until someone ran the loop over every referenced path. Fixing an instance does
+> not generalise. Encode the sweep.
 
 ## Reporting
 
