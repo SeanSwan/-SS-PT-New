@@ -11,14 +11,19 @@ const adminCardStyles = readRepoFile(
 const adminCardActions = readRepoFile(
   'frontend/src/components/DashBoard/workspaces/clients-team/ClientHubGridCardActions.tsx'
 );
-const trainerCardStyles = readRepoFile(
-  'frontend/src/components/TrainerDashboard/ClientManagement/MyClientsView.cardStyles.ts'
+// The trainer client card is no longer a separate implementation. TrainerClientsWorkspace renders
+// <ClientsWorkspace audience="trainer" />, so admin and trainer share ClientHubGridCard verbatim.
+// These used to read TrainerDashboard/ClientManagement/MyClientsView.* — an unmounted legacy tree
+// deleted 2026-08-23. Re-pointed at the LIVE shared card so the parity law now guards rendered
+// code instead of dead code. Audit: DASHBOARD-CONVERGENCE-AUDIT-RECORD-2026-08-22.md (F1/F3).
+const trainerWorkspaceMount = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/TrainerClientsWorkspace.tsx'
 );
-const trainerLayoutStyles = readRepoFile(
-  'frontend/src/components/TrainerDashboard/ClientManagement/MyClientsView.layoutStyles.ts'
+const sharedCardStyles = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/ClientHubGridCard.styles.ts'
 );
-const trainerCard = readRepoFile(
-  'frontend/src/components/TrainerDashboard/ClientManagement/MyClientsView.clientCard.tsx'
+const sharedCard = readRepoFile(
+  'frontend/src/components/DashBoard/workspaces/clients-team/ClientHubGridCard.tsx'
 );
 const savedPlanCardStyles = readRepoFile(
   'frontend/src/components/DashBoard/Pages/admin-workout-planner/SavedPlanCard.styles.ts'
@@ -84,12 +89,23 @@ describe('Swan client card system contract', () => {
     expect(adminCardStyles).not.toContain('white-space: nowrap');
     expect(adminCardStyles).not.toContain('text-overflow: ellipsis');
     expect(adminCardActions).toContain('swanClientActionButton');
-    expect(trainerCardStyles).toContain('swanDataCardShell');
-    expect(trainerCardStyles).toContain('swanClientActionButton');
-    expect(trainerCardStyles).toContain('overflow-wrap: anywhere');
-    expect(trainerCardStyles).toContain('mask-image');
-    expect(trainerCardStyles).not.toContain('text-overflow: ellipsis');
-    expect(trainerLayoutStyles).not.toContain('white-space: nowrap');
+
+    // Trainer parity is now STRUCTURAL, not a parallel implementation: the trainer mount must
+    // render the shared ClientsWorkspace with audience="trainer". If someone forks a bespoke
+    // trainer card again, this assertion is what fails first.
+    expect(trainerWorkspaceMount).toContain("import ClientsWorkspace from './ClientsWorkspace'");
+    expect(trainerWorkspaceMount).toContain('audience="trainer"');
+
+    // ...and the card both audiences share must keep the wrapping/no-truncation guarantees.
+    expect(sharedCardStyles).toContain('swanDataCardShell');
+    expect(sharedCardStyles).toContain('overflow-wrap: anywhere');
+    expect(sharedCardStyles).not.toContain('text-overflow: ellipsis');
+    expect(sharedCardStyles).not.toContain('white-space: nowrap');
+    // NOTE: the retired trainer card asserted `mask-image` (fade an overflowing single line).
+    // ClientHubGridCard solves the same problem by wrapping instead of clipping, so a fade mask
+    // would be dead CSS here. The mask-image technique is still contract-enforced where it IS
+    // used — see the detailIdentityStyles assertion below. This is a deliberate re-point, not a
+    // dropped guarantee.
   });
 
   it('uses the same Swan primitives for active client data cards', () => {
@@ -156,9 +172,13 @@ describe('Swan client card system contract', () => {
     expect(creationHandoffPanel).toContain('swanPill');
   });
 
-  it('keeps trainer client cards low-motion instead of using hover/tap animation props', () => {
-    expect(trainerCard).not.toContain('whileHover');
-    expect(trainerCard).not.toContain('whileTap');
+  it('keeps client cards low-motion instead of using hover/tap animation props', () => {
+    // Was scoped to the trainer-only card; now guards the card BOTH audiences render, so the
+    // low-motion law covers admin as well as trainer (CLAUDE.md: client/data cards stay low-motion).
+    expect(sharedCard).not.toContain('whileHover');
+    expect(sharedCard).not.toContain('whileTap');
+    expect(adminCardActions).not.toContain('whileHover');
+    expect(adminCardActions).not.toContain('whileTap');
   });
 
 
