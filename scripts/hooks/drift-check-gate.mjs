@@ -11,7 +11,8 @@
  * checks and prints a compact warning ONLY when something is actually wrong.
  *
  *   1. Mirror drift — AGENTS.md vs CLAUDE.md, per each repo's own contract.
- *      SS-PT:     AGENTS.md = 45-line Codex adapter + mirrored CLAUDE.md body.
+ *      SS-PT:     AGENTS.md = Codex adapter + mirrored CLAUDE.md body. The adapter
+ *                 length is DETECTED per repo (45 here, 6 on main), never assumed.
  *                 Byte-identical would be WRONG — it would delete the adapter.
  *      SwanGuard: AGENTS.md and CLAUDE.md ARE byte-identical mirrors.
  *      Same symptom, opposite correct fix. The hook encodes both contracts.
@@ -51,9 +52,6 @@ import { fileURLToPath } from 'node:url';
 const SS_PT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SWANGUARD = 'C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom';
 
-/** SS-PT contract: AGENTS.md = adapter header + mirrored CLAUDE.md body. */
-const SS_PT_ADAPTER_LINES = 45;
-
 const findings = [];
 
 function read(p) {
@@ -68,12 +66,36 @@ try {
   const agents = read(join(SS_PT, 'AGENTS.md'));
   const claude = read(join(SS_PT, 'CLAUDE.md'));
   if (agents && claude) {
-    const body = norm(agents).split('\n').slice(SS_PT_ADAPTER_LINES).join('\n');
-    if (body.trimEnd() !== norm(claude).trimEnd()) {
+    // THE ADAPTER LENGTH IS DETECTED, NOT ASSUMED.
+    //
+    // This used to slice a hardcoded SS_PT_ADAPTER_LINES (45). That is correct on the
+    // branch it was written on and WRONG on main, where the adapter is 6 lines — so
+    // porting this gate to main made it report mirror divergence on a mirror that is
+    // byte-for-byte in sync, every session, forever. A gate that cries wolf on every
+    // run is the gate everyone learns to ignore, which is the attrition failure mode
+    // every hostile seat named as the thing that kills mechanisms.
+    //
+    // Found 2026-08-23 while porting to main: a "1,125 divergent lines" reading that
+    // was entirely an offset artifact. With the boundary detected, the true answer was
+    // ZERO. The lesson is the same one this file already teaches about absent input —
+    // an instrument mis-set reports confidently and wrongly.
+    //
+    // The body starts where CLAUDE.md's first line appears in AGENTS.md. If that line
+    // is not found, the mirror contract does not hold at all, which is itself the
+    // finding — and is reported as such rather than silently assuming an offset.
+    const aLines = norm(agents).split('\n');
+    const cLines = norm(claude).split('\n');
+    const start = aLines.indexOf(cLines[0]);
+    if (start < 0) {
       findings.push(
-        'SS-PT AGENTS.md mirror body != CLAUDE.md. ' +
+        'SS-PT AGENTS.md does not contain CLAUDE.md\'s first line at all, so the ' +
+        'adapter+body mirror contract cannot be checked. This is UNKNOWN, not clean.'
+      );
+    } else if (aLines.slice(start).join('\n').trimEnd() !== cLines.join('\n').trimEnd()) {
+      findings.push(
+        `SS-PT AGENTS.md mirror body != CLAUDE.md (adapter detected as ${start} lines). ` +
         'Fix: `node scripts/sync-agents-mirror.mjs` (use --check first). ' +
-        'Do NOT make them byte-identical — lines 1-45 are the Codex adapter.'
+        'Do NOT make them byte-identical — the leading lines are the Codex adapter.'
       );
     }
   }
