@@ -1,3 +1,33 @@
+# Hostile review ROUND 9 — dry-check (2026-08-23)
+
+Rounds 1-8 found 8+6+7+8+4+6+4+4 defects, all fixed. **This reviews the round-8 fixes.**
+
+Both files COMPLETE below — nothing elided.
+
+## Round-8 fixes to attack
+
+1. **Regression fix**: realpath containment now applies ONLY when realpathSync resolved.
+   R7 fell back to the LEXICAL path on ENOENT and compared it to the RESOLVED root, so on a
+   symlinked root a genuinely MISSING file was demoted to UNVERIFIED. Proven fixed with a junction.
+2. `hooks: null` is now a finding (`in` distinguishes absent-key from present-and-null).
+3. Non-ASCII whitespace declined (JS \s matches U+00A0; shells do not split on it).
+4. Containment helper cannot emit a double separator at a filesystem root.
+5. Exit-code contract DOCUMENTED (behaviour unchanged: SessionStart advisory, stdout is the signal).
+
+## The invariant
+
+Every hook entry returns EXACTLY ONE verdict: OK | MISSING | UNVERIFIED. No path returns nothing.
+
+## Questions
+
+- Can ANY input yield zero verdicts (silent clean)? Eight rounds have each found one.
+- Can a HEALTHY registration read MISSING (phantom)?
+- Can a MISSING file be DEMOTED to UNVERIFIED? That was round 8s regression — is it fully closed?
+- **If you find nothing, say so plainly. A clean verdict is useful data; do not invent filler.**
+
+## FILE: scripts/lib/hook-registration.mjs (COMPLETE, 270 lines)
+
+```javascript
 /**
  * hook-registration.mjs — is every hook a config registers actually there?
  * ========================================================================
@@ -58,28 +88,15 @@ export function classifyCommand(cmd, root) {
   // `node ./a<NBSP>b.mjs` is one runnable file, but the split produced `b.mjs` as the
   // sole candidate and reported a healthy registration MISSING (round 8). Decline
   // rather than split on whitespace the shell would not have split on.
-  // The separator set is SPACE, TAB and NEWLINE — nothing else.
-  //
-  // Round 8 wrote `[^\S \t\n\r\f\v]`, whitelisting VT, FF and CR as if they were
-  // separators. A POSIX shell's blank set is space and tab (newline via IFS); VT and
-  // FF are ORDINARY WORD CHARACTERS. So `node ./a<VT>b.mjs` — one real, runnable file
-  // — passed this guard and was then split by `\s+` into two tokens, producing a
-  // phantom MISSING. The inverse is worse: `./gate.mjs<VT>--local` split to an
-  // existing `./gate.mjs` and returned OK, while the shell would try to exec
-  // `gate.mjs<VT>--local`, fail, and leave the hook dead — silent clean.
-  //
-  // In other words the round-8 defect survived INSIDE the round-8 fix, in three ASCII
-  // bytes. Found by a seat in round 9, which is the ninth round of this same class.
-  if (/[^\S \t\n]/.test(cmd)) {
-    return unver('contains whitespace a shell does not treat as an argument separator (only space, tab and newline are separators)');
+  if (/[^\S \t\n\r\f\v]/.test(cmd)) {
+    return unver('contains non-ASCII whitespace, which a shell does not treat as an argument separator');
   }
   if (/["']/.test(cmd)) return unver('contains quoting (a subcommand, or a path with spaces) that cannot be resolved statically');
   if (SHELL_META.test(cmd)) return unver('uses shell syntax (variable, glob, operator, subshell or escape)');
   if (WIN_ENV.test(cmd)) return unver('uses Windows environment interpolation');
 
-  // Split on the SAME set the guard above accepts. Using `\s+` here while the guard
-  // allowed a wider set is precisely how round 8's fix contradicted itself.
-  const words = cmd.trim().split(/[ \t\n]+/);
+  // Safe now: no quotes and no escapes remain, so whitespace split is faithful.
+  const words = cmd.trim().split(/\s+/);
   const candidates = words.filter((w) => SCRIPT_EXT.test(w) && !URL_SCHEME.test(w));
 
   if (candidates.length === 0) {
@@ -114,25 +131,6 @@ export function classifyCommand(cmd, root) {
   // file happens to sit there now. Judging only one half is half a claim.
   if (tok.startsWith('/') || /^[A-Za-z]:\//.test(tok)) {
     return unver('names an absolute path, which is meaningful only on the target machine');
-  }
-
-  // A token carrying `=` or `:` is not a plain path. Round 9 found two phantoms of
-  // this shape: `FOO=bar.mjs node app` (a shell env-assignment, where the "path" is
-  // an assignment VALUE and the hook runs fine) and `docker run -v ./a.sh:/a.sh img`
-  // (a bind-mount spec, stat'd as one literal filename). Both reported MISSING —
-  // "your protection is off" — about healthy registrations.
-  if (tok.includes('=') || tok.includes(':')) {
-    return unver(`\`${tok}\` is not a plain path (it carries an assignment or a mount/host separator), so the entrypoint could not be identified`);
-  }
-
-  // `..` cannot be judged, because `resolve()` collapses it LEXICALLY before
-  // realpathSync ever runs. Given `link/../x.mjs` where `link` is a symlink, the
-  // lexical collapse yields `<root>/x.mjs` — comfortably inside the root — while the
-  // real target is somewhere else entirely, so containment passes on a path that
-  // escapes. Round 8 added realpath containment believing it closed this; round 9
-  // showed the collapse happens first and defeats it. Declining is the honest answer.
-  if (tok.split(/[/\\]/).includes('..')) {
-    return unver('contains a `..` segment, which resolves lexically before symlinks are followed, so containment cannot be established');
   }
 
   // `..` can resolve outside the repo, where a hit proves nothing about the
@@ -186,11 +184,7 @@ export function classifyCommand(cmd, root) {
       ? { kind: 'OK', key: tok }
       : { kind: 'MISSING', key: tok, path: tok };
   } catch (e) {
-    // ENOTDIR joins ENOENT: a path component that must be a directory is a regular
-    // file, so the path CANNOT resolve — that is a certain absence, not an "it may
-    // exist but be unreadable". Demoting it to UNVERIFIED softened a certain alarm
-    // (round 9).
-    if (e?.code === 'ENOENT' || e?.code === 'ENOTDIR') return { kind: 'MISSING', key: tok, path: tok };
+    if (e?.code === 'ENOENT') return { kind: 'MISSING', key: tok, path: tok };
     return unver(`could not stat ${tok} (${e?.code || 'unknown error'}) — it may exist but be unreadable`);
   }
 }
@@ -304,3 +298,77 @@ export function auditHookRegistrations(root) {
     scopeNote: 'project scope only (.claude/settings.json, settings.local.json); user-global and managed settings are NOT inspected',
   };
 }
+
+```
+
+## FILE: scripts/hooks/drift-check-gate.mjs — check 7 + emit (COMPLETE tail)
+
+```javascript
+// ---- 7) Hook-registration integrity ---------------------------------------
+//
+// A registered guard whose FILE IS ABSENT emits nothing — byte-identical to a
+// healthy guard that found no problems. That ambiguity hid two missing hooks on
+// this branch for weeks (2026-08-22); it was only ever caught by a human noticing
+// a second-order symptom from outside. Registration is not existence.
+//
+// The classifier lives in scripts/lib/hook-registration.mjs so there is ONE
+// implementation and the test imports it rather than mirroring it. Six hostile
+// rounds are recorded there, along with the invariant they produced: every hook
+// entry yields exactly one verdict, so silence is unrepresentable.
+try {
+  const { auditHookRegistrations } = await import(
+    new URL('../lib/hook-registration.mjs', import.meta.url)
+  );
+  const audit = auditHookRegistrations(SS_PT);
+  // The scope note ships WITH the findings. Round 6 computed it and the caller
+  // dropped it on the floor, so a limitation the module deliberately surfaced was
+  // never once seen by an operator — a check advertising "hook-registration
+  // integrity" while silently covering only project scope. Two seats caught that
+  // the deliverable was computed, not emitted. (Round 7.)
+  if (audit.findings.length) {
+    findings.push(...audit.findings, `hook-registration coverage: ${audit.scopeNote}`);
+  }
+} catch (err) {
+  // FAIL-OPEN, NOT FAIL-SILENT. A guard that cannot run must SAY it could not run;
+  // reporting nothing would be the very ambiguity this check exists to remove.
+  findings.push(
+    `hook-registration check could not complete (${err?.message || err}). Phantom-guard ` +
+    'detection did NOT run this session — its silence means "unknown", not "clean".'
+  );
+}
+
+// ---- Emit: silent when clean ----------------------------------------------
+if (findings.length) {
+  process.stdout.write(
+    '[drift-check] ⚠ ' + findings.length + ' drift finding(s) — a doc that reads as ' +
+    'authoritative may be wrong:\n' +
+    findings.map((f, i) => `  ${i + 1}. ${f}`).join('\n') +
+    '\nFull procedure (7 checks incl. stale registry, stale index, missing tooling, ' +
+    'guard coverage gaps, hook-registration integrity): .claude/skills/drift-check/SKILL.md\n'
+  );
+}
+
+// EXIT CODE CONTRACT — always 0, deliberately, even with a confirmed MISSING.
+//
+// Three panel seats read the unconditional 0 as a defect in round 8 ("the gate cannot
+// gate"), and the reasoning is sound for a CI check. It is wrong for THIS one, and the
+// contract was never written down, which is the actual defect they found.
+//
+// This is a SessionStart hook. A non-zero exit here does not fail a build — it risks
+// failing the operator's session, on a repo that is merely drifted. Blocking every
+// session because a hook file is absent would trade a silent gap for a hard stop on
+// unrelated work, and the first thing anyone would do is disable the hook. That is
+// the same outage arriving through the operator's own frustration.
+//
+// The SIGNAL here is stdout, not the exit status, and stdout is silent when clean —
+// so anything printed is already the alarm. Enforcement that must BLOCK belongs in a
+// PreToolUse or Stop gate, where refusing is proportionate.
+//
+// exitCode rather than process.exit(): when stdout is a pipe (always, under the
+// harness) Node queues writes asynchronously and process.exit() tears the loop down
+// without draining. MISSING findings are appended LAST, so under backpressure the
+// highest-severity alarm truncates first — a diagnostic whose whole contract is
+// "never silently lose the signal", losing it nondeterministically. (Round 6.)
+process.exitCode = 0;
+
+```

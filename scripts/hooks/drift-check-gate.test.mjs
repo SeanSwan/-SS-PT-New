@@ -70,6 +70,16 @@ const cases = [
   ['npm run build', 'UNVERIFIED', 'R4: indirection is not clean'],
   ['curl https://example.com/x.sh', 'UNVERIFIED', 'URL is not a local file'],
   [`node ./a${String.fromCharCode(0x00A0)}b.mjs`, 'UNVERIFIED', 'R8: NBSP — JS \\s splits it, a shell does not'],
+  // R9: the round-8 fix whitelisted VT/FF/CR and then split on them anyway — the very
+  // phantom it was written to kill, surviving inside the fix, in three ASCII bytes.
+  [`node ./a${String.fromCharCode(0x0B)}b.mjs`, 'UNVERIFIED', 'R9: VT is an ordinary word char to a shell'],
+  [`node ./a${String.fromCharCode(0x0C)}b.mjs`, 'UNVERIFIED', 'R9: FF likewise'],
+  // ...and the inverse, which is worse: this split to an EXISTING file and returned
+  // OK while the shell would fail to exec it. Silent clean on a dead hook.
+  [`node ${REAL}${String.fromCharCode(0x0B)}--local`, 'UNVERIFIED', 'R9: VT mid-token had returned OK on a dead hook'],
+  ['FOO=bar.mjs node app', 'UNVERIFIED', 'R9: env-assignment value is not a path'],
+  ['docker run -v ./a.sh:/a.sh img', 'UNVERIFIED', 'R9: bind-mount spec is not a path'],
+  ['node link/../hooks/x.mjs', 'UNVERIFIED', 'R9: `..` collapses lexically before symlinks resolve'],
   ['', 'UNVERIFIED', 'empty command registers nothing'],
   [undefined, 'UNVERIFIED', 'missing command key'],
 ];
