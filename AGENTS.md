@@ -1110,7 +1110,7 @@ These skills have been moved off the default-exposed surface. Their sources now 
 > Current production/stability priorities: `docs/ai-workflow/AI-HANDOFF/ACTIVE-PRIORITIES.md`
 
 ### Swan Coach Command Lane (ACTIVE TRACK)
-- **v1–v14 CONFIRMED LIVE** (repo-verified 2026-04-11): 20 commands live, commandDispatcher.mjs 214 lines
+- **CONFIRMED LIVE** (repo-verified 2026-08-23): **139 commands registered, 112 wired to dispatchers**, `commandDispatcher.mjs` **391 lines**. The former figure here ("20 commands, 214 lines", dated 2026-04-11) understated the surface by ~7x and was misdirecting agents about the largest system in the product. Note `commandRegistry/index.mjs` carries its own hand-maintained per-category counts that also drift — count definitions, never quote either block. **`endpoint` on a command is declarative metadata, NOT the execution path**: dispatch is by command *type* (`commandDispatcher.mjs:347`), so route middleware never runs for the Coach lane; the real gates are `stepRBAC` (`commandExecutor.mjs:369`) and per-dispatcher scoping.
 - **v15 NEXT** → `view_available_slots` — clean read, no destructive risk, builds on v14 availability work
 - **Blocked/deferred:** `set_availability` (full-week destructive replace), `reschedule_session` (409 conflict path), `schedule_session` (wrong semantics in live code), `FRONTEND_DISPATCH` (browser-local state)
 - **After v15:** trainer workout logging → client dashboard visibility audit (revenue-critical proof-of-value chain)
