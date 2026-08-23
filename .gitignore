@@ -502,3 +502,11 @@ scripts/qa/.qa-schema-manifest.json
 # Rendered video auditions — large binaries, regenerable from the committed prompts
 variants/
 *.mp4
+
+# Generated DB schema snapshot — `node scripts/schema-snapshot.mjs` rebuilds it from
+# backend/models/*.mjs, so it is derived state, not source. It churns on every model
+# change and would conflict constantly across the parallel agent lanes (Rule 39).
+# NOTE: its consumer, the DB blast-radius gate, is not on main yet — it lives only on
+# wip/comms-notifications-2026-07-05. Whoever lands that gate should revisit whether the
+# snapshot needs to be committed so the gate works on a fresh clone.
+backend/schema-snapshot.json
