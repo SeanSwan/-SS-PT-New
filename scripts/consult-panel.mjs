@@ -86,7 +86,19 @@ const seedPath = arg('--seed');
 const confirmSpend = argv.includes('--confirm-spend');
 const dryRun = argv.includes('--dry-run');
 const stamp = new Date().toISOString().slice(0, 10);
-const outDir = arg('--out-dir', `docs/ai-workflow/AI-HANDOFF/panel-${stamp}`);
+// COLLISION SAFETY (2026-08-23). The default used to be `panel-<date>`, which every
+// run on that date shared. Three panels on three DIFFERENT documents landed in one
+// directory and overwrote each other by filename: five of seven replies to a
+// forensics report were destroyed, including the strongest seat's, with no error and
+// no warning. Paid output, gone. The slug gives each document its own directory by
+// default; the guard below covers the explicit --out-dir case.
+const docSlug = (documentPath.split(/[\\/]/).pop() || 'document')
+  .replace(/\.md$/i, '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 48);
+const outDir = arg('--out-dir', `docs/ai-workflow/AI-HANDOFF/panel-${stamp}-${docSlug}`);
 // Dedupe: `--seats kimi,kimi` is a typo, but without this it would fire a PAID
 // seat twice and bill twice for one review.
 const requested = [...new Set(
@@ -235,6 +247,25 @@ if (!seatsToRun.length) {
   process.exit(1);
 }
 console.log(`[panel] running: ${seatsToRun.join(', ')}\n`);
+
+// GUARD: never silently overwrite another document's panel. The slug default makes
+// this rare, but an explicit --out-dir can still collide, and the failure mode is
+// invisible — replies are overwritten by filename, INDEX.md is rewritten, and the
+// run reports success. Fail loudly instead; --force is the deliberate escape hatch.
+const priorIndexPath = join(outDir, 'INDEX.md');
+if (existsSync(priorIndexPath)) {
+  const priorDoc = (readFileSync(priorIndexPath, 'utf-8')
+    .match(/^\*\*Document under review:\*\*\s*`([^`]+)`/m) || [])[1];
+  const norm = (p) => String(p || '').replace(/\\/g, '/').trim();
+  if (priorDoc && norm(priorDoc) !== norm(documentPath) && !argv.includes('--force')) {
+    console.error(`\n[panel] REFUSING TO WRITE — ${outDir} already holds a panel for a DIFFERENT document.`);
+    console.error(`  existing: ${priorDoc}`);
+    console.error(`  this run: ${documentPath}`);
+    console.error('  Writing here overwrites those replies by filename and destroys them silently.');
+    console.error('  Use a different --out-dir, or --force to overwrite deliberately.\n');
+    process.exit(4);
+  }
+}
 
 mkdirSync(outDir, { recursive: true });
 
