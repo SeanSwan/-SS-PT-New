@@ -184,14 +184,39 @@ try {
   );
 }
 
+// ---- 9) Rule-count drift ---------------------------------------------------
+//
+// CLAUDE.md's router says "the 66 MANDATORY rules". The section defines 73. A
+// forensics report counted 164. Four hostile seats flagged it, and ox-alpha named
+// why it outweighs its size: the program's thesis is that drifted numbers are a root
+// cause, and the rulebook's own count is a drifted number. `MERGED:` closure also
+// validates against this registry, and a registry whose size is unknown by ~2.5x
+// cannot support merge detection at all.
+try {
+  const { auditRuleCount } = await import(
+    new URL('../lib/rule-count.mjs', import.meta.url)
+  );
+  const rc = auditRuleCount(SS_PT);
+  if (rc.findings.length) findings.push(...rc.findings);
+} catch (err) {
+  findings.push(
+    `rule-count check could not complete (${err?.message || err}). Whether the rulebook ` +
+    'can state its own size is UNKNOWN this session, not clean.'
+  );
+}
+
 // ---- Emit: silent when clean ----------------------------------------------
 if (findings.length) {
   process.stdout.write(
     '[drift-check] ⚠ ' + findings.length + ' drift finding(s) — a doc that reads as ' +
     'authoritative may be wrong:\n' +
     findings.map((f, i) => `  ${i + 1}. ${f}`).join('\n') +
-    '\nFull procedure (8 checks incl. stale registry, stale index, missing tooling, ' +
-    'guard coverage gaps, hook-registration integrity + provenance): .claude/skills/drift-check/SKILL.md\n'
+    // NO CHECK COUNT HERE, deliberately. This line said "7 checks", then "8", and
+    // would now say "9" — a hand-maintained number inside the gate whose newest
+    // check exists to catch hand-maintained numbers. Check 9 would have flagged
+    // this line if it scanned source. Generate it or stop printing it; there is
+    // nothing to generate it from, so it is not printed.
+    '\nFull procedure: .claude/skills/drift-check/SKILL.md\n'
   );
 }
 

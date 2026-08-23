@@ -1,6 +1,6 @@
 ---
 name: drift-check
-description: Detect the eight ways Swan repos silently lie to an agent — mirror divergence, stale branch, stale registry, stale index, missing tooling a doc promises, guard coverage gaps, registered hooks whose files do not exist, and live hooks that exist in no commit. Run at session start on any repo, before trusting a governance file, and after any structural change. Use when Sean says "drift check", "are the docs in sync", "is this branch current", or /drift-check.
+description: Detect the ways Swan repos silently lie to an agent — mirror divergence, stale branch, stale registry, stale index, missing tooling a doc promises, guard coverage gaps, registered hooks whose files do not exist, and live hooks that exist in no commit, plus a rulebook that cannot state its own size. Run at session start on any repo, before trusting a governance file, and after any structural change. Use when Sean says "drift check", "are the docs in sync", "is this branch current", or /drift-check.
 ---
 
 # Drift Check
@@ -20,7 +20,7 @@ Every instance below was found in production on 2026-08-02, in a single session.
 - Whenever an agent's behavior contradicts a rule you know exists. That usually means it
   never read the file carrying the rule.
 
-## The eight checks
+## The checks
 
 ### 1. Mirror drift — two files that must be identical, aren't
 
@@ -204,6 +204,42 @@ most important false-positive guard, and it is pinned by test I1.
 > `egress-privacy-gate` (the Rule 8 PII gate). The two most safety-critical guards in
 > the repo were protecting exactly one working tree. **Nobody had noticed, because
 > nothing anywhere reported it.**
+
+### 9. Rule-count drift — the rulebook cannot state its own size
+
+`CLAUDE.md`'s router says **"the 66 MANDATORY rules"**. The section defines **73**.
+A forensics report counted **164**. Three numbers, no agreement, every one typed by
+hand.
+
+This matters more than its size suggests:
+
+> Symbolically fatal — the program's thesis is that drifted numbers are a root
+> cause, and the rulebook's own count is a drifted number.
+> — ox-alpha
+
+It is also load-bearing. `MERGED:` closure in the learning-packet schema validates
+against the rule registry, and a registry whose cardinality is unknown by ~2.5×
+cannot support merge detection at all (GLM 5.3). An agent verifying it has read
+every rule is checking against a wrong number.
+
+```bash
+node scripts/hooks/drift-check-gate.mjs   # check 9 runs automatically at SessionStart
+node scripts/hooks/rule-count.test.mjs    # 23 cases
+```
+
+**Counting is the hard part.** The naive pattern returns **99**, because the file is
+full of other numbered lists — the four Karpathy principles, rule 48's twelve
+required sections, the dual-pass checklist. The scan is therefore bounded to the
+`## MANDATORY Rules` section and to column zero, and it reports gaps, duplicates and
+non-monotonicity rather than only a total. A gap is reported as *a fact to confirm*,
+never an error to fix by renumbering — rule 12 is a deliberate tombstone kept so the
+~109 documents citing rule numbers stay valid.
+
+**The rule this check enforces on itself:** *generate it, or stop printing it.* The
+module only ever computes; it never writes a number into a document. The gate's own
+summary line used to say "7 checks", then "8" — a hand-maintained number inside the
+gate whose newest check exists to catch hand-maintained numbers. It no longer prints
+a count.
 
 ## Reporting
 
