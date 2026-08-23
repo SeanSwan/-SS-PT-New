@@ -6,33 +6,33 @@ tier_basis: "Sean designated claude-opus-5 Fable-tier 2026-08-10; this session r
 privacy: "IDs, repo-relative paths and roles only. No client names, no PII, no credentials, no key values. Review packets were scrubbed of usernames and absolute paths before egress and secret-scanned clean."
 date: 2026-08-23
 surface: "guards / hooks / hostile-review process"
-decision: "Seven hostile rounds on one 200-line guard found a defect every round, because each fix was written against the case that failed rather than the property that was missing. What ended it was changing the invariant — making silence unrepresentable — not adding a case."
+decision: "Eight hostile rounds on one guard found a defect every round, because each fix was written against the case that failed rather than the property that was missing. Round 8 found a REGRESSION the round-7 fix had introduced, which silently demoted the module's own primary alarm — the sharpest instance of the class."
 status: shipped
 supersedes: none
 models_used:
   - model: claude-opus-5
-    role: builder + fixer across seven rounds
-    did: "built check 7; produced ~35 defects across 7 rounds and fixed them; wrote the invariant test; extracted the classifier to lib"
+    role: builder + fixer across eight rounds
+    did: "built check 7; produced ~39 defects across 8 rounds and fixed them, one of which was a regression a previous round's fix had introduced; wrote the invariant test; extracted the classifier to lib"
     cost: subscription
   - model: glm-5.3
-    role: panel seat, all 7 rounds
+    role: panel seat, all 8 rounds
     did: "found the DRY-RUN label lie, the $CLAUDE_PROJECT_DIR phantom, the remit egress gap, the exit-before-flush truncation, and the scopeNote-never-emitted claim failure"
     cost: "$0.00 (Z.ai subscription)"
   - model: x-ai/grok-4.6
-    role: panel seat, all 7 rounds
+    role: panel seat, all 8 rounds
     did: "found the unpinned grok model, the absolute-path blind spot, the loader-operand silent path, and the equals-form variant"
-    cost: "~$0.55 total across 7 rounds"
+    cost: "~$0.62 total across 8 rounds"
   - model: moonshotai/kimi-k3
-    role: panel seat, 5 of 7 rounds
+    role: panel seat, 6 of 8 rounds
     did: "found the quoted-subcommand silent clean, the symlink containment gap, and the non-object-root silent clean; self-blocked once on its own $0.40 cap"
     cost: "~$0.35 total"
   - model: deepseek/deepseek-v4-pro
-    role: panel seat, all 7 rounds
+    role: panel seat, all 8 rounds
     did: "found the directory-posing-as-script case and the equals-form flag bypass"
     cost: "~$0.13 total"
   - model: qwen3.8 (local)
     role: free panel seat
-    did: "returned the first clean verdict of the loop in round 6; dropped its connection in round 7"
+    did: "returned the only clean verdict of the loop, in round 6; dropped its connection in round 7"
     cost: "$0.00 (local)"
 skills_touched:
   - id: drift-check
@@ -54,7 +54,7 @@ Sean noticed from outside the system, via a second-order symptom: agents leaving
 each other notes and not acting on them.
 
 I built the check that prevents it. Then a five-seat panel reviewed the check
-**seven times**, and found a real defect **every single round** — ~35 in total.
+**eight times**, and found a real defect **every single round** — about 39 in total.
 
 The defects were not random. Every round, the fix I had just written was where the
 next bug lived:
@@ -67,12 +67,22 @@ next bug lived:
 | 4 | judged complex commands whole | quoted subcommands returned nothing |
 | 5 | declined ambiguity | first-of-two candidates picked the loader |
 | 6 | detected loader operands | only the space-separated form |
-| 7 | detected the equals form | — |
+| 7 | detected the equals form | realpath containment DEMOTED the MISSING alarm on symlinked roots |
+| 8 | applied realpath only when it resolved | — |
 
 **The generalisable lesson: a fix is the most likely place for the next bug, and a
 guard is the most dangerous place for one.** Each patch was written against the case
 that failed rather than the property that was missing, so it moved the hole rather
-than closing it. Six times.
+than closing it. Seven times.
+
+**Round 8 is the sharpest instance of the class, and it is worth stating separately:
+a fix to a guard can silently DOWNGRADE that guard's own alarm.** The round-7
+containment fix compared a lexical path against a resolved root whenever the file was
+absent — so on any checkout with a symlinked root, a genuinely missing hook stopped
+reporting MISSING and started reporting "could not verify". Nothing broke. Nothing
+errored. The alarm simply moved into the category operators skim. A guard losing
+severity is harder to notice than a guard losing coverage, because the output still
+looks like the guard working.
 
 **What actually ended it was changing the invariant, not adding a case.** Round 4
 made the classifier a total function:
@@ -143,19 +153,19 @@ where this outage lived for weeks.
 
 | Error class | Times | Written up before it recurred? | What actually stopped it |
 |---|---|---|---|
-| Patching the failing CASE instead of the missing PROPERTY | **6** | Recorded in each round's commit message, and it recurred anyway | Changing the invariant so the failure mode is unrepresentable, not adding another branch |
+| Patching the failing CASE instead of the missing PROPERTY | **7** | Recorded in each round's commit message, and it recurred anyway | Changing the invariant so the failure mode is unrepresentable, not adding another branch |
 | Literal content mangled through a bash heredoc | **7** | Yes, after occurrence 2 — then five more | Abandoning the channel: a dedicated write tool for file content, line-index splicing for edits |
 | Claiming work complete on the strength of code existing rather than output observed | 2 (scopeNote; "built the skill") | The rule has existed all along | Running the thing and reading what an operator would actually see |
 | Believing a negative without validating the instrument | 3 | Yes, repeatedly | A control probe through the same path before any absence claim |
 
-**The repeat that matters is the first row.** Six consecutive rounds of moving a hole
+**The repeat that matters is the first row.** Seven consecutive rounds of moving a hole
 rather than closing it, each one documented, each one recurring. It stopped the round
 I stopped asking "what input broke it?" and asked "what property is missing?" — that
 is the difference between a patch and a fix, and no amount of care substitutes for it.
 
 ## External-model calibration
 
-Seven rounds, five seats, **~$1.30 total** — inside the $2-3 workstream norm.
+Eight rounds, five seats, **~$1.45 total** — inside the $2-3 workstream norm.
 
 - **glm-5.3** — $0, ~150-330s. Highest value per dollar by a wide margin; found the
   two most serious defects of the whole loop (a data-egress label lie and an
