@@ -205,6 +205,38 @@ export function validatePacket(path, src, schema, yamlLoad) {
       }
     }
   }
+  // TERMINAL STATE (schema 1.2.0). A mistake bullet may not end in prose. Measured across the
+  // 2,523-bullet forensics corpus: 38-47% of recorded errors had ALREADY been written up before
+  // they recurred, and agents logged repeating one mistake three times inside a single session.
+  // Writing a lesson down is demonstrably not a fix, so each bullet must terminate in a DECISION:
+  // MECHANISM (built one) / LORE (none buildable, and why) / MERGED (folded into an existing one).
+  // Date-scoped: history is never retro-failed, because a gate that blocks the wrong person gets
+  // switched off. An honest-empty section has no bullets and so trips nothing.
+  const mts = schema.mistake_terminal_state || {};
+  if (Array.isArray(mts.markers) && mts.markers.length && (!mts.from || (date && date >= mts.from))) {
+    const nbody = fm.body.replace(/\r\n/g, '\n');
+    const secLit = String(mts.section || '## Mistakes I made').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const secMatch = new RegExp(`^${secLit}\\b.*$`, 'm').exec(nbody);
+    if (secMatch) {
+      const after = nbody.slice(secMatch.index + secMatch[0].length);
+      const nextHeading = /^#{1,6}\s/m.exec(after);
+      const block = nextHeading ? after.slice(0, nextHeading.index) : after;
+      // Split into bullet CHUNKS, not lines: a marker may sit on a continuation line.
+      const bullets = block
+        .split(/\n(?=[ \t]*[-*][ \t]+\S)/)
+        .filter((c) => /^[ \t]*[-*][ \t]+\S/.test(c));
+      const missing = bullets.filter((b) => !mts.markers.some((k) => b.includes(k)));
+      if (missing.length) {
+        errors.push(
+          `${missing.length} of ${bullets.length} bullet(s) under "${mts.section}" do not terminate ` +
+          `in a mechanism decision. Each must contain one of: ${mts.markers.join(' / ')} ` +
+          `(schema ${schema.schema_version || '1.2.0'}, required for packets dated ${mts.from} or later). ` +
+          `First offender: ${missing[0].trim().slice(0, 90)}...`,
+        );
+      }
+    }
+  }
+
   for (const h of schema.recommended_headings || []) {
     const re = new RegExp(`^${h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'm');
     if (!re.test(fm.body.replace(/\r\n/g, '\n'))) warnings.push(`recommended heading absent: "${h}"`);

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.1.0",
+  "schema_version": "1.2.0",
   "_comment": "The CONTRACT for Hermes learning packets. Data, not code (Kimi 2026-08-13 Q2c: a hardcoded schema is not inspectable or diffable). scripts/hermes-learning-validate.mjs reads this; any emitter must satisfy it. Bump schema_version on any change to required_* and record why in changelog.",
 
   "required_frontmatter": [
@@ -23,6 +23,21 @@
       "## Mistakes I made",
       "## External-model calibration"
     ]
+  },
+
+  "mistake_terminal_state": {
+    "_comment": "Fable ruling 2026-08-23, from the 2,523-bullet forensics corpus: 38-47% of recorded errors had ALREADY been written up before they recurred, and 'third time session' appears 13 times. Writing a lesson down is not a fix - the corpus proves it at scale. Every mistake bullet must therefore terminate in a DECISION about a mechanism, not in prose. Three legal terminal states, one of which must appear in each bullet. This makes 'write it down harder' - the meta-recurrence - structurally impossible to express. Date-scoped like required_frontmatter_from: history is never retro-failed, because a gate that blocks the wrong person gets switched off.",
+    "from": "2026-08-24",
+    "_from_comment": "Deliberately TOMORROW, not today. Set to 2026-08-23 first and it retro-failed 7 packets written earlier the same day by other agents' in-flight sessions - work that was correct under the contract that existed when it was written. That is precisely the failure this schema keeps warning about: a gate that blocks the wrong person gets switched off. Effective from the first full day after the rule exists.",
+    "section": "## Mistakes I made",
+    "markers": ["MECHANISM:", "LORE:", "MERGED:"],
+    "marker_meanings": {
+      "MECHANISM:": "a command, hook, test, or gate was created or updated so this cannot recur silently - name it",
+      "LORE:": "no mechanism is buildable for this; explicitly accepted as judgement-only, and the reason why",
+      "MERGED:": "folded into an existing mechanism - name which one"
+    },
+    "empty_section_ok": true,
+    "_empty_comment": "An honest-empty section ('## Mistakes I made - none surfaced this task') has no bullets and so trips nothing. Never omit the heading: an absent section reads as 'nothing went wrong'."
   },
 
   "recommended_headings": [
@@ -78,6 +93,11 @@
       "version": "1.1.0",
       "date": "2026-08-18",
       "why": "Added the strict_yaml warning. No change to required_* - additive warning only, so no packet that passed 1.0.0 fails 1.1.0. Motivated by a measured contradiction: the corpus satisfied this contract while 8 packets were unreadable to any standards-compliant YAML parser, because parseFrontmatter is deliberately naive. A ninth was produced by our own corrective pass, which emitted a colon-space inside an unquoted scalar - the naive parser accepted it, so nothing caught it until a real parser was run by hand. Kept as a WARNING because several failing packets belong to other agents' live sessions and a gate that blocks the wrong person gets switched off."
+    },
+    {
+      "version": "1.2.0",
+      "date": "2026-08-23",
+      "why": "Added mistake_terminal_state. Date-scoped from 2026-08-24 (deliberately the day AFTER it shipped - scoping it to the same day retro-failed 7 packets written earlier that day by other agents), so no packet that passed 1.1.0 fails 1.2.0. Motivated by the failure-forensics corpus (2,523 self-reported mistake bullets across 106 packets + 1,109 memos): 38-47% of recorded errors had already been written up BEFORE they recurred, 'already written' appears 41 times, and 'third time session' 13 times - agents repeating a mistake three times inside one session, with the lesson on disk. The measured catch profile is ~84 caught by running/checking, ~26 by reading at the moment of act, ~65 by adversarial rounds, and rule-recall negligible. Fable 5's Final-Decider ruling: change the TERMINAL STATE of a lesson. A bullet may no longer end in prose; it must end in MECHANISM / LORE / MERGED. The point is not bookkeeping - it is that 'I will be more careful' becomes inexpressible in the corpus, which is the single most-repeated failure the corpus records about itself."
     }
   ]
 }

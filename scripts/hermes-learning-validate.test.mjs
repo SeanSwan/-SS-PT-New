@@ -89,7 +89,74 @@ test('schema can switch the strict check off', { skip: !yamlLoad }, () => {
 
 test('schema declares strict_yaml and records why in the changelog', () => {
   assert.equal(schema.warnings.strict_yaml, true);
+  // The CURRENT version must be documented...
   const entry = schema.changelog.find((c) => c.version === schema.schema_version);
   assert.ok(entry, `changelog must carry an entry for ${schema.schema_version}`);
-  assert.match(entry.why, /strict_yaml/i);
+  // ...but the strict_yaml rationale lives in whichever entry introduced it, not necessarily the
+  // newest one. This originally asserted against the current entry, which silently encoded "1.1.0
+  // is always last" and broke the moment 1.2.0 landed. The intent is that the rationale is
+  // RECORDED, not that it sits in a particular slot.
+  assert.ok(
+    schema.changelog.some((c) => /strict_yaml/i.test(c.why)),
+    'some changelog entry must record why strict_yaml exists',
+  );
+});
+
+test('every schema feature that can fail a packet is documented in the changelog', () => {
+  // Guards the gap the test above left: a new gating feature could ship with no recorded rationale.
+  if (schema.mistake_terminal_state) {
+    assert.ok(
+      schema.changelog.some((c) => /mistake_terminal_state/i.test(c.why)),
+      'mistake_terminal_state must be explained in the changelog',
+    );
+  }
+});
+
+// ── mistake_terminal_state (schema 1.2.0) ──────────────────────────────────────
+// Fable ruling 2026-08-23 rec#4: a gate ships with proof it CAN go red. These are that proof.
+// Without the negative control, a rule that silently never fires is indistinguishable from one
+// that passes -- the exact class this corpus records more than any other.
+const TS_HEAD = (d) => `---
+title: "t"
+originating_model: "claude-opus-5"
+tier_basis: "t"
+privacy: "IDs only"
+date: ${d}
+decision: "d"
+status: shipped
+models_used:
+  - model: "claude-opus-5"
+skills_touched:
+  - id: "x"
+---
+
+# t
+
+## Mistakes I made
+
+`;
+const TS_TAIL = '\n\n## External-model calibration\n\nnone.\n';
+const TS_PROSE = '- I did a bad thing and I will be more careful.\n- And another.';
+const TS_MARKED =
+  '- I did a bad thing. MECHANISM: added scripts/verify/foo.sh to pre-commit.\n' +
+  '- And another. LORE: no mechanism buildable, judgement only.';
+const tsErrors = (d, body) =>
+  validatePacket('x.md', TS_HEAD(d) + body + TS_TAIL, schema)
+    .errors.filter((e) => /terminate in a mechanism/.test(e));
+
+test('terminal-state: NEGATIVE control — prose-only bullets after the date DO fail', () => {
+  assert.equal(tsErrors('2026-08-25', TS_PROSE).length, 1);
+});
+
+test('terminal-state: POSITIVE control — marked bullets after the date pass', () => {
+  assert.equal(tsErrors('2026-08-25', TS_MARKED).length, 0);
+});
+
+test('terminal-state: never retro-fails packets written before the effective date', () => {
+  assert.equal(tsErrors('2026-08-20', TS_PROSE).length, 0);
+});
+
+test('terminal-state: a marker on a continuation line still counts', () => {
+  const multi = '- I did a bad thing,\n  and it was subtle.\n  MECHANISM: added a hook.';
+  assert.equal(tsErrors('2026-08-25', multi).length, 0);
 });
