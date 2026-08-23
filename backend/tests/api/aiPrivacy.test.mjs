@@ -374,6 +374,7 @@ describe('De-Identification Service', () => {
 // ─── AI Consent Middleware Tests ─────────────────────────────────────────────
 
 import { aiKillSwitch, requireAiConsent } from '../../middleware/aiConsent.mjs';
+import { CURRENT_CONSENT_VERSION } from '../../config/consentVersion.mjs';
 
 const createMockReq = (overrides = {}) => ({
   user: { id: 3, role: 'client' },
@@ -493,7 +494,10 @@ describe('AI Consent Middleware', () => {
   });
 
   it('should call next() and attach profile when consent is active', async () => {
-    const profile = { aiEnabled: true, withdrawnAt: null };
+    // RE-ANCHORED 2026-08-22: 'active consent' now also requires a CURRENT
+    // version. Owner decision Q5 — a grant captured under the superseded v1.0
+    // disclosure no longer authorizes processing. Fixtures predate that rule.
+    const profile = { aiEnabled: true, withdrawnAt: null, consentVersion: CURRENT_CONSENT_VERSION };
     mockFindOne.mockResolvedValue(profile);
     const req = createMockReq({ body: { userId: 3 } });
     const res = createMockRes();
@@ -506,7 +510,10 @@ describe('AI Consent Middleware', () => {
   });
 
   it('should resolve targetUserId from req.user.id for client role', async () => {
-    const profile = { aiEnabled: true, withdrawnAt: null };
+    // RE-ANCHORED 2026-08-22: 'active consent' now also requires a CURRENT
+    // version. Owner decision Q5 — a grant captured under the superseded v1.0
+    // disclosure no longer authorizes processing. Fixtures predate that rule.
+    const profile = { aiEnabled: true, withdrawnAt: null, consentVersion: CURRENT_CONSENT_VERSION };
     mockFindOne.mockResolvedValue(profile);
     const req = createMockReq({ body: {} }); // no explicit userId
     const res = createMockRes();
@@ -527,6 +534,51 @@ describe('AI Consent Middleware', () => {
 
     expect(next).not.toHaveBeenCalled();
     expect(res.statusCode).toBe(401);
+  });
+
+  describe('stale consent version — owner decision Q5', () => {
+    // Until this landed the gate checked aiEnabled and withdrawnAt and no
+    // version, so every v1.0 grant kept working and the corrected disclosure
+    // was cosmetic for exactly the users it was written for (ox-alpha, GLM 5.3,
+    // post-ship panel).
+    it('403s a grant captured under the superseded disclosure', async () => {
+      mockFindOne.mockResolvedValue({ aiEnabled: true, withdrawnAt: null, consentVersion: '1.0' });
+      const req = createMockReq({ body: { userId: 3 } });
+      const res = createMockRes();
+      const next = vi.fn();
+
+      await middleware(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(403);
+      expect(res.body.code).toBe('AI_CONSENT_STALE_VERSION');
+    });
+
+    it('403s a grant with NO stored version — legacy records are not exempt', async () => {
+      // Fail-open here would skip precisely the records most likely to predate
+      // the correction.
+      mockFindOne.mockResolvedValue({ aiEnabled: true, withdrawnAt: null, consentVersion: null });
+      const req = createMockReq({ body: { userId: 3 } });
+      const res = createMockRes();
+      const next = vi.fn();
+
+      await middleware(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(403);
+      expect(res.body.code).toBe('AI_CONSENT_STALE_VERSION');
+    });
+
+    it('tells the client which version it needs, so the UI can prompt precisely', async () => {
+      mockFindOne.mockResolvedValue({ aiEnabled: true, withdrawnAt: null, consentVersion: '1.0' });
+      const req = createMockReq({ body: { userId: 3 } });
+      const res = createMockRes();
+
+      await middleware(req, res, vi.fn());
+
+      expect(res.body.requiredVersion).toBe(CURRENT_CONSENT_VERSION);
+      expect(res.body.storedVersion).toBe('1.0');
+    });
   });
 });
 
@@ -592,4 +644,5 @@ describe('Provider Payload Safety', () => {
     expect(serialized).toContain('weight_loss');
     expect(serialized).toContain('squats');
   });
+
 });

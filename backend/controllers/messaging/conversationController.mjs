@@ -97,9 +97,21 @@ export const getConversations = async (req, res) => {
           return false;
         }
         const others = participants
-          .map((participant) => Number(participant?.id ?? participant?.userId))
-          .filter((id) => Number.isInteger(id) && id !== viewerId);
-        return others.length > 0 && others.every((id) => allowed.has(id));
+          .map((participant) => ({
+            id: Number(participant?.id ?? participant?.userId),
+            role: participant?.role,
+          }))
+          .filter((p) => Number.isInteger(p.id) && p.id !== viewerId);
+
+        // Staff count as reachable. ensureAdminConversation creates a direct
+        // support thread with the default admin for every viewer; the admin is
+        // not a TRAINING counterparty, so narrowing on assignments alone hid
+        // that thread from exactly the clients it exists for — the system
+        // created a support channel they could never see (GLM 5.3, post-ship
+        // panel). This lane exists to hide COMMUNITY threads, not staff.
+        return others.length > 0 && others.every(
+          (p) => allowed.has(p.id) || p.role === 'admin' || p.role === 'trainer',
+        );
       });
 
       if (unreadable > 0) {

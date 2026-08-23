@@ -49,6 +49,12 @@ const thread = (id, otherIds) => ({
   participants: [{ id: VIEWER }, ...otherIds.map((uid) => ({ id: uid }))],
 });
 
+/** A thread whose other member is staff, e.g. the auto-created admin channel. */
+const staffThread = (id, staffId, role = 'admin') => ({
+  id,
+  participants: [{ id: VIEWER }, { id: staffId, role }],
+});
+
 function res() {
   const r = { statusCode: 200, body: null };
   r.status = (code) => { r.statusCode = code; return r; };
@@ -100,5 +106,47 @@ describe('relationship-only list narrowing', () => {
     await getConversations({ user: { id: VIEWER } }, r);
 
     expect(r.body.map((c) => c.id)).toEqual([1, 2]);
+  });
+});
+
+describe('staff threads stay visible to relationship-only viewers', () => {
+  // ensureAdminConversation creates a direct admin support thread for every
+  // viewer. The admin is not a training counterparty, so narrowing on
+  // assignments alone hid a channel the system had just created for them
+  // (GLM 5.3, post-ship panel). The lane hides COMMUNITY threads, not staff.
+  it('keeps the auto-created admin support thread', async () => {
+    getConversationsForViewerMock.mockResolvedValue([
+      staffThread(9, 1, 'admin'),
+      thread(2, [STRANGER]),
+    ]);
+    const r = res();
+    await getConversations(
+      { user: { id: VIEWER }, messagingAccessLane: 'relationship', messagingCounterparties: new Set([TRAINER]) },
+      r,
+    );
+    expect(r.body.map((c) => c.id)).toEqual([9]);
+  });
+
+  it('keeps a trainer-role thread even when that trainer is not an assigned counterparty', async () => {
+    getConversationsForViewerMock.mockResolvedValue([staffThread(11, 950, 'trainer')]);
+    const r = res();
+    await getConversations(
+      { user: { id: VIEWER }, messagingAccessLane: 'relationship', messagingCounterparties: new Set([TRAINER]) },
+      r,
+    );
+    expect(r.body.map((c) => c.id)).toEqual([11]);
+  });
+
+  it('still hides a thread mixing staff with a stranger', async () => {
+    getConversationsForViewerMock.mockResolvedValue([{
+      id: 12,
+      participants: [{ id: VIEWER }, { id: 1, role: 'admin' }, { id: STRANGER, role: 'client' }],
+    }]);
+    const r = res();
+    await getConversations(
+      { user: { id: VIEWER }, messagingAccessLane: 'relationship', messagingCounterparties: new Set([TRAINER]) },
+      r,
+    );
+    expect(r.body).toHaveLength(0);
   });
 });

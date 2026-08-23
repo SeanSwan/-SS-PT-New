@@ -8,6 +8,10 @@
  * Phase 1 — Privacy Foundation (Smart Workout Logger)
  */
 import logger from '../utils/logger.mjs';
+import {
+  CURRENT_CONSENT_VERSION,
+  isConsentVersionCurrent,
+} from '../config/consentVersion.mjs';
 
 /**
  * Kill switch middleware.
@@ -92,6 +96,29 @@ export function requireAiConsent(getAiPrivacyProfile) {
           success: false,
           message: 'AI consent has been withdrawn. Please re-consent to use AI-powered features.',
           code: 'AI_CONSENT_WITHDRAWN',
+        });
+      }
+
+      // Owner decision Q5: a grant captured under a superseded disclosure does
+      // not authorize processing. v1.0 told users their identity was "hidden"
+      // and that they stayed "anonymous", while a STABLE pseudonym travelled
+      // with their training, injury and medical-condition data. That
+      // description was materially inaccurate, so the grant it produced cannot
+      // stand in for informed consent.
+      //
+      // Until this landed, the gate checked aiEnabled and withdrawnAt and no
+      // version, so every legacy grant kept working and the corrected
+      // disclosure was cosmetic for exactly the population it was written for
+      // (ox-alpha and GLM 5.3, post-ship panel). A null/missing version counts
+      // as stale — those records are the most likely to predate the fix.
+      if (!isConsentVersionCurrent(profile.consentVersion)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Our description of how Swan Coach uses your data has been corrected. '
+            + 'Please review the updated disclosure and confirm to continue.',
+          code: 'AI_CONSENT_STALE_VERSION',
+          storedVersion: profile.consentVersion ?? null,
+          requiredVersion: CURRENT_CONSENT_VERSION,
         });
       }
 
