@@ -209,8 +209,22 @@ function digest() {
     const stem = ME.laneName.replace(/-s[A-Za-z0-9]+\.lane\.md$/, '').replace(/\.lane\.md$/, '');
     const siblingNames = siblingLanes(ME.laneName, lanes.map((x) => x.file));
     const siblings = lanes.filter((x) => siblingNames.includes(x.file));
-    for (const s of siblings) {
-      out.push(`[lane]   note: ${s.file} is the same agent+worktree from another session (${s.ageMin}m old, ${Array.isArray(s.locks) ? s.locks.length : 0} lock(s)).`);
+    /* CAPPED 2026-08-23. This loop was unbounded, and lanes are named per SESSION, so it printed
+     * one line per dead session forever — measured 72 lanes, 66 older than a day, ~20 note lines
+     * burying the one thing the briefing exists to show (who is working RIGHT NOW). The intent
+     * above is correct and preserved: a sibling still HOLDING LOCKS is the case worth seeing, so
+     * those sort first and are always shown. The rest collapse to a count. An unreadable warning
+     * is not a warning — `a-guard-that-cries-wolf-protects-nothing`. */
+    const SIBLING_CAP = 3;
+    const nLocks = (s) => (Array.isArray(s.locks) ? s.locks.length : 0);
+    const ranked = [...siblings].sort((a, b) => nLocks(b) - nLocks(a) || a.ageMin - b.ageMin);
+    for (const s of ranked.slice(0, SIBLING_CAP)) {
+      out.push(`[lane]   note: ${s.file} is the same agent+worktree from another session (${s.ageMin}m old, ${nLocks(s)} lock(s)).`);
+    }
+    const rest = ranked.slice(SIBLING_CAP);
+    if (rest.length) {
+      const restLocks = rest.reduce((n, s) => n + nLocks(s), 0);
+      out.push(`[lane]   note: +${rest.length} more sibling lane(s) from older sessions (${restLocks} lock(s) total) — \`node scripts/lane.mjs doctor\` for the full list.`);
     }
   }
   if (live.length) {
