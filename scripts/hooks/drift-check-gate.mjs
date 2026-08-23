@@ -199,10 +199,68 @@ try {
   // answers are eliminated; what remains is an honest "I could not judge this one",
   // which a human can action. A checker that says "unknown" is useful; one that says
   // "clean" when it did not look is the thing this whole check exists to destroy.
-  const SHELL_META = /[;&|><`$(){}*?~!#\n]|\\\s/;   // anything that changes word meaning
+  // ROUND 4 — THE INVARIANT. Every previous version had the same latent shape: some
+  // input fell through every branch and produced NO output, which is byte-identical
+  // to "checked and healthy". Round 3 even shipped a passing test case asserting
+  // that `sh -c 'node scripts/x.mjs'` yields nothing — codifying the outage as
+  // correct behaviour. Three panel seats caught that using my own matrix as evidence.
+  //
+  // So the contract is now structural, not case-by-case:
+  //
+  //     EVERY hook entry returns EXACTLY ONE verdict: OK | MISSING | UNVERIFIED.
+  //     There is no path that returns nothing. Silence is unrepresentable.
+  //
+  // And assertion is narrowed to the only shape that can be judged safely:
+  // `[interpreter] <path-with-script-extension> [args…]` with no quotes, no shell
+  // metacharacters, no escapes — and ONLY the first such path is asserted, because
+  // later arguments are options and outputs (`--emit dist/preview.mjs`), not the
+  // registered script. Anything outside that shape is UNVERIFIED by construction:
+  // extensionless commands, quoted subcommands, globs, interpolation, `sh -c`.
+  //
+  // This deliberately verifies less than v3 and lies in neither direction.
+  const SHELL_META = /[;&|><`$(){}\[\]*?~!#^\n]|\\/;   // anything that changes word meaning
   const missing = [];
   const unresolvable = [];
   const unreadable = [];
+
+  /**
+   * Classify ONE hook command. Total function: always returns a verdict.
+   * @returns {{kind:'OK'|'MISSING'|'UNVERIFIED', key:string, path?:string, why?:string}}
+   */
+  function classifyCommand(cmd) {
+    if (typeof cmd !== 'string' || !cmd.trim()) {
+      return { kind: 'UNVERIFIED', key: `empty:${String(cmd)}`, why: 'hook entry has no usable "command" string — it registers nothing' };
+    }
+    const brief = cmd.length > 90 ? `${cmd.slice(0, 90)}…` : cmd;
+    const unver = (why) => ({ kind: 'UNVERIFIED', key: cmd, why: `\`${brief}\` — ${why}; existence NOT verified` });
+
+    if (/["']/.test(cmd)) return unver('contains quoting (a subcommand or a path with spaces) that cannot be resolved statically');
+    if (SHELL_META.test(cmd)) return unver('uses shell syntax (variable, glob, operator, subshell or escape)');
+    if (/%[A-Za-z_][A-Za-z0-9_]*%/.test(cmd)) return unver('uses Windows environment interpolation');
+
+    // Plain whitespace split is now sound: no quotes and no escapes remain.
+    const words = cmd.trim().split(/\s+/);
+    const candidate = words.find((w) => SCRIPT_EXT.test(w) && !URL_SCHEME.test(w));
+    if (!candidate) {
+      // Extensionless or unrecognised. NOT clean — an extensionless registration is
+      // exactly as capable of being absent as one ending in .mjs (panel round 4).
+      return unver('no argument carries a recognised script extension, so the registered file could not be identified');
+    }
+
+    const tok = candidate.replace(/\\/g, '/');
+    const isAbs = tok.startsWith('/') || /^[A-Za-z]:\//.test(tok);
+    // An absolute path is meaningful only on the machine it names. Asserting it from
+    // a different host phantoms on every run (panel round 4) — so report, don't judge.
+    if (isAbs && !existsSync(tok)) {
+      return unver('names an absolute path that is not present on THIS machine — may be valid on the target host');
+    }
+    const abs = isAbs ? tok : join(SS_PT, tok);
+    // isFile, not exists: a DIRECTORY named `x.mjs` satisfies existsSync and would
+    // let a phantom registration read as healthy (panel round 3).
+    let ok = false;
+    try { ok = statSync(abs).isFile(); } catch { ok = false; }
+    return ok ? { kind: 'OK', key: tok } : { kind: 'MISSING', key: tok, path: tok };
+  }
 
   for (const name of ['settings.json', 'settings.local.json']) {
     const cfgPath = join(SS_PT, '.claude', name);
@@ -234,61 +292,15 @@ try {
           continue;
         }
         for (const hook of group.hooks) {
-          const cmd = hook?.command;
           const where = `${event}, ${name}`;
+          const verdict = classifyCommand(hook?.command);
 
-          // An entry with no usable command registers nothing. Silently skipping it
-          // is the same silence-means-clean pathology one level further down —
-          // caught by a panel seat in round 3 after round 2 fixed only the group level.
-          if (typeof cmd !== 'string' || !cmd.trim()) {
-            unresolvable.push(`a hook entry under ${where} has no usable "command" string — it registers nothing`);
-            continue;
-          }
+          if (seen.has(`${event}:${verdict.key}`)) continue;
+          seen.add(`${event}:${verdict.key}`);
 
-          // A COMPLEX command is judged whole and never tokenised. `x.mjs;echo`
-          // glues a metacharacter to the path, so the token fails the $-anchored
-          // extension test and would be dropped BEFORE any per-token gate could see
-          // it — silent, which is the original outage shape. So when the command
-          // uses shell syntax, look for a script extension ANYWHERE in it (unanchored)
-          // and emit one command-level "not verified". Under-specific on purpose:
-          // naming the file would mean parsing the shell, which is what failed three
-          // times. "This registration was not checked" is the honest, actionable claim.
-          if (SHELL_META.test(cmd) || /%[A-Za-z_][A-Za-z0-9_]*%/.test(cmd)) {
-            if (/\.(?:mjs|cjs|js|ts|mts|cts|sh|bash|ps1|py|rb)\b/i.test(cmd)) {
-              const key = `${event}:${cmd}`;
-              if (!seen.has(key)) {
-                seen.add(key);
-                unresolvable.push(`${where}: \`${cmd.slice(0, 90)}\` — uses shell syntax (variable, glob, operator or subshell); existence NOT verified`);
-              }
-            }
-            continue;
-          }
-
-          for (const rawTok of tokenize(cmd)) {
-            const tok = rawTok.replace(/\\/g, '/');
-            if (!SCRIPT_EXT.test(tok)) continue;          // not a script argument
-            // A remote URL ending in .sh is not a local file and must never be
-            // reported missing — `curl https://host/x.sh` would otherwise phantom.
-            if (URL_SCHEME.test(tok)) continue;
-            // A quoted subcommand (`sh -c 'node scripts/x.mjs'`) survives tokenising
-            // as one space-bearing token. It is a command, not a path.
-            if (/\s/.test(tok)) continue;
-
-            const key = `${event}:${tok}`;
-            if (seen.has(key)) continue;
-            seen.add(key);
-
-            // (complex commands never reach here — they are handled whole, above)
-
-            // Absolute: POSIX /…, Windows C:/…, or UNC //host/share.
-            const isAbs = tok.startsWith('/') || /^[A-Za-z]:\//.test(tok);
-            const abs = isAbs ? tok : join(SS_PT, tok);
-            // isFile, not exists: a DIRECTORY named `x.mjs` satisfies existsSync and
-            // would let a phantom registration read as healthy (panel round 3).
-            let ok = false;
-            try { ok = statSync(abs).isFile(); } catch { ok = false; }
-            if (!ok) missing.push(`${tok} (${where})`);
-          }
+          if (verdict.kind === 'MISSING') missing.push(`${verdict.path} (${where})`);
+          else if (verdict.kind === 'UNVERIFIED') unresolvable.push(`${where}: ${verdict.why}`);
+          // 'OK' is the only outcome that produces no output.
         }
       }
     }
