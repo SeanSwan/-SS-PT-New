@@ -87,7 +87,29 @@ function walk(dir, out = []) {
  * wrongly rejected commit. It lives in the OS temp dir rather than the repo: node_modules is
  * not guaranteed to exist (fresh worktrees have none) and the repo must stay clean.
  */
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
+
+/**
+ * KIMI K3, panel 2026-08-23 — CONFIRMED false PASS, reproduced.
+ *
+ * The cache was proven unable to cause a false BLOCK. Nobody checked false PASSES, and that
+ * is the silent direction. A (path, mtime, size) fingerprint does not notice an edit that
+ * preserves both — `touch -d` does it deliberately, and some build tools and checkout
+ * sequences do it accidentally. Remove a token definition that way and the cached registry
+ * still contains the dead token, so a commit ADDING a use of it passes.
+ *
+ * The rebuild-on-findings guard cannot save this: it only fires when there ARE findings, and
+ * a registry that over-approves produces none. It fails open, silently, forever.
+ *
+ * Reproduced: definition removed at identical size with mtime restored -> gate exited 0 where
+ * it must exit 1, reporting "1 tokens defined" for a token that no longer existed.
+ *
+ * Fix: bound how long a cache may be trusted. A stale window measured in minutes turns a
+ * permanent silent failure into a brief one, keeps the 3s -> 270ms win for the common case,
+ * and costs one extra full rebuild per window. Content-hashing every file instead would cost
+ * the ~2.5s read this cache exists to avoid.
+ */
+const CACHE_MAX_AGE_MS = 10 * 60 * 1000;
 function cachePath() {
   let key = 0;
   const root = process.cwd();
@@ -175,7 +197,8 @@ function main() {
   let fromCache = false;
   try {
     const cached = JSON.parse(readFileSync(CACHE, 'utf8'));
-    if (cached?.fingerprint === fingerprint && Array.isArray(cached.entries)) {
+    const fresh = typeof cached?.builtAt === 'number' && (Date.now() - cached.builtAt) < CACHE_MAX_AGE_MS;
+    if (fresh && cached?.fingerprint === fingerprint && Array.isArray(cached.entries)) {
       registry = new Map(cached.entries);
       fromCache = true;
     }
@@ -185,7 +208,7 @@ function main() {
   if (!registry) {
     registry = buildRegistry(allFiles);
     try {
-      writeFileSync(CACHE, JSON.stringify({ fingerprint, entries: [...registry] }));
+      writeFileSync(CACHE, JSON.stringify({ fingerprint, builtAt: Date.now(), entries: [...registry] }));
     } catch {
       /* an unwritable temp dir costs speed, never correctness */
     }
@@ -196,7 +219,7 @@ function main() {
     if (!fromCache || !names.length) return names;
     const fresh = buildRegistry(allFiles);
     try {
-      writeFileSync(CACHE, JSON.stringify({ fingerprint, entries: [...fresh] }));
+      writeFileSync(CACHE, JSON.stringify({ fingerprint, builtAt: Date.now(), entries: [...fresh] }));
     } catch { /* speed only */ }
     return names.filter((n) => !fresh.has(n));
   };
