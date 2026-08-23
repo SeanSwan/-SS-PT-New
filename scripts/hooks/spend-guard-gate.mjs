@@ -53,7 +53,18 @@ const input = readInput();
 if (!input) ALLOW();
 
 const cmd = input?.tool_input?.command || '';
-if (!cmd || !/consult-(fable|sol|kimi|grok|panel)\.mjs/.test(cmd)) ALLOW();
+
+// Gate INVOCATIONS, not mentions. `grep consult-fable.mjs`, `cat`, `git log` and
+// friends contain the filename but spend nothing; blocking them is a false
+// positive that trains people to route around the guard. Require a `node`
+// (or npx/bun) execution of the script.
+// Deliberately written with NO backslash escapes. Three earlier attempts to
+// author this line through shell/python interpolation were silently corrupted —
+// one turned `\b` into a literal backspace (0x08), which matches nothing, so the
+// gate stopped firing entirely while still reporting "SYNTAX OK". A regex that
+// silently never matches is the worst possible failure for a guard.
+const INVOCATION = /(?:^|[ ;&|(])(?:node|npx|bun) [^|;&]*?consult-(?:fable|sol|kimi|grok|panel)[.]mjs/;
+if (!cmd || !INVOCATION.test(cmd)) ALLOW();
 
 try {
   // --- which model, and how big is the worst case? -------------------------
@@ -68,11 +79,25 @@ try {
   if (scriptName === 'consult-panel.mjs' && !/--confirm-spend/.test(cmd)) ALLOW();
 
   // An explicit --model / SWAN_*_MODEL override wins over the script default.
-  let modelKey = SCRIPT_MODEL[scriptName] || '';
+  // OVERRIDES MAY ONLY RAISE THE ESTIMATE — never lower it.
+  // Found by a bypass round: `SWAN_FABLE_MODEL=deepseek-v4-flash node
+  // scripts/consult-fable.mjs` sailed through, because the regex believed the
+  // env var. consult-fable.mjs does not read SWAN_FABLE_MODEL at all (it reads
+  // SWAN_FUSION_JUDGE_MODEL), so the real call would still have run Fable at
+  // $10/M while the gate priced it as flash. Any caller-supplied value that
+  // makes a call look CHEAPER is exactly what an agent under budget pressure
+  // would reach for, so the estimate takes the max of default and override.
+  const defaultKey = SCRIPT_MODEL[scriptName] || '';
+  let modelKey = defaultKey;
   const override = cmd.match(/SWAN_[A-Z_]*MODEL=([^\s]+)/) || cmd.match(/--model\s+([^\s]+)/);
   if (override) {
     const hit = Object.keys(PRICES).find((k) => override[1].includes(k));
-    if (hit) modelKey = hit;
+    if (hit && PRICES[defaultKey]) {
+      const costOf = (k) => PRICES[k][0] + PRICES[k][1];
+      if (costOf(hit) > costOf(defaultKey)) modelKey = hit;
+    } else if (hit && !defaultKey) {
+      modelKey = hit;
+    }
   }
 
   // consult-panel fans out to many seats; price it as the whole fan-out.
@@ -80,9 +105,16 @@ try {
   const price = PRICES[modelKey];
   if (!price && !isPanel) ALLOW(); // unknown model — do not guess a number
 
-  const maxTok = Number((cmd.match(/--max-tokens\s+(\d+)/) || [])[1] || 0)
+  // Same rule for the output ceiling. Found by the same round: appending
+  // `--max-tokens 500` to a Fable call dropped the estimate under the cap — and
+  // consult-fable.mjs does not even accept that flag, so the real call would
+  // have used its own 16k default and cost the full amount. A declared ceiling
+  // may raise the estimate; it may never lower it below the script's default.
+  const SCRIPT_DEFAULT_MAX_TOK = 16000;
+  const declaredTok = Number((cmd.match(/--max-tokens\s+(\d+)/) || [])[1] || 0)
     || Number((cmd.match(/SWAN_[A-Z_]*MAX_TOKENS=(\d+)/) || [])[1] || 0)
-    || 16000;
+    || 0;
+  const maxTok = Math.max(declaredTok, SCRIPT_DEFAULT_MAX_TOK);
 
   // Input size is unknown at gate time; assume a large review packet so the
   // worst case is honest rather than flattering.
