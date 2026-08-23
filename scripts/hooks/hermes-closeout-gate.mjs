@@ -23,6 +23,7 @@
  * Under-triggering is acceptable (rules 68-69 + closeout-evidence-lock still bind by
  * convention); over-triggering is the failure mode this file exists to kill.
  */
+import { emit } from '../lib/gate-shadow.mjs';
 import { readFileSync } from 'node:fs';
 import { dirname, join, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -352,7 +353,12 @@ async function main() {
     const validate = await loadPacketValidator();
     const listDebts = await loadDebtReader();
     const reason = decide(hookInput, raw, (p) => readFileSync(p, 'utf8'), validate, listDebts);
-    if (reason) process.stdout.write(JSON.stringify({ decision: 'block', reason }));
+    // Routed through the shadow-mode emitter (2026-08-23, ox-alpha-led review).
+    // Behaviour is UNCHANGED unless .ai-workflow/gate-mode.json names this hook AND
+    // its window is unexpired. Every decision — block or allow — is logged so the
+    // keep/retire call is made on evidence instead of argument. Any failure inside
+    // the emitter falls back to blocking exactly as before.
+    emit('hermes-closeout-gate', reason);
   } catch {
     /* any analysis error -> fail-open */
   }

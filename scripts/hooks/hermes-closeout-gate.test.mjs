@@ -249,6 +249,11 @@ test('the real hook blocks a malformed packet when run from a foreign cwd', asyn
         cwd: dir,                    // <-- the whole point: NOT the repo root
         encoding: 'utf8',
         stdio: [fd, 'pipe', 'pipe'],
+        // Pin the ORIGINAL blocking behaviour. Without this the assertion below reads
+        // .ai-workflow/gate-mode.json and silently becomes a test of operational config
+        // rather than of the gate — it went red the moment shadow mode shipped. The
+        // override can only ever make the gate stricter, so it cannot mask a defect.
+        env: { ...process.env, SWAN_GATE_FORCE_NORMAL: '1' },
       });
     } finally { closeSync(fd); }
     assert.match(out, /fails the corpus schema/, 'gate must enforce regardless of cwd');

@@ -23,6 +23,7 @@
  *   Fabricating the marker without running rounds violates rules 19/28 — the marker is a
  *   claim, and claims need the round ledger evidence in the same closeout.
  */
+import { emit } from '../lib/gate-shadow.mjs';
 import { readFileSync } from 'node:fs';
 
 const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]|hermes-learning-packets[\\/]|memory[\\/]/;
@@ -178,7 +179,12 @@ function main() {
   }
   try {
     const reason = decide(hookInput, raw);
-    if (reason) process.stdout.write(JSON.stringify({ decision: 'block', reason }));
+    // Routed through the shadow-mode emitter (2026-08-23, ox-alpha-led review).
+    // Behaviour is UNCHANGED unless .ai-workflow/gate-mode.json names this hook AND
+    // its window is unexpired. Every decision — block or allow — is logged so the
+    // keep/retire call is made on evidence instead of argument. Any failure inside
+    // the emitter falls back to blocking exactly as before.
+    emit('dry-loop-gate', reason);
   } catch {
     /* fail-open */
   }

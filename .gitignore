@@ -451,6 +451,11 @@ bearer-token.*
 .ai-workflow/*
 !.ai-workflow/continuity/
 !.ai-workflow/coordination/
+# Gate shadow-mode config (2026-08-23) MUST be tracked. It is shared enforcement state:
+# if it lives in one working tree only, every other checkout keeps blocking while this
+# one does not — the exact split-brain drift-check 8 exists to catch, and which was
+# found in this repo the same day this file was added.
+!.ai-workflow/gate-mode.json
 .ai-workflow/audit/**
 # Phase B continuity bridge (2026-04-22): README is tracked, runtime files gitignored
 .ai-workflow/continuity/*
@@ -492,3 +497,6 @@ SOUL.archive/**
 
 # Paid-AI spend ledger — machine-local running totals, not repo history
 .ai-workflow/spend/
+
+# Gate telemetry — per-machine operational data, not shared state (2026-08-23)
+.ai-workflow/gate-telemetry.jsonl

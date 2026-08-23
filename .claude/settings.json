@@ -299,7 +299,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/hooks/db-blast-radius-gate.mjs"
+            "command": "node scripts/hooks/db-blast-radius-gate.mjs",
+            "timeout": 20
           }
         ]
       },
@@ -334,7 +335,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/hooks/prompt-watcher.mjs"
+            "command": "node scripts/hooks/prompt-watcher.mjs",
+            "timeout": 10
           }
         ]
       }
@@ -368,7 +370,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/hooks/backup-after-work.mjs"
+            "command": "node scripts/hooks/backup-after-work.mjs",
+            "timeout": 30
           }
         ]
       }

@@ -1,0 +1,7 @@
+{
+  "_why": "Shadow mode: these gates still evaluate and still log what they WOULD have blocked, but they do not block. Adopted 2026-08-23 from the ox-alpha-led review, to resolve keep-vs-retire with evidence instead of argument.",
+  "_expiry_is_the_point": "Past 'until' these gates block again automatically. This repo's defining failure is that nothing is ever retired; an undated shadow window would become another permanent un-retired thing. Extending must be a deliberate diff.",
+  "_review_at_expiry": "node scripts/gate-telemetry-report.mjs — any hook with zero would_block:true entries retires on evidence.",
+  "shadow": ["dry-loop-gate", "dual-tier-gate", "hermes-closeout-gate"],
+  "until": "2026-09-06T00:00:00Z"
+}
