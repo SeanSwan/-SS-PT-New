@@ -11,3 +11,4 @@ scripts/*.sh text eol=lf
 
 # Deployed to Linux verbatim: CRLF here breaks the shebang at the far end.
 scripts/launchers/radar-db-backup -text
+scripts/launchers/hermes-backup.sh -text

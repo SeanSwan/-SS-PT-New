@@ -48,7 +48,13 @@ STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --keep) KEEP="${2:-10}"; shift 2 ;;
+    --keep)
+      KEEP="${2:-}"
+      # A non-numeric or zero --keep silently deleted EVERY dump: the retention loop counts
+      # files and removes any beyond the limit, so a limit of 0 removes all of them.
+      case "$KEEP" in ''|*[!0-9]*) echo "--keep must be a positive integer" >&2; exit 2 ;; esac
+      [ "$KEEP" -ge 1 ] || { echo "--keep must be >= 1 (refusing to retain nothing)" >&2; exit 2; }
+      shift 2 ;;
     --verify-only) VERIFY_ONLY=true; shift ;;
     --help|-h)
       echo "usage: radar-db-backup [--keep N] [--verify-only]"
@@ -130,14 +136,21 @@ for orphan in $(qa "select datname from pg_database where datname like 'sg_resto
 done
 
 # ---- source truth -------------------------------------------------------------------
-SRC_TABLES="$(q "select count(*) from information_schema.tables where table_schema='public'")"
+# pg_class, NOT information_schema: information_schema is PRIVILEGE-FILTERED, so a table this
+# role cannot see would be missing from the source count AND the restored count, making an
+# omission mathematically undetectable — the same fail-open shape this whole workstream exists
+# to kill. Verified 2026-08-23: both return 61 today, but only because the role is superuser.
+# That equivalence rots the moment the role is correctly de-privileged.
+TABLE_COUNT_SQL="select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r'"
+ROW_COUNT_SQL="select coalesce(sum(n),0) from (select (xpath('/row/c/text()', query_to_xml(format('select count(*) as c from %I.%I', n.nspname, c.relname), false, true, '')))[1]::text::bigint as n from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r') s"
+SRC_TABLES="$(q "$TABLE_COUNT_SQL")"
 case "$SRC_TABLES" in ''|*[!0-9]*) cannot_run "could not count source tables" ;; esac
 [ "$SRC_TABLES" -gt 0 ] || failed "source database reports 0 tables — refusing to call that a backup"
 
-SRC_EXACT="$(q "select coalesce(sum(n),0) from (select (xpath('/row/c/text()', query_to_xml(
-  format('select count(*) as c from %I.%I', table_schema, table_name), false, true, '')))[1]::text::bigint as n
-  from information_schema.tables where table_schema='public' and table_type='BASE TABLE') s")"
-case "$SRC_EXACT" in ''|*[!0-9]*) SRC_EXACT=0 ;; esac
+SRC_EXACT="$(q "$ROW_COUNT_SQL")"
+# NOT `|| 0`. Coercing an unmeasurable count to zero makes the later `restored -lt source`
+# comparison 0<0 = false, i.e. it PASSES while verifying nothing at all.
+case "$SRC_EXACT" in ''|*[!0-9]*) cannot_run "exact row count failed on source (permissions, lock, or xml?)" ;; esac
 
 say "=== radar SwanGuard database backup (pg_dump -Fc + real restore test) ==="
 say "  source       : $SRC_TABLES tables, $SRC_EXACT rows (exact)"
@@ -216,25 +229,52 @@ fi
 
 # ---- dump ------------------------------------------------------------------------------
 OUT="$DEST/swanguard-$STAMP.dump"
+PARTIAL="$OUT.partial"
+
+# Sweep partials abandoned by a previous killed run. Named so the retention glob (*.dump)
+# can never mistake one for a backup.
+for stale in "$DEST"/*.dump.partial; do
+  [ -e "$stale" ] || continue
+  rm -f "$stale" && say "  swept        : abandoned partial $(basename "$stale")"
+done
+
+# STAGE THEN RENAME. Writing straight to the final name meant a process killed mid-write left
+# a TRUNCATED file carrying a backup's name and timestamp — indistinguishable from a real one
+# until the day someone needed it. A dump only earns its name after it has been restored.
 # No TTY: -t would corrupt the binary stream. Custom format is already compressed.
-if ! d exec -i "$CONTAINER" pg_dump -Fc -U "$DBUSER" -d "$DB" > "$OUT" 2>/tmp/radar-db-backup.err; then
-  rm -f "$OUT"
-  failed "pg_dump failed: $(tail -2 /tmp/radar-db-backup.err | tr -d '\n')"
+if ! d exec -i "$CONTAINER" pg_dump -Fc -U "$DBUSER" -d "$DB" > "$PARTIAL" 2>/tmp/radar-db-backup.err; then
+  rm -f "$PARTIAL"
+  failed "pg_dump failed: $(tail -2 /tmp/radar-db-backup.err | tr '
+' ' ')"
 fi
-[ -s "$OUT" ] || { rm -f "$OUT"; failed "pg_dump produced an empty file"; }
-SIZE="$(du -h "$OUT" | cut -f1)"
+[ -s "$PARTIAL" ] || { rm -f "$PARTIAL"; failed "pg_dump produced an empty file"; }
+SIZE="$(du -h "$PARTIAL" | cut -f1)"
 say "  target       : $OUT"
 say "  size         : $SIZE"
 
-verify_dump "$OUT"; VRC=$?
+# QWEN's race: SRC_* was measured BEFORE pg_dump. Rows committed or deleted during the dump
+# window make the restored copy legitimately differ from that single reading. pg_dump itself is
+# transactionally consistent, so the truth lies between the two readings — take the second one
+# and compare against the LOWER bound. An insert during the window no longer inflates the
+# requirement; a delete no longer condemns a good dump.
+SRC_TABLES_AFTER="$(q "$TABLE_COUNT_SQL")"
+SRC_EXACT_AFTER="$(q "$ROW_COUNT_SQL")"
+case "$SRC_TABLES_AFTER" in ''|*[!0-9]*) cannot_run "table count failed on source after dump" ;; esac
+case "$SRC_EXACT_AFTER"  in ''|*[!0-9]*) cannot_run "row count failed on source after dump" ;; esac
+[ "$SRC_TABLES_AFTER" -lt "$SRC_TABLES" ] && SRC_TABLES="$SRC_TABLES_AFTER"
+[ "$SRC_EXACT_AFTER"  -lt "$SRC_EXACT"  ] && SRC_EXACT="$SRC_EXACT_AFTER"
+
+verify_dump "$PARTIAL"; VRC=$?
 if [ "$VRC" -eq 1 ]; then
   # A corrupt dump is WORSE than none: it stops you looking for a real backup.
-  rm -f "$OUT"
+  rm -f "$PARTIAL"
   failed "dump failed its restore test and was DELETED (no trustworthy backup was written)"
-elif [ "$VRC" -eq 2 ]; then
-  rm -f "$OUT"
+elif [ "$VRC" -ne 0 ]; then
+  rm -f "$PARTIAL"
   cannot_run "restore test could not run; dump discarded rather than kept unproven"
 fi
+# Only now does it earn the name.
+mv -f "$PARTIAL" "$OUT" || failed "could not finalise verified dump into place"
 
 # ---- retention -------------------------------------------------------------------------
 KEPT=0
