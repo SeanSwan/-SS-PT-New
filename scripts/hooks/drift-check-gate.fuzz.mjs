@@ -92,13 +92,24 @@ const QUOTES = ['', '"', "'"];
  * fails to produce both OK and MISSING declares its own coverage incomplete.
  */
 function generate() {
-  if (maybe(0.02)) return pick([undefined, null, '', '   ', 42, {}, []]);
+  if (maybe(0.02)) return { cmd: pick([undefined, null, '', '   ', 42, {}, []]), intended: null };
 
-  // ~55%: plain, assertable — these are what drive P2 and P3.
+  // ~55%: plain, assertable — these drive P2/P3 and carry GROUND TRUTH.
+  //
+  // The intended entrypoint is returned alongside the command, because knowing WHICH
+  // token the classifier should have picked is the difference between checking
+  // existence and checking identity. The first version threw this away, and that made
+  // P2/P3 unable to catch the very class they were written for (see the oracle below).
   if (maybe(0.55)) {
-    const parts = [pick(['node', 'npx', 'bash', 'node --enable-source-maps']), pick(PATHS)];
+    const target = pick(PATHS);
+    const parts = [pick(['node', 'npx', 'bash', 'node --enable-source-maps']), target];
     if (maybe(0.25)) parts.push('--flag');
-    return parts.join(' ');
+    // Ground truth is only claimable when the shell would actually see ONE argument.
+    // An unquoted path containing a space is two arguments, so "intended" would be a
+    // fiction and P4 would fail the classifier for being right. The instrument must
+    // not assert something the shell cannot express.
+    const coherent = !/\s/.test(target);
+    return { cmd: parts.join(' '), intended: coherent ? target : null };
   }
 
   // ~45%: adversarial — quoting, weird whitespace, flags, shell noise.
@@ -111,7 +122,8 @@ function generate() {
   if (q) p = q + p + q;
   const parts = [pick(INTERPRETERS), pick(FLAGS), p].filter(Boolean);
   if (maybe(0.3)) parts.push(pick(FLAGS));
-  return parts.join(' ') + pick(NOISE);
+  // Adversarial: no ground truth claimed — these drive P1 and the decline paths.
+  return { cmd: parts.join(' ') + pick(NOISE), intended: null };
 }
 
 const KINDS = ['OK', 'MISSING', 'UNVERIFIED'];
@@ -125,7 +137,7 @@ const record = (prop, cmd, detail) => {
 const counts = { OK: 0, MISSING: 0, UNVERIFIED: 0 };
 
 for (let i = 0; i < ITERATIONS; i += 1) {
-  const cmd = generate();
+  const { cmd, intended } = generate();
   let v;
   try {
     v = classifyCommand(cmd, root);
@@ -158,21 +170,51 @@ for (let i = 0; i < ITERATIONS; i += 1) {
       record('P3 NO-FALSE-OK', cmd, `returned OK but ${v.key} is not a file`);
     }
   }
+
+  // P4 IDENTITY — the verdict must be about the RIGHT file, not merely about A file.
+  //
+  // P2 and P3 alone check EXISTENCE, and existence is not identity. A classifier bug
+  // that returns a wrong-but-existing path passes P3 with a green light: given
+  // `node -r ./hooks/present.mjs hooks/absent.mjs`, a classifier keying on the first
+  // path-like token returns {OK, key:'./hooks/present.mjs'} — that file exists, P3
+  // passes, exit 0 — while the REAL entrypoint is missing and the gate certifies a
+  // broken registration. That is round 9's false-OK class surviving the instrument
+  // built to catch it, and two seats found it by reading the oracle rather than the
+  // subject. The plain branch knew the intended token all along and discarded it.
+  if (intended && (v.kind === 'OK' || v.kind === 'MISSING')) {
+    const named = v.kind === 'OK' ? v.key : v.path;
+    // Normalise only the leading `./` — anything else differing is a real mismatch.
+    const norm = (x) => String(x).replace(/^\.\//, '');
+    if (norm(named) !== norm(intended)) {
+      record('P4 IDENTITY', cmd, `asserted about ${named} but the intended entrypoint was ${intended}`);
+    }
+  }
 }
 
 rmSync(root, { recursive: true, force: true });
 
 console.log(`  seed=${SEED}  iterations=${ITERATIONS}`);
 console.log(`  verdicts: OK=${counts.OK}  MISSING=${counts.MISSING}  UNVERIFIED=${counts.UNVERIFIED}`);
-if (!counts.OK || !counts.MISSING) {
-  // A run that never produced an OK or a MISSING proved nothing about P2/P3 — the
-  // corpus degenerated. Say so rather than reporting a green that covered nothing.
-  console.log('  ⚠ corpus did not exercise both OK and MISSING — P2/P3 coverage is incomplete');
+// A run that never produced an OK or a MISSING proved nothing about P2/P3/P4. The
+// first version printed a warning and then exited 0 with "all properties held" — so
+// `--iterations 0`, a bad `--iterations` string (Number -> NaN, loop never entered),
+// or a classifier that only ever returns UNVERIFIED would all report PROVEN having
+// tested nothing. In CI that is indistinguishable from a real pass. Silence looking
+// like success, inside the instrument written to hunt exactly that. (Found by a seat
+// reading the oracle rather than the subject, 2026-08-23.)
+const degenerate = !Number.isFinite(ITERATIONS) || ITERATIONS <= 0 || !counts.OK || !counts.MISSING;
+if (degenerate) {
+  console.log('  ⚠ DEGENERATE RUN — the corpus did not exercise both OK and MISSING, so P2/P3/P4 proved nothing.');
+  console.log('  ⚠ This is NOT a pass. Exiting non-zero so it cannot be mistaken for one.');
 }
 if (failures.length) {
   console.log(`\n  ${failures.length} PROPERTY VIOLATION(S):`);
   for (const f of failures) console.log(`    ${f.prop}\n      cmd:    ${JSON.stringify(f.cmd)}\n      detail: ${f.detail}`);
   process.exit(1);
 }
+// A degenerate corpus must never print the pass line, let alone exit 0. Printing a
+// warning and then "all properties held" was the worst of both: the reassuring
+// sentence is the one a human remembers and the exit code is the one CI reads.
+if (degenerate) process.exit(2);
 console.log('\n  all properties held');
 process.exit(0);

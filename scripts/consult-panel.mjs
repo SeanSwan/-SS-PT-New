@@ -330,11 +330,27 @@ function runSeat(name) {
       const wrote = existsSync(outPath);
       // A seat can exit non-zero AND still have written a truncated reply
       // (exit 2 = hit max_tokens). Surface that rather than silently dropping it.
+      // `ok` already requires BOTH exit 0 and a written file, but the error message
+      // was keyed on the exit code alone — so a seat that exited 0 and wrote nothing
+      // was recorded as failed with `error: null`, printed as "hy3 — null". A failure
+      // whose reason is the word "null" tells the operator nothing and reads like a
+      // bug in the panel rather than in the seat.
+      //
+      // That is exactly how the HY3 seat's first run presented (2026-08-23): its
+      // script carries its own spend gate, the seat args omitted --confirm-spend, so
+      // it ran preflight, wrote no file, and exited 0 — reporting success while
+      // reviewing nothing. Name that state explicitly; it is the seat-level form of
+      // the silent-clean failure this repo has spent a session hunting.
+      const silentNoOp = code === 0 && !wrote;
       finish({
         name, label: s.label, outPath, wall,
         ok: code === 0 && wrote,
         truncated: code === 2 && wrote,
-        error: code === 0 ? null : `exit ${code}${wrote ? ' (partial reply written)' : ' (no output)'}: ${stderr.trim().slice(-300)}`,
+        error: code === 0 && wrote
+          ? null
+          : silentNoOp
+            ? `exited 0 but wrote NO reply — the seat believes it succeeded while reviewing nothing. Check whether its script needs a flag the seat args omit (e.g. its own --confirm-spend): ${stderr.trim().slice(-300)}`
+            : `exit ${code}${wrote ? ' (partial reply written)' : ' (no output)'}: ${stderr.trim().slice(-300)}`,
       });
     });
   });

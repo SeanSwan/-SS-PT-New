@@ -145,7 +145,18 @@ export function buildSeats(remit) {
     hy3: {
       label: 'HY3 (Tencent)', script: 'consult-hy3-design.mjs', paid: true,
       inPerM: 0.13, outPerM: 0.53, out: 'HY3-PANEL-REVIEW.md',
-      args: (doc, out) => ['--document', doc, '--out', out, '--remit', remit, '--effort', 'high'],
+      // `--confirm-spend` is REQUIRED. consult-hy3-design.mjs carries its OWN spend
+      // gate, and without this flag it runs preflight, writes no output file, and
+      // EXITS 0 — so the seat reported success while reviewing nothing, and the panel
+      // could only log "hy3 — null". Caught on this seat's very first run, which is
+      // the third time this session a component was wired-looking and unreachable.
+      // The `kimi` seat above already passes it; I added hy3 without matching the
+      // pattern sitting six lines away.
+      args: (doc, out) => [
+        '--document', doc, '--out', out, '--remit', remit, '--effort', 'high',
+        '--cap-usd', '0.50', '--confirm-spend',
+      ],
+      maxCtx: 262144,
       // Added 2026-08-23 by Sean's directive. Slug + pricing verified live against the
       // OpenRouter catalog the same day (tencent/hy3, $0.13/$0.53 per M). It already had
       // a standalone script speaking the panel contract; it was simply never seated.

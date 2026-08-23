@@ -117,9 +117,22 @@ const body = readForEgress(document, { label: 'document' });
 // protected. Egress protection is a property of the request, not of one argument.
 // redactForEgress(text) takes ONE argument — no options object. Matches the
 // existing call shape used by the sibling seat scripts.
-const seedText = seed && existsSync(seed)
-  ? redactForEgress(readFileSync(seed, 'utf8'))
-  : '';
+//
+// A seed that was ASKED FOR but not delivered must be loud. Previously a typo'd path
+// failed `existsSync`, yielded '', and the review ran without prior context while the
+// operator believed it was included — and because the seed is the input most likely to
+// name a real person, silently dropping it also changes the egress profile run to run.
+// A directory path was worse: `existsSync` passes, `readFileSync` throws EISDIR at
+// module top level, outside every guard, after carefully validating everything else.
+let seedText = '';
+if (seed) {
+  try {
+    seedText = redactForEgress(readFileSync(seed, 'utf8'));
+  } catch (e) {
+    console.error(`[consult-gemini-panel] --seed ${seed} could not be read (${e?.code || e?.message}) — REFUSING to run without the context you asked for.`);
+    process.exit(1);
+  }
+}
 
 // The REMIT is operator free-text and goes over the wire exactly like the other two,
 // so it gets the same treatment. Round 2 of the panel caught that fixing the seed

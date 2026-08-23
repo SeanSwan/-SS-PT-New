@@ -99,6 +99,25 @@ export function classifyCommand(cmd, root) {
     return unver(`its only script path is the operand of ${words[idx - 1]}, so the real entrypoint is some other argument`);
   }
 
+  // The candidate must be the FIRST bare operand, not a later argument.
+  //
+  // `node hooks/pre load.mjs` — an unquoted path containing a space — presents to the
+  // shell as TWO arguments, so it runs `hooks/pre` and passes `load.mjs` along. The
+  // classifier saw exactly one extension-bearing token and asserted about `load.mjs`:
+  // a confident verdict about a file that is not the entrypoint. Found by the fuzzer's
+  // identity oracle the moment it was added — the existence-only oracle had been
+  // green on it for two rounds.
+  //
+  // Anything bare before the candidate that is not a recognised runner means the real
+  // entrypoint is that earlier word. Declining costs a little coverage on exotic
+  // invocations and removes the wrong-file assertion class entirely.
+  const RUNNERS = /^(?:node|npx|npm|bun|deno|tsx|ts-node|bash|sh|zsh|python3?|ruby|pwsh|powershell|env)$/i;
+  const before = words.slice(0, words.indexOf(candidates[0]));
+  const strayOperand = before.find((w) => !w.startsWith('-') && !RUNNERS.test(w));
+  if (strayOperand) {
+    return unver(`\`${strayOperand}\` precedes the only script path, so IT is the entrypoint and the candidate is an argument`);
+  }
+
   const tok = candidates[0];
 
   // ...and the EQUALS form is the same defect wearing one token. `--import=./x.mjs`
