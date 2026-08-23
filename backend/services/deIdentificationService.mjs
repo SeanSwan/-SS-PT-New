@@ -113,6 +113,14 @@ export const TRAINING_SAFETY_PATHS = Object.freeze([
 export const GATED_FIELDS_REQUIRE_CONSENT_VERSION = '3.0';
 
 /**
+ * Remembers the last mismatching value we warned about, so a misconfiguration
+ * logs once rather than once per request — but a CHANGED value warns again.
+ * A boolean would have silenced the second, different misconfiguration, which
+ * is the one an operator most needs to see.
+ */
+let lastWarnedConsentVersion = null;
+
+/**
  * Escape hatch for the gated categories — deliberately hard to open.
  *
  * The first cut of this was a bare env flag with a comment saying "bump
@@ -134,13 +142,19 @@ export function areGatedHealthFieldsEnabled() {
 
   const declared = String(process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION || '').trim();
   if (declared !== GATED_FIELDS_REQUIRE_CONSENT_VERSION) {
-    logger.error(
+    // Log ONCE per process, not once per deIdentify call. A misconfigured flag
+    // would otherwise emit an error line on every Coach request and bury the
+    // signal it exists to raise (ox-alpha, post-ship panel).
+    if (lastWarnedConsentVersion !== declared) {
+      lastWarnedConsentVersion = declared;
+      logger.error(
       '[DeIdentification] COACH_HEALTH_FIELDS_ENABLED is set but the declared consent '
       + 'version does not match the version this build requires. Gated health fields '
       + 'remain WITHHELD. Ship the new disclosure, then set '
       + 'COACH_HEALTH_FIELDS_CONSENT_VERSION to the required value.',
-      { required: GATED_FIELDS_REQUIRE_CONSENT_VERSION, declared: declared || '(unset)' },
-    );
+        { required: GATED_FIELDS_REQUIRE_CONSENT_VERSION, declared: declared || '(unset)' },
+      );
+    }
     return false;
   }
   return true;
@@ -287,9 +301,29 @@ function stripGatedHealthFields(node, strippedFields, prefix = '') {
     }
 
     const value = node[key];
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      stripGatedHealthFields(value, strippedFields, path);
+    if (!value || typeof value !== 'object') continue;
+
+    // Arrays MUST be walked. The first cut guarded with `!Array.isArray(value)`,
+    // which meant a payload like `recoveryLogs: [{ sleepHours, stressLevel }]`
+    // sailed straight through the gate while every consent surface said those
+    // fields were withheld. Found by the post-ship panel (ox-alpha) and
+    // reproduced before fixing.
+    //
+    // This is the THIRD appearance of one drift class in this workstream:
+    // an enumerated path list missed medicalConditions, then the category
+    // matcher missed array-nested keys. Each fix narrowed the hole without
+    // closing the shape. Recursing into every container closes it by shape
+    // rather than by enumeration.
+    if (Array.isArray(value)) {
+      value.forEach((item, i) => {
+        if (item && typeof item === 'object') {
+          stripGatedHealthFields(item, strippedFields, `${path}[${i}]`);
+        }
+      });
+      continue;
     }
+
+    stripGatedHealthFields(value, strippedFields, path);
   }
 }
 

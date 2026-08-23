@@ -234,7 +234,11 @@ describe('the escape hatch is a control, not a caution', () => {
 
   it('logs critical rather than failing silently', () => {
     process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
-    process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = '2.0';
+    // A value unique to this test: the warning is deduped per declared value,
+    // so reusing '2.0' here would assert against a warning an earlier test
+    // already consumed.
+    process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = 'wrong-log-probe';
+    logger.error.mockClear();
     areGatedHealthFieldsEnabled();
     expect(logger.error).toHaveBeenCalled();
   });
@@ -248,5 +252,76 @@ describe('the escape hatch is a control, not a caution', () => {
   it('requires a consent version NEWER than the one currently shipped', () => {
     // Enabling must not be possible under the disclosure users already saw.
     expect(GATED_FIELDS_REQUIRE_CONSENT_VERSION).not.toBe('2.0');
+  });
+});
+
+describe('arrays are walked — the third appearance of one drift class', () => {
+  // Post-ship panel (ox-alpha) found the category matcher guarded recursion with
+  // `!Array.isArray(value)`, so array-nested keys sailed through while every
+  // consent surface said they were withheld. Reproduced live before fixing.
+  //
+  // Sequence worth remembering: an enumerated PATH list missed medicalConditions;
+  // the category matcher that replaced it missed ARRAY-nested keys. Each fix
+  // narrowed the hole without closing the SHAPE. These tests pin the shape.
+  it('strips gated keys nested inside arrays of objects', () => {
+    const { deIdentified } = deIdentify({
+      client: { id: 501, goals: ['x'] },
+      training: { level: 'intermediate' },
+      recoveryLogs: [{ date: '2026-08-01', sleepHours: 5, stressLevel: 8 }],
+      weeklyCheckins: [{ supplements: ['creatine'], sleepQuality: 'poor' }],
+    }, { clientId: 501 });
+
+    expect(deIdentified.recoveryLogs[0].sleepHours).toBeUndefined();
+    expect(deIdentified.recoveryLogs[0].stressLevel).toBeUndefined();
+    expect(deIdentified.weeklyCheckins[0].supplements).toBeUndefined();
+    expect(deIdentified.weeklyCheckins[0].sleepQuality).toBeUndefined();
+    // Non-gated siblings inside the same array element survive.
+    expect(deIdentified.recoveryLogs[0].date).toBe('2026-08-01');
+  });
+
+  it('strips through arrays nested inside arrays', () => {
+    const { deIdentified } = deIdentify({
+      client: { id: 501, goals: ['x'] },
+      training: { level: 'intermediate' },
+      blocks: [{ weeks: [{ sleepDebtHours: 12, notes: 'keep' }] }],
+    }, { clientId: 501 });
+
+    expect(deIdentified.blocks[0].weeks[0].sleepDebtHours).toBeUndefined();
+    expect(deIdentified.blocks[0].weeks[0].notes).toBe('keep');
+  });
+
+  it('records the array path in strippedFields so the audit trail is precise', () => {
+    const { strippedFields } = deIdentify({
+      client: { id: 501, goals: ['x'] },
+      training: { level: 'intermediate' },
+      recoveryLogs: [{ sleepHours: 5 }],
+    }, { clientId: 501 });
+
+    expect(strippedFields).toContain('recoveryLogs[0].sleepHours');
+  });
+
+  it('never strips training-safety data out of arrays', () => {
+    const { deIdentified } = deIdentify({
+      client: { id: 501, goals: ['x'] },
+      training: { level: 'intermediate' },
+      painAndInjuries: [{ area: 'left knee', severity: 7 }],
+      history: [{ injuries: ['ACL'], conditions: ['asthma'] }],
+    }, { clientId: 501 });
+
+    expect(deIdentified.painAndInjuries[0]).toEqual({ area: 'left knee', severity: 7 });
+    expect(deIdentified.history[0].injuries).toEqual(['ACL']);
+    expect(deIdentified.history[0].conditions).toEqual(['asthma']);
+  });
+
+  it('warns once per process about a consent-version mismatch, not once per call', () => {
+    process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
+    // A distinct value, so this exercises the once-per-VALUE guard rather than
+    // inheriting a warning another test already emitted.
+    process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = 'wrong-flood-probe';
+    logger.error.mockClear();
+    areGatedHealthFieldsEnabled();
+    areGatedHealthFieldsEnabled();
+    areGatedHealthFieldsEnabled();
+    expect(logger.error.mock.calls.length).toBeLessThanOrEqual(1);
   });
 });

@@ -522,10 +522,14 @@ const AiConsentScreen: React.FC = () => {
   // Owner decision Q5: v1.0 consents were captured under a description that
   // overstated anonymity, so they are re-prompted rather than silently carried
   // forward. Detection is a version comparison against the stored grant.
+  // A missing stored version must COUNT as stale, not skip the prompt. The first
+  // cut required a truthy consentVersion, which meant legacy records with a null
+  // version — the ones most likely to predate the corrected disclosure — silently
+  // skipped re-consent. Fail-open on precisely the wrong population (ox-alpha,
+  // post-ship panel).
   const needsReconsent =
     consentState === 'granted'
-    && !!status?.profile?.consentVersion
-    && status.profile.consentVersion !== AI_CONSENT_VERSION;
+    && (status?.profile?.consentVersion ?? null) !== AI_CONSENT_VERSION;
 
   const formatDate = (dateStr: string | null | undefined): string => {
     if (!dateStr) return '—';
