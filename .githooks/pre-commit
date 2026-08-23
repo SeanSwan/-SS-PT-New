@@ -37,4 +37,42 @@ EOF
 fi
 
 echo "[pre-commit] Secret scan: CLEAN"
+
+# ── Lane-staged guard ────────────────────────────────────────────────────────
+# Refuses a commit carrying files this session never claimed.
+#
+# WHY: Claude and Codex share ONE git index. `git add` by A followed by `git commit`
+# by B puts A's files in B's commit. Observed three times in 24 hours, including once
+# by the agent that had documented it the day before. Lane discipline cannot prevent
+# it — it is a property of the shared index, not of protocol compliance. Five of six
+# hostile panel seats ranked it P0, above every other open item.
+#
+# OPT-IN BY CLAIMING, deliberately. No lane published -> the guard allows and says so.
+# Forcing lane discipline onto every commit is how this becomes the gate everyone
+# disables, and a disabled gate protects nothing. Claiming opts you in, and claiming
+# is already the house rule (Rule 67 R2).
+#
+# Runs AFTER the secret scan: a leaked credential outranks a lane violation.
+#
+# FAIL-OPEN ON ITS OWN BUGS, LOUDLY. Only the guard's deliberate exit 2 blocks. Any
+# other non-zero — node absent, a crash, a bad parse — allows the commit and prints
+# why. A pre-commit hook that bricks committing gets deleted within a day.
+#
+# Escape hatches, both greppable after the fact:
+#   node scripts/lane-staged-guard.mjs --allow-foreign   (deliberate, per-commit)
+#   git commit --no-verify                               (skips this and the scanner)
+LANE_GUARD="$REPO_ROOT/scripts/lane-staged-guard.mjs"
+if [[ -f "$LANE_GUARD" ]] && command -v node >/dev/null 2>&1; then
+  set +e
+  node "$LANE_GUARD"
+  LANE_RC=$?
+  set -e
+  if [[ $LANE_RC -eq 2 ]]; then
+    echo "[pre-commit] COMMIT BLOCKED by lane-staged guard (see above)." >&2
+    exit 1
+  elif [[ $LANE_RC -ne 0 ]]; then
+    echo "[pre-commit] lane-staged guard errored (rc=$LANE_RC) — allowing commit (fail-open)." >&2
+  fi
+fi
+
 exit 0
