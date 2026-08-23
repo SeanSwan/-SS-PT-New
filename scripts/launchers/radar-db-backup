@@ -1,0 +1,252 @@
+#!/usr/bin/env bash
+#
+# radar-db-backup — a backup of radar's SwanGuard Postgres that is PROVEN restorable.
+# ADDED 2026-08-23 (SWA-202). Companion to the SwanStudios production DB backup; this
+# closes the last uncovered database in the house.
+#
+# WHY IT LOOKS LIKE THIS
+#   A dump that exits 0 is not a backup, it is a file. The only thing separating the two
+#   is having restored it. So every run restores what it just dumped into a scratch
+#   database, compares TABLE COUNT and ROW COUNT against the live database, and DELETES
+#   the dump if that fails. A file surviving in the backup directory is one that something
+#   actually restored. This mirrors backend/scripts/backup-db.mjs (SWA-122) in SS-PT.
+#
+#   pg_dump runs INSIDE the container, not on the host. radar has no postgres client tools
+#   and does not need any: exec'ing into the container guarantees the dump utility matches
+#   the server version exactly, which is the usual source of restore failures.
+#
+#   No password is handled anywhere. Inside the container, psql/pg_dump connect over the
+#   local socket as the owning role without one — the same access path radar-health already
+#   uses. Nothing here reads, prints, or passes a credential (CLAUDE.md rules 44/59).
+#
+#   docker is reached with `sudo -n` on purpose: the service account is deliberately NOT in
+#   the docker group, because docker group membership is root-equivalent.
+#
+# DESIGN RULE INHERITED FROM radar-health: a check that CANNOT RUN reports "unknown", never
+# "bad". Reporting a failure you did not observe is how a monitor loses its meaning. But a
+# backup that cannot run is still a backup that did not happen, so "unknown" is a non-zero
+# exit here — it is never allowed to look like success.
+#
+# WHAT IS NOT BACKED UP: container images, node_modules, build output. All reinstallable.
+# This is the DATA layer only, matching the CODE/BRAIN/IDENTITY split from SWA-57.
+#
+# USAGE:  radar-db-backup [--keep N] [--verify-only] [--help]
+# EXIT:   0 = a restore-verified dump exists · 1 = verification FAILED · 2 = could not run
+#
+set -uo pipefail
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+DEST=${RADAR_DB_BACKUP_DIR:-/srv/radar/backups/db}
+STATUS=/srv/radar/logs/db-backup.json
+CONTAINER=radar-postgres-1
+DB=swanguard
+DBUSER=swanguard
+KEEP=10
+VERIFY_ONLY=false
+TS_ISO="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --keep) KEEP="${2:-10}"; shift 2 ;;
+    --verify-only) VERIFY_ONLY=true; shift ;;
+    --help|-h)
+      echo "usage: radar-db-backup [--keep N] [--verify-only]"
+      echo "  Dumps radar's SwanGuard Postgres, then PROVES it restorable by restoring into"
+      echo "  a scratch database and comparing table + row counts. Deletes any dump that fails."
+      echo "  Exit 0 = restore-verified dump exists, 1 = verification failed, 2 = could not run."
+      exit 0 ;;
+    *) echo "unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+mkdir -p "$DEST" /srv/radar/logs 2>/dev/null || true
+
+# write_status <state> <detail-json-fragment>
+write_status() {
+  printf '{"status":"%s","ts":"%s",%s}\n' "$1" "$TS_ISO" "$2" > "$STATUS" 2>/dev/null || true
+}
+say() { echo "$*"; }
+# A run that could not observe the system is NOT a success. Exit 2, status "unknown".
+cannot_run() {
+  local m; m="$(printf '%s' "$1" | tr -d '"' | tr '\n' ' ' | cut -c1-200)"
+  write_status unknown "\"reason\":\"$m\""
+  say "DB-BACKUP UNKNOWN $TS_ISO — $m" >&2
+  exit 2
+}
+failed() {
+  local m; m="$(printf '%s' "$1" | tr -d '"' | tr '\n' ' ' | cut -c1-200)"
+  write_status error "\"error\":\"$m\""
+  say "DB-BACKUP FAILED $TS_ISO — $m" >&2
+  exit 1
+}
+
+# ROOT IS REQUIRED, so say so once and stop — do not half-run. Three separate things here
+# need it: the docker socket, the /run lock, and the backup directory (2750 root:radaragent).
+# An earlier revision carried a `sudo -n docker` fallback for non-root callers; it was
+# UNREACHABLE, because the /run lock below already fails for them. Failing fast with a usable
+# message beats a fallback that cannot be reached.
+if [ "$(id -u)" -ne 0 ]; then
+  echo "DB-BACKUP UNKNOWN $TS_ISO — must run as root (try: sudo $0)" >&2
+  exit 2
+fi
+
+# Only one instance at a time. WHY THIS IS NOT OPTIONAL: the orphan-reap below drops every
+# sg_restoretest_% database it finds. A second concurrent run would drop the FIRST run's
+# scratch database mid-restore, failing a healthy backup and deleting a good dump.
+LOCK=/run/radar-db-backup.lock
+# NOTE: no `2>/dev/null` on this exec. `exec` with redirections and NO command changes the
+# shell's descriptors PERMANENTLY — `exec 9>f 2>/dev/null` would silently discard stderr for
+# the entire run, so every failure message (and the systemd journal) would go dark while the
+# happy path still looked fine. Measured 2026-08-23; it shipped that way for one round.
+exec 9>"$LOCK" || { echo "DB-BACKUP UNKNOWN $TS_ISO — cannot open lock $LOCK" >&2; exit 2; }
+if ! flock -n 9; then
+  # Deliberately does NOT write the status file: the run holding the lock owns it, and
+  # clobbering its result with "another run was blocked" would hide a real success.
+  echo "DB-BACKUP SKIPPED $TS_ISO — another radar-db-backup holds the lock" >&2; exit 2
+fi
+
+# Already root under systemd, so call docker directly: `sudo -n docker` would be a no-op
+# escalation costing a PAM session and a journal line PER CALL — measured 2026-08-23, it
+# buried the backup output under pam_unix noise.
+d() { docker "$@"; }
+# psql inside the container, tuples-only, whitespace stripped.
+q()  { d exec "$CONTAINER" psql -U "$DBUSER" -d "${2:-$DB}" -tAc "$1" 2>/dev/null | tr -d ' \r'; }
+qa() { d exec "$CONTAINER" psql -U "$DBUSER" -d postgres  -tAc "$1" 2>/dev/null | tr -d ' \r'; }
+
+# ---- preflight: distinguish "cannot observe" from "unhealthy" ----------------------
+d ps >/dev/null 2>&1 || cannot_run "cannot reach the docker API (sudo -n docker failed)"
+[ -n "$(d ps --filter "name=$CONTAINER" --format '{{.Names}}' | head -1)" ] \
+  || cannot_run "container $CONTAINER is not running"
+[ "$(q 'select 1')" = "1" ] || cannot_run "postgres in $CONTAINER is not answering"
+[ -d "$DEST" ] && [ -w "$DEST" ] || cannot_run "backup directory not writable: $DEST"
+
+# ---- reap scratch databases orphaned by a killed run --------------------------------
+# A run killed between CREATE and DROP leaves one behind. On a headless box nobody notices,
+# so every run cleans up before it starts.
+for orphan in $(qa "select datname from pg_database where datname like 'sg_restoretest_%'"); do
+  qa "drop database if exists \"$orphan\"" >/dev/null 2>&1
+  say "  reaped       : leftover scratch database $orphan"
+done
+
+# ---- source truth -------------------------------------------------------------------
+SRC_TABLES="$(q "select count(*) from information_schema.tables where table_schema='public'")"
+case "$SRC_TABLES" in ''|*[!0-9]*) cannot_run "could not count source tables" ;; esac
+[ "$SRC_TABLES" -gt 0 ] || failed "source database reports 0 tables — refusing to call that a backup"
+
+SRC_EXACT="$(q "select coalesce(sum(n),0) from (select (xpath('/row/c/text()', query_to_xml(
+  format('select count(*) as c from %I.%I', table_schema, table_name), false, true, '')))[1]::text::bigint as n
+  from information_schema.tables where table_schema='public' and table_type='BASE TABLE') s")"
+case "$SRC_EXACT" in ''|*[!0-9]*) SRC_EXACT=0 ;; esac
+
+say "=== radar SwanGuard database backup (pg_dump -Fc + real restore test) ==="
+say "  source       : $SRC_TABLES tables, $SRC_EXACT rows (exact)"
+
+# Everything inside the swanguard database is dumped automatically — no include list to drift (that is exactly
+# how the Hermes vault fell out of its backup for 12 nights). But a SECOND database added to
+# this instance later would be silently uncovered. Name it rather than stay quiet.
+UNBACKED="$(qa "select coalesce(string_agg(datname, ',' order by datname), '') from pg_database
+  where datistemplate = false and datname not in ('postgres', '$DB')
+  and datname not like 'sg_restoretest_%'")"
+if [ -n "$UNBACKED" ]; then
+  say "  WARNING      : database(s) in this instance are NOT covered by this job: $UNBACKED"
+fi
+
+# ---- verify_dump <file> : the only step that matters --------------------------------
+verify_dump() {
+  local f="$1" base scratch rc
+  base="$(basename "$f")"
+  scratch="sg_restoretest_$$"
+
+  # 1. archive header + table of contents. Cheap, and catches a truncated file.
+  local objs
+  objs="$(d exec -i "$CONTAINER" pg_restore --list < "$f" 2>/dev/null | grep -c '^[0-9]')"
+  case "$objs" in ''|*[!0-9]*) objs=0 ;; esac
+  [ "$objs" -gt 0 ] || { say "  archive check: FAILED — unreadable table of contents"; return 1; }
+  say "  archive check: OK — $objs objects"
+
+  # 2. the real test: restore it and compare. Scratch db is dropped no matter what.
+  qa "drop database if exists \"$scratch\"" >/dev/null 2>&1
+  if [ "$(qa "select 1 from (select 1) x where exists (select 1 from pg_roles where rolname='$DBUSER' and rolcreatedb)")" != "1" ] \
+     && [ "$(qa "select 1 from pg_roles where rolname='$DBUSER' and rolsuper")" != "1" ]; then
+    qa "drop database if exists \"$scratch\"" >/dev/null 2>&1
+    say "  restore test : CANNOT RUN — role $DBUSER lacks rolcreatedb/rolsuper"
+    return 2
+  fi
+  qa "create database \"$scratch\"" >/dev/null 2>&1 || {
+    say "  restore test : FAILED — could not create scratch database"; return 1; }
+
+  d exec -i "$CONTAINER" pg_restore --no-owner --no-privileges -U "$DBUSER" -d "$scratch" < "$f" \
+    >/dev/null 2>&1
+  # pg_restore exits non-zero on benign warnings; the comparison below is the real verdict.
+
+  local got_tables got_exact
+  got_tables="$(d exec "$CONTAINER" psql -U "$DBUSER" -d "$scratch" -tAc \
+    "select count(*) from information_schema.tables where table_schema='public'" 2>/dev/null | tr -d ' \r')"
+  got_exact="$(d exec "$CONTAINER" psql -U "$DBUSER" -d "$scratch" -tAc \
+    "select coalesce(sum(n),0) from (select (xpath('/row/c/text()', query_to_xml(
+      format('select count(*) as c from %I.%I', table_schema, table_name), false, true, '')))[1]::text::bigint as n
+      from information_schema.tables where table_schema='public' and table_type='BASE TABLE') s" 2>/dev/null | tr -d ' \r')"
+  case "$got_tables" in ''|*[!0-9]*) got_tables=0 ;; esac
+  case "$got_exact"  in ''|*[!0-9]*) got_exact=0 ;; esac
+
+  qa "drop database if exists \"$scratch\"" >/dev/null 2>&1
+
+  if [ "$got_tables" -lt "$SRC_TABLES" ] || [ "$got_exact" -lt "$SRC_EXACT" ]; then
+    say "  restore test : FAILED — restored $got_tables tables / $got_exact rows, source has $SRC_TABLES / $SRC_EXACT"
+    return 1
+  fi
+  say "  restore test : OK — restored $got_tables tables, $got_exact rows, >= source"
+  return 0
+}
+
+# ---- verify-only mode ----------------------------------------------------------------
+if [ "$VERIFY_ONLY" = "true" ]; then
+  n=0; bad=0
+  for f in $(ls -1t "$DEST"/swanguard-*.dump 2>/dev/null); do
+    say "  checking     : $(basename "$f")"
+    verify_dump "$f"; rc=$?
+    n=$((n+1)); [ $rc -eq 1 ] && bad=$((bad+1))
+  done
+  say "  verified     : $n dump(s), $bad failed"
+  [ "$bad" -eq 0 ] || failed "$bad existing dump(s) failed verification"
+  write_status ok "\"mode\":\"verify-only\",\"checked\":$n,\"failed\":$bad"
+  exit 0
+fi
+
+# ---- dump ------------------------------------------------------------------------------
+OUT="$DEST/swanguard-$STAMP.dump"
+# No TTY: -t would corrupt the binary stream. Custom format is already compressed.
+if ! d exec -i "$CONTAINER" pg_dump -Fc -U "$DBUSER" -d "$DB" > "$OUT" 2>/tmp/radar-db-backup.err; then
+  rm -f "$OUT"
+  failed "pg_dump failed: $(tail -2 /tmp/radar-db-backup.err | tr -d '\n')"
+fi
+[ -s "$OUT" ] || { rm -f "$OUT"; failed "pg_dump produced an empty file"; }
+SIZE="$(du -h "$OUT" | cut -f1)"
+say "  target       : $OUT"
+say "  size         : $SIZE"
+
+verify_dump "$OUT"; VRC=$?
+if [ "$VRC" -eq 1 ]; then
+  # A corrupt dump is WORSE than none: it stops you looking for a real backup.
+  rm -f "$OUT"
+  failed "dump failed its restore test and was DELETED (no trustworthy backup was written)"
+elif [ "$VRC" -eq 2 ]; then
+  rm -f "$OUT"
+  cannot_run "restore test could not run; dump discarded rather than kept unproven"
+fi
+
+# ---- retention -------------------------------------------------------------------------
+KEPT=0
+for f in $(ls -1t "$DEST"/swanguard-*.dump 2>/dev/null); do
+  KEPT=$((KEPT+1))
+  [ "$KEPT" -gt "$KEEP" ] && rm -f "$f" && say "  pruned       : $(basename "$f")"
+done
+KEPT="$(ls -1 "$DEST"/swanguard-*.dump 2>/dev/null | wc -l)"
+say "  retained     : $KEPT dump(s) (keep=$KEEP)"
+say ""
+say "  RESTORE:  sudo docker exec -i $CONTAINER psql -U $DBUSER -d postgres -c 'create database restored'"
+say "            sudo docker exec -i $CONTAINER pg_restore --no-owner -U $DBUSER -d restored < <dump-file>"
+
+write_status ok "\"dump\":\"$(basename "$OUT")\",\"size\":\"$SIZE\",\"tables\":$SRC_TABLES,\"rows\":$SRC_EXACT,\"retained\":$KEPT,\"uncovered_databases\":\"$UNBACKED\""
+exit 0
