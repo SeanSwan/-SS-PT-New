@@ -209,6 +209,14 @@ const seatsToRun = requested.filter((n) => confirmSpend || !SEATS[n].paid);
 
 if (dryRun) {
   console.log('\n[panel] --dry-run — nothing was sent, nothing was spent.');
+  // A dry-run must PREVIEW the real run's outcome, including its exit code. Without
+  // this, `--seats fable --dry-run` exited 0 while the identical run without
+  // --dry-run exits 1 for zero coverage — so the preview contradicted the thing it
+  // previews, which is the one job it has. Caught by a panel seat in round 3.
+  if (!seatsToRun.length) {
+    console.error('[panel] …and the real run would review NOTHING (every requested seat is gated). Exiting 1 to match.');
+    process.exit(1);
+  }
   process.exit(0);
 }
 if (skipped.length) {

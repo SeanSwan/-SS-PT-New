@@ -135,7 +135,10 @@ const prompt = [
   body,
 ].filter(Boolean).join('\n\n');
 
-console.error(`[consult-gemini-panel] model=${model} doc=${document} chars=${body.length} key=present(${apiKey.length}ch) — direct Google API`);
+// Presence only — NOT the length. A panel seat flagged that printing `(39ch)` is a
+// small but free gift to anyone reading logs: it fixes the key's exact size and so
+// narrows the search space. Presence is the only fact this line needs to convey.
+console.error(`[consult-gemini-panel] model=${model} doc=${document} chars=${body.length} key=present — direct Google API`);
 
 const controller = new AbortController();
 const timer = setTimeout(() => controller.abort(), timeoutMs);

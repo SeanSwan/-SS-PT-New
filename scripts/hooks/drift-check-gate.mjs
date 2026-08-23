@@ -32,7 +32,7 @@
  * any error exits 0 silently rather than blocking a session.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -175,6 +175,31 @@ try {
    */
   const tokenize = (cmd) => (String(cmd).match(/(?:"[^"]*"|'[^']*'|[^\s"'])+/g) || [])
     .map((t) => t.replace(/["']/g, ''));
+
+  // ROUND 3 REDESIGN — asserting MISSING requires an unambiguous command.
+  //
+  // Three rounds of panel review each broke the previous shell-parsing attempt, in
+  // alternating directions: v1 under-matched, v2 phantomed on $VAR and went blind on
+  // absolute paths, v3 phantomed on `~/` and `sh -c '...'` while going silent on
+  // `x.mjs;echo` (metacharacter glued to the token defeats the $-anchored extension
+  // test — the ORIGINAL outage shape, reopened by the fix for it).
+  //
+  // The pattern in those failures is not a missing case. It is that a static checker
+  // cannot faithfully parse arbitrary shell, and every patch that made one direction
+  // safer made the other worse. So stop trying to be right about every command and
+  // become HONEST about which ones can be judged:
+  //
+  //   simple command  -> assert. `<interpreter> <plain-path> [plain args]`, no shell
+  //                      metacharacters anywhere, no globs, no interpolation. Here a
+  //                      non-existent file is a real finding.
+  //   anything else   -> UNVERIFIED. Reported as "could not check", never as clean
+  //                      and never as missing.
+  //
+  // This trades some coverage for zero phantoms and zero false clean. Both wrong
+  // answers are eliminated; what remains is an honest "I could not judge this one",
+  // which a human can action. A checker that says "unknown" is useful; one that says
+  // "clean" when it did not look is the thing this whole check exists to destroy.
+  const SHELL_META = /[;&|><`$(){}*?~!#\n]|\\\s/;   // anything that changes word meaning
   const missing = [];
   const unresolvable = [];
   const unreadable = [];
@@ -209,29 +234,60 @@ try {
           continue;
         }
         for (const hook of group.hooks) {
-          for (const rawTok of tokenize(hook?.command || '')) {
+          const cmd = hook?.command;
+          const where = `${event}, ${name}`;
+
+          // An entry with no usable command registers nothing. Silently skipping it
+          // is the same silence-means-clean pathology one level further down —
+          // caught by a panel seat in round 3 after round 2 fixed only the group level.
+          if (typeof cmd !== 'string' || !cmd.trim()) {
+            unresolvable.push(`a hook entry under ${where} has no usable "command" string — it registers nothing`);
+            continue;
+          }
+
+          // A COMPLEX command is judged whole and never tokenised. `x.mjs;echo`
+          // glues a metacharacter to the path, so the token fails the $-anchored
+          // extension test and would be dropped BEFORE any per-token gate could see
+          // it — silent, which is the original outage shape. So when the command
+          // uses shell syntax, look for a script extension ANYWHERE in it (unanchored)
+          // and emit one command-level "not verified". Under-specific on purpose:
+          // naming the file would mean parsing the shell, which is what failed three
+          // times. "This registration was not checked" is the honest, actionable claim.
+          if (SHELL_META.test(cmd) || /%[A-Za-z_][A-Za-z0-9_]*%/.test(cmd)) {
+            if (/\.(?:mjs|cjs|js|ts|mts|cts|sh|bash|ps1|py|rb)\b/i.test(cmd)) {
+              const key = `${event}:${cmd}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                unresolvable.push(`${where}: \`${cmd.slice(0, 90)}\` — uses shell syntax (variable, glob, operator or subshell); existence NOT verified`);
+              }
+            }
+            continue;
+          }
+
+          for (const rawTok of tokenize(cmd)) {
             const tok = rawTok.replace(/\\/g, '/');
             if (!SCRIPT_EXT.test(tok)) continue;          // not a script argument
             // A remote URL ending in .sh is not a local file and must never be
             // reported missing — `curl https://host/x.sh` would otherwise phantom.
             if (URL_SCHEME.test(tok)) continue;
+            // A quoted subcommand (`sh -c 'node scripts/x.mjs'`) survives tokenising
+            // as one space-bearing token. It is a command, not a path.
+            if (/\s/.test(tok)) continue;
 
             const key = `${event}:${tok}`;
             if (seen.has(key)) continue;
             seen.add(key);
 
-            // Unexpanded shell/env interpolation ($VAR, ${VAR}, %VAR%). We cannot
-            // resolve it and must NOT claim it missing — that phantom is what makes
-            // an operator stop reading the gate. Say we could not check it instead.
-            if (/[$%{}]/.test(tok)) {
-              unresolvable.push(`${tok} (${event}, ${name}) — contains an unexpanded variable; existence NOT verified`);
-              continue;
-            }
+            // (complex commands never reach here — they are handled whole, above)
 
             // Absolute: POSIX /…, Windows C:/…, or UNC //host/share.
             const isAbs = tok.startsWith('/') || /^[A-Za-z]:\//.test(tok);
             const abs = isAbs ? tok : join(SS_PT, tok);
-            if (!existsSync(abs)) missing.push(`${tok} (${event}, ${name})`);
+            // isFile, not exists: a DIRECTORY named `x.mjs` satisfies existsSync and
+            // would let a phantom registration read as healthy (panel round 3).
+            let ok = false;
+            try { ok = statSync(abs).isFile(); } catch { ok = false; }
+            if (!ok) missing.push(`${tok} (${where})`);
           }
         }
       }
