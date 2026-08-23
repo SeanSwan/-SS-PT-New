@@ -135,7 +135,8 @@ export const AI_CONSENT_DISCLOSURE =
   'fitness profile through a Swan Coach provider to generate personalized workout ' +
   'plans. Direct identifiers — your name, contact details, date of birth, insurance ' +
   'information, medications, surgeries, and physician names — are removed before ' +
-  'transmission. Training-relevant data, including your goals, measurements, ' +
+  'transmission, as are your supplement, sleep and stress data. ' +
+  'Training-relevant data, including your goals, measurements, ' +
   'injury and pain history, and medical conditions that affect exercise, is sent ' +
   'alongside a stable client ID. Because that ' +
   'identifier is stable, this is de-identified processing rather than anonymous ' +
