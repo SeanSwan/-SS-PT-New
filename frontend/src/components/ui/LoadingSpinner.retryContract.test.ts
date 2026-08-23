@@ -14,20 +14,23 @@ const workoutLoggerViewSource = readFileSync(
   resolve(srcDir, './components/TrainerDashboard/WorkoutLogging/EnhancedWorkoutLogger.view.tsx'),
   'utf8'
 );
-const clientsViewSource = readFileSync(
-  resolve(srcDir, './components/TrainerDashboard/ClientManagement/MyClientsView.tsx'),
-  'utf8'
-);
+// The trainer client-roster assertions previously read
+// components/TrainerDashboard/ClientManagement/MyClientsView.tsx — an unmounted legacy tree deleted
+// 2026-08-23 (audit F3). Those assertions covered `aria-busy="true"`,
+// `aria-label="Loading your clients"` and `onClick={handleRefresh}`.
+//
+// They are NOT re-pointed at the live client hub, because the live hub does not yet satisfy them:
+// ClientsWorkspace.view.tsx:236 renders `<LoadingPulse>Loading clients...</LoadingPulse>` with no
+// aria-busy/role=status, and its load-error path (line ~270) tells the user to "reload the page"
+// instead of offering an in-place retry — the exact anti-pattern this very contract exists to ban.
+// Re-pointing would land a red test on main; deleting silently would retire the guarantee.
+// Tracked instead as a real defect on SWA-64. Restore assertions here once the hub is fixed.
 
 describe('LoadingSpinner retry contract', () => {
   it('restarts its own timeout state instead of reloading the page', () => {
     expect(workoutLoggerSource).toContain("import EnhancedWorkoutLoggerView from './EnhancedWorkoutLogger.view'");
     expect(workoutLoggerSource).toContain('onRetry={loadClientData}');
     expect(workoutLoggerViewSource).toContain("import { LoadingSpinner } from '../../ui/LoadingSpinner'");
-    expect(clientsViewSource).toContain('aria-busy="true"');
-    expect(clientsViewSource).toContain('aria-label="Loading your clients"');
-    expect(clientsViewSource).toContain('onClick={handleRefresh}');
-
     expect(spinnerSource).not.toContain('window.location.reload()');
     expect(spinnerSource).toContain('const [retryNonce, setRetryNonce] = useState(0);');
     expect(spinnerSource).toContain('const [loadStartTime, setLoadStartTime] = useState(() => Date.now());');

@@ -50,12 +50,12 @@ export const WorkoutLogger = React.lazy(() => import('../WorkoutLogger/WorkoutLo
 export const AdminPersonalWorkoutLogger = React.lazy(() => import('../WorkoutLogger/AdminPersonalWorkoutLogger'));
 export const NASMProgressCharts = React.lazy(() => import('../ClientProgressCharts'));
 export const TheAestheticCodex = React.lazy(() => import('../../core/TheAestheticCodex'));
-// MyClientsView (TrainerDashboard/ClientManagement) intentionally has NO lazy export.
-// The trainer client surface is TrainerClientsWorkspace -> <ClientsWorkspace audience="trainer" />
-// (see UniversalDashboardLayout.routes.tsx, trainer '/clients'). The ClientManagement tree is
-// legacy and unmounted; it survives only because clientCardSystem.contract.test.ts and
-// LoadingSpinner.retryContract.test.ts still read its files. Re-adding an export here would make
-// dead code look mountable again. Audit: DASHBOARD-CONVERGENCE-AUDIT-RECORD-2026-08-22.md (F3).
+// There is intentionally NO MyClientsView export here. The trainer client surface is
+// TrainerClientsWorkspace -> <ClientsWorkspace audience="trainer" /> (see
+// UniversalDashboardLayout.routes.tsx, trainer '/clients'). The legacy
+// TrainerDashboard/ClientManagement tree that this once pointed at was deleted 2026-08-23; its
+// card-parity law now guards the shared ClientHubGridCard instead (clientCardSystem.contract.test.ts).
+// Audit: DASHBOARD-CONVERGENCE-AUDIT-RECORD-2026-08-22.md (F1/F3).
 export const EnhancedWorkoutLogger = React.lazy(() => import('../TrainerDashboard/WorkoutLogging'));
 export const EnhancedClientProgressView = React.lazy(() =>
   import('../TrainerDashboard/ClientProgress').then((module) => ({
