@@ -280,8 +280,54 @@ export function hashPayload(payload) {
  * TRAINING-SAFETY OVERRIDE: injuries, pain, measurements and medical conditions
  * are never gated no matter where they appear — see TRAINING_SAFETY_PATHS.
  */
-const GATED_KEY_PATTERN = /(sleep|stress|supplement)/i;
-const SAFETY_KEY_PATTERN = /(injur|pain|measurement|condition)/i;
+/**
+ * A key is gated only when it is RECOGNISABLY A LIFESTYLE METRIC — the gated
+ * concept, optionally followed by a measurement word.
+ *
+ * This default is inverted on purpose, and it is the most important decision in
+ * this file. The first cut gated anything containing sleep/stress/supplement and
+ * exempted a list of clinical words. That stripped `stressFracture`,
+ * `sleepApnea` and `supplementalOxygenNeeded` — a tibial stress fracture,
+ * moderate apnea and an oxygen requirement, every one an exercise
+ * contraindication (GLM 5.3, post-ship panel). Widening the clinical exemption
+ * list then missed `stressEchocardiogram`, caught by our own test. Clinical
+ * vocabulary cannot be enumerated; that is the same trap that already produced
+ * three defects in this workstream.
+ *
+ * THE ASYMMETRY: over-gating removes what keeps programming safe and can hurt
+ * someone. Under-gating leaks a lifestyle metric, which the consent copy can
+ * disclose honestly. Those are not equivalent, so an unrecognised key is KEPT.
+ *
+ *   gated  — sleep, sleepHours, sleepQuality, sleepDebtHours, stress,
+ *            stressLevel, stressScore, supplements, supplementStack
+ *   kept   — stressFracture, sleepApnea, supplementalOxygenNeeded,
+ *            stressEchocardiogram, and any clinical term we never thought of
+ */
+const GATED_CONCEPT = /^(sleep|stress|supplement)/i;
+const METRIC_SUFFIX = /^(s|es)?$|(hour|hr|quality|level|score|rating|debt|duration|minute|night|intake|taken|stack|count|avg|average|per)/i;
+
+/** Last path segment of every protected path, so the exported list is LOAD-BEARING. */
+const SAFETY_KEY_NAMES = new Set(
+  TRAINING_SAFETY_PATHS.map((p) => p.split('.').pop().toLowerCase()),
+);
+
+/**
+ * True when this key is a gated lifestyle metric.
+ *
+ * TRAINING_SAFETY_PATHS is consulted here by name. That export previously
+ * described itself as the protective list and was asserted by a test, while the
+ * stripper decided purely on a regex and never read it — so the documented
+ * procedure ("add a path here to protect it") changed nothing. It is now
+ * actually consulted, which is the difference between a comment and a control.
+ */
+function isGatedLifestyleKey(key) {
+  const name = String(key);
+  if (SAFETY_KEY_NAMES.has(name.toLowerCase())) return false;
+  const m = name.match(GATED_CONCEPT);
+  if (!m) return false;
+  const remainder = name.slice(m[0].length);
+  return METRIC_SUFFIX.test(remainder);
+}
 
 /**
  * Walk the payload and delete any key whose NAME matches a gated category.
@@ -293,7 +339,7 @@ function stripGatedHealthFields(node, strippedFields, prefix = '') {
   for (const key of Object.keys(node)) {
     const path = prefix ? `${prefix}.${key}` : key;
 
-    if (GATED_KEY_PATTERN.test(key) && !SAFETY_KEY_PATTERN.test(key)) {
+    if (isGatedLifestyleKey(key)) {
       delete node[key];
       strippedFields.push(path);
       logger.info('[DeIdentification] gated health field withheld', { field: path });

@@ -325,3 +325,58 @@ describe('arrays are walked — the third appearance of one drift class', () => 
     expect(logger.error.mock.calls.length).toBeLessThanOrEqual(1);
   });
 });
+
+describe('clinical terms survive the category matcher', () => {
+  // GLM 5.3 (post-ship panel): the matcher gated any key containing
+  // sleep/stress/supplement, so `stressFracture`, `sleepApnea` and
+  // `supplementalOxygenNeeded` were stripped — a tibial stress fracture,
+  // moderate apnea and an oxygen requirement removed from what Coach can see.
+  // All three are exercise contraindications. Reproduced before fixing.
+  //
+  // The asymmetry these tests defend: over-gating can hurt someone,
+  // under-gating leaks a lifestyle metric. Ambiguity resolves toward KEEPING.
+  const clinical = {
+    stressFracture: 'left tibia 2024',
+    sleepApnea: 'moderate, uses CPAP',
+    supplementalOxygenNeeded: true,
+    stressEchocardiogram: 'normal',
+    sleepDisorderDiagnosis: 'insomnia',
+  };
+
+  it('keeps clinical keys even though they contain gated tokens', () => {
+    const { deIdentified } = deIdentify({
+      client: { id: 501, goals: ['x'] }, training: { level: 'i' }, health: { ...clinical },
+    }, { clientId: 501 });
+
+    for (const [key, value] of Object.entries(clinical)) {
+      expect(deIdentified.health[key]).toEqual(value);
+    }
+  });
+
+  it('still gates the lifestyle metrics in the same payload', () => {
+    const { deIdentified } = deIdentify({
+      client: { id: 501, goals: ['x'] }, training: { level: 'i' },
+      health: { ...clinical, sleepHours: 5, stressLevel: 8, supplements: ['creatine'] },
+    }, { clientId: 501 });
+
+    expect(deIdentified.health.sleepHours).toBeUndefined();
+    expect(deIdentified.health.stressLevel).toBeUndefined();
+    expect(deIdentified.health.supplements).toBeUndefined();
+    expect(deIdentified.health.stressFracture).toBe('left tibia 2024');
+  });
+
+  it('TRAINING_SAFETY_PATHS is LOAD-BEARING, not decorative', () => {
+    // It previously described itself as the protective list, was asserted by a
+    // test, and was never read by the stripper. Adding a path did nothing. This
+    // proves the list is actually consulted: every protected leaf name survives
+    // even when it also matches a gated token.
+    for (const path of TRAINING_SAFETY_PATHS) {
+      const leaf = path.split('.').pop();
+      const { deIdentified } = deIdentify({
+        client: { id: 501, goals: ['x'] }, training: { level: 'i' },
+        health: { [leaf]: 'protected-value' },
+      }, { clientId: 501 });
+      expect(deIdentified.health[leaf]).toBe('protected-value');
+    }
+  });
+});

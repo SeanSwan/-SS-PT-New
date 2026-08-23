@@ -163,3 +163,35 @@ describe('P0 — participants being ADDED are validated, not just existing membe
     expect(res.status).toBe(200);
   });
 });
+
+describe('adminIds is validated in BOTH scopes, not just conversation', () => {
+  // Qwen 3.8 (post-ship panel) read the create scope as validating only
+  // participantIds — the manual extraction above the check is for the empty-body
+  // 400, and the authorization itself delegates to the shared helper. Disproven
+  // by reading, then pinned here so it can never become true.
+  beforeEach(() => {
+    resolveEntitlementMock.mockResolvedValue({ actualTier: 'free', effectiveTier: 'free', isTrial: false });
+  });
+
+  it('403s creating a thread that smuggles a stranger in via adminIds', async () => {
+    mockSql({ counterparties: [TRAINER_ID] });
+    const res = await request(appWith(freeClient, 'create'))
+      .post('/conversations').send({ participantIds: [TRAINER_ID], adminIds: [STRANGER_ID] });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('OUTSIDE_COACHING_RELATIONSHIP');
+  });
+
+  it('403s adding a stranger as admin to an existing trainer thread', async () => {
+    mockSql({ counterparties: [TRAINER_ID], participants: [CLIENT_ID, TRAINER_ID] });
+    const res = await request(appWith(freeClient, 'addParticipants'))
+      .post('/conversations/42/participants').send({ participantIds: [TRAINER_ID], adminIds: [STRANGER_ID] });
+    expect(res.status).toBe(403);
+  });
+
+  it('allows adminIds when every id is an assigned counterparty', async () => {
+    mockSql({ counterparties: [TRAINER_ID] });
+    const res = await request(appWith(freeClient, 'create'))
+      .post('/conversations').send({ participantIds: [TRAINER_ID], adminIds: [TRAINER_ID] });
+    expect(res.status).toBe(200);
+  });
+});
