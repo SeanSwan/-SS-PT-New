@@ -202,9 +202,22 @@ as absent — a local or nested call site would defeat a three-level module-scop
 1. **GLM's "grant the MCP a read-only toolset first" is not available as specified.** The server is
    all-or-nothing. The de-risk survives, but it **moves to the client**: Claude Code denies the
    dangerous tool names via permission rules in `.claude/settings.json`, e.g.
-   `mcp__comfyui__stop_comfyui` **and** `mcp__comfyui__launch_comfyui` (see the round-4
-   correction — denying only the latter is insufficient), plus `mcp__comfyui__download_model` and
+   `mcp__comfyui__stop_comfyui`, `mcp__comfyui__launch_comfyui` **and
+   `mcp__comfyui__restart_comfyui`**, plus `mcp__comfyui__download_model` and
    `mcp__comfyui__upload_file`.
+
+   **ROUND-8 CORRECTION — `restart_comfyui` must be on that list, and the reason is a client-side
+   deny-list's structural blind spot.** Its own description: *"Restart the LOCAL ComfyUI server:
+   stop the running one, then launch a fresh one. **Composes `stop_comfyui` + `launch_comfyui`**
+   (no `comfy restart` verb)."* A deny rule matches the **tool name the agent calls**, not what that
+   tool does internally — so denying `stop_comfyui` does nothing to a `restart_comfyui` call that
+   performs the identical stop inside the server process. Any future tool that composes a denied one
+   re-opens the hole silently. **A client deny-list must be audited against composition, not just
+   against names** — and re-audited on every `comfy-mcp` upgrade, because a new composing tool is
+   indistinguishable from a new safe one until someone reads it.
+
+   `launch_comfyui` corroborates round 4 from its own mouth: *"recording its pid so `stop_comfyui`
+   can shut it down."* `download_model` confirms as ungated. `free_memory` stays **off** the list.
    Read-only-first becomes a **deny-list in our config**, not a server capability — and that list is
    ours to audit and version. `free_memory` does **not** need denying on mid-render grounds.
 2. **S3's lease gate stays required.** Denying `stop_comfyui` + `launch_comfyui` closes the
