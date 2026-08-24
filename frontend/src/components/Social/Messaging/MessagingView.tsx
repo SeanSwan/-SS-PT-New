@@ -3,7 +3,7 @@
  * PURPOSE: Mounted SwanStudios messaging surface for direct and group chats.
  */
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import styled from 'styled-components';
 import { useAuth } from '../../../context/AuthContext';
@@ -17,6 +17,7 @@ import type { CreateConversationRequest } from './MessagingTypes';
 
 const MessagingView: React.FC = () => {
   const [showNewModal, setShowNewModal] = useState(false);
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const composeTo = searchParams.get('composeTo');
 
@@ -30,7 +31,12 @@ const MessagingView: React.FC = () => {
   // with the API in both directions — see useMessagingCapabilities for the
   // full account. A guard in useMessaging.tierGate.test.ts prevents that
   // expression from being reintroduced, so do not name it here verbatim.
-  const { capabilities, loading: capabilitiesLoading } = useMessagingCapabilities(!!currentUserId);
+  const {
+    capabilities,
+    loading: capabilitiesLoading,
+    error: capabilitiesError,
+    refresh: refreshCapabilities,
+  } = useMessagingCapabilities(!!currentUserId);
   const messagingEnabled = capabilities.canMessageAssignedCoach;
 
   const {
@@ -107,20 +113,57 @@ const MessagingView: React.FC = () => {
     return (
       <MessagingShell>
         <MessagingContainer>
-          <CenteredMessage>Loading...</CenteredMessage>
+          <CenteredMessage role="status" aria-live="polite">Loading your conversations…</CenteredMessage>
+        </MessagingContainer>
+      </MessagingShell>
+    );
+  }
+
+  // A failed capability lookup is NOT the same as "you lack access", and must
+  // never be rendered as one. Fail-closed is right for the ACCESS decision;
+  // telling a paying client with an active trainer that they need a trainer
+  // because the network blipped is a lie the UI tells on our behalf.
+  if (capabilitiesError) {
+    return (
+      <MessagingShell>
+        <MessagingContainer>
+          <StateBlock role="alert">
+            <StateTitle>We couldn&apos;t load your messages</StateTitle>
+            <StateBody>
+              This is on our side, not yours. Your conversations are safe.
+            </StateBody>
+            <StateAction type="button" onClick={refreshCapabilities}>
+              Try again
+            </StateAction>
+          </StateBlock>
         </MessagingContainer>
       </MessagingShell>
     );
   }
 
   if (!messagingEnabled) {
+    // The screen where someone decides whether to pay. It used to state the rule
+    // and offer nothing, which converts nobody and strands a client who simply
+    // has not been matched with a trainer yet.
     return (
       <MessagingShell>
         <MessagingContainer>
-          <CenteredMessage>
-            Messaging opens up when you have an active trainer, or with
-            Crystalline Swan access for member-to-member chat.
-          </CenteredMessage>
+          <StateBlock>
+            <StateTitle>Messaging opens up with a trainer</StateTitle>
+            <StateBody>
+              Message your trainer directly about workouts, form, pain or
+              scheduling — included with training, at any tier. Member-to-member
+              chat comes with Crystalline Swan.
+            </StateBody>
+            <StateActions>
+              <StateAction type="button" onClick={() => navigate('/dashboard/client/schedule')}>
+                Find a trainer
+              </StateAction>
+              <StateActionSecondary type="button" onClick={() => navigate('/ascension')}>
+                See Crystalline Swan
+              </StateActionSecondary>
+            </StateActions>
+          </StateBlock>
         </MessagingContainer>
       </MessagingShell>
     );
@@ -188,6 +231,69 @@ const MessagingView: React.FC = () => {
 };
 
 export default MessagingView;
+
+
+/* ── Empty / error states ───────────────────────────────────────────────────
+   These are the only thing a user sees when messaging is unavailable, so they
+   carry the same weight as the working surface: say what is true, and offer the
+   next step rather than stating a rule and stopping. */
+const StateBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100%;
+  padding: 32px 24px;
+  text-align: center;
+  max-width: 46ch;
+  margin: 0 auto;
+`;
+
+const StateTitle = styled.h2`
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, #E0ECF4);
+`;
+
+const StateBody = styled.p`
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--text-secondary, #A2B3C6);
+`;
+
+const StateActions = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 8px;
+`;
+
+const StateAction = styled.button`
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--accent-primary, #60C0F0);
+  color: var(--bg-base, #0A0A0F);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: box-shadow 160ms ease, transform 160ms ease;
+
+  &:hover { box-shadow: 0 0 0 3px var(--accent-glow, rgba(139, 92, 246, 0.35)); }
+  &:focus-visible { outline: 2px solid var(--accent-glow, #8B5CF6); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { transition: none; }
+`;
+
+const StateActionSecondary = styled(StateAction)`
+  background: transparent;
+  border-color: var(--border-soft, rgba(224, 236, 244, 0.22));
+  color: var(--text-primary, #E0ECF4);
+`;
 
 const MessagingShell = styled.div`
   display: flex;

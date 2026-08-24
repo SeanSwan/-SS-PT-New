@@ -235,3 +235,46 @@ describe('clinical terms survive the category matcher', () => {
     }
   });
 });
+
+describe('word-classifier: known lifestyle vocabulary gates, unknown words keep', () => {
+  // GLM 5.3, UX panel: the prefix+suffix shape was NARROWER than the risk the
+  // owner accepted — avgSleepHours, nightlyStress, sleepNotes, supplementRegimen,
+  // reportedStressLevel and typicalSleep all escaped, while the disclosure
+  // promised those categories were withheld. Third shape for this one defect
+  // class; this one asks a question with a bounded answer.
+  const gated = [
+    'avgSleepHours', 'nightlyStress', 'sleepNotes', 'supplementRegimen',
+    'reportedStressLevel', 'typicalSleep', 'sleep_debt_hours', 'supplements',
+  ];
+  const kept = [
+    'stressFracture', 'sleepApnea', 'supplementalOxygenNeeded', 'stressEchocardiogram',
+  ];
+
+  it.each(gated)('gates %s', (key) => {
+    const { deIdentified } = deIdentify({
+      client: { id: 501, goals: ['x'] }, training: { level: 'i' }, health: { [key]: 'v' },
+    }, { clientId: 501 });
+    expect(deIdentified.health[key]).toBeUndefined();
+  });
+
+  it.each(kept)('keeps %s — an unknown word means clinical', (key) => {
+    const { deIdentified } = deIdentify({
+      client: { id: 501, goals: ['x'] }, training: { level: 'i' }, health: { [key]: 'v' },
+    }, { clientId: 501 });
+    expect(deIdentified.health[key]).toBe('v');
+  });
+
+  it('logs the ambiguous keeps so unknown vocabulary stops being invisible', () => {
+    logger.warn.mockClear();
+    deIdentify({
+      client: { id: 501, goals: ['x'] }, training: { level: 'i' },
+      health: { stressFracture: 'tibia' },
+    }, { clientId: 501 });
+    const warned = logger.warn.mock.calls.filter(
+      ([m]) => typeof m === 'string' && m.includes('ambiguous health-ish key KEPT'),
+    );
+    expect(warned.length).toBeGreaterThan(0);
+    // Field NAME only, never the value (rules 8/44/59).
+    expect(JSON.stringify(warned[0][1])).not.toContain('tibia');
+  });
+});

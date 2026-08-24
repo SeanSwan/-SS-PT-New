@@ -281,30 +281,59 @@ export function hashPayload(payload) {
  * are never gated no matter where they appear — see TRAINING_SAFETY_PATHS.
  */
 /**
- * A key is gated only when it is RECOGNISABLY A LIFESTYLE METRIC — the gated
- * concept, optionally followed by a measurement word.
+ * A key is gated when every word in it is recognisable LIFESTYLE vocabulary.
+ * An unknown word means the key is probably clinical, and it is KEPT.
  *
- * This default is inverted on purpose, and it is the most important decision in
- * this file. The first cut gated anything containing sleep/stress/supplement and
- * exempted a list of clinical words. That stripped `stressFracture`,
- * `sleepApnea` and `supplementalOxygenNeeded` — a tibial stress fracture,
- * moderate apnea and an oxygen requirement, every one an exercise
- * contraindication (GLM 5.3, post-ship panel). Widening the clinical exemption
- * list then missed `stressEchocardiogram`, caught by our own test. Clinical
- * vocabulary cannot be enumerated; that is the same trap that already produced
- * three defects in this workstream.
+ * Three earlier shapes failed here, and the sequence is the lesson:
+ *   1. an enumerated PATH list           — missed medicalConditions
+ *   2. contains-token minus a clinical   — missed stressEchocardiogram; no one
+ *      exemption list                      can enumerate clinical vocabulary
+ *   3. prefix + metric-suffix allowlist  — missed avgSleepHours, nightlyStress,
+ *                                          sleepNotes, supplementRegimen,
+ *                                          reportedStressLevel, typicalSleep
  *
- * THE ASYMMETRY: over-gating removes what keeps programming safe and can hurt
- * someone. Under-gating leaks a lifestyle metric, which the consent copy can
- * disclose honestly. Those are not equivalent, so an unrecognised key is KEPT.
+ * Shape 3 was NARROWER than the risk the owner accepted, and the disclosure
+ * ("your supplement, sleep and stress data" is withheld) promised more than it
+ * delivered. GLM 5.3 caught that on the UX panel.
  *
- *   gated  — sleep, sleepHours, sleepQuality, sleepDebtHours, stress,
- *            stressLevel, stressScore, supplements, supplementStack
- *   kept   — stressFracture, sleepApnea, supplementalOxygenNeeded,
- *            stressEchocardiogram, and any clinical term we never thought of
+ * This shape asks a question that has a bounded answer. Lifestyle modifiers are
+ * a small, closed vocabulary we own; clinical vocabulary is open-ended and
+ * belongs to medicine. So we enumerate OUR side and treat everything else as
+ * clinical.
+ *
+ * THE ASYMMETRY, unchanged and decisive: over-gating strips exercise
+ * contraindications and can hurt someone; under-gating leaks a lifestyle metric
+ * the consent copy can disclose honestly. An unrecognised word means KEEP —
+ * and gets logged, so the unknown vocabulary becomes visible instead of silent.
+ *
+ *   gated : sleep, sleepHours, avgSleepHours, nightlyStress, sleepNotes,
+ *           supplementRegimen, reportedStressLevel, typicalSleep, supplements
+ *   kept  : stressFracture, sleepApnea, supplementalOxygenNeeded,
+ *           stressEchocardiogram, and any clinical term nobody listed
  */
-const GATED_CONCEPT = /^(sleep|stress|supplement)/i;
-const METRIC_SUFFIX = /^(s|es)?$|(hour|hr|quality|level|score|rating|debt|duration|minute|night|intake|taken|stack|count|avg|average|per)/i;
+const GATED_TOKEN = /(sleep|stress|supplement)/i;
+
+/** Words that mark a key as OUR lifestyle telemetry rather than clinical data. */
+const LIFESTYLE_WORDS = new Set([
+  'sleep', 'stress', 'supplement', 'supplements', 'supplemental',
+  'avg', 'average', 'mean', 'total', 'typical', 'nightly', 'daily', 'weekly',
+  'reported', 'self', 'perceived', 'estimated',
+  'hours', 'hour', 'hrs', 'minutes', 'mins', 'duration', 'time',
+  'level', 'levels', 'score', 'scores', 'rating', 'rank', 'index',
+  'quality', 'debt', 'count', 'per', 'night', 'day', 'week',
+  'notes', 'note', 'diary', 'journal', 'log', 'logs', 'entry', 'entries',
+  'regimen', 'stack', 'intake', 'taken', 'dose', 'dosage', 'schedule',
+  'data', 'value', 'values', 'summary', 'history', 'trend',
+]);
+
+/** Split camelCase / snake_case / kebab-case into lowercase words. */
+function keyWords(key) {
+  return String(key)
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((w) => w.toLowerCase());
+}
 
 /** Last path segment of every protected path, so the exported list is LOAD-BEARING. */
 const SAFETY_KEY_NAMES = new Set(
@@ -312,21 +341,15 @@ const SAFETY_KEY_NAMES = new Set(
 );
 
 /**
- * True when this key is a gated lifestyle metric.
- *
- * TRAINING_SAFETY_PATHS is consulted here by name. That export previously
- * described itself as the protective list and was asserted by a test, while the
- * stripper decided purely on a regex and never read it — so the documented
- * procedure ("add a path here to protect it") changed nothing. It is now
- * actually consulted, which is the difference between a comment and a control.
+ * @returns {'gate'|'keep'|'ambiguous'} 'ambiguous' means it carries a gated
+ * token but also unknown vocabulary — kept, and worth surfacing.
  */
-function isGatedLifestyleKey(key) {
+function classifyKey(key) {
   const name = String(key);
-  if (SAFETY_KEY_NAMES.has(name.toLowerCase())) return false;
-  const m = name.match(GATED_CONCEPT);
-  if (!m) return false;
-  const remainder = name.slice(m[0].length);
-  return METRIC_SUFFIX.test(remainder);
+  if (SAFETY_KEY_NAMES.has(name.toLowerCase())) return 'keep';
+  if (!GATED_TOKEN.test(name)) return 'keep';
+  const unknown = keyWords(name).filter((w) => !LIFESTYLE_WORDS.has(w));
+  return unknown.length === 0 ? 'gate' : 'ambiguous';
 }
 
 /**
@@ -339,7 +362,19 @@ function stripGatedHealthFields(node, strippedFields, prefix = '') {
   for (const key of Object.keys(node)) {
     const path = prefix ? `${prefix}.${key}` : key;
 
-    if (isGatedLifestyleKey(key)) {
+    const verdict = classifyKey(key);
+
+    // Ambiguous = carries a gated token AND unknown vocabulary. Kept, because
+    // the unknown word is probably clinical and stripping it could hurt someone
+    // — but logged, so the vocabulary we do not know about stops being
+    // invisible. This is the feedback loop three previous shapes lacked.
+    if (verdict === 'ambiguous') {
+      logger.warn('[DeIdentification] ambiguous health-ish key KEPT — review the vocabulary', {
+        field: prefix ? `${prefix}.${key}` : key,
+      });
+    }
+
+    if (verdict === 'gate') {
       delete node[key];
       strippedFields.push(path);
       logger.info('[DeIdentification] gated health field withheld', { field: path });

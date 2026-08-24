@@ -120,6 +120,25 @@ export const createProductionApiClient = (
         return Promise.reject(apiError);
       }
 
+      // A stale AI consent is RECOVERABLE, and the user must be shown the way
+      // back. Enforcing owner decision Q5 server-side blocks every AI endpoint
+      // for anyone whose grant predates the corrected disclosure — which is
+      // most existing clients. Without this, they hit a raw 403 on the Smart
+      // Workout Logger, Coach chat, plan generation and anywhere else, with no
+      // hint that re-consenting is the fix. Nothing in the app handled this
+      // code (GLM 5.3, UX panel).
+      //
+      // A redirect is used rather than a toast because there is exactly one
+      // place to resolve it, and a dead end is what we are removing.
+      if (apiError.response?.status === 403
+        && (apiError.response?.data as any)?.code === 'AI_CONSENT_STALE_VERSION'
+        && typeof window !== 'undefined'
+        && !window.location.pathname.includes('/ai-consent')) {
+        logger.log('[API] AI consent superseded — routing to the consent screen');
+        window.location.assign('/dashboard/client/ai-consent?reconsent=1');
+        return Promise.reject(apiError);
+      }
+
       if (apiError.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
 

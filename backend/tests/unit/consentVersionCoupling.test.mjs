@@ -34,10 +34,17 @@ describe('consent version coupling', () => {
     expect(VALID_CONSENT_VERSIONS).toContain(CURRENT_CONSENT_VERSION);
   });
 
-  it('a superseded version is still ACCEPTED as a record but is not CURRENT', () => {
-    // Historical grants remain readable; they simply no longer authorize.
-    expect(VALID_CONSENT_VERSIONS).toContain('1.0');
+  it('REJECTS a superseded version on a new grant', () => {
+    // Pinning the opposite of what this test used to assert. Accepting '1.0'
+    // from a cached bundle let the grant succeed, the gate 403 it, and the
+    // screen re-prompt — an infinite loop. A fresh grant can only be given
+    // against the disclosure actually on screen (GLM 5.3, UX panel).
+    expect(VALID_CONSENT_VERSIONS).not.toContain('1.0');
     expect(isConsentVersionCurrent('1.0')).toBe(false);
+  });
+
+  it('accepts exactly one version on a new grant — the current one', () => {
+    expect(VALID_CONSENT_VERSIONS).toEqual([CURRENT_CONSENT_VERSION]);
   });
 
   it('a missing version counts as stale, not as current', () => {

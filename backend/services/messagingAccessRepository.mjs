@@ -93,16 +93,20 @@ export async function loadConversationMembers(conversationId, actorId) {
 
   try {
     const rows = await sequelize.query(
-      `SELECT user_id AS "userId"
-         FROM conversation_participants
-        WHERE conversation_id = :convId
-          AND deleted_at IS NULL`,
+      `SELECT cp.user_id AS "userId",
+              CASE WHEN u.role = 'user' THEN 'client' ELSE u.role END AS "platformRole"
+         FROM conversation_participants cp
+         JOIN "Users" u ON u.id = cp.user_id
+        WHERE cp.conversation_id = :convId
+          AND cp.deleted_at IS NULL`,
       { replacements: { convId }, type: QueryTypes.SELECT },
     );
-    const all = rows.map((r) => toId(r.userId)).filter(Boolean);
+    const all = rows
+      .map((r) => ({ id: toId(r.userId), role: r.platformRole }))
+      .filter((r) => r.id);
     return {
-      actorIsMember: all.includes(actor),
-      others: all.filter((uid) => uid !== actor),
+      actorIsMember: all.some((r) => r.id === actor),
+      others: all.filter((r) => r.id !== actor),
     };
   } catch (error) {
     logger.warn('[MessagingAccess] participant lookup failed — denying relationship lane', {
@@ -150,5 +154,17 @@ export async function isRelationshipWriteAllowed(actor, conversationId, hasCommu
   if (!membership.actorIsMember) return false;
   if (membership.others.length === 0) return false;
 
-  return membership.others.every((id) => counterparties.has(id));
+  // Staff count as reachable, EXACTLY as the list filter counts them.
+  //
+  // The list was widened to keep the auto-created admin support thread visible;
+  // this gate was not, so that thread became visible-but-unwritable and answered
+  // a reply with "You can message your assigned trainer here" — on a thread
+  // containing an admin, not a trainer. A read-only dead end with lying copy is
+  // worse than the hidden thread it replaced. GLM 5.3 caught the asymmetry.
+  //
+  // `platformRole` comes from Users.role, never the per-conversation role, so a
+  // client holding conversation-admin in a group cannot spoof staff here.
+  return membership.others.every(
+    (m) => counterparties.has(m.id) || m.role === 'admin' || m.role === 'trainer',
+  );
 }

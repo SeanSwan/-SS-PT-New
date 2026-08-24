@@ -24,11 +24,25 @@
 export const CURRENT_CONSENT_VERSION = '2.0';
 
 /**
- * Versions the API will ACCEPT on a grant. Older versions stay acceptable as
- * historical records; they are simply no longer CURRENT, which is what the
- * enforcement gate keys on.
+ * Versions the API will accept on a NEW grant — the current one only.
+ *
+ * This used to include '1.0' on the reasoning that older versions "stay
+ * acceptable as historical records". That conflated two different things: a
+ * STORED row from 2026-07 is a historical record, but an INBOUND grant arriving
+ * today is a fresh act of consent and can only be given against the disclosure
+ * actually on screen.
+ *
+ * The bug it caused (GLM 5.3, UX panel): a user on a cached v1.0 bundle gets
+ * prompted, consents, the stale bundle submits '1.0', the grant SUCCEEDS, the
+ * enforcement gate then 403s it as not-current, the screen sees granted-but-
+ * stale and prompts again — an infinite re-consent loop until the browser cache
+ * expires. Rejecting the stale submission turns a silent loop into one honest
+ * error the client can act on.
+ *
+ * Historical rows are unaffected: nothing rewrites them, and the gate reads
+ * CURRENT, not this list.
  */
-export const VALID_CONSENT_VERSIONS = ['1.0', '2.0'];
+export const VALID_CONSENT_VERSIONS = [CURRENT_CONSENT_VERSION];
 
 /**
  * True when a stored grant was captured under the disclosure now in force.

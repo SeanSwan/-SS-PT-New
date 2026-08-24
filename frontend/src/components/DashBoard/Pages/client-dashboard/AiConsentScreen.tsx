@@ -527,6 +527,13 @@ const AiConsentScreen: React.FC = () => {
   // version — the ones most likely to predate the corrected disclosure — silently
   // skipped re-consent. Fail-open on precisely the wrong population (ox-alpha,
   // post-ship panel).
+  // Arriving via the interceptor redirect means an AI call was just refused.
+  // Show the notice even before the status fetch resolves, so the screen never
+  // renders as if nothing happened.
+  const arrivedForReconsent =
+    typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('reconsent') === '1';
+
   const needsReconsent =
     consentState === 'granted'
     && (status?.profile?.consentVersion ?? null) !== AI_CONSENT_VERSION;
@@ -622,7 +629,7 @@ const AiConsentScreen: React.FC = () => {
           </StatusBadge>
         </StatusRow>
 
-        {needsReconsent && (
+        {(needsReconsent || arrivedForReconsent) && (
           <ReconsentNotice role="status">
             <AlertTriangle size={18} />
             <div>{AI_CONSENT_RECONSENT_PROMPT}</div>

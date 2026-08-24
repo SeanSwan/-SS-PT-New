@@ -37,7 +37,11 @@ function mockSql({ counterparties = [], participants = [], throwOn = null } = {}
     }
     if (sql.includes('conversation_participants')) {
       if (throwOn === 'participants') throw new Error('db down');
-      return participants.map((u) => ({ userId: u }));
+      // Rows now carry the PLATFORM role so the write gate can mirror the list
+      // rule. Accepts a bare id or {id, role}.
+      return participants.map((u) => (
+        typeof u === 'object' ? { userId: u.id, platformRole: u.role } : { userId: u, platformRole: 'client' }
+      ));
     }
     return [];
   });
@@ -104,5 +108,51 @@ describe('isRelationshipWriteAllowed — the socket/REST shared seam', () => {
       return [];
     });
     await expect(isRelationshipWriteAllowed(freeClient, 42, false)).resolves.toBe(true);
+  });
+});
+
+describe('staff threads are writable, exactly as they are listable', () => {
+  // GLM 5.3, UX panel: the LIST filter was widened to keep the auto-created
+  // admin support thread visible, and this gate was not — so that thread became
+  // visible-but-unwritable and answered a reply with "You can message your
+  // assigned trainer here" on a thread containing an ADMIN. A read-only dead end
+  // with lying copy is worse than the hidden thread it replaced.
+  it('allows writing to the admin support thread', async () => {
+    mockSql({
+      counterparties: [TRAINER],
+      participants: [{ id: CLIENT, role: 'client' }, { id: 1, role: 'admin' }],
+    });
+    await expect(isRelationshipWriteAllowed(freeClient, 42, false)).resolves.toBe(true);
+  });
+
+  it('allows writing to a thread with a non-assigned TRAINER', async () => {
+    mockSql({
+      counterparties: [TRAINER],
+      participants: [{ id: CLIENT, role: 'client' }, { id: 950, role: 'trainer' }],
+    });
+    await expect(isRelationshipWriteAllowed(freeClient, 42, false)).resolves.toBe(true);
+  });
+
+  it('still blocks a thread mixing staff with a stranger', async () => {
+    mockSql({
+      counterparties: [TRAINER],
+      participants: [
+        { id: CLIENT, role: 'client' },
+        { id: 1, role: 'admin' },
+        { id: STRANGER, role: 'client' },
+      ],
+    });
+    await expect(isRelationshipWriteAllowed(freeClient, 42, false)).resolves.toBe(false);
+  });
+
+  it('cannot be spoofed by a client holding conversation-admin in a group', async () => {
+    // The gate reads Users.role, never conversation_participants.role. A client
+    // who is group-admin is still role 'client' here. GLM raised this as the
+    // scope-leak candidate; the SQL disproves it and this pins it.
+    mockSql({
+      counterparties: [TRAINER],
+      participants: [{ id: CLIENT, role: 'client' }, { id: STRANGER, role: 'client' }],
+    });
+    await expect(isRelationshipWriteAllowed(freeClient, 42, false)).resolves.toBe(false);
   });
 });

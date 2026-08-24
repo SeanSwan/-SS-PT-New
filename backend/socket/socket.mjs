@@ -129,6 +129,17 @@ export const initializeSocket = () => {
           return;
         }
 
+        // Same throttle as REST. Without it, a limiter on the REST path alone
+        // would be bypassed by emitting 'send_message' over the websocket.
+        const rate = checkMessageRate(socket.user.id);
+        if (!rate.allowed) {
+          socket.emit('error', { message: MESSAGE_RATE_LIMITED, retryAfterMs: rate.retryAfterMs });
+          return;
+        }
+
+        // Throttle FIRST: the lane check below costs up to three DB round-trips
+        // (entitlement, assignments, members). Running it before the limiter let
+        // an unthrottled emit loop force that work per message (GLM 5.3).
         // Same RELATIONSHIP lane as the REST path. The lane shipped as Express
         // middleware only, so a free-tier client with an active assignment was
         // 403'd by REST on an old community thread and could still write to it
@@ -153,14 +164,6 @@ export const initializeSocket = () => {
         const blockCheck = await canSendToConversation(normalizedConversationId, socket.user.id);
         if (!blockCheck.allowed) {
           socket.emit('error', { message: BLOCKED_MESSAGE });
-          return;
-        }
-
-        // Same throttle as REST. Without it, a limiter on the REST path alone
-        // would be bypassed by emitting 'send_message' over the websocket.
-        const rate = checkMessageRate(socket.user.id);
-        if (!rate.allowed) {
-          socket.emit('error', { message: MESSAGE_RATE_LIMITED, retryAfterMs: rate.retryAfterMs });
           return;
         }
 
