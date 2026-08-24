@@ -31,6 +31,7 @@
  */
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readForEgress } from './lib/redact-egress.mjs';
 
 const ROOT = process.cwd();
 
@@ -77,8 +78,11 @@ const MODEL_LABEL = MODEL_LABELS[MODEL] || MODEL;
 const EFFORT = arg('effort', process.env.SWAN_GROK_EFFORT || 'high');
 
 if (!existsSync(docPath)) { console.error(`document not found: ${docPath}`); process.exit(1); }
-const doc = readFileSync(docPath, 'utf-8');
-const seed = seedPath && existsSync(seedPath) ? readFileSync(seedPath, 'utf-8') : '';
+// Egress gate (2026-08-22): never send a document straight off disk. readForEgress
+// strips operator identity + absolute paths + secret shapes, and proves itself on a
+// canary first — an unvalidated "clean" is what leaked a username to six vendors.
+const doc = readForEgress(docPath, { label: 'document' });
+const seed = seedPath && existsSync(seedPath) ? readForEgress(seedPath, { label: 'seed' }) : '';
 
 const defaultRemit = `You are ${MODEL_LABEL} — a rigorous, high-reasoning hostile gate reviewer on the SwanStudios review panel (CLAUDE.md Co-Orchestrator Hierarchy). Review the document below at HIGH reasoning effort and try to break it.
 
@@ -159,6 +163,12 @@ if (!res.ok) {
 let text = '';
 let finish = null;
 let usage = {};
+// The model the provider says it ACTUALLY served. Distinct from MODEL, which is
+// only what we asked for. Reporting the request as though it were the response
+// makes any downstream identity check tautological — it compares our own env var
+// with itself and passes no matter which model replied. OpenRouter echoes the
+// served model on its SSE chunks; capture it and let the report state both.
+let servedModel = null;
 let buffer = '';
 let lastTick = Date.now();
 const decoder = new TextDecoder();
@@ -181,6 +191,7 @@ try {
         if (choice?.delta?.content) text += choice.delta.content;
         if (choice?.finish_reason) finish = choice.finish_reason;
         if (j.usage) usage = j.usage;
+        if (typeof j.model === 'string' && j.model) servedModel = j.model;
       } catch { /* partial SSE frame — completed by the next chunk */ }
     }
     if (Date.now() - lastTick > 20_000) {
@@ -227,7 +238,12 @@ const outPath = arg('out', 'docs/ai-workflow/AI-HANDOFF/GROK-GATE-REVIEW.md');
 const banner = truncated
   ? `> ⚠ **TRUNCATED** — the model hit max_tokens (${MAX_TOKENS}) and this reply is INCOMPLETE.\n\n`
   : '';
-const outContent = `# ${MODEL_LABEL} — Hostile Gate Review\n\n**Reviewer:** OpenRouter \`${MODEL}\` (effort: ${EFFORT})\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ${costLabel} · **Wall:** ${wallSec}s · **finish:** ${finish ?? '?'}\n\n---\n\n${banner}${text}\n`;
+// `Reviewer` is what we REQUESTED; `Served` is what the provider says it RAN.
+// A downstream gate must key on Served — Reviewer is our own input echoed back,
+// so checking it proves the env var arrived, not that the right model answered.
+// `unreported` means the provider sent no model field: unknown, never assume match.
+const servedLine = `**Served:** \`${servedModel || 'unreported'}\`${servedModel && servedModel !== MODEL ? '  ⚠ **SUBSTITUTED** — provider served a different model than requested' : ''}\n`;
+const outContent = `# ${MODEL_LABEL} — Hostile Gate Review\n\n**Reviewer:** OpenRouter \`${MODEL}\` (effort: ${EFFORT})\n${servedLine}**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ${costLabel} · **Wall:** ${wallSec}s · **finish:** ${finish ?? '?'}\n\n---\n\n${banner}${text}\n`;
 writeFileSync(outPath, outContent, 'utf-8');
 console.log(`[consult-grok] saved -> ${outPath}`);
 if (truncated) {
