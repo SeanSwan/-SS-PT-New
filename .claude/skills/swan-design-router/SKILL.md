@@ -167,6 +167,26 @@ order tell the story of a member getting stronger.
 ## Decision procedure — every UI task
 
 **Step 0 — Classify:** NET-NEW / REDESIGN / AUDIT / ASSET.
+**Step 0.5 — HARVEST (hard gate, `docs/ai-workflow/design-brain/asset-harvest.md`):**
+the repo is the first plate. Before any concept, produce the **Asset Manifest** —
+brand marks, existing imagery, motion already shipped, media measured, approved copy,
+resolved tokens — each a real path or an explicit `NONE FOUND (searched: <globs>)`
+**validated by listing the directory**, never by a bare `find` (a wrong glob and a
+missing file are indistinguishable). If you can see images, LOOK at the brand mark and
+record its geometric language; Swan's is **low-poly faceted**, and that is a page-wide
+language, not a corner logo. **A design that could have been produced without opening
+the repo is disqualified.** Harvest beats generation — invent a placeholder only for
+what the product genuinely lacks, and tag it visibly.
+**Step 0.7 — REFERENCE TIER + CREATIVE (hard gate, `.claude/skills/design-render-gate`):**
+declare the Reference Quality Ladder tier (S=url+repo+prompt+demo · A=url · B=screen
+recording · C=screenshot only — **where vector-slop begins** · D=none). **Below B on an
+AWE surface (hero/landing/showcase/brand) requires written justification — Mobbin returns
+screenshots and is tier C, and rule 40 already says Mobbin is the lane for CONVENTIONAL
+surfaces, not awe.** If you have only tier C for an awe surface, STOP and ask Sean for a
+URL or screen recording. Then budget the **hero creative FIRST** — `docs/ai-workflow/design-brain/field-techniques.md`:
+*"the creative is the heavy lifter, and Swan isn't lifting it."* Image-first at 480p via
+`scripts/forge.mjs`, approve, then upscale. **Transparent PNG, never vector** — CSS
+gradients and inline SVG are the vector failure mode.
 **Step 1 — Locate:** surface class (public vs in-app), route, data contract — real
 API + model, or flag **NEW BACKEND**.
 **Step 2 — Direction (Gate 0):** for NET-NEW pages + major redesigns, run the
@@ -177,6 +197,12 @@ the signature moment, do not build — ask.
 zero kill-list material in the plan.
 **Step 4 — Blueprint:** BUILD-EXACT (below).
 **Step 5 — Build, then pass Gates 1–3.**
+**Step 6 — RENDER AND LOOK (hard gate, blocks presentation):**
+`node scripts/design-brain/render-check.mjs --dir <dir> --widths 1440,414`. Non-zero exit =
+you may NOT present. Then **Read the PNGs it writes** and name each board's signature
+moment in writing. Reading your own HTML is not looking. Frame height is set from measured
+ink, never guessed. **2026-08-20: fifteen boards shipped unviewed; 40-78% of every one was
+empty and all overflowed at 414px. Sean was the only renderer in the loop.**
 
 ### Task-type notes
 - **REDESIGN:** name which LAW the current surface violates; ship as next-version
@@ -261,6 +287,10 @@ hardcode `p.theme.colors.*` hex; CLAUDE.md Rule 46 + the shipped architecture wi
 |---|---|
 | `SWAN-CINEMATIC-DESIGN-SYSTEM.md` | Cinematic/public builds; deep palette + motion values |
 | `SWAN-ASSET-STORYBOARDING.md` | Any generated/commissioned media |
+| `docs/ai-workflow/design-brain/field-techniques.md` | **LOAD ON EVERY AWE SURFACE.** Harvested from 6-7 transcripts Sean supplied; contains "THE ANSWER TO 'MY SITES LOOK NOTHING LIKE THIS'" — the four missing mechanisms (no custom creative / no frame interpolation / no reference depth / no convergence in pixels), the Reference Quality Ladder, and the transparent-PNG-never-vector rule. It was indexed but NOT loaded by this router until 2026-08-20, which is why none of it ever reached a design run |
+| `.claude/skills/design-render-gate/SKILL.md` | **Step 0.7 + Step 6.** Render, measure, LOOK. The five laws |
+| `docs/ai-workflow/design-brain/asset-harvest.md` | **Step 0.5 gate — load on EVERY design task, before concepting.** Asset Manifest, brand-mark-is-the-design-system, absence-claim validation, regression check |
+| `docs/ai-workflow/design-brain/adapters/claude-code.md` | **You are seeding or publishing a design canvas** — thin toolchain appendix on top of `builders.md`: base64 keyed by exact bare filename, ~70 KB/image + 16 MB/page caps, `{{token}}` is a declared prop not a bug, republish the same path to keep the URL. Keyed to the toolchain, not the agent |
 | `docs/ai-workflow/design-brain/design.md` | The Crystalline Canon — **sole canonical copy** (the `design.html` mirror was retired 2026-08-16; no second file to reconcile). Still ADAPTS the two source-of-truth docs above — "sole" means one copy, not top of the precedence chain |
 | `design.md.pre-redo` / `SKILL.md.pre-redo` | Historical context only |
 

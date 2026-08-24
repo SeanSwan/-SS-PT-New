@@ -752,7 +752,14 @@ const AlertBox = styled.div<{ $type: 'success' | 'error' }>`
   gap: 12px;
   padding: 16px 24px;
   border-radius: 12px;
-  color: #fff;
+  /* Pure white is correct HERE and a token is actively wrong. This box sits on a saturated
+     success/error background set by $type, not on the button surface. The obvious token,
+     --text-on-accent, resolves to getReadableAccentText(buttonPrimaryBg) (themeUtils.ts:121) — the
+     colour readable against the PRIMARY BUTTON, an unrelated surface. On a light-primary theme that
+     returns DARK text, putting dark-on-saturated in an alert. I made that swap to satisfy the lint
+     rule and two hostile reviewers independently caught it as a live visual change smuggled into an
+     unrelated diff. Reverted. A real on-alert token is the proper fix and is not this slice. */
+  color: #fff; /* swan-guard-allow-hex: see above — token would key this to an unrelated surface */
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   min-width: 300px;
   max-width: 520px;
@@ -870,12 +877,31 @@ const faqData = [
 //      the part that actually defeats the attack.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+/**
+ * The declared intent, read FRESH from the URL at the moment it is needed.
+ *
+ * Deliberately not snapshotted into the mount-time seedRef the way email/subject are. Those are
+ * form DEFAULTS — freezing them is correct, because re-seeding a field the user has since edited
+ * would be hostile. The intent is ATTRIBUTION, and attribution must describe the visit as it is at
+ * submit time. In an SPA a query param can change without remounting, so a snapshot taken at mount
+ * survives `?intent=trainer` -> `?intent=book` and tags the wrong door; the reverse direction drops
+ * a real one. Reading here makes intent consistent with readAcquisitionParams(), which is already
+ * read at submit for exactly this reason. Flagged independently by three reviewers.
+ */
+function readIntentParam(): string | null {
+  try {
+    return new URLSearchParams(window.location.search).get('intent') || null;
+  } catch {
+    return null;
+  }
+}
+
 function prefillFromUrl() {
   try {
     const p = new URLSearchParams(window.location.search);
     const raw = (p.get('email') || '').slice(0, 254);
     const email = EMAIL_RE.test(raw) ? raw : '';
-    const intent = p.get('intent');
+    const intent = readIntentParam();
     const subject = intent === 'trainer' ? 'Trainer inquiry' : intent === 'book' ? 'Free consultation request' : '';
     return { email, subject, seeded: Boolean(email) };
   } catch {
@@ -925,6 +951,7 @@ const ContactV3: React.FC = () => {
         message: message + (subject ? `\n\nSubject: ${subject}` : ''),
         consultationType: 'general',
         priority: 'normal',
+        intent: readIntentParam(), // read at SUBMIT, not mount — see readIntentParam (rule 8 non-PII)
         ...readAcquisitionParams(), // attribute which channel sent this contact (rule 8 non-PII)
       });
 

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675">
+  <defs>
+    <linearGradient id="nite" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0A0A0F"/><stop offset="0.55" stop-color="#002060"/><stop offset="1" stop-color="#003080"/>
+    </linearGradient>
+    <radialGradient id="moon" cx="0.72" cy="0.25" r="0.5">
+      <stop offset="0" stop-color="#60C0F0" stop-opacity="0.35"/><stop offset="1" stop-color="#60C0F0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="675" fill="url(#nite)"/>
+  <rect width="1200" height="675" fill="url(#moon)"/>
+  <path d="M0,430 Q300,410 600,432 T1200,428 L1200,675 L0,675 Z" fill="#0A0A0F" opacity="0.75"/>
+  <path d="M0,470 Q300,452 600,472 T1200,468 L1200,675 L0,675 Z" fill="#141419" opacity="0.9"/>
+  <path d="M840,300 C800,240 830,180 890,170 C860,200 856,240 886,268 C930,308 918,352 878,368 C846,380 812,368 800,344" fill="none" stroke="#E0ECF4" stroke-width="5" stroke-linecap="round"/>
+  <ellipse cx="850" cy="392" rx="90" ry="10" fill="#60C0F0" opacity="0.28"/>
+  <ellipse cx="850" cy="408" rx="140" ry="8" fill="#60C0F0" opacity="0.16"/>
+  <path d="M60,110 L230,110 M60,142 L170,142" stroke="#C6A84B" stroke-width="4" stroke-linecap="round" opacity="0.85"/>
+</svg>

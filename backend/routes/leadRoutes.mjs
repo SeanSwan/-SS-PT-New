@@ -7,7 +7,7 @@
 import express from 'express';
 import { Op } from 'sequelize';
 import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
-import { aggregateLeadChannels } from '../services/leadCaptureShared.mjs';
+import { aggregateLeadChannels, aggregateLeadIntents } from '../services/leadCaptureShared.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -128,14 +128,43 @@ router.get('/stats', async (req, res) => {
 
     // Acquisition-channel breakdown (which channel produces leads). Capped fetch —
     // fine at early-stage volume; move to a JSONB SQL aggregation past the cap.
-    const channelRows = await Lead.findAll({ where, attributes: ['tags', 'source', 'status'], limit: 5000 });
+    // ORDER BY is load-bearing, not cosmetic. A bare LIMIT with no ORDER returns a planner-arbitrary
+    // subset that is unstable across vacuum and index changes, so past the cap the breakdown was a
+    // NONDETERMINISTIC sample — an older trainer-heavy cohort falling outside the scan window reads
+    // as "the trainer funnel died". Newest-first PLUS a unique tie-break makes the window total.
+    const STATS_SAMPLE_CAP = 5000;
+    // Fetch ONE MORE than the cap. If the extra row comes back, more exist beyond the window; we
+    // then aggregate only the first CAP. This replaces comparing two separate queries to each other.
+    //
+    // Three earlier versions of `sampled` were each wrong somewhere, all for the same reason: `total`
+    // comes from a Lead.count issued BEFORE this findAll, and the two do not share a snapshot. A
+    // reviewer worked the boundary properly — count=4999, two captures land, findAll returns 5000 of
+    // 5001, and `total > rows` reports COMPLETE over a truncated window. Gating on the cap did not
+    // save it either; the insertion direction still lies. Comparing two non-snapshot counts cannot be
+    // made correct by rearranging the comparison. Reading one extra row can.
+    //
+    // ORDER BY needs the unique tie-break. `created_at DESC` alone is NOT a stable window: rows
+    // sharing a timestamp (batch captures, second-precision inserts) rotate in and out across
+    // vacuums and plan changes, which is the exact nondeterminism the ORDER was added to remove.
+    // `id DESC` makes the window total. Same attribute style as the existing orders at :230/:278.
+    const fetched = await Lead.findAll({
+      where,
+      attributes: ['tags', 'source', 'status'],
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
+      limit: STATS_SAMPLE_CAP + 1,
+    });
+    const sampled = fetched.length > STATS_SAMPLE_CAP;
+    const channelRows = sampled ? fetched.slice(0, STATS_SAMPLE_CAP) : fetched;
     const byChannel = aggregateLeadChannels(channelRows);
+    // Same rows, second lens: which door the lead came through (prism:intent:*). No extra query.
+    const byIntent = aggregateLeadIntents(channelRows);
 
     return res.json({
       success: true,
       stats: {
         total, new: newLeads, contacted, qualified, scheduled, converted, lost,
-        conversionRate, needsFollowUp, hotLeads, byChannel,
+        conversionRate, needsFollowUp, hotLeads, byChannel, byIntent,
+        sampled, sampleCap: STATS_SAMPLE_CAP,
       },
     });
   } catch (err) {

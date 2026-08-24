@@ -1,0 +1,288 @@
+{
+  "pack_id": "copy-swan-front-02-FULL",
+  "supersedes": "copy-swan-front-01 (12 fields — covered 4 of 13 mounted sections)",
+  "source": "frontend/src/pages/HomePage/components/HomePage.V4.tsx + components/shared/HomeData.ts + content/marketingStats.ts — VERBATIM, extracted 2026-08-20",
+  "why": "Sean 2026-08-20: 'I feel like we're not labeling everything that we have. We're cutting stuff out.' He was right. HomePage.V4 mounts 13 sections; pack 01 carried 12 fields covering 4 of them. This carries all 37 content blocks.",
+  "law": "Copy is material. Shared across ALL variants, never invented. Any line with no real-source equivalent is tagged [new copy - needs Sean approval] in-artboard.",
+  "balance_note": "Sean 2026-08-20: 'we are emphasizing heavily on the trainer and not enough on the client... he's trying to come in and the community... it's supposed to be like a meetup, a Nextdoor kind of thing.' The client/community material below (beyond_the_gym, 8 social categories) is the UNDER-USED half and should lead. NEVER use the word he explicitly ruled out; convey the neighbourly, local, show-up-in-person feeling instead.",
+  "hero": {
+    "headline": "Health First. Community Always.",
+    "sub": "Where world-class personal training meets a supportive community built around clean living, real connection, and lifelong wellness.",
+    "cta_primary": "Join the Community",
+    "cta_secondary": "Find a Trainer"
+  },
+  "mission": {
+    "p1": "The food industry profits from making you sick. Social media profits from your attention. Gaming companies fire the people who made their best games. Healthcare safety nets are disappearing.",
+    "p2": "SwanStudios exists because we believe you deserve better. A platform that puts your health first, remembers your journey, supports your trainer, celebrates your creativity, and never sells you out.",
+    "p3": "We're not here to extract value from you. We're here to help you build it — for yourself, and for the people around you.",
+    "closing": "Built by a trainer. Built with the community. Powered by all of us."
+  },
+  "beyond_the_gym": {
+    "section_title": "Beyond the Gym",
+    "cta": "Join the Community",
+    "note": "THE community half. Eight categories — this is the meetup/neighbourhood surface Sean wants led with, not buried.",
+    "categories": [
+      {
+        "title": "Fitness & Training",
+        "desc": "Log workouts, track progress, earn XP, challenge your community."
+      },
+      {
+        "title": "Dance & Movement",
+        "desc": "Share choreography, freestyle sessions, and movement art."
+      },
+      {
+        "title": "Music & Singing",
+        "desc": "Produce beats, perform covers, share your creative process."
+      },
+      {
+        "title": "Gaming & Streaming",
+        "desc": "Stream games, find your crew, support independent developers."
+      },
+      {
+        "title": "Art & Expression",
+        "desc": "Showcase artwork, photography, and digital creations."
+      },
+      {
+        "title": "Comedy",
+        "desc": "Skits, memes, stand-up. Make the community laugh."
+      },
+      {
+        "title": "Community Meetups",
+        "desc": "Local events, walking clubs, group activities. Digital made real."
+      },
+      {
+        "title": "YouTube-Style Video",
+        "desc": "Long-form content, tutorials, vlogs. Your channel, your audience."
+      }
+    ]
+  },
+  "what_we_do": {
+    "note": "The eight-item 'what we do' Sean says we are not labelling. None of this appeared in pack 01.",
+    "features": [
+      {
+        "title": "Elite Personal Training",
+        "desc": "Personalized coaching built on the NASM protocol — 26+ years of experience. Science-based programming tailored to your goals."
+      },
+      {
+        "title": "Performance Assessment",
+        "desc": "Comprehensive evaluation using NASM OPT model to analyze movement patterns and build your optimal program."
+      },
+      {
+        "title": "Nutrition Coaching",
+        "desc": "Evidence-based nutrition protocols, personalized macro planning, and sustainable eating strategies."
+      },
+      {
+        "title": "Recovery & Mobility",
+        "desc": "Corrective exercise strategies, mobility training, and myofascial release guided by NASM CES principles."
+      },
+      {
+        "title": "Online Coaching",
+        "desc": "Expert guidance anywhere with customized programs and regular check-ins through our AI-enhanced platform."
+      },
+      {
+        "title": "Group Performance",
+        "desc": "Exclusive small-group sessions combining group energy with personalized attention for maximum results."
+      },
+      {
+        "title": "Sports-Specific Training",
+        "desc": "Specialized programs for golfers, athletes, and weekend warriors. Rotational power and sport-specific conditioning."
+      },
+      {
+        "title": "Corporate Wellness",
+        "desc": "Comprehensive corporate wellness programs including on-site sessions, workshops, and team challenges."
+      }
+    ]
+  },
+  "programs": {
+    "section_title": "Your Training Programs",
+    "tiers": [
+      {
+        "name": "Express Precision",
+        "meta": "30-Minute Sessions",
+        "badge": null,
+        "features": [
+          "Targeted time-optimized training",
+          "Customized workout plans",
+          "Progress tracking",
+          "Flexible scheduling"
+        ]
+      },
+      {
+        "name": "Signature Performance",
+        "meta": "60-Minute Sessions",
+        "badge": "Most Popular",
+        "features": [
+          "Full biomechanical coaching",
+          "NASM OHSA movement analysis",
+          "Nutrition guidance included",
+          "Priority scheduling",
+          "Monthly progress reports"
+        ]
+      },
+      {
+        "name": "Transformation Programs",
+        "meta": "Multi-Session Packages",
+        "badge": "Best Value",
+        "features": [
+          "Comprehensive NASM assessment",
+          "Periodized programming",
+          "Priority scheduling",
+          "Weekly check-ins",
+          "Full nutrition plan"
+        ]
+      }
+    ]
+  },
+  "golf": {
+    "section_title": "Golf Performance Program",
+    "features": [
+      {
+        "title": "Rotational Power Training",
+        "desc": "Generate explosive hip and torso rotation for longer drives and more consistent ball striking."
+      },
+      {
+        "title": "Core Stability & Balance",
+        "desc": "Build a rock-solid foundation that keeps your swing consistent from the first tee to the 18th green."
+      },
+      {
+        "title": "Flexibility & Mobility",
+        "desc": "Increase your range of motion for a fuller backswing and smoother follow-through without strain."
+      },
+      {
+        "title": "Injury Prevention",
+        "desc": "Corrective exercise protocols targeting common golf injuries: lower back, shoulders, elbows, and wrists."
+      },
+      {
+        "title": "Movement Analysis",
+        "desc": "NASM-guided assessment of your movement patterns to identify limitations affecting your swing mechanics."
+      }
+    ]
+  },
+  "testimonials": [
+    {
+      "quote": "Thanks to SwanStudios personal training, I achieved an incredible transformation. The tailored workouts and nutrition plan helped me lose 42 lbs, and I feel more energetic and confident than ever.",
+      "author": "Sarah J.",
+      "descriptor": "Corporate Executive",
+      "result": "Lost 42 lbs in 7 months"
+    },
+    {
+      "quote": "Sean Swan completely transformed my golf game. Through targeted core stability work, rotational power training, and flexibility protocols, I added serious distance off the tee.",
+      "author": "Robert T.",
+      "descriptor": "Avid Golfer",
+      "result": "Added 35 yards to drive"
+    },
+    {
+      "quote": "Training with Sean Swan got me in the best shape of my life. My department fitness test running time improved dramatically, and I feel stronger, faster, and more capable on the job.",
+      "author": "Officer Martinez",
+      "descriptor": "Law Enforcement",
+      "result": "Run improved by 2:30"
+    }
+  ],
+  "stats": {
+    "note": "Values come from content/marketingStats.ts. Several carry [NEEDS-SEAN-NUMBER] in source — do NOT harden them in a design without saying so.",
+    "items": [
+      {
+        "label": "Years Experience",
+        "value": "26+",
+        "status": "standing credential"
+      },
+      {
+        "label": "Clients Transformed",
+        "value": "500+",
+        "status": "NEEDS-SEAN-NUMBER"
+      },
+      {
+        "label": "Sessions Delivered",
+        "value": "10k+",
+        "status": "NEEDS-SEAN-NUMBER"
+      },
+      {
+        "label": "Swimmers Taught",
+        "value": "312",
+        "status": "as shipped"
+      },
+      {
+        "label": "Lbs Lost Together",
+        "value": "12.4k+",
+        "status": "NEEDS-SEAN-NUMBER"
+      },
+      {
+        "label": "Client Satisfaction",
+        "value": "97%",
+        "status": "NEEDS-SEAN-NUMBER"
+      }
+    ]
+  },
+  "about": {
+    "section_title": "About Sean Swan",
+    "pillars": [
+      {
+        "title": "Deep Client Research",
+        "desc": "Your trainer studies your goals, movement history, and athletic background to build a program that fits you."
+      },
+      {
+        "title": "AI-Optimized Programming",
+        "desc": "AI helps analyze performance data and refine your training program for faster, safer results — guided by your coach."
+      },
+      {
+        "title": "Privacy & Rehabilitation",
+        "desc": "Your data stays private through our programming protocol. Injury rehab programs built with precision and care."
+      }
+    ]
+  },
+  "for_trainers": {
+    "note": "The trainer half. Sean 2026-08-20 says this is currently OVER-weighted relative to the client/community half — keep it, do not lead with it.",
+    "features": [
+      {
+        "title": "900+ Exercises",
+        "desc": "Full NASM OPT 5-phase periodization library with Swan Coach workout builder."
+      },
+      {
+        "title": "Voice-First Swan Coach",
+        "desc": "Log workouts hands-free, get real-time client insights, and manage sessions by voice."
+      },
+      {
+        "title": "Your Clients Stay Yours",
+        "desc": "No lock-in, no surprises. Build your brand on your terms."
+      },
+      {
+        "title": "Works Anywhere",
+        "desc": "Run your sessions, collect payments, and build your brand from any city, any country."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Ready to Be Part of Something Real?",
+    "body": "Your health journey deserves a permanent home. Your trainer deserves a fair platform. Your community deserves to own itself. SwanStudios is where all of it lives."
+  },
+  "CONTRADICTIONS_FOR_SEAN": [
+    {
+      "id": "take-rate",
+      "issue": "The LIVE page says 'Small transparent fee (~10%)'. The 2026-08-19 grill decided 15% with a $1,000/month cap (D11/D12).",
+      "impact": "A design carrying either number contradicts the other surface. This is a money claim on a public page.",
+      "owner": "Sean — decide which is true, then fix the loser.",
+      "status": "RESOLVED 2026-08-20 by Sean",
+      "resolution": "Strip ALL fee copy from the homepage. One dated canonical fee page later, when the number is final. No design may carry a fee number."
+    },
+    {
+      "id": "credential-wording",
+      "issue": "FEATURES says 'NCEP-certified experts'. The standing brand rule bans 'NASM-certified' and requires 'NASM-protocol'. NCEP is a different body, so this may be fine — but it has never been checked against the same rule.",
+      "owner": "Sean — confirm NCEP-certified is accurate and permitted.",
+      "status": "RESOLVED 2026-08-20 by Sean",
+      "resolution": "Homepage leads with the training + NASM-protocol framing only. Sean IS NCEP-certified (trained by Mike DeMora, Manhattan Beach) — certifications go on a credentials/about surface for the consideration stage, never headline copy."
+    },
+    {
+      "id": "cta-tension",
+      "issue": "The original atelier brief said 'book a consultation' was the single action. The live page's CTAs are 'Join the Community' / 'Find a Trainer'. All built designs use the live pair.",
+      "owner": "Sean — still unresolved from the deep grill.",
+      "status": "RESOLVED 2026-08-20 by Sean (grill batch 2)",
+      "resolution": "Hero keeps the live pair: \"Join the Community\" + \"Find a Trainer\" (dual-button glow law). Page order: community-first with a trainer fast lane below the fold."
+    },
+    {
+      "id": "ownership-claim",
+      "status": "RESOLVED 2026-08-20 by Sean",
+      "issue": "\"Owned by the community\" read as a literal legal ownership claim (Sol Pro P1).",
+      "resolution": "Changed to \"Built with the community.\""
+    }
+  ]
+}

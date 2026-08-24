@@ -1,0 +1,30 @@
+{
+  "pack_id": "copy-swan-front-01",
+  "source": "HomePage.V4 sections — VERBATIM, extracted 2026-08-19 (Sean: 'the wording on the home page right now is correct')",
+  "law": "Copy is material. Like plates, the copy pack is shared across ALL variants and never invented. Lines with no real-source equivalent are tagged [new copy - needs Sean approval] in-artboard.",
+  "verbatim": {
+    "headline": "Health First. Community Always.",
+    "sub": "Where world-class personal training meets a supportive community built around clean living, real connection, and lifelong wellness.",
+    "cta_primary": "Join the Community",
+    "cta_secondary": "Find a Trainer",
+    "mission_1": "The food industry profits from making you sick. Social media profits from your attention. Gaming companies fire the people who made their best games. Healthcare safety nets are disappearing.",
+    "mission_2": "SwanStudios exists because we believe you deserve better. A platform that puts your health first, remembers your journey, supports your trainer, celebrates your creativity, and never sells you out.",
+    "mission_3": "We're not here to extract value from you. We're here to help you build it — for yourself, and for the people around you.",
+    "mission_closing": "Built by a trainer. Owned by the community. Powered by all of us.",
+    "programs_title": "Your Training Programs",
+    "golf_title": "Golf Performance Program",
+    "cta_title": "Ready to Be Part of Something Real?",
+    "cta_body": "Your health journey deserves a permanent home. Your trainer deserves a fair platform. Your community deserves to own itself. SwanStudios is where all of it lives."
+  },
+  "creative_source": "frontend/src/pages/HomePage/components/CreativeExpressionSection.tsx (464 lines) — BUILT but NOT mounted in HomePage.V4. Sean 2026-08-19: 'it's not just training. It's music, comedy, singing, photography, graphic design.' His approved manifesto already says 'celebrates your creativity'.",
+  "creative": {
+    "dance_title": "Dance",
+    "dance_desc": "Unleash your power through rhythm. Express your warrior spirit through movement that connects your body to your soul.",
+    "art_title": "Art & Visual Expression",
+    "art_desc": "Channel your intensity onto the canvas. Transform your inner fire into visual masterpieces that tell your transformation story.",
+    "vocal_title": "Vocal & Sound Work",
+    "vocal_desc": "Find the strength in your own voice. Unleash the power within through vocal techniques that amplify your inner warrior.",
+    "community_title": "Community & Heart",
+    "community_desc": "Connect with a tribe that shares your fire. Plug into a global family that grinds together, grows together, and celebrates every single victory. No more training alone!"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "F1 · Harbor Mile",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 4100
+    },
+    {
+      "file": "LitMile.dc.html",
+      "title": "F2 · The Lit Mile",
+      "x": 1500,
+      "y": 0,
+      "w": 1280,
+      "h": 4100
+    },
+    {
+      "file": "NightHarbor.dc.html",
+      "title": "F3 · Night Harbor",
+      "x": 3000,
+      "y": 0,
+      "w": 1280,
+      "h": 4100
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-f1",
+      "x": 0,
+      "y": -300,
+      "w": 430,
+      "text": "F1 · HARBOR MILE — B1 gives the bones, D2 gives the light. The section rail survives as calm wayfinding, but it is lit like a marquee: gold bulb on the chapter you are in.\n\nTRADEOFF: the most legible of the three and the least surprising — it reads as B1 with better lighting rather than as a new thing."
+    },
+    {
+      "id": "note-f2",
+      "x": 1500,
+      "y": -300,
+      "w": 430,
+      "text": "F2 · THE LIT MILE — D2 gives the bones. You walk one continuous mile of signage; B1 is grafted in at THE PROOF as the window wall, where every lit window is a session logged tonight.\n\nTRADEOFF: no rail means no map — a visitor cannot see how long the page is, and the window wall goes dark at launch with no user data."
+    },
+    {
+      "id": "note-f3",
+      "x": 3000,
+      "y": -300,
+      "w": 430,
+      "text": "F3 · NIGHT HARBOR — neither parent wins; the page TRANSFORMS. It opens on open water, the reflections harden into wet pavement, and the far windows resolve into neon. One move, no cut.\n\nTRADEOFF: the boldest and the most fragile — the whole idea only lands if the art in all three beats is regraded to match, and it is the hardest to keep coherent on mobile."
+    },
+    {
+      "id": "fusion-manifest",
+      "x": -500,
+      "y": 0,
+      "w": 440,
+      "text": "THREE FUSIONS OF B1 + D2 — 2026-08-20\n\nSean picked B1 (Harbor Lights) and D2 (Vegas Mile), then asked for them combined into one final page. These are three ways to combine them, differing on ONE axis: which parent supplies the ARCHITECTURE and which supplies the LIGHT.\n\nSHARED BY ALL THREE (do not vary):\n• Sean's real header, lifted BYTE-IDENTICALLY from the approved B1 source — not retyped\n• hero = a real frame from his own Swans.mp4, badged as a swappable slot\n• 2 movie areas per board for MiniMax H3 films\n• parallax depth stages between chapters, not only in the hero\n• copy verbatim from copy-pack.json; gold tags mark new lines needing approval\n• real harvested plates + the real low-poly crystalline mark\n\nPick one, or name the graft (e.g. \"F2's window wall inside F1\")."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

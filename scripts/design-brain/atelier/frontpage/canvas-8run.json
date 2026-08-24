@@ -1,0 +1,24 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "D2 · vegas mile — WINNER",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 4600
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-winner",
+      "x": 1420,
+      "y": 0,
+      "w": 480,
+      "text": "D2 · VEGAS MILE — THE WINNER\n\nSean 2026-08-20: \"I like d two.\"\n\nTHIS PASS:\n1. DISCIPLINE CARDS ARE VIDEO BACKGROUNDS. All six (Training / Dance / Art & Visual / Vocal & Sound / Photography & Graphic Design / Community) carry a VIDEO BG badge and a written FILM BRIEF for the H3 film that becomes that card's background.\n2. HIS FOOTER IS BACK, replicated from components/Footer/Footer.tsx — brand + tagline + socials + \"Stay in the loop\", Quick Links / Programs / Contact Us, Privacy Policy + Terms.\n3. HIS ORIGINAL SHEEN GLOW BUTTON, recovered from git 16a18d905 (pre-Crystalline). Eight swatches at the bottom to pick from: his six originals byte-for-byte (primary / neonBlue / purple / emerald=GREEN / ruby=RED / cosmic) plus chrome (silver) and gilded (gold) added by me.\n\nSTILL TRUE: his header replicated and unchanged · the Swans.mp4 video hero (swappable for H3) · 2 movie areas · 4 parallax stages.\n\nHEADS UP: primary and neonBlue carry Galaxy-Swan cyan #00FFFF, a RETIRED token. Shown because they are his originals — say the word and they get regraded."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

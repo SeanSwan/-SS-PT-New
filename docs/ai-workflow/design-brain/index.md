@@ -25,6 +25,8 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | `motion.md` | Motion tiers, GPU-safe rules, reduced-motion gating (CSS + JS), duration/easing tokens, motion bans, signature-moment budget |
 | `components.md` | Component pattern index — purpose / anatomy / states / do–don't / C1–C12 mapping for every canonical pattern |
 | `anti-patterns.md` | The banned list with WHY per item |
+| `asset-harvest.md` | **The pre-design gate — "the repo is the first plate."** Harvest the real brand marks, imagery, shipped motion, media measurements, copy and tokens BEFORE concepting; the Asset Manifest, the brand-mark-is-the-design-system rule, absence-claim validation, and the regression check that stops a mockup being less capable than the page it replaces |
+| (skill, not a file here) `.claude/skills/design-render-gate/SKILL.md` | **Rule 76.** Render in real Chromium, measure dead-space/overflow/broken-images/template-holes, write PNGs, and LOOK at them before presenting. Tool: `scripts/design-brain/render-check.mjs` |
 | `qa-gates.md` | Consolidated responsive + accessibility + visual QA gates with self-applicable pass/fail checks and the QA receipt format |
 | `external-reference-mcp.md` | Mobbin/Mobbin-like shipped-product reference gate; principles-only intake, never a source-of-truth override |
 | `worlds.md` | World Engine catalog: 18 immutable World DNA recipes, family manifest, palette laws, suitability-filtered seeded roulette |
@@ -33,7 +35,7 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | `experience-mode.md` | M4 license, inheritance, product/Hermes firewall, gate ritual, adaptive-quality and backend-loss rules |
 | `typography-grid.md` | Type scale, grid/breakpoint substrate, elevation + radius contract. **Where it states a token value that `design.md` also states, `design.md` wins** — see the conflict law in `README.md` §3 |
 | `style-taxonomy.md` | Two-axis style model (aesthetic × era) and its Swan mapping. Captured third-party facet counts drift and are reference-only, never doctrine |
-| `field-techniques.md` | Field-tested effect techniques and the CONVERGENCE note on producing hero creative (image-first loop, interpolation, reference ladder) |
+| `field-techniques.md` | **THE ANSWER TO "MY SITES LOOK NOTHING LIKE THIS."** Harvested from 6-7 transcripts Sean supplied 2026-08-11. Names the four missing mechanisms (no custom creative / no frame interpolation / no reference depth / no convergence in pixels), the **Reference Quality Ladder** (C = screenshot-only = where vector-slop begins), image-first→video costing, and transparent-PNG-never-vector. **Status DRAFT — T4 duplicated/stale, synthesis unfinished.** ⚠ Was indexed here but NOT loaded by `swan-design-router` until 2026-08-20; that gap is why none of it reached a design run for five weeks |
 | `forge-compiler-contract.md` | Swan Forge prompt-compiler contract — the 12-slot composer, capability gating, provider-safety classification |
 
 ### Callable World Engine skill (manual-only)
@@ -55,7 +57,8 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | File | Purpose |
 |---|---|
 | `adapters/index.md` | Adapter map + which agent reads which |
-| `adapters/builders.md` | Builder-agent adapter. **Consolidation note: the separately-spec'd claude-code + codex adapters are merged into this one file** — both builders follow identical rules (styled-components-first, rule 43 `css``` helper, lane claims per rule 67) |
+| `adapters/builders.md` | Builder-agent adapter — the **shared** contract both builders load (styled-components-first, rule 43 `css``` helper, lane claims per rule 67). **Consolidation note (amended 2026-08-19): the merge still holds — both builders load this file. The only thing carved out is the canvas-toolchain appendix in `adapters/claude-code.md`; see `adapters/index.md` §3.1** |
+| `adapters/claude-code.md` | Thin **design-canvas toolchain appendix**, additive on top of `builders.md` — base64 image keying, the 70 KB/16 MB caps, `{{token}}`-is-a-prop, republish-to-keep-URL. Keyed to the **toolchain**, not to agent identity: it applies to whoever drives the canvas. **Corrected 2026-08-19** — the original "Codex cannot see images" justification was false and is retracted |
 | `adapters/fable.md` | Fable as design-synthesis + final-arbitration brain (per 030 spec: directions and hostile review, not unsupervised implementation) |
 | `adapters/hermes.md` | Hermes operator surfaces — Crystalline Cyberforest mode scope, T0–T4 tier badges, calm-motion mandate |
 | `adapters/reviewers.md` | Hostile-review adapter (Codex/Gemini/triangle) — what to attack, verdict format |

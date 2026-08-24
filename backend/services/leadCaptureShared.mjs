@@ -56,6 +56,99 @@ export const mergeLeadTags = (currentTags = [], tagsToAdd = []) => (
   ])]
 );
 
+// --- Public capture intent ---------------------------------------------------
+// ONE definition of the intent vocabulary. Both public funnels validate against it:
+// POST /api/leads/capture (leadCaptureRoutes) and the contact form (captureLeadFromContact).
+// Two copies of an enum is the drift bug this repo keeps paying for (rule 58) — a trainer
+// tagged `prism:intent:trainer` by one path and something else by the other is unqueryable.
+export const CAPTURE_INTENTS = Object.freeze(['book', 'trainer', 'spectrum']);
+
+/**
+ * Tag for a self-declared capture intent, or null if it isn't one we recognize.
+ *
+ * ⚠ SELF-DECLARED, NOT A CREDENTIAL. The intent arrives from a URL query param a visitor
+ * can craft (`/contact?intent=trainer`). It is a marketing attribution signal only — it says
+ * "this person clicked the trainer door," never "this person IS a trainer." Nothing may grant
+ * access, pricing, or role on the strength of this tag; public trainer self-registration is
+ * forbidden outright and locked by trainerRecruitmentLinks.contract.test.ts. Allowlisted here
+ * so an arbitrary query string can never become an arbitrary tag in the CRM.
+ *
+ * Note the allowlist does NOT protect the aggregator downstream: `Lead.tags` is writable through
+ * the admin lead-update API, so a tag can exist that this function would never have produced.
+ * That is why aggregateLeadIntents uses a null-prototype accumulator rather than trusting the key.
+ */
+export const INTENT_TAG_PREFIX = 'prism:intent:';
+
+export const intentTag = (intent) => (
+  typeof intent === 'string' && CAPTURE_INTENTS.includes(intent)
+    ? `${INTENT_TAG_PREFIX}${intent}`
+    : null
+);
+
+/**
+ * Tally leads by declared intent — "how many trainers actually knocked".
+ *
+ * Mirrors aggregateLeadChannels and runs over the SAME rows that endpoint already fetched, so it
+ * costs no extra query. Without this the intent tag is technically queryable and practically
+ * invisible: answering "how many trainers came through this month" would mean hand-writing JSONB
+ * SQL, which is the same friction that made the old free-text marker useless.
+ *
+ * TWO DELIBERATE ASYMMETRIES with the channel tally:
+ *   1. An untagged lead is SKIPPED, not bucketed under a default. Channels have a meaningful
+ *      fallback ('direct' — everyone arrived somehow); intent does not. Most leads declare none,
+ *      and a catch-all would swamp the real signal in a bucket of thousands.
+ *   2. Every published intent is nonetheless SEEDED AT ZERO, so the three known buckets always
+ *      appear. Absent data and zero data must be distinguishable — see the seeding comment below.
+ * These are not in tension: rows without an intent contribute to nothing, but the intents we
+ * publish are always reported, even at zero.
+ */
+export const aggregateLeadIntents = (rows = []) => {
+  // Object.create(null), NOT {} — the bucket key comes from a tag, and tags are writable via the
+  // admin lead-update API. With a plain object a tag of `prism:intent:__proto__` makes acc[key]
+  // resolve to Object.prototype (truthy, so the guard below skips init) and the ++ then lands on
+  // Object.prototype.count — polluting EVERY object in the process with count:NaN. Verified, not
+  // theorised. A null-prototype accumulator has no inherited keys to collide with.
+  //
+  // The allowlist intersection below makes that unreachable anyway, and both are kept deliberately:
+  // the vocabulary check is the intent, the null prototype is the floor if the vocabulary ever grows
+  // a caller that forgets to filter.
+  const acc = Object.create(null);
+  // SEED EVERY PUBLISHED INTENT AT ZERO. Without this the accumulator only gains keys that actually
+  // occurred, so a window containing no trainer leads returns NO trainer key at all — and a dashboard
+  // reading `byIntent` renders nothing rather than "trainer: 0". That is the disappearance this whole
+  // feature exists to prevent, reproduced one layer up: a real zero and a missing metric become
+  // indistinguishable, so "no trainers knocked this month" reads identically to "the counter broke".
+  // A reviewer caught it. Every prior reviewer and I missed it, because we all tested windows that
+  // happened to contain the intent we were looking for.
+  for (const intent of CAPTURE_INTENTS) acc[intent] = { intent, count: 0, converted: 0 };
+  for (const row of (Array.isArray(rows) ? rows : [])) {
+    const tags = Array.isArray(row?.tags) ? row.tags : [];
+    // ALL matching tags, not the first. A lead can legitimately hold several — a repeat submitter
+    // who came through the book door and later the trainer door has both unioned by mergeLeadTags,
+    // and `.find()` counted them once under whichever happened to sit earlier in the array. That
+    // made the tally depend on array order and silently undercount exactly the multi-touch leads
+    // most worth seeing. Consequence, deliberate: sum(byIntent) can exceed the number of leads.
+    const declared = tags.filter((t) => typeof t === 'string' && t.startsWith(INTENT_TAG_PREFIX));
+    if (!declared.length) continue;
+    const seen = new Set(); // one row counts at most once per intent even if a tag is duplicated
+    for (const tag of declared) {
+      const intent = tag.slice(INTENT_TAG_PREFIX.length);
+      // Only tally intents the published vocabulary knows. `Lead.tags` is admin-writable, so an
+      // arbitrary `prism:intent:<anything>` can exist that intentTag() would never have produced —
+      // unbounded distinct keys (a stats-pollution and response-size vector) and unbounded key
+      // LENGTH (a tag can be ~1MB). There is no legitimate reason to report an intent we do not
+      // publish, so unknown ones are dropped rather than bucketed.
+      if (!CAPTURE_INTENTS.includes(intent)) continue;
+      if (seen.has(intent)) continue;
+      seen.add(intent);
+      acc[intent].count += 1; // bucket pre-seeded above, so no lazy init
+
+      if (row?.status === 'converted') acc[intent].converted += 1;
+    }
+  }
+  return Object.values(acc).sort((a, b) => b.count - a.count);
+};
+
 // --- Acquisition-channel attribution -----------------------------------------
 // Normalize a marketing channel from utm params / referrer so every lead records
 // WHERE it came from (YouTube, TikTok, IG, Nextdoor, search, referral, direct).
@@ -123,7 +216,9 @@ const CHANNEL_SOURCE_LABEL = { website: 'direct', social_media: 'social', referr
  * @returns {{channel:string, count:number, converted:number}[]}
  */
 export const aggregateLeadChannels = (rows = [], topN = 8) => {
-  const acc = {};
+  // Same null-prototype requirement as aggregateLeadIntents — a `channel:__proto__` tag pollutes
+  // Object.prototype identically. Pre-existing; found by testing the copy, so fixed in the original.
+  const acc = Object.create(null);
   for (const row of (Array.isArray(rows) ? rows : [])) {
     const tags = Array.isArray(row?.tags) ? row.tags : [];
     const tag = tags.find((t) => typeof t === 'string' && t.startsWith('channel:'));

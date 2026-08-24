@@ -1,0 +1,61 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "title": "F1v2 · The Harbor Edition",
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 4600
+    },
+    {
+      "file": "FlightPath.dc.html",
+      "title": "F2v2 · The Flight Path",
+      "x": 1500,
+      "y": 0,
+      "w": 1280,
+      "h": 4600
+    },
+    {
+      "file": "TheSignal.dc.html",
+      "title": "F3v2 · The Signal",
+      "x": 3000,
+      "y": 0,
+      "w": 1280,
+      "h": 4600
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-v2-f1",
+      "x": 0,
+      "y": -340,
+      "w": 440,
+      "text": "F1v2 · THE HARBOR EDITION — borrowed from SHOPIFY EDITIONS.\nThe rail becomes a persistent Roman-numeral index (I–VI). The masthead sits in a glass panel floating over full-bleed art, and it carries the whole table of contents. THE PROOF is now an object in space with numbered callouts — 1 the plan, 2 what you logged, 3 what it pays your trainer.\n\nTRADEOFF: the most editorial and the most \"magazine\" — it asks a visitor to read a contents page before it sells them anything."
+    },
+    {
+      "id": "note-v2-f2",
+      "x": 1500,
+      "y": -340,
+      "w": 440,
+      "text": "F2v2 · THE FLIGHT PATH — borrowed from BUSY BEE HONEY.\nONE continuous dashed path threads every section with the swan travelling it. That path IS the map, which is the direct fix for F2's old flaw (no rail = no map). \"Trace your honey\" becomes TRACE YOUR SESSION: peel a workout back to the coach, the change, the payout. The loader is content, not a spinner. Giant footer wordmark.\n\nTRADEOFF: the path only pays off if it is genuinely continuous across every breakpoint — a broken thread reads as a bug, not a motif."
+    },
+    {
+      "id": "note-v2-f3",
+      "x": 3000,
+      "y": -340,
+      "w": 440,
+      "text": "F3v2 · THE SIGNAL — borrowed from SHADER (Norrköping). My first search missed it and I substituted Framer's Liquid Gradient; Sean pushed me back to the MCP and the real site turned up.\nShader's actual page is warm-cream serif that GLOWS out of volumetric fog, a hero object rendered inside the haze, instructional microcopy with pointing hands (“Scroll to Inspect Our Closed Deals”), and ironic institutional chrome — laurel seals and a dashed-border card. Here the swans frame IS the object in the fog, and the seals carry Sean's real credentials: 26+ years, NASM-protocol (never “certified”).\n\nTRADEOFF: the warmest and least “tech” of the three — it sells the trainer before the platform, which is right for a stranger and possibly too soft for a trainer evaluating economics."
+    },
+    {
+      "id": "v2-manifest",
+      "x": -520,
+      "y": 0,
+      "w": 450,
+      "text": "THREE FUSIONS, REFACTORED AGAINST SEAN'S THREE REFERENCES — 2026-08-20\n\nSean asked which ideas from Shopify Editions, Shader and Busy Bee Honey we were NOT using. Verified visually on Mobbin: Shopify Editions and Busy Bee Honey. Shader could NOT be found — the closest verified shader-family artefact (Framer's Liquid Gradient) was substituted and is labelled as such on F3. Nothing here was invented from a URL slug.\n\nONE reference per board, so the three stay different:\n• F1 <- Shopify Editions (Roman-numeral index, glass masthead, numbered callouts)\n• F2 <- Busy Bee Honey (the continuous flight path, trace-your-session, loader-as-content, giant wordmark)\n• F3 <- shader family (one parametrised field, controls visible, chrome type)\n\nSTILL SHARED, UNCHANGED:\n• Sean's header, lifted BYTE-IDENTICALLY from the approved B1 source\n• hero = a real frame from his own Swans.mp4, badged swappable\n• 2 MiniMax H3 movie areas per board\n• parallax depth between chapters, not only in the hero\n• copy verbatim; gold tags mark lines needing approval\n• real harvested plates + the real crystalline mark"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

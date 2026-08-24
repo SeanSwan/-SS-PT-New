@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SwanStudios — The Surface and the Depth</title>
+<style>
+:root{
+  --obsidian:#0A0A0F; --carbon:#141419; --graphite:#1A1A24;
+  --sapphire:#002060; --royal:#003080; --ice:#60C0F0; --arctic:#50A0F0;
+  --gold:#C6A84B; --frost:#E0ECF4; --lavender:#4070C0; --wing:#8B5CF6;
+  --serif:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+  --sans:'Plus Jakarta Sans','Segoe UI',system-ui,sans-serif;
+  --ui:'Sora','Segoe UI',system-ui,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{overflow-x:clip}
+body{background:var(--obsidian);color:var(--frost);font-family:var(--sans);line-height:1.6}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(16px,4vw,48px)}
+
+/* ---------- chrome nav ---------- */
+.nav{position:absolute;inset:0 0 auto 0;z-index:9;display:flex;align-items:center;gap:18px;
+  padding:14px clamp(16px,4vw,48px);background:linear-gradient(180deg,rgba(10,10,15,.72),rgba(10,10,15,0));}
+.nav img{width:44px;height:44px;object-fit:contain;filter:drop-shadow(0 0 10px rgba(96,192,240,.45))}
+.nav .brand{font-family:var(--ui);font-weight:700;letter-spacing:.12em;font-size:15px}
+.nav .links{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.nav .links a{font-size:13px;letter-spacing:.08em;opacity:.85;padding:12px 14px;min-height:44px;
+  display:inline-flex;align-items:center;border-radius:10px}
+.nav .links a:hover{background:rgba(96,192,240,.08)}
+
+/* ---------- hero: the surface ---------- */
+.hero{position:relative;min-height:94vh;display:flex;align-items:center;isolation:isolate}
+.hero .plate{position:absolute;inset:0;z-index:-2;background:url('swans-hero-frame.jpg') center 38%/cover no-repeat}
+.hero .grade{position:absolute;inset:0;z-index:-1;background:
+  linear-gradient(180deg,rgba(10,10,15,.62) 0%,rgba(0,32,96,.28) 34%,rgba(0,32,96,.34) 62%,rgba(3,10,26,.92) 100%),
+  radial-gradient(120% 70% at 50% 108%,rgba(96,192,240,.30),transparent 55%);}
+.hero .inner{position:relative;width:100%;padding-top:96px;padding-bottom:150px;text-align:center}
+.kicker{font-family:var(--ui);font-size:13px;letter-spacing:.34em;color:var(--ice);text-transform:uppercase;margin-bottom:22px}
+.chrome{font-family:var(--sans);font-weight:800;font-size:clamp(2.4rem,7.2vw,5.4rem);line-height:1.04;
+  letter-spacing:-.015em;background:linear-gradient(103deg,#dfe9f2 0%,#ffffff 26%,#9fb8cc 46%,#f2f9ff 54%,#8aa4ba 72%,#e6f0f8 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 2px 14px rgba(10,20,40,.65));}
+.hero .sub{max-width:620px;margin:22px auto 34px;font-size:clamp(15px,1.9vw,18px);color:rgba(224,236,244,.92);
+  text-shadow:0 1px 8px rgba(3,10,26,.8)}
+.ctas{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.btn{font-family:var(--ui);font-weight:700;font-size:15px;letter-spacing:.04em;border-radius:14px;
+  min-height:48px;padding:14px 30px;display:inline-flex;align-items:center;justify-content:center;border:1px solid transparent}
+.btn-blue{background:linear-gradient(160deg,var(--royal),var(--sapphire));color:var(--frost);
+  border-color:rgba(139,92,246,.55);box-shadow:0 0 26px rgba(139,92,246,.45),inset 0 1px 0 rgba(224,236,244,.18)}
+.btn-purple{background:linear-gradient(160deg,#7b4de8,#5b34c4);color:#fff;
+  border-color:rgba(96,192,240,.55);box-shadow:0 0 26px rgba(96,192,240,.40),inset 0 1px 0 rgba(255,255,255,.16)}
+.dive{position:absolute;left:50%;transform:translateX(-50%);bottom:118px;font-family:var(--ui);
+  font-size:12.5px;letter-spacing:.3em;color:var(--ice);opacity:.9}
+.dive::after{content:'';display:block;width:1px;height:34px;margin:10px auto 0;
+  background:linear-gradient(180deg,var(--ice),transparent)}
+
+/* waterline fast-lane strip: half-submerged glass */
+.fastlane{position:relative;z-index:4;margin-top:-64px}
+.fastlane .card{display:flex;gap:14px;align-items:center;flex-wrap:wrap;justify-content:center;
+  background:linear-gradient(160deg,rgba(20,20,25,.88),rgba(0,32,96,.62));backdrop-filter:blur(8px);
+  border:1px solid rgba(96,192,240,.35);border-radius:18px;padding:18px 22px;
+  box-shadow:0 18px 50px rgba(3,7,18,.6),0 0 0 1px rgba(10,10,15,.4)}
+.fastlane .q{font-family:var(--ui);font-weight:600;font-size:15px}
+.fastlane .field{display:inline-flex;align-items:center;min-height:44px;padding:10px 18px;border-radius:12px;
+  background:rgba(10,10,15,.65);border:1px solid rgba(64,112,192,.5);color:rgba(224,236,244,.62);font-size:14px;min-width:200px}
+.fastlane .btn{min-height:44px;padding:10px 22px}
+
+/* ---------- depth sections ---------- */
+.depth{background:
+  radial-gradient(90% 40% at 18% 0%,rgba(0,48,128,.35),transparent 60%),
+  radial-gradient(70% 34% at 85% 12%,rgba(139,92,246,.14),transparent 60%),
+  linear-gradient(180deg,#030A1A 0%,var(--obsidian) 42%)}
+.section{padding:clamp(64px,9vw,120px) 0;position:relative}
+.eyebrow{font-family:var(--ui);font-size:12.5px;letter-spacing:.3em;text-transform:uppercase;color:var(--ice);margin-bottom:14px}
+h2.title{font-size:clamp(1.9rem,4.4vw,3.1rem);font-weight:800;letter-spacing:-.01em;margin-bottom:14px}
+.gold-rule{width:64px;height:2px;background:linear-gradient(90deg,var(--gold),transparent);margin:18px 0 30px}
+.drama{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(1.7rem,4vw,2.7rem);
+  line-height:1.25;color:var(--frost)}
+.drama .g{color:var(--gold)}
+.mission-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:26px;margin-top:34px}
+.mission-grid p{color:rgba(224,236,244,.82);font-size:15.5px}
+.closing{margin-top:34px;font-family:var(--serif);font-style:italic;font-size:clamp(1.15rem,2.4vw,1.5rem);color:var(--gold)}
+
+/* community: aurora world */
+.world{position:relative;border-radius:24px;overflow:hidden;border:1px solid rgba(96,192,240,.28);
+  background:url('beyond-the-gym-bg.jpg') center/cover no-repeat;min-height:420px;
+  box-shadow:0 30px 80px rgba(3,7,18,.7)}
+.world .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,15,.25),rgba(10,10,15,.78) 88%)}
+.world .in{position:relative;padding:clamp(24px,4.5vw,48px);display:flex;flex-direction:column;justify-content:flex-end;min-height:420px}
+.world h3{font-size:clamp(1.3rem,2.6vw,1.8rem);margin-bottom:8px}
+.world .sub{color:rgba(224,236,244,.85);max-width:560px;font-size:15px;margin-bottom:20px}
+.pins{position:absolute;inset:0;pointer-events:none}
+.pin{position:absolute;width:14px;height:14px;border-radius:50%;background:var(--ice);
+  box-shadow:0 0 0 6px rgba(96,192,240,.22),0 0 22px rgba(96,192,240,.85)}
+.pin.g{background:var(--gold);box-shadow:0 0 0 6px rgba(198,168,75,.2),0 0 22px rgba(198,168,75,.8)}
+.groups{display:flex;gap:10px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;min-height:44px;padding:10px 20px;border-radius:999px;
+  font-family:var(--ui);font-size:13.5px;letter-spacing:.03em;background:rgba(10,10,15,.62);
+  border:1px solid rgba(96,192,240,.45);backdrop-filter:blur(4px)}
+.chip.gold{border-color:rgba(198,168,75,.6);color:var(--gold)}
+.cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:16px;margin-top:26px}
+.cat{background:linear-gradient(165deg,var(--graphite),var(--carbon));border:1px solid rgba(64,112,192,.30);
+  border-radius:16px;padding:20px;position:relative;overflow:hidden}
+.cat::before{content:'';position:absolute;inset:0 auto 0 0;width:2px;background:linear-gradient(180deg,var(--ice),transparent)}
+.cat h4{font-size:15.5px;margin-bottom:6px}
+.cat p{font-size:13.5px;color:rgba(224,236,244,.72)}
+.cat.featured{border-color:rgba(198,168,75,.55)}
+.cat.featured::before{background:linear-gradient(180deg,var(--gold),transparent)}
+.cat.featured h4{color:var(--gold)}
+
+/* events timeline */
+.events{margin-top:30px;display:grid;gap:14px}
+.event{display:flex;gap:18px;align-items:center;flex-wrap:wrap;background:linear-gradient(160deg,rgba(20,20,25,.9),rgba(0,32,96,.35));
+  border:1px solid rgba(64,112,192,.32);border-radius:16px;padding:16px 20px}
+.event .date{font-family:'Fira Code',monospace;font-size:13px;color:var(--arctic);min-width:86px}
+.event .name{font-weight:700;font-size:15.5px}
+.event .where{font-size:13px;color:rgba(224,236,244,.68)}
+.event .faces{margin-left:auto;display:flex;align-items:center}
+.face{width:30px;height:30px;border-radius:50%;border:2px solid var(--carbon);margin-left:-8px;
+  background:linear-gradient(160deg,var(--lavender),var(--sapphire));display:inline-flex;align-items:center;justify-content:center;
+  font-size:12.5px;font-family:var(--ui)}
+.event .rsvp{min-height:44px;padding:10px 20px;border-radius:12px;font-family:var(--ui);font-size:13.5px;
+  background:rgba(96,192,240,.14);border:1px solid rgba(96,192,240,.5);color:var(--ice);display:inline-flex;align-items:center}
+.sample{font-size:12.5px;font-family:var(--ui);letter-spacing:.14em;color:rgba(224,236,244,.5);
+  border:1px dashed rgba(224,236,244,.28);border-radius:6px;padding:2px 8px}
+
+/* services + cards */
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(250px,100%),1fr));gap:16px}
+.svc{background:linear-gradient(165deg,var(--graphite),var(--carbon));border:1px solid rgba(64,112,192,.28);
+  border-radius:16px;padding:22px;box-shadow:inset 0 1px 0 rgba(224,236,244,.06)}
+.svc h4{font-size:15.5px;margin-bottom:8px;color:var(--ice)}
+.svc p{font-size:13.5px;color:rgba(224,236,244,.75)}
+
+/* programs */
+.tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr));gap:20px}
+.tier{background:linear-gradient(170deg,var(--graphite),#0d0d14);border:1px solid rgba(64,112,192,.3);
+  border-radius:20px;padding:28px;position:relative}
+.tier.hot{border:1px solid rgba(139,92,246,.7);box-shadow:0 0 40px rgba(139,92,246,.25)}
+.tier .badge{position:absolute;top:-13px;left:24px;background:linear-gradient(90deg,var(--wing),#5b34c4);
+  color:#fff;font-family:var(--ui);font-size:12.5px;letter-spacing:.08em;padding:5px 14px;border-radius:999px}
+.tier .badge.gold{background:linear-gradient(90deg,var(--gold),#9a7c2e);color:#0A0A0F}
+.tier h4{font-size:19px}
+.tier .meta{font-family:var(--ui);font-size:13px;color:var(--arctic);margin:6px 0 18px}
+.tier ul{list-style:none}
+.tier li{font-size:14px;color:rgba(224,236,244,.82);padding:7px 0 7px 26px;position:relative}
+.tier li::before{content:'◆';position:absolute;left:0;color:var(--ice);font-size:11px;top:10px}
+.tier .btn{width:100%;margin-top:22px}
+
+/* golf */
+.golf{position:relative;border-radius:24px;overflow:hidden;border:1px solid rgba(96,192,240,.25);
+  background:url('golf-section-bg.jpg') center/cover no-repeat}
+.golf .veil{position:absolute;inset:0;background:linear-gradient(90deg,rgba(10,10,15,.88) 0%,rgba(10,10,15,.55) 55%,rgba(10,10,15,.25))}
+.golf .in{position:relative;padding:clamp(28px,5vw,56px);max-width:640px}
+.golf .feat{display:flex;gap:14px;margin-top:18px}
+.golf .feat .n{font-family:'Fira Code',monospace;color:var(--gold);font-size:13px;min-width:30px;padding-top:2px}
+.golf .feat h5{font-size:15px;margin-bottom:4px}
+.golf .feat p{font-size:13.5px;color:rgba(224,236,244,.75)}
+
+/* proof */
+.proofs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:20px}
+.proof{background:linear-gradient(170deg,var(--graphite),var(--carbon));border:1px solid rgba(64,112,192,.3);
+  border-radius:20px;padding:24px}
+.ba{display:flex;gap:12px;margin-bottom:16px}
+.slot{flex:1;aspect-ratio:5/4;border-radius:12px;border:1px dashed rgba(224,236,244,.3);
+  background:linear-gradient(170deg,#10101a,#0b0b12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.slot .tag{font-family:'Fira Code',monospace;font-size:12.5px;color:rgba(224,236,244,.55)}
+.slot .m{font-family:var(--ui);font-size:12.5px;letter-spacing:.2em;color:var(--arctic)}
+.result{display:inline-flex;align-items:center;gap:8px;background:rgba(198,168,75,.14);border:1px solid rgba(198,168,75,.55);
+  color:var(--gold);font-family:var(--ui);font-size:13px;font-weight:700;border-radius:999px;padding:7px 14px;margin-bottom:14px}
+.proof blockquote{font-size:14px;color:rgba(224,236,244,.85);margin-bottom:14px}
+.proof .who{font-family:var(--ui);font-size:13px;color:var(--ice)}
+.proof .who span{color:rgba(224,236,244,.6)}
+
+/* stats: the vault */
+.stats{background:linear-gradient(180deg,var(--obsidian),#07070c);border-block:1px solid rgba(198,168,75,.25)}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 28px}
+@media (max-width:700px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat{padding:26px 0;text-align:center}
+.stat .n{font-family:var(--serif);font-size:clamp(2.6rem,5.4vw,4.2rem);line-height:1;color:var(--frost)}
+.stat .l{font-family:var(--ui);font-size:12.5px;letter-spacing:.18em;text-transform:uppercase;color:rgba(224,236,244,.6);margin-top:10px}
+.stat .pend{display:inline-block;margin-top:8px;font-size:12.5px;font-family:'Fira Code',monospace;
+  color:rgba(198,168,75,.75);border:1px dashed rgba(198,168,75,.4);border-radius:6px;padding:1px 8px}
+
+/* about: the family */
+.about{position:relative;border-radius:24px;overflow:hidden;border:1px solid rgba(96,192,240,.22);
+  background:url('swans-frame-b.jpg') center/cover no-repeat}
+.about .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,10,26,.30),rgba(10,10,15,.82) 82%)}
+.about .in{position:relative;padding:clamp(28px,5vw,56px)}
+.pillars{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:16px;margin-top:26px}
+.pillar{background:rgba(10,10,15,.66);border:1px solid rgba(64,112,192,.35);border-radius:16px;padding:20px;backdrop-filter:blur(6px)}
+.pillar h4{font-size:15px;color:var(--ice);margin-bottom:6px}
+.pillar p{font-size:13.5px;color:rgba(224,236,244,.78)}
+
+/* trainers */
+.trainers .grid-4 .svc h4{color:var(--wing)}
+.trainers .svc{border-color:rgba(139,92,246,.3)}
+
+/* emergence CTA */
+.emerge{position:relative;text-align:center;background:
+  radial-gradient(80% 60% at 50% 0%,rgba(96,192,240,.16),transparent 60%),
+  linear-gradient(180deg,var(--obsidian),#0d1526 70%,#132038)}
+.emerge .body{max-width:640px;margin:18px auto 34px;color:rgba(224,236,244,.85);font-size:16px}
+footer{background:#05050a;padding:34px 0;border-top:1px solid rgba(64,112,192,.25)}
+footer .row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between}
+footer img{width:38px;height:38px}
+footer .tag{font-family:var(--serif);font-style:italic;font-size:14.5px;color:rgba(224,236,244,.6)}
+@media (max-width:520px){
+  .hero .inner{padding-bottom:170px}
+  .event .faces{margin-left:0}
+  .nav .links{display:none}
+}
+</style>
+</head><body>
+
+<header class="hero">
+  <div class="plate"></div><div class="grade"></div>
+  
+<nav class="nav">
+  <img src="swan-logo.png" alt="SwanStudios logo">
+  <span class="brand">SWANSTUDIOS</span>
+  <span class="links">
+    <a href="#community">Community</a><a href="#training">Training</a>
+    <a href="#programs">Programs</a><a href="#trainers">For Trainers</a>
+  </span>
+</nav>
+  <div class="inner wrap">
+    <p class="kicker">Personal training &middot; Real community</p>
+    <h1 class="chrome">Health First. Community Always.</h1>
+    <p class="sub">Where world-class personal training meets a supportive community built around clean living, real connection, and lifelong wellness.</p>
+    <div class="ctas">
+      <a class="btn btn-blue" href="#community">Join the Community</a>
+      <a class="btn btn-purple" href="#trainersearch">Find a Trainer</a>
+    </div>
+  </div>
+  <div class="dive">DIVE IN</div>
+</header>
+<div class="fastlane wrap" id="trainersearch">
+  <div class="card">
+    <span class="q">Looking for a trainer near you?</span>
+    <span class="field">City or ZIP</span>
+    <a class="btn btn-purple" href="#trainers">Find a Trainer</a>
+  </div>
+</div>
+<div class="depth">
+
+<section class="section"><div class="wrap">
+  <p class="eyebrow">Why we exist</p>
+  <p class="drama">&ldquo;We're not here to extract value from you. We're here to help you
+  <span class="g">build it.</span>&rdquo;</p>
+  <div class="gold-rule"></div>
+  <div class="mission-grid">
+    <p>The food industry profits from making you sick. Social media profits from your attention. Gaming companies fire the people who made their best games. Healthcare safety nets are disappearing.</p>
+    <p>SwanStudios exists because we believe you deserve better. A platform that puts your health first, remembers your journey, supports your trainer, celebrates your creativity, and never sells you out.</p>
+    <p>We're not here to extract value from you. We're here to help you build it — for yourself, and for the people around you.</p>
+  </div>
+  <p class="closing">Built by a trainer. Built with the community. Powered by all of us.</p>
+</div></section>
+
+<section class="section" id="community"><div class="wrap">
+  <p class="eyebrow">The community half</p>
+  <h2 class="title">Beyond the Gym</h2>
+  <div class="gold-rule"></div>
+  <div class="world">
+    <div class="veil"></div>
+    <div class="pins"><span class="pin " style="left:22%;top:38%"></span><span class="pin g" style="left:34%;top:61%"></span><span class="pin " style="left:52%;top:30%"></span><span class="pin " style="left:63%;top:55%"></span><span class="pin g" style="left:76%;top:40%"></span><span class="pin " style="left:85%;top:62%"></span><span class="pin " style="left:44%;top:72%"></span></div>
+    <div class="in">
+      <h3>Your city is already in motion</h3>
+      <p class="sub">Local events, walking clubs, group activities. Digital made real.</p>
+      <div class="groups">
+        <span class="chip gold">Join a group</span><span class="chip">South Bay</span>
+        <span class="chip">Los Angeles</span><span class="chip">Fitness &amp; Training</span>
+        <span class="chip">Golf</span><span class="chip">Your city</span>
+      </div>
+    </div>
+  </div>
+  <div class="events">
+    
+    <div class="event">
+      <span class="date">THU 7PM</span>
+      <span><span class="name">Community Walking Club</span><br><span class="where">South Bay &middot; all levels</span></span>
+      <span class="faces"><span class="face">S</span><span class="face">M</span><span class="face">K</span>
+        <span class="face" style="background:rgba(96,192,240,.25);font-size:12.5px">+12 going</span></span>
+      <span class="rsvp">RSVP</span>
+      <span class="sample">SAMPLE</span>
+    </div>
+    <div class="event">
+      <span class="date">SAT 8AM</span>
+      <span><span class="name">Beach Run &amp; Coffee</span><br><span class="where">The Strand &middot; 5k easy pace</span></span>
+      <span class="faces"><span class="face">R</span><span class="face">J</span><span class="face">A</span>
+        <span class="face" style="background:rgba(96,192,240,.25);font-size:12.5px">+9 going</span></span>
+      <span class="rsvp">RSVP</span>
+      <span class="sample">SAMPLE</span>
+    </div>
+    <div class="event">
+      <span class="date">SUN 10AM</span>
+      <span><span class="name">Group Training in the Park</span><br><span class="where">Polliwog Park &middot; bring a mat</span></span>
+      <span class="faces"><span class="face">T</span><span class="face">D</span><span class="face">L</span>
+        <span class="face" style="background:rgba(96,192,240,.25);font-size:12.5px">+15 going</span></span>
+      <span class="rsvp">RSVP</span>
+      <span class="sample">SAMPLE</span>
+    </div>
+  </div>
+  <div class="cats">
+    
+    <div class="cat ">
+      <h4>Fitness &amp; Training</h4><p>Log workouts, track progress, earn XP, challenge your community.</p>
+    </div>
+    <div class="cat ">
+      <h4>Dance &amp; Movement</h4><p>Share choreography, freestyle sessions, and movement art.</p>
+    </div>
+    <div class="cat ">
+      <h4>Music &amp; Singing</h4><p>Produce beats, perform covers, share your creative process.</p>
+    </div>
+    <div class="cat ">
+      <h4>Gaming &amp; Streaming</h4><p>Stream games, find your crew, support independent developers.</p>
+    </div>
+    <div class="cat ">
+      <h4>Art &amp; Expression</h4><p>Showcase artwork, photography, and digital creations.</p>
+    </div>
+    <div class="cat ">
+      <h4>Comedy</h4><p>Skits, memes, stand-up. Make the community laugh.</p>
+    </div>
+    <div class="cat featured">
+      <h4>Community Meetups</h4><p>Local events, walking clubs, group activities. Digital made real.</p>
+    </div>
+    <div class="cat ">
+      <h4>YouTube-Style Video</h4><p>Long-form content, tutorials, vlogs. Your channel, your audience.</p>
+    </div>
+  </div>
+</div></section>
+
+<section class="section" id="training"><div class="wrap">
+  <p class="eyebrow">What we do</p>
+  <h2 class="title">Training, coaching, and everything around it</h2>
+  <div class="gold-rule"></div>
+  <div class="grid-4">
+    
+    <div class="svc"><h4>Elite Personal Training</h4><p>Personalized coaching built on the NASM protocol — 26+ years of experience. Science-based programming tailored to your goals.</p></div>
+    <div class="svc"><h4>Performance Assessment</h4><p>Comprehensive evaluation using NASM OPT model to analyze movement patterns and build your optimal program.</p></div>
+    <div class="svc"><h4>Nutrition Coaching</h4><p>Evidence-based nutrition protocols, personalized macro planning, and sustainable eating strategies.</p></div>
+    <div class="svc"><h4>Recovery &amp; Mobility</h4><p>Corrective exercise strategies, mobility training, and myofascial release guided by NASM CES principles.</p></div>
+    <div class="svc"><h4>Online Coaching</h4><p>Expert guidance anywhere with customized programs and regular check-ins through our AI-enhanced platform.</p></div>
+    <div class="svc"><h4>Group Performance</h4><p>Exclusive small-group sessions combining group energy with personalized attention for maximum results.</p></div>
+    <div class="svc"><h4>Sports-Specific Training</h4><p>Specialized programs for golfers, athletes, and weekend warriors. Rotational power and sport-specific conditioning.</p></div>
+    <div class="svc"><h4>Corporate Wellness</h4><p>Comprehensive corporate wellness programs including on-site sessions, workshops, and team challenges.</p></div>
+  </div>
+</div></section>
+
+<section class="section" id="programs"><div class="wrap">
+  <p class="eyebrow">Programs</p>
+  <h2 class="title">Your Training Programs</h2>
+  <div class="gold-rule"></div>
+  <div class="tiers">
+    
+    <div class="tier ">
+      
+      <h4>Express Precision</h4>
+      <p class="meta">30-Minute Sessions</p>
+      <ul><li>Targeted time-optimized training</li><li>Customized workout plans</li><li>Progress tracking</li><li>Flexible scheduling</li></ul>
+      <a class="btn btn-blue" href="#cta">Start here</a>
+    </div>
+    <div class="tier hot">
+      <span class="badge ">Most Popular</span>
+      <h4>Signature Performance</h4>
+      <p class="meta">60-Minute Sessions</p>
+      <ul><li>Full biomechanical coaching</li><li>NASM OHSA movement analysis</li><li>Nutrition guidance included</li><li>Priority scheduling</li><li>Monthly progress reports</li></ul>
+      <a class="btn btn-purple" href="#cta">Start here</a>
+    </div>
+    <div class="tier ">
+      <span class="badge gold">Best Value</span>
+      <h4>Transformation Programs</h4>
+      <p class="meta">Multi-Session Packages</p>
+      <ul><li>Comprehensive NASM assessment</li><li>Periodized programming</li><li>Priority scheduling</li><li>Weekly check-ins</li><li>Full nutrition plan</li></ul>
+      <a class="btn btn-blue" href="#cta">Start here</a>
+    </div>
+  </div>
+</div></section>
+
+<section class="section"><div class="wrap">
+  <div class="golf">
+    <div class="veil"></div>
+    <div class="in">
+      <p class="eyebrow">Sports-specific</p>
+      <h2 class="title">Golf Performance Program</h2>
+      
+      <div class="feat"><span class="n">01</span>
+        <span><h5>Rotational Power Training</h5><p>Generate explosive hip and torso rotation for longer drives and more consistent ball striking.</p></span></div>
+      <div class="feat"><span class="n">02</span>
+        <span><h5>Core Stability &amp; Balance</h5><p>Build a rock-solid foundation that keeps your swing consistent from the first tee to the 18th green.</p></span></div>
+      <div class="feat"><span class="n">03</span>
+        <span><h5>Flexibility &amp; Mobility</h5><p>Increase your range of motion for a fuller backswing and smoother follow-through without strain.</p></span></div>
+      <div class="feat"><span class="n">04</span>
+        <span><h5>Injury Prevention</h5><p>Corrective exercise protocols targeting common golf injuries: lower back, shoulders, elbows, and wrists.</p></span></div>
+      <div class="feat"><span class="n">05</span>
+        <span><h5>Movement Analysis</h5><p>NASM-guided assessment of your movement patterns to identify limitations affecting your swing mechanics.</p></span></div>
+    </div>
+  </div>
+</div></section>
+
+<section class="section"><div class="wrap">
+  <p class="eyebrow">Real people. Real results.</p>
+  <h2 class="title">Proof you can measure</h2>
+  <div class="gold-rule"></div>
+  <div class="proofs">
+    
+    <div class="proof">
+      <div class="ba">
+        <div class="slot"><span class="m">MONTH 0</span><span class="tag">[CLIENT PHOTO]</span></div>
+        <div class="slot"><span class="m">AFTER</span><span class="tag">[CLIENT PHOTO]</span></div>
+      </div>
+      <span class="result">&#9670; Lost 42 lbs in 7 months</span>
+      <blockquote>&ldquo;Thanks to SwanStudios personal training, I achieved an incredible transformation. The tailored workouts and nutrition plan helped me lose 42 lbs, and I feel more energetic and confident than ever.&rdquo;</blockquote>
+      <p class="who">Sarah J. &middot; <span>Corporate Executive</span></p>
+    </div>
+    <div class="proof">
+      <div class="ba">
+        <div class="slot"><span class="m">MONTH 0</span><span class="tag">[CLIENT PHOTO]</span></div>
+        <div class="slot"><span class="m">AFTER</span><span class="tag">[CLIENT PHOTO]</span></div>
+      </div>
+      <span class="result">&#9670; Added 35 yards to drive</span>
+      <blockquote>&ldquo;Sean Swan completely transformed my golf game. Through targeted core stability work, rotational power training, and flexibility protocols, I added serious distance off the tee.&rdquo;</blockquote>
+      <p class="who">Robert T. &middot; <span>Avid Golfer</span></p>
+    </div>
+    <div class="proof">
+      <div class="ba">
+        <div class="slot"><span class="m">MONTH 0</span><span class="tag">[CLIENT PHOTO]</span></div>
+        <div class="slot"><span class="m">AFTER</span><span class="tag">[CLIENT PHOTO]</span></div>
+      </div>
+      <span class="result">&#9670; Run improved by 2:30</span>
+      <blockquote>&ldquo;Training with Sean Swan got me in the best shape of my life. My department fitness test running time improved dramatically, and I feel stronger, faster, and more capable on the job.&rdquo;</blockquote>
+      <p class="who">Officer Martinez &middot; <span>Law Enforcement</span></p>
+    </div>
+  </div>
+</div></section>
+
+<section class="section stats"><div class="wrap">
+  <div class="stat-grid">
+    
+    <div class="stat">
+      <div class="n">26+</div>
+      <div class="l">Years Experience</div>
+      
+    </div>
+    <div class="stat">
+      <div class="n">500+</div>
+      <div class="l">Clients Transformed</div>
+      <span class="pend">&#8470; pending</span>
+    </div>
+    <div class="stat">
+      <div class="n">10k+</div>
+      <div class="l">Sessions Delivered</div>
+      <span class="pend">&#8470; pending</span>
+    </div>
+    <div class="stat">
+      <div class="n">312</div>
+      <div class="l">Swimmers Taught</div>
+      
+    </div>
+    <div class="stat">
+      <div class="n">12.4k+</div>
+      <div class="l">Lbs Lost Together</div>
+      <span class="pend">&#8470; pending</span>
+    </div>
+    <div class="stat">
+      <div class="n">97%</div>
+      <div class="l">Client Satisfaction</div>
+      <span class="pend">&#8470; pending</span>
+    </div>
+  </div>
+</div></section>
+
+<section class="section"><div class="wrap">
+  <div class="about">
+    <div class="veil"></div>
+    <div class="in">
+      <p class="eyebrow">The coach behind it</p>
+      <h2 class="title">About Sean Swan</h2>
+      <div class="pillars">
+        
+        <div class="pillar"><h4>Deep Client Research</h4><p>Your trainer studies your goals, movement history, and athletic background to build a program that fits you.</p></div>
+        <div class="pillar"><h4>AI-Optimized Programming</h4><p>AI helps analyze performance data and refine your training program for faster, safer results — guided by your coach.</p></div>
+        <div class="pillar"><h4>Privacy &amp; Rehabilitation</h4><p>Your data stays private through our programming protocol. Injury rehab programs built with precision and care.</p></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section class="section trainers" id="trainers"><div class="wrap">
+  <p class="eyebrow">For trainers</p>
+  <h2 class="title">Built to back your practice</h2>
+  <div class="gold-rule"></div>
+  <div class="grid-4">
+    
+    <div class="svc"><h4>900+ Exercises</h4><p>Full NASM OPT 5-phase periodization library with Swan Coach workout builder.</p></div>
+    <div class="svc"><h4>Voice-First Swan Coach</h4><p>Log workouts hands-free, get real-time client insights, and manage sessions by voice.</p></div>
+    <div class="svc"><h4>Your Clients Stay Yours</h4><p>No lock-in, no surprises. Build your brand on your terms.</p></div>
+    <div class="svc"><h4>Works Anywhere</h4><p>Run your sessions, collect payments, and build your brand from any city, any country.</p></div>
+  </div>
+</div></section>
+
+<section class="section emerge" id="cta"><div class="wrap">
+  <h2 class="title">Ready to Be Part of Something Real?</h2>
+  <p class="body">Your health journey deserves a permanent home. Your trainer deserves a fair platform. Your community deserves to own itself. SwanStudios is where all of it lives.</p>
+  <div class="ctas">
+    <a class="btn btn-blue" href="#community">Join the Community</a>
+    <a class="btn btn-purple" href="#trainersearch">Find a Trainer</a>
+  </div>
+</div></section>
+<footer><div class="wrap row">
+  <img src="swan-logo.png" alt="SwanStudios">
+  <span class="tag">Built by a trainer. Built with the community. Powered by all of us.</span>
+</div></footer>
+</div>
+</body></html>
