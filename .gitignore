@@ -212,22 +212,15 @@ CLIENT-REGISTRY.md
 client-data/
 
 # Local video-production agent skill packs installed by `npx skills add`.
-# Keep local for Codex workflows; do not commit upstream generated bundles.
-.agents/skills/animejs/
-.agents/skills/contribute-catalog/
-.agents/skills/css-animations/
-.agents/skills/gsap/
-.agents/skills/hyperframes/
-.agents/skills/hyperframes-cli/
-.agents/skills/hyperframes-media/
-.agents/skills/hyperframes-registry/
-.agents/skills/lottie/
-.agents/skills/remotion-to-hyperframes/
-.agents/skills/tailwind/
-.agents/skills/three/
-.agents/skills/typegpu/
-.agents/skills/waapi/
-.agents/skills/website-to-hyperframes/
+# Lock-managed skill trees — installed from skills-lock.json, never authored here.
+# Replaces 15 enumerated entries (Sean approved 2026-08-24, SWA-200 hygiene pass).
+# The enumerated list covered 15 dirs while 22 OTHER vendored trees sat neither
+# ignored nor tracked — 664 files armed for any `git add -A`. All 22 verified
+# present in skills-lock.json with zero tracked files before this rule landed.
+# Git semantics make this safe for authored work: an ignore rule NEVER hides
+# already-tracked files, so the 65 tracked files under this path are unaffected.
+# To author a new skill here: `git add -f` it once; tracked thereafter.
+.agents/skills/*/
 
 # Credentials & tokens - NEVER commit
 admin-login.json
