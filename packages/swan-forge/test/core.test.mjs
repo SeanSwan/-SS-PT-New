@@ -7,6 +7,9 @@ import {
 import {
   getModalState, getModalAttrs, getScrimAttrs, nextTrapIndex, handleModalKey, initialFocusTarget,
 } from '../core/modal.mjs';
+import {
+  getFieldState, getInputAttrs, getLabelAttrs, getMessageAttrs,
+} from '../core/field.mjs';
 
 test('button: every legacy GlowButton alias resolves to a canonical variant', () => {
   for (const [legacy, canonical] of Object.entries(LEGACY_VARIANT_MAP)) {
@@ -61,12 +64,29 @@ test('modal: scrim is aria-hidden and tracks open state', () => {
   assert.equal(getScrimAttrs(getModalState({}))['aria-hidden'], 'true');
 });
 
-test('modal: focus trap wraps at both ends and handles empty lists', () => {
+test('modal: focus trap wraps at both ends, handles empty lists and stale indices', () => {
   assert.equal(nextTrapIndex(2, 3, false), 0, 'Tab from last wraps to first');
   assert.equal(nextTrapIndex(0, 3, true), 2, 'Shift-Tab from first wraps to last');
   assert.equal(nextTrapIndex(-1, 3, false), 0, 'no focus → first');
   assert.equal(nextTrapIndex(-1, 3, true), 2, 'no focus + shift → last');
   assert.equal(nextTrapIndex(0, 0, false), -1, 'empty list → -1');
+  assert.equal(nextTrapIndex(7, 3, false), 0, 'stale index (element removed) → first, not modulo');
+  assert.equal(nextTrapIndex(7, 3, true), 2, 'stale index + shift → last');
+});
+
+test('field core: aria wiring — error/warning/hint mutually exclusive, describedby composed', () => {
+  const err = getFieldState({ id: 'email', error: true, hint: true });
+  assert.equal(getInputAttrs(err)['aria-invalid'], 'true');
+  assert.equal(getInputAttrs(err)['aria-describedby'], 'email-hint email-msg');
+  assert.equal(getMessageAttrs(err).class, 'sw-field__error');
+  assert.equal(getMessageAttrs(err).role, 'alert');
+  const warn = getFieldState({ id: 'w1', warning: true });
+  assert.equal(getInputAttrs(warn)['aria-invalid'], undefined, 'warning is not invalid');
+  assert.equal(getMessageAttrs(warn).class, 'sw-field__warning');
+  const plain = getFieldState({ id: 'p1', hint: true });
+  assert.equal(getMessageAttrs(plain).class, 'sw-field__hint');
+  assert.equal(getFieldState({ id: '"><x>' }).id, 'sw-field', 'hostile id sanitized');
+  assert.equal(getLabelAttrs(getFieldState({ id: 'a' })).for, 'a-input');
 });
 
 test('button: type passthrough — submit/reset honored, junk falls back to button', () => {

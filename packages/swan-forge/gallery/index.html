@@ -136,15 +136,20 @@
   };
   for (const btn of document.querySelectorAll('[data-copy]')) {
     btn.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(SNIPPETS[btn.dataset.copy]); btn.textContent = 'Copied ✓'; }
+      const snippet = SNIPPETS[btn.dataset.copy];
+      if (!snippet) { btn.textContent = 'No snippet'; setTimeout(() => { btn.textContent = 'Copy usage'; }, 1200); return; }
+      try { await navigator.clipboard.writeText(snippet); btn.textContent = 'Copied ✓'; }
       catch { btn.textContent = 'Copy failed'; }
       setTimeout(() => { btn.textContent = 'Copy usage'; }, 1200);
     });
   }
   document.getElementById('pack-starter').addEventListener('click', async (e) => {
-    const res = await fetch('../tokens/packs/swanguard-editorial.css');
-    try { await navigator.clipboard.writeText(await res.text()); e.target.textContent = 'Copied ✓'; }
-    catch { e.target.textContent = 'Copy failed'; }
+    try {
+      const res = await fetch('../tokens/packs/swanguard-editorial.css');
+      if (!res.ok) throw new Error(String(res.status));
+      await navigator.clipboard.writeText(await res.text());
+      e.target.textContent = 'Copied ✓';
+    } catch { e.target.textContent = 'Copy failed'; }
     setTimeout(() => { e.target.textContent = 'Copy pack starter'; }, 1200);
   });
 

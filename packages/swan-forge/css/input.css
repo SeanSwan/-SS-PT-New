@@ -55,6 +55,10 @@
   color: var(--sw-color-danger);
   font-size: var(--sw-p-text-sm);
 }
+.sw-field__warning {
+  color: var(--sw-color-warning);
+  font-size: var(--sw-p-text-sm);
+}
 .sw-field__hint {
   color: var(--sw-text-muted);
   font-size: var(--sw-p-text-sm);

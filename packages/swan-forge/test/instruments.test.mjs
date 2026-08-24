@@ -13,7 +13,7 @@ import {
   contrastRatio, hexToRgb, parseTokens, resolveChain, auditPack,
   SEMANTIC_NAMES, PAIRS, waiverApplies,
 } from '../scripts/audit-contrast.mjs';
-import { lintText, loadExceptions } from '../scripts/drift-lint.mjs';
+import { lintText, loadExceptions, stripComments } from '../scripts/drift-lint.mjs';
 
 const PKG = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -67,6 +67,26 @@ test('audit: unresolvable pair (var()/color-mix value) reports UNRESOLVED', () =
   const css = ':root{--sw-text-primary: var(--nope); --sw-bg-base: #FFFFFF;}';
   const { results } = auditPack('unres.css', css);
   assert.equal(results.find((x) => x.label === 'body text / page').status, 'UNRESOLVED');
+});
+
+// ── Ox F1: a waiver must NEVER mask instrument failure ───────────────
+test('audit: corrupt hex on a WAIVED pair is a blocking FAIL, not WAIVED-FAIL', () => {
+  const corrupt = ':root{--sw-text-inverse: #FFFFFF; --sw-color-accent: #GGGGGG;}';
+  const { results } = auditPack('crystalline-swan.css', corrupt, new Date('2026-09-01'));
+  const accent = results.find((x) => x.label === 'button accent label');
+  assert.equal(accent.status, 'FAIL', 'null ratio on a waived pair must fail loudly');
+});
+
+// ── Ox F2: commented-out tokens must not satisfy the gate ────────────
+test('audit: a token that exists only inside /* */ does NOT count as defined', () => {
+  const sneaky = ':root{ /* --sw-text-primary: #FFFFFF; */ --sw-bg-base: #000000;}';
+  const { missing } = auditPack('sneaky.css', sneaky);
+  assert.ok(missing.includes('--sw-text-primary'), 'commented declaration must stay missing');
+});
+test('audit: a commented duplicate does not trip the duplicate gate', () => {
+  const ok = ':root{--sw-text-primary: #FFFFFF; /* --sw-text-primary: #000000; */ }';
+  const { duplicates } = auditPack('ok.css', ok);
+  assert.deepEqual(duplicates, []);
 });
 
 // ── waiver governance: pack-scoped + time-boxed ──────────────────────
@@ -128,8 +148,20 @@ test('drift-lint R2/R4: consumer override + legacy import detected', () => {
   const rules = lintText('app/x.tsx', consumer, { isConsumer: true }).map((f) => f.rule).sort();
   assert.deepEqual(rules, ['R2', 'R4']);
 });
-test('drift-lint: comment lines never flag (doc examples stay legal)', () => {
+test('drift-lint: comments never flag AND never hide (Ox F7, both directions)', () => {
   assert.equal(lintText('css/x.css', ' * example: color: #FF0000;', { isForgeCss: true }).length, 0);
+  assert.equal(lintText('css/x.css', 'see GlowButton import */', { isConsumer: true }).length, 0, 'block-comment continuation line must not flag R4');
+  assert.equal(lintText('css/x.css', '/* brand: #FF0000 */\n.x { color: var(--sw-border); }', { isForgeCss: true }).length, 0, 'inline block comment must not flag R1');
+  const hidden = lintText('css/x.css', '.x { color: #FF0000; } /* legit note */', { isForgeCss: true });
+  assert.equal(hidden.length, 1, 'violation BEFORE a trailing comment must still flag');
+});
+test('drift-lint: stripComments preserves line numbers', () => {
+  const out = stripComments('a\n/* two\nthree */\nb');
+  assert.equal(out.split('\n').length, 4);
+  assert.equal(out.split('\n')[3], 'b');
+});
+test('drift-lint R3: direction ltr flagged too (reordering in an RTL document)', () => {
+  assert.equal(lintText('tokens/packs/p.css', '.x { direction: ltr; }', { isPack: true }).filter((f) => f.rule === 'R3').length, 1);
 });
 
 // ── exception ledger: unexpired suppresses, expired does not ─────────

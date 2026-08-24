@@ -28,7 +28,7 @@ export const LEGACY_EXPORT_MAP = { GlowButton: 'Button (@swan/forge)', GlacialIn
 // multi-line declarations (`flex-direction:\n row-reverse`) and multi-line imports evade it;
 // `writing-mode`, `unicode-bidi`, and `transform: scaleX(-1)` visual reordering are out of
 // scope for v0. These are accepted gaps, not unknown ones.
-const REORDER_RE = /(?:^|[\s;{])(order\s*:|flex-direction\s*:\s*(?:row|column)-reverse|direction\s*:\s*rtl|grid-(?:row|column)\s*:\s*\d|grid-area\s*:\s*\d)/i;
+const REORDER_RE = /(?:^|[\s;{])(order\s*:|flex-direction\s*:\s*(?:row|column)-reverse|direction\s*:\s*(?:rtl|ltr)|grid-(?:row|column)\s*:\s*\d|grid-area\s*:\s*\d)/i;
 const HEX_RE = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/;
 const SW_OVERRIDE_RE = /\.sw-[\w-]+[^{]*\{/;
 const SW_IMPORTANT_RE = /--sw-[\w-]+[^;]*!important|\.sw-[\w-]+[^}]*!important/;
@@ -70,13 +70,30 @@ export function loadExceptions(text, today = new Date()) {
   return out;
 }
 
+/**
+ * Strip block comments (preserving line count) and trailing // line comments so
+ * commented-out code neither triggers rules (false positive) nor hides violations
+ * appended after a `;` on the same line (Ox F7 — both directions were wrong before).
+ * @param {string} text
+ */
+export function stripComments(text) {
+  const noBlocks = text.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '));
+  return noBlocks.split('\n').map((l) => {
+    const i = l.indexOf('//');
+    // keep URLs (://) intact; strip genuine trailing line comments
+    return i >= 0 && l[i - 1] !== ':' ? l.slice(0, i) : l;
+  }).join('\n');
+}
+
 /** Lint one file's text. @returns {{rule:string,line:number,detail:string}[]} */
 export function lintText(path, text, { isForgeCss = false, isPack = false, isConsumer = false } = {}) {
   const findings = [];
-  const lines = text.split('\n');
+  const lines = stripComments(text).split('\n');
   lines.forEach((line, i) => {
     const at = i + 1;
-    if (line.trimStart().startsWith('*') || line.trimStart().startsWith('//') || line.trimStart().startsWith('/*')) return;
+    // belt+braces: orphan comment-continuation lines (unclosed /* in a fragment) stay skipped
+    const t = line.trimStart();
+    if (t.startsWith('*') || t.startsWith('//') || t.startsWith('/*')) return;
     if (isForgeCss && !isPack && HEX_RE.test(line)) findings.push({ rule: 'R1', line: at, detail: `raw hex outside tokens/: ${line.trim().slice(0, 80)}` });
     if (isPack && REORDER_RE.test(line)) findings.push({ rule: 'R3', line: at, detail: `visual-reordering property in pack: ${line.trim().slice(0, 80)}` });
     if (isPack && PRIMITIVE_IN_PACK_RE.test(line)) findings.push({ rule: 'R5', line: at, detail: `pack redefines primitive-tier token (non-themeable floor): ${line.trim().slice(0, 80)}` });
@@ -108,7 +125,13 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       all.push(...lintText(f, readFileSync(f, 'utf8'), { isConsumer: true }));
     }
   }
-  const suppressed = all.filter((v) => exceptions.some((e) => v.path.includes(e.pathSub) && v.rule === e.rule));
+  // Segment-aware matching (Ox F10): 'Legacy.css' must not suppress 'Legacy.css.backup/x.ts'
+  const norm = (p) => String(p).replace(/\\/g, '/');
+  const pathMatches = (p, sub) => {
+    const np = norm(p); const ns = norm(sub);
+    return np === ns || np.endsWith('/' + ns) || np.includes('/' + ns + '/') || np.startsWith(ns + '/');
+  };
+  const suppressed = all.filter((v) => exceptions.some((e) => pathMatches(v.path, e.pathSub) && v.rule === e.rule));
   const active = all.filter((v) => !suppressed.includes(v));
   const blocking = active.filter((v) => v.rule !== 'R4'); // R4 is adoption telemetry, never blocking
   for (const v of active) console.log(`[${v.rule}] ${v.path}:${v.line} ${v.detail}`);

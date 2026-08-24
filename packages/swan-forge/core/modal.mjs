@@ -58,9 +58,10 @@ export function getScrimAttrs(state) {
 
 /** Selector for focusable elements inside the trap (single source of truth). */
 export const FOCUSABLE_SELECTOR = [
-  'a[href]', 'button:not([disabled])', 'input:not([disabled])',
+  'a[href]', 'area[href]', 'button:not([disabled])', 'input:not([disabled])',
   'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
-  '[contenteditable="true"]', 'summary', 'iframe', 'audio[controls]', 'video[controls]',
+  '[contenteditable]:not([contenteditable="false"])', 'summary', 'iframe',
+  'audio[controls]', 'video[controls]',
 ].join(', ');
 
 /**
@@ -91,7 +92,9 @@ export function initialFocusTarget(focusableCount) {
  */
 export function nextTrapIndex(currentIndex, count, shiftKey) {
   if (count <= 0) return -1;
-  if (currentIndex < 0) return shiftKey ? count - 1 : 0;
+  // Stale index (focused element removed from the DOM mid-session) is treated as
+  // "no focus" rather than wrapping modulo into an arbitrary slot (Ox F12).
+  if (currentIndex < 0 || currentIndex >= count) return shiftKey ? count - 1 : 0;
   const delta = shiftKey ? -1 : 1;
   return (currentIndex + delta + count) % count;
 }

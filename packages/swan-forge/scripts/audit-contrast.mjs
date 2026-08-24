@@ -13,6 +13,11 @@
  * Zero dependencies. Waivers print LOUDLY — no silent caps.
  * Known limitation (documented): values must be 6/3-digit hex to resolve; color-mix()
  * and var() chains report UNRESOLVED and fail — keep audited tokens plain hex.
+ * Gradient/transparent-background policy (Ox F3): the showcase-card gradient and the
+ * ghost button's transparent fill are NOT statically auditable; their worst-case is
+ * pinned by construction — showcase gradient mixes ≤30% of a fill into bg-surface
+ * (audited), and ghost renders text-primary on whatever surface hosts it (audited
+ * pairs cover base/surface/elevated). Content placement rules live in the specs.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -47,8 +52,11 @@ export const PAIRS = [
   { fg: ['--sw-text-secondary'], bg: ['--sw-bg-surface'], min: 4.5, label: 'secondary text / card' },
   { fg: ['--sw-text-secondary'], bg: ['--sw-bg-elevated'], min: 4.5, label: 'secondary text / modal body' },
   { fg: ['--sw-text-muted'], bg: ['--sw-bg-surface'], min: 4.5, label: 'muted text / card' },
+  { fg: ['--sw-text-muted'], bg: ['--sw-bg-base'], min: 4.5, label: 'muted text / page' },
   { fg: ['--sw-text-muted'], bg: ['--sw-bg-elevated'], min: 4.5, label: 'placeholder (muted) / input bg' },
+  { fg: ['--sw-text-secondary'], bg: ['--sw-bg-base'], min: 4.5, label: 'secondary text / page' },
   { fg: ['--sw-color-danger'], bg: ['--sw-bg-surface'], min: 4.5, label: 'danger as text (field error) / card' },
+  { fg: ['--sw-color-warning'], bg: ['--sw-bg-surface'], min: 4.5, label: 'warning as text (field warning) / card' },
   { fg: ['--sw-btn-primary-text', '--sw-text-inverse'], bg: ['--sw-color-primary'], min: 4.5, label: 'button primary label' },
   {
     fg: ['--sw-btn-accent-text', '--sw-text-inverse'], bg: ['--sw-color-accent'], min: 4.5,
@@ -75,11 +83,14 @@ export const AUDITED_TOKENS = [...new Set(PAIRS.flatMap((p) => [...p.fg, ...p.bg
  * @param {string} css
  */
 export function parseTokens(css) {
+  // Ox F2: strip comments FIRST — a token that exists only inside /* … */ must not
+  // satisfy the completeness gate (the browser never applies it).
+  const live = css.replace(/\/\*[\s\S]*?\*\//g, '');
   /** @type {Record<string, string>} */
   const tokens = {};
   /** @type {Record<string, number>} */
   const counts = {};
-  for (const m of css.matchAll(/(--sw-[\w-]+)\s*:\s*([^;]+);/g)) {
+  for (const m of live.matchAll(/(--sw-[\w-]+)\s*:\s*([^;]+);/g)) {
     counts[m[1]] = (counts[m[1]] ?? 0) + 1;
     tokens[m[1]] = m[2].trim();
   }
@@ -137,7 +148,11 @@ export function auditPack(name, css, today = new Date()) {
     if (!fg || !bg) { results.push({ ...pair, pack: name, ratio: null, status: 'UNRESOLVED' }); continue; }
     const ratio = contrastRatio(fg, bg);
     const pass = ratio !== null && ratio >= pair.min;
-    const status = pass ? 'PASS' : waiverApplies(pair, name, today) ? 'WAIVED-FAIL' : 'FAIL';
+    // Ox F1: a waiver excuses a KNOWN low ratio, never instrument failure —
+    // a null ratio (corrupt hex) on a waived pair is a blocking FAIL.
+    const status = pass ? 'PASS'
+      : ratio !== null && waiverApplies(pair, name, today) ? 'WAIVED-FAIL'
+      : 'FAIL';
     results.push({ ...pair, pack: name, fgHex: fg, bgHex: bg, ratio, status });
   }
   return { missing, duplicates, results };

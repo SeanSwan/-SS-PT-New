@@ -8,6 +8,7 @@
   "exports": {
     "./core/button": "./core/button.mjs",
     "./core/modal": "./core/modal.mjs",
+    "./core/field": "./core/field.mjs",
     "./tokens/primitive.css": "./tokens/primitive.css",
     "./tokens/packs/crystalline-swan.css": "./tokens/packs/crystalline-swan.css",
     "./tokens/packs/swanguard-editorial.css": "./tokens/packs/swanguard-editorial.css",
