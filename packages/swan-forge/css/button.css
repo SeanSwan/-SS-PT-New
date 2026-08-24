@@ -1,0 +1,114 @@
+/**
+ * @swan/forge — Button skin (.sw-btn). Zero-runtime; tokens only (no raw hex here).
+ * Taste anchor: original GlowButton.tsx @ origin/main (Sean-confirmed 2026-08-24).
+ * Dual-Button Glow: blue fill → purple glow (--sw-glow-a), purple fill → cyan glow (--sw-glow-b).
+ * Motion multiplies by --sw-motion so reduced-motion/capture mode zeroes every animation.
+ * Layout uses logical properties (i18n/RTL, plan §11).
+ */
+
+.sw-btn {
+  /* component tier defaults — resolution: override → pack semantic → primitive */
+  --_bg: var(--sw-btn-bg, var(--sw-color-primary));
+  /* Filled variants default to inverse text (safe on dark fills in BOTH packs);
+     ghost overrides to text-primary; packs may refine via --sw-btn-<variant>-text. */
+  --_text: var(--sw-btn-text, var(--sw-text-inverse));
+  --_glow-a: var(--sw-btn-glow-a, var(--sw-glow-a));
+  --_glow-b: var(--sw-btn-glow-b, var(--sw-glow-b));
+  --_radius: var(--sw-btn-radius, var(--sw-p-radius-md));
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sw-p-space-2);
+  min-block-size: var(--sw-p-target-min);
+  min-inline-size: var(--sw-p-target-min);
+  padding-block: var(--sw-p-space-2);
+  padding-inline: var(--sw-p-space-5);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--_radius);
+  background: var(--_bg);
+  color: var(--_text);
+  font-family: var(--sw-font-ui);
+  font-size: calc(var(--sw-p-text-base) * var(--sw-text-scale));
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+  text-decoration: none;
+  box-shadow: var(--sw-shadow-1);
+  transition:
+    box-shadow calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
+    transform calc(var(--sw-p-duration-fast) * var(--sw-motion)) var(--sw-ease),
+    background-color calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+}
+
+/* ── Glow (the signature) ─────────────────────────────────────────── */
+.sw-btn:hover:not([disabled]):not(.is-loading) {
+  box-shadow:
+    0 0 14px color-mix(in oklab, var(--_glow-a) 55%, transparent),
+    0 0 34px color-mix(in oklab, var(--_glow-b) 30%, transparent),
+    var(--sw-shadow-2);
+  transform: translateY(calc(-1px * var(--sw-motion)));
+}
+.sw-btn:active:not([disabled]):not(.is-loading) {
+  transform: translateY(0) scale(calc(1 - 0.02 * var(--sw-motion)));
+}
+
+/* ── Sheen sweep (GlowButton shine, GPU-safe) ─────────────────────── */
+.sw-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    115deg,
+    transparent 32%,
+    color-mix(in oklab, var(--_glow-a) 22%, transparent) 46%,
+    color-mix(in oklab, var(--_glow-b) 28%, transparent) 54%,
+    transparent 68%
+  );
+  background-size: 240% 100%;
+  background-position-x: 120%;
+  opacity: 0;
+  pointer-events: none;
+}
+.sw-btn:hover:not([disabled]):not(.is-loading)::after {
+  opacity: calc(1 * var(--sw-motion));
+  transition: background-position-x calc(var(--sw-p-duration-slow) * var(--sw-motion)) var(--sw-ease);
+  background-position-x: -20%;
+}
+
+/* ── Variants (fills per original GlowButton theme table) ─────────── */
+.sw-btn--primary { --_bg: var(--sw-color-primary); --_text: var(--sw-btn-primary-text, var(--sw-text-inverse)); --_glow-a: var(--sw-glow-a); --_glow-b: var(--sw-glow-b); }
+.sw-btn--accent  { --_bg: var(--sw-color-accent); --_text: var(--sw-text-inverse); --_glow-a: var(--sw-glow-b); --_glow-b: var(--sw-glow-b); }
+.sw-btn--gilded  { --_bg: var(--sw-btn-gilded-bg, var(--sw-color-gold)); --_text: var(--sw-btn-gilded-text, var(--sw-text-primary)); --_glow-a: var(--sw-btn-gilded-glow-a, var(--sw-color-gold)); --_glow-b: var(--sw-btn-gilded-glow-b, var(--sw-color-gold)); }
+.sw-btn--success { --_bg: var(--sw-btn-success-bg, var(--sw-color-success)); --_text: var(--sw-btn-success-text, var(--sw-text-primary)); --_glow-a: var(--sw-btn-success-glow-a, var(--sw-color-success)); --_glow-b: var(--sw-btn-success-glow-b, var(--sw-color-success)); }
+.sw-btn--danger  { --_bg: var(--sw-btn-danger-bg, var(--sw-color-danger)); --_text: var(--sw-btn-danger-text, var(--sw-text-primary)); --_glow-a: var(--sw-btn-danger-glow-a, var(--sw-color-danger)); --_glow-b: var(--sw-btn-danger-glow-b, var(--sw-color-danger)); }
+.sw-btn--ghost   { --_bg: transparent; --_text: var(--sw-text-primary); border-color: var(--sw-border-strong); --_glow-a: var(--sw-btn-ghost-glow-a, var(--sw-glow-a)); --_glow-b: var(--sw-btn-ghost-glow-b, var(--sw-glow-b)); }
+
+/* ── Sizes ────────────────────────────────────────────────────────── */
+.sw-btn--small { padding-inline: var(--sw-p-space-4); font-size: calc(var(--sw-p-text-sm) * var(--sw-text-scale)); }
+.sw-btn--large { padding-block: var(--sw-p-space-3); padding-inline: var(--sw-p-space-6); font-size: calc(var(--sw-p-text-lg) * var(--sw-text-scale)); }
+.sw-btn.is-full { inline-size: 100%; }
+
+/* ── States ───────────────────────────────────────────────────────── */
+.sw-btn:focus-visible { outline: none; box-shadow: var(--sw-focus-shadow); }
+.sw-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+.sw-btn.is-loading { cursor: progress; }
+.sw-btn.is-loading::before {
+  content: "";
+  inline-size: 1em;
+  block-size: 1em;
+  border: 2px solid color-mix(in oklab, var(--_text) 35%, transparent);
+  border-block-start-color: var(--_text);
+  border-radius: var(--sw-p-radius-pill);
+  animation: sw-btn-spin calc(0.8s / max(var(--sw-motion), 0.001)) linear infinite;
+}
+@keyframes sw-btn-spin { to { transform: rotate(360deg); } }
+
+/* Reduced motion: spinner becomes a steady dot (announced via aria-busy). */
+@media (prefers-reduced-motion: reduce) {
+  .sw-btn.is-loading::before { animation: none; border-color: var(--_text); }
+  .sw-btn::after { display: none; }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@swan/forge",
+  "version": "0.1.0",
+  "description": "Swan Component Forge — canonical, themeable component catalog. Headless cores + structural variants + zero-runtime token skins. One ultimate version of each component, re-themed per site.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "private": true,
+  "exports": {
+    "./core/button": "./core/button.mjs",
+    "./core/modal": "./core/modal.mjs",
+    "./tokens/primitive.css": "./tokens/primitive.css",
+    "./tokens/packs/crystalline-swan.css": "./tokens/packs/crystalline-swan.css",
+    "./tokens/packs/swanguard-editorial.css": "./tokens/packs/swanguard-editorial.css",
+    "./css/button.css": "./css/button.css",
+    "./css/card.css": "./css/card.css",
+    "./css/input.css": "./css/input.css",
+    "./css/modal.css": "./css/modal.css"
+  },
+  "scripts": {
+    "test": "node --test test/core.test.mjs test/instruments.test.mjs",
+    "lint:drift": "node scripts/drift-lint.mjs",
+    "audit:contrast": "node scripts/audit-contrast.mjs",
+    "gate": "npm run test && npm run audit:contrast && npm run lint:drift"
+  }
+}

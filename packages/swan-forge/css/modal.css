@@ -1,0 +1,84 @@
+/**
+ * @swan/forge — Modal skin (.sw-modal). Variants: dialog (centered) + drawer
+ * (inline-end sheet — VaultDrawer lineage). Geometry only; behavior (trap,
+ * Escape, aria) lives in core/modal.mjs and never forks per variant (§11.A1).
+ */
+
+.sw-modal-scrim {
+  position: fixed;
+  inset: 0;
+  background: var(--sw-bg-overlay);
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+  z-index: 90;
+}
+.sw-modal-scrim.is-open { opacity: 1; pointer-events: auto; visibility: visible; }
+
+.sw-modal {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-p-space-4);
+  background: var(--sw-bg-elevated);
+  color: var(--sw-text-primary);
+  border: 1px solid var(--sw-border-strong);
+  box-shadow: var(--sw-shadow-3);
+  padding: var(--sw-p-space-5);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden; /* removes the closed dialog from the accessibility tree */
+  font-family: var(--sw-font-body);
+}
+.sw-modal.is-open { opacity: 1; pointer-events: auto; visibility: visible; }
+
+/* ── Dialog variant: centered ─────────────────────────────────────── */
+.sw-modal--dialog {
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -50%) scale(calc(1 - 0.03 * var(--sw-motion)));
+  inline-size: min(92vw, 560px);
+  max-block-size: 86dvh;
+  overflow-y: auto;
+  border-radius: var(--sw-p-radius-lg);
+  transition:
+    opacity calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
+    transform calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+}
+.sw-modal--dialog.is-open { transform: translate(-50%, -50%) scale(1); }
+
+/* ── Drawer variant: inline-end sheet ─────────────────────────────── */
+.sw-modal--drawer {
+  inset-block: 0;
+  inset-inline-end: 0;
+  inline-size: min(92vw, 420px);
+  border-start-start-radius: var(--sw-p-radius-lg);
+  border-end-start-radius: var(--sw-p-radius-lg);
+  transform: translateX(calc(8% * var(--sw-motion)));
+  transition:
+    opacity calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
+    transform calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+}
+.sw-modal--drawer.is-open { transform: translateX(0); }
+
+/* ── Shared anatomy ───────────────────────────────────────────────── */
+.sw-modal__title {
+  margin: 0;
+  font-family: var(--sw-font-heading);
+  font-size: calc(var(--sw-p-text-xl) * var(--sw-text-scale));
+}
+.sw-modal__body { color: var(--sw-text-secondary); }
+.sw-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sw-p-space-3);
+  margin-block-start: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sw-modal--dialog, .sw-modal--drawer { transform: none; transition: opacity var(--sw-p-duration-fast) ease; }
+  .sw-modal--dialog.is-open { transform: translate(-50%, -50%); }
+}
