@@ -144,8 +144,8 @@ tool bodies and make range-attribution wrong:
 
 | Tool | Consent gate reachable |
 |---|---|
-| `stop_comfyui` | **NONE** |
-| `free_memory` | **NONE** |
+| `stop_comfyui` | **NONE** — but see the ownership correction below |
+| `free_memory` | NONE — and **not** a mid-render risk; see below |
 | `download_model` | **NONE** |
 | `upload_file` | **NONE** |
 | `restart_comfyui` | `network_exposure` *(about binding interfaces — not "a render is running")* |
@@ -156,10 +156,42 @@ tool bodies and make range-attribution wrong:
 | `partner_generate` | spend — **not pre-authorizable** |
 | `run_workflow` | opt-in spend — **not pre-authorizable** |
 
-> **`stop_comfyui` reaches no gate, and cannot be turned off.** It is the exact tool that produces
-> the §2.1 collision, it is permanently exposed to any agent connected to the MCP, and it will not
-> ask before killing a ComfyUI that has a render in flight. `free_memory` is equally ungated and can
-> evict a model mid-run.
+> **`stop_comfyui` reaches no consent gate and cannot be turned off** — but its blast radius is
+> narrower than a bare "no gate" reading suggests, and a hostile round caught me overstating it.
+
+**ROUND-3 CORRECTION (runtime tool descriptions, a vantage the AST pass could not see).** Two claims
+in the first draft of this section were wrong, and the tools' own documented semantics disprove them:
+
+- **`stop_comfyui` can only kill the pid `launch_comfyui` recorded.** It *"cannot stop a ComfyUI
+  started by the desktop app or by hand, and raises `ComfyCliError` naming 'no recorded server'
+  instead of killing an unrelated process."* It also holds a `_LIFECYCLE_LOCK` shared with
+  `launch_comfyui`/`restart_comfyui` and is refused while one is in flight — **comfy-mcp already has
+  its own lifecycle mutex.**
+- **`free_memory` is NOT a mid-render risk.** Its own description: *"NOT IMMEDIATE, never
+  destructive: applied when the queue worker next iterates — does **not** interrupt a running job,
+  so this cannot stop one."* My "can evict a model mid-run" claim was false.
+
+**ROUND-4 CORRECTION — the round-3 fix above was itself too narrow.** "Only when the MCP launched
+it" is wrong, because the recorded pid does not belong to the MCP; it belongs to **comfy-cli**, which
+Sean can drive from a terminal. `comfy_cli/config_manager.py` persists a `background` entry carrying
+`{host, port, pid}`, and `comfy launch` writes it **whoever invokes it**. So `stop_comfyui` reaches:
+
+| Target | Gate |
+|---|---|
+| a server recorded by `comfy launch` — **from the MCP *or* from Sean's own terminal** | **NONE** |
+| an **untracked** listener found by port scan (`comfy_cli/command/stop_port.py` walks `process_iter` and reports `"untracked": true`) | `kill_untracked` |
+| a ComfyUI started by the desktop app or by hand with no comfy-cli involvement | refuses — `ComfyCliError`, "no recorded server" |
+
+**Therefore denying `launch_comfyui` alone does NOT close the path** — the moment Sean runs
+`comfy launch` himself, an ungated `stop_comfyui` can reach that server. The mitigation reverts to
+the blunt, correct one: **deny `stop_comfyui` outright in the client**, and deny `launch_comfyui`
+too so the MCP never adds a tracked pid of its own. The lease gate then covers `restart_comfyui`,
+`update_comfyui` and `switch_comfyui_version`, whose own gates ask about *interfaces and versions*,
+never about "a render is running."
+
+*(This correction exists because round 3's fix became round 4's attack surface — the failure mode
+this project has recorded repeatedly. The round-3 text asserted a boundary from one tool's docstring
+without checking who else writes the state that docstring depends on.)*
 
 *(One honest gap: the resolver did not reach a gate from `generate_image`, while a grep places a
 spend-wording reference inside its line range. Treat `generate_image`'s gating as UNRESOLVED, not
@@ -170,12 +202,15 @@ as absent — a local or nested call site would defeat a three-level module-scop
 1. **GLM's "grant the MCP a read-only toolset first" is not available as specified.** The server is
    all-or-nothing. The de-risk survives, but it **moves to the client**: Claude Code denies the
    dangerous tool names via permission rules in `.claude/settings.json`, e.g.
-   `mcp__comfyui__stop_comfyui`, `mcp__comfyui__free_memory`, `mcp__comfyui__download_model`,
-   `mcp__comfyui__upload_file`. Read-only-first becomes a **deny-list in our config**, not a server
-   capability — and that list is ours to audit and version.
-2. **S3's lease gate is now load-bearing rather than belt-and-braces.** With no server-side gate on
-   `stop_comfyui`, the render lease is the *only* thing that can stand between a diagnosis session
-   and a live render.
+   `mcp__comfyui__stop_comfyui` **and** `mcp__comfyui__launch_comfyui` (see the round-4
+   correction — denying only the latter is insufficient), plus `mcp__comfyui__download_model` and
+   `mcp__comfyui__upload_file`.
+   Read-only-first becomes a **deny-list in our config**, not a server capability — and that list is
+   ours to audit and version. `free_memory` does **not** need denying on mid-render grounds.
+2. **S3's lease gate stays required.** Denying `stop_comfyui` + `launch_comfyui` closes the
+   process-kill path; the lease then guards `restart_comfyui`, `update_comfyui` and
+   `switch_comfyui_version`, whose own gates ask about *interfaces and versions*, never about
+   "a render is running.
 3. **Mirror the spend design.** `comfy-mcp` deliberately made spend un-pre-authorizable. Our
    per-provider licence grant should be equally un-bypassable by env convenience.
 
