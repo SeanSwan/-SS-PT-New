@@ -81,7 +81,7 @@
 
 /* ── Variants (fills per original GlowButton theme table) ─────────── */
 .sw-btn--primary { --_bg: var(--sw-color-primary); --_text: var(--sw-btn-primary-text, var(--sw-text-inverse)); --_glow-a: var(--sw-glow-a); --_glow-b: var(--sw-glow-b); }
-.sw-btn--accent  { --_bg: var(--sw-color-accent); --_text: var(--sw-text-inverse); --_glow-a: var(--sw-glow-b); --_glow-b: var(--sw-glow-b); }
+.sw-btn--accent  { --_bg: var(--sw-color-accent); --_text: var(--sw-text-inverse); --_glow-a: var(--sw-btn-accent-glow-a, var(--sw-glow-b)); --_glow-b: var(--sw-btn-accent-glow-b, var(--sw-glow-b)); }
 .sw-btn--gilded  { --_bg: var(--sw-btn-gilded-bg, var(--sw-color-gold)); --_text: var(--sw-btn-gilded-text, var(--sw-text-primary)); --_glow-a: var(--sw-btn-gilded-glow-a, var(--sw-color-gold)); --_glow-b: var(--sw-btn-gilded-glow-b, var(--sw-color-gold)); }
 .sw-btn--success { --_bg: var(--sw-btn-success-bg, var(--sw-color-success)); --_text: var(--sw-btn-success-text, var(--sw-text-primary)); --_glow-a: var(--sw-btn-success-glow-a, var(--sw-color-success)); --_glow-b: var(--sw-btn-success-glow-b, var(--sw-color-success)); }
 .sw-btn--danger  { --_bg: var(--sw-btn-danger-bg, var(--sw-color-danger)); --_text: var(--sw-btn-danger-text, var(--sw-text-primary)); --_glow-a: var(--sw-btn-danger-glow-a, var(--sw-color-danger)); --_glow-b: var(--sw-btn-danger-glow-b, var(--sw-color-danger)); }
