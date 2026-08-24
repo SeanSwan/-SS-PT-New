@@ -46,22 +46,27 @@ describe('LoadingSpinner retry contract', () => {
     expect(spinnerSource).toContain('}, [timeout, retryNonce]);');
   });
 
-  it('announces client-roster loading to assistive tech instead of rendering a silent pulse', () => {
+  it('announces client-roster loading from a persistent live region', () => {
     // A pulse with no live region is invisible to a screen reader: the user hears
     // nothing between "clients" being requested and the grid appearing.
-    expect(clientsWorkspaceViewSource).toContain('<LoadingPulse role="status" aria-live="polite">');
+    expect(clientsWorkspaceViewSource).toContain('<RosterAnnouncer role="status" aria-live="polite">');
   });
 
-  it('keeps aria-busy on the persistent container, never on the transient pulse', () => {
-    // aria-busy="true" on a live region tells AT to defer announcing until it clears.
-    // The pulse unmounts instead of clearing, so a hardcoded aria-busy there can
-    // swallow the announcement. It belongs on ContentArea, which persists and flips
-    // back to false when the fetch settles.
+  it('keeps the live region out of the aria-busy subtree', () => {
+    // ARIA 1.2 lets AT defer changes inside an aria-busy subtree until busy clears.
+    // ContentArea is busy while the roster loads, so a live region nested inside it
+    // can have its announcement deferred and then lost when the pulse unmounts.
+    // RosterAnnouncer therefore sits directly under HubContainer, above ContentArea.
     expect(clientsWorkspaceViewSource).toContain('<ContentArea aria-busy={props.loading}>');
-    // Matched structurally, not as a bare substring: the comment above LoadingContent
-    // explains why aria-busy="true" is wrong and therefore contains that literal. A
-    // naive not.toContain() fails on the documentation rather than on the defect.
-    expect(clientsWorkspaceViewSource).not.toMatch(/<LoadingPulse[^>]*aria-busy/);
+    // Structural, not substring: the comments here discuss aria-busy and role=status,
+    // so a bare not.toContain() would fail on the documentation rather than the defect.
+    expect(clientsWorkspaceViewSource).not.toMatch(/<LoadingPulse[^>]*aria-(busy|live)/);
+    expect(clientsWorkspaceViewSource).not.toMatch(/<LoadingPulse[^>]*role=/);
+    // The announcer must appear BEFORE ContentArea in the tree, i.e. not nested in it.
+    const announcerAt = clientsWorkspaceViewSource.indexOf('<RosterAnnouncer');
+    const contentAreaAt = clientsWorkspaceViewSource.indexOf('<ContentArea aria-busy');
+    expect(announcerAt).toBeGreaterThan(-1);
+    expect(announcerAt).toBeLessThan(contentAreaAt);
   });
 
   it('offers an in-place client-roster retry and never tells the user to reload the page', () => {

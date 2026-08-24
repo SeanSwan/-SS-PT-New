@@ -102,7 +102,7 @@ describe('client hub roster — loading and failure affordances', () => {
     dataMock.resolveInitialClientSelection.mockResolvedValue(null);
   });
 
-  it('exposes the loading pulse as a live region so a screen reader hears it', async () => {
+  it('announces loading from a live region that is NOT inside the aria-busy subtree', async () => {
     let release: (value: unknown) => void = () => {};
     dataMock.fetchClientHubClientsStrict.mockReturnValue(new Promise((r) => { release = r; }));
 
@@ -111,17 +111,24 @@ describe('client hub roster — loading and failure affordances', () => {
     // Asserted while the fetch is genuinely in flight — a source-text check cannot
     // distinguish "the attribute is written" from "the element ever renders".
     // The generous timeout is not papering over a race: the fetch is held open by
-    // `release`, so the pulse cannot legitimately vanish. It exists because this hub
-    // mounts a dozen panels and the default 1000ms expired once under a full parallel
-    // suite run while passing 5/5 in isolation.
+    // `release`, so the announcement cannot legitimately vanish. It exists because
+    // this hub mounts a dozen panels and the default 1000ms expired once under a full
+    // parallel suite run while passing 5/5 in isolation.
     const status = await screen.findByRole('status', {}, { timeout: 5000 });
     expect(status).toHaveTextContent(/loading clients/i);
 
+    // THE LOAD-BEARING ASSERTION. ARIA 1.2 lets assistive tech defer changes inside
+    // an aria-busy subtree until busy clears. If this live region sat inside
+    // ContentArea (which is busy while loading), the announcement could be deferred
+    // and then lost when the pulse unmounts. It must not have a busy ancestor.
+    expect(status.closest('[aria-busy="true"]')).toBeNull();
+
     release(roster);
 
-    // Scoped to THIS node rather than queryByRole('status'), which throws when a
-    // sibling panel happens to render its own status region at the same moment.
-    await waitFor(() => expect(status).not.toBeInTheDocument(), { timeout: 5000 });
+    // The region PERSISTS and empties, rather than unmounting — a region that mounts
+    // already containing its text is unreliably announced.
+    await waitFor(() => expect(status).toHaveTextContent(''), { timeout: 5000 });
+    expect(status).toBeInTheDocument();
   });
 
   it('marks the persistent content region busy while loading and clears it after', async () => {
@@ -130,20 +137,24 @@ describe('client hub roster — loading and failure affordances', () => {
 
     renderHub();
 
-    // Scoped to the region that OWNS the roster, found via the loading status it
-    // contains. A container-wide [aria-busy] query is wrong here: sibling nutrition
-    // panels carry their own aria-busy and stay loading forever under these mocks,
-    // so a broad query proves nothing about the node this fix actually changed.
-    const status = await screen.findByRole('status', {}, { timeout: 5000 });
-    const region = status.closest('[aria-busy]');
-    expect(region).not.toBeNull();
+    // Found via the visible pulse rather than a container-wide [aria-busy] query:
+    // sibling nutrition panels carry their own aria-busy and stay loading forever
+    // under these mocks, so a broad query proves nothing about the node under test.
+    // Assert the invariant directly rather than hunting for a specific node: the hub
+    // has exactly ONE aria-busy region (ContentArea), the announcer must sit OUTSIDE
+    // it, and the visible loading text must sit INSIDE it.
+    const announcer = await screen.findByRole('status', {}, { timeout: 5000 });
+    const busyNodes = document.querySelectorAll('[aria-busy]');
+    expect(busyNodes.length).toBe(1);
+    const region = busyNodes[0];
     expect(region).toHaveAttribute('aria-busy', 'true');
+    expect(region.contains(announcer)).toBe(false);
+    expect(region.textContent).toMatch(/loading clients/i);
 
     release(roster);
 
-    // The point of putting aria-busy on a PERSISTENT node: it has something to flip
-    // back to. A transient node just disappears, and a live region left busy can have
-    // its announcement dropped. Same element re-read, so this proves a flip.
+    // aria-busy on a PERSISTENT node has something to flip back to. Same element
+    // re-read, so this proves an actual flip rather than a disappearance.
     await waitFor(() => expect(region).toHaveAttribute('aria-busy', 'false'));
   });
 

@@ -38,6 +38,7 @@ import {
   DetailScrollWrap,
   HubContainer,
   LoadingPulse,
+  RosterAnnouncer,
 } from './ClientsWorkspace.styles';
 import ErrorNote from '../../ui/ErrorNote';
 import ClientsWorkspaceLensFrame from './ClientsWorkspaceLensFrame';
@@ -235,15 +236,10 @@ const ClientGrid: React.FC<Pick<
 );
 
 const DetailContent: ContentRenderer = (props) => <SelectedClientDetail {...props} />;
-// role=status + aria-live make the pulse announce itself; without them a roster
-// fetch is silent to a screen reader. aria-busy is deliberately NOT set here: this
-// node unmounts rather than flipping busy to false, and a live region left busy can
-// have its announcement dropped. aria-busy lives on ContentArea, which persists.
-const LoadingContent: ContentRenderer = () => (
-  <LoadingPulse role="status" aria-live="polite">
-    Loading clients...
-  </LoadingPulse>
-);
+// Purely visual. The screen-reader announcement is made by RosterAnnouncer, which
+// lives OUTSIDE ContentArea — see its definition for why a live region nested inside
+// an aria-busy subtree can have its announcement deferred and then lost.
+const LoadingContent: ContentRenderer = () => <LoadingPulse>Loading clients...</LoadingPulse>;
 const EmptyContent: ContentRenderer = (props) => {
   const config = getClientHubAudienceConfig(props.audience ?? 'admin');
   return (
@@ -275,6 +271,10 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
   return (
     <ClientsWorkspaceLensFrame>
     <HubContainer>
+      {/* Always mounted; only its text changes. Outside ContentArea on purpose. */}
+      <RosterAnnouncer role="status" aria-live="polite">
+        {props.loading ? 'Loading clients...' : ''}
+      </RosterAnnouncer>
       {props.loadError && !props.loading && (
         <ErrorNote onRetry={props.onRetryLoad} retryLabel="Retry">
           Couldn&apos;t load your client roster.
