@@ -197,7 +197,12 @@ export function requireMessagingAccess({ scope = 'conversation' } = {}) {
     if (!membership.actorIsMember) return sendOutsideRelationship(res);
     if (membership.others.length === 0) return sendOutsideRelationship(res);
 
-    const allInside = membership.others.every((id) => counterparties.has(id));
+    // `others` now carries {id, role} so both gates can honour staff the same
+    // way — widening the list without widening the write is what produced the
+    // visible-but-unwritable admin thread. Mirrors isRelationshipWriteAllowed.
+    const allInside = membership.others.every(
+      (m) => counterparties.has(m.id) || m.role === 'admin' || m.role === 'trainer',
+    );
     if (!allInside) return sendOutsideRelationship(res);
 
     // Validate anyone being ADDED, not just who is already here.

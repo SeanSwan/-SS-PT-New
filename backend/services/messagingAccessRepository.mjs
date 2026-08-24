@@ -135,6 +135,14 @@ export async function loadConversationMembers(conversationId, actorId) {
  * Returns true when the write is permitted. FAIL-CLOSED: any lookup failure
  * denies, matching the middleware.
  *
+ * PRECONDITION — the caller MUST have already established that the actor is an
+ * active participant of this conversation. Staff and community-entitled actors
+ * short-circuit here WITHOUT a membership query, deliberately: that query is on
+ * the per-message hot path and the two callers both check membership first
+ * (socket.mjs via isActiveParticipant, REST via the conversation scope). Grok
+ * 4.6 flagged that the name promises more than the body verifies — it decides
+ * the LANE, not membership. Do not call it as a standalone authorization.
+ *
  * @param {{id:*, role?:string}} actor
  * @param {number} conversationId
  * @param {boolean} hasCommunityAccess  already-resolved entitlement

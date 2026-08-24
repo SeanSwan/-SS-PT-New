@@ -17,6 +17,7 @@ import type { CreateConversationRequest } from './MessagingTypes';
 
 const MessagingView: React.FC = () => {
   const [showNewModal, setShowNewModal] = useState(false);
+  const [composeError, setComposeError] = useState<string | null>(null);
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const composeTo = searchParams.get('composeTo');
@@ -68,14 +69,32 @@ const MessagingView: React.FC = () => {
   // Auto-start or switch to conversation if ?composeTo= is in the URL
   useEffect(() => {
     if (composeTo && messagingEnabled && currentUserId && !loading) {
-      const targetId = parseInt(composeTo, 10);
-      if (targetId && targetId !== currentUserId) {
-        createConversation(targetId).catch(() => {});
-      }
-      setSearchParams(params => {
+      // A trainer-sent deep link that fails must not vanish silently. Three
+      // reviewers flagged this independently: the error was swallowed, the param
+      // was deleted in the same tick whether or not the create succeeded, and
+      // the user was left on an inbox with no thread and no explanation.
+      //
+      // Strict parsing matches the server's rule, so '900abc' no longer resolves
+      // to a different user than the backend would accept.
+      const targetId = /^[1-9]\d*$/.test(composeTo) ? Number(composeTo) : null;
+      const clearParam = () => setSearchParams((params) => {
         params.delete('composeTo');
         return params;
       }, { replace: true });
+
+      if (!targetId || String(targetId) === String(currentUserId)) {
+        clearParam();
+      } else {
+        setComposeError(null);
+        createConversation(targetId)
+          .then(clearParam)
+          .catch(() => {
+            setComposeError(
+              'We couldn’t open that conversation. It may no longer be available.',
+            );
+            clearParam();
+          });
+      }
     }
   }, [composeTo, messagingEnabled, currentUserId, loading, createConversation, setSearchParams]);
 
@@ -90,7 +109,9 @@ const MessagingView: React.FC = () => {
   );
 
   const unreadCount = useMemo(
-    () => conversations.reduce((total, conversation) => total + conversation.unreadCount, 0),
+    // One conversation missing the field rendered a literal "NaN" in the Unread
+    // tile (Grok 4.6, GLM 5.3). A metric that can print NaN is worse than absent.
+    () => conversations.reduce((total, conversation) => total + (conversation.unreadCount ?? 0), 0),
     [conversations]
   );
 
@@ -171,7 +192,7 @@ const MessagingView: React.FC = () => {
 
   return (
     <MessagingShell>
-      <MessagingSummary>
+      <MessagingSummary $mobileHidden={hasMobileThread}>
         <SummaryCopy>
           <SummaryKicker>Communication Hub</SummaryKicker>
           <SummaryTitle>Messages</SummaryTitle>
@@ -182,6 +203,15 @@ const MessagingView: React.FC = () => {
           <SummaryMetric $live={connected}><strong>{connected ? 'Live' : 'Polling'}</strong><span>Status</span></SummaryMetric>
         </SummaryMetrics>
       </MessagingSummary>
+
+      {composeError && (
+        <ComposeErrorBar role="alert">
+          <span>{composeError}</span>
+          <ComposeErrorDismiss type="button" onClick={() => setComposeError(null)}>
+            Dismiss
+          </ComposeErrorDismiss>
+        </ComposeErrorBar>
+      )}
 
       <MessagingContainer>
         <ConversationListPanel
@@ -295,6 +325,33 @@ const StateActionSecondary = styled(StateAction)`
   color: var(--text-primary, #E0ECF4);
 `;
 
+const ComposeErrorBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--warning-border, rgba(198, 168, 75, 0.4));
+  background: var(--warning-surface, rgba(198, 168, 75, 0.1));
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.9375rem;
+`;
+
+const ComposeErrorDismiss = styled.button`
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-soft, rgba(224, 236, 244, 0.22));
+  background: transparent;
+  color: var(--text-primary, #E0ECF4);
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:focus-visible { outline: 2px solid var(--accent-glow, #8B5CF6); outline-offset: 2px; }
+`;
+
 const MessagingShell = styled.div`
   display: flex;
   min-height: min(840px, calc(100vh - 96px));
@@ -313,7 +370,7 @@ const CenteredMessage = styled.div`
   text-align: center;
 `;
 
-const MessagingSummary = styled.header`
+const MessagingSummary = styled.header<{ $mobileHidden?: boolean }>`
   display: flex;
   align-items: stretch;
   justify-content: space-between;
@@ -321,6 +378,15 @@ const MessagingSummary = styled.header`
 
   @media (max-width: 768px) {
     flex-direction: column;
+  }
+
+  /* On a phone the thread IS the screen. This header plus three metric tiles
+     stacks into four blocks above the conversation, and once the keyboard opens
+     the messages are pushed out of the viewport entirely — so a user who tapped
+     a conversation has to scroll to find it. Hidden while a thread is open,
+     matching how the list panel already yields (Gemini 3.1 Pro, UX panel). */
+  @media (max-width: 1024px) {
+    display: ${({ $mobileHidden }) => ($mobileHidden ? 'none' : 'flex')};
   }
 `;
 

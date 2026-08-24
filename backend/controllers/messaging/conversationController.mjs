@@ -97,10 +97,14 @@ export const getConversations = async (req, res) => {
           return false;
         }
         const others = participants
-          .map((participant) => ({
-            id: Number(participant?.id ?? participant?.userId),
-            role: participant?.role,
-          }))
+          .map((participant) => (
+            // A participant may arrive as an object OR a raw scalar id. The
+            // scalar form used to map to NaN, drop from `others`, and make the
+            // whole thread silently vanish from the inbox (Grok 4.6).
+            typeof participant === 'object' && participant !== null
+              ? { id: Number(participant.id ?? participant.userId), role: participant.role }
+              : { id: Number(participant), role: undefined }
+          ))
           .filter((p) => Number.isInteger(p.id) && p.id !== viewerId);
 
         // Staff count as reachable. ensureAdminConversation creates a direct

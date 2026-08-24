@@ -104,7 +104,10 @@ function mockSql({ counterparties = [], participants = [], throwOn = null } = {}
     }
     if (sql.includes('conversation_participants')) {
       if (throwOn === 'participants') throw new Error('db down');
-      return participants.map((u) => ({ userId: u }));
+      // Rows carry the PLATFORM role so both gates can honour staff identically.
+      return participants.map((u) => (
+        typeof u === 'object' ? { userId: u.id, platformRole: u.role } : { userId: u, platformRole: 'client' }
+      ));
     }
     return [];
   });
