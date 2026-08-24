@@ -23,7 +23,7 @@
   padding-block: var(--sw-p-space-2);
   padding-inline: var(--sw-p-space-4);
   inline-size: 100%;
-  background: color-mix(in oklab, var(--sw-bg-elevated) 88%, transparent);
+  background: var(--sw-bg-elevated); /* plain token: keeps the placeholder pair statically auditable */
   color: var(--sw-text-primary);
   border: 1px solid var(--sw-border);
   border-radius: var(--_radius);

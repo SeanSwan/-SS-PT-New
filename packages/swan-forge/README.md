@@ -48,8 +48,16 @@ import { getButtonState, getButtonAttrs } from '@swan/forge/core/button';
 | Contrast | `npm run audit:contrast` | Every pack complete vs the 32-name contract; WCAG on resolved (pack × override) pairs; waivers print loudly |
 | Drift lint | `npm run lint:drift` | No raw hex outside tokens; no pack reorder properties; consumer override/legacy-import scan. Report-only until the adoption rule lands; exceptions ledgered in `EXCEPTIONS.md` with owner + expiry |
 
-Gallery (`gallery/index.html`, serve package root) is the component × pack test matrix —
-`?capture=1` forces motion off for deterministic screenshot diffs.
+Gallery (`gallery/index.html`, serve package root) is a **manually-run** component × pack
+matrix today — `?capture=1` is the determinism hook (motion forced off) for screenshot
+diffs. **The automated screenshot gate is a Phase 1.5 deliverable** (it needs Playwright,
+which lives in the consumer repo — adding it here would violate the Push-1 no-new-deps
+rule). Until then, treat gallery checks as manual verification, not a CI gate.
+
+Note on `npm run gate`: the consumer-facing lint rules (R2 override scan, R4 legacy-import
+adoption tracker) run only when pointed at a consumer (`node scripts/drift-lint.mjs
+--consumer <dir>`), which happens from the consumer repo at Phase 1.5+. The package-local
+gate exercises R1/R3/R5 over Forge's own files.
 
 ## Release & adoption
 

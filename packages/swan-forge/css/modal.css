@@ -11,10 +11,16 @@
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
-  transition: opacity calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+  /* visibility flips AFTER the fade on close, immediately on open */
+  transition:
+    opacity calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
+    visibility 0s linear calc(var(--sw-p-duration-base) * var(--sw-motion));
   z-index: 90;
 }
-.sw-modal-scrim.is-open { opacity: 1; pointer-events: auto; visibility: visible; }
+.sw-modal-scrim.is-open {
+  opacity: 1; pointer-events: auto; visibility: visible;
+  transition: opacity calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease), visibility 0s;
+}
 
 .sw-modal {
   position: fixed;
@@ -45,9 +51,10 @@
   border-radius: var(--sw-p-radius-lg);
   transition:
     opacity calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
-    transform calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+    transform calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
+    visibility 0s linear calc(var(--sw-p-duration-base) * var(--sw-motion));
 }
-.sw-modal--dialog.is-open { transform: translate(-50%, -50%) scale(1); }
+.sw-modal--dialog.is-open { transform: translate(-50%, -50%) scale(1); transition-delay: 0s, 0s, 0s; }
 
 /* ── Drawer variant: inline-end sheet ─────────────────────────────── */
 .sw-modal--drawer {
@@ -59,9 +66,13 @@
   transform: translateX(calc(8% * var(--sw-motion)));
   transition:
     opacity calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
-    transform calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+    transform calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
+    visibility 0s linear calc(var(--sw-p-duration-base) * var(--sw-motion));
 }
-.sw-modal--drawer.is-open { transform: translateX(0); }
+.sw-modal--drawer.is-open { transform: translateX(0); transition-delay: 0s, 0s, 0s; }
+/* RTL: the inline-end sheet anchors LEFT, so the closed-state offset mirrors */
+[dir="rtl"] .sw-modal--drawer { transform: translateX(calc(-8% * var(--sw-motion))); }
+[dir="rtl"] .sw-modal--drawer.is-open { transform: translateX(0); }
 
 /* ── Shared anatomy ───────────────────────────────────────────────── */
 .sw-modal__title {

@@ -104,7 +104,7 @@
 </main>
 
 <div class="sw-modal-scrim" id="scrim"></div>
-<div class="sw-modal sw-modal--dialog" id="modal" role="dialog" aria-modal="true" aria-labelledby="sw-modal-title">
+<div class="sw-modal sw-modal--dialog" id="modal" role="dialog" aria-modal="true" aria-labelledby="sw-modal-title" tabindex="-1">
   <h3 class="sw-modal__title" id="sw-modal-title">Confirm action</h3>
   <p class="sw-modal__body">Focus is trapped here; Escape closes; the trap logic lives in core/modal.mjs.</p>
   <div class="sw-modal__actions">
@@ -163,7 +163,7 @@
     modal.className = `sw-modal sw-modal--${variant}`;
     state = getModalState({ open: true, variant });
     render();
-    modal.querySelector(FOCUSABLE_SELECTOR)?.focus();
+    (modal.querySelector(FOCUSABLE_SELECTOR) ?? modal).focus();
   }
   function close() { state = getModalState({ open: false, variant: state.variant }); render(); lastFocus?.focus(); }
   for (const b of document.querySelectorAll('[data-open]')) b.addEventListener('click', () => open(b.dataset.open));
@@ -175,7 +175,9 @@
     if (action === 'trap') {
       const items = [...modal.querySelectorAll(FOCUSABLE_SELECTOR)];
       const next = nextTrapIndex(items.indexOf(document.activeElement), items.length, e.shiftKey);
-      if (next >= 0) { e.preventDefault(); items[next].focus(); }
+      e.preventDefault();
+      if (next >= 0) items[next].focus();
+      else modal.focus(); // zero-focusable fallback: Tab must never leak to the page
     }
   });
 </script>

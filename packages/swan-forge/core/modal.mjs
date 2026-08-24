@@ -19,15 +19,20 @@
  * @returns {ModalState}
  */
 export function getModalState(props = {}) {
+  // labelId is sanitized to a plain identifier — attribute-map consumers are safe
+  // either way, but string-concatenating renderers must never receive markup here.
+  const rawId = props.labelId ?? 'sw-modal-title';
   return {
     open: Boolean(props.open),
-    labelId: props.labelId ?? 'sw-modal-title',
+    labelId: /^[A-Za-z][\w-]*$/.test(rawId) ? rawId : 'sw-modal-title',
     variant: props.variant === 'drawer' ? 'drawer' : 'dialog',
   };
 }
 
 /**
- * Attribute map for the dialog container.
+ * Attribute map for the dialog container. tabindex="-1" makes the dialog itself
+ * the focus fallback when it contains zero focusable elements (the trap must
+ * never leak Tab to the background).
  * @param {ModalState} state
  * @returns {Record<string, string|undefined>}
  */
@@ -36,6 +41,7 @@ export function getModalAttrs(state) {
     role: 'dialog',
     'aria-modal': 'true',
     'aria-labelledby': state.labelId,
+    tabindex: '-1',
     class: `sw-modal sw-modal--${state.variant}${state.open ? ' is-open' : ''}`,
     'data-state': state.open ? 'open' : 'closed',
   };
@@ -54,7 +60,26 @@ export function getScrimAttrs(state) {
 export const FOCUSABLE_SELECTOR = [
   'a[href]', 'button:not([disabled])', 'input:not([disabled])',
   'select:not([disabled])', 'textarea:not([disabled])', '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable="true"]', 'summary', 'iframe', 'audio[controls]', 'video[controls]',
 ].join(', ');
+
+/**
+ * Binding duties (core-owned CONTRACT — every binding implements these, per §11.A1):
+ * on open: save document.activeElement, focus first FOCUSABLE_SELECTOR match or the
+ * dialog itself (tabindex="-1"); on close: restore saved focus; while open: route
+ * keydown through handleModalKey, and on 'trap' move focus via nextTrapIndex —
+ * when the focusable list is empty, focus the dialog element (never let Tab leak).
+ * The gallery is the reference implementation.
+ */
+
+/**
+ * Focus destination on open / on empty-trap Tab.
+ * @param {number} focusableCount
+ * @returns {'first-item'|'dialog'}
+ */
+export function initialFocusTarget(focusableCount) {
+  return focusableCount > 0 ? 'first-item' : 'dialog';
+}
 
 /**
  * Compute the focus destination for a Tab keypress inside the trap.

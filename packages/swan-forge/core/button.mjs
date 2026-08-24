@@ -42,6 +42,7 @@ export function resolveVariant(v) {
  * @typedef {Object} ButtonState
  * @property {string} variant   canonical variant
  * @property {string} size      'small' | 'medium' | 'large'
+ * @property {string} type      'button' | 'submit' | 'reset'
  * @property {boolean} disabled
  * @property {boolean} loading
  * @property {boolean} fullWidth
@@ -49,7 +50,7 @@ export function resolveVariant(v) {
 
 /**
  * Build the button's state from raw props (framework-agnostic normalization).
- * @param {{variant?: string, theme?: string, colorScheme?: string, size?: string,
+ * @param {{variant?: string, theme?: string, colorScheme?: string, size?: string, type?: string,
  *          disabled?: boolean, isLoading?: boolean, loading?: boolean, fullWidth?: boolean}} props
  * @returns {ButtonState}
  */
@@ -59,6 +60,7 @@ export function getButtonState(props = {}) {
   return {
     variant: resolveVariant(rawVariant),
     size,
+    type: props.type === 'submit' || props.type === 'reset' ? props.type : 'button',
     disabled: Boolean(props.disabled),
     loading: Boolean(props.isLoading ?? props.loading),
     fullWidth: Boolean(props.fullWidth),
@@ -81,7 +83,7 @@ export function getButtonAttrs(state) {
     state.fullWidth ? 'is-full' : '',
   ].filter(Boolean).join(' ');
   return {
-    type: 'button',
+    type: state.type ?? 'button',
     class: classes,
     disabled: state.disabled && !state.loading ? true : undefined,
     'aria-disabled': state.loading ? 'true' : undefined,

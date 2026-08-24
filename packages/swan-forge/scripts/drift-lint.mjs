@@ -12,7 +12,7 @@
  *
  * Usage: node scripts/drift-lint.mjs [--consumer <dir>]... [--enforce]
  */
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, lstatSync, existsSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,18 +24,36 @@ const consumers = args.flatMap((a, i) => (a === '--consumer' && args[i + 1] ? [a
 /** Legacy export → Forge class map (§11.C5: names, not filenames). */
 export const LEGACY_EXPORT_MAP = { GlowButton: 'Button (@swan/forge)', GlacialInput: 'Input (@swan/forge)', VaultDrawer: 'Modal drawer variant (@swan/forge)' };
 
-const REORDER_RE = /(?:^|[\s;{])(order\s*:|flex-direction\s*:\s*(?:row|column)-reverse|direction\s*:\s*rtl|grid-(?:row|column)\s*:\s*\d)/;
-const HEX_RE = /#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/;
+// Known limitations (documented, GLM code review 2026-08-24): the model is LINE-oriented —
+// multi-line declarations (`flex-direction:\n row-reverse`) and multi-line imports evade it;
+// `writing-mode`, `unicode-bidi`, and `transform: scaleX(-1)` visual reordering are out of
+// scope for v0. These are accepted gaps, not unknown ones.
+const REORDER_RE = /(?:^|[\s;{])(order\s*:|flex-direction\s*:\s*(?:row|column)-reverse|direction\s*:\s*rtl|grid-(?:row|column)\s*:\s*\d|grid-area\s*:\s*\d)/i;
+const HEX_RE = /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/;
 const SW_OVERRIDE_RE = /\.sw-[\w-]+[^{]*\{/;
 const SW_IMPORTANT_RE = /--sw-[\w-]+[^;]*!important|\.sw-[\w-]+[^}]*!important/;
+// R5: packs may never redefine primitive-tier tokens — the non-themeable floors
+// (44px target, focus visibility) live there and the contract says NOT themeable.
+const PRIMITIVE_IN_PACK_RE = /--sw-p-[\w-]+\s*:/;
 
-/** @param {string} dir @param {(f:string)=>boolean} filter */
-function* walk(dir, filter) {
-  for (const name of readdirSync(dir)) {
+/**
+ * Hardened walker: lstat (never follow symlinks — cycle-safe), per-entry try/catch
+ * (one unreadable file must not kill the whole lint), depth cap.
+ * @param {string} dir @param {(f:string)=>boolean} filter @param {number} depth
+ */
+function* walk(dir, filter, depth = 0) {
+  if (depth > 12) { console.log(`[drift-lint] depth cap hit, skipping: ${dir}`); return; }
+  let names = [];
+  try { names = readdirSync(dir); } catch (e) { console.log(`[drift-lint] unreadable dir skipped: ${dir} (${e.code})`); return; }
+  for (const name of names) {
     if (name === 'node_modules' || name.startsWith('.')) continue;
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) yield* walk(p, filter);
-    else if (filter(p)) yield p;
+    try {
+      const st = lstatSync(p);
+      if (st.isSymbolicLink()) continue;
+      if (st.isDirectory()) yield* walk(p, filter, depth + 1);
+      else if (filter(p)) yield p;
+    } catch (e) { console.log(`[drift-lint] unreadable entry skipped: ${p} (${e.code})`); }
   }
 }
 
@@ -61,6 +79,7 @@ export function lintText(path, text, { isForgeCss = false, isPack = false, isCon
     if (line.trimStart().startsWith('*') || line.trimStart().startsWith('//') || line.trimStart().startsWith('/*')) return;
     if (isForgeCss && !isPack && HEX_RE.test(line)) findings.push({ rule: 'R1', line: at, detail: `raw hex outside tokens/: ${line.trim().slice(0, 80)}` });
     if (isPack && REORDER_RE.test(line)) findings.push({ rule: 'R3', line: at, detail: `visual-reordering property in pack: ${line.trim().slice(0, 80)}` });
+    if (isPack && PRIMITIVE_IN_PACK_RE.test(line)) findings.push({ rule: 'R5', line: at, detail: `pack redefines primitive-tier token (non-themeable floor): ${line.trim().slice(0, 80)}` });
     if (isConsumer) {
       if (SW_OVERRIDE_RE.test(line) || SW_IMPORTANT_RE.test(line)) findings.push({ rule: 'R2', line: at, detail: `consumer overrides sw-* surface: ${line.trim().slice(0, 80)}` });
       for (const legacy of Object.keys(LEGACY_EXPORT_MAP)) {

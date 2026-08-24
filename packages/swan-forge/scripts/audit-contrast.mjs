@@ -1,11 +1,18 @@
 #!/usr/bin/env node
 /**
- * @swan/forge — WCAG contrast audit over RESOLVED token pairs (plan §11.A4).
- * Parses every theme pack, resolves each declared pair through the token
- * resolution order (component-override → pack semantic), computes the WCAG 2.x
- * contrast ratio, and fails (exit 2) on any unwaived pair below its minimum.
- * Also enforces pack completeness: every pack must define every semantic name.
+ * @swan/forge — WCAG contrast audit over RESOLVED token pairs (plan §11.A4, hardened per GLM code review §12/§13).
+ * Parses every theme pack, resolves each declared pair through the token resolution
+ * order (component-override → pack semantic), computes the WCAG 2.x contrast ratio,
+ * and fails (exit 2) on any unwaived pair below its minimum. Also enforces:
+ *  - pack completeness (every semantic name defined)
+ *  - NO duplicate declarations of any audited token (GLM HIGH: a duplicate inside
+ *    @media/@supports lets a pack show the audit one value and the browser another —
+ *    duplicates of audited tokens are therefore a hard failure, not a merge)
+ *  - waiver governance: waivers carry {owner, expiry, packs[]}; expired or
+ *    non-listed-pack ⇒ the failure is REAL, not waived (mirrors EXCEPTIONS.md law)
  * Zero dependencies. Waivers print LOUDLY — no silent caps.
+ * Known limitation (documented): values must be 6/3-digit hex to resolve; color-mix()
+ * and var() chains report UNRESOLVED and fail — keep audited tokens plain hex.
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -14,7 +21,7 @@ import { fileURLToPath } from 'node:url';
 const PKG = dirname(dirname(fileURLToPath(import.meta.url)));
 const PACKS_DIR = join(PKG, 'tokens', 'packs');
 
-/** Semantic names every pack MUST define (mirrors tokens/semantic.contract.md). */
+/** Semantic names every pack MUST define (kept in sync with tokens/semantic.contract.md — sync-tested). */
 export const SEMANTIC_NAMES = [
   '--sw-bg-base', '--sw-bg-surface', '--sw-bg-elevated', '--sw-bg-overlay',
   '--sw-text-primary', '--sw-text-secondary', '--sw-text-muted', '--sw-text-inverse',
@@ -29,21 +36,27 @@ export const SEMANTIC_NAMES = [
 ];
 
 /**
- * Audited pairs: [foreground, background, minRatio, label, waived?, waiveReason?]
- * fg/bg accept a resolution CHAIN (first defined wins) — models override→semantic.
+ * Audited pairs. fg/bg are resolution CHAINS (first defined wins: override → semantic).
+ * A waiver is an OBJECT {owner, expiry: 'YYYY-MM-DD', packs: [pack filenames], reason}
+ * — pack-scoped and time-boxed, exactly like the drift-lint EXCEPTIONS ledger.
  */
 export const PAIRS = [
   { fg: ['--sw-text-primary'], bg: ['--sw-bg-base'], min: 4.5, label: 'body text / page' },
   { fg: ['--sw-text-primary'], bg: ['--sw-bg-surface'], min: 4.5, label: 'body text / card' },
   { fg: ['--sw-text-primary'], bg: ['--sw-bg-elevated'], min: 4.5, label: 'body text / modal' },
   { fg: ['--sw-text-secondary'], bg: ['--sw-bg-surface'], min: 4.5, label: 'secondary text / card' },
+  { fg: ['--sw-text-secondary'], bg: ['--sw-bg-elevated'], min: 4.5, label: 'secondary text / modal body' },
   { fg: ['--sw-text-muted'], bg: ['--sw-bg-surface'], min: 4.5, label: 'muted text / card' },
+  { fg: ['--sw-text-muted'], bg: ['--sw-bg-elevated'], min: 4.5, label: 'placeholder (muted) / input bg' },
+  { fg: ['--sw-color-danger'], bg: ['--sw-bg-surface'], min: 4.5, label: 'danger as text (field error) / card' },
   { fg: ['--sw-btn-primary-text', '--sw-text-inverse'], bg: ['--sw-color-primary'], min: 4.5, label: 'button primary label' },
   {
     fg: ['--sw-btn-accent-text', '--sw-text-inverse'], bg: ['--sw-color-accent'], min: 4.5,
     label: 'button accent label',
-    waived: true,
-    waiveReason: 'Matches shipped original GlowButton brand pairing (white on Wing Purple ~4.2:1 in crystalline-swan). FLAGGED FOR SEAN DESIGN REVIEW — plan §11/Phase 1 finding.',
+    waiver: {
+      owner: 'sean', expiry: '2026-10-01', packs: ['crystalline-swan.css'],
+      reason: 'Matches shipped original GlowButton brand pairing (white on Wing Purple ~4.23:1). Time-boxed pending Sean design review; expiry makes this a hard FAIL if unresolved.',
+    },
   },
   { fg: ['--sw-btn-gilded-text', '--sw-text-primary'], bg: ['--sw-btn-gilded-bg', '--sw-color-gold'], min: 4.5, label: 'button gilded label' },
   { fg: ['--sw-btn-success-text', '--sw-text-primary'], bg: ['--sw-btn-success-bg', '--sw-color-success'], min: 4.5, label: 'button success label' },
@@ -51,15 +64,30 @@ export const PAIRS = [
   { fg: ['--sw-focus-ring'], bg: ['--sw-bg-base'], min: 3.0, label: 'focus ring / page (non-text)' },
 ];
 
-/** Parse `--name: value;` declarations from a pack file. @param {string} css */
+/** Every token name any pair can resolve through — duplicates of these are audit-evasion. */
+export const AUDITED_TOKENS = [...new Set(PAIRS.flatMap((p) => [...p.fg, ...p.bg]))];
+
+/**
+ * Parse `--name: value;` declarations. Returns { tokens, duplicates } where
+ * duplicates lists audited tokens declared more than once anywhere in the file
+ * (context-free on purpose: ANY second declaration of an audited token — media
+ * query, @supports, second selector block — is rejected rather than merged).
+ * @param {string} css
+ */
 export function parseTokens(css) {
   /** @type {Record<string, string>} */
-  const out = {};
-  for (const m of css.matchAll(/(--sw-[\w-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2].trim();
-  return out;
+  const tokens = {};
+  /** @type {Record<string, number>} */
+  const counts = {};
+  for (const m of css.matchAll(/(--sw-[\w-]+)\s*:\s*([^;]+);/g)) {
+    counts[m[1]] = (counts[m[1]] ?? 0) + 1;
+    tokens[m[1]] = m[2].trim();
+  }
+  const duplicates = AUDITED_TOKENS.filter((n) => (counts[n] ?? 0) > 1);
+  return { tokens, counts, duplicates };
 }
 
-/** @param {string} hex #RGB or #RRGGBB → [r,g,b] 0..255, or null */
+/** @param {string} hex #RGB or #RRGGBB → [r,g,b] 0..255, or null (4/8-digit alpha hex deliberately rejected → loud UNRESOLVED) */
 export function hexToRgb(hex) {
   const h = hex.trim().replace(/^#/, '');
   if (/^[0-9a-f]{3}$/i.test(h)) return [...h].map((c) => parseInt(c + c, 16));
@@ -90,8 +118,17 @@ export function resolveChain(tokens, chain) {
   return null;
 }
 
-export function auditPack(name, css) {
-  const tokens = parseTokens(css);
+/** Is this pair's waiver applicable for this pack, today? */
+export function waiverApplies(pair, packName, today = new Date()) {
+  const w = pair.waiver;
+  if (!w) return false;
+  if (!Array.isArray(w.packs) || !w.packs.includes(packName)) return false;
+  if (!w.expiry || new Date(w.expiry) < today) return false;
+  return true;
+}
+
+export function auditPack(name, css, today = new Date()) {
+  const { tokens, duplicates } = parseTokens(css);
   const missing = SEMANTIC_NAMES.filter((n) => !(n in tokens));
   const results = [];
   for (const pair of PAIRS) {
@@ -100,24 +137,25 @@ export function auditPack(name, css) {
     if (!fg || !bg) { results.push({ ...pair, pack: name, ratio: null, status: 'UNRESOLVED' }); continue; }
     const ratio = contrastRatio(fg, bg);
     const pass = ratio !== null && ratio >= pair.min;
-    results.push({ ...pair, pack: name, fgHex: fg, bgHex: bg, ratio, status: pass ? 'PASS' : pair.waived ? 'WAIVED-FAIL' : 'FAIL' });
+    const status = pass ? 'PASS' : waiverApplies(pair, name, today) ? 'WAIVED-FAIL' : 'FAIL';
+    results.push({ ...pair, pack: name, fgHex: fg, bgHex: bg, ratio, status });
   }
-  return { missing, results };
+  return { missing, duplicates, results };
 }
 
 // ── CLI ──────────────────────────────────────────────────────────────
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   let failures = 0;
   for (const file of readdirSync(PACKS_DIR).filter((f) => f.endsWith('.css'))) {
-    const { missing, results } = auditPack(file, readFileSync(join(PACKS_DIR, file), 'utf8'));
+    const { missing, duplicates, results } = auditPack(file, readFileSync(join(PACKS_DIR, file), 'utf8'));
     console.log(`\n=== pack: ${file} ===`);
     if (missing.length) { failures += missing.length; console.log(`  CONTRACT INCOMPLETE — missing: ${missing.join(', ')}`); }
+    if (duplicates.length) { failures += duplicates.length; console.log(`  DUPLICATE AUDITED TOKEN(S) — evasion risk, hard fail: ${duplicates.join(', ')}`); }
     for (const r of results) {
       const ratio = r.ratio ? r.ratio.toFixed(2) : '—';
-      const line = `  [${r.status}] ${r.label}: ${ratio}:1 (min ${r.min})`;
-      console.log(line);
+      console.log(`  [${r.status}] ${r.label}: ${ratio}:1 (min ${r.min})`);
       if (r.status === 'FAIL' || r.status === 'UNRESOLVED') failures += 1;
-      if (r.status === 'WAIVED-FAIL') console.log(`      ⚠ WAIVED: ${r.waiveReason}`);
+      if (r.status === 'WAIVED-FAIL') console.log(`      ⚠ WAIVED (owner: ${r.waiver.owner}, expires ${r.waiver.expiry}, pack-scoped): ${r.waiver.reason}`);
     }
   }
   console.log(failures ? `\nAUDIT FAIL — ${failures} blocking finding(s)` : '\nAUDIT PASS (waivers printed above, if any)');

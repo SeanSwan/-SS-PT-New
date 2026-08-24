@@ -5,7 +5,7 @@ import {
   resolveVariant, getButtonState, getButtonAttrs, canActivate, LEGACY_VARIANT_MAP,
 } from '../core/button.mjs';
 import {
-  getModalState, getModalAttrs, getScrimAttrs, nextTrapIndex, handleModalKey,
+  getModalState, getModalAttrs, getScrimAttrs, nextTrapIndex, handleModalKey, initialFocusTarget,
 } from '../core/modal.mjs';
 
 test('button: every legacy GlowButton alias resolves to a canonical variant', () => {
@@ -67,6 +67,35 @@ test('modal: focus trap wraps at both ends and handles empty lists', () => {
   assert.equal(nextTrapIndex(-1, 3, false), 0, 'no focus → first');
   assert.equal(nextTrapIndex(-1, 3, true), 2, 'no focus + shift → last');
   assert.equal(nextTrapIndex(0, 0, false), -1, 'empty list → -1');
+});
+
+test('button: type passthrough — submit/reset honored, junk falls back to button', () => {
+  assert.equal(getButtonAttrs(getButtonState({ type: 'submit' })).type, 'submit');
+  assert.equal(getButtonAttrs(getButtonState({ type: 'reset' })).type, 'reset');
+  assert.equal(getButtonAttrs(getButtonState({ type: 'evil' })).type, 'button');
+  assert.equal(getButtonAttrs(getButtonState({})).type, 'button');
+});
+
+test('button: sizes map to classes; unknown size falls back to medium', () => {
+  assert.ok(String(getButtonAttrs(getButtonState({ size: 'small' })).class).includes('sw-btn--small'));
+  assert.ok(String(getButtonAttrs(getButtonState({ size: 'large' })).class).includes('sw-btn--large'));
+  assert.equal(getButtonState({ size: 'gigantic' }).size, 'medium');
+  assert.ok(String(getButtonAttrs(getButtonState({ fullWidth: true })).class).includes('is-full'));
+});
+
+test('modal: dialog carries tabindex=-1 (zero-focusable trap fallback target)', () => {
+  assert.equal(getModalAttrs(getModalState({ open: true })).tabindex, '-1');
+});
+
+test('modal: labelId is sanitized to a plain identifier', () => {
+  assert.equal(getModalState({ labelId: 'my-title_2' }).labelId, 'my-title_2');
+  assert.equal(getModalState({ labelId: '"><img onerror=x>' }).labelId, 'sw-modal-title');
+  assert.equal(getModalState({ labelId: '2starts-with-digit' }).labelId, 'sw-modal-title');
+});
+
+test('modal: initial focus targets first item, or the dialog when trap is empty', () => {
+  assert.equal(initialFocusTarget(3), 'first-item');
+  assert.equal(initialFocusTarget(0), 'dialog');
 });
 
 test('modal: keyboard reducer — Escape closes, Tab traps, closed modal inert', () => {

@@ -16,7 +16,7 @@
   --sw-bg-overlay: rgba(3, 7, 18, 0.72);
   --sw-text-primary: #E0ECF4;       /* Frost White */
   --sw-text-secondary: #A8BDD0;
-  --sw-text-muted: #6E8296;
+  --sw-text-muted: #7E93A8; /* lifted from #6E8296 — placeholder-on-elevated audited at 4.34:1, now 5.44:1 */
   --sw-text-inverse: #FFFFFF;
   --sw-color-primary: #002060;      /* Midnight Sapphire — buttons bg */
   --sw-color-accent: #8B5CF6;       /* Wing Purple */

@@ -34,8 +34,15 @@
   --sw-p-duration-slow: 420ms;
   --sw-p-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  /* ── Accessibility floors (NOT themeable — see specs) ── */
+  /* ── Accessibility floors (NOT themeable — see specs; drift-lint R5 enforced) ── */
   --sw-p-target-min: 44px;
   --sw-p-focus-width: 2px;
   --sw-p-focus-offset: 2px;
+
+  /* ── Packless-safety fallbacks ─────────────────────────
+     Components multiply every duration by --sw-motion; without a pack loaded
+     that var is invalid-at-computed-time and the loading spinner vanishes.
+     A pack ALWAYS overrides these. */
+  --sw-motion: 1;
+  --sw-ease: var(--sw-p-ease-standard);
 }
