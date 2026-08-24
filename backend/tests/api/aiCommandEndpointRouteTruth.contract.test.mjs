@@ -42,7 +42,7 @@ import fs from 'fs';
 import path from 'path';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { initializeRegistry, getAllCommands } from '../../services/ai/commandRegistry/index.mjs';
-import { buildRouteTable, resolveRoute, parseRouterFile, BACKEND_ROOT } from '../helpers/routeTable.mjs';
+import { buildRouteTable, resolveRoute, parseRouterFile, BACKEND_ROOT, ROLE_GATES } from '../helpers/routeTable.mjs';
 
 /** Roles the platform actually recognises (backend/middleware/authMiddleware.mjs). */
 const KNOWN_ROLES = new Set(['admin', 'trainer', 'client', 'user']);
@@ -75,6 +75,20 @@ const KNOWN_UNROUTED = new Map([
   ['brief_my_day', 'GET /api/ai-command/brief-my-day — aiCommandRoutes exposes only execute/confirm/cancel/metrics/commands/health'],
   ['brief_client', 'GET /api/ai-command/brief-client — same; executes via dayBriefDispatcher'],
 ]);
+
+/**
+ * Slice the source of one `export const <name> = ...` up to the next top-level
+ * export. Assertions about a middleware body MUST be scoped this way: a
+ * fixed-width regex window silently spills into the next function, which makes the
+ * assertion pass no matter what you delete from the one you meant to check.
+ */
+function bodyOf(source, name) {
+  const start = source.indexOf(`export const ${name} `);
+  if (start === -1) return '';
+  const rest = source.slice(start + 1);
+  const next = rest.search(/\nexport const /);
+  return next === -1 ? rest : rest.slice(0, next);
+}
 
 let commands;
 let table;
@@ -128,6 +142,57 @@ describe('Swan Coach command registry — endpoint/route truth', () => {
     }
 
     expect(shortfalls).toEqual([]);
+  });
+
+  it('the set of route subtrees the extractor cannot follow has not grown', () => {
+    // Raised by GLM-5.3 hostile review 2026-08-24: sub-mounts the extractor gives up
+    // on were previously `continue`d SILENTLY. A dropped subtree turns every "this
+    // endpoint does not exist" claim into a possible false positive, so the drops are
+    // now recorded — and pinned here so a new one cannot appear unnoticed.
+    //
+    // Each pinned entry was checked by hand against the four KNOWN_UNROUTED paths:
+    // all six mount under /api/plaud/*, social groups, or admin-clients (which is
+    // also mounted directly and therefore already in the table). None can host
+    // /api/ai-chat/* or /api/ai-command/*, so no pinned absence rests on them.
+    const { unresolved } = buildRouteTable();
+    const summary = unresolved
+      .map((u) => `${u.reason} @ ${u.file}:${u.line}`)
+      .sort();
+
+    expect(summary).toEqual([
+      'mount target not a static import @ core/routes.mjs:448',
+      'mount target not a static import @ core/routes.mjs:449',
+      'mount target not a static import @ core/routes.mjs:463',
+      'nested sub-mount deeper than one level — NOT followed @ routes/adminRoutes.mjs:67',
+      'nested sub-mount deeper than one level — NOT followed @ routes/social/groups.mjs:279',
+      'sub-mount target is not a plain identifier @ routes/authRoutes.mjs:368',
+    ]);
+  });
+
+  it('the hand-transcribed role table still matches the middleware it describes', () => {
+    // Raised by GLM-5.3: `unknownGates` catches NEW middleware names but cannot catch
+    // a KNOWN gate whose implementation changed. If the admin universal override were
+    // removed from authorize(), every authorize([...]) ceiling in ROLE_GATES would be
+    // wrong and the suite would stay green. This binds the table to its source.
+    const auth = fs.readFileSync(path.join(BACKEND_ROOT, 'middleware', 'authMiddleware.mjs'), 'utf8');
+
+    // Every gate the table claims to know must still be exported by that module.
+    const missing = Object.keys(ROLE_GATES)
+      .filter((name) => !['requireAdmin', 'authorizeAdmin', 'adminOrTrainerOnly'].includes(name))
+      .filter((name) => !new RegExp(String.raw`export const ${name}\b`).test(auth));
+    expect(missing).toEqual([]);
+
+    // authorize([...]) unions admin — the override the table depends on.
+    // Sliced to the function BODY. A window-based regex (`[\s\S]{0,600}`) looked
+    // equivalent and was not: it ran past the end of authorize into neighbouring
+    // middleware, so deleting the override left it still passing. Mutation-testing
+    // caught that; the slice is what makes this assertion able to fail at all.
+    const authorizeBody = bodyOf(auth, 'authorize');
+    expect(authorizeBody).toMatch(/role === 'admin'/);
+    expect(authorizeBody).toMatch(/return next\(\)/);
+
+    // requireAnyRole must NOT have that override; the table treats it as exact.
+    expect(bodyOf(auth, 'requireAnyRole')).not.toMatch(/role === 'admin'/);
   });
 
   it('every command declares a method, an endpoint and at least one known role', () => {

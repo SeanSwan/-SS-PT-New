@@ -37,7 +37,19 @@
  *
  * KNOWN LIMITS (explicit on purpose — silence reads as absence to a reviewer)
  *   - Sub-routers mounted inside a router via `router.use('/p', child)` are
- *     resolved one level deep; deeper nesting is not followed.
+ *     resolved one level deep; deeper nesting is not followed. Every unfollowed
+ *     subtree is RECORDED in `unresolved` and pinned by a contract test, so the
+ *     blind spot is countable rather than silent.
+ *   - CROSS-MOUNT MIDDLEWARE IS NOT INHERITED (GLM-5.3 hostile review 2026-08-24).
+ *     With `app.use('/api/workout', a)` declared before `app.use('/api/workout/sessions', b)`,
+ *     a request for `/api/workout/sessions/x` enters `a` first, so `a`'s pathless
+ *     `router.use(mw)` layers RUN before the request falls through to `b`. This
+ *     table composes only the mount's own app-level middleware plus the router's
+ *     own, so a `b` route's `allowedRoles` can be WIDER than reality.
+ *     Direction matters: this can only make a ceiling too permissive, never too
+ *     restrictive, so it cannot manufacture a false "this route does not exist" —
+ *     and route EXISTENCE is the only thing the shipped contract asserts. Fix this
+ *     before using `allowedRoles` to make an authorization claim.
  *   - Dynamically built paths (template literals, variables) are not resolved and
  *     are reported in `unresolved` rather than silently dropped.
  *   - Role semantics come from ROLE_GATES below. An unrecognised middleware name
@@ -219,12 +231,29 @@ export function buildRouteTable({ backendRoot = BACKEND_ROOT } = {}) {
 
     for (const sm of parsed.subMounts) {
       const childId = sm.args[sm.args.length - 1]?.trim();
-      if (!childId || !/^[A-Za-z_$][\w$]*$/.test(childId)) continue;
+      // Every `continue` below is a route subtree this extractor does NOT follow.
+      // They are RECORDED, not skipped silently: a dropped subtree turns "this
+      // endpoint does not exist" into a false positive, and the whole value of this
+      // table is that its absences can be trusted (GLM-5.3 hostile review, 2026-08-24).
+      if (!childId || !/^[A-Za-z_$][\w$]*$/.test(childId)) {
+        unresolved.push({ file: rel(abs), line: sm.line, reason: 'sub-mount target is not a plain identifier', raw: String(childId).slice(0, 60) });
+        continue;
+      }
       const childRel = parsed.imports.get(childId);
-      if (!childRel) continue;
+      if (!childRel) {
+        unresolved.push({ file: rel(abs), line: sm.line, reason: 'sub-mount target is not a static default import', raw: childId });
+        continue;
+      }
       const childAbs = path.resolve(path.dirname(abs), childRel);
-      if (!fs.existsSync(childAbs)) continue;
+      if (!fs.existsSync(childAbs)) {
+        unresolved.push({ file: rel(abs), line: sm.line, reason: 'sub-mount file not found', raw: childRel });
+        continue;
+      }
       const child = parseCached(childAbs);
+      // Depth 2+ is not followed. Record each so the count is visible.
+      for (const deeper of child.subMounts) {
+        unresolved.push({ file: rel(childAbs), line: deeper.line, reason: 'nested sub-mount deeper than one level — NOT followed', raw: deeper.mountPath });
+      }
       for (const r of child.routes) {
         pushRoute(
           r.method,

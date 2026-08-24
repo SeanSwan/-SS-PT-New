@@ -971,9 +971,20 @@ export const requireOwnershipOrTrainer = async (req, res, next) => {
 //
 // It was deleted rather than wired because a dead control is worse than an absent
 // one: it answers "is this defended?" with a confident yes, and the next reviewer
-// stops looking. Wiring it would have meant inventing a 139-command -> 6-verb
-// mapping and failing closed on every gap — a live risk to the Coach lane in
-// exchange for a second gate the first one already covers.
+// stops looking.
+//
+// CORRECTION (GLM-5.3 hostile review, 2026-08-24). An earlier version of this note
+// said the deletion was safe because "the first gate already covers it". That was
+// wrong and is worth stating plainly, because the distinction matters:
+//   - stepRBAC answers WHO is calling. An injected instruction riding an already
+//     authenticated admin session satisfies it trivially.
+//   - The deleted matrix was shaped to answer WHAT the lane may be made to do.
+// RBAC does not cover that. The honest position is not "covered elsewhere" but
+// "this control never ran, so deleting it removes nothing that was protecting you" —
+// and action-shape containment currently rests on the intent classifier, the
+// capability gate, per-dispatcher scoping, and the not_wired default, none of which
+// were designed as an anti-injection boundary. If you want that boundary, build it
+// in the command lane against the real ~139 command types, with tests.
 //
 // AI action authorization is enforced, just not here:
 //   - Role gate         backend/services/ai/commandExecutor.mjs  (stepRBAC)
