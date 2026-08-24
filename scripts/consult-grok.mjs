@@ -30,7 +30,7 @@
  * Authorization header — never echoed. Keep document/seed to IDs + roles, no PII.
  */
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
 import { readForEgress } from './lib/redact-egress.mjs';
 
 const ROOT = process.cwd();
@@ -233,6 +233,27 @@ const costLabel = cost === null ? 'unknown (model not in price table)' : `~$${co
 const wallSec = ((Date.now() - t0) / 1000).toFixed(1);
 
 console.log(`[consult-grok] response in ${wallSec}s — tokens ${inTok} in / ${outTok} out — cost ${costLabel}`);
+
+// Record ACTUAL spend to the ledger the spend-guard's cumulative caps read.
+// Found 2026-08-24: spend-ledger.mjs exported recordSpend() and NOTHING called it,
+// so spentOnTopic()/spentToday() summed a near-empty file and the per-topic and
+// per-day caps were structurally incapable of firing — a 15-round $5.43 debate
+// through this very transport left zero entries. This is the insertion point the
+// review prescribed: actuals only (never the pre-call estimate — the guard's hook
+// already prices worst-case, and recording estimates would double-count), after
+// the reply exists, attributed to the SERVED model when the provider reported one.
+// Fail-open: a ledger problem must never break a consult that already succeeded.
+try {
+  const { recordSpend } = await import('./lib/spend-ledger.mjs');
+  recordSpend({
+    model: servedModel || MODEL,
+    topic: basename(docPath).replace(/\.[^.]+$/, ''),
+    usd: cost ?? 0,
+    note: `consult-grok transport (${MODEL_LABEL}); cost=${cost === null ? 'unpriced-model' : 'actual'}`,
+  });
+} catch (e) {
+  console.warn(`[consult-grok] spend-ledger write failed (non-fatal): ${String(e.message).slice(0, 120)}`);
+}
 
 const outPath = arg('out', 'docs/ai-workflow/AI-HANDOFF/GROK-GATE-REVIEW.md');
 const banner = truncated

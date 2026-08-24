@@ -115,10 +115,18 @@ function parseVerdict(text) {
 }
 
 const t0 = Date.now();
-const results = [];
-for (let n = 1; n <= calls; n++) {
-  console.log(`\n[ox-final] call ${n}/${calls} firing (separate invocation)…`);
-  const r = await runOnce(n, packet);
+// Ox's free upstream pool rate-limits back-to-back calls: the call-2 slot returned
+// HTTP 429 ("temporarily rate-limited upstream... retry shortly") in two consecutive
+// runs, and each 429 was recorded as a voided call the operator had to re-run by
+// hand. Two mitigations, both bounded: a pacing gap between calls so we stop
+// tripping the throttle, and ONE in-place retry after a backoff when a call fails
+// with a RETRYABLE fault (seat faults still abort the whole run — retrying a
+// misconfiguration only spends).
+const INTER_CALL_GAP_MS = 15_000;
+const RETRY_BACKOFF_MS = 60_000;
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
+function evaluate(r) {
   let verdict = null;
   let fault = null;
   if (r.code === 0 && existsSync(r.outPath)) {
@@ -139,6 +147,25 @@ for (let n = 1; n <= calls; n++) {
     fault = { code: 'EXIT_NONZERO', message: `consult exited ${r.code}` };
   } else {
     fault = { code: 'NO_OUTPUT', message: 'no output file written' };
+  }
+  return { verdict, fault };
+}
+
+const results = [];
+for (let n = 1; n <= calls; n++) {
+  if (n > 1) await sleep(INTER_CALL_GAP_MS);
+  console.log(`\n[ox-final] call ${n}/${calls} firing (separate invocation)…`);
+  let r = await runOnce(n, packet);
+  let { verdict, fault } = evaluate(r);
+
+  // One bounded retry, transient faults only. A seat fault is configuration and
+  // must fall through to the abort below, never be retried into more spend.
+  const retryable = fault && FAULT[fault.code]?.abort !== true;
+  if (retryable) {
+    console.warn(`[ox-final] call ${n}: transient [${fault.code}] — one retry in ${RETRY_BACKOFF_MS / 1000}s…`);
+    await sleep(RETRY_BACKOFF_MS);
+    r = await runOnce(n, packet);
+    ({ verdict, fault } = evaluate(r));
   }
   results.push({ ...r, verdict, fault });
   if (verdict) {

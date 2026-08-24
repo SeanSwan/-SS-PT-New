@@ -227,6 +227,46 @@ try {
   );
 }
 
+// ---- 10) Dead CI — has ANY workflow ever succeeded? ------------------------
+//
+// Found 2026-08-24 (Fable): PR #71 was opened purely to give the migration shadow
+// check its first real run. It startup_failed in 0s — and so had EVERY Actions run
+// in the repo, all five workflows, all event types INCLUDING schedule (which runs
+// from the default branch and exonerates any pushed file), with zero successes in
+// queryable history. Private repo on free-tier minutes: the signature of exhausted
+// minutes or a billing block. Every CI gate in the tree was an intention, not a
+// protection, and nothing anywhere said so — because everything asks whether the
+// workflow FILE exists and parses, and nothing asks for its last green run.
+//
+// One repo-wide query, not per-workflow: the failure mode this catches is
+// account-level, where everything dies at once. 8s timeout, fail-UNKNOWN (same
+// contract as checks 7-9): gh missing or network down must be said out loud, not
+// read as clean.
+try {
+  const { execSync } = await import('node:child_process');
+  const wfDir = join(SS_PT, '.github', 'workflows');
+  if (existsSync(wfDir)) {
+    const ok = execSync(
+      'gh run list --status success --limit 1 --json databaseId',
+      { cwd: SS_PT, timeout: 8000, stdio: ['ignore', 'pipe', 'ignore'] }
+    ).toString().trim();
+    if (ok === '[]' || ok === '') {
+      findings.push(
+        'GitHub Actions: ZERO successful runs in queryable history — every workflow gate ' +
+        '(shadow-check, ai-eval, docs-check, lens-guards, …) is currently DEAD. Blanket ' +
+        'startup_failure across all events including schedule = account-level (exhausted ' +
+        'free-tier minutes or a billing block), not any workflow file. Only the billing ' +
+        'page can fix it: github.com/settings/billing.'
+      );
+    }
+  }
+} catch (err) {
+  findings.push(
+    `dead-CI check could not complete (${err?.message || String(err).slice(0, 80)}). Whether any ` +
+    'Actions gate has ever run is UNKNOWN this session, not clean.'
+  );
+}
+
 // ---- Emit: silent when clean ----------------------------------------------
 if (findings.length) {
   process.stdout.write(
