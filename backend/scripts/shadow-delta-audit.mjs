@@ -81,13 +81,24 @@ const added = [];
 const modified = [];
 const deleted = [];
 const renamed = [];
+const inert = []; // files in backend/migrations/ that NO runner will ever execute
 
 for (const line of raw.split('\n')) {
   if (!line.trim()) continue;
   const parts = line.split('\t');
   const status = parts[0][0];
   const file = status === 'R' ? parts[2] : parts[1];
-  if (!file || !RUNS.test(file)) continue; // the 36 .mjs files here never execute
+  if (!file) continue;
+  if (!RUNS.test(file)) {
+    // A file that lives in backend/migrations/, is named like a migration, and executes
+    // NOWHERE. Tencent HY3, round 4: silently dropping these meant a PR adding only .mjs
+    // "migrations" produced added=0, leg B reported NOT APPLICABLE, and the job went green —
+    // while the migration never ran here and never will on Render. That is precisely how the
+    // 36 inert .mjs files already sitting in this directory got there, one green PR at a time.
+    // Skipping them quietly made this gate an accomplice to the drift it exists to catch.
+    if (status !== 'D') inert.push(file);
+    continue;
+  }
   if (status === 'A') added.push(file);
   else if (status === 'M') modified.push(file);
   else if (status === 'D') deleted.push(file);
@@ -130,7 +141,12 @@ if (mode === 'verify') {
     .split(';')
     .map((s) => s.trim())
     .filter(Boolean)
-    .map((s) => s.split(':')[0].trim()); // entries look like "Table: reason"
+    .map((s) => s.split(':')[0].trim()) // entries look like "Table: reason"
+    // Defense in depth (Ox Alpha, round 4). The workflow no longer emits the "(none)" sentinel,
+    // but a human-readable placeholder reaching this list would make skipped.length >= 1 on
+    // every run — permanently arming the coverage FATAL and printing "OK ... (1 skipped)" when
+    // nothing was skipped. Two independent places must agree for that to happen again.
+    .filter((s) => s && !/^\(?none\)?$/i.test(s));
 
   if (!Number.isInteger(applied)) {
     console.error(`FATAL: --applied is not an integer ("${appliedRaw}")`);
@@ -138,6 +154,18 @@ if (mode === 'verify') {
   }
 
   let fatal = false;
+
+  if (inert.length) {
+    console.error('');
+    console.error('FATAL: this change adds migration-shaped file(s) that NO runner will execute.');
+    console.error('safe-migrate.mjs selects only .cjs/.js; these will sit in backend/migrations/');
+    console.error('looking authoritative and doing nothing — here, and on every production deploy.');
+    for (const f of inert) console.error(`  INERT  ${f}`);
+    console.error('');
+    console.error('There are already 36 such files in this directory. Rename to .cjs, or put the');
+    console.error('file somewhere that does not claim to be a migration.');
+    fatal = true;
+  }
 
   if (applied !== added.length) {
     console.error(`FATAL: this change ADDS ${added.length} migration(s) but leg B applied ${applied}.`);
@@ -154,7 +182,34 @@ if (mode === 'verify') {
     for (const f of deleted) console.log(`  DELETED   ${f}`);
     for (const f of renamed) console.log(`  RENAMED   ${f}`);
     console.log('A migration already recorded in SequelizeMeta never re-runs — not here, not on');
-    console.log('Render. Editing one changes only what a FRESH install would do. Human review.');
+    console.log('Render. Editing one changes only what a FRESH install would do.');
+
+    // MODIFIED MIGRATIONS MUST BE ACKNOWLEDGED, not merely mentioned.
+    //
+    // Kimi K3, round 4: round 3 turned these from a false red into "green with a note", which
+    // is "visibility is not enforcement" reintroduced — for the class this file's own header
+    // calls the riskiest artifact in a migration diff. A note nothing reads is not a control.
+    //
+    // A modified file still exists, so it can carry its own acknowledgement. Deleted and
+    // renamed-away files cannot, and are left as reported-only — a stated limit, not a fix.
+    const unacked = modified.filter((f) => {
+      const p = path.join(root, f);
+      if (!existsSync(p)) return true;
+      return !/\/\/\s*shadow-ack:/i.test(readFileSync(p, 'utf8'));
+    });
+    if (unacked.length) {
+      console.error('');
+      console.error('FATAL: this change edits already-applied migration(s) without acknowledgement.');
+      console.error('Their names are in SequelizeMeta, so the edit runs NOWHERE — not in this job,');
+      console.error('and not on Render. It changes only what a FRESH install would build, which is');
+      console.error('exactly the drift nobody notices until a rebuild.');
+      for (const f of unacked) console.error(`  UNACKED  ${f}`);
+      console.error('');
+      console.error('If the edit is deliberate, say so in the file:');
+      console.error('    // shadow-ack: <why editing an applied migration is correct here>');
+      console.error('Deliberate and greppable — the reviewer sees a decision, not a log line.');
+      fatal = true;
+    }
   }
 
   if (added.length > 0 && skipped.length > 0) {

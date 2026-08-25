@@ -1,0 +1,252 @@
+[debate] packet=docs/ai-workflow/AI-HANDOFF/panel-swa200-final-2026-08-24/PACKET-R4.md (~13552 tok)
+[debate] seats=glm, grokA, dspro, ox · min-answer gate=3 · budget=$6.00 · max rounds=20
+[debate] ⚠ DATA EGRESS — Ox Alpha: $0/margin but its undisclosed provider RETAINS this prompt (canary-redacted packet only).
+
+[debate] === ROUND 1 === doc=55KB · firing 4 seats in parallel
+  -> glm (GLM 5.3) firing [Z.ai subscription — $0/margin, burns plan credit]
+  -> grokA (Grok 4.6 (seat A)) firing [OpenRouter credits]
+  -> dspro (DeepSeek V4 Pro) firing [OpenRouter credits]
+  -> ox (Ox Alpha (stealth)) firing [$0/margin; DATA: stealth provider RETAINS the prompt (canary-redacted packet only)]
+     [glm] [consult-glm] model=glm-5.3 doc=docs\ai-workflow\AI-HANDOFF\panel-swa200-final-2026-08-24\panel-r4\rounds\round-1\REVIEW-DOC.md chars=58188
+     [dspro] [consult-grok] model=deepseek/deepseek-v4-pro effort=high
+     [dspro] [consult-grok] prompt size: 58499 chars (~14625 tokens)
+[consult-grok] sending request...
+     [grokA] [consult-grok] model=x-ai/grok-4.6 effort=high
+     [grokA] [consult-grok] prompt size: 58458 chars (~14615 tokens)
+[consult-grok] sending request...
+     [ox] [consult-grok] model=stealth/ox-alpha effort=high
+     [ox] [consult-grok] prompt size: 58458 chars (~14615 tokens)
+     [ox] [consult-grok] sending request...
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] response in 301.1s — tokens 15754 in / 16262 out — cost ~$0.0814
+     [dspro] [consult-grok] saved -> docs\ai-workflow\AI-HANDOFF\panel-swa200-final-2026-08-24\panel-r4\rounds\round-1\DSPRO.md
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 1141 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [ox] [consult-grok] streaming... 4167 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] response in 346.9s — tokens 16045 in / 10372 out — cost ~$0.0000
+     [ox] [consult-grok] saved -> docs\ai-workflow\AI-HANDOFF\panel-swa200-final-2026-08-24\panel-r4\rounds\round-1\OX.md
+[debate] ⚠ glm: hung >360s — killed
+[debate] ⚠ grokA: hung >360s — killed
+
+[debate] === ROUND 2 === doc=55KB · firing 4 seats in parallel
+  -> glm (GLM 5.3) firing [Z.ai subscription — $0/margin, burns plan credit]
+  -> grokA (Grok 4.6 (seat A)) firing [OpenRouter credits]
+  -> dspro (DeepSeek V4 Pro) firing [OpenRouter credits]
+  -> ox (Ox Alpha (stealth)) firing [$0/margin; DATA: stealth provider RETAINS the prompt (canary-redacted packet only)]
+     [glm] [consult-glm] model=glm-5.3 doc=docs\ai-workflow\AI-HANDOFF\panel-swa200-final-2026-08-24\panel-r4\rounds\round-2\REVIEW-DOC.md chars=58322
+     [grokA] [consult-grok] model=x-ai/grok-4.6 effort=high
+     [grokA] [consult-grok] prompt size: 58592 chars (~14648 tokens)
+[consult-grok] sending request...
+     [dspro] [consult-grok] model=deepseek/deepseek-v4-pro effort=high
+     [dspro] [consult-grok] prompt size: 58633 chars (~14658 tokens)
+[consult-grok] sending request...
+     [ox] [consult-grok] model=stealth/ox-alpha effort=high
+     [ox] [consult-grok] prompt size: 58592 chars (~14648 tokens)
+[consult-grok] sending request...
+     [grokA] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 1661 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 4206 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [ox] [consult-grok] streaming... 6996 chars
+     [ox] [consult-grok] response in 306.9s — tokens 16081 in / 8983 out — cost ~$0.0000
+     [ox] [consult-grok] saved -> docs\ai-workflow\AI-HANDOFF\panel-swa200-final-2026-08-24\panel-r4\rounds\round-2\OX.md
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+[debate] ⚠ glm: hung >360s — killed
+[debate] ⚠ grokA: hung >360s — killed
+[debate] ⚠ dspro: hung >360s — killed
+
+[debate] === ROUND 3 === doc=55KB · firing 4 seats in parallel
+  -> glm (GLM 5.3) firing [Z.ai subscription — $0/margin, burns plan credit]
+  -> grokA (Grok 4.6 (seat A)) firing [OpenRouter credits]
+  -> dspro (DeepSeek V4 Pro) firing [OpenRouter credits]
+  -> ox (Ox Alpha (stealth)) firing [$0/margin; DATA: stealth provider RETAINS the prompt (canary-redacted packet only)]
+     [glm] [consult-glm] model=glm-5.3 doc=docs\ai-workflow\AI-HANDOFF\panel-swa200-final-2026-08-24\panel-r4\rounds\round-3\REVIEW-DOC.md chars=58322
+     [grokA] [consult-grok] model=x-ai/grok-4.6 effort=high
+     [grokA] [consult-grok] prompt size: 58592 chars (~14648 tokens)
+     [grokA] [consult-grok] sending request...
+     [dspro] [consult-grok] model=deepseek/deepseek-v4-pro effort=high
+     [dspro] [consult-grok] prompt size: 58633 chars (~14658 tokens)
+     [dspro] [consult-grok] sending request...
+     [ox] [consult-grok] model=stealth/ox-alpha effort=high
+     [ox] [consult-grok] prompt size: 58592 chars (~14648 tokens)
+[consult-grok] sending request...
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+     [glm] [consult-glm] streaming... 0 chars
+     [dspro] [consult-grok] streaming... 0 chars
+     [grokA] [consult-grok] streaming... 0 chars
+[debate] ⚠ glm: hung >360s — killed
+[debate] ⚠ grokA: hung >360s — killed
+[debate] ⚠ dspro: hung >360s — killed
+[debate] ⚠ ox: exit 75, no usable reply: mit_source":"upstream_provider_shared_pool","remedy_hint":"Retry shortly, add your own provider key (https://openrouter.ai/settings/integrations), or route to another provider with provider routing: https://openrouter.ai/docs/features/provider-routing"}},"user_id":"user_331bflPEvr7vdrTesenqnZ2lBdC"}
+
+[debate] ===== FINAL: BUDGET ===== rounds=3 spend=~$0.0814
+[debate] ruling -> docs\ai-workflow\AI-HANDOFF\panel-swa200-final-2026-08-24\panel-r4\FINAL-CONSENSUS.md
+[debate] note: GLM empty-file bug is a KNOWN transport bug (documented 2026-08-23) — a retry with a higher token ceiling is the fix, not dropping the seat.

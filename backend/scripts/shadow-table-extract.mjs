@@ -53,14 +53,27 @@ export function tablesFromSource(src) {
   }
 
   // Raw SQL: several migrations bypass queryInterface entirely via sequelize.query.
+  //
+  // SCHEMA-QUALIFIED NAMES. `ALTER TABLE public.users` must yield `users`, not `public`.
+  // Kimi K3, round 4: the earlier patterns captured the schema, so a schema-qualified
+  // migration produced a table name that matches nothing — and because the set was then
+  // NON-EMPTY, it counted as "determined", the fail-closed UNKNOWN path never fired, and the
+  // skipped-table FATAL could never match the real table. Green, against an empty table,
+  // with every safety check in this file satisfied. Third generation of the same defect, in
+  // the helper written to close the second.
+  //
+  // `(?:ident\s*\.\s*)?` eats an optional schema; the capture is always the last segment.
+  const SCHEMA = String.raw`(?:"?[A-Za-z0-9_]+"?\s*\.\s*)?`;
+  const T = String.raw`"?([A-Za-z0-9_]+)"?`;
   const SQL = [
-    /ALTER\s+TABLE\s+"?([A-Za-z0-9_]+)"?/gi,
-    /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?"?([A-Za-z0-9_]+)"?/gi,
-    /DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?"?([A-Za-z0-9_]+)"?/gi,
-    /INSERT\s+INTO\s+"?([A-Za-z0-9_]+)"?/gi,
-    /DELETE\s+FROM\s+"?([A-Za-z0-9_]+)"?/gi,
-    /UPDATE\s+"?([A-Za-z0-9_]+)"?\s+SET/gi,
-    /CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?\S+\s+ON\s+"?([A-Za-z0-9_]+)"?/gi,
+    new RegExp(String.raw`ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?${SCHEMA}${T}`, 'gi'),
+    new RegExp(String.raw`CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?${SCHEMA}${T}`, 'gi'),
+    new RegExp(String.raw`DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?${SCHEMA}${T}`, 'gi'),
+    new RegExp(String.raw`INSERT\s+INTO\s+${SCHEMA}${T}`, 'gi'),
+    new RegExp(String.raw`DELETE\s+FROM\s+${SCHEMA}${T}`, 'gi'),
+    new RegExp(String.raw`UPDATE\s+${SCHEMA}${T}\s+SET`, 'gi'),
+    new RegExp(String.raw`TRUNCATE\s+(?:TABLE\s+)?${SCHEMA}${T}`, 'gi'),
+    new RegExp(String.raw`CREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?\S+\s+ON\s+${SCHEMA}${T}`, 'gi'),
   ];
   for (const re of SQL) {
     let m;

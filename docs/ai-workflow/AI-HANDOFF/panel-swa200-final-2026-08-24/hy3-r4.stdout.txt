@@ -1,0 +1,5 @@
+[consult-hy3-design] status=preflight model_calls=0 model=tencent/hy3
+[consult-hy3-design] prompt_chars=54904 max_tokens=24000
+[consult-hy3-design] worst_case_usd=$0.0199 cap_usd=$3.00
+[consult-hy3-design] status=running model_calls=1
+[consult-hy3-design] status=complete cost_usd=$0.0091 saved=docs/ai-workflow/AI-HANDOFF/panel-swa200-final-2026-08-24/HY3-R4.md finish=stop

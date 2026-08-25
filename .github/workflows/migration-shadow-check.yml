@@ -75,7 +75,11 @@ on:
       - 'backend/migrations/**'
       - 'backend/models/**'
       - 'backend/config/**'
-      - '.sequelizerc'
+      # backend/.sequelizerc, NOT '.sequelizerc'. GitHub paths: patterns are repo-root
+      # relative and there is no root-level file, so the round-2 entry matched nothing at
+      # all — a filter line that read as coverage and provided none. Same shape as the
+      # defects this gate exists to catch, introduced by the fix that added it.
+      - 'backend/.sequelizerc'
       - 'backend/scripts/safe-migrate.mjs'
       - 'backend/scripts/pre-migrate-guard.mjs'
       - 'backend/scripts/seed-shadow-db.mjs'
@@ -85,6 +89,9 @@ on:
       - 'backend/scripts/shadow-table-extract.mjs'
       - 'backend/scripts/shadow-table-extract.selftest.mjs'
       - 'backend/package.json'
+      # The lockfile decides what npm install actually resolves, so a change to it changes
+      # the artifact under test as surely as package.json does (Kimi K3, round 4).
+      - 'backend/package-lock.json'
       - 'render.yaml'
       - '.github/workflows/migration-shadow-check.yml'
   workflow_dispatch:
@@ -177,16 +184,34 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_REF: ${{ github.base_ref || 'main' }}
           PUSH_BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
           ZERO=0000000000000000000000000000000000000000
-          if [ "$EVENT_NAME" = "pull_request" ] && [ -n "$PR_BASE_SHA" ]; then
-            BASE="$PR_BASE_SHA"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            # MERGE BASE, not the base tip recorded when the PR was opened.
+            #
+            # Ox Alpha, round 4: `pull_request.base.sha` is main's tip AT PR CREATION, while
+            # actions/checkout gives us the merge ref (this PR merged into main's CURRENT tip).
+            # Once main moves — which it does constantly here — those diverge, and the diff
+            # picks up migrations that landed on main independently of this PR. Leg B would
+            # then be asked to apply somebody else's already-applied migration, and the
+            # applied==added assertion would false-red on a change that is perfectly fine.
+            # merge-base is the actual fork point and does not drift.
+            BASE="$(git merge-base "origin/${BASE_REF}" HEAD 2>/dev/null || true)"
+            if [ -z "$BASE" ] && [ -n "$PR_BASE_SHA" ]; then
+              echo "NOTE: merge-base unavailable; falling back to pull_request.base.sha."
+              BASE="$PR_BASE_SHA"
+            fi
           elif [ -n "$PUSH_BEFORE" ] && [ "$PUSH_BEFORE" != "$ZERO" ]; then
             BASE="$PUSH_BEFORE"
           else
-            BASE="$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
+            # workflow_dispatch, or a first push to a new branch. HEAD^ is a guess, and DeepSeek
+            # V4 Pro flagged it as one in round 4 — so say it is a guess rather than let the
+            # delta read as authoritative.
+            BASE="$(git merge-base origin/main HEAD 2>/dev/null || git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
+            echo "NOTE: no event base for '$EVENT_NAME'; using ${BASE} as the comparison point."
           fi
           if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
             echo "FATAL: base commit $BASE is not present in this checkout."
@@ -239,6 +264,21 @@ jobs:
           #
           # (Those 36 .mjs files are a separate finding: they look like migrations and never
           # execute. Flagged on SWA-200, not touched here.)
+          # GLM 5.3 R3-F5: safe-migrate.mjs filters to .cjs/.js, but the umzug runner it
+          # shells out to accepts /.*\.(cjs|js|cts|ts)$/. Because safe-migrate invokes
+          # `sequelize-cli db:migrate --to <name>`, umzug can apply and RECORD a .ts migration
+          # that safe-migrate never named — and then SequelizeMeta would hold more rows than
+          # this count, false-redding the assertion below. Zero such files exist today
+          # (verified), so rather than guess at the right arithmetic for a case that does not
+          # exist, fail loudly the moment one appears.
+          TS_COUNT=$(find backend/migrations -maxdepth 1 -type f \( -name '*.ts' -o -name '*.cts' \) | wc -l | tr -d ' ')
+          if [ "$TS_COUNT" -ne 0 ]; then
+            echo "FATAL: found $TS_COUNT .ts/.cts migration(s)."
+            echo "safe-migrate.mjs will not run them but umzug may record them, so the"
+            echo "baseline count assertion in leg B is no longer sound. Decide the intended"
+            echo "behaviour on SWA-200 before this gate can be trusted again."
+            exit 1
+          fi
           BASE_COUNT=$(find backend/migrations -maxdepth 1 -type f \( -name '*.cjs' -o -name '*.js' \) | wc -l | tr -d ' ')
           echo "base_count=$BASE_COUNT" >> "$GITHUB_OUTPUT"
           echo "baseline migration files (.cjs/.js, as safe-migrate counts them): $BASE_COUNT"
@@ -305,8 +345,19 @@ jobs:
           # "synthetic rows are not production data" frames that as a realism limit. It is a
           # coverage limit, and unlike realism it can be made visible. Any table listed here
           # was NOT covered by leg B, however green this job looks.
-          skipped=$(printf '%s' "$line" | sed -E 's/^SHADOW-SEED //' | node -e "let s='';process.stdin.on('data',function(d){s+=d;}).on('end',function(){var j=JSON.parse(s);console.log((j.skipped||[]).join('; ')||'(none)');});")
-          echo "tables NOT populated — leg B cannot test these: $skipped"
+          # EMPTY when nothing was skipped — not the string "(none)".
+          #
+          # Kimi K3, round 4: this used to fall back to the literal "(none)", which the delta
+          # audit then parsed as a skipped TABLE NAME. skipped.length became 1 on every run
+          # where nothing had been skipped at all, permanently arming the coverage FATAL and
+          # false-redding any migration whose tables could not be resolved. A sentinel that
+          # reads as data is not a sentinel.
+          skipped=$(printf '%s' "$line" | sed -E 's/^SHADOW-SEED //' | node -e "let s='';process.stdin.on('data',function(d){s+=d;}).on('end',function(){var j=JSON.parse(s);console.log((j.skipped||[]).join('; '));});")
+          if [ -z "$skipped" ]; then
+            echo "tables NOT populated: none — the seeder covered every table it walked"
+          else
+            echo "tables NOT populated — leg B cannot test these: $skipped"
+          fi
           echo "SEED_SKIPPED<<EOF" >> "$GITHUB_ENV"
           echo "$skipped" >> "$GITHUB_ENV"
           echo "EOF" >> "$GITHUB_ENV"
@@ -455,7 +506,11 @@ jobs:
             echo ""
             echo "Tables the seeder could not populate (leg B did **not** test these):"
             echo ""
-            echo "\`${SEED_SKIPPED:-unknown}\`"
+            if [ -z "${SEED_SKIPPED:-}" ]; then
+              echo "_none — every table the seeder walked was populated._"
+            else
+              echo "\`${SEED_SKIPPED}\`"
+            fi
             echo ""
             echo "**What this does NOT prove:**"
             echo "- Synthetic rows are not production data. A snapshot-restore gate is the stronger form."
@@ -464,7 +519,11 @@ jobs:
             echo "  cannot block it. This only gates when it is a REQUIRED status check on PRs."
             echo "- A migration already recorded in SequelizeMeta never re-runs. Edits and deletions"
             echo "  to existing migration files are reported above and are **not** tested here."
-            echo "- A PR may edit this workflow itself; its own run then satisfies the check."
+            echo "- A PR may edit this workflow **or any of its five helper scripts**"
+            echo "  (safe-migrate, pre-migrate-guard, seed-shadow-db, shadow-delta-audit,"
+            echo "  shadow-table-extract, shadow-meta-count) and its own green run is then"
+            echo "  produced by the neutered gate. Closing this needs review enforcement on"
+            echo "  those paths — CODEOWNERS or equivalent — not anything inside this file."
             echo ""
             echo "> **Do NOT mark this a required check until a run actually reports.** As of"
             echo "> 2026-08-24 every Actions run in this repo ends in \`startup_failure\` (billing),"

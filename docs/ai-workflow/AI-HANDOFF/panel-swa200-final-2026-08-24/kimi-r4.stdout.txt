@@ -1,0 +1,5 @@
+[consult-kimi] status=preflight model_calls=0 model=moonshotai/kimi-k3
+[consult-kimi] prompt_chars=54901 max_tokens=24000
+[consult-kimi] worst_case_usd=$0.5253 cap_usd=$3.00
+[consult-kimi] status=running model_calls=1
+[consult-kimi] status=complete cost_usd=$0.1478 saved=docs/ai-workflow/AI-HANDOFF/panel-swa200-final-2026-08-24/KIMI-R4.md finish=stop

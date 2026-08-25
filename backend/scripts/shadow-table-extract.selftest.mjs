@@ -60,6 +60,36 @@ eq('multiple tables in one migration',
   tablesFromSource("queryInterface.createTable('a', {});\nqueryInterface.addColumn('b', 'c', {})"),
   ['a', 'b']);
 
+// --- schema-qualified names (Kimi K3, round 4) ------------------------------------------
+// `ALTER TABLE public.users` used to yield ["public"]. Because that set was non-empty it
+// counted as "determined", so the fail-closed UNKNOWN path never fired AND the real table was
+// invisible to the skipped-table FATAL. Green, against an empty table, with every check in
+// this file satisfied. Third generation of the same defect.
+
+eq('schema-qualified ALTER TABLE yields the TABLE, not the schema',
+  tablesFromSource('q(`ALTER TABLE public.users ADD COLUMN x int`)'),
+  ['users']);
+
+eq('schema-qualified CREATE TABLE',
+  tablesFromSource('q(`CREATE TABLE IF NOT EXISTS public.message_saves (id int)`)'),
+  ['message_saves']);
+
+eq('schema-qualified UPDATE ... SET',
+  tablesFromSource('q(`UPDATE public.sessions SET a = 1`)'),
+  ['sessions']);
+
+eq('schema-qualified CREATE INDEX ... ON',
+  tablesFromSource('q(`CREATE INDEX idx_a ON public.msgs(id)`)'),
+  ['msgs']);
+
+eq('quoted schema and quoted table',
+  tablesFromSource('q(`ALTER TABLE "public"."Users" ADD COLUMN x int`)'),
+  ['Users']);
+
+eq('a decoy hit must not mask a schema-qualified table',
+  tablesFromSource('q(`ALTER TABLE public.users ADD COLUMN x int`); queryInterface.addColumn(\'sessions\',\'y\',{})'),
+  ['users', 'sessions']);
+
 // --- the load-bearing ones -------------------------------------------------------------
 
 eq('runtime-computed table is UNRESOLVED (null, never [])',
