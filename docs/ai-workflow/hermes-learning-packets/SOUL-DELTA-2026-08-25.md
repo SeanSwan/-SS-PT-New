@@ -71,6 +71,46 @@ whose own SOUL.md is a stale Jul-31 draft the runtime never reads. Both trees ca
 `skills/` dir. This split-brain predates this delta and was not repaired here — repairing
 identity-file path references is Hermes-side work Sean should direct explicitly.
 
+## Mistakes I made
+
+- **My draft carried the corpus's #1 failure inside its own fix**: reflex 5's sigil list
+  omitted `$VAR` and `$(...)` — narrower than the gate it mirrors → caught independently
+  by three of four seats → repeat-prevention: reflex 2 itself (scope the claim to the
+  full enumerated set; diff prose against the code it describes before shipping).
+- **I nearly wrote to the wrong SOUL.md**: memory said hermes2 was the live tree, but
+  `get_hermes_home()` defaults to `~/.hermes` and only the launcher's `HERMES_HOME`
+  export proves hermes2 → caught by reading the launcher before writing → rule: reflex 1
+  applied to write targets (prove the target is live before mutating it).
+- **My new probe cried wolf on first fire**: probe 11 flagged 16 pre-guard rulebook
+  commits as "bypasses" → caught by live-firing the probe before commit → rule: fire
+  every new alarm once against reality before installing it (instrument-check, applied
+  to instruments themselves).
+- **I wrote a test against a fixture that did not exist** (`REL` for `REAL`) → caught by
+  the first test run, not by me → rule: write-then-run in the same breath; an unrun test
+  is prose.
+- **Wrong stopping rule, repeated from the heredoc-gate slice and already written up
+  there**: I again shipped a "final" text (the 5-reflex draft) without a round against
+  the artifact it modifies (the real SOUL.md) — round 2 existed only because Sean asked
+  for it → highest-signal repeat: a review of a DELTA is not a review of the MERGE; the
+  merged context is the artifact.
+
+## Error → fix → repeat ledger
+
+| Error class | Times this session | Written up before recurring? | What stopped it |
+|---|---|---|---|
+| Prose narrower than the code it mirrors | 1 | yes (narrow-read family, review doc §2) | seat cross-check vs gate source |
+| Fix without re-running original observation | 1 (5-draft vs real SOUL) | yes (same doc §5) | Sean-directed round 2 → now reflex 8 |
+| New instrument unvalidated (wolf-cry / dead fixture) | 2 | yes (instrument-trust §3) | live-fire before install; test run |
+| Wrong write target risk | 0 (near-miss) | yes (path-conv memory) | launcher read (positive control) |
+
+## External-model calibration (round 2, this packet's panel)
+
+Kimi K3 $0.03: 3 findings, all real on verification, rewrite adopted in structure.
+Grok 4.6 ~$0.20: 6 findings, all real; one duplicate of GLM. Ox Alpha free: 4 findings
+real, 1 (F2 round-count) a factual catch on my own text. GLM 5.3 free: strongest —
+sigil-subset catch + claim-scope reflex + count-proof upgrade all adopted. Nothing
+disproven on verification this round; zero-cost seats produced ~70% of adopted content.
+
 ## Repo-side changes shipped from the same panel (branch feat/gates-fire-report)
 
 - `scripts/gates-fire-report.mjs` (+ tests): the fires.jsonl analyzer — reason-class
