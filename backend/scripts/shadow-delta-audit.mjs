@@ -59,8 +59,24 @@ if (!base) {
 
 const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 
-/** Only these extensions ever execute — safe-migrate.mjs getAllMigrationFiles(). */
-const RUNS = /\.(cjs|js)$/;
+/**
+ * What actually executes, exactly as `safe-migrate.mjs getAllMigrationFiles()` defines it:
+ *
+ *     fs.readdirSync(migrationsDir).filter(f => f.endsWith('.cjs') || f.endsWith('.js'))
+ *
+ * TOP LEVEL ONLY. `readdirSync` does not recurse, so anything inside a subdirectory of
+ * backend/migrations/ is never read, never run — here or on Render — no matter how much it
+ * looks like a migration.
+ *
+ * This pattern therefore pins BOTH conditions. An earlier version tested only the extension,
+ * while the `git diff -- backend/migrations/` that feeds it IS recursive. A PR adding
+ * `backend/migrations/social/foo.cjs` would have been classified "ADDED — leg B WILL execute
+ * this", leg B would not have executed it, and the job would have failed with the wrong
+ * reason ("applied 0 of 1") instead of the true one. It also meant the 4 files already sitting
+ * in backend/migrations/social/ did not register as inert, though they are exactly as dead as
+ * the 32 .mjs files beside them.
+ */
+const RUNS = /^backend\/migrations\/[^/]+\.(cjs|js)$/;
 
 let raw;
 try {
@@ -94,7 +110,7 @@ for (const line of raw.split('\n')) {
     // NOWHERE. Tencent HY3, round 4: silently dropping these meant a PR adding only .mjs
     // "migrations" produced added=0, leg B reported NOT APPLICABLE, and the job went green —
     // while the migration never ran here and never will on Render. That is precisely how the
-    // 36 inert .mjs files already sitting in this directory got there, one green PR at a time.
+    // 38 inert files already sitting in this directory got there, one green PR at a time.
     // Skipping them quietly made this gate an accomplice to the drift it exists to catch.
     if (status !== 'D') inert.push(file);
     continue;
@@ -162,8 +178,10 @@ if (mode === 'verify') {
     console.error('looking authoritative and doing nothing — here, and on every production deploy.');
     for (const f of inert) console.error(`  INERT  ${f}`);
     console.error('');
-    console.error('There are already 36 such files in this directory. Rename to .cjs, or put the');
-    console.error('file somewhere that does not claim to be a migration.');
+    console.error('backend/migrations already holds 38 such files: 32 .mjs, 2 .sql, and 4 inside');
+    console.error('subdirectories (helpers/, social/) that readdirSync never reads. Put the file at');
+    console.error('the TOP LEVEL with a .cjs/.js extension, or somewhere that does not claim to be');
+    console.error('a migration.');
     fatal = true;
   }
 
