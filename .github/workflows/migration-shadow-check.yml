@@ -49,30 +49,33 @@ name: Migration Shadow Check
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'backend/migrations/**'
-      - 'backend/models/**'
-      - 'backend/scripts/safe-migrate.mjs'
-      - 'backend/scripts/pre-migrate-guard.mjs'
-      - 'backend/scripts/seed-shadow-db.mjs'
-      - 'backend/scripts/seed-shadow-db.selftest.mjs'
-      - 'backend/scripts/shadow-meta-count.mjs'
-      - 'backend/package.json'
-      - 'render.yaml'
-      - '.github/workflows/migration-shadow-check.yml'
+    # NO `paths:` FILTER HERE, DELIBERATELY — and do not add one back.
+    #
+    # GLM 5.3, round 2: this check is only a real gate when it is a REQUIRED status check on
+    # PRs to main (on a direct push, Render deploys in parallel and Actions cannot block it).
+    # A required check that a paths filter skips does not report success — it sits as
+    # "Expected — Waiting for status report" and blocks the merge forever. The three
+    # end-states were: not-required (advisory, bypassable), required-with-paths (every
+    # unrelated PR hangs), required-without-paths. Only the third one works.
+    #
+    # The cost is a few minutes of runner time on PRs touching no migrations. That case is
+    # already handled honestly: the delta step reports 0 and leg B prints NOT APPLICABLE
+    # instead of implying a test happened. That branch exists for exactly this — round 2
+    # pointed out that the previous comment here forbade the fix it was built for.
   push:
     branches: [main]
-    # Identical to the PR set on purpose. The previous version listed four paths here and
-    # nine above, so a push to main touching render.yaml, package.json, the guard — or THIS
-    # FILE — ran no check at all. The gate could be gutted by direct push with nothing
-    # meta-checking it, and the gate's own merge commit triggered no run.
-    # DO NOT refactor these two lists into a YAML anchor. GitHub Actions does not support
-    # anchors/aliases in workflow files — the alias would not resolve and the filter would
-    # silently stop matching, which is the failure mode this gate exists to prevent. If you
-    # edit one list, edit BOTH; they must stay identical.
+    # A filter IS kept on push, where the deadlock above cannot happen (nothing waits on a
+    # push check) and an unfiltered run would burn minutes on every commit to main. The
+    # previous version listed only four paths, so a push touching render.yaml, package.json,
+    # the guard — or THIS FILE — ran no check, and the gate's own merge triggered nothing.
+    #
+    # DO NOT refactor into a YAML anchor: GitHub Actions does not support anchors/aliases in
+    # workflow files. The alias would not resolve and the filter would silently stop matching.
     paths:
       - 'backend/migrations/**'
       - 'backend/models/**'
+      - 'backend/config/**'
+      - '.sequelizerc'
       - 'backend/scripts/safe-migrate.mjs'
       - 'backend/scripts/pre-migrate-guard.mjs'
       - 'backend/scripts/seed-shadow-db.mjs'
@@ -191,6 +194,7 @@ jobs:
 
       # LEG A — the baseline. This is the schema the delta will actually meet in production.
       - name: Leg A — apply the BASE migration set to an empty database
+        id: lega
         shell: bash
         env:
           BASE: ${{ steps.delta.outputs.base }}
@@ -203,15 +207,20 @@ jobs:
           # Baseline means baseline on both sides of that pair.
           rm -rf backend/migrations backend/models
           git checkout "$BASE" -- backend/migrations backend/models
-          echo "baseline migration files: $(ls backend/migrations | wc -l)"
+          # Count EXACTLY what safe-migrate.mjs counts. getAllMigrationFiles() filters to
+          # .cjs/.js (safe-migrate.mjs:145-149); a bare `ls` also counts the 36 .mjs files in
+          # this directory that the runner silently ignores. Measured on the current tree:
+          # ls = 343, .cjs/.js = 307. Asserting against 343 would have FATAL-ed every single
+          # run — a guaranteed false red introduced by the very fix that was supposed to
+          # replace an echo with an assertion. Caught by attacking my own patch, not by review.
+          #
+          # (Those 36 .mjs files are a separate finding: they look like migrations and never
+          # execute. Flagged on SWA-200, not touched here.)
+          BASE_COUNT=$(find backend/migrations -maxdepth 1 -type f \( -name '*.cjs' -o -name '*.js' \) | wc -l | tr -d ' ')
+          echo "base_count=$BASE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "baseline migration files (.cjs/.js, as safe-migrate counts them): $BASE_COUNT"
           cd backend
           npm run migrate:production
-
-      # NOW this step can report something. Against a fresh container it never could: the
-      # table it reads did not exist until leg A created it.
-      - name: Report the migration delta about to run against data
-        working-directory: backend
-        run: node scripts/pre-migrate-guard.mjs --check
 
       # Streams are captured SEPARATELY and concatenated after. Two reasons: `2>&1` into one
       # file can interleave mid-line and break the anchored grep below, and — the defect the
@@ -265,6 +274,20 @@ jobs:
             exit 1
           fi
 
+          # COVERAGE, not realism — the distinction GLM 5.3 drew in round 2.
+          #
+          # The assertion above is on the AGGREGATE total. A migration whose target table the
+          # seeder SKIPPED still meets an EMPTY table in leg B, passes, and goes green — while
+          # in production that table holds rows and the same migration fails. The Summary's
+          # "synthetic rows are not production data" frames that as a realism limit. It is a
+          # coverage limit, and unlike realism it can be made visible. Any table listed here
+          # was NOT covered by leg B, however green this job looks.
+          skipped=$(printf '%s' "$line" | sed -E 's/^SHADOW-SEED //' | node -e "let s='';process.stdin.on('data',function(d){s+=d;}).on('end',function(){var j=JSON.parse(s);console.log((j.skipped||[]).join('; ')||'(none)');});")
+          echo "tables NOT populated — leg B cannot test these: $skipped"
+          echo "SEED_SKIPPED<<EOF" >> "$GITHUB_ENV"
+          echo "$skipped" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+
       # LEG B — THE REAL TEST, and the reason the seeder exists. These migrations have never
       # been applied, and they now meet POPULATED tables: a NOT NULL added to a filled column,
       # a unique index over existing rows, an FK that existing data violates. Under
@@ -273,6 +296,7 @@ jobs:
         shell: bash
         env:
           DELTA_COUNT: ${{ steps.delta.outputs.count }}
+          BASE_COUNT: ${{ steps.lega.outputs.base_count }}
         run: |
           set -euo pipefail
           # Restore this change's migrations AND models before the delta runs.
@@ -281,6 +305,40 @@ jobs:
           cd backend
           before=$(node scripts/shadow-meta-count.mjs)
           echo "SequelizeMeta rows before leg B: $before"
+
+          # F7 (GLM 5.3 round 2): assert, do not merely echo. SequelizeMeta must hold exactly
+          # the BASE file count here. If leg A finished without recording every migration, the
+          # relative before/after gate below would be satisfied by BASE leftovers.
+          # Validate the shape BEFORE comparing. `[ x -ne 3 ]` on a non-integer prints
+          # "integer expression expected" and returns false, and a condition inside `if` is
+          # exempt from `set -e` — so the FATAL branch would be SKIPPED and the step would go
+          # green. That is the identical mechanism the row-count assertion was fixed for
+          # earlier in this same file; I reintroduced it two steps later.
+          case "$before$BASE_COUNT" in
+            ''|*[!0-9]*)
+              echo "FATAL: non-integer counts (before='$before' base='$BASE_COUNT')"
+              exit 1
+              ;;
+          esac
+          if [ "$before" -ne "$BASE_COUNT" ]; then
+            echo "FATAL: SequelizeMeta holds $before rows but leg A applied $BASE_COUNT files."
+            echo "Leg A did not record every migration; the delta assertion cannot be trusted."
+            exit 1
+          fi
+
+          # THE GUARD RUNS HERE, AND ONLY HERE.
+          #
+          # GLM 5.3 round 2 caught round 1's defect surviving its own fix. The guard had been
+          # moved "between the legs", but the migrations DIRECTORY was still at BASE there
+          # (HEAD is checked out three lines above), so its pending set was
+          # (BASE files) minus (BASE files) = EMPTY, in every run, forever. Round 1's version
+          # was merely empty; the moved version was renamed "report the delta" and so printed
+          # an authoritative "0 pending" next to DELTA_COUNT=N — actively misleading.
+          #
+          # This is the only state in the job where its arithmetic means anything:
+          # directory = HEAD, SequelizeMeta = BASE, so pending == the delta about to meet data.
+          node scripts/pre-migrate-guard.mjs --check
+
           npm run migrate:production
           after=$(node scripts/shadow-meta-count.mjs)
           echo "SequelizeMeta rows after  leg B: $after"
@@ -365,6 +423,10 @@ jobs:
             echo ""
             echo "Migration failures fail this job (\`SWAN_MIGRATE_STRICT=1\`). Production keeps"
             echo "its recovery behaviour, which exits 0 on failure by design."
+            echo ""
+            echo "Tables the seeder could not populate (leg B did **not** test these):"
+            echo ""
+            echo "\`${SEED_SKIPPED:-unknown}\`"
             echo ""
             echo "**What this does NOT prove:**"
             echo "- Synthetic rows are not production data. A snapshot-restore gate is the stronger form."
