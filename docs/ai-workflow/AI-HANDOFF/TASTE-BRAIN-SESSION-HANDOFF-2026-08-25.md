@@ -81,7 +81,9 @@ node prompter/compile-taste.mjs   write taste-profile.json    node prompter/test
 - **Uncommitted on the stale wip tree:** panel packet, panel folder + FABLE-SYNTHESIS, brainstorm doc, this handoff. They are files on disk, not history; commit from a clean tree or re-create on a docs branch.
 - **Learning packet** committed only on the wip tree (`e78ddbf5f`); not on main.
 
-## 5. Sean's new idea: CLIENT MODE (captured 2026-08-25, not built)
+## 5. Sean's new idea: CLIENT MODE (captured 2026-08-25 — **IN PROGRESS by another session as of the same day**)
+
+> **AS-OF 2026-08-25 (later the same session):** taste-brain commit `027a187` — *"profile × project memory namespaces — partner + client witnesses, project registry, per-namespace compiler"* — landed after `20f04c8`, authored by a parallel session (not this one). `prompter/probe.html`, `serve.mjs`, `test-modes.mjs` are modified and `lib/routes-modes.mjs`, `brief.html`, `probe.js` are new and uncommitted in that tree. `events.mjs` now carries `PROFILES = sean|partner|client`, `projectId` slugs ("never a name"), `channel = page|bundle`, and a witness-writes-only-its-own-profile rule. **Do not edit those files from another session; read `git log`/`git status` in the taste brain first.** The sizing below stands as the intent; the implementation is that session's. Qwen's §8 interview should start from what already exists.
 
 *"What if a client wants it in their style and vision? Run this in client mode: give them ten grids or however many you suggest, they judge, give it back to me."*
 
