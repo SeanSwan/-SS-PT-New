@@ -326,31 +326,56 @@ try {
 // CLAUDE.md/AGENTS.md but carries no RULEBOOK trailer gets named. Read-only,
 // fail-open, silent when clean, like every probe above.
 try {
-  const TRAILER = /^RULEBOOK:\s*(add|amend|retire|narrative-cut|mirror-sync)\b.*reviewed-by:\s*\S/im;
-  // Floor at the guard's ship date: commits BEFORE the trailer discipline existed are
-  // history, not bypasses (live-fire found 16 pre-guard commits — pure alarm fatigue).
-  // The window is max(14 days ago, guard ship): after 2026-09-08 the floor is inert.
-  const GUARD_SHIPPED = Date.parse('2026-08-25T00:00:00Z');
-  const since = new Date(Math.max(Date.now() - 14 * 86_400_000, GUARD_SHIPPED)).toISOString();
+  // SINGLE SOURCE OF TRUTH (r3 fold, all three seats): the trailer test and the
+  // protected-file list are IMPORTED from the guard itself, so probe and guard cannot
+  // judge compliance by different standards (Ox F1: the hand-copied regex here was
+  // same-line/case-sensitive while conventional multi-line trailers are compliant).
+  const { hasRulebookTrailer, ALWAYS_ON } = await import('./rulebook-review-guard.mjs');
+  // ANCESTRY anchor, not a date window (GLM r3 F2): --since filters on committer
+  // date, which a rebase rewrites in both directions — pre-guard commits replayed
+  // after ship enter a date window (false alarm), post-guard commits replayed with
+  // --committer-date-is-author-date leave it (missed drift). `<guard-sha>..origin/main`
+  // is rewrite-proof: it asks "landed after the guard shipped", which is the actual
+  // question. If history is rewritten and the SHA vanishes, git fails and the catch
+  // below now SAYS so instead of reading as clean.
+  const GUARD_SHA = '732843e399ac2568d04acc3dc188542b210f6192'; // PR #72 merge — the guard's ship commit
+  const CAP = 21;
   const shas = execFileSync('git',
-    ['log', `--since=${since}`, '--format=%H', 'origin/main', '--', 'CLAUDE.md', 'AGENTS.md'],
+    ['log', `--max-count=${CAP}`, '--format=%H', `${GUARD_SHA}..origin/main`, '--', ...ALWAYS_ON],
     { cwd: SS_PT, timeout: 15000, stdio: ['ignore', 'pipe', 'ignore'] }
-  ).toString().trim().split('\n').filter(Boolean).slice(0, 20);
+  ).toString().trim().split('\n').filter(Boolean);
+  // Unmarked clipping is exactly what reflex 3 forbids (GLM/Grok r3 F1): at the cap,
+  // older commits went unchecked and MUST be said, whatever the naked count is.
+  const truncated = shas.length >= CAP;
   const naked = [];
-  for (const sha of shas) {
+  for (const sha of shas.slice(0, CAP - 1)) {
     const msg = execFileSync('git', ['log', '-1', '--format=%B', sha],
       { cwd: SS_PT, timeout: 10000, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
-    if (!TRAILER.test(msg)) naked.push(sha.slice(0, 9));
+    if (!hasRulebookTrailer(msg)) naked.push(sha.slice(0, 9));
   }
-  if (naked.length) {
+  if (naked.length || truncated) {
     findings.push(
-      `Rulebook drift: ${naked.length} commit(s) on origin/main touched CLAUDE.md/AGENTS.md in the ` +
-      `last 14d WITHOUT a RULEBOOK trailer (${naked.join(', ')}). The local commit-msg guard was ` +
-      'bypassed (GitHub-UI squash, web edit, or an unhooked clone). Read those diffs before ' +
-      'trusting the current rule text; add the trailer discipline to whatever path produced them.'
+      (naked.length
+        ? `Rulebook drift: ${naked.length} commit(s) on origin/main since the guard shipped touched ` +
+          `${ALWAYS_ON.slice(0, 2).join('/')} (or another protected file) WITHOUT a RULEBOOK trailer ` +
+          `(${naked.join(', ')}). The local commit-msg guard was bypassed (GitHub-UI squash, web edit, ` +
+          'or an unhooked clone). Read those diffs before trusting the current rule text.'
+        : 'Rulebook drift scan: ') +
+      (truncated
+        ? ` LIST TRUNCATED at ${CAP - 1} commits — older rulebook commits in range were NOT checked; ` +
+          'this result is PARTIAL, not clean.'
+        : '')
     );
   }
-} catch { /* fail-open: no git, no origin/main ref, or timeout — say nothing */ }
+} catch (err) {
+  // Silent fail-open made a dead probe byte-identical to a clean sweep (Ox F2 /
+  // Grok F3 / GLM F3 — the instrument violating the reflexes shipped beside it).
+  // Fail-open stands (SessionStart must not block), but it now SPEAKS.
+  findings.push(
+    `Rulebook drift check could not complete (${(err?.message || String(err)).slice(0, 80)}). ` +
+    'Whether trailer-less rulebook commits landed on origin/main is UNKNOWN this session, not clean.'
+  );
+}
 
 // ---- Emit: silent when clean ----------------------------------------------
 if (findings.length) {

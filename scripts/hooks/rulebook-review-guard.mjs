@@ -30,8 +30,19 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 
-const ALWAYS_ON = ['CLAUDE.md', 'AGENTS.md', 'ACTIVE-INDEX.md', '.ai-workflow/hermes-inbox/standing-context.md'];
-const TRAILER = /^RULEBOOK:\s*(add|amend|retire|narrative-cut|mirror-sync)\b.*reviewed-by:\s*\S/im;
+export const ALWAYS_ON = ['CLAUDE.md', 'AGENTS.md', 'ACTIVE-INDEX.md', '.ai-workflow/hermes-inbox/standing-context.md'];
+// Two-part test (Ox r3 F1): the old single regex demanded `reviewed-by:` on the SAME
+// LINE as `RULEBOOK:` (`.*` cannot cross newlines) and lowercase — so the git-
+// conventional shape (`RULEBOOK: add` / `Reviewed-by: seat` on the next line) FAILED,
+// blocking exactly the compliant case. The RULEBOOK verb line must exist at line
+// start; reviewed-by may sit on that line or its own, any case.
+const RULEBOOK_LINE = /^RULEBOOK:\s*(add|amend|retire|narrative-cut|mirror-sync)\b/im;
+const REVIEWED_BY = /\breviewed-by:\s*\S/i;
+/** Exported as THE single trailer test — drift-check probe 11 imports this, so the
+ * guard and the probe cannot judge compliance by different standards (Ox r3 F1's
+ * root cause: two hand-copied regexes drifting apart). */
+export const hasRulebookTrailer = (m) => RULEBOOK_LINE.test(m || '') && REVIEWED_BY.test(m || '');
+const TRAILER = { test: hasRulebookTrailer };
 
 /**
  * A staged path counts if it IS an always-on file OR is a rename of one (round-1 GLM F4:
