@@ -38,7 +38,7 @@ interface SessionDetailCancelOptionsPanelProps {
   onChargeAmountChange: (value: string) => void;
   defaultFullCharge: number;
   defaultLateFee: number;
-  pricingUnavailable?: boolean;
+  pricingUnavailable: boolean;
   restoreCredit: boolean;
   onRestoreCreditChange: (value: boolean) => void;
   notifyOnCancel: boolean;
@@ -57,7 +57,7 @@ const SessionDetailCancelOptionsPanel: React.FC<SessionDetailCancelOptionsPanelP
   onChargeAmountChange,
   defaultFullCharge,
   defaultLateFee,
-  pricingUnavailable = false,
+  pricingUnavailable,
   restoreCredit,
   onRestoreCreditChange,
   notifyOnCancel,

@@ -19,6 +19,7 @@ const renderPanel = (overrides = {}) => {
     onChargeAmountChange: vi.fn(),
     defaultFullCharge: 175,
     defaultLateFee: 87.5,
+    pricingUnavailable: false,
     restoreCredit: false,
     onRestoreCreditChange: vi.fn(),
     notifyOnCancel: true,

@@ -132,10 +132,14 @@ describe('SessionDetailModal action helpers', () => {
 
 describe('buildCancelPanelDefaults — fail-closed when pricing is unknown', () => {
   it('does not pre-select a full charge when package pricing is unavailable', () => {
+    // restoreCredit MUST be true: buildCancelPayload sends
+    // restoreCredit && chargeType === 'none', and the server treats an explicit
+    // false as opt-out. Charging nothing while withholding the prepaid credit
+    // costs the client a session they already paid for.
     expect(buildCancelPanelDefaults(false, 175, true)).toEqual({
       chargeType: 'none',
       chargeAmount: '',
-      restoreCredit: false,
+      restoreCredit: true,
     });
   });
 
