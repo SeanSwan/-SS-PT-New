@@ -61,7 +61,11 @@ export const useSessionPackagePricing = ({
           return;
         }
 
-        if (result.success && result.data) {
+        // isFallback is the server telling us it could NOT find this client's
+        // package and is returning its own hardcoded figure. A 200 carrying a
+        // placeholder is not pricing data - treating it as such is how the
+        // original defect reached the panel in the first place.
+        if (result.success && result.data && result.data.isFallback !== true) {
           const data = result.data;
           const fullCharge = data.pricePerSession || data.defaultChargeAmount || DEFAULT_FULL_CHARGE;
           const lateFee = data.lateFeeAmount || Math.round(fullCharge * 0.5);

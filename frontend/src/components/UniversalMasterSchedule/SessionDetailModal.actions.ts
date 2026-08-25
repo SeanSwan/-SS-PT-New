@@ -30,7 +30,8 @@ export interface LateCancelWarningModel {
   /** null when the server did not state a policy fee. Never invent one here:
    *  this figure is shown to the CLIENT as their own cancellation fee. */
   lateFeeAmount: number | null;
-  creditRestored: boolean;
+  /** null when the server did not state it. Do not assume restoration. */
+  creditRestored: boolean | null;
   warningMessage: string;
   sessionDateFormatted: string;
 }
@@ -86,7 +87,7 @@ export const mapLateCancelWarning = (
   // app-side default - the admin panel's 175/88 placeholders are not this
   // client's numbers, and this warning is what the client themselves reads.
   lateFeeAmount: result.cancellationPolicy?.lateFeeAmount ?? null,
-  creditRestored: result.cancellationPolicy?.creditRestored ?? true,
+  creditRestored: result.cancellationPolicy?.creditRestored ?? null,
   warningMessage: result.warningMessage,
   sessionDateFormatted: result.sessionDateFormatted,
 });

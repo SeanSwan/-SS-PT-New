@@ -112,7 +112,9 @@ describe('SessionDetailModal action helpers', () => {
       isLateCancellation: true,
       hoursUntilSession: 4,
       lateFeeAmount: null,
-      creditRestored: true,
+      // null, not true: asserting a credit fact on server silence is the same
+      // defect class as the invented fee.
+      creditRestored: null,
       warningMessage: 'Late window',
       sessionDateFormatted: 'May 31',
     });

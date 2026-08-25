@@ -32,8 +32,11 @@ const SPECIAL_PACKAGE_THRESHOLDS = {
  * @param {object} models - Sequelize models { Order, OrderItem, StorefrontItem }
  * @returns {object} Package pricing info
  */
-export async function getClientPackagePricing(clientId, models) {
+export async function getClientPackagePricing(clientId, models, options = {}) {
   const { Order, OrderItem, StorefrontItem } = models;
+  // Join the caller's transaction when given one so this read does not
+  // acquire a second pooled connection while the first is held.
+  const txn = options.transaction ? { transaction: options.transaction } : {};
 
   try {
     // Find the most recent completed order for this client
@@ -44,6 +47,7 @@ export async function getClientPackagePricing(clientId, models) {
         status: 'completed'
       },
       order: [['createdAt', 'DESC']],
+      ...txn,
       include: [{
         model: OrderItem,
         as: 'orderItems',

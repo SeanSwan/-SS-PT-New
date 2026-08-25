@@ -163,7 +163,7 @@ const normalizeCancellationBillingOptions = (user, options = {}) => {
  * substituting the helper's OWN hardcoded figure would swap one invented number
  * for another, which is the exact defect this guard exists to prevent.
  */
-const applyServerDerivedChargeAmount = async (session, billingOptions) => {
+const applyServerDerivedChargeAmount = async (session, billingOptions, transaction) => {
   if (!billingOptions || billingOptions.chargeType === 'none') {
     return;
   }
@@ -174,7 +174,7 @@ const applyServerDerivedChargeAmount = async (session, billingOptions) => {
       Order: getOrder(),
       OrderItem: getOrderItem(),
       StorefrontItem: getStorefrontItem()
-    });
+    }, { transaction });
   } catch (error) {
     logger.warn(
       `[Cancellation] package pricing lookup failed for session ${session.id}: ${error.message}`
@@ -182,7 +182,16 @@ const applyServerDerivedChargeAmount = async (session, billingOptions) => {
     return;
   }
 
+  // isFallback means the helper could not find a package and is returning its
+  // own hardcoded figure. We cannot verify the amount, so we leave the
+  // operator's validated number alone - but we must not do so silently, or an
+  // unverifiable charge is indistinguishable from a verified one in the record.
   if (!pricing || pricing.isFallback) {
+    logger.warn(
+      `[Cancellation] session ${session.id}: no package found for client, ` +
+        `charge of ${billingOptions.chargeAmount} recorded UNVERIFIED ` +
+        `(type=${billingOptions.chargeType})`
+    );
     return;
   }
 
@@ -191,9 +200,24 @@ const applyServerDerivedChargeAmount = async (session, billingOptions) => {
     return;
   }
 
-  billingOptions.chargeAmount = billingOptions.chargeType === 'full'
+  const submitted = billingOptions.chargeAmount;
+  const applied = billingOptions.chargeType === 'full'
     ? sessionRate
-    : Math.min(billingOptions.chargeAmount, sessionRate);
+    : Math.min(submitted, sessionRate);
+
+  // Never adjust an operator's money decision silently. Without this line the
+  // record shows only the applied figure, so a later dispute cannot tell an
+  // operator who asked for $110 from one who asked for $150 and was clamped.
+  if (applied !== submitted) {
+    logger.info(
+      `[Cancellation] session ${session.id}: charge adjusted ${submitted} -> ${applied} ` +
+        `(type=${billingOptions.chargeType}, rate=${sessionRate}, package=${pricing.packageName})`
+    );
+  }
+
+  billingOptions.chargeAmount = applied;
+  billingOptions.chargeAmountSubmitted = submitted;
+  billingOptions.chargeAmountSource = 'server-derived';
 };
 
 const parseNotificationPreferences = (prefs) => {
@@ -1744,7 +1768,7 @@ class UnifiedSessionService {
       }
 
       const billingOptions = normalizeCancellationBillingOptions(user, cancellationOptions);
-      await applyServerDerivedChargeAmount(session, billingOptions);
+      await applyServerDerivedChargeAmount(session, billingOptions, transaction);
       const cancellationDate = new Date();
       
       // Update the session
