@@ -6,6 +6,20 @@ Canonical component catalog for all Swan sites (SS-PT, SwanGuard, future). Ratif
 full decision log: `docs/ai-workflow/brainstorms/component-forge-catalog-2026-08-24.md`
 (v0.3 — Ox Alpha + GLM 5.3 panel-reviewed). Linear: SWA-205.
 
+## Live inventory (Rule 84 scope — classes the Forge ships)
+
+| Class | Core | Skin | Since |
+|---|---|---|---|
+| Button (+ `--icon` variant) | `core/button.mjs` | `css/button.css`, `css/primitives.css` | Phase 1 / 2b |
+| Card (showcase · data) | — (presentation) | `css/card.css` | Phase 1 |
+| Field / Input / Select / Textarea | `core/field.mjs` | `css/input.css`, `css/primitives.css` | Phase 1 / 2b |
+| Modal (dialog · drawer) | `core/modal.mjs` | `css/modal.css` | Phase 1 |
+| Tabs (underline · pill · vertical) | `core/tabs.mjs` | `css/tabs.css` | Phase 2b |
+| Toast | `core/toast.mjs` | `css/toast.css` | Phase 2b |
+| Pill / Badge / Avatar / Skeleton / Table | — (presentation) | `css/primitives.css` | Phase 2b |
+
+Consumer binding for SS-PT: `frontend/src/components/ui/forge/` (ForgeButton live since Phase 1.5).
+
 ## Architecture — three layers (never two)
 
 | Layer | Owns | Lives in |

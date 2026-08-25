@@ -1,0 +1,89 @@
+/**
+ * @swan/forge — Nav skin. Structural variants: .sw-nav--top (bar; collapses to a
+ * disclosure menu under 768px) and .sw-nav--side (rail; collapses to icons-only
+ * / off-canvas under 768px). Geometry only — disclosure state, Escape, focus
+ * return and aria-current come from core/nav.mjs and never fork per variant.
+ * Zero raw hex; logical properties; motion via --sw-motion. No `order`/reverse.
+ */
+
+.sw-nav {
+  --_bg: var(--sw-nav-bg, color-mix(in oklab, var(--sw-bg-surface) 92%, transparent));
+  display: flex;
+  align-items: center;
+  gap: var(--sw-p-space-3);
+  background: var(--_bg);
+  border: 1px solid var(--sw-border);
+  color: var(--sw-text-primary);
+  font-family: var(--sw-font-ui);
+  backdrop-filter: blur(10px);
+}
+
+.sw-nav__brand { display: inline-flex; align-items: center; gap: var(--sw-p-space-2); min-block-size: var(--sw-p-target-min); padding-inline: var(--sw-p-space-3); font-family: var(--sw-font-heading); font-weight: 700; color: var(--sw-text-primary); text-decoration: none; }
+.sw-nav__spacer { flex: 1; }
+
+.sw-nav__menu { display: flex; gap: var(--sw-p-space-1); }
+.sw-nav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-p-space-2);
+  min-block-size: var(--sw-p-target-min);
+  padding-inline: var(--sw-p-space-3);
+  border-radius: var(--sw-p-radius-md);
+  color: var(--sw-text-secondary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: calc(var(--sw-p-text-sm) * var(--sw-text-scale));
+  transition: color calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
+              background-color calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+}
+.sw-nav__link:hover { color: var(--sw-text-primary); background: color-mix(in oklab, var(--sw-text-primary) 6%, transparent); }
+.sw-nav__link.is-current, .sw-nav__link[aria-current="page"] {
+  color: var(--sw-text-primary);
+  background: color-mix(in oklab, var(--sw-color-primary) 55%, transparent);
+  box-shadow: inset 0 -2px 0 var(--sw-glow-b);
+}
+.sw-nav__link:focus-visible { outline: none; box-shadow: var(--sw-focus-shadow); }
+.sw-nav__toggle { display: none; }
+
+/* ── Top bar ──────────────────────────────────────────────────────── */
+.sw-nav--top { padding-inline: var(--sw-p-space-3); border-inline: 0; border-block-start: 0; border-radius: 0 0 var(--sw-p-radius-lg) var(--sw-p-radius-lg); }
+
+/* ── Side rail ────────────────────────────────────────────────────── */
+.sw-nav--side {
+  flex-direction: column;
+  align-items: stretch;
+  inline-size: 240px;
+  min-block-size: 100%;
+  padding: var(--sw-p-space-3);
+  border-block: 0;
+  border-inline-start: 0;
+}
+.sw-nav--side .sw-nav__menu { flex-direction: column; }
+.sw-nav--side .sw-nav__link.is-current, .sw-nav--side .sw-nav__link[aria-current="page"] { box-shadow: inset 3px 0 0 var(--sw-glow-b); }
+
+/* ── Compact (<768px): both variants become a disclosure menu ─────── */
+@media (max-width: 767px) {
+  .sw-nav__toggle { display: inline-flex; }
+  .sw-nav--side { inline-size: auto; flex-direction: row; min-block-size: 0; }
+  .sw-nav__menu {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 100%;
+    flex-direction: column;
+    padding: var(--sw-p-space-3);
+    background: var(--sw-bg-elevated);
+    border: 1px solid var(--sw-border-strong);
+    border-radius: var(--sw-p-radius-lg);
+    box-shadow: var(--sw-shadow-3);
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transform: translateY(calc(-6px * var(--sw-motion)));
+    transition: opacity calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
+                transform calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
+                visibility 0s linear calc(var(--sw-p-duration-base) * var(--sw-motion));
+  }
+  .sw-nav { position: relative; }
+  .sw-nav__menu.is-open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition-delay: 0s, 0s, 0s; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sw-nav__menu { transform: none; }
+}

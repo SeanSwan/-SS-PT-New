@@ -1,0 +1,79 @@
+/**
+ * @swan/forge — Tabs skin (.sw-tabs). Variants: underline (default), pill, vertical.
+ * Behavior (roving tabindex, arrows) lives in core/tabs.mjs and never forks.
+ * Zero raw hex; logical properties; 44px targets; motion via --sw-motion.
+ */
+
+.sw-tabs {
+  display: flex;
+  gap: var(--sw-p-space-1);
+  border-block-end: 1px solid var(--sw-border);
+  font-family: var(--sw-font-ui);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.sw-tabs--vertical {
+  flex-direction: column;
+  border-block-end: 0;
+  border-inline-end: 1px solid var(--sw-border);
+}
+
+.sw-tab {
+  position: relative;
+  min-block-size: var(--sw-p-target-min);
+  padding-block: var(--sw-p-space-2);
+  padding-inline: var(--sw-p-space-4);
+  background: transparent;
+  border: 0;
+  color: var(--sw-text-secondary);
+  font: inherit;
+  font-size: calc(var(--sw-p-text-sm) * var(--sw-text-scale));
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+}
+.sw-tab:hover { color: var(--sw-text-primary); }
+.sw-tab.is-selected { color: var(--sw-text-primary); }
+
+/* underline indicator (default) */
+.sw-tab::after {
+  content: "";
+  position: absolute;
+  inset-inline: var(--sw-p-space-3);
+  inset-block-end: -1px;
+  block-size: 2px;
+  border-radius: var(--sw-p-radius-pill);
+  background: linear-gradient(90deg, var(--sw-glow-a), var(--sw-glow-b));
+  transform: scaleX(0);
+  transition: transform calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+}
+.sw-tab.is-selected::after { transform: scaleX(1); }
+.sw-tabs--vertical .sw-tab::after {
+  inset-inline: auto;
+  inset-inline-end: -1px;
+  inset-block: var(--sw-p-space-2);
+  inline-size: 2px;
+  block-size: auto;
+  transform: scaleY(0);
+}
+.sw-tabs--vertical .sw-tab.is-selected::after { transform: scaleY(1); }
+
+/* pill variant: filled selected tab, no underline */
+.sw-tabs--pill { border: 0; gap: var(--sw-p-space-2); }
+.sw-tabs--pill .sw-tab { border-radius: var(--sw-p-radius-pill); }
+.sw-tabs--pill .sw-tab::after { display: none; }
+.sw-tabs--pill .sw-tab.is-selected {
+  background: var(--sw-color-primary);
+  color: var(--sw-text-inverse);
+  box-shadow: 0 0 14px color-mix(in oklab, var(--sw-glow-a) 35%, transparent);
+}
+
+.sw-tab:focus-visible { outline: none; box-shadow: var(--sw-focus-shadow); border-radius: var(--sw-p-radius-sm); }
+
+.sw-tabpanel { padding-block: var(--sw-p-space-4); color: var(--sw-text-primary); }
+.sw-tabpanel:focus-visible { outline: none; box-shadow: var(--sw-focus-shadow); border-radius: var(--sw-p-radius-sm); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sw-tab::after { transition: none; }
+}

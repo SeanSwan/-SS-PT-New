@@ -84,6 +84,24 @@
 .sw-card__metric-value { font-size: calc(var(--sw-p-text-xl) * var(--sw-text-scale)); font-weight: 700; color: var(--sw-text-primary); }
 .sw-card__metric-label { font-size: var(--sw-p-text-xs); color: var(--sw-text-muted); }
 
+/* ── Data-card cluster members (Phase 2d) — Swan Card Standard: compact grouped
+   facts, no duplicated fact, 44px icon actions, low-motion, no hover-only actions. */
+.sw-card--metric { gap: var(--sw-p-space-2); }
+.sw-card--metric .sw-card__metric-value { font-size: calc(var(--sw-p-text-2xl) * var(--sw-text-scale)); }
+.sw-card__delta { font-family: var(--sw-font-data); font-size: var(--sw-p-text-xs); }
+.sw-card__delta.is-up { color: var(--sw-color-success); }
+.sw-card__delta.is-down { color: var(--sw-color-danger); }
+
+.sw-card--client { gap: var(--sw-p-space-3); }
+.sw-card__identity { display: flex; align-items: center; gap: var(--sw-p-space-3); }
+.sw-card__identity-text { display: flex; flex-direction: column; min-inline-size: 0; }
+.sw-card__identity-text .sw-card__title { font-size: calc(var(--sw-p-text-base) * var(--sw-text-scale)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw-card__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--sw-p-space-2); }
+.sw-card__fact { display: flex; flex-direction: column; gap: 2px; }
+.sw-card__fact-label { color: var(--sw-text-muted); font-family: var(--sw-font-ui); font-size: var(--sw-p-text-xs); }
+.sw-card__fact-value { font-family: var(--sw-font-data); font-weight: 600; color: var(--sw-text-primary); }
+.sw-card__status { margin-inline-start: auto; }
+
 @media (prefers-reduced-motion: reduce) {
   .sw-card--showcase, .sw-card--showcase:hover { transform: none; }
 }

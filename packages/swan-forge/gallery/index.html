@@ -18,6 +18,11 @@
 <link rel="stylesheet" href="../css/card.css" />
 <link rel="stylesheet" href="../css/input.css" />
 <link rel="stylesheet" href="../css/modal.css" />
+<link rel="stylesheet" href="../css/tabs.css" />
+<link rel="stylesheet" href="../css/toast.css" />
+<link rel="stylesheet" href="../css/primitives.css" />
+<link rel="stylesheet" href="../css/nav.css" />
+<link rel="stylesheet" href="../css/shell.css" />
 <style>
   body { margin: 0; background: var(--sw-bg-base); color: var(--sw-text-primary); font-family: var(--sw-font-body, system-ui); }
   .g-bar { position: sticky; inset-block-start: 0; display: flex; flex-wrap: wrap; gap: var(--sw-p-space-3); align-items: center; padding: var(--sw-p-space-4); background: var(--sw-bg-elevated); border-block-end: 1px solid var(--sw-border); z-index: 10; }
@@ -94,6 +99,73 @@
     </div>
   </section>
 
+  <section id="nav">
+    <h2>Nav (top · side share one core) <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="nav">Copy usage</button></h2>
+    <nav id="nav-top"></nav>
+    <div class="g-row" style="margin-block-start: 16px; align-items: stretch; min-block-size: 220px;">
+      <nav id="nav-side"></nav>
+      <div class="sw-card sw-card--data" style="flex: 1;"><h3 class="sw-card__title">Content beside the rail</h3><p class="sw-card__body">Resize under 768px: both variants collapse to a disclosure menu (toggle · Escape restores focus).</p></div>
+    </div>
+  </section>
+
+  <section id="cluster">
+    <h2>Data-card cluster (metric · client) <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="cluster">Copy usage</button></h2>
+    <div class="sw-cluster">
+      <article class="sw-card sw-card--data sw-card--metric"><span class="sw-card__meta">Workouts this month</span><div class="sw-card__metric"><span class="sw-card__metric-value">18</span><span class="sw-card__delta is-up">+4 vs last</span></div></article>
+      <article class="sw-card sw-card--data sw-card--metric"><span class="sw-card__meta">Adherence</span><div class="sw-card__metric"><span class="sw-card__metric-value">92%</span><span class="sw-card__delta is-down">−3 pts</span></div></article>
+      <article class="sw-card sw-card--data sw-card--client">
+        <div class="sw-card__identity"><span class="sw-avatar">c1</span><div class="sw-card__identity-text"><h3 class="sw-card__title">Client C-1042</h3><span class="sw-card__meta">Balanced · 3×/wk</span></div><span class="sw-pill sw-pill--success sw-card__status">on track</span></div>
+        <div class="sw-card__facts"><div class="sw-card__fact"><span class="sw-card__fact-label">Last workout</span><span class="sw-card__fact-value">2d ago</span></div><div class="sw-card__fact"><span class="sw-card__fact-label">Streak</span><span class="sw-card__fact-value">6 wk</span></div><div class="sw-card__fact"><span class="sw-card__fact-label">Sessions left</span><span class="sw-card__fact-value">9</span></div></div>
+        <div class="sw-card__actions"><button type="button" class="sw-btn sw-btn--primary sw-btn--small">Log session</button><button type="button" class="sw-btn sw-btn--ghost sw-btn--icon" aria-label="Message client">✉</button></div>
+      </article>
+    </div>
+  </section>
+
+  <section id="tabs">
+    <h2>Tabs <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="tabs">Copy usage</button></h2>
+    <div id="tabs-underline"></div>
+    <div id="tabs-pill" style="margin-block-start: 16px;"></div>
+  </section>
+
+  <section id="primitives">
+    <h2>Pill · Badge · Avatar · Skeleton <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="primitives">Copy usage</button></h2>
+    <div class="g-row">
+      <span class="sw-pill">default</span><span class="sw-pill sw-pill--accent">accent</span><span class="sw-pill sw-pill--gold">gold</span>
+      <span class="sw-pill sw-pill--success">success</span><span class="sw-pill sw-pill--danger">danger</span><span class="sw-badge">7</span>
+      <span class="sw-avatar sw-avatar--sm">sw</span><span class="sw-avatar">sw</span><span class="sw-avatar sw-avatar--lg">sw</span>
+      <button type="button" class="sw-btn sw-btn--ghost sw-btn--icon" aria-label="Close">✕</button>
+    </div>
+    <div class="g-grid" style="margin-block-start: 16px;">
+      <div><span class="sw-skeleton sw-skeleton--title"></span><br /><span class="sw-skeleton sw-skeleton--text"></span><br /><span class="sw-skeleton sw-skeleton--text" style="inline-size: 80%;"></span></div>
+      <div class="g-row"><span class="sw-skeleton sw-skeleton--circle" style="inline-size: 48px;"></span><span class="sw-skeleton sw-skeleton--card" style="flex: 1;"></span></div>
+    </div>
+  </section>
+
+  <section id="table">
+    <h2>Table <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="table">Copy usage</button></h2>
+    <table class="sw-table">
+      <thead><tr><th>Client</th><th>Sessions</th><th>Adherence</th><th>Last workout</th></tr></thead>
+      <tbody>
+        <tr><td data-label="Client">C-1042</td><td data-label="Sessions" class="is-numeric">128</td><td data-label="Adherence" class="is-numeric">92%</td><td data-label="Last workout">2d ago</td></tr>
+        <tr><td data-label="Client">C-2077</td><td data-label="Sessions" class="is-numeric">41</td><td data-label="Adherence" class="is-numeric">67%</td><td data-label="Last workout">9d ago</td></tr>
+      </tbody>
+    </table>
+    <div class="g-row" style="margin-block-start: 16px;">
+      <label class="sw-field"><span class="sw-field__label">Select</span><select class="sw-input sw-select"><option>Balanced</option><option>Essential</option></select></label>
+      <label class="sw-field" style="flex: 1;"><span class="sw-field__label">Textarea</span><textarea class="sw-input sw-textarea" placeholder="Coach notes (IDs only)"></textarea></label>
+    </div>
+  </section>
+
+  <section id="toasts">
+    <h2>Toast <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="toasts">Copy usage</button></h2>
+    <div class="g-row">
+      <button type="button" class="sw-btn sw-btn--primary sw-btn--small" data-toast="info">Info</button>
+      <button type="button" class="sw-btn sw-btn--success sw-btn--small" data-toast="success">Success</button>
+      <button type="button" class="sw-btn sw-btn--gilded sw-btn--small" data-toast="warning">Warning</button>
+      <button type="button" class="sw-btn sw-btn--danger sw-btn--small" data-toast="danger">Danger (sticky)</button>
+    </div>
+  </section>
+
   <section id="modals">
     <h2>Modal <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="modals">Copy usage</button></h2>
     <div class="g-row">
@@ -113,8 +185,80 @@
   </div>
 </div>
 
+<div class="sw-toast-region" id="toast-region" role="region" aria-label="Notifications"></div>
+
 <script type="module">
   import { handleModalKey, getModalState, nextTrapIndex, FOCUSABLE_SELECTOR } from '../core/modal.mjs';
+  import { getTabsState, getTabListAttrs, getTabAttrs, getTabPanelAttrs, handleTabKey } from '../core/tabs.mjs';
+  import { createToast, enqueue, dismiss, setPaused, tick, getToastAttrs, handleToastKey } from '../core/toast.mjs';
+  import { getNavState, getNavAttrs, getNavToggleAttrs, getNavMenuAttrs, getNavLinkAttrs, reduceNav } from '../core/nav.mjs';
+
+  // shared: apply a core attribute map to an element (undefined/false ⇒ remove)
+  const setAttrs = (el, attrs) => { for (const [k, v] of Object.entries(attrs)) { if (v === undefined || v === false) el.removeAttribute(k); else el.setAttribute(k, v === true ? '' : v); } };
+
+  // ── Nav: two structural variants, ONE core ───────────────────────────
+  function mountNav(host, variant) {
+    const items = [{ key: 'home', label: 'Home', href: '#nav' }, { key: 'workouts', label: 'Workouts', href: '#tabs' }, { key: 'progress', label: 'Progress', href: '#primitives' }];
+    let state = getNavState({ id: host.id, variant, items, current: '#nav' });
+    const brand = document.createElement('a'); brand.className = 'sw-nav__brand'; brand.href = '#'; brand.textContent = 'Swan';
+    const spacer = document.createElement('span'); spacer.className = 'sw-nav__spacer';
+    const toggle = document.createElement('button'); toggle.textContent = '☰'; toggle.setAttribute('aria-label', 'Menu');
+    const menu = document.createElement('div');
+    const links = items.map((it) => { const a = document.createElement('a'); a.textContent = it.label; menu.appendChild(a); a.addEventListener('click', () => { state = getNavState({ ...state, current: it.href, open: reduceNav(state, { type: 'select' }).open }); render(); }); return a; });
+    toggle.addEventListener('click', () => { state = getNavState({ ...state, open: reduceNav(state, { type: 'toggle' }).open }); render(); });
+    host.addEventListener('keydown', (e) => { const r = reduceNav(state, { type: 'key', key: e.key }); if (r.open !== state.open) { state = getNavState({ ...state, open: r.open }); render(); if (r.restoreFocus) toggle.focus(); } });
+    function render() { setAttrs(host, getNavAttrs(state, variant === 'side' ? 'Sidebar' : 'Primary')); setAttrs(toggle, getNavToggleAttrs(state)); setAttrs(menu, getNavMenuAttrs(state)); items.forEach((it, i) => setAttrs(links[i], getNavLinkAttrs(state, it))); }
+    host.append(brand, ...(variant === 'top' ? [spacer] : []), toggle, menu); render();
+  }
+  mountNav(document.getElementById('nav-top'), 'top');
+  mountNav(document.getElementById('nav-side'), 'side');
+
+  // ── Tabs: gallery consumes the real core (roving tabindex + arrows) ──
+  function mountTabs(host, variant) {
+    const keys = ['overview', 'workouts', 'progress'];
+    let state = getTabsState({ id: `${host.id}`, tabs: keys, selected: 'overview' });
+    const list = document.createElement('div'); const panels = document.createElement('div');
+    const tabEls = {}, panelEls = {};
+    for (const k of keys) {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = k[0].toUpperCase() + k.slice(1); tabEls[k] = b; list.appendChild(b);
+      const p = document.createElement('div'); p.textContent = `${k} panel — arrow keys move, Home/End jump.`; panelEls[k] = p; panels.appendChild(p);
+      b.addEventListener('click', () => { state = getTabsState({ ...state, selected: k }); render(); });
+      b.addEventListener('keydown', (e) => {
+        const r = handleTabKey(state, k, e);
+        if (r.preventDefault) e.preventDefault();
+        if (r.select) state = getTabsState({ ...state, selected: r.select });
+        render();
+        if (r.focus) tabEls[r.focus].focus();
+      });
+    }
+    function render() {
+      setAttrs(list, getTabListAttrs(state)); if (variant) list.classList.add(`sw-tabs--${variant}`);
+      for (const k of keys) { setAttrs(tabEls[k], getTabAttrs(state, k)); setAttrs(panelEls[k], getTabPanelAttrs(state, k)); }
+    }
+    host.append(list, panels); render();
+  }
+  mountTabs(document.getElementById('tabs-underline'));
+  mountTabs(document.getElementById('tabs-pill'), 'pill');
+
+  // ── Toasts: gallery owns the clock; core owns the queue ─────────────
+  const region = document.getElementById('toast-region');
+  let queue = []; let seq = 0; let last = performance.now();
+  function renderToasts() {
+    region.replaceChildren(...queue.map((t) => {
+      const el = document.createElement('div'); setAttrs(el, getToastAttrs(t)); el.tabIndex = 0;
+      el.innerHTML = `<span></span><div><p class="sw-toast__title"></p><p class="sw-toast__body"></p></div><button type="button" class="sw-toast__dismiss" aria-label="Dismiss notification">✕</button>`;
+      el.querySelector('.sw-toast__title').textContent = t.title; el.querySelector('.sw-toast__body').textContent = t.body ?? '';
+      el.querySelector('.sw-toast__dismiss').addEventListener('click', () => { queue = dismiss(queue, t.id); renderToasts(); });
+      el.addEventListener('mouseenter', () => { queue = setPaused(queue, t.id, true); }); el.addEventListener('mouseleave', () => { queue = setPaused(queue, t.id, false); });
+      el.addEventListener('focusin', () => { queue = setPaused(queue, t.id, true); }); el.addEventListener('focusout', () => { queue = setPaused(queue, t.id, false); });
+      el.addEventListener('keydown', (e) => { if (handleToastKey(e).action === 'dismiss') { queue = dismiss(queue, t.id); renderToasts(); } });
+      return el;
+    }));
+  }
+  for (const b of document.querySelectorAll('[data-toast]')) b.addEventListener('click', () => {
+    const tone = b.dataset.toast; queue = enqueue(queue, createToast({ id: 't' + (++seq), tone, title: `${tone} toast`, body: tone === 'danger' ? 'Sticky until dismissed (Escape or ✕).' : 'Auto-dismisses; hover or focus to pause.' })); renderToasts();
+  });
+  setInterval(() => { const now = performance.now(); const { queue: q, expired } = tick(queue, now - last); last = now; if (expired.length) { queue = q; renderToasts(); } else queue = q; }, 250);
 
   // Pack switcher — the matrix axis
   const packSel = document.getElementById('pack');
@@ -133,6 +277,12 @@
     cards: '<article class="sw-card sw-card--data">…</article>',
     inputs: '<label class="sw-field"><span class="sw-field__label">Label</span><input class="sw-input" /></label>',
     modals: 'import { getModalAttrs, handleModalKey } from "@swan/forge/core/modal";',
+    tabs: 'import { getTabsState, getTabAttrs, handleTabKey } from "@swan/forge/core/tabs";',
+    nav: 'import { getNavState, getNavLinkAttrs, reduceNav } from "@swan/forge/core/nav";',
+    cluster: '<div class="sw-cluster"><article class="sw-card sw-card--data sw-card--metric">…</article></div>',
+    primitives: '<span class="sw-pill sw-pill--gold">label</span> <span class="sw-badge">7</span> <span class="sw-avatar">sw</span>',
+    table: '<table class="sw-table">…<td data-label="Sessions" class="is-numeric">128</td>…</table>',
+    toasts: 'import { createToast, enqueue, tick, getToastAttrs } from "@swan/forge/core/toast";',
   };
   for (const btn of document.querySelectorAll('[data-copy]')) {
     btn.addEventListener('click', async () => {

@@ -57,6 +57,11 @@ export const PAIRS = [
   { fg: ['--sw-text-secondary'], bg: ['--sw-bg-base'], min: 4.5, label: 'secondary text / page' },
   { fg: ['--sw-color-danger'], bg: ['--sw-bg-surface'], min: 4.5, label: 'danger as text (field error) / card' },
   { fg: ['--sw-color-warning'], bg: ['--sw-bg-surface'], min: 4.5, label: 'warning as text (field warning) / card' },
+  { fg: ['--sw-color-gold'], bg: ['--sw-bg-elevated'], min: 4.5, label: 'gold pill text / elevated' },
+  { fg: ['--sw-color-success'], bg: ['--sw-bg-elevated'], min: 4.5, label: 'success pill text / elevated' },
+  { fg: ['--sw-color-danger'], bg: ['--sw-bg-elevated'], min: 4.5, label: 'danger pill text / elevated' },
+  { fg: ['--sw-text-inverse'], bg: ['--sw-color-accent'], min: 4.5, label: 'badge / accent pill text', waiver: { owner: 'sean', expiry: '2026-10-01', packs: ['crystalline-swan.css'], reason: 'Same white-on-Wing-Purple pairing as the accent button (4.23:1) — one decision resolves both; see button accent waiver.' } },
+  { fg: ['--sw-text-inverse'], bg: ['--sw-color-primary'], min: 4.5, label: 'pill-tab selected / avatar initials on primary' },
   { fg: ['--sw-btn-primary-text', '--sw-text-inverse'], bg: ['--sw-color-primary'], min: 4.5, label: 'button primary label' },
   {
     fg: ['--sw-btn-accent-text', '--sw-text-inverse'], bg: ['--sw-color-accent'], min: 4.5,

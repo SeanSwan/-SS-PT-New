@@ -1,0 +1,74 @@
+/**
+ * @swan/forge — Toast skin (.sw-toast). Tones: info | success | warning | danger.
+ * Region is fixed at inline-end/block-end; stack grows upward. Tone text pairs
+ * are audited (tone color as accent stripe + label text on bg-elevated).
+ * Zero raw hex; logical properties; motion via --sw-motion.
+ */
+
+.sw-toast-region {
+  position: fixed;
+  inset-block-end: var(--sw-p-space-5);
+  inset-inline-end: var(--sw-p-space-5);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--sw-p-space-3);
+  inline-size: min(92vw, 380px);
+  z-index: 110;
+  pointer-events: none;
+}
+
+.sw-toast {
+  --_tone: var(--sw-color-accent);
+  pointer-events: auto;
+  display: grid;
+  grid-template-columns: 4px 1fr auto;
+  gap: var(--sw-p-space-3);
+  align-items: start;
+  padding: var(--sw-p-space-4);
+  background: var(--sw-bg-elevated);
+  color: var(--sw-text-primary);
+  border: 1px solid var(--sw-border-strong);
+  border-radius: var(--sw-p-radius-lg);
+  box-shadow: var(--sw-shadow-3);
+  font-family: var(--sw-font-ui);
+  animation: sw-toast-in calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+}
+.sw-toast::before {
+  content: "";
+  align-self: stretch;
+  border-radius: var(--sw-p-radius-pill);
+  background: var(--_tone);
+  box-shadow: 0 0 10px color-mix(in oklab, var(--_tone) 50%, transparent);
+}
+.sw-toast--info    { --_tone: var(--sw-color-accent); }
+.sw-toast--success { --_tone: var(--sw-color-success); }
+.sw-toast--warning { --_tone: var(--sw-color-warning); }
+.sw-toast--danger  { --_tone: var(--sw-color-danger); }
+
+.sw-toast__title { margin: 0; font-weight: 700; font-size: calc(var(--sw-p-text-base) * var(--sw-text-scale)); }
+.sw-toast__body { margin: var(--sw-p-space-1) 0 0; color: var(--sw-text-secondary); font-size: calc(var(--sw-p-text-sm) * var(--sw-text-scale)); }
+
+/* dismiss control: 44px target, icon-only, labelled by the binding */
+.sw-toast__dismiss {
+  min-inline-size: var(--sw-p-target-min);
+  min-block-size: var(--sw-p-target-min);
+  margin: calc(-1 * var(--sw-p-space-2));
+  background: transparent;
+  border: 0;
+  border-radius: var(--sw-p-radius-md);
+  color: var(--sw-text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.sw-toast__dismiss:hover { color: var(--sw-text-primary); background: color-mix(in oklab, var(--sw-text-primary) 8%, transparent); }
+.sw-toast__dismiss:focus-visible { outline: none; box-shadow: var(--sw-focus-shadow); }
+
+.sw-toast.is-paused { border-color: var(--_tone); }
+
+@keyframes sw-toast-in {
+  from { opacity: 0; transform: translateY(calc(8px * var(--sw-motion))); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sw-toast { animation: none; }
+}
