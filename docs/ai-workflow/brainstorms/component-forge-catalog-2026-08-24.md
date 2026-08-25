@@ -207,3 +207,5 @@ GLM verdict on `c53ba55dc`: **REVISE** — "architecture right, evidence not." A
 - **#5 allow-tag provenance by path — FOLLOW-UP (out of lane):** lives in the shared `frontend-guards.mjs` hook → Linear.
 - **#6 primitive.css `:root` footprint — DISCLOSED** in the binding header; collision grep over `frontend/src` for any `--sw-*` definition = none.
 - **Deploy safety:** clean `npm ci` proof recorded below; CSS chunk placement confirmed by dist grep + computed styles; rollback wording corrected (wiring commit revert, not "one line").
+
+**Phase 1.5 SHIPPED 2026-08-25:** main `7521c5053..e16a68085`. Live proof on sswanstudios.com (computed styles on the mounted GolfSection CTA): bg `#1A1505`, text `#E0ECF4`, 44.0px, `--sw-motion` 1, `:focus-visible` ring 2px obsidian + 4px Wing Purple; Forge chunk serving; backend 200. Deploy-watch lesson: Render's entry-bundle hash ≠ local build's hash — verify by chunk URL + live computed style, never by hash equality. **Gate status: PASSED — Phase 2 spend is unblocked.** Follow-ups: SWA-206.
