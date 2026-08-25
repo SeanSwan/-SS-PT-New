@@ -10,100 +10,14 @@
 
 import { useCallback, useState } from 'react';
 import type { AxiosInstance } from 'axios';
+import type {
+  Lane, PromptSource, LawProfile, LocalLaneView, HostedLaneView, LimitsView, CostView, StillView,
+  StillFailure, PersistenceView, ComposeResult, ComposeRequest, ComposeRefusal, MotionStart, MotionJobView,
+  BatchAccepted, BatchSnapshot, AssetReference, ApprovalStatus, PublishDeclaration, LaneTone,
+} from './AtelierCompose.types';
+export * from './AtelierCompose.types';
 import { motionBindable, describeBlocker } from './AtelierCompose.words';
 export * from './AtelierCompose.words';
-
-export type Lane = 'auto' | 'local' | 'hosted';
-export type PromptSource = 'brief' | 'taste';
-export type LawProfile = 'full' | 'universal';
-
-export interface LocalLaneView {
-  provider: string;
-  status: 'claimed' | 'probed';
-  ready: boolean;
-  /** FALSE means the UI must not promise this lane. The server decides, not the pixels. */
-  advertisable: boolean;
-  problems: string[];
-  probeEnvKey: string;
-  unitUsd: number;
-}
-
-export interface HostedLaneView {
-  enabled: boolean;
-  spendEnvKey: string;
-  limits: { maxRunsDaily: number; maxSpendUsdDaily: number };
-}
-
-export interface LimitsView {
-  maxStills: number;
-  lanes: { local: LocalLaneView; hosted: HostedLaneView };
-  usage: { runs: number; spendUsd: number };
-  ledger: string;
-  enabled: boolean;
-  note: string;
-}
-
-export interface CostView {
-  count: number; model: string; unitUsd: number; totalUsd: number; chargedUsd?: number; lane?: Lane;
-}
-
-export interface StillView {
-  index: number;
-  lane: 'local' | 'hosted';
-  image: { kind: 'b64'; data: string } | { kind: 'path'; path: string; mime: string };
-  seed: number;
-  promptHash: string;
-  promptText: string;
-  provider: string;
-  sha256?: string;
-  bytes?: number;
-  /** Set when the still became a MediaAsset — the id the Motion rung will bind to. */
-  assetId?: string | null;
-  persist?: { ok: true; created: boolean } | { ok: false; code: string; message: string };
-}
-
-export interface StillFailure { index: number; code: string; message: string }
-
-export interface PersistenceView { ok: boolean; persisted: number; total?: number; code?: string; message?: string }
-
-export interface ComposeResult {
-  lane: 'local' | 'hosted';
-  promptSource: PromptSource;
-  stills: StillView[];
-  failures: StillFailure[];
-  partial: boolean;
-  replayed: boolean;
-  cost: CostView;
-  model: string;
-  idempotencyKey: string;
-  admission: { host: string; freeMb: number; neededMb: number } | null;
-  persistence?: PersistenceView;
-  tasteSeed?: number | null;
-  lawRejected?: number;
-  lawProfile?: LawProfile;
-  clampedFrom?: number;
-}
-
-export interface ComposeRequest {
-  brief: { text: string; intent?: string; aspect?: string };
-  promptSource: PromptSource;
-  lane: Lane;
-  count: number;
-  aspect?: string;
-  lawProfile: LawProfile;
-  cinematic?: boolean;
-  seed?: number;
-}
-
-/** A refusal, with everything the server attached so the UI can say the real reason. */
-export interface ComposeRefusal {
-  code: string;
-  message: string;
-  status: number | null;
-  retryAfterSec?: number;
-  freeMb?: number;
-  neededMb?: number;
-}
 
 const BASE = '/api/atelier/compose';
 
@@ -121,33 +35,9 @@ export function readRefusal(err: unknown, fallback: string): ComposeRefusal {
 
 /* ── Types shared with the words file ────────────────────────────────────── */
 
-export type LaneTone = 'ready' | 'unproven' | 'off';
-
 /* ── Motion ────────────────────────────────────────────────────────────────── */
 
-export interface MotionStart {
-  jobId: string; status: string; replayed: boolean; provider: string; attribution: string | null;
-  bound: { assetId: string; sha256: string };
-  startable: boolean; workerState: string | null; message: string; statusUrl: string;
-}
-
-/** Mirrors GET /api/content-studio/render-job/:id — the same shape the Render Queue polls. */
-export interface MotionJobView {
-  jobId: string; status: string; progress: number | null; errorCode: string | null; errorMessage: string | null;
-  r2Key: string | null; attribution?: string | null; startable: boolean; workerState: string | null;
-}
-
 /* ── Publish ───────────────────────────────────────────────────────────────── */
-
-export type ApprovalStatus = 'draft' | 'approved' | 'published';
-
-export interface AssetReference {
-  id: string; status: ApprovalStatus; r2Key: string; mime: string; width: number | null; height: number | null;
-  sha256: string | null; attribution: string | null; attributionRequired: boolean; licence: string | null;
-  blockers: string[]; readUrl: string | null; permalink?: string | null; snippet: string | null; withheld: string | null;
-}
-
-export interface PublishDeclaration { consentConfirmed: boolean; intendedUse: 'commercial' | 'personal'; note?: string }
 
 /* ── Hook ─────────────────────────────────────────────────────────────────── */
 
@@ -182,13 +72,25 @@ export function useAtelierCompose(api: AxiosInstance | null) {
     }
   }, [api]);
 
+  const [batch, setBatch] = useState<BatchSnapshot | null>(null);
+
   const compose = useCallback(async (req: ComposeRequest, idempotencyKey: string) => {
     if (!api) throw new Error('Not authenticated.');
     setBusy(true);
     setRefusal(null);
+    setBatch(null);
     try {
       const { data } = await api.post(`${BASE}/stills`, req, { headers: { 'Idempotency-Key': idempotencyKey } });
-      const r = data?.data as ComposeResult;
+      const d = data?.data as ComposeResult | BatchAccepted;
+      if ((d as BatchAccepted).accepted) {
+        // Local lane: nothing has rendered yet. Show an honest empty batch and poll.
+        const a = d as BatchAccepted;
+        setBatch({ batchId: a.batchId, lane: 'local', status: 'queued', count: a.count, promptSource: a.promptSource, model: a.cost.model,
+          stills: [], failures: [], persistence: null, rendered: 0, error: null, startedAt: Date.now(), finishedAt: null, terminal: false });
+        setResult(null);
+        return null;
+      }
+      const r = d as ComposeResult;
       setResult(r);
       return r;
     } catch (err) {
@@ -199,6 +101,24 @@ export function useAtelierCompose(api: AxiosInstance | null) {
       setBusy(false);
     }
   }, [api]);
+
+  /** Poll a local batch; when it turns terminal, promote the snapshot into `result` so the grid renders it. */
+  const pollBatch = useCallback(async () => {
+    if (!api || !batch || batch.terminal) return;
+    try {
+      const { data } = await api.get(`${BASE}/stills/${batch.batchId}`);
+      const snap = data?.data as BatchSnapshot;
+      setBatch(snap);
+      if (snap.terminal) {
+        setResult({ lane: 'local', promptSource: snap.promptSource, stills: snap.stills, failures: snap.failures,
+          partial: snap.status === 'partial', replayed: false, cost: { count: snap.count, model: snap.model, unitUsd: 0, totalUsd: 0, chargedUsd: 0 },
+          model: snap.model, idempotencyKey: snap.batchId, admission: null, persistence: snap.persistence ?? undefined });
+      }
+    } catch (err) {
+      const rf = readRefusal(err, 'Could not read the batch.');
+      if (rf.code === 'E_BATCH_NOT_FOUND') { setBatch((b) => (b ? { ...b, status: 'failed', terminal: true, error: { code: rf.code, message: rf.message } } : b)); setRefusal(rf); }
+    }
+  }, [api, batch]);
 
   const [motion, setMotion] = useState<MotionStart | null>(null);
   const [motionJob, setMotionJob] = useState<MotionJobView | null>(null);
@@ -256,7 +176,7 @@ export function useAtelierCompose(api: AxiosInstance | null) {
     }
   }, [api, loadReference]);
 
-  return { limits, estimate, result, refusal, busy, loadLimits, runEstimate, compose, setResult, motion, motionJob, startMotion, pollMotion, reference, loadReference, setStatus, setReference };
+  return { limits, estimate, result, refusal, busy, loadLimits, runEstimate, compose, setResult, motion, motionJob, startMotion, pollMotion, reference, loadReference, setStatus, setReference, batch, pollBatch };
 }
 
 export default useAtelierCompose;

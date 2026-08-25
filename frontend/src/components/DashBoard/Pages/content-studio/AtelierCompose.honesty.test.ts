@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  describeLocalLane, describeHostedLane, laneOfferable, formatCost, stillSrc, readRefusal, describePersist, motionBindable, describeMotionJob, nextPublishStep, describeBlocker,
+  describeLocalLane, describeHostedLane, laneOfferable, formatCost, stillSrc, readRefusal, describePersist, motionBindable, describeMotionJob, nextPublishStep, describeBlocker, describeBatch,
   type LimitsView, type LocalLaneView, type HostedLaneView, type StillView,
 } from './AtelierCompose.api';
 
@@ -152,5 +152,14 @@ describe('Publish is a step at a time, and blockers say what they are', () => {
     const t = describeBlocker('E_CONSENT_UNCONFIRMED: policy flag "no-identifiable-people" has no confirmed consent');
     expect(t).toMatch(/^Consent not confirmed/);
     expect(t).toContain('no-identifiable-people');
+  });
+});
+
+describe('a local batch reports rendered count, never a guess', () => {
+  const b = (over: Partial<import('./AtelierCompose.api').BatchSnapshot>) => ({ batchId: 'b', lane: 'local' as const, status: 'running' as const, count: 4, promptSource: 'brief' as const, model: 'm', stills: [], failures: [], persistence: null, rendered: 0, error: null, startedAt: 0, finishedAt: null, terminal: false, ...over });
+  it('shows N of count while running and names the failures when partial', () => {
+    expect(describeBatch(b({ rendered: 2 })).text).toContain('2 of 4');
+    expect(describeBatch(b({ status: 'partial', terminal: true, stills: [{} as never, {} as never, {} as never], failures: [{ index: 3, code: 'E_LOCAL_RENDER', message: 'x' }] })).text).toContain('1 failed');
+    expect(describeBatch(b({ status: 'failed', terminal: true, error: { code: 'E_LAW_VIOLATION', message: 'x' } })).text).toContain('E_LAW_VIOLATION');
   });
 });

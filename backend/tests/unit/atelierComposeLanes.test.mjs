@@ -221,7 +221,9 @@ describe('the local lane refuses until probed, and guards the GPU', () => {
 
   it('renders a local batch sequentially at $0 through the injected renderer', async () => {
     const order = [];
-    const out = await composeStills({ brief: BRIEF, lane: 'local', count: 3 }, {
+    // RE-ANCHORED: the local lane is async by default (202 + poll, atelierAsyncStills.test.mjs);
+    // `async:false` keeps the inline path for direct callers, which is what this test covers.
+    const out = await composeStills({ brief: BRIEF, lane: 'local', count: 3, async: false }, {
       env: LOCAL_ENV, localVerify: readyLocal, admit: admitOk, store: new Map(),
       limits: { maxRunsDaily: 50, maxSpendUsdDaily: 0, disabled: true },
       renderStill: async ({ seed }) => { order.push(seed); return { image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab', bytes: 10, provider: 'comfyui/wan-2.2' }; },

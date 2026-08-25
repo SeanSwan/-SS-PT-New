@@ -34,6 +34,8 @@ import {
 import { promptsFromBrief, promptsFromTaste, resolveLawProfile } from './promptSources.mjs';
 import * as local from './localStillLane.mjs';
 import { persistBatch } from './persistStills.mjs';
+import * as batches from './batchStore.mjs';
+import { runLocalBatch } from './localBatchRunner.mjs';
 
 export {
   ComposeError, MAX_STILLS, MAX_BRIEF_CHARS, IMAGE_PRICES, SPEND_ENV_KEY, RUNS_ENV_KEY,
@@ -61,7 +63,11 @@ async function chooseLane(req, deps) {
   // Reserve the GPU BEFORE reading its free memory, so admission is not a check-then-act
   // race between two requests. The reservation travels with the batch; a refusal below
   // releases it.
+  // An ESTIMATE never contends for the card. It is read-only compute, and reserving for it
+  // meant the UI's debounced cost preview answered E_LOCAL_BUSY for the whole two minutes
+  // a batch was rendering — a price that disappears exactly when you are watching it.
   const admitLocal = async () => {
+    if (req.estimateOnly) return { lane: 'local', admission: null, reservation: null };
     const reservation = reserve();
     try { return { lane: 'local', admission: await admit({ env }), reservation }; } catch (err) { reservation.release(); throw err; }
   };
@@ -173,13 +179,29 @@ export async function composeStills(req = {}, deps = {}) {
   if (runs + count > limits.maxRunsDaily) {
     throw new ComposeError('E_RUN_CAP', `This batch of ${count} would pass the daily run cap (${runs}/${limits.maxRunsDaily}). Raise ${RUNS_ENV_KEY}.`);
   }
-  // GATE 3 — lane: readiness, licence, admission, or hosted budget.
-  const { lane, admission, reservation = null } = await chooseLane({ ...req, promptSource }, { env, limits, localVerify, admit, reserve });
+  // GATE 3a — idempotency FIRST, before any reservation. A double-click must replay
+  // without touching the GPU; checking after the lane gate meant the second request
+  // reserved the card and was refused E_LOCAL_BUSY instead of coalescing.
+  // A CLIENT-SUPPLIED key is namespaced by owner. Used raw, user B sending the same
+  // Idempotency-Key header as user A would land on A's batch and receive A's batch id —
+  // a confused deputy that also leaks a handle. The derived key already salts with userId.
+  const key = req.idempotencyKey
+    ? `u${req.userId ?? 'anon'}:${sha(String(req.idempotencyKey)).slice(0, 32)}`
+    : deriveKey({ ...req, brief, promptSource, lane: req.lane || 'auto', model, count }, now);
+  if (!req.estimateOnly && store.has(key)) return { ...(await store.get(key)), replayed: true };
+  // Reserve the key SYNCHRONOUSLY, before the first await below: two concurrent identical
+  // requests would otherwise both pass `has` and both run. The placeholder is settled with
+  // the real outcome; a failure deletes it so a retry can run.
+  let settle = null; let reservation = null;
+  if (!req.estimateOnly) { const pending = new Promise((res, rej) => { settle = { res, rej }; }); pending.catch(() => {}); store.set(key, pending); }
+  try {
+
+  // GATE 3b — lane: readiness, licence, admission, or hosted budget.
+  const chosen = await chooseLane({ ...req, promptSource }, { env, limits, localVerify, admit, reserve });
+  const { lane, admission } = chosen; reservation = chosen.reservation ?? null;
   const cost = lane === 'hosted'
     ? { ...gateHosted({ model, count, limits, usage, verifier }), lane }
     : { count, model: local.STILL_PROVIDER, unitUsd: 0, totalUsd: 0, lane };
-
-  const key = req.idempotencyKey || deriveKey({ ...req, brief, promptSource, lane, model, count }, now);
 
   if (req.estimateOnly) {
     reservation?.release();
@@ -188,8 +210,25 @@ export async function composeStills(req = {}, deps = {}) {
       ...(clampedFrom === undefined ? {} : { clampedFrom }) };
   }
 
-  // GATE 4 — idempotency, reserved at START. Concurrent identical calls coalesce.
-  if (store.has(key)) { reservation?.release(); return { ...(await store.get(key)), replayed: true }; }
+  // LOCAL LANE IS ASYNC. ~27s per frame on the 5090 means a 4-up is ~2 minutes; no HTTP
+  // request survives that through a proxy. Answer 202 with a batch id at once, render in
+  // the background under the reservation, persist each still as it lands, and let the
+  // client poll. The idempotency store coalesces on the same batch id.
+  if (lane === 'local' && req.async !== false) {
+    const batch = batches.createBatch({ userId: req.userId, lane, count, key, promptSource, model: cost.model });
+    const accepted = { accepted: true, batchId: batch.id, lane, promptSource, status: 'queued', count, cost: { ...cost, chargedUsd: 0 },
+      key, admission, statusUrl: `/api/atelier/compose/stills/${batch.id}`, replayed: false };
+    settle.res(accepted);
+    runLocalBatch({ batch, req, brief, count, key, promptSource, lawProfile, model: cost.model, reservation,
+      deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, ...(deps.watchdogMs ? { watchdogMs: deps.watchdogMs } : {}) } })
+      // The key is evicted when the batch is terminal: a replay is only honest WHILE the
+      // batch is in flight. Holding it for the store's lifetime would silently return an
+      // old batch to someone deliberately re-rendering the same composition.
+      .finally(() => { store.delete(key); })
+      .catch(() => { /* recorded on the batch; never an unhandled rejection */ });
+    return accepted;
+  }
+
   const work = (async () => {
     // Prompts — after every refusal gate, before any generator.
     let prompts; let tasteMeta = {};
@@ -222,6 +261,12 @@ export async function composeStills(req = {}, deps = {}) {
       ...(clampedFrom === undefined ? {} : { clampedFrom }),
     };
   })();
-  store.set(key, work);
-  try { return await work; } catch (err) { store.delete(key); reservation?.release(); throw err; }
+  const result = await work;
+  settle.res(result);
+  return result;
+  } catch (err) {
+    if (settle) { store.delete(key); settle.rej(err); }
+    reservation?.release();
+    throw err;
+  }
 }

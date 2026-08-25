@@ -21,13 +21,14 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Wand2, RefreshCw, Lock, Sparkles, Clapperboard, Copy, Check } from 'lucide-react';
+import { Wand2, RefreshCw, Lock, Sparkles, Clapperboard } from 'lucide-react';
 import type { AxiosInstance } from 'axios';
 import useAtelierCompose, {
-  describeLocalLane, describeHostedLane, laneOfferable, formatCost, motionBindable, describeMotionJob, nextPublishStep,
+  describeLocalLane, describeHostedLane, laneOfferable, formatCost, motionBindable, describeMotionJob, nextPublishStep, describeBatch,
   type Lane, type PromptSource, type LawProfile, type ComposeRequest,
 } from './AtelierCompose.api';
 import AtelierComposeGrid from './AtelierComposeGrid';
+import AtelierPublishPanel from './AtelierPublishPanel';
 import {
   Panel, Card, CardTitle, CardHint, PrimaryButton, AccentButton, QuietButton, Field, Caption,
   LaneStrip, LaneCell, LaneText, LaneFix, Ladder, Rung, Workspace, TextArea, Select,
@@ -57,7 +58,7 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
   const local = describeLocalLane(c.limits?.lanes.local ?? null);
   const hosted = describeHostedLane(c.limits?.lanes.hosted ?? null);
   const tasteAllowed = c.limits?.lanes.local.ready === true;
-  const canRun = laneOfferable(lane, c.limits) && (source === 'taste' || text.trim().length > 0) && !c.busy;
+  const canRun = laneOfferable(lane, c.limits) && (source === 'taste' || text.trim().length > 0) && !c.busy && !(c.batch && !c.batch.terminal);
 
   const req = useMemo<ComposeRequest>(() => ({
     brief: { text: text.trim(), intent, aspect }, promptSource: source, lane, count, aspect, lawProfile,
@@ -85,21 +86,21 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
   const motionActive = !!c.motionJob && !['ready', 'failed', 'cancelled'].includes(c.motionJob.status);
   const published = c.reference?.status === 'published';
   const ladder = published ? 'publish' : c.motionJob ? 'motion' : c.result ? 'still' : 'brief';
-  const [copied, setCopied] = useState<'url' | 'snippet' | null>(null);
-  // The declaration a human makes before Publish. Nothing in the pipeline can confirm
-  // consent or intent; the operator does, and it is welded onto the asset with who/when.
-  const [consent, setConsent] = useState(false);
-  const [intendedUse, setIntendedUse] = useState<'commercial' | 'personal'>('commercial');
 
   // The selected still's asset record drives the Publish panel. Re-read on selection.
   useEffect(() => {
     if (selectedStill?.assetId) { c.loadReference(selectedStill.assetId); } else { c.setReference(null); }
   }, [selectedStill?.assetId, c.loadReference, c.setReference]);
 
-  const copy = async (what: 'url' | 'snippet', text: string | null) => {
-    if (!text) return;
-    try { await navigator.clipboard.writeText(text); setCopied(what); setTimeout(() => setCopied(null), 1800); } catch { /* clipboard denied — the text is visible to select */ }
-  };
+
+  // Poll a local batch every 3s until terminal; the hook promotes the snapshot into `result`.
+  const batchActive = !!c.batch && !c.batch.terminal;
+  useEffect(() => {
+    if (!batchActive) return undefined;
+    const t = setInterval(() => { c.pollBatch(); }, 3000);
+    return () => clearInterval(t);
+  }, [batchActive, c.pollBatch]);
+  const bd = describeBatch(c.batch);
 
   // Poll the queued Motion job on the endpoint the Render Queue already uses; stop on a terminal state.
   useEffect(() => {
@@ -224,67 +225,15 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
             </Notice>
           )}
 
+          {c.batch && !c.batch.terminal && (
+            <Notice $tone="ready" role="status" aria-live="polite">{bd.text} — this page can be left; the batch keeps rendering.</Notice>
+          )}
+          {c.batch?.terminal && c.batch.status === 'failed' && c.batch.error && (
+            <Notice $tone="off" role="status">Batch failed · {c.batch.error.code} — {c.batch.error.message}</Notice>
+          )}
           {c.result && <AtelierComposeGrid result={c.result} aspect={aspect} selectedIndex={selected} onSelect={setSelected} />}
 
-          {c.reference && (
-            <Card $accent={published ? 'ice' : 'gold'} aria-label="Publish">
-              <CardTitle>Publish · {c.reference.status}</CardTitle>
-              <CardHint>{published
-                ? 'Published. The link and snippet below are what a site consumes; the attribution travels with them.'
-                : c.reference.status === 'approved' ? 'Approved. Publish to get a link a site can use.' : 'Draft. Approve it first — nothing goes on a site unlooked-at.'}</CardHint>
-              {c.reference.blockers.length > 0 && (
-                <Notice $tone="unproven" role="status">Publishing is blocked: {c.reference.blockers.map((b) => b.split(':')[0]).join(', ')}</Notice>
-              )}
-              {c.reference.status === 'approved' && (
-                <FieldGroup>
-                  <FieldLabel id="publish-decl-label">Before publishing, you declare</FieldLabel>
-                  <Field style={{ marginBottom: 8 }}>Intended use
-                    <Select value={intendedUse} onChange={(e) => setIntendedUse(e.target.value as 'commercial' | 'personal')}>
-                      <option value="commercial">commercial — on a site that sells something</option>
-                      <option value="personal">personal — not for commerce</option>
-                    </Select>
-                  </Field>
-                  <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', minHeight: 44, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ width: 22, height: 22, marginTop: 2 }} />
-                    <span>I confirm this asset depicts no identifiable real person without their consent, and that I hold the rights to publish it for the use above. This is recorded on the asset with my user id and the time.</span>
-                  </label>
-                </FieldGroup>
-              )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {nextPublishStep(c.reference.status) && (
-                  <PrimaryButton type="button"
-                    disabled={nextPublishStep(c.reference.status)!.to === 'published' && (c.reference.blockers.length > 0 || !consent)}
-                    onClick={() => c.setStatus(c.reference!.id, nextPublishStep(c.reference!.status)!.to,
-                      nextPublishStep(c.reference!.status)!.to === 'published' ? { consentConfirmed: consent, intendedUse } : undefined)}>
-                    {nextPublishStep(c.reference.status)!.label}
-                  </PrimaryButton>
-                )}
-                {published && (
-                  <QuietButton type="button" onClick={() => c.setStatus(c.reference!.id, 'approved')}>Unpublish</QuietButton>
-                )}
-                {published && (
-                  <>
-                    <QuietButton type="button" onClick={() => copy('url', c.reference!.permalink ?? null)} aria-label="Copy permalink">
-                      {copied === 'url' ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />} Copy link
-                    </QuietButton>
-                    <QuietButton type="button" onClick={() => copy('snippet', c.reference!.snippet)} aria-label="Copy embed snippet">
-                      {copied === 'snippet' ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />} Copy snippet
-                    </QuietButton>
-                  </>
-                )}
-              </div>
-              {published && c.reference.permalink && (
-                <Readout style={{ display: 'block', marginTop: 10, wordBreak: 'break-all' }}>{c.reference.permalink}</Readout>
-              )}
-              {published && (
-                <Caption>The link above is permanent while published and stops resolving the moment you unpublish. The signed preview URL below it expires in hours and must not go on a site.</Caption>
-              )}
-              {c.reference.attribution && (
-                <Caption>{c.reference.attributionRequired ? 'Required attribution: ' : 'Attribution: '}{c.reference.attribution}</Caption>
-              )}
-              <Caption>Object key <code>{c.reference.r2Key}</code> · content-addressed by sha256.</Caption>
-            </Card>
-          )}
+          <AtelierPublishPanel c={c} />
           {c.result?.admission && <Caption>GPU admitted with {c.result.admission.freeMb} MiB free (needs {c.result.admission.neededMb}).</Caption>}
           {c.limits && <Caption>{c.limits.note}</Caption>}
           {c.busy && <Caption role="status">Rendering on the {lane === 'hosted' ? 'hosted lane' : '5090'} — one batch at a time.</Caption>}

@@ -8,8 +8,8 @@
 
 import type {
   LocalLaneView, HostedLaneView, LimitsView, CostView, StillView, ComposeRefusal, Lane,
-  MotionJobView, ApprovalStatus, LaneTone,
-} from './AtelierCompose.api';
+  MotionJobView, ApprovalStatus, LaneTone, BatchSnapshot,
+} from './AtelierCompose.types';
 
 /* ── Pure helpers (tested) — the words the UI is allowed to use ──────────── */
 
@@ -105,4 +105,14 @@ export function describeBlocker(b: string): string {
       : code === 'E_LICENCE_GRANT_REQUIRED' ? 'Licence grant required for commercial use'
         : code === 'E_NO_PROVENANCE' ? 'No provenance record' : code;
   return detail ? `${head} — ${detail}` : head;
+}
+
+/** The one line for a local batch in flight. Progress is rendered count, never a guess. */
+export function describeBatch(b: BatchSnapshot | null): { tone: LaneTone | 'working'; text: string } {
+  if (!b) return { tone: 'off', text: '' };
+  if (b.status === 'queued') return { tone: 'working', text: `Accepted · waiting for the GPU · 0 of ${b.count}` };
+  if (b.status === 'running') return { tone: 'working', text: `Rendering on the 5090 · ${b.rendered} of ${b.count}` };
+  if (b.status === 'done') return { tone: 'ready', text: `Rendered ${b.stills.length} of ${b.count}` };
+  if (b.status === 'partial') return { tone: 'unproven', text: `Rendered ${b.stills.length} of ${b.count} — ${b.failures.length} failed` };
+  return { tone: 'off', text: `Batch failed${b.error ? ` · ${b.error.code}` : ''}` };
 }

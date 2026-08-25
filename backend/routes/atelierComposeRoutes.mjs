@@ -30,6 +30,7 @@ import { verifyLocalStills, PROBE_ENV_KEY, STILL_PROVIDER } from '../services/at
 import { readAsset } from '../services/atelier/persistStills.mjs';
 import { bindMotion } from '../services/atelier/motionBind.mjs';
 import { transitionAsset, publishedReference } from '../services/atelier/publishAsset.mjs';
+import { getBatch, assertBatchId } from '../services/atelier/batchStore.mjs';
 
 const router = express.Router();
 
@@ -91,6 +92,8 @@ const STATUS = Object.freeze({
   E_BAD_TRANSITION: 409,
   E_PUBLISH_BLOCKED: 422,
   E_PUBLISH_DECLARATION_REQUIRED: 422,
+  E_BATCH_NOT_FOUND: 404,
+  E_BAD_BATCH_ID: 400,
 });
 
 function fail(res, err) {
@@ -152,6 +155,14 @@ router.post('/estimate', protect, adminOnly, async (req, res) => {
 router.post('/stills', protect, adminOnly, async (req, res) => {
   try {
     const out = await composeStills(reqFromBody(req), depsNow());
+    // LOCAL LANE: accepted, rendering in the background. Poll statusUrl. The hosted lane
+    // still answers synchronously below — it is seconds, not minutes.
+    if (out.accepted) {
+      return res.status(out.replayed ? 200 : 202).json({ success: true, data: {
+        accepted: true, batchId: out.batchId, status: out.status, lane: out.lane, promptSource: out.promptSource,
+        count: out.count, cost: out.cost, admission: out.admission, statusUrl: out.statusUrl, replayed: out.replayed,
+      } });
+    }
     return res.status(out.partial ? 207 : 200).json({ success: true, data: {
       lane: out.lane, promptSource: out.promptSource, stills: out.stills, failures: out.failures,
       partial: out.partial, replayed: out.replayed, cost: out.cost, model: out.model,
@@ -162,6 +173,27 @@ router.post('/stills', protect, adminOnly, async (req, res) => {
       ...(out.tasteSeed !== undefined ? { tasteSeed: out.tasteSeed, lawRejected: out.lawRejected, lawProfile: out.lawProfile } : {}),
       ...(out.clampedFrom === undefined ? {} : { clampedFrom: out.clampedFrom }),
     } });
+  } catch (err) { return fail(res, err); }
+});
+
+/**
+ * GET /api/atelier/compose/stills/:batchId — the growing snapshot of a local batch.
+ * Owner-scoped. Each still already carries its asset id (persisted as it landed).
+ * `terminal:true` means stop polling. 404 means no such batch for you — including a
+ * batch that died with the process, which is reported by absence, never as "running".
+ */
+router.get('/stills/:batchId', protect, adminOnly, (req, res) => {
+  try {
+    assertBatchId(req.params.batchId);
+    const snap = getBatch(req.params.batchId, req.user?.id);
+    if (!snap) {
+      // A lost batch is not lost work: every still that rendered was persisted the moment
+      // it did, so it is in the asset library. Say so — otherwise a restart reads as
+      // "your renders are gone" when the assets are sitting there.
+      return res.status(404).json({ success: false, code: 'E_BATCH_NOT_FOUND',
+        error: 'No such batch — it finished over an hour ago, or the server restarted. Any stills that had already rendered were saved to your asset library.' });
+    }
+    return res.json({ success: true, data: snap });
   } catch (err) { return fail(res, err); }
 });
 
