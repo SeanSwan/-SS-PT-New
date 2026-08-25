@@ -9,37 +9,63 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import ForgeButton from './ForgeButton';
 
-const repoRoot = join(__dirname, '..', '..', '..', '..', '..');
-const glowSrc = readFileSync(
-  join(__dirname, '..', 'buttons', 'GlowButton.tsx'),
-  'utf8',
-);
+const here = dirname(fileURLToPath(import.meta.url));
+const repoRoot = join(here, '..', '..', '..', '..', '..');
+const glowSrc = readFileSync(join(here, '..', 'buttons', 'GlowButton.tsx'), 'utf8');
 const packSrc = readFileSync(
   join(repoRoot, 'packages', 'swan-forge', 'tokens', 'packs', 'crystalline-swan.css'),
   'utf8',
 ).replace(/\/\*[\s\S]*?\*\//g, '');
 
-/** Pull a named field out of a GlowButton BUTTON_THEMES variant block. */
+/**
+ * Pull a named field out of a GlowButton BUTTON_THEMES variant block.
+ * Anchored to the BUTTON_THEMES table (not the first `variant:` anywhere) and
+ * asserts the match is unique inside it — a silent false-parity is the failure
+ * mode this guards against (GLM Phase-1.5 review §4).
+ */
 function glowTheme(variant: string, field: string): string {
-  const block = glowSrc.match(new RegExp(`${variant}:\\s*{([\\s\\S]*?)}`));
-  if (!block) throw new Error(`variant ${variant} not found in GlowButton.tsx`);
-  const m = block[1].match(new RegExp(`${field}:\\s*"([^"]+)"`));
+  const tableStart = glowSrc.indexOf('const BUTTON_THEMES');
+  if (tableStart < 0) throw new Error('BUTTON_THEMES table not found in GlowButton.tsx');
+  const tableEnd = glowSrc.indexOf('\n};', tableStart); // the object's own closing brace at column 0
+  if (tableEnd < 0) throw new Error('BUTTON_THEMES table end not found');
+  const table = glowSrc.slice(tableStart, tableEnd);
+  const blocks = [...table.matchAll(new RegExp(`\\n\\s*${variant}:\\s*{([^}]*)}`, 'g'))];
+  if (blocks.length !== 1) throw new Error(`expected exactly one ${variant} block in BUTTON_THEMES, found ${blocks.length}`);
+  const m = blocks[0][1].match(new RegExp(`${field}:\\s*"([^"]+)"`));
   if (!m) throw new Error(`${variant}.${field} not found`);
   return m[1];
 }
 
+/** CSS is last-wins: take the LAST base declaration (at-rule blocks stripped). */
 function packToken(name: string): string {
-  const m = packSrc.match(new RegExp(`${name}\\s*:\\s*([^;]+);`));
-  if (!m) throw new Error(`${name} not found in crystalline-swan.css`);
-  return m[1].trim();
+  const base = packSrc.replace(/@(?:media|supports|container)[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '');
+  const all = [...base.matchAll(new RegExp(`${name}\\s*:\\s*([^;]+);`, 'g'))];
+  if (!all.length) throw new Error(`${name} not found in crystalline-swan.css`);
+  return all[all.length - 1][1].trim();
 }
 
-describe('taste-anchor parity: pack ⇄ original GlowButton (source-parsed, never hand-copied)', () => {
+const primitiveSrc = readFileSync(
+  join(repoRoot, 'packages', 'swan-forge', 'tokens', 'primitive.css'),
+  'utf8',
+);
+
+// VALUE parity (token subset) — NOT rendered/pixel parity. The rendered-cascade
+// receipt lives in the Phase 1.5 record (plan §16): computed styles on the mounted
+// GolfSection CTA in the production bundle via vite preview + Playwright.
+describe('value parity (token subset): pack ⇄ original GlowButton (source-parsed, never hand-copied)', () => {
+  it('accent TEXT is the original white (text-inverse fallback)', () => {
+    expect(packToken('--sw-text-inverse')).toBe(glowTheme('accent', 'color'));
+  });
+  it('44px target floor is the primitive the skin resolves (min-block-size)', () => {
+    const m = primitiveSrc.match(/--sw-p-target-min\s*:\s*([^;]+);/);
+    expect(m?.[1].trim()).toBe('44px');
+  });
   it('primary: Midnight Sapphire fill, Frost White text, purple→cyan Dual-Button Glow', () => {
     expect(packToken('--sw-color-primary')).toBe(glowTheme('primary', 'background'));
     expect(packToken('--sw-btn-primary-text')).toBe(glowTheme('primary', 'color'));
@@ -59,6 +85,20 @@ describe('taste-anchor parity: pack ⇄ original GlowButton (source-parsed, neve
   it('success + danger fills match the original', () => {
     expect(packToken('--sw-btn-success-bg')).toBe(glowTheme('success', 'background'));
     expect(packToken('--sw-btn-danger-bg')).toBe(glowTheme('danger', 'background'));
+  });
+  it('gilded/success/danger TEXT resolves to the original color via the text-primary fallback', () => {
+    // skin resolves each variant's text through the per-variant override, then the
+    // pack's text-primary; crystalline defines no per-variant text for these three.
+    for (const v of ['gilded', 'success', 'danger']) {
+      expect(packToken('--sw-text-primary')).toBe(glowTheme(v, 'color'));
+    }
+  });
+  it('base motion multiplier is ON in the pack (reduced-motion block does not leak)', () => {
+    expect(packToken('--sw-motion')).toBe('1');
+  });
+  it('focus-shadow and ease ARE defined in the pack (composites the JS projection omits)', () => {
+    expect(packToken('--sw-focus-shadow')).toContain('--sw-focus-ring'); // swan-guard-allow-hex test asserts token TEXT; Forge tokens are defined in packages/swan-forge
+    expect(packToken('--sw-ease')).toBeTruthy();
   });
 });
 
@@ -92,6 +132,14 @@ describe('ForgeButton binding contract', () => {
     expect(btn).toBeDisabled();
     fireEvent.click(btn);
     expect(onClick).not.toHaveBeenCalled();
+  });
+  it('legacy motion props are accepted but never reach the DOM', () => {
+    render(<ForgeButton text="Legacy" pulse haptic animateOnRender glowIntensity="high" startIcon={<span>★</span>} />);
+    const btn = screen.getByRole('button', { name: /Legacy/ });
+    for (const junk of ['pulse', 'haptic', 'animateonrender', 'glowintensity']) {
+      expect(btn.hasAttribute(junk)).toBe(false);
+    }
+    expect(btn.textContent).toContain('★');
   });
   it('click fires when active', () => {
     const onClick = vi.fn();

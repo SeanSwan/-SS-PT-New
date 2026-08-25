@@ -1,5 +1,5 @@
 /**
- * GENERATED FILE — DO NOT EDIT (drift-checked in CI-class gates).
+ * GENERATED FILE — DO NOT EDIT (drift-checked by `npm run gate` in packages/swan-forge).
  * Source of truth: packages/swan-forge/tokens/packs/crystalline-swan.css
  * Regenerate: node packages/swan-forge/scripts/generate-sc-theme.mjs
  * Check:      node packages/swan-forge/scripts/generate-sc-theme.mjs --check
@@ -32,7 +32,7 @@ export const forgeTheme = {
   shadow1: "0 1px 2px rgba(0, 0, 0, 0.4)",
   shadow2: "0 6px 18px rgba(0, 8, 32, 0.45)",
   shadow3: "0 16px 48px rgba(0, 8, 32, 0.6)",
-  motion: "0",
+  motion: "1",
   assetHeroVideo: "none",
   assetBrandMark: "none",
   btnPrimaryText: "#E0ECF4", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
@@ -48,6 +48,16 @@ export const forgeTheme = {
   btnDangerGlowB: "#FC8181", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   btnGhostGlowA: "#4070C0", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   btnGhostGlowB: "#60C0F0", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
+} as const;
+
+/**
+ * Composite tokens (their values reference other custom properties) — resolvable ONLY
+ * in the cascade, so consumers read them via getComputedStyle(el).getPropertyValue(name).
+ * Listed by NAME so nothing is silently dropped from the projection.
+ */
+export const forgeThemeComposites = {
+  focusShadow: "--sw-focus-shadow",
+  ease: "--sw-ease",
 } as const;
 
 export type ForgeTheme = typeof forgeTheme;

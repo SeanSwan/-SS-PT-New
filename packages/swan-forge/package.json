@@ -21,6 +21,7 @@
     "test": "node --test test/core.test.mjs test/instruments.test.mjs",
     "lint:drift": "node scripts/drift-lint.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs",
-    "gate": "npm run test && npm run audit:contrast && npm run lint:drift"
+    "theme:check": "node scripts/generate-sc-theme.mjs --check",
+    "gate": "npm run test && npm run audit:contrast && npm run lint:drift && npm run theme:check"
   }
 }

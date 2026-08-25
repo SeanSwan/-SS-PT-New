@@ -5,9 +5,12 @@
  * docs/ai-workflow/brainstorms/component-forge-catalog-2026-08-24.md §6 Phase 1.5).
  * Behavior comes from @swan/forge/core/button (variant/alias resolution, a11y
  * attrs, activation guard); looks come from the zero-runtime Forge CSS. The
- * component carries `sw-pack-crystalline-swan` on itself, so pack tokens scope
- * to the button subtree — NO global data attribute, NO app-entry edits, and
- * removal is a one-line revert. Props are a GlowButton-compatible subset
+ * component carries `sw-pack-crystalline-swan` on itself, so pack SEMANTIC tokens
+ * scope to the button subtree — no global data attribute, no app-entry edits.
+ * DISCLOSED GLOBAL FOOTPRINT: primitive.css declares `--sw-p-*` scales at :root
+ * (namespaced; verified no collision with any `--sw-*` SS-PT already defines).
+ * Rollback = revert the wiring commit (GolfSection import/JSX + the manifest and
+ * lockfile lines). Props are a GlowButton-compatible subset
  * (text, variant/theme/colorScheme incl. legacy aliases, isLoading, icons),
  * so strangler swaps are mechanical. Claude authored this binding; the Forge
  * package + 5-round Ox/GLM panel define its contract.
@@ -38,6 +41,16 @@ export interface ForgeButtonProps
   fullWidth?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  /** GlowButton icon aliases */
+  startIcon?: React.ReactNode;
+  endIcon?: React.ReactNode;
+  /** GlowButton-only motion props — accepted for drop-in compatibility, intentionally
+   *  NOT rendered (motion is a pack/reduced-motion concern in the Forge). Destructured
+   *  so they never leak to the DOM as junk attributes. */
+  animateOnRender?: boolean;
+  pulse?: boolean;
+  haptic?: boolean;
+  glowIntensity?: 'low' | 'medium' | 'high';
   children?: React.ReactNode;
 }
 
@@ -53,13 +66,22 @@ const ForgeButton: React.FC<ForgeButtonProps> = ({
   fullWidth,
   leftIcon,
   rightIcon,
+  startIcon,
+  endIcon,
+  // dropped on purpose (see props doc) — never reach the DOM
+  animateOnRender: _animateOnRender,
+  pulse: _pulse,
+  haptic: _haptic,
+  glowIntensity: _glowIntensity,
   children,
   className,
   onClick,
   ...rest
 }) => {
   const state = getButtonState({ variant, theme, colorScheme, size, type, isLoading, disabled, fullWidth });
-  const attrs = getButtonAttrs(state) as Record<string, string | boolean | undefined>;
+  // Spread EVERY core attr (future core additions flow through automatically);
+  // `class` is re-keyed to React's className with the self-scoped pack class.
+  const { class: coreClass, disabled: coreDisabled, ...coreAttrs } = getButtonAttrs(state) as Record<string, string | boolean | undefined>;
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!canActivate(state)) { e.preventDefault(); return; }
@@ -69,17 +91,14 @@ const ForgeButton: React.FC<ForgeButtonProps> = ({
   return (
     <button
       {...rest}
-      type={attrs.type as 'button' | 'submit' | 'reset'}
-      disabled={attrs.disabled === true}
-      aria-disabled={attrs['aria-disabled'] as 'true' | undefined}
-      aria-busy={attrs['aria-busy'] as 'true' | undefined}
-      data-variant={attrs['data-variant'] as string}
-      className={['sw-pack-crystalline-swan', attrs.class, className].filter(Boolean).join(' ')}
+      {...(coreAttrs as React.ButtonHTMLAttributes<HTMLButtonElement>)}
+      disabled={coreDisabled === true}
+      className={['sw-pack-crystalline-swan', coreClass, className].filter(Boolean).join(' ')}
       onClick={handleClick}
     >
-      {leftIcon}
+      {leftIcon ?? startIcon}
       {children ?? text}
-      {rightIcon}
+      {rightIcon ?? endIcon}
     </button>
   );
 };

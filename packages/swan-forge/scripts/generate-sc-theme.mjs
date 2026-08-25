@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 /**
  * @swan/forge — one-way SC-theme generator (plan §12.1, Ox round-3 Critical #1).
- * THE PACK IS THE SINGLE SOURCE OF TRUTH. This script reads
- * tokens/packs/crystalline-swan.css and emits a generated, read-only TS module
- * for any styled-components/JS-theme consumer that needs Forge token VALUES in
- * JS. Nobody hand-edits the output; divergence = regenerate.
+ * The pack is the single source of truth FOR FORGE COMPONENTS and for any JS-theme
+ * consumer that imports the generated module. Trailhead-truth (Rule 75): as of
+ * Phase 1.5 the generator + drift gate are PROVEN but no SS-PT consumer imports
+ * `forgeTheme` yet — legacy GlowButton consumers still read UniversalThemeContext
+ * until strangler adoption retires them. "Generator proven, adoption pending."
+ * Nobody hand-edits the output; divergence = regenerate. `--check` runs inside
+ * `npm run gate` for the package (GitHub Actions are account-dead at the moment —
+ * drift-check 2026-08-24 — so the local gate is the enforcement surface).
  *
  * Usage:
  *   node scripts/generate-sc-theme.mjs            # writes the generated file
@@ -24,22 +28,31 @@ const OUT = join(REPO, 'frontend', 'src', 'styles', 'forgeTheme.generated.ts');
 
 /** Parse live (comment-stripped) `--sw-*` declarations — same discipline as the audit. */
 export function packToTheme(css) {
-  const live = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const noComments = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // GLM Phase-1.5 review: the JS projection must reflect the pack's BASE values.
+  // Conditional blocks (@media prefers-reduced-motion, @supports) override only
+  // under their condition — a last-wins regex leaked `--sw-motion: 0` into the
+  // projection and looked like a dead pack. Strip at-rule blocks before parsing.
+  const live = noComments.replace(/@(?:media|supports|container)[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '');
   /** @type {Record<string, string>} */
   const tokens = {};
   for (const m of live.matchAll(/(--sw-[\w-]+)\s*:\s*([^;]+);/g)) tokens[m[1]] = m[2].trim();
-  // camelCase the names for JS ergonomics: --sw-color-primary → colorPrimary
   /** @type {Record<string, string>} */
   const theme = {};
+  /** @type {Record<string, string>} composite (var()-bearing) values, kept visible instead of silently dropped */
+  const composites = {};
+  const seen = new Map();
   for (const [name, value] of Object.entries(tokens)) {
-    if (value.includes('var(')) continue; // composite values stay CSS-side
     const key = name.replace(/^--sw-/, '').replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
-    theme[key] = value;
+    if (seen.has(key)) throw new Error(`camelCase collision: ${seen.get(key)} and ${name} both map to ${key}`);
+    seen.set(key, name);
+    if (value.includes('var(')) composites[key] = value;
+    else theme[key] = value;
   }
-  return theme;
+  return { theme, composites };
 }
 
-export function renderModule(theme) {
+export function renderModule({ theme, composites }) {
   // Rule 6 / frontend-guards G4: hex is legal ONLY in token sources. This file IS the
   // generated token registry, so every hex line carries the guard's allow tag — the
   // generator emits compliance; humans never hand-tag generated output.
@@ -47,13 +60,22 @@ export function renderModule(theme) {
     .map(([k, v]) => `  ${k}: ${JSON.stringify(v)},${/#[0-9a-fA-F]{3,8}\b/.test(v) ? ' // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)' : ''}`)
     .join('\n');
   return `/**
- * GENERATED FILE — DO NOT EDIT (drift-checked in CI-class gates).
+ * GENERATED FILE — DO NOT EDIT (drift-checked by \`npm run gate\` in packages/swan-forge).
  * Source of truth: packages/swan-forge/tokens/packs/crystalline-swan.css
  * Regenerate: node packages/swan-forge/scripts/generate-sc-theme.mjs
  * Check:      node packages/swan-forge/scripts/generate-sc-theme.mjs --check
  */
 export const forgeTheme = {
 ${entries}
+} as const;
+
+/**
+ * Composite tokens (their values reference other custom properties) — resolvable ONLY
+ * in the cascade, so consumers read them via getComputedStyle(el).getPropertyValue(name).
+ * Listed by NAME so nothing is silently dropped from the projection.
+ */
+export const forgeThemeComposites = {
+${Object.keys(composites).map((k) => `  ${k}: ${JSON.stringify('--sw-' + k.replace(/[A-Z0-9]/g, (c) => '-' + c.toLowerCase()))},`).join('\n')}
 } as const;
 
 export type ForgeTheme = typeof forgeTheme;
