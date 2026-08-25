@@ -131,6 +131,18 @@ confirmed to work:
 | Absence claimed from a silently-truncated instrument | 0× (prevented) | **YES** — packet 20260821 | The prior packet's lesson was applied *pre-emptively*: an independent grep-vs-parser count was written before any absence was reported, and it caught `workoutSummaryRoutes.mjs:34` dropping a route. Now permanent as a test assertion, so the next agent inherits the guard rather than the advice. |
 | Premise of an inherited plan unexamined | 1× | No | This packet. The mechanical form: before implementing a plan's central assertion, grep for the consumers of the field the assertion depends on. |
 | Accessibility fix that defeats itself | 1× | No | Hostile pass on my own change, asking "what does this attribute do when the node disappears?" |
+| Committed to the wrong branch after `git branch -f` | 2× | **YES — by me, in §9 of the handoff I wrote the same hour** | `git branch -f` moves a pointer; it does not switch. Both times a push said "Everything up-to-date" while the unpushed count disagreed. **Procedural fix: run `git branch --show-current` immediately before any commit that follows a branch -f / checkout / rebase.** The first write-up said "verify, never infer" — advice, not a step — and it failed within the hour. |
+| Guard that cannot fail (vacuous assertion) | 1× | No | A windowed regex `export const authorize[\s\S]{0,600}?…` spilled past the function end, so deleting what it guarded left it green. A `bodyOf()` slice fixed it. Caught ONLY by mutation-testing. Rule: every new assertion must be shown to fail before it is trusted. |
+
+**Update, next day.** The ledger gained a row that is worse than the first: I repeated a
+lesson **from a document I had written earlier the same hour**, and the document was open in
+this session. That rules out forgetting as the cause. The distinguishing feature of the
+lessons that did NOT recur is that each had been converted into something that RUNS — a test,
+a gate, a command in a checklist. Every lesson that recurred was stored as a sentence.
+
+The actionable form is therefore narrower than "write it down": **a lesson is not learned
+until it is a step in a command sequence or an assertion that fails.** Prose in a handoff is
+a record of a lesson, not the lesson.
 
 The first row is the one that matters. A lesson that was documented and then repeated
 proves the write-up was not a fix. The difference between the first row and the second
