@@ -210,6 +210,17 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
   **MECHANISM:** the vacuous-check habit gains a second step — after grepping for `, true)`, read every
   check's NAME against its expression and re-point or rename any that disagree; this one now asserts the
   real invariant (queued-but-unrendered variations are counted as *waiting*, not as renders).
+- **A bulk rewrite of my own proof reported success while silently missing two cases.** I ran it through
+  `node -e` inside bash, which ate `${BASE}` template literals and mangled `\d+`; worse, my verification
+  counted `locator('#status')` but not `getElementById('status')`, so a stale line survived and failed the
+  next run. **MECHANISM:** bulk rewrites run from a FILE (never `node -e` in bash), each replacement prints
+  ok/MISS individually, and the post-audit greps every access form — a rewrite that cannot name what it
+  missed has not verified itself.
+- **Two proof steps were order-dependent** — the renders grid is shuffled, so "the first card" was sometimes
+  the clip, and I asserted one particular prompt. **MECHANISM:** assert the SHAPE of a value that varies
+  ("your render · <one of this memory's prompts>", never a photo credit), not one instance of it.
+- **A proof step assumed a scratch directory a previous run had left behind.** It failed correctly.
+  **MECHANISM:** a proof creates the directories it owns and deletes them at the end; it never inherits state.
 - **I assumed a vendored binary was the full tool** and burned four probes on Playwright's ffmpeg
   (`-movflags`, `lavfi`, `rawvideo`, `image2pipe`+png all missing — it is encode-only VP8).
   **MECHANISM:** before building on a bundled binary, run its own capability list first (`-muxers`,
@@ -237,6 +248,9 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
 | A guard blind to its own configuration (poisoned field map) | 1 | No | Validate the map against the graph before applying |
 | Vacuous check: assertion proves nothing the name claims (4th of this class today) | 4 (placeholder-true ×2, unreachable trigger ×1, name≠assertion ×1) | Yes — written up three times already today | Grep `, true)`; make negative paths fire; **read each check's name against its expression** |
 | Assuming a vendored binary is the full tool (Playwright's ffmpeg) | 1 | No | Probe `-muxers`/`-encoders`/`-demuxers` first; let the consumer make the fixture |
+| A rewrite/verification that cannot name what it missed (5th vacuous-instrument instance today) | 5 | Yes — four times already today | Rewrites from a file, per-replacement ok/MISS, audit every access form |
+| Order-dependent assertion on shuffled data | 2 (one step, two runs) | No | Assert the shape of a varying value, not one instance |
+| A document-wide DOM query matching an unintended element (`<body data-tab>`) | 1 | No | Scope queries to their container |
 | Renamed a UI control without updating my own proof | 1 | No | The proof caught it; that step upgraded to end-to-end |
 
 ## External-model calibration

@@ -41,6 +41,18 @@ Sean's ask: the Swan Design Brain had been fed six practitioner transcripts + th
 
 ## 2. What the system does now (runtime contract)
 
+> **P4 — ONE SHELL (2026-08-25, taste-brain `31459c3`):** the whole loop is at one URL — **Make · Judge ·
+> Directions · Kept** as four tabs under a single memory bar (Who · Memory · New project). Choose the memory
+> once; every tab follows. `/`, `/probe`, `/brief`, `/kept` all serve the same shell with that tab
+> preselected, so bookmarks land right and there is exactly ONE implementation of each surface.
+> **Kept is new** (`GET /api/kept`, `POST /api/unkeep`, `unkeepFor()`): keeping was the compounding channel
+> with no way to see it — the list is now visible and each entry can be re-Made (or Make 4), copied, or
+> dropped; Sean's own list stays read-only markdown. Files: `app.html` · `app.css` · `app-shell.js` ·
+> `app-make.js` · `app-judge.js` · `app-directions.js` · `app-kept.js` (all ≤105 lines); **`probe.js`
+> untouched** so the sendable bundle cannot drift. `ui.html`/`probe.html`/`brief.html` are no longer served,
+> carry a SUPERSEDED header, and are **deletion candidates pending Sean's approval** (Rule 34).
+> Deliberate change: `/brief` with no params opens the memory you were last in (the bar says which).
+
 ```
 Swan Prompt Studio.cmd  /  node prompter/serve.mjs      → 127.0.0.1:7331 (loopback only, origin-gated writes)
 GET  /probe               12 pictures: 6 Midlibrary + 4 photos (Unsplash/Pexels) + 2 Webb, shuffled; neutral #7F7F7F well;
