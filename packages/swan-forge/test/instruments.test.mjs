@@ -235,3 +235,56 @@ test('drift-lint R6: the four ways past the first version are all closed (own pr
   const clean = 'const A = styled(ForgeButton).attrs({ type: "button" })`margin-top: 1rem;`;\nconst Z = styled(A)`flex: 1;`;';
   assert.equal(lintText('x.tsx', clean, { isConsumer: true }).filter((v) => v.rule === 'R6').length, 0);
 });
+
+test('GOLDEN: the layout allow-list is pinned — widening the boundary must be a reviewed diff', async () => {
+  // The entire governance boundary reduces to one list. Adding a property to it was a one-line
+  // edit with no failing fixture (Ox T2-R2 N3b). This pins the exact set AND asserts the regex
+  // agrees with it, so widening either half without the other turns red.
+  const { LAYOUT_ALLOWED_PROPS, styledWrapperBlocker } = await import('../scripts/codemod-glowbutton.mjs');
+  assert.deepEqual([...LAYOUT_ALLOWED_PROPS].sort(), [
+    'align-self', 'flex', 'flex-basis', 'flex-grow', 'flex-shrink',
+    'grid-area', 'grid-column', 'grid-column-end', 'grid-column-start',
+    'grid-row', 'grid-row-end', 'grid-row-start', 'justify-self',
+    'margin', 'margin-block', 'margin-block-end', 'margin-block-start',
+    'margin-bottom', 'margin-inline', 'margin-inline-end', 'margin-inline-start',
+    'margin-left', 'margin-right', 'margin-top', 'order', 'place-self',
+  ], 'the allow-list changed — is this a deliberate, reviewed widening of the rule-84 boundary?');
+  for (const p of LAYOUT_ALLOWED_PROPS) assert.equal(styledWrapperBlocker(`${p}: 0;`), null, `${p} is on the manifest but the matcher blocks it`);
+  // The sanctioned token surface is the --sw-btn-* namespace, NOT the whole --sw- family.
+  assert.equal(styledWrapperBlocker('--sw-btn-height: 40px;'), null);
+  assert.match(styledWrapperBlocker('--sw-accent: red;'), /outside the published --sw-btn-\* override surface/);
+  assert.match(styledWrapperBlocker('--brand-x: red;'), /outside the published/);
+});
+
+test('allow-list VALUE seams: a length flex-basis is sizing; min-width:0 is the flex-overflow fix', async () => {
+  // The name-only check locked `width: 300px` out the front door and left `flex: 0 0 320px`
+  // open at the back — flex-basis IS the main-axis size (GLM T2-R2 §3). And blocking
+  // `min-width: 0` made every real flex row cost a manual decision for a property that sets
+  // no size at all.
+  const { styledWrapperBlocker } = await import('../scripts/codemod-glowbutton.mjs');
+  for (const ok of ['flex: 1;', 'flex: 1 1 auto;', 'min-width: 0;', 'min-width: 0px;', 'min-inline-size: 0;']) {
+    assert.equal(styledWrapperBlocker(ok), null, `${ok} is layout`);
+  }
+  for (const no of ['flex: 0 0 320px;', 'flex: 0 0 20%;', 'min-width: 300px;', 'min-inline-size: 20rem;']) {
+    assert.ok(styledWrapperBlocker(no), `${no} is sizing and must block`);
+  }
+  assert.match(styledWrapperBlocker('flex: 0 0 320px;'), /main-axis SIZING/);
+});
+
+test('tagger lexer: a regex literal containing a backtick must NOT poison template state (GLM T2-R2 §5)', async () => {
+  const { lexStateAt, commentFormFor } = await import('../scripts/tag-legacy-hex.mjs');
+  const at = (src, ln) => { const l = src.split('\n'); let a = 0; for (let i = 0; i < ln; i++) a += l[i].length + 1; return a; };
+  // Without regex-literal state, `/^`{3}/m` opens a template that never closes, and every later
+  // line lexes as CSS — so a JSX line receives a bare /* */ that renders as visible text.
+  for (const src of [
+    'const FENCE = /^`{3}/m;\nconst X = () => (\n  <p>Pay by #ef4444 card</p>\n);',
+    "const s = t.replace(/`/g, '');\nconst Y = () => (\n  <p>Pay by #ef4444 card</p>\n);",
+    "const q = /it's/;\nconst Z = '#ef4444';",
+  ]) {
+    const ln = src.split('\n').length - 2;
+    assert.equal(lexStateAt(src, at(src, ln)), 'normal', 'regex literal must not leave us inside a template');
+  }
+  const jsx = 'const FENCE = /^`{3}/m;\nconst X = () => (\n  <p>Pay by #ef4444 card</p>\n);';
+  const form = commentFormFor('x.tsx', jsx, at(jsx, 2), jsx.split('\n')[2]);
+  assert.ok(form === null || form.startsWith('{/*'), 'never the bare /* */ form in JSX children');
+});

@@ -324,6 +324,25 @@ Also disproven on verification: the forwardRef regression (the only ref among th
 
 Fixed from the panel: the tagger now **REFUSES** any context it cannot positively classify (real lexer, not backtick parity — a backtick inside a quoted string used to flip parity for the rest of a file and put `//` inside CSS); regen refuses on **any** `n/a` row, not only total join failure; negative assertions that a ThemeProvider theme *object* cannot become `sw-btn--[object Object]` or reach the DOM.
 
-**Rollback: DRILLED, not asserted.** `git revert c23795f6b e73da8982` → 98 test files / 367 tests green, then restored. Zero test edits is itself a rollback asset. Authenticated receipt owned and dated: **SWA-213 (due 2026-09-08)**; screenshot debt SWA-210.
+**Rollback: DRILLED, not asserted.** `git revert c23795f6b e73da8982` → 98 test files / 367 tests green, then restored. Zero test edits is itself a rollback asset. Authenticated verification **DEFERRED**, owned and dated: **SWA-213 (due 2026-09-08)**. GLM's dissent is upheld and recorded here — a dated ticket is a receipt that verification is *owed*, not that it happened; calling it "the receipt" was the same evidence-inflation this slice's corrections section apologised for. Screenshot debt SWA-210.
 
 **LIMITATION (disclosed):** UMS is authenticated; there is **no** production computed-style receipt for these 11 files. The caller-path evidence is the 344-test suite plus the mutation-proven binding test. What that does not cover is enumerated in SWA-213.
+
+### §20.1 — panel round 2 (Ox + GLM, on `c23795f6b`)
+
+**Ox: B1 ACCEPTED AS DISPROVEN**, B2–B5 FIXED, 4 new blocking (N1–N4). **GLM: #1/#2 accepted as disproven**, GLM-3/4 FIXED, GLM-5 withdrawn as not-a-defect, GLM-6 (no live receipt) NOT-FIXED-but-managed, 2 new blocking. **All six new blockers closed:**
+
+| # | Finding | Verdict | Close |
+|---|---|---|---|
+| Ox N1 / GLM #2 | Tagger lexer had no `${…}` or regex-literal state; a regex containing a backtick (`/^\`{3}/m`) poisons template parity file-wide, so a later JSX line gets a bare `/* */` that **renders as visible text** | REAL | Lexer is now a **stack**, not a toggle: `${…}` opens a code region, regex literals are lexed (with the standard value-position heuristic). Both of GLM's exact inputs now lex `normal` and take the JSX form. 7 lexer cases fixture-locked. |
+| Ox N1b | Tags already in the tree were placed by the *old* parity counter and were never re-audited | REAL | New `audit-hex-tags.mjs` re-checks every existing tag against the fixed lexer: **66 audited, 0 real damage** — and it provably catches a planted `//`-in-CSS case. Ox's "a `//` may be sitting in a template right now" is **disproven, not assumed**. |
+| Ox N2 / GLM #1 | R6 matched one call shape — `.attrs`, `.withConfig`, object-styles, one-hop re-extension and **import aliases** all walked past the "standing law" | REAL | R6 now seeds identifiers from the **import statement** (the binding is a default export, so the local name is arbitrary), resolves the transitive wrapper set, tolerates method chains, flags object-styles unconditionally, and scans comment-stripped text. All 7 shapes + alias fixture-locked, both directions. |
+| Ox N3a | Allow-list admitted the whole `--sw-*` family; rule 84 sanctions only `--sw-btn-*` | REAL | Narrowed. A prefix is not a contract. |
+| Ox N3b | The entire boundary was one Set literal; widening it was a one-line edit with no failing test | REAL | **Golden manifest** (`LAYOUT_ALLOWED_PROPS`, frozen, 26 entries) pinned by a test that also asserts the manifest and the matcher agree — widening either half is now a reviewed diff. |
+| Ox N4 | A drilled revert proves the code reverts *today*; nothing stops the revert target being deleted tomorrow | REAL | New **R7 retention rule**: the legacy component is guarded until SWA-213 closes. Verified both directions (present → clean; deleted → flagged). |
+| GLM §3 | `flex: 0 0 320px` migrated (flex-basis IS main-axis size) while `width: 300px` was blocked — sizing through the back door; and `min-width: 0`, the standard flex-overflow fix, was needlessly blocked | REAL (internal inconsistency) | Value-level seams: a length basis in `flex` blocks; `min-width`/`min-inline-size` allowed **only** at exact `0`. Fixture-locked both ways. |
+| GLM §6 | Does the regen refusal fire before any write? | Verified | Refusal at line 81, single write at line 91 — one atomic write, nothing partial. |
+
+**The allow-list, verbatim** (GLM asked for it in the record rather than as an unread claim): `margin` (+ all physical/logical longhands), `flex`/`flex-grow`/`flex-shrink`/`flex-basis`, `align-self`, `justify-self`, `place-self`, `order`, `grid-area`, `grid-column`(+`-start`/`-end`), `grid-row`(+`-start`/`-end`) — plus `--sw-btn-*` overrides, plus `min-width`/`min-inline-size` at exactly `0`. Everything else, every nested block, and every interpolation → SKIP + report.
+
+**Both reviewers' round-1 top blocker was false and my packet caused it.** GLM dissented against its own round-1 method on that basis. The lesson is recorded in §20: a filtered diff is not a diff.

@@ -37,20 +37,46 @@ const isMain = process.argv[1] && resolve(process.argv[1]) === resolve(new URL(i
  * following declaration. Counting is not lexing; this tracks real state.
  */
 export function lexStateAt(src, idx) {
+  // A STACK, not a toggle. styled-components files are made of nested templates
+  // (`${css`…`}`), and a flat backtick toggle exits the outer template at the inner
+  // backtick, then lexes the rest of the file in scrambled state — every downstream
+  // classification confidently wrong (Ox T2-R2 N1). `${…}` opens a code region that can
+  // contain another template; only the matching close returns to CSS.
+  const stack = []; // 'template' | 'interp'
   let state = 'normal'; let quote = '';
+  let prev = ''; // last significant char, for the regex-vs-division decision
   for (let i = 0; i < idx; i++) {
     const c = src[i]; const n = src[i + 1];
     if (state === 'normal') {
       if (c === '/' && n === '*') { state = 'block'; i++; continue; }
       if (c === '/' && n === '/') { state = 'line'; i++; continue; }
-      if (c === '`') { state = 'template'; continue; }
+      // A regex literal can contain quotes and backticks; unhandled, it flips state exactly
+      // like the old backtick counter did. `/` starts a regex only where a value may begin.
+      if (c === '/' && /^$|[([{,;:=!&|?+\-*%~^<>]/.test(prev)) { state = 'regex'; continue; }
+      if (c === '`') { stack.push('template'); state = 'template'; continue; }
       if (c === '"' || c === "'") { state = 'quote'; quote = c; continue; }
-    } else if (state === 'block') { if (c === '*' && n === '/') { state = 'normal'; i++; } continue; }
-    else if (state === 'line') { if (c === '\n') state = 'normal'; continue; }
-    else if (state === 'quote') { if (c === '\\') { i++; continue; } if (c === quote || c === '\n') state = 'normal'; continue; }
-    else if (state === 'template') { if (c === '\\') { i++; continue; } if (c === '`') state = 'normal'; continue; }
+      if (c === '}' && stack[stack.length - 1] === 'interp') { stack.pop(); state = 'template'; continue; }
+      if (c === '{' && stack.length) stack.push('brace'); // plain block inside an interpolation
+      if (c === '}' && stack[stack.length - 1] === 'brace') stack.pop();
+      if (!/\s/.test(c)) prev = c;
+      continue;
+    }
+    if (state === 'block') { if (c === '*' && n === '/') { state = 'normal'; prev = '/'; i++; } continue; }
+    if (state === 'line') { if (c === '\n') state = 'normal'; continue; }
+    if (state === 'regex') { if (c === '\\') { i++; continue; } if (c === '/' ) { state = 'normal'; prev = '/'; } else if (c === '\n') { state = 'normal'; } continue; }
+    if (state === 'quote') { if (c === '\\') { i++; continue; } if (c === quote || c === '\n') { state = 'normal'; prev = quote; } continue; }
+    if (state === 'template') {
+      if (c === '\\') { i++; continue; }
+      if (c === '$' && n === '{') { stack.push('interp'); state = 'normal'; prev = '{'; i++; continue; }
+      if (c === '`') { stack.pop(); state = stack[stack.length - 1] === 'template' ? 'template' : 'normal'; prev = '`'; continue; }
+      continue;
+    }
   }
-  return state === 'block' || state === 'line' ? 'comment' : state === 'quote' ? 'string' : state;
+  if (state === 'block' || state === 'line') return 'comment';
+  if (state === 'quote') return 'string';
+  if (state === 'regex') return 'regex';
+  // Inside an interpolation we are in CODE, not CSS — a `//` there is a real comment.
+  return state;
 }
 
 /**
@@ -61,7 +87,7 @@ export function lexStateAt(src, idx) {
 export function commentFormFor(file, src, lineStart, line) {
   const state = lexStateAt(src, lineStart);
   if (state === 'template') return `/* ${'%R'} */`;                       // inside styled CSS
-  if (state !== 'normal') return null;                                     // inside a string/comment — refuse
+  if (state !== 'normal') return null;                                     // string/comment/regex — refuse
   const isJsxFile = /\.(t|j)sx$/.test(file);
   const closesJsx = /(<\/[A-Za-z][\w.]*>|\/>)/.test(line) && /[>}]\s*$/.test(line);
   if (isJsxFile && closesJsx) return `{/* ${'%R'} */}`;                    // JSX children position

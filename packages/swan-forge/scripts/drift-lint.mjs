@@ -9,6 +9,7 @@
  *  R2 consumer CSS/JS overriding `.sw-` selectors or using !important against sw- classes
  *  R6 consumer styled(ForgeButton) wrapper that restyles instead of positioning (rule 84 standing law)
  *  R3 visual-reordering properties inside theme packs (§11.A2: packs must not fork tab order)
+ *  R7 retention: a legacy revert target must not be deleted while its receipt ticket is open
  *  R4 adoption tracker: consumer files importing legacy exports the Forge replaces (GlowButton→Button)
  *
  * Usage: node scripts/drift-lint.mjs [--consumer <dir>]... [--enforce]
@@ -101,7 +102,14 @@ export function stripComments(text) {
 export function scanStyledBindings(text) {
   const findings = [];
   const chain = '(?:\\s*\\.\\w+\\([\\s\\S]*?\\))*'; // .attrs({…}).withConfig({…})…
-  const bound = new Set(['ForgeButton']);
+  // Seed from the IMPORT, not from the literal name: the binding is a default export, so the
+  // local name is whatever the importer chose. `import FB from '…/forge/ForgeButton'` then
+  // `styled(FB)` was invisible to the first version — and hand-written wrappers are the entire
+  // threat model R6 exists for, so the bypass walked in the front door (Ox T2-R2 N2).
+  const bound = new Set();
+  for (const m of text.matchAll(/import\s+(\w+)\s*(?:,\s*\{[^}]*\})?\s*from\s*['"][^'"]*forge\/ForgeButton['"]/g)) bound.add(m[1]);
+  for (const m of text.matchAll(/import\s*\{[^}]*\bForgeButton\s+as\s+(\w+)[^}]*\}\s*from/g)) bound.add(m[1]);
+  if (!bound.size) bound.add('ForgeButton'); // fixtures and files that use the name without an import line
   for (let pass = 0; pass < 5; pass++) { // transitive closure; 5 hops is far past anything real
     const before = bound.size;
     for (const name of [...bound]) {
@@ -124,6 +132,26 @@ export function scanStyledBindings(text) {
   return findings.sort((a, b) => a.line - b.line);
 }
 
+/**
+ * R7: the legacy component must remain importable while any migrated surface lacks a live
+ * receipt. A drilled revert proves the code reverts cleanly TODAY; it says nothing about whether
+ * the revert target still exists next week (Ox T2-R2 N4). Deleting GlowButton while SWA-213 is
+ * open would silently convert a proven rollback into an unexecutable one — the failure would be
+ * discovered at the worst possible moment, during an incident.
+ * Retire this rule together with the retention ticket, not before.
+ */
+export const RETENTION_GUARDED = Object.freeze([
+  { path: 'components/ui/buttons/GlowButton.tsx', until: 'SWA-213', why: 'revert target for the T2 authenticated migration; no live receipt yet' },
+]);
+
+/** @returns {{rule:string,line:number,detail:string,path:string}[]} */
+export function checkRetention(existsFn) {
+  return RETENTION_GUARDED.flatMap(({ path, until, why }) => (existsFn(path) ? [] : [{
+    rule: 'R7', line: 1, path,
+    detail: `retention-guarded file is MISSING — ${why}. It must stay importable until ${until} closes, or the drilled rollback stops being executable.`,
+  }]));
+}
+
 /** Lint one file's text. @returns {{rule:string,line:number,detail:string}[]} */
 export function lintText(path, text, { isForgeCss = false, isPack = false, isConsumer = false } = {}) {
   const findings = [];
@@ -134,7 +162,9 @@ export function lintText(path, text, { isForgeCss = false, isPack = false, isCon
   // this refuses to let one be hand-written afterwards, which is the half that survives the merge
   // (Ox T2 B3: "codemod-only enforcement decays on contact with humans"). Both call the SAME
   // boundary function, so the rule cannot drift between the migration gate and the standing law.
-  if (isConsumer) findings.push(...scanStyledBindings(text));
+  // stripComments output, not raw text: a commented-out wrapper must not phantom-flag, and the
+  // scan surface should match every other rule in this file (Ox T2-R2 N2.2).
+  if (isConsumer) findings.push(...scanStyledBindings(lines.join('\n')));
   lines.forEach((line, i) => {
     const at = i + 1;
     // belt+braces: orphan comment-continuation lines (unclosed /* in a fragment) stay skipped
@@ -167,6 +197,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   }
   for (const dir of consumers) {
     if (!existsSync(dir)) { console.log(`[drift-lint] consumer dir missing: ${dir}`); continue; }
+    all.push(...checkRetention((p) => existsSync(join(dir, p))));
     for (const f of walk(dir, (p) => /\.(css|tsx?|jsx?|mjs)$/.test(p))) {
       all.push(...lintText(f, readFileSync(f, 'utf8'), { isConsumer: true }));
     }

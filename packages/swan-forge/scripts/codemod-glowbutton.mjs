@@ -51,8 +51,20 @@ const LEGACY_IMPORT = /(?:^|\/)ui\/buttons\/GlowButton(?:\.tsx?)?$/;
  * every CSS release is unclosable; an allow-list fails closed, and a false block costs one human
  * decision while a false migrate ships a silent visual override to an authenticated surface.
  *
- * `--sw-*` custom properties are ALLOWED: that is the sanctioned override surface, not a bypass.
+ * `--sw-btn-*` custom properties are ALLOWED — that exact namespace is the sanctioned override
+ * surface, not a bypass. The wider `--sw-*` family is NOT: a prefix is not a contract.
+ *
+ * `LAYOUT_ALLOWED_PROPS` is the frozen manifest of the boundary. A golden test pins it and
+ * asserts it agrees with the regex, so widening the boundary is a visible, reviewed diff instead
+ * of a one-line edit nobody sees (Ox T2-R2 N3b).
  */
+export const LAYOUT_ALLOWED_PROPS = Object.freeze([
+  "margin", "margin-block", "margin-block-start", "margin-block-end", "margin-inline",
+  "margin-inline-start", "margin-inline-end", "margin-top", "margin-right", "margin-bottom",
+  "margin-left", "flex", "flex-grow", "flex-shrink", "flex-basis", "align-self", "justify-self",
+  "place-self", "order", "grid-area", "grid-column", "grid-row", "grid-column-start",
+  "grid-column-end", "grid-row-start", "grid-row-end",
+]);
 const LAYOUT_ALLOWED = /^(margin|margin-block|margin-block-start|margin-block-end|margin-inline|margin-inline-start|margin-inline-end|margin-top|margin-right|margin-bottom|margin-left|flex|flex-grow|flex-shrink|flex-basis|align-self|justify-self|place-self|order|grid-area|grid-column|grid-row|grid-column-start|grid-column-end|grid-row-start|grid-row-end)$/i;
 
 /**
@@ -66,10 +78,26 @@ export function styledWrapperBlocker(body) {
   // Nested blocks (&:hover, &::after, media queries) restyle states the skin owns.
   if (/\{/.test(body)) return 'contains a nested block (&:hover / ::after / @media), which restyles skin-owned state';
   for (const decl of body.split(';')) {
-    const m = decl.match(/^\s*([-a-zA-Z][-a-zA-Z0-9]*)\s*:/);
+    const m = decl.match(/^\s*([-a-zA-Z][-a-zA-Z0-9]*)\s*:\s*([^;]*)$/);
     if (!m) continue; // blank / comment-only segment
     const prop = m[1];
-    if (prop.startsWith('--')) { if (!/^--sw-/.test(prop)) return `sets a non-Forge custom property '${prop}'`; continue; }
+    const value = (m[2] || '').trim();
+    // Two VALUE-level seams the name-only check got wrong (GLM T2-R2 §3):
+    // `flex: 0 0 320px` sets flex-BASIS — the button's main-axis size — through a door left open
+    // while `width: 300px` was locked. Ratios are layout; a length basis is sizing.
+    if (/^flex$/i.test(prop) && /\d\s*(px|rem|em|%|ch|vw|vh)/i.test(value)) {
+      return `sets 'flex' with a length basis (${value}) — that is main-axis SIZING, which the skin owns; use a --sw-btn-* override`;
+    }
+    // `min-width: 0` is the near-mandatory flex-overflow fix and sets no size — without it every
+    // real flex row costs a manual decision. Only the exact zero; any length is sizing.
+    if (/^(min-width|min-inline-size)$/i.test(prop)) {
+      if (/^0(px|rem|em|%)?$/i.test(value)) continue;
+      return `sets '${prop}: ${value}' — only the exact flex-overflow fix (0) is layout; a length is sizing`;
+    }
+    // Rule 84 sanctions "the published --sw-btn-* custom properties" — NOT the whole --sw- family.
+    // `--sw-accent: red` passes a prefix check and is outside the button's published surface
+    // (Ox T2-R2 N3a): a prefix is not a contract.
+    if (prop.startsWith('--')) { if (!/^--sw-btn-/.test(prop)) return `sets '${prop}', which is outside the published --sw-btn-* override surface`; continue; }
     if (!LAYOUT_ALLOWED.test(prop)) return `sets '${prop}', which the skin owns (allow-list is layout placement only)`;
   }
   return null;
