@@ -13,6 +13,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
+import styled from 'styled-components';
 import ForgeButton from './ForgeButton';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -175,6 +176,24 @@ describe('ForgeButton binding contract', () => {
     expect(btn.textContent).toContain('★');
     render(<ForgeButton text="Static" />);
     expect(screen.getByRole('button', { name: 'Static' }).className).not.toContain('sw-btn--enter');
+  });
+  it('VALUE POSITION (T2): styled(ForgeButton) composes — the wrapper class lands on the element, the skin classes survive, and the layout rule applies', () => {
+    // The class the T2 strangler introduced: UniversalMasterSchedule wraps the button in
+    // styled() for LAYOUT only (margin-top / flex). If the binding dropped className, the
+    // wrapper would compile, render, and silently lose its layout — no error anywhere.
+    const Wrapped = styled(ForgeButton)`
+      margin-top: 1rem;
+      flex: 1;
+    `;
+    render(<Wrapped text="Submit" variant="gilded" />);
+    const btn = screen.getByRole('button', { name: 'Submit' });
+    const cs = getComputedStyle(btn);
+    expect(cs.marginTop).toBe('1rem');
+    expect(cs.flexGrow).toBe('1');
+    expect(btn.className).toContain('sw-btn');
+    expect(btn.className).toContain('sw-btn--gilded');
+    expect(btn.className).toContain('sw-pack-crystalline-swan');
+    expect(btn).toHaveAttribute('data-variant', 'gilded');
   });
   it('click fires when active', () => {
     const onClick = vi.fn();

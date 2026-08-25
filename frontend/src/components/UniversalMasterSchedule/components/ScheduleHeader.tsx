@@ -7,7 +7,7 @@ import {
   IconButton as StyledIconButton,
   OutlinedButton,
 } from '../ui';
-import GlowButton from '../../ui/buttons/GlowButton';
+import ForgeButton from '../../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import ViewSelector from '../Views/ViewSelector';
 import '../types';
 import Dropdown from '../../common/Dropdown/Dropdown';
@@ -179,7 +179,7 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
             <RefreshCw size={20} />
           </StyledIconButton>
           {mode === 'client' && onOpenClientRecurring && (
-            <GlowButton
+            <ForgeButton
               variant="primary"
               size="medium"
               onClick={onOpenClientRecurring}
@@ -187,21 +187,21 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
               leftIcon={<Repeat size={16} />}
             >
               Book Recurring
-            </GlowButton>
+            </ForgeButton>
           )}
           {(canCreateSessions || canCreateRecurring || canBlockTime) && (
             <Dropdown
               align="right"
               ariaLabel="Create schedule actions"
               trigger={(
-                <GlowButton
+                <ForgeButton
                   variant="primary"
                   size="medium"
                   title="Create Session (N)"
                   rightIcon={<ChevronDown size={16} />}
                 >
                   Create
-                </GlowButton>
+                </ForgeButton>
               )}
             >
               {canCreateSessions && (

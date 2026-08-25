@@ -1,6 +1,6 @@
 import React from 'react';
 import { CreditCard } from 'lucide-react';
-import GlowButton from '../ui/buttons/GlowButton';
+import ForgeButton from '../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import { OutlinedButton, PrimaryButton, Spinner } from './ui';
 import type { useApplyPaymentModalController } from './ApplyPaymentModal.controller';
 
@@ -43,7 +43,7 @@ export const ApplyPaymentModalFooter: React.FC<ApplyPaymentModalFooterProps> = (
         Process Auto-Deductions
       </OutlinedButton>
       {selectedClient && modalMode === 'package' && paymentMethod === 'stripe' && (
-        <GlowButton
+        <ForgeButton
           variant="primary"
           size="medium"
           onClick={() => handleChargeCard()}
@@ -51,10 +51,10 @@ export const ApplyPaymentModalFooter: React.FC<ApplyPaymentModalFooterProps> = (
           isLoading={applying}
         >
           Charge Card
-        </GlowButton>
+        </ForgeButton>
       )}
       {selectedClient && modalMode === 'package' && ['venmo', 'zelle'].includes(paymentMethod) && !showPaymentConfirmation && (
-        <GlowButton
+        <ForgeButton
           variant="primary"
           size="medium"
           onClick={handleConfirmPaymentReceived}
@@ -62,10 +62,10 @@ export const ApplyPaymentModalFooter: React.FC<ApplyPaymentModalFooterProps> = (
           isLoading={applying}
         >
           Confirm Payment
-        </GlowButton>
+        </ForgeButton>
       )}
       {selectedClient && modalMode === 'package' && (paymentMethod === 'cash' || paymentMethod === 'check' || showPaymentConfirmation) && (
-        <GlowButton
+        <ForgeButton
           variant="primary"
           size="medium"
           onClick={() => handleApplyPackage()}
@@ -73,7 +73,7 @@ export const ApplyPaymentModalFooter: React.FC<ApplyPaymentModalFooterProps> = (
           isLoading={applying}
         >
           Apply Package
-        </GlowButton>
+        </ForgeButton>
       )}
       {selectedClient && modalMode === 'manual' && (
         <PrimaryButton onClick={handleApplyManual} disabled={applying || !sessionsToAdd}>

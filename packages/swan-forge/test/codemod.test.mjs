@@ -222,6 +222,44 @@ const X = () => (
   assert.ok(out.includes('Go\n  </ForgeButton>'), 'the real close was renamed');
 });
 
+test('codemod (T2 value position): a LAYOUT-ONLY styled(GlowButton) migrates; one that sets a SKIN-OWNED property does not', () => {
+  const layoutOnly = `${IMPORT}
+import styled from 'styled-components';
+export const SubmitButton = styled(GlowButton)\`
+  margin-top: 1rem;
+  flex: 1;
+\`;`;
+  const a = transform(layoutOnly, FILE);
+  assert.equal(a.report.styledWrappers, 1);
+  assert.ok(a.out.includes('styled(ForgeButton)'));
+  assert.equal(a.report.residual.length, 0, 'no residual — the file fully migrates');
+  assert.equal(a.report.skipped.length, 0);
+
+  for (const decl of ['background: red;', 'border-radius: 2px;', 'height: 60px;', 'font-weight: 700;', 'padding: 0 2rem;', 'box-shadow: none;']) {
+    const skinOwned = `${IMPORT}
+import styled from 'styled-components';
+export const Loud = styled(GlowButton)\`
+  margin: 4px;
+  ${decl}
+\`;`;
+    const b = transform(skinOwned, FILE);
+    assert.equal(b.report.styledWrappers, 0, `${decl} must NOT migrate`);
+    assert.ok(b.out.includes('styled(GlowButton)'), `${decl} left on the legacy component`);
+    assert.ok(b.report.skipped.some((s) => /skin-owned/.test(s)), `${decl} reported as skin-owned`);
+    assert.ok(b.report.residual.length > 0, `${decl} leaves a residual → file blocked, human decides`);
+  }
+});
+
+test('codemod (T2): a styled(GlowButton) inside a comment or template is not rewritten', () => {
+  const src = `${IMPORT}
+import styled from 'styled-components';
+// legacy: styled(GlowButton)\`margin: 0;\`
+export const Real = styled(GlowButton)\`margin-top: 2px;\`;`;
+  const { out, report } = transform(src, FILE);
+  assert.equal(report.styledWrappers, 1, 'only the real one');
+  assert.ok(out.includes('// legacy: styled(GlowButton)'), 'comment bytes unchanged');
+});
+
 test('codemod: no GlowButton → no change, no report noise', () => {
   const src = `export const Z = () => <button>plain</button>;`;
   const { out, report } = transform(src, FILE);

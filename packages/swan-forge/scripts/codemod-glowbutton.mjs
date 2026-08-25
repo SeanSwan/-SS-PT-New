@@ -39,6 +39,15 @@ const DROPPED = new Set(['pulse', 'haptic', 'glowIntensity']);
 const LEGACY_IMPORT = /(?:^|\/)ui\/buttons\/GlowButton(?:\.tsx?)?$/;
 
 /**
+ * Properties the SKIN owns. A `styled(GlowButton)` wrapper that sets any of these is fighting
+ * the catalog (rule 84 / drift-lint R2: the sanctioned override surface is the published
+ * --sw-btn-* custom properties, never the sw-* rules). A wrapper that only POSITIONS the button
+ * in its parent layout (margin, flex, grid placement, alignment) is legitimate and migratable.
+ * T2 finding: both real value-position wrappers in UniversalMasterSchedule are layout-only.
+ */
+const SKIN_OWNED = /(^|[\s;{])(background|background-color|background-image|color|border|border-[a-z-]+|border-radius|box-shadow|height|min-height|max-height|block-size|min-block-size|font|font-[a-z-]+|letter-spacing|text-transform|padding|padding-[a-z-]+|opacity|transition|transform|animation)\s*:/i;
+
+/**
  * Is `spec` (as imported from `importer`) the legacy GlowButton — directly, or through a
  * one-hop re-export shim? `frontend/src/components/ui/GlowButton.ts` is exactly that shim
  * (`export { default } from './buttons/GlowButton'`), and 2 real T-tier surfaces import it;
@@ -189,7 +198,7 @@ export function residualGlowButton(src) {
 
 /** Pure transform — no I/O, no process side effects (importable by tests). */
 export function transform(src, file, frontendSrc = resolve('frontend/src')) {
-  const report = { imports: 0, tags: 0, styledBoxAs: 0, dropped: new Set(), unknown: new Set(), notes: [], skipped: [], errors: [], residual: [] };
+  const report = { imports: 0, tags: 0, styledBoxAs: 0, styledWrappers: 0, dropped: new Set(), unknown: new Set(), notes: [], skipped: [], errors: [], residual: [] };
   const audit = (attrs) => {
     if (/\{\s*\.\.\./.test(attrs)) report.notes.push('spread props {...x} — prop audit BYPASSED for this site; verify the object has no pulse/haptic/glowIntensity or unknown keys');
     for (const p of propNames(attrs)) { if (DROPPED.has(p)) report.dropped.add(p); else if (!KNOWN.has(p) && !/^(data-|aria-|on[A-Z]|\$)/.test(p)) report.unknown.add(p); }
@@ -219,6 +228,18 @@ export function transform(src, file, frontendSrc = resolve('frontend/src')) {
   // plain <GlowButton …>
   ({ out, count: report.tags } = rewriteTags(out, /<GlowButton(?=[\s/>])/g, 'GlowButton', 'ForgeButton', (attrs) => { audit(attrs); return attrs; }, report));
   if (report.errors.length) return { out: src, report };
+  // VALUE POSITION: styled(GlowButton)`…` — migratable ONLY when the wrapper is layout-only.
+  // A wrapper that sets a skin-owned property is a catalog override (rule 84 / R2) and must be
+  // a human decision: converting it would silently move the fight from GlowButton to the skin.
+  const valueMask = maskedRegions(out);
+  out = out.replace(/styled\(\s*GlowButton\s*\)\s*`([\s\S]*?)`/g, (whole, body, offset) => {
+    if (valueMask[offset]) { report.skipped.push(`styled(GlowButton) at offset ${offset} is inside a comment/template literal — not rewritten`); return whole; }
+    const owned = body.match(SKIN_OWNED);
+    if (owned) { report.skipped.push(`styled(GlowButton) at offset ${offset} sets skin-owned '${owned[2]}' — NOT migrated; move it to a --sw-btn-* override or keep the legacy component (rule 84 / drift-lint R2)`); return whole; }
+    report.styledWrappers++;
+    report.notes.push(`styled(GlowButton) → styled(ForgeButton): layout-only wrapper (${body.trim().replace(/\s+/g, ' ').slice(0, 60)}) — the binding forwards className, so the wrapper class composes with the skin instead of overriding it`);
+    return whole.replace(/styled\(\s*GlowButton\s*\)/, 'styled(ForgeButton)');
+  });
   if (/\bStyledBox\b/.test(out) && !/<StyledBox\b/.test(out) && /import\s*\{[^}]*StyledBox[^}]*\}/.test(out)) report.notes.push('StyledBox import may now be unused — remove if so');
   report.residual = residualGlowButton(out);
   return { out, report };
@@ -241,7 +262,7 @@ if (isMain) {
     const diff = out !== src;
     const blocked = report.errors.length > 0 || report.residual.length > 0;
     const status = blocked ? (report.errors.length ? 'ERROR       ' : 'RESIDUAL    ') : diff ? (apply ? 'APPLIED     ' : 'WOULD-CHANGE') : 'NO-CHANGE   ';
-    console.log(`${status} ${f}  imports=${report.imports} tags=${report.tags} styledBoxAs=${report.styledBoxAs}` +
+    console.log(`${status} ${f}  imports=${report.imports} tags=${report.tags} styledBoxAs=${report.styledBoxAs} styledWrappers=${report.styledWrappers}` +
       (report.dropped.size ? `  dropped-by-binding=[${[...report.dropped]}]` : '') +
       (report.unknown.size ? `  UNKNOWN-PROPS=[${[...report.unknown]}] ← human decision` : '') +
       (report.residual.length ? `  RESIDUAL GlowButton identifier(s) at offset(s) ${report.residual.join(',')} ← manual migration required; file NOT written` : '') +

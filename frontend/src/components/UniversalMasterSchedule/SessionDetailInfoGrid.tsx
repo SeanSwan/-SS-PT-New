@@ -1,7 +1,7 @@
 /** Read-only session metadata, attendance state, and admin payment recovery entry. */
 
 import React from 'react';
-import GlowButton from '../ui/buttons/GlowButton';
+import ForgeButton from '../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import { normalizeAvailableSessions, type ClientSessionSignal } from '../DashBoard/workspaces/clients-team/clientSessionSignal';
 import { BodyText, Caption, SmallText } from './ui';
 import { ContactLink, DetailGrid, DetailItem, StatusBadge } from './SessionDetailModal.baseStyles';
@@ -115,9 +115,9 @@ const SessionDetailInfoGrid: React.FC<SessionDetailInfoGridProps> = ({
         <PaymentNeededBanner>
           <PaymentNeededText>Client has no remaining session credits</PaymentNeededText>
           {onApplyPayment && (
-            <GlowButton variant="primary" size="small" onClick={() => onApplyPayment(session.userId as number)}>
+            <ForgeButton variant="primary" size="small" onClick={() => onApplyPayment(session.userId as number)}>
               Apply Payment
-            </GlowButton>
+            </ForgeButton>
           )}
         </PaymentNeededBanner>
       )}
