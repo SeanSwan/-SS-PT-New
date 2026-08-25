@@ -14,7 +14,7 @@ supersedes: none
 
 - **Repo:** `https://github.com/SeanSwan/-SS-PT-New` · **Branch:** `docs/design-brain-transcript-corpus-2026-08-24` (cut clean from `origin/main`; merge to `main` when Sean says)
 - **Path:** `docs/ai-workflow/AI-HANDOFF/SWAN-DESIGN-BRAIN-TRANSCRIPT-CORPUS-AND-GPT-PRO-AUDIT-PROMPT-2026-08-24.md`
-- **Raw URL (fetch this):** `https://raw.githubusercontent.com/SeanSwan/-SS-PT-New/docs/design-brain-transcript-corpus-2026-08-24/docs/ai-workflow/AI-HANDOFF/SWAN-DESIGN-BRAIN-TRANSCRIPT-CORPUS-AND-GPT-PRO-AUDIT-PROMPT-2026-08-24.md`
+- **⚠ The repo is PRIVATE `[VERIFIED 2026-08-24: gh repo view → isPrivate:true; unauthenticated raw fetch → HTTP 404]`.** Anonymous raw URLs do NOT work. Two real access paths for ChatGPT Pro: **(1) connect the GitHub connector in ChatGPT (Deep Research → Sources → GitHub), authorize `SeanSwan/-SS-PT-New`, and point it at the branch + path above; or (2) upload this `.md` file directly into the chat** (and optionally the six brain files listed below). Authenticated raw URL, for tooling that carries a token: `https://raw.githubusercontent.com/SeanSwan/-SS-PT-New/docs/design-brain-transcript-corpus-2026-08-24/docs/ai-workflow/AI-HANDOFF/SWAN-DESIGN-BRAIN-TRANSCRIPT-CORPUS-AND-GPT-PRO-AUDIT-PROMPT-2026-08-24.md`
 - **Brain files it summarises (all on `main`):** `docs/ai-workflow/design-brain/` — start with `README.md`, `index.md`, `field-techniques.md`, `style-taxonomy.md`, `forge-compiler-contract.md`, `design.md`; raw-URL pattern: `https://raw.githubusercontent.com/SeanSwan/-SS-PT-New/main/docs/ai-workflow/design-brain/<file>`
 - **Not on GitHub (by design):** the Midlibrary corpus and taste files (`swan-taste-brain`, private, copyrighted) — only their counts and structure are described here.
 
@@ -120,7 +120,7 @@ Not a flat style list — a **two-axis matrix**: SOURCE (15 categories, ~5,525 s
 
 ```text
 FETCH FIRST
-Read the full handoff this prompt comes from, then the brain files it lists, before answering: https://raw.githubusercontent.com/SeanSwan/-SS-PT-New/docs/design-brain-transcript-corpus-2026-08-24/docs/ai-workflow/AI-HANDOFF/SWAN-DESIGN-BRAIN-TRANSCRIPT-CORPUS-AND-GPT-PRO-AUDIT-PROMPT-2026-08-24.md — and the design brain itself at https://github.com/SeanSwan/-SS-PT-New/tree/main/docs/ai-workflow/design-brain (raw pattern: https://raw.githubusercontent.com/SeanSwan/-SS-PT-New/main/docs/ai-workflow/design-brain/<file>). If you cannot fetch, say so and work from the summary below.
+The source repo (github.com/SeanSwan/-SS-PT-New) is PRIVATE. Read the handoff this prompt comes from and the design-brain files EITHER through the GitHub connector Sean has authorized in this chat OR from the files Sean attached. Handoff: branch `docs/design-brain-transcript-corpus-2026-08-24`, path `docs/ai-workflow/AI-HANDOFF/SWAN-DESIGN-BRAIN-TRANSCRIPT-CORPUS-AND-GPT-PRO-AUDIT-PROMPT-2026-08-24.md`. Brain: branch `main`, folder `docs/ai-workflow/design-brain/` (start with README.md, index.md, field-techniques.md, style-taxonomy.md, forge-compiler-contract.md, design.md). If neither is available to you, say so explicitly and work from the summary below — do not pretend you read the files.
 
 ROLE
 You are a senior design-systems researcher and a hostile reviewer. You will (1) run deep research, (2) hostile-review a design "brain", and (3) design a missing mechanism. Cite sources for research claims. Mark any speculation [HYPOTHESIS]. Do not flatter. Absence-first: the most valuable findings are the things nobody wrote down.
