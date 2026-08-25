@@ -221,6 +221,14 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
   ("your render · <one of this memory's prompts>", never a photo credit), not one instance of it.
 - **A proof step assumed a scratch directory a previous run had left behind.** It failed correctly.
   **MECHANISM:** a proof creates the directories it owns and deletes them at the end; it never inherits state.
+- **My proofs left a FAKE ComfyUI workflow on the production path, and the app then told Sean his workflow
+  was captured.** Two browser proofs each wrote a stand-in template to the real
+  `prompter/comfy-workflow.local.json` and each faithfully "restored what it found" — so both restore-checks
+  passed while the page reported a test fixture as his graph, and Make would have queued renders from a
+  graph that is not his. Caught only because I read `/api/make/status` on the real config during closeout.
+  **MECHANISM:** the template path resolves at call time through `SWAN_COMFY_WORKFLOW`; every suite points
+  itself at a per-process temp file, and both proofs now THROW if that variable is unset. A test that can
+  write the production path is a test that can lie about production — isolation is the fix, not discipline.
 - **I assumed a vendored binary was the full tool** and burned four probes on Playwright's ffmpeg
   (`-movflags`, `lavfi`, `rawvideo`, `image2pipe`+png all missing — it is encode-only VP8).
   **MECHANISM:** before building on a bundled binary, run its own capability list first (`-muxers`,
@@ -251,6 +259,7 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
 | A rewrite/verification that cannot name what it missed (5th vacuous-instrument instance today) | 5 | Yes — four times already today | Rewrites from a file, per-replacement ok/MISS, audit every access form |
 | Order-dependent assertion on shuffled data | 2 (one step, two runs) | No | Assert the shape of a varying value, not one instance |
 | A document-wide DOM query matching an unintended element (`<body data-tab>`) | 1 | No | Scope queries to their container |
+| **A test writing the production config path** — restore-checks passed while the app reported a fixture as real | 1 (2 proofs) | No — new class | Path resolves at call time via env; suites use temp files; proofs throw without the env |
 | Renamed a UI control without updating my own proof | 1 | No | The proof caught it; that step upgraded to end-to-end |
 
 ## External-model calibration
