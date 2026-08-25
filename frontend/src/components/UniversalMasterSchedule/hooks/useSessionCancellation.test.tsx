@@ -36,6 +36,7 @@ const setup = (overrides: Partial<Parameters<typeof useSessionCancellation>[0]> 
       isEarlyCancelEligible: false,
       defaultFullCharge: 175,
       defaultLateFee: 88,
+      pricingUnavailable: false,
       onUpdated,
       onClose,
       toast,
@@ -142,5 +143,35 @@ describe('useSessionCancellation', () => {
     }));
     expect(onUpdated).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useSessionCancellation - fail-closed when package pricing is unknown', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('does not pre-arm a full charge when the package price could not be loaded', () => {
+    const { result } = setup({ pricingUnavailable: true });
+
+    act(() => {
+      result.current.handleCancelClick();
+    });
+
+    expect(result.current.showCancelOptions).toBe(true);
+    expect(result.current.chargeType).toBe('none');
+    expect(result.current.chargeAmount).toBe('');
+    expect(result.current.restoreCredit).toBe(false);
+  });
+
+  it('still pre-arms the full charge when the package price is known', () => {
+    const { result } = setup({ pricingUnavailable: false });
+
+    act(() => {
+      result.current.handleCancelClick();
+    });
+
+    expect(result.current.chargeType).toBe('full');
+    expect(result.current.chargeAmount).toBe('175');
   });
 });

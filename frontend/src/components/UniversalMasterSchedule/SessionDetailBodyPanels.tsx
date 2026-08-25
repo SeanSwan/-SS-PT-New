@@ -87,6 +87,7 @@ export interface SessionDetailBodyPanelsProps {
   onChargeAmountChange: (value: string) => void;
   defaultFullCharge: number;
   defaultLateFee: number;
+  pricingUnavailable: boolean;
   restoreCredit: boolean;
   onRestoreCreditChange: (value: boolean) => void;
   notifyOnCancel: boolean;
@@ -150,6 +151,7 @@ const SessionDetailBodyPanels: React.FC<SessionDetailBodyPanelsProps> = ({
   onChargeAmountChange,
   defaultFullCharge,
   defaultLateFee,
+  pricingUnavailable,
   restoreCredit,
   onRestoreCreditChange,
   notifyOnCancel,
@@ -271,6 +273,7 @@ const SessionDetailBodyPanels: React.FC<SessionDetailBodyPanelsProps> = ({
         onChargeAmountChange={onChargeAmountChange}
         defaultFullCharge={defaultFullCharge}
         defaultLateFee={defaultLateFee}
+        pricingUnavailable={pricingUnavailable}
         restoreCredit={restoreCredit}
         onRestoreCreditChange={onRestoreCreditChange}
         notifyOnCancel={notifyOnCancel}

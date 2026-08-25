@@ -118,12 +118,22 @@ export const buildCancelConfirmationMessage = ({
 
 export const buildCancelPanelDefaults = (
   isEarlyCancelEligible: boolean,
-  defaultFullCharge: number
-): CancelPanelDefaults => (
-  isEarlyCancelEligible
-    ? { chargeType: 'none', chargeAmount: '', restoreCredit: true }
-    : { chargeType: 'full', chargeAmount: String(defaultFullCharge), restoreCredit: false }
-);
+  defaultFullCharge: number,
+  pricingUnavailable = false
+): CancelPanelDefaults => {
+  if (isEarlyCancelEligible) {
+    return { chargeType: 'none', chargeAmount: '', restoreCredit: true };
+  }
+
+  // Fail closed: without this client's real package price we must not pre-arm a
+  // charge. The admin picks an amount deliberately instead of confirming a
+  // placeholder that is presented as package-derived.
+  if (pricingUnavailable) {
+    return { chargeType: 'none', chargeAmount: '', restoreCredit: false };
+  }
+
+  return { chargeType: 'full', chargeAmount: String(defaultFullCharge), restoreCredit: false };
+};
 
 export const buildCancelPayload = ({
   canManage,

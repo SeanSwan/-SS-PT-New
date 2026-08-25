@@ -129,3 +129,29 @@ describe('SessionDetailModal action helpers', () => {
     expect(modalSource.split(/\r?\n/).length).toBeLessThanOrEqual(1350);
   });
 });
+
+describe('buildCancelPanelDefaults — fail-closed when pricing is unknown', () => {
+  it('does not pre-select a full charge when package pricing is unavailable', () => {
+    expect(buildCancelPanelDefaults(false, 175, true)).toEqual({
+      chargeType: 'none',
+      chargeAmount: '',
+      restoreCredit: false,
+    });
+  });
+
+  it('still pre-selects the full charge when pricing is known', () => {
+    expect(buildCancelPanelDefaults(false, 110, false)).toEqual({
+      chargeType: 'full',
+      chargeAmount: '110',
+      restoreCredit: false,
+    });
+  });
+
+  it('keeps early-cancel behaviour unchanged regardless of pricing availability', () => {
+    expect(buildCancelPanelDefaults(true, 175, true)).toEqual({
+      chargeType: 'none',
+      chargeAmount: '',
+      restoreCredit: true,
+    });
+  });
+});

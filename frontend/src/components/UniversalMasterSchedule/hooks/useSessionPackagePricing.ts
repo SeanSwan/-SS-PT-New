@@ -16,6 +16,12 @@ interface SessionPackagePricingState {
   packageName: string | null;
   defaultFullCharge: number;
   defaultLateFee: number;
+  /**
+   * True whenever the numeric defaults above are NOT derived from this client's
+   * package. Consumers must gate every package-derived charge affordance on this
+   * flag - the fallback figures are placeholders, not this client's real prices.
+   */
+  pricingUnavailable: boolean;
 }
 
 const createDefaultPricingState = (): SessionPackagePricingState => ({
@@ -23,6 +29,7 @@ const createDefaultPricingState = (): SessionPackagePricingState => ({
   packageName: null,
   defaultFullCharge: DEFAULT_FULL_CHARGE,
   defaultLateFee: DEFAULT_LATE_FEE,
+  pricingUnavailable: true,
 });
 
 export const useSessionPackagePricing = ({
@@ -64,6 +71,7 @@ export const useSessionPackagePricing = ({
             packageName: data.packageName ?? null,
             defaultFullCharge: fullCharge,
             defaultLateFee: lateFee,
+            pricingUnavailable: false,
           });
           return;
         }
