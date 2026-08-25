@@ -38,8 +38,22 @@
  * INSTRUMENTED: every invocation appends one JSON line to
  * .ai-workflow/gates/fires.jsonl — {blocked, shadow, hatch, bodies, reasons} —
  * never the command text — so the fire rate has a denominator.
- * SHADOW: `SWAN_HEREDOC_GATE=shadow` logs what would block and allows; for measuring
- * a false-positive rate on real traffic. Default blocks.
+ * SHADOW: the gate ships in shadow mode BY DEFAULT — it logs and warns on what it
+ * would block and allows everything, so a false-positive rate is measured on real
+ * traffic first. `SWAN_HEREDOC_GATE=enforce` turns blocking on.
+ *
+ * ROUND-3 HARDENING (GLM 5.3 CONFIRM / Grok 4.6 CONFIRM@88 / Ox Alpha REJECT@86):
+ *   - terminator regexes and the mask's terminator check tolerated trailing `[ \t]*`
+ *     after the delimiter; bash requires the exact line. Early close = uninspected
+ *     tail = false-ALLOW. Now bash-exact in all four sites.
+ *   - literalSpans was a second parser (own qhd/sq regexes, own bugs) and missed
+ *     "..." and $'...' — a hatch inside double quotes was honoured. Replaced with
+ *     mask-derived spans: one source of truth for "not command-line text".
+ *   - the mask now models ANSI-C $'...' (backslash escapes; \' does not close).
+ *   ACCEPTED LIMITS (Ox r3 F3-minor/F4/F5/F6): unquoted inline payloads
+ *   (`bash -c echo ${HOME}`) are the OUTER shell's normal expansion, not captured —
+ *   blocking them would false-positive on everyday commands; no pathological
+ *   backtracking input found (bounded polynomial).
  *
  * CONTRACT (matches exit-status-gate.mjs): stdin JSON `{tool_input:{command}}`;
  * exit 2 + stderr = block; exit 0 = allow; internal error = fail OPEN with a note.
@@ -93,8 +107,9 @@ export function unquotedMask(cmd) {
           let bodyStart = eol + 1, bodyEnd = cmd.length, pos = bodyStart;
           while (pos <= cmd.length) {
             const nl = cmd.indexOf('\n', pos); const line = cmd.slice(pos, nl < 0 ? cmd.length : nl);
-            const stripped = dash ? line.replace(/^\t+/, '') : line;
-            if (stripped.replace(/[ \t]+$/, '') === delim && (dash || !/^[ \t]/.test(line))) { bodyEnd = pos; break; }
+            // BASH-EXACT (r3 F2, all seats): plain `<<X` terminates ONLY on `X` alone at
+            // column 0 — no leading or trailing whitespace; `<<-X` strips TABS only.
+            if (dash ? line.replace(/^\t+/, '') === delim : line === delim) { bodyEnd = pos; break; }
             if (nl < 0) break; pos = nl + 1;
           }
           for (let k = i + 2; k < bodyEnd && k < cmd.length; k++) if (k >= bodyStart) mask[k] = false; // body = data
@@ -103,12 +118,15 @@ export function unquotedMask(cmd) {
         }
       }
       if (c === '\\') { mask[i] = true; i++; if (i < cmd.length) mask[i] = false; continue; }
+      // ANSI-C string $'...' (r3 fold): backslash escapes INSIDE it (\' does not close),
+      // unlike a plain '...'. Modeled as its own state so `$'it\'s'` masks correctly.
+      if (c === '$' && cmd[i + 1] === "'") { q = '$'; mask[i] = false; i++; mask[i] = false; continue; }
       if (c === "'" || c === '"') { q = c; mask[i] = false; continue; }
       mask[i] = true;
     } else {
       mask[i] = false;
-      if (q === '"' && c === '\\') { i++; if (i < cmd.length) mask[i] = false; continue; }
-      if (c === q) q = null;
+      if ((q === '"' || q === '$') && c === '\\') { i++; if (i < cmd.length) mask[i] = false; continue; }
+      if (c === (q === '$' ? "'" : q)) q = null;
     }
   }
   return mask;
@@ -140,8 +158,11 @@ export function expandedBodies(cmd) {
   // bash stops the body EARLY on an indented look-alike line, and everything after it —
   // still shell-expanded in reality — goes uninspected: a silent false-ALLOW. Two
   // patterns rather than one, because the dash changes the terminator grammar.
-  const hdPlain = /(?<!<)<<(?!-)[ \t]*([^\s'"\\<]+)[^\n]*\n([\s\S]*?)(?:\n\1[ \t]*(?:\n|$)|$)/g;
-  const hdDash = /(?<!<)<<-[ \t]*([^\s'"\\<]+)[^\n]*\n([\s\S]*?)(?:\n\t*\1[ \t]*(?:\n|$)|$)/g;
+  // r3 F2 (all seats): NO `[ \t]*` after the delimiter either — `EOF ` (trailing space)
+  // does not terminate in bash; a looser regex closed the body early and the real tail
+  // (still shell-expanded) went uninspected: silent false-ALLOW.
+  const hdPlain = /(?<!<)<<(?!-)[ \t]*([^\s'"\\<]+)[^\n]*\n([\s\S]*?)(?:\n\1(?:\n|$)|$)/g;
+  const hdDash = /(?<!<)<<-[ \t]*([^\s'"\\<]+)[^\n]*\n([\s\S]*?)(?:\n\t*\1(?:\n|$)|$)/g;
   for (const hd of [hdPlain, hdDash]) {
     while ((m = hd.exec(cmd))) {
       if (!unq(m.index)) { hd.lastIndex = m.index + 2; continue; } // "<<" inside quotes is text
@@ -194,18 +215,22 @@ export function expandedBodies(cmd) {
  * be able to carry the override key. Returned as [start,end) spans only.
  */
 export function literalSpans(cmd) {
+  // r3 F3 (GLM/Grok/Ox): the previous implementation was a SECOND parser — its own
+  // qhd/sq regexes with their own terminator bugs, and it missed "..." and $'...'
+  // entirely, so a hatch inside double quotes was honoured (false-ALLOW). Replaced by
+  // the single source of truth: unquotedMask() already knows every position that is
+  // NOT bare command-line text — quoted strings ('...', "...", $'...') AND all heredoc
+  // bodies (quoted-delimiter and unquoted alike). Every mask=false run is a span the
+  // hatch scan must never read. Unquoted-heredoc spans duplicate expandedBodies();
+  // the interval merge in classify() absorbs the overlap.
+  const mask = unquotedMask(cmd);
   const spans = [];
-  let m;
-  // Quoted-delimiter heredocs: <<'X', <<"X", <<\X (with optional -). Body is literal.
-  const qhd = /(?<!<)<<-?[ \t]*(?:'([^'\n]+)'|"([^"\n]+)"|\\([^\s'"\\<]+))[^\n]*\n([\s\S]*?)(?:\n[ \t]*(?:\1|\2|\3)[ \t]*(?:\n|$)|$)/g;
-  while ((m = qhd.exec(cmd))) {
-    const body = m[4];
-    const start = m.index + m[0].indexOf(body, m[0].indexOf('\n'));
-    spans.push({ start, end: start + body.length });
+  let s = -1;
+  for (let i = 0; i <= cmd.length; i++) {
+    const off = i < cmd.length && mask[i] === false;
+    if (off && s < 0) s = i;
+    if (!off && s >= 0) { spans.push({ start: s, end: i }); s = -1; }
   }
-  // Single-quoted arguments outside heredocs: '...' (no escapes possible inside).
-  const sq = /'([^'\n]*)'/g;
-  while ((m = sq.exec(cmd))) spans.push({ start: m.index + 1, end: m.index + 1 + m[1].length });
   return spans;
 }
 
@@ -261,7 +286,13 @@ export function logFire({ blocked, shadow, hatch, reasons, bodies }, root = join
   } catch { /* logging must never affect the verdict */ }
 }
 
-export const isShadow = () => /^(shadow|log|warn)$/i.test(process.env.SWAN_HEREDOC_GATE || '');
+// SHADOW BY DEFAULT (Sean-approved ship decision, 2026-08-25): three hostile rounds
+// each found real defects in the previous round's fixes — bash quoting is a bottomless
+// input class and this parser will never be provably complete. So it ships OBSERVING:
+// it logs and warns on what it WOULD block, and blocks nothing, until ~14 days of
+// fires.jsonl show the would-block set is real hazards with no false positives.
+// Flip to enforcement with SWAN_HEREDOC_GATE=enforce (or block/on).
+export const isShadow = () => !/^(enforce|block|on)$/i.test(process.env.SWAN_HEREDOC_GATE || '');
 
 export function main() {
   let cmd = '';
