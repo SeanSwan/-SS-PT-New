@@ -56,6 +56,7 @@ import {
   getFinancialTransaction,
   getClientTrainerAssignment
 } from '../../models/index.mjs';
+import { getClientPackagePricing } from '../../utils/cancellationPricing.mjs';
 
 // Import notification utilities
 import {
@@ -130,6 +131,58 @@ const normalizeCancellationBillingOptions = (user, options = {}) => {
     chargeAmount,
     restoreCredit: options.restoreCredit === true
   };
+};
+
+/**
+ * The server - not the caller - decides what a full session costs.
+ *
+ * normalizeCancellationBillingOptions above validates the SHAPE of an
+ * operator's billing choice (role, known charge type, positive amount). It has
+ * no database access, so it cannot check the figure against what this client
+ * actually pays. That gap let a stale or placeholder frontend number - such as
+ * the 175 fallback in useSessionPackagePricing - be recorded verbatim against a
+ * client whose real rate is 110.
+ *
+ * routes/sessionRoutes.mjs already did this correctly, but that file is not
+ * mounted (core/routes.mjs:286; sessions.mjs shadows it), so the behaviour never
+ * reached the live path. This ports it.
+ *
+ * Deliberately best-effort: a failed lookup leaves the validated amount alone
+ * rather than blocking the cancellation, and an isFallback result is ignored -
+ * substituting the helper's OWN hardcoded figure would swap one invented number
+ * for another, which is the exact defect this guard exists to prevent.
+ */
+const applyServerDerivedChargeAmount = async (session, billingOptions) => {
+  if (!billingOptions || billingOptions.chargeType === 'none') {
+    return;
+  }
+
+  let pricing;
+  try {
+    pricing = await getClientPackagePricing(session.userId, {
+      Order: getOrder(),
+      OrderItem: getOrderItem(),
+      StorefrontItem: getStorefrontItem()
+    });
+  } catch (error) {
+    logger.warn(
+      `[Cancellation] package pricing lookup failed for session ${session.id}: ${error.message}`
+    );
+    return;
+  }
+
+  if (!pricing || pricing.isFallback) {
+    return;
+  }
+
+  const sessionRate = Number(pricing.pricePerSession);
+  if (!Number.isFinite(sessionRate) || sessionRate <= 0) {
+    return;
+  }
+
+  billingOptions.chargeAmount = billingOptions.chargeType === 'full'
+    ? sessionRate
+    : Math.min(billingOptions.chargeAmount, sessionRate);
 };
 
 const parseNotificationPreferences = (prefs) => {
@@ -1675,6 +1728,7 @@ class UnifiedSessionService {
       }
 
       const billingOptions = normalizeCancellationBillingOptions(user, cancellationOptions);
+      await applyServerDerivedChargeAmount(session, billingOptions);
       const cancellationDate = new Date();
       
       // Update the session
