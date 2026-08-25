@@ -36,12 +36,31 @@ export const ALWAYS_ON = ['CLAUDE.md', 'AGENTS.md', 'ACTIVE-INDEX.md', '.ai-work
 // conventional shape (`RULEBOOK: add` / `Reviewed-by: seat` on the next line) FAILED,
 // blocking exactly the compliant case. The RULEBOOK verb line must exist at line
 // start; reviewed-by may sit on that line or its own, any case.
-const RULEBOOK_LINE = /^RULEBOOK:\s*(add|amend|retire|narrative-cut|mirror-sync)\b/im;
-const REVIEWED_BY = /\breviewed-by:\s*\S/i;
+const RULEBOOK_LINE = /^RULEBOOK:\s*(add|amend|retire|narrative-cut|mirror-sync)\b.*$/im;
 /** Exported as THE single trailer test — drift-check probe 11 imports this, so the
  * guard and the probe cannot judge compliance by different standards (Ox r3 F1's
- * root cause: two hand-copied regexes drifting apart). */
-export const hasRulebookTrailer = (m) => RULEBOOK_LINE.test(m || '') && REVIEWED_BY.test(m || '');
+ * root cause: two hand-copied regexes drifting apart).
+ *
+ * PROSE-RESISTANT (Ox r4 F2): an unanchored `\breviewed-by:` matched a message that
+ * merely DISCUSSED the convention ("add a reviewed-by: line next time") — a false
+ * PASS defeating the guard's purpose. reviewed-by now counts only (a) on the
+ * RULEBOOK verb line itself (the house same-line form), or (b) at a line start
+ * (the git-conventional trailer form). Prose mid-sentence mentions match neither. */
+// `(?<![\w-])` — GLM r4: `\b` matches after a hyphen, so `peer-reviewed-by:` /
+// `not-reviewed-by:` passed as attribution. The lookbehind requires reviewed-by to
+// start its own token (the multi-line form's `^` anchor already enforces this).
+const SAME_LINE = /^RULEBOOK:\s*(add|amend|retire|narrative-cut|mirror-sync)\b[^.,;!?\n]*(?<![\w-])reviewed-by:\s*\S/im;
+export const hasRulebookTrailer = (m) => {
+  const s = m || '';
+  if (!RULEBOOK_LINE.test(s)) return false;
+  // Same-line house form: no clause punctuation between the verb and reviewed-by:
+  // ("RULEBOOK: add - reviewed-by: X" passes; "RULEBOOK: amend flow is broken, and
+  // someone should add a reviewed-by: line" does not — its own test fixture caught
+  // the naive same-line allowance re-admitting prose). Residual: punctuation-free
+  // prose on the verb line could still pass; accepted — the guard is a tripwire,
+  // not a parser, and the multi-line form is the recommended shape.
+  return SAME_LINE.test(s) || /^reviewed-by:\s*\S/im.test(s);
+};
 const TRAILER = { test: hasRulebookTrailer };
 
 /**

@@ -118,9 +118,13 @@ export function render(report) {
       // days is not evidence; 200 invocations in one afternoon is not 14 days of
       // exposure. Calendar span is not statistical power — require each separately.
       const MIN_DAYS = 14, MIN_INVOCATIONS = 100;
+      // ORGANIC floor (Ox r4 F1 — the same hatch disease the r3 fix cured in the rate,
+      // surviving one layer over): 40 organic + 60 hatch rows crossed the raw floor
+      // with only 40 real observations. The floor counts what the rate counts.
+      const organicCount = g.invocations - g.hatch;
       const lacking = [];
       if (g.spanDays < MIN_DAYS) lacking.push(`${g.spanDays}d of ${MIN_DAYS}d span`);
-      if (g.invocations < MIN_INVOCATIONS) lacking.push(`${g.invocations} of ${MIN_INVOCATIONS} invocations`);
+      if (organicCount < MIN_INVOCATIONS) lacking.push(`${organicCount} of ${MIN_INVOCATIONS} organic invocations`);
       out.push(lacking.length === 0
         ? `  ENFORCE-READINESS: ${g.spanDays}d span, ${g.invocations} invocations. If every reason class above is a real hazard (no false positives), flip SWAN_HEREDOC_GATE=enforce.`
         : `  ENFORCE-READINESS: keep shadowing — insufficient ${lacking.join(' and ')}.`);

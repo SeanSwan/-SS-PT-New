@@ -340,8 +340,13 @@ try {
   // below now SAYS so instead of reading as clean.
   const GUARD_SHA = '732843e399ac2568d04acc3dc188542b210f6192'; // PR #72 merge — the guard's ship commit
   const CAP = 21;
+  // Pathspec matches the GUARD'S reach, not just root paths (Ox r4 F3): the guard
+  // protects by basename anywhere in the tree, so a nested `docs/CLAUDE.md` commit was
+  // guarded but invisible here — probe CLEAN where the guard would flag. `:(glob)**/x`
+  // covers nested copies; the bare entry covers the root file.
+  const pathspec = [...ALWAYS_ON, ...ALWAYS_ON.map((a) => `:(glob)**/${a.replace(/^.*\//, '')}`)];
   const shas = execFileSync('git',
-    ['log', `--max-count=${CAP}`, '--format=%H', `${GUARD_SHA}..origin/main`, '--', ...ALWAYS_ON],
+    ['log', `--max-count=${CAP}`, '--format=%H', `${GUARD_SHA}..origin/main`, '--', ...pathspec],
     { cwd: SS_PT, timeout: 15000, stdio: ['ignore', 'pipe', 'ignore'] }
   ).toString().trim().split('\n').filter(Boolean);
   // Unmarked clipping is exactly what reflex 3 forbids (GLM/Grok r3 F1): at the cap,

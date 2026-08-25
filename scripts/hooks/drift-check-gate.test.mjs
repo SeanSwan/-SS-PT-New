@@ -208,6 +208,14 @@ for (const [msg, want, note] of [
   ['RULEBOOK: destroy - reviewed-by: X', false, 'unknown verb fails'],
   ['', false, 'empty message'],
   [undefined, false, 'missing message'],
+  // Ox r4 F2 — prose resistance: a message DISCUSSING the convention must not pass.
+  ['fix: docs\n\nRULEBOOK: amend flow is broken, and someone should add a reviewed-by: line next time', false,
+    'prose mention of reviewed-by mid-sentence is not a trailer'],
+  ['note that the RULEBOOK: add form needs care\nAlso reviewed-by: is required they say', false,
+    'reviewed-by not at line start and not on the verb line'],
+  ['RULEBOOK: amend the caps\nreviewed-by: GLM-5.3', true, 'line-start reviewed-by still passes'],
+  ['RULEBOOK: add - peer-reviewed-by: someone', false, 'hyphen-prefixed reviewed-by is not attribution (GLM r4)'],
+  ['RULEBOOK: add\npeer-reviewed-by: someone', false, 'hyphen-prefixed at line start fails the ^ anchor too'],
 ]) {
   const got = hasRulebookTrailer(msg);
   const ok = got === want;
