@@ -16,7 +16,7 @@
 
 import React from 'react';
 import type { ComposeResult, StillView } from './AtelierCompose.api';
-import { stillSrc } from './AtelierCompose.api';
+import { stillSrc, describePersist } from './AtelierCompose.api';
 import {
   Grid, StillCard, StillImage, StillPlaceholder, StillMeta, SelectButton, FailureList, FailureRow, Caption,
 } from './AtelierCompose.styles';
@@ -43,6 +43,7 @@ function Still({ s, aspect, selected, onSelect }: { s: StillView; aspect: string
         <span title={s.provider}>{s.provider.split('/').pop()}</span>
         <span title="prompt hash">{s.promptHash}</span>
         {s.sha256 ? <span title="artifact sha256">{s.sha256.slice(0, 12)}</span> : null}
+        <span title={s.persist && s.persist.ok === false ? s.persist.message : 'persisted as a MediaAsset'}>{describePersist(s).text}</span>
       </StillMeta>
       <SelectButton type="button" $on={selected} aria-pressed={selected} onClick={onSelect}>
         {selected ? 'Selected' : 'Select this frame'}
@@ -57,6 +58,9 @@ const AtelierComposeGrid: React.FC<Props> = ({ result, aspect, selectedIndex, on
       {result.stills.length} of {result.stills.length + result.failures.length} candidates
       {result.partial ? ' — some failed, listed below' : ''}
       {result.replayed ? ' · replayed from an identical request, nothing re-rendered' : ''}
+      {result.persistence && !result.persistence.ok
+        ? ` · ${result.persistence.persisted}/${result.persistence.total ?? result.stills.length} saved as assets${result.persistence.code ? ` (${result.persistence.code})` : ''}`
+        : ''}
       {typeof result.lawRejected === 'number' && result.lawRejected > 0
         ? ` · ${result.lawRejected} taste prompt${result.lawRejected === 1 ? '' : 's'} failed the law filter (${result.lawProfile})`
         : ''}

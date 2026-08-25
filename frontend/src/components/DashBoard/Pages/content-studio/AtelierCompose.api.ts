@@ -55,9 +55,14 @@ export interface StillView {
   provider: string;
   sha256?: string;
   bytes?: number;
+  /** Set when the still became a MediaAsset — the id the Motion rung will bind to. */
+  assetId?: string | null;
+  persist?: { ok: true; created: boolean } | { ok: false; code: string; message: string };
 }
 
 export interface StillFailure { index: number; code: string; message: string }
+
+export interface PersistenceView { ok: boolean; persisted: number; total?: number; code?: string; message?: string }
 
 export interface ComposeResult {
   lane: 'local' | 'hosted';
@@ -70,6 +75,7 @@ export interface ComposeResult {
   model: string;
   idempotencyKey: string;
   admission: { host: string; freeMb: number; neededMb: number } | null;
+  persistence?: PersistenceView;
   tasteSeed?: number | null;
   lawRejected?: number;
   lawProfile?: LawProfile;
@@ -150,6 +156,13 @@ export function formatCost(c: CostView | null): string {
   if (!c) return '—';
   if (c.totalUsd === 0) return '$0.00 · local';
   return `$${c.totalUsd.toFixed(4)} · ${c.count} × $${c.unitUsd.toFixed(4)}`;
+}
+
+/** The asset chip on a still card: saved (with the id to bind to) or the reason it was not. */
+export function describePersist(s: StillView): { saved: boolean; text: string } {
+  if (s.assetId) return { saved: true, text: `asset ${s.assetId.slice(0, 8)}` };
+  if (s.persist && s.persist.ok === false) return { saved: false, text: `not saved · ${s.persist.code}` };
+  return { saved: false, text: 'not saved' };
 }
 
 /** What a still card can show. A local path is not loadable by a browser — say so, never fake an <img>. */

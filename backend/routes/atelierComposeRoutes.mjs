@@ -27,6 +27,7 @@ import {
   composeStills, estimateStills, ComposeError, MAX_STILLS, readComposeLimits, SPEND_ENV_KEY,
 } from '../services/atelier/composeStills.mjs';
 import { verifyLocalStills, PROBE_ENV_KEY, STILL_PROVIDER } from '../services/atelier/localStillLane.mjs';
+import { readAsset } from '../services/atelier/persistStills.mjs';
 
 const router = express.Router();
 
@@ -64,6 +65,10 @@ const STATUS = Object.freeze({
   E_LOCAL_RENDER: 502,
   E_TASTE_URL_NOT_LOOPBACK: 500,
   E_BAD_CAP: 500,
+  E_STORAGE_UNCONFIGURED: 503,
+  E_STILL_UNREADABLE: 502,
+  E_ARTIFACT_HASH_MISMATCH: 502,
+  E_ASSET_NOT_FOUND: 404,
 });
 
 function fail(res, err) {
@@ -94,7 +99,7 @@ function reqFromBody(req, extra = {}) {
   return {
     brief: b.brief, promptSource: b.promptSource, lane: b.lane, model: b.model,
     count: b.count ?? MAX_STILLS, seed: b.seed, aspect: b.aspect, cinematic: b.cinematic, mode: b.mode, lawProfile: b.lawProfile,
-    workspaceId: b.workspaceId, userId: req.user?.id,
+    workspaceId: b.workspaceId, userId: req.user?.id, persist: b.persist,
     idempotencyKey: (typeof headerKey === 'string' && headerKey.trim()) ? headerKey.trim() : undefined,
     ...extra,
   };
@@ -129,6 +134,9 @@ router.post('/stills', protect, adminOnly, async (req, res) => {
       lane: out.lane, promptSource: out.promptSource, stills: out.stills, failures: out.failures,
       partial: out.partial, replayed: out.replayed, cost: out.cost, model: out.model,
       idempotencyKey: out.key, admission: out.admission,
+      // Per-still `assetId` rides on each still; this is the batch-level verdict and the
+      // reason when nothing persisted (e.g. R2 unconfigured) — never hidden behind a 200.
+      persistence: out.persistence,
       ...(out.tasteSeed !== undefined ? { tasteSeed: out.tasteSeed, lawRejected: out.lawRejected, lawProfile: out.lawProfile } : {}),
       ...(out.clampedFrom === undefined ? {} : { clampedFrom: out.clampedFrom }),
     } });
@@ -161,6 +169,18 @@ router.get('/limits', protect, adminOnly, (req, res) => {
         ? `No lane is ready. Local: ${lv.problems[0]}. Hosted is switched off — set ${SPEND_ENV_KEY} to enable it.`
         : `Hosted lane enabled. Local: ${lv.problems[0]}. No spend ledger exists yet; ceilings are per batch.`,
   } });
+});
+
+/**
+ * GET /api/atelier/compose/asset/:id — one persisted still, owner-scoped, with its
+ * frozen provenance and a short-lived read URL. This is the record the Motion rung
+ * will BIND to: id + sha256, not a prompt.
+ */
+router.get('/asset/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const out = await readAsset({ id: String(req.params.id || ''), userId: req.user?.id });
+    return res.json({ success: true, data: out });
+  } catch (err) { return fail(res, err); }
 });
 
 export { estimateStills };

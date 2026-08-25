@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  describeLocalLane, describeHostedLane, laneOfferable, formatCost, stillSrc, readRefusal,
+  describeLocalLane, describeHostedLane, laneOfferable, formatCost, stillSrc, readRefusal, describePersist,
   type LimitsView, type LocalLaneView, type HostedLaneView, type StillView,
 } from './AtelierCompose.api';
 
@@ -105,5 +105,17 @@ describe('a refusal keeps its code and its numbers', () => {
     const r = readRefusal(new Error('net'), 'Could not price this brief.');
     expect(r.code).toBe('E_UNKNOWN');
     expect(r.message).toBe('Could not price this brief.');
+  });
+});
+
+describe('a still says whether it became an asset', () => {
+  const base: StillView = { index: 0, lane: 'hosted', image: { kind: 'b64', data: 'AAAA' }, seed: 1, promptHash: 'abc', promptText: 'x', provider: 'p' };
+  it('shows the asset id when saved', () => {
+    expect(describePersist({ ...base, assetId: '0123456789abcdef', persist: { ok: true, created: true } })).toEqual({ saved: true, text: 'asset 01234567' });
+  });
+  it('shows the code when not saved, never a bare "saved"', () => {
+    const d = describePersist({ ...base, assetId: null, persist: { ok: false, code: 'E_STORAGE_UNCONFIGURED', message: 'no R2' } });
+    expect(d.saved).toBe(false);
+    expect(d.text).toContain('E_STORAGE_UNCONFIGURED');
   });
 });

@@ -33,6 +33,7 @@ import {
 } from './composeLimits.mjs';
 import { promptsFromBrief, promptsFromTaste, resolveLawProfile } from './promptSources.mjs';
 import * as local from './localStillLane.mjs';
+import { persistBatch } from './persistStills.mjs';
 
 export {
   ComposeError, MAX_STILLS, MAX_BRIEF_CHARS, IMAGE_PRICES, SPEND_ENV_KEY, RUNS_ENV_KEY,
@@ -118,6 +119,9 @@ async function runBatch({ lane, prompts, key, req, model, deps }) {
       return { status: 'fulfilled', value: {
         image: { kind: 'b64', data }, seed: Number.isInteger(r?.seedUsed) ? r.seedUsed : seed,
         promptText: p.text, usage: r?.usage || {}, provider: model,
+        // Measured by the provider adapter, not assumed — carried so the asset row is truthful.
+        width: r?.actualWidth ?? null, height: r?.actualHeight ?? null, format: r?.actualFormat ?? null,
+        costUsd: r?.costUsd ?? null,
       } };
     } catch (e) {
       return { status: 'rejected', reason: { code: e?.code || 'E_PROVIDER_ERROR', message: e?.message || String(e) } };
@@ -139,7 +143,7 @@ export async function composeStills(req = {}, deps = {}) {
     generator = hostedGenerate, verifier = hostedVerify, compiler,
     renderStill = local.renderStill, withGpu = local.withGpu,
     localVerify = local.verifyLocalStills, admit = local.admission,
-    tasteDeps = {}, env = process.env, store = new Map(),
+    tasteDeps = {}, env = process.env, store = new Map(), persist = persistBatch,
     limits = readComposeLimits(env), usage = { runs: 0, spendUsd: 0 }, now = Date.now(),
   } = deps;
 
@@ -198,7 +202,13 @@ export async function composeStills(req = {}, deps = {}) {
       else failures.push({ index: i, ...s.reason });
     });
     if (stills.length === 0) throw new ComposeError('E_ALL_FAILED', `All ${count} images failed. First error: ${failures[0]?.message || 'unknown'}`);
+    // PERSIST — the still becomes a MediaAsset with provenance, or the caller is told why not.
+    // Never fatal to the batch: bytes exist, the row does not, and each still says which.
+    const persistence = req.persist === false
+      ? { ok: false, code: 'E_PERSIST_SKIPPED', persisted: 0 }
+      : await persist({ stills, lane, userId: req.userId, workspaceId: req.workspaceId, model, env });
     return {
+      persistence,
       estimateOnly: false, lane, promptSource, stills, failures, partial: failures.length > 0, replayed: false,
       cost: { ...cost, chargedUsd: cost.unitUsd * stills.length }, model: cost.model, key, admission, ...tasteMeta,
       ...(clampedFrom === undefined ? {} : { clampedFrom }),
