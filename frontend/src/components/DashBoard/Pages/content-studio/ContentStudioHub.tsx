@@ -37,8 +37,7 @@ import {
   Server,
   Sparkles,
   UploadCloud,
-  Video,
-} from 'lucide-react';
+  Video, Wand2 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import ContentStudioStorageMeter from './ContentStudioStorageMeter';
 import ContentStudioProjectQueue from './ContentStudioProjectQueue';
@@ -56,9 +55,10 @@ const CrystallineCoverageTracker = React.lazy(() => import('./CrystallineCoverag
 const NanoBananaBadgeCreator = React.lazy(() => import('./NanoBananaBadgeCreator'));
 const VideoOptimizerPanel = React.lazy(() => import('./VideoOptimizerPanel'));
 const CreatorRenderQueue = React.lazy(() => import('./CreatorRenderQueue'));
+const AtelierCompose = React.lazy(() => import('./AtelierCompose'));
 
 type StudioTab =
-  | 'workflow' | 'library' | 'coverage' | 'video-optimizer' | 'nano-banana' | 'render-queue';
+  | 'workflow' | 'compose' | 'library' | 'coverage' | 'video-optimizer' | 'nano-banana' | 'render-queue';
 
 /**
  * Tab gating has two distinct kinds, and conflating them is what shipped a
@@ -82,6 +82,7 @@ const TABS: {
   requiresService?: string; requiresFlag?: string;
 }[] = [
   { id: 'workflow', label: 'Workflow', icon: <ClipboardList size={16} /> },
+  { id: 'compose', label: 'Compose', icon: <Wand2 size={16} /> },
   { id: 'library', label: 'Video Library', icon: <Video size={16} /> },
   { id: 'coverage', label: 'Coverage Tracker', icon: <Hexagon size={16} /> },
   { id: 'video-optimizer', label: 'Video Optimizer', icon: <Film size={16} /> },
@@ -179,6 +180,7 @@ const ContentStudioHub: React.FC = () => {
       case 'coverage': return <Suspense fallback={fallback('Loading coverage...')}><CrystallineCoverageTracker /></Suspense>;
       case 'video-optimizer': return <Suspense fallback={fallback('Loading optimizer...')}><VideoOptimizerPanel /></Suspense>;
       case 'nano-banana': return <Suspense fallback={fallback('Loading badge creator...')}><NanoBananaBadgeCreator /></Suspense>;
+      case 'compose': return <Suspense fallback={fallback('Loading compose...')}><AtelierCompose api={authAxios} /></Suspense>;
       case 'render-queue': return <Suspense fallback={fallback('Loading render queue...')}><CreatorRenderQueue api={authAxios} /></Suspense>;
       default: return null;
     }

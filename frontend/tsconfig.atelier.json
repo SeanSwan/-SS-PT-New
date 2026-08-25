@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/vite-env.d.ts",
+    "src/components/DashBoard/Pages/content-studio/AtelierCompose.tsx",
+    "src/components/DashBoard/Pages/content-studio/AtelierComposeGrid.tsx",
+    "src/components/DashBoard/Pages/content-studio/AtelierCompose.api.ts",
+    "src/components/DashBoard/Pages/content-studio/AtelierCompose.styles.ts",
+    "src/components/DashBoard/Pages/content-studio/AtelierCompose.honesty.test.ts",
+    "src/components/DashBoard/Pages/content-studio/ContentStudioHub.tsx"
+  ]
+}
