@@ -2,29 +2,23 @@
  * atelierComposeRoutes.mjs — the HTTP surface for Swan Atelier's Compose ladder.
  * ============================================================================
  *
- * ── WHY THIS IS A NEW FILE AND NOT AN ADDITION TO contentStudioRoutes ───────
- * That file is 659 lines against a 300-line cap (rule 4). Extending it would
- * have doubled down on an existing violation, and splitting it first would have
- * spent a whole slice on a pure refactor with nothing visible at the end — the
- * exact substrate-first pattern this lane's own post-mortem records as the
- * reason it shipped a control panel instead of a studio. A new surface gets a
- * new file; the 659-line split stays a hygiene item on its own merits.
+ * ── WHY A NEW FILE ─────────────────────────────────────────────────────────
+ * contentStudioRoutes.mjs is 659 lines against a 300-line cap. Extending it
+ * doubles down; splitting it first spends a slice on a refactor with nothing
+ * visible — the substrate-first pattern this lane's post-mortem blames for
+ * shipping a control panel instead of a studio.
  *
- * ── WHAT THIS IS DELIBERATELY NOT ──────────────────────────────────────────
- * There is no Motion endpoint here yet, and that omission is load-bearing. The
- * blueprint requires that approving a still BINDS the exact asset id and hash
- * consumed by the first-frame graph, because the same prompt and seed do not
- * reproduce an image. Shipping an "animate this" call that quietly re-prompts
- * from text would deliver precisely the broken promise the design names. Motion
- * lands when the asset store it must bind to exists.
+ * ── LANES ──────────────────────────────────────────────────────────────────
+ * `lane: auto|local|hosted`. Local is the default (the 5090, $0). Hosted is
+ * the opt-in fallback and is OFF until a budget is set. `promptSource:
+ * brief|taste` — taste prompts are local-only, enforced in the service.
  *
- * ── ROLE ───────────────────────────────────────────────────────────────────
- * `protect, adminOnly`, matching the rest of the studio: these endpoints spend
- * real money per call, and the operator surface is admin by necessity rather
- * than convention.
+ * ── DELIBERATELY ABSENT ────────────────────────────────────────────────────
+ * No Motion endpoint. Approving a still must BIND the exact asset id + hash the
+ * first-frame graph consumes; an "animate this" that re-prompts from text is
+ * the broken promise the blueprint names. Motion lands with the asset store.
  *
- * The logic lives in `services/atelier/composeStills.mjs` so the gates are
- * testable without an HTTP server or a dollar. This file only translates.
+ * `protect, adminOnly` throughout: these endpoints spend money or GPU time.
  */
 
 import express from 'express';
@@ -32,34 +26,53 @@ import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import {
   composeStills, estimateStills, ComposeError, MAX_STILLS, readComposeLimits, SPEND_ENV_KEY,
 } from '../services/atelier/composeStills.mjs';
+import { verifyLocalStills, PROBE_ENV_KEY, STILL_PROVIDER } from '../services/atelier/localStillLane.mjs';
 
 const router = express.Router();
 
 /**
- * Error code -> HTTP status.
- *
- * Every refusal below happens BEFORE the provider is called, so each of these
- * is a 4xx about the request, never a 5xx about the system. `E_LEDGER_DEGRADED`
- * is the exception: the request was fine and our own state was not.
+ * Error code -> HTTP status. Every refusal happens BEFORE a generator is
+ * called, so these are statements about the request or about our own state.
+ * Busy/unreachable responses carry Retry-After so a client backs off instead
+ * of retrying into a doubled queue.
  */
 const STATUS = Object.freeze({
   E_EMPTY_BRIEF: 400,
+  E_BRIEF_TOO_LONG: 413,
+  E_BAD_LANE: 400,
+  E_BAD_SOURCE: 400,
+  E_BAD_LAW_PROFILE: 400,
   E_COMPILE: 400,
   E_LAW_VIOLATION: 400,
   E_CAPABILITY_UNVERIFIED: 400,
+  E_TASTE_LOCAL_ONLY: 400,
   E_PRICE_UNKNOWN: 409,
-  E_PROVIDER_UNCONFIGURED: 503,
-  E_RUN_CAP: 429,
+  E_NO_LANE: 409,
+  E_STILL_LANE_UNPROBED: 409,
+  E_LOCAL_BUSY: 409,
+  E_PROVIDER_DISABLED: 403,
+  E_LICENCE_GRANT_REQUIRED: 403,
   E_SPEND_CEILING: 402,
+  E_RUN_CAP: 429,
+  E_PROVIDER_UNCONFIGURED: 503,
+  E_COMFY_UNREACHABLE: 503,
+  E_VRAM_BUSY: 503,
   E_LEDGER_DEGRADED: 503,
+  E_TASTE_UNREACHABLE: 502,
+  E_TASTE_BAD_RESPONSE: 502,
   E_ALL_FAILED: 502,
+  E_LOCAL_RENDER: 502,
+  E_TASTE_URL_NOT_LOOPBACK: 500,
   E_BAD_CAP: 500,
 });
 
 function fail(res, err) {
   if (err instanceof ComposeError) {
+    if (err.retryAfterSec) res.set('Retry-After', String(err.retryAfterSec));
     return res.status(STATUS[err.code] || 400).json({
       success: false, error: err.message, code: err.code,
+      ...(err.retryAfterSec ? { retryAfterSec: err.retryAfterSec } : {}),
+      ...(err.freeMb !== undefined ? { freeMb: err.freeMb, neededMb: err.neededMb } : {}),
     });
   }
   console.error('[Atelier/Compose] unexpected failure:', err?.message);
@@ -67,122 +80,87 @@ function fail(res, err) {
 }
 
 /**
- * Read today's usage.
- *
- * STATED PLAINLY: this slice has no spend ledger, so it reports zero and the
- * ceiling is enforced against a single batch rather than a running daily total.
- * That still stops the thing it was built to stop — one runaway request — and
- * does NOT stop fifty separate ones. `degraded` is the honest signal the
- * service already understands, and wiring a real ledger flips this one function
- * without touching a gate.
+ * STATED PLAINLY: no spend ledger exists yet, so usage reports zero and the
+ * ceilings are enforced per batch, not per day. That stops one runaway request
+ * and does not stop fifty separate ones.
  */
 function usageToday() {
   return { runs: 0, spendUsd: 0, degraded: false, ledger: 'absent-this-slice' };
 }
 
-/**
- * The image lane reads its OWN budget key, not the video lane's — see the note
- * in the service. Defaults to $0, which means these endpoints refuse until
- * someone sets a number; `/limits` says so in as many words.
- */
-const limitsNow = () => readComposeLimits();
+function reqFromBody(req, extra = {}) {
+  const b = req.body || {};
+  const headerKey = req.get('Idempotency-Key');
+  return {
+    brief: b.brief, promptSource: b.promptSource, lane: b.lane, model: b.model,
+    count: b.count ?? MAX_STILLS, seed: b.seed, aspect: b.aspect, cinematic: b.cinematic, mode: b.mode, lawProfile: b.lawProfile,
+    workspaceId: b.workspaceId, userId: req.user?.id,
+    idempotencyKey: (typeof headerKey === 'string' && headerKey.trim()) ? headerKey.trim() : undefined,
+    ...extra,
+  };
+}
 
-/**
- * POST /api/atelier/compose/estimate
- * What would this cost? Generates nothing, spends nothing, bills nothing.
- * The Compose surface calls this on every brief change so the price is on
- * screen before the button is live.
- */
+const depsNow = () => ({ limits: readComposeLimits(), usage: usageToday() });
+
+/** POST /api/atelier/compose/estimate — lane, price, readiness. Generates nothing. */
 router.post('/estimate', protect, adminOnly, async (req, res) => {
   try {
-    const { brief, model, count = MAX_STILLS, seed } = req.body || {};
-    const out = await composeStills(
-      { brief, model, count, seed, userId: req.user?.id, workspaceId: req.body?.workspaceId, estimateOnly: true },
-      { limits: limitsNow(), usage: usageToday() },
-    );
-    return res.json({
-      success: true,
-      data: {
-        cost: out.cost,
-        model: out.model,
-        promptHash: out.promptHash,
-        promptText: out.promptText,
-        count: out.cost.count,
-        ...(out.clampedFrom === undefined ? {} : { clampedFrom: out.clampedFrom }),
-      },
-    });
+    const out = await composeStills(reqFromBody(req, { estimateOnly: true }), depsNow());
+    return res.json({ success: true, data: {
+      lane: out.lane, promptSource: out.promptSource, cost: out.cost, model: out.model,
+      count: out.cost.count, admission: out.admission,
+      ...(out.clampedFrom === undefined ? {} : { clampedFrom: out.clampedFrom }),
+    } });
   } catch (err) { return fail(res, err); }
 });
 
 /**
- * POST /api/atelier/compose/stills
- * Generate the candidate grid.
+ * POST /api/atelier/compose/stills — the candidate grid.
+ * 207 when some images failed: a partial grid is neither a success nor a
+ * failure, and a short grid returned as 200 reads as "the model only made three".
  *
- * Returns 207 when some images failed, because a partial grid is neither a
- * success nor a failure and the caller has to render the difference. A short
- * grid returned as 200 reads as "the model only made three good ones."
+ * Each still: { index, lane, image: {kind:'b64',data} | {kind:'path',path,mime},
+ *               seed, promptHash, promptText, provider, sha256?, bytes?, usage? }
  */
 router.post('/stills', protect, adminOnly, async (req, res) => {
   try {
-    const { brief, model, count = MAX_STILLS, seed, workspaceId } = req.body || {};
-    const headerKey = req.get('Idempotency-Key');
-
-    const out = await composeStills({
-      brief,
-      model,
-      count,
-      seed,
-      workspaceId,
-      userId: req.user?.id,
-      idempotencyKey: (typeof headerKey === 'string' && headerKey.trim()) ? headerKey.trim() : undefined,
-    }, { limits: limitsNow(), usage: usageToday() });
-
-    return res.status(out.partial ? 207 : 200).json({
-      success: true,
-      data: {
-        stills: out.stills,
-        failures: out.failures,
-        partial: out.partial,
-        replayed: out.replayed,
-        cost: out.cost,
-        model: out.model,
-        promptHash: out.promptHash,
-        promptText: out.promptText,
-        idempotencyKey: out.key,
-        ...(out.clampedFrom === undefined ? {} : { clampedFrom: out.clampedFrom }),
-      },
-    });
+    const out = await composeStills(reqFromBody(req), depsNow());
+    return res.status(out.partial ? 207 : 200).json({ success: true, data: {
+      lane: out.lane, promptSource: out.promptSource, stills: out.stills, failures: out.failures,
+      partial: out.partial, replayed: out.replayed, cost: out.cost, model: out.model,
+      idempotencyKey: out.key, admission: out.admission,
+      ...(out.tasteSeed !== undefined ? { tasteSeed: out.tasteSeed, lawRejected: out.lawRejected, lawProfile: out.lawProfile } : {}),
+      ...(out.clampedFrom === undefined ? {} : { clampedFrom: out.clampedFrom }),
+    } });
   } catch (err) { return fail(res, err); }
 });
 
 /**
- * GET /api/atelier/compose/limits
- * What the ceilings currently are, and — honestly — that no ledger backs them
- * yet. The Compose header shows this, so "session $0.00 / cap $5.00" is read
- * from the same numbers the gate enforces rather than a second hardcoded copy.
+ * GET /api/atelier/compose/limits — what each lane can do RIGHT NOW, with the
+ * switch that changes it. `advertisable:false` on a claimed lane is the UI's
+ * instruction not to promise it.
  */
 router.get('/limits', protect, adminOnly, (req, res) => {
-  const limits = limitsNow();
+  const limits = readComposeLimits();
   const usage = usageToday();
-  return res.json({
-    success: true,
-    data: {
-      maxStills: MAX_STILLS,
-      limits: { maxRunsDaily: limits.maxRunsDaily, maxSpendUsdDaily: limits.maxSpendUsdDaily },
-      usage: { runs: usage.runs, spendUsd: usage.spendUsd },
-      ledger: usage.ledger,
-      // Surfaced as a first-class field, not left for the caller to infer from a
-      // zero. A UI that renders "cap $0.00" without saying WHY looks broken; one
-      // that says "switched off, set this key" is actionable.
-      enabled: !limits.disabled,
-      spendEnvKey: SPEND_ENV_KEY,
-      note: limits.disabled
-        ? `Image generation is switched off: no budget is set, so the daily ceiling is $0. `
-          + `Set ${SPEND_ENV_KEY} to enable it.`
-        : 'No spend ledger exists yet, so usage reports zero and the ceiling is enforced '
-          + 'per batch rather than per day.',
+  const lv = verifyLocalStills();
+  return res.json({ success: true, data: {
+    maxStills: MAX_STILLS,
+    lanes: {
+      local: { provider: STILL_PROVIDER, status: lv.status, ready: lv.ok, advertisable: lv.status === 'probed',
+        problems: lv.problems, probeEnvKey: PROBE_ENV_KEY, unitUsd: 0 },
+      hosted: { enabled: !limits.disabled, spendEnvKey: SPEND_ENV_KEY,
+        limits: { maxRunsDaily: limits.maxRunsDaily, maxSpendUsdDaily: limits.maxSpendUsdDaily } },
     },
-  });
+    usage: { runs: usage.runs, spendUsd: usage.spendUsd },
+    ledger: usage.ledger,
+    enabled: lv.ok || !limits.disabled,
+    spendEnvKey: SPEND_ENV_KEY,
+    note: lv.ok ? 'Local stills ready ($0). No spend ledger exists yet; ceilings are per batch.'
+      : limits.disabled
+        ? `No lane is ready. Local: ${lv.problems[0]}. Hosted is switched off — set ${SPEND_ENV_KEY} to enable it.`
+        : `Hosted lane enabled. Local: ${lv.problems[0]}. No spend ledger exists yet; ceilings are per batch.`,
+  } });
 });
 
 export { estimateStills };

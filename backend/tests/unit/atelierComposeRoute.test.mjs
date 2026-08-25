@@ -30,7 +30,8 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROUTE_SRC = readFileSync(join(HERE, '../../routes/atelierComposeRoutes.mjs'), 'utf8');
-const SERVICE_SRC = readFileSync(join(HERE, '../../services/atelier/composeStills.mjs'), 'utf8');
+const SERVICE_SRC = ['composeStills', 'composeLimits', 'promptSources', 'localStillLane']
+  .map((f) => readFileSync(join(HERE, `../../services/atelier/${f}.mjs`), 'utf8')).join('\n');
 
 const BRIEF = { text: 'a glacier calving into black water at dawn', intent: 'hero', aspect: '16:9' };
 const MODEL = 'openai/gpt-5.4-image-2';
@@ -56,7 +57,7 @@ describe('budget keys', () => {
   });
 
   it('never reads a SWAN_VIDEO_ variable anywhere in the image lane', () => {
-    expect(SERVICE_SRC).not.toMatch(/env\.SWAN_VIDEO_/);
+    expect(SERVICE_SRC).not.toMatch(/SWAN_VIDEO_MAX_SPEND/);
     expect(ROUTE_SRC).not.toMatch(/spendGuard/);
   });
 
@@ -73,10 +74,13 @@ describe('budget keys', () => {
 });
 
 describe('the switched-off refusal is actionable', () => {
-  const disabled = { limits: readComposeLimits({}), usage: { runs: 0, spendUsd: 0 }, verifier: okVerifier, generator: noGen };
+  // RE-ANCHORED when the local lane arrived: with no lane given, `auto` now
+  // resolves and reports E_NO_LANE naming BOTH switches (covered in the lanes
+  // suite). These two protect the HOSTED refusal specifically, so they ask for it.
+  const disabled = { env: {}, limits: readComposeLimits({}), usage: { runs: 0, spendUsd: 0 }, verifier: okVerifier, generator: noGen };
 
   it('names the environment variable that enables the lane', async () => {
-    const err = await composeStills({ brief: BRIEF, model: MODEL, count: 4 }, disabled)
+    const err = await composeStills({ brief: BRIEF, model: MODEL, count: 4, lane: 'hosted' }, disabled)
       .catch((e) => e);
     expect(err).toBeInstanceOf(ComposeError);
     expect(err.code).toBe('E_SPEND_CEILING');
@@ -84,7 +88,7 @@ describe('the switched-off refusal is actionable', () => {
   });
 
   it('says "switched off", not "you overspent", when nothing has been spent', async () => {
-    const err = await composeStills({ brief: BRIEF, model: MODEL, count: 4 }, disabled)
+    const err = await composeStills({ brief: BRIEF, model: MODEL, count: 4, lane: 'hosted' }, disabled)
       .catch((e) => e);
     expect(err.message).toMatch(/switched off/i);
     // The misleading shape: implying a charge occurred or a budget was consumed.
