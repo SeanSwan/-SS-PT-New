@@ -13,9 +13,10 @@ import { getIO as getManagedSocketIO } from './socketManager.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 import { canSendToConversation, BLOCKED_MESSAGE } from '../services/messaging/blockGuard.mjs';
 import { checkMessageRate, MESSAGE_RATE_LIMITED } from '../services/messaging/messageRateLimit.mjs';
-import { isRelationshipWriteAllowed } from '../services/messagingAccessRepository.mjs';
-import { resolveCurrentEntitlement, isGatingEnabled } from '../middleware/requireTier.mjs';
-import { meetsMinimumTier } from '../config/tierCatalog.mjs';
+import {
+  isRelationshipWriteAllowed,
+  resolveSocketCommunityAccess,
+} from '../services/messagingAccessRepository.mjs';
 
 const onlineUsers = new Map();
 const MAX_MESSAGE_LENGTH = 5000;
@@ -145,24 +146,7 @@ export const initializeSocket = () => {
         // 403'd by REST on an old community thread and could still write to it
         // here — exactly the failure this file's next comment warns about, and
         // flagged independently by two post-ship reviewers.
-        let hasCommunityAccess = false;
-        const cached = socket.data?.entitlementCache;
-        if (cached && cached.expiresAt > Date.now()) {
-          hasCommunityAccess = cached.hasCommunityAccess;
-        } else {
-          try {
-            const entitlement = await resolveCurrentEntitlement({ user: socket.user });
-            hasCommunityAccess = meetsMinimumTier(entitlement.effectiveTier, 'elite');
-          } catch {
-            hasCommunityAccess = false; // fail closed, same as the middleware
-          }
-          // Cached per CONNECTION for 60s. A scripted loop under the rate limit
-          // still forced one entitlement query per message; a tier change takes
-          // effect within a minute or on reconnect (Kimi K3).
-          socket.data = socket.data || {};
-          socket.data.entitlementCache = { hasCommunityAccess, expiresAt: Date.now() + 60_000 };
-        }
-        if (!isGatingEnabled()) hasCommunityAccess = true;
+        const hasCommunityAccess = await resolveSocketCommunityAccess(socket);
 
         if (!(await isRelationshipWriteAllowed(socket.user, normalizedConversationId, hasCommunityAccess))) {
           socket.emit('error', { message: 'You can message your assigned trainer here.' });

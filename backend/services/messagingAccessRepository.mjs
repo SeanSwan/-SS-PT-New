@@ -18,6 +18,8 @@ import { QueryTypes } from 'sequelize';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import { toStrictPositiveInt } from './messagingGroupPolicy.mjs';
+import { resolveCurrentEntitlement, isGatingEnabled } from '../middleware/requireTier.mjs';
+import { meetsMinimumTier } from '../config/tierCatalog.mjs';
 
 // ONE parser, imported — not a second copy kept identical by a comment. The
 // previous duplicate was byte-equal to toStrictPositiveInt and would have
@@ -178,4 +180,31 @@ export async function isRelationshipWriteAllowed(actor, conversationId, hasCommu
   // `platformRole` comes from Users.role, never the per-conversation role, so a
   // client holding conversation-admin in a group cannot spoof staff here.
   return othersAreReachable(membership.others, counterparties);
+}
+
+/**
+ * Community entitlement for a socket, cached per CONNECTION for 60s.
+ *
+ * Lives here rather than in the handler because it feeds the lane decision and
+ * must resolve through the SAME requireTier helpers the REST gate uses — two
+ * lanes resolving entitlement differently is this codebase's signature bug.
+ * Without the cache a scripted loop under the rate limit still forced one
+ * entitlement query per message (Kimi K3). Fails CLOSED, like the middleware.
+ */
+export async function resolveSocketCommunityAccess(socket) {
+  const cached = socket.data?.entitlementCache;
+  if (cached && cached.expiresAt > Date.now()) return cached.hasCommunityAccess;
+
+  let hasCommunityAccess = false;
+  try {
+    const entitlement = await resolveCurrentEntitlement({ user: socket.user });
+    hasCommunityAccess = meetsMinimumTier(entitlement.effectiveTier, 'elite');
+  } catch {
+    hasCommunityAccess = false;
+  }
+  if (!isGatingEnabled()) hasCommunityAccess = true;
+
+  socket.data = socket.data || {};
+  socket.data.entitlementCache = { hasCommunityAccess, expiresAt: Date.now() + 60_000 };
+  return hasCommunityAccess;
 }

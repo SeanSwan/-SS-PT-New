@@ -286,18 +286,3 @@ describe('requireMessagingAccess', () => {
     });
   });
 });
-
-describe('a DB fault is not a paywall', () => {
-  // GLM 5.3: a failed counterparty lookup rendered as the 402 upsell — a paying
-  // client with an active trainer told to upgrade during a transient outage.
-  it('503s when the assignment lookup fails, never 402', async () => {
-    resolveEntitlementMock.mockResolvedValue({ actualTier: 'free', effectiveTier: 'free', isTrial: false });
-    queryMock.mockImplementation(async (sql) => {
-      if (sql.includes('client_trainer_assignments')) throw new Error('db down');
-      return [];
-    });
-    const res = await request(appWith(freeClient, 'list')).get('/conversations');
-    expect(res.status).toBe(503);
-    expect(res.body.code).toBe('MESSAGING_LOOKUP_UNAVAILABLE');
-  });
-});

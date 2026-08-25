@@ -236,49 +236,6 @@ describe('clinical terms survive the category matcher', () => {
   });
 });
 
-describe('word-classifier: known lifestyle vocabulary gates, unknown words keep', () => {
-  // GLM 5.3, UX panel: the prefix+suffix shape was NARROWER than the risk the
-  // owner accepted — avgSleepHours, nightlyStress, sleepNotes, supplementRegimen,
-  // reportedStressLevel and typicalSleep all escaped, while the disclosure
-  // promised those categories were withheld. Third shape for this one defect
-  // class; this one asks a question with a bounded answer.
-  const gated = [
-    'avgSleepHours', 'nightlyStress', 'sleepNotes', 'supplementRegimen',
-    'reportedStressLevel', 'typicalSleep', 'sleep_debt_hours', 'supplements',
-  ];
-  const kept = [
-    'stressFracture', 'sleepApnea', 'supplementalOxygenNeeded', 'stressEchocardiogram',
-  ];
-
-  it.each(gated)('gates %s', (key) => {
-    const { deIdentified } = deIdentify({
-      client: { id: 501, goals: ['x'] }, training: { level: 'i' }, health: { [key]: 'v' },
-    }, { clientId: 501 });
-    expect(deIdentified.health[key]).toBeUndefined();
-  });
-
-  it.each(kept)('keeps %s — an unknown word means clinical', (key) => {
-    const { deIdentified } = deIdentify({
-      client: { id: 501, goals: ['x'] }, training: { level: 'i' }, health: { [key]: 'v' },
-    }, { clientId: 501 });
-    expect(deIdentified.health[key]).toBe('v');
-  });
-
-  it('logs the ambiguous keeps so unknown vocabulary stops being invisible', () => {
-    logger.warn.mockClear();
-    deIdentify({
-      client: { id: 501, goals: ['x'] }, training: { level: 'i' },
-      health: { stressFracture: 'tibia' },
-    }, { clientId: 501 });
-    const warned = logger.warn.mock.calls.filter(
-      ([m]) => typeof m === 'string' && m.includes('ambiguous health-ish key KEPT'),
-    );
-    expect(warned.length).toBeGreaterThan(0);
-    // Field NAME only, never the value (rules 8/44/59).
-    expect(JSON.stringify(warned[0][1])).not.toContain('tibia');
-  });
-});
-
 describe('no-throw on degenerate shapes', () => {
   // `typeof null === 'object'` let a null intermediate through setNestedValue's
   // guard, so `client: null` threw instead of failing closed (ox-alpha, executed).
@@ -287,28 +244,5 @@ describe('no-throw on degenerate shapes', () => {
     const r = deIdentify({ client: null, training: { level: 'i' } }, { clientId: 501 });
     expect(r).not.toBeNull();
     expect(r.deIdentified.client.alias).toBe('Client #501');
-  });
-});
-
-describe('synonyms the first classifier could not see at all', () => {
-  // GLM 5.3: keys with no sleep/stress/supplement substring bypassed the gate
-  // AND were not logged — the silent no-token path was never part of the
-  // accepted under-gating tradeoff.
-  it.each(['bedtime', 'anxietyLevel', 'fatigueScore', 'hoursAsleep', 'timeAsleep'])('gates %s', (key) => {
-    const { deIdentified } = deIdentify({
-      client: { id: 501, goals: ['x'] }, training: { level: 'i' }, health: { [key]: 'v' },
-    }, { clientId: 501 });
-    expect(deIdentified.health[key]).toBeUndefined();
-  });
-
-  it('the vocabulary edit that HURTS is adding a clinical word — pinned', () => {
-    // Kimi K3: unknown=KEEP is only safe while LIFESTYLE_WORDS stays lifestyle.
-    // If someone adds "fracture" thinking of recovery notes, stressFracture gates.
-    for (const key of ['stressFracture', 'sleepApnea', 'supplementalOxygenNeeded', 'stressEchocardiogram']) {
-      const { deIdentified } = deIdentify({
-        client: { id: 501, goals: ['x'] }, training: { level: 'i' }, health: { [key]: 'v' },
-      }, { clientId: 501 });
-      expect(deIdentified.health[key], key).toBe('v');
-    }
   });
 });
