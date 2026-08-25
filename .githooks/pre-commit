@@ -75,4 +75,9 @@ if [[ -f "$LANE_GUARD" ]] && command -v node >/dev/null 2>&1; then
   fi
 fi
 
+# NOTE: the rulebook-review guard lives in .githooks/commit-msg, NOT here. It needs the
+# commit MESSAGE, and during pre-commit the message is not written yet (with -m, git
+# writes COMMIT_EDITMSG after pre-commit) — a pre-commit read sees the PREVIOUS commit's
+# message. A guard on stale input is worse than none.
+
 exit 0

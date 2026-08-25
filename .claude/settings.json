@@ -324,6 +324,11 @@
           },
           {
             "type": "command",
+            "command": "node scripts/hooks/heredoc-escape-gate.mjs",
+            "timeout": 10
+          },
+          {
+            "type": "command",
             "command": "node scripts/hooks/exit-status-gate.mjs",
             "timeout": 5
           }
