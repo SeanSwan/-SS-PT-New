@@ -35,6 +35,7 @@ Production code; component implementations; screenshots/QA dumps (those go to QA
 | `style-taxonomy.md` | Two-axis style model (aesthetic × era) and its Swan mapping. Captured third-party facet counts drift and are reference-only, never doctrine |
 | `field-techniques.md` | Field-tested effect techniques and the CONVERGENCE note on producing hero creative (image-first loop, interpolation, reference ladder) |
 | `forge-compiler-contract.md` | Swan Forge prompt-compiler contract — the 12-slot composer, capability gating, provider-safety classification |
+| `taste-discovery-grill.md` | The protocol grill-me's **Visual-taste mode** runs: three unled questions (kept-triage, medium+surface, refusals) → the Taste Brain probe (`127.0.0.1:7331/probe`) → three tier-labelled directions from `/api/profile`. Agents read IDs/tallies, never images; the probe page is the only taste writer |
 
 ### Callable World Engine skill (manual-only)
 

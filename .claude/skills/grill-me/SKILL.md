@@ -29,6 +29,7 @@ Invoke after Rule 78 environment preflight at the start of a bounded task that i
 - A **planning session** where the goal is fuzzy ("I want to build X" with the details still in Sean's head)
 - A request that **explicitly** says "grill me", "interview me", "ask me questions about", or "/grill-me"
 - Any moment Claude/Codex notices it is **about to guess** at Sean's taste, hierarchy, scope, or business logic instead of knowing it
+- **Visual taste specifically** — a hero direction, an image style, a film look, "what do I like" — switch into **Visual-taste mode** (below): three unled questions, then pictures, then the compiler's three tier-labelled directions
 
 Do NOT invoke for:
 - Trivial bug fixes, typo fixes, comment-only edits, formatting passes
@@ -90,6 +91,16 @@ Know the boundary, though — this lens is still **extraction**, not strategy pr
 - If the question becomes *"will this actually win — PMF, moat, monetization, what kills it,"* that's **`chromie`**, the dedicated CEO pressure-test (founder panel, hostile pushback, spec + 3 ways it fails + absence-first gap ranking). Hand off: finish capturing the vision here, then say *"the vision's captured — want me to run Chromie to pressure-test whether it wins before we plan?"*
 
 Order stays: Rule 78 environment preflight -> Wayfinder only for multi-session material fog -> grill-me (intent) -> chromie (strategy, if the bet is unproven) -> swan-orchestrator -> swan-design-router (if UI) -> build -> closeout.
+
+### Visual-taste mode (when the unresolved question is what Sean's eye wants)
+
+A **mode of grill-me**, not a new skill and not a new pipeline edge. Full protocol: `docs/ai-workflow/design-brain/taste-discovery-grill.md` — load it when this mode fires. The short form:
+
+1. **Three verbal questions, one at a time, none led.** Q0 *"pick 2–4 things you've shipped or kept and would ship again — what must a new direction share with them?"* · Q1 *"web, still image, or film — and where does it live (hero / module / film title / substrate)?"* · Q3 *"what must this never be, in your own words?"* No "Recommended: <Swan's self-portrait>" openers; a recommendation may follow his answer and is then logged as shown. Q2/Q4/Q5/Q6 from the GPT review are retired — they were brand recitation.
+2. **Then pictures.** Say: *"I have enough context to stop guessing with words. Open `http://127.0.0.1:7331/probe` and judge two or three grids — up to three closest and three miss per grid, nothing forced; lock one reason, then the label shows. Tell me when you're done."* Wait. Do not narrate, do not poll images.
+3. **Then read the compiler, present three directions.** `curl -s http://127.0.0.1:7331/api/profile` → present counts (reasons, subjects, provenance) as numbers, then the three `directions` each prefixed with its tier in caps — `[EVIDENCE]` (his picks, event ids cited, sample prompt = the picture he chose) or `[PRIOR]` ("from themes.md — not yet backed by your picks") — then the *proposed* avoids, then ONE question: which direction to build from, or more grids. Hand the chosen direction to `swan-design-router` (web), the Forge / Prompt Studio (still), or the cinematic skill (film), and record it + its `evidenceEventIds` in the brainstorm doc.
+
+**Hard limits (panel law):** agents read IDs and tallies, never image bytes; never open `taste/events/*.jsonl`; never write `themes.md` / `rejected.md` / `loved-srefs.md` / `kept.md` — the probe page is the only writer and Sean is the only author. Present a `prior` as a prior. Done floor: ≥8 non-neutral judgements across ≥2 grids; there is no "model confidence" to stop on.
 
 ### How to ask in Claude Code
 - Use the **`AskUserQuestion` tool** when the question has discrete, mutually-exclusive options (it gives Sean tap-to-answer chips and renders option previews for UI/layout choices — use the `preview` field for ASCII mockups or code snippets when comparing concrete artifacts).
