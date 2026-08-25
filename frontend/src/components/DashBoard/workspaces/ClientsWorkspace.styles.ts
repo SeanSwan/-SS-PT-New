@@ -277,32 +277,3 @@ export const LoadingPulse = styled.div`
   font-family: 'Sora', sans-serif;
   font-size: 14px;
 `;
-
-/**
- * Persistent screen-reader-only announcer for the roster fetch.
- *
- * WHY A PERSISTENT NODE OUTSIDE ContentArea, rather than aria-live on the pulse:
- *   1. ARIA 1.2 lets assistive tech DEFER changes inside an `aria-busy` subtree
- *      until busy clears. ContentArea carries aria-busy while the roster loads, so
- *      a live region nested inside it can have its announcement deferred — and the
- *      pulse unmounts when loading ends, so the deferred text is gone by the time
- *      busy clears. Announcement lost. This node sits OUTSIDE that subtree.
- *   2. A live region that mounts already containing its text is unreliably
- *      announced. A region that is always present and whose TEXT changes is the
- *      robust pattern.
- */
-export const RosterAnnouncer = styled.div`
-  position: absolute;
-  inline-size: 1px;
-  block-size: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  /* The usual sr-only recipe also pins the wrapping mode. That declaration is
-     deliberately absent: ClientsWorkspace.mobileHeader.contract.test.ts bans it in
-     this file to keep action labels wrap-safe, and the announcer does not need it —
-     assistive tech reads the accessibility tree, not visual line-breaking, and
-     clip-path + overflow already remove the box from view. Do not name the banned
-     declaration in prose here either; the contract matches source text, so even the
-     explanation would trip it. */
-  clip-path: inset(50%);
-`;

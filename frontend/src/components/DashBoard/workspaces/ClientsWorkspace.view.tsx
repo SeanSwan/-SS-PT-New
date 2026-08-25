@@ -38,9 +38,9 @@ import {
   DetailScrollWrap,
   HubContainer,
   LoadingPulse,
-  RosterAnnouncer,
 } from './ClientsWorkspace.styles';
 import ErrorNote from '../../ui/ErrorNote';
+import LiveRegion from '../../ui/LiveRegion';
 import ClientsWorkspaceLensFrame from './ClientsWorkspaceLensFrame';
 import ClientActivationQueuePanel from './ClientActivationQueuePanel';
 import ClientCreationHandoffPanel from './clients-team/ClientCreationHandoffPanel';
@@ -236,7 +236,7 @@ const ClientGrid: React.FC<Pick<
 );
 
 const DetailContent: ContentRenderer = (props) => <SelectedClientDetail {...props} />;
-// Purely visual. The screen-reader announcement is made by RosterAnnouncer, which
+// Purely visual. The screen-reader announcement is made by LiveRegion, which
 // lives OUTSIDE ContentArea — see its definition for why a live region nested inside
 // an aria-busy subtree can have its announcement deferred and then lost.
 const LoadingContent: ContentRenderer = () => <LoadingPulse>Loading clients...</LoadingPulse>;
@@ -271,10 +271,9 @@ const ClientsWorkspaceView: React.FC<ClientsWorkspaceViewProps> = (props) => {
   return (
     <ClientsWorkspaceLensFrame>
     <HubContainer>
-      {/* Always mounted; only its text changes. Outside ContentArea on purpose. */}
-      <RosterAnnouncer role="status" aria-live="polite">
-        {props.loading ? 'Loading clients...' : ''}
-      </RosterAnnouncer>
+      {/* Unconditionally mounted, ABOVE and OUTSIDE the aria-busy ContentArea.
+          Both of those are load-bearing — see LiveRegion for why. */}
+      <LiveRegion message={props.loading ? 'Loading clients...' : ''} />
       {props.loadError && !props.loading && (
         <ErrorNote onRetry={props.onRetryLoad} retryLabel="Retry">
           Couldn&apos;t load your client roster.
