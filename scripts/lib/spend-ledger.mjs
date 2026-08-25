@@ -57,26 +57,62 @@ export function readLedger() {
 }
 
 /**
+ * ONE topic key for one document — the single source of truth for both sides of
+ * the per-topic cap. Found 2026-08-24, the day the ledger writer went live: the
+ * spend-guard hook normalized topics one way (strip dir, strip .md/.txt/.json,
+ * filter to [A-Za-z0-9._-], slice 60) while the writer stripped ANY extension and
+ * filtered nothing. `spentOnTopic` matches with STRICT equality, so the same
+ * document could yield two keys and the topic cap would silently never accumulate
+ * for it — a cap that mostly matches is the same defect as a writer nothing calls,
+ * one layer down. Semantics are the GUARD's incumbent rules, unchanged, so no
+ * in-flight approval token (keyed on model+topic+cost) is orphaned.
+ * @param {string} p  document/out path or bare name
+ */
+export function topicFromPath(p) {
+  return String(p || '')
+    .replace(/^.*[\\/]/, '')
+    .replace(/\.(md|txt|json)$/i, '')
+    .replace(/[^A-Za-z0-9._-]/g, '')
+    .slice(0, 60) || 'untitled';
+}
+
+/**
  * Record real spend AFTER a call completes.
  * @param {{model:string, topic:string, usd:number, note?:string}} entry
  */
 export function recordSpend({ model, topic, usd, note = '' }) {
   ensureDir();
+  // `usd: null` is a LEGAL, MEANINGFUL value: "this call cost money and nobody
+  // could price it." Three review seats independently flagged the previous
+  // `Number(usd) || 0` + writer-side `cost ?? 0`: an unpriced model recorded a
+  // confident $0.00, so the caps could never fire for exactly the calls of
+  // unknown price — fail-open in the expensive direction, dressed as safe.
+  // Readers below treat null as WORST CASE (perCall cap), so an unpriced call
+  // pushes the caps toward refusal, never away from it.
+  const priced = usd !== null && usd !== undefined && Number.isFinite(Number(usd));
   appendFileSync(LEDGER, `${JSON.stringify({
-    ts: new Date().toISOString(), model, topic, usd: Number(usd) || 0, note,
+    ts: new Date().toISOString(), model, topic,
+    usd: priced ? Number(usd) : null,
+    note: priced ? note : `${note ? note + ' | ' : ''}UNPRICED — counted as worst-case $${CAPS.perCall}`,
   })}\n`, 'utf-8');
 }
+
+/**
+ * The dollar value a ledger row contributes to a cap. Unpriced rows (usd null)
+ * count as the per-call cap: the one direction an unknown cost is allowed to err.
+ */
+const rowUsd = (e) => (e.usd === null || e.usd === undefined ? CAPS.perCall : (Number(e.usd) || 0));
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function spentToday(entries = readLedger()) {
   const d = today();
-  return entries.filter((e) => (e.ts || '').startsWith(d)).reduce((s, e) => s + (e.usd || 0), 0);
+  return entries.filter((e) => (e.ts || '').startsWith(d)).reduce((s, e) => s + rowUsd(e), 0);
 }
 
 export function spentOnTopic(topic, entries = readLedger()) {
   if (!topic) return 0;
-  return entries.filter((e) => e.topic === topic).reduce((s, e) => s + (e.usd || 0), 0);
+  return entries.filter((e) => e.topic === topic).reduce((s, e) => s + rowUsd(e), 0);
 }
 
 /** Single-use approval tokens, keyed by the exact breach they were issued for. */

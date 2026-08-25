@@ -22,7 +22,7 @@
  * has a bug costs more than the spend it prevents. It fails open loudly.
  */
 import { readFileSync } from 'node:fs';
-import { checkSpend, CAPS, spentToday, spentOnTopic } from '../lib/spend-ledger.mjs';
+import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath } from '../lib/spend-ledger.mjs';
 
 const ALLOW = () => process.exit(0);
 
@@ -126,11 +126,11 @@ try {
   // --- topic: what "the whole thing" means --------------------------------
   // Best available proxy for one workstream is the document/out path stem.
   const docMatch = cmd.match(/--document\s+([^\s]+)/) || cmd.match(/--out\s+([^\s]+)/);
-  const topic = (docMatch ? docMatch[1] : 'untitled')
-    .replace(/^.*[\\/]/, '')
-    .replace(/\.(md|txt|json)$/i, '')
-    .replace(/[^A-Za-z0-9._-]/g, '')
-    .slice(0, 60) || 'untitled';
+  // topicFromPath is the SINGLE normalizer, shared with the ledger WRITER in the
+  // consult transports. The inline version this replaced was the guard's own
+  // rules; the writer had different rules; spentOnTopic matches strictly — so the
+  // per-topic cap silently never accumulated for some documents (2026-08-24).
+  const topic = topicFromPath(docMatch ? docMatch[1] : 'untitled');
 
   const approvalToken = (cmd.match(/SWAN_SPEND_APPROVE=([a-f0-9]{12})/) || [])[1] || '';
 

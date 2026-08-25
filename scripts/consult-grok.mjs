@@ -157,7 +157,13 @@ if (!res.ok) {
   clearTimeout(idleTimer);
   const errBody = await res.text().catch(() => '');
   console.error(`OpenRouter ${res.status}: ${errBody.slice(0, 1500)}`);
-  process.exit(1);
+  // Exit 75 (EX_TEMPFAIL, sysexits.h) for PROVIDER-TRANSIENT failures — 429 rate
+  // limit, 5xx upstream — so a launcher can tell "retry shortly" from "you are
+  // misconfigured." Before this, both were exit 1: the Ox launcher's 429 retry
+  // logic also backed off 60s on a missing API key, N times, for nothing. A
+  // config failure (4xx other than 429) stays exit 1 and must never be retried.
+  const transient = res.status === 429 || res.status >= 500;
+  process.exit(transient ? 75 : 1);
 }
 
 let text = '';
@@ -244,13 +250,19 @@ console.log(`[consult-grok] response in ${wallSec}s — tokens ${inTok} in / ${o
 // the reply exists, attributed to the SERVED model when the provider reported one.
 // Fail-open: a ledger problem must never break a consult that already succeeded.
 try {
-  const { recordSpend } = await import('./lib/spend-ledger.mjs');
+  const { recordSpend, topicFromPath } = await import('./lib/spend-ledger.mjs');
+  // topicFromPath: the SAME normalizer the spend-guard hook uses, so the writer's
+  // key and the guard's key cannot diverge (they did — strict-equality match, two
+  // schemes, cap silently never accumulated for some docs). `usd: cost` passes null
+  // through on purpose: the ledger records unpriced calls as null and its readers
+  // count null as worst-case. `cost ?? 0` here used to write a confident $0.00.
   recordSpend({
     model: servedModel || MODEL,
-    topic: basename(docPath).replace(/\.[^.]+$/, ''),
-    usd: cost ?? 0,
-    note: `consult-grok transport (${MODEL_LABEL}); cost=${cost === null ? 'unpriced-model' : 'actual'}`,
+    topic: topicFromPath(docPath),
+    usd: cost,
+    note: `consult-grok transport (${MODEL_LABEL}); cost=${cost === null ? 'unpriced' : (typeof usage?.cost === 'number' ? 'provider-actual' : 'table-estimate')}`,
   });
+  if (cost === null) console.warn(`[consult-grok] ⚠ UNPRICED call recorded as worst-case (per-call cap) — add ${MODEL} to PRICES.`);
 } catch (e) {
   console.warn(`[consult-grok] spend-ledger write failed (non-fatal): ${String(e.message).slice(0, 120)}`);
 }

@@ -217,6 +217,33 @@ test('every fault code lands on the intended side of abort-vs-retry', () => {
   }
 });
 
+// --- R6: the retry allowlist is OPT-IN, and the table is actually closed ------
+// Three seats (GLM, Ox×2, 2026-08-24) caught the launcher's `abort !== true`
+// predicate treating every UNLISTED code as retryable — the default pointed at a
+// second paid attempt. Retry is now `retry === true`, and the transport codes are
+// in the table so "closed" means closed.
+
+test('R6 retry is an opt-in allowlist — unknown codes are NOT retried', () => {
+  const wantsRetry = (code) => FAULT[code]?.retry === true;
+  assert.equal(wantsRetry('SOMETHING_NEW'), false, 'unlisted code must not re-spend');
+  assert.equal(wantsRetry(undefined), false);
+  for (const c of ['TRANSIENT', 'TRUNCATED', 'IO_ERROR']) assert.equal(wantsRetry(c), true, `${c} is provider/fs-transient`);
+  for (const c of ['EXIT_NONZERO', 'NO_OUTPUT']) assert.equal(wantsRetry(c), false, `${c} is config-shaped — never re-spend`);
+  for (const c of ['WRONG_SEAT', 'SUBSTITUTED', 'UNPROVEN_NO_HEADER', 'UNPROVEN_NO_SERVED', 'UNPROVEN_UNREPORTED']) {
+    assert.equal(wantsRetry(c), false, `${c} aborts; retrying a misconfiguration only spends`);
+    assert.equal(FAULT[c].abort, true);
+  }
+});
+
+test('R6 every code carries BOTH flags explicitly, and no code both aborts and retries', () => {
+  for (const [code, f] of Object.entries(FAULT)) {
+    assert.equal(typeof f.abort, 'boolean', `${code}.abort must be explicit`);
+    assert.equal(typeof f.retry, 'boolean', `${code}.retry must be explicit`);
+    assert.ok(!(f.abort && f.retry), `${code} cannot be both abort and retry`);
+  }
+  assert.ok(Object.isFrozen(FAULT), 'the table is closed');
+});
+
 test('identity is checked BEFORE truncation — a wrong seat is never merely truncated', () => {
   const text = header('x-ai/grok-4.6') + '\n> ⚠ **TRUNCATED** — hit max_tokens (48000).\n';
   assert.equal(check(text)?.code, 'WRONG_SEAT');

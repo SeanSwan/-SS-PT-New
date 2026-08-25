@@ -40,13 +40,26 @@ export const OX_MODEL = 'stealth/ox-alpha';
  * under the previous substring match. A closed set of codes cannot be spoofed by
  * content, and rewording a message can no longer silently change abort behavior.
  */
+//
+// TWO independent flags per code, both fail-closed for codes not listed here:
+//   abort  — stop the whole run (config error; more calls only spend)
+//   retry  — worth ONE paid re-attempt after a backoff (provider-transient)
+// Three review seats (GLM, Ox×2, 2026-08-24) independently caught the previous
+// predicate `FAULT[code]?.abort !== true` treating every UNLISTED code as
+// retryable — a "closed table" closed only for codes someone remembered to list,
+// with the default pointing at more spend. Retry is an opt-in allowlist now.
+// The transport codes are in the table too, so it is actually closed.
 export const FAULT = Object.freeze({
-  WRONG_SEAT:          { abort: true },   // config: selector never reached the transport
-  SUBSTITUTED:         { abort: true },   // config: provider served a different model family
-  UNPROVEN_NO_HEADER:  { abort: true },   // config: transport writes no attribution at all
-  UNPROVEN_NO_SERVED:  { abort: true },   // config: transport does not report the served model
-  UNPROVEN_UNREPORTED: { abort: true },   // config: provider names no model
-  TRUNCATED:           { abort: false },  // transient: can come right on the next attempt
+  WRONG_SEAT:          { abort: true,  retry: false }, // config: selector never reached the transport
+  SUBSTITUTED:         { abort: true,  retry: false }, // config: provider served a different model family
+  UNPROVEN_NO_HEADER:  { abort: true,  retry: false }, // config: transport writes no attribution at all
+  UNPROVEN_NO_SERVED:  { abort: true,  retry: false }, // config: transport does not report the served model
+  UNPROVEN_UNREPORTED: { abort: true,  retry: false }, // config: provider names no model
+  TRUNCATED:           { abort: false, retry: true  }, // transient: reply cut at max_tokens
+  TRANSIENT:           { abort: false, retry: true  }, // transient: transport exit 75 = 429 / 5xx upstream
+  IO_ERROR:            { abort: false, retry: true  }, // transient: output unreadable (fs blip)
+  EXIT_NONZERO:        { abort: false, retry: false }, // config-shaped: exit 1 = key/args/4xx — never re-spend
+  NO_OUTPUT:           { abort: false, retry: false }, // exit 0 with no file — a transport bug, not a blip
 });
 
 /**

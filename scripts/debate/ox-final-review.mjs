@@ -143,6 +143,10 @@ function evaluate(r) {
       // caller keys on `.code` and never on the prose.
       fault = { code: 'IO_ERROR', message: `unreadable output: ${e.message}` };
     }
+  } else if (r.code === 75) {
+    // EX_TEMPFAIL from the transport: 429 rate-limit or 5xx upstream. The ONLY
+    // exit code that means "retry shortly" — exit 1 is key/args/4xx and is not.
+    fault = { code: 'TRANSIENT', message: 'transport exit 75 — provider rate-limited or 5xx' };
   } else if (r.code !== 0) {
     fault = { code: 'EXIT_NONZERO', message: `consult exited ${r.code}` };
   } else {
@@ -151,21 +155,37 @@ function evaluate(r) {
   return { verdict, fault };
 }
 
+// Retry policy, three review seats' worth of hardening:
+//   - OPT-IN allowlist (`retry === true`), never `abort !== true`: an unlisted
+//     code must not default to a second paid attempt.
+//   - GLOBAL budget per run, so an exit-code misclassification can cost at most
+//     RETRY_BUDGET × backoff, never 60s × N.
+//   - After a retry the NEXT gap is the full backoff, not the cadence gap — a
+//     limiter that just proved hot is not re-approached at 15s. Gaps carry ±20%
+//     jitter so three launchers on one shared pool do not synchronise.
+const RETRY_BUDGET = 2;
+let retriesLeft = RETRY_BUDGET;
+const jitter = (ms) => Math.round(ms * (0.8 + Math.random() * 0.4));
+
 const results = [];
+let nextGap = INTER_CALL_GAP_MS;
 for (let n = 1; n <= calls; n++) {
-  if (n > 1) await sleep(INTER_CALL_GAP_MS);
+  if (n > 1) await sleep(jitter(nextGap));
+  nextGap = INTER_CALL_GAP_MS;
   console.log(`\n[ox-final] call ${n}/${calls} firing (separate invocation)…`);
   let r = await runOnce(n, packet);
   let { verdict, fault } = evaluate(r);
 
-  // One bounded retry, transient faults only. A seat fault is configuration and
-  // must fall through to the abort below, never be retried into more spend.
-  const retryable = fault && FAULT[fault.code]?.abort !== true;
-  if (retryable) {
-    console.warn(`[ox-final] call ${n}: transient [${fault.code}] — one retry in ${RETRY_BACKOFF_MS / 1000}s…`);
-    await sleep(RETRY_BACKOFF_MS);
+  const wantsRetry = !!fault && FAULT[fault.code]?.retry === true;
+  if (wantsRetry && retriesLeft > 0) {
+    retriesLeft -= 1;
+    console.warn(`[ox-final] call ${n}: transient [${fault.code}] — retry ${RETRY_BUDGET - retriesLeft}/${RETRY_BUDGET} in ${RETRY_BACKOFF_MS / 1000}s…`);
+    await sleep(jitter(RETRY_BACKOFF_MS));
     r = await runOnce(n, packet);
     ({ verdict, fault } = evaluate(r));
+    nextGap = RETRY_BACKOFF_MS;
+  } else if (wantsRetry) {
+    console.warn(`[ox-final] call ${n}: transient [${fault.code}] but retry budget exhausted — voided as-is.`);
   }
   results.push({ ...r, verdict, fault });
   if (verdict) {
