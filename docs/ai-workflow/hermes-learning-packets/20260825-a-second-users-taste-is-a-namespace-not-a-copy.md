@@ -204,6 +204,17 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
 - **I renamed a button and broke my own browser proof**, which still clicked the old label.
   **MERGED:** the proof is the mechanism; it caught it on the next run and that step is now a full
   page→brain→ComfyUI end-to-end instead of a mint-only click.
+- **A check's NAME lied about its assertion** — "the four variations show as four separate renders"
+  asserted `renders.length === 3`, which counted three earlier fixtures, not the variations (whose files
+  the fake ComfyUI never writes). It would have passed forever while proving nothing about batching.
+  **MECHANISM:** the vacuous-check habit gains a second step — after grepping for `, true)`, read every
+  check's NAME against its expression and re-point or rename any that disagree; this one now asserts the
+  real invariant (queued-but-unrendered variations are counted as *waiting*, not as renders).
+- **I assumed a vendored binary was the full tool** and burned four probes on Playwright's ffmpeg
+  (`-movflags`, `lavfi`, `rawvideo`, `image2pipe`+png all missing — it is encode-only VP8).
+  **MECHANISM:** before building on a bundled binary, run its own capability list first (`-muxers`,
+  `-encoders`, `-demuxers`); and when the tool cannot make a fixture, ask the CONSUMER to make it — the
+  clip is now recorded by Chromium itself, which is a stronger fixture for a decode/seek claim anyway.
 
 ## Error → fix → repeat ledger
 
@@ -224,7 +235,8 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
 | Lane released after a failed commit | 2 (same session) | Yes — after the first, in the memo | Release chained only after a successful commit |
 | Identifying a field by NAME where WIRING is ground truth (would have overwritten the negative prompt) | 1 | No | Wiring-first detection; two graph fixtures |
 | A guard blind to its own configuration (poisoned field map) | 1 | No | Validate the map against the graph before applying |
-| Vacuous check: negative path never fired (3rd of this class today) | 3 (placeholder-true ×2, unreachable trigger ×1) | Yes — written up twice already today | Grep for `, true)`; a negative-path check must be shown to fire once |
+| Vacuous check: assertion proves nothing the name claims (4th of this class today) | 4 (placeholder-true ×2, unreachable trigger ×1, name≠assertion ×1) | Yes — written up three times already today | Grep `, true)`; make negative paths fire; **read each check's name against its expression** |
+| Assuming a vendored binary is the full tool (Playwright's ffmpeg) | 1 | No | Probe `-muxers`/`-encoders`/`-demuxers` first; let the consumer make the fixture |
 | Renamed a UI control without updating my own proof | 1 | No | The proof caught it; that step upgraded to end-to-end |
 
 ## External-model calibration
