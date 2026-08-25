@@ -5,17 +5,27 @@
  *
  * Handles (deterministically, brace-aware — a `>` inside `onClick={() => …}` is NOT
  * the end of the tag; the first regex version was, and it broke a build):
- *   import GlowButton from '<any path>/GlowButton'      → import ForgeButton from '<rel>/components/ui/forge/ForgeButton'
+ *   import GlowButton from '<…>/ui/buttons/GlowButton'   → import ForgeButton from '<rel>/components/ui/forge/ForgeButton'
  *   <GlowButton …>…</GlowButton>  /  <GlowButton … />   → <ForgeButton …>
  *   <StyledBox as={GlowButton} … $style={{…}}>…</StyledBox> → <ForgeButton … style={{…}}>…</ForgeButton>
- *   (only the </StyledBox> that pairs with a CONVERTED open is rewritten — StyledBox is used for
- *    other elements in the same files; the pairing is the next </StyledBox> after the open,
- *    which holds because a button never nests another StyledBox)
- * Reports (never silently rewrites): props the Forge binding drops (animateOnRender, pulse,
- *   haptic, glowIntensity — accepted-and-dropped) and any unknown prop for a human decision.
+ *   (only the </StyledBox> that pairs with a CONVERTED open is rewritten; a nested same-tag
+ *    paired open inside that span makes the pairing ambiguous → the site is SKIPPED + reported)
  *
- * Usage:  node scripts/codemod-glowbutton.mjs --files a.tsx,b.tsx [--apply] [--frontend-src <dir>]
- *         (default is DRY-RUN: prints a summary per file, writes nothing)
+ * Hardened after the PR #2 panel review (Ox Alpha + GLM 5.3 + own pass), each with a fixture:
+ *   - strings are skipped at EVERY brace depth ("}" inside `go('x}')` no longer desyncs the scan)
+ *   - `//` and `/* *​/` comments inside an open tag are skipped (a ">" in a comment is not the tag end)
+ *   - matches inside template literals / block comments / line comments are never rewritten
+ *   - `</Tag  >` (whitespace before ">") is a valid close and is found
+ *   - an unterminated tag is a HARD error for that file (was a silent `break`)
+ *   - spread props `{...x}` bypass the prop audit → reported, never silently accepted
+ *   - only imports that resolve to the legacy `ui/buttons/GlowButton` are rewritten; any other
+ *     default import named GlowButton is reported (import-hijack guard)
+ *   - the legacy `minHeight: 44px` strip is digit-anchored (`minHeight: 440` is untouched)
+ *   - post-transform invariant: any residual `GlowButton` identifier outside comments
+ *     (`import GlowButton, { X }`, re-exports, `motion(GlowButton)`) → RESIDUAL, file not written, exit 1
+ *
+ * Usage:  node scripts/codemod-glowbutton.mjs --files a.tsx,b.tsx [--apply --frontend-src <dir>]
+ *         (default is DRY-RUN: prints a summary per file, writes nothing; --apply REQUIRES --frontend-src)
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { relative, dirname, resolve, join } from 'node:path';
@@ -23,6 +33,7 @@ import { relative, dirname, resolve, join } from 'node:path';
 const KNOWN = new Set(['text', 'variant', 'theme', 'colorScheme', 'size', 'type', 'isLoading', 'disabled', 'fullWidth', 'leftIcon', 'rightIcon', 'startIcon', 'endIcon', 'children', 'className', 'style', 'onClick', 'title', 'id', 'aria-label', 'aria-describedby', 'data-testid', 'form', 'name', 'value', 'tabIndex', 'role', 'key', 'animateOnRender']);
 // animateOnRender is SUPPORTED by the Forge binding (.sw-btn--enter) since PR #2 — 3 reachable users met rule-of-two.
 const DROPPED = new Set(['pulse', 'haptic', 'glowIntensity']);
+const LEGACY_IMPORT = /(?:^|\/)ui\/buttons\/GlowButton(?:\.tsx?)?$/;
 
 /** Relative import specifier from a consumer file to the ForgeButton binding. */
 function bindingSpecifier(file, frontendSrc) {
@@ -33,8 +44,29 @@ function bindingSpecifier(file, frontendSrc) {
 }
 
 /**
+ * Byte mask of regions that must never be rewritten: template literals, block comments,
+ * line comments. (Plain '…'/"…" strings are NOT masked — JSX text uses apostrophes freely
+ * and a `<GlowButton` inside a plain string is reported by the residual check instead.)
+ * @returns {Uint8Array} 1 = masked
+ */
+export function maskedRegions(src) {
+  const mask = new Uint8Array(src.length);
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i]; const n = src[i + 1];
+    if (c === '`') { const s = i; i++; while (i < src.length && src[i] !== '`') { if (src[i] === '\\') i++; i++; } i++; mask.fill(1, s, i); continue; }
+    if (c === '/' && n === '*') { const s = i; const e = src.indexOf('*/', i + 2); i = e < 0 ? src.length : e + 2; mask.fill(1, s, i); continue; }
+    if (c === '/' && n === '/') { const s = i; const e = src.indexOf('\n', i); i = e < 0 ? src.length : e; mask.fill(1, s, i); continue; }
+    if (c === '"' || c === "'") { const q = c; i++; while (i < src.length && src[i] !== q && src[i] !== '\n') { if (src[i] === '\\') i++; i++; } i++; continue; }
+    i++;
+  }
+  return mask;
+}
+
+/**
  * Find the end of a JSX opening tag starting at `start` (index of '<'), tracking
- * `{}` depth and string quotes so `>` inside expressions never terminates the tag.
+ * `{}` depth, string quotes at EVERY depth, and comments, so `>` inside expressions,
+ * strings, or comments never terminates the tag.
  * @returns {{end: number, selfClosing: boolean}|null} end = index just past '>' / '/>'
  */
 export function findTagEnd(src, start) {
@@ -42,10 +74,11 @@ export function findTagEnd(src, start) {
   for (let i = start + 1; i < src.length; i++) {
     const c = src[i];
     if (quote) { if (c === quote && src[i - 1] !== '\\') quote = null; continue; }
-    if (depth === 0 && (c === '"' || c === "'")) { quote = c; continue; }
+    if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
+    if (c === '/' && src[i + 1] === '*') { const e = src.indexOf('*/', i + 2); if (e < 0) return null; i = e + 1; continue; }
+    if (c === '/' && src[i + 1] === '/') { const e = src.indexOf('\n', i); if (e < 0) return null; i = e; continue; }
     if (c === '{') depth++;
     else if (c === '}') depth--;
-    else if (depth === 0 && c === '`') { quote = '`'; }
     else if (depth === 0 && c === '/' && src[i + 1] === '>') return { end: i + 2, selfClosing: true };
     else if (depth === 0 && c === '>') return { end: i + 1, selfClosing: false };
   }
@@ -73,49 +106,80 @@ export function propNames(attrs) {
 /**
  * Rewrite every tag whose open matches `openRe` (must match starting at '<'), handing the
  * attribute text to `mapAttrs`, renaming to `newName`, and — for paired opens — renaming the
- * NEXT `</oldClose>` after the open. Returns the new source and the count.
+ * pairing `</oldClose>` (whitespace-tolerant). Sites are SKIPPED and reported when the open is
+ * inside a masked region, is unterminated, or has a nested same-tag paired open before its close.
  */
-function rewriteTags(src, openRe, oldClose, newName, mapAttrs) {
+function rewriteTags(src, openRe, oldClose, newName, mapAttrs, report) {
+  const mask = maskedRegions(src);
+  const closeRe = new RegExp(`</${oldClose}\\s*>`, 'g');
   let out = ''; let cursor = 0; let count = 0; let m;
   openRe.lastIndex = 0;
   while ((m = openRe.exec(src)) !== null) {
     const start = m.index;
+    if (mask[start]) { report.skipped.push(`<${oldClose}> at offset ${start} is inside a comment/template literal — not rewritten`); continue; }
     const tag = findTagEnd(src, start);
-    if (!tag) break;
+    if (!tag) { report.errors.push(`unterminated <${oldClose}> tag at offset ${start} — file NOT transformed`); return { out: src, count: 0 }; }
+    let closePos = -1; let closeLen = 0;
+    if (!tag.selfClosing) {
+      closeRe.lastIndex = tag.end;
+      const cm = closeRe.exec(src);
+      if (!cm) { report.errors.push(`no </${oldClose}> found for the open at offset ${start} — file NOT transformed`); return { out: src, count: 0 }; }
+      closePos = cm.index; closeLen = cm[0].length;
+      // nested SAME-tag paired open inside the span makes positional pairing ambiguous
+      const span = src.slice(tag.end, closePos);
+      const nestedRe = new RegExp(openRe.source, 'g'); let nm; let nested = false;
+      while ((nm = nestedRe.exec(span)) !== null) { const nt = findTagEnd(span, nm.index); if (nt && !nt.selfClosing) { nested = true; break; } }
+      if (nested) { report.skipped.push(`<${oldClose}> at offset ${start} nests another paired <${oldClose}> — manual migration`); openRe.lastIndex = tag.end; continue; }
+    }
     const openText = src.slice(start, tag.end);
     const attrs = openText.slice(m[0].length, tag.end - start - (tag.selfClosing ? 2 : 1));
     count++;
     out += src.slice(cursor, start) + `<${newName}${mapAttrs(attrs)}${tag.selfClosing ? '/>' : '>'}`;
     cursor = tag.end;
-    if (!tag.selfClosing) {
-      const closePos = src.indexOf(`</${oldClose}>`, cursor);
-      if (closePos >= 0) { out += src.slice(cursor, closePos) + `</${newName}>`; cursor = closePos + oldClose.length + 3; }
-    }
+    if (!tag.selfClosing) { out += src.slice(cursor, closePos) + `</${newName}>`; cursor = closePos + closeLen; }
     openRe.lastIndex = cursor;
   }
   return { out: out + src.slice(cursor), count };
 }
 
+/** Residual `GlowButton` identifiers outside comments (the post-transform invariant). */
+export function residualGlowButton(src) {
+  const mask = maskedRegions(src);
+  const hits = [];
+  for (const m of src.matchAll(/\bGlowButton\b/g)) if (!mask[m.index]) hits.push(m.index);
+  return hits;
+}
+
 /** Pure transform — no I/O, no process side effects (importable by tests). */
 export function transform(src, file, frontendSrc = resolve('frontend/src')) {
-  const report = { imports: 0, tags: 0, styledBoxAs: 0, dropped: new Set(), unknown: new Set(), notes: [] };
-  const audit = (attrs) => { for (const p of propNames(attrs)) { if (DROPPED.has(p)) report.dropped.add(p); else if (!KNOWN.has(p) && !/^(data-|aria-|on[A-Z]|\$)/.test(p)) report.unknown.add(p); } };
-  let out = src.replace(/import\s+GlowButton\s+from\s+['"][^'"]*GlowButton['"];?/g, () => { report.imports++; return `import ForgeButton from '${bindingSpecifier(file, frontendSrc)}'; // Forge strangler (was GlowButton)`; });
+  const report = { imports: 0, tags: 0, styledBoxAs: 0, dropped: new Set(), unknown: new Set(), notes: [], skipped: [], errors: [], residual: [] };
+  const audit = (attrs) => {
+    if (/\{\s*\.\.\./.test(attrs)) report.notes.push('spread props {...x} — prop audit BYPASSED for this site; verify the object has no pulse/haptic/glowIntensity or unknown keys');
+    for (const p of propNames(attrs)) { if (DROPPED.has(p)) report.dropped.add(p); else if (!KNOWN.has(p) && !/^(data-|aria-|on[A-Z]|\$)/.test(p)) report.unknown.add(p); }
+  };
+  let out = src.replace(/import\s+GlowButton\s+from\s+(['"])([^'"]*)\1;?/g, (whole, _q, spec) => {
+    if (!LEGACY_IMPORT.test(spec)) { report.notes.push(`import GlowButton from '${spec}' is NOT the legacy ui/buttons/GlowButton — left untouched (import-hijack guard)`); return whole; }
+    report.imports++; return `import ForgeButton from '${bindingSpecifier(file, frontendSrc)}'; // Forge strangler (was GlowButton)`;
+  });
   // StyledBox as={GlowButton} … → ForgeButton ($style → style)
   ({ out, count: report.styledBoxAs } = rewriteTags(out, /<StyledBox\s+as=\{GlowButton\}/g, 'StyledBox', 'ForgeButton', (attrs) => {
     // $style → style; and strip the legacy `minHeight: 44px` a11y-floor hack — the Forge
     // skin guarantees the floor, and as an INLINE min-height it would beat the skin's
-    // 48px medium geometry (measured in PR #2: 48 → 44 regression). Empty style objects are removed.
+    // 48px medium geometry (measured in PR #2: 48 → 44 regression). Digit-anchored so
+    // `minHeight: 440` is untouched. Empty style objects are removed.
     const a = attrs.replace(/\$style=/g, 'style=')
-      .replace(/minHeight:\s*['"]?44(?:px)?['"]?\s*,?\s*/g, '')
+      .replace(/minHeight:\s*(['"]?)44(?:px)?\1(?![\d.])\s*,?\s*/g, '')
       .replace(/,\s*\}\}/g, ' }}')
       .replace(/\s*style=\{\{\s*\}\}/g, '');
     if (/\$[a-zA-Z]+=/.test(a)) report.notes.push('StyledBox transient prop other than $style left in place — manual review');
     audit(a); return a;
-  }));
+  }, report));
+  if (report.errors.length) return { out: src, report };
   // plain <GlowButton …>
-  ({ out, count: report.tags } = rewriteTags(out, /<GlowButton(?=[\s/>])/g, 'GlowButton', 'ForgeButton', (attrs) => { audit(attrs); return attrs; }));
+  ({ out, count: report.tags } = rewriteTags(out, /<GlowButton(?=[\s/>])/g, 'GlowButton', 'ForgeButton', (attrs) => { audit(attrs); return attrs; }, report));
+  if (report.errors.length) return { out: src, report };
   if (/\bStyledBox\b/.test(out) && !/<StyledBox\b/.test(out) && /import\s*\{[^}]*StyledBox[^}]*\}/.test(out)) report.notes.push('StyledBox import may now be unused — remove if so');
+  report.residual = residualGlowButton(out);
   return { out, report };
 }
 
@@ -125,18 +189,27 @@ if (isMain) {
   const opt = (n, d = null) => { const i = args.indexOf(n); return i >= 0 && args[i + 1] ? args[i + 1] : d; };
   const apply = args.includes('--apply');
   const files = (opt('--files', '') || '').split(',').map((s) => s.trim()).filter(Boolean);
-  const frontendSrc = resolve(opt('--frontend-src', 'frontend/src'));
-  if (!files.length) { console.error('usage: codemod-glowbutton.mjs --files a.tsx,b.tsx [--apply] [--frontend-src frontend/src]'); process.exit(2); }
-  let changed = 0;
+  const srcOpt = opt('--frontend-src');
+  if (!files.length) { console.error('usage: codemod-glowbutton.mjs --files a.tsx,b.tsx [--apply --frontend-src frontend/src]'); process.exit(2); }
+  if (apply && !srcOpt) { console.error('--apply requires an explicit --frontend-src (the emitted import specifier is relative to it; cwd is not trusted)'); process.exit(2); }
+  const frontendSrc = resolve(srcOpt || 'frontend/src');
+  let changed = 0; let failed = 0;
   for (const f of files) {
     const src = readFileSync(f, 'utf8');
     const { out, report } = transform(src, f, frontendSrc);
     const diff = out !== src;
-    console.log(`${diff ? (apply ? 'APPLIED ' : 'WOULD-CHANGE') : 'NO-CHANGE   '} ${f}  imports=${report.imports} tags=${report.tags} styledBoxAs=${report.styledBoxAs}` +
+    const blocked = report.errors.length > 0 || report.residual.length > 0;
+    const status = blocked ? (report.errors.length ? 'ERROR       ' : 'RESIDUAL    ') : diff ? (apply ? 'APPLIED     ' : 'WOULD-CHANGE') : 'NO-CHANGE   ';
+    console.log(`${status} ${f}  imports=${report.imports} tags=${report.tags} styledBoxAs=${report.styledBoxAs}` +
       (report.dropped.size ? `  dropped-by-binding=[${[...report.dropped]}]` : '') +
       (report.unknown.size ? `  UNKNOWN-PROPS=[${[...report.unknown]}] ← human decision` : '') +
+      (report.residual.length ? `  RESIDUAL GlowButton identifier(s) at offset(s) ${report.residual.join(',')} ← manual migration required; file NOT written` : '') +
+      (report.errors.length ? `  ERRORS: ${report.errors.join('; ')}` : '') +
+      (report.skipped.length ? `  SKIPPED: ${report.skipped.join('; ')}` : '') +
       (report.notes.length ? `  notes: ${report.notes.join('; ')}` : ''));
+    if (blocked) { failed++; continue; }
     if (diff && apply) { writeFileSync(f, out); changed++; }
   }
-  console.log(apply ? `\n${changed} file(s) rewritten` : `\nDRY-RUN — nothing written (add --apply)`);
+  console.log(apply ? `\n${changed} file(s) rewritten${failed ? `, ${failed} BLOCKED` : ''}` : `\nDRY-RUN — nothing written (add --apply --frontend-src <dir>)${failed ? `; ${failed} file(s) would be BLOCKED` : ''}`);
+  if (failed) process.exit(1);
 }

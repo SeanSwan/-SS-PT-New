@@ -96,19 +96,25 @@ describe('value parity (token subset): pack ⇄ original GlowButton (source-pars
   it('base motion multiplier is ON in the pack (reduced-motion block does not leak)', () => {
     expect(packToken('--sw-motion')).toBe('1');
   });
-  it('GEOMETRY parity: Forge size defaults equal the original BUTTON_SIZES table (source-parsed)', () => {
-    const buttonCss = readFileSync(join(repoRoot, 'packages', 'swan-forge', 'css', 'button.css'), 'utf8');
+  it('GEOMETRY parity: the crystalline-swan PACK carries the original BUTTON_SIZES table (source-parsed)', () => {
     const sizeTable = glowSrc.slice(glowSrc.indexOf('const BUTTON_SIZES'), glowSrc.indexOf('\n};', glowSrc.indexOf('const BUTTON_SIZES')));
     const orig = (size: string, field: string) => sizeTable.match(new RegExp(`${size}:\\s*{[^}]*${field}:\\s*"([^"]+)"`))?.[1];
-    const forge = (token: string) => buttonCss.match(new RegExp(`var\\(${token},\\s*([^)]+)\\)`))?.[1].trim();
-    expect(forge('--sw-btn-height')).toBe(orig('medium', 'height'));
-    expect(forge('--sw-btn-radius')).toBe(orig('medium', 'borderRadius'));
-    expect(forge('--sw-btn-height-sm')).toBe(orig('small', 'height'));
-    expect(forge('--sw-btn-radius-sm')).toBe(orig('small', 'borderRadius'));
-    expect(forge('--sw-btn-height-lg')).toBe(orig('large', 'height'));
-    expect(forge('--sw-btn-radius-lg')).toBe(orig('large', 'borderRadius'));
-    expect(buttonCss).toMatch(/font-weight:\s*500;/);
+    expect(packToken('--sw-btn-height')).toBe(orig('medium', 'height'));
+    expect(packToken('--sw-btn-radius')).toBe(orig('medium', 'borderRadius'));
+    expect(packToken('--sw-btn-height-sm')).toBe(orig('small', 'height'));
+    expect(packToken('--sw-btn-radius-sm')).toBe(orig('small', 'borderRadius'));
+    expect(packToken('--sw-btn-height-lg')).toBe(orig('large', 'height'));
+    expect(packToken('--sw-btn-radius-lg')).toBe(orig('large', 'borderRadius'));
+    expect(packToken('--sw-btn-weight')).toBe('500');
     expect(glowSrc).toMatch(/font-weight:\s*500;/);
+  });
+  it('core button.css defaults stay CATALOG primitives — pack taste is never baked into core (PR #2 review)', () => {
+    const buttonCss = readFileSync(join(repoRoot, 'packages', 'swan-forge', 'css', 'button.css'), 'utf8');
+    expect(buttonCss).toMatch(/--_height:\s*var\(--sw-btn-height,\s*var\(--sw-p-target-min\)\)/);
+    expect(buttonCss).toMatch(/--_radius:\s*var\(--sw-btn-radius,\s*var\(--sw-p-radius-md\)\)/);
+    expect(buttonCss).toMatch(/font-weight:\s*var\(--sw-btn-weight,/);
+    expect(buttonCss).toMatch(/letter-spacing:\s*var\(--sw-btn-tracking,/);
+    expect(buttonCss).not.toMatch(/--_height:\s*var\(--sw-btn-height,\s*\d/);
   });
   it('focus-shadow and ease ARE defined in the pack (composites the JS projection omits)', () => {
     expect(packToken('--sw-focus-shadow')).toContain('--sw-focus-ring'); // swan-guard-allow-hex test asserts token TEXT; Forge tokens are defined in packages/swan-forge

@@ -88,10 +88,10 @@ const certifications = [
 ];
 
 const statsData = [
-  { numericValue: 26, suffix: '+', label: 'Years Experience', delay: 0, color: '#8B5CF6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG)
-  { numericValue: 500, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#8B5CF6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG)
-  { numericValue: 97, suffix: '%', label: 'Client Satisfaction', delay: 0.4, color: '#00E5FF' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG)
-  { numericValue: 312, suffix: '', label: 'Swimmers Taught', delay: 0.6, color: '#9B59B6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG)
+  { numericValue: 26, suffix: '+', label: 'Years Experience', delay: 0, color: '#8B5CF6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23)
+  { numericValue: 500, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#8B5CF6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23)
+  { numericValue: 97, suffix: '%', label: 'Client Satisfaction', delay: 0.4, color: '#00E5FF' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23)
+  { numericValue: 312, suffix: '', label: 'Swimmers Taught', delay: 0.6, color: '#9B59B6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23)
 ];
 
 const featureList = [
@@ -567,8 +567,8 @@ const StatCard = styled.div<{ $accentColor?: string }>`
 
   &:hover {
     transform: translateY(-6px);
-    border-color: ${({ $accentColor }) => `${$accentColor || '#8B5CF6'}50`}; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG) */
-    box-shadow: 0 0 24px ${({ $accentColor }) => `${$accentColor || '#8B5CF6'}25`}, /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG) */
+    border-color: ${({ $accentColor }) => `${$accentColor || '#8B5CF6'}50`}; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23) */
+    box-shadow: 0 0 24px ${({ $accentColor }) => `${$accentColor || '#8B5CF6'}25`}, /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23) */
                 0 8px 32px rgba(0, 0, 0, 0.3);
   }
 

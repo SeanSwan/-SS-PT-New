@@ -68,6 +68,17 @@
   --sw-btn-danger-glow-b: #FC8181;
   --sw-btn-ghost-glow-a: #4070C0;   /* Swan Lavender */
   --sw-btn-ghost-glow-b: #60C0F0;   /* Ice Wing */
+  /* Button geometry = the ORIGINAL GlowButton BUTTON_SIZES table (Sean's taste anchor).
+     This is PACK taste, not a catalog default — core stays on primitives (PR #2 review).
+     Source-parsed parity test: frontend/src/components/ui/forge/ForgeButton.parity.test.tsx */
+  --sw-btn-height: 48px;
+  --sw-btn-radius: 12px;
+  --sw-btn-height-sm: 44px;
+  --sw-btn-radius-sm: 10px;
+  --sw-btn-height-lg: 56px;
+  --sw-btn-radius-lg: 14px;
+  --sw-btn-weight: 500;
+  --sw-btn-tracking: 0.5px;
 }
 
 @media (prefers-reduced-motion: reduce) {

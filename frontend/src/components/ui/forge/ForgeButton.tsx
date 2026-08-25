@@ -99,7 +99,7 @@ const ForgeButton: React.FC<ForgeButtonProps> = ({
       onClick={handleClick}
     >
       {leftIcon ?? startIcon}
-      {children ?? text}
+      {children || text /* `||` not `??`: the original GlowButton renders `children || text`, so falsy children ('' / false / 0) fall back to the label (Ox, PR #2 review) */}
       {rightIcon ?? endIcon}
     </button>
   );

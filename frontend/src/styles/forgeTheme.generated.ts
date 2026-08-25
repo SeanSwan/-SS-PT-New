@@ -48,6 +48,14 @@ export const forgeTheme = {
   btnDangerGlowB: "#FC8181", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   btnGhostGlowA: "#4070C0", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   btnGhostGlowB: "#60C0F0", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
+  btnHeight: "48px",
+  btnRadius: "12px",
+  btnHeightSm: "44px",
+  btnRadiusSm: "10px",
+  btnHeightLg: "56px",
+  btnRadiusLg: "14px",
+  btnWeight: "500",
+  btnTracking: "0.5px",
 } as const;
 
 /**

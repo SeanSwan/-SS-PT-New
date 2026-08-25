@@ -54,8 +54,8 @@ const ProgramCard = styled(GlassCard)<{ $isPopular?: boolean }>`
 
 const PopularBadge = styled.span`
   display: inline-block;
-  background: linear-gradient(135deg, #8B5CF6, #60C0F0); /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG) */
-  color: #fff; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG) */
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0); /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23) */
+  color: #fff; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23) */
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;

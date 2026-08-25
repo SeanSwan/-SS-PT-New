@@ -8,7 +8,7 @@ supersedes: none
 
 **Law (Rule 84):** one component CLASS per strangler PR, in tier order (T1 public first → T4 money path last). **Reachability is evidence, not a guess:** each row says whether the file is reachable from the live route entry via static import graph (positive control: GolfSection = REACHABLE, verified live 2026-08-25). UNREACHABLE files are NOT migration targets — they are Rule 77 Tier-2 quarantine candidates (propose `archive/pending-deletion/`, never edit as if live). **Regenerate, never hand-edit:** `drift-lint --consumer frontend/src | grep '^\[R4\]' > r4.txt; reachability.mjs frontend/src frontend/src/main.jsx <files> > reach.txt; gen-backlog-v2.mjs r4.txt reach.txt`.
 
-**v1 → v2 corrections:** UniversalMasterSchedule (authenticated) moved T1→T2; DesignPlayground → T0-playground; `styles/swan-theme-utils.tsx` (shared wrapper) → T2; 7 v1-T1 files proven UNREACHABLE (incl. all three `animateOnRender` users — so no Forge entrance-animation feature is needed).
+**v1 → v2 corrections:** UniversalMasterSchedule (authenticated) moved T1→T2; DesignPlayground → T0-playground; `styles/swan-theme-utils.tsx` (shared wrapper) → T2; 7 v1-T1 files proven UNREACHABLE. CORRECTION (PR #2 review, Ox + GLM): the `animateOnRender` note that stood here was stale — HomePage.V3 and About.V3 are REACHABLE route fallbacks and use it, so the Forge `.sw-btn--enter` entrance shipped in PR #2 under rule-of-two (3 reachable users).
 
 
 ## T0-dormant — UNREACHABLE from the app entry (Rule 77 Tier-2 quarantine candidates; do NOT migrate, propose archive) — 9 import site(s)

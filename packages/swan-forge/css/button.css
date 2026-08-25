@@ -14,11 +14,11 @@
   --_text: var(--sw-btn-text, var(--sw-text-inverse));
   --_glow-a: var(--sw-btn-glow-a, var(--sw-glow-a));
   --_glow-b: var(--sw-btn-glow-b, var(--sw-glow-b));
-  /* Geometry = the ORIGINAL GlowButton size table (source-parsed parity test):
-     small 44/10px · medium 48/12px · large 56/14px; weight 500; 0.5px tracking.
-     The 44px primitive floor stays the a11y minimum underneath. */
-  --_radius: var(--sw-btn-radius, 12px);
-  --_height: var(--sw-btn-height, 48px);
+  /* Geometry defaults are CATALOG primitives. A pack's taste (e.g. the original GlowButton
+     size table in crystalline-swan) arrives through the --sw-btn-* hooks — never baked
+     into core (Ox + GLM, PR #2 review). The 44px floor stays the a11y minimum underneath. */
+  --_radius: var(--sw-btn-radius, var(--sw-p-radius-md));
+  --_height: var(--sw-btn-height, var(--sw-p-target-min));
 
   position: relative;
   display: inline-flex;
@@ -35,8 +35,8 @@
   color: var(--_text);
   font-family: var(--sw-font-ui);
   font-size: calc(var(--sw-p-text-base) * var(--sw-text-scale));
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  font-weight: var(--sw-btn-weight, 600);
+  letter-spacing: var(--sw-btn-tracking, 0);
   line-height: 1.2;
   cursor: pointer;
   user-select: none;
@@ -96,8 +96,8 @@
 .sw-btn--ghost   { --_bg: transparent; --_text: var(--sw-text-primary); border-color: var(--sw-border-strong); --_glow-a: var(--sw-btn-ghost-glow-a, var(--sw-glow-a)); --_glow-b: var(--sw-btn-ghost-glow-b, var(--sw-glow-b)); }
 
 /* ── Sizes ────────────────────────────────────────────────────────── */
-.sw-btn--small { --_height: var(--sw-btn-height-sm, 44px); --_radius: var(--sw-btn-radius-sm, 10px); padding-inline: var(--sw-p-space-4); font-size: calc(var(--sw-p-text-sm) * var(--sw-text-scale)); }
-.sw-btn--large { --_height: var(--sw-btn-height-lg, 56px); --_radius: var(--sw-btn-radius-lg, 14px); padding-block: var(--sw-p-space-3); padding-inline: var(--sw-p-space-6); font-size: calc(var(--sw-p-text-lg) * var(--sw-text-scale)); }
+.sw-btn--small { --_height: var(--sw-btn-height-sm, var(--sw-p-target-min)); --_radius: var(--sw-btn-radius-sm, var(--sw-p-radius-sm)); padding-inline: var(--sw-p-space-4); font-size: calc(var(--sw-p-text-sm) * var(--sw-text-scale)); }
+.sw-btn--large { --_height: var(--sw-btn-height-lg, 56px); --_radius: var(--sw-btn-radius-lg, var(--sw-p-radius-lg)); padding-block: var(--sw-p-space-3); padding-inline: var(--sw-p-space-6); font-size: calc(var(--sw-p-text-lg) * var(--sw-text-scale)); }
 .sw-btn.is-full { inline-size: 100%; }
 
 /* ── States ───────────────────────────────────────────────────────── */

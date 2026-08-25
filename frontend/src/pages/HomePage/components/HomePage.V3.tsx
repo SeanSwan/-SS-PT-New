@@ -460,7 +460,7 @@ const ProgramBadge = styled.span`
   right: 16px;
   background: ${({ theme }) => theme.colors.primary};
   color: ${({ theme }) =>
-    theme.id === 'crystalline-light' ? '#FFFFFF' : theme.background.primary}; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG) */
+    theme.id === 'crystalline-light' ? '#FFFFFF' : theme.background.primary}; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23) */
   font-family: ${({ theme }) => theme.fonts.ui};
   font-size: 0.75rem;
   font-weight: 700;
@@ -692,7 +692,7 @@ const TestimonialCard = styled.div`
 const StarRating = styled.div`
   display: flex;
   gap: 4px;
-  color: ${({ theme }) => theme.colors.accent || '#C6A84B'}; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG) */
+  color: ${({ theme }) => theme.colors.accent || '#C6A84B'}; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23) */
 `;
 
 const TestimonialQuote = styled.div`
