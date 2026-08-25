@@ -23,7 +23,8 @@
     "./css/modal.css": "./css/modal.css",
     "./core/nav": "./core/nav.mjs",
     "./css/nav.css": "./css/nav.css",
-    "./css/shell.css": "./css/shell.css"
+    "./css/shell.css": "./css/shell.css",
+    "./css/auth.css": "./css/auth.css"
   },
   "scripts": {
     "test": "node --test test/core.test.mjs test/instruments.test.mjs test/tabs-toast.test.mjs test/nav.test.mjs",

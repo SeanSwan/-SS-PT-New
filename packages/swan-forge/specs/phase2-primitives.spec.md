@@ -26,3 +26,8 @@ Rule-of-two admission evidence (plan §2/§11.A3): every class below has ≥2 in
 - Rule-of-two: SS-PT dashboard sidebar + public top nav; SwanGuard newsroom top nav (planned — not counted).
 - Acceptance: [x] reducer + attr tests for both variants · [x] gallery mounts both from the one core · [x] no `order`/reverse properties (R3) · [ ] Phase 2 strangler: SS-PT dashboard nav binding.
 - Theme surface: `--sw-nav-bg` + semantics. NOT themeable: disclosure semantics, focus return, aria-current, 44px link targets.
+
+## Auth forms (`css/auth.css`, composition — Phase 2e)
+- Composes Card chrome + Field core (aria wiring) + Button (`type="submit"`) + optional provider row; sign-in / sign-up / reset share one frame. Harvest anchor: `EnhancedLoginModal` (SS-PT); rule-of-two: SS-PT login + SwanGuard admin login (planned — not counted; SS-PT signup modal is the second real consumer).
+- Acceptance: [x] no new behavior (all a11y from the Field/Button cores) · [x] error banner uses audited danger-on-surface pair · [x] 44px links/targets · [ ] Phase 2 strangler: SS-PT login binding (T2 backlog; auth path = careful receipt, never money-path-class casual).
+- Theme surface: semantics only. NOT themeable: form aria, submit semantics, target floors.

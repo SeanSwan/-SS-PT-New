@@ -17,8 +17,12 @@ full decision log: `docs/ai-workflow/brainstorms/component-forge-catalog-2026-08
 | Tabs (underline · pill · vertical) | `core/tabs.mjs` | `css/tabs.css` | Phase 2b |
 | Toast | `core/toast.mjs` | `css/toast.css` | Phase 2b |
 | Pill / Badge / Avatar / Skeleton / Table | — (presentation) | `css/primitives.css` | Phase 2b |
+| Nav (top · side — one core) | `core/nav.mjs` | `css/nav.css` | Phase 2c |
+| Dashboard shell + data-card cluster (metric · client) | — (composition of Nav/Tabs/Card) | `css/shell.css`, `css/card.css` | Phase 2d |
+| Auth forms | — (composition of Card/Field/Button) | `css/auth.css` | Phase 2e |
+| Chart frame + Victory theme (SS-PT-shaped; adapter interface deferred) | consumer: `frontend/src/components/ui/forge/forgeChartTheme.ts` | consumer: `ForgeChart.tsx` (+ SafeChart) | Phase 2f |
 
-Consumer binding for SS-PT: `frontend/src/components/ui/forge/` (ForgeButton live since Phase 1.5).
+Consumer bindings for SS-PT: `frontend/src/components/ui/forge/` (ForgeButton live since Phase 1.5; ForgeChart + `forgeVictoryTheme` are the first consumers of `forgeTheme.generated.ts`).
 
 ## Architecture — three layers (never two)
 

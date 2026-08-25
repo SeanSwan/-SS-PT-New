@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="../css/primitives.css" />
 <link rel="stylesheet" href="../css/nav.css" />
 <link rel="stylesheet" href="../css/shell.css" />
+<link rel="stylesheet" href="../css/auth.css" />
 <style>
   body { margin: 0; background: var(--sw-bg-base); color: var(--sw-text-primary); font-family: var(--sw-font-body, system-ui); }
   .g-bar { position: sticky; inset-block-start: 0; display: flex; flex-wrap: wrap; gap: var(--sw-p-space-3); align-items: center; padding: var(--sw-p-space-4); background: var(--sw-bg-elevated); border-block-end: 1px solid var(--sw-border); z-index: 10; }
@@ -166,6 +167,22 @@
     </div>
   </section>
 
+  <section id="auth">
+    <h2>Auth form (composition) <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="auth">Copy usage</button></h2>
+    <form class="sw-auth" onsubmit="return false">
+      <div class="sw-auth__brand"><span class="sw-avatar">sw</span><div><h3 class="sw-auth__title">Welcome back</h3><p class="sw-auth__subtitle">Sign in to your training workspace.</p></div></div>
+      <div class="sw-auth__error" role="alert">Wrong email or password.</div>
+      <div class="sw-auth__form">
+        <label class="sw-field"><span class="sw-field__label">Email</span><input class="sw-input" type="email" autocomplete="email" placeholder="you@example.com" /></label>
+        <label class="sw-field"><span class="sw-field__label">Password</span><input class="sw-input" type="password" autocomplete="current-password" aria-invalid="true" /><span class="sw-field__error">Enter your password</span></label>
+        <div class="sw-auth__row"><a class="sw-auth__link" href="#auth">Forgot password?</a><button type="submit" class="sw-btn sw-btn--primary">Sign in</button></div>
+      </div>
+      <div class="sw-auth__divider">or continue with</div>
+      <div class="sw-auth__providers"><button type="button" class="sw-btn sw-btn--ghost">Google</button><button type="button" class="sw-btn sw-btn--ghost">Apple</button></div>
+      <p class="sw-auth__footer">New here? <a class="sw-auth__link" href="#auth">Create an account</a></p>
+    </form>
+  </section>
+
   <section id="modals">
     <h2>Modal <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="modals">Copy usage</button></h2>
     <div class="g-row">
@@ -280,6 +297,7 @@
     tabs: 'import { getTabsState, getTabAttrs, handleTabKey } from "@swan/forge/core/tabs";',
     nav: 'import { getNavState, getNavLinkAttrs, reduceNav } from "@swan/forge/core/nav";',
     cluster: '<div class="sw-cluster"><article class="sw-card sw-card--data sw-card--metric">…</article></div>',
+    auth: '<form class="sw-auth"><div class="sw-auth__form"><label class="sw-field">…</label><button type="submit" class="sw-btn sw-btn--primary">Sign in</button></div></form>',
     primitives: '<span class="sw-pill sw-pill--gold">label</span> <span class="sw-badge">7</span> <span class="sw-avatar">sw</span>',
     table: '<table class="sw-table">…<td data-label="Sessions" class="is-numeric">128</td>…</table>',
     toasts: 'import { createToast, enqueue, tick, getToastAttrs } from "@swan/forge/core/toast";',

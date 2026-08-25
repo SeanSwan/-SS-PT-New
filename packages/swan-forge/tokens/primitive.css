@@ -4,6 +4,16 @@
  * Resolution order (ruled, plan §11.A4): component-override → pack semantic → primitive fallback.
  * All layout in Forge CSS uses LOGICAL properties (plan §11 absence adoption: i18n/RTL day one).
  */
+/* Box model law: every Forge root class and its descendants use border-box, so
+   `inline-size: 100%` + padding can never overflow a container (Phase 2 finding:
+   inputs spilled 10px past a 414px viewport under content-box). Scoped to sw-
+   classes — the Forge never resets the host page. */
+.sw-btn, .sw-card, .sw-field, .sw-input, .sw-modal, .sw-modal-scrim, .sw-toast, .sw-toast-region,
+.sw-tabs, .sw-tab, .sw-tabpanel, .sw-nav, .sw-shell, .sw-cluster, .sw-auth, .sw-table, .sw-pill, .sw-badge, .sw-avatar, .sw-skeleton,
+.sw-btn *, .sw-card *, .sw-field *, .sw-modal *, .sw-toast *, .sw-tabs *, .sw-nav *, .sw-shell *, .sw-auth *, .sw-table * {
+  box-sizing: border-box;
+}
+
 :root {
   /* ── Spacing scale (rem) ─────────────────────────────── */
   --sw-p-space-1: 0.25rem;
