@@ -121,6 +121,28 @@ test('R2 ALLOW: single-quoted and bare-word here-strings are verbatim / not bodi
   allow('grep foo <<< input.txt', 'bare-word here-string');
 });
 
+// --- round-2 self-attack: special params, other shells, unquoted here-string operands ---
+
+test('R3 BLOCK: positional/special parameters expand in an unquoted heredoc', () => {
+  block('cat > run.sh <<EOF\necho $1 $@ $?\nEOF', '$1 $@ $? expand');
+  block('cat > pid <<EOF\n$$\nEOF', '$$ expands');
+});
+test('R3 BLOCK: sh -c / bash -c with a double-quoted body is the same hazard class', () => {
+  block('sh -c "echo ${HOME}"', 'sh -c "..."');
+  block('bash -c "cat `ls`"', 'bash -c "..."');
+});
+test("R3 ALLOW: sh -c with a single-quoted body is verbatim", () => {
+  allow("sh -c 'echo ${HOME}'", "sh -c '...'");
+});
+test('R3 BLOCK: unquoted here-string operand expands', () => {
+  block('read x <<<$HOME', '<<<$HOME');
+  block('node - <<<$(cat gen.js)', '<<<$(...)');
+});
+test("R3 ALLOW: single-quoted or bare-word here-string operands are literal", () => {
+  allow("read x <<<'$HOME'", "<<<'...'");
+  allow('read x <<< literal-word', 'bare word');
+});
+
 // --- round-1 F3 (GLM): the hatch must be OUTSIDE the body — a payload cannot carry its key
 
 test('R2 BLOCK: a "# HEREDOC-OK:" inside the heredoc BODY does not open the hatch', () => {

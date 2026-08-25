@@ -72,7 +72,10 @@ export function isPriced(usd) {
   // Non-negative only (round-1 GLM F5): a negative "cost" is not a refund in this
   // ledger, it is a bug upstream — treat it as unpriced so it counts as worst case.
   if (typeof usd === 'number') return Number.isFinite(usd) && usd >= 0;
-  if (typeof usd === 'string') return usd.trim() !== '' && Number.isFinite(Number(usd)) && Number(usd) >= 0;
+  // Strings: plain non-negative DECIMAL only. `Number('0x10')` is 16 and `Number('1e3')`
+  // is 1000 — a cost field carrying hex or exponent notation is not a price, it is a
+  // bug upstream, and pricing it would book phantom spend (round-2 self-attack).
+  if (typeof usd === 'string') return /^\s*\d+(?:\.\d+)?\s*$/.test(usd);
   return false;
 }
 

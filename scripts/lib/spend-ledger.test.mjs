@@ -26,7 +26,8 @@ test('isPriced: real numbers and numeric strings are priced', () => {
 });
 
 test('isPriced: blank, boolean, null, undefined, NaN, Infinity, objects are NOT priced', () => {
-  for (const v of ['', '   ', true, false, null, undefined, NaN, Infinity, -Infinity, {}, [], 'abc', '1x', -0.01, '-1']) {
+  // '0x10' → Number 16 and '1e3' → 1000: hex/exponent strings are bugs upstream, not prices.
+  for (const v of ['', '   ', true, false, null, undefined, NaN, Infinity, -Infinity, {}, [], 'abc', '1x', -0.01, '-1', '0x10', '1e3', '+1', '.5']) {
     assert.equal(isPriced(v), false, `isPriced(${JSON.stringify(v)}) must be false`);
   }
 });

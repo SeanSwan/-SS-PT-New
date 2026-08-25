@@ -52,6 +52,7 @@ import { dirname, join } from 'node:path';
 const EXPANDS = [
   { re: /\$\{/,             name: '${...} (shell expands it)' },
   { re: /\$[A-Za-z_]/,      name: '$VAR (shell expands it)' },
+  { re: /\$[0-9@?$*#!-]/,   name: '$1/$?/$@/$$ positional or special parameter (shell expands it)' },
   { re: /\$\(/,             name: '$(...) (shell runs it)' },
   { re: /`/,                name: 'backtick (shell executes it)' },
   { re: /\\/,               name: 'backslash (shell escape-processes it)' },
@@ -80,7 +81,9 @@ export function expandedBodies(cmd) {
   // Interpreter: node / python / python3 / python3.12 (versioned binaries — Grok r1 F4).
   // Between the eval flag and the body, other flags may sit (`-e --input-type=module
   // "..."`): tolerate `--flag` / `--flag=value` / `-x` runs before the quoted body.
-  const inl = /\b(node|python3?(?:\.\d+)?)\b[^\n|;&]*?\s(?:-e|--eval|-p|--print|-c)(?:=|[ \t]*(?:--?[\w-]+(?:=\S+)?[ \t]+)*)("(?:[^"\\]|\\.)*"|\$'(?:[^'\\]|\\.)*')/g;
+  // `sh -c "..."` / `bash -c "..."` / `zsh -c` are the SAME hazard class as node -e: a
+  // double-quoted body the outer shell expands before the inner shell sees it.
+  const inl = /\b(node|python3?(?:\.\d+)?|sh|bash|zsh)\b[^\n|;&]*?\s(?:-e|--eval|-p|--print|-c)(?:=|[ \t]*(?:--?[\w-]+(?:=\S+)?[ \t]+)*)("(?:[^"\\]|\\.)*"|\$'(?:[^'\\]|\\.)*')/g;
   while ((m = inl.exec(cmd))) {
     const q = m[2];
     const body = q.startsWith('$') ? q.slice(2, -1) : q.slice(1, -1);
@@ -90,6 +93,10 @@ export function expandedBodies(cmd) {
   // single-quoted or bare-word here-string is verbatim (round-1 Ox F3).
   const hs = /<<<[ \t]*"((?:[^"\\]|\\.)*)"/g;
   while ((m = hs.exec(cmd))) out.push({ kind: 'double-quoted here-string <<<"..."', text: m[1] });
+  // UNQUOTED here-string operand (`<<<$x`, `<<<$(cmd)`, `<<<${x}`): also shell-expanded.
+  // A bare word (`<<< input.txt`) is literal and is not returned; `<<<'...'` is verbatim.
+  const hsu = /<<<[ \t]*(\$[^\s'"|;&]*)/g;
+  while ((m = hsu.exec(cmd))) out.push({ kind: 'unquoted here-string <<<$…', text: m[1] });
   return out;
 }
 
