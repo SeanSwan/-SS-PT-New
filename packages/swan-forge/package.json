@@ -27,10 +27,11 @@
     "./css/auth.css": "./css/auth.css"
   },
   "scripts": {
-    "test": "node --test test/core.test.mjs test/instruments.test.mjs test/tabs-toast.test.mjs test/nav.test.mjs",
+    "test": "node --test test/core.test.mjs test/instruments.test.mjs test/tabs-toast.test.mjs test/nav.test.mjs test/codemod.test.mjs",
     "lint:drift": "node scripts/drift-lint.mjs",
     "audit:contrast": "node scripts/audit-contrast.mjs",
     "theme:check": "node scripts/generate-sc-theme.mjs --check",
-    "gate": "npm run test && npm run audit:contrast && npm run lint:drift && npm run theme:check"
+    "gate": "npm run test && npm run audit:contrast && npm run lint:drift && npm run theme:check",
+    "backlog:regen": "node scripts/drift-lint.mjs --consumer ../../frontend/src | grep \"^[R4]\" > /tmp/r4.txt && grep -oE \"frontend[^:]+\" /tmp/r4.txt | tr \"\\\\\" / | sort -u > /tmp/r4-files.txt && node scripts/reachability.mjs ../../frontend/src ../../frontend/src/main.jsx /tmp/r4-files.txt > /tmp/reach.txt && node scripts/gen-backlog.mjs /tmp/r4.txt /tmp/reach.txt"
   }
 }

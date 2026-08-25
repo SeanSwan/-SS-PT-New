@@ -13,7 +13,7 @@ import {
 import { getReveal, staggerContainer } from '../shared/HomeAnimations';
 import { SOCIAL_CATEGORIES } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
-import GlowButton from '../../../../components/ui/buttons/GlowButton';
+import ForgeButton from '../../../../components/ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import { StyledBox } from '@/components/ui/StyledBox';
 import { motionStyleProps } from '@/components/ui/motionStyleProps';
@@ -130,11 +130,11 @@ const SocialSection: React.FC<SocialSectionProps> = ({ tier }) => {
 
         <ScrollReveal disabled={isEssential} blur={isFull} once>
           <StyledBox as="div" $style={{ textAlign: 'center', marginTop: '3rem', position: 'relative', zIndex: 3 }}>
-            <StyledBox as={GlowButton}
+            <ForgeButton
               text="Join the Community"
               variant="cosmic"
               onClick={() => navigate('/user-dashboard')}
-              $style={{ minWidth: 220, minHeight: 44 }}
+              style={{ minWidth: 220 }}
             />
           </StyledBox>
         </ScrollReveal>

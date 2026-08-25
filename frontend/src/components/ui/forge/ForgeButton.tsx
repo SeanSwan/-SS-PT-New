@@ -44,10 +44,12 @@ export interface ForgeButtonProps
   /** GlowButton icon aliases */
   startIcon?: React.ReactNode;
   endIcon?: React.ReactNode;
-  /** GlowButton-only motion props — accepted for drop-in compatibility, intentionally
-   *  NOT rendered (motion is a pack/reduced-motion concern in the Forge). Destructured
-   *  so they never leak to the DOM as junk attributes. */
+  /** Entrance animation (rise + fade once on mount) — parity with GlowButton's
+   *  animateOnRender; rendered as the Forge `.sw-btn--enter` class (motion-gated). */
   animateOnRender?: boolean;
+  /** GlowButton-only props — accepted for drop-in compatibility, intentionally NOT
+   *  rendered (glow intensity / pulse / haptics are pack or device concerns in the
+   *  Forge). Destructured so they never leak to the DOM as junk attributes. */
   pulse?: boolean;
   haptic?: boolean;
   glowIntensity?: 'low' | 'medium' | 'high';
@@ -68,8 +70,8 @@ const ForgeButton: React.FC<ForgeButtonProps> = ({
   rightIcon,
   startIcon,
   endIcon,
+  animateOnRender,
   // dropped on purpose (see props doc) — never reach the DOM
-  animateOnRender: _animateOnRender,
   pulse: _pulse,
   haptic: _haptic,
   glowIntensity: _glowIntensity,
@@ -93,7 +95,7 @@ const ForgeButton: React.FC<ForgeButtonProps> = ({
       {...rest}
       {...(coreAttrs as React.ButtonHTMLAttributes<HTMLButtonElement>)}
       disabled={coreDisabled === true}
-      className={['sw-pack-crystalline-swan', coreClass, className].filter(Boolean).join(' ')}
+      className={['sw-pack-crystalline-swan', coreClass, animateOnRender ? 'sw-btn--enter' : '', className].filter(Boolean).join(' ')}
       onClick={handleClick}
     >
       {leftIcon ?? startIcon}

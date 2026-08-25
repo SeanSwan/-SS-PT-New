@@ -89,3 +89,12 @@ legacy delete-PR scheduled in the changelog.
 - `button accent label` (white on Wing Purple) audits at **4.23:1** — below the 4.5 gate,
   WAIVED because it matches the shipped original GlowButton brand pairing. Awaiting Sean's
   design call (darken accent fill vs accept ratio). See `scripts/audit-contrast.mjs` PAIRS.
+
+## Strangler tooling (Phase 2 / PR #2)
+
+| Script | Purpose |
+|---|---|
+| `scripts/codemod-glowbutton.mjs` | Brace-aware GlowButton → ForgeButton rewrite (imports, tags, `StyledBox as={GlowButton}` incl. paired closes, `$style`→`style`, strips the legacy `minHeight:44px` floor hack); reports dropped/unknown props; DRY-RUN by default, `--apply` to write. Self-tested in `test/codemod.test.mjs` with the exact fixture that once broke a build. |
+| `scripts/reachability.mjs` | Static import-graph walk from the app entry — the Rule 26/27 evidence for whether a consumer file is live. Positive control: a known-live surface must come back REACHABLE before any UNREACHABLE is believed. |
+| `scripts/scan-legacy-usage.mjs` | Per-file prop/pattern inventory for a legacy component (which props a strangler must honor). |
+| `scripts/gen-backlog.mjs` | Joins drift-lint R4 findings with reachability into the risk-tiered backlog doc body (`npm run backlog:regen`). Regenerate, never hand-edit. |

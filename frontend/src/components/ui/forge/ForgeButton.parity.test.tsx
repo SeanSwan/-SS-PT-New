@@ -96,6 +96,20 @@ describe('value parity (token subset): pack ⇄ original GlowButton (source-pars
   it('base motion multiplier is ON in the pack (reduced-motion block does not leak)', () => {
     expect(packToken('--sw-motion')).toBe('1');
   });
+  it('GEOMETRY parity: Forge size defaults equal the original BUTTON_SIZES table (source-parsed)', () => {
+    const buttonCss = readFileSync(join(repoRoot, 'packages', 'swan-forge', 'css', 'button.css'), 'utf8');
+    const sizeTable = glowSrc.slice(glowSrc.indexOf('const BUTTON_SIZES'), glowSrc.indexOf('\n};', glowSrc.indexOf('const BUTTON_SIZES')));
+    const orig = (size: string, field: string) => sizeTable.match(new RegExp(`${size}:\\s*{[^}]*${field}:\\s*"([^"]+)"`))?.[1];
+    const forge = (token: string) => buttonCss.match(new RegExp(`var\\(${token},\\s*([^)]+)\\)`))?.[1].trim();
+    expect(forge('--sw-btn-height')).toBe(orig('medium', 'height'));
+    expect(forge('--sw-btn-radius')).toBe(orig('medium', 'borderRadius'));
+    expect(forge('--sw-btn-height-sm')).toBe(orig('small', 'height'));
+    expect(forge('--sw-btn-radius-sm')).toBe(orig('small', 'borderRadius'));
+    expect(forge('--sw-btn-height-lg')).toBe(orig('large', 'height'));
+    expect(forge('--sw-btn-radius-lg')).toBe(orig('large', 'borderRadius'));
+    expect(buttonCss).toMatch(/font-weight:\s*500;/);
+    expect(glowSrc).toMatch(/font-weight:\s*500;/);
+  });
   it('focus-shadow and ease ARE defined in the pack (composites the JS projection omits)', () => {
     expect(packToken('--sw-focus-shadow')).toContain('--sw-focus-ring'); // swan-guard-allow-hex test asserts token TEXT; Forge tokens are defined in packages/swan-forge
     expect(packToken('--sw-ease')).toBeTruthy();
@@ -133,13 +147,16 @@ describe('ForgeButton binding contract', () => {
     fireEvent.click(btn);
     expect(onClick).not.toHaveBeenCalled();
   });
-  it('legacy motion props are accepted but never reach the DOM', () => {
+  it('legacy props: animateOnRender → entrance class; pulse/haptic/glowIntensity never reach the DOM', () => {
     render(<ForgeButton text="Legacy" pulse haptic animateOnRender glowIntensity="high" startIcon={<span>★</span>} />);
     const btn = screen.getByRole('button', { name: /Legacy/ });
     for (const junk of ['pulse', 'haptic', 'animateonrender', 'glowintensity']) {
       expect(btn.hasAttribute(junk)).toBe(false);
     }
+    expect(btn.className).toContain('sw-btn--enter');
     expect(btn.textContent).toContain('★');
+    render(<ForgeButton text="Static" />);
+    expect(screen.getByRole('button', { name: 'Static' }).className).not.toContain('sw-btn--enter');
   });
   it('click fires when active', () => {
     const onClick = vi.fn();

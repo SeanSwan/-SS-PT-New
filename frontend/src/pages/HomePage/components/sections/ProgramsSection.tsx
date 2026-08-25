@@ -10,9 +10,8 @@ import { SectionEl, Container, SectionHeader, SectionTitle, SectionSubtitle } fr
 import { cinematicReveal, reducedReveal } from '../shared/HomeAnimations';
 import { PROGRAMS } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
-import GlowButton from '../../../../components/ui/buttons/GlowButton';
+import ForgeButton from '../../../../components/ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
-import { StyledBox } from '@/components/ui/StyledBox';
 
 interface ProgramsSectionProps {
   tier: 'full' | 'balanced' | 'essential';
@@ -55,8 +54,8 @@ const ProgramCard = styled(GlassCard)<{ $isPopular?: boolean }>`
 
 const PopularBadge = styled.span`
   display: inline-block;
-  background: linear-gradient(135deg, #8B5CF6, #60C0F0);
-  color: #fff;
+  background: linear-gradient(135deg, #8B5CF6, #60C0F0); /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG) */
+  color: #fff; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG) */
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -165,13 +164,13 @@ const ProgramsSection: React.FC<ProgramsSectionProps> = ({ tier }) => {
                   ))}
                 </ProgramFeatures>
                 <CtaWrap>
-                  <StyledBox as={GlowButton}
+                  <ForgeButton
                     colorScheme={isPopular ? 'accent' : 'primary'}
                     onClick={() => navigate('/shop')}
-                    $style={{ width: '100%', minHeight: '44px' }}
+                    style={{ width: '100%' }}
                   >
                     Get Started
-                  </StyledBox>
+                  </ForgeButton>
                 </CtaWrap>
               </ProgramCard>
             );

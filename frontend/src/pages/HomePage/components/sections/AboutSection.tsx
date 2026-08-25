@@ -18,7 +18,7 @@ import {
   getReveal, staggerContainer,
 } from '../shared/HomeAnimations';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
-import GlowButton from '../../../../components/ui/buttons/GlowButton';
+import ForgeButton from '../../../../components/ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import logoImg from '../../../../assets/Logo.png';
 
@@ -196,9 +196,9 @@ const AboutSection: React.FC<AboutSectionProps> = ({ tier }) => {
         </ApproachGrid>
 
         <LearnMoreWrapper>
-          <GlowButton variant="ghost" onClick={() => navigate('/about')}>
+          <ForgeButton variant="ghost" onClick={() => navigate('/about')}>
             Learn More
-          </GlowButton>
+          </ForgeButton>
         </LearnMoreWrapper>
       </Container>
     </SectionEl>

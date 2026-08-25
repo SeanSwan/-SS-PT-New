@@ -14,14 +14,18 @@
   --_text: var(--sw-btn-text, var(--sw-text-inverse));
   --_glow-a: var(--sw-btn-glow-a, var(--sw-glow-a));
   --_glow-b: var(--sw-btn-glow-b, var(--sw-glow-b));
-  --_radius: var(--sw-btn-radius, var(--sw-p-radius-md));
+  /* Geometry = the ORIGINAL GlowButton size table (source-parsed parity test):
+     small 44/10px · medium 48/12px · large 56/14px; weight 500; 0.5px tracking.
+     The 44px primitive floor stays the a11y minimum underneath. */
+  --_radius: var(--sw-btn-radius, 12px);
+  --_height: var(--sw-btn-height, 48px);
 
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--sw-p-space-2);
-  min-block-size: var(--sw-p-target-min);
+  min-block-size: max(var(--sw-p-target-min), var(--_height));
   min-inline-size: var(--sw-p-target-min);
   padding-block: var(--sw-p-space-2);
   padding-inline: var(--sw-p-space-5);
@@ -31,7 +35,8 @@
   color: var(--_text);
   font-family: var(--sw-font-ui);
   font-size: calc(var(--sw-p-text-base) * var(--sw-text-scale));
-  font-weight: 600;
+  font-weight: 500;
+  letter-spacing: 0.5px;
   line-height: 1.2;
   cursor: pointer;
   user-select: none;
@@ -91,8 +96,8 @@
 .sw-btn--ghost   { --_bg: transparent; --_text: var(--sw-text-primary); border-color: var(--sw-border-strong); --_glow-a: var(--sw-btn-ghost-glow-a, var(--sw-glow-a)); --_glow-b: var(--sw-btn-ghost-glow-b, var(--sw-glow-b)); }
 
 /* ── Sizes ────────────────────────────────────────────────────────── */
-.sw-btn--small { padding-inline: var(--sw-p-space-4); font-size: calc(var(--sw-p-text-sm) * var(--sw-text-scale)); }
-.sw-btn--large { padding-block: var(--sw-p-space-3); padding-inline: var(--sw-p-space-6); font-size: calc(var(--sw-p-text-lg) * var(--sw-text-scale)); }
+.sw-btn--small { --_height: var(--sw-btn-height-sm, 44px); --_radius: var(--sw-btn-radius-sm, 10px); padding-inline: var(--sw-p-space-4); font-size: calc(var(--sw-p-text-sm) * var(--sw-text-scale)); }
+.sw-btn--large { --_height: var(--sw-btn-height-lg, 56px); --_radius: var(--sw-btn-radius-lg, 14px); padding-block: var(--sw-p-space-3); padding-inline: var(--sw-p-space-6); font-size: calc(var(--sw-p-text-lg) * var(--sw-text-scale)); }
 .sw-btn.is-full { inline-size: 100%; }
 
 /* ── States ───────────────────────────────────────────────────────── */
@@ -117,8 +122,19 @@
 }
 @keyframes sw-btn-spin { to { transform: rotate(360deg); } }
 
+/* ── Entrance (animateOnRender parity with the original: rise 20px + fade, once) ─
+   Rule-of-two: /about hero CTAs + both V3 fallbacks. Motion-gated; capture mode zeroes it. */
+.sw-btn--enter {
+  animation: sw-btn-enter calc(var(--sw-p-duration-slow) * var(--sw-motion)) var(--sw-ease) both;
+}
+@keyframes sw-btn-enter {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: none; }
+}
+
 /* Reduced motion: spinner becomes a steady dot (announced via aria-busy). */
 @media (prefers-reduced-motion: reduce) {
   .sw-btn.is-loading::before { animation: none; border-color: var(--_text); }
   .sw-btn::after { display: none; }
+  .sw-btn--enter { animation: none; }
 }

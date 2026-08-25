@@ -19,7 +19,7 @@ import { motion, useInView } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Award, Brain, CheckCircle, Heart, Shield, Target, Users } from 'lucide-react';
 
-import GlowButton from '../../components/ui/buttons/GlowButton';
+import ForgeButton from '../../components/ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import ScrollReveal from '../../components/ui-kit/cinematic/ScrollReveal';
 import TypewriterText from '../../components/ui-kit/cinematic/TypewriterText';
 import ParallaxHero from '../../components/ui-kit/cinematic/ParallaxHero';
@@ -88,10 +88,10 @@ const certifications = [
 ];
 
 const statsData = [
-  { numericValue: 26, suffix: '+', label: 'Years Experience', delay: 0, color: '#8B5CF6' },
-  { numericValue: 500, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#8B5CF6' },
-  { numericValue: 97, suffix: '%', label: 'Client Satisfaction', delay: 0.4, color: '#00E5FF' },
-  { numericValue: 312, suffix: '', label: 'Swimmers Taught', delay: 0.6, color: '#9B59B6' },
+  { numericValue: 26, suffix: '+', label: 'Years Experience', delay: 0, color: '#8B5CF6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG)
+  { numericValue: 500, suffix: '+', label: 'Clients Transformed', delay: 0.2, color: '#8B5CF6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG)
+  { numericValue: 97, suffix: '%', label: 'Client Satisfaction', delay: 0.4, color: '#00E5FF' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG)
+  { numericValue: 312, suffix: '', label: 'Swimmers Taught', delay: 0.6, color: '#9B59B6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG)
 ];
 
 const featureList = [
@@ -567,8 +567,8 @@ const StatCard = styled.div<{ $accentColor?: string }>`
 
   &:hover {
     transform: translateY(-6px);
-    border-color: ${({ $accentColor }) => `${$accentColor || '#8B5CF6'}50`};
-    box-shadow: 0 0 24px ${({ $accentColor }) => `${$accentColor || '#8B5CF6'}25`},
+    border-color: ${({ $accentColor }) => `${$accentColor || '#8B5CF6'}50`}; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG) */
+    box-shadow: 0 0 24px ${({ $accentColor }) => `${$accentColor || '#8B5CF6'}25`}, /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG) */
                 0 8px 32px rgba(0, 0, 0, 0.3);
   }
 
@@ -936,14 +936,14 @@ const AboutV3: React.FC = () => {
             cutting-edge science, and an unwavering commitment to your success.
           </HeroSubtitle>
           <HeroButtons>
-            <GlowButton
+            <ForgeButton
               text="Book Consultation"
               variant="primary"
               size="large"
               onClick={() => navigate('/contact')}
               animateOnRender
             />
-            <GlowButton
+            <ForgeButton
               text="View Programs"
               variant="accent"
               size="large"
@@ -1230,13 +1230,13 @@ const AboutV3: React.FC = () => {
                   first step today.
                 </CTADescription>
                 <CTAButtons>
-                  <GlowButton
+                  <ForgeButton
                     text="Start Your Journey"
                     variant="accent"
                     size="large"
                     onClick={() => navigate('/shop')}
                   />
-                  <GlowButton
+                  <ForgeButton
                     text="Contact Us"
                     variant="ghost"
                     size="large"

@@ -5,7 +5,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import GlowButton from '../../../../components/ui/buttons/GlowButton';
+import ForgeButton from '../../../../components/ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { SectionEl, Container, AccentLine } from '../shared/AboutStyles';
@@ -80,13 +80,13 @@ const CTASection: React.FC<CTASectionProps> = ({ tier }) => {
               first step today.
             </CTADescription>
             <CTAButtons>
-              <GlowButton
+              <ForgeButton
                 text="Start Your Journey"
                 variant="accent"
                 size="large"
                 onClick={() => navigate('/shop')}
               />
-              <GlowButton
+              <ForgeButton
                 text="Contact Us"
                 variant="ghost"
                 size="large"
