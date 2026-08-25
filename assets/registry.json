@@ -1,0 +1,60 @@
+{
+  "$schema": "./registry.schema.md",
+  "schema": "swan.asset-registry.v1",
+  "updated": "2026-08-25",
+  "note": "SINGLE SOURCE OF TRUTH for game/app asset IDs. scripts/assets/validate-asset.mjs rejects any manifest whose id is absent here. Modelled on the world-catalog pattern in scripts/ai-workflow/world-engine-catalog-validation.mjs (frozen expected-ID list). Adding an id here is a deliberate act, not a side effect of authoring a file.",
+
+  "worlds": {
+    "note": "Worlds are NOT defined here. They live in docs/ai-workflow/design-brain/worlds.md and are validated by scripts/ai-workflow/world-engine-catalog-validation.mjs. This block only records which existing world entry a zone INHERITS.",
+    "inherits": "world.miniature-play.voxel-realm",
+    "inheritedContract": {
+      "material": "beveled voxels with disciplined roughness, not plastic cubes",
+      "paletteLaw": "B",
+      "lawBRestriction": "No Swan-branded surface may use this Law-B chrome. Swan-chromed surfaces render Law A (Crystalline Swan tokens). Law-B chrome is standalone/non-Swan only.",
+      "proofActionContract": "the action is never awarded or unlocked by play; no gameplay gates proof or action",
+      "antiCheese": "fails fastest when block fonts, loot sparkle, achievements, and a copied sandbox-game look turn evidence into gamification sludge",
+      "bannedLikeness": ["Minecraft likeness", "branded blocks", "loot-box visuals", "plastic toy shine", "readable fake UI text", "logos", "retired Galaxy-Swan tones"]
+    }
+  },
+
+  "zones": [
+    {
+      "id": "pocket.aftertaste.fallen-food-court",
+      "status": "planned",
+      "world": "world.miniature-play.voxel-realm",
+      "shardFraming": "world.miniature-play.pocket-worlds",
+      "loreParent": "docs/ai-workflow/brainstorms/swanverse-game-universe-vision-2026-07-22.md",
+      "summary": "First contaminated Earth-tier shard the champion redeems. Cleanse three nests, defeat the banquet archetype, the shard turns benevolent.",
+      "chromeLaw": { "embedded": "A", "standalone": "B" }
+    }
+  ],
+
+  "skeletons": [
+    { "id": "skeleton.creature-small.v1", "status": "planned", "clips": ["idle", "move", "attack", "hit", "death"] }
+  ],
+
+  "assets": [
+    {
+      "id": "enemy.fryling",
+      "status": "planned",
+      "kind": "enemy",
+      "zone": "pocket.aftertaste.fallen-food-court",
+      "skeleton": "skeleton.creature-small.v1",
+      "budgets": { "lod0Triangles": 1500, "lod1Triangles": 700, "lod2Triangles": 300, "textureMB": 4 },
+      "note": "P1 factory proof asset #1 — the one mesh that must traverse the entire pipe."
+    },
+    {
+      "id": "app.companion-stage.frost-swan.s1",
+      "status": "planned",
+      "kind": "app-asset",
+      "zone": null,
+      "skeleton": null,
+      "budgets": { "lod0Triangles": 4000, "lod1Triangles": 1800, "lod2Triangles": 700, "textureMB": 6 },
+      "note": "P1 factory proof asset #2 — proves the same pipe produces APP assets (SWA-60 companion work), which is the DEFER-era ROI argument. Extends CompanionPetService species/stage IDs; does not mint a parallel catalog."
+    }
+  ],
+
+  "statusValues": ["planned", "in-progress", "validated", "shipped", "retired"],
+  "licenseEnum": ["owner-authored", "cc0", "ccby", "model"],
+  "licenseModelForm": "model:<name>@<version>:<license-id>"
+}
