@@ -7,7 +7,7 @@
  */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { classify, expandedBodies, unquotedMask } from './heredoc-escape-gate.mjs';
+import { classify, expandedBodies, unquotedMask, literalSpans, isShadow } from './heredoc-escape-gate.mjs';
 
 const block = (cmd, why) => assert.equal(classify(cmd).block, true, `must BLOCK: ${why}\n${cmd}`);
 const allow = (cmd, why) => assert.equal(classify(cmd).block, false, `must ALLOW: ${why}\n${cmd}`);
@@ -299,4 +299,67 @@ test('hatch: requires a reason of at least 12 chars and is reported as hatch:tru
 
 test('empty / non-string input fails open', () => {
   allow('', 'empty'); assert.equal(classify(undefined).block, false); assert.equal(classify(42).block, false);
+});
+
+// --- round 3 (GLM/Grok/Ox 2026-08-25): bash-exact terminators, mask-derived literals --
+
+test('R3 F2 BLOCK: trailing whitespace after the delimiter does NOT terminate (plain <<)', () => {
+  // bash does not end the heredoc on "EOF  " — the ${X} line is still inside the body.
+  const v = classify('cat > f <<EOF\nsafe\nEOF  \n${X}\nEOF');
+  assert.equal(v.block, true, 'the tail after a fake terminator must still be inspected');
+});
+test('R3 F2 BLOCK: indented delimiter does NOT terminate a plain << heredoc', () => {
+  const v = classify('cat > f <<EOF\nsafe\n  EOF\n${X}\nEOF');
+  assert.equal(v.block, true, 'plain << terminates only at column 0');
+});
+test('R3 F2: <<- still strips tabs (and only tabs) before the terminator', () => {
+  const v = classify('cat > f <<-EOF\n\t${X}\n\tEOF');
+  assert.equal(v.block, true, 'tab-indented terminator ends the body; body was expanded');
+  const spaces = classify('cat > f <<-EOF\nsafe\n  EOF\n${X}\nEOF');
+  assert.equal(spaces.block, true, 'space-indented terminator does NOT end a <<- body');
+});
+test('R3 F3 BLOCK: a hatch inside a double-quoted argument is data, not an override', () => {
+  const v = classify('echo "# HEREDOC-OK: this is just argument text" && cat > f <<EOF\n${A}\nEOF');
+  assert.equal(v.block, true, 'hatch in "..." must not be honoured');
+  assert.equal(v.hatch, false);
+});
+test("R3 F3 BLOCK: a hatch inside an ANSI-C $'...' argument is data, not an override", () => {
+  const v = classify("echo $'# HEREDOC-OK: still just argument text' && cat > f <<EOF\n${A}\nEOF");
+  assert.equal(v.block, true, "hatch in $'...' must not be honoured");
+});
+test("R3 mask: ANSI-C \\' does not close $'...' — quote state stays correct after it", () => {
+  const cmd = "echo $'it\\'s fine' && cat > f <<EOF\n${A}\nEOF";
+  const v = classify(cmd);
+  assert.equal(v.block, true, "the heredoc after $'it\\'s' is still seen as a real operator");
+});
+test('R3 literalSpans: derived from the mask — covers \'...\', "...", and heredoc bodies', () => {
+  const cmd = 'echo \'a\' "b" && cat <<\'Q\'\nliteral\nQ';
+  const spans = literalSpans(cmd);
+  const covered = (i) => spans.some((s) => i >= s.start && i < s.end);
+  assert.equal(covered(cmd.indexOf('a')), true, "single-quoted content is a literal span");
+  assert.equal(covered(cmd.indexOf('b')), true, 'double-quoted content is a literal span');
+  assert.equal(covered(cmd.indexOf('literal')), true, 'quoted-delimiter heredoc body is a literal span');
+  assert.equal(covered(cmd.indexOf('echo')), false, 'bare command-line text is not');
+});
+test('R3 ALLOW: legit hatch as a real command-line comment still works after the rewrite', () => {
+  const v = classify('cat > f <<EOF # HEREDOC-OK: fixture, expansion intended here\n${A}\nEOF');
+  assert.equal(v.block, false); assert.equal(v.hatch, true);
+});
+
+// --- shadow-by-default ship decision ---------------------------------------------------
+
+test('shadow: default is SHADOW (no env); enforce only on explicit opt-in', () => {
+  const saved = process.env.SWAN_HEREDOC_GATE;
+  try {
+    delete process.env.SWAN_HEREDOC_GATE;
+    assert.equal(isShadow(), true, 'no env → shadow');
+    process.env.SWAN_HEREDOC_GATE = 'shadow';
+    assert.equal(isShadow(), true, 'explicit shadow → shadow');
+    process.env.SWAN_HEREDOC_GATE = 'enforce';
+    assert.equal(isShadow(), false, 'enforce → blocking');
+    process.env.SWAN_HEREDOC_GATE = 'block';
+    assert.equal(isShadow(), false, 'block → blocking');
+  } finally {
+    if (saved === undefined) delete process.env.SWAN_HEREDOC_GATE; else process.env.SWAN_HEREDOC_GATE = saved;
+  }
 });
