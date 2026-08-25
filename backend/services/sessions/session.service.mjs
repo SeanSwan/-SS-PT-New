@@ -1775,7 +1775,12 @@ class UnifiedSessionService {
       // can explicitly restore a deducted credit from the cancellation panel.
       const sessionTime = session.sessionDate ? new Date(session.sessionDate).getTime() : null;
       const hoursUntilSession = sessionTime ? (sessionTime - Date.now()) / (1000 * 60 * 60) : null;
-      const refundEligible = hoursUntilSession !== null && hoursUntilSession > 24;
+      // >= 24, not > 24, so this is the exact complement of the warning endpoint's
+      // `isLateCancellation = hoursUntilSession < 24`. With > 24 a cancellation at
+      // exactly 24h was told "your session credit will be returned" and then did
+      // not get it - the two predicates disagreed on the single boundary value the
+      // whole policy turns on.
+      const refundEligible = hoursUntilSession !== null && hoursUntilSession >= 24;
       const shouldRestoreCredit = Boolean(
         session.sessionDeducted &&
         !session.sessionCreditRestored &&

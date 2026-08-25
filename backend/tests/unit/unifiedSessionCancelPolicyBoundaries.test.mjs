@@ -233,3 +233,58 @@ describe('cancelSession policy boundaries', () => {
     expect(session.cancellationReviewedBy).toBeNull();
   });
 });
+
+describe('cancelSession 24-hour boundary agrees with the warning endpoint', () => {
+  let service;
+  let sessionModel;
+  let userModel;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockTransaction.commit.mockResolvedValue(undefined);
+    mockTransaction.rollback.mockResolvedValue(undefined);
+    service = new UnifiedSessionService();
+    sessionModel = { findByPk: vi.fn() };
+    userModel = { findByPk: vi.fn() };
+    service._Session = sessionModel;
+    service._User = userModel;
+    service.sendCancellationNotifications = vi.fn();
+  });
+
+  const cancelAt = async (hoursOut) => {
+    // Frozen clock, no cushion. An earlier version added +2000ms to avoid
+    // flakiness, which put the session 24.0005h out - satisfying BOTH > 24 and
+    // >= 24, so the test passed against the very bug it was written to catch.
+    // Testing a boundary requires landing exactly ON it.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-25T12:00:00.000Z'));
+    const client = buildClient({ availableSessions: 2 });
+    const session = buildSession({
+      client,
+      sessionDate: new Date(Date.now() + hoursOut * HOURS)
+    });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(client);
+    await service.cancelSession(77, { id: 301, role: 'client' }, 'boundary');
+    vi.useRealTimers();
+    return session;
+  };
+
+  it('restores the credit at exactly the 24-hour boundary', async () => {
+    // The warning endpoint calls this NOT late (hoursUntilSession < 24 is false)
+    // and tells the client their credit will be returned. Before this fix the
+    // service used > 24 and forfeited it, contradicting what the client was told.
+    const session = await cancelAt(24);
+    expect(session.sessionCreditRestored).toBe(true);
+  });
+
+  it('still forfeits the credit just inside the window', async () => {
+    const session = await cancelAt(23.5);
+    expect(session.sessionCreditRestored).toBe(false);
+  });
+
+  it('restores the credit comfortably outside the window', async () => {
+    const session = await cancelAt(48);
+    expect(session.sessionCreditRestored).toBe(true);
+  });
+});
