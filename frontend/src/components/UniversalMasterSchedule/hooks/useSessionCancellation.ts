@@ -25,6 +25,7 @@ interface UseSessionCancellationInput {
   isEarlyCancelEligible: boolean;
   defaultFullCharge: number;
   defaultLateFee: number;
+  pricingUnavailable: boolean;
   onUpdated: () => void;
   onClose: () => void;
   toast: CancellationToast;
@@ -40,6 +41,7 @@ export const useSessionCancellation = ({
   isEarlyCancelEligible,
   defaultFullCharge,
   defaultLateFee,
+  pricingUnavailable,
   onUpdated,
   onClose,
   toast,
@@ -106,7 +108,11 @@ export const useSessionCancellation = ({
   const handleCancelClick = useCallback(async () => {
     if (canManage) {
       setShowCancelOptions(true);
-      const nextDefaults = buildCancelPanelDefaults(isEarlyCancelEligible, defaultFullCharge);
+      const nextDefaults = buildCancelPanelDefaults(
+        isEarlyCancelEligible,
+        defaultFullCharge,
+        pricingUnavailable
+      );
       setChargeType(nextDefaults.chargeType);
       setRestoreCredit(nextDefaults.restoreCredit);
       setChargeAmount(nextDefaults.chargeAmount);
@@ -114,7 +120,7 @@ export const useSessionCancellation = ({
     }
 
     await fetchCancelWarning();
-  }, [canManage, defaultFullCharge, fetchCancelWarning, isEarlyCancelEligible]);
+  }, [canManage, defaultFullCharge, fetchCancelWarning, isEarlyCancelEligible, pricingUnavailable]);
 
   const handleCancel = useCallback(() => {
     if (!session) {

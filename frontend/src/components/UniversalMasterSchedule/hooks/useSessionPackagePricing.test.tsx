@@ -166,3 +166,62 @@ describe('useSessionPackagePricing', () => {
     expect(result.current.defaultLateFee).toBe(88);
   });
 });
+
+describe('useSessionPackagePricing — fail-closed pricing signal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('flags pricing as unavailable when the package fetch rejects', async () => {
+    vi.mocked(apiService.get).mockRejectedValueOnce(new Error('pricing unavailable'));
+
+    const { result } = renderHook(() =>
+      useSessionPackagePricing({ open: true, sessionId: 77, canManage: true })
+    );
+
+    await waitFor(() => {
+      expect(result.current.pricingUnavailable).toBe(true);
+    });
+
+    expect(result.current.packagePrice).toBeNull();
+  });
+
+  it('flags pricing as unavailable when the API returns no package data', async () => {
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      data: { success: false, data: null },
+    });
+
+    const { result } = renderHook(() =>
+      useSessionPackagePricing({ open: true, sessionId: 78, canManage: true })
+    );
+
+    await waitFor(() => {
+      expect(result.current.pricingUnavailable).toBe(true);
+    });
+  });
+
+  it('clears the unavailable flag once real package pricing resolves', async () => {
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          pricePerSession: 110,
+          packageName: 'Express 30 10-Pack',
+          defaultChargeAmount: 110,
+          lateFeeAmount: 55,
+        },
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useSessionPackagePricing({ open: true, sessionId: 79, canManage: true })
+    );
+
+    await waitFor(() => {
+      expect(result.current.defaultFullCharge).toBe(110);
+    });
+
+    expect(result.current.pricingUnavailable).toBe(false);
+    expect(result.current.defaultLateFee).toBe(55);
+  });
+});
