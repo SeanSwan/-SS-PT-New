@@ -1,0 +1,19 @@
+[redact-egress] document: clean (canary verified)
+[consult-glm] model=glm-5.3 doc=docs/ai-workflow/AI-HANDOFF/panel-swa200-final-2026-08-24/PACKET.md chars=41722
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 0 chars
+[consult-glm] streaming... 1770 chars
+[consult-glm] streaming... 9064 chars
+[consult-glm] done tokens=11400in/23228out total=34628 reasoning=19776 wall=312.9s
+[consult-glm] saved=docs/ai-workflow/AI-HANDOFF/panel-swa200-final-2026-08-24/GLM-R1.md

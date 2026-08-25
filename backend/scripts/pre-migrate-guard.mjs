@@ -1,6 +1,23 @@
 #!/usr/bin/env node
 /**
- * pre-migrate-guard.mjs — the rails that were missing in front of migrate:production.
+ * pre-migrate-guard.mjs — rails for migrate:production. NOT YET INSTALLED IN FRONT OF IT.
+ *
+ * ⚠ STATUS, 2026-08-24 — READ THIS BEFORE TRUSTING ANYTHING BELOW.
+ * This file is invoked by NOTHING on the deploy path. `render.yaml:20` runs
+ * `npm run migrate:production` directly; it does not call this guard. Its `--run` mode —
+ * the whole reason the guard owns the migration, so the advisory lock outlives it — HAS NO
+ * CALLER anywhere in the repository. Its only live invocation is `--check` from the CI
+ * shadow workflow, which locks nothing and backs up nothing by design.
+ *
+ * Therefore: THIS GUARD CURRENTLY PROTECTS PRODUCTION ZERO PERCENT.
+ *
+ * That is recorded here rather than quietly left implied because all three review seats
+ * (Claude, Ox Alpha, GLM 5.3) independently flagged the original header as claiming
+ * protection the file does not deliver — the exact "safeguard cited in the postmortem"
+ * anti-pattern this file's own comments warn about further down. Wiring it in is a real
+ * decision with real blast radius (a bug here bricks every deploy, see FAIL-OPEN below), so
+ * it is Sean's call on SWA-200, not a drive-by. Until that call is made, the honest
+ * description of this file is: a well-tested guard that is not installed.
  *
  * WHY THIS EXISTS (SWA-200, panel 2026-08-23)
  * -------------------------------------------
@@ -8,7 +25,7 @@
  * guarding the migration.** A full day went into making pushes safe — Rules 42, 6, 45, 59, a
  * pre-push gate, a pre-commit gate. None of it protects the database once the push lands.
  *
- * `render.yaml:66` builds `main` with `npm run migrate:production`, which is
+ * `render.yaml:20` builds `main` with `npm run migrate:production`, which is
  * `safe-migrate.mjs`. That script is genuinely good at RECOVERING from a bad migration — it
  * carries a quarantine ledger, retry caps and a data-critical lane. Measured, it contains
  * zero occurrences of: backup, advisory lock, pg_dump, rollback, smoke, verify, snapshot.
@@ -26,7 +43,8 @@
  *
  * FAIL-OPEN BY DEFAULT — and that is deliberate
  * ---------------------------------------------
- * This runs inside the Render build. A bug here takes down every deploy, including the one
+ * This is DESIGNED to run inside the Render build (it does not yet — see STATUS at the top).
+ * Once wired in, a bug here takes down every deploy, including the one
  * that would fix it. So in the default mode it WARNS and exits 0: a guard that can brick the
  * deploy pipeline gets ripped out within a day, and then there is no guard at all.
  *
@@ -278,7 +296,6 @@ async function main() {
         const { readdirSync } = await import('node:fs');
         const pending = readdirSync(dir).filter((f) => /\.(c?js)$/.test(f) && !done.has(f)).sort();
         pendingCount = pending.length;
-        pendingCount = pending.length;
         log(`applied=${done.size} pending=${pending.length}`);
         for (const p of pending.slice(0, 25)) log(`  PENDING  ${p}`);
         if (pending.length > 25) log(`  … and ${pending.length - 25} more`);
@@ -303,7 +320,15 @@ async function main() {
     // Kimi K3: a stand-down that emits nothing is the ambiguity this whole attestation
     // exists to remove. This path — the guard could not reach the database at all — is the
     // MOST important one to announce, because it is the one where protection is fully absent.
-    console.log(attestation({ mode: MODE, locked: false, backup: 'skipped', outcome: 'stood-down-guard-error' }));
+    // ONE attestation per run, emitted after the outcome is known.
+    //
+    // Ox Alpha, 2026-08-24: this path used to emit 'stood-down-guard-error' FIRST and then,
+    // under ENFORCE, a second 'halted-guard-error'. findAttestation() returns the FIRST match
+    // in the log, so any machine reading the attestation saw "stood down and let the migration
+    // proceed" on a run where the guard had actually HALTED the deploy. The one line whose
+    // entire purpose is to be machine-checkable truth was reporting the opposite outcome.
+    // Same class as the defects this file's own comments catalogue — caught by a reviewer,
+    // not by me, in the file that exists to make this class visible.
     warn(`guard could not run: ${e.message}`);
     if (ENFORCE) {
       warn('SWAN_MIGRATE_GUARD=enforce — refusing to migrate behind a guard that did not run.');

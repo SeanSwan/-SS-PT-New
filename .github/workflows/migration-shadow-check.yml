@@ -3,36 +3,48 @@ name: Migration Shadow Check
 # WHY THIS EXISTS (SWA-200, panel 2026-08-23)
 # -------------------------------------------
 # Ox Alpha, asked what nobody was proposing: "everyone is guarding the push; nobody is
-# guarding the migration." render.yaml builds `main` with `npm run migrate:production`, so a
-# push to main runs migrations against the production database, unsupervised.
+# guarding the migration." render.yaml:20 builds `main` with `npm run migrate:production`, so
+# a push to main runs migrations against the production database, unsupervised.
 #
 # Every gate built before this one is CLIENT-SIDE — pre-commit and pre-push hooks, living in
 # the same clients they police. GLM: "nothing distinguishes 'gate passed' from 'gate not
-# installed'." Verified: a fresh clone has core.hooksPath unset and every hook silently skips.
-# Kimi, on the local backend audit: "it's a deploy-safety gate wearing a commit-hygiene
-# costume. It belongs at the deploy boundary, not the push boundary."
-#
-# This is that boundary. It runs on GitHub, from the pushed SHA, against a throwaway
-# database. It cannot be skipped with --no-verify, cannot be missing because a checkout
-# forgot to configure hooks, and — unlike every local gate — it tests THE ARTIFACT THAT
-# ACTUALLY DEPLOYS rather than the state of somebody's laptop.
+# installed'." This runs on GitHub, against a throwaway database, and cannot be skipped with
+# --no-verify or be missing because a checkout forgot to configure hooks.
 #
 # NOT PRODUCTION. The `postgres` service below is an empty ephemeral container that lives and
-# dies with the job. No production credential is used, and none should ever be added: the
-# whole value is that this is the one place migrations can fail harmlessly.
+# dies with the job. No production credential is used, and none should ever be added.
 #
-# MERGED SURFACE (2026-08-24, Fable — SWA-200 reconciliation). This file existed twice: this
-# branch's rails version (deploy-parity install, SHA-pinned, migrate-twice, entry-point boot
-# proof) and an untracked local version carrying a 15-round-panel-reviewed SEEDING layer.
-# Neither was a superset. This is the merge: rails as base, the seeder inserted between the
-# two migration runs — so the second run now executes against a POPULATED database, which is
-# exactly the limitation the original header admitted ("an empty database is not
-# production... a NOT NULL added to a populated column, a unique index over existing
-# duplicates"). Synthetic deterministic rows, zero PII, no snapshot-handling decision needed.
-# Panel items carried: anchored report grep (5), stderr captured without interleaving (10,
-# resolved via split streams), selftest as a pre-DB gate (9 — RE-DECIDED to run after
-# `npm install`, the deploy-parity install this base uses; the panel ratified "after npm ci"
-# against the other copy without knowing install mode was load-bearing).
+# ---------------------------------------------------------------------------------------
+# REBUILT 2026-08-24 after a three-seat hostile review (Claude / Ox Alpha / GLM 5.3) of the
+# merged surface. The review found the previous version was VACUOUS — it could not fail:
+#
+#   1. `npm run migrate:production` exits 0 even when migrations genuinely fail.
+#      safe-migrate.mjs marks a failed migration as applied and continues; that file contains
+#      exactly two process.exit(1) calls and neither is reachable from `failed > 0`. Both
+#      steps the old file labelled "THE ACTUAL GATE" were incapable of failing.
+#      FIX: SWAN_MIGRATE_STRICT=1 (added to safe-migrate.mjs; production default unchanged).
+#
+#   2. The second migration leg ran ZERO migrations. Leg 1 applied all of them to an empty
+#      database, so by the time the seeder inserted rows every migration was already recorded
+#      in SequelizeMeta and leg 2 printed "No pending migrations" and returned. Nothing ever
+#      migrated against populated tables — the entire purpose of seeding.
+#      FIX: baseline-then-delta. Leg A applies the BASE commit's migration set to an empty
+#      database; the seeder fills it; leg B then applies ONLY the migrations this change
+#      adds, against POPULATED tables. That is the test the seeding layer was built for.
+#
+#   3. safe-migrate's "already applied" heuristic swallows `duplicate key value` and
+#      `violates foreign key constraint` — precisely the errors a migration raises against
+#      populated tables, i.e. the two classes the seeder exists to surface.
+#      FIX: STRICT disables the heuristic. On a database created empty seconds ago, nothing
+#      can legitimately already exist, so there every match hid a real defect.
+#
+#   4. The guard's `--check` step ran BEFORE any migration, against a fresh container where
+#      "SequelizeMeta" never exists — so the step named "report the pending set" was
+#      incapable of reporting anything, in any run, ever.
+#      FIX: it now runs BETWEEN leg A and leg B, where the pending set is exactly the delta
+#      about to meet real data. That is the one place the step is meaningful.
+#
+# What this still does not prove is stated in the Summary step, not hidden.
 
 on:
   pull_request:
@@ -44,28 +56,45 @@ on:
       - 'backend/scripts/pre-migrate-guard.mjs'
       - 'backend/scripts/seed-shadow-db.mjs'
       - 'backend/scripts/seed-shadow-db.selftest.mjs'
+      - 'backend/scripts/shadow-meta-count.mjs'
       - 'backend/package.json'
       - 'render.yaml'
       - '.github/workflows/migration-shadow-check.yml'
   push:
     branches: [main]
+    # Identical to the PR set on purpose. The previous version listed four paths here and
+    # nine above, so a push to main touching render.yaml, package.json, the guard — or THIS
+    # FILE — ran no check at all. The gate could be gutted by direct push with nothing
+    # meta-checking it, and the gate's own merge commit triggered no run.
+    # DO NOT refactor these two lists into a YAML anchor. GitHub Actions does not support
+    # anchors/aliases in workflow files — the alias would not resolve and the filter would
+    # silently stop matching, which is the failure mode this gate exists to prevent. If you
+    # edit one list, edit BOTH; they must stay identical.
     paths:
       - 'backend/migrations/**'
       - 'backend/models/**'
       - 'backend/scripts/safe-migrate.mjs'
+      - 'backend/scripts/pre-migrate-guard.mjs'
       - 'backend/scripts/seed-shadow-db.mjs'
+      - 'backend/scripts/seed-shadow-db.selftest.mjs'
+      - 'backend/scripts/shadow-meta-count.mjs'
+      - 'backend/package.json'
+      - 'render.yaml'
+      - '.github/workflows/migration-shadow-check.yml'
   workflow_dispatch:
 
 concurrency:
-  # One shadow run per ref. A superseded run tells you about a SHA nobody is deploying.
   group: migration-shadow-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   shadow-migrate:
     runs-on: ubuntu-latest
-    name: Migrations run clean on a throwaway database — twice, the second time with data
-    timeout-minutes: 20
+    name: Migrations run clean on a throwaway database — baseline, then the delta against data
+    # 307 migrations, each a separate `npx sequelize-cli` spawn inside safe-migrate.mjs, plus
+    # an npm install and a 217-model seed. 20 minutes was optimistic to the point of being a
+    # likely false red.
+    timeout-minutes: 45
 
     services:
       postgres:
@@ -82,139 +111,268 @@ jobs:
           --health-retries 10
 
     env:
-      # Local container only. Never a production credential — see the header. The password
-      # and the URL are the SAME literal on purpose (panel item 4): a mismatch here once let
-      # an auth check pass vacuously because the broken URL still parsed.
+      # Local container only. Never a production credential. User, password and database name
+      # are the SAME literal on purpose (panel item 4): a mismatch here once let an auth check
+      # pass vacuously because the broken URL still parsed. The seeder's own safety gate keys
+      # off this string — it refuses any URL that is not loopback AND does not contain
+      # "shadow", with no override switch.
       DATABASE_URL: postgres://shadow:shadow@localhost:5432/shadow
       NODE_ENV: production
+      # THE GATE'S ABILITY TO FAIL AT ALL. Without this, safe-migrate.mjs swallows every
+      # migration failure and exits 0 — finding 1 in the header. Production leaves this unset
+      # and keeps its deliberate recovery behaviour.
+      SWAN_MIGRATE_STRICT: '1'
 
     steps:
-      - name: Check out the pushed SHA
+      - name: Check out the pushed SHA (full history — the base diff needs it)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      # Deliberately `npm install`, not `npm ci` — it is what render.yaml runs. A shadow
+      # Deliberately `npm install`, not `npm ci` — it is what render.yaml:20 runs. A shadow
       # check that installs differently from the deploy is testing a different artifact.
-      # (Interim per SWA-200: the durable fix is moving the DEPLOY to a lockfile-exact
-      # install and bringing this gate with it — hermetic on both ends. Separate ticket.)
+      #
+      # MEASURED, AND DELIBERATELY NOT FIXED HERE: NODE_ENV=production makes npm omit
+      # devDependencies (`NODE_ENV=production npm config get omit` -> dev), and sequelize-cli
+      # is a devDependency, so it is absent and `npx` fetches it from the registry at migrate
+      # time. Production does exactly the same thing today — every Render deploy resolves an
+      # unpinned sequelize-cli over the network. Fixing that means moving sequelize-cli into
+      # `dependencies`, which changes the production install, so it is a separate ticket
+      # rather than a drive-by here. This gate inherits that nondeterminism; it does not add
+      # it.
       - name: Install backend dependencies exactly as the deploy does
         working-directory: backend
         run: npm install --no-audit --no-fund
 
-      # Panel item 9, RE-DECIDED: the seeder's DB-free contract selftest runs before the
-      # database is touched. A broken generator contract fails here — cheaply, with full
-      # output — instead of surfacing later as a silent empty database.
+      # A broken generator contract fails here — cheaply, with full output — instead of
+      # surfacing later as a silently empty database.
       - name: Seeder self-test (DB-free core contract)
         working-directory: backend
         run: node scripts/seed-shadow-db.selftest.mjs
 
-      - name: Report the pending migration set before running it
+      # -----------------------------------------------------------------------------------
+      # Resolve what this change actually adds. Everything below depends on this split:
+      # baseline first, seed, THEN the delta against data.
+      # -----------------------------------------------------------------------------------
+      - name: Resolve the base commit and the migration delta
+        id: delta
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          ZERO=0000000000000000000000000000000000000000
+          if [ "$EVENT_NAME" = "pull_request" ] && [ -n "$PR_BASE_SHA" ]; then
+            BASE="$PR_BASE_SHA"
+          elif [ -n "$PUSH_BEFORE" ] && [ "$PUSH_BEFORE" != "$ZERO" ]; then
+            BASE="$PUSH_BEFORE"
+          else
+            BASE="$(git rev-parse HEAD^ 2>/dev/null || git rev-parse HEAD)"
+          fi
+          if ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            echo "FATAL: base commit $BASE is not present in this checkout."
+            echo "fetch-depth: 0 is required for the baseline-then-delta split."
+            exit 1
+          fi
+          git diff --name-only "$BASE" HEAD -- backend/migrations/ > delta.txt || true
+          COUNT=$(grep -c . delta.txt || true)
+          COUNT=${COUNT:-0}
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "base commit: $BASE"
+          echo "migration files changed by this change: $COUNT"
+          cat delta.txt
+
+      # LEG A — the baseline. This is the schema the delta will actually meet in production.
+      - name: Leg A — apply the BASE migration set to an empty database
+        shell: bash
+        env:
+          BASE: ${{ steps.delta.outputs.base }}
+        run: |
+          set -euo pipefail
+          # Models AND migrations, together. The seeder derives its rows from the MODEL
+          # definitions, so leaving models at HEAD while migrations sit at BASE would have the
+          # seeder try to insert into tables that this change's not-yet-applied migrations
+          # create — a red job caused by the split itself rather than by any real defect.
+          # Baseline means baseline on both sides of that pair.
+          rm -rf backend/migrations backend/models
+          git checkout "$BASE" -- backend/migrations backend/models
+          echo "baseline migration files: $(ls backend/migrations | wc -l)"
+          cd backend
+          npm run migrate:production
+
+      # NOW this step can report something. Against a fresh container it never could: the
+      # table it reads did not exist until leg A created it.
+      - name: Report the migration delta about to run against data
         working-directory: backend
         run: node scripts/pre-migrate-guard.mjs --check
 
-      # THE ACTUAL GATE, leg 1. If migrations cannot apply to an empty database from this
-      # SHA, the deploy would carry them to production and fail there instead — mid-build,
-      # after the push has already been accepted.
-      - name: Run migrations against the shadow database (empty)
-        working-directory: backend
-        run: npm run migrate:production
-
-      # The seeder's internal gate refuses any URL that is not loopback + "shadow", with no
-      # override switch — it structurally cannot point at production. Streams are captured
-      # SEPARATELY and concatenated after (panel item 10 as amended): stdout and stderr into
-      # one file via `2>&1` can interleave mid-line and break the anchored grep below — the
-      # open GLM/Grok finding on the panel's own fix. Split files cannot interleave.
+      # Streams are captured SEPARATELY and concatenated after. Two reasons: `2>&1` into one
+      # file can interleave mid-line and break the anchored grep below, and — the defect the
+      # review found — under GitHub's default `bash -e` shell a non-zero seeder exit aborted
+      # the step at the node line, so `status=$?`, the concat and `exit $status` were all
+      # unreachable, and stderr was discarded exactly when it was needed. `|| status=$?`
+      # captures the failure without tripping -e.
       - name: Seed synthetic rows (shadow-only by internal gate)
         working-directory: backend
+        shell: bash
         run: |
-          set -o pipefail
-          node scripts/seed-shadow-db.mjs --rows 5 > seed-shadow.log 2> seed-shadow.err
-          status=$?
-          cat seed-shadow.err >> seed-shadow.log
+          set -uo pipefail
+          status=0
+          node scripts/seed-shadow-db.mjs --rows 5 > seed-shadow.log 2> seed-shadow.err || status=$?
+          echo "--- seeder stderr ---"
+          cat seed-shadow.err || true
+          cat seed-shadow.err >> seed-shadow.log || true
           exit $status
 
-      # Panel item 5: anchor to the exact report shape "SHADOW-SEED {" — the bare prefix
-      # also matches OK/SKIP/note lines, and the report is the ONLY line with the JSON body.
       - name: Assert seed actually inserted rows (SHADOW-SEED rows > 0)
         working-directory: backend
         shell: bash
         run: |
+          set -euo pipefail
           if [ ! -f seed-shadow.log ]; then
             echo "FATAL: seed-shadow.log is missing — the seed step did not run"
             exit 1
           fi
-          line=$(grep '^SHADOW-SEED {' seed-shadow.log | tail -1)
+          # Anchor to the exact report shape "SHADOW-SEED {" — the bare prefix also matches
+          # OK/SKIP/note lines, and the report is the only line carrying the JSON body.
+          line=$(grep '^SHADOW-SEED {' seed-shadow.log | tail -1 || true)
           if [ -z "$line" ]; then
             echo "FATAL: no SHADOW-SEED report line found — silent no-op seed"
             cat seed-shadow.log
             exit 1
           fi
           echo "$line"
-          rows=$(echo "$line" | sed -E 's/^SHADOW-SEED //' | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{console.log(JSON.parse(s).rows||0)})")
+          rows=$(printf '%s' "$line" | sed -E 's/^SHADOW-SEED //' | node -e "let s='';process.stdin.on('data',function(d){s+=d;}).on('end',function(){var r=JSON.parse(s).rows;console.log(Number.isInteger(r)?r:'NaN');});")
           echo "rows inserted: $rows"
+          # `[ "$x" -le 0 ]` on a non-integer prints "integer expression expected" and returns
+          # false — and because a condition inside `if` is exempt from `set -e`, the FATAL
+          # branch would be SKIPPED and the step would go GREEN. Validate the shape first.
+          case "$rows" in
+            ''|*[!0-9]*)
+              echo "FATAL: seeder reported a non-integer row count ('$rows') — report shape drifted"
+              exit 1
+              ;;
+          esac
           if [ "$rows" -le 0 ]; then
-            echo "FATAL: seeder reported zero rows — the second migration run would test nothing"
+            echo "FATAL: seeder reported zero rows — the delta would be tested against nothing"
             exit 1
           fi
 
-      # THE ACTUAL GATE, leg 2 — the reason the seeder exists. Render can rebuild the same
-      # SHA (manual redeploy, cache miss, a restart), so migrations must be idempotent; and
-      # running them against POPULATED tables is what catches the class an empty database
-      # cannot: a NOT NULL added to a filled column, a unique index over existing rows.
-      - name: Run migrations AGAIN — idempotent, and now against data
-        working-directory: backend
-        run: npm run migrate:production
-
-      # The failure this whole layer exists for is a boot crash: ERR_MODULE_NOT_FOUND from an
-      # untracked file, or a missing-export SyntaxError from an uncommitted one. Rule 42's
-      # local gate infers that from the pusher's working tree. This imports the entry point
-      # from the pushed SHA and finds out.
-      - name: Prove the backend entry point actually loads from this SHA
-        working-directory: backend
+      # LEG B — THE REAL TEST, and the reason the seeder exists. These migrations have never
+      # been applied, and they now meet POPULATED tables: a NOT NULL added to a filled column,
+      # a unique index over existing rows, an FK that existing data violates. Under
+      # SWAN_MIGRATE_STRICT=1 each of those fails the job instead of being marked applied.
+      - name: Leg B — apply THIS change's migrations against the populated database
+        shell: bash
+        env:
+          DELTA_COUNT: ${{ steps.delta.outputs.count }}
         run: |
+          set -euo pipefail
+          # Restore this change's migrations AND models before the delta runs.
+          rm -rf backend/migrations backend/models
+          git checkout HEAD -- backend/migrations backend/models
+          cd backend
+          before=$(node scripts/shadow-meta-count.mjs)
+          echo "SequelizeMeta rows before leg B: $before"
+          npm run migrate:production
+          after=$(node scripts/shadow-meta-count.mjs)
+          echo "SequelizeMeta rows after  leg B: $after"
+          applied=$(( after - before ))
+          echo "migrations applied against populated data: $applied"
+          # Honesty gate. If this change adds migrations they MUST have executed here. If it
+          # adds none, say so plainly rather than let a green check imply a test that did not
+          # happen — that was exactly the old workflow's failure: leg 2 applied nothing and
+          # still reported "the second time with data".
+          if [ "$DELTA_COUNT" -gt 0 ] && [ "$applied" -le 0 ]; then
+            echo "FATAL: this change touches $DELTA_COUNT migration file(s), but leg B applied"
+            echo "none of them. The populated-schema test did NOT run."
+            exit 1
+          fi
+          if [ "$DELTA_COUNT" -eq 0 ]; then
+            echo "NOTE: this change adds no migrations, so leg B applied nothing."
+            echo "The populated-schema test is NOT APPLICABLE here — it is not a pass."
+          fi
+
+      # What this proves: the module graph resolves from this SHA — ERR_MODULE_NOT_FOUND from
+      # an untracked file, a missing export from an uncommitted one (the Rule 42 class).
+      # What it does NOT prove: that the server boots. server.mjs does its work in an async
+      # IIFE, so the import resolves before that IIFE finishes and this step exits first. The
+      # step is named for what it actually does, not for what we wish it did.
+      - name: Prove the backend module graph resolves from this SHA
+        working-directory: backend
+        shell: bash
+        run: |
+          set -euo pipefail
           ENTRY=$(node -p "require('./package.json').main || 'server.mjs'")
           echo "entry point: $ENTRY"
-          node --input-type=module -e "
-            const t = setTimeout(() => { console.log('loaded; exiting before the server settles'); process.exit(0); }, 20000);
+          # The previous version computed ENTRY here, printed it, then imported a HARDCODED
+          # literal from an `env:` block — printing one thing while testing another.
+          ENTRY="$ENTRY" node --input-type=module -e "
+            const t = setTimeout(function () {
+              console.error('ENTRY POINT DID NOT RESOLVE within 20s.');
+              console.error('The import never settled — a top-level await on something');
+              console.error('unreachable, or a module-scope hang. Previously this exited 0,');
+              console.error('so a hung import was reported as a PASS.');
+              process.exit(1);
+            }, 20000);
             try {
               await import('./' + process.env.ENTRY);
               clearTimeout(t);
-              console.log('entry point imported without throwing');
+              console.log('module graph resolved without throwing');
               process.exit(0);
             } catch (e) {
               clearTimeout(t);
               console.error('ENTRY POINT FAILED TO LOAD — this SHA would crash-loop on Render:');
-              console.error(e && e.stack || e);
+              console.error((e && e.stack) || e);
               process.exit(1);
             }
           "
-        env:
-          ENTRY: server.mjs
 
-      - name: Upload seed report
+      - name: Upload seed report and stderr
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: seed-shadow-log
-          path: backend/seed-shadow.log
+          path: |
+            backend/seed-shadow.log
+            backend/seed-shadow.err
           if-no-files-found: ignore
 
       - name: Summary
         if: always()
+        shell: bash
+        env:
+          BASE: ${{ steps.delta.outputs.base }}
+          DELTA_COUNT: ${{ steps.delta.outputs.count }}
         run: |
-          echo "### Migration shadow check" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Ran the pushed SHA's migrations against a throwaway Postgres — once empty," >> $GITHUB_STEP_SUMMARY
-          echo "then seeded deterministic synthetic rows and ran them AGAIN against data" >> $GITHUB_STEP_SUMMARY
-          echo "(idempotence + populated-schema classes), then imported the backend entry" >> $GITHUB_STEP_SUMMARY
-          echo "point to prove this SHA boots." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "This tests the artifact that deploys — not the state of anyone's working" >> $GITHUB_STEP_SUMMARY
-          echo "tree — and cannot be skipped with \`--no-verify\` or an unconfigured" >> $GITHUB_STEP_SUMMARY
-          echo "\`core.hooksPath\`." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Limit:** synthetic rows are not production data. The stronger version" >> $GITHUB_STEP_SUMMARY
-          echo "restores a production snapshot — see SWA-200." >> $GITHUB_STEP_SUMMARY
+          {
+            echo "### Migration shadow check"
+            echo ""
+            echo "Base commit: \`$BASE\`"
+            echo "Migration files changed by this change: **$DELTA_COUNT**"
+            echo ""
+            echo "1. Applied the BASE migration set to an empty throwaway Postgres."
+            echo "2. Seeded deterministic synthetic rows (zero PII)."
+            echo "3. Applied **this change's** migrations against those populated tables."
+            echo "4. Resolved the backend module graph from this SHA."
+            echo ""
+            echo "Migration failures fail this job (\`SWAN_MIGRATE_STRICT=1\`). Production keeps"
+            echo "its recovery behaviour, which exits 0 on failure by design."
+            echo ""
+            echo "**What this does NOT prove:**"
+            echo "- Synthetic rows are not production data. A snapshot-restore gate is the stronger form."
+            echo "- The module graph resolving is not the server booting."
+            echo "- On a direct push to \`main\`, Render deploys in PARALLEL with this job — Actions"
+            echo "  cannot block it. This only gates when it is a REQUIRED status check on PRs."
+            if [ "$DELTA_COUNT" = "0" ]; then
+              echo ""
+              echo "> This change adds no migrations, so the populated-schema leg was **not applicable**."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

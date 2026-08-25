@@ -9,7 +9,9 @@
  *
  * SECURITY CONTRACT (non-negotiable, no override):
  *   - REFUSES unless DATABASE_URL parses, its host is loopback
- *     (localhost / 127.0.0.1), and the URL contains the word "shadow".
+ *     (localhost / 127.0.0.1), and its DATABASE NAME contains "shadow".
+ *     The name specifically — matching the whole URL let credentials
+ *     satisfy the check (see validateShadowUrl).
  *   - The gate runs BEFORE any database import. A seeder that can point at
  *     production is worse than no seeder.
  *   - Synthetic values only: `seed-<table>-<n>`. Never a real-looking name,
@@ -81,8 +83,17 @@ export function validateShadowUrl(url) {
   if (host !== 'localhost' && host !== '127.0.0.1') {
     return { ok: false, reason: `host "${host}" is not loopback (must be localhost or 127.0.0.1) — refusing` };
   }
-  if (!/shadow/i.test(url)) {
-    return { ok: false, reason: 'URL does not contain "shadow" — refusing to seed a non-shadow database' };
+  // THE DATABASE NAME, not the whole URL string.
+  //
+  // Testing the whole URL matched the word anywhere in it — including the CREDENTIALS. So
+  // `postgres://shadow:shadow@localhost:5432/swanstudios` passed a gate whose stated
+  // contract is that it "structurally cannot point at production", and the seeder would have
+  // written synthetic rows into a local swanstudios database. The suite already encoded the
+  // correct contract and the assertion had been failing (30/31) before anyone read it —
+  // found 2026-08-24 by running the tests rather than trusting the self-test, which does not
+  // cover this case.
+  if (!/shadow/i.test(parsed.pathname)) {
+    return { ok: false, reason: `database "${parsed.pathname.slice(1)}" does not contain "shadow" — refusing to seed a non-shadow database` };
   }
   return { ok: true, host };
 }

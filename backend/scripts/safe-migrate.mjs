@@ -27,6 +27,30 @@ const backendDir = path.resolve(__dirname, '..');
 const migrationsDir = path.join(backendDir, 'migrations');
 const env = process.argv[2] || 'production';
 
+/**
+ * STRICT MODE — set SWAN_MIGRATE_STRICT=1. CI / shadow database only.
+ *
+ * Production behaviour is UNCHANGED when this is unset. This runner is
+ * deliberately RECOVERY-oriented: it reclassifies "already exists" failures as
+ * applied and marks genuine failures done, so one bad migration cannot wedge
+ * every future deploy. That is the right trade for a live deploy and exactly
+ * the wrong one for a gate.
+ *
+ * Found 2026-08-24 by hostile review (Claude G1/G15; corroborated by Ox Alpha
+ * and GLM 5.3): under the default behaviour `npm run migrate:production` exits
+ * 0 even when migrations genuinely fail — this file contains exactly two
+ * process.exit(1) calls and neither is reachable from failed > 0. Both steps
+ * the shadow workflow labels "THE ACTUAL GATE" were therefore structurally
+ * incapable of failing on a broken migration.
+ *
+ * Worse, ALREADY_APPLIED_PATTERNS swallows `duplicate key value` and
+ * `violates foreign key constraint` — precisely the errors a migration raises
+ * when it meets POPULATED tables, which is the entire reason the shadow
+ * database is seeded. On a database created empty seconds earlier nothing can
+ * legitimately "already exist", so there every match hides a real defect.
+ */
+const STRICT = process.env.SWAN_MIGRATE_STRICT === '1';
+
 // "Already exists" patterns that indicate the migration was already applied
 const ALREADY_APPLIED_PATTERNS = [
   /already exists/i,
@@ -40,6 +64,9 @@ const ALREADY_APPLIED_PATTERNS = [
 ];
 
 function isAlreadyAppliedError(stderr) {
+  // See STRICT above: on a freshly created shadow database nothing can already
+  // exist, so every one of these patterns would be concealing a real failure.
+  if (STRICT) return false;
   return ALREADY_APPLIED_PATTERNS.some(p => p.test(stderr));
 }
 
@@ -196,6 +223,15 @@ async function main() {
       console.log('FAILED');
       console.error(`    Error: ${result.combined.split('\n').filter(l => l.includes('ERROR')).join('\n    ') || result.combined.slice(-200)}`);
       failed++;
+      if (STRICT) {
+        console.error('');
+        console.error('SWAN_MIGRATE_STRICT=1 — refusing to mark a failed migration as applied.');
+        console.error(`Failing migration: ${migration}`);
+        console.error('--- migration output (last 2000 chars) ---');
+        console.error(result.combined.slice(-2000));
+        await seq.close();
+        process.exit(1);
+      }
       // Mark as done anyway to prevent blocking future deploys
       // The server uses sync({ alter: true }) which handles the schema
       await markAsCompleted(seq, migration);
@@ -212,6 +248,10 @@ async function main() {
   await seq.close();
 
   if (failed > 0) {
+    // Unreachable under STRICT (E3 exits at the first failure) — kept so that any
+    // future path incrementing `failed` without exiting still cannot go green.
+    // A guard that depends on a single call site is not a guard.
+    if (STRICT) { console.error('SWAN_MIGRATE_STRICT=1 — failing the run.'); process.exit(1); }
     console.log('WARNING: Some migrations had genuine failures.');
     console.log('The server sync({ alter: true }) should handle these, but review the errors above.');
   }
