@@ -82,7 +82,12 @@ export function analyze(lines, opts = {}) {
   }
   for (const g of Object.values(gates)) {
     g.spanDays = g.first === null ? 0 : Math.max(1, Math.ceil((g.last - g.first) / 86_400_000));
-    g.wouldBlockRate = g.invocations ? +(100 * (g.wouldBlock + g.blocked) / g.invocations).toFixed(2) : 0;
+    // Denominator EXCLUDES hatch rows (Ox r3 F4): a hatch is a deliberate, logged
+    // exception, not organic traffic — letting it dilute the rate understates how
+    // often real commands would block. (Hatch rows never enter wouldBlock/blocked:
+    // the else-if chain above counts them once, in g.hatch — pinned by test.)
+    const organic = g.invocations - g.hatch;
+    g.wouldBlockRate = organic > 0 ? +(100 * (g.wouldBlock + g.blocked) / organic).toFixed(2) : 0;
     g.first = g.first === null ? null : new Date(g.first).toISOString();
     g.last = g.last === null ? null : new Date(g.last).toISOString();
   }
@@ -109,10 +114,16 @@ export function render(report) {
     const dd = Object.entries(g.byDay).sort();
     if (dd.length) out.push('  per-day (would-block+blocked): ' + dd.map(([d, n]) => `${d.slice(5)}=${n}`).join('  '));
     if (name === 'heredoc-escape') {
-      const ready = g.spanDays >= 14;
-      out.push(ready
-        ? `  ENFORCE-READINESS: ${g.spanDays}d of data. If every reason class above is a real hazard (no false positives), flip SWAN_HEREDOC_GATE=enforce.`
-        : `  ENFORCE-READINESS: only ${g.spanDays}d of ${14}d observed — keep shadowing.`);
+      // Readiness needs BOTH span AND density (Ox r3 F4): 3 scattered fires across 15
+      // days is not evidence; 200 invocations in one afternoon is not 14 days of
+      // exposure. Calendar span is not statistical power — require each separately.
+      const MIN_DAYS = 14, MIN_INVOCATIONS = 100;
+      const lacking = [];
+      if (g.spanDays < MIN_DAYS) lacking.push(`${g.spanDays}d of ${MIN_DAYS}d span`);
+      if (g.invocations < MIN_INVOCATIONS) lacking.push(`${g.invocations} of ${MIN_INVOCATIONS} invocations`);
+      out.push(lacking.length === 0
+        ? `  ENFORCE-READINESS: ${g.spanDays}d span, ${g.invocations} invocations. If every reason class above is a real hazard (no false positives), flip SWAN_HEREDOC_GATE=enforce.`
+        : `  ENFORCE-READINESS: keep shadowing — insufficient ${lacking.join(' and ')}.`);
     }
   }
   return out.join('\n');

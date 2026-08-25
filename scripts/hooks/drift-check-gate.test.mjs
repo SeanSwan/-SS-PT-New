@@ -26,6 +26,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyCommand, auditHookRegistrations } from '../lib/hook-registration.mjs';
+import { hasRulebookTrailer } from './rulebook-review-guard.mjs';
 
 const SS_PT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const classify = (cmd) => classifyCommand(cmd, SS_PT);
@@ -193,6 +194,26 @@ try {
   console.log('  SKIP  symlink unavailable on this host — symlinked-root case not exercised');
 }
 rmSync(base, { recursive: true, force: true });
+
+// ---- Rulebook trailer test (shared guard/probe single source, Ox r3 F1) ------
+// NOTE: this section's first landing was a `test(...)` block appended AFTER the
+// process.exit above — dead code that read as a passing test. The runner here is
+// hand-rolled; new cases join ITS convention, before the exit.
+for (const [msg, want, note] of [
+  ['RULEBOOK: add - reviewed-by: GLM-5.3', true, 'same-line form'],
+  ['subject\n\nRULEBOOK: amend\nReviewed-by: seat', true, 'git-conventional multi-line, capitalized (the shape the old regex rejected)'],
+  ['RULEBOOK: retire\nREVIEWED-BY: X', true, 'any case'],
+  ['RULEBOOK: add', false, 'verb without reviewed-by fails'],
+  ['Reviewed-by: X', false, 'reviewed-by without verb line fails'],
+  ['RULEBOOK: destroy - reviewed-by: X', false, 'unknown verb fails'],
+  ['', false, 'empty message'],
+  [undefined, false, 'missing message'],
+]) {
+  const got = hasRulebookTrailer(msg);
+  const ok = got === want;
+  if (!ok) failed += 1;
+  console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${('trailer: ' + note).slice(0, 60).padEnd(60)} got=${got} want=${want}`);
+}
 
 console.log(`\n  cases:     ${cases.length - failed}/${cases.length}`);
 console.log(`  invariant: ${fuzz.length - violations}/${fuzz.length} inputs produced exactly one verdict`);
