@@ -96,7 +96,9 @@ describe('useSessionCancellation', () => {
     expect(apiService.get).toHaveBeenCalledWith('/api/sessions/72/cancel-warning');
     expect(setFormError).toHaveBeenCalledWith(null);
     expect(result.current.showLateCancelWarning).toBe(true);
-    expect(result.current.lateCancelWarning?.lateFeeAmount).toBe(88);
+    // null, not 88: the server stated no policy fee, and this warning is what
+    // the CLIENT reads. Inventing a number here was the defect.
+    expect(result.current.lateCancelWarning?.lateFeeAmount).toBeNull();
   });
 
   it('queues a branded confirmation and submits cancellation with charge details', async () => {

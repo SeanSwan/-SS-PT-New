@@ -26,7 +26,9 @@ export interface CancellationActionInput {
 export interface LateCancelWarningModel {
   isLateCancellation: boolean;
   hoursUntilSession: number;
-  lateFeeAmount: number;
+  /** null when the server did not state a policy fee. Never invent one here:
+   *  this figure is shown to the CLIENT as their own cancellation fee. */
+  lateFeeAmount: number | null;
   creditRestored: boolean;
   warningMessage: string;
   sessionDateFormatted: string;
@@ -71,12 +73,14 @@ export const buildAttendancePayload = (
 });
 
 export const mapLateCancelWarning = (
-  result: any,
-  defaultLateFee: number
+  result: any
 ): LateCancelWarningModel => ({
   isLateCancellation: result.isLateCancellation,
   hoursUntilSession: result.hoursUntilSession,
-  lateFeeAmount: result.cancellationPolicy?.lateFeeAmount || defaultLateFee,
+  // ?? not ||: a real policy fee of 0 is a waiver, not a missing value. And no
+  // app-side default - the admin panel's 175/88 placeholders are not this
+  // client's numbers, and this warning is what the client themselves reads.
+  lateFeeAmount: result.cancellationPolicy?.lateFeeAmount ?? null,
   creditRestored: result.cancellationPolicy?.creditRestored ?? true,
   warningMessage: result.warningMessage,
   sessionDateFormatted: result.sessionDateFormatted,

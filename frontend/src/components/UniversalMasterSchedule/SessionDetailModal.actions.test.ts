@@ -98,21 +98,42 @@ describe('SessionDetailModal action helpers', () => {
     });
   });
 
-  it('maps late-cancel warning responses with app defaults and API error fallbacks', () => {
+  it('reports an unknown late fee as null rather than inventing one', () => {
+    // Previously this fell back to the admin panel's 88 placeholder and showed
+    // it to the CLIENT as their own fee. 88 is round(175 * 0.5) - wrong for
+    // anyone on the $110 package, where the real half is 55.
     expect(mapLateCancelWarning({
       isLateCancellation: true,
       hoursUntilSession: 4,
       warningMessage: 'Late window',
       sessionDateFormatted: 'May 31',
       cancellationPolicy: {},
-    }, 88)).toEqual({
+    })).toEqual({
       isLateCancellation: true,
       hoursUntilSession: 4,
-      lateFeeAmount: 88,
+      lateFeeAmount: null,
       creditRestored: true,
       warningMessage: 'Late window',
       sessionDateFormatted: 'May 31',
     });
+
+    // A stated fee of 0 is a waiver and must survive - ?? not ||.
+    expect(mapLateCancelWarning({
+      isLateCancellation: true,
+      hoursUntilSession: 4,
+      warningMessage: 'Late window',
+      sessionDateFormatted: 'May 31',
+      cancellationPolicy: { lateFeeAmount: 0 },
+    }).lateFeeAmount).toBe(0);
+
+    // A real policy fee passes through untouched.
+    expect(mapLateCancelWarning({
+      isLateCancellation: true,
+      hoursUntilSession: 4,
+      warningMessage: 'Late window',
+      sessionDateFormatted: 'May 31',
+      cancellationPolicy: { lateFeeAmount: 55 },
+    }).lateFeeAmount).toBe(55);
 
     expect(getApiErrorMessage({
       response: { data: { message: 'backend detail' } },

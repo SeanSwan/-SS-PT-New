@@ -171,9 +171,8 @@ const PricingSheetPDF: React.FC = () => (
               ))}
             </FeatureList>
 
-            {pkg.savings && (
-              <PriceMeta>Save ${pkg.savings} compared to individual sessions.</PriceMeta>
-            )}
+            {/* No savings line: SwanStudios pricing is flat $175/60min with no
+                volume discounts, so there is nothing to "save" against. */}
           </PackageCard>
         ))}
       </PackagesGrid>
