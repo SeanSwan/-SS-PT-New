@@ -266,8 +266,13 @@ try {
     // second query run — a healthy repo never pays for it.
     const recent = gh('--limit 20 --json conclusion,workflowName,updatedAt,status');
     const newest = recent[0];
+    // Fallback query only when it could change the answer. If the 20 newest runs are
+    // ALL startup_failure, that is the account-level signature (billing / minutes) and
+    // no older success alters the diagnosis — skip the second call, so the dead-CI
+    // case does not pay 20s on every session start (Ox r2 F5).
+    const allStartupFail = recent.length > 0 && recent.every((r) => r.conclusion === 'startup_failure');
     const lastOk = recent.find((r) => r.conclusion === 'success')
-      || (newest ? gh('--status success --limit 1 --json updatedAt,workflowName')[0] : undefined);
+      || ((newest && !allStartupFail) ? gh('--status success --limit 1 --json updatedAt,workflowName')[0] : undefined);
     // An IN-PROGRESS newest run has conclusion null — that is "pending", not "failed"
     // (round-1 GLM F7 / Ox F8). Judge on the newest COMPLETED run instead.
     const pending = newest && (newest.conclusion === null || newest.conclusion === '' || newest.status === 'in_progress' || newest.status === 'queued');

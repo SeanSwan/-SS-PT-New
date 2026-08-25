@@ -7,7 +7,7 @@
  */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { classify, expandedBodies } from './heredoc-escape-gate.mjs';
+import { classify, expandedBodies, unquotedMask } from './heredoc-escape-gate.mjs';
 
 const block = (cmd, why) => assert.equal(classify(cmd).block, true, `must BLOCK: ${why}\n${cmd}`);
 const allow = (cmd, why) => assert.equal(classify(cmd).block, false, `must ALLOW: ${why}\n${cmd}`);
@@ -131,6 +131,11 @@ test('R3 BLOCK: sh -c / bash -c with a double-quoted body is the same hazard cla
   block('sh -c "echo ${HOME}"', 'sh -c "..."');
   block('bash -c "cat `ls`"', 'bash -c "..."');
 });
+test('R3 BLOCK: ruby -e / perl -e / deno eval with a double-quoted body are the same class', () => {
+  block('ruby -e "puts ${HOME}"', 'ruby -e "..."');
+  block('perl -e "print `ls`"', 'perl -e "..."');
+  block('deno eval "console.log($(id))"', 'deno eval "..."');
+});
 test("R3 ALLOW: sh -c with a single-quoted body is verbatim", () => {
   allow("sh -c 'echo ${HOME}'", "sh -c '...'");
 });
@@ -149,6 +154,116 @@ test('R2 BLOCK: a "# HEREDOC-OK:" inside the heredoc BODY does not open the hatc
   const r = classify('cat > x <<EOF\n# HEREDOC-OK: this reason lives inside the body\nval=${A}\nEOF');
   assert.equal(r.block, true, 'hatch text inside the expanded body must not count');
   assert.equal(r.hatch, false);
+});
+
+// --- round-2 F1 (Grok): hatch strip must be SPAN excision, not content-equality removal --
+// `split(text).join('')` removed every copy of a body's text; a body engineered to equal a
+// fragment of the command line could glue "# HERE" + "DOC-OK: …" into a synthetic hatch,
+// or erase a genuine hatch that shares text with a body.
+
+test('R3 BLOCK: a body that equals a command-line fragment cannot mint a hatch by gluing', () => {
+  // Body text "$xDOC" appears in the comment "# HERE$xDOC-OK: ..."; content-equality
+  // removal would turn the comment into "# HERE-OK:" (no hatch) — fine — but the
+  // reverse shape: comment "# HERE" + body "DOC-OK: reason…" adjacent after removal.
+  // Simplest faithful check: the hatch regex is evaluated on the command with ONLY the
+  // captured spans cut, so no text outside a body can be altered by a body's content.
+  const cmd = 'echo "# HERE" <<EOF\n$xDOC-OK: twelvecharsxx\nEOF';
+  const r = classify(cmd);
+  assert.equal(r.hatch, false, 'no hatch may be synthesised from body content');
+  assert.equal(r.block, true, 'the body expands ($x) and must block');
+});
+
+test('R3 ALLOW: a genuine hatch on the command line survives even if a body shares its text', () => {
+  // The hatch text also appears verbatim inside the (unquoted) body. Span excision cuts
+  // only the body; the command-line hatch remains and opens.
+  const cmd = 'cat > x <<EOF # HEREDOC-OK: fixture, expansion intended here\n# HEREDOC-OK: fixture, expansion intended here\n${A}\nEOF';
+  const r = classify(cmd);
+  assert.equal(r.hatch, true, 'the real hatch must not be erased by a body that repeats it');
+});
+
+test('R3: every returned body carries a valid [start,end) span that reproduces its text', () => {
+  const cmd = 'a <<U\nunq ${x}\nU\nnode -e "console.log(`${y}`)"\nread v <<<"${z}"\nread w <<<$HOME';
+  for (const b of expandedBodies(cmd)) {
+    assert.equal(cmd.slice(b.start, b.end), b.text, `span must reproduce body for ${b.kind}`);
+  }
+});
+
+// --- round-2 F1 (GLM): terminators must be BASH-faithful, or the body ends early --------
+// The round-1 loosening (any-indent terminator) overshot: a plain <<EOF only ends on EOF
+// alone at column 0, and <<-EOF strips TABS only. A regex that terminates early leaves the
+// rest of the (still-expanded) body uninspected — a silent false-ALLOW.
+
+test('R3 BLOCK: for plain <<EOF an INDENTED look-alike line does not terminate — hazards after it are seen', () => {
+  const cmd = 'cat > x <<EOF\nsafe line\n  EOF\nrest=${DANGER}\nEOF';
+  const [b] = expandedBodies(cmd);
+  assert.ok(b.text.includes('${DANGER}'), 'the body must run past the indented look-alike');
+  block(cmd, 'hazard after an indented look-alike terminator');
+});
+test('R3 BLOCK: for <<-EOF a SPACE-indented look-alike does not terminate (bash strips tabs only)', () => {
+  const cmd = 'cat > x <<-EOF\n\tsafe\n  EOF\n\trest=$(cmd)\n\tEOF';
+  const [b] = expandedBodies(cmd);
+  assert.ok(b.text.includes('$(cmd)'), 'space-indented EOF is not a terminator under <<-');
+  block(cmd, '$(cmd) after a space-indented look-alike');
+});
+test('R3: for <<-EOF a TAB-indented terminator DOES terminate', () => {
+  const cmd = 'cat > a <<-EOF\n\tplain\n\tEOF\ncat > b <<\'Q\'\n${literal}\nQ';
+  const bodies = expandedBodies(cmd);
+  assert.equal(bodies.length, 1);
+  assert.equal(bodies[0].text.includes('literal'), false, 'terminated at the tab-indented EOF');
+  allow(cmd, 'first body is plain, second is quoted');
+});
+
+// --- round-2 F3 (GLM): literal regions cannot carry the hatch ---------------------------
+
+test("R3 BLOCK: a hatch inside a QUOTED heredoc body (<<'NOTE') does not open the hatch", () => {
+  const cmd = "cat > n <<'NOTE'\n# HEREDOC-OK: hidden in a literal body, twelve+\nNOTE\ncat > x <<EOF\n${A}\nEOF";
+  const r = classify(cmd);
+  assert.equal(r.hatch, false, 'literal heredoc content is data, not an override');
+  assert.equal(r.block, true);
+});
+test("R3 BLOCK: a hatch inside a single-quoted argument does not open the hatch", () => {
+  const cmd = "echo '# HEREDOC-OK: quoted argument, twelve+ chars' && cat > x <<EOF\n${A}\nEOF";
+  const r = classify(cmd);
+  assert.equal(r.hatch, false);
+  assert.equal(r.block, true);
+});
+test('R3 ALLOW: a hatch on the command line still opens when literal regions are present', () => {
+  const cmd = "echo 'unrelated' && cat > x <<EOF # HEREDOC-OK: fixture, expansion intended here\n${A}\nEOF";
+  assert.equal(classify(cmd).hatch, true);
+});
+test('R3: nested spans (a quoted arg inside an unquoted body) are merged, not double-cut', () => {
+  // The hatch sits on the OPENING line. (First draft put it after `EOF` on the terminator
+  // line — bash does not treat `EOF # comment` as a terminator either, so the gate was
+  // right to keep it inside the body and the test was wrong.)
+  const cmd = "cat > x <<EOF # HEREDOC-OK: command-line hatch, twelve+\necho 'inner' ${A}\nEOF";
+  const r = classify(cmd);
+  assert.equal(r.hatch, true, 'merging must leave the command-line hatch intact');
+});
+test('R3: a comment after the terminator word means the heredoc is NOT terminated (bash-faithful)', () => {
+  const cmd = 'cat > x <<EOF\nplain\nEOF # not a terminator\n${A}\nEOF';
+  const [b] = expandedBodies(cmd);
+  assert.ok(b.text.includes('${A}'), 'body runs past "EOF # ..." to the real EOF');
+  block(cmd, '${A} sits inside the still-open body');
+});
+
+// --- quote-aware operators: found by the gate blocking its own author -------------------
+// A commit message mentioning "<<EOF" inside -m "..." was read as a heredoc opener. bash
+// never recognises << inside quotes; the mask makes operators count only when unquoted.
+
+test('R3 ALLOW: "<<EOF" mentioned inside a quoted argument is prose, not an operator', () => {
+  allow('git commit -m "fix: plain <<EOF accepted an indented terminator; `x` and ${y} in prose"',
+    'the whole -m string is quoted; no heredoc opens');
+  allow("echo 'see <<<\"$x\" in docs'", "'<<<' inside single quotes is text");
+});
+test('R3 BLOCK: a real heredoc after a quoted argument is still caught', () => {
+  block('echo "intro <<EOF text" && cat > x <<EOF\n${A}\nEOF', 'the second << is unquoted');
+});
+test('R3 ALLOW: an escaped quote does not confuse the mask', () => {
+  allow('echo "he said \\"<<EOF\\" once"', 'escaped quotes inside "..." stay inside');
+});
+test('unquotedMask: basic states', () => {
+  const m = unquotedMask('a "b c" d \'e\' f');
+  assert.equal(m[0], true); assert.equal(m[3], false); assert.equal(m[8], true); assert.equal(m[11], false);
 });
 
 // --- the hatch: kept, but audited ------------------------------------------------------
