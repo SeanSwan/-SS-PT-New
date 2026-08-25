@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en" data-sw-pack="crystalline-swan">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Swan Forge Gallery</title>
+<!--
+  @swan/forge gallery — the TEST GATE surface (plan §5.3/§11.A7), not just a preview.
+  · Pack switcher renders every component under every pack (component × pack matrix)
+  · ?capture=1 = determinism mode: motion forced to 0 for screenshot-diff runs
+  · Copy buttons on every block (accepted §9.4)
+  · Serve from the package root so ../ paths resolve:  npx serve packages/swan-forge
+-->
+<link rel="stylesheet" href="../tokens/primitive.css" />
+<link rel="stylesheet" href="../tokens/packs/crystalline-swan.css" />
+<link rel="stylesheet" href="../tokens/packs/swanguard-editorial.css" />
+<link rel="stylesheet" href="../css/button.css" />
+<link rel="stylesheet" href="../css/card.css" />
+<link rel="stylesheet" href="../css/input.css" />
+<link rel="stylesheet" href="../css/modal.css" />
+<style>
+  body { margin: 0; background: var(--sw-bg-base); color: var(--sw-text-primary); font-family: var(--sw-font-body, system-ui); }
+  .g-bar { position: sticky; inset-block-start: 0; display: flex; flex-wrap: wrap; gap: var(--sw-p-space-3); align-items: center; padding: var(--sw-p-space-4); background: var(--sw-bg-elevated); border-block-end: 1px solid var(--sw-border); z-index: 10; }
+  .g-bar h1 { margin: 0; font-size: var(--sw-p-text-lg); font-family: var(--sw-font-heading); }
+  main { display: grid; gap: var(--sw-p-space-6); padding: var(--sw-p-space-5); max-inline-size: 1100px; margin-inline: auto; }
+  section h2 { font-family: var(--sw-font-heading); border-block-end: 1px solid var(--sw-border); padding-block-end: var(--sw-p-space-2); }
+  .g-row { display: flex; flex-wrap: wrap; gap: var(--sw-p-space-4); align-items: center; }
+  .g-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: var(--sw-p-space-4); }
+  .g-copy { margin-inline-start: auto; }
+  [data-mode="capture"] * { animation: none !important; transition: none !important; }
+  [hidden] { display: none !important; } /* class display values must not defeat the hidden attribute */
+</style>
+</head>
+<body>
+<div class="g-bar">
+  <h1>Swan Forge</h1>
+  <label class="sw-field" style="flex-direction: row; align-items: center; gap: 8px;">
+    <span class="sw-field__label">Pack</span>
+    <select id="pack" class="sw-input" style="min-block-size: 44px; inline-size: auto;">
+      <option value="crystalline-swan">crystalline-swan (dark)</option>
+      <option value="swanguard-editorial">swanguard-editorial (light)</option>
+    </select>
+  </label>
+  <button type="button" class="sw-btn sw-btn--ghost sw-btn--small" id="pack-starter">Copy pack starter</button>
+  <span id="mode-flag" class="sw-card__pill" hidden>capture mode — motion off</span>
+</div>
+
+<main>
+  <section id="buttons">
+    <h2>Button <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="buttons">Copy usage</button></h2>
+    <div class="g-row">
+      <button type="button" class="sw-btn sw-btn--primary">Primary</button>
+      <button type="button" class="sw-btn sw-btn--accent">Accent</button>
+      <button type="button" class="sw-btn sw-btn--gilded">Gilded</button>
+      <button type="button" class="sw-btn sw-btn--success">Success</button>
+      <button type="button" class="sw-btn sw-btn--danger">Danger</button>
+      <button type="button" class="sw-btn sw-btn--ghost">Ghost</button>
+    </div>
+    <div class="g-row">
+      <button type="button" class="sw-btn sw-btn--primary sw-btn--small">Small</button>
+      <button type="button" class="sw-btn sw-btn--primary sw-btn--large">Large</button>
+      <button type="button" class="sw-btn sw-btn--primary is-loading" aria-busy="true" aria-disabled="true">Saving…</button>
+      <button type="button" class="sw-btn sw-btn--primary" disabled>Disabled</button>
+    </div>
+  </section>
+
+  <section id="cards">
+    <h2>Card <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="cards">Copy usage</button></h2>
+    <div class="g-grid">
+      <article class="sw-card sw-card--showcase">
+        <h3 class="sw-card__title">Showcase card</h3>
+        <p class="sw-card__body">Chrome edge, gradient depth, glow on hover. For store and feature surfaces.</p>
+        <div class="g-row"><span class="sw-card__pill">premium</span><span class="sw-card__pill">motion ok</span></div>
+        <div class="sw-card__actions"><button type="button" class="sw-btn sw-btn--gilded sw-btn--small">Buy now</button></div>
+      </article>
+      <article class="sw-card sw-card--data">
+        <h3 class="sw-card__title">Data card</h3>
+        <div class="sw-card__metric"><span class="sw-card__metric-value">128</span><span class="sw-card__metric-label">workouts logged</span></div>
+        <p class="sw-card__meta">low-motion · no hover-only actions</p>
+        <div class="sw-card__actions"><button type="button" class="sw-btn sw-btn--primary sw-btn--small">Open</button></div>
+      </article>
+    </div>
+  </section>
+
+  <section id="inputs">
+    <h2>Input <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="inputs">Copy usage</button></h2>
+    <div class="g-grid">
+      <label class="sw-field"><span class="sw-field__label">Client name</span>
+        <input class="sw-input" placeholder="e.g. C-1042" />
+        <span class="sw-field__hint">IDs only — no PII</span></label>
+      <label class="sw-field"><span class="sw-field__label">Email</span>
+        <input class="sw-input" aria-invalid="true" value="not-an-email" />
+        <span class="sw-field__error">Enter a valid email</span></label>
+    </div>
+  </section>
+
+  <section id="modals">
+    <h2>Modal <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="modals">Copy usage</button></h2>
+    <div class="g-row">
+      <button type="button" class="sw-btn sw-btn--primary" data-open="dialog">Open dialog</button>
+      <button type="button" class="sw-btn sw-btn--accent" data-open="drawer">Open drawer</button>
+    </div>
+  </section>
+</main>
+
+<div class="sw-modal-scrim" id="scrim"></div>
+<div class="sw-modal sw-modal--dialog" id="modal" role="dialog" aria-modal="true" aria-labelledby="sw-modal-title" tabindex="-1">
+  <h3 class="sw-modal__title" id="sw-modal-title">Confirm action</h3>
+  <p class="sw-modal__body">Focus is trapped here; Escape closes; the trap logic lives in core/modal.mjs.</p>
+  <div class="sw-modal__actions">
+    <button type="button" class="sw-btn sw-btn--ghost" data-close>Cancel</button>
+    <button type="button" class="sw-btn sw-btn--primary" data-close>Confirm</button>
+  </div>
+</div>
+
+<script type="module">
+  import { handleModalKey, getModalState, nextTrapIndex, FOCUSABLE_SELECTOR } from '../core/modal.mjs';
+
+  // Pack switcher — the matrix axis
+  const packSel = document.getElementById('pack');
+  packSel.addEventListener('change', () => { document.documentElement.dataset.swPack = packSel.value; });
+
+  // Determinism / capture mode (§11.A7): ?capture=1 zeroes motion
+  if (new URLSearchParams(location.search).get('capture') === '1') {
+    document.documentElement.style.setProperty('--sw-motion', '0');
+    document.body.dataset.mode = 'capture';
+    document.getElementById('mode-flag').hidden = false;
+  }
+
+  // Copy-usage snippets (§9.4)
+  const SNIPPETS = {
+    buttons: '<button type="button" class="sw-btn sw-btn--primary">Label</button>',
+    cards: '<article class="sw-card sw-card--data">…</article>',
+    inputs: '<label class="sw-field"><span class="sw-field__label">Label</span><input class="sw-input" /></label>',
+    modals: 'import { getModalAttrs, handleModalKey } from "@swan/forge/core/modal";',
+  };
+  for (const btn of document.querySelectorAll('[data-copy]')) {
+    btn.addEventListener('click', async () => {
+      const snippet = SNIPPETS[btn.dataset.copy];
+      if (!snippet) { btn.textContent = 'No snippet'; setTimeout(() => { btn.textContent = 'Copy usage'; }, 1200); return; }
+      try { await navigator.clipboard.writeText(snippet); btn.textContent = 'Copied ✓'; }
+      catch { btn.textContent = 'Copy failed'; }
+      setTimeout(() => { btn.textContent = 'Copy usage'; }, 1200);
+    });
+  }
+  document.getElementById('pack-starter').addEventListener('click', async (e) => {
+    try {
+      const res = await fetch('../tokens/packs/swanguard-editorial.css');
+      if (!res.ok) throw new Error(String(res.status));
+      await navigator.clipboard.writeText(await res.text());
+      e.target.textContent = 'Copied ✓';
+    } catch { e.target.textContent = 'Copy failed'; }
+    setTimeout(() => { e.target.textContent = 'Copy pack starter'; }, 1200);
+  });
+
+  // Modal wiring through the headless core (the gallery consumes the real core)
+  const modal = document.getElementById('modal');
+  const scrim = document.getElementById('scrim');
+  let state = getModalState({ open: false });
+  let lastFocus = null;
+  function render() {
+    modal.classList.toggle('is-open', state.open);
+    scrim.classList.toggle('is-open', state.open);
+    modal.dataset.state = scrim.dataset.state = state.open ? 'open' : 'closed';
+  }
+  function open(variant) {
+    lastFocus = document.activeElement;
+    modal.className = `sw-modal sw-modal--${variant}`;
+    state = getModalState({ open: true, variant });
+    render();
+    (modal.querySelector(FOCUSABLE_SELECTOR) ?? modal).focus();
+  }
+  function close() { state = getModalState({ open: false, variant: state.variant }); render(); lastFocus?.focus(); }
+  for (const b of document.querySelectorAll('[data-open]')) b.addEventListener('click', () => open(b.dataset.open));
+  for (const b of modal.querySelectorAll('[data-close]')) b.addEventListener('click', close);
+  scrim.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => {
+    const { action } = handleModalKey(state, e);
+    if (action === 'close') close();
+    if (action === 'trap') {
+      const items = [...modal.querySelectorAll(FOCUSABLE_SELECTOR)];
+      const next = nextTrapIndex(items.indexOf(document.activeElement), items.length, e.shiftKey);
+      e.preventDefault();
+      if (next >= 0) items[next].focus();
+      else modal.focus(); // zero-focusable fallback: Tab must never leak to the page
+    }
+  });
+</script>
+</body>
+</html>

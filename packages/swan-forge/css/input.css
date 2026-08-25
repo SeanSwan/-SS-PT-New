@@ -1,0 +1,65 @@
+/**
+ * @swan/forge — Input skin (.sw-input). Harvest anchor: GlacialInput
+ * (crystalline-primitives) — frosted surface, cyan focus bloom, quiet chrome.
+ * Zero raw hex; logical properties; 44px target floor.
+ */
+
+.sw-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-p-space-2);
+  font-family: var(--sw-font-ui);
+}
+
+.sw-field__label {
+  color: var(--sw-text-secondary);
+  font-size: calc(var(--sw-p-text-sm) * var(--sw-text-scale));
+  font-weight: 600;
+}
+
+.sw-input {
+  --_radius: var(--sw-input-radius, var(--sw-p-radius-md));
+  min-block-size: var(--sw-p-target-min);
+  padding-block: var(--sw-p-space-2);
+  padding-inline: var(--sw-p-space-4);
+  inline-size: 100%;
+  background: var(--sw-bg-elevated); /* plain token: keeps the placeholder pair statically auditable */
+  color: var(--sw-text-primary);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--_radius);
+  font-family: inherit;
+  font-size: calc(var(--sw-p-text-base) * var(--sw-text-scale));
+  transition:
+    border-color calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
+    box-shadow calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease);
+}
+
+.sw-input::placeholder { color: var(--sw-text-muted); }
+
+.sw-input:hover:not([disabled]) { border-color: var(--sw-border-strong); }
+
+.sw-input:focus-visible {
+  outline: none;
+  border-color: var(--sw-focus-ring);
+  box-shadow:
+    var(--sw-focus-shadow),
+    0 0 18px color-mix(in oklab, var(--sw-glow-b) 20%, transparent);
+}
+
+.sw-input[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.sw-input[aria-invalid="true"] {
+  border-color: var(--sw-color-danger);
+}
+.sw-field__error {
+  color: var(--sw-color-danger);
+  font-size: var(--sw-p-text-sm);
+}
+.sw-field__warning {
+  color: var(--sw-color-warning);
+  font-size: var(--sw-p-text-sm);
+}
+.sw-field__hint {
+  color: var(--sw-text-muted);
+  font-size: var(--sw-p-text-sm);
+}

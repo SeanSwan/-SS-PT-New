@@ -1,0 +1,78 @@
+/**
+ * @swan/forge — Theme pack #1: crystalline-swan (dark-native).
+ * Source of truth: SS-PT Active Palette + canonical GlowButton theme table
+ * (frontend/src/components/ui/buttons/GlowButton.tsx @ origin/main d73468d37).
+ * Dark-first is a property of THIS pack, not a catalog law (plan §1, Ox Break #2).
+ * Defines every name in tokens/semantic.contract.md — the audit gate checks this.
+ */
+:root[data-sw-pack="crystalline-swan"],
+.sw-pack-crystalline-swan {
+  color-scheme: dark;
+
+  /* Colors */
+  --sw-bg-base: #0A0A0F;            /* Obsidian Black */
+  --sw-bg-surface: #141419;         /* Carbon */
+  --sw-bg-elevated: #1A1A24;        /* Graphite */
+  --sw-bg-overlay: rgba(3, 7, 18, 0.72);
+  --sw-text-primary: #E0ECF4;       /* Frost White */
+  --sw-text-secondary: #A8BDD0;
+  --sw-text-muted: #7E93A8; /* lifted from #6E8296 — placeholder-on-elevated audited at 4.34:1, now 5.44:1 */
+  --sw-text-inverse: #FFFFFF;
+  --sw-color-primary: #002060;      /* Midnight Sapphire — buttons bg */
+  --sw-color-accent: #8B5CF6;       /* Wing Purple */
+  --sw-color-gold: #C6A84B;         /* Gilded Fern */
+  --sw-color-success: #22C55E;
+  --sw-color-danger: #EF4444;
+  --sw-color-warning: #D97706;
+  --sw-border: rgba(96, 192, 240, 0.16);
+  --sw-border-strong: rgba(224, 236, 244, 0.28);  /* chrome edge */
+  --sw-glow-a: #8B5CF6;             /* purple pole (Dual-Button Glow) */
+  --sw-glow-b: #60C0F0;             /* Ice Wing cyan pole */
+
+  /* Focus */
+  --sw-focus-ring: #8B5CF6;
+  --sw-focus-shadow: 0 0 0 var(--sw-p-focus-width) var(--sw-bg-base),
+                     0 0 0 calc(var(--sw-p-focus-width) + var(--sw-p-focus-offset)) var(--sw-focus-ring);
+
+  /* Typography */
+  --sw-font-heading: "Plus Jakarta Sans", system-ui, sans-serif;
+  --sw-font-body: "Plus Jakarta Sans", system-ui, sans-serif;
+  --sw-font-data: "Fira Code", ui-monospace, monospace;
+  --sw-font-ui: "Sora", system-ui, sans-serif;
+  --sw-text-scale: 1;
+
+  /* Depth */
+  --sw-shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sw-shadow-2: 0 6px 18px rgba(0, 8, 32, 0.45);
+  --sw-shadow-3: 0 16px 48px rgba(0, 8, 32, 0.6);
+
+  /* Motion */
+  --sw-motion: 1;
+  --sw-ease: var(--sw-p-ease-standard);
+
+  /* Asset slots */
+  --sw-asset-hero-video: none;
+  --sw-asset-brand-mark: none;
+
+  /* Component-tier overrides faithful to the original GlowButton table */
+  --sw-btn-primary-text: #E0ECF4;   /* original GlowButton primary text (Frost White) */
+  --sw-btn-accent-glow-b: #50A0F0;  /* original accent glowEnd (Arctic Cyan) — Ice Wing → Arctic pair */
+  --sw-btn-gilded-bg: #1A1505;
+  --sw-btn-gilded-glow-a: #C6A84B;
+  --sw-btn-gilded-glow-b: #DAC36E;
+  --sw-btn-success-bg: #0A1E10;
+  --sw-btn-success-glow-a: #22C55E;
+  --sw-btn-success-glow-b: #4ADE80;
+  --sw-btn-danger-bg: #1E0A0A;
+  --sw-btn-danger-glow-a: #EF4444;
+  --sw-btn-danger-glow-b: #FC8181;
+  --sw-btn-ghost-glow-a: #4070C0;   /* Swan Lavender */
+  --sw-btn-ghost-glow-b: #60C0F0;   /* Ice Wing */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-sw-pack="crystalline-swan"],
+  .sw-pack-crystalline-swan {
+    --sw-motion: 0;
+  }
+}
