@@ -213,3 +213,25 @@ test('tag-legacy-hex: REFUSES every context it cannot positively classify, and n
   const plain = "const c = '#ef4444';";
   assert.match(commentFormFor('x.ts', plain, ...at(plain, 0)), /^\/\/ /);
 });
+
+test('drift-lint R6: the four ways past the first version are all closed (own probe, before the panel named them)', () => {
+  // A standing law that only recognises one syntax is not a standing law.
+  const bypasses = {
+    'attrs': 'const B = styled(ForgeButton).attrs({})`background: red;`;',
+    'withConfig': 'const C = styled(ForgeButton).withConfig({})`background: red;`;',
+    'object styles': 'const F = styled(ForgeButton)({ background: "red" });',
+    'newline before tick': 'const H = styled(ForgeButton)\n  `background: red;`;',
+    're-extended wrapper': 'const D = styled(ForgeButton)`margin: 0;`;\nconst E = styled(D)`background: red;`;',
+  };
+  for (const [name, src] of Object.entries(bypasses)) {
+    const hits = lintText('x.tsx', src, { isConsumer: true }).filter((v) => v.rule === 'R6');
+    assert.equal(hits.length, 1, `${name} must raise exactly one R6`);
+  }
+  // Object-styles syntax is flagged because it cannot be audited — "cannot verify" is not "fine".
+  assert.match(lintText('x.tsx', bypasses['object styles'], { isConsumer: true })[0].detail, /cannot be audited statically/);
+  // A transitively-extended wrapper names its chain so the reader knows why it was caught.
+  assert.match(lintText('x.tsx', bypasses['re-extended wrapper'], { isConsumer: true })[0].detail, /transitively wraps ForgeButton/);
+  // ...and a layout-only chain stays clean through the same paths.
+  const clean = 'const A = styled(ForgeButton).attrs({ type: "button" })`margin-top: 1rem;`;\nconst Z = styled(A)`flex: 1;`;';
+  assert.equal(lintText('x.tsx', clean, { isConsumer: true }).filter((v) => v.rule === 'R6').length, 0);
+});

@@ -87,6 +87,43 @@ export function stripComments(text) {
   }).join('\n');
 }
 
+/**
+ * R6 scan: every styled() wrapper that ultimately wraps the Forge button binding.
+ *
+ * A first version matched only the literal `styled(ForgeButton)\`…\`` and a probe found four ways
+ * straight past it: `.attrs({})`, `.withConfig({})`, object-styles call syntax, and — the one that
+ * matters most — re-extending an already-wrapped component (`styled(MyWrapper)\`background:red\``).
+ * So this resolves the transitive set of locally-bound wrapper identifiers first, then checks each.
+ *
+ * Object-styles syntax (`styled(X)({...})`) is FLAGGED unconditionally: it cannot be audited by
+ * the shared string boundary, and "cannot verify" must never render as "fine" for a standing law.
+ */
+export function scanStyledBindings(text) {
+  const findings = [];
+  const chain = '(?:\\s*\\.\\w+\\([\\s\\S]*?\\))*'; // .attrs({…}).withConfig({…})…
+  const bound = new Set(['ForgeButton']);
+  for (let pass = 0; pass < 5; pass++) { // transitive closure; 5 hops is far past anything real
+    const before = bound.size;
+    for (const name of [...bound]) {
+      for (const m of text.matchAll(new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*styled\\(\\s*${name}\\s*\\)`, 'g'))) bound.add(m[1]);
+    }
+    if (bound.size === before) break;
+  }
+  for (const name of bound) {
+    for (const m of text.matchAll(new RegExp(`styled\\(\\s*${name}\\s*\\)${chain}\\s*(\`|\\()`, 'g'))) {
+      const line = text.slice(0, m.index).split('\n').length;
+      const via = name === 'ForgeButton' ? 'styled(ForgeButton)' : `styled(${name}) [transitively wraps ForgeButton]`;
+      if (m[1] === '(') { findings.push({ rule: 'R6', line, detail: `${via} uses object-styles syntax, which cannot be audited statically — use a --sw-btn-* override or a template literal (rule 84)` }); continue; }
+      const bodyStart = m.index + m[0].length;
+      const end = text.indexOf('`', bodyStart);
+      if (end < 0) continue;
+      const blocker = styledWrapperBlocker(text.slice(bodyStart, end));
+      if (blocker) findings.push({ rule: 'R6', line, detail: `${via} ${blocker} — use a --sw-btn-* override instead (rule 84)` });
+    }
+  }
+  return findings.sort((a, b) => a.line - b.line);
+}
+
 /** Lint one file's text. @returns {{rule:string,line:number,detail:string}[]} */
 export function lintText(path, text, { isForgeCss = false, isPack = false, isConsumer = false } = {}) {
   const findings = [];
@@ -97,12 +134,7 @@ export function lintText(path, text, { isForgeCss = false, isPack = false, isCon
   // this refuses to let one be hand-written afterwards, which is the half that survives the merge
   // (Ox T2 B3: "codemod-only enforcement decays on contact with humans"). Both call the SAME
   // boundary function, so the rule cannot drift between the migration gate and the standing law.
-  if (isConsumer) {
-    for (const m of text.matchAll(/styled\(\s*ForgeButton\s*\)\s*`([\s\S]*?)`/g)) {
-      const blocker = styledWrapperBlocker(m[1]);
-      if (blocker) findings.push({ rule: 'R6', line: text.slice(0, m.index).split('\n').length, detail: `styled(ForgeButton) ${blocker} — use a --sw-btn-* override instead (rule 84)` });
-    }
-  }
+  if (isConsumer) findings.push(...scanStyledBindings(text));
   lines.forEach((line, i) => {
     const at = i + 1;
     // belt+braces: orphan comment-continuation lines (unclosed /* in a fragment) stay skipped
