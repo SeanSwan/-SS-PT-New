@@ -127,3 +127,55 @@ Final state after both batches:
 4. A pre-existing flake in `AdminViewAsWrapper.*` ("open fixture client") surfaced
    once and did not reproduce on a clean tree across 3 runs. Not in my diff. Worth a
    look, [LIKELY] pre-existing.
+
+## Second session (2026-08-24) — GLM-5.3 hostile review + fixes
+
+Branch is now `claude/coach-endpoint-truth-v2-20260824` @ `19a071b59`.
+
+GLM-5.3 returned 10 findings. Four landed and are fixed: my own aria-busy fix still
+deferred-then-dropped the announcement because the live region sat inside the busy
+container; sub-mounts the route extractor could not follow were dropped silently (two
+were invisible); ROLE_GATES could rot if authMiddleware changed; and a comment I wrote
+made a false security argument. Two were refuted by context my own brief had excerpted
+away — the lesson there is that excerpt boundaries are part of the question you ask.
+
+Its best finding is unfixed and named as the next slice: `roleRequired` is hand-authored
+per command, 112 dispatchers are wired, I read three, and nothing tests that a dispatcher
+denies a below-role caller.
+
+## Mistakes I made — second session
+
+- **I repeated a lesson I had just written down, in the same hour.** My own handoff §9
+  says "Verify `git branch --show-current`; never infer it." I then ran `git branch -f`,
+  assumed I had switched, and committed the handoff to the wrong branch — the second time
+  this session. Writing a lesson down does not change behaviour; only a mechanical step
+  does. The fix is procedural: **`git branch --show-current` immediately before every
+  commit that follows a `git branch -f` / `checkout` / rebase**, not "remember to check".
+- **Shipped a vacuous assertion.** The ROLE_GATES binding used a windowed regex
+  (`export const authorize[\s\S]{0,600}?…`) that spilled past the end of the function,
+  so deleting the override it guarded left it green. Mutation-testing caught it; a
+  `bodyOf()` slice made it able to fail. A guard that cannot fail is worse than none —
+  it converts an unchecked area into one that looks checked.
+- **Third instance this session of a guard matching its own documentation.** A comment
+  naming a banned CSS declaration tripped the contract banning that declaration.
+- **Took a compliant file over the 300-line cap.** `ClientsWorkspace.styles.ts` was 279
+  lines; I pushed it to 308 adding the announcer. The pre-commit guard only WARNS on G6,
+  so nothing would have stopped it. Extracted to `components/ui/LiveRegion.tsx`; styles
+  back to 279.
+- **Contaminated a test run by mutating the tree while it was in flight**, then nearly
+  reported the 9 resulting failures as real.
+- **Ran `git stash pop` on a clean tree** and pulled in another session's stash — the
+  stash stack is repo-wide across worktrees. Five conflicts, recovered without loss.
+
+## Finding for the repo, not for me
+
+**Whole-source-tree scan tests are load-fragile.** Across four full frontend runs: two at
+8025/8025, then 5 and 6 files failing — **all timeouts, zero assertion failures, a
+different set each time**, and every one passes in isolation. They walk ~5,400 files
+against a 5000ms default. Verified NOT caused by this branch: it has 5,362 files under
+`frontend/src` versus main's 5,391, so the walks are strictly cheaper here. Worth a
+`testTimeout` bump or a cached file list.
+
+**Also: every GitHub Actions gate is dead** — blanket `startup_failure` across all
+workflows and all event types including `schedule`, which is account-level (billing),
+not a workflow bug. Local verification is currently the only gate in the repo.
