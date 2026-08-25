@@ -225,3 +225,65 @@ describe('useSessionPackagePricing — fail-closed pricing signal', () => {
     expect(result.current.defaultLateFee).toBe(55);
   });
 });
+
+describe('useSessionPackagePricing — a 200 carrying a placeholder is not pricing', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('treats isFallback data as unavailable rather than as this client\'s package', async () => {
+    // The endpoint returns isFallback when cancellationPricing could not find a
+    // completed order and is returning its OWN hardcoded 175. Clearing the gate
+    // on that response is how the original defect reached the panel.
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          pricePerSession: 175,
+          packageName: 'Standard (Fallback)',
+          defaultChargeAmount: 175,
+          lateFeeAmount: 88,
+          isFallback: true,
+        },
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useSessionPackagePricing({ open: true, sessionId: 91, canManage: true })
+    );
+
+    await waitFor(() => {
+      expect(apiService.get).toHaveBeenCalledWith('/api/sessions/91/client-package-price');
+    });
+
+    expect(result.current.pricingUnavailable).toBe(true);
+    expect(result.current.packagePrice).toBeNull();
+    expect(result.current.packageName).toBeNull();
+  });
+
+  it('still accepts real package data that happens to price at the fallback rate', async () => {
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          pricePerSession: 175,
+          packageName: 'Signature 60 Pack',
+          defaultChargeAmount: 175,
+          lateFeeAmount: 87.5,
+          isFallback: false,
+        },
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useSessionPackagePricing({ open: true, sessionId: 92, canManage: true })
+    );
+
+    await waitFor(() => {
+      expect(result.current.pricingUnavailable).toBe(false);
+    });
+
+    expect(result.current.packagePrice).toBe(175);
+    expect(result.current.defaultLateFee).toBe(87.5);
+  });
+});

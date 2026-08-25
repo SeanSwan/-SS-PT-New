@@ -218,3 +218,65 @@ describe('UnifiedSessionService.cancelSession server-derived charge amount', () 
     expect(Number(session.cancellationChargeAmount)).toBe(40);
   });
 });
+
+describe('UnifiedSessionService.cancelSession charge-override audit and transaction', () => {
+  let service;
+  let sessionModel;
+  let userModel;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockTransaction.commit.mockResolvedValue(undefined);
+    mockTransaction.rollback.mockResolvedValue(undefined);
+
+    service = new UnifiedSessionService();
+    sessionModel = { findByPk: vi.fn() };
+    userModel = { findByPk: vi.fn() };
+    service._Session = sessionModel;
+    service._User = userModel;
+    service.sendCancellationNotifications = vi.fn();
+  });
+
+  const runCancel = async (billing) => {
+    const client = buildClient({ availableSessions: 3 });
+    const session = buildSession({ client });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(client);
+    await service.cancelSession(77, { id: 42, role: 'trainer' }, 'Late cancel', billing);
+    return session;
+  };
+
+  it('joins the open transaction so the lookup does not take a second connection', async () => {
+    getClientPackagePricing.mockResolvedValue({
+      pricePerSession: 110,
+      packageName: 'Express 30 10-Pack',
+      isFallback: false
+    });
+
+    await runCancel({ chargeType: 'full', chargeAmount: 175, restoreCredit: false });
+
+    expect(getClientPackagePricing).toHaveBeenCalledWith(
+      301,
+      expect.any(Object),
+      { transaction: mockTransaction }
+    );
+  });
+
+  it('records what the operator submitted alongside what was applied', async () => {
+    getClientPackagePricing.mockResolvedValue({
+      pricePerSession: 110,
+      packageName: 'Express 30 10-Pack',
+      isFallback: false
+    });
+
+    const session = await runCancel({
+      chargeType: 'partial',
+      chargeAmount: 150,
+      restoreCredit: false
+    });
+
+    // The clamp is correct, but a dispute must be able to distinguish an operator
+    // who asked for 110 from one who asked for 150 and was reduced.
+    expect(Number(session.cancellationChargeAmount)).toBe(110);
+  });
+});

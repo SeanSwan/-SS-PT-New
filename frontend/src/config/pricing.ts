@@ -63,7 +63,7 @@ export const PACKAGES: PricingPackage[] = [
     sessions: 48,
     price: 8400,
     perSession: SESSION_RATE_60_MIN,
-    description: 'Four sessions per week for three months',
+    description: '48 sessions - about four per week across three months',
     features: [
       '48 sessions at the standard $175 rate',
       'Structured progression block',
@@ -77,7 +77,7 @@ export const PACKAGES: PricingPackage[] = [
     sessions: 96,
     price: 16800,
     perSession: SESSION_RATE_60_MIN,
-    description: 'Four sessions per week for six months',
+    description: '96 sessions - about four per week across six months',
     features: [
       '96 sessions at the standard $175 rate',
       'Multi-block periodized programming',
@@ -92,7 +92,7 @@ export const PACKAGES: PricingPackage[] = [
     sessions: 192,
     price: 33600,
     perSession: SESSION_RATE_60_MIN,
-    description: 'Four sessions per week for a full year',
+    description: '192 sessions - about four per week across a full year',
     features: [
       '192 sessions at the standard $175 rate',
       'Year-long periodized plan',
