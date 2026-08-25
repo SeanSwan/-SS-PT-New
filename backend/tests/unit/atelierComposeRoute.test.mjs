@@ -30,7 +30,7 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROUTE_SRC = readFileSync(join(HERE, '../../routes/atelierComposeRoutes.mjs'), 'utf8');
-const SERVICE_SRC = ['composeStills', 'composeLimits', 'promptSources', 'localStillLane']
+const SERVICE_SRC = ['composeStills', 'composeLimits', 'promptSources', 'localStillLane', 'persistStills', 'motionBind']
   .map((f) => readFileSync(join(HERE, `../../services/atelier/${f}.mjs`), 'utf8')).join('\n');
 
 const BRIEF = { text: 'a glacier calving into black water at dawn', intent: 'hero', aspect: '16:9' };
@@ -117,7 +117,7 @@ describe('HTTP contract', () => {
    * which needs a database this suite has no business requiring.
    */
   const mapped = new Set([...ROUTE_SRC.matchAll(/^\s{2}(E_[A-Z_]+):\s*\d{3},$/gm)].map((m) => m[1]));
-  const thrown = new Set([...SERVICE_SRC.matchAll(/new ComposeError\('(E_[A-Z_]+)'/g)].map((m) => m[1]));
+  const thrown = new Set([...SERVICE_SRC.matchAll(/new (?:Compose|Persist|Motion)Error\('(E_[A-Z_]+)'/g)].map((m) => m[1]));
 
   it('maps every error code the service can throw to a deliberate status', () => {
     const unmapped = [...thrown].filter((c) => !mapped.has(c));
@@ -143,8 +143,17 @@ describe('HTTP contract', () => {
     for (const r of routes) expect(r).toMatch(/protect, adminOnly/);
   });
 
-  /** The Motion rung is deliberately absent until an asset store exists to bind to. */
-  it('ships no Motion endpoint that would re-prompt from text instead of binding a still', () => {
-    expect(ROUTE_SRC).not.toMatch(/router\.(post|get)\('\/(motion|animate)'/);
+  /**
+   * RE-ANCHORED: this used to assert the Motion endpoint was ABSENT (no asset store to
+   * bind to). The store shipped; Motion now exists by design. The property that matters
+   * survives in a stronger form: the endpoint binds an asset hash and never a prompt.
+   */
+  it('the Motion endpoint binds assetId + sha256 and refuses a prompt-only body', () => {
+    expect(ROUTE_SRC).toMatch(/router\.post\('\/motion'/);
+    expect(ROUTE_SRC).toMatch(/assetId: b\.assetId, sha256: b\.sha256/);
+    expect(ROUTE_SRC).toMatch(/E_BIND_NO_ASSET:\s*400/);
+    expect(ROUTE_SRC).toMatch(/E_BIND_HASH_MISMATCH:\s*409/);
+    // No route builds a Motion job from a prompt field alone.
+    expect(ROUTE_SRC).not.toMatch(/router\.post\('\/animate'/);
   });
 });

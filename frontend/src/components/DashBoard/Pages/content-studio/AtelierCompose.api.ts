@@ -174,6 +174,43 @@ export function stillSrc(s: StillView): { src: string | null; note: string | nul
   return { src: null, note: `Saved on the render machine: ${s.image.path}` };
 }
 
+/* ── Motion ────────────────────────────────────────────────────────────────── */
+
+export interface MotionStart {
+  jobId: string; status: string; replayed: boolean; provider: string; attribution: string | null;
+  bound: { assetId: string; sha256: string };
+  startable: boolean; workerState: string | null; message: string; statusUrl: string;
+}
+
+/** Mirrors GET /api/content-studio/render-job/:id — the same shape the Render Queue polls. */
+export interface MotionJobView {
+  jobId: string; status: string; progress: number | null; errorCode: string | null; errorMessage: string | null;
+  r2Key: string | null; attribution?: string | null; startable: boolean; workerState: string | null;
+}
+
+/** A still can be sent to Motion only when it is a persisted asset with a hash to bind. */
+export function motionBindable(s: StillView | null): { ok: boolean; why: string } {
+  if (!s) return { ok: false, why: 'Select a frame first.' };
+  if (!s.assetId || !s.sha256) return { ok: false, why: 'This frame was not saved as an asset, so there is nothing to bind to.' };
+  return { ok: true, why: '' };
+}
+
+/** Honest words for a Motion job. "queued" alone is never shown when nothing can pick it up. */
+export function describeMotionJob(j: MotionJobView | null): { tone: 'working' | 'blocked' | 'ready' | 'failed' | 'idle'; text: string } {
+  if (!j) return { tone: 'idle', text: '' };
+  if (j.status === 'ready') return { tone: 'ready', text: 'Motion rendered' };
+  if (j.status === 'failed' || j.status === 'cancelled') {
+    return { tone: 'failed', text: `Motion ${j.status}${j.errorCode ? ` · ${j.errorCode}` : ''}${j.errorMessage ? ` — ${j.errorMessage}` : ''}` };
+  }
+  if (j.status === 'queued' && !j.startable) {
+    const reason = j.workerState === 'NO_WORKER_ENROLLED' ? 'no render machine connected'
+      : j.workerState === 'NO_WORKER_ONLINE' ? 'the render machine is offline'
+        : j.workerState === 'NO_WORKER_WITH_CAPABILITY' ? 'no capable worker' : 'nothing can pick this up yet';
+    return { tone: 'blocked', text: `Queued · ${reason}` };
+  }
+  return { tone: 'working', text: `${j.status}${typeof j.progress === 'number' ? ` · ${j.progress}%` : ''}` };
+}
+
 /* ── Hook ─────────────────────────────────────────────────────────────────── */
 
 export function useAtelierCompose(api: AxiosInstance | null) {
@@ -225,7 +262,36 @@ export function useAtelierCompose(api: AxiosInstance | null) {
     }
   }, [api]);
 
-  return { limits, estimate, result, refusal, busy, loadLimits, runEstimate, compose, setResult };
+  const [motion, setMotion] = useState<MotionStart | null>(null);
+  const [motionJob, setMotionJob] = useState<MotionJobView | null>(null);
+
+  const startMotion = useCallback(async (still: StillView, opts: { prompt?: string; duration?: number } = {}) => {
+    if (!api) throw new Error('Not authenticated.');
+    const b = motionBindable(still);
+    if (!b.ok) { setRefusal({ code: 'E_BIND_NO_ASSET', message: b.why, status: null }); return null; }
+    setRefusal(null);
+    try {
+      const { data } = await api.post(`${BASE}/motion`, { assetId: still.assetId, sha256: still.sha256, ...opts },
+        { headers: { 'Idempotency-Key': `motion-${still.assetId}-${still.sha256}` } });
+      const m = data?.data as MotionStart;
+      setMotion(m);
+      setMotionJob({ jobId: m.jobId, status: m.status, progress: null, errorCode: null, errorMessage: null, r2Key: null, startable: m.startable, workerState: m.workerState });
+      return m;
+    } catch (err) {
+      setRefusal(readRefusal(err, 'Motion could not be queued.'));
+      return null;
+    }
+  }, [api]);
+
+  const pollMotion = useCallback(async () => {
+    if (!api || !motion?.statusUrl) return;
+    try {
+      const { data } = await api.get(motion.statusUrl);
+      if (data?.data) setMotionJob(data.data as MotionJobView);
+    } catch { /* one unreadable poll must not blank the job */ }
+  }, [api, motion]);
+
+  return { limits, estimate, result, refusal, busy, loadLimits, runEstimate, compose, setResult, motion, motionJob, startMotion, pollMotion };
 }
 
 export default useAtelierCompose;

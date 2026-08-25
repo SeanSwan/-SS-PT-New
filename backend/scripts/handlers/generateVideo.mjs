@@ -32,6 +32,7 @@ import { assertPromptAllowed } from '../../../shared/providers/video/promptPolic
 import { readLimits, dayKey, checkRunAllowed } from '../../../shared/providers/video/spendGuard.mjs';
 import { buildProvenance } from '../../../shared/providers/video/provenance.mjs';
 import { ComfyError } from '../../../shared/providers/video/comfyuiLocal.mjs';
+import { applyBoundInitImage } from './initImageBind.mjs';
 
 /**
  * Adapters by transport. A second local backend or a hosted vendor registers
@@ -101,6 +102,17 @@ export function isPermanentCode(code) {
  * @param {object} job          queue job; `params` carries the request
  * @param {Function} onProgress (pct, message) => Promise<void>
  */
+/** Spend + volume ceilings. E_BAD_CAP is permanent (fix the environment); a cap breach
+ * is a fact about the DAY and stays retryable — tomorrow genuinely succeeds. */
+function spendGate({ caps, env, ledger, now }) {
+  let limits;
+  try { limits = readLimits(env); } catch (err) { throw markPermanence(err); }
+  const day = dayKey(now());
+  const usage = ledger ? ledger.usageFor(day) : { runs: 0, spendUsd: 0 };
+  const allowance = checkRunAllowed(caps, usage, limits);
+  return { day, allowance, usage, limits };
+}
+
 export async function runGenerate(job, onProgress, deps = {}) {
   const {
     env = process.env,
@@ -172,23 +184,11 @@ export async function runGenerate(job, onProgress, deps = {}) {
 
   // SPEND + VOLUME CEILING. Checked after policy so a refused prompt never consumes a
   // slot, and before submission so the ceiling is a gate rather than a report.
-  let limits;
-  try {
-    limits = readLimits(env);
-  } catch (err) {
-    throw markPermanence(err);   // E_BAD_CAP — a human must fix the environment
-  }
-  const day = dayKey(now());
-  const usage = ledger ? ledger.usageFor(day) : { runs: 0, spendUsd: 0 };
-  let allowance;
-  try {
-    allowance = checkRunAllowed(caps, usage, limits);
-  } catch (err) {
-    // A cap is a fact about the DAY, not the request. Retrying tomorrow genuinely
-    // succeeds, so this must stay retryable — marking it permanent would discard work
-    // for a ceiling that expires on its own.
-    throw err;
-  }
+  const { day, allowance } = spendGate({ caps, env, ledger, now });
+
+  // THE BIND — a Motion job's `initImage` is an asset reference; resolve it (download,
+  // RE-HASH, upload into ComfyUI) so the graph animates the approved frame and nothing else.
+  request = await applyBoundInitImage(job, request, { api, fetchImpl, env, onProgress });
 
   await onProgress(5, `provider ${providerId} accepted`);
 

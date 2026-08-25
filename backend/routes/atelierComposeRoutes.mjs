@@ -28,6 +28,7 @@ import {
 } from '../services/atelier/composeStills.mjs';
 import { verifyLocalStills, PROBE_ENV_KEY, STILL_PROVIDER } from '../services/atelier/localStillLane.mjs';
 import { readAsset } from '../services/atelier/persistStills.mjs';
+import { bindMotion } from '../services/atelier/motionBind.mjs';
 
 const router = express.Router();
 
@@ -69,6 +70,22 @@ const STATUS = Object.freeze({
   E_STILL_UNREADABLE: 502,
   E_ARTIFACT_HASH_MISMATCH: 502,
   E_ASSET_NOT_FOUND: 404,
+  E_BIND_NO_ASSET: 400,
+  E_BIND_NO_HASH: 400,
+  E_BAD_OWNER: 400,
+  E_BIND_ASSET_NOT_FOUND: 404,
+  E_ASSET_NOT_IMAGE: 400,
+  E_BIND_NO_RECORDED_HASH: 409,
+  E_BIND_HASH_MISMATCH: 409,
+  E_BAD_INPUT: 400,
+  E_UNSUPPORTED_KIND: 400,
+  E_IMAGE_FIRST_REQUIRED: 400,
+  E_UNKNOWN_PROVIDER: 400,
+  // Ticket codes are served by renderAgentRoutes; mapped here too so the invariant
+  // 'every code the atelier services can throw has a deliberate status' stays simple.
+  E_JOB_NOT_FOUND: 404,
+  E_LEASE_CONFLICT: 409,
+  E_BIND_NO_INIT_IMAGE: 400,
 });
 
 function fail(res, err) {
@@ -180,6 +197,26 @@ router.get('/asset/:id', protect, adminOnly, async (req, res) => {
   try {
     const out = await readAsset({ id: String(req.params.id || ''), userId: req.user?.id });
     return res.json({ success: true, data: out });
+  } catch (err) { return fail(res, err); }
+});
+
+/**
+ * POST /api/atelier/compose/motion — animate THE approved frame.
+ * Body: { assetId, sha256, prompt?, provider?, duration?, seed?, workspaceId? }.
+ * A prompt alone is refused (E_BIND_NO_ASSET): approval binds bytes, not words.
+ * Returns the queued job + the same worker-presence honesty as the video route —
+ * `startable:false` means nothing can render this right now, and the UI must say so.
+ */
+router.post('/motion', protect, adminOnly, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const headerKey = req.get('Idempotency-Key');
+    const out = await bindMotion({
+      assetId: b.assetId, sha256: b.sha256, prompt: b.prompt, provider: b.provider, duration: b.duration,
+      seed: b.seed, workspaceId: b.workspaceId, userId: req.user?.id,
+      idempotencyKey: (typeof headerKey === 'string' && headerKey.trim()) ? headerKey.trim() : undefined,
+    });
+    return res.status(out.replayed ? 200 : 202).json({ success: true, data: out });
   } catch (err) { return fail(res, err); }
 });
 

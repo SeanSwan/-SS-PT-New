@@ -152,6 +152,24 @@ router.post('/jobs/:jobId/upload-url', agentAuth, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/render-agents/jobs/:jobId/init-image — a short-lived READ URL for the frame a
+ * Motion job is bound to. The key is taken from the JOB's own params; the agent cannot
+ * name one, and only the lease holder may ask. The agent re-hashes what it downloads
+ * before the graph ever sees it (handlers/initImageBind.mjs).
+ */
+router.post('/jobs/:jobId/init-image', agentAuth, async (req, res) => {
+  try {
+    const { initImageReadTicket } = await import('../services/atelier/motionBind.mjs');
+    const out = await initImageReadTicket({ jobId: req.params.jobId, agentId: req.agent.id });
+    return res.json({ success: true, data: out });
+  } catch (err) {
+    const status = err?.code === 'E_LEASE_CONFLICT' ? 409 : err?.code === 'E_JOB_NOT_FOUND' ? 404 : err?.code === 'E_BIND_NO_INIT_IMAGE' ? 400 : 500;
+    if (err?.code) return res.status(status).json({ success: false, error: err.message, code: err.code });
+    return sendServiceError(res, err, 'init-image');
+  }
+});
+
 /** POST /api/render-agents/jobs/:jobId/complete — hand back the artifact. */
 router.post('/jobs/:jobId/complete', agentAuth, async (req, res) => {
   try {

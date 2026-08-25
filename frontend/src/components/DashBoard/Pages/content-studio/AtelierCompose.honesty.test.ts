@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  describeLocalLane, describeHostedLane, laneOfferable, formatCost, stillSrc, readRefusal, describePersist,
+  describeLocalLane, describeHostedLane, laneOfferable, formatCost, stillSrc, readRefusal, describePersist, motionBindable, describeMotionJob,
   type LimitsView, type LocalLaneView, type HostedLaneView, type StillView,
 } from './AtelierCompose.api';
 
@@ -117,5 +117,27 @@ describe('a still says whether it became an asset', () => {
     const d = describePersist({ ...base, assetId: null, persist: { ok: false, code: 'E_STORAGE_UNCONFIGURED', message: 'no R2' } });
     expect(d.saved).toBe(false);
     expect(d.text).toContain('E_STORAGE_UNCONFIGURED');
+  });
+});
+
+describe('Motion binds to an asset hash, never to words', () => {
+  const base: StillView = { index: 0, lane: 'hosted', image: { kind: 'b64', data: 'AAAA' }, seed: 1, promptHash: 'abc', promptText: 'x', provider: 'p' };
+  it('is not bindable without an assetId and sha256', () => {
+    expect(motionBindable(null).ok).toBe(false);
+    expect(motionBindable(base).ok).toBe(false);
+    expect(motionBindable({ ...base, assetId: 'a', sha256: 'h' }).ok).toBe(true);
+  });
+  it('never shows "queued" alone when nothing can pick the job up', () => {
+    const j = { jobId: 'j', status: 'queued', progress: null, errorCode: null, errorMessage: null, r2Key: null, startable: false, workerState: 'NO_WORKER_ONLINE' };
+    const d = describeMotionJob(j);
+    expect(d.tone).toBe('blocked');
+    expect(d.text.toLowerCase()).toContain('offline');
+    expect(d.text).not.toBe('Queued');
+  });
+  it('reports ready and failed with their codes', () => {
+    expect(describeMotionJob({ jobId: 'j', status: 'ready', progress: 100, errorCode: null, errorMessage: null, r2Key: 'k', startable: true, workerState: null }).tone).toBe('ready');
+    const f = describeMotionJob({ jobId: 'j', status: 'failed', progress: null, errorCode: 'E_BIND_HASH_MISMATCH', errorMessage: 'not the approved frame', r2Key: null, startable: true, workerState: null });
+    expect(f.tone).toBe('failed');
+    expect(f.text).toContain('E_BIND_HASH_MISMATCH');
   });
 });

@@ -21,10 +21,10 @@
  */
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Wand2, RefreshCw, Lock, Sparkles } from 'lucide-react';
+import { Wand2, RefreshCw, Lock, Sparkles, Clapperboard } from 'lucide-react';
 import type { AxiosInstance } from 'axios';
 import useAtelierCompose, {
-  describeLocalLane, describeHostedLane, laneOfferable, formatCost,
+  describeLocalLane, describeHostedLane, laneOfferable, formatCost, motionBindable, describeMotionJob,
   type Lane, type PromptSource, type LawProfile, type ComposeRequest,
 } from './AtelierCompose.api';
 import AtelierComposeGrid from './AtelierComposeGrid';
@@ -79,7 +79,18 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
     if (r) setSelected(null);
   };
 
-  const ladder = c.result ? 'still' : 'brief';
+  const selectedStill = selected === null ? null : (c.result?.stills.find((s) => s.index === selected) ?? null);
+  const bind = motionBindable(selectedStill);
+  const mj = describeMotionJob(c.motionJob);
+  const motionActive = !!c.motionJob && !['ready', 'failed', 'cancelled'].includes(c.motionJob.status);
+  const ladder = c.motionJob ? 'motion' : c.result ? 'still' : 'brief';
+
+  // Poll the queued Motion job on the endpoint the Render Queue already uses; stop on a terminal state.
+  useEffect(() => {
+    if (!motionActive) return undefined;
+    const t = setInterval(() => { c.pollMotion(); }, 4000);
+    return () => clearInterval(t);
+  }, [motionActive, c.pollMotion]);
 
   return (
     <Panel aria-label="Atelier Compose">
@@ -96,8 +107,8 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
 
       <Ladder aria-label="Compose ladder">
         <Rung $state={ladder === 'brief' ? 'current' : 'done'}>Brief</Rung>
-        <Rung $state={ladder === 'still' ? 'current' : 'locked'}>Still</Rung>
-        <Rung $state="locked">Motion</Rung>
+        <Rung $state={ladder === 'still' ? 'current' : ladder === 'motion' ? 'done' : 'locked'}>Still</Rung>
+        <Rung $state={ladder === 'motion' ? 'current' : 'locked'}>Motion</Rung>
         <Rung $state="locked">Publish</Rung>
       </Ladder>
 
@@ -181,11 +192,21 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
             <PrimaryButton type="button" disabled={!canRun} onClick={generate}>
               {c.busy ? 'Rendering…' : `Generate ${count} candidate${count === 1 ? '' : 's'}`}
             </PrimaryButton>
-            <AccentButton type="button" disabled title="Motion lands with the asset store — approving a still must bind its exact hash (SWA-207)">
-              <Lock size={14} aria-hidden /> Approve → Motion
+            <AccentButton type="button" disabled={!bind.ok || motionActive}
+              onClick={() => { if (selectedStill) c.startMotion(selectedStill); }}
+              title={bind.ok ? 'Animate the approved frame, bound by its hash' : bind.why}>
+              {bind.ok ? <Clapperboard size={14} aria-hidden /> : <Lock size={14} aria-hidden />} Approve → Motion
             </AccentButton>
           </div>
-          <Caption>Motion is locked on purpose: an "animate this" that re-prompted from text would not animate the frame you approved.</Caption>
+          <Caption>{bind.ok
+            ? `Motion binds to asset ${selectedStill?.assetId?.slice(0, 8)} · sha ${selectedStill?.sha256?.slice(0, 12)} — the agent re-hashes the bytes before the graph sees them.`
+            : bind.why}</Caption>
+          {c.motionJob && (
+            <Notice $tone={mj.tone === 'blocked' ? 'unproven' : mj.tone === 'failed' ? 'off' : 'ready'} role="status" aria-live="polite">
+              <strong>Motion job {c.motionJob.jobId.slice(0, 8)}</strong> — {mj.text}
+              {c.motion?.attribution ? ` · ${c.motion.attribution}` : ''}
+            </Notice>
+          )}
 
           {c.result && <AtelierComposeGrid result={c.result} aspect={aspect} selectedIndex={selected} onSelect={setSelected} />}
           {c.result?.admission && <Caption>GPU admitted with {c.result.admission.freeMb} MiB free (needs {c.result.admission.neededMb}).</Caption>}
