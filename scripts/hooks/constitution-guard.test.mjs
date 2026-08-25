@@ -461,6 +461,22 @@ test('D3: BLOCKS a declared GUTTING — a survivor trimmed past 50% even with th
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 
+test('D3: BLOCKS STACKED sub-floor declared trims — 40% each × 6 rules is a set gutting (Ox r2 F1)', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    const long = (n) => `${head(n)}${PAD.repeat(70)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const cut40 = (n) => `${head(n)}${PAD.repeat(42)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const nums = [16, 46, 73, 74, 80, 81];
+    commitDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, long(n)])) }));
+    stageDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, cut40(n)])) }));
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: nums.join(',') });
+    assert.equal(out.status, 1, 'each trim clears the 50% per-rule floor; their composition must still BLOCK');
+    assert.match(out.stderr, /DECLARED rules collectively/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
 test('D3: still BLOCKS when the bleed extends past the declared rules', () => {
   const r = repo();
   try {

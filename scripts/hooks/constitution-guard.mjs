@@ -172,6 +172,17 @@ const AGGREGATE_SHRINK_TOLERANCE = 0.005;
 const DECLARED_TRIM_FLOOR = 0.5;
 
 /**
+ * Breadth bound for the declared SET (Ox prune-r2 F1): the per-rule floor bounds how
+ * deep ONE declared trim may go, but k rules trimmed to 49% each stack into half the
+ * constitution's text leaving in one legally-declared commit. The set of declared
+ * SURVIVORS may collectively lose at most 25% of its combined length — comfortably
+ * above any legitimate prune (the 2026-08-25 narrative-cut, the largest ever, was
+ * 6.04%) and far below the stacking attack. Residual, accepted: per-commit gating can
+ * be stacked ACROSS commits; the drift probe and review history are that backstop.
+ */
+const DECLARED_SET_FLOOR = 0.25;
+
+/**
  * Minimum token overlap for a DECLARED rename to be believed — also derived.
  * The one known-legitimate rename in this repo's history (rule 46, "3-Brain
  * Review Loop" -> "Kimi Hostile-Review Gate") scored **42.5%**. The reviewer
@@ -429,6 +440,7 @@ for (const file of touched) {
   const removed = [];
   const renumbered = [];
   const reverted = [];
+  let declSetBefore = 0; let declSetAfter = 0;
   for (const [key, was] of before) {
     const now = after.get(key);
     // Decide whether this rule is VIOLATING first, and only then consult the
@@ -461,11 +473,12 @@ for (const file of touched) {
     if (allowed.has(String(was.num))) {
       // The hatch is not bottomless: a declared SURVIVOR may trim, not vanish in
       // place. Beyond DECLARED_TRIM_FLOOR the declaration stops being believable
-      // as a trim and the change must be an explicit removal or a split.
+      // as a trim and the change must be an explicit removal.
       if (now && now.num === was.num) {
+        declSetBefore += was.len; declSetAfter += now.len;
         const declaredShrink = (was.len - now.len) / Math.max(was.len, 1);
         if (declaredShrink > DECLARED_TRIM_FLOOR) {
-          blockers.push(`${file}: rule ${was.num} "${was.name.slice(0, 56)}" — declared trim removed ${Math.round(declaredShrink * 100)}% of the body (${was.len} -> ${now.len} chars). Past ${DECLARED_TRIM_FLOOR * 100}% this is a GUTTING wearing a trim declaration: remove the rule explicitly or split the cut so each piece is reviewable.`);
+          blockers.push(`${file}: rule ${was.num} "${was.name.slice(0, 56)}" — declared trim removed ${Math.round(declaredShrink * 100)}% of the body (${was.len} -> ${now.len} chars). Past ${DECLARED_TRIM_FLOOR * 100}% this is a GUTTING wearing a trim declaration: declare it as a REMOVAL, or land the cut across separately reviewed commits.`);
         }
       }
       usedHatch.add(String(was.num)); continue;
@@ -493,6 +506,12 @@ for (const file of touched) {
       continue;
     }
     aggBefore += was.len; aggAfter += now.len;
+  }
+  // Breadth bound on the declared SET (Ox prune-r2 F1): many individually-plausible
+  // declared trims must not compose into a gutting. Accumulated in the per-rule loop.
+  const declSetShrink = declSetBefore ? (declSetBefore - declSetAfter) / declSetBefore : 0;
+  if (declSetShrink > DECLARED_SET_FLOOR) {
+    blockers.push(`${file}: the DECLARED rules collectively lost ${(declSetShrink * 100).toFixed(1)}% of their combined length (${declSetBefore} -> ${declSetAfter} chars) — individually-plausible trims stacking past ${DECLARED_SET_FLOOR * 100}% is a GUTTING of the set. Declare removals explicitly, or land the cut across separately reviewed commits.`);
   }
   const aggShrink = aggBefore ? (aggBefore - aggAfter) / aggBefore : 0;
   if (aggShrink > AGGREGATE_SHRINK_TOLERANCE) {
