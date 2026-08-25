@@ -39,13 +39,41 @@ const DROPPED = new Set(['pulse', 'haptic', 'glowIntensity']);
 const LEGACY_IMPORT = /(?:^|\/)ui\/buttons\/GlowButton(?:\.tsx?)?$/;
 
 /**
- * Properties the SKIN owns. A `styled(GlowButton)` wrapper that sets any of these is fighting
- * the catalog (rule 84 / drift-lint R2: the sanctioned override surface is the published
- * --sw-btn-* custom properties, never the sw-* rules). A wrapper that only POSITIONS the button
- * in its parent layout (margin, flex, grid placement, alignment) is legitimate and migratable.
- * T2 finding: both real value-position wrappers in UniversalMasterSchedule are layout-only.
+ * A `styled(GlowButton)` wrapper may migrate ONLY if every declaration it makes is one the
+ * PARENT LAYOUT owns — where the button sits, never what it looks like. Everything else belongs
+ * to the skin, and overriding it is exactly what rule 84 / drift-lint R2 forbid (the sanctioned
+ * surface is the published `--sw-btn-*` custom properties, never the `sw-*` rules).
+ *
+ * This is an ALLOW-list, deliberately. It started as a deny-list of skin-owned properties and a
+ * probe of my own rule walked straight through it: `outline` (which fights the focus ring — an
+ * accessibility control the core owns), `filter: hue-rotate` (recolours the entire button),
+ * `text-shadow`, `text-decoration`, `cursor`, `width`. A deny-list of a property space that grows
+ * every CSS release is unclosable; an allow-list fails closed, and a false block costs one human
+ * decision while a false migrate ships a silent visual override to an authenticated surface.
+ *
+ * `--sw-*` custom properties are ALLOWED: that is the sanctioned override surface, not a bypass.
  */
-const SKIN_OWNED = /(^|[\s;{])(background|background-color|background-image|color|border|border-[a-z-]+|border-radius|box-shadow|height|min-height|max-height|block-size|min-block-size|font|font-[a-z-]+|letter-spacing|text-transform|padding|padding-[a-z-]+|opacity|transition|transform|animation)\s*:/i;
+const LAYOUT_ALLOWED = /^(margin|margin-block|margin-block-start|margin-block-end|margin-inline|margin-inline-start|margin-inline-end|margin-top|margin-right|margin-bottom|margin-left|flex|flex-grow|flex-shrink|flex-basis|align-self|justify-self|place-self|order|grid-area|grid-column|grid-row|grid-column-start|grid-column-end|grid-row-start|grid-row-end)$/i;
+
+/**
+ * Classify a styled-template body. Returns null when every declaration is layout-owned (or a
+ * `--sw-*` override), otherwise the first reason it must stay a human decision.
+ */
+export function styledWrapperBlocker(body) {
+  // An interpolation can expand to anything — including a whole skin override — and cannot be
+  // judged statically. (`${(p) => p.$x && "background: red;"}` slipped the old deny-list.)
+  if (/\$\{/.test(body)) return 'contains an interpolation ${…}, which can expand to any CSS';
+  // Nested blocks (&:hover, &::after, media queries) restyle states the skin owns.
+  if (/\{/.test(body)) return 'contains a nested block (&:hover / ::after / @media), which restyles skin-owned state';
+  for (const decl of body.split(';')) {
+    const m = decl.match(/^\s*([-a-zA-Z][-a-zA-Z0-9]*)\s*:/);
+    if (!m) continue; // blank / comment-only segment
+    const prop = m[1];
+    if (prop.startsWith('--')) { if (!/^--sw-/.test(prop)) return `sets a non-Forge custom property '${prop}'`; continue; }
+    if (!LAYOUT_ALLOWED.test(prop)) return `sets '${prop}', which the skin owns (allow-list is layout placement only)`;
+  }
+  return null;
+}
 
 /**
  * Is `spec` (as imported from `importer`) the legacy GlowButton — directly, or through a
@@ -234,8 +262,8 @@ export function transform(src, file, frontendSrc = resolve('frontend/src')) {
   const valueMask = maskedRegions(out);
   out = out.replace(/styled\(\s*GlowButton\s*\)\s*`([\s\S]*?)`/g, (whole, body, offset) => {
     if (valueMask[offset]) { report.skipped.push(`styled(GlowButton) at offset ${offset} is inside a comment/template literal — not rewritten`); return whole; }
-    const owned = body.match(SKIN_OWNED);
-    if (owned) { report.skipped.push(`styled(GlowButton) at offset ${offset} sets skin-owned '${owned[2]}' — NOT migrated; move it to a --sw-btn-* override or keep the legacy component (rule 84 / drift-lint R2)`); return whole; }
+    const blocker = styledWrapperBlocker(body);
+    if (blocker) { report.skipped.push(`styled(GlowButton) at offset ${offset} ${blocker} — NOT migrated; move it to a --sw-btn-* override or keep the legacy component (rule 84 / drift-lint R2)`); return whole; }
     report.styledWrappers++;
     report.notes.push(`styled(GlowButton) → styled(ForgeButton): layout-only wrapper (${body.trim().replace(/\s+/g, ' ').slice(0, 60)}) — the binding forwards className, so the wrapper class composes with the skin instead of overriding it`);
     return whole.replace(/styled\(\s*GlowButton\s*\)/, 'styled(ForgeButton)');

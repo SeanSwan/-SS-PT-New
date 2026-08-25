@@ -73,7 +73,12 @@ if (missing) { console.error(`REFUSING: ${missing} candidate path(s) did not res
 const body = run('gen-backlog.mjs', [r4File, reachFile]);
 // The reachability column is the whole point of the join — if nothing matched, the tiering is
 // fiction (every row defaults to "migrate me"), so refuse rather than publish a plausible lie.
-if (/\| n\/a \|/.test(body) && !/\| (yes|NO) \|/.test(body)) { console.error('REFUSING: no row joined to a reachability verdict — the path keys do not match. Backlog NOT written.'); process.exit(2); }
+// Refuse on ANY unjoined row, not just total failure: `n/a` is never information, it is always a
+// broken key — and an `n/a` row defaults to "migrate me", which is exactly the round-0 failure
+// (a proven-dormant file tiered as a migration target). The first version only refused when ZERO
+// rows joined, so a 41-of-42 partial join republished that bug unnoticed (GLM T2 blocking 4).
+const naRows = (body.match(/\| n\/a \|/g) || []).length;
+if (naRows) { console.error(`REFUSING: ${naRows} row(s) did not join to a reachability verdict ("n/a") — the path keys do not match. Backlog NOT written.`); process.exit(2); }
 const current = readFileSync(DOC, 'utf8');
 const cut = current.indexOf('\n## ');
 if (cut < 0) { console.error('REFUSING: no generated section found in the doc — refusing to overwrite a hand-written file.'); process.exit(2); }

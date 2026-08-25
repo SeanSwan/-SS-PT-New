@@ -235,7 +235,14 @@ export const SubmitButton = styled(GlowButton)\`
   assert.equal(a.report.residual.length, 0, 'no residual — the file fully migrates');
   assert.equal(a.report.skipped.length, 0);
 
-  for (const decl of ['background: red;', 'border-radius: 2px;', 'height: 60px;', 'font-weight: 700;', 'padding: 0 2rem;', 'box-shadow: none;']) {
+  // The allow-list exists because a probe of the ORIGINAL deny-list walked straight through it:
+  // outline (fights the focus ring), filter (recolours the button), text-shadow, text-decoration,
+  // cursor, width, and any ${…} interpolation all migrated silently. Fail-closed now.
+  for (const decl of ['background: red;', 'border-radius: 2px;', 'height: 60px;', 'font-weight: 700;',
+    'padding: 0 2rem;', 'box-shadow: none;', 'outline: 3px solid red;', 'filter: hue-rotate(90deg);',
+    'text-shadow: 0 0 4px red;', 'text-decoration: underline;', 'cursor: help;', 'width: 300px;',
+    'line-height: 3;', 'BACKGROUND: red;', '&:hover { background: red; }',
+    '${(p) => p.$x && "background: red;"}', '--brand-x: red;']) {
     const skinOwned = `${IMPORT}
 import styled from 'styled-components';
 export const Loud = styled(GlowButton)\`
@@ -245,7 +252,7 @@ export const Loud = styled(GlowButton)\`
     const b = transform(skinOwned, FILE);
     assert.equal(b.report.styledWrappers, 0, `${decl} must NOT migrate`);
     assert.ok(b.out.includes('styled(GlowButton)'), `${decl} left on the legacy component`);
-    assert.ok(b.report.skipped.some((s) => /skin-owned/.test(s)), `${decl} reported as skin-owned`);
+    assert.ok(b.report.skipped.some((s) => /NOT migrated/.test(s)), `${decl} reported as not migrated`);
     assert.ok(b.report.residual.length > 0, `${decl} leaves a residual → file blocked, human decides`);
   }
 });

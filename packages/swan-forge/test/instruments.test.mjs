@@ -175,3 +175,41 @@ test('exceptions: expiry is enforced by the parser', () => {
   assert.equal(rows.length, 1);
   assert.equal(rows[0].pathSub, 'Legacy.css');
 });
+
+// ── R6 + the tagger: the T2 standing-law and context-classification instruments ──────
+
+test('drift-lint R6: a hand-written styled(ForgeButton) that RESTYLES is flagged; one that POSITIONS is not', () => {
+  // The codemod refuses to CREATE a skin-fighting wrapper; R6 is the half that survives the
+  // merge and stops one being hand-written afterwards (Ox T2 B3). Same boundary function.
+  const clean = 'export const A = styled(ForgeButton)`\n  margin-top: 1rem;\n  flex: 1;\n`;';
+  assert.equal(lintText('a.tsx', clean, { isConsumer: true }).filter((v) => v.rule === 'R6').length, 0);
+  const override = 'export const B = styled(ForgeButton)`\n  --sw-btn-height: 40px;\n`;';
+  assert.equal(lintText('b.tsx', override, { isConsumer: true }).filter((v) => v.rule === 'R6').length, 0,
+    '--sw-btn-* IS the sanctioned override surface, not a violation');
+  for (const decl of ['background: red;', 'outline: none;', 'line-height: 1;', 'width: 300px;',
+    'filter: brightness(2);', 'text-shadow: 0 0 2px red;', '&:hover { background: red; }', '${skinCss}']) {
+    const src = `export const C = styled(ForgeButton)\`\n  ${decl}\n\`;`;
+    const hits = lintText('c.tsx', src, { isConsumer: true }).filter((v) => v.rule === 'R6');
+    assert.equal(hits.length, 1, `${decl} must raise R6`);
+  }
+});
+
+test('tag-legacy-hex: REFUSES every context it cannot positively classify, and never guesses', async () => {
+  const { commentFormFor } = await import('../scripts/tag-legacy-hex.mjs');
+  const at = (src, idx) => { const l = src.split('\n'); let a = 0; for (let i = 0; i < idx; i++) a += l[i].length + 1; return [a, l[idx]]; };
+  // Both of these produced a `//` in the first version. (b) is the class that already shipped once:
+  // appended after JSX children, `//` is not a comment — it is TEXT, and it renders.
+  const jsxText = '<td>\n  Status colour #ef4444 retired\n</td>';
+  assert.equal(commentFormFor('x.tsx', jsxText, ...at(jsxText, 1)), null, 'JSX text line → REFUSE');
+  const openTag = "<div style={{ color: '#ef4444' }}>";
+  assert.equal(commentFormFor('x.tsx', openTag, ...at(openTag, 0)), null, 'opening-tag line → REFUSE');
+  // A backtick inside a quoted string used to flip parity for the rest of the file, putting a
+  // `//` INSIDE the CSS where it is not a comment.
+  const poisoned = 'const s = "a ` b";\nexport const B = styled.div`\n  color: #ef4444;\n`;';
+  assert.match(commentFormFor('x.ts', poisoned, ...at(poisoned, 2)), /^\/\* /, 'still recognised as CSS template');
+  // Positively classifiable contexts still tag.
+  const jsxChild = "const A = () => (\n  <p>{e && <B style={{ color: '#ef4444' }}>x</B>}</p>\n);";
+  assert.match(commentFormFor('x.tsx', jsxChild, ...at(jsxChild, 1)), /^\{\/\* /);
+  const plain = "const c = '#ef4444';";
+  assert.match(commentFormFor('x.ts', plain, ...at(plain, 0)), /^\/\/ /);
+});

@@ -7,12 +7,14 @@
  * Checks:
  *  R1 raw hex colors in Forge css/ (tokens/ is the only home for hex)
  *  R2 consumer CSS/JS overriding `.sw-` selectors or using !important against sw- classes
+ *  R6 consumer styled(ForgeButton) wrapper that restyles instead of positioning (rule 84 standing law)
  *  R3 visual-reordering properties inside theme packs (§11.A2: packs must not fork tab order)
  *  R4 adoption tracker: consumer files importing legacy exports the Forge replaces (GlowButton→Button)
  *
  * Usage: node scripts/drift-lint.mjs [--consumer <dir>]... [--enforce]
  */
 import { readFileSync, readdirSync, lstatSync, existsSync } from 'node:fs';
+import { styledWrapperBlocker } from './codemod-glowbutton.mjs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -89,6 +91,18 @@ export function stripComments(text) {
 export function lintText(path, text, { isForgeCss = false, isPack = false, isConsumer = false } = {}) {
   const findings = [];
   const lines = stripComments(text).split('\n');
+  // R6 (block-level, consumers): a styled(ForgeButton) wrapper may position the button in its
+  // parent layout, never restyle it — the sanctioned override surface is the published
+  // --sw-btn-* custom properties (rule 84 / R2). The codemod refuses to CREATE such a wrapper;
+  // this refuses to let one be hand-written afterwards, which is the half that survives the merge
+  // (Ox T2 B3: "codemod-only enforcement decays on contact with humans"). Both call the SAME
+  // boundary function, so the rule cannot drift between the migration gate and the standing law.
+  if (isConsumer) {
+    for (const m of text.matchAll(/styled\(\s*ForgeButton\s*\)\s*`([\s\S]*?)`/g)) {
+      const blocker = styledWrapperBlocker(m[1]);
+      if (blocker) findings.push({ rule: 'R6', line: text.slice(0, m.index).split('\n').length, detail: `styled(ForgeButton) ${blocker} — use a --sw-btn-* override instead (rule 84)` });
+    }
+  }
   lines.forEach((line, i) => {
     const at = i + 1;
     // belt+braces: orphan comment-continuation lines (unclosed /* in a fragment) stay skipped

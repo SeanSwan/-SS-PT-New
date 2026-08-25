@@ -13,7 +13,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
-import styled from 'styled-components';
+import styled, { ThemeProvider } from 'styled-components';
 import ForgeButton from './ForgeButton';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -194,6 +194,24 @@ describe('ForgeButton binding contract', () => {
     expect(btn.className).toContain('sw-btn--gilded');
     expect(btn.className).toContain('sw-pack-crystalline-swan');
     expect(btn).toHaveAttribute('data-variant', 'gilded');
+  });
+  it('VALUE POSITION (T2): a ThemeProvider theme OBJECT must not become a variant class or a DOM attribute', () => {
+    // styled() injects its own `theme` prop. The binding accepts `theme` as a legacy VARIANT
+    // alias (a string), so an object arriving under the same name is a `sw-btn--[object Object]`
+    // waiting for a ThemeProvider (GLM T2 §2). Negative assertions only — the happy path is
+    // already covered above, and positive assertions cannot catch this.
+    const Wrapped = styled(ForgeButton)`margin: 0;`;
+    render(
+      <ThemeProvider theme={{ colors: { primary: '#fff' } }}>
+        <Wrapped text="Themed" />
+      </ThemeProvider>,
+    );
+    const btn = screen.getByRole('button', { name: 'Themed' });
+    expect(btn.className).not.toContain('[object');
+    expect(btn.className).toContain('sw-btn--primary');
+    expect(btn.getAttribute('theme')).toBeNull();
+    expect(btn.getAttribute('colorScheme')).toBeNull();
+    expect(btn.getAttribute('variant')).toBeNull();
   });
   it('click fires when active', () => {
     const onClick = vi.fn();
