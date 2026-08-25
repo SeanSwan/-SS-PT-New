@@ -2,7 +2,10 @@
  *  the PR #2 panel fixtures (Ox + GLM + own pass) each lock one silent-damage vector. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { transform, maskedRegions, residualGlowButton } from '../scripts/codemod-glowbutton.mjs';
+import { transform, maskedRegions, residualGlowButton, isLegacyGlowButton } from '../scripts/codemod-glowbutton.mjs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 const FILE = 'frontend/src/pages/x/Y.tsx';
 const IMPORT = `import GlowButton from '../../components/ui/buttons/GlowButton';`;
@@ -224,4 +227,24 @@ test('codemod: no GlowButton → no change, no report noise', () => {
   const { out, report } = transform(src, FILE);
   assert.equal(out, src);
   assert.equal(report.tags + report.imports + report.styledBoxAs + report.residual.length, 0);
+});
+
+test('codemod (own round-4): a ONE-HOP re-export shim of the legacy button IS legacy; a shim of something else is not', () => {
+  // frontend/src/components/ui/GlowButton.ts is exactly this shim, and 2 real T-tier surfaces
+  // import it — regex-only matching blocked them as "hijack" in the all-sites dry-run.
+  const dir = mkdtempSync(join(tmpdir(), 'forge-shim-'));
+  mkdirSync(join(dir, 'components', 'ui', 'buttons'), { recursive: true });
+  mkdirSync(join(dir, 'pages'), { recursive: true });
+  writeFileSync(join(dir, 'components', 'ui', 'GlowButton.ts'), `export { default } from './buttons/GlowButton';`);
+  writeFileSync(join(dir, 'components', 'ui', 'OtherButton.ts'), `export { default } from './buttons/SomethingElse';`);
+  const page = join(dir, 'pages', 'P.tsx');
+  const src = `import GlowButton from '../components/ui/GlowButton';
+const X = () => <GlowButton text="Go" />;`;
+  const { out, report } = transform(src, page, join(dir, 'src'));
+  assert.equal(report.imports, 1, 'shim resolved to the legacy component');
+  assert.equal(report.residual.length, 0, 'file is no longer blocked');
+  assert.ok(out.includes('import ForgeButton from'));
+  assert.equal(isLegacyGlowButton('../components/ui/OtherButton', page), false, 'a shim of a DIFFERENT module is not legacy');
+  assert.equal(isLegacyGlowButton('../components/ui/DoesNotExist', page), false, 'unresolvable → regex fallback (fail-safe)');
+  rmSync(dir, { recursive: true, force: true });
 });

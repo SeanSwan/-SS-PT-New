@@ -119,6 +119,15 @@ describe('value parity (token subset): pack ⇄ original GlowButton (source-pars
     expect(buttonCss).not.toMatch(/--sw-btn-(height|radius)(-sm|-lg)?,\s*\d/);
     expect(buttonCss).toMatch(/--sw-btn-height-lg,\s*var\(--sw-p-target-lg\)/);
   });
+  it('LOAD ORDER is structural, not tribal: the binding imports primitive.css, then the pack, then button.css (Ox R3 dissent #2)', () => {
+    const bindingSrc = readFileSync(join(here, 'ForgeButton.tsx'), 'utf8');
+    const at = (spec: string) => { const i = bindingSrc.indexOf(`import '${spec}'`); if (i < 0) throw new Error(`${spec} not imported by ForgeButton.tsx`); return i; };
+    const prim = at('@swan/forge/tokens/primitive.css');
+    const pack = at('@swan/forge/tokens/packs/crystalline-swan.css');
+    const skin = at('@swan/forge/css/button.css');
+    expect(prim).toBeLessThan(pack);
+    expect(pack).toBeLessThan(skin);
+  });
   it('focus-shadow and ease ARE defined in the pack (composites the JS projection omits)', () => {
     expect(packToken('--sw-focus-shadow')).toContain('--sw-focus-ring'); // swan-guard-allow-hex test asserts token TEXT; Forge tokens are defined in packages/swan-forge
     expect(packToken('--sw-ease')).toBeTruthy();

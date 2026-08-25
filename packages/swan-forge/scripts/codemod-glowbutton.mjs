@@ -16,7 +16,8 @@
  *   - `//` and `/* *​/` comments inside an open tag are skipped (a ">" in a comment is not the tag end)
  *   - matches inside template literals / block comments / line comments / same-line plain strings
  *     are never rewritten (opens, closes AND import statements) — always reported as SKIPPED
- *   - known limit: regex literals carry no lexer state (a `<GlowButton` inside /…/ is not masked)
+ *   - known limit: regex literals carry no lexer state — a `<GlowButton` OR `</GlowButton>` inside /…/ is
+ *     not masked (open side rewrites; close side can pair). Human-reviewed reports are the backstop.
  *   - `</Tag  >` (whitespace before ">") is a valid close and is found
  *   - an unterminated tag is a HARD error for that file (was a silent `break`)
  *   - spread props `{...x}` bypass the prop audit → reported, never silently accepted
@@ -36,6 +37,30 @@ const KNOWN = new Set(['text', 'variant', 'theme', 'colorScheme', 'size', 'type'
 // animateOnRender is SUPPORTED by the Forge binding (.sw-btn--enter) since PR #2 — 3 reachable users met rule-of-two.
 const DROPPED = new Set(['pulse', 'haptic', 'glowIntensity']);
 const LEGACY_IMPORT = /(?:^|\/)ui\/buttons\/GlowButton(?:\.tsx?)?$/;
+
+/**
+ * Is `spec` (as imported from `importer`) the legacy GlowButton — directly, or through a
+ * one-hop re-export shim? `frontend/src/components/ui/GlowButton.ts` is exactly that shim
+ * (`export { default } from './buttons/GlowButton'`), and 2 real T-tier surfaces import it;
+ * regex-only matching blocked them as "hijack" (own round-4 dry-run over all 52 import sites).
+ * Filesystem reads are best-effort — a spec that cannot be resolved falls back to the regex,
+ * which is the fail-safe direction (untouched → residual → file blocked, never a silent rewrite).
+ */
+export function isLegacyGlowButton(spec, importer) {
+  if (LEGACY_IMPORT.test(spec)) return true;
+  if (!spec.startsWith('.')) return false;
+  const base = resolve(dirname(resolve(importer)), spec);
+  for (const cand of [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')]) {
+    let text;
+    try { text = readFileSync(cand, 'utf8'); } catch { continue; }
+    const m = text.match(/export\s*\{\s*default\s*\}\s*from\s*['"]([^'"]+)['"]/);
+    if (!m) return false;
+    // the shim's target is relative to the SHIM, not to the importer ('./buttons/GlowButton')
+    const target = resolve(dirname(cand), m[1]).replace(/\\/g, '/');
+    return LEGACY_IMPORT.test(target); // ONE hop only — a shim of a shim stays blocked
+  }
+  return false;
+}
 
 /** Relative import specifier from a consumer file to the ForgeButton binding. */
 function bindingSpecifier(file, frontendSrc) {
@@ -174,7 +199,7 @@ export function transform(src, file, frontendSrc = resolve('frontend/src')) {
   const importMask = maskedRegions(src);
   let out = src.replace(/import\s+GlowButton\s+from\s+(['"])([^'"]*)\1;?/g, (whole, _q, spec, offset) => {
     if (importMask[offset]) { report.skipped.push(`import GlowButton at offset ${offset} is inside a comment/template literal — not rewritten`); return whole; }
-    if (!LEGACY_IMPORT.test(spec)) { report.notes.push(`import GlowButton from '${spec}' is NOT the legacy ui/buttons/GlowButton — left untouched (import-hijack guard)`); return whole; }
+    if (!isLegacyGlowButton(spec, file)) { report.notes.push(`import GlowButton from '${spec}' is NOT the legacy ui/buttons/GlowButton (nor a one-hop re-export of it) — left untouched (import-hijack guard)`); return whole; }
     report.imports++; return `import ForgeButton from '${bindingSpecifier(file, frontendSrc)}'; // Forge strangler (was GlowButton)`;
   });
   // StyledBox as={GlowButton} … → ForgeButton ($style → style)
