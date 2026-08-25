@@ -43,6 +43,21 @@ import path from 'path';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { initializeRegistry, getAllCommands } from '../../services/ai/commandRegistry/index.mjs';
 import { buildRouteTable, resolveRoute, parseRouterFile, BACKEND_ROOT, ROLE_GATES } from '../helpers/routeTable.mjs';
+import { sliceBetween } from '../helpers/sliceBetween.mjs';
+
+/**
+ * Window one `export const <name> = ...` up to the next top-level export.
+ *
+ * Uses sliceBetween rather than a local indexOf so a DRIFTED ANCHOR THROWS instead
+ * of yielding an empty string. An earlier local version returned '' when the anchor
+ * was missing, which would have made `expect(...).not.toMatch(...)` pass vacuously
+ * the moment a middleware was renamed — the same silent-green failure this file's
+ * other assertions exist to prevent, reintroduced in the fix for the first instance.
+ */
+function bodyOf(source, name) {
+  const NEXT_EXPORT = String.fromCharCode(10) + 'export const ';
+  return sliceBetween(source, `export const ${name} `, NEXT_EXPORT, { label: `authMiddleware.${name}` });
+}
 
 /** Roles the platform actually recognises (backend/middleware/authMiddleware.mjs). */
 const KNOWN_ROLES = new Set(['admin', 'trainer', 'client', 'user']);
@@ -76,19 +91,6 @@ const KNOWN_UNROUTED = new Map([
   ['brief_client', 'GET /api/ai-command/brief-client — same; executes via dayBriefDispatcher'],
 ]);
 
-/**
- * Slice the source of one `export const <name> = ...` up to the next top-level
- * export. Assertions about a middleware body MUST be scoped this way: a
- * fixed-width regex window silently spills into the next function, which makes the
- * assertion pass no matter what you delete from the one you meant to check.
- */
-function bodyOf(source, name) {
-  const start = source.indexOf(`export const ${name} `);
-  if (start === -1) return '';
-  const rest = source.slice(start + 1);
-  const next = rest.search(/\nexport const /);
-  return next === -1 ? rest : rest.slice(0, next);
-}
 
 let commands;
 let table;
