@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# .githooks/commit-msg — runs AFTER the message exists (git passes its path as $1).
+#
+# ── Rulebook-review guard ────────────────────────────────────────────────────
+# A change to an always-on instruction file (CLAUDE.md, AGENTS.md, ACTIVE-INDEX.md,
+# Hermes standing-context) must carry
+#     RULEBOOK: <add|amend|retire|narrative-cut|mirror-sync> <what> — reviewed-by: <seat>
+# in the commit message. REVIEW, not METERING: a byte budget was proposed 2026-08-25 and
+# killed by five review seats as gameable (delete a load-bearing rule to land a trivial
+# one; push bloat into an unenforced side file). Corpus: 43 rule-contradiction/bloat
+# incidents; "keep it lean" as prose did not hold.
+#
+# Why commit-msg and not pre-commit: with `-m`, git writes the message AFTER pre-commit
+# runs, so a pre-commit read sees the PREVIOUS commit's message — a guard on stale
+# input. Same contract as the other guards: only a deliberate exit 2 blocks; any other
+# failure allows, loudly. `git commit --no-verify` skips this, greppably.
+set -euo pipefail
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+GUARD="$REPO_ROOT/scripts/hooks/rulebook-review-guard.mjs"
+if [[ -f "$GUARD" ]] && command -v node >/dev/null 2>&1; then
+  set +e
+  node "$GUARD" "$1"
+  RC=$?
+  set -e
+  if [[ $RC -eq 2 ]]; then
+    echo "[commit-msg] COMMIT BLOCKED by rulebook-review guard (see above)." >&2
+    exit 1
+  elif [[ $RC -ne 0 ]]; then
+    echo "[commit-msg] rulebook-review guard errored (rc=$RC) — allowing commit (fail-open)." >&2
+  fi
+fi
+exit 0
