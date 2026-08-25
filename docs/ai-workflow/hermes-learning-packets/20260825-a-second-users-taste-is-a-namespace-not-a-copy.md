@@ -168,6 +168,26 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
 - **My P2 sketch said `file://` candidates** two paragraphs after quoting the schema that refuses them.
   Three seats caught it. **LORE:** no gate can lint a design sketch against a schema; the fix is the P2
   contract now written in the synthesis (served loopback URLs, provenance partition) before any P2 code.
+- **My round-2 packet claimed "replay with a new timestamp → refused" as a general law** when the code
+  enforced it for grids only; three seats caught the pair gap. **MECHANISM:** the writer's guard now names
+  every judgement kind, and the test that proves it (`a pair on pictures this memory already judged is
+  refused too`) is the scope statement — a law's test names its scope, prose does not.
+- **I adopted a reviewer's "one floor" without measuring it** — per-code ≥2 left Sean's real 18
+  judgements with zero endorsed codes and his tie-in regressed to words-only. **MECHANISM:** the suite's
+  positive control (`evidence-tier codes exist in the real profile`) failed on the first run and is now
+  joined by a check that states why the two floors differ; a reviewer's rule is measured against the real
+  data before it is adopted.
+- **My first all-or-nothing importer refused a legitimate re-import** — every picture was "already
+  judged" because the same file had just been imported. **MECHANISM:** `/api/judged` returns known event
+  ids and the importer treats an exact duplicate as a non-conflict; the browser proof's re-import step is
+  the regression test.
+- **I wrote a JSON config through a shell heredoc and got invalid escapes** (`"Z:\SwanStudios…"`); it only
+  "worked" because the fallback default was the same path. **MECHANISM:** config files are written with
+  `JSON.stringify` and parsed back in the same command; a config that parses only by falling back is a
+  config that lies.
+- **I released my coordination lane after a failed commit — twice** (`;`/`&&` after an `echo`).
+  **MECHANISM:** the release command is chained directly after `git commit`, never after an echo; the
+  guard's own message names the fix.
 
 ## Error → fix → repeat ledger
 
@@ -181,6 +201,11 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
 | Relaxing a panel-set law via a UI opt-in | 1 | The law was written up ("do not relax") — and I relaxed it anyway | Four seats; now computed in code with a tamper test |
 | Packet quotes a gate without its first guard | 1 | No | Whole-function quoting; refutations recorded with the omitted line |
 | Design sketch contradicts the schema it quotes (`file://`) | 1 | No | P2 contract written before code; three seats |
+| A packet states a law wider than the code enforces (grid-only replay guard) | 1 | Yes — same class as "claim wider than read span" in the corpus | Guard covers every judgement kind; the test names the scope |
+| Adopting a reviewer's rule without measuring it (per-code floor) | 1 | No | Positive-control test failed first run; floors documented |
+| Duplicate treated as conflict (importer) | 1 | No | Known event ids returned; browser re-import step |
+| JSON config written with bad shell escapes | 1 | No | Write with JSON.stringify, parse back in the same command |
+| Lane released after a failed commit | 2 (same session) | Yes — after the first, in the memo | Release chained only after a successful commit |
 
 ## External-model calibration
 
@@ -199,6 +224,16 @@ Calibration: DeepSeek gave the best real-signal per dollar; Kimi the sharpest da
 deepest for $0 (Ox's data cost noted). Two seats burned a P1 on a hole my packet created by quoting a
 function without its first guard — a packet-quality error, not a model error. Four seats agreeing on the
 licence relaxation outweighed my "Sean's call" framing: a law with an opt-in is a relaxation.
+
+**Round 2 (same seats, ≈$0.12; Ox 429'd and was retried free):** whole-function quotes this time, and the
+P2 render-loop contract put in front of the seats before code. Real: a GET write behind a POST-only gate
+(3 seats), pair replay (3), non-atomic bundle import, label drift, 0-not-0.5 for generated judgements (2),
+keyword leak from generated picks, namespace-bound render URLs, content-hash intents, symlink refusal.
+Refuted: a `keepFor`-arity "P0" that TWO seats (DeepSeek, Ox) raised independently by misreading the read
+helper `keptFor` — that is a naming signal, not a model failure; renamed `readKept`. Reverted after
+measuring: Kimi's "one floor" — a per-code floor of 2 leaves Sean's real memory with zero endorsements; the
+positive-control test caught the regression, the two floors are now documented as different things.
+Ratio this round: GLM 8 real / 1 refuted · Kimi 7 / 2 · DeepSeek 3 / 1 · HY3 2 / 2 · Ox 7 / 2.
 
 ## Risks / guardrails
 
