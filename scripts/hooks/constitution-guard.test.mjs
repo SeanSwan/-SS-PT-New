@@ -445,6 +445,22 @@ test('D3: PASSES an aggregate trim when every trimmed rule is DECLARED', () => {
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 
+test('D3: BLOCKS a declared GUTTING — a survivor trimmed past 50% even with the env set', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    const long = (n) => `${head(n)}${PAD.repeat(70)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const gutted = (n) => `${head(n)}${PAD.repeat(10)}`;  // ~85% of the body gone
+    const nums = [16, 46, 73];
+    commitDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, long(n)])) }));
+    stageDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, n === 46 ? gutted(n) : long(n)])) }));
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: '46' });
+    assert.equal(out.status, 1, 'a declaration is not a license to hollow a surviving rule');
+    assert.match(out.stderr, /GUTTING/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
 test('D3: still BLOCKS when the bleed extends past the declared rules', () => {
   const r = repo();
   try {

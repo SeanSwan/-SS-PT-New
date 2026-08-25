@@ -478,7 +478,7 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
 
     **Cross-references:** Rule 4 (300-line cap), Rules 32-39 (repo hygiene and cleanup approval), Rule 50 (Tier-A deterministic tooling), Rule 56 (baseline disclosure), and Rule 61 (slice-internal hostile review).
 
-64. **Intent-Extraction Gate via `grill-me` (MANDATORY for net-new building and planning)** — Established 2026-06-09 by Sean. Before planning or building anything net-new, the AI MUST relentlessly interview Sean to extract his thought process, and checkpoint every answer to a durable brainstorm doc.
+64. **Intent-Extraction Gate via `grill-me` (MANDATORY for net-new building and planning)** — Established 2026-06-09 by Sean. A 5-minute brain-dump is never enough. Before planning or building anything net-new, the AI MUST relentlessly interview Sean to extract his thought process, and checkpoint every answer to a durable brainstorm doc.
 
     **When this auto-routes (mandatory):**
     - Any **net-new component, page, dashboard surface, or feature** where Sean's preferences aren't already captured in a brainstorm doc or reference doc.
@@ -678,7 +678,7 @@ Full protocol: `docs/ai-workflow/references/PROMPT-RECONSTRUCTION-HOSTILE-REVIEW
     3. **Look for the artifact that would exist if it really were broken.** A truly broken git repo has no intact `refs/`, `logs/`, or `HEAD`. **Absence of damage is evidence of health** — go find the damage before you claim it.
     4. **State the residue.** If a second vantage was impossible, say so explicitly: `[UNVERIFIED — could not check from <vantage>]`. Never upgrade an unverified failure into a fact.
 
-    **Build it into the tooling, not just the habit.** Any diagnostic that reports "unreachable" must try the second vantage *itself* before giving up (e.g. `scripts/hermes/review.py` falls back to Windows `git.exe` with a translated path and reports unreachable only after *every* vantage fails).
+    **Build it into the tooling, not just the habit.** Any diagnostic that reports "unreachable" must try the second vantage *itself* before giving up; `scripts/hermes/review.py` MUST fall back to Windows `git.exe` with a translated path and report unreachable only after *every* vantage fails, and any new cross-env diagnostic must match that standard.
 
     **Absence claims are the same error in a different costume.** "No Linear issue exists," "there's no test for this," "that file isn't anywhere," "nothing references it" — each is a claim about the world derived from not having looked hard enough. Search before asserting absence; an empty result from one query is not an empty world.
 

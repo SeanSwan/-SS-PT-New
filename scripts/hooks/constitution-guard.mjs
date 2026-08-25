@@ -161,6 +161,17 @@ const SHRINK_TOLERANCE = 0.02;
 const AGGREGATE_SHRINK_TOLERANCE = 0.005;
 
 /**
+ * Depth bound for a DECLARED trim of a SURVIVING rule (prune panel 2026-08-25,
+ * GLM F1 + Grok F3 convergence): SWAN_ALLOW_RULE_REMOVAL waves a rule through the
+ * per-rule and aggregate checks, which without a floor lets one env var hollow a
+ * declared rule to a header-stub while the count stays intact. Past 50% the honest
+ * description is a GUTTING, not a trim — do it as a real removal, or split it so a
+ * reviewer sees each piece. A rule that is actually removed/renumbered is untouched
+ * by this bound; it applies only to same-number survivors.
+ */
+const DECLARED_TRIM_FLOOR = 0.5;
+
+/**
  * Minimum token overlap for a DECLARED rename to be believed — also derived.
  * The one known-legitimate rename in this repo's history (rule 46, "3-Brain
  * Review Loop" -> "Kimi Hostile-Review Gate") scored **42.5%**. The reviewer
@@ -447,7 +458,18 @@ for (const file of touched) {
     // An unblockable check is a check people learn to bypass wholesale, so
     // legitimate changes need a sanctioned way through — Proof-Before-Done
     // genuinely moved 73 -> 74 during this very repair.
-    if (allowed.has(String(was.num))) { usedHatch.add(String(was.num)); continue; }
+    if (allowed.has(String(was.num))) {
+      // The hatch is not bottomless: a declared SURVIVOR may trim, not vanish in
+      // place. Beyond DECLARED_TRIM_FLOOR the declaration stops being believable
+      // as a trim and the change must be an explicit removal or a split.
+      if (now && now.num === was.num) {
+        const declaredShrink = (was.len - now.len) / Math.max(was.len, 1);
+        if (declaredShrink > DECLARED_TRIM_FLOOR) {
+          blockers.push(`${file}: rule ${was.num} "${was.name.slice(0, 56)}" — declared trim removed ${Math.round(declaredShrink * 100)}% of the body (${was.len} -> ${now.len} chars). Past ${DECLARED_TRIM_FLOOR * 100}% this is a GUTTING wearing a trim declaration: remove the rule explicitly or split the cut so each piece is reviewable.`);
+        }
+      }
+      usedHatch.add(String(was.num)); continue;
+    }
     violation();
   }
 
