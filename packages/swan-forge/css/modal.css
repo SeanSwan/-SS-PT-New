@@ -15,7 +15,7 @@
   transition:
     opacity calc(var(--sw-p-duration-base) * var(--sw-motion)) var(--sw-ease),
     visibility 0s linear calc(var(--sw-p-duration-base) * var(--sw-motion));
-  z-index: 90;
+  z-index: var(--sw-p-z-modal-scrim);
 }
 .sw-modal-scrim.is-open {
   opacity: 1; pointer-events: auto; visibility: visible;
@@ -32,7 +32,7 @@
   border: 1px solid var(--sw-border-strong);
   box-shadow: var(--sw-shadow-3);
   padding: var(--sw-p-space-5);
-  z-index: 100;
+  z-index: var(--sw-p-z-modal);
   opacity: 0;
   pointer-events: none;
   visibility: hidden; /* removes the closed dialog from the accessibility tree */

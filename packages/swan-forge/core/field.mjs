@@ -63,6 +63,21 @@ export function getLabelAttrs(state) {
   return { id: ids.label, for: ids.input, class: 'sw-field__label' };
 }
 
+/**
+ * FORM-level error banner contract (auth composition; panel round 6 GLM F8 / Ox #10):
+ * the banner is a live alert and the form points at it, so AT announces the failure
+ * and associates it with the form. Bindings apply BOTH maps.
+ * @param {string} formId
+ * @returns {{banner: Record<string,string>, form: Record<string,string>}}
+ */
+export function getFormErrorAttrs(formId = 'sw-form') {
+  const id = /^[A-Za-z][\w-]*$/.test(formId) ? formId : 'sw-form';
+  return {
+    banner: { id: `${id}-error`, role: 'alert', 'aria-live': 'assertive', class: 'sw-auth__error' },
+    form: { 'aria-describedby': `${id}-error` },
+  };
+}
+
 /** Attribute map for the hint/error/warning message element (renders one at a time). */
 export function getMessageAttrs(state) {
   const ids = fieldIds(state);

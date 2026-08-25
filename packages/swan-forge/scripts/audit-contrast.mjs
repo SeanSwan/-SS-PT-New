@@ -75,6 +75,13 @@ export const PAIRS = [
   { fg: ['--sw-btn-success-text', '--sw-text-primary'], bg: ['--sw-btn-success-bg', '--sw-color-success'], min: 4.5, label: 'button success label' },
   { fg: ['--sw-btn-danger-text', '--sw-text-primary'], bg: ['--sw-btn-danger-bg', '--sw-color-danger'], min: 4.5, label: 'button danger label' },
   { fg: ['--sw-focus-ring'], bg: ['--sw-bg-base'], min: 3.0, label: 'focus ring / page (non-text)' },
+  // Chart series (forgeChartTheme FORGE_SERIES) — WCAG 1.4.11 non-text contrast vs the page (panel round 6, Ox #5)
+  { fg: ['--sw-glow-b'], bg: ['--sw-bg-base'], min: 3.0, label: 'chart series 1 (glow-b) / page (non-text)' },
+  { fg: ['--sw-glow-a'], bg: ['--sw-bg-base'], min: 3.0, label: 'chart series 2 (glow-a) / page (non-text)' },
+  { fg: ['--sw-color-gold'], bg: ['--sw-bg-base'], min: 3.0, label: 'chart series 3 (gold) / page (non-text)' },
+  { fg: ['--sw-color-success'], bg: ['--sw-bg-base'], min: 3.0, label: 'chart series 4 (success) / page (non-text)' },
+  { fg: ['--sw-color-warning'], bg: ['--sw-bg-base'], min: 3.0, label: 'chart series 5 (warning) / page (non-text)' },
+  { fg: ['--sw-glow-b'], bg: ['--sw-bg-surface'], min: 4.5, label: 'auth link (glow-b as text) / card' },
 ];
 
 /** Every token name any pair can resolve through — duplicates of these are audit-evasion. */

@@ -10,10 +10,11 @@
   inset-block-end: var(--sw-p-space-5);
   inset-inline-end: var(--sw-p-space-5);
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column; /* DOM order == visual order (R3); newest is LAST — the binding appends; stack grows upward via justify-content */
+  justify-content: flex-end;
   gap: var(--sw-p-space-3);
   inline-size: min(92vw, 380px);
-  z-index: 110;
+  z-index: var(--sw-p-z-toast);
   pointer-events: none;
 }
 

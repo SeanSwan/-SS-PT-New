@@ -1,7 +1,8 @@
 /**
  * @swan/forge — Nav skin. Structural variants: .sw-nav--top (bar; collapses to a
- * disclosure menu under 768px) and .sw-nav--side (rail; collapses to icons-only
- * / off-canvas under 768px). Geometry only — disclosure state, Escape, focus
+ * disclosure menu under 768px) and .sw-nav--side (rail; collapses to the SAME
+ * disclosure menu under 768px — an icons-only collapsed rail is NOT shipped: it needs
+ * a second consumer under rule-of-two and would add core state; deliberately absent). Geometry only — disclosure state, Escape, focus
  * return and aria-current come from core/nav.mjs and never fork per variant.
  * Zero raw hex; logical properties; motion via --sw-motion. No `order`/reverse.
  */
@@ -59,7 +60,7 @@
   border-inline-start: 0;
 }
 .sw-nav--side .sw-nav__menu { flex-direction: column; }
-.sw-nav--side .sw-nav__link.is-current, .sw-nav--side .sw-nav__link[aria-current="page"] { box-shadow: inset 3px 0 0 var(--sw-glow-b); }
+.sw-nav--side .sw-nav__link.is-current, .sw-nav--side .sw-nav__link[aria-current="page"] { box-shadow: none; border-inline-start: 3px solid var(--sw-glow-b); padding-inline-start: calc(var(--sw-p-space-3) - 3px); }
 
 /* ── Compact (<768px): both variants become a disclosure menu ─────── */
 @media (max-width: 767px) {

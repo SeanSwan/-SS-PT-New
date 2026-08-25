@@ -92,7 +92,7 @@
 .sw-table td.is-numeric { font-family: var(--sw-font-data); text-align: end; }
 .sw-table tbody tr:hover { background: color-mix(in oklab, var(--sw-text-primary) 4%, transparent); }
 @media (max-width: 640px) {
-  .sw-table thead { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .sw-table thead { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
   .sw-table tr { display: block; border: 1px solid var(--sw-border); border-radius: var(--sw-p-radius-md); margin-block-end: var(--sw-p-space-3); }
   .sw-table td { display: grid; grid-template-columns: 40% 1fr; border: 0; }
   .sw-table td::before { content: attr(data-label); color: var(--sw-text-muted); font-family: var(--sw-font-ui); font-size: var(--sw-p-text-xs); }
@@ -104,4 +104,6 @@
 
 /* ── Select / Textarea (extend .sw-input) ─────────────────────────── */
 .sw-select { appearance: none; padding-inline-end: var(--sw-p-space-6); background-image: linear-gradient(45deg, transparent 50%, var(--sw-text-muted) 50%), linear-gradient(135deg, var(--sw-text-muted) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%; background-size: 6px 6px; background-repeat: no-repeat; }
+/* RTL: the reserved inline-end space is on the LEFT; mirror the arrow there (GLM F3) */
+[dir="rtl"] .sw-select { background-position: 12px 50%, 18px 50%; }
 .sw-textarea { min-block-size: calc(var(--sw-p-target-min) * 2); resize: vertical; line-height: 1.5; }

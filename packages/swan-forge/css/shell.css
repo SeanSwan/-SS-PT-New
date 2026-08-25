@@ -15,12 +15,13 @@
   grid-template-areas:
     "header header"
     "rail   main";
+  min-block-size: 100vh;
   min-block-size: 100dvh;
   background: var(--sw-bg-base);
   color: var(--sw-text-primary);
   font-family: var(--sw-font-body);
 }
-.sw-shell__header { grid-area: header; position: sticky; inset-block-start: 0; z-index: 20; }
+.sw-shell__header { grid-area: header; position: sticky; inset-block-start: 0; z-index: var(--sw-p-z-nav); }
 .sw-shell__rail { grid-area: rail; position: sticky; inset-block-start: 0; align-self: start; max-block-size: 100dvh; overflow-y: auto; }
 .sw-shell__main {
   grid-area: main;

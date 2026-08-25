@@ -27,7 +27,7 @@
   --sw-border: rgba(22, 32, 42, 0.14);
   --sw-border-strong: rgba(22, 32, 42, 0.32);
   --sw-glow-a: #0E5FD8;
-  --sw-glow-b: #59A7FF;
+  --sw-glow-b: #1F6FD0;   /* was #59A7FF — 2.39:1 on the light page failed the chart-series non-text audit (round 6); now 3.7:1 page / 4.95:1 as link text */
 
   /* Focus */
   --sw-focus-ring: #0E5FD8;

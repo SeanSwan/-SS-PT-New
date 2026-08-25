@@ -169,9 +169,9 @@
 
   <section id="auth">
     <h2>Auth form (composition) <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="auth">Copy usage</button></h2>
-    <form class="sw-auth" onsubmit="return false">
+    <form class="sw-auth" aria-describedby="auth-error" onsubmit="return false">
       <div class="sw-auth__brand"><span class="sw-avatar">sw</span><div><h3 class="sw-auth__title">Welcome back</h3><p class="sw-auth__subtitle">Sign in to your training workspace.</p></div></div>
-      <div class="sw-auth__error" role="alert">Wrong email or password.</div>
+      <div class="sw-auth__error" id="auth-error" role="alert" aria-live="assertive">Wrong email or password.</div>
       <div class="sw-auth__form">
         <label class="sw-field"><span class="sw-field__label">Email</span><input class="sw-input" type="email" autocomplete="email" placeholder="you@example.com" /></label>
         <label class="sw-field"><span class="sw-field__label">Password</span><input class="sw-input" type="password" autocomplete="current-password" aria-invalid="true" /><span class="sw-field__error">Enter your password</span></label>
@@ -206,8 +206,8 @@
 
 <script type="module">
   import { handleModalKey, getModalState, nextTrapIndex, FOCUSABLE_SELECTOR } from '../core/modal.mjs';
-  import { getTabsState, getTabListAttrs, getTabAttrs, getTabPanelAttrs, handleTabKey } from '../core/tabs.mjs';
-  import { createToast, enqueue, dismiss, setPaused, tick, getToastAttrs, handleToastKey } from '../core/toast.mjs';
+  import { getTabsState, getTabListAttrs, getTabAttrs, getTabPanelAttrs, handleTabKey, selectTab } from '../core/tabs.mjs';
+  import { createToast, enqueue, dismissWithFocus, setPaused, tick, getToastAttrs, handleToastKey } from '../core/toast.mjs';
   import { getNavState, getNavAttrs, getNavToggleAttrs, getNavMenuAttrs, getNavLinkAttrs, reduceNav } from '../core/nav.mjs';
 
   // shared: apply a core attribute map to an element (undefined/false ⇒ remove)
@@ -224,7 +224,7 @@
     const links = items.map((it) => { const a = document.createElement('a'); a.textContent = it.label; menu.appendChild(a); a.addEventListener('click', () => { state = getNavState({ ...state, current: it.href, open: reduceNav(state, { type: 'select' }).open }); render(); }); return a; });
     toggle.addEventListener('click', () => { state = getNavState({ ...state, open: reduceNav(state, { type: 'toggle' }).open }); render(); });
     host.addEventListener('keydown', (e) => { const r = reduceNav(state, { type: 'key', key: e.key }); if (r.open !== state.open) { state = getNavState({ ...state, open: r.open }); render(); if (r.restoreFocus) toggle.focus(); } });
-    function render() { setAttrs(host, getNavAttrs(state, variant === 'side' ? 'Sidebar' : 'Primary')); setAttrs(toggle, getNavToggleAttrs(state)); setAttrs(menu, getNavMenuAttrs(state)); items.forEach((it, i) => setAttrs(links[i], getNavLinkAttrs(state, it))); }
+    function render() { setAttrs(host, getNavAttrs(state)); setAttrs(toggle, getNavToggleAttrs(state)); setAttrs(menu, getNavMenuAttrs(state)); items.forEach((it, i) => setAttrs(links[i], getNavLinkAttrs(state, it))); }
     host.append(brand, ...(variant === 'top' ? [spacer] : []), toggle, menu); render();
   }
   mountNav(document.getElementById('nav-top'), 'top');
@@ -233,23 +233,23 @@
   // ── Tabs: gallery consumes the real core (roving tabindex + arrows) ──
   function mountTabs(host, variant) {
     const keys = ['overview', 'workouts', 'progress'];
-    let state = getTabsState({ id: `${host.id}`, tabs: keys, selected: 'overview' });
+    let state = getTabsState({ id: `${host.id}`, tabs: keys, selected: 'overview', variant });
     const list = document.createElement('div'); const panels = document.createElement('div');
     const tabEls = {}, panelEls = {};
     for (const k of keys) {
       const b = document.createElement('button'); b.type = 'button'; b.textContent = k[0].toUpperCase() + k.slice(1); tabEls[k] = b; list.appendChild(b);
       const p = document.createElement('div'); p.textContent = `${k} panel — arrow keys move, Home/End jump.`; panelEls[k] = p; panels.appendChild(p);
-      b.addEventListener('click', () => { state = getTabsState({ ...state, selected: k }); render(); });
+      b.addEventListener('click', () => { state = selectTab(state, k); render(); }); // the ONE selection path (Enter/Space arrive here via native click)
       b.addEventListener('keydown', (e) => {
         const r = handleTabKey(state, k, e);
         if (r.preventDefault) e.preventDefault();
-        if (r.select) state = getTabsState({ ...state, selected: r.select });
+        if (r.select) state = selectTab(state, r.select);
         render();
         if (r.focus) tabEls[r.focus].focus();
       });
     }
     function render() {
-      setAttrs(list, getTabListAttrs(state)); if (variant) list.classList.add(`sw-tabs--${variant}`);
+      setAttrs(list, getTabListAttrs(state));
       for (const k of keys) { setAttrs(tabEls[k], getTabAttrs(state, k)); setAttrs(panelEls[k], getTabPanelAttrs(state, k)); }
     }
     host.append(list, panels); render();
@@ -260,15 +260,16 @@
   // ── Toasts: gallery owns the clock; core owns the queue ─────────────
   const region = document.getElementById('toast-region');
   let queue = []; let seq = 0; let last = performance.now();
+  function dismissFocused(id) { const r = dismissWithFocus(queue, id); queue = r.queue; renderToasts(); const next = r.focusNext === 'region' ? document.querySelector('[data-toast]') : region.querySelector(`[data-id="${r.focusNext}"]`); next?.focus(); }
   function renderToasts() {
     region.replaceChildren(...queue.map((t) => {
-      const el = document.createElement('div'); setAttrs(el, getToastAttrs(t)); el.tabIndex = 0;
+      const el = document.createElement('div'); setAttrs(el, getToastAttrs(t));
       el.innerHTML = `<span></span><div><p class="sw-toast__title"></p><p class="sw-toast__body"></p></div><button type="button" class="sw-toast__dismiss" aria-label="Dismiss notification">✕</button>`;
       el.querySelector('.sw-toast__title').textContent = t.title; el.querySelector('.sw-toast__body').textContent = t.body ?? '';
-      el.querySelector('.sw-toast__dismiss').addEventListener('click', () => { queue = dismiss(queue, t.id); renderToasts(); });
+      el.querySelector('.sw-toast__dismiss').addEventListener('click', () => dismissFocused(t.id));
       el.addEventListener('mouseenter', () => { queue = setPaused(queue, t.id, true); }); el.addEventListener('mouseleave', () => { queue = setPaused(queue, t.id, false); });
       el.addEventListener('focusin', () => { queue = setPaused(queue, t.id, true); }); el.addEventListener('focusout', () => { queue = setPaused(queue, t.id, false); });
-      el.addEventListener('keydown', (e) => { if (handleToastKey(e).action === 'dismiss') { queue = dismiss(queue, t.id); renderToasts(); } });
+      el.addEventListener('keydown', (e) => { const r = handleToastKey(e, t.id); if (r.action === 'dismiss') dismissFocused(r.id); });
       return el;
     }));
   }

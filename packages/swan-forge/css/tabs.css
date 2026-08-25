@@ -75,5 +75,5 @@
 .sw-tabpanel:focus-visible { outline: none; box-shadow: var(--sw-focus-shadow); border-radius: var(--sw-p-radius-sm); }
 
 @media (prefers-reduced-motion: reduce) {
-  .sw-tab::after { transition: none; }
+  .sw-tab, .sw-tab::after { transition: none; }
 }

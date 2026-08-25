@@ -13,29 +13,49 @@
  * @property {string} selected      selected tab key
  * @property {'horizontal'|'vertical'} orientation
  * @property {'automatic'|'manual'} activation
+ * @property {'underline'|'pill'} variant   visual variant — expressed through the attr map (never hand-concatenated)
  */
 
+const safe = (k) => String(k).replace(/[^\w-]/g, '_');
+
 /**
- * @param {{id?: string, tabs?: string[], selected?: string, orientation?: string, activation?: string}} props
+ * CONTROLLED CONTRACT: state is a value; `selectTab` is the ONE selection reducer for
+ * click/touch AND keyboard. Bindings that sync with a router hold `selected` in the
+ * URL and call `selectTab` on change (UDL role-tabs prerequisite, panel round 6).
+ * Composition rule (GLM T2): activation keys (Enter/Space) are left to the NATIVE
+ * <button> click — the binding wires exactly ONE path: onClick → selectTab.
+ * @param {{id?: string, tabs?: string[], selected?: string, orientation?: string, activation?: string, variant?: string}} props
  * @returns {TabsState}
  */
 export function getTabsState(props = {}) {
   const rawId = props.id ?? 'sw-tabs';
   const tabs = Array.isArray(props.tabs) ? props.tabs.filter((t) => typeof t === 'string' && t) : [];
+  // Sanitized ids must stay injective — 'a b' and 'a_b' would collide into duplicate DOM ids (GLM T1).
+  const seen = new Map();
+  for (const t of tabs) {
+    const s = safe(t);
+    if (seen.has(s)) throw new Error(`tabs: keys "${seen.get(s)}" and "${t}" collide after id sanitization ("${s}")`);
+    seen.set(s, t);
+  }
   return {
     id: /^[A-Za-z][\w-]*$/.test(rawId) ? rawId : 'sw-tabs',
     tabs,
     selected: tabs.includes(props.selected ?? '') ? /** @type {string} */ (props.selected) : (tabs[0] ?? ''),
     orientation: props.orientation === 'vertical' ? 'vertical' : 'horizontal',
     activation: props.activation === 'manual' ? 'manual' : 'automatic',
+    variant: props.variant === 'pill' ? 'pill' : 'underline',
   };
 }
 
-const safe = (k) => String(k).replace(/[^\w-]/g, '_');
+/** Selection reducer (click/touch/keyboard all end here). Unknown keys are ignored. */
+export function selectTab(state, key) {
+  return state.tabs.includes(key) ? { ...state, selected: key } : state;
+}
 
-/** Attribute map for the tablist container. */
+/** Attribute map for the tablist container (variant is part of the map — GLM T3). */
 export function getTabListAttrs(state) {
-  return { role: 'tablist', 'aria-orientation': state.orientation, class: `sw-tabs sw-tabs--${state.orientation}` };
+  const variant = state.variant === 'pill' ? ' sw-tabs--pill' : '';
+  return { role: 'tablist', 'aria-orientation': state.orientation, class: `sw-tabs sw-tabs--${state.orientation}${variant}` };
 }
 
 /** Attribute map for one tab button. Roving tabindex: only the selected tab is in the tab order. */
@@ -52,7 +72,13 @@ export function getTabAttrs(state, key) {
   };
 }
 
-/** Attribute map for one tab panel. Hidden panels are removed from the a11y tree. */
+/**
+ * Attribute map for one tab panel. Hidden panels are removed from the a11y tree.
+ * BINDING DUTY: `hidden` is `undefined` for the selected panel — bindings must OMIT
+ * undefined attrs (a template writing hidden="undefined" hides the selected panel).
+ * Lazy panels: only emit `aria-controls` targets that exist in the DOM at render time
+ * (pass `renderedPanels` to the binding's own filter; the core cannot see the DOM).
+ */
 export function getTabPanelAttrs(state, key) {
   const selected = key === state.selected;
   return {
@@ -86,7 +112,8 @@ export function handleTabKey(state, focusedKey, event) {
   else if (event.key === prev) target = tabs[(i - 1 + n) % n];
   else if (event.key === 'Home') target = tabs[0];
   else if (event.key === 'End') target = tabs[n - 1];
-  else if (event.key === 'Enter' || event.key === ' ') return { focus: null, select: focusedKey, preventDefault: true };
+  // Enter/Space: NOT handled here — the native <button> click fires and the binding's
+  // single onClick → selectTab path activates (no double-select, no lost keyboard select).
   if (target === null) return { focus: null, select: null, preventDefault: false };
   return { focus: target, select: activation === 'automatic' ? target : null, preventDefault: true };
 }

@@ -8,10 +8,27 @@
    `inline-size: 100%` + padding can never overflow a container (Phase 2 finding:
    inputs spilled 10px past a 414px viewport under content-box). Scoped to sw-
    classes — the Forge never resets the host page. */
-.sw-btn, .sw-card, .sw-field, .sw-input, .sw-modal, .sw-modal-scrim, .sw-toast, .sw-toast-region,
+.sw-btn, .sw-card, .sw-field, .sw-input, .sw-select, .sw-textarea, .sw-modal, .sw-modal-scrim, .sw-toast, .sw-toast-region,
 .sw-tabs, .sw-tab, .sw-tabpanel, .sw-nav, .sw-shell, .sw-cluster, .sw-auth, .sw-table, .sw-pill, .sw-badge, .sw-avatar, .sw-skeleton,
-.sw-btn *, .sw-card *, .sw-field *, .sw-modal *, .sw-toast *, .sw-tabs *, .sw-nav *, .sw-shell *, .sw-auth *, .sw-table * {
+.sw-btn *, .sw-card *, .sw-field *, .sw-input *, .sw-modal *, .sw-toast *, .sw-tabs *, .sw-tabpanel *, .sw-nav *, .sw-shell *, .sw-auth *, .sw-table *, .sw-avatar *, .sw-pill *, .sw-badge * {
   box-sizing: border-box;
+}
+/* DISCLOSED: slot content projected INTO a Forge container inherits border-box (the
+   `*` descendants). Hosts sizing slotted children under content-box see them shrink by
+   their border+padding. Most apps already run global border-box; if yours does not,
+   size slotted content with tokens, not fixed content-box widths. */
+
+/* Forced-colors law (Windows High Contrast): box-shadow focus rings are suppressed there,
+   and every Forge skin removes the outline — so the outline comes BACK under forced colors.
+   One rule, every interactive Forge class (panel round 6, GLM F1). */
+@media (forced-colors: active) {
+  .sw-btn:focus-visible, .sw-input:focus-visible, .sw-select:focus-visible, .sw-textarea:focus-visible,
+  .sw-tab:focus-visible, .sw-tabpanel:focus-visible, .sw-nav__link:focus-visible, .sw-nav__toggle:focus-visible,
+  .sw-toast:focus-visible, .sw-toast__dismiss:focus-visible, .sw-auth__link:focus-visible, .sw-modal:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+  }
+  .sw-tab.is-selected::after, .sw-nav__link.is-current { forced-color-adjust: none; }
 }
 
 :root {
@@ -43,6 +60,12 @@
   --sw-p-duration-base: 220ms;
   --sw-p-duration-slow: 420ms;
   --sw-p-ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ── Stacking order (NOT themeable): one ladder so toast/modal/nav never fight ── */
+  --sw-p-z-nav: 20;
+  --sw-p-z-modal-scrim: 90;
+  --sw-p-z-modal: 100;
+  --sw-p-z-toast: 110;
 
   /* ── Accessibility floors (NOT themeable — see specs; drift-lint R5 enforced) ── */
   --sw-p-target-min: 44px;
