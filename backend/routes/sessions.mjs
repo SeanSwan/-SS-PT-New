@@ -113,6 +113,11 @@ const parseMoneyAmount = (value) => {
   return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed * 100) / 100 : null;
 };
 
+// The late-cancellation fee as a fraction of the session rate. Was inlined as
+// a bare 0.5 in several places; a policy number with copies is a policy number
+// that drifts.
+const LATE_FEE_RATE = 0.5;
+
 const cancellationPricingModels = () => ({
   Order: getOrder(),
   OrderItem: getOrderItem(),
@@ -128,7 +133,7 @@ const getSessionPackagePricing = async (session) => {
       packageName: null,
       fallbackPrice,
       defaultChargeAmount: fallbackPrice,
-      lateFeeAmount: Math.round(fallbackPrice * 0.5),
+      lateFeeAmount: Math.round(fallbackPrice * LATE_FEE_RATE),
       isFallback: true
     };
   }
@@ -143,7 +148,7 @@ const getSessionPackagePricing = async (session) => {
     packageName: packageInfo.packageName || null,
     fallbackPrice,
     defaultChargeAmount,
-    lateFeeAmount: Math.round(defaultChargeAmount * 0.5),
+    lateFeeAmount: Math.round(defaultChargeAmount * LATE_FEE_RATE),
     isFallback: Boolean(packageInfo.isFallback)
   };
 };
@@ -3029,12 +3034,37 @@ router.get("/:id/cancel-warning", protect, async (req, res) => {
     const hoursUntilSession = (sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60);
     const isLateCancellation = hoursUntilSession < 24;
 
-    // Default cancellation policy
+    // This was a hardcoded 88 - Math.round(175 * 0.5) - served to every client
+    // regardless of package. A client on the $110 rate was told their fee was
+    // $88 when half their rate is $55. getSessionPackagePricing already derives
+    // this per session (and is duration-aware), so use it and return null when
+    // it is only guessing, rather than inventing a figure for the person who is
+    // about to act on it.
+    let lateFeeAmount = null;
+    try {
+      const packageInfo = await getSessionPackagePricing(session);
+      if (packageInfo && !packageInfo.isFallback) {
+        lateFeeAmount = parseMoneyAmount(packageInfo.lateFeeAmount);
+      }
+    } catch (pricingError) {
+      logger.warn(
+        `[CancelWarning] session ${sessionId}: pricing lookup failed, returning ` +
+          `null fee: ${pricingError.message}`
+      );
+    }
+
     const cancellationPolicy = {
-      lateFeeAmount: 88,
+      lateFeeAmount,
       creditRestored: !isLateCancellation,
       lateThresholdHours: 24
     };
+
+    // Describe what cancelling actually does. cancelSession applies no fee to a
+    // client-initiated cancellation - the forfeited prepaid credit is the real
+    // penalty - so promising a fee here was copy the code does not honour.
+    const lateMessage = lateFeeAmount === null
+      ? 'This is a late cancellation (less than 24 hours notice). Your session credit will not be returned.'
+      : `This is a late cancellation (less than 24 hours notice). Your session credit will not be returned, and a fee of up to $${lateFeeAmount.toFixed(2)} may apply.`;
 
     return res.status(200).json({
       success: true,
@@ -3042,8 +3072,8 @@ router.get("/:id/cancel-warning", protect, async (req, res) => {
       hoursUntilSession: Math.max(0, Math.round(hoursUntilSession * 10) / 10),
       cancellationPolicy,
       warningMessage: isLateCancellation
-        ? `This is a late cancellation (less than 24 hours notice). A fee of $${cancellationPolicy.lateFeeAmount} may apply.`
-        : 'You are cancelling with more than 24 hours notice. No fee will be charged.',
+        ? lateMessage
+        : 'You are cancelling with more than 24 hours notice. Your session credit will be returned and no fee will be charged.',
       sessionDateFormatted: sessionDate.toLocaleDateString('en-US', {
         weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit'
       })
