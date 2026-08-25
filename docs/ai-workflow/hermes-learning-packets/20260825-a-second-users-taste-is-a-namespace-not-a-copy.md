@@ -188,6 +188,22 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
 - **I released my coordination lane after a failed commit — twice** (`;`/`&&` after an `echo`).
   **MECHANISM:** the release command is chained directly after `git commit`, never after an echo; the
   guard's own message names the fix.
+- **My ComfyUI field detector would have overwritten Sean's negative prompt.** It matched `prompt`/`text`
+  keys, and his graph holds an orphan `CLIPTextEncode` containing "blurry, watermark, low quality" whose
+  key is plain `text` and whose class name says nothing. **MECHANISM:** the prompt field is found by
+  WIRING — whatever a sampler takes as `positive` — with negatives excluded by wire and by name, and only
+  ONE text target is ever steered; two fixtures (his H3 video graph and a plain SD graph) hold that line.
+- **My drift guard was blind to a poisoned field map** (a "seed" entry pointing at `unet_name` is allowed
+  by construction), and the test that "proved" it used an `||` escape that passed either way.
+  **MECHANISM:** `applyTo` validates the map against the graph before using it (a seed field must hold a
+  number under a seed key); the test asserts the refusal text and that the model name is unchanged.
+- **A fake-ComfyUI rejection check passed vacuously** — it triggered on a filename prefix that can never
+  occur, so the "ComfyUI refused the graph" path was never exercised in a green run. **MECHANISM:** the
+  trigger is now the prompt text, and the check asserts the 502, the surfaced message, the node errors and
+  that nothing reached the queue — a negative-path test must be shown to fire at least once.
+- **I renamed a button and broke my own browser proof**, which still clicked the old label.
+  **MERGED:** the proof is the mechanism; it caught it on the next run and that step is now a full
+  page→brain→ComfyUI end-to-end instead of a mint-only click.
 
 ## Error → fix → repeat ledger
 
@@ -206,6 +222,10 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
 | Duplicate treated as conflict (importer) | 1 | No | Known event ids returned; browser re-import step |
 | JSON config written with bad shell escapes | 1 | No | Write with JSON.stringify, parse back in the same command |
 | Lane released after a failed commit | 2 (same session) | Yes — after the first, in the memo | Release chained only after a successful commit |
+| Identifying a field by NAME where WIRING is ground truth (would have overwritten the negative prompt) | 1 | No | Wiring-first detection; two graph fixtures |
+| A guard blind to its own configuration (poisoned field map) | 1 | No | Validate the map against the graph before applying |
+| Vacuous check: negative path never fired (3rd of this class today) | 3 (placeholder-true ×2, unreachable trigger ×1) | Yes — written up twice already today | Grep for `, true)`; a negative-path check must be shown to fire once |
+| Renamed a UI control without updating my own proof | 1 | No | The proof caught it; that step upgraded to end-to-end |
 
 ## External-model calibration
 
