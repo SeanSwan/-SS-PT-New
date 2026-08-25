@@ -129,7 +129,7 @@ export const buildCancelPanelDefaults = (
   // charge. The admin picks an amount deliberately instead of confirming a
   // placeholder that is presented as package-derived.
   if (pricingUnavailable) {
-    return { chargeType: 'none', chargeAmount: '', restoreCredit: false };
+    return { chargeType: 'none', chargeAmount: '', restoreCredit: true };
   }
 
   return { chargeType: 'full', chargeAmount: String(defaultFullCharge), restoreCredit: false };
