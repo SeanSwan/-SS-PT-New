@@ -32,7 +32,7 @@
  * any error exits 0 silently rather than blocking a session.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -226,6 +226,92 @@ try {
   findings.push(
     `rule-count check could not complete (${err?.message || err}). Whether the rulebook ` +
     'can state its own size is UNKNOWN this session, not clean.'
+  );
+}
+
+// ---- 10) Dead CI — has ANY workflow ever succeeded? ------------------------
+//
+// Found 2026-08-24 (Fable): a PR was opened purely to give the migration shadow check
+// its first real run. It startup_failed in 0s — and so had EVERY Actions run in the
+// repo, all workflows, all event types INCLUDING schedule (which runs from the default
+// branch and exonerates any pushed file), with zero successes in queryable history.
+// Private repo on free-tier minutes: exhausted minutes or a billing block. Every CI
+// gate in the tree was an intention, not a protection, and nothing anywhere said so —
+// because everything asks whether the workflow FILE exists and parses, and nothing
+// asks for its last green run.
+//
+// Two repo-wide queries, not per-workflow: the failure mode this catches is
+// account-level, where everything dies at once. GLM 5.3 (2026-08-24): a single "no
+// successes" test conflated four conditions with four different remedies — never-ran
+// (disabled/billing), running-but-all-failing (a real workflow defect), success-but-stale
+// (recency), and gh-can't-answer (auth/network). One extra call splits them. 20s
+// timeout: this fires once per session, so the pathological case costs seconds; a
+// stream of false UNKNOWNs costs trust in the whole probe. Fail-UNKNOWN like 7-9.
+try {
+  const { execSync } = await import('node:child_process');
+  const wfDir = join(SS_PT, '.github', 'workflows');
+  // No `gh` on this machine → nothing to measure → say nothing (round-1 GLM F7 / Ox F8:
+  // an UNKNOWN finding on every session for a tool that is simply not installed is
+  // alarm fatigue, not signal). `gh` present but failing (auth, network) still falls
+  // to the UNKNOWN finding below — that IS signal.
+  let ghPresent = true;
+  try { execSync('gh --version', { stdio: 'ignore', timeout: 5000 }); } catch { ghPresent = false; }
+  if (existsSync(wfDir) && ghPresent) {
+    const gh = (args) => JSON.parse(execSync(
+      `gh run list ${args}`, { cwd: SS_PT, timeout: 20000, stdio: ['ignore', 'pipe', 'ignore'] }
+    ).toString().trim() || '[]');
+    // ONE call on the common path (round-1 Grok F7 / GLM F7: two serial 20s calls were
+    // a 40s worst-case at SessionStart): pull the newest 20 runs and derive both facts
+    // from them. Only when no success appears in that window does the targeted
+    // second query run — a healthy repo never pays for it.
+    const recent = gh('--limit 20 --json conclusion,workflowName,updatedAt,status');
+    const newest = recent[0];
+    // Fallback query only when it could change the answer. If the 20 newest runs are
+    // ALL startup_failure, that is the account-level signature (billing / minutes) and
+    // no older success alters the diagnosis — skip the second call, so the dead-CI
+    // case does not pay 20s on every session start (Ox r2 F5).
+    const allStartupFail = recent.length > 0 && recent.every((r) => r.conclusion === 'startup_failure');
+    const lastOk = recent.find((r) => r.conclusion === 'success')
+      || ((newest && !allStartupFail) ? gh('--status success --limit 1 --json updatedAt,workflowName')[0] : undefined);
+    // An IN-PROGRESS newest run has conclusion null — that is "pending", not "failed"
+    // (round-1 GLM F7 / Ox F8). Judge on the newest COMPLETED run instead.
+    const pending = newest && (newest.conclusion === null || newest.conclusion === '' || newest.status === 'in_progress' || newest.status === 'queued');
+    if (pending && newest) newest.conclusion = 'pending';
+    const anyScheduled = readdirSync(wfDir).some((f) =>
+      /\.ya?ml$/i.test(f) && /^\s*schedule\s*:/m.test(read(join(wfDir, f)) || ''));
+    const staleDays = anyScheduled ? 7 : 30;
+    const ageDays = (iso) => (Date.now() - Date.parse(iso)) / 86_400_000;
+
+    if (!newest) {
+      findings.push(
+        'GitHub Actions: NO runs at all in queryable history — Actions is disabled for the repo ' +
+        'or has never been triggered. Every workflow gate is an intention, not a protection.'
+      );
+    } else if (!lastOk && pending) {
+      // Newest run is still going and nothing has ever succeeded: undecidable this
+      // second. No finding — the next session judges the completed run.
+    } else if (!lastOk) {
+      const c = newest.conclusion || 'unknown';
+      findings.push(
+        `GitHub Actions: runs exist but ZERO have ever succeeded (newest: "${newest.workflowName || '?'}" → ${c}). ` +
+        (c === 'startup_failure'
+          ? 'Blanket startup_failure incl. schedule = ACCOUNT-LEVEL (exhausted free-tier minutes or a ' +
+            'billing block), not any workflow file. Fix: github.com/settings/billing.'
+          : 'Workflows RUN and FAIL — that is a workflow/repo defect, NOT a billing signature. Read the ' +
+            'newest run’s log before touching billing.')
+      );
+    } else if (ageDays(lastOk.updatedAt) > staleDays) {
+      findings.push(
+        `GitHub Actions: newest successful run ("${lastOk.workflowName || '?'}") is ${Math.round(ageDays(lastOk.updatedAt))}d old ` +
+        `(threshold ${staleDays}d${anyScheduled ? ', a schedule exists' : ''}). Gates may have gone dead since — ` +
+        `newest run of any status: "${newest.workflowName || '?'}" → ${newest.conclusion || 'unknown'}.`
+      );
+    }
+  }
+} catch (err) {
+  findings.push(
+    `dead-CI check could not complete (${err?.message || String(err).slice(0, 80)}). Whether any ` +
+    'Actions gate has ever run is UNKNOWN this session, not clean.'
   );
 }
 
