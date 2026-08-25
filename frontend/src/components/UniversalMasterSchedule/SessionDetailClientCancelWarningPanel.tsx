@@ -126,7 +126,11 @@ const SessionDetailClientCancelWarningPanel: React.FC<SessionDetailClientCancelW
       </LateCancelWarningMessage>
       <LateCancelFeeBox>
         <LateCancelFeeLabel>Late Cancellation Fee</LateCancelFeeLabel>
-        <LateCancelFeeAmount>${lateCancelWarning.lateFeeAmount}</LateCancelFeeAmount>
+        <LateCancelFeeAmount>
+          {lateCancelWarning.lateFeeAmount === null
+            ? 'See cancellation policy'
+            : `$${lateCancelWarning.lateFeeAmount}`}
+        </LateCancelFeeAmount>
       </LateCancelFeeBox>
       {reasonField}
       {actionRow}

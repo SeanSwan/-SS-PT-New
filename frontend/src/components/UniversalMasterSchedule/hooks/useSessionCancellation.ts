@@ -100,7 +100,7 @@ export const useSessionCancellation = ({
         return;
       }
 
-      setLateCancelWarning(mapLateCancelWarning(result, defaultLateFee));
+      setLateCancelWarning(mapLateCancelWarning(result));
       setShowLateCancelWarning(true);
     } catch (error) {
       console.error('Error fetching cancel warning:', error);
