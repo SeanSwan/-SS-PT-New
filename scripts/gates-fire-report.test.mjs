@@ -75,4 +75,10 @@ test('render: readiness needs BOTH 14d span AND 100 invocations (Ox r3 F4)', () 
   const full = [];
   for (let d = 1; d <= 15; d++) for (let i = 0; i < 7; i++) full.push(row({ ts: `2026-08-${String(d + 9).padStart(2, '0')}T1${i}:00:00Z` }));
   assert.match(render(analyze(full, { now: NOW, days: 30 })), /SWAN_HEREDOC_GATE=enforce/);
+  // Ox r4 F1: hatch rows must not inflate the floor — 60 hatch + 45 organic over 15
+  // days is only 45 real observations, NOT ready.
+  const inflated = [];
+  for (let d = 1; d <= 15; d++) for (let i = 0; i < 3; i++) inflated.push(row({ ts: `2026-08-${String(d + 9).padStart(2, '0')}T1${i}:00:00Z` }));
+  for (let i = 0; i < 60; i++) inflated.push(row({ ts: '2026-08-20T05:00:00Z', hatch: true, reasons: ['hatch: fixture reason here'] }));
+  assert.match(render(analyze(inflated, { now: NOW, days: 30 })), /keep shadowing — insufficient .*organic/);
 });
