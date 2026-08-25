@@ -425,6 +425,43 @@ test('D3: BLOCKS an aggregate bleed where every single rule clears the per-rule 
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 
+// 2026-08-25: the first legitimate narrative-cut proved the D3 budget unsatisfiable —
+// "declare it" had no declaration mechanism for surviving-but-trimmed rules. Declared
+// trims are authorised-and-loud (same principle as declared removals) and leave the
+// budget guarding every UNDECLARED rule at full strength.
+test('D3: PASSES an aggregate trim when every trimmed rule is DECLARED', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    const long = (n) => `${head(n)}${PAD.repeat(70)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const trimmed = (n) => `${head(n)}${PAD.repeat(69)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const nums = [16, 46, 73, 74, 80, 81];
+    commitDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, long(n)])) }));
+    stageDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, trimmed(n)])) }));
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: nums.join(',') });
+    assert.equal(out.status, 0, `a fully-declared narrative-cut must PASS. stderr: ${out.stderr}`);
+    assert.match(out.stderr, /OVERRIDE ACTIVE/, 'the declaration must still print loudly');
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('D3: still BLOCKS when the bleed extends past the declared rules', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    const long = (n) => `${head(n)}${PAD.repeat(70)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const trimmed = (n) => `${head(n)}${PAD.repeat(69)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const nums = [16, 46, 73, 74, 80, 81];
+    commitDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, long(n)])) }));
+    stageDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, trimmed(n)])) }));
+    // Only HALF the trimmed rules are declared — the undeclared half still bleeds.
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: '16,46,73' });
+    assert.equal(out.status, 1, 'undeclared bleed must still BLOCK');
+    assert.match(out.stderr, /combined length/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
 test('SKIPS cleanly when no constitution file is staged', () => {
   const r = repo();
   try {

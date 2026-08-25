@@ -456,10 +456,20 @@ for (const file of touched) {
   // 2% while a rule's worth of constitution quietly disappears. Aggregate is
   // measured over rules present in BOTH versions, so declared removals — which are
   // already authorised and loud — do not count against the budget.
+  // Same principle for rules that SURVIVE but were DECLARED (2026-08-25, first
+  // legitimate narrative-cut): a trim named in SWAN_ALLOW_RULE_REMOVAL is a
+  // decision on the record, exactly as authorised-and-loud as a declared removal —
+  // counting it against the aggregate budget left the check unsatisfiable for the
+  // RULEBOOK trailer's own `narrative-cut` class ("declare it" with no way to).
+  // The budget still guards every UNDECLARED rule at full strength.
   let aggBefore = 0; let aggAfter = 0;
   for (const [key, was] of before) {
     const now = after.get(key);
     if (!now) continue;
+    if (allowed.has(String(was.num))) {
+      if (now.len !== was.len) usedHatch.add(String(was.num));
+      continue;
+    }
     aggBefore += was.len; aggAfter += now.len;
   }
   const aggShrink = aggBefore ? (aggBefore - aggAfter) / aggBefore : 0;
