@@ -183,11 +183,16 @@ const DECLARED_TRIM_FLOOR = 0.5;
 const DECLARED_SET_FLOOR = 0.25;
 
 /**
- * Absolute companion to the ratio (GLM prune-r3 F1 hardening): ratios can be diluted
- * by inflating the denominator; characters cannot. Above the largest legitimate prune
- * ever recorded (9,056 chars, 2026-08-25) with headroom, below any stacking attack.
+ * Absolute companion to the ratio (GLM prune-r3 F1 hardening; CALIBRATED by GLM+Grok
+ * prune-r4, unanimously): ratios can be diluted by inflating the denominator with
+ * declared-but-untouched rules; characters cannot. The first shipped value (15,000)
+ * sat ABOVE the very attack its comment cited — 6 rules × 49% of ~4.5k = 13,230 —
+ * so the cap was a no-op on its own threat model, caught by two seats independently
+ * from the arithmetic alone. The viable window is (9,056 — the largest legitimate
+ * prune ever recorded, 2026-08-25 — , 13,230); 11,500 sits inside it with ~27%
+ * headroom over history and a hard stop under the canonical stack.
  */
-const DECLARED_SET_ABS_CAP = 15_000;
+const DECLARED_SET_ABS_CAP = 11_500;
 
 /**
  * Minimum token overlap for a DECLARED rename to be believed — also derived.

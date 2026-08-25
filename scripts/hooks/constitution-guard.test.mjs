@@ -497,6 +497,26 @@ test('D3: BLOCKS the PADDED-DECOY variant — declared growth must not buy back 
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 
+test('D3: BLOCKS the DILUTED stack via the ABS CAP — untouched declared padding cannot buy back the budget (GLM+Grok r4)', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    // Big bodies so six ~47% cuts exceed the 11,500-char cap while six untouched
+    // declared rules dilute the RATIO below the 25% floor — this test fails unless
+    // the ABS CAP branch itself fires (it also closes Ox r4's zero-coverage LOW).
+    const long = (n) => `${head(n)}${PAD.repeat(150)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const cut47 = (n) => `${head(n)}${PAD.repeat(78)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const nums = [11, 12, 13, 14, 15, 16, 46, 73, 74, 80, 81, 82];
+    const cutSet = new Set([11, 12, 13, 14, 15, 16]);
+    commitDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, long(n)])) }));
+    stageDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, cutSet.has(n) ? cut47(n) : long(n)])) }));
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: nums.join(',') });
+    assert.equal(out.status, 1, 'ratio diluted under 25% by untouched declared rules — the absolute cap must still BLOCK');
+    assert.match(out.stderr, /DECLARED rules collectively/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
 test('D3: still BLOCKS when the bleed extends past the declared rules', () => {
   const r = repo();
   try {
