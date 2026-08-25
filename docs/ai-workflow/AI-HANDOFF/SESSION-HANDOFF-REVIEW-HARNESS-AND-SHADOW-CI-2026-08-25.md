@@ -11,6 +11,33 @@ linear: SWA-200 (shadow CI), SWA-196 (review seats), SWA-204 (Hermes corpus revi
 
 > **Read this top section first. The rest is the evidence trail.**
 
+> ## ⚠ CORRECTED 2026-08-25 by a three-seat hostile review — read that first
+>
+> **`HOSTILE-REVIEW-SHADOW-CI-HANDOFF-2026-08-25.md`** (Claude Opus 5 + GLM 5.3 +
+> Ox Alpha ×2) returned **REJECT** on the plan below. Four corrections override
+> what this document says; everything else here stands.
+>
+> 1. **The billing diagnosis in §0/§3 is wrong.** It is **not** free-tier minutes
+>    exhaustion. Included minutes reset monthly, and Actions did **not** revive on
+>    1 May, 1 Jun, 1 Jul or 1 Aug — 2,808 attempts, zero executions. It is a
+>    **persistent account-level block**. Sean's first action is
+>    `github.com/settings/billing` → **failed payment / past-due balance**, not a
+>    minutes top-up. The blackout is **~4 months** (dead since 2026-04-20T06:17Z),
+>    not "days". Zero of 4,051 runs have ever succeeded.
+> 2. **"Merge PR #71 → gate live on `main`" is impossible on this plan.**
+>    `branches/main/protection` and `rulesets` both return **403 "Upgrade to
+>    GitHub Pro or make this repository public."** Merging yields an advisory
+>    badge. §6 below is missing this dependency entirely.
+> 3. **§7 step 2 names a superseded version.** `ca8811eb4` landed *after* this
+>    handoff was written. Take the newest commit, never a named generation:
+>    `git log -1 --oneline -- .github/workflows/migration-shadow-check.yml`
+> 4. **The acceptance artifact in §7 step 3 would prove nothing.** PR #71 touches
+>    **zero** files under `backend/migrations/` → `DELTA_COUNT=0` → leg B prints
+>    "NOT APPLICABLE" → the job goes **green having tested nothing**. Build a
+>    canary branch whose migration must break against seeded data, and accept a
+>    **RED** as the artifact. Fix `SWAN_MIGRATE_STRICT` scoping first (it currently
+>    applies to leg A and will likely red every run).
+
 ## 0. The one-screen summary
 
 **What we are doing.** Making SwanStudios' deploy-safety gate real: a GitHub Actions
@@ -180,40 +207,100 @@ Tier B before believing either statement.
 
 ## 6. Sean-owed queue, in order
 
-1. **GitHub Actions billing** — revives every gate at once (§3).
+1. **GitHub Actions billing** — revives every gate at once (§3). **Corrected:** look
+   for a **failed payment / past-due balance**, not exhausted minutes — see the
+   banner at the top and the hostile-review doc.
+1b. **Plan decision — this is the one that decides whether the gate ever gates.**
+   Branch protection is 403 on a free private repo, so the merged gate is advisory
+   only. Three options: (a) GitHub Pro; (b) **make the repo public** — free, and
+   named by the 403 itself, but **the exposed Render key must be rotated first**
+   and the rewritten-history repo audited before any visibility change; (c) accept
+   an advisory-only signal and say so plainly instead of claiming a gate.
+1c. **Reconcile enforcement with the deploy model.** A required PR check means
+   `main` stops taking direct pushes — which is how this project deploys. Exempting
+   admins makes it theatre for the person who ships every migration. Sean's call.
 2. `gh auth refresh -h github.com -s user` — lets agents read billing without a browser.
-3. **Rotate the Render API key** (exposed 2026-08-12).
+3. **Rotate the Render API key** (exposed 2026-08-12) — now also a **prerequisite**
+   for option (b) above.
 4. **DMARC record** in Namecheap (SWA-13, ~10 min).
 5. Dismiss GitGuardian's false positive on PR #71 (`shadow:shadow@localhost` fixtures).
 6. Delete `C:/tmp/swan-rescue-20260824` once PR #71 is green.
 
 ## 7. Next slices for the agent, in order
 
+> **REORDERED by the 2026-08-25 hostile review.** The original list put the
+> acceptance artifact *before* the review — trust preceding scrutiny — and its
+> step 4 asked exactly the two right questions (*can leg B ever be empty by
+> construction? does STRICT make any legitimate re-run fail?*). **The review has
+> now answered both: yes, and yes.** The fixes below come from those answers.
+
 1. **Tier B billing probe** (§3). Do not proceed on "should be clear."
-2. **Update PR #71 from the generation-2 workflow** — cherry-pick the parallel session's
-   rebuild commit(s) for `.github/workflows/migration-shadow-check.yml`,
-   `backend/scripts/safe-migrate.mjs`, `backend/scripts/shadow-meta-count.mjs` onto
-   `ci/shadow-check-first-run` (worktree from `origin/main`; `git worktree add`). Verify
-   `node --check` + selftest there. Push.
-3. **First green run** = acceptance artifact. Attach the log link to SWA-200.
-4. **Three-seat hostile review of the generation-2 workflow** (GLM 5.3 + Ox ×3 + Grok) —
-   ask specifically: can leg B ever be empty by construction? does STRICT make any
-   legitimate re-run fail? Use `scripts/debate/ox-final-review.mjs` for Ox and
-   `scripts/consult-glm.mjs` / `consult-grok.mjs` for the others. They are all free or
-   cents; the spend guard is live and will refuse a breach.
-5. Merge PR #71. Then: move the deploy to `npm ci` (own ticket), wire `recordSpend` into
-   kimi/sol/glm transports when their lanes clear, and the deferred cross-process
-   ledger-failure escalation.
+   *(Re-run 2026-08-25T02:26Z: a deliberate `workflow_dispatch` on `main` still
+   `startup_failure`d with zero jobs. Still blocked.)*
+2. **Fix the four defects the review found before any run** — they are cheap and
+   they decide whether the first run means anything:
+   - move `SWAN_MIGRATE_STRICT` off the job `env` onto **leg B's step only** (it
+     currently makes leg A replay 307 historical migrations under a flag they were
+     never written against);
+   - redefine the delta as **additions only, extension-filtered**:
+     `git diff --name-only --diff-filter=A "$BASE" HEAD -- 'backend/migrations/*.cjs' 'backend/migrations/*.js'`;
+   - give `config/config.cjs` the loopback SSL exemption that
+     `pre-migrate-guard.mjs:227` already has (its production block forces
+     `ssl.require: true` against a container with `ssl = off`);
+   - add the integer shape-guard to `after`, as `before`/`BASE_COUNT` already have.
+3. **Update PR #71 from the NEWEST workflow commit — never a named generation.**
+   `git log -1 --oneline -- .github/workflows/migration-shadow-check.yml`
+   Cherry-pick that plus `backend/scripts/safe-migrate.mjs` and
+   `backend/scripts/shadow-meta-count.mjs` onto `ci/shadow-check-first-run`
+   (worktree from `origin/main`). Verify `node --check` + selftest there. Push.
+4. **Canary run = the acceptance artifact, and it must be RED.** A green PR-#71 run
+   proves nothing: PR #71 touches zero migrations, so `DELTA_COUNT=0` and leg B
+   reports NOT APPLICABLE. Cut a throwaway branch with one migration engineered to
+   break against seeded data (a `NOT NULL` column with no default on a populated
+   table, or a unique index over colliding seeded values) and require a **red whose
+   message names the constraint violation**. Attach that run URL to SWA-200. Then
+   take a green run on the real PR as the plumbing check it is.
+5. **Re-review after the fixes** (GLM 5.3 + Ox ×3). Free or cents; the spend guard
+   is live. Ask the next-layer questions the review left open: can `applied > 0` be
+   satisfied by someone else's migration on a stale PR base? does a models-only PR
+   ship schema drift through a green NOT-APPLICABLE?
+6. Merge PR #71 — **and state honestly that it is advisory until the plan question
+   in §6.1b is decided.** Then: gate on `SEED_SKIPPED` ∩ delta, pin `sequelize-cli`
+   into the install step, move the deploy to `npm ci` (own ticket), wire
+   `recordSpend` into kimi/sol/glm transports when their lanes clear, and the
+   deferred cross-process ledger-failure escalation.
+7. **Separately, and possibly bigger than this gate:** 32 `.mjs` files in
+   `backend/migrations/` are orphans that the deploy never executes — including
+   `add-payment-idempotency-unique-indexes`, `add-idempotency-to-shopping-cart` and
+   `create-user-consents-table`. Their objects most likely exist via
+   `syncDatabaseSafely()` at boot, so this is a schema-provenance question, not a
+   confirmed outage. One read-only production query settles whether the payment
+   idempotency **unique indexes** are actually there. Do that before relying on them.
 
 ## 8. Paste-ready opening prompt for the new chat
 
 ```
-Read docs/ai-workflow/AI-HANDOFF/SESSION-HANDOFF-REVIEW-HARNESS-AND-SHADOW-CI-2026-08-25.md
-in full before doing anything. You are continuing the review-harness + shadow-CI
-workstream (SWA-200 / SWA-196). Start with §3 Tier B: prove whether GitHub Actions
-billing is cleared by firing a cheap workflow_dispatch and reading the run status — do
-not trust "it should be clear." Then follow §7 in order. Rules that bit us last time:
-never git add -A (shared index — check git diff --cached before every commit); use
-Write/Edit for any multi-line file content, never heredocs; never pipe a command whose
-exit status you need. Surface the Sean-owed queue in §6 at your first closeout.
+Read BOTH of these in full before doing anything:
+  docs/ai-workflow/AI-HANDOFF/HOSTILE-REVIEW-SHADOW-CI-HANDOFF-2026-08-25.md   <- read FIRST
+  docs/ai-workflow/AI-HANDOFF/SESSION-HANDOFF-REVIEW-HARNESS-AND-SHADOW-CI-2026-08-25.md
+
+You are continuing the review-harness + shadow-CI workstream (SWA-200 / SWA-196).
+The review returned REJECT on the handoff's plan; the handoff's own top banner lists
+the four corrections. Do not aim at "gate live on main" — branch protection is 403 on
+this plan, so a merged PR is advisory until Sean decides the plan question.
+
+Start with §3 Tier B: prove whether Actions can run by firing a cheap workflow_dispatch
+and reading the run status — do not trust "it should be clear," and do not repeat the
+"free minutes exhausted" diagnosis; it is disproven (four monthly resets, zero
+executions). Then follow §7 in its corrected order: fix the four defects BEFORE any
+run, take the newest workflow commit rather than a named generation, and make the
+acceptance artifact a canary that must come out RED — a green run on PR #71 proves
+nothing, because it touches zero migrations.
+
+Verify every volatile fact yourself before repeating it; several in §1 had already
+drifted within the hour. Rules that bit us last time: never git add -A (shared index —
+check git diff --cached before every commit); use Write/Edit for any multi-line file
+content, never heredocs; never pipe a command whose exit status you need. Surface the
+Sean-owed queue in §6 at your first closeout — items 1, 1b and 3 are blocking, and the
+Render key rotation is a prerequisite for one of the plan options.
 ```
