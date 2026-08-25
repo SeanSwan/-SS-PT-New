@@ -1,6 +1,6 @@
 ---
 name: grill-me
-description: Intent-extraction + advisory gate. Phase 1 relentlessly interviews Sean one question at a time to pull his vision, taste, and decisions — what the app/feature IS and is SUPPOSED TO DO — into a durable brainstorm doc BEFORE planning or building. Phase 2 then steps back and synthesizes: it reads the parent component, its children, and the app-as-a-whole, and proactively suggests needed features, gaps, and minimal-click enhancements grounded in Sean's vision and the Best-in-Class strategy. Use for any net-new component, page, feature, redesign, or system. Checkpoints every answer to a brainstorm markdown file so nothing is lost. Adapted from Matt PCO's "grill me" + Nate Herk's checkpointing version, extended with whole-system advisory synthesis.
+description: Standalone intent- and VALUES-extraction gate. Domain-independent — it is not a design skill and is not owned by swan-design-router. Phase 1 relentlessly interviews Sean one question at a time, descending a seven-tier values ladder, to pull his vision, taste, priorities, refusals and durable values into a brainstorm doc BEFORE planning or building. Anything that would still be true a year from now is promoted to the standing Swan Values Corpus so it never has to be asked again. Phase 2 steps back and synthesizes against the parent, its children and the app-as-a-whole. Use for ANY subject Sean is bringing into reality — frontend, backend, schema, API, business logic, pricing, copy, content and recording, the Swanverse game, Hermes scope, marketing, ops, brand. Extracts values, never implementation blueprints. Run it often.
 ---
 
 # Grill Me
@@ -10,6 +10,44 @@ description: Intent-extraction + advisory gate. Phase 1 relentlessly interviews 
 > "The toughest part about building good skills and a good operating system is getting everything from your brain into your system... A skill can just be a prompt you don't want to have to say every single time."
 
 Rule 78 environment preflight is the front door before any write. After the checkout is verified or isolated, this is the intent front door for clear net-new building and planning; foggy multi-session work reaches it through the current Wayfinder `GRILL-HITL` ticket. It runs before recursive planning, `swan-orchestrator`, and `swan-design-router`.
+
+## grill-me is its own thing (domain-independent)
+
+Grill-me is **not a design skill** and is **not owned by `swan-design-router`.** The design
+router is one downstream consumer among many. Grill-me runs before and above every build
+lane, on any subject matter Sean is bringing into reality:
+
+frontend · backend · data model & schema · API contracts · business logic · pricing &
+money-path · client-facing copy · admin/trainer workflow · content & recording · the
+Swanverse game & lore · Hermes/operator scope · marketing · ops & automation · brand.
+
+If Sean is deciding something and the answer lives in his head, grill-me is in scope —
+whether or not a single pixel is involved.
+
+## What grill-me is FOR: values, not disciplines
+
+Uncle Bob Martin's cut, adopted 2026-08-25: **impose human VALUES on agents, not human
+DISCIPLINE.**
+
+- A **value** is what "good" means to Sean — what he cares about, what he refuses, what he
+  finds beautiful, who he is protecting, which side of a tradeoff he takes every time.
+  Values transfer to an agent cleanly and stay true for years.
+- A **discipline** is a procedure built around a human limitation — report shapes, ceremony
+  ordering, step-by-step method. Agents do not share the limitation, so the discipline
+  transfers badly and decays into a guideline. Measured in this repo: **48% of documented
+  rules recurred as errors anyway.**
+
+**Grill-me extracts values. It does not produce implementation blueprints.**
+
+That distinction is what lets this skill survive the anti-spec-driven finding. A large,
+persisted, authoritative plan is the waterfall trap — it is wrong the moment the build
+contradicts it, and it rots into misleading context. A captured value is the opposite:
+small, durable, and *more* useful over time. When a grill drifts into "and then the
+function should call X" — stop. That is the build's job, not the interview's.
+
+The test for every answer captured: **would this still be true in a year, on a different
+feature?** If yes it is a value — promote it to the corpus. If no it is a detail of this
+slice — leave it in the brainstorm doc and let it expire with the slice.
 
 ## Two phases: Extract, then Synthesize & Advise
 
@@ -35,6 +73,12 @@ Do NOT invoke for:
 - Trivial bug fixes, typo fixes, comment-only edits, formatting passes
 - Tasks where the brainstorm doc already exists and is current (read it instead, then offer a re-grill only if there are new gaps)
 - Pure exploration/read-only research with no plan to build
+
+**Bias toward running it.** Sean's standing instruction (2026-08-25): grill *more*
+often, not less — "whenever it feels like it should be asking questions for anything." The
+cost of a grill is a few minutes of his time; the cost of a guess is a build in the wrong
+direction plus the rework. When in doubt, ask one question rather than assume. A grill that
+captures even one durable value has already paid for itself.
 
 If a brainstorm doc already covers the surface, **read it first**. Only re-grill the gaps or the new information Sean brings.
 
@@ -62,6 +106,29 @@ Five non-negotiables from the original:
 3. **Walk the design tree depth-first, resolving dependencies.** Each answer opens or closes branches. Follow the dependency order — don't ask about button color before knowing whether the surface exists.
 4. **Always recommend an answer.** Every question carries Claude's recommended answer + a one-line reason, so Sean can confirm fast or correct. Never ask a bare open question with no default.
 5. **Explore the codebase instead of asking when you can.** If the answer is discoverable from the repo (existing pattern, current route, model fields, installed lib version), go find it — don't make Sean answer what the code already says. This also honors rule 49 (no manual code inspection by Sean) and rule 18 (existing-pattern-first).
+
+### The values ladder (go deeper, tier by tier)
+
+Sean's ask: *be more intricate, ask as many questions as it can.* A grill that stops at
+"what should it do" has taken only the shallowest tier. Walk down until the answers stop
+changing:
+
+1. **Function** — what is it, what does it do, who uses it? *(the shallow tier; most grills
+   wrongly stop here)*
+2. **Intent** — what is it FOR? What does success look like a month after it ships?
+3. **Priority** — when two goods conflict here, which one wins? *(values begin at this tier;
+   make him actually choose)*
+4. **Refusal** — what would make you kill this? What must it never do, even if it works?
+5. **Taste** — offer two *acceptable* answers and ask which is **better**, and why. The why
+   is the value; the choice alone is not.
+6. **Precedent** — is this the same call you made on <other surface>? If not, what makes
+   this one different? *(catches inconsistency and surfaces the real underlying rule)*
+7. **Transfer** — "should this apply everywhere from now on?" A yes promotes it to the
+   values corpus and it never has to be asked again.
+
+Tiers 3–7 are what the extra questions buy. **Tier 7 is the compounding step:** every yes
+permanently removes a future question, which is how the interview gets cheaper over time
+instead of more expensive.
 
 ### Start at the vision tier, then descend
 
@@ -114,6 +181,28 @@ The danger in a long grill (they can run an hour+) is the context window filling
 - Brainstorm docs live in **`docs/ai-workflow/brainstorms/`** (NOT repo root — honors rule 35 root-minimalism; this is the one deviation from the original skill, which used project root).
 - After environment preflight returns a safe workspace, create the doc: `docs/ai-workflow/brainstorms/<kebab-topic>-<YYYY-MM-DD>.md`. The current date is provided in session context; use it and never create the file before preflight.
 - **After every single Q&A exchange, append to the doc.** Do not wait until the end. The doc is the source of truth, not the chat scrollback.
+
+### The values corpus (durable, front-loaded, compounding)
+
+Brainstorm docs are per-topic and dated; they expire. **Values must not.**
+
+Anything that clears tier 7 ("yes — apply this everywhere") is promoted to
+`docs/ai-workflow/references/SWAN-VALUES-CORPUS.md` — a short standing document agents read
+as *direction*, not as a rule list. It is the layer that has to survive lost-in-the-middle,
+so it stays tight: one line per value, grouped, no ceremony.
+
+Format: `- **<value>** — <one line>. *(<date>, from <topic>)*`
+
+Promotion rules:
+- **Only tier-7 answers.** A slice detail never enters the corpus.
+- **Merge, do not append blindly** — if a new value sharpens an existing line, rewrite that line.
+- **A contradiction is escalated, never overwritten.** If a new value conflicts with an
+  existing one, surface it to Sean and let him arbitrate; usually it means the older line
+  was over-general.
+- **Never add a discipline** — a procedure, report shape, or ceremony. Those belong in a
+  deterministic gate, or nowhere.
+- The corpus is capped by usefulness, not by size: if a line is never acted on, it was a
+  preference, not a value. Cut it.
 
 ### Brainstorm doc structure
 
@@ -179,8 +268,10 @@ Stop when **the design tree has no unresolved branches, no open holes that block
 When the grill ends, do the thing Nate's version does at the end:
 1. Set the doc `Status: complete`.
 2. **Scan for related skills and docs that this new knowledge should improve** — e.g. a CLAUDE.md reference doc, an existing skill, a design system note, a strategy doc. Name them with file paths.
-3. **Offer to update them** ("I notice this nuance isn't in `<file>` — want me to fold it in?"). Apply only with Sean's yes.
-4. Hand off to the next gate: if this feeds a build, the next step is `swan-orchestrator` → recursive plan (rule 15) → `swan-design-router` (if UI). State the next slice (rule 60).
+3. **Promote every tier-7 answer to `SWAN-VALUES-CORPUS.md`** (merge, don't append blindly;
+   escalate contradictions to Sean). This is the step that makes grilling compound.
+4. **Offer to update them** ("I notice this nuance isn't in `<file>` — want me to fold it in?"). Apply only with Sean's yes.
+5. Hand off to the next gate: if this feeds a build, the next step is `swan-orchestrator` → recursive plan (rule 15) → `swan-design-router` (if UI). State the next slice (rule 60).
 
 ## Re-grilling
 
@@ -189,6 +280,13 @@ Brainstorm docs are durable. Later, Sean can say "grill me again on <topic>, her
 ## Integration with the SwanStudios operating system
 
 - **Order:** Rule 78 environment preflight -> Wayfinder only for multi-session material fog -> grill-me -> swan-orchestrator -> swan-design-router (if UI) -> build -> closeout-evidence-lock.
+- **Standalone, not a design sub-skill.** `swan-design-router` is a *downstream consumer* of
+  grill-me, not its parent. Grill-me is invoked for backend, schema, pricing, copy, content,
+  game/lore, ops and brand work exactly as readily as for UI. Rule 40 routes *design* through
+  the router; it does not route *intent* — intent is always grill-me's.
+- **Feeds the Direction layer.** The values corpus is the short, front-loaded context agents
+  read first. Everything enforceable belongs in a gate; everything narrative belongs in the
+  learning corpus; what grill-me produces is the third thing — direction and taste.
 - **Feeds rule 15:** recursive planning is only as good as the intent behind it. Grill-me is the intent layer that makes the plan match Sean's head.
 - **Honors rule 49:** answer from the codebase, not by asking Sean to read code; build a launcher if a structural question comes up mid-grill.
 - **Honors rule 62:** for product/UX/roadmap topics, the grill questions should pull on the Best-in-Class strategy gate (next-best-action, first-party record, activation loops, monetization, privacy).
@@ -199,4 +297,8 @@ Brainstorm docs are durable. Later, Sean can say "grill me again on <topic>, her
 - Does not *make* decisions for Sean — Phase 1 extracts his, Phase 2 *suggests*; Sean accepts/modifies/rejects every suggestion.
 - Does not invent scope for its own sake — Phase 2 suggestions must strengthen coaching, adherence, progress proof, community, revenue, or trust (rule 62), or be cut.
 - Does not replace recursive planning — it precedes and informs it.
+- **Does not produce an implementation blueprint.** Large persisted authoritative plans are
+  the waterfall trap (Bob Martin, adopted 2026-08-25). Grill-me's product is values and
+  intent; the *how* is decided at build time against the real code.
+- Does not promote a slice detail into the values corpus — tier-7 transfer only.
 - Does not auto-update other skills/docs/plans without Sean's explicit yes.

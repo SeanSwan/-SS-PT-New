@@ -330,6 +330,34 @@ numbers), and Part 4 (the proposed slices). Ask each for:
   actually *lose* something a gate cannot capture?
 - **DISSENT (mandatory):** where is this handoff's own framing wrong?
 
+**Additionally — Sean's explicit instruction 2026-08-25, ask every seat this directly:**
+
+1. **The spec-driven conflict is now a FIRST-CLASS panel question, not a parked one
+   (supersedes Slice F's "surface, do not decide").** Sean wants the seats' reasoning on
+   the record before he arbitrates. Ask each: our Rules 15 / 64 / 68 mandate planning
+   before code, an exhaustive pre-build interview, and "a plan so complete a worker-bot
+   executes it verbatim with ZERO further questions." Bob Martin tried exactly this and
+   calls it the waterfall trap returning; his specs are ephemeral and unpersisted.
+   **Which of our three rules genuinely fall to that critique, and which survive it and
+   why?** Give a verdict with reasoning — Sean arbitrates, but he wants the argument.
+2. **The proposed resolution, attack it.** The working answer is: *keep the interview,
+   kill the blueprint, keep the checks* — i.e. (a) grill-me survives because it extracts
+   **values**, which Bob says transfer to agents, rather than implementation steps;
+   (b) Rule 15 becomes **plan-depth proportional to reversibility**; (c) Rule 68 inverts
+   so the expensive model's output is **the acceptance check, not the plan** — because a
+   check is deterministic, lives outside the context window, and fails loudly instead of
+   rotting silently. Where does this resolution break?
+3. **grill-me as a standing values organ.** It has been made domain-independent (not owned
+   by the design router), given a seven-tier values ladder, and given a durable output —
+   `docs/ai-workflow/references/SWAN-VALUES-CORPUS.md`, promoted to only by tier-7
+   "applies everywhere" answers. Ask each seat: **is a values corpus the right Direction
+   layer, or does it become the 492nd write-only artifact this repo already struggles to
+   drain?** What makes a values doc get *read* rather than merely written? What is the
+   right cap, and what is the eviction rule?
+4. **Values vs disciplines, applied to our own rulebook.** Bob: values transfer to agents,
+   disciplines do not. Ask each seat to name which of our rule *classes* are values
+   (keep, compress, front-load) and which are disciplines (retire into gates, or delete).
+
 ---
 
 ## PART 6 — TRAPS AND LESSONS FROM THIS SESSION
