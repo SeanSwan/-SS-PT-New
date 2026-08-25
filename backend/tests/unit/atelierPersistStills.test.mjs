@@ -89,9 +89,11 @@ describe('storage must exist before a row does', () => {
 });
 
 describe('the key is the hash, so persistence is idempotent', () => {
-  it('derives the object key from the artifact sha256 and the owner', () => {
-    const k = stillObjectKey({ userId: 7, sha256: 'ab'.repeat(32), ext: 'png', now: new Date('2026-08-25T00:00:00Z') });
-    expect(k).toBe(`atelier/stills/7/2026-08/${'ab'.repeat(32)}.png`);
+  it('derives the object key from the artifact sha256 and the owner — and NOTHING that changes with time', () => {
+    const k = stillObjectKey({ userId: 7, sha256: 'ab'.repeat(32), ext: 'png' });
+    expect(k).toBe(`atelier/stills/7/${'ab'.repeat(32)}.png`);
+    // The same bytes next month are the same object. (A month segment once broke this.)
+    expect(k).not.toMatch(/\d{4}-\d{2}/);
   });
 
   it('uploads once and creates one row for a hosted base64 still', async () => {

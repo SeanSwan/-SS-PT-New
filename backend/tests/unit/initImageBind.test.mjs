@@ -51,6 +51,18 @@ describe('the bind', () => {
     expect(d.calls.fetch[1].init.method).toBe('POST');
   });
 
+  it("uploads under a HASH-DERIVED name with overwrite, so job B cannot clobber job A's frame between upload and graph run", async () => {
+    const d = deps();
+    let sentName = null;
+    d.fetchImpl = async (url, init) => {
+      if (String(url).endsWith('/upload/image')) { sentName = init.body.get('image')?.name || null; return { ok: true, json: async () => ({ name: sentName }) }; }
+      return { ok: true, arrayBuffer: async () => BYTES };
+    };
+    const name = await bindInitImage({ id: 'job-9', params: { initImage: ref() } }, d);
+    expect(name).toContain(H.slice(0, 16));
+    expect(name).toBe(sentName);
+  });
+
   it('REFUSES when the downloaded bytes do not hash to the approved hash — permanent, no upload', async () => {
     const d = deps({ fetchImpl: async (url) => (String(url).endsWith('/upload/image') ? { ok: true, json: async () => ({ name: 'x' }) } : { ok: true, arrayBuffer: async () => Buffer.from('substituted') }) });
     const err = await bindInitImage({ id: 'job-9', params: { initImage: ref() } }, d).catch((e) => e);

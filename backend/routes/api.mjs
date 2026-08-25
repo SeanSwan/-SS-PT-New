@@ -13,6 +13,7 @@ import contactRoutes from './contactRoutes.mjs';
 import adminFinanceRoutes from './admin/adminFinanceRoutes.mjs';
 import featureFlagRoutes from './featureFlagRoutes.mjs';
 import atelierComposeRoutes from './atelierComposeRoutes.mjs';
+import atelierPublicRoutes from './atelierPublicRoutes.mjs';
 import contentStudioRoutes from './contentStudioRoutes.mjs';
 import renderAgentRoutes from './renderAgentRoutes.mjs';
 import contentStudioProjectRoutes from './contentStudioProjectRoutes.mjs';
@@ -45,6 +46,7 @@ router.use('/admin/finance', adminFinanceRoutes);
 router.use('/feature-flags', featureFlagRoutes);
 router.use('/body-map-evidence', bodyMapEvidenceRoutes);
 router.use('/atelier/compose', atelierComposeRoutes);
+router.use('/atelier/public', atelierPublicRoutes); // no auth by design — published assets only
 router.use('/content-studio/projects', contentStudioProjectRoutes);
 router.use('/content-studio', contentStudioRoutes);
 // Worker-facing surface: agents PULL from here (see renderAgentRoutes header for why

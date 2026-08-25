@@ -124,18 +124,30 @@ let inFlight = null;
 export function _resetSingleFlight() { inFlight = null; }
 
 /**
- * Run a whole batch on the GPU, sequentially, under a single-flight guard.
- * `renderOne(promptText, seed)` is called per still; the lane's own render is
- * the default, injectable for tests.
+ * RESERVE the GPU before anything else looks at it. The single-flight slot is taken
+ * here — at lane choice, BEFORE the VRAM read — so two concurrent requests cannot both
+ * read "26 GB free" and both dispatch. Check-then-act across two requests is the race
+ * three panel seats named; reserving first closes it. The reservation is released by
+ * the batch that holds it (or by `release()` if the request refuses before rendering).
  */
-export async function withGpu(batchFn) {
+export function reserveGpu() {
   if (inFlight) {
     throw new ComposeError('E_LOCAL_BUSY',
       'A local batch is already rendering on the GPU. Wait for it or request the hosted lane.',
       { retryAfterSec: 30 });
   }
-  inFlight = (async () => batchFn())();
-  try { return await inFlight; } finally { inFlight = null; }
+  const token = { released: false };
+  inFlight = token;
+  return { token, release: () => { if (inFlight === token) inFlight = null; token.released = true; } };
+}
+
+/**
+ * Run a whole batch on the GPU, sequentially, under the reservation. If no reservation
+ * was taken (direct callers, tests), take one now.
+ */
+export async function withGpu(batchFn, reservation = null) {
+  const r = reservation || reserveGpu();
+  try { return await batchFn(); } finally { r.release(); }
 }
 
 /**

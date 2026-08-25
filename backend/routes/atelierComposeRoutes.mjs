@@ -29,6 +29,7 @@ import {
 import { verifyLocalStills, PROBE_ENV_KEY, STILL_PROVIDER } from '../services/atelier/localStillLane.mjs';
 import { readAsset } from '../services/atelier/persistStills.mjs';
 import { bindMotion } from '../services/atelier/motionBind.mjs';
+import { transitionAsset, publishedReference } from '../services/atelier/publishAsset.mjs';
 
 const router = express.Router();
 
@@ -86,6 +87,10 @@ const STATUS = Object.freeze({
   E_JOB_NOT_FOUND: 404,
   E_LEASE_CONFLICT: 409,
   E_BIND_NO_INIT_IMAGE: 400,
+  E_BAD_STATUS: 400,
+  E_BAD_TRANSITION: 409,
+  E_PUBLISH_BLOCKED: 422,
+  E_PUBLISH_DECLARATION_REQUIRED: 422,
 });
 
 function fail(res, err) {
@@ -217,6 +222,34 @@ router.post('/motion', protect, adminOnly, async (req, res) => {
       idempotencyKey: (typeof headerKey === 'string' && headerKey.trim()) ? headerKey.trim() : undefined,
     });
     return res.status(out.replayed ? 200 : 202).json({ success: true, data: out });
+  } catch (err) { return fail(res, err); }
+});
+
+/**
+ * POST /api/atelier/compose/asset/:id/status — draft → approved → published (and back).
+ * Publish is refused (422) with the blockers from the FROZEN provenance record: an
+ * unconfirmed consent flag, a missing required attribution, or a grant-required model
+ * run with no grant used commercially. draft → published is not a step (409).
+ */
+router.post('/asset/:id/status', protect, adminOnly, async (req, res) => {
+  try {
+    const out = await transitionAsset({ id: String(req.params.id || ''), userId: req.user?.id, to: req.body?.to, declaration: req.body?.declaration });
+    return res.json({ success: true, data: out });
+  } catch (err) {
+    if (err?.code === 'E_PUBLISH_BLOCKED') return res.status(422).json({ success: false, error: err.message, code: err.code, blockers: err.blockers });
+    return fail(res, err);
+  }
+});
+
+/**
+ * GET /api/atelier/compose/asset/:id/reference — what a site needs: read URL, an
+ * <img>/<video> snippet, and the attribution. Withheld until published, so "copy link"
+ * cannot put a draft on a page.
+ */
+router.get('/asset/:id/reference', protect, adminOnly, async (req, res) => {
+  try {
+    const out = await publishedReference({ id: String(req.params.id || ''), userId: req.user?.id, publicBase: process.env.SWAN_PUBLIC_BASE_URL || '' });
+    return res.json({ success: true, data: out });
   } catch (err) { return fail(res, err); }
 });
 

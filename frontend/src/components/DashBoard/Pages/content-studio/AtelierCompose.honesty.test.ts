@@ -12,7 +12,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
-  describeLocalLane, describeHostedLane, laneOfferable, formatCost, stillSrc, readRefusal, describePersist, motionBindable, describeMotionJob,
+  describeLocalLane, describeHostedLane, laneOfferable, formatCost, stillSrc, readRefusal, describePersist, motionBindable, describeMotionJob, nextPublishStep, describeBlocker,
   type LimitsView, type LocalLaneView, type HostedLaneView, type StillView,
 } from './AtelierCompose.api';
 
@@ -139,5 +139,18 @@ describe('Motion binds to an asset hash, never to words', () => {
     const f = describeMotionJob({ jobId: 'j', status: 'failed', progress: null, errorCode: 'E_BIND_HASH_MISMATCH', errorMessage: 'not the approved frame', r2Key: null, startable: true, workerState: null });
     expect(f.tone).toBe('failed');
     expect(f.text).toContain('E_BIND_HASH_MISMATCH');
+  });
+});
+
+describe('Publish is a step at a time, and blockers say what they are', () => {
+  it('offers Approve from draft, Publish from approved, nothing from published', () => {
+    expect(nextPublishStep('draft')).toEqual({ to: 'approved', label: 'Approve' });
+    expect(nextPublishStep('approved')).toEqual({ to: 'published', label: 'Publish' });
+    expect(nextPublishStep('published')).toBeNull();
+  });
+  it('names a consent blocker as consent, never as a bare code', () => {
+    const t = describeBlocker('E_CONSENT_UNCONFIRMED: policy flag "no-identifiable-people" has no confirmed consent');
+    expect(t).toMatch(/^Consent not confirmed/);
+    expect(t).toContain('no-identifiable-people');
   });
 });

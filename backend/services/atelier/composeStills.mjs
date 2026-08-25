@@ -49,7 +49,7 @@ const SOURCES = new Set(['brief', 'taste']);
  * switches, so "nothing works" is never the message.
  */
 async function chooseLane(req, deps) {
-  const { env, limits, localVerify, admit } = deps;
+  const { env, limits, localVerify, admit, reserve } = deps;
   const want = req.lane || 'auto';
   if (!LANES.has(want)) throw new ComposeError('E_BAD_LANE', `lane must be one of ${[...LANES].join(', ')}.`);
   if (req.promptSource === 'taste' && want === 'hosted') {
@@ -58,15 +58,22 @@ async function chooseLane(req, deps) {
       + 'and are never sent to a hosted provider. Choose lane "local" or source "brief".');
   }
   const lv = localVerify(env);
+  // Reserve the GPU BEFORE reading its free memory, so admission is not a check-then-act
+  // race between two requests. The reservation travels with the batch; a refusal below
+  // releases it.
+  const admitLocal = async () => {
+    const reservation = reserve();
+    try { return { lane: 'local', admission: await admit({ env }), reservation }; } catch (err) { reservation.release(); throw err; }
+  };
   if (want === 'local' || (want === 'auto' && req.promptSource === 'taste')) {
     if (!lv.ok) {
       throw new ComposeError(lv.status !== 'probed' ? 'E_STILL_LANE_UNPROBED' : 'E_PROVIDER_UNCONFIGURED',
         `Local still lane is not ready: ${lv.problems.join('; ')}.`);
     }
-    return { lane: 'local', admission: await admit({ env }) };
+    return admitLocal();
   }
   if (want === 'auto' && lv.ok) {
-    try { return { lane: 'local', admission: await admit({ env }) }; } catch { /* fall through to hosted */ }
+    try { return await admitLocal(); } catch { /* fall through to hosted */ }
   }
   if (want === 'auto' && limits.disabled) {
     throw new ComposeError('E_NO_LANE',
@@ -102,7 +109,7 @@ function gateHosted({ model, count, limits, usage, verifier }) {
 }
 
 async function runBatch({ lane, prompts, key, req, model, deps }) {
-  const { generator, renderStill, withGpu, env } = deps;
+  const { generator, renderStill, withGpu, env, reservation } = deps;
   const seedAt = (i) => (Number.isInteger(req.seed) ? req.seed + i : seedFor(key, i));
   const one = async (p, i) => {
     if (!p.ok) return { status: 'rejected', reason: { code: p.code, message: p.message } };
@@ -128,7 +135,7 @@ async function runBatch({ lane, prompts, key, req, model, deps }) {
     }
   };
   // Hosted calls parallelise; the GPU does not. One card, one render, one batch.
-  if (lane === 'local') return withGpu(async () => { const out = []; for (let i = 0; i < prompts.length; i += 1) out.push(await one(prompts[i], i)); return out; });
+  if (lane === 'local') return withGpu(async () => { const out = []; for (let i = 0; i < prompts.length; i += 1) out.push(await one(prompts[i], i)); return out; }, reservation);
   return Promise.all(prompts.map(one));
 }
 
@@ -142,7 +149,7 @@ export async function composeStills(req = {}, deps = {}) {
   const {
     generator = hostedGenerate, verifier = hostedVerify, compiler,
     renderStill = local.renderStill, withGpu = local.withGpu,
-    localVerify = local.verifyLocalStills, admit = local.admission,
+    localVerify = local.verifyLocalStills, admit = local.admission, reserve = local.reserveGpu,
     tasteDeps = {}, env = process.env, store = new Map(), persist = persistBatch,
     limits = readComposeLimits(env), usage = { runs: 0, spendUsd: 0 }, now = Date.now(),
   } = deps;
@@ -167,7 +174,7 @@ export async function composeStills(req = {}, deps = {}) {
     throw new ComposeError('E_RUN_CAP', `This batch of ${count} would pass the daily run cap (${runs}/${limits.maxRunsDaily}). Raise ${RUNS_ENV_KEY}.`);
   }
   // GATE 3 — lane: readiness, licence, admission, or hosted budget.
-  const { lane, admission } = await chooseLane({ ...req, promptSource }, { env, limits, localVerify, admit });
+  const { lane, admission, reservation = null } = await chooseLane({ ...req, promptSource }, { env, limits, localVerify, admit, reserve });
   const cost = lane === 'hosted'
     ? { ...gateHosted({ model, count, limits, usage, verifier }), lane }
     : { count, model: local.STILL_PROVIDER, unitUsd: 0, totalUsd: 0, lane };
@@ -175,13 +182,14 @@ export async function composeStills(req = {}, deps = {}) {
   const key = req.idempotencyKey || deriveKey({ ...req, brief, promptSource, lane, model, count }, now);
 
   if (req.estimateOnly) {
+    reservation?.release();
     return { estimateOnly: true, lane, stills: [], failures: [], partial: false, replayed: false,
       cost: { ...cost, chargedUsd: 0 }, promptSource, model: cost.model, key, admission,
       ...(clampedFrom === undefined ? {} : { clampedFrom }) };
   }
 
   // GATE 4 — idempotency, reserved at START. Concurrent identical calls coalesce.
-  if (store.has(key)) return { ...(await store.get(key)), replayed: true };
+  if (store.has(key)) { reservation?.release(); return { ...(await store.get(key)), replayed: true }; }
   const work = (async () => {
     // Prompts — after every refusal gate, before any generator.
     let prompts; let tasteMeta = {};
@@ -193,7 +201,7 @@ export async function composeStills(req = {}, deps = {}) {
       const b = promptsFromBrief(brief, caps, count, compiler);
       prompts = b.prompts.map((p) => ({ ...p, compiled: b.compiled }));
     }
-    const settled = await runBatch({ lane, prompts, key, req, model, deps: { generator, renderStill, withGpu, env } });
+    const settled = await runBatch({ lane, prompts, key, req, model, deps: { generator, renderStill, withGpu, env, reservation } });
     const stills = []; const failures = [];
     settled.forEach((s, i) => {
       // `provider` is canonical; `model` is kept as an alias so the hosted contract
@@ -215,5 +223,5 @@ export async function composeStills(req = {}, deps = {}) {
     };
   })();
   store.set(key, work);
-  try { return await work; } catch (err) { store.delete(key); throw err; }
+  try { return await work; } catch (err) { store.delete(key); reservation?.release(); throw err; }
 }

@@ -13,7 +13,7 @@
  *    evidence service's `local://` placeholder is fine for dev photos; a
  *    provenance-bearing asset that points at bytes nobody can produce is a
  *    licence record about nothing.
- * 2. The object key IS the artifact hash. `atelier/stills/<owner>/<yyyy-mm>/<sha256>.<ext>`
+ * 2. The object key IS the artifact hash. `atelier/stills/<owner>/<sha256>.<ext>` (no date)
  *    — so a replay, a double-click, or an at-least-once retry lands on
  *    `findOrCreate` with the same key. MediaAsset's own docblock: the unique key
  *    is what makes at-least-once harmless.
@@ -41,9 +41,14 @@ export class PersistError extends ComposeError {
 const MIME_BY_FORMAT = Object.freeze({ png: 'image/png', jpeg: 'image/jpeg', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' });
 const sha256 = (b) => createHash('sha256').update(b).digest('hex');
 
-export function stillObjectKey({ userId, sha256: hash, ext = 'png', now = new Date() }) {
-  const ym = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
-  return `atelier/stills/${userId}/${ym}/${hash}.${ext}`;
+/**
+ * CONTENT-ADDRESSED. `atelier/stills/<owner>/<sha256>.<ext>` — no date segment. An
+ * earlier draft put the month in the path, which made the same bytes two objects
+ * and two rows across a month boundary and quietly broke the "key = hash" claim the
+ * panel took at its word. The month lives in the row's timestamps, not the key.
+ */
+export function stillObjectKey({ userId, sha256: hash, ext = 'png' }) {
+  return `atelier/stills/${userId}/${hash}.${ext}`;
 }
 
 /** Production collaborators, loaded only when nothing was injected. */
@@ -128,7 +133,7 @@ export async function persistStill({ still, userId, workspaceId = null, model, c
   const dims = imageDimensions(bytes);
   const format = dims?.format || (still.image?.mime ? still.image.mime.split('/')[1] : null) || 'png';
   const mime = MIME_BY_FORMAT[format] || still.image?.mime || 'image/png';
-  const r2Key = stillObjectKey({ userId, sha256: hash, ext: format === 'jpeg' ? 'jpg' : format, now: d.now });
+  const r2Key = stillObjectKey({ userId, sha256: hash, ext: format === 'jpeg' ? 'jpg' : format });
 
   const c = caps || capsFor(still, model);
   const provenance = buildProvenance({

@@ -10,6 +10,8 @@
 
 import { useCallback, useState } from 'react';
 import type { AxiosInstance } from 'axios';
+import { motionBindable, describeBlocker } from './AtelierCompose.words';
+export * from './AtelierCompose.words';
 
 export type Lane = 'auto' | 'local' | 'hosted';
 export type PromptSource = 'brief' | 'taste';
@@ -117,62 +119,9 @@ export function readRefusal(err: unknown, fallback: string): ComposeRefusal {
   };
 }
 
-/* ── Pure helpers (tested) — the words the UI is allowed to use ──────────── */
+/* ── Types shared with the words file ────────────────────────────────────── */
 
 export type LaneTone = 'ready' | 'unproven' | 'off';
-
-/**
- * The local lane's honest label. `claimed` is NOT a fault — it is a lane that has
- * never been proven, and the fix is a probe, not a repair. Gold, never red.
- */
-export function describeLocalLane(l: LocalLaneView | null): { tone: LaneTone; text: string; fix: string | null } {
-  if (!l) return { tone: 'off', text: 'Local lane · unknown', fix: null };
-  if (l.ready) return { tone: 'ready', text: `Local lane · ready · $0 · ${l.provider}`, fix: null };
-  if (l.status !== 'probed') {
-    return {
-      tone: 'unproven',
-      text: 'Local lane · unproven — no still has been rendered on this machine yet',
-      fix: `Run the probe (SWA-207), then set ${l.probeEnvKey}=probed`,
-    };
-  }
-  return { tone: 'off', text: 'Local lane · not configured', fix: l.problems[0] || null };
-}
-
-export function describeHostedLane(h: HostedLaneView | null): { tone: LaneTone; text: string; fix: string | null } {
-  if (!h) return { tone: 'off', text: 'Hosted lane · unknown', fix: null };
-  if (h.enabled) return { tone: 'ready', text: `Hosted lane · on · cap $${h.limits.maxSpendUsdDaily.toFixed(2)}/day`, fix: null };
-  return { tone: 'off', text: 'Hosted lane · switched off', fix: `Set ${h.spendEnvKey} to a real number to enable it` };
-}
-
-/** A lane the server will refuse must not be offered as if it will run. */
-export function laneOfferable(lane: Lane, limits: LimitsView | null): boolean {
-  if (!limits) return false;
-  if (lane === 'local') return limits.lanes.local.ready;
-  if (lane === 'hosted') return limits.lanes.hosted.enabled;
-  return limits.lanes.local.ready || limits.lanes.hosted.enabled;
-}
-
-export function formatCost(c: CostView | null): string {
-  if (!c) return '—';
-  if (c.totalUsd === 0) return '$0.00 · local';
-  return `$${c.totalUsd.toFixed(4)} · ${c.count} × $${c.unitUsd.toFixed(4)}`;
-}
-
-/** The asset chip on a still card: saved (with the id to bind to) or the reason it was not. */
-export function describePersist(s: StillView): { saved: boolean; text: string } {
-  if (s.assetId) return { saved: true, text: `asset ${s.assetId.slice(0, 8)}` };
-  if (s.persist && s.persist.ok === false) return { saved: false, text: `not saved · ${s.persist.code}` };
-  return { saved: false, text: 'not saved' };
-}
-
-/** What a still card can show. A local path is not loadable by a browser — say so, never fake an <img>. */
-export function stillSrc(s: StillView): { src: string | null; note: string | null } {
-  if (s.image.kind === 'b64') {
-    const d = s.image.data;
-    return { src: /^https?:\/\//i.test(d) ? d : `data:image/png;base64,${d}`, note: null };
-  }
-  return { src: null, note: `Saved on the render machine: ${s.image.path}` };
-}
 
 /* ── Motion ────────────────────────────────────────────────────────────────── */
 
@@ -188,28 +137,17 @@ export interface MotionJobView {
   r2Key: string | null; attribution?: string | null; startable: boolean; workerState: string | null;
 }
 
-/** A still can be sent to Motion only when it is a persisted asset with a hash to bind. */
-export function motionBindable(s: StillView | null): { ok: boolean; why: string } {
-  if (!s) return { ok: false, why: 'Select a frame first.' };
-  if (!s.assetId || !s.sha256) return { ok: false, why: 'This frame was not saved as an asset, so there is nothing to bind to.' };
-  return { ok: true, why: '' };
+/* ── Publish ───────────────────────────────────────────────────────────────── */
+
+export type ApprovalStatus = 'draft' | 'approved' | 'published';
+
+export interface AssetReference {
+  id: string; status: ApprovalStatus; r2Key: string; mime: string; width: number | null; height: number | null;
+  sha256: string | null; attribution: string | null; attributionRequired: boolean; licence: string | null;
+  blockers: string[]; readUrl: string | null; permalink?: string | null; snippet: string | null; withheld: string | null;
 }
 
-/** Honest words for a Motion job. "queued" alone is never shown when nothing can pick it up. */
-export function describeMotionJob(j: MotionJobView | null): { tone: 'working' | 'blocked' | 'ready' | 'failed' | 'idle'; text: string } {
-  if (!j) return { tone: 'idle', text: '' };
-  if (j.status === 'ready') return { tone: 'ready', text: 'Motion rendered' };
-  if (j.status === 'failed' || j.status === 'cancelled') {
-    return { tone: 'failed', text: `Motion ${j.status}${j.errorCode ? ` · ${j.errorCode}` : ''}${j.errorMessage ? ` — ${j.errorMessage}` : ''}` };
-  }
-  if (j.status === 'queued' && !j.startable) {
-    const reason = j.workerState === 'NO_WORKER_ENROLLED' ? 'no render machine connected'
-      : j.workerState === 'NO_WORKER_ONLINE' ? 'the render machine is offline'
-        : j.workerState === 'NO_WORKER_WITH_CAPABILITY' ? 'no capable worker' : 'nothing can pick this up yet';
-    return { tone: 'blocked', text: `Queued · ${reason}` };
-  }
-  return { tone: 'working', text: `${j.status}${typeof j.progress === 'number' ? ` · ${j.progress}%` : ''}` };
-}
+export interface PublishDeclaration { consentConfirmed: boolean; intendedUse: 'commercial' | 'personal'; note?: string }
 
 /* ── Hook ─────────────────────────────────────────────────────────────────── */
 
@@ -291,7 +229,34 @@ export function useAtelierCompose(api: AxiosInstance | null) {
     } catch { /* one unreadable poll must not blank the job */ }
   }, [api, motion]);
 
-  return { limits, estimate, result, refusal, busy, loadLimits, runEstimate, compose, setResult, motion, motionJob, startMotion, pollMotion };
+  const [reference, setReference] = useState<AssetReference | null>(null);
+
+  const loadReference = useCallback(async (assetId: string) => {
+    if (!api) return null;
+    try {
+      const { data } = await api.get(`${BASE}/asset/${assetId}/reference`);
+      const r = data?.data as AssetReference;
+      setReference(r);
+      return r;
+    } catch (err) { setRefusal(readRefusal(err, 'Could not read the asset.')); return null; }
+  }, [api]);
+
+  const setStatus = useCallback(async (assetId: string, to: ApprovalStatus, declaration?: PublishDeclaration) => {
+    if (!api) return null;
+    setRefusal(null);
+    try {
+      await api.post(`${BASE}/asset/${assetId}/status`, { to, ...(declaration ? { declaration } : {}) });
+      return loadReference(assetId);
+    } catch (err) {
+      const rf = readRefusal(err, 'Status change refused.');
+      const blockers = (err as { response?: { data?: { blockers?: string[] } } })?.response?.data?.blockers;
+      setRefusal(blockers?.length ? { ...rf, message: blockers.map(describeBlocker).join(' · ') } : rf);
+      await loadReference(assetId);
+      return null;
+    }
+  }, [api, loadReference]);
+
+  return { limits, estimate, result, refusal, busy, loadLimits, runEstimate, compose, setResult, motion, motionJob, startMotion, pollMotion, reference, loadReference, setStatus, setReference };
 }
 
 export default useAtelierCompose;

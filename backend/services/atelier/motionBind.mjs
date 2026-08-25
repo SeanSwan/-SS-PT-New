@@ -21,7 +21,7 @@
 
 import { createHash } from 'node:crypto';
 import { resolve as resolveProvider, validateVideoRequest, readGrants, readEnabled, ProviderError } from '../../../shared/providers/video/registry.mjs';
-import { ComposeError, DERIVED_KEY_BUCKET_MS, normalizeText } from './composeLimits.mjs';
+import { ComposeError, normalizeText } from './composeLimits.mjs';
 import { STILL_PROVIDER } from './localStillLane.mjs';
 
 export class MotionError extends ComposeError {
@@ -102,10 +102,12 @@ export async function bindMotion(req = {}, deps = {}) {
     throw err;
   }
 
-  // Idempotency — same asset, same hash, same direction, same minute → same job.
-  const bucket = Math.floor((d.now ?? Date.now()) / DERIVED_KEY_BUCKET_MS);
+  // Idempotency — CONTENT-derived, no wall-clock bucket. A retry that crosses a minute
+  // boundary on a 27s/frame queue is the common case, not the edge case; a minute
+  // slice would have queued the same Motion twice. The same asset + hash + direction
+  // + duration + provider + seed IS the same job; a deliberate re-render changes one.
   const idempotencyKey = req.idempotencyKey || createHash('sha256').update(JSON.stringify({
-    u: req.userId, a: asset.id, h: sha256, p: request.prompt, dur: request.duration, prov: providerId, seed: req.seed ?? null, bucket,
+    u: req.userId, a: asset.id, h: sha256, p: request.prompt, dur: request.duration, prov: providerId, seed: req.seed ?? null,
   })).digest('hex').slice(0, 40);
 
   const { job, replayed } = await d.createJob({
