@@ -115,6 +115,9 @@ describe('value parity (token subset): pack ⇄ original GlowButton (source-pars
     expect(buttonCss).toMatch(/font-weight:\s*var\(--sw-btn-weight,/);
     expect(buttonCss).toMatch(/letter-spacing:\s*var\(--sw-btn-tracking,/);
     expect(buttonCss).not.toMatch(/--_height:\s*var\(--sw-btn-height,\s*\d/);
+    // Ox/GLM R2: the invariant must FAIL on ANY px literal in a size fallback (56px hid here once).
+    expect(buttonCss).not.toMatch(/--sw-btn-(height|radius)(-sm|-lg)?,\s*\d/);
+    expect(buttonCss).toMatch(/--sw-btn-height-lg,\s*var\(--sw-p-target-lg\)/);
   });
   it('focus-shadow and ease ARE defined in the pack (composites the JS projection omits)', () => {
     expect(packToken('--sw-focus-shadow')).toContain('--sw-focus-ring'); // swan-guard-allow-hex test asserts token TEXT; Forge tokens are defined in packages/swan-forge

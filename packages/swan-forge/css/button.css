@@ -14,7 +14,9 @@
   --_text: var(--sw-btn-text, var(--sw-text-inverse));
   --_glow-a: var(--sw-btn-glow-a, var(--sw-glow-a));
   --_glow-b: var(--sw-btn-glow-b, var(--sw-glow-b));
-  /* Geometry defaults are CATALOG primitives. A pack's taste (e.g. the original GlowButton
+  /* LOAD ORDER: core defaults reference catalog primitives (--sw-p-*); tokens/primitive.css
+     must be loaded before this file or height/radius/weight fall to UA defaults (GLM R2).
+     Geometry defaults are CATALOG primitives. A pack's taste (e.g. the original GlowButton
      size table in crystalline-swan) arrives through the --sw-btn-* hooks — never baked
      into core (Ox + GLM, PR #2 review). The 44px floor stays the a11y minimum underneath. */
   --_radius: var(--sw-btn-radius, var(--sw-p-radius-md));
@@ -97,7 +99,7 @@
 
 /* ── Sizes ────────────────────────────────────────────────────────── */
 .sw-btn--small { --_height: var(--sw-btn-height-sm, var(--sw-p-target-min)); --_radius: var(--sw-btn-radius-sm, var(--sw-p-radius-sm)); padding-inline: var(--sw-p-space-4); font-size: calc(var(--sw-p-text-sm) * var(--sw-text-scale)); }
-.sw-btn--large { --_height: var(--sw-btn-height-lg, 56px); --_radius: var(--sw-btn-radius-lg, var(--sw-p-radius-lg)); padding-block: var(--sw-p-space-3); padding-inline: var(--sw-p-space-6); font-size: calc(var(--sw-p-text-lg) * var(--sw-text-scale)); }
+.sw-btn--large { --_height: var(--sw-btn-height-lg, var(--sw-p-target-lg)); --_radius: var(--sw-btn-radius-lg, var(--sw-p-radius-lg)); padding-block: var(--sw-p-space-3); padding-inline: var(--sw-p-space-6); font-size: calc(var(--sw-p-text-lg) * var(--sw-text-scale)); }
 .sw-btn.is-full { inline-size: 100%; }
 
 /* ── States ───────────────────────────────────────────────────────── */

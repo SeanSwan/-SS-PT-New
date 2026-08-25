@@ -151,13 +151,72 @@ const X = () => <GlowButton text="Go" />;`;
   assert.ok(report.residual.length >= 2, 'residuals reported for the import + motion(GlowButton)');
 });
 
-test('codemod: maskedRegions covers template literals and comments but not plain strings', () => {
-  const src = `const a = 'x'; // c\n/* b */ const t = \`q\`;`;
+test('codemod: maskedRegions covers template literals, comments AND same-line plain strings; an unterminated quote is JSX text, not a string', () => {
+  const src = `const a = 'x'; // c\n/* b */ const t = \`q\`;\nconst J = () => <span>don't</span>; const D = \`tpl\`;`;
   const m = maskedRegions(src);
-  assert.equal(m[src.indexOf("'x'")], 0);
+  assert.equal(m[src.indexOf("'x'") + 1], 1, 'closed plain string masked');
   assert.equal(m[src.indexOf('// c')], 1);
   assert.equal(m[src.indexOf('/* b */') + 3], 1);
   assert.equal(m[src.indexOf('`q`') + 1], 1);
+  assert.equal(m[src.indexOf('</span>')], 0, "the apostrophe in don't does not mask the rest of the line");
+  assert.equal(m[src.indexOf('`tpl`') + 1], 1, 'the template AFTER the apostrophe is still masked (GLM B2)');
+});
+
+test('codemod (Ox W1): a tag inside a plain string is never rewritten — bytes unchanged, SKIPPED reported', () => {
+  const src = `${IMPORT}
+const help = 'Try <GlowButton text="Hi" />';
+const X = () => <GlowButton text="Real" />;`;
+  const { out, report } = transform(src, FILE);
+  assert.ok(out.includes(`const help = 'Try <GlowButton text="Hi" />';`), 'string bytes unchanged');
+  assert.equal(report.tags, 1);
+  assert.ok(report.skipped.length >= 1);
+  assert.ok(out.includes('<ForgeButton text="Real" />'));
+});
+
+test('codemod (GLM B1): an import statement inside a template literal / comment is NOT rewritten', () => {
+  const src = `${IMPORT}
+const DOCS = \`Usage:
+import GlowButton from '../ui/buttons/GlowButton';
+<GlowButton text="x" />\`;
+/* import GlowButton from '../ui/buttons/GlowButton'; */
+const X = () => <GlowButton text="Real" />;`;
+  const { out, report } = transform(src, FILE);
+  assert.equal(report.imports, 1, 'only the real import is rewritten');
+  assert.ok(out.includes(`import GlowButton from '../ui/buttons/GlowButton';\n<GlowButton text="x" />\``), 'template bytes unchanged');
+  assert.ok(out.includes(`/* import GlowButton from '../ui/buttons/GlowButton'; */`), 'comment bytes unchanged');
+  assert.ok(report.skipped.filter((s) => /import GlowButton/.test(s)).length === 2);
+});
+
+test('codemod (GLM B2): a JSX apostrophe followed by a template on the same line — the template stays masked', () => {
+  const src = `${IMPORT}
+const Note = () => <span>don't</span>; const DOCS = \`Embed: <GlowButton text="Hi" />\`;
+const X = () => <GlowButton text="Real" />;`;
+  const { out, report } = transform(src, FILE);
+  assert.ok(out.includes('Embed: <GlowButton text="Hi" />'), 'template bytes unchanged');
+  assert.equal(report.tags, 1);
+});
+
+test('codemod (GLM nit): escape-STATE in findTagEnd — an attr string ending in an escaped backslash closes correctly', () => {
+  const src = `${IMPORT}
+const X = () => <GlowButton text="Go" title={'C:\\\\'} onClick={() => go('/x')} />;
+const Y = () => <GlowButton text="Two" />;`;
+  const { report } = transform(src, FILE);
+  assert.equal(report.tags, 2);
+  assert.equal(report.errors.length, 0);
+});
+
+test('codemod (Ox W3): a </GlowButton> inside a comment never pairs with a real open', () => {
+  const src = `${IMPORT}
+const X = () => (
+  <GlowButton text="Go">
+    {/* </GlowButton> */}
+    Go
+  </GlowButton>
+);`;
+  const { out, report } = transform(src, FILE);
+  assert.equal(report.tags, 1);
+  assert.ok(out.includes('{/* </GlowButton> */}'), 'comment bytes unchanged');
+  assert.ok(out.includes('Go\n  </ForgeButton>'), 'the real close was renamed');
 });
 
 test('codemod: no GlowButton → no change, no report noise', () => {

@@ -69,6 +69,7 @@
 
   /* ── Accessibility floors (NOT themeable — see specs; drift-lint R5 enforced) ── */
   --sw-p-target-min: 44px;
+  --sw-p-target-lg: 56px;   /* large-control height; the ONLY size literal core button.css may fall back to (PR #2 R2) */
   --sw-p-focus-width: 2px;
   --sw-p-focus-offset: 2px;
 

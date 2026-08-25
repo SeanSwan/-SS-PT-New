@@ -14,7 +14,9 @@
  * Hardened after the PR #2 panel review (Ox Alpha + GLM 5.3 + own pass), each with a fixture:
  *   - strings are skipped at EVERY brace depth ("}" inside `go('x}')` no longer desyncs the scan)
  *   - `//` and `/* *​/` comments inside an open tag are skipped (a ">" in a comment is not the tag end)
- *   - matches inside template literals / block comments / line comments are never rewritten
+ *   - matches inside template literals / block comments / line comments / same-line plain strings
+ *     are never rewritten (opens, closes AND import statements) — always reported as SKIPPED
+ *   - known limit: regex literals carry no lexer state (a `<GlowButton` inside /…/ is not masked)
  *   - `</Tag  >` (whitespace before ">") is a valid close and is found
  *   - an unterminated tag is a HARD error for that file (was a silent `break`)
  *   - spread props `{...x}` bypass the prop audit → reported, never silently accepted
@@ -45,8 +47,12 @@ function bindingSpecifier(file, frontendSrc) {
 
 /**
  * Byte mask of regions that must never be rewritten: template literals, block comments,
- * line comments. (Plain '…'/"…" strings are NOT masked — JSX text uses apostrophes freely
- * and a `<GlowButton` inside a plain string is reported by the residual check instead.)
+ * line comments, and plain '…'/"…" strings that CLOSE on the same line (round 2: Ox W1 —
+ * `'Try <GlowButton />'` was rewritten silently with no residual to catch it).
+ * A quote that reaches the end of its line without closing is NOT a string (JS strings
+ * cannot span lines — it is JSX text like `don't`); scanning resumes at opener+1 so the
+ * phantom never swallows a later backtick or comment on the same line (GLM B2).
+ * Known limit: regex literals have no lexer state here — `/<GlowButton/` is not masked.
  * @returns {Uint8Array} 1 = masked
  */
 export function maskedRegions(src) {
@@ -57,7 +63,12 @@ export function maskedRegions(src) {
     if (c === '`') { const s = i; i++; while (i < src.length && src[i] !== '`') { if (src[i] === '\\') i++; i++; } i++; mask.fill(1, s, i); continue; }
     if (c === '/' && n === '*') { const s = i; const e = src.indexOf('*/', i + 2); i = e < 0 ? src.length : e + 2; mask.fill(1, s, i); continue; }
     if (c === '/' && n === '/') { const s = i; const e = src.indexOf('\n', i); i = e < 0 ? src.length : e; mask.fill(1, s, i); continue; }
-    if (c === '"' || c === "'") { const q = c; i++; while (i < src.length && src[i] !== q && src[i] !== '\n') { if (src[i] === '\\') i++; i++; } i++; continue; }
+    if (c === '"' || c === "'") {
+      const q = c; const s = i; let j = i + 1;
+      while (j < src.length && src[j] !== q && src[j] !== '\n') { if (src[j] === '\\') j++; j++; }
+      if (src[j] === q) { mask.fill(1, s, j + 1); i = j + 1; } else { i = s + 1; } // unterminated → not a string
+      continue;
+    }
     i++;
   }
   return mask;
@@ -73,7 +84,7 @@ export function findTagEnd(src, start) {
   let depth = 0; let quote = null;
   for (let i = start + 1; i < src.length; i++) {
     const c = src[i];
-    if (quote) { if (c === quote && src[i - 1] !== '\\') quote = null; continue; }
+    if (quote) { if (c === '\\') { i++; continue; } if (c === quote) quote = null; continue; } // escape-STATE, not lookbehind: 'C:\\' closes correctly (GLM R2)
     if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
     if (c === '/' && src[i + 1] === '*') { const e = src.indexOf('*/', i + 2); if (e < 0) return null; i = e + 1; continue; }
     if (c === '/' && src[i + 1] === '/') { const e = src.indexOf('\n', i); if (e < 0) return null; i = e; continue; }
@@ -122,7 +133,8 @@ function rewriteTags(src, openRe, oldClose, newName, mapAttrs, report) {
     let closePos = -1; let closeLen = 0;
     if (!tag.selfClosing) {
       closeRe.lastIndex = tag.end;
-      const cm = closeRe.exec(src);
+      let cm;
+      while ((cm = closeRe.exec(src)) !== null && mask[cm.index]) { /* a close inside a comment/string never pairs (Ox W3) */ }
       if (!cm) { report.errors.push(`no </${oldClose}> found for the open at offset ${start} — file NOT transformed`); return { out: src, count: 0 }; }
       closePos = cm.index; closeLen = cm[0].length;
       // nested SAME-tag paired open inside the span makes positional pairing ambiguous
@@ -157,7 +169,11 @@ export function transform(src, file, frontendSrc = resolve('frontend/src')) {
     if (/\{\s*\.\.\./.test(attrs)) report.notes.push('spread props {...x} — prop audit BYPASSED for this site; verify the object has no pulse/haptic/glowIntensity or unknown keys');
     for (const p of propNames(attrs)) { if (DROPPED.has(p)) report.dropped.add(p); else if (!KNOWN.has(p) && !/^(data-|aria-|on[A-Z]|\$)/.test(p)) report.unknown.add(p); }
   };
-  let out = src.replace(/import\s+GlowButton\s+from\s+(['"])([^'"]*)\1;?/g, (whole, _q, spec) => {
+  // Import rewrite is mask-aware (GLM B1): an import statement inside a template literal or
+  // comment is documentation/codegen text, never a real edge — skipped + reported.
+  const importMask = maskedRegions(src);
+  let out = src.replace(/import\s+GlowButton\s+from\s+(['"])([^'"]*)\1;?/g, (whole, _q, spec, offset) => {
+    if (importMask[offset]) { report.skipped.push(`import GlowButton at offset ${offset} is inside a comment/template literal — not rewritten`); return whole; }
     if (!LEGACY_IMPORT.test(spec)) { report.notes.push(`import GlowButton from '${spec}' is NOT the legacy ui/buttons/GlowButton — left untouched (import-hijack guard)`); return whole; }
     report.imports++; return `import ForgeButton from '${bindingSpecifier(file, frontendSrc)}'; // Forge strangler (was GlowButton)`;
   });
