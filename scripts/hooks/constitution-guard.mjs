@@ -183,6 +183,13 @@ const DECLARED_TRIM_FLOOR = 0.5;
 const DECLARED_SET_FLOOR = 0.25;
 
 /**
+ * Absolute companion to the ratio (GLM prune-r3 F1 hardening): ratios can be diluted
+ * by inflating the denominator; characters cannot. Above the largest legitimate prune
+ * ever recorded (9,056 chars, 2026-08-25) with headroom, below any stacking attack.
+ */
+const DECLARED_SET_ABS_CAP = 15_000;
+
+/**
  * Minimum token overlap for a DECLARED rename to be believed — also derived.
  * The one known-legitimate rename in this repo's history (rule 46, "3-Brain
  * Review Loop" -> "Kimi Hostile-Review Gate") scored **42.5%**. The reviewer
@@ -440,7 +447,7 @@ for (const file of touched) {
   const removed = [];
   const renumbered = [];
   const reverted = [];
-  let declSetBefore = 0; let declSetAfter = 0;
+  let declSetBefore = 0; let declSetLost = 0;
   for (const [key, was] of before) {
     const now = after.get(key);
     // Decide whether this rule is VIOLATING first, and only then consult the
@@ -475,7 +482,11 @@ for (const file of touched) {
       // place. Beyond DECLARED_TRIM_FLOOR the declaration stops being believable
       // as a trim and the change must be an explicit removal.
       if (now && now.num === was.num) {
-        declSetBefore += was.len; declSetAfter += now.len;
+        // CLIPPED losses (GLM prune-r3 F1): a net measure let one declared decoy
+        // GROWN in the same commit buy back the whole breadth budget. Growth never
+        // offsets loss — only chars that actually left count.
+        declSetBefore += was.len;
+        declSetLost += Math.max(0, was.len - now.len);
         const declaredShrink = (was.len - now.len) / Math.max(was.len, 1);
         if (declaredShrink > DECLARED_TRIM_FLOOR) {
           blockers.push(`${file}: rule ${was.num} "${was.name.slice(0, 56)}" — declared trim removed ${Math.round(declaredShrink * 100)}% of the body (${was.len} -> ${now.len} chars). Past ${DECLARED_TRIM_FLOOR * 100}% this is a GUTTING wearing a trim declaration: declare it as a REMOVAL, or land the cut across separately reviewed commits.`);
@@ -507,11 +518,16 @@ for (const file of touched) {
     }
     aggBefore += was.len; aggAfter += now.len;
   }
-  // Breadth bound on the declared SET (Ox prune-r2 F1): many individually-plausible
-  // declared trims must not compose into a gutting. Accumulated in the per-rule loop.
-  const declSetShrink = declSetBefore ? (declSetBefore - declSetAfter) / declSetBefore : 0;
-  if (declSetShrink > DECLARED_SET_FLOOR) {
-    blockers.push(`${file}: the DECLARED rules collectively lost ${(declSetShrink * 100).toFixed(1)}% of their combined length (${declSetBefore} -> ${declSetAfter} chars) — individually-plausible trims stacking past ${DECLARED_SET_FLOOR * 100}% is a GUTTING of the set. Declare removals explicitly, or land the cut across separately reviewed commits.`);
+  // Breadth bound on the declared SET (Ox prune-r2 F1, hardened GLM prune-r3 F1):
+  // many individually-plausible declared trims must not compose into a gutting.
+  // Numerator is CLIPPED loss (growth never offsets), and an ABSOLUTE cap backs the
+  // ratio so stuffing the declared list with untouched rules cannot dilute the
+  // denominator into vacuity: the largest legitimate prune in history lost 9,056
+  // chars; DECLARED_SET_ABS_CAP sits above it with headroom, below any half-
+  // constitution stack (6 rules × 49% of ~4.5k ≈ 13k).
+  const declSetShrink = declSetBefore ? declSetLost / declSetBefore : 0;
+  if (declSetShrink > DECLARED_SET_FLOOR || declSetLost > DECLARED_SET_ABS_CAP) {
+    blockers.push(`${file}: the DECLARED rules collectively lost ${declSetLost} chars (${(declSetShrink * 100).toFixed(1)}% of their combined ${declSetBefore}; growth does not offset) — individually-plausible trims stacking past ${DECLARED_SET_FLOOR * 100}% or ${DECLARED_SET_ABS_CAP} chars is a GUTTING of the set. Declare removals explicitly, or land the cut across separately reviewed commits.`);
   }
   const aggShrink = aggBefore ? (aggBefore - aggAfter) / aggBefore : 0;
   if (aggShrink > AGGREGATE_SHRINK_TOLERANCE) {

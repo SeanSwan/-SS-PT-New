@@ -477,6 +477,26 @@ test('D3: BLOCKS STACKED sub-floor declared trims — 40% each × 6 rules is a s
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 
+test('D3: BLOCKS the PADDED-DECOY variant — declared growth must not buy back the breadth budget (GLM r3 F1)', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    const long = (n) => `${head(n)}${PAD.repeat(70)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const cut40 = (n) => `${head(n)}${PAD.repeat(42)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const grownDecoy = (n) => `${head(n)}${PAD.repeat(700)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const nums = [16, 46, 73, 74, 80, 81, 82];
+    const bodies = Object.fromEntries(nums.map((n) => [n, long(n)]));
+    commitDocs(r, claudeDoc(nums, { bodies }));
+    // Six rules cut 40% each; the seventh — also declared — is inflated 10× as a decoy.
+    const staged = Object.fromEntries(nums.map((n) => [n, n === 82 ? grownDecoy(n) : cut40(n)]));
+    stageDocs(r, claudeDoc(nums, { bodies: staged }));
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: nums.join(',') });
+    assert.equal(out.status, 1, 'a grown decoy must not dilute the set floor — clipped losses count regardless');
+    assert.match(out.stderr, /DECLARED rules collectively/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
 test('D3: still BLOCKS when the bleed extends past the declared rules', () => {
   const r = repo();
   try {
