@@ -191,8 +191,11 @@ function main() {
     // Routed through the shadow-mode emitter (2026-08-23, ox-alpha-led review).
     // Behaviour is UNCHANGED unless .ai-workflow/gate-mode.json names this hook AND
     // its window is unexpired. Every decision — block or allow — is logged so the
-    // keep/retire call is made on evidence instead of argument. Any failure inside
-    // the emitter falls back to blocking exactly as before.
+    // keep/retire call is made on evidence instead of argument.
+    // A failure inside emit() falls back to BLOCKING: it guards every step and its
+    // stdout write is the LAST statement, reached even if the prelude fails. That
+    // matters because the catch below is fail-OPEN — an earlier version of this
+    // comment promised the guarantee before the code actually provided it.
     emit('dual-tier-gate', reason);
   } catch {
     /* fail-open */
