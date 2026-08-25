@@ -33,8 +33,22 @@ import { readFileSync, existsSync } from 'node:fs';
 const ALWAYS_ON = ['CLAUDE.md', 'AGENTS.md', 'ACTIVE-INDEX.md', '.ai-workflow/hermes-inbox/standing-context.md'];
 const TRAILER = /^RULEBOOK:\s*(add|amend|retire|narrative-cut|mirror-sync)\b.*reviewed-by:\s*\S/im;
 
+/**
+ * A staged path counts if it IS an always-on file OR is a rename of one (round-1 GLM F4:
+ * `git mv CLAUDE.md X` + edit produced a path the exact match never saw). main() lists
+ * the index with `--no-renames` so a rename shows as delete+add; here we also match on
+ * basename so `docs/CLAUDE.md` or a moved copy still trips the guard. Over-matching a
+ * stray `CLAUDE.md` elsewhere costs one trailer line; under-matching costs the gate.
+ */
+const isAlwaysOn = (p) => {
+  const norm = String(p).replace(/\\/g, '/').replace(/^"|"$/g, '');
+  if (ALWAYS_ON.includes(norm)) return true;
+  const base = norm.replace(/^.*\//, '');
+  return ALWAYS_ON.some((a) => a.replace(/^.*\//, '') === base);
+};
+
 export function decide({ staged, message, ruleCount, claimed, byteDelta }) {
-  const hits = staged.filter((p) => ALWAYS_ON.includes(p));
+  const hits = staged.filter(isAlwaysOn);
   if (!hits.length) return { block: false, note: null };
   if (TRAILER.test(message || '')) {
     return { block: false, note: `rulebook change reviewed: ${hits.join(', ')} · rules ${ruleCount ?? '?'} (file claims ${claimed ?? '?'}) · ${byteDelta >= 0 ? '+' : ''}${byteDelta ?? '?'} bytes` };
@@ -58,7 +72,9 @@ function git(args) { return execFileSync('git', args, { encoding: 'utf8', stdio:
 
 export async function main() {
   let staged = [];
-  try { staged = git(['diff', '--cached', '--name-only']).trim().split('\n').filter(Boolean); }
+  // --no-renames: a rename of an always-on file shows as delete+add (both paths listed)
+  // instead of a single new path the exact-match could miss (round-1 GLM F4).
+  try { staged = git(['diff', '--cached', '--name-only', '--no-renames']).trim().split('\n').filter(Boolean); }
   catch (e) { console.error(`[rulebook-review] cannot read index, failing open: ${e.message}`); process.exit(0); }
   if (!staged.some((p) => ALWAYS_ON.includes(p))) process.exit(0);
 

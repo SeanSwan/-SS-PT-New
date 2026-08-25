@@ -250,12 +250,28 @@ try {
 try {
   const { execSync } = await import('node:child_process');
   const wfDir = join(SS_PT, '.github', 'workflows');
-  if (existsSync(wfDir)) {
+  // No `gh` on this machine → nothing to measure → say nothing (round-1 GLM F7 / Ox F8:
+  // an UNKNOWN finding on every session for a tool that is simply not installed is
+  // alarm fatigue, not signal). `gh` present but failing (auth, network) still falls
+  // to the UNKNOWN finding below — that IS signal.
+  let ghPresent = true;
+  try { execSync('gh --version', { stdio: 'ignore', timeout: 5000 }); } catch { ghPresent = false; }
+  if (existsSync(wfDir) && ghPresent) {
     const gh = (args) => JSON.parse(execSync(
       `gh run list ${args}`, { cwd: SS_PT, timeout: 20000, stdio: ['ignore', 'pipe', 'ignore'] }
     ).toString().trim() || '[]');
-    const newest = gh('--limit 1 --json conclusion,workflowName,updatedAt')[0];
-    const lastOk = gh('--status success --limit 1 --json updatedAt,workflowName')[0];
+    // ONE call on the common path (round-1 Grok F7 / GLM F7: two serial 20s calls were
+    // a 40s worst-case at SessionStart): pull the newest 20 runs and derive both facts
+    // from them. Only when no success appears in that window does the targeted
+    // second query run — a healthy repo never pays for it.
+    const recent = gh('--limit 20 --json conclusion,workflowName,updatedAt,status');
+    const newest = recent[0];
+    const lastOk = recent.find((r) => r.conclusion === 'success')
+      || (newest ? gh('--status success --limit 1 --json updatedAt,workflowName')[0] : undefined);
+    // An IN-PROGRESS newest run has conclusion null — that is "pending", not "failed"
+    // (round-1 GLM F7 / Ox F8). Judge on the newest COMPLETED run instead.
+    const pending = newest && (newest.conclusion === null || newest.conclusion === '' || newest.status === 'in_progress' || newest.status === 'queued');
+    if (pending && newest) newest.conclusion = 'pending';
     const anyScheduled = readdirSync(wfDir).some((f) =>
       /\.ya?ml$/i.test(f) && /^\s*schedule\s*:/m.test(read(join(wfDir, f)) || ''));
     const staleDays = anyScheduled ? 7 : 30;
@@ -266,6 +282,9 @@ try {
         'GitHub Actions: NO runs at all in queryable history — Actions is disabled for the repo ' +
         'or has never been triggered. Every workflow gate is an intention, not a protection.'
       );
+    } else if (!lastOk && pending) {
+      // Newest run is still going and nothing has ever succeeded: undecidable this
+      // second. No finding — the next session judges the completed run.
     } else if (!lastOk) {
       const c = newest.conclusion || 'unknown';
       findings.push(

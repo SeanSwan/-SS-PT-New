@@ -60,6 +60,22 @@ export function readLedger() {
  * Record real spend AFTER a call completes.
  * @param {{model:string, topic:string, usd:number, note?:string}} entry
  */
+/**
+ * "Priced" means a real finite number, or a non-blank numeric string. NOT `Number(usd)`
+ * alone: `Number('')` is 0, `Number('  ')` is 0, `Number(true)` is 1 — so an empty cost
+ * field or a boolean would have recorded a confident $0.00 / $1.00, the exact silent-zero
+ * class recordSpend was rewritten to close. Caught by the author attacking the author's
+ * own prompt list for the review panel (2026-08-25), before any seat did. Exported so
+ * the test can pin it without writing to the real ledger.
+ */
+export function isPriced(usd) {
+  // Non-negative only (round-1 GLM F5): a negative "cost" is not a refund in this
+  // ledger, it is a bug upstream — treat it as unpriced so it counts as worst case.
+  if (typeof usd === 'number') return Number.isFinite(usd) && usd >= 0;
+  if (typeof usd === 'string') return usd.trim() !== '' && Number.isFinite(Number(usd)) && Number(usd) >= 0;
+  return false;
+}
+
 export function recordSpend({ model, topic, usd, note = '' }) {
   ensureDir();
   // `usd: null` is a LEGAL, MEANINGFUL value: "this call cost money and nobody
@@ -68,7 +84,12 @@ export function recordSpend({ model, topic, usd, note = '' }) {
   // could never fire for exactly the calls of unknown price — fail-open in the
   // expensive direction, dressed as safe. Readers below treat null as WORST CASE
   // (perCall cap), so an unpriced call pushes the caps toward refusal, never away.
-  const priced = usd !== null && usd !== undefined && Number.isFinite(Number(usd));
+  // "Priced" means a real number or a non-blank numeric string. NOT `Number(usd)`
+  // alone: `Number('')` is 0 and `Number(true)` is 1, so an empty cost field or a
+  // boolean would have recorded a confident $0.00 / $1.00 — the exact silent-zero
+  // class this function was rewritten to close. Caught by the author attacking the
+  // author's own prompt list for the review panel (2026-08-25), before any seat did.
+  const priced = isPriced(usd);
   appendFileSync(LEDGER, `${JSON.stringify({
     ts: new Date().toISOString(), model, topic,
     usd: priced ? Number(usd) : null,

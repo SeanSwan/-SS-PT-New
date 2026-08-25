@@ -13,7 +13,23 @@
  */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { CAPS, topicFromPath, spentOnTopic, spentToday } from './spend-ledger.mjs';
+import { CAPS, topicFromPath, spentOnTopic, spentToday, isPriced } from './spend-ledger.mjs';
+
+// --- isPriced: the silent-zero trap, closed twice -------------------------------
+// `Number('')` is 0 and `Number(true)` is 1. The first null-usd fix used
+// `Number.isFinite(Number(usd))`, which would have recorded an EMPTY cost field as a
+// confident $0.00 — the exact class it was written to close. Found by the author
+// attacking their own review-packet prompts (2026-08-25), before any seat did.
+
+test('isPriced: real numbers and numeric strings are priced', () => {
+  for (const v of [0, 0.25, 1, '0', '0.0068', ' 0.5 ']) assert.equal(isPriced(v), true, String(v));
+});
+
+test('isPriced: blank, boolean, null, undefined, NaN, Infinity, objects are NOT priced', () => {
+  for (const v of ['', '   ', true, false, null, undefined, NaN, Infinity, -Infinity, {}, [], 'abc', '1x', -0.01, '-1']) {
+    assert.equal(isPriced(v), false, `isPriced(${JSON.stringify(v)}) must be false`);
+  }
+});
 
 // --- topicFromPath: one key for one document, on the filenames that diverged ---
 

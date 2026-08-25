@@ -34,14 +34,18 @@ const SURFACES = [
 ];
 
 const git = (a) => { try { return execFileSync('git', a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch { return ''; } };
-const countLines = (s) => (s.trim() ? s.trim().split('\n').length : 0);
-const grepArgs = (extra) => ['grep', '-I', '-c', ...(isRegex ? ['-E'] : ['-F']), needle, ...extra];
+// `-e <needle>` so a needle beginning with `-` is never read as an option (round-1 Ox F6).
+// `--untracked` on the WORKING-TREE column: plain `git grep` sees only tracked content,
+// which structurally misses exactly the newest agent-written files this sweep exists
+// to find (round-1 Ox F6 / GLM). origin/main is a tree and has no untracked concept.
+const grepArgs = (extra, { tree = false } = {}) =>
+  ['grep', '-I', '-c', ...(tree ? ['--untracked'] : []), ...(isRegex ? ['-E'] : ['-F']), '-e', needle, ...extra];
 
 console.log(`sweep: ${isRegex ? '/' + needle + '/' : JSON.stringify(needle)}\n`);
 console.log('  surface     working-tree   origin/main');
 let treeTotal = 0, mainTotal = 0;
 for (const [label, path] of SURFACES) {
-  const tree = git(grepArgs(['--', path])).trim().split('\n').filter(Boolean)
+  const tree = git(grepArgs(['--', path], { tree: true })).trim().split('\n').filter(Boolean)
     .reduce((s, l) => s + Number(l.split(':').pop() || 0), 0);
   const main = git(grepArgs(['origin/main', '--', path])).trim().split('\n').filter(Boolean)
     .reduce((s, l) => s + Number(l.split(':').pop() || 0), 0);
@@ -51,7 +55,7 @@ for (const [label, path] of SURFACES) {
 console.log(`  ${'TOTAL'.padEnd(10)}  ${String(treeTotal).padStart(12)}   ${String(mainTotal).padStart(11)}`);
 
 // Files, for the receipt (working tree, capped so the output stays readable).
-const files = git(['grep', '-I', '-l', ...(isRegex ? ['-E'] : ['-F']), needle, '--', ...SURFACES.map((s) => s[1])])
+const files = git(['grep', '-I', '-l', '--untracked', ...(isRegex ? ['-E'] : ['-F']), '-e', needle, '--', ...SURFACES.map((s) => s[1])])
   .trim().split('\n').filter(Boolean);
 if (files.length) {
   console.log(`\n  files (${files.length}${files.length > 25 ? ', first 25' : ''}):`);
