@@ -109,6 +109,37 @@ and after any change. Next slice is EITHER the live Visual-taste run on the home
 KEEP Swans.mp4 as the footage) OR client mode per §5 of the handoff — Sean decides. Commit per slice, explicit paths, batch-push.
 ```
 
+## 8. WHO BUILDS NEXT — Qwen in Hermes, blueprint by Ox Alpha first (Sean's directive 2026-08-25)
+
+Sean: *"We're going to have Qwen build the rest of this in my Hermes. The first thing it does is ask Ox for a blueprint — wireframe, flowchart (mermaid), plan to build it with the upgrades I want. Before it starts to build, I want Qwen to ask me what the upgrades are, so it can tell Ox."*
+
+**The sequence Qwen (Hermes) runs, in order — no code before step 4 is approved:**
+
+1. **Orient** (T0): read this handoff §0–§6, `taste-discovery-grill.md`, `swan-taste-brain/prompter/README.md`. From WSL the taste brain is at `/mnt/c/Users/BigotSmasher/Desktop/swan-taste-brain`. Start the server if needed and `curl -s 127.0.0.1:7331/api/profile` to see the current state. Run `node prompter/test-probe.mjs` (82) + `test.mjs` (52) — they must pass before anything else.
+2. **Interview Sean about the upgrades** (T0, grill-me discipline: ONE question at a time, lead with a recommended answer *here* because this is scope, not taste). Known candidates to confirm/extend — do not assume the list is complete:
+   - **Client mode** (§5): per-profile events, photos+Webb-only pool, how many grids (rec. 8), delivery (static HTML export v1 vs hosted), what Sean receives back, whether client kept-artifacts can be added as candidates.
+   - Cross-session `excludeIds` (never show a picture twice per profile).
+   - Pair mode (same subject, two treatments — local Comfy).
+   - Auto-refresh of the photo pool from picks (`fetch-photos.mjs` on a schedule / after N grids).
+   - Firing Unsplash `download_location` when a photo is *used* in a build.
+   - Anything else Sean names — write every answer to `docs/ai-workflow/brainstorms/taste-brain-upgrades-<date>.md` as it lands (checkpointing law).
+3. **Ask the blueprint panel — Ox Alpha, GLM-5.3, Kimi K3** (Sean 2026-08-25: *"it can tell Ox and GLM and Kimi K3"*). Assemble ONE packet — IDs/roles only, **no client names, no keys, no image bytes, no Midlibrary text** (Ox retains prompts at an undisclosed provider) — containing: §2 runtime contract, §3 laws, §5 sizing, Sean's answers from step 2, and the TasteEvent v1 schema. Ask each seat for: (a) **wireframes** (ASCII/markdown) for every new surface, desktop and 414px; (b) a **mermaid flowchart** of data flow — probe → events → compiler → directions → client export → back to Sean; (c) a **numbered slice plan**, each slice ≤1 day, with its test, its proof command, and what it must NOT touch; (d) the 3 ways it fails; (e) absence-first gaps. Transport: `node /mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT/scripts/consult-panel.mjs --document <packet> --seats ox,glm,kimi --out-dir <beside the brainstorm doc>` — run `--dry-run` first. **Kimi is paid and self-caps at $0.40:** keep the packet under ~9k tokens so its worst case clears the cap, or ask Sean for a one-time lift before `--confirm-spend`; Ox and GLM are $0. Then Qwen writes a **synthesis** (consensus / contradictions / unique insights / blind spots / one fused blueprint) — Qwen's synthesis is a draft; Sean decides.
+4. **Show Sean the fused blueprint** and get an explicit yes per slice before building (T2 writes to the taste brain only after that yes).
+5. **Build slice by slice** — commit per slice with explicit paths in the taste-brain repo; run both test suites before and after; browser-verify any picture surface (`naturalWidth > 0` count, 0 buttons <44px at 1440 and 414); delete every automated session's event file; never touch `taste/*.md`; never bind anything but `127.0.0.1`.
+6. **Provenance rule for Qwen:** Qwen is sub-Fable. Its memos go to the Hermes inbox (any-agent); it does **not** write `hermes-learning-packets/` (Fable-tier only, Rule 68). Ox's blueprint is advisory input; Sean is the decider.
+
+**Paste-ready first message for Qwen in Hermes:**
+```
+Read /mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT/docs/ai-workflow/AI-HANDOFF/TASTE-BRAIN-SESSION-HANDOFF-2026-08-25.md fully, then §8 again.
+Do step 1 (orient + run both test suites; report the counts). Then begin step 2: interview me ONE question at a time about the
+upgrades I want for the taste brain — start with client mode. Checkpoint every answer to docs/ai-workflow/brainstorms/taste-brain-upgrades-2026-08-25.md.
+When I say "that's all", build ONE packet (IDs/roles only, no keys, no image bytes, no Midlibrary text) and send it to the
+blueprint panel — Ox Alpha, GLM-5.3, Kimi K3 (consult-panel.mjs --seats ox,glm,kimi; --dry-run first; Kimi caps at $0.40, keep
+the packet under ~9k tokens or ask me for a one-time lift). Ask each for wireframes (desktop + 414px), a mermaid data-flow chart,
+a numbered ≤1-day slice plan with tests and proof commands, 3 ways it fails, and absence-first gaps. Write a synthesis (consensus /
+contradictions / unique insights / blind spots / one fused blueprint) and show it to me. Do not write code until I approve a slice.
+```
+
 ## 7. Pointers
 - Panel + synthesis: `docs/ai-workflow/AI-HANDOFF/panel-gpt-pro-design-brain-review-2026-08-25/FABLE-SYNTHESIS.md` (wip tree)
 - Corpus digest + GPT prompt: `docs/ai-workflow/AI-HANDOFF/SWAN-DESIGN-BRAIN-TRANSCRIPT-CORPUS-AND-GPT-PRO-AUDIT-PROMPT-2026-08-24.md` (main)
