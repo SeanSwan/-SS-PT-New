@@ -10,6 +10,14 @@ supersedes: none
 - **Why this exists:** Sean is about to hand ChatGPT Pro a deep-research + hostile-review job on the Swan Design Brain. Before that, he asked for one place that says what every transcript he fed the brain actually taught, folds in the new Scrollcraft transcript, and turns the whole thing into a paste-ready prompt.
 - **What the brain is FOR (Sean's words, 2026-08-24):** the Midjourney brain inside the design brain should let `grill-me` **interview Sean to discover what styles he likes**, then **offer him style suggestions from the Midjourney brain** so whatever he is making — websites, pictures, films — comes out more beautiful.
 
+## §0a — WHERE THIS FILE LIVES (for ChatGPT Pro and any external model)
+
+- **Repo:** `https://github.com/SeanSwan/-SS-PT-New` · **Branch:** `docs/design-brain-transcript-corpus-2026-08-24` (cut clean from `origin/main`; merge to `main` when Sean says)
+- **Path:** `docs/ai-workflow/AI-HANDOFF/SWAN-DESIGN-BRAIN-TRANSCRIPT-CORPUS-AND-GPT-PRO-AUDIT-PROMPT-2026-08-24.md`
+- **Raw URL (fetch this):** `https://raw.githubusercontent.com/SeanSwan/-SS-PT-New/docs/design-brain-transcript-corpus-2026-08-24/docs/ai-workflow/AI-HANDOFF/SWAN-DESIGN-BRAIN-TRANSCRIPT-CORPUS-AND-GPT-PRO-AUDIT-PROMPT-2026-08-24.md`
+- **Brain files it summarises (all on `main`):** `docs/ai-workflow/design-brain/` — start with `README.md`, `index.md`, `field-techniques.md`, `style-taxonomy.md`, `forge-compiler-contract.md`, `design.md`; raw-URL pattern: `https://raw.githubusercontent.com/SeanSwan/-SS-PT-New/main/docs/ai-workflow/design-brain/<file>`
+- **Not on GitHub (by design):** the Midlibrary corpus and taste files (`swan-taste-brain`, private, copyrighted) — only their counts and structure are described here.
+
 ## §0 — Where the transcripts actually live `[VERIFIED]`
 
 They were never stored as raw transcripts. Each was distilled into a brain file on `origin/main`:
@@ -111,6 +119,9 @@ Not a flat style list — a **two-axis matrix**: SOURCE (15 categories, ~5,525 s
 ## §4 — THE CHATGPT PRO PROMPT (paste everything inside the fence)
 
 ```text
+FETCH FIRST
+Read the full handoff this prompt comes from, then the brain files it lists, before answering: https://raw.githubusercontent.com/SeanSwan/-SS-PT-New/docs/design-brain-transcript-corpus-2026-08-24/docs/ai-workflow/AI-HANDOFF/SWAN-DESIGN-BRAIN-TRANSCRIPT-CORPUS-AND-GPT-PRO-AUDIT-PROMPT-2026-08-24.md — and the design brain itself at https://github.com/SeanSwan/-SS-PT-New/tree/main/docs/ai-workflow/design-brain (raw pattern: https://raw.githubusercontent.com/SeanSwan/-SS-PT-New/main/docs/ai-workflow/design-brain/<file>). If you cannot fetch, say so and work from the summary below.
+
 ROLE
 You are a senior design-systems researcher and a hostile reviewer. You will (1) run deep research, (2) hostile-review a design "brain", and (3) design a missing mechanism. Cite sources for research claims. Mark any speculation [HYPOTHESIS]. Do not flatter. Absence-first: the most valuable findings are the things nobody wrote down.
 
