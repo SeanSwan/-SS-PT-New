@@ -245,3 +245,5 @@ Both REVISE. Convergent findings fixed with regression tests; divergent ones adj
 - **Deferred with reasons:** icons-only rail (rule-of-two); UDL URL-sync binding + grouped-rail rendering (the strangler PR's own scope, contracts now exist); z-index vs legacy modal scrim reconciled at the login strangler; automated 414px/RTL regression tests (needs the Playwright harness → Phase 3 prep).
 
 **Proof after round 6:** forge gate 56/56 (+3 new tests) · audit PASS incl. 5 series + 1 link pairs · lint clean · theme:check · vitest forge/ 20/20 · gallery smoke: labels per variant, 1 aria-current, click-select, sticky danger survives burst, focus stays in region, auth wired, z-ladder · zero console errors.
+
+**Phase 2 SHIPPED 2026-08-25:** main `e16a68085..0a09024ae` (+ packet `6653e2469` on the branch). Push-2 class: app bundle unchanged by design (new consumer files unimported → tree-shaken). Post-deploy regression check: backend health + site root + the Phase 1.5 Forge chunk all still serving — see closeout. **Phase 2 gate status: PASSED.** Open follow-ups: SWA-206 (enforcement arming), strangler backlog T1 next, Phase 3 prep behind Coach blueprint S1/S2.
