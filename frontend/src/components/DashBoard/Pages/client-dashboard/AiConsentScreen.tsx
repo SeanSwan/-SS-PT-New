@@ -484,6 +484,12 @@ const AiConsentScreen: React.FC = () => {
       // v1.0 grant -- defeating the point of correcting the copy.
       await grantConsent(AI_CONSENT_VERSION);
       await fetchStatus();
+      // The interceptor arrives here with ?reconsent=1. Once the grant lands the
+      // notice must clear, or it reads as "still stale" after the user acted.
+      if (typeof window !== 'undefined' && window.location.search.includes('reconsent=1')) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      setArrivedForReconsent(false);
       showToast('Swan Coach consent granted successfully.');
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to grant consent.'));
@@ -530,9 +536,10 @@ const AiConsentScreen: React.FC = () => {
   // Arriving via the interceptor redirect means an AI call was just refused.
   // Show the notice even before the status fetch resolves, so the screen never
   // renders as if nothing happened.
-  const arrivedForReconsent =
-    typeof window !== 'undefined'
-    && new URLSearchParams(window.location.search).get('reconsent') === '1';
+  const [arrivedForReconsent, setArrivedForReconsent] = useState(
+    () => typeof window !== 'undefined'
+      && new URLSearchParams(window.location.search).get('reconsent') === '1',
+  );
 
   const needsReconsent =
     consentState === 'granted'

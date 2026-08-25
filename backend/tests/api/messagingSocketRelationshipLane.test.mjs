@@ -103,7 +103,12 @@ describe('isRelationshipWriteAllowed — the socket/REST shared seam', () => {
     queryMock.mockImplementation(async (sql) => {
       if (sql.includes('client_trainer_assignments')) return [{ counterparty: String(TRAINER) }];
       if (sql.includes('conversation_participants')) {
-        return [{ userId: String(CLIENT) }, { userId: String(TRAINER) }];
+        // platformRole is what a real row carries; null now means "user row
+        // missing" and fails closed, so a fixture without it is not a real row.
+        return [
+          { userId: String(CLIENT), platformRole: 'client' },
+          { userId: String(TRAINER), platformRole: 'trainer' },
+        ];
       }
       return [];
     });
@@ -152,6 +157,20 @@ describe('staff threads are writable, exactly as they are listable', () => {
     mockSql({
       counterparties: [TRAINER],
       participants: [{ id: CLIENT, role: 'client' }, { id: STRANGER, role: 'client' }],
+    });
+    await expect(isRelationshipWriteAllowed(freeClient, 42, false)).resolves.toBe(false);
+  });
+});
+
+describe('a missing or soft-deleted member fails CLOSED', () => {
+  // Users is paranoid. The old INNER JOIN made a soft-deleted stranger VANISH
+  // from `others`, so {me, trainer, deleted-stranger} looked like {me, trainer}
+  // and every() flipped to true (ox-alpha). LEFT JOIN now surfaces the row with
+  // a null role, and null is never reachable.
+  it('blocks a thread containing a member whose user row is gone', async () => {
+    mockSql({
+      counterparties: [TRAINER],
+      participants: [{ id: CLIENT, role: 'client' }, { id: TRAINER, role: 'trainer' }, { id: STRANGER, role: null }],
     });
     await expect(isRelationshipWriteAllowed(freeClient, 42, false)).resolves.toBe(false);
   });
