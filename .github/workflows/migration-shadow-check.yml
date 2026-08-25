@@ -81,6 +81,9 @@ on:
       - 'backend/scripts/seed-shadow-db.mjs'
       - 'backend/scripts/seed-shadow-db.selftest.mjs'
       - 'backend/scripts/shadow-meta-count.mjs'
+      - 'backend/scripts/shadow-delta-audit.mjs'
+      - 'backend/scripts/shadow-table-extract.mjs'
+      - 'backend/scripts/shadow-table-extract.selftest.mjs'
       - 'backend/package.json'
       - 'render.yaml'
       - '.github/workflows/migration-shadow-check.yml'
@@ -153,9 +156,16 @@ jobs:
 
       # A broken generator contract fails here — cheaply, with full output — instead of
       # surfacing later as a silently empty database.
-      - name: Seeder self-test (DB-free core contract)
+      - name: DB-free contract self-tests (seeder + table extractor)
         working-directory: backend
-        run: node scripts/seed-shadow-db.selftest.mjs
+        run: |
+          set -euo pipefail
+          node scripts/seed-shadow-db.selftest.mjs
+          # The extractor decides whether an added migration's target table was seeded. Its
+          # load-bearing contract is that an unreadable migration returns UNKNOWN, never "no
+          # tables" — if that ever regresses, the audit downstream starts printing OK for files
+          # nothing has read, which is precisely the vacuous-green defect this gate exists for.
+          node scripts/shadow-table-extract.selftest.mjs
 
       # -----------------------------------------------------------------------------------
       # Resolve what this change actually adds. Everything below depends on this split:
@@ -183,14 +193,27 @@ jobs:
             echo "fetch-depth: 0 is required for the baseline-then-delta split."
             exit 1
           fi
-          git diff --name-only "$BASE" HEAD -- backend/migrations/ > delta.txt || true
-          COUNT=$(grep -c . delta.txt || true)
-          COUNT=${COUNT:-0}
+          # Classify the delta instead of counting changed paths.
+          #
+          # GLM 5.3 R3-F1 / Ox Alpha R3-F3 (found independently): the old form counted CHANGED
+          # PATHS via --name-only, while the gate downstream counted EXECUTED NEW NAMES. Those
+          # are different sets, and comparing them was wrong in BOTH directions — a PR that
+          # added one migration and modified another passed green with the modification
+          # executed nowhere, and a deletion-only PR FATAL-ed on a legitimate change.
+          #
+          # Also note the previous line ended in `|| true`, which turned a failed git diff into
+          # count=0 and then into a green NOT-APPLICABLE run that had computed nothing
+          # (R3-F4) — the masked-failure family already fixed twice elsewhere in this file.
+          # The helper exits nonzero instead.
+          cd backend
+          node scripts/shadow-delta-audit.mjs --base "$BASE" --mode classify | tee ../delta.txt
+          cd ..
+          ADDED=$(grep -oE '^added_count=[0-9]+' delta.txt | head -1 | cut -d= -f2)
+          ADDED=${ADDED:-0}
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
-          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "added=$ADDED" >> "$GITHUB_OUTPUT"
           echo "base commit: $BASE"
-          echo "migration files changed by this change: $COUNT"
-          cat delta.txt
+          echo "migrations ADDED by this change (the only ones leg B can execute): $ADDED"
 
       # LEG A — the baseline. This is the schema the delta will actually meet in production.
       - name: Leg A — apply the BASE migration set to an empty database
@@ -295,8 +318,9 @@ jobs:
       - name: Leg B — apply THIS change's migrations against the populated database
         shell: bash
         env:
-          DELTA_COUNT: ${{ steps.delta.outputs.count }}
+          ADDED_COUNT: ${{ steps.delta.outputs.added }}
           BASE_COUNT: ${{ steps.lega.outputs.base_count }}
+          BASE: ${{ steps.delta.outputs.base }}
         run: |
           set -euo pipefail
           # Restore this change's migrations AND models before the delta runs.
@@ -333,7 +357,7 @@ jobs:
           # (HEAD is checked out three lines above), so its pending set was
           # (BASE files) minus (BASE files) = EMPTY, in every run, forever. Round 1's version
           # was merely empty; the moved version was renamed "report the delta" and so printed
-          # an authoritative "0 pending" next to DELTA_COUNT=N — actively misleading.
+          # an authoritative "0 pending" next to a delta of N — actively misleading.
           #
           # This is the only state in the job where its arithmetic means anything:
           # directory = HEAD, SequelizeMeta = BASE, so pending == the delta about to meet data.
@@ -344,17 +368,22 @@ jobs:
           echo "SequelizeMeta rows after  leg B: $after"
           applied=$(( after - before ))
           echo "migrations applied against populated data: $applied"
-          # Honesty gate. If this change adds migrations they MUST have executed here. If it
-          # adds none, say so plainly rather than let a green check imply a test that did not
-          # happen — that was exactly the old workflow's failure: leg 2 applied nothing and
-          # still reported "the second time with data".
-          if [ "$DELTA_COUNT" -gt 0 ] && [ "$applied" -le 0 ]; then
-            echo "FATAL: this change touches $DELTA_COUNT migration file(s), but leg B applied"
-            echo "none of them. The populated-schema test did NOT run."
-            exit 1
-          fi
-          if [ "$DELTA_COUNT" -eq 0 ]; then
-            echo "NOTE: this change adds no migrations, so leg B applied nothing."
+
+          # THE HONESTY GATE, rebuilt. It now compares like with like: every migration this
+          # change ADDS must have executed here, against populated tables. Modified/deleted/
+          # renamed files are reported as untestable rather than counted — a migration already
+          # in SequelizeMeta never re-runs, here or on Render, so failing on them was a false
+          # red and silently including them in an aggregate was a vacuous green.
+          #
+          # It also FATALs when an added migration targets a table the seeder could not
+          # populate: leg B would have run it against an EMPTY table and proved nothing, while
+          # production has rows. Round 2 only printed that fact into a summary no machine reads.
+          # GLM 5.3: "visibility is not enforcement."
+          node scripts/shadow-delta-audit.mjs \
+            --base "$BASE" --mode verify \
+            --applied "$applied" --skipped "${SEED_SKIPPED:-}"
+          if [ "$ADDED_COUNT" -eq 0 ]; then
+            echo "NOTE: this change adds no migrations, so leg B executed nothing."
             echo "The populated-schema test is NOT APPLICABLE here — it is not a pass."
           fi
 
@@ -408,13 +437,13 @@ jobs:
         shell: bash
         env:
           BASE: ${{ steps.delta.outputs.base }}
-          DELTA_COUNT: ${{ steps.delta.outputs.count }}
+          ADDED_COUNT: ${{ steps.delta.outputs.added }}
         run: |
           {
             echo "### Migration shadow check"
             echo ""
             echo "Base commit: \`$BASE\`"
-            echo "Migration files changed by this change: **$DELTA_COUNT**"
+            echo "Migrations **added** by this change (the only ones leg B can execute): **$ADDED_COUNT**"
             echo ""
             echo "1. Applied the BASE migration set to an empty throwaway Postgres."
             echo "2. Seeded deterministic synthetic rows (zero PII)."
@@ -433,7 +462,14 @@ jobs:
             echo "- The module graph resolving is not the server booting."
             echo "- On a direct push to \`main\`, Render deploys in PARALLEL with this job — Actions"
             echo "  cannot block it. This only gates when it is a REQUIRED status check on PRs."
-            if [ "$DELTA_COUNT" = "0" ]; then
+            echo "- A migration already recorded in SequelizeMeta never re-runs. Edits and deletions"
+            echo "  to existing migration files are reported above and are **not** tested here."
+            echo "- A PR may edit this workflow itself; its own run then satisfies the check."
+            echo ""
+            echo "> **Do NOT mark this a required check until a run actually reports.** As of"
+            echo "> 2026-08-24 every Actions run in this repo ends in \`startup_failure\` (billing),"
+            echo "> so requiring it would block every PR instead of gating migrations."
+            if [ "$ADDED_COUNT" = "0" ]; then
               echo ""
               echo "> This change adds no migrations, so the populated-schema leg was **not applicable**."
             fi
