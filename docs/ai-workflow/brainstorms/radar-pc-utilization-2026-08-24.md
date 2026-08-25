@@ -250,3 +250,12 @@ Sean bought radar so background work stops stealing his desktop: browser jobs, h
 - Sean closed the grill. Remaining unknowns stay as Open Flags and resolve as their evenings come.
 - **Sean's next ask:** brief the partner's school laptop agent (runs its own Hermes; already holds a plan for her lane) on what radar is NOW and how her lane connects to radar + Hermes — she will use radar too. Iterate prompt ↔ prompt until finalized. Governing constraints: SWA-189 + `project_wife_business_lane_own_school` (separate Unix user / DB / bot token on radar, no roster-reaching tool, child-data rule).
 - Docs committed locally on the wip branch (explicit paths, no push): this doc, the 7-file panel dir, the learning packet.
+
+## Re-grill addendum — Sean, 2026-08-24 (after the laptop agent's first reply)
+**Sean's direction (captured, not yet resolved):**
+1. **Spouse uses radar for her planning AND class design** ("planning and class design and stuff like that"). ⚠ "Class design" touches the classroom half, which the panel + SWA-189 keep OFF radar. Needs a rule: generic curriculum/activity design with **zero child-specific data** may be treated like the personal lane; anything child-specific stays on the laptop.
+2. **She gets access to the Swan Design/Taste Brain** (design.md + the taste-steered prompter — "it gives prompts on how it should look").
+3. **She can use the HY3 image/video asset creator** ("the MMX HY3 app we built with copy UIs" — commits to be looked up) to make her own assets; also ChatGPT images and the Midjourney account — **family/personal use only, nothing sold.**
+4. **She gets time on the 5090 when she wants it, with a queue** when Sean is using it.
+5. **Easy two-way messaging between them** ("she should be able to easily send me messages too… so we can both communicate at the same time").
+**Implication:** the partner lane grows from "personal-business operator" to "household creative + GPU-sharing lane." radar = the scheduler/queue; the 5090 = the executor when awake and free. Governance questions to settle: the class-design boundary (child-data-free rule), a per-user principal on the 5090, and a queue/lease design with a fair-use policy.
