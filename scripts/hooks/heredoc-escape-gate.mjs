@@ -73,6 +73,35 @@ export function unquotedMask(cmd) {
   for (let i = 0; i < cmd.length; i++) {
     const c = cmd[i];
     if (q === null) {
+      // HEREDOC-AWARE (round-3 self-attack): a heredoc BODY is data — an apostrophe in
+      // `it's` inside a body must not flip quote state and hide the next `<<` operator.
+      // On an unquoted `<<`/`<<-` opener (not `<<<`), skip to the end of the opener line
+      // and then past the body to its bash-faithful terminator, marking the body as
+      // non-operator territory and leaving quote state untouched.
+      if (c === '<' && cmd[i + 1] === '<' && cmd[i + 2] !== '<' && cmd[i - 1] !== '<') {
+        const dash = cmd[i + 2] === '-';
+        let j = i + (dash ? 3 : 2);
+        while (j < cmd.length && (cmd[j] === ' ' || cmd[j] === '\t')) j++;
+        let delim = '';
+        const qc = cmd[j] === "'" || cmd[j] === '"' ? cmd[j] : (cmd[j] === '\\' ? '\\' : null);
+        if (qc === "'" || qc === '"') { const e = cmd.indexOf(qc, j + 1); if (e > j) { delim = cmd.slice(j + 1, e); j = e + 1; } }
+        else { if (qc === '\\') j++; const s0 = j; while (j < cmd.length && !/[\s'"\\<|;&]/.test(cmd[j])) j++; delim = cmd.slice(s0, j); }
+        if (delim) {
+          const eol = cmd.indexOf('\n', j);
+          if (eol < 0) { for (let k = i; k < cmd.length; k++) mask[k] = mask[k] && k < j; break; }
+          // Find the terminator line: exact delimiter (plain) or tabs+delimiter (dash).
+          let bodyStart = eol + 1, bodyEnd = cmd.length, pos = bodyStart;
+          while (pos <= cmd.length) {
+            const nl = cmd.indexOf('\n', pos); const line = cmd.slice(pos, nl < 0 ? cmd.length : nl);
+            const stripped = dash ? line.replace(/^\t+/, '') : line;
+            if (stripped.replace(/[ \t]+$/, '') === delim && (dash || !/^[ \t]/.test(line))) { bodyEnd = pos; break; }
+            if (nl < 0) break; pos = nl + 1;
+          }
+          for (let k = i + 2; k < bodyEnd && k < cmd.length; k++) if (k >= bodyStart) mask[k] = false; // body = data
+          i = bodyEnd - 1; // resume scanning at the terminator line, quote state unchanged
+          continue;
+        }
+      }
       if (c === '\\') { mask[i] = true; i++; if (i < cmd.length) mask[i] = false; continue; }
       if (c === "'" || c === '"') { q = c; mask[i] = false; continue; }
       mask[i] = true;

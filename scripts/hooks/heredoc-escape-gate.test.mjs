@@ -261,6 +261,27 @@ test('R3 BLOCK: a real heredoc after a quoted argument is still caught', () => {
 test('R3 ALLOW: an escaped quote does not confuse the mask', () => {
   allow('echo "he said \\"<<EOF\\" once"', 'escaped quotes inside "..." stay inside');
 });
+// --- round-3 self-attack: heredoc BODIES must not feed the quote-state machine ----------
+
+test('R4 BLOCK: an apostrophe inside a heredoc body does not hide the NEXT heredoc', () => {
+  // Pre-fix: `it's` flipped the mask into "single-quoted" for everything after it, so the
+  // second `<<` was treated as text and its ${X} body went uninspected — a silent ALLOW.
+  block("cat > a <<A\nit's fine\nA\ncat > b <<B\n${X}\nB", 'second heredoc still an operator');
+});
+test('R4 BLOCK: an apostrophe inside a QUOTED heredoc body does not hide the next heredoc either', () => {
+  block("cat > a <<'A'\nit's literal\nA\ncat > b <<B\n$(cmd)\nB", 'quoted body is data too');
+});
+test('R4 ALLOW: an apostrophe in a heredoc body does not swallow a later hatch', () => {
+  allow("cat > a <<A\nplain it's\nA\ncat > b <<B # HEREDOC-OK: fixture, expansion intended\n${X}\nB", 'hatch on the second opener');
+});
+test('R4: mask marks heredoc body positions as non-operator and resumes cleanly after the terminator', () => {
+  const cmd = "cat <<A\nbody 'x\nA\necho done";
+  const m = unquotedMask(cmd);
+  const bodyIdx = cmd.indexOf("body");
+  assert.equal(m[bodyIdx], false, 'body chars are not operator positions');
+  assert.equal(m[cmd.indexOf('echo')], true, 'after the terminator the mask is unquoted again');
+});
+
 test('unquotedMask: basic states', () => {
   const m = unquotedMask('a "b c" d \'e\' f');
   assert.equal(m[0], true); assert.equal(m[3], false); assert.equal(m[8], true); assert.equal(m[11], false);
