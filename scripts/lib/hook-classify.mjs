@@ -52,6 +52,23 @@ export function classifyCommand(cmd, root) {
   const brief = cmd.length > 90 ? `${cmd.slice(0, 90)}…` : cmd;
   const unver = (why) => ({ kind: 'UNVERIFIED', key: cmd, why: `\`${brief}\` — ${why}; existence NOT verified` });
 
+  // THE ONE CANONICAL IDIOM, resolved instead of declined (SOUL-delta gap sweep,
+  // 2026-08-25). Every hook this repo registers uses the exact shape
+  //     node "${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/x.mjs" [args]
+  // and the blanket quoting/meta declines below turned ALL of them — eleven entries —
+  // into permanent UNVERIFIED noise at every session start. This module's own thesis
+  // says sustained noise restores the outage by consent; a wall of false declines on
+  // the repo's own canonical form is that failure, not caution. At hook runtime
+  // `${CLAUDE_PROJECT_DIR:-.}` IS the project root (the harness sets it; `.` is the
+  // fallback and hooks run from the root), which is exactly what `root` names here —
+  // so the substitution loses nothing the runtime would have had.
+  // DELIBERATELY NARROW: only the double-quoted, `:-.`-defaulted, slash-followed form,
+  // and only when the quoted remainder has no spaces, quotes, or `$` (a quoted path
+  // WITH a space needs its quotes, and any nested expansion is still undecidable —
+  // both fall through to the declines below, unchanged). Bare `$CLAUDE_PROJECT_DIR`
+  // and `${CLAUDE_PROJECT_DIR}` forms stay UNVERIFIED per the existing tests.
+  cmd = cmd.replace(/"\$\{CLAUDE_PROJECT_DIR:-\.\}(\/[^"\s$]*)"/g, '.$1');
+
   // JS `\s` matches U+00A0 and friends; a shell does NOT treat them as separators.
   // `node ./a<NBSP>b.mjs` is one runnable file, but the split produced `b.mjs` as the
   // sole candidate and reported a healthy registration MISSING (round 8). Decline

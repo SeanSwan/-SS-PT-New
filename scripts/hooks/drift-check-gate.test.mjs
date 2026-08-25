@@ -58,6 +58,14 @@ const cases = [
   ['node drift\\-check\\-gate.mjs', 'UNVERIFIED', 'R4: POSIX escape'],
   [`node ${REAL} --emit dist/preview.mjs`, 'UNVERIFIED', 'R4/R5: output arg is not the entrypoint'],
 
+  // 2026-08-25 SOUL-delta gap sweep: the ONE canonical quoted idiom every real hook
+  // uses is RESOLVED, not declined — eleven permanent UNVERIFIED rows per session was
+  // the alarm-fatigue failure this module's own header warns about.
+  [`node "\${CLAUDE_PROJECT_DIR:-.}/${REAL}"`, 'OK', 'canonical quoted idiom resolves against root'],
+  [`node "\${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/definitely-gone.mjs"`, 'MISSING', 'canonical idiom with an absent file is a REAL finding'],
+  ['node "${CLAUDE_PROJECT_DIR:-.}/scripts/$SUB/x.mjs"', 'UNVERIFIED', 'nested expansion inside the quoted remainder still declines'],
+  ['node "${CLAUDE_PROJECT_DIR:-.}/my hooks/x.mjs"', 'UNVERIFIED', 'quoted path with a space keeps its quotes and declines'],
+
   // rounds 2-3 vectors
   ['node $CLAUDE_PROJECT_DIR/scripts/hooks/x.mjs', 'UNVERIFIED', 'R2: canonical portable idiom'],
   ['node ${CLAUDE_PROJECT_DIR}/scripts/h.mjs', 'UNVERIFIED', 'R2: braced form'],

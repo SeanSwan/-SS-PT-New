@@ -315,6 +315,43 @@ try {
   );
 }
 
+// ---- 11) Rulebook commits on origin/main without a RULEBOOK trailer --------
+//
+// WHY (SOUL-delta panel 2026-08-25, unanimous G6 — Kimi/Ox/Grok): the
+// rulebook-review-guard is a LOCAL commit-msg hook. A GitHub-UI squash/merge, a
+// web edit, or any clone without core.hooksPath bypasses it silently, and the CI
+// mirror is blocked on dead Actions billing. This probe converts that silent
+// bypass into a detected-at-next-session event: any commit on origin/main (as of
+// the last fetch — no network here) in the last 14 days that touches
+// CLAUDE.md/AGENTS.md but carries no RULEBOOK trailer gets named. Read-only,
+// fail-open, silent when clean, like every probe above.
+try {
+  const TRAILER = /^RULEBOOK:\s*(add|amend|retire|narrative-cut|mirror-sync)\b.*reviewed-by:\s*\S/im;
+  // Floor at the guard's ship date: commits BEFORE the trailer discipline existed are
+  // history, not bypasses (live-fire found 16 pre-guard commits — pure alarm fatigue).
+  // The window is max(14 days ago, guard ship): after 2026-09-08 the floor is inert.
+  const GUARD_SHIPPED = Date.parse('2026-08-25T00:00:00Z');
+  const since = new Date(Math.max(Date.now() - 14 * 86_400_000, GUARD_SHIPPED)).toISOString();
+  const shas = execFileSync('git',
+    ['log', `--since=${since}`, '--format=%H', 'origin/main', '--', 'CLAUDE.md', 'AGENTS.md'],
+    { cwd: SS_PT, timeout: 15000, stdio: ['ignore', 'pipe', 'ignore'] }
+  ).toString().trim().split('\n').filter(Boolean).slice(0, 20);
+  const naked = [];
+  for (const sha of shas) {
+    const msg = execFileSync('git', ['log', '-1', '--format=%B', sha],
+      { cwd: SS_PT, timeout: 10000, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+    if (!TRAILER.test(msg)) naked.push(sha.slice(0, 9));
+  }
+  if (naked.length) {
+    findings.push(
+      `Rulebook drift: ${naked.length} commit(s) on origin/main touched CLAUDE.md/AGENTS.md in the ` +
+      `last 14d WITHOUT a RULEBOOK trailer (${naked.join(', ')}). The local commit-msg guard was ` +
+      'bypassed (GitHub-UI squash, web edit, or an unhooked clone). Read those diffs before ' +
+      'trusting the current rule text; add the trailer discipline to whatever path produced them.'
+    );
+  }
+} catch { /* fail-open: no git, no origin/main ref, or timeout — say nothing */ }
+
 // ---- Emit: silent when clean ----------------------------------------------
 if (findings.length) {
   process.stdout.write(
