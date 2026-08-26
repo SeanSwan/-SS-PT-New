@@ -59,6 +59,61 @@ does not carry, so the minutes balance could not be read directly. That is the o
 chain confirmed by elimination rather than observation, and it is the link Sean can see in one
 click.
 
+## UPDATE 2026-08-26 — the account-scope half is now OBSERVED, not inferred
+
+Both paid review seats (GLM 5.3, Ox Alpha) independently said the same thing: the diagnosis
+rested on **elimination, not observation**, and a throwaway repo would close that in minutes.
+They were right, and it did.
+
+**Test run:** created a brand-new **private** repo (`SeanSwan/ci-probe-swan`) containing exactly
+one workflow — seven lines, `runs-on: ubuntu-latest`, one step, `echo ok`. Nothing else. Pushed.
+
+**Result: `startup_failure`, in under ten seconds.**
+
+That eliminates, by observation rather than argument:
+- anything specific to the SS-PT repository, its history, or its branches
+- anything about workflow content, size or complexity (this one is seven lines)
+- anything about the 2,226-commit staleness of the working branch
+
+`[VERIFIED]` **the block is account-scoped.** Not repo-scoped, not content-scoped.
+
+**Also checked and cleared:** githubstatus.com reports *All Systems Operational* and the Actions
+component `operational`, so a 12-day platform incident — which would have fit every observation —
+is ruled out.
+
+### The one question still open: billing, or an account restriction?
+
+GLM named the surviving non-billing cause: an **account-level Actions restriction** (usage-policy
+hold). It fits every observation as well as billing does, because in both cases the refusal
+happens before any job exists, so nothing gets annotated.
+
+**These need different fixes.** Billing → the billing page. A policy hold → a support ticket; the
+billing page will not touch it.
+
+**The discriminator, and it is cheap:** Actions are **unmetered for public repositories** on
+personal accounts. Flip the probe repo to public and push again.
+
+- **Run goes green** ⇒ the block binds to *private* repos ⇒ **billing / minutes**, confirmed by
+  observation.
+- **Run still `startup_failure`** ⇒ **account-level restriction** ⇒ open a support ticket; do not
+  spend time on the billing page.
+
+The probe repo is already created and staged for this. It holds no code, no secrets and no PII —
+one `echo ok`. It is Sean's call because it briefly makes something public under his account, and
+it is deletable immediately afterwards.
+
+### Two corrections the review forced on this document
+
+1. **"Zero successes, ever" overreached.** 500 is the *queryable window* (2026-08-14 → 08-26), not
+   the repository's history. The correct claim is "zero successes in the queryable window."
+2. **`path:"BuildFailed"` is not evidenced as GitHub's billing-specific signature.** I asserted
+   that. It is consistent with a pre-job decline, but the diagnosis is carried by the elimination
+   table and now by the probe — not by that string. Stated rather than left implied.
+
+Also noted, and it matters for the workaround: **self-hosted runners keep working under a
+spending-limit block** (Ox). If the cause is billing, a self-hosted runner on hardware Sean
+already owns restores CI without paying anything.
+
 ## What to check, in order
 
 1. **https://github.com/settings/billing** → *Plans and usage*.
