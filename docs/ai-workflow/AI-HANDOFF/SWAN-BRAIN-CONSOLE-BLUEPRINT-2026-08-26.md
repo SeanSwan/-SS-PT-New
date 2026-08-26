@@ -53,24 +53,34 @@ does. Contradictions stay visible; scoring never resolves them.
 > re-implement anything** — it imports these two functions and stays on the one audited path that can change
 > a claim's status. The header states it plainly: *"the ONLY path that changes claim status."*
 
-> ## ⚠ SUPERSEDED BY ROUND 2 — read `SWAN-BRAIN-CONSOLE-ROUND2-2026-08-26.md` first
+> ## ⚠ SUPERSEDED — read `SWAN-BRAIN-CONSOLE-ROUND2-2026-08-26.md` first
 >
-> This document's central premise was **wrong**, and the correction reorders the whole plan.
+> This section has been wrong **twice**. Both corrections are recorded below.
 
-**The wound — [STRUCK, was `[HYPOTHESIS]` presented as fact].** This section originally claimed
-that step 4 of the loop costs Sean *"~75 minutes a week"* of hand-editing letters into
-`BATCH-<date>.md`, and built the flagship slice around removing it.
+**The wound — v1 [STRUCK], v2 [STRUCK].**
 
-**[VERIFIED] 2026-08-26: the learning engine has never been run.** `SWAN_DESIGN_BRAIN_ROOT` is
-unset, `~/design-brain` does not exist, and `find ~ -maxdepth 4 -name claims.jsonl` returns
-nothing. Zero receipts, zero claims, zero batches. The "75 minutes" is a **cadence target
-written into the engine's README for a loop that has never executed** — not an operating cost.
+**v1 (original):** claimed step 4 of the loop costs Sean *"~75 minutes a week"* hand-editing
+`BATCH-<date>.md`, and made removing it the flagship slice.
 
-There is no chore to remove. The real wound is that **nobody can see that the loop has never
-started**, which is why Round 2 promotes a *Pipeline* panel to slice 2 and demotes the
-adjudication Desk to slice 6 behind a shadow-mode gate.
+**v2 (my correction, also wrong):** claimed the engine *"has never been run"*, based on
+`SWAN_DESIGN_BRAIN_ROOT` being unset and `find ~ -maxdepth 4 -name claims.jsonl` returning nothing.
 
-Corrected cost: `[UNKNOWN] — no batch has ever been adjudicated.`
+**v3 — [VERIFIED] via WSL, after Fable's hostile review.** The `find` searched the **Windows**
+home. The engine root is in **WSL** at `/home/bigotsmasher/design-brain`, and it holds 10 receipts,
+6 accepted claims, `BATCH-2026-07-21.md`, a 28-line write ledger, and a vault emit at
+`20260721T014416Z`. **The loop ran end-to-end once, on 2026-07-21, and has been idle for five
+weeks.** `resolveDataRoot()` also accepts `--root` (`paths.mjs:52`), so the unset env var was never
+evidence of anything.
+
+Correct state: **`ran once as a pilot, then stalled`.**
+
+The real wound is neither speed nor visibility: **all ten receipts are `RCP-PILOT-*`. Zero organic
+receipts in five weeks.** Intake is the dead organ, and no console panel can restart it — only a D1
+(Mobbin ToS) ruling and someone running inspections. The console is therefore **deferred behind an
+organic-batch gate** (Round 2 §5.1).
+
+Measured, at last: 6 claims adjudicated in **17m 24s** wall-clock (~2.9 min/claim, upper bound).
+The 75-minute figure remains a README *target*, never an observed cost.
 
 ---
 

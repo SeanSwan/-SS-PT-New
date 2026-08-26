@@ -1,10 +1,10 @@
 ---
-decision: Round 2 — Ox + GLM + Opus verdicts folded; the flagship slice is demoted because the learning engine has never run; plan re-ordered around a branch cut
+decision: Rounds 2-3 — Ox + GLM + Fable verdicts folded. My headline finding was FALSE (searched Windows home; the engine root is in WSL and ran a pilot 2026-07-21). Intake, not adjudication, is the dead organ; the console is deferred behind a D1 ruling and an organic-batch gate
 status: open
 supersedes: none
 date: 2026-08-26
 author: Opus 5 (claude-opus-5)
-reviewers: Ox Alpha (stealth/ox-alpha) · GLM 5.3 · Opus 5 self-pass
+reviewers: Ox Alpha (stealth/ox-alpha) · GLM 5.3 · Fable 5 (hostile, human-relayed) · Opus 5 self-pass (WRONG — see §1)
 ---
 
 # Swan Brain Console — Round 2
@@ -12,74 +12,97 @@ reviewers: Ox Alpha (stealth/ox-alpha) · GLM 5.3 · Opus 5 self-pass
 Packet under review: `SWAN-BRAIN-CONSOLE-BLUEPRINT-2026-08-26.md`
 Panel output: `panel-swan-brain-console-2026-08-26/` (Ox `$0`, GLM `$0` — total spend **$0.0000**)
 
-**Both seats returned REVISE.** Neither returned APPROVE, and they converged independently on
-six findings. Then the Opus self-pass found something both missed that changes the plan more
-than anything in either review.
+**Three seats, three REVISE.** Ox and GLM converged independently on six findings. My self-pass
+then produced a headline finding that reordered the plan — and Fable proved it **false**. §1 is a
+retraction. The plan below is what survives.
 
 ---
 
-## 1. The finding that reorders everything — [VERIFIED] this session
+## 1. RETRACTED — my headline finding was false, and it broke Rule 80
 
-**The Design Brain learning engine has never been run. Not once.**
+> **Round 3, after Fable's hostile review.** Everything §1 originally claimed is withdrawn.
+> The corrected version is below. The original text is preserved in git at `e68fb8dda`.
+
+### What I claimed
+*"The Design Brain learning engine has never been run. Not once."* — evidenced by
+`SWAN_DESIGN_BRAIN_ROOT` being unset, `~/design-brain` not existing, and
+`find ~ -maxdepth 4 -name claims.jsonl` returning nothing. I reordered an eight-slice plan
+around it, demoted a slice, promoted another, and told Sean his loop had never started.
+
+### What is actually true — [VERIFIED] via WSL
+
+**I searched the wrong home directory.** The engine root lives in **WSL**, not Windows.
+`find ~` from Git Bash searches `/c/Users/BigotSmasher`. The root is `/home/bigotsmasher/design-brain`.
 
 ```
-$ echo "SWAN_DESIGN_BRAIN_ROOT=${SWAN_DESIGN_BRAIN_ROOT:-<unset>}"
-SWAN_DESIGN_BRAIN_ROOT=<unset>
+$ wsl.exe -e bash -lc 'ls -la ~/design-brain'
+INDEX.md · batches/ · claims.jsonl · claims-proposed.jsonl · events.jsonl
+ledger/ · receipts.jsonl                       (all mtime Jul 20-21)
 
-$ find ~ -maxdepth 4 -name "claims.jsonl"      →  (no output)
-$ find ~ -maxdepth 5 -type d -name "receipts"  →  4 hits, all Hermes/gateway/render-agent.
-                                                   None is a design-brain root.
-$ ls ~/design-brain                            →  does not exist
+receipts.jsonl          10 lines      claims.jsonl            6 lines (6/6 "accepted")
+claims-proposed.jsonl    0 lines      events.jsonl            7 lines
+ledger/writes.jsonl     28 lines      batches/BATCH-2026-07-21.md
+
+~/hermes2/brain-vault/collections/design-claims/20260721T014416Z   ← emit-vault ran
 ```
 
-Zero receipts. Zero claims. Zero batches. The jailed root the engine requires
-(`SWAN_DESIGN_BRAIN_ROOT`, deliberately outside any git repo) has never been created.
+**The loop ran end-to-end, once.** From `ledger/writes.jsonl`: receipts logged `00:39:43Z` →
+packet written `01:16:33Z` → adjudication applied `01:33:57Z` → vault emitted `01:44:16Z`, all
+on 2026-07-21. Then nothing for five weeks.
 
-### Why this is the most important line in the document
+**True state: `ran once as a pilot, then stalled` — not `never started`.**
 
-My blueprint named "the wound": Sean spends **~75 minutes a week** hand-editing letters into
-`BATCH-<date>.md`, and built the flagship slice (S2, the Desk) around removing it.
+And the env-var evidence was never evidence at all: `resolveDataRoot()` accepts `--root` as well
+as `SWAN_DESIGN_BRAIN_ROOT` (`scripts/design-brain/src/paths.mjs:52`). An unset variable proves
+nothing about whether the engine has run.
 
-Ox attacked that claim as *unmeasured* (F2). GLM attacked it harder — "nobody spends 75 minutes
-a week typing four letters; the time is reading" — and made it the ONE THING: *instrument two
-real batches before writing `app-desk.js`.*
+### The rule I broke has the number I tried to take
 
-**Both were too generous.** The 75 minutes is not unmeasured. It is **hypothetical**. It is a
-cadence *target* written into a README for a loop that has never executed. There are no batches
-to instrument. There is no chore to remove. I lifted a number out of a design document and
-presented it as an operating cost, and two hostile reviewers took it at face value because they
-were reasoning from my prose instead of from the filesystem.
+`origin/main` CLAUDE.md is at **84 rules**. **Rule 80 is already
+"Second-Vantage Verification — one tool's failure is NEVER proof something is broken."**
 
-That is a Rule 51 violation of mine: an unlabelled `[HYPOTHESIS]` wearing the clothes of a
-`[VERIFIED]` measurement, load-bearing for the entire slice order.
+I ran one `find` on one operating system, got silence, and treated it as proof. Then I wrote a
+learning packet titled *"hostile reviewers inherit your unverified premise"* whose thesis was that
+Ox and GLM failed to check the filesystem — while my own check had looked in the wrong filesystem.
+Fable's phrasing is exact: *"§1's 'two hostile reviewers took my prose at face value' is right;
+the self-pass then did the same thing to a filesystem."*
 
-### What it does to the plan
-- **S2 (Desk) cannot be the flagship.** You cannot build a fast path over a pipeline with no
-  traffic. GLM's "placebo with governance write access" is right, and understated.
-- **The real first job is different**: the console's genuine value is making the loop *runnable
-  and visible* — because right now nobody, including Sean, can see that it has never run.
-- **The `~75 min` figure is struck** from the blueprint and replaced with `[UNKNOWN] — no batch
-  has ever been adjudicated; cost unmeasured because the loop has not executed`.
-- Compounding: the README's own numbers are also stale (`~800 lines` / `14/14 tests`; actual
-  **1,266** lines and **39/39** across four suites, verified earlier). The design-brain README is
-  now **three-for-three wrong** on the facts it asserts. That is the strongest possible argument
-  for the console's core discipline: **every number is generated at read time, never transcribed.**
+The proposed governance rule is therefore renumbered **Rule 85**, not 80.
 
-### The second-order finding
-The engine's intake is gated on **D1 (Mobbin ToS)**, which gates the agent-driven inspection
-pilot. Grep finds no live D1 status anywhere except a July handoff. So the loop has never run
-**and** its primary intake path is blocked pending a decision only Sean can make. Building an
-adjudication UI in front of that is building a checkout counter for a shop with no stock.
+### The measurement GLM asked for already exists
 
----
+GLM's ONE THING was *"instrument two real batches before writing `app-desk.js`."* One batch is
+already instrumented. Packet write `01:16:33Z` → adjudication write `01:33:57Z` = **17m 24s for
+6 claims, ≈2.9 min/claim.**
+
+Stated honestly: that is **wall-clock between two machine writes**, so it is an *upper bound* on
+human decision time, not instrumented per-decision timing. At that rate the README's 75-min/week
+target implies ~26 claims/week. **C3 still stands** — 75 min is a target, never an observed cost —
+but the "no batches exist to instrument" premise is struck.
+
+### What is actually dead: intake, not adjudication
+
+**All ten receipts are `RCP-PILOT-001` … `RCP-PILOT-010`.** Zero organic receipts in five weeks.
+
+This is Fable's sharpest point and it survives the correction of mine. The bottleneck was never
+adjudication speed and never visibility. A Pipeline panel would faithfully report `stalled` — and
+could not make one inspection happen. Only a D1 (Mobbin ToS) ruling plus someone actually running
+inspections can. **Every slice in this plan sits in front of an organ that has produced nothing.**
+
+### What this does to the plan
+- The Desk demotion **survives**, on better grounds: not "no batches exist" but "one batch of
+  *pilot* receipts exists, and pilot receipts must not count toward the shadow-mode gate."
+- The Pipeline promotion is **downgraded from a panel to a CLI** — see §5.
+- **Whether the console should be built at all is now genuinely open.** See §5.1.
+- Sean's Q1 must be re-asked with the true premise (§6).
 
 ## 2. Convergent findings — both seats, independently
 
 | # | Finding | Ox | GLM | Ruling |
 |---|---|---|---|---|
-| C1 | **Branch reality is a BLOCKER, not an open question.** Every slice sits on a tree 2,285 commits behind `origin/main`; S0 would land Rule 80 somewhere it can never reach the constitution | B3 | B1 | **ACCEPTED.** Becomes slice **S−1: cut `feat/swan-brain-console` from `origin/main`** before any other work, including governance |
-| C2 | **Desk must not ship first** | F3 | F3 | **ACCEPTED, and hardened** by §1 — it moves from second to sixth, and is gated on the loop having actually produced two real batches |
-| C3 | **The 75-minute justification is unmeasured** | F2 | ONE THING | **ACCEPTED and escalated** — it is hypothetical, not merely unmeasured (§1) |
+| C1 | **Branch reality is a BLOCKER, not an open question.** Every slice sits on a tree 2,285 commits behind `origin/main`; S0 would land a governance rule somewhere it can never reach the constitution (and `origin/main` is at 84 rules, so the rule is **85**, not 80 — 80 is already Second-Vantage Verification) | B3 | B1 | **ACCEPTED.** Becomes slice **S−1: cut `feat/swan-brain-console` from `origin/main`** before any other work, including governance |
+| C2 | **Desk must not ship first** | F3 | F3 | **ACCEPTED**, on corrected grounds (§1): one batch of *pilot* receipts exists. Gate is two batches of **organic (non-pilot)** receipts |
+| C3 | **The 75-minute justification is unmeasured** | F2 | ONE THING | **ACCEPTED.** 75 min is a README target, never an observed cost. But one batch IS instrumented: 6 claims in 17m24s wall-clock (~2.9 min/claim, upper bound) — see §1 |
 | C4 | **The batch file gains a second writer → clobber race** with Sean's editor | F4 | B3 | **ACCEPTED.** Once the Desk lands, the batch file is console-owned; plus mtime re-read-before-write, refuse-on-external-change, and a `--validate` pass before any write |
 | C5 | **The two-console argument contradicts my own blueprint** — Library reads taste-brain renders, Ship invokes its client mode, Memory reads `CATALOG.local.md` | F1 | B5 + F1 | **ACCEPTED.** See §4 — I stated a false reason and both caught it |
 | C6 | **Gap rows 7 (Insights/ROI) and 9 (Dreaming cadence) evaporate** between the audit and the plan | B1 | MISSED 4 | **ACCEPTED.** Every row now maps to a slice or a signed deferral (§5) |
@@ -142,51 +165,71 @@ servers. Reading an external path was never the risk; committing its contents is
   pretending otherwise, and I am not claiming the migration is free. It is a named decision with
   its own slice, not a footnote.
 
-## 5. Revised slice plan
+## 5. Revised plan — the console is DEFERRED
 
-Every gap row now has an owner or a signed deferral.
+### 5.1 Ruling on "should the console exist at all"
 
-| # | Slice | Delivers | Closes gap |
-|---|---|---|---|
-| **S−1** | **Branch cut** | `feat/swan-brain-console` from `origin/main`. Nothing else happens first. | C1 |
-| **S0** | Governance | Rule 80 (Fable = review/blueprint only) into `CLAUDE.md` + `AGENTS.md`; `seat-relay` skill (written) | — |
-| **S1** | Shell + registries | `console/serve.mjs`, tab/source/seat registries, **fail-closed seat gate**, **Origin check + per-session write token**, **write-jail**, **system-scoped data model**, tests | 3 (partial) |
-| **S2** | **Pipeline** | The loop's own status: root configured y/n, receipts since packet, claims by status, packet age, D1 gate state, vault freshness. **First truth it will report: the loop has never run.** | 9 |
-| **S3** | Seats | Seat rows, served-model displayed, **pre-spend estimate on every Run**, live ledger meter, Fable/ChatGPT/Codex stop-cards emitting `seat-relay` prompts | 3, 4, 7 |
-| **S4** | Doctrine | All 31 files rendered + searched, live token swatches with computed contrast, mode switch. **Gated on the `design.html` diff being run first** — 1,355 hand-written lines may contain fixes not derivable from `design.md` | 1 (half) |
-| **S5** | Library + Memory | Unified search; **ingest-time text tags** for assets (Rule-72 compliant magic-scan analogue) | 6, 8 |
-| **S6** | **Decision queue** (was "Desk") | Generalised queue: learning claims + Hermes inbox + skill-harvest proposals. **Shadow mode for two real batches** — renders and annotates, writes stay in the editor. Imports `parseDecisions`/`applyDecisions`; console-owned batch file; mtime guard; `--validate` before write. **Blocked until the loop has produced two real batches.** | — |
-| **S7** | Studio | Generate → preview → auto-QA-gate → portfolio. **Gate set limited to what we can actually prove** — one false "pass" kills trust in the badge permanently | 5 |
-| **S8** | Ship + bundle | Export **and import** a system bundle with a round-trip test; repo / Linear / Hermes targets | 1 (rest), 10 |
-| — | **Signed deferral** | Social publishing (Instagram/LinkedIn/TikTok). Out of scope: SwanStudios is a trainer-led B2B2C operating system, not a content channel. Revisit only as its own decision. | 10 (rest) |
+Fable's answer, which I accept: **not yet, and possibly not as a program.** The evidence is that
+the bottleneck is **intake volume — zero organic receipts in five weeks** — and no console panel
+fixes that. S−1 → S4 was four slices of shell, registries, auth and doctrine rendering standing in
+front of a loop with one pilot batch.
 
-**What changed:** Desk went from slice 2 of 8 to slice 6 of 8, behind a shadow-mode gate and a
-precondition that may not be satisfiable this quarter. Pipeline — a panel neither I nor Ox
-identified — is now slice 2, because the most valuable thing the console can do on day one is
-tell Sean the truth about a loop he believes is running.
+**The go/no-go gate that was correctly placed on S6 now sits on the shell itself:** the console is
+justified once the loop shows **≥2 organic (non-pilot) batches**. Not before.
 
-## 6. What Sean must decide (nothing below is an agent call)
+### 5.2 What earns its keep today — three small things, in order
 
-1. **Is the Design Brain learning loop something you want running?** It has never executed. Two
-   honest answers: (a) yes — then S2 Pipeline plus actually initialising a root is the first
-   real work, and D1 needs a ruling; (b) not now — then the console is a doctrine/seats/studio
-   tool and S6 leaves the plan entirely. **Neither answer is wrong; guessing is.**
-2. **D1 (Mobbin ToS)** — cleared or not? It gates agent-driven inspection, which is the loop's
-   only scalable intake.
-3. **Taste-brain migration** — accept two URLs for now (my recommendation), or fund the merge as
-   its own slice?
-4. **v1 scope** — S−1 → S4 is a coherent, useful console (governance, shell, pipeline truth,
-   seats with real spend control, doctrine). S5–S8 is a second program. Ship v1 at S4?
+| # | Work | Why it survives the cut |
+|---|---|---|
+| **N1** | `scripts/design-brain/src/status.mjs` (~50 lines, **CLI, no server**) — prints root, receipts (pilot vs organic), claims by status, batch age, last run, D1 state | This is S2's whole value with none of S1's cost. **Must read cross-OS** — resolve the WSL root explicitly, since a Windows-only read is what produced §1 |
+| **N2** | Fix `scripts/design-brain/README.md` — two stale numbers, and relabel the 75-min figure as a *target* | Rule 75 Trailhead-Truth. Lands on `origin/main`, not here |
+| **N3** | **D1 (Mobbin ToS) ruling from Sean** | The only thing that can restart intake. Everything else is downstream of it |
+
+### 5.3 Governance (independent of the console)
+
+**Rule 85** — Fable is review-and-blueprint only — plus the shipped `seat-relay` skill. Lands on a
+branch cut from `origin/main` (C1). Numbered **85** because main is at 84 and 80 is taken.
+
+### 5.4 Parked, with the research intact
+
+The full ten-slice plan (shell + registries + pipeline + seats + doctrine + library + decision
+queue + studio + ship/bundle) stays in the blueprint and on SWA-217, **parked behind the
+organic-batch gate**. Nothing is thrown away; the findings that made it better are all recorded:
+
+- Ox: pre-spend estimate on every Run · bundle **import** with a round-trip test · Desk imports
+  `parseDecisions`/`applyDecisions` rather than writing a second parser
+- GLM: seat registry **fails closed** · **Origin check + per-session write token** (loopback is not
+  an authentication model) · ingest-time text tags as the Rule-72-compliant magic-scan analogue ·
+  system-scoped data model from S1, never a retrofit
+- Fable: **which runtime hosts the console** is an S1 architecture decision, not a detail. The
+  engine root, the vault and Hermes are all in WSL; this repo and the prompter precedent are driven
+  from Windows. A `serve.mjs` started from Windows Node cannot read `~/design-brain` without
+  `\wsl$\` paths or running inside WSL. **This is the same split that produced §1.**
+
+## 6. What Sean must decide — re-asked with the TRUE premise
+
+1. **The loop works, and you used it.** On 2026-07-21 you adjudicated 6 claims in about 17
+   minutes; the engine synthesized, you decided, it emitted to the vault. Nothing has fed it since.
+   **Do you want it fed?** (The earlier version of this question said "it has never executed."
+   That was wrong and the question was unanswerable as posed.)
+2. **D1 (Mobbin ToS)** — cleared or not? All ten receipts are `RCP-PILOT-*`. D1 gates the agent-driven
+   inspection that would produce organic ones. This is the single highest-leverage unblock.
+3. **Console go/no-go** — accept the deferral (my recommendation), or build it anyway?
+4. **Taste-brain console** — two URLs, or fund the merge? *(Unchanged; only relevant if 3 is "build".)*
 
 ## 7. Review chain status
 
 ```
-Opus 5 (author)                          ✅ blueprint + self-pass (found §1)
-Ox Alpha (stealth, $0)                   ✅ REVISE — 3 blockers, 4 findings, 3 missed
-GLM 5.3 (subscription, $0)               ✅ REVISE — 5 blockers, 5 findings, 4 missed
-🛑 FABLE GATE                            ← Sean switches models; hostile review of THIS doc
-ChatGPT GPT-5.6 Sol (filesystem access)  ← relay prompt, after Fable
-Opus 5 arbitration                       ← folds all verdicts, verifies each finding
+Opus 5 (author)                          ✅ blueprint + self-pass — §1 was FALSE
+Ox Alpha (stealth, $0)                   ✅ REVISE — 10 findings, 10 real, 0 disproven
+GLM 5.3 (subscription, $0)               ✅ REVISE — 14 findings, 14 real, 0 disproven
+Fable 5 (hostile, human-relayed)         ✅ REVISE — killed my headline finding. 3 blockers,
+                                            all 3 verified true by Opus against WSL
+ChatGPT GPT-5.6 Sol (filesystem access)  ← relay prompt issued, aimed at Fable's B1/MISSED-1
+Opus 5 arbitration                       ✅ every Fable claim independently verified before
+                                            acceptance (Rule 30 cuts both ways)
 ```
 
-**Total panel spend this round: $0.0000.**
+**Total automated panel spend: $0.0000.** Fable ran in Sean's own window under the FABLE GATE —
+one review call, no build work, exactly the remit the new rule exists to enforce. Its first act
+under that rule was to catch a false claim that three prior passes had let through.
