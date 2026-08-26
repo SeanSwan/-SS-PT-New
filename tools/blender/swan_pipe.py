@@ -190,6 +190,20 @@ def run_in_blender(args, out_dir, done):
                 achieved = len(target.data.loop_triangles)
                 print(f"[swan_pipe] stage tris: {name} un-beveled form -> {achieved}")
             if not ok(achieved):
+                # Rung 4: DECIMATE the un-beveled form. Rung 3 used it as-is and never collapsed it,
+                # so a blockout whose welded form already sits just over the ceiling was refused for
+                # want of a pass that costs nothing. Probed on drip-cyst (2026-08-26): un-beveled
+                # as-is 124 vs ceiling 117 -> refused; un-beveled + collapse 0.45 -> 112 -> accepted.
+                dc = target.modifiers.new(f"macro_{name}", "DECIMATE")
+                dc.ratio = ratio
+                dc.use_collapse_triangulate = True
+                bpy.context.view_layer.objects.active = target
+                bpy.context.view_layer.update()
+                bpy.ops.object.modifier_apply(modifier=dc.name)
+                target.data.update()
+                achieved = len(target.data.loop_triangles)
+                print(f"[swan_pipe] stage tris: {name} un-beveled +collapse@{ratio} -> {achieved}")
+            if not ok(achieved):
                 raise SystemExit(
                     f"swan_pipe: {name} reached {achieved} tris (ceiling {ceiling} = {tier_max.get(name)} of lod0 {base_tris}, "
                     f"previous tier {prev}) after collapse {ratio}, planar {args.planar_deg}deg and the un-beveled form. "

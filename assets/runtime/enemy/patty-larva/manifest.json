@@ -1,0 +1,67 @@
+{
+  "schema": "swan.game-asset.v1",
+  "id": "enemy.patty-larva",
+  "status": "planned",
+  "targetSurface": "standalone",
+  "paletteLaw": "B",
+  "calibrationFixture": false,
+  "zone": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
+  "skeleton": "skeleton.creature-small.v1",
+  "animations": [
+    "idle"
+  ],
+  "budgets": {
+    "lod0Triangles": 417,
+    "lod1Triangles": 177,
+    "lod2Triangles": 96,
+    "textureMB": 0,
+    "tool": "scripts/assets/measure-glb.mjs",
+    "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/patty-larva/lod0.glb",
+    "date": "2026-08-26",
+    "commit": "e1cba57e9",
+    "note": "armored; segmented tube with a crest plate. Ox Alpha roster 2026-08-26."
+  },
+  "provenance": {
+    "humanOwner": "owner",
+    "createdAtUtc": "2026-08-26T10:00:00.000Z",
+    "aiAssisted": false,
+    "generator": {
+      "name": "tools/blender/swan_pipe.py",
+      "version": "roster-run",
+      "blender": "4.5.13 LTS (daeeeca98fb0)",
+      "invocation": "scripts/assets/run-blender.mjs (--disable-autoexec --python-exit-code 1, sentinel-checked)",
+      "specAuthor": "stealth/ox-alpha — enemy roster 2026-08-26 (text spec only; no mesh data from the model)"
+    },
+    "source": "assets/source/enemy/patty-larva/patty-larva-blockout.obj",
+    "similarityReviewed": {
+      "reviewer": "owner",
+      "date": "2026-08-26",
+      "comparedAgainst": [
+        "protected game assets",
+        "characters",
+        "UI",
+        "audio",
+        "trademarks",
+        "real likeness"
+      ],
+      "note": "voxel blockout of food waste; the spec carries an ipRow naming its three nearest commercial comparisons and why it is distinct"
+    },
+    "license": {
+      "kind": "owner-authored"
+    }
+  },
+  "runtime": {
+    "lod0": "lod0.glb",
+    "lod1": "lod1.glb",
+    "lod2": "lod2.glb",
+    "collision": "collision.glb",
+    "stillFallback": "still.png",
+    "compression": "none"
+  },
+  "sha256": {
+    "lod0": "65b80ff7918463c123b5d225069be69b93c0a204c61c882935eea7a8ffcaa620",
+    "lod1": "987eea14093ff1b2692495b2485e443434ff551f6c3d94f52981b18d159ac599",
+    "lod2": "5f0ce50444e0e960613ba82652058bff78975e89548201c6e2401a5e75a8c805",
+    "collision": "be8f9ecf4b48ccd956d7f0a48bb2a4d85e4aaeb90a9540e003cac591f692981d"
+  }
+}
