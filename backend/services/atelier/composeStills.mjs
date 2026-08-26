@@ -39,6 +39,19 @@ import { applyBrandKit, brandKitView, listBrandKits } from '../../../shared/bran
 import { runLocalBatch } from './localBatchRunner.mjs';
 import { runBatch } from './composeBatch.mjs';
 import { buildPrompts } from './composePrompts.mjs';
+
+/** The synchronous local path's watchdog. Same bound as the batch runner's, and the same
+ *  reason: a render that hangs must not hold the card — or, here, the request — forever. */
+const SYNC_WATCHDOG_MS = 20 * 60 * 1000;
+function syncWatchdog(ms = SYNC_WATCHDOG_MS) {
+  return new Promise((_, rej) => {
+    const t = setTimeout(() => rej(Object.assign(
+      new Error(`The render did not finish within ${Math.round((ms || SYNC_WATCHDOG_MS) / 60000)} minutes and was abandoned.`),
+      { code: 'E_BATCH_TIMEOUT' },
+    )), ms || SYNC_WATCHDOG_MS);
+    if (typeof t.unref === 'function') t.unref();
+  });
+}
 import { rememberKey, defaultCommit, slimForReplay, assertKeyHasOwner, assertSlotOverrides, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
 import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
 
@@ -220,7 +233,14 @@ export async function composeStills(req = {}, deps = {}) {
     const { prompts, tasteMeta } = await buildPrompts({
       promptSource, brief, req, kit, lawProfile, count, key, lane, model, compiler, env, tasteDeps,
     });
-    const settled = await runBatch({ lane, prompts, key, req, model, deps: { generator, renderStill, withGpu, env, reservation } });
+    // A WATCHDOG ON THIS PATH TOO. The async lane has had one since the batching slice;
+    // the synchronous local path (`async: false`) had none, so a hung render there held
+    // the GPU AND the HTTP request open with nothing to end either. A reviewer pointed out
+    // that the guard existed on one of the two lanes — which by this point in the review
+    // was a familiar sentence.
+    const settled = lane === 'local'
+      ? await Promise.race([syncWatchdog(deps.watchdogMs), runBatch({ lane, prompts, key, req, model, deps: { generator, renderStill, withGpu, env, reservation } })])
+      : await runBatch({ lane, prompts, key, req, model, deps: { generator, renderStill, withGpu, env, reservation } });
     const stills = []; const failures = [];
     settled.forEach((s, i) => {
       // `provider` is canonical; `model` is kept as an alias so the hosted contract
@@ -241,7 +261,12 @@ export async function composeStills(req = {}, deps = {}) {
     return {
       persistence,
       estimateOnly: false, lane, promptSource, stills, failures, partial: failures.length > 0, replayed: false,
-      cost: { ...cost, chargedUsd: cost.unitUsd * stills.length }, model: cost.model, key, admission, brandKit: brandKitView(kit), ...tasteMeta,
+      cost: { ...cost, chargedUsd: cost.unitUsd * stills.length }, model: cost.model, key, admission, brandKit: brandKitView(kit),
+      // NESTED, matching the async batch snapshot. These were spread top-level here and
+      // nested there, so a client reading `lawRejected` had to know which lane produced
+      // the response before it knew where to look — for facts that are identical in kind.
+      // Kept top-level as well for one release so nothing reading the old shape breaks.
+      ...(Object.keys(tasteMeta).length ? { tasteMeta } : {}), ...tasteMeta,
       ...(clampedFrom === undefined ? {} : { clampedFrom }),
     };
   })();
