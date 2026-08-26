@@ -13,8 +13,27 @@
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validate } from './validate-asset.mjs';
+import { writeFileSync, readFileSync, unlinkSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { join } from 'node:path';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+
+// Minimal REAL GLBs for the presence fixtures (a name check against a registry is not a
+// presence check against bytes). Written beside the selftest, deleted on exit.
+function glb(gltf) {
+  let j = Buffer.from(JSON.stringify(gltf)); while (j.length % 4) j = Buffer.concat([j, Buffer.from(' ')]);
+  const ch = (d, t) => { const h = Buffer.alloc(8); h.writeUInt32LE(d.length, 0); h.writeUInt32LE(t, 4); return Buffer.concat([h, d]); };
+  const cj = ch(j, 0x4e4f534a); const cb = ch(Buffer.alloc(0), 0x004e4942);
+  const hd = Buffer.alloc(12); hd.write('glTF', 0); hd.writeUInt32LE(2, 4); hd.writeUInt32LE(12 + cj.length + cb.length, 8);
+  return Buffer.concat([hd, cj, cb]);
+}
+const GLB_NO_SKIN = '.selftest-noskin.glb';
+const GLB_WITH_SKIN = '.selftest-skin.glb';
+writeFileSync(join(ROOT, GLB_NO_SKIN), glb({ asset: { version: '2.0' }, meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count: 3 }] }));
+writeFileSync(join(ROOT, GLB_WITH_SKIN), glb({ asset: { version: '2.0' }, meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count: 3 }], skins: [{ joints: [0] }], animations: [{ name: 'move' }] }));
+process.on('exit', () => { for (const f of [GLB_NO_SKIN, GLB_WITH_SKIN]) { try { unlinkSync(join(ROOT, f)); } catch {} } });
+const sha = (rel) => createHash('sha256').update(readFileSync(join(ROOT, rel))).digest('hex');
 
 /* ------------------------------------------------------------------ selftest */
 
@@ -65,6 +84,9 @@ function selftest() {
     ['status outside statusValues is refused', (m) => { m.status = 'done'; }, /status must be one of/],
     ['unknown compression value is refused', (m) => { m.runtime.compression = 'garbage'; }, /compression must be one of/],
     ['budget commit that is not a git id is refused', (m) => { m.budgets = { lod0Triangles: 1, tool: 't', command: 'c', date: '2026-08-25', commit: 'not-a-commit' }; }, /not a git object id/],
+    // N1 self-review probe A: manifest declared a skeleton + 5 clips; the GLB had 0 skins, 0 clips.
+    ['declared skeleton with NO skin in the GLB is refused', (m) => { m.runtime.lod0 = GLB_NO_SKIN; m.sha256.lod0 = sha(GLB_NO_SKIN); }, /contains no skin/],
+    ['declared clip absent from the GLB is refused', (m) => { m.runtime.lod0 = GLB_WITH_SKIN; m.sha256.lod0 = sha(GLB_WITH_SKIN); m.animations = ['idle']; }, /animation "idle" declared but not present/],
     ['budget commit that does not exist in the repo is refused', (m) => { m.budgets = { lod0Triangles: 1, tool: 't', command: 'c', date: '2026-08-25', commit: 'deadbeefdead' }; }, /not a commit in this repository/],
     ['aiAssisted without weights hash is refused', (m) => { m.provenance.aiAssisted = true; m.provenance.generator = { name: 'a', version: '1' }; m.provenance.seed = 1; }, /weightsSha256/],
     ['Draco on a rigged asset is refused', (m) => { m.runtime.compression = 'draco'; }, /Draco on a rigged/],

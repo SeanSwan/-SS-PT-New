@@ -6,14 +6,8 @@
   "paletteLaw": "B",
   "calibrationFixture": false,
   "zone": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
-  "skeleton": "skeleton.creature-small.v1",
-  "animations": [
-    "idle",
-    "move",
-    "attack",
-    "hit",
-    "death"
-  ],
+  "skeleton": null,
+  "animations": null,
   "budgets": {
     "lod0Triangles": 260,
     "lod1Triangles": 124,
@@ -23,7 +17,7 @@
     "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/lod0.glb lod1.glb lod2.glb",
     "date": "2026-08-25",
     "commit": "283f20c9f",
-    "note": "FIRST PIPE-PRODUCED ASSET. swan_pipe.py run 6 on fryling-blockout.obj (5 voxels, 60 raw tris): weld -> limited dissolve -> bevel -> LOD0 260 / LOD1 collapse 0.45 -> 124 / LOD2 planar 40deg -> 103 / collision = un-beveled collapse 0.45 -> 38. Ratios probed on the real mesh, not guessed (tools/blender/probe-decimate.py)."
+    "note": "FIRST PIPE-PRODUCED ASSET. swan_pipe.py run 6 on fryling-blockout.obj (5 voxels, 60 raw tris): weld -> limited dissolve -> bevel -> LOD0 260 / LOD1 collapse 0.45 -> 124 / LOD2 planar 40deg -> 103 / collision = un-beveled collapse 0.45 -> 38. Ratios probed on the real mesh, not guessed (tools/blender/probe-decimate.py). UNRIGGED: skeleton/animations set to null on 2026-08-26 after the validator learned to read skins/clips from the bytes \u2014 the previous manifest declared 5 clips the GLB did not contain."
   },
   "provenance": {
     "humanOwner": "owner",
@@ -46,7 +40,7 @@
         "trademarks",
         "real likeness"
       ],
-      "note": "a 5-voxel L-shaped blockout — pipe proof geometry, no likeness to anything"
+      "note": "a 5-voxel L-shaped blockout \u2014 pipe proof geometry, no likeness to anything"
     },
     "license": {
       "kind": "owner-authored"

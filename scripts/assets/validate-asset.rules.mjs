@@ -16,7 +16,7 @@ import { readFileSync, existsSync, lstatSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve, isAbsolute, sep } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { measure } from './measure-glb.mjs';
+import { measure, parseGlb } from './measure-glb.mjs';
 
 // Registry keys this rules module actually READS. Anything declared in the registry and not
 // listed here is documentation wearing a schema's clothes; the CLI announces it at startup.
@@ -218,6 +218,17 @@ export function validate(manifest, ctx) {
         try { (ctx.measuredTriangles = ctx.measuredTriangles || {})[slot] = measure(bytes).triangles; }
         catch (err) { E(`runtime.${slot} is not a parseable GLB: ${err.message}`); }
       }
+      if (slot === 'lod0') {
+        // Clip/skin PRESENCE, from the bytes. Until 2026-08-26 the validator checked clip NAMES
+        // against the registry and never looked in the file: a manifest declaring a skeleton
+        // and five animations passed on a GLB containing 0 skins and 0 clips (N1 self-review,
+        // probe A). A name check against a list is not a presence check against the asset.
+        try {
+          const g = parseGlb(bytes);
+          ctx.glbClips = new Set((g.animations || []).map((a) => a.name).filter(Boolean));
+          ctx.glbSkins = (g.skins || []).length;
+        } catch { /* already reported as unparseable above */ }
+      }
     }
     if (!rt.stillFallback) W('runtime.stillFallback missing — the still tier has no poster for this asset');
   }
@@ -232,6 +243,13 @@ export function validate(manifest, ctx) {
       if (typeof declared === 'number' && typeof actual === 'number' && declared !== actual) {
         E(`budgets.${lod}Triangles declares ${declared} but ${lod}.glb measures ${actual} — provenance does not match the bytes`);
       }
+    }
+  }
+
+  if (manifest.skeleton && ctx.glbSkins !== undefined) {
+    if (ctx.glbSkins === 0) E(`skeleton "${manifest.skeleton}" declared but lod0.glb contains no skin — a rig named in the manifest must exist in the bytes`);
+    for (const clip of manifest.animations || []) {
+      if (!ctx.glbClips?.has(clip)) E(`animation "${clip}" declared but not present in lod0.glb (clips in file: ${[...(ctx.glbClips || [])].join(', ') || 'none'})`);
     }
   }
 
