@@ -235,7 +235,11 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
 
           <AtelierPublishPanel c={c} />
           {c.result?.admission && <Caption>GPU admitted with {c.result.admission.freeMb} MiB free (needs {c.result.admission.neededMb}).</Caption>}
-          {c.limits && <Caption>{c.limits.note}</Caption>}
+          {/* A ledger that cannot be read or written REFUSES the billed lane, which is
+              too consequential to whisper in a caption alongside the day's run count. */}
+          {c.limits && (c.limits.ledger === 'file'
+            ? <Caption>{c.limits.note}</Caption>
+            : <Notice $tone="off" role="status">{c.limits.note}</Notice>)}
           {c.busy && <Caption role="status">Rendering on the {lane === 'hosted' ? 'hosted lane' : '5090'} — one batch at a time.</Caption>}
         </div>
       </Workspace>

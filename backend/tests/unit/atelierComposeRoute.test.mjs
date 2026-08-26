@@ -30,6 +30,11 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROUTE_SRC = readFileSync(join(HERE, '../../routes/atelierComposeRoutes.mjs'), 'utf8');
+// The status table moved to its own file when the route reached its 300-line cap. These
+// assertions are about the CONTRACT, not about which file holds it, so they follow it —
+// pointing them at the route source after the split would have them pass by reading a
+// file that no longer contains the answer.
+const STATUS_SRC = readFileSync(join(HERE, '../../routes/atelierStatusMap.mjs'), 'utf8');
 const SERVICE_SRC = ['composeStills', 'composeLimits', 'promptSources', 'localStillLane', 'persistStills', 'motionBind']
   .map((f) => readFileSync(join(HERE, `../../services/atelier/${f}.mjs`), 'utf8')).join('\n');
 
@@ -116,7 +121,7 @@ describe('HTTP contract', () => {
    * router — importing it pulls the auth middleware and the whole model layer,
    * which needs a database this suite has no business requiring.
    */
-  const mapped = new Set([...ROUTE_SRC.matchAll(/^\s{2}(E_[A-Z_]+):\s*\d{3},$/gm)].map((m) => m[1]));
+  const mapped = new Set([...STATUS_SRC.matchAll(/^\s{2}(E_[A-Z_]+):\s*\d{3},$/gm)].map((m) => m[1]));
   const thrown = new Set([...SERVICE_SRC.matchAll(/new (?:Compose|Persist|Motion)Error\('(E_[A-Z_]+)'/g)].map((m) => m[1]));
 
   it('maps every error code the service can throw to a deliberate status', () => {
@@ -125,8 +130,8 @@ describe('HTTP contract', () => {
   });
 
   it('maps a spend ceiling to 402 and a cap to 429, not both to 400', () => {
-    expect(ROUTE_SRC).toMatch(/E_SPEND_CEILING:\s*402/);
-    expect(ROUTE_SRC).toMatch(/E_RUN_CAP:\s*429/);
+    expect(STATUS_SRC).toMatch(/E_SPEND_CEILING:\s*402/);
+    expect(STATUS_SRC).toMatch(/E_RUN_CAP:\s*429/);
   });
 
   it('returns 207 for a partial grid so a short grid is not read as a whole one', () => {
@@ -151,8 +156,8 @@ describe('HTTP contract', () => {
   it('the Motion endpoint binds assetId + sha256 and refuses a prompt-only body', () => {
     expect(ROUTE_SRC).toMatch(/router\.post\('\/motion'/);
     expect(ROUTE_SRC).toMatch(/assetId: b\.assetId, sha256: b\.sha256/);
-    expect(ROUTE_SRC).toMatch(/E_BIND_NO_ASSET:\s*400/);
-    expect(ROUTE_SRC).toMatch(/E_BIND_HASH_MISMATCH:\s*409/);
+    expect(STATUS_SRC).toMatch(/E_BIND_NO_ASSET:\s*400/);
+    expect(STATUS_SRC).toMatch(/E_BIND_HASH_MISMATCH:\s*409/);
     // No route builds a Motion job from a prompt field alone.
     expect(ROUTE_SRC).not.toMatch(/router\.post\('\/animate'/);
   });

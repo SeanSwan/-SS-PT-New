@@ -13,7 +13,7 @@ const LIMITS = {
     local: { provider: 'comfyui/wan-2.2', status: 'claimed', ready: false, advertisable: false, problems: ['unprobed'], probeEnvKey: 'SWAN_ATELIER_LOCAL_STILLS', unitUsd: 0 },
     hosted: { enabled: true, spendEnvKey: 'SWAN_ATELIER_MAX_SPEND_USD_DAILY', limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5 } },
   },
-  usage: { runs: 0, spendUsd: 0 }, ledger: 'absent-this-slice', enabled: true, note: '',
+  usage: { runs: 0, spendUsd: 0 }, ledger: 'file', enabled: true, note: '',
 };
 const STILL = { index: 0, lane: 'hosted', image: { kind: 'b64', data: 'AAAA' }, seed: 1, promptHash: 'abc', promptText: 'x', provider: 'openai/gpt-5.4-image-2', assetId: 'asset-1', sha256: 'ab'.repeat(32), persist: { ok: true, created: true } };
 const RESULT = { lane: 'hosted', promptSource: 'brief', stills: [STILL], failures: [], partial: false, replayed: false, cost: { count: 1, model: 'm', unitUsd: 0.0039, totalUsd: 0.0039 }, model: 'm', idempotencyKey: 'k', admission: null, persistence: { ok: true, persisted: 1, total: 1 } };

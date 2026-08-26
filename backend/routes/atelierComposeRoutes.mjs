@@ -26,75 +26,16 @@ import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import {
   composeStills, estimateStills, ComposeError, MAX_STILLS, readComposeLimits, SPEND_ENV_KEY,
 } from '../services/atelier/composeStills.mjs';
+import { makeLaneLedger } from '../services/laneLedger.mjs';
 import { verifyLocalStills, PROBE_ENV_KEY, STILL_PROVIDER } from '../services/atelier/localStillLane.mjs';
 import { readAsset } from '../services/atelier/persistStills.mjs';
 import { bindMotion } from '../services/atelier/motionBind.mjs';
 import { transitionAsset, publishedReference } from '../services/atelier/publishAsset.mjs';
 import { getBatch, assertBatchId } from '../services/atelier/batchStore.mjs';
+import { STATUS } from './atelierStatusMap.mjs';
 
 const router = express.Router();
 
-/**
- * Error code -> HTTP status. Every refusal happens BEFORE a generator is
- * called, so these are statements about the request or about our own state.
- * Busy/unreachable responses carry Retry-After so a client backs off instead
- * of retrying into a doubled queue.
- */
-const STATUS = Object.freeze({
-  E_EMPTY_BRIEF: 400,
-  E_BRIEF_TOO_LONG: 413,
-  E_BAD_LANE: 400,
-  E_BAD_SOURCE: 400,
-  E_BAD_LAW_PROFILE: 400,
-  E_COMPILE: 400,
-  E_LAW_VIOLATION: 400,
-  E_CAPABILITY_UNVERIFIED: 400,
-  E_TASTE_LOCAL_ONLY: 400,
-  E_PRICE_UNKNOWN: 409,
-  E_NO_LANE: 409,
-  E_STILL_LANE_UNPROBED: 409,
-  E_LOCAL_BUSY: 409,
-  E_PROVIDER_DISABLED: 403,
-  E_LICENCE_GRANT_REQUIRED: 403,
-  E_SPEND_CEILING: 402,
-  E_RUN_CAP: 429,
-  E_PROVIDER_UNCONFIGURED: 503,
-  E_COMFY_UNREACHABLE: 503,
-  E_VRAM_BUSY: 503,
-  E_LEDGER_DEGRADED: 503,
-  E_TASTE_UNREACHABLE: 502,
-  E_TASTE_BAD_RESPONSE: 502,
-  E_ALL_FAILED: 502,
-  E_LOCAL_RENDER: 502,
-  E_TASTE_URL_NOT_LOOPBACK: 500,
-  E_BAD_CAP: 500,
-  E_STORAGE_UNCONFIGURED: 503,
-  E_STILL_UNREADABLE: 502,
-  E_ARTIFACT_HASH_MISMATCH: 502,
-  E_ASSET_NOT_FOUND: 404,
-  E_BIND_NO_ASSET: 400,
-  E_BIND_NO_HASH: 400,
-  E_BAD_OWNER: 400,
-  E_BIND_ASSET_NOT_FOUND: 404,
-  E_ASSET_NOT_IMAGE: 400,
-  E_BIND_NO_RECORDED_HASH: 409,
-  E_BIND_HASH_MISMATCH: 409,
-  E_BAD_INPUT: 400,
-  E_UNSUPPORTED_KIND: 400,
-  E_IMAGE_FIRST_REQUIRED: 400,
-  E_UNKNOWN_PROVIDER: 400,
-  // Ticket codes are served by renderAgentRoutes; mapped here too so the invariant
-  // 'every code the atelier services can throw has a deliberate status' stays simple.
-  E_JOB_NOT_FOUND: 404,
-  E_LEASE_CONFLICT: 409,
-  E_BIND_NO_INIT_IMAGE: 400,
-  E_BAD_STATUS: 400,
-  E_BAD_TRANSITION: 409,
-  E_PUBLISH_BLOCKED: 422,
-  E_PUBLISH_DECLARATION_REQUIRED: 422,
-  E_BATCH_NOT_FOUND: 404,
-  E_BAD_BATCH_ID: 400,
-});
 
 function fail(res, err) {
   if (err instanceof ComposeError) {
@@ -109,13 +50,27 @@ function fail(res, err) {
   return res.status(500).json({ success: false, error: 'Compose failed unexpectedly.' });
 }
 
-/**
- * STATED PLAINLY: no spend ledger exists yet, so usage reports zero and the
- * ceilings are enforced per batch, not per day. That stops one runaway request
- * and does not stop fifty separate ones.
- */
-function usageToday() {
-  return { runs: 0, spendUsd: 0, degraded: false, ledger: 'absent-this-slice' };
+// The day counter the ceilings are actually compared against. Until this was wired the
+// route reported zero on every request, which made both "daily" caps per-request caps:
+// one runaway batch was stopped, fifty separate ones were not. Module-scoped because the
+// ledger remembers an unwritable disk in-process — see laneLedger.mjs for why that
+// memory is deliberately not cleared until a restart.
+const ledger = makeLaneLedger({ lane: 'atelier' });
+const usageToday = () => ledger.usageToday();
+
+/** The day's standing, in words. This used to read "no spend ledger exists yet;
+ *  ceilings are per batch" — true when written, false the moment the ledger was
+ *  wired, and exactly the kind of confident copy that outlives the code it
+ *  describes. Both failure states are named here because an operator whose billed
+ *  lane is refusing needs to know it is the disk, not the budget. */
+function ledgerNote(usage, limits) {
+  if (usage.ledger === 'unwritable') {
+    return 'The spend ledger cannot be written, so billed generation is refused until the disk is fixed. The free local lane is unaffected.';
+  }
+  if (usage.ledger === 'degraded') {
+    return "The spend ledger cannot be read, so today's total is unknown and billed generation is refused. The free local lane is unaffected.";
+  }
+  return `Today: ${usage.runs}/${limits.maxRunsDaily} runs, $${usage.spendUsd.toFixed(4)} of $${limits.maxSpendUsdDaily} spent.`;
 }
 
 function reqFromBody(req, extra = {}) {
@@ -130,7 +85,7 @@ function reqFromBody(req, extra = {}) {
   };
 }
 
-const depsNow = () => ({ limits: readComposeLimits(), usage: usageToday() });
+const depsNow = () => ({ limits: readComposeLimits(), usage: usageToday(), commit: (d) => ledger.tryCommit(d) });
 
 /** POST /api/atelier/compose/estimate — lane, price, readiness. Generates nothing. */
 router.post('/estimate', protect, adminOnly, async (req, res) => {
@@ -218,10 +173,13 @@ router.get('/limits', protect, adminOnly, (req, res) => {
     ledger: usage.ledger,
     enabled: lv.ok || !limits.disabled,
     spendEnvKey: SPEND_ENV_KEY,
-    note: lv.ok ? 'Local stills ready ($0). No spend ledger exists yet; ceilings are per batch.'
-      : limits.disabled
-        ? `No lane is ready. Local: ${lv.problems[0]}. Hosted is switched off — set ${SPEND_ENV_KEY} to enable it.`
-        : `Hosted lane enabled. Local: ${lv.problems[0]}. No spend ledger exists yet; ceilings are per batch.`,
+    note: [
+      lv.ok ? 'Local stills ready ($0).'
+        : limits.disabled
+          ? `No lane is ready. Local: ${lv.problems[0]}. Hosted is switched off — set ${SPEND_ENV_KEY} to enable it.`
+          : `Hosted lane enabled. Local: ${lv.problems[0]}.`,
+      ledgerNote(usage, limits),
+    ].join(' '),
   } });
 });
 

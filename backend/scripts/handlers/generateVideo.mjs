@@ -29,7 +29,7 @@ import * as comfyuiLocal from '../../../shared/providers/video/comfyuiLocal.mjs'
 import { readFileSync } from 'node:fs';
 import { mimeForFilename } from './completion.mjs';
 import { assertPromptAllowed } from '../../../shared/providers/video/promptPolicy.mjs';
-import { readLimits, dayKey, checkRunAllowed } from '../../../shared/providers/video/spendGuard.mjs';
+import { spendGate } from './videoSpendGate.mjs';
 import { buildProvenance } from '../../../shared/providers/video/provenance.mjs';
 import { ComfyError } from '../../../shared/providers/video/comfyuiLocal.mjs';
 import { applyBoundInitImage } from './initImageBind.mjs';
@@ -102,16 +102,6 @@ export function isPermanentCode(code) {
  * @param {object} job          queue job; `params` carries the request
  * @param {Function} onProgress (pct, message) => Promise<void>
  */
-/** Spend + volume ceilings. E_BAD_CAP is permanent (fix the environment); a cap breach
- * is a fact about the DAY and stays retryable — tomorrow genuinely succeeds. */
-function spendGate({ caps, env, ledger, now }) {
-  let limits;
-  try { limits = readLimits(env); } catch (err) { throw markPermanence(err); }
-  const day = dayKey(now());
-  const usage = ledger ? ledger.usageFor(day) : { runs: 0, spendUsd: 0 };
-  const allowance = checkRunAllowed(caps, usage, limits);
-  return { day, allowance, usage, limits };
-}
 
 export async function runGenerate(job, onProgress, deps = {}) {
   const {
@@ -184,7 +174,7 @@ export async function runGenerate(job, onProgress, deps = {}) {
 
   // SPEND + VOLUME CEILING. Checked after policy so a refused prompt never consumes a
   // slot, and before submission so the ceiling is a gate rather than a report.
-  const { day, allowance } = spendGate({ caps, env, ledger, now });
+  const { day, allowance } = spendGate({ caps, env, ledger, now, markPermanence });
 
   // THE BIND — a Motion job's `initImage` is an asset reference; resolve it (download,
   // RE-HASH, upload into ComfyUI) so the graph animates the approved frame and nothing else.

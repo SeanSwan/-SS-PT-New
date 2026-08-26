@@ -26,7 +26,7 @@ const hosted = (o: Partial<HostedLaneView>): HostedLaneView => ({
 });
 const limits = (l: Partial<LocalLaneView>, h: Partial<HostedLaneView>): LimitsView => ({
   maxStills: 4, lanes: { local: local(l), hosted: hosted(h) }, usage: { runs: 0, spendUsd: 0 },
-  ledger: 'absent-this-slice', enabled: false, note: '',
+  ledger: 'file', enabled: false, note: '',
 });
 
 describe('the local lane is unproven, not broken, until probed', () => {

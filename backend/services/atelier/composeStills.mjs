@@ -157,7 +157,7 @@ export async function composeStills(req = {}, deps = {}) {
     renderStill = local.renderStill, withGpu = local.withGpu,
     localVerify = local.verifyLocalStills, admit = local.admission, reserve = local.reserveGpu,
     tasteDeps = {}, env = process.env, store = new Map(), persist = persistBatch,
-    limits = readComposeLimits(env), usage = { runs: 0, spendUsd: 0 }, now = Date.now(),
+    limits = readComposeLimits(env), usage = { runs: 0, spendUsd: 0 }, commit = () => ({ allowed: true }), now = Date.now(),
   } = deps;
 
   const promptSource = req.promptSource || 'brief';
@@ -208,6 +208,32 @@ export async function composeStills(req = {}, deps = {}) {
     return { estimateOnly: true, lane, stills: [], failures: [], partial: false, replayed: false,
       cost: { ...cost, chargedUsd: 0 }, promptSource, model: cost.model, key, admission,
       ...(clampedFrom === undefined ? {} : { clampedFrom }) };
+  }
+
+  // ── THE AUTHORITATIVE MONEY GATE ────────────────────────────────────────────────
+  // Everything above is a fast pre-check that produces a better error earlier. THIS is the
+  // gate. It checks both ceilings and commits the cost as ONE synchronous operation, so
+  // two requests in the same tick cannot both read a stale total and both pass a cap
+  // neither would pass together.
+  //
+  // The first version of this slice committed here but checked further up, and claimed
+  // that closed the race. Six reviewers independently said it only narrowed it, and they
+  // were right — between the check and the commit sat every `await` in `chooseLane`.
+  //
+  // Committing BEFORE the provider call also means the ledger never reconciles downward
+  // (it is monotonic on purpose: a negative delta would let anyone who can reach it mint
+  // headroom). So the ceiling counts what was COMMITTED, not what was collected, and a
+  // batch that fails still consumes budget. That is the conservative direction — it is
+  // what stops a retry storm from spending without bound. The local lane commits $0 and
+  // so pays only its run count, which a GPU genuinely spent either way.
+  const verdict = commit({
+    runs: count, spendUsd: cost.totalUsd,
+    maxRunsDaily: limits.maxRunsDaily, maxSpendUsdDaily: limits.maxSpendUsdDaily,
+  });
+  if (!verdict.allowed) {
+    const hint = verdict.code === 'E_SPEND_CEILING' ? ` Raise ${SPEND_ENV_KEY} or wait for the UTC day to roll over.`
+      : verdict.code === 'E_RUN_CAP' ? ` Raise ${RUNS_ENV_KEY}.` : '';
+    throw new ComposeError(verdict.code, `${verdict.message}${hint} Nothing was spent.`);
   }
 
   // LOCAL LANE IS ASYNC. ~27s per frame on the 5090 means a 4-up is ~2 minutes; no HTTP

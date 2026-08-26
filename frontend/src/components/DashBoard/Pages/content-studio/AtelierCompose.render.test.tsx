@@ -21,7 +21,7 @@ const LIMITS_CLAIMED = {
     },
     hosted: { enabled: false, spendEnvKey: 'SWAN_ATELIER_MAX_SPEND_USD_DAILY', limits: { maxRunsDaily: 50, maxSpendUsdDaily: 0 } },
   },
-  usage: { runs: 0, spendUsd: 0 }, ledger: 'absent-this-slice', enabled: false,
+  usage: { runs: 0, spendUsd: 0 }, ledger: 'file', enabled: false,
   note: 'No lane is ready.',
 };
 
@@ -64,6 +64,20 @@ describe('Compose on a machine where nothing is ready yet', () => {
       expect((screen.getByRole('button', { name: new RegExp(`^${name}$`) }) as HTMLButtonElement).disabled).toBe(true);
     }
     expect((api as unknown as { post: { mock: { calls: unknown[] } } }).post.mock.calls).toHaveLength(0);
+  });
+
+  it("a ledger that cannot be read is a NOTICE, not a caption — the billed lane is refusing", async () => {
+    // status role distinguishes it from the quiet day-count caption; the copy has to say
+    // which of the two failures it is, because "budget exceeded" and "disk broken" send an
+    // operator to entirely different places.
+    const degraded = {
+      ...LIMITS_CLAIMED, ledger: "degraded",
+      note: "The spend ledger cannot be read, so today's total is unknown and billed generation is refused. The free local lane is unaffected.",
+    };
+    render(<AtelierCompose api={fakeApi(degraded)} />);
+    const notice = await screen.findByText(/spend ledger cannot be read/i);
+    expect(notice.getAttribute("role")).toBe("status");
+    expect(notice.textContent).toMatch(/free local lane is unaffected/i);
   });
 
   it('no interactive control is nested inside a <label>', async () => {
