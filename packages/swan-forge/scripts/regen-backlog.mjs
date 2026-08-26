@@ -85,7 +85,12 @@ if (cut < 0) { console.error('REFUSING: no generated section found in the doc �
 const next = current.slice(0, cut) + body.replace(/\s*$/, '') + '\n';
 
 if (process.argv.includes('--check')) {
-  if (next !== current) { console.error('DRIFT: the backlog on disk does not match a fresh regeneration. Run: npm run backlog:regen'); process.exit(2); }
+  // Compare CONTENT, not line endings. Git checks this file out with CRLF on Windows while the
+  // generator emits LF, so a raw string compare reported DRIFT on a tree that regenerates to
+  // byte-identical output — a false alarm that would have failed CI on Windows forever, and
+  // trained everyone to ignore the check (own T2 round-4 finding).
+  const norm = (t) => t.replace(/\r\n/g, '\n');
+  if (norm(next) !== norm(current)) { console.error('DRIFT: the backlog on disk does not match a fresh regeneration. Run: npm run backlog:regen'); process.exit(2); }
   console.error(`backlog check OK — ${r4Count} R4 row(s), ${cands.length} candidate(s), 0 missing`);
 } else {
   writeFileSync(DOC, next);
