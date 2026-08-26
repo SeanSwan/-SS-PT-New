@@ -121,6 +121,32 @@ test('SWA-218: an absolute interpreter path is gated', () => {
   assert.equal(runGate('/usr/bin/node scripts/consult-fable.mjs --document plan.md').code, BLOCK);
 });
 
+test('SWA-218: a PIPE inside a quoted argument before the path does not hide the call', () => {
+  // Found by attacking the FIXED regex. The middle segment was a bare [^|;&]*?, which
+  // could not cross a boundary character even inside quotes. Not academic: this repo's
+  // own review templates tell agents to pass remits containing "APPROVE | REVISE | REJECT".
+  assert.equal(runGate(`node --require "a|b" scripts/consult-fable.mjs --document plan.md`).code, BLOCK);
+});
+
+test('SWA-218: a SEMICOLON inside a quoted argument before the path does not hide the call', () => {
+  assert.equal(runGate(`node --require "a;b" scripts/consult-fable.mjs --document plan.md`).code, BLOCK);
+});
+
+test('SWA-218: an AMPERSAND inside a quoted argument before the path does not hide the call', () => {
+  assert.equal(runGate(`node --require "a&b" scripts/consult-fable.mjs --document plan.md`).code, BLOCK);
+});
+
+test('BOUNDARY: an invocation and an unrelated MENTION in two commands still does not match', () => {
+  // This is what the [^|;&] exclusion is FOR, and quoted-span support must not lose it.
+  assert.equal(runGate('node build.mjs | grep scripts/consult-fable.mjs').code, ALLOW);
+  assert.equal(runGate('node build.mjs ; cat scripts/consult-fable.mjs').code, ALLOW);
+  assert.equal(runGate('node build.mjs && cat scripts/consult-fable.mjs').code, ALLOW);
+});
+
+test('BOUNDARY: a real invocation in the SECOND command is still caught', () => {
+  assert.equal(runGate('node build.mjs | node scripts/consult-fable.mjs').code, BLOCK);
+});
+
 test('SWA-218: a word merely ENDING in node is not the node binary', () => {
   // The one false positive the negated class must still avoid.
   assert.equal(runGate('mynode scripts/consult-fable.mjs --document plan.md').code, ALLOW);

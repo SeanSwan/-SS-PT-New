@@ -79,7 +79,26 @@ const cmd = input?.tool_input?.command || '';
 // NEGATED IDENTIFIER class inverts the burden: anything that is not part of a word or
 // a path is a boundary — quotes, newlines, tabs, parens, `$(`. `mynode script.mjs`
 // still does not match, which was the only false positive that ever mattered.
-const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bun) [^|;&]*?consult-(?:fable|sol|kimi|grok|panel)[.]mjs/;
+//
+// FIFTH issue, found in the same session by attacking the fixed regex rather than
+// waiting for a reviewer. The MIDDLE segment used to be a bare `[^|;&]*?`, which
+// cannot cross a shell boundary — that exclusion is deliberate and still wanted, so
+// `node build.mjs | grep consult-fable.mjs` (an invocation and an unrelated MENTION in
+// two different commands) does not false-positive. But it also could not cross a
+// `| ; &` sitting INSIDE A QUOTED ARGUMENT, so all three of these were misses:
+//     node --flag "a|b" scripts/consult-fable.mjs
+//     node --flag "a;b" scripts/consult-fable.mjs
+//     node --flag "a&b" scripts/consult-fable.mjs
+// Not academic: this repo's own review templates instruct agents to pass remits
+// containing "APPROVE | REVISE | REJECT".
+//
+// The middle now alternates QUOTED SPANS (opaque, any content) with non-boundary
+// characters. Verified against 39 shapes — plain, sh -c, bash -lc, env prefix, env
+// assignment, absolute interpreter, yarn node, npm exec, node flags, &&, ;, pipe,
+// backgrounding, subshell, command substitution, Windows backslash paths, cmd /c,
+// line continuation, eval, bun, npx — with zero misses AND zero false positives,
+// including all four cross-command mention cases the exclusion exists to reject.
+const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bun) (?:"[^"]*"|'[^']*'|[^|;&])*?consult-(?:fable|sol|kimi|grok|panel)[.]mjs/;
 if (!cmd || !INVOCATION.test(cmd)) ALLOW();
 
 try {
