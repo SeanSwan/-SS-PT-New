@@ -119,10 +119,22 @@ yields 11, declared 11, 88 verts = 11×8, connected, asymmetric.
   genuinely two pieces by design (a swarm, a tethered pair)? The refusal has no opt-out.
 - Anything in §4's reading of the roster that is my parser's fault rather than the roster's.
 
-**Roster author only — re-author the 12.** Same BOX grammar, same fields. For Defect A add the
-bridging cell(s) so every box shares a full face; for Defect B make the declared count and the
-recipe agree. Return only the corrected blocks. Note the count-vs-recipe check is cheap to run
-yourself: cells = Σ(dx·dy·dz) minus overlaps.
+**Roster author only — re-author the 12.** Same BOX grammar, same fields. Return only the
+corrected blocks.
+
+- **Defect A:** add bridging cell(s). The law AS ENFORCED is 6-neighbour contact at the **cell**
+  level — a single bridging cell joins two boxes, and edge or corner contact does not count. An
+  earlier draft of this brief said "every box shares a full face," which is a stronger law than
+  the gate applies and would buy over-built bridges.
+- **Defect B:** make the declared count and the recipe agree. **`voxelCount` is the number of
+  DISTINCT occupied coordinates — `len(set_of_cells)`.** An earlier draft said
+  "Σ(dx·dy·dz) minus overlaps"; that is wrong for partial overlaps and wrong again for triple
+  overlaps, and would have manufactured the next round of exactly this defect.
+- **First, a question that beats all of this inference:** the grammar says *"odd-indexed copies
+  of any N receive z += 1."* **Which did you mean — that you already applied it while writing the
+  recipes, or that the reader applies it?** And if the reader: is "odd" counted from 0 or from 1?
+  I resolved it structurally (the reading under which fewest creatures shatter) and got
+  author-applied, but you can settle it outright. Answer this even if you return nothing else.
 
 **Do not answer the LIGHT/HARDCORE cast question in this round.** The framing you were given was
 superseded mid-flight and the owner has not yet ruled. A focused follow-up comes separately.
