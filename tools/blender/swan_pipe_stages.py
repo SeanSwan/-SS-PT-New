@@ -200,3 +200,13 @@ def rig_and_animate(obj, skeleton_id, clips):
         raise SystemExit("swan_pipe: no action bound to the armature after keyframing")
     print(f"[swan_pipe] rig: 3 bones, action '{action.name}' with {len(action.fcurves)} fcurves")
     return arm
+
+
+def uv_project(o):
+    bpy.ops.object.select_all(action="DESELECT")
+    o.select_set(True)
+    bpy.context.view_layer.objects.active = o
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.uv.smart_project(island_margin=0.02)
+    bpy.ops.object.mode_set(mode="OBJECT")

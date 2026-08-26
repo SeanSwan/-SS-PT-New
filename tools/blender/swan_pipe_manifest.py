@@ -103,6 +103,9 @@ def parse_args(argv):
     p.add_argument("--tier-table", default="lod1:0.5,lod2:0.25",
                    help="max triangle FRACTION of lod0 per tier. A rung is accepted only if it meets this — "
                         "\"lower than the previous tier\" alone let a 40%% LOD2 through (GLM 5.3, N1)")
+    p.add_argument("--force", action="store_true",
+                   help="allow the atomic swap to delete an existing manifest.json in --out. Off by "
+                        "default: that file is human-authored provenance the pipe cannot regenerate")
     p.add_argument("--dry-run", action="store_true", help="print the plan and exit (works without Blender)")
     return p.parse_args(argv)
 

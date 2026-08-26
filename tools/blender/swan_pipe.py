@@ -25,27 +25,19 @@ So this script's whole job is the translation:
       -> GLB export + a still poster
       -> manifest stub for scripts/assets/validate-asset.mjs
 
-API AUDIT (2026-08-25, no Blender available — documentation only, not execution):
-  bpy.ops.wm.obj_import            OK   3.x+ name; the old import_scene.obj is gone
-  bmesh.ops.remove_doubles          OK
-  bmesh.ops.dissolve_limit          OK   signature (bm, angle_limit, use_dissolve_boundaries,
-                                         verts, edges, delimit) — the three kwargs used are valid
-  BEVEL modifier + modifier_apply   OK
-  shade_auto_smooth                 REPLACED — see smooth_by_angle() below. The operator exists
-                                    in 4.2/4.5 (a review seat's "removed in 4.1" hypothesis was
-                                    about Mesh.use_auto_smooth, which this pipe never used), but
-                                    it depends on a geometry-node ASSET that has open failure
-                                    reports including headless runs. Now done in bmesh instead.
-  bpy.ops.uv.smart_project          UNVERIFIED for 4.5 kwarg names
-  bpy.ops.export_scene.gltf         UNVERIFIED — has a history of background-mode issues
-                                    (blender.org 83188); first real run must check headless export
+STATUS: RUN. Blender 4.5.13 LTS, 18+ executions across four assets (2026-08-26). Every call in
+the 2026-08-25 documentation-only audit has now EXECUTED, including the two it marked UNVERIFIED
+(uv.smart_project kwargs, and export_scene.gltf in background mode — blender.org 83188 does not
+bite this invocation). shade_auto_smooth stays REPLACED by smooth_by_angle(): the operator exists
+in 4.2/4.5, but it applies a geometry-node ASSET with open headless failure reports, and this
+pipe runs -b. The bake stage is deliberately absent from plan() until it exists in code.
 
-STATUS: UNRUN. Blender is not installed on this machine (verified 2026-08-25).
-Every bpy call below is written against the 4.5 LTS API but has NOT executed.
-Treat it as reviewed-not-verified until the first real run. The manifest it emits
-is deliberately INVALID (budgets/provenance incomplete) so the validator rejects
-it until a human fills in the provenance — a pipeline that emits pre-approved
-provenance is a laundering machine.
+INVOKE IT THROUGH scripts/assets/run-blender.mjs, never bare. Blender exits 0 on an uncaught
+Python exception (probed); the wrapper forces --python-exit-code 1 --disable-autoexec and refuses
+success unless this script wrote its .swan-pipe.ok sentinel.
+
+The manifest stub it emits is deliberately INVALID (empty provenance) so the validator rejects it
+until a human fills it in — a pipeline that emits pre-approved provenance is a laundering machine.
 """
 
 import math
@@ -61,7 +53,8 @@ try:
     import bmesh
     IN_BLENDER = True
     # (script dir already on sys.path — see the top-level insert)
-    from swan_pipe_stages import smooth_by_angle, export_collision, render_still, assert_artifact, rig_and_animate  # noqa: E402
+    from swan_pipe_stages import (smooth_by_angle, export_collision, render_still,  # noqa: E402
+                                   assert_artifact, rig_and_animate, uv_project)
 except ImportError:  # allows --dry-run linting outside Blender
     IN_BLENDER = False
 
@@ -132,15 +125,6 @@ def run_in_blender(args, out_dir, done):
     tier_max = {k: float(v) for k, v in (kv.split(":") for kv in args.tier_table.split(","))}
     print(f"[swan_pipe] stage tris: source-welded-beveled={base_tris}")
     done.update(["import", "weld", "cleanup", "bevel", "shade", "uv"])
-
-    def uv_project(o):
-        bpy.ops.object.select_all(action="DESELECT")
-        o.select_set(True)
-        bpy.context.view_layer.objects.active = o
-        bpy.ops.object.mode_set(mode="EDIT")
-        bpy.ops.mesh.select_all(action="SELECT")
-        bpy.ops.uv.smart_project(island_margin=0.02)
-        bpy.ops.object.mode_set(mode="OBJECT")
 
     for name, ratio in ratios.items():
         target = obj.copy()
@@ -269,6 +253,17 @@ def main():
     # ATOMIC OUTPUT (Ox Alpha, N1 blocker 3): six runs wrote into one persistent dir, so a run that died
     # mid-way left the previous run's still.png beside new GLBs, ready to be hashed into a manifest that
     # described different geometry. Build in a temp dir; swap in only on full success.
+    # The atomic swap below REPLACES out_dir wholesale, which eats a curated manifest.json —
+    # human-authored provenance the pipe never generates. Learned by doing it to four assets at
+    # once (2026-08-26); the validator's exit-2 "ZERO manifests" caught it, which is why zero
+    # results is an instrument failure and not a pass.
+    manifest_path = os.path.join(out_dir, "manifest.json")
+    if os.path.exists(manifest_path) and not args.force:
+        raise SystemExit(
+            f"swan_pipe: {manifest_path} exists and the atomic swap would delete it. That file is "
+            f"human-authored provenance, not pipe output. Write to a staging dir and copy the GLBs "
+            f"across, or pass --force if you intend to discard it.")
+
     tmp_dir = out_dir.rstrip("/\\") + f".tmp-{os.getpid()}"
     shutil.rmtree(tmp_dir, ignore_errors=True)
     done = set()

@@ -11,15 +11,15 @@
     "idle"
   ],
   "budgets": {
-    "lod0Triangles": 260,
-    "lod1Triangles": 124,
-    "lod2Triangles": 52,
+    "lod0Triangles": 292,
+    "lod1Triangles": 146,
+    "lod2Triangles": 60,
     "textureMB": 0,
     "tool": "scripts/assets/measure-glb.mjs",
     "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/lod0.glb lod1.glb lod2.glb",
     "date": "2026-08-25",
-    "commit": "ad81ec9cf",
-    "note": "PIPE-PRODUCED, RIGGED (run 17). LOD0 260 carries a 3-bone skeleton.creature-small.v1 bound by automatic weights and the `idle` clip; LOD1 124 / LOD2 52 / hull 16 are unrigged distant tiers. The registry contract names 5 clips; the pipe authors ONE, so the manifest declares one — the validator reads clips from the bytes and would refuse any other claim."
+    "commit": "ea7915ef6",
+    "note": "Regenerated 2026-08-26 from the ROSTER blockout (6 voxels, Ox Alpha spec) rather than the hand-made 5-voxel calibration shape. Built in a staging dir and copied across, because the pipe now refuses to overwrite a curated manifest."
   },
   "provenance": {
     "humanOwner": "owner",
@@ -58,10 +58,10 @@
     "compression": "none"
   },
   "sha256": {
-    "lod0": "5dae3c459448b8c95581a06f331b7bcb0c1ef6e020af1dfd738de00bcaa4e950",
-    "lod1": "bfab889e494c4337d32c72566d6c1756d570936a8c2598a2d305a020af8c12e8",
-    "lod2": "25841fc808f53eb9150cc3601fc07bc407baea531b52c2f4a6f6d859d376e919",
-    "collision": "61324fc25d05f367496e969181ea729de943ae99e464be1432db70d461b238b5"
+    "lod0": "0007a7bf243ee3ad4f5f5e842cbcf692f7248ad38910efc00786eb4e59037db0",
+    "lod1": "8e784190411c8d8145e19787dcf689de9ddb3af7240da16d8c34a9dbe3b4f01a",
+    "lod2": "a64c6a485cfda5fe8e6fe23eed023b34007ef40ff18e176ad9347d5af7b8bd0e",
+    "collision": "106185ac82810d6ce968c8af949bae3087f1c33c42b6111f1bc9b35235cfdc66"
   },
   "_source": {
     "file": "fryling-blockout.obj",
