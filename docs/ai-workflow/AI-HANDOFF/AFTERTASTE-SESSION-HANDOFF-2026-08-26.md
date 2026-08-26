@@ -14,9 +14,9 @@ privacy: IDs/roles only. No PII, no secrets, no credentials.
 | **Linear** | SWA-211 (four comments this session; the newest is the current state) |
 | **Branch** | `claude/aftertaste-p0-20260825`, PR #84 |
 | **Worktree** | `C:\tmp\ss-aftertaste` — the code lives HERE, not in the main repo checkout |
-| **HEAD** | `9b87117e4` · remote at `06d462077` · **5 commits unpushed** (Rule 70 batch cadence) |
+| **HEAD** | see `git log` — remote at `06d462077`; **7 commits unpushed** (Rule 70 batch cadence) |
 | **Tree** | clean |
-| **Seats available** | GLM 5.3, GLM-5.3-Flash (`consult-ox.mjs`, ~3× discount). Fable and Sol are hand-driven by Sean on subscription. Ox Alpha is DEAD. |
+| **Seats available** | GLM 5.3 (`consult-glm.mjs`) and GLM-5.3-Flash (`consult-ox.mjs`, ~3× discount) — SAME LAB, never independent of each other. Fable and Sol are hand-driven by Sean on subscription and ARE independent. Ox Alpha is retired; it WAS Flash. |
 
 ---
 
@@ -85,7 +85,31 @@ and built against for months. Ask Sean; do not interpret.
 
 ---
 
-## 3. THE ONE QUESTION FOR THE ROSTER AUTHOR
+## 3. ⚠ THERE IS NO AUTHOR TO ASK — this plan was tried and it does not work
+
+**Do not spend a call trying to ask the roster's author what they meant.** I did, on 2026-08-26,
+and the attempt is instructive:
+
+- **The roster's "author" is Ox Alpha, which is `z-ai/glm-5.3-flash`** — a stateless model. A
+  fresh instance has no memory of authoring anything. Asking "what did you mean" returns a
+  *fresh guess dressed as a recollection*, which is strictly worse than reading the text, because
+  it arrives with the authority of an author and none of the knowledge.
+- **All four reviewing seats recommended "just ask the author," and so did I, in the first
+  revision of this handoff.** Every one of us reasoned about the roster as though a person wrote
+  it. Nobody checked whether the author was a persistent entity. It is the same class of error as
+  the circular oracles in §7.1: a plausible move whose premise nobody examined.
+- **The `consult-ox.mjs` wrapper also forces a hostile-gate system prompt**, so the seat reviewed
+  my question letter instead of answering it. Even with a persistent author, that path needed a
+  different harness.
+
+**The text is the only authority, and it says reader-applied.** The grammar's own parenthetical —
+*"(validator-visible asymmetry)"* — states that the validator is expected to SEE the lift. That is
+the strongest available evidence and there is no higher court to appeal to.
+
+**What this means for the next agent:** treat `--mirror-break` as an OWNER decision (Sean's), not
+an author decision. Present him §3.1 and let him pick. Do not re-run the ask.
+
+### 3.1 The ambiguity, for whoever decides it
 
 The BOX grammar states: *"MIRROR-BREAK: odd-indexed copies of any N receive z += 1
 **(validator-visible asymmetry)**"*.
@@ -97,14 +121,22 @@ current model cannot express**: `z += 1` read as extent *growth* (`dz+1`) rather
 which never disconnects anything and is therefore invisible to any structural test; and
 "odd-indexed" ranging over the N *statements* of a recipe rather than the copies within one N.
 
-**Ask the author. All four reviewing seats said this independently, unprompted.** It costs one
-call and settles what no statistic can. Two generations of inference were circular (§5.2), and
-`--explain` now reports that the roster's own parenthetical points to **reader-applied** — the
-opposite of the verdict currently in the `.obj` headers.
+**Two generations of inference were circular (§7.1), and `--explain` reports that the roster's own
+parenthetical points to reader-applied — the opposite of the verdict currently baked into the
+`.obj` headers.** Seven blockouts were built under `off`; each header records that, so a change
+costs one rebuild and loses nothing.
 
-```
-node scripts/consult-ox.mjs --document <a short packet with just this question> --out <path>
-```
+Two more readings surfaced on 2026-08-26 that the three-mode model still cannot express:
+
+| reading | why it matters |
+|---|---|
+| *(f)* flat vs accumulating lift | does copy *i* get `z += 1` once, or does the lift interact with the `i*sz` term? |
+| *(e)* odd over N STATEMENTS | "odd-indexed" may range over the N statements in a recipe rather than the copies inside one N |
+
+**Recommended decision: `off`, stated explicitly and recorded.** It is what the seven built
+assets already use, it is the only reading under which most of the roster is buildable at all
+(8 disconnected vs 14 and 17), and the alternative rests on a parenthetical rather than a rule.
+Record the deviation-from-text in the roster changelog so the reasoning survives.
 
 ---
 
@@ -202,13 +234,29 @@ count. Alternatively, if a split is deliberate, the spec declares `components: N
 | `robot.soldernat` | 3 | 2 + 2 cells at z2 (wings) |
 | `deep.anglerfish` | 2 | 1 cell at z3 (the lure) |
 
-**Three declare a count matching neither convention** — genuine miscounts:
+**Four declare a count matching neither convention** — genuine miscounts:
 
 ```
-parasite.leech    declared 14, recipe 22 distinct / 22 summed
-weird.cymothoa    declared 17, recipe 22 / 22
-deep.hagfish      declared 16, recipe 23 / 23
+parasite.leech       declared 14, recipe 22 distinct / 22 summed
+weird.cymothoa       declared 17, recipe 22 / 22
+deep.hagfish         declared 16, recipe 23 / 23
+weird.mantisshrimp   declared 34, recipe 37 / 37   <- ALSO in the disconnection table above
 ```
+
+**The exact partition of the 11** (verified by running it, not by reading the refusal output):
+
+```
+7  disconnected only
+3  count only
+1  BOTH — weird.mantisshrimp
+```
+
+⚠ **An earlier revision of this file said "3 count defects" and omitted mantisshrimp.** I captured
+the refusal list with `grep -A1 "REFUSED"`, which takes exactly one line after each match, and
+mantisshrimp's second problem line was cut off by my own filter. The tool reported both defects
+correctly; I truncated the evidence and wrote the truncation down. **This is the project's named
+failure class (§7) occurring inside the document that warns about it.** If you need a defect
+partition, compute it — do not read it off a filtered log.
 
 **Two earlier count accusations were MY tool's error and are withdrawn** — see §5.4.
 
@@ -290,6 +338,24 @@ matters, the seats must come from different labs.
   Fable and Sol, 21 verified real and 2 were disproven by running them. Both disproven ones were
   still worth raising.
 
+### 6.2b Flash's review of the question letter — 2 of 4 blockers DISPROVEN on running them
+
+A worked example of why Rule 30 exists (another model's finding is a HYPOTHESIS until verified):
+
+| claim | verdict |
+|---|---|
+| "`12/10/10` is arithmetically impossible — translations cannot change cell counts" | **DISPROVEN.** A translation changes the UNION count whenever a shifted copy stops or starts overlapping something. Three recipes do exactly that (`assassinbug` 29→28, `horsehair` 11→10, `hagfish` 23→22). The table reproduces exactly. |
+| "the partition does not close — 3 unnamed count mismatches" | **DISPROVEN.** Disconnection and count-mismatch are independent properties. Measured: 7 clean + 7 disconnected-only + 3 count-only + 1 both = 18. |
+| "`barreleye`'s exoneration is reading-dependent" | **DISPROVEN.** It builds under all three readings. |
+| "`k` is unbounded before expansion — memory bomb" | **DISPROVEN in the code**, real in the letter. `MAX_COPIES = 256`. Flash was given the letter, not the source. |
+| "the z-lift bias claim is asserted, not derived" | **REAL.** I stated a standing property from single-roster evidence (8/14/17, monotone here, not a law). |
+| "reading *(e)* is enumerated then never asked about"; "flat vs accumulating lift is a sixth reading" | **REAL.** Both now in §3.1. |
+| "no roster revision identifier — an answer could apply to drifted input" | **REAL, unaddressed.** Pin future spec requests to a roster hash. |
+
+**Score it by verifying, never by how sharp the prose reads.** Flash's disproven claims were
+confident and well-argued; three of them rested on a premise (translations preserve counts) that
+is true only for non-overlapping copies.
+
 ### 6.3 Relay procedure
 
 Fable and Sol are driven by Sean in other windows. **Supply the paste-ready prompt unasked** — he
@@ -340,8 +406,9 @@ the circularity is back.
 ## 8. THE NEXT SLICE, IN ORDER
 
 1. **Get §2.1 answered.** Nothing creature-shaped moves until then.
-2. **Ask the roster author §3** — one call, settles what no statistic can. If the answer is
-   `on0`/`on1`, rebuild all 7 blockouts (their headers record `off`).
+2. **Get `--mirror-break` decided by SEAN, not by an author** (§3 — there is no author; the
+   attempt was made and is documented). Recommend `off`. If he picks `on0`/`on1`, rebuild all 7
+   blockouts; their headers record the reading, so nothing is lost.
 3. **Send the 11 refused specs back** with §5.3's exact defect list. The precise fix per creature
    is already computed; the author does not have to re-derive anything.
 4. **Pick a biome vocabulary** — Ox's six names or GLM's. §5.6.
