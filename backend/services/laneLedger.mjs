@@ -153,9 +153,6 @@ export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => n
       // The CALLER is refused on every failure regardless of the threshold — this request's
       // spend was not recorded, so this request must not spend. The threshold governs only
       // whether LATER requests are refused too.
-      // The run still HAPPENED. Remember it so the volume cap keeps counting even though
-      // the ledger could not.
-      if (runs > 0) strandedRuns.set(day, (strandedRuns.get(day) || 0) + runs);
       return { failed: true, reason, degradedNow: Boolean(unwritable) };
     }
   };
@@ -210,8 +207,16 @@ export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => n
 
     const written = record(day, { runs, spendUsd });
     if (written?.failed && billed) {
+      // Refused, so nothing happened and nothing may be counted. Stranding the run here
+      // was the bug a reviewer found in the FIRST version of this fix: `record` stranded
+      // unconditionally in its catch, which runs BEFORE this decision — so a billed
+      // request that was refused still consumed volume headroom it never used, and enough
+      // of them would close the free lane on behalf of work that never ran.
       return { allowed: false, code: 'E_LEDGER_UNWRITABLE', usage: before, message: written.reason };
     }
+    // The write failed but the caller PROCEEDS (free work). The run genuinely happens, so
+    // the volume cap must keep counting even though the ledger could not record it.
+    if (written?.failed && runs > 0) strandedRuns.set(day, (strandedRuns.get(day) || 0) + runs);
     return { allowed: true, usage: usageFor(day) };
   };
 

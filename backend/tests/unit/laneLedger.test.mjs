@@ -145,29 +145,44 @@ describe('the two failure modes, and which way each falls', () => {
 });
 
 describe('an unwritable disk must not uncap the free lane', () => {
+  const FREE = { runs: 2, spendUsd: 0, maxRunsDaily: 50, maxSpendUsdDaily: 0 };
+
   it('counts runs the disk refused, so the VOLUME cap keeps biting', () => {
     // A reviewer found this reading the real source: a failed write refuses BILLED work,
     // correctly — but free work proceeds, and its run was never recorded. Every subsequent
     // request then read the same stale total, so an unwritable disk silently removed the
     // volume cap that exists to protect one GPU rather than a budget.
+    //
+    // RE-ANCHORED to tryCommit: stranding moved there in the next review round, because
+    // doing it inside `record`'s catch counted runs for BILLED requests that were then
+    // refused — headroom consumed by work that never ran.
     const l = makeLaneLedger({ lane: 'atelier', io: fakeFs({ failWrite: true }), now: () => at });
     expect(l.usageToday().runs).toBe(0);
-    l.recordToday({ runs: 2, spendUsd: 0 });
-    l.recordToday({ runs: 2, spendUsd: 0 });
+    expect(l.tryCommit(FREE).allowed).toBe(true);
+    expect(l.tryCommit(FREE).allowed).toBe(true);
     expect(l.usageToday().runs).toBe(4);          // counted despite the disk
+  });
+
+  it('a REFUSED billed request strands nothing — it never ran', () => {
+    const l = makeLaneLedger({ lane: 'atelier', io: fakeFs({ failWrite: true }), now: () => at });
+    const v = l.tryCommit({ runs: 3, spendUsd: 1, maxRunsDaily: 50, maxSpendUsdDaily: 100 });
+    expect(v.allowed).toBe(false);
+    expect(v.code).toBe('E_LEDGER_UNWRITABLE');
+    expect(l.usageToday().runs).toBe(0);          // no headroom consumed
   });
 
   it('the run cap then actually refuses, instead of letting the lane run forever', () => {
     const l = makeLaneLedger({ lane: 'atelier', io: fakeFs({ failWrite: true }), now: () => at });
-    l.recordToday({ runs: 49, spendUsd: 0 });
-    const v = l.tryCommit({ runs: 2, spendUsd: 0, maxRunsDaily: 50, maxSpendUsdDaily: 0 });
+    for (let i = 0; i < 24; i += 1) l.tryCommit(FREE);        // 48 stranded runs
+    expect(l.usageToday().runs).toBe(48);
+    const v = l.tryCommit({ runs: 4, spendUsd: 0, maxRunsDaily: 50, maxSpendUsdDaily: 0 });
     expect(v.allowed).toBe(false);
     expect(v.code).toBe('E_RUN_CAP');
   });
 
   it('stranded runs are per-day, so tomorrow starts clean', () => {
     const l = makeLaneLedger({ lane: 'atelier', io: fakeFs({ failWrite: true }) });
-    l.recordToday({ runs: 3, spendUsd: 0 }, new Date('2026-08-26T12:00:00Z'));
+    l.tryCommit({ runs: 3, spendUsd: 0, maxRunsDaily: 50, maxSpendUsdDaily: 0 }, new Date('2026-08-26T12:00:00Z'));
     expect(l.usageToday(new Date('2026-08-26T12:00:00Z')).runs).toBe(3);
     expect(l.usageToday(new Date('2026-08-27T12:00:00Z')).runs).toBe(0);
   });

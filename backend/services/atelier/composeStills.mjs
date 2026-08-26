@@ -37,6 +37,7 @@ import { persistBatch } from './persistStills.mjs';
 import * as batches from './batchStore.mjs';
 import { applyBrandKit, brandKitView, listBrandKits } from '../../../shared/brandKits/registry.mjs';
 import { runLocalBatch } from './localBatchRunner.mjs';
+import { rememberKey, defaultCommit, IDEMPOTENCY_RETAIN, settledKeys } from './composeGuards.mjs';
 import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
 
 export {
@@ -47,46 +48,6 @@ export {
 const SOURCES = new Set(['brief', 'taste']);
 
 // chooseLane + gateHosted moved to composeLaneChoice.mjs when this file hit its cap.
-
-/** How many settled idempotency keys to retain. Big enough that any realistic retry
- *  still replays instead of re-charging; small enough that the map cannot grow for the
- *  life of the process. */
-export const IDEMPOTENCY_RETAIN = 500;
-
-/**
- * Bound the replay map without breaking replay.
- *
- * A Map iterates in insertion order, so the first key is the oldest and dropping it is a
- * plain FIFO eviction — no timestamps to keep and no second structure to hold. The keys
- * being dropped are the ones least likely to see a retry, because a retry that has not
- * arrived within five hundred subsequent requests is not a retry.
- */
-function rememberKey(store, key) {
-  if (typeof store.size !== 'number') return;
-  while (store.size > IDEMPOTENCY_RETAIN) {
-    const oldest = store.keys().next();
-    if (oldest.done || oldest.value === key) break;
-    store.delete(oldest.value);
-  }
-}
-
-/**
- * The commit used when a caller injects none.
- *
- * It permits free work and REFUSES anything that costs money. A blanket
- * `() => ({ allowed: true })` made the money gate fail open: a route that omitted or
- * misspelled `commit` would spend without a ceiling and without a sound. A control that
- * can be dropped by accident is not a control — the same lesson the video lane's
- * `ledger = null` taught, in the file next door.
- */
-function defaultCommit({ spendUsd = 0 } = {}) {
-  if (spendUsd > 0) {
-    throw new ComposeError('E_NO_SPEND_GATE',
-      'Refusing to spend: no spend gate was wired into this call, so the cost could not be '
-      + 'counted against any ceiling. Nothing was generated and nothing was spent.');
-  }
-  return { allowed: true };
-}
 
 async function runBatch({ lane, prompts, key, req, model, deps }) {
   const { generator, renderStill, withGpu, env, reservation } = deps;
@@ -262,7 +223,11 @@ export async function composeStills(req = {}, deps = {}) {
     // Prompts — after every refusal gate, before any generator.
     let prompts; let tasteMeta = {};
     if (promptSource === 'taste') {
-      const t = await promptsFromTaste({ count, aspect: brief.aspect || req.aspect, seed: seedFor(key, 0), cinematic: !!req.cinematic, mode: req.mode, lawProfile }, { env, ...tasteDeps });
+      // Judged by the KIT's own laws, not the merged ones. The override may relax what the
+      // COMPILER enforces, but the taste corpus is Swan's and the laws that guard it are
+      // not a request parameter — otherwise the refusal above is closed while the judging
+      // behind it stays open.
+      const t = await promptsFromTaste({ count, aspect: brief.aspect || req.aspect, seed: seedFor(key, 0), cinematic: !!req.cinematic, mode: req.mode, lawProfile: kit.lawProfileFromKit }, { env, ...tasteDeps });
       prompts = t.prompts; tasteMeta = { tasteSeed: t.tasteSeed, lawRejected: t.lawRejected, tasteDropped: t.dropped, lawProfile };
     } else {
       const caps = lane === 'hosted' ? hostedCaps(model) : { provider: local.STILL_PROVIDER, promptStyle: 'sentence' };
@@ -316,7 +281,7 @@ export async function composeStills(req = {}, deps = {}) {
   // may evict because a batch id is a durable handle the client can poll; here the
   // response IS the only handle. So the key is retained and the MAP is bounded instead —
   // see rememberKey below.
-  rememberKey(store, key);
+  rememberKey(store, key, settledKeys);
   return result;
   } catch (err) {
     if (settle) { store.delete(key); settle.rej(err); }
