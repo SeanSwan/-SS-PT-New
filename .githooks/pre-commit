@@ -48,6 +48,20 @@ if ! node "$REPO_ROOT/scripts/hooks/frontend-guards.mjs" --staged; then
   exit 1
 fi
 
+# Backend line cap (added 2026-08-26). frontend-guards carries G6, the 300-line
+# advisory, and it only looks at FRONTEND files — so backend .mjs drift had nothing
+# reporting it at all. Over one long review session six separate files crossed the cap
+# while gaining fixes, and every one was noticed a commit LATE: by someone running wc -l
+# after the fact, or by a reviewer filing it as a house-rule violation.
+#
+# ADVISORY, exactly like G6 and for exactly its reason: the repo has pre-existing files
+# over the cap, and a guard that blocks a commit for debt the author did not create
+# (Rule 34) is a guard people learn to bypass. Absence of the script is not fatal — a
+# worktree checked out before this existed still commits, it just does not get the warning.
+if [ -f "$REPO_ROOT/scripts/hooks/backend-line-cap.mjs" ]; then
+  node "$REPO_ROOT/scripts/hooks/backend-line-cap.mjs" --staged || true
+fi
+
 # Constitution integrity (added 2026-08-14 after commit 10a3e7fa1 silently
 # reverted 9 MANDATORY rules from CLAUDE.md while shipping two correct edits).
 # Blocks: rule deletion, silent renumbering, body reversion, and mirror drift.
