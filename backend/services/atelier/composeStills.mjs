@@ -38,7 +38,7 @@ import * as batches from './batchStore.mjs';
 import { applyBrandKit, brandKitView, listBrandKits } from '../../../shared/brandKits/registry.mjs';
 import { runLocalBatch } from './localBatchRunner.mjs';
 import { runBatch } from './composeBatch.mjs';
-import { rememberKey, defaultCommit, slimForReplay, assertKeyHasOwner, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
+import { rememberKey, defaultCommit, slimForReplay, assertKeyHasOwner, assertSlotOverrides, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
 import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
 
 export {
@@ -100,7 +100,10 @@ export async function composeStills(req = {}, deps = {}) {
   }
   const model = req.model || DEFAULT_MODEL;
   const { count, clampedFrom } = clampCount(req.count);
-  const brief = { ...(req.brief || {}), text: normalizeText(req.brief?.text) };
+  // Slot overrides are bounded and normalised HERE, before the key is derived from them,
+  // so an oversized one is refused rather than hashed and then sent to a provider.
+  const slotOverrides = assertSlotOverrides(req.brief || {});
+  const brief = { ...(req.brief || {}), text: normalizeText(req.brief?.text), ...(slotOverrides ? { slotOverrides } : {}) };
 
   // GATE 1 — a subject, bounded. Taste supplies its own subjects.
   if (promptSource === 'brief' && !brief.text) {
@@ -193,7 +196,12 @@ export async function composeStills(req = {}, deps = {}) {
       // count was silently reduced had no way to know on the lane that reduces it most.
       ...(clampedFrom === undefined ? {} : { clampedFrom }) };
     settle.res(accepted);
-    runLocalBatch({ batch, req, brief, count, key, promptSource, lawProfile, model: cost.model, reservation,
+    runLocalBatch({ batch, req, brief, count, key, promptSource,
+      // The KIT's profile, not the merged one — the same correction the synchronous path
+      // received two rounds ago and this one did not. Sixth time a fix has landed on one
+      // half of a pair in this review; the async lane is where taste actually RUNS, so
+      // fixing only the sync half fixed the path taste almost never takes.
+      lawProfile: kit.lawProfileFromKit, model: cost.model, reservation,
       deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, brandKit: brandKitView(kit), ...(deps.watchdogMs ? { watchdogMs: deps.watchdogMs } : {}) } })
       // The key is evicted when the batch is terminal: a replay is only honest WHILE the
       // batch is in flight. Holding it for the store's lifetime would silently return an
@@ -226,6 +234,10 @@ export async function composeStills(req = {}, deps = {}) {
       // rode along regardless. An explicit caller override still wins, same as lawProfile.
       const b = promptsFromBrief({
         ...brief,
+        // The top-level aspect overrides the brief's, exactly as the taste path already
+        // reads it. Without this the key hashed a field the output ignored, so two
+        // identical images got different keys and never coalesced.
+        aspect: brief.aspect || req.aspect,
         text: applyBrandKit(brief.text, kit),
         slotOverrides: {
           ...(kit.negativeSlot ? { negative: kit.negativeSlot } : {}),

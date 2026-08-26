@@ -209,3 +209,48 @@ export function assertKeyHasOwner(req) {
       + "would receive each other's work. Nothing was generated and nothing was spent.");
   }
 }
+
+/** A slot override is a string a compiler slot is REPLACED with; nothing else is useful
+ *  there, and everything else is an attack surface. */
+export const MAX_SLOT_OVERRIDE_CHARS = 2000;
+export const MAX_SLOT_OVERRIDES = 12;
+
+/**
+ * Bound the slot overrides.
+ *
+ * `MAX_BRIEF_CHARS` guards `brief.text` and nothing else, so `slotOverrides` was an
+ * unbounded channel straight past it into the compiler and out to a provider: a two-
+ * megabyte "negative" slot, or a hundred keys nobody reads. It also skipped the
+ * normalisation the brief gets, so the same words in NFC and NFD produced different
+ * prompts from the same request.
+ *
+ * A reviewer found the hole by asking the obvious question the length gate never asked:
+ * what ELSE reaches the compiler?
+ */
+export function assertSlotOverrides(brief = {}) {
+  const overrides = brief.slotOverrides;
+  if (overrides === undefined || overrides === null) return undefined;
+  if (typeof overrides !== 'object' || Array.isArray(overrides)) {
+    throw new ComposeError('E_BAD_SLOT_OVERRIDE', 'slotOverrides must be an object of slot names to replacement text.');
+  }
+  const keys = Object.keys(overrides);
+  if (keys.length > MAX_SLOT_OVERRIDES) {
+    throw new ComposeError('E_BAD_SLOT_OVERRIDE',
+      `slotOverrides carries ${keys.length} slots; at most ${MAX_SLOT_OVERRIDES} are accepted.`);
+  }
+  const cleaned = {};
+  for (const k of keys) {
+    const v = overrides[k];
+    if (typeof v !== 'string') {
+      throw new ComposeError('E_BAD_SLOT_OVERRIDE', `slotOverrides.${k} must be text.`);
+    }
+    if (v.length > MAX_SLOT_OVERRIDE_CHARS) {
+      throw new ComposeError('E_BAD_SLOT_OVERRIDE',
+        `slotOverrides.${k} is ${v.length} characters; at most ${MAX_SLOT_OVERRIDE_CHARS} are accepted.`);
+    }
+    // Same normalisation the brief gets, so NFC and NFD spellings of one word hash and
+    // compile identically instead of quietly becoming two different requests.
+    cleaned[k] = v.normalize('NFC').trim();
+  }
+  return cleaned;
+}

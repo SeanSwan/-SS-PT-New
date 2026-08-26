@@ -23,6 +23,9 @@ export const STATUS = Object.freeze({
   // Library filters are an allowlist: an unknown value is refused rather than ignored,
   // because a filter that silently matches everything is worse than no filter.
   E_BAD_FILTER: 400,
+  // A slot override that is too long, too many, or not text. MAX_BRIEF_CHARS guards
+  // brief.text and nothing else, so this channel needed its own bound.
+  E_BAD_SLOT_OVERRIDE: 400,
   // A page cursor this list did not issue.
   E_BAD_CURSOR: 400,
   // A brand kit that does not exist. The caller believed they were selecting art

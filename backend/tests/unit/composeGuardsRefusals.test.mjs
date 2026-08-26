@@ -295,3 +295,41 @@ describe('the identity, one round later', () => {
       .not.toBe(deriveKey({ ...base, brief: { ...base.brief, slotOverrides: { negative: 'b' } } }, now));
   });
 });
+
+describe('slot overrides are a channel past the brief length gate', () => {
+  it('refuses an oversized override', async () => {
+    // MAX_BRIEF_CHARS guards brief.text and NOTHING ELSE, so slotOverrides was an
+    // unbounded channel straight past it into the compiler and out to a provider. A
+    // reviewer found it by asking the question the length gate never asked: what else
+    // reaches the compiler?
+    const { assertSlotOverrides, MAX_SLOT_OVERRIDE_CHARS } = await import('../../services/atelier/composeGuards.mjs');
+    let err;
+    try { assertSlotOverrides({ slotOverrides: { negative: 'x'.repeat(MAX_SLOT_OVERRIDE_CHARS + 1) } }); } catch (e) { err = e; }
+    expect(err?.code).toBe('E_BAD_SLOT_OVERRIDE');
+    expect(err.message).toMatch(/characters/);
+  });
+
+  it('refuses too many slots, and non-text values', async () => {
+    const { assertSlotOverrides, MAX_SLOT_OVERRIDES } = await import('../../services/atelier/composeGuards.mjs');
+    const many = Object.fromEntries(Array.from({ length: MAX_SLOT_OVERRIDES + 1 }, (_, i) => [`s${i}`, 'x']));
+    expect(() => assertSlotOverrides({ slotOverrides: many })).toThrow(expect.objectContaining({ code: 'E_BAD_SLOT_OVERRIDE' }));
+    expect(() => assertSlotOverrides({ slotOverrides: { negative: 42 } })).toThrow(expect.objectContaining({ code: 'E_BAD_SLOT_OVERRIDE' }));
+    expect(() => assertSlotOverrides({ slotOverrides: ['a'] })).toThrow(expect.objectContaining({ code: 'E_BAD_SLOT_OVERRIDE' }));
+  });
+
+  it('NORMALISES the values, so NFC and NFD spellings are one request', async () => {
+    // The brief gets normalised and the overrides did not, so the same word in two
+    // encodings produced two different prompts — and, once the key hashed them, two
+    // different keys for one intent.
+    const { assertSlotOverrides } = await import('../../services/atelier/composeGuards.mjs');
+    const nfc = assertSlotOverrides({ slotOverrides: { negative: 'caf\u00e9' } });
+    const nfd = assertSlotOverrides({ slotOverrides: { negative: 'cafe\u0301' } });
+    expect(nfc.negative).toBe(nfd.negative);
+  });
+
+  it('passes an absent or empty override through untouched', async () => {
+    const { assertSlotOverrides } = await import('../../services/atelier/composeGuards.mjs');
+    expect(assertSlotOverrides({})).toBeUndefined();
+    expect(assertSlotOverrides({ slotOverrides: {} })).toEqual({});
+  });
+});
