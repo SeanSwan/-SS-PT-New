@@ -201,7 +201,11 @@ export async function composeStills(req = {}, deps = {}) {
       // half of a pair in this review; the async lane is where taste actually RUNS, so
       // fixing only the sync half fixed the path taste almost never takes.
       lawProfile: kit.lawProfileFromKit, kit, model: cost.model, reservation,
-      deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, brandKit: brandKitView(kit), ...(deps.watchdogMs ? { watchdogMs: deps.watchdogMs } : {}) } })
+      // The kit travels as ONE parameter, not as a parameter AND a deps field. Two
+      // channels for one fact is how the sync and async halves drifted apart in the first
+      // place: whichever one a later change updates, the other keeps its old value and
+      // nothing disagrees loudly enough to notice.
+      deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, ...(deps.watchdogMs ? { watchdogMs: deps.watchdogMs } : {}) } })
       // The key is evicted when the batch is terminal: a replay is only honest WHILE the
       // batch is in flight. Holding it for the store's lifetime would silently return an
       // old batch to someone deliberately re-rendering the same composition.

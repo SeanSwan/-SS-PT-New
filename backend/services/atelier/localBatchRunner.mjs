@@ -15,7 +15,7 @@
 import * as batches from './batchStore.mjs';
 import { sha, seedFor } from './composeLimits.mjs';
 import { promptsFromBrief, promptsFromTaste, LAW_PROFILES } from './promptSources.mjs';
-import { applyBrandKit } from '../../../shared/brandKits/registry.mjs';
+import { applyBrandKit, brandKitView } from '../../../shared/brandKits/registry.mjs';
 import * as local from './localStillLane.mjs';
 
 /**
@@ -69,7 +69,7 @@ export async function runLocalBatch({ batch, req, brief, count, key, promptSourc
           const r = await renderStill({ promptText: p.text, seed, outDir: req.outDir }, { env });
           const still = { index: i, lane: 'local', promptHash: sha(p.text).slice(0, 12), ...r, seed, promptText: p.text, model: r.provider };
           // Persist THIS still now, so the poll that sees it also sees its asset id.
-          if (req.persist !== false) await persist({ stills: [still], lane: 'local', userId: req.userId, workspaceId: req.workspaceId, brandKit: deps.brandKit ?? null, model, env });
+          if (req.persist !== false) await persist({ stills: [still], lane: 'local', userId: req.userId, workspaceId: req.workspaceId, brandKit: brandKitView(kit), model, env });
           batches.pushStill(batch, still);
         } catch (e) {
           batches.pushFailure(batch, { index: i, code: e?.code || 'E_LOCAL_RENDER', message: e?.message || String(e) });
