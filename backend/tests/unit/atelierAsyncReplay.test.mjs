@@ -162,10 +162,14 @@ describe('the replay guard fails toward running the work, never toward a hollow 
     // `has` and `get` are not one operation, and a terminal `.finally` can delete the key
     // between them. Spreading an absent prior would hand the client `{ replayed: true }`
     // with no fields at all — a 200 that says nothing — rather than doing the work.
+    // A REALISTIC fake. The first version answered `has: () => true` forever and ignored
+    // `delete` — a store that permanently claims occupancy and never yields, against which
+    // refusing to render is the correct behaviour, not a bug. It would have gone red for
+    // the right reason and been read as the wrong one.
+    const inner = new Map([['u1:ghost', undefined]]);
     const store = {
-      has: () => true,               // claims to hold it...
-      get: async () => undefined,    // ...and does not
-      set: () => {}, delete: () => {},
+      has: (k) => inner.has(k), get: (k) => inner.get(k),
+      set: (k, v) => inner.set(k, v), delete: (k) => inner.delete(k),
     };
     const out = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store }));
     expect(out.replayed).toBe(false);

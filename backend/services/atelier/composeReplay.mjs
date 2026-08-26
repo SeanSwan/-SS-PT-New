@@ -10,6 +10,8 @@
  * carrying fields the caller was never meant to see.
  */
 
+import { ComposeError } from './composeLimits.mjs';
+
 /**
  * Answer from a prior identical request, or say there is nothing honest to answer with.
  *
@@ -125,30 +127,38 @@ export function claimIfAbsent(store, key, pending) {
 /**
  * Become the owner of a key, or return the answer whoever already owns it will produce.
  *
- * The orchestrator used to do this inline as a blind `store.set`, which is safe only while
- * every miss is decided synchronously — and the rejection-miss cannot be. Two retries
- * awaiting the same rejected claim both resume in a continuation, and a blind write there
- * takes the key from whichever one got there first: two renders, two bites of the run cap.
+ * EVERY WRITE IS CONDITIONAL, not just the first. The previous version guarded the entry
+ * with `claimIfAbsent` and then, having failed to coalesce, wrote the tail BLINDLY — so
+ * with k retries waiting on one rejected claim, all k resumed in the same microtask drain,
+ * all k found nothing to coalesce onto, and all k claimed: k owners, k batch rows, k GPU
+ * renders, k run-cap debits, and k different batchIds handed out for one idempotent key.
+ * A reviewer noted the docstring already claimed this exact outcome was fixed. It described
+ * the entry and the tail contradicted it — the fourteenth time in this review a rule held
+ * on one path and not on its sibling, this time two paths of one function.
  *
- * @returns `{ replay }` to answer from someone else's work, or `{ settle }` having taken
- *          ownership — the deferred the caller settles with its outcome.
+ * The loop is what makes "first resumer wins" true: the winner's claim is present, so every
+ * later attempt finds it and coalesces onto a LIVE promise rather than racing it. Bounded,
+ * because refusing loudly is the right failure here — a request that cannot establish
+ * ownership must not render, and a caller that renders twice has already lost the argument.
  */
-export async function claimOrCoalesce(store, key, clock) {
+export async function claimOrCoalesce(store, key, clock, attempts = 3) {
   let settle = null;
   const pending = new Promise((res, rej) => { settle = { res, rej }; });
   pending.catch(() => {});
-  if (claimIfAbsent(store, key, pending)) return { settle };
 
-  // Someone claimed while we were resuming. Coalesce onto theirs rather than racing it.
-  const theirs = replayIfFresh(store, key, clock);
-  if (theirs) {
-    const body = await theirs;
-    if (body) return { replay: { ...body, replayed: true } };
+  for (let n = 0; n < attempts; n += 1) {
+    if (claimIfAbsent(store, key, pending)) return { settle };
+
+    // Someone owns it. Coalesce onto theirs rather than racing it.
+    const theirs = replayIfFresh(store, key, clock);
+    if (theirs) {
+      const body = await theirs;
+      if (body) return { replay: { ...body, replayed: true } };
+    }
+    // Theirs resolved to nothing usable — it rejected, or expired as we looked. Round the
+    // loop and try to claim the now-empty key, conditionally, like every other write here.
   }
-  // Theirs resolved to nothing usable either, which needs a second failure on top of the
-  // first, so take the key over. This narrows the window to consecutive failures rather
-  // than closing it, and saying that is more useful than claiming it is gone.
-  store.set(key, pending);
-  return { settle };
-}
 
+  throw new ComposeError('E_REPLAY_CONTENTION',
+    `Could not establish ownership of this request after ${attempts} attempts. Retry in a moment; nothing was spent.`);
+}

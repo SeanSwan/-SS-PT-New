@@ -54,15 +54,37 @@ describe('claiming a key never takes it from whoever got there first', () => {
     expect(out.settle).toBeUndefined();       // it did not take ownership
   });
 
-  it('takes the key when what is there resolves to nothing usable', async () => {
-    // Needs a second failure on top of the first. The window is narrowed to consecutive
-    // failures, not closed — the code says so rather than claiming otherwise.
+  it('exactly ONE of many waiters becomes the owner; the rest coalesce', async () => {
+    // The tail used to write blindly, so with k retries waiting on one rejected claim all k
+    // resumed in the same microtask drain, all k found nothing to coalesce onto, and all k
+    // claimed: k owners, k batches, k run-cap debits, k different batchIds for one
+    // idempotent key. The entry was conditional and the tail contradicted it.
     const { claimOrCoalesce } = await import('../../services/atelier/composeReplay.mjs');
     const store = new Map();
-    store.set('k', { batchId: 'B1', status: 'done', replayExpiresAt: Date.now() - 1 });  // expired
-    const out = await claimOrCoalesce(store, 'k', () => Date.now());
-    expect(out.replay).toBeUndefined();
-    expect(out.settle).toBeTruthy();
-    expect(store.get('k')).not.toEqual({ batchId: 'B1' });
+    const dead = Promise.reject(new Error('the first claim failed'));
+    dead.catch(() => {});
+    store.set('k', dead);
+
+    // The losers coalesce onto the winner's claim, which in production its owner settles
+    // and here nobody does — so they wait, correctly, forever. That waiting IS the fix, so
+    // the test asserts it instead of awaiting it.
+    const settled = (p) => Promise.race([p, new Promise((r) => setTimeout(() => r('waiting'), 60))]);
+    const outs = await Promise.all([
+      settled(claimOrCoalesce(store, 'k', () => Date.now())),
+      settled(claimOrCoalesce(store, 'k', () => Date.now())),
+      settled(claimOrCoalesce(store, 'k', () => Date.now())),
+    ]);
+    const owners = outs.filter((o) => o !== 'waiting' && o.settle);
+    expect(owners.length).toBe(1);                       // one render, not three
+    expect(outs.filter((o) => o === 'waiting').length).toBe(2);   // the rest queued behind it
+    expect(store.size).toBe(1);                          // one claim in the store
+  });
+
+  it('refuses loudly rather than rendering twice when ownership cannot be established', async () => {
+    // A store that permanently claims occupancy and never yields is not a reason to render
+    // anyway. A request that cannot establish ownership must not spend a GPU.
+    const { claimOrCoalesce } = await import('../../services/atelier/composeReplay.mjs');
+    const store = { has: () => true, get: () => undefined, set: () => {}, delete: () => {} };
+    await expect(claimOrCoalesce(store, 'k', () => Date.now(), 2)).rejects.toMatchObject({ code: 'E_REPLAY_CONTENTION' });
   });
 });
