@@ -14,8 +14,17 @@ import { ComposeError } from './composeLimits.mjs';
  *  life of the process. */
 export const IDEMPOTENCY_RETAIN = 500;
 
-/** Keys whose work has finished, and therefore the only ones safe to evict. Module-scoped
- *  because the store may be injected per call while the process is one. */
+/**
+ * The coalescing map, and the keys in it whose work has finished.
+ *
+ * BOTH are module-scoped, and they have to be. The store's default used to be
+ * `new Map()` evaluated per CALL, which meant a route that omitted it got a fresh map
+ * every request — idempotency scoped to a single request is no idempotency at all, and
+ * the retry it exists to protect would generate and charge again. Worse, pairing a
+ * per-call store with this process-wide set broke the eviction bound the moment two
+ * stores existed. One process, one map, one set.
+ */
+export const COALESCING_STORE = new Map();
 export const settledKeys = new Set();
 
 /**
@@ -52,10 +61,23 @@ export function rememberKey(store, key, settled) {
  * `ledger = null` taught, in the file next door.
  */
 export function defaultCommit({ spendUsd = 0 } = {}) {
+  // Same reasoning as the ledger's own guard: `NaN > 0` is false, so an unpriced cost
+  // would read as free and be permitted by the very default that exists to refuse spend.
+  if (!Number.isFinite(spendUsd) || spendUsd < 0) {
+    throw new ComposeError('E_BAD_COST',
+      `Refusing: a cost of ${spendUsd} cannot be checked against any ceiling.`);
+  }
   if (spendUsd > 0) {
     throw new ComposeError('E_NO_SPEND_GATE',
       'Refusing to spend: no spend gate was wired into this call, so the cost could not be '
       + 'counted against any ceiling. Nothing was generated and nothing was spent.');
   }
   return { allowed: true };
+}
+
+/** Test hook. Process-scoped state needs an explicit reset or suites leak into each other
+ *  — which is the price of making the store process-scoped, and worth paying. */
+export function _resetCoalescing() {
+  COALESCING_STORE.clear();
+  settledKeys.clear();
 }

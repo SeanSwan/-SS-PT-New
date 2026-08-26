@@ -54,6 +54,9 @@ export const STATUS = Object.freeze({
   E_LEDGER_UNWRITABLE: 503,
   // No spend gate was wired into the call at all. A misconfiguration, not a cap breach.
   E_NO_SPEND_GATE: 500,
+  // A cost that is not a finite non-negative number. Not a cap breach — a broken price,
+  // and one that every comparison would silently answer "fine" for.
+  E_BAD_COST: 500,
   E_TASTE_UNREACHABLE: 502,
   E_TASTE_BAD_RESPONSE: 502,
   E_ALL_FAILED: 502,

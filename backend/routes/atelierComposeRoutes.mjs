@@ -26,7 +26,7 @@ import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import {
   composeStills, estimateStills, ComposeError, MAX_STILLS, readComposeLimits, SPEND_ENV_KEY,
 } from '../services/atelier/composeStills.mjs';
-import { makeLaneLedger } from '../services/laneLedger.mjs';
+import { atelierLedger } from '../services/laneLedger.mjs';
 import { verifyLocalStills, PROBE_ENV_KEY, STILL_PROVIDER } from '../services/atelier/localStillLane.mjs';
 import { readAsset } from '../services/atelier/persistStills.mjs';
 import { bindMotion } from '../services/atelier/motionBind.mjs';
@@ -57,7 +57,7 @@ function fail(res, err) {
 // one runaway batch was stopped, fifty separate ones were not. Module-scoped because the
 // ledger remembers an unwritable disk in-process — see laneLedger.mjs for why that
 // memory is deliberately not cleared until a restart.
-const ledger = makeLaneLedger({ lane: 'atelier' });
+const ledger = atelierLedger();
 const usageToday = () => ledger.usageToday();
 
 /** The day's standing, in words. This used to read "no spend ledger exists yet;

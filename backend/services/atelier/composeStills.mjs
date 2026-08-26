@@ -37,7 +37,7 @@ import { persistBatch } from './persistStills.mjs';
 import * as batches from './batchStore.mjs';
 import { applyBrandKit, brandKitView, listBrandKits } from '../../../shared/brandKits/registry.mjs';
 import { runLocalBatch } from './localBatchRunner.mjs';
-import { rememberKey, defaultCommit, IDEMPOTENCY_RETAIN, settledKeys } from './composeGuards.mjs';
+import { rememberKey, defaultCommit, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
 import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
 
 export {
@@ -91,7 +91,7 @@ export async function composeStills(req = {}, deps = {}) {
     generator = hostedGenerate, verifier = hostedVerify, compiler,
     renderStill = local.renderStill, withGpu = local.withGpu,
     localVerify = local.verifyLocalStills, admit = local.admission, reserve = local.reserveGpu,
-    tasteDeps = {}, env = process.env, store = new Map(), persist = persistBatch,
+    tasteDeps = {}, env = process.env, store = COALESCING_STORE, persist = persistBatch,
     limits = readComposeLimits(env), usage = { runs: 0, spendUsd: 0 }, commit = defaultCommit, now = Date.now(),
   } = deps;
 

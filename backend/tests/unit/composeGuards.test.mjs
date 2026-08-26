@@ -73,3 +73,32 @@ describe('the gate a caller forgot to wire', () => {
     expect(err.message).toMatch(/[Nn]othing was generated/);
   });
 });
+
+describe('a cost that is not a number is not free', () => {
+  it('refuses NaN, Infinity and negatives instead of reading them as zero', () => {
+    // Every comparison against NaN is false, so an unpriced or corrupted cost sailed
+    // through `spendUsd > 0` (read as free) AND `total + NaN > ceiling` (read as under
+    // the cap). A money gate whose every test answers "fine" for garbage is not a gate.
+    for (const bad of [NaN, Infinity, -0.01]) {
+      let err;
+      try { defaultCommit({ spendUsd: bad }); } catch (e) { err = e; }
+      expect(err?.code, `spendUsd=${bad} was permitted`).toBe('E_BAD_COST');
+    }
+  });
+
+  it('still permits a genuine zero', () => {
+    expect(defaultCommit({ spendUsd: 0 })).toMatchObject({ allowed: true });
+  });
+});
+
+describe('the coalescing store is process-scoped, not per-call', () => {
+  it('is the SAME map every time, so a retry can find the original request', async () => {
+    // The default used to be `new Map()` evaluated per CALL: a route that omitted `store`
+    // got a fresh map every request, which is idempotency scoped to a single request —
+    // no idempotency at all, and the retry it protects would charge again.
+    const a = await import('../../services/atelier/composeGuards.mjs');
+    const b = await import('../../services/atelier/composeGuards.mjs');
+    expect(a.COALESCING_STORE).toBe(b.COALESCING_STORE);
+    expect(a.settledKeys).toBe(b.settledKeys);
+  });
+});

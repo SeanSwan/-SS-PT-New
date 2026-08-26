@@ -190,6 +190,16 @@ export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => n
   const tryCommit = ({ runs = 0, spendUsd = 0, maxRunsDaily = Infinity, maxSpendUsdDaily = Infinity } = {}, at = now()) => {
     const day = dayKey(at);
     const before = usageFor(day);
+
+    // NOT-A-NUMBER IS NOT FREE. Every comparison against NaN is false, so an unpriced or
+    // corrupted cost sailed through both `spendUsd > 0` (read as free) and
+    // `total + NaN > ceiling` (read as under the cap) and spent against a $0 ledger. A
+    // money gate whose every test silently answers "fine" for garbage input is not a gate.
+    if (!Number.isFinite(spendUsd) || !Number.isFinite(runs) || spendUsd < 0 || runs < 0) {
+      return { allowed: false, code: 'E_BAD_COST', usage: before,
+        message: `Refusing: a cost of ${spendUsd} and a run count of ${runs} cannot be checked against any ceiling.` };
+    }
+
     const billed = spendUsd > 0;
 
     if (billed && before.degraded) {
@@ -243,6 +253,19 @@ export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => n
  * Lazy so that importing this module never touches a disk as a side effect — a test or a
  * CLI that imports it for `ledgerPath` should not create anything.
  */
+let _atelierLedger = null;
+/**
+ * The image lane's ledger, as a singleton — the same shape `videoLedger` already had, and
+ * absent here purely because the route happened to construct one at module scope and it
+ * worked. A reviewer pointed out the shape was the problem: a second construction gets its
+ * own `unwritable` flag and its own stranded-run counter, so one instance could be
+ * refusing billed work while another cheerfully allowed it against the same file.
+ */
+export function atelierLedger() {
+  if (!_atelierLedger) _atelierLedger = makeLaneLedger({ lane: 'atelier' });
+  return _atelierLedger;
+}
+
 let _videoLedger = null;
 export function videoLedger() {
   if (!_videoLedger) _videoLedger = makeLaneLedger({ lane: 'video' });

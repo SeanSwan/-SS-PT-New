@@ -187,3 +187,25 @@ describe('an unwritable disk must not uncap the free lane', () => {
     expect(l.usageToday(new Date('2026-08-27T12:00:00Z')).runs).toBe(0);
   });
 });
+
+describe('the ledger is one instance per lane', () => {
+  it('atelierLedger() returns the same object every call', async () => {
+    // Absent purely because the route happened to construct one at module scope and it
+    // worked. A second construction gets its own `unwritable` flag and its own stranded-run
+    // counter, so one instance could refuse billed work while another allowed it against
+    // the same file.
+    const { atelierLedger, videoLedger } = await import('../../services/laneLedger.mjs');
+    expect(atelierLedger()).toBe(atelierLedger());
+    expect(videoLedger()).toBe(videoLedger());
+    expect(atelierLedger()).not.toBe(videoLedger());
+  });
+
+  it('a non-numeric cost is refused by tryCommit too, not just by the default gate', () => {
+    const l = makeLaneLedger({ lane: 'atelier', io: fakeFs(), now: () => at });
+    for (const bad of [NaN, Infinity, -1]) {
+      const v = l.tryCommit({ runs: 1, spendUsd: bad, maxRunsDaily: 50, maxSpendUsdDaily: 0 });
+      expect(v.allowed, `spendUsd=${bad} was permitted`).toBe(false);
+      expect(v.code).toBe('E_BAD_COST');
+    }
+  });
+});
