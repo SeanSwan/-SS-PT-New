@@ -88,7 +88,7 @@ try {
     check('1e an unknown/typo hook is REFUSED',
       shadowedWith(cfg(['not-a-real-gate']), 'not-a-real-gate') === false);
     check('1f a legitimate closeout gate IS shadowed',
-      shadowedWith(cfg(['dry-loop-gate']), 'dry-loop-gate') === true);
+      shadowedWith(cfg(['dual-tier-gate']), 'dual-tier-gate') === true);
     // The allowlist must not silently contain a compliance gate.
     for (const forbidden of ['egress-privacy-gate', 'spend-guard-gate', 'db-blast-radius-gate',
       'exit-status-gate', 'push-blast-radius', 'secret-read-gate', 'irreversible-git-gate']) {
@@ -98,39 +98,39 @@ try {
 
   // ---- 2. Every ambiguous config falls back to BLOCKING --------------------
   {
-    check('2a config absent', shadowedWith(null, 'dry-loop-gate') === false);
-    check('2b malformed JSON', shadowedWith('{ not json', 'dry-loop-gate') === false);
-    check('2c root is null', shadowedWith('null', 'dry-loop-gate') === false);
-    check('2d root is an array', shadowedWith('[]', 'dry-loop-gate') === false);
-    check('2e root is a number', shadowedWith('42', 'dry-loop-gate') === false);
-    check('2f shadow key missing', shadowedWith(JSON.stringify({ until: FUTURE }), 'dry-loop-gate') === false);
-    check('2g shadow is not an array', shadowedWith(JSON.stringify({ shadow: 'dry-loop-gate', until: FUTURE }), 'dry-loop-gate') === false);
-    check('2h shadow is null', shadowedWith(JSON.stringify({ shadow: null, until: FUTURE }), 'dry-loop-gate') === false);
-    check('2i hook not listed', shadowedWith(cfg(['dual-tier-gate']), 'dry-loop-gate') === false);
-    check('2j empty shadow list', shadowedWith(cfg([]), 'dry-loop-gate') === false);
+    check('2a config absent', shadowedWith(null, 'dual-tier-gate') === false);
+    check('2b malformed JSON', shadowedWith('{ not json', 'dual-tier-gate') === false);
+    check('2c root is null', shadowedWith('null', 'dual-tier-gate') === false);
+    check('2d root is an array', shadowedWith('[]', 'dual-tier-gate') === false);
+    check('2e root is a number', shadowedWith('42', 'dual-tier-gate') === false);
+    check('2f shadow key missing', shadowedWith(JSON.stringify({ until: FUTURE }), 'dual-tier-gate') === false);
+    check('2g shadow is not an array', shadowedWith(JSON.stringify({ shadow: 'dual-tier-gate', until: FUTURE }), 'dual-tier-gate') === false);
+    check('2h shadow is null', shadowedWith(JSON.stringify({ shadow: null, until: FUTURE }), 'dual-tier-gate') === false);
+    check('2i hook not listed', shadowedWith(cfg(['hermes-closeout-gate']), 'dual-tier-gate') === false);
+    check('2j empty shadow list', shadowedWith(cfg([]), 'dual-tier-gate') === false);
   }
 
   // ---- 3. THE EXPIRY — an undated window is a permanent window -------------
   {
-    check('3a until missing', shadowedWith(JSON.stringify({ shadow: ['dry-loop-gate'] }), 'dry-loop-gate') === false);
-    check('3b until malformed', shadowedWith(cfg(['dry-loop-gate'], 'not-a-date'), 'dry-loop-gate') === false);
-    check('3c until null', shadowedWith(JSON.stringify({ shadow: ['dry-loop-gate'], until: null }), 'dry-loop-gate') === false);
-    check('3d until is a number', shadowedWith(JSON.stringify({ shadow: ['dry-loop-gate'], until: 99999999999999 }), 'dry-loop-gate') === false,
+    check('3a until missing', shadowedWith(JSON.stringify({ shadow: ['dual-tier-gate'] }), 'dual-tier-gate') === false);
+    check('3b until malformed', shadowedWith(cfg(['dual-tier-gate'], 'not-a-date'), 'dual-tier-gate') === false);
+    check('3c until null', shadowedWith(JSON.stringify({ shadow: ['dual-tier-gate'], until: null }), 'dual-tier-gate') === false);
+    check('3d until is a number', shadowedWith(JSON.stringify({ shadow: ['dual-tier-gate'], until: 99999999999999 }), 'dual-tier-gate') === false,
       'a bare number must not parse as a far-future date');
-    check('3e until in the past', shadowedWith(cfg(['dry-loop-gate'], '2020-01-01T00:00:00Z'), 'dry-loop-gate') === false);
-    check('3f until in the future', shadowedWith(cfg(['dry-loop-gate'], FUTURE), 'dry-loop-gate') === true);
-    check('3g empty string until', shadowedWith(cfg(['dry-loop-gate'], ''), 'dry-loop-gate') === false);
+    check('3e until in the past', shadowedWith(cfg(['dual-tier-gate'], '2020-01-01T00:00:00Z'), 'dual-tier-gate') === false);
+    check('3f until in the future', shadowedWith(cfg(['dual-tier-gate'], FUTURE), 'dual-tier-gate') === true);
+    check('3g empty string until', shadowedWith(cfg(['dual-tier-gate'], ''), 'dual-tier-gate') === false);
   }
 
   // ---- 4. FORCE_NORMAL only ever makes a gate stricter ---------------------
   {
     check('4a FORCE_NORMAL=1 disables shadowing',
-      shadowedWith(cfg(['dry-loop-gate']), 'dry-loop-gate', { SWAN_GATE_FORCE_NORMAL: '1' }) === false);
+      shadowedWith(cfg(['dual-tier-gate']), 'dual-tier-gate', { SWAN_GATE_FORCE_NORMAL: '1' }) === false);
     // It must not be able to CREATE shadowing for a forbidden gate.
     check('4b FORCE_NORMAL cannot enable a compliance gate shadow',
       shadowedWith(cfg(['egress-privacy-gate']), 'egress-privacy-gate', { SWAN_GATE_FORCE_NORMAL: '1' }) === false);
     check('4c other values of the env var do not disable shadowing',
-      shadowedWith(cfg(['dry-loop-gate']), 'dry-loop-gate', { SWAN_GATE_FORCE_NORMAL: '0' }) === true);
+      shadowedWith(cfg(['dual-tier-gate']), 'dual-tier-gate', { SWAN_GATE_FORCE_NORMAL: '0' }) === true);
   }
 } finally {
   try { rmSync(TMP, { recursive: true, force: true }); } catch { /* temp */ }
@@ -150,17 +150,17 @@ try {
     return r;
   };
   // Shadowed hook (live config shadows dry-loop-gate): stdout MUST be empty.
-  const shadowOut = runReal('dry-loop-gate', 'a blocking reason');
+  const shadowOut = runReal('dual-tier-gate', 'a blocking reason');
   check('5a shadowed hook writes NOTHING to stdout', shadowOut.trim() === '', JSON.stringify(shadowOut.slice(0, 80)));
   // Forced normal: stdout MUST carry the harness block JSON.
-  const normOut = runReal('dry-loop-gate', 'a blocking reason', { SWAN_GATE_FORCE_NORMAL: '1' });
+  const normOut = runReal('dual-tier-gate', 'a blocking reason', { SWAN_GATE_FORCE_NORMAL: '1' });
   check('5b FORCE_NORMAL writes the block JSON', /"decision"\s*:\s*"block"/.test(normOut), JSON.stringify(normOut.slice(0, 120)));
   // A compliance gate must block even though the config lists only closeout gates.
   const compOut = runReal('egress-privacy-gate', 'pii found');
   check('5c non-shadowable hook always writes the block JSON', /"decision"\s*:\s*"block"/.test(compOut), JSON.stringify(compOut.slice(0, 120)));
   // Allow path: no reason -> no stdout at all, in either mode.
-  check('5d allow writes nothing', runReal('dry-loop-gate', '').trim() === '');
-  check('5e whitespace-only reason counts as allow', runReal('dry-loop-gate', '   ').trim() === '');
+  check('5d allow writes nothing', runReal('dual-tier-gate', '').trim() === '');
+  check('5e whitespace-only reason counts as allow', runReal('dual-tier-gate', '   ').trim() === '');
 }
 
 // ---- 6. redact(): telemetry must never carry PII to a later LLM reader -----

@@ -3,6 +3,10 @@
   "_expiry_is_the_point": "Past 'until' these gates block again automatically. This repo's defining failure is that nothing is ever retired; an undated shadow window would become another permanent un-retired thing. Extending must be a deliberate diff.",
   "_review_at_expiry": "node scripts/gate-telemetry-report.mjs — any hook with zero would_block:true entries retires on evidence.",
   "_allowlist_note": "Naming a hook here is NOT sufficient. scripts/lib/gate-shadow.mjs carries a hard SHADOWABLE allowlist; compliance gates (PII egress, spend, secrets, blast-radius) are refused even if listed here.",
-  "shadow": ["dry-loop-gate", "dual-tier-gate", "hermes-closeout-gate"],
-  "until": "2026-09-06T00:00:00Z"
+  "shadow": [
+    "dual-tier-gate",
+    "hermes-closeout-gate"
+  ],
+  "until": "2026-09-06T00:00:00Z",
+  "_deleted_note": "dry-loop-gate DELETED 2026-08-26 (fired on 47% of turns) — deleted on main in PR #85, mirrored here."
 }

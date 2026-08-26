@@ -30,7 +30,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const GATES = ['dry-loop-gate', 'dual-tier-gate', 'hermes-closeout-gate', 'linear-sync-gate'];
+const GATES = ['dual-tier-gate', 'hermes-closeout-gate', 'linear-sync-gate'];
 
 /** Extract the predicate source so drift between the copies is detectable. */
 function predicateSource(gate) {
@@ -148,7 +148,6 @@ test('THE BUG: a build-shaped turn stays visible after its own feedback lands', 
   // Each gate names its "I can see the closeout" signal differently — assert the
   // real one per gate rather than a signal that only some of them have.
   const CLOSEOUT_SIGNAL = {
-    'dry-loop-gate': (s) => s.markerSeen && s.proofSeen,
     'dual-tier-gate': (s) => s.plainSeen && s.techSeen && s.plainFirst,
     'hermes-closeout-gate': (s) => s.memoEmitted,
     'linear-sync-gate': (s) => s.markerSeen,
