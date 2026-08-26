@@ -347,6 +347,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/exit-status-gate.mjs\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/npx-decoy-gate.mjs\"",
+            "timeout": 5
           }
         ]
       },
