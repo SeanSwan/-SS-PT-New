@@ -4,6 +4,12 @@
 **Linear:** SWA-64
 **Supersedes:** `COACH-ENDPOINT-TRUTH-CLIENTHUB-A11Y-HANDOFF-2026-08-24.md` and the 2026-08-23 dashboard-convergence handoff (its §4.2 is retracted — see §2)
 
+> **SUPERSEDED 2026-08-26 by `COACH-OWNERSHIP-HANDOFF-2026-08-26.md`.** §5.1 (dispatcher
+> authorization) is DONE — below-role denial is proven over all 303 pairs, and the ownership
+> question it could not reach has since been answered, closing two live cross-tenant holes.
+> Read the newer handoff for current state; this file remains accurate as the record of what
+> that session found and why.
+
 ---
 
 ## 0. READ THIS FIRST — six traps that will cost you a day
