@@ -35,12 +35,29 @@ const item = (overrides) => ({
   ...overrides
 });
 
-const modelsReturning = (storefrontItems) => ({
+// Multi-ORDER variant. The helper historically read only the most recent
+// completed order, so rate differences ACROSS orders were invisible to the
+// ambiguity guard - and the 'full' override then replaced a correct operator
+// figure with the wrong one.
+const modelsReturningOrders = (orders) => ({
   Order: {
     findOne: vi.fn().mockResolvedValue(
+      orders.length === 0 ? null : { orderItems: orders[0].map((storefrontItem) => ({ storefrontItem })) }
+    ),
+    findAll: vi.fn().mockResolvedValue(
+      orders.map((items) => ({ orderItems: items.map((storefrontItem) => ({ storefrontItem })) }))
+    )
+  },
+  OrderItem: {},
+  StorefrontItem: {}
+});
+
+const modelsReturning = (storefrontItems) => ({
+  Order: {
+    findAll: vi.fn().mockResolvedValue(
       storefrontItems === null
-        ? null
-        : { orderItems: storefrontItems.map((storefrontItem) => ({ storefrontItem })) }
+        ? []
+        : [{ orderItems: storefrontItems.map((storefrontItem) => ({ storefrontItem })) }]
     )
   },
   OrderItem: {},
@@ -85,5 +102,31 @@ describe('getClientPackagePricing ambiguity handling', () => {
   it('reports fallback when the client has no completed order', async () => {
     const result = await getClientPackagePricing(301, modelsReturning(null));
     expect(result.isFallback).toBe(true);
+  });
+});
+
+describe('getClientPackagePricing across MULTIPLE orders', () => {
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it('reports fallback when different orders carry different per-session rates', async () => {
+    // March: $175/60min pack. June: $110/30min pack. A 60-minute session is
+    // cancelled. Reading only the newest order yields 110 and the full-charge
+    // override would replace a correct $175 with $110 - worse than not deriving.
+    const result = await getClientPackagePricing(301, modelsReturningOrders([
+      [item({ id: 2, name: 'Express 30 10-Pack', price: '1100.00', sessions: 10 })],
+      [item({ id: 1, name: 'Signature 60 10-Pack', price: '1750.00', sessions: 10 })]
+    ]));
+
+    expect(result.isFallback).toBe(true);
+  });
+
+  it('still resolves when every order agrees on the rate', async () => {
+    const result = await getClientPackagePricing(301, modelsReturningOrders([
+      [item({ id: 2, name: 'Signature 60 20-Pack', price: '3500.00', sessions: 20 })],
+      [item({ id: 1, name: 'Signature 60 10-Pack', price: '1750.00', sessions: 10 })]
+    ]));
+
+    expect(result.isFallback).toBe(false);
+    expect(result.pricePerSession).toBe(175);
   });
 });

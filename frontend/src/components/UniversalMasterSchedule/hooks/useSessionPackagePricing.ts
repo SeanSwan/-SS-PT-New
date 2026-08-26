@@ -67,8 +67,18 @@ export const useSessionPackagePricing = ({
         // original defect reached the panel in the first place.
         if (result.success && result.data && result.data.isFallback !== true) {
           const data = result.data;
-          const fullCharge = data.pricePerSession || data.defaultChargeAmount || DEFAULT_FULL_CHARGE;
-          const lateFee = data.lateFeeAmount || Math.round(fullCharge * 0.5);
+          // ?? not ||, and no app-side constant. || swallowed a legitimate 0 (a
+          // waived fee) and substituted half-charge - the same bug fixed in
+          // mapLateCancelWarning, left standing in its sibling. And falling through
+          // to DEFAULT_FULL_CHARGE would reintroduce the invented number this whole
+          // gate exists to stop: a payload that claims not to be a fallback but
+          // carries no price is incoherent, so treat it as unavailable.
+          const fullCharge = data.pricePerSession ?? data.defaultChargeAmount ?? null;
+          if (fullCharge === null) {
+            setPricing(createDefaultPricingState());
+            return;
+          }
+          const lateFee = data.lateFeeAmount ?? Math.round(fullCharge * 0.5);
 
           setPricing({
             packagePrice: data.pricePerSession ?? null,

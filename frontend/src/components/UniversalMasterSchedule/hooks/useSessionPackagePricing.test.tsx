@@ -287,3 +287,53 @@ describe('useSessionPackagePricing — a 200 carrying a placeholder is not prici
     expect(result.current.defaultLateFee).toBe(87.5);
   });
 });
+
+describe('useSessionPackagePricing — no app-side invented numbers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('keeps a legitimate zero late fee instead of substituting half-charge', async () => {
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          pricePerSession: 110,
+          packageName: 'Express 30',
+          lateFeeAmount: 0,
+          isFallback: false,
+        },
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useSessionPackagePricing({ open: true, sessionId: 93, canManage: true })
+    );
+
+    await waitFor(() => {
+      expect(result.current.pricingUnavailable).toBe(false);
+    });
+
+    // || would have turned a waived fee into 55.
+    expect(result.current.defaultLateFee).toBe(0);
+  });
+
+  it('treats a non-fallback payload with no price as unavailable, not as 175', async () => {
+    vi.mocked(apiService.get).mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: { packageName: 'Mystery', isFallback: false },
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useSessionPackagePricing({ open: true, sessionId: 94, canManage: true })
+    );
+
+    await waitFor(() => {
+      expect(result.current.pricingUnavailable).toBe(true);
+    });
+
+    expect(result.current.packagePrice).toBeNull();
+  });
+});

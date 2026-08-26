@@ -1847,7 +1847,18 @@ class UnifiedSessionService {
       //
       // reviewedBy is deliberately left unset: no operator made this call, and
       // stamping an actor would fabricate an audit trail.
-      if (!billingOptions && !creditRestored && session.sessionDeducted && session.userId) {
+      // Keyed on refundEligible, NOT on whether restoration happened. `creditRestored`
+      // is false for several reasons that have nothing to do with the late-cancel
+      // policy - the credit was already restored by an earlier operation, the client
+      // record could not be loaded, the account is non-deducting - and keying on it
+      // stamped a penalty event onto perfectly on-time cancellations.
+      const lateForfeit = !billingOptions
+        && !refundEligible
+        && session.sessionDeducted
+        && !session.sessionCreditRestored
+        && session.userId;
+
+      if (lateForfeit) {
         session.cancellationChargeType = 'none';
         session.cancellationChargeAmount = 0;
         session.cancellationDecision = 'forfeited';

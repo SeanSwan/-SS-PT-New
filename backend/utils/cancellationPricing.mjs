@@ -41,12 +41,20 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
   try {
     // Find the most recent completed order for this client
     // Uses correct association chain: Order -> OrderItem -> StorefrontItem
-    const recentOrder = await Order.findOne({
+    // Read the client's recent completed orders, not just the newest one.
+    // Reading only the newest made cross-order rate differences invisible to the
+    // ambiguity guard below: a client who bought a $175/60min pack in March and a
+    // $110/30min pack in June resolved to 110, and the full-charge override then
+    // REPLACED a correct operator figure with the wrong one - strictly worse than
+    // not deriving at all. Bounded to keep the scan cheap; a client with more than
+    // this many completed orders has ample history to detect a rate split.
+    const recentOrders = await Order.findAll({
       where: {
         userId: clientId,
         status: 'completed'
       },
       order: [['createdAt', 'DESC']],
+      limit: 12,
       ...txn,
       include: [{
         model: OrderItem,
@@ -60,6 +68,16 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
     });
 
     // Extract storefront items from nested orderItems
+    const recentOrder = recentOrders?.[0] || null;
+
+    // Every session package the client has bought recently, across orders. The
+    // ambiguity check runs over this population; the resolved rate still comes
+    // from the newest order so unambiguous behaviour is unchanged.
+    const allRecentItems = (recentOrders || [])
+      .flatMap((order) => order?.orderItems || [])
+      .map((oi) => oi?.storefrontItem)
+      .filter(Boolean);
+
     const storefrontItems = recentOrder?.orderItems
       ?.map(oi => oi.storefrontItem)
       ?.filter(Boolean) || [];
@@ -94,7 +112,10 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
     // either direction, and every downstream consumer trusted it as verified.
     // Report fallback instead: callers already treat that as "do not use this
     // number", which is exactly the right behaviour for "cannot attribute".
-    const distinctRates = [...new Set(sessionPackages.map(rateOf).filter(Number.isFinite))];
+    const ambiguityPopulation = allRecentItems.filter(item =>
+      item.sessions > 0 && item.packageType !== 'one-time'
+    );
+    const distinctRates = [...new Set(ambiguityPopulation.map(rateOf).filter(Number.isFinite))];
     if (distinctRates.length > 1) {
       logger.info(
         `Client ${clientId} holds packages at ${distinctRates.length} different ` +
