@@ -96,6 +96,79 @@ export function measure(buf) {
   };
 }
 
+
+/** 4x4 column-major multiply (glTF matrix convention). */
+function mul(a, b) {
+  const o = new Array(16).fill(0);
+  for (let c = 0; c < 4; c += 1) for (let r = 0; r < 4; r += 1) {
+    let v = 0;
+    for (let k = 0; k < 4; k += 1) v += a[k * 4 + r] * b[c * 4 + k];
+    o[c * 4 + r] = v;
+  }
+  return o;
+}
+
+function trsMatrix(node) {
+  if (node.matrix) return node.matrix.slice();
+  const [tx, ty, tz] = node.translation || [0, 0, 0];
+  const [x, y, z, w] = node.rotation || [0, 0, 0, 1];
+  const [sx, sy, sz] = node.scale || [1, 1, 1];
+  const r = [
+    1 - 2 * (y * y + z * z), 2 * (x * y + z * w), 2 * (x * z - y * w),
+    2 * (x * y - z * w), 1 - 2 * (x * x + z * z), 2 * (y * z + x * w),
+    2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y),
+  ];
+  return [
+    r[0] * sx, r[1] * sx, r[2] * sx, 0,
+    r[3] * sy, r[4] * sy, r[5] * sy, 0,
+    r[6] * sz, r[7] * sz, r[8] * sz, 0,
+    tx, ty, tz, 1,
+  ];
+}
+
+const applyM = (m, p) => [
+  m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12],
+  m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13],
+  m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14],
+];
+
+/**
+ * WORLD-space AABB of every POSITION accessor, node transforms composed.
+ *
+ * NOT accessor min/max directly: those are LOCAL. Probed on run 17 (2026-08-26) — an unrigged
+ * mesh carries Blender's Y-up conversion as a node ROTATION with local vertex data, while a
+ * skinned mesh has an identity node and the conversion baked into the vertices. Comparing the
+ * two local boxes said the collision hull escaped the visual mesh by 4 units when in world space
+ * they are identical. A naive local-AABB rule would have blocked every rigged asset forever.
+ */
+export function worldAabb(gltf) {
+  const min = [Infinity, Infinity, Infinity]; const max = [-Infinity, -Infinity, -Infinity];
+  const IDENT = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  const visit = (idx, parent, seen) => {
+    if (seen.has(idx)) return; // malformed cyclic graph: refuse to loop
+    seen.add(idx);
+    const node = gltf.nodes?.[idx];
+    if (!node) return;
+    const world = mul(parent, trsMatrix(node));
+    const mesh = gltf.meshes?.[node.mesh];
+    if (mesh) {
+      for (const prim of mesh.primitives || []) {
+        const acc = gltf.accessors?.[prim.attributes?.POSITION];
+        if (!acc?.min || !acc?.max) continue;
+        for (let i = 0; i < 8; i += 1) {
+          const corner = [i & 1 ? acc.max[0] : acc.min[0], i & 2 ? acc.max[1] : acc.min[1], i & 4 ? acc.max[2] : acc.min[2]];
+          const w = applyM(world, corner);
+          for (let k = 0; k < 3; k += 1) { min[k] = Math.min(min[k], w[k]); max[k] = Math.max(max[k], w[k]); }
+        }
+      }
+    }
+    for (const child of node.children || []) visit(child, world, seen);
+  };
+  const roots = gltf.scenes?.[gltf.scene ?? 0]?.nodes ?? (gltf.nodes || []).map((_, i) => i);
+  for (const r of roots) visit(r, IDENT, new Set());
+  return Number.isFinite(min[0]) ? { min, max } : null;
+}
+
 /* -------------------------------------------------------------- selftest */
 
 function selftest() {
@@ -141,6 +214,26 @@ function selftest() {
   const got = measure(glb(mixed)).triangles;
   if (got === 2) { pass += 1; console.log('  PASS  mixed triangle+line primitives count only the triangles'); }
   else { fail += 1; console.log(`  FAIL  mixed primitives: want 2, got ${got}`); }
+
+  // world-vs-local AABB (run 17): the same box, one via a node rotation, one baked into vertices.
+  const rotated = { asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0] }],
+    nodes: [{ mesh: 0, rotation: [0.7071067811865476, 0, 0, 0.7071067811865476] }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }],
+    accessors: [{ count: 3, min: [0, 0, -4], max: [2, 1, 0] }] };
+  const baked = { asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0] }],
+    nodes: [{ mesh: 0 }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }],
+    accessors: [{ count: 3, min: [0, 0, 0], max: [2, 4, 1] }] };
+  const wa = worldAabb(rotated); const wb = worldAabb(baked);
+  const near = (a, b) => a.every((v, i) => Math.abs(v - b[i]) < 1e-6);
+  if (wa && wb && near(wa.min, wb.min) && near(wa.max, wb.max)) { pass += 1; console.log('  PASS  world AABB agrees across a node rotation vs baked vertices'); }
+  else { fail += 1; console.log(`  FAIL  world AABB mismatch: ${JSON.stringify(wa)} vs ${JSON.stringify(wb)}`); }
+
+  // and it must still SEE a genuinely oversized hull
+  const tall = { asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0 }],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count: 3, min: [0, 0, 0], max: [2, 9, 1] }] };
+  if (worldAabb(tall).max[1] > wb.max[1]) { pass += 1; console.log('  PASS  world AABB still detects an oversized box'); }
+  else { fail += 1; console.log('  FAIL  oversized box not detected'); }
 
   console.log(`\n[measure-glb] selftest ${pass}/${pass + fail}`);
   process.exit(fail ? 1 : 0);

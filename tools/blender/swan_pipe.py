@@ -61,7 +61,7 @@ try:
     import bmesh
     IN_BLENDER = True
     # (script dir already on sys.path — see the top-level insert)
-    from swan_pipe_stages import smooth_by_angle, export_collision, render_still, assert_artifact  # noqa: E402
+    from swan_pipe_stages import smooth_by_angle, export_collision, render_still, assert_artifact, rig_and_animate  # noqa: E402
 except ImportError:  # allows --dry-run linting outside Blender
     IN_BLENDER = False
 
@@ -198,15 +198,35 @@ def run_in_blender(args, out_dir, done):
             lod_counts[name] = achieved
         done.add("lods")
         uv_project(target)
+
+        # RIG ONLY LOD0. The validator reads skins/clips from lod0.glb; lower tiers are distant
+        # silhouettes that never animate. Rigging them would triple the bind cost for nothing.
+        rigged = False
+        if args.skeleton and name == "lod0":
+            arm = rig_and_animate(target, args.skeleton, ["idle"])
+            done.add("rig")
+            rigged = True
+
         bpy.ops.object.select_all(action="DESELECT")
         target.select_set(True)
+        if rigged:
+            arm.select_set(True)  # the armature must be in the selection or export_skins writes nothing
         bpy.context.view_layer.objects.active = target
-        res = bpy.ops.export_scene.gltf(
+        export_kwargs = dict(
             filepath=os.path.join(out_dir, f"{name}.glb"),
             export_format="GLB", use_selection=True,
-            export_apply=True, export_cameras=False, export_lights=False,
+            export_apply=not rigged,  # export_apply bakes modifiers away, which destroys the skin
+            export_cameras=False, export_lights=False,
         )
+        if rigged:
+            export_kwargs.update(export_skins=True, export_animations=True, export_animation_mode="ACTIONS")
+        res = bpy.ops.export_scene.gltf(**export_kwargs)
         assert_artifact(res, os.path.join(out_dir, f"{name}.glb"), f"export {name}")
+        if rigged:
+            # drop the armature before the next tier: a lingering modifier follows the copies
+            bpy.data.objects.remove(arm, do_unlink=True)
+            for m in [m for m in target.modifiers if m.type == "ARMATURE"]:
+                target.modifiers.remove(m)
 
     export_collision(pre_bevel, out_dir, args.collision_ratio)  # PROBED: un-beveled 0.45 -> 38 tris; beveled floors at 124
     done.add("collision")

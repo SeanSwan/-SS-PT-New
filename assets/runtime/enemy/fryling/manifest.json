@@ -6,8 +6,10 @@
   "paletteLaw": "B",
   "calibrationFixture": false,
   "zone": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
-  "skeleton": null,
-  "animations": null,
+  "skeleton": "skeleton.creature-small.v1",
+  "animations": [
+    "idle"
+  ],
   "budgets": {
     "lod0Triangles": 260,
     "lod1Triangles": 124,
@@ -16,8 +18,8 @@
     "tool": "scripts/assets/measure-glb.mjs",
     "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/lod0.glb lod1.glb lod2.glb",
     "date": "2026-08-25",
-    "commit": "e1a09ecbd",
-    "note": "PIPE-PRODUCED (run 16, tier-table ladder). weld -> limited dissolve -> bevel -> LOD0 260 / LOD1 collapse 0.45 -> 124 (<=50%) / LOD2: collapse floored 124, planar 40deg 103 = 40% > 25% ceiling, so the UN-BEVELED macro form 52 (20%) / collision = convex hull of the un-beveled form, 16 tris, closed manifold (checked). Byte-deterministic across runs 14/15. Ratios probed on this mesh (tools/blender/probe-decimate.py), not guessed."
+    "commit": "ad81ec9cf",
+    "note": "PIPE-PRODUCED, RIGGED (run 17). LOD0 260 carries a 3-bone skeleton.creature-small.v1 bound by automatic weights and the `idle` clip; LOD1 124 / LOD2 52 / hull 16 are unrigged distant tiers. The registry contract names 5 clips; the pipe authors ONE, so the manifest declares one — the validator reads clips from the bytes and would refuse any other claim."
   },
   "provenance": {
     "humanOwner": "owner",
@@ -25,7 +27,7 @@
     "aiAssisted": false,
     "generator": {
       "name": "tools/blender/swan_pipe.py",
-      "version": "run-16",
+      "version": "run-17-rigged",
       "blender": "4.5.13 LTS (daeeeca98fb0)",
       "invocation": "scripts/assets/run-blender.mjs (--disable-autoexec --python-exit-code 1, sentinel-checked)"
     },
@@ -56,7 +58,7 @@
     "compression": "none"
   },
   "sha256": {
-    "lod0": "6e42163cc60e650bdcebf8941bdab71dfafdea2f91dbcd973fafd238d5a08f58",
+    "lod0": "5dae3c459448b8c95581a06f331b7bcb0c1ef6e020af1dfd738de00bcaa4e950",
     "lod1": "bfab889e494c4337d32c72566d6c1756d570936a8c2598a2d305a020af8c12e8",
     "lod2": "25841fc808f53eb9150cc3601fc07bc407baea531b52c2f4a6f6d859d376e919",
     "collision": "61324fc25d05f367496e969181ea729de943ae99e464be1432db70d461b238b5"

@@ -16,7 +16,7 @@ import { readFileSync, existsSync, lstatSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve, isAbsolute, sep } from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { measure, parseGlb } from './measure-glb.mjs';
+import { measure, parseGlb, worldAabb } from './measure-glb.mjs';
 
 // Registry keys this rules module actually READS. Anything declared in the registry and not
 // listed here is documentation wearing a schema's clothes; the CLI announces it at startup.
@@ -27,17 +27,6 @@ export const REGISTRY_KEYS_READ = new Set([
 ]);
 export const ZONE_KEYS_READ = new Set(['id', 'worldId', 'localId', 'status', 'chromeLaw', 'shardFraming', 'loreParent', 'summary', 'idRule']);
 export const COMPRESSION_VALUES = new Set(['none', 'meshopt', 'draco']);
-
-/** Union AABB of every POSITION accessor's declared min/max (glTF requires them on POSITION). */
-export function positionAabb(gltf) {
-  const min = [Infinity, Infinity, Infinity]; const max = [-Infinity, -Infinity, -Infinity];
-  for (const mesh of gltf.meshes || []) for (const prim of mesh.primitives || []) {
-    const acc = gltf.accessors?.[prim.attributes?.POSITION];
-    if (!acc?.min || !acc?.max) continue;
-    for (let i = 0; i < 3; i += 1) { min[i] = Math.min(min[i], acc.min[i]); max[i] = Math.max(max[i], acc.max[i]); }
-  }
-  return Number.isFinite(min[0]) ? { min, max } : null;
-}
 
 export function unreadRegistryKeys(registry) {
   const top = Object.keys(registry).filter((k) => !REGISTRY_KEYS_READ.has(k));
@@ -239,11 +228,11 @@ export function validate(manifest, ctx) {
           ctx.glbClips = new Set((g.animations || []).map((a) => a.name).filter(Boolean));
           ctx.glbSkins = (g.skins || []).length;
           ctx.aabb = ctx.aabb || {};
-          ctx.aabb.lod0 = positionAabb(g);
+          ctx.aabb.lod0 = worldAabb(g);
         } catch { /* already reported as unparseable above */ }
       }
       if (slot === 'collision') {
-        try { (ctx.aabb = ctx.aabb || {}).collision = positionAabb(parseGlb(bytes)); } catch { /* reported above */ }
+        try { (ctx.aabb = ctx.aabb || {}).collision = worldAabb(parseGlb(bytes)); } catch { /* reported above */ }
       }
     }
     if (!rt.stillFallback) W('runtime.stillFallback missing — the still tier has no poster for this asset');
@@ -276,12 +265,17 @@ export function validate(manifest, ctx) {
   }
   // COLLISION CONTAINMENT (GLM 5.3, N1 blocker 6): visuals and collision come from different base
   // meshes. A collision hull that exceeds the visible silhouette gives phantom hits.
+  if (manifest.runtime?.collision && manifest.runtime?.lod0 && (!ctx.aabb?.lod0 || !ctx.aabb?.collision)) {
+    // Silence here would mean "containment not checked" reading exactly like "containment fine"
+    // — the failure class this project keeps paying for.
+    W(`collision containment UNCHECKED: no world-space AABB for ${!ctx.aabb?.lod0 ? 'lod0' : 'collision'} (a glTF with no nodes, or POSITION accessors without min/max)`);
+  }
   if (ctx.aabb?.lod0 && ctx.aabb?.collision) {
     const eps = 1e-3;
     const a = ctx.aabb.lod0; const c = ctx.aabb.collision;
     for (let i = 0; i < 3; i += 1) {
       if (c.min[i] < a.min[i] - eps || c.max[i] > a.max[i] + eps) {
-        E(`collision AABB exceeds lod0 AABB on axis ${'xyz'[i]} (collision ${c.min[i]}..${c.max[i]} vs lod0 ${a.min[i]}..${a.max[i]}) — phantom hits`);
+        E(`collision AABB (world space) exceeds lod0 AABB on axis ${'xyz'[i]} (collision ${c.min[i]}..${c.max[i]} vs lod0 ${a.min[i]}..${a.max[i]}) — phantom hits`);
         break;
       }
     }

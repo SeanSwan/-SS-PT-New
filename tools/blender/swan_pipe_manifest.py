@@ -13,8 +13,13 @@ LOD_RATIOS = {"lod0": 1.0, "lod1": 0.45, "lod2": 0.18}
 
 
 def plan(args):
-    """The pipeline as data, so --dry-run can show it without Blender."""
-    return [
+    """The pipeline as data, so --dry-run can show it without Blender.
+
+    The stage list is CONDITIONAL on args: run_in_blender() records what it executed and the run
+    refuses its success sentinel if the two disagree, so a stage listed here that the code skips
+    is a hard failure — which is why `rig` appears only when --skeleton was given.
+    """
+    stages = [
         ("import", f"load {args.src}"),
         ("weld", "merge_by_distance — voxel exporters emit duplicate verts at every cube face"),
         ("cleanup", "limited dissolve on coplanar faces — collapses cube grids into flat n-gons"),
@@ -30,6 +35,9 @@ def plan(args):
         ("export", "GLB per LOD (+Y up, no cameras/lights, apply modifiers)"),
         ("manifest", "emit INVALID stub — provenance is a human act"),
     ]
+    if getattr(args, "skeleton", None):
+        stages.insert(-1, ("rig", f"3-bone {args.skeleton} bound by automatic weights + the `idle` clip, exported in LOD0"))
+    return stages
 
 
 def out_dir_for(args):
@@ -43,7 +51,7 @@ def write_manifest_stub(args, out_dir):
         "id": args.asset_id,
         "zone": None,
         "skeleton": args.skeleton,
-        "animations": [] if args.skeleton else None,
+        "animations": ["idle"] if args.skeleton else None,  # ONLY what the pipe authors; the other 4 registry clips stay unauthored
         "budgets": None,
         "provenance": {
             "humanOwner": None,
@@ -84,7 +92,7 @@ def parse_args(argv):
     p.add_argument("--in", dest="src", required=True, help="source .vox/.obj/.glb")
     p.add_argument("--id", dest="asset_id", required=True, help="registry asset id, e.g. enemy.fryling")
     p.add_argument("--out", dest="out_dir", default=None, help="output dir (default assets/runtime/<id>)")
-    p.add_argument("--skeleton", default=None, help="registry skeleton id; omit for a static prop")
+    p.add_argument("--skeleton", default=None, help="registry skeleton id; omit for a static prop. When set, the pipe rigs LOD0 and authors the `idle` clip")
     p.add_argument("--bevel-width", type=float, default=0.012, help="the 'not plastic cubes' gene")
     p.add_argument("--bake-size", type=int, default=1024)
     p.add_argument("--lod-ratios", default="1.0,0.45,0.18",

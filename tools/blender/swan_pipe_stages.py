@@ -130,3 +130,73 @@ def render_still(obj, out_dir):
     bpy.ops.render.render(write_still=True)
 
 
+def rig_and_animate(obj, skeleton_id, clips):
+    """Minimal shared creature rig + one clip, exported inside the GLB.
+
+    WHY MINIMAL: the registry's skeleton contract (skeleton.creature-small.v1) names five clips,
+    and the validator now refuses a manifest declaring clips the bytes do not contain (N1). So the
+    honest path is a rig the pipe can actually produce for a blockout — three deform bones along
+    the silhouette's Y extent — not a Rigify humanoid a 5-voxel fry has no anatomy for.
+
+    Bones are placed by the mesh's own bounding box, so this works on any blockout without
+    per-asset tuning. Vertices bind by automatic weights.
+
+    Returns the armature object. UNRUN until executed — every claim here is API-level, not
+    behavioural, until the first real run says otherwise.
+    """
+    import mathutils
+
+    bb = [obj.matrix_world @ mathutils.Vector(c) for c in obj.bound_box]
+    zs = [v.z for v in bb]
+    lo, hi = min(zs), max(zs)
+    span = max(hi - lo, 1e-4)
+    cx = sum(v.x for v in bb) / 8.0
+    cy = sum(v.y for v in bb) / 8.0
+
+    arm_data = bpy.data.armatures.new(f"{skeleton_id}.data")
+    arm = bpy.data.objects.new(skeleton_id, arm_data)
+    bpy.context.collection.objects.link(arm)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="EDIT")
+    names = ("root", "mid", "tip")
+    prev = None
+    for i, name in enumerate(names):
+        b = arm_data.edit_bones.new(name)
+        b.head = (cx, cy, lo + span * (i / 3.0))
+        b.tail = (cx, cy, lo + span * ((i + 1) / 3.0))
+        if prev is not None:
+            b.parent = prev
+            b.use_connect = True
+        prev = b
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+    # bind: automatic weights needs the mesh active with the armature selected
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    res = bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+    if res != {"FINISHED"}:
+        raise SystemExit(f"swan_pipe: armature bind returned {res}, not FINISHED")
+
+    # one clip. `idle` is the only one the pipe can honestly author for a blockout: a slow
+    # breathing sway on the tip bone. The other four clips in the registry contract stay
+    # UNAUTHORED, and the manifest must not claim them.
+    scene = bpy.context.scene
+    scene.frame_start, scene.frame_end = 1, 24
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="POSE")
+    tip = arm.pose.bones["tip"]
+    action = bpy.data.actions.new("idle")
+    arm.animation_data_create()
+    arm.animation_data.action = action
+    for frame, angle in ((1, 0.0), (12, 0.12), (24, 0.0)):
+        scene.frame_set(frame)
+        tip.rotation_mode = "XYZ"
+        tip.rotation_euler = (angle, 0.0, 0.0)
+        tip.keyframe_insert(data_path="rotation_euler", frame=frame)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    if not arm.animation_data or not arm.animation_data.action:
+        raise SystemExit("swan_pipe: no action bound to the armature after keyframing")
+    print(f"[swan_pipe] rig: 3 bones, action '{action.name}' with {len(action.fcurves)} fcurves")
+    return arm

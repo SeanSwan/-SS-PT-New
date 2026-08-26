@@ -21,14 +21,17 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 
 // Minimal REAL GLBs for the presence fixtures (a name check against a registry is not a
 // presence check against bytes). Written beside the selftest, deleted on exit.
-function glb(gltf) {
+function glb(gltf) {  // eslint-disable-line no-unused-vars
   let j = Buffer.from(JSON.stringify(gltf)); while (j.length % 4) j = Buffer.concat([j, Buffer.from(' ')]);
   const ch = (d, t) => { const h = Buffer.alloc(8); h.writeUInt32LE(d.length, 0); h.writeUInt32LE(t, 4); return Buffer.concat([h, d]); };
   const cj = ch(j, 0x4e4f534a); const cb = ch(Buffer.alloc(0), 0x004e4942);
   const hd = Buffer.alloc(12); hd.write('glTF', 0); hd.writeUInt32LE(2, 4); hd.writeUInt32LE(12 + cj.length + cb.length, 8);
   return Buffer.concat([hd, cj, cb]);
 }
-const mesh = (count, mn, mx) => ({ asset: { version: '2.0' }, meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count, min: mn, max: mx }] });
+// A glTF with meshes but NO nodes renders nothing and has no world-space AABB. The first version
+// of these fixtures omitted nodes, so the containment rule silently skipped and the fixture
+// 'passed' by not running (found when worldAabb replaced the local one, 2026-08-26).
+const mesh = (count, mn, mx) => ({ asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0 }], meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count, min: mn, max: mx }] });
 const GLB_LOD0_100 = '.selftest-lod0-100.glb';   // 300 verts non-indexed = 100 tris, box -1..1
 const GLB_LOD2_40 = '.selftest-lod2-40.glb';     // 120 verts = 40 tris = 40% of lod0 (tier table allows 25%)
 const GLB_LOD2_20 = '.selftest-lod2-20.glb';     // 60 verts = 20 tris = 20% — allowed
@@ -56,7 +59,6 @@ function selftest() {
     budgetPolicy: { tierTable: { lod1MaxFractionOfLod0: 0.5, lod2MaxFractionOfLod0: 0.25 } },
   };
   const worldIds = new Set(['world.miniature-play.voxel-realm']);
-  const ctx = { registry, worldIds, manifestDir: ROOT };
 
   const base = () => ({
     schema: 'swan.game-asset.v1',
@@ -100,7 +102,7 @@ function selftest() {
     // GLM 5.3 N1 blocker 2 (tautological budgets) and blocker 6 (collision containment)
     ['lod2 at 40% of lod0 is refused by the tier table (25%)', (m) => { m.runtime.lod0 = GLB_LOD0_100; m.runtime.lod2 = GLB_LOD2_40; m.sha256.lod0 = sha(GLB_LOD0_100); m.sha256.lod2 = sha(GLB_LOD2_40); }, /misses its budget/],
     ['lod2 at 20% of lod0 passes the tier table', (m) => { m.runtime.lod0 = GLB_LOD0_100; m.runtime.lod2 = GLB_LOD2_20; m.sha256.lod0 = sha(GLB_LOD0_100); m.sha256.lod2 = sha(GLB_LOD2_20); }, null],
-    ['collision AABB outside lod0 AABB is refused', (m) => { m.runtime.lod0 = GLB_LOD0_100; m.runtime.collision = GLB_COLL_OUT; m.sha256.lod0 = sha(GLB_LOD0_100); m.sha256.collision = sha(GLB_COLL_OUT); }, /collision AABB exceeds/],
+    ['collision AABB outside lod0 AABB is refused', (m) => { m.runtime.lod0 = GLB_LOD0_100; m.runtime.collision = GLB_COLL_OUT; m.sha256.lod0 = sha(GLB_LOD0_100); m.sha256.collision = sha(GLB_COLL_OUT); }, /collision AABB \(world space\) exceeds/],
     ['budget commit that does not exist in the repo is refused', (m) => { m.budgets = { lod0Triangles: 1, tool: 't', command: 'c', date: '2026-08-25', commit: 'deadbeefdead' }; }, /not a commit in this repository/],
     ['aiAssisted without weights hash is refused', (m) => { m.provenance.aiAssisted = true; m.provenance.generator = { name: 'a', version: '1' }; m.provenance.seed = 1; }, /weightsSha256/],
     ['Draco on a rigged asset is refused', (m) => { m.runtime.compression = 'draco'; }, /Draco on a rigged/],
@@ -117,6 +119,7 @@ function selftest() {
   let pass = 0; let fail = 0;
   for (const [name, mutate, expect] of cases) {
     const m = base(); mutate(m);
+    const ctx = { registry, worldIds, manifestDir: ROOT, root: ROOT };  // FRESH per fixture — validate() writes into ctx
     const { errs } = validate(m, ctx);
     const joined = errs.join(' | ');
     const ok = expect === null
