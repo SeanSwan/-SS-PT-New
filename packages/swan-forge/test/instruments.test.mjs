@@ -288,3 +288,46 @@ test('tagger lexer: a regex literal containing a backtick must NOT poison templa
   const form = commentFormFor('x.tsx', jsx, at(jsx, 2), jsx.split('\n')[2]);
   assert.ok(form === null || form.startsWith('{/*'), 'never the bare /* */ form in JSX children');
 });
+
+test('R6 round-3: balanced-paren chains, chained seeds, and interpolation-aware terminators', async () => {
+  // Every one of these went UNSCANNED before: a ")" inside .attrs args ended the chain early,
+  // a chained seed never entered the wrapper set, and indexOf('`') truncated the audited body.
+  const IMP = "import FB from '../ui/forge/ForgeButton';\n";
+  const flagged = {
+    'attrs with ) in an arrow arg': 'const A = styled(FB).attrs((p) => ({ type: "button" }))`background: red;`;',
+    'attrs with ) in a string': 'const B = styled(FB).attrs({ t: "a)b" })`outline: none;`;',
+    'seed through a chain': 'const W = styled(FB).attrs({})`flex: 1;`;\nconst V = styled(W)`background: red;`;',
+    'wrapper built off FB.attrs': 'const U = FB.attrs({});\nconst T = styled(U)`background: red;`;',
+    'interpolated body terminator': 'const C = styled(FB)`${css`x`} background: red;`;',
+  };
+  for (const [name, body] of Object.entries(flagged)) {
+    const hits = lintText('x.tsx', IMP + body, { isConsumer: true }).filter((v) => v.rule === 'R6');
+    assert.ok(hits.length >= 1, `${name} must raise R6`);
+  }
+  const clean = {
+    'layout-only through a chain': 'const D = styled(FB).attrs((p) => ({ type: "button" }))`margin-top: 1rem;`;',
+    'layout re-extension': 'const E = styled(FB)`flex: 1;`;\nconst F = styled(E)`margin: 0;`;',
+  };
+  for (const [name, body] of Object.entries(clean)) {
+    assert.equal(lintText('x.tsx', IMP + body, { isConsumer: true }).filter((v) => v.rule === 'R6').length, 0, `${name} must stay clean`);
+  }
+});
+
+test('R7 guards the re-export SHIM too — two T-tier surfaces reach the button through it', async () => {
+  const { RETENTION_GUARDED, checkRetention } = await import('../scripts/drift-lint.mjs');
+  const paths = RETENTION_GUARDED.map((r) => r.path);
+  assert.ok(paths.includes('components/ui/buttons/GlowButton.tsx'));
+  assert.ok(paths.includes('components/ui/GlowButton.ts'), 'guarding only the .tsx leaves the revert broken for shim importers');
+  assert.equal(checkRetention(() => true).length, 0);
+  assert.equal(checkRetention(() => false).length, 2);
+});
+
+test('flex-basis LONGHAND is sizing too — the seam was closed in the shorthand and left open next door', async () => {
+  const { styledWrapperBlocker } = await import('../scripts/codemod-glowbutton.mjs');
+  for (const no of ['flex-basis: 320px;', 'flex-basis: 20%;', 'flex: 0 0 320px;']) {
+    assert.match(styledWrapperBlocker(no), /main-axis SIZING/, `${no} must block`);
+  }
+  for (const ok of ['flex-basis: auto;', 'flex-basis: content;', 'flex: 1;', 'flex: 1 1 auto;']) {
+    assert.equal(styledWrapperBlocker(ok), null, `${ok} is layout`);
+  }
+});

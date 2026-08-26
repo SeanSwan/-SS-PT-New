@@ -45,6 +45,7 @@ export function lexStateAt(src, idx) {
   const stack = []; // 'template' | 'interp'
   let state = 'normal'; let quote = '';
   let prev = ''; // last significant char, for the regex-vs-division decision
+  let prevWord = ''; // trailing identifier/keyword, for value-position keywords (return /re/)
   for (let i = 0; i < idx; i++) {
     const c = src[i]; const n = src[i + 1];
     if (state === 'normal') {
@@ -52,13 +53,19 @@ export function lexStateAt(src, idx) {
       if (c === '/' && n === '/') { state = 'line'; i++; continue; }
       // A regex literal can contain quotes and backticks; unhandled, it flips state exactly
       // like the old backtick counter did. `/` starts a regex only where a value may begin.
-      if (c === '/' && /^$|[([{,;:=!&|?+\-*%~^<>]/.test(prev)) { state = 'regex'; continue; }
+      // `/` starts a regex only where a VALUE may begin. Punctuation is not the whole story:
+      // `return /re/`, `case /re/`, `typeof /re/` are all value positions too (GLM T2-R3 B1).
+      if (c === '/' && (/^$|[([{,;:=!&|?+\-*%~^<>]/.test(prev) || /\b(return|case|typeof|in|of|instanceof|do|else|yield|await|delete|void|new)$/.test(prevWord))) { state = 'regex'; continue; }
       if (c === '`') { stack.push('template'); state = 'template'; continue; }
       if (c === '"' || c === "'") { state = 'quote'; quote = c; continue; }
       if (c === '}' && stack[stack.length - 1] === 'interp') { stack.pop(); state = 'template'; continue; }
       if (c === '{' && stack.length) stack.push('brace'); // plain block inside an interpolation
       if (c === '}' && stack[stack.length - 1] === 'brace') stack.pop();
       if (!/\s/.test(c)) prev = c;
+      // The keyword must survive the space that follows it (`return /re/`), so whitespace
+      // leaves prevWord alone; only a non-identifier, non-space character clears it.
+      if (/[A-Za-z$_0-9]/.test(c)) prevWord = (prevWord + c).slice(-12);
+      else if (!/\s/.test(c)) prevWord = '';
       continue;
     }
     if (state === 'block') { if (c === '*' && n === '/') { state = 'normal'; prev = '/'; i++; } continue; }

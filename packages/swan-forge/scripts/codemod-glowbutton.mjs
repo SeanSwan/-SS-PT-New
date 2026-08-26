@@ -85,8 +85,11 @@ export function styledWrapperBlocker(body) {
     // Two VALUE-level seams the name-only check got wrong (GLM T2-R2 §3):
     // `flex: 0 0 320px` sets flex-BASIS — the button's main-axis size — through a door left open
     // while `width: 300px` was locked. Ratios are layout; a length basis is sizing.
-    if (/^flex$/i.test(prop) && /\d\s*(px|rem|em|%|ch|vw|vh)/i.test(value)) {
-      return `sets 'flex' with a length basis (${value}) — that is main-axis SIZING, which the skin owns; use a --sw-btn-* override`;
+    // BOTH the shorthand and the longhand: closing `flex: 0 0 320px` while leaving
+    // `flex-basis: 320px` open is the same seam with a different door (Ox T2-R3 #3, GLM B3 —
+    // found independently by both, which is how you know a fix was half-done).
+    if (/^(flex|flex-basis)$/i.test(prop) && /\d\s*(px|rem|em|%|ch|vw|vh|vmin|vmax|pt|cm|mm|in)/i.test(value)) {
+      return `sets '${prop}' with a length basis (${value}) — that is main-axis SIZING, which the skin owns; use a --sw-btn-* override`;
     }
     // `min-width: 0` is the near-mandatory flex-overflow fix and sets no size — without it every
     // real flex row costs a manual decision. Only the exact zero; any length is sizing.

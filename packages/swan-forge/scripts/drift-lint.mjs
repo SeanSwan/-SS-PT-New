@@ -89,6 +89,54 @@ export function stripComments(text) {
 }
 
 /**
+ * Index of the backtick that CLOSES the template opened at `open`, honouring escapes and
+ * `${…}` interpolations (which may themselves contain templates). `indexOf('`')` stopped at the
+ * first inner backtick, so an interpolated body was audited truncated (GLM T2-R3 B2a).
+ */
+function templateEnd(text, open) {
+  for (let i = open + 1; i < text.length; i++) {
+    const c = text[i];
+    if (c === '\\') { i++; continue; }
+    if (c === '`') return i;
+    if (c === '$' && text[i + 1] === '{') {
+      let depth = 1; i += 2;
+      for (; i < text.length && depth; i++) {
+        if (text[i] === '\\') { i++; continue; }
+        if (text[i] === '`') { const inner = templateEnd(text, i); if (inner < 0) return -1; i = inner; continue; }
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}') depth--;
+      }
+      i--;
+    }
+  }
+  return -1;
+}
+
+/** Skip a balanced `(...)` starting at `open`; returns the index just past the matching `)`. */
+function skipParens(text, open) {
+  let depth = 0; let quote = null;
+  for (let i = open; i < text.length; i++) {
+    const c = text[i];
+    if (quote) { if (c === '\\') { i++; continue; } if (c === quote) quote = null; continue; }
+    if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
+    if (c === '(') depth++;
+    else if (c === ')') { depth--; if (depth === 0) return i + 1; }
+  }
+  return -1;
+}
+
+/** Skip a method chain (`.attrs(…).withConfig(…)`) with BALANCED parens; returns the end index. */
+function skipChain(text, i) {
+  for (;;) {
+    const m = /^\s*\.\s*\w+\s*\(/.exec(text.slice(i));
+    if (!m) return i;
+    const end = skipParens(text, i + m[0].length - 1);
+    if (end < 0) return i;
+    i = end;
+  }
+}
+
+/**
  * R6 scan: every styled() wrapper that ultimately wraps the Forge button binding.
  *
  * A first version matched only the literal `styled(ForgeButton)\`…\`` and a probe found four ways
@@ -96,12 +144,17 @@ export function stripComments(text) {
  * matters most — re-extending an already-wrapped component (`styled(MyWrapper)\`background:red\``).
  * So this resolves the transitive set of locally-bound wrapper identifiers first, then checks each.
  *
+ * DOCUMENTED LIMIT (Ox T2-R3 #2, second half): this is a PER-FILE linter, so a wrapper exported
+ * from one file and re-extended in another is not resolved — the importing file has no forge
+ * import to seed from. Cross-file resolution needs a module graph, which this deliberately is
+ * not. R6 is therefore a standing law WITHIN a file and a tripwire across files; that is the
+ * honest scope, and it is stated here rather than implied by silence.
+ *
  * Object-styles syntax (`styled(X)({...})`) is FLAGGED unconditionally: it cannot be audited by
  * the shared string boundary, and "cannot verify" must never render as "fine" for a standing law.
  */
 export function scanStyledBindings(text) {
   const findings = [];
-  const chain = '(?:\\s*\\.\\w+\\([\\s\\S]*?\\))*'; // .attrs({…}).withConfig({…})…
   // Seed from the IMPORT, not from the literal name: the binding is a default export, so the
   // local name is whatever the importer chose. `import FB from '…/forge/ForgeButton'` then
   // `styled(FB)` was invisible to the first version — and hand-written wrappers are the entire
@@ -110,22 +163,34 @@ export function scanStyledBindings(text) {
   for (const m of text.matchAll(/import\s+(\w+)\s*(?:,\s*\{[^}]*\})?\s*from\s*['"][^'"]*forge\/ForgeButton['"]/g)) bound.add(m[1]);
   for (const m of text.matchAll(/import\s*\{[^}]*\bForgeButton\s+as\s+(\w+)[^}]*\}\s*from/g)) bound.add(m[1]);
   if (!bound.size) bound.add('ForgeButton'); // fixtures and files that use the name without an import line
-  for (let pass = 0; pass < 5; pass++) { // transitive closure; 5 hops is far past anything real
+  // Transitive closure. The seed must tolerate a method chain: `const W = styled(ForgeButton)
+  // .attrs({…})` never entered `bound` when the pattern demanded `)` immediately after the name,
+  // so every later `styled(W)` was invisible (Ox T2-R3 #2, GLM B2b).
+  for (let pass = 0; pass < 5; pass++) {
     const before = bound.size;
     for (const name of [...bound]) {
       for (const m of text.matchAll(new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*styled\\(\\s*${name}\\s*\\)`, 'g'))) bound.add(m[1]);
+      // `const W = FB.attrs({…})` — a wrapper built off the binding without styled() at all.
+      for (const m of text.matchAll(new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*${name}\\s*\\.\\s*\\w+\\s*\\(`, 'g'))) bound.add(m[1]);
     }
     if (bound.size === before) break;
   }
   for (const name of bound) {
-    for (const m of text.matchAll(new RegExp(`styled\\(\\s*${name}\\s*\\)${chain}\\s*(\`|\\()`, 'g'))) {
+    for (const m of text.matchAll(new RegExp(`styled\\(\\s*${name}\\s*(?=[).])`, 'g'))) {
       const line = text.slice(0, m.index).split('\n').length;
       const via = name === 'ForgeButton' ? 'styled(ForgeButton)' : `styled(${name}) [transitively wraps ForgeButton]`;
-      if (m[1] === '(') { findings.push({ rule: 'R6', line, detail: `${via} uses object-styles syntax, which cannot be audited statically — use a --sw-btn-* override or a template literal (rule 84)` }); continue; }
-      const bodyStart = m.index + m[0].length;
-      const end = text.indexOf('`', bodyStart);
+      // Balanced-paren scan: `.attrs((p) => ({…}))` or any `)` inside the args used to end the
+      // chain early, after which the backtick never matched and the wrapper went UNSCANNED.
+      const closeParen = skipParens(text, m.index + 'styled'.length);
+      if (closeParen < 0) continue;
+      let i = skipChain(text, closeParen);
+      while (/\s/.test(text[i])) i++;
+      if (text[i] === '(') { findings.push({ rule: 'R6', line, detail: `${via} uses object-styles syntax, which cannot be audited statically — use a --sw-btn-* override or a template literal (rule 84)` }); continue; }
+      if (text[i] !== '`') continue;
+      // Terminator must respect escapes and interpolations, not stop at the first backtick.
+      const end = templateEnd(text, i);
       if (end < 0) continue;
-      const blocker = styledWrapperBlocker(text.slice(bodyStart, end));
+      const blocker = styledWrapperBlocker(text.slice(i + 1, end));
       if (blocker) findings.push({ rule: 'R6', line, detail: `${via} ${blocker} — use a --sw-btn-* override instead (rule 84)` });
     }
   }
@@ -142,6 +207,10 @@ export function scanStyledBindings(text) {
  */
 export const RETENTION_GUARDED = Object.freeze([
   { path: 'components/ui/buttons/GlowButton.tsx', until: 'SWA-213', why: 'revert target for the T2 authenticated migration; no live receipt yet' },
+  // The re-export shim is what two real T-tier surfaces import (OptimizedSignupModal,
+  // PricingInquiryModal). Guarding only the .tsx would let the shim be deleted and break the
+  // revert for exactly the files that reach the button through it (GLM T2-R3 B4).
+  { path: 'components/ui/GlowButton.ts', until: 'SWA-213', why: 're-export shim; two T-tier surfaces import the button through it, so the revert needs it too' },
 ]);
 
 /** @returns {{rule:string,line:number,detail:string,path:string}[]} */

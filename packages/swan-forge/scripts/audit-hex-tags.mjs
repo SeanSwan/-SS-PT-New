@@ -38,7 +38,7 @@ function* walk(dir, depth = 0) {
   }
 }
 
-let checked = 0; let bad = 0;
+let checked = 0; let bad = 0; let info = 0;
 for (const root of roots) {
   for (const file of walk(root)) {
     let src;
@@ -65,15 +65,21 @@ for (const root of roots) {
         damage = 'a `//` inside a styled template is emitted into the CSS; error-recovery eats the next declaration';
       } else if (state === 'template' && used === '{/* */}') {
         damage = 'JSX comment form inside CSS — `{` and `}` are emitted into the stylesheet';
-      } else if (state === 'normal' && /\.(t|j)sx$/.test(file) && /(<\/[A-Za-z][\w.]*>|\/>)/.test(line) && /[>}]\s*$/.test(line) && used !== '{/* */}') {
-        damage = 'appended after JSX children, this is TEXT and renders in the UI';
+      } else if (state === 'normal' && /\.(t|j)sx$/.test(file) && used !== '{/* */}'
+        && /[<>]/.test(line) && !/[;,{]\s*$/.test(line)) {
+        // Widened past the closing-tag line-shape: ANY JSX-ish line in a .tsx that does not end a
+        // statement is a candidate children position, where `//` and `/* */` are both TEXT
+        // (GLM T2-R3 B5). The narrow shape only caught lines ending in a close tag.
+        damage = 'JSX-ish line that does not end a statement — a `//` or `/* */` here is TEXT and renders in the UI';
       }
       if (damage) {
         bad++;
         console.log(`DAMAGE ${file}:${i + 1}\n  used ${used} in '${state}' context — ${damage}\n  ${line.trim().slice(0, 110)}`);
+      } else if (state === 'normal' && used === '/* */' && !/\.(t|j)sx$/.test(file)) {
+        info++; // valid, just not the form the tagger would pick — surfaced, never swallowed
       }
     });
   }
 }
-console.log(`\n${checked} existing tag(s) audited against the fixed lexer · ${bad} mismatch(es)`);
+console.log(`\n${checked} existing tag(s) audited against the fixed lexer · ${bad} DAMAGE · ${info} valid-but-different-form (INFO, surfaced not swallowed)`);
 process.exit(bad ? 1 : 0);
