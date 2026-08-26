@@ -432,3 +432,38 @@ describe('forfeit stamp must not fire outside the late window', () => {
     expect(session.cancellationDecision).toBe('forfeited');
   });
 });
+
+describe('forfeit requires a KNOWN late window', () => {
+  let service;
+  let sessionModel;
+  let userModel;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockTransaction.commit.mockResolvedValue(undefined);
+    mockTransaction.rollback.mockResolvedValue(undefined);
+    service = new UnifiedSessionService();
+    sessionModel = { findByPk: vi.fn() };
+    userModel = { findByPk: vi.fn() };
+    service._Session = sessionModel;
+    service._User = userModel;
+    service.sendCancellationNotifications = vi.fn();
+  });
+
+  it('does not stamp a forfeit when the session date is unusable', async () => {
+    // An unparseable date makes hoursUntilSession null, which made refundEligible
+    // false, which stamped a forfeit. Meanwhile the warning endpoint's
+    // `NaN < 24` evaluates false, so the CLIENT was told "your credit will be
+    // returned" while the server forfeited it. Do not record a penalty we cannot
+    // substantiate.
+    const client = buildClient({ availableSessions: 2 });
+    const session = buildSession({ client, sessionDate: null });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(client);
+
+    await service.cancelSession(77, { id: 301, role: 'client' }, 'no date');
+
+    expect(session.cancellationDecision).toBeNull();
+    expect(session.cancellationReviewReason).toBeNull();
+  });
+});
