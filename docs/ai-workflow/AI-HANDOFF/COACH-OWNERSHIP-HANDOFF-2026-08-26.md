@@ -6,8 +6,11 @@ supersedes: docs/ai-workflow/AI-HANDOFF/COACH-ENDPOINT-TRUTH-HANDOFF-2026-08-25.
 
 # HANDOFF — Swan Coach ownership
 
-Branch `claude/coach-endpoint-truth-v2-20260824`, 4 commits on top of `d942881d7`.
+Branch `claude/coach-endpoint-truth-v2-20260824`, 7 commits on top of `d942881d7`.
 **Not pushed, not merged, not deployed, not human-reviewed.** No paid seat consulted; $0.00.
+
+Three holes, in two slices. §2 is the first two; §2.3 is the third, found by working down
+this file's own open list.
 
 ---
 
@@ -86,6 +89,28 @@ so no middleware runs for this lane.
 the existing `planFound: false` shape, matching the 404-not-403 discipline: an unassigned
 trainer is told exactly what a stranger is told.
 
+### 2.3 A confirmed operation was authorized when it was queued, not when it ran
+
+A command requiring confirmation is authorized once, in the pipeline, then parked for up to
+120 seconds. Redemption checked ownership of the pending operation, expiry, and — on the
+destructive path — an HMAC signature. None of those notice that the caller's role was
+revoked, or that the client was transferred to another trainer, inside that window. **The
+signature proves the operation was not tampered with; it says nothing about who may run it
+now, because it was signed when the caller still could.**
+
+Both this file and the two handoffs before it named this and left it open. 120 seconds is
+short, but revocation is precisely the moment someone has a reason to spend it, and a
+queued destructive operation is what they would spend it on.
+
+**Fixed** by re-authorizing at the moment of the effect, on both lanes: the caller's CURRENT
+role against the registry, and their current access to the operation's client. Current, not
+minted — the operation never recorded what it was minted under, and "may this caller act
+now" is what every other gate in this lane asks. A type unknown to the registry is refused
+only when a dispatcher exists for it: "cannot tell" must not mean "allow", but where nothing
+can execute either way, the honest `not_wired` answer beats a permission error that would be
+false. The denial message names no permission — a caller whose access was just revoked is
+the one person who should not learn which one it was.
+
 ---
 
 ## 3. The sweep — what this finding is NOT
@@ -120,37 +145,52 @@ The house already had the rule. That is what makes 2.2 a gap rather than a polic
 | `tests/helpers/ownershipFixture.mjs` | Shared actors, command sets, handler-body slicing. |
 | `services/ai/commandExecutor.mjs` | `RESOLVER_SCOPED_ROLES` + the non-privileged self-scope. |
 | `services/ai/dispatchers/workoutPlanCommandDispatchers.mjs` | The access check, and a header that no longer claims a protection it does not perform. |
+| `tests/api/aiCommandConfirmLaneReauthorization.contract.test.mjs` | 12 tests. Executes the confirm lane rather than scanning it: mints a real operation, redeems it with a changed actor. Also walks the function body and fails on a dispatch that is not preceded by a gate. |
+| `services/ai/commandExecutor.mjs` (again) | `confirmLaneDenialReason`, called on both redemption paths. |
 
 ---
 
 ## 5. Verification
 
-- 27/27 across the three ownership contracts; 50/50 across all six ai-command suites
-- Full backend: **9700 passed**, failing-file set **identical** to `known-failing-baseline`
+- 39/39 across the four ownership contracts
+- Full backend: **9712 passed**, failing-file set **identical** to `known-failing-baseline`
   (compared as sets — gate exit 0)
-- **21/21 mutations fire**, every file restored byte-identical by sha256
+- **29/29 mutations fire**, every file restored byte-identical by sha256
 - `node --check` clean; registry import smoke 139 commands; secret scan CLEAN
 - Zero frontend files changed (`git status` proves it), so no frontend gate was run
-- **DRY-LOOP: CLEAN ×2 (rounds: 7)**
+- **DRY-LOOP: CLEAN ×2 on each slice (rounds: 7, then 6)**
+
+One mutation SURVIVED before it was closed: flipping the confirm lane's access-lookup catch
+to fail OPEN left every other assertion green, because nothing exercised a rejecting
+authorizer. A gate that fails open under load works in every test and stops working exactly
+when the database is unhappy. That is the third thing this session that reasoning missed and
+mutation caught.
 
 ### Not proven — stated, because silence reads as coverage
 
 - **Dispatcher self-gating.** Handlers are mocked in the client-ownership contract. It
   proves the pipeline denies before a handler runs; not that a handler would refuse alone.
-- **A role revoked mid-flight.** The confirm lane checks ownership of the pending
-  operation, not the caller's current role, so someone demoted after minting can still
-  redeem inside the 120s window.
+- **A role that changes DURING dispatch.** §2.3 closes the gap between minting and
+  redemption, not between redemption and the write itself.
 - **Real SQL.** The fake mirrors the resolver's predicates; it proves the query carries
   them, not that PostgreSQL evaluates them the same way.
 
 ### Test delta
 
-Two existing suites needed fixture changes; **no assertion was weakened**. Both mock the
-model registry without a `findByPk`, which the archive path now calls; both use admin
-actors, so the check passes on role alone. `workoutPlanLifecycleMutationWiring` resolves
-`findByPk` for EVERY id deliberately, including `'missing-plan'`: that test is about the
-SERVICE's not-found rejection, and short-circuiting it earlier would have moved it onto a
+**Four** existing suites needed fixture changes; **no assertion was weakened**.
+
+Two mock the model registry without a `findByPk`, which the archive path now calls; both use
+admin actors, so the check passes on role alone. `workoutPlanLifecycleMutationWiring`
+resolves `findByPk` for EVERY id deliberately, including `'missing-plan'`: that test is about
+the SERVICE's not-found rejection, and short-circuiting it earlier would have moved it onto a
 different code path while it kept passing.
+
+Two more (`commandExecutorConfirmedOperation`, `commandExecutorErrorDisclosure`) now
+initialize the registry. Both `vi.resetModules()` and re-import, leaving the registry
+singleton empty; production always has it initialized, because `aiCommandRoutes.mjs` calls
+`initializeRegistry()` at module load in the same module that serves `/confirm`. Their prior
+state modelled a condition the server never reaches — and an uninitialized registry now
+denies everything, which is the right direction for a boot-order accident to fail in.
 
 ---
 
@@ -161,15 +201,17 @@ different code path while it kept passing.
    remaining question is whether a handler reached by any other means would refuse on its
    own. Lower stakes than what was just closed — this is defence in depth behind a gate now
    known to hold.
-3. **The confirm lane's role window.** Bounded (120s) and narrow, but real and asserted
-   nowhere.
-4. **`view_xp_streaks` still lists `client` in `roleRequired`.** Harmless now — a client
+3. **`view_xp_streaks` still lists `client` in `roleRequired`.** Harmless now — a client
    resolves only themselves, which is what `my_xp` already does — but redundant. Removing
    it would start denying at the role gate what currently succeeds, so it was left alone.
-5. **The `\n`/CRLF trap should become a check, not a fifth paragraph.** Four sessions, four
-   recurrences, each after reading the write-up. What contained it here was a harness that
-   reports "anchor not found" as its own state.
-6. Still open from the previous handoff: `allowedRoles` untrustworthy for 54% of rows; the
+4. **The `\n`/CRLF trap became a check, and the check taught the precise rule.** Five
+   recurrences here, on top of four sessions, every one after reading a write-up about it.
+   The mutation harness now refuses to run on an anchor whose `\n` is anywhere but index 0 —
+   and running that guard is what revealed WHY: a LEADING `\n` matches the `\n` half of a
+   `\r\n` and correctly anchors a line start; a `\n` in the middle cannot, because the source
+   has a `\r` the anchor lacks. Four prose warnings never contained that distinction. The
+   harness lives in the session scratchpad; promoting it into `scripts/` is worth a slice.
+5. Still open from the previous handoff: `allowedRoles` untrustworthy for 54% of rows; the
    `request_plan_adjustment` fictional-endpoint carve-out; three branches carrying this work.
 
 ---
