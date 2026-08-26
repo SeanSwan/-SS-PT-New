@@ -23,7 +23,8 @@ const asset = (over = {}) => ({
   id: 'a1', kind: 'image', mime: 'image/png', width: 1920, height: 1080, sizeBytes: 2048,
   status: 'draft' as const, createdAt: '2026-08-26T10:00:00.000Z',
   brandKit: 'universal', brandKitHash: '8f7701a221ed', workspaceId: 'ws-1', lane: 'local', seed: 42,
-  prompt: 'a lone red fox crossing a snowfield', promptTruncated: false, ...over,
+  prompt: 'a lone red fox crossing a snowfield', promptTruncated: false,
+  previewUrl: 'https://cdn.example/atelier/stills/1/abc.png?sig=x', ...over,
 });
 
 function fakeApi(page: unknown, { fail = false } = {}) {
@@ -119,5 +120,49 @@ describe('the server owns the options and the paging', () => {
     render(<AtelierLibrary api={api} />);
     expect(await screen.findByText(/red fox/)).toBeTruthy();
     expect(screen.getByText(/universal/)).toBeTruthy();
+  });
+});
+
+describe('a library shows the work, not its dimensions', () => {
+  it('renders the signed preview with the prompt as its alt text', async () => {
+    const { api } = fakeApi({ assets: [asset()], hasMore: false, nextCursor: null, pageSize: 24 });
+    render(<AtelierLibrary api={api} />);
+    const img = await screen.findByAltText(/red fox/);
+    expect(img.getAttribute('src')).toMatch(/^https:\/\/cdn\.example\//);
+    // Lazy: a page of two dozen must not fetch two dozen images before first paint.
+    expect(img.getAttribute('loading')).toBe('lazy');
+  });
+
+  it('falls back to dimensions when an object would not sign', async () => {
+    // Null preview is a degraded card, never an error and never an empty page.
+    const { api } = fakeApi({ assets: [asset({ previewUrl: null })], hasMore: false, nextCursor: null, pageSize: 24 });
+    render(<AtelierLibrary api={api} />);
+    expect(await screen.findByLabelText(/red fox/)).toBeTruthy();
+    expect(screen.getByText('1920x1080')).toBeTruthy();
+    expect(screen.queryByAltText(/red fox/)).toBeNull();
+  });
+});
+
+describe('degradation stays visible', () => {
+  it('an expired preview falls back to the PLACEHOLDER, not to a hole', async () => {
+    // The first version hid the image on error, which left a gap — contradicting the very
+    // principle it was written to serve. A reviewer caught it.
+    const { api } = fakeApi({ assets: [asset()], hasMore: false, nextCursor: null, pageSize: 24 });
+    render(<AtelierLibrary api={api} />);
+    const img = await screen.findByAltText(/red fox/);
+    fireEvent.error(img);
+    expect(await screen.findByText('1920x1080')).toBeTruthy();
+    expect(screen.queryByAltText(/red fox/)).toBeNull();
+  });
+
+  it('when EVERY preview fails, the page says it is the signer and not your assets', async () => {
+    const { api } = fakeApi({
+      assets: [asset({ previewUrl: null })], hasMore: false, nextCursor: null, pageSize: 24,
+      previewsUnavailable: true,
+    });
+    render(<AtelierLibrary api={api} />);
+    const notice = await screen.findByText(/preview-signing problem, not a/i);
+    expect(notice.getAttribute('role')).toBe('status');
+    expect(notice.textContent).toMatch(/still here/i);
   });
 });

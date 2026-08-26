@@ -98,9 +98,10 @@ const depsNow = () => ({ limits: readComposeLimits(), usage: usageToday(), commi
  */
 router.get('/assets', protect, adminOnly, async (req, res) => {
   try {
-    const [{ default: MediaAsset }, { Op, fn, col, where }] = await Promise.all([
+    const [{ default: MediaAsset }, { Op, fn, col, where }, r2] = await Promise.all([
       import('../models/MediaAsset.mjs'),
       import('sequelize'),
+      import('../services/r2StorageService.mjs'),
     ]);
     const out = await listAssets({
       userId: req.user?.id,
@@ -108,7 +109,14 @@ router.get('/assets', protect, adminOnly, async (req, res) => {
       brandKit: req.query.brandKit, brandKitHash: req.query.brandKitHash,
       workspaceId: req.query.workspaceId, lane: req.query.lane,
       cursor: req.query.cursor, limit: req.query.limit ?? DEFAULT_PAGE,
-    }, { assetModel: MediaAsset, Op, fn, col, where });
+    }, {
+      assetModel: MediaAsset, Op, fn, col, where,
+      // generateThumbnailUrl, NOT generatePlaybackUrl. The service already ships a signer
+      // built for list endpoints — 1 hour instead of the playback TTL — and I reached for
+      // the one I had seen elsewhere instead of reading what the service offers. Shorter
+      // TTL is the right trade for a page that shows two dozen at once.
+      readUrl: (key) => r2.generateThumbnailUrl(key),
+    });
     return res.json({ success: true, data: out });
   } catch (err) { return fail(res, err); }
 });

@@ -53,3 +53,15 @@ export const AssetMeta = styled.div`
   strong { text-transform: capitalize; }
   span { color: var(--text-secondary, rgba(224, 236, 244, 0.62)); }
 `;
+
+/* The preview itself. Same box as the placeholder so a page of mixed signed and
+   unsigned cards does not reflow into a ragged grid. `contain` keeps the whole
+   composition visible — a cropped hero is unrecognisable, which defeats the point. */
+export const AssetImage = styled.img`
+  width: 100%;
+  min-height: 108px;
+  max-height: 180px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: var(--midnight-sapphire, #002060);
+`;

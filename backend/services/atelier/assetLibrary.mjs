@@ -160,9 +160,16 @@ export function buildAssetQuery(req = {}, { Op, fn, col, where: whereFn } = {}) 
   };
 }
 
-/** The client-safe shape. No r2Key: a storage path is not a URL and handing one out
- *  invites someone to build a URL from it. Reads go through the reference endpoint. */
-export function assetView(row) {
+/** The client-safe shape.
+ *
+ *  The raw `r2Key` is still withheld — but note honestly that `previewUrl` is a SigV4
+ *  presigned GET, and the object key is in its path. So the earlier posture ("the storage
+ *  key never leaves the server") no longer holds in full, and saying otherwise would be
+ *  the confident-copy-outliving-the-code failure this lane keeps writing up. What a
+ *  preview actually gives is a time-limited, revocable-by-expiry read of ONE object,
+ *  which is the same trade the published-reference endpoint already makes — now made per
+ *  row instead of per request. */
+export function assetView(row, previewUrl = null) {
   const tags = Array.isArray(row.tags) ? row.tags : [];
   const tag = (prefix) => {
     const hit = tags.find((t) => typeof t === 'string' && t.startsWith(`${prefix}:`));
@@ -187,6 +194,11 @@ export function assetView(row) {
     // shown so a person can recognise their own work, which is the whole point of a library.
     prompt: row.provenance?.request?.prompt ?? null,
     promptTruncated: Boolean(row.provenance?.request?.promptTruncated),
+    // A SHORT-LIVED SIGNED URL, or null. Null is a degraded card, never an error: one
+    // object that will not sign must not cost the operator the whole page. The storage
+    // key still never leaves the server — a signed URL is time-limited and opaque, which
+    // is the same trade the published-reference endpoint already makes.
+    previewUrl,
   };
 }
 
@@ -194,7 +206,7 @@ export function assetView(row) {
  * List one page. `assetModel` is injected so every branch is testable without a database.
  */
 export async function listAssets(req = {}, deps = {}) {
-  const { assetModel, Op, fn, col, where } = deps;
+  const { assetModel, Op, fn, col, where, readUrl } = deps;
   if (!assetModel || !Op) throw new ComposeError('E_STORAGE_UNCONFIGURED', 'The asset store is not configured.');
 
   const q = buildAssetQuery(req, { Op, fn, col, where });
@@ -202,8 +214,44 @@ export async function listAssets(req = {}, deps = {}) {
   const page = rows.slice(0, q._pageSize);
   const hasMore = rows.length > q._pageSize;
 
+  // PREVIEWS. Without them this is an index, not a library: a card showing "1920x1080"
+  // asks a person to find their work by reading rather than by recognising it, which is
+  // not how anyone looks for a picture.
+  //
+  // Signed per row and in parallel — presigning is a local HMAC, not a network call, so a
+  // page of two dozen costs nothing. Each one is isolated: a key that will not sign yields
+  // a null preview and a card that falls back to its dimensions. One bad object must not
+  // empty the page, and a page that 500s because of a thumbnail is a worse library than
+  // one with a missing thumbnail.
+  let attempted = 0;
+  let failed = 0;
+  const previews = readUrl
+    ? await Promise.all(page.map((r) => {
+      if (r.kind !== 'image' || !r.r2Key) return Promise.resolve(null);
+      attempted += 1;
+      // `Promise.resolve().then(...)` rather than `readUrl(...).catch(...)`: a signer that
+      // throws SYNCHRONOUSLY never produces a promise for `.catch` to attach to.
+      return Promise.resolve().then(() => readUrl(r.r2Key, r.mime)).catch((err) => {
+        failed += 1;
+        // Per-row degradation must still be VISIBLE somewhere. Silent isolation turns a
+        // rotated secret into a page of grey boxes with a 200 and no telemetry — the
+        // operator concludes their renders are broken, and nothing ever says otherwise.
+        console.warn('[Atelier/library] preview signing failed for asset %s: %s', r.id, err?.message || err);
+        return null;
+      });
+    }))
+    : page.map(() => null);
+
+  // ONE bad object is isolation working. EVERY object failing is a broken signer, and
+  // those are different facts that must not look identical to the person reading the page.
+  const previewsUnavailable = attempted > 0 && failed === attempted;
+  if (previewsUnavailable) {
+    console.error('[Atelier/library] ALL %d previews failed to sign — the signer is likely misconfigured, not the objects.', attempted);
+  }
+
   return {
-    assets: page.map(assetView),
+    assets: page.map((r, i) => assetView(r, previews[i])),
+    previewsUnavailable,
     hasMore,
     // Null when the page is the last one, so a client stops rather than re-requesting.
     nextCursor: hasMore ? encodeCursor(page[page.length - 1]) : null,

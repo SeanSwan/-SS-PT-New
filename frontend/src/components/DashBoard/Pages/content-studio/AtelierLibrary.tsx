@@ -30,7 +30,7 @@ import type { BrandKitView, LimitsView } from './AtelierCompose.types';
 import {
   Panel, Card, CardTitle, CardHint, QuietButton, Field, Caption, Select, Notice, Workspace,
 } from './AtelierCompose.styles';
-import { AssetGrid, AssetCard, AssetThumb, AssetMeta, FilterRow } from './AtelierLibrary.styles';
+import { AssetGrid, AssetCard, AssetThumb, AssetImage, AssetMeta, FilterRow } from './AtelierLibrary.styles';
 
 export interface LibraryAsset {
   id: string; kind: string; mime: string;
@@ -40,9 +40,16 @@ export interface LibraryAsset {
   brandKit: string | null; brandKitHash: string | null;
   workspaceId: string | null; lane: string | null; seed: number | null;
   prompt: string | null; promptTruncated: boolean;
+  /** Short-lived signed URL, or null when the object would not sign. Null is a degraded
+   *  card that falls back to dimensions — never an error, never an empty page. */
+  previewUrl: string | null;
 }
 
-interface Page { assets: LibraryAsset[]; hasMore: boolean; nextCursor: string | null; pageSize: number; }
+interface Page {
+  assets: LibraryAsset[]; hasMore: boolean; nextCursor: string | null; pageSize: number;
+  /** Every image on the page failed to sign — a broken signer, not broken objects. */
+  previewsUnavailable?: boolean;
+}
 
 /** The empty state has to say WHICH emptiness it is. */
 export function describeEmpty(filtered: boolean): string {
@@ -60,6 +67,9 @@ const AtelierLibrary: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
   const [kits, setKits] = useState<BrandKitView[]>([]);
   const [brandKit, setBrandKit] = useState('');
   const [status, setStatus] = useState('');
+  // Per-asset, because an expired URL is a fact about one card, not the page.
+  const [broken, setBroken] = useState<Record<string, boolean>>({});
+  const [previewsDown, setPreviewsDown] = useState(false);
   const filtered = Boolean(brandKit || status);
 
   useEffect(() => {
@@ -82,6 +92,7 @@ const AtelierLibrary: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
       const page = (r.data?.data ?? {}) as Page;
       setAssets((prev) => (append ? [...prev, ...(page.assets ?? [])] : (page.assets ?? [])));
       setHasMore(Boolean(page.hasMore));
+      setPreviewsDown(Boolean(page.previewsUnavailable));
       setCursor(page.nextCursor ?? null);
     } catch (e) {
       const err = e as { response?: { data?: { error?: string } } };
@@ -126,6 +137,15 @@ const AtelierLibrary: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
 
           {error && <Notice $tone="off" role="status">{error}</Notice>}
 
+          {/* One missing preview is a quiet placeholder. EVERY preview missing is a broken
+              signer, and the operator must not be left concluding their renders are gone. */}
+          {!error && previewsDown && (
+            <Notice $tone="unproven" role="status">
+              Previews are unavailable right now — this is a preview-signing problem, not a
+              problem with your assets. Everything below is still here.
+            </Notice>
+          )}
+
           {!error && assets.length === 0 && !busy && (
             <Notice $tone="unproven" role="status">
               <Filter size={14} aria-hidden /> {describeEmpty(filtered)}
@@ -135,9 +155,22 @@ const AtelierLibrary: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
           <AssetGrid>
             {assets.map((a) => (
               <AssetCard key={a.id}>
-                <AssetThumb aria-label={a.prompt || 'Rendered asset'}>
-                  {a.width && a.height ? `${a.width}x${a.height}` : a.kind}
-                </AssetThumb>
+                {a.previewUrl && !broken[a.id] ? (
+                  <AssetImage
+                    src={a.previewUrl}
+                    alt={a.prompt || 'Rendered asset'}
+                    loading="lazy"
+                    // A signed URL expires while you scroll. When it does the card falls
+                    // back to the SAME placeholder an unsignable object gets. The first
+                    // version hid the image instead, which left a hole — contradicting the
+                    // very principle it was written to serve, and a reviewer said so.
+                    onError={() => setBroken((b) => ({ ...b, [a.id]: true }))}
+                  />
+                ) : (
+                  <AssetThumb aria-label={a.prompt || 'Rendered asset'}>
+                    {a.width && a.height ? `${a.width}x${a.height}` : a.kind}
+                  </AssetThumb>
+                )}
                 <AssetMeta>
                   <strong>{a.status}</strong>
                   {a.brandKit && <span> · {a.brandKit}</span>}
