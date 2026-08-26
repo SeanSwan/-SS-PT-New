@@ -1,6 +1,10 @@
 {
   "schema": "swan.game-asset.v1",
   "id": "enemy.fryling",
+  "status": "planned",
+  "targetSurface": "standalone",
+  "paletteLaw": "B",
+  "calibrationFixture": false,
   "zone": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
   "skeleton": "skeleton.creature-small.v1",
   "animations": [
@@ -11,21 +15,26 @@
     "death"
   ],
   "budgets": {
-    "lod0Triangles": 1,
-    "lod1Triangles": 1,
-    "lod2Triangles": 1,
+    "lod0Triangles": 260,
+    "lod1Triangles": 124,
+    "lod2Triangles": 103,
     "textureMB": 0,
     "tool": "scripts/assets/measure-glb.mjs",
-    "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/lod0.glb",
+    "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/lod0.glb lod1.glb lod2.glb",
     "date": "2026-08-25",
-    "commit": "2724c8ff9",
-    "calibrationFixture": true,
-    "note": "CALIBRATION FIXTURE, not production data \u2014 a hand-authored single-triangle glTF proving validator plumbing. Do not trend-line this row (Ox Alpha B7). The FIRST measurement used POSITION.count/3, correct only for non-indexed meshes; this fixture is non-indexed so it hid the bug (GLM 5.3 blocker 1). Superseded by measure-glb.mjs which reads indices.count/3 and honours primitive mode."
+    "commit": "283f20c9f",
+    "note": "FIRST PIPE-PRODUCED ASSET. swan_pipe.py run 6 on fryling-blockout.obj (5 voxels, 60 raw tris): weld -> limited dissolve -> bevel -> LOD0 260 / LOD1 collapse 0.45 -> 124 / LOD2 planar 40deg -> 103 / collision = un-beveled collapse 0.45 -> 38. Ratios probed on the real mesh, not guessed (tools/blender/probe-decimate.py)."
   },
   "provenance": {
     "humanOwner": "owner",
-    "createdAtUtc": "2026-08-25T12:00:00.000Z",
+    "createdAtUtc": "2026-08-26T06:40:00.000Z",
     "aiAssisted": false,
+    "generator": {
+      "name": "tools/blender/swan_pipe.py",
+      "version": "run-6",
+      "blender": "4.5.13 LTS (daeeeca98fb0)"
+    },
+    "source": "assets/source/enemy/fryling/fryling-blockout.obj",
     "similarityReviewed": {
       "reviewer": "owner",
       "date": "2026-08-25",
@@ -37,12 +46,11 @@
         "trademarks",
         "real likeness"
       ],
-      "note": "calibration fixture \u2014 a single hand-authored triangle; nothing to resemble"
+      "note": "a 5-voxel L-shaped blockout — pipe proof geometry, no likeness to anything"
     },
     "license": {
       "kind": "owner-authored"
-    },
-    "note": "P1 pipe-proof fixture: a real single-triangle glTF 2.0 binary, hand-authored, no generator involved."
+    }
   },
   "runtime": {
     "lod0": "lod0.glb",
@@ -53,13 +61,13 @@
     "compression": "none"
   },
   "sha256": {
-    "lod0": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46",
-    "lod1": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46",
-    "lod2": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46",
-    "collision": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46"
+    "lod0": "6e42163cc60e650bdcebf8941bdab71dfafdea2f91dbcd973fafd238d5a08f58",
+    "lod1": "bfab889e494c4337d32c72566d6c1756d570936a8c2598a2d305a020af8c12e8",
+    "lod2": "0c0077542adb92bf367e47d54339befb2e2dc24ef8c38c2fe4d917e92a000618",
+    "collision": "47b7722c3f609f3c6e92e544d9ad083517f1573161dc822076a2c5168a53eeeb"
   },
-  "status": "planned",
-  "targetSurface": "standalone",
-  "paletteLaw": "B",
-  "calibrationFixture": true
+  "_source": {
+    "file": "fryling-blockout.obj",
+    "pipeline": "swan_pipe.py"
+  }
 }

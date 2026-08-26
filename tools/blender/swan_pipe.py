@@ -1,7 +1,11 @@
 """
 swan_pipe.py — headless Blender: voxel source -> game-ready GLB set + manifest stub.
 
-    blender -b --python tools/blender/swan_pipe.py -- --in <file.vox|.obj|.glb> --id <asset-id> [opts]
+    blender -b --python-exit-code 1 --python tools/blender/swan_pipe.py -- --in <file.obj|.glb> --id <asset-id> [opts]
+
+    --python-exit-code 1 is NOT optional. Probed 2026-08-25: Blender exits 0 on an uncaught Python
+    exception (a NameError traceback and "exit=0" in the same run). The script also catches and
+    sys.exit(1)s itself; the flag is belt-and-braces for the case the catch never runs.
 
 WHY IT LOOKS LIKE THIS
 ----------------------
@@ -45,21 +49,23 @@ provenance is a laundering machine.
 """
 
 import argparse
-import json
 import os
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from swan_pipe_manifest import LOD_RATIOS, plan, out_dir_for, write_manifest_stub  # noqa: E402
 
 try:
     import bpy  # noqa: F401
     import bmesh
     IN_BLENDER = True
+    # (script dir already on sys.path — see the top-level insert)
+    from swan_pipe_stages import smooth_by_angle, export_collision, render_still  # noqa: E402
 except ImportError:  # allows --dry-run linting outside Blender
     IN_BLENDER = False
 
 
-LOD_RATIOS = {"lod0": 1.0, "lod1": 0.45, "lod2": 0.18}
 SMOOTH_ANGLE = 0.6109  # ~35 degrees
-COLLISION_RATIO = 0.08
 
 
 def parse_args(argv):
@@ -76,95 +82,6 @@ def parse_args(argv):
     p.add_argument("--bake-size", type=int, default=1024)
     p.add_argument("--dry-run", action="store_true", help="print the plan and exit (works without Blender)")
     return p.parse_args(argv)
-
-
-def plan(args):
-    """The pipeline as data, so --dry-run can show it without Blender."""
-    return [
-        ("import", f"load {args.src}"),
-        ("weld", "merge_by_distance — voxel exporters emit duplicate verts at every cube face"),
-        ("cleanup", "limited dissolve on coplanar faces — collapses cube grids into flat n-gons"),
-        ("bevel", f"width={args.bevel_width}, segments=2, clamp — THE inherited art gene"),
-        ("shade", "bmesh sharp-edge marking at ~35deg then shade smooth — asset-free, headless-safe"),
-        ("uv", "smart_uv_project, island_margin 0.02"),
-        ("bake", f"normal + AO + roughness @ {args.bake_size} — micro-detail becomes texture, not geometry"),
-        ("lods", f"decimate to {LOD_RATIOS}"),
-        ("collision", f"convex-ish proxy at {COLLISION_RATIO} — never the render mesh"),
-        ("still", "one orthographic poster for the still tier"),
-        ("export", "GLB per LOD (+Y up, no cameras/lights, apply modifiers)"),
-        ("manifest", "emit INVALID stub — provenance is a human act"),
-    ]
-
-
-def out_dir_for(args):
-    return args.out_dir or os.path.join("assets", "runtime", args.asset_id.replace(".", "/"))
-
-
-def write_manifest_stub(args, out_dir):
-    """Deliberately invalid. The validator must reject this until a human fills it in."""
-    stub = {
-        "schema": "swan.game-asset.v1",
-        "id": args.asset_id,
-        "zone": None,
-        "skeleton": args.skeleton,
-        "animations": [] if args.skeleton else None,
-        "budgets": None,
-        "provenance": {
-            "humanOwner": None,
-            "createdAtUtc": None,
-            "aiAssisted": None,
-            "similarityReviewed": False,
-            "license": None,
-            "_note": "swan_pipe emits these EMPTY on purpose. A pipeline that pre-fills "
-                     "provenance launders it. Copy to manifest.json, fill in by hand, then validate. "
-                     "Named .stub.json so validate-asset --all never treats it as a real manifest (Ox Alpha, branch gate).",
-        },
-        "runtime": {
-            "lod0": "lod0.glb", "lod1": "lod1.glb", "lod2": "lod2.glb",
-            "collision": "collision.glb", "stillFallback": "still.png",
-            "compression": "none",
-        },
-        "sha256": {},
-        "_source": {"file": os.path.basename(args.src), "pipeline": "swan_pipe.py"},
-    }
-    path = os.path.join(out_dir, "manifest.stub.json")  # NOT manifest.json — --all must never find a stub
-    os.makedirs(out_dir, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(stub, fh, indent=2)
-    return path
-
-
-def smooth_by_angle(obj, angle):
-    """Mark edges sharp above `angle`, then shade smooth. Asset-free and headless-safe.
-
-    NOT `bpy.ops.object.shade_auto_smooth()`. That operator is the correct post-4.1
-    replacement for the removed `Mesh.use_auto_smooth` — a review seat predicted the pipe
-    would crash on the OLD idiom, and it does not use it. But the replacement carries a
-    worse problem for this pipe specifically: it applies a "Smooth by Angle" GEOMETRY-NODE
-    ASSET, and there are open reports of it failing with `RuntimeError: No asset found at
-    path` (blender.org issues 123508, 151055), with background/headless runs among the
-    reported conditions. This pipe runs `blender -b`. Depending on the user's asset
-    library resolving inside a headless process is a dependency this stage does not need.
-
-    Doing it in bmesh reproduces the pre-4.1 semantics directly: an edge between two faces
-    whose normals diverge by more than `angle` is sharp; everything else smooths. No asset
-    library, no geometry-node evaluation, same result, works on any 4.x.
-
-    NOTE: like the rest of this module, UNRUN — Blender is not installed. Reviewed against
-    the bmesh API, not executed.
-    """
-    me = obj.data
-    bm = bmesh.new()
-    bm.from_mesh(me)
-    for edge in bm.edges:
-        if len(edge.link_faces) == 2:
-            edge.smooth = edge.calc_face_angle(0.0) <= angle
-        else:
-            edge.smooth = True  # boundary / non-manifold: leave smooth, let sharpness come from geometry
-    bm.to_mesh(me)
-    bm.free()
-    for poly in me.polygons:
-        poly.use_smooth = True
 
 
 # --------------------------------------------------------------- blender ops
@@ -206,6 +123,11 @@ def run_in_blender(args, out_dir):
     bm.to_mesh(me)
     bm.free()
 
+    pre_bevel = obj.copy()
+    pre_bevel.data = obj.data.copy()
+    pre_bevel.name = f"{obj.name}_prebevel"
+    bpy.context.collection.objects.link(pre_bevel)
+
     bev = obj.modifiers.new("swan_bevel", "BEVEL")
     bev.width = args.bevel_width
     bev.segments = 2
@@ -216,24 +138,74 @@ def run_in_blender(args, out_dir):
 
     smooth_by_angle(obj, SMOOTH_ANGLE)
 
-    bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.uv.smart_project(island_margin=0.02)
-    bpy.ops.object.mode_set(mode="OBJECT")
-
+    # UV projection is done PER LOD, AFTER decimation (see loop). Second real run (2026-08-25):
+    # projecting UVs on the base first pinned seams that collapse decimation refuses to cross,
+    # so ratio 0.45 and 0.18 both floored at the same 124 triangles. Order matters.
     os.makedirs(out_dir, exist_ok=True)
+    obj.data.update()
     base_tris = len(obj.data.loop_triangles)
+    lod_counts = {"lod0": base_tris}
+
+    def uv_project(o):
+        bpy.ops.object.select_all(action="DESELECT")
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.uv.smart_project(island_margin=0.02)
+        bpy.ops.object.mode_set(mode="OBJECT")
 
     for name, ratio in LOD_RATIOS.items():
-        target = obj
+        target = obj.copy()
+        target.data = obj.data.copy()
+        target.name = f"{obj.name}_{name}"
+        bpy.context.collection.objects.link(target)
         if ratio < 1.0:
-            target = obj.copy()
-            target.data = obj.data.copy()
-            bpy.context.collection.objects.link(target)
             dec = target.modifiers.new(f"dec_{name}", "DECIMATE")
             dec.ratio = ratio
+            dec.use_collapse_triangulate = True
             bpy.context.view_layer.objects.active = target
             bpy.context.view_layer.update()
             bpy.ops.object.modifier_apply(modifier=dec.name)
+            # First real run (2026-08-25): LOD1 and LOD2 came out byte-identical — collapse
+            # decimation floors on a low-poly beveled mesh, so ratio 0.45 and 0.18 met the same
+            # floor. Record the achieved count so the manifest carries the TRUE tier sizes, and
+            # refuse silently-identical tiers: a "lower" LOD that is not lower is a lie.
+            target.data.update()
+            achieved = len(target.data.loop_triangles)
+            prev = list(lod_counts.values())[-1]
+            if achieved >= prev:
+                # Collapse floored (first real run: 0.45 and 0.18 both stopped at 124 tris on a
+                # 260-tri beveled mesh). Planar dissolve removes the bevel bands themselves,
+                # which collapse cannot, so it reaches a genuinely lower tier.
+                pd = target.modifiers.new(f"planar_{name}", "DECIMATE")
+                pd.decimate_type = "DISSOLVE"
+                # PROBED, not guessed (2026-08-25, .n1/probe.py on the real asset): collapse floors at
+                # 124 tris for EVERY ratio <= 0.45 on this beveled mesh; planar at 20deg = 242 (useless),
+                # planar at 40deg = 84 (dissolves the bevel bands, keeps the silhouette). 40deg it is.
+                pd.angle_limit = 0.70  # ~40deg
+                bpy.context.view_layer.update()
+                bpy.ops.object.modifier_apply(modifier=pd.name)
+                target.data.update()
+                achieved = len(target.data.loop_triangles)
+            if achieved >= prev:
+                # Last resort with a design rationale, not a hack: the UN-BEVELED macro form.
+                # At LOD2 distance the bevel gene is invisible anyway, and the welded blockout
+                # is guaranteed lower than any beveled tier.
+                bpy.data.objects.remove(target, do_unlink=True)
+                target = pre_bevel.copy()
+                target.data = pre_bevel.data.copy()
+                target.name = f"{obj.name}_{name}"
+                bpy.context.collection.objects.link(target)
+                target.data.update()
+                achieved = len(target.data.loop_triangles)
+                print(f"[swan_pipe] {name}: collapse+planar floored at {prev}; using un-beveled macro form ({achieved} tris)")
+            if achieved >= prev:
+                raise SystemExit(
+                    f"swan_pipe: {name} decimated to {achieved} tris, not lower than the previous LOD "
+                    f"({prev}) even after planar dissolve. Refusing to emit a fake tier.")
+            lod_counts[name] = achieved
+        uv_project(target)
         bpy.ops.object.select_all(action="DESELECT")
         target.select_set(True)
         bpy.context.view_layer.objects.active = target
@@ -242,6 +214,9 @@ def run_in_blender(args, out_dir):
             export_format="GLB", use_selection=True,
             export_apply=True, export_cameras=False, export_lights=False,
         )
+
+    export_collision(pre_bevel, out_dir, 0.45)  # PROBED: un-beveled collapse 0.45 -> 38 tris; the beveled mesh floors at 124
+    render_still(obj, out_dir)
 
     print(f"[swan_pipe] base triangles: {base_tris}")
     return base_tris
@@ -269,4 +244,17 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # Blender exits 0 when a --python script raises (run 4, 2026-08-25: a NameError traceback
+    # and "exit=0" in the same output). An instrument that reports success on a crash is the
+    # failure class this whole branch exists to kill. Catch, print, and exit NONZERO ourselves.
+    try:
+        main()
+    except SystemExit as exc:  # our own refusals carry a message; keep their nonzero status
+        if exc.code not in (None, 0):
+            print(f"[swan_pipe] FAILED: {exc}", file=sys.stderr)
+            sys.exit(1)
+    except Exception as exc:  # noqa: BLE001
+        import traceback
+        traceback.print_exc()
+        print(f"[swan_pipe] FAILED: {type(exc).__name__}: {exc}", file=sys.stderr)
+        sys.exit(1)

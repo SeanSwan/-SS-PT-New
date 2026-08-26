@@ -1,6 +1,6 @@
 """smoke.py — the FIRST thing to run after Blender is installed. Nothing else.
 
-    blender -b --python tools/blender/smoke.py -- <in.obj> <out.glb>
+    blender -b --python-exit-code 1 --python tools/blender/smoke.py -- <in.obj> <out.glb>
 
 Isolates the two calls every review seat flagged as UNVERIFIED in background mode —
 wm.obj_import and export_scene.gltf (upstream 83188) — from bevel/dissolve/UV/LOD, so
