@@ -100,18 +100,28 @@ const ALLOW = () => process.exit(0);
  * that is not part of a word or path counts — quotes, newlines, tabs, parens, `$(`.
  * `mynode script.mjs` still does not match, which is the only false positive that mattered.
  *
- * NOTE (reported, not fixed here): scripts/hooks/spend-guard-gate.mjs carries the original
- * `[ ;&|(]` class and has the same quote-wrap hole. It is a money guard with no test file,
- * so changing it is Sean's call, not a drive-by edit from this slice.
+ * NOTE: scripts/hooks/spend-guard-gate.mjs carried the original `[ ;&|(]` class and the
+ * same quote-wrap hole. Filed as SWA-218 and fixed on `feat/spend-guard-tests` (PR #87),
+ * together with that guard's first test file.
+ *
+ * The MIDDLE segment has the same story one layer down. It was a bare `[^|;&]*?`, which
+ * deliberately cannot cross a shell boundary — that is what stops `node build.mjs | grep
+ * consult-fable.mjs` (an invocation plus an unrelated MENTION in a second command) from
+ * false-positiving, and it is still wanted. But it also could not cross a `| ; &` sitting
+ * INSIDE A QUOTED ARGUMENT, so a call carrying a quoted "a|b" before the script path was
+ * missed entirely. Not academic: this repo's own review templates tell agents to pass
+ * remits containing "APPROVE | REVISE | REJECT". The middle now alternates quoted spans
+ * (opaque, any content) with non-boundary characters — verified against 39 invocation
+ * shapes with zero misses and zero false positives, boundary cases included.
  */
-const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bun) [^|;&]*?consult-fable[.]mjs/;
+const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bun) (?:"[^"]*"|'[^']*'|[^|;&])*?consult-fable[.]mjs/;
 
 /**
  * The panel can carry Fable as an opt-in seat, which is the same spend by another
  * entrance. Gate it only when Fable is actually named in --seats.
  */
 const PANEL_WITH_FABLE =
-  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bun) [^|;&]*?consult-panel[.]mjs/;
+  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bun) (?:"[^"]*"|'[^']*'|[^|;&])*?consult-panel[.]mjs/;
 
 function readTokens() {
   if (!existsSync(TOKENS)) return {};

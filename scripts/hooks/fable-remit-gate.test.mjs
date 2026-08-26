@@ -47,6 +47,31 @@ test('BYPASS (found by self-hostile pass): bash -lc quote-wrapping is gated', ()
   assert.equal(invokesFable("bash -lc 'node scripts/consult-fable.mjs --document a.md'"), true);
 });
 
+test('BYPASS: a quoted PIPE before the script path does not hide the call', () => {
+  // The middle segment was a bare [^|;&]*?, which could not cross a boundary character
+  // even inside quotes. The house review template literally says "APPROVE | REVISE | REJECT".
+  assert.equal(invokesFable('node --require "a|b" scripts/consult-fable.mjs --document a.md'), true);
+});
+
+test('BYPASS: a quoted SEMICOLON before the script path does not hide the call', () => {
+  assert.equal(invokesFable('node --require "a;b" scripts/consult-fable.mjs --document a.md'), true);
+});
+
+test('BYPASS: a quoted AMPERSAND before the script path does not hide the call', () => {
+  assert.equal(invokesFable("node --require 'a&b' scripts/consult-fable.mjs --document a.md"), true);
+});
+
+test('BOUNDARY: an invocation plus an unrelated MENTION in a second command still does not match', () => {
+  // What the [^|;&] exclusion is FOR. Quoted-span support must not lose it.
+  assert.equal(invokesFable('node build.mjs | grep scripts/consult-fable.mjs'), false);
+  assert.equal(invokesFable('node build.mjs ; cat scripts/consult-fable.mjs'), false);
+  assert.equal(invokesFable('node build.mjs && cat scripts/consult-fable.mjs'), false);
+});
+
+test('BOUNDARY: a real invocation in the SECOND command is still caught', () => {
+  assert.equal(invokesFable('node build.mjs | node scripts/consult-fable.mjs'), true);
+});
+
 test('an env prefix is gated', () => {
   assert.equal(invokesFable('env node scripts/consult-fable.mjs --document a.md'), true);
 });
