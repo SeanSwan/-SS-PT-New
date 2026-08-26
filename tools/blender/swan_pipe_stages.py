@@ -11,6 +11,15 @@ import bmesh
 import mathutils
 
 
+def assert_artifact(op_result, path, what):
+    """bpy.ops return {'CANCELLED'} WITHOUT raising — a silent sibling channel to exceptions
+    (GLM 5.3, N1 blocker 3). Check the operator result AND that the file exists with bytes."""
+    if op_result != {"FINISHED"}:
+        raise SystemExit(f"swan_pipe: {what} returned {op_result}, not FINISHED")
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        raise SystemExit(f"swan_pipe: {what} reported FINISHED but wrote no bytes at {path}")
+
+
 def smooth_by_angle(obj, angle):
     """Mark edges sharp above `angle`, then shade smooth. Asset-free and headless-safe.
 
@@ -45,21 +54,43 @@ def smooth_by_angle(obj, angle):
 
 
 def export_collision(obj, out_dir, ratio):
-    """Heavily decimated collision proxy — never the render mesh.
+    """Collision proxy = CONVEX HULL of the un-beveled macro form. Closed manifold by construction.
 
-    Found MISSING on the first real run (2026-08-25): plan() listed "collision" and "still",
-    run_in_blender() produced neither, and the stub declared both. Running it found it;
-    three panels reading it did not.
+    Run 7 (2026-08-26): the previous approach — collapse-decimate the macro form to ~38 tris — was
+    committed as the asset's collision.glb and turned out to be NOT a closed manifold: 15 of 49
+    edges had one face. Physics would tunnel through it. Found only when the manifold check Ox
+    Alpha asked for was added and RUN. A hull is what a broadphase wants anyway; the L-shape's
+    concavity is irrelevant at this scale. `ratio` is kept for the call signature and ignored.
     """
     coll = obj.copy()
     coll.data = obj.data.copy()
+    coll.name = f"{obj.name}_collision"
     bpy.context.collection.objects.link(coll)
-    dec = coll.modifiers.new("dec_collision", "DECIMATE")
-    dec.ratio = ratio  # passed in; the module constant did not survive the split (found on run 4)
-    dec.use_collapse_triangulate = True
-    bpy.context.view_layer.objects.active = coll
-    bpy.context.view_layer.update()
-    bpy.ops.object.modifier_apply(modifier=dec.name)
+    # Runs 9/10: hulling a bmesh that still carried the SOURCE faces left those faces overlapping
+    # the hull surface -> 8 of 24 edges with the wrong face count. Hull the bare POINT CLOUD.
+    bm = bmesh.new()
+    for v in coll.data.vertices:
+        bm.verts.new(v.co)
+    bm.verts.ensure_lookup_table()
+    hull = bmesh.ops.convex_hull(bm, input=bm.verts[:])
+    # geom_interior and geom_unused can overlap; bmesh.ops.delete refuses duplicates (run 11).
+    hull_verts = {g for g in hull["geom"] if isinstance(g, bmesh.types.BMVert)}
+    drop = [v for v in bm.verts if v not in hull_verts]
+    if drop:
+        bmesh.ops.delete(bm, geom=drop, context="VERTS")
+    bm.to_mesh(coll.data)
+    bm.free()
+    coll.data.update()
+
+    # A collision proxy that is not a closed manifold lets physics tunnel through it (Ox Alpha, N1
+    # blocker 5). Check the topology, not the triangle count: every edge has exactly two faces.
+    bm = bmesh.new()
+    bm.from_mesh(coll.data)
+    bad = [e for e in bm.edges if len(e.link_faces) != 2]
+    n_edges = len(bm.edges)
+    bm.free()
+    if bad:
+        raise SystemExit(f"swan_pipe: collision proxy is not a closed manifold — {len(bad)} of {n_edges} edges lack exactly 2 faces")
     bpy.ops.object.select_all(action="DESELECT")
     coll.select_set(True)
     bpy.context.view_layer.objects.active = coll

@@ -28,6 +28,17 @@ export const REGISTRY_KEYS_READ = new Set([
 export const ZONE_KEYS_READ = new Set(['id', 'worldId', 'localId', 'status', 'chromeLaw', 'shardFraming', 'loreParent', 'summary', 'idRule']);
 export const COMPRESSION_VALUES = new Set(['none', 'meshopt', 'draco']);
 
+/** Union AABB of every POSITION accessor's declared min/max (glTF requires them on POSITION). */
+export function positionAabb(gltf) {
+  const min = [Infinity, Infinity, Infinity]; const max = [-Infinity, -Infinity, -Infinity];
+  for (const mesh of gltf.meshes || []) for (const prim of mesh.primitives || []) {
+    const acc = gltf.accessors?.[prim.attributes?.POSITION];
+    if (!acc?.min || !acc?.max) continue;
+    for (let i = 0; i < 3; i += 1) { min[i] = Math.min(min[i], acc.min[i]); max[i] = Math.max(max[i], acc.max[i]); }
+  }
+  return Number.isFinite(min[0]) ? { min, max } : null;
+}
+
 export function unreadRegistryKeys(registry) {
   const top = Object.keys(registry).filter((k) => !REGISTRY_KEYS_READ.has(k));
   const zone = Object.keys(registry.zones?.[0] || {}).filter((k) => !ZONE_KEYS_READ.has(k));
@@ -227,7 +238,12 @@ export function validate(manifest, ctx) {
           const g = parseGlb(bytes);
           ctx.glbClips = new Set((g.animations || []).map((a) => a.name).filter(Boolean));
           ctx.glbSkins = (g.skins || []).length;
+          ctx.aabb = ctx.aabb || {};
+          ctx.aabb.lod0 = positionAabb(g);
         } catch { /* already reported as unparseable above */ }
+      }
+      if (slot === 'collision') {
+        try { (ctx.aabb = ctx.aabb || {}).collision = positionAabb(parseGlb(bytes)); } catch { /* reported above */ }
       }
     }
     if (!rt.stillFallback) W('runtime.stillFallback missing — the still tier has no poster for this asset');
@@ -242,6 +258,31 @@ export function validate(manifest, ctx) {
       const actual = ctx.measuredTriangles[lod];
       if (typeof declared === 'number' && typeof actual === 'number' && declared !== actual) {
         E(`budgets.${lod}Triangles declares ${declared} but ${lod}.glb measures ${actual} — provenance does not match the bytes`);
+      }
+    }
+  }
+
+  // TIER TABLE (GLM 5.3, N1 blocker 2): a budget that IS the measurement cannot be failed. The
+  // registry's fractions are independent of any measurement; measured tiers must meet them.
+  const tt = registry.budgetPolicy?.tierTable;
+  if (tt && ctx.measuredTriangles?.lod0) {
+    const l0 = ctx.measuredTriangles.lod0;
+    for (const [lod, key] of [['lod1', 'lod1MaxFractionOfLod0'], ['lod2', 'lod2MaxFractionOfLod0']]) {
+      const n = ctx.measuredTriangles[lod];
+      if (typeof n === 'number' && typeof tt[key] === 'number' && n > l0 * tt[key]) {
+        E(`${lod} measures ${n} tris = ${(n / l0 * 100).toFixed(0)}% of lod0 (${l0}); registry tier table allows ${tt[key] * 100}% — a "lower" tier that misses its budget is not a tier`);
+      }
+    }
+  }
+  // COLLISION CONTAINMENT (GLM 5.3, N1 blocker 6): visuals and collision come from different base
+  // meshes. A collision hull that exceeds the visible silhouette gives phantom hits.
+  if (ctx.aabb?.lod0 && ctx.aabb?.collision) {
+    const eps = 1e-3;
+    const a = ctx.aabb.lod0; const c = ctx.aabb.collision;
+    for (let i = 0; i < 3; i += 1) {
+      if (c.min[i] < a.min[i] - eps || c.max[i] > a.max[i] + eps) {
+        E(`collision AABB exceeds lod0 AABB on axis ${'xyz'[i]} (collision ${c.min[i]}..${c.max[i]} vs lod0 ${a.min[i]}..${a.max[i]}) — phantom hits`);
+        break;
       }
     }
   }

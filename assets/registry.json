@@ -90,7 +90,13 @@
     "rule": "budgets is null until a real mesh is measured. The validator ACCEPTS null and REJECTS a bare number that has no measurement provenance. budgetPriors is advisory only and can never be enforced.",
     "why": "A fabricated number acquires authority by being committed — the same authority-acquisition path as the false evidence row this slice exists to correct. One prior was also internally implausible on inspection, which is evidence the set was transcribed rather than checked.",
     "promotion": "perf-lab measures on the named iGPU laptop -> write budgets with {value, tool, command, date, commit} provenance -> only then enforceable.",
-    "credit": "Builder B6 + HY3 P0 blocker 4 + GLM 5.3 P0 blocker 3, 2026-08-25."
+    "credit": "Builder B6 + HY3 P0 blocker 4 + GLM 5.3 P0 blocker 3, 2026-08-25.",
+    "tierTable": {
+      "lod1MaxFractionOfLod0": 0.5,
+      "lod2MaxFractionOfLod0": 0.25,
+      "collisionMaxFractionOfLod0": 0.25,
+      "why": "A budget that IS the measurement cannot be failed (GLM 5.3, N1 blocker 2). These fractions are independent of any measurement; the validator checks measured tiers against them. Priors for this asset class; revisit with a second asset class."
+    }
   },
   "statusValues": [
     "planned",

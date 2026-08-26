@@ -5,6 +5,7 @@ output-dir convention, and the deliberately-INVALID manifest stub.
 Split out 2026-08-25 to keep swan_pipe.py under the repo's 300-line cap. Importable without
 Blender, which is what lets `--dry-run` work anywhere.
 """
+import argparse
 import json
 import os
 
@@ -20,10 +21,12 @@ def plan(args):
         ("bevel", f"width={args.bevel_width}, segments=2, clamp — THE inherited art gene"),
         ("shade", "bmesh sharp-edge marking at ~35deg then shade smooth — asset-free, headless-safe"),
         ("uv", "smart_uv_project, island_margin 0.02"),
-        ("bake", f"normal + AO + roughness @ {args.bake_size} — micro-detail becomes texture, not geometry"),
+        # ("bake", ...) REMOVED from the plan 2026-08-26 until it exists in the code. A plan that lists a
+        # stage the code does not run is the plan/code drift that hid missing collision+still on run 1
+        # (Ox Alpha, N1 blocker 2). It returns to this list the day swan_pipe_stages.py bakes.
         ("lods", f"decimate to {LOD_RATIOS}"),
         ("collision", "un-beveled macro form, collapse 0.45 — never the render mesh"),
-        ("still", "one orthographic poster for the still tier"),
+        ("still", "one orthographic Workbench poster for the still tier"),
         ("export", "GLB per LOD (+Y up, no cameras/lights, apply modifiers)"),
         ("manifest", "emit INVALID stub — provenance is a human act"),
     ]
@@ -65,3 +68,35 @@ def write_manifest_stub(args, out_dir):
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(stub, fh, indent=2)
     return path
+
+
+def executed_stage_ids(plan_items):
+    """Stage ids run_in_blender() must record as executed — derived FROM plan() so the two cannot drift."""
+    return [stage for stage, _ in plan_items]
+
+
+def parse_args(argv):
+    if "--" in argv:
+        argv = argv[argv.index("--") + 1:]
+    else:
+        argv = []
+    p = argparse.ArgumentParser(prog="swan_pipe")
+    p.add_argument("--in", dest="src", required=True, help="source .vox/.obj/.glb")
+    p.add_argument("--id", dest="asset_id", required=True, help="registry asset id, e.g. enemy.fryling")
+    p.add_argument("--out", dest="out_dir", default=None, help="output dir (default assets/runtime/<id>)")
+    p.add_argument("--skeleton", default=None, help="registry skeleton id; omit for a static prop")
+    p.add_argument("--bevel-width", type=float, default=0.012, help="the 'not plastic cubes' gene")
+    p.add_argument("--bake-size", type=int, default=1024)
+    p.add_argument("--lod-ratios", default="1.0,0.45,0.18",
+                   help="collapse ratios for lod0,lod1,lod2. DEFAULTS WERE PROBED ON ONE 5-cube mesh (2026-08-25); "
+                        "run tools/blender/probe-decimate.py on a new asset class before trusting them")
+    p.add_argument("--planar-deg", type=float, default=40.0, help="planar-dissolve fallback when collapse floors (probed: 20deg useless, 40deg works)")
+    p.add_argument("--collision-ratio", type=float, default=0.45, help="collapse ratio on the UN-beveled macro form")
+    p.add_argument("--tier-table", default="lod1:0.5,lod2:0.25",
+                   help="max triangle FRACTION of lod0 per tier. A rung is accepted only if it meets this — "
+                        "\"lower than the previous tier\" alone let a 40%% LOD2 through (GLM 5.3, N1)")
+    p.add_argument("--dry-run", action="store_true", help="print the plan and exit (works without Blender)")
+    return p.parse_args(argv)
+
+
+# --------------------------------------------------------------- blender ops

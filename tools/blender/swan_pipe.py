@@ -48,19 +48,20 @@ it until a human fills in the provenance — a pipeline that emits pre-approved
 provenance is a laundering machine.
 """
 
-import argparse
+import math
 import os
+import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from swan_pipe_manifest import LOD_RATIOS, plan, out_dir_for, write_manifest_stub  # noqa: E402
+from swan_pipe_manifest import plan, out_dir_for, write_manifest_stub, executed_stage_ids, parse_args  # noqa: E402
 
 try:
     import bpy  # noqa: F401
     import bmesh
     IN_BLENDER = True
     # (script dir already on sys.path — see the top-level insert)
-    from swan_pipe_stages import smooth_by_angle, export_collision, render_still  # noqa: E402
+    from swan_pipe_stages import smooth_by_angle, export_collision, render_still, assert_artifact  # noqa: E402
 except ImportError:  # allows --dry-run linting outside Blender
     IN_BLENDER = False
 
@@ -68,25 +69,7 @@ except ImportError:  # allows --dry-run linting outside Blender
 SMOOTH_ANGLE = 0.6109  # ~35 degrees
 
 
-def parse_args(argv):
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1:]
-    else:
-        argv = []
-    p = argparse.ArgumentParser(prog="swan_pipe")
-    p.add_argument("--in", dest="src", required=True, help="source .vox/.obj/.glb")
-    p.add_argument("--id", dest="asset_id", required=True, help="registry asset id, e.g. enemy.fryling")
-    p.add_argument("--out", dest="out_dir", default=None, help="output dir (default assets/runtime/<id>)")
-    p.add_argument("--skeleton", default=None, help="registry skeleton id; omit for a static prop")
-    p.add_argument("--bevel-width", type=float, default=0.012, help="the 'not plastic cubes' gene")
-    p.add_argument("--bake-size", type=int, default=1024)
-    p.add_argument("--dry-run", action="store_true", help="print the plan and exit (works without Blender)")
-    return p.parse_args(argv)
-
-
-# --------------------------------------------------------------- blender ops
-
-def run_in_blender(args, out_dir):
+def run_in_blender(args, out_dir, done):
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
     ext = os.path.splitext(args.src)[1].lower()
@@ -145,6 +128,10 @@ def run_in_blender(args, out_dir):
     obj.data.update()
     base_tris = len(obj.data.loop_triangles)
     lod_counts = {"lod0": base_tris}
+    ratios = dict(zip(("lod0", "lod1", "lod2"), (float(x) for x in args.lod_ratios.split(","))))
+    tier_max = {k: float(v) for k, v in (kv.split(":") for kv in args.tier_table.split(","))}
+    print(f"[swan_pipe] stage tris: source-welded-beveled={base_tris}")
+    done.update(["import", "weld", "cleanup", "bevel", "shade", "uv"])
 
     def uv_project(o):
         bpy.ops.object.select_all(action="DESELECT")
@@ -155,7 +142,7 @@ def run_in_blender(args, out_dir):
         bpy.ops.uv.smart_project(island_margin=0.02)
         bpy.ops.object.mode_set(mode="OBJECT")
 
-    for name, ratio in LOD_RATIOS.items():
+    for name, ratio in ratios.items():
         target = obj.copy()
         target.data = obj.data.copy()
         target.name = f"{obj.name}_{name}"
@@ -174,24 +161,26 @@ def run_in_blender(args, out_dir):
             target.data.update()
             achieved = len(target.data.loop_triangles)
             prev = list(lod_counts.values())[-1]
-            if achieved >= prev:
-                # Collapse floored (first real run: 0.45 and 0.18 both stopped at 124 tris on a
-                # 260-tri beveled mesh). Planar dissolve removes the bevel bands themselves,
-                # which collapse cannot, so it reaches a genuinely lower tier.
+            ceiling = int(base_tris * tier_max.get(name, 1.0))
+            ok = lambda n: n < prev and n <= ceiling  # noqa: E731 — the tier must MEET its fraction, not just be lower
+            print(f"[swan_pipe] stage tris: {name} collapse@{ratio} -> {achieved} (ceiling {ceiling}, prev {prev})")
+            if not ok(achieved):
+                # Rung 2: planar dissolve removes the bevel bands themselves, which collapse cannot.
+                # PROBED on the real mesh (tools/blender/probe-decimate.py): 20deg = 242 (useless),
+                # 40deg = 84. Collapse floors at 124 for EVERY ratio <= 0.45 on beveled geometry.
                 pd = target.modifiers.new(f"planar_{name}", "DECIMATE")
                 pd.decimate_type = "DISSOLVE"
-                # PROBED, not guessed (2026-08-25, .n1/probe.py on the real asset): collapse floors at
-                # 124 tris for EVERY ratio <= 0.45 on this beveled mesh; planar at 20deg = 242 (useless),
-                # planar at 40deg = 84 (dissolves the bevel bands, keeps the silhouette). 40deg it is.
-                pd.angle_limit = 0.70  # ~40deg
+                pd.angle_limit = math.radians(args.planar_deg)
                 bpy.context.view_layer.update()
                 bpy.ops.object.modifier_apply(modifier=pd.name)
                 target.data.update()
                 achieved = len(target.data.loop_triangles)
-            if achieved >= prev:
-                # Last resort with a design rationale, not a hack: the UN-BEVELED macro form.
-                # At LOD2 distance the bevel gene is invisible anyway, and the welded blockout
-                # is guaranteed lower than any beveled tier.
+                print(f"[swan_pipe] stage tris: {name} +planar@{args.planar_deg}deg -> {achieved}")
+            if not ok(achieved):
+                # Rung 3: the UN-BEVELED macro form. At this distance the bevel gene is invisible;
+                # the welded blockout is guaranteed lower than any beveled tier. (GLM N1 blocker 2:
+                # with only a monotonicity guard the ladder stopped at 103 and never reached this
+                # rung; with the tier fraction it must.)
                 bpy.data.objects.remove(target, do_unlink=True)
                 target = pre_bevel.copy()
                 target.data = pre_bevel.data.copy()
@@ -199,24 +188,30 @@ def run_in_blender(args, out_dir):
                 bpy.context.collection.objects.link(target)
                 target.data.update()
                 achieved = len(target.data.loop_triangles)
-                print(f"[swan_pipe] {name}: collapse+planar floored at {prev}; using un-beveled macro form ({achieved} tris)")
-            if achieved >= prev:
+                print(f"[swan_pipe] stage tris: {name} un-beveled form -> {achieved}")
+            if not ok(achieved):
                 raise SystemExit(
-                    f"swan_pipe: {name} decimated to {achieved} tris, not lower than the previous LOD "
-                    f"({prev}) even after planar dissolve. Refusing to emit a fake tier.")
+                    f"swan_pipe: {name} reached {achieved} tris (ceiling {ceiling} = {tier_max.get(name)} of lod0 {base_tris}, "
+                    f"previous tier {prev}) after collapse {ratio}, planar {args.planar_deg}deg and the un-beveled form. "
+                    f"Refusing to emit a tier that misses its budget. DIAGNOSE: blender -b --python-exit-code 1 --python "
+                    f"tools/blender/probe-decimate.py -- {args.src}  then pass --lod-ratios / --planar-deg / --tier-table.")
             lod_counts[name] = achieved
+        done.add("lods")
         uv_project(target)
         bpy.ops.object.select_all(action="DESELECT")
         target.select_set(True)
         bpy.context.view_layer.objects.active = target
-        bpy.ops.export_scene.gltf(
+        res = bpy.ops.export_scene.gltf(
             filepath=os.path.join(out_dir, f"{name}.glb"),
             export_format="GLB", use_selection=True,
             export_apply=True, export_cameras=False, export_lights=False,
         )
+        assert_artifact(res, os.path.join(out_dir, f"{name}.glb"), f"export {name}")
 
-    export_collision(pre_bevel, out_dir, 0.45)  # PROBED: un-beveled collapse 0.45 -> 38 tris; the beveled mesh floors at 124
+    export_collision(pre_bevel, out_dir, args.collision_ratio)  # PROBED: un-beveled 0.45 -> 38 tris; beveled floors at 124
+    done.add("collision")
     render_still(obj, out_dir)
+    done.update(["still", "export"])
 
     print(f"[swan_pipe] base triangles: {base_tris}")
     return base_tris
@@ -237,8 +232,27 @@ def main():
         print(f"[swan_pipe]   node scripts/assets/validate-asset.mjs {path}")
         return
 
-    run_in_blender(args, out_dir)
-    path = write_manifest_stub(args, out_dir)
+    # ATOMIC OUTPUT (Ox Alpha, N1 blocker 3): six runs wrote into one persistent dir, so a run that died
+    # mid-way left the previous run's still.png beside new GLBs, ready to be hashed into a manifest that
+    # described different geometry. Build in a temp dir; swap in only on full success.
+    tmp_dir = out_dir.rstrip("/\\") + f".tmp-{os.getpid()}"
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    done = set()
+    try:
+        run_in_blender(args, tmp_dir, done)
+        done.add("manifest")
+        missing = [st for st in executed_stage_ids(plan(args)) if st not in done]
+        if missing:  # plan/code drift is a FAILURE, not a note — run 1 hid collision + still this way
+            raise SystemExit(f"swan_pipe: plan() lists stages this run did not execute: {missing}")
+        path = write_manifest_stub(args, tmp_dir)
+        with open(os.path.join(tmp_dir, ".swan-pipe.ok"), "w", encoding="utf-8") as fh:
+            fh.write("ok\n")  # success sentinel: a caller that cannot trust exit codes checks this file
+    except BaseException:
+        shutil.rmtree(tmp_dir, ignore_errors=True)  # never leave a half-run where --all could find it
+        raise
+    shutil.rmtree(out_dir, ignore_errors=True)
+    os.replace(tmp_dir, out_dir)
+    path = os.path.join(out_dir, os.path.basename(path))
     print(f"[swan_pipe] manifest stub -> {path}")
     print("[swan_pipe] NOW: fill provenance by hand, hash the GLBs, then validate.")
 

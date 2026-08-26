@@ -11,22 +11,23 @@
   "budgets": {
     "lod0Triangles": 260,
     "lod1Triangles": 124,
-    "lod2Triangles": 103,
+    "lod2Triangles": 52,
     "textureMB": 0,
     "tool": "scripts/assets/measure-glb.mjs",
     "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/lod0.glb lod1.glb lod2.glb",
     "date": "2026-08-25",
-    "commit": "283f20c9f",
-    "note": "FIRST PIPE-PRODUCED ASSET. swan_pipe.py run 6 on fryling-blockout.obj (5 voxels, 60 raw tris): weld -> limited dissolve -> bevel -> LOD0 260 / LOD1 collapse 0.45 -> 124 / LOD2 planar 40deg -> 103 / collision = un-beveled collapse 0.45 -> 38. Ratios probed on the real mesh, not guessed (tools/blender/probe-decimate.py). UNRIGGED: skeleton/animations set to null on 2026-08-26 after the validator learned to read skins/clips from the bytes \u2014 the previous manifest declared 5 clips the GLB did not contain."
+    "commit": "e1a09ecbd",
+    "note": "PIPE-PRODUCED (run 16, tier-table ladder). weld -> limited dissolve -> bevel -> LOD0 260 / LOD1 collapse 0.45 -> 124 (<=50%) / LOD2: collapse floored 124, planar 40deg 103 = 40% > 25% ceiling, so the UN-BEVELED macro form 52 (20%) / collision = convex hull of the un-beveled form, 16 tris, closed manifold (checked). Byte-deterministic across runs 14/15. Ratios probed on this mesh (tools/blender/probe-decimate.py), not guessed."
   },
   "provenance": {
     "humanOwner": "owner",
-    "createdAtUtc": "2026-08-26T06:40:00.000Z",
+    "createdAtUtc": "2026-08-26T08:00:00.000Z",
     "aiAssisted": false,
     "generator": {
       "name": "tools/blender/swan_pipe.py",
-      "version": "run-6",
-      "blender": "4.5.13 LTS (daeeeca98fb0)"
+      "version": "run-16",
+      "blender": "4.5.13 LTS (daeeeca98fb0)",
+      "invocation": "scripts/assets/run-blender.mjs (--disable-autoexec --python-exit-code 1, sentinel-checked)"
     },
     "source": "assets/source/enemy/fryling/fryling-blockout.obj",
     "similarityReviewed": {
@@ -40,7 +41,7 @@
         "trademarks",
         "real likeness"
       ],
-      "note": "a 5-voxel L-shaped blockout \u2014 pipe proof geometry, no likeness to anything"
+      "note": "a 5-voxel L-shaped blockout — pipe proof geometry, no likeness to anything"
     },
     "license": {
       "kind": "owner-authored"
@@ -57,8 +58,8 @@
   "sha256": {
     "lod0": "6e42163cc60e650bdcebf8941bdab71dfafdea2f91dbcd973fafd238d5a08f58",
     "lod1": "bfab889e494c4337d32c72566d6c1756d570936a8c2598a2d305a020af8c12e8",
-    "lod2": "0c0077542adb92bf367e47d54339befb2e2dc24ef8c38c2fe4d917e92a000618",
-    "collision": "47b7722c3f609f3c6e92e544d9ad083517f1573161dc822076a2c5168a53eeeb"
+    "lod2": "25841fc808f53eb9150cc3601fc07bc407baea531b52c2f4a6f6d859d376e919",
+    "collision": "61324fc25d05f367496e969181ea729de943ae99e464be1432db70d461b238b5"
   },
   "_source": {
     "file": "fryling-blockout.obj",

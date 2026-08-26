@@ -28,11 +28,20 @@ function glb(gltf) {
   const hd = Buffer.alloc(12); hd.write('glTF', 0); hd.writeUInt32LE(2, 4); hd.writeUInt32LE(12 + cj.length + cb.length, 8);
   return Buffer.concat([hd, cj, cb]);
 }
+const mesh = (count, mn, mx) => ({ asset: { version: '2.0' }, meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count, min: mn, max: mx }] });
+const GLB_LOD0_100 = '.selftest-lod0-100.glb';   // 300 verts non-indexed = 100 tris, box -1..1
+const GLB_LOD2_40 = '.selftest-lod2-40.glb';     // 120 verts = 40 tris = 40% of lod0 (tier table allows 25%)
+const GLB_LOD2_20 = '.selftest-lod2-20.glb';     // 60 verts = 20 tris = 20% — allowed
+const GLB_COLL_OUT = '.selftest-coll-out.glb';   // AABB pokes outside the lod0 box
+writeFileSync(join(ROOT, GLB_LOD0_100), glb(mesh(300, [-1, -1, -1], [1, 1, 1])));
+writeFileSync(join(ROOT, GLB_LOD2_40), glb(mesh(120, [-1, -1, -1], [1, 1, 1])));
+writeFileSync(join(ROOT, GLB_LOD2_20), glb(mesh(60, [-1, -1, -1], [1, 1, 1])));
+writeFileSync(join(ROOT, GLB_COLL_OUT), glb(mesh(12, [-1, -1, -1], [1, 1, 1.5])));
 const GLB_NO_SKIN = '.selftest-noskin.glb';
 const GLB_WITH_SKIN = '.selftest-skin.glb';
 writeFileSync(join(ROOT, GLB_NO_SKIN), glb({ asset: { version: '2.0' }, meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count: 3 }] }));
 writeFileSync(join(ROOT, GLB_WITH_SKIN), glb({ asset: { version: '2.0' }, meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count: 3 }], skins: [{ joints: [0] }], animations: [{ name: 'move' }] }));
-process.on('exit', () => { for (const f of [GLB_NO_SKIN, GLB_WITH_SKIN]) { try { unlinkSync(join(ROOT, f)); } catch {} } });
+process.on('exit', () => { for (const f of [GLB_NO_SKIN, GLB_WITH_SKIN, GLB_LOD0_100, GLB_LOD2_40, GLB_LOD2_20, GLB_COLL_OUT]) { try { unlinkSync(join(ROOT, f)); } catch {} } });
 const sha = (rel) => createHash('sha256').update(readFileSync(join(ROOT, rel))).digest('hex');
 
 /* ------------------------------------------------------------------ selftest */
@@ -44,6 +53,7 @@ function selftest() {
     zones: [{ id: 'world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court', chromeLaw: { embedded: 'A', standalone: 'B' } }],
     licensePolicy: { kindValues: ['owner-authored', 'cc0', 'ccby', 'model'] },
     statusValues: ['planned', 'in-progress', 'validated', 'shipped', 'retired'],
+    budgetPolicy: { tierTable: { lod1MaxFractionOfLod0: 0.5, lod2MaxFractionOfLod0: 0.25 } },
   };
   const worldIds = new Set(['world.miniature-play.voxel-realm']);
   const ctx = { registry, worldIds, manifestDir: ROOT };
@@ -87,6 +97,10 @@ function selftest() {
     // N1 self-review probe A: manifest declared a skeleton + 5 clips; the GLB had 0 skins, 0 clips.
     ['declared skeleton with NO skin in the GLB is refused', (m) => { m.runtime.lod0 = GLB_NO_SKIN; m.sha256.lod0 = sha(GLB_NO_SKIN); }, /contains no skin/],
     ['declared clip absent from the GLB is refused', (m) => { m.runtime.lod0 = GLB_WITH_SKIN; m.sha256.lod0 = sha(GLB_WITH_SKIN); m.animations = ['idle']; }, /animation "idle" declared but not present/],
+    // GLM 5.3 N1 blocker 2 (tautological budgets) and blocker 6 (collision containment)
+    ['lod2 at 40% of lod0 is refused by the tier table (25%)', (m) => { m.runtime.lod0 = GLB_LOD0_100; m.runtime.lod2 = GLB_LOD2_40; m.sha256.lod0 = sha(GLB_LOD0_100); m.sha256.lod2 = sha(GLB_LOD2_40); }, /misses its budget/],
+    ['lod2 at 20% of lod0 passes the tier table', (m) => { m.runtime.lod0 = GLB_LOD0_100; m.runtime.lod2 = GLB_LOD2_20; m.sha256.lod0 = sha(GLB_LOD0_100); m.sha256.lod2 = sha(GLB_LOD2_20); }, null],
+    ['collision AABB outside lod0 AABB is refused', (m) => { m.runtime.lod0 = GLB_LOD0_100; m.runtime.collision = GLB_COLL_OUT; m.sha256.lod0 = sha(GLB_LOD0_100); m.sha256.collision = sha(GLB_COLL_OUT); }, /collision AABB exceeds/],
     ['budget commit that does not exist in the repo is refused', (m) => { m.budgets = { lod0Triangles: 1, tool: 't', command: 'c', date: '2026-08-25', commit: 'deadbeefdead' }; }, /not a commit in this repository/],
     ['aiAssisted without weights hash is refused', (m) => { m.provenance.aiAssisted = true; m.provenance.generator = { name: 'a', version: '1' }; m.provenance.seed = 1; }, /weightsSha256/],
     ['Draco on a rigged asset is refused', (m) => { m.runtime.compression = 'draco'; }, /Draco on a rigged/],
@@ -106,7 +120,7 @@ function selftest() {
     const { errs } = validate(m, ctx);
     const joined = errs.join(' | ');
     const ok = expect === null
-      ? !errs.some((e) => /fabricated number/.test(e))
+      ? !errs.some((e) => /fabricated number|misses its budget|collision AABB/.test(e))
       : expect.test(joined);
     if (ok) { pass += 1; console.log(`  PASS  ${name}`); }
     else { fail += 1; console.log(`  FAIL  ${name}\n        got: ${joined || '(no errors)'}`); }
