@@ -1,0 +1,47 @@
+{
+  "schema": "swan.game-asset.v1",
+  "id": "enemy.fryling",
+  "zone": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
+  "skeleton": "skeleton.creature-small.v1",
+  "animations": [
+    "idle",
+    "move",
+    "attack",
+    "hit",
+    "death"
+  ],
+  "budgets": {
+    "lod0Triangles": 1,
+    "lod1Triangles": 1,
+    "lod2Triangles": 1,
+    "textureMB": 0,
+    "tool": "node (glTF accessor read)",
+    "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/*.glb",
+    "date": "2026-08-25",
+    "commit": "0b4253d77"
+  },
+  "provenance": {
+    "humanOwner": "owner",
+    "createdAtUtc": "2026-08-25T12:00:00.000Z",
+    "aiAssisted": false,
+    "similarityReviewed": true,
+    "license": {
+      "kind": "owner-authored"
+    },
+    "note": "P1 pipe-proof fixture: a real single-triangle glTF 2.0 binary, hand-authored, no generator involved."
+  },
+  "runtime": {
+    "lod0": "lod0.glb",
+    "lod1": "lod1.glb",
+    "lod2": "lod2.glb",
+    "collision": "collision.glb",
+    "stillFallback": "still.png",
+    "compression": "none"
+  },
+  "sha256": {
+    "lod0": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46",
+    "lod1": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46",
+    "lod2": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46",
+    "collision": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46"
+  }
+}
