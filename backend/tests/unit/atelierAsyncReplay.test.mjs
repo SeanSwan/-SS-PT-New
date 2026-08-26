@@ -198,3 +198,55 @@ describe('a stub that landed is never deleted by bookkeeping that did not', () =
     expect(b.batchId).toBe(a.batchId);
   });
 });
+
+describe('the guard is total — no stored value can make it throw', () => {
+  it('a rejected stored promise means run the work, not 500 forever', async () => {
+    // The claim writes a pending promise and settles it with the outcome. A failure path
+    // that rejects it without removing it would make the guard's `await` throw — and a
+    // throw skips the delete, so every retry with that key 500s permanently with nothing
+    // able to clear it. Being total is the whole job of a guard.
+    const inner = new Map();
+    const poisoned = Promise.reject(new Error('settled with a failure and left behind'));
+    poisoned.catch(() => {});
+    inner.set('u1:poison', poisoned);
+    const store = {
+      has: (k) => inner.has(k), get: (k) => inner.get(k),
+      set: (k, v) => inner.set(k, v), delete: (k) => inner.delete(k),
+    };
+    const { replayIfFresh } = await import('../../services/atelier/composeReplay.mjs');
+    const out = await replayIfFresh(store, 'u1:poison');
+    expect(out).toBeNull();                 // run the work
+    expect(inner.has('u1:poison')).toBe(false);   // and the poison is gone
+  });
+});
+
+describe('a partial replay prices what it delivered', () => {
+  it('charges follow the frames that exist, as the synchronous lane already does', async () => {
+    // `count` was corrected to the outcome last round and `cost` was left spread from the
+    // 202 stub, so a partial replayed frames delivered beside a quote for frames requested
+    // — outcome-truth and request-truth in one body.
+    let n = 0;
+    const store = new Map();
+    const d = () => deps({ store, renderStill: async ({ seed }) => {
+      n += 1;
+      if (n > 2) throw new Error('gpu fell over');
+      return { image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 10, provider: 'comfyui/wan-2.2' };
+    } });
+    const a = await composeStills({ brief: BRIEF, lane: 'local', count: 4, userId: 1, idempotencyKey: 'k' }, d());
+    await until(() => getBatch(a.batchId, 1).terminal);
+    expect(getBatch(a.batchId, 1).status).toBe('partial');
+
+    const b = await composeStills({ brief: BRIEF, lane: 'local', count: 4, userId: 1, idempotencyKey: 'k' }, d());
+    expect(b.replayed).toBe(true);
+    expect(b.count).toBe(2);
+    expect(b.requested).toBe(4);
+    // NOT ASSERTING chargedUsd, and the reason is worth more than the assertion would be.
+    // The stub now prices delivered frames the way the synchronous lane does — but the only
+    // async lane is LOCAL, where unitUsd is 0, so the expression is 0 either way and a test
+    // on it compares zero to zero. It cannot fail, which means it is not a test; it would
+    // just sit here reading green and be mistaken for proof by whoever adds a paid async
+    // lane. The parity is real and currently unobservable, and saying so is the honest
+    // record. Whoever makes a charging lane async: this is the assertion to write then.
+    expect(b.cost.unitUsd).toBe(0);
+  });
+});

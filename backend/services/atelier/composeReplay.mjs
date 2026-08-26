@@ -48,7 +48,18 @@ export function replayIfFresh(store, key, clock = () => Date.now()) {
 }
 
 async function resolveReplay(store, key, clock) {
-  const prior = await store.get(key);
+  // A STORED PROMISE THAT REJECTS MEANS "RUN THE WORK", NEVER "500 FOREVER". The claim
+  // writes a pending promise under the key and settles it with the outcome; a failure
+  // path that rejects it without also removing it would make `await` throw here, and a
+  // throw skips the delete below — so every retry with that key would 500 permanently,
+  // with nothing able to clear it. Being total is the whole job of a guard.
+  let prior;
+  try {
+    prior = await store.get(key);
+  } catch {
+    store.delete(key);
+    return null;
+  }
   const expired = prior?.replayExpiresAt > 0 && prior.replayExpiresAt <= clock();
   if (prior && !expired) {
     // `replayExpiresAt` is bookkeeping for this guard, not something a caller can act on.

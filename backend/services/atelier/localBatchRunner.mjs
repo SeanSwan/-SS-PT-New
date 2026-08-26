@@ -213,6 +213,18 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
             count: snap.stills.length,
             requested: accepted.count,
             failed: snap.failures.length,
+            // AND THE COST WITH THEM. `count` was corrected to the outcome last round and
+            // `cost` was left spread from the 202 stub, so a partial replayed eight frames
+            // beside a quote for ten — outcome-truth and request-truth in one body. This is
+            // the same rule the synchronous lane already applies (`chargedUsd` is unit price
+            // times stills DELIVERED); the twelfth time in this review a correction landed
+            // on one half of a pair, and the pair here is two fields of one object.
+            //
+            // UNOBSERVABLE TODAY: the only async lane is local, where unitUsd is 0, so this
+            // expression is 0 either way and no test can redden on it. It is written now so
+            // the rule is already right when a charging lane goes async — not because a
+            // green test proves it, which is a thing a green test here cannot do.
+            cost: { ...accepted.cost, chargedUsd: (Number(accepted.cost?.unitUsd) || 0) * snap.stills.length },
             // The replay is only honest while the row it points at still exists. Rows expire
             // an hour after they finish; the stub used to live until something evicted it,
             // so a delayed retry got a confident success payload and a statusUrl that 404s.
