@@ -289,7 +289,7 @@ export async function composeStills(req = {}, deps = {}) {
   // may evict because a batch id is a durable handle the client can poll; here the
   // response IS the only handle. So the key is retained and the MAP is bounded instead —
   // see rememberKey below.
-  rememberKey(store, key, settledKeys);
+  rememberKey(store, key, settledKeys, { clientKeyed: Boolean(req.idempotencyKey) });
   return result;
   } catch (err) {
     if (settle) { store.delete(key); settle.rej(err); }

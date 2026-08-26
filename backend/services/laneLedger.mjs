@@ -42,8 +42,13 @@
  *   holding the file for 200ms is a hiccup, not a broken disk, and degrading on
  *   the first one is a self-inflicted outage on the revenue path.
  *
- * ── TWO DEPLOYMENT INVARIANTS, ASSERTED RATHER THAN ASSUMED ─────────────────
- * These are the conditions under which the numbers here mean what they say.
+ * ── TWO DEPLOYMENT INVARIANTS, AND WHAT ACTUALLY ENFORCES THEM ─────────────
+ * These are the conditions under which the numbers here mean what they say. The
+ * header used to call them "asserted rather than assumed" while NOTHING asserted
+ * either one — a reviewer read the claim, looked for the assertion, and filed the
+ * gap. They are DOCUMENTED, and the second one now warns at construction when the
+ * ledger lands on a path that a deploy can wipe. The first is not checkable from
+ * inside a process that cannot see its siblings.
  *
  *   ONE PROCESS PER LANE. `tryCommit` is atomic by construction within a process
  *   (sync read, check and write with no await between them) and NOT across them.
@@ -91,6 +96,12 @@ export function ledgerPath(lane, env = process.env) {
  */
 export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => new Date() } = {}) {
   const file = ledgerPath(lane, env);
+  // The durable-path invariant, made audible. A default-path ledger lives under the repo
+  // working tree, so a container rebuild or a `git clean` deletes the day's counter and a
+  // missing file reads as a fresh day — the budget re-minted with no signal at all.
+  if (!env[LEDGER_DIR_ENV]) {
+    console.warn('[spend-ledger/%s] using the default path %s — under the working tree, so a deploy that cleans it re-mints the day’s budget. Set %s to a durable volume.', lane, file, LEDGER_DIR_ENV);
+  }
   const inner = makeFileLedger(file, io);
   // Set after a RUN of failed writes, and not cleared in-process thereafter: a disk
   // that failed three times running is not trustworthy again because the fourth

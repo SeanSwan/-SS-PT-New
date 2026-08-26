@@ -15,6 +15,25 @@ import { ComposeError } from './composeLimits.mjs';
 export const IDEMPOTENCY_RETAIN = 500;
 
 /**
+ * How many byte-carrying replays may be retained at once.
+ *
+ * Keeping the payload when a still never persisted is right — it is the only copy. But a
+ * reviewer pointed out that persistence failures CORRELATE: one misconfigured R2 makes
+ * every batch fail, so the exception stops being an exception and every retained entry
+ * carries megabytes. The rescue reintroduced the exhaustion it was written beside.
+ *
+ * A small budget keeps the property that matters (a recent lost render is recoverable)
+ * without letting a systemic outage turn the replay map into a heap dump.
+ */
+export const BYTES_RETAIN = 12;
+
+/** Derived (keyless) entries retained. Far smaller than the client-key window: a derived
+ *  key only has to outlive the second click that produced it, not a network retry. */
+export const DERIVED_RETAIN = 50;
+const derivedKeys = new Set();
+let bytesHeld = 0;
+
+/**
  * The coalescing map, and the keys in it whose work has finished.
  *
  * BOTH are module-scoped, and they have to be. The store's default used to be
@@ -35,7 +54,29 @@ export const settledKeys = new Set();
  * being dropped are the ones least likely to see a retry, because a retry that has not
  * arrived within five hundred subsequent requests is not a retry.
  */
-export function rememberKey(store, key, settled) {
+export function rememberKey(store, key, settled, { clientKeyed = true } = {}) {
+  // TWO CLASSES OF KEY, EVICTED IN PRIORITY ORDER.
+  //
+  // A reviewer was right that keyless traffic churned the window: derived keys were
+  // filling the same FIFO as client keys, so high-volume anonymous-ish traffic evicted the
+  // entries whose retry genuinely was still coming. Its prescription — drop derived keys
+  // on settle — overshot, and the tests said so immediately: a derived key is stable
+  // WITHIN its time bucket, which is precisely what makes a fast SEQUENTIAL double-click
+  // replay instead of paying twice. Deleting it re-opened that.
+  //
+  // So both are retained and derived ones are evicted FIRST. A client key survives any
+  // amount of keyless traffic; a derived key survives long enough to catch the second
+  // click that produced it.
+  if (!clientKeyed) {
+    derivedKeys.add(key);
+    while (derivedKeys.size > DERIVED_RETAIN) {
+      const oldest = derivedKeys.values().next();
+      if (oldest.done || oldest.value === key) break;
+      store.delete(oldest.value);
+      derivedKeys.delete(oldest.value);
+    }
+    return;
+  }
   settled.add(key);
   if (typeof store.size !== 'number') return;
   // Evict only from the SETTLED set. The first version walked the store itself in
@@ -87,6 +128,8 @@ export function defaultCommit({ spendUsd = 0 } = {}) {
 export function _resetCoalescing() {
   COALESCING_STORE.clear();
   settledKeys.clear();
+  derivedKeys.clear();
+  bytesHeld = 0;
 }
 
 /**
@@ -110,7 +153,14 @@ export function slimForReplay(result) {
   // replay would hand a retry neither the image nor a way to find it: the client paid,
   // and everything it paid for is gone. Rare enough that carrying the bytes costs little,
   // and the alternative is losing someone's render to save memory.
-  if (result.stills.some((s) => !s.assetId)) return { ...result, replayed: true };
+  if (result.stills.some((s) => !s.assetId)) {
+    // Only while there is budget. Past it, a lost render is still lost — but the process
+    // survives to serve the ones that are not, which is the better of two bad outcomes.
+    if (bytesHeld >= BYTES_RETAIN) return { ...result, replayed: true, bytesDropped: true, bytesBudgetExhausted: true,
+      stills: result.stills.map(({ image, ...rest }) => ({ ...rest, image: image ? { kind: image.kind, mime: image.mime, dropped: true } : null })) };
+    bytesHeld += 1;
+    return { ...result, replayed: true };
+  }
   return {
     ...result,
     replayed: true,

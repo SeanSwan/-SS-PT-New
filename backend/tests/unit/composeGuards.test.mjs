@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { rememberKey, defaultCommit, slimForReplay, IDEMPOTENCY_RETAIN, settledKeys } from '../../services/atelier/composeGuards.mjs';
+import { rememberKey, defaultCommit, slimForReplay, _resetCoalescing, IDEMPOTENCY_RETAIN, BYTES_RETAIN, settledKeys } from '../../services/atelier/composeGuards.mjs';
 
 describe('bounding the replay map must not break replay', () => {
   it('NEVER evicts a key whose request is still in flight', () => {
@@ -206,5 +206,60 @@ describe('slimming must never destroy the only copy', () => {
       { index: 1, image: { kind: 'b64', data: 'B' } },
     ] };
     expect(slimForReplay(partial).bytesDropped).toBeUndefined();
+  });
+});
+
+describe('only the entries a retry can ask for are worth retaining', () => {
+  it('a DERIVED key is RETAINED, but in its own smaller window', () => {
+    // RE-ANCHORED. The first attempt at this fix deleted derived keys on settle, and the
+    // suite caught the regression immediately: a derived key is stable WITHIN its time
+    // bucket, which is exactly what makes a fast SEQUENTIAL double-click replay instead of
+    // paying twice. It has to outlive the second click — just not a network retry.
+    _resetCoalescing();
+    const store = new Map();
+    const settled = new Set();
+    store.set('derived', Promise.resolve(1));
+    rememberKey(store, 'derived', settled, { clientKeyed: false });
+    expect(store.has('derived')).toBe(true);        // the second click still replays
+    expect(settled.size).toBe(0);                   // but it never enters the client window
+  });
+
+  it('high-volume derived traffic does not evict a client-keyed entry', () => {
+    settledKeys.clear();
+    const store = new Map();
+    const settled = new Set();
+    store.set('u7:client', Promise.resolve(1));
+    rememberKey(store, 'u7:client', settled, { clientKeyed: true });
+    for (let i = 0; i < IDEMPOTENCY_RETAIN * 3; i += 1) {
+      const k = `derived-${i}`;
+      store.set(k, Promise.resolve(1));
+      rememberKey(store, k, settled, { clientKeyed: false });
+    }
+    expect(store.has('u7:client')).toBe(true);      // the retry can still find it
+    expect(settled.size).toBe(1);
+  });
+});
+
+describe('keeping bytes needs a budget, because persistence failures correlate', () => {
+  it('stops carrying payloads once the budget is spent', () => {
+    // One misconfigured R2 makes EVERY batch fail to persist, so the keep-the-bytes
+    // exception stops being an exception and every retained entry carries megabytes —
+    // the exhaustion the slimming was written to prevent, reintroduced beside it.
+    _resetCoalescing();
+    const unpersisted = () => ({ cost: {}, stills: [{ index: 0, image: { kind: 'b64', data: 'X'.repeat(2000) } }] });
+    let kept = 0;
+    for (let i = 0; i < BYTES_RETAIN + 10; i += 1) {
+      if (slimForReplay(unpersisted()).bytesDropped !== true) kept += 1;
+    }
+    expect(kept).toBe(BYTES_RETAIN);
+  });
+
+  it('says so when the budget is what dropped them, not persistence', () => {
+    _resetCoalescing();
+    const unpersisted = () => ({ cost: {}, stills: [{ index: 0, image: { kind: 'b64', data: 'X' } }] });
+    for (let i = 0; i < BYTES_RETAIN; i += 1) slimForReplay(unpersisted());
+    const over = slimForReplay(unpersisted());
+    expect(over.bytesBudgetExhausted).toBe(true);
+    expect(over.stills[0].image.dropped).toBe(true);
   });
 });
