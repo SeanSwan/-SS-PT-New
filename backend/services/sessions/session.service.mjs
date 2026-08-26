@@ -201,23 +201,32 @@ const applyServerDerivedChargeAmount = async (session, billingOptions, transacti
   }
 
   const submitted = billingOptions.chargeAmount;
-  const applied = billingOptions.chargeType === 'full'
+  const suggested = billingOptions.chargeType === 'full'
     ? sessionRate
     : Math.min(submitted, sessionRate);
 
-  // Never adjust an operator's money decision silently. Without this line the
-  // record shows only the applied figure, so a later dispute cannot tell an
-  // operator who asked for $110 from one who asked for $150 and was clamped.
-  if (applied !== submitted) {
+  // ADVISORY ONLY. This function used to overwrite billingOptions.chargeAmount,
+  // and that single decision produced every catastrophic defect in this
+  // workstream: a $33,600 program price applied as a session charge, a correct
+  // operator figure replaced by the wrong order's rate, and a duration-blind
+  // override that is wrong by $65 in either direction on a two-rate business.
+  //
+  // The root cause was never the arithmetic. It was the server claiming
+  // authority over a human money decision on the strength of an inference it
+  // cannot actually make - the schema does not record which product a session
+  // belongs to. So the server now offers its opinion and the operator keeps the
+  // decision. A wrong suggestion is a UX annoyance; a wrong charge is a dispute.
+  if (suggested !== submitted) {
     logger.info(
-      `[Cancellation] session ${session.id}: charge adjusted ${submitted} -> ${applied} ` +
-        `(type=${billingOptions.chargeType}, rate=${sessionRate}, package=${pricing.packageName})`
+      `[Cancellation] session ${session.id}: operator entered ${submitted}, server ` +
+        `suggests ${suggested} (type=${billingOptions.chargeType}, rate=${sessionRate}, ` +
+        `package=${pricing.packageName}) - operator figure kept`
     );
   }
 
-  billingOptions.chargeAmount = applied;
-  billingOptions.chargeAmountSubmitted = submitted;
-  billingOptions.chargeAmountSource = 'server-derived';
+  billingOptions.suggestedChargeAmount = suggested;
+  billingOptions.derivedSessionRate = sessionRate;
+  billingOptions.chargeAmountSource = 'operator';
 };
 
 const parseNotificationPreferences = (prefs) => {
@@ -1858,7 +1867,7 @@ class UnifiedSessionService {
       // false and had already told the client their credit would be returned. Do
       // not record a penalty whose triggering condition is unknown.
       const lateForfeit = !billingOptions
-        && hoursUntilSession !== null
+        && Number.isFinite(hoursUntilSession)
         && !refundEligible
         && session.sessionDeducted
         && !session.sessionCreditRestored
