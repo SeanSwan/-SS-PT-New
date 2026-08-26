@@ -52,6 +52,12 @@ export function getBatch(id, userId) {
 
 export function markRunning(b) { b.status = 'running'; }
 
+/** Taste metadata — the seed, how many prompts the laws rejected, which profile judged.
+ *  The synchronous result has carried it since the taste slice; the batch did not, and
+ *  taste is LOCAL-ONLY, so the only lane it actually runs on was the one that never
+ *  reported it. */
+export function setTasteMeta(b, meta) { b.tasteMeta = meta; }
+
 /** One still landed (already persisted). The poll sees it on the next read. */
 export function pushStill(b, still) { b.stills.push(still); }
 export function pushFailure(b, failure) { b.failures.push(failure); }
@@ -71,6 +77,7 @@ export function snapshot(b) {
     stills: b.stills, failures: b.failures, persistence: b.persistence,
     rendered: b.stills.length + b.failures.length, error: b.error,
     startedAt: b.startedAt, finishedAt: b.finishedAt,
+    ...(b.tasteMeta ? { tasteMeta: b.tasteMeta } : {}),
     terminal: b.status === 'done' || b.status === 'partial' || b.status === 'failed',
   };
 }

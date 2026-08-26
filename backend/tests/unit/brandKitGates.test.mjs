@@ -267,3 +267,30 @@ describe('the two law profiles are not interchangeable', () => {
     expect(compiled[0].text).toMatch(/midnight sapphire/);
   });
 });
+
+describe('both lanes build prompts with the same function', () => {
+  it('the async lane reports taste metadata, and async is where taste runs', async () => {
+    // The synchronous result carried tasteMeta since the taste slice; the batch did not.
+    // Taste is LOCAL-ONLY, so the one lane it actually runs on was the only one that
+    // never reported it — the seed, how many prompts the laws rejected, which profile
+    // judged. All of it invisible on the path that produced it.
+    _resetSingleFlight(); _resetBatches();
+    const out = await composeStills({
+      brief: BRIEF, promptSource: 'taste', lane: 'local', count: 1, userId: 1, brandKit: 'swanstudios',
+    }, {
+      env: { SWAN_ATELIER_LOCAL_STILLS: 'probed', SWAN_ATELIER_STILL_WORKFLOW: '/g/s.json', SWAN_ATELIER_STILL_NODE_PROMPT: '6', SWAN_VIDEO_PROVIDERS_ENABLED: 'comfyui/wan-2.2' },
+      localVerify: () => ({ ok: true, provider: 'comfyui/wan-2.2', problems: [], status: 'probed' }),
+      admit: async () => ({ host: 'h', freeMb: 30000, neededMb: 26000 }),
+      tasteDeps: { fetchPrompts: async () => ({ prompts: [{ ok: true, text: 'a rated composition' }], seed: 'ts-1', dropped: 0 }) },
+      renderStill: async ({ seed }) => ({ image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 1, provider: 'comfyui/wan-2.2' }),
+      persist: async ({ stills }) => { stills.forEach((x) => Object.assign(x, { assetId: 'a1', persist: { ok: true } })); return { ok: true, persisted: 1, total: 1 }; },
+      store: new Map(), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 0, disabled: true },
+      commit: () => ({ allowed: true }),
+    });
+    const t0 = Date.now();
+    while (!getBatch(out.batchId, 1).terminal && Date.now() - t0 < 2000) await new Promise((r) => setTimeout(r, 10));
+    const snap = getBatch(out.batchId, 1);
+    expect(snap.tasteMeta).toBeTruthy();
+    expect(snap.tasteMeta.lawProfile).toBe('full');       // the profile that judged
+  });
+});
