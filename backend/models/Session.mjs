@@ -270,11 +270,11 @@ Session.init({
     type: DataTypes.STRING(20),
     allowNull: true,
     defaultValue: null,
-    comment: 'Admin decision: pending, charged, waived, or null',
+    comment: 'Decision: pending, charged, waived, forfeited (client late-cancel credit loss), or null',
     validate: {
       isIn: {
-        args: [['pending', 'charged', 'waived', null]],
-        msg: 'Cancellation decision must be one of: pending, charged, waived'
+        args: [['pending', 'charged', 'waived', 'forfeited', null]],
+        msg: 'Cancellation decision must be one of: pending, charged, waived, forfeited'
       }
     }
   },
