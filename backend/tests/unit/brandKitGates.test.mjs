@@ -105,3 +105,29 @@ describe('an idempotency key needs an owner', () => {
     expect(out.stills).toHaveLength(1);
   });
 });
+
+describe('a replay is not refused by a cap it already paid into', () => {
+  it('replays at the run cap instead of throwing E_RUN_CAP', async () => {
+    // GATE 2 used to run before the replay probe. At the cap, a retry of a request that
+    // ALREADY RAN AND WAS ALREADY PAID FOR was refused — the caller charged for work it
+    // could not collect, by a cap defending headroom that request had already consumed.
+    // A replay costs no GPU and no money, so nothing it could breach applies to it.
+    const { deps } = capturingDeps({ limits: { maxRunsDaily: 4, maxSpendUsdDaily: 5, disabled: false } });
+    const store = deps.store;
+    const first = await composeStills({ brief: BRIEF, lane: 'hosted', count: 4, userId: 1, idempotencyKey: 'k' }, deps);
+    expect(first.stills).toHaveLength(4);
+
+    // Now the day's usage has caught up to the cap...
+    const atCap = capturingDeps({ store, usage: { runs: 4, spendUsd: 0 }, limits: { maxRunsDaily: 4, maxSpendUsdDaily: 5, disabled: false } });
+    const replay = await composeStills({ brief: BRIEF, lane: 'hosted', count: 4, userId: 1, idempotencyKey: 'k' }, atCap.deps);
+    expect(replay.replayed).toBe(true);
+    expect(atCap.seen).toHaveLength(0);          // and it generated nothing to do it
+  });
+
+  it('a genuinely NEW request at the cap is still refused', async () => {
+    const { seen, deps } = capturingDeps({ usage: { runs: 4, spendUsd: 0 }, limits: { maxRunsDaily: 4, maxSpendUsdDaily: 5, disabled: false } });
+    const err = await composeStills({ brief: { ...BRIEF, text: 'something else entirely' }, lane: 'hosted', count: 4, userId: 1 }, deps).catch((e) => e);
+    expect(err.code).toBe('E_RUN_CAP');
+    expect(seen).toHaveLength(0);
+  });
+});

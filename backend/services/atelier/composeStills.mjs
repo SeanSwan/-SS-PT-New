@@ -138,11 +138,6 @@ export async function composeStills(req = {}, deps = {}) {
   if (brief.text.length > MAX_BRIEF_CHARS) {
     throw new ComposeError('E_BRIEF_TOO_LONG', `A brief is at most ${MAX_BRIEF_CHARS} characters; this one is ${brief.text.length}.`);
   }
-  // GATE 2 — volume cap applies to BOTH lanes; a free lane is still one GPU.
-  const runs = Number(usage.runs) || 0;
-  if (runs + count > limits.maxRunsDaily) {
-    throw new ComposeError('E_RUN_CAP', `This batch of ${count} would pass the daily run cap (${runs}/${limits.maxRunsDaily}). Raise ${RUNS_ENV_KEY}.`);
-  }
   // GATE 3a — idempotency FIRST, before any reservation. A double-click must replay
   // without touching the GPU; checking after the lane gate meant the second request
   // reserved the card and was refused E_LOCAL_BUSY instead of coalescing.
@@ -154,6 +149,17 @@ export async function composeStills(req = {}, deps = {}) {
     ? `u${req.userId}:${sha(String(req.idempotencyKey)).slice(0, 32)}`
     : deriveKey({ ...req, brief, promptSource, lane: req.lane || 'auto', model, count }, now);
   if (!req.estimateOnly && store.has(key)) return { ...(await store.get(key)), replayed: true };
+
+  // GATE 2 — volume cap, AFTER the replay probe above. It used to run first, and a
+  // reviewer raised the consequence twice before I acted on it: at the cap, a retry of a
+  // request that ALREADY RAN AND WAS ALREADY PAID FOR was refused E_RUN_CAP instead of
+  // replaying its result. The caller is then charged for work it cannot collect, by a cap
+  // defending headroom that request already consumed. A replay costs no GPU and no money,
+  // so nothing it could breach applies to it.
+  const runs = Number(usage.runs) || 0;
+  if (runs + count > limits.maxRunsDaily) {
+    throw new ComposeError('E_RUN_CAP', `This batch of ${count} would pass the daily run cap (${runs}/${limits.maxRunsDaily}). Raise ${RUNS_ENV_KEY}.`);
+  }
   // Reserve the key SYNCHRONOUSLY, before the first await below: two concurrent identical
   // requests would otherwise both pass `has` and both run. The placeholder is settled with
   // the real outcome; a failure deletes it so a retry can run.
@@ -280,7 +286,8 @@ export async function composeStills(req = {}, deps = {}) {
   // Replace the retained promise with a SLIMMED copy before remembering it. The live
   // caller already has `result` in hand; what stays in the map is only what a retry needs
   // to learn that this request already ran — see slimForReplay for why the payloads go.
-  store.set(key, Promise.resolve(slimForReplay(result)));
+  const retained = slimForReplay(result);
+  store.set(key, Promise.resolve(retained));
   // DELIBERATELY NOT EVICTED HERE. A reviewer found that the synchronous path never
   // deletes its key and called it a leak — correct about the leak, wrong about the cure.
   // This path is the HOSTED lane, which charges money. If the client's connection drops
@@ -289,7 +296,12 @@ export async function composeStills(req = {}, deps = {}) {
   // may evict because a batch id is a durable handle the client can poll; here the
   // response IS the only handle. So the key is retained and the MAP is bounded instead —
   // see rememberKey below.
-  rememberKey(store, key, settledKeys, { clientKeyed: Boolean(req.idempotencyKey) });
+  rememberKey(store, key, settledKeys, {
+    clientKeyed: Boolean(req.idempotencyKey),
+    // So the budget is released when this entry is later evicted, rather than counting
+    // lifetime allocations and never recovering.
+    carriesBytes: retained.bytesDropped !== true,
+  });
   return result;
   } catch (err) {
     if (settle) { store.delete(key); settle.rej(err); }

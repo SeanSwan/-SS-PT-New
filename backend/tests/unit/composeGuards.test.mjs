@@ -263,3 +263,31 @@ describe('keeping bytes needs a budget, because persistence failures correlate',
     expect(over.stills[0].image.dropped).toBe(true);
   });
 });
+
+describe('the byte budget is an at-once cap, not a lifetime one', () => {
+  it('gives the budget back when a byte-carrying entry is evicted', () => {
+    // Without a release the cap counted lifetime allocations: twelve unpersisted batches
+    // EVER, and no render was recoverable again for the life of the process — a limit that
+    // silently tightens to zero is worse than no limit, because nobody sees it happen.
+    _resetCoalescing();
+    const store = new Map();
+    const settled = new Set();
+    const unpersisted = () => ({ cost: {}, stills: [{ index: 0, image: { kind: 'b64', data: 'X' } }] });
+
+    for (let i = 0; i < BYTES_RETAIN; i += 1) {
+      const k = `c-${i}`;
+      const r = slimForReplay(unpersisted());
+      store.set(k, r);
+      rememberKey(store, k, settled, { clientKeyed: true, carriesBytes: r.bytesDropped !== true });
+    }
+    expect(slimForReplay(unpersisted()).bytesDropped).toBe(true);        // budget spent
+
+    // Push the retained entries out of the window...
+    for (let i = 0; i < IDEMPOTENCY_RETAIN + 20; i += 1) {
+      const k = `x-${i}`;
+      store.set(k, Promise.resolve(1));
+      rememberKey(store, k, settled, { clientKeyed: true });
+    }
+    expect(slimForReplay(unpersisted()).bytesDropped).toBeUndefined();   // and it is back
+  });
+});

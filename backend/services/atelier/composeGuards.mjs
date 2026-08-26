@@ -31,6 +31,11 @@ export const BYTES_RETAIN = 12;
  *  key only has to outlive the second click that produced it, not a network retry. */
 export const DERIVED_RETAIN = 50;
 const derivedKeys = new Set();
+/** Retained keys whose entry still carries its payload, so the budget can be RELEASED
+ *  when one is evicted. Without this the cap counted lifetime allocations rather than
+ *  live ones: twelve unpersisted batches ever, and no render was recoverable again for
+ *  the life of the process. */
+const byteKeys = new Set();
 let bytesHeld = 0;
 
 /**
@@ -54,7 +59,8 @@ export const settledKeys = new Set();
  * being dropped are the ones least likely to see a retry, because a retry that has not
  * arrived within five hundred subsequent requests is not a retry.
  */
-export function rememberKey(store, key, settled, { clientKeyed = true } = {}) {
+export function rememberKey(store, key, settled, { clientKeyed = true, carriesBytes = false } = {}) {
+  if (carriesBytes) byteKeys.add(key);
   // TWO CLASSES OF KEY, EVICTED IN PRIORITY ORDER.
   //
   // A reviewer was right that keyless traffic churned the window: derived keys were
@@ -74,6 +80,7 @@ export function rememberKey(store, key, settled, { clientKeyed = true } = {}) {
       if (oldest.done || oldest.value === key) break;
       store.delete(oldest.value);
       derivedKeys.delete(oldest.value);
+      releaseBytes(oldest.value);
     }
     return;
   }
@@ -96,6 +103,7 @@ export function rememberKey(store, key, settled, { clientKeyed = true } = {}) {
     if (oldest.done || oldest.value === key) break;
     store.delete(oldest.value);
     settled.delete(oldest.value);
+    releaseBytes(oldest.value);
   }
 }
 
@@ -125,10 +133,16 @@ export function defaultCommit({ spendUsd = 0 } = {}) {
 
 /** Test hook. Process-scoped state needs an explicit reset or suites leak into each other
  *  — which is the price of making the store process-scoped, and worth paying. */
+/** Give the budget back when a byte-carrying entry leaves the map. */
+function releaseBytes(key) {
+  if (byteKeys.delete(key)) bytesHeld = Math.max(0, bytesHeld - 1);
+}
+
 export function _resetCoalescing() {
   COALESCING_STORE.clear();
   settledKeys.clear();
   derivedKeys.clear();
+  byteKeys.clear();
   bytesHeld = 0;
 }
 
