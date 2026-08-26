@@ -150,6 +150,11 @@ def main():
     ap.add_argument("--roster", required=True)
     ap.add_argument("--out", default="assets/source/enemy")
     ap.add_argument("--list", action="store_true", help="parse and report, write nothing")
+    ap.add_argument("--expect", type=int, default=None,
+                    help="the number of spec blocks this roster MUST yield. Per-block tolerance means a "
+                         "truncated authoring pass produces fewer assets and every one of them looks "
+                         "fine — the generator architecturally cannot see a block that was never "
+                         "written (Ox Alpha, N3 blocker 1). Pass the count; a short roster fails.")
     args = ap.parse_args()
 
     blocks = parse_blocks(open(args.roster, encoding="utf-8").read())
@@ -178,6 +183,11 @@ def main():
         ok += 1
 
     print(f"\n[roster] {ok} written, {refused} refused, {len(blocks)} blocks parsed")
+    if args.expect is not None and len(blocks) != args.expect:
+        print(f"[roster] EXIT 1 — expected {args.expect} spec blocks, parsed {len(blocks)}. A truncated "
+              f"authoring pass yields fewer assets and each one looks fine; only this count sees the "
+              f"blocks that were never written.", file=sys.stderr)
+        sys.exit(1)
     sys.exit(1 if refused else 0)
 
 

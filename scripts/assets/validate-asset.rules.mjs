@@ -17,26 +17,14 @@ import { createHash } from 'node:crypto';
 import { resolve, isAbsolute, sep } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { measure, parseGlb, worldAabb } from './measure-glb.mjs';
+import { COMPRESSION_VALUES, MAX_ASSET_BYTES, unreadRegistryKeys } from './validate-asset.contract.mjs';
+
+export { unreadRegistryKeys };  // re-exported so the CLI keeps one import path
 
 // Registry keys this rules module actually READS. Anything declared in the registry and not
 // listed here is documentation wearing a schema's clothes; the CLI announces it at startup.
 // (Ox Alpha B6 + Kimi, branch gate 2026-08-25: nine such fields existed, including chromeLaw,
 // the constraint that motivated the whole P0 correction.)
-export const REGISTRY_KEYS_READ = new Set([
-  'assets', 'skeletons', 'zones', 'licensePolicy', 'statusValues', 'budgetPolicy', 'worlds', 'schema', 'updated', 'note',
-]);
-export const ZONE_KEYS_READ = new Set(['id', 'worldId', 'localId', 'status', 'chromeLaw', 'shardFraming', 'loreParent', 'summary', 'idRule']);
-export const COMPRESSION_VALUES = new Set(['none', 'meshopt', 'draco']);
-
-export function unreadRegistryKeys(registry) {
-  const top = Object.keys(registry).filter((k) => !REGISTRY_KEYS_READ.has(k));
-  const zone = Object.keys(registry.zones?.[0] || {}).filter((k) => !ZONE_KEYS_READ.has(k));
-  return { top, zone };
-}
-
-// DoS guard: a manifest naming a huge file would hang the gate in CI.
-export const MAX_ASSET_BYTES = 256 * 1024 * 1024;
-
 /* ---------------------------------------------------------------- the rules */
 
 const CLIP_ORDER_FREE = true; // order does not matter; membership does
@@ -227,6 +215,9 @@ export function validate(manifest, ctx) {
           const g = parseGlb(bytes);
           ctx.glbClips = new Set((g.animations || []).map((a) => a.name).filter(Boolean));
           ctx.glbSkins = (g.skins || []).length;
+          ctx.glbJointCount = (g.skins || []).reduce((n, sk) => n + (sk.joints || []).length, 0);
+          ctx.glbSkinAttrs = (g.meshes || []).some((me) => (me.primitives || []).some(
+            (pr) => pr.attributes?.JOINTS_0 !== undefined && pr.attributes?.WEIGHTS_0 !== undefined));
           ctx.aabb = ctx.aabb || {};
           ctx.aabb.lod0 = worldAabb(g);
         } catch { /* already reported as unparseable above */ }
@@ -268,7 +259,8 @@ export function validate(manifest, ctx) {
   if (manifest.runtime?.collision && manifest.runtime?.lod0 && (!ctx.aabb?.lod0 || !ctx.aabb?.collision)) {
     // Silence here would mean "containment not checked" reading exactly like "containment fine"
     // — the failure class this project keeps paying for.
-    W(`collision containment UNCHECKED: no world-space AABB for ${!ctx.aabb?.lod0 ? 'lod0' : 'collision'} (a glTF with no nodes, or POSITION accessors without min/max)`);
+    E(`collision containment COULD NOT RUN: no world-space AABB for ${!ctx.aabb?.lod0 ? 'lod0' : 'collision'} (a glTF with no nodes, or POSITION accessors without min/max). ` +
+      `Unable-to-verify is not verified — this is an ERROR, not a warning. Proven by canary 2026-08-26: a hull 9x the visual mesh shipped VALID when this was a WARN.`);
   }
   if (ctx.aabb?.lod0 && ctx.aabb?.collision) {
     const eps = 1e-3;
@@ -281,8 +273,21 @@ export function validate(manifest, ctx) {
     }
   }
 
+  // Hull presence: an enemy without a collision proxy is walked through. Props may opt out, but
+  // only by SAYING SO — an absent field is not a decision (Ox Alpha + GLM 5.3, N3 panel).
+  {
+    const kind = entry?.kind || 'enemy';
+    const hasHull = Boolean(manifest.runtime?.collision);
+    if (kind === 'enemy' && !hasHull) E('an enemy asset must declare runtime.collision — without a hull it is walked through');
+    if (!hasHull && manifest.collisionOptOut !== true) W('no collision hull and no explicit collisionOptOut: true — absence is not a decision');
+  }
+
   if (manifest.skeleton && ctx.glbSkins !== undefined) {
     if (ctx.glbSkins === 0) E(`skeleton "${manifest.skeleton}" declared but lod0.glb contains no skin — a rig named in the manifest must exist in the bytes`);
+    // A skin COUNT is not a deformation test: a skin can exist while the mesh carries no joint or
+    // weight attributes, in which case nothing deforms (GLM 5.3, N3 blocker 5).
+    else if (ctx.glbSkinAttrs === false) E(`skeleton "${manifest.skeleton}" has a skin but lod0.glb's mesh declares no JOINTS_0/WEIGHTS_0 — a skin nothing is bound to does not deform`);
+    if (ctx.glbJointCount === 0) E(`skeleton "${manifest.skeleton}" has a skin with zero joints`);
     for (const clip of manifest.animations || []) {
       if (!ctx.glbClips?.has(clip)) E(`animation "${clip}" declared but not present in lod0.glb (clips in file: ${[...(ctx.glbClips || [])].join(', ') || 'none'})`);
     }
