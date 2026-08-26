@@ -2,92 +2,104 @@
 title: "Swan Values Corpus"
 date: 2026-08-25
 author: grill-me (Rule 64)
-status: living
-decision: "The durable Direction layer — what good means to Sean. Values only; disciplines belong in gates."
+status: EMPTY — awaiting Sean's line-by-line acceptance
+decision: "The durable Direction layer. Ships EMPTY by six-seat panel verdict; entries require Sean's explicit ack."
 supersedes: none
-expires_if: "never — individual lines expire, the document does not"
+expires_if: "the entries below are never acked — then this file is deleted, not grown"
 ---
 
 # Swan Values Corpus
 
-**What this is:** the short, front-loaded *direction* layer. Agents read this to know what
-"good" means to Sean, so they extend his intent correctly instead of obeying clauses.
+> **STATUS: EMPTY BY DESIGN.** The candidate list at the bottom is *not* the corpus. It is a
+> queue awaiting Sean's line-by-line acceptance. Until he acks a line, it is not a value —
+> it is an agent's guess about a value, which is precisely the failure this file was
+> reviewed to avoid.
 
-**What this is NOT:** a rule list. Nothing here is enforced by ceremony. Every line is a
-value — a thing that would still be true a year from now, on a different feature.
+## Why this file is empty
 
-**How lines get here:** only via `grill-me` tier 7 ("should this apply everywhere from now
-on?" → yes). Slice details never enter. A *discipline* — a procedure, report shape, or
-ordering ceremony — never enters; it belongs in a deterministic gate, or nowhere.
+A six-seat panel (GLM 5.3, Grok 4.6, Ox Alpha, DeepSeek V4 Pro, Kimi K3, HY3) reviewed the
+first draft of this file on 2026-08-25. **Every seat that answered reached the same
+verdict: as originally written, it was "artifact #1,608 with better branding."**
 
-**How lines leave:** if a line is never acted on, it was a preference, not a value. Cut it.
-If a new value contradicts an existing one, that is escalated to Sean, never silently
-overwritten.
+The indictment, in the panel's own terms:
 
-**Keep it tight.** This document's whole job is to survive lost-in-the-middle. Length is
-the enemy of that. If it grows past what an agent will actually read, the least-acted-on
-lines get cut before anything else.
+- **Nothing in the design caused a read.** "Tier-7 compounds" is a theory about *writes*.
+  The repo has 491 pending memos and 308 handoff docs untouched in 30 days — it is
+  demonstrably excellent at writing durable artifacts and bad at draining them. A new
+  durable markdown file created by the same population joins the pile.
+- **It was seeded by an agent, not by Sean.** The first draft contained ~20 values
+  inferred from `CLAUDE.md` and shipped decisions. That is an agent asserting what Sean
+  believes. Grok: *do not start a values corpus until Sean has personally acked every line.*
+- **It had no eviction rule.** "Capped by usefulness" is a vibe, not a mechanism.
+- **The rot problem migrates, it does not die.** GLM: moving durable-artifact risk from
+  brainstorm docs to a corpus relocates the problem unless the mechanism differs in kind.
 
----
+## The four conditions any entry must satisfy
 
-## Who we protect
+An entry may be added ONLY when all four hold. These are the panel's convergent
+requirements, not preferences.
 
-- **Zero PII reaches an LLM** — client IDs and roles only, names mapped client-side. Not a
-  compliance checkbox; these are real people's bodies, injuries, and finances. *(seeded 2026-08-25)*
-- **Care-first, no harm** — a feature that could hurt a client physically or financially does
-  not ship on speed. *(seeded 2026-08-25)*
-- **Sensitive data is a product surface, not an afterthought** — workout, biometric,
-  pain/injury, recovery and nutrition data get consent, export, revocation and deletion as
-  *features*, visible to the person they describe. *(seeded 2026-08-25)*
-- **Encryption is the user's choice** — E2EE is opt-in, never imposed and never quietly removed. *(seeded 2026-08-25)*
+1. **Sean acked this exact line.** Not "inferred from," not "consistent with" — he read the
+   sentence and said yes. Record the date he acked it.
+2. **The whole file stays under ~2 KB / ~20 entries.** Cap by token budget, not line count,
+   because the file must be small enough to inject wholesale into the front of context. If
+   adding an entry would breach the cap, something must be evicted first — the cap is not
+   advisory.
+3. **It is a value, not a discipline.** A value survives a year and a different feature. A
+   discipline is a procedure built around a human limitation. Disciplines go in a
+   deterministic gate, or nowhere.
+4. **It has a decision it would have changed.** If no agent decision would differ with this
+   line present versus absent, it is a preference. Preferences do not enter.
 
-## What the product actually is
+## Eviction and expiry (mandatory — entry without exit is how the pile grew)
 
-- **Workout-progress-first** — log the workout → save it → turn it into progress proof →
-  decide the next training action → make milestones shareable. Everything else is support. *(seeded 2026-08-25)*
-- **Trainer-led B2B2C, not a fitness social network** — the wedge is coach workflow depth
-  plus a first-party progress record, not feed engagement. *(seeded 2026-08-25)*
-- **The trainer stays indispensable** — clients read and do; the trainer decides. Never build
-  a surface that lets a client self-prescribe around their coach. *(seeded 2026-08-25)*
-- **Integrations enrich, they are never the source of truth** — wearables, calendar and
-  nutrition feed consented context; SwanStudios owns the canonical program/workout/progress record. *(seeded 2026-08-25)*
-- **Mock data is a gap, not a feature** — a chart that isn't drawn from real logged sessions
-  is a placeholder with a deadline. *(seeded 2026-08-25)*
+- An entry that has not changed an agent decision in **K sessions is demoted to an archive
+  section, not deleted** (Rule 34 — no blind cleanup).
+- A newer tier-7 confirmation **supersedes** a conflicting older entry; conflicts are
+  escalated to Sean, never silently overwritten.
+- **Values expire.** "No MUI" is a date-stamped decision, not eternal law. Every entry
+  carries its ack date and is re-confirmed periodically.
 
-## What good looks like
+## The unresolved condition — read this before adding anything
 
-- **Least clicks, least time** — the standing mandate. Every flow gets asked "can this be
-  fewer taps?", and the answer is stated as a before→after count. *(seeded 2026-08-25)*
-- **Premium and specific, never template** — every visible surface needs an intentional
-  direction and one signature moment. Generic is a defect. *(seeded 2026-08-25)*
-- **Dark-first** — the dark theme is the real design, not a mode bolted on after. *(seeded 2026-08-25)*
-- **Realism over abstraction in imagery** — NatGeo-grade nature and wildlife: real light,
-  real composition, real density. Confirmed against three blind probe grids. *(2026-08-25, visual-taste probes)*
-- **Mobile is not a checkbox** — any client-management surface is judged at phone width
-  before it is called finished. *(seeded 2026-08-25)*
-
-## How we speak
-
-- **"Swan Coach," never "AI"** in anything a user reads. *(seeded 2026-08-25)*
-- **Credentials are stated exactly** — "26+ years," NASM-*protocol*. Never "NASM-certified." *(seeded 2026-08-25)*
-- **"Stretching" and "flexibility,"** never yoga or meditation. *(seeded 2026-08-25)*
-- **White-label means white-label** — a Move Fitness client sees Move Fitness only. *(seeded 2026-08-25)*
-
-## Boundaries we hold
-
-- **Public product and private operator never blur** — in-app Swan Coach is for everyone;
-  Hermes Operator Mode is Sean's alone, and the line between them is load-bearing. *(seeded 2026-08-25)*
-- **Sean's visual reference library is his** — inspiration sources inform taste; they are
-  cited, never pasted or shipped. *(seeded 2026-08-25)*
-- **Irreversible actions are Sean's call** — anything touching production data, money, or
-  another person's record stops and asks, regardless of how confident the agent is. *(seeded 2026-08-25)*
+The panel's sharpest point stands unanswered: **what structurally causes this file to be
+read?** Writing it is easy and the repo is already good at that. Until there is a mechanism
+that puts these lines in front of an agent without the agent choosing to look — injection
+into the always-on context front, not a file an agent may open — this file is a hopeful
+artifact. Building that mechanism is a prerequisite to growing the corpus, not a follow-up.
 
 ---
 
-## Seeding note
+## Candidate queue — NOT the corpus, NOT in force
 
-The lines above were seeded on 2026-08-25 from values already provable across `CLAUDE.md`,
-the memory index and shipped decisions — they were *observed*, not invented, but they have
-not each been individually confirmed by Sean at tier 7. The next several grills should
-confirm, sharpen, or cut them. A seeded line that survives a grill loses this caveat; one
-that Sean rejects gets cut outright.
+The following were inferred from `CLAUDE.md`, the memory index, and shipped decisions
+during the 2026-08-25 session. They are **observations about Sean's behavior, not values he
+has confirmed.** They carry no authority. Each needs his explicit yes, and the cap means
+**most of these will not make it** — that is the point.
+
+Ordered by the author's guess at value, highest first, so the cap bites the weakest.
+
+1. Zero PII reaches an LLM — client IDs and roles only.
+2. The trainer stays indispensable — clients read and do; the trainer decides.
+3. Care-first — a feature that could hurt a client physically or financially does not ship on speed.
+4. Least clicks, least time; every flow states a before→after tap count.
+5. Workout-progress-first — log it, prove it, decide the next action.
+6. Mock data is a gap with a deadline, never a feature.
+7. Irreversible actions stop and ask — production data, money, another person's record.
+8. Trainer-led B2B2C, not a fitness social network.
+9. Sensitive data (biometric, injury, recovery) gets consent, export and deletion as product surfaces.
+10. Integrations enrich; SwanStudios owns the canonical record.
+11. Premium and specific, never template — generic is a defect.
+12. Dark-first — the dark theme is the real design.
+13. Realism over abstraction in imagery.
+14. "Swan Coach," never "AI," in anything a user reads.
+15. Credentials stated exactly — "26+ years," NASM-*protocol*, never "NASM-certified."
+16. "Stretching" and "flexibility," never yoga or meditation.
+17. White-label means white-label — a Move Fitness client sees Move Fitness only.
+18. Public product and private operator never blur.
+19. Encryption is the user's choice — E2EE opt-in.
+20. Mobile is judged at phone width before anything is called finished.
+
+**To promote:** Sean says yes to a specific number. It moves above this line with his ack
+date. Anything he does not ack stays here or is cut — and this queue is itself subject to
+deletion if it is still unacked when the `expires_if` above comes due.

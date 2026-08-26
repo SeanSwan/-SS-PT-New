@@ -39,6 +39,28 @@ DISCIPLINE.**
 
 **Grill-me extracts values. It does not produce implementation blueprints.**
 
+### Why it survives — corrected by the six-seat panel (2026-08-25)
+
+The first draft of this section defended grill-me as "it extracts values, which transfer."
+The panel called that *half right*, and the stronger reason matters because it tells you
+when to stop:
+
+> Grill-me is not a spec — it is an **elicitation protocol**. Waterfall fails by committing
+> early to a **solution**. Grill-me commits to the **problem definition**, which is exactly
+> what small-slice development needs in order to slice correctly.
+
+Two clauses of this skill did NOT survive that review, and are now bound:
+
+- **"Exhaustive" falls.** An exhaustive interview about a reversible slice is the waterfall
+  tax relocated to the requirements stage. **Interview depth scales with blast radius**, the
+  same test that convicts "NO code without a plan": one or two questions for a reversible
+  slice; the full ladder for money, auth, data, or anything outward-facing.
+- **"Durable brainstorm doc" falls as a default.** See the transcript rule below.
+
+**If the grill starts producing implementation directives — "use a queue," "split this
+module" — it has become a blueprint wearing an interview's clothes, and that usage falls
+with Rule 68.** Stop and hand the *how* to build time.
+
 That distinction is what lets this skill survive the anti-spec-driven finding. A large,
 persisted, authoritative plan is the waterfall trap — it is wrong the moment the build
 contradicts it, and it rots into misleading context. A captured value is the opposite:
@@ -186,12 +208,31 @@ The danger in a long grill (they can run an hour+) is the context window filling
 
 Brainstorm docs are per-topic and dated; they expire. **Values must not.**
 
+**The transcript is ephemeral by default (panel finding, 2026-08-25).** A durable
+brainstorm doc is Bob's waterfall artifact and Theo's stale-file generator in one — and
+this repo's own numbers are the indictment: **1,607 handoff docs, 308 untouched in 30
+days.** So: keep the transcript only while the work it informs is in flight, and let it go
+when the slice ships. **Only tier-7 promotions persist.** If a grill produces nothing that
+clears tier 7, it produced no durable artifact — and that is a correct outcome, not a
+failure.
+
 Anything that clears tier 7 ("yes — apply this everywhere") is promoted to
 `docs/ai-workflow/references/SWAN-VALUES-CORPUS.md` — a short standing document agents read
 as *direction*, not as a rule list. It is the layer that has to survive lost-in-the-middle,
 so it stays tight: one line per value, grouped, no ceremony.
 
 Format: `- **<value>** — <one line>. *(<date>, from <topic>)*`
+
+**The corpus ships EMPTY.** Every panel seat that answered judged the seeded first draft
+"artifact #1,608 with better branding." Entries require Sean's line-by-line ack — an agent
+inferring a value from the repo is an agent asserting what Sean believes. See the file
+itself for the queue and the full verdict.
+
+**The unresolved condition — read this before promoting anything:** *what structurally
+causes the corpus to be read?* Writing durable files is the thing this repo is already good
+at. Until these lines are injected into the always-on front of context rather than sitting
+in a file an agent may choose to open, promoting into it is hopeful. Building that
+mechanism is a prerequisite, not a follow-up.
 
 Promotion rules:
 - **Only tier-7 answers.** A slice detail never enters the corpus.
@@ -201,8 +242,15 @@ Promotion rules:
   was over-general.
 - **Never add a discipline** — a procedure, report shape, or ceremony. Those belong in a
   deterministic gate, or nowhere.
-- The corpus is capped by usefulness, not by size: if a line is never acted on, it was a
-  preference, not a value. Cut it.
+- **Cap: ~2 KB / ~20 entries, by token budget** — small enough to inject wholesale. If a new
+  entry would breach the cap, something is evicted first. The cap is not advisory.
+- **Eviction is mandatory — entry without exit is how the pile grew.** An entry that has not
+  changed an agent decision in K sessions is **demoted to an archive section, not deleted**
+  (Rule 34). A newer tier-7 confirmation supersedes a conflicting older one.
+- **Values expire.** "No MUI" is a date-stamped decision, not eternal law. Every entry
+  carries its ack date and is re-confirmed periodically.
+- **Every entry must name a decision it would have changed.** If no agent decision differs
+  with the line present versus absent, it is a preference. Preferences do not enter.
 
 ### Brainstorm doc structure
 
