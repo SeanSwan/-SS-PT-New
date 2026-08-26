@@ -22,6 +22,7 @@ import { getCommand } from './commandRegistry/index.mjs';
 import { createCommandErrorOutcome } from './commandOutcomeContract.mjs';
 import { authorizeCommandCapability } from './commandCapabilityPolicy.mjs';
 import { resolveClient } from './clientResolver.mjs';
+import { assertAssignmentOrAdmin } from '../../middleware/verifyClientAccess.mjs';
 import { rehydrateResponse } from './deIdentifier.mjs';
 import {
   prepareDestructiveOperation,
@@ -39,6 +40,10 @@ import { recordCommandAudit } from './commandAudit.mjs';
 
 const COMMAND_PIPELINE_FAILED_MESSAGE = 'Swan Coach command lane failed. No data was changed.';
 const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confirmed operation. No data was changed.';
+
+// Deliberately says nothing about WHICH permission is gone. A caller whose access was just
+// revoked is the one person who should not be told whether it was the role or the client.
+const CONFIRM_NO_LONGER_PERMITTED_MESSAGE = 'You no longer have permission to complete that operation. No data was changed. Please re-issue the command if you believe this is wrong.';
 const CLASSIFIER_FAILURE_CODES = new Set(['PARSE_FAIL', 'CLASSIFICATION_FAILED']);
 
 function setTypedPipelineError(ctx, code) {
@@ -812,6 +817,51 @@ function outcomeFromPipelineCtx(ctx) {
  *   message: string,
  * }>}
  */
+/**
+ * Re-authorize a confirmed operation at the moment of its EFFECT.
+ *
+ * A pending operation is authorized once, in the pipeline, then parked for up to 120
+ * seconds. Redemption verified ownership, expiry and (destructively) an HMAC signature —
+ * none of which notice that the caller's role was revoked, or that the client was
+ * transferred to another trainer, inside that window. The signature proves the operation
+ * was not tampered with; it says nothing about who may run it now, because it was signed
+ * when the caller still could.
+ *
+ * The check is against the CURRENT role rather than the minted one. The operation never
+ * recorded what it was minted under, and that is the wrong question anyway: what matters
+ * is whether this caller may do this now, which is what every other gate in this lane asks.
+ *
+ * Note on ordering: retrieval is single-use and deletes the operation, so a denial here
+ * also consumes it. That is the safe direction — a denied caller cannot retry — at the
+ * cost of a re-issue if the assignment lookup fails transiently.
+ *
+ * @returns {string|null} a denial reason for the audit log, or null when still permitted
+ */
+async function confirmLaneDenialReason(commandType, clientId, user) {
+  if (commandType) {
+    const command = getCommand(commandType);
+    const required = Array.isArray(command?.roleRequired) ? command.roleRequired : null;
+    if (!required) {
+      // Unknown to the registry: there is no roleRequired to check against. If the type
+      // can still reach a dispatcher, refuse — "cannot tell" must not mean "allow". If it
+      // cannot, leave the lane's honest `not_wired` answer intact rather than replacing it
+      // with a permission error that would be false: nothing can execute either way.
+      return hasDispatcher(commandType) ? 'unregistered_command' : null;
+    }
+    if (!required.includes(user.role)) return 'role_revoked';
+  }
+  if (clientId != null) {
+    let permitted = false;
+    try {
+      permitted = await assertAssignmentOrAdmin(user.id, user.role, clientId);
+    } catch {
+      permitted = false;
+    }
+    if (!permitted) return 'client_access_revoked';
+  }
+  return null;
+}
+
 export async function executeConfirmedOperation(operationId, user, sequelize) {
   // Audit helper for the confirm lane — best-effort, never throws.
   const auditConfirm = (outcome, extras = {}) => {
@@ -836,6 +886,18 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   const ndResult = retrievePendingConfirmation(operationId, user.id);
   if (ndResult.verified) {
     const { operation } = ndResult;
+    const ndDenial = await confirmLaneDenialReason(
+      operation.commandType, operation.clientId ?? null, user,
+    );
+    if (ndDenial) {
+      auditConfirm('denied', {
+        commandType: operation.commandType,
+        targetClientId: operation.clientId ?? null,
+        requiresConfirmation: true,
+        errorCode: ndDenial,
+      });
+      return { success: false, type: 'error', message: CONFIRM_NO_LONGER_PERMITTED_MESSAGE };
+    }
     if (operation.frontendEvent) {
       auditConfirm('success', {
         commandType: operation.commandType,
@@ -976,6 +1038,17 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   const commandType = operation.commandType || null;
   if (commandType && hasDispatcher(commandType)) {
     const clientId = operation.params?.clientId ?? null;
+    const denial = await confirmLaneDenialReason(commandType, clientId, user);
+    if (denial) {
+      auditConfirm('denied', {
+        commandType,
+        targetClientId: clientId,
+        destructive: true,
+        requiresConfirmation: true,
+        errorCode: denial,
+      });
+      return { success: false, type: 'error', message: CONFIRM_NO_LONGER_PERMITTED_MESSAGE };
+    }
     try {
       const result = await dispatch(commandType, operation.params, {
         user,
