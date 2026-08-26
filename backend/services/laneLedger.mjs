@@ -101,11 +101,20 @@ export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => n
   let unwritable = null;
   // A transient write error is not a broken disk. Only a run of failures degrades the lane.
   let consecutiveFailures = 0;
+  // Runs that happened but could not be written down. A failed write refuses BILLED work
+  // (money must not move uncounted) and lets FREE work proceed — but the free lane still
+  // has a VOLUME cap, and that cap exists to protect one GPU, not a budget. Without this
+  // counter an unwritable disk silently uncapped the free lane entirely: every request
+  // read the same stale `runs` and none of them ever advanced it. Per-day and in-process,
+  // which is all the file itself claims to be.
+  const strandedRuns = new Map();
 
   const usageFor = (day) => {
     const u = inner.usageFor(day);
     return {
-      runs: u.runs,
+      // Recorded runs PLUS the ones the disk refused to take. Counting only what was
+      // written means a broken disk reads as a quiet day.
+      runs: u.runs + (strandedRuns.get(day) || 0),
       spendUsd: u.spendUsd,
       // Both failure modes reach the gate as the same word, because the gate asks
       // one question — "is today's total knowable?" — and both answer no.
@@ -144,6 +153,9 @@ export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => n
       // The CALLER is refused on every failure regardless of the threshold — this request's
       // spend was not recorded, so this request must not spend. The threshold governs only
       // whether LATER requests are refused too.
+      // The run still HAPPENED. Remember it so the volume cap keeps counting even though
+      // the ledger could not.
+      if (runs > 0) strandedRuns.set(day, (strandedRuns.get(day) || 0) + runs);
       return { failed: true, reason, degradedNow: Boolean(unwritable) };
     }
   };
@@ -217,7 +229,7 @@ export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => n
 /**
  * The video lane's ledger, constructed here rather than at its call site.
  *
- * Not a style preference: `render-agent.mjs` was already 344 lines against a 300-line cap
+ * Not a style preference: `render-agent.mjs` was over its 300-line cap (it has since been split to 270)
  * and three reviewers flagged that wiring the ledger there pushed an over-cap file further
  * over. Constructing it in the module that owns ledgers makes the agent's change a single
  * import and takes the file back BELOW where it started, which is the shape a wiring slice

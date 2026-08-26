@@ -17,6 +17,7 @@ const okHosted = () => ({ ok: true, model: MODEL, problems: [] });
 describe('persistence rides on the batch and never hides a still', () => {
   const hostedDeps = (persist) => ({
     env: {}, verifier: okHosted, store: new Map(), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false },
+    commit: () => ({ allowed: true }),   // hosted lane spends; the gate is now explicit
     generator: async () => ({ images: ['b64'], usage: {} }), persist,
   });
 

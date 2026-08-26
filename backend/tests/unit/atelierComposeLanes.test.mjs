@@ -51,7 +51,7 @@ describe('taste is local-only', () => {
     let fetched = 0;
     const err = await composeStills(
       { promptSource: 'taste', lane: 'hosted', count: 2 },
-      { generator: noGen, verifier: okHosted, limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false },
+      { generator: noGen, verifier: okHosted, commit: () => ({ allowed: true }), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false },
         tasteDeps: { fetchImpl: async () => { fetched += 1; } }, localVerify: readyLocal, admit: admitOk },
     ).catch((e) => e);
     expect(err).toBeInstanceOf(ComposeError);
@@ -252,7 +252,7 @@ describe('auto lane and idempotency', () => {
     let calls = 0;
     const store = new Map();
     const deps = {
-      env: {}, verifier: okHosted, store, limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false },
+      env: {}, verifier: okHosted, store, commit: () => ({ allowed: true }), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false },
       generator: async () => { calls += 1; await new Promise((r) => setTimeout(r, 20)); return { images: ['b64'], usage: {} }; },
     };
     const req = { brief: BRIEF, lane: 'hosted', count: 1, idempotencyKey: 'same' };
@@ -263,14 +263,14 @@ describe('auto lane and idempotency', () => {
 
   it('a failed batch releases its key so a retry can run', async () => {
     const store = new Map();
-    const deps = { env: {}, verifier: okHosted, store, limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false }, generator: async () => { throw new Error('down'); } };
+    const deps = { env: {}, verifier: okHosted, store, commit: () => ({ allowed: true }), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false }, generator: async () => { throw new Error('down'); } };
     const req = { brief: BRIEF, lane: 'hosted', count: 1, idempotencyKey: 'k' };
     await expect(composeStills(req, deps)).rejects.toMatchObject({ code: 'E_ALL_FAILED' });
     expect(store.has('k')).toBe(false);
   });
 
   it('caps the brief and normalizes it so NFC/NFD variants hash the same', async () => {
-    const deps = { env: {}, verifier: okHosted, generator: noGen, limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false } };
+    const deps = { env: {}, verifier: okHosted, generator: noGen, commit: () => ({ allowed: true }), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false } };
     await expect(composeStills({ brief: { text: 'x'.repeat(2001) }, lane: 'hosted' }, deps)).rejects.toMatchObject({ code: 'E_BRIEF_TOO_LONG' });
     const gen = async () => ({ images: ['b64'], usage: {} });
     const store = new Map();

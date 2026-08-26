@@ -166,3 +166,67 @@ describe('degradation stays visible', () => {
     expect(notice.textContent).toMatch(/still here/i);
   });
 });
+
+describe('the Assets tab is operable without a mouse', () => {
+  it('no interactive control is nested inside a <label>, and each label wraps exactly one', async () => {
+    // A control inside a label that also contains another control makes the label
+    // ambiguous, and screen readers announce the wrong thing for both.
+    const { api } = fakeApi({ assets: [asset()], hasMore: true, nextCursor: 'C1', pageSize: 24 });
+    const { container } = render(<AtelierLibrary api={api} />);
+    await screen.findByAltText(/red fox/);
+    expect(container.querySelectorAll('label button, label a, label [role="button"]').length).toBe(0);
+    for (const label of Array.from(container.querySelectorAll('label'))) {
+      expect(label.querySelectorAll('input, select, textarea').length).toBe(1);
+    }
+  });
+
+  it('every control has an accessible name and none is reachable only by hover', async () => {
+    const { api } = fakeApi({ assets: [asset()], hasMore: true, nextCursor: 'C1', pageSize: 24 });
+    const { container } = render(<AtelierLibrary api={api} />);
+    await screen.findByAltText(/red fox/);
+    for (const el of Array.from(container.querySelectorAll('button, select'))) {
+      const name = el.getAttribute('aria-label') || el.textContent?.trim();
+      expect(name, `${el.tagName} has no accessible name`).toBeTruthy();
+    }
+    // Both actions are real buttons in the document, not hover-revealed affordances.
+    expect(screen.getByRole('button', { name: /refresh/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /load more/i })).toBeTruthy();
+  });
+
+  it('an asset card is not itself interactive, so nothing is a click target without a role', async () => {
+    // The card is an <article>. If it ever becomes clickable it needs a real button or
+    // link inside it — a div with onClick is invisible to keyboard and assistive tech.
+    const { api } = fakeApi({ assets: [asset()], hasMore: false, nextCursor: null, pageSize: 24 });
+    const { container } = render(<AtelierLibrary api={api} />);
+    await screen.findByAltText(/red fox/);
+    const card = container.querySelector('article');
+    expect(card).toBeTruthy();
+    expect(card?.getAttribute('onclick')).toBeNull();
+    expect(card?.getAttribute('tabindex')).toBeNull();
+  });
+});
+
+describe('recovery paths actually recover', () => {
+  it('REFRESH un-breaks a card whose preview had expired', async () => {
+    // Found in a self-review round. `broken` was set on image error and never cleared, so
+    // Refresh — the exact action a person takes when a preview has gone stale — fetched a
+    // working signed URL and handed it to a card that still refused to render it. The
+    // placeholder was permanent until the tab was reloaded.
+    const { api } = fakeApi({ assets: [asset()], hasMore: false, nextCursor: null, pageSize: 24 });
+    render(<AtelierLibrary api={api} />);
+    const img = await screen.findByAltText(/red fox/);
+    fireEvent.error(img);                                   // TTL expires
+    expect(await screen.findByText('1920x1080')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: /refresh/i }));
+    expect(await screen.findByAltText(/red fox/)).toBeTruthy();   // renders again
+  });
+
+  it('an unreachable client is NOT reported as an empty library', () => {
+    // "You have made nothing" is the most alarming thing a studio can say, so it is only
+    // said when it is true. Three emptinesses, three sentences.
+    expect(describeEmpty(false, false)).toMatch(/connection problem/i);
+    expect(describeEmpty(false, false)).not.toMatch(/Nothing here yet/);
+    expect(describeEmpty(false, true)).toMatch(/Nothing here yet/);
+    expect(describeEmpty(true, true)).toMatch(/Nothing matches these filters/);
+  });
+});

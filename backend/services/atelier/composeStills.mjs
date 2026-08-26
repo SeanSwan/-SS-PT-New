@@ -48,6 +48,46 @@ const SOURCES = new Set(['brief', 'taste']);
 
 // chooseLane + gateHosted moved to composeLaneChoice.mjs when this file hit its cap.
 
+/** How many settled idempotency keys to retain. Big enough that any realistic retry
+ *  still replays instead of re-charging; small enough that the map cannot grow for the
+ *  life of the process. */
+export const IDEMPOTENCY_RETAIN = 500;
+
+/**
+ * Bound the replay map without breaking replay.
+ *
+ * A Map iterates in insertion order, so the first key is the oldest and dropping it is a
+ * plain FIFO eviction — no timestamps to keep and no second structure to hold. The keys
+ * being dropped are the ones least likely to see a retry, because a retry that has not
+ * arrived within five hundred subsequent requests is not a retry.
+ */
+function rememberKey(store, key) {
+  if (typeof store.size !== 'number') return;
+  while (store.size > IDEMPOTENCY_RETAIN) {
+    const oldest = store.keys().next();
+    if (oldest.done || oldest.value === key) break;
+    store.delete(oldest.value);
+  }
+}
+
+/**
+ * The commit used when a caller injects none.
+ *
+ * It permits free work and REFUSES anything that costs money. A blanket
+ * `() => ({ allowed: true })` made the money gate fail open: a route that omitted or
+ * misspelled `commit` would spend without a ceiling and without a sound. A control that
+ * can be dropped by accident is not a control — the same lesson the video lane's
+ * `ledger = null` taught, in the file next door.
+ */
+function defaultCommit({ spendUsd = 0 } = {}) {
+  if (spendUsd > 0) {
+    throw new ComposeError('E_NO_SPEND_GATE',
+      'Refusing to spend: no spend gate was wired into this call, so the cost could not be '
+      + 'counted against any ceiling. Nothing was generated and nothing was spent.');
+  }
+  return { allowed: true };
+}
+
 async function runBatch({ lane, prompts, key, req, model, deps }) {
   const { generator, renderStill, withGpu, env, reservation } = deps;
   const seedAt = (i) => (Number.isInteger(req.seed) ? req.seed + i : seedFor(key, i));
@@ -91,7 +131,7 @@ export async function composeStills(req = {}, deps = {}) {
     renderStill = local.renderStill, withGpu = local.withGpu,
     localVerify = local.verifyLocalStills, admit = local.admission, reserve = local.reserveGpu,
     tasteDeps = {}, env = process.env, store = new Map(), persist = persistBatch,
-    limits = readComposeLimits(env), usage = { runs: 0, spendUsd: 0 }, commit = () => ({ allowed: true }), now = Date.now(),
+    limits = readComposeLimits(env), usage = { runs: 0, spendUsd: 0 }, commit = defaultCommit, now = Date.now(),
   } = deps;
 
   const promptSource = req.promptSource || 'brief';
@@ -116,7 +156,12 @@ export async function composeStills(req = {}, deps = {}) {
   // there is no version of it that belongs to another brand. Dressing a non-Swan render in
   // it and saying nothing is the brand-scope leak every seat of the panel named — so this
   // refuses and points at the two things that actually work instead.
-  if (promptSource === 'taste' && lawProfile !== 'full') {
+  // Gated on the KIT'S OWN profile, never the merged one. Two reviewers independently
+  // found the bypass: `lawProfile` here is the value AFTER the caller's explicit override
+  // has won, so `brandKit: 'universal'` plus `lawProfile: 'full'` walked straight through
+  // the gate and rendered another brand from the Swan-rated corpus — the exact leak this
+  // refusal exists to stop, reopened by the override that sits two lines above it.
+  if (promptSource === 'taste' && kit.lawProfileFromKit !== 'full') {
     throw new ComposeError('E_TASTE_IS_SWAN_ONLY',
       `The taste brain draws from the SwanStudios-rated corpus, so it cannot render for "${kit.brandKit}". `
       + "Use the brief source for this brand, or add a kit that carries the SwanStudios laws. Nothing was generated.");
@@ -263,6 +308,15 @@ export async function composeStills(req = {}, deps = {}) {
   })();
   const result = await work;
   settle.res(result);
+  // DELIBERATELY NOT EVICTED HERE. A reviewer found that the synchronous path never
+  // deletes its key and called it a leak — correct about the leak, wrong about the cure.
+  // This path is the HOSTED lane, which charges money. If the client's connection drops
+  // after we billed, its retry MUST replay rather than generate and charge a second time,
+  // and evicting on success is precisely what would make it charge twice. The async path
+  // may evict because a batch id is a durable handle the client can poll; here the
+  // response IS the only handle. So the key is retained and the MAP is bounded instead —
+  // see rememberKey below.
+  rememberKey(store, key);
   return result;
   } catch (err) {
     if (settle) { store.delete(key); settle.rej(err); }

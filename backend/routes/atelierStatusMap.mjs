@@ -52,6 +52,8 @@ export const STATUS = Object.freeze({
   // The ledger could not be WRITTEN. Distinct from degraded (could not be READ):
   // nothing has been spent yet, and proceeding would spend with no counter.
   E_LEDGER_UNWRITABLE: 503,
+  // No spend gate was wired into the call at all. A misconfiguration, not a cap breach.
+  E_NO_SPEND_GATE: 500,
   E_TASTE_UNREACHABLE: 502,
   E_TASTE_BAD_RESPONSE: 502,
   E_ALL_FAILED: 502,

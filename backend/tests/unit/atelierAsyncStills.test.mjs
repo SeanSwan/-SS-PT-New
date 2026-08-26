@@ -106,6 +106,7 @@ describe('one batch per request, and only for its owner', () => {
     const out = await composeStills({ brief: BRIEF, lane: 'hosted', count: 1, userId: 1 }, {
       env: {}, verifier: () => ({ ok: true, model: 'openai/gpt-5.4-image-2', problems: [] }), store: new Map(),
       limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false }, generator: async () => ({ images: ['b64'], usage: {} }),
+      commit: () => ({ allowed: true }),   // hosted lane spends; the gate is explicit now
       persist: async () => ({ ok: false, persisted: 0, code: 'E_STORAGE_UNCONFIGURED' }),
     });
     expect(out.accepted).toBeUndefined();

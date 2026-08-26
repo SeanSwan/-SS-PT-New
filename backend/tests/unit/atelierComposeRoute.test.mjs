@@ -109,6 +109,9 @@ describe('the switched-off refusal is actionable', () => {
       verifier: okVerifier,
       generator: async (c, o) => { calls.push(o); return { images: ['b64'], seedUsed: null, usage: {} }; },
       store: new Map(),
+      // This one actually spends, so it wires the gate explicitly. The service fails
+      // CLOSED without one now — a permissive default made the money gate droppable.
+      commit: () => ({ allowed: true }),
     });
     expect(out.stills).toHaveLength(2);
     expect(calls).toHaveLength(2);

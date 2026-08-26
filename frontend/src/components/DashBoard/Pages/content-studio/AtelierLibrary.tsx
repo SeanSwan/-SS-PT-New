@@ -52,7 +52,11 @@ interface Page {
 }
 
 /** The empty state has to say WHICH emptiness it is. */
-export function describeEmpty(filtered: boolean): string {
+export function describeEmpty(filtered: boolean, configured = true): string {
+  // Three different emptinesses, and telling a person the wrong one is the whole problem.
+  // "You have made nothing" is the most alarming thing a studio can say, so it is only
+  // ever said when it is actually true.
+  if (!configured) return 'The library could not be reached — this is a connection problem, not an empty library.';
   return filtered
     ? 'Nothing matches these filters. Your other assets are still here — clear a filter to see them.'
     : 'Nothing here yet. Anything Compose renders lands in this library automatically.';
@@ -82,7 +86,14 @@ const AtelierLibrary: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
   const load = useCallback(async (append: string | null) => {
     if (!api) return;
     setBusy(true);
-    if (!append) setError(null);
+    if (!append) {
+      setError(null);
+      // A fresh page means freshly signed URLs, so previously-expired cards must be given
+      // another chance. Without this, Refresh — the exact action a person takes when a
+      // preview has gone stale — returns a working URL to a card that still refuses to
+      // render it, and the placeholder is permanent until the tab is reloaded.
+      setBroken({});
+    }
     try {
       const params: Record<string, string> = {};
       if (brandKit) params.brandKit = brandKit;
@@ -148,7 +159,7 @@ const AtelierLibrary: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
 
           {!error && assets.length === 0 && !busy && (
             <Notice $tone="unproven" role="status">
-              <Filter size={14} aria-hidden /> {describeEmpty(filtered)}
+              <Filter size={14} aria-hidden /> {describeEmpty(filtered, Boolean(api))}
             </Notice>
           )}
 

@@ -51,7 +51,12 @@ function stubGenerator(impl) {
 }
 
 function deps(over = {}) {
+  // These suites exercise the HOSTED lane, which spends. The service now fails CLOSED when
+  // no spend gate is wired — a permissive default made the money gate droppable by
+  // accident — so the gate is injected EXPLICITLY here. Writing it out is the point: a
+  // test that spends should have to say so.
   return {
+    commit: () => ({ allowed: true }),
     generator: stubGenerator(),
     verifier: () => ({ ok: true, model: MODEL, problems: [] }),
     store: new Map(),
