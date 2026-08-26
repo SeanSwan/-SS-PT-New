@@ -13,7 +13,11 @@ const workoutPlanId = '33333333-3333-4333-8333-333333333333';
 async function loadDispatcher({ plan = null } = {}) {
   vi.resetModules();
   const planRow = plan ? { ...plan, update: vi.fn() } : null;
-  const WorkoutPlan = { modelName: 'WorkoutPlan' };
+  // `findByPk` is here because the archive dispatcher now loads the plan to authorize the
+  // caller against its owner before reaching the lifecycle service — see
+  // tests/api/aiCommandPlanArchiveOwnership.contract.test.mjs. The actor in these cases is
+  // an admin, so the check passes on role; the lookup still has to return a row.
+  const WorkoutPlan = { modelName: 'WorkoutPlan', findByPk: vi.fn(async () => planRow) };
   const transitionWorkoutPlanLifecycle = vi.fn(async ({ action, actorId }) => ({
     plan: { ...planRow, status: 'archived' },
     lifecycleReceipt: {

@@ -258,16 +258,23 @@ describe('Swan Coach dispatcher ownership', () => {
 
     it('holds for every non-privileged role on every client-ref command', async () => {
       const leaked = [];
+      let pairsTested = 0;
       for (const command of clientRefCommands()) {
         if (UNSYNTHESIZABLE.has(command.type)) continue;
         for (const role of command.roleRequired) {
           if (role === 'admin' || role === 'trainer') continue;
+          pairsTested += 1;
           const run = await runAgainstClient(command, role, OWN_CLIENT, FOREIGN_CLIENT);
           if (run.dispatchedClientId === FOREIGN_CLIENT || run.resolvedClientId === FOREIGN_CLIENT) {
             leaked.push(`${command.type} as ${role}`);
           }
         }
       }
+      // Today exactly one such pair exists. If `view_xp_streaks` stops permitting a client
+      // — or the classification changes — the loop body would never run and an empty
+      // `leaked` would report a clean sweep of nothing. An empty surface is a fact worth
+      // failing on, so that whoever removed the last pair decides deliberately.
+      expect(pairsTested, 'no non-privileged client-ref pairs remain to test').toBeGreaterThan(0);
       expect(leaked, `non-privileged callers reached a foreign client: ${leaked.join(', ')}`).toEqual([]);
     });
   });
