@@ -25,8 +25,21 @@
  *
  * PRIVACY — READ BEFORE USE
  * -------------------------
- * Ox is $0 because it is an OpenRouter *stealth* listing: an undisclosed lab is
- * evaluating the model and RETAINS the prompts it is sent. Sean has standingly
+ * RESOLVED 2026-08-26: the stealth period ENDED and OpenRouter revealed the model —
+ * `stealth/ox-alpha` WAS ZAI's GLM-5.3 Flash, and the slug now 404s with a pointer to
+ * `z-ai/glm-5.3-flash`. This wrapper follows it there (Sean's call, 2026-08-26: it is
+ * on roughly a 3x discount, so call it freely).
+ *
+ * TWO CONSEQUENCES WORTH KEEPING:
+ *   1. The data-egress caution is CLOSED — the undisclosed lab was Z.AI.
+ *   2. Ox and the glm-5.3 seat were never independent. Every "both seats independently
+ *      converged" conclusion recorded while Ox sat on the panel was ONE FAMILY answering
+ *      twice. Use this seat as a cheap, fast WORKER; for genuine review corroboration the
+ *      seats must come from different LABS (Anthropic / OpenAI / Google / Moonshot /
+ *      Alibaba), not two tiers of one.
+ *
+ * Historical note — Ox was $0 because it was an OpenRouter *stealth* listing: an
+ * undisclosed lab was evaluating the model and RETAINED the prompts sent. Sean has standingly
  * accepted this for design briefs and code-review packets (2026-08-23), and that
  * acceptance explicitly does NOT extend to client PII, credentials, medical or
  * immigration data, secrets, or raw config. Scrub the packet; do not drop the
@@ -39,7 +52,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-const OX_MODEL = 'stealth/ox-alpha';
+const OX_MODEL = 'z-ai/glm-5.3-flash';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const transport = path.join(here, 'consult-grok.mjs');
 
@@ -54,7 +67,9 @@ if (modelFlag !== -1) {
   process.exit(2);
 }
 
-console.error(`[consult-ox] seat=Ox Alpha model=${OX_MODEL} (stealth listing — prompts are RETAINED)`);
+console.error(`[consult-ox] seat=Ox (now GLM-5.3 Flash) model=${OX_MODEL}`);
+console.error('[consult-ox] NOTE: same lab and lineage as the glm-5.3 seat. Cheap and fast —');
+console.error('[consult-ox] but agreement between this and glm-5.3 is NOT independent corroboration.');
 
 const child = spawn(process.execPath, [transport, ...argv], {
   stdio: 'inherit',
