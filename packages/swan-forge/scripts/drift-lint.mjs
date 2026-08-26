@@ -63,6 +63,12 @@ function* walk(dir, filter, depth = 0) {
 /** Parse EXCEPTIONS.md ledger rows: `| path-substr | rule | owner | expiry |` */
 export function loadExceptions(text, today = new Date()) {
   const out = [];
+  // Strip HTML comments FIRST. The ledger template ships a commented-out example row, and a
+  // line-by-line regex loaded it as a LIVE suppression (own T2 round-4 finding). It suppressed
+  // nothing today only because the example path does not exist — an example that silently
+  // becomes an active governance exception is precisely the kind of quiet hole this ledger
+  // exists to prevent.
+  text = text.replace(/<!--[\s\S]*?-->/g, '');
   for (const line of text.split('\n')) {
     const m = line.match(/^\|\s*([^|]+?)\s*\|\s*(R\d)\s*\|\s*([^|]+?)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|/);
     if (!m) continue;

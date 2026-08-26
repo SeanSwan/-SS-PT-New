@@ -331,3 +331,14 @@ test('flex-basis LONGHAND is sizing too — the seam was closed in the shorthand
     assert.equal(styledWrapperBlocker(ok), null, `${ok} is layout`);
   }
 });
+
+test('EXCEPTIONS ledger: a commented-out example row is NOT a live suppression', () => {
+  // The template ships an example row inside an HTML comment. A line-by-line regex loaded it as
+  // an ACTIVE exception — it suppressed nothing only because the example path does not exist.
+  // An example that silently becomes governance is the hole the ledger exists to prevent.
+  const withComment = '| a/b.css | R2 | sean | 2099-01-01 | real |\n<!--\n| c/d.css | R2 | sean | 2099-01-01 | example |\n-->';
+  const rows = loadExceptions(withComment);
+  assert.equal(rows.length, 1, 'only the uncommented row is live');
+  assert.equal(rows[0].pathSub, 'a/b.css');
+  assert.equal(loadExceptions('| e/f.css | R2 | sean | 2000-01-01 | old |').length, 0, 'expired rows stay excluded');
+});
