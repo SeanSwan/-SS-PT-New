@@ -3,78 +3,99 @@
 Two grammars reach this project, because two different authors independently invented one:
 
   PROSE   "abdomen 3x2x1 at (0,0,0)"          — the 2026-08-26 contamination roster
-  BOX     "C(0,0,0,3,2,1); N(3,1,0,0,C(...))" — Ox Alpha's parasite roster, 2026-08-26
+  BOX     "C(0,0,0,3,2,1); N(3,1,0,0,C(...))" — the 2026-08-26 parasite roster
 
-BOX is strictly better: it is unambiguous, compact, and expresses repetition. PROSE is what the
-first roster shipped in and four built assets depend on it. Both are supported; both must produce
-the SAME cell set for the same shape, which roster_grammar_selftest.py proves against a
-hand-checked creature rather than asserting.
+REWRITTEN 2026-08-26 (v2) after independent hostile reviews from Fable and GPT-5.6 Sol found
+nine real defects in the v1 regex-scavenger, every one of which was a SILENT wrong answer rather
+than an error. The scavenger asked "does a C( appear anywhere in this text" and built whatever it
+found. That accepts, without complaint:
 
-WHY THIS IS A MODULE AND NOT MORE REGEX IN roster-to-obj.py:
-  the caller was at 195 lines and the repo cap is 300. More importantly, a grammar that can be
-  imported can be TESTED without touching the filesystem, and the equivalence proof needs exactly
-  that.
+    body 3x2x1 at (0,0,0); C(5,0,0,1,1,1)   -> 1 cell. The five prose cells vanish.
+    N(2,1,0,0,C(0,0,0,1,1))                 -> the N is dropped, the malformed C ignored.
+    N(2,1,0,0,0,C(...))                     -> wrong arity; repetition silently disappears.
+    N(2,1,0,0,C(0,0,0,3,1,1)  <no close>    -> 4 cells, zero problems reported.
+    # C(0,0,0,2,2,2)                        -> 8 cells from a COMMENT.
+    ARC(0,0,0,1,1,1)                        -> 1 cell; no word boundary.
+    C(0,0,0,100000,100000,1)                -> accepted; 10^10 cells on materialisation.
 
-THE ONE AMBIGUITY, AND HOW IT IS RESOLVED:
-  Ox's grammar states "MIRROR-BREAK: odd-indexed copies of any N receive z += 1". That can mean
-  the AUTHOR applied it while writing, or the EXPANDER must apply it while reading. The two
-  readings yield different cell counts, so the question is empirical, not a matter of taste:
-  every spec also declares voxelCount, and only one reading can agree with it. expand takes the
-  flag; resolve_mirror_break() runs both readings against the declared counts and reports which
-  one the roster actually meant. A guess here would silently distort 18 creatures.
+v2 TOKENISES INSTEAD OF SCAVENGING. A recipe is a semicolon-separated list of statements; every
+statement must match a whole production exactly; anything left unconsumed is an error. The default
+answer to malformed input is RecipeError, never a smaller creature.
+
+THE COUNTING CONVENTION IS DECLARED, NOT ASSUMED. The BOX grammar states `cells = sum(dx*dy*dz)`.
+v1 counted the deduplicated union, disagreed with the spec, and then blamed the roster author for
+the mismatch on two creatures — one of which (deep.barreleye) is entirely valid under the spec's
+own rule and was refused. Both conventions are now computed and both are reported; the caller
+chooses which one the gate enforces. A tool may not silently hold a convention its spec does not.
 """
 
 import re
 
-# ---------------------------------------------------------------- grammar: PROSE
-PROSE_RE = re.compile(
-    r"(?P<name>[A-Za-z][\w \-+']*?)\s+"
-    r"(?P<w>\d+)\s*[x×]\s*(?P<h>\d+)\s*[x×]\s*(?P<d>\d+)\s*"
-    r"at\s*\(\s*(?P<x>-?\d+)\s*,\s*(?P<y>-?\d+)\s*,\s*(?P<z>-?\d+)\s*\)",
-    re.IGNORECASE,
-)
-
-# ---------------------------------------------------------------- grammar: BOX
-_INT = r"\s*(-?\d+)\s*"
-C_RE = re.compile(r"C\(" + _INT + "," + _INT + "," + _INT + "," + _INT + "," + _INT + "," + _INT + r"\)")
-N_RE = re.compile(r"N\(" + _INT + "," + _INT + "," + _INT + "," + _INT + r",\s*(C\([^)]*\))\s*\)")
-
-
-def parse_prose(text):
-    """`name WxHxD at (x,y,z)` -> [{name,size,at}]."""
-    return [
-        {"name": m.group("name").strip(),
-         "size": (int(m.group("w")), int(m.group("h")), int(m.group("d"))),
-         "at": (int(m.group("x")), int(m.group("y")), int(m.group("z")))}
-        for m in PROSE_RE.finditer(text)
-    ]
-
-
+# --------------------------------------------------------------- errors
 class RecipeError(ValueError):
-    """A recipe that is malformed rather than merely refusable.
+    """Malformed input. Raised — never absorbed into a smaller creature.
 
-    A box with a zero or negative extent contributes NO cells. Left as data it vanishes
-    silently: the creature simply comes out smaller and every downstream check passes on the
-    smaller thing. `C(0,0,0,0,1,1)` is a typo, not a design. Raised, not skipped.
+    v1 had this class and used it only for non-positive extents. Everything else degraded
+    silently, which is the failure mode the class exists to prevent.
     """
 
 
-def _one_box(m, tag):
-    x, y, z, dx, dy, dz = (int(g) for g in m.groups())
-    if dx < 1 or dy < 1 or dz < 1:
-        raise RecipeError("C(%d,%d,%d,%d,%d,%d) has a non-positive extent — a box with a zero or "
-                          "negative dimension contributes no cells and would vanish silently"
-                          % (x, y, z, dx, dy, dz))
-    return {"name": tag, "size": (dx, dy, dz), "at": (x, y, z)}
+# --------------------------------------------------------------- limits
+# A roster is authored by a language model and drives filesystem writes. Expansion happens before
+# any cell-count check can run, so the 4-40 creature bound is no defence against a typo:
+# N(2000000,...) built two million boxes in 1.66s before anything looked at it, and a single
+# C(0,0,0,100000,100000,1) passed v1's only guard (positivity) while implying 10^10 cells.
+MAX_COPIES = 256
+MAX_EXTENT = 64
+MAX_BOXES = 4096
 
+# --------------------------------------------------------------- BOX grammar
+_N = r"-?\d+"
+_P = r"\d+"          # extents are positive by construction, not by a later check
+_S = r"\s*"
+C_BODY = _S.join(["", _N, ",", _N, ",", _N, ",", _P, ",", _P, ",", _P, ""])
+# Anchored, whole-statement productions. `fullmatch` is what makes unconsumed text an error.
+C_STMT = re.compile(r"C\(" + C_BODY + r"\)" + _S)
+N_STMT = re.compile(r"N\(" + _S.join(["", _P, ",", _N, ",", _N, ",", _N, ","]) +
+                    r"\s*C\(" + C_BODY + r"\)" + _S + r"\)" + _S)
+C_NUMS = re.compile(_N)
 
 # The three readings of "MIRROR-BREAK: odd-indexed copies of any N receive z += 1".
 #   off  — the author applied it while writing; the reader does nothing
 #   on0  — the reader applies it, "odd" counted from 0 (copies 1, 3, 5 ...)
 #   on1  — the reader applies it, "odd" counted from 1 (copies 0, 2, 4 ...)
-# The grammar text does not pin the index base, so ON is really two readings, not one.
-# Missed on the first pass; surfaced by the N4 panel.
+# The grammar pins neither the actor nor the index base, so this is three readings, not two.
+#
+# AT LEAST TWO MORE EXIST and are NOT modelled here (Fable, N4 panel): `z += 1` read as extent
+# GROWTH (dz+1) rather than translation, and "odd-indexed" ranging over the N statements of a
+# recipe rather than the copies within one N. They are absent deliberately — see resolve.py,
+# which no longer claims to decide this question at all.
 MODES = ("off", "on0", "on1")
+
+# A creature id becomes a directory name, and the roster is LLM-authored: untrusted input on a
+# path. `evil.../../../../escaped` normalised to `..\..\..\..\` and wrote outside the output root.
+SAFE_ID_RE = re.compile(r"^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$")
+
+# --------------------------------------------------------------- PROSE grammar
+PROSE_STMT = re.compile(
+    r"(?P<name>[A-Za-z][\w \-+']*?)" + _S +
+    r"(?P<w>\d+)" + _S + r"[x×]" + _S + r"(?P<h>\d+)" + _S + r"[x×]" + _S + r"(?P<d>\d+)" + _S +
+    r"at" + _S + r"\(" + _S + r"(?P<x>-?\d+)" + _S + r"," + _S + r"(?P<y>-?\d+)" + _S + r"," +
+    _S + r"(?P<z>-?\d+)" + _S + r"\)" + _S,
+    re.IGNORECASE)
+
+
+def _box(x, y, z, dx, dy, dz, tag):
+    for label, v in (("dx", dx), ("dy", dy), ("dz", dz)):
+        if v < 1:
+            raise RecipeError("%s=%d is not a positive extent; a box with a zero or negative "
+                              "dimension contributes no cells and would vanish silently"
+                              % (label, v))
+        if v > MAX_EXTENT:
+            raise RecipeError("%s=%d exceeds the extent cap of %d; a creature is 4-40 cells, so "
+                              "this is a typo, and expansion happens before any cell check could "
+                              "catch it" % (label, v, MAX_EXTENT))
+    return {"name": tag, "size": (dx, dy, dz), "at": (x, y, z)}
 
 
 def _bump(mode, i):
@@ -85,46 +106,133 @@ def _bump(mode, i):
     return 0
 
 
-def parse_box(text, mode="off"):
-    """`C(x,y,z,dx,dy,dz)` and `N(k,sx,sy,sz,C(...))` -> [{name,size,at}].
+def _split_top(text, sep):
+    """Split on `sep` only at paren depth 0.
 
-    N is matched and masked FIRST, because every N contains a C and a naive C-scan would
-    double-count the inner box and then miss the repetition entirely.
+    A naive `text.split(",")` cuts inside `(x,y,z)` and destroys every coordinate triple. Caught
+    by running the rewrite against a legal prose recipe with a negative x.
+    """
+    out, buf, depth = [], [], 0
+    for ch in text:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth = max(0, depth - 1)
+        if ch == sep and depth == 0:
+            out.append("".join(buf))
+            buf = []
+        else:
+            buf.append(ch)
+    out.append("".join(buf))
+    return out
+
+
+def _statements(text):
+    """Strip `#` comments PER LINE, then split on `;` at depth 0. Comments are data, not geometry.
+
+    v1 never stripped comments, so `# C(0,0,0,2,2,2)` built an eight-cell box. The first fix
+    stripped per STATEMENT, so a comment consumed every following line up to the next semicolon
+    and silently ate a real N — trading one silent-loss bug for another.
+    """
+    clean = "\n".join(line.split("#", 1)[0] for line in text.splitlines())
+    return [s.strip() for s in _split_top(clean, ";") if s.strip()]
+
+
+def parse_box(text, mode="off"):
+    """A semicolon-separated list of `C(...)` and `N(k,sx,sy,sz,C(...))` statements.
+
+    Every statement must fullmatch a production. Unconsumed text is an error, not a hint.
     """
     if mode not in MODES:
         raise RecipeError("unknown mirror-break reading %r; expected one of %r" % (mode, MODES))
-    out, masked, n_idx = [], text, 0
-    for m in N_RE.finditer(text):
-        k = int(m.group(1))
-        sx, sy, sz = int(m.group(2)), int(m.group(3)), int(m.group(4))
-        cm = C_RE.search(m.group(5))
-        if not cm:
+    out = []
+    for idx, stmt in enumerate(_statements(text)):
+        if N_STMT.fullmatch(stmt):
+            k, sx, sy, sz, x, y, z, dx, dy, dz = (int(v) for v in C_NUMS.findall(stmt))
+            if not 1 <= k <= MAX_COPIES:
+                raise RecipeError("N(%d,...) repeats %d times; the cap is %d" % (k, k, MAX_COPIES))
+            base = _box(x, y, z, dx, dy, dz, "n%d" % idx)
+            for i in range(k):
+                out.append({"name": "%s.%d" % (base["name"], i), "size": base["size"],
+                            "at": (x + i * sx, y + i * sy, z + i * sz + _bump(mode, i))})
+        elif C_STMT.fullmatch(stmt):
+            out.append(_box(*[int(v) for v in C_NUMS.findall(stmt)], tag="c%d" % idx))
+        else:
+            raise RecipeError(
+                "statement %d is not a whole C or N production: %r. Every statement must match "
+                "exactly `C(x,y,z,dx,dy,dz)` or `N(k,sx,sy,sz,C(x,y,z,dx,dy,dz))` with that arity "
+                "and balanced parentheses. Partial or unrecognised text is refused rather than "
+                "scavenged for anything that looks like a box." % (idx + 1, stmt[:70]))
+        if len(out) > MAX_BOXES:
+            raise RecipeError("recipe expands past the %d-box cap" % MAX_BOXES)
+    return out
+
+
+def parse_prose(text):
+    """A comma- or semicolon-separated list of `name WxHxD at (x,y,z)` clusters."""
+    out = []
+    for idx, stmt in enumerate(s for part in _statements(text) for s in _split_top(part, ",")):
+        stmt = stmt.strip()
+        if not stmt:
             continue
-        base = _one_box(cm, "n%d" % n_idx)
-        bx, by, bz = base["at"]
-        for i in range(k):
-            out.append({"name": "%s.%d" % (base["name"], i),
-                        "size": base["size"],
-                        "at": (bx + i * sx, by + i * sy, bz + i * sz + _bump(mode, i))})
-        n_idx += 1
-        masked = masked.replace(m.group(0), " " * len(m.group(0)), 1)
-    for i, m in enumerate(C_RE.finditer(masked)):
-        out.append(_one_box(m, "c%d" % i))
+        m = PROSE_STMT.fullmatch(stmt)
+        if not m:
+            raise RecipeError("cluster %d is not a whole `name WxHxD at (x,y,z)` production: %r"
+                              % (idx + 1, stmt[:70]))
+        out.append(_box(int(m.group("x")), int(m.group("y")), int(m.group("z")),
+                        int(m.group("w")), int(m.group("h")), int(m.group("d")),
+                        m.group("name").strip()))
     return out
 
 
 def parse_recipe(text, mode="off"):
-    """Dispatch on which grammar the text is written in. BOX wins when both could match."""
-    if "C(" in text:
-        boxes = parse_box(text, mode=mode)
-        if boxes:
-            return boxes, "box"
-    prose = parse_prose(text)
-    return prose, ("prose" if prose else "none")
+    """Dispatch by grammar, refusing text that is partly one and partly the other.
+
+    v1 dispatched on `"C(" in text` and returned the BOX result if it was non-empty. A hybrid
+    recipe therefore silently dropped every prose cluster — five of six cells, no error.
+    """
+    # Detect on the COMMENT-STRIPPED text. Dispatching on the raw string made a fully
+    # commented-out recipe report grammar="box" — harmless downstream, but a tool that
+    # misreports what it read is a tool whose next report cannot be trusted either.
+    live = " ".join(_statements(text))
+    has_box = bool(re.search(r"\b[CN]\(", live))
+    has_prose = bool(re.search(r"\d+\s*[x×]\s*\d+\s*[x×]\s*\d+\s*at\s*\(", live, re.IGNORECASE))
+    if has_box and has_prose:
+        raise RecipeError("recipe mixes the BOX and PROSE grammars. Pick one — a hybrid silently "
+                          "loses whichever half the dispatcher does not choose.")
+    if has_box:
+        return parse_box(text, mode=mode), "box"
+    if has_prose:
+        return parse_prose(text), "prose"
+    return [], "none"
+
+
+# --------------------------------------------------------------- cells
+def occupied_cells(clusters):
+    """The set of distinct occupied coordinates — what actually gets BUILT."""
+    cells = set()
+    for c in clusters:
+        w, h, d = c["size"]
+        x, y, z = c["at"]
+        for i in range(w):
+            for j in range(h):
+                for k in range(d):
+                    cells.add((x + i, y + j, z + k))
+    return cells
+
+
+def summed_cells(clusters):
+    """sum(dx*dy*dz) over every box, counting overlaps once PER BOX.
+
+    This is what the BOX grammar's own rule states (`cells = sum(dx*dy*dz)`), and it differs from
+    `len(occupied_cells())` exactly when boxes overlap. Both are reported so a declared count can
+    be checked against the convention its author used instead of the one this tool prefers.
+    """
+    return sum(dx * dy * dz for c in clusters for dx, dy, dz in [c["size"]])
 
 
 def components(cells):
-    """Every 6-connected component, largest first. Pure — the resolver needs it too."""
+    """Every 6-connected component, largest first."""
     remaining, out = set(cells), []
     while remaining:
         start = next(iter(remaining))
@@ -139,159 +247,3 @@ def components(cells):
         out.append(seen)
         remaining -= seen
     return sorted(out, key=len, reverse=True)
-
-
-# ---------------------------------------------------------------- cells
-def occupied_cells(clusters):
-    cells = set()
-    for c in clusters:
-        w, h, d = c["size"]
-        x, y, z = c["at"]
-        for i in range(w):
-            for j in range(h):
-                for k in range(d):
-                    cells.add((x + i, y + j, z + k))
-    return cells
-
-
-# ---------------------------------------------------------------- block parsing
-_HEADER_RES = (
-    re.compile(r"^###\s+`([A-Za-z][\w.\-]*)`"),        # Ox:  ### `parasite.bedbug`
-    re.compile(r"^\*\*`([A-Za-z][\w.\-]*)`\*\*\s*$"),  # GLM: **`bedbug_harbor`**
-)
-_MD_FIELD_RE = re.compile(r"^-\s+\*\*([A-Za-z]+):\*\*\s*(.*)$")
-_INLINE_FIELD_RE = re.compile(r"\*\*([A-Za-z]+):\*\*\s*([^·]*)")
-_FENCE_FIELD_RE = re.compile(r"^(?P<key>[a-zA-Z]+):\s*(?P<val>.*)$")
-
-
-def _header(line):
-    for rx in _HEADER_RES:
-        m = rx.match(line.strip())
-        if m:
-            return m.group(1)
-    return None
-
-
-def parse_markdown_blocks(text):
-    """A `### id` or `**id**` heading followed by `- **key:** value` lines.
-
-    Handles two fields sharing one line separated by a middot, which GLM's roster does
-    (voxelDims and voxelCount on one line). A block whose recipe is prose the BOX grammar
-    cannot read still parses as a BLOCK — so the caller reports "recipe unparseable" for
-    that creature instead of "no blocks found", and the failure lands on the right thing.
-    """
-    blocks, cur = [], None
-    for line in text.splitlines():
-        ident = _header(line)
-        if ident:
-            if cur:
-                blocks.append(cur)
-            cur = {"id": ident}
-            continue
-        if cur is None:
-            continue
-        m = _MD_FIELD_RE.match(line.strip())
-        if not m:
-            continue
-        body = m.group(2)
-        if "·" in body and "**" in body:
-            for k, v in _INLINE_FIELD_RE.findall(m.group(0)):
-                cur[k] = v.strip().strip("·").strip()
-        else:
-            cur[m.group(1)] = body.strip()
-    if cur:
-        blocks.append(cur)
-    return blocks
-
-
-def parse_fenced_blocks(text):
-    """The original form: every fence containing an `id:` line."""
-    out = []
-    for raw in re.findall(r"```(.*?)```", text, re.DOTALL):
-        fields, key = {}, None
-        for line in raw.splitlines():
-            m = _FENCE_FIELD_RE.match(line.strip())
-            if m:
-                key = m.group("key")
-                fields[key] = m.group("val").strip()
-            elif key and line.strip():
-                fields[key] += " " + line.strip()
-        if "id" in fields:
-            out.append(fields)
-    return out
-
-
-def parse_blocks(text):
-    """Fenced blocks first (they carry explicit `id:`), then markdown headings."""
-    return parse_fenced_blocks(text) or parse_markdown_blocks(text)
-
-
-def resolve_mirror_break(blocks):
-    """Which of the three readings of MIRROR-BREAK does this roster actually mean?
-
-    Returns (mode, report) where mode is one of MODES, or (None, report) when undecidable.
-
-    DECIDED STRUCTURALLY, NOT BY THE DECLARED COUNTS. The obvious oracle is `voxelCount` — but
-    that oracle is produced by the same author whose counts this very roster proves wrong on 6
-    of 18 creatures, and two hypotheses predict identical observations: (H1) the semantics is
-    OFF and the author counted what they wrote; (H2) the semantics is ON and the author's
-    counting pass didn't implement MIRROR-BREAK either. Counts cannot separate them.
-
-    CONNECTIVITY CAN. The grammar states a cluster-touch law, so a reading that shatters more
-    creatures into disconnected pieces is a reading the roster was not written under — and that
-    signal does not depend on the author's arithmetic at all. On the 2026-08-26 parasite roster
-    the two scores diverge sharply: counts split 12/10/10 (nearly uninformative) while shattering
-    splits 8/14/17 (decisive for OFF). Counts are kept as a reported secondary and only break a
-    structural tie.
-
-    LIVENESS is measured, not sniffed. The old test asked whether the string contains "N(",
-    which is false-live for N with one copy and false-dead for any spacing the parser tolerates
-    but a substring test does not. The real question — do the readings produce different CELLS
-    anywhere — is already computed here.
-    """
-    cells, malformed = {}, []
-    for b in blocks:
-        recipe = b.get("buildRecipe", "")
-        if "C(" not in recipe:
-            continue
-        try:
-            cells[b.get("id", "?")] = {m: occupied_cells(parse_box(recipe, mode=m)) for m in MODES}
-        except RecipeError as exc:
-            malformed.append("%s: %s" % (b.get("id", "?"), exc))
-    if malformed:
-        return None, "malformed recipe(s), cannot resolve: " + "; ".join(malformed)
-    if not cells:
-        return "off", "no BOX recipes — the mirror-break ambiguity is vacuous here"
-    live = [i for i, per in cells.items() if len({frozenset(per[m]) for m in MODES}) > 1]
-    if not live:
-        return "off", ("no reading produces different cells on any of the %d BOX recipe(s) — "
-                       "the ambiguity is vacuous here" % len(cells))
-
-    shatter = {m: sum(1 for per in cells.values() if len(components(per[m])) > 1) for m in MODES}
-    agree = {m: 0 for m in MODES}
-    for b in blocks:
-        raw = str(b.get("voxelCount", "")).strip()
-        declared = raw.split()[0] if raw else ""
-        per = cells.get(b.get("id", "?"))
-        if not declared.isdigit() or per is None:
-            continue
-        for m in MODES:
-            agree[m] += (len(per[m]) == int(declared))
-
-    report = ("%d of %d BOX recipe(s) build different creatures under different readings. "
-              "SHATTERED (structural, independent of the author's arithmetic): %s. "
-              "Declared-count agreement (secondary — this roster proves that oracle wrong on "
-              "6 of 18): %s"
-              % (len(live), len(cells),
-                 ", ".join("%s=%d" % (m, shatter[m]) for m in MODES),
-                 ", ".join("%s=%d" % (m, agree[m]) for m in MODES)))
-
-    best = min(shatter.values())
-    winners = [m for m in MODES if shatter[m] == best]
-    if len(winners) == 1:
-        return winners[0], report
-    top = max(agree[m] for m in winners)
-    finalists = [m for m in winners if agree[m] == top]
-    if len(finalists) == 1:
-        return finalists[0], report + " — structural tie broken on counts"
-    return None, report + " — TIE across %r, undecidable from the roster itself" % finalists
