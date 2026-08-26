@@ -130,7 +130,7 @@ export function seedFor(key, index) {
   return parseInt(sha(`${key}:${index}`).slice(0, 8), 16);
 }
 
-export function deriveKey({ brief, promptSource, lane, model, count, seed, workspaceId, userId, brandKit, lawProfile, cinematic, mode }, now) {
+export function deriveKey({ brief, promptSource, lane, model, count, seed, workspaceId, userId, brandKit, lawProfile, cinematic, mode, aspect }, now) {
   const bucket = Math.floor(now / DERIVED_KEY_BUCKET_MS);
   // AN OWNERLESS REQUEST COALESCES WITH NOBODY. The owner is part of the hash, so two
   // ANONYMOUS callers making the identical request in the same bucket derived the identical
@@ -150,5 +150,10 @@ export function deriveKey({ brief, promptSource, lane, model, count, seed, works
     // differently-branded images. A coalescing key that ignores an input is not an
     // identity, it is a collision waiting for someone to change a dropdown.
     bk: brandKit ?? null, lp: lawProfile ?? null, cn: cinematic ? 1 : 0, md: mode ?? null,
+    // The top-level aspect overrides the brief's, and slot overrides replace compiler
+    // slots outright — both change the image and neither was in the identity. Found by
+    // the same reviewer, one round after brandKit, in the same file that had just
+    // declared "every field that changes the output belongs in the identity".
+    ta: aspect ?? null, so: brief?.slotOverrides ?? null,
   })).slice(0, 40);
 }

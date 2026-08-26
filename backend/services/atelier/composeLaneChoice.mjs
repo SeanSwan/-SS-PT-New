@@ -62,7 +62,7 @@ export async function chooseLane(req, deps) {
   return { lane: 'hosted', admission: null };
 }
 
-export function gateHosted({ model, count, limits, usage, verifier }) {
+export function gateHosted({ model, count, limits, usage, verifier, estimateOnly = false }) {
   const check = verifier(model);
   if (!check?.ok) {
     throw new ComposeError('E_PROVIDER_UNCONFIGURED',
@@ -74,7 +74,12 @@ export function gateHosted({ model, count, limits, usage, verifier }) {
     throw new ComposeError('E_LEDGER_DEGRADED',
       'The spend ledger could not be read, so today\'s total is unknown and a billed model cannot be charged safely.');
   }
-  if (spent + cost.totalUsd > limits.maxSpendUsdDaily) {
+  // An ESTIMATE spends nothing, so no ceiling applies to it. The run cap learned this a
+  // round earlier and the spend gate did not — the same one-parameter-over miss, which is
+  // now the most repeated shape in this whole review: a fix applied to one of a pair.
+  // Refusing a preview at the ceiling hides the price at the moment it is most needed,
+  // and hides WHY, because the refusal reads as though money had been at stake.
+  if (!estimateOnly && spent + cost.totalUsd > limits.maxSpendUsdDaily) {
     throw new ComposeError('E_SPEND_CEILING',
       limits.maxSpendUsdDaily === 0
         ? `Image generation is switched off: no budget is set, so the daily ceiling is $0. `

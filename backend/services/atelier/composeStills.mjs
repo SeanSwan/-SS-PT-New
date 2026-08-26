@@ -118,7 +118,7 @@ export async function composeStills(req = {}, deps = {}) {
   assertKeyHasOwner(req);
   const key = req.idempotencyKey
     ? `u${req.userId}:${sha(String(req.idempotencyKey)).slice(0, 32)}`
-    : deriveKey({ ...req, brief, promptSource, lane: req.lane || 'auto', model, count, brandKit: kit.brandKit, lawProfile }, now);
+    : deriveKey({ ...req, brief, promptSource, lane: req.lane || 'auto', model, count, brandKit: kit.brandKit, lawProfile, aspect: req.aspect }, now);
   if (!req.estimateOnly && store.has(key)) return { ...(await store.get(key)), replayed: true };
 
   // GATE 2 — volume cap, AFTER the replay probe above. It used to run first, and a
@@ -145,7 +145,7 @@ export async function composeStills(req = {}, deps = {}) {
   const chosen = await chooseLane({ ...req, promptSource }, { env, limits, localVerify, admit, reserve });
   const { lane, admission } = chosen; reservation = chosen.reservation ?? null;
   const cost = lane === 'hosted'
-    ? { ...gateHosted({ model, count, limits, usage, verifier }), lane }
+    ? { ...gateHosted({ model, count, limits, usage, verifier, estimateOnly: req.estimateOnly }), lane }
     : { count, model: local.STILL_PROVIDER, unitUsd: 0, totalUsd: 0, lane };
 
   if (req.estimateOnly) {
@@ -212,7 +212,11 @@ export async function composeStills(req = {}, deps = {}) {
       // not a request parameter — otherwise the refusal above is closed while the judging
       // behind it stays open.
       const t = await promptsFromTaste({ count, aspect: brief.aspect || req.aspect, seed: seedFor(key, 0), cinematic: !!req.cinematic, mode: req.mode, lawProfile: kit.lawProfileFromKit }, { env, ...tasteDeps });
-      prompts = t.prompts; tasteMeta = { tasteSeed: t.tasteSeed, lawRejected: t.lawRejected, tasteDropped: t.dropped, lawProfile };
+      prompts = t.prompts; tasteMeta = { tasteSeed: t.tasteSeed, lawRejected: t.lawRejected, tasteDropped: t.dropped,
+        // The profile that actually JUDGED, not the merged one. Reporting the override
+        // here while judging by the kit made the metadata disagree with the decision it
+        // was describing — and metadata is read precisely when someone is asking why.
+        lawProfile: kit.lawProfileFromKit };
     } else {
       const caps = lane === 'hosted' ? hostedCaps(model) : { provider: local.STILL_PROVIDER, promptStyle: 'sentence' };
       // Kit language joins HERE, after the length gate, so the limit judges the operator's

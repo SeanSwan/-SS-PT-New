@@ -281,3 +281,17 @@ describe('the coalescing identity must include everything that changes the outpu
     expect(deriveKey(req, now)).toBe(deriveKey(req, now));
   });
 });
+
+describe('the identity, one round later', () => {
+  it('includes the top-level aspect and the slot overrides', async () => {
+    // Found one round after brandKit, in the same file that had just declared "every
+    // field that changes the output belongs in the identity". The top-level aspect
+    // overrides the brief's, and slot overrides replace compiler slots outright.
+    const { deriveKey } = await import('../../services/atelier/composeLimits.mjs');
+    const base = { brief: { text: 'a glacier' }, promptSource: 'brief', lane: 'hosted', model: 'm', count: 1, userId: 7 };
+    const now = Date.now();
+    expect(deriveKey({ ...base, aspect: '16:9' }, now)).not.toBe(deriveKey({ ...base, aspect: '1:1' }, now));
+    expect(deriveKey({ ...base, brief: { ...base.brief, slotOverrides: { negative: 'a' } } }, now))
+      .not.toBe(deriveKey({ ...base, brief: { ...base.brief, slotOverrides: { negative: 'b' } } }, now));
+  });
+});

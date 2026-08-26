@@ -144,3 +144,29 @@ describe('a price preview is free of the caps it will not consume', () => {
     expect(seen).toHaveLength(0);
   });
 });
+
+describe('a price preview is free of the SPEND ceiling too', () => {
+  it('estimates when the day is already over budget', async () => {
+    // The run cap learned this a round earlier and the spend gate did not — the same
+    // one-parameter-over miss. Refusing a preview at the ceiling hides the price at the
+    // moment it is most needed, and hides why, because the refusal reads as though money
+    // had been at stake.
+    const { seen, deps } = capturingDeps({
+      usage: { runs: 0, spendUsd: 99 },
+      limits: { maxRunsDaily: 50, maxSpendUsdDaily: 1, disabled: false },
+    });
+    const out = await composeStills({ brief: BRIEF, lane: 'hosted', count: 2, userId: 1, estimateOnly: true }, deps);
+    expect(out.estimateOnly).toBe(true);
+    expect(out.cost.totalUsd).toBeGreaterThan(0);
+    expect(seen).toHaveLength(0);
+  });
+
+  it('but a real batch over budget is still refused', async () => {
+    const { deps } = capturingDeps({
+      usage: { runs: 0, spendUsd: 99 },
+      limits: { maxRunsDaily: 50, maxSpendUsdDaily: 1, disabled: false },
+    });
+    const err = await composeStills({ brief: BRIEF, lane: 'hosted', count: 2, userId: 1 }, deps).catch((e) => e);
+    expect(err.code).toBe('E_SPEND_CEILING');
+  });
+});
