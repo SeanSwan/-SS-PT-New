@@ -37,7 +37,7 @@ import {
   Server,
   Sparkles,
   UploadCloud,
-  Video, Wand2 } from 'lucide-react';
+  Video, Wand2, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
 import ContentStudioStorageMeter from './ContentStudioStorageMeter';
 import ContentStudioProjectQueue from './ContentStudioProjectQueue';
@@ -56,9 +56,10 @@ const NanoBananaBadgeCreator = React.lazy(() => import('./NanoBananaBadgeCreator
 const VideoOptimizerPanel = React.lazy(() => import('./VideoOptimizerPanel'));
 const CreatorRenderQueue = React.lazy(() => import('./CreatorRenderQueue'));
 const AtelierCompose = React.lazy(() => import('./AtelierCompose'));
+const AtelierLibrary = React.lazy(() => import('./AtelierLibrary'));
 
 type StudioTab =
-  | 'workflow' | 'compose' | 'library' | 'coverage' | 'video-optimizer' | 'nano-banana' | 'render-queue';
+  | 'workflow' | 'compose' | 'assets' | 'library' | 'coverage' | 'video-optimizer' | 'nano-banana' | 'render-queue';
 
 /**
  * Tab gating has two distinct kinds, and conflating them is what shipped a
@@ -83,6 +84,9 @@ const TABS: {
 }[] = [
   { id: 'workflow', label: 'Workflow', icon: <ClipboardList size={16} /> },
   { id: 'compose', label: 'Compose', icon: <Wand2 size={16} /> },
+  // NOT 'Video Library' below it — that one lists the exercise and marketing collections
+  // from /api/v2/videos. This lists what the studio GENERATED. Two names on purpose.
+  { id: 'assets', label: 'Assets', icon: <ImageIcon size={16} /> },
   { id: 'library', label: 'Video Library', icon: <Video size={16} /> },
   { id: 'coverage', label: 'Coverage Tracker', icon: <Hexagon size={16} /> },
   { id: 'video-optimizer', label: 'Video Optimizer', icon: <Film size={16} /> },
@@ -176,6 +180,7 @@ const ContentStudioHub: React.FC = () => {
   const renderTab = () => {
     switch (activeTab) {
       case 'workflow': return renderWorkflow();
+      case 'assets': return <Suspense fallback={fallback('Loading assets...')}><AtelierLibrary api={authAxios} /></Suspense>;
       case 'library': return <Suspense fallback={fallback('Loading video library...')}><VideoLibraryV3 /></Suspense>;
       case 'coverage': return <Suspense fallback={fallback('Loading coverage...')}><CrystallineCoverageTracker /></Suspense>;
       case 'video-optimizer': return <Suspense fallback={fallback('Loading optimizer...')}><VideoOptimizerPanel /></Suspense>;

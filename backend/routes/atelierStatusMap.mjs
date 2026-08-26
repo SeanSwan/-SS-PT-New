@@ -20,6 +20,11 @@ export const STATUS = Object.freeze({
   E_BAD_LANE: 400,
   E_BAD_SOURCE: 400,
   E_BAD_LAW_PROFILE: 400,
+  // Library filters are an allowlist: an unknown value is refused rather than ignored,
+  // because a filter that silently matches everything is worse than no filter.
+  E_BAD_FILTER: 400,
+  // A page cursor this list did not issue.
+  E_BAD_CURSOR: 400,
   // A brand kit that does not exist. The caller believed they were selecting art
   // direction; giving them something else silently is the failure this refuses.
   E_UNKNOWN_BRAND_KIT: 400,

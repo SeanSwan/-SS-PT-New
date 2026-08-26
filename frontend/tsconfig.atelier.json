@@ -2,11 +2,19 @@
   "extends": "./tsconfig.json",
   "include": [
     "src/vite-env.d.ts",
-    "src/components/DashBoard/Pages/content-studio/AtelierCompose.tsx",
-    "src/components/DashBoard/Pages/content-studio/AtelierComposeGrid.tsx",
     "src/components/DashBoard/Pages/content-studio/AtelierCompose.api.ts",
-    "src/components/DashBoard/Pages/content-studio/AtelierCompose.styles.ts",
     "src/components/DashBoard/Pages/content-studio/AtelierCompose.honesty.test.ts",
+    "src/components/DashBoard/Pages/content-studio/AtelierCompose.publish.test.tsx",
+    "src/components/DashBoard/Pages/content-studio/AtelierCompose.render.test.tsx",
+    "src/components/DashBoard/Pages/content-studio/AtelierCompose.styles.ts",
+    "src/components/DashBoard/Pages/content-studio/AtelierCompose.tsx",
+    "src/components/DashBoard/Pages/content-studio/AtelierCompose.types.ts",
+    "src/components/DashBoard/Pages/content-studio/AtelierCompose.words.ts",
+    "src/components/DashBoard/Pages/content-studio/AtelierComposeGrid.tsx",
+    "src/components/DashBoard/Pages/content-studio/AtelierLibrary.styles.ts",
+    "src/components/DashBoard/Pages/content-studio/AtelierLibrary.test.tsx",
+    "src/components/DashBoard/Pages/content-studio/AtelierLibrary.tsx",
+    "src/components/DashBoard/Pages/content-studio/AtelierPublishPanel.tsx",
     "src/components/DashBoard/Pages/content-studio/ContentStudioHub.tsx"
   ]
 }

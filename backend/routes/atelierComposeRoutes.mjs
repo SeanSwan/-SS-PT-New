@@ -33,6 +33,7 @@ import { bindMotion } from '../services/atelier/motionBind.mjs';
 import { transitionAsset, publishedReference } from '../services/atelier/publishAsset.mjs';
 import { getBatch, assertBatchId } from '../services/atelier/batchStore.mjs';
 import { listBrandKits } from '../../shared/brandKits/registry.mjs';
+import { listAssets, DEFAULT_PAGE } from '../services/atelier/assetLibrary.mjs';
 import { STATUS } from './atelierStatusMap.mjs';
 
 const router = express.Router();
@@ -87,6 +88,30 @@ function reqFromBody(req, extra = {}) {
 }
 
 const depsNow = () => ({ limits: readComposeLimits(), usage: usageToday(), commit: (d) => ledger.tryCommit(d) });
+
+/**
+ * GET /api/atelier/compose/assets — the library.
+ *
+ * Owner-scoped by construction: the query is built from `req.user.id`, never from a
+ * parameter, so there is no id to tamper with. Filters are allowlisted, so a typo is a
+ * refusal rather than a filter that silently matches everything.
+ */
+router.get('/assets', protect, adminOnly, async (req, res) => {
+  try {
+    const [{ default: MediaAsset }, { Op, fn, col, where }] = await Promise.all([
+      import('../models/MediaAsset.mjs'),
+      import('sequelize'),
+    ]);
+    const out = await listAssets({
+      userId: req.user?.id,
+      kind: req.query.kind, status: req.query.status,
+      brandKit: req.query.brandKit, brandKitHash: req.query.brandKitHash,
+      workspaceId: req.query.workspaceId, lane: req.query.lane,
+      cursor: req.query.cursor, limit: req.query.limit ?? DEFAULT_PAGE,
+    }, { assetModel: MediaAsset, Op, fn, col, where });
+    return res.json({ success: true, data: out });
+  } catch (err) { return fail(res, err); }
+});
 
 /** POST /api/atelier/compose/estimate — lane, price, readiness. Generates nothing. */
 router.post('/estimate', protect, adminOnly, async (req, res) => {
