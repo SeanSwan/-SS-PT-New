@@ -234,7 +234,10 @@ export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => n
       return { allowed: false, code: 'E_RUN_CAP', usage: before,
         message: `This batch of ${runs} would pass the daily run cap (${before.runs}/${maxRunsDaily}).` };
     }
-    if (before.spendUsd + spendUsd > maxSpendUsdDaily) {
+    // `billed &&` matches the degraded check just above it. Without it, FREE work was
+    // refused E_SPEND_CEILING once prior spend exceeded a lowered cap — the $0 local lane
+    // taken down by a budget it never draws from.
+    if (billed && before.spendUsd + spendUsd > maxSpendUsdDaily) {
       return { allowed: false, code: 'E_SPEND_CEILING', usage: before,
         message: `This batch costs $${spendUsd.toFixed(4)} and today's spend is $${before.spendUsd.toFixed(4)}, which passes the $${maxSpendUsdDaily} daily ceiling.` };
     }

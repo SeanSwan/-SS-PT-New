@@ -209,3 +209,23 @@ describe('the ledger is one instance per lane', () => {
     }
   });
 });
+
+describe('a spend ceiling does not refuse work that spends nothing', () => {
+  it('free work passes even when prior spend exceeds a lowered cap', () => {
+    // The degraded check had a `billed &&` guard and the ceiling check did not, so once
+    // prior spend exceeded a cap that was later lowered, the $0 local lane was refused
+    // E_SPEND_CEILING by a budget it never draws from.
+    const l = makeLaneLedger({ lane: 'atelier', io: fakeFs(), now: () => at });
+    l.tryCommit({ runs: 1, spendUsd: 5, maxRunsDaily: 50, maxSpendUsdDaily: 10 });
+    const free = l.tryCommit({ runs: 1, spendUsd: 0, maxRunsDaily: 50, maxSpendUsdDaily: 0 });
+    expect(free.allowed).toBe(true);
+  });
+
+  it('and billed work is still refused by it', () => {
+    const l = makeLaneLedger({ lane: 'atelier', io: fakeFs(), now: () => at });
+    l.tryCommit({ runs: 1, spendUsd: 5, maxRunsDaily: 50, maxSpendUsdDaily: 10 });
+    const billed = l.tryCommit({ runs: 1, spendUsd: 0.01, maxRunsDaily: 50, maxSpendUsdDaily: 5 });
+    expect(billed.allowed).toBe(false);
+    expect(billed.code).toBe('E_SPEND_CEILING');
+  });
+});

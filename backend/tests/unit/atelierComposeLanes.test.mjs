@@ -277,8 +277,11 @@ describe('auto lane and idempotency', () => {
     const gen = async () => ({ images: ['b64'], usage: {} });
     const store = new Map();
     const d2 = { ...deps, generator: gen, store };
-    const a = await composeStills({ brief: { text: 'café at dawn' }, lane: 'hosted', count: 1 }, d2);
-    const b = await composeStills({ brief: { text: 'café at dawn' }, lane: 'hosted', count: 1 }, d2);
+    // An owner is required for a derived key to be stable: an OWNERLESS request now gets
+    // a nonce so two anonymous callers cannot coalesce onto each other. This test is about
+    // NFC/NFD normalisation, not anonymity, so it names an owner.
+    const a = await composeStills({ brief: { text: 'café at dawn' }, lane: 'hosted', count: 1, userId: 1 }, d2);
+    const b = await composeStills({ brief: { text: 'café at dawn' }, lane: 'hosted', count: 1, userId: 1 }, d2);
     expect(b.key).toBe(a.key);
     expect(b.replayed).toBe(true);
   });

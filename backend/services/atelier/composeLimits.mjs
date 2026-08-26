@@ -18,6 +18,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { DEFAULT_MODEL } from '../../../shared/providers/openrouterModels.mjs';
 
 /** A 4-up grid is the judgement unit. More candidates is a batch job (S8), not a rung. */
@@ -131,9 +132,16 @@ export function seedFor(key, index) {
 
 export function deriveKey({ brief, promptSource, lane, model, count, seed, workspaceId, userId }, now) {
   const bucket = Math.floor(now / DERIVED_KEY_BUCKET_MS);
+  // AN OWNERLESS REQUEST COALESCES WITH NOBODY. The owner is part of the hash, so two
+  // ANONYMOUS callers making the identical request in the same bucket derived the identical
+  // key and received each other's stills — the same confused deputy the client-key guard
+  // closed, arriving by the derived path instead. A nonce makes an ownerless key unique to
+  // its call: such a caller loses double-click coalescing, which is the correct trade,
+  // because there is no identity to coalesce ON.
+  const solo = userId === undefined || userId === null || userId === '' ? randomUUID() : null;
   return sha(JSON.stringify({
     u: userId ?? null, w: workspaceId ?? null, ps: promptSource ?? 'brief', ln: lane ?? 'auto',
     model, count, b: brief?.text ?? '', i: brief?.intent ?? '', a: brief?.aspect ?? '',
-    f: brief?.facets ?? [], s: seed ?? null, bucket,
+    f: brief?.facets ?? [], s: seed ?? null, bucket, solo,
   })).slice(0, 40);
 }
