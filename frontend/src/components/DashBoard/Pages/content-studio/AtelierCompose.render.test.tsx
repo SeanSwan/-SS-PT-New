@@ -21,6 +21,7 @@ const LIMITS_CLAIMED = {
     },
     hosted: { enabled: false, spendEnvKey: 'SWAN_ATELIER_MAX_SPEND_USD_DAILY', limits: { maxRunsDaily: 50, maxSpendUsdDaily: 0 } },
   },
+  brandKits: [{ id: 'swanstudios', name: 'SwanStudios', lawProfile: 'full' as const, aspectDefault: '16:9', isDefault: true }, { id: 'universal', name: 'Universal (no brand laws)', lawProfile: 'universal' as const, aspectDefault: '16:9', isDefault: false }],
   usage: { runs: 0, spendUsd: 0 }, ledger: 'file', enabled: false,
   note: 'No lane is ready.',
 };
@@ -78,6 +79,16 @@ describe('Compose on a machine where nothing is ready yet', () => {
     const notice = await screen.findByText(/spend ledger cannot be read/i);
     expect(notice.getAttribute("role")).toBe("status");
     expect(notice.textContent).toMatch(/free local lane is unaffected/i);
+  });
+
+  it("offers a brand picker built from what the SERVER says exists, not a hardcoded list", async () => {
+    // The studio has to serve sites that are not SwanStudios. A picker listing options the
+    // server would refuse is the honesty rule this whole surface is built on, so the
+    // options come from /limits — never from a constant in the bundle.
+    render(<AtelierCompose api={fakeApi(LIMITS_CLAIMED)} />);
+    const picker = await screen.findByLabelText(/brand kit/i);
+    const options = Array.from(picker.querySelectorAll("option")).map((o) => o.textContent);
+    expect(options).toEqual(["SwanStudios (default)", "Universal (no brand laws)"]);
   });
 
   it('no interactive control is nested inside a <label>', async () => {

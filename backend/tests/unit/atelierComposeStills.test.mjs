@@ -62,7 +62,9 @@ function deps(over = {}) {
 }
 
 const base = (over = {}) => ({
-  brief: BRIEF, model: MODEL, count: 4, userId: 1, workspaceId: 'ws-1', ...over,
+  // `brandKit` rides with `workspaceId` because naming a workspace without naming a brand
+  // is now refused — defaulting there would reinstate the bug brand kits exist to fix.
+  brief: BRIEF, model: MODEL, count: 4, userId: 1, workspaceId: 'ws-1', brandKit: 'swanstudios', ...over,
 });
 
 describe('composeStills — gates run before any spend', () => {

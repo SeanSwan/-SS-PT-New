@@ -49,6 +49,9 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
   const [source, setSource] = useState<PromptSource>('brief');
   const [lane, setLane] = useState<Lane>('auto');
   const [lawProfile, setLawProfile] = useState<LawProfile>('full');
+  // Empty means "whatever the server defaults to" until /limits answers; picking a kit is
+  // what makes this studio usable for a site that is not SwanStudios.
+  const [brandKit, setBrandKit] = useState<string>('');
   const [count, setCount] = useState(4);
   const [selected, setSelected] = useState<number | null>(null);
   const keyRef = useRef<string>(newKey());
@@ -62,7 +65,8 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
 
   const req = useMemo<ComposeRequest>(() => ({
     brief: { text: text.trim(), intent, aspect }, promptSource: source, lane, count, aspect, lawProfile,
-  }), [text, intent, aspect, source, lane, count, lawProfile]);
+    ...(brandKit ? { brandKit } : {}),
+  }), [text, intent, aspect, source, lane, count, lawProfile, brandKit]);
 
   // Price before the button is live. Debounced so typing does not hammer the server.
   useEffect(() => {
@@ -73,7 +77,7 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
   }, [req, c.limits, c.runEstimate, lane, source, text]);
 
   // A new brief is a new attempt; the key must change or the server replays the old grid.
-  useEffect(() => { keyRef.current = newKey(); setSelected(null); }, [text, intent, aspect, source, lane, count, lawProfile]);
+  useEffect(() => { keyRef.current = newKey(); setSelected(null); }, [text, intent, aspect, source, lane, count, lawProfile, brandKit]);
 
   const generate = async () => {
     const r = await c.compose(req, keyRef.current);
@@ -151,6 +155,19 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
             <Field>Describe it
               <TextArea value={text} onChange={(e) => setText(e.target.value)} maxLength={2000}
                 placeholder="a glacier wall calving into black water at dawn, long lens, cold light" />
+            </Field>
+          )}
+
+          {/* Which site this render is for. Only shown once the server has told us which
+              kits exist — a picker listing options the server would refuse is the honesty
+              rule this surface is built on. */}
+          {(c.limits?.brandKits?.length ?? 0) > 0 && (
+            <Field>Brand
+              <Select value={brandKit} onChange={(e) => setBrandKit(e.target.value)} aria-label="Brand kit">
+                {c.limits!.brandKits.map((k) => (
+                  <option key={k.id} value={k.id}>{k.name}{k.isDefault ? ' (default)' : ''}</option>
+                ))}
+              </Select>
             </Field>
           )}
 

@@ -31,88 +31,22 @@ import {
   DEFAULT_MAX_SPEND_USD_DAILY, DEFAULT_MAX_RUNS_DAILY, readComposeLimits, estimateStills,
   clampCount, sha, seedFor, deriveKey, normalizeText,
 } from './composeLimits.mjs';
-import { promptsFromBrief, promptsFromTaste, resolveLawProfile } from './promptSources.mjs';
+import { promptsFromBrief, promptsFromTaste, resolveLawProfile, resolveKit, LAW_PROFILES } from './promptSources.mjs';
 import * as local from './localStillLane.mjs';
 import { persistBatch } from './persistStills.mjs';
 import * as batches from './batchStore.mjs';
+import { applyBrandKit, brandKitView, listBrandKits } from '../../../shared/brandKits/registry.mjs';
 import { runLocalBatch } from './localBatchRunner.mjs';
+import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
 
 export {
   ComposeError, MAX_STILLS, MAX_BRIEF_CHARS, IMAGE_PRICES, SPEND_ENV_KEY, RUNS_ENV_KEY,
   DEFAULT_MAX_SPEND_USD_DAILY, DEFAULT_MAX_RUNS_DAILY, readComposeLimits, estimateStills,
 };
 
-const LANES = new Set(['auto', 'local', 'hosted']);
 const SOURCES = new Set(['brief', 'taste']);
 
-/**
- * Decide the lane. `auto` prefers local when it is probed and reachable; falls
- * to hosted only when hosted has a budget. Neither → a refusal that names both
- * switches, so "nothing works" is never the message.
- */
-async function chooseLane(req, deps) {
-  const { env, limits, localVerify, admit, reserve } = deps;
-  const want = req.lane || 'auto';
-  if (!LANES.has(want)) throw new ComposeError('E_BAD_LANE', `lane must be one of ${[...LANES].join(', ')}.`);
-  if (req.promptSource === 'taste' && want === 'hosted') {
-    throw new ComposeError('E_TASTE_LOCAL_ONLY',
-      'Taste-brain prompts render on the local GPU only. They encode a private aesthetic history '
-      + 'and are never sent to a hosted provider. Choose lane "local" or source "brief".');
-  }
-  const lv = localVerify(env);
-  // Reserve the GPU BEFORE reading its free memory, so admission is not a check-then-act
-  // race between two requests. The reservation travels with the batch; a refusal below
-  // releases it.
-  // An ESTIMATE never contends for the card. It is read-only compute, and reserving for it
-  // meant the UI's debounced cost preview answered E_LOCAL_BUSY for the whole two minutes
-  // a batch was rendering — a price that disappears exactly when you are watching it.
-  const admitLocal = async () => {
-    if (req.estimateOnly) return { lane: 'local', admission: null, reservation: null };
-    const reservation = reserve();
-    try { return { lane: 'local', admission: await admit({ env }), reservation }; } catch (err) { reservation.release(); throw err; }
-  };
-  if (want === 'local' || (want === 'auto' && req.promptSource === 'taste')) {
-    if (!lv.ok) {
-      throw new ComposeError(lv.status !== 'probed' ? 'E_STILL_LANE_UNPROBED' : 'E_PROVIDER_UNCONFIGURED',
-        `Local still lane is not ready: ${lv.problems.join('; ')}.`);
-    }
-    return admitLocal();
-  }
-  if (want === 'auto' && lv.ok) {
-    try { return await admitLocal(); } catch { /* fall through to hosted */ }
-  }
-  if (want === 'auto' && limits.disabled) {
-    throw new ComposeError('E_NO_LANE',
-      `No lane is available. Local stills: ${lv.problems[0] || 'not ready'}. Hosted: switched off `
-      + `(${SPEND_ENV_KEY} is $0). Fix one of those. Nothing was generated and nothing was spent.`);
-  }
-  return { lane: 'hosted', admission: null };
-}
-
-function gateHosted({ model, count, limits, usage, verifier }) {
-  const check = verifier(model);
-  if (!check?.ok) {
-    throw new ComposeError('E_PROVIDER_UNCONFIGURED',
-      `Refusing to generate: ${(check?.problems || ['provider unavailable']).join('; ')}`);
-  }
-  const cost = estimateStills({ count, model });
-  const spent = Number(usage.spendUsd) || 0;
-  if (usage.degraded) {
-    throw new ComposeError('E_LEDGER_DEGRADED',
-      'The spend ledger could not be read, so today\'s total is unknown and a billed model cannot be charged safely.');
-  }
-  if (spent + cost.totalUsd > limits.maxSpendUsdDaily) {
-    throw new ComposeError('E_SPEND_CEILING',
-      limits.maxSpendUsdDaily === 0
-        ? `Image generation is switched off: no budget is set, so the daily ceiling is $0. `
-          + `This batch would cost $${cost.totalUsd.toFixed(4)}. Set ${SPEND_ENV_KEY} to a real number to enable it. `
-          + 'Nothing was spent.'
-        : `This batch costs $${cost.totalUsd.toFixed(4)} and today's spend is $${spent.toFixed(4)}, which passes `
-          + `the $${limits.maxSpendUsdDaily} daily ceiling. Raise ${SPEND_ENV_KEY} or wait for the UTC day to roll over. `
-          + 'Nothing was spent.');
-  }
-  return cost;
-}
+// chooseLane + gateHosted moved to composeLaneChoice.mjs when this file hit its cap.
 
 async function runBatch({ lane, prompts, key, req, model, deps }) {
   const { generator, renderStill, withGpu, env, reservation } = deps;
@@ -162,7 +96,31 @@ export async function composeStills(req = {}, deps = {}) {
 
   const promptSource = req.promptSource || 'brief';
   if (!SOURCES.has(promptSource)) throw new ComposeError('E_BAD_SOURCE', `promptSource must be brief or taste.`);
-  const lawProfile = resolveLawProfile(req.lawProfile); // validated before any gate spends anything
+  // BRAND KIT FIRST: which site's art direction this carries decides which laws judge it,
+  // so an unknown kit costs nothing to discover. It REFUSES rather than falling back, and
+  // it is a field of its own rather than the workspace id — see brandKits/registry.mjs.
+  const kit = resolveKit(req);
+  // NAMING A WORKSPACE WITHOUT NAMING A BRAND IS THE ORIGINAL BUG, DEFAULTED.
+  // Omission is safe for the single-site case — no workspace, no ambiguity, take Swan.
+  // It is NOT safe when the caller has said this asset belongs to another project: three
+  // reviewers pointed out that silently defaulting there reinstates exactly the defect
+  // this slice exists to fix, only now it is the documented behaviour.
+  if (req.workspaceId && !req.brandKit) {
+    throw new ComposeError('E_BRAND_KIT_REQUIRED',
+      `This render names workspace "${req.workspaceId}" but no brand kit, so which site's `
+      + 'art direction to use is ambiguous. Name one of: '
+      + `${listBrandKits().map((k) => k.id).join(', ')}. Nothing was generated and nothing was spent.`);
+  }
+  const lawProfile = resolveLawProfile(kit.lawProfile); // validated before any gate spends anything
+  // TASTE IS SWAN'S TASTE. The corpus behind the taste brain is Sean's Swan-rated library;
+  // there is no version of it that belongs to another brand. Dressing a non-Swan render in
+  // it and saying nothing is the brand-scope leak every seat of the panel named — so this
+  // refuses and points at the two things that actually work instead.
+  if (promptSource === 'taste' && lawProfile !== 'full') {
+    throw new ComposeError('E_TASTE_IS_SWAN_ONLY',
+      `The taste brain draws from the SwanStudios-rated corpus, so it cannot render for "${kit.brandKit}". `
+      + "Use the brief source for this brand, or add a kit that carries the SwanStudios laws. Nothing was generated.");
+  }
   const model = req.model || DEFAULT_MODEL;
   const { count, clampedFrom } = clampCount(req.count);
   const brief = { ...(req.brief || {}), text: normalizeText(req.brief?.text) };
@@ -206,7 +164,7 @@ export async function composeStills(req = {}, deps = {}) {
   if (req.estimateOnly) {
     reservation?.release();
     return { estimateOnly: true, lane, stills: [], failures: [], partial: false, replayed: false,
-      cost: { ...cost, chargedUsd: 0 }, promptSource, model: cost.model, key, admission,
+      cost: { ...cost, chargedUsd: 0 }, promptSource, model: cost.model, key, admission, brandKit: brandKitView(kit),
       ...(clampedFrom === undefined ? {} : { clampedFrom }) };
   }
 
@@ -242,11 +200,11 @@ export async function composeStills(req = {}, deps = {}) {
   // client poll. The idempotency store coalesces on the same batch id.
   if (lane === 'local' && req.async !== false) {
     const batch = batches.createBatch({ userId: req.userId, lane, count, key, promptSource, model: cost.model });
-    const accepted = { accepted: true, batchId: batch.id, lane, promptSource, status: 'queued', count, cost: { ...cost, chargedUsd: 0 },
+    const accepted = { accepted: true, batchId: batch.id, lane, promptSource, status: 'queued', count, cost: { ...cost, chargedUsd: 0 }, brandKit: brandKitView(kit),
       key, admission, statusUrl: `/api/atelier/compose/stills/${batch.id}`, replayed: false };
     settle.res(accepted);
     runLocalBatch({ batch, req, brief, count, key, promptSource, lawProfile, model: cost.model, reservation,
-      deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, ...(deps.watchdogMs ? { watchdogMs: deps.watchdogMs } : {}) } })
+      deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, brandKit: brandKitView(kit), ...(deps.watchdogMs ? { watchdogMs: deps.watchdogMs } : {}) } })
       // The key is evicted when the batch is terminal: a replay is only honest WHILE the
       // batch is in flight. Holding it for the store's lifetime would silently return an
       // old batch to someone deliberately re-rendering the same composition.
@@ -263,7 +221,23 @@ export async function composeStills(req = {}, deps = {}) {
       prompts = t.prompts; tasteMeta = { tasteSeed: t.tasteSeed, lawRejected: t.lawRejected, tasteDropped: t.dropped, lawProfile };
     } else {
       const caps = lane === 'hosted' ? hostedCaps(model) : { provider: local.STILL_PROVIDER, promptStyle: 'sentence' };
-      const b = promptsFromBrief(brief, caps, count, compiler);
+      // Kit language joins HERE, after the length gate, so the limit judges the operator's
+      // own words rather than the brand's.
+      // The kit may REPLACE the compiler's hardcoded kill-list, which is a Swan kill-list.
+      // Dropping Swan's laws was only half of "render for another site" — the negatives
+      // rode along regardless. An explicit caller override still wins, same as lawProfile.
+      const b = promptsFromBrief({
+        ...brief,
+        text: applyBrandKit(brief.text, kit),
+        slotOverrides: {
+          ...(kit.negativeSlot ? { negative: kit.negativeSlot } : {}),
+          ...(brief.slotOverrides || {}),
+        },
+        // The laws this brand is NOT judged by. Without this the compiler applied every
+        // law to every brand, and a non-Swan site could not render a creature — LAW4
+        // exists to protect the Swan mark and means nothing to anyone else.
+        lawProfileDrop: LAW_PROFILES[lawProfile] || [],
+      }, caps, count, compiler);
       prompts = b.prompts.map((p) => ({ ...p, compiled: b.compiled }));
     }
     const settled = await runBatch({ lane, prompts, key, req, model, deps: { generator, renderStill, withGpu, env, reservation } });
@@ -279,11 +253,11 @@ export async function composeStills(req = {}, deps = {}) {
     // Never fatal to the batch: bytes exist, the row does not, and each still says which.
     const persistence = req.persist === false
       ? { ok: false, code: 'E_PERSIST_SKIPPED', persisted: 0 }
-      : await persist({ stills, lane, userId: req.userId, workspaceId: req.workspaceId, model, env });
+      : await persist({ stills, lane, userId: req.userId, workspaceId: req.workspaceId, brandKit: brandKitView(kit), model, env });
     return {
       persistence,
       estimateOnly: false, lane, promptSource, stills, failures, partial: failures.length > 0, replayed: false,
-      cost: { ...cost, chargedUsd: cost.unitUsd * stills.length }, model: cost.model, key, admission, ...tasteMeta,
+      cost: { ...cost, chargedUsd: cost.unitUsd * stills.length }, model: cost.model, key, admission, brandKit: brandKitView(kit), ...tasteMeta,
       ...(clampedFrom === undefined ? {} : { clampedFrom }),
     };
   })();

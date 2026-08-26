@@ -38,6 +38,7 @@
  */
 
 import { compileImage } from '../../../shared/swanPromptCompiler.mjs';
+import { resolveBrandKit, BrandKitError } from '../../../shared/brandKits/registry.mjs';
 import { applyLaws } from '../../../shared/swanLawFilter.mjs';
 import { ComposeError, MAX_STILLS, normalizeText } from './composeLimits.mjs';
 
@@ -120,6 +121,23 @@ export async function fetchTastePrompts({ count, aspect, seed, cinematic = false
  * (yoga/meditation + credential claims — Rule 9) stay in force everywhere. A
  * profile is chosen per request, in the open, and every rejection names its law.
  */
+/**
+ * Resolve the request's brand kit, in this lane's error currency.
+ *
+ * Lives beside the law profiles because that is what a kit mostly decides, and it keeps
+ * the orchestrator free of a try/catch whose only job is to change an error's type.
+ * Reads `brandKit`, NOT `workspaceId` — see brandKits/registry.mjs for why those are two
+ * fields and not one.
+ */
+export function resolveKit(req) {
+  try {
+    return resolveBrandKit(req.brandKit, { lawProfile: req.lawProfile });
+  } catch (err) {
+    if (err instanceof BrandKitError) throw new ComposeError(err.code, err.message);
+    throw err;
+  }
+}
+
 export const LAW_PROFILES = Object.freeze({
   full: Object.freeze([]),
   universal: Object.freeze(['LAW4-optics-not-creatures', 'LAW2-gold-allowlist', 'LAW3-banned-facet']),

@@ -115,7 +115,7 @@ function capsFor(still, model) {
  * Persist ONE still. Returns { assetId, r2Key, sha256, created, mime, width, height }.
  * Throws PersistError (a ComposeError) with a code the route can map.
  */
-export async function persistStill({ still, userId, workspaceId = null, model, caps, commercial = true, territory = 'US', grantRecorded = false }, deps = {}) {
+export async function persistStill({ still, userId, workspaceId = null, brandKit = null, model, caps, commercial = true, territory = 'US', grantRecorded = false }, deps = {}) {
   const d = { ...(Object.keys(deps).length ? {} : await defaultDeps()), ...deps };
   if (!d.storageReady) {
     throw new PersistError('E_STORAGE_UNCONFIGURED',
@@ -155,7 +155,14 @@ export async function persistStill({ still, userId, workspaceId = null, model, c
       // recording a workspace id in a column that means something else would be drift by design.
       projectId: null,
       approvalStatus: 'draft',
-      tags: ['atelier', 'still', `lane:${still.lane}`, `seed:${still.seed}`, ...(workspaceId ? [`workspace:${workspaceId}`] : [])],
+      // The brand kit AND its content hash. A kit is a mutable code object, so the label
+      // alone would point at whatever that name means today — the hash says which version
+      // actually rendered this, which is the only way "why does this not match its label"
+      // has an answer later.
+      tags: ['atelier', 'still', `lane:${still.lane}`, `seed:${still.seed}`,
+        ...(workspaceId ? [`workspace:${workspaceId}`] : []),
+        ...(brandKit ? [`brandkit:${brandKit.id}`, `brandkit-hash:${brandKit.kitHash}`] : []),
+        ...(brandKit?.lawProfileOverridden ? [`lawprofile-override:${brandKit.lawProfile}`] : [])],
       provenance,
     },
   });
@@ -170,11 +177,11 @@ export async function persistStill({ still, userId, workspaceId = null, model, c
  * `assetId`/`r2Key`/`sha256` on success or `persist: {ok:false, code, message}` on failure.
  * Returns the batch verdict.
  */
-export async function persistBatch({ stills, lane, userId, workspaceId, model }, deps = {}) {
+export async function persistBatch({ stills, lane, userId, workspaceId, brandKit = null, model }, deps = {}) {
   let persisted = 0; let firstError = null;
   for (const s of stills) {
     try {
-      const r = await persistStill({ still: { ...s, lane: s.lane || lane }, userId, workspaceId, model }, deps);
+      const r = await persistStill({ still: { ...s, lane: s.lane || lane }, userId, workspaceId, brandKit, model }, deps);
       Object.assign(s, { assetId: r.assetId, r2Key: r.r2Key, sha256: r.sha256, persist: { ok: true, created: r.created } });
       persisted += 1;
     } catch (err) {

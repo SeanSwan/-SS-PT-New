@@ -32,6 +32,7 @@ import { readAsset } from '../services/atelier/persistStills.mjs';
 import { bindMotion } from '../services/atelier/motionBind.mjs';
 import { transitionAsset, publishedReference } from '../services/atelier/publishAsset.mjs';
 import { getBatch, assertBatchId } from '../services/atelier/batchStore.mjs';
+import { listBrandKits } from '../../shared/brandKits/registry.mjs';
 import { STATUS } from './atelierStatusMap.mjs';
 
 const router = express.Router();
@@ -79,7 +80,7 @@ function reqFromBody(req, extra = {}) {
   return {
     brief: b.brief, promptSource: b.promptSource, lane: b.lane, model: b.model,
     count: b.count ?? MAX_STILLS, seed: b.seed, aspect: b.aspect, cinematic: b.cinematic, mode: b.mode, lawProfile: b.lawProfile,
-    workspaceId: b.workspaceId, userId: req.user?.id, persist: b.persist,
+    workspaceId: b.workspaceId, brandKit: b.brandKit, userId: req.user?.id, persist: b.persist,
     idempotencyKey: (typeof headerKey === 'string' && headerKey.trim()) ? headerKey.trim() : undefined,
     ...extra,
   };
@@ -169,6 +170,9 @@ router.get('/limits', protect, adminOnly, (req, res) => {
       hosted: { enabled: !limits.disabled, spendEnvKey: SPEND_ENV_KEY,
         limits: { maxRunsDaily: limits.maxRunsDaily, maxSpendUsdDaily: limits.maxSpendUsdDaily } },
     },
+    // The kits an operator may pick. Ids and names only — the art direction itself is
+    // prompt material and stays server-side, like a compiled prompt.
+    brandKits: listBrandKits(),
     usage: { runs: usage.runs, spendUsd: usage.spendUsd },
     ledger: usage.ledger,
     enabled: lv.ok || !limits.disabled,

@@ -20,6 +20,14 @@ export const STATUS = Object.freeze({
   E_BAD_LANE: 400,
   E_BAD_SOURCE: 400,
   E_BAD_LAW_PROFILE: 400,
+  // A brand kit that does not exist. The caller believed they were selecting art
+  // direction; giving them something else silently is the failure this refuses.
+  E_UNKNOWN_BRAND_KIT: 400,
+  // A workspace was named but no brand kit was. Defaulting there would reinstate the very
+  // bug brand kits exist to fix, so the ambiguity is refused rather than guessed.
+  E_BRAND_KIT_REQUIRED: 400,
+  // The taste corpus is Swan-rated and cannot speak for another brand.
+  E_TASTE_IS_SWAN_ONLY: 400,
   E_COMPILE: 400,
   E_LAW_VIOLATION: 400,
   E_CAPABILITY_UNVERIFIED: 400,

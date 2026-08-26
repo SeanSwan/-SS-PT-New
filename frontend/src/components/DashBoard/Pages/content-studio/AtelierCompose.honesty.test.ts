@@ -26,6 +26,7 @@ const hosted = (o: Partial<HostedLaneView>): HostedLaneView => ({
 });
 const limits = (l: Partial<LocalLaneView>, h: Partial<HostedLaneView>): LimitsView => ({
   maxStills: 4, lanes: { local: local(l), hosted: hosted(h) }, usage: { runs: 0, spendUsd: 0 },
+  brandKits: [{ id: 'swanstudios', name: 'SwanStudios', lawProfile: 'full' as const, aspectDefault: '16:9', isDefault: true }, { id: 'universal', name: 'Universal (no brand laws)', lawProfile: 'universal' as const, aspectDefault: '16:9', isDefault: false }],
   ledger: 'file', enabled: false, note: '',
 });
 

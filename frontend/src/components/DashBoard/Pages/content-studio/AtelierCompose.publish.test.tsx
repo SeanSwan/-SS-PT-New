@@ -13,6 +13,7 @@ const LIMITS = {
     local: { provider: 'comfyui/wan-2.2', status: 'claimed', ready: false, advertisable: false, problems: ['unprobed'], probeEnvKey: 'SWAN_ATELIER_LOCAL_STILLS', unitUsd: 0 },
     hosted: { enabled: true, spendEnvKey: 'SWAN_ATELIER_MAX_SPEND_USD_DAILY', limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5 } },
   },
+  brandKits: [{ id: 'swanstudios', name: 'SwanStudios', lawProfile: 'full' as const, aspectDefault: '16:9', isDefault: true }, { id: 'universal', name: 'Universal (no brand laws)', lawProfile: 'universal' as const, aspectDefault: '16:9', isDefault: false }],
   usage: { runs: 0, spendUsd: 0 }, ledger: 'file', enabled: true, note: '',
 };
 const STILL = { index: 0, lane: 'hosted', image: { kind: 'b64', data: 'AAAA' }, seed: 1, promptHash: 'abc', promptText: 'x', provider: 'openai/gpt-5.4-image-2', assetId: 'asset-1', sha256: 'ab'.repeat(32), persist: { ok: true, created: true } };

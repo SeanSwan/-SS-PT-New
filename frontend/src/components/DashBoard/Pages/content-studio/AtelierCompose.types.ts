@@ -27,9 +27,20 @@ export interface HostedLaneView {
   limits: { maxRunsDaily: number; maxSpendUsdDaily: number };
 }
 
+export interface BrandKitView {
+  id: string;
+  name: string;
+  lawProfile: LawProfile;
+  aspectDefault: string;
+  isDefault: boolean;
+}
+
 export interface LimitsView {
   maxStills: number;
   lanes: { local: LocalLaneView; hosted: HostedLaneView };
+  /** Which sites the studio can render for. Ids and names only — the art direction
+   *  itself is prompt material and never leaves the server. */
+  brandKits: BrandKitView[];
   usage: { runs: number; spendUsd: number };
   ledger: string;
   enabled: boolean;
@@ -91,6 +102,9 @@ export interface BatchSnapshot {
 }
 
 export interface ComposeRequest {
+  /** Which site's art direction to render under. Distinct from workspaceId, which is a
+   *  free-text filing label — art direction is a curated allowlist, filing is not. */
+  brandKit?: string;
   brief: { text: string; intent?: string; aspect?: string };
   promptSource: PromptSource;
   lane: Lane;
