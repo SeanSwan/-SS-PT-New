@@ -438,5 +438,8 @@
     "adding_new_allow": "Run the command once via 'ask' bucket. If it becomes routine, add to allow list. Review new scripts monthly per v3 Patch 4.",
     "pattern_syntax": "See docs/ai-workflow/references/CLAUDE-PERMISSION-SYNTAX.md. Patterns are GLOB not regex.",
     "secret_prevention": "Bash denies are coarse advisory filters. Real enforcement is scripts/scan-secrets.sh on Write/Edit + pre-commit hook (CLAUDE.md Rule 44)."
+  },
+  "env": {
+    "SWAN_HEREDOC_GATE": "enforce"
   }
 }
