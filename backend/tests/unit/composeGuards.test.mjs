@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { rememberKey, defaultCommit, IDEMPOTENCY_RETAIN, settledKeys } from '../../services/atelier/composeGuards.mjs';
+import { rememberKey, defaultCommit, slimForReplay, IDEMPOTENCY_RETAIN, settledKeys } from '../../services/atelier/composeGuards.mjs';
 
 describe('bounding the replay map must not break replay', () => {
   it('NEVER evicts a key whose request is still in flight', () => {
@@ -100,5 +100,35 @@ describe('the coalescing store is process-scoped, not per-call', () => {
     const b = await import('../../services/atelier/composeGuards.mjs');
     expect(a.COALESCING_STORE).toBe(b.COALESCING_STORE);
     expect(a.settledKeys).toBe(b.settledKeys);
+  });
+});
+
+describe('the bound counts entries, so the entries must be small', () => {
+  it('a retained replay keeps every field EXCEPT the payload', () => {
+    // A reviewer asked what an entry weighs: a hosted 4-up holds four base64 images, and a
+    // 1920x1080 PNG is megabytes encoded. Five hundred of those is gigabytes held to answer
+    // a retry that may never come. A bound that counts the wrong unit is not a bound.
+    const result = {
+      lane: 'hosted', partial: false, cost: { totalUsd: 0.0078 }, key: 'k',
+      stills: [
+        { index: 0, seed: 1, assetId: 'a1', image: { kind: 'b64', mime: 'image/png', data: 'X'.repeat(5000) } },
+        { index: 1, seed: 2, assetId: 'a2', image: { kind: 'b64', mime: 'image/png', data: 'Y'.repeat(5000) } },
+      ],
+    };
+    const slim = slimForReplay(result);
+    expect(JSON.stringify(slim).length).toBeLessThan(600);
+    expect(slim.bytesDropped).toBe(true);
+    expect(slim.replayed).toBe(true);
+    // Everything a retry needs to know it already ran, and where the output went:
+    expect(slim.stills.map((s) => s.assetId)).toEqual(['a1', 'a2']);
+    expect(slim.cost.totalUsd).toBe(0.0078);
+    // Shape preserved so a client reading image.kind does not crash on a replay.
+    expect(slim.stills[0].image).toMatchObject({ kind: 'b64', mime: 'image/png', dropped: true });
+    expect(slim.stills[0].image.data).toBeUndefined();
+  });
+
+  it('passes through anything that is not a still batch', () => {
+    expect(slimForReplay(null)).toBeNull();
+    expect(slimForReplay({ accepted: true, batchId: 'b1' })).toMatchObject({ accepted: true });
   });
 });

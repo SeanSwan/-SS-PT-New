@@ -86,3 +86,22 @@ describe('the money gate cannot be dropped by accident', () => {
     expect(out.accepted).toBe(true);
   });
 });
+
+describe('an idempotency key needs an owner', () => {
+  it('refuses a client key with no userId, instead of sharing one anon namespace', async () => {
+    // `u${userId ?? 'anon'}` put every unauthenticated caller in ONE namespace, so two of
+    // them sending the same key coalesced onto each other's work — the second receiving
+    // the first's stills. The same confused deputy an earlier round fixed for
+    // authenticated users, still standing for anonymous ones, found two rounds apart.
+    const { seen, deps } = capturingDeps();
+    const err = await composeStills({ brief: BRIEF, lane: 'hosted', count: 1, idempotencyKey: 'shared' }, deps).catch((e) => e);
+    expect(err.code).toBe('E_BAD_OWNER');
+    expect(seen).toHaveLength(0);
+  });
+
+  it('and permits it once an owner is present', async () => {
+    const { deps } = capturingDeps();
+    const out = await composeStills({ brief: BRIEF, lane: 'hosted', count: 1, idempotencyKey: 'shared', userId: 7 }, deps);
+    expect(out.stills).toHaveLength(1);
+  });
+});

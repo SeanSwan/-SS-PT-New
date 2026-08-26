@@ -187,7 +187,7 @@ export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => n
    * free request (spendUsd 0) still proceeds: a bookkeeping problem must not take down a
    * lane that costs nothing.
    */
-  const tryCommit = ({ runs = 0, spendUsd = 0, maxRunsDaily = Infinity, maxSpendUsdDaily = Infinity } = {}, at = now()) => {
+  const tryCommit = ({ runs = 0, spendUsd = 0, maxRunsDaily, maxSpendUsdDaily } = {}, at = now()) => {
     const day = dayKey(at);
     const before = usageFor(day);
 
@@ -198,6 +198,19 @@ export function makeLaneLedger({ lane, env = process.env, io = fs, now = () => n
     if (!Number.isFinite(spendUsd) || !Number.isFinite(runs) || spendUsd < 0 || runs < 0) {
       return { allowed: false, code: 'E_BAD_COST', usage: before,
         message: `Refusing: a cost of ${spendUsd} and a run count of ${runs} cannot be checked against any ceiling.` };
+    }
+
+    // AND THE CEILINGS THEMSELVES. The guard above was written for the COST and stopped
+    // there, which left the same hole one parameter over: a NaN ceiling makes
+    // `total + cost > ceiling` false, and an ABSENT one used to default to Infinity — so
+    // a missing cap read as "unlimited" rather than "unknown". For a gate that guards
+    // money, an unreadable ceiling is a refusal, not permission. E_BAD_CAP is the code the
+    // video lane already uses for a malformed cap, and it is permanent: retrying does not
+    // repair an environment variable.
+    if (!Number.isFinite(maxRunsDaily) || !Number.isFinite(maxSpendUsdDaily)
+        || maxRunsDaily < 0 || maxSpendUsdDaily < 0) {
+      return { allowed: false, code: 'E_BAD_CAP', usage: before,
+        message: `Refusing: the ceilings are ${maxRunsDaily} runs and $${maxSpendUsdDaily}, which cannot be compared against anything.` };
     }
 
     const billed = spendUsd > 0;

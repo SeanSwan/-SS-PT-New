@@ -81,3 +81,46 @@ export function _resetCoalescing() {
   COALESCING_STORE.clear();
   settledKeys.clear();
 }
+
+/**
+ * The slimmed copy of a settled result that is safe to KEEP.
+ *
+ * The bound is five hundred ENTRIES, and a reviewer pointed out what an entry weighs: a
+ * hosted 4-up holds four base64 images, and a 1920x1080 PNG is megabytes once encoded.
+ * Five hundred of those is gigabytes of resident memory held to answer a retry that may
+ * never come — a bound that counts the wrong unit is not a bound.
+ *
+ * A retry does not actually need the bytes back. It needs to learn that this exact request
+ * ALREADY RAN, and where its output went, so it does not pay for it twice. So the retained
+ * copy keeps every field except the payloads, and says so with `bytesDropped` — the client
+ * fetches from the library by `assetId`, which is the surface that exists for exactly that.
+ */
+export function slimForReplay(result) {
+  if (!result || !Array.isArray(result.stills)) return result;
+  return {
+    ...result,
+    replayed: true,
+    bytesDropped: true,
+    stills: result.stills.map(({ image, ...rest }) => ({
+      ...rest,
+      // Shape preserved so a client reading `image.kind` does not crash on a replay.
+      image: image ? { kind: image.kind, mime: image.mime, dropped: true } : null,
+    })),
+  };
+}
+
+/**
+ * A CLIENT KEY REQUIRES AN OWNER. `u${userId ?? 'anon'}` put every unauthenticated
+ * caller in ONE namespace, so two of them sending the same key string coalesced onto
+ * each other's work — the second receiving the first's batch id and stills. That is the
+ * same confused deputy an earlier round fixed for authenticated users, still standing
+ * for anonymous ones. The live route is admin-only so this was never reachable; the
+ * SHAPE was reachable, and two reviewers found it two rounds apart.
+ */
+export function assertKeyHasOwner(req) {
+  if (req.idempotencyKey && req.userId === undefined) {
+    throw new ComposeError('E_BAD_OWNER',
+      'An idempotency key needs an owner: without one, two callers sending the same key '
+      + "would receive each other's work. Nothing was generated and nothing was spent.");
+  }
+}

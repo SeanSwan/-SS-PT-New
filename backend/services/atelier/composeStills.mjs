@@ -37,7 +37,7 @@ import { persistBatch } from './persistStills.mjs';
 import * as batches from './batchStore.mjs';
 import { applyBrandKit, brandKitView, listBrandKits } from '../../../shared/brandKits/registry.mjs';
 import { runLocalBatch } from './localBatchRunner.mjs';
-import { rememberKey, defaultCommit, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
+import { rememberKey, defaultCommit, slimForReplay, assertKeyHasOwner, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
 import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
 
 export {
@@ -149,8 +149,9 @@ export async function composeStills(req = {}, deps = {}) {
   // A CLIENT-SUPPLIED key is namespaced by owner. Used raw, user B sending the same
   // Idempotency-Key header as user A would land on A's batch and receive A's batch id —
   // a confused deputy that also leaks a handle. The derived key already salts with userId.
+  assertKeyHasOwner(req);
   const key = req.idempotencyKey
-    ? `u${req.userId ?? 'anon'}:${sha(String(req.idempotencyKey)).slice(0, 32)}`
+    ? `u${req.userId}:${sha(String(req.idempotencyKey)).slice(0, 32)}`
     : deriveKey({ ...req, brief, promptSource, lane: req.lane || 'auto', model, count }, now);
   if (!req.estimateOnly && store.has(key)) return { ...(await store.get(key)), replayed: true };
   // Reserve the key SYNCHRONOUSLY, before the first await below: two concurrent identical
@@ -207,7 +208,10 @@ export async function composeStills(req = {}, deps = {}) {
   if (lane === 'local' && req.async !== false) {
     const batch = batches.createBatch({ userId: req.userId, lane, count, key, promptSource, model: cost.model });
     const accepted = { accepted: true, batchId: batch.id, lane, promptSource, status: 'queued', count, cost: { ...cost, chargedUsd: 0 }, brandKit: brandKitView(kit),
-      key, admission, statusUrl: `/api/atelier/compose/stills/${batch.id}`, replayed: false };
+      key, admission, statusUrl: `/api/atelier/compose/stills/${batch.id}`, replayed: false,
+      // The synchronous path reports this and the async path did not, so a client whose
+      // count was silently reduced had no way to know on the lane that reduces it most.
+      ...(clampedFrom === undefined ? {} : { clampedFrom }) };
     settle.res(accepted);
     runLocalBatch({ batch, req, brief, count, key, promptSource, lawProfile, model: cost.model, reservation,
       deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, brandKit: brandKitView(kit), ...(deps.watchdogMs ? { watchdogMs: deps.watchdogMs } : {}) } })
@@ -273,6 +277,10 @@ export async function composeStills(req = {}, deps = {}) {
   })();
   const result = await work;
   settle.res(result);
+  // Replace the retained promise with a SLIMMED copy before remembering it. The live
+  // caller already has `result` in hand; what stays in the map is only what a retry needs
+  // to learn that this request already ran — see slimForReplay for why the payloads go.
+  store.set(key, Promise.resolve(slimForReplay(result)));
   // DELIBERATELY NOT EVICTED HERE. A reviewer found that the synchronous path never
   // deletes its key and called it a leak — correct about the leak, wrong about the cure.
   // This path is the HOSTED lane, which charges money. If the client's connection drops

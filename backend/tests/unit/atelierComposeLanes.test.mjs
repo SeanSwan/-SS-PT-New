@@ -255,7 +255,9 @@ describe('auto lane and idempotency', () => {
       env: {}, verifier: okHosted, store, commit: () => ({ allowed: true }), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false },
       generator: async () => { calls += 1; await new Promise((r) => setTimeout(r, 20)); return { images: ['b64'], usage: {} }; },
     };
-    const req = { brief: BRIEF, lane: 'hosted', count: 1, idempotencyKey: 'same' };
+    // An owner is required alongside a client key now: without one, two anonymous
+    // callers sending the same key would receive each other's work.
+    const req = { brief: BRIEF, lane: 'hosted', count: 1, idempotencyKey: 'same', userId: 1 };
     const [a, b] = await Promise.all([composeStills(req, deps), composeStills(req, deps)]);
     expect(calls).toBe(1);
     expect([a.replayed, b.replayed].filter(Boolean)).toHaveLength(1);
@@ -264,7 +266,7 @@ describe('auto lane and idempotency', () => {
   it('a failed batch releases its key so a retry can run', async () => {
     const store = new Map();
     const deps = { env: {}, verifier: okHosted, store, commit: () => ({ allowed: true }), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false }, generator: async () => { throw new Error('down'); } };
-    const req = { brief: BRIEF, lane: 'hosted', count: 1, idempotencyKey: 'k' };
+    const req = { brief: BRIEF, lane: 'hosted', count: 1, idempotencyKey: 'k', userId: 1 };
     await expect(composeStills(req, deps)).rejects.toMatchObject({ code: 'E_ALL_FAILED' });
     expect(store.has('k')).toBe(false);
   });
