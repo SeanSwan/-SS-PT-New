@@ -52,7 +52,7 @@ function syncWatchdog(ms = SYNC_WATCHDOG_MS) {
     if (typeof t.unref === 'function') t.unref();
   });
 }
-import { rememberKey, defaultCommit, slimForReplay, assertKeyHasOwner, assertSlotOverrides, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
+import { rememberKey, defaultCommit, slimForReplay, assertKeyHasOwner, assertSlotOverrides, releaseWhenSettled, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
 import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
 
 export {
@@ -154,6 +154,8 @@ export async function composeStills(req = {}, deps = {}) {
   // requests would otherwise both pass `has` and both run. The placeholder is settled with
   // the real outcome; a failure deletes it so a retry can run.
   let settle = null; let reservation = null;
+  // The render, once started, so a timeout releases the GPU only after it truly ends.
+  let inFlightWork = null;
   if (!req.estimateOnly) { const pending = new Promise((res, rej) => { settle = { res, rej }; }); pending.catch(() => {}); store.set(key, pending); }
   try {
 
@@ -238,9 +240,16 @@ export async function composeStills(req = {}, deps = {}) {
     // the GPU AND the HTTP request open with nothing to end either. A reviewer pointed out
     // that the guard existed on one of the two lanes — which by this point in the review
     // was a familiar sentence.
+    const batchWork = runBatch({ lane, prompts, key, req, model, deps: { generator, renderStill, withGpu, env, reservation } });
+    // Held in `inFlightWork` so a timeout can wait for the render before freeing the card.
+    // The FIRST version of this watchdog released on the race, which is precisely the bug
+    // the async lane had already fixed — reproduced here within the hour, because the
+    // release rule existed in two places instead of one. Both lanes now call
+    // releaseWhenSettled.
+    inFlightWork = batchWork;
     const settled = lane === 'local'
-      ? await Promise.race([syncWatchdog(deps.watchdogMs), runBatch({ lane, prompts, key, req, model, deps: { generator, renderStill, withGpu, env, reservation } })])
-      : await runBatch({ lane, prompts, key, req, model, deps: { generator, renderStill, withGpu, env, reservation } });
+      ? await Promise.race([syncWatchdog(deps.watchdogMs), batchWork])
+      : await batchWork;
     const stills = []; const failures = [];
     settled.forEach((s, i) => {
       // `provider` is canonical; `model` is kept as an alias so the hosted contract
@@ -294,7 +303,7 @@ export async function composeStills(req = {}, deps = {}) {
   return result;
   } catch (err) {
     if (settle) { store.delete(key); settle.rej(err); }
-    reservation?.release();
+    releaseWhenSettled(reservation, inFlightWork, deps.watchdogMs);
     throw err;
   }
 }

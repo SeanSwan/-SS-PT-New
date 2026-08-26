@@ -15,6 +15,7 @@
 import * as batches from './batchStore.mjs';
 import { sha, seedFor } from './composeLimits.mjs';
 import { buildPrompts } from './composePrompts.mjs';
+import { releaseWhenSettled } from './composeGuards.mjs';
 import { brandKitView } from '../../../shared/brandKits/registry.mjs';
 import * as local from './localStillLane.mjs';
 
@@ -111,24 +112,7 @@ export async function runLocalBatch({ batch, req, brief, count, key, promptSourc
   } catch (err) {
     aborted.now = true;
     batches.finishBatch(batch, { error: err });
-    if (inFlight) {
-      // Release after the loop SETTLES — or after a bounded grace, whichever comes first.
-      //
-      // Neither extreme is correct, and the tests caught the second one immediately.
-      // Releasing the instant the watchdog fires hands the card to a new batch while an
-      // in-flight render still owns it. Waiting unconditionally for the loop means a
-      // genuinely HUNG render holds the card forever, which is the exact failure the
-      // watchdog was added to end. So: prefer the truth (wait for real work), but never
-      // wedge — a render that has not finished within the grace is not going to.
-      const grace = Math.min(30_000, Math.max(250, watchdogMs));
-      let released = false;
-      const release = () => { if (!released) { released = true; reservation?.release(); } };
-      const graceTimer = setTimeout(release, grace);
-      if (typeof graceTimer.unref === 'function') graceTimer.unref();
-      inFlight.catch(() => {}).finally(() => { clearTimeout(graceTimer); release(); });
-    } else {
-      reservation?.release();
-    }
+    releaseWhenSettled(reservation, inFlight, watchdogMs);
   } finally {
     if (timer) clearTimeout(timer);
   }
