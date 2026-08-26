@@ -12,7 +12,7 @@
  *   AC3  elite, no assignment           -> 200 community DMs (UNCHANGED)
  *   AC4  free tier, no assignment       -> 402 everywhere (UNCHANGED)
  *   AC5  live trial                     -> permitted (UNCHANGED, matches API)
- *   AC6  assignment lookup throws       -> denied (FAIL CLOSED)
+ *   AC6  assignment lookup throws       -> 503 (FAIL CLOSED, not a paywall)
  *
  * The middleware is mounted on a bare express app; controllers are stubs.
  * Only authorization wiring is under test.
@@ -199,10 +199,15 @@ describe('requireMessagingAccess', () => {
       resolveEntitlementMock.mockResolvedValue({ actualTier: 'free', effectiveTier: 'free', isTrial: false });
     });
 
-    it('denies when the assignment lookup throws', async () => {
+    it('fails CLOSED as 503 when the assignment lookup throws (was a paywall)', async () => {
+      // RE-ANCHORED 2026-08-25: asserted 402. A failed lookup is not "you have
+      // no trainer" — it rendered the upsell to a paying client with an active
+      // assignment during a transient DB fault, in the exact words this
+      // middleware exists to stop (GLM 5.3). Still fail-closed, now honest.
       mockSql({ throwOn: 'assignments' });
       const res = await request(appWith(freeClient, 'list')).get('/conversations');
-      expect(res.status).toBe(402);
+      expect(res.status).toBe(503);
+      expect(res.body.code).toBe('MESSAGING_LOOKUP_UNAVAILABLE');
     });
 
     it('denies when the participant lookup throws', async () => {
@@ -271,7 +276,7 @@ describe('requireMessagingAccess', () => {
       queryMock.mockImplementation(async (sql) => {
         if (sql.includes('client_trainer_assignments')) return [{ counterparty: String(TRAINER_ID) }];
         if (sql.includes('conversation_participants')) {
-          return [{ userId: String(CLIENT_ID) }, { userId: String(TRAINER_ID) }];
+          return [{ userId: String(CLIENT_ID), platformRole: 'client' }, { userId: String(TRAINER_ID), platformRole: 'trainer' }];
         }
         return [];
       });

@@ -31,6 +31,8 @@
  * Only authorization wiring is under test.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import express from 'express';
 import request from 'supertest';
 
@@ -196,5 +198,18 @@ describe('adminIds is validated in BOTH scopes, not just conversation', () => {
     const res = await request(appWith(freeClient, 'create'))
       .post('/conversations').send({ participantIds: [TRAINER_ID], adminIds: [TRAINER_ID] });
     expect(res.status).toBe(200);
+  });
+});
+
+describe('the gate reads the SAME body fields the controller binds', () => {
+  // ox-alpha: if the controller ever bound `userIds` or `members` instead of
+  // `participantIds`/`adminIds`, the gate's check would be vacuously true and the
+  // escalation this file exists to prevent would reopen silently. Field-name
+  // drift has hit this repo three times. This pins the contract at the source.
+  it('groupController binds req.body.participantIds and req.body.adminIds', () => {
+    const src = readFileSync(resolve(__dirname, '../../controllers/messaging/groupController.mjs'), 'utf8');
+    expect(src).toContain('req.body.participantIds');
+    expect(src).toContain('req.body.adminIds');
+    expect(src).not.toMatch(/req\.body\.(userIds|members|users)/);
   });
 });

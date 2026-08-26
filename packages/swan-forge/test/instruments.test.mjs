@@ -175,3 +175,194 @@ test('exceptions: expiry is enforced by the parser', () => {
   assert.equal(rows.length, 1);
   assert.equal(rows[0].pathSub, 'Legacy.css');
 });
+
+// ── R6 + the tagger: the T2 standing-law and context-classification instruments ──────
+
+test('drift-lint R6: a hand-written styled(ForgeButton) that RESTYLES is flagged; one that POSITIONS is not', () => {
+  // The codemod refuses to CREATE a skin-fighting wrapper; R6 is the half that survives the
+  // merge and stops one being hand-written afterwards (Ox T2 B3). Same boundary function.
+  const clean = 'export const A = styled(ForgeButton)`\n  margin-top: 1rem;\n  flex: 1;\n`;';
+  assert.equal(lintText('a.tsx', clean, { isConsumer: true }).filter((v) => v.rule === 'R6').length, 0);
+  const override = 'export const B = styled(ForgeButton)`\n  --sw-btn-height: 40px;\n`;';
+  assert.equal(lintText('b.tsx', override, { isConsumer: true }).filter((v) => v.rule === 'R6').length, 0,
+    '--sw-btn-* IS the sanctioned override surface, not a violation');
+  for (const decl of ['background: red;', 'outline: none;', 'line-height: 1;', 'width: 300px;',
+    'filter: brightness(2);', 'text-shadow: 0 0 2px red;', '&:hover { background: red; }', '${skinCss}']) {
+    const src = `export const C = styled(ForgeButton)\`\n  ${decl}\n\`;`;
+    const hits = lintText('c.tsx', src, { isConsumer: true }).filter((v) => v.rule === 'R6');
+    assert.equal(hits.length, 1, `${decl} must raise R6`);
+  }
+});
+
+test('tag-legacy-hex: REFUSES every context it cannot positively classify, and never guesses', async () => {
+  const { commentFormFor } = await import('../scripts/tag-legacy-hex.mjs');
+  const at = (src, idx) => { const l = src.split('\n'); let a = 0; for (let i = 0; i < idx; i++) a += l[i].length + 1; return [a, l[idx]]; };
+  // Both of these produced a `//` in the first version. (b) is the class that already shipped once:
+  // appended after JSX children, `//` is not a comment — it is TEXT, and it renders.
+  const jsxText = '<td>\n  Status colour #ef4444 retired\n</td>';
+  assert.equal(commentFormFor('x.tsx', jsxText, ...at(jsxText, 1)), null, 'JSX text line → REFUSE');
+  const openTag = "<div style={{ color: '#ef4444' }}>";
+  assert.equal(commentFormFor('x.tsx', openTag, ...at(openTag, 0)), null, 'opening-tag line → REFUSE');
+  // A backtick inside a quoted string used to flip parity for the rest of the file, putting a
+  // `//` INSIDE the CSS where it is not a comment.
+  const poisoned = 'const s = "a ` b";\nexport const B = styled.div`\n  color: #ef4444;\n`;';
+  assert.match(commentFormFor('x.ts', poisoned, ...at(poisoned, 2)), /^\/\* /, 'still recognised as CSS template');
+  // Positively classifiable contexts still tag.
+  const jsxChild = "const A = () => (\n  <p>{e && <B style={{ color: '#ef4444' }}>x</B>}</p>\n);";
+  assert.match(commentFormFor('x.tsx', jsxChild, ...at(jsxChild, 1)), /^\{\/\* /);
+  const plain = "const c = '#ef4444';";
+  assert.match(commentFormFor('x.ts', plain, ...at(plain, 0)), /^\/\/ /);
+});
+
+test('drift-lint R6: the four ways past the first version are all closed (own probe, before the panel named them)', () => {
+  // A standing law that only recognises one syntax is not a standing law.
+  const bypasses = {
+    'attrs': 'const B = styled(ForgeButton).attrs({})`background: red;`;',
+    'withConfig': 'const C = styled(ForgeButton).withConfig({})`background: red;`;',
+    'object styles': 'const F = styled(ForgeButton)({ background: "red" });',
+    'newline before tick': 'const H = styled(ForgeButton)\n  `background: red;`;',
+    're-extended wrapper': 'const D = styled(ForgeButton)`margin: 0;`;\nconst E = styled(D)`background: red;`;',
+  };
+  for (const [name, src] of Object.entries(bypasses)) {
+    const hits = lintText('x.tsx', src, { isConsumer: true }).filter((v) => v.rule === 'R6');
+    assert.equal(hits.length, 1, `${name} must raise exactly one R6`);
+  }
+  // Object-styles syntax is flagged because it cannot be audited — "cannot verify" is not "fine".
+  assert.match(lintText('x.tsx', bypasses['object styles'], { isConsumer: true })[0].detail, /cannot be audited statically/);
+  // A transitively-extended wrapper names its chain so the reader knows why it was caught.
+  assert.match(lintText('x.tsx', bypasses['re-extended wrapper'], { isConsumer: true })[0].detail, /transitively wraps ForgeButton/);
+  // ...and a layout-only chain stays clean through the same paths.
+  const clean = 'const A = styled(ForgeButton).attrs({ type: "button" })`margin-top: 1rem;`;\nconst Z = styled(A)`flex: 1;`;';
+  assert.equal(lintText('x.tsx', clean, { isConsumer: true }).filter((v) => v.rule === 'R6').length, 0);
+});
+
+test('GOLDEN: the layout allow-list is pinned — widening the boundary must be a reviewed diff', async () => {
+  // The entire governance boundary reduces to one list. Adding a property to it was a one-line
+  // edit with no failing fixture (Ox T2-R2 N3b). This pins the exact set AND asserts the regex
+  // agrees with it, so widening either half without the other turns red.
+  const { LAYOUT_ALLOWED_PROPS, styledWrapperBlocker } = await import('../scripts/codemod-glowbutton.mjs');
+  assert.deepEqual([...LAYOUT_ALLOWED_PROPS].sort(), [
+    'align-self', 'flex', 'flex-basis', 'flex-grow', 'flex-shrink',
+    'grid-area', 'grid-column', 'grid-column-end', 'grid-column-start',
+    'grid-row', 'grid-row-end', 'grid-row-start', 'justify-self',
+    'margin', 'margin-block', 'margin-block-end', 'margin-block-start',
+    'margin-bottom', 'margin-inline', 'margin-inline-end', 'margin-inline-start',
+    'margin-left', 'margin-right', 'margin-top', 'order', 'place-self',
+  ], 'the allow-list changed — is this a deliberate, reviewed widening of the rule-84 boundary?');
+  for (const p of LAYOUT_ALLOWED_PROPS) assert.equal(styledWrapperBlocker(`${p}: 0;`), null, `${p} is on the manifest but the matcher blocks it`);
+  // The sanctioned token surface is the --sw-btn-* namespace, NOT the whole --sw- family.
+  assert.equal(styledWrapperBlocker('--sw-btn-height: 40px;'), null);
+  assert.match(styledWrapperBlocker('--sw-accent: red;'), /outside the published --sw-btn-\* override surface/);
+  assert.match(styledWrapperBlocker('--brand-x: red;'), /outside the published/);
+});
+
+test('allow-list VALUE seams: a length flex-basis is sizing; min-width:0 is the flex-overflow fix', async () => {
+  // The name-only check locked `width: 300px` out the front door and left `flex: 0 0 320px`
+  // open at the back — flex-basis IS the main-axis size (GLM T2-R2 §3). And blocking
+  // `min-width: 0` made every real flex row cost a manual decision for a property that sets
+  // no size at all.
+  const { styledWrapperBlocker } = await import('../scripts/codemod-glowbutton.mjs');
+  for (const ok of ['flex: 1;', 'flex: 1 1 auto;', 'min-width: 0;', 'min-width: 0px;', 'min-inline-size: 0;']) {
+    assert.equal(styledWrapperBlocker(ok), null, `${ok} is layout`);
+  }
+  for (const no of ['flex: 0 0 320px;', 'flex: 0 0 20%;', 'min-width: 300px;', 'min-inline-size: 20rem;']) {
+    assert.ok(styledWrapperBlocker(no), `${no} is sizing and must block`);
+  }
+  assert.match(styledWrapperBlocker('flex: 0 0 320px;'), /main-axis SIZING/);
+});
+
+test('tagger lexer: a regex literal containing a backtick must NOT poison template state (GLM T2-R2 §5)', async () => {
+  const { lexStateAt, commentFormFor } = await import('../scripts/tag-legacy-hex.mjs');
+  const at = (src, ln) => { const l = src.split('\n'); let a = 0; for (let i = 0; i < ln; i++) a += l[i].length + 1; return a; };
+  // Without regex-literal state, `/^`{3}/m` opens a template that never closes, and every later
+  // line lexes as CSS — so a JSX line receives a bare /* */ that renders as visible text.
+  for (const src of [
+    'const FENCE = /^`{3}/m;\nconst X = () => (\n  <p>Pay by #ef4444 card</p>\n);',
+    "const s = t.replace(/`/g, '');\nconst Y = () => (\n  <p>Pay by #ef4444 card</p>\n);",
+    "const q = /it's/;\nconst Z = '#ef4444';",
+  ]) {
+    const ln = src.split('\n').length - 2;
+    assert.equal(lexStateAt(src, at(src, ln)), 'normal', 'regex literal must not leave us inside a template');
+  }
+  const jsx = 'const FENCE = /^`{3}/m;\nconst X = () => (\n  <p>Pay by #ef4444 card</p>\n);';
+  const form = commentFormFor('x.tsx', jsx, at(jsx, 2), jsx.split('\n')[2]);
+  assert.ok(form === null || form.startsWith('{/*'), 'never the bare /* */ form in JSX children');
+});
+
+test('R6 round-3: balanced-paren chains, chained seeds, and interpolation-aware terminators', async () => {
+  // Every one of these went UNSCANNED before: a ")" inside .attrs args ended the chain early,
+  // a chained seed never entered the wrapper set, and indexOf('`') truncated the audited body.
+  const IMP = "import FB from '../ui/forge/ForgeButton';\n";
+  const flagged = {
+    'attrs with ) in an arrow arg': 'const A = styled(FB).attrs((p) => ({ type: "button" }))`background: red;`;',
+    'attrs with ) in a string': 'const B = styled(FB).attrs({ t: "a)b" })`outline: none;`;',
+    'seed through a chain': 'const W = styled(FB).attrs({})`flex: 1;`;\nconst V = styled(W)`background: red;`;',
+    'wrapper built off FB.attrs': 'const U = FB.attrs({});\nconst T = styled(U)`background: red;`;',
+    'interpolated body terminator': 'const C = styled(FB)`${css`x`} background: red;`;',
+  };
+  for (const [name, body] of Object.entries(flagged)) {
+    const hits = lintText('x.tsx', IMP + body, { isConsumer: true }).filter((v) => v.rule === 'R6');
+    assert.ok(hits.length >= 1, `${name} must raise R6`);
+  }
+  const clean = {
+    'layout-only through a chain': 'const D = styled(FB).attrs((p) => ({ type: "button" }))`margin-top: 1rem;`;',
+    'layout re-extension': 'const E = styled(FB)`flex: 1;`;\nconst F = styled(E)`margin: 0;`;',
+  };
+  for (const [name, body] of Object.entries(clean)) {
+    assert.equal(lintText('x.tsx', IMP + body, { isConsumer: true }).filter((v) => v.rule === 'R6').length, 0, `${name} must stay clean`);
+  }
+});
+
+test('R7 guards the re-export SHIM too — two T-tier surfaces reach the button through it', async () => {
+  const { RETENTION_GUARDED, checkRetention } = await import('../scripts/drift-lint.mjs');
+  const paths = RETENTION_GUARDED.map((r) => r.path);
+  assert.ok(paths.includes('components/ui/buttons/GlowButton.tsx'));
+  assert.ok(paths.includes('components/ui/GlowButton.ts'), 'guarding only the .tsx leaves the revert broken for shim importers');
+  assert.equal(checkRetention(() => true).length, 0);
+  assert.equal(checkRetention(() => false).length, 2);
+});
+
+test('flex-basis LONGHAND is sizing too — the seam was closed in the shorthand and left open next door', async () => {
+  const { styledWrapperBlocker } = await import('../scripts/codemod-glowbutton.mjs');
+  for (const no of ['flex-basis: 320px;', 'flex-basis: 20%;', 'flex: 0 0 320px;']) {
+    assert.match(styledWrapperBlocker(no), /main-axis SIZING/, `${no} must block`);
+  }
+  for (const ok of ['flex-basis: auto;', 'flex-basis: content;', 'flex: 1;', 'flex: 1 1 auto;']) {
+    assert.equal(styledWrapperBlocker(ok), null, `${ok} is layout`);
+  }
+});
+
+test('EXCEPTIONS ledger: a commented-out example row is NOT a live suppression', () => {
+  // The template ships an example row inside an HTML comment. A line-by-line regex loaded it as
+  // an ACTIVE exception — it suppressed nothing only because the example path does not exist.
+  // An example that silently becomes governance is the hole the ledger exists to prevent.
+  const withComment = '| a/b.css | R2 | sean | 2099-01-01 | real |\n<!--\n| c/d.css | R2 | sean | 2099-01-01 | example |\n-->';
+  const rows = loadExceptions(withComment);
+  assert.equal(rows.length, 1, 'only the uncommented row is live');
+  assert.equal(rows[0].pathSub, 'a/b.css');
+  assert.equal(loadExceptions('| e/f.css | R2 | sean | 2000-01-01 | old |').length, 0, 'expired rows stay excluded');
+});
+
+test('R6 fail-LOUD: an unparseable wrapper is REPORTED, never silently skipped (the toolkit\'s own invariant)', () => {
+  // "Cannot verify must never render as fine" is printed in this file's own header, and two
+  // `continue`s broke it: an unbalanceable chain or a missing terminator made the wrapper VANISH
+  // (Ox T2-R4 narrow reopen — the only new scope he allowed himself, and he was right).
+  const BT = String.fromCharCode(96);
+  const IMP = "import FB from '../ui/forge/ForgeButton';\n";
+  const unterminated = IMP + 'const B = styled(FB)' + BT + 'background: red;';
+  const hits = lintText('x.tsx', unterminated, { isConsumer: true }).filter((v) => v.rule === 'R6');
+  assert.equal(hits.length, 1, 'a missing template terminator must be reported');
+  assert.match(hits[0].detail, /NOT audited, human decision required/);
+  // Ox's actual named example — a template containing ")" inside .attrs args — parses correctly
+  // and is caught on its merits rather than by the fail-loud path.
+  const trickyButValid = IMP + 'const C = styled(FB).attrs((p) => ({ a: ' + BT + ')' + BT + ' }))' + BT + 'background: red;' + BT + ';';
+  const t = lintText('x.tsx', trickyButValid, { isConsumer: true }).filter((v) => v.rule === 'R6');
+  assert.equal(t.length, 1);
+  assert.match(t[0].detail, /sets 'background'/);
+  // A wrapper that declares NO styles is "nothing to verify", not "could not verify" — no finding,
+  // and it still seeds the closure so a later styled(W) is audited.
+  const noStyles = IMP + 'const W = styled(FB).attrs({});\nconst V = styled(W)' + BT + 'background: red;' + BT + ';';
+  const n = lintText('x.tsx', noStyles, { isConsumer: true }).filter((v) => v.rule === 'R6');
+  assert.equal(n.length, 1, 'only the restyling re-extension is reported');
+  assert.match(n[0].detail, /transitively wraps ForgeButton/);
+});

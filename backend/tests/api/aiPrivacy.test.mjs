@@ -256,10 +256,13 @@ describe('De-Identification Service', () => {
       process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
       process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = GATED_FIELDS_REQUIRE_CONSENT_VERSION;
       try {
+        // RE-ANCHORED 2026-08-25: env alone no longer opens the hatch; the
+        // shipping disclosure (CURRENT 2.0) must first be bumped to REQUIRE
+        // (3.0). Today: still withheld. Open path: deIdentifierHatchOpen.test.mjs.
         const result = deIdentify(createMasterPromptFixture());
-        expect(result.deIdentified.lifestyle.sleepHours).toBe(7);
-        expect(result.deIdentified.lifestyle.sleepQuality).toBe('good');
-        expect(result.deIdentified.lifestyle.stressLevel).toBe('moderate');
+        expect(result.deIdentified.lifestyle.sleepHours).toBeUndefined();
+        expect(result.deIdentified.lifestyle.sleepQuality).toBeUndefined();
+        expect(result.deIdentified.lifestyle.stressLevel).toBeUndefined();
       } finally {
         delete process.env.COACH_HEALTH_FIELDS_ENABLED;
         delete process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION;
@@ -580,6 +583,51 @@ describe('AI Consent Middleware', () => {
       expect(res.body.storedVersion).toBe('1.0');
     });
   });
+
+  describe('whose consent vouches — decided by role, never by the body', () => {
+    // ox-alpha, GLM 5.3 and Kimi K3 found this independently: body.userId was
+    // honoured for ANY role when numeric, and the clamp compared against the
+    // literal 'client' while Users.role also carries 'user' (the default).
+    const consenting = { aiEnabled: true, withdrawnAt: null, consentVersion: CURRENT_CONSENT_VERSION };
+
+    it.each(['client', 'user'])('403s a %s naming another user as the target', async (role) => {
+      mockFindOne.mockResolvedValue(consenting);
+      const req = createMockReq({ user: { id: 7, role }, body: { userId: 42 } });
+      const res = createMockRes();
+      const next = vi.fn();
+
+      await middleware(req, res, next);
+
+      expect(next).not.toHaveBeenCalled();
+      expect(res.statusCode).toBe(403);
+      expect(res.body.code).toBe('AI_CONSENT_TARGET_FORBIDDEN');
+      expect(mockFindOne).not.toHaveBeenCalled(); // never even looks up the victim
+    });
+
+    it.each(['client', 'user'])('clamps a %s with no body target to SELF', async (role) => {
+      mockFindOne.mockResolvedValue(consenting);
+      const req = createMockReq({ user: { id: 7, role }, body: {} });
+      const res = createMockRes();
+      const next = vi.fn();
+
+      await middleware(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect(mockFindOne.mock.calls[0][0].where.userId).toBe(7);
+    });
+
+    it('lets staff name a target (ownership is enforced downstream)', async () => {
+      mockFindOne.mockResolvedValue(consenting);
+      const req = createMockReq({ user: { id: 900, role: 'trainer' }, body: { userId: 42 } });
+      const res = createMockRes();
+      const next = vi.fn();
+
+      await middleware(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect(mockFindOne.mock.calls[0][0].where.userId).toBe(42);
+    });
+  });
 });
 
 // ─── Integration: Provider payload must be de-identified ─────────────────────
@@ -645,4 +693,24 @@ describe('Provider Payload Safety', () => {
     expect(serialized).toContain('squats');
   });
 
+});
+
+describe('PII redaction is order-independent across fields', () => {
+  // ox-alpha suspected a stateful /g regex would skip the second field. Executed
+  // proof showed .replace() resets lastIndex — but that is a spec subtlety, and
+  // the .test() pre-checks were removed so there is no state to get wrong. This
+  // pins it: long-then-short, short-then-long, and a shuffled order all redact.
+  const fields = {
+    a: 'Contact me at jane.doe@gmail.com about scheduling, reference 555-867-5309 x12',
+    b: 'email bob@corp.com',
+    c: 'x',
+    d: 'ping carol@site.org now',
+  };
+  it.each([['a','b','c','d'], ['d','c','b','a'], ['b','d','a','c']])('order %j', (...order) => {
+    const payload = { client: { id: 1, goals: 'g' }, training: { level: 'i' } };
+    for (const k of order) payload[k] = fields[k];
+    const { deIdentified } = deIdentify(payload, { clientId: 1 });
+    const out = JSON.stringify(deIdentified);
+    expect(out).not.toMatch(/gmail\.com|corp\.com|site\.org|867-5309/);
+  });
 });

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import GlowButton from '../ui/buttons/GlowButton';
+import ForgeButton from '../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import { OutlinedButton } from './ui';
 import type { SessionDetailModalMode } from './SessionDetailModal.types';
 
@@ -78,37 +78,37 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
         Close
       </OutlinedButton>
       {canCancel && !isFocusedFlow && (
-        <GlowButton variant="ruby" size="medium" onClick={onCancelClick} disabled={loading || lateCancelLoading} isLoading={lateCancelLoading}>
+        <ForgeButton variant="ruby" size="medium" onClick={onCancelClick} disabled={loading || lateCancelLoading} isLoading={lateCancelLoading}>
           {lateCancelLoading ? 'Checking...' : 'Cancel Session'}
-        </GlowButton>
+        </ForgeButton>
       )}
       {showCancelOptions && (
         <>
           <OutlinedButton onClick={onHideCancelOptions} disabled={loading}>
             Back
           </OutlinedButton>
-          <GlowButton variant="ruby" size="medium" onClick={onCancel} disabled={loading}>
+          <ForgeButton variant="ruby" size="medium" onClick={onCancel} disabled={loading}>
             Confirm Cancellation
-          </GlowButton>
+          </ForgeButton>
         </>
       )}
       {canLogFromSchedule && !isFocusedFlow && (
         <>
-          <GlowButton variant="neonBlue" size="medium" onClick={onCoachLogWorkout}>Coach Log</GlowButton>
-          <GlowButton variant="neonBlue" size="medium" onClick={onLogWorkout}>{scheduleLogWorkoutLabel}</GlowButton>
+          <ForgeButton variant="neonBlue" size="medium" onClick={onCoachLogWorkout}>Coach Log</ForgeButton>
+          <ForgeButton variant="neonBlue" size="medium" onClick={onLogWorkout}>{scheduleLogWorkoutLabel}</ForgeButton>
         </>
       )}
       {canRecordAttendance && !isFocusedFlow && (
         <>
-          <GlowButton variant="emerald" size="medium" onClick={() => onRecordAttendance('present')} disabled={attendanceLoading} isLoading={attendanceLoading}>
+          <ForgeButton variant="emerald" size="medium" onClick={() => onRecordAttendance('present')} disabled={attendanceLoading} isLoading={attendanceLoading}>
             {attendanceLoading ? 'Recording...' : 'Present'}
-          </GlowButton>
-          <GlowButton variant="neonBlue" size="medium" onClick={() => onRecordAttendance('late')} disabled={attendanceLoading}>
+          </ForgeButton>
+          <ForgeButton variant="neonBlue" size="medium" onClick={() => onRecordAttendance('late')} disabled={attendanceLoading}>
             Late
-          </GlowButton>
-          <GlowButton variant="ruby" size="medium" onClick={() => onRecordAttendance('no_show')} disabled={attendanceLoading}>
+          </ForgeButton>
+          <ForgeButton variant="ruby" size="medium" onClick={() => onRecordAttendance('no_show')} disabled={attendanceLoading}>
             No-Show
-          </GlowButton>
+          </ForgeButton>
         </>
       )}
       {showNoShowReason && (
@@ -116,25 +116,25 @@ const SessionDetailFooterActions: React.FC<SessionDetailFooterActionsProps> = ({
           <OutlinedButton onClick={onBackFromNoShowReason} disabled={attendanceLoading}>
             Back
           </OutlinedButton>
-          <GlowButton variant="ruby" size="medium" onClick={() => onRecordAttendance('no_show')} disabled={attendanceLoading} isLoading={attendanceLoading}>
+          <ForgeButton variant="ruby" size="medium" onClick={() => onRecordAttendance('no_show')} disabled={attendanceLoading} isLoading={attendanceLoading}>
             {attendanceLoading ? 'Recording...' : 'Confirm No-Show'}
-          </GlowButton>
+          </ForgeButton>
         </>
       )}
       {canEdit && !isFocusedFlow && (
-        <GlowButton variant="cosmic" size="medium" onClick={onEdit} disabled={loading}>
+        <ForgeButton variant="cosmic" size="medium" onClick={onEdit} disabled={loading}>
           Edit Session
-        </GlowButton>
+        </ForgeButton>
       )}
       {canComplete && !isFocusedFlow && (
-        <GlowButton variant={canLogFromSchedule ? 'cosmic' : 'emerald'} size="medium" onClick={onComplete} disabled={loading} isLoading={loading}>
+        <ForgeButton variant={canLogFromSchedule ? 'cosmic' : 'emerald'} size="medium" onClick={onComplete} disabled={loading} isLoading={loading}>
           {completeLabel}
-        </GlowButton>
+        </ForgeButton>
       )}
       {canViewWorkouts && !isFocusedFlow && (
-        <GlowButton variant="cosmic" size="medium" onClick={onViewWorkouts}>
+        <ForgeButton variant="cosmic" size="medium" onClick={onViewWorkouts}>
           View Workouts
-        </GlowButton>
+        </ForgeButton>
       )}
     </>
   );

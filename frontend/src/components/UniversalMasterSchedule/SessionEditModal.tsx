@@ -6,7 +6,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Save } from 'lucide-react';
-import GlowButton from '../ui/buttons/GlowButton';
+import ForgeButton from '../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import { universalMasterScheduleService } from '../../services/universal-master-schedule-service';
 import {
   CheckboxWrapper,
@@ -146,7 +146,7 @@ const SessionEditModal: React.FC<SessionEditModalProps> = ({
       footer={(
         <>
           <OutlinedButton onClick={onClose} disabled={saving}>Cancel</OutlinedButton>
-          <GlowButton
+          <ForgeButton
             variant="primary"
             size="medium"
             onClick={handleSave}
@@ -155,7 +155,7 @@ const SessionEditModal: React.FC<SessionEditModalProps> = ({
             leftIcon={<Save size={18} />}
           >
             {saving ? 'Saving...' : 'Save Changes'}
-          </GlowButton>
+          </ForgeButton>
         </>
       )}
     >
@@ -261,7 +261,7 @@ const SessionEditModal: React.FC<SessionEditModalProps> = ({
           </CheckboxWrapper>
         </FormField>
 
-        {formError && <StyledBox as={HelperText} $style={{ color: '#ef4444' }}>{formError}</StyledBox>}
+        {formError && <StyledBox as={HelperText} $style={{ color: '#ef4444' }}>{formError}</StyledBox>} {/* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (ticket SWA-206; expires 2026-11-23) */}
       </FlexBox>
     </Modal>
   );

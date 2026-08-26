@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import GlowButton from '../ui/buttons/GlowButton';
+import ForgeButton from '../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 
 // Phase E: Late Cancel Warning Dialog Styles
 export const LateCancelWarningPanel = styled.div`
@@ -15,7 +15,7 @@ export const LateCancelWarningHeader = styled.div`
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
-  color: #ef4444;
+  color: #ef4444; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (ticket SWA-206; expires 2026-11-23) */
   font-weight: 600;
   font-size: 1.1rem;
 `;
@@ -51,7 +51,7 @@ export const LateCancelFeeLabel = styled.span`
 `;
 
 export const LateCancelFeeAmount = styled.span`
-  color: #ef4444;
+  color: #ef4444; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (ticket SWA-206; expires 2026-11-23) */
   font-weight: 600;
   font-size: 1.1rem;
 `;
@@ -81,14 +81,14 @@ export const LateCancelButtonRow = styled.div`
   margin-top: 1rem;
 `;
 
-export const LateCancelActionButton = styled(GlowButton)`
+export const LateCancelActionButton = styled(ForgeButton)`
   flex: 1;
 `;
 
 export const LateCancelContinueButton = styled.button`
   flex: 1;
   padding: 0.75rem 1rem;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: linear-gradient(135deg, #ef4444, #dc2626); /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (ticket SWA-206; expires 2026-11-23) */
   color: white;
   border: none;
   border-radius: 8px;
@@ -97,7 +97,7 @@ export const LateCancelContinueButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    background: linear-gradient(135deg, #dc2626, #b91c1c); /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (ticket SWA-206; expires 2026-11-23) */
     transform: translateY(-1px);
   }
 
@@ -139,7 +139,7 @@ export const EarlyCancelHeader = styled.div`
   align-items: center;
   gap: 0.75rem;
   margin-bottom: 1rem;
-  color: #10b981;
+  color: #10b981; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (ticket SWA-206; expires 2026-11-23) */
   font-weight: 600;
   font-size: 1.1rem;
 `;
@@ -164,7 +164,7 @@ export const PackageSection = styled.div`
 `;
 
 export const PackageSectionTitle = styled.h4`
-  color: #8B5CF6;
+  color: #8B5CF6; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (ticket SWA-206; expires 2026-11-23) */
   font-size: 0.875rem;
   margin: 0 0 12px 0;
   text-transform: uppercase;
@@ -191,9 +191,9 @@ export const PackageValue = styled.span<{ $tone?: 'success' | 'gold' }>`
   color: ${({ $tone }) => {
     switch ($tone) {
       case 'success':
-        return '#00FF88';
+        return '#00FF88'; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (ticket SWA-206; expires 2026-11-23) */
       case 'gold':
-        return '#FFD700';
+        return '#FFD700'; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (ticket SWA-206; expires 2026-11-23) */
       default:
         return 'white';
     }
@@ -217,7 +217,7 @@ export const ProgressBar = styled.div`
 export const ProgressFill = styled.div<{ $percent: number }>`
   height: 100%;
   width: ${({ $percent }) => $percent}%;
-  background: linear-gradient(90deg, #8B5CF6, #8B5CF6);
+  background: linear-gradient(90deg, #8B5CF6, #8B5CF6); /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (ticket SWA-206; expires 2026-11-23) */
   border-radius: 4px;
   transition: width 0.3s ease;
 `;
