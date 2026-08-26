@@ -33,7 +33,26 @@ import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-export const SPEND_DIR = join(HERE, '..', '..', '.ai-workflow', 'spend');
+
+/**
+ * `SWAN_SPEND_DIR` redirects the ledger, for tests only. Added 2026-08-26 so
+ * scripts/hooks/spend-guard-gate.test.mjs can exercise the BLOCKING path — which
+ * mints a token and reads cumulative totals — without writing into Sean's real
+ * spend state (SWA-218).
+ *
+ * WHY THIS IS NOT A BYPASS, since an env override on a money ledger deserves the
+ * question: the gate runs as a Claude Code PreToolUse hook, so its environment is
+ * the harness's, NOT the environment of the Bash command being judged. An agent
+ * writing `SWAN_SPEND_DIR=/tmp/empty node scripts/consult-fable.mjs` puts that
+ * text in the COMMAND STRING, which the hook merely reads as data — it never
+ * reaches the hook process. That asymmetry is already load-bearing elsewhere in
+ * this system: spend-guard-gate.mjs parses `SWAN_*MODEL=` out of the command text
+ * for exactly the same reason. Setting this variable for real requires editing
+ * the harness config or the shell profile, which is a different threat model than
+ * the one these gates defend against.
+ */
+export const SPEND_DIR = process.env.SWAN_SPEND_DIR
+  || join(HERE, '..', '..', '.ai-workflow', 'spend');
 const LEDGER = join(SPEND_DIR, 'ledger.jsonl');
 const TOKENS = join(SPEND_DIR, 'pending-approval.json');
 

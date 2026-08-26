@@ -63,7 +63,23 @@ const cmd = input?.tool_input?.command || '';
 // one turned `\b` into a literal backspace (0x08), which matches nothing, so the
 // gate stopped firing entirely while still reporting "SYNTAX OK". A regex that
 // silently never matches is the worst possible failure for a guard.
-const INVOCATION = /(?:^|[ ;&|(])(?:node|npx|bun) [^|;&]*?consult-(?:fable|sol|kimi|grok|panel)[.]mjs/;
+// FOURTH corruption of this line, found 2026-08-26 (SWA-218). The leading context
+// used to be the enumerated separator class `[ ;&|(]`, which does not contain quote
+// characters — so `sh -c "node scripts/consult-fable.mjs ..."` and
+// `bash -lc 'node scripts/consult-fable.mjs ...'` put a QUOTE before `node` and were
+// NOT MATCHED AT ALL. The gate never fired, no cap was checked, no token was required,
+// and the call billed in full. It fails open by design, so the miss was silent.
+//
+// It was found by copying this regex into scripts/hooks/fable-remit-gate.mjs and then
+// attacking the copy. Nothing here would have caught it: until this commit the file
+// had no test at all, while scripts/lib/spend-ledger.test.mjs covered the CAP logic.
+// The cap was proven; the pipe feeding it was not.
+//
+// Enumerating separators means enumerating every future one correctly, forever. A
+// NEGATED IDENTIFIER class inverts the burden: anything that is not part of a word or
+// a path is a boundary — quotes, newlines, tabs, parens, `$(`. `mynode script.mjs`
+// still does not match, which was the only false positive that ever mattered.
+const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bun) [^|;&]*?consult-(?:fable|sol|kimi|grok|panel)[.]mjs/;
 if (!cmd || !INVOCATION.test(cmd)) ALLOW();
 
 try {
