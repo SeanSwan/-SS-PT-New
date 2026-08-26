@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { composeStills } from '../../services/atelier/composeStills.mjs';
-import { getBatch, _resetBatches, prune } from '../../services/atelier/batchStore.mjs';
+import { getBatch, _resetBatches, prune, BATCH_TTL_MS } from '../../services/atelier/batchStore.mjs';
 import { _resetSingleFlight } from '../../services/atelier/localStillLane.mjs';
 
 const BRIEF = { text: 'a glacier calving into black water at dawn', intent: 'hero', aspect: '16:9' };
@@ -96,5 +96,57 @@ describe('a reservation that cannot be released says so', () => {
     await sleep(30);
     expect(calls).toBe(1);
     expect(seen).toEqual(['lease server said no']);
+  });
+});
+
+describe('a replay refuses itself once the row it points at is gone', () => {
+  it('an expired stub re-renders instead of answering with a dead statusUrl', async () => {
+    // The stub used to live until something evicted it, while the row expired an hour after
+    // finishing. A delayed retry — exactly what retention exists for — got a confident
+    // success payload and a URL that 404s, and the user concluded their render had vanished.
+    const store = new Map();
+    const a = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store }));
+    await until(() => getBatch(a.batchId, 1).terminal);
+    await until(() => store.size === 1);
+
+    // Same key, but asked for LATER than the row can survive.
+    const later = Date.now() + BATCH_TTL_MS + 60_000;
+    const b = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store, now: later }));
+    expect(b.replayed).toBe(false);          // it ran again
+    expect(b.batchId).not.toBe(a.batchId);
+  });
+
+  it('a still-fresh stub DOES replay — the guard must not swallow the honest case', async () => {
+    const store = new Map();
+    const a = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store }));
+    await until(() => getBatch(a.batchId, 1).terminal);
+    const b = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store }));
+    expect(b.replayed).toBe(true);
+    expect(b.batchId).toBe(a.batchId);
+  });
+});
+
+describe("a partial replay reports the OUTCOME's numbers, not the request's", () => {
+  it('an incomplete batch replays what it actually produced', async () => {
+    // Spreading the 202 stub alone replayed a 1-of-3 partial as `count: 3` — the number the
+    // client asked for, not the number that exists. A client reconciling against the ledger
+    // sees frames it was never given.
+    let n = 0;
+    const store = new Map();
+    const d = () => deps({ store, renderStill: async ({ seed }) => {
+      n += 1;
+      if (n > 1) throw new Error('gpu fell over');
+      return { image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 10, provider: 'comfyui/wan-2.2' };
+    } });
+    const a = await composeStills({ brief: BRIEF, lane: 'local', count: 3, userId: 1, idempotencyKey: 'k' }, d());
+    await until(() => getBatch(a.batchId, 1).terminal);
+    expect(getBatch(a.batchId, 1).status).toBe('partial');
+
+    const b = await composeStills({ brief: BRIEF, lane: 'local', count: 3, userId: 1, idempotencyKey: 'k' }, d());
+    expect(b.replayed).toBe(true);
+    expect(b.status).toBe('partial');
+    expect(b.count).toBe(1);         // what exists
+    expect(b.requested).toBe(3);     // what was asked for
+    expect(b.failed).toBe(2);        // and the gap, so a NEW key is an informed choice
   });
 });

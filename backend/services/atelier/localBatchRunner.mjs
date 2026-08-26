@@ -13,6 +13,7 @@
  */
 
 import * as batches from './batchStore.mjs';
+import { BATCH_TTL_MS } from './batchStore.mjs';
 import { sha, seedFor } from './composeLimits.mjs';
 import { buildPrompts } from './composePrompts.mjs';
 import { releaseWhenSettled } from './composeGpu.mjs';
@@ -185,10 +186,44 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
       // client branching on `status === 'queued'` re-enqueues against a finished batch.
       // The statusUrl being authoritative does not license the field beside it to lie.
       .finally(() => {
-        const snap = batches.getBatch(batch.id, req.userId);
-        if (!req.idempotencyKey || !snap || snap.status === 'failed') { store.delete(key); return; }
-        store.set(key, Promise.resolve(slimForReplay({ ...accepted, status: snap.status, accepted: false })));
-        rememberKey(store, key, settledKeys, { clientKeyed: true, carriesBytes: false });
+        // WRAPPED, because the `.catch` below sits AFTER this and would eat anything thrown
+        // here — leaving the store holding the long-resolved 202 promise, so every future
+        // replay answers `status: 'queued'` for finished work. That is the exact corpse
+        // round T killed, surviving on the success path. And release errors got telemetry
+        // last round while cleanup errors did not, which is itself the pair class.
+        try {
+          const snap = batches.getBatch(batch.id, req.userId);
+          // NOTHING DELIVERED → DROP THE KEY. A failed batch has produced no frames, so a
+          // retry has nothing to collect, and retaining would make the failure permanent.
+          // A derived key drops too: it carries a time bucket, so a later request keys
+          // differently regardless.
+          if (!req.idempotencyKey || !snap || snap.status === 'failed') { store.delete(key); return; }
+          // SOMETHING DELIVERED → RETAIN. That includes `partial`, and the principle is
+          // worth stating because both seats asked: the key is retained whenever frames
+          // exist to collect, since re-running the same key would charge a second time for
+          // work already done. A client who wants the missing frames uses a NEW key — which
+          // is what an idempotency key means, and the numbers below let them see the gap.
+          store.set(key, Promise.resolve(slimForReplay({
+            ...accepted,
+            accepted: false,
+            status: snap.status,
+            // FROM THE SNAPSHOT, not from the 202 stub. Spreading `accepted` alone replayed
+            // an 8-of-10 partial as `count: 10` — the request's number, not the outcome's.
+            count: snap.stills.length,
+            requested: accepted.count,
+            failed: snap.failures.length,
+            // The replay is only honest while the row it points at still exists. Rows expire
+            // an hour after they finish; the stub used to live until something evicted it,
+            // so a delayed retry got a confident success payload and a statusUrl that 404s.
+            // Carrying the row's own deadline means the replay path can refuse itself — no
+            // second clock to keep in step, and no eviction timing to get right.
+            replayExpiresAt: (snap.finishedAt || Date.now()) + BATCH_TTL_MS,
+          })));
+          rememberKey(store, key, settledKeys, { clientKeyed: true, carriesBytes: false });
+        } catch (err) {
+          store.delete(key);
+          console.error('[atelier] replay stub cleanup FAILED; key dropped so a retry can run:', err?.message || err);
+        }
       })
       .catch(() => { /* recorded on the batch; never an unhandled rejection */ });
     return accepted;

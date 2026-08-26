@@ -41,6 +41,9 @@
  */
 export const GPU_RELEASE_GRACE_MS = 90_000;
 
+/** Below this a grace cannot outlast even a trivial frame, so it would abandon live work. */
+export const MIN_RELEASE_GRACE_MS = 50;
+
 /**
  * Give the GPU back when the WORK stops — never when the WAIT stops.
  *
@@ -82,12 +85,24 @@ export function releaseWhenSettled(reservation, work, graceMs, onReleaseError) {
     };
   })();
   if (!work || typeof work.then !== 'function') { releaseOnce(); return; }
-  // CEILING, and it is the documented basis rather than an unrelated number. The bug this
-  // module was extracted for was a wrong quantity passed in and silently clamped SMALL; the
-  // fix removed the clamp entirely, which just makes the next wrong quantity silently
-  // honoured LARGE — pass `watchdogMs` here again and an abandoned card is held 20 minutes
-  // with nothing to catch it. A reviewer named that trade the same round the clamp came out.
-  const grace = Math.min(GPU_RELEASE_GRACE_MS, Math.max(50, Number(graceMs) > 0 ? Number(graceMs) : GPU_RELEASE_GRACE_MS));
+  // ONE REPAIR FOR BAD INPUT, AND IT IS NOT SILENT.
+  //
+  // The clamp here is the same instrument that hid the original bug — a wrong quantity
+  // passed in and quietly accepted — so it does not get to be quiet a second time. The
+  // previous shape repaired invalid input two different ways: NaN or negative fell to the
+  // 90s default, while a small positive was clamped UP to 50ms, four orders of magnitude
+  // under one frame. A reviewer pointed out that a clamp with no telemetry cannot tell
+  // "tuned deliberately" from "misconfigured and hidden".
+  //
+  // So: anything not a usable duration takes the default, anything outside the sane band
+  // is clamped AND SAID OUT LOUD, naming both numbers.
+  const asked = Number(graceMs);
+  let grace = Number.isFinite(asked) && asked > 0 ? asked : GPU_RELEASE_GRACE_MS;
+  if (grace < MIN_RELEASE_GRACE_MS || grace > GPU_RELEASE_GRACE_MS) {
+    const clamped = Math.min(GPU_RELEASE_GRACE_MS, Math.max(MIN_RELEASE_GRACE_MS, grace));
+    console.warn(`[atelier] release grace ${grace}ms is outside ${MIN_RELEASE_GRACE_MS}-${GPU_RELEASE_GRACE_MS}ms; using ${clamped}ms`);
+    grace = clamped;
+  }
   const timer = setTimeout(releaseOnce, grace);
   if (typeof timer.unref === 'function') timer.unref();
   work.catch(() => {}).finally(() => { clearTimeout(timer); releaseOnce(); });

@@ -124,7 +124,17 @@ export async function composeStills(req = {}, deps = {}) {
   const key = req.idempotencyKey
     ? `u${req.userId}:${sha(String(req.idempotencyKey)).slice(0, 32)}`
     : deriveKey({ ...req, brief, promptSource, lane: req.lane || 'auto', model, count, brandKit: kit.brandKit, lawProfile, aspect: req.aspect }, now);
-  if (!req.estimateOnly && store.has(key)) return { ...(await store.get(key)), replayed: true };
+  if (!req.estimateOnly && store.has(key)) {
+    const prior = await store.get(key);
+    // A REPLAY IS ONLY HONEST WHILE THE ROW IT POINTS AT EXISTS. The retained stub carries
+    // its batch row's own expiry, so this refuses itself rather than answering a delayed
+    // retry with a confident success payload and a statusUrl that 404s. Both seats found
+    // that window; carrying the deadline on the stub is what stops it being two clocks.
+    if (!(prior?.replayExpiresAt > 0) || prior.replayExpiresAt > now) {
+      return { ...prior, replayed: true };
+    }
+    store.delete(key);
+  }
 
   // GATE 2 — volume cap, AFTER the replay probe above. It used to run first, and a
   // reviewer raised the consequence twice before I acted on it: at the cap, a retry of a
