@@ -41,12 +41,20 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
   try {
     // Find the most recent completed order for this client
     // Uses correct association chain: Order -> OrderItem -> StorefrontItem
-    const recentOrder = await Order.findOne({
+    // Read the client's recent completed orders, not just the newest one.
+    // Reading only the newest made cross-order rate differences invisible to the
+    // ambiguity guard below: a client who bought a $175/60min pack in March and a
+    // $110/30min pack in June resolved to 110, and the full-charge override then
+    // REPLACED a correct operator figure with the wrong one - strictly worse than
+    // not deriving at all. Bounded to keep the scan cheap; a client with more than
+    // this many completed orders has ample history to detect a rate split.
+    const recentOrders = await Order.findAll({
       where: {
         userId: clientId,
         status: 'completed'
       },
       order: [['createdAt', 'DESC']],
+      limit: 12,
       ...txn,
       include: [{
         model: OrderItem,
@@ -60,6 +68,16 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
     });
 
     // Extract storefront items from nested orderItems
+    const recentOrder = recentOrders?.[0] || null;
+
+    // Every session package the client has bought recently, across orders. The
+    // ambiguity check runs over this population; the resolved rate still comes
+    // from the newest order so unambiguous behaviour is unchanged.
+    const allRecentItems = (recentOrders || [])
+      .flatMap((order) => order?.orderItems || [])
+      .map((oi) => oi?.storefrontItem)
+      .filter(Boolean);
+
     const storefrontItems = recentOrder?.orderItems
       ?.map(oi => oi.storefrontItem)
       ?.filter(Boolean) || [];
@@ -94,7 +112,10 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
     // either direction, and every downstream consumer trusted it as verified.
     // Report fallback instead: callers already treat that as "do not use this
     // number", which is exactly the right behaviour for "cannot attribute".
-    const distinctRates = [...new Set(sessionPackages.map(rateOf).filter(Number.isFinite))];
+    const ambiguityPopulation = allRecentItems.filter(item =>
+      item.sessions > 0 && item.packageType !== 'one-time'
+    );
+    const distinctRates = [...new Set(ambiguityPopulation.map(rateOf).filter(Number.isFinite))];
     if (distinctRates.length > 1) {
       logger.info(
         `Client ${clientId} holds packages at ${distinctRates.length} different ` +
@@ -109,11 +130,36 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
       };
     }
 
-    const sessionPackage = sessionPackages[0] || storefrontItems[0];
+    // NEVER fall back to "any item in the order". That line previously read
+    // `sessionPackages[0] || storefrontItems[0]`, and combined with the rate
+    // formula below it turned a non-session purchase into a per-session rate: a
+    // $33,600 twelve-month program carries sessions: 0, so parseFloat(price)
+    // returned 33600 AS THE PER-SESSION RATE, stamped isFallback: false. The
+    // ambiguity guard could not catch it because that guard deliberately excludes
+    // non-session items from its population. applyServerDerivedChargeAmount trusts
+    // any non-fallback payload, so a cancellation would have been recorded at the
+    // full program price and logged as "server-derived".
+    //
+    // If nothing in the order prices a single session, we do not know the rate.
+    // Say so.
+    const sessionPackage = sessionPackages[0];
+    if (!sessionPackage) {
+      logger.info(
+        `Client ${clientId} has no per-session package in recent orders; ` +
+          `cannot derive a session rate`
+      );
+      return {
+        pricePerSession: FALLBACK_PRICES.STANDARD_60_MIN,
+        packageName: 'No per-session package found',
+        isFallback: true,
+        isSpecialPackage: false,
+        requiresAdminReview: true
+      };
+    }
 
-    const pricePerSession = sessionPackage.sessions > 0
-      ? parseFloat(sessionPackage.price) / sessionPackage.sessions
-      : parseFloat(sessionPackage.price);
+    // sessions > 0 is guaranteed by the filter above, so this is a true per-session
+    // rate rather than a whole-purchase price.
+    const pricePerSession = parseFloat(sessionPackage.price) / sessionPackage.sessions;
 
     // Detect if this is a special/promotional package
     const isSpecialPackage = detectSpecialPackage(sessionPackage, pricePerSession);

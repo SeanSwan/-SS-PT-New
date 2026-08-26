@@ -201,8 +201,12 @@ describe('cancelSession policy boundaries', () => {
     expect(client.increment).not.toHaveBeenCalled();
   });
 
-  it('records NO fee for a late client cancellation — the forfeited credit is the only penalty', async () => {
-    // DOCUMENTS CURRENT BEHAVIOUR, and it is a real gap (SWA-212, GLM P1):
+  it('records no FEE for a late client cancellation, but does record the forfeit', async () => {
+    // RE-ANCHORED: this test previously asserted that NOTHING was recorded, which
+    // documented the gap Ox flagged - the client silently lost a paid session and
+    // no report could see it. The forfeit is now stamped. Still no fee: whether a
+    // client late-cancel should incur one is Sean's policy call, not a code fix.
+    // Original note kept for context:
     // normalizeCancellationBillingOptions returns null for a client, so the whole
     // billing block is skipped. The client forfeits the prepaid session, which is
     // a genuine economic penalty — but no chargeType, no amount and no decision is
@@ -213,9 +217,9 @@ describe('cancelSession policy boundaries', () => {
 
     await service.cancelSession(77, { id: 301, role: 'client' }, 'Late');
 
-    expect(session.cancellationChargeType).toBeNull();
-    expect(session.cancellationChargeAmount).toBeNull();
-    expect(session.cancellationDecision).toBeNull();
+    expect(session.cancellationChargeType).toBe('none');
+    expect(Number(session.cancellationChargeAmount)).toBe(0);
+    expect(session.cancellationDecision).toBe('forfeited');
   });
 
   it('ignores billing fields a client sends on their own cancellation', async () => {
@@ -286,5 +290,180 @@ describe('cancelSession 24-hour boundary agrees with the warning endpoint', () =
   it('restores the credit comfortably outside the window', async () => {
     const session = await cancelAt(48);
     expect(session.sessionCreditRestored).toBe(true);
+  });
+});
+
+describe('late client cancellations are recorded so reporting can see them', () => {
+  let service;
+  let sessionModel;
+  let userModel;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockTransaction.commit.mockResolvedValue(undefined);
+    mockTransaction.rollback.mockResolvedValue(undefined);
+    service = new UnifiedSessionService();
+    sessionModel = { findByPk: vi.fn() };
+    userModel = { findByPk: vi.fn() };
+    service._Session = sessionModel;
+    service._User = userModel;
+    service.sendCancellationNotifications = vi.fn();
+  });
+
+  const clientCancel = async (sessionOverrides = {}) => {
+    const client = buildClient({ availableSessions: 2 });
+    const session = buildSession({ client, ...sessionOverrides });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(client);
+    await service.cancelSession(77, { id: 301, role: 'client' }, 'Late');
+    return session;
+  };
+
+  it('stamps a zero-amount forfeit decision when a client loses a prepaid credit', async () => {
+    // Previously the whole billing block was skipped for clients, so a late
+    // cancellation left chargeType, amount and decision all null and was
+    // invisible to any admin report — the client silently lost a paid session
+    // and nothing recorded that it had happened.
+    const session = await clientCancel({ sessionDate: new Date(Date.now() + 2 * HOURS) });
+
+    expect(session.sessionCreditRestored).toBe(false);
+    expect(session.cancellationChargeType).toBe('none');
+    expect(Number(session.cancellationChargeAmount)).toBe(0);
+    expect(session.cancellationDecision).toBe('forfeited');
+    expect(session.cancellationReviewReason).toBe('client_late_cancel_credit_forfeit');
+  });
+
+  it('does not attribute the forfeit to a human reviewer', async () => {
+    const session = await clientCancel({ sessionDate: new Date(Date.now() + 2 * HOURS) });
+    // No operator made this call; stamping an actor would fake an audit trail.
+    expect(session.cancellationReviewedBy).toBeNull();
+  });
+
+  it('records nothing when the client cancels early and keeps the credit', async () => {
+    const session = await clientCancel({ sessionDate: new Date(Date.now() + 48 * HOURS) });
+
+    expect(session.sessionCreditRestored).toBe(true);
+    expect(session.cancellationDecision).toBeNull();
+    expect(session.cancellationChargeType).toBeNull();
+  });
+
+  it('records nothing when no credit was deducted in the first place', async () => {
+    const session = await clientCancel({
+      sessionDate: new Date(Date.now() + 2 * HOURS),
+      sessionDeducted: false
+    });
+
+    expect(session.cancellationDecision).toBeNull();
+  });
+
+  it('leaves an operator decision untouched', async () => {
+    const client = buildClient({ availableSessions: 2 });
+    const session = buildSession({ client, sessionDate: new Date(Date.now() + 2 * HOURS) });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(client);
+
+    await service.cancelSession(77, { id: 42, role: 'trainer' }, 'Charged', {
+      chargeType: 'late_fee',
+      chargeAmount: 55,
+      restoreCredit: false
+    });
+
+    expect(session.cancellationDecision).toBe('charged');
+    expect(session.cancellationReviewedBy).toBe(42);
+  });
+});
+
+describe('forfeit stamp must not fire outside the late window', () => {
+  let service;
+  let sessionModel;
+  let userModel;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockTransaction.commit.mockResolvedValue(undefined);
+    mockTransaction.rollback.mockResolvedValue(undefined);
+    service = new UnifiedSessionService();
+    sessionModel = { findByPk: vi.fn() };
+    userModel = { findByPk: vi.fn() };
+    service._Session = sessionModel;
+    service._User = userModel;
+    service.sendCancellationNotifications = vi.fn();
+  });
+
+  const clientCancel = async (sessionOverrides) => {
+    const client = buildClient({ availableSessions: 2 });
+    const session = buildSession({ client, ...sessionOverrides });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(client);
+    await service.cancelSession(77, { id: 301, role: 'client' }, 'reason');
+    return session;
+  };
+
+  it('does not stamp a forfeit on an EARLY cancel whose credit was already restored', async () => {
+    // The credit-restore block is skipped because sessionCreditRestored is already
+    // true, so `creditRestored` stays false for a reason that has nothing to do
+    // with the late-cancel policy. Keying only on that flag fabricated a penalty
+    // event on a perfectly on-time cancellation.
+    const session = await clientCancel({
+      sessionDate: new Date(Date.now() + 48 * HOURS),
+      sessionCreditRestored: true
+    });
+
+    expect(session.cancellationDecision).toBeNull();
+    expect(session.cancellationReviewReason).toBeNull();
+  });
+
+  it('does not stamp a forfeit on an early cancel when the client record is missing', async () => {
+    const client = buildClient({ availableSessions: 2 });
+    const session = buildSession({
+      client,
+      sessionDate: new Date(Date.now() + 48 * HOURS)
+    });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(null); // restore cannot happen
+
+    await service.cancelSession(77, { id: 301, role: 'client' }, 'reason');
+
+    expect(session.cancellationDecision).toBeNull();
+  });
+
+  it('still stamps a genuine late forfeit', async () => {
+    const session = await clientCancel({ sessionDate: new Date(Date.now() + 2 * HOURS) });
+    expect(session.cancellationDecision).toBe('forfeited');
+  });
+});
+
+describe('forfeit requires a KNOWN late window', () => {
+  let service;
+  let sessionModel;
+  let userModel;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockTransaction.commit.mockResolvedValue(undefined);
+    mockTransaction.rollback.mockResolvedValue(undefined);
+    service = new UnifiedSessionService();
+    sessionModel = { findByPk: vi.fn() };
+    userModel = { findByPk: vi.fn() };
+    service._Session = sessionModel;
+    service._User = userModel;
+    service.sendCancellationNotifications = vi.fn();
+  });
+
+  it('does not stamp a forfeit when the session date is unusable', async () => {
+    // An unparseable date makes hoursUntilSession null, which made refundEligible
+    // false, which stamped a forfeit. Meanwhile the warning endpoint's
+    // `NaN < 24` evaluates false, so the CLIENT was told "your credit will be
+    // returned" while the server forfeited it. Do not record a penalty we cannot
+    // substantiate.
+    const client = buildClient({ availableSessions: 2 });
+    const session = buildSession({ client, sessionDate: null });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(client);
+
+    await service.cancelSession(77, { id: 301, role: 'client' }, 'no date');
+
+    expect(session.cancellationDecision).toBeNull();
+    expect(session.cancellationReviewReason).toBeNull();
   });
 });

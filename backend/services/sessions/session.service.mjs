@@ -201,23 +201,32 @@ const applyServerDerivedChargeAmount = async (session, billingOptions, transacti
   }
 
   const submitted = billingOptions.chargeAmount;
-  const applied = billingOptions.chargeType === 'full'
+  const suggested = billingOptions.chargeType === 'full'
     ? sessionRate
     : Math.min(submitted, sessionRate);
 
-  // Never adjust an operator's money decision silently. Without this line the
-  // record shows only the applied figure, so a later dispute cannot tell an
-  // operator who asked for $110 from one who asked for $150 and was clamped.
-  if (applied !== submitted) {
+  // ADVISORY ONLY. This function used to overwrite billingOptions.chargeAmount,
+  // and that single decision produced every catastrophic defect in this
+  // workstream: a $33,600 program price applied as a session charge, a correct
+  // operator figure replaced by the wrong order's rate, and a duration-blind
+  // override that is wrong by $65 in either direction on a two-rate business.
+  //
+  // The root cause was never the arithmetic. It was the server claiming
+  // authority over a human money decision on the strength of an inference it
+  // cannot actually make - the schema does not record which product a session
+  // belongs to. So the server now offers its opinion and the operator keeps the
+  // decision. A wrong suggestion is a UX annoyance; a wrong charge is a dispute.
+  if (suggested !== submitted) {
     logger.info(
-      `[Cancellation] session ${session.id}: charge adjusted ${submitted} -> ${applied} ` +
-        `(type=${billingOptions.chargeType}, rate=${sessionRate}, package=${pricing.packageName})`
+      `[Cancellation] session ${session.id}: operator entered ${submitted}, server ` +
+        `suggests ${suggested} (type=${billingOptions.chargeType}, rate=${sessionRate}, ` +
+        `package=${pricing.packageName}) - operator figure kept`
     );
   }
 
-  billingOptions.chargeAmount = applied;
-  billingOptions.chargeAmountSubmitted = submitted;
-  billingOptions.chargeAmountSource = 'server-derived';
+  billingOptions.suggestedChargeAmount = suggested;
+  billingOptions.derivedSessionRate = sessionRate;
+  billingOptions.chargeAmountSource = 'operator';
 };
 
 const parseNotificationPreferences = (prefs) => {
@@ -1837,6 +1846,38 @@ class UnifiedSessionService {
             logger.info(`[UnifiedSessionService] Restored ${creditsToRestore} session credits to user ${client.id} balance after cancellation`);
           }
         }
+      }
+
+      // A client cancelling inside the late window loses a prepaid session. That
+      // is a real economic event, but because clients cannot set billing the whole
+      // billing block above is skipped for them - so chargeType, amount and
+      // decision all stayed null and the cancellation was invisible to every admin
+      // report. Stamp a zero-amount forfeit record so it can be counted.
+      //
+      // reviewedBy is deliberately left unset: no operator made this call, and
+      // stamping an actor would fabricate an audit trail.
+      // Keyed on refundEligible, NOT on whether restoration happened. `creditRestored`
+      // is false for several reasons that have nothing to do with the late-cancel
+      // policy - the credit was already restored by an earlier operation, the client
+      // record could not be loaded, the account is non-deducting - and keying on it
+      // stamped a penalty event onto perfectly on-time cancellations.
+      // hoursUntilSession !== null is required, not implied by !refundEligible.
+      // An unusable sessionDate yields null, which reads as "not refund eligible"
+      // and stamped a forfeit — while the warning endpoint's `NaN < 24` evaluates
+      // false and had already told the client their credit would be returned. Do
+      // not record a penalty whose triggering condition is unknown.
+      const lateForfeit = !billingOptions
+        && Number.isFinite(hoursUntilSession)
+        && !refundEligible
+        && session.sessionDeducted
+        && !session.sessionCreditRestored
+        && session.userId;
+
+      if (lateForfeit) {
+        session.cancellationChargeType = 'none';
+        session.cancellationChargeAmount = 0;
+        session.cancellationDecision = 'forfeited';
+        session.cancellationReviewReason = 'client_late_cancel_credit_forfeit';
       }
 
       await session.save({ transaction });
