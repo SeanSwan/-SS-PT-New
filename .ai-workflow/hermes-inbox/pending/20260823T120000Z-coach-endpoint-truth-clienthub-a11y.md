@@ -179,3 +179,53 @@ against a 5000ms default. Verified NOT caused by this branch: it has 5,362 files
 **Also: every GitHub Actions gate is dead** — blanket `startup_failure` across all
 workflows and all event types including `schedule`, which is account-level (billing),
 not a workflow bug. Local verification is currently the only gate in the repo.
+
+## Third session (2026-08-25) — three-seat panel, 8 findings closed
+
+Branch `claude/coach-endpoint-truth-v2-20260824` @ `f7edcf3ab`. Seats: Ox Alpha ($0.0000),
+GLM-5.3 (subscription), HY3 ($0.0077). Handoff:
+`docs/ai-workflow/AI-HANDOFF/COACH-ENDPOINT-TRUTH-HANDOFF-2026-08-25.md`.
+
+Eight landed, two refuted by probe. The instrument was lying in the exact direction its
+own header said it could not: `segments()` query-stripped ROUTE patterns (destroying
+`:param?`) and `*` was treated as one segment when Express compiles it to `(.*)`. Both
+manufacture false absences. Also: an unclassifiable middleware made a route read as
+PUBLIC (903 of 1672 rows, 54%, are affected — now marked `ceilingUnknown`), three of
+eight gates were bound to nothing, and a comment of mine was factually wrong.
+
+## Mistakes I made — third session
+
+- **I shipped a THIRD vacuous assertion, inside the fix for the second one.** The
+  windowed regex was replaced by a `bodyOf()` that returned `''` on a missing anchor, so
+  `expect(...).not.toMatch(...)` would pass against nothing the moment a middleware was
+  renamed. My mutation tests missed it because they mutated the BODY, never the ANCHOR.
+  **Procedural rule: when a guard is found vacuous, the replacement is a NEW guard and
+  inherits none of the original's testing — mutate the anchor, not just the target.**
+- **The repo already had the fix and I reimplemented it badly.** `tests/helpers/
+  sliceBetween.mjs` exists precisely because ~40 contract tests use
+  `src.slice(src.indexOf(anchor))` and it has exactly these two silent modes. Rule 18
+  would have caught this if I had looked before writing.
+- **A fourth guard-matches-its-own-documentation instance**, and a fourth-and-fifth
+  round of `
+` / `` escaping through a heredoc producing literal newlines and
+  backspace characters in JS source. Four separate syntax errors from the same cause.
+  Fix: `String.fromCharCode(10)` / `String.raw`, and `node --check` after every
+  generated edit.
+- **My hostile brief caused two false findings in round 1** by excerpting away the
+  context that refuted them — a try/catch 120 lines below what I pasted. Round 2 shipped
+  full files and waste dropped to near zero. Excerpt boundaries are part of the question.
+
+## External-model calibration (two rounds, four seat-runs)
+
+- **Ox Alpha — $0.0000 — strongest seat in BOTH rounds.** Found the unknown-gate-reads-
+  as-public default and the partial-drop blindness. Free.
+- **GLM-5.3 — subscription.** Round 1: 4 landed / 2 refuted. Round 2: found a factual
+  error in my own comment and the reason-drift hole in set-comparison baselines.
+- **HY3 — $0.0077.** Isolated the optional-param strip with a precise failure scenario.
+  Best value per dollar.
+- **A convergent recommendation is still a hypothesis.** Ox and GLM independently
+  proposed changing the zero-route guard to `parsed < naive`. A probe found a live
+  shortfall that looked like confirmation — but the missing route was inside a
+  `/* REMOVED */` block, so the parser was right and the naive grep was wrong. Their fix
+  would have failed the suite immediately on legitimate code. **Two seats agreeing raises
+  the prior; it does not discharge verification.**
