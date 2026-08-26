@@ -191,6 +191,7 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
         // replay answers `status: 'queued'` for finished work. That is the exact corpse
         // round T killed, surviving on the success path. And release errors got telemetry
         // last round while cleanup errors did not, which is itself the pair class.
+        let retained = false;
         try {
           const snap = batches.getBatch(batch.id, req.userId);
           // NOTHING DELIVERED → DROP THE KEY. A failed batch has produced no frames, so a
@@ -219,10 +220,20 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
             // second clock to keep in step, and no eviction timing to get right.
             replayExpiresAt: (snap.finishedAt || Date.now()) + BATCH_TTL_MS,
           })));
+          retained = true;
+          // AFTER the retention write, and outside its safety. If the bookkeeping throws,
+          // the stub is already correctly in the store and deleting it would reopen the
+          // double-charge window this whole branch exists to close — a partial batch that
+          // delivered and billed 3 of 5 frames would be re-rendered and billed again. An
+          // unregistered key is a bounded memory cost; a deleted one is a second charge.
           rememberKey(store, key, settledKeys, { clientKeyed: true, carriesBytes: false });
         } catch (err) {
-          store.delete(key);
-          console.error('[atelier] replay stub cleanup FAILED; key dropped so a retry can run:', err?.message || err);
+          // ONLY IF THE STUB NEVER LANDED. The old catch deleted unconditionally, which was
+          // right for a failed `store.set` (the stale 202 promise would answer 'queued'
+          // forever) and exactly wrong for anything failing after it. The two cases have
+          // opposite money semantics and were sharing one handler.
+          if (!retained) store.delete(key);
+          console.error(`[atelier] replay stub cleanup FAILED (stub ${retained ? 'RETAINED' : 'dropped so a retry can run'}):`, err?.message || err);
         }
       })
       .catch(() => { /* recorded on the batch; never an unhandled rejection */ });

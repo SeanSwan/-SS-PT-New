@@ -40,7 +40,8 @@ import { runLocalBatch, startLocalBatch } from './localBatchRunner.mjs';
 import { runBatch } from './composeBatch.mjs';
 import { buildPrompts } from './composePrompts.mjs';
 
-import { rememberKey, defaultCommit, slimForReplay, assertKeyHasOwner, assertSlotOverrides, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
+import { replayIfFresh } from './composeReplay.mjs';
+import { rememberKey as rememberKeyDefault, defaultCommit, slimForReplay, assertKeyHasOwner, assertSlotOverrides, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
 import { releaseWhenSettled, syncWatchdog } from './composeGpu.mjs';
 import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
 
@@ -67,6 +68,12 @@ export async function composeStills(req = {}, deps = {}) {
     localVerify = local.verifyLocalStills, admit = local.admission, reserve = local.reserveGpu,
     tasteDeps = {}, env = process.env, store = COALESCING_STORE, persist = persistBatch,
     limits = readComposeLimits(env), usage = { runs: 0, spendUsd: 0 }, commit = defaultCommit, now = Date.now(),
+    // TWO QUANTITIES, and only one of them wants to be frozen. `now` is fixed at request
+    // start because the derived key's time bucket must not move underneath it. `clock` is
+    // SAMPLED, because an absolute deadline compared against request-start time serves a
+    // stub that died while the request queued. Injectable so a test can reach the future
+    // without the guard having to trust a frozen number.
+    clock = () => Date.now(), rememberKey = rememberKeyDefault,
   } = deps;
 
   const promptSource = req.promptSource || 'brief';
@@ -124,16 +131,15 @@ export async function composeStills(req = {}, deps = {}) {
   const key = req.idempotencyKey
     ? `u${req.userId}:${sha(String(req.idempotencyKey)).slice(0, 32)}`
     : deriveKey({ ...req, brief, promptSource, lane: req.lane || 'auto', model, count, brandKit: kit.brandKit, lawProfile, aspect: req.aspect }, now);
-  if (!req.estimateOnly && store.has(key)) {
-    const prior = await store.get(key);
-    // A REPLAY IS ONLY HONEST WHILE THE ROW IT POINTS AT EXISTS. The retained stub carries
-    // its batch row's own expiry, so this refuses itself rather than answering a delayed
-    // retry with a confident success payload and a statusUrl that 404s. Both seats found
-    // that window; carrying the deadline on the stub is what stops it being two clocks.
-    if (!(prior?.replayExpiresAt > 0) || prior.replayExpiresAt > now) {
-      return { ...prior, replayed: true };
+  // AWAIT ONLY ON A HIT. `replayIfFresh` returns null synchronously when there is nothing
+  // stored, which keeps the claim below in the same synchronous run as its check — awaiting
+  // unconditionally lets two concurrent identical requests both miss and both render.
+  if (!req.estimateOnly) {
+    const pendingReplay = replayIfFresh(store, key, clock);
+    if (pendingReplay) {
+      const replay = await pendingReplay;
+      if (replay) return replay;
     }
-    store.delete(key);
   }
 
   // GATE 2 — volume cap, AFTER the replay probe above. It used to run first, and a
@@ -174,20 +180,16 @@ export async function composeStills(req = {}, deps = {}) {
 
   // ── THE AUTHORITATIVE MONEY GATE ────────────────────────────────────────────────
   // Everything above is a fast pre-check that produces a better error earlier. THIS is the
-  // gate. It checks both ceilings and commits the cost as ONE synchronous operation, so
-  // two requests in the same tick cannot both read a stale total and both pass a cap
-  // neither would pass together.
+  // gate: it checks both ceilings and commits the cost as ONE synchronous operation, so two
+  // requests in the same tick cannot both read a stale total and both pass a cap neither
+  // would pass together.
   //
-  // The first version of this slice committed here but checked further up, and claimed
-  // that closed the race. Six reviewers independently said it only narrowed it, and they
-  // were right — between the check and the commit sat every `await` in `chooseLane`.
-  //
-  // Committing BEFORE the provider call also means the ledger never reconciles downward
-  // (it is monotonic on purpose: a negative delta would let anyone who can reach it mint
-  // headroom). So the ceiling counts what was COMMITTED, not what was collected, and a
-  // batch that fails still consumes budget. That is the conservative direction — it is
-  // what stops a retry storm from spending without bound. The local lane commits $0 and
-  // so pays only its run count, which a GPU genuinely spent either way.
+  // Committing BEFORE the provider call means the ledger never reconciles downward (it is
+  // monotonic on purpose: a negative delta would let anyone who can reach it mint headroom).
+  // So the ceiling counts what was COMMITTED, not what was collected, and a batch that fails
+  // still consumes budget — the conservative direction, and what stops a retry storm from
+  // spending without bound. The local lane commits $0 and so pays only its run count, which
+  // a GPU genuinely spent either way.
   const verdict = commit({
     runs: count, spendUsd: cost.totalUsd,
     maxRunsDaily: limits.maxRunsDaily, maxSpendUsdDaily: limits.maxSpendUsdDaily,
@@ -272,14 +274,12 @@ export async function composeStills(req = {}, deps = {}) {
   // to learn that this request already ran — see slimForReplay for why the payloads go.
   const retained = slimForReplay(result);
   store.set(key, Promise.resolve(retained));
-  // DELIBERATELY NOT EVICTED HERE. A reviewer found that the synchronous path never
-  // deletes its key and called it a leak — correct about the leak, wrong about the cure.
-  // This path is the HOSTED lane, which charges money. If the client's connection drops
-  // after we billed, its retry MUST replay rather than generate and charge a second time,
-  // and evicting on success is precisely what would make it charge twice. The async path
-  // may evict because a batch id is a durable handle the client can poll; here the
-  // response IS the only handle. So the key is retained and the MAP is bounded instead —
-  // see rememberKey below.
+  // DELIBERATELY NOT EVICTED HERE. This path is the HOSTED lane, which charges money: if
+  // the client's connection drops after we billed, its retry MUST replay rather than
+  // generate and charge a second time, and evicting on success is exactly what would make
+  // it charge twice. The async path may evict because a batch id is a durable handle the
+  // client can poll; here the response IS the only handle. So the key is retained and the
+  // MAP is bounded instead — see rememberKey.
   rememberKey(store, key, settledKeys, {
     clientKeyed: Boolean(req.idempotencyKey),
     // So the budget is released when this entry is later evicted, rather than counting

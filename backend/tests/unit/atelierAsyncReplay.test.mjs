@@ -109,9 +109,11 @@ describe('a replay refuses itself once the row it points at is gone', () => {
     await until(() => getBatch(a.batchId, 1).terminal);
     await until(() => store.size === 1);
 
-    // Same key, but asked for LATER than the row can survive.
+    // Same key, asked for LATER than the row can survive. The clock is injected rather than
+    // the frozen `now`: the guard samples it at check time, because a deadline compared
+    // against request-start time serves a stub that expired while the request queued.
     const later = Date.now() + BATCH_TTL_MS + 60_000;
-    const b = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store, now: later }));
+    const b = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store, clock: () => later }));
     expect(b.replayed).toBe(false);          // it ran again
     expect(b.batchId).not.toBe(a.batchId);
   });
@@ -148,5 +150,51 @@ describe("a partial replay reports the OUTCOME's numbers, not the request's", ()
     expect(b.count).toBe(1);         // what exists
     expect(b.requested).toBe(3);     // what was asked for
     expect(b.failed).toBe(2);        // and the gap, so a NEW key is an informed choice
+  });
+});
+
+describe('the replay guard fails toward running the work, never toward a hollow answer', () => {
+  it('a key that vanishes between has() and get() re-runs instead of returning an empty body', async () => {
+    // `has` and `get` are not one operation, and a terminal `.finally` can delete the key
+    // between them. Spreading an absent prior would hand the client `{ replayed: true }`
+    // with no fields at all — a 200 that says nothing — rather than doing the work.
+    const store = {
+      has: () => true,               // claims to hold it...
+      get: async () => undefined,    // ...and does not
+      set: () => {}, delete: () => {},
+    };
+    const out = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store }));
+    expect(out.replayed).toBe(false);
+    expect(out.batchId).toBeTruthy();
+  });
+
+  it('does not hand the client its own bookkeeping', async () => {
+    // `replayExpiresAt` exists for the guard. It is not something a caller can act on, and
+    // shipping it makes an internal deadline part of the contract by accident.
+    const store = new Map();
+    const a = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store }));
+    await until(() => getBatch(a.batchId, 1).terminal);
+    const b = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store }));
+    expect(b.replayed).toBe(true);
+    expect(b.replayExpiresAt).toBeUndefined();
+  });
+});
+
+describe('a stub that landed is never deleted by bookkeeping that did not', () => {
+  it('keeps the retained stub when rememberKey throws after the write', async () => {
+    // The catch used to delete unconditionally — right for a failed `store.set` (the stale
+    // 202 promise would answer "queued" forever), exactly wrong for anything failing after
+    // it. A partial batch that delivered and billed frames would be re-rendered and billed
+    // a second time. The two cases have opposite money semantics.
+    const store = new Map();
+    const a = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' },
+      deps({ store, rememberKey: () => { throw new Error('eviction bookkeeping fell over'); } }));
+    await until(() => getBatch(a.batchId, 1).terminal);
+    await sleep(30);
+    expect(store.size).toBe(1);                    // the money-safe stub survived
+
+    const b = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store }));
+    expect(b.replayed).toBe(true);                 // and the retry collects instead of re-rendering
+    expect(b.batchId).toBe(a.batchId);
   });
 });
