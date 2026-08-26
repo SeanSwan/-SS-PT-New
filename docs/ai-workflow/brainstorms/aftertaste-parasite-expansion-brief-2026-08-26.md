@@ -21,6 +21,34 @@ Two jobs this round. **The second is the more important one and constrains the f
 
 One phrase in the dictation did not survive transcription — something like *"Edward makes an Edward poo theme"*. **Do not guess at it.** Flag it as an open question; the Owner will clarify.
 
+## 0.5 ⚠ CORRECTION FROM THE OWNER (2026-08-26, mid-round — this SUPERSEDES §1's framing)
+
+The Owner clarified after this brief was sent. **LIGHT mode is not "the hardcore stuff taken out."
+It is a completely different cast of creatures.** His words: *"completely changed the mobs up in the
+game… the light version should be cute mobs."* Two audiences, both catered to, neither one holding
+a degraded copy of the other's game.
+
+He also asked directly whether there should be **three** tiers — cute, the realistic one he wants,
+and a third I might suggest — and whether three is too much.
+
+**The builder's recommendation, for you to attack:** TWO visual tiers, ONE gameplay spine.
+- **CUTE** and **DREAD** are different creatures: different silhouette treatment, proportions,
+  palette, name, sound.
+- They share the **same blockout family and the same fight** — identical telegraph, counterplay,
+  hitbox, timing, difficulty. A cute mob and its dread twin are the same encounter wearing
+  different skin. Cost lands near 2× on art and near 1× on design and balance.
+- A middle tier is the option nobody picks and everybody maintains — cute players find it
+  off-putting, dread players find it a letdown. And the natural middle **already exists**: the
+  beveled-voxel look the pipeline produces today, with no photo wrap. So two can ship now and the
+  middle costs almost nothing to add later if players actually ask for it.
+
+**Attack that recommendation.** If two-with-a-shared-spine is wrong, say why and what beats it.
+
+Everything in §1 below still applies to the *mechanics* of the switch (where the variant lives so
+the validator can CHECK it, defaults, discoverability, leak surfaces, what must never differ). What
+changes is Q2: the answer is no longer "one asset or two" but "how do two creature sets stay one
+fight" — and how a variant pair is REPRESENTED so a manifest cannot claim a twin it does not have.
+
 ## 1. THE INTENSITY SYSTEM — design this first, because it gates everything else
 
 A toggle that "takes the hardcore stuff out" is easy to describe and easy to get wrong. Wrong looks like: two asset sets to build and maintain; a light mode that is obviously the real game with holes in it; a hardcore mode that becomes the "real" one and light mode rots; a switch that changes nothing mechanically so nobody uses it; or an intensity level that leaks through audio, text, or a still frame the toggle never touched.
