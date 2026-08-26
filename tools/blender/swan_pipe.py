@@ -116,7 +116,8 @@ def write_manifest_stub(args, out_dir):
             "similarityReviewed": False,
             "license": None,
             "_note": "swan_pipe emits these EMPTY on purpose. A pipeline that pre-fills "
-                     "provenance launders it. Fill in by hand, then validate.",
+                     "provenance launders it. Copy to manifest.json, fill in by hand, then validate. "
+                     "Named .stub.json so validate-asset --all never treats it as a real manifest (Ox Alpha, branch gate).",
         },
         "runtime": {
             "lod0": "lod0.glb", "lod1": "lod1.glb", "lod2": "lod2.glb",
@@ -126,7 +127,7 @@ def write_manifest_stub(args, out_dir):
         "sha256": {},
         "_source": {"file": os.path.basename(args.src), "pipeline": "swan_pipe.py"},
     }
-    path = os.path.join(out_dir, "manifest.json")
+    path = os.path.join(out_dir, "manifest.stub.json")  # NOT manifest.json — --all must never find a stub
     os.makedirs(out_dir, exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(stub, fh, indent=2)
@@ -210,6 +211,7 @@ def run_in_blender(args, out_dir):
     bev.segments = 2
     bev.limit_method = "ANGLE"
     bev.angle_limit = 0.5236  # 30deg
+    bpy.context.view_layer.update()  # headless: modifier_apply needs an evaluated depsgraph (Ox Alpha)
     bpy.ops.object.modifier_apply(modifier=bev.name)
 
     smooth_by_angle(obj, SMOOTH_ANGLE)
@@ -230,6 +232,7 @@ def run_in_blender(args, out_dir):
             dec = target.modifiers.new(f"dec_{name}", "DECIMATE")
             dec.ratio = ratio
             bpy.context.view_layer.objects.active = target
+            bpy.context.view_layer.update()
             bpy.ops.object.modifier_apply(modifier=dec.name)
         bpy.ops.object.select_all(action="DESELECT")
         target.select_set(True)

@@ -22,8 +22,9 @@ function selftest() {
   const registry = {
     assets: [{ id: 'enemy.fryling', budgetPriors: { lod0Triangles: 1500 } }],
     skeletons: [{ id: 'skeleton.creature-small.v1', clips: ['idle', 'move', 'attack', 'hit', 'death'] }],
-    zones: [{ id: 'world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court' }],
+    zones: [{ id: 'world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court', chromeLaw: { embedded: 'A', standalone: 'B' } }],
     licensePolicy: { kindValues: ['owner-authored', 'cc0', 'ccby', 'model'] },
+    statusValues: ['planned', 'in-progress', 'validated', 'shipped', 'retired'],
   };
   const worldIds = new Set(['world.miniature-play.voxel-realm']);
   const ctx = { registry, worldIds, manifestDir: ROOT };
@@ -31,15 +32,19 @@ function selftest() {
   const base = () => ({
     schema: 'swan.game-asset.v1',
     id: 'enemy.fryling',
+    status: 'planned',
+    targetSurface: 'standalone',
+    paletteLaw: 'B',
     zone: 'world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court',
     skeleton: 'skeleton.creature-small.v1',
     animations: ['idle', 'move', 'attack', 'hit', 'death'],
     budgets: null,
     provenance: {
       humanOwner: 'owner', createdAtUtc: '2026-08-25T12:00:00.000Z', aiAssisted: false,
-      similarityReviewed: true, license: { kind: 'owner-authored' },
+      similarityReviewed: { reviewer: 'owner', date: '2026-08-25', comparedAgainst: ['trademarks'] },
+      license: { kind: 'owner-authored' },
     },
-    runtime: { lod0: 'x', lod1: 'x', lod2: 'x', collision: 'x' },
+    runtime: { lod0: 'x', lod1: 'x', lod2: 'x', collision: 'x', compression: 'none' },
     sha256: {},
   });
 
@@ -52,6 +57,15 @@ function selftest() {
     ['free-text license is refused', (m) => { m.provenance.license = 'owner-authored'; }, /structured object/],
     ['model license without receipt is refused', (m) => { m.provenance.license = { kind: 'model', modelName: 'a', modelVersion: '1', licenseId: 'x' }; }, /receiptPath required/],
     ['unreviewed similarity is refused', (m) => { m.provenance.similarityReviewed = false; }, /similarityReviewed/],
+    // Branch-gate panel 2026-08-25 (Ox, Kimi, HY3, Grok, DeepSeek) — the honour-system findings:
+    ['bare similarityReviewed: true is refused (honour bit)', (m) => { m.provenance.similarityReviewed = true; }, /honour bit/],
+    ['similarityReviewed without comparedAgainst is refused', (m) => { m.provenance.similarityReviewed = { reviewer: 'x', date: '2026-08-25', comparedAgainst: [] }; }, /comparedAgainst/],
+    ['Law-B asset on an embedded (Law-A) surface is refused — chromeLaw', (m) => { m.targetSurface = 'embedded'; m.paletteLaw = 'B'; }, /violates zone chromeLaw/],
+    ['zone-bound asset with no targetSurface is refused', (m) => { delete m.targetSurface; }, /targetSurface must be one of/],
+    ['status outside statusValues is refused', (m) => { m.status = 'done'; }, /status must be one of/],
+    ['unknown compression value is refused', (m) => { m.runtime.compression = 'garbage'; }, /compression must be one of/],
+    ['budget commit that is not a git id is refused', (m) => { m.budgets = { lod0Triangles: 1, tool: 't', command: 'c', date: '2026-08-25', commit: 'not-a-commit' }; }, /not a git object id/],
+    ['budget commit that does not exist in the repo is refused', (m) => { m.budgets = { lod0Triangles: 1, tool: 't', command: 'c', date: '2026-08-25', commit: 'deadbeefdead' }; }, /not a commit in this repository/],
     ['aiAssisted without weights hash is refused', (m) => { m.provenance.aiAssisted = true; m.provenance.generator = { name: 'a', version: '1' }; m.provenance.seed = 1; }, /weightsSha256/],
     ['Draco on a rigged asset is refused', (m) => { m.runtime.compression = 'draco'; }, /Draco on a rigged/],
     ['missing sha256 is refused', () => {}, /sha256\.lod0 missing|file not found/],

@@ -31,28 +31,48 @@
  * The class is TRUNCATING INSTRUMENTS, not `head` specifically (GLM 5.3, P0
  * review, 2026-08-25 — the builder's first framing under-generalized).
  *
- * ESCAPE HATCH: put `EVIDENCE-OK: <reason>` anywhere in the file's added lines.
- * It is deliberately noisy so it shows up in review.
+ * ESCAPE HATCH: put `EVIDENCE-OK: <reason>` anywhere in the file. It is deliberately
+ * noisy so it shows up in review.
  *
- * Fail-open on its own errors: a guard that breaks commits when IT is broken
- * gets disabled, and a disabled guard protects nothing.
+ * FAIL-CLOSED on its own errors (was fail-open until the 2026-08-25 branch gate; see
+ * failClosed()). Loud, named bypass: SWAN_GUARD_BYPASS=1.
+ *
+ * Claim is judged on ADDED lines; instrument and denominator on the FULL staged file
+ * (a new claim above an old truncating command is the same poison — Grok, branch gate).
  */
 import { execSync } from 'node:child_process';
 
 const ABSENCE = /(does not exist|doesn't exist|do not exist|hallucinat|no such (file|entry|id|anchor)|is fiction|not present|nowhere in the (repo|file|codebase)|returned nothing|came back empty|there is no\b|never existed|absent from)/i;
-const TRUNCATING = /(\|\s*head\b|\|\s*tail\b|head\s+-\d|tail\s+-\d|sed\s+-n\s*['"]?\d+,\d+p|grep\s+-m\s*\d|--max-count|\bLIMIT\s+\d|head_limit|first\s+page|\.slice\(0,\s*\d+\))/i;
+// The class is TRUNCATING INSTRUMENTS. Widened 2026-08-25 (DeepSeek V4 Pro, branch gate):
+// grep -q, find -quit, .splitlines()[0], .readline(), .first() are all "stop at the first hit".
+const TRUNCATING = /(\|\s*head\b|\|\s*tail\b|head\s+-\d|tail\s+-\d|sed\s+-n\s*['"]?\d+,\d+p|grep\s+-m\s*\d|grep\s+-q\b|--max-count|\bLIMIT\s+\d|head_limit|first\s+page|\.slice\(0,\s*\d+\)|\.splitlines\(\)\[0\]|\.readline\(\)|find\b[^\n]*-quit|\.first\(\)|\bfirst\(\))/i;
 const DENOMINATOR = /(\d+\s+of\s+\d+|enumerated\s+\d+|\bcount:\s*\d+|grep\s+-c\b|exit\s+(code\s+)?1\b|catalog-check|COMPLETE LIST|denominator)/i;
 const ESCAPE = /EVIDENCE-OK:/;
 const WINDOW = 6; // diff CONTEXT only; detection is FILE-scoped (see loop)
 
+// FAIL CLOSED. Until the 2026-08-25 branch gate this guard failed open on its own errors, on
+// the theory that a hook that breaks commits when IT is broken gets disabled. Five review
+// seats (Ox, HY3, Grok, Kimi, DeepSeek) rejected that: this guard exists because a control
+// that did not run looked like a control that passed — a guard that swallows its own crash is
+// that failure wearing a hook's clothes. Emergency bypass is loud and named, never silent:
+//   SWAN_GUARD_BYPASS=1 git commit ...
+function failClosed(reason) {
+  if (process.env.SWAN_GUARD_BYPASS === '1') {
+    console.error(`[truncated-evidence-guard] !!! BYPASSED (SWAN_GUARD_BYPASS=1) despite internal error: ${reason}`);
+    process.exit(0);
+  }
+  console.error(`[truncated-evidence-guard] BLOCKED — the guard itself failed and will not pretend it passed: ${reason}`);
+  console.error('[truncated-evidence-guard] Fix the cause, or bypass LOUDLY with SWAN_GUARD_BYPASS=1 for this one commit.');
+  process.exit(1);
+}
+
 let staged = [];
 try {
-  staged = execSync('git diff --cached --name-only --diff-filter=ACM', { encoding: 'utf8' })
+  staged = execSync('git diff --cached --name-only --diff-filter=ACM', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
     .split(/\r?\n/)
     .filter((f) => /\.md$/i.test(f) && /^(docs|\.ai-workflow)\//.test(f));
-} catch {
-  console.log('[truncated-evidence-guard] could not list staged files — SKIP (fail-open)');
-  process.exit(0);
+} catch (err) {
+  failClosed(`could not list staged files: ${err.message}`);
 }
 
 if (staged.length === 0) {
@@ -68,11 +88,23 @@ for (const file of staged) {
     // Only ADDED lines, with their positions, so we judge new claims not old ones.
     const diff = execSync(`git diff --cached -U${WINDOW} -- "${file}"`, { encoding: 'utf8' });
     added = diff.split(/\r?\n/);
-  } catch {
-    continue; // fail-open per file
+  } catch (err) {
+    failClosed(`cannot diff ${file}: ${err.message}`);
   }
 
   const addedLines = added.filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1));
+
+  // The CLAIM must be new (added lines) — we judge new assertions, not old ones. But the
+  // INSTRUMENT and the DENOMINATOR are judged over the FULL staged post-image of the file:
+  // a new absence claim sitting above a truncating command that was already in the file is
+  // the same poison with an older instrument (Grok 4.6, branch gate 2026-08-25 — the
+  // file-scope fix from dry-loop round 1 had only closed half the hole).
+  let postImage = '';
+  try {
+    postImage = execSync(`git show :"${file}"`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  } catch (err) {
+    failClosed(`cannot read staged post-image of ${file}: ${err.message}`);
+  }
 
   // FILE-SCOPED, not window-scoped. Dry-loop round 1 (2026-08-25) proved a ±6-line
   // window MISSES a claim sitting 10 lines from its evidence row — and in a real review
@@ -83,15 +115,15 @@ for (const file of staged) {
   // absence claim anywhere AND a truncating instrument anywhere AND no denominator
   // anywhere, flag the file.
   const blob = addedLines.join('\n');
-  if (ESCAPE.test(blob)) continue;
-  if (!ABSENCE.test(blob)) continue;
-  if (!TRUNCATING.test(blob)) continue;
-  if (DENOMINATOR.test(blob)) continue;
+  if (ESCAPE.test(postImage)) continue;
+  if (!ABSENCE.test(blob)) continue;          // claim: must be NEW
+  if (!TRUNCATING.test(postImage)) continue;  // instrument: anywhere in the file
+  if (DENOMINATOR.test(postImage)) continue;  // denominator: anywhere in the file
 
   findings.push({
     file,
     line: (addedLines.find((l) => ABSENCE.test(l)) || '').trim().slice(0, 160),
-    instrument: (addedLines.find((l) => TRUNCATING.test(l)) || '').trim().slice(0, 160),
+    instrument: (postImage.split(/\r?\n/).find((l) => TRUNCATING.test(l)) || '').trim().slice(0, 160),
   });
 }
 

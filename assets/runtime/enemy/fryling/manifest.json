@@ -18,15 +18,27 @@
     "tool": "scripts/assets/measure-glb.mjs",
     "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/lod0.glb",
     "date": "2026-08-25",
-    "commit": "a7a0a3801",
+    "commit": "2724c8ff9",
     "calibrationFixture": true,
-    "note": "CALIBRATION FIXTURE, not production data — a hand-authored single-triangle glTF proving validator plumbing. Do not trend-line this row (Ox Alpha B7). The FIRST measurement used POSITION.count/3, correct only for non-indexed meshes; this fixture is non-indexed so it hid the bug (GLM 5.3 blocker 1). Superseded by measure-glb.mjs which reads indices.count/3 and honours primitive mode."
+    "note": "CALIBRATION FIXTURE, not production data \u2014 a hand-authored single-triangle glTF proving validator plumbing. Do not trend-line this row (Ox Alpha B7). The FIRST measurement used POSITION.count/3, correct only for non-indexed meshes; this fixture is non-indexed so it hid the bug (GLM 5.3 blocker 1). Superseded by measure-glb.mjs which reads indices.count/3 and honours primitive mode."
   },
   "provenance": {
     "humanOwner": "owner",
     "createdAtUtc": "2026-08-25T12:00:00.000Z",
     "aiAssisted": false,
-    "similarityReviewed": true,
+    "similarityReviewed": {
+      "reviewer": "owner",
+      "date": "2026-08-25",
+      "comparedAgainst": [
+        "protected game assets",
+        "characters",
+        "UI",
+        "audio",
+        "trademarks",
+        "real likeness"
+      ],
+      "note": "calibration fixture \u2014 a single hand-authored triangle; nothing to resemble"
+    },
     "license": {
       "kind": "owner-authored"
     },
@@ -45,5 +57,9 @@
     "lod1": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46",
     "lod2": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46",
     "collision": "690022032e5a95919d1dadc9ac068d1984c14e379c0534f3a9685419a3485b46"
-  }
+  },
+  "status": "planned",
+  "targetSurface": "standalone",
+  "paletteLaw": "B",
+  "calibrationFixture": true
 }
