@@ -143,7 +143,13 @@ describe('what the panel found', () => {
     const snap = getBatch(out.batchId, 1);
     expect(snap.status).toBe('failed');
     expect(snap.error.code).toBe('E_BATCH_TIMEOUT');
-    expect(() => reserveGpu().release()).not.toThrow();
+
+    // RE-ANCHORED. The card is no longer freed the INSTANT the watchdog fires: an
+    // in-flight render still owns it, and releasing early hands the GPU to a new batch
+    // while the old one is mid-frame. The release now waits for the loop to settle OR for
+    // a bounded grace, whichever comes first — so a HUNG render (this one never resolves)
+    // still frees the card, just after the grace rather than immediately.
+    await until(() => { try { reserveGpu().release(); return true; } catch { return false; } }, 3000);
   });
 
   it('an ESTIMATE never reserves the GPU — a price preview during a batch still answers', async () => {
@@ -195,5 +201,35 @@ describe('an abandoned batch stops touching the GPU', () => {
     // It stopped where it was told to, rather than working through all eight.
     expect(rendered).toBe(atAbort);
     expect(rendered).toBeLessThan(8);
+  });
+});
+
+describe('a timed-out batch does not hand the GPU away mid-render', () => {
+  it('holds the card until the in-flight render finishes, then releases', async () => {
+    // Both seats found the first watchdog fix incomplete in the same round: the abort
+    // check sits BETWEEN frames, so a frame already inside `await renderStill` runs to
+    // completion — and releasing the instant the watchdog fired handed the card to a new
+    // batch while the old one was still using it.
+    let finished = false;
+    const d = deps({
+      watchdogMs: 40,
+      renderStill: async ({ seed }) => {
+        await sleep(400);                      // still running when the watchdog fires
+        finished = true;
+        return { image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 1, provider: 'comfyui/wan-2.2' };
+      },
+    });
+    const out = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1 }, d);
+    await until(() => getBatch(out.batchId, 1).terminal, 2000);
+    expect(getBatch(out.batchId, 1).error.code).toBe('E_BATCH_TIMEOUT');
+
+    // The batch is terminal and the caller has been told — but the render is still going,
+    // so the card must NOT be available yet.
+    expect(finished).toBe(false);
+    expect(() => reserveGpu().release()).toThrow();
+
+    // Once the render actually ends, the card comes back.
+    await until(() => finished, 2000);
+    await until(() => { try { reserveGpu().release(); return true; } catch { return false; } }, 2000);
   });
 });

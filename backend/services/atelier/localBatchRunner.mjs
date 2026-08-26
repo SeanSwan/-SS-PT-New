@@ -46,6 +46,8 @@ export async function runLocalBatch({ batch, req, brief, count, key, promptSourc
   // Observed by the render loop, so an ABANDONED batch stops touching the GPU. A promise
   // race ends the WAIT, never the WORK — and the work is what owns the hardware.
   const aborted = { now: false };
+  /** The render loop, once started — so a timeout can wait for it before freeing the GPU. */
+  let inFlight = null;
   const watchdog = new Promise((_, rej) => {
     timer = setTimeout(() => { aborted.now = true; rej(Object.assign(new Error(`The batch did not finish within ${Math.round(watchdogMs / 60000)} minutes and was abandoned; the GPU is free again.`), { code: 'E_BATCH_TIMEOUT' })); }, watchdogMs);
     if (typeof timer.unref === 'function') timer.unref();
@@ -77,7 +79,7 @@ export async function runLocalBatch({ batch, req, brief, count, key, promptSourc
         lawProfileDrop: LAW_PROFILES[lawProfile] || [],
       }, { provider: local.STILL_PROVIDER, promptStyle: 'sentence' }, count, compiler).prompts;
     }
-    await Promise.race([watchdog, withGpu(async () => {
+    const work = withGpu(async () => {
       for (let i = 0; i < prompts.length; i += 1) {
         // The race did not cancel this loop; only this check does. Without it the catch
         // releases the reservation, a NEW batch is admitted, and two batches render on
@@ -96,14 +98,44 @@ export async function runLocalBatch({ batch, req, brief, count, key, promptSourc
           batches.pushFailure(batch, { index: i, code: e?.code || 'E_LOCAL_RENDER', message: e?.message || String(e) });
         }
       }
-    }, reservation)]);
+    }, reservation);
+    // The card is held until the WORK stops, not until the WAIT stops.
+    //
+    // The previous fix put an abort check between frames, which is necessary and was not
+    // sufficient: a frame already inside `await renderStill` runs to completion, so
+    // releasing the reservation the moment the watchdog fired handed the GPU to a new
+    // batch while the old one was still mid-render. Both seats said so in the same round.
+    //
+    // So a timeout marks the loop aborted, finishes the batch, and then releases only once
+    // the loop has actually settled — the caller is told immediately, and the hardware
+    // stays reserved until it is genuinely free.
+    inFlight = work;
+    await Promise.race([watchdog, work]);
     const persisted = batch.stills.filter((s) => s.persist?.ok).length;
     batches.finishBatch(batch, { persistence: req.persist === false
       ? { ok: false, code: 'E_PERSIST_SKIPPED', persisted: 0 }
       : { ok: persisted === batch.stills.length, persisted, total: batch.stills.length } });
   } catch (err) {
-    reservation?.release();
+    aborted.now = true;
     batches.finishBatch(batch, { error: err });
+    if (inFlight) {
+      // Release after the loop SETTLES — or after a bounded grace, whichever comes first.
+      //
+      // Neither extreme is correct, and the tests caught the second one immediately.
+      // Releasing the instant the watchdog fires hands the card to a new batch while an
+      // in-flight render still owns it. Waiting unconditionally for the loop means a
+      // genuinely HUNG render holds the card forever, which is the exact failure the
+      // watchdog was added to end. So: prefer the truth (wait for real work), but never
+      // wedge — a render that has not finished within the grace is not going to.
+      const grace = Math.min(30_000, Math.max(250, watchdogMs));
+      let released = false;
+      const release = () => { if (!released) { released = true; reservation?.release(); } };
+      const graceTimer = setTimeout(release, grace);
+      if (typeof graceTimer.unref === 'function') graceTimer.unref();
+      inFlight.catch(() => {}).finally(() => { clearTimeout(graceTimer); release(); });
+    } else {
+      reservation?.release();
+    }
   } finally {
     if (timer) clearTimeout(timer);
   }
