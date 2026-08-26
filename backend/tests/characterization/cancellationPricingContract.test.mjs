@@ -172,19 +172,28 @@ describe('CONTRACT — cancellation pricing and forfeit recording', () => {
       expect(Number(session.cancellationChargeAmount)).toBe(175);
     });
 
-    it('does not clamp an operator figure above the derived rate', async () => {
+    it('keeps an operator figure above the derived rate (advisory design, not a no-ceiling spec)', async () => {
+      // Characterizes the ADVISORY design only: the operator's figure is what is
+      // recorded, and the server's number rides along as a suggestion. It does
+      // NOT assert that no ceiling exists - a future confirm-gate on an egregious
+      // amount (422 unless explicitly acknowledged) is not a break of this
+      // contract. Panel-6 finding: the earlier 9999 form froze the absence of a
+      // guardrail into the spec.
       getClientPackagePricing.mockResolvedValue({
         pricePerSession: 110, packageName: 'Express 30', isFallback: false
       });
 
       const { session } = await cancel(TRAINER, {
-        chargeType: 'partial', chargeAmount: 9999, restoreCredit: false
+        chargeType: 'partial', chargeAmount: 150, restoreCredit: false
       });
 
-      expect(Number(session.cancellationChargeAmount)).toBe(9999);
+      expect(Number(session.cancellationChargeAmount)).toBe(150);
     });
 
-    it('still performs the rate lookup, inside the caller transaction', async () => {
+    it('still performs the rate lookup, passing the caller transaction', async () => {
+      // Proves only that the lookup receives the caller's transaction handle. With
+      // mocked models nothing commits or rolls back here, so this is NOT evidence
+      // of transactional semantics - do not cite it as such.
       await cancel(TRAINER, { chargeType: 'full', chargeAmount: 175, restoreCredit: false });
 
       expect(getClientPackagePricing).toHaveBeenCalledWith(
