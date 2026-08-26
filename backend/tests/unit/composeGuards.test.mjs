@@ -160,3 +160,51 @@ describe('an owner is a value, not merely "not undefined"', () => {
     expect(() => assertKeyHasOwner({ userId: undefined })).not.toThrow();
   });
 });
+
+describe('a burst of in-flight requests must not destroy the replay window', () => {
+  it('bounds the SETTLED count, not the store — 600 in flight leaves the window intact', () => {
+    // Bounding on `store.size` looked equivalent and was not: in-flight entries inflate
+    // it, so the loop evicted settled keys far below the target. A probe with 600 in
+    // flight left ONE settled key standing out of 600 — the replay window destroyed by
+    // exactly the traffic that produces retries, which is the double-charge this
+    // retention exists to prevent.
+    settledKeys.clear();
+    const store = new Map();
+    const settled = new Set();
+    for (let i = 0; i < 600; i += 1) store.set(`inflight-${i}`, new Promise(() => {}));
+    for (let i = 0; i < 600; i += 1) {
+      const k = `done-${i}`;
+      store.set(k, Promise.resolve(1));
+      rememberKey(store, k, settled);
+    }
+    expect(settled.size).toBe(IDEMPOTENCY_RETAIN);
+    // And every in-flight entry survives: dropping one lets its duplicate charge twice.
+    expect([...store.keys()].filter((k) => k.startsWith('inflight')).length).toBe(600);
+  });
+});
+
+describe('slimming must never destroy the only copy', () => {
+  it('KEEPS the bytes when the still never persisted', () => {
+    // Dropping the payload is safe only because the still is retrievable by assetId. When
+    // persistence failed there is no library copy, and a slimmed replay hands a retry
+    // neither the image nor a way to find it — the client paid and it is gone.
+    const unpersisted = { cost: {}, stills: [{ index: 0, image: { kind: 'b64', data: 'PAYLOAD' } }] };
+    const out = slimForReplay(unpersisted);
+    expect(out.stills[0].image.data).toBe('PAYLOAD');
+    expect(out.bytesDropped).toBeUndefined();
+    expect(out.replayed).toBe(true);
+  });
+
+  it('drops them once every still has an assetId', () => {
+    const persisted = { cost: {}, stills: [{ index: 0, assetId: 'a1', image: { kind: 'b64', mime: 'image/png', data: 'PAYLOAD' } }] };
+    expect(slimForReplay(persisted).bytesDropped).toBe(true);
+  });
+
+  it('keeps them when only SOME persisted — a partial batch is still a lost render', () => {
+    const partial = { cost: {}, stills: [
+      { index: 0, assetId: 'a1', image: { kind: 'b64', data: 'A' } },
+      { index: 1, image: { kind: 'b64', data: 'B' } },
+    ] };
+    expect(slimForReplay(partial).bytesDropped).toBeUndefined();
+  });
+});

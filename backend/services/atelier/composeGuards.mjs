@@ -43,7 +43,14 @@ export function rememberKey(store, key, settled) {
   // promise is the thing a concurrent duplicate coalesces onto, so dropping it lets the
   // duplicate generate and charge a second time. That is the very outcome the map exists
   // to prevent, reintroduced by the bound meant to make the map safe.
-  while (store.size > IDEMPOTENCY_RETAIN) {
+  // BOUND THE SETTLED COUNT, NOT THE STORE. Bounding on `store.size` looked equivalent
+  // and was not: in-flight entries inflate it, so a burst of concurrent requests drove the
+  // loop to evict settled keys far below the retention target — a probe with 600 in flight
+  // left ONE settled key standing out of 600. That destroys the replay window during
+  // exactly the traffic that produces retries, which is the double-charge this retention
+  // exists to prevent. In-flight entries need no bound: they are removed as they settle,
+  // and their count is capped by concurrency rather than by history.
+  while (settled.size > IDEMPOTENCY_RETAIN) {
     const oldest = settled.values().next();
     if (oldest.done || oldest.value === key) break;
     store.delete(oldest.value);
@@ -97,6 +104,13 @@ export function _resetCoalescing() {
  */
 export function slimForReplay(result) {
   if (!result || !Array.isArray(result.stills)) return result;
+  // KEEP THE BYTES WHEN THEY ARE THE ONLY COPY. Dropping the payload is safe precisely
+  // because the still is retrievable by `assetId` from the library. When persistence
+  // FAILED — R2 unconfigured, a hash mismatch — there is no library copy, and a slimmed
+  // replay would hand a retry neither the image nor a way to find it: the client paid,
+  // and everything it paid for is gone. Rare enough that carrying the bytes costs little,
+  // and the alternative is losing someone's render to save memory.
+  if (result.stills.some((s) => !s.assetId)) return { ...result, replayed: true };
   return {
     ...result,
     replayed: true,
