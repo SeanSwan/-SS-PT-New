@@ -40,29 +40,19 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import roster_grammar as G  # noqa: E402
 
 
-def components(cells):
-    """Every 6-connected component, largest first.
+def describe(comps):
+    """Components as sizes and extents, largest first.
 
-    Returns components rather than a bool because "not connected" is not an actionable report.
-    An author who is told WHICH cells floated off can fix the recipe; an author who is told the
-    mesh is disconnected has to re-derive the whole thing by hand. Ox's own grammar states a
-    cluster-touch law and 8 of its 18 recipes break it — that feedback is only cheap to act on
-    if it names the orphans.
+    NOT "the main body plus orphans". For a tethered pair of near-equal halves, calling one half
+    orphaned is technically true and useless — it frames a design decision as an accident. Sizes
+    and extents let the author see what the recipe actually built.
     """
-    remaining, out = set(cells), []
-    while remaining:
-        start = next(iter(remaining))
-        seen, stack = {start}, [start]
-        while stack:
-            x, y, z = stack.pop()
-            for d in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)):
-                n = (x + d[0], y + d[1], z + d[2])
-                if n in remaining and n not in seen:
-                    seen.add(n)
-                    stack.append(n)
-        out.append(seen)
-        remaining -= seen
-    return sorted(out, key=len, reverse=True)
+    return "; ".join(
+        "%d cell(s) x%d..%d y%d..%d z%d..%d"
+        % (len(c), min(p[0] for p in c), max(p[0] for p in c),
+           min(p[1] for p in c), max(p[1] for p in c),
+           min(p[2] for p in c), max(p[2] for p in c))
+        for c in comps)
 
 
 def x_mirror_symmetric(cells):
@@ -93,10 +83,13 @@ def write_obj(path, cells, header):
     return len(verts), len(faces)
 
 
-def check(spec, mirror_break):
+def check(spec, mode):
     """Returns (cells, grammar, [problems]). A problem is a refusal for THIS block only."""
     problems = []
-    clusters, grammar = G.parse_recipe(spec.get("buildRecipe", ""), mirror_break=mirror_break)
+    try:
+        clusters, grammar = G.parse_recipe(spec.get("buildRecipe", ""), mode=mode)
+    except G.RecipeError as exc:
+        return None, "box", ["malformed recipe: %s" % exc]
     if grammar == "none":
         return None, grammar, ["buildRecipe is in no grammar this tool knows "
                                "(not BOX `C(x,y,z,dx,dy,dz)`, not PROSE `name WxHxD at (x,y,z)`)"]
@@ -105,16 +98,21 @@ def check(spec, mirror_break):
     if not 4 <= n <= 40:
         problems.append("occupied cells %d outside 4-40 (below has no silhouette; above blows "
                         "the tier ceilings)" % n)
-    comps = components(cells)
-    if len(comps) > 1:
-        orphans = "; ".join(
-            "%d cell(s) at %s" % (len(c), ",".join("(%d,%d,%d)" % p for p in sorted(c)[:4]))
-            + ("..." if len(c) > 4 else "")
-            for c in comps[1:])
-        problems.append("clusters are not all touching — %d separate pieces; the main body holds "
-                        "%d cells and these float free: %s. A floating cluster makes a "
-                        "disconnected mesh and the convex hull swallows the gap."
-                        % (len(comps), len(comps[0]), orphans))
+
+    # Multi-piece is a DECLARATION, not an accident to be guessed at. `voxelCount` is already
+    # declared intent the gate verifies; `components` works the same way. Default 1 keeps every
+    # existing spec refusing exactly as before, while a designed swarm or tethered pair can say
+    # so and be checked rather than blocked.
+    comps = G.components(cells)
+    want = str(spec.get("components", "1")).strip().split()[0]
+    want = int(want) if want.isdigit() else 1
+    if len(comps) != want:
+        problems.append("recipe builds %d separate piece(s), the spec declares %d: %s. Contact is "
+                        "6-neighbour at the CELL level — a single bridging cell connects two "
+                        "boxes; edge and corner contact do not count. A floating piece makes a "
+                        "disconnected mesh and the convex hull swallows the gap. If the split is "
+                        "deliberate, declare `components: %d`."
+                        % (len(comps), want, describe(comps), len(comps)))
     if x_mirror_symmetric(cells):
         problems.append("perfect X-mirror symmetry — the art law bans plastic-cube regularity")
     raw = str(spec.get("voxelCount", "")).strip()
@@ -136,11 +134,13 @@ def main():
                          "them looks fine — the generator architecturally cannot see a block that "
                          "was never written (Ox Alpha, N3 blocker 1). Pass the count; a short "
                          "roster fails.")
-    ap.add_argument("--mirror-break", choices=["auto", "on", "off"], default="auto",
-                    help="Ox's BOX grammar says odd-indexed N copies get z+=1. That may be a rule "
-                         "the AUTHOR applied or one the READER applies; the two give different "
-                         "cells. `auto` decides empirically from the declared voxelCounts and "
-                         "REFUSES on a tie rather than guessing.")
+    ap.add_argument("--mirror-break", choices=["auto"] + list(G.MODES), default="auto",
+                    help="The BOX grammar says odd-indexed N copies get z+=1. That may be a rule "
+                         "the AUTHOR applied (off) or one the READER applies — and 'odd' is not "
+                         "index-base-pinned, so reader-side is two readings (on0, on1), not one. "
+                         "`auto` decides STRUCTURALLY: the reading under which fewest creatures "
+                         "shatter into disconnected pieces, which does not depend on the author's "
+                         "arithmetic. Refuses on a genuine tie rather than guessing.")
     args = ap.parse_args()
 
     blocks = G.parse_blocks(open(args.roster, encoding="utf-8").read())
@@ -150,21 +150,22 @@ def main():
         sys.exit(2)
 
     if args.mirror_break == "auto":
-        mb, report = G.resolve_mirror_break(blocks)
-        if mb is None:
-            print("[roster] EXIT 2 - %s. Pass --mirror-break on|off explicitly; guessing would "
-                  "silently distort every creature that uses N()." % report, file=sys.stderr)
+        mode, report = G.resolve_mirror_break(blocks)
+        if mode is None:
+            print("[roster] EXIT 2 - %s. Pass --mirror-break %s explicitly; guessing would "
+                  "silently distort every creature that uses N()."
+                  % (report, "|".join(G.MODES)), file=sys.stderr)
             sys.exit(2)
-        print("[roster] mirror-break resolved from the roster itself: %s (%s)"
-              % ("ON" if mb else "OFF", report))
+        print("[roster] mirror-break resolved from the roster itself: %s\n           %s"
+              % (mode.upper(), report))
     else:
-        mb = args.mirror_break == "on"
-        print("[roster] mirror-break forced %s by flag" % ("ON" if mb else "OFF"))
+        mode = args.mirror_break
+        print("[roster] mirror-break forced %s by flag" % mode.upper())
 
     ok = refused = 0
     for spec in blocks:
         ident = spec["id"]
-        cells, grammar, problems = check(spec, mb)
+        cells, grammar, problems = check(spec, mode)
         if problems:
             refused += 1
             print("  REFUSED %s" % ident)

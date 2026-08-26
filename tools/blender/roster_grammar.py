@@ -50,17 +50,49 @@ def parse_prose(text):
     ]
 
 
+class RecipeError(ValueError):
+    """A recipe that is malformed rather than merely refusable.
+
+    A box with a zero or negative extent contributes NO cells. Left as data it vanishes
+    silently: the creature simply comes out smaller and every downstream check passes on the
+    smaller thing. `C(0,0,0,0,1,1)` is a typo, not a design. Raised, not skipped.
+    """
+
+
 def _one_box(m, tag):
     x, y, z, dx, dy, dz = (int(g) for g in m.groups())
+    if dx < 1 or dy < 1 or dz < 1:
+        raise RecipeError("C(%d,%d,%d,%d,%d,%d) has a non-positive extent — a box with a zero or "
+                          "negative dimension contributes no cells and would vanish silently"
+                          % (x, y, z, dx, dy, dz))
     return {"name": tag, "size": (dx, dy, dz), "at": (x, y, z)}
 
 
-def parse_box(text, mirror_break=False):
+# The three readings of "MIRROR-BREAK: odd-indexed copies of any N receive z += 1".
+#   off  — the author applied it while writing; the reader does nothing
+#   on0  — the reader applies it, "odd" counted from 0 (copies 1, 3, 5 ...)
+#   on1  — the reader applies it, "odd" counted from 1 (copies 0, 2, 4 ...)
+# The grammar text does not pin the index base, so ON is really two readings, not one.
+# Missed on the first pass; surfaced by the N4 panel.
+MODES = ("off", "on0", "on1")
+
+
+def _bump(mode, i):
+    if mode == "on0":
+        return 1 if i % 2 == 1 else 0
+    if mode == "on1":
+        return 1 if i % 2 == 0 else 0
+    return 0
+
+
+def parse_box(text, mode="off"):
     """`C(x,y,z,dx,dy,dz)` and `N(k,sx,sy,sz,C(...))` -> [{name,size,at}].
 
     N is matched and masked FIRST, because every N contains a C and a naive C-scan would
     double-count the inner box and then miss the repetition entirely.
     """
+    if mode not in MODES:
+        raise RecipeError("unknown mirror-break reading %r; expected one of %r" % (mode, MODES))
     out, masked, n_idx = [], text, 0
     for m in N_RE.finditer(text):
         k = int(m.group(1))
@@ -71,10 +103,9 @@ def parse_box(text, mirror_break=False):
         base = _one_box(cm, "n%d" % n_idx)
         bx, by, bz = base["at"]
         for i in range(k):
-            z = bz + i * sz + (1 if (mirror_break and i % 2 == 1) else 0)
             out.append({"name": "%s.%d" % (base["name"], i),
                         "size": base["size"],
-                        "at": (bx + i * sx, by + i * sy, z)})
+                        "at": (bx + i * sx, by + i * sy, bz + i * sz + _bump(mode, i))})
         n_idx += 1
         masked = masked.replace(m.group(0), " " * len(m.group(0)), 1)
     for i, m in enumerate(C_RE.finditer(masked)):
@@ -82,14 +113,32 @@ def parse_box(text, mirror_break=False):
     return out
 
 
-def parse_recipe(text, mirror_break=False):
+def parse_recipe(text, mode="off"):
     """Dispatch on which grammar the text is written in. BOX wins when both could match."""
     if "C(" in text:
-        boxes = parse_box(text, mirror_break=mirror_break)
+        boxes = parse_box(text, mode=mode)
         if boxes:
             return boxes, "box"
     prose = parse_prose(text)
     return prose, ("prose" if prose else "none")
+
+
+def components(cells):
+    """Every 6-connected component, largest first. Pure — the resolver needs it too."""
+    remaining, out = set(cells), []
+    while remaining:
+        start = next(iter(remaining))
+        seen, stack = {start}, [start]
+        while stack:
+            x, y, z = stack.pop()
+            for d in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)):
+                n = (x + d[0], y + d[1], z + d[2])
+                if n in remaining and n not in seen:
+                    seen.add(n)
+                    stack.append(n)
+        out.append(seen)
+        remaining -= seen
+    return sorted(out, key=len, reverse=True)
 
 
 # ---------------------------------------------------------------- cells
@@ -178,47 +227,71 @@ def parse_blocks(text):
 
 
 def resolve_mirror_break(blocks):
-    """Which reading of MIRROR-BREAK does this roster actually mean?
+    """Which of the three readings of MIRROR-BREAK does this roster actually mean?
 
-    Returns (flag, report). Decided by which reading agrees with more DECLARED voxelCounts.
-    A LIVE tie returns None — the caller must refuse rather than pick, because a wrong reading
-    silently distorts every creature that uses N().
+    Returns (mode, report) where mode is one of MODES, or (None, report) when undecidable.
 
-    A roster with no N() anywhere has no ambiguity to resolve: both readings are the same
-    function. That is a VACUOUS tie, not an undecidable one, and returning None for it locks
-    out every roster written in the PROSE grammar — which is what the four already-built assets
-    use. Caught 2026-08-26 by running the original roster through the new auto path; the
-    selftest had asserted the wrong behaviour because its tie fixture also had no N().
+    DECIDED STRUCTURALLY, NOT BY THE DECLARED COUNTS. The obvious oracle is `voxelCount` — but
+    that oracle is produced by the same author whose counts this very roster proves wrong on 6
+    of 18 creatures, and two hypotheses predict identical observations: (H1) the semantics is
+    OFF and the author counted what they wrote; (H2) the semantics is ON and the author's
+    counting pass didn't implement MIRROR-BREAK either. Counts cannot separate them.
+
+    CONNECTIVITY CAN. The grammar states a cluster-touch law, so a reading that shatters more
+    creatures into disconnected pieces is a reading the roster was not written under — and that
+    signal does not depend on the author's arithmetic at all. On the 2026-08-26 parasite roster
+    the two scores diverge sharply: counts split 12/10/10 (nearly uninformative) while shattering
+    splits 8/14/17 (decisive for OFF). Counts are kept as a reported secondary and only break a
+    structural tie.
+
+    LIVENESS is measured, not sniffed. The old test asked whether the string contains "N(",
+    which is false-live for N with one copy and false-dead for any spacing the parser tolerates
+    but a substring test does not. The real question — do the readings produce different CELLS
+    anywhere — is already computed here.
     """
-    if not any("N(" in str(b.get("buildRecipe", "")) for b in blocks):
-        return False, "no N() in any recipe — the mirror-break ambiguity is vacuous here"
-    off = on = d_off = d_on = discriminating = 0
+    cells, malformed = {}, []
+    for b in blocks:
+        recipe = b.get("buildRecipe", "")
+        if "C(" not in recipe:
+            continue
+        try:
+            cells[b.get("id", "?")] = {m: occupied_cells(parse_box(recipe, mode=m)) for m in MODES}
+        except RecipeError as exc:
+            malformed.append("%s: %s" % (b.get("id", "?"), exc))
+    if malformed:
+        return None, "malformed recipe(s), cannot resolve: " + "; ".join(malformed)
+    if not cells:
+        return "off", "no BOX recipes — the mirror-break ambiguity is vacuous here"
+    live = [i for i, per in cells.items() if len({frozenset(per[m]) for m in MODES}) > 1]
+    if not live:
+        return "off", ("no reading produces different cells on any of the %d BOX recipe(s) — "
+                       "the ambiguity is vacuous here" % len(cells))
+
+    shatter = {m: sum(1 for per in cells.values() if len(components(per[m])) > 1) for m in MODES}
+    agree = {m: 0 for m in MODES}
     for b in blocks:
         raw = str(b.get("voxelCount", "")).strip()
         declared = raw.split()[0] if raw else ""
-        if not declared.isdigit():
+        per = cells.get(b.get("id", "?"))
+        if not declared.isdigit() or per is None:
             continue
-        recipe = b.get("buildRecipe", "")
-        c_off, k = parse_recipe(recipe, mirror_break=False)
-        c_on, _ = parse_recipe(recipe, mirror_break=True)
-        if k != "box":
-            continue
-        n_off, n_on = len(occupied_cells(c_off)), len(occupied_cells(c_on))
-        a_off, a_on = (n_off == int(declared)), (n_on == int(declared))
-        off += a_off
-        on += a_on
-        # A z-shift only moves the COUNT when the shifted copy would have overlapped an existing
-        # cell. Recipes whose N copies never overlap score identically under both readings and
-        # carry no information — counting them dilutes the signal toward 50/50 and makes a
-        # decisive roster look like a coin flip.
-        if n_off != n_on:
-            discriminating += 1
-            d_off += a_off
-            d_on += a_on
-    report = ("OFF agrees with %d declared counts, ON with %d; among the %d recipe(s) where the "
-              "readings actually differ, OFF %d / ON %d" % (off, on, discriminating, d_off, d_on))
-    if discriminating and d_off != d_on:
-        return (d_on > d_off), report
-    if off == on:
-        return None, report + " — TIE, undecidable from the roster itself"
-    return (on > off), report
+        for m in MODES:
+            agree[m] += (len(per[m]) == int(declared))
+
+    report = ("%d of %d BOX recipe(s) build different creatures under different readings. "
+              "SHATTERED (structural, independent of the author's arithmetic): %s. "
+              "Declared-count agreement (secondary — this roster proves that oracle wrong on "
+              "6 of 18): %s"
+              % (len(live), len(cells),
+                 ", ".join("%s=%d" % (m, shatter[m]) for m in MODES),
+                 ", ".join("%s=%d" % (m, agree[m]) for m in MODES)))
+
+    best = min(shatter.values())
+    winners = [m for m in MODES if shatter[m] == best]
+    if len(winners) == 1:
+        return winners[0], report
+    top = max(agree[m] for m in winners)
+    finalists = [m for m in winners if agree[m] == top]
+    if len(finalists) == 1:
+        return finalists[0], report + " — structural tie broken on counts"
+    return None, report + " — TIE across %r, undecidable from the roster itself" % finalists

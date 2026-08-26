@@ -7,6 +7,10 @@ one identical cell set. Everything else guards a specific way the BOX parser cou
 a manner no roster would visibly reveal — N double-counting its own inner C being the worst,
 because it produces a plausible creature with a silently extra box.
 
+Each check below names the requirement it encodes. A suite whose fixtures encode the AUTHOR's
+assumption instead of the requirement passes while defending nothing; that has happened here
+twice (the vacuous-tie fixture, and a count that was typed rather than measured).
+
 No filesystem, no bpy. Exit 0 all pass, exit 1 any fail.
 """
 
@@ -27,53 +31,86 @@ def check(name, got, want):
         FAILS.append(name)
 
 
+def err(fn):
+    """The exception a call raises, or None. Keeps the assertion on the TYPE, not the message."""
+    try:
+        fn()
+        return None
+    except Exception as exc:  # noqa: BLE001 — inspecting whatever came out is the point
+        return exc
+
+
 # ------------------------------------------------------------------ 1. EQUIVALENCE (the point)
-# A hand-counted creature: 2x2x1 body (4 cells) + 1x1x1 head (1) + three 1x1x1 legs (3) = 8.
+# Deliberately asymmetric in all three extents AND at a nonzero, partly negative position: a
+# fixture that is 2x2x2 at the origin passes under a parser that reads extents as (dz,dy,dx) or
+# positions in the wrong order, and then every asymmetric creature is silently wrong.
+# 3x2x1 body (6 cells) + 1x1x1 head (1) + three 1x1x1 legs (3) = 10.
 HAND_COUNTED = {
-    (0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0),   # body
-    (2, 0, 0),                                     # head
-    (0, -1, 0), (1, -1, 0), (2, -1, 0),            # legs
+    (-1, 0, 0), (0, 0, 0), (1, 0, 0), (-1, 1, 0), (0, 1, 0), (1, 1, 0),   # body 3x2x1 at (-1,0,0)
+    (2, 0, 0),                                                            # head
+    (-1, -1, 0), (0, -1, 0), (1, -1, 0),                                  # legs
 }
-BOX_FORM = "C(0,0,0,2,2,1); C(2,0,0,1,1,1); N(3,1,0,0,C(0,-1,0,1,1,1))"
-PROSE_FORM = ("body 2x2x1 at (0,0,0), head 1x1x1 at (2,0,0), "
-              "legA 1x1x1 at (0,-1,0), legB 1x1x1 at (1,-1,0), legC 1x1x1 at (2,-1,0)")
+BOX_FORM = "C(-1,0,0,3,2,1); C(2,0,0,1,1,1); N(3,1,0,0,C(-1,-1,0,1,1,1))"
+PROSE_FORM = ("body 3x2x1 at (-1,0,0), head 1x1x1 at (2,0,0), "
+              "legA 1x1x1 at (-1,-1,0), legB 1x1x1 at (0,-1,0), legC 1x1x1 at (1,-1,0)")
 
 box_cells = G.occupied_cells(G.parse_box(BOX_FORM))
 prose_cells = G.occupied_cells(G.parse_prose(PROSE_FORM))
 check("BOX matches the hand count", box_cells, HAND_COUNTED)
 check("PROSE matches the hand count", prose_cells, HAND_COUNTED)
 check("EQUIVALENCE: both grammars, one cell set", box_cells, prose_cells)
+check("the fixture can actually pin axis order (no two extents equal)",
+      len({3, 2, 1}), 3)
+
+# Overlap semantics: both dialects must UNION, not count with multiplicity. Without an
+# overlapping fixture, dedup at the N boundary is unanchored.
+check("BOX unions overlapping boxes",
+      len(G.occupied_cells(G.parse_box("C(0,0,0,2,1,1); C(1,0,0,2,1,1)"))), 3)
+check("PROSE unions overlapping clusters",
+      len(G.occupied_cells(G.parse_prose("a 2x1x1 at (0,0,0), b 2x1x1 at (1,0,0)"))), 3)
+check("N whose own copies overlap unions them",
+      len(G.occupied_cells(G.parse_box("N(3,1,0,0,C(0,0,0,2,1,1))"))), 4)
 
 # ------------------------------------------------------------------ 2. N does not double-count
 # The inner C of an N must be consumed by the N. If masking fails, this yields 4 cells, not 3,
-# and the extra one sits exactly on top of a real leg where no silhouette check would see it.
+# and the extra sits exactly on top of a real leg where no silhouette check would see it.
 check("N consumes its inner C (no phantom 4th)",
       len(G.occupied_cells(G.parse_box("N(3,1,0,0,C(0,0,0,1,1,1))"))), 3)
-
-# ------------------------------------------------------------------ 3. N offsets compound
 check("N offsets are i*(sx,sy,sz), not a fixed shift",
       sorted(c["at"] for c in G.parse_box("N(3,2,0,0,C(0,0,0,1,1,1))")),
       [(0, 0, 0), (2, 0, 0), (4, 0, 0)])
-
-# ------------------------------------------------------------------ 4. mirror_break is real
-check("mirror_break OFF leaves odd copies alone",
-      sorted(c["at"] for c in G.parse_box("N(3,1,0,0,C(0,0,0,1,1,1))", mirror_break=False)),
-      [(0, 0, 0), (1, 0, 0), (2, 0, 0)])
-check("mirror_break ON raises odd-indexed copies by z+1",
-      sorted(c["at"] for c in G.parse_box("N(3,1,0,0,C(0,0,0,1,1,1))", mirror_break=True)),
-      [(0, 0, 0), (1, 0, 1), (2, 0, 0)])
-
-# ------------------------------------------------------------------ 5. negative coords survive
 check("negative y is a legal coordinate",
       G.occupied_cells(G.parse_box("C(0,-2,0,1,2,1)")), {(0, -2, 0), (0, -1, 0)})
 
-# ------------------------------------------------------------------ 6. dispatch
+# ------------------------------------------------------------------ 3. all THREE readings
+# "odd-indexed" does not pin an index base, so reader-side MIRROR-BREAK is two readings, not
+# one. Missed on the first pass; surfaced by the N4 panel.
+check("off leaves every copy alone",
+      sorted(c["at"] for c in G.parse_box("N(4,1,0,0,C(0,0,0,1,1,1))", mode="off")),
+      [(0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0)])
+check("on0 lifts copies 1,3 (base-0 odd)",
+      sorted(c["at"] for c in G.parse_box("N(4,1,0,0,C(0,0,0,1,1,1))", mode="on0")),
+      [(0, 0, 0), (1, 0, 1), (2, 0, 0), (3, 0, 1)])
+check("on1 lifts copies 0,2 (base-1 odd)",
+      sorted(c["at"] for c in G.parse_box("N(4,1,0,0,C(0,0,0,1,1,1))", mode="on1")),
+      [(0, 0, 1), (1, 0, 0), (2, 0, 1), (3, 0, 0)])
+check("an unknown reading is refused, not silently treated as off",
+      isinstance(err(lambda: G.parse_box("C(0,0,0,1,1,1)", mode="ON")), G.RecipeError), True)
+
+# ------------------------------------------------------------------ 4. malformed is not empty
+# A box with a zero or negative extent contributes NO cells. Left as data it vanishes silently:
+# the creature comes out smaller and every downstream check passes on the smaller thing.
+for bad in ("C(0,0,0,0,1,1)", "C(0,0,0,-1,1,1)", "C(0,0,0,3,0,1)"):
+    check("non-positive extent %s is refused" % bad,
+          isinstance(err(lambda b=bad: G.parse_box(b)), G.RecipeError), True)
+
+# ------------------------------------------------------------------ 5. dispatch
 check("dispatch picks BOX when C( is present", G.parse_recipe(BOX_FORM)[1], "box")
 check("dispatch falls back to PROSE", G.parse_recipe(PROSE_FORM)[1], "prose")
 check("dispatch reports none for unparseable prose",
       G.parse_recipe("14-cell lenticular carapace, bevel 0.4")[1], "none")
 
-# ------------------------------------------------------------------ 7. block parsing, all forms
+# ------------------------------------------------------------------ 6. block parsing, all forms
 OX_MD = """### `parasite.bedbug`
 - **role:** ambush-drainer
 - **voxelCount:** 34
@@ -102,38 +139,42 @@ check("REGRESSION: fenced form still parses (4 built assets depend on it)",
 check("parse_blocks prefers fenced when both could match",
       [b["id"] for b in G.parse_blocks(FENCED + "\n" + OX_MD)], ["enemy.fryling"])
 
-# ------------------------------------------------------------------ 8. the two kinds of tie
-# VACUOUS: no recipe uses N, so both readings ARE the same function. Refusing here would lock
-# out every PROSE roster — which is what the four already-built assets use. This fixture used
-# to assert None and passed, because it encoded my assumption instead of the requirement.
-VACUOUS = [{"id": "a", "voxelCount": "1", "buildRecipe": "C(0,0,0,1,1,1)"},
-           {"id": "b", "voxelCount": "1", "buildRecipe": "C(5,0,0,1,1,1)"}]
-flag, report = G.resolve_mirror_break(VACUOUS)
-check("no N() anywhere is a VACUOUS tie, not a refusal", flag, False)
-check("vacuous tie says why", "vacuous" in report, True)
+# ------------------------------------------------------------------ 7. liveness is MEASURED
+# The old test asked whether the raw string contains "N(" — false-live for a single copy,
+# false-dead for any spacing the parser tolerates but a substring test does not.
+ONE_COPY = [{"id": "a", "voxelCount": "1", "buildRecipe": "N(1,1,0,0,C(0,0,0,1,1,1))"}]
+# Under base-0 alone this would be vacuous — copy 0 is never odd. Under base-1 the sole copy IS
+# the first, so it shifts, and the readings genuinely diverge. Adding the third reading turned a
+# case I had called vacuous into an undecidable one. A substring test for "N(" could never have
+# told the difference in either direction; only expanding all three readings can.
+check("N with ONE copy is LIVE once base-1 is admitted", G.resolve_mirror_break(ONE_COPY)[0], None)
+check("a one-cell creature cannot break the tie structurally or by count",
+      "TIE" in G.resolve_mirror_break(ONE_COPY)[1], True)
+check("no BOX recipes at all -> vacuous, and PROSE rosters still resolve",
+      G.resolve_mirror_break([{"id": "a", "voxelCount": "4",
+                               "buildRecipe": "body 2x2x1 at (0,0,0)"}])[0], "off")
+check("a malformed recipe blocks resolution rather than skewing it",
+      G.resolve_mirror_break([{"id": "a", "buildRecipe": "C(0,0,0,0,1,1)"}])[0], None)
 
-# LIVE: N is used, and both readings agree with exactly as many declared counts. Undecidable.
-# 2 cells either way for the first (z-shift does not change the count of a 1-high column),
-# and the second is deliberately wrong under both readings, so neither can pull ahead.
-LIVE = [{"id": "a", "voxelCount": "2", "buildRecipe": "N(2,1,0,0,C(0,0,0,1,1,1))"},
-        {"id": "b", "voxelCount": "99", "buildRecipe": "N(2,1,0,0,C(0,0,0,1,1,1))"}]
-flag, report = G.resolve_mirror_break(LIVE)
-check("a LIVE tie returns None rather than guessing", flag, None)
-check("a live tie says so out loud", "TIE" in report, True)
+# ------------------------------------------------------------------ 8. STRUCTURAL resolution
+# Counts cannot separate "semantics is OFF and the author counted right" from "semantics is ON
+# and the author's counting pass didn't implement it either" — both predict the same numbers.
+# Connectivity can, and it does not depend on the author's arithmetic at all.
+# A bar with an N riding on top: under off the copies sit on the bar; under on they lift clear.
+BAR = {"id": "bar", "voxelCount": "0",  # deliberately WRONG so the oracle cannot be what decides
+       "buildRecipe": "C(0,0,0,4,1,1); N(2,2,0,0,C(0,1,0,1,1,1))"}
+mode, rep = G.resolve_mirror_break([BAR])
+check("OFF keeps the piece whole, ON floats it -> OFF wins on STRUCTURE", mode, "off")
+check("the report says the structural signal is arithmetic-independent",
+      "independent of the author" in rep, True)
+check("a wrong declared count cannot flip a structural verdict",
+      G.resolve_mirror_break([dict(BAR, voxelCount="99")])[0], "off")
 
-# A DISCRIMINATING case. Note what it takes: a z-shift only changes the cell COUNT when the
-# shifted copy would otherwise have landed on a cell that already exists. `N` copies that never
-# overlap anything give the same count under both readings — which is why the aggregate score on
-# the real roster was 12-vs-10 rather than 18-vs-0, and why the count is a WEAK discriminator.
-# Here the N copies land inside a bar, so OFF merges them away and ON lifts one clear.
-DISCRIM = [{"id": "d", "voxelCount": "3",
-            "buildRecipe": "C(0,0,0,3,1,1); N(2,1,0,0,C(0,0,0,1,1,1))"}]
-check("OFF merges overlapping N copies (3 cells)",
-      len(G.occupied_cells(G.parse_box(DISCRIM[0]["buildRecipe"], mirror_break=False))), 3)
-check("ON lifts the odd copy clear (4 cells)",
-      len(G.occupied_cells(G.parse_box(DISCRIM[0]["buildRecipe"], mirror_break=True))), 4)
-check("a roster whose counts only fit OFF resolves OFF",
-      G.resolve_mirror_break(DISCRIM)[0], False)
+# ------------------------------------------------------------------ 9. components() is pure
+check("components splits two disjoint groups",
+      [len(c) for c in G.components({(0, 0, 0), (5, 0, 0), (6, 0, 0)})], [2, 1])
+check("components joins face-adjacent cells", len(G.components({(0, 0, 0), (1, 0, 0)})), 1)
+check("edge contact is NOT contact", len(G.components({(0, 0, 0), (1, 1, 0)})), 2)
 
 print("\n%d checks, %d failed" % (len(RAN), len(FAILS)))
 sys.exit(1 if FAILS else 0)
