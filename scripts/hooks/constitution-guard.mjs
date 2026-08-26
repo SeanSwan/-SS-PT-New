@@ -161,6 +161,40 @@ const SHRINK_TOLERANCE = 0.02;
 const AGGREGATE_SHRINK_TOLERANCE = 0.005;
 
 /**
+ * Depth bound for a DECLARED trim of a SURVIVING rule (prune panel 2026-08-25,
+ * GLM F1 + Grok F3 convergence): SWAN_ALLOW_RULE_REMOVAL waves a rule through the
+ * per-rule and aggregate checks, which without a floor lets one env var hollow a
+ * declared rule to a header-stub while the count stays intact. Past 50% the honest
+ * description is a GUTTING, not a trim — do it as a real removal, or split it so a
+ * reviewer sees each piece. A rule that is actually removed/renumbered is untouched
+ * by this bound; it applies only to same-number survivors.
+ */
+const DECLARED_TRIM_FLOOR = 0.5;
+
+/**
+ * Breadth bound for the declared SET (Ox prune-r2 F1): the per-rule floor bounds how
+ * deep ONE declared trim may go, but k rules trimmed to 49% each stack into half the
+ * constitution's text leaving in one legally-declared commit. The set of declared
+ * SURVIVORS may collectively lose at most 25% of its combined length — comfortably
+ * above any legitimate prune (the 2026-08-25 narrative-cut, the largest ever, was
+ * 6.04%) and far below the stacking attack. Residual, accepted: per-commit gating can
+ * be stacked ACROSS commits; the drift probe and review history are that backstop.
+ */
+const DECLARED_SET_FLOOR = 0.25;
+
+/**
+ * Absolute companion to the ratio (GLM prune-r3 F1 hardening; CALIBRATED by GLM+Grok
+ * prune-r4, unanimously): ratios can be diluted by inflating the denominator with
+ * declared-but-untouched rules; characters cannot. The first shipped value (15,000)
+ * sat ABOVE the very attack its comment cited — 6 rules × 49% of ~4.5k = 13,230 —
+ * so the cap was a no-op on its own threat model, caught by two seats independently
+ * from the arithmetic alone. The viable window is (9,056 — the largest legitimate
+ * prune ever recorded, 2026-08-25 — , 13,230); 11,500 sits inside it with ~27%
+ * headroom over history and a hard stop under the canonical stack.
+ */
+const DECLARED_SET_ABS_CAP = 11_500;
+
+/**
  * Minimum token overlap for a DECLARED rename to be believed — also derived.
  * The one known-legitimate rename in this repo's history (rule 46, "3-Brain
  * Review Loop" -> "Kimi Hostile-Review Gate") scored **42.5%**. The reviewer
@@ -418,6 +452,7 @@ for (const file of touched) {
   const removed = [];
   const renumbered = [];
   const reverted = [];
+  let declSetBefore = 0; let declSetLost = 0;
   for (const [key, was] of before) {
     const now = after.get(key);
     // Decide whether this rule is VIOLATING first, and only then consult the
@@ -447,7 +482,23 @@ for (const file of touched) {
     // An unblockable check is a check people learn to bypass wholesale, so
     // legitimate changes need a sanctioned way through — Proof-Before-Done
     // genuinely moved 73 -> 74 during this very repair.
-    if (allowed.has(String(was.num))) { usedHatch.add(String(was.num)); continue; }
+    if (allowed.has(String(was.num))) {
+      // The hatch is not bottomless: a declared SURVIVOR may trim, not vanish in
+      // place. Beyond DECLARED_TRIM_FLOOR the declaration stops being believable
+      // as a trim and the change must be an explicit removal.
+      if (now && now.num === was.num) {
+        // CLIPPED losses (GLM prune-r3 F1): a net measure let one declared decoy
+        // GROWN in the same commit buy back the whole breadth budget. Growth never
+        // offsets loss — only chars that actually left count.
+        declSetBefore += was.len;
+        declSetLost += Math.max(0, was.len - now.len);
+        const declaredShrink = (was.len - now.len) / Math.max(was.len, 1);
+        if (declaredShrink > DECLARED_TRIM_FLOOR) {
+          blockers.push(`${file}: rule ${was.num} "${was.name.slice(0, 56)}" — declared trim removed ${Math.round(declaredShrink * 100)}% of the body (${was.len} -> ${now.len} chars). Past ${DECLARED_TRIM_FLOOR * 100}% this is a GUTTING wearing a trim declaration: declare it as a REMOVAL, or land the cut across separately reviewed commits.`);
+        }
+      }
+      usedHatch.add(String(was.num)); continue;
+    }
     violation();
   }
 
@@ -456,11 +507,32 @@ for (const file of touched) {
   // 2% while a rule's worth of constitution quietly disappears. Aggregate is
   // measured over rules present in BOTH versions, so declared removals — which are
   // already authorised and loud — do not count against the budget.
+  // Same principle for rules that SURVIVE but were DECLARED (2026-08-25, first
+  // legitimate narrative-cut): a trim named in SWAN_ALLOW_RULE_REMOVAL is a
+  // decision on the record, exactly as authorised-and-loud as a declared removal —
+  // counting it against the aggregate budget left the check unsatisfiable for the
+  // RULEBOOK trailer's own `narrative-cut` class ("declare it" with no way to).
+  // The budget still guards every UNDECLARED rule at full strength.
   let aggBefore = 0; let aggAfter = 0;
   for (const [key, was] of before) {
     const now = after.get(key);
     if (!now) continue;
+    if (allowed.has(String(was.num))) {
+      if (now.len !== was.len) usedHatch.add(String(was.num));
+      continue;
+    }
     aggBefore += was.len; aggAfter += now.len;
+  }
+  // Breadth bound on the declared SET (Ox prune-r2 F1, hardened GLM prune-r3 F1):
+  // many individually-plausible declared trims must not compose into a gutting.
+  // Numerator is CLIPPED loss (growth never offsets), and an ABSOLUTE cap backs the
+  // ratio so stuffing the declared list with untouched rules cannot dilute the
+  // denominator into vacuity: the largest legitimate prune in history lost 9,056
+  // chars; DECLARED_SET_ABS_CAP sits above it with headroom, below any half-
+  // constitution stack (6 rules × 49% of ~4.5k ≈ 13k).
+  const declSetShrink = declSetBefore ? declSetLost / declSetBefore : 0;
+  if (declSetShrink > DECLARED_SET_FLOOR || declSetLost > DECLARED_SET_ABS_CAP) {
+    blockers.push(`${file}: the DECLARED rules collectively lost ${declSetLost} chars (${(declSetShrink * 100).toFixed(1)}% of their combined ${declSetBefore}; growth does not offset) — individually-plausible trims stacking past ${DECLARED_SET_FLOOR * 100}% or ${DECLARED_SET_ABS_CAP} chars is a GUTTING of the set. Declare removals explicitly, or land the cut across separately reviewed commits.`);
   }
   const aggShrink = aggBefore ? (aggBefore - aggAfter) / aggBefore : 0;
   if (aggShrink > AGGREGATE_SHRINK_TOLERANCE) {

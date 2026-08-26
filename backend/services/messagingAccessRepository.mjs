@@ -17,29 +17,14 @@
 import { QueryTypes } from 'sequelize';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { toStrictPositiveInt } from './messagingGroupPolicy.mjs';
+import { resolveCurrentEntitlement, isGatingEnabled } from '../middleware/requireTier.mjs';
+import { meetsMinimumTier } from '../config/tierCatalog.mjs';
 
-/** Strict positive-integer coercion. Returns null for anything else. */
-export
-function toId(value) {
-  // Deliberately IDENTICAL to the messaging controller's toStrictPositiveInt
-  // (services/messagingGroupPolicy.mjs).
-  //
-  // The first cut used Number.parseInt, which is lenient: '900abc', '0900' and
-  // 900.9 all became 900, while the controller's strict test rejected them. A
-  // probe found four divergent inputs. That particular differential happened to
-  // fail safe — the gate authorized an id the controller then dropped — but a
-  // gate and the code it guards parsing their inputs differently is a latent
-  // bypass waiting for someone to relax the other side. GLM 5.3 flagged the
-  // class on the post-ship panel; the direction was the reverse of its guess,
-  // and the fix is the same either way: ONE parse rule, so "the id the gate
-  // approved" and "the id the controller acts on" cannot diverge.
-  if (typeof value === 'number') return Number.isInteger(value) && value > 0 ? value : null;
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  if (!/^[1-9]\d*$/.test(trimmed)) return null;
-  const parsed = Number(trimmed);
-  return Number.isSafeInteger(parsed) ? parsed : null;
-}
+// ONE parser, imported — not a second copy kept identical by a comment. The
+// previous duplicate was byte-equal to toStrictPositiveInt and would have
+// drifted the first time either side was edited (ox-alpha).
+export const toId = toStrictPositiveInt;
 
 /**
  * Every user id this actor has an ACTIVE assignment with, in either direction:
@@ -94,15 +79,22 @@ export async function loadConversationMembers(conversationId, actorId) {
   try {
     const rows = await sequelize.query(
       `SELECT cp.user_id AS "userId",
-              CASE WHEN u.role = 'user' THEN 'client' ELSE u.role END AS "platformRole"
+              CASE WHEN u.id IS NULL THEN NULL
+                   WHEN u.role = 'user' THEN 'client'
+                   ELSE u.role END AS "platformRole"
          FROM conversation_participants cp
-         JOIN "Users" u ON u.id = cp.user_id
+         LEFT JOIN "Users" u ON u.id = cp.user_id
         WHERE cp.conversation_id = :convId
           AND cp.deleted_at IS NULL`,
       { replacements: { convId }, type: QueryTypes.SELECT },
     );
+    // LEFT JOIN, not INNER: Users is paranoid (soft-delete). An INNER JOIN made a
+    // soft-deleted stranger VANISH from `others`, so a thread of {me, trainer,
+    // deleted-stranger} looked like {me, trainer} and `every()` flipped to true
+    // — fail-OPEN on exactly the row you'd least expect (ox-alpha). A missing
+    // user row now surfaces as role null, which no reachability rule accepts.
     const all = rows
-      .map((r) => ({ id: toId(r.userId), role: r.platformRole }))
+      .map((r) => ({ id: toId(r.userId), role: r.platformRole ?? null }))
       .filter((r) => r.id);
     return {
       actorIsMember: all.some((r) => r.id === actor),
@@ -117,6 +109,21 @@ export async function loadConversationMembers(conversationId, actorId) {
   }
 }
 
+
+/**
+ * The single rule for "may this actor write into a thread with these other
+ * members". REST (requireMessagingAccess) and the socket (isRelationshipWrite
+ * Allowed) both call THIS — two inlined copies of the same predicate is the
+ * exact REST-vs-socket divergence that produced the original messaging bypass,
+ * re-seeded (GLM 5.3). A member with a null role (missing/soft-deleted user
+ * row) is never reachable: fail closed.
+ */
+export function othersAreReachable(others, counterparties) {
+  if (!Array.isArray(others) || others.length === 0) return false;
+  return others.every(
+    (m) => m.role !== null && (counterparties.has(m.id) || m.role === 'admin' || m.role === 'trainer'),
+  );
+}
 
 /**
  * Is this actor allowed to write into this conversation under the RELATIONSHIP
@@ -172,7 +179,32 @@ export async function isRelationshipWriteAllowed(actor, conversationId, hasCommu
   //
   // `platformRole` comes from Users.role, never the per-conversation role, so a
   // client holding conversation-admin in a group cannot spoof staff here.
-  return membership.others.every(
-    (m) => counterparties.has(m.id) || m.role === 'admin' || m.role === 'trainer',
-  );
+  return othersAreReachable(membership.others, counterparties);
+}
+
+/**
+ * Community entitlement for a socket, cached per CONNECTION for 60s.
+ *
+ * Lives here rather than in the handler because it feeds the lane decision and
+ * must resolve through the SAME requireTier helpers the REST gate uses — two
+ * lanes resolving entitlement differently is this codebase's signature bug.
+ * Without the cache a scripted loop under the rate limit still forced one
+ * entitlement query per message (Kimi K3). Fails CLOSED, like the middleware.
+ */
+export async function resolveSocketCommunityAccess(socket) {
+  const cached = socket.data?.entitlementCache;
+  if (cached && cached.expiresAt > Date.now()) return cached.hasCommunityAccess;
+
+  let hasCommunityAccess = false;
+  try {
+    const entitlement = await resolveCurrentEntitlement({ user: socket.user });
+    hasCommunityAccess = meetsMinimumTier(entitlement.effectiveTier, 'elite');
+  } catch {
+    hasCommunityAccess = false;
+  }
+  if (!isGatingEnabled()) hasCommunityAccess = true;
+
+  socket.data = socket.data || {};
+  socket.data.entitlementCache = { hasCommunityAccess, expiresAt: Date.now() + 60_000 };
+  return hasCommunityAccess;
 }

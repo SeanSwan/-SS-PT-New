@@ -133,7 +133,12 @@ export const createProductionApiClient = (
       if (apiError.response?.status === 403
         && (apiError.response?.data as any)?.code === 'AI_CONSENT_STALE_VERSION'
         && typeof window !== 'undefined'
+        && window.location.pathname.startsWith('/dashboard/client/')
         && !window.location.pathname.includes('/ai-consent')) {
+        // Client surface only. A trainer or admin acting on a client whose
+        // consent is stale must NOT be bounced to the client's consent screen —
+        // they cannot re-consent on someone else's behalf. Their surfaces
+        // receive the rejection and render it in place.
         logger.log('[API] AI consent superseded — routing to the consent screen');
         window.location.assign('/dashboard/client/ai-consent?reconsent=1');
         return Promise.reject(apiError);

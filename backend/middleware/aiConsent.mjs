@@ -53,15 +53,40 @@ export function requireAiConsent(getAiPrivacyProfile) {
       }
 
       // Resolve target user (same logic as controller — clients target self)
-      const requesterRole = req.user?.role;
+      const requesterRole = String(req.user?.role || '').toLowerCase();
       const requesterId = req.user?.id;
       const rawUserId = req.body?.userId;
-      const targetUserId =
-        rawUserId && Number.isFinite(Number(rawUserId))
-          ? Number(rawUserId)
-          : requesterRole === 'client'
-            ? requesterId
-            : null;
+
+      // WHOSE consent record vouches for this request is decided by ROLE, never
+      // by the request body. Three reviewers (ox-alpha, GLM 5.3, Kimi K3) found
+      // the previous shape independently: body.userId was honoured for ANY role
+      // whenever it parsed as a number, and the "clients target self" clamp only
+      // applied when the body was silent. A client with withdrawn consent could
+      // pass the gate by naming any consenting user — and aiWorkoutController
+      // reads req.body.userId as the generation target, so the same request
+      // could fetch another person's injuries and measurements.
+      //
+      // The old check also compared against the literal 'client', while the
+      // Users.role enum carries BOTH 'client' and 'user' (default 'user') — the
+      // same set authMiddleware treats as self-access. Anyone with role 'user'
+      // skipped the clamp entirely.
+      const isClientClass = requesterRole === 'client' || requesterRole === 'user';
+      const bodyTarget = rawUserId && Number.isFinite(Number(rawUserId)) ? Number(rawUserId) : null;
+
+      if (isClientClass && bodyTarget && Number(bodyTarget) !== Number(requesterId)) {
+        logger.warn('[AI Consent] client attempted to target another user', {
+          requesterId, attemptedTarget: bodyTarget, path: req.path,
+        });
+        return res.status(403).json({
+          success: false,
+          message: 'You can only use Swan Coach for your own profile.',
+          code: 'AI_CONSENT_TARGET_FORBIDDEN',
+        });
+      }
+
+      const targetUserId = isClientClass
+        ? Number(requesterId)   // clients are hard-clamped to self, always
+        : bodyTarget;           // staff may name a target; ownership is checked downstream
 
       if (!targetUserId) {
         return res.status(400).json({
