@@ -55,7 +55,10 @@ import {
   preparePendingConfirmation,
   prepareDestructiveOperation,
 } from '../../services/ai/destructiveOperations.mjs';
-import { executeConfirmedOperation } from '../../services/ai/commandExecutor.mjs';
+import {
+  executeConfirmedOperation,
+  CONFIRM_NO_LONGER_PERMITTED_MESSAGE,
+} from '../../services/ai/commandExecutor.mjs';
 import { initializeRegistry, getAllCommands, getCommand } from '../../services/ai/commandRegistry/index.mjs';
 import { OUR_TRAINER, OWN_CLIENT, FOREIGN_CLIENT } from '../helpers/ownershipFixture.mjs';
 
@@ -73,7 +76,9 @@ const hasDispatcherMock = vi.mocked(hasDispatcher);
 const assertAccessMock = vi.mocked(assertAssignmentOrAdmin);
 const auditMock = vi.mocked(AiCommandAuditLog.create);
 
-const CONFIRM_NO_LONGER_PERMITTED = 'You no longer have permission to complete that operation. No data was changed. Please re-issue the command if you believe this is wrong.';
+// Imported, never copied: a duplicated message drifts the moment production reworded it,
+// and the matrix below would then stop recognising a denial while still passing.
+const CONFIRM_NO_LONGER_PERMITTED = CONFIRM_NO_LONGER_PERMITTED_MESSAGE;
 
 const TRAINER = { id: OUR_TRAINER, role: 'trainer', firstName: 'T', lastName: 'R' };
 /** The same person, after losing the role the command requires. */

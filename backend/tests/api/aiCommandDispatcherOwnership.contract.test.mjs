@@ -181,7 +181,17 @@ describe('Swan Coach dispatcher ownership', () => {
       // declares no client ref and must keep working. The right fix is to enforce the
       // invariant the gate assumes. Today it holds for all 139 commands; this is what makes
       // it stay true when someone adds the 140th.
-      const CLIENT_IDENTIFYING = /^(clientId|clientRef|clientName|traineeId|memberId|athleteId)$/;
+      // Both seats probed the original allow-list for spellings it would miss, and GLM
+      // proposed `/client/i`. Running that flagged three commands — and all three were false
+      // positives: `clientSource` is an enum saying where a client came from, not a handle
+      // to one. A pattern matching every param that MENTIONS a client would have to be
+      // suppressed on each of those, and a check with an exception list is a check people
+      // learn to add exceptions to.
+      //
+      // So: match the SHAPE of a client identifier — a subject noun plus an identifying
+      // suffix. That still catches the `patientId` / `traineeRef` a future author invents,
+      // and does not catch `clientSource`, `clientNotes`, or `clientGoal`.
+      const CLIENT_IDENTIFYING = /^(client|trainee|member|athlete|patient|customer)(Id|Ref|Name)$/i;
       const undeclared = allCommands().filter((command) => {
         const names = paramNames(command).filter((n) => CLIENT_IDENTIFYING.test(n));
         if (!names.length) return false;

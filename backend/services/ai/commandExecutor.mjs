@@ -43,7 +43,7 @@ const COMMAND_CONFIRM_FAILED_MESSAGE = 'Swan Coach could not complete that confi
 
 // Deliberately says nothing about WHICH permission is gone. A caller whose access was just
 // revoked is the one person who should not be told whether it was the role or the client.
-const CONFIRM_NO_LONGER_PERMITTED_MESSAGE = 'You no longer have permission to complete that operation. No data was changed. Please re-issue the command if you believe this is wrong.';
+export const CONFIRM_NO_LONGER_PERMITTED_MESSAGE = 'You no longer have permission to complete that operation. No data was changed. Please re-issue the command if you believe this is wrong.';
 const CLASSIFIER_FAILURE_CODES = new Set(['PARSE_FAIL', 'CLASSIFICATION_FAILED']);
 
 function setTypedPipelineError(ctx, code) {
