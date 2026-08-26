@@ -88,3 +88,42 @@ describe('claiming a key never takes it from whoever got there first', () => {
     await expect(claimOrCoalesce(store, 'k', () => Date.now(), 2)).rejects.toMatchObject({ code: 'E_REPLAY_CONTENTION' });
   });
 });
+
+describe('a delete behind an await never evicts someone else', () => {
+  it('a stale waiter does not remove the claim of the owner who replaced it', async () => {
+    // Every synchronous write here is conditional; the two behind an `await` were not.
+    // Between suspending on a claim and resuming, that claim can fail, be removed by its
+    // own owner, and be REPLACED by a new owner already rendering. A blind delete in the
+    // continuation evicts a live claim belonging to someone else — and the evicting request
+    // then claims the empty key, so two callers own one idempotency key.
+    const { replayIfFresh, claimIfAbsent } = await import('../../services/atelier/composeReplay.mjs');
+    const store = new Map();
+    let failA;
+    const pendingA = new Promise((_, rej) => { failA = rej; });
+    pendingA.catch(() => {});
+    store.set('k', pendingA);
+
+    const waiter = replayIfFresh(store, 'k', () => Date.now());   // B suspends on A
+    failA(new Error('A failed'));
+    store.delete('k');                                            // A's own cleanup
+    const pendingC = new Promise(() => {});
+    expect(claimIfAbsent(store, 'k', pendingC)).toBe(true);       // C takes the empty key
+
+    expect(await waiter).toBeNull();                              // B is told to run
+    expect(store.get('k')).toBe(pendingC);                        // and C still owns it
+  });
+
+  it('a retained stub with no deadline is expired, not immortal', async () => {
+    // Failing open would make any stub written without the field live forever — a delayed
+    // retry handed a confident 200 and a statusUrl whose row aged out. A guard whose job is
+    // not trusting writers cannot trust writers.
+    const { replayIfFresh, REPLAY_NEVER_EXPIRES } = await import('../../services/atelier/composeReplay.mjs');
+    const store = new Map([['k', { batchId: 'B1', status: 'done' }]]);      // no deadline
+    expect(replayIfFresh(store, 'k', () => Date.now())).toBeNull();
+    expect(store.has('k')).toBe(false);
+
+    // ...unless it says so on purpose. That is what the hosted lane does.
+    const forever = new Map([['k', { batchId: 'B1', status: 'done', replayExpiresAt: REPLAY_NEVER_EXPIRES }]]);
+    expect(replayIfFresh(forever, 'k', () => Date.now()).batchId).toBe('B1');
+  });
+});

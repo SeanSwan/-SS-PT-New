@@ -40,7 +40,7 @@ import { runLocalBatch, startLocalBatch } from './localBatchRunner.mjs';
 import { runBatch } from './composeBatch.mjs';
 import { buildPrompts } from './composePrompts.mjs';
 
-import { replayIfFresh, claimOrCoalesce } from './composeReplay.mjs';
+import { replayIfFresh, claimOrCoalesce, REPLAY_NEVER_EXPIRES } from './composeReplay.mjs';
 import { rememberKey as rememberKeyDefault, defaultCommit, slimForReplay, assertKeyHasOwner, assertSlotOverrides, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
 import { releaseWhenSettled, syncWatchdog } from './composeGpu.mjs';
 import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
@@ -272,7 +272,9 @@ export async function composeStills(req = {}, deps = {}) {
   // caller already has `result` in hand; what stays in the map is only what a retry needs
   // to learn that this request already ran — see slimForReplay for why the payloads go.
   const retained = slimForReplay(result);
-  store.set(key, retained);   // plain object: a settled stub is judged synchronously
+  // Plain object (judged synchronously) with an EXPLICIT deadline — the guard treats a
+  // missing one as expired, and this lane means to outlive any row. A decision, so it says so.
+  store.set(key, { ...retained, replayExpiresAt: REPLAY_NEVER_EXPIRES });
   // DELIBERATELY NOT EVICTED HERE. This path is the HOSTED lane, which charges money: if
   // the client's connection drops after we billed, its retry MUST replay rather than
   // generate and charge a second time, and evicting on success is exactly what would make

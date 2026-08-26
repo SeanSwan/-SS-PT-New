@@ -56,30 +56,58 @@ export function replayIfFresh(store, key, clock = () => Date.now()) {
   if (!store.has(key)) return null;
   const held = store.get(key);
   if (held && typeof held.then === 'function') return resolveReplay(held, store, key, clock);
-  return judge(held, store, key, clock);
+  return judge(held, held, store, key, clock);
 }
 
 async function resolveReplay(pending, store, key, clock) {
   // A STORED PROMISE THAT REJECTS MEANS "RUN THE WORK", NEVER "500 FOREVER". A failure path
   // that rejects the claim without also removing it would make this throw, and a throw
-  // skips the delete — so every retry with that key would 500 permanently, with nothing
+  // skips the drop below — so every retry with that key would 500 permanently, with nothing
   // able to clear it. Being total is the whole job of a guard.
   let prior;
   try {
     prior = await pending;
   } catch {
-    store.delete(key);
+    dropIfStillOurs(store, key, pending);
     return null;
   }
-  return judge(prior, store, key, clock);
+  return judge(prior, pending, store, key, clock);
+}
+
+/**
+ * Remove a key ONLY if it still holds the thing we are reasoning about.
+ *
+ * Every synchronous write in this module is conditional; the two that sit behind an `await`
+ * were not, and that is the whole defect. Between suspending on a claim and resuming, the
+ * claim can fail, be removed by its own owner, and be REPLACED by a new owner who is
+ * already rendering. A blind `store.delete(key)` in that continuation evicts a live claim
+ * belonging to someone else — and the evicting request then claims the empty key itself, so
+ * two callers own one idempotency key and two batches render against it.
+ *
+ * This is the same identity check as the reservation's `if (inFlight === token)`, which is
+ * what makes a stale release harmless. A stale delete needs exactly the same protection and
+ * for exactly the same reason.
+ */
+function dropIfStillOurs(store, key, token) {
+  if (store.get(key) === token) store.delete(key);
 }
 
 /**
  * Decide about one stored value. Synchronous, so the settled path can stay synchronous.
  *
- * A REPLAY IS ONLY HONEST WHILE THE ROW IT POINTS AT EXISTS. The stub carries its batch
- * row's own expiry, so this refuses itself rather than answering a delayed retry with a
- * confident success payload and a statusUrl that 404s.
+ * `token` is what the STORE held — a promise for a live claim, the stub itself for a
+ * settled one. It is both the identity used for a conditional delete and the thing that
+ * says which of the two kinds of value this is.
+ *
+ * A REPLAY IS ONLY HONEST WHILE THE ROW IT POINTS AT EXISTS, so a retained stub must carry
+ * its row's deadline and a MISSING deadline counts as EXPIRED. Failing open here would make
+ * any stub written without the field immortal — a delayed retry handed a confident 200 and
+ * a statusUrl whose row aged out long ago, which is the dishonesty this module exists to
+ * prevent. A guard whose job is not trusting writers cannot trust writers.
+ *
+ * A LIVE CLAIM is exempt, and must be: it resolves to the 202 stub, which has no deadline
+ * because it has not finished. That is what coalescing awaits. The token is what tells the
+ * two apart, which is why it is passed rather than inferred.
  *
  * THE CLOCK IS SAMPLED HERE, not frozen at request start. The orchestrator's `now` is fixed
  * because the derived key's time bucket must not move underneath it; comparing an absolute
@@ -88,36 +116,43 @@ async function resolveReplay(pending, store, key, clock) {
  * AND AN ABSENT VALUE FALLS THROUGH TO RUNNING THE WORK — spreading one would hand the
  * client `{ replayed: true }` with no fields at all, a 200 that says nothing.
  */
-function judge(prior, store, key, clock) {
-  const expired = prior?.replayExpiresAt > 0 && prior.replayExpiresAt <= clock();
-  if (prior && !expired) {
-    // `replayExpiresAt` is bookkeeping for this guard, not something a caller can act on.
-    // Shipping it would make an internal deadline part of the contract by accident.
-    const { replayExpiresAt, ...body } = prior;
-    return { ...body, replayed: true };
+function judge(prior, token, store, key, clock) {
+  if (!prior) { dropIfStillOurs(store, key, token); return null; }
+  if (typeof token?.then !== 'function') {
+    const deadline = Number(prior.replayExpiresAt);
+    if (!(deadline > 0) || deadline <= clock()) { dropIfStillOurs(store, key, token); return null; }
   }
-  store.delete(key);
-  return null;
+  // `replayExpiresAt` is bookkeeping for this guard, not something a caller can act on.
+  // Shipping it would make an internal deadline part of the contract by accident.
+  const { replayExpiresAt, ...body } = prior;
+  return { ...body, replayed: true };
 }
 
 /**
  * Take ownership of a key, or report that someone else already has it.
  *
- * THERE IS A THIRD KIND OF MISS AND IT CANNOT BE MADE SYNCHRONOUS. An absent key and an
- * expired stub are both decided where they are found. A REJECTED claim is not: its null
- * comes back from `resolveReplay`'s catch, behind an await. Two retries that both await the
- * same rejected claim both resume in a continuation, and an unconditional `store.set` there
- * means the second overwrites the first — two renders, two bites of the run cap, and on a
- * future paid async lane two charges.
+ * A blind `store.set` is only safe while every miss is decided synchronously — and the
+ * rejection-miss cannot be. Two retries awaiting the same rejected claim both resume in a
+ * continuation, and an unconditional write there means the second silently takes the key
+ * from the first: two renders, two bites of the run cap, two charges on a paid async lane.
  *
- * So the claim is a get-or-set: one synchronous operation, first resumer wins, and anyone
- * who arrives second is told to coalesce rather than silently taking the key away.
- *
- * This is the same shape as the reservation's own `if (inFlight === token)` — the identity
- * check that makes a stale release harmless. A blind write is what both were missing.
+ * Same shape as the reservation's own `if (inFlight === token)`. A blind write is what both
+ * were missing, and the same is true of a blind delete — see dropIfStillOurs.
  *
  * @returns true when this caller now owns the key.
  */
+/**
+ * The deadline a stub carries when it is deliberately immortal.
+ *
+ * The async lane's stub points at a batch row that expires, so it expires with it. The
+ * HOSTED lane's stub points at nothing — the response IS the only handle, and re-running
+ * charges money — so it is meant to live until it is evicted for room. That is a decision,
+ * and it has to be written down as one: a guard that treats a MISSING deadline as immortal
+ * makes every future writer's omission immortal too. Declaring it is what lets absence
+ * mean "someone forgot", which is the only way fail-closed can work.
+ */
+export const REPLAY_NEVER_EXPIRES = Number.POSITIVE_INFINITY;
+
 export function claimIfAbsent(store, key, pending) {
   if (store.has(key)) return false;
   store.set(key, pending);
