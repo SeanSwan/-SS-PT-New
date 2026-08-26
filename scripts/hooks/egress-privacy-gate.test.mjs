@@ -76,7 +76,7 @@ const ALLOW = 0, BLOCK = 2;
     ['Slack token', 'xoxb-' + '1'.repeat(20)],
     ['JWT', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0'],
     ['GitHub token', 'ghp_' + 'E'.repeat(30)],
-    // These two are ASSEMBLED, never written contiguously. Written as literals they
+    // These three are ASSEMBLED, never written contiguously. Written as literals they
     // trip this repo's own pre-commit secret scanner — which they did, 2026-08-23,
     // and correctly: the scanner cannot tell a fixture from a credential. The
     // tempting fix is a .secretignore entry, but that disarms the scanner on this
@@ -86,12 +86,12 @@ const ALLOW = 0, BLOCK = 2;
     // fully armed on this file while the gate still sees the real shape at runtime.
     ['private key', ['-----BEGIN ', 'RSA ', 'PRIVATE', ' KEY-----'].join('')],
     ['DB URI', ['postgre', 'sql://admin:', 'hunter2', '@db.internal:5432/swan'].join('')],
+    ['inline credential', ['pass', 'word: "', 's3cret', 'V4lue"'].join('')],
     ['real email', 'contact steve.jones@gmail.com for details'],
     ['SSN', 'ssn 123-45-6789'],
     ['phone', 'call (415) 555-1234'],
     ['windows user path', 'C:\\Users\\BigotSmasher\\Desktop\\thing'],
     ['unix home path', '/home/seanuser/secrets/'],
-    ['inline credential', 'password: "s3cretV4lue"'],
   ];
   for (const [label, body] of cases) {
     const p = doc(`leak-${label.replace(/\W/g, '')}.md`, `line one\n${body}\nline three\n`);
