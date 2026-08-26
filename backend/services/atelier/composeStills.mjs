@@ -40,7 +40,7 @@ import { runLocalBatch, startLocalBatch } from './localBatchRunner.mjs';
 import { runBatch } from './composeBatch.mjs';
 import { buildPrompts } from './composePrompts.mjs';
 
-import { replayIfFresh } from './composeReplay.mjs';
+import { replayIfFresh, claimOrCoalesce } from './composeReplay.mjs';
 import { rememberKey as rememberKeyDefault, defaultCommit, slimForReplay, assertKeyHasOwner, assertSlotOverrides, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
 import { releaseWhenSettled, syncWatchdog } from './composeGpu.mjs';
 import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
@@ -132,8 +132,7 @@ export async function composeStills(req = {}, deps = {}) {
     ? `u${req.userId}:${sha(String(req.idempotencyKey)).slice(0, 32)}`
     : deriveKey({ ...req, brief, promptSource, lane: req.lane || 'auto', model, count, brandKit: kit.brandKit, lawProfile, aspect: req.aspect }, now);
   // AWAIT ONLY ON A HIT. `replayIfFresh` returns null synchronously when there is nothing
-  // stored, which keeps the claim below in the same synchronous run as its check — awaiting
-  // unconditionally lets two concurrent identical requests both miss and both render.
+  // to replay, which keeps the claim below in the same synchronous run as its check.
   if (!req.estimateOnly) {
     const pendingReplay = replayIfFresh(store, key, clock);
     if (pendingReplay) {
@@ -142,26 +141,26 @@ export async function composeStills(req = {}, deps = {}) {
     }
   }
 
-  // GATE 2 — volume cap, AFTER the replay probe above. It used to run first, and a
-  // reviewer raised the consequence twice before I acted on it: at the cap, a retry of a
-  // request that ALREADY RAN AND WAS ALREADY PAID FOR was refused E_RUN_CAP instead of
-  // replaying its result. The caller is then charged for work it cannot collect, by a cap
-  // defending headroom that request already consumed. A replay costs no GPU and no money,
-  // so nothing it could breach applies to it.
+  // GATE 2 — volume cap, AFTER the replay probe above. It used to run first, and a reviewer
+  // raised the consequence twice before I acted on it: at the cap, a retry of a request that
+  // ALREADY RAN AND WAS ALREADY PAID FOR was refused E_RUN_CAP instead of replaying its
+  // result. The caller is then charged for work it cannot collect, by a cap defending
+  // headroom that request already consumed. A replay costs no GPU and no money.
   const runs = Number(usage.runs) || 0;
   // An ESTIMATE consumes no run, so no run cap applies to it. Refusing a price preview at
-  // the cap hides the price exactly when an operator most needs to see it — the same
-  // mistake as the estimate that used to reserve the GPU, in the gate next door.
+  // the cap hides the price exactly when an operator most needs to see it.
   if (!req.estimateOnly && runs + count > limits.maxRunsDaily) {
     throw new ComposeError('E_RUN_CAP', `This batch of ${count} would pass the daily run cap (${runs}/${limits.maxRunsDaily}). Raise ${RUNS_ENV_KEY}.`);
   }
-  // Reserve the key SYNCHRONOUSLY, before the first await below: two concurrent identical
-  // requests would otherwise both pass `has` and both run. The placeholder is settled with
-  // the real outcome; a failure deletes it so a retry can run.
   let settle = null; let reservation = null;
   // The render, once started, so a timeout releases the GPU only after it truly ends.
   let inFlightWork = null;
-  if (!req.estimateOnly) { const pending = new Promise((res, rej) => { settle = { res, rej }; }); pending.catch(() => {}); store.set(key, pending); }
+  if (!req.estimateOnly) {
+    const claimed = await claimOrCoalesce(store, key, clock);
+    if (claimed.replay) return claimed.replay;
+    settle = claimed.settle;
+  }
+
   try {
 
   // GATE 3b — lane: readiness, licence, admission, or hosted budget.

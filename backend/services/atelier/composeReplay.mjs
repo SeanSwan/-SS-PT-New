@@ -97,3 +97,58 @@ function judge(prior, store, key, clock) {
   store.delete(key);
   return null;
 }
+
+/**
+ * Take ownership of a key, or report that someone else already has it.
+ *
+ * THERE IS A THIRD KIND OF MISS AND IT CANNOT BE MADE SYNCHRONOUS. An absent key and an
+ * expired stub are both decided where they are found. A REJECTED claim is not: its null
+ * comes back from `resolveReplay`'s catch, behind an await. Two retries that both await the
+ * same rejected claim both resume in a continuation, and an unconditional `store.set` there
+ * means the second overwrites the first — two renders, two bites of the run cap, and on a
+ * future paid async lane two charges.
+ *
+ * So the claim is a get-or-set: one synchronous operation, first resumer wins, and anyone
+ * who arrives second is told to coalesce rather than silently taking the key away.
+ *
+ * This is the same shape as the reservation's own `if (inFlight === token)` — the identity
+ * check that makes a stale release harmless. A blind write is what both were missing.
+ *
+ * @returns true when this caller now owns the key.
+ */
+export function claimIfAbsent(store, key, pending) {
+  if (store.has(key)) return false;
+  store.set(key, pending);
+  return true;
+}
+
+/**
+ * Become the owner of a key, or return the answer whoever already owns it will produce.
+ *
+ * The orchestrator used to do this inline as a blind `store.set`, which is safe only while
+ * every miss is decided synchronously — and the rejection-miss cannot be. Two retries
+ * awaiting the same rejected claim both resume in a continuation, and a blind write there
+ * takes the key from whichever one got there first: two renders, two bites of the run cap.
+ *
+ * @returns `{ replay }` to answer from someone else's work, or `{ settle }` having taken
+ *          ownership — the deferred the caller settles with its outcome.
+ */
+export async function claimOrCoalesce(store, key, clock) {
+  let settle = null;
+  const pending = new Promise((res, rej) => { settle = { res, rej }; });
+  pending.catch(() => {});
+  if (claimIfAbsent(store, key, pending)) return { settle };
+
+  // Someone claimed while we were resuming. Coalesce onto theirs rather than racing it.
+  const theirs = replayIfFresh(store, key, clock);
+  if (theirs) {
+    const body = await theirs;
+    if (body) return { replay: { ...body, replayed: true } };
+  }
+  // Theirs resolved to nothing usable either, which needs a second failure on top of the
+  // first, so take the key over. This narrows the window to consecutive failures rather
+  // than closing it, and saying that is more useful than claiming it is gone.
+  store.set(key, pending);
+  return { settle };
+}
+

@@ -207,7 +207,14 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
           // retry has nothing to collect, and retaining would make the failure permanent.
           // A derived key drops too: it carries a time bucket, so a later request keys
           // differently regardless.
-          if (!req.idempotencyKey || !snap || snap.status === 'failed') { store.delete(key); return; }
+          // FRAMES, NOT STATUS. The principle is "retain whenever frames exist to collect";
+          // the predicate used to ask about `status === 'failed'`, which is the same answer
+          // today only because finishBatch marks a zero-still batch failed. Any later
+          // terminal state — cancelled, aborted — would be retained as a 0-frame corpse that
+          // every retry replays for a full TTL. Asking the question the principle asks makes
+          // the two impossible to drift apart. A non-terminal snapshot drops for free.
+          const delivered = snap && snap.terminal ? snap.stills.length : 0;
+          if (!req.idempotencyKey || delivered === 0) { store.delete(key); return; }
           // SOMETHING DELIVERED → RETAIN. That includes `partial`, and the principle is
           // worth stating because both seats asked: the key is retained whenever frames
           // exist to collect, since re-running the same key would charge a second time for
@@ -242,7 +249,12 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
             // so a delayed retry got a confident success payload and a statusUrl that 404s.
             // Carrying the row's own deadline means the replay path can refuse itself — no
             // second clock to keep in step, and no eviction timing to get right.
-            replayExpiresAt: (snap.finishedAt || Date.now()) + BATCH_TTL_MS,
+            // THROUGH THE CLOCK, like every other time read in these two files. The raw
+            // `Date.now()` here was the one escape, and its fallback was dead code —
+            // finishBatch always stamps finishedAt before it sets a status — so the fallback
+            // could only ever have re-anchored the stub to retention time and drifted it off
+            // the row it is supposed to expire with.
+            replayExpiresAt: snap.finishedAt + BATCH_TTL_MS,
           }));
           retained = true;
           // AFTER the retention write, and outside its safety. If the bookkeeping throws,
