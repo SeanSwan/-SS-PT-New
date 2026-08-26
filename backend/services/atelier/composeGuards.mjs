@@ -118,7 +118,14 @@ export function slimForReplay(result) {
  * SHAPE was reachable, and two reviewers found it two rounds apart.
  */
 export function assertKeyHasOwner(req) {
-  if (req.idempotencyKey && req.userId === undefined) {
+  // `=== undefined` was too narrow, and both seats of the next round said so: `null` and
+  // `''` are exactly what a route yields when auth is misconfigured (`req.user?.id` on a
+  // missing user gives undefined, but a half-populated session gives null), and either one
+  // sailed through to rebuild the shared namespace this guard exists to remove. An owner
+  // is a non-empty value or it is not an owner.
+  const owner = req.userId;
+  const hasOwner = owner !== undefined && owner !== null && owner !== '';
+  if (req.idempotencyKey && !hasOwner) {
     throw new ComposeError('E_BAD_OWNER',
       'An idempotency key needs an owner: without one, two callers sending the same key '
       + "would receive each other's work. Nothing was generated and nothing was spent.");

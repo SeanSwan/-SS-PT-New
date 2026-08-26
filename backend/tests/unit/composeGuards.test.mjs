@@ -132,3 +132,31 @@ describe('the bound counts entries, so the entries must be small', () => {
     expect(slimForReplay({ accepted: true, batchId: 'b1' })).toMatchObject({ accepted: true });
   });
 });
+
+describe('an owner is a value, not merely "not undefined"', () => {
+  it('refuses null, empty string and undefined alike', async () => {
+    // The first guard tested `=== undefined`. Both seats of the next round pointed out
+    // that a half-populated session yields NULL, and an empty string is what a
+    // misconfigured header yields — either one rebuilt the shared namespace the guard
+    // exists to remove.
+    const { assertKeyHasOwner } = await import('../../services/atelier/composeGuards.mjs');
+    for (const owner of [undefined, null, '']) {
+      let err;
+      try { assertKeyHasOwner({ idempotencyKey: 'k', userId: owner }); } catch (e) { err = e; }
+      expect(err?.code, `userId=${JSON.stringify(owner)} was accepted as an owner`).toBe('E_BAD_OWNER');
+    }
+  });
+
+  it('accepts a real owner, including the falsy-but-valid id 0', async () => {
+    // 0 is a legitimate primary key in some tables and must not be mistaken for absent —
+    // which a plain truthiness check would have done.
+    const { assertKeyHasOwner } = await import('../../services/atelier/composeGuards.mjs');
+    expect(() => assertKeyHasOwner({ idempotencyKey: 'k', userId: 7 })).not.toThrow();
+    expect(() => assertKeyHasOwner({ idempotencyKey: 'k', userId: 0 })).not.toThrow();
+  });
+
+  it('ignores requests that carry no client key at all', async () => {
+    const { assertKeyHasOwner } = await import('../../services/atelier/composeGuards.mjs');
+    expect(() => assertKeyHasOwner({ userId: undefined })).not.toThrow();
+  });
+});
