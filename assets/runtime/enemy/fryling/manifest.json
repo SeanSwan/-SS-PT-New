@@ -15,10 +15,12 @@
     "lod1Triangles": 1,
     "lod2Triangles": 1,
     "textureMB": 0,
-    "tool": "node (glTF accessor read)",
-    "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/*.glb",
+    "tool": "scripts/assets/measure-glb.mjs",
+    "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/lod0.glb",
     "date": "2026-08-25",
-    "commit": "0b4253d77"
+    "commit": "a7a0a3801",
+    "calibrationFixture": true,
+    "note": "CALIBRATION FIXTURE, not production data — a hand-authored single-triangle glTF proving validator plumbing. Do not trend-line this row (Ox Alpha B7). The FIRST measurement used POSITION.count/3, correct only for non-indexed meshes; this fixture is non-indexed so it hid the bug (GLM 5.3 blocker 1). Superseded by measure-glb.mjs which reads indices.count/3 and honours primitive mode."
   },
   "provenance": {
     "humanOwner": "owner",

@@ -37,11 +37,11 @@
  *   node scripts/assets/validate-asset.mjs --all      # walks assets/runtime for manifest.json
  *                                                     (NB: never write the glob with a star-slash
  *                                                      in here — it closes this comment block)
- *   node scripts/assets/validate-asset.mjs --selftest # fixtures, no repo assets needed
+ *   node scripts/assets/validate-asset.selftest.mjs   # rule fixtures, no repo assets needed
  */
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync, lstatSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { join, dirname, resolve } from 'node:path';
+import { join, dirname, resolve, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -49,8 +49,10 @@ const REGISTRY = join(ROOT, 'assets/registry.json');
 const WORLD_CATALOG = join(ROOT, 'scripts/ai-workflow/world-engine-catalog-validation.mjs');
 
 const argv = process.argv.slice(2);
-const SELFTEST = argv.includes('--selftest');
 const ALL = argv.includes('--all');
+
+// DoS guard: a manifest naming a huge file would hang the gate in CI.
+const MAX_ASSET_BYTES = 256 * 1024 * 1024;
 
 /* ------------------------------------------------------------------ loading */
 
@@ -82,7 +84,7 @@ function loadWorldIds() {
 
 const CLIP_ORDER_FREE = true; // order does not matter; membership does
 
-function validate(manifest, ctx) {
+export function validate(manifest, ctx) {
   const errs = [];
   const warns = [];
   const E = (m) => errs.push(m);
@@ -180,7 +182,14 @@ function validate(manifest, ctx) {
       if (lic.kind === 'ccby') {
         for (const k of ['licenseId', 'receiptPath']) if (!lic[k]) E(`provenance.license.${k} required when kind=ccby`);
       }
-      if (lic.receiptPath && !existsSync(join(ROOT, lic.receiptPath))) E(`license receipt not found: ${lic.receiptPath}`);
+      if (lic.receiptPath) {
+        if (isAbsolute(lic.receiptPath)) E(`license receiptPath must be repo-relative: ${lic.receiptPath}`);
+        else {
+          const rp = resolve(ROOT, lic.receiptPath);
+          if (rp !== ROOT && !rp.startsWith(ROOT + sep)) E(`license receiptPath escapes the repo: ${lic.receiptPath}`);
+          else if (!existsSync(rp)) E(`license receipt not found: ${lic.receiptPath}`);
+        }
+      }
     }
   }
 
@@ -195,8 +204,22 @@ function validate(manifest, ctx) {
     for (const slot of ['lod0', 'lod1', 'lod2', 'collision']) {
       const rel = rt[slot];
       if (!rel) { E(`runtime.${slot} missing`); continue; }
-      const abs = join(manifestDir, rel);
+      // CONTAINMENT before touching the filesystem. Manifests are machine-generated —
+      // an LLM-authored manifest is untrusted input. Without this, `"lod0": "../../../.env"`
+      // makes the validator hash a secret and stamp it VALID.
+      // (Ox Alpha blocker 4 + GLM 5.3 blocker 5, P1 panel 2026-08-25 — the dry-loop's five
+      // rounds never attacked path shapes.)
+      const abs = resolve(manifestDir, rel);
+      const bound = resolve(manifestDir);
+      if (isAbsolute(rel)) { E(`runtime.${slot} must be a relative path, got absolute: ${rel}`); continue; }
+      if (abs !== bound && !abs.startsWith(bound + sep)) {
+        E(`runtime.${slot} escapes the asset directory: ${rel} — refused before any read`);
+        continue;
+      }
       if (!existsSync(abs)) { E(`runtime.${slot} file not found: ${rel}`); continue; }
+      const st = lstatSync(abs);
+      if (st.isSymbolicLink() || !st.isFile()) { E(`runtime.${slot} is not a regular file: ${rel}`); continue; }
+      if (st.size > MAX_ASSET_BYTES) { E(`runtime.${slot} is ${st.size} bytes, over the ${MAX_ASSET_BYTES}-byte cap — refusing to hash (DoS guard)`); continue; }
       const want = manifest.sha256?.[slot];
       if (!want) { E(`sha256.${slot} missing — an unhashed runtime file has no provenance`); continue; }
       const got = createHash('sha256').update(readFileSync(abs)).digest('hex');
@@ -208,69 +231,32 @@ function validate(manifest, ctx) {
   return { errs, warns };
 }
 
-/* ------------------------------------------------------------------ selftest */
-
-function selftest() {
-  const registry = {
-    assets: [{ id: 'enemy.fryling', budgetPriors: { lod0Triangles: 1500 } }],
-    skeletons: [{ id: 'skeleton.creature-small.v1', clips: ['idle', 'move', 'attack', 'hit', 'death'] }],
-    zones: [{ id: 'world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court' }],
-    licensePolicy: { kindValues: ['owner-authored', 'cc0', 'ccby', 'model'] },
-  };
-  const worldIds = new Set(['world.miniature-play.voxel-realm']);
-  const ctx = { registry, worldIds, manifestDir: ROOT };
-
-  const base = () => ({
-    schema: 'swan.game-asset.v1',
-    id: 'enemy.fryling',
-    zone: 'world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court',
-    skeleton: 'skeleton.creature-small.v1',
-    animations: ['idle', 'move', 'attack', 'hit', 'death'],
-    budgets: null,
-    provenance: {
-      humanOwner: 'owner', createdAtUtc: '2026-08-25T12:00:00.000Z', aiAssisted: false,
-      similarityReviewed: true, license: { kind: 'owner-authored' },
-    },
-    runtime: { lod0: 'x', lod1: 'x', lod2: 'x', collision: 'x' },
-    sha256: {},
-  });
-
-  const cases = [
-    ['unregistered id is refused', (m) => { m.id = 'enemy.nope'; }, /NOT in assets\/registry/],
-    ['flat zone id is refused', (m) => { m.zone = 'zone.flat'; }, /flat/],
-    ['unknown clip is refused', (m) => { m.animations.push('dance'); }, /not in skeleton/],
-    ['bare budget number is refused', (m) => { m.budgets = { lod0Triangles: 1500 }; }, /fabricated number/],
-    ['budget with provenance is accepted', (m) => { m.budgets = { lod0Triangles: 1500, tool: 'gltf-transform', command: 'x', date: '2026-08-25', commit: 'abc' }; }, null],
-    ['free-text license is refused', (m) => { m.provenance.license = 'owner-authored'; }, /structured object/],
-    ['model license without receipt is refused', (m) => { m.provenance.license = { kind: 'model', modelName: 'a', modelVersion: '1', licenseId: 'x' }; }, /receiptPath required/],
-    ['unreviewed similarity is refused', (m) => { m.provenance.similarityReviewed = false; }, /similarityReviewed/],
-    ['aiAssisted without weights hash is refused', (m) => { m.provenance.aiAssisted = true; m.provenance.generator = { name: 'a', version: '1' }; m.provenance.seed = 1; }, /weightsSha256/],
-    ['Draco on a rigged asset is refused', (m) => { m.runtime.compression = 'draco'; }, /Draco on a rigged/],
-    ['missing sha256 is refused', () => {}, /sha256\.lod0 missing|file not found/],
-  ];
-
-  let pass = 0; let fail = 0;
-  for (const [name, mutate, expect] of cases) {
-    const m = base(); mutate(m);
-    const { errs } = validate(m, ctx);
-    const joined = errs.join(' | ');
-    const ok = expect === null
-      ? !errs.some((e) => /fabricated number/.test(e))
-      : expect.test(joined);
-    if (ok) { pass += 1; console.log(`  PASS  ${name}`); }
-    else { fail += 1; console.log(`  FAIL  ${name}\n        got: ${joined || '(no errors)'}`); }
-  }
-  console.log(`\n[validate-asset] selftest ${pass}/${pass + fail}`);
-  process.exit(fail ? 1 : 0);
-}
-
 /* ---------------------------------------------------------------------- run */
 
-if (SELFTEST) selftest();
+// Entry-point guard. Without it, `import { validate } from './validate-asset.mjs'` runs
+// the CLI and exits 2, so the selftest could never import the rules it tests. This is the
+// same defect that hit measure-glb.mjs an hour earlier — a module that executes on import
+// cannot be reused. Found by running the selftest, NOT by reading the split.
+const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (IS_MAIN) {
+
+if (argv.includes('--selftest')) {
+  console.error('[validate-asset] selftest moved: node scripts/assets/validate-asset.selftest.mjs');
+  process.exit(2);
+}
 
 const registry = loadRegistry();
 const worldIds = loadWorldIds();
-if (!worldIds) console.warn('[validate-asset] world catalog absent or empty — zone FK checks DEGRADED (announced, not silent)');
+if (!worldIds) {
+  // A validator that cannot check the zone FK but exits 0 waves unvalidated assets through
+  // any CI that only reads the exit code. Degraded is an INSTRUMENT FAILURE, not a pass.
+  // (Ox Alpha, P1 panel 2026-08-25.) Override deliberately with SWAN_ALLOW_DEGRADED=1.
+  if (process.env.SWAN_ALLOW_DEGRADED === '1') {
+    console.warn('[validate-asset] world catalog absent — zone FK DEGRADED, continuing because SWAN_ALLOW_DEGRADED=1');
+  } else {
+    die(2, 'world catalog absent or empty — zone FK cannot be checked. Set SWAN_ALLOW_DEGRADED=1 to proceed knowingly.');
+  }
+}
 
 let files = argv.filter((a) => !a.startsWith('--'));
 if (ALL) {
@@ -303,3 +289,4 @@ for (const f of files) {
 
 console.log(`\n[validate-asset] ${files.length - invalid}/${files.length} valid`);
 process.exit(invalid ? 1 : 0);
+}
