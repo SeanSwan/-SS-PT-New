@@ -29,18 +29,21 @@ export const BATCH_WATCHDOG_MS = 20 * 60 * 1000;
 /**
  * TWO PROFILES, NOT ONE, AND THEY ARE NOT INTERCHANGEABLE.
  *
- *   judgeProfile — the KIT's own laws. What the taste corpus is judged by, and no request
- *                  parameter may move it: the corpus is Swan-rated, and an override that
- *                  relaxed the laws guarding it would reopen the brand-scope leak.
- *   lawProfile   — the MERGED profile, after an explicit caller override has won. What the
- *                  COMPILER drops, because relaxing the compiler is a legitimate thing to
- *                  ask for.
+ *   The KIT's own laws judge the taste corpus, and no request parameter may move them:
+ *   the corpus is Swan-rated, and an override that relaxed the laws guarding it would
+ *   reopen the brand-scope leak. They now travel INSIDE `kit`, read by buildPrompts.
  *
- * They arrived as a single parameter, so this lane judged taste correctly and then dropped
- * the wrong laws in the compiler — the eighth defect of the same shape, and the first one
- * where the two halves of a pair were the same variable rather than two files.
+ *   `lawProfile` is the MERGED profile, after an explicit caller override has won. It is
+ *   what the COMPILER drops, because relaxing the compiler is a legitimate ask.
+ *
+ * They once arrived as a single parameter, so this lane judged taste correctly and then
+ * dropped the wrong laws in the compiler — the eighth defect of the shape this review
+ * kept finding, and the first where the two halves of a pair were one variable rather
+ * than two files. A `judgeProfile` parameter was the first fix; it then sat here UNUSED
+ * for a round after buildPrompts made it redundant, and a reviewer caught the dead
+ * channel — along with the commit message that had claimed it was already gone.
  */
-export async function runLocalBatch({ batch, req, brief, count, key, promptSource, lawProfile, judgeProfile, kit, model, reservation, deps }) {
+export async function runLocalBatch({ batch, req, brief, count, key, promptSource, lawProfile, kit, model, reservation, deps }) {
   const { renderStill, withGpu, env, tasteDeps, compiler, persist, watchdogMs = BATCH_WATCHDOG_MS } = deps;
   let timer = null;
   // Observed by the render loop, so an ABANDONED batch stops touching the GPU. A promise

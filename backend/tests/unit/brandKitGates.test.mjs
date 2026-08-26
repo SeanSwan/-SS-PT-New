@@ -294,3 +294,26 @@ describe('both lanes build prompts with the same function', () => {
     expect(snap.tasteMeta.lawProfile).toBe('full');       // the profile that judged
   });
 });
+
+describe('provenance names the provider that actually rendered', () => {
+  it('a LOCAL sync render persists the local provider, not the hosted default', async () => {
+    // `model` is `req.model || DEFAULT_MODEL` — a HOSTED model id — and the sync path
+    // handed it to persist on every lane. So a local render recorded provenance naming a
+    // provider it never touched, while the async path recorded cost.model and got it
+    // right. The two lanes disagreed about what made the same kind of image.
+    _resetSingleFlight(); _resetBatches();
+    const seen = [];
+    await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, async: false }, {
+      env: { SWAN_ATELIER_LOCAL_STILLS: 'probed', SWAN_ATELIER_STILL_WORKFLOW: '/g/s.json', SWAN_ATELIER_STILL_NODE_PROMPT: '6', SWAN_VIDEO_PROVIDERS_ENABLED: 'comfyui/wan-2.2' },
+      localVerify: () => ({ ok: true, provider: 'comfyui/wan-2.2', problems: [], status: 'probed' }),
+      admit: async () => ({ host: 'h', freeMb: 30000, neededMb: 26000 }),
+      renderStill: async ({ seed }) => ({ image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 1, provider: 'comfyui/wan-2.2' }),
+      persist: async ({ model, stills }) => { seen.push(model); stills.forEach((x) => Object.assign(x, { assetId: 'a1', persist: { ok: true } })); return { ok: true, persisted: 1, total: 1 }; },
+      store: new Map(), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 0, disabled: true },
+      commit: () => ({ allowed: true }),
+    });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe('comfyui/wan-2.2');
+    expect(seen[0]).not.toMatch(/openai/);
+  });
+});

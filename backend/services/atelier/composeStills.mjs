@@ -201,7 +201,7 @@ export async function composeStills(req = {}, deps = {}) {
       // received two rounds ago and this one did not. Sixth time a fix has landed on one
       // half of a pair in this review; the async lane is where taste actually RUNS, so
       // fixing only the sync half fixed the path taste almost never takes.
-      lawProfile, judgeProfile: kit.lawProfileFromKit, kit, model: cost.model, reservation,
+      lawProfile, kit, model: cost.model, reservation,
       // The kit travels as ONE parameter, not as a parameter AND a deps field. Two
       // channels for one fact is how the sync and async halves drifted apart in the first
       // place: whichever one a later change updates, the other keeps its old value and
@@ -233,7 +233,11 @@ export async function composeStills(req = {}, deps = {}) {
     // Never fatal to the batch: bytes exist, the row does not, and each still says which.
     const persistence = req.persist === false
       ? { ok: false, code: 'E_PERSIST_SKIPPED', persisted: 0 }
-      : await persist({ stills, lane, userId: req.userId, workspaceId: req.workspaceId, brandKit: brandKitView(kit), model, env });
+      // `cost.model`, not `model`. `model` is `req.model || DEFAULT_MODEL` — a HOSTED
+      // model id — so a LOCAL render persisted provenance naming a provider it never
+      // touched. `cost.model` is resolved per lane and is what the async path already
+      // recorded, so the two lanes disagreed about what made the same kind of image.
+      : await persist({ stills, lane, userId: req.userId, workspaceId: req.workspaceId, brandKit: brandKitView(kit), model: cost.model, env });
     return {
       persistence,
       estimateOnly: false, lane, promptSource, stills, failures, partial: failures.length > 0, replayed: false,
