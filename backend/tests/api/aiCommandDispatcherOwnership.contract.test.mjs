@@ -49,10 +49,13 @@ import { dispatch } from '../../services/ai/commandDispatcher.mjs';
 import { startDebate } from '../../services/ai/debate/debateOrchestrator.mjs';
 import { buildDebateClientContext } from '../../services/ai/debate/debateClientContextService.mjs';
 import { executeCommandPipeline } from '../../services/ai/commandExecutor.mjs';
-import { initializeRegistry, getAllCommands } from '../../services/ai/commandRegistry/index.mjs';
 import { buildValidParams } from '../helpers/zodParamFixture.mjs';
 import { paramNames, commandsWithHiddenShape } from '../helpers/schemaShape.mjs';
 import { makeClientDirectory } from '../helpers/fakeClientDirectory.mjs';
+import {
+  OUR_TRAINER, OWN_CLIENT, FOREIGN_CLIENT, DIRECTORY, UNSYNTHESIZABLE,
+  allCommands, clientRefCommands,
+} from '../helpers/ownershipFixture.mjs';
 
 vi.mock('../../models/AiCommandAuditLog.mjs', () => ({ default: { create: vi.fn() } }));
 vi.mock('../../services/ai/intentClassifier.mjs', () => ({ classifyIntent: vi.fn() }));
@@ -72,32 +75,6 @@ const dispatchMock = vi.mocked(dispatch);
 const startDebateMock = vi.mocked(startDebate);
 const buildDebateClientContextMock = vi.mocked(buildDebateClientContext);
 
-const OUR_TRAINER = 500;
-const PEER_TRAINER = 600;
-const OWN_CLIENT = 101;
-const FOREIGN_CLIENT = 202;
-
-const DIRECTORY = {
-  clients: [
-    { id: OWN_CLIENT, firstName: 'Ada', lastName: 'Own' },
-    { id: FOREIGN_CLIENT, firstName: 'Bo', lastName: 'Foreign' },
-  ],
-  assignments: [
-    { clientId: OWN_CLIENT, trainerId: OUR_TRAINER, status: 'active' },
-    { clientId: FOREIGN_CLIENT, trainerId: PEER_TRAINER, status: 'active' },
-  ],
-};
-
-/**
- * Commands whose schema resists synthesis (cross-field `custom` refinements), so a probe
- * cannot get past validation to reach the ownership gate. Named rather than absorbed: a
- * denial at validation is not evidence about ownership. Mirrors the pin list in the
- * authorization contract; a pin that starts converging fails "no stale pins" below.
- */
-const UNSYNTHESIZABLE = new Set([
-  'update_client', 'rest_adjust', 'create_goal', 'update_goal_progress', 'log_my_nutrition',
-]);
-
 const ENV_KEYS = ['AI_COMMAND_WRITES_ENABLED', 'AI_COMMANDS_ENABLED'];
 const savedEnv = {};
 
@@ -116,17 +93,6 @@ beforeEach(() => {
   buildDebateClientContextMock.mockReset();
   buildDebateClientContextMock.mockResolvedValue({ deIdentified: { alias: 'Client-42' } });
 });
-
-function allCommands() {
-  initializeRegistry();
-  const all = getAllCommands();
-  return Array.isArray(all) ? all : Object.values(all);
-}
-
-/** Commands that resolve a caller-supplied client reference — the ownership surface. */
-function clientRefCommands() {
-  return allCommands().filter((c) => c.requiresClientRef === true && c.selfService !== true);
-}
 
 /**
  * @param {object} [opts]
