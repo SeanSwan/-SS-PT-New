@@ -1,3 +1,7 @@
+> **⚠ VOID PREMISE — every review in this directory reviewed a packet containing a FALSE grounding row (G8).** It asserted `world.miniature-play.voxel-realm` did not exist. **It exists** — `docs/ai-workflow/design-brain/worlds.md` entry 16 of 18, carried in the frozen expected-ID list in `scripts/ai-workflow/world-engine-catalog-validation.mjs`; the verifying grep was `head -8`-capped. Four seats made it a P0 blocker and one seat's REJECT rested on it — **those findings are void; all others stand.** Verify any absence claim here with `node scripts/assets/catalog-check.mjs <catalog> <id>`. Corrected analysis: `docs/ai-workflow/brainstorms/aftertaste-swanverse-game-blueprint-2026-08-25.md` §CORRECTION.
+
+---
+
 # Hostile Review Panel — 2026-08-25
 
 **Document under review:** `docs/ai-workflow/brainstorms/aftertaste-voxel-game-panel-packet-2026-08-25.md`

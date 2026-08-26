@@ -7,6 +7,11 @@
 
 ---
 
+> **⚠ VOID PREMISE — READ BEFORE THIS REVIEW.** The packet this seat reviewed contained a FALSE grounding row (G8): it asserted `world.miniature-play.voxel-realm` did not exist and that the plan citing it had hallucinated a repo anchor. **The entry exists** — `docs/ai-workflow/design-brain/worlds.md` entry 16 of 18, carried in the frozen expected-ID list in `scripts/ai-workflow/world-engine-catalog-validation.mjs`. The verifying grep was `head -8`-capped over an 18-entry file. **Any finding below that rests on the hallucinated-anchor claim is VOID.** The seat reasoned correctly from inputs it could not audit; the failure was upstream. All other findings stand. Corrected analysis: `docs/ai-workflow/brainstorms/aftertaste-swanverse-game-blueprint-2026-08-25.md` §CORRECTION. Body below is verbatim and unedited.
+
+---
+
+
 ## VERDICT
 REVISE — the plan is structurally sound but is written against a repo state it admits is 2246 commits behind origin/main (G7), anchors to a hallucinated design-brain entry (G8), and under-specifies the one security boundary (Blender-MCP as local code execution) that can actually hurt the Owner's machine.
 

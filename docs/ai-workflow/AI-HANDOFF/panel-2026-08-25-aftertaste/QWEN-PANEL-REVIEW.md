@@ -5,6 +5,11 @@
 **Tokens (Ollama):** 5244 in / 1459 out | **Wall:** 26.6s | **done_reason:** stop
 
 ---
+
+> **⚠ VOID PREMISE — READ BEFORE THIS REVIEW.** The packet this seat reviewed contained a FALSE grounding row (G8): it asserted `world.miniature-play.voxel-realm` did not exist and that the plan citing it had hallucinated a repo anchor. **The entry exists** — `docs/ai-workflow/design-brain/worlds.md` entry 16 of 18, carried in the frozen expected-ID list in `scripts/ai-workflow/world-engine-catalog-validation.mjs`. The verifying grep was `head -8`-capped over an 18-entry file. **Any finding below that rests on the hallucinated-anchor claim is VOID.** The seat reasoned correctly from inputs it could not audit; the failure was upstream. All other findings stand. Corrected analysis: `docs/ai-workflow/brainstorms/aftertaste-swanverse-game-blueprint-2026-08-25.md` §CORRECTION. Body below is verbatim and unedited.
+
+---
+
 ## VERDICT
 REJECT — The plan is a high-fidelity architectural fantasy that ignores the immediate technical debt of the existing codebase (G7), hallucinates non-existent repo anchors (G8), and proposes a "build-vs-buy" strategy that underestimates the integration cost of local AI 3D generation versus the proven reliability of established paid pipelines for a solo developer.
 

@@ -1,11 +1,9 @@
 {
-  "$schema": "./registry.schema.md",
   "schema": "swan.asset-registry.v1",
   "updated": "2026-08-25",
-  "note": "SINGLE SOURCE OF TRUTH for game/app asset IDs. scripts/assets/validate-asset.mjs rejects any manifest whose id is absent here. Modelled on the world-catalog pattern in scripts/ai-workflow/world-engine-catalog-validation.mjs (frozen expected-ID list). Adding an id here is a deliberate act, not a side effect of authoring a file.",
-
+  "note": "SINGLE SOURCE OF TRUTH for game/app asset IDs. scripts/assets/validate-asset.mjs (P1) rejects any manifest whose id is absent here. Modelled on the frozen expected-ID list in scripts/ai-workflow/world-engine-catalog-validation.mjs. Adding an id here is a deliberate act, not a side effect of authoring a file.",
   "worlds": {
-    "note": "Worlds are NOT defined here. They live in docs/ai-workflow/design-brain/worlds.md and are validated by scripts/ai-workflow/world-engine-catalog-validation.mjs. This block only records which existing world entry a zone INHERITS.",
+    "note": "Worlds are NOT defined here. They live in docs/ai-workflow/design-brain/worlds.md and are validated by scripts/ai-workflow/world-engine-catalog-validation.mjs. This block records only which existing world entry a zone INHERITS.",
     "inherits": "world.miniature-play.voxel-realm",
     "inheritedContract": {
       "material": "beveled voxels with disciplined roughness, not plastic cubes",
@@ -13,35 +11,63 @@
       "lawBRestriction": "No Swan-branded surface may use this Law-B chrome. Swan-chromed surfaces render Law A (Crystalline Swan tokens). Law-B chrome is standalone/non-Swan only.",
       "proofActionContract": "the action is never awarded or unlocked by play; no gameplay gates proof or action",
       "antiCheese": "fails fastest when block fonts, loot sparkle, achievements, and a copied sandbox-game look turn evidence into gamification sludge",
-      "bannedLikeness": ["Minecraft likeness", "branded blocks", "loot-box visuals", "plastic toy shine", "readable fake UI text", "logos", "retired Galaxy-Swan tones"]
+      "bannedLikeness": [
+        "Minecraft likeness",
+        "branded blocks",
+        "loot-box visuals",
+        "plastic toy shine",
+        "readable fake UI text",
+        "logos",
+        "retired Galaxy-Swan tones"
+      ]
     }
   },
-
   "zones": [
     {
-      "id": "pocket.aftertaste.fallen-food-court",
+      "id": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
+      "worldId": "world.miniature-play.voxel-realm",
+      "localId": "zone.aftertaste.fallen-food-court",
       "status": "planned",
-      "world": "world.miniature-play.voxel-realm",
       "shardFraming": "world.miniature-play.pocket-worlds",
       "loreParent": "docs/ai-workflow/brainstorms/swanverse-game-universe-vision-2026-07-22.md",
       "summary": "First contaminated Earth-tier shard the champion redeems. Cleanse three nests, defeat the banquet archetype, the shard turns benevolent.",
-      "chromeLaw": { "embedded": "A", "standalone": "B" }
+      "chromeLaw": {
+        "embedded": "A",
+        "standalone": "B"
+      },
+      "idRule": "A zone id is <worldId>/<localId>. The worldId segment MUST appear in the frozen list in world-engine-catalog-validation.mjs; the validator resolves it there. Flat zone ids are rejected — they cannot be joined to the world catalog. (HY3 P0 review 2026-08-25.)"
     }
   ],
-
   "skeletons": [
-    { "id": "skeleton.creature-small.v1", "status": "planned", "clips": ["idle", "move", "attack", "hit", "death"] }
+    {
+      "id": "skeleton.creature-small.v1",
+      "status": "planned",
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hit",
+        "death"
+      ]
+    }
   ],
-
   "assets": [
     {
       "id": "enemy.fryling",
       "status": "planned",
       "kind": "enemy",
-      "zone": "pocket.aftertaste.fallen-food-court",
+      "zone": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
       "skeleton": "skeleton.creature-small.v1",
-      "budgets": { "lod0Triangles": 1500, "lod1Triangles": 700, "lod2Triangles": 300, "textureMB": 4 },
-      "note": "P1 factory proof asset #1 — the one mesh that must traverse the entire pipe."
+      "note": "P1 factory proof asset #1 — the one mesh that must traverse the entire pipe.",
+      "budgets": null,
+      "budgetPriors": {
+        "lod0Triangles": 1500,
+        "lod1Triangles": 700,
+        "lod2Triangles": 300,
+        "textureMB": 4,
+        "source": "unverified panel prior 2026-08-25 — NOT measured, NOT enforceable",
+        "sanityFlag": "textureMB 4 on a 1500-tri asset is implausible (that is a 2048-class budget on a pocket-scale prop). Transcribed, never sanity-checked. Do not promote without measuring. (GLM 5.3 P0 blocker 3, 2026-08-25.)"
+      }
     },
     {
       "id": "app.companion-stage.frost-swan.s1",
@@ -49,12 +75,44 @@
       "kind": "app-asset",
       "zone": null,
       "skeleton": null,
-      "budgets": { "lod0Triangles": 4000, "lod1Triangles": 1800, "lod2Triangles": 700, "textureMB": 6 },
-      "note": "P1 factory proof asset #2 — proves the same pipe produces APP assets (SWA-60 companion work), which is the DEFER-era ROI argument. Extends CompanionPetService species/stage IDs; does not mint a parallel catalog."
+      "note": "P1 factory proof asset #2 — proves the same pipe produces APP assets (SWA-60 companion work), which is the DEFER-era ROI argument. Extends CompanionPetService species/stage IDs; does not mint a parallel catalog. NOTE: this is a Swan-chromed surface, so it renders Law A while asset #1 is Law B — SEQUENCED, not parallel: prove the pipe end-to-end on the Law-B Fryling FIRST, then this Law-A app asset. A two-law first run confounds failure attribution. (GLM 5.3 P0, answer to Q3.)",
+      "budgets": null,
+      "budgetPriors": {
+        "lod0Triangles": 4000,
+        "lod1Triangles": 1800,
+        "lod2Triangles": 700,
+        "textureMB": 6,
+        "source": "unverified panel prior 2026-08-25 — NOT measured, NOT enforceable"
+      }
     }
   ],
-
-  "statusValues": ["planned", "in-progress", "validated", "shipped", "retired"],
-  "licenseEnum": ["owner-authored", "cc0", "ccby", "model"],
-  "licenseModelForm": "model:<name>@<version>:<license-id>"
+  "budgetPolicy": {
+    "rule": "budgets is null until a real mesh is measured. The validator ACCEPTS null and REJECTS a bare number that has no measurement provenance. budgetPriors is advisory only and can never be enforced.",
+    "why": "A fabricated number acquires authority by being committed — the same authority-acquisition path as the false evidence row this slice exists to correct. One prior was also internally implausible on inspection, which is evidence the set was transcribed rather than checked.",
+    "promotion": "perf-lab measures on the named iGPU laptop -> write budgets with {value, tool, command, date, commit} provenance -> only then enforceable.",
+    "credit": "Builder B6 + HY3 P0 blocker 4 + GLM 5.3 P0 blocker 3, 2026-08-25."
+  },
+  "statusValues": [
+    "planned",
+    "in-progress",
+    "validated",
+    "shipped",
+    "retired"
+  ],
+  "licensePolicy": {
+    "note": "Structured object, NOT a delimited string. The earlier `model:<name>@<version>:<license-id>` form was unsplittable when a model name contains @ or : — plausible for versioned/namespaced models. (HY3 P0 blocker 3, 2026-08-25.)",
+    "kindValues": [
+      "owner-authored",
+      "cc0",
+      "ccby",
+      "model"
+    ],
+    "shape": {
+      "kind": "one of kindValues",
+      "modelName": "required when kind=model; free string, no delimiter parsing",
+      "modelVersion": "required when kind=model",
+      "licenseId": "required when kind=model or ccby; SPDX id where one exists",
+      "receiptPath": "required when kind=model or ccby; path to the stored license receipt"
+    }
+  }
 }

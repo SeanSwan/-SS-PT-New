@@ -7,6 +7,11 @@
 
 ---
 
+> **⚠ VOID PREMISE — READ BEFORE THIS REVIEW.** The packet this seat reviewed contained a FALSE grounding row (G8): it asserted `world.miniature-play.voxel-realm` did not exist and that the plan citing it had hallucinated a repo anchor. **The entry exists** — `docs/ai-workflow/design-brain/worlds.md` entry 16 of 18, carried in the frozen expected-ID list in `scripts/ai-workflow/world-engine-catalog-validation.mjs`. The verifying grep was `head -8`-capped over an 18-entry file. **Any finding below that rests on the hallucinated-anchor claim is VOID.** The seat reasoned correctly from inputs it could not audit; the failure was upstream. All other findings stand. Corrected analysis: `docs/ai-workflow/brainstorms/aftertaste-swanverse-game-blueprint-2026-08-25.md` §CORRECTION. Body below is verbatim and unedited.
+
+---
+
+
 ## VERDICT
 REVISE — the architecture bones (app↔game firewall, imperative sim, IP hygiene) are right, but the plan presents an unspecified client-side trust boundary as "solved," pins nothing in a dependency matrix that G5 makes brittle, and would execute P0/P1 on a branch 2246 commits behind `origin/main` against a falsified repo anchor (G8).
 

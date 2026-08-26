@@ -182,4 +182,19 @@ if git diff --cached --name-only | grep -qE '^(docs/ai-workflow/design-brain/|sc
   fi
 fi
 
+# --- truncated-evidence guard (added 2026-08-25, SWA-211 P0 panel: Ox Alpha + GLM 5.3) ---
+# Blocks an absence claim that sits next to a truncating instrument with no denominator.
+# Origin: a `grep ... | head -8` over an 18-entry catalog produced a false "does not exist"
+# that five paid reviewers then built on. Fail-open on its own errors.
+TRUNC_GUARD="scripts/hooks/truncated-evidence-guard.mjs"
+if [[ -f "$TRUNC_GUARD" ]]; then
+  echo "[pre-commit] Running truncated-evidence guard on staged docs..."
+  if ! node "$TRUNC_GUARD"; then
+    echo "COMMIT BLOCKED: absence claim backed by a truncating instrument." >&2
+    exit 1
+  fi
+else
+  echo "[pre-commit] truncated-evidence guard: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
+fi
+
 exit 0
