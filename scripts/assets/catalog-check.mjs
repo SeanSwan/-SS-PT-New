@@ -41,6 +41,34 @@
  * failure, not evidence of absence. Never let "0 results" mean "not there".
  */
 import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+/** Collect ids from whichever catalog shape this is. Never truncates. */
+export function collectIds(text, path) {
+  const ids = new Set();
+  if (path.endsWith('.json')) {
+    const data = JSON.parse(text);
+    const walk = (node) => {
+      if (Array.isArray(node)) return node.forEach(walk);
+      if (node && typeof node === 'object') {
+        if (typeof node.id === 'string') ids.add(node.id);
+        return Object.values(node).forEach(walk);
+      }
+    };
+    walk(data);
+    return ids;
+  }
+  // .mjs frozen lists and .md catalogs: quoted or backticked dotted ids.
+  for (const m of text.matchAll(/['"`]([a-z][a-z0-9-]*(?:\.[a-z0-9-]+){1,})['"`]/g)) ids.add(m[1]);
+  return ids;
+}
+
+// Entry-point guard: importing this module must NOT run the CLI. Found by the branch-gate
+// self-review 2026-08-25 — the third module in this branch with the defect; the other two
+// were fixed after a panel found them. `import` printed usage and exited.
+const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (IS_MAIN) {
 
 const [catalogPath, wantedId] = process.argv.slice(2);
 
@@ -56,28 +84,6 @@ try {
   console.error(`[catalog-check] EXIT 2 — cannot read ${catalogPath}: ${err.message}`);
   console.error('[catalog-check] this is an INSTRUMENT FAILURE, not an absence. Do not claim the id is missing.');
   process.exit(2);
-}
-
-/** Collect ids from whichever catalog shape this is. Never truncates. */
-function collectIds(text, path) {
-  const ids = new Set();
-
-  if (path.endsWith('.json')) {
-    const data = JSON.parse(text);
-    const walk = (node) => {
-      if (Array.isArray(node)) return node.forEach(walk);
-      if (node && typeof node === 'object') {
-        if (typeof node.id === 'string') ids.add(node.id);
-        return Object.values(node).forEach(walk);
-      }
-    };
-    walk(data);
-    return ids;
-  }
-
-  // .mjs frozen lists and .md catalogs: quoted or backticked dotted ids.
-  for (const m of text.matchAll(/['"`]([a-z][a-z0-9-]*(?:\.[a-z0-9-]+){1,})['"`]/g)) ids.add(m[1]);
-  return ids;
 }
 
 let ids;
@@ -119,3 +125,5 @@ console.log(`[catalog-check] ABSENT: ${wantedId}`);
 console.log(`[catalog-check] denominator: ${sorted.length} ids enumerated above, none matched.`);
 console.log('[catalog-check] THIS exit code (1), with the list above, is what licenses an absence claim. A capped grep is not.');
 process.exit(1);
+
+}
