@@ -166,6 +166,33 @@ describe('Swan Coach plan-archive ownership', () => {
     expect(result.planFound).toBe(true);
   });
 
+  it('denies a row the query should never have returned — fail-open SQL is caught at the consumer', async () => {
+    // Hostile-review finding 2026-08-26: every check on `assertAssignmentOrAdmin` proves the
+    // QUERY carries the right predicates, never that the database applied them. A fail-open
+    // WHERE — `(... OR :trainerId IS NULL)` is the classic — satisfies every string-level
+    // assertion and returns a foreign row anyway. The consumer now re-asserts what the WHERE
+    // was supposed to guarantee, which is what this simulates: a model that ignores its own
+    // where-clause and hands back somebody else's assignment.
+    getModelMock.mockImplementation(() => ({
+      findOne: async () => ({ trainerId: PEER_TRAINER, clientId: FOREIGN_CLIENT, status: 'active' }),
+    }));
+    const result = await dispatchDeleteWorkoutPlan({ planId: FOREIGN_PLAN }, { user: trainer });
+    expect(transitionMock, 'a foreign assignment row was accepted at face value').not.toHaveBeenCalled();
+    expect(result.planFound).toBe(false);
+
+    // Both mismatch dimensions, separately. The row above names the RIGHT client and the
+    // wrong trainer; this one names the right trainer and somebody else's client. Mutation
+    // testing caught that only the first was exercised — one assertion covering two guards
+    // is one guard tested and one assumed.
+    transitionMock.mockClear();
+    getModelMock.mockImplementation(() => ({
+      findOne: async () => ({ trainerId: OUR_TRAINER, clientId: OWN_CLIENT, status: 'active' }),
+    }));
+    const other = await dispatchDeleteWorkoutPlan({ planId: FOREIGN_PLAN }, { user: trainer });
+    expect(transitionMock, 'an assignment for a DIFFERENT client was accepted').not.toHaveBeenCalled();
+    expect(other.planFound).toBe(false);
+  });
+
   it('denies when the assignment lookup throws — fail closed', async () => {
     // `assertAssignmentOrAdmin` treats any failure as a denial. Asserted here because a
     // gate that fails open under load is worse than no gate: it works in every test and

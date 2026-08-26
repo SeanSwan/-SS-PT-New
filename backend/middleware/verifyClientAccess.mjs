@@ -103,7 +103,29 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
     const assignment = await Model.findOne({
       where: { trainerId: requesterId, clientId: targetClientId, status: 'active' },
     });
-    return !!assignment;
+    if (!assignment) return false;
+    // Re-assert what the WHERE was supposed to guarantee, on the row that came back.
+    //
+    // Hostile-review finding 2026-08-26: every test of this function proves the QUERY
+    // carries the right predicates, never that the DATABASE applied them. A fail-open
+    // construct — `WHERE (... OR :trainerId IS NULL)` is the classic — satisfies every
+    // string-level check and returns a foreign row anyway. Three comparisons convert that
+    // class from a silent leak into a denial, and cost nothing on the hot path. Mirrors the
+    // `isActive` double-check `clientResolver` already does for the same reason.
+    //
+    // Fields ABSENT from the row are not treated as mismatches, and that narrowing is
+    // deliberate rather than sloppy. A real SELECT on this table always returns these
+    // columns, so the threat — a row whose `trainerId` is somebody else's — always carries
+    // the field and is always caught. What omits them is an under-specified test stub, and
+    // ~56 such stubs exist across ten suites written before this guard. Rewriting other
+    // people's security fixtures in passing is how a hardening becomes a regression; that
+    // migration is a slice of its own, and the newer suites already model rows fully.
+    const mismatched = (actual, expected) => actual !== undefined && actual !== null
+      && Number(actual) !== expected;
+    if (mismatched(assignment.trainerId, requesterId)) return false;
+    if (mismatched(assignment.clientId, targetClientId)) return false;
+    if (assignment.status !== undefined && assignment.status !== 'active') return false;
+    return true;
   } catch (err) {
     logger.warn('[verifyClientAccess] ClientTrainerAssignment check failed - denying access', {
       userId, clientId, error: err?.message,

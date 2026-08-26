@@ -318,6 +318,48 @@ describe('Swan Coach confirm-lane re-authorization', () => {
       expect(result.success).toBe(false);
     });
 
+    it('refuses a client-ref command that arrived with no client recorded', async () => {
+      // Panel round 2 (Qwen, 2026-08-26): when BOTH the operation and its params lack a
+      // client, every client check was skipped and the gate returned "permitted" by falling
+      // off the end. The gate cannot authorize what it cannot see; it now says so.
+      //
+      // A command with no client concept at all (`requiresClientRef: false`) is a different
+      // case and is NOT denied here — its ownership belongs to the handler. That division is
+      // now stated rather than incidental.
+      const { operationId } = preparePendingConfirmation({
+        commandType: CONFIRMED_COMMAND,   // award_badge — requiresClientRef: true
+        params: { achievementId: '7' },
+        clientId: null,
+        userId: OUR_TRAINER,
+        description: 'award a badge with no client',
+      });
+      const result = await executeConfirmedOperation(operationId, TRAINER, sequelize);
+      expect(dispatchMock).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      await vi.waitFor(() => expect(auditMock).toHaveBeenCalled());
+      const row = auditMock.mock.calls.map(([r]) => r).find((r) => r?.outcome === 'denied');
+      expect(row?.errorCode).toBe('missing_client_target');
+    });
+
+    it('does NOT invent a client requirement for commands that have none', async () => {
+      // `delete_workout_plan` carries a planId and resolves no client, so it legitimately
+      // records none. Denying it here would break it; the handler owns that ownership check.
+      const { operationId } = prepareDestructiveOperation({
+        type: 'DELETE',
+        endpoint: '/api/workout-plans/71',
+        commandParams: { id: 71, planId: 71 },
+        commandType: 'delete_workout_plan',
+        clientId: null,
+        userId: OUR_TRAINER,
+        description: 'archive a plan',
+      });
+      const result = await executeConfirmedOperation(operationId, TRAINER, sequelize);
+      expect(
+        dispatchMock,
+        `a command with no client concept was denied (${result.type}: ${result.message})`,
+      ).toHaveBeenCalledTimes(1);
+    });
+
     it('refuses a stored operation with no command type at all', async () => {
       // On a persisted record a missing type is a malformed shape, not an absent input.
       // Skipping the checks for it meant an operation could pass the gate having had
@@ -349,16 +391,32 @@ describe('Swan Coach confirm-lane re-authorization', () => {
       // cannot arrive here, and one that could mint is still permitted. Asserting the
       // identity is stronger than asserting the absence of a victim — if either side ever
       // gains a special case, this fails.
+      // ROUND 2 (GLM): the first version of this test read `roleRequired` on both sides and
+      // compared it to itself — a tautology that would pass no matter what either gate did.
+      // It was written to answer "is there a superset carve-out in one gate and not the
+      // other", and comparing a thing with itself cannot answer that. What can is reading
+      // the two predicates.
+      const source = stripComments(fs.readFileSync(EXECUTOR_FILE, 'utf8'));
+      const mintGate = sliceBetween(source, 'async function stepRBAC(', '\n}', { label: 'stepRBAC' });
+      const redeemGate = sliceBetween(
+        source, 'async function confirmLaneDenialReason(', '\nexport ', { label: 'confirmLaneDenialReason' },
+      );
+
+      // Both must decide role by plain membership in the registry's list.
+      expect(mintGate).toMatch(/roleRequired\.includes\(/);
+      expect(redeemGate).toMatch(/required\.includes\(user\.role\)/);
+
+      // And NEITHER may carve out a role the other does not. An `admin` special-case in one
+      // gate and not the other is precisely the asymmetry that would let a caller mint what
+      // they cannot redeem — or redeem what they could not have minted.
+      for (const [name, body] of [['stepRBAC', mintGate], ['confirmLaneDenialReason', redeemGate]]) {
+        expect(body, `${name} carves out a role by name — the other gate does not`).not.toMatch(/['"]admin['"]/);
+      }
+
+      // The registry is still the single source both consult, and it is not empty.
       const registry = allConfirmableCommands();
       expect(registry.length, 'no confirmable commands found — the scan broke').toBeGreaterThan(5);
-      const asymmetric = registry.filter((command) => {
-        const mintable = command.roleRequired;
-        // Redemption reads the registry the same way; any divergence shows up as a role
-        // that is in one set and not the other.
-        const redeemable = getRegistryRoles(command.type);
-        return mintable.slice().sort().join(',') !== redeemable.slice().sort().join(',');
-      });
-      expect(asymmetric.map((c) => c.type), 'mint and redeem disagree about who may act').toEqual([]);
+      expect(getRegistryRoles(registry[0].type).length).toBeGreaterThan(0);
     });
   });
 
@@ -419,6 +477,16 @@ describe('Swan Coach confirm-lane re-authorization', () => {
   });
 
   describe('what re-authorization must not break', () => {
+    it('still refuses another user\'s operation on the DESTRUCTIVE lane too', async () => {
+      // Round 2 (GLM): the minter-to-redeemer binding was asserted only on the
+      // non-destructive lane. The destructive lane has its own retrieval path and its own
+      // ownership check; "the other lane does it" is not evidence about this one.
+      const someoneElse = mintDestructive(4242);
+      const result = await executeConfirmedOperation(someoneElse, TRAINER, sequelize);
+      expect(dispatchMock).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+    });
+
     it('still refuses another user\'s operation', async () => {
       const someoneElse = mintPending(4242);
       const result = await executeConfirmedOperation(someoneElse, TRAINER, sequelize);

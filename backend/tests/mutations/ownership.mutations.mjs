@@ -34,6 +34,30 @@ export default {
   ],
   mutations: [
     {
+      "id": "M38 access consumer: accept a row the query should never have returned",
+      "file": "middleware/verifyClientAccess.mjs",
+      "find": "    if (mismatched(assignment.trainerId, requesterId)) return false;",
+      "replace": "    if (false) return false;"
+    },
+    {
+      "id": "M39 access consumer: ignore a mismatched client on the returned row",
+      "file": "middleware/verifyClientAccess.mjs",
+      "find": "    if (mismatched(assignment.clientId, targetClientId)) return false;",
+      "replace": "    if (false) return false;"
+    },
+    {
+      "id": "M36 confirm lane: let a client-ref command through with no client recorded",
+      "file": "services/ai/commandExecutor.mjs",
+      "find": "  if (clientId == null && command.requiresClientRef === true) return 'missing_client_target';",
+      "replace": "  if (false) return null;"
+    },
+    {
+      "id": "M37 confirm lane: demand a client from commands that have no client concept",
+      "file": "services/ai/commandExecutor.mjs",
+      "find": "  if (clientId == null && command.requiresClientRef === true) return 'missing_client_target';",
+      "replace": "  if (clientId == null) return 'missing_client_target';"
+    },
+    {
       "id": "M31 confirm lane: read the target from params again, as it did before the panel",
       "file": "services/ai/commandExecutor.mjs",
       "find": "\n  const clientId = operation.clientId ?? null;",

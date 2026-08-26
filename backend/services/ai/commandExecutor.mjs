@@ -887,12 +887,33 @@ async function confirmLaneDenialReason(operation, user) {
   }
   if (clientId == null && paramsClientId != null) return 'target_mismatch';
 
+  // A command the PIPELINE resolves a client for must arrive with one recorded. If it does
+  // not, the mint is broken and this gate cannot authorize what it cannot see — so it says
+  // so instead of returning "permitted" by falling off the end.
+  //
+  // The converse is the honest limit, and it is not a bug: a command with NO client concept
+  // at the pipeline level (`requiresClientRef: false` — `delete_workout_plan` is the live
+  // example, it carries a `planId`) records no client, and this gate has nothing to check.
+  // Ownership for those lives in the handler, which is why `dispatchDeleteWorkoutPlan` now
+  // calls `assertAssignmentOrAdmin` itself. A panel called that arrangement incidental. It
+  // is not incidental any more — it is the stated division of labour, and the handler-side
+  // half is asserted in `aiCommandPlanArchiveOwnership.contract.test.mjs`.
+  if (clientId == null && command.requiresClientRef === true) return 'missing_client_target';
+
   if (clientId != null) {
     // A denial caused by the lookup FAILING is recorded separately from a denial caused by
     // the answer being no. Both refuse — that is not negotiable — but during an incident the
     // two mean opposite things: one is a revoked user being correctly stopped, the other is
     // the database being unhealthy and every caller being stopped with them. A forensics
     // trail that cannot tell them apart turns an outage into a false access-abuse signal.
+    //
+    // HONEST LIMIT, found by review 2026-08-26: `assertAssignmentOrAdmin` catches its own
+    // failures and returns false, so today a database outage arrives here as a plain "no"
+    // and IS audited as a revocation. This catch is therefore unreachable through the
+    // current authorizer — it is defence in depth against one that stops swallowing, and
+    // the distinction it draws is real only for such an authorizer. Closing the conflation
+    // properly means changing shared middleware the REST routes also depend on, which is a
+    // separate decision; claiming the distinction works today would be false.
     try {
       const permitted = await assertAssignmentOrAdmin(user.id, user.role, clientId);
       if (!permitted) return 'client_access_revoked';
