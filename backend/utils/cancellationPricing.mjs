@@ -130,11 +130,36 @@ export async function getClientPackagePricing(clientId, models, options = {}) {
       };
     }
 
-    const sessionPackage = sessionPackages[0] || storefrontItems[0];
+    // NEVER fall back to "any item in the order". That line previously read
+    // `sessionPackages[0] || storefrontItems[0]`, and combined with the rate
+    // formula below it turned a non-session purchase into a per-session rate: a
+    // $33,600 twelve-month program carries sessions: 0, so parseFloat(price)
+    // returned 33600 AS THE PER-SESSION RATE, stamped isFallback: false. The
+    // ambiguity guard could not catch it because that guard deliberately excludes
+    // non-session items from its population. applyServerDerivedChargeAmount trusts
+    // any non-fallback payload, so a cancellation would have been recorded at the
+    // full program price and logged as "server-derived".
+    //
+    // If nothing in the order prices a single session, we do not know the rate.
+    // Say so.
+    const sessionPackage = sessionPackages[0];
+    if (!sessionPackage) {
+      logger.info(
+        `Client ${clientId} has no per-session package in recent orders; ` +
+          `cannot derive a session rate`
+      );
+      return {
+        pricePerSession: FALLBACK_PRICES.STANDARD_60_MIN,
+        packageName: 'No per-session package found',
+        isFallback: true,
+        isSpecialPackage: false,
+        requiresAdminReview: true
+      };
+    }
 
-    const pricePerSession = sessionPackage.sessions > 0
-      ? parseFloat(sessionPackage.price) / sessionPackage.sessions
-      : parseFloat(sessionPackage.price);
+    // sessions > 0 is guaranteed by the filter above, so this is a true per-session
+    // rate rather than a whole-purchase price.
+    const pricePerSession = parseFloat(sessionPackage.price) / sessionPackage.sessions;
 
     // Detect if this is a special/promotional package
     const isSpecialPackage = detectSpecialPackage(sessionPackage, pricePerSession);

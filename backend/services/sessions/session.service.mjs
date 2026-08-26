@@ -1830,7 +1830,13 @@ class UnifiedSessionService {
       // policy - the credit was already restored by an earlier operation, the client
       // record could not be loaded, the account is non-deducting - and keying on it
       // stamped a penalty event onto perfectly on-time cancellations.
+      // hoursUntilSession !== null is required, not implied by !refundEligible.
+      // An unusable sessionDate yields null, which reads as "not refund eligible"
+      // and stamped a forfeit — while the warning endpoint's `NaN < 24` evaluates
+      // false and had already told the client their credit would be returned. Do
+      // not record a penalty whose triggering condition is unknown.
       const lateForfeit = !billingOptions
+        && hoursUntilSession !== null
         && !refundEligible
         && session.sessionDeducted
         && !session.sessionCreditRestored
