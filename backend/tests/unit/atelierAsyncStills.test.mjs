@@ -124,20 +124,39 @@ describe('what the panel found', () => {
     await until(() => getBatch(a.batchId, 1).terminal);
   });
 
-  it('the idempotency key is evicted when the batch is terminal, so a deliberate re-render runs', async () => {
+  it('a CLIENT key still replays after the batch is terminal — it must not buy a second batch', async () => {
+    // ASSERTION REVERSED, and the old one is worth recording. This test used to be called
+    // "the idempotency key is evicted when the batch is terminal, so a deliberate re-render
+    // runs", and it asserted `b.batchId !== a.batchId`. It was pinning a defect.
+    //
+    // A client key is a promise of at-most-once. A client whose connection dropped before
+    // the 202 arrived retries with the same key and, under the old contract, was handed a
+    // SECOND batch: another GPU run and another bite of the daily run cap, from the one
+    // mechanism whose entire purpose is to stop that. "Deliberately re-rendering" is not
+    // what reusing an idempotency key means — reusing it says "this is the same request".
     const store = new Map();
     const d = () => deps({ store });
     const a = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, d());
     await until(() => getBatch(a.batchId, 1).terminal);
-    await until(() => !store.has([...store.keys()][0] ?? '__none__') || store.size === 0);
     const b = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, d());
-    expect(b.batchId).not.toBe(a.batchId);
-    expect(b.replayed).toBe(false);
-    await until(() => getBatch(b.batchId, 1).terminal);
+    expect(b.batchId).toBe(a.batchId);      // pointed at the work it already has
+    expect(b.replayed).toBe(true);
+    expect(b.statusUrl).toBe(a.statusUrl);  // and told where to go look at it
+  });
+
+  it('a DERIVED key is still evicted, because a later request derives a different one anyway', async () => {
+    // The other half of the pair. No client key means no promise was made: the derived key
+    // carries a time bucket, so holding it past terminal could only ever return a stale
+    // batch to someone whose next request would have keyed differently regardless.
+    const store = new Map();
+    const a = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1 }, deps({ store }));
+    await until(() => getBatch(a.batchId, 1).terminal);
+    await until(() => store.size === 0);
+    expect(store.size).toBe(0);
   });
 
   it('a hung render still reaches a terminal state and frees the GPU (watchdog)', async () => {
-    const d = deps({ renderStill: () => new Promise(() => {}), watchdogMs: 60 });
+    const d = deps({ renderStill: () => new Promise(() => {}), watchdogMs: 60, releaseGraceMs: 200 });
     const out = await composeStills({ brief: BRIEF, lane: 'local', count: 2, userId: 1 }, d);
     await until(() => getBatch(out.batchId, 1).terminal, 3000);
     const snap = getBatch(out.batchId, 1);
@@ -185,7 +204,7 @@ describe('an abandoned batch stops touching the GPU', () => {
     // guarding them. The loop now observes the abort.
     let rendered = 0;
     const d = deps({
-      watchdogMs: 40,
+      watchdogMs: 40, releaseGraceMs: 300,
       renderStill: async ({ seed }) => {
         rendered += 1;
         await sleep(30);
@@ -212,7 +231,12 @@ describe('a timed-out batch does not hand the GPU away mid-render', () => {
     // batch while the old one was still using it.
     let finished = false;
     const d = deps({
-      watchdogMs: 40,
+      // The grace is deliberately LONGER than the render. Under the old code it was
+      // clamped down to 250ms — shorter — so the card came back on the TIMER at 250ms
+      // rather than on the work at 400ms, and the assertion below passed for the wrong
+      // reason. With a 2s grace, the card returning before 2s can only mean the work
+      // settled, which is the thing this test claims to prove.
+      watchdogMs: 40, releaseGraceMs: 2000,
       renderStill: async ({ seed }) => {
         await sleep(400);                      // still running when the watchdog fires
         finished = true;
@@ -225,6 +249,19 @@ describe('a timed-out batch does not hand the GPU away mid-render', () => {
 
     // The batch is terminal and the caller has been told — but the render is still going,
     // so the card must NOT be available yet.
+    expect(finished).toBe(false);
+    expect(() => reserveGpu().release()).toThrow();
+
+    // THE DISCRIMINATING ASSERTION, and it took a falsification pass to get here. The two
+    // checks above and below pass whether the card comes back on the WORK or on a TIMER,
+    // so with the old 250ms clamp this test went green while the card was being handed
+    // away 150ms before the render ended. Raising the grace to 2s was not enough on its
+    // own — the assertions still could not tell the causes apart.
+    //
+    // 300ms is chosen to sit in the gap: past the old clamp (250ms), short of the render
+    // (400ms). If a timer is what frees the card, it has already fired by now and this
+    // throws. Only the work settling can get past this line.
+    await sleep(300 - 40);
     expect(finished).toBe(false);
     expect(() => reserveGpu().release()).toThrow();
 

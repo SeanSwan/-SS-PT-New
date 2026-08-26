@@ -36,7 +36,7 @@ import * as local from './localStillLane.mjs';
 import { persistBatch } from './persistStills.mjs';
 import * as batches from './batchStore.mjs';
 import { applyBrandKit, brandKitView, listBrandKits } from '../../../shared/brandKits/registry.mjs';
-import { runLocalBatch } from './localBatchRunner.mjs';
+import { runLocalBatch, startLocalBatch } from './localBatchRunner.mjs';
 import { runBatch } from './composeBatch.mjs';
 import { buildPrompts } from './composePrompts.mjs';
 
@@ -193,31 +193,13 @@ export async function composeStills(req = {}, deps = {}) {
   // the background under the reservation, persist each still as it lands, and let the
   // client poll. The idempotency store coalesces on the same batch id.
   if (lane === 'local' && req.async !== false) {
-    const batch = batches.createBatch({ userId: req.userId, lane, count, key, promptSource, model: cost.model });
-    const accepted = { accepted: true, batchId: batch.id, lane, promptSource, status: 'queued', count, cost: { ...cost, chargedUsd: 0 }, brandKit: brandKitView(kit),
-      key, admission, statusUrl: `/api/atelier/compose/stills/${batch.id}`, replayed: false,
-      // The synchronous path reports this and the async path did not, so a client whose
-      // count was silently reduced had no way to know on the lane that reduces it most.
-      ...(clampedFrom === undefined ? {} : { clampedFrom }) };
-    settle.res(accepted);
-    runLocalBatch({ batch, req, brief, count, key, promptSource,
-      // The KIT's profile, not the merged one — the same correction the synchronous path
-      // received two rounds ago and this one did not. Sixth time a fix has landed on one
-      // half of a pair in this review; the async lane is where taste actually RUNS, so
-      // fixing only the sync half fixed the path taste almost never takes.
-      lawProfile, kit, model: cost.model, reservation,
-      // The kit travels as ONE parameter, not as a parameter AND a deps field. Two
-      // channels for one fact is how the sync and async halves drifted apart in the first
-      // place: whichever one a later change updates, the other keeps its old value and
-      // nothing disagrees loudly enough to notice.
-      deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, ...(deps.watchdogMs ? { watchdogMs: deps.watchdogMs } : {}) } })
-      // The key is evicted when the batch is terminal: a replay is only honest WHILE the
-      // batch is in flight. Holding it for the store's lifetime would silently return an
-      // old batch to someone deliberately re-rendering the same composition.
-      .finally(() => { store.delete(key); })
-      .catch(() => { /* recorded on the batch; never an unhandled rejection */ });
-    return accepted;
+    return startLocalBatch({ req, brief, count, key, promptSource, lawProfile, kit, cost, lane,
+      admission, clampedFrom, reservation, batches, store, settle,
+      brandKitView, slimForReplay, rememberKey, settledKeys,
+      renderStill, withGpu, env, tasteDeps, compiler, persist,
+      watchdogMs: deps.watchdogMs, releaseGraceMs: deps.releaseGraceMs });
   }
+
 
   const work = (async () => {
     // Prompts — after every refusal gate, before any generator.
@@ -236,6 +218,11 @@ export async function composeStills(req = {}, deps = {}) {
     // release rule existed in two places instead of one. Both lanes now call
     // releaseWhenSettled.
     inFlightWork = batchWork;
+    // ONLY THE LOCAL LANE RACES A WATCHDOG, and that asymmetry is deliberate — a reviewer
+    // read it as the pair-defect this review kept finding, which is exactly why it now
+    // says so here. The hosted provider aborts its own fetch at 180s
+    // (shared/providers/openrouterImage.mjs), so `batchWork` cannot hang on that lane.
+    // Local rendering has no socket to abort, so the bound has to live out here.
     const settled = lane === 'local'
       ? await Promise.race([syncWatchdog(deps.watchdogMs), batchWork])
       : await batchWork;
@@ -291,8 +278,12 @@ export async function composeStills(req = {}, deps = {}) {
   });
   return result;
   } catch (err) {
+    // RELEASE FIRST. This used to run after the two lines below, and a reviewer pointed
+    // out that fallible work sitting in front of a resource release is how a card leaks:
+    // if anything here threw, the release simply never happened and the masking error
+    // replaced the original. Nothing about giving the GPU back depends on the store.
+    releaseWhenSettled(reservation, inFlightWork, deps.releaseGraceMs);
     if (settle) { store.delete(key); settle.rej(err); }
-    releaseWhenSettled(reservation, inFlightWork, deps.watchdogMs);
     throw err;
   }
 }

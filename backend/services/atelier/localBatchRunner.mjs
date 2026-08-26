@@ -112,8 +112,71 @@ export async function runLocalBatch({ batch, req, brief, count, key, promptSourc
   } catch (err) {
     aborted.now = true;
     batches.finishBatch(batch, { error: err });
-    releaseWhenSettled(reservation, inFlight, watchdogMs);
+    releaseWhenSettled(reservation, inFlight, deps.releaseGraceMs);
   } finally {
     if (timer) clearTimeout(timer);
   }
+}
+
+/**
+ * Start a local batch and answer at once.
+ *
+ * Extracted from composeStills at the 300-line cap, and it belongs here: this is the
+ * function that starts the runner below it, and the two disagree-by-drift only if they
+ * live apart. Everything money-related has already happened — the caller has committed
+ * the cost before calling this, and nothing in here may refuse.
+ */
+export function startLocalBatch({ req, brief, count, key, promptSource, lawProfile, kit, cost, lane,
+                                  admission, clampedFrom, reservation, batches, store, settle,
+                                  brandKitView, slimForReplay, rememberKey, settledKeys,
+                                  renderStill, withGpu, env, tasteDeps, compiler, persist,
+                                  watchdogMs, releaseGraceMs }) {
+  // The collaborators arrive ALREADY RESOLVED, rather than being re-destructured from a
+  // raw deps bag here. composeStills applies the defaults (`renderStill = local.renderStill`,
+  // `env = process.env`, and so on); resolving them a second time in this function made
+  // every unset one `undefined` and failed nine tests the moment it was extracted. Two
+  // places deciding one fact is the exact drift this file keeps warning about — so there
+  // is one place, and it is the caller.
+    const batch = batches.createBatch({ userId: req.userId, lane, count, key, promptSource, model: cost.model });
+    const accepted = { accepted: true, batchId: batch.id, lane, promptSource, status: 'queued', count, cost: { ...cost, chargedUsd: 0 }, brandKit: brandKitView(kit),
+      key, admission, statusUrl: `/api/atelier/compose/stills/${batch.id}`, replayed: false,
+      // The synchronous path reports this and the async path did not, so a client whose
+      // count was silently reduced had no way to know on the lane that reduces it most.
+      ...(clampedFrom === undefined ? {} : { clampedFrom }) };
+    settle.res(accepted);
+    runLocalBatch({ batch, req, brief, count, key, promptSource,
+      // The KIT's profile, not the merged one — the same correction the synchronous path
+      // received two rounds ago and this one did not. Sixth time a fix has landed on one
+      // half of a pair in this review; the async lane is where taste actually RUNS, so
+      // fixing only the sync half fixed the path taste almost never takes.
+      lawProfile, kit, model: cost.model, reservation,
+      // The kit travels as ONE parameter, not as a parameter AND a deps field. Two
+      // channels for one fact is how the sync and async halves drifted apart in the first
+      // place: whichever one a later change updates, the other keeps its old value and
+      // nothing disagrees loudly enough to notice.
+      deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, ...(watchdogMs ? { watchdogMs } : {}),
+        ...(releaseGraceMs ? { releaseGraceMs } : {}) } })
+      // WHICH key it is decides what happens here, and for one round it did not.
+      //
+      // A DERIVED key is evicted: it carries a time bucket, so a later identical request
+      // derives a different key anyway, and holding this one would return a stale batch to
+      // someone deliberately re-rendering the same composition.
+      //
+      // A CLIENT key is RETAINED, for exactly the reason the hosted path retains its own:
+      // the client said "this is the same request". Evicting it means a client whose
+      // connection dropped before the 202 arrived retries and gets a SECOND batch — a
+      // second GPU run and a second bite of the run cap, against a key whose whole purpose
+      // is to promise that cannot happen. The stub is the right thing to hand back: it
+      // carries the batchId and statusUrl, so the retry is told where its work already is.
+      //
+      // Ninth time in this review a rule landed on one half of a pair — and this pair is
+      // client-keyed/derived, which composeGuards already models with two eviction classes.
+      // The async lane was simply not using the mechanism built for it.
+      .finally(() => {
+        if (!req.idempotencyKey) { store.delete(key); return; }
+        store.set(key, Promise.resolve(slimForReplay(accepted)));
+        rememberKey(store, key, settledKeys, { clientKeyed: true, carriesBytes: false });
+      })
+      .catch(() => { /* recorded on the batch; never an unhandled rejection */ });
+    return accepted;
 }
