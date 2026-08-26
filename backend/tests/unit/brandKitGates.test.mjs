@@ -238,3 +238,32 @@ describe('the LOCAL lane gets the brand kit too — it is the lane that matters'
     expect(compiled[0].slotOverrides.negative).toBe('watermark, text artifacts');
   });
 });
+
+describe('the two law profiles are not interchangeable', () => {
+  it('an override relaxes the COMPILER on the local lane but never the taste judging', async () => {
+    // They arrived as one parameter, so the async lane judged taste correctly and then
+    // dropped the WRONG laws in the compiler. Defect #8 of the same shape, and the first
+    // where the two halves of a pair were one variable rather than two files.
+    _resetSingleFlight(); _resetBatches();
+    const compiled = [];
+    const out = await composeStills({
+      brief: BRIEF, lane: 'local', count: 1, userId: 1,
+      brandKit: 'swanstudios', lawProfile: 'universal',      // explicit override
+    }, {
+      env: { SWAN_ATELIER_LOCAL_STILLS: 'probed', SWAN_ATELIER_STILL_WORKFLOW: '/g/s.json', SWAN_ATELIER_STILL_NODE_PROMPT: '6', SWAN_VIDEO_PROVIDERS_ENABLED: 'comfyui/wan-2.2' },
+      localVerify: () => ({ ok: true, provider: 'comfyui/wan-2.2', problems: [], status: 'probed' }),
+      admit: async () => ({ host: 'h', freeMb: 30000, neededMb: 26000 }),
+      compiler: (brief) => { compiled.push(brief); return { promptText: `${brief.text} [compiled]` }; },
+      renderStill: async ({ seed }) => ({ image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 1, provider: 'comfyui/wan-2.2' }),
+      persist: async ({ stills }) => { stills.forEach((x) => Object.assign(x, { assetId: 'a1', persist: { ok: true } })); return { ok: true, persisted: 1, total: 1 }; },
+      store: new Map(), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 0, disabled: true },
+      commit: () => ({ allowed: true }),
+    });
+    const t0 = Date.now();
+    while (!getBatch(out.batchId, 1).terminal && Date.now() - t0 < 2000) await new Promise((r) => setTimeout(r, 10));
+    // The caller asked for universal, so the COMPILER drops the Swan laws...
+    expect(compiled[0].lawProfileDrop).toContain('LAW4-optics-not-creatures');
+    // ...and the kit is still SwanStudios, so its language is still applied.
+    expect(compiled[0].text).toMatch(/midnight sapphire/);
+  });
+});

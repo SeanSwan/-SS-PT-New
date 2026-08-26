@@ -170,3 +170,30 @@ describe('what the panel found', () => {
     expect(getBatch(out.batchId, 1)).toBeNull();
   });
 });
+
+describe('an abandoned batch stops touching the GPU', () => {
+  it('the render loop STOPS when the watchdog fires, instead of running on a released card', async () => {
+    // Promise.race ends the WAIT, never the WORK. Before this, the watchdog fired, the
+    // catch released the reservation, a new batch could be admitted — and the abandoned
+    // loop was still rendering on the same card, with single-flight believing it was
+    // guarding them. The loop now observes the abort.
+    let rendered = 0;
+    const d = deps({
+      watchdogMs: 40,
+      renderStill: async ({ seed }) => {
+        rendered += 1;
+        await sleep(30);
+        return { image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 1, provider: 'comfyui/wan-2.2' };
+      },
+    });
+    const out = await composeStills({ brief: BRIEF, lane: 'local', count: 8, userId: 1 }, d);
+    await until(() => getBatch(out.batchId, 1).terminal, 3000);
+    expect(getBatch(out.batchId, 1).error.code).toBe('E_BATCH_TIMEOUT');
+
+    const atAbort = rendered;
+    await sleep(200);                       // long enough for the remaining frames to run
+    // It stopped where it was told to, rather than working through all eight.
+    expect(rendered).toBe(atAbort);
+    expect(rendered).toBeLessThan(8);
+  });
+});

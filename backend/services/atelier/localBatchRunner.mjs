@@ -26,18 +26,35 @@ import * as local from './localStillLane.mjs';
  */
 export const BATCH_WATCHDOG_MS = 20 * 60 * 1000;
 
-export async function runLocalBatch({ batch, req, brief, count, key, promptSource, lawProfile, kit, model, reservation, deps }) {
+/**
+ * TWO PROFILES, NOT ONE, AND THEY ARE NOT INTERCHANGEABLE.
+ *
+ *   judgeProfile — the KIT's own laws. What the taste corpus is judged by, and no request
+ *                  parameter may move it: the corpus is Swan-rated, and an override that
+ *                  relaxed the laws guarding it would reopen the brand-scope leak.
+ *   lawProfile   — the MERGED profile, after an explicit caller override has won. What the
+ *                  COMPILER drops, because relaxing the compiler is a legitimate thing to
+ *                  ask for.
+ *
+ * They arrived as a single parameter, so this lane judged taste correctly and then dropped
+ * the wrong laws in the compiler — the eighth defect of the same shape, and the first one
+ * where the two halves of a pair were the same variable rather than two files.
+ */
+export async function runLocalBatch({ batch, req, brief, count, key, promptSource, lawProfile, judgeProfile, kit, model, reservation, deps }) {
   const { renderStill, withGpu, env, tasteDeps, compiler, persist, watchdogMs = BATCH_WATCHDOG_MS } = deps;
   let timer = null;
+  // Observed by the render loop, so an ABANDONED batch stops touching the GPU. A promise
+  // race ends the WAIT, never the WORK — and the work is what owns the hardware.
+  const aborted = { now: false };
   const watchdog = new Promise((_, rej) => {
-    timer = setTimeout(() => rej(Object.assign(new Error(`The batch did not finish within ${Math.round(watchdogMs / 60000)} minutes and was abandoned; the GPU is free again.`), { code: 'E_BATCH_TIMEOUT' })), watchdogMs);
+    timer = setTimeout(() => { aborted.now = true; rej(Object.assign(new Error(`The batch did not finish within ${Math.round(watchdogMs / 60000)} minutes and was abandoned; the GPU is free again.`), { code: 'E_BATCH_TIMEOUT' })); }, watchdogMs);
     if (typeof timer.unref === 'function') timer.unref();
   });
   try {
     batches.markRunning(batch);
     let prompts;
     if (promptSource === 'taste') {
-      const t = await promptsFromTaste({ count, aspect: brief.aspect || req.aspect, seed: seedFor(key, 0), cinematic: !!req.cinematic, mode: req.mode, lawProfile }, { env, ...tasteDeps });
+      const t = await promptsFromTaste({ count, aspect: brief.aspect || req.aspect, seed: seedFor(key, 0), cinematic: !!req.cinematic, mode: req.mode, lawProfile: judgeProfile }, { env, ...tasteDeps });
       prompts = t.prompts;
     } else {
       // THE BRAND KIT AND THE LAW DROP, which this branch did not apply at all.
@@ -62,6 +79,10 @@ export async function runLocalBatch({ batch, req, brief, count, key, promptSourc
     }
     await Promise.race([watchdog, withGpu(async () => {
       for (let i = 0; i < prompts.length; i += 1) {
+        // The race did not cancel this loop; only this check does. Without it the catch
+        // releases the reservation, a NEW batch is admitted, and two batches render on
+        // one card while single-flight believes it is guarding them.
+        if (aborted.now) break;
         const p = prompts[i];
         if (!p.ok) { batches.pushFailure(batch, { index: i, code: p.code, message: p.message }); continue; }
         const seed = Number.isInteger(req.seed) ? req.seed + i : seedFor(key, i);

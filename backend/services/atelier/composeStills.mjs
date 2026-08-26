@@ -201,7 +201,7 @@ export async function composeStills(req = {}, deps = {}) {
       // received two rounds ago and this one did not. Sixth time a fix has landed on one
       // half of a pair in this review; the async lane is where taste actually RUNS, so
       // fixing only the sync half fixed the path taste almost never takes.
-      lawProfile: kit.lawProfileFromKit, kit, model: cost.model, reservation,
+      lawProfile, judgeProfile: kit.lawProfileFromKit, kit, model: cost.model, reservation,
       // The kit travels as ONE parameter, not as a parameter AND a deps field. Two
       // channels for one fact is how the sync and async halves drifted apart in the first
       // place: whichever one a later change updates, the other keeps its old value and
