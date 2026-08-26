@@ -242,8 +242,20 @@ def _downscale(master, n):
         im = im.resize((im.width // 2, im.height // 2), Image.LANCZOS)
     im = im.resize((n, n), Image.LANCZOS)
     if n <= 48:
-        amount = 190 if n <= 24 else 140
-        im = im.filter(ImageFilter.UnsharpMask(radius=0.7, percent=amount, threshold=1))
+        # Sharpen RGB ONLY, never alpha. UnsharpMask applies to every band it is given, and
+        # sharpening the alpha channel puts over/undershoot ringing on the mask edge - a pale
+        # fringe around the plate's rounded corners. It is invisible on a grey contact sheet and
+        # obvious on a light wallpaper, which is exactly where the icon actually lives.
+        # (GLM 5.3 A5 + GLM 5.3 Flash #7, 2026-08-26, independently.)
+        #
+        # Amounts were 190/140. At 16px the neck is under a pixel wide, and 190% on a sub-pixel
+        # stroke is a halo generator rather than a detail enhancer - it sharpens the antialiasing,
+        # not the shape. Backed off well under the point where ringing shows.
+        amount = 100 if n <= 24 else 125
+        rgb, alpha = im.convert("RGB"), im.getchannel("A")
+        rgb = rgb.filter(ImageFilter.UnsharpMask(radius=0.7, percent=amount, threshold=2))
+        im = rgb.convert("RGBA")
+        im.putalpha(alpha)
     return im
 
 
@@ -273,14 +285,39 @@ def load_png(path):
 
 
 def contact_sheet(master, path):
-    """Every ico size rendered side by side on a neutral grey, so 16px is judged not assumed."""
-    pad, sheet_h = 16, 300
-    total = sum(n + pad for n in ICO_SIZES) + pad
-    sheet = Image.new("RGBA", (total, sheet_h), (128, 128, 128, 255))
-    x = pad
-    for n in ICO_SIZES:
-        sheet.alpha_composite(_downscale(master, n), (x, (sheet_h - n) // 2))
-        x += n + pad
+    """
+    Every ico size, on THREE grounds: near-black, near-white, and a checkerboard.
+
+    The first version of this used a single mid-grey. That is blind to the exact defect it exists
+    to catch: a pale halo from over-sharpening reads as nothing on grey, disappears entirely on
+    white, and is only obvious on dark - while a dark fringe is the reverse. A checkerboard row
+    catches alpha problems neither flat ground shows. Both review seats independently pointed out
+    that judging an icon on one mid-tone is judging it in the one condition it will never be in.
+    """
+    pad = 16
+    rows = 3
+    band = max(ICO_SIZES) + pad * 2
+    total_w = sum(n + pad for n in ICO_SIZES) + pad
+    sheet = Image.new("RGBA", (total_w, band * rows), (0, 0, 0, 255))
+
+    # row 0 near-black, row 1 near-white, row 2 checkerboard
+    dark = Image.new("RGBA", (total_w, band), (18, 18, 20, 255))
+    light = Image.new("RGBA", (total_w, band), (238, 238, 238, 255))
+    check = Image.new("RGBA", (total_w, band), (255, 255, 255, 255))
+    cd = ImageDraw.Draw(check)
+    c = 8
+    for yy in range(0, band, c):
+        for xx in range(0, total_w, c):
+            if (xx // c + yy // c) % 2:
+                cd.rectangle([xx, yy, xx + c - 1, yy + c - 1], fill=(200, 200, 200, 255))
+
+    for i, ground in enumerate((dark, light, check)):
+        sheet.alpha_composite(ground, (0, band * i))
+        x = pad
+        for n in ICO_SIZES:
+            sheet.alpha_composite(_downscale(master, n), (x, band * i + (band - n) // 2))
+            x += n + pad
+
     sheet.convert("RGB").save(path)
     return path
 
