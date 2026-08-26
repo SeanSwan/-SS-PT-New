@@ -13,22 +13,26 @@
  * is a hook and not a paragraph.
  *
  * WHAT IT BLOCKS
- * A staged markdown file under docs/ or .ai-workflow/ whose ADDED lines contain
- * BOTH:
+ * Detection is FILE-SCOPED. A staged markdown file under docs/ or .ai-workflow/
+ * is blocked when its ADDED lines contain, ANYWHERE in the file:
  *   (a) an absence/negation claim ("does not exist", "hallucinated", "no such",
  *       "is fiction", "not present", "nowhere in the repo", "returned nothing"), and
- *   (b) a truncating instrument on a nearby line (| head, | tail, sed -n '1,N p',
- *       grep -m N, --max-count, LIMIT n, head_limit, first page)
+ *   (b) a truncating instrument (| head, | tail, sed -n '1,N p', grep -m N,
+ *       --max-count, LIMIT n, head_limit, first page, .slice(0,N))
  *
- * ...unless the same window also carries a DENOMINATOR — a stated total
- * ("N of M", "enumerated N", "count:", "exit 1", "catalog-check") proving the
- * scan was complete.
+ * ...unless the added lines ALSO carry a DENOMINATOR — a stated total ("N of M",
+ * "enumerated N", "count:", "exit 1", "catalog-check") proving the scan was complete.
+ *
+ * File-scoped, not window-scoped: dry-loop round 1 (2026-08-25) proved a ±6-line
+ * window misses a claim 10 lines from its evidence row, and in a real review packet
+ * the claim and its evidence sit in different table columns. The cost is asymmetric —
+ * a false negative poisons paid reviewers, a false positive costs one EVIDENCE-OK line.
  *
  * The class is TRUNCATING INSTRUMENTS, not `head` specifically (GLM 5.3, P0
  * review, 2026-08-25 — the builder's first framing under-generalized).
  *
- * ESCAPE HATCH: put `EVIDENCE-OK: <reason>` on a line inside the window. It is
- * deliberately noisy so it shows up in review.
+ * ESCAPE HATCH: put `EVIDENCE-OK: <reason>` anywhere in the file's added lines.
+ * It is deliberately noisy so it shows up in review.
  *
  * Fail-open on its own errors: a guard that breaks commits when IT is broken
  * gets disabled, and a disabled guard protects nothing.
@@ -39,7 +43,7 @@ const ABSENCE = /(does not exist|doesn't exist|do not exist|hallucinat|no such (
 const TRUNCATING = /(\|\s*head\b|\|\s*tail\b|head\s+-\d|tail\s+-\d|sed\s+-n\s*['"]?\d+,\d+p|grep\s+-m\s*\d|--max-count|\bLIMIT\s+\d|head_limit|first\s+page|\.slice\(0,\s*\d+\))/i;
 const DENOMINATOR = /(\d+\s+of\s+\d+|enumerated\s+\d+|\bcount:\s*\d+|grep\s+-c\b|exit\s+(code\s+)?1\b|catalog-check|COMPLETE LIST|denominator)/i;
 const ESCAPE = /EVIDENCE-OK:/;
-const WINDOW = 6; // lines either side
+const WINDOW = 6; // diff CONTEXT only; detection is FILE-scoped (see loop)
 
 let staged = [];
 try {
@@ -70,20 +74,25 @@ for (const file of staged) {
 
   const addedLines = added.filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1));
 
-  for (let i = 0; i < addedLines.length; i += 1) {
-    const line = addedLines[i];
-    if (!ABSENCE.test(line)) continue;
+  // FILE-SCOPED, not window-scoped. Dry-loop round 1 (2026-08-25) proved a ±6-line
+  // window MISSES a claim sitting 10 lines from its evidence row — and in a real review
+  // packet the claim and its evidence cell are routinely far apart (the incident packet's
+  // own G8 row had them in different table columns). The cost is asymmetric: a false
+  // negative poisons paid reviewers, which is the exact incident this guard exists for;
+  // a false positive costs one EVIDENCE-OK line. So if a file's ADDED lines contain an
+  // absence claim anywhere AND a truncating instrument anywhere AND no denominator
+  // anywhere, flag the file.
+  const blob = addedLines.join('\n');
+  if (ESCAPE.test(blob)) continue;
+  if (!ABSENCE.test(blob)) continue;
+  if (!TRUNCATING.test(blob)) continue;
+  if (DENOMINATOR.test(blob)) continue;
 
-    const lo = Math.max(0, i - WINDOW);
-    const hi = Math.min(addedLines.length, i + WINDOW + 1);
-    const window = addedLines.slice(lo, hi).join('\n');
-
-    if (ESCAPE.test(window)) continue;
-    if (!TRUNCATING.test(window)) continue;
-    if (DENOMINATOR.test(window)) continue;
-
-    findings.push({ file, line: line.trim().slice(0, 160) });
-  }
+  findings.push({
+    file,
+    line: (addedLines.find((l) => ABSENCE.test(l)) || '').trim().slice(0, 160),
+    instrument: (addedLines.find((l) => TRUNCATING.test(l)) || '').trim().slice(0, 160),
+  });
 }
 
 if (findings.length === 0) {
@@ -94,7 +103,7 @@ if (findings.length === 0) {
 console.error('');
 console.error('[truncated-evidence-guard] BLOCKED — an absence claim sits next to a truncating instrument with no denominator.');
 console.error('');
-for (const f of findings) console.error(`  ${f.file}\n    ${f.line}`);
+for (const f of findings) console.error(`  ${f.file}\n    claim:      ${f.line}\n    instrument: ${f.instrument}`);
 console.error('');
 console.error('  A capped command cannot prove absence. On 2026-08-25 a `| head -8` grep over an 18-entry');
 console.error('  catalog produced a false "does not exist", which five paid reviewers then built on.');

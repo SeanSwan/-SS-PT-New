@@ -96,6 +96,15 @@ if (ids.size === 0) {
 
 const sorted = [...ids].sort();
 console.log(`[catalog-check] ${catalogPath}`);
+if (/[.]md$/i.test(catalogPath)) {
+  // Dry-loop round 1 (2026-08-25): a .md scan is a SUPERSET. worlds.md yields 21 dotted
+  // tokens vs the 18 real world ids -- it also catches design.md, world-roulette.v1, and a
+  // catalog version string. Over-inclusion is SAFE for absence claims (it makes them harder
+  // to assert) and UNSAFE for presence claims. Say so rather than imply precision.
+  console.log('[catalog-check] NOTE: .md scan is a SUPERSET of the real catalog (prose ids included).');
+  console.log('[catalog-check]       ABSENT here is strong. PRESENT here is weak -- confirm exact');
+  console.log('[catalog-check]       membership against the frozen list (e.g. the *-catalog-validation.mjs).');
+}
 console.log(`[catalog-check] enumerated ${sorted.length} id(s) — COMPLETE LIST, NOT TRUNCATED:`);
 for (const id of sorted) console.log(`  ${id}`);
 
