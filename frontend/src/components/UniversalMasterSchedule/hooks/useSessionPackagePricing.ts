@@ -16,6 +16,12 @@ interface SessionPackagePricingState {
   packageName: string | null;
   defaultFullCharge: number;
   defaultLateFee: number;
+  /**
+   * True whenever the numeric defaults above are NOT derived from this client's
+   * package. Consumers must gate every package-derived charge affordance on this
+   * flag - the fallback figures are placeholders, not this client's real prices.
+   */
+  pricingUnavailable: boolean;
 }
 
 const createDefaultPricingState = (): SessionPackagePricingState => ({
@@ -23,6 +29,7 @@ const createDefaultPricingState = (): SessionPackagePricingState => ({
   packageName: null,
   defaultFullCharge: DEFAULT_FULL_CHARGE,
   defaultLateFee: DEFAULT_LATE_FEE,
+  pricingUnavailable: true,
 });
 
 export const useSessionPackagePricing = ({
@@ -54,7 +61,11 @@ export const useSessionPackagePricing = ({
           return;
         }
 
-        if (result.success && result.data) {
+        // isFallback is the server telling us it could NOT find this client's
+        // package and is returning its own hardcoded figure. A 200 carrying a
+        // placeholder is not pricing data - treating it as such is how the
+        // original defect reached the panel in the first place.
+        if (result.success && result.data && result.data.isFallback !== true) {
           const data = result.data;
           const fullCharge = data.pricePerSession || data.defaultChargeAmount || DEFAULT_FULL_CHARGE;
           const lateFee = data.lateFeeAmount || Math.round(fullCharge * 0.5);
@@ -64,6 +75,7 @@ export const useSessionPackagePricing = ({
             packageName: data.packageName ?? null,
             defaultFullCharge: fullCharge,
             defaultLateFee: lateFee,
+            pricingUnavailable: false,
           });
           return;
         }

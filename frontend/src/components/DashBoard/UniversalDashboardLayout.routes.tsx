@@ -84,6 +84,7 @@ import {
   WorkoutLogger,
   WorkoutPlannerPage,
   WorkoutDesignLabPage,
+  AdminPricingSheet,
 } from './UniversalDashboardLayout.routeComponents';
 
 export interface DashboardRouteDefinition {
@@ -124,6 +125,7 @@ export const roleConfigurations: Record<DashboardRoleKey, RoleConfig> = {
       { path: '/notes/:clientId?', component: NotesManager, title: 'Client Notes Manager', description: 'Manage trainer notes and observations' },
       { path: '/photos/:clientId?', component: PhotoManager, title: 'Client Photo Manager', description: 'Upload and organize progress photos' },
       { path: '/gallery', component: AdminGalleryStudio, title: 'Photo Gallery Studio', description: 'Passcode photoshoot galleries — create events and batch-upload client shoots' },
+      { path: '/pricing-sheet', component: AdminPricingSheet, title: 'Pricing Sheet', description: 'Printable flat-rate pricing sheet for client handoffs' },
       { path: '/automation', component: AutomationManager, title: 'Automation Manager', description: 'Manage automated client outreach sequences' },
       { path: '/sms-logs', component: SMSLogsPanel, title: 'SMS Logs', description: 'Monitor outbound SMS delivery' },
       { path: '/unified-onboarding', component: UnifiedOnboardingWizard, title: 'Unified Onboarding', description: 'Complete data collection for all user types' },

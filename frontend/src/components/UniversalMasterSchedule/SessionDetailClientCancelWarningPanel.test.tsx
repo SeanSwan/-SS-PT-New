@@ -32,7 +32,7 @@ describe('SessionDetailClientCancelWarningPanel', () => {
     );
 
     expect(screen.getByText('Late Cancellation Warning')).toBeInTheDocument();
-    expect(screen.getByText('$88')).toBeInTheDocument();
+    expect(screen.getByText('$88.00')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/cancellation reason/i), {
       target: { value: 'Client is sick' },
