@@ -58,9 +58,7 @@ try:
 except ImportError:  # allows --dry-run linting outside Blender
     IN_BLENDER = False
 
-
 SMOOTH_ANGLE = 0.6109  # ~35 degrees
-
 
 def run_in_blender(args, out_dir, done):
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -234,7 +232,6 @@ def run_in_blender(args, out_dir, done):
     print(f"[swan_pipe] base triangles: {base_tris}")
     return base_tris
 
-
 def main():
     args = parse_args(sys.argv)
     out_dir = out_dir_for(args)
@@ -282,7 +279,6 @@ def main():
     path = os.path.join(out_dir, os.path.basename(path))
     print(f"[swan_pipe] manifest stub -> {path}")
     print("[swan_pipe] NOW: fill provenance by hand, hash the GLBs, then validate.")
-
 
 if __name__ == "__main__":
     # Blender exits 0 when a --python script raises (run 4, 2026-08-25: a NameError traceback
