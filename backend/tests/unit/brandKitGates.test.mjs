@@ -131,3 +131,16 @@ describe('a replay is not refused by a cap it already paid into', () => {
     expect(seen).toHaveLength(0);
   });
 });
+
+describe('a price preview is free of the caps it will not consume', () => {
+  it('estimates at the run cap instead of refusing', async () => {
+    // An estimate consumes no run, so no run cap applies to it. Refusing a preview at the
+    // cap hides the price exactly when an operator most needs to see it — the same mistake
+    // as the estimate that used to reserve the GPU, in the gate next door.
+    const { seen, deps } = capturingDeps({ usage: { runs: 50, spendUsd: 0 }, limits: { maxRunsDaily: 50, maxSpendUsdDaily: 5, disabled: false } });
+    const out = await composeStills({ brief: BRIEF, lane: 'hosted', count: 4, userId: 1, estimateOnly: true }, deps);
+    expect(out.estimateOnly).toBe(true);
+    expect(out.cost.totalUsd).toBeGreaterThan(0);
+    expect(seen).toHaveLength(0);
+  });
+});

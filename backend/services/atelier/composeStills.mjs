@@ -118,7 +118,7 @@ export async function composeStills(req = {}, deps = {}) {
   assertKeyHasOwner(req);
   const key = req.idempotencyKey
     ? `u${req.userId}:${sha(String(req.idempotencyKey)).slice(0, 32)}`
-    : deriveKey({ ...req, brief, promptSource, lane: req.lane || 'auto', model, count }, now);
+    : deriveKey({ ...req, brief, promptSource, lane: req.lane || 'auto', model, count, brandKit: kit.brandKit, lawProfile }, now);
   if (!req.estimateOnly && store.has(key)) return { ...(await store.get(key)), replayed: true };
 
   // GATE 2 — volume cap, AFTER the replay probe above. It used to run first, and a
@@ -128,7 +128,10 @@ export async function composeStills(req = {}, deps = {}) {
   // defending headroom that request already consumed. A replay costs no GPU and no money,
   // so nothing it could breach applies to it.
   const runs = Number(usage.runs) || 0;
-  if (runs + count > limits.maxRunsDaily) {
+  // An ESTIMATE consumes no run, so no run cap applies to it. Refusing a price preview at
+  // the cap hides the price exactly when an operator most needs to see it — the same
+  // mistake as the estimate that used to reserve the GPU, in the gate next door.
+  if (!req.estimateOnly && runs + count > limits.maxRunsDaily) {
     throw new ComposeError('E_RUN_CAP', `This batch of ${count} would pass the daily run cap (${runs}/${limits.maxRunsDaily}). Raise ${RUNS_ENV_KEY}.`);
   }
   // Reserve the key SYNCHRONOUSLY, before the first await below: two concurrent identical

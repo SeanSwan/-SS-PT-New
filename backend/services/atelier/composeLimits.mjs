@@ -130,7 +130,7 @@ export function seedFor(key, index) {
   return parseInt(sha(`${key}:${index}`).slice(0, 8), 16);
 }
 
-export function deriveKey({ brief, promptSource, lane, model, count, seed, workspaceId, userId }, now) {
+export function deriveKey({ brief, promptSource, lane, model, count, seed, workspaceId, userId, brandKit, lawProfile, cinematic, mode }, now) {
   const bucket = Math.floor(now / DERIVED_KEY_BUCKET_MS);
   // AN OWNERLESS REQUEST COALESCES WITH NOBODY. The owner is part of the hash, so two
   // ANONYMOUS callers making the identical request in the same bucket derived the identical
@@ -143,5 +143,12 @@ export function deriveKey({ brief, promptSource, lane, model, count, seed, works
     u: userId ?? null, w: workspaceId ?? null, ps: promptSource ?? 'brief', ln: lane ?? 'auto',
     model, count, b: brief?.text ?? '', i: brief?.intent ?? '', a: brief?.aspect ?? '',
     f: brief?.facets ?? [], s: seed ?? null, bucket, solo,
+    // EVERY FIELD THAT CHANGES THE OUTPUT BELONGS IN THE IDENTITY. These four did not,
+    // and brandKit is the one that mattered: it was added a slice later and nobody came
+    // back to the key, so the SAME brief under swanstudios and under universal derived
+    // the SAME key — and the second request silently received the first one's
+    // differently-branded images. A coalescing key that ignores an input is not an
+    // identity, it is a collision waiting for someone to change a dropdown.
+    bk: brandKit ?? null, lp: lawProfile ?? null, cn: cinematic ? 1 : 0, md: mode ?? null,
   })).slice(0, 40);
 }

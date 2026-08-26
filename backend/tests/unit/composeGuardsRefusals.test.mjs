@@ -252,3 +252,32 @@ describe('an ownerless request coalesces with nobody', () => {
     expect(deriveKey(req, now)).not.toBe(deriveKey({ ...req, userId: 8 }, now));
   });
 });
+
+describe('the coalescing identity must include everything that changes the output', () => {
+  it('brandKit, lawProfile, cinematic and mode all change the key', async () => {
+    // brandKit is the one that mattered: it arrived a slice after the key was written and
+    // nobody came back, so the SAME brief under swanstudios and under universal derived
+    // the SAME key — and the second request silently received the first's
+    // differently-branded images. A key that ignores an input is not an identity.
+    const { deriveKey } = await import('../../services/atelier/composeLimits.mjs');
+    const base = { brief: { text: 'a glacier' }, promptSource: 'brief', lane: 'hosted', model: 'm', count: 1, userId: 7 };
+    const now = Date.now();
+    const pairs = [
+      ['brandKit', { brandKit: 'swanstudios' }, { brandKit: 'universal' }],
+      ['lawProfile', { lawProfile: 'full' }, { lawProfile: 'universal' }],
+      ['cinematic', { cinematic: true }, { cinematic: false }],
+      ['mode', { mode: 'a' }, { mode: 'b' }],
+    ];
+    for (const [label, a, b] of pairs) {
+      expect(deriveKey({ ...base, ...a }, now), `${label} did not change the key`)
+        .not.toBe(deriveKey({ ...base, ...b }, now));
+    }
+  });
+
+  it('and an identical request still coalesces with itself', async () => {
+    const { deriveKey } = await import('../../services/atelier/composeLimits.mjs');
+    const req = { brief: { text: 'a glacier' }, promptSource: 'brief', lane: 'hosted', model: 'm', count: 1, userId: 7, brandKit: 'swanstudios' };
+    const now = Date.now();
+    expect(deriveKey(req, now)).toBe(deriveKey(req, now));
+  });
+});
