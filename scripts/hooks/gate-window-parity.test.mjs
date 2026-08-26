@@ -30,7 +30,10 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const GATES = ['dry-loop-gate', 'dual-tier-gate', 'hermes-closeout-gate', 'linear-sync-gate'];
+// dry-loop-gate was DELETED 2026-08-26: it fired on 74 of 157 turns (47%). GLM 5.3:
+// 'no data rescues a smoke alarm that fires at dinner.' Removed from parity coverage
+// because the gate no longer exists, not because parity stopped mattering.
+const GATES = ['dual-tier-gate', 'hermes-closeout-gate', 'linear-sync-gate'];
 
 // Every gate carrying the inline predicate, closeout gate or not. privacy-boundary-gate
 // (slice 2) windows the turn the same way to find the artifacts it must scan, so it
@@ -124,7 +127,8 @@ test('THE BUG: a build-shaped turn stays visible after its own feedback lands', 
     '## Technical',
     'DRY-LOOP: CLEAN×2 (rounds: 7)',
     'LINEAR: SWA-70',
-    // dry-loop-gate demands the marker AND a literal PROOF token (rule 73).
+    // The PROOF token is still required by the closeout discipline itself (rule 73),
+    // independent of any one gate.
     'PROOF: node --test 189/189 pass, node --check clean — run this session.',
   ].join('\n');
 
@@ -153,7 +157,6 @@ test('THE BUG: a build-shaped turn stays visible after its own feedback lands', 
   // Each gate names its "I can see the closeout" signal differently — assert the
   // real one per gate rather than a signal that only some of them have.
   const CLOSEOUT_SIGNAL = {
-    'dry-loop-gate': (s) => s.markerSeen && s.proofSeen,
     'dual-tier-gate': (s) => s.plainSeen && s.techSeen && s.plainFirst,
     'hermes-closeout-gate': (s) => s.memoEmitted,
     'linear-sync-gate': (s) => s.markerSeen,

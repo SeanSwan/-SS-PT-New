@@ -23,6 +23,7 @@
  * Under-triggering is acceptable (rules 68-69 + closeout-evidence-lock still bind by
  * convention); over-triggering is the failure mode this file exists to kill.
  */
+import { emit } from '../lib/gate-shadow.mjs';
 import { readFileSync } from 'node:fs';
 
 const EMISSION_PATH_RE = /\.ai-workflow[\\/]hermes-inbox[\\/]pending[\\/]|hermes-learning-packets[\\/]/;
@@ -185,7 +186,11 @@ function main() {
   }
   try {
     const reason = decide(hookInput, raw);
-    if (reason) process.stdout.write(JSON.stringify({ decision: 'block', reason }));
+    // Routed through the shadow-mode emitter (2026-08-26).
+    // A failure inside emit() falls back to BLOCKING: it guards every step and its
+    // stdout write is the LAST statement, reached even if the prelude fails. That
+    // matters because the catch below is fail-OPEN.
+    emit('hermes-closeout-gate', reason);
   } catch {
     /* any analysis error -> fail-open */
   }

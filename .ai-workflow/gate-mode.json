@@ -1,0 +1,22 @@
+{
+  "_why": "Shadow mode: these gates still evaluate and still log what they WOULD have blocked, but they do not block. Adopted 2026-08-23; ported to main 2026-08-26 because enforcement had shipped here while the relief stayed on one branch — the worst possible split.",
+  "_expiry_is_the_point": "Past 'until' these gates block again automatically. This repo's defining failure is that nothing is ever retired; an undated shadow window would become another permanent un-retired thing.",
+  "_review_at_expiry": "node scripts/gate-telemetry-report.mjs — any hook with zero would_block:true entries retires on evidence.",
+  "_allowlist_note": "Naming a hook here is NOT sufficient. scripts/lib/gate-shadow.mjs carries a hard SHADOWABLE allowlist; compliance gates (PII egress, spend, secrets, blast-radius) are refused even if listed here.",
+  "shadow": [
+    "dual-tier-gate",
+    "hermes-closeout-gate"
+  ],
+  "until": "2026-09-06T00:00:00Z",
+  "_deleted_note": "dry-loop-gate was DELETED 2026-08-26. It fired on 74 of 157 turns (47%). GLM 5.3: 'no data rescues a smoke alarm that fires at dinner.' Deleted rather than shadowed.",
+  "removal_conditions": {
+    "_rule": "ox-alpha 2026-08-26: every gate, hook or rule lands WITH its written removal condition in the same session it is created. Mechanisms created without exit criteria are the ratchet that produced a 216KB rulebook.",
+    "_kill_threshold": "A shadowed gate whose CLEANED fire rate exceeds 15% of runs at window close is DELETED, not tuned. Pre-registered 2026-08-26, before the data, deliberately.",
+    "dual-tier-gate": "Retire when >15% cleaned fire rate at window close, OR when closeout summaries are produced without it for 30 consecutive substantial turns.",
+    "hermes-closeout-gate": "Retire when >15% cleaned fire rate at window close, OR when the learning corpus shows 30 days of unprompted packets with the gate shadowed.",
+    "egress-privacy-gate": "NEVER auto-retires. Compliance gate. Removal requires Sean explicitly, in writing, with a named replacement control.",
+    "spend-guard-gate": "NEVER auto-retires. Compliance gate. Same condition as above.",
+    "exit-status-gate": "Retire when the corpus shows zero new pipeline-status defects for 90 days. Currently 44 corpus hits and 4 live catches in one task — high precision, keep.",
+    "lane-staged-guard": "Retire when agents no longer share one git index (per-agent worktrees). The guard exists only because of the shared index; fix the cause and the guard is dead weight."
+  }
+}

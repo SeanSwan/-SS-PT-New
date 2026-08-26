@@ -447,6 +447,14 @@ bearer-token.*
 .ai-workflow/*
 !.ai-workflow/continuity/
 !.ai-workflow/coordination/
+# Gate shadow-mode config (2026-08-26) MUST be tracked. It is shared enforcement state:
+# if it lives in one working tree only, every other checkout keeps blocking while this one
+# does not — the split-brain drift-check 8 exists to catch, and which is exactly what this
+# commit is fixing (enforcement shipped to main, relief left on a branch).
+!.ai-workflow/gate-mode.json
+
+# Gate telemetry — per-machine operational data, never shared state.
+.ai-workflow/gate-telemetry.jsonl
 !.ai-workflow/hermes-inbox/
 # swan-gate (SWA-32): task gates stay local; shared gate helpers are tracked
 !.ai-workflow/gates/
