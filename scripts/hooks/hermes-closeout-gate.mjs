@@ -1,4 +1,8 @@
 /**
+ * SUPERSEDED 2026-08-26 — merged into scripts/hooks/closeout-gate.mjs (one closeout gate, one block).
+ * Not registered in .claude/settings.json. Kept one release for its tests; delete in a separate PR.
+ */
+/**
  * hermes-closeout-gate.mjs — deterministic Stop hook for the Hermes closeout gate (rules 68-69).
  *
  * WHY THIS EXISTS (2026-07-11): the first implementation was a prompt-type Stop hook. Live-fire

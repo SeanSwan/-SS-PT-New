@@ -17,7 +17,7 @@
   },
 
   "required_headings": {
-    "_comment": "Matched LITERALLY at line start. hermes-closeout-gate.mjs matches '## Mistakes I made' exactly - a numbered '## 6. Mistakes I made' does NOT match and silently reads as 'nothing went wrong'. That defect shipped 2026-08-13.",
+    "_comment": "Matched LITERALLY at line start. closeout-gate.mjs (formerly hermes-closeout-gate.mjs) matches '## Mistakes I made' exactly - a numbered '## 6. Mistakes I made' does NOT match and silently reads as 'nothing went wrong'. That defect shipped 2026-08-13.",
     "from": "2026-08-13",
     "headings": [
       "## Mistakes I made",

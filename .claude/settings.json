@@ -391,17 +391,7 @@
           },
           {
             "type": "command",
-            "command": "node scripts/hooks/hermes-closeout-gate.mjs",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "node scripts/hooks/linear-sync-gate.mjs",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "node scripts/hooks/dual-tier-gate.mjs",
+            "command": "node scripts/hooks/closeout-gate.mjs",
             "timeout": 30
           },
           {

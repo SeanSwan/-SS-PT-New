@@ -18,5 +18,6 @@
     "spend-guard-gate": "NEVER auto-retires. Compliance gate. Same condition as above.",
     "exit-status-gate": "Retire when the corpus shows zero new pipeline-status defects for 90 days. Currently 44 corpus hits and 4 live catches in one task — high precision, keep.",
     "lane-staged-guard": "Retire when agents no longer share one git index (per-agent worktrees). The guard exists only because of the shared index; fix the cause and the guard is dead weight."
-  }
+  },
+  "_closeout_gate_note": "2026-08-26: hermes-closeout-gate, linear-sync-gate and dual-tier-gate were MERGED into scripts/hooks/closeout-gate.mjs (one Stop hook, one block). The names in \"shadow\" are still honoured PER CHECK by that gate, so this config keeps working unchanged. closeout-gate itself is not shadowable."
 }
