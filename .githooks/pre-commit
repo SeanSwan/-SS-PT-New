@@ -87,7 +87,15 @@ fi
 # ground truth. Cited paths are the cheapest such assertion — first run found five
 # documents that NEVER existed in git, two of them marked MANDATORY.
 CONSTITUTION_REFS="$REPO_ROOT/scripts/hooks/constitution-references.mjs"
-if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md)$'; then
+# TRIGGER DIRECTION (fixed 2026-08-26). This used to fire only when the
+# constitution was staged — it validated the document when the DOCUMENT changed.
+# But a document is invalidated just as often by a change ELSEWHERE: commit
+# 371877268 deleted scripts/hooks/dry-loop-gate.mjs without touching CLAUDE.md,
+# so this check never ran, and Rule 73 went on citing a hook that no longer
+# existed until a model reading transcripts noticed. Any staged DELETION can
+# orphan a citation, so deletions now trigger the check too.
+if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md)$' \
+   || git diff --cached --name-only --diff-filter=D | grep -q .; then
   if [[ -f "$CONSTITUTION_REFS" ]]; then
     echo "[pre-commit] Resolving constitution references..."
     if ! node "$CONSTITUTION_REFS"; then
