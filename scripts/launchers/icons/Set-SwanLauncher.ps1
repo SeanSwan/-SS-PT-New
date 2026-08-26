@@ -41,9 +41,23 @@
 .EXAMPLE
     .\Set-SwanLauncher.ps1 -Cmd "Swan Prompt Studio.cmd" -Png "$HOME\Downloads\swan.png"
 
+.PARAMETER Force
+    Overwrite a .lnk that already exists and points somewhere OTHER than this .cmd. Without it,
+    such a shortcut is left alone and the script exits. See the hostile-review note below.
+
 .NOTES
     Rule 47: read-mostly. The only writes are the .lnk, the .ico, and an icon-cache refresh.
+
+    HOSTILE REVIEW 2026-08-26 (GLM 5.3 + GLM 5.3 Flash, independently, both CONFIRMED):
+    `WScript.Shell.CreateShortcut($path)` on an EXISTING .lnk does not fail and does not start
+    clean - it binds the existing shortcut for editing, and Save() keeps every field you did not
+    set. So running this against a name that collides with a hand-made shortcut would silently
+    repoint it at a batch file while its old Arguments and Hotkey rode along. That is how you end
+    up with a hotkey that used to launch a game now launching a .cmd. Hence: read the existing
+    target first, refuse unless -Force, and on -Force back the original up and recreate it clean
+    rather than editing in place.
 #>
+#requires -Version 5.1
 [CmdletBinding(DefaultParameterSetName = 'Build')]
 param(
     [Parameter(ParameterSetName = 'Build', Mandatory = $true, Position = 0)]
@@ -61,6 +75,9 @@ param(
     [Parameter(ParameterSetName = 'Build')]
     [ValidateSet('ice', 'gold', 'violet', 'frost')]
     [string]$Accent = 'ice',
+
+    [Parameter(ParameterSetName = 'Build')]
+    [switch]$Force,
 
     [Parameter(ParameterSetName = 'List', Mandatory = $true)]
     [switch]$List
@@ -120,7 +137,20 @@ Write-Host "  Launcher : $Cmd"
 if (-not $Icon) {
     if (-not (Test-Path -LiteralPath $IconPy)) { throw "swan_icon.py not found beside this script: $IconPy" }
     New-Item -ItemType Directory -Force -Path $IconDir | Out-Null
-    $Icon = Join-Path $IconDir ((($Name -replace '[^A-Za-z0-9]', '')) + '.ico')
+
+    # Stripping non-alphanumerics is NOT injective: "Swan - Watch" and "Swan Watch" both collapse
+    # to "SwanWatch", and a name with no A-Z at all collapses to nothing at all. Either way the
+    # second launcher silently overwrites the first's icon and BOTH shortcuts then show the same
+    # art with no error anywhere. Both review seats found this independently. A short hash of the
+    # ORIGINAL name restores uniqueness while keeping the filename readable.
+    $stem = $Name -replace '[^A-Za-z0-9]', ''
+    if (-not $stem) { $stem = 'SwanLauncher' }
+    $md5 = [System.Security.Cryptography.MD5]::Create()
+    $hash = [BitConverter]::ToString(
+        $md5.ComputeHash([Text.Encoding]::UTF8.GetBytes($Name))
+    ).Replace('-', '').Substring(0, 6).ToLower()
+    $md5.Dispose()
+    $Icon = Join-Path $IconDir "$stem-$hash.ico"
 
     $py = Get-Command python -ErrorAction SilentlyContinue
     if (-not $py) { throw 'python not on PATH; pass -Icon with a prebuilt .ico instead.' }
@@ -137,14 +167,53 @@ if (-not $Icon) {
     if (-not [System.IO.Path]::IsPathRooted($Icon)) { $Icon = Join-Path $Desktop $Icon }
     if (-not (Test-Path -LiteralPath $Icon)) { throw "No such icon: $Icon" }
     $Icon = (Resolve-Path -LiteralPath $Icon).Path
+    # IconLocation is the positional string "path,index". A comma in the path itself makes that
+    # ambiguous, and commas are legal in folder names - "Doe, John" profiles exist. The generated
+    # path is safe by construction; this only guards the -Icon escape hatch.
+    if ($Icon.Contains(',')) {
+        throw "Icon path contains a comma, which IconLocation cannot express unambiguously: $Icon`nCopy it somewhere without a comma and pass that."
+    }
 }
 
 # --- shortcut ---------------------------------------------------------------------------------
 $LnkPath = Join-Path $Desktop "$Name.lnk"
 $existed = Test-Path -LiteralPath $LnkPath
-
 $sh = New-Object -ComObject WScript.Shell
+
+if ($existed) {
+    # Read what is there BEFORE touching it. CreateShortcut binds an existing shortcut for
+    # editing and Save() preserves every field we do not set - so writing blind would repoint
+    # someone else's shortcut at our .cmd while its Arguments and Hotkey survived.
+    $prior = $sh.CreateShortcut($LnkPath)
+    $priorTarget = $prior.TargetPath
+    if ($priorTarget -and ($priorTarget -ne $Cmd)) {
+        if (-not $Force) {
+            Write-Host ''
+            Write-Host "  REFUSED - a different shortcut already owns that name." -ForegroundColor Red
+            Write-Host "    $LnkPath"
+            Write-Host "    currently points at : $priorTarget"
+            Write-Host "    would be changed to : $Cmd"
+            if ($prior.Arguments)  { Write-Host "    it also carries arguments: $($prior.Arguments)" }
+            if ($prior.Hotkey)     { Write-Host "    it also carries a hotkey : $($prior.Hotkey)" }
+            Write-Host ''
+            Write-Host "  Re-run with -Force to replace it (the original is backed up first)," -ForegroundColor DarkYellow
+            Write-Host "  or pass -Name to write a differently-named shortcut instead." -ForegroundColor DarkYellow
+            Write-Host ''
+            return
+        }
+        # -Force: back up, then DELETE so the new shortcut is built clean rather than inheriting
+        # stale Arguments/Hotkey/WindowStyle from whatever was there.
+        $backup = "$LnkPath.bak-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+        Copy-Item -LiteralPath $LnkPath -Destination $backup -Force
+        Remove-Item -LiteralPath $LnkPath -Force
+        Write-Host "  Replaced a foreign shortcut. Original backed up:" -ForegroundColor DarkYellow
+        Write-Host "    $backup" -ForegroundColor DarkYellow
+    }
+}
+
 $lnk = $sh.CreateShortcut($LnkPath)
+$lnk.Arguments = ''
+$lnk.Hotkey = ''
 $lnk.TargetPath = $Cmd
 $lnk.WorkingDirectory = Split-Path -Parent $Cmd
 $lnk.IconLocation = "$Icon,0"
@@ -161,9 +230,14 @@ Write-Host "  Shortcut : $LnkPath  $(if ($existed) { '(updated)' } else { '(crea
 try {
     Start-Process -FilePath (Join-Path $env:SystemRoot 'system32\ie4uinit.exe') `
         -ArgumentList '-show' -WindowStyle Hidden -ErrorAction Stop
-    Write-Host '  Icon cache refreshed.'
+    # Deliberately NOT phrased as "refreshed". ie4uinit -show returns no success signal and on
+    # Windows 11 flushes only part of the icon cache - it reliably picks up a new .lnk with a new
+    # icon path, and often misses an icon rewritten in place at the same path. Claiming success
+    # here would send the owner rebooting Explorer by trial when the script had simply no-opped.
+    Write-Host '  Icon cache nudged. If the old glyph persists, restart explorer.exe' -ForegroundColor DarkGray
+    Write-Host '  (Task Manager > Windows Explorer > Restart) - that always clears it.' -ForegroundColor DarkGray
 } catch {
-    Write-Host '  ! Could not refresh the icon cache. If the old icon persists, sign out and back in.' -ForegroundColor DarkYellow
+    Write-Host '  ! Icon cache not nudged. If the old icon persists, restart explorer.exe.' -ForegroundColor DarkYellow
 }
 
 Write-Host ''
