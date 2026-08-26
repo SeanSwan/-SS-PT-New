@@ -45,7 +45,8 @@ export function lexStateAt(src, idx) {
   const stack = []; // 'template' | 'interp'
   let state = 'normal'; let quote = '';
   let prev = ''; // last significant char, for the regex-vs-division decision
-  let prevWord = ''; // trailing identifier/keyword, for value-position keywords (return /re/)
+  let prevWord = ''; // last COMPLETE word, for value-position keywords (return /re/)
+  let word = '';     // word currently being accumulated
   for (let i = 0; i < idx; i++) {
     const c = src[i]; const n = src[i + 1];
     if (state === 'normal') {
@@ -53,6 +54,10 @@ export function lexStateAt(src, idx) {
       if (c === '/' && n === '/') { state = 'line'; i++; continue; }
       // A regex literal can contain quotes and backticks; unhandled, it flips state exactly
       // like the old backtick counter did. `/` starts a regex only where a value may begin.
+      // KNOWN SEAM (GLM T2-R4 #2, deliberately not "fixed"): `)` is NOT a regex-start position
+      // here, because `(a+b) / c` is division and treating `)` as a value position would break it.
+      // So `if (x) /re/` mislexes. Disambiguating needs a parser; erring toward division is the
+      // narrower error, and the auditor's fail-closed refusal bounds it.
       // `/` starts a regex only where a VALUE may begin. Punctuation is not the whole story:
       // `return /re/`, `case /re/`, `typeof /re/` are all value positions too (GLM T2-R3 B1).
       if (c === '/' && (/^$|[([{,;:=!&|?+\-*%~^<>]/.test(prev) || /\b(return|case|typeof|in|of|instanceof|do|else|yield|await|delete|void|new)$/.test(prevWord))) { state = 'regex'; continue; }
@@ -62,10 +67,11 @@ export function lexStateAt(src, idx) {
       if (c === '{' && stack.length) stack.push('brace'); // plain block inside an interpolation
       if (c === '}' && stack[stack.length - 1] === 'brace') stack.pop();
       if (!/\s/.test(c)) prev = c;
-      // The keyword must survive the space that follows it (`return /re/`), so whitespace
-      // leaves prevWord alone; only a non-identifier, non-space character clears it.
-      if (/[A-Za-z$_0-9]/.test(c)) prevWord = (prevWord + c).slice(-12);
-      else if (!/\s/.test(c)) prevWord = '';
+      // Track the LAST COMPLETE word, not a running accumulation: `ready\nreturn /re/` fused into
+      // "readyreturn" and the keyword test failed (GLM T2-R4 residual seam 1). A word ends at any
+      // non-identifier character — whitespace included — and the finished word is what we test.
+      if (/[A-Za-z$_0-9]/.test(c)) { word += c; }
+      else { if (word) prevWord = word.slice(-12); word = ''; }
       continue;
     }
     if (state === 'block') { if (c === '*' && n === '/') { state = 'normal'; prev = '/'; i++; } continue; }

@@ -342,3 +342,27 @@ test('EXCEPTIONS ledger: a commented-out example row is NOT a live suppression',
   assert.equal(rows[0].pathSub, 'a/b.css');
   assert.equal(loadExceptions('| e/f.css | R2 | sean | 2000-01-01 | old |').length, 0, 'expired rows stay excluded');
 });
+
+test('R6 fail-LOUD: an unparseable wrapper is REPORTED, never silently skipped (the toolkit\'s own invariant)', () => {
+  // "Cannot verify must never render as fine" is printed in this file's own header, and two
+  // `continue`s broke it: an unbalanceable chain or a missing terminator made the wrapper VANISH
+  // (Ox T2-R4 narrow reopen — the only new scope he allowed himself, and he was right).
+  const BT = String.fromCharCode(96);
+  const IMP = "import FB from '../ui/forge/ForgeButton';\n";
+  const unterminated = IMP + 'const B = styled(FB)' + BT + 'background: red;';
+  const hits = lintText('x.tsx', unterminated, { isConsumer: true }).filter((v) => v.rule === 'R6');
+  assert.equal(hits.length, 1, 'a missing template terminator must be reported');
+  assert.match(hits[0].detail, /NOT audited, human decision required/);
+  // Ox's actual named example — a template containing ")" inside .attrs args — parses correctly
+  // and is caught on its merits rather than by the fail-loud path.
+  const trickyButValid = IMP + 'const C = styled(FB).attrs((p) => ({ a: ' + BT + ')' + BT + ' }))' + BT + 'background: red;' + BT + ';';
+  const t = lintText('x.tsx', trickyButValid, { isConsumer: true }).filter((v) => v.rule === 'R6');
+  assert.equal(t.length, 1);
+  assert.match(t[0].detail, /sets 'background'/);
+  // A wrapper that declares NO styles is "nothing to verify", not "could not verify" — no finding,
+  // and it still seeds the closure so a later styled(W) is audited.
+  const noStyles = IMP + 'const W = styled(FB).attrs({});\nconst V = styled(W)' + BT + 'background: red;' + BT + ';';
+  const n = lintText('x.tsx', noStyles, { isConsumer: true }).filter((v) => v.rule === 'R6');
+  assert.equal(n.length, 1, 'only the restyling re-extension is reported');
+  assert.match(n[0].detail, /transitively wraps ForgeButton/);
+});

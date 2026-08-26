@@ -188,14 +188,23 @@ export function scanStyledBindings(text) {
       // Balanced-paren scan: `.attrs((p) => ({…}))` or any `)` inside the args used to end the
       // chain early, after which the backtick never matched and the wrapper went UNSCANNED.
       const closeParen = skipParens(text, m.index + 'styled'.length);
-      if (closeParen < 0) continue;
+      // "Cannot verify" must never render as "fine" — this file prints that law a few lines up,
+      // and these two `continue`s were the only places it broke its own rule: an unbalanceable
+      // chain or an unterminated body made the wrapper VANISH, unscanned and unreported, which is
+      // reachable by exactly the hand-written wrapper R6 exists for (Ox T2-R4 narrow reopen).
+      if (closeParen < 0) { findings.push({ rule: 'R6', line, detail: `${via} — could not parse the styled() call (unbalanced parens); NOT audited, human decision required (rule 84)` }); continue; }
       let i = skipChain(text, closeParen);
       while (/\s/.test(text[i])) i++;
       if (text[i] === '(') { findings.push({ rule: 'R6', line, detail: `${via} uses object-styles syntax, which cannot be audited statically — use a --sw-btn-* override or a template literal (rule 84)` }); continue; }
+      // Neither a template nor a call after the chain means the wrapper declares NO styles
+      // (`const W = styled(FB).attrs({});`) — nothing to violate, and W is already in `bound`, so
+      // any later `styled(W)` is still audited. This `continue` is benign, unlike the two above:
+      // it is "nothing to verify", not "could not verify". The only inputs that reach it otherwise
+      // are non-compiling (an unterminated call), which is outside the threat model.
       if (text[i] !== '`') continue;
       // Terminator must respect escapes and interpolations, not stop at the first backtick.
       const end = templateEnd(text, i);
-      if (end < 0) continue;
+      if (end < 0) { findings.push({ rule: 'R6', line, detail: `${via} — could not find the template terminator; NOT audited, human decision required (rule 84)` }); continue; }
       const blocker = styledWrapperBlocker(text.slice(i + 1, end));
       if (blocker) findings.push({ rule: 'R6', line, detail: `${via} ${blocker} — use a --sw-btn-* override instead (rule 84)` });
     }
