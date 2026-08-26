@@ -53,10 +53,14 @@ import { ComposeError } from './composeLimits.mjs';
  *          when coalescing onto a live claim — a promise of one.
  */
 export function replayIfFresh(store, key, clock = () => Date.now()) {
+  // COERCED, because the orchestrator holds a frozen `now` NUMBER beside this function's
+  // `clock` FUNCTION and the two are one careless argument apart. Passing the number would
+  // throw at `clock()` and 500 every request through this path.
+  if (typeof clock !== 'function') { const t = Number(clock) || Date.now(); clock = () => t; }
   if (!store.has(key)) return null;
   const held = store.get(key);
   if (held && typeof held.then === 'function') return resolveReplay(held, store, key, clock);
-  return judge(held, held, store, key, clock);
+  return judge(held, held, store, key, clock, false);
 }
 
 async function resolveReplay(pending, store, key, clock) {
@@ -71,7 +75,11 @@ async function resolveReplay(pending, store, key, clock) {
     dropIfStillOurs(store, key, pending);
     return null;
   }
-  return judge(prior, pending, store, key, clock);
+  // `true` because THIS path knows it came from a claim. It used to be inferred from the
+  // token's shape — and a promise keeps its `then` after it settles, so a resolved claim
+  // still sitting in the store was judged "live" forever and skipped the expiry rule
+  // entirely. The caller knows which path it is on; inferring it was the whole defect.
+  return judge(prior, pending, store, key, clock, true);
 }
 
 /**
@@ -95,9 +103,11 @@ function dropIfStillOurs(store, key, token) {
 /**
  * Decide about one stored value. Synchronous, so the settled path can stay synchronous.
  *
- * `token` is what the STORE held — a promise for a live claim, the stub itself for a
- * settled one. It is both the identity used for a conditional delete and the thing that
- * says which of the two kinds of value this is.
+ * `token` is what the STORE held, used as the identity for a conditional delete.
+ * `fromClaim` says whether this value came from awaiting a live claim — passed by the
+ * caller that knows, never inferred from the token's shape. A promise keeps its `then`
+ * after it settles, so shape-inference judged a resolved claim "live" forever and skipped
+ * the expiry rule on it entirely.
  *
  * A REPLAY IS ONLY HONEST WHILE THE ROW IT POINTS AT EXISTS, so a retained stub must carry
  * its row's deadline and a MISSING deadline counts as EXPIRED. Failing open here would make
@@ -116,11 +126,20 @@ function dropIfStillOurs(store, key, token) {
  * AND AN ABSENT VALUE FALLS THROUGH TO RUNNING THE WORK — spreading one would hand the
  * client `{ replayed: true }` with no fields at all, a 200 that says nothing.
  */
-function judge(prior, token, store, key, clock) {
+function judge(prior, token, store, key, clock, fromClaim) {
   if (!prior) { dropIfStillOurs(store, key, token); return null; }
-  if (typeof token?.then !== 'function') {
-    const deadline = Number(prior.replayExpiresAt);
-    if (!(deadline > 0) || deadline <= clock()) { dropIfStillOurs(store, key, token); return null; }
+  // A DEADLINE IS ENFORCED WHENEVER ONE EXISTS. Its ABSENCE is forgivable only on a live
+  // claim, whose 202 stub has no deadline because the batch has not finished — that is what
+  // coalescing waits on. Everything else without one is a writer's omission, and treating an
+  // omission as immortality is how a delayed retry gets a confident 200 for a row that aged
+  // out. `fromClaim` gates only the absence, never the enforcement: a claim that SETTLED and
+  // stayed in the store is not live any more, and exempting it by provenance would be the
+  // same mistake as exempting it by shape, one step further back.
+  const deadline = Number(prior.replayExpiresAt);
+  if (deadline > 0) {
+    if (deadline <= clock()) { dropIfStillOurs(store, key, token); return null; }
+  } else if (!fromClaim) {
+    dropIfStillOurs(store, key, token); return null;
   }
   // `replayExpiresAt` is bookkeeping for this guard, not something a caller can act on.
   // Shipping it would make an internal deadline part of the contract by accident.
@@ -151,7 +170,11 @@ function judge(prior, token, store, key, clock) {
  * makes every future writer's omission immortal too. Declaring it is what lets absence
  * mean "someone forgot", which is the only way fail-closed can work.
  */
-export const REPLAY_NEVER_EXPIRES = Number.POSITIVE_INFINITY;
+// NOT Infinity. Any store that ever round-trips through JSON turns Infinity into null,
+// `Number(null)` is 0, and a fail-closed guard reads 0 as expired — so a store reload would
+// silently convert the hosted lane's deliberate immortality into a re-render, on the one
+// lane where re-running charges money. A large finite number survives the trip.
+export const REPLAY_NEVER_EXPIRES = Number.MAX_SAFE_INTEGER;
 
 export function claimIfAbsent(store, key, pending) {
   if (store.has(key)) return false;
@@ -177,6 +200,7 @@ export function claimIfAbsent(store, key, pending) {
  * ownership must not render, and a caller that renders twice has already lost the argument.
  */
 export async function claimOrCoalesce(store, key, clock, attempts = 3) {
+  const tick = typeof clock === 'function' ? clock : () => Number(clock) || Date.now();
   let settle = null;
   const pending = new Promise((res, rej) => { settle = { res, rej }; });
   pending.catch(() => {});
@@ -185,7 +209,7 @@ export async function claimOrCoalesce(store, key, clock, attempts = 3) {
     if (claimIfAbsent(store, key, pending)) return { settle };
 
     // Someone owns it. Coalesce onto theirs rather than racing it.
-    const theirs = replayIfFresh(store, key, clock);
+    const theirs = replayIfFresh(store, key, tick);
     if (theirs) {
       const body = await theirs;
       if (body) return { replay: { ...body, replayed: true } };

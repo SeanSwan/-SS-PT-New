@@ -127,3 +127,47 @@ describe('a delete behind an await never evicts someone else', () => {
     expect(replayIfFresh(forever, 'k', () => Date.now()).batchId).toBe('B1');
   });
 });
+
+describe('liveness is a fact the caller knows, not a shape the value has', () => {
+  it('a SETTLED claim left in the store is still subject to the expiry rule', async () => {
+    // The exemption used to be `typeof token.then === 'function'` — and a promise keeps its
+    // `then` after it resolves. So a claim that settled and stayed in the store was judged
+    // "live" forever, skipped the expiry check entirely, and replayed a confident 200 for a
+    // row that may have aged out. Shape said live; state said otherwise.
+    const { replayIfFresh } = await import('../../services/atelier/composeReplay.mjs');
+    const store = new Map();
+    // A resolved promise holding a stub whose deadline has passed.
+    store.set('k', Promise.resolve({ batchId: 'B1', status: 'done', replayExpiresAt: Date.now() - 1 }));
+    expect(await replayIfFresh(store, 'k', () => Date.now())).toBeNull();
+    expect(store.has('k')).toBe(false);
+  });
+
+  it('a live claim is still exempt — that is what coalescing waits on', async () => {
+    const { replayIfFresh } = await import('../../services/atelier/composeReplay.mjs');
+    const store = new Map();
+    // The 202 stub has no deadline because the batch has not finished.
+    store.set('k', Promise.resolve({ batchId: 'B1', accepted: true, status: 'queued' }));
+    const out = await replayIfFresh(store, 'k', () => Date.now());
+    expect(out.batchId).toBe('B1');
+    expect(out.replayed).toBe(true);
+  });
+
+  it('survives being handed a frozen timestamp where a clock was expected', async () => {
+    // The orchestrator holds a frozen `now` NUMBER beside this function's `clock` FUNCTION
+    // and the two are one careless argument apart. Throwing at `clock()` would 500 every
+    // request through this path.
+    const { replayIfFresh, REPLAY_NEVER_EXPIRES } = await import('../../services/atelier/composeReplay.mjs');
+    const store = new Map([['k', { batchId: 'B1', replayExpiresAt: REPLAY_NEVER_EXPIRES }]]);
+    expect(replayIfFresh(store, 'k', Date.now()).batchId).toBe('B1');
+  });
+
+  it('the never-expires sentinel survives a JSON round trip', async () => {
+    // Infinity becomes null through JSON, `Number(null)` is 0, and a fail-closed guard
+    // reads 0 as expired — so a store reload would turn the hosted lane's deliberate
+    // immortality into a re-render, on the one lane where re-running charges money.
+    const { REPLAY_NEVER_EXPIRES, replayIfFresh } = await import('../../services/atelier/composeReplay.mjs');
+    const revived = JSON.parse(JSON.stringify({ batchId: 'B1', replayExpiresAt: REPLAY_NEVER_EXPIRES }));
+    expect(revived.replayExpiresAt).toBe(REPLAY_NEVER_EXPIRES);
+    expect(replayIfFresh(new Map([['k', revived]]), 'k', () => Date.now()).batchId).toBe('B1');
+  });
+});
