@@ -43,8 +43,12 @@
  *   redemption, not between redemption and the write itself.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import fs from 'fs';
 
 import AiCommandAuditLog from '../../models/AiCommandAuditLog.mjs';
+import sliceBetween from '../helpers/sliceBetween.mjs';
+import { stripComments } from '../helpers/sourceScan.mjs';
+import { EXECUTOR_FILE } from '../helpers/dispatcherReachability.mjs';
 import { dispatch, hasDispatcher } from '../../services/ai/commandDispatcher.mjs';
 import { assertAssignmentOrAdmin } from '../../middleware/verifyClientAccess.mjs';
 import {
@@ -197,6 +201,38 @@ describe('Swan Coach confirm-lane re-authorization', () => {
       const result = await executeConfirmedOperation(operationId, TRAINER, sequelize);
       expect(dispatchMock).not.toHaveBeenCalled();
       expect(result.success).toBe(false);
+    });
+  });
+
+  describe('every way out of this function', () => {
+    it("reaches a dispatcher only after a re-authorization, in that order", () => {
+      // Behavioural tests cover the two lanes that exist today. This is about the third
+      // one somebody adds later: a new `await dispatch(` inside this function, written by
+      // someone who did not know the gate was their job, would pass every test above by
+      // simply not being exercised by any of them.
+      const body = sliceBetween(
+        stripComments(fs.readFileSync(EXECUTOR_FILE, 'utf8')),
+        'export async function executeConfirmedOperation(',
+        '\nexport ',
+        { label: 'executeConfirmedOperation' },
+      );
+      const order = [...body.matchAll(/confirmLaneDenialReason\(|await dispatch\(/g)]
+        .map((m) => (m[0].startsWith('confirm') ? 'gate' : 'dispatch'));
+
+      expect(order.length, 'no gates and no dispatches found — the scan broke').toBeGreaterThan(0);
+      expect(
+        order.filter((step) => step === 'dispatch').length,
+        'a dispatch call in the confirm lane is unaccounted for',
+      ).toBe(2);
+      // Every dispatch must be preceded by at least one gate it has not already consumed.
+      let available = 0;
+      for (const step of order) {
+        if (step === 'gate') available += 1;
+        else {
+          expect(available, 'a dispatch runs before any re-authorization gate').toBeGreaterThan(0);
+          available -= 1;
+        }
+      }
     });
   });
 
