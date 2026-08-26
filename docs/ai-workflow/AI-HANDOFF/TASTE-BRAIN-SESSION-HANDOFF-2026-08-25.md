@@ -52,6 +52,19 @@ Sean's ask: the Swan Design Brain had been fed six practitioner transcripts + th
 > untouched** so the sendable bundle cannot drift. `ui.html`/`probe.html`/`brief.html` are no longer served,
 > carry a SUPERSEDED header, and are **deletion candidates pending Sean's approval** (Rule 34).
 > Deliberate change: `/brief` with no params opens the memory you were last in (the bar says which).
+>
+> **P3 — VIDEO (2026-08-25, `c113aaf`):** the Make tab has a **Stills | Video** switch. `lib/video.mjs` →
+> `/api/prompt?medium=video`: subject (same on-taste pool) + one subject motion + ONE camera move + one beat
+> + a pacing note, from a curated table — **never Midjourney parameters** (a video graph renders `--sref` as
+> words; aspect/length live in the captured graph). Make/Make 4 queue shots into that graph. Test
+> `test-video.mjs` (27). **Correctness fix found while building it:** a partner/client memory's prompts were
+> falling through to the Midlibrary CORPUS (an "ocean, forest light" memory produced "rick and morty") —
+> licence-wrong and product-wrong. `taste-namespace.ownSubjects` now builds a non-Sean pool from its OWN
+> material only (kept prompts · titles of chosen pictures · theme words via a small scaffold), and such a
+> pool never borrows a corpus artist name; `candidatePool` honours it via `pool.ownOnly`. Sean's is unchanged.
+> **Capture is now self-service:** `capture-workflow.mjs --watch` arms itself when ComfyUI first renders
+> (history is memory-only, the DB holds assets, mp4s carry no graph — all checked), `--from <api.json>` takes
+> an Export (API) file. The three superseded pages were **deleted** (`be886ab`) with Sean's approval.
 
 ```
 Swan Prompt Studio.cmd  /  node prompter/serve.mjs      → 127.0.0.1:7331 (loopback only, origin-gated writes)

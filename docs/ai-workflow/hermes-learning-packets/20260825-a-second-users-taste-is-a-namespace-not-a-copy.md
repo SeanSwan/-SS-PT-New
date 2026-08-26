@@ -221,6 +221,20 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
   ("your render · <one of this memory's prompts>", never a photo credit), not one instance of it.
 - **A proof step assumed a scratch directory a previous run had left behind.** It failed correctly.
   **MECHANISM:** a proof creates the directories it owns and deletes them at the end; it never inherits state.
+- **A partner/client memory was generating prompts out of Sean's licensed Midlibrary corpus.** The tie-in
+  had looked right for a whole session; one print of a partner pool showed an "ocean, forest light" memory
+  producing "rick and morty in a space vehicle" and a cyberpunk hacker — corpus TEXT reaching someone the
+  licence says may never see that corpus, and nothing to do with what she asked for. I had guarded the
+  images and never asked what the *text* pool did for a non-owner. **MECHANISM:** a non-Sean memory now
+  draws only from its own material (`ownSubjects`: kept prompts · titles of pictures it chose · theme words
+  via a curated scaffold), `candidatePool` honours `pool.ownOnly`, and such a pool never borrows a corpus
+  artist name; the suite asserts every subject's `source_doc` is one of hers. Standing habit: for any
+  feature that serves more than one user, print what it produces for the OTHER one before believing it.
+- **I corrupted my own patch through bash escaping a FOURTH time — twice after writing the rule down.**
+  `\d+` became `d+` inside a `node -e` patch, so a proof's wait could never match and I chased a phantom
+  failure. **MECHANISM:** the rule already existed ("patches run from a FILE, never `node -e` in bash");
+  what was missing was an audit, so every patch script now ends by grepping its target for the corruption
+  signature (`/d+`) and exits non-zero if any survives. A rule I can bypass silently is not yet a mechanism.
 - **My proofs left a FAKE ComfyUI workflow on the production path, and the app then told Sean his workflow
   was captured.** Two browser proofs each wrote a stand-in template to the real
   `prompter/comfy-workflow.local.json` and each faithfully "restored what it found" — so both restore-checks
@@ -260,6 +274,10 @@ Built the same day, four local commits (`027a187` → `a2862dc`):
 | Order-dependent assertion on shuffled data | 2 (one step, two runs) | No | Assert the shape of a varying value, not one instance |
 | A document-wide DOM query matching an unintended element (`<body data-tab>`) | 1 | No | Scope queries to their container |
 | **A test writing the production config path** — restore-checks passed while the app reported a fixture as real | 1 (2 proofs) | No — new class | Path resolves at call time via env; suites use temp files; proofs throw without the env |
+| **Bash mangling a patch (`\d+` → `d+`, `${BASE}`, a middle dot)** | 4 | **Yes — twice after I wrote the rule** | Patches run from a FILE **and** each script now audits its target for the corruption signature |
+| A second user served from the owner's licensed corpus (licence + product) | 1 | No — new class | `ownSubjects`; every subject's `source_doc` asserted to be the memory's own |
+| Probabilistic test assertion ("appears in N draws") | 1 | No | Assert the mechanism deterministically (first in pool, highest weight, rendered from that entry alone) |
+| Reading the DOM mid-render (captured one prompt, kept another) | 1 | No | Wait for the batch to land (status line + expected shape), not merely for an element to exist |
 | Renamed a UI control without updating my own proof | 1 | No | The proof caught it; that step upgraded to end-to-end |
 
 ## External-model calibration
