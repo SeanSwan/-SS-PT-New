@@ -253,16 +253,14 @@ def main():
     # ATOMIC OUTPUT (Ox Alpha, N1 blocker 3): six runs wrote into one persistent dir, so a run that died
     # mid-way left the previous run's still.png beside new GLBs, ready to be hashed into a manifest that
     # described different geometry. Build in a temp dir; swap in only on full success.
-    # The atomic swap below REPLACES out_dir wholesale, which eats a curated manifest.json —
-    # human-authored provenance the pipe never generates. Learned by doing it to four assets at
-    # once (2026-08-26); the validator's exit-2 "ZERO manifests" caught it, which is why zero
-    # results is an instrument failure and not a pass.
+    # The atomic swap REPLACES out_dir wholesale, eating a curated manifest.json — provenance the
+    # pipe cannot regenerate. Did exactly that to four assets (2026-08-26); the validator's exit-2
+    # "ZERO manifests" caught it, which is why zero results is an instrument failure, not a pass.
     manifest_path = os.path.join(out_dir, "manifest.json")
     if os.path.exists(manifest_path) and not args.force:
         raise SystemExit(
-            f"swan_pipe: {manifest_path} exists and the atomic swap would delete it. That file is "
-            f"human-authored provenance, not pipe output. Write to a staging dir and copy the GLBs "
-            f"across, or pass --force if you intend to discard it.")
+            f"swan_pipe: {manifest_path} exists and the atomic swap would delete it — that is "
+            f"human-authored provenance. Build in a staging dir and copy the GLBs across, or --force.")
 
     tmp_dir = out_dir.rstrip("/\\") + f".tmp-{os.getpid()}"
     shutil.rmtree(tmp_dir, ignore_errors=True)
