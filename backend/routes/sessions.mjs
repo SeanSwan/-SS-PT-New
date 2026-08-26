@@ -133,7 +133,9 @@ const getSessionPackagePricing = async (session) => {
       packageName: null,
       fallbackPrice,
       defaultChargeAmount: fallbackPrice,
-      lateFeeAmount: Math.round(fallbackPrice * LATE_FEE_RATE),
+      // No client, so no package, so no verifiable fee. null makes the client panel
+      // render "See cancellation policy" instead of a number the server invented.
+      lateFeeAmount: null,
       isFallback: true
     };
   }
@@ -148,7 +150,14 @@ const getSessionPackagePricing = async (session) => {
     packageName: packageInfo.packageName || null,
     fallbackPrice,
     defaultChargeAmount,
-    lateFeeAmount: Math.round(defaultChargeAmount * LATE_FEE_RATE),
+    // Only a fee derived from a REAL package rate may be shown to a client. When the
+    // lookup fell back, defaultChargeAmount is the helper's own hardcoded figure —
+    // deriving a fee from it swaps one invented number for another, which is the exact
+    // defect this endpoint was fixed to stop. null -> "See cancellation policy".
+    lateFeeAmount:
+      pricePerSession !== null && !packageInfo.isFallback
+        ? Math.round(pricePerSession * LATE_FEE_RATE)
+        : null,
     isFallback: Boolean(packageInfo.isFallback)
   };
 };

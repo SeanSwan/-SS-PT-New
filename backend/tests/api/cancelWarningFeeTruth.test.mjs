@@ -56,3 +56,48 @@ describe('cancel-warning fee truth', () => {
     expect(SRC).not.toMatch(/lateFeeAmount:\s*Math\.round\([A-Za-z]+ \* 0\.5\)/);
   });
 });
+
+// GLM panel finding, 2026-08-26. The suite above scopes every assertion to the
+// cancel-warning HANDLER via warningHandler(), which slices from
+// router.get("/:id/cancel-warning") to the next router. call. getSessionPackagePricing
+// is defined ~2,900 lines EARLIER and was never in that slice — so the handler was
+// proven safe while the helper it calls still fabricated a fee from a hardcoded
+// 175/110 whenever no package was found. The handler guard (!packageInfo.isFallback)
+// meant this never reached a client, but a second consumer read it unguarded, and any
+// future consumer would have inherited the same trap.
+//
+// Eliminated at source rather than guarded per-consumer: the helper now returns null.
+describe('getSessionPackagePricing helper (outside the handler slice)', () => {
+  const helper = () => {
+    const start = SRC.indexOf('const getSessionPackagePricing =');
+    expect(start).toBeGreaterThan(-1);
+    const end = SRC.indexOf('\nconst ', start + 10);
+    return SRC.slice(start, end === -1 ? SRC.length : end);
+  };
+
+  it('is genuinely outside the handler slice the other tests assert on', () => {
+    // Positive control. If this ever fails, the tests below are duplicating the suite
+    // above rather than covering the gap they were written for.
+    const start = SRC.indexOf('const getSessionPackagePricing =');
+    const handlerStart = SRC.indexOf('router.get("/:id/cancel-warning"');
+    expect(start).toBeLessThan(handlerStart);
+  });
+
+  it('never derives a client-visible fee from the hardcoded fallback price', () => {
+    const h = helper();
+    expect(h).not.toMatch(/lateFeeAmount:\s*Math\.round\(fallbackPrice \* LATE_FEE_RATE\)/);
+    expect(h).not.toMatch(/lateFeeAmount:\s*Math\.round\(defaultChargeAmount \* LATE_FEE_RATE\)/);
+  });
+
+  it('returns null for the fee when the package lookup fell back', () => {
+    const h = helper();
+    expect(h).toContain('lateFeeAmount: null');
+    expect(h).toContain('!packageInfo.isFallback');
+  });
+
+  it('still exposes defaultChargeAmount, which is operator-facing and review-gated', () => {
+    // Narrowing check: the fix must not have collaterally removed the operator default.
+    const h = helper();
+    expect(h).toContain('defaultChargeAmount');
+  });
+});
