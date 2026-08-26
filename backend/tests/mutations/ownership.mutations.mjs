@@ -34,6 +34,12 @@ export default {
   ],
   mutations: [
     {
+      "id": "M40 confirm lane: stop checking role at redemption entirely",
+      "file": "services/ai/commandExecutor.mjs",
+      "find": "  if (!required.includes(user.role)) return 'role_revoked';",
+      "replace": "  if (false) return null;"
+    },
+    {
       "id": "M38 access consumer: accept a row the query should never have returned",
       "file": "middleware/verifyClientAccess.mjs",
       "find": "    if (mismatched(assignment.trainerId, requesterId)) return false;",

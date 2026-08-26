@@ -73,6 +73,8 @@ const hasDispatcherMock = vi.mocked(hasDispatcher);
 const assertAccessMock = vi.mocked(assertAssignmentOrAdmin);
 const auditMock = vi.mocked(AiCommandAuditLog.create);
 
+const CONFIRM_NO_LONGER_PERMITTED = 'You no longer have permission to complete that operation. No data was changed. Please re-issue the command if you believe this is wrong.';
+
 const TRAINER = { id: OUR_TRAINER, role: 'trainer', firstName: 'T', lastName: 'R' };
 /** The same person, after losing the role the command requires. */
 const DEMOTED = { ...TRAINER, role: 'client' };
@@ -391,32 +393,59 @@ describe('Swan Coach confirm-lane re-authorization', () => {
       // cannot arrive here, and one that could mint is still permitted. Asserting the
       // identity is stronger than asserting the absence of a victim — if either side ever
       // gains a special case, this fails.
-      // ROUND 2 (GLM): the first version of this test read `roleRequired` on both sides and
-      // compared it to itself — a tautology that would pass no matter what either gate did.
-      // It was written to answer "is there a superset carve-out in one gate and not the
-      // other", and comparing a thing with itself cannot answer that. What can is reading
-      // the two predicates.
-      const source = stripComments(fs.readFileSync(EXECUTOR_FILE, 'utf8'));
-      const mintGate = sliceBetween(source, 'async function stepRBAC(', '\n}', { label: 'stepRBAC' });
-      const redeemGate = sliceBetween(
-        source, 'async function confirmLaneDenialReason(', '\nexport ', { label: 'confirmLaneDenialReason' },
-      );
-
-      // Both must decide role by plain membership in the registry's list.
-      expect(mintGate).toMatch(/roleRequired\.includes\(/);
-      expect(redeemGate).toMatch(/required\.includes\(user\.role\)/);
-
-      // And NEITHER may carve out a role the other does not. An `admin` special-case in one
-      // gate and not the other is precisely the asymmetry that would let a caller mint what
-      // they cannot redeem — or redeem what they could not have minted.
-      for (const [name, body] of [['stepRBAC', mintGate], ['confirmLaneDenialReason', redeemGate]]) {
-        expect(body, `${name} carves out a role by name — the other gate does not`).not.toMatch(/['"]admin['"]/);
-      }
-
-      // The registry is still the single source both consult, and it is not empty.
+      // This assertion has now been wrong twice, in two different ways, and both critiques
+      // were right. First it read `roleRequired` on both sides and compared it to itself — a
+      // tautology. Then it read the two predicates as SOURCE and banned the literal 'admin',
+      // which a harmless refactor (`const ADMIN_ROLE = 'admin'`) would break while changing
+      // nothing, and which tests how the code is written rather than what it does.
+      //
+      // What it should have been all along: EXECUTE redemption for every confirmable command
+      // against every role, and check the observed verdict against what the registry says.
+      // One side is data, the other is behaviour, so it is not a tautology; nothing reads
+      // source, so no refactor can break it; and a carve-out inside the gate — the thing the
+      // original finding was about — shows up immediately as a disagreement.
+      //
+      // The MINT side is proven separately and already: the prior session's authorization
+      // contract drives the pipeline over all 303 below-role pairs and asserts `stepRBAC`
+      // denies every one. This closes the loop by proving redemption agrees with it.
       const registry = allConfirmableCommands();
       expect(registry.length, 'no confirmable commands found — the scan broke').toBeGreaterThan(5);
-      expect(getRegistryRoles(registry[0].type).length).toBeGreaterThan(0);
+
+      const disagreements = [];
+      let pairs = 0;
+      for (const command of registry) {
+        const permitted = getRegistryRoles(command.type);
+        if (!permitted.length) continue;
+        for (const role of ['admin', 'trainer', 'client', 'user']) {
+          pairs += 1;
+          const { operationId } = preparePendingConfirmation({
+            commandType: command.type,
+            params: {},
+            clientId: null,
+            userId: OUR_TRAINER,
+            description: 'role matrix probe',
+          });
+          const result = await executeConfirmedOperation(
+            operationId, { id: OUR_TRAINER, role, firstName: 'M', lastName: 'X' }, sequelize,
+          );
+          // `role_revoked` is the ONLY denial this matrix is about. A command may still be
+          // refused for a missing client or an absent dispatcher; those are other gates and
+          // are asserted elsewhere. What matters here is whether the ROLE was the reason.
+          const deniedForRole = result.message === CONFIRM_NO_LONGER_PERMITTED
+            && !permitted.includes(role);
+          const wronglyAllowedByRole = !permitted.includes(role)
+            && result.message !== CONFIRM_NO_LONGER_PERMITTED;
+          if (wronglyAllowedByRole) disagreements.push(`${command.type}: ${role} not denied by role`);
+          else if (permitted.includes(role) && deniedForRole) {
+            disagreements.push(`${command.type}: ${role} denied despite being permitted`);
+          }
+        }
+      }
+      expect(pairs, 'the matrix ran over nothing').toBeGreaterThan(20);
+      expect(
+        disagreements,
+        `redemption disagrees with the registry about who may act: ${disagreements.join(', ')}`,
+      ).toEqual([]);
     });
   });
 

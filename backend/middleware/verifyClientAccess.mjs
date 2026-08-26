@@ -120,11 +120,18 @@ export async function assertAssignmentOrAdmin(userId, userRole, clientId) {
     // ~56 such stubs exist across ten suites written before this guard. Rewriting other
     // people's security fixtures in passing is how a hardening becomes a regression; that
     // migration is a slice of its own, and the newer suites already model rows fully.
-    const mismatched = (actual, expected) => actual !== undefined && actual !== null
-      && Number(actual) !== expected;
+    // `requesterId` and `targetClientId` are `parseStrictPositiveInteger` outputs above —
+    // numbers, never strings — so coercing only the row side is correct rather than lucky.
+    // A review asked; this comment is the answer, so nobody has to ask twice.
+    const present = (value) => value !== undefined && value !== null;
+    const mismatched = (actual, expected) => present(actual) && Number(actual) !== expected;
     if (mismatched(assignment.trainerId, requesterId)) return false;
     if (mismatched(assignment.clientId, targetClientId)) return false;
-    if (assignment.status !== undefined && assignment.status !== 'active') return false;
+    // Same absent-is-not-a-mismatch rule as the ids. It read differently before — an
+    // explicit `status: null` denied while an explicit `trainerId: null` passed — which errs
+    // closed and so was never going to be caught by a test, but two rules for one idea is
+    // how the next person derives the wrong one.
+    if (present(assignment.status) && assignment.status !== 'active') return false;
     return true;
   } catch (err) {
     logger.warn('[verifyClientAccess] ClientTrainerAssignment check failed - denying access', {

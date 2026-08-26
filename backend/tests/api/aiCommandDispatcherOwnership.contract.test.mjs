@@ -171,6 +171,29 @@ describe('Swan Coach dispatcher ownership', () => {
       expect(paramNames(allCommands().find((c) => c.type === 'update_client'))).toContain('clientId');
     });
 
+    it('leaves no command able to name a client without declaring that it does', () => {
+      // Panel round 3 (Qwen): the confirm lane refuses a missing client only when
+      // `command.requiresClientRef === true`. Strict equality means a command with the field
+      // ABSENT skips the check and the gate falls through to permitted — so the protection
+      // rests on an invariant that nothing enforces.
+      //
+      // Loosening the equality would be the wrong fix: `delete_workout_plan` legitimately
+      // declares no client ref and must keep working. The right fix is to enforce the
+      // invariant the gate assumes. Today it holds for all 139 commands; this is what makes
+      // it stay true when someone adds the 140th.
+      const CLIENT_IDENTIFYING = /^(clientId|clientRef|clientName|traineeId|memberId|athleteId)$/;
+      const undeclared = allCommands().filter((command) => {
+        const names = paramNames(command).filter((n) => CLIENT_IDENTIFYING.test(n));
+        if (!names.length) return false;
+        return command.requiresClientRef !== true && command.selfService !== true;
+      });
+      expect(
+        undeclared.map((c) => c.type),
+        'these commands accept a client id but declare neither requiresClientRef nor selfService, '
+        + 'so every gate keyed on those flags silently skips them',
+      ).toEqual([]);
+    });
+
     it('never lets a pin become an untested client-ref command', () => {
       // Panel finding (GLM, 2026-08-26): a pin excluded its command from every sweep, and
       // "no stale pins" passed precisely BECAUSE the command stayed unsynthesizable — so a
