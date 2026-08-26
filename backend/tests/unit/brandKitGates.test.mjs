@@ -170,3 +170,23 @@ describe('a price preview is free of the SPEND ceiling too', () => {
     expect(err.code).toBe('E_SPEND_CEILING');
   });
 });
+
+describe('a price preview survives a ledger it cannot read', () => {
+  it('estimates while the ledger is degraded', async () => {
+    // "Today's total is unknown" bears on SPENDING, not on quoting: an estimate needs the
+    // unit price, never the running sum. Caught by auditing the pairs rather than by a
+    // reviewer — the fifth instance of a fix landing on one half of a pair, and the first
+    // caught before it shipped.
+    const { seen, deps } = capturingDeps({ usage: { runs: 0, spendUsd: 0, degraded: true } });
+    const out = await composeStills({ brief: BRIEF, lane: 'hosted', count: 2, userId: 1, estimateOnly: true }, deps);
+    expect(out.estimateOnly).toBe(true);
+    expect(out.cost.totalUsd).toBeGreaterThan(0);
+    expect(seen).toHaveLength(0);
+  });
+
+  it('but a real batch on a degraded ledger is still refused', async () => {
+    const { deps } = capturingDeps({ usage: { runs: 0, spendUsd: 0, degraded: true } });
+    const err = await composeStills({ brief: BRIEF, lane: 'hosted', count: 2, userId: 1 }, deps).catch((e) => e);
+    expect(err.code).toBe('E_LEDGER_DEGRADED');
+  });
+});

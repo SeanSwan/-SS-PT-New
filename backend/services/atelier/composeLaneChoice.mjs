@@ -70,7 +70,11 @@ export function gateHosted({ model, count, limits, usage, verifier, estimateOnly
   }
   const cost = estimateStills({ count, model });
   const spent = Number(usage.spendUsd) || 0;
-  if (usage.degraded) {
+  // A degraded ledger means today's TOTAL is unknown, which bears on spending and not on
+  // quoting: an estimate needs the unit price, never the running sum. Found by auditing
+  // the pairs rather than by a reviewer — the fifth instance of one fix landing on one
+  // half of a pair, and the first caught before it shipped.
+  if (!estimateOnly && usage.degraded) {
     throw new ComposeError('E_LEDGER_DEGRADED',
       'The spend ledger could not be read, so today\'s total is unknown and a billed model cannot be charged safely.');
   }
