@@ -390,6 +390,19 @@ async function stepCapabilityGate(ctx) {
   return ctx;
 }
 
+/**
+ * Roles whose client scope `resolveClient` itself decides: a trainer is restricted to
+ * active assignments, an admin is deliberately unrestricted as the superset role.
+ *
+ * Every OTHER role resolves only itself. That used to be expressed as a ternary on the
+ * resolver call — `trainerId: role === 'trainer' ? user.id : undefined` — which reads as
+ * "trainers are scoped" but MEANS "every role except trainer is unscoped". `view_xp_streaks`
+ * permits a `client` caller, requires a client ref, and is not self-service, so a client
+ * could resolve any active client by id and read their gamification profile. Naming the
+ * scoped roles makes the fall-through case explicit instead of implied.
+ */
+const RESOLVER_SCOPED_ROLES = new Set(['admin', 'trainer']);
+
 /** Step 6: Resolve client reference if needed */
 async function stepResolveClient(ctx) {
   ctx.stage = 'resolve_client';
@@ -411,6 +424,25 @@ async function stepResolveClient(ctx) {
   const paramsClientId = toPositiveInteger(ctx.intent.params?.clientId);
   const clientId = selectedClientId || paramsClientId;
   const clientRef = selectedClientId ? null : (ctx.intent.clientRef || ctx.options.selectedClientName);
+
+  if (!RESOLVER_SCOPED_ROLES.has(ctx.user.role)) {
+    // An unscoped role may only ever be its own client. Asking for someone else by id is
+    // refused outright rather than silently retargeted, so the caller is not told about a
+    // record they may not see and is not misled about whose data they received. A name
+    // reference falls through to self for the same reason it does for a self-service
+    // command: there is no one else in scope for it to mean.
+    if (clientId && clientId !== toPositiveInteger(ctx.user.id)) {
+      ctx.error = 'You can only run this on your own record.';
+      return ctx;
+    }
+    ctx.resolvedClient = {
+      id: ctx.user.id,
+      firstName: ctx.user.firstName,
+      lastName: ctx.user.lastName,
+    };
+    if (ctx.intent.params) ctx.intent.params.clientId = ctx.user.id;
+    return ctx;
+  }
 
   if (clientId) {
     // Direct ID provided — use it
