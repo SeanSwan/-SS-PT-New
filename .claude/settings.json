@@ -379,6 +379,15 @@
             "timeout": 15
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/constitution-references.mjs\" || true",
+            "timeout": 30
+          }
+        ]
       }
     ],
     "Stop": [
@@ -386,38 +395,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/privacy-boundary-gate.mjs\"",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "node scripts/hooks/hermes-closeout-gate.mjs",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "node scripts/hooks/linear-sync-gate.mjs",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "node scripts/hooks/dual-tier-gate.mjs",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "node scripts/hooks/backup-after-work.mjs",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "node scripts/hooks/lesson-recall-gate.mjs",
-            "timeout": 30
-          },
-          {
-            "type": "command",
-            "command": "node scripts/hooks/context-watch-gate.mjs",
-            "timeout": 30
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/closeout-gate.mjs\"",
+            "timeout": 45
           }
         ]
       }
