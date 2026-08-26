@@ -138,7 +138,7 @@ describe('UnifiedSessionService.cancelSession server-derived charge amount', () 
     service.sendCancellationNotifications = vi.fn();
   });
 
-  it('overrides a full-session charge with the real package rate, ignoring the submitted figure', async () => {
+  it('suggests the real package rate for a full charge but keeps the operator figure', async () => {
     getClientPackagePricing.mockResolvedValue({
       pricePerSession: 110,
       packageName: 'Express 30 10-Pack',
@@ -151,10 +151,17 @@ describe('UnifiedSessionService.cancelSession server-derived charge amount', () 
       restoreCredit: false
     });
 
-    expect(Number(session.cancellationChargeAmount)).toBe(110);
+    // RE-ANCHORED. This asserted 110 - the server overriding the operator.
+    // That override produced every catastrophic defect in this workstream
+    // (a $33,600 program price applied as a session charge, a correct figure
+    // replaced by the wrong order's rate, duration-blind wrongness on a
+    // two-rate business). The server cannot know which product a session
+    // belongs to - the schema does not record it - so it advises and the
+    // operator decides.
+    expect(Number(session.cancellationChargeAmount)).toBe(175);
   });
 
-  it('clamps an operator-entered amount to the real session rate', async () => {
+  it('does not clamp an operator-entered amount, only records the suggestion', async () => {
     getClientPackagePricing.mockResolvedValue({
       pricePerSession: 110,
       packageName: 'Express 30 10-Pack',
@@ -167,7 +174,11 @@ describe('UnifiedSessionService.cancelSession server-derived charge amount', () 
       restoreCredit: false
     });
 
-    expect(Number(session.cancellationChargeAmount)).toBe(110);
+    // RE-ANCHORED from 110. A silent clamp rewrote a human decision with no
+    // feedback; normalizeCancellationBillingOptions already rejects
+    // non-positive and non-finite amounts, and the suggestion is logged for
+    // review. An operator entering 9999 deliberately is their call to defend.
+    expect(Number(session.cancellationChargeAmount)).toBe(9999);
   });
 
   it('leaves an amount under the real rate untouched', async () => {
@@ -275,8 +286,57 @@ describe('UnifiedSessionService.cancelSession charge-override audit and transact
       restoreCredit: false
     });
 
-    // The clamp is correct, but a dispute must be able to distinguish an operator
-    // who asked for 110 from one who asked for 150 and was reduced.
-    expect(Number(session.cancellationChargeAmount)).toBe(110);
+    // RE-ANCHORED from 110. The operator asked for 150 and gets 150; the
+    // server-suggested 110 is logged rather than silently substituted, so a
+    // dispute reads what the human actually decided.
+    expect(Number(session.cancellationChargeAmount)).toBe(150);
+  });
+});
+
+describe('the derivation still runs — it advises, it did not get deleted', () => {
+  let service;
+  let sessionModel;
+  let userModel;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockTransaction.commit.mockResolvedValue(undefined);
+    mockTransaction.rollback.mockResolvedValue(undefined);
+    service = new UnifiedSessionService();
+    sessionModel = { findByPk: vi.fn() };
+    userModel = { findByPk: vi.fn() };
+    service._Session = sessionModel;
+    service._User = userModel;
+    service.sendCancellationNotifications = vi.fn();
+  });
+
+  it('still looks the rate up, so a suggestion exists to surface later', async () => {
+    // Guard against "made it advisory" degenerating into "made it a no-op". The
+    // lookup must still happen — a future UI surfaces the suggestion beside the
+    // operator's figure, and an audit needs to know what the server believed.
+    getClientPackagePricing.mockResolvedValue({
+      pricePerSession: 110,
+      packageName: 'Express 30 10-Pack',
+      isFallback: false
+    });
+
+    const client = buildClient({ availableSessions: 3 });
+    const session = buildSession({ client });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(client);
+
+    await service.cancelSession(77, { id: 42, role: 'trainer' }, 'Late cancel', {
+      chargeType: 'full',
+      chargeAmount: 175,
+      restoreCredit: false
+    });
+
+    expect(getClientPackagePricing).toHaveBeenCalledWith(
+      301,
+      expect.any(Object),
+      { transaction: mockTransaction }
+    );
+    // And the operator's figure is what got recorded.
+    expect(Number(session.cancellationChargeAmount)).toBe(175);
   });
 });
