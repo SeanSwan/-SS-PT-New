@@ -1839,6 +1839,21 @@ class UnifiedSessionService {
         }
       }
 
+      // A client cancelling inside the late window loses a prepaid session. That
+      // is a real economic event, but because clients cannot set billing the whole
+      // billing block above is skipped for them - so chargeType, amount and
+      // decision all stayed null and the cancellation was invisible to every admin
+      // report. Stamp a zero-amount forfeit record so it can be counted.
+      //
+      // reviewedBy is deliberately left unset: no operator made this call, and
+      // stamping an actor would fabricate an audit trail.
+      if (!billingOptions && !creditRestored && session.sessionDeducted && session.userId) {
+        session.cancellationChargeType = 'none';
+        session.cancellationChargeAmount = 0;
+        session.cancellationDecision = 'forfeited';
+        session.cancellationReviewReason = 'client_late_cancel_credit_forfeit';
+      }
+
       await session.save({ transaction });
 
       await transaction.commit();
