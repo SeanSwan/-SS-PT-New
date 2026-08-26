@@ -89,14 +89,10 @@ export async function dispatchDeleteWorkoutPlan(params = {}, ctx = {}) {
     };
   } catch (error) {
     if (error?.code !== 'WORKOUT_PLAN_NOT_FOUND') throw error;
-    return {
-      planId,
-      planFound: false,
-      archived: false,
-      previousStatus: null,
-      status: null,
-      clientId: null,
-      trainerId: null,
-    };
+    // Same helper as the denial path above, so the two answers cannot drift apart. Kept
+    // as one expression rather than two identical literals: if a later edit adds a field
+    // to one of them, an unassigned caller becomes distinguishable from a stranger, and
+    // nothing about that edit would look like a security change.
+    return planNotAvailable(planId);
   }
 }

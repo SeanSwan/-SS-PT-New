@@ -68,7 +68,7 @@ const DISPATCHER_DIR = path.join(
  * guessing a filename. Returns null when no module exports it, which a caller must treat
  * as a failure to look rather than as an absence of the thing looked for.
  */
-export function handlerModuleSource(handler) {
+function handlerModuleSource(handler) {
   const pattern = new RegExp(`export\\s+(?:const|function|async function)\\s+${handler}\\b`);
   for (const entry of fs.readdirSync(DISPATCHER_DIR)) {
     if (!entry.endsWith('.mjs')) continue;
@@ -107,7 +107,6 @@ export function handlerBody(handler) {
   const hasNextExport = module.code.indexOf('\nexport ', startIdx + start.length) !== -1;
   return {
     file: module.file,
-    isLastExport: !hasNextExport,
     body: sliceBetween(
       module.code,
       start,

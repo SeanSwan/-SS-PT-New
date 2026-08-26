@@ -126,6 +126,30 @@ describe('Swan Coach plan-archive ownership', () => {
     const missing = await dispatchDeleteWorkoutPlan({ planId: 999999 }, { user: trainer });
     expect(withoutEcho(denied)).toEqual(withoutEcho(missing));
     expect(denied.planId).toBe(FOREIGN_PLAN);
+
+    // There is a THIRD way to arrive at "no": the plan is loadable and the caller is
+    // permitted, but the lifecycle service reports it gone underneath them. That answer
+    // has to match too — two of three agreeing still tells an id-walker something.
+    transitionMock.mockRejectedValueOnce(Object.assign(
+      new Error('Workout plan not found'), { code: 'WORKOUT_PLAN_NOT_FOUND' },
+    ));
+    const raced = await dispatchDeleteWorkoutPlan({ planId: OWN_PLAN }, { user: trainer });
+    expect(withoutEcho(raced)).toEqual(withoutEcho(missing));
+  });
+
+  it('scopes on the plan\'s CLIENT, not its author — deliberately, for parity', async () => {
+    // A plan this trainer authored, for a client who is no longer theirs. The REST
+    // middleware answers on `plan.userId` alone, so this lane does too: parity with the
+    // guarded route matters more than the intuition that authorship should carry rights,
+    // and two callers into one service disagreeing about who may use it is how the gap
+    // being fixed here appeared in the first place. If this should change, change the
+    // middleware and this together.
+    const ORPHANED = 73;
+    PLANS[ORPHANED] = { id: ORPHANED, userId: FOREIGN_CLIENT, trainerId: OUR_TRAINER, status: 'active' };
+    const result = await dispatchDeleteWorkoutPlan({ planId: ORPHANED }, { user: trainer });
+    expect(transitionMock).not.toHaveBeenCalled();
+    expect(result.planFound).toBe(false);
+    delete PLANS[ORPHANED];
   });
 
   it('lets an admin archive any plan', async () => {
@@ -142,6 +166,18 @@ describe('Swan Coach plan-archive ownership', () => {
     const result = await dispatchDeleteWorkoutPlan({ planId: FOREIGN_PLAN }, { user: trainer });
     expect(transitionMock).not.toHaveBeenCalled();
     expect(result.planFound).toBe(false);
+  });
+
+  it('does not archive when the plan lookup itself fails', async () => {
+    // The REST middleware answers 500 here rather than 404, because a lookup that threw
+    // is not evidence the plan is absent. This lane has no status code to return: the
+    // throw leaves the handler, the pipeline's step loop catches it, and the command
+    // fails. What matters either way is that nothing was archived.
+    getAllModelsMock.mockReturnValue({
+      WorkoutPlan: { findByPk: async () => { throw new Error('connection reset'); } },
+    });
+    await expect(dispatchDeleteWorkoutPlan({ planId: OWN_PLAN }, { user: trainer })).rejects.toThrow();
+    expect(transitionMock).not.toHaveBeenCalled();
   });
 
   it('denies a caller with no role at all', async () => {
