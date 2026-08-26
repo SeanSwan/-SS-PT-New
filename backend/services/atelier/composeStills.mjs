@@ -100,8 +100,7 @@ export async function composeStills(req = {}, deps = {}) {
   }
   const model = req.model || DEFAULT_MODEL;
   const { count, clampedFrom } = clampCount(req.count);
-  // Slot overrides are bounded and normalised HERE, before the key is derived from them,
-  // so an oversized one is refused rather than hashed and then sent to a provider.
+  // Bounded and normalised before the key is derived from them — see composeGuards.
   const slotOverrides = assertSlotOverrides(req.brief || {});
   const brief = { ...(req.brief || {}), text: normalizeText(req.brief?.text), ...(slotOverrides ? { slotOverrides } : {}) };
 
