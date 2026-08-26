@@ -15,7 +15,7 @@
 import * as batches from './batchStore.mjs';
 import { sha, seedFor } from './composeLimits.mjs';
 import { buildPrompts } from './composePrompts.mjs';
-import { releaseWhenSettled } from './composeGuards.mjs';
+import { releaseWhenSettled } from './composeGpu.mjs';
 import { brandKitView } from '../../../shared/brandKits/registry.mjs';
 import * as local from './localStillLane.mjs';
 

@@ -40,19 +40,8 @@ import { runLocalBatch } from './localBatchRunner.mjs';
 import { runBatch } from './composeBatch.mjs';
 import { buildPrompts } from './composePrompts.mjs';
 
-/** The synchronous local path's watchdog. Same bound as the batch runner's, and the same
- *  reason: a render that hangs must not hold the card — or, here, the request — forever. */
-const SYNC_WATCHDOG_MS = 20 * 60 * 1000;
-function syncWatchdog(ms = SYNC_WATCHDOG_MS) {
-  return new Promise((_, rej) => {
-    const t = setTimeout(() => rej(Object.assign(
-      new Error(`The render did not finish within ${Math.round((ms || SYNC_WATCHDOG_MS) / 60000)} minutes and was abandoned.`),
-      { code: 'E_BATCH_TIMEOUT' },
-    )), ms || SYNC_WATCHDOG_MS);
-    if (typeof t.unref === 'function') t.unref();
-  });
-}
-import { rememberKey, defaultCommit, slimForReplay, assertKeyHasOwner, assertSlotOverrides, releaseWhenSettled, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
+import { rememberKey, defaultCommit, slimForReplay, assertKeyHasOwner, assertSlotOverrides, COALESCING_STORE, settledKeys } from './composeGuards.mjs';
+import { releaseWhenSettled, syncWatchdog } from './composeGpu.mjs';
 import { chooseLane, gateHosted } from './composeLaneChoice.mjs';
 
 export {

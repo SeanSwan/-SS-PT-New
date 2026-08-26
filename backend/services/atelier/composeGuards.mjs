@@ -263,29 +263,3 @@ export function assertSlotOverrides(brief = {}) {
   }
   return cleaned;
 }
-
-/**
- * Give the GPU back when the WORK stops — never when the WAIT stops.
- *
- * `Promise.race([watchdog, work])` ends the wait. The work keeps running, and it is the
- * work that owns the card, so releasing on the watchdog hands the GPU to a new batch
- * while the old render is still mid-frame.
- *
- * Waiting unconditionally is the opposite mistake: a genuinely HUNG render would hold the
- * card forever, which is the exact failure the watchdog exists to end. So this waits for
- * the work, bounded by a grace — a render that has not finished within it is not going to.
- *
- * It lives here, called by BOTH lanes, because the async lane got this right first and the
- * sync watchdog added later reproduced the original bug within the hour. Two copies of a
- * subtle release rule is how that happens; one function is how it stops.
- */
-export function releaseWhenSettled(reservation, work, graceMs) {
-  if (!reservation) return;
-  if (!work || typeof work.then !== 'function') { reservation.release(); return; }
-  const grace = Math.min(30_000, Math.max(250, Number(graceMs) || 30_000));
-  let released = false;
-  const release = () => { if (!released) { released = true; reservation.release(); } };
-  const timer = setTimeout(release, grace);
-  if (typeof timer.unref === 'function') timer.unref();
-  work.catch(() => {}).finally(() => { clearTimeout(timer); release(); });
-}
