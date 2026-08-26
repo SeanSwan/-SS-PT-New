@@ -200,7 +200,7 @@ export async function composeStills(req = {}, deps = {}) {
       // received two rounds ago and this one did not. Sixth time a fix has landed on one
       // half of a pair in this review; the async lane is where taste actually RUNS, so
       // fixing only the sync half fixed the path taste almost never takes.
-      lawProfile: kit.lawProfileFromKit, model: cost.model, reservation,
+      lawProfile: kit.lawProfileFromKit, kit, model: cost.model, reservation,
       deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, brandKit: brandKitView(kit), ...(deps.watchdogMs ? { watchdogMs: deps.watchdogMs } : {}) } })
       // The key is evicted when the batch is terminal: a replay is only honest WHILE the
       // batch is in flight. Holding it for the store's lifetime would silently return an

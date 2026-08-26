@@ -14,7 +14,8 @@
 
 import * as batches from './batchStore.mjs';
 import { sha, seedFor } from './composeLimits.mjs';
-import { promptsFromBrief, promptsFromTaste } from './promptSources.mjs';
+import { promptsFromBrief, promptsFromTaste, LAW_PROFILES } from './promptSources.mjs';
+import { applyBrandKit } from '../../../shared/brandKits/registry.mjs';
 import * as local from './localStillLane.mjs';
 
 /**
@@ -25,7 +26,7 @@ import * as local from './localStillLane.mjs';
  */
 export const BATCH_WATCHDOG_MS = 20 * 60 * 1000;
 
-export async function runLocalBatch({ batch, req, brief, count, key, promptSource, lawProfile, model, reservation, deps }) {
+export async function runLocalBatch({ batch, req, brief, count, key, promptSource, lawProfile, kit, model, reservation, deps }) {
   const { renderStill, withGpu, env, tasteDeps, compiler, persist, watchdogMs = BATCH_WATCHDOG_MS } = deps;
   let timer = null;
   const watchdog = new Promise((_, rej) => {
@@ -39,7 +40,25 @@ export async function runLocalBatch({ batch, req, brief, count, key, promptSourc
       const t = await promptsFromTaste({ count, aspect: brief.aspect || req.aspect, seed: seedFor(key, 0), cinematic: !!req.cinematic, mode: req.mode, lawProfile }, { env, ...tasteDeps });
       prompts = t.prompts;
     } else {
-      prompts = promptsFromBrief(brief, { provider: local.STILL_PROVIDER, promptStyle: 'sentence' }, count, compiler).prompts;
+      // THE BRAND KIT AND THE LAW DROP, which this branch did not apply at all.
+      //
+      // The synchronous path has applied both since the brand-kit slice. This one — the
+      // LOCAL lane, which is the default, which is the 5090, which is where essentially
+      // every render actually happens — passed the raw brief straight through. So a
+      // non-Swan brand rendered with none of its own language AND was judged by every
+      // SwanStudios law, which is precisely the defect that slice was written to fix,
+      // still live on the only lane that matters. Seventh time in this review that a fix
+      // landed on one half of a pair, and the most expensive.
+      prompts = promptsFromBrief({
+        ...brief,
+        aspect: brief.aspect || req.aspect,
+        text: applyBrandKit(brief.text, kit),
+        slotOverrides: {
+          ...(kit?.negativeSlot ? { negative: kit.negativeSlot } : {}),
+          ...(brief.slotOverrides || {}),
+        },
+        lawProfileDrop: LAW_PROFILES[lawProfile] || [],
+      }, { provider: local.STILL_PROVIDER, promptStyle: 'sentence' }, count, compiler).prompts;
     }
     await Promise.race([watchdog, withGpu(async () => {
       for (let i = 0; i < prompts.length; i += 1) {

@@ -252,3 +252,22 @@ describe('an ownerless request coalesces with nobody', () => {
     expect(deriveKey(req, now)).not.toBe(deriveKey({ ...req, userId: 8 }, now));
   });
 });
+
+describe('the guard against unbounded input was itself unbounded', () => {
+  it('refuses an oversized slot NAME, not just an oversized value', async () => {
+    // The guard was added specifically to close an unbounded channel and left the slot
+    // NAME open, so a multi-megabyte key with an empty value walked straight through it.
+    // The pair pattern, inside a single function.
+    const { assertSlotOverrides, MAX_SLOT_NAME_CHARS } = await import('../../services/atelier/composeGuards.mjs');
+    const huge = 'k'.repeat(MAX_SLOT_NAME_CHARS + 1);
+    let err;
+    try { assertSlotOverrides({ slotOverrides: { [huge]: '' } }); } catch (e) { err = e; }
+    expect(err?.code).toBe('E_BAD_SLOT_OVERRIDE');
+    expect(err.message).toMatch(/slot name/i);
+  });
+
+  it('accepts a normal slot name', async () => {
+    const { assertSlotOverrides } = await import('../../services/atelier/composeGuards.mjs');
+    expect(assertSlotOverrides({ slotOverrides: { negative: 'no watermark' } })).toEqual({ negative: 'no watermark' });
+  });
+});

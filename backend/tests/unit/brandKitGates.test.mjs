@@ -10,7 +10,7 @@
 import { describe, it, expect } from 'vitest';
 import { resolveBrandKit } from '../../../shared/brandKits/registry.mjs';
 import { composeStills } from '../../services/atelier/composeStills.mjs';
-import { _resetBatches } from '../../services/atelier/batchStore.mjs';
+import { _resetBatches, getBatch } from '../../services/atelier/batchStore.mjs';
 import { _resetSingleFlight } from '../../services/atelier/localStillLane.mjs';
 
 const MODEL = 'openai/gpt-5.4-image-2';
@@ -188,5 +188,53 @@ describe('a price preview survives a ledger it cannot read', () => {
     const { deps } = capturingDeps({ usage: { runs: 0, spendUsd: 0, degraded: true } });
     const err = await composeStills({ brief: BRIEF, lane: 'hosted', count: 2, userId: 1 }, deps).catch((e) => e);
     expect(err.code).toBe('E_LEDGER_DEGRADED');
+  });
+});
+
+describe('the LOCAL lane gets the brand kit too — it is the lane that matters', () => {
+  const localKitDeps = (over = {}) => {
+    const compiled = [];
+    return {
+      compiled,
+      deps: {
+        env: { SWAN_ATELIER_LOCAL_STILLS: 'probed', SWAN_ATELIER_STILL_WORKFLOW: '/g/s.json', SWAN_ATELIER_STILL_NODE_PROMPT: '6', SWAN_VIDEO_PROVIDERS_ENABLED: 'comfyui/wan-2.2' },
+        localVerify: () => ({ ok: true, provider: 'comfyui/wan-2.2', problems: [], status: 'probed' }),
+        admit: async () => ({ host: 'h', freeMb: 30000, neededMb: 26000 }),
+        // Captures what the COMPILER was handed, which is where the kit either arrives or does not.
+        compiler: (brief) => { compiled.push(brief); return { promptText: `${brief.text} [compiled]` }; },
+        renderStill: async ({ seed }) => ({ image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 1, provider: 'comfyui/wan-2.2' }),
+        persist: async ({ stills }) => { stills.forEach((x) => Object.assign(x, { assetId: 'a1', persist: { ok: true } })); return { ok: true, persisted: stills.length, total: stills.length }; },
+        store: new Map(), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 0, disabled: true },
+        commit: () => ({ allowed: true }),
+        ...over,
+      },
+    };
+  };
+
+  it('applies the brand language and the law drop on the async local path', async () => {
+    // The SYNC path had applied both since the brand-kit slice. The LOCAL ASYNC path — the
+    // default lane, the 5090, where essentially every render actually happens — passed the
+    // raw brief straight through, so a non-Swan brand rendered with none of its own
+    // language and was judged by every SwanStudios law. The slice's headline feature was
+    // never delivered on the only lane that matters.
+    _resetSingleFlight(); _resetBatches();
+    const { compiled, deps } = localKitDeps();
+    const out = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, brandKit: 'swanstudios' }, deps);
+    const t0 = Date.now();
+    while (!getBatch(out.batchId, 1).terminal && Date.now() - t0 < 2000) await new Promise((r) => setTimeout(r, 10));
+    expect(compiled).toHaveLength(1);
+    expect(compiled[0].text).toMatch(/midnight sapphire/);          // the kit reached the compiler
+    expect(Array.isArray(compiled[0].lawProfileDrop)).toBe(true);   // and so did the law drop
+  });
+
+  it('a universal kit drops the Swan laws on the local lane as well', async () => {
+    _resetSingleFlight(); _resetBatches();
+    const { compiled, deps } = localKitDeps();
+    const out = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, brandKit: 'universal' }, deps);
+    const t0 = Date.now();
+    while (!getBatch(out.batchId, 1).terminal && Date.now() - t0 < 2000) await new Promise((r) => setTimeout(r, 10));
+    expect(compiled[0].lawProfileDrop).toContain('LAW4-optics-not-creatures');
+    expect(compiled[0].text).not.toMatch(/midnight sapphire/);      // and carries no Swan language
+    expect(compiled[0].slotOverrides.negative).toBe('watermark, text artifacts');
   });
 });

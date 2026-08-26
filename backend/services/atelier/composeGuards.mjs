@@ -214,6 +214,8 @@ export function assertKeyHasOwner(req) {
  *  there, and everything else is an attack surface. */
 export const MAX_SLOT_OVERRIDE_CHARS = 2000;
 export const MAX_SLOT_OVERRIDES = 12;
+/** A slot NAME is an identifier like `negative` or `styleAnchor`, never prose. */
+export const MAX_SLOT_NAME_CHARS = 64;
 
 /**
  * Bound the slot overrides.
@@ -240,6 +242,13 @@ export function assertSlotOverrides(brief = {}) {
   }
   const cleaned = {};
   for (const k of keys) {
+    // The KEY is unbounded too — a guard added specifically to close an unbounded channel
+    // left the slot NAME open, so a multi-megabyte key with an empty value walked through
+    // it. Bounding the value and not the key is the pair pattern inside a single function.
+    if (k.length > MAX_SLOT_NAME_CHARS) {
+      throw new ComposeError('E_BAD_SLOT_OVERRIDE',
+        `A slot name is ${k.length} characters; at most ${MAX_SLOT_NAME_CHARS} are accepted.`);
+    }
     const v = overrides[k];
     if (typeof v !== 'string') {
       throw new ComposeError('E_BAD_SLOT_OVERRIDE', `slotOverrides.${k} must be text.`);
