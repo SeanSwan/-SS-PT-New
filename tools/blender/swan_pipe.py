@@ -21,6 +21,21 @@ So this script's whole job is the translation:
       -> GLB export + a still poster
       -> manifest stub for scripts/assets/validate-asset.mjs
 
+API AUDIT (2026-08-25, no Blender available — documentation only, not execution):
+  bpy.ops.wm.obj_import            OK   3.x+ name; the old import_scene.obj is gone
+  bmesh.ops.remove_doubles          OK
+  bmesh.ops.dissolve_limit          OK   signature (bm, angle_limit, use_dissolve_boundaries,
+                                         verts, edges, delimit) — the three kwargs used are valid
+  BEVEL modifier + modifier_apply   OK
+  shade_auto_smooth                 REPLACED — see smooth_by_angle() below. The operator exists
+                                    in 4.2/4.5 (a review seat's "removed in 4.1" hypothesis was
+                                    about Mesh.use_auto_smooth, which this pipe never used), but
+                                    it depends on a geometry-node ASSET that has open failure
+                                    reports including headless runs. Now done in bmesh instead.
+  bpy.ops.uv.smart_project          UNVERIFIED for 4.5 kwarg names
+  bpy.ops.export_scene.gltf         UNVERIFIED — has a history of background-mode issues
+                                    (blender.org 83188); first real run must check headless export
+
 STATUS: UNRUN. Blender is not installed on this machine (verified 2026-08-25).
 Every bpy call below is written against the 4.5 LTS API but has NOT executed.
 Treat it as reviewed-not-verified until the first real run. The manifest it emits
@@ -43,6 +58,7 @@ except ImportError:  # allows --dry-run linting outside Blender
 
 
 LOD_RATIOS = {"lod0": 1.0, "lod1": 0.45, "lod2": 0.18}
+SMOOTH_ANGLE = 0.6109  # ~35 degrees
 COLLISION_RATIO = 0.08
 
 
@@ -69,7 +85,7 @@ def plan(args):
         ("weld", "merge_by_distance — voxel exporters emit duplicate verts at every cube face"),
         ("cleanup", "limited dissolve on coplanar faces — collapses cube grids into flat n-gons"),
         ("bevel", f"width={args.bevel_width}, segments=2, clamp — THE inherited art gene"),
-        ("shade", "shade_auto_smooth ~35deg — keeps hard silhouette, softens bevel"),
+        ("shade", "bmesh sharp-edge marking at ~35deg then shade smooth — asset-free, headless-safe"),
         ("uv", "smart_uv_project, island_margin 0.02"),
         ("bake", f"normal + AO + roughness @ {args.bake_size} — micro-detail becomes texture, not geometry"),
         ("lods", f"decimate to {LOD_RATIOS}"),
@@ -115,6 +131,39 @@ def write_manifest_stub(args, out_dir):
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(stub, fh, indent=2)
     return path
+
+
+def smooth_by_angle(obj, angle):
+    """Mark edges sharp above `angle`, then shade smooth. Asset-free and headless-safe.
+
+    NOT `bpy.ops.object.shade_auto_smooth()`. That operator is the correct post-4.1
+    replacement for the removed `Mesh.use_auto_smooth` — a review seat predicted the pipe
+    would crash on the OLD idiom, and it does not use it. But the replacement carries a
+    worse problem for this pipe specifically: it applies a "Smooth by Angle" GEOMETRY-NODE
+    ASSET, and there are open reports of it failing with `RuntimeError: No asset found at
+    path` (blender.org issues 123508, 151055), with background/headless runs among the
+    reported conditions. This pipe runs `blender -b`. Depending on the user's asset
+    library resolving inside a headless process is a dependency this stage does not need.
+
+    Doing it in bmesh reproduces the pre-4.1 semantics directly: an edge between two faces
+    whose normals diverge by more than `angle` is sharp; everything else smooths. No asset
+    library, no geometry-node evaluation, same result, works on any 4.x.
+
+    NOTE: like the rest of this module, UNRUN — Blender is not installed. Reviewed against
+    the bmesh API, not executed.
+    """
+    me = obj.data
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    for edge in bm.edges:
+        if len(edge.link_faces) == 2:
+            edge.smooth = edge.calc_face_angle(0.0) <= angle
+        else:
+            edge.smooth = True  # boundary / non-manifold: leave smooth, let sharpness come from geometry
+    bm.to_mesh(me)
+    bm.free()
+    for poly in me.polygons:
+        poly.use_smooth = True
 
 
 # --------------------------------------------------------------- blender ops
@@ -163,7 +212,8 @@ def run_in_blender(args, out_dir):
     bev.angle_limit = 0.5236  # 30deg
     bpy.ops.object.modifier_apply(modifier=bev.name)
 
-    bpy.ops.object.shade_auto_smooth(angle=0.6109)  # ~35deg
+    smooth_by_angle(obj, SMOOTH_ANGLE)
+
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.uv.smart_project(island_margin=0.02)
     bpy.ops.object.mode_set(mode="OBJECT")
