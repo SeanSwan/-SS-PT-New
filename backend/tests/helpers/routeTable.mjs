@@ -140,12 +140,21 @@ export function parseRouterFile(absPath) {
 }
 
 /**
- * Normalise a path into comparable segments; '' and '/' both mean the mount root.
- * A query string is not part of route matching, and several registry endpoints carry
- * one (e.g. `/api/macros/summary?date={date}`), so it is stripped here rather than
- * silently producing a no-match that would read as a missing route.
+ * Split a ROUTE PATTERN into segments. No query strip: a route pattern has no query
+ * string, and stripping `?` here would silently rewrite Express optional params —
+ * `/user/:id?` would become `/user/:id`, so a request to `/user` would report NO
+ * MATCH for a route Express serves. That is a false absence, the one failure class
+ * this table must never produce. (Panel round 2, 2026-08-25: GLM-5.3 + HY3.)
  */
 export function segments(p) {
+  return p.split('/').filter(Boolean);
+}
+
+/**
+ * Split a REQUEST path into segments. Here the query strip IS correct — several
+ * registry endpoints carry one (e.g. `/api/macros/summary?date={date}`).
+ */
+export function requestSegments(p) {
   return p.split('?')[0].split('#')[0].split('/').filter(Boolean);
 }
 
@@ -220,6 +229,7 @@ export function buildRouteTable({ backendRoot = BACKEND_ROOT } = {}) {
         segs: segments(full),
         allowedRoles: ceiling.allowedRoles,
         authRequired: ceiling.authRequired,
+        ceilingUnknown: ceiling.ceilingUnknown,
         mountPrefix: prefix,
         routerFile,
         line,
@@ -236,7 +246,17 @@ export function buildRouteTable({ backendRoot = BACKEND_ROOT } = {}) {
       // endpoint does not exist" into a false positive, and the whole value of this
       // table is that its absences can be trusted (GLM-5.3 hostile review, 2026-08-24).
       if (!childId || !/^[A-Za-z_$][\w$]*$/.test(childId)) {
-        unresolved.push({ file: rel(abs), line: sm.line, reason: 'sub-mount target is not a plain identifier', raw: String(childId).slice(0, 60) });
+        // NOT a sub-mount. `router.use('/oauth', rateLimiter({...}))` is PATH-SCOPED
+        // MIDDLEWARE, and calling it an unfollowed router subtree was simply wrong
+        // (HY3, panel round 2). It is still recorded, because the middleware is not
+        // applied to routes under that path and that is a real gap in the ceiling —
+        // but it is named for what it is so the next reader is not sent hunting for
+        // a router that does not exist.
+        unresolved.push({
+          file: rel(abs), line: sm.line,
+          reason: 'path-scoped middleware, not a sub-mount — its gate is NOT applied to routes under this path',
+          raw: String(childId).slice(0, 60),
+        });
         continue;
       }
       const childRel = parsed.imports.get(childId);
@@ -272,17 +292,37 @@ export function buildRouteTable({ backendRoot = BACKEND_ROOT } = {}) {
 
 /**
  * Does a concrete request path match a route pattern?
- * `:param` and `*` match exactly one segment, and segment counts must be equal —
- * this is what makes the match sound where tail-matching was not.
+ *
+ * Express semantics modelled (corrected 2026-08-25 after the panel found the naive
+ * equal-length rule unsound):
+ *   `:param`   exactly one segment
+ *   `:param?`  zero or one segment
+ *   `*`        ZERO OR MORE segments (path-to-regexp compiles it to `(.*)`)
+ * A plain equal-length comparison treats `*` as exactly one and drops optional
+ * params entirely, both of which produce FALSE ABSENCES.
  */
 export function pathMatches(routeSegs, requestSegs) {
-  if (routeSegs.length !== requestSegs.length) return false;
-  for (let i = 0; i < routeSegs.length; i++) {
-    const r = routeSegs[i];
-    if (r.startsWith(':') || r === '*') continue;
-    if (r !== requestSegs[i]) return false;
-  }
-  return true;
+  const walk = (ri, qi) => {
+    if (ri === routeSegs.length) return qi === requestSegs.length;
+    const seg = routeSegs[ri];
+    if (seg === '*') {
+      // zero or more
+      for (let take = 0; qi + take <= requestSegs.length; take++) {
+        if (walk(ri + 1, qi + take)) return true;
+      }
+      return false;
+    }
+    if (seg.startsWith(':')) {
+      if (seg.endsWith('?')) {
+        // zero or one
+        if (walk(ri + 1, qi)) return true;
+        return qi < requestSegs.length && walk(ri + 1, qi + 1);
+      }
+      return qi < requestSegs.length && walk(ri + 1, qi + 1);
+    }
+    return qi < requestSegs.length && seg === requestSegs[qi] && walk(ri + 1, qi + 1);
+  };
+  return walk(0, 0);
 }
 
 /**
@@ -290,7 +330,7 @@ export function pathMatches(routeSegs, requestSegs) {
  * `candidates` lists every match so shadowing (Rule 31) can be reported.
  */
 export function resolveRoute(table, method, requestPath) {
-  const reqSegs = segments(requestPath);
+  const reqSegs = requestSegments(requestPath);
   const candidates = table.filter(
     (r) => (r.method === method || r.method === 'ALL') && pathMatches(r.segs, reqSegs)
   );

@@ -12,6 +12,19 @@
  *           A forensic reviewer reading a signed audit record must not be pointed
  *           at a route that was never mounted.
  *
+ * SCOPE OF THAT CLAIM — read before quoting it (panel round 2, 2026-08-25)
+ *           It is NOT fully delivered. Four commands are allowlisted in
+ *           KNOWN_UNROUTED, and `request_plan_adjustment` is both WIRED and
+ *           `requiresConfirmation: true` — so it reaches prepareDestructiveOperation
+ *           and its fictional endpoint IS HMAC-signed into a real audit record. Ox
+ *           Alpha and GLM-5.3 independently flagged that the allowlist carves out
+ *           exactly the case the blueprint claims to prevent.
+ *           The honest statement: this contract stops the set of unrouted endpoints
+ *           from GROWING, and it fixed the one entry that was a plain factual error.
+ *           It does not make every signed record truthful. Closing that needs a
+ *           registry-wide decision on what `endpoint` means for a lane-internal
+ *           command — Sean's call, tracked, not silently pinned.
+ *
  * WHAT THIS TEST IS *NOT* — read before extending it
  * --------------------------------------------------
  * It deliberately does NOT assert that `roleRequired` is a subset of the role
@@ -54,9 +67,13 @@ import { sliceBetween } from '../helpers/sliceBetween.mjs';
  * the moment a middleware was renamed — the same silent-green failure this file's
  * other assertions exist to prevent, reintroduced in the fix for the first instance.
  */
-function bodyOf(source, name) {
+function bodyOfIn(source, name, label = name) {
   const NEXT_EXPORT = String.fromCharCode(10) + 'export const ';
-  return sliceBetween(source, `export const ${name} `, NEXT_EXPORT, { label: `authMiddleware.${name}` });
+  return sliceBetween(source, `export const ${name} `, NEXT_EXPORT, { label });
+}
+
+function bodyOf(source, name) {
+  return bodyOfIn(source, name, `authMiddleware.${name}`);
 }
 
 /** Roles the platform actually recognises (backend/middleware/authMiddleware.mjs). */
@@ -147,19 +164,30 @@ describe('Swan Coach command registry — endpoint/route truth', () => {
   });
 
   it('the set of route subtrees the extractor cannot follow has not grown', () => {
-    // Raised by GLM-5.3 hostile review 2026-08-24: sub-mounts the extractor gives up
-    // on were previously `continue`d SILENTLY. A dropped subtree turns every "this
-    // endpoint does not exist" claim into a possible false positive, so the drops are
-    // now recorded — and pinned here so a new one cannot appear unnoticed.
+    // Sub-mounts the extractor gives up on were previously `continue`d SILENTLY. A
+    // dropped subtree turns every "this endpoint does not exist" claim into a possible
+    // false positive, so the drops are recorded — and pinned here so a new one cannot
+    // appear unnoticed.
     //
-    // Each pinned entry was checked by hand against the four KNOWN_UNROUTED paths:
-    // all six mount under /api/plaud/*, social groups, or admin-clients (which is
-    // also mounted directly and therefore already in the table). None can host
-    // /api/ai-chat/* or /api/ai-command/*, so no pinned absence rests on them.
+    // CORRECTION (panel round 2, 2026-08-25). This comment previously claimed "all six
+    // mount under /api/plaud/*, social groups, or admin-clients". That was FALSE, and
+    // GLM-5.3 caught it: routes/authRoutes.mjs:368 is under /api/auth, and it is not a
+    // sub-mount at all — it is `router.use('/oauth', rateLimiter({...}))`, i.e. path-
+    // scoped middleware. It is now labelled correctly.
+    //
+    // What actually matters for the pinned absences below, checked entry by entry:
+    //   core/routes.mjs:448/449/463  -> /api/plaud/merge, /api/plaud/merge-requests,
+    //                                   /api/plaud/webhook. Prefixes are literal and
+    //                                   visible even though the routers are dynamically
+    //                                   imported, so nothing under /api/ai-chat/* or
+    //                                   /api/ai-command/* can hide there.
+    //   routes/adminRoutes.mjs:67    -> mounts adminClientRoutes at '/', which is ALSO
+    //                                   mounted directly and therefore already in the table.
+    //   routes/social/groups.mjs:279 -> group membership, under the groups prefix.
+    //   routes/authRoutes.mjs:368    -> /api/auth/oauth rate limiter.
+    // None can host a KNOWN_UNROUTED path.
     const { unresolved } = buildRouteTable();
-    const summary = unresolved
-      .map((u) => `${u.reason} @ ${u.file}:${u.line}`)
-      .sort();
+    const summary = unresolved.map((u) => `${u.reason} @ ${u.file}:${u.line}`).sort();
 
     expect(summary).toEqual([
       'mount target not a static import @ core/routes.mjs:448',
@@ -167,8 +195,54 @@ describe('Swan Coach command registry — endpoint/route truth', () => {
       'mount target not a static import @ core/routes.mjs:463',
       'nested sub-mount deeper than one level — NOT followed @ routes/adminRoutes.mjs:67',
       'nested sub-mount deeper than one level — NOT followed @ routes/social/groups.mjs:279',
-      'sub-mount target is not a plain identifier @ routes/authRoutes.mjs:368',
+      'path-scoped middleware, not a sub-mount — its gate is NOT applied to routes under this path @ routes/authRoutes.mjs:368',
     ]);
+  });
+
+  it('the parser has no route syntax it cannot see', () => {
+    // Two blind spots the panel identified, pinned rather than left unknown.
+    //
+    // 1. `router.route('/x').get(h)` chains are invisible to the parser AND to the
+    //    grep cross-check below, which shares the `router.<verb>(` assumption — so for
+    //    that one syntax the "independent second opinion" is not independent. Zero
+    //    occurrences today; this assertion is what keeps that true.
+    // 2. A file using a non-`router` identifier (`const api = Router()`) parses to
+    //    zero routes and records nothing.
+    const routesDir = path.join(BACKEND_ROOT, 'routes');
+    const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const abs = path.join(dir, e.name);
+      if (e.isDirectory()) return walk(abs);
+      return e.name.endsWith('.mjs') ? [abs] : [];
+    });
+
+    const offenders = [];
+    for (const abs of walk(routesDir)) {
+      const src = fs.readFileSync(abs, 'utf8');
+      const rel = path.relative(routesDir, abs);
+      if (/\.route\s*\(/.test(src)) offenders.push(`${rel}: uses .route() chaining, which the parser cannot see`);
+      const altRouter = src.match(/const\s+([A-Za-z_$][\w$]*)\s*=\s*(express\.)?Router\s*\(/);
+      if (altRouter && altRouter[1] !== 'router') {
+        offenders.push(`${rel}: router bound as '${altRouter[1]}', not 'router' — parser sees no routes`);
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+
+  it('the share of rows whose role ceiling is unknown has not grown', () => {
+    // An unclassified middleware yields allowedRoles:null + authRequired:false, which
+    // reads IDENTICALLY to "public" (Ox Alpha, panel round 2). `ceilingUnknown` now
+    // marks those rows so no consumer can mistake them for ungated.
+    //
+    // The number is large and that is the point: 903 of 1672 rows carry at least one
+    // middleware this table cannot classify. It is pinned as a CEILING so the honest
+    // size of the blind spot is visible, and so nobody builds an authorization claim
+    // on `allowedRoles` while it is this big.
+    const { table } = buildRouteTable();
+    const unknownRows = table.filter((r) => r.ceilingUnknown).length;
+
+    expect(unknownRows).toBeLessThanOrEqual(903);
+    expect(table.length).toBeGreaterThan(1000);
   });
 
   it('the hand-transcribed role table still matches the middleware it describes', () => {
@@ -179,6 +253,14 @@ describe('Swan Coach command registry — endpoint/route truth', () => {
     const auth = fs.readFileSync(path.join(BACKEND_ROOT, 'middleware', 'authMiddleware.mjs'), 'utf8');
 
     // Every gate the table claims to know must still be exported by that module.
+    // requireAdmin lives in adminMiddleware.mjs, not authMiddleware.mjs. It was
+    // previously excluded from the export check and therefore bound to NOTHING —
+    // three of eight transcribed gates had no source binding at all (Ox Alpha,
+    // panel round 2). It is now checked against its own file, below.
+    const adminMw = fs.readFileSync(path.join(BACKEND_ROOT, 'middleware', 'adminMiddleware.mjs'), 'utf8');
+    expect(adminMw).toContain('export const requireAdmin =');
+    expect(bodyOfIn(adminMw, 'requireAdmin')).toMatch(/role === 'admin'/);
+
     const missing = Object.keys(ROLE_GATES)
       .filter((name) => !['requireAdmin', 'authorizeAdmin', 'adminOrTrainerOnly'].includes(name))
       .filter((name) => !new RegExp(String.raw`export const ${name}\b`).test(auth));
@@ -194,7 +276,55 @@ describe('Swan Coach command registry — endpoint/route truth', () => {
     expect(authorizeBody).toMatch(/return next\(\)/);
 
     // requireAnyRole must NOT have that override; the table treats it as exact.
-    expect(bodyOf(auth, 'requireAnyRole')).not.toMatch(/role === 'admin'/);
+    // Spelling-hardened. The single-spelling form `/role === 'admin'/` was evadable by
+    // double quotes, optional chaining, or whitespace — a refactor could restore the
+    // override and keep this green (Ox Alpha, panel round 2). Now matches any
+    // comparison of a role to admin, however written.
+    expect(bodyOf(auth, 'requireAnyRole')).not.toMatch(/role\s*===\s*['"]admin['"]/);
+    expect(bodyOf(auth, 'requireAnyRole')).not.toMatch(/isAdmin|adminOnly/);
+  });
+
+  it('no client-side surface can turn a command endpoint into an HTTP request', () => {
+    // THE LOAD-BEARING PROOF. This whole file exists because an "authz parity harness"
+    // was refused on the grounds that `endpoint` is declarative metadata that never
+    // becomes a request. All three panel seats independently attacked that claim on the
+    // same ground: the evidence was a BACKEND-only grep, while /api/ai-command/commands
+    // hands a command list to the browser. If any client built a fetch from `endpoint`,
+    // route middleware WOULD run and the refused harness was a real control.
+    //
+    // Two independent facts settle it, and both are asserted here so the claim can
+    // never quietly stop being true:
+    //   1. The commands response picks its fields explicitly and `endpoint` is not
+    //      among them, so the browser is never handed one.
+    //   2. No frontend source reads `.endpoint` off a command.
+    const routeSrc = fs.readFileSync(path.join(BACKEND_ROOT, 'routes', 'aiCommandRoutes.mjs'), 'utf8');
+    const commandsHandler = sliceBetween(routeSrc, "router.get('/commands'", "router.get('/health'", {
+      label: 'aiCommandRoutes GET /commands',
+    });
+    expect(commandsHandler).toContain('commands: commands.map');
+    expect(commandsHandler).not.toMatch(/endpoint/);
+
+    const laneSrc = fs.readFileSync(
+      path.join(BACKEND_ROOT, 'services', 'ai', 'commandExecutionLane.mjs'), 'utf8',
+    );
+    expect(laneSrc).not.toMatch(/endpoint/);
+
+    const frontendRoot = path.resolve(BACKEND_ROOT, '..', 'frontend', 'src');
+    const walkFe = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+      const abs = path.join(dir, e.name);
+      if (e.isDirectory()) return e.name === 'assets' ? [] : walkFe(abs);
+      return /\.(ts|tsx|js|jsx)$/.test(e.name) ? [abs] : [];
+    });
+    const consumers = [];
+    for (const abs of walkFe(frontendRoot)) {
+      const src = fs.readFileSync(abs, 'utf8');
+      if (!/ai-?command|commandRegistry/i.test(src)) continue;
+      if (/\.endpoint/.test(src) || /\{[^}]*endpoint[^}]*\}\s*=/.test(src)) {
+        consumers.push(path.relative(frontendRoot, abs));
+      }
+    }
+
+    expect(consumers).toEqual([]);
   });
 
   it('every command declares a method, an endpoint and at least one known role', () => {

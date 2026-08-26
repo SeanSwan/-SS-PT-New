@@ -127,7 +127,7 @@ describe('client hub roster — loading and failure affordances', () => {
 
     // The region PERSISTS and empties, rather than unmounting — a region that mounts
     // already containing its text is unreliably announced.
-    await waitFor(() => expect(status).toHaveTextContent(''), { timeout: 5000 });
+    await waitFor(() => expect(status).toBeEmptyDOMElement(), { timeout: 5000 });
     expect(status).toBeInTheDocument();
   });
 
@@ -137,12 +137,17 @@ describe('client hub roster — loading and failure affordances', () => {
 
     renderHub();
 
-    // Found via the visible pulse rather than a container-wide [aria-busy] query:
-    // sibling nutrition panels carry their own aria-busy and stay loading forever
-    // under these mocks, so a broad query proves nothing about the node under test.
     // Assert the invariant directly rather than hunting for a specific node: the hub
-    // has exactly ONE aria-busy region (ContentArea), the announcer must sit OUTSIDE
-    // it, and the visible loading text must sit INSIDE it.
+    // renders exactly ONE aria-busy region (ContentArea), the announcer must sit
+    // OUTSIDE it, and the visible loading text must sit INSIDE it.
+    //
+    // A stale comment here used to claim sibling nutrition panels "carry their own
+    // aria-busy and stay loading forever under these mocks" — left over from an
+    // earlier version that hunted for the pulse by text. All three panel seats
+    // flagged it, correctly, as contradicting the assertion directly below it: both
+    // cannot be true. The assertion is the true one (verified: the census is 1), and
+    // the comment was a leftover. Kept as a note because a test whose commentary
+    // disputes its own assertion teaches the next reader to distrust the assertion.
     const announcer = await screen.findByRole('status', {}, { timeout: 5000 });
     const busyNodes = document.querySelectorAll('[aria-busy]');
     expect(busyNodes.length).toBe(1);

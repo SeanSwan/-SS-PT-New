@@ -128,6 +128,12 @@ export function roleCeiling(middleware, alias = new Map()) {
     allowedRoles: allowed === null ? null : [...allowed].sort(),
     authRequired: authed || roleSets.length > 0,
     unknown,
+    // TRUE when at least one middleware could not be classified. Without this an
+    // unrecognised gate yields `allowedRoles: null, authRequired: false`, which reads
+    // IDENTICALLY to "this route is public" — the most dangerous possible default for
+    // a table whose purpose is describing access (Ox Alpha, panel round 2).
+    // Any consumer of allowedRoles MUST treat ceilingUnknown as "do not trust this row".
+    ceilingUnknown: unknown.length > 0,
   };
 }
 
