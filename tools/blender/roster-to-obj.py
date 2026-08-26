@@ -1,13 +1,15 @@
 """roster-to-obj.py — turn authored enemy specs into voxel-blockout .obj files.
 
-Consumes the roster Ox Alpha authored (docs/ai-workflow/AI-HANDOFF/ox-enemy-roster-2026-08-26.md)
-and emits one .obj per enemy in the duplicate-vertex-per-face topology a voxel exporter produces
+Consumes an authored roster (docs/ai-workflow/AI-HANDOFF/*-roster-*.md, *-expansion-*.md) and
+emits one .obj per creature in the duplicate-vertex-per-face topology a voxel exporter produces
 — which is exactly what swan_pipe.py's weld + limited-dissolve stages exist to clean up.
 
     python tools/blender/roster-to-obj.py --roster <md> --out assets/source/enemy
     python tools/blender/roster-to-obj.py --roster <md> --list        # parse only, no writes
+    python tools/blender/roster-to-obj.py --roster <md> --expect 18   # completeness gate
 
-No bpy. Runs anywhere.
+No bpy. Runs anywhere. The GRAMMARS live in roster_grammar.py so they can be tested without a
+filesystem; this file is the policy layer — what to refuse, and what to write.
 
 DESIGNED AGAINST THE AUTHOR'S OWN CRITIQUE (Ox Alpha, §5.3 of its roster reply):
   - "rig: none voids clip validation, or every prop spec will fail parsing"  -> props parse fine
@@ -26,76 +28,41 @@ WHAT IT REFUSES (per block, non-fatal):
     at the calibration the pipe was probed at)
   - perfect X-mirror symmetry
   - a declared voxelCount that disagrees with the recipe (the spec lying about itself)
+  - a recipe in no grammar this tool knows (reported as UNPARSEABLE against the creature, not
+    as "no blocks found" against the roster — the failure belongs on the right thing)
 """
 
 import argparse
 import os
-import re
 import sys
 
-CLUSTER_RE = re.compile(
-    r"(?P<name>[A-Za-z][\w \-+']*?)\s+"
-    r"(?P<w>\d+)\s*[x×]\s*(?P<h>\d+)\s*[x×]\s*(?P<d>\d+)\s*"
-    r"at\s*\(\s*(?P<x>-?\d+)\s*,\s*(?P<y>-?\d+)\s*,\s*(?P<z>-?\d+)\s*\)",
-    re.IGNORECASE,
-)
-FIELD_RE = re.compile(r"^(?P<key>[a-zA-Z]+):\s*(?P<val>.*)$")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import roster_grammar as G  # noqa: E402
 
 
-def parse_blocks(text):
-    """Every fenced block that contains an `id:` line. One malformed block never kills the rest."""
-    out = []
-    for raw in re.findall(r"```(.*?)```", text, re.DOTALL):
-        fields, key = {}, None
-        for line in raw.splitlines():
-            m = FIELD_RE.match(line.strip())
-            if m:
-                key = m.group("key")
-                fields[key] = m.group("val").strip()
-            elif key and line.strip():
-                fields[key] += " " + line.strip()
-        if "id" in fields:
-            out.append(fields)
-    return out
+def components(cells):
+    """Every 6-connected component, largest first.
 
-
-def parse_recipe(spec):
-    clusters = []
-    for m in CLUSTER_RE.finditer(spec):
-        clusters.append({
-            "name": m.group("name").strip(),
-            "size": (int(m.group("w")), int(m.group("h")), int(m.group("d"))),
-            "at": (int(m.group("x")), int(m.group("y")), int(m.group("z"))),
-        })
-    return clusters
-
-
-def occupied_cells(clusters):
-    cells = set()
-    for c in clusters:
-        w, h, d = c["size"]
-        x, y, z = c["at"]
-        for i in range(w):
-            for j in range(h):
-                for k in range(d):
-                    cells.add((x + i, y + j, z + k))
-    return cells
-
-
-def connected(cells):
-    """6-neighbour flood from an arbitrary cell must reach every cell."""
-    if not cells:
-        return False
-    start = next(iter(cells))
-    seen, stack = {start}, [start]
-    while stack:
-        x, y, z = stack.pop()
-        for dx, dy, dz in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)):
-            n = (x + dx, y + dy, z + dz)
-            if n in cells and n not in seen:
-                seen.add(n)
-                stack.append(n)
-    return len(seen) == len(cells)
+    Returns components rather than a bool because "not connected" is not an actionable report.
+    An author who is told WHICH cells floated off can fix the recipe; an author who is told the
+    mesh is disconnected has to re-derive the whole thing by hand. Ox's own grammar states a
+    cluster-touch law and 8 of its 18 recipes break it — that feedback is only cheap to act on
+    if it names the orphans.
+    """
+    remaining, out = set(cells), []
+    while remaining:
+        start = next(iter(remaining))
+        seen, stack = {start}, [start]
+        while stack:
+            x, y, z = stack.pop()
+            for d in ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)):
+                n = (x + d[0], y + d[1], z + d[2])
+                if n in remaining and n not in seen:
+                    seen.add(n)
+                    stack.append(n)
+        out.append(seen)
+        remaining -= seen
+    return sorted(out, key=len, reverse=True)
 
 
 def x_mirror_symmetric(cells):
@@ -113,11 +80,12 @@ def write_obj(path, cells, header):
             for dy in (0, 1):
                 for dz in (0, 1):
                     verts.append((x + dx, y + dy, z + dz))
-        for a, b, c, d in ((0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1), (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)):
+        for a, b, c, d in ((0, 1, 3, 2), (4, 6, 7, 5), (0, 4, 5, 1),
+                           (2, 3, 7, 6), (0, 2, 6, 4), (1, 5, 7, 3)):
             faces.append((base + a + 1, base + b + 1, base + c + 1, base + d + 1))
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
-        fh.write(f"# {header}\n")
+        fh.write("# %s\n" % header)
         for v in verts:
             fh.write("v %d %d %d\n" % v)
         for f in faces:
@@ -125,24 +93,36 @@ def write_obj(path, cells, header):
     return len(verts), len(faces)
 
 
-def check(spec):
-    """Returns (cells, [problems]). A problem is a refusal for THIS block only."""
+def check(spec, mirror_break):
+    """Returns (cells, grammar, [problems]). A problem is a refusal for THIS block only."""
     problems = []
-    clusters = parse_recipe(spec.get("buildRecipe", ""))
-    if not clusters:
-        return None, ["buildRecipe parsed to zero clusters"]
-    cells = occupied_cells(clusters)
+    clusters, grammar = G.parse_recipe(spec.get("buildRecipe", ""), mirror_break=mirror_break)
+    if grammar == "none":
+        return None, grammar, ["buildRecipe is in no grammar this tool knows "
+                               "(not BOX `C(x,y,z,dx,dy,dz)`, not PROSE `name WxHxD at (x,y,z)`)"]
+    cells = G.occupied_cells(clusters)
     n = len(cells)
     if not 4 <= n <= 40:
-        problems.append(f"occupied cells {n} outside 4-40 (below has no silhouette; above blows the tier ceilings)")
-    if not connected(cells):
-        problems.append("clusters are not all touching — a floating cluster makes a disconnected mesh and the hull swallows the gap")
+        problems.append("occupied cells %d outside 4-40 (below has no silhouette; above blows "
+                        "the tier ceilings)" % n)
+    comps = components(cells)
+    if len(comps) > 1:
+        orphans = "; ".join(
+            "%d cell(s) at %s" % (len(c), ",".join("(%d,%d,%d)" % p for p in sorted(c)[:4]))
+            + ("..." if len(c) > 4 else "")
+            for c in comps[1:])
+        problems.append("clusters are not all touching — %d separate pieces; the main body holds "
+                        "%d cells and these float free: %s. A floating cluster makes a "
+                        "disconnected mesh and the convex hull swallows the gap."
+                        % (len(comps), len(comps[0]), orphans))
     if x_mirror_symmetric(cells):
         problems.append("perfect X-mirror symmetry — the art law bans plastic-cube regularity")
-    declared = spec.get("voxelCount", "").strip()
+    raw = str(spec.get("voxelCount", "")).strip()
+    declared = raw.split()[0] if raw else ""
     if declared.isdigit() and int(declared) != n:
-        problems.append(f"voxelCount says {declared}, the recipe yields {n} — the spec disagrees with itself")
-    return cells, problems
+        problems.append("voxelCount says %s, the recipe yields %d (delta %+d) — the spec "
+                        "disagrees with itself" % (declared, n, n - int(declared)))
+    return cells, grammar, problems
 
 
 def main():
@@ -151,42 +131,65 @@ def main():
     ap.add_argument("--out", default="assets/source/enemy")
     ap.add_argument("--list", action="store_true", help="parse and report, write nothing")
     ap.add_argument("--expect", type=int, default=None,
-                    help="the number of spec blocks this roster MUST yield. Per-block tolerance means a "
-                         "truncated authoring pass produces fewer assets and every one of them looks "
-                         "fine — the generator architecturally cannot see a block that was never "
-                         "written (Ox Alpha, N3 blocker 1). Pass the count; a short roster fails.")
+                    help="the number of spec blocks this roster MUST yield. Per-block tolerance "
+                         "means a truncated authoring pass produces fewer assets and every one of "
+                         "them looks fine — the generator architecturally cannot see a block that "
+                         "was never written (Ox Alpha, N3 blocker 1). Pass the count; a short "
+                         "roster fails.")
+    ap.add_argument("--mirror-break", choices=["auto", "on", "off"], default="auto",
+                    help="Ox's BOX grammar says odd-indexed N copies get z+=1. That may be a rule "
+                         "the AUTHOR applied or one the READER applies; the two give different "
+                         "cells. `auto` decides empirically from the declared voxelCounts and "
+                         "REFUSES on a tie rather than guessing.")
     args = ap.parse_args()
 
-    blocks = parse_blocks(open(args.roster, encoding="utf-8").read())
+    blocks = G.parse_blocks(open(args.roster, encoding="utf-8").read())
     if not blocks:
-        print(f"[roster] EXIT 2 — no spec blocks found in {args.roster}. Zero parsed is not a pass.", file=sys.stderr)
+        print("[roster] EXIT 2 - no spec blocks found in %s. Zero parsed is not a pass."
+              % args.roster, file=sys.stderr)
         sys.exit(2)
+
+    if args.mirror_break == "auto":
+        mb, report = G.resolve_mirror_break(blocks)
+        if mb is None:
+            print("[roster] EXIT 2 - %s. Pass --mirror-break on|off explicitly; guessing would "
+                  "silently distort every creature that uses N()." % report, file=sys.stderr)
+            sys.exit(2)
+        print("[roster] mirror-break resolved from the roster itself: %s (%s)"
+              % ("ON" if mb else "OFF", report))
+    else:
+        mb = args.mirror_break == "on"
+        print("[roster] mirror-break forced %s by flag" % ("ON" if mb else "OFF"))
 
     ok = refused = 0
     for spec in blocks:
         ident = spec["id"]
-        cells, problems = check(spec)
+        cells, grammar, problems = check(spec, mb)
         if problems:
             refused += 1
-            print(f"  REFUSED {ident}")
+            print("  REFUSED %s" % ident)
             for p in problems:
-                print(f"          {p}")
+                print("          %s" % p)
             continue
         slug = ident.split(".", 1)[1] if "." in ident else ident
         rig = spec.get("rig", "none")
         if args.list:
-            print(f"  ok      {ident:<26} cells={len(cells):<3} rig={'yes' if rig != 'none' else 'no ':<3} role={spec.get('role','?')}")
+            print("  ok      %-26s cells=%-3d grammar=%-5s rig=%-3s role=%s"
+                  % (ident, len(cells), grammar, "yes" if rig != "none" else "no",
+                     spec.get("role", "?")))
         else:
-            path = os.path.join(args.out, slug, f"{slug}-blockout.obj")
-            v, f = write_obj(path, cells, f"{ident} — {len(cells)} voxels, generated from the authored roster")
-            print(f"  wrote   {path}  ({len(cells)} cells, {v} verts, {f} quads, rig={rig})")
+            path = os.path.join(args.out, slug, "%s-blockout.obj" % slug)
+            v, f = write_obj(path, cells, "%s - %d voxels, generated from the authored roster"
+                             % (ident, len(cells)))
+            print("  wrote   %s  (%d cells, %d verts, %d quads, rig=%s)"
+                  % (path, len(cells), v, f, rig))
         ok += 1
 
-    print(f"\n[roster] {ok} written, {refused} refused, {len(blocks)} blocks parsed")
+    print("\n[roster] %d written, %d refused, %d blocks parsed" % (ok, refused, len(blocks)))
     if args.expect is not None and len(blocks) != args.expect:
-        print(f"[roster] EXIT 1 — expected {args.expect} spec blocks, parsed {len(blocks)}. A truncated "
-              f"authoring pass yields fewer assets and each one looks fine; only this count sees the "
-              f"blocks that were never written.", file=sys.stderr)
+        print("[roster] EXIT 1 - expected %d spec blocks, parsed %d. A truncated authoring pass "
+              "yields fewer assets and each one looks fine; only this count sees the blocks that "
+              "were never written." % (args.expect, len(blocks)), file=sys.stderr)
         sys.exit(1)
     sys.exit(1 if refused else 0)
 
