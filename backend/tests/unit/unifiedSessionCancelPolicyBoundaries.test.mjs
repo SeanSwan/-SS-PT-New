@@ -372,3 +372,63 @@ describe('late client cancellations are recorded so reporting can see them', () 
     expect(session.cancellationReviewedBy).toBe(42);
   });
 });
+
+describe('forfeit stamp must not fire outside the late window', () => {
+  let service;
+  let sessionModel;
+  let userModel;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockTransaction.commit.mockResolvedValue(undefined);
+    mockTransaction.rollback.mockResolvedValue(undefined);
+    service = new UnifiedSessionService();
+    sessionModel = { findByPk: vi.fn() };
+    userModel = { findByPk: vi.fn() };
+    service._Session = sessionModel;
+    service._User = userModel;
+    service.sendCancellationNotifications = vi.fn();
+  });
+
+  const clientCancel = async (sessionOverrides) => {
+    const client = buildClient({ availableSessions: 2 });
+    const session = buildSession({ client, ...sessionOverrides });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(client);
+    await service.cancelSession(77, { id: 301, role: 'client' }, 'reason');
+    return session;
+  };
+
+  it('does not stamp a forfeit on an EARLY cancel whose credit was already restored', async () => {
+    // The credit-restore block is skipped because sessionCreditRestored is already
+    // true, so `creditRestored` stays false for a reason that has nothing to do
+    // with the late-cancel policy. Keying only on that flag fabricated a penalty
+    // event on a perfectly on-time cancellation.
+    const session = await clientCancel({
+      sessionDate: new Date(Date.now() + 48 * HOURS),
+      sessionCreditRestored: true
+    });
+
+    expect(session.cancellationDecision).toBeNull();
+    expect(session.cancellationReviewReason).toBeNull();
+  });
+
+  it('does not stamp a forfeit on an early cancel when the client record is missing', async () => {
+    const client = buildClient({ availableSessions: 2 });
+    const session = buildSession({
+      client,
+      sessionDate: new Date(Date.now() + 48 * HOURS)
+    });
+    sessionModel.findByPk.mockResolvedValue(session);
+    userModel.findByPk.mockResolvedValue(null); // restore cannot happen
+
+    await service.cancelSession(77, { id: 301, role: 'client' }, 'reason');
+
+    expect(session.cancellationDecision).toBeNull();
+  });
+
+  it('still stamps a genuine late forfeit', async () => {
+    const session = await clientCancel({ sessionDate: new Date(Date.now() + 2 * HOURS) });
+    expect(session.cancellationDecision).toBe('forfeited');
+  });
+});
