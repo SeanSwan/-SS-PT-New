@@ -32,12 +32,12 @@ bite this invocation). shade_auto_smooth stays REPLACED by smooth_by_angle(): th
 in 4.2/4.5, but it applies a geometry-node ASSET with open headless failure reports, and this
 pipe runs -b. The bake stage is deliberately absent from plan() until it exists in code.
 
-INVOKE IT THROUGH scripts/assets/run-blender.mjs, never bare. Blender exits 0 on an uncaught
-Python exception (probed); the wrapper forces --python-exit-code 1 --disable-autoexec and refuses
+INVOKE THROUGH scripts/assets/run-blender.mjs, never bare: Blender exits 0 on an uncaught Python
+exception (probed), so the wrapper forces --python-exit-code 1 --disable-autoexec and refuses
 success unless this script wrote its .swan-pipe.ok sentinel.
 
-The manifest stub it emits is deliberately INVALID (empty provenance) so the validator rejects it
-until a human fills it in — a pipeline that emits pre-approved provenance is a laundering machine.
+The manifest stub is deliberately INVALID (empty provenance): a pipeline that emits pre-approved
+provenance is a laundering machine.
 """
 
 import math
