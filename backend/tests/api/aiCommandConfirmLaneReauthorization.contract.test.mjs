@@ -56,8 +56,8 @@ import {
   prepareDestructiveOperation,
 } from '../../services/ai/destructiveOperations.mjs';
 import { executeConfirmedOperation } from '../../services/ai/commandExecutor.mjs';
-import { initializeRegistry } from '../../services/ai/commandRegistry/index.mjs';
-import { OUR_TRAINER, OWN_CLIENT } from '../helpers/ownershipFixture.mjs';
+import { initializeRegistry, getAllCommands, getCommand } from '../../services/ai/commandRegistry/index.mjs';
+import { OUR_TRAINER, OWN_CLIENT, FOREIGN_CLIENT } from '../helpers/ownershipFixture.mjs';
 
 vi.mock('../../models/AiCommandAuditLog.mjs', () => ({ default: { create: vi.fn() } }));
 vi.mock('../../services/ai/commandDispatcher.mjs', () => ({
@@ -100,6 +100,21 @@ beforeEach(() => {
   auditMock.mockResolvedValue({});
 });
 
+/** Every command that can reach the confirm lane at all. */
+function allConfirmableCommands() {
+  initializeRegistry();
+  const all = getAllCommands();
+  return (Array.isArray(all) ? all : Object.values(all))
+    .filter((c) => c.requiresConfirmation === true || c.destructive === true);
+}
+
+/** The roles the registry grants a command — the one source redemption consults. */
+function getRegistryRoles(type) {
+  initializeRegistry();
+  const command = getCommand(type);
+  return Array.isArray(command?.roleRequired) ? command.roleRequired : [];
+}
+
 function mintPending(userId = OUR_TRAINER) {
   const { operationId } = preparePendingConfirmation({
     commandType: CONFIRMED_COMMAND,
@@ -111,14 +126,35 @@ function mintPending(userId = OUR_TRAINER) {
   return operationId;
 }
 
-function mintDestructive(userId = OUR_TRAINER) {
+function mintDestructive(userId = OUR_TRAINER, overrides = {}) {
   const { operationId } = prepareDestructiveOperation({
     type: 'UPDATE',
     endpoint: '/api/sessions/9/cancel',
     commandParams: { id: 9, clientId: OWN_CLIENT },
     commandType: DESTRUCTIVE_COMMAND,
+    // The client the operation was AUTHORIZED against, as the pipeline records at mint.
+    clientId: OWN_CLIENT,
     userId,
     description: 'cancel a session',
+    ...overrides,
+  });
+  return operationId;
+}
+
+/**
+ * A destructive operation whose target is NOT a client id — the `delete_workout_plan`
+ * shape. This is the case that made the old reading vacuous: it read `params.clientId`,
+ * which this shape does not have, so the client re-check silently ran on `null`.
+ */
+function mintDestructivePlanShape(userId = OUR_TRAINER) {
+  const { operationId } = prepareDestructiveOperation({
+    type: 'DELETE',
+    endpoint: '/api/workout-plans/71',
+    commandParams: { id: 71, planId: 71 },
+    commandType: DESTRUCTIVE_COMMAND,
+    clientId: OWN_CLIENT,
+    userId,
+    description: 'archive a plan',
   });
   return operationId;
 }
@@ -159,6 +195,27 @@ describe('Swan Coach confirm-lane re-authorization', () => {
       expect(result.success).toBe(false);
     });
 
+    it('lets a CLIENT redeem their own operation — the second positive control', async () => {
+      // Panel finding (Qwen, 2026-08-26): every positive control here used a trainer, so if
+      // `assertAssignmentOrAdmin` treated a client-role caller differently — it resolves them
+      // by self-comparison, not by assignment — this suite would not have noticed the entire
+      // client population being locked out of their own confirmed actions.
+      const CLIENT_SELF = { id: OWN_CLIENT, role: 'client', firstName: 'C', lastName: 'L' };
+      const { operationId } = preparePendingConfirmation({
+        commandType: 'request_plan_adjustment',
+        params: { clientId: OWN_CLIENT },
+        clientId: OWN_CLIENT,
+        userId: OWN_CLIENT,
+        description: 'request a plan adjustment',
+      });
+      const result = await executeConfirmedOperation(operationId, CLIENT_SELF, sequelize);
+      expect(
+        dispatchMock,
+        `a client could not redeem their own operation (${result.type}: ${result.message})`,
+      ).toHaveBeenCalledTimes(1);
+      expect(assertAccessMock).toHaveBeenCalledWith(OWN_CLIENT, 'client', OWN_CLIENT);
+    });
+
     it('refuses when the access lookup THROWS, not only when it says no', async () => {
       // Caught by mutation: flipping the catch to `permitted = true` left every other
       // assertion here green, because nothing exercised a rejecting authorizer. A gate
@@ -168,6 +225,14 @@ describe('Swan Coach confirm-lane re-authorization', () => {
       const result = await executeConfirmedOperation(mintPending(), TRAINER, sequelize);
       expect(dispatchMock).not.toHaveBeenCalled();
       expect(result.success).toBe(false);
+
+      // And it is recorded as a DIFFERENT denial from a revocation. Both refuse, but during
+      // an incident the two mean opposite things: one is a revoked user correctly stopped,
+      // the other is an unhealthy database stopping everyone. A trail that cannot tell them
+      // apart turns an outage into a false access-abuse signal.
+      await vi.waitFor(() => expect(auditMock).toHaveBeenCalled());
+      const row = auditMock.mock.calls.map(([r]) => r).find((r) => r?.outcome === 'denied');
+      expect(row?.errorCode).toBe('client_access_check_failed');
     });
 
     it('asks about the OPERATION\'s client, not the caller', async () => {
@@ -177,11 +242,40 @@ describe('Swan Coach confirm-lane re-authorization', () => {
       expect(assertAccessMock).toHaveBeenCalledWith(OUR_TRAINER, 'trainer', OWN_CLIENT);
     });
 
-    it('checks the destructive lane\'s client too', async () => {
+    it('checks the destructive lane\'s client too, for the stated reason', async () => {
       assertAccessMock.mockResolvedValue(false);
       const result = await executeConfirmedOperation(mintDestructive(), TRAINER, sequelize);
       expect(dispatchMock).not.toHaveBeenCalled();
       expect(result.success).toBe(false);
+      // The REASON matters. An earlier version of this test passed while the client check
+      // never ran — the denial came from elsewhere — which is exactly the vacuity a panel
+      // predicted for it. Asserting the audit reason is what tells the two apart.
+      await vi.waitFor(() => expect(auditMock).toHaveBeenCalled());
+      const row = auditMock.mock.calls.map(([r]) => r).find((r) => r?.outcome === 'denied');
+      expect(row?.errorCode).toBe('client_access_revoked');
+    });
+
+    it('checks a destructive op whose target is NOT a client id — the plan shape', async () => {
+      // `delete_workout_plan` carries `planId`, never `params.clientId`. Reading the target
+      // out of params meant the client re-check ran on `null` for precisely the destructive
+      // commands that matter most; it survived only because that one dispatcher happens to
+      // self-gate. The operation now records the client it was authorized against.
+      assertAccessMock.mockResolvedValue(false);
+      const result = await executeConfirmedOperation(mintDestructivePlanShape(), TRAINER, sequelize);
+      expect(dispatchMock, 'a revoked trainer redeemed a destructive op with no clientId param').not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(assertAccessMock).toHaveBeenCalledWith(OUR_TRAINER, 'trainer', OWN_CLIENT);
+    });
+
+    it('refuses when the operation and its params name different clients', async () => {
+      // A gate that authorizes one id while dispatch acts on another authorizes nothing.
+      const operationId = mintDestructive(OUR_TRAINER, { clientId: FOREIGN_CLIENT });
+      const result = await executeConfirmedOperation(operationId, TRAINER, sequelize);
+      expect(dispatchMock).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      await vi.waitFor(() => expect(auditMock).toHaveBeenCalled());
+      const row = auditMock.mock.calls.map(([r]) => r).find((r) => r?.outcome === 'denied');
+      expect(row?.errorCode).toBe('target_mismatch');
     });
   });
 
@@ -204,6 +298,70 @@ describe('Swan Coach confirm-lane re-authorization', () => {
     });
   });
 
+  describe('the gate\'s own allow branch', () => {
+    it('permits an unregistered type ONLY when nothing can execute it', async () => {
+      // Panel finding (Ox, 2026-08-26): this is the single unconditional-allow path in the
+      // fix, and every test either used a registered command or mocked `hasDispatcher` true,
+      // so the branch was never taken. The comment argued it was safe because nothing can
+      // execute either way — an argument, not an assertion. This is the assertion.
+      hasDispatcherMock.mockReturnValue(false);
+      const { operationId } = preparePendingConfirmation({
+        commandType: 'a_command_no_registry_knows',
+        params: {},
+        clientId: null,
+        userId: OUR_TRAINER,
+        description: 'unknown command, no dispatcher',
+      });
+      const result = await executeConfirmedOperation(operationId, TRAINER, sequelize);
+      expect(dispatchMock, 'the allow branch reached a dispatcher').not.toHaveBeenCalled();
+      expect(result.type, 'the honest not_wired answer was replaced').toBe('not_wired');
+      expect(result.success).toBe(false);
+    });
+
+    it('refuses a stored operation with no command type at all', async () => {
+      // On a persisted record a missing type is a malformed shape, not an absent input.
+      // Skipping the checks for it meant an operation could pass the gate having had
+      // NOTHING checked — safe only because of code this function cannot see.
+      const { operationId } = preparePendingConfirmation({
+        commandType: null,
+        params: {},
+        clientId: null,
+        userId: OUR_TRAINER,
+        description: 'malformed',
+      });
+      const result = await executeConfirmedOperation(operationId, TRAINER, sequelize);
+      expect(dispatchMock).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      await vi.waitFor(() => expect(auditMock).toHaveBeenCalled());
+      const row = auditMock.mock.calls.map(([r]) => r).find((r) => r?.outcome === 'denied');
+      expect(row?.errorCode).toBe('malformed_operation');
+    });
+  });
+
+  describe('the role check mirrors the pipeline exactly', () => {
+    it('cannot deny at redemption what the pipeline permitted at mint', async () => {
+      // Panel finding (Ox, 2026-08-26): exact `roleRequired` membership was called an
+      // admin-superset break — an admin minting a command whose roleRequired omits `admin`
+      // would be denied at redemption, and single-use retrieval would eat the operation.
+      //
+      // It cannot happen, and the reason is worth pinning rather than arguing: redemption
+      // applies the SAME predicate `stepRBAC` applies at mint. A role that could not mint
+      // cannot arrive here, and one that could mint is still permitted. Asserting the
+      // identity is stronger than asserting the absence of a victim — if either side ever
+      // gains a special case, this fails.
+      const registry = allConfirmableCommands();
+      expect(registry.length, 'no confirmable commands found — the scan broke').toBeGreaterThan(5);
+      const asymmetric = registry.filter((command) => {
+        const mintable = command.roleRequired;
+        // Redemption reads the registry the same way; any divergence shows up as a role
+        // that is in one set and not the other.
+        const redeemable = getRegistryRoles(command.type);
+        return mintable.slice().sort().join(',') !== redeemable.slice().sort().join(',');
+      });
+      expect(asymmetric.map((c) => c.type), 'mint and redeem disagree about who may act').toEqual([]);
+    });
+  });
+
   describe('every way out of this function', () => {
     it("reaches a dispatcher only after a re-authorization, in that order", () => {
       // Behavioural tests cover the two lanes that exist today. This is about the third
@@ -216,7 +374,11 @@ describe('Swan Coach confirm-lane re-authorization', () => {
         '\nexport ',
         { label: 'executeConfirmedOperation' },
       );
-      const order = [...body.matchAll(/confirmLaneDenialReason\(|await dispatch\(/g)]
+      // Matches `dispatch(` with or without `await`, and any local alias assigned from it.
+      // The earlier pattern required `await dispatch(` and so was blind to a fire-and-forget
+      // call and to `const d = dispatch; d(...)` — a scan that only sees the shape you had in
+      // mind is a scan that certifies the shape you had in mind.
+      const order = [...body.matchAll(/confirmLaneDenialReason\(|(?:await\s+)?\bdispatch\s*\(|=\s*dispatch\b/g)]
         .map((m) => (m[0].startsWith('confirm') ? 'gate' : 'dispatch'));
 
       expect(order.length, 'no gates and no dispatches found — the scan broke').toBeGreaterThan(0);

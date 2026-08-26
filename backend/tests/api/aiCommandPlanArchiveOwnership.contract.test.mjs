@@ -45,6 +45,14 @@
  * NOT PROVEN
  * - The lifecycle service's own locking and receipt behaviour. It is mocked here; this
  *   asserts what does and does not reach it.
+ * - **The check is not inside the lock.** Raised by a hostile-review panel 2026-08-26 and
+ *   confirmed by reading the middleware rather than assuming: this dispatcher loads the plan,
+ *   authorizes against `plan.userId`, and only then calls a service that re-loads under a row
+ *   lock. A reassignment landing in that window is authorized against the previous owner.
+ *   `verifyClientAccessByPlanId` has the identical structure, so the window is shared with the
+ *   REST route rather than introduced here — and closing it in ONE caller would recreate
+ *   exactly the asymmetry this file exists to remove. The fix is to push the check inside the
+ *   service's transaction for BOTH callers, which is its own slice and is recorded as open.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 

@@ -34,6 +34,45 @@ export default {
   ],
   mutations: [
     {
+      "id": "M31 confirm lane: read the target from params again, as it did before the panel",
+      "file": "services/ai/commandExecutor.mjs",
+      "find": "\n  const clientId = operation.clientId ?? null;",
+      "replace": "\n  const clientId = operation.params?.clientId ?? null;"
+    },
+    {
+      "id": "M32 confirm lane: stop refusing when operation and params name different clients",
+      "file": "services/ai/commandExecutor.mjs",
+      "find": "    return 'target_mismatch';",
+      "replace": "    return null;"
+    },
+    {
+      "id": "M33 confirm lane: let a malformed stored operation through unchecked",
+      "file": "services/ai/commandExecutor.mjs",
+      "find": "  if (!commandType) return 'malformed_operation';",
+      "replace": "  if (!commandType) return null;"
+    },
+        {
+      "id": "M34 fake ignores isActive AND the resolver drops its own deactivated guard",
+      "parts": [
+        {
+          "file": "tests/helpers/fakeClientDirectory.mjs",
+          "find": "    const filtersActive = sql.includes('\"isActive\" = true');",
+          "replace": "    const filtersActive = false;"
+        },
+        {
+          "file": "services/ai/clientResolver.mjs",
+          "find": "        if (!rows.isActive) {",
+          "replace": "        if (false) {"
+        }
+      ]
+    },
+    {
+      "id": "M35 fixture: break a pinned command's hand-written params",
+      "file": "tests/helpers/ownershipFixture.mjs",
+      "find": "  ['update_goal_progress', { goalId: '7', currentValue: 5 }],",
+      "replace": "  ['update_goal_progress', { goalId: '7' }],"
+    },
+    {
       "id": "M1 executor: delete the non-privileged self-scope block entirely",
       "file": "services/ai/commandExecutor.mjs",
       "find": "  if (!RESOLVER_SCOPED_ROLES.has(ctx.user.role)) {",
@@ -48,13 +87,13 @@ export default {
     {
       "id": "M3 executor: silently retarget instead of refusing a foreign id",
       "file": "services/ai/commandExecutor.mjs",
-      "find": "    if (clientId && clientId !== toPositiveInteger(ctx.user.id)) {",
+      "find": "    if (clientId && clientId !== selfId) {",
       "replace": "    if (false && clientId !== toPositiveInteger(ctx.user.id)) {"
     },
     {
       "id": "M4 executor: refuse every non-privileged caller, even for their own record",
       "file": "services/ai/commandExecutor.mjs",
-      "find": "    if (clientId && clientId !== toPositiveInteger(ctx.user.id)) {",
+      "find": "    if (clientId && clientId !== selfId) {",
       "replace": "    if (true) {"
     },
     {
@@ -189,29 +228,35 @@ export default {
     {
       "id": "M25 confirm lane: check the CALLER instead of the operation client",
       "file": "services/ai/commandExecutor.mjs",
-      "find": "      permitted = await assertAssignmentOrAdmin(user.id, user.role, clientId);",
-      "replace": "      permitted = await assertAssignmentOrAdmin(user.id, user.role, user.id);"
+      "find": "      const permitted = await assertAssignmentOrAdmin(user.id, user.role, clientId);",
+      "replace": "      const permitted = await assertAssignmentOrAdmin(user.id, user.role, user.id);"
     },
     {
       "id": "M26 confirm lane: fail OPEN when the access lookup throws",
       "file": "services/ai/commandExecutor.mjs",
-      "find": "      permitted = false;",
-      "replace": "      permitted = true;"
+      "find": "      return 'client_access_check_failed';",
+      "replace": "      return null;"
     },
     {
       "id": "M27 confirm lane: allow a command the registry cannot vouch for",
       "file": "services/ai/commandExecutor.mjs",
-      "find": "      return hasDispatcher(commandType) ? 'unregistered_command' : null;",
+      "find": "    return hasDispatcher(commandType) ? 'unregistered_command' : null;",
       "replace": "      return null;"
     },
     {
       "id": "M28 confirm lane: move a dispatch ahead of its gate",
       "file": "services/ai/commandExecutor.mjs",
-      "find": "    const denial = await confirmLaneDenialReason(commandType, clientId, user);",
-      "replace": "    const denial = null; await confirmLaneDenialReason(commandType, clientId, user);"
+      "find": "    const denial = await confirmLaneDenialReason(operation, user);",
+      "replace": "    const denial = null; await confirmLaneDenialReason(operation, user);"
     },
     {
-      "id": "M29 confirm lane: add an ungated dispatch call site",
+      "id": "M30 confirm lane: collapse a lookup FAILURE into a revocation in the audit trail",
+    "file": "services/ai/commandExecutor.mjs",
+    "find": "      return 'client_access_check_failed';",
+    "replace": "      return 'client_access_revoked';"
+  },
+  {
+    "id": "M29 confirm lane: add an ungated dispatch call site",
       "file": "services/ai/commandExecutor.mjs",
       "find": "  const ndResult = retrievePendingConfirmation(operationId, user.id);",
       "replace": "  if (globalThis.__never) { await dispatch('x', {}, {}); }\n  const ndResult = retrievePendingConfirmation(operationId, user.id);"

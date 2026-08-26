@@ -42,6 +42,40 @@ export const UNSYNTHESIZABLE = new Set([
   'update_client', 'rest_adjust', 'create_goal', 'update_goal_progress', 'log_my_nutrition',
 ]);
 
+/**
+ * Hand-written params for pinned commands that a sweep must still cover.
+ *
+ * Panel finding (GLM, 2026-08-26): a pin excludes its command from every ownership sweep,
+ * and the "no stale pins" test passes precisely BECAUSE the command remains unsynthesizable
+ * — so a pinned command could leak a foreign client indefinitely while the suite reported
+ * full coverage. Three of the five pins are client-ref WRITES on client data, which is the
+ * worst possible thing to skip.
+ *
+ * A pin therefore means only "the generator cannot invent this", never "this is untested".
+ * Every pinned command that resolves a client reference has an entry here, and
+ * `pinnedClientRefCommandsAreCovered` fails if a new one appears without one.
+ *
+ * Values are shape-valid and semantically meaningless; `clientId` is overwritten by the
+ * caller with the client under test.
+ */
+export const PINNED_PARAMS = new Map([
+  ['update_client', { phone: '5551234567' }],
+  ['create_goal', {
+    title: 'Fixture goal', targetValue: 10, unit: 'kg', deadline: '2027-01-01',
+  }],
+  ['update_goal_progress', { goalId: '7', currentValue: 5 }],
+]);
+
+/**
+ * Pinned commands that resolve a client reference and have NO hand-written fixture — i.e.
+ * commands a sweep would silently skip. Must always be empty.
+ */
+export function pinnedClientRefCommandsWithoutFixture() {
+  return clientRefCommands()
+    .filter((c) => UNSYNTHESIZABLE.has(c.type) && !PINNED_PARAMS.has(c.type))
+    .map((c) => c.type);
+}
+
 export function allCommands() {
   initializeRegistry();
   const all = getAllCommands();

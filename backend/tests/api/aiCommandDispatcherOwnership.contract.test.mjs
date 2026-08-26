@@ -53,7 +53,8 @@ import { buildValidParams } from '../helpers/zodParamFixture.mjs';
 import { paramNames, commandsWithHiddenShape } from '../helpers/schemaShape.mjs';
 import { makeClientDirectory } from '../helpers/fakeClientDirectory.mjs';
 import {
-  OUR_TRAINER, OWN_CLIENT, FOREIGN_CLIENT, DIRECTORY, UNSYNTHESIZABLE,
+  OUR_TRAINER, OWN_CLIENT, FOREIGN_CLIENT, DIRECTORY, UNSYNTHESIZABLE, PINNED_PARAMS,
+  pinnedClientRefCommandsWithoutFixture,
   allCommands, clientRefCommands,
 } from '../helpers/ownershipFixture.mjs';
 
@@ -103,7 +104,11 @@ beforeEach(() => {
  */
 async function runAgainstClient(command, role, callerId, targetClientId, opts = {}) {
   const byName = opts.byName || null;
-  const fixture = buildValidParams(command.inputSchema);
+  const auto = buildValidParams(command.inputSchema);
+  // A pinned command uses its hand-written fixture rather than being skipped. A pin means
+  // "the generator cannot invent this", never "this is untested".
+  const base = PINNED_PARAMS.get(command.type) || auto.params;
+  const fixture = { params: base, ok: auto.ok || PINNED_PARAMS.has(command.type) };
   classifyMock.mockResolvedValue({
     intent: command.type,
     clientRef: byName,
@@ -111,7 +116,7 @@ async function runAgainstClient(command, role, callerId, targetClientId, opts = 
     confidence: 0.95,
   });
   dispatchMock.mockClear();
-  const directory = makeClientDirectory(DIRECTORY);
+  const directory = makeClientDirectory(opts.directory || DIRECTORY);
   const ctx = await executeCommandPipeline('ownership probe', {
     id: callerId, role, firstName: 'Probe', lastName: 'Actor',
   }, {
@@ -166,6 +171,23 @@ describe('Swan Coach dispatcher ownership', () => {
       expect(paramNames(allCommands().find((c) => c.type === 'update_client'))).toContain('clientId');
     });
 
+    it('never lets a pin become an untested client-ref command', () => {
+      // Panel finding (GLM, 2026-08-26): a pin excluded its command from every sweep, and
+      // "no stale pins" passed precisely BECAUSE the command stayed unsynthesizable — so a
+      // pinned command could leak a foreign client indefinitely while the suite reported
+      // full coverage. Three of the five pins are client-data WRITES.
+      //
+      // A pin now means only "the generator cannot invent this". Anything pinned that
+      // resolves a client reference must carry a hand-written fixture, and this fails the
+      // moment someone adds a pin without one.
+      const uncovered = pinnedClientRefCommandsWithoutFixture();
+      expect(
+        uncovered,
+        `pinned client-ref commands with no fixture — every sweep silently skips these: ${uncovered.join(', ')}`,
+      ).toEqual([]);
+      expect(PINNED_PARAMS.size, 'the fixture table emptied').toBeGreaterThan(0);
+    });
+
     it('has no stale pins', () => {
       const stale = [...UNSYNTHESIZABLE].filter((type) => {
         const command = allCommands().find((c) => c.type === type);
@@ -207,7 +229,7 @@ describe('Swan Coach dispatcher ownership', () => {
       const leaked = [];
       const wrongStage = [];
       for (const command of commands) {
-        if (UNSYNTHESIZABLE.has(command.type)) continue;
+        if (UNSYNTHESIZABLE.has(command.type) && !PINNED_PARAMS.has(command.type)) continue;
         const run = await runAgainstClient(command, 'trainer', OUR_TRAINER, FOREIGN_CLIENT);
         if (run.dispatchCalls > 0) leaked.push(`${command.type} -> ${run.dispatchedClientId}`);
         else if (run.ctx.stage !== 'resolve_client') wrongStage.push(`${command.type} @ ${run.ctx.stage}`);
@@ -256,11 +278,29 @@ describe('Swan Coach dispatcher ownership', () => {
       expect(run.dispatchedClientId).toBe(OWN_CLIENT);
     });
 
+    it('is subject to the same directory predicates as everyone else', async () => {
+      // Panel finding (GLM, 2026-08-26). An earlier draft fabricated `resolvedClient` from
+      // `ctx.user` and returned, which skipped every predicate the scoped path enforces —
+      // so a DEACTIVATED account could still act on itself while a trainer could not act on
+      // it. Two layers disagreeing about who counts as a client is the class of defect this
+      // whole file exists to remove. Self-access now pins the id and uses the same resolver.
+      const command = allCommands().find((c) => c.type === 'view_xp_streaks');
+      const deactivated = {
+        clients: [{ id: OWN_CLIENT, firstName: 'Ada', lastName: 'Own', isActive: false }],
+        assignments: [],
+      };
+      const run = await runAgainstClient(command, 'client', OWN_CLIENT, OWN_CLIENT, {
+        directory: deactivated,
+      });
+      expect(run.dispatchCalls, 'a deactivated account resolved itself').toBe(0);
+      expect(run.ctx.stage).toBe('resolve_client');
+    });
+
     it('holds for every non-privileged role on every client-ref command', async () => {
       const leaked = [];
       let pairsTested = 0;
       for (const command of clientRefCommands()) {
-        if (UNSYNTHESIZABLE.has(command.type)) continue;
+        if (UNSYNTHESIZABLE.has(command.type) && !PINNED_PARAMS.has(command.type)) continue;
         for (const role of command.roleRequired) {
           if (role === 'admin' || role === 'trainer') continue;
           pairsTested += 1;
