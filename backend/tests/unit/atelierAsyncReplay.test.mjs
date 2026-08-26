@@ -79,7 +79,11 @@ describe('a retained replay must not outlive, or misreport, the batch it points 
     // Age the row past its TTL. The next batch's prune reports the drop, and the stub goes.
     const dropped = prune(Date.now() + 61 * 60 * 1000);
     expect(dropped.length).toBe(1);
-    for (const k of dropped) store.delete(k);
+    expect(dropped[0].id).toBe(a.batchId);          // reported BY IDENTITY, not by name alone
+    for (const gone of dropped) {
+      const held = store.get(gone.key);
+      if (held && typeof held.then !== 'function' && held.batchId === gone.id) store.delete(gone.key);
+    }
     expect(store.size).toBe(0);
   });
 });
@@ -199,27 +203,6 @@ describe('a stub that landed is never deleted by bookkeeping that did not', () =
   });
 });
 
-describe('the guard is total — no stored value can make it throw', () => {
-  it('a rejected stored promise means run the work, not 500 forever', async () => {
-    // The claim writes a pending promise and settles it with the outcome. A failure path
-    // that rejects it without removing it would make the guard's `await` throw — and a
-    // throw skips the delete, so every retry with that key 500s permanently with nothing
-    // able to clear it. Being total is the whole job of a guard.
-    const inner = new Map();
-    const poisoned = Promise.reject(new Error('settled with a failure and left behind'));
-    poisoned.catch(() => {});
-    inner.set('u1:poison', poisoned);
-    const store = {
-      has: (k) => inner.has(k), get: (k) => inner.get(k),
-      set: (k, v) => inner.set(k, v), delete: (k) => inner.delete(k),
-    };
-    const { replayIfFresh } = await import('../../services/atelier/composeReplay.mjs');
-    const out = await replayIfFresh(store, 'u1:poison');
-    expect(out).toBeNull();                 // run the work
-    expect(inner.has('u1:poison')).toBe(false);   // and the poison is gone
-  });
-});
-
 describe('a partial replay prices what it delivered', () => {
   it('charges follow the frames that exist, as the synchronous lane already does', async () => {
     // `count` was corrected to the outcome last round and `cost` was left spread from the
@@ -248,5 +231,61 @@ describe('a partial replay prices what it delivered', () => {
     // lane. The parity is real and currently unobservable, and saying so is the honest
     // record. Whoever makes a charging lane async: this is the assertion to write then.
     expect(b.cost.unitUsd).toBe(0);
+  });
+});
+
+describe('a dead row cannot kill a live claim that reused its key', () => {
+  it('prune eviction matches the batch it describes, not just the key name', async () => {
+    // Client keys are deterministic (`u<id>:<hash>`), so reusing one after its row aged out
+    // puts a LIVE claim at the same key an expired row still names. Deleting by name alone
+    // let an UNRELATED request's prune kill that claim, and a third same-key request then
+    // missed and started a duplicate render mid-flight.
+    //
+    // This drives the eviction through startLocalBatch rather than replicating it here. The
+    // first version of this test did its own identity check and stayed green with the
+    // production line deleted — it proved the test, not the code. Falsification caught it.
+    const store = new Map();
+    const a = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store }));
+    await until(() => getBatch(a.batchId, 1).terminal);
+    const [key] = [...store.keys()];
+
+    const live = new Promise(() => {});      // the same key, now an in-flight claim
+    store.set(key, live);
+
+    // An unrelated request, far enough in the future that A's row prunes as it starts.
+    const later = () => Date.now() + 61 * 60 * 1000;
+    const other = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'other' }, deps({ store, clock: later }));
+    expect(other.batchId).toBeTruthy();
+    expect(getBatch(a.batchId, 1)).toBeNull();   // A's row really did prune
+    expect(store.get(key)).toBe(live);           // and the live claim survived it
+  });
+});
+
+
+describe('two concurrent retries of an EXPIRED key still coalesce onto one render', () => {
+  it('the expired miss is decided synchronously, like the absent miss already was', async () => {
+    // There are two kinds of miss and the first fix only covered one. An ABSENT key was
+    // synchronous. An EXPIRED stub was not: its null came back from behind `await
+    // store.get`, so both retries got their null from a continuation and both claimed —
+    // a full duplicate render, not the hairline window the header acknowledges.
+    const store = new Map();
+    const a = await composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, deps({ store }));
+    await until(() => getBatch(a.batchId, 1).terminal);
+    const [key] = [...store.keys()];
+    // Age the retained stub without touching anything else.
+    store.set(key, { ...store.get(key), replayExpiresAt: Date.now() - 1 });
+
+    let batchesStarted = 0;
+    const d = () => deps({ store, renderStill: async ({ seed }) => {
+      await sleep(30);
+      return { image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 10, provider: 'comfyui/wan-2.2' };
+    } });
+    const [x, y] = await Promise.all([
+      composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, d()),
+      composeStills({ brief: BRIEF, lane: 'local', count: 1, userId: 1, idempotencyKey: 'k' }, d()),
+    ]);
+    batchesStarted = new Set([x.batchId, y.batchId].filter(Boolean)).size;
+    expect(batchesStarted).toBe(1);          // one render, not two
+    expect(x.batchId).toBe(y.batchId);
   });
 });

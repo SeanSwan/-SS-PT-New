@@ -91,11 +91,15 @@ export function snapshot(b) {
  * saying "here is your batch" and a URL that 404s — forever, since the stub outlives every
  * retry. Both panel seats found that window independently. Handing the keys back makes the
  * caller able to expire the stub on the same clock as the row it describes.
+ *
+ * Each entry is `{ key, id }`, not a bare key: keys are deterministic and reusable, so the
+ * caller must be able to check that the stub it is about to drop actually describes THIS
+ * row rather than a live claim that reused the name.
  */
 export function prune(now = Date.now()) {
   const dropped = [];
   for (const [id, b] of batches) {
-    if (b.finishedAt && now - b.finishedAt > BATCH_TTL_MS) { batches.delete(id); if (b.key) dropped.push(b.key); }
+    if (b.finishedAt && now - b.finishedAt > BATCH_TTL_MS) { batches.delete(id); if (b.key) dropped.push({ key: b.key, id }); }
   }
   return dropped;
 }

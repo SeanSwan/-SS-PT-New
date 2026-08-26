@@ -31,35 +31,62 @@
  * nothing. The window is near zero for an in-memory store and is not zero for any other.
  *
  * DELIBERATELY NOT AN `async` FUNCTION, and this is load-bearing. A miss must return null
- * SYNCHRONOUSLY. Marking it `async` makes every call yield to the microtask queue — even
- * one that found nothing — and the orchestrator's claim (`store.set(key, pending)`) then no
- * longer follows the `has` check without an await between them, so two concurrent identical
- * requests both miss and both run. That is precisely the race a reviewer proposed against
- * the inline version and which was disproved by source; extracting the guard reintroduced
- * it, because the synchronicity was load-bearing and nowhere written down. The coalescing
- * test caught it in one run. So: miss returns null with no await; a hit returns a promise.
+ * SYNCHRONOUSLY, so the orchestrator's claim (`store.set(key, pending)`) lands in the same
+ * synchronous run as the check that preceded it. Marking this `async` makes every call
+ * yield to the microtask queue — even one that found nothing — and two concurrent identical
+ * requests then both miss and both render.
  *
- * @returns null (synchronously) when there is nothing to replay, else a promise of the
- *          replay body — which may itself resolve to null if what was stored has expired.
+ * THERE ARE TWO KINDS OF MISS AND THE FIRST FIX ONLY COVERED ONE. An ABSENT key was already
+ * synchronous. An EXPIRED stub was not: its null came back from behind `await store.get`,
+ * so two post-TTL retries of the same key both got their null from a continuation and both
+ * claimed — a full duplicate render, not the hairline window. A reviewer found that the
+ * invariant was documented for one path and broken on the other.
+ *
+ * So a SETTLED STUB IS STORED AS A PLAIN OBJECT and an IN-FLIGHT CLAIM as a promise. The
+ * difference is the whole fix: a plain object can be judged right here, expiry and all,
+ * without awaiting anything, so both misses are synchronous. Only a live claim needs the
+ * await, and a live claim is never expired.
+ *
+ * @returns null (synchronously) when there is nothing honest to replay; a body; or — only
+ *          when coalescing onto a live claim — a promise of one.
  */
 export function replayIfFresh(store, key, clock = () => Date.now()) {
   if (!store.has(key)) return null;
-  return resolveReplay(store, key, clock);
+  const held = store.get(key);
+  if (held && typeof held.then === 'function') return resolveReplay(held, store, key, clock);
+  return judge(held, store, key, clock);
 }
 
-async function resolveReplay(store, key, clock) {
-  // A STORED PROMISE THAT REJECTS MEANS "RUN THE WORK", NEVER "500 FOREVER". The claim
-  // writes a pending promise under the key and settles it with the outcome; a failure
-  // path that rejects it without also removing it would make `await` throw here, and a
-  // throw skips the delete below — so every retry with that key would 500 permanently,
-  // with nothing able to clear it. Being total is the whole job of a guard.
+async function resolveReplay(pending, store, key, clock) {
+  // A STORED PROMISE THAT REJECTS MEANS "RUN THE WORK", NEVER "500 FOREVER". A failure path
+  // that rejects the claim without also removing it would make this throw, and a throw
+  // skips the delete — so every retry with that key would 500 permanently, with nothing
+  // able to clear it. Being total is the whole job of a guard.
   let prior;
   try {
-    prior = await store.get(key);
+    prior = await pending;
   } catch {
     store.delete(key);
     return null;
   }
+  return judge(prior, store, key, clock);
+}
+
+/**
+ * Decide about one stored value. Synchronous, so the settled path can stay synchronous.
+ *
+ * A REPLAY IS ONLY HONEST WHILE THE ROW IT POINTS AT EXISTS. The stub carries its batch
+ * row's own expiry, so this refuses itself rather than answering a delayed retry with a
+ * confident success payload and a statusUrl that 404s.
+ *
+ * THE CLOCK IS SAMPLED HERE, not frozen at request start. The orchestrator's `now` is fixed
+ * because the derived key's time bucket must not move underneath it; comparing an absolute
+ * deadline against that same frozen number serves a stub that died while the request queued.
+ *
+ * AND AN ABSENT VALUE FALLS THROUGH TO RUNNING THE WORK — spreading one would hand the
+ * client `{ replayed: true }` with no fields at all, a 200 that says nothing.
+ */
+function judge(prior, store, key, clock) {
   const expired = prior?.replayExpiresAt > 0 && prior.replayExpiresAt <= clock();
   if (prior && !expired) {
     // `replayExpiresAt` is bookkeeping for this guard, not something a caller can act on.

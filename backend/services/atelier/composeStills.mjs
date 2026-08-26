@@ -209,7 +209,7 @@ export async function composeStills(req = {}, deps = {}) {
       admission, clampedFrom, reservation, batches, store, settle,
       brandKitView, slimForReplay, rememberKey, settledKeys,
       renderStill, withGpu, env, tasteDeps, compiler, persist,
-      watchdogMs: deps.watchdogMs, releaseGraceMs: deps.releaseGraceMs });
+      watchdogMs: deps.watchdogMs, releaseGraceMs: deps.releaseGraceMs, clock });
   }
 
 
@@ -273,7 +273,7 @@ export async function composeStills(req = {}, deps = {}) {
   // caller already has `result` in hand; what stays in the map is only what a retry needs
   // to learn that this request already ran — see slimForReplay for why the payloads go.
   const retained = slimForReplay(result);
-  store.set(key, Promise.resolve(retained));
+  store.set(key, retained);   // plain object: a settled stub is judged synchronously
   // DELIBERATELY NOT EVICTED HERE. This path is the HOSTED lane, which charges money: if
   // the client's connection drops after we billed, its retry MUST replay rather than
   // generate and charge a second time, and evicting on success is exactly what would make

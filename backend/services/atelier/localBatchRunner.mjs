@@ -131,7 +131,7 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
                                   admission, clampedFrom, reservation, batches, store, settle,
                                   brandKitView, slimForReplay, rememberKey, settledKeys,
                                   renderStill, withGpu, env, tasteDeps, compiler, persist,
-                                  watchdogMs, releaseGraceMs }) {
+                                  watchdogMs, releaseGraceMs, clock }) {
   // The collaborators arrive ALREADY RESOLVED, rather than being re-destructured from a
   // raw deps bag here. composeStills applies the defaults (`renderStill = local.renderStill`,
   // `env = process.env`, and so on); resolving them a second time in this function made
@@ -141,7 +141,16 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
     // Expire any stub whose batch row has just aged out, so the two cannot drift apart. This
   // is the same prune the store runs for itself; taking its report is what keeps a retained
   // client key from outliving the batch it points at and answering forever with a dead URL.
-  for (const goneKey of (batches.prune?.() || [])) store.delete(goneKey);
+  // BY IDENTITY, NOT BY NAME. Client keys are deterministic (`u<id>:<hash>`), so reusing
+  // one after its row aged out puts a LIVE claim at the same key an expired row still
+  // names. Deleting by name alone let an unrelated request's prune kill that live claim,
+  // and a third same-key request then missed and started a duplicate render mid-flight.
+  // The stub carries its own batchId, so only the entry that actually describes the
+  // pruned row is removed — a live claim is a promise and matches nothing.
+  for (const gone of (batches.prune?.(clock ? clock() : undefined) || [])) {
+    const held = store.get(gone.key);
+    if (held && typeof held.then !== 'function' && held.batchId === gone.id) store.delete(gone.key);
+  }
   const batch = batches.createBatch({ userId: req.userId, lane, count, key, promptSource, model: cost.model });
     const accepted = { accepted: true, batchId: batch.id, lane, promptSource, status: 'queued', count, cost: { ...cost, chargedUsd: 0 }, brandKit: brandKitView(kit),
       key, admission, statusUrl: `/api/atelier/compose/stills/${batch.id}`, replayed: false,
@@ -204,7 +213,10 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
           // exist to collect, since re-running the same key would charge a second time for
           // work already done. A client who wants the missing frames uses a NEW key — which
           // is what an idempotency key means, and the numbers below let them see the gap.
-          store.set(key, Promise.resolve(slimForReplay({
+          // A PLAIN OBJECT, not a promise. That is what lets the guard judge a settled stub
+          // synchronously — see composeReplay: an expired stub returning its null from behind
+          // an await let two post-TTL retries both claim and both render.
+          store.set(key, slimForReplay({
             ...accepted,
             accepted: false,
             status: snap.status,
@@ -231,7 +243,7 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
             // Carrying the row's own deadline means the replay path can refuse itself — no
             // second clock to keep in step, and no eviction timing to get right.
             replayExpiresAt: (snap.finishedAt || Date.now()) + BATCH_TTL_MS,
-          })));
+          }));
           retained = true;
           // AFTER the retention write, and outside its safety. If the bookkeeping throws,
           // the stub is already correctly in the store and deleting it would reopen the
