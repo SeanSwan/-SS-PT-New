@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertTriangle, CreditCard, DollarSign, Package } from 'lucide-react';
-import GlowButton from '../ui/buttons/GlowButton';
+import ForgeButton from '../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import {
   BodyText,
   Caption,
@@ -178,9 +178,9 @@ export const ApplyPaymentSelectedClientPanel: React.FC<SelectedClientPanelProps>
               </Caption>
               <ForceOverrideActions>
                 <OutlinedButton onClick={() => setShowPaymentConfirmation(false)}>Cancel</OutlinedButton>
-                <GlowButton variant="primary" size="small" onClick={() => { setShowPaymentConfirmation(false); handleApplyPackage(); }}>
+                <ForgeButton variant="primary" size="small" onClick={() => { setShowPaymentConfirmation(false); handleApplyPackage(); }}>
                   Confirm & Apply
-                </GlowButton>
+                </ForgeButton>
               </ForceOverrideActions>
             </ConfirmationBanner>
           )}

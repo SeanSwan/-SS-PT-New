@@ -32,8 +32,11 @@ const SPECIAL_PACKAGE_THRESHOLDS = {
  * @param {object} models - Sequelize models { Order, OrderItem, StorefrontItem }
  * @returns {object} Package pricing info
  */
-export async function getClientPackagePricing(clientId, models) {
+export async function getClientPackagePricing(clientId, models, options = {}) {
   const { Order, OrderItem, StorefrontItem } = models;
+  // Join the caller's transaction when given one so this read does not
+  // acquire a second pooled connection while the first is held.
+  const txn = options.transaction ? { transaction: options.transaction } : {};
 
   try {
     // Find the most recent completed order for this client
@@ -44,6 +47,7 @@ export async function getClientPackagePricing(clientId, models) {
         status: 'completed'
       },
       order: [['createdAt', 'DESC']],
+      ...txn,
       include: [{
         model: OrderItem,
         as: 'orderItems',
@@ -71,10 +75,41 @@ export async function getClientPackagePricing(clientId, models) {
       };
     }
 
-    // Find the session package item (not one-time purchases)
-    const sessionPackage = storefrontItems.find(item =>
+    // Find the session package items (not one-time purchases)
+    const sessionPackages = storefrontItems.filter(item =>
       item.sessions > 0 && item.packageType !== 'one-time'
-    ) || storefrontItems[0];
+    );
+
+    const rateOf = (item) => {
+      const raw = item.sessions > 0
+        ? parseFloat(item.price) / item.sessions
+        : parseFloat(item.price);
+      return Math.round(raw * 100) / 100;
+    };
+
+    // SwanStudios sells two rates ($175/60min, $110/30min) and StorefrontItem
+    // records no duration, so when an order holds packages at DIFFERENT
+    // per-session rates there is no way to know which one covers the session
+    // being priced. Taking the first match silently produced a $65 error in
+    // either direction, and every downstream consumer trusted it as verified.
+    // Report fallback instead: callers already treat that as "do not use this
+    // number", which is exactly the right behaviour for "cannot attribute".
+    const distinctRates = [...new Set(sessionPackages.map(rateOf).filter(Number.isFinite))];
+    if (distinctRates.length > 1) {
+      logger.info(
+        `Client ${clientId} holds packages at ${distinctRates.length} different ` +
+          `per-session rates (${distinctRates.join(", ")}); cannot attribute this session`
+      );
+      return {
+        pricePerSession: FALLBACK_PRICES.STANDARD_60_MIN,
+        packageName: 'Ambiguous (multiple package rates)',
+        isFallback: true,
+        isSpecialPackage: false,
+        requiresAdminReview: true
+      };
+    }
+
+    const sessionPackage = sessionPackages[0] || storefrontItems[0];
 
     const pricePerSession = sessionPackage.sessions > 0
       ? parseFloat(sessionPackage.price) / sessionPackage.sessions

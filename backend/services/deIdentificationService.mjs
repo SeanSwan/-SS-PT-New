@@ -15,6 +15,7 @@
  */
 import crypto from 'crypto';
 import logger from '../utils/logger.mjs';
+import { CURRENT_CONSENT_VERSION } from '../config/consentVersion.mjs';
 
 /**
  * Fields that MUST be stripped (direct identifiers)
@@ -140,47 +141,45 @@ export function areGatedHealthFieldsEnabled() {
   const flag = String(process.env.COACH_HEALTH_FIELDS_ENABLED || '').trim().toLowerCase();
   if (!['true', '1', 'on', 'enabled'].includes(flag)) return false;
 
+  // Read the declaration up front so BOTH refusal branches can key their
+  // one-time warning on the actual config. A single shared key meant the first
+  // branch to fire silenced the second for the life of the process — including
+  // across tests, which is how a real refusal could go unlogged.
   const declared = String(process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION || '').trim();
+  const warnOnce = (key, message, meta) => {
+    if (lastWarnedConsentVersion === key) return;
+    lastWarnedConsentVersion = key;
+    logger.error(message, meta);
+  };
+
+  // The disclosure users are CURRENTLY shown must be the one that names these
+  // fields. Comparing the env declaration only against this file's own constant
+  // (the previous shape) let an operator set both to '3.0' while CURRENT was
+  // still '2.0' — every user holding a valid 2.0 grant would pass the consent
+  // gate and have sleep/stress/supplement data flow under a disclosure that
+  // says it is withheld. Precisely the "users were lied to" outcome this
+  // function claims to prevent (GLM 5.3). Enabling now requires the consent
+  // version to have been bumped — a reviewed code change — in the same release.
+  if (GATED_FIELDS_REQUIRE_CONSENT_VERSION !== CURRENT_CONSENT_VERSION) {
+    warnOnce(`require-mismatch:${declared}`,
+      '[DeIdentification] COACH_HEALTH_FIELDS_ENABLED is set but the disclosure in force does '
+      + 'not yet cover the gated fields. Bump CURRENT_CONSENT_VERSION with new copy first. '
+      + 'Gated fields remain WITHHELD.',
+      { required: GATED_FIELDS_REQUIRE_CONSENT_VERSION, current: CURRENT_CONSENT_VERSION });
+    return false;
+  }
+
   if (declared !== GATED_FIELDS_REQUIRE_CONSENT_VERSION) {
-    // Log ONCE per process, not once per deIdentify call. A misconfigured flag
-    // would otherwise emit an error line on every Coach request and bury the
-    // signal it exists to raise (ox-alpha, post-ship panel).
-    if (lastWarnedConsentVersion !== declared) {
-      lastWarnedConsentVersion = declared;
-      logger.error(
-      '[DeIdentification] COACH_HEALTH_FIELDS_ENABLED is set but the declared consent '
-      + 'version does not match the version this build requires. Gated health fields '
-      + 'remain WITHHELD. Ship the new disclosure, then set '
-      + 'COACH_HEALTH_FIELDS_CONSENT_VERSION to the required value.',
-        { required: GATED_FIELDS_REQUIRE_CONSENT_VERSION, declared: declared || '(unset)' },
-      );
-    }
+    warnOnce(`declared:${declared}`,
+      '[DeIdentification] COACH_HEALTH_FIELDS_ENABLED is set but the declared consent version '
+      + 'does not match the version this build requires. Gated health fields remain WITHHELD. '
+      + 'Ship the new disclosure, then set COACH_HEALTH_FIELDS_CONSENT_VERSION to the required value.',
+      { required: GATED_FIELDS_REQUIRE_CONSENT_VERSION, declared: declared || '(unset)' });
     return false;
   }
   return true;
 }
 
-/**
- * Fields that are safe to keep for workout generation context
- */
-const SAFE_FIELD_PATHS = [
-  'client.alias',
-  'client.age',
-  'client.gender',
-  'client.goals',
-  'health.medicalConditions', // kept for safety — generic conditions, not identifiable
-  'health.injuries',          // kept for exercise contraindications
-  'health.currentPain',       // kept for exercise safety
-  'health.supplements',
-  'measurements',
-  'baseline',
-  'training',
-  'nutrition',
-  'lifestyle.sleepHours',
-  'lifestyle.sleepQuality',
-  'lifestyle.stressLevel',
-  'lifestyle.activityLevel',
-];
 
 /**
  * Deep-clone a plain object (JSON-safe)
@@ -234,7 +233,10 @@ function setNestedValue(obj, path, value) {
   const keys = path.split('.');
   let current = obj;
   for (let i = 0; i < keys.length - 1; i++) {
-    if (!(keys[i] in current) || typeof current[keys[i]] !== 'object') {
+    // `typeof null === 'object'` let a null intermediate through this guard, so
+    // `client: null` threw "Cannot set properties of null" instead of failing
+    // closed — the AI route 500'd rather than returning null (ox-alpha, executed).
+    if (current[keys[i]] == null || typeof current[keys[i]] !== 'object') {
       current[keys[i]] = {};
     }
     current = current[keys[i]];
@@ -311,11 +313,12 @@ export function hashPayload(payload) {
  *   kept  : stressFracture, sleepApnea, supplementalOxygenNeeded,
  *           stressEchocardiogram, and any clinical term nobody listed
  */
-const GATED_TOKEN = /(sleep|stress|supplement)/i;
+const GATED_TOKEN = /(sleep|asleep|bedtime|stress|anxiety|fatigue|supplement)/i;
 
 /** Words that mark a key as OUR lifestyle telemetry rather than clinical data. */
 const LIFESTYLE_WORDS = new Set([
-  'sleep', 'stress', 'supplement', 'supplements', 'supplemental',
+  'sleep', 'asleep', 'bedtime', 'stress', 'anxiety', 'fatigue',
+  'supplement', 'supplements', 'supplemental',
   'avg', 'average', 'mean', 'total', 'typical', 'nightly', 'daily', 'weekly',
   'reported', 'self', 'perceived', 'estimated',
   'hours', 'hour', 'hrs', 'minutes', 'mins', 'duration', 'time',
@@ -536,6 +539,11 @@ export function deIdentify(masterPromptJson, options = {}) {
 function scanAndRedactPII(obj, strippedFields, prefix = '') {
   if (!obj || typeof obj !== 'object') return;
 
+  // No `.test()` pre-checks below. A /g regex carries lastIndex between calls;
+  // the old test-then-replace only stayed correct because .replace() happens to
+  // reset it (executed and confirmed — nothing leaked). That is a spec subtlety,
+  // not a design, and one refactor away from a stochastic leak (ox-alpha).
+  // Unconditional .replace() has no state to get wrong.
   const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const PHONE_REGEX = /(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
   const SSN_REGEX = /\b\d{3}-\d{2}-\d{4}\b/g;
@@ -547,15 +555,15 @@ function scanAndRedactPII(obj, strippedFields, prefix = '') {
       let redacted = value;
       let wasRedacted = false;
 
-      if (EMAIL_REGEX.test(redacted)) {
+      {
         redacted = redacted.replace(EMAIL_REGEX, '[REDACTED_EMAIL]');
         wasRedacted = true;
       }
-      if (PHONE_REGEX.test(redacted)) {
+      {
         redacted = redacted.replace(PHONE_REGEX, '[REDACTED_PHONE]');
         wasRedacted = true;
       }
-      if (SSN_REGEX.test(redacted)) {
+      {
         redacted = redacted.replace(SSN_REGEX, '[REDACTED_SSN]');
         wasRedacted = true;
       }

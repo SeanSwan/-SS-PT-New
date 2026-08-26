@@ -11,8 +11,8 @@ import { PACKAGES } from '../../config/pricing';
 const PrintStyles = createGlobalStyle`
   @media print {
     body {
-      background: #ffffff !important;
-      color: #0a0a0f !important;
+      background: #ffffff !important; /* swan-guard-allow-hex: print sheet — fixed colors by design; must NOT follow the active theme or the printed page inverts */
+      color: #0a0a0f !important; /* swan-guard-allow-hex: print sheet — fixed colors by design; must NOT follow the active theme or the printed page inverts */
     }
 
     * {
@@ -30,7 +30,7 @@ const SheetWrapper = styled.div`
   background: radial-gradient(circle at top, rgba(139, 92, 246, 0.08), rgba(10, 10, 15, 0.95));
   padding: 3rem;
   border-radius: 24px;
-  color: #ffffff;
+  color: #ffffff; /* swan-guard-allow-hex: print sheet — fixed colors by design; must NOT follow the active theme or the printed page inverts */
   max-width: 900px;
   margin: 0 auto;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -91,10 +91,10 @@ const Badge = styled.span<{ variant: 'recommended' | 'value' }>`
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: ${props => props.variant === 'recommended' ? '#0a0a0f' : '#0a0a0f'};
+  color: ${props => props.variant === 'recommended' ? '#0a0a0f' : '#0a0a0f'}; /* swan-guard-allow-hex: print sheet — fixed colors by design; must NOT follow the active theme or the printed page inverts */
   background: ${props => props.variant === 'recommended'
-    ? 'linear-gradient(135deg, #60C0F0, #7dd3fc)'
-    : 'linear-gradient(135deg, #ffd700, #fca5a5)'
+    ? 'linear-gradient(135deg, #60C0F0, #7dd3fc)' /* swan-guard-allow-hex: print sheet — fixed colors by design; must NOT follow the active theme or the printed page inverts */
+    : 'linear-gradient(135deg, #ffd700, #fca5a5)' /* swan-guard-allow-hex: print sheet — fixed colors by design; must NOT follow the active theme or the printed page inverts */
   };
 `;
 
@@ -171,9 +171,8 @@ const PricingSheetPDF: React.FC = () => (
               ))}
             </FeatureList>
 
-            {pkg.savings && (
-              <PriceMeta>Save ${pkg.savings} compared to individual sessions.</PriceMeta>
-            )}
+            {/* No savings line: SwanStudios pricing is flat $175/60min with no
+                volume discounts, so there is nothing to "save" against. */}
           </PackageCard>
         ))}
       </PackagesGrid>

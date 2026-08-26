@@ -1,0 +1,89 @@
+/**
+ * getClientPackagePricing — ambiguous-package handling
+ *
+ * SWA-212 / Kimi K3: the cancellation charge derives from a single
+ * `pricePerSession` with no knowledge of the cancelled session's duration.
+ * SwanStudios sells two rates ($175/60min, $110/30min), so picking the wrong
+ * package is a $65 error in either direction.
+ *
+ * Duration-aware SELECTION turns out not to be implementable: StorefrontItem has
+ * no duration field (packageType, name, sessions, price, months, sessionsPerWeek,
+ * totalSessions — nothing records 30 vs 60 minutes). That is a schema gap, not a
+ * parameter gap, and is recorded on SWA-212.
+ *
+ * What IS implementable is refusing to guess. When the source order contains more
+ * than one session package at DIFFERENT per-session rates, the helper cannot know
+ * which one covers this session — so it must report isFallback rather than
+ * silently taking the first match and having every downstream consumer trust it
+ * as verified truth.
+ */
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../utils/logger.mjs', () => ({
+  default: { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+}));
+
+const { getClientPackagePricing } = await import('../../utils/cancellationPricing.mjs');
+
+const item = (overrides) => ({
+  id: 1,
+  name: 'Package',
+  price: '1750.00',
+  sessions: 10,
+  packageType: 'fixed',
+  isActive: true,
+  ...overrides
+});
+
+const modelsReturning = (storefrontItems) => ({
+  Order: {
+    findOne: vi.fn().mockResolvedValue(
+      storefrontItems === null
+        ? null
+        : { orderItems: storefrontItems.map((storefrontItem) => ({ storefrontItem })) }
+    )
+  },
+  OrderItem: {},
+  StorefrontItem: {}
+});
+
+describe('getClientPackagePricing ambiguity handling', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('resolves a single session package to its per-session rate', async () => {
+    const result = await getClientPackagePricing(301, modelsReturning([
+      item({ id: 1, name: 'Signature 60 10-Pack', price: '1750.00', sessions: 10 })
+    ]));
+
+    expect(result.isFallback).toBe(false);
+    expect(result.pricePerSession).toBe(175);
+  });
+
+  it('reports fallback when the order holds packages at DIFFERENT per-session rates', async () => {
+    // A $110/session pack and a $175/session pack in the same order. Whichever the
+    // old first-match picked was trusted as verified truth by every consumer.
+    const result = await getClientPackagePricing(301, modelsReturning([
+      item({ id: 1, name: 'Express 30 10-Pack', price: '1100.00', sessions: 10 }),
+      item({ id: 2, name: 'Signature 60 10-Pack', price: '1750.00', sessions: 10 })
+    ]));
+
+    expect(result.isFallback).toBe(true);
+  });
+
+  it('still resolves when several packages agree on the rate', async () => {
+    const result = await getClientPackagePricing(301, modelsReturning([
+      item({ id: 1, name: 'Signature 60 10-Pack', price: '1750.00', sessions: 10 }),
+      item({ id: 2, name: 'Signature 60 20-Pack', price: '3500.00', sessions: 20 })
+    ]));
+
+    expect(result.isFallback).toBe(false);
+    expect(result.pricePerSession).toBe(175);
+  });
+
+  it('reports fallback when the client has no completed order', async () => {
+    const result = await getClientPackagePricing(301, modelsReturning(null));
+    expect(result.isFallback).toBe(true);
+  });
+});

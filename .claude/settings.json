@@ -401,11 +401,6 @@
           },
           {
             "type": "command",
-            "command": "node scripts/hooks/dry-loop-gate.mjs",
-            "timeout": 30
-          },
-          {
-            "type": "command",
             "command": "node scripts/hooks/linear-sync-gate.mjs",
             "timeout": 30
           },

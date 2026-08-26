@@ -7,12 +7,15 @@
  * Checks:
  *  R1 raw hex colors in Forge css/ (tokens/ is the only home for hex)
  *  R2 consumer CSS/JS overriding `.sw-` selectors or using !important against sw- classes
+ *  R6 consumer styled(ForgeButton) wrapper that restyles instead of positioning (rule 84 standing law)
  *  R3 visual-reordering properties inside theme packs (§11.A2: packs must not fork tab order)
+ *  R7 retention: a legacy revert target must not be deleted while its receipt ticket is open
  *  R4 adoption tracker: consumer files importing legacy exports the Forge replaces (GlowButton→Button)
  *
  * Usage: node scripts/drift-lint.mjs [--consumer <dir>]... [--enforce]
  */
 import { readFileSync, readdirSync, lstatSync, existsSync } from 'node:fs';
+import { styledWrapperBlocker } from './codemod-glowbutton.mjs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -60,6 +63,12 @@ function* walk(dir, filter, depth = 0) {
 /** Parse EXCEPTIONS.md ledger rows: `| path-substr | rule | owner | expiry |` */
 export function loadExceptions(text, today = new Date()) {
   const out = [];
+  // Strip HTML comments FIRST. The ledger template ships a commented-out example row, and a
+  // line-by-line regex loaded it as a LIVE suppression (own T2 round-4 finding). It suppressed
+  // nothing today only because the example path does not exist — an example that silently
+  // becomes an active governance exception is precisely the kind of quiet hole this ledger
+  // exists to prevent.
+  text = text.replace(/<!--[\s\S]*?-->/g, '');
   for (const line of text.split('\n')) {
     const m = line.match(/^\|\s*([^|]+?)\s*\|\s*(R\d)\s*\|\s*([^|]+?)\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|/);
     if (!m) continue;
@@ -85,10 +94,161 @@ export function stripComments(text) {
   }).join('\n');
 }
 
+/**
+ * Index of the backtick that CLOSES the template opened at `open`, honouring escapes and
+ * `${…}` interpolations (which may themselves contain templates). `indexOf('`')` stopped at the
+ * first inner backtick, so an interpolated body was audited truncated (GLM T2-R3 B2a).
+ */
+function templateEnd(text, open) {
+  for (let i = open + 1; i < text.length; i++) {
+    const c = text[i];
+    if (c === '\\') { i++; continue; }
+    if (c === '`') return i;
+    if (c === '$' && text[i + 1] === '{') {
+      let depth = 1; i += 2;
+      for (; i < text.length && depth; i++) {
+        if (text[i] === '\\') { i++; continue; }
+        if (text[i] === '`') { const inner = templateEnd(text, i); if (inner < 0) return -1; i = inner; continue; }
+        if (text[i] === '{') depth++;
+        else if (text[i] === '}') depth--;
+      }
+      i--;
+    }
+  }
+  return -1;
+}
+
+/** Skip a balanced `(...)` starting at `open`; returns the index just past the matching `)`. */
+function skipParens(text, open) {
+  let depth = 0; let quote = null;
+  for (let i = open; i < text.length; i++) {
+    const c = text[i];
+    if (quote) { if (c === '\\') { i++; continue; } if (c === quote) quote = null; continue; }
+    if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
+    if (c === '(') depth++;
+    else if (c === ')') { depth--; if (depth === 0) return i + 1; }
+  }
+  return -1;
+}
+
+/** Skip a method chain (`.attrs(…).withConfig(…)`) with BALANCED parens; returns the end index. */
+function skipChain(text, i) {
+  for (;;) {
+    const m = /^\s*\.\s*\w+\s*\(/.exec(text.slice(i));
+    if (!m) return i;
+    const end = skipParens(text, i + m[0].length - 1);
+    if (end < 0) return i;
+    i = end;
+  }
+}
+
+/**
+ * R6 scan: every styled() wrapper that ultimately wraps the Forge button binding.
+ *
+ * A first version matched only the literal `styled(ForgeButton)\`…\`` and a probe found four ways
+ * straight past it: `.attrs({})`, `.withConfig({})`, object-styles call syntax, and — the one that
+ * matters most — re-extending an already-wrapped component (`styled(MyWrapper)\`background:red\``).
+ * So this resolves the transitive set of locally-bound wrapper identifiers first, then checks each.
+ *
+ * DOCUMENTED LIMIT (Ox T2-R3 #2, second half): this is a PER-FILE linter, so a wrapper exported
+ * from one file and re-extended in another is not resolved — the importing file has no forge
+ * import to seed from. Cross-file resolution needs a module graph, which this deliberately is
+ * not. R6 is therefore a standing law WITHIN a file and a tripwire across files; that is the
+ * honest scope, and it is stated here rather than implied by silence.
+ *
+ * Object-styles syntax (`styled(X)({...})`) is FLAGGED unconditionally: it cannot be audited by
+ * the shared string boundary, and "cannot verify" must never render as "fine" for a standing law.
+ */
+export function scanStyledBindings(text) {
+  const findings = [];
+  // Seed from the IMPORT, not from the literal name: the binding is a default export, so the
+  // local name is whatever the importer chose. `import FB from '…/forge/ForgeButton'` then
+  // `styled(FB)` was invisible to the first version — and hand-written wrappers are the entire
+  // threat model R6 exists for, so the bypass walked in the front door (Ox T2-R2 N2).
+  const bound = new Set();
+  for (const m of text.matchAll(/import\s+(\w+)\s*(?:,\s*\{[^}]*\})?\s*from\s*['"][^'"]*forge\/ForgeButton['"]/g)) bound.add(m[1]);
+  for (const m of text.matchAll(/import\s*\{[^}]*\bForgeButton\s+as\s+(\w+)[^}]*\}\s*from/g)) bound.add(m[1]);
+  if (!bound.size) bound.add('ForgeButton'); // fixtures and files that use the name without an import line
+  // Transitive closure. The seed must tolerate a method chain: `const W = styled(ForgeButton)
+  // .attrs({…})` never entered `bound` when the pattern demanded `)` immediately after the name,
+  // so every later `styled(W)` was invisible (Ox T2-R3 #2, GLM B2b).
+  for (let pass = 0; pass < 5; pass++) {
+    const before = bound.size;
+    for (const name of [...bound]) {
+      for (const m of text.matchAll(new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*styled\\(\\s*${name}\\s*\\)`, 'g'))) bound.add(m[1]);
+      // `const W = FB.attrs({…})` — a wrapper built off the binding without styled() at all.
+      for (const m of text.matchAll(new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*${name}\\s*\\.\\s*\\w+\\s*\\(`, 'g'))) bound.add(m[1]);
+    }
+    if (bound.size === before) break;
+  }
+  for (const name of bound) {
+    for (const m of text.matchAll(new RegExp(`styled\\(\\s*${name}\\s*(?=[).])`, 'g'))) {
+      const line = text.slice(0, m.index).split('\n').length;
+      const via = name === 'ForgeButton' ? 'styled(ForgeButton)' : `styled(${name}) [transitively wraps ForgeButton]`;
+      // Balanced-paren scan: `.attrs((p) => ({…}))` or any `)` inside the args used to end the
+      // chain early, after which the backtick never matched and the wrapper went UNSCANNED.
+      const closeParen = skipParens(text, m.index + 'styled'.length);
+      // "Cannot verify" must never render as "fine" — this file prints that law a few lines up,
+      // and these two `continue`s were the only places it broke its own rule: an unbalanceable
+      // chain or an unterminated body made the wrapper VANISH, unscanned and unreported, which is
+      // reachable by exactly the hand-written wrapper R6 exists for (Ox T2-R4 narrow reopen).
+      if (closeParen < 0) { findings.push({ rule: 'R6', line, detail: `${via} — could not parse the styled() call (unbalanced parens); NOT audited, human decision required (rule 84)` }); continue; }
+      let i = skipChain(text, closeParen);
+      while (/\s/.test(text[i])) i++;
+      if (text[i] === '(') { findings.push({ rule: 'R6', line, detail: `${via} uses object-styles syntax, which cannot be audited statically — use a --sw-btn-* override or a template literal (rule 84)` }); continue; }
+      // Neither a template nor a call after the chain means the wrapper declares NO styles
+      // (`const W = styled(FB).attrs({});`) — nothing to violate, and W is already in `bound`, so
+      // any later `styled(W)` is still audited. This `continue` is benign, unlike the two above:
+      // it is "nothing to verify", not "could not verify". The only inputs that reach it otherwise
+      // are non-compiling (an unterminated call), which is outside the threat model.
+      if (text[i] !== '`') continue;
+      // Terminator must respect escapes and interpolations, not stop at the first backtick.
+      const end = templateEnd(text, i);
+      if (end < 0) { findings.push({ rule: 'R6', line, detail: `${via} — could not find the template terminator; NOT audited, human decision required (rule 84)` }); continue; }
+      const blocker = styledWrapperBlocker(text.slice(i + 1, end));
+      if (blocker) findings.push({ rule: 'R6', line, detail: `${via} ${blocker} — use a --sw-btn-* override instead (rule 84)` });
+    }
+  }
+  return findings.sort((a, b) => a.line - b.line);
+}
+
+/**
+ * R7: the legacy component must remain importable while any migrated surface lacks a live
+ * receipt. A drilled revert proves the code reverts cleanly TODAY; it says nothing about whether
+ * the revert target still exists next week (Ox T2-R2 N4). Deleting GlowButton while SWA-213 is
+ * open would silently convert a proven rollback into an unexecutable one — the failure would be
+ * discovered at the worst possible moment, during an incident.
+ * Retire this rule together with the retention ticket, not before.
+ */
+export const RETENTION_GUARDED = Object.freeze([
+  { path: 'components/ui/buttons/GlowButton.tsx', until: 'SWA-213', why: 'revert target for the T2 authenticated migration; no live receipt yet' },
+  // The re-export shim is what two real T-tier surfaces import (OptimizedSignupModal,
+  // PricingInquiryModal). Guarding only the .tsx would let the shim be deleted and break the
+  // revert for exactly the files that reach the button through it (GLM T2-R3 B4).
+  { path: 'components/ui/GlowButton.ts', until: 'SWA-213', why: 're-export shim; two T-tier surfaces import the button through it, so the revert needs it too' },
+]);
+
+/** @returns {{rule:string,line:number,detail:string,path:string}[]} */
+export function checkRetention(existsFn) {
+  return RETENTION_GUARDED.flatMap(({ path, until, why }) => (existsFn(path) ? [] : [{
+    rule: 'R7', line: 1, path,
+    detail: `retention-guarded file is MISSING — ${why}. It must stay importable until ${until} closes, or the drilled rollback stops being executable.`,
+  }]));
+}
+
 /** Lint one file's text. @returns {{rule:string,line:number,detail:string}[]} */
 export function lintText(path, text, { isForgeCss = false, isPack = false, isConsumer = false } = {}) {
   const findings = [];
   const lines = stripComments(text).split('\n');
+  // R6 (block-level, consumers): a styled(ForgeButton) wrapper may position the button in its
+  // parent layout, never restyle it — the sanctioned override surface is the published
+  // --sw-btn-* custom properties (rule 84 / R2). The codemod refuses to CREATE such a wrapper;
+  // this refuses to let one be hand-written afterwards, which is the half that survives the merge
+  // (Ox T2 B3: "codemod-only enforcement decays on contact with humans"). Both call the SAME
+  // boundary function, so the rule cannot drift between the migration gate and the standing law.
+  // stripComments output, not raw text: a commented-out wrapper must not phantom-flag, and the
+  // scan surface should match every other rule in this file (Ox T2-R2 N2.2).
+  if (isConsumer) findings.push(...scanStyledBindings(lines.join('\n')));
   lines.forEach((line, i) => {
     const at = i + 1;
     // belt+braces: orphan comment-continuation lines (unclosed /* in a fragment) stay skipped
@@ -121,6 +281,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   }
   for (const dir of consumers) {
     if (!existsSync(dir)) { console.log(`[drift-lint] consumer dir missing: ${dir}`); continue; }
+    all.push(...checkRetention((p) => existsSync(join(dir, p))));
     for (const f of walk(dir, (p) => /\.(css|tsx?|jsx?|mjs)$/.test(p))) {
       all.push(...lintText(f, readFileSync(f, 'utf8'), { isConsumer: true }));
     }

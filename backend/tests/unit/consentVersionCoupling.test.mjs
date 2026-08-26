@@ -58,11 +58,26 @@ describe('consent version coupling', () => {
     expect(isConsentVersionCurrent(CURRENT_CONSENT_VERSION)).toBe(true);
   });
 
-  it('enabling gated health fields requires a version NEWER than the one shipping', async () => {
-    // Cross-file invariant: the health-field escape hatch must not be openable
-    // under the disclosure users have already seen.
-    const { GATED_FIELDS_REQUIRE_CONSENT_VERSION } =
+  it('the health-field hatch stays CLOSED until the disclosure in force covers those fields', async () => {
+    // The previous assertion here was INVERTED: it demanded REQUIRE != CURRENT
+    // forever, which forbids ever legitimately enabling — and did not stop the
+    // real hole, where env + REQUIRE agreed while CURRENT lagged (GLM 5.3).
+    // The invariant is: the hatch opens only when the disclosure users are
+    // shown (CURRENT) has been bumped to the version that names the fields.
+    const { GATED_FIELDS_REQUIRE_CONSENT_VERSION, areGatedHealthFieldsEnabled } =
       await import('../../services/deIdentificationService.mjs');
-    expect(GATED_FIELDS_REQUIRE_CONSENT_VERSION).not.toBe(CURRENT_CONSENT_VERSION);
+    process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
+    process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = GATED_FIELDS_REQUIRE_CONSENT_VERSION;
+    try {
+      if (GATED_FIELDS_REQUIRE_CONSENT_VERSION !== CURRENT_CONSENT_VERSION) {
+        // Today: 2.0 shipping, 3.0 required -> must be closed even with env set.
+        expect(areGatedHealthFieldsEnabled()).toBe(false);
+      } else {
+        expect(areGatedHealthFieldsEnabled()).toBe(true);
+      }
+    } finally {
+      delete process.env.COACH_HEALTH_FIELDS_ENABLED;
+      delete process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION;
+    }
   });
 });

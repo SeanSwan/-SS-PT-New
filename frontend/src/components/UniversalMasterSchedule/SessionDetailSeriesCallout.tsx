@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import GlowButton from '../ui/buttons/GlowButton';
+import ForgeButton from '../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import { FlexBox, SmallText } from './ui';
 import { SeriesCallout } from './SessionDetailModal.baseStyles';
 
@@ -29,22 +29,22 @@ const SessionDetailSeriesCallout: React.FC<SessionDetailSeriesCalloutProps> = ({
       Part of recurring series{seriesCount ? ` (${seriesCount} sessions)` : ''}.
     </SmallText>
     <FlexBox gap="0.5rem">
-      <GlowButton
+      <ForgeButton
         variant="purple"
         size="small"
         onClick={() => onManageSeries?.(recurringGroupId)}
         disabled={loading}
       >
         Edit Series
-      </GlowButton>
-      <GlowButton
+      </ForgeButton>
+      <ForgeButton
         variant="ruby"
         size="small"
         onClick={onDeleteSeries}
         disabled={loading}
       >
         Delete Series
-      </GlowButton>
+      </ForgeButton>
     </FlexBox>
   </SeriesCallout>
 );

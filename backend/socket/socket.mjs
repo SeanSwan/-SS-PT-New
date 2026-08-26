@@ -13,9 +13,10 @@ import { getIO as getManagedSocketIO } from './socketManager.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 import { canSendToConversation, BLOCKED_MESSAGE } from '../services/messaging/blockGuard.mjs';
 import { checkMessageRate, MESSAGE_RATE_LIMITED } from '../services/messaging/messageRateLimit.mjs';
-import { isRelationshipWriteAllowed } from '../services/messagingAccessRepository.mjs';
-import { resolveCurrentEntitlement, isGatingEnabled } from '../middleware/requireTier.mjs';
-import { meetsMinimumTier } from '../config/tierCatalog.mjs';
+import {
+  isRelationshipWriteAllowed,
+  resolveSocketCommunityAccess,
+} from '../services/messagingAccessRepository.mjs';
 
 const onlineUsers = new Map();
 const MAX_MESSAGE_LENGTH = 5000;
@@ -124,35 +125,28 @@ export const initializeSocket = () => {
       if (!normalizedConversationId || !trimmedContent || trimmedContent.length > MAX_MESSAGE_LENGTH) return;
 
       try {
-        if (!(await isActiveParticipant(normalizedConversationId, socket.user.id))) {
-          socket.emit('error', { message: 'You are not a member of this conversation.' });
-          return;
-        }
-
-        // Same throttle as REST. Without it, a limiter on the REST path alone
-        // would be bypassed by emitting 'send_message' over the websocket.
+        // Throttle before ANY database work. Two review rounds moved the limiter
+        // ahead of the lane check but left isActiveParticipant — a query — ahead
+        // of the limiter, so an emit loop still forced one indexed lookup per
+        // rejected message (ox-alpha, GLM 5.3, Kimi K3 — all three). The limiter
+        // is in-memory and free; it goes first, full stop.
         const rate = checkMessageRate(socket.user.id);
         if (!rate.allowed) {
           socket.emit('error', { message: MESSAGE_RATE_LIMITED, retryAfterMs: rate.retryAfterMs });
           return;
         }
 
-        // Throttle FIRST: the lane check below costs up to three DB round-trips
-        // (entitlement, assignments, members). Running it before the limiter let
-        // an unthrottled emit loop force that work per message (GLM 5.3).
+        if (!(await isActiveParticipant(normalizedConversationId, socket.user.id))) {
+          socket.emit('error', { message: 'You are not a member of this conversation.' });
+          return;
+        }
+
         // Same RELATIONSHIP lane as the REST path. The lane shipped as Express
         // middleware only, so a free-tier client with an active assignment was
         // 403'd by REST on an old community thread and could still write to it
         // here — exactly the failure this file's next comment warns about, and
         // flagged independently by two post-ship reviewers.
-        let hasCommunityAccess = false;
-        try {
-          const entitlement = await resolveCurrentEntitlement({ user: socket.user });
-          hasCommunityAccess = meetsMinimumTier(entitlement.effectiveTier, 'elite');
-        } catch {
-          hasCommunityAccess = false; // fail closed, same as the middleware
-        }
-        if (!isGatingEnabled()) hasCommunityAccess = true;
+        const hasCommunityAccess = await resolveSocketCommunityAccess(socket);
 
         if (!(await isRelationshipWriteAllowed(socket.user, normalizedConversationId, hasCommunityAccess))) {
           socket.emit('error', { message: 'You can message your assigned trainer here.' });

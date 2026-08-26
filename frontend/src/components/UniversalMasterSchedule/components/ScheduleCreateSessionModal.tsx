@@ -17,7 +17,7 @@ import {
   StyledTextarea,
   TimeWheelPicker,
 } from '../ui';
-import GlowButton from '../../ui/buttons/GlowButton';
+import ForgeButton from '../../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import useSessionTypes from '../hooks/useSessionTypes';
 import { normalizeScheduleOptionalId } from '../UniversalMasterSchedule.logic';
 import {
@@ -145,14 +145,14 @@ const ScheduleCreateSessionModal: React.FC<ScheduleCreateSessionModalProps> = ({
           <OutlinedButton onClick={() => setShowCreateDialog(false)}>
             Cancel
           </OutlinedButton>
-          <GlowButton
+          <ForgeButton
             variant="primary"
             size="medium"
             onClick={handleCreateSession}
             leftIcon={<Save size={18} />}
           >
             Create Session
-          </GlowButton>
+          </ForgeButton>
         </>
       )}
     >

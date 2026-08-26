@@ -39,6 +39,74 @@ const DROPPED = new Set(['pulse', 'haptic', 'glowIntensity']);
 const LEGACY_IMPORT = /(?:^|\/)ui\/buttons\/GlowButton(?:\.tsx?)?$/;
 
 /**
+ * A `styled(GlowButton)` wrapper may migrate ONLY if every declaration it makes is one the
+ * PARENT LAYOUT owns — where the button sits, never what it looks like. Everything else belongs
+ * to the skin, and overriding it is exactly what rule 84 / drift-lint R2 forbid (the sanctioned
+ * surface is the published `--sw-btn-*` custom properties, never the `sw-*` rules).
+ *
+ * This is an ALLOW-list, deliberately. It started as a deny-list of skin-owned properties and a
+ * probe of my own rule walked straight through it: `outline` (which fights the focus ring — an
+ * accessibility control the core owns), `filter: hue-rotate` (recolours the entire button),
+ * `text-shadow`, `text-decoration`, `cursor`, `width`. A deny-list of a property space that grows
+ * every CSS release is unclosable; an allow-list fails closed, and a false block costs one human
+ * decision while a false migrate ships a silent visual override to an authenticated surface.
+ *
+ * `--sw-btn-*` custom properties are ALLOWED — that exact namespace is the sanctioned override
+ * surface, not a bypass. The wider `--sw-*` family is NOT: a prefix is not a contract.
+ *
+ * `LAYOUT_ALLOWED_PROPS` is the frozen manifest of the boundary. A golden test pins it and
+ * asserts it agrees with the regex, so widening the boundary is a visible, reviewed diff instead
+ * of a one-line edit nobody sees (Ox T2-R2 N3b).
+ */
+export const LAYOUT_ALLOWED_PROPS = Object.freeze([
+  "margin", "margin-block", "margin-block-start", "margin-block-end", "margin-inline",
+  "margin-inline-start", "margin-inline-end", "margin-top", "margin-right", "margin-bottom",
+  "margin-left", "flex", "flex-grow", "flex-shrink", "flex-basis", "align-self", "justify-self",
+  "place-self", "order", "grid-area", "grid-column", "grid-row", "grid-column-start",
+  "grid-column-end", "grid-row-start", "grid-row-end",
+]);
+const LAYOUT_ALLOWED = /^(margin|margin-block|margin-block-start|margin-block-end|margin-inline|margin-inline-start|margin-inline-end|margin-top|margin-right|margin-bottom|margin-left|flex|flex-grow|flex-shrink|flex-basis|align-self|justify-self|place-self|order|grid-area|grid-column|grid-row|grid-column-start|grid-column-end|grid-row-start|grid-row-end)$/i;
+
+/**
+ * Classify a styled-template body. Returns null when every declaration is layout-owned (or a
+ * `--sw-*` override), otherwise the first reason it must stay a human decision.
+ */
+export function styledWrapperBlocker(body) {
+  // An interpolation can expand to anything — including a whole skin override — and cannot be
+  // judged statically. (`${(p) => p.$x && "background: red;"}` slipped the old deny-list.)
+  if (/\$\{/.test(body)) return 'contains an interpolation ${…}, which can expand to any CSS';
+  // Nested blocks (&:hover, &::after, media queries) restyle states the skin owns.
+  if (/\{/.test(body)) return 'contains a nested block (&:hover / ::after / @media), which restyles skin-owned state';
+  for (const decl of body.split(';')) {
+    const m = decl.match(/^\s*([-a-zA-Z][-a-zA-Z0-9]*)\s*:\s*([^;]*)$/);
+    if (!m) continue; // blank / comment-only segment
+    const prop = m[1];
+    const value = (m[2] || '').trim();
+    // Two VALUE-level seams the name-only check got wrong (GLM T2-R2 §3):
+    // `flex: 0 0 320px` sets flex-BASIS — the button's main-axis size — through a door left open
+    // while `width: 300px` was locked. Ratios are layout; a length basis is sizing.
+    // BOTH the shorthand and the longhand: closing `flex: 0 0 320px` while leaving
+    // `flex-basis: 320px` open is the same seam with a different door (Ox T2-R3 #3, GLM B3 —
+    // found independently by both, which is how you know a fix was half-done).
+    if (/^(flex|flex-basis)$/i.test(prop) && /\d\s*(px|rem|em|%|ch|vw|vh|vmin|vmax|pt|cm|mm|in)/i.test(value)) {
+      return `sets '${prop}' with a length basis (${value}) — that is main-axis SIZING, which the skin owns; use a --sw-btn-* override`;
+    }
+    // `min-width: 0` is the near-mandatory flex-overflow fix and sets no size — without it every
+    // real flex row costs a manual decision. Only the exact zero; any length is sizing.
+    if (/^(min-width|min-inline-size)$/i.test(prop)) {
+      if (/^0(px|rem|em|%)?$/i.test(value)) continue;
+      return `sets '${prop}: ${value}' — only the exact flex-overflow fix (0) is layout; a length is sizing`;
+    }
+    // Rule 84 sanctions "the published --sw-btn-* custom properties" — NOT the whole --sw- family.
+    // `--sw-accent: red` passes a prefix check and is outside the button's published surface
+    // (Ox T2-R2 N3a): a prefix is not a contract.
+    if (prop.startsWith('--')) { if (!/^--sw-btn-/.test(prop)) return `sets '${prop}', which is outside the published --sw-btn-* override surface`; continue; }
+    if (!LAYOUT_ALLOWED.test(prop)) return `sets '${prop}', which the skin owns (allow-list is layout placement only)`;
+  }
+  return null;
+}
+
+/**
  * Is `spec` (as imported from `importer`) the legacy GlowButton — directly, or through a
  * one-hop re-export shim? `frontend/src/components/ui/GlowButton.ts` is exactly that shim
  * (`export { default } from './buttons/GlowButton'`), and 2 real T-tier surfaces import it;
@@ -189,7 +257,7 @@ export function residualGlowButton(src) {
 
 /** Pure transform — no I/O, no process side effects (importable by tests). */
 export function transform(src, file, frontendSrc = resolve('frontend/src')) {
-  const report = { imports: 0, tags: 0, styledBoxAs: 0, dropped: new Set(), unknown: new Set(), notes: [], skipped: [], errors: [], residual: [] };
+  const report = { imports: 0, tags: 0, styledBoxAs: 0, styledWrappers: 0, dropped: new Set(), unknown: new Set(), notes: [], skipped: [], errors: [], residual: [] };
   const audit = (attrs) => {
     if (/\{\s*\.\.\./.test(attrs)) report.notes.push('spread props {...x} — prop audit BYPASSED for this site; verify the object has no pulse/haptic/glowIntensity or unknown keys');
     for (const p of propNames(attrs)) { if (DROPPED.has(p)) report.dropped.add(p); else if (!KNOWN.has(p) && !/^(data-|aria-|on[A-Z]|\$)/.test(p)) report.unknown.add(p); }
@@ -219,6 +287,18 @@ export function transform(src, file, frontendSrc = resolve('frontend/src')) {
   // plain <GlowButton …>
   ({ out, count: report.tags } = rewriteTags(out, /<GlowButton(?=[\s/>])/g, 'GlowButton', 'ForgeButton', (attrs) => { audit(attrs); return attrs; }, report));
   if (report.errors.length) return { out: src, report };
+  // VALUE POSITION: styled(GlowButton)`…` — migratable ONLY when the wrapper is layout-only.
+  // A wrapper that sets a skin-owned property is a catalog override (rule 84 / R2) and must be
+  // a human decision: converting it would silently move the fight from GlowButton to the skin.
+  const valueMask = maskedRegions(out);
+  out = out.replace(/styled\(\s*GlowButton\s*\)\s*`([\s\S]*?)`/g, (whole, body, offset) => {
+    if (valueMask[offset]) { report.skipped.push(`styled(GlowButton) at offset ${offset} is inside a comment/template literal — not rewritten`); return whole; }
+    const blocker = styledWrapperBlocker(body);
+    if (blocker) { report.skipped.push(`styled(GlowButton) at offset ${offset} ${blocker} — NOT migrated; move it to a --sw-btn-* override or keep the legacy component (rule 84 / drift-lint R2)`); return whole; }
+    report.styledWrappers++;
+    report.notes.push(`styled(GlowButton) → styled(ForgeButton): layout-only wrapper (${body.trim().replace(/\s+/g, ' ').slice(0, 60)}) — the binding forwards className, so the wrapper class composes with the skin instead of overriding it`);
+    return whole.replace(/styled\(\s*GlowButton\s*\)/, 'styled(ForgeButton)');
+  });
   if (/\bStyledBox\b/.test(out) && !/<StyledBox\b/.test(out) && /import\s*\{[^}]*StyledBox[^}]*\}/.test(out)) report.notes.push('StyledBox import may now be unused — remove if so');
   report.residual = residualGlowButton(out);
   return { out, report };
@@ -241,7 +321,7 @@ if (isMain) {
     const diff = out !== src;
     const blocked = report.errors.length > 0 || report.residual.length > 0;
     const status = blocked ? (report.errors.length ? 'ERROR       ' : 'RESIDUAL    ') : diff ? (apply ? 'APPLIED     ' : 'WOULD-CHANGE') : 'NO-CHANGE   ';
-    console.log(`${status} ${f}  imports=${report.imports} tags=${report.tags} styledBoxAs=${report.styledBoxAs}` +
+    console.log(`${status} ${f}  imports=${report.imports} tags=${report.tags} styledBoxAs=${report.styledBoxAs} styledWrappers=${report.styledWrappers}` +
       (report.dropped.size ? `  dropped-by-binding=[${[...report.dropped]}]` : '') +
       (report.unknown.size ? `  UNKNOWN-PROPS=[${[...report.unknown]}] ← human decision` : '') +
       (report.residual.length ? `  RESIDUAL GlowButton identifier(s) at offset(s) ${report.residual.join(',')} ← manual migration required; file NOT written` : '') +

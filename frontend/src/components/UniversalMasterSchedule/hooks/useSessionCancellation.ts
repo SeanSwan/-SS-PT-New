@@ -25,6 +25,7 @@ interface UseSessionCancellationInput {
   isEarlyCancelEligible: boolean;
   defaultFullCharge: number;
   defaultLateFee: number;
+  pricingUnavailable: boolean;
   onUpdated: () => void;
   onClose: () => void;
   toast: CancellationToast;
@@ -40,6 +41,7 @@ export const useSessionCancellation = ({
   isEarlyCancelEligible,
   defaultFullCharge,
   defaultLateFee,
+  pricingUnavailable,
   onUpdated,
   onClose,
   toast,
@@ -51,6 +53,10 @@ export const useSessionCancellation = ({
   const [earlyCancel, setEarlyCancel] = useState(false);
   const [showCancelOptions, setShowCancelOptions] = useState(false);
   const [chargeType, setChargeType] = useState<CancellationChargeType>('none');
+  // Tracks a deliberate operator choice so the re-arm effect below never
+  // clobbers one. Distinct from chargeType !== none, because the fail-closed
+  // default is also 'none'.
+  const [chargeTouched, setChargeTouched] = useState(false);
   const [chargeAmount, setChargeAmount] = useState('');
   const [restoreCredit, setRestoreCredit] = useState(true);
   const [notifyOnCancel, setNotifyOnCancel] = useState(true);
@@ -63,6 +69,7 @@ export const useSessionCancellation = ({
     setEarlyCancel(false);
     setShowCancelOptions(false);
     setChargeType('none');
+    setChargeTouched(false);
     setChargeAmount('');
     setRestoreCredit(true);
     setNotifyOnCancel(true);
@@ -93,7 +100,7 @@ export const useSessionCancellation = ({
         return;
       }
 
-      setLateCancelWarning(mapLateCancelWarning(result, defaultLateFee));
+      setLateCancelWarning(mapLateCancelWarning(result));
       setShowLateCancelWarning(true);
     } catch (error) {
       console.error('Error fetching cancel warning:', error);
@@ -106,19 +113,54 @@ export const useSessionCancellation = ({
   const handleCancelClick = useCallback(async () => {
     if (canManage) {
       setShowCancelOptions(true);
-      const nextDefaults = buildCancelPanelDefaults(isEarlyCancelEligible, defaultFullCharge);
+      const nextDefaults = buildCancelPanelDefaults(
+        isEarlyCancelEligible,
+        defaultFullCharge,
+        pricingUnavailable
+      );
       setChargeType(nextDefaults.chargeType);
       setRestoreCredit(nextDefaults.restoreCredit);
       setChargeAmount(nextDefaults.chargeAmount);
+      setChargeTouched(false);
       return;
     }
 
     await fetchCancelWarning();
-  }, [canManage, defaultFullCharge, fetchCancelWarning, isEarlyCancelEligible]);
+  }, [canManage, defaultFullCharge, fetchCancelWarning, isEarlyCancelEligible, pricingUnavailable]);
+
+  // Re-arm once real pricing lands. Without this the panel reverts to its
+  // normal appearance while the submitted state is still the fail-closed
+  // 'none' - a lie in the opposite direction from the one this gate fixed.
+  useEffect(() => {
+    if (!showCancelOptions || !canManage || pricingUnavailable || chargeTouched) {
+      return;
+    }
+    const rearmed = buildCancelPanelDefaults(isEarlyCancelEligible, defaultFullCharge, false);
+    setChargeType(rearmed.chargeType);
+    setChargeAmount(rearmed.chargeAmount);
+    setRestoreCredit(rearmed.restoreCredit);
+  }, [
+    canManage,
+    chargeTouched,
+    defaultFullCharge,
+    isEarlyCancelEligible,
+    pricingUnavailable,
+    showCancelOptions,
+  ]);
 
   const handleCancel = useCallback(() => {
     if (!session) {
       return;
+    }
+
+    // A partial charge with no positive amount reaches the server as 0, which
+    // it reads as "missing" and replaces with half the session rate. Refuse it.
+    if (canManage && chargeType === 'partial') {
+      const parsed = Number.parseFloat(chargeAmount);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        setFormError('Enter a custom charge amount greater than $0.');
+        return;
+      }
     }
 
     setConfirmRequest({
@@ -230,7 +272,10 @@ export const useSessionCancellation = ({
     lateCancelLoading,
     setCancelReason,
     setEarlyCancel,
-    setChargeType,
+    setChargeType: (next: CancellationChargeType) => {
+      setChargeTouched(true);
+      setChargeType(next);
+    },
     setChargeAmount,
     setRestoreCredit,
     setNotifyOnCancel,

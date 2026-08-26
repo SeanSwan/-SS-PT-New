@@ -104,12 +104,18 @@ describe('gated non-training health fields', () => {
     }
   });
 
-  it('forwards the gated set when counsel has signed off and the flag is on', () => {
+  it('stays CLOSED with both env vars set while the shipping disclosure lags', () => {
+    // RE-ANCHORED 2026-08-25. This used to assert the gated set FORWARDS once
+    // env matched REQUIRE. GLM 5.3 showed that let an operator open the hatch
+    // while users held valid 2.0 grants under a disclosure that says withheld.
+    // Enabling now also requires CURRENT_CONSENT_VERSION === REQUIRE (3.0),
+    // which is a reviewed code change. Today CURRENT is 2.0, so: closed. The
+    // open path is proven in deIdentifierHatchOpen.test.mjs with CURRENT mocked.
     process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
     process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = GATED_FIELDS_REQUIRE_CONSENT_VERSION;
     const { deIdentified } = deIdentify(fullClientPayload(), { clientId: 501 });
 
-    expect(deIdentified.health.supplements).toEqual(['creatine']);
+    expect(deIdentified.health.supplements).toBeUndefined();
   });
 });
 
@@ -214,13 +220,17 @@ describe('the escape hatch is a control, not a caution', () => {
     process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = 'wrong-log-probe';
     logger.error.mockClear();
     areGatedHealthFieldsEnabled();
+    // Either branch that closes the hatch must say so out loud: the
+    // require-vs-current mismatch fires first today; a wrong declaration fires
+    // once CURRENT catches up. Both log at error level.
     expect(logger.error).toHaveBeenCalled();
   });
 
-  it('opens only when the declared version matches what this build requires', () => {
+  it('a matching declaration is necessary but NOT sufficient while CURRENT lags', () => {
+    // RE-ANCHORED: was `toBe(true)`. See the note on the test above.
     process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
     process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = GATED_FIELDS_REQUIRE_CONSENT_VERSION;
-    expect(areGatedHealthFieldsEnabled()).toBe(true);
+    expect(areGatedHealthFieldsEnabled()).toBe(false);
   });
 
   it('requires a consent version NEWER than the one currently shipped', () => {

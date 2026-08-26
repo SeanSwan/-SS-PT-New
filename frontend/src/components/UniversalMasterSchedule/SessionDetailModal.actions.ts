@@ -27,8 +27,11 @@ export interface CancellationActionInput {
 export interface LateCancelWarningModel {
   isLateCancellation: boolean;
   hoursUntilSession: number;
-  lateFeeAmount: number;
-  creditRestored: boolean;
+  /** null when the server did not state a policy fee. Never invent one here:
+   *  this figure is shown to the CLIENT as their own cancellation fee. */
+  lateFeeAmount: number | null;
+  /** null when the server did not state it. Do not assume restoration. */
+  creditRestored: boolean | null;
   warningMessage: string;
   sessionDateFormatted: string;
 }
@@ -76,13 +79,15 @@ export const buildAttendancePayload = (
 });
 
 export const mapLateCancelWarning = (
-  result: any,
-  defaultLateFee: number
+  result: any
 ): LateCancelWarningModel => ({
   isLateCancellation: result.isLateCancellation,
   hoursUntilSession: result.hoursUntilSession,
-  lateFeeAmount: result.cancellationPolicy?.lateFeeAmount || defaultLateFee,
-  creditRestored: result.cancellationPolicy?.creditRestored ?? true,
+  // ?? not ||: a real policy fee of 0 is a waiver, not a missing value. And no
+  // app-side default - the admin panel's 175/88 placeholders are not this
+  // client's numbers, and this warning is what the client themselves reads.
+  lateFeeAmount: result.cancellationPolicy?.lateFeeAmount ?? null,
+  creditRestored: result.cancellationPolicy?.creditRestored ?? null,
   warningMessage: result.warningMessage,
   sessionDateFormatted: result.sessionDateFormatted,
 });
@@ -123,12 +128,22 @@ export const buildCancelConfirmationMessage = ({
 
 export const buildCancelPanelDefaults = (
   isEarlyCancelEligible: boolean,
-  defaultFullCharge: number
-): CancelPanelDefaults => (
-  isEarlyCancelEligible
-    ? { chargeType: 'none', chargeAmount: '', restoreCredit: true }
-    : { chargeType: 'full', chargeAmount: String(defaultFullCharge), restoreCredit: false }
-);
+  defaultFullCharge: number,
+  pricingUnavailable = false
+): CancelPanelDefaults => {
+  if (isEarlyCancelEligible) {
+    return { chargeType: 'none', chargeAmount: '', restoreCredit: true };
+  }
+
+  // Fail closed: without this client's real package price we must not pre-arm a
+  // charge. The admin picks an amount deliberately instead of confirming a
+  // placeholder that is presented as package-derived.
+  if (pricingUnavailable) {
+    return { chargeType: 'none', chargeAmount: '', restoreCredit: true };
+  }
+
+  return { chargeType: 'full', chargeAmount: String(defaultFullCharge), restoreCredit: false };
+};
 
 export const buildCancelPayload = ({
   canManage,

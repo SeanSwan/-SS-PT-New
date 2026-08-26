@@ -19,6 +19,7 @@ const renderPanel = (overrides = {}) => {
     onChargeAmountChange: vi.fn(),
     defaultFullCharge: 175,
     defaultLateFee: 87.5,
+    pricingUnavailable: false,
     restoreCredit: false,
     onRestoreCreditChange: vi.fn(),
     notifyOnCancel: true,
@@ -80,5 +81,28 @@ describe('SessionDetailCancelOptionsPanel', () => {
     expect(bodySource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(panelSource.split(/\r?\n/).length).toBeLessThanOrEqual(300);
     expect(modalSource.split(/\r?\n/).length).toBeLessThanOrEqual(700);
+  });
+});
+
+describe('SessionDetailCancelOptionsPanel — unavailable pricing', () => {
+  it('does not present package-derived dollar amounts when pricing is unavailable', () => {
+    renderPanel({ pricingUnavailable: true, chargeType: 'none', chargeAmount: '' });
+
+    expect(screen.queryByText('$175.00')).toBeNull();
+    expect(screen.getAllByText(/pricing unavailable/i).length).toBeGreaterThan(0);
+  });
+
+  it('disables the package-derived charge options when pricing is unavailable', () => {
+    renderPanel({ pricingUnavailable: true, chargeType: 'none', chargeAmount: '' });
+
+    expect(screen.getByLabelText(/full session charge/i)).toBeDisabled();
+    expect(screen.getByLabelText(/late cancellation fee/i)).toBeDisabled();
+  });
+
+  it('still renders package amounts when pricing is available', () => {
+    renderPanel();
+
+    expect(screen.getByText('$175.00')).toBeTruthy();
+    expect(screen.queryByText(/pricing unavailable/i)).toBeNull();
   });
 });
