@@ -1,11 +1,30 @@
 ---
-decision: Rounds 2-3 — Ox + GLM + Fable verdicts folded. My headline finding was FALSE (searched Windows home; the engine root is in WSL and ran a pilot 2026-07-21). Intake, not adjudication, is the dead organ; the console is deferred behind a D1 ruling and an organic-batch gate
-status: open
-supersedes: none
+decision: REJECTED (GPT-5.6 Sol) — same stale baseline. The deferral ruling and the D1/organic-batch gate are both unsound against main. Do not act on this file.
+status: rejected
+supersedes: none — and this file supersedes NOTHING; it is superseded BY the pending origin/main state-of-world rebuild
 date: 2026-08-26
 author: Opus 5 (claude-opus-5)
 reviewers: Ox Alpha (stealth/ox-alpha) · GLM 5.3 · Fable 5 (hostile, human-relayed) · Opus 5 self-pass (WRONG — see §1)
 ---
+> # ⛔ DO NOT ACT ON THIS DOCUMENT — REJECTED
+>
+> **GPT-5.6 Sol, 2026-08-26: REJECT.** Every analysis in this file was run against
+> `wip/comms-notifications-2026-07-05`, which is **2,285 commits behind `origin/main`**.
+>
+> On `origin/main` the Design Brain has **23 source files** (this branch: 11) and the intake /
+> adjudication pipeline is **deliberately fail-closed** — it *refuses durable work* pending a
+> signed source-classification authority, trusted time, revocation state, and external
+> legal / IAM / network / key-management gates. The diagnosis in these documents ("D1 plus
+> inspections restarts intake") is **false against the branch that must host the work**.
+>
+> D1 is also **not** unruled: `NEXT-CHAT-PROMPT-brain-and-completion-2026-07-21.md:60` records
+> `D1 (Mobbin ToS) = GO`. And the ~2.9 min/claim figure is **`[UNKNOWN]`** — the batch was first
+> written `00:39:44Z` and rewritten `01:16:33Z`, so no human start time exists.
+>
+> **Nothing here is a governing decision.** The correct next action is the branch cut (S−1),
+> then rebuild the state-of-world from `origin/main` and re-rule every slice independently.
+> Verdicts + arbitration: `panel-swan-brain-console-2026-08-26/SOL-GPT56-REVIEW.md`.
+
 
 # Swan Brain Console — Round 2
 

@@ -1,11 +1,30 @@
 ---
-decision: Build the Swan Brain Console — one local surface over the Design Brain (doctrine + learning engine + seats + studio + library + memory + ship), extensible by a tab registry
-status: open
-supersedes: none
+decision: REJECTED (GPT-5.6 Sol) — analysis ran against a branch 2,285 commits behind main; the engine on main is fail-closed by design. Do not act on this file.
+status: rejected
+supersedes: none — and this file supersedes NOTHING; it is superseded BY the pending origin/main state-of-world rebuild
 date: 2026-08-26
 author: Opus 5 (claude-opus-5)
 board: SWA-186 adjacent (new issue to be cut)
 ---
+> # ⛔ DO NOT ACT ON THIS DOCUMENT — REJECTED
+>
+> **GPT-5.6 Sol, 2026-08-26: REJECT.** Every analysis in this file was run against
+> `wip/comms-notifications-2026-07-05`, which is **2,285 commits behind `origin/main`**.
+>
+> On `origin/main` the Design Brain has **23 source files** (this branch: 11) and the intake /
+> adjudication pipeline is **deliberately fail-closed** — it *refuses durable work* pending a
+> signed source-classification authority, trusted time, revocation state, and external
+> legal / IAM / network / key-management gates. The diagnosis in these documents ("D1 plus
+> inspections restarts intake") is **false against the branch that must host the work**.
+>
+> D1 is also **not** unruled: `NEXT-CHAT-PROMPT-brain-and-completion-2026-07-21.md:60` records
+> `D1 (Mobbin ToS) = GO`. And the ~2.9 min/claim figure is **`[UNKNOWN]`** — the batch was first
+> written `00:39:44Z` and rewritten `01:16:33Z`, so no human start time exists.
+>
+> **Nothing here is a governing decision.** The correct next action is the branch cut (S−1),
+> then rebuild the state-of-world from `origin/main` and re-rule every slice independently.
+> Verdicts + arbitration: `panel-swan-brain-console-2026-08-26/SOL-GPT56-REVIEW.md`.
+
 
 # Swan Brain Console — gap analysis vs. the "design operating system" transcript, and the build blueprint
 

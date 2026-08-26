@@ -2,8 +2,8 @@
 originating_model: claude-opus-5
 tier: fable-tier
 date: 2026-08-26
-revision: 2 (the v1 lesson was built on a false example; Fable killed it same-day)
-topic: A single-vantage negative across the Windows/WSL split — documented as Rule 80, repeated twice in one day, the second time inside the write-up of the first
+revision: 3 (v1 lesson false, v2 lesson true-but-narrow; Sol REJECTED the whole analysis as stale-baseline)
+topic: A stale-branch baseline poisons every downstream review — four seats, 39 findings, all inheriting a tree 2,285 commits behind main
 surface: design-brain / swan-brain-console
 board: SWA-217, SWA-185
 models_used:
@@ -19,6 +19,10 @@ models_used:
     role: hostile reviewer (Z.ai subscription)
     did: REVISE, 14 findings, 14 real. Caught "loopback is not an authentication model" and the missing pipeline surface. Did not check the filesystem
     cost: $0.0000
+  - model: openai/gpt-5.6-sol
+    role: hostile review, human-relayed with filesystem access
+    did: REJECT — the only seat that diffed this branch against origin/main and found the whole analysis ran on a stale snapshot (11 src files vs 23; a fail-closed engine that refuses durable work). Also found D1 was already ruled GO
+    cost: Sean's ChatGPT subscription
   - model: claude-fable-5
     role: hostile review, human-relayed under the new FABLE GATE
     did: killed the headline finding by looking in WSL; identified intake (not adjudication) as the dead organ; caught the Rule 80 number collision; ruled the console should be deferred
@@ -32,12 +36,55 @@ skills_touched:
     motivated_by: same. Numbered 85 because origin/main is at 84 and Rule 80 is already Second-Vantage Verification — the rule this session broke
 ---
 
-# A documented rule, broken twice in one day, the second time inside the write-up of the first
+# A stale baseline poisons every review built on it
+
+*(File name kept for the git trail. Original title: "hostile reviewers inherit your unverified premise" — itself revised twice.)*
 
 > **Revision 2.** Revision 1 of this packet claimed the lesson was *"hostile reviewers inherit your
 > unverified premise"* and used as its proof that the Design Brain engine "has never been run."
 > **That proof was false.** Fable found the engine in WSL four hours later. The v1 lesson was not
 > wrong so much as *parasitic on my own error* — and the real lesson is worse and more useful.
+
+## Revision 3 — the lesson moved again, and that is itself the lesson
+
+> **v1:** "hostile reviewers inherit your unverified premise." Built on a false example.
+> **v2:** "a single-vantage negative across the Windows/WSL split." True, but narrow.
+> **v3, after GPT-5.6 Sol returned REJECT:** *both* of the above were **analyses of the wrong
+> tree.* This branch is **2,285 commits behind `origin/main`**. On main the Design Brain has
+> **23 source files** (here: 11) and the intake/adjudication pipeline is **deliberately
+> fail-closed** — it refuses durable work pending signed authority, trusted time, revocation,
+> and legal/IAM/key-management gates. "Stalled, awaiting a D1 answer" was never the situation.
+> D1 was in fact already ruled **GO** on 2026-07-21.
+
+## The lesson that survives all three revisions
+
+**Establish the baseline before you establish anything else — and the baseline is `origin/main`,
+never the tree you happen to be standing in.**
+
+Four seats produced 39 findings with zero disproven. Every one of them was reasoning about a
+snapshot that stopped being true five weeks and 2,285 commits ago. Ox and GLM did not check.
+Fable did check the filesystem — and found the engine — but checked *this* filesystem. Only Sol
+diffed against main, and the moment it did, the entire chain collapsed: my finding, my retraction
+of my finding, Fable's ruling built on my retraction, and the plan built on Fable's ruling.
+
+**A review chain does not correct a bad baseline. It elaborates it.** Each seat made the analysis
+more sophisticated and more confidently wrong. The session-start drift check had said
+`branch is 2285 commits behind origin/main` in plain text, and four rounds of hostile review
+proceeded on top of it anyway.
+
+### The three failure modes in sequence, all the same shape
+1. **Trusted a README** instead of the artifact → wrong line/test counts.
+2. **Trusted one filesystem** instead of both → "never run" (false).
+3. **Trusted one branch** instead of main → the entire diagnosis (false).
+
+Each time the correction was one command. Each time I did not run it until someone else did.
+
+### And then: over-correction
+Being wrong once made the next ruling worse, not better. After Fable killed my finding I parked
+the *entire* console behind an organic-batch gate. Sol's F2 is right that only the Desk depends
+on intake — Doctrine, Seats, Studio, Library, Memory and Ship have independent value. **Recoiling
+from an error is not the same as fixing it**, and a chastened author over-corrects in the
+direction that looks most humble rather than the direction that is most true.
 
 ## The lesson
 
@@ -161,6 +208,7 @@ Verification. Writing it as 80 would have overwritten the rule this session brok
 
 | Error class | Times, this session | Already written up before this session? | Repeated **after** being written up? | What actually stopped it |
 |---|---|---|---|---|
+| **Stale baseline — analyzed this branch, not `origin/main`** | **1, spanning the whole session** | Yes — the session-start drift check printed `2285 commits behind origin/main` in plain text | **YES — read, then reasoned past for four rounds** | **Sol.** The only seat that ran `git show origin/main:<path>` |
 | **Single-vantage negative treated as proof of absence** | **2** | **Yes — twice over.** Rule 80 on `origin/main`, and project memory `feedback_validate_probe_before_absence_claim` | **YES — and the second instance was inside the document written about the first** | **Fable.** No hook, no memory, and no free seat caught it. A different vantage did |
 | Trusting a repo doc's numbers without checking the artifact | 3 | Yes (same memory) | Yes | Running `wc` / the suites. ~10 seconds |
 | Staging beyond the lane claim | 1 | Yes, repeatedly, per the guard's own text | Yes | The **guard**. Blocked the commit and named the fix |
@@ -190,11 +238,21 @@ of it. The lane guard stopped a violation that documentation had failed to stop 
 |---|---|---|---|---|---|
 | Ox Alpha (`stealth/ox-alpha`) | $0.0000 | 10 | 10 | 0 | **Yes.** Best at internal self-contradiction — where a document refutes itself. 147s |
 | GLM 5.3 | $0.0000 | 14 | 14 | 0 | **Yes.** Best at security posture and naming the *missing* surface. 248s, 10.9k reasoning tokens |
-| Fable 5 | 1 review call | 3 blockers + 3 missed | **6/6 verified true** | 0 | **Yes — and this is what it is FOR.** The only seat that checked the world instead of the argument |
+| Fable 5 | 1 review call | 6 | **6/6 verified true** | 0 | **Yes.** Checked the world instead of the argument — but checked the *wrong tree*, because the packet pointed there |
+| **GPT-5.6 Sol** (relayed, filesystem) | subscription | 9 | **9** (1 severity-corrected) | 0 | **Yes — highest-value seat of the four.** The only one that diffed against `origin/main`. Its severity miss on the seed-bypass is itself a stale-branch artifact, which proves its own thesis |
 
-**39 findings across four seats, zero disproven.** The free panel is extraordinary value and must
-run first every time. But it has a structural limit that no amount of it fixes: **a panel inherits
-whatever the packet asserts.** Grounding is not a quantity of reasoning; it is a different act.
+**39 findings across four seats, zero disproven, one severity correction.** The free panel is
+extraordinary value and must run first every time. But it has a structural limit no quantity of it
+fixes: **a panel inherits whatever the packet asserts — including which branch it points at.**
 
-Fable earned its call by performing that different act — and did it under a remit that forbade it
-from writing a single line of code.
+Sol's B5 (a PII egress hole where `--seed` skipped redaction) is real on this branch and **already
+fixed on `origin/main`**, where `consult-fable.mjs` is a 22-line shim over
+`context-gateway/src/consult.mjs` — which redacts document *and* seed, and carries the comment
+`hostile pass 5, finding 1: seed bypass`. A previous hostile pass had already caught it.
+
+So even the *bugs* found on a stale branch are stale. That is the whole packet in one sentence.
+
+**The procedural control, and the only one that would have worked:** before any analysis of a
+subsystem, run `git show origin/main:<path>` on the files you are about to reason about, and state
+the diff. Not "remember the branch is behind" — that was printed at session start and read and
+reasoned past four times. A gate, not a fact.
