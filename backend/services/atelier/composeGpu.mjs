@@ -57,7 +57,11 @@ export const GPU_RELEASE_GRACE_MS = 90_000;
  * sync watchdog added later reproduced the original bug within the hour. Two copies of a
  * subtle release rule is how that happens; one function is how it stops.
  */
-export function releaseWhenSettled(reservation, work, graceMs) {
+const defaultOnReleaseError = (err) => {
+  console.error('[atelier] GPU reservation release FAILED — the card may be stranded:', err?.message || err);
+};
+
+export function releaseWhenSettled(reservation, work, graceMs, onReleaseError) {
   if (!reservation) return;
   // A release that throws must not take the process with it. Both call paths below are a
   // timer callback and a `.finally` — an exception in either is an uncaught exception or
@@ -68,11 +72,22 @@ export function releaseWhenSettled(reservation, work, graceMs) {
     return () => {
       if (released) return;
       released = true;
-      try { reservation.release(); } catch { /* the card is lost, the process is not */ }
+      try { reservation.release(); } catch (err) {
+        // NOT SILENT. A release that throws systematically strands one card per batch with
+        // no signal at all, until the pool is empty and every request parks behind a
+        // 20-minute watchdog. Swallowing the throw keeps the process alive, which is right;
+        // swallowing the FACT is how the pool drains invisibly. Both seats said so.
+        try { (onReleaseError || defaultOnReleaseError)(err); } catch { /* never twice */ }
+      }
     };
   })();
   if (!work || typeof work.then !== 'function') { releaseOnce(); return; }
-  const grace = Math.max(50, Number(graceMs) > 0 ? Number(graceMs) : GPU_RELEASE_GRACE_MS);
+  // CEILING, and it is the documented basis rather than an unrelated number. The bug this
+  // module was extracted for was a wrong quantity passed in and silently clamped SMALL; the
+  // fix removed the clamp entirely, which just makes the next wrong quantity silently
+  // honoured LARGE — pass `watchdogMs` here again and an abandoned card is held 20 minutes
+  // with nothing to catch it. A reviewer named that trade the same round the clamp came out.
+  const grace = Math.min(GPU_RELEASE_GRACE_MS, Math.max(50, Number(graceMs) > 0 ? Number(graceMs) : GPU_RELEASE_GRACE_MS));
   const timer = setTimeout(releaseOnce, grace);
   if (typeof timer.unref === 'function') timer.unref();
   work.catch(() => {}).finally(() => { clearTimeout(timer); releaseOnce(); });

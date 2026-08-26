@@ -82,11 +82,22 @@ export function snapshot(b) {
   };
 }
 
-/** Drop finished batches older than the TTL. Running batches are never pruned. */
+/**
+ * Drop finished batches older than the TTL. Running batches are never pruned.
+ *
+ * RETURNS THE KEYS IT DROPPED. The idempotency store retains a client-keyed stub pointing
+ * at a batch by `statusUrl`, and those were two independent clocks: the row expired after
+ * an hour, the stub lived until it was evicted for room. In between, a retry got a stub
+ * saying "here is your batch" and a URL that 404s — forever, since the stub outlives every
+ * retry. Both panel seats found that window independently. Handing the keys back makes the
+ * caller able to expire the stub on the same clock as the row it describes.
+ */
 export function prune(now = Date.now()) {
+  const dropped = [];
   for (const [id, b] of batches) {
-    if (b.finishedAt && now - b.finishedAt > BATCH_TTL_MS) batches.delete(id);
+    if (b.finishedAt && now - b.finishedAt > BATCH_TTL_MS) { batches.delete(id); if (b.key) dropped.push(b.key); }
   }
+  return dropped;
 }
 
 /** A real UUID, not any 36 hex-ish characters. A malformed id is a bad REQUEST (400). */

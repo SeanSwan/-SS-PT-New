@@ -137,7 +137,11 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
   // every unset one `undefined` and failed nine tests the moment it was extracted. Two
   // places deciding one fact is the exact drift this file keeps warning about — so there
   // is one place, and it is the caller.
-    const batch = batches.createBatch({ userId: req.userId, lane, count, key, promptSource, model: cost.model });
+    // Expire any stub whose batch row has just aged out, so the two cannot drift apart. This
+  // is the same prune the store runs for itself; taking its report is what keeps a retained
+  // client key from outliving the batch it points at and answering forever with a dead URL.
+  for (const goneKey of (batches.prune?.() || [])) store.delete(goneKey);
+  const batch = batches.createBatch({ userId: req.userId, lane, count, key, promptSource, model: cost.model });
     const accepted = { accepted: true, batchId: batch.id, lane, promptSource, status: 'queued', count, cost: { ...cost, chargedUsd: 0 }, brandKit: brandKitView(kit),
       key, admission, statusUrl: `/api/atelier/compose/stills/${batch.id}`, replayed: false,
       // The synchronous path reports this and the async path did not, so a client whose
@@ -156,25 +160,34 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
       // nothing disagrees loudly enough to notice.
       deps: { renderStill, withGpu, env, tasteDeps, compiler, persist, ...(watchdogMs ? { watchdogMs } : {}),
         ...(releaseGraceMs ? { releaseGraceMs } : {}) } })
-      // WHICH key it is decides what happens here, and for one round it did not.
+      // WHICH key it is, and HOW THE BATCH ENDED, decide what happens here. For one round
+      // only the first of those was consulted, and both panel seats found the same lie.
       //
-      // A DERIVED key is evicted: it carries a time bucket, so a later identical request
-      // derives a different key anyway, and holding this one would return a stale batch to
-      // someone deliberately re-rendering the same composition.
+      // A DERIVED key is dropped: it carries a time bucket, so a later identical request
+      // derives a different key anyway, and holding this one could only return a stale
+      // batch to someone whose next request would not have matched it regardless.
       //
-      // A CLIENT key is RETAINED, for exactly the reason the hosted path retains its own:
-      // the client said "this is the same request". Evicting it means a client whose
-      // connection dropped before the 202 arrived retries and gets a SECOND batch — a
-      // second GPU run and a second bite of the run cap, against a key whose whole purpose
-      // is to promise that cannot happen. The stub is the right thing to hand back: it
-      // carries the batchId and statusUrl, so the retry is told where its work already is.
+      // A FAILED batch drops its key too, client-supplied or not. Nothing was delivered,
+      // so there is nothing for a retry to collect — and retaining here would hand the
+      // client a stub reading `accepted: true, status: 'queued'` for work that is already
+      // dead, which does not just mislead: it makes the failure PERMANENT, because every
+      // retry replays the same corpse instead of rendering.
       //
-      // Ninth time in this review a rule landed on one half of a pair — and this pair is
-      // client-keyed/derived, which composeGuards already models with two eviction classes.
-      // The async lane was simply not using the mechanism built for it.
+      // A SUCCEEDED batch with a CLIENT key is retained, for the reason the hosted path
+      // retains its own: the client said "this is the same request". Evicting it means a
+      // client whose connection dropped before the 202 arrived retries and gets a SECOND
+      // batch — a second GPU run and a second bite of the run cap, from the one mechanism
+      // whose whole purpose is to promise that cannot happen.
+      //
+      // And what is retained is built from the batch's OWN terminal snapshot, not from the
+      // `accepted` stub. The stub says `status: 'queued'` and always will; replaying it
+      // after the work finished reports a live-sounding state that is simply false, and a
+      // client branching on `status === 'queued'` re-enqueues against a finished batch.
+      // The statusUrl being authoritative does not license the field beside it to lie.
       .finally(() => {
-        if (!req.idempotencyKey) { store.delete(key); return; }
-        store.set(key, Promise.resolve(slimForReplay(accepted)));
+        const snap = batches.getBatch(batch.id, req.userId);
+        if (!req.idempotencyKey || !snap || snap.status === 'failed') { store.delete(key); return; }
+        store.set(key, Promise.resolve(slimForReplay({ ...accepted, status: snap.status, accepted: false })));
         rememberKey(store, key, settledKeys, { clientKeyed: true, carriesBytes: false });
       })
       .catch(() => { /* recorded on the batch; never an unhandled rejection */ });
