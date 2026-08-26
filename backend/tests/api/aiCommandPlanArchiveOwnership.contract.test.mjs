@@ -60,8 +60,10 @@ import { getAllModels, getModel } from '../../models/index.mjs';
 import { transitionWorkoutPlanLifecycle } from '../../services/workoutPlanLifecycleService.mjs';
 import { dispatchDeleteWorkoutPlan } from '../../services/ai/dispatchers/workoutPlanCommandDispatchers.mjs';
 import { OUR_TRAINER, PEER_TRAINER, OWN_CLIENT, FOREIGN_CLIENT } from '../helpers/ownershipFixture.mjs';
+import { recordCommandAudit } from '../../services/ai/commandAudit.mjs';
 
 vi.mock('../../database.mjs', () => ({ default: {} }));
+vi.mock('../../services/ai/commandAudit.mjs', () => ({ recordCommandAudit: vi.fn() }));
 vi.mock('../../services/workoutPlanLifecycleService.mjs', () => ({
   transitionWorkoutPlanLifecycle: vi.fn(),
 }));
@@ -71,6 +73,7 @@ vi.mock('../../models/index.mjs', () => ({
 }));
 
 const transitionMock = vi.mocked(transitionWorkoutPlanLifecycle);
+const auditMock = vi.mocked(recordCommandAudit);
 const getAllModelsMock = vi.mocked(getAllModels);
 const getModelMock = vi.mocked(getModel);
 
@@ -86,6 +89,7 @@ const PLANS = {
 const ASSIGNMENTS = [{ trainerId: OUR_TRAINER, clientId: OWN_CLIENT, status: 'active' }];
 
 beforeEach(() => {
+  auditMock.mockReset();
   transitionMock.mockReset();
   transitionMock.mockImplementation(async ({ planId }) => ({
     plan: { ...PLANS[planId], status: 'archived' },
@@ -143,6 +147,21 @@ describe('Swan Coach plan-archive ownership', () => {
     ));
     const raced = await dispatchDeleteWorkoutPlan({ planId: OWN_PLAN }, { user: trainer });
     expect(withoutEcho(raced)).toEqual(withoutEcho(missing));
+  });
+
+  it('leaves a server-side record of the denial, though the response leaves none', async () => {
+    // Panel finding (GLM, 2026-08-26). The 404-parity response is deliberate and correct —
+    // an id-walker must not learn which plans exist. But nothing was recorded either, so a
+    // caller probing plan ids left a trail identical to someone mistyping one, and the
+    // enumeration attack the parity design anticipates was invisible in the only place
+    // detection could live. Indistinguishable to the CALLER; not to the operator.
+    await dispatchDeleteWorkoutPlan({ planId: FOREIGN_PLAN }, { user: trainer });
+    await vi.waitFor(() => expect(auditMock).toHaveBeenCalled());
+    const row = auditMock.mock.calls.map(([r]) => r).find((r) => r?.outcome === 'denied');
+    expect(row, 'a cross-tenant denial was not recorded anywhere').toBeTruthy();
+    expect(row.errorCode).toBe('handler_denied_plan_access');
+    expect(row.userId).toBe(OUR_TRAINER);
+    expect(row.targetClientId).toBe(FOREIGN_CLIENT);
   });
 
   it('scopes on the plan\'s CLIENT, not its author — deliberately, for parity', async () => {

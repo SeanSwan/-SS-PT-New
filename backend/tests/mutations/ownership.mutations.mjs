@@ -34,6 +34,27 @@ export default {
   ],
   mutations: [
     {
+      "id": "M42 BOTH fail-open guards removed: trainer scope reverts to unscoped-by-garbage",
+      "parts": [
+        {
+          "file": "services/ai/clientResolver.mjs",
+          "find": "  if (scopeRequested && !hasTrainerScope) {",
+          "replace": "  if (false) {"
+        },
+        {
+          "file": "services/ai/commandExecutor.mjs",
+          "find": "  if (ctx.user.role === 'trainer' && !toPositiveInteger(ctx.user.id)) {",
+          "replace": "  if (false) {"
+        }
+      ]
+    },
+    {
+      "id": "M43 plan archive: deny silently, leaving no server-side record of the probe",
+      "file": "services/ai/dispatchers/workoutPlanCommandDispatchers.mjs",
+      "find": "    recordCommandAudit({",
+      "replace": "    if (false) recordCommandAudit({"
+    },
+    {
       "id": "M40 confirm lane: stop checking role at redemption entirely",
       "file": "services/ai/commandExecutor.mjs",
       "find": "  if (!required.includes(user.role)) return 'role_revoked';",
@@ -204,8 +225,8 @@ export default {
     {
       "id": "M16 plan archive: skip the access check entirely",
       "file": "services/ai/dispatchers/workoutPlanCommandDispatchers.mjs",
-      "find": "  if (!permitted) return planNotAvailable(planId);",
-      "replace": "  if (false) return planNotAvailable(planId);"
+      "find": "  if (!permitted) {",
+      "replace": "  if (false) {"
     },
     {
       "id": "M17 plan archive: check access against the wrong id (the plan is not the client)",
@@ -216,8 +237,8 @@ export default {
     {
       "id": "M18 plan archive: distinguish denial from absence",
       "file": "services/ai/dispatchers/workoutPlanCommandDispatchers.mjs",
-      "find": "  if (!permitted) return planNotAvailable(planId);",
-      "replace": "  if (!permitted) return { ...planNotAvailable(planId), denied: true };"
+      "find": "    recordCommandAudit({",
+      "replace": "    return { ...planNotAvailable(planId), denied: true }; recordCommandAudit({"
     },
     {
       "id": "M19 assertAssignmentOrAdmin: fail OPEN when the lookup throws",
@@ -234,8 +255,8 @@ export default {
     {
       "id": "M21 plan archive: let the service-not-found answer drift from the other two",
       "file": "services/ai/dispatchers/workoutPlanCommandDispatchers.mjs",
-      "find": "    return planNotAvailable(planId);",
-      "replace": "    return { ...planNotAvailable(planId), viaService: true };"
+      "find": "    if (error?.code !== 'WORKOUT_PLAN_NOT_FOUND') throw error;",
+      "replace": "    if (error?.code !== 'WORKOUT_PLAN_NOT_FOUND') throw error; return { ...planNotAvailable(planId), viaService: true };"
     },
     {
       "id": "M22 confirm lane: ignore the re-authorization verdict (non-destructive)",

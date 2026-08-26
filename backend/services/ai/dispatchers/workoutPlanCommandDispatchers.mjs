@@ -26,6 +26,7 @@ import sequelize from '../../../database.mjs';
 import { getAllModels } from '../../../models/index.mjs';
 import { transitionWorkoutPlanLifecycle } from '../../workoutPlanLifecycleService.mjs';
 import { assertAssignmentOrAdmin } from '../../../middleware/verifyClientAccess.mjs';
+import { recordCommandAudit } from '../commandAudit.mjs';
 
 /**
  * Denial and absence are the same answer on purpose.
@@ -64,7 +65,25 @@ export async function dispatchDeleteWorkoutPlan(params = {}, ctx = {}) {
   const plan = await WorkoutPlan.findByPk(planId);
   if (!plan) return planNotAvailable(planId);
   const permitted = await assertAssignmentOrAdmin(ctx.user?.id, ctx.user?.role, plan.userId);
-  if (!permitted) return planNotAvailable(planId);
+  if (!permitted) {
+    // The RESPONSE stays indistinguishable from "no such plan" — that is the whole point of
+    // the 404-parity design. The SERVER-SIDE record must not be. Without this line, a caller
+    // walking plan ids leaves a trail identical to someone mistyping one, and the
+    // enumeration attack the parity design anticipates is invisible in the only place
+    // detection could live. Best-effort and never thrown: an audit write must not be able to
+    // turn a denial into a 500.
+    recordCommandAudit({
+      userId: ctx.user?.id,
+      userRole: ctx.user?.role,
+      commandType: 'delete_workout_plan',
+      targetClientId: plan.userId ?? null,
+      destructive: true,
+      confirmationState: 'confirmed',
+      outcome: 'denied',
+      errorCode: 'handler_denied_plan_access',
+    });
+    return planNotAvailable(planId);
+  }
 
   try {
     const result = await transitionWorkoutPlanLifecycle({

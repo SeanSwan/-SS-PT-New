@@ -112,6 +112,20 @@ export async function resolveClient(clientRef, sequelize, options = {}) {
   const scopedTrainerId = Number.parseInt(trainerId, 10);
   const hasTrainerScope = Number.isInteger(scopedTrainerId) && scopedTrainerId > 0;
 
+  // "Unscoped by design" and "unscoped because the id was garbage" used to be the same
+  // value, and the same value meant NO SCOPE CLAUSE — so a caller that asked to be scoped
+  // and supplied an unusable id got the admin-wide query instead. That is fail-OPEN, and it
+  // is the asymmetry a review named: `assertAssignmentOrAdmin` returns false when it cannot
+  // parse a requester id, while this returned everybody. Asking for a scope that cannot be
+  // computed is now a refusal, and only omitting the option entirely means unscoped.
+  const scopeRequested = trainerId !== undefined && trainerId !== null;
+  if (scopeRequested && !hasTrainerScope) {
+    logger.warn('[ClientResolver] Scope requested with an unusable trainer id — denying', {
+      trainerIdType: typeof trainerId,
+    });
+    return { resolved: null, suggestions: [], error: 'No accessible active client found with that ID.' };
+  }
+
   if (!clientRef || typeof clientRef !== 'string') {
     return { resolved: null, suggestions: [], error: 'No client reference provided' };
   }

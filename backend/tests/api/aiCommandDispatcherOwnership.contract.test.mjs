@@ -239,6 +239,29 @@ describe('Swan Coach dispatcher ownership', () => {
       expect(run.ctx.error).toBeTruthy();
     });
 
+    it('is refused when the trainer\'s OWN id will not parse — unscoped by garbage is not unscoped by design', async () => {
+      // Panel finding (GLM, 2026-08-26). The resolver decided scope with
+      // `hasTrainerScope = Number.isInteger(parseInt(trainerId)) && > 0`, and a false there
+      // meant NO SCOPE CLAUSE — the admin-wide query. So a trainer whose own id was missing
+      // or unparseable was served UNSCOPED rather than refused: the trainer edition of the
+      // very hole this file was opened to close.
+      //
+      // The asymmetry is what makes it a defect rather than a preference:
+      // `assertAssignmentOrAdmin` returns false when it cannot parse a requester id. Two
+      // helpers, one input class, opposite answers.
+      const command = allCommands().find((c) => c.type === TRAINER_READ);
+      for (const brokenId of [0, -1, 'not-a-number', null]) {
+        const run = await runAgainstClient(command, 'trainer', brokenId, OWN_CLIENT);
+        expect(
+          run.dispatchCalls,
+          `a trainer with id ${JSON.stringify(brokenId)} resolved a client anyway`,
+        ).toBe(0);
+        // And specifically: no unscoped query was issued on their behalf.
+        const unscoped = run.directory.calls.filter((call) => !call.scopedByAssignment);
+        expect(unscoped, `an UNSCOPED query ran for a trainer with id ${JSON.stringify(brokenId)}`).toEqual([]);
+      }
+    });
+
     it('is denied by NAME as well as by id — the other resolver branch', async () => {
       const command = allCommands().find((c) => c.type === TRAINER_READ);
       const own = await runAgainstClient(command, 'trainer', OUR_TRAINER, null, { byName: 'Ada' });

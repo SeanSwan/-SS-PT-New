@@ -455,6 +455,16 @@ async function stepResolveClient(ctx) {
     clientRef = null;
   }
 
+  // A trainer whose own id will not parse cannot be scoped to their own clients, and a
+  // caller who cannot be scoped must not be served unscoped. The non-privileged branch above
+  // already refuses on an unusable `selfId`; this is the same rule for the role that has the
+  // most to reach. The resolver now fail-closes on this too — both, because the lane should
+  // not depend on a shared helper's internals for its own safety.
+  if (ctx.user.role === 'trainer' && !toPositiveInteger(ctx.user.id)) {
+    ctx.error = 'No accessible active client found with that ID.';
+    return ctx;
+  }
+
   if (clientId) {
     // Direct ID provided — use it
     ctx.resolvedClient = { id: clientId };
