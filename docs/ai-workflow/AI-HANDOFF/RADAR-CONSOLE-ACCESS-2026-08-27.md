@@ -110,10 +110,18 @@ new `swan-radar-console-20260827` key. Backup of the previous file is at
    the hostname, so radar could have registered under the wrong name after the click. Always
    `pgrep -af "tailscale up"` and kill strays before starting a new one, then confirm
    `sudo tailscale debug prefs | grep Hostname` says `swan-radar` and exactly one waiter is up.
-2. **Disable key expiry for `swan-radar`** in the Tailscale admin console (Machines → swan-radar →
-   ⋯ → Disable key expiry). **This is a trap, not a nicety:** Tailscale node keys expire ~180 days
-   by default. On a headless box with no monitor, expiry means remote access silently dies and the
-   only recovery is walking to it with a keyboard.
+2. **Stop the node key from expiring.** Tailscale node keys expire ~180 days by default; on a
+   headless box that means remote access silently dies with keyboard-at-the-box as the only
+   recovery. Two ways, and the better one was already written down before I missed it:
+
+   - **Preferred — join with a tag.** SWA-199's next-action #1 says to join *with a tag at join
+     time* and fix the zero-tag flat tailnet. **Tagged devices do not expire**, so the tag retires
+     this whole class of problem instead of relying on a per-machine toggle nobody remembers on
+     the next box. Requires defining e.g. `tag:server` with a `tagOwner` in the tailnet ACL first,
+     then `sudo tailscale up --hostname=swan-radar --advertise-tags=tag:server`. **I joined
+     without the tag — that was a miss against a plan this repo already held.**
+   - **Fallback — manual toggle.** Admin console → Machines → swan-radar → ⋯ → Disable key expiry.
+     Works, but is per-machine and easy to forget.
 3. **BIOS "Restore on AC Power Loss" → Power On** — cannot be set from the OS. Without it, a power
    blip leaves radar off until someone presses the button. Worth doing during the BIOS flash for
    the Ryzen 5 5500 swap (parent handoff §7), since that trip is already planned.
