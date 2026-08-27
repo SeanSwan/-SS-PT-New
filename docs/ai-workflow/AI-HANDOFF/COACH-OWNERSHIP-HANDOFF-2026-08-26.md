@@ -6,6 +6,13 @@ supersedes: docs/ai-workflow/AI-HANDOFF/COACH-ENDPOINT-TRUTH-HANDOFF-2026-08-25.
 
 # HANDOFF — Swan Coach ownership
 
+> **SUPERSEDED 2026-08-27 by `COACH-OWNERSHIP-MERGE-HANDOFF-2026-08-27.md`.** Two more live
+> defects were found after this was written (a resolver that fail-OPENED on an uncomputable
+> scope, and a denial that left no server-side record), seven hostile-review rounds ran to DRY,
+> the verification harness was rebuilt after being found blind, and the branch is now PUSHED and
+> awaiting a merge decision. Read the newer file for current state and the pre-deploy checklist;
+> this one remains accurate as the record of what that day found.
+
 Branch `claude/coach-endpoint-truth-v2-20260824`, 7 commits on top of `d942881d7`.
 **Not pushed, not merged, not deployed, not human-reviewed.** No paid seat consulted; $0.00.
 
