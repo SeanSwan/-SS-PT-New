@@ -4,7 +4,6 @@
   "_review_at_expiry": "node scripts/gate-telemetry-report.mjs — any hook with zero would_block:true entries retires on evidence.",
   "_allowlist_note": "Naming a hook here is NOT sufficient. scripts/lib/gate-shadow.mjs carries a hard SHADOWABLE allowlist; compliance gates (PII egress, spend, secrets, blast-radius) are refused even if listed here.",
   "shadow": [
-    "dual-tier-gate",
     "hermes-closeout-gate"
   ],
   "until": "2026-09-06T00:00:00Z",
@@ -12,11 +11,12 @@
   "removal_conditions": {
     "_rule": "ox-alpha 2026-08-26: every gate, hook or rule lands WITH its written removal condition in the same session it is created. Mechanisms created without exit criteria are the ratchet that produced a 216KB rulebook.",
     "_kill_threshold": "A shadowed gate whose CLEANED fire rate exceeds 15% of runs at window close is DELETED, not tuned. Pre-registered 2026-08-26, before the data, deliberately.",
-    "dual-tier-gate": "Retire when >15% cleaned fire rate at window close, OR when closeout summaries are produced without it for 30 consecutive substantial turns.",
     "hermes-closeout-gate": "Retire when >15% cleaned fire rate at window close, OR when the learning corpus shows 30 days of unprompted packets with the gate shadowed.",
     "egress-privacy-gate": "NEVER auto-retires. Compliance gate. Removal requires Sean explicitly, in writing, with a named replacement control.",
     "spend-guard-gate": "NEVER auto-retires. Compliance gate. Same condition as above.",
     "exit-status-gate": "Retire when the corpus shows zero new pipeline-status defects for 90 days. Currently 44 corpus hits and 4 live catches in one task — high precision, keep.",
-    "lane-staged-guard": "Retire when agents no longer share one git index (per-agent worktrees). The guard exists only because of the shared index; fix the cause and the guard is dead weight."
-  }
+    "lane-staged-guard": "Retire when agents no longer share one git index (per-agent worktrees). The guard exists only because of the shared index; fix the cause and the guard is dead weight.",
+    "orient-gate": "DELETE if the CLEANED fire rate exceeds 15% of runs at 2026-09-27, where CLEANED means distinct occasions at a 10-minute clustering window. The window is defined HERE because the policy above says \"cleaned\" without defining it, and the verdict for dry-loop-gate and hermes-closeout-gate flips depending on the window chosen (dry-loop was deleted citing 47%; its 10-minute cleaned rate was 20.5%). ALSO delete if its detection regex is widened twice inside the window: two widenings mean the contract is wrong, not the matcher."
+  },
+  "_retired_note": "dual-tier-gate DELETED 2026-08-27, replaced by orient-gate (SWA-223). Ground: WRONG TARGET, explicitly NOT fire rate. It measured 6.2% raw / 5.9% cleaned against the 15% threshold and was a KEEP at every clustering window tested (1/5/10/30/60min), with a declining trend. Retiring it for firing too much would have been false and would have taught every future gate that a pre-registered threshold is negotiable once you want something gone. It enforced the wrong requirement accurately: both its tiers described the delta, neither stated the invariant."
 }

@@ -25,9 +25,10 @@ const assistantText = (text) =>
 
 test('is registered as a command-type Stop hook, and no Stop hook is prompt-type', () => {
   // Was "exactly one command Stop hook" — true only while this was the ONLY Stop
-  // hook. Others have landed since (dry-loop, linear-sync, dual-tier), so the count
+  // hook. Others have landed since (linear-sync, orient, backup), so the count
   // assertion had been failing for weeks, reporting a broken suite while nothing was
   // wrong. A test that fails for a reason nobody intends is one everybody ignores.
+  // Roster as of 2026-08-27: dry-loop deleted 2026-08-26, dual-tier replaced by orient.
   //
   // The intent it was really protecting: this gate must run as a deterministic
   // COMMAND hook (harness-executed, zero model calls) rather than a prompt hook that

@@ -401,7 +401,7 @@
           },
           {
             "type": "command",
-            "command": "node scripts/hooks/dual-tier-gate.mjs",
+            "command": "node scripts/hooks/orient-gate.mjs",
             "timeout": 30
           },
           {

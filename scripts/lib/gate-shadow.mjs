@@ -70,7 +70,7 @@ const TELEMETRY = process.env.SWAN_GATE_TELEMETRY || join(ROOT, '.ai-workflow', 
  * are deliberately absent and must stay absent.
  */
 export const SHADOWABLE = new Set([
-  'dual-tier-gate',
+  'orient-gate',
   'hermes-closeout-gate',
   'linear-sync-gate',
   'backup-after-work',

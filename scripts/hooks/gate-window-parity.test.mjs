@@ -28,12 +28,15 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import * as orientGate from './orient-gate.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // dry-loop-gate was DELETED 2026-08-26: it fired on 74 of 157 turns (47%). GLM 5.3:
 // 'no data rescues a smoke alarm that fires at dinner.' Removed from parity coverage
 // because the gate no longer exists, not because parity stopped mattering.
-const GATES = ['dual-tier-gate', 'hermes-closeout-gate', 'linear-sync-gate'];
+// Same reasoning 2026-08-27: dual-tier-gate was replaced by orient-gate (SWA-223),
+// so the slot is swapped rather than dropped — parity still has three gates.
+const GATES = ['orient-gate', 'hermes-closeout-gate', 'linear-sync-gate'];
 
 // Every gate carrying the inline predicate, closeout gate or not. privacy-boundary-gate
 // (slice 2) windows the turn the same way to find the artifacts it must scan, so it
@@ -121,11 +124,16 @@ test('THE BUG: a build-shaped turn stays visible after its own feedback lands', 
   // Sean prompts -> agent writes 2 files and closes out with the marker -> the gate
   // fires and its feedback is appended. On the next evaluation the gate must still
   // see 2 file writes and the marker, not an empty post-feedback fragment.
+  // A closeout that satisfies EVERY registered gate at once — that is the point of the fixture.
+  // Since 2026-08-27 the reporting gate is orient-gate, so the two-heading form was replaced by
+  // an ORIENT block. Its branch and sha are read LIVE: a hard-coded identity line would make
+  // this fixture stale the moment anyone commits, and a stale fixture fails for the wrong reason.
+  const live = orientGate.readGitFacts();
   const closeout = [
-    '## Plain English',
-    'Did the thing.',
-    '## Technical',
-    'DRY-LOOP: CLEAN×2 (rounds: 7)',
+    `Gate Parity Fixture · ${live.branch ?? 'wip/x'}@${live.sha ?? 'NONE'} · 1/1 · [WIP] · L`,
+    'ASK   Keep every Stop gate reading the same turn window after its own feedback lands',
+    'NOW   Fixture exercises all three registered gates against one closing message',
+    'NEXT  Fail loudly if any gate loses sight of the turn it has just judged',
     'LINEAR: SWA-70',
     // The PROOF token is still required by the closeout discipline itself (rule 73),
     // independent of any one gate.
@@ -157,7 +165,9 @@ test('THE BUG: a build-shaped turn stays visible after its own feedback lands', 
   // Each gate names its "I can see the closeout" signal differently — assert the
   // real one per gate rather than a signal that only some of them have.
   const CLOSEOUT_SIGNAL = {
-    'dual-tier-gate': (s) => s.plainSeen && s.techSeen && s.plainFirst,
+    // orient-gate keeps the closeout as raw text and parses it via the contract, so its
+    // "I can still see the closeout" signal is simply that the text survived the window.
+    'orient-gate': (s) => s.text.length > 0,
     'hermes-closeout-gate': (s) => s.memoEmitted,
     'linear-sync-gate': (s) => s.markerSeen,
     // Not a closeout signal — the thing this gate would lose if the window reset
