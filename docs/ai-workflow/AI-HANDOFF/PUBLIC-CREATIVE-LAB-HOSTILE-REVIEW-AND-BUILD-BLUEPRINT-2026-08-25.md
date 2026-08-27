@@ -2,6 +2,7 @@
 
 **Status:** LOCAL SYNTHESIS DRAFT — the Qwen seat ran privately; Ox, Grok, Kimi, and GLM remain `[UNAVAILABLE]` until the owner authorizes provider egress. This file is not an activation receipt and does not authorize hooks, Radar, transport, or credentials.
 **Source freeze:** `d72131f20`; request=`ORCHESTRATOR-HOSTILE-REVIEW-REQUEST-PUBLIC-CREATIVE-LAB-2026-08-25.md`; hardware=`Apple M3, 16 GiB`; E4=`884cf34bf` + `0a088096d`.
+**Source blobs:** request@`e4d71d18c`=`5869ebbe0c18e90cd9b1a6128795167da79a472e`; handoff=`142dc252d48840f6b7ea60d288df93fa7cf98651`; `CLAUDE.md`=`f44bb9c5fa36ac2340e1ad91cb6d4371d5b64f99`; `AGENTS.md`=`984c4b7b55fb9c7b1bad9760e99e3f0840bb06b5`; egress=`278cea5ec61c314b42e37881ec01880020959945`; learning validator=`b024e403098b31d794530d1da9f73bbc9c162bee`; learning schema=`aef3251b22bf8828f487b32d48c14936fafe3336e`.
 
 ## 0. Decision, scope, and review record
 
