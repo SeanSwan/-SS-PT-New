@@ -27,7 +27,7 @@
  * Privacy (Rule 8/44/59): the ledger stores model ids, costs and a topic slug.
  * Never prompt content, never keys.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, statSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
@@ -174,6 +174,8 @@ function writeTokens(t) { ensureDir(); writeFileSync(TOKENS, JSON.stringify(t, n
  * bad, but this is not that check — this is the last step before money is spent, and
  * "the filesystem misbehaved" is not a reason to spend twice.
  */
+const CLAIM_ORPHAN_MS = 60_000;
+
 function claimToken(key, token) {
   ensureDir();
   const claimPath = join(SPEND_DIR, `claim-${key}.json`);
@@ -181,8 +183,32 @@ function claimToken(key, token) {
     writeFileSync(claimPath, JSON.stringify({ key, token, at: new Date().toISOString() }), { flag: 'wx' });
     return true;
   } catch (err) {
-    if (err?.code === 'EEXIST') return false; // someone else redeemed it first
-    return false;
+    if (err?.code !== 'EEXIST') return false;
+
+    // ORPHAN RECLAIM. Found by attacking this function directly, and independently
+    // by GLM 5.3-flash (2026-08-27 blocker 1a): a process that dies between creating
+    // the claim and writing `used: true` leaves a claim file with no matching record
+    // of the spend. Without this branch every later redemption hits EEXIST forever —
+    // the approval Sean is holding becomes permanently unredeemable, with no TTL, no
+    // override, and an error message blaming a concurrency that never happened.
+    // A guard that can brick a legitimate approval on a crash is not fail-closed, it
+    // is just broken in the safer direction.
+    //
+    // The caller only reaches here when tokens.json still says `used: false`, so a
+    // claim older than the reclaim window can only be a crashed holder: a live winner
+    // marks `used` within milliseconds of creating the claim.
+    //
+    // Reclaiming does NOT reopen the race. Two processes may both unlink, but only
+    // one `wx` create can succeed, so redemption stays single-winner throughout.
+    try {
+      const age = Date.now() - statSync(claimPath).mtimeMs;
+      if (age < CLAIM_ORPHAN_MS) return false; // a real concurrent winner is in flight
+      unlinkSync(claimPath);
+      writeFileSync(claimPath, JSON.stringify({ key, token, at: new Date().toISOString(), reclaimedOrphan: true }), { flag: 'wx' });
+      return true;
+    } catch {
+      return false; // lost the reclaim race, or the filesystem misbehaved — refuse
+    }
   }
 }
 
@@ -239,7 +265,7 @@ export function checkSpend({ model, topic, worstCaseUsd, approvalToken = '' }) {
   // the audit trail, but it is no longer what decides the outcome — the claim is.
   if (approvalToken && tokens[key] && tokens[key].token === approvalToken && !tokens[key].used) {
     if (!claimToken(key, approvalToken)) {
-      return { allow: false, reason: 'token already redeemed by a concurrent call', breach: breaches.join('; '), token: null, totals };
+      return { allow: false, reason: `token is being redeemed by a concurrent call (if this persists past ${CLAIM_ORPHAN_MS / 1000}s, delete .ai-workflow/spend/claim-${key}.json — a crashed holder left it behind)`, breach: breaches.join('; '), token: null, totals };
     }
     tokens[key].used = true;
     tokens[key].usedAt = new Date().toISOString();

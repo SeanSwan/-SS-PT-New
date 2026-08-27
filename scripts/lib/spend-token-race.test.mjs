@@ -20,7 +20,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -61,7 +61,11 @@ test('the deterministic interleaving: a STALE used:false cannot redeem twice', a
 
   const replay = mod.checkSpend({ ...BREACH, approvalToken: first.token });
   assert.equal(replay.allow, false, 'a stale used:false must NOT re-open a redeemed token');
-  assert.match(replay.reason, /already redeemed/);
+  // The refusal names the concurrency AND the recovery. It changed when the orphan
+  // reclaim landed — a message that only said "already redeemed" gave a stuck user
+  // nothing to do, and this test caught the wording drift the moment it happened.
+  assert.match(replay.reason, /concurrent call/);
+  assert.match(replay.reason, /delete .*claim-/, 'a refusal must name its own recovery path');
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -122,6 +126,76 @@ test('a WRONG token does not destroy a valid outstanding approval', async () => 
 
   const still = mod.checkSpend({ ...BREACH, approvalToken: good });
   assert.equal(still.allow, true, "Sean's original token must still work after a wrong guess");
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('a FRESH claim refuses — a live winner may still be in flight', () => {
+  // The reclaim below must not fire on a genuine concurrent redemption. This is the
+  // control that keeps the orphan fix from re-opening the double-spend it replaced.
+  const dir = mkdtempSync(join(tmpdir(), 'swan-fresh-'));
+  process.env.SWAN_SPEND_DIR = dir;
+  return import(`${LEDGER_URL}?fresh=${Math.random()}`).then((mod) => {
+    const first = mod.checkSpend(BREACH);
+    const key = Object.keys(JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8')))[0];
+    writeFileSync(join(dir, `claim-${key}.json`), '{}', 'utf-8'); // orphan, but brand new
+    const r = mod.checkSpend({ ...BREACH, approvalToken: first.token });
+    assert.equal(r.allow, false, 'a claim inside the window must be treated as a live winner');
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
+
+test('an AGED orphan is reclaimed — a crash must not brick a valid approval', async () => {
+  // GLM 5.3-flash blocker 1a, and found independently by attacking claimToken directly.
+  // A process that dies between creating the claim and writing `used: true` left the
+  // approval permanently unredeemable: every later attempt hit EEXIST forever, with an
+  // error blaming a concurrency that never happened. A guard that can brick a
+  // legitimate approval on a crash is not fail-closed, just broken in the safer
+  // direction.
+  const { dir, mod } = await freshLedger();
+  const first = mod.checkSpend(BREACH);
+  const key = Object.keys(JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8')))[0];
+  const claimPath = join(dir, `claim-${key}.json`);
+  writeFileSync(claimPath, '{}', 'utf-8');
+
+  // Age it past the reclaim window rather than sleeping through it.
+  const old = new Date(Date.now() - 5 * 60_000);
+  utimesSync(claimPath, old, old);
+
+  const r = mod.checkSpend({ ...BREACH, approvalToken: first.token });
+  assert.equal(r.allow, true, "an aged orphan must be reclaimed so Sean's token still works");
+  const claim = JSON.parse(readFileSync(claimPath, 'utf-8'));
+  assert.equal(claim.reclaimedOrphan, true, 'the reclaim must be visible in the audit trail');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('reclaiming does NOT reopen the race — still exactly one winner', async () => {
+  // The reclaim unlinks then re-creates with `wx`. Two processes may both unlink, but
+  // only one create can succeed. Proven with real children rather than argued.
+  const { dir, mod } = await freshLedger();
+  const first = mod.checkSpend(BREACH);
+  const key = Object.keys(JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8')))[0];
+  const claimPath = join(dir, `claim-${key}.json`);
+  writeFileSync(claimPath, '{}', 'utf-8');
+  const old = new Date(Date.now() - 5 * 60_000);
+  utimesSync(claimPath, old, old);
+
+  const runner = join(dir, 'redeem-orphan.mjs');
+  writeFileSync(runner, [
+    `const m = await import(${JSON.stringify(LEDGER_URL)});`,
+    `const r = m.checkSpend(${JSON.stringify({ ...BREACH, approvalToken: first.token })});`,
+    'process.stdout.write(r.allow ? "ALLOW" : "DENY");',
+  ].join('\n'), 'utf-8');
+
+  const { spawn } = await import('node:child_process');
+  const run = () => new Promise((resolve) => {
+    let out = '';
+    const p = spawn(process.execPath, [runner], { env: { ...process.env, SWAN_SPEND_DIR: dir } });
+    p.stdout.on('data', (d) => { out += d; });
+    p.on('close', () => resolve(out.trim()));
+  });
+  const results = await Promise.all([run(), run(), run(), run()]);
+  const winners = results.filter((r) => r === 'ALLOW').length;
+  assert.equal(winners, 1, `orphan reclaim must stay single-winner, got ${winners} (${results.join(',')})`);
   rmSync(dir, { recursive: true, force: true });
 });
 
