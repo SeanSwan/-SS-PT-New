@@ -16,7 +16,7 @@ import {
   BoundaryCopy, BoundaryGrid, BoundaryItem, BoundaryTitle, CommandButton,
   MetricBlock, MetricGrid, MetricLabel, MetricValue, OverviewGrid,
   SignalIcon, SignalList, SignalMeta, SignalRow, SignalTitle, Stack, StatusLine,
-  ChannelList, ChannelRow, ChannelName, ChannelTrack, ChannelFill, ChannelCount, ChannelEmpty,
+  ChannelList, ChannelRow, ChannelName, ChannelTrack, ChannelFill, ChannelCount, ChannelEmpty, SubsectionLabel,
   ChannelMeta, ChannelWon,
 } from './MarketingCommandOverview.styles';
 import MarketingReadinessCockpit from './MarketingReadinessCockpit';
@@ -218,7 +218,9 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
           </ChannelList>
         )}
         {(stats.byReferrer?.length ?? 0) > 0 ? (
-          <ChannelList aria-label="Top referrers">
+          <>
+            <SubsectionLabel>Who referred them</SubsectionLabel>
+            <ChannelList aria-label="Top referrers">
             {stats.byReferrer!.map((r) => (
               <ChannelRow key={`ref-${r.referrerId}`}>
                 <ChannelName>{r.firstName ? `${r.firstName} (#${r.referrerId})` : `Client #${r.referrerId}`}</ChannelName>
@@ -230,8 +232,9 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
                   {r.converted ? <ChannelWon>{r.converted} won</ChannelWon> : null}
                 </ChannelMeta>
               </ChannelRow>
-            ))}
-          </ChannelList>
+              ))}
+            </ChannelList>
+          </>
         ) : null}
       </MarketingCard>
 

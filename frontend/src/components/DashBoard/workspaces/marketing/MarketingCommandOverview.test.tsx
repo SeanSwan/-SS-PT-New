@@ -53,6 +53,7 @@ describe('MarketingCommandOverview — Leads by Channel', () => {
     expect(await screen.findByText('Ava (#42)')).toBeInTheDocument();
     expect(screen.getByText('Client #7')).toBeInTheDocument();
     expect(screen.getByLabelText('Top referrers')).toBeInTheDocument();
+    expect(screen.getByText('Who referred them')).toBeInTheDocument(); // distinct from the channel list above
   });
 
   it('shows an empty-state hint when no channels are attributed yet', async () => {
