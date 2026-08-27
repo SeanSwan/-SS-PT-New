@@ -69,6 +69,23 @@ export const approveDraft = async (req, res) => {
       return res.status(403).json({ success: false, message: 'You can only approve your own drafts' });
     }
 
+    // Claim atomically before any external delivery attempt. This prevents two
+    // approvers from both sending the same still-pending draft.
+    const approvalTime = new Date();
+    const [claimedCount] = await Draft.update(
+      {
+        status: 'approved',
+        approvedAt: approvalTime,
+        approvedBy: req.user.id,
+        sentAt: null,
+      },
+      { where: { id: draft.id, status: 'pending_approval' } },
+    );
+
+    if (claimedCount !== 1) {
+      return res.status(409).json({ success: false, message: 'Draft is no longer pending approval' });
+    }
+
     // Send the actual communication
     let sendResult = { success: false };
 
@@ -82,18 +99,18 @@ export const approveDraft = async (req, res) => {
         });
       } catch (emailError) {
         logger.error('[CommunicationDrafts] Email send failed:', emailError.message);
-        return res.status(500).json({ success: false, message: 'Email send failed: ' + emailError.message });
+        return res.status(500).json({ success: false, message: 'Email send failed' });
       }
     } else if (draft.type === 'sms') {
       // Twilio integration placeholder — send when configured
       logger.info('[CommunicationDrafts] SMS send requested to %s (Twilio not yet connected)', draft.recipientAddress);
-      sendResult = { success: true, messageId: 'sms-pending-twilio' };
+      sendResult = { success: false, messageId: null };
     }
 
     // Update draft status
     await draft.update({
       status: sendResult.success ? 'sent' : 'approved',
-      approvedAt: new Date(),
+      approvedAt: approvalTime,
       approvedBy: req.user.id,
       sentAt: sendResult.success ? new Date() : null,
     });
