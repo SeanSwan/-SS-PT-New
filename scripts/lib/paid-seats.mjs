@@ -63,6 +63,10 @@ export const FREE_ALLOWLIST = {
  * Tracked as SWA-218 follow-up.
  */
 export const KNOWN_UNGATED = {
+  // The four forge-* image probes left this list 2026-08-27: PAID_INVOCATION now
+  // matches the `forge-` prefix and they are priced against openai/gpt-5.4-image-2.
+  // They were "UNCLASSIFIED — may bill per image", which is a record of a hole rather
+  // than a control over one.
   'validation-orchestrator.mjs':
     'The paid AI Village (~13 brains). RECONCILED 2026-08-26: it now WRITES its actual per-model '
     + 'cost into the shared ledger (recordRunSpend) and its pre-run gate READS the cumulative '
@@ -92,10 +96,6 @@ export const KNOWN_UNGATED = {
   // gate short-circuit BEFORE that pricing ran, so an expensive fan-out sailed through
   // — caught by the "expensive seats must block" test within a minute of writing it.
   // Two overlapping allowlists is one allowlist too many; the ordering matters.
-  'forge-capture-fixtures.mjs': 'Image-forge probe. UNCLASSIFIED — needs a spend review; may bill per image.',
-  'forge-i2i-influence.mjs': 'Image-forge probe. UNCLASSIFIED — needs a spend review; may bill per image.',
-  'forge-i2i-probe.mjs': 'Image-forge probe. UNCLASSIFIED — needs a spend review; may bill per image.',
-  'forge-response-shape.mjs': 'Image-forge probe. UNCLASSIFIED — needs a spend review; may bill per image.',
 };
 
 /**
@@ -118,12 +118,17 @@ export const KNOWN_UNGATED = {
  * tell agents to pass remits containing "APPROVE | REVISE | REJECT" — while an
  * unquoted boundary still stops a match from crossing into a different command.
  *
- * The script-name group is DELIBERATELY BROAD (`consult-[a-z0-9-]+`) plus the
+ * The script-name group is DELIBERATELY BROAD (`consult-*`, `forge-*`) plus the
  * context-gateway path. Enumerating seats is what drifted; matching the shape and
  * letting the coverage test police the roster is what replaced it.
+ *
+ * `forge-` was added 2026-08-27 when the four image probes were classified. They call
+ * a paid image endpoint and were matched by nothing — the coverage contract had them
+ * as frozen debt, which is a record of a hole, not a control over one. A prefix the
+ * roster already knows about is cheaper to widen than to remember.
  */
 export const PAID_INVOCATION =
-  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?(?:consult-[a-z0-9-]+|context-gateway[/\\]src[/\\]consult)[.]mjs/;
+  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?(?:consult-[a-z0-9-]+|forge-[a-z0-9-]+|context-gateway[/\\]src[/\\]consult)[.]mjs/;
 
 /** True when this command text invokes something that could spend money. */
 export function invokesPaidSeat(cmd) {
@@ -160,7 +165,7 @@ export const PANEL_SCRIPTS = new Set(['consult-openrouter-panel.mjs']);
  * Handles both `consult-<seat>.mjs` and the gateway engine path.
  */
 export function scriptNameFrom(cmd) {
-  const m = String(cmd || '').match(/(consult-[a-z0-9-]+|context-gateway[/\\]src[/\\]consult)[.]mjs/);
+  const m = String(cmd || '').match(/(consult-[a-z0-9-]+|forge-[a-z0-9-]+|context-gateway[/\\]src[/\\]consult)[.]mjs/);
   if (!m) return '';
   return `${m[1].replace(/^.*[/\\]/, '')}.mjs`;
 }

@@ -60,6 +60,25 @@ const PRICES = {
   'claude-opus-5':       [5.5,  27.5],
   // hy3 spans $0.126/$0.522 (GMICloud) to $0.20/$0.80 (AtlasCloud). Worst taken.
   'tencent-hy3':         [0.2,  0.8],
+
+  // The four forge-* image probes all call openai/gpt-5.4-image-2 (read from each
+  // file, not inferred). Verified endpoint pricing: prompt $8/M, completion $15/M,
+  // PLUS an `image_output` component of $0.00003 and a `web_search` component of
+  // $0.01 per use.
+  //
+  // KNOWN UNDER-COUNT, and this one is structural rather than a routing choice: this
+  // table is [in, out] TOKENS, and an image model's dominant cost is not a token
+  // rate. The text rates below are real and counted; the image-output component is
+  // NOT modelled, so a heavy generation run costs more than the estimate says.
+  // Pricing the text half is strictly better than the previous state (invisible), and
+  // saying so is better than a number that looks complete. A per-image cost model is
+  // its own slice — flagged rather than faked.
+  //
+  // Related, from forge-response-shape.mjs's own header: `data.usage.total_cost` is
+  // absent from this provider's response, so the forge's run ledger has been writing
+  // `costUsd: null` on every real generation. recordSpend() treats null as WORST CASE
+  // against the caps, so that failure at least errs toward refusal.
+  'gpt-5.4-image-2':     [8.0,  15.0],
 };
 
 /** Map a consult script to its default model key. */
@@ -78,6 +97,12 @@ const SCRIPT_MODEL = {
   'consult-codex-v1-2-review.mjs': 'gpt-5.5',
   'consult-opus5.mjs': 'claude-opus-5',
   'consult-hy3-design.mjs': 'tencent-hy3',
+  // The forge image probes. They are ad-hoc diagnostics rather than routine consults,
+  // but ad-hoc is not free: each one calls a paid image endpoint.
+  'forge-capture-fixtures.mjs': 'gpt-5.4-image-2',
+  'forge-i2i-influence.mjs': 'gpt-5.4-image-2',
+  'forge-i2i-probe.mjs': 'gpt-5.4-image-2',
+  'forge-response-shape.mjs': 'gpt-5.4-image-2',
 };
 
 /**

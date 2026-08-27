@@ -397,6 +397,43 @@ test('a priced codex call now COUNTS toward the cumulative topic cap', () => {
   assert.match(r.stderr, /spent on topic/);
 });
 
+test('every forge image probe is MATCHED and priced, not invisible', () => {
+  // Rewritten after red-testing caught it vacuous. The first version asserted ALLOW
+  // on a clean ledger — which is exactly what an UNMATCHED script also produces, so
+  // it passed whether the `forge-` prefix existed or not. That is the third time this
+  // session a test has certified the hole it was written to close; the tell is always
+  // the same, an assertion whose expected value is the buggy behaviour's output too.
+  //
+  // Exhausting the day cap makes the two states distinguishable: a matched, priced
+  // script REFUSES, an unmatched one still sails through.
+  const today = new Date().toISOString();
+  for (const s of [
+    'forge-capture-fixtures.mjs', 'forge-i2i-influence.mjs',
+    'forge-i2i-probe.mjs', 'forge-response-shape.mjs',
+  ]) {
+    const dir = seedLedger([{ ts: today, model: 'other', topic: 'other', usd: 4.9 }]);
+    const r = runGate(`node scripts/${s}`, { ledger: dir });
+    assert.equal(r.code, BLOCK, `${s} must be matched and priced, not waved through`);
+    assert.doesNotMatch(r.stderr, /is not priced/, `${s} must be PRICED, not refused as unclassified`);
+  }
+});
+
+test('a forge probe still passes on a clean ledger — priced, not banned', () => {
+  // The control for the test above: proving it blocks when the budget is gone means
+  // nothing unless it also proves it works when the budget is there.
+  assert.equal(runGate('node scripts/forge-i2i-probe.mjs').code, ALLOW);
+});
+
+test('a forge run COUNTS toward the daily cap', () => {
+  // Arithmetic proof that the image price is used, not merely present. These probes
+  // take no --document, so they land on topic "untitled" — the DAY cap is the one
+  // that has to catch them.
+  const today = new Date().toISOString();
+  const dir = seedLedger([{ ts: today, model: 'other', topic: 'somethingelse', usd: 4.8 }]);
+  const r = runGate('node scripts/forge-i2i-probe.mjs', { ledger: dir });
+  assert.equal(r.code, BLOCK, 'an untitled-topic paid run must still hit the daily cap');
+});
+
 test('a genuinely cheap seat passes — the gate is not just "block everything"', () => {
   // The honest positive control. Sol at its default is ~$0.31, under the $1.00 cap.
   // Without this, every BLOCK assertion above would also pass on a gate that
