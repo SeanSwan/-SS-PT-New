@@ -13,6 +13,7 @@ const setupAssociations = async () => {
     
     // Import ONLY SEQUELIZE MODELS (PostgreSQL)
     const UserModule = await import('./User.mjs');
+    const TrainerApplicationModule = await import('./TrainerApplication.mjs');
     const SessionModule = await import('./Session.mjs');
     const SessionTypeModule = await import('./SessionType.mjs');
     const ClientProgressModule = await import('./ClientProgress.mjs');
@@ -241,6 +242,7 @@ const setupAssociations = async () => {
     
     // Extract default exports for SEQUELIZE models only
     const User = UserModule.default;
+    const TrainerApplication = TrainerApplicationModule.default;
     const Session = SessionModule.default;
     const SessionType = SessionTypeModule.default;
     const ClientProgress = ClientProgressModule.default;
@@ -529,6 +531,8 @@ const setupAssociations = async () => {
         // Waiver + Consent Models (Phase 5W-B)
         WaiverVersion, WaiverRecord, WaiverRecordVersion,
         WaiverConsentFlags, PendingWaiverMatch, AiConsentLog,
+        // Trainer Onboarding
+        TrainerApplication,
         // Video Catalog Models
         VideoCatalog, VideoCollection, VideoCollectionItem,
         UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog,
@@ -1175,6 +1179,11 @@ const setupAssociations = async () => {
     PendingWaiverMatch.belongsTo(User, { foreignKey: 'candidateUserId', as: 'candidateUser' });
     PendingWaiverMatch.belongsTo(User, { foreignKey: 'reviewedByUserId', as: 'reviewedByUser' });
 
+    // Trainer Onboarding (self-serve application + contract e-sign)
+    User.hasMany(TrainerApplication, { foreignKey: 'userId', as: 'trainerApplications' });
+    TrainerApplication.belongsTo(User, { foreignKey: 'userId', as: 'applicant' });
+    TrainerApplication.belongsTo(User, { foreignKey: 'reviewedBy', as: 'reviewer' });
+
     User.hasMany(AiConsentLog, { foreignKey: 'userId', as: 'aiConsentLogs' });
     AiConsentLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(AiConsentLog, { foreignKey: 'actorUserId', as: 'aiConsentActions' });
@@ -1550,6 +1559,9 @@ const setupAssociations = async () => {
       WaiverConsentFlags,
       PendingWaiverMatch,
       AiConsentLog,
+
+      // Trainer Onboarding (self-serve application + contract e-sign)
+      TrainerApplication,
 
       // Video Catalog Models
       VideoCatalog,
