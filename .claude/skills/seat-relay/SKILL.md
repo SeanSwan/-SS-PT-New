@@ -88,7 +88,7 @@ Emit inside a fenced block so Sean copies it in one click. Fill every angle brac
 You are running a HOSTILE REVIEW for SwanStudios. Assume the work below is wrong until
 you can prove otherwise. Your job is to find what breaks it — not to praise it.
 
-REPO:     C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT
+REPO:     <REPO>
 BRANCH:   <branch>
 READ:     <absolute path(s) — the packet first, then at most 3 supporting files>
 CONTEXT:  <2-4 lines: what was built or decided, and what it must be true of>

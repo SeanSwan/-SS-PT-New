@@ -28,7 +28,7 @@ python --version
 ### Step 2: Install MCP Dependencies (First Time Only)
 
 ```cmd
-cd C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\backend\mcp_server
+cd <REPO>\backend\mcp_server
 pip install -r requirements.txt
 ```
 
@@ -43,7 +43,7 @@ pip install -r requirements.txt
 **Option A: Start All Servers (Recommended)**
 
 ```cmd
-cd C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT
+cd <REPO>
 scripts\development\START-ALL-MCP-SERVERS.bat
 ```
 
@@ -52,7 +52,7 @@ This will open 4 terminal windows (one per server).
 **Option B: Start Individual Server (For Testing)**
 
 ```cmd
-cd C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT
+cd <REPO>
 python backend\mcp_server\start_workout_server.py --port 8000
 ```
 

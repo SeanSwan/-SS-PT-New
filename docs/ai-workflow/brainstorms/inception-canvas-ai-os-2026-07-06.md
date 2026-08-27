@@ -74,7 +74,7 @@ A single ever-morphing web canvas — an **AI Operating System shell** — where
 **Enhanced prompt (as used):** *Build the Design Spine — a corpus of 50 visually unrelated, award-caliber (Awwwards-shortlist bar) single-file landing pages, each a fictional brand with 7 sections (header, hero, showcase, story/stats, gallery/pricing, CTA band, footer), each with a unique Google-Font pairing, tokenized palette, atmosphere, and one signature set-piece — but ALL structurally isomorphic on a shared ultra-fine grid with `data-morph` anchors and a 9-token CSS system so the future Inception Morph Engine can fuse any page into any other in 600–900ms. Self-contained HTML (no external assets except Google Fonts, imagery via CSS/SVG/canvas), responsive 320px→4K, WCAG 4.5:1, 44px targets, reduced-motion safe, no lorem ipsum, anti-template. Deliver in hostile-critiqued batches of 5 with a gallery hub tracking all 50.*
 
 **Execution state:**
-- Project home: `c:/Users/BigotSmasher/Desktop/quick-pt/lens-foundry/` (SEPARATE from SS-PT repo — new product, not SwanStudios)
+- Project home: `<HOME>/Desktop/quick-pt/lens-foundry/` (SEPARATE from SS-PT repo — new product, not SwanStudios)
 - `SPEC.md` = the Morph Contract build spec (v1) · `index.html` = gallery hub with full 50-site roster (5 theme families: Nature 16, Magic/Game 10, Luxury Materials 9, Neon/Futurist 8, Health 7)
 - **Batch 1 launched (5 parallel builders, max contrast):** 01 Glacier Ice (ISBRE water) · 17 Night City (cyberpunk district) · 28 Gilded Age (gold members club) · 21 Enchanted Grove (bioluminescent forest) · 44 Forge Fitness (strength gym)
 - Remaining 45: batched next; option on the table — Sean can say "run it as a workflow" for a mass-orchestrated build of the rest.

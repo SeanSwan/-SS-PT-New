@@ -104,8 +104,8 @@ Design Brain learning engine **had never been run**. On that I reordered an eigh
 demoted the flagship, promoted a new panel, wrote it into two documents, commented it onto a live
 Linear issue, and told Sean his loop had never started.
 
-From Git Bash, `~` is `/c/Users/BigotSmasher`. The engine root is
-`/home/bigotsmasher/design-brain` — **in WSL**. It contains 10 receipts, 6 accepted claims,
+From Git Bash, `~` is `/c<HOME>`. The engine root is
+`<HOME>/design-brain` — **in WSL**. It contains 10 receipts, 6 accepted claims,
 `BATCH-2026-07-21.md`, a 28-line write ledger, and a vault emit at `20260721T014416Z`. The loop
 ran **end-to-end on 2026-07-21** — receipts `00:39Z`, packet `01:16Z`, adjudication `01:33Z`,
 vault `01:44Z` — and has been idle since.

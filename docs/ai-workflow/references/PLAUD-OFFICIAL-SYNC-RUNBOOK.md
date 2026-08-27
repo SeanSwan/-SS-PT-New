@@ -16,7 +16,7 @@ Primary flow:
 ## One-Time Plaud Login
 
 ```powershell
-Set-Location "C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT"
+Set-Location "<REPO>"
 npx --yes @plaud-ai/cli login
 npx --yes @plaud-ai/cli me
 ```
@@ -28,14 +28,14 @@ If `me` returns `AUTH_FAILED Token invalid or expired. Run plaud login.`, rerun 
 Use dry-run first when validating the local Plaud account and Startup flow. It checks Plaud auth and recent recordings, but it does not download audio, upload to Swan, or write sync state.
 
 ```powershell
-Set-Location "C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT"
+Set-Location "<REPO>"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\launchers\Start-Swan-Plaud-Official-Sync.ps1 -Once -DryRun
 ```
 
 When dry-run is clean, run the real uploader:
 
 ```powershell
-Set-Location "C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT"
+Set-Location "<REPO>"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\launchers\Start-Swan-Plaud-Official-Sync.ps1
 ```
 
@@ -44,7 +44,7 @@ The launcher reuses a valid local Swan token when available, including the encry
 ## Windows Startup
 
 ```powershell
-Set-Location "C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT"
+Set-Location "<REPO>"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\launchers\Install-Swan-Plaud-Official-Autostart.ps1 -StartNow
 node scripts\qa\check-plaud-official-sync.mjs
 ```
@@ -54,14 +54,14 @@ The installer disables old Applaud Startup entries by default so one recording i
 ## Health Check
 
 ```powershell
-Set-Location "C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT"
+Set-Location "<REPO>"
 node scripts\qa\check-plaud-official-sync.mjs --check-only
 ```
 
 For a structure-only check that avoids the live Plaud CLI auth/network call:
 
 ```powershell
-Set-Location "C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT"
+Set-Location "<REPO>"
 node scripts\qa\check-plaud-official-sync.mjs --check-only --skip-plaud-cli
 ```
 

@@ -27,7 +27,7 @@ The paid review round ran; both models independently destroyed the plan's **meas
 ---
 **Date:** 2026-08-16 · **Author:** Fable 5 (Final Decider) · **Review round:** GLM-5.3 + Kimi K3 — FIRED 2026-08-16 on Sean's go; see Revision R1
 **Source prompt:** Sean's dictated vision + the Unsloth Studio fine-tuning tutorial transcript
-**Grounding:** repo-verified against `C:\Users\BigotSmasher\Desktop\ai-agent-tuning\` and `docs/ai-workflow/brainstorms/classroom-copilot-2026-08-15/` (through R5 synthesis)
+**Grounding:** repo-verified against `<HOME>\Desktop\ai-agent-tuning\` and `docs/ai-workflow/brainstorms/classroom-copilot-2026-08-15/` (through R5 synthesis)
 
 ---
 
@@ -38,7 +38,7 @@ Dictation artifacts I resolved — each carries a flag if I guessed:
 | Heard | Interpreted as | Confidence |
 |---|---|---|
 | "Quinn three point eight" | **Qwen3 family** — specific size chosen per track below (8B for Swan Coach, 4B for Classroom). If you meant a specific "Qwen 3.8" release I don't know, say so and the plan re-targets; nothing else changes. | `[LIKELY]` |
-| "unsoft / unslot / onslaught setup on my desktop" | `C:\Users\BigotSmasher\Desktop\ai-agent-tuning\` — `Start-AI-Agent-Tuning.cmd` double-click launcher + Unsloth Studio | `[VERIFIED]` — found and read |
+| "unsoft / unslot / onslaught setup on my desktop" | `<HOME>\Desktop\ai-agent-tuning\` — `Start-AI-Agent-Tuning.cmd` double-click launcher + Unsloth Studio | `[VERIFIED]` — found and read |
 | "set up classroom / classroom copilot" | `docs/ai-workflow/brainstorms/classroom-copilot-2026-08-15/` — the local-first preschool assistant for T | `[VERIFIED]` |
 | "enhance the site … all age ranges, people who can't see" | Accessibility becomes **training data**, not just UI polish — see §7 | interpretation, see §7 |
 | "GLM 5.3 and Kimi K3 as well as Fable create a plan" | Fable (me) authors; GLM+Kimi ran the hostile round on this doc — Revision R1 carries their verdicts | done, §11 + R1 |

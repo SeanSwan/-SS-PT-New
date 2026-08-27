@@ -63,7 +63,7 @@ We are given a specific file: `frontend/src/components/FoodTracker/FoodIntakeFor
 
 We don't have the actual code, but the document claims that. We must take it as given for the purpose of this review (since we don't have the repo). However, note that the document says the audit had no direct repo access, so this is based on the attachment (which we don't have the content of, but the document quotes it).
 
-But the document also says: "Attachment reviewed: `C:\Users\BigotSmasher\.codex\attachments\1654ba11-d4b4-4034-be11-b88947fcf6e6\pasted-text.txt`." and then gives the caveat.
+But the document also says: "Attachment reviewed: `<HOME>\.codex\attachments\1654ba11-d4b4-4034-be11-b88947fcf6e6\pasted-text.txt`." and then gives the caveat.
 
 We are to verify the claims against reality. Since we don't have the attachment, we must rely on the document's own evidence and the provided context.
 
