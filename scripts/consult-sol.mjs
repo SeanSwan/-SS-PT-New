@@ -14,8 +14,14 @@
  *   node scripts/consult-sol.mjs --document <path> [--seed <path>] [--out <path>]
  *        [--remit "<override remit>"] [--effort low|medium|high]
  *
- * Model override:   SWAN_SOL_MODEL  (defaults to openai/gpt-5.6-sol; openai/gpt-5.6-sol-pro is a
- *                   same-priced max-reasoning variant)
+ * Model override:   SWAN_SOL_MODEL  (defaults to openai/gpt-5.6-sol; openai/gpt-5.6-sol-pro is the
+ *                   same weights at the same price, served with reasoning.mode=pro for higher
+ *                   quality on complex tasks — prefer it for hostile review)
+ *
+ * Do NOT set this to openai/gpt-5.6-sol-pro:batch. That listing is genuinely 50% off
+ * ($1.25/M in, $7.50/M out) but is served by OpenRouter's ASYNC Batch API on a 24-hour
+ * completion window — it is not reachable from this synchronous /chat/completions call.
+ * On a typical review packet the discount saves roughly $0.09. See consult-panel.mjs.
  * Reasoning effort: SWAN_SOL_EFFORT (defaults to high) — passed as reasoning.effort.
  *
  * Privacy (Rule 8/44/59): loads OPENROUTER_API_KEY from .env into env and uses it ONLY in the
@@ -23,6 +29,8 @@
  */
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { streamChatCompletion } from './lib/openrouter-stream.mjs';
+import { readForEgress, redactForEgress } from './lib/redact-egress.mjs';
 
 const ROOT = process.cwd();
 
@@ -52,7 +60,7 @@ const MODEL = process.env.SWAN_SOL_MODEL || 'openai/gpt-5.6-sol';
 const EFFORT = arg('effort', process.env.SWAN_SOL_EFFORT || 'high');
 
 if (!existsSync(docPath)) { console.error(`document not found: ${docPath}`); process.exit(1); }
-const doc = readFileSync(docPath, 'utf-8');
+const doc = readForEgress(docPath, { label: 'document' });
 const seed = seedPath && existsSync(seedPath) ? readFileSync(seedPath, 'utf-8') : '';
 
 const defaultRemit = `You are GPT-5.6 Sol — a rigorous, high-reasoning hostile gate reviewer for SwanStudios (CLAUDE.md Co-Orchestrator Hierarchy), a Codex-equivalent. Review the document below at HIGH reasoning effort and try to break it.
@@ -75,45 +83,55 @@ const prompt = `${remit}\n\n=====================  DOCUMENT UNDER REVIEW  ======
 console.log(`[consult-sol] model=${MODEL} effort=${EFFORT}`);
 console.log(`[consult-sol] prompt size: ${prompt.length} chars (~${Math.round(prompt.length / 4)} tokens)`);
 console.log('[consult-sol] sending request...');
-const t0 = Date.now();
-
-const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${apiKey}`,
-    'HTTP-Referer': 'https://sswanstudios.com',
-    'X-Title': 'SwanStudios GPT-5.6 Sol Gate Review',
-  },
-  body: JSON.stringify({
-    model: MODEL,
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: 16000,
-    temperature: 0.2,
-    reasoning: { effort: EFFORT },
-  }),
-  signal: AbortSignal.timeout(600_000),
-});
-
-if (!res.ok) {
-  const errBody = await res.text().catch(() => '');
-  console.error(`OpenRouter ${res.status}: ${errBody.slice(0, 1500)}`);
+// Streaming via the shared helper (2026-08-21). This script previously did a
+// non-streaming POST behind a 600s header-timeout abort with max_tokens 16000
+// and NO truncation guard - the priciest seat on the panel could lose its entire
+// reply past 600s, or be silently cut at 16k and reported as success. See
+// scripts/lib/openrouter-stream.mjs for the failure class.
+const MAX_TOKENS = Number(arg('max-tokens', process.env.SWAN_SOL_MAX_TOKENS || '48000'));
+let streamed;
+try {
+  streamed = await streamChatCompletion({
+    apiKey, model: MODEL, prompt, maxTokens: MAX_TOKENS, effort: EFFORT,
+    title: 'SwanStudios GPT-5.6 Sol Gate Review', label: 'consult-sol',
+  });
+} catch (err) {
+  console.error(`[consult-sol] ${err.message}`);
   process.exit(1);
 }
+const { finish, usage, truncated, wallSec } = streamed;
+const text = streamed.text || '(empty response)';
+const inTok = usage?.prompt_tokens || 0;
+const outTok = usage?.completion_tokens || 0;
+// Prefer OpenRouter's authoritative usage.cost; fall back to the catalog rate
+// for the model actually used (sol and sol-pro both list $2/M in, $10/M out as
+// of 2026-08-21; batch variants half that). Unknown model -> 'unknown', never a
+// false number.
+const PRICES = {
+  'openai/gpt-5.6-sol': [2, 10], 'openai/gpt-5.6-sol-pro': [2, 10],
+  'openai/gpt-5.6-sol:batch': [1, 5], 'openai/gpt-5.6-sol-pro:batch': [1, 5],
+};
+const cost = typeof usage?.cost === 'number' ? usage.cost
+  : PRICES[MODEL] ? (inTok / 1e6) * PRICES[MODEL][0] + (outTok / 1e6) * PRICES[MODEL][1] : null;
+const costLabel = cost === null ? 'unknown (model not in price table)' : `~$${cost.toFixed(4)}`;
 
-const data = await res.json();
-if (data.error) { console.error('API error:', data.error); process.exit(1); }
-
-const text = data.choices?.[0]?.message?.content || '(empty response)';
-const inTok = data.usage?.prompt_tokens || 0;
-const outTok = data.usage?.completion_tokens || 0;
-// GPT-5.6 Sol pricing (OpenRouter catalog 2026-07-17): $5/M in, $30/M out.
-const cost = (inTok / 1_000_000) * 5 + (outTok / 1_000_000) * 30;
-const wallSec = ((Date.now() - t0) / 1000).toFixed(1);
-
-console.log(`[consult-sol] response in ${wallSec}s — tokens ${inTok} in / ${outTok} out — cost ~$${cost.toFixed(4)}`);
+console.log(`[consult-sol] response in ${wallSec}s — tokens ${inTok} in / ${outTok} out — cost ${costLabel} — finish ${finish ?? '?'}`);
 
 const outPath = arg('out', 'docs/ai-workflow/AI-HANDOFF/SOL-GATE-REVIEW.md');
-const outContent = `# GPT-5.6 Sol — Hostile Gate Review\n\n**Reviewer:** OpenRouter \`${MODEL}\` (effort: ${EFFORT})\n**Document:** ${docPath}\n**Seed:** ${seedPath || '(none)'}\n**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ~$${cost.toFixed(4)} · **Wall:** ${wallSec}s\n\n---\n\n${text}\n`;
+const banner = truncated ? `> ⚠ **TRUNCATED** — the model hit max_tokens (${MAX_TOKENS}) and this reply is INCOMPLETE.
+
+` : '';
+const outContent = `# GPT-5.6 Sol — Hostile Gate Review
+
+**Reviewer:** OpenRouter \`${MODEL}\` (effort: ${EFFORT})
+**Document:** ${docPath}
+**Seed:** ${seedPath || '(none)'}
+**Tokens:** ${inTok} in / ${outTok} out · **Cost:** ${costLabel} · **Wall:** ${wallSec}s · **finish:** ${finish ?? '?'}
+
+---
+
+${banner}${text}
+`;
 writeFileSync(outPath, outContent, 'utf-8');
 console.log(`[consult-sol] saved -> ${outPath}`);
+if (truncated) { console.error('[consult-sol] TRUNCATED reply written — exit 2'); process.exit(2); }

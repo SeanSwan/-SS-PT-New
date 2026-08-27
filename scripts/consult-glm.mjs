@@ -6,6 +6,7 @@
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { readForEgress, redactForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 
 const argv = process.argv.slice(2);
 const arg = (f, d = '') => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
@@ -21,7 +22,7 @@ if (!document) { console.error('--document is required'); process.exit(1); }
 const key = process.env.ZAI_API_KEY;
 if (!key) { console.error('ZAI_API_KEY not set'); process.exit(1); }
 
-const body = readFileSync(document, 'utf8');
+const body = readForEgress(document, { label: 'document' });
 const prompt = remit ? `${remit}\n\n---\n\n${body}` : body;
 
 console.log(`[consult-glm] model=${model} doc=${document} chars=${prompt.length}`);
@@ -31,7 +32,7 @@ const started = Date.now();
 // think for many minutes before emitting its first token. Node's fetch aborts
 // with UND_ERR_HEADERS_TIMEOUT after ~300s of waiting for response headers.
 // Streaming returns headers immediately, so the clock never starts.
-const res = await fetch('https://api.z.ai/api/coding/paas/v4/chat/completions', {
+const res = await fetchForEgress('https://api.z.ai/api/coding/paas/v4/chat/completions', {
   method: 'POST',
   headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({

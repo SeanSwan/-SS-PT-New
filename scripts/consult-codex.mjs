@@ -29,6 +29,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { readForEgress, redactForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
@@ -71,7 +72,7 @@ async function callCodex(prompt) {
     throw new Error('No OPENROUTER_API_KEY found in .env');
   }
 
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -144,22 +145,32 @@ Use [VERIFIED] / [LIKELY] / [HYPOTHESIS] / [UNKNOWN] tags on factual claims.`);
   }
 
   if (args.files.length > 0) {
+    // One summary line for the whole loop — never zero lines (silent redaction
+    // is how the previous sanitizer went unexamined for months).
+    let fileCount = 0;
+    let fileRedactions = 0;
     for (const f of args.files) {
       try {
-        const content = readFileSync(join(ROOT, f), 'utf-8');
+        const { text: content, hits } = redactForEgress(readFileSync(join(ROOT, f), 'utf-8'));
+        fileCount += 1;
+        fileRedactions += hits.reduce((n, h) => n + h.count, 0);
         blocks.push(`## File: ${f}\n\n\`\`\`\n${content.slice(0, 60000)}\n\`\`\``);
       } catch (err) {
-        blocks.push(`## File: ${f}\n\n(failed to read: ${err.message})`);
+        // A canary failure is the instrument refusing to certify — never swallow it.
+        if (String(err.message).includes('[redact-egress] CANARY')) throw err;
+        blocks.push(`## File: ${f}\n\n(failed to read: ${redactForEgress(err.message).text})`);
       }
     }
+    console.error(`[redact-egress] --files: ${fileCount} file(s), ${fileRedactions} redaction(s) before send`);
   }
 
   if (args.filePath) {
     try {
-      const content = readFileSync(join(ROOT, args.filePath), 'utf-8');
+      const content = readForEgress(join(ROOT, args.filePath), { label: args.filePath });
       blocks.push(`## Input document: ${args.filePath}\n\n${content}`);
     } catch (err) {
-      blocks.push(`## Input document: ${args.filePath}\n\n(failed to read: ${err.message})`);
+      if (String(err.message).includes('[redact-egress] CANARY')) throw err;
+      blocks.push(`## Input document: ${args.filePath}\n\n(failed to read: ${redactForEgress(err.message).text})`);
     }
   }
 

@@ -10,6 +10,7 @@
  */
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 
 const ROOT = process.cwd();
 
@@ -35,8 +36,8 @@ if (!apiKey) {
 
 const MODEL = 'openai/gpt-5.5';
 
-const v11 = readFileSync('docs/ai-workflow/AI-HANDOFF/PHASE-5-PLAUD-AUTO-INGESTION-PLAN-v1.1-2026-05-04.md', 'utf-8');
-const v1Codex = readFileSync('docs/ai-workflow/AI-HANDOFF/PHASE-5-CODEX-RESPONSE-2026-05-04.md', 'utf-8');
+const v11 = readForEgress('docs/ai-workflow/AI-HANDOFF/PHASE-5-PLAUD-AUTO-INGESTION-PLAN-v1.1-2026-05-04.md', 'utf-8');
+const v1Codex = readForEgress('docs/ai-workflow/AI-HANDOFF/PHASE-5-CODEX-RESPONSE-2026-05-04.md', 'utf-8');
 
 const prompt = `You are Codex acting as the FINAL GATE in SwanStudios's 3-Brain Review Loop
 (per CLAUDE.md Rule 46), conducting the v1 → v1.1 re-review. Your job is to
@@ -147,7 +148,7 @@ console.log(`[codex-v1.1] model=${MODEL}`);
 console.log(`[codex-v1.1] prompt size: ${prompt.length} chars`);
 const t0 = Date.now();
 
-const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+const res = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

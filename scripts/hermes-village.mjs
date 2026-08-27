@@ -43,6 +43,7 @@
 
 // Preflight: blocks execution if MODEL_VERSIONS.md has unverified TODO markers
 // or if required env vars are missing. Side-effect import by design.
+import { fetchForEgress } from './lib/redact-egress.mjs';
 import './lib/preflight.mjs';
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync, statSync } from 'fs';
@@ -1473,7 +1474,7 @@ The Creative Director has FINAL SAY on design decisions. You challenge but ultim
 // ─────────────────────────────────────────────
 
 async function callOpenRouter(apiKey, model, prompt) {
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -1542,7 +1543,7 @@ async function callGeminiDirect(apiKey, model, prompt, opts = {}) {
     body.tools = [{ googleSearch: {} }];
   }
 
-  const res = await fetch(url, {
+  const res = await fetchForEgress(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

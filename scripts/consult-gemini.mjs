@@ -35,6 +35,7 @@ import { getModelIdOrThrow } from './lib/model-registry.mjs';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { readForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
@@ -93,7 +94,7 @@ async function callGemini(prompt, opts = {}) {
     body.tools = [{ googleSearch: {} }];
   }
 
-  const res = await fetch(url, {
+  const res = await fetchForEgress(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -356,7 +357,7 @@ export function parseArgs(rawArgs = process.argv.slice(2)) {
       console.error(`  Error: File not found: ${filePath}`);
       process.exit(1);
     }
-    opts.input = readFileSync(filePath, 'utf-8');
+    opts.input = readForEgress(filePath, { label: filePath });
     if (opts.mode === 'review') {
       opts.reviewPath = opts.file;
     }

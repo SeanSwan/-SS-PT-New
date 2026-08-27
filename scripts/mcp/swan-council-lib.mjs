@@ -23,6 +23,7 @@
  * @module swan-council-lib
  */
 
+import { fetchForEgress } from '../lib/redact-egress.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -120,7 +121,7 @@ export async function selectBackend(brainKey, { probe, hasKey } = {}) {
  * {text, inTok, outTok, model}. Throws on HTTP/API error with a REDACTED message.
  */
 export async function callOpenRouter(brainKey, prompt, {
-  apiKey, fetchImpl = fetch, timeoutMs = 180_000, temperature = 0.2, maxTokens, reasoningEffort,
+  apiKey, fetchImpl = fetchForEgress, timeoutMs = 180_000, temperature = 0.2, maxTokens, reasoningEffort,
 } = {}) {
   const b = BRAINS[brainKey];
   if (!b) throw new Error(`unknown brain '${brainKey}'`);

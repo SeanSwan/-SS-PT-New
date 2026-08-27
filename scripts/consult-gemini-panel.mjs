@@ -29,7 +29,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getModelId } from './lib/model-registry.mjs';
-import { readForEgress, redactForEgress } from './lib/redact-egress.mjs';
+import { readForEgress, redactOutbound, fetchForEgress } from './lib/redact-egress.mjs';
 
 // Repo root from THIS FILE's location, never process.cwd(). consult-panel.mjs spawns
 // each seat as a child that inherits the panel's cwd, so a cwd-relative .env lookup
@@ -115,8 +115,10 @@ const body = readForEgress(document, { label: 'document' });
 // likely to name a real person. Redacting the safer input and not the riskier one
 // is worse than redacting neither, because the import makes the file read as
 // protected. Egress protection is a property of the request, not of one argument.
-// redactForEgress(text) takes ONE argument — no options object. Matches the
-// existing call shape used by the sibling seat scripts.
+// redactOutbound(text, { label }) returns the redacted STRING. (2026-08-26 Fable
+// review: the earlier redactForEgress(text) call returned {text, hits} and both
+// seed and remit went over the wire as "[object Object]" — the panel ran
+// context-free while every log line said it was protected.)
 //
 // A seed that was ASKED FOR but not delivered must be loud. Previously a typo'd path
 // failed `existsSync`, yielded '', and the review ran without prior context while the
@@ -127,7 +129,7 @@ const body = readForEgress(document, { label: 'document' });
 let seedText = '';
 if (seed) {
   try {
-    seedText = redactForEgress(readFileSync(seed, 'utf8'));
+    seedText = redactOutbound(readFileSync(seed, 'utf8'), { label: 'seed' });
   } catch (e) {
     console.error(`[consult-gemini-panel] --seed ${seed} could not be read (${e?.code || e?.message}) — REFUSING to run without the context you asked for.`);
     process.exit(1);
@@ -142,7 +144,7 @@ if (seed) {
 // one round later, which is the argument for redacting at the BOUNDARY rather than
 // per-input: every string joined into `prompt` is egress, so every one is redacted.
 const prompt = [
-  remit && redactForEgress(remit),
+  remit && redactOutbound(remit, { label: 'remit' }),
   seedText && `## Prior context\n\n${seedText}`,
   '---',
   body,
@@ -165,7 +167,7 @@ try {
   // we hand-wrote — it cannot reach anything the runtime logs on its own. Google
   // supports x-goog-api-key; use the channel that is not designed to be recorded.
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-  const res = await fetch(url, {
+  const res = await fetchForEgress(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({

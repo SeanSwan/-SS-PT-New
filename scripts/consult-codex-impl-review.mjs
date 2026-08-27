@@ -13,6 +13,7 @@
  */
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 
 const ROOT = process.cwd();
 for (const envPath of [join(ROOT, '.env'), join(ROOT, 'backend', '.env')]) {
@@ -33,7 +34,7 @@ const apiKey = process.env.OPENROUTER_API_KEY;
 if (!apiKey) { console.error('OPENROUTER_API_KEY not found'); process.exit(1); }
 
 // Read the implementation + tests + my hostile review
-function read(p) { return readFileSync(p, 'utf-8'); }
+function read(p) { return readForEgress(p, { label: p }); }
 
 const planV12 = read('docs/ai-workflow/AI-HANDOFF/PHASE-5-PLAUD-AUTO-INGESTION-PLAN-v1.2-2026-05-04.md');
 const myHostile = read('docs/ai-workflow/AI-HANDOFF/PHASE-5-IMPLEMENTATION-HOSTILE-REVIEW-2026-05-04.md');
@@ -246,7 +247,7 @@ Claude's findings — verify each one independently against the actual code.`;
 console.log(`[codex-impl] prompt: ${prompt.length} chars`);
 const t0 = Date.now();
 
-const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+const res = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

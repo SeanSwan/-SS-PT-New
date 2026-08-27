@@ -19,6 +19,7 @@
  */
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
+import { readForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 
 const ROOT = process.cwd();
 for (const envPath of [join(ROOT, '.env'), join(ROOT, 'backend', '.env')]) {
@@ -62,7 +63,7 @@ if (!existsSync(documentPath)) {
 // old cap and the script reported success anyway (see finish_reason guard below).
 const MAX_TOKENS = Number(process.env.PANEL_MAX_TOKENS) || 60000;
 const REASONING_MAX = Number(process.env.PANEL_REASONING_MAX) || 16000;
-const document = readFileSync(documentPath, 'utf-8');
+const document = readForEgress(documentPath, { label: 'document' });
 const system = `You are ${label}, consulted as an elite mobile product/UX designer and frontend architect by SwanStudios (a premium personal-training SaaS; dark-first "Crystalline Swan" brand: deep sapphire surfaces, Ice Wing cyan #60C0F0 accents, Gilded Fern gold #C6A84B for earned states, Wing Purple #8B5CF6 for AI-coach elements). Answer the consult packet's questions directly, ranked, and concretely. Be adversarial where the plan is weak — vague praise is useless. Markdown output.`;
 
 console.log(`[panel] model=${model} doc=${documentPath} (${document.length} chars) out=${outPath} mode=${live ? 'LIVE' : 'DRY-RUN'}`);
@@ -78,7 +79,7 @@ if (!apiKey) {
 }
 
 const call = (withReasoning) =>
-  fetch('https://openrouter.ai/api/v1/chat/completions', {
+  fetchForEgress('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({

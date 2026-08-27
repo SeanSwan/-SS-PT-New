@@ -1,3 +1,4 @@
+import { fetchForEgress } from '../lib/redact-egress.mjs';
 /**
  * ============================================================================
  * FILE: prompt-mutator.mjs
@@ -23,7 +24,7 @@ async function callMutator(systemPrompt, userPrompt) {
     const model = process.env.MUTATOR_MODEL || 'gemini-3.1-flash-lite-preview';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
-    const response = await fetch(url, {
+    const response = await fetchForEgress(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -49,7 +50,7 @@ async function callMutator(systemPrompt, userPrompt) {
   // Fallback: OpenRouter
   const model = process.env.MUTATOR_MODEL || 'google/gemini-3.1-flash-lite-preview';
 
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const response = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

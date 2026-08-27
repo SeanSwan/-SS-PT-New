@@ -23,6 +23,7 @@
  */
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readForEgress, redactForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 
 const ROOT = process.cwd();
 
@@ -53,7 +54,7 @@ const seedPath = arg('seed');
 const MODEL = process.env.SWAN_FUSION_JUDGE_MODEL || 'anthropic/claude-fable-5';
 
 if (!existsSync(docPath)) { console.error(`document not found: ${docPath}`); process.exit(1); }
-const doc = readFileSync(docPath, 'utf-8');
+const doc = readForEgress(docPath, { label: 'document' });
 const seed = seedPath && existsSync(seedPath) ? readFileSync(seedPath, 'utf-8') : '';
 
 const defaultRemit = `You are Fable 5 — the Final Decider and head architect for SwanStudios (CLAUDE.md Co-Orchestrator Hierarchy). You have FINAL authority; your verdict LOCKS this plan.
@@ -79,7 +80,7 @@ console.log(`[consult-fable] prompt size: ${prompt.length} chars (~${Math.round(
 console.log('[consult-fable] sending request...');
 const t0 = Date.now();
 
-const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+const res = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -90,7 +91,7 @@ const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
   body: JSON.stringify({
     model: MODEL,
     messages: [{ role: 'user', content: prompt }],
-    max_tokens: 16000,
+    max_tokens: Number(process.env.SWAN_FABLE_MAX_TOKENS || 16000),
     temperature: 0.25,
   }),
   signal: AbortSignal.timeout(600_000),
@@ -105,7 +106,24 @@ if (!res.ok) {
 const data = await res.json();
 if (data.error) { console.error('API error:', data.error); process.exit(1); }
 
-const text = data.choices?.[0]?.message?.content || '(empty response)';
+// Content extraction, defensively. 2026-08-22: a Final-Decider run billed 30,260
+// in / 263 out ($0.32) and wrote "(empty response)" because this line reads ONLY
+// `message.content`. Anthropic models via OpenRouter may return content as an
+// ARRAY of blocks, or put text in `message.reasoning` when reasoning is on, and a
+// refusal can land in neither. Reading one field turned a paid call into nothing
+// and gave no diagnostic. Now: try every shape, and if all are empty, DUMP the
+// message envelope so the next failure is debuggable without re-spending.
+const _msg = data.choices?.[0]?.message ?? {};
+const _fromContent = Array.isArray(_msg.content)
+  ? _msg.content.map((b) => (typeof b === 'string' ? b : b?.text ?? '')).join('')
+  : (typeof _msg.content === 'string' ? _msg.content : '');
+const text = (_fromContent || _msg.reasoning || _msg.refusal || '').trim()
+  || `(empty response)
+
+finish_reason: ${data.choices?.[0]?.finish_reason ?? 'unknown'}
+message envelope keys: ${Object.keys(_msg).join(', ') || '(none)'}
+raw message (truncated):
+${JSON.stringify(_msg).slice(0, 2000)}`;
 const inTok = data.usage?.prompt_tokens || 0;
 const outTok = data.usage?.completion_tokens || 0;
 // Fable pricing (OpenRouter catalog 2026-07-08): $10/M in, $50/M out.

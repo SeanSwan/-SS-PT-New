@@ -12,6 +12,7 @@
  */
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 
 const ROOT = process.cwd();
 
@@ -46,9 +47,9 @@ const securityPath = 'AI-Village-Documentation/validation-prompts/latest/03-secu
 const codeQualityPath = 'AI-Village-Documentation/validation-prompts/latest/02-code-quality.md';
 const dataSafetyPath = 'AI-Village-Documentation/validation-prompts/latest/09-data-safety.md';
 
-const plan = readFileSync(planPath, 'utf-8');
-const hostile = readFileSync(hostilePath, 'utf-8');
-const summary = readFileSync(summaryPath, 'utf-8');
+const plan = readForEgress(planPath, { label: 'plan' });
+const hostile = readForEgress(hostilePath, { label: 'hostile' });
+const summary = readForEgress(summaryPath, { label: 'summary' });
 const security = readFileSync(securityPath, 'utf-8');
 const codeQuality = readFileSync(codeQualityPath, 'utf-8');
 const dataSafety = readFileSync(dataSafetyPath, 'utf-8');
@@ -249,7 +250,7 @@ console.log(`[codex-via-openrouter] prompt size: ${prompt.length} chars (~${Math
 console.log(`[codex-via-openrouter] sending request...`);
 const t0 = Date.now();
 
-const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+const res = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',

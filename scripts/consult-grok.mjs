@@ -31,7 +31,7 @@
  */
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import { join, basename } from 'node:path';
-import { readForEgress } from './lib/redact-egress.mjs';
+import { readForEgress, fetchForEgress } from './lib/redact-egress.mjs';
 
 const ROOT = process.cwd();
 
@@ -132,7 +132,7 @@ const pokeIdle = () => {
   idleTimer = setTimeout(() => idleController.abort(new Error(`stream idle >${IDLE_MS / 1000}s`)), IDLE_MS);
 };
 
-const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+const res = await fetchForEgress('https://openrouter.ai/api/v1/chat/completions', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -229,6 +229,11 @@ const PRICES = {
   'deepseek/deepseek-v4-pro': [0.48, 0.96],
   'deepseek/deepseek-v4-pro-0813': [1.19, 3.56],
   'deepseek/deepseek-v4-flash': [0.073, 0.145],
+  // Known-FREE seat, priced explicitly at $0 (PR #72 round-1: GLM F6 / Ox F5, F8). The
+  // ledger counts an UNPRICED row as the per-call cap on purpose — fail-closed for
+  // unknown models — so a free seat that omits `usage.cost` would accrue $1.00 phantom
+  // spend per call and the guard would refuse it after three. Free is a price; list it.
+  'stealth/ox-alpha': [0, 0],
 };
 const cost = typeof usage?.cost === 'number'
   ? usage.cost
