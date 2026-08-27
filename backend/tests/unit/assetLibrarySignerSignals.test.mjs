@@ -127,3 +127,39 @@ describe('an absent signer is legitimate, but never silent', () => {
     } finally { console.warn = spy; }
   });
 });
+
+describe('a signer that resolves nothing is a failure, not a success', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+
+  it('an undefined resolution counts as failed, so the page still says so', async () => {
+    // The third signer mode. Absent is guarded by reportNoSigner; rejecting (and throwing
+    // synchronously) is guarded by the catch. Present-but-resolving-nothing threaded
+    // between both: every card null, `failed` never incremented, no banner, no log, 200.
+    const errs = [];
+    const spy = console.error; console.error = (m) => errs.push(String(m));
+    try {
+      const out = await listAssets({ userId: 1 }, {
+        assetModel: model([row(), row({ id: 'b' })]), Op, readUrl: async () => undefined,
+      });
+      expect(out.assets.every((a) => a.previewUrl === null)).toBe(true);
+      expect(out.previewsUnavailable).toBe(true);
+      expect(errs.join(' ')).toMatch(/misconfigured/);
+    } finally { console.error = spy; }
+  });
+
+  it('an empty-string resolution is the same failure', async () => {
+    const out = await listAssets({ userId: 1 }, {
+      assetModel: model([row(), row({ id: 'b' })]), Op, readUrl: async () => '',
+    });
+    expect(out.previewsUnavailable).toBe(true);
+  });
+
+  it('a real URL is still passed straight through', async () => {
+    // The guard must not eat the success path.
+    const out = await listAssets({ userId: 1 }, {
+      assetModel: model([row()]), Op, readUrl: async (k) => `https://cdn.example/${k}`,
+    });
+    expect(out.assets[0].previewUrl).toBe('https://cdn.example/atelier/stills/1/abc.png');
+    expect(out.previewsUnavailable).toBe(false);
+  });
+});

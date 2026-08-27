@@ -108,7 +108,25 @@ export async function signPreviews(page = [], readUrl) {
       // so storage serves the right type without being told again at signing time.
       // `Promise.resolve().then(...)` rather than `readUrl(...).catch(...)`: a signer that
       // throws SYNCHRONOUSLY never produces a promise for `.catch` to attach to.
-      return Promise.resolve().then(() => readUrl(previewKey)).catch((err) => {
+      return Promise.resolve().then(() => readUrl(previewKey)).then((url) => {
+        // A SIGNER THAT RESOLVES NOTHING IS A FAILURE, NOT A SUCCESS.
+        //
+        // This module guards an ABSENT signer (reportNoSigner) and a REJECTING one (the
+        // catch below, which also covers a synchronous throw). It did not guard the third
+        // mode: present, called, resolves undefined — and that one threads between both.
+        // Every card null, `failed` never incremented, so `failed === attempted` is false,
+        // no banner, no log, HTTP 200. Byte for byte the "page of grey boxes with a 200 and
+        // nothing ever says otherwise" this file twice says is unacceptable, reopened
+        // through the one seam the fix did not cover.
+        //
+        // `generateThumbnailUrl` returns `await getSignedUrl(...)` and has no falsy return
+        // path, so this is unreachable through the wiring that exists today. It is guarded
+        // anyway because `readUrl` is an INJECTED seam — the guard belongs to the contract,
+        // not to the one implementation that currently satisfies it. Counting it as failed
+        // is what makes the existing banner and log work unchanged.
+        if (!url) throw new Error('signer resolved no URL');
+        return url;
+      }).catch((err) => {
         failed += 1;
         // Per-row degradation must still be VISIBLE somewhere. Silent isolation turns a
         // rotated secret into a page of grey boxes with a 200 and no telemetry — the

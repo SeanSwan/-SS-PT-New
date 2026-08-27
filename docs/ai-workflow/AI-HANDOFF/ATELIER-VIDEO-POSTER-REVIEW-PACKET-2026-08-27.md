@@ -164,7 +164,25 @@ export async function signPreviews(page = [], readUrl) {
       // so storage serves the right type without being told again at signing time.
       // `Promise.resolve().then(...)` rather than `readUrl(...).catch(...)`: a signer that
       // throws SYNCHRONOUSLY never produces a promise for `.catch` to attach to.
-      return Promise.resolve().then(() => readUrl(previewKey)).catch((err) => {
+      return Promise.resolve().then(() => readUrl(previewKey)).then((url) => {
+        // A SIGNER THAT RESOLVES NOTHING IS A FAILURE, NOT A SUCCESS.
+        //
+        // This module guards an ABSENT signer (reportNoSigner) and a REJECTING one (the
+        // catch below, which also covers a synchronous throw). It did not guard the third
+        // mode: present, called, resolves undefined — and that one threads between both.
+        // Every card null, `failed` never incremented, so `failed === attempted` is false,
+        // no banner, no log, HTTP 200. Byte for byte the "page of grey boxes with a 200 and
+        // nothing ever says otherwise" this file twice says is unacceptable, reopened
+        // through the one seam the fix did not cover.
+        //
+        // `generateThumbnailUrl` returns `await getSignedUrl(...)` and has no falsy return
+        // path, so this is unreachable through the wiring that exists today. It is guarded
+        // anyway because `readUrl` is an INJECTED seam — the guard belongs to the contract,
+        // not to the one implementation that currently satisfies it. Counting it as failed
+        // is what makes the existing banner and log work unchanged.
+        if (!url) throw new Error('signer resolved no URL');
+        return url;
+      }).catch((err) => {
         failed += 1;
         // Per-row degradation must still be VISIBLE somewhere. Silent isolation turns a
         // rotated secret into a page of grey boxes with a 200 and no telemetry — the
@@ -956,3 +974,80 @@ in one `findOrCreate`, not one.**
 
 No code changed this round — four findings were settled by evidence and one is out of slice.
 Packet gained §4b. Backend atelier glob unchanged at **581/581 across 41 suites**.
+
+---
+
+# ROUND 5 — one real hole, one fabricated P0
+
+**GLM: REVISE** (1 P1, 2 P2) — "the slice itself is approve-grade". **Qwen: REJECT** on a
+**P0 that does not exist.**
+
+| # | Finding | Outcome |
+|---|---|---|
+| GLM 1 (P1) | A signer that *resolves falsy* threads between both existing guards | **CONFIRMED. Fixed** |
+| GLM 2 | The tenant-scoping half of backlog #1 is one line and shouldn't be bundled | **Real, narrower than stated. Deferred — with a reason that isn't tidiness** |
+| GLM 3 | `persistStills` write-order asserted, not shown | **DISPROVEN — `putObject` then `row.update`, :214→:217** |
+| Qwen 1 (P0) | Pagination broken; `hasMore` always false | **FABRICATED — see below** |
+
+## GLM 1 — the third signer mode, and the best catch of the loop
+
+This module guarded an **absent** signer (`reportNoSigner`) and a **rejecting** one (the
+catch, which also covers a synchronous throw). It did not guard **present, called, resolves
+`undefined`** — and that threads between both: every card null, `failed` never incremented,
+so `failed === attempted` is false, no banner, no log, HTTP 200.
+
+Byte for byte the "page of grey boxes with a 200 and nothing ever says otherwise" this file
+twice calls unacceptable — **reopened through the one seam the fix did not cover, in the
+module whose header is about exactly that.** That is the fourth time this loop has found the
+half-of-a-pair shape, and the second time inside my own fix for it.
+
+`generateThumbnailUrl` returns `await getSignedUrl(...)` with no falsy return path, so it is
+unreachable through today's wiring — which is GLM's own collapse condition to P2. Guarded
+anyway, because `readUrl` is an **injected seam**: the guard belongs to the contract, not to
+the one implementation that currently satisfies it. Treating it as failed is what makes the
+existing banner and log work unchanged.
+
+Falsified: removing `if (!url) throw` reddens exactly the two failure tests and leaves the
+"a real URL is still passed through" test green — so the guard does not eat the success path.
+
+## GLM 2 — real, narrower than stated, and deferred for a reason that is not tidiness
+
+GLM is right that `where: { r2Key, ownerUserId: job.userId }` is one line, and right to
+challenge bundling. Two corrections from the code:
+
+- **Its own caveat holds for stills.** `stillObjectKey` is `atelier/stills/<owner>/<sha256>.<ext>`
+  — the owner is *in the key*, so cross-tenant collision is structurally impossible there.
+- **It is not a leak.** Video keys are `jobs/<jobId>/…` via `r2KeyForJob`, which — worth
+  noting — **is never called to validate `completeJob`'s caller-supplied `r2Key`**. So a
+  lease-holder can declare any string. But the found row stays owned by its original owner
+  and the library is owner-scoped, so nothing of the victim's is exposed. The harm is that
+  **the completer's own asset silently never gets created**. Data integrity, not disclosure.
+
+Deferred because **I cannot falsify a fix here.** `videoRenderJobService.test.mjs` says in
+its own header that it covers only paths running *before* database access, and that the
+leasing paths "need Postgres and are covered by the integration suite". This environment has
+no Postgres. An unfalsifiable fix is not a fix — that is the standing rule of this workstream,
+and it applies to fixes I would like to make as much as to ones I would not.
+
+**Backlog #1 remains one edit with two defects in it**, now both written out, so whoever has
+a database can fix and prove them together.
+
+## Qwen — a REJECT built on a premise it did not read
+
+Qwen's P0: `findAll({ limit: q.limit })` then `hasMore = rows.length > q._pageSize`, "if
+`q.limit` equals `q._pageSize` (**standard implementation**)", `hasMore` is always false.
+
+`assetLibrary.mjs:159-160` returns **`limit: limit + 1, _pageSize: limit`** — the
+fetch-one-extra pattern. The two fields are distinct precisely so this works, the §5 paste
+shows both, and Qwen substituted an assumption for the line in front of it. Its P1 then
+argued a race, wrote "This is handled", and swapped in a claim about the `broken` map that
+round 1 had already disproven at `AtelierLibrary.tsx:120`.
+
+Worth recording against the handoff's §6 table, which has Qwen at six consecutive APPROVEs —
+"right that the core held; wrong that nothing remained." It has now produced the opposite
+error on the same code. **Both failure modes, one workstream: its verdicts carry no
+information in either direction.** GLM found something real in five rounds out of five.
+
+## Round-5 verification
+
+Backend atelier glob **584/584 across 41 suites**. Line cap and secret scan clean.
