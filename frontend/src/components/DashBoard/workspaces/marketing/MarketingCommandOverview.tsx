@@ -16,7 +16,7 @@ import {
   BoundaryCopy, BoundaryGrid, BoundaryItem, BoundaryTitle, CommandButton,
   MetricBlock, MetricGrid, MetricLabel, MetricValue, OverviewGrid,
   SignalIcon, SignalList, SignalMeta, SignalRow, SignalTitle, Stack, StatusLine,
-  ChannelList, ChannelRow, ChannelName, ChannelTrack, ChannelFill, ChannelCount, ChannelEmpty,
+  ChannelList, ChannelRow, ChannelName, ChannelTrack, ChannelFill, ChannelCount, ChannelEmpty, SubsectionLabel,
   ChannelMeta, ChannelWon,
 } from './MarketingCommandOverview.styles';
 import MarketingReadinessCockpit from './MarketingReadinessCockpit';
@@ -37,6 +37,14 @@ interface ChannelStat {
   converted?: number;
 }
 
+/** Who brings leads via shared milestone links (ids + first name only — rule 8). */
+interface ReferrerStat {
+  referrerId: number;
+  firstName?: string | null;
+  count: number;
+  converted?: number;
+}
+
 interface LeadStats {
   total: number;
   new: number;
@@ -49,6 +57,7 @@ interface LeadStats {
   needsFollowUp: number;
   hotLeads: number;
   byChannel: ChannelStat[];
+  byReferrer?: ReferrerStat[];
 }
 
 const DEFAULT_STATS: LeadStats = {
@@ -208,6 +217,25 @@ const MarketingCommandOverview: React.FC<MarketingCommandOverviewProps> = ({ onS
             ))}
           </ChannelList>
         )}
+        {(stats.byReferrer?.length ?? 0) > 0 ? (
+          <>
+            <SubsectionLabel>Who referred them</SubsectionLabel>
+            <ChannelList aria-label="Top referrers">
+            {stats.byReferrer!.map((r) => (
+              <ChannelRow key={`ref-${r.referrerId}`}>
+                <ChannelName>{r.firstName ? `${r.firstName} (#${r.referrerId})` : `Client #${r.referrerId}`}</ChannelName>
+                <ChannelTrack>
+                  <ChannelFill $pct={topChannelCount ? Math.min(100, (r.count / topChannelCount) * 100) : 0} />
+                </ChannelTrack>
+                <ChannelMeta>
+                  <ChannelCount>{r.count}</ChannelCount>
+                  {r.converted ? <ChannelWon>{r.converted} won</ChannelWon> : null}
+                </ChannelMeta>
+              </ChannelRow>
+              ))}
+            </ChannelList>
+          </>
+        ) : null}
       </MarketingCard>
 
       <MarketingCard>

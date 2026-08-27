@@ -47,6 +47,8 @@ export interface NextBestAction {
 export interface ShareEligibility {
   eligible: boolean;
   reason: 'owner' | 'not-owner';
+  /** Server-signed referral code (owner only). The share link carries it so a signup attributes back. */
+  referralCode?: string | null;
 }
 
 /**

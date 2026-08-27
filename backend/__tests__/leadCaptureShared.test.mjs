@@ -4,6 +4,7 @@
  * assert the normalization + Lead.source ENUM mapping directly. utm/referrer are
  * non-PII marketing signals (rule 8).
  */
+import { aggregateLeadReferrers } from '../services/leadCaptureShared.mjs';
 import { describe, expect, it } from 'vitest';
 import { deriveChannel, channelToLeadSource, channelTags, aggregateLeadChannels } from '../services/leadCaptureShared.mjs';
 
@@ -98,5 +99,23 @@ describe('aggregateLeadChannels', () => {
     expect(aggregateLeadChannels(rows, 3)).toHaveLength(3);
     expect(aggregateLeadChannels()).toEqual([]);
     expect(aggregateLeadChannels(null)).toEqual([]);
+  });
+});
+
+describe('aggregateLeadReferrers - who brings leads', () => {
+  it('counts leads + conversions per referrer, sorted desc, ignoring unreferred rows', () => {
+    const rows = [
+      { referredByUserId: 42, status: 'new' }, { referredByUserId: 42, status: 'converted' },
+      { referredByUserId: 7, status: 'new' }, { referredByUserId: null, status: 'new' }, { status: 'converted' },
+    ];
+    expect(aggregateLeadReferrers(rows)).toEqual([
+      { referrerId: 42, count: 2, converted: 1 },
+      { referrerId: 7, count: 1, converted: 0 },
+    ]);
+  });
+  it('caps the list and tolerates garbage ids', () => {
+    const rows = Array.from({ length: 15 }, (_, i) => ({ referredByUserId: i + 1, status: 'new' }));
+    rows.push({ referredByUserId: 'abc' }, { referredByUserId: -1 });
+    expect(aggregateLeadReferrers(rows, 3)).toHaveLength(3);
   });
 });

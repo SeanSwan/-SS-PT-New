@@ -37,7 +37,10 @@ import {
   channelToLeadSource,
   channelTags,
   deriveChannel,
+  resolveReferrerId,
+  firstTouchReferral,
 } from './leadCaptureShared.mjs';
+
 import { captureLeadFromCheckout } from './leadCaptureCheckout.mjs';
 
 /**
@@ -73,6 +76,7 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
 
     const { firstName, lastName } = splitLeadName(formData?.name);
     const { channel } = deriveChannel(attribution || {});
+    const referrerId = resolveReferrerId(attribution);
     const baseDetail = consultationType
       ? `Contact form — ${String(consultationType).replace(/-/g, ' ')}`
       : 'Contact form';
@@ -91,6 +95,7 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
         score: CONTACT_FORM_LEAD_SCORE,
         notes: formData?.message || null,
         tags: contactTags,
+        referredByUserId: referrerId,
       },
     });
 
@@ -101,7 +106,7 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
         performedByAI: false,
         title: 'Lead captured from contact form',
         description: `New website contact via ${sourceDetail}`,
-        metadata: { source: 'website', sourceDetail, channel, contactId: contact?.id },
+        metadata: { source: 'website', sourceDetail, channel, contactId: contact?.id, referrerId },
       });
     } else {
       await lead.update({
@@ -109,6 +114,7 @@ export async function captureLeadFromContact({ contact, formData, consultationTy
         contactCount: (lead.contactCount || 0) + 1,
         score: Math.min(100, (lead.score || 0) + CONTACT_FORM_REPEAT_BONUS),
         tags: mergeLeadTags(lead.tags, contactTags),
+        ...firstTouchReferral(lead, referrerId),
       });
       await LeadActivity.create({
         leadId: lead.id,
@@ -149,6 +155,7 @@ export async function captureLeadFromSignup({ user, clientSource, role, attribut
     // clientSource is the authoritative signup source; the utm channel only adds a tag/detail.
     const source = mapClientSourceToLeadSource(clientSource);
     const { channel } = deriveChannel(attribution || {});
+    const referrerId = resolveReferrerId(attribution, user.id);
     const baseDetail = `Signup — ${clientSource || 'swanstudios'}`;
     const sourceDetail = channel !== 'direct' ? `${baseDetail} · via ${channel}` : baseDetail;
     const signupTags = ['signup', ...channelTags(channel)];
@@ -169,6 +176,7 @@ export async function captureLeadFromSignup({ user, clientSource, role, attribut
         // have a metadata column). convertedUserId stays null until they actually
         // buy (set by the checkout flow later) — a free account is not a paid conversion.
         notes: `Signed up as user #${user.id} via ${clientSource || 'swanstudios'}`,
+        referredByUserId: referrerId,
       },
     });
 
@@ -179,7 +187,7 @@ export async function captureLeadFromSignup({ user, clientSource, role, attribut
         performedByAI: false,
         title: 'Lead captured from signup',
         description: `New account (user ${user.id}) created via ${clientSource || 'swanstudios'}`,
-        metadata: { source, userId: user.id, clientSource, channel },
+        metadata: { source, userId: user.id, clientSource, channel, referrerId },
       });
     } else {
       // Existing lead (e.g. contacted first, now signed up) — strengthen, don't duplicate.
@@ -187,6 +195,7 @@ export async function captureLeadFromSignup({ user, clientSource, role, attribut
         score: Math.max(lead.score || 0, SIGNUP_LEAD_SCORE),
         lastContactedAt: new Date(),
         tags: mergeLeadTags(lead.tags, signupTags),
+        ...firstTouchReferral(lead, referrerId),
       });
       await LeadActivity.create({
         leadId: lead.id,

@@ -678,6 +678,7 @@ export const register = async (req, res) => {
           utmMedium: req.body?.utmMedium,
           utmCampaign: req.body?.utmCampaign,
           referrer: req.body?.referrer,
+          ref: req.body?.ref,
         },
       });
     } catch (leadErr) {
