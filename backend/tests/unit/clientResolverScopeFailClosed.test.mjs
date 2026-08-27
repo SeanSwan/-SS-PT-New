@@ -96,7 +96,17 @@ describe('clientResolver scope decision', () => {
 
     const foreign = await resolveClient('Bo', directory(), { trainerId: OUR_TRAINER });
     expect(foreign.resolved, 'a name resolved a client assigned to another trainer').toBeNull();
-    // And the near-miss suggestions must not disclose that Bo exists.
+
+    // The near-miss suggestions must not disclose that Bo exists. But a `not.toContain` on
+    // an EMPTY list passes for the wrong reason, so first prove the channel exists at all:
+    // a miss inside the caller's own scope does produce suggestions. Without this the leak
+    // check would silently become a tautology the day the resolver stopped suggesting.
+    // (GLM Flash, round 6: "weakens to a tautology if a future refactor returns NO
+    // suggestions" — true, and cheaper to close than to remember.)
+    const nearMiss = await resolveClient('Adaa', directory(), { trainerId: OUR_TRAINER });
+    const channelIsLive = (nearMiss.suggestions || []).length > 0 || nearMiss.resolved !== null;
+    expect(channelIsLive, 'the suggestion channel produced nothing — the leak check below is vacuous').toBe(true);
+
     expect(JSON.stringify(foreign.suggestions || [])).not.toContain('Foreign');
   });
 

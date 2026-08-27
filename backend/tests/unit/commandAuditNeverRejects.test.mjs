@@ -63,6 +63,55 @@ describe('recordCommandAudit as a fire-and-forget dependency', () => {
   });
 });
 
+describe('the investigation key survives redaction', () => {
+  it('keeps a probed planId in the redacted params, in every shape it arrives as', async () => {
+    // The plan dispatcher's denial row records `params: { planId }` INSTEAD of the probed
+    // client's id — deliberately, so a bystander's linkage is not frozen into a security log
+    // on the strength of a guess that collided. That minimization is only sound if the thing
+    // it kept actually survives: if redaction ever scrubbed the id, the row would record the
+    // fact of a probe and nothing about WHICH, and the whole detection value would quietly
+    // become zero without a single test going red.
+    //
+    // Same borrowed-invariant shape as the never-rejects property above: a fix in one module
+    // resting on an untested promise from another.
+    const { redactParams } = await import('../../services/ai/commandAudit.mjs');
+    for (const value of [72, '72', 12345678, '12345678', 'plan-abc']) {
+      expect(
+        redactParams({ planId: value }),
+        `a planId of ${JSON.stringify(value)} did not survive redaction`,
+      ).toEqual({ planId: value });
+    }
+  });
+
+  it('and reaches the ROW, not just the redactor', async () => {
+    // Pinning `redactParams` alone leaves the join unpinned: `recordCommandAudit` could stop
+    // passing params to it, or stop storing the result, and the assertion above would stay
+    // green while the audit row recorded nothing about WHICH plan was probed. A review
+    // (GLM Flash) called this the difference between the mock seam and the model seam, and
+    // it is the difference between testing a function and testing the behaviour that
+    // function exists to produce.
+    vi.resetModules();
+    const create = vi.fn(async () => ({}));
+    vi.doMock('../../models/AiCommandAuditLog.mjs', () => ({ default: { create } }));
+    const { recordCommandAudit } = await import('../../services/ai/commandAudit.mjs');
+
+    await recordCommandAudit({
+      userId: 500,
+      userRole: 'trainer',
+      outcome: 'denied',
+      errorCode: 'handler_denied_plan_access',
+      params: { planId: 72 },
+    });
+
+    expect(create).toHaveBeenCalledTimes(1);
+    const row = create.mock.calls[0][0];
+    expect(row.paramsRedacted, 'the probed planId never reached the row').toEqual({ planId: 72 });
+    expect(row.errorCode).toBe('handler_denied_plan_access');
+    // And the bystander is still absent at the row, which is the point of recording planId.
+    expect(row.targetClientId).toBeNull();
+  });
+});
+
 describe('the plan dispatcher imports for real', () => {
   it('loads with NOTHING mocked, so an import cycle cannot hide behind the test seam', async () => {
     // The contract suites mock the model registry, the lifecycle service and the audit
