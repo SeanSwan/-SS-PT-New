@@ -38,6 +38,28 @@ const PRICES = {
   'grok-4.6':            [2.0,  6.0],
   'deepseek-v4-pro':     [0.48, 0.96],
   'deepseek-v4-flash':   [0.073, 0.145],
+
+  // --- Priced 2026-08-27 from OpenRouter's per-endpoint API, not from memory ----
+  // These were KNOWN_UNGATED frozen debt. Every number below was READ from
+  // openrouter.ai/api/v1/models/<id>/endpoints, because a price recalled from
+  // training data is exactly the kind of confident-and-stale figure that silently
+  // under-counts a cap. First lookup returned "NOT FOUND" for two of the three —
+  // a summariser choking on a huge catalog page — so each was re-queried on its own
+  // endpoint. A negative from one instrument is not a fact.
+  //
+  // gpt-5.5 spans SEVEN endpoints: openai/flex $2.50/$15, standard $5/$30, azure &
+  // bedrock $5.50/$33, and openai/fast $12.50/$75. Priced at the highest STANDARD
+  // route. Taking the true worst (`fast`) would put a routine codex consult at
+  // ~$1.53 against a $1.00 cap and refuse every honest call — and a gate that cries
+  // wolf is the one people learn to wave through, which this file's own comments
+  // call more corrosive than the hole. KNOWN UNDER-COUNT: if OpenRouter routes to
+  // `openai/fast`, real cost is ~2.3x this estimate. Revisit if that ever happens.
+  'gpt-5.5':             [5.5,  33.0],
+  // opus-5 is nearly flat across nine endpoints ($5/$25 to $5.50/$27.50). Worst case
+  // taken, because here it costs nothing to be honest.
+  'claude-opus-5':       [5.5,  27.5],
+  // hy3 spans $0.126/$0.522 (GMICloud) to $0.20/$0.80 (AtlasCloud). Worst taken.
+  'tencent-hy3':         [0.2,  0.8],
 };
 
 /** Map a consult script to its default model key. */
@@ -46,6 +68,16 @@ const SCRIPT_MODEL = {
   'consult-sol.mjs': 'gpt-5.6-sol-pro',
   'consult-kimi.mjs': 'kimi-k3',
   'consult-grok.mjs': 'grok-4.6',
+  // Moved out of KNOWN_UNGATED 2026-08-27 once real prices existed. All five codex
+  // variants call openai/gpt-5.5; verified by reading the model id out of each file
+  // rather than assuming the name implied the model.
+  'consult-codex.mjs': 'gpt-5.5',
+  'consult-codex-via-openrouter.mjs': 'gpt-5.5',
+  'consult-codex-impl-review.mjs': 'gpt-5.5',
+  'consult-codex-v1-1-review.mjs': 'gpt-5.5',
+  'consult-codex-v1-2-review.mjs': 'gpt-5.5',
+  'consult-opus5.mjs': 'claude-opus-5',
+  'consult-hy3-design.mjs': 'tencent-hy3',
 };
 
 /**

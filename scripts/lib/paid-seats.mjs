@@ -82,18 +82,11 @@ export const KNOWN_UNGATED = {
     + 'bypass. It is not. That finding was accepted after confirming the REGEX did not match it, '
     + 'without confirming the file was EXECUTABLE — matching is not the same as exploitable.',
 
-  // --- credential-bearing, matched by PAID_INVOCATION, but NOT PRICED ---------
-  // These pass today exactly as they did before the inversion. They are listed
-  // rather than priced because inventing a price for a money guard is worse than
-  // admitting there isn't one — a wrong number silently under-counts the caps.
-  // Each needs a real OpenRouter price looked up before it can move to PRICES.
-  'consult-codex.mjs': 'openai/gpt-5.5 via OpenRouter. UNPRICED — needs a verified per-token price.',
-  'consult-codex-via-openrouter.mjs': 'openai/gpt-5.5 via OpenRouter. UNPRICED — needs a verified price.',
-  'consult-codex-impl-review.mjs': 'Codex review variant. UNPRICED — needs a verified price.',
-  'consult-codex-v1-1-review.mjs': 'Codex review variant. UNPRICED — needs a verified price.',
-  'consult-codex-v1-2-review.mjs': 'Codex review variant. UNPRICED — needs a verified price.',
-  'consult-hy3-design.mjs': 'tencent/hy3 via OpenRouter. UNPRICED — needs a verified price.',
-  'consult-opus5.mjs': 'anthropic/claude-opus-5 via OpenRouter. UNPRICED — needs a verified price.',
+  // NOTE: the five codex variants, consult-hy3-design.mjs and consult-opus5.mjs were
+  // here as UNPRICED frozen debt until 2026-08-27. They are now PRICED in
+  // spend-guard-gate.mjs from OpenRouter's per-endpoint API — read, not recalled —
+  // so they are fully capped and no longer belong on any exemption list. Debt paid
+  // down, not re-labelled.
   // NOTE: consult-openrouter-panel.mjs is deliberately NOT here. It belongs to
   // PANEL_SCRIPTS, which has real per-seat pricing. Listing it as frozen debt made the
   // gate short-circuit BEFORE that pricing ran, so an expensive fan-out sailed through

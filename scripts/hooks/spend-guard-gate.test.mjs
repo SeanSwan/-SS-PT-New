@@ -366,6 +366,37 @@ test('an EXPENSIVE override RAISES a passing call into a breach', () => {
   assert.equal(runGate(`${SOL} --model=claude-fable-5`).code, BLOCK, 'equals form must raise');
 });
 
+// --- seats priced 2026-08-27 from OpenRouter's per-endpoint API ---------------
+//
+// Before pricing these were KNOWN_UNGATED, and after the inversion an unpriced seat
+// BLOCKS. So "it passes" is itself the proof the price landed — an unpriced codex
+// call would be refused with "is not priced". The second test proves the number is
+// actually used in arithmetic rather than merely present.
+
+test('the newly priced seats are recognised, not refused as unclassified', () => {
+  for (const s of [
+    'consult-codex.mjs', 'consult-codex-via-openrouter.mjs', 'consult-codex-impl-review.mjs',
+    'consult-codex-v1-1-review.mjs', 'consult-codex-v1-2-review.mjs',
+    'consult-opus5.mjs', 'consult-hy3-design.mjs',
+  ]) {
+    const r = runGate(`node scripts/${s} --document plan.md`);
+    assert.equal(r.code, ALLOW, `${s} should price under the per-call cap on a clean ledger`);
+    assert.doesNotMatch(r.stderr, /is not priced/, `${s} must not fall through as unclassified`);
+  }
+});
+
+test('a priced codex call now COUNTS toward the cumulative topic cap', () => {
+  // The arithmetic proof. gpt-5.5 at [5.5, 33] estimates ~$0.67 for the standard
+  // 26k-in/16k-out packet — comfortably under the $1.00 per-call cap, which is why
+  // the test above passes. Seed the topic near its $3.00 ceiling and that same $0.67
+  // must tip it over. If the price were absent or zero, this would not block.
+  const today = new Date().toISOString();
+  const dir = seedLedger([{ ts: today, model: 'gpt-5.5', topic: 'plan', usd: 2.6 }]);
+  const r = runGate('node scripts/consult-codex.mjs --document plan.md', { ledger: dir });
+  assert.equal(r.code, BLOCK, 'a priced seat must accumulate against the topic cap');
+  assert.match(r.stderr, /spent on topic/);
+});
+
 test('a genuinely cheap seat passes — the gate is not just "block everything"', () => {
   // The honest positive control. Sol at its default is ~$0.31, under the $1.00 cap.
   // Without this, every BLOCK assertion above would also pass on a gate that
