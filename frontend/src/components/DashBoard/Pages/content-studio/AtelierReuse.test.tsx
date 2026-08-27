@@ -180,3 +180,40 @@ describe('a new batch retires the frame you walked in with', () => {
     expect(screen.queryByText(/Motion binds to asset a1/)).toBeNull();
   });
 });
+
+describe('the handoff is a delivery, not a standing value', () => {
+  it('is taken exactly once, so revisiting the tab does not re-adopt an old frame', async () => {
+    // Compose remounts on every tab switch. If the hub kept handing the same asset over,
+    // merely VISITING Compose would silently adopt a frame the operator had moved on from.
+    const onAdopted = vi.fn();
+    const api = {
+      get: vi.fn(async (url: string) => {
+        if (url.endsWith('/limits')) return { data: { success: true, data: { maxStills: 4, lanes: { local: { provider: 'comfyui/wan-2.2', status: 'probed', ready: true, advertisable: true, problems: [], probeEnvKey: 'X', unitUsd: 0 }, hosted: { enabled: false, spendEnvKey: 'Y', limits: { maxRunsDaily: 50, maxSpendUsdDaily: 0 } } }, brandKits: KITS, usage: { runs: 0, spendUsd: 0 }, ledger: 'file', enabled: true, note: '' } } };
+        return { data: { success: true, data: {
+          id: 'a1', status: 'draft', r2Key: 'k', mime: 'image/png', width: 1920, height: 1080,
+          sha256: 'ab'.repeat(32), attribution: null, attributionRequired: false, licence: null,
+          blockers: [], readUrl: null, snippet: null, withheld: null,
+        } } };
+      }),
+      post: vi.fn(),
+    } as never;
+
+    render(<AtelierCompose api={api} incoming={{ assetId: 'a1', sha256: 'ab'.repeat(32), prompt: 'the fox', previewUrl: null }} onAdopted={onAdopted} />);
+    await screen.findByText(/Reusing a saved frame/);
+    await waitFor(() => expect(onAdopted).toHaveBeenCalledTimes(1));
+  });
+});
+
+describe('the reason reaches people who cannot hover', () => {
+  it('renders WHY as text, not only in a tooltip', async () => {
+    // A disabled button is not focusable, so `title` alone never reaches a keyboard or
+    // screen-reader user, and nothing hovers on a phone. Explaining instead of hiding only
+    // works if the explanation is actually readable.
+    const page = { assets: [asset({ sha256: null })], hasMore: false, nextCursor: null, pageSize: 24 };
+    render(<AtelierLibrary api={libraryApi(page)} onUse={vi.fn()} />);
+    const why = await screen.findByText(/no recorded hash/i);
+    expect(why).toBeTruthy();
+    const btn = screen.getByRole('button', { name: /use .* in compose/i });
+    expect(btn.getAttribute('aria-describedby')).toBe(why.id);
+  });
+});

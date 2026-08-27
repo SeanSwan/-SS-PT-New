@@ -17,6 +17,14 @@
  *
  * The licence gate, request validation, idempotency and worker-presence honesty
  * are the existing ones from the video route — reused, not reimplemented.
+ *
+ * "APPROVED" HERE MEANS THE FRAME THE OPERATOR PICKED, NOT `approvalStatus`. A reviewer
+ * read this module's vocabulary — "the frame the operator approved", "approval binds
+ * bytes" — as a claim that a `draft` asset is refused, and reported its absence as a hole.
+ * It is not one: `approvalStatus` gates PUBLISHING (draft → approved → published), which
+ * is a later rung, and animating a draft is exactly what the studio is for. The word is
+ * doing double duty, so it is spelled out rather than left to be re-discovered: nothing
+ * here consults `approvalStatus`, and nothing should.
  */
 
 import { createHash } from 'node:crypto';

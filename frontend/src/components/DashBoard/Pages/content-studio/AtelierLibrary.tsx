@@ -219,15 +219,24 @@ const AtelierLibrary: React.FC<{
                   // control that vanishes: the operator learns the asset is unusable and
                   // the reason, instead of wondering where the button went.
                   return (
-                    <QuietButton
-                      type="button"
-                      disabled={!can.ok}
-                      title={can.ok ? 'Open this frame in Compose, ready for Motion' : can.why}
-                      aria-label={`Use ${a.prompt || 'this asset'} in Compose`}
-                      onClick={() => onUse(a)}
-                    >
-                      <Wand2 size={14} aria-hidden /> Use in Compose
-                    </QuietButton>
+                    <>
+                      <QuietButton
+                        type="button"
+                        disabled={!can.ok}
+                        title={can.ok ? 'Open this frame in Compose, ready for Motion' : can.why}
+                        aria-label={`Use ${a.prompt || 'this asset'} in Compose`}
+                        aria-describedby={can.ok ? undefined : `why-${a.id}`}
+                        onClick={() => onUse(a)}
+                      >
+                        <Wand2 size={14} aria-hidden /> Use in Compose
+                      </QuietButton>
+                      {/* THE REASON AS TEXT, not only as a tooltip. A disabled button is not
+                          focusable, so `title` alone never reaches a keyboard or screen-reader
+                          user, and nothing hovers on a phone — the explanation would have
+                          landed for mouse users only. Rendering it means everyone gets the
+                          same answer, which was the point of not hiding the control. */}
+                      {!can.ok && <Caption id={`why-${a.id}`}>{can.why}</Caption>}
+                    </>
                   );
                 })()}
               </AssetCard>

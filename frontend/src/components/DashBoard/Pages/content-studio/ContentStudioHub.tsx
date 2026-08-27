@@ -204,7 +204,7 @@ const ContentStudioHub: React.FC = () => {
       case 'coverage': return <Suspense fallback={fallback('Loading coverage...')}><CrystallineCoverageTracker /></Suspense>;
       case 'video-optimizer': return <Suspense fallback={fallback('Loading optimizer...')}><VideoOptimizerPanel /></Suspense>;
       case 'nano-banana': return <Suspense fallback={fallback('Loading badge creator...')}><NanoBananaBadgeCreator /></Suspense>;
-      case 'compose': return <Suspense fallback={fallback('Loading compose...')}><AtelierCompose api={authAxios} incoming={reused} /></Suspense>;
+      case 'compose': return <Suspense fallback={fallback('Loading compose...')}><AtelierCompose api={authAxios} incoming={reused} onAdopted={() => setReused(null)} /></Suspense>;
       case 'render-queue': return <Suspense fallback={fallback('Loading render queue...')}><CreatorRenderQueue api={authAxios} /></Suspense>;
       default: return null;
     }

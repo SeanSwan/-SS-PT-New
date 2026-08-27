@@ -49,7 +49,12 @@ const AtelierCompose: React.FC<{
    *  a past render means arriving here with it already selected — otherwise the library is
    *  a wall of pictures you can look at and do nothing with. */
   incoming?: ReusedFrame | null;
-}> = ({ api, incoming }) => {
+  /** Called once the frame has been taken. The handoff is a DELIVERY, not a standing
+   *  value: without this the hub keeps handing the same asset over, and since Compose
+   *  remounts on every tab switch, merely visiting the tab would silently re-adopt an
+   *  old frame the operator had already moved on from. */
+  onAdopted?: () => void;
+}> = ({ api, incoming, onAdopted }) => {
   const c = useAtelierCompose(api);
   const [text, setText] = useState('');
   const [intent, setIntent] = useState('hero');
@@ -98,12 +103,15 @@ const AtelierCompose: React.FC<{
   };
 
   const selectedStill = selected === null ? null : (c.result?.stills.find((s) => s.index === selected) ?? null);
-  // ADOPT WHAT ARRIVES, and step aside the moment there is a real batch to choose from.
-  useEffect(() => { if (incoming) { setAdopted(incoming); setSelected(null); } }, [incoming]);
-  // A NEW BATCH RETIRES THE ADOPTED FRAME. Without this, rendering four fresh candidates
-  // would leave Motion still pointing at the picture you walked in with — the button would
-  // read "Approve → Motion" over frames it was not bound to, which is the kind of quiet lie
-  // this studio spends most of its code refusing to tell.
+  // ADOPT WHAT ARRIVES; a NEW BATCH RETIRES IT. Two halves of one rule — without the
+  // second, rendering four fresh candidates leaves Motion pointing at the picture you
+  // walked in with, under a button reading "Approve → Motion" over frames it was not
+  // bound to. `onAdopted` takes the frame off the hub's hands: a delivery, not a standing
+  // value, or every visit to this tab would silently re-adopt it.
+  useEffect(() => {
+    if (!incoming) return;
+    setAdopted(incoming); setSelected(null); onAdopted?.();
+  }, [incoming, onAdopted]);
   useEffect(() => { if (c.result) setAdopted(null); }, [c.result]);
 
   // The bind target is the batch selection when there is one, else the frame carried in.
