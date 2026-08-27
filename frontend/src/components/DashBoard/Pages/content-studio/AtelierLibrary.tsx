@@ -209,6 +209,13 @@ const AtelierLibrary: React.FC<{
                 )}
                 <AssetMeta>
                   <strong>{a.status}</strong>
+                  {/* WHAT IT IS, whenever it is not the default. A clip now shows its
+                      POSTER — a still frame — so without this a six-second video is
+                      pixel-identical to a photograph on the grid. Making the picture
+                      appear and leaving it unlabelled trades one honesty problem for
+                      a worse one: a grey box tells you nothing, a poster tells you
+                      something false. */}
+                  {a.kind !== 'image' && <span> · {a.kind}</span>}
                   {a.brandKit && <span> · {a.brandKit}</span>}
                   {a.lane && <span> · {a.lane}</span>}
                 </AssetMeta>

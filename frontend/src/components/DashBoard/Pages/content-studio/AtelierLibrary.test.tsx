@@ -230,3 +230,23 @@ describe('recovery paths actually recover', () => {
     expect(describeEmpty(true, true)).toMatch(/Nothing matches these filters/);
   });
 });
+
+describe('a clip is labelled, because its poster looks exactly like a still', () => {
+  it('shows the kind for a video', async () => {
+    const { api } = fakeApi({
+      assets: [asset({ id: 'v1', kind: 'video', mime: 'video/mp4', previewUrl: 'https://cdn/poster.webp' })],
+      hasMore: false, nextCursor: null, pageSize: 24,
+    });
+    render(<AtelierLibrary api={api} />);
+    expect(await screen.findByText(/video/)).toBeInTheDocument();
+  });
+
+  it('does NOT label a still, because "image" on every card is noise', async () => {
+    // The marker earns its place by being rare. Printing the kind unconditionally would put
+    // the same word on every card in the common case and stop being read at all.
+    const { api } = fakeApi({ assets: [asset()], hasMore: false, nextCursor: null, pageSize: 24 });
+    render(<AtelierLibrary api={api} />);
+    await screen.findByAltText(/lone red fox/);
+    expect(screen.queryByText(/image/)).not.toBeInTheDocument();
+  });
+});

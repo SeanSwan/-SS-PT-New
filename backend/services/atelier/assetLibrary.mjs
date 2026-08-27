@@ -58,6 +58,7 @@
  */
 
 import { ComposeError } from './composeLimits.mjs';
+import { signPreviews } from './assetPreviews.mjs';
 
 
 export const DEFAULT_PAGE = 24;
@@ -231,55 +232,10 @@ export async function listAssets(req = {}, deps = {}) {
   // asks a person to find their work by reading rather than by recognising it, which is
   // not how anyone looks for a picture.
   //
-  // Signed per row and in parallel — presigning is a local HMAC, not a network call, so a
-  // page of two dozen costs nothing. Each one is isolated: a key that will not sign yields
-  // a null preview and a card that falls back to its dimensions. One bad object must not
-  // empty the page, and a page that 500s because of a thumbnail is a worse library than
-  // one with a missing thumbnail.
-  let attempted = 0;
-  let failed = 0;
-  const previews = readUrl
-    ? await Promise.all(page.map((r) => {
-      if (r.kind !== 'image' || !r.r2Key) return Promise.resolve(null);
-      attempted += 1;
-      // THE DERIVATIVE WHEN THERE IS ONE, THE ORIGINAL WHEN THERE IS NOT.
-      //
-      // A still persisted since the thumbnail slice carries `posterR2Key` — a ~30 KB WebP
-      // instead of a ~2 MB PNG, which is what makes a two-dozen-card page affordable.
-      //
-      // The fallback is not laziness, it is the difference between a slow card and a
-      // missing one. Signing a derived key unconditionally would hand every older asset a
-      // URL for an object that was never written; the browser 404s, the card's error
-      // handler falls back to dimensions, and every picture made before this slice quietly
-      // becomes a grey box. Heavy and visible beats light and absent.
-      const previewKey = r.posterR2Key || r.r2Key;
-      // ONE ARGUMENT, because the real signer takes one. The route injects
-      // `(key) => generateThumbnailUrl(key)`, whose signature is `(objectKey)` — a mime
-      // passed here reached nothing. A dead argument at a seam is precisely how a test in
-      // this repo stubbed `fetchPrompts` for months against code that reads `fetchImpl`,
-      // so it is not left lying around to look meaningful.
-      //
-      // Nothing is lost by dropping it: the object's ContentType is set when it is written,
-      // so storage serves the right type without being told again at signing time.
-      // `Promise.resolve().then(...)` rather than `readUrl(...).catch(...)`: a signer that
-      // throws SYNCHRONOUSLY never produces a promise for `.catch` to attach to.
-      return Promise.resolve().then(() => readUrl(previewKey)).catch((err) => {
-        failed += 1;
-        // Per-row degradation must still be VISIBLE somewhere. Silent isolation turns a
-        // rotated secret into a page of grey boxes with a 200 and no telemetry — the
-        // operator concludes their renders are broken, and nothing ever says otherwise.
-        console.warn('[Atelier/library] preview signing failed for asset %s: %s', r.id, err?.message || err);
-        return null;
-      });
-    }))
-    : page.map(() => null);
-
-  // ONE bad object is isolation working. EVERY object failing is a broken signer, and
-  // those are different facts that must not look identical to the person reading the page.
-  const previewsUnavailable = attempted > 0 && failed === attempted;
-  if (previewsUnavailable) {
-    console.error('[Atelier/library] ALL %d previews failed to sign — the signer is likely misconfigured, not the objects.', attempted);
-  }
+  // HOW they are signed — which object a card shows, per-row isolation, and telling a
+  // broken signer apart from a broken object — lives in `assetPreviews.mjs`, and is
+  // described there rather than in both places.
+  const { previews, previewsUnavailable } = await signPreviews(page, readUrl);
 
   return {
     assets: page.map((r, i) => assetView(r, previews[i])),
