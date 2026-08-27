@@ -128,12 +128,23 @@ export function readGitFacts() {
   };
   const branch = git('rev-parse', '--abbrev-ref', 'HEAD');
   const sha = git('rev-parse', 'HEAD');
-  const recent = git('log', '--max-count=50', '--format=%h');
+  // FULL shas, deliberately — `%h` honours core.abbrev, which is 9 in this repo while the
+  // identity line carries 7. Exact-matching those two could never succeed, so the PROOF check
+  // rejected every legitimately-cited commit, including the one it was citing. Store the full
+  // hash and compare by PREFIX: that accepts any cited length from 7 to 40 and is immune to
+  // whatever abbreviation length a given repo or user happens to be configured for.
+  const recent = git('log', '--max-count=50', '--format=%H');
   return {
     branch: branch || null,
     sha: sha ? sha.slice(0, 7) : null,
     recentShas: recent ? recent.split('\n').filter(Boolean) : [],
   };
+}
+
+/** True when `token` is a prefix of any known commit. Length-agnostic on purpose — see above. */
+export function isKnownSha(token, recentShas) {
+  const t = String(token ?? '').toLowerCase();
+  return t.length >= 7 && recentShas.some((full) => full.toLowerCase().startsWith(t));
 }
 
 /**
@@ -218,8 +229,8 @@ export function decide(hookInput, transcriptRaw, live = readGitFacts(), lastHash
   // PROOF tokens are verified, not merely pattern-matched — this is the field where theater is
   // mechanically detectable, so it is where the teeth are.
   if (claim.fields.PROOF && live?.recentShas?.length) {
-    const shas = [...claim.fields.PROOF.matchAll(/\b([0-9a-f]{7,40})\b/g)].map((m) => m[1].slice(0, 7));
-    const bogus = shas.filter((h) => !live.recentShas.includes(h));
+    const shas = [...claim.fields.PROOF.matchAll(/\b([0-9a-f]{7,40})\b/g)].map((m) => m[1]);
+    const bogus = shas.filter((h) => !isKnownSha(h, live.recentShas));
     if (shas.length && bogus.length === shas.length) {
       return say(CODE.PROOF,
         `PROOF cites ${bogus.join(', ')}, which is not among the last 50 commits on this branch. `
