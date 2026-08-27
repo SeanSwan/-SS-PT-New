@@ -56,7 +56,7 @@ and megabytes of request behind it.
 Two branches, one of which must remember a condition the other does not, is the shape that
 produced sixteen of this subsystem's thirty-one review defects. So the rule is stated once.
 
-## 3. `previewKeyFor` — WHOLE
+## 3. `previewKeyFor` — WHOLE (current source, re-spliced at round 3)
 
 ```js
 /**
@@ -83,19 +83,45 @@ produced sixteen of this subsystem's thirty-one review defects. So the rule is s
  *
  * Returns null when there is nothing showable — a degraded card, never an error.
  */
-export function previewKeyFor(row = {}) {
+export function previewKeyFor(row) {
+  if (!row) return null;   // a default parameter fires on undefined ONLY; null reached the deref
   if (row.posterR2Key) return row.posterR2Key;
   return row.kind === 'image' ? (row.r2Key || null) : null;
 }
 ```
 
-## 4. `signPreviews` — WHOLE
+## 4. `signPreviews` and `reportNoSigner` — WHOLE (current source, re-spliced at round 3)
 
-Extracted from `assetLibrary.mjs` when my first pass took that file from 292 to 328 lines,
-over the 300 cap. The body below is byte-identical to what was inline except for the three
-lines that call `previewKeyFor`.
+**This section was stale for one round and GLM caught it.** Rounds 2 and 3 changed this
+function; I appended prose describing the changes and left the paste showing the code they
+replaced, so the packet asserted both a fix and its absence. The preamble's "if something
+looks missing, it is missing from the code" was, for one round, false — which is the
+abbreviated-excerpt class this workstream keeps paying for, committed against my own rule.
+**A packet section is stale the moment the code under it changes; re-splice, never append.**
 
 ```js
+/**
+ * No signer injected. That is a legitimate configuration — `listAssets` is callable
+ * without storage and every test relies on it — so it is NOT `previewsUnavailable`,
+ * which means "the signer we have is broken".
+ *
+ * It must not be SILENT, though. If the route's injection ever regresses, this branch
+ * returns a full page of nulls with a 200 and no telemetry: exactly the "page of grey
+ * boxes with a 200 and nothing ever says otherwise" the per-row catch below calls
+ * unacceptable. The same standard has to apply to the branch where nothing is attempted
+ * at all — a rule that guards one half of a pair is this subsystem's dominant defect.
+ *
+ * Only when there was something to sign: an empty page says nothing about wiring.
+ */
+function reportNoSigner(page) {
+  if (page.some((r) => previewKeyFor(r))) {
+    console.warn('[Atelier/library] %d row(s) have a signable object but no signer was injected — every card on this page will be a placeholder.',
+      page.filter((r) => previewKeyFor(r)).length);
+  }
+  return page.map(() => null);
+}
+
+
 /**
  * Sign one page of previews. Returns `{ previews, previewsUnavailable }`, where
  * `previews[i]` lines up with `page[i]` and is null for any row with nothing showable
@@ -147,13 +173,34 @@ export async function signPreviews(page = [], readUrl) {
         return null;
       });
     }))
-    : page.map(() => null);
+    : reportNoSigner(page);
 
   // ONE bad object is isolation working. EVERY object failing is a broken signer, and
   // those are different facts that must not look identical to the person reading the page.
-  const previewsUnavailable = attempted > 0 && failed === attempted;
-  if (previewsUnavailable) {
-    console.error('[Atelier/library] ALL %d previews failed to sign — the signer is likely misconfigured, not the objects.', attempted);
+  // A TOTAL FAILURE IS ONLY EVIDENCE OF A BROKEN SIGNER ONCE THERE WERE TWO CHANCES.
+  //
+  // `failed === attempted` with ONE signable row is not evidence of anything: it is one
+  // purged object. A 24-row page where 23 rows have no poster reaches that state as easily
+  // as a page of one, so this is not an edge case, it is Tuesday.
+  //
+  // I first gated only the LOG on this and left the boolean loud, reasoning that a quieter
+  // flag means silence about a genuinely broken signer. That was wrong, and wrong in this
+  // subsystem's signature way — one half of a pair. The boolean is not telemetry: its only
+  // consumer is a page-wide banner that tells the operator "this is a preview-signing
+  // problem, not a problem with your assets." That is the SAME causal claim as the log
+  // sentence, in the place a person actually reads it. Gating one and not the other left
+  // the wrong statement exactly where it does harm.
+  //
+  // Nothing goes silent. n=1 total failure still logs; it just stops ASSERTING a cause
+  // nobody can know yet, in either voice.
+  const totalFailure = attempted > 0 && failed === attempted;
+  const previewsUnavailable = totalFailure && attempted >= 2;
+  if (totalFailure) {
+    if (previewsUnavailable) {
+      console.error('[Atelier/library] ALL %d previews failed to sign — the signer is likely misconfigured, not the objects.', attempted);
+    } else {
+      console.warn('[Atelier/library] the page\u0027s only signable object failed — one bad object and a broken signer are indistinguishable at n=1.');
+    }
   }
   return { previews, previewsUnavailable };
 }
@@ -692,3 +739,90 @@ them, so the next person can no longer not know.**
 
 Backend atelier glob **579/579 across 40 suites**. Line cap, secret scan clean.
 Hidden `node:test` baseline established: **188/188, exit 0.**
+
+---
+
+# ROUND 3 — the round that caught me repeating the exact defect I had just written about
+
+**GLM: REVISE** (2 P1, 3 P2). **Qwen: APPROVE**, raising the `node:test` blind spot as its
+only P1 — which is the finding round 2 already recorded, so the seats agree it is real.
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 (P1) | §4's paste shows neither round-2 fix; the packet asserts a fix and its absence | **CONFIRMED. §3 and §4 re-spliced from current source; §8 extended** |
+| 2 (P1) | The found-path gap may cover most affected rows, and nothing measures it | **PARTLY. Narrower than stated — but unmeasurable here. Query handed to Sean** |
+| 3 (P2) | `assetView` passthrough proven for `kind` only; five siblings same class | **CONFIRMED. Fixed** |
+| 4 (P2) | `previewKeyFor(null)` throws, contradicting "never an error" | **CONFIRMED. Fixed** |
+| 5 (P2) | The `previewsUnavailable` consumer is never shown | **CONFIRMED — and it reverses a round-2 decision** |
+
+## Finding 5 — I made the pair defect while writing the commit message about pair defects
+
+`previewsUnavailable` is not telemetry. Its only consumer is `AtelierLibrary.tsx:131 →
+:178`, a page-wide banner:
+
+> Previews are unavailable right now — this is a preview-signing problem, not a problem with
+> your assets. Everything below is still here.
+
+That is the **same causal claim** as the log sentence I gated in round 2, shown in the place
+a person actually reads. On a 24-row page with 23 poster-less clips and one purged poster,
+`attempted === failed === 1` and the operator is told previews are unavailable, which is
+false: 23 rows never had one and the twenty-fourth lost an object.
+
+I gated the log and left the banner. **One half of a pair — in the commit whose own message
+was about not doing that.** Round 2's reasoning ("weakening the boolean trades a wrong
+diagnosis for silence") was wrong because it treated the flag as telemetry; the telemetry is
+the log, and the log now speaks at both branches. `previewsUnavailable` now requires
+`attempted >= 2`, and nothing goes quiet: an n=1 total failure still warns, it just stops
+asserting a cause nobody can know yet, in either voice.
+
+## Findings 3 and 4 — fixed
+
+`previewKeyFor(row = {})` defaulted only on `undefined`, so `previewKeyFor(null)`
+dereferenced null and threw while the docstring above promised "never an error". The
+existing test asserted `{}` and `undefined` and called that coverage. One `if (!row)` now
+covers both, replacing a default that caught half — the same collapse-the-pair move as the
+fix itself. Neutering it reddens **two** tests, including the old one, which is the proof it
+was under-covering.
+
+The `kind` assertion added in round 1 existed because a reviewer asked about `kind`. Every
+sibling the card reads — `brandKit`, `lane`, `promptTruncated`, `width`, `height`, `status`
+— was the same untested class. Fixing the one that was asked about and leaving five open is
+the same habit again, so the seam is now asserted for the whole view shape at once.
+
+## Finding 2 — narrower than stated, and honestly unmeasurable from here
+
+GLM argues retried completions are the *common* path, making poster-less clip rows the
+dominant population rather than the exception. I do not think that follows, and I cannot
+prove either reading.
+
+The asset row is created in the same transaction that flips the job to `ready`, so a single
+declaration carrying poster meta writes the poster. The found path needs the **first**
+declaration to have lacked poster meta and a **later** one to carry it — a narrower window
+than "any retry". But the size of that window is a fact about production data, and this
+environment has no database: the full-suite run fails Postgres connection with
+`SASL: SCRAM-SERVER-FIRST-MESSAGE`, and I will not go looking for credentials to find out.
+
+So the claim is scoped instead of measured, and here is the query that settles it:
+
+```sql
+SELECT count(*) AS clips_with_a_poster_the_library_cannot_show
+FROM media_assets a
+JOIN video_render_jobs j ON j.id = a.job_id
+WHERE a.kind = 'video' AND a.poster_r2_key IS NULL AND j.poster_r2_key IS NOT NULL;
+```
+
+Zero means the found path never bit and the backlog item is theoretical. Non-zero is both
+the size of the gap and the row set a one-statement backfill would repair — which sidesteps
+the transactional writer fix GLM and I both wanted to avoid.
+
+## Round-3 falsification
+
+| Neuter | Reddened |
+|---|---|
+| `if (!row) return null` removed | 2 — the new null test **and** the old "empty row does not throw", proving that one was under-covering |
+| `previewsUnavailable = totalFailure` (gate removed) | exactly 1 — the sparse-page test |
+| `brandKit` dropped from `assetView` | exactly 1 — the whole-view-shape test |
+
+## Round-3 verification
+
+Backend atelier glob to be re-run at commit. Line cap and secret scan clean.

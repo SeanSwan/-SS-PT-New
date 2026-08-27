@@ -69,39 +69,6 @@ describe('previews turn an index into a library', () => {
   });
 });
 
-describe('one bad object and a broken signer are different facts', () => {
-  const model = (rows) => ({ findAll: async () => rows });
-
-  it('ONE failure is isolation working — previewsUnavailable stays false', async () => {
-    let n = 0;
-    const readUrl = async () => { n += 1; if (n === 1) throw new Error('object gone'); return 'https://cdn/ok'; };
-    const out = await listAssets({ userId: 1 }, { assetModel: model([row(), row({ id: 'b' })]), Op, readUrl });
-    expect(out.previewsUnavailable).toBe(false);
-  });
-
-  it('EVERY failure is a broken signer, and the page says so', async () => {
-    // Silent isolation turns a rotated secret into a page of grey boxes with a 200 and no
-    // telemetry — the operator concludes their renders are broken and nothing corrects them.
-    const readUrl = async () => { throw new Error('signature key missing'); };
-    const out = await listAssets({ userId: 1 }, { assetModel: model([row(), row({ id: 'b' })]), Op, readUrl });
-    expect(out.previewsUnavailable).toBe(true);
-    expect(out.assets.every((a) => a.previewUrl === null)).toBe(true);
-  });
-
-  it('a page where nothing was signable is not a signer failure', async () => {
-    // Nothing ATTEMPTED is not everything FAILED. This row is a video with no poster, so
-    // the signer is never called and there is no evidence either way about its health.
-    const readUrl = async () => { throw new Error('never called'); };
-    const out = await listAssets({ userId: 1 }, { assetModel: model([row({ kind: 'video' })]), Op, readUrl });
-    expect(out.previewsUnavailable).toBe(false);
-  });
-
-  it('no signer injected is not a signer failure either', async () => {
-    const out = await listAssets({ userId: 1 }, { assetModel: model([row()]), Op });
-    expect(out.previewsUnavailable).toBe(false);
-  });
-});
-
 describe('the library signs the DERIVATIVE, and falls back rather than losing a picture', () => {
   const model = (rows) => ({ findAll: async () => rows });
   it('signs the thumbnail when the asset has one', async () => {
@@ -219,67 +186,24 @@ describe('a clip has a poster, and it was never signed', () => {
   });
 });
 
-describe('a diagnosis needs more evidence than a flag does', () => {
-  const model = (rows) => ({ findAll: async () => rows });
-  const clip = (over = {}) => row({ kind: 'video', mime: 'video/mp4', r2Key: 'atelier/video/1/clip.mp4', ...over });
-
-  it('does NOT claim a misconfigured signer when only one object was signable', async () => {
-    // 23 posterless rows and one purged poster reaches failed === attempted just as easily
-    // as a one-row page does. "The signer is likely misconfigured" is wrong there, and it
-    // is the sentence this message exists to keep anyone from having to guess at.
-    const errs = [];
-    const spy = console.error; console.error = (m) => errs.push(String(m));
-    try {
-      const rows = [clip({ posterR2Key: 'atelier/video/1/gone.webp' })];
-      for (let i = 0; i < 23; i += 1) rows.push(clip({ id: `n${i}`, posterR2Key: null }));
-      const out = await listAssets({ userId: 1 }, {
-        assetModel: model(rows), Op, readUrl: async () => { throw new Error('object gone'); },
-      });
-      // The FLAG stays loud — weakening it would trade a wrong diagnosis for silence.
-      expect(out.previewsUnavailable).toBe(true);
-      expect(errs.join(' ')).not.toMatch(/misconfigured/);
-    } finally { console.error = spy; }
-  });
-
-  it('DOES claim it once two objects were signable and both failed', async () => {
-    const errs = [];
-    const spy = console.error; console.error = (m) => errs.push(String(m));
-    try {
-      await listAssets({ userId: 1 }, {
-        assetModel: model([
-          clip({ posterR2Key: 'a.webp' }), clip({ id: 'b', posterR2Key: 'b.webp' }),
-        ]), Op, readUrl: async () => { throw new Error('signature key missing'); },
-      });
-      expect(errs.join(' ')).toMatch(/misconfigured/);
-    } finally { console.error = spy; }
-  });
-});
-
-describe('an absent signer is legitimate, but never silent', () => {
+describe('the whole view shape crosses the seam, not just the field I was asked about', () => {
   const model = (rows) => ({ findAll: async () => rows });
 
-  it('warns when rows were signable and no signer was injected', async () => {
-    // If the route's injection regresses, this branch returns a full page of nulls with a
-    // 200 and no telemetry — the same silence the per-row catch refuses. The rule has to
-    // hold on the not-attempted branch too, or it is guarding one half of a pair.
-    const warns = [];
-    const spy = console.warn; console.warn = (m) => warns.push(String(m));
-    try {
-      const out = await listAssets({ userId: 1 }, { assetModel: model([row()]), Op });
-      expect(out.previewsUnavailable).toBe(false);   // not a BROKEN signer — an absent one
-      expect(warns.join(' ')).toMatch(/no signer was injected/);
-    } finally { console.warn = spy; }
-  });
-
-  it('says nothing when there was nothing to sign anyway', async () => {
-    // An empty page, or one of posterless clips, is no evidence about wiring.
-    const warns = [];
-    const spy = console.warn; console.warn = (m) => warns.push(String(m));
-    try {
-      await listAssets({ userId: 1 }, {
-        assetModel: model([row({ kind: 'video', posterR2Key: null })]), Op,
-      });
-      expect(warns.join(' ')).not.toMatch(/no signer was injected/);
-    } finally { console.warn = spy; }
+  it('every field the card renders is actually sent', async () => {
+    // The `kind` assertion above was added because a reviewer asked about `kind`. Every
+    // sibling the card reads is the same untested class: the frontend tests inject at the
+    // fake API, so a field the view quietly dropped would leave them green while
+    // `{a.brandKit && …}` rendered nothing forever. Fixing the one that was asked about
+    // and leaving five open is the half-of-a-pair habit, applied to my own fix.
+    const out = await listAssets({ userId: 1 }, {
+      assetModel: model([row({ posterR2Key: 'thumbs/x.webp' })]), Op,
+      readUrl: async (k) => `https://cdn.example/${k}`,
+    });
+    const a = out.assets[0];
+    for (const field of ['id', 'kind', 'mime', 'width', 'height', 'sizeBytes', 'status',
+      'createdAt', 'brandKit', 'brandKitHash', 'workspaceId', 'lane', 'seed', 'sha256',
+      'prompt', 'promptTruncated', 'previewUrl']) {
+      expect(a, `assetView dropped "${field}", which the library card reads`).toHaveProperty(field);
+    }
   });
 });

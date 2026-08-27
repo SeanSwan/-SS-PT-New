@@ -58,3 +58,13 @@ describe('nothing showable is null, never an error', () => {
     expect(previewKeyFor()).toBeNull();
   });
 });
+
+describe('the "never an error" promise covers the shapes it claims', () => {
+  it('a null row returns null instead of throwing', () => {
+    // A default parameter fires on `undefined` ONLY, so `previewKeyFor(null)` dereferenced
+    // null and threw a TypeError while the docstring above it promised "never an error".
+    // The old test asserted `{}` and `undefined` and called that coverage — a test that
+    // passes without touching the case its name implies.
+    expect(previewKeyFor(null)).toBeNull();
+  });
+});

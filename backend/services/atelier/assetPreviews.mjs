@@ -37,7 +37,8 @@
  *
  * Returns null when there is nothing showable — a degraded card, never an error.
  */
-export function previewKeyFor(row = {}) {
+export function previewKeyFor(row) {
+  if (!row) return null;   // a default parameter fires on undefined ONLY; null reached the deref
   if (row.posterR2Key) return row.posterR2Key;
   return row.kind === 'image' ? (row.r2Key || null) : null;
 }
@@ -120,20 +121,26 @@ export async function signPreviews(page = [], readUrl) {
 
   // ONE bad object is isolation working. EVERY object failing is a broken signer, and
   // those are different facts that must not look identical to the person reading the page.
-  const previewsUnavailable = attempted > 0 && failed === attempted;
-  if (previewsUnavailable) {
-    // THE FLAG IS LOUD AT ANY SIZE; THE DIAGNOSIS IS NOT.
-    //
-    // `failed === attempted` on a page with ONE signable row is not evidence of a broken
-    // signer — it is one purged object, and a page of 24 rows where 23 have no poster
-    // reaches that state as easily as a page of one. Asserting "the signer is likely
-    // misconfigured" there is an actively wrong diagnosis, which is precisely what this
-    // message was written to prevent, inverted.
-    //
-    // Weakening the BOOLEAN would trade that for silence about a genuinely broken signer,
-    // and silence is the failure the signal exists to end. So the flag stays as it was and
-    // only the claim about CAUSE waits for a second data point.
-    if (attempted >= 2) {
+  // A TOTAL FAILURE IS ONLY EVIDENCE OF A BROKEN SIGNER ONCE THERE WERE TWO CHANCES.
+  //
+  // `failed === attempted` with ONE signable row is not evidence of anything: it is one
+  // purged object. A 24-row page where 23 rows have no poster reaches that state as easily
+  // as a page of one, so this is not an edge case, it is Tuesday.
+  //
+  // I first gated only the LOG on this and left the boolean loud, reasoning that a quieter
+  // flag means silence about a genuinely broken signer. That was wrong, and wrong in this
+  // subsystem's signature way — one half of a pair. The boolean is not telemetry: its only
+  // consumer is a page-wide banner that tells the operator "this is a preview-signing
+  // problem, not a problem with your assets." That is the SAME causal claim as the log
+  // sentence, in the place a person actually reads it. Gating one and not the other left
+  // the wrong statement exactly where it does harm.
+  //
+  // Nothing goes silent. n=1 total failure still logs; it just stops ASSERTING a cause
+  // nobody can know yet, in either voice.
+  const totalFailure = attempted > 0 && failed === attempted;
+  const previewsUnavailable = totalFailure && attempted >= 2;
+  if (totalFailure) {
+    if (previewsUnavailable) {
       console.error('[Atelier/library] ALL %d previews failed to sign — the signer is likely misconfigured, not the objects.', attempted);
     } else {
       console.warn('[Atelier/library] the page\u0027s only signable object failed — one bad object and a broken signer are indistinguishable at n=1.');
