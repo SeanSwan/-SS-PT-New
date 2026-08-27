@@ -1,5 +1,5 @@
 ---
-decision: "Full session handoff: ComfyUI stopped charging, 15 launchers got icons, the Taste Console shipped all five blueprint slices, and Favourites is blueprinted but unbuilt. Next agent starts at F0."
+decision: "Full session handoff: ComfyUI stopped charging, 15 launchers got icons, the Taste Console shipped all five blueprint slices, and Favourites is blueprinted. Both open decisions answered; F0 (world epoch + browser suite) built and committed. Next agent starts at F1."
 status: open
 supersedes: none
 board: SWA-186
@@ -25,8 +25,10 @@ Three unrelated pieces of work happened, in this order:
 2. **All 15 Desktop launchers got SwanStudios icons**, plus a tool to make more.
 3. **The Swan Taste Console** — a five-slice redesign of Sean's local taste tool. **All five slices
    shipped.** Then a hostile review found three live bugs, all fixed.
-4. **Favourites** (save a prompt you like) is **fully blueprinted and completely unbuilt.**
-   Awaiting Sean's yes on two decisions. **This is where you start.**
+4. **Favourites** (save a prompt you like) is blueprinted. **Both open decisions are now answered**
+   (shelf-by-default; `Keep` → `Steer`), and **F0 is built and committed** — the world epoch, five
+   guarded reads, and the first automated coverage the client-side files have ever had (§13).
+   **You start at F1.**
 
 **Nothing is pushed.** SS-PT is 66 commits ahead of its remote (most predate this session).
 swan-taste-brain is a local repo on `master` with **no remote at all** — commits are the only record.
@@ -226,6 +228,13 @@ page.on('pageerror', e => errors.push(String(e)));
 ```
 Attaching that listener is what found bug #2 after five slices of missing it.
 
+**UPDATE 2026-08-27 — this now has a durable home.** `prompter/test-browser.mjs` (31 checks) is a
+real suite with the listener attached before navigation and an assertion after every group. Run it
+rather than writing a throwaway. It borrows Playwright from the SS-PT checkout beside it and, when
+it cannot find one, **skips loudly and says it proved nothing** — a skip that reads as a pass would
+be this same failure in new clothes. The discipline below still binds for anything it does not
+cover.
+
 **Corollary, stated as a rule:** proving the mechanism is not proving the symptom. Verify the thing
 the *user touches*, in the state *they* have it.
 
@@ -249,19 +258,21 @@ Keep would silently reweight every future batch from a gesture that reads as "re
 `<dialog>` drawer** off a header heart chip — **not a fourth section** (both seats refused that
 independently; three sections stay three). Force-closed and unreachable in presentation mode.
 
-### 🛑 TWO DECISIONS AWAIT SEAN — do not build past them
+### ✅ BOTH DECISIONS ANSWERED — 2026-08-27, Sean
 
-1. **Shelf-by-default** (vs GLM 5.3's steer-by-default).
-2. **Relabel `Keep` → `Steer`.**
+1. **Shelf-by-default.** CONFIRMED. The heart saves and does nothing else; a shelved item
+   contributes zero exemplars until deliberately promoted.
+2. **Relabel `Keep` → `Steer`.** CONFIRMED. Ship the relabel in the same slice as the heart, so the
+   pair is never on screen without explaining itself.
 
-He was asked and had not answered when the session ended. **Get his yes before F1.**
+Both went the way the blueprint ruled, so §1 of the blueprint stands unamended. **F1 is unblocked.**
 
 ### Build order — F0 first, and F0 is not ceremony
 
-| # | Slice |
-|---|---|
-| **F0** | **World epoch** (~30 lines: a counter bumped on every memory/profile switch; every async boundary captures it at launch and returns early if it changed) **+ a `pageerror` listener in every browser probe** |
-| F1 | Store + `Save`/`Steer` on Make cards; the relabel |
+| # | Slice | |
+|---|---|---|
+| ~~**F0**~~ | ~~World epoch + a `pageerror` listener in every browser probe~~ | ✅ **DONE** — `d200a0a`, see §13 |
+| **F1** | **Store + `Save`/`Steer` on Make cards; the relabel — START HERE** | |
 | F2 | The drawer: chip, `<dialog>`, list, filter, promote/demote |
 | F3 | Ink-rise heart + ember + steering-share bar |
 | F4 | Presentation/print exclusion + the 11 F-series tests |
@@ -301,7 +312,7 @@ Wing Purple `#8B5CF6`.
 - [ ] **Start ComfyUI and do one render.** It captures the graph *and* gives the render-plate actions
       their first non-synthetic exercise (they were tested on a card I built by hand).
 - [ ] **Close the stale ComfyUI browser tab** (§4).
-- [ ] **Answer the two Favourites decisions** (§8).
+- [x] ~~Answer the two Favourites decisions~~ — **both answered 2026-08-27** (§8).
 - [ ] `favicon.ico` 404s twice per page load — console noise on a client-facing tool, ~2 lines.
 - [ ] **34 QA screenshots at SS-PT repo root** — pre-existing; needs classify-then-approve, not a
       blind sweep.
@@ -336,3 +347,80 @@ Wing Purple `#8B5CF6`.
 | **GLM 5.3 Flash** | $0 | Best implementable detail and the correct default. Was **wrong** on its #2-severity claim that Pillow discards ICO frames — a marker probe disproved it. |
 
 **Total external spend across the entire session: $0.00.**
+
+---
+
+## 13. F0 — built, 2026-08-27 (`d200a0a`, swan-taste-brain)
+
+**What it is.** `Swan.profile` and `Swan.project` are now **accessors**. Changing either moves a
+counter in the same tick. Any async boundary guards itself:
+
+```js
+const world = Swan.world();
+const d = await Swan.api(`/api/kept?${Swan.qs()}`);
+if (world.changed()) return;            // the memory moved; this result belongs to nobody
+```
+
+**The bump is in the setter, not in `memoryChanged()` — and that is the whole finding.** The
+profile-switch handler assigns synchronously and only *then* awaits `loadProjects()`, which is where
+`memoryChanged()` runs. A counter bumped there would have left a full network round-trip during
+which the identity had already changed while every guard still reported "same world" — precisely the
+window a guard exists to refuse. The naive implementation of this slice would not have closed the
+bug it was written for. Accessors close it by construction, including for code written later by
+someone who never reads any of this.
+
+Assigning the value already held does **not** bump. False staleness is a bug too: it would discard
+good in-flight work every time Sean re-picks the memory he is already in.
+
+### What the hostile pass turned up
+
+The blueprint named `app-make.js`. There were **five** memory-scoped reads, and only one was on the
+list:
+
+| Surface | Before | Why it mattered |
+|---|---|---|
+| **Make** | ad-hoc string compare | the batch |
+| **Judge** | ad-hoc string compare — **not in the blueprint** | the grid |
+| **Directions** | **unguarded** | the brief — the client-facing, printed surface |
+| **Kept** | **unguarded** | the list |
+| **Status** | **unguarded** | the queue pill |
+
+Two things worth carrying forward. First, the string compare was **strictly weaker** than the epoch:
+it cannot see a memory that changed and changed *back* mid-fetch, which reads as "same world" by
+name and is not. Second, the unguarded three do not merely show stale data — each interpolates the
+**live** memory (`WHO[Swan.profile]`) around a payload fetched for the **old** one, so a late landing
+shows one person's evidence **under the other person's name**. Kept is the worst of them: its cards
+carry `Make` and `Drop`, which address the *current* memory while acting on the *stale* card in
+front of them. That is the corpus-law breach shape, reachable from the UI.
+
+### Coverage — and its limits
+
+- **`prompter/test-world.mjs`** (36 checks, no deps, no browser). Evaluates `app-shell.js` against a
+  stub DOM via `new Function` and inspects the real `window.Swan`. **The first automated coverage any
+  client-side `app-*.js` has ever had.** W6 is the regression proper: the epoch moves at assignment,
+  *before any listener runs*.
+- **`prompter/test-browser.mjs`** (31 checks). The real page, `pageerror` listener attached before
+  navigation, asserted after every group. Drives an actual profile switch through the `<select>` and
+  proves the epoch moves before `loadProjects()` resolves.
+- **Both static sweeps strip comments first**, so a guard written only in prose cannot satisfy them —
+  `app-shell.js` documents the pattern in its own JSDoc and would otherwise have passed on that.
+- **Positive-controlled both ways:** removing `app-kept.js`'s guard makes W11 and W12 fail; restoring
+  it makes them pass. The suites can fail. Skip path checked too — a dead server prints
+  `SKIPPED — proved NOTHING`, never a green banner.
+
+**Verified:** 11 node suites, **532/532**, exit 0. Browser suite **31/31**, zero page errors, zero
+console errors, across `/app` `/probe` `/make` `/brief`.
+
+**Not covered, say so plainly:** the guards are proven for the *reads*. Writes that name the memory
+in their own request body (`/api/make`, `/api/unkeep` from a card) are addressed at click time and
+are deliberately unguarded — their hazard is inherited from whichever list rendered the card, which
+is why the reads are what got guarded. If F1 adds a favourite-card action, it inherits that same
+shape and should be reasoned about the same way.
+
+### One question F0 raises for Sean
+
+`test-browser.mjs` borrows Playwright from the SS-PT checkout next door because this repo has **no
+`package.json` and no install step**, on purpose. That works and degrades honestly, but it means the
+browser suite is one `rm -rf node_modules` away from silently skipping. **Whether the taste brain
+should take a dev-only install of its own is Sean's call, not something to settle by importing.**
+Flagged, not decided.

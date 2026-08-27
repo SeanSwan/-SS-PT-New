@@ -21,6 +21,12 @@ and it is ruled below.
 
 ---
 
+> **SEAN CONFIRMED BOTH, 2026-08-27.** Shelf-by-default: yes. Relabel `Keep` → `Steer`: yes. Both
+> went the way this document ruled, so §1 stands unamended and F1 is unblocked.
+>
+> **F0 is built and committed** — `d200a0a` in swan-taste-brain. It found more than the blueprint
+> scoped: five memory-scoped reads needed the guard, not one. See §11.
+
 ## 1. The ruling that governs everything else
 
 **Favourites is ONE list, per memory, with two states. The default is SHELF. `Keep` remains the
@@ -313,7 +319,7 @@ All three fixed and verified; zero page errors on the paths that previously thre
 
 | # | Slice | Why here |
 |---|---|---|
-| F0 | **World epoch** (~30 lines) + `pageerror` listener wired into every browser probe | Favourites must be born guarded, and the probes must be able to see a throw |
+| ~~F0~~ | ~~World epoch + `pageerror` listener wired into every browser probe~~ — ✅ **DONE `d200a0a`** | Favourites must be born guarded, and the probes must be able to see a throw |
 | F1 | Store + `Save`/`Steer` on Make cards; relabel Keep → Steer | The data model and the honest pair of verbs |
 | F2 | The drawer: chip, `<dialog>`, list, filter, promote/demote | The surface |
 | F3 | Ink-rise + ember + share bar | The signature moment, once the states it describes exist |
@@ -335,3 +341,44 @@ Both free. **Total external spend: $0.00.**
 
 They converged independently on the structural call (drawer, one list, state) and split on the
 default — which is exactly the split worth having, and the reason to run two seats rather than one.
+
+---
+
+## 11. F0 closeout — what building it changed about this plan (2026-08-27, `d200a0a`)
+
+**The plan said ~30 lines in one file. It was ~150 across six, and the extra was not padding.**
+
+§7 named `app-make.js` as the one hand-rolled guard and treated the epoch as a mechanism to add
+beside it. Building it found **five** memory-scoped reads. Two carried the ad-hoc string compare
+(Make, and **Judge — which this document never mentioned**); three had no guard at all: Directions,
+Kept, Status.
+
+**Two corrections to the reasoning in §7, both worth keeping:**
+
+1. **The string compare was not merely duplicated, it was weaker.** It cannot see a memory that
+   changed and changed *back* while a fetch was in flight — that reads as "same world" by name and
+   is not. Replacing it was a fix, not a tidy-up.
+2. **The naive placement of the bump would not have closed the bug.** Putting the counter in
+   `memoryChanged()` — the obvious reading of "a counter bumped on every memory/profile switch" —
+   leaves the profile-switch handler's `await loadProjects()` as an open window, because
+   `memoryChanged()` runs at the *end* of it. The bump had to go in the **setter**. A plan can name
+   the right mechanism and still leave the hazard open on placement alone.
+
+**The three unguarded reads were the more serious finding.** Each interpolates the **live** memory
+around a payload fetched for the **old** one, so a late landing shows one person's evidence **under
+the other person's name** — on the brief, which is the printed, client-facing surface. Kept is worse
+still: its cards carry `Make` and `Drop`, which address the *current* memory while acting on the
+*stale* card in front of them. That is the corpus-law breach shape, reachable from the UI, and it
+existed before Favourites was written.
+
+**What this changes for F1–F4.** Nothing in the ruling, the drawer, or the signature moment. One
+addition: the favourites list is a **sixth** memory-scoped read and inherits all of the above. It
+must capture `Swan.world()` before its fetch, and any card action it ships is a *write addressed at
+click time* — the class deliberately left unguarded, whose safety comes from the list under it being
+guarded. `test-world.mjs` W12 sweeps for a new unguarded read, so a favourites fetch that forgets
+this fails the suite rather than shipping.
+
+**F11 ("every button in the drawer has a wired handler") is now cheaper than planned.**
+`test-browser.mjs` exists, presses controls rather than inferring them, and fails on an uncaught
+throw — which is what made the dead `Copy as text` / `Print / PDF` buttons invisible for three
+slices. F11 becomes an addition to a working suite instead of a new harness.
