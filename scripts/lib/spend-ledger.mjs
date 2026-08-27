@@ -112,13 +112,17 @@ export function recordSpend({ model, topic, usd, note = '' }) {
   // class this function was rewritten to close. Caught by the author attacking the
   // author's own prompt list for the review panel (2026-08-25), before any seat did.
   const priced = isPriced(usd);
-  // Settle the in-flight hold first: the real row below is now the truth.
-  try { releaseReservation({ model, topic }); } catch { /* non-fatal */ }
+  // ROW FIRST, THEN RELEASE. The reverse order left a window in which the call
+  // counted NOWHERE — the hold was gone and the row was not yet written, so a
+  // concurrent gate saw budget that was already committed (GLM 5.3 round-4 F4).
+  // This order can briefly double-count instead, which is the direction a spend
+  // guard is allowed to be wrong in.
   appendFileSync(LEDGER, `${JSON.stringify({
     ts: new Date().toISOString(), model, topic,
     usd: priced ? Number(usd) : null,
     note: priced ? note : `${note ? note + ' | ' : ''}UNPRICED — counted as worst-case $${CAPS.perCall}`,
   })}\n`, 'utf-8');
+  try { releaseReservation({ model, topic }); } catch { /* non-fatal */ }
 }
 
 /**
@@ -159,46 +163,96 @@ export function topicFromPath(p) {
 const RESERVATIONS = join(SPEND_DIR, 'reservations.jsonl');
 const RESERVATION_TTL_MS = 10 * 60_000;
 
+/**
+ * ONE model key for one seat, on BOTH sides of a reservation.
+ *
+ * THE DEFECT THIS CLOSES, proven by probe before it was fixed (2026-08-27):
+ *
+ *     reserve  claude-fable-5            (gate, from SCRIPT_MODEL)
+ *     record   anthropic/claude-fable-5  (writer, from providers.mjs)
+ *     -> day = $1.48   ($1.06 hold STILL HELD + $0.42 real row)
+ *
+ * The two sides never used the same string, so **no release has ever settled any
+ * hold**. Every completed consult double-counted itself for the full 10-minute TTL.
+ * That is the cry-wolf direction — refusing spend that is not real — and it made
+ * every round-4 finding about releases settling the WRONG hold moot, because
+ * releases settled nothing at all.
+ *
+ * GLM 5.3 named it in MISSED: "You never verified the consult scripts' recordSpend
+ * model strings against SCRIPT_MODEL keys." He was right, and the reason I had not
+ * is that both sides READ correct in isolation. Only running them against each
+ * other shows it — the same lesson as validating an instrument before believing a
+ * negative.
+ *
+ * Normalising rather than editing the writers: the vendor prefix is real metadata
+ * (`anthropic/` vs `openai/`), and a seat may be reached through more than one
+ * route. The reservation only needs the two sides to AGREE, not to be verbose.
+ */
+export const normalizeModelKey = (m) => String(m || '')
+  .trim().toLowerCase().replace(/^[^/]+\//, '');
+
+/**
+ * Live holds, folded in APPEND ORDER.
+ *
+ * The previous fold counted every release first, then walked the reserves — so a
+ * release could settle a reserve appended AFTER it. GLM 5.3 finding 2 and flash
+ * finding 4 both landed on the consequence: any release without a live hold became
+ * a coupon that silently cancelled the NEXT same-key hold within the TTL window.
+ * Sean running a consult by hand (no hook, so no reserve, but the shim still
+ * records) minted one every time.
+ *
+ * Append order removes the class: a release can only settle something already
+ * outstanding, and an orphan release is discarded rather than banked. A nonce, when
+ * the releaser knows it, settles that exact hold; otherwise the oldest live hold for
+ * the model+topic is settled, which is correct for the ordinary one-call-one-release
+ * shape and errs toward holding budget rather than freeing it.
+ */
 function readReservations() {
   if (!existsSync(RESERVATIONS)) return [];
   const cutoff = Date.now() - RESERVATION_TTL_MS;
   const rows = readFileSync(RESERVATIONS, 'utf-8').split(/\r?\n/).filter(Boolean)
     .map((l) => { try { return JSON.parse(l); } catch { return null; } })
     .filter((r) => r && Date.parse(r.ts) >= cutoff);
-  // Fold releases against reserves, oldest first, matched on model+topic.
-  const released = new Map();
-  for (const r of rows) {
-    if (r.kind !== 'release') continue;
-    const k = `${r.model}|${r.topic}`;
-    released.set(k, (released.get(k) || 0) + 1);
-  }
+
   const live = [];
   for (const r of rows) {
-    if (r.kind !== 'reserve') continue;
-    const k = `${r.model}|${r.topic}`;
-    const owed = released.get(k) || 0;
-    if (owed > 0) { released.set(k, owed - 1); continue; } // this one already settled
-    live.push(r);
+    if (r.kind === 'reserve') { live.push(r); continue; }
+    if (r.kind !== 'release') continue;
+    // Settle by nonce when the releaser knows it, else the oldest matching hold.
+    let i = r.nonce ? live.findIndex((h) => h.nonce === r.nonce) : -1;
+    if (i < 0 && !r.nonce) {
+      i = live.findIndex((h) => h.model === r.model && h.topic === r.topic);
+    }
+    if (i >= 0) live.splice(i, 1); // orphan releases fall through and are DISCARDED
   }
   return live;
 }
 
-/** Hold budget for a call the gate is about to allow. */
+/**
+ * Hold budget for a call the gate is about to allow. Returns the hold's nonce so
+ * the caller can release exactly this one — a refusal must not settle somebody
+ * else's in-flight call.
+ */
 export function reserveSpend({ model, topic, usd }) {
   ensureDir();
+  const nonce = crypto.randomBytes(6).toString('hex');
   appendFileSync(RESERVATIONS, `${JSON.stringify({
-    ts: new Date().toISOString(), kind: 'reserve', model, topic, usd: isPriced(usd) ? Number(usd) : null,
+    ts: new Date().toISOString(), kind: 'reserve', nonce,
+    model: normalizeModelKey(model), topic, usd: isPriced(usd) ? Number(usd) : null,
   })}\n`, 'utf-8');
+  return nonce;
 }
 
 /**
- * Settle the oldest reservation for this model+topic, so a completed call is
- * counted once (by its real ledger row) rather than twice.
+ * Settle a reservation: by nonce when the caller holds one, else the oldest hold
+ * for this model+topic (the shims complete in a different process from the gate
+ * that reserved, so they only ever know model+topic).
  */
-export function releaseReservation({ model, topic }) {
+export function releaseReservation({ model, topic, nonce = null }) {
   if (!existsSync(RESERVATIONS)) return;
   appendFileSync(RESERVATIONS, `${JSON.stringify({
-    ts: new Date().toISOString(), kind: 'release', model, topic,
+    ts: new Date().toISOString(), kind: 'release', nonce,
+    model: normalizeModelKey(model), topic,
   })}\n`, 'utf-8');
 }
 
@@ -305,7 +359,7 @@ const tokenKey = ({ model, topic, worstCaseUsd }) =>
  * @param {{model:string, topic:string, worstCaseUsd:number, approvalToken?:string}} req
  * @returns {{allow:boolean, reason:string, breach:string|null, token:string|null, totals:object}}
  */
-export function checkSpend({ model, topic, worstCaseUsd, approvalToken = '' }) {
+export function checkSpend({ model, topic, worstCaseUsd, approvalToken = '', selfHeld = false }) {
   const entries = readLedger();
   const totals = {
     call: Number(worstCaseUsd) || 0,
@@ -314,15 +368,31 @@ export function checkSpend({ model, topic, worstCaseUsd, approvalToken = '' }) {
     caps: CAPS,
   };
 
+  // RESERVE-THEN-CHECK (GLM 5.3 round-4 B4 / flash 3, and his ONE THING).
+  //
+  // The caller now appends its hold BEFORE asking, so the totals it reads already
+  // contain its own worst case. Adding `call` again on top would refuse the caller
+  // for its own money, twice counted.
+  //
+  // Why the order was wrong before: read -> decide -> reserve leaves the decision
+  // unserialized against the hold, so N concurrent gates all decide on the same
+  // snapshot. That narrowed the parallel-overshoot window from call-duration to
+  // gate-duration; it did not close it, and the suite's own 12/20-under-a-barrier
+  // number was the measurement of what remained. Appending first makes the hold
+  // visible to every later reader before this one commits to anything, which turns a
+  // probabilistic control into a deterministic one using the line-atomicity the
+  // append-only design already depends on.
+  const pending = selfHeld ? 0 : totals.call;
+
   const breaches = [];
   if (totals.call > CAPS.perCall) {
     breaches.push(`single call $${totals.call.toFixed(2)} > cap $${CAPS.perCall.toFixed(2)}`);
   }
-  if (totals.topic + totals.call > CAPS.perTopic) {
-    breaches.push(`topic "${topic}" would reach $${(totals.topic + totals.call).toFixed(2)} > cap $${CAPS.perTopic.toFixed(2)} (already spent $${totals.topic.toFixed(2)})`);
+  if (totals.topic + pending > CAPS.perTopic) {
+    breaches.push(`topic "${topic}" would reach $${(totals.topic + pending).toFixed(2)} > cap $${CAPS.perTopic.toFixed(2)} (already spent $${(totals.topic + pending - totals.call).toFixed(2)})`);
   }
-  if (totals.day + totals.call > CAPS.perDay) {
-    breaches.push(`today would reach $${(totals.day + totals.call).toFixed(2)} > cap $${CAPS.perDay.toFixed(2)} (already spent $${totals.day.toFixed(2)})`);
+  if (totals.day + pending > CAPS.perDay) {
+    breaches.push(`today would reach $${(totals.day + pending).toFixed(2)} > cap $${CAPS.perDay.toFixed(2)} (already spent $${(totals.day + pending - totals.call).toFixed(2)})`);
   }
 
   if (!breaches.length) {

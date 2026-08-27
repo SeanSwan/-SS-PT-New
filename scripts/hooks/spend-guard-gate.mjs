@@ -23,7 +23,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR, reserveSpend } from '../lib/spend-ledger.mjs';
+import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR, reserveSpend, releaseReservation } from '../lib/spend-ledger.mjs';
 // SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
 // Hand-curating it inside this regex is what drifted in both directions at once.
 import { FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, seatArgsFrom } from '../lib/paid-seats.mjs';
@@ -34,8 +34,18 @@ const ALLOW = () => process.exit(0);
 /** Worst-case $/M (in, out), OpenRouter catalog as of 2026-08-22. */
 const PRICES = {
   'claude-fable-5':      [10.0, 50.0],
-  'gpt-5.6-sol-pro':     [2.5,  15.0],
-  'gpt-5.6-sol':         [2.5,  15.0],
+  // CORRECTED 2026-08-27. Both were [2.5, 15.0] — HALF what the seat's own provider
+  // record says. `context-gateway/src/providers.mjs` has carried
+  // `priceInPerM: 5, priceOutPerM: 30, priceVerified: '2026-07-17'` for sol the whole
+  // time, so two price tables disagreed by 2x and nothing compared them. A spend guard
+  // that under-counts by half is worse than one that is merely incomplete: it reports
+  // a confident number and the number is wrong. Found by a parity test written for a
+  // different defect (the reservation key), which is the argument for cross-table
+  // tests over careful reading — see `sol prices are not cheaper than providers.mjs`.
+  // Worst case moves $0.31 -> $0.61, still inside the $1.00 per-call cap, so this
+  // corrects the count without crying wolf.
+  'gpt-5.6-sol-pro':     [5.0,  30.0],
+  'gpt-5.6-sol':         [5.0,  30.0],
   'kimi-k3':             [3.0,  15.0],
   'grok-4.6':            [2.0,  6.0],
   'deepseek-v4-pro':     [0.48, 0.96],
@@ -95,7 +105,13 @@ const PRICES = {
 /** Map a consult script to its default model key. */
 const SCRIPT_MODEL = {
   'consult-fable.mjs': 'claude-fable-5',
-  'consult-sol.mjs': 'gpt-5.6-sol-pro',
+  // `gpt-5.6-sol`, not `-pro`: providers.mjs routes this shim to `openai/gpt-5.6-sol`
+  // (verified 2026-08-27 by reading the provider record, not the script name). The
+  // key must match what the WRITER records or the reservation never settles — the
+  // same defect proven for Fable, second instance, and it survived because the two
+  // sides read correct in isolation. `-pro` stays PRICED so a `--model` override
+  // naming it is capped rather than falling into the unpriced BLOCK.
+  'consult-sol.mjs': 'gpt-5.6-sol',
   'consult-kimi.mjs': 'kimi-k3',
   'consult-grok.mjs': 'grok-4.6',
   // Moved out of KNOWN_UNGATED 2026-08-27 once real prices existed. All five codex
@@ -304,8 +320,11 @@ try {
   // A gate that cries wolf is a gate the human learns to wave through, which is
   // the failure mode this whole control exists to avoid — so an overstatement
   // is not the "safe" direction, it is corrosive.
+  // sol: 0.32 -> 0.61, following the PRICES correction above (it was derived from the
+  // half-price row). Pinned against PRICES by a test, because flash named this exact
+  // table as the next hand-curated list to drift.
   const SEAT_WORST_USD = {
-    fable: 1.05, sol: 0.32, kimi: 0.31, grok: 0.11,
+    fable: 1.05, sol: 0.61, kimi: 0.31, grok: 0.11,
     dspro: 0.03, dsflash: 0.01, glm: 0, qwen: 0, gemini: 0, ox: 0,
   };
   const DEFAULT_SEATS = ['kimi', 'glm', 'qwen', 'ox', 'gemini', 'grok', 'dspro', 'dsflash'];
@@ -438,26 +457,53 @@ try {
 
   const approvalToken = (cmd.match(/SWAN_SPEND_APPROVE=([a-f0-9]{12})/) || [])[1] || '';
 
-  const decision = checkSpend({ model: modelKey || 'panel', topic, worstCaseUsd, approvalToken });
+  // --- HOLD FIRST, THEN ASK ------------------------------------------------
+  //
+  // GLM 5.3 round-4 B4 and flash 3, same defect, and GLM's ONE THING. Reserving
+  // AFTER the decision leaves nothing serializing the two, so N parallel gates all
+  // decide on a snapshot none of them has written to yet. The suite's own
+  // "12/20 under a barrier" was that residual window, measured. Appending the hold
+  // first makes it visible to every later reader before this gate commits, and the
+  // refusal path below gives the budget straight back.
+  //
+  // ONE HOLD PER INVOCATION, not one for the line. A compound reserved a single row
+  // under the winner's key while each script settles under its own, so the first
+  // completion cancelled the whole combined hold with siblings still running — the
+  // in-flight blindness reopened for exactly the batching case. Per-invocation holds
+  // mean each script settles the hold that belongs to it. It is also what GLM listed
+  // as MISSED: nothing tested that a compound line reserves per invocation.
+  const holdSpec = (isPanel || chargeable.length <= 1)
+    ? [{ model: modelKey || 'panel', usd: worstCaseUsd }]
+    : chargeable.map((n) => ({
+      model: PANEL_SCRIPTS.has(n) ? 'panel' : (SCRIPT_MODEL[n] || n),
+      usd: oneCallUsd(n),
+    }));
+
+  // Non-fatal: a hold that cannot be written must not block a call the caps would
+  // allow. It is loud, because silently losing it reopens the parallel overshoot.
+  const holds = [];
+  try {
+    for (const h of holdSpec) holds.push(reserveSpend({ model: h.model, topic, usd: h.usd }));
+  } catch (err) {
+    console.error(`[spend-guard] could not reserve budget — parallel calls may overshoot: ${err?.message}`);
+  }
+  // `selfHeld` only when the WHOLE worst case is on the file; a partial write would
+  // otherwise under-count the caller against its own caps.
+  const selfHeld = holds.length === holdSpec.length;
+
+  const decision = checkSpend({ model: modelKey || 'panel', topic, worstCaseUsd, approvalToken, selfHeld });
 
   if (decision.allow) {
     if (decision.reason === 'second approval accepted') {
       console.error(`[spend-guard] SECOND APPROVAL ACCEPTED — proceeding. ${decision.breach}`);
     }
-    // HOLD the budget before letting the call run (GLM 5.3-flash F1, reproduced:
-    // twenty concurrent sol calls each read spentToday = $0 and ALL passed —
-    // $6.20 approved against a $5.00 day cap). Without a reservation the caps only
-    // see money that has already been spent, which is useless against parallel
-    // callers, and parallel tool calls are this harness's ordinary behaviour.
-    //
-    // Non-fatal: a reservation that cannot be written must not block a call the caps
-    // already approved. It is loud, because silently losing the hold reopens F1.
-    try {
-      reserveSpend({ model: modelKey || 'panel', topic, usd: worstCaseUsd });
-    } catch (err) {
-      console.error(`[spend-guard] could not reserve budget — parallel calls may overshoot: ${err?.message}`);
-    }
     ALLOW();
+  }
+
+  // REFUSED — hand the budget back. Released by NONCE, so a refusal settles the
+  // holds this gate placed and never a concurrent caller's live one.
+  for (const nonce of holds) {
+    try { releaseReservation({ model: '', topic, nonce }); } catch { /* non-fatal */ }
   }
 
   // --- refuse: first ask ---------------------------------------------------

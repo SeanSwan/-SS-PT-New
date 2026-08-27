@@ -228,6 +228,32 @@ if git diff --cached --name-only | grep -qE '^scripts/'; then
   else
     echo "[pre-commit] coverage contract: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
   fi
+
+  # Cross-table parity (SWA-218 round 5). Same scope, same reason, ~0.15s.
+  #
+  # The coverage contract asks "is this seat metered at all". This asks "do the two
+  # sides AGREE" — and they did not. The gate reserved budget under `claude-fable-5`
+  # while the writer settled under `anthropic/claude-fable-5`, so no completed call
+  # ever released its hold and every consult double-counted itself for ten minutes.
+  # It also caught the gate pricing Sol at HALF the figure the seat's own provider
+  # record has carried since 2026-07-17.
+  #
+  # Neither is visible from inside either file: each reads correct on its own. Only
+  # running the two real sides against each other shows it, which is why this is a
+  # commit gate and not a code-review habit.
+  PARITY="$REPO_ROOT/scripts/lib/spend-settle.test.mjs"
+  if [[ -f "$PARITY" ]]; then
+    if ! node --test "$PARITY" > /dev/null 2>&1; then
+      node --test "$PARITY" 2>&1 | grep -E "^not ok|error:|provider record|never settled" >&2
+      echo "COMMIT BLOCKED: the spend gate and the seat writers disagree." >&2
+      echo "  A key mismatch means holds never settle; a price mismatch means the cap" >&2
+      echo "  is counting the wrong number. Details above." >&2
+      exit 1
+    fi
+    echo "[pre-commit] Seat parity (keys + prices): CLEAN"
+  else
+    echo "[pre-commit] seat parity: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
+  fi
 fi
 
 exit 0

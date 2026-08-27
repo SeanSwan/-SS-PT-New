@@ -1,0 +1,235 @@
+/**
+ * spend-settle.test.mjs — does a completed call actually settle the hold the gate placed?
+ * =======================================================================================
+ * Round 5, and the answer for the whole life of the reservation feature was NO.
+ *
+ * THE DEFECT, proven by probe before any fix. The gate reserves under its
+ * `SCRIPT_MODEL` key; the writer records under the OpenRouter id from
+ * `providers.mjs`. Those are two different strings and always have been:
+ *
+ *     reserve  claude-fable-5             ->  day = $1.06
+ *     record   anthropic/claude-fable-5   ->  day = $1.48   (hold STILL held)
+ *
+ * So every completed consult double-counted itself for the full 10-minute TTL. Two
+ * honest Fable calls put the $3.00 topic cap over on the third — refusing spend that
+ * was never real, which is the cry-wolf direction this workstream keeps arguing is
+ * the more corrosive one.
+ *
+ * WHY 113 GREEN TESTS MISSED IT. `spend-token-race.test.mjs` has a test named
+ * "F1: a completed call is counted ONCE, not twice" — and it reserves and records
+ * with the SAME string. It proves the settle path works exactly when both sides
+ * already agree, which is the one condition production never met. That is the sixth
+ * vacuous test this workstream has found, and the signature has not changed once:
+ * **the fixture encodes the assumption the bug violates.** A test written from the
+ * same mental model as the code cannot see past it; only running the two real sides
+ * against each other can. GLM 5.3 put it in MISSED — "you never verified the consult
+ * scripts' recordSpend model strings against SCRIPT_MODEL keys" — and the reason I
+ * had not is that both files read correct on their own.
+ *
+ * Every test below therefore uses the REAL strings from the two real call sites,
+ * never a shared constant.
+ */
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const LEDGER_URL = new URL('./spend-ledger.mjs', import.meta.url).href;
+
+async function freshLedger() {
+  const dir = mkdtempSync(join(tmpdir(), 'swan-settle-'));
+  process.env.SWAN_SPEND_DIR = dir;
+  const mod = await import(`${LEDGER_URL}?s=${Math.random().toString(36).slice(2)}`);
+  return { dir, mod };
+}
+
+test('PARITY: the gate reserves and the writer records the SAME seat — the hold drains', async () => {
+  // The two strings are copied from their real sources, deliberately NOT shared:
+  //   spend-guard-gate.mjs  SCRIPT_MODEL['consult-fable.mjs'] = 'claude-fable-5'
+  //   context-gateway/src/providers.mjs  model: 'anthropic/claude-fable-5'
+  // If a future refactor makes the two sides disagree again, this goes red.
+  const { dir, mod } = await freshLedger();
+  mod.reserveSpend({ model: 'claude-fable-5', topic: 'plan', usd: 1.06 });
+  assert.ok(Math.abs(mod.spentOnTopic('plan') - 1.06) < 1e-9, 'control: the hold is visible');
+
+  mod.recordSpend({ model: 'anthropic/claude-fable-5', topic: 'plan', usd: 0.42 });
+  assert.ok(Math.abs(mod.spentOnTopic('plan') - 0.42) < 1e-9,
+    `expected only the real $0.42; got $${mod.spentOnTopic('plan')} — the hold never settled`);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('PARITY holds for every gated seat, not just Fable', async () => {
+  // One row per real (SCRIPT_MODEL key, providers.mjs id) pair. A new seat whose two
+  // sides disagree is caught here rather than by a cap firing early in production.
+  const PAIRS = [
+    ['claude-fable-5', 'anthropic/claude-fable-5'],
+    ['gpt-5.6-sol', 'openai/gpt-5.6-sol'],
+    ['kimi-k3', 'moonshotai/kimi-k3'],
+  ];
+  for (const [gateKey, writerId] of PAIRS) {
+    const { dir, mod } = await freshLedger();
+    mod.reserveSpend({ model: gateKey, topic: 't', usd: 0.5 });
+    mod.recordSpend({ model: writerId, topic: 't', usd: 0.1 });
+    assert.ok(Math.abs(mod.spentOnTopic('t') - 0.1) < 1e-9,
+      `${gateKey} vs ${writerId}: hold not settled (got $${mod.spentOnTopic('t')})`);
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('LIFECYCLE: in-flight drains to zero after the settle', async () => {
+  // GLM 5.3 MISSED: "no lifecycle test that in-flight totals drain to zero after a
+  // settle — a leak test for the hold itself." Distinct from the test above, which
+  // pins the TOTAL: this one pins that nothing is left holding budget. A hold that
+  // survives its own settlement leaks silently until TTL, and the total only reveals
+  // it while the real row happens to be smaller.
+  const { dir, mod } = await freshLedger();
+  const res = join(dir, 'reservations.jsonl');
+  mod.reserveSpend({ model: 'kimi-k3', topic: 'x', usd: 0.31 });
+  mod.recordSpend({ model: 'moonshotai/kimi-k3', topic: 'x', usd: 0.31 });
+  // Subtract the settled row: whatever remains is in-flight.
+  const settled = mod.readLedger().reduce((s, e) => s + Number(e.usd || 0), 0);
+  assert.ok(Math.abs((mod.spentOnTopic('x') - settled)) < 1e-9,
+    'in-flight must be zero once the call has settled');
+  assert.ok(readFileSync(res, 'utf-8').includes('"kind":"release"'), 'control: a release was written');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('an ORPHAN release is discarded, not banked as a coupon for the next hold', async () => {
+  // GLM 5.3 finding 2 / flash finding 4. The old fold counted every release first and
+  // then walked the reserves, so a release could settle a hold appended AFTER it —
+  // a coupon good for ten minutes. Sean running a consult by hand minted one every
+  // time: no hook, so no reserve, but the shim still records.
+  //
+  // THIS TEST WAS VACUOUS ON ITS FIRST WRITING and mutation-testing caught it, not
+  // reading. Its first version recorded the orphan into an EMPTY ledger dir, where
+  // `releaseReservation` no-ops because reservations.jsonl does not exist yet — so no
+  // orphan row was ever written and the fold was never exercised. Restoring the old
+  // out-of-order fold produced ZERO reds while the assertion sat there looking
+  // rigorous. Seventh vacuous test of this workstream, same signature every time: the
+  // fixture never reaches the code it names. An unrelated hold below establishes the
+  // file first, so the orphan actually lands.
+  const { dir, mod } = await freshLedger();
+  mod.reserveSpend({ model: 'grok-4.6', topic: 'other', usd: 0.11 });      // makes the file exist
+  mod.recordSpend({ model: 'moonshotai/kimi-k3', topic: 'x', usd: 0.05 }); // release, no hold
+  mod.reserveSpend({ model: 'kimi-k3', topic: 'x', usd: 0.31 });           // must NOT be eaten
+  assert.ok(Math.abs(mod.spentOnTopic('x') - 0.36) < 1e-9,
+    `the later hold was cancelled by an earlier orphan release (got $${mod.spentOnTopic('x')})`);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('a release settles by NONCE, never a concurrent caller’s hold', async () => {
+  // The gate places holds before it decides, so a refusal has to give back exactly
+  // its own. Without the nonce it would settle the oldest matching hold — which,
+  // under parallel gates on the same seat and topic, is somebody else's live call.
+  const { dir, mod } = await freshLedger();
+  const mine = mod.reserveSpend({ model: 'kimi-k3', topic: 'x', usd: 0.31 });
+  const theirs = mod.reserveSpend({ model: 'kimi-k3', topic: 'x', usd: 0.31 });
+  assert.notEqual(mine, theirs, 'control: two holds get two nonces');
+
+  mod.releaseReservation({ model: 'kimi-k3', topic: 'x', nonce: theirs });
+  assert.ok(Math.abs(mod.spentOnTopic('x') - 0.31) < 1e-9, 'exactly one hold remains');
+
+  // And the one remaining must be MINE: settling it must empty the file's live set.
+  mod.releaseReservation({ model: 'kimi-k3', topic: 'x', nonce: mine });
+  assert.equal(mod.spentOnTopic('x'), 0, 'the nonce settled a different hold than the one named');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('RESERVE-THEN-CHECK: a refused call does not keep holding the budget', async () => {
+  // The hold is placed before the decision, so the refusal path must hand it back or
+  // the guard slowly starves itself: every blocked attempt would leave $1.06 parked
+  // for ten minutes, and the next honest call inherits a budget it never spent.
+  const { dir, mod } = await freshLedger();
+  const nonce = mod.reserveSpend({ model: 'claude-fable-5', topic: 'p', usd: 1.06 });
+  const decision = mod.checkSpend({
+    model: 'claude-fable-5', topic: 'p', worstCaseUsd: 1.06, selfHeld: true,
+  });
+  assert.equal(decision.allow, false, 'control: $1.06 breaches the $1.00 per-call cap');
+  mod.releaseReservation({ model: 'claude-fable-5', topic: 'p', nonce });
+  assert.equal(mod.spentOnTopic('p'), 0, 'a refusal must release the hold it placed');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('selfHeld does not double-count the caller against its own hold', async () => {
+  // The whole risk of reserve-then-check: the totals now contain the caller's own
+  // worst case, so adding `call` on top again would refuse honest calls at half the
+  // real budget — the cry-wolf failure, arriving through the door opened to close a
+  // race. $2.50 held, $2.50 asked, $3.00 topic cap: allowed once, refused if doubled.
+  const { dir, mod } = await freshLedger();
+  mod.reserveSpend({ model: 'kimi-k3', topic: 'p', usd: 0.90 });
+  const d = mod.checkSpend({ model: 'kimi-k3', topic: 'p', worstCaseUsd: 0.90, selfHeld: true });
+  assert.equal(d.allow, true, `own hold counted twice: topic read $${d.totals.topic}`);
+
+  // And the opposite direction still works: a SECOND caller sees the first's hold.
+  // Sized to actually breach — the first version of this assertion used $0.90 + $0.90
+  // against a $3.00 topic cap and demanded a refusal the caps had no reason to give.
+  // My expectation was wrong, not the code; a red for the wrong reason is exactly the
+  // trap this file's own history records, so it is written down rather than quietly
+  // retuned.
+  const d2 = mod.checkSpend({ model: 'kimi-k3', topic: 'p', worstCaseUsd: 2.50, selfHeld: false });
+  assert.equal(d2.allow, false, 'a second caller must see the first hold and be refused');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('the reported "already spent" figure excludes the caller’s own hold', async () => {
+  // Cosmetic but load-bearing: the refusal text is what Sean reads to decide whether
+  // to approve. Reserve-then-check puts the caller's own money inside the running
+  // total, so a naive message would tell him $2.12 was already spent on a topic where
+  // $1.06 was his pending request.
+  const { dir, mod } = await freshLedger();
+  mod.recordSpend({ model: 'anthropic/claude-fable-5', topic: 'p', usd: 2.50 });
+  mod.reserveSpend({ model: 'claude-fable-5', topic: 'p', usd: 1.06 });
+  const d = mod.checkSpend({ model: 'claude-fable-5', topic: 'p', worstCaseUsd: 1.06, selfHeld: true });
+  assert.equal(d.allow, false);
+  assert.match(d.breach, /already spent \$2\.50/, `misreported prior spend: ${d.breach}`);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('the gate never prices a seat CHEAPER than the seat’s own provider record', async () => {
+  // Two price tables existed and disagreed by 2x for sol, unnoticed, because nothing
+  // ever compared them: the gate's PRICES said $2.50/$15 while providers.mjs had
+  // carried `priceVerified: '2026-07-17'` at $5/$30. A guard that under-counts by half
+  // is worse than one that is incomplete — it reports a confident wrong number.
+  //
+  // Found by a parity test written for the RESERVATION key, which is the argument for
+  // cross-table tests: careful reading of either file alone shows nothing, because
+  // each is internally consistent. The assertion is one-directional — the gate may be
+  // more pessimistic than the provider record (worst-case routing is a real reason),
+  // never cheaper.
+  const gateSrc = readFileSync(fileURLToPath(new URL('../hooks/spend-guard-gate.mjs', import.meta.url)), 'utf-8');
+  const { PROVIDERS } = await import('../context-gateway/src/providers.mjs');
+
+  const priceOf = (key) => {
+    const m = gateSrc.match(new RegExp(`'${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}':\\s*\\[([\\d.]+),\\s*([\\d.]+)\\]`));
+    return m ? [Number(m[1]), Number(m[2])] : null;
+  };
+
+  let checked = 0;
+  for (const [seat, p] of Object.entries(PROVIDERS)) {
+    const key = p.model.replace(/^[^/]+\//, '');
+    const gate = priceOf(key);
+    assert.ok(gate, `seat "${seat}" calls ${p.model} and the gate has no PRICES entry for "${key}"`);
+    assert.ok(gate[0] >= p.priceInPerM,
+      `${seat}: gate prices input at $${gate[0]}/M, provider record says $${p.priceInPerM}/M`);
+    assert.ok(gate[1] >= p.priceOutPerM,
+      `${seat}: gate prices output at $${gate[1]}/M, provider record says $${p.priceOutPerM}/M`);
+    checked += 1;
+  }
+  // Instrument check: a regex that matched nothing would pass this loop silently.
+  assert.ok(checked >= 3, `expected to check every provider, only reached ${checked}`);
+});
+
+test('normalizeModelKey folds vendor prefixes and case, and nothing else', async () => {
+  const { dir, mod } = await freshLedger();
+  const n = mod.normalizeModelKey;
+  assert.equal(n('anthropic/claude-fable-5'), 'claude-fable-5');
+  assert.equal(n('claude-fable-5'), 'claude-fable-5');
+  assert.equal(n('  OpenAI/GPT-5.6-Sol  '), 'gpt-5.6-sol');
+  // Only the FIRST segment is a vendor. A seat id that legitimately contains a slash
+  // must not be flattened past recognition.
+  assert.equal(n('a/b/c'), 'b/c');
+  assert.equal(n(null), '');
+  rmSync(dir, { recursive: true, force: true });
+});
