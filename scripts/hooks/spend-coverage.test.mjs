@@ -144,6 +144,13 @@ test('every credential idiom an honest author would write is detected', () => {
     `const {\n  FOO,\n  ${K},\n} = process.env;`,
     `const k = Bun.env.${K};`,
     `const env = process.env;\nconst k = env.${K};`,
+    // Round-5: optional chaining, a NON-`env` alias name, and `{ env } = process`.
+    // The first widening had a hardcoded `env` inside it — the same assumption it
+    // existed to remove, one layer down (GLM F2 / flash F10).
+    `const k = process?.env?.${K};`,
+    `const e = process.env;\nconst k = e.${K};`,
+    `const { env } = process;\nconst k = env["${K}"];`,
+    `const k = process.env?.["${K}"];`,
   ];
   for (const src of yes) assert.equal(readsCredential(src), true, `missed idiom:\n${src}`);
 
@@ -255,6 +262,27 @@ test('CONTRACT: the allowlist has no ghosts and no blank reasons', () => {
     const bare = name.split('/').pop();
     assert.ok(present.has(bare), `the allowlist names ${name}, which does not exist — remove the ghost`);
     assert.ok(reason && reason.trim().length > 10, `${name} needs a real reason, not a blank exemption`);
+  }
+});
+
+test('CONTRACT: SCRIPT_MODEL has no ghosts either', () => {
+  // GLM 5.3 round-5 F9. The no-ghosts discipline was applied to FREE_ALLOWLIST and
+  // KNOWN_UNGATED and never to the price tables — so `consult-grok.mjs`, one of the
+  // two ghosts the gate's own header cites as PROOF the roster had drifted, was still
+  // sitting in SCRIPT_MODEL afterwards. Purged from the matcher, left in the tables.
+  //
+  // A ghost row is not dangerous the way a MISSING row is: it errs toward pricing
+  // something that cannot run. It is still a lie in a table people read to learn what
+  // exists, and it had quietly become a fixture in this suite's own tests.
+  const gateSrc = readFileSync(join(SCRIPTS, 'hooks', 'spend-guard-gate.mjs'), 'utf-8');
+  const block = gateSrc.slice(gateSrc.indexOf('const SCRIPT_MODEL'), gateSrc.indexOf('\n};', gateSrc.indexOf('const SCRIPT_MODEL')));
+  const named = [...block.matchAll(/^\s*'([\w.-]+\.mjs)':/gm)].map((m) => m[1]);
+  assert.ok(named.length > 5, `instrument: only ${named.length} SCRIPT_MODEL keys parsed`);
+
+  const present = new Set(candidateScripts().map((f) => f.split(/[\\/]/).pop()));
+  for (const name of named) {
+    assert.ok(present.has(name),
+      `SCRIPT_MODEL prices ${name}, which does not exist — remove the ghost, as the allowlists already require`);
   }
 });
 

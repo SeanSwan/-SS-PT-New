@@ -77,17 +77,48 @@ export const CREDENTIAL_MARKERS = [
  * can later hide.
  */
 export function readsCredential(src) {
-  const text = String(src || '');
-  // An alias (`const env = process.env`) makes `env.MARKER` a real read.
-  const aliased = /=\s*process\.env\s*[;\n]/.test(text) || /\bBun\.env\b/.test(text);
+  // COMMENTS ARE NOT CODE. The round-5 widening flagged THIS FILE — the guard itself —
+  // because a comment here explains the alias case with a literal
+  // `const e = process.env; e.OPENROUTER_API_KEY`. The alias capture read `e` out of
+  // prose and then matched the prose. That is precisely the "a grep loose enough to
+  // flag its own guard" failure this function's own header warns about, arriving
+  // through the widening meant to make it sharper.
+  //
+  // Stripping is deliberately CONSERVATIVE: block comments, and line comments only
+  // where `//` starts the line. A trailing `// …` after code is left alone, because a
+  // greedy rule would eat the tail of any string containing `//` (a URL) and drop real
+  // code — the fail-open direction. Missing a commented-out read costs a false
+  // positive that a human resolves; eating code costs a silent charge.
+  const text = String(src || '')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/^[ \t]*\/\/.*$/gm, ' ');
+
+  // ALIAS NAMES ARE CAPTURED, not assumed to be `env` (flash round-5 F10). The rule
+  // hardcoded the name, so `const e = process.env; e.OPENROUTER_API_KEY` read false —
+  // the widening had a hardcoded assumption inside it, which is the shape it existed
+  // to remove. `const { env } = process` (GLM round-5 F2) is the same idea spelled the
+  // other way and gets the same treatment.
+  const aliases = new Set(['env']);
+  for (const m of text.matchAll(/(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:process|Bun)\.env\b/g)) {
+    aliases.add(m[1]);
+  }
+  for (const m of text.matchAll(/\{\s*env\s*(?::\s*([A-Za-z_$][\w$]*)\s*)?\}\s*=\s*(?:process|Bun)\b/g)) {
+    aliases.add(m[1] || 'env');
+  }
+  const aliasAlt = [...aliases].map((a) => a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+
   return CREDENTIAL_MARKERS.some((m) => {
-    if (text.includes(`process.env.${m}`)) return true;              // process.env.X
-    if (new RegExp(`process\\.env\\s*\\[\\s*['"\`]${m}['"\`]`).test(text)) return true; // env['X']
-    if (new RegExp(`Bun\\.env\\s*[.\\[]\\s*['"\`]?${m}`).test(text)) return true;       // Bun.env.X
-    // `const { X, Y } = process.env` — the marker inside a destructuring pattern
-    // whose right-hand side is process.env. Multiline, because prettier wraps these.
-    if (new RegExp(`\\{[^{}]*\\b${m}\\b[^{}]*\\}\\s*=\\s*(process|Bun)\\.env`, 's').test(text)) return true;
-    if (aliased && new RegExp(`\\benv\\s*[.\\[]\\s*['"\`]?${m}\\b`).test(text)) return true;
+    // `process.env.X` and `process?.env?.X` — optional chaining is ordinary defensive
+    // style, and it read false (GLM round-5 F2).
+    if (new RegExp(`(?:process|Bun)\\s*\\??\\.\\s*env\\s*\\??\\s*\\.\\s*${m}\\b`).test(text)) return true;
+    // `env['X']`, `env?.["X"]`
+    // `env["X"]` and `env?.["X"]` — optional-chained bracket access is `?.` then `[`,
+    // two tokens, which a bare `\??` before the bracket does not span.
+    if (new RegExp(`(?:process|Bun)\\s*\\??\\.\\s*env\\s*(?:\\?\\.)?\\s*\\[\\s*['"\`]${m}['"\`]`).test(text)) return true;
+    // `const { X, Y } = process.env` — multiline, because prettier wraps these.
+    if (new RegExp(`\\{[^{}]*\\b${m}\\b[^{}]*\\}\\s*=\\s*(?:process|Bun)\\s*\\??\\.\\s*env`, 's').test(text)) return true;
+    // Any captured alias: `e.X`, `e["X"]`, `e?.X`.
+    if (new RegExp(`\\b(?:${aliasAlt})\\s*(?:\\?\\.)?\\s*[.\\[]?\\s*['"\`]?${m}\\b`).test(text)) return true;
     return false;
   });
 }
@@ -244,7 +275,23 @@ export function scriptNameFrom(cmd) {
 
 /** True when this command text invokes something that could spend money. */
 export function invokesPaidSeat(cmd) {
-  return allScriptNamesFrom(cmd).length > 0;
+  return allScriptNamesFrom(cmd).length > 0 || unmodelledExecutions(cmd).length > 0;
+}
+
+/**
+ * Executions the parser can see the SHAPE of but not the TARGET.
+ *
+ * Both review seats named the same ONE THING in round 5, independently: every "I
+ * cannot model this line" path mapped to ALLOW. A runner in eval mode, an unknown
+ * wrapper head, a recursion-depth overflow — all ran free, and all were reproduced.
+ *
+ * These now block as UNPRICED, which is the branch that already exists for a seat with
+ * no price: refuse, explain, mint no token. "Nobody knows what this costs" is the same
+ * answer whether the unknown is the price or the target, and it is the only answer a
+ * spend guard can give without guessing with Sean's money.
+ */
+export function unmodelledExecutions(cmd) {
+  return invokedScripts(cmd).filter((s) => s.unknown).map((s) => s.path);
 }
 
 /** The argv of the seat this command prices — parsed, not scanned. */

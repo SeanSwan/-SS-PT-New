@@ -176,9 +176,26 @@ test('bunx, tsx and ts-node are gated', () => {
   assert.equal(runGate('ts-node scripts/consult-fable.mjs --document plan.md').code, BLOCK);
 });
 
-test('widening the runner list did NOT widen into false positives', () => {
-  assert.equal(runGate('nodejs scripts/consult-fable.mjs').code, ALLOW);
-  assert.equal(runGate('node-foo scripts/consult-fable.mjs').code, ALLOW);
+test('an UNRECOGNISED head carrying a seat now blocks — the fail-closed inversion', () => {
+  // CONTRACT CHANGED in round 5, deliberately, and both halves of this test changed
+  // with it. Stated rather than quietly retuned.
+  //
+  // `nodejs` used to assert ALLOW as a false-positive guard. That was WRONG about the
+  // world: `nodejs` is a real node binary (Debian/Ubuntu ship it under that name), so
+  // the test enshrined a genuine hole as a requirement. It is a RUNNER now, and this
+  // asserts the block. A cry-wolf test is still a claim, and a false claim in a test
+  // is load-bearing in the worst way — it defends the bug.
+  assert.equal(runGate('nodejs scripts/consult-fable.mjs --document x').code, BLOCK,
+    'nodejs really is node, and really does bill');
+
+  // `node-foo` is genuinely unknown, and under the round-5 inversion an unknown head
+  // carrying a script-shaped token blocks as unattributable rather than passing as
+  // unseen. Both review seats named that inversion as the single highest-value change,
+  // because every "I cannot model this" path used to mean ALLOW. The price is exactly
+  // this: a false block, and a one-line addition to INERT_HEADS if the head is really
+  // inert. That direction is affordable; the other one was not.
+  assert.equal(runGate('node-foo scripts/consult-fable.mjs --document x').code, BLOCK,
+    'an unknown head carrying a seat is an execution the gate cannot attribute');
 });
 
 test('a mention that includes the runner word is NO LONGER a false positive', () => {
@@ -199,8 +216,18 @@ test('a mention that includes the runner word is NO LONGER a false positive', ()
 
 
 test('SWA-218: a word merely ENDING in node is not the node binary', () => {
-  // The one false positive the negated class must still avoid.
-  assert.equal(runGate('mynode scripts/consult-fable.mjs --document plan.md').code, ALLOW);
+  // The runner test still holds — `mynode` is NOT treated as node, so the line is not
+  // priced as a Fable call. What changed in round 5 is the disposition of a head the
+  // parser does not recognise AT ALL: it blocks as unattributable instead of passing.
+  // Those are different claims, and only the second one moved.
+  const r = runGate('mynode scripts/consult-fable.mjs --document plan.md');
+  assert.equal(r.code, BLOCK, 'unrecognised head carrying a seat: blocked, not priced');
+  assert.match(r.stderr, /cannot read/, 'and blocked as UNREADABLE, not as a $1.06 Fable call');
+  assert.doesNotMatch(r.stderr, /worst case/, 'no price is invented for a command nobody can attribute');
+
+  // The inert head beside it stays quiet, which is what keeps the rule affordable.
+  assert.equal(runGate('cat scripts/consult-fable.mjs').code, ALLOW);
+  assert.equal(runGate('grep -n x scripts/consult-fable.mjs').code, ALLOW);
 });
 
 // ---------------------------------------------------------------------------
@@ -660,12 +687,12 @@ test('R4: a --model RAISE survives into a compound line', () => {
   // pressure who has noticed that the single-call form blocks.
   const RAISE = 'node scripts/consult-kimi.mjs --document a --model claude-fable-5';
   assert.equal(runGate(RAISE).code, BLOCK, 'control: the raise blocks on its own');
-  assert.equal(runGate(`${RAISE} && node scripts/consult-grok.mjs --document b`).code, BLOCK,
+  assert.equal(runGate(`${RAISE} && node scripts/consult-hy3-design.mjs --document b`).code, BLOCK,
     'a cheap sibling must not launder an expensive raise');
   // And the cry-wolf direction stays closed: the same compound WITHOUT the raise is
   // ~$0.47 and must still pass, or the fix would just be "block more".
   assert.equal(
-    runGate('node scripts/consult-kimi.mjs --document a && node scripts/consult-grok.mjs --document b').code,
+    runGate('node scripts/consult-kimi.mjs --document a && node scripts/consult-hy3-design.mjs --document b').code,
     ALLOW,
     'the unraised compound is under every cap and must still run',
   );
@@ -748,7 +775,7 @@ test('R5: a flag is read from the seat it is typed on, not the line', () => {
   ).code, BLOCK, 'confirm-spend on seat two: the panel short-circuit read gemini argv and allowed a live fan-out');
 
   assert.equal(runGate(
-    'node scripts/consult-grok.mjs --document b && node scripts/consult-kimi.mjs --document a --model claude-fable-5',
+    'node scripts/consult-hy3-design.mjs --document b && node scripts/consult-kimi.mjs --document a --model claude-fable-5',
   ).code, BLOCK, 'a --model raise on seat two must be seen');
 
   // Both cry-wolf directions stay closed.
@@ -756,8 +783,153 @@ test('R5: a flag is read from the seat it is typed on, not the line', () => {
     'node scripts/consult-gemini.mjs --document p && node scripts/consult-openrouter-panel.mjs --seats fable --document x',
   ).code, ALLOW, 'without --confirm-spend the panel still refuses itself; gating early is cry-wolf');
   assert.equal(runGate(
-    'node scripts/consult-kimi.mjs --document a && node scripts/consult-grok.mjs --document b',
+    'node scripts/consult-kimi.mjs --document a && node scripts/consult-hy3-design.mjs --document b',
   ).code, ALLOW, 'an unraised cheap compound must still run');
+});
+
+test('R5: what the parser cannot attribute BLOCKS, and says so', () => {
+  // The ONE THING both review seats named independently: every "I cannot model this
+  // line" path used to mean ALLOW. All four were reproduced running a live Fable call
+  // at exit 0. A parser whose ignorance spends money is fail-open, which is the one
+  // property a spend guard may not have.
+  const OPAQUE = [
+    ['runner eval mode',   `node -e "import('./scripts/consult-fable.mjs')"`],
+    ['unknown wrapper',    'xargs node scripts/consult-fable.mjs'],
+    ['sudo',               'sudo node scripts/consult-fable.mjs --document x'],
+    ['cmd /c',             'cmd /c node scripts/consult-fable.mjs --document x'],
+  ];
+  for (const [name, cmd] of OPAQUE) {
+    const r = runGate(cmd);
+    assert.equal(r.code, BLOCK, `${name}: an unattributable execution ran free`);
+    assert.match(r.stderr, /cannot read/, `${name}: must refuse as unreadable`);
+    assert.doesNotMatch(r.stderr, /SWAN_SPEND_APPROVE/,
+      `${name}: no token — nobody knows the cost, so there is nothing to approve`);
+  }
+
+  // Deep nesting: resolvable for four levels, opaque beyond. Built here rather than
+  // written as a literal, because shell escaping in a fixture is its own bug source —
+  // and because nesting turned out to fail at depth TWO, not the five predicted, until
+  // backslash escapes INSIDE double quotes were modelled.
+  let deep = 'node scripts/consult-fable.mjs --document x';
+  for (let i = 0; i < 6; i += 1) deep = `sh -c ${JSON.stringify(deep)}`;
+  assert.equal(runGate(deep).code, BLOCK, 'depth overflow must not return "nothing here"');
+
+  // AND THE REASON MATTERS, not just the verdict. Two levels of nesting must RESOLVE
+  // to a priced Fable call, not fall back to "cannot read". Both outcomes block, so a
+  // bare exit-code assertion cannot tell them apart — mutation-testing exposed that:
+  // removing backslash handling inside double quotes produced ZERO reds, because the
+  // unreadable-shell-body backstop caught what the parser had stopped understanding.
+  //
+  // Layered defence is good and this is the cost of it: a test that only checks the
+  // verdict silently accepts the backstop doing the work of the mechanism. Nesting
+  // actually failed at depth TWO before quoted escapes were modelled — not the five
+  // the reviewers predicted — and only an assertion about WHY shows that.
+  const two = `sh -c ${JSON.stringify(`sh -c ${JSON.stringify('node scripts/consult-fable.mjs --document plan.md')}`)}`;
+  const r2 = runGate(two);
+  assert.equal(r2.code, BLOCK);
+  assert.match(r2.stderr, /worst case\s+\$1\.06/, 'two levels deep must still price as Fable');
+  assert.doesNotMatch(r2.stderr, /cannot read/, 'the parser must UNDERSTAND this, not just refuse it');
+});
+
+test('R5: failing closed does not tax ordinary work', () => {
+  // The cost of the inversion, pinned. My own guard blocked a `for f in …; do node
+  // --test "$f"; done` loop within minutes of the rule landing, and then my own
+  // `node -e` one-liner thirty seconds later. Both were fixed by narrowing — shell
+  // KEYWORDS are structure, and an eval body that names no script cannot reach a seat.
+  // The accepted price of failing closed is ONE false block and a small fix, not a
+  // standing tax; these cases are what hold that line.
+  const QUIET = [
+    'for f in a.test.mjs b.test.mjs; do node --test "$f"; done',
+    'while read l; do echo $l; done',
+    'node -e "console.log(1)"',
+    'if [ -f x ]; then echo yes; fi',
+    'cat scripts/consult-fable.mjs',
+    'grep -rn INVOCATION scripts/',
+    'git grep "node scripts/consult-fable.mjs" docs',
+  ];
+  for (const cmd of QUIET) {
+    assert.equal(runGate(cmd).code, ALLOW, `cry-wolf on ordinary work: ${cmd}`);
+  }
+});
+
+test('R5: each seat holds under its OWN topic', () => {
+  // flash round-5 F2, reproduced: both holds on a two-document line were keyed to the
+  // FIRST seat's topic. A hold under the wrong topic can never be settled — the writer
+  // releases under the topic it actually ran on, that release matches nothing and is
+  // discarded, and the hold sits for the full TTL as ghost spend against a workstream
+  // it never touched.
+  const { dir } = runGate('node scripts/consult-kimi.mjs --document a.md && node scripts/consult-sol.mjs --document b.md');
+  const rows = readFileSync(join(dir, 'reservations.jsonl'), 'utf-8')
+    .trim().split('\n').map((l) => JSON.parse(l)).filter((r) => r.kind === 'reserve');
+  assert.equal(rows.length, 2, 'one hold per invocation');
+  assert.deepEqual(rows.map((r) => r.topic).sort(), ['a', 'b'],
+    'each hold carries its own seat’s topic, or it can never be settled');
+  assert.deepEqual(rows.map((r) => r.model).sort(), ['gpt-5.6-sol', 'kimi-k3']);
+});
+
+test('R5: a cap on a NON-FIRST topic is still enforced', () => {
+  // GLM 5.3 round-5 F5. `--document` came from the first invocation, so the whole line
+  // was charged to topic A and topic B's cap was never consulted — the per-topic budget
+  // is THE primary control by Sean's own framing, and it was voidable by any seat that
+  // was not first.
+  const seeded = seedLedger([
+    { ts: `${new Date().toISOString().slice(0, 10)}T10:00:00.000Z`, model: 'kimi-k3', topic: 'plan', usd: 2.90 },
+  ]);
+  const r = runGate(
+    'node scripts/consult-hy3-design.mjs --document fresh.md && node scripts/consult-kimi.mjs --document plan.md',
+    { ledger: seeded },
+  );
+  assert.equal(r.code, BLOCK, 'the second seat’s topic is over its cap and must block');
+  assert.match(r.stderr, /topic "plan"/, 'and the refusal must name the topic that breached');
+});
+
+test('R5: an EMPTY --seats is not a $0 fan-out', () => {
+  // flash round-5 F1, reproduced at exit 0: `''.split(',').filter(Boolean)` yields [],
+  // which priced a CONFIRMED fan-out at $0.00. Empty is not none.
+  //
+  // MY FIRST ASSERTION HERE WAS WRONG, and the code was right. I asserted a bare BLOCK
+  // — but the default roster prices at roughly $0.50, which is honestly under the
+  // $1.00 cap, so ALLOW is correct. Second time this batch I demanded a refusal the
+  // caps had no reason to give ($0.90 + $0.90 against a $3.00 topic cap was the
+  // first). The lesson is the same both times: assert the thing that CHANGED, not a
+  // verdict that happens to differ.
+  //
+  // What changed is whether the fan-out is COUNTED. Seeding the day near its cap makes
+  // that observable: at the real ~$0.50 the line breaches and blocks; at the old $0.00
+  // it would sail through.
+  const today = new Date().toISOString().slice(0, 10);
+  const seeded = seedLedger([
+    { ts: `${today}T10:00:00.000Z`, model: 'kimi-k3', topic: 'other', usd: 4.70 },
+  ]);
+  const r = runGate(
+    'node scripts/consult-openrouter-panel.mjs --seats "" --document x --confirm-spend',
+    { ledger: seeded },
+  );
+  assert.equal(r.code, BLOCK, 'a blank seat list must be priced at the default roster, not at zero');
+  assert.match(r.stderr, /today would reach/, 'and it must breach the DAY cap, which is what counting it means');
+
+  // Control: with room to spare, the same command runs. The fix must count the
+  // fan-out, not forbid it.
+  assert.equal(
+    runGate('node scripts/consult-openrouter-panel.mjs --seats "" --document x --confirm-spend').code,
+    ALLOW,
+    'a ~$0.50 default roster is affordable and must not be refused',
+  );
+
+  // A NON-EMPTY value that yields no seats — `--seats ","` — is the case that
+  // discriminates the fix from the bug. Mutation-testing found this gap: reverting to
+  // the old `seatsArg ? … : DEFAULT_SEATS` produced ZERO reds, because an empty STRING
+  // is falsy and took the default either way. Only a truthy-but-seatless value
+  // separates them, and nothing covered it.
+  const seeded2 = seedLedger([
+    { ts: `${today}T10:00:00.000Z`, model: 'kimi-k3', topic: 'other', usd: 4.70 },
+  ]);
+  assert.equal(
+    runGate('node scripts/consult-openrouter-panel.mjs --seats "," --document x --confirm-spend',
+      { ledger: seeded2 }).code,
+    BLOCK,
+    'a seat list that parses to nothing must price at the default roster, not at zero',
+  );
 });
 
 test('a genuinely cheap seat passes — the gate is not just "block everything"', () => {

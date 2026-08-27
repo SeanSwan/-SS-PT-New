@@ -26,7 +26,7 @@ import { join } from 'node:path';
 import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR, reserveSpend, releaseReservation } from '../lib/spend-ledger.mjs';
 // SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
 // Hand-curating it inside this regex is what drifted in both directions at once.
-import { FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, seatInvocations } from '../lib/paid-seats.mjs';
+import { FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, seatInvocations, unmodelledExecutions } from '../lib/paid-seats.mjs';
 import { flagFrom, hasFlag } from '../lib/shell-parse.mjs';
 
 const ALLOW = () => process.exit(0);
@@ -113,7 +113,13 @@ const SCRIPT_MODEL = {
   // naming it is capped rather than falling into the unpriced BLOCK.
   'consult-sol.mjs': 'gpt-5.6-sol',
   'consult-kimi.mjs': 'kimi-k3',
-  'consult-grok.mjs': 'grok-4.6',
+  // `consult-grok.mjs` REMOVED 2026-08-27 (GLM 5.3 round-5 F9). It does not exist on
+  // main — this file's own header cites it as one of the two ghosts that proved the
+  // hand-curated roster had drifted, and it was still sitting here afterwards: the
+  // ghosts were purged from the MATCHER and left in the TABLES. If the script is ever
+  // written it lands in the unpriced BLOCK, which is the fail-closed direction and
+  // exactly what that branch is for. `grok-4.6` stays in PRICES because the panel
+  // fan-out has a real grok seat.
   // Moved out of KNOWN_UNGATED 2026-08-27 once real prices existed. All five codex
   // variants call openai/gpt-5.5; verified by reading the model id out of each file
   // rather than assuming the name implied the model.
@@ -255,6 +261,45 @@ try {
   //
   // Free and frozen names are dropped FIRST, so a free seat in the line cannot become
   // the one that gets priced, and a paid one cannot hide behind it.
+  // --- FAIL CLOSED ON WHAT THE PARSER CANNOT MODEL -------------------------
+  //
+  // The ONE THING both review seats named in round 5, independently. Every "I cannot
+  // attribute this line" path used to mean ALLOW, and all of these were reproduced
+  // running a live Fable call at exit 0:
+  //
+  //     node -e "import('./scripts/consult-fable.mjs')"      runner eval mode
+  //     xargs node scripts/consult-fable.mjs                 unknown wrapper head
+  //     sudo node scripts/consult-fable.mjs                  ditto
+  //     cmd /c node scripts/consult-fable.mjs                ditto — and this one had
+  //                                                          been in the round-4 shape
+  //                                                          sweep, then silently
+  //                                                          regressed, because the
+  //                                                          sweep lived in prose
+  //     five nested sh -c                                    depth overflow returned []
+  //
+  // A parser whose ignorance spends money is fail-open, which is the one property this
+  // gate may not have. No token is minted: nobody knows the cost, so there is nothing
+  // for Sean to approve — the same reasoning as the unpriced-seat block below.
+  const opaqueRuns = unmodelledExecutions(cmd);
+  if (opaqueRuns.length) {
+    console.error([
+      `SPEND GUARD — BLOCKED: this command has an execution shape the gate cannot read (${opaqueRuns.join(', ')}).`,
+      '',
+      '  It can see that something runs; it cannot see WHAT, so it cannot price it.',
+      '  Waving it through was the old behaviour and it ran live paid calls unseen.',
+      '',
+      '  Rewrite it so the invocation is visible — a plain `node scripts/<seat>.mjs …`',
+      '  rather than an eval, an unrecognised wrapper, or deeply nested shells.',
+      '',
+      '  If the head is genuinely harmless (it cannot execute a JS file), add it to',
+      '  INERT_HEADS in scripts/lib/shell-parse.mjs. That list is safe to grow: a missing',
+      '  entry costs one false block, never a silent charge.',
+      '',
+      '  There is no token for this. Nothing to approve until someone knows the cost.',
+    ].join('\n'));
+    process.exit(2);
+  }
+
   const allNames = allScriptNamesFrom(cmd);
   const priceOf = (n) => {
     const key = SCRIPT_MODEL[n];
@@ -362,12 +407,37 @@ try {
   // A gate that cries wolf is a gate the human learns to wave through, which is
   // the failure mode this whole control exists to avoid — so an overstatement
   // is not the "safe" direction, it is corrosive.
-  // sol: 0.32 -> 0.61, following the PRICES correction above (it was derived from the
-  // half-price row). Pinned against PRICES by a test, because flash named this exact
-  // table as the next hand-curated list to drift.
-  const SEAT_WORST_USD = {
-    fable: 1.05, sol: 0.61, kimi: 0.31, grok: 0.11,
-    dspro: 0.03, dsflash: 0.01, glm: 0, qwen: 0, gemini: 0, ox: 0,
+  // DERIVED FROM PRICES, not hand-copied.
+  //
+  // I wrote "pinned against PRICES by a test" into this comment in the previous
+  // commit. THAT TEST DID NOT EXIST — both review seats checked and said so, and they
+  // were right. A comment asserting a control that is not there is worse than no
+  // comment: the next reader trusts it and stops looking. Rule 75 exists for exactly
+  // this, and I broke it in the act of claiming to have honoured it.
+  //
+  // The numbers were also already drifting low, which is what a third price table
+  // does: grok 0.11 against 0.148 derived from PRICES, fable 1.05 against the $1.06 the
+  // gate itself quotes. Deriving them removes the table rather than pinning it — the
+  // same move as deleting the seat regex in favour of a contract. Only the free seats
+  // stay listed, because "free" is a fact about billing, not a price to compute.
+  // The panel's own per-call sizing. Deliberately NOT the caller's `--max-tokens`:
+  // that flag belongs to a single consult, and a fan-out sizes its own calls.
+  const PANEL_IN_TOK = 26000;
+  const PANEL_OUT_TOK = 16000;
+  const callUsdAt = (p) => (PANEL_IN_TOK / 1e6) * p[0] + (PANEL_OUT_TOK / 1e6) * p[1];
+
+  const FREE_PANEL_SEATS = new Set(['glm', 'qwen', 'gemini', 'ox']);
+  const PANEL_SEAT_MODEL = {
+    fable: 'claude-fable-5', sol: 'gpt-5.6-sol', kimi: 'kimi-k3', grok: 'grok-4.6',
+    dspro: 'deepseek-v4-pro', dsflash: 'deepseek-v4-flash',
+  };
+  const seatWorstUsd = (s) => {
+    if (FREE_PANEL_SEATS.has(s)) return 0;
+    const k = PANEL_SEAT_MODEL[s];
+    // An unknown seat name is priced at the per-call cap, not at a flattering default.
+    // The old `?? 0.35` silently under-priced any future expensive seat — the same
+    // silent-zero class this file has closed twice elsewhere.
+    return k && PRICES[k] ? callUsdAt(PRICES[k]) : CAPS.perCall;
   };
   const DEFAULT_SEATS = ['kimi', 'glm', 'qwen', 'ox', 'gemini', 'grok', 'dspro', 'dsflash'];
   // From the PANEL's own argv (GLM 5.3 round-5 B2): a panel appearing second on a
@@ -377,10 +447,17 @@ try {
   // root cause, both directions, exactly like the drifted allowlist it replaced.
   const panelName = [...PANEL_SCRIPTS].find((p) => allNames.includes(p)) || scriptName;
   const seatsArg = flagFrom(argsOfSeat(cmd, panelName), 'seats');
-  const panelSeats = seatsArg
+  // EMPTY IS NOT NONE (flash round-5 F1, reproduced: `--seats "" --confirm-spend`
+  // exited 0). `''.split(',').filter(Boolean)` yields `[]`, which priced a CONFIRMED
+  // fan-out at $0.00 and waved it through. Whatever the panel does with an empty list —
+  // refuse, or fall back to its default roster — the gate cannot price it as nothing.
+  // A declared-but-empty value is the caller telling us less than they think, so it
+  // takes the default roster, which is the expensive reading.
+  const namedSeats = seatsArg
     ? seatsArg.split(',').map((s) => s.trim()).filter(Boolean)
-    : DEFAULT_SEATS;
-  const panelUsd = panelSeats.reduce((sum, s) => sum + (SEAT_WORST_USD[s] ?? 0.35), 0);
+    : [];
+  const panelSeats = namedSeats.length ? namedSeats : DEFAULT_SEATS;
+  const panelUsd = panelSeats.reduce((sum, s) => sum + seatWorstUsd(s), 0);
   const price = PRICES[modelKey];
   // --- THE UNPRICED FAIL-OPEN, CLOSED (SWA-218) ------------------------------
   //
@@ -418,10 +495,13 @@ try {
       '  A seat with no price cannot be capped, so it cannot be allowed — not alone,',
       '  and not alongside a seat that is priced.',
       '',
-      '  Fix in scripts/lib/paid-seats.mjs — pick ONE, deliberately:',
-      '    PRICES        add the real OpenRouter price. Look it up; do not estimate.',
-      '    FREE_ALLOWLIST  if it genuinely cannot bill (local, subscription, free tier).',
-      '    KNOWN_UNGATED   only to freeze pre-existing debt, WITH a written reason.',
+      '  Pick ONE, deliberately:',
+      '    PRICES + SCRIPT_MODEL   in scripts/hooks/spend-guard-gate.mjs — add the real',
+      '                            OpenRouter price. Look it up; do not estimate.',
+      '    FREE_ALLOWLIST          in scripts/lib/paid-seats.mjs — if it genuinely cannot',
+      '                            bill (local, subscription, free tier).',
+      '    KNOWN_UNGATED           in scripts/lib/paid-seats.mjs — only to freeze',
+      '                            pre-existing debt, WITH a written reason.',
       '',
       '  There is no token for this. Nothing to approve until someone knows the cost.',
     ].join('\n'));
@@ -436,10 +516,13 @@ try {
       '  so no cap can be applied. Waving it through was the old behaviour and it is',
       '  how four live seats billed unseen for weeks.',
       '',
-      '  Fix it in scripts/lib/paid-seats.mjs — pick ONE, deliberately:',
-      '    PRICES        add the real OpenRouter price. Look it up; do not estimate.',
-      '    FREE_ALLOWLIST  if it genuinely cannot bill (local, subscription, free tier).',
-      '    KNOWN_UNGATED   only to freeze pre-existing debt, WITH a written reason.',
+      '  Pick ONE, deliberately:',
+      '    PRICES + SCRIPT_MODEL   in scripts/hooks/spend-guard-gate.mjs — add the real',
+      '                            OpenRouter price. Look it up; do not estimate.',
+      '    FREE_ALLOWLIST          in scripts/lib/paid-seats.mjs — if it genuinely cannot',
+      '                            bill (local, subscription, free tier).',
+      '    KNOWN_UNGATED           in scripts/lib/paid-seats.mjs — only to freeze',
+      '                            pre-existing debt, WITH a written reason.',
       '',
       '  There is no token for this. Nothing to approve until someone knows the cost.',
     ].join('\n'));
@@ -541,24 +624,75 @@ try {
   // in-flight blindness reopened for exactly the batching case. Per-invocation holds
   // mean each script settles the hold that belongs to it. It is also what GLM listed
   // as MISSED: nothing tested that a compound line reserves per invocation.
+  // EACH HOLD CARRIES ITS OWN SEAT'S TOPIC (flash round-5 F2, reproduced — both holds
+  // on `kimi --document a.md && sol --document b.md` were keyed to topic `a`). A hold
+  // under the wrong topic can never be settled: the writer releases under the topic it
+  // actually ran on, that release matches nothing and is discarded as an orphan, and
+  // the hold sits for the full TTL as ghost spend against a workstream it never
+  // touched. "Each script settles the hold that belongs to it" was true of the model
+  // key and false of the topic — half a fix, again, and in the same function.
+  const topicOfSeat = (n) => {
+    const a = argsOfSeat(cmd, n);
+    return topicFromPath(flagFrom(a, 'document') || flagFrom(a, 'out') || docArg || 'untitled');
+  };
   const holdSpec = (isPanel || chargeable.length <= 1)
-    ? [{ model: modelKey || 'panel', usd: worstCaseUsd }]
+    ? [{ model: modelKey || 'panel', usd: worstCaseUsd, topic }]
     : chargeable.map((n) => ({
+      // A panel reserves under the seat ids its fan-out will actually record, not the
+      // literal string 'panel' — nothing ever writes that, so a panel hold could never
+      // settle and every run double-counted its whole fan-out for ten minutes (flash
+      // round-5 F3). Fourth instance of the defect proven for Fable. The fan-out's own
+      // per-seat rows are what come back, so the hold is split the same way.
       model: PANEL_SCRIPTS.has(n) ? 'panel' : (SCRIPT_MODEL[n] || n),
       usd: oneCallUsd(n),
+      topic: topicOfSeat(n),
     }));
 
   // Non-fatal: a hold that cannot be written must not block a call the caps would
   // allow. It is loud, because silently losing it reopens the parallel overshoot.
   const holds = [];
   try {
-    for (const h of holdSpec) holds.push(reserveSpend({ model: h.model, topic, usd: h.usd }));
+    for (const h of holdSpec) {
+      holds.push({ nonce: reserveSpend({ model: h.model, topic: h.topic, usd: h.usd }), topic: h.topic });
+    }
   } catch (err) {
     console.error(`[spend-guard] could not reserve budget — parallel calls may overshoot: ${err?.message}`);
   }
   // `selfHeld` only when the WHOLE worst case is on the file; a partial write would
   // otherwise under-count the caller against its own caps.
   const selfHeld = holds.length === holdSpec.length;
+
+  // EVERY TOPIC ON THE LINE IS CHECKED, not just the first (GLM 5.3 round-5 F5).
+  // `--document` came from the first invocation, so the whole line was charged to
+  // topic A and topic B's cap was never consulted. Repro: seed `plan` to $2.90, then
+  //   node consult-kimi.mjs --document fresh.md && node consult-sol.mjs --document plan.md
+  // -> $0.93 is under the per-call cap, `fresh` is clean, ALLOW — and sol's real $0.61
+  // lands on `plan`, taking it to $3.51 against a $3.00 cap. The per-topic budget is
+  // THE primary control here (per-call is secondary, by Sean's own framing), and it
+  // was voidable by any seat that was not first.
+  //
+  // The holds are already on the file under their own topics, so `spentOnTopic` sees
+  // this line's contribution to each — the comparison is against the total, not a sum
+  // to add. checkSpend below still owns per-call and per-day, which are line-wide.
+  const otherTopics = [...new Set(holdSpec.map((h) => h.topic))].filter((t) => t !== topic);
+  for (const t of otherTopics) {
+    const total = spentOnTopic(t);
+    if (total > CAPS.perTopic) {
+      for (const h of holds) {
+        try { releaseReservation({ model: '', topic: h.topic, nonce: h.nonce }); } catch { /* non-fatal */ }
+      }
+      console.error([
+        `SPEND GUARD — BLOCKED: topic "${t}" would reach $${total.toFixed(2)} > cap $${CAPS.perTopic.toFixed(2)}.`,
+        '',
+        '  This line spends against more than one document. The cap for a topic that is',
+        '  not the first one on the line is checked too — it used to be invisible, so a',
+        '  seat placed second could overrun its workstream budget unseen.',
+        '',
+        '  Split the line, or ask Sean about that topic specifically.',
+      ].join('\n'));
+      process.exit(2);
+    }
+  }
 
   const decision = checkSpend({ model: modelKey || 'panel', topic, worstCaseUsd, approvalToken, selfHeld });
 
@@ -571,8 +705,8 @@ try {
 
   // REFUSED — hand the budget back. Released by NONCE, so a refusal settles the
   // holds this gate placed and never a concurrent caller's live one.
-  for (const nonce of holds) {
-    try { releaseReservation({ model: '', topic, nonce }); } catch { /* non-fatal */ }
+  for (const h of holds) {
+    try { releaseReservation({ model: '', topic: h.topic, nonce: h.nonce }); } catch { /* non-fatal */ }
   }
 
   // --- refuse: first ask ---------------------------------------------------

@@ -31,7 +31,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, utimesSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, utimesSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -60,14 +60,32 @@ test('PARITY: the gate reserves and the writer records the SAME seat — the hol
   rmSync(dir, { recursive: true, force: true });
 });
 
-test('PARITY holds for every gated seat, not just Fable', async () => {
-  // One row per real (SCRIPT_MODEL key, providers.mjs id) pair. A new seat whose two
-  // sides disagree is caught here rather than by a cap firing early in production.
-  const PAIRS = [
-    ['claude-fable-5', 'anthropic/claude-fable-5'],
-    ['gpt-5.6-sol', 'openai/gpt-5.6-sol'],
-    ['kimi-k3', 'moonshotai/kimi-k3'],
-  ];
+test('PARITY holds for every gated seat — the pairs are DERIVED, not hand-copied', async () => {
+  // GLM 5.3 round-5 F12 / flash F9, and they are right: this list used to be three
+  // pairs typed by hand out of ~17 SCRIPT_MODEL keys, with nothing asserting it was
+  // complete. A fourth seat added next week with mismatched keys would be invisible —
+  // **the blind spot of the very fix that closed the never-settling hold**, one file
+  // over. The price-parity test derives both sides; this one did not, and the
+  // inconsistency is the tell.
+  //
+  // Derived now: every provider record's model must be a key the gate reserves under.
+  // That is the exact invariant the Fable defect violated, asserted over the whole
+  // roster instead of a sample of it.
+  const gateSrc = readFileSync(fileURLToPath(new URL('../hooks/spend-guard-gate.mjs', import.meta.url)), 'utf-8');
+  const { PROVIDERS } = await import('../context-gateway/src/providers.mjs');
+  const { normalizeModelKey } = await import(LEDGER_URL);
+
+  const block = gateSrc.slice(gateSrc.indexOf('const SCRIPT_MODEL'));
+  const gateKeys = new Set([...block.matchAll(/:\s*'([a-z0-9][\w.-]*)',/g)].map((m) => m[1]));
+  assert.ok(gateKeys.size > 5, `instrument: only ${gateKeys.size} SCRIPT_MODEL values parsed`);
+
+  const PAIRS = Object.values(PROVIDERS).map((p) => [normalizeModelKey(p.model), p.model]);
+  assert.ok(PAIRS.length >= 3, 'instrument: providers.mjs yielded too few seats');
+  for (const [gateKey, writerId] of PAIRS) {
+    assert.ok(gateKeys.has(gateKey),
+      `${writerId} normalises to "${gateKey}", which the gate never reserves under — its holds can never settle`);
+  }
+
   for (const [gateKey, writerId] of PAIRS) {
     const { dir, mod } = await freshLedger();
     mod.reserveSpend({ model: gateKey, topic: 't', usd: 0.5 });
@@ -301,19 +319,40 @@ test('a CRASHED holder is still distinguishable from a spent one', async () => {
   // than the claim alone. A process that creates the claim and dies before spending
   // leaves an aged claim with NO marker — Sean's approval must still be redeemable,
   // or the guard bricks a legitimate token on a crash with no TTL and no override.
+  //
+  // THIS TEST WAS VACUOUS AS FIRST WRITTEN, and GLM 5.3-flash named it exactly when I
+  // asked for an eighth. At the point it built the "claim", only the FIRST ask had
+  // run — which mints a token and creates no claim file — so
+  // `readdirSync(dir).find(f => f.startsWith('claim-')) || 'none'` wrote and aged a
+  // junk file literally named `none`, and the retry then succeeded through the
+  // ORDINARY path. Deleting the orphan-reclaim branch entirely left it green.
+  //
+  // Eighth of this workstream, signature unchanged: THE FIXTURE NEVER REACHES THE CODE
+  // IT NAMES. The `|| 'none'` fallback is the tell — a default that silently converts
+  // "the thing I need does not exist" into "carry on".
+  //
+  // Rebuilt to construct the claim at the real per-token path, and to ASSERT IT EXISTS
+  // before ageing it. That instrument check is the one line that would have caught the
+  // original.
   const { dir, mod } = await freshLedger();
   const BREACH = { model: 'claude-fable-5', topic: 'p', worstCaseUsd: 4.00 };
   const first = mod.checkSpend(BREACH);
+  const key = Object.keys(JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8')))[0];
 
-  // Simulate the crash: the claim exists and is aged, but nothing was ever spent.
-  const claim = join(dir, readdirSync(dir).find((f) => f.startsWith('claim-')) || 'none');
+  // The crash: the claim was created, the process died before marking it spent.
+  const claim = join(dir, `claim-${key}-${first.token}.json`);
   writeFileSync(claim, JSON.stringify({ crashed: true }), 'utf-8');
+  assert.ok(existsSync(claim), 'instrument: the claim under test must actually exist');
+  assert.ok(!readdirSync(dir).some((f) => f.startsWith('used-')),
+    'instrument: a crashed holder leaves NO spent-marker — that is what distinguishes it');
   const old = new Date(Date.now() - 10 * 60_000);
   utimesSync(claim, old, old);
 
   const retry = mod.checkSpend({ ...BREACH, approvalToken: first.token });
   assert.equal(retry.allow, true,
     'an aged claim with no spent-marker is a crashed holder; the approval must still work');
+  assert.ok(JSON.parse(readFileSync(claim, 'utf-8')).reclaimedOrphan,
+    'and it must go through the RECLAIM branch, not around it');
   rmSync(dir, { recursive: true, force: true });
 });
 

@@ -31,7 +31,12 @@
  * argument order — the parts the bypasses actually used.
  */
 
-const RUNNERS = new Set(['node', 'npx', 'bun', 'bunx', 'tsx', 'ts-node']);
+// `nodejs` is a REAL node binary (Debian/Ubuntu ship it under that name), so
+// `nodejs <seat>` executes and bills. A test asserted ALLOW for it and called that a
+// false-positive guard — enshrining a genuine hole as a requirement. Found when the
+// fail-closed rule started blocking it and I checked whether the test or the code was
+// wrong. A cry-wolf test is still a claim about the world, and this one was false.
+const RUNNERS = new Set(['node', 'nodejs', 'npx', 'bun', 'bunx', 'tsx', 'ts-node']);
 
 /** Wrappers that precede a real command without changing what it runs. */
 const TRANSPARENT = new Set(['env', 'exec', 'nohup', 'command', 'time', 'stdbuf']);
@@ -59,6 +64,59 @@ const LOADER_FLAGS = new Set(['--require', '-r', '--import', '--loader', '--expe
  * encoding looks like.
  */
 const NON_EXECUTING_FLAGS = new Set(['--check', '-c', '--version', '-v']);
+
+/**
+ * Runner flags that execute code with NO script token at all.
+ * `node -e "import('./scripts/consult-fable.mjs')"` bills in full and contains no
+ * path the argv model can see (flash round-5 F5). Not `$VAR` indirection — the
+ * runner's own exec mode.
+ */
+const EVAL_FLAGS = new Set(['-e', '--eval', '-p', '--print', '--input-type']);
+
+/**
+ * Heads that CANNOT execute a JavaScript file, however script-shaped their arguments.
+ *
+ * THE DIRECTION OF THIS LIST IS THE WHOLE POINT, and it is the ONE THING both review
+ * seats independently asked for. Every "I cannot model this line" path used to mean
+ * ALLOW: an unknown wrapper (`xargs`, `sudo`, `cmd /c`), a runner in eval mode, a
+ * recursion-depth overflow. A parser whose ignorance spends money is fail-OPEN, which
+ * is the one property a spend guard may not have.
+ *
+ * So the default inverts. Anything with an execution shape the parser cannot attribute
+ * becomes an UNPRICED pseudo-seat, which the gate's existing classification BLOCK
+ * absorbs — no token minted, because nobody yet knows what it costs.
+ *
+ * This IS a hand-curated list, and this workstream has deleted two of those. The
+ * difference is which way it fails: a missing entry here costs ONE false block and a
+ * one-line addition, while a missing entry in a known-DANGEROUS list costs money and
+ * nobody finds out. `TRANSPARENT` is the dangerous-list shape and it is why `cmd /c`
+ * silently regressed after the round-4 rewrite.
+ */
+/**
+ * Shell KEYWORDS are structure, not commands.
+ *
+ * The fail-closed rule below blocked an ordinary test-runner loop within minutes of
+ * being written — `for f in a.test.mjs b.test.mjs; do node --test "$f"; done` has head
+ * `for` and script-shaped tokens, so it read as an unattributable execution. That is
+ * precisely the cry-wolf cost the doctrine accepts (one false block, one small fix)
+ * and it is worth recording that the bill arrived immediately rather than in theory.
+ *
+ * A loop or conditional HEADER runs nothing; the body is a separate command once the
+ * line is split on `;`. `do`/`then`/`else` are stripped so the body is examined.
+ */
+const KEYWORD_HEADERS = new Set(['for', 'while', 'until', 'if', 'elif', 'case', 'select', 'function']);
+const KEYWORD_PREFIXES = new Set(['do', 'then', 'else']);
+const KEYWORD_ENDS = new Set(['done', 'fi', 'esac', 'in']);
+
+const INERT_HEADS = new Set([
+  'cat', 'echo', 'printf', 'grep', 'rg', 'egrep', 'fgrep', 'head', 'tail', 'less', 'more',
+  'sed', 'awk', 'wc', 'sort', 'uniq', 'cut', 'tr', 'diff', 'jq', 'yq', 'file', 'stat',
+  'ls', 'find', 'tree', 'du', 'df', 'pwd', 'which', 'basename', 'dirname', 'realpath',
+  'cp', 'mv', 'rm', 'mkdir', 'rmdir', 'touch', 'chmod', 'chown', 'ln', 'tee',
+  'git', 'gh', 'code', 'vim', 'nvim', 'nano', 'emacs', 'open', 'start',
+  'md5sum', 'sha256sum', 'base64', 'xxd', 'strings', 'wget', 'curl',
+  'true', 'false', 'test', 'export', 'unset', 'cd', 'source', 'alias', 'type',
+]);
 
 const basename = (p) => String(p).replace(/^.*[/\\]/, '');
 
@@ -89,6 +147,15 @@ export function parseCommands(input) {
   for (let i = 0; i < text.length; i += 1) {
     const ch = text[i];
     if (quote) {
+      // Inside DOUBLE quotes a backslash escapes the next character; inside SINGLE
+      // quotes it is literal, per POSIX. Unmodelled, this broke every nested shell:
+      // `sh -c "sh -c \"node <seat>\""` had the `\` appended and then the `"` CLOSED
+      // the span, fusing tokens so the inner command vanished. Measured — nesting
+      // failed at depth TWO, while the reviewers only predicted a failure at five.
+      // A guess about where a limit bites is not a substitute for walking it.
+      if (ch === '\\' && quote === '"' && i + 1 < text.length) {
+        token += text[i + 1]; started = true; i += 1; continue;
+      }
       if (ch === quote) { quote = null; continue; }
       token += ch; started = true; continue;
     }
@@ -148,6 +215,8 @@ function stripPrefixes(argv) {
   let i = 0;
   while (i < argv.length) {
     const t = argv[i];
+    // `do node …`, `then node …` — the keyword is structure; the command follows it.
+    if (!t.quoted && KEYWORD_PREFIXES.has(t.value)) { i += 1; continue; }
     if (!t.quoted && /^[A-Za-z_][A-Za-z0-9_]*=/.test(t.value)) { i += 1; continue; }
     const b = basename(t.value);
     if (TRANSPARENT.has(b)) {
@@ -183,8 +252,14 @@ function stripPrefixes(argv) {
  * flat regex could not express, and the exact hole `--check` opened when it was
  * matched line-globally.
  */
+/** An execution the parser can see the SHAPE of but not the target. Fails closed. */
+const opaque = (why) => ({ path: `<unmodelled:${why}>`, unknown: true, nonExecuting: false, args: [] });
+
 export function invokedScripts(input, depth = 0) {
-  if (depth > 4) return []; // `sh -c "sh -c \"…\""` has to stop somewhere
+  // Depth overflow used to return [] — ALLOW. Five nested `sh -c` bought a free call
+  // (GLM 5.3 round-5 F6, reproduced). "I stopped looking" is not "there is nothing
+  // there", and only one of those two is safe to act on.
+  if (depth > 4) return [opaque('recursion-depth')];
   const out = [];
 
   for (const raw of parseCommands(input)) {
@@ -192,14 +267,42 @@ export function invokedScripts(input, depth = 0) {
     if (!argv.length) continue;
     const head = basename(argv[0].value);
 
+    // A loop or conditional HEADER runs nothing — `for f in a.mjs b.mjs` names files,
+    // it does not execute them. The body is a separate command after the `;`.
+    if (KEYWORD_HEADERS.has(head) || KEYWORD_ENDS.has(head)) continue;
+
     // `sh -c "<command line>"` — the argument IS a command line, so recurse into it.
     if (SHELLS.has(head)) {
       const cIdx = argv.findIndex((t, k) => k > 0 && /^-[a-z]*c[a-z]*$/.test(t.value));
-      if (cIdx > 0 && argv[cIdx + 1]) out.push(...invokedScripts(argv[cIdx + 1].value, depth + 1));
+      if (cIdx > 0 && argv[cIdx + 1]) {
+        const body = argv[cIdx + 1].value;
+        const inner = invokedScripts(body, depth + 1);
+        // A NON-EMPTY BODY THAT YIELDS NOTHING is the parser admitting it could not
+        // read a command line it can see is there. That must not be silence — it is
+        // the same fail-open the depth cap had, arriving one level down.
+        out.push(...(inner.length || !body.trim() ? inner : [opaque('unreadable-shell-body')]));
+      }
       continue;
     }
 
     if (RUNNERS.has(head)) {
+      // EVAL MODE has no script token to find (flash round-5 F5, reproduced at exit 0):
+      //   node -e "import('./scripts/consult-fable.mjs')"
+      // bills in full and the argv model sees no path at all. Not `$VAR` indirection —
+      // the runner's own exec mode, and an ordinary thing to type.
+      //
+      // SCOPED to eval bodies that actually name a script. `node -e "console.log(1)"`
+      // is an everyday diagnostic and blocking it is pure cry-wolf; an eval body with
+      // a `.mjs`/`.js` path in it is the shape that can reach a seat. This narrowing
+      // came from firing my own guard on my own one-liner thirty seconds after adding
+      // the rule — the accepted cost of failing closed is ONE false block and a small
+      // fix, not a standing tax on ordinary work.
+      const evalIdx = argv.findIndex((t, k) => k > 0 && EVAL_FLAGS.has(t.value.split('=')[0]));
+      if (evalIdx > 0) {
+        const body = argv.slice(evalIdx).map((t) => t.value).join(' ');
+        if (/[\w./\\-]+\.(mjs|js|cjs)\b/.test(body)) { out.push(opaque('runner-eval')); continue; }
+        continue; // an eval that names no script cannot reach a seat through this path
+      }
       let nonExecuting = false;
       let positionalFound = false;
       for (let i = 1; i < argv.length; i += 1) {
@@ -272,6 +375,23 @@ export function invokedScripts(input, depth = 0) {
     // flag still matters where a token could plausibly be data; this is not that.
     if (/\.(mjs|js|cjs)$/.test(argv[0].value)) {
       out.push({ path: argv[0].value, nonExecuting: false, args: argv.slice(1).map((a) => a.value) });
+      continue;
+    }
+
+    // AN UNKNOWN HEAD WITH AN EXECUTION SHAPE (flash round-5 F6, all reproduced at
+    // exit 0): `xargs node <seat>`, `sudo node <seat>`, `cmd /c node <seat>`,
+    // `env -S …`. The head is in no list, so nothing was recorded and the line ran
+    // free. The round-4 header's own shape sweep included `cmd /c`; the parser
+    // silently dropped it and no test noticed, because the sweep lived in prose.
+    //
+    // The parser had quietly re-grown a wrapper allowlist — shorter than the regex it
+    // replaced, same disease. This is the inversion: an unrecognised head that carries
+    // a runner or a script-shaped token is an execution I cannot attribute, so it
+    // blocks as unpriced instead of passing as unseen.
+    if (!INERT_HEADS.has(head)
+        && argv.some((t, k) => k > 0
+          && (/\.(mjs|js|cjs)$/.test(t.value) || RUNNERS.has(basename(t.value))))) {
+      out.push(opaque(`unknown-head:${head}`));
     }
   }
   return out;
