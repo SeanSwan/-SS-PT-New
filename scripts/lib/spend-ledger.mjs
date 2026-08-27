@@ -161,6 +161,31 @@ function readTokens() {
 }
 function writeTokens(t) { ensureDir(); writeFileSync(TOKENS, JSON.stringify(t, null, 2), 'utf-8'); }
 
+/**
+ * Redeem a token by ATOMICALLY creating a claim file. Returns true for the one
+ * caller that wins, false for every other.
+ *
+ * `flag: 'wx'` opens with O_CREAT|O_EXCL, which the operating system guarantees is
+ * atomic — if the path exists the call fails with EEXIST and cannot be interleaved.
+ * That is the whole mechanism: no lock to acquire, nothing to release, and no
+ * window between "check" and "set" for a second process to slip through.
+ *
+ * FAILS CLOSED on any unexpected error. A cost check that bricks the toolchain is
+ * bad, but this is not that check — this is the last step before money is spent, and
+ * "the filesystem misbehaved" is not a reason to spend twice.
+ */
+function claimToken(key, token) {
+  ensureDir();
+  const claimPath = join(SPEND_DIR, `claim-${key}.json`);
+  try {
+    writeFileSync(claimPath, JSON.stringify({ key, token, at: new Date().toISOString() }), { flag: 'wx' });
+    return true;
+  } catch (err) {
+    if (err?.code === 'EEXIST') return false; // someone else redeemed it first
+    return false;
+  }
+}
+
 /** A token is bound to model+topic+rounded-cost so it cannot be reused for a different call. */
 const tokenKey = ({ model, topic, worstCaseUsd }) =>
   crypto.createHash('sha256')
@@ -201,11 +226,38 @@ export function checkSpend({ model, topic, worstCaseUsd, approvalToken = '' }) {
   const tokens = readTokens();
 
   // SECOND ask: a valid, unused, matching token was presented.
+  //
+  // REDEMPTION IS AN ATOMIC CLAIM, not a read-modify-write (GLM 5.3 finding 2,
+  // 2026-08-26). The previous version read tokens.json, checked `used === false`,
+  // set it true, and wrote the file back. Two concurrent calls carrying the same
+  // fresh token could both observe `used: false` and both proceed — a double-spend
+  // on a single approval. Claude Code issues tool calls in parallel, so scheduling
+  // that race is ordinary, not exotic.
+  //
+  // `claimToken` uses O_EXCL file creation, which the OS guarantees is atomic:
+  // exactly one caller can create a given path. The JSON below is still updated for
+  // the audit trail, but it is no longer what decides the outcome — the claim is.
   if (approvalToken && tokens[key] && tokens[key].token === approvalToken && !tokens[key].used) {
+    if (!claimToken(key, approvalToken)) {
+      return { allow: false, reason: 'token already redeemed by a concurrent call', breach: breaches.join('; '), token: null, totals };
+    }
     tokens[key].used = true;
     tokens[key].usedAt = new Date().toISOString();
     writeTokens(tokens);
     return { allow: true, reason: 'second approval accepted', breach: breaches.join('; '), token: null, totals };
+  }
+
+  // A WRONG token must not destroy a RIGHT one (GLM 5.3 finding 6). Re-minting on
+  // every refusal meant that presenting a bad token for a valid key silently replaced
+  // the approval Sean was holding, so his correct token stopped working — a
+  // DoS-flavoured footgun where the failure looks like the gate malfunctioning.
+  //
+  // Not a deadlock risk: the key is derived from model+topic+cost, so re-running the
+  // same command yields the same key and the SAME still-valid token, which remains
+  // readable in the store.
+  const existing = tokens[key];
+  if (existing && !existing.used) {
+    return { allow: false, reason: 'budget breach — an unused approval token already exists for this exact call', breach: breaches.join('; '), token: existing.token, totals };
   }
 
   // FIRST ask: refuse, and mint the token this exact call would need.
