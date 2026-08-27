@@ -149,6 +149,19 @@ describe('a clip has a poster, and it was never signed', () => {
     expect(out.assets[0].previewUrl).toContain('poster.webp');
   });
 
+  it('the view CARRIES the kind, which is the seam the frontend marker depends on', async () => {
+    // The frontend test for the "· video" marker injects `kind` at its fake API, so it
+    // proves the card renders what it is given and NOTHING about whether the server sends
+    // it. A field the view quietly dropped would leave that test green and the marker dead
+    // — a poster rendered as though it were a photograph, which is the exact honesty
+    // problem the marker exists to prevent. Asserted here through the real `assetView`.
+    const readUrl = async (key) => `https://cdn.example/${key}`;
+    const out = await listAssets({ userId: 1 }, {
+      assetModel: model([clip({ posterR2Key: 'atelier/video/1/poster.webp' })]), Op, readUrl,
+    });
+    expect(out.assets[0].kind).toBe('video');
+  });
+
   it('NEVER falls back to the video file itself when there is no poster', async () => {
     // THE WHOLE REASON `previewKeyFor` IS ONE FUNCTION. The image path falls back to
     // `r2Key` because an image's original IS a picture. Copying that fallback to video
