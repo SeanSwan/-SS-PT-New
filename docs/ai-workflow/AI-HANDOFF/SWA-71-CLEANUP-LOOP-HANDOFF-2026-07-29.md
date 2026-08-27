@@ -12,7 +12,7 @@
 **The main working tree is on a stale branch.**
 
 ```
-c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT   -> branch wip/comms-notifications-2026-07-05
+<REPO>   -> branch wip/comms-notifications-2026-07-05
                                                   ~1,229 commits BEHIND origin/main
 ```
 
@@ -29,7 +29,7 @@ edit, commit, `git push origin HEAD:main`.
 **Verify branch freshness BEFORE editing, not before committing.** That is the procedural fix.
 
 **One exception:** the worktree has **no `node_modules`**. To run DB probes or node scripts, write
-the script into `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/backend/` (which has deps), point it
+the script into `<REPO>/backend/` (which has deps), point it
 at the worktree path via `process.argv[2]`, run it, then delete it. Every probe I wrote used this
 pattern.
 

@@ -240,11 +240,11 @@ without a credential, which would gate the diagnosis behind the setup it diagnos
 **Environment — one problem solved, one still Sean's:**
 
 1. ~~The agent script lives in scratch space~~ **SOLVED 2026-08-16.** A permanent worktree
-   now exists at `C:\Users\BigotSmasher\Desktop\quick-pt\swan-render-agent`, on branch
+   now exists at `<HOME>\Desktop\quick-pt\swan-render-agent`, on branch
    `swan/render-agent-runtime` tracking `origin/main` (so `git pull` works there). **Proven
    to run the entire generate path with zero `npm install`** — it imports only repo files and
    node builtins. Use this, not `C:\tmp`. To remove it:
-   `git worktree remove C:/Users/BigotSmasher/Desktop/quick-pt/swan-render-agent`.
+   `git worktree remove <HOME>/Desktop/quick-pt/swan-render-agent`.
    Sean's own repo at `Desktop/quick-pt/SS-PT` is untouched — it is on
    `wip/comms-notifications-2026-07-05` with ~700 uncommitted files. **Do not switch its branch.**
 2. **Still open:** ComfyUI must export **"Save (API format)"**, not the GUI format. A GUI

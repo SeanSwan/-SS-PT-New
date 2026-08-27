@@ -12,7 +12,7 @@
 **Error:**
 ```
 Error [ERR_MODULE_NOT_FOUND]: Cannot find module
-'C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\backend\config\database.mjs'
+'<REPO>\backend\config\database.mjs'
 imported from videoLibraryController.mjs
 ```
 

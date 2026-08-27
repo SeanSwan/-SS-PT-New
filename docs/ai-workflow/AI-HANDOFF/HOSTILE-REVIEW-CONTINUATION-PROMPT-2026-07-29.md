@@ -245,7 +245,7 @@ There are **two working trees**, and the gitignored operational files exist in o
 
 | | Path | Branch | Holds |
 | -- | -- | -- | -- |
-| **Primary** (Sean's) | `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT` | `wip/comms-notifications-2026-07-05` (~1,240 behind main; ~51 unlanded and climbing) | **the gitignored operational files** — coordination lanes, continuity log |
+| **Primary** (Sean's) | `<REPO>` | `wip/comms-notifications-2026-07-05` (~1,240 behind main; ~51 unlanded and climbing) | **the gitignored operational files** — coordination lanes, continuity log |
 | **Worktree** (predecessor's) | `c:/tmp/ss-launch-audit-20260727` | `claude/launch-audit-20260727` (tracks main) | clean main-tracking tree; where the pushes came from |
 
 **`[VERIFIED]` These exist ONLY in the primary tree** (gitignored → absent from the worktree, and that is correct, not broken):
@@ -266,7 +266,7 @@ There are **two working trees**, and the gitignored operational files exist in o
 git fetch origin main && git log origin/main --oneline -5
 
 # 2. who else is working right now  (run from the PRIMARY tree — gitignored files live there)
-cd c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+cd <REPO>
 cat .ai-workflow/coordination/*.lane.md .ai-workflow/coordination/review-queue.md
 node scripts/coordination-prune.mjs
 

@@ -11,8 +11,8 @@
 REVISE — the plan exposes PII to LLMs, lacks concrete test data for key journeys, and substitutes subjective “legibility” for measurable contrast verification, making it unexecutable as written and unsafe.
 
 ## BLOCKERS
-1. **P0** — The document contains PII in violation of the house rule “zero PII to LLMs (IDs only).” The name “Sean” appears repeatedly, and the path `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT` exposes a username. The next agent will ingest PII, and the handoff itself is non‑compliant.  
-   *Evidence:* “Ask Sean to do the click-through”, “Sean has to supply the session”, and the trap warning `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT`.
+1. **P0** — The document contains PII in violation of the house rule “zero PII to LLMs (IDs only).” The name “Sean” appears repeatedly, and the path `<REPO>` exposes a username. The next agent will ingest PII, and the handoff itself is non‑compliant.  
+   *Evidence:* “Ask Sean to do the click-through”, “Sean has to supply the session”, and the trap warning `<REPO>`.
 
 2. **P0** — Journey A step 2 writes a real member’s privacy/health settings to the production database via local dev, but no test account is provided. The agent is told to “use a test account, or Sean's own, with his say‑so” without any concrete account identifier or isolation. The agent could irreversibly mutate a real user’s data.  
    *Evidence:* “local dev uses the **production DB** via `DATABASE_URL`” and “Journey A step 2 writes a real member's privacy settings. Use a test account, or Sean's own, with his say‑so.”
@@ -45,7 +45,7 @@ REVISE — the plan exposes PII to LLMs, lacks concrete test data for key journe
 - **Self‑defeat:** Journey E’s contrast verification repeats the very mistake the workstream existed to fix: asserting a capability (legibility) without measurable proof. The plan says “Text must stay legible” — exactly the kind of unverified claim that let the original contrast bug ship. The house rule demands WCAG 4.5:1, yet the plan provides no contrast‑checking tool or ratio target.
 
 ## HIGHEST RISK
-The combination of PII exposure and production‑data mutation without a designated test account. The cheapest de‑risk: redact all PII (replace “Sean” with “the stakeholder” or “the session owner”; remove the `BigotSmasher` path) and provide a concrete test account (or an explicit instruction to request one from the stakeholder with a clear scope) before any write operation. Additionally, mandate the Sean‑click‑through route for Journey A step 2 to avoid agent‑side production writes entirely.
+The combination of PII exposure and production‑data mutation without a designated test account. The cheapest de‑risk: redact all PII (replace “Sean” with “the stakeholder” or “the session owner”; remove the `<OPERATOR>` path) and provide a concrete test account (or an explicit instruction to request one from the stakeholder with a clear scope) before any write operation. Additionally, mandate the Sean‑click‑through route for Journey A step 2 to avoid agent‑side production writes entirely.
 
 ## CONFIDENCE
 I cannot verify from the document alone whether test accounts with the required photo configurations (two of the same angle, zero, one) exist or can be created by the agent. The plan assumes the agent can “find” such members but gives no query, UI, or seeding mechanism. Evidence to settle this: a list of test accounts with their data states, or a script to seed the necessary photos. I am also uncertain whether the contrast fix actually meets 4.5:1; the plan should specify using a contrast analyser (e.g., axe‑core or a browser extension) and report the ratio, not a subjective judgment. My confidence in the plan’s executability is low until these gaps are closed.

@@ -32,12 +32,12 @@ wsl -e bash -lc 'for t in claude-session codex-session; do echo "== $t =="; p=$(
 **Result (2026-04-22):**
 ```
 == claude-session ==
-/mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT
-/mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+<REPO>
+<REPO>
 REPO_OK
 == codex-session ==
-/mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT
-/mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+<REPO>
+<REPO>
 REPO_OK
 ```
 
@@ -105,9 +105,9 @@ What it does (atomic sequence under `append.lock`):
    - **(a) git toplevel:** `git rev-parse --show-toplevel` succeeds AND its output normalizes to one of the accepted SwanStudios root forms.
    - **(b) repo marker/remote:** EITHER `git config --get remote.origin.url` matches expected SwanStudios origin pattern (e.g. matches `*SeanSwan/*SS-PT*`) OR a marker file (e.g. `CLAUDE.md` with first-line check) is present at the toplevel.
    - **Path normalization** must handle all three shapes that resolve to the same physical repo:
-     - Windows native: `C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT`
-     - WSL: `/mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT`
-     - Git-Bash: `/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT`
+     - Windows native: `<REPO>`
+     - WSL: `<REPO>`
+     - Git-Bash: `/c<HOME>/Desktop/quick-pt/SS-PT`
    - Normalization function: lowercase + slash-flip + collapse `/mnt/c/` and `/c/` prefixes to a common canonical form, then compare. Both (a) AND (b) must pass; failing either hard-fails the script.
    - Do NOT compare against a single literal path — Windows + WSL + Git-Bash produce different shapes for the same repo.
 3. **Acquire `append.lock` via atomic file creation.** Use `fs.open(lockPath, 'wx')` (Node) — atomic create-exclusive that fails with EEXIST if the lock already exists. **Never use "check exists then write"** — that pattern is racy under concurrent contention from 4 surfaces.
@@ -142,19 +142,19 @@ Two layers:
 
 ```
 Path shapes (all → <USER_HOME>):
-  C:\Users\BigotSmasher\          (Windows backslash, capital C)
-  c:\Users\BigotSmasher\          (Windows backslash, lowercase c)
-  C:/Users/BigotSmasher/          (Windows forward slash, capital C)
-  c:/Users/BigotSmasher/          (Windows forward slash, lowercase c)
-  C:\\Users\\BigotSmasher\\       (JSON-escaped backslash)
-  /mnt/c/Users/BigotSmasher/      (WSL canonical)
-  /mnt/c/users/BigotSmasher/      (WSL lowercase mount)
-  /c/Users/BigotSmasher/          (Git-Bash)
-  \\?\C:\Users\BigotSmasher\      (Windows extended path)
+  <HOME>\          (Windows backslash, capital C)
+  <HOME>\          (Windows backslash, lowercase c)
+  <HOME>/          (Windows forward slash, capital C)
+  <HOME>/          (Windows forward slash, lowercase c)
+  <HOME>\\       (JSON-escaped backslash)
+  <HOME>/      (WSL canonical)
+  <HOME>/      (WSL lowercase mount)
+  /c<HOME>/          (Git-Bash)
+  \\?\<HOME>\      (Windows extended path)
 
 Username:
-  BigotSmasher (standalone, case-sensitive) → <USER>
-  Excluded: occurrences inside other identifiers (e.g. SeanSwan/BigotSmasherTools)
+  <OPERATOR> (standalone, case-sensitive) → <USER>
+  Excluded: occurrences inside other identifiers (e.g. SeanSwan/<OPERATOR>Tools)
 
 Hostname/IP scrubs (driven by config constant — NOT vague references):
   scripts/continuity-config.json defines:
@@ -293,7 +293,7 @@ Mechanism: **Hermes daemon prepend.**
 - Verified to work — Hermes already uses this mechanism for the claude-session/codex-session tmux access.
 - Adds latency (per-read SSH round trip) and a failure mode (network blip = no continuity prepend on session start). Mitigation: cache file contents for the session lifetime; fail-soft to "no continuity prepend" with a single warning if read fails (don't block the session start).
 
-**Smoke target (REQUIRED before §4.3 implementation, per Codex Round 2):** test whether the Pi can do `ls /mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT/CLAUDE.md` directly. If yes → Path A. If no (mount unavailable, permission denied, etc.) → Path B.
+**Smoke target (REQUIRED before §4.3 implementation, per Codex Round 2):** test whether the Pi can do `ls <REPO>/CLAUDE.md` directly. If yes → Path A. If no (mount unavailable, permission denied, etc.) → Path B.
 
 **Implementation work either way:** small Hermes-side helper function + one prepend call into the existing system-prompt builder. Path B adds caching + fail-soft logic. In scope per Sean's directive.
 

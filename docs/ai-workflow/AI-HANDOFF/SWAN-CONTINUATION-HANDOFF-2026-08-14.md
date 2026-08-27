@@ -12,11 +12,11 @@ architecture was reviewed and partly rejected the next day, and its cost figures
 
 **Two facts that will waste your day if you skip them:**
 
-1. **The primary checkout `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT` is on a wip branch
+1. **The primary checkout `<REPO>` is on a wip branch
    roughly 1,900 commits behind `origin/main`, and drifting further every hour.** Measure it
    rather than trusting that figure — it read 1885 while this was being drafted and 1926
    forty minutes later:
-   `git -C c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT rev-list --count HEAD..origin/main`.
+   `git -C <REPO> rev-list --count HEAD..origin/main`.
    Work there and your fixes never reach production; audit there and tooling that exists
    will appear missing. **Use a worktree on `main`.**
    This has already cost multiple sessions — a blocker was re-reported four times because
@@ -106,7 +106,7 @@ Only varying the input, measuring output tracking, **and running a control arm**
    are neutralised, byte-size is not — disclosed.
 
    ⚠ **The file is at `.ai-workflow/forge-runs/ab-blind.html` in the PRIMARY CHECKOUT
-   ONLY** — `c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/`. `.ai-workflow/` is gitignored,
+   ONLY** — `<REPO>/`. `.ai-workflow/` is gitignored,
    so it does **not** exist in the `main` worktree this document tells you to work from.
    Verified 2026-08-14 (3072 bytes, 245-byte key, both dated Aug 13 18:32). This is the
    document's own "delivered where its reader looks" lesson biting the document itself:

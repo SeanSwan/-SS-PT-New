@@ -8,7 +8,7 @@
 ```
 FABLE CONTROL-LAYER WORKSTREAM — CONTINUATION HANDOVER (from SESSION-O, 2026-07-03→04)
 
-You are continuing a finished-and-verified build in the SwanStudios repo (c:\Users\BigotSmasher\Desktop\quick-pt\SS-PT). Do not rebuild anything. Read this whole prompt, then follow ORIENTATION, then execute NEXT STEPS in order.
+You are continuing a finished-and-verified build in the SwanStudios repo (<REPO>). Do not rebuild anything. Read this whole prompt, then follow ORIENTATION, then execute NEXT STEPS in order.
 
 ## WHAT ALREADY HAPPENED (do not redo)
 

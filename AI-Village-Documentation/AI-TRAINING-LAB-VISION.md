@@ -631,7 +631,7 @@ A comprehensive AI prompt generated for each client containing ALL relevant data
 │ 💵 Avg Upsell Value: $100/client/month             │
 │                                                     │
 │ Top Performing Trainers:                            │
-│ 1. You (BigotSmasher): 47 clients, 89 AI sessions  │
+│ 1. You (<OPERATOR>): 47 clients, 89 AI sessions  │
 │ [Expand if multi-trainer in future]                │
 └─────────────────────────────────────────────────────┘
 ```
@@ -1587,7 +1587,7 @@ async function getMedicalHistory(clientId, requesterId) {
 
 **Version:** 1.0
 **Status:** 🟡 Awaiting AI Village Feedback
-**Document Owner:** BigotSmasher (Trainer + Full-Stack Developer)
+**Document Owner:** <OPERATOR> (Trainer + Full-Stack Developer)
 **Review Deadline:** TBD (when all 5 AIs have provided feedback)
 
 ---

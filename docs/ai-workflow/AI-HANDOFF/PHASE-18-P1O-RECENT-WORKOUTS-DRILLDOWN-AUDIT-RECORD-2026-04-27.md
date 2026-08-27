@@ -318,7 +318,7 @@ A reviewer who didn't build the phase should be able to roll back with these ste
 ### Option A — full revert (preferred)
 
 ```bash
-cd c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+cd <REPO>
 git revert 276bc2166
 git push origin main
 ```

@@ -2,7 +2,7 @@
 
 **Reviewer:** OpenRouter `moonshotai/kimi-k3` (effort: medium)
 **Document:** C:/tmp/ss-build-swan-lens/docs/ai-workflow/AI-HANDOFF/KIMI-SWAN-LENS-BLUEPRINT-V2-REGROUNDED-2026-07-17.md
-**Seed:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/5fc53ba5-c4c0-459b-90db-02db460a54ce/scratchpad/kimi-s1c-injection-real-monolith-seed.md
+**Seed:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/5fc53ba5-c4c0-459b-90db-02db460a54ce/scratchpad/kimi-s1c-injection-real-monolith-seed.md
 **Tokens:** 9814 in / 28143 out · **Cost:** ~$0.4516 · **Wall:** 994.5s
 
 ---
