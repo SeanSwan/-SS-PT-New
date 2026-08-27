@@ -7,7 +7,7 @@
  */
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { decide, analyzeTurn, parseTranscript } from './orient-gate.mjs';
+import { decide, analyzeTurn, parseTranscript, isKnownSha } from './orient-gate.mjs';
 import { parseOrient, contentHash } from '../lib/orient-contract.mjs';
 
 /** Hash a block exactly the way the renderer does — via the contract, not a reimplementation.
@@ -107,6 +107,28 @@ t('PROOF citing a sha that is not in recent history -> BLOCK', () => {
 });
 t('PROOF citing a real recent sha -> allow', () =>
   assert.equal(decide({}, commitTurn(full()), LIVE, null), null));
+// REGRESSION (2026-08-27): recentShas came from `%h`, which honours core.abbrev — 9 chars in
+// this repo — while the cited token was sliced to 7. Exact-matching two different abbreviation
+// lengths could never succeed, so the check rejected every legitimately-cited commit, including
+// the one the gate itself had just made. Full shas are stored now and matched by PREFIX.
+const LIVE_FULL = { ...LIVE, recentShas: ['abc1234def5678901234567890abcdef12345678'] };
+for (const [label, cited] of [
+  ['7-char prefix', 'abc1234'],
+  ['9-char prefix', 'abc1234de'],
+  ['12-char prefix', 'abc1234def567'],
+  ['full 40-char sha', 'abc1234def5678901234567890abcdef12345678'],
+]) {
+  t(`PROOF citing a ${label} of a real commit -> allow`, () => {
+    const b = [ID('wip/x', 'abc1234', 'F'), A, W, D, N, `PROOF ${cited} · 46/46 tests pass`, X].join('\n');
+    assert.equal(decide({}, commitTurn(b), LIVE_FULL, null), null);
+  });
+}
+t('PROOF citing a sha that is a prefix of nothing -> BLOCK', () => {
+  const b = [ID('wip/x', 'abc1234', 'F'), A, W, D, N, 'PROOF fedcba9 · 46/46 tests pass', X].join('\n');
+  assert.match(String(decide({}, commitTurn(b), LIVE_FULL, null)), /ORIENT-UNVERIFIABLE-PROOF/);
+});
+t('isKnownSha rejects a token shorter than 7', () =>
+  assert.equal(isKnownSha('abc123', LIVE_FULL.recentShas), false));
 
 console.log('\n== derived-line checks a typed header cannot survive ==');
 t('wrong branch -> BLOCK as wrong project', () =>
