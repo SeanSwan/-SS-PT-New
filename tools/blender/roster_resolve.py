@@ -21,11 +21,14 @@ TWO ORACLES WERE TRIED AND BOTH WERE CIRCULAR.
 v3 DOES NOT DECIDE. It reports what each reading implies and refuses to launder a preference into
 a verdict. The reading is an operator decision passed explicitly on the command line and logged.
 
-THE REAL ANSWER IS CHEAPER THAN ANY OF THIS. The roster's author is a callable seat. Three
-independent reviewers each said, unprompted, that asking beats inferring. The grammar's own
-parenthetical — "(validator-visible asymmetry)" — says the author expects the VALIDATOR to SEE
-the lift, which points to reader-applied, the opposite of what both oracles concluded. That
-sentence was in the file the whole time and neither oracle read it.
+THERE IS NO AUTHOR TO ASK. Four reviewers and the first handoff all said "just ask the author",
+and it was tried on 2026-08-26: the roster's author is a STATELESS model (z-ai/glm-5.3-flash). A
+fresh instance has no memory of authoring anything, so "what did you mean" returns a fresh guess
+wearing an author's authority — strictly worse than reading the text. The reading is therefore
+an OWNER decision, stated on the command line. The grammar's own parenthetical —
+"(validator-visible asymmetry)" — says the VALIDATOR is expected to SEE the lift, which points to
+reader-applied, the opposite of what both oracles concluded; it is the strongest evidence there
+is, and this report surfaces it. The owner weighs it. Nothing here decides.
 """
 
 from roster_grammar import MODES, RecipeError, components, occupied_cells, parse_box, summed_cells
@@ -125,12 +128,12 @@ def report(blocks, document_text=""):
     if side == "reader":
         lines.append("  THE ROSTER'S OWN TEXT points to READER-applied (%s) — evidence, and it"
                      % ", ".join(sorted(set(hits))[:2]))
-        lines.append("        outranks every statistic above. Prefer on0/on1 unless the author says else.")
+        lines.append("        outranks every statistic above. OWNER DECISION: weigh it before choosing off.")
     elif side == "author":
         lines.append("  THE ROSTER'S OWN TEXT points to AUTHOR-applied (%s)." % ", ".join(hits[:2]))
     elif side == "conflict":
-        lines.append("  THE ROSTER'S OWN TEXT asserts BOTH sides — ask the author.")
+        lines.append("  THE ROSTER'S OWN TEXT asserts BOTH sides — OWNER DECISION; there is no author to ask.")
     else:
-        lines.append("  The roster says nothing about which reading it means. ASK THE AUTHOR;")
-        lines.append("        it is one call and it settles what no statistic here can.")
+        lines.append("  The roster says nothing about which reading it means. OWNER DECISION —")
+        lines.append("        there is no author to ask (stateless model); state --mirror-break explicitly.")
     return "\n".join(lines)

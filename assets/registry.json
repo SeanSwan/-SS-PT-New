@@ -122,6 +122,7 @@
       "lod1MaxFractionOfLod0": 0.5,
       "lod2MaxFractionOfLod0": 0.25,
       "collisionMaxFractionOfLod0": 0.25,
+      "unit": "TRIANGLE COUNT as a fraction of measured lod0 triangles. Hull VOLUME is not what this fraction measures and is not enforced anywhere; only the AABB-containment rule bounds collision extent. (Ox open item 'collision <=25% ambiguous', closed 2026-08-26.)",
       "why": "A budget that IS the measurement cannot be failed (GLM 5.3, N1 blocker 2). These fractions are independent of any measurement; the validator checks measured tiers against them. Priors for this asset class; revisit with a second asset class."
     }
   },

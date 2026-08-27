@@ -25,6 +25,7 @@ WHAT IT REFUSES (per block, non-fatal — one bad block never kills the run):
 """
 
 import argparse
+import hashlib
 import os
 import sys
 
@@ -152,10 +153,16 @@ def main():
     ap.add_argument("--mirror-break", choices=list(G.MODES), default=None,
                     help="REQUIRED unless --explain. Which reading of the grammar's MIRROR-BREAK "
                          "rule to build under. Not inferred: two generations of inference were "
-                         "circular. Run --explain first, ask the roster's author, then state it.")
+                         "circular, and there is no author to ask (the roster was written by a "
+                         "stateless model). Run --explain, then the OWNER states it.")
     args = ap.parse_args()
 
     text = open(args.roster, encoding="utf-8").read()
+    # ROSTER REVISION ID. A reading, a refusal list or a spec request that is not pinned to the
+    # exact roster text it was computed against can silently apply to drifted input (Flash, question
+    # letter review 2026-08-26). Every run prints it and every .obj header carries it.
+    roster_sha = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+    print("[roster] roster-sha256=%s  (%s)" % (roster_sha, os.path.basename(args.roster)))
     blocks = B.parse_blocks(text)
     if not blocks:
         print("[roster] EXIT 2 - no spec blocks found in %s. Zero parsed is not a pass."
@@ -172,8 +179,8 @@ def main():
     if args.mirror_break is None:
         print("[roster] EXIT 2 - --mirror-break is required. The grammar's MIRROR-BREAK rule has "
               "at least three readings that build different creatures, and inferring it was "
-              "circular twice over. Run --explain to see what each implies, ask the roster's "
-              "author, then state the reading.", file=sys.stderr)
+              "circular twice over. There is no author to ask. Run --explain to see what each "
+              "implies, then the OWNER states the reading.", file=sys.stderr)
         sys.exit(2)
     print("[roster] mirror-break = %s (operator-stated, not inferred)" % args.mirror_break)
 
@@ -201,13 +208,17 @@ def main():
                      spec.get("role", "?")))
         else:
             path = os.path.join(args.out, slug, "%s-blockout.obj" % slug)
-            v, f = write_obj(path, cells, "%s - %d voxels, mirror-break=%s, from the authored "
-                             "roster" % (ident, len(cells), args.mirror_break))
+            v, f = write_obj(path, cells, "%s - %d voxels, mirror-break=%s, roster-sha256=%s, "
+                             "from the authored roster"
+                             % (ident, len(cells), args.mirror_break, roster_sha))
             print("  wrote   %s  (%d cells, %d verts, %d quads, rig=%s)"
                   % (path, len(cells), v, f, rig))
         ok += 1
 
-    print("\n[roster] %d written, %d refused, %d blocks parsed" % (ok, refused, len(blocks)))
+    # SAY WHAT ACTUALLY HAPPENED. Under --list nothing is written, and a summary reading
+    # "7 written" after a dry run is the same false-status class every gate here exists to stop.
+    print("\n[roster] %d %s, %d refused, %d blocks parsed"
+          % (ok, "listed (nothing written)" if args.list else "written", refused, len(blocks)))
     if args.expect is not None and len(blocks) != args.expect:
         print("[roster] EXIT 1 - expected %d spec blocks, parsed %d." % (args.expect, len(blocks)),
               file=sys.stderr)

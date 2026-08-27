@@ -165,8 +165,9 @@ BLK = [{"id": "a", "voxelCount": "4", "buildRecipe": "C(0,0,0,4,1,1); N(2,2,0,0,
 check("report() returns prose, not a verdict", isinstance(R.report(BLK), str), True)
 check("report names the shatter predicate as circular with the gate",
       "SAME predicate the gate refuses on" in R.report(BLK), True)
-check("report tells the reader to ask the author when the text is silent",
-      "ASK THE AUTHOR" in R.report(BLK, "nothing relevant here"), True)
+check("report routes a silent roster to the OWNER, never to a stateless 'author'",
+      "OWNER DECISION" in R.report(BLK, "nothing relevant here")
+      and "ASK THE AUTHOR" not in R.report(BLK, "nothing relevant here"), True)
 check("a roster asserting reader-side semantics is detected as evidence",
       R.textual_assertion("MIRROR-BREAK ... (validator-visible asymmetry)")[0], "reader")
 check("a roster asserting author-side semantics is detected too",

@@ -85,6 +85,13 @@ function selftest() {
     ['unknown clip is refused', (m) => { m.animations.push('dance'); }, /not in skeleton/],
     ['bare budget number is refused', (m) => { m.budgets = { lod0Triangles: 1500 }; }, /fabricated number/],
     ['budget with provenance is accepted', (m) => { m.budgets = { lod0Triangles: 1500, tool: 'gltf-transform', command: 'x', date: '2026-08-25', commit: 'abc' }; }, null],
+    // handoff 2026-08-26 s9: a bare textureMB 0 reads as a measured budget, not a missing bake stage
+    ['textureMB 0 with no bake declaration is refused', (m) => { m.budgets = { lod0Triangles: 1500, textureMB: 0, tool: 't', command: 'c', date: '2026-08-26', commit: 'abc' }; }, /no budgets\.bake/],
+    ['textureMB 0 declared not-baked is accepted', (m) => { m.budgets = { lod0Triangles: 1500, textureMB: 0, bake: 'not-baked', tool: 't', command: 'c', date: '2026-08-26', commit: 'abc' }; }, null],
+    // Ox open item: spawn-on-death had no manifest representation
+    ['spawnOnDeath naming an unregistered asset is refused', (m) => { m.spawnOnDeath = ['enemy.ghost']; }, /spawnOnDeath "enemy\.ghost" is NOT in/],
+    ['spawnOnDeath naming itself is refused', (m) => { m.spawnOnDeath = ['enemy.fryling']; }, /names the asset itself/],
+    ['spawnOnDeath as a non-array is refused', (m) => { m.spawnOnDeath = 'enemy.fryling'; }, /must be an array/],
     ['free-text license is refused', (m) => { m.provenance.license = 'owner-authored'; }, /structured object/],
     ['model license without receipt is refused', (m) => { m.provenance.license = { kind: 'model', modelName: 'a', modelVersion: '1', licenseId: 'x' }; }, /receiptPath required/],
     ['unreviewed similarity is refused', (m) => { m.provenance.similarityReviewed = false; }, /similarityReviewed/],

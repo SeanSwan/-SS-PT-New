@@ -15,9 +15,9 @@
 import { readFileSync, existsSync, lstatSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve, isAbsolute, sep } from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { measure, parseGlb, worldAabb } from './measure-glb.mjs';
 import { COMPRESSION_VALUES, MAX_ASSET_BYTES, unreadRegistryKeys } from './validate-asset.contract.mjs';
+import { checkBudgets } from './validate-asset.budgets.mjs';
 
 export { unreadRegistryKeys };  // re-exported so the CLI keeps one import path
 
@@ -94,32 +94,23 @@ export function validate(manifest, ctx) {
     }
   }
 
-  // --- budgets: the fabricated-number rule --------------------------------
-  const b = manifest.budgets;
-  if (b === undefined) {
-    E('budgets missing — declare null (unmeasured) rather than omitting the field');
-  } else if (b !== null) {
-    if (typeof b !== 'object') E('budgets must be null or an object with measurement provenance');
+  const b = manifest.budgets;  // the tier-table rule below still reads it
+  checkBudgets(manifest, entry, ctx, E, W);  // moved to validate-asset.budgets.mjs (300-line cap)
+
+  // --- spawnOnDeath (Ox open item, roster 2026-08-26 s5.3) ------------------
+  // A creature whose death SPLITS into other actors names them here; each must be a registered
+  // asset and never itself. Absent means "dies and is gone". Optional, but a lie in it is refused.
+  if (manifest.spawnOnDeath !== undefined) {
+    const sod = manifest.spawnOnDeath;
+    if (!Array.isArray(sod) || sod.some((x) => typeof x !== 'string')) E('spawnOnDeath must be an array of registry asset ids');
     else {
-      for (const k of ['tool', 'command', 'date', 'commit']) {
-        if (!b[k]) E(`budgets.${k} is required — a bare number with no measurement provenance is a fabricated number acquiring authority (registry budgetPolicy)`);
-      }
-      const nums = ['lod0Triangles', 'lod1Triangles', 'lod2Triangles', 'textureMB'];
-      for (const k of nums) if (b[k] !== undefined && typeof b[k] !== 'number') E(`budgets.${k} must be a number`);
-      // TRUTH check 1: the commit must exist. `"commit": "deadbeef"` is a lie a shape check accepts
-      // (Ox, Kimi, Grok, HY3, DeepSeek — branch gate 2026-08-25).
-      if (b.commit && !/^[0-9a-f]{7,40}$/i.test(String(b.commit))) E(`budgets.commit is not a git object id: ${b.commit}`);
-      else if (b.commit) {
-        try { execFileSync('git', ['cat-file', '-e', `${b.commit}^{commit}`], { cwd: ctx.root, stdio: 'ignore' }); }
-        catch { E(`budgets.commit ${b.commit} is not a commit in this repository — provenance names a commit that does not exist`); }
-      }
-      // sanity: the P0 incident was a 4MB texture budget on a 1500-tri asset
-      if (typeof b.textureMB === 'number' && typeof b.lod0Triangles === 'number' && b.lod0Triangles < 3000 && b.textureMB > 2) {
-        W(`textureMB ${b.textureMB} on a ${b.lod0Triangles}-tri asset looks implausible — sanity-check before promoting`);
+      const ids = new Set((registry.assets || []).map((a) => a.id));
+      for (const x of sod) {
+        if (x === manifest.id) E(`spawnOnDeath names the asset itself (${x}) - infinite respawn`);
+        else if (!ids.has(x)) E(`spawnOnDeath "${x}" is NOT in assets/registry.json - a death-spawn that does not exist`);
       }
     }
   }
-  if (b === null && entry?.budgetPriors) W('budgets null (unmeasured) — priors are advisory and MUST NOT be enforced');
 
   // --- provenance (inherited from voxel-realm) ----------------------------
   const p = manifest.provenance;

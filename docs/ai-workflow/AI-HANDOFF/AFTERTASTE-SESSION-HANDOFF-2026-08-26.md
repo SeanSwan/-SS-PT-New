@@ -14,7 +14,7 @@ privacy: IDs/roles only. No PII, no secrets, no credentials.
 | **Linear** | SWA-211 (four comments this session; the newest is the current state) |
 | **Branch** | `claude/aftertaste-p0-20260825`, PR #84 |
 | **Worktree** | `C:\tmp\ss-aftertaste` — the code lives HERE, not in the main repo checkout |
-| **HEAD** | see `git log` — remote at `06d462077`; **7 commits unpushed** (Rule 70 batch cadence) |
+| **HEAD** | **Do not trust this cell — run `git status -sb`.** A written push-state goes stale the moment anyone commits, and an earlier revision of this row asserted a push that had not happened. The branch tracks `origin/claude/aftertaste-p0-20260825`; Rule 70 says commit per slice, push once at batch end. |
 | **Tree** | clean |
 | **Seats available** | GLM 5.3 (`consult-glm.mjs`) and GLM-5.3-Flash (`consult-ox.mjs`, ~3× discount) — SAME LAB, never independent of each other. Fable and Sol are hand-driven by Sean on subscription and ARE independent. Ox Alpha is retired; it WAS Flash. |
 
@@ -85,6 +85,19 @@ and built against for months. Ask Sean; do not interpret.
 
 ---
 
+### 2.5 Biome vocabulary — UNANSWERED (minor)
+
+The two rosters do not share biome names (Ox "The Bunkhouse" vs GLM "The Lodgings"); §5.6. One
+has to win before specs reference zones. **Recommendation: Ox's six** — they are the names the 18
+built/refused specs already carry, so choosing them costs zero rewrites.
+
+### 2.6 `--world-portal` on enemy bodies — UNANSWERED (minor, design-law)
+
+Ox's open item: the §1 palette law leaves `--world-portal` ("single action") unusable on any enemy
+body, and no enemy uses it. **Recommendation: permit it for capture-objective PROPS only** (the
+maître d's ring is the named legitimate case) and state in `worlds.md` that it stays banned on
+enemy bodies. Alternative: delete it from the enemy-facing subset of the law.
+
 ## 3. ⚠ THERE IS NO AUTHOR TO ASK — this plan was tried and it does not work
 
 **Do not spend a call trying to ask the roster's author what they meant.** I did, on 2026-08-26,
@@ -108,6 +121,12 @@ the strongest available evidence and there is no higher court to appeal to.
 
 **What this means for the next agent:** treat `--mirror-break` as an OWNER decision (Sean's), not
 an author decision. Present him §3.1 and let him pick. Do not re-run the ask.
+
+**The code says so too, as of the 2026-08-26 batch.** `roster-to-obj.py`'s `--help` and its
+exit-2 message, and every branch of `roster_resolve.report()`, now route a silent or conflicting
+roster to the OWNER and state that there is no author to ask; the selftest asserts the phrase
+`ASK THE AUTHOR` is gone (Rule 75 trailhead truth — an earlier revision of this handoff said the
+ask was dead while the tool still told operators to make it).
 
 ### 3.1 The ambiguity, for whoever decides it
 
@@ -137,6 +156,27 @@ Two more readings surfaced on 2026-08-26 that the three-mode model still cannot 
 assets already use, it is the only reading under which most of the roster is buildable at all
 (8 disconnected vs 14 and 17), and the alternative rests on a parenthetical rather than a rule.
 Record the deviation-from-text in the roster changelog so the reasoning survives.
+
+### 3.2 What each reading refuses — precomputed, pinned to the roster text
+
+Every `roster-to-obj.py` run now prints `roster-sha256=<12 hex>` (sha-256 of the roster text,
+newline-normalised) and writes it into every `.obj` header, so a refusal list or a spec request
+can never silently apply to drifted input (Flash's one unaddressed finding, §6.2b — closed).
+These lists are for **roster-sha256 `b755115965f1`** = `ox-parasite-expansion-2026-08-26.md`;
+if the printed hash differs, recompute with `--list --mirror-break <reading>`.
+
+| reading | built | refused | refused ids |
+|---|---|---|---|
+| `off` | **7** | 11 | bedbug · mosquito · flea · mantisshrimp · seaspider · socketleech · soldernat · anglerfish · leech · cymothoa · hagfish |
+| `on0` | 4 | 14 | bedbug · kissingbug · leech · mosquito · flea · tick · cymothoa · horsehair · mantisshrimp · hagfish · seaspider · socketleech · huskweaver · anglerfish — **builds:** assassinbug · botfly · soldernat · barreleye |
+| `on1` | 1 | 17 | every id except **barreleye** |
+
+Note the sets are NOT nested: `soldernat` is refused under `off` but builds under `on0` — a z-lift
+can *create* face contact as well as break it. An earlier draft of this table wrote `on0` as "the
+`off` list plus three" from memory; the run disproved it. Read lists off the tool, never off prose.
+
+Whichever reading Sean picks, the send-back packet (§8 step 3) is the matching row — nothing has
+to be re-derived after the decision.
 
 ---
 
@@ -350,7 +390,7 @@ A worked example of why Rule 30 exists (another model's finding is a HYPOTHESIS 
 | "`k` is unbounded before expansion — memory bomb" | **DISPROVEN in the code**, real in the letter. `MAX_COPIES = 256`. Flash was given the letter, not the source. |
 | "the z-lift bias claim is asserted, not derived" | **REAL.** I stated a standing property from single-roster evidence (8/14/17, monotone here, not a law). |
 | "reading *(e)* is enumerated then never asked about"; "flat vs accumulating lift is a sixth reading" | **REAL.** Both now in §3.1. |
-| "no roster revision identifier — an answer could apply to drifted input" | **REAL, unaddressed.** Pin future spec requests to a roster hash. |
+| "no roster revision identifier — an answer could apply to drifted input" | **REAL — addressed 2026-08-26.** `roster-to-obj.py` prints `roster-sha256=` on every run and stamps it into every `.obj` header; §3.2 pins its lists to `b755115965f1`. |
 
 **Score it by verifying, never by how sharp the prose reads.** Flash's disproven claims were
 confident and well-argued; three of them rested on a premise (translations preserve counts) that
@@ -409,9 +449,11 @@ the circularity is back.
 2. **Get `--mirror-break` decided by SEAN, not by an author** (§3 — there is no author; the
    attempt was made and is documented). Recommend `off`. If he picks `on0`/`on1`, rebuild all 7
    blockouts; their headers record the reading, so nothing is lost.
-3. **Send the 11 refused specs back** with §5.3's exact defect list. The precise fix per creature
-   is already computed; the author does not have to re-derive anything.
-4. **Pick a biome vocabulary** — Ox's six names or GLM's. §5.6.
+3. **Re-author the refused specs** (there is no author to "send back" to — it is a fresh
+   Flash/GLM call with the N4 packet's corrected instructions) using the §3.2 row for the reading
+   Sean picked and §5.3's exact defect list. Pin the request to the roster hash. Under `off` that
+   is 11 specs; under `on0` 14; under `on1` 17.
+4. **Pick a biome vocabulary** — §2.5 (recommend Ox's six).
 5. **Run the 7 built blockouts through the Blender pipe** (`swan_pipe.py`) to produce gated runtime
    assets, then hand-author their manifests.
 6. **Then** the 5 unbuilt first-roster enemies (§5.5).
@@ -420,18 +462,25 @@ the circularity is back.
 
 ## 9. CARRIED-OVER DEBT — none of it is blocking, all of it is real
 
-- **The texture bake stage does not exist**, in code or in `plan()`. Every manifest reports
-  `textureMB: 0`, which a future reader will take as a measured zero rather than a missing stage.
-  Declare it null or "not-baked" before that happens.
-- **Ox's three open items:** spawn-on-death has no manifest representation · `--world-portal` is
-  orphaned · "collision ≤25%" is ambiguous between triangle count and hull volume (triangles are
-  what is currently enforced).
-- **CODEOWNERS on `assets/registry.json`** — never added.
+- **The texture bake stage still does not exist** in code or in `plan()` — but its absence is now
+  RECORDED, not implied: the gate refuses `budgets.textureMB: 0` unless `budgets.bake` says why
+  (`"not-baked …"` on all four runtime manifests), so the zero can no longer be read as a measured
+  budget. Proven by positive control (deleting one manifest's `bake` line → exit 1). The bake stage
+  itself remains unbuilt. *(closed 2026-08-26 — the gate; open — the stage)*
+- **Ox's three open items:** spawn-on-death → **closed**: optional manifest key `spawnOnDeath:
+  [assetIds]`, each must be a registered asset and never the asset itself (3 selftest cases) ·
+  "collision ≤25%" → **closed**: `registry.budgetPolicy.tierTable.unit` states it is TRIANGLE
+  COUNT, hull volume is unmeasured, AABB containment is what bounds extent · `--world-portal` →
+  **owner decision**, §2.6.
+- **CODEOWNERS on `assets/registry.json`** → **closed**: `.github/CODEOWNERS` names the owner.
+  Note it only *enforces* once branch protection requires code-owner review; until then it is a
+  marker and a reviewer hint, which is still more than nothing.
 - **`c:\tmp\ollama-firewall-fix.ps1`** — written, self-reverting, never run elevated. Two installer
   `ollama.exe` Public-profile allow-any rules. ⚠ **Do NOT rebind Ollama to 127.0.0.1** — the
   `0.0.0.0:11434` bind is deliberate; Hermes-in-WSL reaches it at the gateway IP and localhost is
   unreachable from WSL. Prescribing that rebind would have severed Hermes.
-- **PR #84 is unmerged**, 5 commits unpushed.
+- **PR #84 is unmerged.** The 2026-08-26 batch is pushed; merging waits on the §2 decisions
+  because the blockouts and the mode labels change with them.
 
 ---
 
@@ -457,6 +506,11 @@ the circularity is back.
 ## 11. SESSION COMMITS
 
 ```
+(next)     chore(aftertaste): execute the handoff's recommendations — owner wording in the tool,
+           roster hash in every run and header, bake-absence gate, spawnOnDeath, collision unit,
+           CODEOWNERS; validate-asset.rules split under the 300 cap; 7 blockouts re-stamped
+162f7b837  docs: there is no author to ask — and a grep truncated my own defect table
+5d2568adf  docs: session handoff — pipeline state, four blocking decisions, exact next slice
 9b87117e4  docs: Flash panel review + corrected re-author instructions
 9bd674a05  refactor: tokenise the roster grammar; stop inferring what an author can answer
 7d017d69b  fix: resolve the grammar ambiguity structurally — the count oracle is 33% wrong
