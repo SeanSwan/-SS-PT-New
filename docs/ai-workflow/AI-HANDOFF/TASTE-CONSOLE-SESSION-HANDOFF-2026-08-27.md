@@ -462,6 +462,14 @@ number was counted off a terminal tail rather than grepped. Node is 534 across 1
 grid is still the old memory's and the profile is already the new one, so a click lands one
 memory's judgement in another's file.
 
+**What the two new guards are and are not proven by.** They are proven by the per-call-site sweep,
+by `node --check`, and by the browser suite showing zero throws across a real profile switch. They
+are **not** proven by watching stale content actually get suppressed — that needs two memories
+holding *different* data, and the only second memory on this machine (`partner`) has no project. A
+probe that created one would write real state into the live server. So: mechanism verified, symptom
+not observed. If you build F1 with a second memory that has data, that is the moment to close this
+cheaply — switch mid-load and confirm the render bar and grid count go blank rather than stale.
+
 It is narrow (a click inside a network round-trip, mid-switch), and the server's provenance rules
 stop it becoming a corpus leak — but it is real. Closing it means `load()` stashing the world with
 the grid and `record()` refusing on a move. **That is a change to the most safety-critical write in
