@@ -36,6 +36,7 @@ import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { homedir } from 'node:os';
 
 /**
  * Resolve the repo from THIS FILE's location, never process.cwd().
@@ -49,7 +50,14 @@ import { fileURLToPath } from 'node:url';
  * This file lives at <repo>/scripts/hooks/, so the repo root is two levels up.
  */
 const SS_PT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const SWANGUARD = 'C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom';
+// SwanGuard is a SEPARATE repo sitting beside this one on the Desktop. Derived from the
+// running account rather than hardcoded (2026-08-27): the literal pinned this gate to one
+// machine, and anywhere else `read()` returned null and every SwanGuard check silently
+// passed — the exact "reads as protection while covering nothing" failure described above,
+// and the same class as the process.cwd() bug this file already documents.
+// SWANGUARD_ROOT overrides when the repo lives elsewhere.
+const SWANGUARD = process.env.SWANGUARD_ROOT
+  || resolve(homedir(), 'Desktop', 'SwanGuard-Newsroom');
 
 /** SS-PT contract: AGENTS.md = adapter header + mirrored CLAUDE.md body. */
 const SS_PT_ADAPTER_LINES = 45;

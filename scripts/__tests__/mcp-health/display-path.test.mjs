@@ -45,8 +45,11 @@ test('prefix matching is case-insensitive (Windows paths are)', () => {
 });
 
 test('no redacted output ever contains the username segment', () => {
-  const out = displayPath('C:\\Users\\BigotSmasher\\.claude.json', 'C:\\Users\\BigotSmasher');
-  assert.ok(!out.includes('BigotSmasher'), 'OS username survived redaction');
+  // Fictional account name (2026-08-27): displayPath takes the home dir as a PARAMETER, so
+  // the assertion is just as strong with a fake — and the real operator's username no longer
+  // has to sit in a committed fixture, which is the thing this redaction exists to prevent.
+  const out = displayPath('C:\\Users\\Testoperator\\.claude.json', 'C:\\Users\\Testoperator');
+  assert.ok(!out.includes('Testoperator'), 'OS username survived redaction');
 });
 
 test('redaction here is PLATFORM-INDEPENDENT — pinned against drift from the paths.mjs policy', () => {
