@@ -12,18 +12,14 @@
  * HOW IT FITS IN THE APP: communicationDraftRoutes → this controller → emailService / twilioService
  */
 import logger from '../utils/logger.mjs';
+import { getCommunicationDraft } from '../models/index.mjs';
 
 // ─────────────────────────────────────────────────────────────
 // SECTION: Lazy model loader
 // PURPOSE: Avoid circular imports — load model at runtime
 // ─────────────────────────────────────────────────────────────
-let CommunicationDraft = null;
 const getDraftModel = async () => {
-  if (!CommunicationDraft) {
-    const mod = await import('../models/CommunicationDraft.mjs');
-    CommunicationDraft = mod.default;
-  }
-  return CommunicationDraft;
+  return getCommunicationDraft();
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -131,6 +127,10 @@ export const rejectDraft = async (req, res) => {
       return res.status(400).json({ success: false, message: `Draft is already ${draft.status}` });
     }
 
+    if (req.user.role === 'trainer' && String(draft.trainerId) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, message: 'You can only reject your own drafts' });
+    }
+
     await draft.update({
       status: 'rejected',
       rejectionReason: req.body.reason || null,
@@ -153,6 +153,10 @@ export const deleteDraft = async (req, res) => {
 
     if (!draft) {
       return res.status(404).json({ success: false, message: 'Draft not found' });
+    }
+
+    if (req.user.role === 'trainer' && String(draft.trainerId) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, message: 'You can only delete your own drafts' });
     }
 
     await draft.destroy();
