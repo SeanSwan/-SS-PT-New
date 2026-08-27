@@ -127,3 +127,52 @@ describe('the site reference', () => {
     expect(r.snippet).toContain('<video');
   });
 });
+
+describe('the publish signer will not sign a key this system did not write', () => {
+  // r2Key on a video row is caller-supplied: it arrives from the body of
+  // POST /api/render-agents/jobs/:jobId/complete, and verifyObject — when it runs at all —
+  // checks that an object EXISTS at that key, never that the key is ours.
+  // generatePlaybackUrl presigns anything it is handed. The library learned this and
+  // started checking; this signer reads the same unvalidated field.
+  const FOREIGN = 'atelier/stills/99/secret.png';
+  const model = (asset) => ({ findOne: async () => asset });
+  const signer = { readUrl: async (k) => `https://cdn.example/${k}?sig=x` };
+
+  it('withholds the reference rather than signing a foreign key', async () => {
+    const asset = base({ approvalStatus: 'published', r2Key: FOREIGN });
+    const out = await publishedReference({ id: 'a1', userId: 1 }, { assetModel: model(asset), ...signer });
+    expect(out.readUrl).toBeNull();
+    expect(out.snippet).toBeNull();
+    expect(out.withheld).toMatch(/not one this system wrote/);
+  });
+
+  it('still signs a key the system did write', async () => {
+    // The guard must not eat the working path.
+    const asset = base({ approvalStatus: 'published' });
+    const out = await publishedReference({ id: 'a1', userId: 1 }, { assetModel: model(asset), ...signer });
+    expect(out.readUrl).toContain('atelier/stills/1/x.png');
+    expect(out.withheld).toBeNull();
+  });
+
+  it('the UNAUTHENTICATED permalink resolves to nothing for a foreign key', async () => {
+    // This route is mounted without auth, so it is the least forgiving place in the system
+    // to sign an unvalidated key: a planted r2Key on a published row would otherwise become
+    // a public signed URL for someone else's object.
+    const asset = base({ approvalStatus: 'published', r2Key: FOREIGN });
+    expect(await resolvePublic({ id: 'a1' }, { assetModel: model(asset), ...signer })).toBeNull();
+  });
+
+  it('the permalink still resolves for a key the system wrote', async () => {
+    const asset = base({ approvalStatus: 'published' });
+    const out = await resolvePublic({ id: 'a1' }, { assetModel: model(asset), ...signer });
+    expect(out.url).toContain('atelier/stills/1/x.png');
+  });
+
+  it('a video asset published from its own job namespace still resolves', async () => {
+    const jobId = '11111111-2222-3333-4444-555555555555';
+    const asset = base({ approvalStatus: 'published', jobId, kind: 'video',
+      mime: 'video/mp4', r2Key: `jobs/${jobId}/source.mp4` });
+    const out = await resolvePublic({ id: 'a1' }, { assetModel: model(asset), ...signer });
+    expect(out.url).toContain(`jobs/${jobId}/source.mp4`);
+  });
+});

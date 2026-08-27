@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { previewKeyFor, keyBelongsTo } from '../../services/atelier/assetPreviews.mjs';
+import { previewKeyFor, keyOwnedByRow } from '../../services/atelier/assetPreviews.mjs';
 
 // Realistic keys. Every key this codebase writes carries the owner as a path segment, and
 // the signer now requires it — so fixtures that omitted it were describing a row that
@@ -16,10 +16,11 @@ import { previewKeyFor, keyBelongsTo } from '../../services/atelier/assetPreview
 const OWNER = 7;
 const A_PNG = `atelier/stills/${OWNER}/abc.png`;
 const A_THUMB = `atelier/stills/${OWNER}/thumbs/abc.webp`;
-const A_MP4 = `jobs/${OWNER}/source.mp4`;
-const A_MP3 = `atelier/audio/${OWNER}/take.mp3`;
-const A_BIN = `atelier/x/${OWNER}/a.bin`;
-const A_POSTER = `atelier/video/${OWNER}/poster.webp`;
+const JOB = '11111111-2222-3333-4444-555555555555';
+const A_MP4 = `jobs/${JOB}/source.mp4`;
+const A_MP3 = `atelier/stills/${OWNER}/take.mp3`;
+const A_BIN = `atelier/stills/${OWNER}/a.bin`;
+const A_POSTER = `jobs/${JOB}/poster.webp`;
 
 describe('the poster always wins when there is one', () => {
   it('prefers the poster over the original for an image', () => {
@@ -27,13 +28,13 @@ describe('the poster always wins when there is one', () => {
   });
 
   it('prefers the poster for a video', () => {
-    expect(previewKeyFor({ ownerUserId: 7, kind: 'video', r2Key: A_MP4, posterR2Key: A_POSTER })).toBe(A_POSTER);
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'video', r2Key: A_MP4, posterR2Key: A_POSTER })).toBe(A_POSTER);
   });
 
   it('prefers the poster for a kind nobody planned for', () => {
     // The rule is stated once, so it answers for kinds that did not exist when it was
     // written. A pair of branches would have needed a third.
-    expect(previewKeyFor({ ownerUserId: 7, kind: 'hologram', r2Key: A_BIN, posterR2Key: A_POSTER })).toBe(A_POSTER);
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'hologram', r2Key: A_BIN, posterR2Key: A_POSTER })).toBe(A_POSTER);
   });
 });
 
@@ -44,7 +45,7 @@ describe('the fallback is conditional on the original being a picture', () => {
 
   it('does NOT fall back to the video file', () => {
     // Signing this would put an MP4 in an <img>.
-    expect(previewKeyFor({ ownerUserId: 7, kind: 'video', r2Key: A_MP4, posterR2Key: null })).toBeNull();
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'video', r2Key: A_MP4, posterR2Key: null })).toBeNull();
   });
 
   it('does NOT fall back to the audio file', () => {
@@ -52,7 +53,7 @@ describe('the fallback is conditional on the original being a picture', () => {
   });
 
   it('does not fall back for an unknown kind either — the allowlist is the picture claim', () => {
-    expect(previewKeyFor({ ownerUserId: 7, kind: 'hologram', r2Key: A_BIN, posterR2Key: null })).toBeNull();
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'hologram', r2Key: A_BIN, posterR2Key: null })).toBeNull();
   });
 });
 
@@ -91,7 +92,7 @@ describe('signing is a capability, so a key must belong to the row that carries 
   const FOREIGN = 'atelier/stills/99/thumbs/deadbeef.webp';
 
   it('refuses a poster pointing at another owner, on a row the actor legitimately owns', () => {
-    expect(previewKeyFor({ ownerUserId: 7, kind: 'video', r2Key: A_MP4, posterR2Key: FOREIGN })).toBeNull();
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'video', r2Key: A_MP4, posterR2Key: FOREIGN })).toBeNull();
   });
 
   it('refuses it on an image row too, rather than falling back into signing it', () => {
@@ -107,15 +108,40 @@ describe('signing is a capability, so a key must belong to the row that carries 
     expect(previewKeyFor({ kind: 'image', r2Key: A_PNG, posterR2Key: A_THUMB })).toBeNull();
   });
 
-  it('matches on a whole path segment, not a substring', () => {
-    // Owner 7 must not be satisfied by owner 77's key, which contains "7".
-    expect(keyBelongsTo('atelier/stills/77/x.png', 7)).toBe(false);
-    expect(keyBelongsTo('atelier/stills/7/x.png', 7)).toBe(true);
-    // Nor by the digit appearing inside a hash.
-    expect(keyBelongsTo('atelier/stills/99/thumbs/7abc.webp', 7)).toBe(false);
+  it('refuses a job namespace belonging to a DIFFERENT job', () => {
+    // My first guard asked only whether the owner's id appeared as some segment, so
+    // `jobs/7/frame.webp` passed for owner 7 — where that 7 is a JOB id in another
+    // tenant's namespace. Anchoring on the row's own jobId is what closes it.
+    const other = '99999999-2222-3333-4444-555555555555';
+    expect(keyOwnedByRow(`jobs/${other}/poster.webp`, { ownerUserId: 7, jobId: JOB })).toBe(false);
+    expect(keyOwnedByRow(`jobs/${JOB}/poster.webp`, { ownerUserId: 7, jobId: JOB })).toBe(true);
+  });
+
+  it('anchors the owner at its POSITION, not anywhere in the path', () => {
+    expect(keyOwnedByRow('atelier/stills/77/x.png', { ownerUserId: 7 })).toBe(false);
+    expect(keyOwnedByRow('atelier/stills/7/x.png', { ownerUserId: 7 })).toBe(true);
+    // The owner's id appearing DEEPER in someone else's path must not count.
+    expect(keyOwnedByRow('atelier/stills/99/thumbs/7.webp', { ownerUserId: 7 })).toBe(false);
+  });
+
+  it('refuses a namespace this system does not write', () => {
+    expect(keyOwnedByRow('waivers/7/signed.pdf', { ownerUserId: 7 })).toBe(false);
+    expect(keyOwnedByRow('7', { ownerUserId: 7 })).toBe(false);
+  });
+
+  it('refuses empty and relative segments', () => {
+    expect(keyOwnedByRow('atelier/stills/7/../../x.png', { ownerUserId: 7 })).toBe(false);
+    expect(keyOwnedByRow('atelier/stills/7//x.png', { ownerUserId: 7 })).toBe(false);
   });
 
   it('a numeric owner matches its string segment', () => {
-    expect(keyBelongsTo('atelier/stills/7/x.png', '7')).toBe(true);
+    expect(keyOwnedByRow('atelier/stills/7/x.png', { ownerUserId: '7' })).toBe(true);
+  });
+
+  it('a legitimate video poster in the job namespace IS shown', () => {
+    // The whole point. My first guard failed this closed, which would have left every
+    // properly-produced clip as the grey box this slice exists to remove.
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'video',
+      r2Key: A_MP4, posterR2Key: `jobs/${JOB}/poster.webp` })).toBe(`jobs/${JOB}/poster.webp`);
   });
 });

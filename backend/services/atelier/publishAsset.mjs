@@ -31,6 +31,7 @@
  * Injected model + URL signer so the suite runs without a DB or R2.
  */
 
+import { keyOwnedByRow } from './assetKeyOwnership.mjs';
 import { ComposeError } from './composeLimits.mjs';
 
 export class PublishError extends ComposeError {
@@ -162,6 +163,17 @@ export async function publishedReference({ id, userId, publicBase = '' }, deps =
   if (asset.approvalStatus !== 'published') {
     return { ...base, readUrl: null, snippet: null, withheld: `not published (status: ${asset.approvalStatus})` };
   }
+  // WHOSE OBJECT, not just which. `r2Key` on a video row is caller-supplied: it arrives
+  // from the body of POST /api/render-agents/jobs/:jobId/complete and `verifyObject` (when
+  // it runs at all) checks that an object EXISTS at that key, never that the key is ours.
+  // `generatePlaybackUrl` presigns anything. The library learned this and started checking;
+  // this signer reads the same unvalidated field and must apply the same rule, or the
+  // guard is one half of a pair — which is what a review of the library sweep concluded
+  // by asking "which object" at each signing site and never "whose".
+  if (!keyOwnedByRow(asset.r2Key, asset)) {
+    return { ...base, readUrl: null, snippet: null,
+      withheld: 'the stored object key is not one this system wrote for this asset' };
+  }
   const readUrl = await d.readUrl(asset.r2Key, asset.mime);
   // THE STABLE REFERENCE. A signed URL expires (4h default) — pasting it into a site
   // means every image 403s after lunch, and unpublishing cannot retract a URL already
@@ -190,5 +202,9 @@ export async function resolvePublic({ id }, deps = {}) {
   const d = { ...(Object.keys(deps).length ? {} : await defaultDeps()), ...deps };
   const asset = await d.assetModel.findOne({ where: { id: String(id || ''), approvalStatus: 'published' } });
   if (!asset) return null;
+  // This route is mounted WITHOUT auth, so it is the least forgiving place in the system to
+  // sign an unvalidated key: a planted `r2Key` on a published row would become a public
+  // signed URL for someone else's object. Same predicate as everywhere else.
+  if (!keyOwnedByRow(asset.r2Key, asset)) return null;
   return { url: await d.readUrl(asset.r2Key, asset.mime), mime: asset.mime };
 }

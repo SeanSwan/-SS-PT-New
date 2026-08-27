@@ -56,70 +56,102 @@ and megabytes of request behind it.
 Two branches, one of which must remember a condition the other does not, is the shape that
 produced sixteen of this subsystem's thirty-one review defects. So the rule is stated once.
 
-## 3. `keyBelongsTo` + `previewKeyFor` — WHOLE (current source, re-spliced at round 6)
+## 3. `keyOwnedByRow` (own module) + `previewKeyFor` — WHOLE (re-spliced at round 7)
+
+`assetKeyOwnership.mjs`:
 
 ```js
 /**
- * DOES THIS KEY BELONG TO THIS ROW'S OWNER?
+ * assetKeyOwnership.mjs — may this row's key be signed?
+ * ============================================================================
  *
- * Every object key this codebase writes for an asset carries the owner as a path segment
- * — `atelier/stills/<userId>/<sha>.<ext>` and `atelier/stills/<userId>/thumbs/<sha>.webp`.
- * That convention is load-bearing here, because signing is a capability: `generateThumbnailUrl`
- * presigns ANY key it is handed, with no prefix restriction, and hands the URL to a browser.
- *
- * WHY A READER VALIDATES WHAT A WRITER STORED. `posterR2Key` on a video row is not written
- * by anything in this repository. It arrives as `...meta` spread from the request body of
- * `POST /api/render-agents/jobs/:jobId/complete` (renderAgentRoutes.mjs:176) into
- * `completeJob`'s rest parameter and on into `MediaAsset` defaults, and NOTHING validates
- * it — `verifyObject` checks `r2Key` only. So an enrolled render agent can store a key
- * pointing anywhere in the bucket, on a row it legitimately owns.
- *
- * Before this slice that was inert, because the library refused to sign non-image rows.
- * Signing video posters is what would have turned it into a presign-anything oracle
- * rendered into the operator's own page. A fix belongs at the writer too, but the reader
- * must not be the component that trusts an unvalidated field — it is the one holding the
- * signing capability.
- *
- * FAIL CLOSED. An unrecognised key yields no preview, which costs a placeholder. Trusting
- * it costs a signed URL for someone else's object. Note for whoever adds a real video
- * poster writer: PUT THE OWNER IN THE KEY, as every other writer here does, or this will
- * (correctly) refuse to show it.
+ * Its own module because it has TWO consumers — the library's preview signer and the
+ * publish/permalink signer — and the defect class this subsystem produces above all others
+ * is a rule that exists in two places and is updated in one. Copying this predicate into
+ * `publishAsset.mjs` would have been that defect, committed in the fix for it.
  */
-export function keyBelongsTo(key, ownerUserId) {
-  if (typeof key !== 'string' || !key || ownerUserId === null || ownerUserId === undefined) return false;
-  return key.split('/').includes(String(ownerUserId));
-}
 
+/**
+ * IS THIS KEY ONE THIS SYSTEM COULD HAVE WRITTEN FOR THIS ROW?
+ *
+ * Signing is a capability. `generateThumbnailUrl` presigns ANY key it is handed, with no
+ * prefix restriction, and the URL goes to a browser. So the key has to be checked, and the
+ * check has to be anchored to something the caller cannot choose.
+ *
+ * WHY A READER VALIDATES WHAT A WRITER STORED. `posterR2Key` on a video row is written by
+ * nothing in this repository. It arrives as `...meta` spread from the body of
+ * `POST /api/render-agents/jobs/:jobId/complete` (renderAgentRoutes.mjs:176) into
+ * `completeJob`'s rest parameter and on into `MediaAsset` defaults, unvalidated —
+ * `verifyObject` checks `r2Key` only. An enrolled agent can therefore store a key pointing
+ * anywhere in the bucket, on a row it legitimately owns.
+ *
+ * THE TWO NAMESPACES THIS SYSTEM WRITES, each anchored to an id ON THE ROW:
+ *
+ *   atelier/stills/<ownerUserId>/...   persistStills.mjs:52 and stillThumbnail.mjs:35
+ *   jobs/<jobId>/...                   r2KeyForJob (videoRenderJobService.mjs:55)
+ *
+ * MY FIRST VERSION OF THIS GOT IT WRONG IN BOTH DIRECTIONS, and both seats caught it.
+ * It asked only "does the owner's id appear as SOME segment", which is
+ *   - TOO STRICT: a legitimate video poster is `jobs/<jobId>/...` and carries no user id at
+ *     all, so every properly-produced clip would have failed closed into the very grey box
+ *     this slice exists to remove; and
+ *   - TOO LOOSE: `jobs/7/frame.webp` passed for owner 7 even though that 7 is a JOB id in
+ *     another tenant's namespace — precisely the signed URL the check exists to refuse.
+ * A segment-anywhere test written against one writer's convention, applied to two writers.
+ * The pair defect again, this time in the guard against it.
+ *
+ * Position matters, namespace matters, and the anchor is the row's own id — never a value
+ * from the payload. `jobId` is a UUID, so it cannot collide with a numeric user id.
+ *
+ * Empty and relative segments are refused outright. S3 keys are opaque strings and do not
+ * resolve `..`, so this is not traversal defence; it keeps the invariant simple enough to
+ * state, which is worth more here than the case it excludes.
+ *
+ * FAIL CLOSED: an unrecognised key yields a placeholder. Trusting it yields a signed URL
+ * for someone else's object. A new writer must use one of the two namespaces above.
+ */
+export function keyOwnedByRow(key, row) {
+  if (typeof key !== 'string' || !key || !row) return false;
+  const seg = key.split('/');
+  if (seg.some((x) => !x || x === '.' || x === '..')) return false;
+
+  if (seg.length >= 4 && seg[0] === 'atelier' && seg[1] === 'stills') {
+    return row.ownerUserId !== null && row.ownerUserId !== undefined
+      && seg[2] === String(row.ownerUserId);
+  }
+  if (seg.length >= 3 && seg[0] === 'jobs') {
+    return row.jobId !== null && row.jobId !== undefined && seg[1] === String(row.jobId);
+  }
+  return false;
+}
+```
+
+`assetPreviews.mjs`:
+
+```js
 /**
  * WHICH OBJECT A CARD SHOWS — one rule, deliberately not two branches.
  *
- * A card is a picture of the asset. Three facts decide the key, and they compose:
- *
- *   1. A poster is PREFERRED when there is one. It is the ~30 KB WebP the thumbnail slice
- *      writes for a still, and the frame a video writer would record for a clip. Same
- *      column, same meaning, same precedence.
+ *   1. A poster is PREFERRED when there is one — the ~30 KB WebP the thumbnail slice writes
+ *      for a still, or the frame a video writer records for a clip. Same column, same
+ *      meaning, same precedence.
  *   2. Falling back to the primary object is legitimate ONLY when that object is itself a
  *      viewable still. `r2Key` on an image row is a PNG an <img> renders; on a video row it
- *      is an MP4, and signing it hands the browser a movie to decode as a picture — a
- *      guaranteed onError and a wasted signature. On audio there is nothing to look at.
- *   3. Either candidate is signed ONLY if it belongs to this row's owner. See above: one
- *      of the two is caller-supplied and unvalidated, and signing is a capability.
+ *      is an MP4, and signing it hands the browser a movie to decode as a picture. On audio
+ *      there is nothing to look at.
+ *   3. Either candidate is signed ONLY if `keyOwnedByRow` recognises it. One of the two is
+ *      caller-supplied and unvalidated, and signing is a capability.
  *
- * WHY THIS IS ONE FUNCTION AND NOT AN `if (kind === 'video')` BESIDE THE IMAGE PATH.
- * The dominant defect class in this subsystem is a rule applied to one half of a pair —
- * sixteen of the review loop's thirty-one defects, and four more found during this slice —
- * and in every case the comment above the code was accurate about the branch its author was
- * looking at. Adding guards never stopped it; deleting the second copy did. So precedence is
- * stated once, the fallback carries its own condition, and the ownership check is applied to
- * whatever is about to be signed rather than to the candidate someone remembered.
+ * The three compose in one function rather than an image branch beside a video branch,
+ * because a rule applied to one half of a pair is what this subsystem produces when left to.
  *
  * Returns null when there is nothing showable — a degraded card, never an error.
  */
 export function previewKeyFor(row) {
   if (!row) return null;
-  if (keyBelongsTo(row.posterR2Key, row.ownerUserId)) return row.posterR2Key;
+  if (keyOwnedByRow(row.posterR2Key, row)) return row.posterR2Key;
   const original = row.kind === 'image' ? row.r2Key : null;
-  return keyBelongsTo(original, row.ownerUserId) ? original : null;
+  return keyOwnedByRow(original, row) ? original : null;
 }
 ```
 
@@ -1163,3 +1195,109 @@ styles were not. Sixth finding in six rounds traceable to what the packet omitte
 
 Backend atelier glob **593/593 across 41 suites**. Frontend studio **141/141 across 15**.
 Line cap and frontend guards clean on all six touched files.
+
+---
+
+# ROUND 7 — both seats independently found the same thing, and they were right
+
+**GLM: REVISE** (3 P1, 2 P2). **Qwen: REVISE, P0** — and for once its blocker is real, and
+**identical to GLM's first one**. Two seats converging independently is the strongest signal
+this loop has produced.
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 (both) | The guard encodes the *stills* convention, so a legitimate video poster fails closed | **CONFIRMED. Guard rewritten** |
+| 2 (GLM) | Segment-anywhere: `jobs/7/…` passes for owner 7 where 7 is a *job* id | **CONFIRMED. Same rewrite** |
+| 3 (GLM) | `publishAsset` signs the same unvalidated field; §10 blessed it with the wrong question | **CONFIRMED. Guarded, both sites** |
+| 4 (GLM) | `attempted >= 2` cannot separate purge from broken signer | **DISPROVEN — on a premise the module already states** |
+| 5 (GLM) | The marker's contrast is unverified | **DISPROVEN — computed 6.22:1** |
+
+## Findings 1 and 2 — my guard was wrong in both directions at once
+
+Round 6's `keyBelongsTo` asked only *"does the owner's id appear as some segment"*. That was
+written against `persistStills`' convention and applied to two writers.
+
+- **Too strict.** A legitimate video poster is `jobs/<jobId>/…` (`r2KeyForJob`,
+  `videoRenderJobService.mjs:55`) and contains no user id at all. Every properly-produced
+  clip would have failed closed into the exact grey box this slice exists to remove — the
+  headline dead on arrival, and the docstring asserting a convention that is true of one
+  writer would have become the documentation future writers trusted.
+- **Too loose.** `jobs/7/frame.webp` passed for owner 7, where that `7` is a **job** id in
+  another tenant's namespace — the precise signed URL the guard exists to refuse.
+
+A rule derived from one half of a pair and applied to both. **In the guard against that
+defect.** Fourth distinct instance in this slice; both seats saw it and I did not, across
+six rounds of attacking exactly this shape.
+
+`keyOwnedByRow(key, row)` now checks **namespace and position, anchored to an id on the
+row** — never a value from the payload:
+
+```
+atelier/stills/<ownerUserId>/…    persistStills.mjs:52, stillThumbnail.mjs:35
+jobs/<jobId>/…                    r2KeyForJob, videoRenderJobService.mjs:55
+```
+
+`jobId` is a UUID, so it cannot collide with a numeric user id — the `jobs/7/…` attack is
+structurally dead, not merely filtered. Empty and relative segments are refused: S3 keys are
+opaque and do not resolve `..`, so that is not traversal defence, it keeps the invariant
+small enough to state.
+
+It lives in **its own module** (`assetKeyOwnership.mjs`) because it now has two consumers.
+Copying it into `publishAsset.mjs` would have been the duplication this entire document is
+about, committed inside the fix for it.
+
+## Finding 3 — I cleared this myself, with the wrong question
+
+§10's sweep asked *which object* each signing sibling reads and never *whose*. `publishAsset`
+signs `asset.r2Key`, which on a video row arrives from the same unvalidated request body.
+`resolvePublic` is worse than GLM stated: it is **mounted without auth**, so a planted key on
+a published row becomes a *public* signed URL for another tenant's object.
+
+Both sites now apply the same predicate — `publishedReference` withholds the reference and
+says why; `resolvePublic` resolves to nothing.
+
+**And the guard was untested when first added.** The publish fixture uses
+`atelier/stills/1/x.png` with `ownerUserId: 1`, so it passes the check and never exercises
+it: neutering the predicate left all 15 tests green. Found by falsifying rather than by
+reading, which is the only thing that has ever found this class here.
+
+## Finding 4 — disproven by a line the module already contains
+
+GLM: a lifecycle purge kills two posters, `attempted === failed === 2`, banner blames the
+signer. **Presigning never touches storage.** `generateThumbnailUrl` builds a SigV4 URL
+locally, so a purged object *signs fine* and 404s later in the browser, where `onError`
+turns it into a placeholder. `signPreviews`' own comment says so: *"presigning is a local
+HMAC, not a network call."*
+
+A sign-time failure can therefore only be configuration or credentials — which is what the
+banner claims. **This also corrects my round-3 rationale**, which argued from "one purged
+object" as though a purge could fail signing. The gate survives on the weaker ground that a
+sample of one should not assert a cause; the vivid example I used was wrong.
+
+## Finding 5 — disproven with a number
+
+The marker inherits `AssetMeta span { color: var(--text-secondary, rgba(224,236,244,0.62)) }`
+over `AssetCard`'s `var(--surface-dark, #1A1A24)`. Composited: `rgb(149,156,165)`.
+**6.22:1** against the card — above the 4.5:1 rule. (`strong` is 14.36:1.)
+
+## And something I found while counting: the handoff's verification command is blind to new files
+
+§5's backend command selects test files by KEYWORD. `assetPreviewKey.test.mjs` matches none
+of them, so **20 tests — every ownership-guard assertion, the security-critical ones — are
+invisible to the command the handoff tells the next agent to trust.**
+
+It also means my own round numbers were not continuous: from round 2 I had quietly widened
+the glob with `assetPreview`, so "560 → 593" was never the same command twice. Stated plainly
+rather than left to look like growth.
+
+- Handoff's glob, unchanged, now: **582/582 across 40** (was 560/560 across 39)
+- Extended to cover every file this slice touches: **696/696 across 53**
+- Full backend: **9879 passed / 6 failed** — the same six, +42 passed
+
+A keyword glob cannot see work that does not exist yet. Same class as the `node:test` blind
+spot from round 2: a test that cannot be seen to fail. Recorded for whoever fixes either.
+
+## Round-7 verification
+
+Falsifying the predicate reddens **10** tests across both consumers. Frontend **141/141**.
+Line cap and secret scan clean on all six touched backend files.

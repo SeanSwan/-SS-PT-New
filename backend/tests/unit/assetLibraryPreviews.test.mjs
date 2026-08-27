@@ -10,6 +10,8 @@
 import { describe, it, expect } from 'vitest';
 import { listAssets } from '../../services/atelier/assetLibrary.mjs';
 
+const JOB = '11111111-2222-3333-4444-555555555555';
+
 const Op = { contains: Symbol('contains'), or: Symbol('or'), lt: Symbol('lt') };
 
 const row = (over = {}) => ({
@@ -17,6 +19,7 @@ const row = (over = {}) => ({
   // Real rows always carry this (MediaAsset.ownerUserId is allowNull: false) and the
   // preview signer now reads it: a key is signed only if it belongs to this row's owner.
   ownerUserId: 1,
+  jobId: JOB,
   kind: 'image', mime: 'image/png', width: 1920, height: 1080, sizeBytes: '2048',
   approvalStatus: 'draft', createdAt: new Date('2026-08-26T10:00:00.000Z'),
   r2Key: 'atelier/stills/1/abc.png',
@@ -80,9 +83,9 @@ describe('the library signs the DERIVATIVE, and falls back rather than losing a 
     const signed = [];
     const readUrl = async (key, mime) => { signed.push([key, mime]); return `https://cdn.example/${key}?sig=abc`; };
     const out = await listAssets({ userId: 1 }, {
-      assetModel: model([row({ posterR2Key: 'atelier/stills/1/thumbs/deadbeef.webp' })]), Op, readUrl,
+      assetModel: model([row({ posterR2Key: `atelier/stills/1/thumbs/deadbeef.webp` })]), Op, readUrl,
     });
-    expect(signed[0][0]).toBe('atelier/stills/1/thumbs/deadbeef.webp');
+    expect(signed[0][0]).toBe(`atelier/stills/1/thumbs/deadbeef.webp`);
     expect(signed[0][1]).toBeUndefined();   // one argument, because the real signer takes one
     expect(out.assets[0].previewUrl).toContain('/thumbs/');
   });
@@ -103,7 +106,7 @@ describe('the library signs the DERIVATIVE, and falls back rather than losing a 
 describe('a clip has a poster, and it was never signed', () => {
   const model = (rows) => ({ findAll: async () => rows });
   const clip = (over = {}) => row({
-    kind: 'video', mime: 'video/mp4', r2Key: 'atelier/video/1/clip.mp4', ...over,
+    kind: 'video', mime: 'video/mp4', r2Key: `jobs/${JOB}/source.mp4`, ...over,
   });
 
   it('signs the POSTER of a video, so a clip stops being a grey box', async () => {
@@ -113,9 +116,9 @@ describe('a clip has a poster, and it was never signed', () => {
     const signed = [];
     const readUrl = async (key) => { signed.push(key); return `https://cdn.example/${key}?sig=abc`; };
     const out = await listAssets({ userId: 1 }, {
-      assetModel: model([clip({ posterR2Key: 'atelier/video/1/poster.webp' })]), Op, readUrl,
+      assetModel: model([clip({ posterR2Key: `jobs/${JOB}/poster.webp` })]), Op, readUrl,
     });
-    expect(signed).toEqual(['atelier/video/1/poster.webp']);
+    expect(signed).toEqual([`jobs/${JOB}/poster.webp`]);
     expect(out.assets[0].previewUrl).toContain('poster.webp');
   });
 
@@ -127,7 +130,7 @@ describe('a clip has a poster, and it was never signed', () => {
     // problem the marker exists to prevent. Asserted here through the real `assetView`.
     const readUrl = async (key) => `https://cdn.example/${key}`;
     const out = await listAssets({ userId: 1 }, {
-      assetModel: model([clip({ posterR2Key: 'atelier/video/1/poster.webp' })]), Op, readUrl,
+      assetModel: model([clip({ posterR2Key: `jobs/${JOB}/poster.webp` })]), Op, readUrl,
     });
     expect(out.assets[0].kind).toBe('video');
   });
@@ -154,11 +157,11 @@ describe('a clip has a poster, and it was never signed', () => {
     const readUrl = async (key) => { signed.push(key); return 'https://cdn/x'; };
     await listAssets({ userId: 1 }, {
       assetModel: model([
-        row({ kind: 'audio', r2Key: 'atelier/audio/1/take.mp3', posterR2Key: 'atelier/audio/1/cover.webp' }),
-        row({ id: 'b', kind: 'audio', r2Key: 'atelier/audio/1/other.mp3', posterR2Key: null }),
+        row({ kind: 'audio', r2Key: `atelier/stills/1/take.mp3`, posterR2Key: `atelier/stills/1/thumbs/cover.webp` }),
+        row({ id: 'b', kind: 'audio', r2Key: `atelier/stills/1/other.mp3`, posterR2Key: null }),
       ]), Op, readUrl,
     });
-    expect(signed).toEqual(['atelier/audio/1/cover.webp']);
+    expect(signed).toEqual([`atelier/stills/1/thumbs/cover.webp`]);
   });
 
   it('a page of clips whose posters all fail IS a broken signer', async () => {
@@ -167,8 +170,8 @@ describe('a clip has a poster, and it was never signed', () => {
     const readUrl = async () => { throw new Error('signature key missing'); };
     const out = await listAssets({ userId: 1 }, {
       assetModel: model([
-        clip({ posterR2Key: 'atelier/video/1/a.webp' }),
-        clip({ id: 'b', posterR2Key: 'atelier/video/1/b.webp' }),
+        clip({ posterR2Key: `jobs/${JOB}/a.webp` }),
+        clip({ id: 'b', posterR2Key: `jobs/${JOB}/b.webp` }),
       ]), Op, readUrl,
     });
     expect(out.previewsUnavailable).toBe(true);
@@ -179,8 +182,8 @@ describe('a clip has a poster, and it was never signed', () => {
     const readUrl = async () => { n += 1; if (n === 1) throw new Error('object gone'); return 'https://cdn/ok'; };
     const out = await listAssets({ userId: 1 }, {
       assetModel: model([
-        clip({ posterR2Key: 'atelier/video/1/a.webp' }),
-        clip({ id: 'b', posterR2Key: 'atelier/video/1/b.webp' }),
+        clip({ posterR2Key: `jobs/${JOB}/a.webp` }),
+        clip({ id: 'b', posterR2Key: `jobs/${JOB}/b.webp` }),
       ]), Op, readUrl,
     });
     expect(out.assets[0].previewUrl).toBeNull();

@@ -13,6 +13,8 @@
 import { describe, it, expect } from 'vitest';
 import { listAssets } from '../../services/atelier/assetLibrary.mjs';
 
+const JOB = '11111111-2222-3333-4444-555555555555';
+
 const Op = { contains: Symbol('contains'), or: Symbol('or'), lt: Symbol('lt') };
 
 const row = (over = {}) => ({
@@ -20,6 +22,7 @@ const row = (over = {}) => ({
   // Real rows always carry this (MediaAsset.ownerUserId is allowNull: false) and the
   // preview signer now reads it: a key is signed only if it belongs to this row's owner.
   ownerUserId: 1,
+  jobId: JOB,
   kind: 'image', mime: 'image/png', width: 1920, height: 1080, sizeBytes: '2048',
   approvalStatus: 'draft', createdAt: new Date('2026-08-26T10:00:00.000Z'),
   r2Key: 'atelier/stills/1/abc.png',
@@ -63,7 +66,7 @@ describe('one bad object and a broken signer are different facts', () => {
 
 describe('a diagnosis needs more evidence than a flag does', () => {
   const model = (rows) => ({ findAll: async () => rows });
-  const clip = (over = {}) => row({ kind: 'video', mime: 'video/mp4', r2Key: 'atelier/video/1/clip.mp4', ...over });
+  const clip = (over = {}) => row({ kind: 'video', mime: 'video/mp4', r2Key: `jobs/${JOB}/source.mp4`, ...over });
 
   it('does NOT claim a misconfigured signer when only one object was signable', async () => {
     // 23 posterless rows and one purged poster reaches failed === attempted just as easily
@@ -72,7 +75,7 @@ describe('a diagnosis needs more evidence than a flag does', () => {
     const errs = [];
     const spy = console.error; console.error = (m) => errs.push(String(m));
     try {
-      const rows = [clip({ posterR2Key: 'atelier/video/1/gone.webp' })];
+      const rows = [clip({ posterR2Key: `jobs/${JOB}/gone.webp` })];
       for (let i = 0; i < 23; i += 1) rows.push(clip({ id: `n${i}`, posterR2Key: null }));
       const out = await listAssets({ userId: 1 }, {
         assetModel: model(rows), Op, readUrl: async () => { throw new Error('object gone'); },
@@ -94,7 +97,7 @@ describe('a diagnosis needs more evidence than a flag does', () => {
     try {
       await listAssets({ userId: 1 }, {
         assetModel: model([
-          clip({ posterR2Key: 'atelier/video/1/a.webp' }), clip({ id: 'b', posterR2Key: 'atelier/video/1/b.webp' }),
+          clip({ posterR2Key: `jobs/${JOB}/a.webp` }), clip({ id: 'b', posterR2Key: `jobs/${JOB}/b.webp` }),
         ]), Op, readUrl: async () => { throw new Error('signature key missing'); },
       });
       expect(errs.join(' ')).toMatch(/misconfigured/);
