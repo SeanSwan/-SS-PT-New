@@ -112,6 +112,8 @@ export function recordSpend({ model, topic, usd, note = '' }) {
   // class this function was rewritten to close. Caught by the author attacking the
   // author's own prompt list for the review panel (2026-08-25), before any seat did.
   const priced = isPriced(usd);
+  // Settle the in-flight hold first: the real row below is now the truth.
+  try { releaseReservation({ model, topic }); } catch { /* non-fatal */ }
   appendFileSync(LEDGER, `${JSON.stringify({
     ts: new Date().toISOString(), model, topic,
     usd: priced ? Number(usd) : null,
@@ -136,6 +138,70 @@ export function topicFromPath(p) {
     .slice(0, 60) || 'untitled';
 }
 
+// --- RESERVATIONS: the caps must count calls that are in flight ---------------
+//
+// GLM 5.3-flash round-3 F1, reproduced: twenty concurrent sol calls (~$0.31 each)
+// against a $5.00 day cap were ALL allowed — $6.20 approved. Each one read
+// spentToday = $0 and compared only its own worst case. The atomic claim fixed
+// token REDEMPTION; this is the common case, and Claude Code issuing parallel tool
+// calls is ordinary rather than exotic.
+//
+// APPEND-ONLY, because the obvious fix has the bug it is fixing. A shared counter
+// read-modify-written by N processes is exactly the race being closed, one level up.
+// So a reservation is an appended row and a release is another appended row; the
+// outstanding total is a fold over the file. `appendFileSync` of a short line is
+// atomic on both POSIX (O_APPEND) and Windows, so concurrent writers interleave
+// whole lines rather than corrupting each other.
+//
+// TTL, because a crashed caller must not hold budget forever. A reservation older
+// than the window is ignored — the same reasoning as the orphaned claim: a guard
+// that can permanently withhold budget on a crash is broken in the safer direction.
+const RESERVATIONS = join(SPEND_DIR, 'reservations.jsonl');
+const RESERVATION_TTL_MS = 10 * 60_000;
+
+function readReservations() {
+  if (!existsSync(RESERVATIONS)) return [];
+  const cutoff = Date.now() - RESERVATION_TTL_MS;
+  const rows = readFileSync(RESERVATIONS, 'utf-8').split(/\r?\n/).filter(Boolean)
+    .map((l) => { try { return JSON.parse(l); } catch { return null; } })
+    .filter((r) => r && Date.parse(r.ts) >= cutoff);
+  // Fold releases against reserves, oldest first, matched on model+topic.
+  const released = new Map();
+  for (const r of rows) {
+    if (r.kind !== 'release') continue;
+    const k = `${r.model}|${r.topic}`;
+    released.set(k, (released.get(k) || 0) + 1);
+  }
+  const live = [];
+  for (const r of rows) {
+    if (r.kind !== 'reserve') continue;
+    const k = `${r.model}|${r.topic}`;
+    const owed = released.get(k) || 0;
+    if (owed > 0) { released.set(k, owed - 1); continue; } // this one already settled
+    live.push(r);
+  }
+  return live;
+}
+
+/** Hold budget for a call the gate is about to allow. */
+export function reserveSpend({ model, topic, usd }) {
+  ensureDir();
+  appendFileSync(RESERVATIONS, `${JSON.stringify({
+    ts: new Date().toISOString(), kind: 'reserve', model, topic, usd: isPriced(usd) ? Number(usd) : null,
+  })}\n`, 'utf-8');
+}
+
+/**
+ * Settle the oldest reservation for this model+topic, so a completed call is
+ * counted once (by its real ledger row) rather than twice.
+ */
+export function releaseReservation({ model, topic }) {
+  if (!existsSync(RESERVATIONS)) return;
+  appendFileSync(RESERVATIONS, `${JSON.stringify({
+    ts: new Date().toISOString(), kind: 'release', model, topic,
+  })}\n`, 'utf-8');
+}
+
 /**
  * The dollar value a ledger row contributes to a cap. Unpriced rows (usd null)
  * count as the per-call cap: the one direction an unknown cost is allowed to err.
@@ -146,12 +212,18 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export function spentToday(entries = readLedger()) {
   const d = today();
-  return entries.filter((e) => (e.ts || '').startsWith(d)).reduce((s, e) => s + rowUsd(e), 0);
+  const settled = entries.filter((e) => (e.ts || '').startsWith(d)).reduce((s, e) => s + rowUsd(e), 0);
+  // Calls in flight count too, or twenty concurrent ones each see $0 (flash F1).
+  const inFlight = readReservations()
+    .filter((r) => (r.ts || '').startsWith(d)).reduce((s, r) => s + rowUsd(r), 0);
+  return settled + inFlight;
 }
 
 export function spentOnTopic(topic, entries = readLedger()) {
   if (!topic) return 0;
-  return entries.filter((e) => e.topic === topic).reduce((s, e) => s + rowUsd(e), 0);
+  const settled = entries.filter((e) => e.topic === topic).reduce((s, e) => s + rowUsd(e), 0);
+  const inFlight = readReservations().filter((r) => r.topic === topic).reduce((s, r) => s + rowUsd(r), 0);
+  return settled + inFlight;
 }
 
 /** Single-use approval tokens, keyed by the exact breach they were issued for. */
@@ -165,8 +237,17 @@ function writeTokens(t) { ensureDir(); writeFileSync(TOKENS, JSON.stringify(t, n
  * Redeem a token by ATOMICALLY creating a claim file. Returns true for the one
  * caller that wins, false for every other.
  *
- * `flag: 'wx'` opens with O_CREAT|O_EXCL, which the operating system guarantees is
- * atomic — if the path exists the call fails with EEXIST and cannot be interleaved.
+ * `flag: 'wx'` opens with O_CREAT|O_EXCL, which is atomic ON LOCAL DISK — if the path
+ * exists the call fails with EEXIST and cannot be interleaved.
+ *
+ * SCOPE OF THAT GUARANTEE (GLM 5.3-flash round-3 F3, and the correction is his): it
+ * holds on local ext4/NTFS/APFS and is honoured by SMB2's exclusive-create
+ * disposition, but O_EXCL is NOT guaranteed on NFSv3 — a known limitation of that
+ * protocol, not of this code. An earlier version of this comment said "the operating
+ * system guarantees", full stop, which is the same overclaiming this workstream keeps
+ * having to walk back. **SPEND_DIR must live on local disk.** It defaults to
+ * `.ai-workflow/spend/` inside the repo; if SWAN_SPEND_DIR is ever pointed at a
+ * network mount, this guarantee weakens and the double-spend it prevents comes back.
  * That is the whole mechanism: no lock to acquire, nothing to release, and no
  * window between "check" and "set" for a second process to slip through.
  *

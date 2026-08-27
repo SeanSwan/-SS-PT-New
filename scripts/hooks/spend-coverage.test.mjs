@@ -25,22 +25,44 @@ import { CREDENTIAL_MARKERS, FREE_ALLOWLIST, KNOWN_UNGATED, invokesPaidSeat } fr
 const SCRIPTS = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Every .mjs under scripts/ and scripts/context-gateway/src/, as repo-ish paths. */
-function candidateScripts() {
+function candidateScripts(dir = SCRIPTS, depth = 0) {
+  // RECURSIVE. It used to walk exactly two flat directories, so a credential-bearing
+  // script in scripts/lib/, scripts/hooks/, or anywhere deeper was invisible and the
+  // contract passed green forever (GLM 5.3 F5 and 5.3-flash B3, independently).
+  //
+  // The old positive control could not have noticed: it asserted only that the walk
+  // found more than five files and included consult-fable.mjs — both true of a blind
+  // walk. An instrument check that cannot detect the instrument being blind is the
+  // same class of defect as the thing it is guarding.
   const out = [];
-  const dirs = [SCRIPTS, join(SCRIPTS, 'context-gateway', 'src')];
-  for (const dir of dirs) {
-    if (!existsSync(dir)) continue;
-    for (const name of readdirSync(dir)) {
-      if (!name.endsWith('.mjs') || name.endsWith('.test.mjs')) continue;
-      out.push(join(dir, name));
-    }
+  if (!existsSync(dir) || depth > 6) return out;
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
+    const full = join(dir, e.name);
+    if (e.isDirectory()) { out.push(...candidateScripts(full, depth + 1)); continue; }
+    if (!e.name.endsWith('.mjs') || e.name.endsWith('.test.mjs')) continue;
+    out.push(full);
   }
   return out;
 }
 
+/**
+ * USES a payment credential, not merely NAMES one.
+ *
+ * The first version tested `src.includes(marker)`, which flagged this file's own
+ * siblings — `spend-guard-gate.mjs`, `paid-seats.mjs`, `secret-read-gate.mjs` all
+ * contain those strings precisely because they are the guards that look for them.
+ * The recursive walk surfaced that immediately: six new hits, three of them the
+ * machinery doing the checking.
+ *
+ * `process.env.<MARKER>` is the difference between reading a key and talking about
+ * one. A grep loose enough to flag its own guard is a grep that trains people to
+ * add exemptions, and every exemption added for a false positive is a place a real
+ * one can later hide.
+ */
 const spendsMoney = (file) => {
   const src = readFileSync(file, 'utf-8');
-  return CREDENTIAL_MARKERS.some((m) => src.includes(m));
+  return CREDENTIAL_MARKERS.some((m) => src.includes(`process.env.${m}`));
 };
 
 /** How the gate would see a normal invocation of this script. */
@@ -56,6 +78,15 @@ test('the walker actually finds scripts — validate the instrument first', () =
   const all = candidateScripts();
   assert.ok(all.length > 5, `expected to walk several scripts, found ${all.length}`);
   assert.ok(all.some((f) => f.endsWith('consult-fable.mjs')), 'the known paid seat must be in the walk');
+
+  // DEPTH is the part the old control missed. Asserting "more than five files, and
+  // consult-fable is present" is true of a walk that never descends, so it certified
+  // a blind instrument for two rounds. Name files that only exist BELOW the top level.
+  const rel = all.map((f) => relative(SCRIPTS, f).replaceAll('\\', '/'));
+  for (const deep of ['lib/spend-ledger.mjs', 'hooks/spend-guard-gate.mjs', 'context-gateway/src/consult.mjs']) {
+    assert.ok(rel.includes(deep), `the walk must descend: ${deep} is missing, so the contract is blind below the top level`);
+  }
+  assert.ok(rel.some((f) => f.split('/').length > 2), 'at least one file two levels deep');
 });
 
 test('the credential grep actually discriminates', () => {
@@ -116,6 +147,10 @@ test('CONTRACT: KNOWN_UNGATED is FROZEN — the exact key set, not merely reason
     'context-gateway/src/consult.mjs',
     'context-gateway/src/transport.mjs',
     'hermes-village.mjs',
+    // Added 2026-08-27 when the walker became recursive. A LIBRARY entry, not new
+    // debt: preflight reads a key only to check it exists before an AI-invoking
+    // script runs. This assertion failing is what made adding it a deliberate act.
+    'lib/preflight.mjs',
     'validation-orchestrator.mjs',
   ], [
     'KNOWN_UNGATED changed. That list is FROZEN pre-existing debt, not a place to put',

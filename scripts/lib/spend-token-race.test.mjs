@@ -247,6 +247,45 @@ test('reclaiming does NOT reopen the race — still exactly one winner', async (
   rmSync(dir, { recursive: true, force: true });
 });
 
+test('F1: calls IN FLIGHT count toward the caps', async () => {
+  // GLM 5.3-flash round-3 F1, reproduced before fixing: twenty concurrent sol calls
+  // (~$0.31 each) against a $5.00 day cap were ALL allowed — $6.20 approved. Each one
+  // read spentToday = $0 and compared only its own worst case. The atomic claim fixed
+  // token REDEMPTION; this is the ordinary case, since this harness issues parallel
+  // tool calls routinely.
+  const { dir, mod } = await freshLedger();
+  assert.equal(mod.spentToday(), 0, 'control: a clean ledger starts at zero');
+  mod.reserveSpend({ model: 'gpt-5.6-sol-pro', topic: 'p', usd: 0.31 });
+  mod.reserveSpend({ model: 'gpt-5.6-sol-pro', topic: 'p', usd: 0.31 });
+  assert.ok(Math.abs(mod.spentToday() - 0.62) < 1e-9, 'two holds must be visible to the day cap');
+  assert.ok(Math.abs(mod.spentOnTopic('p') - 0.62) < 1e-9, 'and to the topic cap');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('F1: a completed call is counted ONCE, not twice', async () => {
+  // The reservation is a hold, not a second charge. recordSpend settles the oldest
+  // matching hold before appending the real row, so a finished call does not sit in
+  // both columns — which would make the caps fire at half the real budget and train
+  // exactly the wave-through this whole file argues against.
+  const { dir, mod } = await freshLedger();
+  mod.reserveSpend({ model: 'gpt-5.6-sol-pro', topic: 'p', usd: 0.31 });
+  mod.recordSpend({ model: 'gpt-5.6-sol-pro', topic: 'p', usd: 0.29 });
+  assert.ok(Math.abs(mod.spentOnTopic('p') - 0.29) < 1e-9,
+    `expected only the real 0.29, got ${mod.spentOnTopic('p')} — the hold was double-counted`);
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('F1: a stale hold expires — a crash must not withhold budget forever', async () => {
+  // Same reasoning as the orphaned claim: a guard that can permanently deny budget
+  // on a crash is broken in the safer direction, not fail-closed.
+  const { dir, mod } = await freshLedger();
+  const old = new Date(Date.now() - 30 * 60_000).toISOString();
+  writeFileSync(join(dir, 'reservations.jsonl'),
+    `${JSON.stringify({ ts: old, kind: 'reserve', model: 'x', topic: 'p', usd: 99 })}\n`, 'utf-8');
+  assert.equal(mod.spentOnTopic('p'), 0, 'a hold past the TTL must not count');
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test('spawnSync is available for the harness (instrument check)', () => {
   // Guards against the harness silently degrading: if the parallel test above ever
   // cannot spawn, it must fail loudly rather than pass with zero children.

@@ -23,6 +23,19 @@
  * WHY CREDENTIALS AND NOT NAMES. Names rot; a grep for a payment credential does
  * not. A new seat added next month is caught because it must read an API key to
  * spend, whatever it is called and wherever it sits.
+ *
+ * KNOWN GAP — DELEGATION (GLM 5.3-flash round-3 F6, accepted). That premise is false
+ * for wrappers. A script that `spawn()`s `node scripts/consult-fable.mjs` contains no
+ * credential literal, so the coverage contract passes it, AND its own command text
+ * names no seat, so the gate ignores it. Both controls miss the same class.
+ *
+ * The two Village entries in KNOWN_UNGATED are exactly that shape, admitted by hand —
+ * which is the tell: the contract could not have found them. It cannot find the next
+ * one either. A marker that greps for the SEAT NAMES themselves (not just credentials)
+ * would close it, and is not built here because it needs its own design pass: seat
+ * names appear in docs, tests and this very file, so a naive version would flag the
+ * whole repo and get switched off. Recorded rather than papered over — the contract's
+ * "no third option" claim is true for direct callers and NOT for delegating ones.
  */
 
 /**
@@ -77,6 +90,10 @@ export const KNOWN_UNGATED = {
   'hermes-village.mjs':
     'Wraps the Village runner, so it inherits the same in-process controls — including the '
     + 'ledger reconciliation landed 2026-08-26.',
+  'lib/preflight.mjs':
+    'LIBRARY. It reads a credential only to CHECK the key is present before an AI-invoking '
+    + 'script runs; it makes no call of its own. Surfaced 2026-08-27 when the coverage walker '
+    + 'became recursive after two rounds of being blind below the top level.',
   'context-gateway/src/consult.mjs':
     'LIBRARY, not an entrypoint (verified 2026-08-27: no shebang, no self-invocation guard, so '
     + 'running it directly defines exports and exits, spending nothing). Listed EXPLICITLY because '
@@ -134,7 +151,7 @@ export const KNOWN_UNGATED = {
  * roster already knows about is cheaper to widen than to remember.
  */
 export const PAID_INVOCATION =
-  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?(consult-[a-z0-9-]+|forge-[a-z0-9-]+|context-gateway[/\\]src[/\\]consult)[.]mjs/;
+  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?(consult-[a-z0-9-]+|forge-[a-z0-9-]+|eval-suite|prompt-mutator|context-gateway[/\\]src[/\\]consult)[.]mjs/;
 
 /**
  * Node flags that mean "do not execute this file". `node --check foo.mjs` parses and

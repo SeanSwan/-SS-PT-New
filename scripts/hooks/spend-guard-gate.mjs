@@ -23,7 +23,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR } from '../lib/spend-ledger.mjs';
+import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR, reserveSpend } from '../lib/spend-ledger.mjs';
 // SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
 // Hand-curating it inside this regex is what drifted in both directions at once.
 import { PAID_INVOCATION, FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, maskQuotedData } from '../lib/paid-seats.mjs';
@@ -80,6 +80,15 @@ const PRICES = {
   // `costUsd: null` on every real generation. recordSpend() treats null as WORST CASE
   // against the caps, so that failure at least errs toward refusal.
   'gpt-5.4-image-2':     [8.0,  15.0],
+
+  // The auto-research tooling, surfaced 2026-08-27 the moment the coverage walker
+  // became recursive — it had been invisible below the top level for two rounds.
+  // google/gemini-3-flash-preview spans $0.25/$1.50 (flex) to $0.90/$5.40 (priority);
+  // worst taken. The `-lite` variant used by prompt-mutator is cheaper by definition,
+  // so it is priced at the same worst case rather than guessed at separately — at a
+  // ~$0.11 estimate the choice cannot change a verdict, and over-stating a cheap seat
+  // is the one direction that costs nothing here.
+  'gemini-3-flash-preview': [0.9, 5.4],
 };
 
 /** Map a consult script to its default model key. */
@@ -104,6 +113,9 @@ const SCRIPT_MODEL = {
   'forge-i2i-influence.mjs': 'gpt-5.4-image-2',
   'forge-i2i-probe.mjs': 'gpt-5.4-image-2',
   'forge-response-shape.mjs': 'gpt-5.4-image-2',
+  // auto-research: an LLM judge and a prompt mutator, both billing through OpenRouter.
+  'eval-suite.mjs': 'gemini-3-flash-preview',
+  'prompt-mutator.mjs': 'gemini-3-flash-preview',
 };
 
 /**
@@ -430,6 +442,19 @@ try {
   if (decision.allow) {
     if (decision.reason === 'second approval accepted') {
       console.error(`[spend-guard] SECOND APPROVAL ACCEPTED — proceeding. ${decision.breach}`);
+    }
+    // HOLD the budget before letting the call run (GLM 5.3-flash F1, reproduced:
+    // twenty concurrent sol calls each read spentToday = $0 and ALL passed —
+    // $6.20 approved against a $5.00 day cap). Without a reservation the caps only
+    // see money that has already been spent, which is useless against parallel
+    // callers, and parallel tool calls are this harness's ordinary behaviour.
+    //
+    // Non-fatal: a reservation that cannot be written must not block a call the caps
+    // already approved. It is loud, because silently losing the hold reopens F1.
+    try {
+      reserveSpend({ model: modelKey || 'panel', topic, usd: worstCaseUsd });
+    } catch (err) {
+      console.error(`[spend-guard] could not reserve budget — parallel calls may overshoot: ${err?.message}`);
     }
     ALLOW();
   }
