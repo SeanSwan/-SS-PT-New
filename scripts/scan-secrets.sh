@@ -52,6 +52,34 @@ PATTERNS=(
   "ssh-private-key|-----BEGIN OPENSSH PRIVATE KEY-----"
 )
 
+# --- Operator identity (Rule 8 / Rule 39), derived at RUNTIME, never stored ------------
+# 2026-08-26: 58 committed handoff docs carried the operator's OS username inside
+# filesystem paths; the count had grown 59 -> 61 while being measured, because nothing
+# stopped the next paste. Cleaning them buys nothing without this gate.
+# The username is NEVER written into this file — hardcoding it here would make this
+# file the leak (same discipline as scripts/lib/redact-egress.mjs). It is derived from
+# $HOME/$USERPROFILE at scan time. If it cannot be derived, or is a common word that
+# would fire on ordinary prose, the identity rule is SKIPPED (a scanner that blocks
+# every commit gets disabled, which is worse than one that misses this class).
+# Fix a hit by rewriting the path: <REPO>/… , <HOME>/… , <OPERATOR>.
+_OPERATOR_HOME="${USERPROFILE:-$HOME}"
+_OPERATOR_NAME="$(basename "${_OPERATOR_HOME:-}" 2>/dev/null || true)"
+case "$(printf '%s' "${_OPERATOR_NAME:-}" | tr '[:upper:]' '[:lower:]')" in
+  ''|admin|administrator|user|users|root|dev|developer|test|guest|owner|default|public|home|desktop|server|local|localhost|ubuntu|runner|node|docker|system|pi|me|main) _OPERATOR_NAME="" ;;
+esac
+if [[ -n "$_OPERATOR_NAME" && ${#_OPERATOR_NAME} -ge 3 ]]; then
+  _OPERATOR_ESC="$(printf '%s' "$_OPERATOR_NAME" | sed 's/[][\.^$*+?(){}|\\/]/\\&/g')"
+  # Separator class is [^A-Za-z0-9], not [\/]: it covers backslash, forward slash AND
+  # the hyphen form used by Claude scratchpad keys (c--Users-<name>-Desktop-…), which a
+  # slash-only class misses. Verified against five positive controls + one negative.
+  PATTERNS+=("operator-identity|(Users|home)[^A-Za-z0-9]+${_OPERATOR_ESC}|(^|[^A-Za-z0-9_-])${_OPERATOR_ESC}@")
+fi
+# 8.3 short-form home paths (a Windows Users dir shortened to six chars, tilde, digit)
+# leak the same account without spelling the name; machine-independent, so always on.
+# NOTE: this comment deliberately does not spell that shape out — doing so made this
+# file trip its own rule (caught 2026-08-26 before the first commit).
+PATTERNS+=("operator-identity-8dot3|Users[^A-Za-z0-9]+[A-Za-z0-9]{6}~[0-9]")
+
 COMBINED_REGEX=""
 for entry in "${PATTERNS[@]}"; do
   regex="${entry#*|}"
@@ -149,6 +177,12 @@ is_allowlisted() {
   [[ ! -f "$SECRETIGNORE" ]] && return 1
 
   while IFS= read -r line; do
+    # Strip a trailing CR: .secretignore is edited on Windows and picks up CRLF.
+    # Without this, "file::pattern\r" never equals "pattern" and the entry is
+    # SILENTLY INERT — 11 of 18 entries were dead this way when found 2026-08-26.
+    # An allowlist that quietly stops allowlisting is the same failure class as a
+    # secret scan that quietly stops scanning: it reports success either way.
+    line="${line%$'\r'}"
     [[ -z "$line" || "$line" =~ ^# ]] && continue
 
     if [[ "$line" =~ ^@(.+)$ ]]; then
