@@ -24,8 +24,9 @@ and it is ruled below.
 > **SEAN CONFIRMED BOTH, 2026-08-27.** Shelf-by-default: yes. Relabel `Keep` → `Steer`: yes. Both
 > went the way this document ruled, so §1 stands unamended and F1 is unblocked.
 >
-> **F0 is built and committed** — `d200a0a` in swan-taste-brain. It found more than the blueprint
-> scoped: five memory-scoped reads needed the guard, not one. See §11.
+> **F0 and F1 are built and committed** — `d200a0a` / `03291a9` / `4f8063e` in swan-taste-brain.
+> F0 found more than this document scoped (five memory-scoped reads needed the guard, not one — §11);
+> F1 shipped the store, `♥ Save`/`Steer`, and the relabel (§12). **F2 — the drawer — is next.**
 
 ## 1. The ruling that governs everything else
 
@@ -320,6 +321,7 @@ All three fixed and verified; zero page errors on the paths that previously thre
 | # | Slice | Why here |
 |---|---|---|
 | ~~F0~~ | ~~World epoch + `pageerror` listener wired into every browser probe~~ — ✅ **DONE `d200a0a`** | Favourites must be born guarded, and the probes must be able to see a throw |
+| ~~F1~~ | ~~Store + `Save`/`Steer` on Make cards; relabel Keep → Steer~~ — ✅ **DONE `4f8063e`** | The data model and the honest pair of verbs |
 | F1 | Store + `Save`/`Steer` on Make cards; relabel Keep → Steer | The data model and the honest pair of verbs |
 | F2 | The drawer: chip, `<dialog>`, list, filter, promote/demote | The surface |
 | F3 | Ink-rise + ember + share bar | The signature moment, once the states it describes exist |
@@ -382,3 +384,69 @@ this fails the suite rather than shipping.
 `test-browser.mjs` exists, presses controls rather than inferring them, and fails on an uncaught
 throw — which is what made the dead `Copy as text` / `Print / PDF` buttons invisible for three
 slices. F11 becomes an addition to a working suite instead of a new harness.
+
+---
+
+## 12. F1 closeout — what building it settled, and what it changed (2026-08-27, `4f8063e`)
+
+**§1's ruling shipped unamended.** Sean confirmed shelf-by-default and the relabel; both went the
+way this document argued, so nothing in the reasoning needed revisiting.
+
+### The one design call this document left open, and how it was settled
+
+§1 says "one list, two states" and rejects two lists — correctly, as a **model and UI** claim. It did
+not say how to *store* that. Two candidates:
+
+- a state field on each item, with generation filtering out `shelf`;
+- a separate file, so a shelved item is not in the steering list at all.
+
+**The second was chosen, and the reason is the same reason §1 exists.** A filter is a rule someone
+must remember on every future code path; it can be forgotten, inverted, or skipped, and when it
+fails it fails *silently, permanently, and in the direction of harm* — a shelved prompt quietly
+steering is exactly the outcome the whole ruling was written to prevent. Absence cannot be forgotten.
+The drawer still renders one list with a state per item, so the model §1 specified is intact.
+
+**The trap this opens, named for whoever touches it next:** `parseKept` finds its section with
+`/^kept\b/i`. A shelf headed anything beginning "kept" would invert the entire guarantee, and the
+suite would have passed on the day it shipped. `test-favourites.mjs` asserts the shelf file cannot
+be read as a kept section.
+
+### The tests, and one thing §7 did not ask for
+
+F1–F4 are implemented as written. F2 is proven **by generating** with a fixed seed before and after,
+never by reading a flag — and, not in §7, **the comparison is separately proven non-vacuous** by
+showing that promotion *does* change the output. A byte-identical assertion that would pass against a
+broken generator proves nothing; it needs a positive control beside it, and now has one.
+
+F3 gained a check §7 did not specify but the ruling implies: a promoted favourite must weigh
+**exactly** what a directly-kept prompt weighs. Anything else would mean Favourites had quietly
+invented a second, differently-weighted channel — which is the failure mode one layer up from the
+one §1 guards.
+
+### What F1 found that had nothing to do with Favourites
+
+The dead-control sweep in `test-browser.mjs` presses every button rather than reading the code, and
+it found **three of four clipboard calls wrong**: two threw unguarded inside a click handler
+(control does nothing, says nothing), and one swallowed the failure and reported *"copied"* anyway —
+a claim the user acts on and discovers is false when they paste. All four now share `Swan.copy`.
+
+This is §8's finding repeating: **a control is not proven by existing, or by its handler reading
+correctly. It is proven by being pressed.** F11 was written for exactly this, and it earned its place
+before the drawer it was scoped to even exists.
+
+### Cheaper than planned for F2
+
+- **F11** ("every button in the drawer has a wired handler") is now an addition to a working sweep
+  rather than a new harness.
+- **F5** (memory-switch mid-flight) is already mechanical via the epoch and `test-world.mjs` W12,
+  which sweeps **per call site** — a drawer fetch that forgets `Swan.world()` fails the suite rather
+  than shipping.
+- The store API is complete for the drawer: `POST /api/favourite {state}` covers promote and demote
+  with no new endpoints, and `GET /api/kept` already returns `{ kept, shelf }`.
+
+### Still open for F2
+
+The ink-rise heart, the ember, and the steering-share bar (§3) are unbuilt — F3 in the build order,
+after the drawer exists to hold them. Today the status line reports the state and the Kept tab states
+the shelf count; that count was added because otherwise `♥ Save` is a control with no visible
+destination, which is its own small dishonesty.

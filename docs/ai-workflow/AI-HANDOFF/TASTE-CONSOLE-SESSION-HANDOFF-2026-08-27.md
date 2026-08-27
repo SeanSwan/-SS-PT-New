@@ -1,5 +1,5 @@
 ---
-decision: "Full session handoff: ComfyUI stopped charging, 15 launchers got icons, the Taste Console shipped all five blueprint slices, and Favourites is blueprinted. Both open decisions answered; F0 (world epoch + browser suite) built and committed. Next agent starts at F1."
+decision: "Full session handoff: ComfyUI stopped charging, 15 launchers got icons, the Taste Console shipped all five blueprint slices. Favourites decisions answered; F0 (world epoch + browser suite) and F1 (the store, Save/Steer, the relabel) built and committed. Next agent starts at F2 — the drawer."
 status: open
 supersedes: none
 board: SWA-186
@@ -25,10 +25,9 @@ Three unrelated pieces of work happened, in this order:
 2. **All 15 Desktop launchers got SwanStudios icons**, plus a tool to make more.
 3. **The Swan Taste Console** — a five-slice redesign of Sean's local taste tool. **All five slices
    shipped.** Then a hostile review found three live bugs, all fixed.
-4. **Favourites** (save a prompt you like) is blueprinted. **Both open decisions are now answered**
-   (shelf-by-default; `Keep` → `Steer`), and **F0 is built and committed** — the world epoch, five
-   guarded reads, and the first automated coverage the client-side files have ever had (§13).
-   **You start at F1.**
+4. **Favourites** (save a prompt you like): decisions answered, **F0 and F1 built and committed.**
+   The store exists, `♥ Save` and `Steer` are live on Make cards, and the relabel shipped (§13, §14).
+   **You start at F2 — the drawer.**
 
 **Nothing is pushed.** SS-PT is 66 commits ahead of its remote (most predate this session).
 swan-taste-brain is a local repo on `master` with **no remote at all** — commits are the only record.
@@ -271,8 +270,9 @@ Both went the way the blueprint ruled, so §1 of the blueprint stands unamended.
 
 | # | Slice | |
 |---|---|---|
-| ~~**F0**~~ | ~~World epoch + a `pageerror` listener in every browser probe~~ | ✅ **DONE** — `d200a0a`, see §13 |
-| **F1** | **Store + `Save`/`Steer` on Make cards; the relabel — START HERE** | |
+| ~~**F0**~~ | ~~World epoch + a `pageerror` listener in every browser probe~~ | ✅ **DONE** — `d200a0a` / `03291a9`, §13 |
+| ~~**F1**~~ | ~~Store + `Save`/`Steer` on Make cards; the relabel~~ | ✅ **DONE** — `4f8063e`, §14 |
+| **F2** | **The drawer: chip, `<dialog>`, list, filter, promote/demote — START HERE** | |
 | F2 | The drawer: chip, `<dialog>`, list, filter, promote/demote |
 | F3 | Ink-rise heart + ember + steering-share bar |
 | F4 | Presentation/print exclusion + the 11 F-series tests |
@@ -475,3 +475,82 @@ stop it becoming a corpus leak — but it is real. Closing it means `load()` sta
 the grid and `record()` refusing on a move. **That is a change to the most safety-critical write in
 the app, and it belongs in its own slice with its own failing test first** — not bolted onto the end
 of F0 because I happened to find it there. Left for whoever picks this up; F1 does not depend on it.
+
+---
+
+## 14. F1 — built, 2026-08-27 (`4f8063e`, swan-taste-brain)
+
+**The store, `♥ Save` / `Steer` on Make cards, and the relabel. Both of Sean's decisions shipped as
+ruled.** You start at **F2 — the drawer**.
+
+### The one thing to understand before touching it
+
+**The shelf is inert by ABSENCE, not by filter.** A shelved prompt lives in `shelf.md` under
+`## Shelf`. Generation reads `kept.md`'s `## Kept` and nothing else. There is no exclusion rule
+anywhere — nothing to forget, invert, or skip on a path written next year. A filter is exactly what
+would fail silently, permanently, and in the direction of harm, so there isn't one.
+
+The corollary is a trap worth naming: `parseKept` finds its section with `/^kept\b/i`. **A shelf
+headed anything beginning "kept" would invert the entire guarantee** and the suite would still have
+passed on the day it shipped. `test-favourites.mjs` asserts the shelf file cannot be read as a kept
+section.
+
+### The API
+
+```
+POST /api/favourite   { prompt, state: 'shelf' | 'steer' | 'none', profileId, projectId }
+GET  /api/kept        → { kept: [...], shelf: [...] }
+```
+
+`state` **is** the API. Promote is `state:'steer'` on a shelved item; demote is `state:'shelf'` on a
+steering one. No separate verbs, so they cannot drift apart from save — which is precisely how the
+earlier keep channels ended up with two validation contracts.
+
+### What proves it
+
+- **`test-favourites.mjs`** (41 checks). F2 is proven **by generating** with a fixed seed before and
+  after, never by inspecting a flag — and the comparison is proven **non-vacuous** by separately
+  showing that promotion *does* change the output. F3 shows a promoted favourite weighs exactly what
+  a directly-kept prompt weighs (Favourites did not invent a second channel). F4 shows
+  promote→demote returns generation byte-identical.
+- **`test-browser.mjs`** (45 checks) **presses `♥ Save` and `Steer` for real** in a throwaway memory
+  and reads the store back through the API. A control is not proven by existing in the markup — two
+  buttons here were dead for three slices while their stylesheet and their handler both verified
+  clean.
+- **581/581 node across 12 suites; 45/45 browser**, zero page errors, zero console errors.
+
+### What the hostile rounds turned up
+
+1. **Three of four clipboard calls were wrong**, found by the dead-control sweep pressing every
+   button. Two awaited `writeText` unguarded inside a click handler — a rejection threw and left a
+   control that did nothing and said nothing. The third swallowed the rejection and reported
+   *"copied"* anyway, which is worse: a claim the user acts on and discovers is false when they
+   paste. All four now go through `Swan.copy`, which reports what actually happened.
+2. **Two files crossed the 300-line cap** (`serve.mjs` 287→347, `taste-namespace.mjs` 227→352). Split
+   into `lib/favourites.mjs` and `lib/routes-favourites.mjs`, matching this repo's existing
+   `routes-*.mjs` pattern. Everything touched is back under.
+3. **A comment I wrote was factually wrong** — it justified validating on save "because the brief
+   prints the shelf". It does not; `compileProfile` never reads `shelf.md`. Checked rather than
+   asserted. The rule stands on the real reason: a shelved prompt is a promotion candidate.
+4. **Sean's own `♥ Save` was the one path no test covered** — and he is the primary user. Now covered
+   in the node suite, with his vault verified byte-identical afterwards.
+5. **In-app copy named a button that no longer exists.** The Make tab's help text and the Kept tab's
+   empty state both said "Keep". Updated with the code, not after it.
+
+### Deliberately not done
+
+- **The drawer is F2.** Today the status line reports the state and the Kept tab states the shelf
+  count — added because otherwise `♥ Save` is a control with no visible destination, which is its own
+  small dishonesty.
+- **`/api/keep` still exists** with no frontend caller. It is a documented public surface (ComfyUI,
+  Hermes, curl) and shares its implementation with `/api/favourite`, so there is no contract drift —
+  but if you are looking for dead code, it is not that.
+- **Writes addressed at click time remain unguarded by the epoch** (§13) — including the new
+  favourite actions. Their safety comes from the list beneath them being guarded.
+
+### For F2
+
+The favourites list is a **sixth memory-scoped read** and inherits everything in §13: capture
+`Swan.world()` before its fetch. `test-world.mjs` W12 sweeps per call site, so a drawer fetch that
+forgets fails the suite rather than shipping. The drawer is a summoned `<dialog>` off a header heart
+chip — **not** a fourth section; both review seats refused that independently.
