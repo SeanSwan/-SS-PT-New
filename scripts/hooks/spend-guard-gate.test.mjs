@@ -336,9 +336,18 @@ test('--dry-run passes ONLY for the script that implements it', () => {
 });
 
 test('the panel without --confirm-spend passes — it refuses the live call itself', () => {
-  // Now keyed on the REAL panel. The old condition named consult-panel.mjs, which
-  // does not exist on main, so this branch was dead in both directions.
-  assert.equal(runGate(`${PANEL} --seats kimi,sol --document plan.md`).code, ALLOW);
+  // FIFTH vacuous test, found by mutation-testing my own suite rather than by
+  // inspection: deleting the `PANEL_SCRIPTS && !--confirm-spend` short-circuit
+  // produced ZERO reds. The old version used `--seats kimi,sol` (~$0.63), which is
+  // under the cap — so it ALLOWed whether the short-circuit existed or not. Same
+  // signature as the other four: the expected value is also the buggy output.
+  //
+  // EXPENSIVE seats make the branch the only thing that can produce ALLOW. Without
+  // the short-circuit these price at ~$1.68 and block.
+  assert.equal(runGate(`${PANEL} --seats fable,sol,kimi --document plan.md`).code, ALLOW,
+    'no --confirm-spend means no live call, so the gate must stand aside');
+  assert.equal(runGate(`${PANEL} --seats fable,sol,kimi --document plan.md --confirm-spend`).code, BLOCK,
+    'and the SAME seats must block once the call is real — the control for the line above');
 });
 
 test('the panel WITH --confirm-spend is priced by the seats actually requested', () => {

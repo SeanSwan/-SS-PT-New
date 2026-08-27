@@ -286,6 +286,23 @@ test('F1: a stale hold expires — a crash must not withhold budget forever', as
   rmSync(dir, { recursive: true, force: true });
 });
 
+test('an UNPRICED row counts as the per-call cap, not as zero', async () => {
+  // Found by mutation-testing, not by reading: changing rowUsd so `usd: null` scores
+  // 0 instead of CAPS.perCall produced ZERO reds across all three suites. The policy
+  // is documented in recordSpend and load-bearing — "an unpriced call pushes the caps
+  // toward refusal, never away" — and nothing anywhere asserted it at the CAP level.
+  // spend-ledger.test.mjs pins isPriced(), which is the classifier, not the cost.
+  //
+  // A silent zero for calls of unknown price is fail-open in exactly the expensive
+  // direction, dressed as safe. Three review seats caught that once in recordSpend;
+  // the reader side was never covered.
+  const { dir, mod } = await freshLedger();
+  mod.recordSpend({ model: 'x', topic: 'p', usd: undefined });
+  assert.equal(mod.spentOnTopic('p'), mod.CAPS.perCall,
+    'an unpriceable call must weigh the full per-call cap against the budget');
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test('spawnSync is available for the harness (instrument check)', () => {
   // Guards against the harness silently degrading: if the parallel test above ever
   // cannot spawn, it must fail loudly rather than pass with zero children.
