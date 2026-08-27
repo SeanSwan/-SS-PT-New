@@ -15,6 +15,7 @@ import {
   formatCostSummaryMarkdown,
   confirmSpend,
   evaluateSpendGate,
+  recordRunSpend,
   isOverCap,
 } from './cost-gate.mjs';
 
@@ -117,6 +118,149 @@ test('evaluateSpendGate: proceeds under cap when pre-approved', async () => {
   });
   assert.equal(res.proceed, true);
   assert.equal(res.reason, 'approved');
+});
+
+// ---------------------------------------------------------------------------
+// SWA-218 — the Village gate reconciled with the cumulative consult ledger.
+//
+// Before 2026-08-26 these two systems had ZERO references to each other. A Village
+// run was checked only against its own per-run ceiling, so it could not see consult
+// spend from earlier the same day, and its own cost never counted toward the
+// per-topic or per-day caps. That is exactly the hole the ledger exists to close:
+// no single call is outrageous; four reasonable ones in a row are what blow it.
+//
+// A stub ledger is injected so these never read or write real spend state.
+// ---------------------------------------------------------------------------
+
+const stubLedger = ({ topic = 0, day = 0, perTopic = 3, perDay = 5 }) => ({
+  spentOnTopic: () => topic,
+  spentToday: () => day,
+  CAPS: { perTopic, perDay, perCall: 1 },
+});
+
+const villageRun = (extra = {}) => ({
+  tracks: [{ model: 'anthropic/claude-sonnet-4.6' }],
+  inputChars: 4000,
+  debatesEnabled: false,
+  env: { SWAN_VILLAGE_MAX_USD: '100', SWAN_VILLAGE_CONFIRM: 'yes' },
+  log: () => {},
+  topic: 'plan',
+  ...extra,
+});
+
+test('ledger: a clean ledger lets the run proceed — the control', async () => {
+  // Without this, every block assertion below would also pass on a gate that
+  // refused unconditionally.
+  const res = await evaluateSpendGate(villageRun({ ledger: stubLedger({}) }));
+  assert.equal(res.proceed, true);
+  assert.equal(res.reason, 'approved');
+});
+
+test('ledger: prior spend ON THIS TOPIC blocks a run its own cap would allow', async () => {
+  // The whole point. The per-run ceiling is $100 here, so the ONLY thing that can
+  // refuse this is the cumulative topic cap it previously could not see.
+  const res = await evaluateSpendGate(villageRun({ ledger: stubLedger({ topic: 2.95 }) }));
+  assert.equal(res.proceed, false);
+  assert.match(res.reason, /per-topic cap/);
+});
+
+test("ledger: prior spend on OTHER topics still blocks via the daily cap", async () => {
+  const res = await evaluateSpendGate(villageRun({ ledger: stubLedger({ topic: 0, day: 4.99 }) }));
+  assert.equal(res.proceed, false);
+  assert.match(res.reason, /daily cap/);
+});
+
+test('ledger: perCall is deliberately NOT applied to a Village run', async () => {
+  // perCall is $1.00, sized for one consult; a legitimate Village run costs more.
+  // Enforcing it here would refuse every honest run, and a gate that cries wolf is
+  // one the human learns to wave through — the failure mode the guard's own
+  // comments call more corrosive than the hole. A big run under the topic and day
+  // caps must proceed.
+  const res = await evaluateSpendGate(villageRun({
+    inputChars: 200000,
+    ledger: stubLedger({ topic: 0, day: 0, perTopic: 50, perDay: 50 }),
+  }));
+  assert.equal(res.proceed, true, 'a large but within-budget Village run must not be refused');
+});
+
+test('ledger: the per-run hard cap still fires first, before the cumulative check', async () => {
+  // Ordering matters for the message the human reads: "your run is too big" is a
+  // different instruction from "you have spent too much today."
+  const res = await evaluateSpendGate(villageRun({
+    env: { SWAN_VILLAGE_MAX_USD: '0.0001' },
+    ledger: stubLedger({ topic: 99, day: 99 }),
+  }));
+  assert.equal(res.proceed, false);
+  assert.match(res.reason, /exceeds hard cap/, 'the per-run reason must win when both would refuse');
+});
+
+test('ledger: an unreachable ledger fails OPEN, not closed', async () => {
+  // Documented and deliberate. Refusing a paid feature because a cost library failed
+  // to load would be worse than the spend it prevents, and it is strictly the
+  // pre-2026-08-26 behaviour — the check stops being better, never becomes worse.
+  const res = await evaluateSpendGate(villageRun({
+    ledger: { spentOnTopic() { throw new Error('ledger unreadable'); }, spentToday: () => 0, CAPS: { perTopic: 3, perDay: 5 } },
+  })).catch((err) => ({ threw: err }));
+  assert.ok(!res.threw, 'a broken ledger must not throw out of the gate');
+});
+
+// --- the WRITE side: a finished run must reach the cumulative ledger ---------
+
+test('recordRunSpend: writes one row per SUCCESSFUL model', () => {
+  const rows = [];
+  const res = recordRunSpend(
+    [
+      { model: 'a/one', status: 'SUCCESS', costUSD: 0.10 },
+      { model: 'a/two', status: 'SUCCESS', costUSD: 0.25 },
+    ],
+    'plan',
+    (row) => rows.push(row),
+  );
+  assert.equal(res.recorded, 2);
+  assert.equal(res.error, null);
+  assert.deepEqual(rows.map((r) => r.model), ['a/one', 'a/two']);
+  assert.ok(rows.every((r) => r.topic === 'plan'), 'every row carries the run topic');
+  assert.ok(rows.every((r) => r.note === 'ai-village'), 'rows are attributable to the Village');
+});
+
+test('recordRunSpend: an ERRORED track is not spend and is not booked', () => {
+  // Booking a track that never returned a completion would inflate the caps toward
+  // false refusals — the cry-wolf direction the guard's comments warn about.
+  const rows = [];
+  const res = recordRunSpend(
+    [{ model: 'a/one', status: 'ERROR' }, { model: 'a/two', status: 'SUCCESS', costUSD: 0.1 }],
+    'plan',
+    (row) => rows.push(row),
+  );
+  assert.equal(res.recorded, 1);
+  assert.equal(res.skipped, 1);
+  assert.deepEqual(rows.map((r) => r.model), ['a/two']);
+});
+
+test('recordRunSpend: an UNPRICED success is passed through, not zeroed', () => {
+  // recordSpend() treats an unpriceable value as WORST CASE against the caps. If this
+  // helper coerced it to 0, the caps could never fire for exactly the calls of unknown
+  // price — fail-open in the expensive direction, dressed as safe.
+  const rows = [];
+  recordRunSpend([{ model: 'a/one', status: 'SUCCESS' }], 'plan', (row) => rows.push(row));
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].usd, undefined, 'must NOT be coerced to 0');
+});
+
+test('recordRunSpend: a failing ledger is non-fatal and reports what it managed', () => {
+  // The money is already spent; losing the run's report as well would be worse.
+  const res = recordRunSpend(
+    [{ model: 'a/one', status: 'SUCCESS', costUSD: 0.1 }],
+    'plan',
+    () => { throw new Error('disk full'); },
+  );
+  assert.equal(res.error, 'disk full');
+  assert.equal(res.recorded, 0);
+});
+
+test('recordRunSpend: empty and missing results do not throw', () => {
+  assert.equal(recordRunSpend([], 'plan', () => {}).recorded, 0);
+  assert.equal(recordRunSpend(undefined, 'plan', () => {}).recorded, 0);
 });
 
 test('isOverCap guards mid-run spend', () => {

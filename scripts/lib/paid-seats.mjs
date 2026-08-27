@@ -64,13 +64,15 @@ export const FREE_ALLOWLIST = {
  */
 export const KNOWN_UNGATED = {
   'validation-orchestrator.mjs':
-    'The paid AI Village (~13 brains). It is NOT unmetered — it carries its own hard cap via '
-    + 'SWAN_VILLAGE_MAX_USD plus the Rule 16 permission gate. But that cap is SEPARATE from the '
-    + 'cumulative ledger, so Village spend never counts toward the per-topic or per-day budget '
-    + 'that exists precisely because four reasonable calls are what blow it. Reconciling the two '
-    + 'is the single highest-value item left.',
+    'The paid AI Village (~13 brains). RECONCILED 2026-08-26: it now WRITES its actual per-model '
+    + 'cost into the shared ledger (recordRunSpend) and its pre-run gate READS the cumulative '
+    + 'per-topic and per-day totals, so Village spend and consult spend finally see each other. '
+    + 'It stays listed here because the gate does not match its command shape — the control is '
+    + 'in-process (its own SWAN_VILLAGE_MAX_USD cap plus the Rule 16 permission gate), not the '
+    + 'PreToolUse hook. Covered, by a different mechanism, on purpose.',
   'hermes-village.mjs':
-    'Wraps the Village runner; inherits the same separate-cap situation as validation-orchestrator.',
+    'Wraps the Village runner, so it inherits the same in-process controls — including the '
+    + 'ledger reconciliation landed 2026-08-26.',
   'context-gateway/src/transport.mjs':
     'The gateway is network-capable module, NOT an entrypoint. It is reached through '
     + 'context-gateway/src/consult.mjs, which PAID_INVOCATION does match. Listed for the record '

@@ -51,7 +51,12 @@ import { join, extname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { runRecursiveConsensus } from './lib/recursive-consensus.mjs';
 import { runFusionSynthesis, formatSynthesisMarkdown } from './lib/fusion-synthesis.mjs';
-import { evaluateSpendGate, formatCostSummary, formatCostSummaryMarkdown, isOverCap } from './lib/cost-gate.mjs';
+import { evaluateSpendGate, formatCostSummary, formatCostSummaryMarkdown, isOverCap, recordRunSpend } from './lib/cost-gate.mjs';
+// SWA-218: the Village now writes into the SHARED consult ledger and its pre-run gate
+// reads the cumulative totals. topicFromPath is imported rather than re-derived on
+// purpose — a past incident had the guard and a writer normalizing topics differently,
+// so the per-topic cap silently never accumulated. One normalizer, both sides.
+import { recordSpend, topicFromPath } from './lib/spend-ledger.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = join(__filename, '..');
@@ -1805,12 +1810,12 @@ function writeFusionSynthesisArtifact(results, outputPaths) {
 // SWAN_VILLAGE_CONFIRM=yes). Post-run: per-model cost summary + cost-summary.md.
 // ─────────────────────────────────────────────
 
-async function spendGate({ tracks, inputChars, debatesEnabled }) {
+async function spendGate({ tracks, inputChars, debatesEnabled, topic = 'village' }) {
   const synthesisOn = String(process.env.SWAN_FUSION_SYNTHESIS || 'on').toLowerCase() !== 'off';
   const judge = synthesisOn ? { model: FUSION_JUDGE.model } : null;
   const extraPricing = { [FUSION_JUDGE.model]: { in: FUSION_JUDGE.priceInputPerM, out: FUSION_JUDGE.priceOutputPerM } };
   const gate = await evaluateSpendGate({
-    tracks, inputChars, judge, debatesEnabled, extraPricing,
+    tracks, inputChars, judge, debatesEnabled, extraPricing, topic,
     log: (m) => console.log(m),
   });
   if (!gate.proceed) {
@@ -1821,7 +1826,7 @@ async function spendGate({ tracks, inputChars, debatesEnabled }) {
   return gate;
 }
 
-function finalizeCostSummary(results, outputPaths) {
+function finalizeCostSummary(results, outputPaths, topic = 'village') {
   console.log('');
   console.log(formatCostSummary(results));
   try {
@@ -1830,6 +1835,30 @@ function finalizeCostSummary(results, outputPaths) {
     writeFileSync(join(outputPaths.archiveDir, 'cost-summary.md'), md, 'utf-8');
   } catch (err) {
     console.error(`    [cost-summary] write failed (non-fatal): ${err.message}`);
+  }
+
+  // --- Record into the SHARED consult ledger (SWA-218) -----------------------
+  //
+  // Until 2026-08-26 this run's cost was written to cost-summary.md and nowhere
+  // else. The cumulative per-topic and per-day caps in scripts/lib/spend-ledger.mjs
+  // never saw a cent of Village spend, so the most expensive single operation in the
+  // system was invisible to the budget built to catch exactly this — Sean's words:
+  // no single call was outrageous, "four reasonable calls in a row are what blew it."
+  //
+  // One row PER MODEL, not one per run: it matches the ledger's existing shape,
+  // matches cost-summary.md, and makes forensics possible ("which seat cost that?").
+  // Unpriced rows are recorded with usd null on purpose — recordSpend() treats null
+  // as WORST CASE against the caps, so an unpriceable call pushes toward refusal
+  // rather than booking a confident and false $0.00.
+  //
+  // NON-FATAL by design. A ledger write failure must never destroy a completed
+  // paid run's output — the money is already spent; losing the report as well
+  // would be strictly worse. It is logged loudly instead.
+  const led = recordRunSpend(results, topic, recordSpend);
+  if (led.error) {
+    console.error(`    [ledger] WRITE FAILED — this run's spend is NOT in the cumulative caps: ${led.error}`);
+  } else {
+    console.log(`    [ledger] recorded ${led.recorded} row(s) under topic "${topic}"`);
   }
 }
 
@@ -2024,7 +2053,7 @@ async function main() {
     const phase1Tracks = tracks;
 
     assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2, FUSION_JUDGE.model], { checkpoint: 'phase1-docs' });
-    const gate = await spendGate({ tracks: phase1Tracks, inputChars: documentContent.length, debatesEnabled: hasGemini31 });
+    const gate = await spendGate({ tracks: phase1Tracks, inputChars: documentContent.length, debatesEnabled: hasGemini31, topic: topicFromPath(opts.document) });
     if (!gate.proceed) return;
     console.log(`  Phase 1: Launching ${phase1Tracks.length} document validators (staggered 2s apart)...`);
     if (hasGemini31) {
@@ -2144,7 +2173,7 @@ async function main() {
     const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
     const outputPaths = writeSplitOutput(results, files, md, timestamp);
     writeFusionSynthesisArtifact(results, outputPaths);
-    finalizeCostSummary(results, outputPaths);
+    finalizeCostSummary(results, outputPaths, topicFromPath(opts.document));
 
     if (phase2DebateLog) {
       writeFileSync(join(outputPaths.latestDir, 'debate-log.md'), phase2DebateLog, 'utf-8');
@@ -2212,7 +2241,7 @@ async function main() {
 
     const groundedCount = phase1Tracks.filter(t => t.useGrounding).length;
     assertNoChineseProviderInPolicyConstrainedTracks(phase1Tracks, [MODELS.escalation1, MODELS.escalation2, FUSION_JUDGE.model], { checkpoint: 'phase1-planning' });
-    const gate = await spendGate({ tracks: phase1Tracks, inputChars: planContent.length, debatesEnabled: hasGemini31 });
+    const gate = await spendGate({ tracks: phase1Tracks, inputChars: planContent.length, debatesEnabled: hasGemini31, topic: topicFromPath(opts.document) });
     if (!gate.proceed) return;
     console.log(`  Phase 1: Launching ${phase1Tracks.length} planning analysts (staggered 2s apart)...`);
     if (groundedCount > 0) {
@@ -2425,7 +2454,7 @@ async function main() {
     const totalCost = results.reduce((sum, r) => sum + (r.costUSD || 0), 0);
     const outputPaths = writeSplitOutput(results, files, md, timestamp);
     writeFusionSynthesisArtifact(results, outputPaths);
-    finalizeCostSummary(results, outputPaths);
+    finalizeCostSummary(results, outputPaths, topicFromPath(opts.document));
 
     // Write web research sources report
     const groundedResults = results.filter(r => r.groundingMeta?.sources?.length);
