@@ -6,6 +6,7 @@
  * before network access when its conservative worst-case estimate exceeds the
  * hard cap (default: $3).
  */
+import { fetchRedacted } from './lib/egress-fetch.mjs';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -134,7 +135,7 @@ async function main() {
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not found for confirmed run');
   console.log('[consult-hy3-design] status=running model_calls=1');
   const started = Date.now();
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const response = await fetchRedacted('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}`,

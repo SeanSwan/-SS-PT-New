@@ -25,6 +25,7 @@
  *   - AI-Village-Documentation/codex-consults/<timestamp>.md (archived)
  */
 
+import { fetchRedacted } from './lib/egress-fetch.mjs';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
@@ -130,7 +131,7 @@ async function callCodex(prompt) {
   console.log(`[consult-codex] transport=openrouter-api billing=METERED model=${MODEL}`
     + `${forceApi ? ' (forced via SWAN_CODEX_FORCE_API=1)' : ' (CLI unavailable — falling back)'}`);
 
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+  const res = await fetchRedacted('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
