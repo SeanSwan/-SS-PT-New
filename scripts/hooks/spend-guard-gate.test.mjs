@@ -37,7 +37,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -65,6 +65,20 @@ function runGate(command, { ledger = null } = {}) {
     encoding: 'utf-8',
   });
   return { code: res.status, stderr: res.stderr || '', dir };
+}
+
+/**
+ * Read the minted token from the operator note, NOT from stderr.
+ *
+ * GLM 5.3 round-3 blocker 2: the refusal used to print the token into output the
+ * AGENT reads, so the two-ask protocol bound nothing. It now goes to a file for Sean.
+ * These tests changed with it — and reading it here is exactly the deliberate,
+ * greppable act the refusal warns an agent not to perform.
+ */
+function tokenFrom(dir) {
+  const note = join(dir, 'PENDING-SPEND-APPROVAL.txt');
+  if (!existsSync(note)) return undefined;
+  return (readFileSync(note, 'utf-8').match(/SWAN_SPEND_APPROVE=([a-f0-9]{12})/) || [])[1];
 }
 
 /**
@@ -541,8 +555,11 @@ test('CUMULATIVE: prior topic spend can block a call that would otherwise pass',
 test('the first ask mints a token and refuses', () => {
   const r = runGate(FABLE);
   assert.equal(r.code, BLOCK);
-  assert.match(r.stderr, /SWAN_SPEND_APPROVE=[a-f0-9]{12}/);
+  assert.doesNotMatch(r.stderr, /SWAN_SPEND_APPROVE=[a-f0-9]{12}/,
+    'the token must never appear in output the agent reads (GLM 5.3 blocker 2)');
+  assert.match(r.stderr, /PENDING-SPEND-APPROVAL/, 'it must say where Sean can find it');
   assert.match(r.stderr, /FIRST of two asks/);
+  assert.match(tokenFrom(r.dir) || '', /^[a-f0-9]{12}$/, 'and the note must actually hold one');
 });
 
 test('an INVENTED approval token is refused', () => {
@@ -553,7 +570,7 @@ test('an INVENTED approval token is refused', () => {
 test('the minted token, presented on the SAME call, is accepted', () => {
   const dir = mkdtempSync(join(sandbox, 'twoask-'));
   const first = runGate(FABLE, { ledger: dir });
-  const token = (first.stderr.match(/SWAN_SPEND_APPROVE=([a-f0-9]{12})/) || [])[1];
+  const token = tokenFrom(dir);
   assert.ok(token, 'first ask must mint a token');
   const second = runGate(`SWAN_SPEND_APPROVE=${token} ${FABLE}`, { ledger: dir });
   assert.equal(second.code, ALLOW);
@@ -562,7 +579,7 @@ test('the minted token, presented on the SAME call, is accepted', () => {
 test('the token is SINGLE USE — replaying it is refused', () => {
   const dir = mkdtempSync(join(sandbox, 'replay-'));
   const first = runGate(FABLE, { ledger: dir });
-  const token = (first.stderr.match(/SWAN_SPEND_APPROVE=([a-f0-9]{12})/) || [])[1];
+  const token = tokenFrom(dir);
   const cmd = `SWAN_SPEND_APPROVE=${token} ${FABLE}`;
   assert.equal(runGate(cmd, { ledger: dir }).code, ALLOW);
   assert.equal(runGate(cmd, { ledger: dir }).code, BLOCK, 'a replayable token is an unlimited pass');
@@ -579,7 +596,7 @@ test('a token minted for one call cannot be lifted onto a different one', () => 
   ]);
   const first = runGate('node scripts/consult-sol.mjs --document plan.md', { ledger: dir });
   assert.equal(first.code, BLOCK, 'the seed must force a breach so a token is actually minted');
-  const token = (first.stderr.match(/SWAN_SPEND_APPROVE=([a-f0-9]{12})/) || [])[1];
+  const token = tokenFrom(dir);
   assert.ok(token, 'a refused call must mint a token');
 
   // Same ledger, same topic — but a different model and a different cost, so the

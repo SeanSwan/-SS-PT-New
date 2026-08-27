@@ -21,8 +21,9 @@
  * FAIL-OPEN on its own errors. A spend guard that bricks the toolchain when it
  * has a bug costs more than the spend it prevents. It fails open loudly.
  */
-import { readFileSync } from 'node:fs';
-import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath } from '../lib/spend-ledger.mjs';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR } from '../lib/spend-ledger.mjs';
 // SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
 // Hand-curating it inside this regex is what drifted in both directions at once.
 import { PAID_INVOCATION, FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat } from '../lib/paid-seats.mjs';
@@ -382,6 +383,39 @@ try {
   }
 
   // --- refuse: first ask ---------------------------------------------------
+  //
+  // Write the token where SEAN reads it, not into the agent's own error output.
+  // GLM 5.3 round-3 blocker 2: the Fable gate stopped printing its token in
+  // `fef453e29`; this one kept doing it, and my commit message read broader than the
+  // change. Two gates, one protocol, opposite behaviour — and the one still printing
+  // is the one guarding actual money.
+  //
+  // Same honest limit as the Fable gate: an agent with file-read access can open this
+  // too. What changes is the reflex, not the possibility — self-serving now takes a
+  // deliberate, greppable act rather than reading the error it just caused.
+  try {
+    writeFileSync(join(SPEND_DIR, 'PENDING-SPEND-APPROVAL.txt'), [
+      'SPEND GUARD — an agent asked to spend and was refused.',
+      '',
+      `  when:      ${new Date().toISOString()}`,
+      `  model:     ${modelKey || 'panel fan-out'}`,
+      `  worst case $${worstCaseUsd.toFixed(2)}`,
+      `  topic:     ${topic}`,
+      `  breach:    ${decision.breach}`,
+      '',
+      'If you want this to run, read the token below back to the agent.',
+      'If you did not ask for it, do nothing — the refusal already held.',
+      '',
+      `  SWAN_SPEND_APPROVE=${decision.token}`,
+      '',
+      'Single-use, and bound to that exact model+topic+cost.',
+    ].join('\n'), 'utf-8');
+  } catch (err) {
+    // Non-fatal: the refusal itself is the control. Losing the note costs Sean a
+    // lookup in pending-approval.json, not the protection.
+    console.error(`[spend-guard] could not write the approval note: ${err?.message}`);
+  }
+
   const t = decision.totals;
   const lines = [
     'SPEND GUARD — BLOCKED (first ask). Sean 2026-08-22: a whole workstream should cost $2-3, not $5.',
@@ -394,10 +428,18 @@ try {
     '',
     `  BREACH: ${decision.breach}`,
     '',
-    'This is the FIRST of two asks. Do NOT re-run with the token on your own.',
-    'Show Sean the numbers above and get an explicit yes. Only then re-run with:',
+    'This is the FIRST of two asks. Show Sean the numbers above and get an explicit yes.',
     '',
-    `    SWAN_SPEND_APPROVE=${decision.token} <the same command>`,
+    'THE TOKEN IS NOT PRINTED HERE, and that is deliberate. A PreToolUse refusal is',
+    'read by YOU, not by Sean — printing it made the second ask something you could',
+    'satisfy alone, so the two-ask protocol bound nothing. It is written to:',
+    '',
+    `    .ai-workflow/spend/PENDING-SPEND-APPROVAL.txt`,
+    '',
+    'Ask Sean to read the token back to you, then re-run the same command with',
+    'SWAN_SPEND_APPROVE=<token> in front. Do not open that file to serve yourself:',
+    'this gate is friction and an audit trail, not a wall, and helping yourself to',
+    'the key is the exact move it exists to make visible.',
     '',
     'The token is single-use and bound to this exact model+topic+cost.',
     'Cheaper first: Qwen 3.8 is local and free, GLM 5.3 is subscription, DeepSeek',

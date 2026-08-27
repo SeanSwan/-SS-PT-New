@@ -82,31 +82,79 @@ test('a redemption leaves an atomic claim file behind', async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
-test('GENUINELY PARALLEL: two real processes, one approval, exactly one winner', async () => {
-  // The deterministic test proves the mechanism; this proves it under real
-  // concurrency, which is the thing that was actually broken.
-  const { dir, mod } = await freshLedger();
-  const first = mod.checkSpend(BREACH);
-  assert.ok(first.token);
-
+/**
+ * Race four children through one redemption, with a REAL barrier.
+ *
+ * THE FIRST VERSION OF THIS TEST WAS VACUOUS, and GLM 5.3 called it before I did
+ * (round-3 finding 2). It spawned four children and asserted exactly-one-winner —
+ * but node startup is ~30–60ms while the read-modify-write window is ~1ms, so the
+ * children never overlapped. Running it 20× against the OLD non-atomic code gave
+ * 20 green. It passed whether the fix existed or not.
+ *
+ * Worse, my earlier "red-test" of it was ALSO wrong. I neutered the claim AND
+ * restored the re-mint at the same time, so the test went red because each refusal
+ * minted a fresh token and invalidated the children's — not because of any race.
+ * A red for the wrong reason reads exactly like a red for the right one, and I
+ * reported it as proof in a commit message and on the board.
+ *
+ * The barrier removes the startup skew: every child boots, imports, announces
+ * itself, then spin-waits on a `go` file the parent writes only once all of them
+ * are up. They enter `checkSpend` within microseconds of each other.
+ *
+ * MEASURED, so nobody has to trust the reasoning. Against the old read-modify-write:
+ *   before the barrier   0/20 runs detected the double-spend  (vacuous)
+ *   with the barrier     12/20 detected                       (4 children)
+ *   with 8 children      11/20 detected                       (no better — the RMW
+ *                                                              window is simply tiny)
+ * Against the current code it is 20/20 green, because the atomic claim makes
+ * single-winner a guarantee rather than a likelihood.
+ *
+ * So this is a PROBABILISTIC detector: roughly a 3-in-5 chance of catching that
+ * specific regression on any single run. That is a real test and a poor guarantee,
+ * and the distinction matters — the DETERMINISTIC one is the first test in this file,
+ * which forces the exact interleaving and catches the regression every time. This one
+ * exists to prove the guarantee survives genuine concurrency, not to be the guarantee.
+ * Eight children were tried and dropped: same detection rate, twice the processes.
+ */
+async function raceRedemption(dir, token, children = 4) {
   const runner = join(dir, 'redeem.mjs');
   writeFileSync(runner, [
+    'import { writeFileSync, existsSync } from "node:fs";',
+    'import { join } from "node:path";',
+    'const dir = process.env.SWAN_SPEND_DIR;',
+    'const id = process.argv[2];',
     `const m = await import(${JSON.stringify(LEDGER_URL)});`,
-    `const r = m.checkSpend(${JSON.stringify({ ...BREACH, approvalToken: first.token })});`,
+    // Announce readiness AFTER the import, so module load is outside the window.
+    'writeFileSync(join(dir, `ready-${id}`), "1", "utf-8");',
+    'while (!existsSync(join(dir, "go"))) { /* spin — sleeping reintroduces skew */ }',
+    `const r = m.checkSpend(${JSON.stringify({ ...BREACH, approvalToken: token })});`,
     'process.stdout.write(r.allow ? "ALLOW" : "DENY");',
   ].join('\n'), 'utf-8');
 
-  // Launch both, then collect. spawnSync would serialise them, so the children are
-  // started with spawn and awaited together.
   const { spawn } = await import('node:child_process');
-  const run = () => new Promise((resolve) => {
+  const run = (id) => new Promise((resolve) => {
     let out = '';
-    const p = spawn(process.execPath, [runner], { env: { ...process.env, SWAN_SPEND_DIR: dir } });
+    const p = spawn(process.execPath, [runner, String(id)], { env: { ...process.env, SWAN_SPEND_DIR: dir } });
     p.stdout.on('data', (d) => { out += d; });
     p.on('close', () => resolve(out.trim()));
   });
-  const results = await Promise.all([run(), run(), run(), run()]);
+  const pending = Array.from({ length: children }, (_, i) => run(i));
 
+  // Release only once every child is parked on the barrier.
+  const deadline = Date.now() + 30_000;
+  while (Array.from({ length: children }, (_, i) => existsSync(join(dir, `ready-${i}`))).some((r) => !r)) {
+    if (Date.now() > deadline) throw new Error('children never reached the barrier — the harness is broken, not the code');
+    await new Promise((r) => setTimeout(r, 5));
+  }
+  writeFileSync(join(dir, 'go'), '1', 'utf-8');
+  return Promise.all(pending);
+}
+
+test('GENUINELY PARALLEL: four barriered processes, one approval, exactly one winner', async () => {
+  const { dir, mod } = await freshLedger();
+  const first = mod.checkSpend(BREACH);
+  assert.ok(first.token);
+  const results = await raceRedemption(dir, first.token, 4);
   const winners = results.filter((r) => r === 'ALLOW').length;
   assert.equal(winners, 1, `exactly one of four concurrent redemptions may win, got ${winners} (${results.join(',')})`);
   rmSync(dir, { recursive: true, force: true });
