@@ -107,7 +107,7 @@ describe('the library signs the DERIVATIVE, and falls back rather than losing a 
       assetModel: model([row({ posterR2Key: 'atelier/stills/1/thumbs/deadbeef.webp' })]), Op, readUrl,
     });
     expect(signed[0][0]).toBe('atelier/stills/1/thumbs/deadbeef.webp');
-    expect(signed[0][1]).toBe('image/webp');
+    expect(signed[0][1]).toBeUndefined();   // one argument, because the real signer takes one
     expect(out.assets[0].previewUrl).toContain('/thumbs/');
   });
 

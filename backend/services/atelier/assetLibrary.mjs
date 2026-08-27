@@ -240,10 +240,17 @@ export async function listAssets(req = {}, deps = {}) {
       // handler falls back to dimensions, and every picture made before this slice quietly
       // becomes a grey box. Heavy and visible beats light and absent.
       const previewKey = r.posterR2Key || r.r2Key;
-      const previewMime = r.posterR2Key ? 'image/webp' : r.mime;
+      // ONE ARGUMENT, because the real signer takes one. The route injects
+      // `(key) => generateThumbnailUrl(key)`, whose signature is `(objectKey)` — a mime
+      // passed here reached nothing. A dead argument at a seam is precisely how a test in
+      // this repo stubbed `fetchPrompts` for months against code that reads `fetchImpl`,
+      // so it is not left lying around to look meaningful.
+      //
+      // Nothing is lost by dropping it: the object's ContentType is set when it is written,
+      // so storage serves the right type without being told again at signing time.
       // `Promise.resolve().then(...)` rather than `readUrl(...).catch(...)`: a signer that
       // throws SYNCHRONOUSLY never produces a promise for `.catch` to attach to.
-      return Promise.resolve().then(() => readUrl(previewKey, previewMime)).catch((err) => {
+      return Promise.resolve().then(() => readUrl(previewKey)).catch((err) => {
         failed += 1;
         // Per-row degradation must still be VISIBLE somewhere. Silent isolation turns a
         // rotated secret into a page of grey boxes with a 200 and no telemetry — the

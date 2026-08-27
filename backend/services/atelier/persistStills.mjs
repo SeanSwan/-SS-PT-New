@@ -144,8 +144,26 @@ export async function persistStill({ still, userId, workspaceId = null, brandKit
     commercial, territory, grantRecorded, now: d.now,
   });
 
-  // Row first, then bytes only if the row is new: an existing row means the bytes are
-  // already there under this exact key (the key IS the hash).
+  // BYTES FIRST, THEN THE ROW. This used to be the other way round — row via findOrCreate,
+  // then `if (created) putObject(...)` with nothing around the put — and a reviewer found
+  // what that costs. A transient R2 failure on the original left the ROW committed and the
+  // BYTES absent; the retry's findOrCreate then returned `created: false` and skipped the
+  // write **forever**. A permanent ghost: a card in the library, a signed URL, a 404, and
+  // rendered work that cannot be recovered by trying again.
+  //
+  // It is also the third instance of this subsystem's dominant defect class. The rule
+  // "a failure here must never strand the asset" had been applied carefully to the
+  // DERIVATIVE half a few lines below and not at all to the PRIMARY half, and the comment
+  // above it described only the half being looked at — which is the shape exactly.
+  //
+  // Inverting the order removes the class rather than guarding it. The key IS the content
+  // hash, so putting the same bytes twice is a no-op at the same address: safe to repeat,
+  // safe under concurrency, and the row is only ever created once the bytes are known to
+  // be there. The cost is one existence check to keep duplicate persists from re-uploading.
+  const existing = d.assetModel.findOne ? await d.assetModel.findOne({ where: { r2Key } }) : null;
+  if (!existing) {
+    await d.putObject({ Key: r2Key, Body: bytes, ContentType: mime, Metadata: { ownerUserId: String(userId), sha256: hash, lane: String(still.lane) } });
+  }
   const [row, created] = await d.assetModel.findOrCreate({
     where: { r2Key },
     defaults: {
@@ -167,10 +185,6 @@ export async function persistStill({ still, userId, workspaceId = null, brandKit
       provenance,
     },
   });
-  if (created) {
-    await d.putObject({ Key: r2Key, Body: bytes, ContentType: mime, Metadata: { ownerUserId: String(userId), sha256: hash, lane: String(still.lane) } });
-  }
-
   // THE DERIVATIVE. The library signs this instead of the original, which is the difference
   // between a page costing tens of megabytes and under one.
   //
@@ -201,7 +215,12 @@ export async function persistStill({ still, userId, workspaceId = null, brandKit
     }
   }
 
-  return { assetId: row.id, r2Key, posterR2Key, sha256: hash, created, mime, width: dims?.width ?? null, height: dims?.height ?? null };
+  // The SAME fallback the row records. These disagreed: the row stored
+  // `dims?.width ?? still.width ?? null` while the return sent `dims?.width ?? null`, so a
+  // caller could see null dimensions for a row that holds them. Two expressions for one
+  // fact, which is how they drifted.
+  return { assetId: row.id, r2Key, posterR2Key, sha256: hash, created, mime,
+    width: dims?.width ?? still.width ?? null, height: dims?.height ?? still.height ?? null };
 }
 
 /**
