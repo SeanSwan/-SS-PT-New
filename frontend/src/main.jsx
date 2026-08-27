@@ -16,6 +16,11 @@ const emotionCache = createCache({
   prepend: true,
 });
 
+// Acquisition: persist a shared milestone link's ?ref= code the moment the visitor lands,
+// BEFORE any in-app navigation drops the query param (forms read it back at submit time).
+import { captureReferralOnLanding } from './utils/acquisitionAttribution';
+captureReferralOnLanding();
+
 // Import viewport fix utility
 import initViewportFixes from './utils/viewportFix';
 

@@ -30,18 +30,28 @@ const ShareProofButton: React.FC<ShareProofButtonProps> = ({ share, exerciseName
     ? `New best on ${exerciseName}: ${todayE1rm} lb estimated 1-rep max. Logged on SwanStudios.`
     : `Logged a ${exerciseName} session on SwanStudios.`;
 
+  // Acquisition: the link carries the owner's signed referral code so a friend who signs up from
+  // it is attributed to them. No code (secret unset) → plain homepage link; the share still works.
+  const shareUrl = (() => {
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      if (!origin) return undefined;
+      return share.referralCode ? `${origin}/?ref=${encodeURIComponent(share.referralCode)}` : `${origin}/`;
+    } catch { return undefined; }
+  })();
+
   const handleShare = async () => {
-    onEvent?.('proof_share_tapped', { pr });
+    onEvent?.('proof_share_tapped', { pr, referral: !!share.referralCode });
     try {
       if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-        await navigator.share({ text: shareText });
+        await navigator.share(shareUrl ? { text: shareText, url: shareUrl } : { text: shareText });
         return;
       }
     } catch {
       /* user cancelled or share failed — fall through to clipboard */
     }
     try {
-      await navigator.clipboard?.writeText(shareText);
+      await navigator.clipboard?.writeText(shareUrl ? `${shareText} ${shareUrl}` : shareText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
