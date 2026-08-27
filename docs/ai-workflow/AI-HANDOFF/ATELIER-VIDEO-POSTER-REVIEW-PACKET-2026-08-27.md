@@ -206,6 +206,59 @@ export async function signPreviews(page = [], readUrl) {
 }
 ```
 
+## 4b. `assetView` — WHOLE (spliced at round 4)
+
+Load-bearing: the round-3 whole-view-shape test targets exactly this, and it existed only as
+a quoted line number. Same class as the stale §4.
+
+```js
+export function assetView(row, previewUrl = null) {
+  const tags = Array.isArray(row.tags) ? row.tags : [];
+  const tag = (prefix) => {
+    const hit = tags.find((t) => typeof t === 'string' && t.startsWith(`${prefix}:`));
+    return hit ? hit.slice(prefix.length + 1) : null;
+  };
+  return {
+    id: row.id,
+    kind: row.kind,
+    mime: row.mime,
+    width: row.width ?? null,
+    height: row.height ?? null,
+    sizeBytes: row.sizeBytes === undefined || row.sizeBytes === null ? null : Number(row.sizeBytes),
+    status: row.approvalStatus,
+    createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+    // Lifted out of tags so a client never parses strings to answer "which brand made this".
+    brandKit: tag('brandkit'),
+    brandKitHash: tag('brandkit-hash'),
+    workspaceId: tag('workspace'),
+    lane: tag('lane'),
+    seed: tag('seed') === null ? null : Number(tag('seed')),
+    // The prompt, from frozen provenance. Truncated at write time by buildProvenance;
+    // shown so a person can recognise their own work, which is the whole point of a library.
+    // THE HASH OF THE BYTES THIS CARD IS SHOWING. Motion refuses to animate a frame whose
+    // recorded hash is not the one the caller approved — "approval binds bytes, not words"
+    // — so the caller has to be able to SAY which bytes it approved. Without this, an asset
+    // in the library is a dead end: you can see it and never animate it.
+    //
+    // The tempting shortcut is to let the bind look up its own hash and skip the argument.
+    // That would make the gate compare a value to itself and quietly delete the protection
+    // it exists to provide. Publishing the hash keeps the check adversarial: if the row
+    // changed between listing and binding, the server still refuses.
+    //
+    // Safe to expose — it is the content hash of the caller's own image on an owner-scoped
+    // query, not a credential, and the storage key stays withheld.
+    sha256: row.provenance?.artifact?.sha256 ?? null,
+    prompt: row.provenance?.request?.prompt ?? null,
+    promptTruncated: Boolean(row.provenance?.request?.promptTruncated),
+    // A SHORT-LIVED SIGNED URL, or null. Null is a degraded card, never an error: one
+    // object that will not sign must not cost the operator the whole page. The storage
+    // key still never leaves the server — a signed URL is time-limited and opaque, which
+    // is the same trade the published-reference endpoint already makes.
+    previewUrl,
+  };
+}
+```
+
 ## 5. The call site in `listAssets` — WHOLE function
 
 ```js
@@ -826,3 +879,80 @@ the transactional writer fix GLM and I both wanted to avoid.
 ## Round-3 verification
 
 Backend atelier glob to be re-run at commit. Line cap and secret scan clean.
+
+---
+
+# ROUND 4 — four settled by evidence, one confirmed and handed on
+
+**GLM: REVISE** (1 P1, 4 P2), while conceding "I found no defect in `previewKeyFor`/
+`signPreviews` themselves". **Qwen: APPROVE, no blockers.** Every remaining finding was
+either a fact I could settle with a command or code outside this slice. Settled below.
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 (P1) | Sparse-page broken signer is observable only via `console.warn`, whose reachability is unverified | **Collapsed to P2 on GLM's own condition — console IS reachable** |
+| 2 | `kind` casing load-bearing and unverified across writers | **SETTLED — there are exactly two writers and both are lowercase literals** |
+| 3 | Unconditional poster preference with no freshness invariant | **SETTLED — nothing anywhere mutates `r2Key` on an existing row** |
+| 4 | Writer `findOrCreate` scopes on `r2Key` alone, not owner | **CONFIRMED REAL. Out of slice — attached to backlog #1** |
+| 5 | `assetView` load-bearing but never pasted | **CONFIRMED. Spliced as §4b** |
+
+## 1 — console is reachable, so this is a P2
+
+GLM: "collapses to P2 the moment someone shows `[Atelier/library]` in shipped logs."
+
+`backend/package.json` has **no build step and no bundler** — `start` is
+`node scripts/render-start.mjs`, and the dependency set contains no esbuild, webpack, rollup,
+terser, vite or tsup. The source runs as written; `console.warn`/`console.error` go to
+stderr, which Render captures. Nothing strips them.
+
+Separately: `backend/utils/logger.mjs` exists and **no atelier module imports it** — four use
+raw `console`. So this module matches its neighbours, and switching only this one would be
+the inconsistency. Whether the subsystem should move to the structured logger is a real
+question and a subsystem-wide one; noted, not answered inside a slice about posters.
+
+What survives, and honestly: on a page where **nothing** is signable (`attempted === 0`) a
+broken signer is undetectable. That is not a gate I chose — there is no evidence to have.
+
+## 2 — settled, and stronger than the packet claimed
+
+`grep -rn "MediaAsset.create\|MediaAsset.findOrCreate\|MediaAsset.bulkCreate\|MediaAsset.upsert" backend`
+returns **exactly one** hit outside tests: `videoRenderJobService.mjs:271`. The only other
+writer constructs its row through the atelier persist path at `persistStills.mjs:180`.
+
+- `persistStills.mjs:180` → `kind: 'image'`
+- `videoRenderJobService.mjs:276` → `kind: 'video'`
+
+Both lowercase literals, and there is no third writer to drift. The packet said "only two
+writers verified"; the accurate statement is **there are only two writers**.
+
+## 3 — settled, with a real invariant to record
+
+`grep -rn "\.update(" backend | grep -iE "r2Key|posterR2Key"` returns one hit:
+`persistStills.mjs:217`, `row.update({ posterR2Key: thumbKey })` — it sets a poster and
+never touches `r2Key`.
+
+**No code path anywhere mutates `r2Key` on an existing row.** The stale-poster failure GLM
+describes — a card confidently showing the wrong picture, which is worse than a grey box
+because nobody notices — has no producer today. Worth stating in `MediaAsset` as an
+invariant rather than leaving as an accident, and that is where it goes.
+
+## 4 — confirmed, and the more serious half of backlog #1
+
+```js
+const [asset] = await MediaAsset.findOrCreate({
+  where: { r2Key },          // <- owner is in `defaults`, not in the lookup
+```
+
+On any `r2Key` collision across tenants — a keygen regression, an import, seeded data — a
+completing render **finds another tenant's row**. The finder's asset never appears in their
+library, because `ownerUserId` stays the original owner's, and nothing errors.
+
+Round 2 read these exact lines hunting the poster gap and did not see the where-clause.
+Conditional on a collision, and the fix rides the same transaction as the poster backfill,
+so it joins backlog #1 rather than becoming a second item. **Backlog #1 is now two defects
+in one `findOrCreate`, not one.**
+
+## Round-4 verification
+
+No code changed this round — four findings were settled by evidence and one is out of slice.
+Packet gained §4b. Backend atelier glob unchanged at **581/581 across 41 suites**.

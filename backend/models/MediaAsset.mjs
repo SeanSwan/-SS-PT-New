@@ -61,6 +61,15 @@ MediaAsset.init({
   // a model-level `unique: true` would emit a plain unique index that counts
   // soft-deleted rows and permanently burns the key. See the migration.
   r2Key: { type: DataTypes.STRING(500), allowNull: false, field: 'r2_key' },
+  // A PICTURE OF THE ASSET: the ~30 KB WebP the thumbnail slice derives for a still, and
+  // the frame the video job service records for a clip. Same column, same meaning for both.
+  //
+  // INVARIANT THE LIBRARY NOW DEPENDS ON: `r2Key` is written once and never mutated on an
+  // existing row — verified, the only update touching either key is persistStills.mjs:217,
+  // which sets this one. `previewKeyFor` prefers the poster UNCONDITIONALLY, so a path that
+  // repointed `r2Key` while leaving this stale would make a card confidently show the wrong
+  // picture. That is worse than a grey box, because nobody notices. If you ever need to
+  // repoint `r2Key`, clear or regenerate this in the same statement.
   posterR2Key: { type: DataTypes.STRING(500), allowNull: true, field: 'poster_r2_key' },
   mime: { type: DataTypes.STRING(80), allowNull: false },
   width: { type: DataTypes.INTEGER, allowNull: true },
