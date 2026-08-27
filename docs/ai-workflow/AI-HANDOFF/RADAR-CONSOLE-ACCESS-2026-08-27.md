@@ -30,6 +30,16 @@ ssh radar-net    # Tailscale — swan-radar, works from anywhere
 | SSH config | `~/.ssh/config` — defines `Host radar` and `Host radar-net` |
 | Launcher | `scripts/launchers/Radar-Console.ps1` |
 | Desktop shortcut | `%USERPROFILE%\Desktop\Swan Radar Console.lnk` |
+| Login auto-open | `…\Start Menu\Programs\Startup\Swan Radar Console.lnk` (passes `-AtLogin`) |
+
+**At Windows login a radar console opens automatically** (Sean's choice 2026-08-27), joining
+`Hermes2-Gateway-Start.cmd` and `Start-Swan-Plaud-Official-Sync.cmd` in the Startup folder.
+
+The `-AtLogin` switch exists because at login the network stack and Tailscale are usually not up
+yet. Without it the launcher would probe once, fail, and announce radar unreachable when the box
+is perfectly fine. With it the launcher retries 6 times at 10s intervals (~60s of grace) before
+giving up; the desktop icon keeps the fail-fast single-probe behaviour so it never hangs.
+Verified both paths: `-AtLogin` → 6 rounds / 12 probes then guidance; no flag → 2 probes, exits.
 
 ## 2. Boot persistence — VERIFIED, nothing was needed
 

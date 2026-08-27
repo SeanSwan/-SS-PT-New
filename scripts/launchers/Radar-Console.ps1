@@ -13,6 +13,13 @@
   writes to radar on its own.
 #>
 
+param(
+    # -AtLogin: run from the Windows Startup folder. At login the network stack and
+    # Tailscale are usually not up yet, so probe on a retry loop instead of failing
+    # instantly and crying wolf about a box that is actually fine.
+    [switch]$AtLogin
+)
+
 $ErrorActionPreference = 'Stop'
 $Host.UI.RawUI.WindowTitle = 'Swan Radar console'
 
@@ -27,21 +34,31 @@ function Test-RadarRoute {
     return ($LASTEXITCODE -eq 0)
 }
 
-$target = $null
+$target   = $null
+$attempts = if ($AtLogin) { 6 } else { 1 }   # ~60s of grace at login, instant otherwise
 
-Write-Host '  probing LAN (192.168.50.20) ... ' -NoNewline
-if (Test-RadarRoute 'radar') {
-    Write-Host 'reachable' -ForegroundColor Green
-    $target = 'radar'
-} else {
+for ($i = 1; $i -le $attempts -and -not $target; $i++) {
+
+    if ($i -gt 1) {
+        Write-Host "  network not ready - retry $i/$attempts in 10s" -ForegroundColor DarkGray
+        Start-Sleep -Seconds 10
+    }
+
+    Write-Host '  probing LAN (192.168.50.20) ... ' -NoNewline
+    if (Test-RadarRoute 'radar') {
+        Write-Host 'reachable' -ForegroundColor Green
+        $target = 'radar'
+        break
+    }
     Write-Host 'no' -ForegroundColor DarkYellow
+
     Write-Host '  probing Tailscale (swan-radar) ... ' -NoNewline
     if (Test-RadarRoute 'radar-net') {
         Write-Host 'reachable' -ForegroundColor Green
         $target = 'radar-net'
-    } else {
-        Write-Host 'no' -ForegroundColor Red
+        break
     }
+    Write-Host 'no' -ForegroundColor Red
 }
 
 if (-not $target) {
