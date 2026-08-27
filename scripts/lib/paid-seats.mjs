@@ -252,3 +252,32 @@ export function seatArgsFrom(cmd) {
   const hit = invokedScripts(cmd).find((s) => !s.nonExecuting && isSeatPath(s.path));
   return hit ? hit.args : [];
 }
+
+/**
+ * EVERY paid seat on the line, each with its OWN argv.
+ *
+ * GLM 5.3 round-5 B2, reproduced: `seatArgsFrom` returns the FIRST seat's argv, and
+ * the gate read `--confirm-spend`, `--model`, `--seats`, `--max-tokens` and
+ * `--document` from it alone. So a flag on any later invocation was invisible:
+ *
+ *   <free gemini call> && <panel --seats fable --confirm-spend>
+ *      -> the confirm-spend check read GEMINI's argv, found nothing, and took the
+ *         "the panel refuses its own live call" short-circuit. ALLOW, on a live
+ *         confirmed Fable fan-out.
+ *   <cheap grok> && <kimi --model claude-fable-5>
+ *      -> the raise was on seat two; the estimate stayed at $0.42 against ~$1.37.
+ *
+ * That second one is flash's round-4 finding 6 SURVIVING ITS OWN FIX — the fix read
+ * the override from the first seat's argv, and the regression test I wrote for it
+ * happens to put the raise first. A test written from the same mental model as the
+ * fix inherits the fix's blind spot; this is the seventh time that shape has appeared
+ * in this workstream.
+ *
+ * GLM named the root exactly: round 4 moved HOLDS to per-invocation and left every
+ * FLAG line-global-first. Half a migration. This is the other half.
+ */
+export function seatInvocations(cmd) {
+  return invokedScripts(cmd)
+    .filter((s) => !s.nonExecuting && isSeatPath(s.path))
+    .map((s) => ({ name: normalizeSeatKey(s.path), args: s.args }));
+}

@@ -283,7 +283,11 @@ test('an IN-FLIGHT redemption still names its own recovery path', async () => {
   // Simulate a redemption in flight: a FRESH claim, no marker, token still unused.
   const store = JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8'));
   const key = Object.keys(store)[0];
-  writeFileSync(join(dir, `claim-${key}.json`), JSON.stringify({ inFlight: true }), 'utf-8');
+  // Claims are keyed per TOKEN since 2026-08-27 (GLM 5.3 round-5 B3). A path built
+  // the old way would create a decoy nobody consults, and the test would pass for the
+  // wrong reason — which is exactly what happened to a sibling test in this batch:
+  // it kept passing through the contract change and quietly went vacuous.
+  writeFileSync(join(dir, `claim-${key}-${first.token}.json`), JSON.stringify({ inFlight: true }), 'utf-8');
 
   const blocked = mod.checkSpend({ ...BREACH, approvalToken: first.token });
   assert.equal(blocked.allow, false, 'a claim held by another caller must refuse');
@@ -310,6 +314,49 @@ test('a CRASHED holder is still distinguishable from a spent one', async () => {
   const retry = mod.checkSpend({ ...BREACH, approvalToken: first.token });
   assert.equal(retry.allow, true,
     'an aged claim with no spent-marker is a crashed holder; the approval must still work');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('R5: a SECOND approval cycle for the same breach still works', async () => {
+  // GLM 5.3 round-5 B3 — a BRICK, and one my own round-4 fix created. The spent-marker
+  // and the claim file were both keyed by model+topic+cost, and nothing deletes either.
+  // So the next approval for the same breach — Fable on the same document, next day,
+  // clean caps — minted a token and then refused to redeem it, forever, needing a
+  // hand-deleted file the error message never named.
+  //
+  // Reproduced before fixing (cycle 2 redeem: allow=false), and this is the shape:
+  // A CONTROL KEYED ON SOMETHING COARSER THAN THE THING IT PROTECTS WILL EVENTUALLY
+  // DENY THE THING IT PROTECTS. The token is what gets spent, so the token is what the
+  // marker records and what the claim path names.
+  const { dir, mod } = await freshLedger();
+  const BREACH = { model: 'claude-fable-5', topic: 'plan', worstCaseUsd: 1.06 };
+
+  const c1 = mod.checkSpend(BREACH);
+  assert.equal(mod.checkSpend({ ...BREACH, approvalToken: c1.token }).allow, true, 'cycle 1 redeems');
+
+  const c2 = mod.checkSpend(BREACH);
+  assert.ok(c2.token, 'cycle 2 mints a token');
+  assert.notEqual(c2.token, c1.token, 'and it is a new one');
+  assert.equal(mod.checkSpend({ ...BREACH, approvalToken: c2.token }).allow, true,
+    'cycle 2 must redeem — a stale marker or claim from cycle 1 bricks every future approval');
+
+  // Third cycle too: a brick that only appears on the Nth cycle is still a brick.
+  const c3 = mod.checkSpend(BREACH);
+  assert.equal(mod.checkSpend({ ...BREACH, approvalToken: c3.token }).allow, true, 'cycle 3 as well');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('R5: cycle 1 token is still dead after cycle 2 exists', async () => {
+  // The other side of B3's fix, and the risk it introduced: per-token keying must not
+  // resurrect a SPENT token just because a newer one was issued for the same breach.
+  const { dir, mod } = await freshLedger();
+  const BREACH = { model: 'claude-fable-5', topic: 'plan', worstCaseUsd: 1.06 };
+  const c1 = mod.checkSpend(BREACH);
+  mod.checkSpend({ ...BREACH, approvalToken: c1.token });
+  mod.checkSpend(BREACH); // cycle 2 mints, overwriting the per-key marker
+
+  const replay = mod.checkSpend({ ...BREACH, approvalToken: c1.token });
+  assert.equal(replay.allow, false, 'a spent token must stay spent, whatever was minted after it');
   rmSync(dir, { recursive: true, force: true });
 });
 

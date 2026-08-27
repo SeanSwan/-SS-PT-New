@@ -26,7 +26,7 @@ import { join } from 'node:path';
 import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR, reserveSpend, releaseReservation } from '../lib/spend-ledger.mjs';
 // SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
 // Hand-curating it inside this regex is what drifted in both directions at once.
-import { FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, seatArgsFrom } from '../lib/paid-seats.mjs';
+import { FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, seatInvocations } from '../lib/paid-seats.mjs';
 import { flagFrom, hasFlag } from '../lib/shell-parse.mjs';
 
 const ALLOW = () => process.exit(0);
@@ -149,7 +149,26 @@ function flagValue(cmd, name) {
   // that a flag inside a quoted remit is data — and the second fix had to preserve
   // byte offsets so a quoted `--document "path with spaces"` still resolved. Both
   // problems were artefacts of scanning text. argv has neither.
-  return flagFrom(seatArgsFrom(cmd), name);
+  //
+  // ACROSS EVERY SEAT, not just the first (GLM 5.3 round-5 B2). Reading only the
+  // first invocation's argv made a flag on any later one invisible — a `--model`
+  // raise on seat two silently kept seat one's price. First hit wins, which is the
+  // shell's own precedence and matches what a reader expects from a line.
+  //
+  // Where a flag belongs to ONE specific seat — the panel's `--confirm-spend` and
+  // `--seats`, a `--dry-run` the target must actually implement — the call sites read
+  // that seat's argv directly instead of using this helper. A flag that means "this
+  // fan-out is approved" must not be satisfiable by typing it on a different command.
+  for (const inv of seatInvocations(cmd)) {
+    const v = flagFrom(inv.args, name);
+    if (v !== undefined) return v;
+  }
+  return undefined;
+}
+
+/** The argv of one named seat on this line, or [] if it is not present. */
+function argsOfSeat(cmd, seatName) {
+  return (seatInvocations(cmd).find((s) => s.name === seatName) || { args: [] }).args;
 }
 
 function readInput() {
@@ -269,13 +288,23 @@ try {
   // test saw it, and a LIVE paid fan-out was waved through with no cap and no token.
   // Round 2 restricted the flag to the one script that implements it but kept matching
   // over quoted arguments — narrowing WHICH script while leaving WHERE it looks.
-  if (DRY_RUN_AWARE.has(scriptName) && hasFlag(seatArgsFrom(cmd), 'dry-run')) ALLOW();
+  // ON THAT SEAT'S OWN ARGV (GLM 5.3 round-5 B2). Reading the line's first seat meant
+  // a flag typed on a DIFFERENT command satisfied a check about this one — the same
+  // "honoring a flag the target ignores" class the file documents twice, arriving
+  // through the argv door instead of the text door.
+  if (DRY_RUN_AWARE.has(scriptName) && hasFlag(argsOfSeat(cmd, scriptName), 'dry-run')) ALLOW();
 
   // The fan-out refuses its own live call without --confirm-spend, so gating it
   // earlier is cry-wolf. The old condition named `consult-panel.mjs`, which does not
   // exist on main: the real panel never took this branch and neither did anything
   // else. One condition, drifted in both directions.
-  if (PANEL_SCRIPTS.has(scriptName) && !hasFlag(seatArgsFrom(cmd), 'confirm-spend')) ALLOW();
+  //
+  // GLM 5.3 round-5 B2, reproduced: with `--confirm-spend` read from the LINE's first
+  // seat, `<free gemini call> && <panel --seats fable --confirm-spend>` had the check
+  // inspect GEMINI's argv, find nothing, and take this "it refuses its own live call"
+  // short-circuit — ALLOW, on a live confirmed Fable fan-out. A flag meaning "this
+  // fan-out is approved" must be read off the fan-out, never off a neighbour.
+  if (PANEL_SCRIPTS.has(scriptName) && !hasFlag(argsOfSeat(cmd, scriptName), 'confirm-spend')) ALLOW();
 
   // An explicit --model / SWAN_*_MODEL override wins over the script default.
   // OVERRIDES MAY ONLY RAISE THE ESTIMATE — never lower it.
@@ -286,15 +315,28 @@ try {
   // $10/M while the gate priced it as flash. Any caller-supplied value that
   // makes a call look CHEAPER is exactly what an agent under budget pressure
   // would reach for, so the estimate takes the max of default and override.
+  //
+  // THE RAISE BELONGS TO THE SEAT THAT CARRIES IT (GLM 5.3 round-5 B2). `flagValue`
+  // now scans every invocation, so a `--model` on seat two is finally SEEN — but
+  // comparing it against seat ONE's default would price the wrong delta. The seat
+  // holding the flag supplies the baseline it is raising from.
+  const raisingSeat = seatInvocations(cmd).find((s) => flagFrom(s.args, 'model') !== undefined);
+  const raiseBaseKey = raisingSeat ? (SCRIPT_MODEL[raisingSeat.name] || '') : '';
+
   const defaultKey = SCRIPT_MODEL[scriptName] || '';
   let modelKey = defaultKey;
   const overrideVal = (cmd.match(/SWAN_[A-Z_]*MODEL=([^\s]+)/) || [])[1] || flagValue(cmd, 'model');
   const override = overrideVal ? [null, overrideVal] : null;
   if (override) {
     const hit = Object.keys(PRICES).find((k) => override[1].includes(k));
-    if (hit && PRICES[defaultKey]) {
+    // Compare against the RAISING seat's default. For a single-seat line these are
+    // the same key; on a compound they are not, and using the line's first seat asked
+    // "is fable pricier than grok" about a flag typed on kimi. An env-var override
+    // belongs to no particular seat, so it falls back to the line's default.
+    const base = raiseBaseKey || defaultKey;
+    if (hit && PRICES[base]) {
       const costOf = (k) => PRICES[k][0] + PRICES[k][1];
-      if (costOf(hit) > costOf(defaultKey)) modelKey = hit;
+      if (costOf(hit) > costOf(base)) modelKey = hit;
     }
     // The `else if (hit && !defaultKey) modelKey = hit` branch is DELETED, and must
     // not come back. Both GLM seats found it independently (5.3 F3, 5.3-flash B1) and
@@ -328,7 +370,13 @@ try {
     dspro: 0.03, dsflash: 0.01, glm: 0, qwen: 0, gemini: 0, ox: 0,
   };
   const DEFAULT_SEATS = ['kimi', 'glm', 'qwen', 'ox', 'gemini', 'grok', 'dspro', 'dsflash'];
-  const seatsArg = flagValue(cmd, 'seats');
+  // From the PANEL's own argv (GLM 5.3 round-5 B2): a panel appearing second on a
+  // line had its `--seats` read off the first seat, found nothing, and priced the
+  // fan-out at the full DEFAULT_SEATS roster — over-stating a small run, which is the
+  // cry-wolf direction, while the confirm-spend hole under-stated a large one. One
+  // root cause, both directions, exactly like the drifted allowlist it replaced.
+  const panelName = [...PANEL_SCRIPTS].find((p) => allNames.includes(p)) || scriptName;
+  const seatsArg = flagFrom(argsOfSeat(cmd, panelName), 'seats');
   const panelSeats = seatsArg
     ? seatsArg.split(',').map((s) => s.trim()).filter(Boolean)
     : DEFAULT_SEATS;
@@ -453,8 +501,12 @@ try {
   // is added once, for the one script the override targets; the override is a
   // property of the command, not of every seat on the line, so applying it to all of
   // them would over-count.
-  const raiseDelta = (modelKey !== defaultKey && PRICES[modelKey] && PRICES[defaultKey])
-    ? Math.max(0, callUsd(modelKey) - callUsd(defaultKey))
+  // Against the RAISING seat's own baseline — the sum already contains that seat at
+  // its default price, so the delta is what the raise ADDS to it. Using the line's
+  // first seat here computed a delta between two unrelated models.
+  const raiseBase = raiseBaseKey || defaultKey;
+  const raiseDelta = (modelKey !== raiseBase && PRICES[modelKey] && PRICES[raiseBase])
+    ? Math.max(0, callUsd(modelKey) - callUsd(raiseBase))
     : 0;
 
   const worstCaseUsd = isPanel

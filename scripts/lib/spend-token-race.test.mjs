@@ -89,7 +89,11 @@ test('a redemption leaves an atomic claim file behind', async () => {
   const claims = readFileSync(join(dir, 'pending-approval.json'), 'utf-8');
   assert.ok(claims.includes('used'), 'audit trail still updated');
   const key = Object.keys(JSON.parse(claims))[0];
-  assert.ok(existsSync(join(dir, `claim-${key}.json`)), 'the O_EXCL claim is what decides');
+  // PER TOKEN, not per key, since 2026-08-27. Keying the claim by model+topic+cost
+  // left cycle 1's file sitting in cycle 2's way forever — GLM 5.3 round-5 B3, a
+  // BRICK: every later approval for the same breach minted a token and then refused
+  // to redeem it. The token is the thing being claimed, so the token is in the path.
+  assert.ok(existsSync(join(dir, `claim-${key}-${first.token}.json`)), 'the O_EXCL claim is what decides');
   rmSync(dir, { recursive: true, force: true });
 });
 
@@ -196,7 +200,7 @@ test('a FRESH claim refuses — a live winner may still be in flight', () => {
   return import(`${LEDGER_URL}?fresh=${Math.random()}`).then((mod) => {
     const first = mod.checkSpend(BREACH);
     const key = Object.keys(JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8')))[0];
-    writeFileSync(join(dir, `claim-${key}.json`), '{}', 'utf-8'); // orphan, but brand new
+    writeFileSync(join(dir, `claim-${key}-${first.token}.json`), '{}', 'utf-8'); // orphan, but brand new
     const r = mod.checkSpend({ ...BREACH, approvalToken: first.token });
     assert.equal(r.allow, false, 'a claim inside the window must be treated as a live winner');
     rmSync(dir, { recursive: true, force: true });
@@ -213,7 +217,7 @@ test('an AGED orphan is reclaimed — a crash must not brick a valid approval', 
   const { dir, mod } = await freshLedger();
   const first = mod.checkSpend(BREACH);
   const key = Object.keys(JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8')))[0];
-  const claimPath = join(dir, `claim-${key}.json`);
+  const claimPath = join(dir, `claim-${key}-${first.token}.json`);
   writeFileSync(claimPath, '{}', 'utf-8');
 
   // Age it past the reclaim window rather than sleeping through it.
@@ -233,7 +237,7 @@ test('reclaiming does NOT reopen the race — still exactly one winner', async (
   const { dir, mod } = await freshLedger();
   const first = mod.checkSpend(BREACH);
   const key = Object.keys(JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8')))[0];
-  const claimPath = join(dir, `claim-${key}.json`);
+  const claimPath = join(dir, `claim-${key}-${first.token}.json`);
   writeFileSync(claimPath, '{}', 'utf-8');
   const old = new Date(Date.now() - 5 * 60_000);
   utimesSync(claimPath, old, old);

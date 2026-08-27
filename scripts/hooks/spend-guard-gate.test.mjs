@@ -671,6 +671,95 @@ test('R4: a --model RAISE survives into a compound line', () => {
   );
 });
 
+test('R5: six shell shapes that hid a paid seat from the parser', () => {
+  // Round 5. The parser closed the whole class of POSITION bugs and then had gaps of
+  // its own in shell GRAMMAR — which is the honest cost of replacing a matcher: the
+  // failure mode moves from "cannot express the rule" to "has not modelled the
+  // language yet". Every one below was reproduced at exit 0 before it was fixed.
+  //
+  // GLM 5.3 B1 — `>` and `<` were ordinary characters, so a redirect TARGET ending in
+  //   .mjs landed in the script slot and the runner loop stopped there.
+  // GLM 5.3 B4 — a transparent wrapper's own flags ended the strip, orphaning the
+  //   command entirely: argv[0] became `-oL` and the seat vanished.
+  // flash B1 — the only backslash rule was line-continuation, so `consult\-fable.mjs`
+  //   (which POSIX executes as the real file) tokenised WITH the backslash and failed
+  //   SEAT_NAME. One character, one free Fable call.
+  // flash B1 (sibling) — a QUOTED argv[0] is legal shell and executes; treating it as
+  //   data skipped a real invocation.
+  // flash B2 — a flag VALUE ending in .js/.mjs terminated the script scan:
+  //   `node --require ./prelude.js <seat>` made prelude the script and the seat its argv.
+  const HIDDEN = [
+    ['redirect before the script', 'node >out.mjs scripts/consult-fable.mjs --document plan.md'],
+    ['fd-prefixed redirect first', '2>err.mjs node scripts/consult-fable.mjs --document plan.md'],
+    ['wrapper with its own flags', 'stdbuf -oL node scripts/consult-fable.mjs --document plan.md'],
+    ['backslash escape in the path', 'node scripts/consult\\-fable.mjs --document plan.md'],
+    ['quoted argv[0], direct exec', '"./scripts/consult-fable.mjs" --document plan.md'],
+    ['--require value ending in .js', 'node --require ./prelude.js scripts/consult-fable.mjs --document plan.md'],
+    ['--import value ending in .mjs', 'node --import ./setup.mjs scripts/consult-fable.mjs --document plan.md'],
+  ];
+  for (const [name, cmd] of HIDDEN) {
+    assert.equal(runGate(cmd).code, BLOCK, `${name}: a Fable call slipped past the gate`);
+  }
+});
+
+test('R5: an ordinary BOOLEAN node flag does not hide the seat behind it', () => {
+  // My own fix for flash B2 was itself a bypass, found by mutation-testing minutes
+  // after it landed. The rule "a script-shaped token preceded by a non-parse-only flag
+  // is that flag's value" assumes EVERY flag takes a value — and boolean flags are
+  // ordinary, so `node --trace-warnings <seat>` ran free.
+  //
+  // Seventh time in this workstream a fix opened the next hole, and the shape never
+  // changes: a heuristic about which token is "the script" has to be right about a
+  // language it is not parsing. The gate does not need that answer — it needs to know
+  // whether a paid seat appears anywhere the runner would load it.
+  for (const flag of ['--trace-warnings', '--enable-source-maps', '--no-warnings', '--foo']) {
+    assert.equal(runGate(`node ${flag} scripts/consult-fable.mjs --document x`).code, BLOCK,
+      `${flag} hid the seat behind it`);
+  }
+  // And a seat named as a LOADER value still bills, so it must still be gated.
+  assert.equal(runGate('node --require scripts/consult-fable.mjs other.mjs').code, BLOCK,
+    'a seat loaded via --require is loaded, and bills');
+});
+
+test('R5: `node -c` is parse-only, like `node --check`', () => {
+  // flash round-5 F1. NON_EXECUTING_FLAGS held `-c-check` — a token no shell produces,
+  // the wreckage of an earlier edit — while `-c`, node's real shorthand, was missing.
+  // So a syntax check was priced at $1.06 and BLOCKED. This file records refusing my
+  // own `node --check` mid-repair as the cry-wolf failure worse than a hole; the same
+  // workflow one keystroke over still did it.
+  assert.equal(runGate('node -c scripts/consult-fable.mjs').code, ALLOW, '-c must not be a paid call');
+  assert.equal(runGate('node --check scripts/consult-fable.mjs').code, ALLOW, 'control: --check');
+  // And the carve-out must not become a bypass: it only counts BEFORE the script.
+  assert.equal(runGate('node scripts/consult-fable.mjs --document x -c').code, BLOCK,
+    'a trailing -c is an argument the target ignores, not a parse-only run');
+});
+
+test('R5: a flag is read from the seat it is typed on, not the line', () => {
+  // GLM 5.3 B2, both halves reproduced. Round 4 moved HOLDS to per-invocation and left
+  // every FLAG line-global-first — half a migration, and the missing half is the half
+  // that decides whether a fan-out is approved.
+  //
+  // Note the second case: this is flash's round-4 finding 6 SURVIVING ITS OWN FIX. The
+  // fix read the override from the first seat's argv, and the regression test I wrote
+  // for it happens to put the raise first. A test written from the same mental model
+  // as the fix inherits the fix's blind spot.
+  assert.equal(runGate(
+    'node scripts/consult-gemini.mjs --document p && node scripts/consult-openrouter-panel.mjs --seats fable --document x --confirm-spend',
+  ).code, BLOCK, 'confirm-spend on seat two: the panel short-circuit read gemini argv and allowed a live fan-out');
+
+  assert.equal(runGate(
+    'node scripts/consult-grok.mjs --document b && node scripts/consult-kimi.mjs --document a --model claude-fable-5',
+  ).code, BLOCK, 'a --model raise on seat two must be seen');
+
+  // Both cry-wolf directions stay closed.
+  assert.equal(runGate(
+    'node scripts/consult-gemini.mjs --document p && node scripts/consult-openrouter-panel.mjs --seats fable --document x',
+  ).code, ALLOW, 'without --confirm-spend the panel still refuses itself; gating early is cry-wolf');
+  assert.equal(runGate(
+    'node scripts/consult-kimi.mjs --document a && node scripts/consult-grok.mjs --document b',
+  ).code, ALLOW, 'an unraised cheap compound must still run');
+});
+
 test('a genuinely cheap seat passes — the gate is not just "block everything"', () => {
   // The honest positive control. Sol at its default is ~$0.31, under the $1.00 cap.
   // Without this, every BLOCK assertion above would also pass on a gate that
