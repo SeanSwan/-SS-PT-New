@@ -229,9 +229,21 @@ export async function listAssets(req = {}, deps = {}) {
     ? await Promise.all(page.map((r) => {
       if (r.kind !== 'image' || !r.r2Key) return Promise.resolve(null);
       attempted += 1;
+      // THE DERIVATIVE WHEN THERE IS ONE, THE ORIGINAL WHEN THERE IS NOT.
+      //
+      // A still persisted since the thumbnail slice carries `posterR2Key` — a ~30 KB WebP
+      // instead of a ~2 MB PNG, which is what makes a two-dozen-card page affordable.
+      //
+      // The fallback is not laziness, it is the difference between a slow card and a
+      // missing one. Signing a derived key unconditionally would hand every older asset a
+      // URL for an object that was never written; the browser 404s, the card's error
+      // handler falls back to dimensions, and every picture made before this slice quietly
+      // becomes a grey box. Heavy and visible beats light and absent.
+      const previewKey = r.posterR2Key || r.r2Key;
+      const previewMime = r.posterR2Key ? 'image/webp' : r.mime;
       // `Promise.resolve().then(...)` rather than `readUrl(...).catch(...)`: a signer that
       // throws SYNCHRONOUSLY never produces a promise for `.catch` to attach to.
-      return Promise.resolve().then(() => readUrl(r.r2Key, r.mime)).catch((err) => {
+      return Promise.resolve().then(() => readUrl(previewKey, previewMime)).catch((err) => {
         failed += 1;
         // Per-row degradation must still be VISIBLE somewhere. Silent isolation turns a
         // rotated secret into a page of grey boxes with a 200 and no telemetry — the

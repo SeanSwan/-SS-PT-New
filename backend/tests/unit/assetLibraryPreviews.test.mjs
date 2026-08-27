@@ -95,3 +95,31 @@ describe('one bad object and a broken signer are different facts', () => {
     expect(out.previewsUnavailable).toBe(false);
   });
 });
+
+describe('the library signs the DERIVATIVE, and falls back rather than losing a picture', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+  it('signs the thumbnail when the asset has one', async () => {
+    // The whole point of the slice: a ~30 KB WebP instead of a ~2 MB PNG, two dozen times
+    // per page. Signing the original made a library page cost tens of megabytes.
+    const signed = [];
+    const readUrl = async (key, mime) => { signed.push([key, mime]); return `https://cdn.example/${key}?sig=abc`; };
+    const out = await listAssets({ userId: 1 }, {
+      assetModel: model([row({ posterR2Key: 'atelier/stills/1/thumbs/deadbeef.webp' })]), Op, readUrl,
+    });
+    expect(signed[0][0]).toBe('atelier/stills/1/thumbs/deadbeef.webp');
+    expect(signed[0][1]).toBe('image/webp');
+    expect(out.assets[0].previewUrl).toContain('/thumbs/');
+  });
+
+  it('falls back to the ORIGINAL for assets made before thumbnails existed', async () => {
+    // Signing a derived key unconditionally would hand every older asset a URL for an
+    // object that was never written: the browser 404s, the card's error handler falls back
+    // to dimensions, and every picture made before this slice quietly becomes a grey box.
+    // Heavy and visible beats light and absent.
+    const signed = [];
+    const readUrl = async (key, mime) => { signed.push([key, mime]); return `https://cdn.example/${key}?sig=abc`; };
+    const out = await listAssets({ userId: 1 }, { assetModel: model([row({ posterR2Key: null })]), Op, readUrl });
+    expect(signed[0][0]).not.toContain('/thumbs/');
+    expect(out.assets[0].previewUrl).toBeTruthy();      // the card still shows a picture
+  });
+});

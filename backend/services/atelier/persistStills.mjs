@@ -29,6 +29,7 @@
 import { createHash } from 'node:crypto';
 import { readFile as fsReadFile } from 'node:fs/promises';
 import { imageDimensions } from '../../../shared/imageDimensions.mjs';
+import { makeThumbnail, thumbObjectKey } from './stillThumbnail.mjs';
 import { buildProvenance } from '../../../shared/providers/video/provenance.mjs';
 import { resolve as resolveProvider, ProviderError } from '../../../shared/providers/video/registry.mjs';
 import { ComposeError } from './composeLimits.mjs';
@@ -169,7 +170,38 @@ export async function persistStill({ still, userId, workspaceId = null, brandKit
   if (created) {
     await d.putObject({ Key: r2Key, Body: bytes, ContentType: mime, Metadata: { ownerUserId: String(userId), sha256: hash, lane: String(still.lane) } });
   }
-  return { assetId: row.id, r2Key, sha256: hash, created, mime, width: dims?.width ?? null, height: dims?.height ?? null };
+
+  // THE DERIVATIVE. The library signs this instead of the original, which is the difference
+  // between a page costing tens of megabytes and under one.
+  //
+  // NOT GATED ON `created`, and that is the whole point of the condition below. Gating it
+  // would mean rows written before thumbnails existed could never acquire one — new stills
+  // light, every earlier still heavy forever, with nothing to say why. The condition is
+  // "this row has no thumbnail yet", not "this row is new".
+  //
+  // AND IT CANNOT FAIL THE ASSET. The bytes are already in storage and the row already
+  // exists; a still that could not be shrunk is a saved still with a heavier preview, not a
+  // lost one. Every failure here leaves posterR2Key null and says so once.
+  let posterR2Key = row.posterR2Key || null;
+  if (!posterR2Key) {
+    try {
+      const thumb = await makeThumbnail(bytes, { sharpImpl: d.sharpImpl });
+      if (thumb) {
+        const thumbKey = thumbObjectKey({ userId, sha256: hash });
+        await d.putObject({ Key: thumbKey, Body: thumb.bytes, ContentType: thumb.mime,
+          Metadata: { ownerUserId: String(userId), sha256: hash, derivedFrom: r2Key } });
+        await row.update({ posterR2Key: thumbKey });
+        posterR2Key = thumbKey;
+      }
+    } catch (err) {
+      // Deliberately swallowed, deliberately logged. Silence here would turn a broken
+      // encoder into "the library is just slow" with nothing in any log to find.
+      console.warn('[Atelier/persist] thumbnail failed for asset %s (%s); the asset is fine, its preview is the original: %s',
+        row.id, r2Key, err?.message || err);
+    }
+  }
+
+  return { assetId: row.id, r2Key, posterR2Key, sha256: hash, created, mime, width: dims?.width ?? null, height: dims?.height ?? null };
 }
 
 /**
