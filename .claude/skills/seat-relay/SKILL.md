@@ -56,7 +56,16 @@ bound to that exact command. Only a separate invocation carrying that token proc
 Sean's explicit override. The gate is **purpose-blind on purpose**: the remit is a string the
 caller writes, so filtering it would test vocabulary rather than intent. Rewording does not get
 you through, and neither does `--dry-run` (the Fable path does not implement it, so an ignored
-flag would bill in full). It **fails closed**. 20/20 tests in `fable-remit-gate.test.mjs`.
+flag would bill in full). It **fails closed on exceptions** — note the precision: a regex MISS is not an exception, and the
+hook header lists the shapes known to miss. 35 tests in `fable-remit-gate.test.mjs`.
+
+**Know what this gate is, or you will trust it too far.** It is **friction plus an audit trail
+against an eager agent — not a wall against a hostile one.** Two hostile reviews on 2026-08-26
+proved an earlier, prouder version of this paragraph false: the refusal used to print the approval
+token, and a PreToolUse refusal is read by *you*, not by Sean — so the second ask was satisfiable
+with no human in it at all. The token now goes to `.ai-workflow/gates/PENDING-FABLE-APPROVAL.txt`
+for Sean to read back. You can open that file. **Don't.** Helping yourself to the key is the one
+move this whole rule exists to make visible, and it leaves a record either way.
 
 **Do not route around it.** If you find yourself reaching for a wording that might slip past,
 that is the exact moment the rule is working — stop and print the block.

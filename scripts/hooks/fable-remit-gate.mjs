@@ -42,19 +42,58 @@
  * a gate that makes the exception require his explicit yes costs nothing that
  * matters and removes the failure mode entirely.
  *
- * The second ask reuses the proven shape from spend-ledger.mjs: refuse, mint a
- * random single-use token bound to this exact command, and let only a separate
- * invocation carrying that token through. An agent cannot self-approve in one
- * step, and it cannot compute the token, because it is random and stored.
+ * The second ask reuses the shape from spend-ledger.mjs: refuse, mint a random
+ * single-use token bound to this exact command, and let only a separate invocation
+ * carrying that token through.
  *
- * WHY THIS ONE FAILS CLOSED (spend-guard fails OPEN — deliberately different)
- * --------------------------------------------------------------------------
- * spend-guard fails open so a guard bug can never brick the toolchain. That is
- * right for a cost check. It is wrong here: a purpose gate that fails open is not
- * a gate, and a bug in it would silently restore the exact behaviour the rule
- * exists to stop. Failing closed is safe *specifically because* a non-script path
- * to Fable exists — Sean switches models. A broken hook costs an agent the script;
- * it never costs Sean the model.
+ * WHAT THIS GATE IS, HONESTLY — READ BEFORE TRUSTING IT
+ * ----------------------------------------------------
+ * **It is friction plus an audit trail against an EAGER agent. It is not a wall
+ * against a HOSTILE one.** Two hostile reviews on 2026-08-26 (GLM 5.3 blocker 1,
+ * GLM 5.3-flash blocker 3) took apart an earlier version of this comment that
+ * claimed "an agent cannot self-approve" and "cannot compute the token, because it
+ * is random and stored." Both claims were false, and both were verified false:
+ *
+ *   1. THE REFUSAL USED TO PRINT THE TOKEN. A PreToolUse hook's stderr on exit 2
+ *      is shown to the AGENT, not to Sean — a fact this very file documents two
+ *      paragraphs down. So the loop was: run, blocked, read own token, re-run.
+ *      Two tool calls instead of one, no human anywhere. The second ask was
+ *      enforced by the sentence "Do NOT re-run with the token on your own" — prose,
+ *      inside the mechanism whose whole pitch was that it was not prose.
+ *      The token is no longer printed. It is written to a file for Sean to read out.
+ *   2. THE TOKEN STORE IS INSIDE THE AGENT-WRITABLE TREE. `.ai-workflow/gates/`
+ *      is an ordinary repo path, `commandKey` is exported, and a forged store was
+ *      demonstrated to yield exit 0 in one write. Moving the file does not fix
+ *      this; anywhere the hook can read, an agent with Write can reach.
+ *
+ * So: this gate raises the cost of spending Fable and leaves a record when it
+ * happens. The outer wall is elsewhere and always was — Sean reviewing diffs, the
+ * harness permission system, and the fact that Sean drives Fable himself. Do not
+ * restore language implying more than that. **A gate that overstates itself is
+ * worse than no gate, because it stops people looking.**
+ *
+ * WHY IT STILL FAILS CLOSED ON ERRORS (spend-guard fails OPEN — different on purpose)
+ * ----------------------------------------------------------------------------------
+ * The catch block fails closed, so a crash cannot silently restore the old
+ * behaviour. Note precisely what that does and does not cover: it is closed on
+ * EXCEPTIONS only. A regex MISS is not an exception — it returns `allow: true`, and
+ * §"known ungated shapes" below lists the shapes known to miss. "Fails closed" has
+ * never meant "cannot be evaded," and the earlier header implied otherwise.
+ *
+ * Failing closed is safe *specifically because* a non-script path to Fable exists —
+ * Sean switches models. A broken hook costs an agent the script; never Sean the model.
+ *
+ * KNOWN UNGATED SHAPES — verified misses, listed rather than hidden
+ * ----------------------------------------------------------------
+ * String-layer matching cannot see through indirection. These bill and are NOT
+ * matched (verified 2026-08-26): a `package.json` script or `bash cmdfile` wrapper
+ * (the name never appears); shell-variable indirection (`N=node; $N …`); a glob or
+ * quote-split path (`consult-fab*.mjs`, `consu''lt-fable.mjs`); `xargs` with the
+ * runner last; and **the substitute path** — `scripts/context-gateway/src/consult.mjs`
+ * is what `consult-fable.mjs` actually shims to, so calling it directly spends Fable
+ * through the same billing path and matches nothing here.
+ * Detection for these is the spend LEDGER, not this gate. Say so out loud rather
+ * than letting the header's confidence imply coverage that does not exist.
  *
  * WHY `--dry-run` IS NOT HONORED
  * ------------------------------
@@ -114,14 +153,14 @@ const ALLOW = () => process.exit(0);
  * (opaque, any content) with non-boundary characters — verified against 39 invocation
  * shapes with zero misses and zero false positives, boundary cases included.
  */
-const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bun) (?:"[^"]*"|'[^']*'|[^|;&])*?consult-fable[.]mjs/;
+const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?consult-fable[.]mjs/;
 
 /**
  * The panel can carry Fable as an opt-in seat, which is the same spend by another
  * entrance. Gate it only when Fable is actually named in --seats.
  */
 const PANEL_WITH_FABLE =
-  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bun) (?:"[^"]*"|'[^']*'|[^|;&])*?consult-panel[.]mjs/;
+  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?consult-panel[.]mjs/;
 
 function readTokens() {
   if (!existsSync(TOKENS)) return {};
@@ -184,7 +223,36 @@ export function decide(cmd, { tokens = readTokens(), persist = writeTokens } = {
   return { allow: false, token, reason: 'first ask — hand off to Sean' };
 }
 
-function refusal(token) {
+/**
+ * Write the minted token where SEAN reads it, not where the agent is handed it.
+ *
+ * This is the direct fix for GLM 5.3 blocker 1: the refusal used to print
+ * `SWAN_FABLE_APPROVE=<token>` to stderr, which the AGENT reads, so the two-ask
+ * contract was satisfiable without a human ever seeing it.
+ *
+ * Being honest about the limit (see the header): an agent with file-read access can
+ * open this file too. What changed is the reflex, not the possibility — the token is
+ * no longer placed in the agent's own output, so self-serving now requires a
+ * deliberate, greppable act rather than reading the error it just caused.
+ */
+function writePendingApproval(token, cmd) {
+  mkdirSync(STATE_DIR, { recursive: true });
+  writeFileSync(join(STATE_DIR, 'PENDING-FABLE-APPROVAL.txt'), [
+    'FABLE GATE — an agent asked to spend Fable and was refused.',
+    '',
+    `  when:     ${new Date().toISOString()}`,
+    `  command:  ${cmd}`,
+    '',
+    'If you want this to run, read the token below back to the agent.',
+    'If you did not ask for it, do nothing — the refusal already held.',
+    '',
+    `  SWAN_FABLE_APPROVE=${token}`,
+    '',
+    'Single-use, bound to that exact command.',
+  ].join('\n'), 'utf-8');
+}
+
+function refusal() {
   return [
     '🛑 FABLE GATE — an agent may not spend Fable. Stop and hand off to Sean.',
     '',
@@ -208,13 +276,15 @@ function refusal(token) {
     '    Qwen 3.8 (local, free) · Ox Alpha (free) · GLM 5.3 (subscription)',
     '    Codex / ChatGPT Sol (Sean drives; use the seat-relay prompt template)',
     '',
-    'If Sean has ALREADY seen the block above and said to run the script anyway,',
-    're-run this exact command with:',
+    'THE TOKEN IS NOT PRINTED HERE, and that is deliberate. A PreToolUse refusal',
+    'is read by YOU, not by Sean — so printing it made the second ask something you',
+    'could satisfy alone. It is now written to:',
     '',
-    `    SWAN_FABLE_APPROVE=${token} <the same command>`,
+    '    .ai-workflow/gates/PENDING-FABLE-APPROVAL.txt',
     '',
-    'Single-use, and bound to this exact command. Do NOT re-run with the token on',
-    'your own — that is the one move this gate exists to prevent.',
+    'Ask Sean to read the token back to you. Do not open that file to serve',
+    'yourself: this gate is friction and an audit trail, not a wall, and helping',
+    'yourself to the key is the exact move it exists to make visible.',
     '',
     'Full procedure: .claude/skills/seat-relay/SKILL.md',
   ].join('\n');
@@ -238,7 +308,8 @@ if (invokedDirectly) {
   try {
     const d = decide(cmd);
     if (d.allow) ALLOW();
-    console.error(refusal(d.token));
+    writePendingApproval(d.token, cmd);
+    console.error(refusal());
     process.exit(2);
   } catch (err) {
     // FAIL CLOSED — see the header. A bug here costs the script, never the model.

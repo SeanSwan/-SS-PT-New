@@ -10,7 +10,14 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { decide, invokesFable, commandKey } from './fable-remit-gate.mjs';
+
+// Most cases drive the pure `decide()`. The refusal-output tests must spawn the real
+// process, because what the AGENT sees is the whole point of GLM 5.3's blocker 1.
+const GATE = join(dirname(fileURLToPath(import.meta.url)), 'fable-remit-gate.mjs');
 
 /** Drive decide() against an in-memory token store so no state is written. */
 function harness() {
@@ -70,6 +77,46 @@ test('BOUNDARY: an invocation plus an unrelated MENTION in a second command stil
 
 test('BOUNDARY: a real invocation in the SECOND command is still caught', () => {
   assert.equal(invokesFable('node build.mjs | node scripts/consult-fable.mjs'), true);
+});
+
+// --- interpreter shapes named by GLM 5.3 (B2) and GLM 5.3-flash (B1) ---------
+
+test('BYPASS: a TAB after the runner is gated', () => {
+  // The separator was a literal U+0020, but bash's IFS splits on tab too.
+  // Fixed with a negated identifier class rather than a literal tab character —
+  // an invisible character in a guard regex is the same fragility class as the
+  // `\\b` that once became 0x08 and silently matched nothing.
+  assert.equal(invokesFable('node\tscripts/consult-fable.mjs --document a.md'), true);
+});
+
+test('BYPASS: bunx is gated', () => {
+  assert.equal(invokesFable('bunx tsx scripts/consult-fable.mjs'), true);
+});
+
+test('BYPASS: tsx and ts-node are gated', () => {
+  assert.equal(invokesFable('tsx scripts/consult-fable.mjs --document a.md'), true);
+  assert.equal(invokesFable('ts-node scripts/consult-fable.mjs --document a.md'), true);
+});
+
+test('nodejs and node-foo are NOT the node binary', () => {
+  // The widened alternation must not widen into false positives.
+  assert.equal(invokesFable('nodejs scripts/consult-fable.mjs'), false);
+  assert.equal(invokesFable('node-foo scripts/consult-fable.mjs'), false);
+});
+
+// --- the second ask must NOT be satisfiable from the agent's own output ------
+
+test('the refusal does NOT print the token (GLM 5.3 blocker 1)', () => {
+  // A PreToolUse refusal is read by the AGENT. Printing the token there made the
+  // two-ask contract satisfiable with zero human involvement.
+  const r = spawnSync(process.execPath, [GATE], {
+    input: JSON.stringify({ tool_input: { command: 'node scripts/consult-fable.mjs --document a.md' } }),
+    encoding: 'utf-8',
+  });
+  assert.equal(r.status, 2);
+  assert.doesNotMatch(r.stderr, /SWAN_FABLE_APPROVE=[a-f0-9]{12}/,
+    'the token must never appear in output the agent reads');
+  assert.match(r.stderr, /PENDING-FABLE-APPROVAL/, 'it must say where Sean can find it');
 });
 
 test('an env prefix is gated', () => {
