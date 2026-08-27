@@ -6,6 +6,19 @@
  * twin already did correctly. That lane is the DEFAULT — Sean's 5090, where essentially
  * every render happens — so a defect here is a defect in production behaviour while the
  * hosted tests stayed green throughout.
+ *
+ * THE TASTE SEAM IS `fetchImpl`, NOT `fetchPrompts`.
+ *
+ * Two tests here stubbed `tasteDeps.fetchPrompts` — a key NOTHING reads. `fetchTastePrompts`
+ * destructures `{ fetchImpl = fetch, env, timeoutMs }` (promptSources.mjs), so the stub was
+ * inert and both tests hit the real taste server at 127.0.0.1:7331. They passed for months
+ * only because that server happened to be running on the author's machine, and went red the
+ * moment it was not. One of them even carried a comment rationalising that its stub "does
+ * not control" the seed — the stub controlled nothing at all.
+ *
+ * A test whose double is wired to a key the code never reads is not a test of the code; it
+ * is a test of whoever's laptop is running. Before stubbing a collaborator, read the
+ * destructure in the function that consumes it.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -105,7 +118,7 @@ describe('both lanes build prompts with the same function', () => {
       env: { SWAN_ATELIER_LOCAL_STILLS: 'probed', SWAN_ATELIER_STILL_WORKFLOW: '/g/s.json', SWAN_ATELIER_STILL_NODE_PROMPT: '6', SWAN_VIDEO_PROVIDERS_ENABLED: 'comfyui/wan-2.2' },
       localVerify: () => ({ ok: true, provider: 'comfyui/wan-2.2', problems: [], status: 'probed' }),
       admit: async () => ({ host: 'h', freeMb: 30000, neededMb: 26000 }),
-      tasteDeps: { fetchPrompts: async () => ({ prompts: [{ ok: true, text: 'a rated composition' }], seed: 'ts-1', dropped: 0 }) },
+      tasteDeps: { fetchImpl: async () => ({ ok: true, json: async () => ({ seed: 101, prompts: [{ prompt: 'a rated composition in cold morning light' }] }) }) },
       renderStill: async ({ seed }) => ({ image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 1, provider: 'comfyui/wan-2.2' }),
       persist: async ({ stills }) => { stills.forEach((x) => Object.assign(x, { assetId: 'a1', persist: { ok: true } })); return { ok: true, persisted: 1, total: 1 }; },
       store: new Map(), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 0, disabled: true },
@@ -155,14 +168,15 @@ describe('the same taste facts have the same shape on both lanes', () => {
       env: { SWAN_ATELIER_LOCAL_STILLS: 'probed', SWAN_ATELIER_STILL_WORKFLOW: '/g/s.json', SWAN_ATELIER_STILL_NODE_PROMPT: '6', SWAN_VIDEO_PROVIDERS_ENABLED: 'comfyui/wan-2.2' },
       localVerify: () => ({ ok: true, provider: 'comfyui/wan-2.2', problems: [], status: 'probed' }),
       admit: async () => ({ host: 'h', freeMb: 30000, neededMb: 26000 }),
-      tasteDeps: { fetchPrompts: async () => ({ prompts: [{ ok: true, text: 'a rated composition' }], seed: 'ts-9', dropped: 0 }) },
+      tasteDeps: { fetchImpl: async () => ({ ok: true, json: async () => ({ seed: 109, prompts: [{ prompt: 'a rated composition in cold morning light' }] }) }) },
       renderStill: async ({ seed }) => ({ image: { kind: 'path', path: `/o/${seed}.png`, mime: 'image/png' }, sha256: 'ab'.repeat(32), bytes: 1, provider: 'comfyui/wan-2.2' }),
       persist: async ({ stills }) => { stills.forEach((x) => Object.assign(x, { assetId: 'a1', persist: { ok: true } })); return { ok: true, persisted: 1, total: 1 }; },
       store: new Map(), limits: { maxRunsDaily: 50, maxSpendUsdDaily: 0, disabled: true },
       commit: () => ({ allowed: true }),
     });
-    // Assert the SHAPE, which is what changed — not a seed value, which the taste path
-    // derives itself and which this stub does not control.
+    // The stub DOES control the seed now. It previously did not, and this comment used to
+    // rationalise that as the taste path deriving its own — the real reason was that the
+    // stub was wired to `fetchPrompts`, a key nothing reads. See the note at the top.
     expect(out.tasteMeta).toBeTruthy();
     expect(out.tasteMeta.lawProfile).toBe('full');
     expect(out.tasteMeta.tasteSeed).toBe(out.tasteSeed);   // nested mirrors top-level
