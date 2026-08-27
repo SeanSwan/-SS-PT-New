@@ -211,7 +211,7 @@ He wants to *use* SwanGuard for news. **Do NOT start coding. Recon first.**
    `Hostile review and handoff of SwanGuard and git-lock work` `[f2c720]` and
    `[69a38e]`.
 2. **SwanGuard is a SEPARATE repo** with **9 worktrees** across 7 branches. The
-   live one is `C:\Users\BigotSmasher\Desktop\SwanGuard-Newsroom` on
+   live one is `<HOME>\Desktop\SwanGuard-Newsroom` on
    `merge/newsroom-mainline-v3`, HEAD `433cb64` (Aug 23). Others:
    `Desktop\family-first-intelligence-command-center` `[main]` (has NO
    NewsroomShell), `c:\tmp\swanguard-civic-release-20260813`,

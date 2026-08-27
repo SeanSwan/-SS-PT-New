@@ -1,7 +1,7 @@
 # Kimi K3 — Front-End / Design Review
 
 **Reviewer:** OpenRouter `moonshotai/kimi-k3` (effort: high)
-**Document:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/ec5425f3-fdf8-48f0-b85f-c8569414e558/scratchpad/kimi-cinematic-doctrine-review-packet.md
+**Document:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/ec5425f3-fdf8-48f0-b85f-c8569414e558/scratchpad/kimi-cinematic-doctrine-review-packet.md
 **Seed:** (none)
 **Tokens:** 3982 in / 4577 out · **Cost:** ~$0.0806 · **Wall:** 140.7s
 

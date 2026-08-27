@@ -170,7 +170,7 @@ git log --oneline | grep -E "64e669dc0|fadfe26c0|f17022ce3|bbeb8646f"
 node scripts/consult-panel.mjs --document docs/ai-workflow/references/PANEL-AND-MODEL-ROUTING.md --dry-run
 
 # council MCP handshake from WSL (no spend) — expect 4 tools incl ask_grok
-wsl.exe -e bash -c 'printf "%s\n%s\n" "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}" "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}" | SWAN_COUNCIL_ROOT=/mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT node /mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT/scripts/mcp/swan-council-server.mjs 2>/dev/null | grep -o "\"name\":\"[a-z_]*\""'
+wsl.exe -e bash -c 'printf "%s\n%s\n" "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}" "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}" | SWAN_COUNCIL_ROOT=<REPO> node <REPO>/scripts/mcp/swan-council-server.mjs 2>/dev/null | grep -o "\"name\":\"[a-z_]*\""'
 
 # SwanGuard merge delta (run in Desktop/SwanGuard-Newsroom)
 git rev-list --count origin/main..codex/swanguard-newsroom-recovery-20260801   # ~64

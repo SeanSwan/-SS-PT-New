@@ -2,7 +2,7 @@
 
 **Reviewer:** OpenRouter `moonshotai/kimi-k3` (effort: high)
 **Document:** scripts/validation-orchestrator.mjs
-**Seed:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/408d4be5-604c-4e38-a76d-5d8d575179d9/scratchpad/village-upgrade-brief.md
+**Seed:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/408d4be5-604c-4e38-a76d-5d8d575179d9/scratchpad/village-upgrade-brief.md
 **Tokens:** 42758 in / 15694 out · **Cost:** ~$0.3637 · **Wall:** 502.1s
 
 ---

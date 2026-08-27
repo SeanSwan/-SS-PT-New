@@ -171,7 +171,7 @@ feature serving more than one user, print what it produces for the OTHER user be
 ## 4. How to verify it (run this first, before changing anything)
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/swan-taste-brain
+cd <HOME>/Desktop/swan-taste-brain
 node prompter/serve.mjs &          # or the Swan Prompt Studio.cmd launcher
 
 # 9 suites, 395 checks. All must print ALL CHECKS PASS.
@@ -219,7 +219,7 @@ SWAN_COMFY_OUTPUT=<scratch>/comfy-out  SWAN_COMFY_WORKFLOW=<scratch>/proof-workf
 
 | Thing | Path |
 |---|---|
-| The tool | `C:\Users\BigotSmasher\Desktop\swan-taste-brain` (local git, **no remote**) |
+| The tool | `<HOME>\Desktop\swan-taste-brain` (local git, **no remote**) |
 | Runtime doc | `swan-taste-brain/prompter/README.md` |
 | Yesterday's build story | `docs/ai-workflow/AI-HANDOFF/TASTE-BRAIN-SESSION-HANDOFF-2026-08-25.md` |
 | Decisions + Q&A for the modes | `docs/ai-workflow/brainstorms/taste-brain-partner-and-client-mode-2026-08-25.md` |
@@ -237,7 +237,7 @@ You are picking up the Swan Taste Brain (SWA-186). Read, in order:
 2. swan-taste-brain/prompter/README.md                                              (runtime contract)
 3. docs/ai-workflow/AI-HANDOFF/panel-taste-brain-modes-review-2026-08-25/round-2/FABLE-SYNTHESIS.md
 
-The tool is at C:\Users\BigotSmasher\Desktop\swan-taste-brain — LOCAL git, NO remote, and it must stay that
+The tool is at <HOME>\Desktop\swan-taste-brain — LOCAL git, NO remote, and it must stay that
 way (it contains a third-party copyrighted corpus). Start the server (`node prompter/serve.mjs`), open
 http://127.0.0.1:7331, and run all nine suites BEFORE and AFTER any change; they must print ALL CHECKS PASS.
 

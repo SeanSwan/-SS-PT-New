@@ -85,7 +85,7 @@ does. Contradictions stay visible; scoring never resolves them.
 `SWAN_DESIGN_BRAIN_ROOT` being unset and `find ~ -maxdepth 4 -name claims.jsonl` returning nothing.
 
 **v3 — [VERIFIED] via WSL, after Fable's hostile review.** The `find` searched the **Windows**
-home. The engine root is in **WSL** at `/home/bigotsmasher/design-brain`, and it holds 10 receipts,
+home. The engine root is in **WSL** at `<HOME>/design-brain`, and it holds 10 receipts,
 6 accepted claims, `BATCH-2026-07-21.md`, a 28-line write ledger, and a vault emit at
 `20260721T014416Z`. **The loop ran end-to-end once, on 2026-07-21, and has been idle for five
 weeks.** `resolveDataRoot()` also accepts `--root` (`paths.mjs:52`), so the unset env var was never

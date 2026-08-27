@@ -39,7 +39,7 @@ The handoff's live-state claims were stale-checked. **Three were wrong**; record
 
 ## 1. What this program is
 
-Sean is building THREE locally fine-tuned Qwen models on his RTX 5090 (32GB VRAM, Ollama, Unsloth Studio installed at `~\.unsloth\studio\bin`), using the standalone factory repo at `C:\Users\BigotSmasher\Desktop\ai-agent-tuning` (NOT inside SS-PT):
+Sean is building THREE locally fine-tuned Qwen models on his RTX 5090 (32GB VRAM, Ollama, Unsloth Studio installed at `~\.unsloth\studio\bin`), using the standalone factory repo at `<HOME>\Desktop\ai-agent-tuning` (NOT inside SS-PT):
 
 - **Track A — Swan Coach behavior tune** (Qwen 8B-class): safety/escalation, voice/brand (never "AI", "26+ years / NASM-protocol", no yoga/meditation), tool policy, and accessibility-as-training-data. Long-term: candidate private brain for SwanStudios (staged: 5090 shadow → A/B → a Stage-3 decision gate that expects "no" for years).
 - **Track B — Classroom Copilot extraction tune** (Qwen 4B-class, on-device via llama.rn on teacher T's Android 14 phone): chaotic voice dump → strict records JSON. HARD LAW: child data never leaves T's device ⇒ training data is 100% synthetic; T-voiced FICTIONAL-children dumps are the future eval crown jewel (eval only, never train). GATED on the classroom event-contract freeze (owned by the classroom-copilot workstream, `docs/ai-workflow/brainstorms/classroom-copilot-2026-08-15/`).

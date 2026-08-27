@@ -413,14 +413,14 @@ HEADs and would have fired a false "another agent moved things" alarm — panel,
 
 ```bash
 # taste brain
-cd /c/Users/BigotSmasher/Desktop/swan-taste-brain
+cd /c<HOME>/Desktop/swan-taste-brain
 git log --oneline -1 && git status --porcelain && node prompter/test.mjs | grep -c '^  PASS'
 node prompter/swan-prompt.mjs --stats | grep -E 'catalog|headings|rated|kept|rejected'
 grep -c 'TEST DATA' taste/loved-srefs.md taste/kept.md      # expect 0 and 0
-wsl.exe bash -c 'grep -rl "bioluminescent swell against basalt" /home/bigotsmasher/hermes2/brain-vault/collections/swan-visual-taste/ | wc -l'   # expect 0
+wsl.exe bash -c 'grep -rl "bioluminescent swell against basalt" <HOME>/hermes2/brain-vault/collections/swan-visual-taste/ | wc -l'   # expect 0
 
 # swanguard  (Docker must be running: `docker start swanguard-newsroom-postgres-1`)
-cd /c/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd /c<HOME>/Desktop/SwanGuard-Newsroom
 git branch --show-current && git log --oneline -1 && git status --porcelain
 docker exec swanguard-newsroom-postgres-1 sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "select (select count(*) from creator) creators,(select count(*) from creator where enabled) creators_enabled,(select count(*) from news_rss_sources) sources,(select count(*) from outlets) outlets,(select count(*) from official_connector_items) items,(select count(*) from official_connector_states) states,(select count(*) from official_connector_states where owner_enabled) states_enabled,(select count(*) from contract_approvals) approvals,(select count(*) from creator_item) creator_items,(select count(*) from comment_extracted_claims) claims"'
 npm test   # baseline 2026-08-22 (post-B0): scripts 138/0 · api 516 pass + 1 PRE-EXISTING red (the ONLY acceptable red: civicOfficialSourcesRoutes.test.ts "returns nothing while gated…") · web 400 · database 90 · domain 242

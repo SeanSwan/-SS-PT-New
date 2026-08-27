@@ -669,7 +669,7 @@ Cron health — write a small python file and run it via WSL (inline quoting is 
 ```
 # /c/tmp/cron-count.py
 import sqlite3
-c = sqlite3.connect("/home/bigotsmasher/hermes2/.hermes/cron/executions.db")
+c = sqlite3.connect("<HOME>/hermes2/.hermes/cron/executions.db")
 print(c.execute("SELECT status, COUNT(*) FROM executions GROUP BY status").fetchall())
 ```
 ```

@@ -51,7 +51,7 @@ around it, demoted a slice, promoted another, and told Sean his loop had never s
 ### What is actually true — [VERIFIED] via WSL
 
 **I searched the wrong home directory.** The engine root lives in **WSL**, not Windows.
-`find ~` from Git Bash searches `/c/Users/BigotSmasher`. The root is `/home/bigotsmasher/design-brain`.
+`find ~` from Git Bash searches `/c<HOME>`. The root is `<HOME>/design-brain`.
 
 ```
 $ wsl.exe -e bash -lc 'ls -la ~/design-brain'

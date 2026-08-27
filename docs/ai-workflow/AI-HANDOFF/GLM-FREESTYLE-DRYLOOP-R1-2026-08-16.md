@@ -1,7 +1,7 @@
 # GLM Consult
 
 **Model:** glm-5.3
-**Document:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/48467224-73ba-4b82-84d9-97070a08692a/scratchpad/review-round1-packet.md
+**Document:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/48467224-73ba-4b82-84d9-97070a08692a/scratchpad/review-round1-packet.md
 **Tokens:** 25168 in / 24957 out (reasoning: 21254) | total 50125
 **Wall:** 364.3s
 

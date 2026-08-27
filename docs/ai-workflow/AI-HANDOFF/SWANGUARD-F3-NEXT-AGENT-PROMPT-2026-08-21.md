@@ -5,7 +5,7 @@ Paste everything below the line into a fresh session.
 ---
 
 You are picking up **SwanGuard**, Sean's private news + creator hub. It lives in its own repo at
-`C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom` — **not** the SS-PT tree you may be started in.
+`<HOME>/Desktop/SwanGuard-Newsroom` — **not** the SS-PT tree you may be started in.
 
 **Read `docs/ai-workflow/AI-HANDOFF/SWANGUARD-F3-ONWARD-HANDOFF-2026-08-21.md` (in SS-PT) first —
 all of it.** It supersedes `SWANGUARD-MAKE-IT-USABLE-HANDOFF-2026-08-20.md`. It contains the
@@ -47,7 +47,7 @@ A different number is information, not an error.
 
 ## Before you touch anything
 
-1. `cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom && git branch --show-current` — expect
+1. `cd <HOME>/Desktop/SwanGuard-Newsroom && git branch --show-current` — expect
    `merge/newsroom-mainline-v3`, working tree clean apart from two `*.bak-20260802` files.
 2. `npm test && npm run type-check` — as ONE command. Tests do not type-check; 19 green tests
    once shipped two type errors.

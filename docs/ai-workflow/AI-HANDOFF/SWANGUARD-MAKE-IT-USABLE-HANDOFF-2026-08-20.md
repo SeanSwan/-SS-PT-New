@@ -30,7 +30,7 @@ mainline.
 | SS-PT | `wip/comms-notifications-2026-07-05` | `fadfe26c0` | blast-radius guard + handoffs + packets |
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd <HOME>/Desktop/SwanGuard-Newsroom
 git branch --show-current
 git merge-base --is-ancestor b47ea52 HEAD && echo "F2 present" || echo "F2 ABSENT from this branch"
 ```
@@ -42,7 +42,7 @@ discarding someone else's in-progress merge. If you need the committed state, re
 ### 0.2 Re-measure. Use the repo's OWN aggregate, not a curated list.
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd <HOME>/Desktop/SwanGuard-Newsroom
 npm test            # the aggregate — a curated subset once hid two red suites
 npm run type-check
 npm run build -w @family-first/web
@@ -104,7 +104,7 @@ channels + 6 Twitch game categories, matching the seed exactly.
 
 Run it with:
 ```bash
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd <HOME>/Desktop/SwanGuard-Newsroom
 DATABASE_MODE=postgres DATABASE_URL=<dev> npm run seed:creators -w @family-first/api
 ```
 
@@ -306,7 +306,7 @@ by rename while it is only on the local dev DB — Sean has not ruled on it.
 
 | Item | Detail |
 |---|---|
-| **Approval `be60fd2c92e5bc61`** | Text-only fix to the guard's overclaiming deny message. **The agent cannot mint this — that is the design.** `cd C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT` then `node scripts/blast-radius-approve.mjs be60fd2c92e5bc61 --reason "honest scope"` |
+| **Approval `be60fd2c92e5bc61`** | Text-only fix to the guard's overclaiming deny message. **The agent cannot mint this — that is the design.** `cd <REPO>` then `node scripts/blast-radius-approve.mjs be60fd2c92e5bc61 --reason "honest scope"` |
 | **The merge branch** | `merge/newsroom-mainline-v2` has ~436 modified files and does not contain this work's commits. Sean decides how that merge resolves. |
 | **Migration `0029` numbering** | Displaced a reservation. Reversible by rename while local-only. |
 | **`apps/api` pre-existing failure** | `civicOfficialSourcesRoutes.test.ts`, officialConnector lane, red before this work started, deliberately untouched. |

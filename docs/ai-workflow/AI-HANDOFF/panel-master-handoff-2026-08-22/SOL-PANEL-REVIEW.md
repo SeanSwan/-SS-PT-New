@@ -37,7 +37,7 @@ Slice B says “merge the 107 feeds, enable in batches,” while the same sectio
 **Reproduction:**
 
 ```bash
-cd /c/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd /c<HOME>/Desktop/SwanGuard-Newsroom
 
 rg -n "listStatuses|OfficialConnectorKey|news_rss|activation|setOwnerEnabled" \
   apps/api apps/web
@@ -88,7 +88,7 @@ The local generator may now report `kept 0`, while Hermes still returns the thre
 **Reproduction:**
 
 ```bash
-cd /c/Users/BigotSmasher/Desktop/swan-taste-brain
+cd /c<HOME>/Desktop/swan-taste-brain
 git show 4f4999d:taste/kept.md
 git show 4f4999d:taste/loved-srefs.md
 git diff 4f4999d b36697e -- taste/ prompter/export-to-hermes.mjs
@@ -97,14 +97,14 @@ git diff 4f4999d b36697e -- taste/ prompter/export-to-hermes.mjs
 Take a distinctive phrase from each deleted entry, then:
 
 ```bash
-cd /c/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+cd /c<HOME>/Desktop/quick-pt/SS-PT
 node scripts/swan-brain.mjs "<distinctive deleted phrase>"
 ```
 
 Also inspect exporter deletion semantics:
 
 ```bash
-cd /c/Users/BigotSmasher/Desktop/swan-taste-brain
+cd /c<HOME>/Desktop/swan-taste-brain
 rg -n "delete|remove|unlink|upsert|document|kept|loved" \
   prompter/export-to-hermes.mjs
 ```
@@ -136,11 +136,11 @@ A new agent following §12 exactly will be told that the correct current state i
 **Reproduction:**
 
 ```bash
-cd /c/Users/BigotSmasher/Desktop/swan-taste-brain
+cd /c<HOME>/Desktop/swan-taste-brain
 git log --oneline -1
 node prompter/test.mjs | tail -2
 
-cd /c/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd /c<HOME>/Desktop/SwanGuard-Newsroom
 git log --oneline -1
 ```
 
@@ -159,7 +159,7 @@ The document treats “must not be exposed off-machine” as the control, but re
 **Reproduction:**
 
 ```bash
-cd /c/Users/BigotSmasher/Desktop/swan-taste-brain
+cd /c<HOME>/Desktop/swan-taste-brain
 rg -n "Origin|Host|Access-Control|csrf|token|Content-Type|api/keep|api/rate" \
   prompter/serve.mjs
 ```
@@ -208,7 +208,7 @@ Law 2 also says “OPEN: nobody has swept deliberately,” contradicting the add
 **Adversarial reproduction:**
 
 ```bash
-cd /c/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd /c<HOME>/Desktop/SwanGuard-Newsroom
 TEST=$(git ls-files '*officialConnectorKeyUnionSweep.test.ts')
 printf '%s\n' "$TEST"
 ```
@@ -265,7 +265,7 @@ The failing→passing claim is also not recorded with a broken source revision o
 **Reproduction:**
 
 ```bash
-cd /c/Users/BigotSmasher/Desktop/swan-taste-brain
+cd /c<HOME>/Desktop/swan-taste-brain
 git show --name-only --format= b36697e
 git diff --unified=0 b36697e^ b36697e -- prompter/
 ```
@@ -311,11 +311,11 @@ The new negative parenthetical is an admission that the metric is misleading. Re
 **Reproduction:**
 
 ```bash
-cd /c/Users/BigotSmasher/Desktop/swan-taste-brain
+cd /c<HOME>/Desktop/swan-taste-brain
 rg -n "407|style handles|article headings|catalog entries|--stats" .
 git diff --unified=0 b36697e^ b36697e -- prompter/
 rg -n -- "--stats|style handles|article headings" \
-  /c/Users/BigotSmasher/Desktop 2>/dev/null
+  /c<HOME>/Desktop 2>/dev/null
 ```
 
 If any launcher, test, script, or documentation parses the old text, this was an unversioned output-contract break. The CLI should provide stable JSON for machine consumers and reserve labels for humans.
@@ -546,7 +546,7 @@ The same document says every candidate still needs a real terms URL, no owner us
 
 ```bash
 # Taste: isolate changed files and prove purge
-cd /c/Users/BigotSmasher/Desktop/swan-taste-brain
+cd /c<HOME>/Desktop/swan-taste-brain
 git diff --unified=0 b36697e^ b36697e
 git status --porcelain
 node prompter/test.mjs
@@ -554,7 +554,7 @@ node prompter/swan-prompt.mjs --stats
 rg -n "Origin|Host|csrf|token" prompter/serve.mjs
 
 # SwanGuard: identify the tripwire and full-stack key gaps
-cd /c/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd /c<HOME>/Desktop/SwanGuard-Newsroom
 git diff --unified=0 ea76189^ ea76189
 git status --porcelain
 git ls-files '*officialConnectorKeyUnionSweep.test.ts'

@@ -21,7 +21,7 @@
 - **Rebased onto `origin/main` @ `0593b30a2`** (clean rebase, zero file overlap with main's 20 new hermes-os/gallery commits) — **47 commits ahead, NOTHING PUSHED**
 - `frontend/node_modules` + `backend/node_modules` junctioned from the shared tree; `backend/.env` copied in (gitignored) for DB-dependent tests
 - **Baseline A/B worktree:** `/c/tmp/ss-main-baseline` @ origin/main (backend/node_modules junctioned, .env copied) — used for backend failure attribution; safe to delete when triage done (`git worktree remove`)
-- Shared tree (`c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT`) untouched except: lane file, charter §11 appends, this handoff
+- Shared tree (`<REPO>`) untouched except: lane file, charter §11 appends, this handoff
 - Continuity: `.ai-workflow/coordination/claude.lane.md` [SESSION-AD blocks] + charter v2 §11 = the running ledger
 
 ---

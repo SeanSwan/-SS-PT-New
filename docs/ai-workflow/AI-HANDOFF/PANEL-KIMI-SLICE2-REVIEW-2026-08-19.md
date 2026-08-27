@@ -1,7 +1,7 @@
 # Kimi K3 - Review
 
 **Reviewer:** `moonshotai/kimi-k3` (high)
-**Document:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/7276bca9-e25d-45a1-9a59-d00ece2a94ce/scratchpad/slice2-hostile-review-brief.md
+**Document:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/7276bca9-e25d-45a1-9a59-d00ece2a94ce/scratchpad/slice2-hostile-review-brief.md
 **Seed:** (none)
 **Tokens:** 1839 in / 2952 out | **Cost:** ~$0.0498 | **Wall:** 103.1s | **finish_reason:** stop
 

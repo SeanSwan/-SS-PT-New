@@ -3,7 +3,7 @@
 Status: planning and audit packet only. No production code changes in this packet.
 Owner surface: Codex planning for Sean/Fable review.
 Scope: `/user-dashboard/nutrition`, shared role meal-planner routes, food scanner, manual/search/photo/voice macro logging, hydration, and admin nutrition review.
-Attachment reviewed: `C:\Users\BigotSmasher\.codex\attachments\1654ba11-d4b4-4034-be11-b88947fcf6e6\pasted-text.txt`.
+Attachment reviewed: `<HOME>\.codex\attachments\1654ba11-d4b4-4034-be11-b88947fcf6e6\pasted-text.txt`.
 Attachment caveat: the audit explicitly had no direct repo access. This brief separates repo-proven facts from external recommendations.
 External reference refresh: FDA Nutrition Facts serving/nutrient semantics, USDA FoodData Central API, Open Food Facts API usage, Google ML Kit barcode/OCR docs.
 External reference gap: GS1 Sunrise 2027 and local-food directory claims from the attachment still need an official-source refresh before implementation.

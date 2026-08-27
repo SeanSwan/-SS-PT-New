@@ -28,13 +28,13 @@ Every change from this session is uncommitted working-tree state, and **the SS-P
 
 ```bash
 # 1. SwanGuard — capture tracked changes + copy untracked work
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd <HOME>/Desktop/SwanGuard-Newsroom
 git diff > ../swanguard-backup-$(date +%Y%m%d-%H%M).patch
 cp -r apps/web/src/creators ../swanguard-untracked-backup/creators
 cp packages/database/migrations/0028_creator_catalog.sql ../swanguard-untracked-backup/
 
 # 2. SS-PT — the guard files have NO git history; copying is the ONLY backup
-cd C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+cd <REPO>
 mkdir -p ../ss-pt-guard-backup
 cp scripts/hooks/db-blast-radius-gate.mjs scripts/lib/blast-radius-analyze.mjs \
    scripts/blast-radius-approve.mjs scripts/hooks/db-blast-radius-*.test.mjs \
@@ -45,8 +45,8 @@ cp -r .ai-workflow/blast-radius ../ss-pt-guard-backup/
 Also untracked and therefore part of the same exposure — **and NOT copied by the commands above; copy them too**:
 
 ```bash
-mkdir -p C:/Users/BigotSmasher/Desktop/ss-pt-guard-backup/exposure-set
-cp "C:/Users/BigotSmasher/Desktop/Swan Guard.cmd"    "C:/Users/BigotSmasher/Desktop/Swan Guard.cmd.bak-20260817"    "C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom/config/owner-seed.json"    C:/Users/BigotSmasher/Desktop/ss-pt-guard-backup/exposure-set/
+mkdir -p <HOME>/Desktop/ss-pt-guard-backup/exposure-set
+cp "<HOME>/Desktop/Swan Guard.cmd"    "<HOME>/Desktop/Swan Guard.cmd.bak-20260817"    "<HOME>/Desktop/SwanGuard-Newsroom/config/owner-seed.json"    <HOME>/Desktop/ss-pt-guard-backup/exposure-set/
 ```
 
 **Then:** never run `git clean -fd`, `git stash` (it does not save untracked files by default), `git reset --hard`, or `git checkout -- .` in either repo without Sean. Rule 45 applies with extra force — the guard files have no history to fall back on.
@@ -56,12 +56,12 @@ cp "C:/Users/BigotSmasher/Desktop/Swan Guard.cmd"    "C:/Users/BigotSmasher/Desk
 ### 0.2 ⏳ Re-run the baseline. If your numbers differ from §1, this document no longer describes your tree.
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom/apps/web && npx vitest run
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom/packages/database && npx vitest run
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom && npm run type-check
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom && npm run build -w @family-first/web
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom && npm run test:scripts
-cd C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT && node --test scripts/hooks/db-blast-radius-gate.test.mjs scripts/hooks/db-blast-radius-approval.test.mjs
+cd <HOME>/Desktop/SwanGuard-Newsroom/apps/web && npx vitest run
+cd <HOME>/Desktop/SwanGuard-Newsroom/packages/database && npx vitest run
+cd <HOME>/Desktop/SwanGuard-Newsroom && npm run type-check
+cd <HOME>/Desktop/SwanGuard-Newsroom && npm run build -w @family-first/web
+cd <HOME>/Desktop/SwanGuard-Newsroom && npm run test:scripts
+cd <REPO> && node --test scripts/hooks/db-blast-radius-gate.test.mjs scripts/hooks/db-blast-radius-approval.test.mjs
 ```
 
 **A mismatch is information, not an error** — someone worked after this was written. Reconcile before building; do not assume the doc is right.
@@ -127,7 +127,7 @@ Re-derive with §0.2. Quoting these without re-running is the mistake this table
 *(Was: "no committed reproduction — reproduce it yourself." Closed 2026-08-19.)*
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd <HOME>/Desktop/SwanGuard-Newsroom
 docker compose -p swanguard-newsroom -f docker-compose.dev.yml up -d
 SWANGUARD_ALLOW_POSTGRES_SMOKE=true DATABASE_URL=<dev connection string>   npm run smoke:creator-law:postgres
 ```
@@ -229,7 +229,7 @@ It validates against SS-PT's `backend/schema-snapshot.json` (~152 tables ⏳, fr
 - **Class A (destructive) / C (unbounded)** → almost certainly a **correct block**. Fix your SQL.
 - **Class B (referential drift) on a SwanGuard file** → suspect the gate. Confirm with:
   ```bash
-  cd C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+  cd <REPO>
   node -e "const s=require('./backend/schema-snapshot.json');console.log('tables:',Object.keys(s.tables).length,'| has your table?',Object.keys(s.tables).includes('YOUR_TABLE'))"
   ```
 - **Class S (guard self-modification)** → correct and intentional. Write a change request, do not route around it.

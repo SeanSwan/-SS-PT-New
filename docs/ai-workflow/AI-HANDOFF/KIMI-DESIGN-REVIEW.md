@@ -1,84 +1,55 @@
 # Kimi K3 - Review
 
 **Reviewer:** `moonshotai/kimi-k3` (high)
-**Document:** c:/tmp/ss-launch-audit-20260727/docs/ai-workflow/AI-HANDOFF/LAUNCH-AUDIT-FINDINGS-PACKET-2026-07-27.md
+**Document:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/7276bca9-e25d-45a1-9a59-d00ece2a94ce/scratchpad/update-approach-brief.md
 **Seed:** (none)
-**Tokens:** 1928 in / 5590 out | **Cost:** ~$0.0896 | **Wall:** 187.2s
+**Tokens:** 1260 in / 1261 out | **Cost:** ~$0.0227 | **Wall:** 8.1s | **finish_reason:** stop
 
 ---
 
-# Hostile Review: SwanStudios Launch-Readiness Audit
+# Advisor 2 of 3 — Verdict: **Don't update. Build Bot Mode locally. (Approach 5)**
 
-**The structural problem with this audit, stated once up front:** its own headline finding invalidates its core method. Section 1.2 proves that static mount/guard resolution *lied* — a file looked live and wasn't. The audit absorbed that lesson for dead code but not for live code: "204/232 fully guarded" rests on the same mount-graph resolution that was proven fallible, validated by exactly one live probe, unauthenticated. The audit verified what the code *is*. Launch hurts come from what the system *does*.
+## 1. The pick, and what actually decides it
 
----
+The deciding fact is not the 1,863 commits — it's the last line of "What the update buys": *Bot Mode is a UI/orchestration layer over capabilities the runtime already has.* You are proposing to take 1,863 commits, 4 one-way config migrations, 45 migration-shaped commits, and a vendor-ban landmine — to acquire a **presentation layer** over two primitives (isolated profiles + scheduled jobs) that already work on v0.20.1.
 
-## 1. Is the auth conclusion too confident?
+Every other approach prices the update honestly and the price is bad:
 
-**Yes. The method structurally misses every bug that requires a valid session to reach.**
+- **Rebase (2) / Merge (3):** 4 of your 8 commits land in files with 54, 24, and 11 upstream touches. That's days of conflict archaeology on a live daily-driver, ending in a migrated home you cannot roll back from.
+- **Re-fork + cherry-pick (1):** The "clean" option, but it's the same conflict work plus a parallel soak, and it still ends in a one-way migration of your only state store. It's the best *update* path and still loses to not updating.
+- **Abandon 4 commits (4):** Halves the conflict surface but you lose the gateway/alias hardening you presumably wrote because you needed it, and you still eat the migrations.
 
-- **Lateral IDOR between two legitimate users is untested.** One unauthenticated probe proving the front door is locked says nothing about user A reading user B's data. The 232 id-accepting routes each need a two-session live probe: authenticated as A, request B's id, expect 403. That is the week-one incident shape — a trainer or client who pokes a URL — and it has zero runtime coverage.
-- **The audit's own finding undermines its guard resolution.** `gamificationRoutes` looked mounted and wasn't. The inverse failure — a route that looks guarded but resolves through a different mount, an earlier shadowing router, or middleware ordered after the route — produces an *unguarded live route that static analysis scores as guarded*. The audit found two routers stacked on `/api/onboarding` (lines 317/319) and apparently did not resolve which one Express actually dispatches to. First match wins. Until that's traced per-verb, the auth count on that path is unknown, not "0 unguarded."
-- **Role-conditional logic inside controllers is invisible to a guard sweep.** A route passes `authorizeResourceAccess` and then branches on `req.body` fields — mass-assignment of role, status, or price; trainer-only fields settable by a client. "Guarded at mount/router/inline" does not see data-dependent authorization.
-- **Socket layer is entirely absent.** This is a messaging product. Socket auth middleware, room-join authorization, per-event checks — none of the 1,444 routes cover it, and the packet never mentions it. If messaging ships, the socket plane is the largest unexamined attack surface in the repo.
-- **"Cross-user by design" is a claim, not a verification.** Public prekey bundles are enumeration oracles by construction. Follow/unfollow and trainer availability need abuse-case review (scraping, stalking surface for a platform with minors), not a design shrug.
-- **Type coercion and lookup-key mismatches** — `:id` string vs number, ownership checked on the wrong parent object (message owned but conversation not joined) — survive every technique listed.
+**Ranked:** 5 ≫ 1 > 4 > 2 > 3.
 
-Verdict: the conclusion should be restated as "no *unauthenticated* exposure found." Authenticated lateral movement is unmeasured.
+## 2. The concrete sequence
 
-## 2. The 154 uncommitted files
+**Phase 0 — Protect the running install (do regardless of path):**
+1. Stop the gateway, chat bridge, and scheduler. Quiesce cron.
+2. Snapshot the 562 MB home *while stopped* (avoids the torn-SQLite landmine #3): `tar` the home + the repo, encrypt with `gpg -c` or age (landmine #4), copy off-machine. Verify by decrypting a sample and opening the SQLite DB with `PRAGMA integrity_check`.
+3. Restart the runtime on v0.20.1. You now have a real rollback point for the first time.
 
-**Archive for launch. But the archive decision is not the real decision.**
+**Phase 1 — Study, don't take:**
+4. `git fetch upstream`; read the Bot Mode plugin's 56 files from upstream without checking them out: `git show upstream/main:<path>` or a sparse worktree at a pinned commit. Extract its actual logic: how it composes profiles + scheduled jobs, its UI affordances, its orchestration loop.
+5. Write a one-page spec of what Bot Mode *does*, stripped of upstream plumbing.
 
-- **Finish:** not an option in hours. Merging a workstream written against a main from 1,177 commits ago into a product taking real clients tomorrow is how you ship untested messaging to minors. Highest risk, full stop.
-- **Cherry-pick forward:** the seductive trap. The code was written against schema, models, mounts, and auth helpers that have since drifted; its ~30 test files validate it against assumptions main no longer holds. Cherry-picking produces the *appearance* of integration. Worse, 140 sibling files already exist on main in some form — main has its own answer to much of this, and the 154 may conflict semantically with it.
-- **Archive:** lowest launch risk, one real cost — the workstream contains **attachment safety and moderation**, and this platform handles minors' data. So the actual question is not "what do we do with the branch," it's: **does main's current messaging have moderation and attachment controls?** If yes, archive cleanly. If no, Sean is launching comms to minors without a safety layer, and the fix is a minimal moderation slice written against *current* main — not a backport of stale code.
+**Phase 2 — Build locally:**
+6. Implement it as a local plugin/skill against v0.20.1's existing plugin API, on your current feature branch, as new commits 9+. The 8 carried commits stay untouched. No rebase, no migration, no cutover event.
+7. Test in place — it *is* your environment, and the change is additive, so a bad plugin is `rm`-able, unlike a bad migration.
 
-Immediate mechanical risk regardless: a dirty tree with 1,216 modified files sitting on a WIP branch in a repo with 5+ parallel agents is an accident waiting for a `git add -A`. Push the branch to origin as a snapshot, tag it, and get the working tree off it today. That's 30 minutes and it protects everything else.
+**Verify it worked:** the Bot-Mode-equivalent workflow runs end-to-end (create isolated profile → attach scheduled job → drive it from the chat surface) with the gateway under normal daily load for 3 days.
 
-## 3. The unwired trainer-permission system
+**Rollback trigger & procedure:** any gateway instability, state-DB write errors, or scheduler misses attributable to the new plugin → disable the plugin, restart gateway. Full stop. Because nothing migrated, rollback is complete and lossless — this is the entire point.
 
-**Acceptable v1 only under three conditions, and the audit verified none of them.**
+## 3. Most likely failure mode
 
-1. **All trainers are equally trusted.** Granular permissions govern what a trainer can do to *their own assigned* clients — see payments, message, export, edit vs view. If Sean's week-one trainers are a small trusted staff, role-level + assignment scoping holds. If any trainer is a contractor, assistant, or junior, it doesn't.
-2. **Assignment revocation is immediate.** The guard is "trainer-with-**active**-assignment." What happens when an assignment ends — is access cut at revocation, or does a cached session/token preserve it? A fired trainer retaining client data access is a week-one-to-week-four incident, and nothing in the packet tests the revocation path.
-3. **No external promise was made.** Someone *specified* 563 lines of granular permission requirements. If a client or parent was told "the assistant only sees workouts, not messages," the gap is a broken commitment, not a v1 deferral.
+**The plugin API on v0.20.1 can't express part of Bot Mode** — e.g., upstream added a hook or IPC channel in those 1,863 commits that the plugin quietly depends on. **Early detection:** before writing any code, do a dependency audit of the 56 files — grep every import/runtime call they make and check each exists in your tree. This takes an hour and kills the approach cheaply if it's going to die. If a small number of APIs are missing, port *those shims* individually — still vastly cheaper than 1,863 commits.
 
-Separately: the audit's deletion policy is internally inconsistent. It deleted 1,321 lines of unmounted routes as corpses but kept a 563-line unmounted middleware because it "reads as a missing feature." Built-but-unwired code is the worst state — some future agent will wire `requireTrainerPermission` into one router and create half-granular, half-role enforcement, which is worse than either pure state. Decide now: wire it everywhere or quarantine it with the branch. "Built and never wired" cannot be a stable category.
+## 4. The strongest argument against my own pick
 
-## 4. Deletion judgement
+You're forking a feature against a dead-end version. Upstream moves ~50 commits/day; v0.20.1 gets *less* viable every day, and every local feature you build widens the eventual reconciliation. My approach converts one painful update into a permanent divergence strategy — and solo operators are bad at sustaining those. There's also a real chance Bot Mode's value *is* the polish and edge-case handling in those 56 files, which you'll re-derive badly. And if the runtime has security fixes in the gap (it certainly does), staying on v0.20.1 with live provider credentials in the home dir is a real exposure I'm waving away. If the owner expects to *ever* rejoin upstream, approach 1 now — while the gap is 1,863 and not 3,000 — is the honest move.
 
-**Directionally correct, verified against the wrong standard.**
+## 5. One-line fallback
 
-"Zero live imports" is a code-graph answer to an operational question. Static import analysis misses:
+If you reject this: **Approach 1** — re-fork at a pinned upstream commit, cherry-pick the 8 with tests after each, soak in parallel, cut over only after an encrypted cold backup, and never run the built-in `update` command.
 
-- `package.json` scripts, CI workflows, cron/Task Scheduler entries, PM2 ecosystem files, Docker entrypoints, and deployment runbooks that invoke scripts by path string. Forty-four scripts lived in the backend root — that is exactly where ops-invoked scripts live. The packet does not state that anyone grepped the ops surface.
-- Dynamic `import()` with computed paths and `require(variable)`.
-
-The more serious miss: scripts that **read and rewrote live Stripe key material** existed and presumably ran. Deleting them changes nothing about exposure. Were those keys rotated? If not, the deletion is cosmetic and the compromise window is still open. That question is unanswered in the packet and it's a launch blocker.
-
-Timing: deletion pre-launch is fine *because* the suite now runs — but under the batch-push cadence, none of this is deploy-verified yet. One push carrying deletions plus every other slice, with one verification at the end, means a broken deploy has no bisected culprit and no stated rollback plan.
-
-## 5. What is missing entirely — ranked by week-one hurt
-
-1. **Backup and *tested restore* of production data.** Sean runs real client work tomorrow. One lost client program in week one is a reputational kill. The packet contains zero on backups, migrations, or restore drills. A backup job that has never been restored is a rumor.
-2. **Money path, verified live.** Scripts rewrote Stripe keys; keys may be stale or unrotated; nobody has reported a real $1 charge + refund + webhook confirmation against production. A failed or double charge with a real client in week one is direct revenue and trust damage. The constraints mention payment flows; the findings never touch them.
-3. **Observability.** One curl of `/health` is not monitoring. No error tracking, no log aggregation, no alerting on 500 spikes means Sean learns about breakage from angry clients. This must exist *before* the batch deploy, or the deploy is unverifiable.
-4. **Minors'-data compliance surface.** Parental consent, retention/deletion, messaging moderation (see Q2). The security sweep was IDOR-shaped; the actual worst-case week-one event is a child-safety or privacy incident, and nothing in the method looks at it.
-5. **Production environment ≠ lockfile.** `archiver` 8.0.0 installed against a 7.0.1 pin, a Linux `node_modules` on Windows, a Linux-only transitive dep — these are tells that the deployed artifact does not match what the 7,192 tests validated. What else diverges? The suite's greenness applies to an environment that may not be the one serving clients.
-6. **Two-user live authorization probe** across the 232 id-accepting routes (Q1). The most likely *security* incident with real trainers and clients.
-7. **Rate limits beyond login.** Registration, password reset, message send, attachment upload. Unbounded upload on a platform with minors is both an abuse and a billing vector.
-8. **Rollback plan for the batch deploy.** One push, many slices, real sessions the next morning. If it breaks at 9am, what reverts, and how fast?
-
-## 6. Sequencing — hours, not weeks
-
-1. **Quarantine the WIP branch** (snapshot-push, tag, clean tree). 30 minutes; protects against the 5-agent repo hazard before anything else moves.
-2. **Runtime errors / observability.** Cheap, and it makes every subsequent slice — including the final batch deploy — diagnosable instead of blind.
-3. **Money path.** Live $1 charge, refund, webhook, failed-payment path; rotate any key the deleted scripts touched. Revenue and the highest-consequence unknown.
-4. **Schema drift / prod-vs-lockfile reconciliation.** The archiver mismatch proves divergence; find all of it before trusting the suite's verdict on production behavior.
-5. **Route exposure / rate limits.** Two-user live probes on the 232 routes, resolve the `/api/onboarding` shadowing, then limits on registration/reset/upload. Static auth is already strong, so this ranks below money and data — but the shadowing resolution is cheap and should not wait.
-6. **Performance.** Only matters under real load; Sean's week-one load is knowable and small.
-7. **Mobile.** Trainers work from phones, so this outranks design, but nothing in week one dies over it.
-8. **Design.** Last. Nothing in week one hurts because of polish.
-
-The through-line: this audit hardened the codebase's *structure* and never touched its *operation*. Week-one pain comes from data loss, money, silence when things break, and a minor's safety incident — in that order — and the current method is structurally incapable of seeing any of them.
+**Does the moving target change my answer?** It *strengthens* it. Any update path is a two-week part-time project aiming at a target that will be ~700 commits further on arrival; the build-locally path doesn't care what upstream does. But note the corollary: if you will ever update, the gap argument cuts the other way — every week of delay makes approach 1 worse. Decide this week, not this month.

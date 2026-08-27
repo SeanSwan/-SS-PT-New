@@ -1,7 +1,7 @@
 # GLM Consult
 
 **Model:** glm-5.3
-**Document:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/7276bca9-e25d-45a1-9a59-d00ece2a94ce/scratchpad/phase-a-hostile-review-brief.md
+**Document:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/7276bca9-e25d-45a1-9a59-d00ece2a94ce/scratchpad/phase-a-hostile-review-brief.md
 **Tokens:** 2698 in / 19903 out (reasoning: 17275) | total 22601
 **Wall:** 328.7s
 

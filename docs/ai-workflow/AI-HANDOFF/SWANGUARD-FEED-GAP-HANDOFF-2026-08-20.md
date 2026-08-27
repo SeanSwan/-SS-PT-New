@@ -24,19 +24,19 @@ Three sessions of work now sit in the working tree with no commit behind any of 
 guard files in SS-PT are untracked (`??`) — no `git checkout`, no stash entry.
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd <HOME>/Desktop/SwanGuard-Newsroom
 git diff > ../swanguard-backup-$(date +%Y%m%d-%H%M).patch
 mkdir -p ../swanguard-untracked-backup
 cp -r apps/web/src/creators ../swanguard-untracked-backup/creators
 cp apps/api/src/creatorCatalog*.ts apps/api/src/postgresCreatorCatalog*.ts ../swanguard-untracked-backup/
 cp packages/database/migrations/0028_creator_catalog.sql ../swanguard-untracked-backup/
 
-cd C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT
+cd <REPO>
 mkdir -p ../ss-pt-guard-backup/exposure-set
 cp scripts/hooks/db-blast-radius-gate.mjs scripts/lib/blast-radius-analyze.mjs \
    scripts/blast-radius-approve.mjs scripts/hooks/db-blast-radius-*.test.mjs ../ss-pt-guard-backup/
 cp -r .ai-workflow/blast-radius ../ss-pt-guard-backup/
-cp "C:/Users/BigotSmasher/Desktop/Swan Guard.cmd" "C:/Users/BigotSmasher/Desktop/Swan Guard.cmd.bak-20260817" "C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom/config/owner-seed.json" ../ss-pt-guard-backup/exposure-set/
+cp "<HOME>/Desktop/Swan Guard.cmd" "<HOME>/Desktop/Swan Guard.cmd.bak-20260817" "<HOME>/Desktop/SwanGuard-Newsroom/config/owner-seed.json" ../ss-pt-guard-backup/exposure-set/
 ```
 
 Never `git clean -fd`, `git stash`, `git reset --hard`, or `git checkout -- .` in either repo
@@ -45,7 +45,7 @@ without Sean. **The commit decision is Sean's and it is now three sessions overd
 ### 0.2 ⏳ Re-run the baseline. Use the repo's OWN aggregate, not a curated list.
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd <HOME>/Desktop/SwanGuard-Newsroom
 npm test                       # the aggregate — a curated subset hid two red suites once
 npm run type-check
 npm run build -w @family-first/web
@@ -195,7 +195,7 @@ lying receipt inverted. The baseline must advance on success.
 | Item | Detail |
 |---|---|
 | **Commit decision** | 🚨 **Three sessions of uncommitted work.** Snapshots exist but are not version control. This is the highest-priority owner action. |
-| **Approval `be60fd2c92e5bc61`** | Guard's overclaiming deny message. `cd C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT` then `node scripts/blast-radius-approve.mjs be60fd2c92e5bc61 --reason "honest scope"` |
+| **Approval `be60fd2c92e5bc61`** | Guard's overclaiming deny message. `cd <REPO>` then `node scripts/blast-radius-approve.mjs be60fd2c92e5bc61 --reason "honest scope"` |
 | **Migration `0028` collision** | The slice registry reserved `0028` for batch graduation (H2.5); CM took it and it is already applied to the live dev DB. `0030` **proposed** for H2.5 — Sean confirms, an agent must not assume. |
 | **F1 migration number** | Depends on the above. Do not pick one without resolving `0028` first. |
 

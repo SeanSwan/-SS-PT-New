@@ -8,7 +8,7 @@ supersedes: none
 
 - **Author:** Claude Fable 5 (Final Decider) · **Owner:** Sean · **Board:** SWA-186 (taste brain), SWA-55 (cinematic doctrine)
 - **Read this if:** you are the next agent on the taste brain, the design brain's Visual-taste mode, or "client mode". You should not need any other doc to orient; pointers at the end.
-- **Two repos:** `SS-PT` (this repo, public-history, private on GitHub) holds doctrine + the grill-me skill. **`swan-taste-brain`** (`C:\Users\BigotSmasher\Desktop\swan-taste-brain`, local git, NO remote, deliberately outside SS-PT because it holds a copyrighted corpus) holds the runtime.
+- **Two repos:** `SS-PT` (this repo, public-history, private on GitHub) holds doctrine + the grill-me skill. **`swan-taste-brain`** (`<HOME>\Desktop\swan-taste-brain`, local git, NO remote, deliberately outside SS-PT because it holds a copyrighted corpus) holds the runtime.
 
 ---
 
@@ -132,7 +132,7 @@ You are picking up the Swan Taste Brain (SWA-186). Read, in order:
 1. docs/ai-workflow/AI-HANDOFF/TASTE-BRAIN-SESSION-HANDOFF-2026-08-25.md  (this file)
 2. docs/ai-workflow/design-brain/taste-discovery-grill.md  (the protocol; on main)
 3. .claude/skills/grill-me/SKILL.md § "Visual-taste mode"  (on main)
-4. swan-taste-brain/prompter/README.md  (runtime; local repo C:\Users\BigotSmasher\Desktop\swan-taste-brain, HEAD 20f04c8)
+4. swan-taste-brain/prompter/README.md  (runtime; local repo <HOME>\Desktop\swan-taste-brain, HEAD 20f04c8)
 Start the taste-brain server (Swan Prompt Studio.cmd or node prompter/serve.mjs), then `curl -s 127.0.0.1:7331/api/profile`
 and read grids/judgements/directions — that is the current state of Sean's taste. Laws: never lead the witness; agents read
 IDs never images; never open taste/events or write a taste .md; every direction carries its tier; Midlibrary pictures are
@@ -147,7 +147,7 @@ Sean: *"We're going to have Qwen build the rest of this in my Hermes. The first 
 
 **The sequence Qwen (Hermes) runs, in order — no code before step 4 is approved:**
 
-1. **Orient** (T0): read this handoff §0–§6, `taste-discovery-grill.md`, `swan-taste-brain/prompter/README.md`. From WSL the taste brain is at `/mnt/c/Users/BigotSmasher/Desktop/swan-taste-brain`. Start the server if needed and `curl -s 127.0.0.1:7331/api/profile` to see the current state. Run all four suites — `node prompter/test-probe.mjs`, `test.mjs`, `test-modes.mjs`, `test-bundle.mjs` — each must print ALL CHECKS PASS (81 / 52 / 56 / 25 PASS lines as of 2026-08-25) before anything else.
+1. **Orient** (T0): read this handoff §0–§6, `taste-discovery-grill.md`, `swan-taste-brain/prompter/README.md`. From WSL the taste brain is at `<HOME>/Desktop/swan-taste-brain`. Start the server if needed and `curl -s 127.0.0.1:7331/api/profile` to see the current state. Run all four suites — `node prompter/test-probe.mjs`, `test.mjs`, `test-modes.mjs`, `test-bundle.mjs` — each must print ALL CHECKS PASS (81 / 52 / 56 / 25 PASS lines as of 2026-08-25) before anything else.
 2. **Interview Sean about the upgrades** (T0, grill-me discipline: ONE question at a time, lead with a recommended answer *here* because this is scope, not taste). Known candidates to confirm/extend — do not assume the list is complete:
    - **Partner mode + client mode — SHIPPED locally 2026-08-25 (§5). Do not re-plan them.** Ask what Sean wants *on top*: overlap view for joint projects (where his and his partner's picks agree), Q0-for-clients (kept artifacts as candidates), the partner default pool (shareable now; one constant), a hosted client route (T3 — Sean's call, not a build).
    - ~~Cross-session `excludeIds`~~ — shipped: a memory never sees the same picture twice (page and bundle).
@@ -155,14 +155,14 @@ Sean: *"We're going to have Qwen build the rest of this in my Hermes. The first 
    - Auto-refresh of the photo pool from picks (`fetch-photos.mjs` on a schedule / after N grids).
    - Firing Unsplash `download_location` when a photo is *used* in a build.
    - Anything else Sean names — write every answer to `docs/ai-workflow/brainstorms/taste-brain-upgrades-<date>.md` as it lands (checkpointing law).
-3. **Ask the blueprint panel — Ox Alpha, GLM-5.3, Kimi K3** (Sean 2026-08-25: *"it can tell Ox and GLM and Kimi K3"*). Assemble ONE packet — IDs/roles only, **no client names, no keys, no image bytes, no Midlibrary text** (Ox retains prompts at an undisclosed provider) — containing: §2 runtime contract, §3 laws, §5 as built, Sean's answers from step 2, and the TasteEvent v1 schema (now with `profileId` / `projectId` / `channel`). Ask each seat for: (a) **wireframes** (ASCII/markdown) for every new surface, desktop and 414px; (b) a **mermaid flowchart** of data flow — probe → events → compiler → directions → client export → back to Sean; (c) a **numbered slice plan**, each slice ≤1 day, with its test, its proof command, and what it must NOT touch; (d) the 3 ways it fails; (e) absence-first gaps. Transport: `node /mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT/scripts/consult-panel.mjs --document <packet> --seats ox,glm,kimi --out-dir <beside the brainstorm doc>` — run `--dry-run` first. **Kimi is paid and self-caps at $0.40:** keep the packet under ~9k tokens so its worst case clears the cap, or ask Sean for a one-time lift before `--confirm-spend`; Ox and GLM are $0. Then Qwen writes a **synthesis** (consensus / contradictions / unique insights / blind spots / one fused blueprint) — Qwen's synthesis is a draft; Sean decides.
+3. **Ask the blueprint panel — Ox Alpha, GLM-5.3, Kimi K3** (Sean 2026-08-25: *"it can tell Ox and GLM and Kimi K3"*). Assemble ONE packet — IDs/roles only, **no client names, no keys, no image bytes, no Midlibrary text** (Ox retains prompts at an undisclosed provider) — containing: §2 runtime contract, §3 laws, §5 as built, Sean's answers from step 2, and the TasteEvent v1 schema (now with `profileId` / `projectId` / `channel`). Ask each seat for: (a) **wireframes** (ASCII/markdown) for every new surface, desktop and 414px; (b) a **mermaid flowchart** of data flow — probe → events → compiler → directions → client export → back to Sean; (c) a **numbered slice plan**, each slice ≤1 day, with its test, its proof command, and what it must NOT touch; (d) the 3 ways it fails; (e) absence-first gaps. Transport: `node <REPO>/scripts/consult-panel.mjs --document <packet> --seats ox,glm,kimi --out-dir <beside the brainstorm doc>` — run `--dry-run` first. **Kimi is paid and self-caps at $0.40:** keep the packet under ~9k tokens so its worst case clears the cap, or ask Sean for a one-time lift before `--confirm-spend`; Ox and GLM are $0. Then Qwen writes a **synthesis** (consensus / contradictions / unique insights / blind spots / one fused blueprint) — Qwen's synthesis is a draft; Sean decides.
 4. **Show Sean the fused blueprint** and get an explicit yes per slice before building (T2 writes to the taste brain only after that yes).
 5. **Build slice by slice** — commit per slice with explicit paths in the taste-brain repo; run both test suites before and after; browser-verify any picture surface (`naturalWidth > 0` count, 0 buttons <44px at 1440 and 414); delete every automated session's event file; never touch `taste/*.md`; never bind anything but `127.0.0.1`.
 6. **Provenance rule for Qwen:** Qwen is sub-Fable. Its memos go to the Hermes inbox (any-agent); it does **not** write `hermes-learning-packets/` (Fable-tier only, Rule 68). Ox's blueprint is advisory input; Sean is the decider.
 
 **Paste-ready first message for Qwen in Hermes:**
 ```
-Read /mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT/docs/ai-workflow/AI-HANDOFF/TASTE-BRAIN-SESSION-HANDOFF-2026-08-25.md fully, then §8 again.
+Read <REPO>/docs/ai-workflow/AI-HANDOFF/TASTE-BRAIN-SESSION-HANDOFF-2026-08-25.md fully, then §8 again.
 Do step 1 (orient + run all four test suites; report the PASS counts). Then begin step 2: interview me ONE question at a time about
 the upgrades I want for the taste brain — partner mode and client mode are already built (§5), so start with what comes AFTER them.
 Checkpoint every answer to docs/ai-workflow/brainstorms/taste-brain-upgrades-2026-08-25.md.

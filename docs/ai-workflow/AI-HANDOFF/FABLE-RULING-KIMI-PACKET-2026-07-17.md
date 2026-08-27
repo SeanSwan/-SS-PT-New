@@ -2,7 +2,7 @@
 
 **Reviewer:** OpenRouter `anthropic/claude-fable-5` (Fable via OpenRouter credits; Claude-subscription Fable was capped)
 **Document:** docs/ai-workflow/AI-HANDOFF/KIMI-CORE-PRODUCT-SURFACES-REVIEW-PACKET-2026-07-17.md
-**Seed:** C:/Users/BIGOTS~1/AppData/Local/Temp/claude/c--Users-BigotSmasher-Desktop-quick-pt-SS-PT/023a7358-014c-4d44-b231-e8b8db3a61dd/scratchpad/fable-seed-session-findings.md
+**Seed:** <HOME>/AppData/Local/Temp/claude/<SCRATCH-KEY>/023a7358-014c-4d44-b231-e8b8db3a61dd/scratchpad/fable-seed-session-findings.md
 **Tokens:** 16859 in / 10925 out · **Cost:** ~$0.7148 · **Wall:** 154.8s
 
 ---

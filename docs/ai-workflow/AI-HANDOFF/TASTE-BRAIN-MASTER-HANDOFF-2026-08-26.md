@@ -13,7 +13,7 @@ privacy: IDs and roles only — the second user is "the partner"; no names, no k
 
 **Read this file, then `swan-taste-brain/prompter/README.md`, then run the suites. That is enough.**
 
-The tool is at `C:\Users\BigotSmasher\Desktop\swan-taste-brain` — **local git, NO remote, and it must
+The tool is at `<HOME>\Desktop\swan-taste-brain` — **local git, NO remote, and it must
 stay that way**: it contains a third-party copyrighted corpus (Midlibrary, which Sean subscribes to).
 
 **State: 13 commits `8a4038f` → `2f253bb`. 504 checks across 10 suites, all passing.**
@@ -159,7 +159,7 @@ your summary, not the product.*
 ## 7. How to verify (run this before changing anything)
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/swan-taste-brain
+cd <HOME>/Desktop/swan-taste-brain
 # 10 suites, 504 checks. From the REPO ROOT — fixtures resolve relative to it, not to prompter/.
 for t in test test-probe test-modes test-bundle test-taste-namespace test-renders test-make test-range test-video test-round3; do
   node prompter/$t.mjs | tail -1
@@ -198,7 +198,7 @@ You are picking up the Swan Taste Brain (SWA-186). Read, in order:
 2. swan-taste-brain/prompter/README.md                                   (runtime contract)
 3. The isCorpusOwner docblock in swan-taste-brain/prompter/lib/events.mjs (a correction you must not undo)
 
-The tool is at C:\Users\BigotSmasher\Desktop\swan-taste-brain — LOCAL git, NO remote, and it must stay
+The tool is at <HOME>\Desktop\swan-taste-brain — LOCAL git, NO remote, and it must stay
 that way: it holds a third-party copyrighted corpus. Start the server (node prompter/serve.mjs), open
 http://127.0.0.1:7331, and run all ten suites from the REPO ROOT before and after any change; they
 must print ALL CHECKS PASS (504 checks).
@@ -220,7 +220,7 @@ why, is in §6 — read it before "finishing" any of it.
 
 | Thing | Path |
 |---|---|
-| The tool | `C:\Users\BigotSmasher\Desktop\swan-taste-brain` (local git, **no remote**) |
+| The tool | `<HOME>\Desktop\swan-taste-brain` (local git, **no remote**) |
 | Regression file | `prompter/test-round3.mjs` |
 | Rounds 3–6 arbitration | `docs/ai-workflow/AI-HANDOFF/TASTE-BRAIN-HOSTILE-REVIEW-ROUNDS-3-6-2026-08-26.md` |
 | All seat replies | `docs/ai-workflow/AI-HANDOFF/panel-taste-brain-round{3,4,5,6,7}-2026-08-26/` |

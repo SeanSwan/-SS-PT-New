@@ -7,7 +7,7 @@ supersedes: SWANGUARD-MAKE-IT-USABLE-HANDOFF-2026-08-20.md
 # SwanGuard — F3 onward, run as a loop
 
 **Date:** 2026-08-21 · **Outgoing:** Claude Opus 5 · **Linear:** SWA-70
-**Repo:** `C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom` (SEPARATE from SS-PT)
+**Repo:** `<HOME>/Desktop/SwanGuard-Newsroom` (SEPARATE from SS-PT)
 
 **Sean's instruction for this handoff:** work the remaining slices **back-to-back in one loop**
 without stopping to check in between, then hostile-review with **GLM 5.3 + Gemini 3.1 Pro +
@@ -18,7 +18,7 @@ Grok 4.6 + you**. Do not burn tokens re-deriving what is written here.
 ## 0. FIRST ACTIONS (10 minutes, do all of them)
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd <HOME>/Desktop/SwanGuard-Newsroom
 git branch --show-current      # expect merge/newsroom-mainline-v3
 git log --oneline -5
 git status --porcelain         # expect clean apart from two *.bak-20260802 files
@@ -247,7 +247,7 @@ Sean's named seats: **GLM 5.3 + Gemini 3.1 Pro + Grok 4.6 + you.** Add local Qwe
 and standing policy is to fire it in every panel, never as the lead.
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/quick-pt/SS-PT        # the panel scripts live in SS-PT
+cd <REPO>        # the panel scripts live in SS-PT
 # 1. write a packet with the SOURCE inline + the specific questions you want attacked
 # 2. ALWAYS dry-run first and disclose worst-case spend to Sean
 node scripts/consult-panel.mjs --document <repo-relative-path> \
@@ -285,7 +285,7 @@ wrong on the facts. The 2026-08-21 fixes were accepted only after reproducing th
 | Item | Detail |
 |---|---|
 | **Push / merge** | `merge/newsroom-mainline-v3` has no upstream and holds 4 unpushed commits. Sean decides. |
-| **Approval `be60fd2c92e5bc61`** | SS-PT blast-radius guard message fix. Agent cannot mint it — that is the design. `cd C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT` then `node scripts/blast-radius-approve.mjs be60fd2c92e5bc61 --reason "honest scope"` |
+| **Approval `be60fd2c92e5bc61`** | SS-PT blast-radius guard message fix. Agent cannot mint it — that is the design. `cd <REPO>` then `node scripts/blast-radius-approve.mjs be60fd2c92e5bc61 --reason "honest scope"` |
 | **Migration `0029` numbering** | Displaced a reservation; reversible by rename while local-only. |
 | **Twitch ingest** | Needs an app-access TOKEN (OAuth client-credentials exchange, not an env value). `SWANGUARD_TWITCH_CLIENT_ID` present, `SWANGUARD_TWITCH_APP_ACCESS_TOKEN` absent. Until then every run reports Twitch creators as `skipped` — visible, not silent. Covers 5 channels + 6 game categories of the 51. |
 | **Trigger hardening (GLM)** | 0028's trigger authenticates an *event row*, not a session — anything able to INSERT `creator_event(actor='owner', action='enabled')` can enable. GLM proposes `set local app.actor` + `current_setting()`. Migration-level change to the enable law: architecture, Sean's call. |
@@ -299,7 +299,7 @@ wrong on the facts. The 2026-08-21 fixes were accepted only after reproducing th
 ## 8. Key commands
 
 ```bash
-cd C:/Users/BigotSmasher/Desktop/SwanGuard-Newsroom
+cd <HOME>/Desktop/SwanGuard-Newsroom
 export DATABASE_URL="$(grep '^DATABASE_URL=' .env | cut -d= -f2-)"   # value never echoed
 
 # seed the creator catalog (idempotent; safe to re-run)

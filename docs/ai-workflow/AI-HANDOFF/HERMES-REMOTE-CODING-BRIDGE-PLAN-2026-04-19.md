@@ -118,7 +118,7 @@ This IS:
 2. **Generate SSH key on Pi, add to Windows authorized_keys:**
    ```bash
    ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519 -N ""
-   ssh-copy-id BigotSmasher@192.168.50.83
+   ssh-copy-id <OPERATOR>@192.168.50.83
    ```
 
 3. **Install WSL2 + Ubuntu on Windows:**
@@ -134,7 +134,7 @@ This IS:
 
 5. **Test full chain from Pi:**
    ```bash
-   ssh BigotSmasher@192.168.50.83 wsl -- bash -c "tmux new -d -s test 'echo hello'; tmux capture-pane -t test -p"
+   ssh <OPERATOR>@192.168.50.83 wsl -- bash -c "tmux new -d -s test 'echo hello'; tmux capture-pane -t test -p"
    ```
 
 ### Phase R2 — Session scaffolding (~2 hours)
@@ -219,7 +219,7 @@ Before Phase R1 starts, verify or install:
 - [ ] tmux installed in WSL
 - [ ] Claude Code CLI installed in WSL (`npm i -g @anthropic-ai/claude-code` or equivalent)
 - [ ] OpenAI Codex CLI installed in WSL (per Codex docs)
-- [ ] Working directory mounted in WSL (`/mnt/c/Users/BigotSmasher/Desktop/quick-pt/SS-PT` or similar)
+- [ ] Working directory mounted in WSL (`<REPO>` or similar)
 - [ ] SSH key from Pi (`~/.ssh/id_ed25519`) added to Windows authorized_keys
 - [ ] tmux sessions auto-start on Windows boot (systemd unit in WSL or scheduled task)
 - [ ] Hermes `toolsets.py` extended with `remote_ai_bridge` tool definition
@@ -264,7 +264,7 @@ If all 9 steps work end-to-end, this is shipped.
 **Termius SSH app on phone** gives Sean 90% of the value immediately:
 1. Install Termius on phone (free, iOS + Android)
 2. SSH to Pi
-3. `ssh BigotSmasher@192.168.50.83` from Pi to Windows (requires OpenSSH Server on Windows first)
+3. `ssh <OPERATOR>@192.168.50.83` from Pi to Windows (requires OpenSSH Server on Windows first)
 4. In Windows: `wsl` → attach to tmux session: `tmux attach -t claude`
 5. See full terminal, interact directly
 
