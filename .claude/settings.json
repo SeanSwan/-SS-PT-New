@@ -359,6 +359,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/memory-expiry-gate.mjs\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SessionStart": [
