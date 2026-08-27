@@ -11,7 +11,7 @@ import {
   PrimaryHeading,
   SmallText,
 } from '../ui';
-import GlowButton from '../../ui/buttons/GlowButton';
+import ForgeButton from '../../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import { SCHEDULE_MODALS_THEME } from './ScheduleModals.theme';
 import {
   BookingCard,
@@ -72,7 +72,7 @@ const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
           <OutlinedButton onClick={() => setShowBookingDialog(false)} disabled={bookingLoading}>
             Cancel
           </OutlinedButton>
-          <GlowButton
+          <ForgeButton
             variant="emerald"
             size="medium"
             onClick={handleBookSession}
@@ -80,7 +80,7 @@ const ScheduleBookingModal: React.FC<ScheduleBookingModalProps> = ({
             isLoading={bookingLoading}
           >
             {bookingLoading ? 'Booking...' : 'Confirm Booking'}
-          </GlowButton>
+          </ForgeButton>
         </>
       )}
     >

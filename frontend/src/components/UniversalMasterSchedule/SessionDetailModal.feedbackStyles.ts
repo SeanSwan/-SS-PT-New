@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import GlowButton from '../ui/buttons/GlowButton';
+import ForgeButton from '../ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import { SmallText } from './ui';
 
 // Client Feedback Styled Components
@@ -76,7 +76,7 @@ export const RatingValue = styled.span`
   color: var(--text-muted, rgba(224, 236, 244, 0.7));
 `;
 
-export const FeedbackSubmitButton = styled(GlowButton)`
+export const FeedbackSubmitButton = styled(ForgeButton)`
   margin-top: 1rem;
 `;
 

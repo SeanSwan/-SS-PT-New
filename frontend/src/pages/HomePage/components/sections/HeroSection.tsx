@@ -12,7 +12,7 @@ import { getReveal, staggerContainer, cinematicReveal } from '../shared/HomeAnim
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 import { VIDEO } from '../../../../config/videoAssets';
 import logoImg from '../../../../assets/Logo.png';
-import GlowButton from '../../../../components/ui/buttons/GlowButton';
+import ForgeButton from '../../../../components/ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import { StyledBox } from '@/components/ui/StyledBox';
 import { motionStyleProps } from '@/components/ui/motionStyleProps';
 
@@ -25,11 +25,11 @@ interface HeroProps {
 
 type CapsuleVariant = 'default' | 'gilded' | 'wingPurple' | 'arcticCyan' | 'royalDepth';
 const capsuleColors: Record<CapsuleVariant, { border: string; bg: string; color: string; hoverBorder: string; hoverBg: string; glow: string; focus: string }> = {
-  default:    { border: 'rgba(96,192,240,0.2)',  bg: 'rgba(0,32,96,0.5)',    color: '#E0ECF4', hoverBorder: 'rgba(139,92,246,0.5)',  hoverBg: 'rgba(0,32,96,0.7)',    glow: 'rgba(139,92,246,0.2)',  focus: '#8B5CF6' },
-  gilded:     { border: 'rgba(198,168,75,0.35)', bg: 'rgba(198,168,75,0.1)', color: '#C6A84B', hoverBorder: 'rgba(198,168,75,0.6)',  hoverBg: 'rgba(198,168,75,0.18)', glow: 'rgba(198,168,75,0.3)',  focus: '#C6A84B' },
-  wingPurple: { border: 'rgba(139,92,246,0.35)', bg: 'rgba(139,92,246,0.12)', color: '#8B5CF6', hoverBorder: 'rgba(139,92,246,0.6)', hoverBg: 'rgba(139,92,246,0.22)', glow: 'rgba(139,92,246,0.3)', focus: '#8B5CF6' },
-  arcticCyan: { border: 'rgba(80,160,240,0.35)', bg: 'rgba(80,160,240,0.12)', color: '#50A0F0', hoverBorder: 'rgba(80,160,240,0.6)', hoverBg: 'rgba(80,160,240,0.22)', glow: 'rgba(80,160,240,0.3)', focus: '#50A0F0' },
-  royalDepth: { border: 'rgba(0,48,128,0.5)',    bg: 'rgba(0,48,128,0.25)',  color: '#60C0F0', hoverBorder: 'rgba(0,48,128,0.8)',   hoverBg: 'rgba(0,48,128,0.4)',   glow: 'rgba(96,192,240,0.2)',  focus: '#60C0F0' },
+  default:    { border: 'rgba(96,192,240,0.2)',  bg: 'rgba(0,32,96,0.5)',    color: '#E0ECF4', hoverBorder: 'rgba(139,92,246,0.5)',  hoverBg: 'rgba(0,32,96,0.7)',    glow: 'rgba(139,92,246,0.2)',  focus: '#8B5CF6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23)
+  gilded:     { border: 'rgba(198,168,75,0.35)', bg: 'rgba(198,168,75,0.1)', color: '#C6A84B', hoverBorder: 'rgba(198,168,75,0.6)',  hoverBg: 'rgba(198,168,75,0.18)', glow: 'rgba(198,168,75,0.3)',  focus: '#C6A84B' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23)
+  wingPurple: { border: 'rgba(139,92,246,0.35)', bg: 'rgba(139,92,246,0.12)', color: '#8B5CF6', hoverBorder: 'rgba(139,92,246,0.6)', hoverBg: 'rgba(139,92,246,0.22)', glow: 'rgba(139,92,246,0.3)', focus: '#8B5CF6' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23)
+  arcticCyan: { border: 'rgba(80,160,240,0.35)', bg: 'rgba(80,160,240,0.12)', color: '#50A0F0', hoverBorder: 'rgba(80,160,240,0.6)', hoverBg: 'rgba(80,160,240,0.22)', glow: 'rgba(80,160,240,0.3)', focus: '#50A0F0' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23)
+  royalDepth: { border: 'rgba(0,48,128,0.5)',    bg: 'rgba(0,48,128,0.25)',  color: '#60C0F0', hoverBorder: 'rgba(0,48,128,0.8)',   hoverBg: 'rgba(0,48,128,0.4)',   glow: 'rgba(96,192,240,0.2)',  focus: '#60C0F0' }, // swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23)
 };
 
 const CAPSULES: { variant: CapsuleVariant; icon: React.ReactNode; label: string; to: string }[] = [
@@ -147,8 +147,8 @@ const HeroSection: React.FC<HeroProps> = ({ prefersReduced, tier, onOpenOrientat
 
         <motion.div variants={isEssential ? undefined : reveal}>
           <BtnRow>
-            <GlowButton colorScheme="primary" size="large" onClick={() => navigate('/signup')}>Join the Community</GlowButton>
-            <GlowButton colorScheme="accent" size="large" onClick={onOpenOrientation}>Find a Trainer</GlowButton>
+            <ForgeButton colorScheme="primary" size="large" onClick={() => navigate('/signup')}>Join the Community</ForgeButton>
+            <ForgeButton colorScheme="accent" size="large" onClick={onOpenOrientation}>Find a Trainer</ForgeButton>
           </BtnRow>
         </motion.div>
 

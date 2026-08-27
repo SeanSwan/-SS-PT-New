@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { SectionTitle, SectionSubtitle } from '../shared/HomeStyles';
-import GlowButton from '../../../../components/ui/buttons/GlowButton';
+import ForgeButton from '../../../../components/ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
 
@@ -58,12 +58,12 @@ const CTASection: React.FC<CTASectionProps> = ({ tier }) => {
 
   const buttons = (
     <CTAButtons>
-      <GlowButton onClick={() => navigate('/store')} variant="primary">
+      <ForgeButton onClick={() => navigate('/store')} variant="primary">
         Join SwanStudios
-      </GlowButton>
-      <GlowButton onClick={() => navigate('/contact')} variant="ghost">
+      </ForgeButton>
+      <ForgeButton onClick={() => navigate('/contact')} variant="ghost">
         Contact Us
-      </GlowButton>
+      </ForgeButton>
     </CTAButtons>
   );
 

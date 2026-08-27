@@ -4,6 +4,7 @@
  */
 
 import { validationResult } from 'express-validator';
+import logger from '../../utils/logger.mjs';
 import {
   normalizeAdminIds,
   normalizeGroupName,
@@ -66,13 +67,64 @@ export const getConversations = async (req, res) => {
     if (req.messagingAccessLane === 'relationship' && req.messagingCounterparties) {
       const allowed = req.messagingCounterparties;
       const viewerId = Number(userId);
+
+      // `participants` is a json_agg column. The driver normally hands it back
+      // parsed, but if it ever arrives as a string every id becomes NaN, every
+      // thread is filtered, and the inbox silently EMPTIES — for precisely the
+      // package-paying clients this lane exists to serve, with no error anywhere.
+      // Two post-ship reviewers (ox-alpha, grok) flagged the shape assumption
+      // independently. Rather than assume, normalize and make the unparseable
+      // case loud instead of silent.
+      const readParticipants = (conversation) => {
+        const raw = conversation?.participants;
+        if (Array.isArray(raw)) return raw;
+        if (typeof raw === 'string') {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed;
+          } catch { /* fall through to the loud path */ }
+        }
+        return null;
+      };
+
+      let unreadable = 0;
       conversations = conversations.filter((conversation) => {
-        const participants = Array.isArray(conversation.participants) ? conversation.participants : [];
+        const participants = readParticipants(conversation);
+        if (participants === null) {
+          unreadable += 1;
+          // Cannot prove this is a relationship thread, so it stays hidden —
+          // the same direction the gate fails. The count below makes it visible.
+          return false;
+        }
         const others = participants
-          .map((participant) => Number(participant?.id))
-          .filter((id) => Number.isInteger(id) && id !== viewerId);
-        return others.length > 0 && others.every((id) => allowed.has(id));
+          .map((participant) => (
+            // A participant may arrive as an object OR a raw scalar id. The
+            // scalar form used to map to NaN, drop from `others`, and make the
+            // whole thread silently vanish from the inbox (Grok 4.6).
+            typeof participant === 'object' && participant !== null
+              ? { id: Number(participant.id ?? participant.userId), role: participant.role }
+              : { id: Number(participant), role: undefined }
+          ))
+          .filter((p) => Number.isInteger(p.id) && p.id !== viewerId);
+
+        // Staff count as reachable. ensureAdminConversation creates a direct
+        // support thread with the default admin for every viewer; the admin is
+        // not a TRAINING counterparty, so narrowing on assignments alone hid
+        // that thread from exactly the clients it exists for — the system
+        // created a support channel they could never see (GLM 5.3, post-ship
+        // panel). This lane exists to hide COMMUNITY threads, not staff.
+        return others.length > 0 && others.every(
+          (p) => allowed.has(p.id) || p.role === 'admin' || p.role === 'trainer',
+        );
       });
+
+      if (unreadable > 0) {
+        logger.error(
+          '[messaging] conversation participants column was unreadable; those threads '
+          + 'were hidden from a relationship-lane viewer. Check the json_agg shape.',
+          { unreadable, viewerId },
+        );
+      }
     }
     return res.json(conversations);
   } catch (error) {

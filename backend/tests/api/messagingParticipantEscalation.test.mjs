@@ -31,6 +31,8 @@
  * Only authorization wiring is under test.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import express from 'express';
 import request from 'supertest';
 
@@ -104,7 +106,10 @@ function mockSql({ counterparties = [], participants = [], throwOn = null } = {}
     }
     if (sql.includes('conversation_participants')) {
       if (throwOn === 'participants') throw new Error('db down');
-      return participants.map((u) => ({ userId: u }));
+      // Rows carry the PLATFORM role so both gates can honour staff identically.
+      return participants.map((u) => (
+        typeof u === 'object' ? { userId: u.id, platformRole: u.role } : { userId: u, platformRole: 'client' }
+      ));
     }
     return [];
   });
@@ -161,5 +166,50 @@ describe('P0 — participants being ADDED are validated, not just existing membe
     const res = await request(appWith(freeClient, 'addParticipants'))
       .post('/conversations/42/participants').send({ participantIds: [STRANGER_ID] });
     expect(res.status).toBe(200);
+  });
+});
+
+describe('adminIds is validated in BOTH scopes, not just conversation', () => {
+  // Qwen 3.8 (post-ship panel) read the create scope as validating only
+  // participantIds — the manual extraction above the check is for the empty-body
+  // 400, and the authorization itself delegates to the shared helper. Disproven
+  // by reading, then pinned here so it can never become true.
+  beforeEach(() => {
+    resolveEntitlementMock.mockResolvedValue({ actualTier: 'free', effectiveTier: 'free', isTrial: false });
+  });
+
+  it('403s creating a thread that smuggles a stranger in via adminIds', async () => {
+    mockSql({ counterparties: [TRAINER_ID] });
+    const res = await request(appWith(freeClient, 'create'))
+      .post('/conversations').send({ participantIds: [TRAINER_ID], adminIds: [STRANGER_ID] });
+    expect(res.status).toBe(403);
+    expect(res.body.code).toBe('OUTSIDE_COACHING_RELATIONSHIP');
+  });
+
+  it('403s adding a stranger as admin to an existing trainer thread', async () => {
+    mockSql({ counterparties: [TRAINER_ID], participants: [CLIENT_ID, TRAINER_ID] });
+    const res = await request(appWith(freeClient, 'addParticipants'))
+      .post('/conversations/42/participants').send({ participantIds: [TRAINER_ID], adminIds: [STRANGER_ID] });
+    expect(res.status).toBe(403);
+  });
+
+  it('allows adminIds when every id is an assigned counterparty', async () => {
+    mockSql({ counterparties: [TRAINER_ID] });
+    const res = await request(appWith(freeClient, 'create'))
+      .post('/conversations').send({ participantIds: [TRAINER_ID], adminIds: [TRAINER_ID] });
+    expect(res.status).toBe(200);
+  });
+});
+
+describe('the gate reads the SAME body fields the controller binds', () => {
+  // ox-alpha: if the controller ever bound `userIds` or `members` instead of
+  // `participantIds`/`adminIds`, the gate's check would be vacuously true and the
+  // escalation this file exists to prevent would reopen silently. Field-name
+  // drift has hit this repo three times. This pins the contract at the source.
+  it('groupController binds req.body.participantIds and req.body.adminIds', () => {
+    const src = readFileSync(resolve(__dirname, '../../controllers/messaging/groupController.mjs'), 'utf8');
+    expect(src).toContain('req.body.participantIds');
+    expect(src).toContain('req.body.adminIds');
+    expect(src).not.toMatch(/req\.body\.(userIds|members|users)/);
   });
 });

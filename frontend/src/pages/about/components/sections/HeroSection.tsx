@@ -5,7 +5,7 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import GlowButton from '../../../../components/ui/buttons/GlowButton';
+import ForgeButton from '../../../../components/ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import TypewriterText from '../../../../components/ui-kit/cinematic/TypewriterText';
 import ParallaxHero from '../../../../components/ui-kit/cinematic/ParallaxHero';
 import TextSplitter from '../../../../components/ui/animations/TextSplitter';
@@ -97,14 +97,14 @@ const HeroSection: React.FC<HeroSectionProps> = ({ tier }) => {
         cutting-edge science, and an unwavering commitment to your success.
       </HeroSubtitle>
       <HeroButtons>
-        <GlowButton
+        <ForgeButton
           text="Book Consultation"
           variant="primary"
           size="large"
           onClick={() => navigate('/contact')}
           animateOnRender
         />
-        <GlowButton
+        <ForgeButton
           text="View Programs"
           variant="accent"
           size="large"

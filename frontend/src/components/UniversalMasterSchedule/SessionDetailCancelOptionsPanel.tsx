@@ -38,6 +38,7 @@ interface SessionDetailCancelOptionsPanelProps {
   onChargeAmountChange: (value: string) => void;
   defaultFullCharge: number;
   defaultLateFee: number;
+  pricingUnavailable: boolean;
   restoreCredit: boolean;
   onRestoreCreditChange: (value: boolean) => void;
   notifyOnCancel: boolean;
@@ -56,6 +57,7 @@ const SessionDetailCancelOptionsPanel: React.FC<SessionDetailCancelOptionsPanelP
   onChargeAmountChange,
   defaultFullCharge,
   defaultLateFee,
+  pricingUnavailable,
   restoreCredit,
   onRestoreCreditChange,
   notifyOnCancel,
@@ -108,14 +110,19 @@ const SessionDetailCancelOptionsPanel: React.FC<SessionDetailCancelOptionsPanelP
               type="radio"
               name="chargeType"
               checked={chargeType === 'full'}
+              disabled={pricingUnavailable}
               onChange={() => selectChargeType('full', String(defaultFullCharge), false)}
             />
             <span>Full Session Charge (Default)</span>
           </ChargeOptionHeader>
           <Caption secondary>
-            Charge the full session rate based on client&apos;s package.
+            {pricingUnavailable
+              ? "This client's package price could not be loaded."
+              : "Charge the full session rate based on client's package."}
           </Caption>
-          <ChargeAmount $variant="danger">${defaultFullCharge.toFixed(2)}</ChargeAmount>
+          <ChargeAmount $variant="danger">
+            {pricingUnavailable ? 'Pricing unavailable' : `$${defaultFullCharge.toFixed(2)}`}
+          </ChargeAmount>
         </ChargeOption>
 
         <ChargeOption htmlFor="charge-type-late-fee" $selected={chargeType === 'late_fee'} $variant="warning">
@@ -125,6 +132,7 @@ const SessionDetailCancelOptionsPanel: React.FC<SessionDetailCancelOptionsPanelP
               type="radio"
               name="chargeType"
               checked={chargeType === 'late_fee'}
+              disabled={pricingUnavailable}
               onChange={() => selectChargeType('late_fee', String(defaultLateFee), false)}
             />
             <span>Late Cancellation Fee (50%)</span>
@@ -132,7 +140,9 @@ const SessionDetailCancelOptionsPanel: React.FC<SessionDetailCancelOptionsPanelP
           <Caption secondary>
             Apply a 50% late cancellation fee. Session credit is NOT restored.
           </Caption>
-          <ChargeAmount $variant="warning">${defaultLateFee.toFixed(2)}</ChargeAmount>
+          <ChargeAmount $variant="warning">
+            {pricingUnavailable ? 'Pricing unavailable' : `$${defaultLateFee.toFixed(2)}`}
+          </ChargeAmount>
         </ChargeOption>
 
         <ChargeOption htmlFor="charge-type-partial" $selected={chargeType === 'partial'} $variant="warning">
@@ -142,7 +152,11 @@ const SessionDetailCancelOptionsPanel: React.FC<SessionDetailCancelOptionsPanelP
               type="radio"
               name="chargeType"
               checked={chargeType === 'partial'}
-              onChange={() => selectChargeType('partial', String(Math.round(defaultFullCharge * 0.5)), false)}
+              onChange={() => selectChargeType(
+                'partial',
+                pricingUnavailable ? '' : String(Math.round(defaultFullCharge * 0.5)),
+                false
+              )}
             />
             <span>Custom Amount</span>
           </ChargeOptionHeader>

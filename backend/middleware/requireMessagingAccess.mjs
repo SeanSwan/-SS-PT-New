@@ -52,6 +52,7 @@ import {
   toId,
   loadAssignedCounterpartyIds,
   loadConversationMembers,
+  othersAreReachable,
 } from '../services/messagingAccessRepository.mjs';
 import { meetsMinimumTier, tierDisplayName, featureLabel } from '../config/tierCatalog.mjs';
 import { isGatingEnabled, resolveCurrentEntitlement } from './requireTier.mjs';
@@ -151,6 +152,17 @@ export function requireMessagingAccess({ scope = 'conversation' } = {}) {
     // Lane 2 — RELATIONSHIP. Tier is irrelevant from here down.
     const actorId = toId(req.user.id);
     const counterparties = await loadAssignedCounterpartyIds(actorId);
+  if (counterparties === null) {
+    // The lookup FAILED — that is not "you have no trainer". Rendering a DB fault
+    // as the 402 upsell told a paying client with an active assignment to
+    // upgrade, during a transient outage, in the exact words this middleware was
+    // written to stop (GLM 5.3). Fail closed, but fail honestly.
+    return res.status(503).json({
+      success: false,
+      message: 'Messaging is temporarily unavailable. Please try again in a moment.',
+      code: 'MESSAGING_LOOKUP_UNAVAILABLE',
+    });
+  }
 
     // null = lookup failed (fail closed). Empty set = genuinely no assignment.
     if (!counterparties || counterparties.size === 0) {
@@ -197,7 +209,10 @@ export function requireMessagingAccess({ scope = 'conversation' } = {}) {
     if (!membership.actorIsMember) return sendOutsideRelationship(res);
     if (membership.others.length === 0) return sendOutsideRelationship(res);
 
-    const allInside = membership.others.every((id) => counterparties.has(id));
+    // `others` now carries {id, role} so both gates can honour staff the same
+    // way — widening the list without widening the write is what produced the
+    // visible-but-unwritable admin thread. Mirrors isRelationshipWriteAllowed.
+    const allInside = othersAreReachable(membership.others, counterparties);
     if (!allInside) return sendOutsideRelationship(res);
 
     // Validate anyone being ADDED, not just who is already here.

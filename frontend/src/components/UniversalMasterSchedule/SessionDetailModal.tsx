@@ -90,16 +90,8 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     onClose,
     setFormError,
   });
-  const {
-    packagePrice,
-    packageName,
-    defaultFullCharge,
-    defaultLateFee,
-  } = useSessionPackagePricing({
-    open,
-    sessionId: session?.id,
-    canManage,
-  });
+  const { packagePrice, packageName, defaultFullCharge, defaultLateFee, pricingUnavailable } =
+    useSessionPackagePricing({ open, sessionId: session?.id, canManage });
   const {
     clientRating,
     clientComment,
@@ -143,6 +135,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     isEarlyCancelEligible,
     defaultFullCharge,
     defaultLateFee,
+    pricingUnavailable,
     onUpdated,
     onClose,
     toast,
@@ -283,6 +276,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         onChargeAmountChange={setChargeAmount}
         defaultFullCharge={defaultFullCharge}
         defaultLateFee={defaultLateFee}
+        pricingUnavailable={pricingUnavailable}
         restoreCredit={restoreCredit}
         onRestoreCreditChange={setRestoreCredit}
         notifyOnCancel={notifyOnCancel}

@@ -26,6 +26,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyCommand, auditHookRegistrations } from '../lib/hook-registration.mjs';
+import { hasRulebookTrailer } from './rulebook-review-guard.mjs';
 
 const SS_PT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const classify = (cmd) => classifyCommand(cmd, SS_PT);
@@ -57,6 +58,14 @@ const cases = [
   ['node scripts/[h]ooks/x.mjs', 'UNVERIFIED', 'R4: bracket glob'],
   ['node drift\\-check\\-gate.mjs', 'UNVERIFIED', 'R4: POSIX escape'],
   [`node ${REAL} --emit dist/preview.mjs`, 'UNVERIFIED', 'R4/R5: output arg is not the entrypoint'],
+
+  // 2026-08-25 SOUL-delta gap sweep: the ONE canonical quoted idiom every real hook
+  // uses is RESOLVED, not declined — eleven permanent UNVERIFIED rows per session was
+  // the alarm-fatigue failure this module's own header warns about.
+  [`node "\${CLAUDE_PROJECT_DIR:-.}/${REAL}"`, 'OK', 'canonical quoted idiom resolves against root'],
+  [`node "\${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/definitely-gone.mjs"`, 'MISSING', 'canonical idiom with an absent file is a REAL finding'],
+  ['node "${CLAUDE_PROJECT_DIR:-.}/scripts/$SUB/x.mjs"', 'UNVERIFIED', 'nested expansion inside the quoted remainder still declines'],
+  ['node "${CLAUDE_PROJECT_DIR:-.}/my hooks/x.mjs"', 'UNVERIFIED', 'quoted path with a space keeps its quotes and declines'],
 
   // rounds 2-3 vectors
   ['node $CLAUDE_PROJECT_DIR/scripts/hooks/x.mjs', 'UNVERIFIED', 'R2: canonical portable idiom'],
@@ -185,6 +194,34 @@ try {
   console.log('  SKIP  symlink unavailable on this host — symlinked-root case not exercised');
 }
 rmSync(base, { recursive: true, force: true });
+
+// ---- Rulebook trailer test (shared guard/probe single source, Ox r3 F1) ------
+// NOTE: this section's first landing was a `test(...)` block appended AFTER the
+// process.exit above — dead code that read as a passing test. The runner here is
+// hand-rolled; new cases join ITS convention, before the exit.
+for (const [msg, want, note] of [
+  ['RULEBOOK: add - reviewed-by: GLM-5.3', true, 'same-line form'],
+  ['subject\n\nRULEBOOK: amend\nReviewed-by: seat', true, 'git-conventional multi-line, capitalized (the shape the old regex rejected)'],
+  ['RULEBOOK: retire\nREVIEWED-BY: X', true, 'any case'],
+  ['RULEBOOK: add', false, 'verb without reviewed-by fails'],
+  ['Reviewed-by: X', false, 'reviewed-by without verb line fails'],
+  ['RULEBOOK: destroy - reviewed-by: X', false, 'unknown verb fails'],
+  ['', false, 'empty message'],
+  [undefined, false, 'missing message'],
+  // Ox r4 F2 — prose resistance: a message DISCUSSING the convention must not pass.
+  ['fix: docs\n\nRULEBOOK: amend flow is broken, and someone should add a reviewed-by: line next time', false,
+    'prose mention of reviewed-by mid-sentence is not a trailer'],
+  ['note that the RULEBOOK: add form needs care\nAlso reviewed-by: is required they say', false,
+    'reviewed-by not at line start and not on the verb line'],
+  ['RULEBOOK: amend the caps\nreviewed-by: GLM-5.3', true, 'line-start reviewed-by still passes'],
+  ['RULEBOOK: add - peer-reviewed-by: someone', false, 'hyphen-prefixed reviewed-by is not attribution (GLM r4)'],
+  ['RULEBOOK: add\npeer-reviewed-by: someone', false, 'hyphen-prefixed at line start fails the ^ anchor too'],
+]) {
+  const got = hasRulebookTrailer(msg);
+  const ok = got === want;
+  if (!ok) failed += 1;
+  console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${('trailer: ' + note).slice(0, 60).padEnd(60)} got=${got} want=${want}`);
+}
 
 console.log(`\n  cases:     ${cases.length - failed}/${cases.length}`);
 console.log(`  invariant: ${fuzz.length - violations}/${fuzz.length} inputs produced exactly one verdict`);

@@ -167,6 +167,10 @@ order tell the story of a member getting stronger.
 ## Decision procedure — every UI task
 
 **Step 0 — Classify:** NET-NEW / REDESIGN / AUDIT / ASSET.
+**Step 0.5 — Forge-first (Rule 84):** does `@swan/forge` ship this class (see
+`packages/swan-forge/README.md` inventory)? If yes → consume it via the binding in
+`frontend/src/components/ui/forge/`; if it cannot serve the need → add the
+`packages/swan-forge/EXCEPTIONS.md` row (owner + expiry) BEFORE building locally.
 **Step 1 — Locate:** surface class (public vs in-app), route, data contract — real
 API + model, or flag **NEW BACKEND**.
 **Step 2 — Direction (Gate 0):** for NET-NEW pages + major redesigns, run the

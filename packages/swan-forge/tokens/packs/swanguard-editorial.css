@@ -1,0 +1,79 @@
+/**
+ * @swan/forge — Theme pack #2: swanguard-editorial (light-native STARTER).
+ * Purpose (plan §9.1, accepted): prove the semantic schema against the light pole
+ * BEFORE the schema locks around one dark aesthetic. Palette values are a starter
+ * awaiting SwanGuard's own design pass — the CONTRACT COVERAGE is the deliverable.
+ * Defines every name in tokens/semantic.contract.md.
+ */
+:root[data-sw-pack="swanguard-editorial"],
+.sw-pack-swanguard-editorial {
+  color-scheme: light;
+
+  /* Colors */
+  --sw-bg-base: #FAFAF7;
+  --sw-bg-surface: #FFFFFF;
+  --sw-bg-elevated: #FFFFFF;
+  --sw-bg-overlay: rgba(24, 28, 34, 0.5);
+  --sw-text-primary: #16202A;
+  --sw-text-secondary: #45535F;
+  --sw-text-muted: #5C6B77;   /* darkened from #6E7B87 — 4.32:1 on white failed the 4.5 gate */
+  --sw-text-inverse: #FFFFFF;
+  --sw-color-primary: #16202A;      /* ink — editorial primary action */
+  --sw-color-accent: #0E5FD8;       /* newsroom blue */
+  --sw-color-gold: #8C6D1F;
+  --sw-color-success: #157F3D;
+  --sw-color-danger: #C0362C;
+  --sw-color-warning: #9A5B00;
+  --sw-border: rgba(22, 32, 42, 0.14);
+  --sw-border-strong: rgba(22, 32, 42, 0.32);
+  --sw-glow-a: #0E5FD8;
+  --sw-glow-b: #1F6FD0;   /* was #59A7FF — 2.39:1 on the light page failed the chart-series non-text audit (round 6); now 3.7:1 page / 4.95:1 as link text */
+
+  /* Focus */
+  --sw-focus-ring: #0E5FD8;
+  --sw-focus-shadow: 0 0 0 var(--sw-p-focus-width) var(--sw-bg-base),
+                     0 0 0 calc(var(--sw-p-focus-width) + var(--sw-p-focus-offset)) var(--sw-focus-ring);
+
+  /* Typography — editorial serif headline voice */
+  --sw-font-heading: Georgia, "Times New Roman", serif;
+  --sw-font-body: system-ui, -apple-system, sans-serif;
+  --sw-font-data: ui-monospace, "Fira Code", monospace;
+  --sw-font-ui: system-ui, -apple-system, sans-serif;
+  --sw-text-scale: 1;
+
+  /* Depth — flat, hairline editorial style */
+  --sw-shadow-1: 0 1px 2px rgba(22, 32, 42, 0.08);
+  --sw-shadow-2: 0 4px 14px rgba(22, 32, 42, 0.1);
+  --sw-shadow-3: 0 12px 32px rgba(22, 32, 42, 0.14);
+
+  /* Motion — calmer editorial pacing */
+  --sw-motion: 1;
+  --sw-ease: ease-out;
+
+  /* Asset slots */
+  --sw-asset-hero-video: none;
+  --sw-asset-brand-mark: none;
+
+  /* Component-tier overrides — light-legible variant fills */
+  --sw-btn-gilded-bg: #F4EBD4;
+  --sw-btn-gilded-glow-a: #8C6D1F;
+  --sw-btn-gilded-glow-b: #B8963A;
+  --sw-btn-gilded-text: #4A3A0E;
+  --sw-btn-success-bg: #E8F5EC;
+  --sw-btn-success-glow-a: #157F3D;
+  --sw-btn-success-glow-b: #2FA45C;
+  --sw-btn-success-text: #0D5228;
+  --sw-btn-danger-bg: #FBEAE8;
+  --sw-btn-danger-glow-a: #C0362C;
+  --sw-btn-danger-glow-b: #E05A50;
+  --sw-btn-danger-text: #7E231C;
+  --sw-btn-ghost-glow-a: #0E5FD8;
+  --sw-btn-ghost-glow-b: #59A7FF;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-sw-pack="swanguard-editorial"],
+  .sw-pack-swanguard-editorial {
+    --sw-motion: 0;
+  }
+}

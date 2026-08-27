@@ -2,12 +2,14 @@
  * FILE: MessagingView.tsx
  * PURPOSE: Mounted SwanStudios messaging surface for direct and group chats.
  */
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import styled from 'styled-components';
 import { useAuth } from '../../../context/AuthContext';
 import { useMessagingCapabilities } from './useMessagingCapabilities';
+import { MessagingErrorState, MessagingWall, ComposeError } from './MessagingStates';
+import { MessagingSummaryBar } from './MessagingSummary';
 import { MessagingContainer } from './MessagingStyles';
 import ConversationListPanel from './ConversationListPanel';
 import MessageThread from './MessageThread';
@@ -17,9 +19,11 @@ import type { CreateConversationRequest } from './MessagingTypes';
 
 const MessagingView: React.FC = () => {
   const [showNewModal, setShowNewModal] = useState(false);
+  const [composeError, setComposeError] = useState<string | null>(null);
+  const composeInFlight = useRef(false);
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const composeTo = searchParams.get('composeTo');
-
 
   const reduxUser = useSelector((state: any) => state.auth?.user || state.user?.user);
   const { user: authUser } = useAuth();
@@ -30,7 +34,12 @@ const MessagingView: React.FC = () => {
   // with the API in both directions — see useMessagingCapabilities for the
   // full account. A guard in useMessaging.tierGate.test.ts prevents that
   // expression from being reintroduced, so do not name it here verbatim.
-  const { capabilities, loading: capabilitiesLoading } = useMessagingCapabilities(!!currentUserId);
+  const {
+    capabilities,
+    loading: capabilitiesLoading,
+    error: capabilitiesError,
+    refresh: refreshCapabilities,
+  } = useMessagingCapabilities(!!currentUserId);
   const messagingEnabled = capabilities.canMessageAssignedCoach;
 
   const {
@@ -58,18 +67,38 @@ const MessagingView: React.FC = () => {
     pendingMessages,
   } = useMessaging(currentUserId, { enabled: messagingEnabled && !capabilitiesLoading });
 
-
   // Auto-start or switch to conversation if ?composeTo= is in the URL
   useEffect(() => {
     if (composeTo && messagingEnabled && currentUserId && !loading) {
-      const targetId = parseInt(composeTo, 10);
-      if (targetId && targetId !== currentUserId) {
-        createConversation(targetId).catch(() => {});
-      }
-      setSearchParams(params => {
+      // A trainer-sent deep link that fails must not vanish silently. Three
+      // reviewers flagged this independently: the error was swallowed, the param
+      // was deleted in the same tick whether or not the create succeeded, and
+      // the user was left on an inbox with no thread and no explanation.
+      //
+      // Strict parsing matches the server's rule, so '900abc' no longer resolves
+      // to a different user than the backend would accept.
+      const targetId = /^[1-9]\d*$/.test(composeTo) ? Number(composeTo) : null;
+      const clearParam = () => setSearchParams((params) => {
         params.delete('composeTo');
         return params;
       }, { replace: true });
+
+      if (!targetId || String(targetId) === String(currentUserId)) {
+        clearParam();
+      } else if (!composeInFlight.current) {
+        // Effect deps (loading, currentUserId, createConversation) churn during
+        // mount; without this guard a re-fire could create the thread twice
+        // before the first promise settled (ox-alpha).
+        composeInFlight.current = true;
+        setComposeError(null);
+        createConversation(targetId)
+          .then(clearParam)
+          .catch(() => {
+            setComposeError('We couldn’t open that conversation. It may no longer be available.');
+            clearParam();
+          })
+          .finally(() => { composeInFlight.current = false; });
+      }
     }
   }, [composeTo, messagingEnabled, currentUserId, loading, createConversation, setSearchParams]);
 
@@ -84,7 +113,9 @@ const MessagingView: React.FC = () => {
   );
 
   const unreadCount = useMemo(
-    () => conversations.reduce((total, conversation) => total + conversation.unreadCount, 0),
+    // One conversation missing the field rendered a literal "NaN" in the Unread
+    // tile (Grok 4.6, GLM 5.3). A metric that can print NaN is worse than absent.
+    () => conversations.reduce((total, conversation) => total + (conversation.unreadCount ?? 0), 0),
     [conversations]
   );
 
@@ -107,7 +138,21 @@ const MessagingView: React.FC = () => {
     return (
       <MessagingShell>
         <MessagingContainer>
-          <CenteredMessage>Loading...</CenteredMessage>
+          <CenteredMessage role="status" aria-live="polite">Loading your conversations…</CenteredMessage>
+        </MessagingContainer>
+      </MessagingShell>
+    );
+  }
+
+  // A failed capability lookup is NOT the same as "you lack access", and must
+  // never be rendered as one. Fail-closed is right for the ACCESS decision;
+  // telling a paying client with an active trainer that they need a trainer
+  // because the network blipped is a lie the UI tells on our behalf.
+  if (capabilitiesError) {
+    return (
+      <MessagingShell>
+        <MessagingContainer>
+          <MessagingErrorState onRetry={refreshCapabilities} />
         </MessagingContainer>
       </MessagingShell>
     );
@@ -117,10 +162,10 @@ const MessagingView: React.FC = () => {
     return (
       <MessagingShell>
         <MessagingContainer>
-          <CenteredMessage>
-            Messaging opens up when you have an active trainer, or with
-            Crystalline Swan access for member-to-member chat.
-          </CenteredMessage>
+          <MessagingWall
+            onFindTrainer={() => navigate('/dashboard/client/schedule')}
+            onSeeTier={() => navigate('/ascension')}
+          />
         </MessagingContainer>
       </MessagingShell>
     );
@@ -128,17 +173,9 @@ const MessagingView: React.FC = () => {
 
   return (
     <MessagingShell>
-      <MessagingSummary>
-        <SummaryCopy>
-          <SummaryKicker>Communication Hub</SummaryKicker>
-          <SummaryTitle>Messages</SummaryTitle>
-        </SummaryCopy>
-        <SummaryMetrics aria-label="Messaging status">
-          <SummaryMetric><strong>{conversations.length}</strong><span>Threads</span></SummaryMetric>
-          <SummaryMetric $accent={unreadCount > 0}><strong>{unreadCount}</strong><span>Unread</span></SummaryMetric>
-          <SummaryMetric $live={connected}><strong>{connected ? 'Live' : 'Polling'}</strong><span>Status</span></SummaryMetric>
-        </SummaryMetrics>
-      </MessagingSummary>
+      <MessagingSummaryBar threads={conversations.length} unread={unreadCount} connected={connected} mobileHidden={hasMobileThread} />
+
+      {composeError && <ComposeError message={composeError} onDismiss={() => setComposeError(null)} />}
 
       <MessagingContainer>
         <ConversationListPanel
@@ -192,6 +229,7 @@ export default MessagingView;
 const MessagingShell = styled.div`
   display: flex;
   min-height: min(840px, calc(100vh - 96px));
+  min-height: min(840px, calc(100dvh - 96px)); /* iOS Safari: dvh tracks the chrome; vh above is the fallback */
   flex-direction: column;
   gap: 1rem;
 `;
@@ -207,70 +245,3 @@ const CenteredMessage = styled.div`
   text-align: center;
 `;
 
-const MessagingSummary = styled.header`
-  display: flex;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 1rem;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-const SummaryCopy = styled.div`
-  min-width: 0;
-`;
-
-const SummaryKicker = styled.div`
-  color: var(--accent-primary, #60C0F0);
-  font-family: 'Fira Code', monospace;
-  font-size: 0.72rem;
-`;
-
-const SummaryTitle = styled.h1`
-  margin: 0.15rem 0 0;
-  color: var(--text-heading, #E0ECF4);
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 1.85rem;
-
-  @media (max-width: 520px) {
-    font-size: 1.45rem;
-  }
-`;
-
-const SummaryMetrics = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(96px, 1fr));
-  gap: 0.65rem;
-
-  @media (max-width: 520px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const SummaryMetric = styled.div<{ $accent?: boolean; $live?: boolean }>`
-  min-height: 56px;
-  border-radius: 8px;
-  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.16));
-  background: linear-gradient(135deg,
-    color-mix(in srgb, var(--bg-surface, #1A1A24) 88%, var(--accent-primary, #60C0F0) 8%),
-    var(--bg-base, #0A0A0F));
-  padding: 0.7rem 0.85rem;
-
-  strong {
-    display: block;
-    color: ${({ $accent, $live }) => ($accent
-      ? 'var(--accent-secondary, #8B5CF6)'
-      : $live
-        ? 'var(--success, #4ECDC4)'
-        : 'var(--text-primary, #E0ECF4)')};
-    font-family: 'Sora', sans-serif;
-    font-size: 1rem;
-  }
-
-  span {
-    color: var(--text-muted, rgba(224, 236, 244, 0.68));
-    font-size: 0.72rem;
-  }
-`;

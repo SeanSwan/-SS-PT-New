@@ -32,7 +32,7 @@
  * any error exits 0 silently rather than blocking a session.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -226,6 +226,159 @@ try {
   findings.push(
     `rule-count check could not complete (${err?.message || err}). Whether the rulebook ` +
     'can state its own size is UNKNOWN this session, not clean.'
+  );
+}
+
+// ---- 10) Dead CI — has ANY workflow ever succeeded? ------------------------
+//
+// Found 2026-08-24 (Fable): a PR was opened purely to give the migration shadow check
+// its first real run. It startup_failed in 0s — and so had EVERY Actions run in the
+// repo, all workflows, all event types INCLUDING schedule (which runs from the default
+// branch and exonerates any pushed file), with zero successes in queryable history.
+// Private repo on free-tier minutes: exhausted minutes or a billing block. Every CI
+// gate in the tree was an intention, not a protection, and nothing anywhere said so —
+// because everything asks whether the workflow FILE exists and parses, and nothing
+// asks for its last green run.
+//
+// Two repo-wide queries, not per-workflow: the failure mode this catches is
+// account-level, where everything dies at once. GLM 5.3 (2026-08-24): a single "no
+// successes" test conflated four conditions with four different remedies — never-ran
+// (disabled/billing), running-but-all-failing (a real workflow defect), success-but-stale
+// (recency), and gh-can't-answer (auth/network). One extra call splits them. 20s
+// timeout: this fires once per session, so the pathological case costs seconds; a
+// stream of false UNKNOWNs costs trust in the whole probe. Fail-UNKNOWN like 7-9.
+try {
+  const { execSync } = await import('node:child_process');
+  const wfDir = join(SS_PT, '.github', 'workflows');
+  // No `gh` on this machine → nothing to measure → say nothing (round-1 GLM F7 / Ox F8:
+  // an UNKNOWN finding on every session for a tool that is simply not installed is
+  // alarm fatigue, not signal). `gh` present but failing (auth, network) still falls
+  // to the UNKNOWN finding below — that IS signal.
+  let ghPresent = true;
+  try { execSync('gh --version', { stdio: 'ignore', timeout: 5000 }); } catch { ghPresent = false; }
+  if (existsSync(wfDir) && ghPresent) {
+    const gh = (args) => JSON.parse(execSync(
+      `gh run list ${args}`, { cwd: SS_PT, timeout: 20000, stdio: ['ignore', 'pipe', 'ignore'] }
+    ).toString().trim() || '[]');
+    // ONE call on the common path (round-1 Grok F7 / GLM F7: two serial 20s calls were
+    // a 40s worst-case at SessionStart): pull the newest 20 runs and derive both facts
+    // from them. Only when no success appears in that window does the targeted
+    // second query run — a healthy repo never pays for it.
+    const recent = gh('--limit 20 --json conclusion,workflowName,updatedAt,status');
+    const newest = recent[0];
+    // Fallback query only when it could change the answer. If the 20 newest runs are
+    // ALL startup_failure, that is the account-level signature (billing / minutes) and
+    // no older success alters the diagnosis — skip the second call, so the dead-CI
+    // case does not pay 20s on every session start (Ox r2 F5).
+    const allStartupFail = recent.length > 0 && recent.every((r) => r.conclusion === 'startup_failure');
+    const lastOk = recent.find((r) => r.conclusion === 'success')
+      || ((newest && !allStartupFail) ? gh('--status success --limit 1 --json updatedAt,workflowName')[0] : undefined);
+    // An IN-PROGRESS newest run has conclusion null — that is "pending", not "failed"
+    // (round-1 GLM F7 / Ox F8). Judge on the newest COMPLETED run instead.
+    const pending = newest && (newest.conclusion === null || newest.conclusion === '' || newest.status === 'in_progress' || newest.status === 'queued');
+    if (pending && newest) newest.conclusion = 'pending';
+    const anyScheduled = readdirSync(wfDir).some((f) =>
+      /\.ya?ml$/i.test(f) && /^\s*schedule\s*:/m.test(read(join(wfDir, f)) || ''));
+    const staleDays = anyScheduled ? 7 : 30;
+    const ageDays = (iso) => (Date.now() - Date.parse(iso)) / 86_400_000;
+
+    if (!newest) {
+      findings.push(
+        'GitHub Actions: NO runs at all in queryable history — Actions is disabled for the repo ' +
+        'or has never been triggered. Every workflow gate is an intention, not a protection.'
+      );
+    } else if (!lastOk && pending) {
+      // Newest run is still going and nothing has ever succeeded: undecidable this
+      // second. No finding — the next session judges the completed run.
+    } else if (!lastOk) {
+      const c = newest.conclusion || 'unknown';
+      findings.push(
+        `GitHub Actions: runs exist but ZERO have ever succeeded (newest: "${newest.workflowName || '?'}" → ${c}). ` +
+        (c === 'startup_failure'
+          ? 'Blanket startup_failure incl. schedule = ACCOUNT-LEVEL (exhausted free-tier minutes or a ' +
+            'billing block), not any workflow file. Fix: github.com/settings/billing.'
+          : 'Workflows RUN and FAIL — that is a workflow/repo defect, NOT a billing signature. Read the ' +
+            'newest run’s log before touching billing.')
+      );
+    } else if (ageDays(lastOk.updatedAt) > staleDays) {
+      findings.push(
+        `GitHub Actions: newest successful run ("${lastOk.workflowName || '?'}") is ${Math.round(ageDays(lastOk.updatedAt))}d old ` +
+        `(threshold ${staleDays}d${anyScheduled ? ', a schedule exists' : ''}). Gates may have gone dead since — ` +
+        `newest run of any status: "${newest.workflowName || '?'}" → ${newest.conclusion || 'unknown'}.`
+      );
+    }
+  }
+} catch (err) {
+  findings.push(
+    `dead-CI check could not complete (${err?.message || String(err).slice(0, 80)}). Whether any ` +
+    'Actions gate has ever run is UNKNOWN this session, not clean.'
+  );
+}
+
+// ---- 11) Rulebook commits on origin/main without a RULEBOOK trailer --------
+//
+// WHY (SOUL-delta panel 2026-08-25, unanimous G6 — Kimi/Ox/Grok): the
+// rulebook-review-guard is a LOCAL commit-msg hook. A GitHub-UI squash/merge, a
+// web edit, or any clone without core.hooksPath bypasses it silently, and the CI
+// mirror is blocked on dead Actions billing. This probe converts that silent
+// bypass into a detected-at-next-session event: any commit on origin/main (as of
+// the last fetch — no network here) in the last 14 days that touches
+// CLAUDE.md/AGENTS.md but carries no RULEBOOK trailer gets named. Read-only,
+// fail-open, silent when clean, like every probe above.
+try {
+  // SINGLE SOURCE OF TRUTH (r3 fold, all three seats): the trailer test and the
+  // protected-file list are IMPORTED from the guard itself, so probe and guard cannot
+  // judge compliance by different standards (Ox F1: the hand-copied regex here was
+  // same-line/case-sensitive while conventional multi-line trailers are compliant).
+  const { hasRulebookTrailer, ALWAYS_ON } = await import('./rulebook-review-guard.mjs');
+  // ANCESTRY anchor, not a date window (GLM r3 F2): --since filters on committer
+  // date, which a rebase rewrites in both directions — pre-guard commits replayed
+  // after ship enter a date window (false alarm), post-guard commits replayed with
+  // --committer-date-is-author-date leave it (missed drift). `<guard-sha>..origin/main`
+  // is rewrite-proof: it asks "landed after the guard shipped", which is the actual
+  // question. If history is rewritten and the SHA vanishes, git fails and the catch
+  // below now SAYS so instead of reading as clean.
+  const GUARD_SHA = '732843e399ac2568d04acc3dc188542b210f6192'; // PR #72 merge — the guard's ship commit
+  const CAP = 21;
+  // Pathspec matches the GUARD'S reach, not just root paths (Ox r4 F3): the guard
+  // protects by basename anywhere in the tree, so a nested `docs/CLAUDE.md` commit was
+  // guarded but invisible here — probe CLEAN where the guard would flag. `:(glob)**/x`
+  // covers nested copies; the bare entry covers the root file.
+  const pathspec = [...ALWAYS_ON, ...ALWAYS_ON.map((a) => `:(glob)**/${a.replace(/^.*\//, '')}`)];
+  const shas = execFileSync('git',
+    ['log', `--max-count=${CAP}`, '--format=%H', `${GUARD_SHA}..origin/main`, '--', ...pathspec],
+    { cwd: SS_PT, timeout: 15000, stdio: ['ignore', 'pipe', 'ignore'] }
+  ).toString().trim().split('\n').filter(Boolean);
+  // Unmarked clipping is exactly what reflex 3 forbids (GLM/Grok r3 F1): at the cap,
+  // older commits went unchecked and MUST be said, whatever the naked count is.
+  const truncated = shas.length >= CAP;
+  const naked = [];
+  for (const sha of shas.slice(0, CAP - 1)) {
+    const msg = execFileSync('git', ['log', '-1', '--format=%B', sha],
+      { cwd: SS_PT, timeout: 10000, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+    if (!hasRulebookTrailer(msg)) naked.push(sha.slice(0, 9));
+  }
+  if (naked.length || truncated) {
+    findings.push(
+      (naked.length
+        ? `Rulebook drift: ${naked.length} commit(s) on origin/main since the guard shipped touched ` +
+          `${ALWAYS_ON.slice(0, 2).join('/')} (or another protected file) WITHOUT a RULEBOOK trailer ` +
+          `(${naked.join(', ')}). The local commit-msg guard was bypassed (GitHub-UI squash, web edit, ` +
+          'or an unhooked clone). Read those diffs before trusting the current rule text.'
+        : 'Rulebook drift scan: ') +
+      (truncated
+        ? ` LIST TRUNCATED at ${CAP - 1} commits — older rulebook commits in range were NOT checked; ` +
+          'this result is PARTIAL, not clean.'
+        : '')
+    );
+  }
+} catch (err) {
+  // Silent fail-open made a dead probe byte-identical to a clean sweep (Ox F2 /
+  // Grok F3 / GLM F3 — the instrument violating the reflexes shipped beside it).
+  // Fail-open stands (SessionStart must not block), but it now SPEAKS.
+  findings.push(
+    `Rulebook drift check could not complete (${(err?.message || String(err)).slice(0, 80)}). ` +
+    'Whether trailer-less rulebook commits landed on origin/main is UNKNOWN this session, not clean.'
   );
 }
 

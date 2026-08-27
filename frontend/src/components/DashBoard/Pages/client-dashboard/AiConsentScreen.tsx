@@ -484,6 +484,12 @@ const AiConsentScreen: React.FC = () => {
       // v1.0 grant -- defeating the point of correcting the copy.
       await grantConsent(AI_CONSENT_VERSION);
       await fetchStatus();
+      // The interceptor arrives here with ?reconsent=1. Once the grant lands the
+      // notice must clear, or it reads as "still stale" after the user acted.
+      if (typeof window !== 'undefined' && window.location.search.includes('reconsent=1')) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      setArrivedForReconsent(false);
       showToast('Swan Coach consent granted successfully.');
     } catch (err: unknown) {
       setError(getErrorMessage(err, 'Failed to grant consent.'));
@@ -522,10 +528,22 @@ const AiConsentScreen: React.FC = () => {
   // Owner decision Q5: v1.0 consents were captured under a description that
   // overstated anonymity, so they are re-prompted rather than silently carried
   // forward. Detection is a version comparison against the stored grant.
+  // A missing stored version must COUNT as stale, not skip the prompt. The first
+  // cut required a truthy consentVersion, which meant legacy records with a null
+  // version — the ones most likely to predate the corrected disclosure — silently
+  // skipped re-consent. Fail-open on precisely the wrong population (ox-alpha,
+  // post-ship panel).
+  // Arriving via the interceptor redirect means an AI call was just refused.
+  // Show the notice even before the status fetch resolves, so the screen never
+  // renders as if nothing happened.
+  const [arrivedForReconsent, setArrivedForReconsent] = useState(
+    () => typeof window !== 'undefined'
+      && new URLSearchParams(window.location.search).get('reconsent') === '1',
+  );
+
   const needsReconsent =
     consentState === 'granted'
-    && !!status?.profile?.consentVersion
-    && status.profile.consentVersion !== AI_CONSENT_VERSION;
+    && (status?.profile?.consentVersion ?? null) !== AI_CONSENT_VERSION;
 
   const formatDate = (dateStr: string | null | undefined): string => {
     if (!dateStr) return '—';
@@ -618,7 +636,7 @@ const AiConsentScreen: React.FC = () => {
           </StatusBadge>
         </StatusRow>
 
-        {needsReconsent && (
+        {(needsReconsent || arrivedForReconsent) && (
           <ReconsentNotice role="status">
             <AlertTriangle size={18} />
             <div>{AI_CONSENT_RECONSENT_PROMPT}</div>

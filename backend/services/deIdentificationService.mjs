@@ -15,6 +15,7 @@
  */
 import crypto from 'crypto';
 import logger from '../utils/logger.mjs';
+import { CURRENT_CONSENT_VERSION } from '../config/consentVersion.mjs';
 
 /**
  * Fields that MUST be stripped (direct identifiers)
@@ -113,6 +114,14 @@ export const TRAINING_SAFETY_PATHS = Object.freeze([
 export const GATED_FIELDS_REQUIRE_CONSENT_VERSION = '3.0';
 
 /**
+ * Remembers the last mismatching value we warned about, so a misconfiguration
+ * logs once rather than once per request — but a CHANGED value warns again.
+ * A boolean would have silenced the second, different misconfiguration, which
+ * is the one an operator most needs to see.
+ */
+let lastWarnedConsentVersion = null;
+
+/**
  * Escape hatch for the gated categories — deliberately hard to open.
  *
  * The first cut of this was a bare env flag with a comment saying "bump
@@ -132,41 +141,45 @@ export function areGatedHealthFieldsEnabled() {
   const flag = String(process.env.COACH_HEALTH_FIELDS_ENABLED || '').trim().toLowerCase();
   if (!['true', '1', 'on', 'enabled'].includes(flag)) return false;
 
+  // Read the declaration up front so BOTH refusal branches can key their
+  // one-time warning on the actual config. A single shared key meant the first
+  // branch to fire silenced the second for the life of the process — including
+  // across tests, which is how a real refusal could go unlogged.
   const declared = String(process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION || '').trim();
+  const warnOnce = (key, message, meta) => {
+    if (lastWarnedConsentVersion === key) return;
+    lastWarnedConsentVersion = key;
+    logger.error(message, meta);
+  };
+
+  // The disclosure users are CURRENTLY shown must be the one that names these
+  // fields. Comparing the env declaration only against this file's own constant
+  // (the previous shape) let an operator set both to '3.0' while CURRENT was
+  // still '2.0' — every user holding a valid 2.0 grant would pass the consent
+  // gate and have sleep/stress/supplement data flow under a disclosure that
+  // says it is withheld. Precisely the "users were lied to" outcome this
+  // function claims to prevent (GLM 5.3). Enabling now requires the consent
+  // version to have been bumped — a reviewed code change — in the same release.
+  if (GATED_FIELDS_REQUIRE_CONSENT_VERSION !== CURRENT_CONSENT_VERSION) {
+    warnOnce(`require-mismatch:${declared}`,
+      '[DeIdentification] COACH_HEALTH_FIELDS_ENABLED is set but the disclosure in force does '
+      + 'not yet cover the gated fields. Bump CURRENT_CONSENT_VERSION with new copy first. '
+      + 'Gated fields remain WITHHELD.',
+      { required: GATED_FIELDS_REQUIRE_CONSENT_VERSION, current: CURRENT_CONSENT_VERSION });
+    return false;
+  }
+
   if (declared !== GATED_FIELDS_REQUIRE_CONSENT_VERSION) {
-    logger.error(
-      '[DeIdentification] COACH_HEALTH_FIELDS_ENABLED is set but the declared consent '
-      + 'version does not match the version this build requires. Gated health fields '
-      + 'remain WITHHELD. Ship the new disclosure, then set '
-      + 'COACH_HEALTH_FIELDS_CONSENT_VERSION to the required value.',
-      { required: GATED_FIELDS_REQUIRE_CONSENT_VERSION, declared: declared || '(unset)' },
-    );
+    warnOnce(`declared:${declared}`,
+      '[DeIdentification] COACH_HEALTH_FIELDS_ENABLED is set but the declared consent version '
+      + 'does not match the version this build requires. Gated health fields remain WITHHELD. '
+      + 'Ship the new disclosure, then set COACH_HEALTH_FIELDS_CONSENT_VERSION to the required value.',
+      { required: GATED_FIELDS_REQUIRE_CONSENT_VERSION, declared: declared || '(unset)' });
     return false;
   }
   return true;
 }
 
-/**
- * Fields that are safe to keep for workout generation context
- */
-const SAFE_FIELD_PATHS = [
-  'client.alias',
-  'client.age',
-  'client.gender',
-  'client.goals',
-  'health.medicalConditions', // kept for safety — generic conditions, not identifiable
-  'health.injuries',          // kept for exercise contraindications
-  'health.currentPain',       // kept for exercise safety
-  'health.supplements',
-  'measurements',
-  'baseline',
-  'training',
-  'nutrition',
-  'lifestyle.sleepHours',
-  'lifestyle.sleepQuality',
-  'lifestyle.stressLevel',
-  'lifestyle.activityLevel',
-];
 
 /**
  * Deep-clone a plain object (JSON-safe)
@@ -220,7 +233,10 @@ function setNestedValue(obj, path, value) {
   const keys = path.split('.');
   let current = obj;
   for (let i = 0; i < keys.length - 1; i++) {
-    if (!(keys[i] in current) || typeof current[keys[i]] !== 'object') {
+    // `typeof null === 'object'` let a null intermediate through this guard, so
+    // `client: null` threw "Cannot set properties of null" instead of failing
+    // closed — the AI route 500'd rather than returning null (ox-alpha, executed).
+    if (current[keys[i]] == null || typeof current[keys[i]] !== 'object') {
       current[keys[i]] = {};
     }
     current = current[keys[i]];
@@ -266,8 +282,78 @@ export function hashPayload(payload) {
  * TRAINING-SAFETY OVERRIDE: injuries, pain, measurements and medical conditions
  * are never gated no matter where they appear — see TRAINING_SAFETY_PATHS.
  */
-const GATED_KEY_PATTERN = /(sleep|stress|supplement)/i;
-const SAFETY_KEY_PATTERN = /(injur|pain|measurement|condition)/i;
+/**
+ * A key is gated when every word in it is recognisable LIFESTYLE vocabulary.
+ * An unknown word means the key is probably clinical, and it is KEPT.
+ *
+ * Three earlier shapes failed here, and the sequence is the lesson:
+ *   1. an enumerated PATH list           — missed medicalConditions
+ *   2. contains-token minus a clinical   — missed stressEchocardiogram; no one
+ *      exemption list                      can enumerate clinical vocabulary
+ *   3. prefix + metric-suffix allowlist  — missed avgSleepHours, nightlyStress,
+ *                                          sleepNotes, supplementRegimen,
+ *                                          reportedStressLevel, typicalSleep
+ *
+ * Shape 3 was NARROWER than the risk the owner accepted, and the disclosure
+ * ("your supplement, sleep and stress data" is withheld) promised more than it
+ * delivered. GLM 5.3 caught that on the UX panel.
+ *
+ * This shape asks a question that has a bounded answer. Lifestyle modifiers are
+ * a small, closed vocabulary we own; clinical vocabulary is open-ended and
+ * belongs to medicine. So we enumerate OUR side and treat everything else as
+ * clinical.
+ *
+ * THE ASYMMETRY, unchanged and decisive: over-gating strips exercise
+ * contraindications and can hurt someone; under-gating leaks a lifestyle metric
+ * the consent copy can disclose honestly. An unrecognised word means KEEP —
+ * and gets logged, so the unknown vocabulary becomes visible instead of silent.
+ *
+ *   gated : sleep, sleepHours, avgSleepHours, nightlyStress, sleepNotes,
+ *           supplementRegimen, reportedStressLevel, typicalSleep, supplements
+ *   kept  : stressFracture, sleepApnea, supplementalOxygenNeeded,
+ *           stressEchocardiogram, and any clinical term nobody listed
+ */
+const GATED_TOKEN = /(sleep|asleep|bedtime|stress|anxiety|fatigue|supplement)/i;
+
+/** Words that mark a key as OUR lifestyle telemetry rather than clinical data. */
+const LIFESTYLE_WORDS = new Set([
+  'sleep', 'asleep', 'bedtime', 'stress', 'anxiety', 'fatigue',
+  'supplement', 'supplements', 'supplemental',
+  'avg', 'average', 'mean', 'total', 'typical', 'nightly', 'daily', 'weekly',
+  'reported', 'self', 'perceived', 'estimated',
+  'hours', 'hour', 'hrs', 'minutes', 'mins', 'duration', 'time',
+  'level', 'levels', 'score', 'scores', 'rating', 'rank', 'index',
+  'quality', 'debt', 'count', 'per', 'night', 'day', 'week',
+  'notes', 'note', 'diary', 'journal', 'log', 'logs', 'entry', 'entries',
+  'regimen', 'stack', 'intake', 'taken', 'dose', 'dosage', 'schedule',
+  'data', 'value', 'values', 'summary', 'history', 'trend',
+]);
+
+/** Split camelCase / snake_case / kebab-case into lowercase words. */
+function keyWords(key) {
+  return String(key)
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean)
+    .map((w) => w.toLowerCase());
+}
+
+/** Last path segment of every protected path, so the exported list is LOAD-BEARING. */
+const SAFETY_KEY_NAMES = new Set(
+  TRAINING_SAFETY_PATHS.map((p) => p.split('.').pop().toLowerCase()),
+);
+
+/**
+ * @returns {'gate'|'keep'|'ambiguous'} 'ambiguous' means it carries a gated
+ * token but also unknown vocabulary — kept, and worth surfacing.
+ */
+function classifyKey(key) {
+  const name = String(key);
+  if (SAFETY_KEY_NAMES.has(name.toLowerCase())) return 'keep';
+  if (!GATED_TOKEN.test(name)) return 'keep';
+  const unknown = keyWords(name).filter((w) => !LIFESTYLE_WORDS.has(w));
+  return unknown.length === 0 ? 'gate' : 'ambiguous';
+}
 
 /**
  * Walk the payload and delete any key whose NAME matches a gated category.
@@ -279,7 +365,19 @@ function stripGatedHealthFields(node, strippedFields, prefix = '') {
   for (const key of Object.keys(node)) {
     const path = prefix ? `${prefix}.${key}` : key;
 
-    if (GATED_KEY_PATTERN.test(key) && !SAFETY_KEY_PATTERN.test(key)) {
+    const verdict = classifyKey(key);
+
+    // Ambiguous = carries a gated token AND unknown vocabulary. Kept, because
+    // the unknown word is probably clinical and stripping it could hurt someone
+    // — but logged, so the vocabulary we do not know about stops being
+    // invisible. This is the feedback loop three previous shapes lacked.
+    if (verdict === 'ambiguous') {
+      logger.warn('[DeIdentification] ambiguous health-ish key KEPT — review the vocabulary', {
+        field: prefix ? `${prefix}.${key}` : key,
+      });
+    }
+
+    if (verdict === 'gate') {
       delete node[key];
       strippedFields.push(path);
       logger.info('[DeIdentification] gated health field withheld', { field: path });
@@ -287,9 +385,29 @@ function stripGatedHealthFields(node, strippedFields, prefix = '') {
     }
 
     const value = node[key];
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      stripGatedHealthFields(value, strippedFields, path);
+    if (!value || typeof value !== 'object') continue;
+
+    // Arrays MUST be walked. The first cut guarded with `!Array.isArray(value)`,
+    // which meant a payload like `recoveryLogs: [{ sleepHours, stressLevel }]`
+    // sailed straight through the gate while every consent surface said those
+    // fields were withheld. Found by the post-ship panel (ox-alpha) and
+    // reproduced before fixing.
+    //
+    // This is the THIRD appearance of one drift class in this workstream:
+    // an enumerated path list missed medicalConditions, then the category
+    // matcher missed array-nested keys. Each fix narrowed the hole without
+    // closing the shape. Recursing into every container closes it by shape
+    // rather than by enumeration.
+    if (Array.isArray(value)) {
+      value.forEach((item, i) => {
+        if (item && typeof item === 'object') {
+          stripGatedHealthFields(item, strippedFields, `${path}[${i}]`);
+        }
+      });
+      continue;
     }
+
+    stripGatedHealthFields(value, strippedFields, path);
   }
 }
 
@@ -421,6 +539,11 @@ export function deIdentify(masterPromptJson, options = {}) {
 function scanAndRedactPII(obj, strippedFields, prefix = '') {
   if (!obj || typeof obj !== 'object') return;
 
+  // No `.test()` pre-checks below. A /g regex carries lastIndex between calls;
+  // the old test-then-replace only stayed correct because .replace() happens to
+  // reset it (executed and confirmed — nothing leaked). That is a spec subtlety,
+  // not a design, and one refactor away from a stochastic leak (ox-alpha).
+  // Unconditional .replace() has no state to get wrong.
   const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const PHONE_REGEX = /(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
   const SSN_REGEX = /\b\d{3}-\d{2}-\d{4}\b/g;
@@ -432,15 +555,15 @@ function scanAndRedactPII(obj, strippedFields, prefix = '') {
       let redacted = value;
       let wasRedacted = false;
 
-      if (EMAIL_REGEX.test(redacted)) {
+      {
         redacted = redacted.replace(EMAIL_REGEX, '[REDACTED_EMAIL]');
         wasRedacted = true;
       }
-      if (PHONE_REGEX.test(redacted)) {
+      {
         redacted = redacted.replace(PHONE_REGEX, '[REDACTED_PHONE]');
         wasRedacted = true;
       }
-      if (SSN_REGEX.test(redacted)) {
+      {
         redacted = redacted.replace(SSN_REGEX, '[REDACTED_SSN]');
         wasRedacted = true;
       }

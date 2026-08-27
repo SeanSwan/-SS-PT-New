@@ -1,7 +1,9 @@
 /**
  * Lead-capture shared constants + helpers (rule 4 extraction from leadCaptureService).
- * Pure, dependency-free helpers reused by every capture touchpoint.
+ * Helpers reused by every capture touchpoint. Pure except for the referral resolvers at the
+ * bottom, which verify a signed code (crypto only - still no I/O, still unit-testable).
  */
+import { verifyReferralCode } from '../utils/referralCode.mjs';
 
 export const CONTACT_FORM_LEAD_SCORE = 30;     // warm: they actively typed a message
 export const CONTACT_FORM_REPEAT_BONUS = 15;   // repeat contact = higher intent
@@ -136,3 +138,38 @@ export const aggregateLeadChannels = (rows = [], topN = 8) => {
     .sort((a, b) => b.count - a.count)
     .slice(0, topN);
 };
+
+/**
+ * Referral rollup (acquisition report): which USERS bring leads, and how many converted.
+ * Rows carry only ids + status - names are resolved by the caller (rule 8: this helper is
+ * PII-free and unit-testable). Sorted by count desc, capped.
+ * @returns {{referrerId:number, count:number, converted:number}[]}
+ */
+export const aggregateLeadReferrers = (rows = [], limit = 10) => {
+  const acc = new Map();
+  for (const r of rows) {
+    const id = Number(r?.referredByUserId);
+    if (!Number.isInteger(id) || id <= 0) continue;
+    const cur = acc.get(id) || { referrerId: id, count: 0, converted: 0 };
+    cur.count += 1;
+    if (r?.status === 'converted') cur.converted += 1;
+    acc.set(id, cur);
+  }
+  return [...acc.values()].sort((a, b) => b.count - a.count || a.referrerId - b.referrerId).slice(0, limit);
+};
+
+/**
+ * Referral attribution (acquisition): a share link carries `?ref=<signed code>`; the browser
+ * persists it and sends it as `attribution.ref`. Verified server-side (HMAC, fail-closed) and
+ * never trusted as a raw id. Self-referral is dropped. Returns a user id or null.
+ */
+export const resolveReferrerId = (attribution, selfUserId = null) => {
+  const id = verifyReferralCode(attribution?.ref);
+  if (!id) return null;
+  if (selfUserId != null && String(id) === String(selfUserId)) return null;
+  return id;
+};
+
+/** FIRST touch wins: only fill referredByUserId when the lead has none. */
+export const firstTouchReferral = (lead, referrerId) =>
+  (referrerId && !lead?.referredByUserId) ? { referredByUserId: referrerId } : {};

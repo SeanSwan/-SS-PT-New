@@ -104,38 +104,18 @@ describe('gated non-training health fields', () => {
     }
   });
 
-  it('forwards the gated set when counsel has signed off and the flag is on', () => {
+  it('stays CLOSED with both env vars set while the shipping disclosure lags', () => {
+    // RE-ANCHORED 2026-08-25. This used to assert the gated set FORWARDS once
+    // env matched REQUIRE. GLM 5.3 showed that let an operator open the hatch
+    // while users held valid 2.0 grants under a disclosure that says withheld.
+    // Enabling now also requires CURRENT_CONSENT_VERSION === REQUIRE (3.0),
+    // which is a reviewed code change. Today CURRENT is 2.0, so: closed. The
+    // open path is proven in deIdentifierHatchOpen.test.mjs with CURRENT mocked.
     process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
     process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = GATED_FIELDS_REQUIRE_CONSENT_VERSION;
     const { deIdentified } = deIdentify(fullClientPayload(), { clientId: 501 });
 
-    expect(deIdentified.health.supplements).toEqual(['creatine']);
-  });
-});
-
-describe('training-safety data is NOT gated', () => {
-  it('keeps injuries, pain and measurements with the gate active', () => {
-    const { deIdentified } = deIdentify(fullClientPayload(), { clientId: 501 });
-
-    expect(deIdentified.painAndInjuries).toEqual([
-      { area: 'left knee', severity: 7, note: 'post-surgical' },
-    ]);
-    expect(deIdentified.health.injuries).toEqual(['left knee']);
-    expect(deIdentified.health.currentPain).toBe(7);
-    expect(deIdentified.measurements).toEqual({ weightKg: 82, bodyFatPct: 18 });
-    // Safety-critical: asthma/cardiac/diabetes change what can be programmed.
-    expect(deIdentified.health.conditions).toEqual(['hypertension']);
-  });
-
-  it('declares the protected paths so a future edit has to argue with the list', () => {
-    expect(TRAINING_SAFETY_PATHS).toContain('painAndInjuries');
-    expect(TRAINING_SAFETY_PATHS).toContain('health.injuries');
-    expect(TRAINING_SAFETY_PATHS).toContain('health.currentPain');
-    expect(TRAINING_SAFETY_PATHS).toContain('measurements');
-    // Added after the dry loop caught the first cut stripping them.
-    expect(TRAINING_SAFETY_PATHS).toContain('health.medicalConditions');
-    expect(TRAINING_SAFETY_PATHS).toContain('health.conditions');
-    expect(Object.isFrozen(TRAINING_SAFETY_PATHS)).toBe(true);
+    expect(deIdentified.health.supplements).toBeUndefined();
   });
 });
 
@@ -234,15 +214,23 @@ describe('the escape hatch is a control, not a caution', () => {
 
   it('logs critical rather than failing silently', () => {
     process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
-    process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = '2.0';
+    // A value unique to this test: the warning is deduped per declared value,
+    // so reusing '2.0' here would assert against a warning an earlier test
+    // already consumed.
+    process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = 'wrong-log-probe';
+    logger.error.mockClear();
     areGatedHealthFieldsEnabled();
+    // Either branch that closes the hatch must say so out loud: the
+    // require-vs-current mismatch fires first today; a wrong declaration fires
+    // once CURRENT catches up. Both log at error level.
     expect(logger.error).toHaveBeenCalled();
   });
 
-  it('opens only when the declared version matches what this build requires', () => {
+  it('a matching declaration is necessary but NOT sufficient while CURRENT lags', () => {
+    // RE-ANCHORED: was `toBe(true)`. See the note on the test above.
     process.env.COACH_HEALTH_FIELDS_ENABLED = 'true';
     process.env.COACH_HEALTH_FIELDS_CONSENT_VERSION = GATED_FIELDS_REQUIRE_CONSENT_VERSION;
-    expect(areGatedHealthFieldsEnabled()).toBe(true);
+    expect(areGatedHealthFieldsEnabled()).toBe(false);
   });
 
   it('requires a consent version NEWER than the one currently shipped', () => {

@@ -1,0 +1,51 @@
+/**
+ * @swan/forge — Dashboard shell (.sw-shell), Phase 2d. A COMPOSITION, not a new
+ * behavior: header slot hosts a Nav top variant, rail slot hosts a Nav side
+ * variant, workspace slot hosts Tabs (role/workspace switcher) + content.
+ * Harvest anchor: UniversalDashboardLayout's role-tabbed contract (SS-PT) — the
+ * Forge shell is the generic layout law; role data stays in the consumer.
+ * Responsive: rail collapses via the Nav core's disclosure under 768px.
+ * Zero raw hex; logical properties; no `order`/reverse (R3).
+ */
+
+.sw-shell {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "header header"
+    "rail   main";
+  min-block-size: 100vh;
+  min-block-size: 100dvh;
+  background: var(--sw-bg-base);
+  color: var(--sw-text-primary);
+  font-family: var(--sw-font-body);
+}
+.sw-shell__header { grid-area: header; position: sticky; inset-block-start: 0; z-index: var(--sw-p-z-nav); }
+.sw-shell__rail { grid-area: rail; position: sticky; inset-block-start: 0; align-self: start; max-block-size: 100dvh; overflow-y: auto; }
+.sw-shell__main {
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sw-p-space-5);
+  padding: var(--sw-p-space-5);
+  max-inline-size: 1440px;
+  inline-size: 100%;
+  margin-inline: auto;
+}
+.sw-shell__title { margin: 0; font-family: var(--sw-font-heading); font-size: calc(var(--sw-p-text-2xl) * var(--sw-text-scale)); }
+.sw-shell__workspace { display: flex; flex-direction: column; gap: var(--sw-p-space-4); }
+
+/* Data-card cluster: responsive grid of Card data variants (metric + client) */
+.sw-cluster {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: var(--sw-p-space-4);
+}
+
+/* Compact (<768px): the rail leaves the grid; the Nav side variant's disclosure takes over */
+@media (max-width: 767px) {
+  .sw-shell { grid-template-columns: 1fr; grid-template-areas: "header" "rail" "main"; }
+  .sw-shell__rail { position: static; max-block-size: none; }
+  .sw-shell__main { padding: var(--sw-p-space-4); }
+}

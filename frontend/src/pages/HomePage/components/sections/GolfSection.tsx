@@ -11,10 +11,9 @@ import { SectionEl, Container, SectionHeader, SectionTitle, SectionSubtitle } fr
 import { slideInLeft, reducedReveal, staggerContainer } from '../shared/HomeAnimations';
 import { GOLF_FEATURES } from '../shared/HomeData';
 import GlassCard from '../../../../components/ui-kit/glass/GlassCard';
-import GlowButton from '../../../../components/ui/buttons/GlowButton';
+import ForgeButton from '../../../../components/ui/forge/ForgeButton'; // Forge strangler PR #1 (was GlowButton)
 import ScrollReveal from '../../../../components/ui-kit/cinematic/ScrollReveal';
 import { motionStyleProps } from '@/components/ui/motionStyleProps';
-import { StyledBox } from '@/components/ui/StyledBox';
 
 interface GolfSectionProps {
   tier: 'full' | 'balanced' | 'essential';
@@ -162,11 +161,11 @@ const GolfSection: React.FC<GolfSectionProps> = ({ tier }) => {
           Sport-specific training built on NASM principles — rotational power,
           core stability, and mobility protocols that translate directly to the course.
         </SummaryDesc>
-        <StyledBox as={GlowButton}
+        <ForgeButton
           text="Improve Your Game"
           variant="gilded"
           onClick={() => navigate('/contact')}
-          $style={{ minWidth: 200, minHeight: 44 }}
+          style={{ minWidth: 200 }}
         />
       </GolfSummaryCard>
     </ScrollReveal>

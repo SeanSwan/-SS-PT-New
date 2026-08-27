@@ -1,0 +1,38 @@
+{
+  "name": "@swan/forge",
+  "version": "0.1.0",
+  "description": "Swan Component Forge — canonical, themeable component catalog. Headless cores + structural variants + zero-runtime token skins. One ultimate version of each component, re-themed per site.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "private": true,
+  "exports": {
+    "./core/button": "./core/button.mjs",
+    "./core/modal": "./core/modal.mjs",
+    "./core/field": "./core/field.mjs",
+    "./core/tabs": "./core/tabs.mjs",
+    "./core/toast": "./core/toast.mjs",
+    "./css/tabs.css": "./css/tabs.css",
+    "./css/toast.css": "./css/toast.css",
+    "./css/primitives.css": "./css/primitives.css",
+    "./tokens/primitive.css": "./tokens/primitive.css",
+    "./tokens/packs/crystalline-swan.css": "./tokens/packs/crystalline-swan.css",
+    "./tokens/packs/swanguard-editorial.css": "./tokens/packs/swanguard-editorial.css",
+    "./css/button.css": "./css/button.css",
+    "./css/card.css": "./css/card.css",
+    "./css/input.css": "./css/input.css",
+    "./css/modal.css": "./css/modal.css",
+    "./core/nav": "./core/nav.mjs",
+    "./css/nav.css": "./css/nav.css",
+    "./css/shell.css": "./css/shell.css",
+    "./css/auth.css": "./css/auth.css"
+  },
+  "scripts": {
+    "test": "node --test test/core.test.mjs test/instruments.test.mjs test/tabs-toast.test.mjs test/nav.test.mjs test/codemod.test.mjs",
+    "lint:drift": "node scripts/drift-lint.mjs",
+    "audit:contrast": "node scripts/audit-contrast.mjs",
+    "theme:check": "node scripts/generate-sc-theme.mjs --check",
+    "gate": "npm run test && npm run audit:contrast && npm run lint:drift && npm run theme:check",
+    "backlog:regen": "node scripts/regen-backlog.mjs",
+    "backlog:check": "node scripts/regen-backlog.mjs --check"
+  }
+}

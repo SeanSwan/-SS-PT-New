@@ -60,23 +60,79 @@ export function readLedger() {
  * Record real spend AFTER a call completes.
  * @param {{model:string, topic:string, usd:number, note?:string}} entry
  */
+/**
+ * "Priced" means a real finite number, or a non-blank numeric string. NOT `Number(usd)`
+ * alone: `Number('')` is 0, `Number('  ')` is 0, `Number(true)` is 1 — so an empty cost
+ * field or a boolean would have recorded a confident $0.00 / $1.00, the exact silent-zero
+ * class recordSpend was rewritten to close. Caught by the author attacking the author's
+ * own prompt list for the review panel (2026-08-25), before any seat did. Exported so
+ * the test can pin it without writing to the real ledger.
+ */
+export function isPriced(usd) {
+  // Non-negative only (round-1 GLM F5): a negative "cost" is not a refund in this
+  // ledger, it is a bug upstream — treat it as unpriced so it counts as worst case.
+  if (typeof usd === 'number') return Number.isFinite(usd) && usd >= 0;
+  // Strings: plain non-negative DECIMAL only. `Number('0x10')` is 16 and `Number('1e3')`
+  // is 1000 — a cost field carrying hex or exponent notation is not a price, it is a
+  // bug upstream, and pricing it would book phantom spend (round-2 self-attack).
+  if (typeof usd === 'string') return /^\s*\d+(?:\.\d+)?\s*$/.test(usd);
+  return false;
+}
+
 export function recordSpend({ model, topic, usd, note = '' }) {
   ensureDir();
+  // `usd: null` is a LEGAL, MEANINGFUL value: "this call cost money and nobody
+  // could price it." Three review seats independently flagged the previous
+  // `Number(usd) || 0`: an unpriced model recorded a confident $0.00, so the caps
+  // could never fire for exactly the calls of unknown price — fail-open in the
+  // expensive direction, dressed as safe. Readers below treat null as WORST CASE
+  // (perCall cap), so an unpriced call pushes the caps toward refusal, never away.
+  // "Priced" means a real number or a non-blank numeric string. NOT `Number(usd)`
+  // alone: `Number('')` is 0 and `Number(true)` is 1, so an empty cost field or a
+  // boolean would have recorded a confident $0.00 / $1.00 — the exact silent-zero
+  // class this function was rewritten to close. Caught by the author attacking the
+  // author's own prompt list for the review panel (2026-08-25), before any seat did.
+  const priced = isPriced(usd);
   appendFileSync(LEDGER, `${JSON.stringify({
-    ts: new Date().toISOString(), model, topic, usd: Number(usd) || 0, note,
+    ts: new Date().toISOString(), model, topic,
+    usd: priced ? Number(usd) : null,
+    note: priced ? note : `${note ? note + ' | ' : ''}UNPRICED — counted as worst-case $${CAPS.perCall}`,
   })}\n`, 'utf-8');
 }
+
+/**
+ * ONE topic key for one document — the single source of truth for both sides of
+ * the per-topic cap. The spend-guard hook normalized topics one way while a writer
+ * stripped ANY extension and filtered nothing; `spentOnTopic` matches with STRICT
+ * equality, so the same document could yield two keys and the topic cap would
+ * silently never accumulate for it. Semantics are the GUARD's incumbent rules,
+ * unchanged, so no in-flight approval token (keyed on model+topic+cost) is orphaned.
+ * @param {string} p  document/out path or bare name
+ */
+export function topicFromPath(p) {
+  return String(p || '')
+    .replace(/^.*[\\/]/, '')
+    .replace(/\.(md|txt|json)$/i, '')
+    .replace(/[^A-Za-z0-9._-]/g, '')
+    .slice(0, 60) || 'untitled';
+}
+
+/**
+ * The dollar value a ledger row contributes to a cap. Unpriced rows (usd null)
+ * count as the per-call cap: the one direction an unknown cost is allowed to err.
+ */
+const rowUsd = (e) => (e.usd === null || e.usd === undefined ? CAPS.perCall : (Number(e.usd) || 0));
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function spentToday(entries = readLedger()) {
   const d = today();
-  return entries.filter((e) => (e.ts || '').startsWith(d)).reduce((s, e) => s + (e.usd || 0), 0);
+  return entries.filter((e) => (e.ts || '').startsWith(d)).reduce((s, e) => s + rowUsd(e), 0);
 }
 
 export function spentOnTopic(topic, entries = readLedger()) {
   if (!topic) return 0;
-  return entries.filter((e) => e.topic === topic).reduce((s, e) => s + (e.usd || 0), 0);
+  return entries.filter((e) => e.topic === topic).reduce((s, e) => s + rowUsd(e), 0);
 }
 
 /** Single-use approval tokens, keyed by the exact breach they were issued for. */

@@ -13,6 +13,10 @@ import { getIO as getManagedSocketIO } from './socketManager.mjs';
 import { getJwtSecret, isJwtSecretConfigurationError } from '../utils/jwtSecretGuard.mjs';
 import { canSendToConversation, BLOCKED_MESSAGE } from '../services/messaging/blockGuard.mjs';
 import { checkMessageRate, MESSAGE_RATE_LIMITED } from '../services/messaging/messageRateLimit.mjs';
+import {
+  isRelationshipWriteAllowed,
+  resolveSocketCommunityAccess,
+} from '../services/messagingAccessRepository.mjs';
 
 const onlineUsers = new Map();
 const MAX_MESSAGE_LENGTH = 5000;
@@ -121,8 +125,31 @@ export const initializeSocket = () => {
       if (!normalizedConversationId || !trimmedContent || trimmedContent.length > MAX_MESSAGE_LENGTH) return;
 
       try {
+        // Throttle before ANY database work. Two review rounds moved the limiter
+        // ahead of the lane check but left isActiveParticipant — a query — ahead
+        // of the limiter, so an emit loop still forced one indexed lookup per
+        // rejected message (ox-alpha, GLM 5.3, Kimi K3 — all three). The limiter
+        // is in-memory and free; it goes first, full stop.
+        const rate = checkMessageRate(socket.user.id);
+        if (!rate.allowed) {
+          socket.emit('error', { message: MESSAGE_RATE_LIMITED, retryAfterMs: rate.retryAfterMs });
+          return;
+        }
+
         if (!(await isActiveParticipant(normalizedConversationId, socket.user.id))) {
           socket.emit('error', { message: 'You are not a member of this conversation.' });
+          return;
+        }
+
+        // Same RELATIONSHIP lane as the REST path. The lane shipped as Express
+        // middleware only, so a free-tier client with an active assignment was
+        // 403'd by REST on an old community thread and could still write to it
+        // here — exactly the failure this file's next comment warns about, and
+        // flagged independently by two post-ship reviewers.
+        const hasCommunityAccess = await resolveSocketCommunityAccess(socket);
+
+        if (!(await isRelationshipWriteAllowed(socket.user, normalizedConversationId, hasCommunityAccess))) {
+          socket.emit('error', { message: 'You can message your assigned trainer here.' });
           return;
         }
 
@@ -131,14 +158,6 @@ export const initializeSocket = () => {
         const blockCheck = await canSendToConversation(normalizedConversationId, socket.user.id);
         if (!blockCheck.allowed) {
           socket.emit('error', { message: BLOCKED_MESSAGE });
-          return;
-        }
-
-        // Same throttle as REST. Without it, a limiter on the REST path alone
-        // would be bypassed by emitting 'send_message' over the websocket.
-        const rate = checkMessageRate(socket.user.id);
-        if (!rate.allowed) {
-          socket.emit('error', { message: MESSAGE_RATE_LIMITED, retryAfterMs: rate.retryAfterMs });
           return;
         }
 

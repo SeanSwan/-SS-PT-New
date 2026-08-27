@@ -36,6 +36,7 @@ const setup = (overrides: Partial<Parameters<typeof useSessionCancellation>[0]> 
       isEarlyCancelEligible: false,
       defaultFullCharge: 175,
       defaultLateFee: 88,
+      pricingUnavailable: false,
       onUpdated,
       onClose,
       toast,
@@ -95,7 +96,9 @@ describe('useSessionCancellation', () => {
     expect(apiService.get).toHaveBeenCalledWith('/api/sessions/72/cancel-warning');
     expect(setFormError).toHaveBeenCalledWith(null);
     expect(result.current.showLateCancelWarning).toBe(true);
-    expect(result.current.lateCancelWarning?.lateFeeAmount).toBe(88);
+    // null, not 88: the server stated no policy fee, and this warning is what
+    // the CLIENT reads. Inventing a number here was the defect.
+    expect(result.current.lateCancelWarning?.lateFeeAmount).toBeNull();
   });
 
   it('queues a branded confirmation and submits cancellation with charge details', async () => {
@@ -142,5 +145,132 @@ describe('useSessionCancellation', () => {
     }));
     expect(onUpdated).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('useSessionCancellation - fail-closed when package pricing is unknown', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('does not pre-arm a full charge when the package price could not be loaded', () => {
+    const { result } = setup({ pricingUnavailable: true });
+
+    act(() => {
+      result.current.handleCancelClick();
+    });
+
+    expect(result.current.showCancelOptions).toBe(true);
+    expect(result.current.chargeType).toBe('none');
+    expect(result.current.chargeAmount).toBe('');
+    // true, not false: no charge must still return the prepaid session credit.
+    expect(result.current.restoreCredit).toBe(true);
+  });
+
+  it('still pre-arms the full charge when the package price is known', () => {
+    const { result } = setup({ pricingUnavailable: false });
+
+    act(() => {
+      result.current.handleCancelClick();
+    });
+
+    expect(result.current.chargeType).toBe('full');
+    expect(result.current.chargeAmount).toBe('175');
+  });
+});
+
+describe('useSessionCancellation - panel-review fixes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // Props-driven render so pricingUnavailable can transition mid-test.
+  const setupRearm = () => {
+    const setFormError = vi.fn();
+    const setLoading = vi.fn();
+    const setConfirmRequest = vi.fn();
+    const hook = renderHook(
+      ({ pricingUnavailable }) =>
+        useSessionCancellation({
+          open: true,
+          session: baseSession,
+          canManage: true,
+          isEarlyCancelEligible: false,
+          defaultFullCharge: 175,
+          defaultLateFee: 88,
+          pricingUnavailable,
+          onUpdated: vi.fn(),
+          onClose: vi.fn(),
+          toast: vi.fn(),
+          setFormError,
+          setLoading,
+          setConfirmRequest,
+        }),
+      { initialProps: { pricingUnavailable: true } }
+    );
+    return { ...hook, setFormError, setConfirmRequest };
+  };
+
+  it('restores the prepaid credit when pricing is unknown (no charge must not burn a session)', () => {
+    const { result } = setup({ pricingUnavailable: true });
+
+    act(() => {
+      result.current.handleCancelClick();
+    });
+
+    expect(result.current.chargeType).toBe('none');
+    expect(result.current.restoreCredit).toBe(true);
+  });
+
+  it('refuses a partial charge with no amount instead of letting the server bill 50%', () => {
+    const { result, setFormError, setConfirmRequest } = setup({ pricingUnavailable: true });
+
+    act(() => {
+      result.current.handleCancelClick();
+    });
+    act(() => {
+      result.current.setChargeType('partial');
+    });
+    act(() => {
+      result.current.handleCancel();
+    });
+
+    expect(setFormError).toHaveBeenCalledWith(
+      'Enter a custom charge amount greater than $0.'
+    );
+    expect(setConfirmRequest).not.toHaveBeenCalled();
+  });
+
+  it('re-arms the full charge once real pricing resolves and the admin has not chosen', () => {
+    const { result, rerender } = setupRearm();
+
+    act(() => {
+      result.current.handleCancelClick();
+    });
+    expect(result.current.chargeType).toBe('none');
+
+    act(() => {
+      rerender({ pricingUnavailable: false });
+    });
+
+    expect(result.current.chargeType).toBe('full');
+    expect(result.current.chargeAmount).toBe('175');
+  });
+
+  it('does NOT re-arm over a deliberate operator choice', () => {
+    const { result, rerender } = setupRearm();
+
+    act(() => {
+      result.current.handleCancelClick();
+    });
+    act(() => {
+      result.current.setChargeType('none');
+    });
+
+    act(() => {
+      rerender({ pricingUnavailable: false });
+    });
+
+    expect(result.current.chargeType).toBe('none');
   });
 });

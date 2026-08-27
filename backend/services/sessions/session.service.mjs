@@ -67,6 +67,7 @@ import {
   getClientTrainerAssignment,
   getDailyWorkoutForm
 } from '../../models/index.mjs';
+import { getClientPackagePricing } from '../../utils/cancellationPricing.mjs';
 
 // Import notification utilities
 import {
@@ -141,6 +142,91 @@ const normalizeCancellationBillingOptions = (user, options = {}) => {
     chargeAmount,
     restoreCredit: options.restoreCredit === true
   };
+};
+
+/**
+ * The server - not the caller - decides what a full session costs.
+ *
+ * normalizeCancellationBillingOptions above validates the SHAPE of an
+ * operator's billing choice (role, known charge type, positive amount). It has
+ * no database access, so it cannot check the figure against what this client
+ * actually pays. That gap let a stale or placeholder frontend number - such as
+ * the 175 fallback in useSessionPackagePricing - be recorded verbatim against a
+ * client whose real rate is 110.
+ *
+ * routes/sessionRoutes.mjs already did this correctly, but that file is not
+ * mounted (core/routes.mjs:286; sessions.mjs shadows it), so the behaviour never
+ * reached the live path. This ports it.
+ *
+ * Deliberately best-effort: a failed lookup leaves the validated amount alone
+ * rather than blocking the cancellation, and an isFallback result is ignored -
+ * substituting the helper's OWN hardcoded figure would swap one invented number
+ * for another, which is the exact defect this guard exists to prevent.
+ */
+const applyServerDerivedChargeAmount = async (session, billingOptions, transaction) => {
+  if (!billingOptions || billingOptions.chargeType === 'none') {
+    return;
+  }
+
+  let pricing;
+  try {
+    pricing = await getClientPackagePricing(session.userId, {
+      Order: getOrder(),
+      OrderItem: getOrderItem(),
+      StorefrontItem: getStorefrontItem()
+    }, { transaction });
+  } catch (error) {
+    logger.warn(
+      `[Cancellation] package pricing lookup failed for session ${session.id}: ${error.message}`
+    );
+    return;
+  }
+
+  // isFallback means the helper could not find a package and is returning its
+  // own hardcoded figure. We cannot verify the amount, so we leave the
+  // operator's validated number alone - but we must not do so silently, or an
+  // unverifiable charge is indistinguishable from a verified one in the record.
+  if (!pricing || pricing.isFallback) {
+    logger.warn(
+      `[Cancellation] session ${session.id}: no package found for client, ` +
+        `charge of ${billingOptions.chargeAmount} recorded UNVERIFIED ` +
+        `(type=${billingOptions.chargeType})`
+    );
+    return;
+  }
+
+  const sessionRate = Number(pricing.pricePerSession);
+  if (!Number.isFinite(sessionRate) || sessionRate <= 0) {
+    return;
+  }
+
+  const submitted = billingOptions.chargeAmount;
+  const suggested = billingOptions.chargeType === 'full'
+    ? sessionRate
+    : Math.min(submitted, sessionRate);
+
+  // ADVISORY ONLY. This function used to overwrite billingOptions.chargeAmount,
+  // and that single decision produced every catastrophic defect in this
+  // workstream: a $33,600 program price applied as a session charge, a correct
+  // operator figure replaced by the wrong order's rate, and a duration-blind
+  // override that is wrong by $65 in either direction on a two-rate business.
+  //
+  // The root cause was never the arithmetic. It was the server claiming
+  // authority over a human money decision on the strength of an inference it
+  // cannot actually make - the schema does not record which product a session
+  // belongs to. So the server now offers its opinion and the operator keeps the
+  // decision. A wrong suggestion is a UX annoyance; a wrong charge is a dispute.
+  if (suggested !== submitted) {
+    logger.info(
+      `[Cancellation] session ${session.id}: operator entered ${submitted}, server ` +
+        `suggests ${suggested} (type=${billingOptions.chargeType}, rate=${sessionRate}, ` +
+        `package=${pricing.packageName}) - operator figure kept`
+    );
+  }
+
+  billingOptions.suggestedChargeAmount = suggested;
+  billingOptions.derivedSessionRate = sessionRate;
+  billingOptions.chargeAmountSource = 'operator';
 };
 
 const parseNotificationPreferences = (prefs) => {
@@ -1691,6 +1777,7 @@ class UnifiedSessionService {
       }
 
       const billingOptions = normalizeCancellationBillingOptions(user, cancellationOptions);
+      await applyServerDerivedChargeAmount(session, billingOptions, transaction);
       const cancellationDate = new Date();
       
       // Update the session
@@ -1713,7 +1800,12 @@ class UnifiedSessionService {
       // can explicitly restore a deducted credit from the cancellation panel.
       const sessionTime = session.sessionDate ? new Date(session.sessionDate).getTime() : null;
       const hoursUntilSession = sessionTime ? (sessionTime - Date.now()) / (1000 * 60 * 60) : null;
-      const refundEligible = hoursUntilSession !== null && hoursUntilSession > 24;
+      // >= 24, not > 24, so this is the exact complement of the warning endpoint's
+      // `isLateCancellation = hoursUntilSession < 24`. With > 24 a cancellation at
+      // exactly 24h was told "your session credit will be returned" and then did
+      // not get it - the two predicates disagreed on the single boundary value the
+      // whole policy turns on.
+      const refundEligible = hoursUntilSession !== null && hoursUntilSession >= 24;
       const shouldRestoreCredit = Boolean(
         session.sessionDeducted &&
         !session.sessionCreditRestored &&
@@ -1754,6 +1846,38 @@ class UnifiedSessionService {
             logger.info(`[UnifiedSessionService] Restored ${creditsToRestore} session credits to user ${client.id} balance after cancellation`);
           }
         }
+      }
+
+      // A client cancelling inside the late window loses a prepaid session. That
+      // is a real economic event, but because clients cannot set billing the whole
+      // billing block above is skipped for them - so chargeType, amount and
+      // decision all stayed null and the cancellation was invisible to every admin
+      // report. Stamp a zero-amount forfeit record so it can be counted.
+      //
+      // reviewedBy is deliberately left unset: no operator made this call, and
+      // stamping an actor would fabricate an audit trail.
+      // Keyed on refundEligible, NOT on whether restoration happened. `creditRestored`
+      // is false for several reasons that have nothing to do with the late-cancel
+      // policy - the credit was already restored by an earlier operation, the client
+      // record could not be loaded, the account is non-deducting - and keying on it
+      // stamped a penalty event onto perfectly on-time cancellations.
+      // hoursUntilSession !== null is required, not implied by !refundEligible.
+      // An unusable sessionDate yields null, which reads as "not refund eligible"
+      // and stamped a forfeit — while the warning endpoint's `NaN < 24` evaluates
+      // false and had already told the client their credit would be returned. Do
+      // not record a penalty whose triggering condition is unknown.
+      const lateForfeit = !billingOptions
+        && Number.isFinite(hoursUntilSession)
+        && !refundEligible
+        && session.sessionDeducted
+        && !session.sessionCreditRestored
+        && session.userId;
+
+      if (lateForfeit) {
+        session.cancellationChargeType = 'none';
+        session.cancellationChargeAmount = 0;
+        session.cancellationDecision = 'forfeited';
+        session.cancellationReviewReason = 'client_late_cancel_credit_forfeit';
       }
 
       await session.save({ transaction });

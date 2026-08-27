@@ -1,0 +1,109 @@
+/**
+ * @swan/forge — presentation-only T1 primitives (no behavior ⇒ no core):
+ *   .sw-pill / .sw-badge   compact labels + counts (harvested from card pills)
+ *   .sw-skeleton           loading bones (CrystallineSkeleton / FrostedBone lineage)
+ *   .sw-avatar             initials or image, sizes sm|md|lg
+ *   .sw-table              responsive data table (stacks at narrow widths)
+ *   .sw-btn--icon          icon-only button variant (44×44 square) — extends button.css
+ *   .sw-select/.sw-textarea input siblings — extend input.css
+ * Zero raw hex; logical properties; motion via --sw-motion.
+ */
+
+/* ── Pill / Badge ─────────────────────────────────────────────────── */
+.sw-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sw-p-space-1);
+  min-block-size: 28px;
+  padding-block: var(--sw-p-space-1);
+  padding-inline: var(--sw-p-space-3);
+  border: 1px solid var(--sw-border);
+  border-radius: var(--sw-p-radius-pill);
+  background: color-mix(in oklab, var(--sw-bg-elevated) 70%, transparent);
+  color: var(--sw-text-secondary);
+  font-family: var(--sw-font-ui);
+  font-size: var(--sw-p-text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sw-pill--accent  { color: var(--sw-text-inverse); background: var(--sw-color-accent); border-color: transparent; }
+.sw-pill--gold    { color: var(--sw-color-gold); border-color: color-mix(in oklab, var(--sw-color-gold) 50%, transparent); }
+.sw-pill--success { color: var(--sw-color-success); border-color: color-mix(in oklab, var(--sw-color-success) 50%, transparent); }
+.sw-pill--danger  { color: var(--sw-color-danger); border-color: color-mix(in oklab, var(--sw-color-danger) 50%, transparent); }
+.sw-badge {
+  display: inline-grid;
+  place-items: center;
+  min-inline-size: 22px;
+  block-size: 22px;
+  padding-inline: var(--sw-p-space-1);
+  border-radius: var(--sw-p-radius-pill);
+  background: var(--sw-color-accent);
+  color: var(--sw-text-inverse);
+  font-family: var(--sw-font-data);
+  font-size: var(--sw-p-text-xs);
+  font-weight: 700;
+}
+
+/* ── Skeleton ─────────────────────────────────────────────────────── */
+.sw-skeleton {
+  display: block;
+  block-size: 1em;
+  border-radius: var(--sw-p-radius-sm);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--sw-text-primary) 8%, var(--sw-bg-surface)) 25%,
+    color-mix(in oklab, var(--sw-text-primary) 16%, var(--sw-bg-surface)) 50%,
+    color-mix(in oklab, var(--sw-text-primary) 8%, var(--sw-bg-surface)) 75%
+  );
+  background-size: 200% 100%;
+  animation: sw-shimmer calc(1.4s / max(var(--sw-motion), 0.001)) linear infinite;
+}
+.sw-skeleton--text { inline-size: 100%; }
+.sw-skeleton--title { block-size: 1.5em; inline-size: 60%; }
+.sw-skeleton--circle { border-radius: var(--sw-p-radius-pill); aspect-ratio: 1; block-size: auto; }
+.sw-skeleton--card { block-size: 120px; border-radius: var(--sw-p-radius-lg); }
+@keyframes sw-shimmer { to { background-position-x: -200%; } }
+
+/* ── Avatar ───────────────────────────────────────────────────────── */
+.sw-avatar {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 40px;
+  block-size: 40px;
+  border-radius: var(--sw-p-radius-pill);
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--sw-color-primary), var(--sw-color-accent));
+  color: var(--sw-text-inverse);
+  border: 2px solid var(--sw-border-strong);
+  font-family: var(--sw-font-ui);
+  font-weight: 700;
+  font-size: var(--sw-p-text-sm);
+  text-transform: uppercase;
+  user-select: none;
+}
+.sw-avatar--sm { inline-size: 28px; block-size: 28px; font-size: var(--sw-p-text-xs); }
+.sw-avatar--lg { inline-size: 64px; block-size: 64px; font-size: var(--sw-p-text-lg); }
+.sw-avatar > img { inline-size: 100%; block-size: 100%; object-fit: cover; }
+
+/* ── Table (stacks under 640px) ───────────────────────────────────── */
+.sw-table { inline-size: 100%; border-collapse: collapse; font-family: var(--sw-font-body); color: var(--sw-text-primary); }
+.sw-table th, .sw-table td { padding-block: var(--sw-p-space-3); padding-inline: var(--sw-p-space-3); text-align: start; border-block-end: 1px solid var(--sw-border); }
+.sw-table th { color: var(--sw-text-secondary); font-family: var(--sw-font-ui); font-size: var(--sw-p-text-xs); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.sw-table td.is-numeric { font-family: var(--sw-font-data); text-align: end; }
+.sw-table tbody tr:hover { background: color-mix(in oklab, var(--sw-text-primary) 4%, transparent); }
+@media (max-width: 640px) {
+  .sw-table thead { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+  .sw-table tr { display: block; border: 1px solid var(--sw-border); border-radius: var(--sw-p-radius-md); margin-block-end: var(--sw-p-space-3); }
+  .sw-table td { display: grid; grid-template-columns: 40% 1fr; border: 0; }
+  .sw-table td::before { content: attr(data-label); color: var(--sw-text-muted); font-family: var(--sw-font-ui); font-size: var(--sw-p-text-xs); }
+  .sw-table td.is-numeric { text-align: start; }
+}
+
+/* ── Icon-only button variant (extends .sw-btn) ───────────────────── */
+.sw-btn--icon { padding-inline: 0; inline-size: var(--sw-p-target-min); aspect-ratio: 1; }
+
+/* ── Select / Textarea (extend .sw-input) ─────────────────────────── */
+.sw-select { appearance: none; padding-inline-end: var(--sw-p-space-6); background-image: linear-gradient(45deg, transparent 50%, var(--sw-text-muted) 50%), linear-gradient(135deg, var(--sw-text-muted) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%; background-size: 6px 6px; background-repeat: no-repeat; }
+/* RTL: the reserved inline-end space is on the LEFT; mirror the arrow there (GLM F3) */
+[dir="rtl"] .sw-select { background-position: 12px 50%, 18px 50%; }
+.sw-textarea { min-block-size: calc(var(--sw-p-target-min) * 2); resize: vertical; line-height: 1.5; }

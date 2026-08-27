@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en" data-sw-pack="crystalline-swan">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Swan Forge Gallery</title>
+<!--
+  @swan/forge gallery — the TEST GATE surface (plan §5.3/§11.A7), not just a preview.
+  · Pack switcher renders every component under every pack (component × pack matrix)
+  · ?capture=1 = determinism mode: motion forced to 0 for screenshot-diff runs
+  · Copy buttons on every block (accepted §9.4)
+  · Serve from the package root so ../ paths resolve:  npx serve packages/swan-forge
+-->
+<link rel="stylesheet" href="../tokens/primitive.css" />
+<link rel="stylesheet" href="../tokens/packs/crystalline-swan.css" />
+<link rel="stylesheet" href="../tokens/packs/swanguard-editorial.css" />
+<link rel="stylesheet" href="../css/button.css" />
+<link rel="stylesheet" href="../css/card.css" />
+<link rel="stylesheet" href="../css/input.css" />
+<link rel="stylesheet" href="../css/modal.css" />
+<link rel="stylesheet" href="../css/tabs.css" />
+<link rel="stylesheet" href="../css/toast.css" />
+<link rel="stylesheet" href="../css/primitives.css" />
+<link rel="stylesheet" href="../css/nav.css" />
+<link rel="stylesheet" href="../css/shell.css" />
+<link rel="stylesheet" href="../css/auth.css" />
+<style>
+  body { margin: 0; background: var(--sw-bg-base); color: var(--sw-text-primary); font-family: var(--sw-font-body, system-ui); }
+  .g-bar { position: sticky; inset-block-start: 0; display: flex; flex-wrap: wrap; gap: var(--sw-p-space-3); align-items: center; padding: var(--sw-p-space-4); background: var(--sw-bg-elevated); border-block-end: 1px solid var(--sw-border); z-index: 10; }
+  .g-bar h1 { margin: 0; font-size: var(--sw-p-text-lg); font-family: var(--sw-font-heading); }
+  main { display: grid; gap: var(--sw-p-space-6); padding: var(--sw-p-space-5); max-inline-size: 1100px; margin-inline: auto; }
+  section h2 { font-family: var(--sw-font-heading); border-block-end: 1px solid var(--sw-border); padding-block-end: var(--sw-p-space-2); }
+  .g-row { display: flex; flex-wrap: wrap; gap: var(--sw-p-space-4); align-items: center; }
+  .g-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: var(--sw-p-space-4); }
+  .g-copy { margin-inline-start: auto; }
+  [data-mode="capture"] * { animation: none !important; transition: none !important; }
+  [hidden] { display: none !important; } /* class display values must not defeat the hidden attribute */
+</style>
+</head>
+<body>
+<div class="g-bar">
+  <h1>Swan Forge</h1>
+  <label class="sw-field" style="flex-direction: row; align-items: center; gap: 8px;">
+    <span class="sw-field__label">Pack</span>
+    <select id="pack" class="sw-input" style="min-block-size: 44px; inline-size: auto;">
+      <option value="crystalline-swan">crystalline-swan (dark)</option>
+      <option value="swanguard-editorial">swanguard-editorial (light)</option>
+    </select>
+  </label>
+  <button type="button" class="sw-btn sw-btn--ghost sw-btn--small" id="pack-starter">Copy pack starter</button>
+  <span id="mode-flag" class="sw-card__pill" hidden>capture mode — motion off</span>
+</div>
+
+<main>
+  <section id="buttons">
+    <h2>Button <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="buttons">Copy usage</button></h2>
+    <div class="g-row">
+      <button type="button" class="sw-btn sw-btn--primary">Primary</button>
+      <button type="button" class="sw-btn sw-btn--accent">Accent</button>
+      <button type="button" class="sw-btn sw-btn--gilded">Gilded</button>
+      <button type="button" class="sw-btn sw-btn--success">Success</button>
+      <button type="button" class="sw-btn sw-btn--danger">Danger</button>
+      <button type="button" class="sw-btn sw-btn--ghost">Ghost</button>
+    </div>
+    <div class="g-row">
+      <button type="button" class="sw-btn sw-btn--primary sw-btn--small">Small</button>
+      <button type="button" class="sw-btn sw-btn--primary sw-btn--large">Large</button>
+      <button type="button" class="sw-btn sw-btn--primary is-loading" aria-busy="true" aria-disabled="true">Saving…</button>
+      <button type="button" class="sw-btn sw-btn--primary" disabled>Disabled</button>
+    </div>
+  </section>
+
+  <section id="cards">
+    <h2>Card <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="cards">Copy usage</button></h2>
+    <div class="g-grid">
+      <article class="sw-card sw-card--showcase">
+        <h3 class="sw-card__title">Showcase card</h3>
+        <p class="sw-card__body">Chrome edge, gradient depth, glow on hover. For store and feature surfaces.</p>
+        <div class="g-row"><span class="sw-card__pill">premium</span><span class="sw-card__pill">motion ok</span></div>
+        <div class="sw-card__actions"><button type="button" class="sw-btn sw-btn--gilded sw-btn--small">Buy now</button></div>
+      </article>
+      <article class="sw-card sw-card--data">
+        <h3 class="sw-card__title">Data card</h3>
+        <div class="sw-card__metric"><span class="sw-card__metric-value">128</span><span class="sw-card__metric-label">workouts logged</span></div>
+        <p class="sw-card__meta">low-motion · no hover-only actions</p>
+        <div class="sw-card__actions"><button type="button" class="sw-btn sw-btn--primary sw-btn--small">Open</button></div>
+      </article>
+    </div>
+  </section>
+
+  <section id="inputs">
+    <h2>Input <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="inputs">Copy usage</button></h2>
+    <div class="g-grid">
+      <label class="sw-field"><span class="sw-field__label">Client name</span>
+        <input class="sw-input" placeholder="e.g. C-1042" />
+        <span class="sw-field__hint">IDs only — no PII</span></label>
+      <label class="sw-field"><span class="sw-field__label">Email</span>
+        <input class="sw-input" aria-invalid="true" value="not-an-email" />
+        <span class="sw-field__error">Enter a valid email</span></label>
+    </div>
+  </section>
+
+  <section id="nav">
+    <h2>Nav (top · side share one core) <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="nav">Copy usage</button></h2>
+    <nav id="nav-top"></nav>
+    <div class="g-row" style="margin-block-start: 16px; align-items: stretch; min-block-size: 220px;">
+      <nav id="nav-side"></nav>
+      <div class="sw-card sw-card--data" style="flex: 1;"><h3 class="sw-card__title">Content beside the rail</h3><p class="sw-card__body">Resize under 768px: both variants collapse to a disclosure menu (toggle · Escape restores focus).</p></div>
+    </div>
+  </section>
+
+  <section id="cluster">
+    <h2>Data-card cluster (metric · client) <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="cluster">Copy usage</button></h2>
+    <div class="sw-cluster">
+      <article class="sw-card sw-card--data sw-card--metric"><span class="sw-card__meta">Workouts this month</span><div class="sw-card__metric"><span class="sw-card__metric-value">18</span><span class="sw-card__delta is-up">+4 vs last</span></div></article>
+      <article class="sw-card sw-card--data sw-card--metric"><span class="sw-card__meta">Adherence</span><div class="sw-card__metric"><span class="sw-card__metric-value">92%</span><span class="sw-card__delta is-down">−3 pts</span></div></article>
+      <article class="sw-card sw-card--data sw-card--client">
+        <div class="sw-card__identity"><span class="sw-avatar">c1</span><div class="sw-card__identity-text"><h3 class="sw-card__title">Client C-1042</h3><span class="sw-card__meta">Balanced · 3×/wk</span></div><span class="sw-pill sw-pill--success sw-card__status">on track</span></div>
+        <div class="sw-card__facts"><div class="sw-card__fact"><span class="sw-card__fact-label">Last workout</span><span class="sw-card__fact-value">2d ago</span></div><div class="sw-card__fact"><span class="sw-card__fact-label">Streak</span><span class="sw-card__fact-value">6 wk</span></div><div class="sw-card__fact"><span class="sw-card__fact-label">Sessions left</span><span class="sw-card__fact-value">9</span></div></div>
+        <div class="sw-card__actions"><button type="button" class="sw-btn sw-btn--primary sw-btn--small">Log session</button><button type="button" class="sw-btn sw-btn--ghost sw-btn--icon" aria-label="Message client">✉</button></div>
+      </article>
+    </div>
+  </section>
+
+  <section id="tabs">
+    <h2>Tabs <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="tabs">Copy usage</button></h2>
+    <div id="tabs-underline"></div>
+    <div id="tabs-pill" style="margin-block-start: 16px;"></div>
+  </section>
+
+  <section id="primitives">
+    <h2>Pill · Badge · Avatar · Skeleton <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="primitives">Copy usage</button></h2>
+    <div class="g-row">
+      <span class="sw-pill">default</span><span class="sw-pill sw-pill--accent">accent</span><span class="sw-pill sw-pill--gold">gold</span>
+      <span class="sw-pill sw-pill--success">success</span><span class="sw-pill sw-pill--danger">danger</span><span class="sw-badge">7</span>
+      <span class="sw-avatar sw-avatar--sm">sw</span><span class="sw-avatar">sw</span><span class="sw-avatar sw-avatar--lg">sw</span>
+      <button type="button" class="sw-btn sw-btn--ghost sw-btn--icon" aria-label="Close">✕</button>
+    </div>
+    <div class="g-grid" style="margin-block-start: 16px;">
+      <div><span class="sw-skeleton sw-skeleton--title"></span><br /><span class="sw-skeleton sw-skeleton--text"></span><br /><span class="sw-skeleton sw-skeleton--text" style="inline-size: 80%;"></span></div>
+      <div class="g-row"><span class="sw-skeleton sw-skeleton--circle" style="inline-size: 48px;"></span><span class="sw-skeleton sw-skeleton--card" style="flex: 1;"></span></div>
+    </div>
+  </section>
+
+  <section id="table">
+    <h2>Table <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="table">Copy usage</button></h2>
+    <table class="sw-table">
+      <thead><tr><th>Client</th><th>Sessions</th><th>Adherence</th><th>Last workout</th></tr></thead>
+      <tbody>
+        <tr><td data-label="Client">C-1042</td><td data-label="Sessions" class="is-numeric">128</td><td data-label="Adherence" class="is-numeric">92%</td><td data-label="Last workout">2d ago</td></tr>
+        <tr><td data-label="Client">C-2077</td><td data-label="Sessions" class="is-numeric">41</td><td data-label="Adherence" class="is-numeric">67%</td><td data-label="Last workout">9d ago</td></tr>
+      </tbody>
+    </table>
+    <div class="g-row" style="margin-block-start: 16px;">
+      <label class="sw-field"><span class="sw-field__label">Select</span><select class="sw-input sw-select"><option>Balanced</option><option>Essential</option></select></label>
+      <label class="sw-field" style="flex: 1;"><span class="sw-field__label">Textarea</span><textarea class="sw-input sw-textarea" placeholder="Coach notes (IDs only)"></textarea></label>
+    </div>
+  </section>
+
+  <section id="toasts">
+    <h2>Toast <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="toasts">Copy usage</button></h2>
+    <div class="g-row">
+      <button type="button" class="sw-btn sw-btn--primary sw-btn--small" data-toast="info">Info</button>
+      <button type="button" class="sw-btn sw-btn--success sw-btn--small" data-toast="success">Success</button>
+      <button type="button" class="sw-btn sw-btn--gilded sw-btn--small" data-toast="warning">Warning</button>
+      <button type="button" class="sw-btn sw-btn--danger sw-btn--small" data-toast="danger">Danger (sticky)</button>
+    </div>
+  </section>
+
+  <section id="auth">
+    <h2>Auth form (composition) <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="auth">Copy usage</button></h2>
+    <form class="sw-auth" aria-describedby="auth-error" onsubmit="return false">
+      <div class="sw-auth__brand"><span class="sw-avatar">sw</span><div><h3 class="sw-auth__title">Welcome back</h3><p class="sw-auth__subtitle">Sign in to your training workspace.</p></div></div>
+      <div class="sw-auth__error" id="auth-error" role="alert" aria-live="assertive">Wrong email or password.</div>
+      <div class="sw-auth__form">
+        <label class="sw-field"><span class="sw-field__label">Email</span><input class="sw-input" type="email" autocomplete="email" placeholder="you@example.com" /></label>
+        <label class="sw-field"><span class="sw-field__label">Password</span><input class="sw-input" type="password" autocomplete="current-password" aria-invalid="true" /><span class="sw-field__error">Enter your password</span></label>
+        <div class="sw-auth__row"><a class="sw-auth__link" href="#auth">Forgot password?</a><button type="submit" class="sw-btn sw-btn--primary">Sign in</button></div>
+      </div>
+      <div class="sw-auth__divider">or continue with</div>
+      <div class="sw-auth__providers"><button type="button" class="sw-btn sw-btn--ghost">Google</button><button type="button" class="sw-btn sw-btn--ghost">Apple</button></div>
+      <p class="sw-auth__footer">New here? <a class="sw-auth__link" href="#auth">Create an account</a></p>
+    </form>
+  </section>
+
+  <section id="modals">
+    <h2>Modal <button type="button" class="sw-btn sw-btn--ghost sw-btn--small g-copy" data-copy="modals">Copy usage</button></h2>
+    <div class="g-row">
+      <button type="button" class="sw-btn sw-btn--primary" data-open="dialog">Open dialog</button>
+      <button type="button" class="sw-btn sw-btn--accent" data-open="drawer">Open drawer</button>
+    </div>
+  </section>
+</main>
+
+<div class="sw-modal-scrim" id="scrim"></div>
+<div class="sw-modal sw-modal--dialog" id="modal" role="dialog" aria-modal="true" aria-labelledby="sw-modal-title" tabindex="-1">
+  <h3 class="sw-modal__title" id="sw-modal-title">Confirm action</h3>
+  <p class="sw-modal__body">Focus is trapped here; Escape closes; the trap logic lives in core/modal.mjs.</p>
+  <div class="sw-modal__actions">
+    <button type="button" class="sw-btn sw-btn--ghost" data-close>Cancel</button>
+    <button type="button" class="sw-btn sw-btn--primary" data-close>Confirm</button>
+  </div>
+</div>
+
+<div class="sw-toast-region" id="toast-region" role="region" aria-label="Notifications"></div>
+
+<script type="module">
+  import { handleModalKey, getModalState, nextTrapIndex, FOCUSABLE_SELECTOR } from '../core/modal.mjs';
+  import { getTabsState, getTabListAttrs, getTabAttrs, getTabPanelAttrs, handleTabKey, selectTab } from '../core/tabs.mjs';
+  import { createToast, enqueue, dismissWithFocus, setPaused, tick, getToastAttrs, handleToastKey } from '../core/toast.mjs';
+  import { getNavState, getNavAttrs, getNavToggleAttrs, getNavMenuAttrs, getNavLinkAttrs, reduceNav } from '../core/nav.mjs';
+
+  // shared: apply a core attribute map to an element (undefined/false ⇒ remove)
+  const setAttrs = (el, attrs) => { for (const [k, v] of Object.entries(attrs)) { if (v === undefined || v === false) el.removeAttribute(k); else el.setAttribute(k, v === true ? '' : v); } };
+
+  // ── Nav: two structural variants, ONE core ───────────────────────────
+  function mountNav(host, variant) {
+    const items = [{ key: 'home', label: 'Home', href: '#nav' }, { key: 'workouts', label: 'Workouts', href: '#tabs' }, { key: 'progress', label: 'Progress', href: '#primitives' }];
+    let state = getNavState({ id: host.id, variant, items, current: '#nav' });
+    const brand = document.createElement('a'); brand.className = 'sw-nav__brand'; brand.href = '#'; brand.textContent = 'Swan';
+    const spacer = document.createElement('span'); spacer.className = 'sw-nav__spacer';
+    const toggle = document.createElement('button'); toggle.textContent = '☰'; toggle.setAttribute('aria-label', 'Menu');
+    const menu = document.createElement('div');
+    const links = items.map((it) => { const a = document.createElement('a'); a.textContent = it.label; menu.appendChild(a); a.addEventListener('click', () => { state = getNavState({ ...state, current: it.href, open: reduceNav(state, { type: 'select' }).open }); render(); }); return a; });
+    toggle.addEventListener('click', () => { state = getNavState({ ...state, open: reduceNav(state, { type: 'toggle' }).open }); render(); });
+    host.addEventListener('keydown', (e) => { const r = reduceNav(state, { type: 'key', key: e.key }); if (r.open !== state.open) { state = getNavState({ ...state, open: r.open }); render(); if (r.restoreFocus) toggle.focus(); } });
+    function render() { setAttrs(host, getNavAttrs(state)); setAttrs(toggle, getNavToggleAttrs(state)); setAttrs(menu, getNavMenuAttrs(state)); items.forEach((it, i) => setAttrs(links[i], getNavLinkAttrs(state, it))); }
+    host.append(brand, ...(variant === 'top' ? [spacer] : []), toggle, menu); render();
+  }
+  mountNav(document.getElementById('nav-top'), 'top');
+  mountNav(document.getElementById('nav-side'), 'side');
+
+  // ── Tabs: gallery consumes the real core (roving tabindex + arrows) ──
+  function mountTabs(host, variant) {
+    const keys = ['overview', 'workouts', 'progress'];
+    let state = getTabsState({ id: `${host.id}`, tabs: keys, selected: 'overview', variant });
+    const list = document.createElement('div'); const panels = document.createElement('div');
+    const tabEls = {}, panelEls = {};
+    for (const k of keys) {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = k[0].toUpperCase() + k.slice(1); tabEls[k] = b; list.appendChild(b);
+      const p = document.createElement('div'); p.textContent = `${k} panel — arrow keys move, Home/End jump.`; panelEls[k] = p; panels.appendChild(p);
+      b.addEventListener('click', () => { state = selectTab(state, k); render(); }); // the ONE selection path (Enter/Space arrive here via native click)
+      b.addEventListener('keydown', (e) => {
+        const r = handleTabKey(state, k, e);
+        if (r.preventDefault) e.preventDefault();
+        if (r.select) state = selectTab(state, r.select);
+        render();
+        if (r.focus) tabEls[r.focus].focus();
+      });
+    }
+    function render() {
+      setAttrs(list, getTabListAttrs(state));
+      for (const k of keys) { setAttrs(tabEls[k], getTabAttrs(state, k)); setAttrs(panelEls[k], getTabPanelAttrs(state, k)); }
+    }
+    host.append(list, panels); render();
+  }
+  mountTabs(document.getElementById('tabs-underline'));
+  mountTabs(document.getElementById('tabs-pill'), 'pill');
+
+  // ── Toasts: gallery owns the clock; core owns the queue ─────────────
+  const region = document.getElementById('toast-region');
+  let queue = []; let seq = 0; let last = performance.now();
+  function dismissFocused(id) { const r = dismissWithFocus(queue, id); queue = r.queue; renderToasts(); const next = r.focusNext === 'region' ? document.querySelector('[data-toast]') : region.querySelector(`[data-id="${r.focusNext}"]`); next?.focus(); }
+  function renderToasts() {
+    region.replaceChildren(...queue.map((t) => {
+      const el = document.createElement('div'); setAttrs(el, getToastAttrs(t));
+      el.innerHTML = `<span></span><div><p class="sw-toast__title"></p><p class="sw-toast__body"></p></div><button type="button" class="sw-toast__dismiss" aria-label="Dismiss notification">✕</button>`;
+      el.querySelector('.sw-toast__title').textContent = t.title; el.querySelector('.sw-toast__body').textContent = t.body ?? '';
+      el.querySelector('.sw-toast__dismiss').addEventListener('click', () => dismissFocused(t.id));
+      el.addEventListener('mouseenter', () => { queue = setPaused(queue, t.id, true); }); el.addEventListener('mouseleave', () => { queue = setPaused(queue, t.id, false); });
+      el.addEventListener('focusin', () => { queue = setPaused(queue, t.id, true); }); el.addEventListener('focusout', () => { queue = setPaused(queue, t.id, false); });
+      el.addEventListener('keydown', (e) => { const r = handleToastKey(e, t.id); if (r.action === 'dismiss') dismissFocused(r.id); });
+      return el;
+    }));
+  }
+  for (const b of document.querySelectorAll('[data-toast]')) b.addEventListener('click', () => {
+    const tone = b.dataset.toast; queue = enqueue(queue, createToast({ id: 't' + (++seq), tone, title: `${tone} toast`, body: tone === 'danger' ? 'Sticky until dismissed (Escape or ✕).' : 'Auto-dismisses; hover or focus to pause.' })); renderToasts();
+  });
+  setInterval(() => { const now = performance.now(); const { queue: q, expired } = tick(queue, now - last); last = now; if (expired.length) { queue = q; renderToasts(); } else queue = q; }, 250);
+
+  // Pack switcher — the matrix axis
+  const packSel = document.getElementById('pack');
+  packSel.addEventListener('change', () => { document.documentElement.dataset.swPack = packSel.value; });
+
+  // Determinism / capture mode (§11.A7): ?capture=1 zeroes motion
+  if (new URLSearchParams(location.search).get('capture') === '1') {
+    document.documentElement.style.setProperty('--sw-motion', '0');
+    document.body.dataset.mode = 'capture';
+    document.getElementById('mode-flag').hidden = false;
+  }
+
+  // Copy-usage snippets (§9.4)
+  const SNIPPETS = {
+    buttons: '<button type="button" class="sw-btn sw-btn--primary">Label</button>',
+    cards: '<article class="sw-card sw-card--data">…</article>',
+    inputs: '<label class="sw-field"><span class="sw-field__label">Label</span><input class="sw-input" /></label>',
+    modals: 'import { getModalAttrs, handleModalKey } from "@swan/forge/core/modal";',
+    tabs: 'import { getTabsState, getTabAttrs, handleTabKey } from "@swan/forge/core/tabs";',
+    nav: 'import { getNavState, getNavLinkAttrs, reduceNav } from "@swan/forge/core/nav";',
+    cluster: '<div class="sw-cluster"><article class="sw-card sw-card--data sw-card--metric">…</article></div>',
+    auth: '<form class="sw-auth"><div class="sw-auth__form"><label class="sw-field">…</label><button type="submit" class="sw-btn sw-btn--primary">Sign in</button></div></form>',
+    primitives: '<span class="sw-pill sw-pill--gold">label</span> <span class="sw-badge">7</span> <span class="sw-avatar">sw</span>',
+    table: '<table class="sw-table">…<td data-label="Sessions" class="is-numeric">128</td>…</table>',
+    toasts: 'import { createToast, enqueue, tick, getToastAttrs } from "@swan/forge/core/toast";',
+  };
+  for (const btn of document.querySelectorAll('[data-copy]')) {
+    btn.addEventListener('click', async () => {
+      const snippet = SNIPPETS[btn.dataset.copy];
+      if (!snippet) { btn.textContent = 'No snippet'; setTimeout(() => { btn.textContent = 'Copy usage'; }, 1200); return; }
+      try { await navigator.clipboard.writeText(snippet); btn.textContent = 'Copied ✓'; }
+      catch { btn.textContent = 'Copy failed'; }
+      setTimeout(() => { btn.textContent = 'Copy usage'; }, 1200);
+    });
+  }
+  document.getElementById('pack-starter').addEventListener('click', async (e) => {
+    try {
+      const res = await fetch('../tokens/packs/swanguard-editorial.css');
+      if (!res.ok) throw new Error(String(res.status));
+      await navigator.clipboard.writeText(await res.text());
+      e.target.textContent = 'Copied ✓';
+    } catch { e.target.textContent = 'Copy failed'; }
+    setTimeout(() => { e.target.textContent = 'Copy pack starter'; }, 1200);
+  });
+
+  // Modal wiring through the headless core (the gallery consumes the real core)
+  const modal = document.getElementById('modal');
+  const scrim = document.getElementById('scrim');
+  let state = getModalState({ open: false });
+  let lastFocus = null;
+  function render() {
+    modal.classList.toggle('is-open', state.open);
+    scrim.classList.toggle('is-open', state.open);
+    modal.dataset.state = scrim.dataset.state = state.open ? 'open' : 'closed';
+  }
+  function open(variant) {
+    lastFocus = document.activeElement;
+    modal.className = `sw-modal sw-modal--${variant}`;
+    state = getModalState({ open: true, variant });
+    render();
+    (modal.querySelector(FOCUSABLE_SELECTOR) ?? modal).focus();
+  }
+  function close() { state = getModalState({ open: false, variant: state.variant }); render(); lastFocus?.focus(); }
+  for (const b of document.querySelectorAll('[data-open]')) b.addEventListener('click', () => open(b.dataset.open));
+  for (const b of modal.querySelectorAll('[data-close]')) b.addEventListener('click', close);
+  scrim.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => {
+    const { action } = handleModalKey(state, e);
+    if (action === 'close') close();
+    if (action === 'trap') {
+      const items = [...modal.querySelectorAll(FOCUSABLE_SELECTOR)];
+      const next = nextTrapIndex(items.indexOf(document.activeElement), items.length, e.shiftKey);
+      e.preventDefault();
+      if (next >= 0) items[next].focus();
+      else modal.focus(); // zero-focusable fallback: Tab must never leak to the page
+    }
+  });
+</script>
+</body>
+</html>

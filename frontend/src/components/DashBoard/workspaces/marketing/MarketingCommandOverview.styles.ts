@@ -250,6 +250,18 @@ export const ChannelWon = styled.span`
   white-space: nowrap;
 `;
 
+export const SubsectionLabel = styled.h4`
+  margin: 18px 0 8px;
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary, rgba(224, 236, 244, 0.78));
+  border-top: 1px solid var(--border-subtle, rgba(96, 192, 240, 0.14));
+  padding-top: 14px;
+`;
+
 export const ChannelEmpty = styled.p`
   margin: 4px 0 0;
   font-family: 'Sora', sans-serif;

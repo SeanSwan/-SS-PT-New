@@ -26,6 +26,16 @@
  * WHAT IT DOES NOT DO: scroll-lock or `inert` on the background. Callers own
  * those, because they differ per surface (the drawer uses a body class).
  *
+ * ONE ACTIVE TRAP AT A TIME. The keydown listener is document-global, so two
+ * simultaneously-active traps would each pull focus back on every Tab — a focus
+ * war with no winner. Today the drawer is the only caller and the closed drawer
+ * sets `visibility: hidden`, which removes it from the tab order, so there is no
+ * live conflict. Before migrating the three in-house modals onto this hook
+ * (PdfApprovalVault, ClientPlanDetailModal, PostSaveHandoff), add a stack so the
+ * most recently activated trap is the only one that acts. Raised by GLM 5.3 on
+ * the post-ship panel; recorded here rather than built speculatively for a
+ * second caller that does not yet exist.
+ *
  * Honors `active` changing at any time; every listener is removed on cleanup.
  */
 import { useEffect, type RefObject } from 'react';

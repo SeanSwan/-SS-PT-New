@@ -11,7 +11,7 @@ import {
   Camera, UserCircle, FileSignature, PlayCircle, Globe,
 } from 'lucide-react';
 
-import GlowButton from '../../../components/ui/buttons/GlowButton';
+import ForgeButton from '../../../components/ui/forge/ForgeButton'; // Forge strangler (was GlowButton)
 import OrientationForm from '../../../components/OrientationForm/orientationForm';
 import ParallaxHero from '../../../components/ui-kit/cinematic/ParallaxHero';
 import ScrollReveal from '../../../components/ui-kit/cinematic/ScrollReveal';
@@ -460,7 +460,7 @@ const ProgramBadge = styled.span`
   right: 16px;
   background: ${({ theme }) => theme.colors.primary};
   color: ${({ theme }) =>
-    theme.id === 'crystalline-light' ? '#FFFFFF' : theme.background.primary};
+    theme.id === 'crystalline-light' ? '#FFFFFF' : theme.background.primary}; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23) */
   font-family: ${({ theme }) => theme.fonts.ui};
   font-size: 0.75rem;
   font-weight: 700;
@@ -692,7 +692,7 @@ const TestimonialCard = styled.div`
 const StarRating = styled.div`
   display: flex;
   gap: 4px;
-  color: ${({ theme }) => theme.colors.accent || '#C6A84B'};
+  color: ${({ theme }) => theme.colors.accent || '#C6A84B'}; /* swan-guard-allow-hex pre-existing legacy literal, untouched by the Forge strangler; token migration is its own backlog slice (FORGE-STRANGLER-BACKLOG; ticket SWA-206; expires 2026-11-23) */
 `;
 
 const TestimonialQuote = styled.div`
@@ -958,35 +958,35 @@ const HomePageV3: React.FC = () => {
       {/* ── 1. HERO ──────────────────────────────────── */}
       <ParallaxHero videoSrc={VIDEO.swans} overlayOpacity={0.55} minHeight="100vh">
         <QuickNav aria-label="Quick navigation">
-          <GlowButton
+          <ForgeButton
             text="Social Profile"
             variant="accent"
             size="small"
             leftIcon={<Globe size={14} />}
             onClick={() => navigate('/user-dashboard')}
           />
-          <GlowButton
+          <ForgeButton
             text="Dashboard"
             variant="primary"
             size="small"
             leftIcon={<UserCircle size={14} />}
             onClick={() => navigate('/dashboard')}
           />
-          <GlowButton
+          <ForgeButton
             text="Photography"
             variant="gilded"
             size="small"
             leftIcon={<Camera size={14} />}
             onClick={() => navigate('/gallery')}
           />
-          <GlowButton
+          <ForgeButton
             text="Waiver"
             variant="ghost"
             size="small"
             leftIcon={<FileSignature size={14} />}
             onClick={() => navigate('/waiver')}
           />
-          <GlowButton
+          <ForgeButton
             text="Video Library"
             variant="ghost"
             size="small"
@@ -1002,14 +1002,14 @@ const HomePageV3: React.FC = () => {
           NCEP-Certified Personal Training &middot; 26+ Years of Experience &middot; NASM-Guided Protocols
         </HeroSubtitle>
         <HeroButtons>
-          <GlowButton
+          <ForgeButton
             text="Start My Fitness Journey"
             variant="primary"
             size="large"
             onClick={() => navigate('/shop')}
             animateOnRender
           />
-          <GlowButton
+          <ForgeButton
             text="Book Free Consultation"
             variant="accent"
             size="large"
@@ -1076,7 +1076,7 @@ const HomePageV3: React.FC = () => {
           </ProgramsGrid>
 
           <CenteredAction>
-            <GlowButton
+            <ForgeButton
               text="View All Packages"
               variant="accent"
               size="medium"
@@ -1135,7 +1135,7 @@ const HomePageV3: React.FC = () => {
                   training addresses the physical demands of the game. Improve your drive distance,
                   reduce your handicap, and play pain-free.
                 </p>
-                <GlowButton
+                <ForgeButton
                   text="Improve Your Game"
                   variant="primary"
                   size="medium"
@@ -1224,7 +1224,7 @@ const HomePageV3: React.FC = () => {
           </ApproachGrid>
 
           <CenteredAction $topMargin="2rem">
-            <GlowButton
+            <ForgeButton
               text="Learn More"
               variant="ghost"
               size="medium"
@@ -1343,7 +1343,7 @@ const HomePageV3: React.FC = () => {
 
           <ScrollReveal delay={0.6}>
             <CenteredAction $topMargin="2.5rem">
-              <GlowButton
+              <ForgeButton
                 text="Join the Community"
                 variant="accent"
                 size="large"
@@ -1370,13 +1370,13 @@ const HomePageV3: React.FC = () => {
               NASM protocols and 26+ years of expertise.
             </CTAText>
             <CTAButtons>
-              <GlowButton
+              <ForgeButton
                 text="Start Today"
                 variant="accent"
                 size="large"
                 onClick={() => navigate('/shop')}
               />
-              <GlowButton
+              <ForgeButton
                 text="Contact Us"
                 variant="ghost"
                 size="large"

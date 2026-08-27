@@ -7,7 +7,7 @@
 import express from 'express';
 import { Op } from 'sequelize';
 import { protect, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
-import { aggregateLeadChannels } from '../services/leadCaptureShared.mjs';
+import { aggregateLeadChannels, aggregateLeadReferrers } from '../services/leadCaptureShared.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -20,7 +20,8 @@ router.use(trainerOrAdminOnly);
 const getModels = async () => {
   const { default: Lead } = await import('../models/Lead.mjs');
   const { default: LeadActivity } = await import('../models/LeadActivity.mjs');
-  return { Lead, LeadActivity };
+  const { default: User } = await import('../models/User.mjs');
+  return { Lead, LeadActivity, User };
 };
 
 // Spirit name system removed — using anonymous Client #ID system instead
@@ -92,7 +93,7 @@ router.get('/', async (req, res) => {
  */
 router.get('/stats', async (req, res) => {
   try {
-    const { Lead } = await getModels();
+    const { Lead, User } = await getModels();
 
     const where = {};
     if (req.user.role === 'trainer') {
@@ -131,11 +132,31 @@ router.get('/stats', async (req, res) => {
     const channelRows = await Lead.findAll({ where, attributes: ['tags', 'source', 'status'], limit: 5000 });
     const byChannel = aggregateLeadChannels(channelRows);
 
+    // Referral rollup: which clients bring leads (share links carry a signed ?ref=). Ids +
+    // first name only; best-effort - a name lookup failure must not fail the stats call.
+    let byReferrer = [];
+    try {
+      const referralRows = await Lead.findAll({
+        where: { ...where, referredByUserId: { [Op.ne]: null } },
+        attributes: ['referredByUserId', 'status'], limit: 5000,
+      });
+      byReferrer = aggregateLeadReferrers(referralRows);
+      if (byReferrer.length && User) {
+        const users = await User.findAll({
+          where: { id: byReferrer.map((r) => r.referrerId) }, attributes: ['id', 'firstName'],
+        });
+        const names = new Map(users.map((u) => [Number(u.id), u.firstName || null]));
+        byReferrer = byReferrer.map((r) => ({ ...r, firstName: names.get(r.referrerId) ?? null }));
+      }
+    } catch (refErr) {
+      logger.warn('[Leads] Referral rollup skipped:', refErr.message);
+    }
+
     return res.json({
       success: true,
       stats: {
         total, new: newLeads, contacted, qualified, scheduled, converted, lost,
-        conversionRate, needsFollowUp, hotLeads, byChannel,
+        conversionRate, needsFollowUp, hotLeads, byChannel, byReferrer,
       },
     });
   } catch (err) {

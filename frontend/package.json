@@ -73,7 +73,8 @@
     "three": "^0.169.0",
     "uuid": "^13.0.0",
     "victory": "^37.3.6",
-    "vite": "^6.4.3"
+    "vite": "^6.4.3",
+    "@swan/forge": "file:../packages/swan-forge"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
