@@ -31,8 +31,34 @@ export default {
     'tests/api/aiCommandTrainerScopeOwnership.contract.test.mjs',
     'tests/api/aiCommandPlanArchiveOwnership.contract.test.mjs',
     'tests/api/aiCommandConfirmLaneReauthorization.contract.test.mjs',
+    'tests/unit/clientResolverScopeFailClosed.test.mjs',
+    'tests/unit/commandAuditNeverRejects.test.mjs',
   ],
   mutations: [
+    {
+      "id": "M47 plan archive: name the probed client in the denial audit row",
+      "file": "services/ai/dispatchers/workoutPlanCommandDispatchers.mjs",
+      "find": "      outcome: 'denied',",
+      "replace": "      outcome: 'denied', targetClientId: planForAuth.userId,"
+    },
+    {
+      "id": "M46 plan archive: a SYNCHRONOUS audit throw escapes auditQuietly",
+      "file": "services/ai/dispatchers/workoutPlanCommandDispatchers.mjs",
+      "find": "    Promise.resolve(recordCommandAudit(entry)).catch(() => {});",
+      "replace": "    if (entry) throw new Error('sync'); Promise.resolve(recordCommandAudit(entry)).catch(() => {});"
+    },
+    {
+      "id": "M44 resolver guard ALONE removed — now pinned directly, no longer needs the compound",
+      "file": "services/ai/clientResolver.mjs",
+      "find": "  if (scopeRequested && !hasTrainerScope) {",
+      "replace": "  if (false) {"
+    },
+    {
+      "id": "M45 plan archive: stop recording the ABSENCE probe (the larger half of an id sweep)",
+      "file": "services/ai/dispatchers/workoutPlanCommandDispatchers.mjs",
+      "find": "      errorCode: 'handler_plan_absent',",
+      "replace": "      errorCode: 'handler_denied_plan_access',"
+    },
     {
       "id": "M42 BOTH fail-open guards removed: trainer scope reverts to unscoped-by-garbage",
       "parts": [
@@ -51,8 +77,8 @@ export default {
     {
       "id": "M43 plan archive: deny silently, leaving no server-side record of the probe",
       "file": "services/ai/dispatchers/workoutPlanCommandDispatchers.mjs",
-      "find": "    recordCommandAudit({",
-      "replace": "    if (false) recordCommandAudit({"
+      "find": "  if (!permitted) {",
+      "replace": "  if (!permitted) { return planNotAvailable(planId);"
     },
     {
       "id": "M40 confirm lane: stop checking role at redemption entirely",
@@ -231,14 +257,14 @@ export default {
     {
       "id": "M17 plan archive: check access against the wrong id (the plan is not the client)",
       "file": "services/ai/dispatchers/workoutPlanCommandDispatchers.mjs",
-      "find": "assertAssignmentOrAdmin(ctx.user?.id, ctx.user?.role, plan.userId)",
+      "find": "assertAssignmentOrAdmin(ctx.user?.id, ctx.user?.role, planForAuth.userId)",
       "replace": "assertAssignmentOrAdmin(ctx.user?.id, ctx.user?.role, ctx.user?.id)"
     },
     {
       "id": "M18 plan archive: distinguish denial from absence",
       "file": "services/ai/dispatchers/workoutPlanCommandDispatchers.mjs",
-      "find": "    recordCommandAudit({",
-      "replace": "    return { ...planNotAvailable(planId), denied: true }; recordCommandAudit({"
+      "find": "  if (!permitted) {",
+      "replace": "  if (!permitted) { return { ...planNotAvailable(planId), denied: true };"
     },
     {
       "id": "M19 assertAssignmentOrAdmin: fail OPEN when the lookup throws",

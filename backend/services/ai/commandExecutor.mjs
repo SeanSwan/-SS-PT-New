@@ -22,6 +22,7 @@ import { getCommand } from './commandRegistry/index.mjs';
 import { createCommandErrorOutcome } from './commandOutcomeContract.mjs';
 import { authorizeCommandCapability } from './commandCapabilityPolicy.mjs';
 import { resolveClient } from './clientResolver.mjs';
+import { toPositiveInteger } from './positiveInteger.mjs';
 import { assertAssignmentOrAdmin } from '../../middleware/verifyClientAccess.mjs';
 import { rehydrateResponse } from './deIdentifier.mjs';
 import {
@@ -121,20 +122,6 @@ function createContext(rawInput, user, options = {}) {
 }
 
 const CLIENT_ID_VALIDATION_SENTINEL = 1;
-
-const toPositiveInteger = (value) => {
-  if (typeof value === 'number') {
-    return Number.isSafeInteger(value) && value > 0 ? value : null;
-  }
-
-  if (typeof value !== 'string') return null;
-
-  const trimmed = value.trim();
-  if (!/^[1-9]\d*$/.test(trimmed)) return null;
-
-  const parsed = Number(trimmed);
-  return Number.isSafeInteger(parsed) ? parsed : null;
-};
 
 const debateTypeForCommandType = (commandType) => (
   typeof commandType === 'string' ? DEBATE_TYPE_BY_COMMAND[commandType] || null : null

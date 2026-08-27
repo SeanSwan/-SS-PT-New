@@ -161,7 +161,49 @@ describe('Swan Coach plan-archive ownership', () => {
     expect(row, 'a cross-tenant denial was not recorded anywhere').toBeTruthy();
     expect(row.errorCode).toBe('handler_denied_plan_access');
     expect(row.userId).toBe(OUR_TRAINER);
-    expect(row.targetClientId).toBe(FOREIGN_CLIENT);
+    // The probe TARGET is recorded — it is the caller's own input and reconstructs the
+    // campaign. The probe's VICTIM is deliberately NOT: an earlier version wrote
+    // `targetClientId: plan.userId`, which froze a third party's linkage into a retained
+    // security log on the strength of a guess that happened to collide. Detection does not
+    // require naming the person who was nearly exposed, and the owner can be joined from the
+    // plans table by someone who has a reason to look.
+    expect(row.params).toEqual({ planId: FOREIGN_PLAN });
+    expect(
+      row.targetClientId,
+      'the denial row names the client whose plan was probed',
+    ).toBeUndefined();
+  });
+
+  it('records the ABSENCE probe too — the larger half of an enumeration sweep', async () => {
+    // Panel round 5 (GLM Flash). Auditing only "exists, but not yours" sees the smallest
+    // slice of an id walk: most probes hit ids that do not exist, so the detection signal is
+    // the VOLUME of misses, and that was the part going unrecorded. The two are recorded
+    // under DIFFERENT codes so an operator can tell a sweep from a stale UI — while the
+    // caller's response stays identical, which is the property that must not move.
+    await dispatchDeleteWorkoutPlan({ planId: 999999 }, { user: trainer });
+    await vi.waitFor(() => expect(auditMock).toHaveBeenCalled());
+    const row = auditMock.mock.calls.map(([r]) => r).find((r) => r?.errorCode === 'handler_plan_absent');
+    expect(row, 'an absence probe left no record').toBeTruthy();
+    expect(row.userId).toBe(OUR_TRAINER);
+  });
+
+  it('denies normally even if the audit write itself blows up', async () => {
+    // Both audit calls are fire-and-forget on a DENIAL path. An unawaited promise that
+    // rejects is an unhandled rejection, which Node treats as fatal by default — so a
+    // best-effort audit could turn "the audit table hiccuped" into "the process died", on
+    // the least-observed path there is.
+    //
+    // `recordCommandAudit` catches internally (pinned in commandAuditNeverRejects.test.mjs),
+    // but this caller does not depend on that: `auditQuietly` enforces it locally. This is
+    // what proves the local guard is real rather than decorative.
+    auditMock.mockImplementation(() => Promise.reject(new Error('audit backend is down')));
+    const result = await dispatchDeleteWorkoutPlan({ planId: FOREIGN_PLAN }, { user: trainer });
+    expect(result.planFound, 'a failing audit changed the denial the caller sees').toBe(false);
+    expect(transitionMock).not.toHaveBeenCalled();
+    // And a synchronous throw, which `.catch()` alone would not contain.
+    auditMock.mockImplementation(() => { throw new Error('audit threw synchronously'); });
+    const second = await dispatchDeleteWorkoutPlan({ planId: FOREIGN_PLAN }, { user: trainer });
+    expect(second.planFound).toBe(false);
   });
 
   it('scopes on the plan\'s CLIENT, not its author — deliberately, for parity', async () => {

@@ -29,6 +29,34 @@ import { assertAssignmentOrAdmin } from '../../../middleware/verifyClientAccess.
 import { recordCommandAudit } from '../commandAudit.mjs';
 
 /**
+ * Audit without being able to hurt the caller.
+ *
+ * `recordCommandAudit` already catches everything internally and resolves `false` on failure
+ * — that is verified in `tests/unit/commandAuditNeverRejects.test.mjs`, not assumed. But both
+ * calls below are fire-and-forget on a DENIAL path, and an unawaited promise that ever did
+ * reject would be an unhandled rejection, which Node treats as fatal by default. Best-effort
+ * auditing would become "the audit table hiccuped, so the process died".
+ *
+ * So the invariant is enforced HERE rather than borrowed from there. Same reasoning as the
+ * scope guard this file's sibling carries in two places: a caller should not depend on
+ * another module's internals for its own crash-safety, because that module's contract is
+ * free to change and nothing would fail loudly when it did.
+ *
+ * BOTH forms are contained, and the second is why this is a try/catch and not a bare
+ * `.catch()`. A rejected promise and a SYNCHRONOUS throw are different failures: the throw
+ * happens while the argument is being evaluated, before `Promise.resolve` is ever reached, so
+ * `.catch()` alone would let it escape. The first draft here was a bare `.catch()`; the test
+ * that names the synchronous case is what caught it.
+ */
+const auditQuietly = (entry) => {
+  try {
+    Promise.resolve(recordCommandAudit(entry)).catch(() => {});
+  } catch {
+    // Deliberately silent: the caller is already on a denial path and has an answer to give.
+  }
+};
+
+/**
  * Denial and absence are the same answer on purpose.
  *
  * `verifyClientAccessByPlanId` — the middleware guarding the REST route to this same
@@ -62,9 +90,32 @@ export async function dispatchDeleteWorkoutPlan(params = {}, ctx = {}) {
   // and records it for audit, which is why its own comment says it applies one ALREADY
   // authorized action. Authorizing it is this caller's job, exactly as it is the REST
   // route's, and through the same helper that route's middleware uses.
-  const plan = await WorkoutPlan.findByPk(planId);
-  if (!plan) return planNotAvailable(planId);
-  const permitted = await assertAssignmentOrAdmin(ctx.user?.id, ctx.user?.role, plan.userId);
+  //
+  // Named for its ROLE, not its type. The success path below binds its own "plan" from the
+  // lifecycle result — a different row at a different moment — and an earlier draft of this
+  // fix called both of them "plan", so a reader inside the try block saw a name that had
+  // silently changed meaning. In a function whose whole job is deciding who may act on which
+  // record, two rows sharing one name is not a style question.
+  const planForAuth = await WorkoutPlan.findByPk(planId);
+  if (!planForAuth) {
+    // The ABSENCE probe is audited too, and that is the half a review caught me missing.
+    // Recording only "exists, but not yours" sees the smallest slice of an enumeration
+    // attack: someone walking ids mostly hits ids that do not exist, so the signal is the
+    // VOLUME of misses, and that was the part going unrecorded. Distinguishable code so an
+    // operator can separate a probe sweep from a stale UI; identical response either way.
+    auditQuietly({
+      userId: ctx.user?.id,
+      userRole: ctx.user?.role,
+      commandType: 'delete_workout_plan',
+      params: { planId },
+      destructive: true,
+      confirmationState: 'confirmed',
+      outcome: 'not_wired',
+      errorCode: 'handler_plan_absent',
+    });
+    return planNotAvailable(planId);
+  }
+  const permitted = await assertAssignmentOrAdmin(ctx.user?.id, ctx.user?.role, planForAuth.userId);
   if (!permitted) {
     // The RESPONSE stays indistinguishable from "no such plan" — that is the whole point of
     // the 404-parity design. The SERVER-SIDE record must not be. Without this line, a caller
@@ -72,11 +123,18 @@ export async function dispatchDeleteWorkoutPlan(params = {}, ctx = {}) {
     // enumeration attack the parity design anticipates is invisible in the only place
     // detection could live. Best-effort and never thrown: an audit write must not be able to
     // turn a denial into a 500.
-    recordCommandAudit({
+    // The probe TARGET is recorded; the probe's VICTIM is not. An earlier draft wrote
+    // `targetClientId: planForAuth.userId`, which attests "user X probed a plan belonging to
+    // client Y" — freezing Y's linkage into a retained security log on the strength of a
+    // guess that happened to collide. This file's own doctrine is bounded identifiers, and
+    // `planId` is the caller's OWN input: it reconstructs the campaign just as well, and the
+    // owner can be joined from the plans table at investigation time by someone who has a
+    // reason to look. Detection does not require naming the person who was nearly exposed.
+    auditQuietly({
       userId: ctx.user?.id,
       userRole: ctx.user?.role,
       commandType: 'delete_workout_plan',
-      targetClientId: plan.userId ?? null,
+      params: { planId },
       destructive: true,
       confirmationState: 'confirmed',
       outcome: 'denied',

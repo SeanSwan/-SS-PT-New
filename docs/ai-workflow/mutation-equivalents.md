@@ -72,3 +72,28 @@ hatch that quietly lowers the 0.80 floor to whatever the author needs it to be.
 **Invalid mutant, recorded so it is not miscounted as a survivor:** `const sameFile = corpseStat` →
 `true && corpseStat` is semantically identical (the rest of the conjunction lives on later lines).
 A no-op mutation is not evidence of weak tests; it is evidence of a bad `sed`.
+
+---
+
+## Cycle 2026-08-26 — Swan Coach ownership (`ownership.mutations.mjs`)
+
+### EQUIVALENT — the lane-side trainer-id guard, while the resolver-side guard stands
+
+- **Mutation not added:** removing `if (ctx.user.role === 'trainer' && !toPositiveInteger(ctx.user.id))`
+  from `stepResolveClient` on its own.
+- **Observable difference:** none, today. `resolveClient` now refuses independently when a
+  scope is requested and cannot be computed, so the lane guard's removal changes no outcome
+  any test can reach. A single-guard mutation SURVIVES, and a survivor here would read as
+  vacuity when it is in fact defence in depth.
+- **Why it is kept anyway:** the resolver serves callers outside this lane, and a lane must
+  not depend on a shared helper's internals for its own safety. The guard exists against the
+  resolver's contract changing — which is a thing that has happened once already this week.
+- **What IS pinned:** the resolver half directly, by
+  `tests/unit/clientResolverScopeFailClosed.test.mjs` (M44 fires on it alone). Both halves
+  together by the compound M42. Only the lane half alone is unobservable.
+- **Verdict:** EQUIVALENT while the resolver guard stands. Excluded from the denominator.
+  If the resolver guard is ever removed or relaxed, this adjudication expires and the lane
+  guard must be pinned directly.
+
+Raised by GLM 5.3 Flash, 2026-08-26: *"M42's compound form is the only pin for either guard."*
+Correct at the time. Half of it is now decomposed; this records why the other half is not.

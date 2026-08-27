@@ -62,7 +62,11 @@ describe('mutation harness anchor guard', () => {
     // The set is the harness's real input. If it ever stops satisfying the guard, the
     // guard is what fails — loudly, before anything is modified.
     expect(unusableAnchors(ownershipMutations.mutations)).toEqual([]);
+    // Floors, not exact counts. An exact count fails every time the set GROWS, which trains
+    // the next person to edit the number without reading why it moved — and this one did
+    // exactly that the first time two suites were added. A floor still catches the failure
+    // that matters: a set silently shrinking to nothing.
     expect(ownershipMutations.mutations.length).toBeGreaterThanOrEqual(29);
-    expect(ownershipMutations.suites.length).toBe(4);
+    expect(ownershipMutations.suites.length).toBeGreaterThanOrEqual(4);
   });
 });

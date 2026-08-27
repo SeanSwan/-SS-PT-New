@@ -15,6 +15,7 @@
  */
 import { QueryTypes } from 'sequelize';
 import logger from '../../utils/logger.mjs';
+import { toPositiveInteger } from './positiveInteger.mjs';
 
 // ── Levenshtein Distance ────────────────────────────────────────────────────
 
@@ -109,8 +110,13 @@ function scoreMatch(client, ref) {
  */
 export async function resolveClient(clientRef, sequelize, options = {}) {
   const { trainerId, maxSuggestions = 3 } = options;
-  const scopedTrainerId = Number.parseInt(trainerId, 10);
-  const hasTrainerScope = Number.isInteger(scopedTrainerId) && scopedTrainerId > 0;
+  // The SAME coercion the command lane uses. These were two different rules: `parseInt` is
+  // lenient by design — it reads as far as it can and ignores the rest — so `'12px'` became
+  // trainer 12 here while the lane refused it, and `'1e3'` became trainer 1. Nothing
+  // exploitable came of the divergence, and only because the lane's guard happens to run
+  // first: the safety was a property of the call ORDER, not of either function.
+  const scopedTrainerId = toPositiveInteger(trainerId);
+  const hasTrainerScope = scopedTrainerId !== null;
 
   // "Unscoped by design" and "unscoped because the id was garbage" used to be the same
   // value, and the same value meant NO SCOPE CLAUSE — so a caller that asked to be scoped
