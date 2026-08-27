@@ -129,6 +129,73 @@ new `swan-radar-console-20260827` key. Backup of the previous file is at
    read the whole filesystem; `sswan` still has passwordless sudo. Both are on GLM's hardening
    list and neither is closed by this session.
 
+## 5b. CORRECTION 2026-08-27 — "disable key expiry" did NOT close the risk
+
+Hostile review by GLM-5.3 and GLM-5.3-Flash (both, independently) killed a claim made earlier in
+this document and in chat. Recording it because the wrong version is the comfortable one.
+
+**The claim that was wrong:** "Sean disabled key expiry, so the expiry trap is solved."
+
+**Why it is wrong:** the *Disable key expiry* toggle is **per-registration state**, not a property
+of the machine. Any future re-authentication — `tailscale up --force-reauth`, a logout/login, an
+OS reinstall, a box migration, or an agent re-running `tailscale up` — creates a **fresh
+registration with expiry re-enabled by default, silently**. The day-180 eviction is not closed;
+it is one re-auth away, and it is now *worse* than before, because everyone believes it is fixed
+and nothing is watching. A **tag** is the durable form of the same intent: tagged devices are
+tailnet-owned and have no node-key expiry at all, and the property rides the registration.
+
+**Where the risk actually lives** (also mispriced earlier): the ACL edit is `tagOwners` only,
+which grants tag-*management* rights and moves zero packets under any sane policy. It is
+connectivity-inert. The one operation with teeth is the **node-side re-auth**, and its mitigation
+was already in hand and unstated: **LAN SSH is not governed by tailnet ACLs, so you run the
+re-auth FROM the LAN session** and it cannot strand you.
+
+### Verified preconditions (measured, not assumed)
+
+| Fact | Value | Why it matters |
+|---|---|---|
+| `RunSSH` | `false` | Plain sshd, NOT built-in Tailscale SSH → no `ssh` stanza needed in the ACL |
+| Tailnet Lock | **not enabled** | Would otherwise intercept the node-key rotation at re-auth |
+| Non-default prefs | `Hostname=swan-radar`, `CorpDNS=false` | **The only two flags a re-`up` must restate** |
+| `tailscale set --advertise-tags` | **does not exist on 1.102.3** | Flash's primary command is unavailable here; use `tailscale up` |
+
+### Runbook (LAN session open throughout)
+
+1. **Sean, in the ACL editor** — additive, version-history backed, connectivity-inert:
+   ```json
+   "tagOwners": { "tag:server": ["autogroup:member"] }
+   ```
+2. **From the LAN SSH session** (restating the two measured non-default prefs — a bare
+   `tailscale up` would silently reset them):
+   ```
+   sudo tailscale up --advertise-tags=tag:server --hostname=swan-radar --accept-dns=false
+   ```
+3. Sean clicks the login URL once. Tailnet SSH sessions to the box drop for seconds; the LAN
+   session survives.
+4. **Verify:** `.Self.Tags == ["tag:server"]`, `.Self.KeyExpiry == null`, same Tailscale IP and
+   DNSName, exactly ONE machine entry in the console, both `ssh radar` and `ssh radar-net` back.
+
+**Rollback is asymmetric — do not skip this.** Untagging returns the node to user ownership via
+another re-auth, and that new registration comes back with **key expiry ENABLED**. Rolling back
+therefore *reopens* the original failure mode unless the toggle is re-applied immediately.
+
+### Foot-gun to record before it bites
+
+A tagged device is **not** in `autogroup:member`. The most common first real ACL anyone writes is
+`src: ["autogroup:member"]` — the moment Sean tightens the policy that way, this box silently
+loses *initiator* access (updates, outbound, monitoring) while still being reachable as a
+destination. Silent, and typically found weeks later.
+
+### Also raised and not yet done
+
+- **Expiry watchdog.** If the tag is deferred, the minimum accompanying deliverable is something
+  that checks `.Self.KeyExpiry` and shouts — otherwise "it's fine" is unmonitored belief.
+- **Provisioning artifact.** The durable answer for future boxes is a **pre-auth key with
+  `tag:server` baked in** (tagged at birth, no re-auth dance) — not prose ACL text.
+- **Stale-device hygiene:** the tailnet still lists nodes 63d and 21d offline.
+- **Do not browser-automate the admin console.** Both reviewers called it a category error: the
+  console has an HTTP API and the box has a CLI.
+
 ## 6. Re-entry for the next agent
 
 ```
