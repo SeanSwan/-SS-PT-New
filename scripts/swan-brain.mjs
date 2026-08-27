@@ -17,8 +17,17 @@
  * Quote sparingly in commits and docs: cite the source, do not paste the corpus.
  */
 import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
+import { basename } from 'node:path';
 
-const VAULT = '/home/bigotsmasher/hermes2/brain-vault';
+// The vault lives in the WSL home, not the Windows home. $USER is the POSIX
+// account when running under WSL; otherwise fall back to the Windows account
+// LOWERCASED, because WSL usernames are lowercase while Windows ones are not.
+// SWAN_BRAIN_VAULT overrides both — set it if your WSL name differs beyond case,
+// or the vault moves. (Was hardcoded to one machine's path until 2026-08-27.)
+const VAULT_USER = process.env.SWAN_BRAIN_USER || process.env.USER
+  || (process.env.USERNAME || basename(homedir() || '')).toLowerCase();
+const VAULT = process.env.SWAN_BRAIN_VAULT || `/home/${VAULT_USER}/hermes2/brain-vault`;
 const argv = process.argv.slice(2);
 const flag = (f, d = null) => { const i = argv.indexOf(f); return i > -1 && argv[i + 1] ? argv[i + 1] : d; };
 const has = (f) => argv.includes(f);

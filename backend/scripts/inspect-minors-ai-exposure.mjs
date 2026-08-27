@@ -7,7 +7,9 @@ import path from 'path';
 import pg from 'pg';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: 'c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT/backend/.env' });
+// Derived from this file's location (backend/scripts/ -> backend/.env), not a
+// hardcoded absolute path: the literal pinned the probe to one machine's account.
+dotenv.config({ path: path.resolve(here, '..', '.env') });
 
 const url = process.env.DATABASE_URL;
 if (!url) { console.log('DATABASE_URL: missing'); process.exit(1); }

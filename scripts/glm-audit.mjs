@@ -15,11 +15,17 @@
  *   node c:/tmp/glm-audit.mjs --slice money --send     # actually audit
  */
 
+import { fetchForEgress } from './lib/redact-egress.mjs';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const REPO = 'c:/Users/BigotSmasher/Desktop/quick-pt/SS-PT';
+// This file lives at <repo>/scripts/, so the repo root is one level up. Derived,
+// never hardcoded: the literal path pinned the tool to one machine's account
+// (and put that account name in a committed file). SWAN_REPO_ROOT overrides.
+const REPO = process.env.SWAN_REPO_ROOT
+  || resolve(dirname(fileURLToPath(import.meta.url)), '..').split('\\').join('/');
 const REF = 'origin/main';
 const MODEL = process.env.GLM_AUDIT_MODEL || 'glm-5.3';
 const ENDPOINT = 'https://api.z.ai/api/coding/paas/v4/chat/completions';
@@ -196,7 +202,7 @@ const started = Date.now();
 // headers immediately so the clock never starts. max_tokens must also exceed the
 // reasoning burn (~20k observed) or the body comes back EMPTY -- which reads
 // exactly like "no vulnerabilities found".
-const res = await fetch(ENDPOINT, {
+const res = await fetchForEgress(ENDPOINT, {
   method: 'POST',
   headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({

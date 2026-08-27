@@ -115,7 +115,12 @@ const requested = [...new Set(arg('--seats', 'glm,grokA,grokB,dspro,ox')
 // seats still run.
 let glmKey = process.env.GLM_API_KEY || process.env.ZAI_API_KEY || '';
 if (!glmKey) {
-  for (const p of ['/home/bigotsmasher/hermes2/.hermes/.env', '/home/bigotsmasher/.hermes/.env']) {
+  // WSL home, derived not hardcoded (2026-08-27). $USER is the POSIX account under
+  // WSL; otherwise fall back to the Windows account LOWERCASED, since WSL usernames
+  // are lowercase while Windows ones are not. HERMES_HOME overrides.
+  const hermesHome = process.env.HERMES_HOME
+    || `/home/${process.env.USER || (process.env.USERNAME || '').toLowerCase()}`;
+  for (const p of [`${hermesHome}/hermes2/.hermes/.env`, `${hermesHome}/.hermes/.env`]) {
     if (existsSync(p)) {
       const m = readFileSync(p, 'utf8').match(/^\s*GLM_API_KEY=(.+)$/m) || readFileSync(p, 'utf8').match(/^\s*ZAI_API_KEY=(.+)$/m);
       if (m && m[1].trim() && !m[1].startsWith('#')) { glmKey = m[1].trim(); break; }
