@@ -14,33 +14,66 @@
  */
 
 /**
+ * DOES THIS KEY BELONG TO THIS ROW'S OWNER?
+ *
+ * Every object key this codebase writes for an asset carries the owner as a path segment
+ * — `atelier/stills/<userId>/<sha>.<ext>` and `atelier/stills/<userId>/thumbs/<sha>.webp`.
+ * That convention is load-bearing here, because signing is a capability: `generateThumbnailUrl`
+ * presigns ANY key it is handed, with no prefix restriction, and hands the URL to a browser.
+ *
+ * WHY A READER VALIDATES WHAT A WRITER STORED. `posterR2Key` on a video row is not written
+ * by anything in this repository. It arrives as `...meta` spread from the request body of
+ * `POST /api/render-agents/jobs/:jobId/complete` (renderAgentRoutes.mjs:176) into
+ * `completeJob`'s rest parameter and on into `MediaAsset` defaults, and NOTHING validates
+ * it — `verifyObject` checks `r2Key` only. So an enrolled render agent can store a key
+ * pointing anywhere in the bucket, on a row it legitimately owns.
+ *
+ * Before this slice that was inert, because the library refused to sign non-image rows.
+ * Signing video posters is what would have turned it into a presign-anything oracle
+ * rendered into the operator's own page. A fix belongs at the writer too, but the reader
+ * must not be the component that trusts an unvalidated field — it is the one holding the
+ * signing capability.
+ *
+ * FAIL CLOSED. An unrecognised key yields no preview, which costs a placeholder. Trusting
+ * it costs a signed URL for someone else's object. Note for whoever adds a real video
+ * poster writer: PUT THE OWNER IN THE KEY, as every other writer here does, or this will
+ * (correctly) refuse to show it.
+ */
+export function keyBelongsTo(key, ownerUserId) {
+  if (typeof key !== 'string' || !key || ownerUserId === null || ownerUserId === undefined) return false;
+  return key.split('/').includes(String(ownerUserId));
+}
+
+/**
  * WHICH OBJECT A CARD SHOWS — one rule, deliberately not two branches.
  *
- * A card is a picture of the asset. Two facts decide the key, and they compose:
+ * A card is a picture of the asset. Three facts decide the key, and they compose:
  *
- *   1. A poster is ALWAYS preferred when one exists. It is the ~30 KB WebP the
- *      thumbnail slice writes for a still, and the frame the video job service
- *      records for a clip. Same column, same meaning, same precedence.
- *   2. Falling back to the primary object is legitimate ONLY when that object is
- *      itself a viewable still. `r2Key` on an image row is a PNG an <img> renders;
- *      on a video row it is an MP4, and signing it hands the browser a movie to
- *      decode as a picture — a guaranteed onError and a wasted signature. On an
- *      audio row there is nothing to look at at all.
+ *   1. A poster is PREFERRED when there is one. It is the ~30 KB WebP the thumbnail slice
+ *      writes for a still, and the frame a video writer would record for a clip. Same
+ *      column, same meaning, same precedence.
+ *   2. Falling back to the primary object is legitimate ONLY when that object is itself a
+ *      viewable still. `r2Key` on an image row is a PNG an <img> renders; on a video row it
+ *      is an MP4, and signing it hands the browser a movie to decode as a picture — a
+ *      guaranteed onError and a wasted signature. On audio there is nothing to look at.
+ *   3. Either candidate is signed ONLY if it belongs to this row's owner. See above: one
+ *      of the two is caller-supplied and unvalidated, and signing is a capability.
  *
  * WHY THIS IS ONE FUNCTION AND NOT AN `if (kind === 'video')` BESIDE THE IMAGE PATH.
- * The dominant defect class in this subsystem is a rule applied to one half of a
- * pair — sixteen of the review loop's thirty-one defects — and in every case the
- * comment above the code was accurate about the branch its author was looking at.
- * Adding guards never stopped it; deleting the second copy did. So the poster
- * preference is stated ONCE and the fallback carries its own condition, rather
- * than an image branch and a video branch that must be remembered together.
+ * The dominant defect class in this subsystem is a rule applied to one half of a pair —
+ * sixteen of the review loop's thirty-one defects, and four more found during this slice —
+ * and in every case the comment above the code was accurate about the branch its author was
+ * looking at. Adding guards never stopped it; deleting the second copy did. So precedence is
+ * stated once, the fallback carries its own condition, and the ownership check is applied to
+ * whatever is about to be signed rather than to the candidate someone remembered.
  *
  * Returns null when there is nothing showable — a degraded card, never an error.
  */
 export function previewKeyFor(row) {
-  if (!row) return null;   // a default parameter fires on undefined ONLY; null reached the deref
-  if (row.posterR2Key) return row.posterR2Key;
-  return row.kind === 'image' ? (row.r2Key || null) : null;
+  if (!row) return null;
+  if (keyBelongsTo(row.posterR2Key, row.ownerUserId)) return row.posterR2Key;
+  const original = row.kind === 'image' ? row.r2Key : null;
+  return keyBelongsTo(original, row.ownerUserId) ? original : null;
 }
 
 

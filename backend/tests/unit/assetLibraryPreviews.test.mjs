@@ -14,6 +14,9 @@ const Op = { contains: Symbol('contains'), or: Symbol('or'), lt: Symbol('lt') };
 
 const row = (over = {}) => ({
   id: over.id || '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+  // Real rows always carry this (MediaAsset.ownerUserId is allowNull: false) and the
+  // preview signer now reads it: a key is signed only if it belongs to this row's owner.
+  ownerUserId: 1,
   kind: 'image', mime: 'image/png', width: 1920, height: 1080, sizeBytes: '2048',
   approvalStatus: 'draft', createdAt: new Date('2026-08-26T10:00:00.000Z'),
   r2Key: 'atelier/stills/1/abc.png',

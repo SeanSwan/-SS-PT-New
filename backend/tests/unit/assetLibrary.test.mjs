@@ -255,3 +255,22 @@ describe('the filter allowlist cannot drift from the model', () => {
     expect([...APPROVAL_STATUSES].sort()).toEqual([...MEDIA_ASSET_APPROVAL_STATUSES].sort());
   });
 });
+
+describe('a seed the client cannot read is null, not NaN', () => {
+  it('a non-numeric seed tag becomes null rather than NaN', () => {
+    // Number('v2') is NaN, and JSON.stringify emits NaN as null — so this already
+    // ARRIVED as null, with nothing logged and no error, and a render's reproduction
+    // anchor was lost silently. Now it is null on purpose.
+    const v = assetView({ id: 'a', tags: ['seed:v2'], provenance: {} });
+    expect(v.seed).toBeNull();
+    expect(Number.isNaN(v.seed)).toBe(false);
+  });
+
+  it('a numeric seed still comes through', () => {
+    expect(assetView({ id: 'a', tags: ['seed:42'], provenance: {} }).seed).toBe(42);
+  });
+
+  it('an absent seed tag is null', () => {
+    expect(assetView({ id: 'a', tags: [], provenance: {} }).seed).toBeNull();
+  });
+});

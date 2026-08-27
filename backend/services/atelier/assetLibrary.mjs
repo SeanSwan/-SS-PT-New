@@ -176,6 +176,10 @@ export function assetView(row, previewUrl = null) {
     const hit = tags.find((t) => typeof t === 'string' && t.startsWith(`${prefix}:`));
     return hit ? hit.slice(prefix.length + 1) : null;
   };
+  const rawSeed = tag('seed');
+  const parsedSeed = rawSeed === null ? NaN : Number(rawSeed);
+  const seedTag = Number.isFinite(parsedSeed) ? parsedSeed : null;
+
   return {
     id: row.id,
     kind: row.kind,
@@ -190,7 +194,11 @@ export function assetView(row, previewUrl = null) {
     brandKitHash: tag('brandkit-hash'),
     workspaceId: tag('workspace'),
     lane: tag('lane'),
-    seed: tag('seed') === null ? null : Number(tag('seed')),
+    // NaN IS NOT A NUMBER THE CLIENT CAN READ. `Number('v2')` is NaN, and JSON.stringify
+    // emits NaN as `null` — so a malformed tag arrived as a seed of null with nothing
+    // logged and no error, and any attempt to reproduce that render lost its anchor
+    // silently. Parsed once (it was evaluated twice) and only accepted if it is finite.
+    seed: seedTag,
     // The prompt, from frozen provenance. Truncated at write time by buildProvenance;
     // shown so a person can recognise their own work, which is the whole point of a library.
     // THE HASH OF THE BYTES THIS CARD IS SHOWING. Motion refuses to animate a frame whose

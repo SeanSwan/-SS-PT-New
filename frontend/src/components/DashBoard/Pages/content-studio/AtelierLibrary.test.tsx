@@ -250,3 +250,37 @@ describe('a clip is labelled, because its poster looks exactly like a still', ()
     expect(screen.queryByText(/image/)).not.toBeInTheDocument();
   });
 });
+
+describe('the banner is where previewsUnavailable actually means something', () => {
+  // The flag exists ONLY to raise this notice, and it was the subject of a reversal:
+  // it must not fire when a single object failed, because "this is a preview-signing
+  // problem" is then a false statement to the operator. Every other test for it asserts
+  // the boolean at the value level; this is the seam where a person reads it, and until
+  // now nothing rendered it.
+  it('shows the signer notice when the server reports previews unavailable', async () => {
+    const { api } = fakeApi({
+      assets: [asset({ previewUrl: null })], hasMore: false, nextCursor: null,
+      pageSize: 24, previewsUnavailable: true,
+    });
+    render(<AtelierLibrary api={api} />);
+    expect(await screen.findByText(/preview-signing problem/i)).toBeInTheDocument();
+  });
+
+  it('stays silent when the server does not report it', async () => {
+    const { api } = fakeApi({
+      assets: [asset({ previewUrl: null })], hasMore: false, nextCursor: null,
+      pageSize: 24, previewsUnavailable: false,
+    });
+    render(<AtelierLibrary api={api} />);
+    await screen.findByText(/lone red fox/);
+    expect(screen.queryByText(/preview-signing problem/i)).not.toBeInTheDocument();
+  });
+
+  it('a page that omits the field is not a signer failure', async () => {
+    // Absent must read as false, not as truthy-undefined.
+    const { api } = fakeApi({ assets: [asset()], hasMore: false, nextCursor: null, pageSize: 24 });
+    render(<AtelierLibrary api={api} />);
+    await screen.findByAltText(/lone red fox/);
+    expect(screen.queryByText(/preview-signing problem/i)).not.toBeInTheDocument();
+  });
+});
