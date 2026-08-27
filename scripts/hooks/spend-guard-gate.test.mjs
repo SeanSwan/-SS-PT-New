@@ -434,6 +434,34 @@ test('a forge run COUNTS toward the daily cap', () => {
   assert.equal(r.code, BLOCK, 'an untitled-topic paid run must still hit the daily cap');
 });
 
+// --- the name must belong to the RUNNER, not to the string --------------------
+
+test('BYPASS: a free-seat MENTION cannot launder a paid call', () => {
+  // Live bypass, found by attacking scriptNameFrom and confirmed end-to-end through
+  // the real gate before it was fixed. `scriptNameFrom` took the FIRST script name
+  // anywhere in the command, so a `cat` of a free seat renamed the paid call that
+  // followed it: matched (a Fable call really is there), resolved to consult-gemini,
+  // hit FREE_ALLOWLIST, exit 0. Uncapped Fable behind a `cat`.
+  const r = runGate('cat scripts/consult-gemini.mjs && node scripts/consult-fable.mjs --document plan.md');
+  assert.equal(r.code, BLOCK, 'the seat name must come from the invocation, not the string');
+});
+
+test('BYPASS: a free-seat name in a redirect target cannot launder a paid call', () => {
+  assert.equal(
+    runGate('node scripts/consult-fable.mjs --document plan.md > out-consult-gemini.mjs.log').code,
+    BLOCK,
+  );
+});
+
+test('the converse holds: a paid name as an ARGUMENT does not tax a free call', () => {
+  // The other direction matters just as much — resolving to the paid seat here would
+  // price a free Gemini call as Fable and refuse honest work.
+  assert.equal(
+    runGate('node scripts/consult-gemini.mjs --document plan.md --seed scripts/consult-fable.mjs').code,
+    ALLOW,
+  );
+});
+
 test('a genuinely cheap seat passes — the gate is not just "block everything"', () => {
   // The honest positive control. Sol at its default is ~$0.31, under the $1.00 cap.
   // Without this, every BLOCK assertion above would also pass on a gate that

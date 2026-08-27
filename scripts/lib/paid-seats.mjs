@@ -128,7 +128,7 @@ export const KNOWN_UNGATED = {
  * roster already knows about is cheaper to widen than to remember.
  */
 export const PAID_INVOCATION =
-  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?(?:consult-[a-z0-9-]+|forge-[a-z0-9-]+|context-gateway[/\\]src[/\\]consult)[.]mjs/;
+  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?(consult-[a-z0-9-]+|forge-[a-z0-9-]+|context-gateway[/\\]src[/\\]consult)[.]mjs/;
 
 /** True when this command text invokes something that could spend money. */
 export function invokesPaidSeat(cmd) {
@@ -165,7 +165,28 @@ export const PANEL_SCRIPTS = new Set(['consult-openrouter-panel.mjs']);
  * Handles both `consult-<seat>.mjs` and the gateway engine path.
  */
 export function scriptNameFrom(cmd) {
-  const m = String(cmd || '').match(/(consult-[a-z0-9-]+|forge-[a-z0-9-]+|context-gateway[/\\]src[/\\]consult)[.]mjs/);
+  // MUST come from the INVOCATION match, never a free-floating scan of the command.
+  //
+  // LIVE BYPASS, found by attacking this function 2026-08-27 and confirmed end-to-end
+  // through the real gate. The previous version matched the FIRST script name
+  // ANYWHERE in the string, so:
+  //
+  //     cat scripts/consult-gemini.mjs && node scripts/consult-fable.mjs --document x
+  //
+  // matched (a Fable call really is there), resolved the name to `consult-gemini.mjs`,
+  // hit FREE_ALLOWLIST, and returned exit 0. A Fable call, uncapped, behind a `cat`.
+  //
+  // I introduced it in the inversion commit: the old narrow regex had the same
+  // first-match flaw, but nothing consulted an allowlist by name, so it was inert.
+  // Adding the FREE_ALLOWLIST short-circuit is what turned a latent sloppiness into
+  // an exploit — a reminder that a bypass can be created by a change that touches
+  // neither of the two places involved.
+  //
+  // Taking the capture group from PAID_INVOCATION binds the NAME to the RUNNER. The
+  // lazy middle picks the first script after the interpreter, which is the one being
+  // executed; a name appearing earlier (a `cat`) or later (an `--seed` argument, a
+  // redirect target) can no longer stand in for it.
+  const m = PAID_INVOCATION.exec(String(cmd || ''));
   if (!m) return '';
   return `${m[1].replace(/^.*[/\\]/, '')}.mjs`;
 }
