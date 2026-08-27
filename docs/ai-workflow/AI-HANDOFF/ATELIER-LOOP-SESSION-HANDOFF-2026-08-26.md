@@ -16,7 +16,7 @@ supersedes: none
 |---|---|
 | **Worktree** | `c:/tmp/ss-atelier-v2` — a **git worktree**, not the main checkout |
 | **Branch** | `feat/atelier-v2-compose` |
-| **HEAD** | `ef8735560` · **172 commits ahead of `main`** · working tree clean |
+| **HEAD** | `1ca9bf47c` · **175 commits ahead of `main`** · pushed · working tree clean |
 | **PR** | **#73** — open, unmerged, commented per iteration |
 | **Deployed** | **NO. Nothing from this branch is in production.** |
 | **Linear** | **SWA-165** carries a comment per iteration; **SWA-209** is the ranked backlog |
@@ -219,6 +219,8 @@ This is the most valuable section. Durable learning packets are in `docs/ai-work
 | **`$?` captured `tail`, not `tsc`** — reported "exit=0" over a V8 OOM crash stack | **Redirect to a file and read `$?` on the command itself.** Never pipe the thing whose exit code you are about to quote |
 | **A trim to meet the line cap silently swallowed GATE 2 and three declarations** | Nine tests caught it immediately. **Run the suite after every mechanical edit, not after the batch** |
 | Apostrophe in single-quoted generated strings (5× now) | Generated strings use double quotes. The correction that kept failing was "escape it"; the one that holds is "do not use a single-quoted string" |
+| **A stub wired to a key nothing reads** — two tests doubled `tasteDeps.fetchPrompts` while the code destructures `fetchImpl`, so they silently hit a live local service and passed only while it ran | **Read the destructure in the function that consumes the collaborator before doubling it.** The sibling test file had it right the whole time |
+| **I noticed the double was not working and rationalised it in a comment** — "a seed this stub does not control" — instead of asking why it did not control it | The comment was evidence. **When a test double appears not to take effect, that is the finding, not a caveat to write down** |
 | **Bash heredocs and `python - <<EOF` fail on large markdown** with an unbalanced-quote error | Write the content with the Write tool and splice with a one-line `python -c`. Also: **Git Bash `/tmp` ≠ Node's `/tmp`** — a Python write to `/tmp` lands in `C:\tmp` and the next `cp` cannot find it |
 
 **The pattern across the whole session: every correction written as a COMMAND held; every one written as a PRINCIPLE or scoped to a LOCATION recurred somewhere else.**
@@ -229,7 +231,9 @@ This is the most valuable section. Durable learning packets are in `docs/ai-work
 
 **The dry-loop is CLOSED.** Eleven hostile rounds (S → AC) ran to a clean finish: round AC returned **APPROVE from both seats, no P0 and no P1**. Section 5b has the round-by-round ledger. Nothing is mid-flight.
 
-**What is proven:** 524/524 backend atelier tests across 32 suites; every fix in the loop falsified by neutering it and confirming exactly its own test reddened; every backend atelier file within the 300-line cap; secret scan clean on every commit; all 172 commits landed and verified with `git log --oneline -1` after each.
+**What is proven:** 524/524 backend atelier tests across 32 suites, **verified with the Swan taste server DOWN** — that qualifier is new and it matters. Two tests in `brandKitLocalLane.test.mjs` stubbed `tasteDeps.fetchPrompts`, a key nothing reads (`fetchTastePrompts` destructures `fetchImpl`), so they had been reaching the real server at `127.0.0.1:7331` and passing only because it happened to be up. Every test-count in this session before commit `1ca9bf47c` was therefore partly a measurement of what was running on the machine. The stubs are wired to the real seam now, so the number means what it says. **If a suite goes red for you, check whether a local service just stopped before assuming a regression** — that is what this looked like.
+
+Also proven: every fix in the loop falsified by neutering it and confirming exactly its own test reddened; every backend atelier file within the 300-line cap; secret scan clean on every commit; all 172 commits landed and verified with `git log --oneline -1` after each.
 
 **What is NOT proven, and has never been proven on this branch:**
 
@@ -248,7 +252,7 @@ Six **Hermes inbox memos** sit untracked in `.ai-workflow/hermes-inbox/pending/`
 
 ## 8. Blocked on Sean — do not attempt these
 
-1. **Merge PR #73.** 172 commits, nothing deployed. His call alone.
+1. **Merge PR #73.** 175 commits, nothing deployed. His call alone.
 2. **The SWA-207 probe.** Turns the gold *"local lane unproven"* into a live $0 lane. Needs ComfyUI running on his machine; the UI is already built to flip the moment the switch is set.
 3. **Name the brand kits for his other websites.** I shipped only `swanstudios` and `universal` and **deliberately did not invent the others** — a kit is a claim about how someone's brand looks, and guessing puts fabricated art direction in front of a model with his name on the output. This is a `grill-me` conversation. Adding one is a single object in `shared/brandKits/catalogue.mjs`.
 4. **The globe button (SWA-205).** He asked for "the original one — a brown one, a gold one, all kinds of colors" and wants the Forge rebuilt in that style. I ruled out `SwanGlobe` (a Three.js visualisation, not a button) and `DictationOrb` (its "brown" was placeholder text in an ASCII diagram). `GlowButton`'s `gilded` variant is the nearest standing candidate. **Ask him; do not guess and rebuild the Forge wrong.**
