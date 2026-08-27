@@ -1,3 +1,4 @@
+import { invokedScripts } from './shell-parse.mjs';
 /**
  * paid-seats.mjs — the single source of truth for "which scripts spend money".
  * ============================================================================
@@ -122,126 +123,45 @@ export const KNOWN_UNGATED = {
 };
 
 /**
- * Matches an INVOCATION of a paid script, not a mention of it.
+ * Which seat names count as paid. The GATE no longer pattern-matches command text —
+ * `shell-parse.mjs` parses it — so this is a NAME test on an already-parsed script
+ * path, not a shell matcher.
  *
- * WRITTEN AS A LITERAL, AND IT MUST STAY ONE. This pattern's history is four
- * silent corruptions, three of them from authoring it through shell or python
- * interpolation — one turned a backslash-b into a literal 0x08 so the gate matched
- * nothing while still reporting "SYNTAX OK". A fifth was committed in the same
- * session as this file, when a sibling helper built a pattern from a TEMPLATE
- * LITERAL and JavaScript collapsed the `\s` to a bare `s`. Never construct this.
- *
- * Leading context and separator are both NEGATED IDENTIFIER classes rather than
- * enumerated separators: anything that is not part of a word or a path is a
- * boundary, so quotes, tabs, newlines, parens and `$(` all count without anyone
- * having to remember them. `mynode`, `nodejs` and `node-foo` still do not match.
- *
- * The middle alternates QUOTED SPANS with non-boundary characters, so a `| ; &`
- * inside a quoted argument cannot hide the call — this repo's own review templates
- * tell agents to pass remits containing "APPROVE | REVISE | REJECT" — while an
- * unquoted boundary still stops a match from crossing into a different command.
- *
- * The script-name group is DELIBERATELY BROAD (`consult-*`, `forge-*`) plus the
- * context-gateway path. Enumerating seats is what drifted; matching the shape and
- * letting the coverage test police the roster is what replaced it.
- *
- * `forge-` was added 2026-08-27 when the four image probes were classified. They call
- * a paid image endpoint and were matched by nothing — the coverage contract had them
- * as frozen debt, which is a record of a hole, not a control over one. A prefix the
- * roster already knows about is cheaper to widen than to remember.
+ * Kept broad on purpose (`consult-*`, `forge-*`, the two auto-research entrypoints,
+ * the gateway engine). Enumerating individual seats is what drifted in both
+ * directions for weeks; matching the shape and letting spend-coverage.test.mjs police
+ * the roster is what replaced it.
  */
-export const PAID_INVOCATION =
-  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?(consult-[a-z0-9-]+|forge-[a-z0-9-]+|eval-suite|prompt-mutator|context-gateway[/\\]src[/\\]consult)[.]mjs/;
+const SEAT_NAME = /^(consult-[a-z0-9-]+|forge-[a-z0-9-]+|eval-suite|prompt-mutator)[.]mjs$/;
 
-/**
- * Node flags that mean "do not execute this file". `node --check foo.mjs` parses and
- * exits; `--version` never opens the file at all.
- *
- * Added 2026-08-27 after the gate refused my own `node --check` of a consult file
- * mid-fix — a live instance of the cry-wolf class GLM 5.3 raised as F1. A syntax
- * check spends nothing, and a guard that blocks the verification step of its own
- * repair is training the operator to reach for --no-verify.
- */
-const NON_EXECUTING = /(?:^|[^A-Za-z0-9_-])--(?:check|version)(?:[^A-Za-z0-9_-]|$)/;
-
-/**
- * Blank out quoted spans that are DATA, keeping those that are CODE.
- *
- * Two confirmed defects share this root, one in each direction (GLM 5.3-flash
- * round-3 B2 and F5, both reproduced live):
- *
- *   --remit "does it support --dry-run"     -> the gate saw --dry-run and stood down
- *                                              on a LIVE paid fan-out. exit 0.
- *   --text "see scripts/consult-fable.mjs"  -> an honest doc script was blocked and
- *                                              mispriced as a Fable consult. exit 2.
- *
- * The second one blocked my own verification probe while I was checking the first.
- *
- * Naive quote-stripping is wrong: `sh -c "node scripts/consult-fable.mjs"` is a real
- * invocation living entirely inside quotes, and round 2 added tests for exactly that.
- * So the rule is CONTENT-BASED, not syntactic — a quoted span survives only if it
- * starts with an interpreter (optionally after env assignments). Anything else is an
- * argument, and an argument is data.
- *
- * Replaced with spaces rather than removed, so byte offsets and word boundaries
- * outside the span are unchanged.
- */
-export function maskQuotedData(cmd) {
-  return String(cmd || '').replace(/"[^"]*"|'[^']*'/g, (span) => {
-    const inner = span.slice(1, -1);
-    const looksLikeCommand = /^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:env\s+)?(?:\S*\/)?(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-]/.test(inner);
-    return looksLikeCommand ? span : ' '.repeat(span.length);
-  });
+/** One key per seat. The gateway engine keeps its PATH; everything else is a basename. */
+function normalizeSeatKey(path) {
+  const p = String(path).split('\\').join('/');
+  if (p.includes('context-gateway/src/consult.mjs')) return 'context-gateway/src/consult.mjs';
+  if (p.includes('context-gateway/src/transport.mjs')) return 'context-gateway/src/transport.mjs';
+  if (p.includes('lib/preflight.mjs')) return 'lib/preflight.mjs';
+  return p.replace(/^.*\//, '');
 }
 
-/** True when this command text invokes something that could spend money. */
-export function invokesPaidSeat(cmd) {
-  const c = maskQuotedData(cmd);
-  if (NON_EXECUTING.test(c)) return false;
-  return PAID_INVOCATION.test(c);
+/** True when a parsed script path is a paid seat. */
+function isSeatPath(path) {
+  const p = String(path).split('\\').join('/');
+  if (p.includes('context-gateway/src/consult.mjs')) return true;
+  return SEAT_NAME.test(p.replace(/^.*\//, ''));
 }
 
 /**
- * EVERY paid script an invocation names, in order — not just the first.
+ * EVERY paid seat a command line would actually execute, in order.
  *
- * GLM 5.3 round-3 blocker 4, verified live before fixing:
- *
- *     node scripts/consult-kimi.mjs --document p.md && node scripts/consult-fable.mjs --document p.md
- *
- * returned exit 0. `scriptNameFrom` resolved the FIRST invocation, the gate priced
- * Kimi at ~$0.32, that fits inside the cap, and Fable's ~$1.06 in the same Bash call
- * was never priced, never asked about and never recorded. The single-paid-script case
- * was fine; only multi-paid lines mis-metered — which is exactly the shape an agent
- * batching consults would write without any intent to evade.
- *
- * The gate prices the MOST EXPENSIVE name it finds. Summing would be more accurate in
- * principle, but each script here is one call with its own worst case, and the caller
- * that matters is the cap: taking the max guarantees the priciest seat in the line is
- * the one measured, with no way for a cheap seat to shelter an expensive one.
+ * Replaced a regex + a quote-mask + two extraction helpers, all of which were
+ * position-blind. Round 4 found FIVE live bypasses that were themselves created by
+ * rounds 2 and 3 patching that design; the parser makes those classes not exist
+ * rather than enumerating them. See shell-parse.mjs for the full account.
  */
-/**
- * One key per seat. The gateway engine keeps its PATH; everything else is a basename.
- *
- * GLM 5.3-flash round-3 F4, reproduced live: basenaming `context-gateway/src/consult`
- * yielded `consult.mjs`, which is in no allowlist and no price table — so the gate
- * took the unpriced BLOCK and told the operator to "add the real OpenRouter price"
- * for a file already classified as spending nothing. A hard block on a no-op, with a
- * message inviting the next agent to price a library.
- */
-function normalizeSeatKey(matched) {
-  if (matched.includes('context-gateway')) return 'context-gateway/src/consult.mjs';
-  return `${matched.replace(/^.*[/\\]/, '')}.mjs`;
-}
-
 export function allScriptNamesFrom(cmd) {
-  const text = maskQuotedData(cmd);
-  if (NON_EXECUTING.test(text)) return [];
-  const global = new RegExp(PAID_INVOCATION.source, 'g');
-  const names = [];
-  for (const m of text.matchAll(global)) {
-    if (m[1]) names.push(normalizeSeatKey(m[1]));
-  }
-  return names;
+  return invokedScripts(cmd)
+    .filter((s) => !s.nonExecuting && isSeatPath(s.path))
+    .map((s) => normalizeSeatKey(s.path));
 }
 
 /**
@@ -274,28 +194,16 @@ export const PANEL_SCRIPTS = new Set(['consult-openrouter-panel.mjs']);
  * Handles both `consult-<seat>.mjs` and the gateway engine path.
  */
 export function scriptNameFrom(cmd) {
-  // MUST come from the INVOCATION match, never a free-floating scan of the command.
-  //
-  // LIVE BYPASS, found by attacking this function 2026-08-27 and confirmed end-to-end
-  // through the real gate. The previous version matched the FIRST script name
-  // ANYWHERE in the string, so:
-  //
-  //     cat scripts/consult-gemini.mjs && node scripts/consult-fable.mjs --document x
-  //
-  // matched (a Fable call really is there), resolved the name to `consult-gemini.mjs`,
-  // hit FREE_ALLOWLIST, and returned exit 0. A Fable call, uncapped, behind a `cat`.
-  //
-  // I introduced it in the inversion commit: the old narrow regex had the same
-  // first-match flaw, but nothing consulted an allowlist by name, so it was inert.
-  // Adding the FREE_ALLOWLIST short-circuit is what turned a latent sloppiness into
-  // an exploit — a reminder that a bypass can be created by a change that touches
-  // neither of the two places involved.
-  //
-  // Taking the capture group from PAID_INVOCATION binds the NAME to the RUNNER. The
-  // lazy middle picks the first script after the interpreter, which is the one being
-  // executed; a name appearing earlier (a `cat`) or later (an `--seed` argument, a
-  // redirect target) can no longer stand in for it.
-  const m = PAID_INVOCATION.exec(maskQuotedData(cmd));
-  if (!m) return '';
-  return normalizeSeatKey(m[1]);
+  return allScriptNamesFrom(cmd)[0] || '';
+}
+
+/** True when this command text invokes something that could spend money. */
+export function invokesPaidSeat(cmd) {
+  return allScriptNamesFrom(cmd).length > 0;
+}
+
+/** The argv of the seat this command prices — parsed, not scanned. */
+export function seatArgsFrom(cmd) {
+  const hit = invokedScripts(cmd).find((s) => !s.nonExecuting && isSeatPath(s.path));
+  return hit ? hit.args : [];
 }

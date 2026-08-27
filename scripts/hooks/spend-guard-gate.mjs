@@ -26,7 +26,8 @@ import { join } from 'node:path';
 import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR, reserveSpend } from '../lib/spend-ledger.mjs';
 // SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
 // Hand-curating it inside this regex is what drifted in both directions at once.
-import { PAID_INVOCATION, FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, maskQuotedData } from '../lib/paid-seats.mjs';
+import { FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, seatArgsFrom } from '../lib/paid-seats.mjs';
+import { flagFrom, hasFlag } from '../lib/shell-parse.mjs';
 
 const ALLOW = () => process.exit(0);
 
@@ -128,46 +129,11 @@ const SCRIPT_MODEL = {
  * were named; `--model=` overrides were ignored entirely. Verified before fixing.
  */
 function flagValue(cmd, name) {
-  // NO `new RegExp` HERE, AND NEVER ADD ONE. The first draft of this helper built the
-  // pattern from a template literal — and inside a template literal `\s` is a STRING
-  // escape that JavaScript collapses to a bare `s`, so the pattern became
-  // `--documents+(...)` and matched nothing. Three tests went red and caught it.
-  //
-  // That is the FIFTH instance of this file's oldest bug, committed while fixing the
-  // fourth: the header already records three regexes corrupted by authoring them
-  // through interpolation, one of which turned a backslash-b into a literal 0x08.
-  // A guard regex must be written as a literal, or not written as a regex at all.
-  // This one is a plain scan, so there is nothing left to corrupt.
-  // FIND the flag in MASKED text; READ its value from the ORIGINAL.
-  //
-  // GLM 5.3-flash B2 extends to this helper: a `--seats` or `--document` sitting
-  // inside a quoted remit is DATA, and letting it shift panel pricing or the topic
-  // bucket is the same defect as the `--dry-run` bypass.
-  //
-  // But masking outright would break the honest case — `--document "path with
-  // spaces"` has a legitimately QUOTED VALUE, and blanking it would silently send
-  // every such call to topic `untitled`, which is precisely the cap-never-accumulates
-  // bug this file already fixed once. maskQuotedData pads with spaces rather than
-  // deleting, so offsets are identical in both strings: find the flag where data is
-  // invisible, then read the value where it is not.
-  const masked = maskQuotedData(cmd);
-  const flag = `--${name}`;
-  for (let i = masked.indexOf(flag); i !== -1; i = masked.indexOf(flag, i + 1)) {
-    const after = cmd.slice(i + flag.length);
-    // The next character must be `=` or whitespace, otherwise this is a LONGER flag
-    // that merely starts with the same letters (`--max` must not read `--max-tokens`).
-    if (after[0] !== '=' && after[0] !== ' ' && after[0] !== '\t') continue;
-    const rest = after.slice(1).replace(/^[ \t]+/, '');
-    if (!rest) continue;
-    const quote = rest[0];
-    if (quote === '"' || quote === "'") {
-      const end = rest.indexOf(quote, 1);
-      if (end > 0) return rest.slice(1, end);
-    }
-    const bare = rest.match(/^[^\s]+/);
-    if (bare) return bare[0];
-  }
-  return undefined;
+  // STRUCTURAL now. This used to scan the command text, which had to be taught twice
+  // that a flag inside a quoted remit is data — and the second fix had to preserve
+  // byte offsets so a quoted `--document "path with spaces"` still resolved. Both
+  // problems were artefacts of scanning text. argv has neither.
+  return flagFrom(seatArgsFrom(cmd), name);
 }
 
 function readInput() {
@@ -287,13 +253,13 @@ try {
   // test saw it, and a LIVE paid fan-out was waved through with no cap and no token.
   // Round 2 restricted the flag to the one script that implements it but kept matching
   // over quoted arguments — narrowing WHICH script while leaving WHERE it looks.
-  if (DRY_RUN_AWARE.has(scriptName) && /--dry-run/.test(maskQuotedData(cmd))) ALLOW();
+  if (DRY_RUN_AWARE.has(scriptName) && hasFlag(seatArgsFrom(cmd), 'dry-run')) ALLOW();
 
   // The fan-out refuses its own live call without --confirm-spend, so gating it
   // earlier is cry-wolf. The old condition named `consult-panel.mjs`, which does not
   // exist on main: the real panel never took this branch and neither did anything
   // else. One condition, drifted in both directions.
-  if (PANEL_SCRIPTS.has(scriptName) && !/--confirm-spend/.test(cmd)) ALLOW();
+  if (PANEL_SCRIPTS.has(scriptName) && !hasFlag(seatArgsFrom(cmd), 'confirm-spend')) ALLOW();
 
   // An explicit --model / SWAN_*_MODEL override wins over the script default.
   // OVERRIDES MAY ONLY RAISE THE ESTIMATE — never lower it.
@@ -368,6 +334,33 @@ try {
   // refusal — there is nothing for Sean to approve, because nobody yet knows what
   // the call costs. A token here would let an agent buy its way past the one question
   // that must be answered.
+  // ANY unpriced seat in the line blocks, not just the one that won the max.
+  //
+  // GLM 5.3 round-4 B2, reproduced at exit 0:
+  //     node scripts/consult-kimi.mjs --document a && node scripts/consult-newseat.mjs --document b
+  // `priceOf` returns -1 for an unknown seat so it can never win the max, and
+  // `oneCallUsd` returned 0 for it — so the unpriced BLOCK, whose comment says "an
+  // unknown seat now falls through", was FALSE for every compound line. Any future
+  // seat not yet in SCRIPT_MODEL rode free beside any priced one, which is the
+  // inversion being cosmetic in exactly the batching case the summing fix was for.
+  const unpriced = chargeable.filter((n) => !PANEL_SCRIPTS.has(n) && !PRICES[SCRIPT_MODEL[n]]);
+  if (unpriced.length && !(chargeable.length === 1 && isPanel)) {
+    console.error([
+      `SPEND GUARD — BLOCKED: ${unpriced.join(', ')} ${unpriced.length > 1 ? 'are' : 'is'} not priced.`,
+      '',
+      '  A seat with no price cannot be capped, so it cannot be allowed — not alone,',
+      '  and not alongside a seat that is priced.',
+      '',
+      '  Fix in scripts/lib/paid-seats.mjs — pick ONE, deliberately:',
+      '    PRICES        add the real OpenRouter price. Look it up; do not estimate.',
+      '    FREE_ALLOWLIST  if it genuinely cannot bill (local, subscription, free tier).',
+      '    KNOWN_UNGATED   only to freeze pre-existing debt, WITH a written reason.',
+      '',
+      '  There is no token for this. Nothing to approve until someone knows the cost.',
+    ].join('\n'));
+    process.exit(2);
+  }
+
   if (!price && !isPanel) {
     console.error([
       `SPEND GUARD — BLOCKED: ${scriptName || 'this script'} is not priced.`,
@@ -416,6 +409,14 @@ try {
   //
   // A panel is priced by its own per-seat fan-out, so it is summed as one unit.
   const oneCallUsd = (n) => {
+    // A PANEL has no SCRIPT_MODEL entry — its cost is the per-seat fan-out. Returning
+    // 0 for it (GLM 5.3-flash round-4 finding 5, reproduced at exit 0) meant a
+    // compound line containing a panel priced the panel at nothing: `<panel with
+    // fable,sol> && <kimi>` came out at ~$0.31 against ~$1.68 of real exposure. The
+    // panel's special-case pricing only ran on the path where it was the sole or
+    // worst chargeable name, and its -1 sort weight made that impossible in any
+    // compound — a special case unreachable from the branch that needed it.
+    if (PANEL_SCRIPTS.has(n)) return panelUsd;
     const k = SCRIPT_MODEL[n];
     const p = k && PRICES[k];
     return p ? (ASSUMED_IN_TOK / 1e6) * p[0] + (maxTok / 1e6) * p[1] : 0;

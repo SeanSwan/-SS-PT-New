@@ -181,19 +181,22 @@ test('widening the runner list did NOT widen into false positives', () => {
   assert.equal(runGate('node-foo scripts/consult-fable.mjs').code, ALLOW);
 });
 
-test('ACCEPTED false positive: a mention that INCLUDES the runner word is gated', () => {
-  // GLM 5.3 finding 2, and it is real: `git grep "node scripts/consult-fable.mjs"`
-  // or a heredoc writing documentation that quotes the example command now trips
-  // the gate, because quoted spans are no longer opaque to it.
+test('a mention that includes the runner word is NO LONGER a false positive', () => {
+  // This test used to assert BLOCK and called it an accepted trade: the guard fails
+  // open, so a miss costs money silently while a false positive costs one retry, and
+  // narrowing the regex would have reopened the SWA-218 miss. That reasoning was
+  // sound FOR A REGEX. Parsing removes the dilemma — `git grep "node …"` is a git
+  // command with one quoted argument, and no amount of text inside that argument
+  // makes git spend money.
   //
-  // Kept deliberately rather than softened. This guard fails OPEN, so a miss costs
-  // real money silently while a false positive costs one retry with the text in a
-  // file. For a money gate that is the correct direction to err, and narrowing it
-  // would reopen the SWA-218 miss. Pinned as a test so the behaviour is a decision
-  // on the record, not an accident someone later "fixes" without knowing the trade.
-  const r = runGate('git grep -n "node scripts/consult-fable.mjs" docs');
-  assert.equal(r.code, BLOCK, 'if this ever ALLOWs, the quoted-span fix has been undone');
+  // Worth naming: the trade-off I documented as unavoidable was an artefact of the
+  // tool, not of the problem.
+  assert.equal(runGate('git grep -n "node scripts/consult-fable.mjs" docs').code, ALLOW);
+  assert.equal(runGate('echo node scripts/consult-fable.mjs').code, ALLOW);
+  // And the real call in the same shape still blocks:
+  assert.equal(runGate('node scripts/consult-fable.mjs --document plan.md').code, BLOCK);
 });
+
 
 test('SWA-218: a word merely ENDING in node is not the node binary', () => {
   // The one false positive the negated class must still avoid.
@@ -583,6 +586,65 @@ test('F5: a seat name inside a quoted ARGUMENT is data, not an invocation', () =
   assert.equal(runGate('node scripts/format-docs.mjs --text "see scripts/consult-fable.mjs"').code, ALLOW);
   // And the shape that must still be caught, because it really is a command:
   assert.equal(runGate('sh -c "node scripts/consult-fable.mjs --document plan.md"').code, BLOCK);
+});
+
+// --- round 4: the parser rewrite ------------------------------------------------
+//
+// Round 4 found SIX live bypasses, FIVE of them created by my own fixes in rounds 2
+// and 3. Every one had the same root: a flat regex has no notion of WHERE a token
+// sits. These pin the classes that stopped existing when the gate started parsing
+// commands instead of pattern-matching them.
+
+test('R4: a parse-only flag counts only in the RUNNER position', () => {
+  // `--check` means "do not execute" between the runner and the file. The carve-out
+  // tested it line-globally, so appending it anywhere stood the whole gate down —
+  // the third recurrence of this file's own "honoring a flag the target ignores"
+  // class, reintroduced by the fix for the --check cry-wolf.
+  assert.equal(runGate('node --check scripts/consult-fable.mjs').code, ALLOW, 'genuinely a syntax check');
+  assert.equal(runGate(`${FABLE} --check`).code, BLOCK, 'trailing --check is an argument Fable ignores');
+  assert.equal(runGate(`${FABLE} --version`).code, BLOCK, 'so is --version');
+  assert.equal(runGate(`node --version && ${FABLE}`).code, BLOCK, 'and one in a DIFFERENT command is irrelevant');
+});
+
+test('R4: a real invocation inside quotes is found whatever precedes it', () => {
+  // maskQuotedData kept a quoted span only if it STARTED with an interpreter, so
+  // every ordinary prefix hid the call. `cd`, `exec`, `timeout` and friends are what
+  // agent-written compound commands actually look like.
+  assert.equal(runGate(`bash -c "cd /srv/app && ${FABLE}"`).code, BLOCK);
+  assert.equal(runGate(`sh -c "exec ${FABLE}"`).code, BLOCK);
+  assert.equal(runGate(`sh -c "timeout 600 ${FABLE}"`).code, BLOCK);
+  assert.equal(runGate("bash -c 'cd scripts && node consult-fable.mjs --document x'").code, BLOCK);
+});
+
+test('R4: a quoted script PATH is still an invocation', () => {
+  assert.equal(runGate('node "scripts/consult-fable.mjs" --document plan.md').code, BLOCK);
+});
+
+test('R4: direct shebang execution is gated', () => {
+  // Previously listed as a KNOWN ungated shape because a regex keyed on the runner
+  // token could not see it. Parsing gets it for free — argv[0] is the script.
+  assert.equal(runGate('./scripts/consult-fable.mjs --document plan.md').code, BLOCK);
+});
+
+test('R4: a panel inside a compound line is priced at its fan-out, not $0', () => {
+  // oneCallUsd returned 0 for the panel (no SCRIPT_MODEL entry) and priceOf returned
+  // -1 so it could never win the max — a special case unreachable from the branch
+  // that needed it. ~$1.68 of fan-out was riding on a ~$0.31 estimate.
+  assert.equal(
+    runGate('node scripts/consult-openrouter-panel.mjs --seats fable,sol --document x --confirm-spend && node scripts/consult-kimi.mjs --document y').code,
+    BLOCK,
+  );
+});
+
+test('R4: an UNPRICED seat cannot ride beside a priced one', () => {
+  // GLM 5.3 B2. `priceOf` sorted unknowns to -1 so they never won the max, and
+  // `oneCallUsd` scored them 0 — so "an unknown seat falls through to the unpriced
+  // BLOCK" was false for every compound line, which is the batching case the
+  // summing fix existed for.
+  assert.equal(runGate('node scripts/consult-newseat.mjs --document a').code, BLOCK, 'control: alone');
+  const r = runGate('node scripts/consult-kimi.mjs --document a && node scripts/consult-newseat.mjs --document b');
+  assert.equal(r.code, BLOCK, 'and beside a priced seat');
+  assert.match(r.stderr, /not priced/);
 });
 
 test('a genuinely cheap seat passes — the gate is not just "block everything"', () => {
