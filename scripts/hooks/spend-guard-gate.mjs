@@ -440,10 +440,27 @@ try {
     const p = k && PRICES[k];
     return p ? (ASSUMED_IN_TOK / 1e6) * p[0] + (maxTok / 1e6) * p[1] : 0;
   };
+  const callUsd = (k) => (ASSUMED_IN_TOK / 1e6) * PRICES[k][0] + (maxTok / 1e6) * PRICES[k][1];
+
+  // CARRY THE RAISE INTO THE SUM (GLM 5.3-flash round-4 finding 6, reproduced):
+  //
+  //   node consult-kimi.mjs --document a --model claude-fable-5        -> exit 2 BLOCK
+  //   ...the same, followed by `&& node consult-grok.mjs --document b` -> exit 0 ALLOW
+  //
+  // `oneCallUsd` reads SCRIPT_MODEL defaults only, so a raise the gate had already
+  // computed was discarded in exactly the multi-call lines the summing fix was built
+  // for — appending a cheap second call LOWERED the estimate of the first. The delta
+  // is added once, for the one script the override targets; the override is a
+  // property of the command, not of every seat on the line, so applying it to all of
+  // them would over-count.
+  const raiseDelta = (modelKey !== defaultKey && PRICES[modelKey] && PRICES[defaultKey])
+    ? Math.max(0, callUsd(modelKey) - callUsd(defaultKey))
+    : 0;
+
   const worstCaseUsd = isPanel
     ? panelUsd
     : (chargeable.length > 1
-      ? chargeable.reduce((sum, n) => sum + oneCallUsd(n), 0)
+      ? chargeable.reduce((sum, n) => sum + oneCallUsd(n), 0) + raiseDelta
       : (ASSUMED_IN_TOK / 1e6) * price[0] + (maxTok / 1e6) * price[1]);
 
   // --- topic: what "the whole thing" means --------------------------------

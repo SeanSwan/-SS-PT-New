@@ -647,6 +647,30 @@ test('R4: an UNPRICED seat cannot ride beside a priced one', () => {
   assert.match(r.stderr, /not priced/);
 });
 
+test('R4: a --model RAISE survives into a compound line', () => {
+  // GLM 5.3-flash round-4 finding 6, reproduced by probe before fixing:
+  //
+  //   ... --model claude-fable-5                        -> exit 2 BLOCK
+  //   ... --model claude-fable-5 && <a cheap second call> -> exit 0 ALLOW
+  //
+  // `oneCallUsd` reads SCRIPT_MODEL defaults only, so the raise the gate had already
+  // computed was discarded in exactly the multi-call lines the summing fix was built
+  // for. Appending a CHEAP call LOWERED the estimate of the expensive one, which is
+  // the opposite of what summing is for and reachable by anyone under budget
+  // pressure who has noticed that the single-call form blocks.
+  const RAISE = 'node scripts/consult-kimi.mjs --document a --model claude-fable-5';
+  assert.equal(runGate(RAISE).code, BLOCK, 'control: the raise blocks on its own');
+  assert.equal(runGate(`${RAISE} && node scripts/consult-grok.mjs --document b`).code, BLOCK,
+    'a cheap sibling must not launder an expensive raise');
+  // And the cry-wolf direction stays closed: the same compound WITHOUT the raise is
+  // ~$0.47 and must still pass, or the fix would just be "block more".
+  assert.equal(
+    runGate('node scripts/consult-kimi.mjs --document a && node scripts/consult-grok.mjs --document b').code,
+    ALLOW,
+    'the unraised compound is under every cap and must still run',
+  );
+});
+
 test('a genuinely cheap seat passes — the gate is not just "block everything"', () => {
   // The honest positive control. Sol at its default is ~$0.31, under the $1.00 cap.
   // Without this, every BLOCK assertion above would also pass on a gate that

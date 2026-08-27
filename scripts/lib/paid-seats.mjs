@@ -53,6 +53,46 @@ export const CREDENTIAL_MARKERS = [
 ];
 
 /**
+ * Does this source USE a payment credential — in any idiom, not just one?
+ *
+ * The detector tested exactly `process.env.<MARKER>`, and GLM 5.3 (F3) and
+ * 5.3-flash (finding 7) both landed on the same consequence: a new paid script
+ * written in the most ordinary modern style sails through the contract green, with
+ * no failure prompting anyone to classify it. One linter-driven refactor to
+ * destructuring silently empties the roster. `KNOWN_UNGATED`'s key set is frozen
+ * against exactly that kind of quiet drift while the instrument reading it was not.
+ *
+ * WHAT IT STILL WILL NOT SEE, said plainly rather than implied by silence:
+ *   - a key assembled at runtime (`process.env['OPEN' + 'ROUTER_API_KEY']`)
+ *   - a key reached through a helper in another module (the delegation gap, F6)
+ *   - a credential injected by a framework the source never names
+ * Those need the seat-name marker the file header already records as unbuilt. This
+ * closes the idioms a HONEST author would plausibly write, which is what a
+ * drift-catcher is for; it is not an adversarial control and does not claim to be.
+ *
+ * Deliberately still narrower than `src.includes(marker)`: that flagged this file's
+ * own siblings, because a guard that greps for credentials necessarily contains
+ * their names. A grep loose enough to flag its own guard trains people to add
+ * exemptions, and every exemption added for a false positive is a place a real one
+ * can later hide.
+ */
+export function readsCredential(src) {
+  const text = String(src || '');
+  // An alias (`const env = process.env`) makes `env.MARKER` a real read.
+  const aliased = /=\s*process\.env\s*[;\n]/.test(text) || /\bBun\.env\b/.test(text);
+  return CREDENTIAL_MARKERS.some((m) => {
+    if (text.includes(`process.env.${m}`)) return true;              // process.env.X
+    if (new RegExp(`process\\.env\\s*\\[\\s*['"\`]${m}['"\`]`).test(text)) return true; // env['X']
+    if (new RegExp(`Bun\\.env\\s*[.\\[]\\s*['"\`]?${m}`).test(text)) return true;       // Bun.env.X
+    // `const { X, Y } = process.env` — the marker inside a destructuring pattern
+    // whose right-hand side is process.env. Multiline, because prettier wraps these.
+    if (new RegExp(`\\{[^{}]*\\b${m}\\b[^{}]*\\}\\s*=\\s*(process|Bun)\\.env`, 's').test(text)) return true;
+    if (aliased && new RegExp(`\\benv\\s*[.\\[]\\s*['"\`]?${m}\\b`).test(text)) return true;
+    return false;
+  });
+}
+
+/**
  * Scripts that touch a credential but must NOT be gated, each with the reason.
  * Adding a row here is a deliberate, reviewable act — which is the entire point.
  * An empty reason is not allowed; the coverage test rejects it.
@@ -60,6 +100,29 @@ export const CREDENTIAL_MARKERS = [
 export const FREE_ALLOWLIST = {
   'consult-gemini.mjs': 'Google AI Studio free tier; no OpenRouter credit consumed',
   'consult-glm.mjs': 'Z.ai coding-plan subscription — flat rate, nothing per-token to cap',
+
+  // --- LIBRARIES, moved out of KNOWN_UNGATED 2026-08-27 (GLM 5.3 round-4 F5) ------
+  // These read a credential and CANNOT BILL, which is this list's definition. They
+  // sat in the frozen debt list only because that list was the only one that
+  // accepted path keys — an accident of plumbing, not a judgement. Parking non-debt
+  // in the debt baseline inflates the number this workstream is trying to drive to
+  // zero, and makes the two real entries harder to see. Debt list: 5 -> 2.
+  'lib/preflight.mjs':
+    'LIBRARY. Reads a credential only to CHECK the key exists before an AI-invoking script '
+    + 'runs; it makes no call of its own. Verified 2026-08-27.',
+  'context-gateway/src/consult.mjs':
+    'LIBRARY, not an entrypoint (verified 2026-08-27: no shebang, no self-invocation guard, so '
+    + 'running it directly defines exports and exits, spending nothing). Kept keyed by PATH '
+    + 'because basenaming it yields `consult.mjs`, which matched no allowlist and no price '
+    + 'table — so the gate hard-BLOCKED a no-op and told the operator to price a library '
+    + '(GLM 5.3-flash F4).',
+  'context-gateway/src/transport.mjs':
+    'LIBRARY, not an entrypoint — no shebang, no top-level invocation. Imported by '
+    + 'context-gateway/src/consult.mjs, itself a library. Real spend goes through the '
+    + 'consult-<seat>.mjs shims, which the gate matches. CORRECTION kept from the debt list: '
+    + 'an earlier note called the gateway a live "substitute path" bypass. It is not — that '
+    + 'finding was accepted after confirming the REGEX did not match it, without confirming '
+    + 'the file was EXECUTABLE. Matching is not the same as exploitable.',
 };
 
 /**
@@ -91,24 +154,6 @@ export const KNOWN_UNGATED = {
   'hermes-village.mjs':
     'Wraps the Village runner, so it inherits the same in-process controls — including the '
     + 'ledger reconciliation landed 2026-08-26.',
-  'lib/preflight.mjs':
-    'LIBRARY. It reads a credential only to CHECK the key is present before an AI-invoking '
-    + 'script runs; it makes no call of its own. Surfaced 2026-08-27 when the coverage walker '
-    + 'became recursive after two rounds of being blind below the top level.',
-  'context-gateway/src/consult.mjs':
-    'LIBRARY, not an entrypoint (verified 2026-08-27: no shebang, no self-invocation guard, so '
-    + 'running it directly defines exports and exits, spending nothing). Listed EXPLICITLY because '
-    + 'GLM 5.3-flash F4 found that basenaming its path yielded `consult.mjs`, which matched no '
-    + 'allowlist and no price table — so the gate hard-BLOCKED a no-op and told the operator to '
-    + '"add the real OpenRouter price" for a library. scriptNameFrom now keeps the path as the key.',
-  'context-gateway/src/transport.mjs':
-    'LIBRARY, not an entrypoint — no shebang, no top-level invocation. It is imported by '
-    + 'context-gateway/src/consult.mjs, which is ALSO a library (verified 2026-08-27: no '
-    + 'self-invocation guard, so `node .../consult.mjs` defines exports and exits, spending '
-    + 'nothing). Real spend goes through the consult-<seat>.mjs shims, which PAID_INVOCATION '
-    + 'matches. CORRECTION: an earlier note here called the gateway a live "substitute path" '
-    + 'bypass. It is not. That finding was accepted after confirming the REGEX did not match it, '
-    + 'without confirming the file was EXECUTABLE — matching is not the same as exploitable.',
 
   // NOTE: the five codex variants, consult-hy3-design.mjs and consult-opus5.mjs were
   // here as UNPRICED frozen debt until 2026-08-27. They are now PRICED in

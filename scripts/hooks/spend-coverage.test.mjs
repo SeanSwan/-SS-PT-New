@@ -20,7 +20,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CREDENTIAL_MARKERS, FREE_ALLOWLIST, KNOWN_UNGATED, invokesPaidSeat } from '../lib/paid-seats.mjs';
+import { CREDENTIAL_MARKERS, FREE_ALLOWLIST, KNOWN_UNGATED, invokesPaidSeat, readsCredential } from '../lib/paid-seats.mjs';
 
 const SCRIPTS = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -40,7 +40,11 @@ function candidateScripts(dir = SCRIPTS, depth = 0) {
     if (e.name === 'node_modules' || e.name.startsWith('.')) continue;
     const full = join(dir, e.name);
     if (e.isDirectory()) { out.push(...candidateScripts(full, depth + 1)); continue; }
-    if (!e.name.endsWith('.mjs') || e.name.endsWith('.test.mjs')) continue;
+    // `.js` and `.cjs` too (GLM F3 / flash 7): a credential-bearing helper in either
+    // was invisible, and nothing about a file extension makes a key cheaper to leak.
+    // Measured before widening — 14 such files exist under scripts/ and none reads a
+    // credential today, so this costs nothing now and closes the hole for later.
+    if (!/\.(mjs|js|cjs)$/.test(e.name) || /\.test\.(mjs|js|cjs)$/.test(e.name)) continue;
     out.push(full);
   }
   return out;
@@ -55,15 +59,15 @@ function candidateScripts(dir = SCRIPTS, depth = 0) {
  * The recursive walk surfaced that immediately: six new hits, three of them the
  * machinery doing the checking.
  *
- * `process.env.<MARKER>` is the difference between reading a key and talking about
- * one. A grep loose enough to flag its own guard is a grep that trains people to
- * add exemptions, and every exemption added for a false positive is a place a real
- * one can later hide.
+ * Reading a key is the difference from talking about one. A grep loose enough to
+ * flag its own guard is a grep that trains people to add exemptions, and every
+ * exemption added for a false positive is a place a real one can later hide.
+ *
+ * The idiom list now lives in `readsCredential` (paid-seats.mjs) so the gate and this
+ * contract cannot drift apart on what "uses a credential" means — the same reason the
+ * seat roster stopped living inside a regex.
  */
-const spendsMoney = (file) => {
-  const src = readFileSync(file, 'utf-8');
-  return CREDENTIAL_MARKERS.some((m) => src.includes(`process.env.${m}`));
-};
+const spendsMoney = (file) => readsCredential(readFileSync(file, 'utf-8'));
 
 /** How the gate would see a normal invocation of this script. */
 const invocationOf = (file) =>
@@ -87,15 +91,87 @@ test('the walker actually finds scripts — validate the instrument first', () =
     assert.ok(rel.includes(deep), `the walk must descend: ${deep} is missing, so the contract is blind below the top level`);
   }
   assert.ok(rel.some((f) => f.split('/').length > 2), 'at least one file two levels deep');
+
+  // EXTENSION is the other axis, and it was an untested invariant until a mutation
+  // reporting zero reds sent me looking for why. Widening the walk to .js/.cjs adds
+  // no credential-bearing files TODAY, so nothing downstream depends on it and no
+  // assertion could fail — a change that is real, correct, and invisible to the
+  // suite. That is the same shape as the vacuous tests this workstream keeps
+  // finding, arriving from the other direction: not a test that cannot fail, but a
+  // behaviour nothing watches.
+  assert.ok(rel.some((f) => /\.(js|cjs)$/.test(f)),
+    'the walk must cover .js/.cjs — a credential in one of those spends money exactly the same');
 });
 
-test('the credential grep actually discriminates', () => {
+test('the credential grep actually discriminates — and on its REAL subjects', () => {
   // Second control: if `spendsMoney` returned true for everything (or nothing),
   // the contract below would be vacuous in one direction or the other.
   const all = candidateScripts();
   const paid = all.filter(spendsMoney);
   assert.ok(paid.length > 0, 'no script reads a payment credential — the grep is broken');
   assert.ok(paid.length < all.length, 'every script looks paid — the grep is too broad');
+
+  // GLM 5.3 finding 1 / flash finding 11 — the fifth vacuous test, and both were
+  // right about the shape. `paid.length > 0` is satisfied FOREVER by the frozen
+  // library entries (lib/preflight.mjs, the two gateway files), which sit in
+  // KNOWN_UNGATED and are skipped by the contract anyway. So the control could not
+  // detect the grep going blind on its actual subject: the seats that bill.
+  //
+  // Pinning named exemplars is what makes it a control. These are chosen because
+  // they are REAL paid entrypoints, not libraries — a fan-out and an image probe.
+  const names = paid.map((f) => f.split(/[\\/]/).pop());
+  for (const seat of ['consult-openrouter-panel.mjs', 'forge-i2i-probe.mjs', 'consult-codex.mjs']) {
+    assert.ok(names.includes(seat),
+      `${seat} bills real money and the credential grep no longer sees it — the instrument went blind`);
+  }
+});
+
+test('every credential idiom an honest author would write is detected', () => {
+  // The detector tested exactly `process.env.<MARKER>`. GLM F3 and flash 7 both
+  // named the consequence: one linter-driven refactor to destructuring, and a new
+  // paid script passes every test green with nobody prompted to classify it.
+  //
+  // Each case below is a shape a normal author writes, not an evasion. The two
+  // negatives matter as much as the positives: a detector that matches a MENTION
+  // flags this repo's own guards, and exemptions added for false positives are where
+  // real ones later hide.
+  const K = 'OPENROUTER_API_KEY';
+  const yes = [
+    `const k = process.env.${K};`,
+    `const k = process.env['${K}'];`,
+    `const k = process.env["${K}"];`,
+    `const { ${K} } = process.env;`,
+    `const {\n  FOO,\n  ${K},\n} = process.env;`,
+    `const k = Bun.env.${K};`,
+    `const env = process.env;\nconst k = env.${K};`,
+  ];
+  for (const src of yes) assert.equal(readsCredential(src), true, `missed idiom:\n${src}`);
+
+  const no = [
+    `// we never read ${K} here`,
+    `const MARKERS = ['${K}'];`,          // this repo's own guards look exactly like this
+    `console.log('set ${K} in your .env');`,
+  ];
+  for (const src of no) assert.equal(readsCredential(src), false, `false positive on:\n${src}`);
+});
+
+test('CREDENTIAL_MARKERS is FROZEN — the exact set, like the debt list', () => {
+  // flash finding 11: the freeze discipline was applied to KNOWN_UNGATED's key set
+  // and never to the marker list the whole contract reads through. Deleting
+  // OPENAI_API_KEY — plausibly, to silence the next guard file that trips the grep —
+  // quietly removed every OpenAI-only seat from the contract with all tests green.
+  //
+  // Shrinking this list is not a cleanup; it is narrowing what counts as spending
+  // money. Growing it is fine and expected, and still lands here so it is deliberate.
+  assert.deepEqual([...CREDENTIAL_MARKERS].sort(), [
+    'ANTHROPIC_API_KEY',
+    'OPENAI_API_KEY',
+    'OPENROUTER_API_KEY',
+  ], [
+    'CREDENTIAL_MARKERS changed. This list decides what the whole contract can see.',
+    'REMOVING one silently drops every seat that pays with it — update this assertion',
+    'in the same commit and say why. ADDING one is expected as new providers appear.',
+  ].join('\n'));
 });
 
 test('CONTRACT: every credential-bearing script is gated or explicitly allowlisted', () => {
@@ -104,10 +180,19 @@ test('CONTRACT: every credential-bearing script is gated or explicitly allowlist
     if (!spendsMoney(file)) continue;
     const name = file.split(/[\\/]/).pop();
     const rel = relative(SCRIPTS, file).replaceAll('\\', '/');
-    if (Object.prototype.hasOwnProperty.call(FREE_ALLOWLIST, name)) continue;
-    // The frozen baseline. Keyed by BOTH bare name and relative path so a nested
-    // entry (context-gateway/src/transport.mjs) is unambiguous either way.
-    if (KNOWN_UNGATED[name] || KNOWN_UNGATED[rel]) continue;
+    // AN EXEMPTION IS SCOPED TO THE FILE IT NAMES (flash finding 7c). Both lists
+    // matched by BARE NAME first, so a nested `consult-gemini.mjs` anywhere under
+    // scripts/ inherited the top-level entry's free pass and the ghost test stayed
+    // green. A bare key now means the top-level file only; anything deeper must be
+    // keyed by its relative path — which the two gateway entries already are.
+    // A path key matches that exact file at any depth; a bare key matches only the
+    // top-level file of that name. Both lists take both forms, symmetrically — the
+    // asymmetry (only KNOWN_UNGATED accepted paths) is what forced three libraries
+    // into the frozen DEBT list when FREE_ALLOWLIST is where they belong.
+    const exempt = (list) => Object.prototype.hasOwnProperty.call(list, rel)
+      || (Object.prototype.hasOwnProperty.call(list, name) && rel === name);
+    if (exempt(FREE_ALLOWLIST)) continue;
+    if (exempt(KNOWN_UNGATED)) continue;
     if (invokesPaidSeat(invocationOf(file))) continue;
     uncovered.push(rel);
   }
@@ -139,18 +224,19 @@ test('CONTRACT: KNOWN_UNGATED is FROZEN — the exact key set, not merely reason
   //
   // Now it is an asserted key set. Growing the list fails HERE, which is what the
   // freeze claimed to do all along.
+  // SHRANK 5 -> 2 on 2026-08-27, and this assertion failing is what made the move a
+  // deliberate act rather than a quiet one — exactly what the freeze is for.
+  //
+  // The three removed rows (lib/preflight.mjs and the two gateway files) are
+  // LIBRARIES that cannot bill, which is FREE_ALLOWLIST's definition. They only sat
+  // in the debt list because that list was the only one the contract matched by PATH
+  // — an accident of plumbing, not a judgement (GLM 5.3 round-4 F5). Parking non-debt
+  // in the baseline inflated the number this workstream is driving to zero and hid
+  // the two entries that are real. Debt paid down by RECLASSIFICATION, and saying so
+  // out loud matters: the alternative reading is that three holes were closed, and
+  // they were not — they were never holes.
   assert.deepEqual(Object.keys(KNOWN_UNGATED).sort(), [
-    // Added 2026-08-27, and this assertion failing is what forced it to be a
-    // deliberate act rather than a quiet one — exactly what the freeze is for.
-    // It is a LIBRARY entry, not new debt: GLM 5.3-flash F4 showed the gate was
-    // hard-blocking this no-op and telling the operator to price a library.
-    'context-gateway/src/consult.mjs',
-    'context-gateway/src/transport.mjs',
     'hermes-village.mjs',
-    // Added 2026-08-27 when the walker became recursive. A LIBRARY entry, not new
-    // debt: preflight reads a key only to check it exists before an AI-invoking
-    // script runs. This assertion failing is what made adding it a deliberate act.
-    'lib/preflight.mjs',
     'validation-orchestrator.mjs',
   ], [
     'KNOWN_UNGATED changed. That list is FROZEN pre-existing debt, not a place to put',
@@ -186,6 +272,34 @@ test('CONTRACT: the gate sees the context-gateway engine path', () => {
   // The assertion stays because the day someone gives that engine a CLI entry, it
   // should already be covered rather than newly forgotten.
   assert.equal(invokesPaidSeat('node scripts/context-gateway/src/consult.mjs --seat fable'), true);
+});
+
+test('an exemption is scoped to the file it names, not to every file with that name', () => {
+  // flash finding 7c. Both lists matched by BARE NAME first, so a nested
+  // `consult-gemini.mjs` anywhere under scripts/ inherited the top-level entry's
+  // free pass — and the ghost test stayed green because the basename existed
+  // somewhere. Free-listing a name is a statement about ONE file (this Gemini shim
+  // is on a free tier), never about every future file that reuses the name.
+  //
+  // Written against the real predicate rather than the filesystem: creating a decoy
+  // file under scripts/ during a test run would be visible to any concurrent agent
+  // in this shared tree, and Rule 67 says do not do that.
+  const bareKeyApplies = (list, name, rel) =>
+    Object.prototype.hasOwnProperty.call(list, name) && rel === name;
+
+  assert.equal(bareKeyApplies(FREE_ALLOWLIST, 'consult-gemini.mjs', 'consult-gemini.mjs'), true,
+    'the top-level file the allowlist actually names must still be exempt');
+  assert.equal(bareKeyApplies(FREE_ALLOWLIST, 'consult-gemini.mjs', 'vendor/consult-gemini.mjs'), false,
+    'a NESTED file must not inherit a top-level exemption by sharing its basename');
+
+  // The path-keyed entries keep working, which is what makes the bare-key rule safe
+  // to tighten: anything nested that genuinely needs an exemption already has one.
+  // Asserted on FREE_ALLOWLIST since the 5 -> 2 reclassification moved the gateway
+  // libraries there; the point is that BOTH lists take path keys, not which list a
+  // given library sits in.
+  assert.ok(FREE_ALLOWLIST['context-gateway/src/consult.mjs'], 'nested entries are path-keyed');
+  const nested = (l) => Object.keys(l).some((k) => k.includes('/'));
+  assert.ok(nested(FREE_ALLOWLIST), 'FREE_ALLOWLIST must accept path keys, or libraries get pushed into the debt list');
 });
 
 test('a mention of a paid script is still not an invocation', () => {
