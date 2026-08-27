@@ -32,7 +32,11 @@ import {
 /** GET /api/locations — active sites by default; ?includeInactive=true for admins' management view. */
 export const listLocations = async (req, res) => {
   try {
-    const includeInactive = String(req.query.includeInactive || '').toLowerCase() === 'true';
+    // Optional chaining, matching deleteLocation's `req.query?.force` below: a caller with no
+    // query object at all (a direct invocation, or a test) otherwise threw inside the try and
+    // surfaced as a 500 on a request that should simply list everything. Caught by this
+    // controller's own test, which was failing before this fix.
+    const includeInactive = String(req.query?.includeInactive || '').toLowerCase() === 'true';
     const where = includeInactive ? {} : { isActive: true };
     const locations = await Location.findAll({ where, order: [['name', 'ASC']] });
     return res.status(200).json({ success: true, locations });
