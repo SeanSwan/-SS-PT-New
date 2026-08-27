@@ -27,7 +27,8 @@ const assistantText = (text) =>
 
 test('is registered as a command-type Stop hook, and no Stop hook is prompt-type', () => {
   // Was "exactly one command Stop hook" — true only while this was the ONLY Stop
-  // hook. Four more have landed since (dry-loop, linear-sync, dual-tier, backup), so
+  // hook. Others landed since (linear-sync, orient, backup — dry-loop deleted 2026-08-26,
+  // dual-tier replaced by orient 2026-08-27), so
   // the count assertion had been failing at 4!==1 and then 5!==1 for weeks, reporting
   // a broken suite while nothing was actually wrong. A test that fails for a reason
   // nobody intends is a test everybody learns to ignore.
