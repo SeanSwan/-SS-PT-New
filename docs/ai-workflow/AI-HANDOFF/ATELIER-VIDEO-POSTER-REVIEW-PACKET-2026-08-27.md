@@ -573,3 +573,122 @@ diagnosis, which wants `npm ls jose sanitize-html` once the three agent locks cl
 ## Round-1 verification
 
 Backend atelier glob **575/575 across 40 suites**. Line cap, secret scan clean.
+
+---
+
+# ROUND 2 — both seats, and the one that went somewhere
+
+**GLM: REVISE** (1 P1, 4 P2). **Qwen: APPROVE, no blockers** — its sixth-consecutive-approve
+pattern from the handoff's §6 table, holding exactly true while GLM was still finding things.
+That is the reason it is never a lone seat.
+
+Reviews: `panel-2026-08-27-atelier-video-poster/GLM-ROUND-2.md`, `QWEN-ROUND-2.md`.
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 (P1) | Tenant scoping asserted by convention, never shown | **DISPROVEN** — GLM's own downgrade condition is met |
+| 2 | `findOrCreate` never backfills a poster on the found path | **CONFIRMED REAL.** Not mine to fix here; claim narrowed, backlog raised |
+| 3 | An absent `readUrl` is the silent failure this slice vows to prevent | **CONFIRMED. Fixed** |
+| 4 | Sparse mixed page misdiagnoses as "signer misconfigured" — wider than round 1's n=1 | **CONFIRMED. Fixed, GLM's way** |
+| 5 | 35 failed files, 5 explained | **CONFIRMED, and it led somewhere real** |
+
+## Finding 1 — disproven, twice over
+
+`atelierComposeRoutes.mjs:99` mounts `/assets` behind `protect, adminOnly` and passes
+`userId: req.user?.id` — from the authenticated session, never a parameter. There is no id
+to tamper with. `buildAssetQuery` then **throws `E_BAD_OWNER` before building anything** if
+`userId` is falsy, and `where` opens `{ ownerUserId: req.userId }` unconditionally. The
+optional-clause style GLM correctly identified as lethal-if-applied-to-owner is applied only
+to `kind`, `status` and the rest.
+
+GLM wrote: "If `ownerUserId` is unconditional in `buildAssetQuery`, downgrade to waived."
+It is. **Waived** — and the packet is at fault for making it askable, which is now four
+findings across two rounds traceable to what I did not paste.
+
+```js
+export function buildAssetQuery(req = {}, { Op, fn, col, where: whereFn } = {}) {
+  if (!req.userId) throw new ComposeError('E_BAD_OWNER', 'Listing assets requires an owner.');
+  ...
+  const where = { ownerUserId: req.userId };
+```
+
+## Finding 2 — real, and my claim was wrong
+
+`videoRenderJobService.mjs:270` does `MediaAsset.findOrCreate({ where: { r2Key }, defaults: {
+… posterR2Key: meta.posterR2Key ?? null … } })`. On the **found** path `defaults` are ignored,
+and the `posterR2Key` written twelve lines later at `:301` belongs to `job.update(...)` — the
+**VideoRenderJob**, not the asset. So a clip whose asset row was created before a poster
+existed keeps `posterR2Key: null` forever, the job and the asset disagree, and this slice
+cannot show a picture for it.
+
+**"Every video in the library rendered as a grey box" was therefore right about the cause and
+wrong about the coverage of the fix.** Corrected: every video *whose asset row carries a
+poster* now shows it; a clip whose row was created on a poster-less declaration still will
+not, and that is a defect in the writer, not the reader.
+
+Not fixed here. It is a three-line backfill inside a transaction on the video job path, which
+has its own lease and idempotency semantics — a different subsystem, and folding it into a
+slice about the library is how "while I'm here" becomes the next incident. **Raised as
+backlog #1**, ahead of the indexes, because it is the direct successor to this work.
+
+## Findings 3 and 4 — fixed
+
+**4 first, because GLM's fix is better than mine.** Round 1 recorded the false "signer is
+likely misconfigured" claim as an n=1 curiosity and I kept it, reasoning that a quieter flag
+means silence about a genuinely broken signer. GLM pointed out the scope was wrong — a
+24-row page with 23 poster-less rows and one purged poster reaches `failed === attempted`
+just as easily — and that the two concerns separate cleanly: **gate the CLAIM about cause,
+not the flag.** The boolean stays loud at any size; the sentence asserting *why* now waits
+for a second data point. That is what I wanted and could not see.
+
+**3.** The `readUrl`-absent branch returned a full page of nulls with `previewsUnavailable:
+false` and no telemetry — the "page of grey boxes with a 200 and nothing ever says otherwise"
+that the per-row catch three lines below calls unacceptable. The rule was guarding one half
+of a pair, in the module whose entire header is about not doing that. `reportNoSigner` now
+warns when rows *were* signable, and stays quiet when there was nothing to sign, because an
+empty page is no evidence about wiring. The boolean is unchanged: an absent signer is a
+legitimate configuration, not a broken one.
+
+Both falsified: removing the `attempted >= 2` gate reddens exactly the sparse-page test;
+restoring `page.map(() => null)` reddens exactly the absent-signer test.
+
+## Finding 5 — the one that mattered
+
+I explained 5 of 35 files and called the rest "not evidence of anything". GLM said that was
+faith. It was. Parsed properly, the 35 are:
+
+| Count | Cause | Verdict |
+|---|---|---|
+| 10 | real test failures — the 6 counted, plus 4 files whose failures are *also* counted | genuine, pre-existing |
+| 5 | `Cannot find package 'sanitize-html'` | declared dep, absent from the shared `node_modules` |
+| 2 | `Cannot find package 'jose'` | same |
+| 1 | `SyntaxError: Invalid or unexpected token` (`idorAuditReaderControls`) | undiagnosed |
+| 1 | `__vite_ssr_import_1__.default.define is not a function` | undiagnosed |
+| **15** | **`No test suite found`** | **not broken — written for a different runner** |
+
+**Those 15 are `node:test` files, and nothing has ever counted them.**
+`grep -l "node:test" backend/tests/unit/*.mjs` returns **18** files. Vitest cannot collect
+them, lists them as failures, and reports zero of their tests. Under their own runner:
+
+```
+node --test $(grep -l "node:test" tests/unit/*.mjs)
+→ exit 0 · # tests 188 · # pass 188 · # fail 0
+```
+
+**188 passing tests that appear in no number anyone has reported on this branch** — including
+`swanLawFilter`, `swanLawFilter.corpus` and `swanPromptCompiler`, which are the brief
+compiler and law filter the handoff's §1 names as core Atelier, and `forgeEndToEnd`,
+`forgeAspectContract`, `variantRun`, `winnerAndCapability`, `contactSheet`, `capabilityHonesty`.
+
+They are green today. The risk is not that they fail; it is that **when one starts failing,
+every verification command in the handoff still reports a clean run.** A test that cannot be
+seen to fail is the §7b class at the level of the harness rather than the assertion.
+
+Not restructured here — moving 18 files between runners is a decision, not a slice, and it
+belongs to whoever owns the backend test strategy. **Recorded, with the command that runs
+them, so the next person can no longer not know.**
+
+## Round-2 verification
+
+Backend atelier glob **579/579 across 40 suites**. Line cap, secret scan clean.
+Hidden `node:test` baseline established: **188/188, exit 0.**

@@ -218,3 +218,68 @@ describe('a clip has a poster, and it was never signed', () => {
     expect(out.previewsUnavailable).toBe(false);
   });
 });
+
+describe('a diagnosis needs more evidence than a flag does', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+  const clip = (over = {}) => row({ kind: 'video', mime: 'video/mp4', r2Key: 'atelier/video/1/clip.mp4', ...over });
+
+  it('does NOT claim a misconfigured signer when only one object was signable', async () => {
+    // 23 posterless rows and one purged poster reaches failed === attempted just as easily
+    // as a one-row page does. "The signer is likely misconfigured" is wrong there, and it
+    // is the sentence this message exists to keep anyone from having to guess at.
+    const errs = [];
+    const spy = console.error; console.error = (m) => errs.push(String(m));
+    try {
+      const rows = [clip({ posterR2Key: 'atelier/video/1/gone.webp' })];
+      for (let i = 0; i < 23; i += 1) rows.push(clip({ id: `n${i}`, posterR2Key: null }));
+      const out = await listAssets({ userId: 1 }, {
+        assetModel: model(rows), Op, readUrl: async () => { throw new Error('object gone'); },
+      });
+      // The FLAG stays loud — weakening it would trade a wrong diagnosis for silence.
+      expect(out.previewsUnavailable).toBe(true);
+      expect(errs.join(' ')).not.toMatch(/misconfigured/);
+    } finally { console.error = spy; }
+  });
+
+  it('DOES claim it once two objects were signable and both failed', async () => {
+    const errs = [];
+    const spy = console.error; console.error = (m) => errs.push(String(m));
+    try {
+      await listAssets({ userId: 1 }, {
+        assetModel: model([
+          clip({ posterR2Key: 'a.webp' }), clip({ id: 'b', posterR2Key: 'b.webp' }),
+        ]), Op, readUrl: async () => { throw new Error('signature key missing'); },
+      });
+      expect(errs.join(' ')).toMatch(/misconfigured/);
+    } finally { console.error = spy; }
+  });
+});
+
+describe('an absent signer is legitimate, but never silent', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+
+  it('warns when rows were signable and no signer was injected', async () => {
+    // If the route's injection regresses, this branch returns a full page of nulls with a
+    // 200 and no telemetry — the same silence the per-row catch refuses. The rule has to
+    // hold on the not-attempted branch too, or it is guarding one half of a pair.
+    const warns = [];
+    const spy = console.warn; console.warn = (m) => warns.push(String(m));
+    try {
+      const out = await listAssets({ userId: 1 }, { assetModel: model([row()]), Op });
+      expect(out.previewsUnavailable).toBe(false);   // not a BROKEN signer — an absent one
+      expect(warns.join(' ')).toMatch(/no signer was injected/);
+    } finally { console.warn = spy; }
+  });
+
+  it('says nothing when there was nothing to sign anyway', async () => {
+    // An empty page, or one of posterless clips, is no evidence about wiring.
+    const warns = [];
+    const spy = console.warn; console.warn = (m) => warns.push(String(m));
+    try {
+      await listAssets({ userId: 1 }, {
+        assetModel: model([row({ kind: 'video', posterR2Key: null })]), Op,
+      });
+      expect(warns.join(' ')).not.toMatch(/no signer was injected/);
+    } finally { console.warn = spy; }
+  });
+});

@@ -44,6 +44,28 @@ export function previewKeyFor(row = {}) {
 
 
 /**
+ * No signer injected. That is a legitimate configuration — `listAssets` is callable
+ * without storage and every test relies on it — so it is NOT `previewsUnavailable`,
+ * which means "the signer we have is broken".
+ *
+ * It must not be SILENT, though. If the route's injection ever regresses, this branch
+ * returns a full page of nulls with a 200 and no telemetry: exactly the "page of grey
+ * boxes with a 200 and nothing ever says otherwise" the per-row catch below calls
+ * unacceptable. The same standard has to apply to the branch where nothing is attempted
+ * at all — a rule that guards one half of a pair is this subsystem's dominant defect.
+ *
+ * Only when there was something to sign: an empty page says nothing about wiring.
+ */
+function reportNoSigner(page) {
+  if (page.some((r) => previewKeyFor(r))) {
+    console.warn('[Atelier/library] %d row(s) have a signable object but no signer was injected — every card on this page will be a placeholder.',
+      page.filter((r) => previewKeyFor(r)).length);
+  }
+  return page.map(() => null);
+}
+
+
+/**
  * Sign one page of previews. Returns `{ previews, previewsUnavailable }`, where
  * `previews[i]` lines up with `page[i]` and is null for any row with nothing showable
  * or a key that would not sign.
@@ -94,13 +116,28 @@ export async function signPreviews(page = [], readUrl) {
         return null;
       });
     }))
-    : page.map(() => null);
+    : reportNoSigner(page);
 
   // ONE bad object is isolation working. EVERY object failing is a broken signer, and
   // those are different facts that must not look identical to the person reading the page.
   const previewsUnavailable = attempted > 0 && failed === attempted;
   if (previewsUnavailable) {
-    console.error('[Atelier/library] ALL %d previews failed to sign — the signer is likely misconfigured, not the objects.', attempted);
+    // THE FLAG IS LOUD AT ANY SIZE; THE DIAGNOSIS IS NOT.
+    //
+    // `failed === attempted` on a page with ONE signable row is not evidence of a broken
+    // signer — it is one purged object, and a page of 24 rows where 23 have no poster
+    // reaches that state as easily as a page of one. Asserting "the signer is likely
+    // misconfigured" there is an actively wrong diagnosis, which is precisely what this
+    // message was written to prevent, inverted.
+    //
+    // Weakening the BOOLEAN would trade that for silence about a genuinely broken signer,
+    // and silence is the failure the signal exists to end. So the flag stays as it was and
+    // only the claim about CAUSE waits for a second data point.
+    if (attempted >= 2) {
+      console.error('[Atelier/library] ALL %d previews failed to sign — the signer is likely misconfigured, not the objects.', attempted);
+    } else {
+      console.warn('[Atelier/library] the page\u0027s only signable object failed — one bad object and a broken signer are indistinguishable at n=1.');
+    }
   }
   return { previews, previewsUnavailable };
 }
