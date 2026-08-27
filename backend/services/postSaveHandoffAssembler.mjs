@@ -16,6 +16,7 @@
 import { buildProofSeries } from './workoutProofSeriesService.mjs';
 import { resolveNextBestAction } from './nextBestActionResolverService.mjs';
 import { envBaseline, overlayOverrides } from './launchControlService.mjs';
+import { signReferralCode } from '../utils/referralCode.mjs';
 
 const zone = async (fn) => { try { return await fn(); } catch { return null; } };
 
@@ -31,7 +32,9 @@ export const resolveHeadline = (proof) => {
 /** Ownership: share is offered only to the record's owner (client-self OR admin-self). */
 export const resolveShare = ({ viewerUserId, targetUserId } = {}) =>
   (viewerUserId != null && String(viewerUserId) === String(targetUserId))
-    ? { eligible: true, reason: 'owner' }
+    // Owner shares carry a signed referral code so the share LINK attributes any later signup
+    // (acquisition). null when no secret is configured — the share still works, unattributed.
+    ? { eligible: true, reason: 'owner', referralCode: signReferralCode(viewerUserId) }
     : { eligible: false, reason: 'not-owner' };
 
 /**

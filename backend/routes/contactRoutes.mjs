@@ -215,6 +215,7 @@ router.post("/", contactLimiter, async (req, res) => {
         utmMedium: req.body?.utmMedium,
         utmCampaign: req.body?.utmCampaign,
         referrer: req.body?.referrer,
+        ref: req.body?.ref,
       },
     });
     if (leadCaptureResult?.error) {

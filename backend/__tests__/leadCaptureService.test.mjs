@@ -27,6 +27,7 @@ const {
   captureLeadFromNewsletter,
   captureLeadFromSignup,
 } = await import('../services/leadCaptureService.mjs');
+const { signReferralCode } = await import('../utils/referralCode.mjs');
 
 describe('captureLeadFromNewsletter (Tier 1.3)', () => {
   beforeEach(() => {
@@ -397,5 +398,54 @@ describe('captureLeadFromCheckout (Tier 0.4)', () => {
     expect(update).not.toHaveBeenCalled();
     expect(leadActivityCreate).not.toHaveBeenCalled();
     expect(res).toEqual({ leadId: 21, created: false, alreadyConverted: true });
+  });
+});
+
+describe('referral attribution (acquisition) — signed ?ref= code -> Lead.referredByUserId', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env.REFERRAL_HMAC_SECRET = 'lead-test-secret';
+    leadFindOrCreate.mockResolvedValue([{ id: 9, score: 0, tags: [], referredByUserId: null, update: vi.fn() }, true]);
+    leadActivityCreate.mockResolvedValue({ id: 1 });
+  });
+
+  it('signup with a valid code sets referredByUserId and records the referrer in the activity', async () => {
+    await captureLeadFromSignup({
+      user: { id: 500, firstName: 'N', email: 'n@x.com' }, clientSource: 'swanstudios', role: 'client',
+      attribution: { ref: signReferralCode(42) },
+    });
+    expect(leadFindOrCreate.mock.calls[0][0].defaults.referredByUserId).toBe(42);
+    expect(leadActivityCreate.mock.calls[0][0].metadata.referrerId).toBe(42);
+  });
+
+  it('contact form with a valid code sets referredByUserId', async () => {
+    await captureLeadFromContact({ formData: { email: 'c@x.com', name: 'C D' }, attribution: { ref: signReferralCode(42) } });
+    expect(leadFindOrCreate.mock.calls[0][0].defaults.referredByUserId).toBe(42);
+  });
+
+  it('a forged / tampered / missing code attributes NOTHING (fail-closed)', async () => {
+    const sig = signReferralCode(42).split('.')[1];
+    for (const ref of ['43.' + sig, '42', 'garbage', '', undefined]) {
+      leadFindOrCreate.mockClear();
+      await captureLeadFromSignup({ user: { id: 500, email: 'u@x.com' }, clientSource: 'swanstudios', role: 'client', attribution: { ref } });
+      expect(leadFindOrCreate.mock.calls[0][0].defaults.referredByUserId).toBeNull();
+    }
+  });
+
+  it('drops self-referral: a user cannot be their own referrer', async () => {
+    await captureLeadFromSignup({ user: { id: 42, email: 's@x.com' }, clientSource: 'swanstudios', role: 'client', attribution: { ref: signReferralCode(42) } });
+    expect(leadFindOrCreate.mock.calls[0][0].defaults.referredByUserId).toBeNull();
+  });
+
+  it('FIRST touch wins on an existing lead: fills an empty referrer, never overwrites one', async () => {
+    const update = vi.fn().mockResolvedValue(undefined);
+    leadFindOrCreate.mockResolvedValue([{ id: 9, score: 50, tags: [], referredByUserId: null, update }, false]);
+    await captureLeadFromSignup({ user: { id: 500, email: 'e@x.com' }, clientSource: 'swanstudios', role: 'client', attribution: { ref: signReferralCode(42) } });
+    expect(update.mock.calls[0][0].referredByUserId).toBe(42);
+
+    update.mockClear();
+    leadFindOrCreate.mockResolvedValue([{ id: 9, score: 50, tags: [], referredByUserId: 7, update }, false]);
+    await captureLeadFromContact({ formData: { email: 'e@x.com', name: 'E' }, attribution: { ref: signReferralCode(42) } });
+    expect(update.mock.calls[0][0]).not.toHaveProperty('referredByUserId');
   });
 });
