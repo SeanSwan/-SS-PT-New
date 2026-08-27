@@ -23,6 +23,9 @@
  */
 import { readFileSync } from 'node:fs';
 import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath } from '../lib/spend-ledger.mjs';
+// SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
+// Hand-curating it inside this regex is what drifted in both directions at once.
+import { PAID_INVOCATION, FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom } from '../lib/paid-seats.mjs';
 
 const ALLOW = () => process.exit(0);
 
@@ -143,20 +146,44 @@ const cmd = input?.tool_input?.command || '';
 // is now the same negated identifier class as the leading context — NOT a literal tab,
 // because an invisible character in a guard regex is the ``-became-0x08 failure with
 // a different costume. `nodejs` and `node-foo` still correctly do not match.
-const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?consult-(?:fable|sol|kimi|grok|panel)[.]mjs/;
-if (!cmd || !INVOCATION.test(cmd)) ALLOW();
+// SEVENTH round (SWA-218): the pattern itself moved to scripts/lib/paid-seats.mjs and
+// became PAID_INVOCATION, matching ANY `consult-*` seat instead of five hand-named ones.
+// The old enumeration had drifted in both directions at once — pricing `consult-grok.mjs`
+// and `consult-panel.mjs`, neither of which exists on main, while four live scripts that
+// read OPENROUTER_API_KEY matched nothing. The roster now lives in one file with a
+// coverage test policing it, so this line can never be the thing that goes stale again.
+if (!cmd || !PAID_INVOCATION.test(cmd)) ALLOW();
 
 try {
   // --- which model, and how big is the worst case? -------------------------
-  const scriptMatch = cmd.match(/consult-([a-z0-9-]+)\.mjs/);
-  const scriptName = scriptMatch ? `consult-${scriptMatch[1]}.mjs` : '';
+  // scriptNameFrom is shared with the coverage test, so the gate and the contract
+  // can never disagree about what a command names. It also resolves the gateway
+  // engine path, which the old `consult-([a-z0-9-]+)` capture could not see.
+  const scriptName = scriptNameFrom(cmd);
 
-  // A dry run spends nothing.
-  if (/--dry-run/.test(cmd)) ALLOW();
+  // --- INVERTED: paid by default, free by declaration (SWA-218) -------------
+  //
+  // The matcher above now recognises ANY consult-* seat, not five hand-named ones.
+  // That enumeration had drifted in both directions — pricing two scripts that do
+  // not exist while four live ones billed unseen. So the roster moved to
+  // scripts/lib/paid-seats.mjs, where a coverage test polices it, and a script is
+  // waved through only if somebody WROTE DOWN why.
+  if (FREE_ALLOWLIST[scriptName]) ALLOW();       // declared free, with a reason
+  if (KNOWN_UNGATED[scriptName]) ALLOW();        // frozen debt, behaviour unchanged
 
-  // The panel prices its own seats and already refuses paid seats without
-  // --confirm-spend; gate it only when spend is actually confirmed.
-  if (scriptName === 'consult-panel.mjs' && !/--confirm-spend/.test(cmd)) ALLOW();
+  // A dry run spends nothing — BUT ONLY WHERE THE SCRIPT IMPLEMENTS ONE.
+  // This used to be an unconditional `if (/--dry-run/.test(cmd)) ALLOW()`. Verified
+  // 2026-08-27: only consult-openrouter-panel.mjs implements the flag. Appending it
+  // to a Fable, Sol or Kimi call made the gate stand down while the script ignored
+  // the unknown flag and billed in full — the identical bypass class this file
+  // already documents for `--max-tokens 500`, still live in a different branch.
+  if (DRY_RUN_AWARE.has(scriptName) && /--dry-run/.test(cmd)) ALLOW();
+
+  // The fan-out refuses its own live call without --confirm-spend, so gating it
+  // earlier is cry-wolf. The old condition named `consult-panel.mjs`, which does not
+  // exist on main: the real panel never took this branch and neither did anything
+  // else. One condition, drifted in both directions.
+  if (PANEL_SCRIPTS.has(scriptName) && !/--confirm-spend/.test(cmd)) ALLOW();
 
   // An explicit --model / SWAN_*_MODEL override wins over the script default.
   // OVERRIDES MAY ONLY RAISE THE ESTIMATE — never lower it.
@@ -182,7 +209,7 @@ try {
   }
 
   // consult-panel fans out to many seats; price it as the whole fan-out.
-  const isPanel = scriptName === 'consult-panel.mjs';
+  const isPanel = PANEL_SCRIPTS.has(scriptName);
 
   // Price the panel by the seats ACTUALLY REQUESTED, not the full roster.
   // Flat-rating every fan-out at the whole-roster worst case made a run of two
@@ -201,7 +228,42 @@ try {
     : DEFAULT_SEATS;
   const panelUsd = panelSeats.reduce((sum, s) => sum + (SEAT_WORST_USD[s] ?? 0.35), 0);
   const price = PRICES[modelKey];
-  if (!price && !isPanel) ALLOW(); // unknown model — do not guess a number
+  // --- THE UNPRICED FAIL-OPEN, CLOSED (SWA-218) ------------------------------
+  //
+  // This used to be `if (!price && !isPanel) ALLOW()` — "unknown model, do not guess
+  // a number." The first half is right and stays: inventing a price for a money guard
+  // is worse than admitting there isn't one, because a wrong number silently
+  // UNDER-counts the caps. The conclusion was the bug. Not knowing the price is not a
+  // reason to wave the call through; it is a reason to stop and ask someone to write
+  // it down.
+  //
+  // It is the same shape as every other hole in this file's history: something the
+  // gate could not classify became something the gate ignored. With the matcher now
+  // inverted to paid-by-default, an unrecognised seat lands HERE, and this is the
+  // branch that decides whether inversion means anything at all. GLM 5.3 named that
+  // dependency exactly: inversion is cosmetic while the unpriced branch fail-opens.
+  //
+  // NO APPROVAL TOKEN IS MINTED. This is a CLASSIFICATION refusal, not a spend
+  // refusal — there is nothing for Sean to approve, because nobody yet knows what
+  // the call costs. A token here would let an agent buy its way past the one question
+  // that must be answered.
+  if (!price && !isPanel) {
+    console.error([
+      `SPEND GUARD — BLOCKED: ${scriptName || 'this script'} is not priced.`,
+      '',
+      '  It reads a payment credential and the gate has no per-token price for it,',
+      '  so no cap can be applied. Waving it through was the old behaviour and it is',
+      '  how four live seats billed unseen for weeks.',
+      '',
+      '  Fix it in scripts/lib/paid-seats.mjs — pick ONE, deliberately:',
+      '    PRICES        add the real OpenRouter price. Look it up; do not estimate.',
+      '    FREE_ALLOWLIST  if it genuinely cannot bill (local, subscription, free tier).',
+      '    KNOWN_UNGATED   only to freeze pre-existing debt, WITH a written reason.',
+      '',
+      '  There is no token for this. Nothing to approve until someone knows the cost.',
+    ].join('\n'));
+    process.exit(2);
+  }
 
   // Same rule for the output ceiling. Found by the same round: appending
   // `--max-tokens 500` to a Fable call dropped the estimate under the cap — and

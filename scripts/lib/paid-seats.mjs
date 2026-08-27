@@ -74,9 +74,31 @@ export const KNOWN_UNGATED = {
     'Wraps the Village runner, so it inherits the same in-process controls — including the '
     + 'ledger reconciliation landed 2026-08-26.',
   'context-gateway/src/transport.mjs':
-    'The gateway is network-capable module, NOT an entrypoint. It is reached through '
-    + 'context-gateway/src/consult.mjs, which PAID_INVOCATION does match. Listed for the record '
-    + 'so a future reader does not mistake it for an uncovered seat.',
+    'LIBRARY, not an entrypoint — no shebang, no top-level invocation. It is imported by '
+    + 'context-gateway/src/consult.mjs, which is ALSO a library (verified 2026-08-27: no '
+    + 'self-invocation guard, so `node .../consult.mjs` defines exports and exits, spending '
+    + 'nothing). Real spend goes through the consult-<seat>.mjs shims, which PAID_INVOCATION '
+    + 'matches. CORRECTION: an earlier note here called the gateway a live "substitute path" '
+    + 'bypass. It is not. That finding was accepted after confirming the REGEX did not match it, '
+    + 'without confirming the file was EXECUTABLE — matching is not the same as exploitable.',
+
+  // --- credential-bearing, matched by PAID_INVOCATION, but NOT PRICED ---------
+  // These pass today exactly as they did before the inversion. They are listed
+  // rather than priced because inventing a price for a money guard is worse than
+  // admitting there isn't one — a wrong number silently under-counts the caps.
+  // Each needs a real OpenRouter price looked up before it can move to PRICES.
+  'consult-codex.mjs': 'openai/gpt-5.5 via OpenRouter. UNPRICED — needs a verified per-token price.',
+  'consult-codex-via-openrouter.mjs': 'openai/gpt-5.5 via OpenRouter. UNPRICED — needs a verified price.',
+  'consult-codex-impl-review.mjs': 'Codex review variant. UNPRICED — needs a verified price.',
+  'consult-codex-v1-1-review.mjs': 'Codex review variant. UNPRICED — needs a verified price.',
+  'consult-codex-v1-2-review.mjs': 'Codex review variant. UNPRICED — needs a verified price.',
+  'consult-hy3-design.mjs': 'tencent/hy3 via OpenRouter. UNPRICED — needs a verified price.',
+  'consult-opus5.mjs': 'anthropic/claude-opus-5 via OpenRouter. UNPRICED — needs a verified price.',
+  // NOTE: consult-openrouter-panel.mjs is deliberately NOT here. It belongs to
+  // PANEL_SCRIPTS, which has real per-seat pricing. Listing it as frozen debt made the
+  // gate short-circuit BEFORE that pricing ran, so an expensive fan-out sailed through
+  // — caught by the "expensive seats must block" test within a minute of writing it.
+  // Two overlapping allowlists is one allowlist too many; the ordering matters.
   'forge-capture-fixtures.mjs': 'Image-forge probe. UNCLASSIFIED — needs a spend review; may bill per image.',
   'forge-i2i-influence.mjs': 'Image-forge probe. UNCLASSIFIED — needs a spend review; may bill per image.',
   'forge-i2i-probe.mjs': 'Image-forge probe. UNCLASSIFIED — needs a spend review; may bill per image.',
@@ -113,4 +135,39 @@ export const PAID_INVOCATION =
 /** True when this command text invokes something that could spend money. */
 export function invokesPaidSeat(cmd) {
   return PAID_INVOCATION.test(String(cmd || ''));
+}
+
+/**
+ * Scripts that ACTUALLY implement `--dry-run`.
+ *
+ * The gate used to honor the flag for anything: `if (/--dry-run/.test(cmd)) ALLOW()`.
+ * Verified 2026-08-27 — only `consult-openrouter-panel.mjs` implements it. The Fable,
+ * Sol and Kimi shims and the gateway engine do not mention it at all, so appending
+ * `--dry-run` to one of those made the gate stand down while the script ignored the
+ * unknown flag and billed in full.
+ *
+ * That is the identical bypass class the file already documents for `--max-tokens 500`
+ * — a flag the script does not accept, lowering the gate's estimate. Honoring a flag
+ * the target ignores is how a gate lies, and it was still doing it in one branch.
+ */
+export const DRY_RUN_AWARE = new Set(['consult-openrouter-panel.mjs']);
+
+/**
+ * Fan-out scripts that refuse the live call themselves without `--confirm-spend`,
+ * so gating them before that flag appears would be pure cry-wolf.
+ *
+ * The old check named `consult-panel.mjs`, which does not exist on main — so the
+ * REAL panel never took this branch, and a script that does exist never took it
+ * either. Drift in both directions, in a single condition.
+ */
+export const PANEL_SCRIPTS = new Set(['consult-openrouter-panel.mjs']);
+
+/**
+ * Pull the seat script's basename out of a command, or '' if none.
+ * Handles both `consult-<seat>.mjs` and the gateway engine path.
+ */
+export function scriptNameFrom(cmd) {
+  const m = String(cmd || '').match(/(consult-[a-z0-9-]+|context-gateway[/\\]src[/\\]consult)[.]mjs/);
+  if (!m) return '';
+  return `${m[1].replace(/^.*[/\\]/, '')}.mjs`;
 }

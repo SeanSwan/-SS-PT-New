@@ -210,8 +210,24 @@ test('an empty command passes', () => {
   assert.equal(runGate('').code, ALLOW);
 });
 
-test('a free seat is not gated at all', () => {
-  assert.equal(runGate('node scripts/consult-ox.mjs --document plan.md').code, ALLOW);
+test('a free seat is allowed — but now BY DECLARATION, not by being unrecognised', () => {
+  // Behaviour change, deliberate (SWA-218). This used to assert consult-ox.mjs, which
+  // does not exist on main — it "passed" only because the narrow matcher ignored it,
+  // which is indistinguishable from a paid seat the matcher also ignored. That
+  // indistinguishability WAS the bug.
+  //
+  // Now every consult-* matches, and a seat passes only because someone wrote down
+  // why in FREE_ALLOWLIST. consult-gemini.mjs is free-tier and really is on that list.
+  assert.equal(runGate('node scripts/consult-gemini.mjs --document plan.md').code, ALLOW);
+});
+
+test('a seat that is neither priced nor declared is REFUSED, not waved through', () => {
+  // The inversion's whole point, and the test that proves it is not cosmetic.
+  const r = runGate('node scripts/consult-brandnewseat.mjs --document plan.md');
+  assert.equal(r.code, BLOCK);
+  assert.match(r.stderr, /is not priced/);
+  assert.match(r.stderr, /paid-seats\.mjs/, 'the refusal must name where to fix it');
+  assert.doesNotMatch(r.stderr, /SWAN_SPEND_APPROVE/, 'classification refusals mint no token');
 });
 
 test('malformed stdin fails OPEN — a guard bug must never brick the toolchain', () => {
@@ -277,32 +293,47 @@ test('a longer flag with the same prefix is not misread', () => {
   assert.equal(runGate(SOL).code, BLOCK);
 });
 
-test('an unknown model on an unknown script is not guessed at', () => {
-  // "do not guess a number" — an unpriced script must not invent a worst case.
-  assert.equal(runGate('node scripts/consult-newseat.mjs --document plan.md').code, ALLOW);
+test('an unpriced script is still not GUESSED at — it is refused instead', () => {
+  // This test used to assert ALLOW, pinning the fail-open as contract. GLM 5.3
+  // finding 4 named exactly that: the suite "proves and blesses" the hole.
+  //
+  // The half that was right survives: the gate must not invent a price, because a
+  // wrong number silently UNDER-counts the caps. The conclusion was the bug — not
+  // knowing the cost is a reason to stop and ask, never a reason to proceed.
+  const r = runGate('node scripts/consult-newseat.mjs --document plan.md');
+  assert.equal(r.code, BLOCK);
+  assert.doesNotMatch(r.stderr, /\$\d/, 'it must not print an invented number');
 });
 
 // ---------------------------------------------------------------------------
 // 4. The deliberate ALLOW short-circuits
 // ---------------------------------------------------------------------------
 
-test('--dry-run spends nothing and passes', () => {
-  assert.equal(runGate(`${FABLE} --dry-run`).code, ALLOW);
+const PANEL = 'node scripts/consult-openrouter-panel.mjs';
+
+test('--dry-run passes ONLY for the script that implements it', () => {
+  // Behaviour change, deliberate. The gate used to honor --dry-run unconditionally.
+  // Verified 2026-08-27: only consult-openrouter-panel.mjs implements the flag, so
+  // appending it to a Fable call made the gate stand down while the script ignored
+  // the unknown flag and billed in full — the same class as the documented
+  // `--max-tokens 500` bypass, still live in a different branch.
+  assert.equal(runGate(`${PANEL} --document plan.md --dry-run`).code, ALLOW, 'the panel really has a dry run');
+  assert.equal(runGate(`${FABLE} --dry-run`).code, BLOCK, 'Fable has no dry run; the flag must not excuse it');
 });
 
-test('the panel without --confirm-spend passes — it refuses paid seats itself', () => {
-  assert.equal(runGate('node scripts/consult-panel.mjs --seats kimi,sol --document plan.md').code, ALLOW);
+test('the panel without --confirm-spend passes — it refuses the live call itself', () => {
+  // Now keyed on the REAL panel. The old condition named consult-panel.mjs, which
+  // does not exist on main, so this branch was dead in both directions.
+  assert.equal(runGate(`${PANEL} --seats kimi,sol --document plan.md`).code, ALLOW);
 });
 
 test('the panel WITH --confirm-spend is priced by the seats actually requested', () => {
-  // Two free seats: worst case $0.00, under every cap.
-  const cheap = runGate('node scripts/consult-panel.mjs --seats ox,glm --document plan.md --confirm-spend');
+  const cheap = runGate(`${PANEL} --seats glm,gemini --document plan.md --confirm-spend`);
   assert.equal(cheap.code, ALLOW, 'a free fan-out must not be flat-rated at the roster worst case');
 });
 
 test('the panel WITH --confirm-spend blocks when the requested seats are expensive', () => {
-  const dear = runGate('node scripts/consult-panel.mjs --seats fable,sol,kimi --document plan.md --confirm-spend');
-  assert.equal(dear.code, BLOCK);
+  assert.equal(runGate(`${PANEL} --seats fable,sol,kimi --document plan.md --confirm-spend`).code, BLOCK);
 });
 
 // ---------------------------------------------------------------------------

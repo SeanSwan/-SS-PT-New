@@ -110,10 +110,19 @@ test('CONTRACT: the allowlist has no ghosts and no blank reasons', () => {
   }
 });
 
-test('CONTRACT: the gate sees the context-gateway substitute path', () => {
-  // GLM 5.3-flash blocker 2: consult-fable.mjs is a thin shim over
-  // context-gateway/src/consult.mjs, so calling that directly spends Fable through
-  // the identical billing path. Gating only the shim defends the filename, not the money.
+test('CONTRACT: the gate sees the context-gateway engine path', () => {
+  // Kept as defence in depth, with the CLAIM CORRECTED.
+  //
+  // GLM 5.3-flash blocker 2 called this a live "substitute path" bypass: call the
+  // engine directly and spend Fable while matching nothing. I accepted it after
+  // confirming the REGEX did not match it — and never checked whether the file was
+  // EXECUTABLE. It is not. Verified 2026-08-27: that engine has no shebang and no
+  // self-invocation guard, so running it directly defines exports and exits, spending
+  // nothing. Matching is not the same as exploitable, and verifying the wrong
+  // proposition is how a finding gets "confirmed" while staying wrong.
+  //
+  // The assertion stays because the day someone gives that engine a CLI entry, it
+  // should already be covered rather than newly forgotten.
   assert.equal(invokesPaidSeat('node scripts/context-gateway/src/consult.mjs --seat fable'), true);
 });
 
