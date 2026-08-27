@@ -103,9 +103,17 @@ describe('clientResolver scope decision', () => {
     // check would silently become a tautology the day the resolver stopped suggesting.
     // (GLM Flash, round 6: "weakens to a tautology if a future refactor returns NO
     // suggestions" — true, and cheaper to close than to remember.)
-    const nearMiss = await resolveClient('Adaa', directory(), { trainerId: OUR_TRAINER });
-    const channelIsLive = (nearMiss.suggestions || []).length > 0 || nearMiss.resolved !== null;
-    expect(channelIsLive, 'the suggestion channel produced nothing — the leak check below is vacuous').toBe(true);
+    // A name that matches NOTHING, so the resolver takes the suggestion branch rather than
+    // fuzzy-resolving it. An earlier version used 'Adaa', which is one edit from 'Ada' and
+    // therefore resolves — so the control passed on the resolve branch and proved nothing
+    // about suggestions at all. (GLM Flash, round 7: "weak-but-failable"; it was right, and
+    // a disjunction that can be satisfied by the wrong half is barely a control.)
+    const noMatch = await resolveClient('Zzzzqqq', directory(), { trainerId: OUR_TRAINER });
+    expect(noMatch.resolved, 'the control name unexpectedly resolved').toBeNull();
+    expect(
+      (noMatch.suggestions || []).length,
+      'the suggestion channel produced nothing — the leak check below would be vacuous',
+    ).toBeGreaterThan(0);
 
     expect(JSON.stringify(foreign.suggestions || [])).not.toContain('Foreign');
   });
