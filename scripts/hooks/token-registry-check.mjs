@@ -242,12 +242,43 @@ function main() {
   // `-U0` makes each hunk header name exactly the added range: "@@ -a,b +c,d @@" means d lines
   // starting at c are new. d is omitted when it is 1.
   const addedLines = new Map();
+
+  // --- merge baseline (X3) --------------------------------------------------
+  // `git diff --cached` is against HEAD, and during a MERGE that inverts the meaning of
+  // "a line this commit ADDS": HEAD is the PRE-merge tip, so every line the merge carries
+  // in from origin/main counts as newly added by this commit. It is not. Those lines are
+  // already on the default branch and already deployed, and blocking on them means
+  // origin/main can never be merged into a branch while main carries inherited token debt
+  // — the exact inherited-debt case that made this gate --added-only rather than --strict
+  // in the first place (Rule 34).
+  //
+  // So during a merge the diff baseline becomes origin/main: lines this merge genuinely
+  // authors relative to current law. Strictly the right question and strictly narrower —
+  // a file the merge actually MODIFIED still diffs against main and its new lines are
+  // still judged; only verbatim carries fall away.
+  //
+  // FAILS CLOSED: no MERGE_HEAD, or origin/main unresolvable, and the baseline stays HEAD.
+  // Third guard found with this same blind spot on 2026-08-27 (after frontend-guards X1 and
+  // constitution-guard X2), which is what makes it a pattern rather than three bugs: a guard
+  // that cannot tell a line it AUTHORED from a line that ARRIVED.
+  const gitQuiet = (a) => {
+    try {
+      return execFileSync('git', a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], env: { ...process.env, MSYS_NO_PATHCONV: '1' } }).trim();
+    } catch { return null; }
+  };
+  const DIFF_BASE = gitQuiet(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null
+    && gitQuiet(['rev-parse', '-q', '--verify', 'origin/main']) !== null
+    ? ['origin/main'] : [];
+  if (DIFF_BASE.length) {
+    console.error('[token-registry] merge in progress — added lines measured against origin/main, not the pre-merge tip');
+  }
+
   if (ADDED_ONLY) {
     for (const f of targets) {
       const set = new Set();
       let diff = '';
       try {
-        diff = execFileSync('git', ['diff', '--cached', '-U0', '--', f], { encoding: 'utf8' });
+        diff = execFileSync('git', ['diff', '--cached', ...DIFF_BASE, '-U0', '--', f], { encoding: 'utf8' });
       } catch {
         // A file with no staged diff is not an error - it simply contributes no added lines.
         diff = '';
