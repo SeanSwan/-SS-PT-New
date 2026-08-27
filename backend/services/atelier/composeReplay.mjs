@@ -53,10 +53,7 @@ import { ComposeError } from './composeLimits.mjs';
  *          when coalescing onto a live claim — a promise of one.
  */
 export function replayIfFresh(store, key, clock = () => Date.now()) {
-  // COERCED, because the orchestrator holds a frozen `now` NUMBER beside this function's
-  // `clock` FUNCTION and the two are one careless argument apart. Passing the number would
-  // throw at `clock()` and 500 every request through this path.
-  if (typeof clock !== 'function') { const t = Number(clock) || Date.now(); clock = () => t; }
+  clock = liveClock(clock);
   if (!store.has(key)) return null;
   const held = store.get(key);
   if (held && typeof held.then === 'function') return resolveReplay(held, store, key, clock);
@@ -176,6 +173,28 @@ function judge(prior, token, store, key, clock, fromClaim) {
 // lane where re-running charges money. A large finite number survives the trip.
 export const REPLAY_NEVER_EXPIRES = Number.MAX_SAFE_INTEGER;
 
+/**
+ * Whatever was handed in, answer with a clock that actually moves.
+ *
+ * The orchestrator holds a frozen `now` NUMBER beside this module's `clock` FUNCTION and
+ * the two are one careless argument apart, so a non-function has to be survivable. The
+ * first version of this survived it by freezing the caller's mistake — `() => thatNumber` —
+ * which turns an expired stub into a fresh one and answers 200 with a statusUrl that 404s.
+ * That is the precise dishonesty this module exists to prevent, arriving through the guard
+ * written to protect it, and silently where the crash would at least have been loud.
+ *
+ * A bad clock reads NOW. Being wrong about which instant is worse than being wrong about
+ * the argument.
+ *
+ * It is also one function because it was briefly two — same coercion in `replayIfFresh` and
+ * `claimOrCoalesce`, one freezing and one re-reading per tick, so identical bad input meant
+ * different semantics in sibling paths. The sixteenth time in this review, and this time in
+ * the hardening rather than the thing being hardened.
+ */
+function liveClock(clock) {
+  return typeof clock === 'function' ? clock : () => Date.now();
+}
+
 export function claimIfAbsent(store, key, pending) {
   if (store.has(key)) return false;
   store.set(key, pending);
@@ -200,7 +219,7 @@ export function claimIfAbsent(store, key, pending) {
  * ownership must not render, and a caller that renders twice has already lost the argument.
  */
 export async function claimOrCoalesce(store, key, clock, attempts = 3) {
-  const tick = typeof clock === 'function' ? clock : () => Number(clock) || Date.now();
+  const tick = liveClock(clock);
   let settle = null;
   const pending = new Promise((res, rej) => { settle = { res, rej }; });
   pending.catch(() => {});

@@ -159,6 +159,12 @@ describe('liveness is a fact the caller knows, not a shape the value has', () =>
     const { replayIfFresh, REPLAY_NEVER_EXPIRES } = await import('../../services/atelier/composeReplay.mjs');
     const store = new Map([['k', { batchId: 'B1', replayExpiresAt: REPLAY_NEVER_EXPIRES }]]);
     expect(replayIfFresh(store, 'k', Date.now()).batchId).toBe('B1');
+
+    // And it reads NOW rather than freezing the number it was handed. Freezing would make
+    // an EXPIRED stub look fresh — a silent 200 with a dead statusUrl, which is worse than
+    // the crash the coercion exists to prevent.
+    const stale = new Map([['k', { batchId: 'B1', replayExpiresAt: Date.now() - 1 }]]);
+    expect(replayIfFresh(stale, 'k', Date.now() - 60_000)).toBeNull();
   });
 
   it('the never-expires sentinel survives a JSON round trip', async () => {
