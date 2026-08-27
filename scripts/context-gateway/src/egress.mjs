@@ -12,6 +12,8 @@
  *
  * @module context-gateway/egress
  */
+import { homedir, hostname, userInfo } from 'node:os';
+import { basename } from 'node:path';
 
 // Every quantifier here is UPPER-BOUNDED. An unbounded `{n,}` or lazy `*?` over a delimiter-poor
 // input backtracks O(n²) and can hang the default compile lane for minutes on one long line
@@ -42,12 +44,101 @@ const RULES = [
   ['SSN', /\b\d{3}-\d{2}-\d{4}\b/g],
 ];
 
+// ── Operator identity (Rule 8) ────────────────────────────────────────────────
+// The rules above catch secret VALUES. They do not catch WHO AND WHERE, and that is
+// the class that actually leaked: on 2026-08-22 a review packet reached six external
+// vendors carrying the operator's Windows username inside filesystem paths. A secret
+// scan had run and returned "no matches" — correctly, because it had no rule for this
+// class at all. Coverage is not existence.
+//
+// Derived at RUNTIME, never written down: hardcoding the name here would make this
+// file the leak it exists to prevent. If the name cannot be derived, or is a common
+// word that would shred ordinary prose ("root", "admin"), the identity rules are
+// SKIPPED rather than applied — a redactor that mangles every document gets turned
+// off, which is worse than one that misses this class.
+//
+// Every quantifier is upper-bounded, per the ReDoS discipline established above.
+const COMMON_WORD_NAMES = new Set([
+  'admin', 'administrator', 'user', 'users', 'root', 'dev', 'developer', 'test', 'guest',
+  'owner', 'default', 'public', 'home', 'desktop', 'server', 'local', 'localhost',
+  'ubuntu', 'runner', 'node', 'docker', 'system', 'pi', 'me', 'main', 'app', 'build',
+]);
+
+function operatorNames() {
+  const raw = [];
+  try { raw.push(userInfo().username); } catch { /* no passwd entry — skip */ }
+  try { raw.push(basename(homedir() || '')); } catch { /* no home — skip */ }
+  try { raw.push(hostname()); } catch { /* no hostname — skip */ }
+  return [...new Set(raw
+    .map((n) => (n || '').trim())
+    .filter((n) => n.length >= 3 && n.length <= 64)
+    .filter((n) => !COMMON_WORD_NAMES.has(n.toLowerCase())))];
+}
+
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Identity rules for the current runtime. Path rules match only the HOME PREFIX so the
+ * tail (`\Desktop\quick-pt\...`) survives and citations stay navigable — the point is to
+ * remove who, not to destroy where.
+ */
+function identityRules(names = operatorNames()) {
+  const out = [];
+  // 8.3 short-form home dirs (six alphanumerics, tilde, digit) leak the same account
+  // without spelling the name, so this one is machine-independent and always on.
+  out.push(['HOME_PATH', /[A-Za-z]:[\\/]{1,2}Users[\\/]{1,2}[A-Za-z0-9]{6}~\d/g]);
+  for (const name of names) {
+    const n = esc(name);
+    out.push(['HOME_PATH', new RegExp(`[A-Za-z]:[\\\\/]{1,2}Users[\\\\/]{1,2}${n}`, 'gi')]);
+    out.push(['HOME_PATH', new RegExp(`/mnt/[a-z]/Users/${n}`, 'gi')]);
+    out.push(['HOME_PATH', new RegExp(`/(?:home|Users)/${n}`, 'gi')]);
+    // Claude scratchpad keys flatten the path with hyphens: c--Users-<name>-Desktop-…
+    out.push(['HOME_PATH', new RegExp(`c--Users-${n}`, 'gi')]);
+    out.push(['OPERATOR', new RegExp(`\\b${n}@`, 'gi')]);          // ssh login
+    out.push(['OPERATOR', new RegExp(`\\b${n}\\b`, 'gi')]);        // bare mention (last)
+  }
+  return out;
+}
+
+const IDENTITY_RULES = identityRules();
+
+/**
+ * Prove the instrument fires before anything trusts its silence.
+ *
+ * This is a POSITIVE CONTROL, not a coverage proof: it shows the rules compiled and ran
+ * in THIS process against input it knows is dirty. It cannot detect a class nobody thought
+ * of — which is exactly how the original incident happened, so the distinction matters and
+ * the error message says so. Runs once at module load (fail-closed); exported so a caller
+ * can re-check. Not per-call: redactSecrets runs on every evidence window and tool result.
+ *
+ * @throws if identity is derivable but the rules fail to remove it.
+ */
+export function selfTest(names = operatorNames()) {
+  if (!names.length) return { proven: false, reason: 'no derivable operator identity; identity rules inactive' };
+  // The 8.3 sample is ASSEMBLED, never a literal: a literal makes this file trip the
+  // pre-commit rule it is the runtime half of (caught 2026-08-27 before first commit).
+  const short = ['ABCDEF', '~', '1'].join('');
+  const canary = names.map((n) =>
+    `C:\\Users\\${n}\\x /home/${n}/y /mnt/c/Users/${n}/z c--Users-${n}-w ${n}@host ${n}`).join(' ')
+    + ` C:\\Users\\${short}\\v`;
+  const { text } = redactSecrets(canary);
+  const survived = names.filter((n) => new RegExp(esc(n), 'i').test(text));
+  if (survived.length || text.includes(short)) {
+    throw new Error(
+      '[egress] CANARY FAILED — the identity rules did not remove a string this process ' +
+      'planted itself. Silence from this redactor about any other document means NOTHING. ' +
+      'Refusing to certify content as safe to egress.',
+    );
+  }
+  return { proven: true, names: names.length };
+}
+
 /**
  * Redact inline secret VALUES from a string.
  * @returns {{ text: string, redactions: number, kinds: string[] }}
  */
 const PK_RULE = RULES.find(([k]) => k === 'PRIVATE_KEY')[1];
-const LINE_RULES = RULES.filter(([k]) => k !== 'PRIVATE_KEY');
+const LINE_RULES = [...IDENTITY_RULES, ...RULES.filter(([k]) => k !== 'PRIVATE_KEY')];
 
 export function redactSecrets(input) {
   // Defense-in-depth against a FUTURE unbounded rule: regex backtracking is superlinear in the
@@ -66,3 +157,8 @@ export function redactSecrets(input) {
   }).join('\n');
   return { text, redactions, kinds: [...kinds] };
 }
+
+// Fail-closed at load. If identity is derivable but the rules cannot remove it, this module
+// must not be trusted, and throwing here stops the gateway rather than letting it certify
+// content it cannot actually clean. Costs one regex pass per process, not per call.
+selfTest();
