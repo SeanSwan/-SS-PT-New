@@ -8,7 +8,9 @@
 # could not run says THAT rather than reporting clean.
 
 $ErrorActionPreference = 'Continue'
-$Repo = 'C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT'
+# Derived from this script's location (<repo>\scripts\launchers), not hardcoded, so the
+# double-click launcher works from any checkout on any machine.
+$Repo = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 Set-Location $Repo
 
 function Show-Header($text) {

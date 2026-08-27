@@ -14,7 +14,9 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Resolve-SwanRepoRoot {
-  $candidates = @((Join-Path $PSScriptRoot "..\.."), "C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT")
+  # Script-relative first; SWAN_REPO_ROOT as the only override. The former hardcoded
+  # absolute path was one machine's account and was never reached even there.
+  $candidates = @((Join-Path $PSScriptRoot "..\.."), $env:SWAN_REPO_ROOT) | Where-Object { $_ }
   foreach ($candidate in $candidates) {
     $resolved = Resolve-Path $candidate -ErrorAction SilentlyContinue
     if ($resolved -and (Test-Path -LiteralPath (Join-Path $resolved.Path "scripts\plaud-official-sync\swan-plaud-official-sync.mjs"))) {
