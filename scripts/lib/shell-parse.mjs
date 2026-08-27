@@ -415,6 +415,35 @@ export function flagFrom(args, name) {
   return undefined;
 }
 
+/**
+ * Leading `NAME=value` assignments, from the PARSE rather than a text scan.
+ *
+ * GLM 5.3 round-5 F8: `SWAN_*MODEL`, `SWAN_*MAX_TOKENS` and `SWAN_SPEND_APPROVE` were
+ * still being pulled out of the raw command with regexes, so
+ * `--document "SWAN_SOL_MODEL=claude-fable-5"` re-priced the call FROM DATA. Raise-only
+ * today, and therefore harmless today — but it is exactly the position-blind class the
+ * parser was written to end, left running on three lines. A control that is safe only
+ * because of which direction its bug happens to point is on borrowed time.
+ *
+ * An assignment counts only where the shell would treat it as one: leading its command,
+ * unquoted. `env FOO=bar node …` works because `env` is a transparent wrapper.
+ */
+export function envAssignments(input) {
+  const out = {};
+  for (const argv of parseCommands(input)) {
+    for (const t of argv) {
+      if (t.quoted) break;
+      const m = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/s.exec(t.value);
+      if (!m) {
+        if (TRANSPARENT.has(basename(t.value))) continue; // `env FOO=bar …`
+        break;                                            // the command has started
+      }
+      if (!(m[1] in out)) out[m[1]] = m[2];               // first wins, like the shell
+    }
+  }
+  return out;
+}
+
 /** True when an already-parsed argv carries a bare flag. */
 export function hasFlag(args, name) {
   const flag = `--${name}`;

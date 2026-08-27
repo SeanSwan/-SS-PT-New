@@ -27,7 +27,11 @@
  * Privacy (Rule 8/44/59): the ledger stores model ids, costs and a topic slug.
  * Never prompt content, never keys.
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, statSync, unlinkSync } from 'node:fs';
+// unlinkSync is deliberately NOT imported. Deleting the claim is what made the orphan
+// reclaim racy (flash round-5 F1: stat -> unlink -> create is three operations, so
+// racer B can unlink racer A's fresh claim and both proceed). An unavailable import is
+// a cheaper guard against that returning than a comment asking someone not to.
+import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
@@ -417,12 +421,35 @@ function claimToken(key, token) {
     //
     // Reclaiming does NOT reopen the race. Two processes may both unlink, but only
     // one `wx` create can succeed, so redemption stays single-winner throughout.
+    // RECLAIM WITHOUT UNLINKING (flash round-5 F1). The old sequence was
+    // stat -> unlink -> create, which is three operations and therefore not atomic as
+    // a unit: racer B can stat the AGED claim, be descheduled while racer A completes
+    // its reclaim, then unlink A's FRESH claim and create its own. Both proceed. The
+    // inline invariant — "only one create can succeed" — assumed both racers act on the
+    // same file, and after A's unlink they do not.
+    //
+    // Deleting is what made it racy, so nothing is deleted. A reclaim creates the NEXT
+    // GENERATION with O_EXCL, and exactly one process can create generation N. The
+    // original claim stays as the audit trail of the crash.
     try {
-      const age = Date.now() - statSync(claimPath).mtimeMs;
-      if (age < CLAIM_ORPHAN_MS) return false; // a real concurrent winner is in flight
-      unlinkSync(claimPath);
-      writeFileSync(claimPath, JSON.stringify({ key, token, at: new Date().toISOString(), reclaimedOrphan: true }), { flag: 'wx' });
-      return true;
+      if (Date.now() - statSync(claimPath).mtimeMs < CLAIM_ORPHAN_MS) return false; // a live winner
+      for (let gen = 1; gen <= 8; gen += 1) {
+        const genPath = `${claimPath.replace(/\.json$/, '')}.gen${gen}.json`;
+        if (existsSync(genPath)) {
+          // Somebody already reclaimed at this generation. If THAT one is also stale,
+          // try the next; otherwise a live holder has it and we lose.
+          if (Date.now() - statSync(genPath).mtimeMs < CLAIM_ORPHAN_MS) return false;
+          continue;
+        }
+        writeFileSync(genPath, JSON.stringify({
+          key, token, at: new Date().toISOString(), reclaimedOrphan: true, gen,
+        }), { flag: 'wx' });
+        // The reclaim is recorded on the original path too, for readers that look
+        // there — but the WIN was decided by the exclusive create above.
+        try { writeFileSync(claimPath, JSON.stringify({ key, token, at: new Date().toISOString(), reclaimedOrphan: true, gen })); } catch { /* audit only */ }
+        return true;
+      }
+      return false; // eight stale generations is not a crash pattern, it is a bug
     } catch {
       return false; // lost the reclaim race, or the filesystem misbehaved — refuse
     }

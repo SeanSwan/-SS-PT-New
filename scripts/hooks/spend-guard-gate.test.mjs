@@ -852,6 +852,40 @@ test('R5: failing closed does not tax ordinary work', () => {
   }
 });
 
+test('R5: SWAN_* env vars are read from the PARSE, not from raw text', () => {
+  // GLM 5.3 round-5 F8 — the last position-blind readers in the gate. Three
+  // `cmd.match(/SWAN_…/)` scans survived the parser rewrite, so a value inside a
+  // quoted argument was read as if it were a shell assignment.
+  //
+  // The approval token is the one that matters most: it BUYS a refused call, and
+  // reading it out of raw text meant a token appearing anywhere on the line counted
+  // as presented. The protocol is "re-run the command with the token in front of it",
+  // and that is now what is actually required.
+  const first = runGate(FABLE);
+  assert.equal(first.code, BLOCK, 'control: a bare Fable call is refused');
+  const token = tokenFrom(first.dir);
+  assert.ok(token, 'control: a token was minted');
+
+  // The token as DATA inside an argument must not redeem.
+  assert.equal(
+    runGate(`node scripts/consult-fable.mjs --document "notes SWAN_SPEND_APPROVE=${token}"`,
+      { ledger: first.dir }).code,
+    BLOCK,
+    'a token quoted inside an argument is data, and must not buy the call',
+  );
+
+  // As a real leading assignment, it does.
+  assert.equal(
+    runGate(`SWAN_SPEND_APPROVE=${token} ${FABLE}`, { ledger: first.dir }).code,
+    ALLOW,
+    'presented the way the protocol says, the token redeems',
+  );
+
+  // Same for the model override: as data it must not re-price.
+  const asData = runGate('node scripts/consult-kimi.mjs --document "SWAN_KIMI_MODEL=claude-fable-5"');
+  assert.equal(asData.code, ALLOW, 'a model name quoted inside an argument must not re-price the call');
+});
+
 test('R5: each seat holds under its OWN topic', () => {
   // flash round-5 F2, reproduced: both holds on a two-document line were keyed to the
   // FIRST seat's topic. A hold under the wrong topic can never be settled — the writer

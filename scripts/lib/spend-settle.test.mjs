@@ -356,6 +356,34 @@ test('a CRASHED holder is still distinguishable from a spent one', async () => {
   rmSync(dir, { recursive: true, force: true });
 });
 
+test('R5: the reclaim DELETES NOTHING — the race was in the unlink', async () => {
+  // flash round-5 F1. `stat -> unlink -> create` is three operations and therefore not
+  // atomic as a unit: racer B stats the AGED claim, is descheduled while racer A
+  // completes its reclaim, then unlinks A's FRESH claim and creates its own. Both
+  // proceed. The inline invariant "only one create can succeed" assumed both racers act
+  // on the same file — and after A's unlink they do not.
+  //
+  // Asserted STRUCTURALLY rather than by racing, and deliberately so: the fix is that
+  // the dangerous operation no longer exists, and forcing that interleaving reliably
+  // needs instrumentation the production path should not carry. Exactly one process can
+  // create generation N with O_EXCL; nothing is deleted, so there is no window to lose.
+  const { dir, mod } = await freshLedger();
+  const BREACH = { model: 'claude-fable-5', topic: 'p', worstCaseUsd: 4.00 };
+  const first = mod.checkSpend(BREACH);
+  const key = Object.keys(JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8')))[0];
+
+  const claim = join(dir, `claim-${key}-${first.token}.json`);
+  writeFileSync(claim, JSON.stringify({ crashed: true }), 'utf-8');
+  const old = new Date(Date.now() - 10 * 60_000);
+  utimesSync(claim, old, old);
+
+  assert.equal(mod.checkSpend({ ...BREACH, approvalToken: first.token }).allow, true);
+  assert.ok(existsSync(claim), 'the original claim must SURVIVE — deleting it is what was racy');
+  assert.ok(readdirSync(dir).some((f) => f.includes('.gen1.')),
+    'the win must be recorded as an exclusively-created next generation');
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test('R5: a SECOND approval cycle for the same breach still works', async () => {
   // GLM 5.3 round-5 B3 — a BRICK, and one my own round-4 fix created. The spent-marker
   // and the claim file were both keyed by model+topic+cost, and nothing deletes either.

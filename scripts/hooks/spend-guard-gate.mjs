@@ -27,7 +27,7 @@ import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR, r
 // SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
 // Hand-curating it inside this regex is what drifted in both directions at once.
 import { FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, seatInvocations, unmodelledExecutions } from '../lib/paid-seats.mjs';
-import { flagFrom, hasFlag } from '../lib/shell-parse.mjs';
+import { flagFrom, hasFlag, envAssignments } from '../lib/shell-parse.mjs';
 
 const ALLOW = () => process.exit(0);
 
@@ -370,7 +370,13 @@ try {
 
   const defaultKey = SCRIPT_MODEL[scriptName] || '';
   let modelKey = defaultKey;
-  const overrideVal = (cmd.match(/SWAN_[A-Z_]*MODEL=([^\s]+)/) || [])[1] || flagValue(cmd, 'model');
+  // FROM THE PARSE, not a text scan (GLM 5.3 round-5 F8). The three `cmd.match(/SWAN_…/)`
+  // lines were the last position-blind readers in the gate — `--document
+  // "SWAN_SOL_MODEL=claude-fable-5"` re-priced the call from DATA. Raise-only, so
+  // harmless in effect, and still exactly the class the parser exists to end.
+  const envVars = envAssignments(cmd);
+  const envModel = Object.entries(envVars).find(([k]) => /^SWAN_[A-Z_]*MODEL$/.test(k))?.[1];
+  const overrideVal = envModel || flagValue(cmd, 'model');
   const override = overrideVal ? [null, overrideVal] : null;
   if (override) {
     const hit = Object.keys(PRICES).find((k) => override[1].includes(k));
@@ -536,7 +542,7 @@ try {
   // may raise the estimate; it may never lower it below the script's default.
   const SCRIPT_DEFAULT_MAX_TOK = 16000;
   const declaredTok = Number(flagValue(cmd, 'max-tokens') || 0)
-    || Number((cmd.match(/SWAN_[A-Z_]*MAX_TOKENS=(\d+)/) || [])[1] || 0)
+    || Number(Object.entries(envVars).find(([k]) => /^SWAN_[A-Z_]*MAX_TOKENS$/.test(k))?.[1] || 0)
     || 0;
   const maxTok = Math.max(declaredTok, SCRIPT_DEFAULT_MAX_TOK);
 
@@ -607,7 +613,13 @@ try {
   const docArg = flagValue(cmd, 'document') || flagValue(cmd, 'out');
   const topic = topicFromPath(docArg || 'untitled');
 
-  const approvalToken = (cmd.match(/SWAN_SPEND_APPROVE=([a-f0-9]{12})/) || [])[1] || '';
+  // Also from the parse. This one matters MORE than the other two, not less: it is the
+  // token that buys a refused call, and reading it out of raw text meant a token
+  // appearing anywhere on the line — inside a quoted remit, in a `--document` value —
+  // counted as presented. The protocol is "re-run the command with the token in front
+  // of it", and that is now what is actually required.
+  const approvalToken = /^[a-f0-9]{12}$/.test(envVars.SWAN_SPEND_APPROVE || '')
+    ? envVars.SWAN_SPEND_APPROVE : '';
 
   // --- HOLD FIRST, THEN ASK ------------------------------------------------
   //
