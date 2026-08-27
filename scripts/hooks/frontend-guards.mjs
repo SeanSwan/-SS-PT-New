@@ -14,6 +14,14 @@
  * G6  ADVISORY (warns, never blocks): file over the 300-line cap (Rule 4)
  *       G6 opt-out: `swan-guard-allow-long-file` anywhere in the file; vendored paths skipped.
  *
+ * X1  MERGE VERBATIM-CARRY EXEMPTION (added 2026-08-27). During a merge (MERGE_HEAD
+ *     present), a staged path whose blob is byte-identical to that path's blob in
+ *     origin/main is skipped and logged with both OIDs. A merge stages what it carries;
+ *     judging carried bytes enforces nothing (they are already on main and deployed) and
+ *     makes origin/main unmergeable into any branch while main holds one violation.
+ *     Cannot launder: editing a file changes its blob and re-enters the checked set.
+ *     Fails CLOSED — unresolvable MERGE_HEAD or origin/main means no exemption.
+ *
  * Usage: node scripts/hooks/frontend-guards.mjs --staged   (from .githooks/pre-commit)
  *        node scripts/hooks/frontend-guards.mjs --file <path>...   (self-test / spot check)
  * Exit 0 = clean · 1 = violations (one FAIL: line each, actionable) · 2 = usage error.
@@ -42,9 +50,67 @@ function stagedContent(file) {
   return execFileSync('git', ['show', `:${file}`], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
 }
 
+// --- merge verbatim-carry exemption (X1) ------------------------------------
+// A merge commit STAGES every path it brings in, including paths it did not author.
+// Judging those enforces nothing — the bytes are already on the default branch and
+// already deployed — while the side effect is severe: origin/main can never be merged
+// into ANY branch while main carries a single G1-G5 violation anywhere.
+//
+// Exempt ONLY a verbatim carry: MERGE_HEAD present AND the staged blob byte-identical
+// to that path's blob in origin/main's tree. This cannot launder a violation. Editing a
+// file to smuggle one changes its blob, which drops it straight back into the checked
+// set; anchoring to origin/main (not to a merge parent) means exempted bytes must
+// already be on the default branch, so a poison branch has nothing to offer; and
+// requiring MERGE_HEAD closes the squash path.
+//
+// FAILS CLOSED: if MERGE_HEAD or origin/main cannot be resolved, nothing is exempt.
+//
+// Rule 34 (pre-existing debt is not this commit's blocker) is the same principle G6
+// already applies to the 300-line cap; its absence for G1-G5 was a coverage gap, not a
+// deliberate stance. Filed after it blocked a zero-conflict sync merge on 2026-08-27.
+function gitOut(args) {
+  try {
+    // MSYS_NO_PATHCONV: `<rev>:<path>` is the documented Git-Bash path-conversion trap
+    // in this repo — it returns a false negative silently, which here would mean
+    // "not a verbatim carry", i.e. it fails closed even if the pin were dropped.
+    return execFileSync('git', args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      env: { ...process.env, MSYS_NO_PATHCONV: '1' },
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+const MERGE_IN_PROGRESS = gitOut(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null;
+
+function verbatimCarryFrom(file) {
+  if (!MERGE_IN_PROGRESS) return null;
+  const staged = (gitOut(['ls-files', '-s', '--', file]) || '').match(/^\d+\s+([0-9a-f]{40})\s/);
+  const main = gitOut(['rev-parse', `origin/main:${file}`]);
+  if (!staged || !main || staged[1] !== main) return null;
+  return { staged: staged[1], main };
+}
+
+const exempted = [];
+function checkedStagedFiles() {
+  return stagedFiles().filter((f) => {
+    const carry = verbatimCarryFrom(f);
+    if (!carry) return true;
+    exempted.push(`  X1 verbatim-carry exempt — ${f} — staged ${carry.staged} == origin/main ${carry.main}`);
+    return false;
+  });
+}
+
 const targets = STAGED
-  ? stagedFiles().map((f) => ({ file: f, text: stagedContent(f) }))
+  ? checkedStagedFiles().map((f) => ({ file: f, text: stagedContent(f) }))
   : fileArgs.filter((f) => existsSync(f)).map((f) => ({ file: f, text: readFileSync(f, 'utf8') }));
+
+if (exempted.length) {
+  console.error(`[frontend-guards] ${exempted.length} path(s) exempt as verbatim carries from origin/main during a merge:`);
+  exempted.forEach((e) => console.error(e));
+}
 
 const GALAXY = /#0a0a1a|#00FFFF|#7851A9/i;
 const MUI = /from\s+['"]@mui\/|require\(\s*['"]@mui\//;
