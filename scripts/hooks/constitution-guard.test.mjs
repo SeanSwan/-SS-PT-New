@@ -425,6 +425,115 @@ test('D3: BLOCKS an aggregate bleed where every single rule clears the per-rule 
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
 
+// 2026-08-25: the first legitimate narrative-cut proved the D3 budget unsatisfiable —
+// "declare it" had no declaration mechanism for surviving-but-trimmed rules. Declared
+// trims are authorised-and-loud (same principle as declared removals) and leave the
+// budget guarding every UNDECLARED rule at full strength.
+test('D3: PASSES an aggregate trim when every trimmed rule is DECLARED', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    const long = (n) => `${head(n)}${PAD.repeat(70)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const trimmed = (n) => `${head(n)}${PAD.repeat(69)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const nums = [16, 46, 73, 74, 80, 81];
+    commitDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, long(n)])) }));
+    stageDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, trimmed(n)])) }));
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: nums.join(',') });
+    assert.equal(out.status, 0, `a fully-declared narrative-cut must PASS. stderr: ${out.stderr}`);
+    assert.match(out.stderr, /OVERRIDE ACTIVE/, 'the declaration must still print loudly');
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('D3: BLOCKS a declared GUTTING — a survivor trimmed past 50% even with the env set', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    const long = (n) => `${head(n)}${PAD.repeat(70)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const gutted = (n) => `${head(n)}${PAD.repeat(10)}`;  // ~85% of the body gone
+    const nums = [16, 46, 73];
+    commitDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, long(n)])) }));
+    stageDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, n === 46 ? gutted(n) : long(n)])) }));
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: '46' });
+    assert.equal(out.status, 1, 'a declaration is not a license to hollow a surviving rule');
+    assert.match(out.stderr, /GUTTING/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('D3: BLOCKS STACKED sub-floor declared trims — 40% each × 6 rules is a set gutting (Ox r2 F1)', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    const long = (n) => `${head(n)}${PAD.repeat(70)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const cut40 = (n) => `${head(n)}${PAD.repeat(42)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const nums = [16, 46, 73, 74, 80, 81];
+    commitDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, long(n)])) }));
+    stageDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, cut40(n)])) }));
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: nums.join(',') });
+    assert.equal(out.status, 1, 'each trim clears the 50% per-rule floor; their composition must still BLOCK');
+    assert.match(out.stderr, /DECLARED rules collectively/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('D3: BLOCKS the PADDED-DECOY variant — declared growth must not buy back the breadth budget (GLM r3 F1)', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    const long = (n) => `${head(n)}${PAD.repeat(70)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const cut40 = (n) => `${head(n)}${PAD.repeat(42)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const grownDecoy = (n) => `${head(n)}${PAD.repeat(700)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const nums = [16, 46, 73, 74, 80, 81, 82];
+    const bodies = Object.fromEntries(nums.map((n) => [n, long(n)]));
+    commitDocs(r, claudeDoc(nums, { bodies }));
+    // Six rules cut 40% each; the seventh — also declared — is inflated 10× as a decoy.
+    const staged = Object.fromEntries(nums.map((n) => [n, n === 82 ? grownDecoy(n) : cut40(n)]));
+    stageDocs(r, claudeDoc(nums, { bodies: staged }));
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: nums.join(',') });
+    assert.equal(out.status, 1, 'a grown decoy must not dilute the set floor — clipped losses count regardless');
+    assert.match(out.stderr, /DECLARED rules collectively/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('D3: BLOCKS the DILUTED stack via the ABS CAP — untouched declared padding cannot buy back the budget (GLM+Grok r4)', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    // Big bodies so six ~47% cuts exceed the 11,500-char cap while six untouched
+    // declared rules dilute the RATIO below the 25% floor — this test fails unless
+    // the ABS CAP branch itself fires (it also closes Ox r4's zero-coverage LOW).
+    const long = (n) => `${head(n)}${PAD.repeat(150)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const cut47 = (n) => `${head(n)}${PAD.repeat(78)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const nums = [11, 12, 13, 14, 15, 16, 46, 73, 74, 80, 81, 82];
+    const cutSet = new Set([11, 12, 13, 14, 15, 16]);
+    commitDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, long(n)])) }));
+    stageDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, cutSet.has(n) ? cut47(n) : long(n)])) }));
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: nums.join(',') });
+    assert.equal(out.status, 1, 'ratio diluted under 25% by untouched declared rules — the absolute cap must still BLOCK');
+    assert.match(out.stderr, /DECLARED rules collectively/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('D3: still BLOCKS when the bleed extends past the declared rules', () => {
+  const r = repo();
+  try {
+    const PAD = 'padding sentence for length. ';
+    const head = (n) => `${n}. **Rule ${n} Title** — (MANDATORY) Established 2026-07-01. `;
+    const long = (n) => `${head(n)}${PAD.repeat(70)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const trimmed = (n) => `${head(n)}${PAD.repeat(69)}\n    AMENDED 2026-08-01: an enforcement paragraph.`;
+    const nums = [16, 46, 73, 74, 80, 81];
+    commitDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, long(n)])) }));
+    stageDocs(r, claudeDoc(nums, { bodies: Object.fromEntries(nums.map((n) => [n, trimmed(n)])) }));
+    // Only HALF the trimmed rules are declared — the undeclared half still bleeds.
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: '16,46,73' });
+    assert.equal(out.status, 1, 'undeclared bleed must still BLOCK');
+    assert.match(out.stderr, /combined length/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
 test('SKIPS cleanly when no constitution file is staged', () => {
   const r = repo();
   try {
@@ -434,5 +543,91 @@ test('SKIPS cleanly when no constitution file is staged', () => {
     const out = runGuard(r);
     assert.equal(out.status, 0);
     assert.match(out.stdout, /no constitution file staged/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+// ---- X2: merge baseline is origin/main, not the pre-merge tip -------------
+// These exist because the guard's HEAD baseline INVERTS during a merge: a branch behind
+// origin/main carries stale law, so every rule main legitimately trimmed reads as a
+// reversion and a correct merge is blocked. The tests pin both directions — the correct
+// merge passes, and a merge that actually loses main's law still blocks.
+
+// A rule body deliberately SHORTER than fullBody(), standing in for main trimming a rule.
+const trimmed = (n, name) => `${n}. **${name}** — (MANDATORY) Trimmed on main.`;
+
+// Builds: HEAD = long bodies (this branch, stale) · origin/main = trimmed bodies · REAL merge
+// in progress. The merge is performed by git rather than simulated: `git update-ref MERGE_HEAD`
+// is refused outright ("refusing to update pseudoref"), and a first version of this helper
+// ignored that failure, so MERGING was false and the test proved nothing while looking green.
+function mergeRepo({ stagedDoc }) {
+  const r = repo();
+  commitDocs(r, claudeDoc(BASE));                        // base: full/long bodies
+  const base = r.g('rev-parse', 'HEAD').stdout.trim();
+
+  // origin/main: a real commit off base that TRIMS rule 46 (main's deliberate narrative-cut)
+  const mainDoc = claudeDoc(BASE, { bodies: { 46: trimmed(46, 'Kimi Hostile-Review Gate') } });
+  writeFileSync(join(r.dir, 'CLAUDE.md'), mainDoc, 'utf8');
+  writeFileSync(join(r.dir, 'AGENTS.md'), agentsDoc(mainDoc), 'utf8');
+  r.g('add', 'CLAUDE.md', 'AGENTS.md');
+  r.g('commit', '-q', '-m', 'main trims rule 46');
+  r.g('update-ref', 'refs/remotes/origin/main', r.g('rev-parse', 'HEAD').stdout.trim());
+
+  // this branch: diverges from base WITHOUT touching the constitution, so HEAD keeps the
+  // long bodies and the merge is a clean carry of main's text — the real-world shape
+  r.g('checkout', '-q', '-b', 'side', base);
+  writeFileSync(join(r.dir, 'unrelated.txt'), 'side work\n', 'utf8');
+  r.g('add', 'unrelated.txt');
+  r.g('commit', '-q', '-m', 'side work');
+
+  const m = r.g('merge', '--no-commit', '--no-ff', 'refs/remotes/origin/main');
+  const merging = r.g('rev-parse', '-q', '--verify', 'MERGE_HEAD');
+  // Assert the PRECONDITION. Without this the suite silently degrades into testing the
+  // non-merge path, which is exactly how the first version of it passed while proving nothing.
+  assert.ok(merging.status === 0, `fixture must leave a real merge in progress: ${m.stderr}${merging.stderr}`);
+
+  stageDocs(r, stagedDoc(mainDoc));
+  return r;
+}
+
+test('X2 PASSES a merge that faithfully carries a rule main trimmed', () => {
+  // The founding case: 13 rules reported "REVERTED, stale-copy signature" whose staged
+  // bodies were byte-identical to origin/main. Against HEAD that is a reversion; against
+  // current law it is adoption.
+  const r = mergeRepo({ stagedDoc: (mainDoc) => mainDoc });
+  try {
+    const out = runGuard(r);
+    assert.equal(out.status, 0, `faithful merge carry must PASS, got ${out.status}: ${out.stderr}`);
+    assert.match(out.stdout, /baseline is origin\/main/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('X2 does NOT blanket-pass a merge: losing a rule main HAS is still BLOCKED', () => {
+  // The abuse case. If X2 merely skipped checking during a merge, this would pass.
+  const r = mergeRepo({ stagedDoc: () => claudeDoc([16, 74]) }); // 46, 73, 80, 81 dropped
+  try {
+    const out = runGuard(r);
+    assert.equal(out.status, 1, 'a merge that DROPS main rules must still block');
+    assert.match(out.stderr, /rule 46 .*is GONE/s);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('X2 FAILS CLOSED: merge in progress but origin/main missing => baseline stays HEAD', () => {
+  const r = mergeRepo({ stagedDoc: (mainDoc) => mainDoc });
+  try {
+    r.g('update-ref', '-d', 'refs/remotes/origin/main');
+    const out = runGuard(r);
+    assert.equal(out.status, 1, 'without origin/main the HEAD baseline must judge it a reversion');
+    assert.doesNotMatch(out.stdout, /baseline is origin\/main/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('X2: with NO merge in progress the baseline stays HEAD and a reversion still blocks', () => {
+  const r = repo();
+  try {
+    commitDocs(r, claudeDoc(BASE));
+    stageDocs(r, claudeDoc(BASE, { bodies: { 46: trimmed(46, 'Kimi Hostile-Review Gate') } }));
+    const out = runGuard(r);
+    assert.equal(out.status, 1, 'outside a merge, a shorter body is still a reversion');
+    assert.match(out.stderr, /rule 46 .*REVERTED/s);
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });

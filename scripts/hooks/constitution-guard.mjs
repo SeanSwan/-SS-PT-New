@@ -78,6 +78,25 @@
  * The cheapest real closure available here is detective, not preventive: a scheduled
  * job running this script against origin/main and alerting on failure.
  *
+ * MERGE BASELINE (X2, added 2026-08-27)
+ * -------------------------------------
+ * Checks 1-3 compare the staged file against HEAD. During a MERGE that is wrong, and
+ * wrong in the direction that blocks correct work: HEAD is the PRE-merge tip, so for a
+ * branch behind origin/main it is STALE LAW, and every rule main legitimately edited
+ * reads as a REVERSION — the merge is carrying main's newer text over this branch's
+ * older copy, and the guard calls adopting current law a regression.
+ *
+ * So when MERGE_HEAD is present the baseline becomes origin/main: "does this merge lose
+ * law relative to the branch that HOLDS current law." Strictly the right question, and
+ * strictly stronger — a merge that clobbers one of main's rules with this branch's older
+ * text still shrinks against main and is still BLOCKED. FAILS CLOSED: no MERGE_HEAD, or
+ * origin/main unreadable, and the baseline stays HEAD with every check unchanged.
+ *
+ * Found when a zero-conflict sync merge reported 13 rules "REVERTED, stale-copy
+ * signature" whose staged bodies were byte-identical to origin/main — main had trimmed
+ * them deliberately. This is the same structural gap the frontend guard had (X1): a
+ * guard that cannot tell a line it AUTHORED from a line that ARRIVED.
+ *
  * EXIT: 0 = pass or not applicable. 1 = blocked.
  */
 import { spawnSync } from 'node:child_process';
@@ -86,7 +105,14 @@ const MIRROR_MARKER = '--- project-doc mirror from CLAUDE.md ---';
 const FILES = ['CLAUDE.md', 'AGENTS.md'];
 
 const git = (args) => {
-  const r = spawnSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  // MSYS_NO_PATHCONV: `<rev>:<path>` is the documented Git-Bash path-conversion trap in
+  // this repo — it fails silently, and a silent failure here reaches `die()` rather than
+  // passing, but the pin removes the class rather than relying on that.
+  const r = spawnSync('git', args, {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+    env: { ...process.env, MSYS_NO_PATHCONV: '1' },
+  });
   return { ok: r.status === 0, out: r.stdout ?? '', err: r.stderr ?? '' };
 };
 
@@ -159,6 +185,40 @@ const SHRINK_TOLERANCE = 0.02;
  * being a plausible description of what happened.
  */
 const AGGREGATE_SHRINK_TOLERANCE = 0.005;
+
+/**
+ * Depth bound for a DECLARED trim of a SURVIVING rule (prune panel 2026-08-25,
+ * GLM F1 + Grok F3 convergence): SWAN_ALLOW_RULE_REMOVAL waves a rule through the
+ * per-rule and aggregate checks, which without a floor lets one env var hollow a
+ * declared rule to a header-stub while the count stays intact. Past 50% the honest
+ * description is a GUTTING, not a trim — do it as a real removal, or split it so a
+ * reviewer sees each piece. A rule that is actually removed/renumbered is untouched
+ * by this bound; it applies only to same-number survivors.
+ */
+const DECLARED_TRIM_FLOOR = 0.5;
+
+/**
+ * Breadth bound for the declared SET (Ox prune-r2 F1): the per-rule floor bounds how
+ * deep ONE declared trim may go, but k rules trimmed to 49% each stack into half the
+ * constitution's text leaving in one legally-declared commit. The set of declared
+ * SURVIVORS may collectively lose at most 25% of its combined length — comfortably
+ * above any legitimate prune (the 2026-08-25 narrative-cut, the largest ever, was
+ * 6.04%) and far below the stacking attack. Residual, accepted: per-commit gating can
+ * be stacked ACROSS commits; the drift probe and review history are that backstop.
+ */
+const DECLARED_SET_FLOOR = 0.25;
+
+/**
+ * Absolute companion to the ratio (GLM prune-r3 F1 hardening; CALIBRATED by GLM+Grok
+ * prune-r4, unanimously): ratios can be diluted by inflating the denominator with
+ * declared-but-untouched rules; characters cannot. The first shipped value (15,000)
+ * sat ABOVE the very attack its comment cited — 6 rules × 49% of ~4.5k = 13,230 —
+ * so the cap was a no-op on its own threat model, caught by two seats independently
+ * from the arithmetic alone. The viable window is (9,056 — the largest legitimate
+ * prune ever recorded, 2026-08-25 — , 13,230); 11,500 sits inside it with ~27%
+ * headroom over history and a hard stop under the canonical stack.
+ */
+const DECLARED_SET_ABS_CAP = 11_500;
 
 /**
  * Minimum token overlap for a DECLARED rename to be believed — also derived.
@@ -397,12 +457,41 @@ const usedRenames = new Set();
 const blockers = [];
 let checked = 0;
 
+// ---- merge baseline (X2) -------------------------------------------------
+// During a merge, HEAD is the PRE-merge branch tip. For a branch behind origin/main
+// that tip is STALE LAW, and diffing the merge result against it inverts every check:
+// each rule main legitimately edited reads as a REVERSION, because the merge is
+// carrying main's newer text over this branch's older copy. That is exactly backwards
+// — the merge is adopting current law, and the guard calls adopting it a regression.
+//
+// So during a merge the baseline becomes origin/main: "does this merge lose law
+// relative to the branch that HOLDS current law." That question is strictly the right
+// one and strictly stronger, because:
+//   - a merge that clobbers one of main's rules with this branch's older text still
+//     shrinks against main, and is still BLOCKED;
+//   - a rule this branch legitimately ADDED that main lacks is growth, never flagged;
+//   - a rule main removed deliberately is absent from the baseline, so carrying that
+//     removal is not reported as this commit removing it.
+//
+// FAILS CLOSED: without MERGE_HEAD, or if origin/main is unreadable, the baseline
+// stays HEAD and every check behaves exactly as before.
+//
+// Discovered 2026-08-27: a zero-conflict sync merge reported 13 rules "REVERTED, stale-copy
+// signature" whose staged bodies were byte-identical to origin/main — main had trimmed them
+// deliberately. Same structural gap the frontend guard had (X1): a guard that cannot tell
+// a line it AUTHORED from a line that ARRIVED.
+const MERGING = git(['rev-parse', '-q', '--verify', 'MERGE_HEAD']).ok;
+const BASELINE = MERGING && git(['rev-parse', '-q', '--verify', 'origin/main']).ok ? 'origin/main' : 'HEAD';
+if (BASELINE !== 'HEAD') {
+  console.log(`[constitution-guard] merge in progress — baseline is ${BASELINE} (current law), not the pre-merge tip`);
+}
+
 // ---- checks 1, 2, 3: removal, renumber, reversion ------------------------
 for (const file of touched) {
-  const head = git(['show', `HEAD:${file}`]);
+  const head = git(['show', `${BASELINE}:${file}`]);
   const next = git(['show', `:${file}`]);
   // D3: a file we cannot read is a file we cannot clear. Never skip past it.
-  if (!head.ok) die(`${file}: could not read HEAD version (${head.err.trim().slice(0, 100)})`);
+  if (!head.ok) die(`${file}: could not read ${BASELINE} version (${head.err.trim().slice(0, 100)})`);
   if (!next.ok) die(`${file}: could not read staged version (${next.err.trim().slice(0, 100)})`);
   const beforeText = file === 'AGENTS.md' ? head.out.slice(head.out.indexOf(MIRROR_MARKER)) : head.out;
   const afterText = file === 'AGENTS.md' ? next.out.slice(next.out.indexOf(MIRROR_MARKER)) : next.out;
@@ -418,6 +507,7 @@ for (const file of touched) {
   const removed = [];
   const renumbered = [];
   const reverted = [];
+  let declSetBefore = 0; let declSetLost = 0;
   for (const [key, was] of before) {
     const now = after.get(key);
     // Decide whether this rule is VIOLATING first, and only then consult the
@@ -447,7 +537,23 @@ for (const file of touched) {
     // An unblockable check is a check people learn to bypass wholesale, so
     // legitimate changes need a sanctioned way through — Proof-Before-Done
     // genuinely moved 73 -> 74 during this very repair.
-    if (allowed.has(String(was.num))) { usedHatch.add(String(was.num)); continue; }
+    if (allowed.has(String(was.num))) {
+      // The hatch is not bottomless: a declared SURVIVOR may trim, not vanish in
+      // place. Beyond DECLARED_TRIM_FLOOR the declaration stops being believable
+      // as a trim and the change must be an explicit removal.
+      if (now && now.num === was.num) {
+        // CLIPPED losses (GLM prune-r3 F1): a net measure let one declared decoy
+        // GROWN in the same commit buy back the whole breadth budget. Growth never
+        // offsets loss — only chars that actually left count.
+        declSetBefore += was.len;
+        declSetLost += Math.max(0, was.len - now.len);
+        const declaredShrink = (was.len - now.len) / Math.max(was.len, 1);
+        if (declaredShrink > DECLARED_TRIM_FLOOR) {
+          blockers.push(`${file}: rule ${was.num} "${was.name.slice(0, 56)}" — declared trim removed ${Math.round(declaredShrink * 100)}% of the body (${was.len} -> ${now.len} chars). Past ${DECLARED_TRIM_FLOOR * 100}% this is a GUTTING wearing a trim declaration: declare it as a REMOVAL, or land the cut across separately reviewed commits.`);
+        }
+      }
+      usedHatch.add(String(was.num)); continue;
+    }
     violation();
   }
 
@@ -456,18 +562,39 @@ for (const file of touched) {
   // 2% while a rule's worth of constitution quietly disappears. Aggregate is
   // measured over rules present in BOTH versions, so declared removals — which are
   // already authorised and loud — do not count against the budget.
+  // Same principle for rules that SURVIVE but were DECLARED (2026-08-25, first
+  // legitimate narrative-cut): a trim named in SWAN_ALLOW_RULE_REMOVAL is a
+  // decision on the record, exactly as authorised-and-loud as a declared removal —
+  // counting it against the aggregate budget left the check unsatisfiable for the
+  // RULEBOOK trailer's own `narrative-cut` class ("declare it" with no way to).
+  // The budget still guards every UNDECLARED rule at full strength.
   let aggBefore = 0; let aggAfter = 0;
   for (const [key, was] of before) {
     const now = after.get(key);
     if (!now) continue;
+    if (allowed.has(String(was.num))) {
+      if (now.len !== was.len) usedHatch.add(String(was.num));
+      continue;
+    }
     aggBefore += was.len; aggAfter += now.len;
+  }
+  // Breadth bound on the declared SET (Ox prune-r2 F1, hardened GLM prune-r3 F1):
+  // many individually-plausible declared trims must not compose into a gutting.
+  // Numerator is CLIPPED loss (growth never offsets), and an ABSOLUTE cap backs the
+  // ratio so stuffing the declared list with untouched rules cannot dilute the
+  // denominator into vacuity: the largest legitimate prune in history lost 9,056
+  // chars; DECLARED_SET_ABS_CAP sits above it with headroom, below any half-
+  // constitution stack (6 rules × 49% of ~4.5k ≈ 13k).
+  const declSetShrink = declSetBefore ? declSetLost / declSetBefore : 0;
+  if (declSetShrink > DECLARED_SET_FLOOR || declSetLost > DECLARED_SET_ABS_CAP) {
+    blockers.push(`${file}: the DECLARED rules collectively lost ${declSetLost} chars (${(declSetShrink * 100).toFixed(1)}% of their combined ${declSetBefore}; growth does not offset) — individually-plausible trims stacking past ${DECLARED_SET_FLOOR * 100}% or ${DECLARED_SET_ABS_CAP} chars is a GUTTING of the set. Declare removals explicitly, or land the cut across separately reviewed commits.`);
   }
   const aggShrink = aggBefore ? (aggBefore - aggAfter) / aggBefore : 0;
   if (aggShrink > AGGREGATE_SHRINK_TOLERANCE) {
     blockers.push(`${file}: the surviving rules lost ${(aggShrink * 100).toFixed(1)}% of their combined length (${aggBefore} -> ${aggAfter} chars) even though no single rule tripped the per-rule floor. Death by a thousand trims is the same outcome as a clobber. Declare it or split it.`);
   }
 
-  console.log(`[constitution-guard] ${file}: ${before.size} rules in HEAD -> ${after.size} staged; ${removed.length} removed, ${renumbered.length} renumbered, ${reverted.length} reverted; aggregate body ${aggShrink >= 0 ? '-' : '+'}${Math.abs(aggShrink * 100).toFixed(2)}%`);
+  console.log(`[constitution-guard] ${file}: ${before.size} rules in ${BASELINE} -> ${after.size} staged; ${removed.length} removed, ${renumbered.length} renumbered, ${reverted.length} reverted; aggregate body ${aggShrink >= 0 ? '-' : '+'}${Math.abs(aggShrink * 100).toFixed(2)}%`);
 
   // Q2 — rename is a first-class operation, not an error.
   // A rule renamed in place reads as removal-of-X + addition-of-Y, and the only
@@ -526,7 +653,7 @@ for (const file of touched) {
     blockers.push(`${file}: ${removed.length} rule(s) removed and ${added.length} added in the same commit — this may be a RENAME, not a deletion. If so, declare it: SWAN_RULE_RENAME="${hint}"`);
   }
 
-  for (const r of removed) blockers.push(`${file}: rule ${r.num} "${r.name.slice(0, 70)}" exists in HEAD and is GONE from the staged file.`);
+  for (const r of removed) blockers.push(`${file}: rule ${r.num} "${r.name.slice(0, 70)}" exists in ${BASELINE} and is GONE from the staged file.`);
   for (const { was, now } of renumbered) blockers.push(`${file}: "${was.name.slice(0, 60)}" renumbered ${was.num} -> ${now.num}. Every "Rule ${was.num}" citation in the repo now points elsewhere.`);
   for (const { was, why } of reverted) blockers.push(`${file}: rule ${was.num} "${was.name.slice(0, 55)}" looks REVERTED, not edited — ${why.join('; ')}. This is the stale-copy signature: older text restored over newer law.`);
 }
