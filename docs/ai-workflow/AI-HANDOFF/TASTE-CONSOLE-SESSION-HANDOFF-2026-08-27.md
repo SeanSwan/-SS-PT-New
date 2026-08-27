@@ -379,8 +379,8 @@ list:
 
 | Surface | Before | Why it mattered |
 |---|---|---|
-| **Make** | ad-hoc string compare | the batch |
-| **Judge** | ad-hoc string compare — **not in the blueprint** | the grid |
+| **Make** | ad-hoc string compare | the batch — **and a second, unguarded read: the workflow/render bar** |
+| **Judge** | ad-hoc string compare — **not in the blueprint** | the grid — **and a second, unguarded read: the progress count** |
 | **Directions** | **unguarded** | the brief — the client-facing, printed surface |
 | **Kept** | **unguarded** | the list |
 | **Status** | **unguarded** | the queue pill |
@@ -395,11 +395,11 @@ front of them. That is the corpus-law breach shape, reachable from the UI.
 
 ### Coverage — and its limits
 
-- **`prompter/test-world.mjs`** (36 checks, no deps, no browser). Evaluates `app-shell.js` against a
+- **`prompter/test-world.mjs`** (38 checks, no deps, no browser). Evaluates `app-shell.js` against a
   stub DOM via `new Function` and inspects the real `window.Swan`. **The first automated coverage any
   client-side `app-*.js` has ever had.** W6 is the regression proper: the epoch moves at assignment,
   *before any listener runs*.
-- **`prompter/test-browser.mjs`** (31 checks). The real page, `pageerror` listener attached before
+- **`prompter/test-browser.mjs`** (28 checks). The real page, `pageerror` listener attached before
   navigation, asserted after every group. Drives an actual profile switch through the `<select>` and
   proves the epoch moves before `loadProjects()` resolves.
 - **Both static sweeps strip comments first**, so a guard written only in prose cannot satisfy them —
@@ -408,7 +408,7 @@ front of them. That is the corpus-law breach shape, reachable from the UI.
   it makes them pass. The suites can fail. Skip path checked too — a dead server prints
   `SKIPPED — proved NOTHING`, never a green banner.
 
-**Verified:** 11 node suites, **532/532**, exit 0. Browser suite **31/31**, zero page errors, zero
+**Verified:** 11 node suites, **534/534**, exit 0. Browser suite **28/28**, zero page errors, zero
 console errors, across `/app` `/probe` `/make` `/brief`.
 
 **Not covered, say so plainly:** the guards are proven for the *reads*. Writes that name the memory
@@ -424,3 +424,46 @@ shape and should be reasoned about the same way.
 browser suite is one `rm -rf node_modules` away from silently skipping. **Whether the taste brain
 should take a dev-only install of its own is Sean's call, not something to settle by importing.**
 Flagged, not decided.
+
+### The second hostile round — my own green was hiding two more (`03291a9`)
+
+Worth reading in full, because it is the §7 lesson repeating **inside the slice written to fix §7.**
+
+After committing F0 I asked a question I nearly skipped: *which* `await` was the sweep actually
+matching in each file? **W12 was file-level.** It asked whether a file contained a guard anywhere —
+so it could not fail for any file that already had one, which is exactly the set of files most
+likely to grow a second read. It reported green while `app-make.js` and `app-judge.js` each held a
+**second memory-scoped read, in a different function, with no guard at all**:
+
+- **`app-make.js` `status()`** — the workflow/render bar. The *same read the status pill makes*,
+  which I had guarded. Guarded in one place, not the other, and nothing could see the inconsistency.
+- **`app-judge.js` `progress()`** — "N of M grids recorded". That number is what decides whether a
+  direction is worth trusting; landing late puts the previous memory's count beside the new
+  memory's grid.
+
+Both fixed. W12 is now **per call site**: the guard must be captured in a window above each await
+and tested in a window below it. It is a heuristic and says so — it enforces the house convention
+rather than proving reachability, and a guard written further away fails on purpose.
+
+**The detector still has a blind spot, named rather than left implicit.** It keys on `Swan.qs()`;
+Make's generate fetch builds its query with `URLSearchParams`, so W12 cannot see it. **W13** pins
+that one read directly. If you add a read that builds its query some third way, W12 will not see it
+either — the enumeration in the commit is `grep -nE "await (Swan\.(api|post)|fetch)\("`, and it is
+the thing to re-run, not the suite's green.
+
+**Correction:** the browser suite is **28** checks, not the 31 stated in `d200a0a`'s message — that
+number was counted off a terminal tail rather than grepped. Node is 534 across 11 suites.
+
+### One thing found and deliberately NOT fixed
+
+**`app-judge.js` `record()` is addressed at click time.** It posts a grid loaded earlier, reading
+`Swan.profile` at the moment of the click. `onMemory` sets `judge = null` — but that runs at
+`memoryChanged()`, which for a profile switch is *after* `await loadProjects()`. In that window the
+grid is still the old memory's and the profile is already the new one, so a click lands one
+memory's judgement in another's file.
+
+It is narrow (a click inside a network round-trip, mid-switch), and the server's provenance rules
+stop it becoming a corpus leak — but it is real. Closing it means `load()` stashing the world with
+the grid and `record()` refusing on a move. **That is a change to the most safety-critical write in
+the app, and it belongs in its own slice with its own failing test first** — not bolted onto the end
+of F0 because I happened to find it there. Left for whoever picks this up; F1 does not depend on it.
