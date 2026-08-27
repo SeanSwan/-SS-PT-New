@@ -25,7 +25,7 @@ import { readFileSync } from 'node:fs';
 import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath } from '../lib/spend-ledger.mjs';
 // SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
 // Hand-curating it inside this regex is what drifted in both directions at once.
-import { PAID_INVOCATION, FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom } from '../lib/paid-seats.mjs';
+import { PAID_INVOCATION, FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat } from '../lib/paid-seats.mjs';
 
 const ALLOW = () => process.exit(0);
 
@@ -209,14 +209,35 @@ const cmd = input?.tool_input?.command || '';
 // and `consult-panel.mjs`, neither of which exists on main, while four live scripts that
 // read OPENROUTER_API_KEY matched nothing. The roster now lives in one file with a
 // coverage test policing it, so this line can never be the thing that goes stale again.
-if (!cmd || !PAID_INVOCATION.test(cmd)) ALLOW();
+// `invokesPaidSeat`, NOT the bare regex. The helper also drops non-executing node
+// flags (`--check`, `--version`), and testing the pattern directly here meant that
+// carve-out existed in the library while the gate ignored it — the gate refused my
+// own `node --check` of a consult file mid-repair. Two entry points into one decision
+// is how a fix lands in the file nobody calls.
+if (!cmd || !invokesPaidSeat(cmd)) ALLOW();
 
 try {
   // --- which model, and how big is the worst case? -------------------------
   // scriptNameFrom is shared with the coverage test, so the gate and the contract
   // can never disagree about what a command names. It also resolves the gateway
   // engine path, which the old `consult-([a-z0-9-]+)` capture could not see.
-  const scriptName = scriptNameFrom(cmd);
+  // EVERY paid name in the line, priced by the most expensive (GLM 5.3 blocker 4).
+  // `node consult-kimi.mjs && node consult-fable.mjs` used to resolve to kimi alone,
+  // price it at ~$0.32, fit the cap, and let Fable's ~$1.06 through unmetered in the
+  // same Bash call. Verified exit 0 before this change.
+  //
+  // Free and frozen names are dropped FIRST, so a free seat in the line cannot become
+  // the one that gets priced, and a paid one cannot hide behind it.
+  const allNames = allScriptNamesFrom(cmd);
+  const priceOf = (n) => {
+    const key = SCRIPT_MODEL[n];
+    const p = key && PRICES[key];
+    return p ? p[0] + p[1] : -1; // unpriced sorts below priced; -1 never wins a max
+  };
+  const chargeable = allNames.filter((n) => !FREE_ALLOWLIST[n] && !KNOWN_UNGATED[n]);
+  const scriptName = chargeable.length
+    ? chargeable.reduce((worst, n) => (priceOf(n) > priceOf(worst) ? n : worst))
+    : scriptNameFrom(cmd);
 
   // --- INVERTED: paid by default, free by declaration (SWA-218) -------------
   //

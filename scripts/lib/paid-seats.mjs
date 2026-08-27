@@ -130,9 +130,51 @@ export const KNOWN_UNGATED = {
 export const PAID_INVOCATION =
   /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?(consult-[a-z0-9-]+|forge-[a-z0-9-]+|context-gateway[/\\]src[/\\]consult)[.]mjs/;
 
+/**
+ * Node flags that mean "do not execute this file". `node --check foo.mjs` parses and
+ * exits; `--version` never opens the file at all.
+ *
+ * Added 2026-08-27 after the gate refused my own `node --check` of a consult file
+ * mid-fix — a live instance of the cry-wolf class GLM 5.3 raised as F1. A syntax
+ * check spends nothing, and a guard that blocks the verification step of its own
+ * repair is training the operator to reach for --no-verify.
+ */
+const NON_EXECUTING = /(?:^|[^A-Za-z0-9_-])--(?:check|version)(?:[^A-Za-z0-9_-]|$)/;
+
 /** True when this command text invokes something that could spend money. */
 export function invokesPaidSeat(cmd) {
-  return PAID_INVOCATION.test(String(cmd || ''));
+  const c = String(cmd || '');
+  if (NON_EXECUTING.test(c)) return false;
+  return PAID_INVOCATION.test(c);
+}
+
+/**
+ * EVERY paid script an invocation names, in order — not just the first.
+ *
+ * GLM 5.3 round-3 blocker 4, verified live before fixing:
+ *
+ *     node scripts/consult-kimi.mjs --document p.md && node scripts/consult-fable.mjs --document p.md
+ *
+ * returned exit 0. `scriptNameFrom` resolved the FIRST invocation, the gate priced
+ * Kimi at ~$0.32, that fits inside the cap, and Fable's ~$1.06 in the same Bash call
+ * was never priced, never asked about and never recorded. The single-paid-script case
+ * was fine; only multi-paid lines mis-metered — which is exactly the shape an agent
+ * batching consults would write without any intent to evade.
+ *
+ * The gate prices the MOST EXPENSIVE name it finds. Summing would be more accurate in
+ * principle, but each script here is one call with its own worst case, and the caller
+ * that matters is the cap: taking the max guarantees the priciest seat in the line is
+ * the one measured, with no way for a cheap seat to shelter an expensive one.
+ */
+export function allScriptNamesFrom(cmd) {
+  const text = String(cmd || '');
+  if (NON_EXECUTING.test(text)) return [];
+  const global = new RegExp(PAID_INVOCATION.source, 'g');
+  const names = [];
+  for (const m of text.matchAll(global)) {
+    if (m[1]) names.push(`${m[1].replace(/^.*[/\\]/, '')}.mjs`);
+  }
+  return names;
 }
 
 /**

@@ -462,6 +462,47 @@ test('the converse holds: a paid name as an ARGUMENT does not tax a free call', 
   );
 });
 
+// --- GLM 5.3 round-3 -----------------------------------------------------------
+
+test('BLOCKER 4: two paid scripts in one line — the EXPENSIVE one is priced', () => {
+  // Verified live at exit 0 before the fix. scriptNameFrom resolved the FIRST
+  // invocation, the gate priced Kimi at ~$0.32, that fit inside the cap, and Fable's
+  // ~$1.06 in the same Bash call was never priced, never asked about, never recorded.
+  // This is the shape an agent batching consults writes with no intent to evade.
+  assert.equal(
+    runGate('node scripts/consult-kimi.mjs --document p.md && node scripts/consult-fable.mjs --document p.md').code,
+    BLOCK,
+  );
+  // Order must not matter: expensive first is the same line.
+  assert.equal(
+    runGate('node scripts/consult-fable.mjs --document p.md && node scripts/consult-kimi.mjs --document p.md').code,
+    BLOCK,
+  );
+});
+
+test('a FREE seat in the line cannot become the one that gets priced', () => {
+  // Free and frozen names are dropped before the max, so a free seat neither shelters
+  // a paid one nor gets charged for standing next to it.
+  assert.equal(
+    runGate('node scripts/consult-gemini.mjs --document p.md && node scripts/consult-fable.mjs --document p.md').code,
+    BLOCK,
+  );
+  assert.equal(
+    runGate('node scripts/consult-gemini.mjs --document p.md && node scripts/consult-glm.mjs --document p.md').code,
+    ALLOW,
+  );
+});
+
+test('FINDING 1: node --check is a syntax check, not a run', () => {
+  // The gate refused my own `node --check` of a consult file mid-repair. A guard that
+  // blocks the verification step of its own fix teaches the operator to reach for
+  // --no-verify, which is worse than the hole it is guarding.
+  assert.equal(runGate('node --check scripts/consult-fable.mjs').code, ALLOW);
+  assert.equal(runGate('node --version').code, ALLOW);
+  // And the carve-out must not become a bypass word:
+  assert.equal(runGate('node scripts/consult-fable.mjs --document plan.md').code, BLOCK);
+});
+
 test('a genuinely cheap seat passes — the gate is not just "block everything"', () => {
   // The honest positive control. Sol at its default is ~$0.31, under the $1.00 cap.
   // Without this, every BLOCK assertion above would also pass on a gate that

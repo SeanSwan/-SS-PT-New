@@ -98,6 +98,28 @@ test('CONTRACT: every credential-bearing script is gated or explicitly allowlist
   ].join('\n'));
 });
 
+test('CONTRACT: KNOWN_UNGATED is FROZEN — the exact key set, not merely reasoned', () => {
+  // GLM 5.3 round-3 blocker 3, and it was right: "fails the moment it grows" was
+  // FALSE for the list itself. The contract only checked that entries exist with
+  // >10-char reasons, so adding a fourth reasoned entry kept everything green. The
+  // pre-commit comment saying "adding to KNOWN_UNGATED is NOT a fix" was a comment,
+  // not a control — and by this repo's own doctrine, a rule the model must remember
+  // is a rule that will eventually be skipped.
+  //
+  // Now it is an asserted key set. Growing the list fails HERE, which is what the
+  // freeze claimed to do all along.
+  assert.deepEqual(Object.keys(KNOWN_UNGATED).sort(), [
+    'context-gateway/src/transport.mjs',
+    'hermes-village.mjs',
+    'validation-orchestrator.mjs',
+  ], [
+    'KNOWN_UNGATED changed. That list is FROZEN pre-existing debt, not a place to put',
+    'a new script. If you added a row to make something pass, that is admitting a new',
+    'hole — price it, or free-list it with a reason. If you genuinely PAID DOWN debt by',
+    'removing a row, update this assertion in the same commit and say so.',
+  ].join('\n'));
+});
+
 test('CONTRACT: the allowlist has no ghosts and no blank reasons', () => {
   // The drift ran both ways: the old gate also priced two scripts that do not
   // exist. An allowlist entry for a deleted file is the same rot, and a blank
