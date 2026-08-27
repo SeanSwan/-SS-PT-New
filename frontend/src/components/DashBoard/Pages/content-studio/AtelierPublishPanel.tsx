@@ -37,8 +37,13 @@ const AtelierPublishPanel: React.FC<{ c: Compose }> = ({ c }) => {
               <CardHint>{published
                 ? 'Published. The link and snippet below are what a site consumes; the attribution travels with them.'
                 : c.reference.status === 'approved' ? 'Approved. Publish to get a link a site can use.' : 'Draft. Approve it first — nothing goes on a site unlooked-at.'}</CardHint>
-              {c.reference.blockers.length > 0 && (
-                <Notice $tone="unproven" role="status">Publishing is blocked: {c.reference.blockers.map((b) => b.split(':')[0]).join(', ')}</Notice>
+              {/* `?? []` because a response without `blockers` must not white-screen the
+                  studio. The panel used to trust the field's presence, and a frame carried
+                  in from the Assets library reaches this code by a path that did not exist
+                  before — a tab that crashes on a missing array is a worse failure than any
+                  the array could describe. */}
+              {(c.reference.blockers ?? []).length > 0 && (
+                <Notice $tone="unproven" role="status">Publishing is blocked: {(c.reference.blockers ?? []).map((b) => b.split(':')[0]).join(', ')}</Notice>
               )}
               {c.reference.status === 'approved' && (
                 <FieldGroup>
@@ -58,7 +63,7 @@ const AtelierPublishPanel: React.FC<{ c: Compose }> = ({ c }) => {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                 {step && (
                   <PrimaryButton type="button"
-                    disabled={step!.to === 'published' && (c.reference.blockers.length > 0 || !consent)}
+                    disabled={step!.to === 'published' && ((c.reference.blockers ?? []).length > 0 || !consent)}
                     onClick={() => c.setStatus(c.reference!.id, step!.to,
                       step!.to === 'published' ? { consentConfirmed: consent, intendedUse } : undefined)}>
                     {step!.label}

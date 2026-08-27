@@ -51,6 +51,36 @@ export interface CostView {
   count: number; model: string; unitUsd: number; totalUsd: number; chargedUsd?: number; lane?: Lane;
 }
 
+/**
+ * What Motion actually binds to: an asset id and the hash of its bytes.
+ *
+ * Narrower than StillView on purpose. `startMotion` only ever read these two fields, and
+ * typing it as a whole StillView invited callers to synthesise a fake one — an object with
+ * a real assetId and an invented `image`, `seed` and `provider` that nothing checks and
+ * everything downstream could believe. A frame reused from the Assets library has no
+ * `image` of the shape a freshly-composed still has, and pretending otherwise would be a
+ * lie the type system endorsed. StillView satisfies this structurally, so nothing changes
+ * for existing callers.
+ */
+export interface MotionTarget {
+  assetId?: string | null;
+  sha256?: string | null;
+}
+
+/**
+ * A frame carried into Compose from the Assets library.
+ *
+ * `assetId` and `sha256` are the load-bearing pair — everything else exists so the operator
+ * can SEE what Motion is about to animate. A bind target you cannot look at is a button
+ * that claims to know which picture you meant.
+ */
+export interface ReusedFrame extends MotionTarget {
+  assetId: string;
+  sha256: string;
+  prompt: string | null;
+  previewUrl: string | null;
+}
+
 export interface StillView {
   index: number;
   lane: 'local' | 'hosted';

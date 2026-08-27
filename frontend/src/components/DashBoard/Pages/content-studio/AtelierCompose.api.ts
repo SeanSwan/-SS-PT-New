@@ -11,7 +11,7 @@
 import { useCallback, useState } from 'react';
 import type { AxiosInstance } from 'axios';
 import type {
-  Lane, PromptSource, LawProfile, LocalLaneView, HostedLaneView, LimitsView, CostView, StillView,
+  Lane, PromptSource, LawProfile, LocalLaneView, HostedLaneView, LimitsView, CostView, StillView, MotionTarget,
   StillFailure, PersistenceView, ComposeResult, ComposeRequest, ComposeRefusal, MotionStart, MotionJobView,
   BatchAccepted, BatchSnapshot, AssetReference, ApprovalStatus, PublishDeclaration, LaneTone,
 } from './AtelierCompose.types';
@@ -123,7 +123,7 @@ export function useAtelierCompose(api: AxiosInstance | null) {
   const [motion, setMotion] = useState<MotionStart | null>(null);
   const [motionJob, setMotionJob] = useState<MotionJobView | null>(null);
 
-  const startMotion = useCallback(async (still: StillView, opts: { prompt?: string; duration?: number } = {}) => {
+  const startMotion = useCallback(async (still: MotionTarget, opts: { prompt?: string; duration?: number } = {}) => {
     if (!api) throw new Error('Not authenticated.');
     const b = motionBindable(still);
     if (!b.ok) { setRefusal({ code: 'E_BIND_NO_ASSET', message: b.why, status: null }); return null; }

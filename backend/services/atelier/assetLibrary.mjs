@@ -192,6 +192,19 @@ export function assetView(row, previewUrl = null) {
     seed: tag('seed') === null ? null : Number(tag('seed')),
     // The prompt, from frozen provenance. Truncated at write time by buildProvenance;
     // shown so a person can recognise their own work, which is the whole point of a library.
+    // THE HASH OF THE BYTES THIS CARD IS SHOWING. Motion refuses to animate a frame whose
+    // recorded hash is not the one the caller approved — "approval binds bytes, not words"
+    // — so the caller has to be able to SAY which bytes it approved. Without this, an asset
+    // in the library is a dead end: you can see it and never animate it.
+    //
+    // The tempting shortcut is to let the bind look up its own hash and skip the argument.
+    // That would make the gate compare a value to itself and quietly delete the protection
+    // it exists to provide. Publishing the hash keeps the check adversarial: if the row
+    // changed between listing and binding, the server still refuses.
+    //
+    // Safe to expose — it is the content hash of the caller's own image on an owner-scoped
+    // query, not a credential, and the storage key stays withheld.
+    sha256: row.provenance?.artifact?.sha256 ?? null,
     prompt: row.provenance?.request?.prompt ?? null,
     promptTruncated: Boolean(row.provenance?.request?.promptTruncated),
     // A SHORT-LIVED SIGNED URL, or null. Null is a degraded card, never an error: one

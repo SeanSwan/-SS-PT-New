@@ -7,7 +7,7 @@
  */
 
 import type {
-  LocalLaneView, HostedLaneView, LimitsView, CostView, StillView, ComposeRefusal, Lane,
+  LocalLaneView, HostedLaneView, LimitsView, CostView, StillView, MotionTarget, ComposeRefusal, Lane,
   MotionJobView, ApprovalStatus, LaneTone, BatchSnapshot,
 } from './AtelierCompose.types';
 
@@ -67,7 +67,7 @@ export function stillSrc(s: StillView): { src: string | null; note: string | nul
 }
 
 /** A still can be sent to Motion only when it is a persisted asset with a hash to bind. */
-export function motionBindable(s: StillView | null): { ok: boolean; why: string } {
+export function motionBindable(s: MotionTarget | null): { ok: boolean; why: string } {
   if (!s) return { ok: false, why: 'Select a frame first.' };
   if (!s.assetId || !s.sha256) return { ok: false, why: 'This frame was not saved as an asset, so there is nothing to bind to.' };
   return { ok: true, why: '' };

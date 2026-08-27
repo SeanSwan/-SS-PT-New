@@ -41,6 +41,7 @@ import {
 import { useAuth } from '../../../../context/AuthContext';
 import ContentStudioStorageMeter from './ContentStudioStorageMeter';
 import ContentStudioProjectQueue from './ContentStudioProjectQueue';
+import type { ReusedFrame } from './AtelierCompose.types';
 import type { ContentProjectStatus } from './ContentStudioProjects.api';
 import {
   Page, Header, TitleGroup, HeaderIcon, Title, TierBadge,
@@ -122,6 +123,10 @@ const WORKFLOW_ACTIONS: { label: string; tab: StudioTab; icon: React.ReactNode }
 const ContentStudioHub: React.FC = () => {
   const { authAxios } = useAuth();
   const [activeTab, setActiveTab] = useState<StudioTab>('workflow');
+  // The frame the Assets tab handed to Compose. Held HERE because the two tabs never render
+  // at the same time — the handoff has to survive the switch, and the only thing that
+  // outlives both is the hub.
+  const [reused, setReused] = useState<ReusedFrame | null>(null);
   const [serviceConfig, setServiceConfig] = useState<Record<string, boolean>>({
     remotion: true, elevenlabs: false, blotato: false,
   });
@@ -180,12 +185,26 @@ const ContentStudioHub: React.FC = () => {
   const renderTab = () => {
     switch (activeTab) {
       case 'workflow': return renderWorkflow();
-      case 'assets': return <Suspense fallback={fallback('Loading assets...')}><AtelierLibrary api={authAxios} /></Suspense>;
+      case 'assets': return (
+        <Suspense fallback={fallback('Loading assets...')}>
+          <AtelierLibrary
+            api={authAxios}
+            onUse={(a) => {
+              // Only ever called for an asset the library judged reusable, but the guard is
+              // repeated rather than assumed: a handoff carrying a null hash would arrive
+              // in Compose as a Motion button that can only fail on click.
+              if (!a.sha256) return;
+              setReused({ assetId: a.id, sha256: a.sha256, prompt: a.prompt, previewUrl: a.previewUrl });
+              setActiveTab('compose');
+            }}
+          />
+        </Suspense>
+      );
       case 'library': return <Suspense fallback={fallback('Loading video library...')}><VideoLibraryV3 /></Suspense>;
       case 'coverage': return <Suspense fallback={fallback('Loading coverage...')}><CrystallineCoverageTracker /></Suspense>;
       case 'video-optimizer': return <Suspense fallback={fallback('Loading optimizer...')}><VideoOptimizerPanel /></Suspense>;
       case 'nano-banana': return <Suspense fallback={fallback('Loading badge creator...')}><NanoBananaBadgeCreator /></Suspense>;
-      case 'compose': return <Suspense fallback={fallback('Loading compose...')}><AtelierCompose api={authAxios} /></Suspense>;
+      case 'compose': return <Suspense fallback={fallback('Loading compose...')}><AtelierCompose api={authAxios} incoming={reused} /></Suspense>;
       case 'render-queue': return <Suspense fallback={fallback('Loading render queue...')}><CreatorRenderQueue api={authAxios} /></Suspense>;
       default: return null;
     }

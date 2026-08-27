@@ -24,13 +24,29 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Image as ImageIcon, RefreshCw, Filter } from 'lucide-react';
+import { Image as ImageIcon, RefreshCw, Filter, Wand2 } from 'lucide-react';
 import type { AxiosInstance } from 'axios';
 import type { BrandKitView, LimitsView } from './AtelierCompose.types';
 import {
   Panel, Card, CardTitle, CardHint, QuietButton, Field, Caption, Select, Notice, Workspace,
 } from './AtelierCompose.styles';
 import { AssetGrid, AssetCard, AssetThumb, AssetImage, AssetMeta, FilterRow } from './AtelierLibrary.styles';
+
+/**
+ * Can this asset be carried into Compose/Motion?
+ *
+ * Exported and pure so the RULE can be tested without a DOM. The bind needs an id AND the
+ * hash of the bytes: the server refuses to animate a frame whose recorded hash is not the
+ * one approved, which is a real protection and not a formality.
+ *
+ * A card that cannot answer is still SHOWN — it is a picture you made. It just does not
+ * offer an action it cannot complete, which is better than a button that fails on click.
+ */
+export function reusable(a: { kind: string; sha256: string | null }): { ok: boolean; why: string } {
+  if (a.kind !== 'image') return { ok: false, why: `Only stills can be reused; this is a ${a.kind}.` };
+  if (!a.sha256) return { ok: false, why: 'This asset has no recorded hash, so Motion cannot bind to it.' };
+  return { ok: true, why: '' };
+}
 
 export interface LibraryAsset {
   id: string; kind: string; mime: string;
@@ -40,6 +56,10 @@ export interface LibraryAsset {
   brandKit: string | null; brandKitHash: string | null;
   workspaceId: string | null; lane: string | null; seed: number | null;
   prompt: string | null; promptTruncated: boolean;
+  /** The hash of the bytes this card shows. Motion binds bytes, not words, so a card that
+   *  cannot say which bytes it is showing cannot be animated. Null for anything with no
+   *  recorded artifact hash — those are shown, and honestly not offerable. */
+  sha256: string | null;
   /** Short-lived signed URL, or null when the object would not sign. Null is a degraded
    *  card that falls back to dimensions — never an error, never an empty page. */
   previewUrl: string | null;
@@ -62,7 +82,12 @@ export function describeEmpty(filtered: boolean, configured = true): string {
     : 'Nothing here yet. Anything Compose renders lands in this library automatically.';
 }
 
-const AtelierLibrary: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
+const AtelierLibrary: React.FC<{
+  api: AxiosInstance | null;
+  /** Hand this asset to Compose. Absent means the library is being shown on its own, and
+   *  no card offers the action — an affordance that goes nowhere is worse than none. */
+  onUse?: (asset: LibraryAsset) => void;
+}> = ({ api, onUse }) => {
   const [assets, setAssets] = useState<LibraryAsset[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -188,6 +213,23 @@ const AtelierLibrary: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
                   {a.lane && <span> · {a.lane}</span>}
                 </AssetMeta>
                 {a.prompt && <Caption>{a.prompt}{a.promptTruncated ? '…' : ''}</Caption>}
+                {onUse && (() => {
+                  const can = reusable(a);
+                  // Always rendered, never hidden. A disabled control that says WHY beats a
+                  // control that vanishes: the operator learns the asset is unusable and
+                  // the reason, instead of wondering where the button went.
+                  return (
+                    <QuietButton
+                      type="button"
+                      disabled={!can.ok}
+                      title={can.ok ? 'Open this frame in Compose, ready for Motion' : can.why}
+                      aria-label={`Use ${a.prompt || 'this asset'} in Compose`}
+                      onClick={() => onUse(a)}
+                    >
+                      <Wand2 size={14} aria-hidden /> Use in Compose
+                    </QuietButton>
+                  );
+                })()}
               </AssetCard>
             ))}
           </AssetGrid>

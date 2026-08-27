@@ -23,6 +23,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Wand2, RefreshCw, Lock, Sparkles, Clapperboard } from 'lucide-react';
 import type { AxiosInstance } from 'axios';
+import type { MotionTarget, ReusedFrame } from './AtelierCompose.types';
+import ReusedFrameNotice from './AtelierReusedFrameNotice';
 import useAtelierCompose, {
   describeLocalLane, describeHostedLane, laneOfferable, formatCost, motionBindable, describeMotionJob, nextPublishStep, describeBatch,
   type Lane, type PromptSource, type LawProfile, type ComposeRequest,
@@ -41,7 +43,13 @@ const INTENTS = [['hero', 'Hero'], ['ambient', 'Ambient'], ['card', 'Card'], ['i
 /** Stable per-attempt key so a double-click replays instead of paying twice. */
 function newKey() { return `ui-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`; }
 
-const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
+const AtelierCompose: React.FC<{
+  api: AxiosInstance | null;
+  /** A frame carried in from the Assets library. Compose owns the Motion rung, so reusing
+   *  a past render means arriving here with it already selected — otherwise the library is
+   *  a wall of pictures you can look at and do nothing with. */
+  incoming?: ReusedFrame | null;
+}> = ({ api, incoming }) => {
   const c = useAtelierCompose(api);
   const [text, setText] = useState('');
   const [intent, setIntent] = useState('hero');
@@ -54,6 +62,11 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
   const [brandKit, setBrandKit] = useState<string>('');
   const [count, setCount] = useState(4);
   const [selected, setSelected] = useState<number | null>(null);
+  // A frame adopted from the library, held separately from the batch because it is not IN
+  // the batch. Kept as its own state rather than faked into `c.result.stills`: an object
+  // pretending to be a freshly-composed still would carry an invented seed, provider and
+  // image that nothing rendered.
+  const [adopted, setAdopted] = useState<ReusedFrame | null>(null);
   const keyRef = useRef<string>(newKey());
 
   useEffect(() => { c.loadLimits(); }, [c.loadLimits]);
@@ -85,7 +98,17 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
   };
 
   const selectedStill = selected === null ? null : (c.result?.stills.find((s) => s.index === selected) ?? null);
-  const bind = motionBindable(selectedStill);
+  // ADOPT WHAT ARRIVES, and step aside the moment there is a real batch to choose from.
+  useEffect(() => { if (incoming) { setAdopted(incoming); setSelected(null); } }, [incoming]);
+  // A NEW BATCH RETIRES THE ADOPTED FRAME. Without this, rendering four fresh candidates
+  // would leave Motion still pointing at the picture you walked in with — the button would
+  // read "Approve → Motion" over frames it was not bound to, which is the kind of quiet lie
+  // this studio spends most of its code refusing to tell.
+  useEffect(() => { if (c.result) setAdopted(null); }, [c.result]);
+
+  // The bind target is the batch selection when there is one, else the frame carried in.
+  const bindTarget: MotionTarget | null = selectedStill ?? adopted;
+  const bind = motionBindable(bindTarget);
   const mj = describeMotionJob(c.motionJob);
   const motionActive = !!c.motionJob && !['ready', 'failed', 'cancelled'].includes(c.motionJob.status);
   const published = c.reference?.status === 'published';
@@ -93,8 +116,8 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
 
   // The selected still's asset record drives the Publish panel. Re-read on selection.
   useEffect(() => {
-    if (selectedStill?.assetId) { c.loadReference(selectedStill.assetId); } else { c.setReference(null); }
-  }, [selectedStill?.assetId, c.loadReference, c.setReference]);
+    if (bindTarget?.assetId) { c.loadReference(bindTarget.assetId); } else { c.setReference(null); }
+  }, [bindTarget?.assetId, c.loadReference, c.setReference]);
 
 
   // Poll a local batch every 3s until terminal; the hook promotes the snapshot into `result`.
@@ -227,13 +250,13 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
               {c.busy ? 'Rendering…' : `Generate ${count} candidate${count === 1 ? '' : 's'}`}
             </PrimaryButton>
             <AccentButton type="button" disabled={!bind.ok || motionActive}
-              onClick={() => { if (selectedStill) c.startMotion(selectedStill); }}
+              onClick={() => { if (bindTarget) c.startMotion(bindTarget); }}
               title={bind.ok ? 'Animate the approved frame, bound by its hash' : bind.why}>
               {bind.ok ? <Clapperboard size={14} aria-hidden /> : <Lock size={14} aria-hidden />} Approve → Motion
             </AccentButton>
           </div>
           <Caption>{bind.ok
-            ? `Motion binds to asset ${selectedStill?.assetId?.slice(0, 8)} · sha ${selectedStill?.sha256?.slice(0, 12)} — the agent re-hashes the bytes before the graph sees them.`
+            ? `Motion binds to asset ${bindTarget?.assetId?.slice(0, 8)} · sha ${bindTarget?.sha256?.slice(0, 12)} — the agent re-hashes the bytes before the graph sees them.`
             : bind.why}</Caption>
           {c.motionJob && (
             <Notice $tone={mj.tone === 'blocked' ? 'unproven' : mj.tone === 'failed' ? 'off' : 'ready'} role="status" aria-live="polite">
@@ -248,6 +271,7 @@ const AtelierCompose: React.FC<{ api: AxiosInstance | null }> = ({ api }) => {
           {c.batch?.terminal && c.batch.status === 'failed' && c.batch.error && (
             <Notice $tone="off" role="status">Batch failed · {c.batch.error.code} — {c.batch.error.message}</Notice>
           )}
+          {adopted && !c.result && <ReusedFrameNotice frame={adopted} />}
           {c.result && <AtelierComposeGrid result={c.result} aspect={aspect} selectedIndex={selected} onSelect={setSelected} />}
 
           <AtelierPublishPanel c={c} />
