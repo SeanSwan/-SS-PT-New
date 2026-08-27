@@ -160,7 +160,17 @@ export async function persistStill({ still, userId, workspaceId = null, brandKit
   // hash, so putting the same bytes twice is a no-op at the same address: safe to repeat,
   // safe under concurrency, and the row is only ever created once the bytes are known to
   // be there. The cost is one existence check to keep duplicate persists from re-uploading.
-  const existing = d.assetModel.findOne ? await d.assetModel.findOne({ where: { r2Key } }) : null;
+  // REQUIRED, not optional. The first version wrote `d.assetModel.findOne ? ... : null`,
+  // and that tolerance was the bug: a model without the method fell through to "no existing
+  // row", so every duplicate persist re-uploaded the bytes. It passed my standalone harness
+  // because I had written that fake to match the new code, and only the real suite — whose
+  // fakes predate it — showed the fallback doing the wrong thing silently. A production
+  // Sequelize model always has findOne; a collaborator that does not is a wiring error and
+  // should say so, not quietly change what the function does.
+  if (typeof d.assetModel.findOne !== 'function') {
+    throw new PersistError('E_STORAGE_UNCONFIGURED', 'The asset model cannot be queried (no findOne); refusing to guess whether these bytes already exist.');
+  }
+  const existing = await d.assetModel.findOne({ where: { r2Key } });
   if (!existing) {
     await d.putObject({ Key: r2Key, Body: bytes, ContentType: mime, Metadata: { ownerUserId: String(userId), sha256: hash, lane: String(still.lane) } });
   }

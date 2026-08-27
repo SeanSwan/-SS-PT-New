@@ -40,6 +40,9 @@ function fakeModel() {
   const rows = new Map();
   return {
     rows,
+    // A real Sequelize model has this, and persistStill now REQUIRES it: the bytes are
+    // written before the row, so it has to ask whether they are already there.
+    findOne: async ({ where }) => rows.get(where.r2Key) || null,
     findOrCreate: async ({ where, defaults }) => {
       if (rows.has(where.r2Key)) return [rows.get(where.r2Key), false];
       const row = { id: `asset-${rows.size + 1}`, ...defaults };
