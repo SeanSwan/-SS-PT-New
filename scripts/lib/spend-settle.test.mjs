@@ -31,7 +31,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -219,6 +219,98 @@ test('the gate never prices a seat CHEAPER than the seat’s own provider record
   }
   // Instrument check: a regex that matched nothing would pass this loop silently.
   assert.ok(checked >= 3, `expected to check every provider, only reached ${checked}`);
+});
+
+test('a LOST used flag cannot buy a second redemption', async () => {
+  // GLM 5.3-flash round-4 finding 10. Redemption required `!tokens[key].used`, and
+  // that flag was set by rewriting the WHOLE tokens.json — an unlocked
+  // read-modify-write of a shared object, on the money path. Two concurrent
+  // redemptions of DIFFERENT keys can lose one `used: true` in the merge; a lost
+  // flag plus a claim past the orphan window re-redeems the same approval.
+  //
+  // Simulated directly rather than raced for, the same reasoning as the
+  // deterministic interleaving test: rewind tokens.json to `used: false` — exactly
+  // what a lost write leaves behind — and age the claim past the reclaim window so
+  // the orphan branch is reachable. That is the WHOLE failure, forced.
+  //
+  // MUTATION NOTE, because it is the inverse of the trap this file keeps recording.
+  // There are TWO guards — the `!isSpent` precondition here and the `isSpent` check
+  // inside claimToken — and disabling EITHER ONE leaves this test green, because the
+  // other catches it. Only disabling BOTH turns it red. A single mutation reporting
+  // zero reds therefore proves nothing about this test; it proves the layering works.
+  // Worth writing down: "zero reds" has now meant three different things in this
+  // workstream — a vacuous test, a mutation that never landed, and genuine defence in
+  // depth — and they are indistinguishable from the number alone.
+  const { dir, mod } = await freshLedger();
+  const BREACH = { model: 'claude-fable-5', topic: 'p', worstCaseUsd: 4.00 };
+
+  const first = mod.checkSpend(BREACH);
+  assert.equal(first.allow, false, 'control: first ask is refused');
+  assert.ok(first.token, 'control: a token is minted');
+
+  const spent = mod.checkSpend({ ...BREACH, approvalToken: first.token });
+  assert.equal(spent.allow, true, 'control: the second ask redeems');
+
+  // The lost write, plus an aged claim.
+  const tokensPath = join(dir, 'pending-approval.json');
+  const store = JSON.parse(readFileSync(tokensPath, 'utf-8'));
+  for (const k of Object.keys(store)) { store[k].used = false; delete store[k].usedAt; }
+  writeFileSync(tokensPath, JSON.stringify(store, null, 2), 'utf-8');
+  for (const f of readdirSync(dir)) {
+    if (f.startsWith('claim-')) {
+      const old = new Date(Date.now() - 10 * 60_000);
+      utimesSync(join(dir, f), old, old);
+    }
+  }
+
+  const again = mod.checkSpend({ ...BREACH, approvalToken: first.token });
+  assert.equal(again.allow, false,
+    'a token whose used-flag was lost redeemed a SECOND time — the store is authoritative again');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('an IN-FLIGHT redemption still names its own recovery path', async () => {
+  // The "concurrent call — delete claim-<key>" message lost its only assertion when
+  // the replay case moved out of the redemption branch. It is still REACHABLE, on the
+  // one situation it was actually written for: a claim exists (a redemption is in
+  // flight) and no spent-marker has been written yet. Leaving it uncovered would let
+  // a stuck operator's only instructions rot silently — which is exactly the failure
+  // the message exists to prevent.
+  const { dir, mod } = await freshLedger();
+  const BREACH = { model: 'claude-fable-5', topic: 'p', worstCaseUsd: 4.00 };
+  const first = mod.checkSpend(BREACH);
+
+  // Simulate a redemption in flight: a FRESH claim, no marker, token still unused.
+  const store = JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8'));
+  const key = Object.keys(store)[0];
+  writeFileSync(join(dir, `claim-${key}.json`), JSON.stringify({ inFlight: true }), 'utf-8');
+
+  const blocked = mod.checkSpend({ ...BREACH, approvalToken: first.token });
+  assert.equal(blocked.allow, false, 'a claim held by another caller must refuse');
+  assert.match(blocked.reason, /concurrent call/, 'and must say it is a concurrency, not a spend');
+  assert.match(blocked.reason, /delete .*claim-/, 'a refusal must name its own recovery path');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('a CRASHED holder is still distinguishable from a spent one', async () => {
+  // The other half of the same mechanism, and the reason the marker exists rather
+  // than the claim alone. A process that creates the claim and dies before spending
+  // leaves an aged claim with NO marker — Sean's approval must still be redeemable,
+  // or the guard bricks a legitimate token on a crash with no TTL and no override.
+  const { dir, mod } = await freshLedger();
+  const BREACH = { model: 'claude-fable-5', topic: 'p', worstCaseUsd: 4.00 };
+  const first = mod.checkSpend(BREACH);
+
+  // Simulate the crash: the claim exists and is aged, but nothing was ever spent.
+  const claim = join(dir, readdirSync(dir).find((f) => f.startsWith('claim-')) || 'none');
+  writeFileSync(claim, JSON.stringify({ crashed: true }), 'utf-8');
+  const old = new Date(Date.now() - 10 * 60_000);
+  utimesSync(claim, old, old);
+
+  const retry = mod.checkSpend({ ...BREACH, approvalToken: first.token });
+  assert.equal(retry.allow, true,
+    'an aged claim with no spent-marker is a crashed holder; the approval must still work');
+  rmSync(dir, { recursive: true, force: true });
 });
 
 test('normalizeModelKey folds vendor prefixes and case, and nothing else', async () => {

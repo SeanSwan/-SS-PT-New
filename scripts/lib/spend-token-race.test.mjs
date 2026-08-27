@@ -61,11 +61,22 @@ test('the deterministic interleaving: a STALE used:false cannot redeem twice', a
 
   const replay = mod.checkSpend({ ...BREACH, approvalToken: first.token });
   assert.equal(replay.allow, false, 'a stale used:false must NOT re-open a redeemed token');
-  // The refusal names the concurrency AND the recovery. It changed when the orphan
-  // reclaim landed — a message that only said "already redeemed" gave a stuck user
-  // nothing to do, and this test caught the wording drift the moment it happened.
-  assert.match(replay.reason, /concurrent call/);
-  assert.match(replay.reason, /delete .*claim-/, 'a refusal must name its own recovery path');
+
+  // WORDING CHANGED 2026-08-27, and this test is why it changed carefully rather than
+  // silently. It used to assert /concurrent call/ plus a "delete claim-<key>" recovery
+  // line. When the spent-marker became authoritative (flash round-4 finding 10) this
+  // case stopped going through the redemption branch, and the replay fell out as the
+  // generic "first ask refused" — telling the operator nothing. A real regression,
+  // caught by this assertion within seconds.
+  //
+  // The fix is NOT to restore the old wording. That wording was already wrong here:
+  // there is no concurrency in a replay, the token was simply spent, and telling
+  // someone to delete the claim file is telling them to re-open a redeemed approval.
+  // One flag had to serve two situations, so they were conflated; a separate marker
+  // finally distinguishes them, and the messages should say which is which.
+  assert.match(replay.reason, /already spent/, 'a replay must say the token was SPENT');
+  assert.ok(replay.token, 'and must hand over the new token this fresh ask needs');
+  assert.notEqual(replay.token, first.token, 'the new ask gets a NEW token, never the spent one');
   rmSync(dir, { recursive: true, force: true });
 });
 

@@ -311,6 +311,41 @@ function writeTokens(t) { ensureDir(); writeFileSync(TOKENS, JSON.stringify(t, n
  */
 const CLAIM_ORPHAN_MS = 60_000;
 
+/**
+ * "This token has been spent" as a PER-KEY FILE, not a field in a shared object.
+ *
+ * GLM 5.3-flash round-4 finding 10. Redemption required `!tokens[key].used`, and
+ * that flag was set by rewriting the WHOLE tokens.json with `writeFileSync` — an
+ * unlocked read-modify-write of a shared object, on the money path. Two concurrent
+ * redemptions of DIFFERENT keys can lose one `used: true` in the merge. A lost flag
+ * plus a claim older than the orphan window means the same token redeems twice.
+ *
+ * That is the exact bug class this workstream has closed three times elsewhere (the
+ * claim file, the append-only reservations, the ledger). Leaving one in place while
+ * fixing its siblings is not a risk judgement, it is an inconsistency — the whole
+ * argument for the append-only design was that a shared counter reproduces the race
+ * it is meant to fix.
+ *
+ * A per-key marker cannot be lost by a write to another key, because there is no
+ * shared object to merge. tokens.json keeps `used` for the audit trail; it no longer
+ * decides anything.
+ *
+ * WHY THE MARKER AND THE CLAIM ARE BOTH NEEDED. The claim alone cannot tell a
+ * CRASHED holder (create the claim, die before spending) from a SUCCESSFUL one —
+ * both leave an aged claim file. Without that distinction the orphan reclaim either
+ * bricks a legitimate approval forever, or re-redeems a token that was already
+ * spent. The marker is what separates them: aged claim + no marker means crashed;
+ * marker present means spent, at any age.
+ */
+const usedMarkerPath = (key) => join(SPEND_DIR, `used-${key}.json`);
+const isSpent = (key) => existsSync(usedMarkerPath(key));
+
+function markSpent(key, token) {
+  try {
+    writeFileSync(usedMarkerPath(key), JSON.stringify({ key, token, at: new Date().toISOString() }), 'utf-8');
+  } catch { /* non-fatal: the claim still stands for the orphan window */ }
+}
+
 function claimToken(key, token) {
   ensureDir();
   const claimPath = join(SPEND_DIR, `claim-${key}.json`);
@@ -319,6 +354,8 @@ function claimToken(key, token) {
     return true;
   } catch (err) {
     if (err?.code !== 'EEXIST') return false;
+    // Already spent, at ANY age — never reclaim a token that actually bought something.
+    if (isSpent(key)) return false;
 
     // ORPHAN RECLAIM. Found by attacking this function directly, and independently
     // by GLM 5.3-flash (2026-08-27 blocker 1a): a process that dies between creating
@@ -414,11 +451,16 @@ export function checkSpend({ model, topic, worstCaseUsd, approvalToken = '', sel
   // `claimToken` uses O_EXCL file creation, which the OS guarantees is atomic:
   // exactly one caller can create a given path. The JSON below is still updated for
   // the audit trail, but it is no longer what decides the outcome — the claim is.
-  if (approvalToken && tokens[key] && tokens[key].token === approvalToken && !tokens[key].used) {
+  // `isSpent` (a per-key file) rather than `tokens[key].used` (a field in a shared
+  // object that an unlocked whole-file rewrite can lose). See markSpent above.
+  if (approvalToken && tokens[key] && tokens[key].token === approvalToken && !isSpent(key)) {
     if (!claimToken(key, approvalToken)) {
       return { allow: false, reason: `token is being redeemed by a concurrent call (if this persists past ${CLAIM_ORPHAN_MS / 1000}s, delete .ai-workflow/spend/claim-${key}.json — a crashed holder left it behind)`, breach: breaches.join('; '), token: null, totals };
     }
-    tokens[key].used = true;
+    // MARK BEFORE RETURNING. This is the write that makes the claim mean "spent"
+    // rather than "in progress", so it must land before the caller is told to go.
+    markSpent(key, approvalToken);
+    tokens[key].used = true;          // audit trail only — no longer load-bearing
     tokens[key].usedAt = new Date().toISOString();
     writeTokens(tokens);
     return { allow: true, reason: 'second approval accepted', breach: breaches.join('; '), token: null, totals };
@@ -432,17 +474,46 @@ export function checkSpend({ model, topic, worstCaseUsd, approvalToken = '', sel
   // Not a deadlock risk: the key is derived from model+topic+cost, so re-running the
   // same command yields the same key and the SAME still-valid token, which remains
   // readable in the store.
+  // Same authority as redemption: a token is unused when no MARKER exists for it.
+  // Reading `existing.used` here would have re-minted over a token whose flag was
+  // lost — destroying the approval Sean is holding, the exact DoS this branch was
+  // added to prevent, arriving through the lost-write door instead of the re-mint one.
   const existing = tokens[key];
-  if (existing && !existing.used) {
+  if (existing && !isSpent(key)) {
     return { allow: false, reason: 'budget breach — an unused approval token already exists for this exact call', breach: breaches.join('; '), token: existing.token, totals };
   }
+
+  // REPLAY OF A SPENT TOKEN — say which it is.
+  //
+  // Caught by spend-token-race.test.mjs the moment the spent-marker landed, and the
+  // catch was correct: making the marker authoritative moved this case out of the
+  // redemption branch, so a replay fell through to the generic "first ask refused"
+  // and the operator was told nothing about why their token stopped working.
+  //
+  // The old message called it a CONCURRENT call and pointed at the claim file to
+  // delete. That was already wrong for this case — there is no concurrency, the token
+  // was simply spent, and telling someone to delete a claim file is telling them to
+  // re-open a redeemed approval. The two situations were conflated because one flag
+  // had to serve both; with a separate marker they can finally be told apart:
+  //   marker present            -> SPENT. Re-ask. (here)
+  //   claim present, no marker  -> a redemption is genuinely in flight, or crashed.
+  const replayedSpent = Boolean(approvalToken && tokens[key]
+    && tokens[key].token === approvalToken && isSpent(key));
 
   // FIRST ask: refuse, and mint the token this exact call would need.
   const token = crypto.randomBytes(6).toString('hex');
   tokens[key] = { token, model, topic, worstCaseUsd, used: false, issuedAt: new Date().toISOString() };
   writeTokens(tokens);
 
-  return { allow: false, reason: 'budget breach — first ask refused', breach: breaches.join('; '), token, totals };
+  return {
+    allow: false,
+    reason: replayedSpent
+      ? 'that approval token was already spent — this is a NEW ask, and it needs a new token'
+      : 'budget breach — first ask refused',
+    breach: breaches.join('; '),
+    token,
+    totals,
+  };
 }
 
 export const LEDGER_PATH = LEDGER;
