@@ -1,12 +1,15 @@
 ---
 decision: "Full session handoff for the Swan Atelier build loop — six panel-reviewed slices, then eleven recursive hostile-review rounds that found 31 real defects and ended with both panel seats approving. Everything the next agent needs to continue without re-deriving it."
-status: open
-supersedes: none
+status: superseded
+superseded_by: docs/ai-workflow/AI-HANDOFF/ATELIER-SESSION-HANDOFF-2026-08-27.md
 ---
 
 # Swan Atelier — session handoff · 2026-08-26
 
-**Read this first, then `git log --oneline main..HEAD` on the branch below. Nothing else is required to continue.**
+> **SUPERSEDED by `ATELIER-SESSION-HANDOFF-2026-08-27.md`.** That file is the one to read.
+> This one remains accurate for the six earlier build slices and the round-by-round review
+> ledger (section 5b), which the newer file points back to rather than duplicating. Where the
+> two disagree, the 2026-08-27 file wins — its state, counts and backlog are current.
 
 ---
 
