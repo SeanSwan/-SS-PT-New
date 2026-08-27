@@ -109,6 +109,11 @@ test('CONTRACT: KNOWN_UNGATED is FROZEN — the exact key set, not merely reason
   // Now it is an asserted key set. Growing the list fails HERE, which is what the
   // freeze claimed to do all along.
   assert.deepEqual(Object.keys(KNOWN_UNGATED).sort(), [
+    // Added 2026-08-27, and this assertion failing is what forced it to be a
+    // deliberate act rather than a quiet one — exactly what the freeze is for.
+    // It is a LIBRARY entry, not new debt: GLM 5.3-flash F4 showed the gate was
+    // hard-blocking this no-op and telling the operator to price a library.
+    'context-gateway/src/consult.mjs',
     'context-gateway/src/transport.mjs',
     'hermes-village.mjs',
     'validation-orchestrator.mjs',

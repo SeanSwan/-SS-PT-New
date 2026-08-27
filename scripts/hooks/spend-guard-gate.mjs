@@ -26,7 +26,7 @@ import { join } from 'node:path';
 import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR } from '../lib/spend-ledger.mjs';
 // SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
 // Hand-curating it inside this regex is what drifted in both directions at once.
-import { PAID_INVOCATION, FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat } from '../lib/paid-seats.mjs';
+import { PAID_INVOCATION, FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, maskQuotedData } from '../lib/paid-seats.mjs';
 
 const ALLOW = () => process.exit(0);
 
@@ -126,8 +126,21 @@ function flagValue(cmd, name) {
   // through interpolation, one of which turned a backslash-b into a literal 0x08.
   // A guard regex must be written as a literal, or not written as a regex at all.
   // This one is a plain scan, so there is nothing left to corrupt.
+  // FIND the flag in MASKED text; READ its value from the ORIGINAL.
+  //
+  // GLM 5.3-flash B2 extends to this helper: a `--seats` or `--document` sitting
+  // inside a quoted remit is DATA, and letting it shift panel pricing or the topic
+  // bucket is the same defect as the `--dry-run` bypass.
+  //
+  // But masking outright would break the honest case — `--document "path with
+  // spaces"` has a legitimately QUOTED VALUE, and blanking it would silently send
+  // every such call to topic `untitled`, which is precisely the cap-never-accumulates
+  // bug this file already fixed once. maskQuotedData pads with spaces rather than
+  // deleting, so offsets are identical in both strings: find the flag where data is
+  // invisible, then read the value where it is not.
+  const masked = maskQuotedData(cmd);
   const flag = `--${name}`;
-  for (let i = cmd.indexOf(flag); i !== -1; i = cmd.indexOf(flag, i + 1)) {
+  for (let i = masked.indexOf(flag); i !== -1; i = masked.indexOf(flag, i + 1)) {
     const after = cmd.slice(i + flag.length);
     // The next character must be `=` or whitespace, otherwise this is a LONGER flag
     // that merely starts with the same letters (`--max` must not read `--max-tokens`).
@@ -256,7 +269,13 @@ try {
   // to a Fable, Sol or Kimi call made the gate stand down while the script ignored
   // the unknown flag and billed in full — the identical bypass class this file
   // already documents for `--max-tokens 500`, still live in a different branch.
-  if (DRY_RUN_AWARE.has(scriptName) && /--dry-run/.test(cmd)) ALLOW();
+  //
+  // Scanned over MASKED text, not the raw command (GLM 5.3-flash B2, reproduced at
+  // exit 0). `--remit "does it support --dry-run"` put the flag in DATA, the substring
+  // test saw it, and a LIVE paid fan-out was waved through with no cap and no token.
+  // Round 2 restricted the flag to the one script that implements it but kept matching
+  // over quoted arguments — narrowing WHICH script while leaving WHERE it looks.
+  if (DRY_RUN_AWARE.has(scriptName) && /--dry-run/.test(maskQuotedData(cmd))) ALLOW();
 
   // The fan-out refuses its own live call without --confirm-spend, so gating it
   // earlier is cry-wolf. The old condition named `consult-panel.mjs`, which does not
@@ -282,9 +301,20 @@ try {
     if (hit && PRICES[defaultKey]) {
       const costOf = (k) => PRICES[k][0] + PRICES[k][1];
       if (costOf(hit) > costOf(defaultKey)) modelKey = hit;
-    } else if (hit && !defaultKey) {
-      modelKey = hit;
     }
+    // The `else if (hit && !defaultKey) modelKey = hit` branch is DELETED, and must
+    // not come back. Both GLM seats found it independently (5.3 F3, 5.3-flash B1) and
+    // it was reproduced live at exit 0:
+    //
+    //     node scripts/consult-mistral.mjs --document x.md --model deepseek-v4-flash
+    //
+    // An unknown seat has no default, so a caller-declared model became its price —
+    // ~$0.07, under the cap, ALLOW — while the script bills at whatever it actually
+    // calls and need not even READ `--model`. That is the "believing a flag the target
+    // ignores" failure this file documents twice, reintroduced in the one branch whose
+    // whole job is to refuse unknown seats, and a silent third option past the
+    // "no third option" contract. An unknown seat now falls through to the unpriced
+    // BLOCK, whatever the caller declares.
   }
 
   // consult-panel fans out to many seats; price it as the whole fan-out.
@@ -358,9 +388,31 @@ try {
   // Input size is unknown at gate time; assume a large review packet so the
   // worst case is honest rather than flattering.
   const ASSUMED_IN_TOK = 26000;
+  // SUM every chargeable invocation in the line, not just the priciest one.
+  //
+  // GLM 5.3-flash round-3 blocker 4, reproduced live at exit 0:
+  //
+  //     node consult-codex.mjs --document a && node consult-codex.mjs --document b
+  //       && node consult-codex.mjs --document c
+  //
+  // Three real calls, ~$0.67 each. Round 2 fixed "two DIFFERENT paid scripts" by
+  // taking the MAX — which prices this at $0.67, inside the $1.00 cap, ALLOW, with
+  // ~$2.01 of exposure and no per-call enforcement for calls two through N. Max was
+  // the wrong operator: it defends against a cheap seat sheltering an expensive one,
+  // and does nothing about the same seat called repeatedly. GLM 5.3 said "price the
+  // sum" in round 3 and I chose max with a rationale that only covered half the case.
+  //
+  // A panel is priced by its own per-seat fan-out, so it is summed as one unit.
+  const oneCallUsd = (n) => {
+    const k = SCRIPT_MODEL[n];
+    const p = k && PRICES[k];
+    return p ? (ASSUMED_IN_TOK / 1e6) * p[0] + (maxTok / 1e6) * p[1] : 0;
+  };
   const worstCaseUsd = isPanel
     ? panelUsd
-    : (ASSUMED_IN_TOK / 1e6) * price[0] + (maxTok / 1e6) * price[1];
+    : (chargeable.length > 1
+      ? chargeable.reduce((sum, n) => sum + oneCallUsd(n), 0)
+      : (ASSUMED_IN_TOK / 1e6) * price[0] + (maxTok / 1e6) * price[1]);
 
   // --- topic: what "the whole thing" means --------------------------------
   // Best available proxy for one workstream is the document/out path stem.

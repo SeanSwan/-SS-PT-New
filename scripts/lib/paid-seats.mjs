@@ -77,6 +77,12 @@ export const KNOWN_UNGATED = {
   'hermes-village.mjs':
     'Wraps the Village runner, so it inherits the same in-process controls — including the '
     + 'ledger reconciliation landed 2026-08-26.',
+  'context-gateway/src/consult.mjs':
+    'LIBRARY, not an entrypoint (verified 2026-08-27: no shebang, no self-invocation guard, so '
+    + 'running it directly defines exports and exits, spending nothing). Listed EXPLICITLY because '
+    + 'GLM 5.3-flash F4 found that basenaming its path yielded `consult.mjs`, which matched no '
+    + 'allowlist and no price table — so the gate hard-BLOCKED a no-op and told the operator to '
+    + '"add the real OpenRouter price" for a library. scriptNameFrom now keeps the path as the key.',
   'context-gateway/src/transport.mjs':
     'LIBRARY, not an entrypoint — no shebang, no top-level invocation. It is imported by '
     + 'context-gateway/src/consult.mjs, which is ALSO a library (verified 2026-08-27: no '
@@ -141,9 +147,39 @@ export const PAID_INVOCATION =
  */
 const NON_EXECUTING = /(?:^|[^A-Za-z0-9_-])--(?:check|version)(?:[^A-Za-z0-9_-]|$)/;
 
+/**
+ * Blank out quoted spans that are DATA, keeping those that are CODE.
+ *
+ * Two confirmed defects share this root, one in each direction (GLM 5.3-flash
+ * round-3 B2 and F5, both reproduced live):
+ *
+ *   --remit "does it support --dry-run"     -> the gate saw --dry-run and stood down
+ *                                              on a LIVE paid fan-out. exit 0.
+ *   --text "see scripts/consult-fable.mjs"  -> an honest doc script was blocked and
+ *                                              mispriced as a Fable consult. exit 2.
+ *
+ * The second one blocked my own verification probe while I was checking the first.
+ *
+ * Naive quote-stripping is wrong: `sh -c "node scripts/consult-fable.mjs"` is a real
+ * invocation living entirely inside quotes, and round 2 added tests for exactly that.
+ * So the rule is CONTENT-BASED, not syntactic — a quoted span survives only if it
+ * starts with an interpreter (optionally after env assignments). Anything else is an
+ * argument, and an argument is data.
+ *
+ * Replaced with spaces rather than removed, so byte offsets and word boundaries
+ * outside the span are unchanged.
+ */
+export function maskQuotedData(cmd) {
+  return String(cmd || '').replace(/"[^"]*"|'[^']*'/g, (span) => {
+    const inner = span.slice(1, -1);
+    const looksLikeCommand = /^\s*(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)*(?:env\s+)?(?:\S*\/)?(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-]/.test(inner);
+    return looksLikeCommand ? span : ' '.repeat(span.length);
+  });
+}
+
 /** True when this command text invokes something that could spend money. */
 export function invokesPaidSeat(cmd) {
-  const c = String(cmd || '');
+  const c = maskQuotedData(cmd);
   if (NON_EXECUTING.test(c)) return false;
   return PAID_INVOCATION.test(c);
 }
@@ -166,13 +202,27 @@ export function invokesPaidSeat(cmd) {
  * that matters is the cap: taking the max guarantees the priciest seat in the line is
  * the one measured, with no way for a cheap seat to shelter an expensive one.
  */
+/**
+ * One key per seat. The gateway engine keeps its PATH; everything else is a basename.
+ *
+ * GLM 5.3-flash round-3 F4, reproduced live: basenaming `context-gateway/src/consult`
+ * yielded `consult.mjs`, which is in no allowlist and no price table — so the gate
+ * took the unpriced BLOCK and told the operator to "add the real OpenRouter price"
+ * for a file already classified as spending nothing. A hard block on a no-op, with a
+ * message inviting the next agent to price a library.
+ */
+function normalizeSeatKey(matched) {
+  if (matched.includes('context-gateway')) return 'context-gateway/src/consult.mjs';
+  return `${matched.replace(/^.*[/\\]/, '')}.mjs`;
+}
+
 export function allScriptNamesFrom(cmd) {
-  const text = String(cmd || '');
+  const text = maskQuotedData(cmd);
   if (NON_EXECUTING.test(text)) return [];
   const global = new RegExp(PAID_INVOCATION.source, 'g');
   const names = [];
   for (const m of text.matchAll(global)) {
-    if (m[1]) names.push(`${m[1].replace(/^.*[/\\]/, '')}.mjs`);
+    if (m[1]) names.push(normalizeSeatKey(m[1]));
   }
   return names;
 }
@@ -228,7 +278,7 @@ export function scriptNameFrom(cmd) {
   // lazy middle picks the first script after the interpreter, which is the one being
   // executed; a name appearing earlier (a `cat`) or later (an `--seed` argument, a
   // redirect target) can no longer stand in for it.
-  const m = PAID_INVOCATION.exec(String(cmd || ''));
+  const m = PAID_INVOCATION.exec(maskQuotedData(cmd));
   if (!m) return '';
-  return `${m[1].replace(/^.*[/\\]/, '')}.mjs`;
+  return normalizeSeatKey(m[1]);
 }

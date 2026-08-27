@@ -517,6 +517,65 @@ test('FINDING 1: node --check is a syntax check, not a run', () => {
   assert.equal(runGate('node scripts/consult-fable.mjs --document plan.md').code, BLOCK);
 });
 
+// --- GLM 5.3-flash round-3: quoted data is not code, and N calls are not one ----
+
+test('B1: an unknown seat cannot be priced by a caller-declared --model', () => {
+  // Both seats found this (5.3 F3, flash B1) and it reproduced at exit 0. An unknown
+  // seat has no default, so `--model deepseek-v4-flash` became its price — under the
+  // cap, ALLOW — while the script bills at whatever it really calls and need not even
+  // read the flag. The "believing a flag the target ignores" failure, reintroduced in
+  // the one branch whose job is to refuse unknown seats.
+  const r = runGate('node scripts/consult-mistral.mjs --document x.md --model deepseek-v4-flash');
+  assert.equal(r.code, BLOCK);
+  assert.match(r.stderr, /is not priced/);
+});
+
+test('B2: a flag inside quoted DATA does not excuse a paid call', () => {
+  const PANEL = 'node scripts/consult-openrouter-panel.mjs --confirm-spend --seats fable,sol,kimi --document x.md';
+  assert.equal(runGate(PANEL).code, BLOCK, 'control: the expensive fan-out blocks');
+  assert.equal(runGate(`${PANEL} --remit "does it support --dry-run"`).code, BLOCK,
+    'a --dry-run MENTION in a remit must not stand the gate down on a live fan-out');
+  assert.equal(runGate(`${PANEL} --dry-run`).code, ALLOW,
+    'but a REAL --dry-run on the script that implements it still passes');
+});
+
+test('B2: a quoted value is still READ — masking must not break honest flags', () => {
+  // maskQuotedData pads with spaces so offsets survive: the flag is FOUND in masked
+  // text, its value READ from the original. Blanking outright would send every
+  // quoted --document to topic `untitled`, which is the cap-never-accumulates bug
+  // this file already fixed once.
+  const today = new Date().toISOString();
+  const dir = seedLedger([{ ts: today, model: 'gpt-5.6-sol-pro', topic: 'plan', usd: 2.9 }]);
+  const r = runGate('node scripts/consult-sol.mjs --document "plan.md"', { ledger: dir });
+  assert.equal(r.code, BLOCK, 'a QUOTED --document must still resolve to its topic');
+  assert.match(r.stderr, /topic\s+plan/);
+});
+
+test('B4: N invocations of the SAME script are SUMMED, not priced once', () => {
+  // Round 2 fixed "two DIFFERENT paid scripts" with MAX. Max defends against a cheap
+  // seat sheltering an expensive one and does nothing about the same seat called
+  // repeatedly: three codex calls at ~$0.67 priced as one, ~$2.01 of exposure inside
+  // a $1.00 cap. Reproduced at exit 0 before the fix.
+  const one = 'node scripts/consult-codex.mjs --document a.md';
+  assert.equal(runGate(one).code, ALLOW, 'control: one codex call is under cap');
+  assert.equal(runGate(`${one} && ${one} && ${one}`).code, BLOCK, 'three are not');
+});
+
+test('F4: the gateway LIBRARY is not hard-blocked as an unpriced seat', () => {
+  // Basenaming its path yielded `consult.mjs`, in no allowlist and no price table, so
+  // the gate blocked a verified no-op and told the operator to price a library.
+  const r = runGate('node scripts/context-gateway/src/consult.mjs --seat fable');
+  assert.equal(r.code, ALLOW);
+  assert.doesNotMatch(r.stderr, /is not priced/);
+});
+
+test('F5: a seat name inside a quoted ARGUMENT is data, not an invocation', () => {
+  // This one blocked my own verification probe while I was checking B2.
+  assert.equal(runGate('node scripts/format-docs.mjs --text "see scripts/consult-fable.mjs"').code, ALLOW);
+  // And the shape that must still be caught, because it really is a command:
+  assert.equal(runGate('sh -c "node scripts/consult-fable.mjs --document plan.md"').code, BLOCK);
+});
+
 test('a genuinely cheap seat passes — the gate is not just "block everything"', () => {
   // The honest positive control. Sol at its default is ~$0.31, under the $1.00 cap.
   // Without this, every BLOCK assertion above would also pass on a gate that
