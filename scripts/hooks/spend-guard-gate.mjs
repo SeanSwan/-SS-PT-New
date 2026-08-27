@@ -45,6 +45,45 @@ const SCRIPT_MODEL = {
   'consult-grok.mjs': 'grok-4.6',
 };
 
+/**
+ * Read a flag value in EITHER spelling: `--flag value` or `--flag=value`, quoted or bare.
+ *
+ * GLM 5.3 finding 3 (2026-08-26): the hand-rolled `--flag\s+(\S+)` patterns diverged from
+ * every real argument parser on the equals form, and one root cause produced three
+ * symptoms — `--document=plan.md` yielded topic `untitled` so the per-topic cap silently
+ * never accumulated for that document; `--seats=fable` priced a fan-out as if no seats
+ * were named; `--model=` overrides were ignored entirely. Verified before fixing.
+ */
+function flagValue(cmd, name) {
+  // NO `new RegExp` HERE, AND NEVER ADD ONE. The first draft of this helper built the
+  // pattern from a template literal — and inside a template literal `\s` is a STRING
+  // escape that JavaScript collapses to a bare `s`, so the pattern became
+  // `--documents+(...)` and matched nothing. Three tests went red and caught it.
+  //
+  // That is the FIFTH instance of this file's oldest bug, committed while fixing the
+  // fourth: the header already records three regexes corrupted by authoring them
+  // through interpolation, one of which turned a backslash-b into a literal 0x08.
+  // A guard regex must be written as a literal, or not written as a regex at all.
+  // This one is a plain scan, so there is nothing left to corrupt.
+  const flag = `--${name}`;
+  for (let i = cmd.indexOf(flag); i !== -1; i = cmd.indexOf(flag, i + 1)) {
+    const after = cmd.slice(i + flag.length);
+    // The next character must be `=` or whitespace, otherwise this is a LONGER flag
+    // that merely starts with the same letters (`--max` must not read `--max-tokens`).
+    if (after[0] !== '=' && after[0] !== ' ' && after[0] !== '\t') continue;
+    const rest = after.slice(1).replace(/^[ \t]+/, '');
+    if (!rest) continue;
+    const quote = rest[0];
+    if (quote === '"' || quote === "'") {
+      const end = rest.indexOf(quote, 1);
+      if (end > 0) return rest.slice(1, end);
+    }
+    const bare = rest.match(/^[^\s]+/);
+    if (bare) return bare[0];
+  }
+  return undefined;
+}
+
 function readInput() {
   try { return JSON.parse(readFileSync(0, 'utf-8')); } catch { return null; }
 }
@@ -98,7 +137,13 @@ const cmd = input?.tool_input?.command || '';
 // backgrounding, subshell, command substitution, Windows backslash paths, cmd /c,
 // line continuation, eval, bun, npx — with zero misses AND zero false positives,
 // including all four cross-command mention cases the exclusion exists to reject.
-const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bun) (?:"[^"]*"|'[^']*'|[^|;&])*?consult-(?:fable|sol|kimi|grok|panel)[.]mjs/;
+// SIXTH round, from the GLM hostile pass. `node<TAB>scripts/...` was a miss because
+// the separator was a literal U+0020 and bash's IFS splits on tab too; `bunx`, `tsx`
+// and `ts-node` were misses because the alternation named three runners. The separator
+// is now the same negated identifier class as the leading context — NOT a literal tab,
+// because an invisible character in a guard regex is the ``-became-0x08 failure with
+// a different costume. `nodejs` and `node-foo` still correctly do not match.
+const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?consult-(?:fable|sol|kimi|grok|panel)[.]mjs/;
 if (!cmd || !INVOCATION.test(cmd)) ALLOW();
 
 try {
@@ -124,7 +169,8 @@ try {
   // would reach for, so the estimate takes the max of default and override.
   const defaultKey = SCRIPT_MODEL[scriptName] || '';
   let modelKey = defaultKey;
-  const override = cmd.match(/SWAN_[A-Z_]*MODEL=([^\s]+)/) || cmd.match(/--model\s+([^\s]+)/);
+  const overrideVal = (cmd.match(/SWAN_[A-Z_]*MODEL=([^\s]+)/) || [])[1] || flagValue(cmd, 'model');
+  const override = overrideVal ? [null, overrideVal] : null;
   if (override) {
     const hit = Object.keys(PRICES).find((k) => override[1].includes(k));
     if (hit && PRICES[defaultKey]) {
@@ -149,7 +195,7 @@ try {
     dspro: 0.03, dsflash: 0.01, glm: 0, qwen: 0, gemini: 0, ox: 0,
   };
   const DEFAULT_SEATS = ['kimi', 'glm', 'qwen', 'ox', 'gemini', 'grok', 'dspro', 'dsflash'];
-  const seatsArg = (cmd.match(/--seats\s+([^\s]+)/) || [])[1];
+  const seatsArg = flagValue(cmd, 'seats');
   const panelSeats = seatsArg
     ? seatsArg.split(',').map((s) => s.trim()).filter(Boolean)
     : DEFAULT_SEATS;
@@ -163,7 +209,7 @@ try {
   // have used its own 16k default and cost the full amount. A declared ceiling
   // may raise the estimate; it may never lower it below the script's default.
   const SCRIPT_DEFAULT_MAX_TOK = 16000;
-  const declaredTok = Number((cmd.match(/--max-tokens\s+(\d+)/) || [])[1] || 0)
+  const declaredTok = Number(flagValue(cmd, 'max-tokens') || 0)
     || Number((cmd.match(/SWAN_[A-Z_]*MAX_TOKENS=(\d+)/) || [])[1] || 0)
     || 0;
   const maxTok = Math.max(declaredTok, SCRIPT_DEFAULT_MAX_TOK);
@@ -181,8 +227,8 @@ try {
   // version this replaced was the guard's own rules; a writer used different rules;
   // spentOnTopic matches strictly — so the per-topic cap silently never accumulated for
   // some documents (found 2026-08-24, the day a writer went live).
-  const docMatch = cmd.match(/--document\s+([^\s]+)/) || cmd.match(/--out\s+([^\s]+)/);
-  const topic = topicFromPath(docMatch ? docMatch[1] : 'untitled');
+  const docArg = flagValue(cmd, 'document') || flagValue(cmd, 'out');
+  const topic = topicFromPath(docArg || 'untitled');
 
   const approvalToken = (cmd.match(/SWAN_SPEND_APPROVE=([a-f0-9]{12})/) || [])[1] || '';
 

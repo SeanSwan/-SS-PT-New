@@ -147,6 +147,40 @@ test('BOUNDARY: a real invocation in the SECOND command is still caught', () => 
   assert.equal(runGate('node build.mjs | node scripts/consult-fable.mjs').code, BLOCK);
 });
 
+// --- interpreter shapes (GLM 5.3 blocker 2, GLM 5.3-flash blocker 1) ---------
+
+test('a TAB after the runner is gated', () => {
+  // bash's IFS splits on tab; the separator was a literal U+0020. Fixed with a
+  // negated identifier class, NOT a literal tab — an invisible character in a guard
+  // regex is the same failure as the backslash-b that became 0x08.
+  assert.equal(runGate('node\tscripts/consult-fable.mjs --document plan.md').code, BLOCK);
+});
+
+test('bunx, tsx and ts-node are gated', () => {
+  assert.equal(runGate('bunx tsx scripts/consult-fable.mjs --document plan.md').code, BLOCK);
+  assert.equal(runGate('tsx scripts/consult-fable.mjs --document plan.md').code, BLOCK);
+  assert.equal(runGate('ts-node scripts/consult-fable.mjs --document plan.md').code, BLOCK);
+});
+
+test('widening the runner list did NOT widen into false positives', () => {
+  assert.equal(runGate('nodejs scripts/consult-fable.mjs').code, ALLOW);
+  assert.equal(runGate('node-foo scripts/consult-fable.mjs').code, ALLOW);
+});
+
+test('ACCEPTED false positive: a mention that INCLUDES the runner word is gated', () => {
+  // GLM 5.3 finding 2, and it is real: `git grep "node scripts/consult-fable.mjs"`
+  // or a heredoc writing documentation that quotes the example command now trips
+  // the gate, because quoted spans are no longer opaque to it.
+  //
+  // Kept deliberately rather than softened. This guard fails OPEN, so a miss costs
+  // real money silently while a false positive costs one retry with the text in a
+  // file. For a money gate that is the correct direction to err, and narrowing it
+  // would reopen the SWA-218 miss. Pinned as a test so the behaviour is a decision
+  // on the record, not an accident someone later "fixes" without knowing the trade.
+  const r = runGate('git grep -n "node scripts/consult-fable.mjs" docs');
+  assert.equal(r.code, BLOCK, 'if this ever ALLOWs, the quoted-span fix has been undone');
+});
+
 test('SWA-218: a word merely ENDING in node is not the node binary', () => {
   // The one false positive the negated class must still avoid.
   assert.equal(runGate('mynode scripts/consult-fable.mjs --document plan.md').code, ALLOW);
@@ -210,8 +244,37 @@ test('BYPASS (header-documented): --max-tokens below the script default does not
   assert.equal(runGate(`${FABLE} --max-tokens 500`).code, BLOCK);
 });
 
-test('a LARGER --max-tokens still blocks — a declared ceiling may only raise', () => {
-  assert.equal(runGate(`${FABLE} --max-tokens 64000`).code, BLOCK);
+test('a LARGER --max-tokens RAISES a passing call into a breach', () => {
+  // GLM 5.3 blocker 1: the old version of this test used FABLE, which already
+  // breaches at the 16k default ($1.06 > $1.00). Deleting the --max-tokens maths
+  // entirely left it green, so it could not detect any regression in the raise-only
+  // clause. Sol is the shape that makes the raise legible: ~$0.31 at the default,
+  // over cap once a bigger ceiling is declared.
+  const SOL = 'node scripts/consult-sol.mjs --document plan.md';
+  assert.equal(runGate(SOL).code, ALLOW, 'sol at the default must pass, or this proves nothing');
+  assert.equal(runGate(`${SOL} --max-tokens 64000`).code, BLOCK, 'a declared ceiling must raise');
+});
+
+test('EQUALS FORM: --max-tokens=N is read like --max-tokens N', () => {
+  const SOL = 'node scripts/consult-sol.mjs --document plan.md';
+  assert.equal(runGate(`${SOL} --max-tokens=64000`).code, BLOCK);
+});
+
+test('EQUALS FORM: --document=X still resolves the topic (GLM finding 3)', () => {
+  // With the equals form unparsed, topic fell back to `untitled`, so the per-topic
+  // cap silently never accumulated for that document. Seed `plan` and prove the
+  // equals form lands on the same key the bare form does.
+  const today = new Date().toISOString();
+  const dir = seedLedger([{ ts: today, model: 'gpt-5.6-sol-pro', topic: 'plan', usd: 2.9 }]);
+  const r = runGate('node scripts/consult-sol.mjs --document=plan.md', { ledger: dir });
+  assert.equal(r.code, BLOCK, 'the equals form must hit the same topic bucket');
+  assert.match(r.stderr, /topic\s+plan/);
+});
+
+test('a longer flag with the same prefix is not misread', () => {
+  // `--max` must not swallow `--max-tokens`.
+  const SOL = 'node scripts/consult-sol.mjs --document plan.md --max-tokens 64000';
+  assert.equal(runGate(SOL).code, BLOCK);
 });
 
 test('an unknown model on an unknown script is not guessed at', () => {
@@ -246,10 +309,37 @@ test('the panel WITH --confirm-spend blocks when the requested seats are expensi
 // 5. The cap boundary — cheaper seats pass, expensive ones do not
 // ---------------------------------------------------------------------------
 
-test('a single cheap-seat call is under the per-call cap and passes', () => {
-  // deepseek-v4-flash via consult-grok: well under $1.00.
-  const r = runGate('SWAN_GROK_MODEL=deepseek-v4-flash node scripts/consult-grok.mjs --document plan.md');
-  assert.equal(r.code, ALLOW);
+test('a cheaper override does NOT lower a breaching call below the cap', () => {
+  // GLM 5.3 blocker 1 killed the previous version of this test: it used
+  // consult-grok.mjs (which does not exist on main) and grok's DEFAULT price is
+  // already under cap, so it passed identically whether override parsing worked,
+  // was deleted, or was inverted. It proved nothing about raise-only pricing.
+  //
+  // Fable breaches at its default, so naming a cheap model must not rescue it.
+  assert.equal(runGate(`SWAN_FABLE_MODEL=deepseek-v4-flash ${FABLE}`).code, BLOCK);
+  assert.equal(runGate(`${FABLE} --model=deepseek-v4-flash`).code, BLOCK, 'equals form too');
+});
+
+test('an EXPENSIVE override RAISES a passing call into a breach', () => {
+  // Caught by red-testing my own replacement for GLM's vacuous test — and it was
+  // vacuous the same way: Fable blocks at its default, so a cheap override cannot
+  // change the verdict and the assertion proves nothing about override parsing.
+  //
+  // Overrides only ever RAISE, so the single shape that can detect a regression is a
+  // cheap script pushed over the cap by an expensive override. Sol is ~$0.31 alone;
+  // priced as Fable it is ~$1.06 and must block.
+  const SOL = 'node scripts/consult-sol.mjs --document plan.md';
+  assert.equal(runGate(SOL).code, ALLOW, 'the control: sol alone must pass');
+  assert.equal(runGate(`SWAN_SOL_MODEL=claude-fable-5 ${SOL}`).code, BLOCK, 'env override must raise');
+  assert.equal(runGate(`${SOL} --model claude-fable-5`).code, BLOCK, 'flag override must raise');
+  assert.equal(runGate(`${SOL} --model=claude-fable-5`).code, BLOCK, 'equals form must raise');
+});
+
+test('a genuinely cheap seat passes — the gate is not just "block everything"', () => {
+  // The honest positive control. Sol at its default is ~$0.31, under the $1.00 cap.
+  // Without this, every BLOCK assertion above would also pass on a gate that
+  // refused unconditionally.
+  assert.equal(runGate('node scripts/consult-sol.mjs --document plan.md').code, ALLOW);
 });
 
 test('a bare Fable call breaches the per-call cap and blocks', () => {
