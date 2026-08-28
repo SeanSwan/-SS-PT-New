@@ -97,12 +97,17 @@ export interface ExerciseSet {
   restTime: number;
   formQuality: number | null; // 1-5, null = not rated
   notes?: string;
+  setType?: 'warmup' | 'working' | 'dropset' | 'superset' | 'failure' | 'amrap' | 'rest_pause';
+  isometricHoldSeconds?: number;
 }
 
 export interface ExerciseEntry {
   loggerExerciseId?: string; // UI-only stable row id; stripped before API submit.
   exerciseId: string;
   exerciseName: string;
+  circuitName?: string;
+  circuitOrder?: number;
+  exerciseRole?: 'primary' | 'drop-movement' | 'active-recovery' | 'core' | 'mobility' | 'finisher';
   sets: ExerciseSet[];
   /**
    * Plan Surfacing S0 — row identity for reconcile-by-identity (auto-load S5:

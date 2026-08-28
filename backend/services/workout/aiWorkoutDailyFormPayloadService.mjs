@@ -100,6 +100,8 @@ const normalizeSet = (set, setNumber) => ({
   restTime: parseNonNegativeInteger(set?.restTime ?? set?.rest ?? set?.restSeconds, null),
   rpe: normalizeSetRpe(set?.rpe),
   notes: normalizeText(set?.notes, null),
+  setType: normalizeText(set?.setType, 'working'),
+  isometricHoldSeconds: parseNonNegativeInteger(set?.isometricHoldSeconds, null),
 });
 
 export function normalizeAiExercises(exercises) {
@@ -132,6 +134,9 @@ export function normalizeAiExercises(exercises) {
     return {
       exerciseName,
       exerciseNote,
+      circuitName: normalizeText(exercise?.circuitName, null),
+      circuitOrder: parsePositiveInteger(exercise?.circuitOrder),
+      exerciseRole: normalizeText(exercise?.exerciseRole, null),
       ...exerciseMetadata(exercise),
       sets: sourceSets.map((set, index) => normalizeSet(set, index + 1)),
     };
@@ -142,6 +147,9 @@ export function buildWorkoutRows(exercises, sessionId) {
   return exercises.flatMap((exercise) => exercise.sets.map((set) => ({
     sessionId,
     exerciseName: exercise.exerciseName,
+    circuitName: exercise.circuitName,
+    circuitOrder: exercise.circuitOrder,
+    exerciseRole: exercise.exerciseRole,
     setNumber: set.setNumber,
     reps: set.reps,
     weight: set.weight,
@@ -150,6 +158,8 @@ export function buildWorkoutRows(exercises, sessionId) {
     rpe: set.rpe,
     notes: set.notes,
     exerciseNote: exercise.exerciseNote,
+    setType: set.setType,
+    isometricHoldSeconds: set.isometricHoldSeconds,
   })));
 }
 

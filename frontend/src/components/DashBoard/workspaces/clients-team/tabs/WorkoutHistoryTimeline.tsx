@@ -14,6 +14,8 @@ import {
   ActionRow,
   AddSetButton,
   Container,
+  CircuitSection,
+  CircuitTitle,
   DateBadge,
   EditInput,
   EmptyIcon,
@@ -31,6 +33,7 @@ import {
   SetRow,
   SmallBtn,
   StatusBadge,
+  StructureBadge,
   Title,
   TitleIcon,
   WorkoutCard,
@@ -39,6 +42,7 @@ import {
   WorkoutMeta,
   WorkoutTitle,
 } from './WorkoutHistoryTimeline.styles';
+import { groupWorkoutLogsByCircuit } from './workoutHistoryGrouping';
 
 // ─────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────
@@ -52,6 +56,11 @@ interface WorkoutLog {
   rest?: number;
   rpe?: number;
   notes?: string;
+  circuitName?: string;
+  circuitOrder?: number;
+  exerciseRole?: string;
+  setType?: string;
+  isometricHoldSeconds?: number;
 }
 
 interface Workout {
@@ -124,11 +133,13 @@ const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientI
     setEditLogs(prev => prev.filter((_, i) => i !== logIndex));
   }, []);
 
-  const addSet = useCallback((exerciseName: string) => {
-    const existing = editLogs.filter(l => l.exerciseName === exerciseName);
+  const addSet = useCallback((exerciseName: string, circuitName?: string) => {
+    const existing = editLogs.filter(l => l.exerciseName === exerciseName && l.circuitName === circuitName);
     const nextSet = existing.length + 1;
     setEditLogs(prev => [...prev, {
-      id: -Date.now(), exerciseName, setNumber: nextSet, reps: 0, weight: 0
+      id: -Date.now(), exerciseName, circuitName, circuitOrder: existing[0]?.circuitOrder,
+      exerciseRole: existing[0]?.exerciseRole, setType: 'working', setNumber: nextSet,
+      reps: 0, weight: 0
     }]);
   }, [editLogs]);
 
@@ -139,12 +150,16 @@ const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientI
       // Group logs by exercise for the PATCH payload
       const exerciseMap = new Map<string, WorkoutLog[]>();
       for (const log of editLogs) {
-        if (!exerciseMap.has(log.exerciseName)) exerciseMap.set(log.exerciseName, []);
-        exerciseMap.get(log.exerciseName)!.push(log);
+        const key = `${log.circuitName || ''}\u0000${log.exerciseName}`;
+        if (!exerciseMap.has(key)) exerciseMap.set(key, []);
+        exerciseMap.get(key)!.push(log);
       }
 
-      const exercises = Array.from(exerciseMap.entries()).map(([name, sets]) => ({
-        name,
+      const exercises = Array.from(exerciseMap.values()).map((sets) => ({
+        name: sets[0].exerciseName,
+        circuitName: sets[0]?.circuitName,
+        circuitOrder: sets[0]?.circuitOrder,
+        exerciseRole: sets[0]?.exerciseRole,
         sets: sets.map((s, i) => ({
           setNumber: i + 1,
           reps: s.reps,
@@ -153,6 +168,8 @@ const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientI
           rest: s.rest || undefined,
           rpe: s.rpe || undefined,
           notes: s.notes || undefined,
+          setType: s.setType || 'working',
+          isometricHoldSeconds: s.isometricHoldSeconds,
         })),
       }));
 
@@ -168,19 +185,6 @@ const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientI
       setSaving(false);
     }
   }, [authAxios, clientId, editLogs]);
-
-  const groupLogs = (logs: WorkoutLog[]) => {
-    const groups: { name: string; sets: WorkoutLog[] }[] = [];
-    const seen = new Map<string, WorkoutLog[]>();
-    for (const log of logs) {
-      if (!seen.has(log.exerciseName)) {
-        seen.set(log.exerciseName, []);
-        groups.push({ name: log.exerciseName, sets: seen.get(log.exerciseName)! });
-      }
-      seen.get(log.exerciseName)!.push(log);
-    }
-    return groups;
-  };
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -209,7 +213,7 @@ const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientI
         const isExpanded = expandedId === w.id;
         const isEditing = editingId === w.id;
         const logs = isEditing ? editLogs : w.logs;
-        const groups = groupLogs(logs);
+        const circuits = groupWorkoutLogsByCircuit(logs);
 
         return (
           <WorkoutCard key={w.id}>
@@ -239,12 +243,15 @@ const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientI
                     <div>Notes</div>
                   </SetHeaderRow>
 
-                  {groups.map(group => (
-                    <ExerciseGroup key={group.name}>
-                      <ExerciseName>{group.name}</ExerciseName>
+                  {circuits.map(circuit => (
+                    <CircuitSection key={circuit.name}>
+                      <CircuitTitle>{circuit.name}</CircuitTitle>
+                      {circuit.exercises.map(group => (
+                    <ExerciseGroup key={`${circuit.name}-${group.name}`}>
+                      <ExerciseName>{group.name}{group.role && <StructureBadge>{group.role}</StructureBadge>}</ExerciseName>
                       {group.sets.map((set, si) => (
                         <SetRow key={`${set.id}-${si}`}>
-                          <SetLabel>#{set.setNumber}</SetLabel>
+                          <SetLabel>#{set.setNumber}{set.setType && <StructureBadge>{set.setType}</StructureBadge>}</SetLabel>
                           {isEditing ? (
                             <>
                               <EditInput type="number" value={set.reps} onChange={e => updateLog(logs.indexOf(set), 'reps', e.target.value)} />
@@ -259,17 +266,19 @@ const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientI
                               <div>{set.reps}</div>
                               <div>{set.weight > 0 ? `${set.weight} lbs` : '—'}</div>
                               <div>{set.rpe || '—'}</div>
-                              <SetNote>{set.notes || ''}</SetNote>
+                              <SetNote>{set.notes || ''}{set.isometricHoldSeconds != null && <StructureBadge>{set.isometricHoldSeconds}s hold</StructureBadge>}</SetNote>
                             </>
                           )}
                         </SetRow>
                       ))}
                       {isEditing && (
-                        <AddSetButton type="button" onClick={() => addSet(group.name)}>
+                        <AddSetButton type="button" onClick={() => addSet(group.name, circuit.name === 'Ungrouped' ? undefined : circuit.name)}>
                           <Plus size={12} /> Add Set
                         </AddSetButton>
                       )}
                     </ExerciseGroup>
+                      ))}
+                    </CircuitSection>
                   ))}
                 </ExerciseList>
 
