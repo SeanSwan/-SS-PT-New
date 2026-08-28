@@ -32,8 +32,13 @@ cd <repo>\scripts\launchers\icons
 .\Set-SwanLauncher.ps1 -Cmd "Swan Prompt Studio.cmd" -Png "$HOME\Downloads\swan.png"
 ```
 
+For an alternate or test Desktop, pass `-DesktopPath <directory>`. Existing shortcuts that
+already point at the requested launcher keep their arguments, hotkey, working directory,
+window style, and description; only their icon changes. A different or blank target is refused
+with exit code `3` unless `-Force` is explicit.
+
 Icons land in `Desktop\Swan-Icons\`, each with a `-preview.png` contact sheet beside it showing
-every size from 16px to 256px on a grey ground. **Look at that preview.** The icon is judged at
+every size from 16px to 256px on dark, light, and checkerboard grounds. **Look at that preview.** The icon is judged at
 16px in the taskbar, not at 256 in an image viewer, and the two look nothing alike.
 
 ---
@@ -130,10 +135,21 @@ is not a sign the shortcut is wrong. Check the shortcut itself with `-List` befo
 
 | File | What it is |
 |---|---|
-| `swan_icon.py` | Draws the mark, and converts PNG → multi-size `.ico`. Pillow only. |
+| `swan_icon.py` | Draws the mark and provides the icon CLI. Pillow only. |
+| `swan_icon_io.py` | Pads source art without damaging alpha, writes multi-size `.ico`, and builds contact sheets. |
 | `Set-SwanLauncher.ps1` | Builds/updates the `.lnk`, wires the icon, refreshes the cache. Idempotent. |
+| `test_launcher_tools.py` | Dependency-parser, alpha, ICO-frame, and line-cap regressions. |
+| `verify_swan_launcher.ps1` | Real COM shortcut regressions in an isolated temporary Desktop. |
 | `Desktop\Swan-Icons\*.ico` | Generated icons. |
-| `Desktop\Swan-Icons\*-preview.png` | Contact sheets — 16px through 256px on grey. |
+| `Desktop\Swan-Icons\*-preview.png` | Contact sheets — 16px through 256px on dark, light, and checkerboard grounds. |
 
 The two pre-existing icons (`Swan-AutoYes`, `Swan-Prompt-Studio`) keep their own folders and are
 not moved or overwritten.
+
+Run the focused gate from the repository root:
+
+```powershell
+python scripts\launchers\icons\test_launcher_tools.py
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\launchers\icons\verify_swan_launcher.ps1
+pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\launchers\icons\verify_swan_launcher.ps1
+```

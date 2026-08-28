@@ -50,6 +50,8 @@ try:
 except ImportError:  # pragma: no cover - environment guard
     sys.exit("Pillow is required:  python -m pip install --user pillow")
 
+from swan_icon_io import BASE, ICO_SIZES, contact_sheet, load_png, write_ico
+
 # --- Crystalline Swan ---------------------------------------------------------------------
 OBSIDIAN = (0x0A, 0x0A, 0x0F)
 CARBON = (0x14, 0x14, 0x19)
@@ -62,11 +64,7 @@ VIOLET = (0x8B, 0x5C, 0xF6)
 
 ACCENTS = {"ice": ICE, "gold": GOLD, "violet": VIOLET, "frost": FROST}
 
-# Windows asks for all of these. Missing ones get scaled badly by Explorer.
-ICO_SIZES = [16, 20, 24, 32, 40, 48, 64, 96, 128, 256]
-
 SS = 4  # supersampling factor; the mark is drawn at 1024*SS and comes down clean
-BASE = 1024
 
 
 # --- geometry ------------------------------------------------------------------------------
@@ -227,99 +225,6 @@ def render(accent_name="ice", size=BASE):
     out = Image.alpha_composite(plate, glow)
     out = Image.alpha_composite(out, body)
     return out.resize((size, size), Image.LANCZOS)
-
-
-# --- ico writing ---------------------------------------------------------------------------
-def _downscale(master, n):
-    """
-    Resize with a sharpen pass proportional to how far we fell.
-
-    A single LANCZOS from 1024 to 16 is mush. Stepping down and re-sharpening at the small
-    end is what keeps the beak and the neck crook visible in the taskbar.
-    """
-    im = master
-    while im.width // 2 >= n and im.width // 2 >= 16:
-        im = im.resize((im.width // 2, im.height // 2), Image.LANCZOS)
-    im = im.resize((n, n), Image.LANCZOS)
-    if n <= 48:
-        # Sharpen RGB ONLY, never alpha. UnsharpMask applies to every band it is given, and
-        # sharpening the alpha channel puts over/undershoot ringing on the mask edge - a pale
-        # fringe around the plate's rounded corners. It is invisible on a grey contact sheet and
-        # obvious on a light wallpaper, which is exactly where the icon actually lives.
-        # (GLM 5.3 A5 + GLM 5.3 Flash #7, 2026-08-26, independently.)
-        #
-        # Amounts were 190/140. At 16px the neck is under a pixel wide, and 190% on a sub-pixel
-        # stroke is a halo generator rather than a detail enhancer - it sharpens the antialiasing,
-        # not the shape. Backed off well under the point where ringing shows.
-        amount = 100 if n <= 24 else 125
-        rgb, alpha = im.convert("RGB"), im.getchannel("A")
-        rgb = rgb.filter(ImageFilter.UnsharpMask(radius=0.7, percent=amount, threshold=2))
-        im = rgb.convert("RGBA")
-        im.putalpha(alpha)
-    return im
-
-
-def write_ico(master, out_path):
-    os.makedirs(os.path.dirname(os.path.abspath(out_path)) or ".", exist_ok=True)
-    frames = [_downscale(master, n) for n in ICO_SIZES]
-    # Pillow writes every frame it is handed via append_images.
-    frames[-1].save(
-        out_path,
-        format="ICO",
-        sizes=[(n, n) for n in ICO_SIZES],
-        append_images=frames[:-1],
-    )
-    return out_path
-
-
-def load_png(path):
-    im = Image.open(path).convert("RGBA")
-    if im.width != im.height:
-        s = max(im.size)
-        sq = Image.new("RGBA", (s, s), (0, 0, 0, 0))
-        sq.paste(im, ((s - im.width) // 2, (s - im.height) // 2), im)
-        im = sq
-    if im.width < 256:
-        print(f"  ! source is only {im.width}px - 512 or 1024 gives a much better 256 frame")
-    return im.resize((BASE, BASE), Image.LANCZOS) if im.width != BASE else im
-
-
-def contact_sheet(master, path):
-    """
-    Every ico size, on THREE grounds: near-black, near-white, and a checkerboard.
-
-    The first version of this used a single mid-grey. That is blind to the exact defect it exists
-    to catch: a pale halo from over-sharpening reads as nothing on grey, disappears entirely on
-    white, and is only obvious on dark - while a dark fringe is the reverse. A checkerboard row
-    catches alpha problems neither flat ground shows. Both review seats independently pointed out
-    that judging an icon on one mid-tone is judging it in the one condition it will never be in.
-    """
-    pad = 16
-    rows = 3
-    band = max(ICO_SIZES) + pad * 2
-    total_w = sum(n + pad for n in ICO_SIZES) + pad
-    sheet = Image.new("RGBA", (total_w, band * rows), (0, 0, 0, 255))
-
-    # row 0 near-black, row 1 near-white, row 2 checkerboard
-    dark = Image.new("RGBA", (total_w, band), (18, 18, 20, 255))
-    light = Image.new("RGBA", (total_w, band), (238, 238, 238, 255))
-    check = Image.new("RGBA", (total_w, band), (255, 255, 255, 255))
-    cd = ImageDraw.Draw(check)
-    c = 8
-    for yy in range(0, band, c):
-        for xx in range(0, total_w, c):
-            if (xx // c + yy // c) % 2:
-                cd.rectangle([xx, yy, xx + c - 1, yy + c - 1], fill=(200, 200, 200, 255))
-
-    for i, ground in enumerate((dark, light, check)):
-        sheet.alpha_composite(ground, (0, band * i))
-        x = pad
-        for n in ICO_SIZES:
-            sheet.alpha_composite(_downscale(master, n), (x, band * i + (band - n) // 2))
-            x += n + pad
-
-    sheet.convert("RGB").save(path)
-    return path
 
 
 def main():

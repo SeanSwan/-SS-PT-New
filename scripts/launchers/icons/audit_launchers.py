@@ -34,23 +34,25 @@ DESKTOP = os.path.join(os.path.expanduser("~"), "Desktop")
 RE_SET = re.compile(r'^\s*set\s+"([A-Za-z_][A-Za-z0-9_]*)=([^"]*)"', re.I | re.M)
 RE_NOTEXIST = re.compile(r'if\s+not\s+exist\s+"([^"]+)"', re.I)
 RE_CD = re.compile(r'cd\s+/d\s+"([^"]+)"', re.I)
-# The drive letter must NOT be preceded by a word character. Without this lookbehind the
-# pattern matched the "U:" inside the registry path HKCU:\Software\... and reported a
-# perfectly healthy launcher dead. Validate the instrument before believing what it says.
-RE_ABS = re.compile(r'(?<![A-Za-z0-9])([A-Za-z]:' + re.escape(os.sep) + r'[^"\r\n<>|]+)')
+# Quoted paths may contain spaces. Bare paths may not: in command syntax the first
+# whitespace starts the next argument. Keeping those grammars separate prevents
+# `git worktree add C:\tmp\repo branch/name` from becoming one imaginary path.
+PATH_HEAD = r"[A-Za-z]:" + re.escape(os.sep)
+RE_ABS_DOUBLE_QUOTED = re.compile(r'"(' + PATH_HEAD + r'[^"\r\n<>|]+)"')
+RE_ABS_SINGLE_QUOTED = re.compile(r"'(" + PATH_HEAD + r"[^'\r\n<>|]+)'")
+RE_ABS_BARE = re.compile(
+    r"(?<![A-Za-z0-9\"'])" + "(" + PATH_HEAD + r"[^\s\"'\r\n<>|;&^()]+)"
+)
 
 # Batch comments. A path quoted inside prose ("videos save to Z:\... - never C:") is
 # documentation, not a dependency, and treating it as one produces false BROKEN verdicts.
 RE_COMMENT = re.compile(r'^\s*(?:rem\b|::).*$', re.I | re.M)
 
-# A real path ends at a caret continuation, a quote, a semicolon, a paren, or a run of two or
-# more spaces - which in a batch file almost always means "and now I am writing English again".
-RE_TAIL = re.compile(r'\s{2,}|\s*\^|[\'";)]')
 RE_VAR = re.compile(r'%([A-Za-z_][A-Za-z0-9_]*)%')
 DRIVE = re.compile(r'^[A-Za-z]:' + re.escape(os.sep))
 
 # Paths under these are OS-provided; their absence would mean a broken Windows, not a dead launcher.
-IGNORE_PREFIXES = ("c:\\windows", "c:\\program files")
+IGNORE_PREFIXES = ("c:\\windows", "c:\\program files", "c:\\program files (x86)")
 
 
 def expand(value: str, env: dict) -> str:
@@ -79,11 +81,9 @@ def dependencies(text: str) -> tuple[set[str], dict]:
     for rx in (RE_NOTEXIST, RE_CD):
         for m in rx.finditer(text):
             deps.add(expand(m.group(1), env))
-    for value in env.values():
-        if DRIVE.match(value):
-            deps.add(value)
-    for m in RE_ABS.finditer(text):
-        deps.add(RE_TAIL.split(expand(m.group(1), env))[0].rstrip('" \t' + os.sep))
+    for rx in (RE_ABS_DOUBLE_QUOTED, RE_ABS_SINGLE_QUOTED, RE_ABS_BARE):
+        for m in rx.finditer(text):
+            deps.add(expand(m.group(1), env).rstrip('" \t' + os.sep))
 
     clean = set()
     for d in deps:
@@ -91,7 +91,8 @@ def dependencies(text: str) -> tuple[set[str], dict]:
             continue
         if "%" in d:
             continue                      # unresolved - cannot judge, so do not
-        if d.lower().startswith(IGNORE_PREFIXES):
+        lower = d.lower().rstrip(os.sep)
+        if any(lower == prefix or lower.startswith(prefix + os.sep) for prefix in IGNORE_PREFIXES):
             continue
         if d.lower().startswith(("hkcu:", "hklm:", "hkey")):
             continue                      # registry path, not a filesystem path

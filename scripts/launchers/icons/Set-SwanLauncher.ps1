@@ -45,6 +45,13 @@
     Overwrite a .lnk that already exists and points somewhere OTHER than this .cmd. Without it,
     such a shortcut is left alone and the script exits. See the hostile-review note below.
 
+.PARAMETER DesktopPath
+    Desktop directory to inspect or update. Defaults to the current user's Windows Desktop.
+    This also permits deterministic testing without touching the operator's real shortcuts.
+
+.PARAMETER NoIconCacheRefresh
+    Skip the best-effort Explorer icon-cache nudge. Intended for isolated tests and automation.
+
 .NOTES
     Rule 47: read-mostly. The only writes are the .lnk, the .ico, and an icon-cache refresh.
 
@@ -80,11 +87,22 @@ param(
     [switch]$Force,
 
     [Parameter(ParameterSetName = 'List', Mandatory = $true)]
-    [switch]$List
+    [switch]$List,
+
+    [string]$DesktopPath,
+
+    [switch]$NoIconCacheRefresh
 )
 
 $ErrorActionPreference = 'Stop'
-$Desktop = [Environment]::GetFolderPath('Desktop')
+$Desktop = if ($DesktopPath) {
+    if (-not (Test-Path -LiteralPath $DesktopPath -PathType Container)) {
+        throw "Desktop directory does not exist: $DesktopPath"
+    }
+    (Resolve-Path -LiteralPath $DesktopPath).Path
+} else {
+    [Environment]::GetFolderPath('Desktop')
+}
 $IconDir = Join-Path $Desktop 'Swan-Icons'
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $IconPy = Join-Path $ScriptDir 'swan_icon.py'
@@ -129,6 +147,14 @@ if (-not [System.IO.Path]::IsPathRooted($Cmd)) { $Cmd = Join-Path $Desktop $Cmd 
 if (-not (Test-Path -LiteralPath $Cmd)) { throw "No such launcher: $Cmd" }
 $Cmd = (Resolve-Path -LiteralPath $Cmd).Path
 if (-not $Name) { $Name = [System.IO.Path]::GetFileNameWithoutExtension($Cmd) }
+if ([string]::IsNullOrWhiteSpace($Name) -or
+    $Name -ne $Name.Trim() -or
+    $Name -in '.', '..' -or
+    $Name -match '^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?$' -or
+    $Name.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -ge 0) {
+    [Console]::Error.WriteLine('Shortcut name must be one valid, non-reserved Windows filename without path separators.')
+    exit 2
+}
 
 Write-Host ''
 Write-Host "  Launcher : $Cmd"
@@ -176,9 +202,19 @@ if (-not $Icon) {
 }
 
 # --- shortcut ---------------------------------------------------------------------------------
-$LnkPath = Join-Path $Desktop "$Name.lnk"
+$DesktopRoot = [System.IO.Path]::GetFullPath($Desktop)
+$LnkPath = [System.IO.Path]::GetFullPath((Join-Path $DesktopRoot "$Name.lnk"))
+if (-not [string]::Equals(
+    [System.IO.Path]::GetDirectoryName($LnkPath),
+    $DesktopRoot,
+    [System.StringComparison]::OrdinalIgnoreCase
+)) {
+    [Console]::Error.WriteLine('Resolved shortcut path must remain directly inside the Desktop directory.')
+    exit 2
+}
 $existed = Test-Path -LiteralPath $LnkPath
 $sh = New-Object -ComObject WScript.Shell
+$preserveExistingSemantics = $false
 
 if ($existed) {
     # Read what is there BEFORE touching it. CreateShortcut binds an existing shortcut for
@@ -186,7 +222,17 @@ if ($existed) {
     # someone else's shortcut at our .cmd while its Arguments and Hotkey survived.
     $prior = $sh.CreateShortcut($LnkPath)
     $priorTarget = $prior.TargetPath
-    if ($priorTarget -and ($priorTarget -ne $Cmd)) {
+    $sameTarget = $false
+    if ($priorTarget) {
+        try {
+            $sameTarget = [string]::Equals(
+                [System.IO.Path]::GetFullPath($priorTarget),
+                $Cmd,
+                [System.StringComparison]::OrdinalIgnoreCase
+            )
+        } catch { $sameTarget = $false }
+    }
+    if (-not $sameTarget) {
         if (-not $Force) {
             Write-Host ''
             Write-Host "  REFUSED - a different shortcut already owns that name." -ForegroundColor Red
@@ -199,7 +245,7 @@ if ($existed) {
             Write-Host "  Re-run with -Force to replace it (the original is backed up first)," -ForegroundColor DarkYellow
             Write-Host "  or pass -Name to write a differently-named shortcut instead." -ForegroundColor DarkYellow
             Write-Host ''
-            return
+            exit 3
         }
         # -Force: back up, then DELETE so the new shortcut is built clean rather than inheriting
         # stale Arguments/Hotkey/WindowStyle from whatever was there.
@@ -208,17 +254,21 @@ if ($existed) {
         Remove-Item -LiteralPath $LnkPath -Force
         Write-Host "  Replaced a foreign shortcut. Original backed up:" -ForegroundColor DarkYellow
         Write-Host "    $backup" -ForegroundColor DarkYellow
+    } else {
+        $preserveExistingSemantics = $true
     }
 }
 
-$lnk = $sh.CreateShortcut($LnkPath)
-$lnk.Arguments = ''
-$lnk.Hotkey = ''
-$lnk.TargetPath = $Cmd
-$lnk.WorkingDirectory = Split-Path -Parent $Cmd
+$lnk = if ($preserveExistingSemantics) { $prior } else { $sh.CreateShortcut($LnkPath) }
+if (-not $preserveExistingSemantics) {
+    $lnk.Arguments = ''
+    $lnk.Hotkey = ''
+    $lnk.TargetPath = $Cmd
+    $lnk.WorkingDirectory = Split-Path -Parent $Cmd
+    $lnk.WindowStyle = 1
+    $lnk.Description = "SwanStudios - $Name"
+}
 $lnk.IconLocation = "$Icon,0"
-$lnk.WindowStyle = 1
-$lnk.Description = "SwanStudios - $Name"
 $lnk.Save()
 
 Write-Host "  Icon     : $Icon"
@@ -227,17 +277,19 @@ Write-Host "  Shortcut : $LnkPath  $(if ($existed) { '(updated)' } else { '(crea
 # --- make Explorer notice ----------------------------------------------------------------------
 # Windows caches icons aggressively. Without this the shortcut keeps showing the old glyph
 # until something else invalidates the cache, which reads as "it did not work".
-try {
-    Start-Process -FilePath (Join-Path $env:SystemRoot 'system32\ie4uinit.exe') `
-        -ArgumentList '-show' -WindowStyle Hidden -ErrorAction Stop
-    # Deliberately NOT phrased as "refreshed". ie4uinit -show returns no success signal and on
-    # Windows 11 flushes only part of the icon cache - it reliably picks up a new .lnk with a new
-    # icon path, and often misses an icon rewritten in place at the same path. Claiming success
-    # here would send the owner rebooting Explorer by trial when the script had simply no-opped.
-    Write-Host '  Icon cache nudged. If the old glyph persists, restart explorer.exe' -ForegroundColor DarkGray
-    Write-Host '  (Task Manager > Windows Explorer > Restart) - that always clears it.' -ForegroundColor DarkGray
-} catch {
-    Write-Host '  ! Icon cache not nudged. If the old icon persists, restart explorer.exe.' -ForegroundColor DarkYellow
+if (-not $NoIconCacheRefresh) {
+    try {
+        Start-Process -FilePath (Join-Path $env:SystemRoot 'system32\ie4uinit.exe') `
+            -ArgumentList '-show' -WindowStyle Hidden -ErrorAction Stop
+        # Deliberately NOT phrased as "refreshed". ie4uinit -show returns no success signal and on
+        # Windows 11 flushes only part of the icon cache - it reliably picks up a new .lnk with a new
+        # icon path, and often misses an icon rewritten in place at the same path. Claiming success
+        # here would send the owner rebooting Explorer by trial when the script had simply no-opped.
+        Write-Host '  Icon cache nudged. If the old glyph persists, restart explorer.exe' -ForegroundColor DarkGray
+        Write-Host '  (Task Manager > Windows Explorer > Restart) - that always clears it.' -ForegroundColor DarkGray
+    } catch {
+        Write-Host '  ! Icon cache not nudged. If the old icon persists, restart explorer.exe.' -ForegroundColor DarkYellow
+    }
 }
 
 Write-Host ''
