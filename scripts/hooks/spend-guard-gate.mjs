@@ -647,18 +647,33 @@ try {
     const a = argsOfSeat(cmd, n);
     return topicFromPath(flagFrom(a, 'document') || flagFrom(a, 'out') || docArg || 'untitled');
   };
-  const holdSpec = (isPanel || chargeable.length <= 1)
-    ? [{ model: modelKey || 'panel', usd: worstCaseUsd, topic }]
-    : chargeable.map((n) => ({
-      // A panel reserves under the seat ids its fan-out will actually record, not the
-      // literal string 'panel' — nothing ever writes that, so a panel hold could never
-      // settle and every run double-counted its whole fan-out for ten minutes (flash
-      // round-5 F3). Fourth instance of the defect proven for Fable. The fan-out's own
-      // per-seat rows are what come back, so the hold is split the same way.
-      model: PANEL_SCRIPTS.has(n) ? 'panel' : (SCRIPT_MODEL[n] || n),
-      usd: oneCallUsd(n),
-      topic: topicOfSeat(n),
-    }));
+  // A PANEL RESERVES PER SEAT, under the model ids its fan-out will actually record.
+  //
+  // Round 5 wrote that sentence as a COMMENT and left `model: 'panel'` on the very
+  // next line. GLM 5.3 round-6 B4 caught it, reproduced: every panel hold — both the
+  // single and compound paths — went under the literal string `panel`, which no writer
+  // ever produces. So the per-seat releases matched nothing, were discarded as
+  // orphans, and the whole fan-out sat as ghost spend for the full TTL, double-counting
+  // every confirmed panel run.
+  //
+  // THIRD FALSE COMMENT of this workstream, on the money path, in the round after I
+  // confessed the pattern twice. No test could have caught it: nothing reads
+  // reservation rows for a panel line, and the settle-parity pairs derive from
+  // providers.mjs, which cannot contain 'panel'. A claim in a comment is not a control,
+  // and this is the third time that has cost something.
+  const panelHolds = () => panelSeats
+    .filter((s) => !FREE_PANEL_SEATS.has(s))
+    .map((s) => ({ model: PANEL_SEAT_MODEL[s] || s, usd: seatWorstUsd(s), topic }));
+
+  const holdSpec = isPanel
+    ? panelHolds()
+    : (chargeable.length <= 1
+      ? [{ model: modelKey, usd: worstCaseUsd, topic }]
+      : chargeable.map((n) => (PANEL_SCRIPTS.has(n)
+        ? null                      // expanded below, per seat
+        : { model: SCRIPT_MODEL[n] || n, usd: oneCallUsd(n), topic: topicOfSeat(n) }))
+        .filter(Boolean)
+        .concat(chargeable.some((n) => PANEL_SCRIPTS.has(n)) ? panelHolds() : []));
 
   // Non-fatal: a hold that cannot be written must not block a call the caps would
   // allow. It is loud, because silently losing it reopens the parallel overshoot.

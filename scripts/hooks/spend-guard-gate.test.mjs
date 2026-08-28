@@ -852,6 +852,89 @@ test('R5: failing closed does not tax ordinary work', () => {
   }
 });
 
+test('R6: an INERT head that can execute is not inert for that command', () => {
+  // GLM 5.3 round-6 B1, and it refuted the argument I made when INERT_HEADS was born.
+  // "A missing entry costs one false block" is true only for OMISSIONS — it silently
+  // assumes every entry is TRUE. A head listed as inert that CAN execute fails in the
+  // money direction while wearing fail-closed clothes. All four reproduced at exit 0.
+  const EXEC_HATCHES = [
+    ['find -exec', 'find . -maxdepth 0 -exec node scripts/consult-fable.mjs --document plan.md \\;'],
+    ['sed e',      `sed 'e node scripts/consult-fable.mjs' file.txt`],
+    ['vim -c',     `vim -c '!node scripts/consult-fable.mjs' -c qa f`],
+    ['start',      'start node scripts/consult-fable.mjs'],
+  ];
+  for (const [name, cmd] of EXEC_HATCHES) {
+    assert.equal(runGate(cmd).code, BLOCK, `${name}: an inert head executed a seat`);
+  }
+
+  // And the same heads stay quiet doing their ordinary job — which is the whole reason
+  // they are listed. Inertness is a property of the head's SEMANTICS, so the escape
+  // hatch has to be per-head: "any visible runner blocks" would break all four below,
+  // three of which are pinned elsewhere in this suite.
+  for (const cmd of [
+    'find . -name "*.mjs"',
+    "sed -n '1,5p' scripts/consult-fable.mjs",
+    'which node',
+    'echo node scripts/consult-fable.mjs',
+  ]) {
+    assert.equal(runGate(cmd).code, ALLOW, `cry-wolf on ordinary use: ${cmd}`);
+  }
+});
+
+test('R6: backtick command substitution runs a seat, and is gated', () => {
+  // GLM 5.3 round-6 B2. The backtick was an ordinary character, so the seat token
+  // ended with one and failed the extension test while the runner token started with
+  // one and failed RUNNERS — and `echo` suppressed the unknown-head branch on top.
+  //
+  // The round-3 sweep listed "command substitution" among 39 shapes; the suite pinned
+  // only the `$()` spelling, which worked by accident of the paren split. That is the
+  // `cmd /c` story verbatim — a verified shape living in prose, lost in a rewrite.
+  assert.equal(runGate('echo `node scripts/consult-fable.mjs --document plan.md`').code, BLOCK);
+  assert.equal(runGate('OUT=`node scripts/consult-fable.mjs --document plan.md`').code, BLOCK);
+  // Live inside DOUBLE quotes, because bash runs it there.
+  assert.equal(runGate('echo "result: `node scripts/consult-fable.mjs --document plan.md`"').code, BLOCK);
+  // Literal inside SINGLE quotes, per POSIX — that is the spelling for prose.
+  assert.equal(runGate(`echo 'see \`node scripts/consult-fable.mjs\` in the docs'`).code, ALLOW);
+  // The spelling that already worked must keep working.
+  assert.equal(runGate('echo $(node scripts/consult-fable.mjs --document plan.md)').code, BLOCK);
+});
+
+test('R6: a runner fed a program on STDIN is gated', () => {
+  // GLM 5.3 round-6 B3. `node --input-type=module < <seat>` had the redirect TARGET
+  // eaten and the signal discarded, so the runner had no script and nothing was
+  // recorded — while node evaluates redirected stdin as a program and bills. The
+  // parser had the information and threw it away.
+  assert.equal(
+    runGate('node --input-type=module < scripts/consult-fable.mjs --document plan.md').code,
+    BLOCK, 'a redirected program is a program');
+  assert.equal(
+    runGate('cat scripts/consult-fable.mjs | node --input-type=module --document plan.md').code,
+    BLOCK, 'and so is a piped one');
+
+  // Ordinary redirects and pipes that feed a runner NOTHING must stay quiet.
+  assert.equal(runGate('node build.mjs < input.txt').code, ALLOW, 'data on stdin is not a program');
+  assert.equal(runGate('cat notes.md | grep node').code, ALLOW);
+});
+
+test('R6: a PANEL reserves under the seat ids its fan-out records', () => {
+  // GLM 5.3 round-6 B4 — and the sentence above was written as a COMMENT in round 5
+  // with `model: 'panel'` on the very next line. Every panel hold went under a literal
+  // string no writer ever produces, so the per-seat releases matched nothing, were
+  // discarded as orphans, and the whole fan-out sat as ghost spend for the full TTL.
+  //
+  // THIRD false comment of this workstream, on the money path, in the round after I
+  // confessed the pattern twice. No test could have caught it: nothing read reservation
+  // rows for a panel line, and the settle-parity pairs derive from providers.mjs, which
+  // cannot contain 'panel'. This test is that missing reader.
+  const { dir } = runGate('node scripts/consult-openrouter-panel.mjs --seats kimi,grok --document x --confirm-spend');
+  const rows = readFileSync(join(dir, 'reservations.jsonl'), 'utf-8')
+    .trim().split('\n').map((l) => JSON.parse(l)).filter((r) => r.kind === 'reserve');
+  assert.ok(rows.length >= 2, 'a fan-out holds per seat, not as one lump');
+  assert.ok(!rows.some((r) => r.model === 'panel'),
+    "no hold may use the literal 'panel' — nothing records it, so it can never settle");
+  assert.deepEqual(rows.map((r) => r.model).sort(), ['grok-4.6', 'kimi-k3']);
+});
+
 test('R5: SWAN_* env vars are read from the PARSE, not from raw text', () => {
   // GLM 5.3 round-5 F8 — the last position-blind readers in the gate. Three
   // `cmd.match(/SWAN_…/)` scans survived the parser rewrite, so a value inside a

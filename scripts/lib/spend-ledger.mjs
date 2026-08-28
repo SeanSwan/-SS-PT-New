@@ -376,10 +376,32 @@ const claimedTokenFor = (key) => {
   catch { return null; }
 };
 
+/**
+ * Returns false if the marker could not be written — and the caller must then REFUSE.
+ *
+ * GLM 5.3 round-5 F10: this used to swallow its own failure. Claim won, marker write
+ * throws, sixty seconds pass, and the orphan reclaim hands the same approval out
+ * again — the one path where "spent" is not durable, made invisible by the catch.
+ *
+ * FAILING CLOSED HERE IS THE RARE CORRECT CHOICE, and it is worth saying why, because
+ * this file's own header says the gate fails OPEN on its own errors. That rule is
+ * about not bricking the toolchain over a bug in a cost estimate. This is the last
+ * step before money moves, and the question is narrower: can I record that this
+ * approval has been used? If not, single-use cannot be guaranteed, and "the
+ * filesystem misbehaved" is not a reason to risk spending twice. `claimToken` already
+ * reasons exactly this way two functions down.
+ *
+ * The cost of being wrong is a retry. The cost of the other choice is a double charge
+ * on an approval Sean gave once.
+ */
 function markSpent(key, token) {
   try {
     writeFileSync(usedMarkerPath(key), JSON.stringify({ key, token, at: new Date().toISOString() }), 'utf-8');
-  } catch { /* non-fatal: the claim still stands for the orphan window */ }
+    return true;
+  } catch (err) {
+    console.error(`[spend-ledger] could not record the approval as spent (${err?.message}) — refusing rather than risk a double-spend`);
+    return false;
+  }
 }
 
 function claimToken(key, token) {
@@ -534,8 +556,17 @@ export function checkSpend({ model, topic, worstCaseUsd, approvalToken = '', sel
       return { allow: false, reason: `token is being redeemed by a concurrent call (if this persists past ${CLAIM_ORPHAN_MS / 1000}s, delete .ai-workflow/spend/claim-${key}-${approvalToken}.json — a crashed holder left it behind)`, breach: breaches.join('; '), token: null, totals };
     }
     // MARK BEFORE RETURNING. This is the write that makes the claim mean "spent"
-    // rather than "in progress", so it must land before the caller is told to go.
-    markSpent(key, approvalToken);
+    // rather than "in progress", so it must land before the caller is told to go —
+    // and if it cannot land, the caller is told to stop (GLM 5.3 round-5 F10).
+    if (!markSpent(key, approvalToken)) {
+      return {
+        allow: false,
+        reason: 'the approval could not be recorded as spent, so it cannot be honoured — retry, and check that .ai-workflow/spend/ is writable',
+        breach: breaches.join('; '),
+        token: null,
+        totals,
+      };
+    }
     tokens[key].used = true;          // audit trail only — no longer load-bearing
     tokens[key].usedAt = new Date().toISOString();
     writeTokens(tokens);

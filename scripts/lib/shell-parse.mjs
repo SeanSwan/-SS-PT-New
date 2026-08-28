@@ -108,15 +108,75 @@ const KEYWORD_HEADERS = new Set(['for', 'while', 'until', 'if', 'elif', 'case', 
 const KEYWORD_PREFIXES = new Set(['do', 'then', 'else']);
 const KEYWORD_ENDS = new Set(['done', 'fi', 'esac', 'in']);
 
-const INERT_HEADS = new Set([
-  'cat', 'echo', 'printf', 'grep', 'rg', 'egrep', 'fgrep', 'head', 'tail', 'less', 'more',
-  'sed', 'awk', 'wc', 'sort', 'uniq', 'cut', 'tr', 'diff', 'jq', 'yq', 'file', 'stat',
-  'ls', 'find', 'tree', 'du', 'df', 'pwd', 'which', 'basename', 'dirname', 'realpath',
-  'cp', 'mv', 'rm', 'mkdir', 'rmdir', 'touch', 'chmod', 'chown', 'ln', 'tee',
-  'git', 'gh', 'code', 'vim', 'nvim', 'nano', 'emacs', 'open', 'start',
-  'md5sum', 'sha256sum', 'base64', 'xxd', 'strings', 'wget', 'curl',
-  'true', 'false', 'test', 'export', 'unset', 'cd', 'source', 'alias', 'type',
-]);
+/**
+ * INERT HEADS, WITH THE EXEC ESCAPE HATCH EACH ONE ACTUALLY HAS.
+ *
+ * GLM 5.3 round-6 B1 refuted the direction argument I made when this list was born,
+ * and the refutation is right: **"a missing entry costs one false block" is true only
+ * for OMISSIONS. It silently assumes every entry is TRUE.** A head listed as inert
+ * that can in fact execute fails in the MONEY direction while wearing fail-closed
+ * clothes. `TRANSPARENT`'s disease was `cmd /c`; this list's was `find -exec`, in the
+ * same round that drew the analogy. Reproduced at exit 0:
+ *
+ *     find . -maxdepth 0 -exec node scripts/consult-fable.mjs --document plan.md \;
+ *     sed 'e node scripts/consult-fable.mjs' file.txt        (GNU `e` shells out)
+ *     vim -c '!node scripts/consult-fable.mjs' -c qa f
+ *     start node scripts/consult-fable.mjs
+ *
+ * So it stops being a bare Set. Every row carries a REASON — the discipline
+ * `FREE_ALLOWLIST` got in round 3 — and every row that has an exec escape hatch names
+ * it. `start`/`open` are gone entirely: launching is all they do.
+ *
+ * The rule cannot simply be "any visible runner blocks", and that is the interesting
+ * part: `which node`, `echo node <seat>` and `git grep "node <seat>"` are all pinned
+ * as ALLOW and all contain a runner token. Inertness is a property of the head's
+ * SEMANTICS, so the escape hatch has to be per-head too.
+ */
+const INERT_HEADS = {
+  cat: 'prints bytes',
+  echo: 'prints its arguments',
+  printf: 'prints its arguments',
+  grep: 'matches lines', rg: 'matches lines', egrep: 'matches lines', fgrep: 'matches lines',
+  head: 'prints a prefix', tail: 'prints a suffix', less: 'pages', more: 'pages',
+  // GNU sed's `e` command shells out; `--exec` does not exist but `e` inside a script
+  // does. Matched on the script text rather than a flag.
+  sed: { why: 'stream editor', execPattern: /(^|[;\n])\s*e(\s|$)/ },
+  awk: { why: 'text processing', execPattern: /\b(system|print\s*\|)\s*\(?/ },
+  wc: 'counts', sort: 'sorts', uniq: 'dedupes', cut: 'slices', tr: 'translates',
+  diff: 'compares', jq: 'queries JSON', yq: 'queries YAML', file: 'types a file',
+  stat: 'reads metadata', ls: 'lists', tree: 'lists', du: 'sizes', df: 'sizes',
+  pwd: 'prints cwd', which: 'resolves a name', basename: 'string op', dirname: 'string op',
+  realpath: 'string op',
+  // find's whole point is running things when asked to.
+  find: { why: 'walks a tree', execFlags: ['-exec', '-execdir', '-ok', '-okdir'] },
+  cp: 'copies', mv: 'moves', rm: 'deletes', mkdir: 'creates', rmdir: 'removes',
+  touch: 'creates', chmod: 'permissions', chown: 'ownership', ln: 'links', tee: 'splits output',
+  git: 'version control', gh: 'GitHub CLI',
+  // Editors execute whatever their command flags say.
+  vim: { why: 'editor', execFlags: ['-c', '--cmd', '-S'] },
+  nvim: { why: 'editor', execFlags: ['-c', '--cmd', '-S'] },
+  emacs: { why: 'editor', execFlags: ['--eval', '-f', '--funcall', '--load', '-l'] },
+  nano: 'editor with no exec flag',
+  code: 'opens an editor window',
+  md5sum: 'hashes', sha256sum: 'hashes', base64: 'encodes', xxd: 'dumps',
+  strings: 'extracts text', wget: 'downloads', curl: 'transfers',
+  true: 'no-op', false: 'no-op', test: 'evaluates a condition',
+  export: 'sets a variable', unset: 'unsets', cd: 'changes directory',
+  alias: 'defines an alias', type: 'resolves a name',
+  // `source` runs a shell script — not a JS runner, but it is not inert either, and
+  // what it runs is out of reach for the same reason `$VAR` is. Left OFF the list so
+  // it blocks when a seat is visible.
+};
+
+/** Is this head inert FOR THIS argv — i.e. is its exec escape hatch unused? */
+function headIsInert(head, argv) {
+  const row = INERT_HEADS[head];
+  if (row === undefined) return false;
+  if (typeof row === 'string') return true;
+  if (row.execFlags && argv.some((t, k) => k > 0 && row.execFlags.includes(t.value))) return false;
+  if (row.execPattern && argv.some((t, k) => k > 0 && row.execPattern.test(t.value))) return false;
+  return true;
+}
 
 const basename = (p) => String(p).replace(/^.*[/\\]/, '');
 
@@ -134,18 +194,52 @@ export function parseCommands(input) {
   let started = false;
   let quote = null;
 
+  // Whether this command is fed a program on stdin — by `<` or by following a pipe.
+  // Both make a runner execute something the argv model cannot see.
+  let stdinFed = false;
+  let nextStdinFed = false;
+  // Backtick substitution suspends an enclosing double quote; these restore it.
+  let inTick = false;
+  let tickSavedQuote = null;
+
   const endToken = () => {
     if (started) argv.push({ value: token, quoted: tokenQuoted });
     token = ''; tokenQuoted = false; started = false;
   };
   const endCommand = () => {
     endToken();
-    if (argv.length) commands.push(argv);
+    if (argv.length) { argv.stdinFed = stdinFed; commands.push(argv); }
     argv = [];
+    stdinFed = nextStdinFed;
+    nextStdinFed = false;
   };
 
   for (let i = 0; i < text.length; i += 1) {
     const ch = text[i];
+    // BACKTICK COMMAND SUBSTITUTION (GLM 5.3 round-6 B2, reproduced at exit 0).
+    // The backtick was an ordinary character, so `` echo `node <seat>` `` tokenised as
+    // [echo, `node, <seat>`] — the trailing backtick defeated the extension test, the
+    // leading one defeated RUNNERS, and `echo` suppressed the unknown-head branch. Free
+    // call. `$( )` worked only by accident of the paren split.
+    //
+    // The round-3 sweep listed "command substitution" among 39 shapes and the suite
+    // pinned only the `$()` spelling. That is the `cmd /c` story verbatim: a verified
+    // shape living in prose, lost in a rewrite.
+    //
+    // LIVE INSIDE DOUBLE QUOTES TOO, because bash runs it there. A markdown backtick in
+    // a double-quoted remit therefore reads as a command — which is a real hazard in
+    // real bash, not an artefact of this parser, and the refusal says so. Single quotes
+    // make it literal, per POSIX, and that is the spelling to use for prose.
+    if (ch === '`' && quote !== "'") {
+      // Inside double quotes the substitution BODY is not quoted — bash re-parses it as
+      // a command line. Ending the command without suspending the quote left the whole
+      // body as one quoted token, so the seat inside it stayed invisible. Suspend on the
+      // opening tick, restore on the closing one.
+      endCommand();
+      if (inTick) { quote = tickSavedQuote; tickSavedQuote = null; inTick = false; }
+      else { tickSavedQuote = quote; quote = null; inTick = true; }
+      continue;
+    }
     if (quote) {
       // Inside DOUBLE quotes a backslash escapes the next character; inside SINGLE
       // quotes it is literal, per POSIX. Unmodelled, this broke every nested shell:
@@ -172,8 +266,12 @@ export function parseCommands(input) {
       continue;
     }
     if (ch === ';' || ch === '\n' || ch === '|' || ch === '&') {
-      // `&&` and `||` are two chars; a single one separates too.
+      // `&&` and `||` are two chars; a single one separates too. A SINGLE `|` pipes,
+      // which feeds the next command a program on stdin — `cat <seat> | node
+      // --input-type=module` is B3's second spelling.
+      const piped = ch === '|' && text[i + 1] !== '|';
       if (text[i + 1] === ch) i += 1;
+      if (piped) nextStdinFed = true;
       endCommand();
       continue;
     }
@@ -187,6 +285,12 @@ export function parseCommands(input) {
     // ordinary shell grammar — squarely inside this parser's stated charter of
     // quoting, splitting and argument order — not the expansion it declines to model.
     if (ch === '>' || ch === '<') {
+      // A `<` FEEDS THE COMMAND A PROGRAM (GLM 5.3 round-6 B3). `node --input-type=module
+      // < scripts/consult-fable.mjs` had the target eaten as a redirect and the signal
+      // thrown away, so the runner had no script and nothing was recorded — exit 0,
+      // while node evaluates the redirected stdin and bills. The parser HAD the
+      // information and discarded it; it is remembered now.
+      if (ch === '<') stdinFed = true;
       if (/^[0-9&]*$/.test(token)) { token = ''; started = false; } // `2>`, `&>`, `>`
       else endToken();
       while (text[i + 1] === '>' || text[i + 1] === '<' || text[i + 1] === '&') i += 1; // `>>`, `>&`
@@ -301,7 +405,9 @@ export function invokedScripts(input, depth = 0) {
       if (evalIdx > 0) {
         const body = argv.slice(evalIdx).map((t) => t.value).join(' ');
         if (/[\w./\\-]+\.(mjs|js|cjs)\b/.test(body)) { out.push(opaque('runner-eval')); continue; }
-        continue; // an eval that names no script cannot reach a seat through this path
+        // An eval that names no script cannot reach a seat THROUGH THE EVAL BODY — but
+        // it may still be fed one on stdin, which the check below owns.
+        if (!raw.stdinFed) continue;
       }
       let nonExecuting = false;
       let positionalFound = false;
@@ -362,6 +468,16 @@ export function invokedScripts(input, depth = 0) {
           args: argv.slice(i + 1).map((a) => a.value),
         });
       }
+      // A RUNNER THAT EXECUTES NOTHING VISIBLE, while being handed a program on stdin,
+      // is an execution this parser cannot attribute (GLM 5.3 round-6 B3):
+      //
+      //     node --input-type=module < scripts/consult-fable.mjs
+      //     cat scripts/consult-fable.mjs | node --input-type=module
+      //
+      // Node evaluates redirected or piped stdin as a program, so the seat runs and
+      // bills. Same tier as the round-5 `node -e "import(…)"` blocker, and the packet
+      // claimed totality for this class — which the repro falsified.
+      if (raw.stdinFed && !positionalFound) out.push(opaque('runner-stdin'));
       continue;
     }
 
@@ -388,7 +504,7 @@ export function invokedScripts(input, depth = 0) {
     // replaced, same disease. This is the inversion: an unrecognised head that carries
     // a runner or a script-shaped token is an execution I cannot attribute, so it
     // blocks as unpriced instead of passing as unseen.
-    if (!INERT_HEADS.has(head)
+    if (!headIsInert(head, argv)
         && argv.some((t, k) => k > 0
           && (/\.(mjs|js|cjs)$/.test(t.value) || RUNNERS.has(basename(t.value))))) {
       out.push(opaque(`unknown-head:${head}`));

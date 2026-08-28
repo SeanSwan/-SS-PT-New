@@ -31,7 +31,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, utimesSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, readdirSync, utimesSync, existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -381,6 +381,28 @@ test('R5: the reclaim DELETES NOTHING — the race was in the unlink', async () 
   assert.ok(existsSync(claim), 'the original claim must SURVIVE — deleting it is what was racy');
   assert.ok(readdirSync(dir).some((f) => f.includes('.gen1.')),
     'the win must be recorded as an exclusively-created next generation');
+  rmSync(dir, { recursive: true, force: true });
+});
+
+test('R5: an approval that cannot be RECORDED as spent is refused', async () => {
+  // GLM 5.3 round-5 F10. markSpent used to swallow its own failure: claim won, marker
+  // write throws, sixty seconds pass, and the orphan reclaim hands the same approval
+  // out again. The catch made it invisible.
+  //
+  // Forced by making the marker path unwritable — a directory where a file must go,
+  // which is a real filesystem state and needs no monkey-patching of the module under
+  // test. Failing CLOSED is the rare correct choice here: this is the last step before
+  // money moves, and "the filesystem misbehaved" is not a reason to risk spending an
+  // approval twice.
+  const { dir, mod } = await freshLedger();
+  const BREACH = { model: 'claude-fable-5', topic: 'p', worstCaseUsd: 4.00 };
+  const first = mod.checkSpend(BREACH);
+  const key = Object.keys(JSON.parse(readFileSync(join(dir, 'pending-approval.json'), 'utf-8')))[0];
+
+  mkdirSync(join(dir, `used-${key}.json`), { recursive: true }); // a dir where a file must go
+  const r = mod.checkSpend({ ...BREACH, approvalToken: first.token });
+  assert.equal(r.allow, false, 'an unrecordable approval must not be honoured');
+  assert.match(r.reason, /could not be recorded as spent/);
   rmSync(dir, { recursive: true, force: true });
 });
 
