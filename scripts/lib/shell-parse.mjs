@@ -323,6 +323,16 @@ function stripPrefixes(argv) {
     if (!t.quoted && KEYWORD_PREFIXES.has(t.value)) { i += 1; continue; }
     if (!t.quoted && /^[A-Za-z_][A-Za-z0-9_]*=/.test(t.value)) { i += 1; continue; }
     const b = basename(t.value);
+    // `env -S "node <seat> --document x"` SPLITS AND EXECS that string (GLM round-6
+    // F1). `-S` was skipped as one of env's own flags, the quoted body became argv[0]
+    // as a single token with spaces in it, and there were no k>0 tokens left for the
+    // unknown-head check to see. The UNQUOTED form was a reproduced round-5 blocker;
+    // the quoted costume walked straight past the fix. The body is a command line, so
+    // it is treated like one — the same answer as `sh -c`.
+    if (b === 'env') {
+      const sIdx = argv.findIndex((x, k) => k > i && (x.value === '-S' || x.value.startsWith('--split-string')));
+      if (sIdx > 0) return { splitString: argv[sIdx].value.includes('=') ? argv[sIdx].value.split('=').slice(1).join('=') : (argv[sIdx + 1] || {}).value };
+    }
     if (TRANSPARENT.has(b)) {
       i += 1;
       // A WRAPPER'S OWN FLAGS (GLM 5.3 round-5 B4, reproduced — the command was
@@ -367,7 +377,15 @@ export function invokedScripts(input, depth = 0) {
   const out = [];
 
   for (const raw of parseCommands(input)) {
-    const argv = stripPrefixes(raw);
+    const stripped = stripPrefixes(raw);
+    // `env -S "<command line>"` hands back a command line rather than an argv.
+    if (stripped && stripped.splitString !== undefined) {
+      const body = stripped.splitString || '';
+      const inner = body.trim() ? invokedScripts(body, depth + 1) : [];
+      out.push(...(inner.length || !body.trim() ? inner : [opaque('unreadable-env-S')]));
+      continue;
+    }
+    const argv = stripped;
     if (!argv.length) continue;
     const head = basename(argv[0].value);
 
@@ -404,7 +422,18 @@ export function invokedScripts(input, depth = 0) {
       const evalIdx = argv.findIndex((t, k) => k > 0 && EVAL_FLAGS.has(t.value.split('=')[0]));
       if (evalIdx > 0) {
         const body = argv.slice(evalIdx).map((t) => t.value).join(' ');
-        if (/[\w./\\-]+\.(mjs|js|cjs)\b/.test(body)) { out.push(opaque('runner-eval')); continue; }
+        if (/[\w./\\-]+\.(mjs|js|cjs)\b/i.test(body)) { out.push(opaque('runner-eval')); continue; }
+        // AN EVAL DOES NOT ERASE A POSITIONAL SEAT (GLM round-6 F3, reproduced):
+        //   node scripts/consult-fable.mjs --document x -e '1'
+        // recorded NOTHING, because this branch returned before the script scan ran.
+        // Which of the two node actually prefers is a runner question I have not
+        // verified, and the doctrine already answers it: a shape I cannot attribute is
+        // opaque. `node -e '1' <seat>` is nobody's ordinary work, so the narrowing
+        // costs no cry-wolf.
+        if (argv.some((t, k) => k > 0 && k !== evalIdx && /\.(mjs|js|cjs)$/i.test(t.value))) {
+          out.push(opaque('runner-eval-and-script'));
+          continue;
+        }
         // An eval that names no script cannot reach a seat THROUGH THE EVAL BODY — but
         // it may still be fed one on stdin, which the check below owns.
         if (!raw.stdinFed) continue;
@@ -426,7 +455,7 @@ export function invokedScripts(input, depth = 0) {
         // an argument the target ignores, which is exactly how the carve-out became
         // a bypass. Position is the whole point, and a parser is what makes position
         // expressible.
-        if (!/\.(mjs|js|cjs)$/.test(t.value)) {
+        if (!/\.(mjs|js|cjs)$/i.test(t.value)) {
           if (t.value.startsWith('-') && NON_EXECUTING_FLAGS.has(t.value.split('=')[0])) nonExecuting = true;
           continue;
         }
@@ -455,8 +484,28 @@ export function invokedScripts(input, depth = 0) {
         // flags whose job is to execute a file — not the open-ended "flags that take a
         // value" this rejected twice as the hand-curated-list failure. Everything else
         // a runner receives is data, however much it looks like a path.
+        // EQUALS FORM COUNTS AS A LOADER (flash round-6 B1, GLM F2 — reproduced at
+        // exit 0, and the only live free-money path either seat found this round):
+        //
+        //   node --import=./setup.mjs scripts/consult-fable.mjs --document plan.md
+        //
+        // `--import=./setup.mjs` ends in `.mjs`, so it is script-shaped; `prev` is
+        // `node`, so it was not a loader value; it took the POSITIONAL SLOT, and the
+        // real seat on the next index was skipped as an argument. Nothing recorded,
+        // exit 0, node executes both files.
+        //
+        // This is flash's round-5 B2 surviving its own fix through one spelling: the
+        // fix answered the loader question for space-separated values only, while
+        // `LOADER_FLAGS.has(prev.value)` compares the WHOLE glued token — which is
+        // itself script-shaped, so it poisoned the positional rule in the same motion.
+        // The gate's READERS were tested thoroughly for `--flag=value`; the parser's
+        // loader flags never were. One spelling gap, one blocker.
+        if (LOADER_FLAGS.has(t.value.split('=')[0]) && t.value.includes('=')) {
+          out.push({ path: t.value.slice(t.value.indexOf('=') + 1), nonExecuting, args: [] });
+          continue; // a loaded file competes for neither the positional nor the seat slot
+        }
         const prev = argv[i - 1];
-        const isLoaderValue = Boolean(prev && LOADER_FLAGS.has(prev.value));
+        const isLoaderValue = Boolean(prev && LOADER_FLAGS.has(prev.value.split('=')[0]));
         if (!isLoaderValue && positionalFound) continue; // an argument, not a load
         if (!isLoaderValue) positionalFound = true;
 
@@ -489,7 +538,7 @@ export function invokedScripts(input, depth = 0) {
     // write a path with spaces, not a way to mean something other than a command —
     // and in the argv[0] position there is nothing else it could mean. The `quoted`
     // flag still matters where a token could plausibly be data; this is not that.
-    if (/\.(mjs|js|cjs)$/.test(argv[0].value)) {
+    if (/\.(mjs|js|cjs)$/i.test(argv[0].value)) {
       out.push({ path: argv[0].value, nonExecuting: false, args: argv.slice(1).map((a) => a.value) });
       continue;
     }
@@ -506,7 +555,7 @@ export function invokedScripts(input, depth = 0) {
     // blocks as unpriced instead of passing as unseen.
     if (!headIsInert(head, argv)
         && argv.some((t, k) => k > 0
-          && (/\.(mjs|js|cjs)$/.test(t.value) || RUNNERS.has(basename(t.value))))) {
+          && (/\.(mjs|js|cjs)$/i.test(t.value) || RUNNERS.has(basename(t.value))))) {
       out.push(opaque(`unknown-head:${head}`));
     }
   }

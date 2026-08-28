@@ -435,17 +435,40 @@ test('R5: a SECOND approval cycle for the same breach still works', async () => 
   rmSync(dir, { recursive: true, force: true });
 });
 
-test('R5: cycle 1 token is still dead after cycle 2 exists', async () => {
-  // The other side of B3's fix, and the risk it introduced: per-token keying must not
-  // resurrect a SPENT token just because a newer one was issued for the same breach.
+test('R5: a spent token is dead by the MARKER, not by forgetfulness', async () => {
+  // NINTH VACUOUS TEST, and GLM 5.3-flash named it (round-6 F2) when I asked for one.
+  //
+  // Its first version minted cycle 2 before replaying cycle 1's token — and cycle 2's
+  // mint OVERWRITES `tokens[key]`, so the replay failed because the store no longer
+  // held that token at all. Forgetfulness, not spentness. Proven by mutation:
+  // `isSpent` forced to `false` left it GREEN while the sibling test went red. The
+  // fixture encoded the assumption (a key-per-token store) that made it pass for the
+  // wrong reason — the signature, unchanged, for the ninth time.
+  //
+  // Rewritten to exercise the mechanism that actually kills a token: the marker.
   const { dir, mod } = await freshLedger();
   const BREACH = { model: 'claude-fable-5', topic: 'plan', worstCaseUsd: 1.06 };
   const c1 = mod.checkSpend(BREACH);
-  mod.checkSpend({ ...BREACH, approvalToken: c1.token });
-  mod.checkSpend(BREACH); // cycle 2 mints, overwriting the per-key marker
+  assert.equal(mod.checkSpend({ ...BREACH, approvalToken: c1.token }).allow, true, 'control: it redeems once');
 
+  // The marker names the token that was spent — that is what "spent" IS.
+  const marker = readdirSync(dir).find((f) => f.startsWith('used-'));
+  assert.ok(marker, 'a redemption must leave a spent-marker');
+  assert.equal(JSON.parse(readFileSync(join(dir, marker), 'utf-8')).token, c1.token,
+    'the marker must name the token, or it cannot distinguish this approval from the next');
+
+  // Replayed with NO intervening mint, so the store still holds it: this is the only
+  // path that reaches `isSpent` with a live store entry, and it must refuse.
   const replay = mod.checkSpend({ ...BREACH, approvalToken: c1.token });
-  assert.equal(replay.allow, false, 'a spent token must stay spent, whatever was minted after it');
+  assert.equal(replay.allow, false, 'a spent token must not redeem twice');
+  assert.match(replay.reason, /already spent/, 'and must say WHY, not fall through to a generic refusal');
+
+  // KNOWN GAP, recorded rather than implied (flash round-6 F3): the token store is
+  // keyed per BREACH, so minting a replacement erases the record of its predecessor.
+  // Behaviour stays correct — the successor is refused and re-minted — but the store
+  // cannot answer "was THIS token spent" once superseded, and the audit trail for a
+  // superseded token lives only in its claim and marker files. Keying the store per
+  // token, as the claims already are, is the fix; it is its own slice.
   rmSync(dir, { recursive: true, force: true });
 });
 

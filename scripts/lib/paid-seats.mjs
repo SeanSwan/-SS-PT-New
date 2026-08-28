@@ -208,7 +208,13 @@ export const KNOWN_UNGATED = {
  * directions for weeks; matching the shape and letting spend-coverage.test.mjs police
  * the roster is what replaced it.
  */
-const SEAT_NAME = /^(consult-[a-z0-9-]+|forge-[a-z0-9-]+|eval-suite|prompt-mutator)[.]mjs$/;
+// CASE-INSENSITIVE (GLM 5.3 round-6 F7, reproduced at exit 0 and REAL ON SEAN'S HOST):
+// `node scripts/consult-fable.MJS` resolves to the actual file on a case-insensitive
+// filesystem — NTFS by default, and macOS — so it runs and bills while matching
+// neither the extension test nor this pattern. One character, same class as the
+// backslash evasion, wearing caps. Worthless on ext4 and free everywhere, and the
+// primary host here is Windows.
+const SEAT_NAME = /^(consult-[a-z0-9-]+|forge-[a-z0-9-]+|eval-suite|prompt-mutator)[.]mjs$/i;
 
 /** One key per seat. The gateway engine keeps its PATH; everything else is a basename. */
 function normalizeSeatKey(path) {

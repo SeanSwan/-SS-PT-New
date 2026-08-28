@@ -643,9 +643,18 @@ try {
   // the hold sits for the full TTL as ghost spend against a workstream it never
   // touched. "Each script settles the hold that belongs to it" was true of the model
   // key and false of the topic — half a fix, again, and in the same function.
+  // NO `|| docArg` FALLBACK (GLM 5.3 round-6 F5). A seat with no `--document` used to
+  // inherit the LINE'S FIRST topic — while its writer records `untitled`, because that
+  // is what `topicFromPath` returns for a doc-less call. Hold under `a`, release under
+  // `untitled`, no match, orphan, ghost spend for the TTL. The same half-fix class as
+  // the per-seat topic bug it sits inside, one field over: I made the topic per-seat
+  // and then let a fallback put the wrong value in it.
+  //
+  // The rule is not "guess a topic" but "predict what the WRITER will record", which is
+  // the only thing that makes a hold settleable.
   const topicOfSeat = (n) => {
     const a = argsOfSeat(cmd, n);
-    return topicFromPath(flagFrom(a, 'document') || flagFrom(a, 'out') || docArg || 'untitled');
+    return topicFromPath(flagFrom(a, 'document') || flagFrom(a, 'out') || 'untitled');
   };
   // A PANEL RESERVES PER SEAT, under the model ids its fan-out will actually record.
   //

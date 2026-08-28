@@ -254,6 +254,28 @@ if git diff --cached --name-only | grep -qE '^scripts/'; then
   else
     echo "[pre-commit] seat parity: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
   fi
+
+  # THE SHAPE CORPUS (SWA-218 round 6). ~3s, and it is the most expensive check here
+  # by an order of magnitude — which is the right trade, because it is the only one
+  # that catches a REGRESSION rather than a drift.
+  #
+  # The round-4 packet explained that `cmd /c` "regressed silently, because the sweep
+  # lived in prose rather than a test", and then the sweep stayed prose. Backticks
+  # regressed the same way two rounds later, and `find -exec` the round after that.
+  # Every shape any round has ever found is now a row that runs.
+  SHAPES="$REPO_ROOT/scripts/hooks/spend-shapes.test.mjs"
+  if [[ -f "$SHAPES" ]]; then
+    if ! node --test "$SHAPES" > /dev/null 2>&1; then
+      node --test "$SHAPES" 2>&1 | sed -n '/run a PAID SEAT/,/lost\./p;/spend nothing/,/has not fixed anything/p' >&2
+      echo "COMMIT BLOCKED: a command shape changed sides." >&2
+      echo "  A row here is a shape some round already found. Going green->red is a" >&2
+      echo "  REGRESSION, not a discovery. Details above." >&2
+      exit 1
+    fi
+    echo "[pre-commit] Shape corpus: CLEAN"
+  else
+    echo "[pre-commit] shape corpus: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
+  fi
 fi
 
 exit 0
