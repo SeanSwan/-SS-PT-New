@@ -133,6 +133,15 @@ function buildLogRows(exercises, sessionId) {
       (typeof exercise.exerciseNote === 'string' && exercise.exerciseNote.trim()) ||
       (typeof exercise.performanceNotes === 'string' && exercise.performanceNotes.trim()) ||
       null;
+    const circuitName = typeof exercise.circuitName === 'string' && exercise.circuitName.trim()
+      ? exercise.circuitName.trim()
+      : null;
+    const circuitOrder = Number.isInteger(Number(exercise.circuitOrder)) && Number(exercise.circuitOrder) > 0
+      ? Number(exercise.circuitOrder)
+      : null;
+    const exerciseRole = typeof exercise.exerciseRole === 'string' && exercise.exerciseRole.trim()
+      ? exercise.exerciseRole.trim()
+      : null;
 
     if (Array.isArray(exercise.sets)) {
       // ── Nested format (existing HTTP route) ────────────────────────────
@@ -167,6 +176,9 @@ function buildLogRows(exercises, sessionId) {
         logRows.push({
           sessionId,
           exerciseName: exName,
+          circuitName,
+          circuitOrder,
+          exerciseRole,
           setNumber,
           reps: Number.isInteger(reps) ? reps : 0,
           weight: Number.isFinite(weight) ? weight : 0,
@@ -176,6 +188,10 @@ function buildLogRows(exercises, sessionId) {
           notes: set.notes || null,
           // Phase 15.0: stamp the exercise-level note on every row.
           exerciseNote: rawExerciseNote,
+          setType: typeof set.setType === 'string' && set.setType.trim() ? set.setType.trim() : 'working',
+          isometricHoldSeconds: set.isometricHoldSeconds != null
+            ? Math.max(0, Number(set.isometricHoldSeconds) || 0)
+            : null,
         });
       }
     } else {
@@ -191,6 +207,9 @@ function buildLogRows(exercises, sessionId) {
         logRows.push({
           sessionId,
           exerciseName: exName,
+          circuitName,
+          circuitOrder,
+          exerciseRole,
           setNumber: i + 1,
           reps,
           weight,
@@ -200,6 +219,10 @@ function buildLogRows(exercises, sessionId) {
           notes: exercise.notes || null,
           // Phase 15.0: stamp the exercise-level note on every row.
           exerciseNote: rawExerciseNote,
+          setType: typeof exercise.setType === 'string' && exercise.setType.trim() ? exercise.setType.trim() : 'working',
+          isometricHoldSeconds: exercise.isometricHoldSeconds != null
+            ? Math.max(0, Number(exercise.isometricHoldSeconds) || 0)
+            : null,
         });
       }
     }

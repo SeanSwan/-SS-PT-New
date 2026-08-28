@@ -9,6 +9,7 @@ import { getExerciseSetRowKey } from './WorkoutLogger.helpers';
 import type { OverloadSuggestion as OverloadSuggestionType } from './useGhostPreFill';
 import {
   CardContainer,
+  CircuitFields,
   ExerciseHeader,
   ExerciseRatings,
   ExerciseTitle,
@@ -20,6 +21,7 @@ import {
   StarButton,
   StarRatingContainer,
   SupersetBadge,
+  SetStructureFields,
 } from './ExerciseCardComponent.styles';
 import {
   AddSetButton,
@@ -119,6 +121,28 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
         </RemoveExerciseBtn>
       </ExerciseRatings>
     </ExerciseHeader>
+
+    <CircuitFields>
+      <label>
+        Circuit / block
+        <input value={exercise.circuitName || ''} onChange={event => onUpdateExercise(exerciseIndex, 'circuitName', event.target.value)} placeholder="Circuit 1" />
+      </label>
+      <label>
+        Order
+        <input type="number" min={1} value={exercise.circuitOrder || ''} onChange={event => onUpdateExercise(exerciseIndex, 'circuitOrder', Number(event.target.value) || undefined)} />
+      </label>
+      <label>
+        Movement role
+        <select value={exercise.exerciseRole || 'primary'} onChange={event => onUpdateExercise(exerciseIndex, 'exerciseRole', event.target.value)}>
+          <option value="primary">Primary</option>
+          <option value="drop-movement">Drop movement</option>
+          <option value="active-recovery">Active recovery</option>
+          <option value="core">Core</option>
+          <option value="mobility">Mobility</option>
+          <option value="finisher">Finisher</option>
+        </select>
+      </label>
+    </CircuitFields>
 
     <SetsTable>
       <TableHeader>
@@ -234,6 +258,24 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
               </RemoveSetButton>
             </SetCell>
           </SetRow>
+          <SetStructureFields>
+            <label>
+              Set type
+              <select value={set.setType || 'working'} onChange={event => onUpdateSet(exerciseIndex, setIndex, 'setType', event.target.value)}>
+                <option value="warmup">Warm-up</option>
+                <option value="working">Working</option>
+                <option value="dropset">Drop set</option>
+                <option value="superset">Superset</option>
+                <option value="failure">Failure</option>
+                <option value="amrap">AMRAP</option>
+                <option value="rest_pause">Rest-pause</option>
+              </select>
+            </label>
+            <label>
+              Isometric hold (seconds)
+              <input type="number" min={0} value={set.isometricHoldSeconds ?? ''} placeholder="10" onChange={event => onUpdateSet(exerciseIndex, setIndex, 'isometricHoldSeconds', Math.max(0, Number(event.target.value) || 0))} />
+            </label>
+          </SetStructureFields>
         </React.Fragment>
       ))}
     </SetsTable>

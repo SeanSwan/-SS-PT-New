@@ -140,6 +140,32 @@ export const ExerciseList = styled.div`
   border-top: 1px solid var(--border-soft, rgba(96, 192, 240, 0.06));
 `;
 
+export const CircuitSection = styled.section`
+  margin-top: 14px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border-soft, rgba(96, 192, 240, 0.12));
+  border-radius: 10px;
+  background: var(--bg-elevated, rgba(20, 20, 25, 0.62));
+`;
+
+export const CircuitTitle = styled.h4`
+  margin: 0 0 8px;
+  color: var(--accent-primary, #60C0F0);
+  font: 700 12px 'Sora', sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+`;
+
+export const StructureBadge = styled.span`
+  display: inline-flex;
+  margin-left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--text-primary, #E0ECF4);
+  background: var(--accent-secondary-soft, rgba(139, 92, 246, 0.18));
+  font: 600 10px 'Sora', sans-serif;
+`;
+
 export const ExerciseGroup = styled.div`
   margin-top: 10px;
 `;

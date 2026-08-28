@@ -73,6 +73,9 @@ interface SanitizedPlannedAssignment {
 interface SanitizedExercise {
   exerciseId: string;
   exerciseName: string;
+  circuitName?: string;
+  circuitOrder?: number;
+  exerciseRole?: string;
   painLevel: number;
   performanceNotes?: string;
   sets: SanitizedSet[];
@@ -95,6 +98,8 @@ interface SanitizedSet {
   notes?: string;
   rpe?: number;
   formQuality?: number;
+  setType?: string;
+  isometricHoldSeconds?: number;
 }
 
 type ExerciseClassificationMetadata = {
@@ -198,6 +203,8 @@ export function stripNullRatings(exercises: ExerciseEntry[]): SanitizedExercise[
           tempo: s.tempo,
           restTime: s.restTime,
           notes: s.notes,
+          setType: s.setType || 'working',
+          isometricHoldSeconds: s.isometricHoldSeconds,
         };
         if (s.rpe !== null && s.rpe !== undefined) setOut.rpe = s.rpe;
         if (s.formQuality !== null && s.formQuality !== undefined) setOut.formQuality = s.formQuality;
@@ -207,6 +214,11 @@ export function stripNullRatings(exercises: ExerciseEntry[]): SanitizedExercise[
     if (ex.formRating !== null && ex.formRating !== undefined) {
       out.formRating = ex.formRating;
     }
+    const circuitName = compactString(ex.circuitName);
+    const exerciseRole = compactString(ex.exerciseRole);
+    if (circuitName) out.circuitName = circuitName;
+    if (positiveInteger(ex.circuitOrder)) out.circuitOrder = positiveInteger(ex.circuitOrder)!;
+    if (exerciseRole) out.exerciseRole = exerciseRole;
     copyExerciseClassificationMetadata(out, ex);
     return out;
   });

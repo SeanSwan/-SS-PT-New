@@ -323,6 +323,9 @@ export const editWorkout = async (req, res) => {
           logRows.push({
             sessionId: session.id,
             exerciseName: exName.trim(),
+            circuitName: typeof exercise.circuitName === 'string' && exercise.circuitName.trim() ? exercise.circuitName.trim() : null,
+            circuitOrder: Number.isInteger(Number(exercise.circuitOrder)) && Number(exercise.circuitOrder) > 0 ? Number(exercise.circuitOrder) : null,
+            exerciseRole: typeof exercise.exerciseRole === 'string' && exercise.exerciseRole.trim() ? exercise.exerciseRole.trim() : null,
             setNumber: Number(set.setNumber) || logRows.length + 1,
             reps: Number(set.reps) || 0,
             weight: Number(set.weight) || 0,
@@ -331,6 +334,8 @@ export const editWorkout = async (req, res) => {
             rpe: set.rpe != null ? Number(set.rpe) : null,
             notes: set.notes || null,
             exerciseNote: rawExerciseNote,
+            setType: typeof set.setType === 'string' && set.setType.trim() ? set.setType.trim() : 'working',
+            isometricHoldSeconds: set.isometricHoldSeconds != null ? Math.max(0, Number(set.isometricHoldSeconds) || 0) : null,
           });
         }
       }

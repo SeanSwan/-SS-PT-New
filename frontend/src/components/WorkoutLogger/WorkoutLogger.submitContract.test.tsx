@@ -384,6 +384,29 @@ describe('T10 Phase 16 — WorkoutLogger submit wire contract: mixed states', ()
 // ─────────────────────────────────────────────────────────────
 
 describe('T10 Phase 16 — sanitizer does not touch non-rating fields', () => {
+  it('preserves circuit, exercise-role, drop-set, and isometric-hold metadata', () => {
+    const body = buildWorkoutFormSubmitBody({
+      ...BASE_PARAMS,
+      exercises: [makeExercise({
+        circuitName: 'Circuit 1',
+        circuitOrder: 2,
+        exerciseRole: 'drop-movement',
+        sets: [makeSet({ setType: 'dropset', isometricHoldSeconds: 10 })],
+      })],
+      overallIntensity: null,
+    });
+
+    expect(body.exercises[0]).toMatchObject({
+      circuitName: 'Circuit 1',
+      circuitOrder: 2,
+      exerciseRole: 'drop-movement',
+    });
+    expect(body.exercises[0].sets[0]).toMatchObject({
+      setType: 'dropset',
+      isometricHoldSeconds: 10,
+    });
+  });
+
   it('preserves clientId, date, sessionNotes, weight, reps, tempo, restTime, notes, painLevel, performanceNotes', () => {
     const body = buildWorkoutFormSubmitBody({
       clientId: 99,
