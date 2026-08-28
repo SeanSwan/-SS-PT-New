@@ -340,6 +340,75 @@ export function assetView(row, previewUrl = null) {
 }
 ```
 
+## 4c. `publishedReference` + `resolvePublic` — WHOLE (spliced at round 8)
+
+Round 7 described this fix and never showed it. The `resolvePublic` route is mounted
+WITHOUT auth.
+
+```js
+export async function publishedReference({ id, userId, publicBase = '' }, deps = {}) {
+  const d = { ...(Object.keys(deps).length ? {} : await defaultDeps()), ...deps };
+  const asset = await d.assetModel.findOne({ where: { id: String(id || ''), ownerUserId: userId } });
+  if (!asset) throw new PublishError('E_ASSET_NOT_FOUND', 'No asset with that id belongs to you.');
+  const blockers = publishBlockers(asset);
+  const base = {
+    id: asset.id, status: asset.approvalStatus, r2Key: asset.r2Key, mime: asset.mime,
+    width: asset.width, height: asset.height, sha256: asset.provenance?.artifact?.sha256 ?? null,
+    attribution: asset.provenance?.attribution ?? null,
+    attributionRequired: asset.provenance?.licence?.requiresAttribution === true,
+    licence: asset.provenance?.licence?.name ?? null,
+    blockers,
+  };
+  if (asset.approvalStatus !== 'published') {
+    return { ...base, readUrl: null, snippet: null, withheld: `not published (status: ${asset.approvalStatus})` };
+  }
+  // WHOSE OBJECT, not just which. `r2Key` on a video row is caller-supplied: it arrives
+  // from the body of POST /api/render-agents/jobs/:jobId/complete and `verifyObject` (when
+  // it runs at all) checks that an object EXISTS at that key, never that the key is ours.
+  // `generatePlaybackUrl` presigns anything. The library learned this and started checking;
+  // this signer reads the same unvalidated field and must apply the same rule, or the
+  // guard is one half of a pair — which is what a review of the library sweep concluded
+  // by asking "which object" at each signing site and never "whose".
+  if (!keyOwnedByRow(asset.r2Key, asset)) {
+    return { ...base, readUrl: null, snippet: null,
+      withheld: 'the stored object key is not one this system wrote for this asset' };
+  }
+  const readUrl = await d.readUrl(asset.r2Key, asset.mime);
+  // THE STABLE REFERENCE. A signed URL expires (4h default) — pasting it into a site
+  // means every image 403s after lunch, and unpublishing cannot retract a URL already
+  // copied. The snippet therefore points at an app path that re-signs on every request
+  // and answers 404 the moment the asset is no longer published. The signed URL is
+  // returned too, for PREVIEW only.
+  const permalink = `${publicBase || d.publicBase || ''}${PUBLIC_PATH}/${asset.id}`;
+  const isVideo = String(asset.mime || '').startsWith('video/');
+  const alt = 'Generated asset';
+  const credit = base.attribution ? ` <!-- ${base.attribution} -->` : '';
+  const snippet = isVideo
+    ? `<video src="${permalink}" playsinline muted loop autoplay></video>${credit}`
+    : `<img src="${permalink}" alt="${alt}"${asset.width ? ` width="${asset.width}"` : ''}${asset.height ? ` height="${asset.height}"` : ''} />${credit}`;
+  return { ...base, readUrl, permalink, snippet, withheld: null };
+}
+
+/** The path the permalink lives under. Mounted WITHOUT auth; published-only; UUIDs are not guessable. */
+export const PUBLIC_PATH = '/api/atelier/public';
+
+/**
+ * Resolve a permalink to a fresh signed URL — or nothing. No auth: the asset id is a
+ * UUIDv4 and only PUBLISHED assets resolve, so "copy link" onto a public site works
+ * and "Unpublish" revokes it on the next request. Never leaks a draft.
+ */
+export async function resolvePublic({ id }, deps = {}) {
+  const d = { ...(Object.keys(deps).length ? {} : await defaultDeps()), ...deps };
+  const asset = await d.assetModel.findOne({ where: { id: String(id || ''), approvalStatus: 'published' } });
+  if (!asset) return null;
+  // This route is mounted WITHOUT auth, so it is the least forgiving place in the system to
+  // sign an unvalidated key: a planted `r2Key` on a published row would become a public
+  // signed URL for someone else's object. Same predicate as everywhere else.
+  if (!keyOwnedByRow(asset.r2Key, asset)) return null;
+  return { url: await d.readUrl(asset.r2Key, asset.mime), mime: asset.mime };
+}
+```
+
 ## 5. The call site in `listAssets` — WHOLE function
 
 ```js
@@ -444,9 +513,16 @@ grid. A grey box tells you nothing; an unlabelled poster tells you something fal
           </AssetGrid>
 ```
 
-## 7. Tests — WHOLE files
+## 7. Tests — WHOLE files (ALL re-spliced at round 8)
 
-### 7a. `assetPreviewKey.test.mjs` (new)
+**This section was stale and a reviewer proved it from the inside**, tracing the pasted
+fixtures through the pasted guard and showing they could not both be true. They could not:
+rounds 6 and 7 rewrote every fixture to use real namespaces and I re-spliced the source
+sections and not these. Third instance of the stale-paste class in one document, and the
+reason the rule has to be *re-splice every section the change touched*, not the one being
+discussed.
+
+### 7a. `assetPreviewKey.test.mjs`
 
 ```js
 /**
@@ -459,40 +535,52 @@ grid. A grey box tells you nothing; an unlabelled poster tells you something fal
  */
 
 import { describe, it, expect } from 'vitest';
-import { previewKeyFor } from '../../services/atelier/assetPreviews.mjs';
+import { previewKeyFor, keyOwnedByRow } from '../../services/atelier/assetPreviews.mjs';
+
+// Realistic keys. Every key this codebase writes carries the owner as a path segment, and
+// the signer now requires it — so fixtures that omitted it were describing a row that
+// cannot exist and quietly exercising a path production never takes.
+const OWNER = 7;
+const A_PNG = `atelier/stills/${OWNER}/abc.png`;
+const A_THUMB = `atelier/stills/${OWNER}/thumbs/abc.webp`;
+const JOB = '11111111-2222-3333-4444-555555555555';
+const A_MP4 = `jobs/${JOB}/source.mp4`;
+const A_MP3 = `atelier/stills/${OWNER}/take.mp3`;
+const A_BIN = `atelier/stills/${OWNER}/a.bin`;
+const A_POSTER = `jobs/${JOB}/poster.webp`;
 
 describe('the poster always wins when there is one', () => {
   it('prefers the poster over the original for an image', () => {
-    expect(previewKeyFor({ kind: 'image', r2Key: 'a.png', posterR2Key: 't.webp' })).toBe('t.webp');
+    expect(previewKeyFor({ ownerUserId: 7, kind: 'image', r2Key: A_PNG, posterR2Key: A_THUMB })).toBe(A_THUMB);
   });
 
   it('prefers the poster for a video', () => {
-    expect(previewKeyFor({ kind: 'video', r2Key: 'a.mp4', posterR2Key: 'p.webp' })).toBe('p.webp');
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'video', r2Key: A_MP4, posterR2Key: A_POSTER })).toBe(A_POSTER);
   });
 
   it('prefers the poster for a kind nobody planned for', () => {
     // The rule is stated once, so it answers for kinds that did not exist when it was
     // written. A pair of branches would have needed a third.
-    expect(previewKeyFor({ kind: 'hologram', r2Key: 'a.bin', posterR2Key: 'p.webp' })).toBe('p.webp');
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'hologram', r2Key: A_BIN, posterR2Key: A_POSTER })).toBe(A_POSTER);
   });
 });
 
 describe('the fallback is conditional on the original being a picture', () => {
   it('falls back to the original for an image', () => {
-    expect(previewKeyFor({ kind: 'image', r2Key: 'a.png', posterR2Key: null })).toBe('a.png');
+    expect(previewKeyFor({ ownerUserId: 7, kind: 'image', r2Key: A_PNG, posterR2Key: null })).toBe(A_PNG);
   });
 
   it('does NOT fall back to the video file', () => {
     // Signing this would put an MP4 in an <img>.
-    expect(previewKeyFor({ kind: 'video', r2Key: 'a.mp4', posterR2Key: null })).toBeNull();
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'video', r2Key: A_MP4, posterR2Key: null })).toBeNull();
   });
 
   it('does NOT fall back to the audio file', () => {
-    expect(previewKeyFor({ kind: 'audio', r2Key: 'a.mp3', posterR2Key: null })).toBeNull();
+    expect(previewKeyFor({ ownerUserId: 7, kind: 'audio', r2Key: A_MP3, posterR2Key: null })).toBeNull();
   });
 
   it('does not fall back for an unknown kind either — the allowlist is the picture claim', () => {
-    expect(previewKeyFor({ kind: 'hologram', r2Key: 'a.bin', posterR2Key: null })).toBeNull();
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'hologram', r2Key: A_BIN, posterR2Key: null })).toBeNull();
   });
 });
 
@@ -500,8 +588,8 @@ describe('nothing showable is null, never an error', () => {
   it('an image row with no key at all yields null rather than an empty string', () => {
     // `''` is falsy but would still be SIGNED if this returned it — a signature over the
     // bucket root. Null is the only safe absence.
-    expect(previewKeyFor({ kind: 'image', r2Key: '', posterR2Key: null })).toBeNull();
-    expect(previewKeyFor({ kind: 'image', r2Key: null, posterR2Key: null })).toBeNull();
+    expect(previewKeyFor({ ownerUserId: 7, kind: 'image', r2Key: '', posterR2Key: null })).toBeNull();
+    expect(previewKeyFor({ ownerUserId: 7, kind: 'image', r2Key: null, posterR2Key: null })).toBeNull();
   });
 
   it('an empty row does not throw', () => {
@@ -509,15 +597,195 @@ describe('nothing showable is null, never an error', () => {
     expect(previewKeyFor()).toBeNull();
   });
 });
+
+describe('the "never an error" promise covers the shapes it claims', () => {
+  it('a null row returns null instead of throwing', () => {
+    // A default parameter fires on `undefined` ONLY, so `previewKeyFor(null)` dereferenced
+    // null and threw a TypeError while the docstring above it promised "never an error".
+    // The old test asserted `{}` and `undefined` and called that coverage — a test that
+    // passes without touching the case its name implies.
+    expect(previewKeyFor(null)).toBeNull();
+  });
+});
+
+describe('signing is a capability, so a key must belong to the row that carries it', () => {
+  // posterR2Key on a video row is written by NOTHING in this repository. It arrives as
+  // `...meta` spread from the body of POST /api/render-agents/jobs/:jobId/complete into
+  // completeJob's rest parameter and on into MediaAsset defaults, unvalidated —
+  // verifyObject checks r2Key only. generateThumbnailUrl presigns any key it is handed.
+  // Before this slice that was inert, because non-image rows were never signed. Signing a
+  // video's poster is exactly what would turn it into a presign-anything oracle rendered
+  // into the operator's own page.
+  const FOREIGN = 'atelier/stills/99/thumbs/deadbeef.webp';
+
+  it('refuses a poster pointing at another owner, on a row the actor legitimately owns', () => {
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'video', r2Key: A_MP4, posterR2Key: FOREIGN })).toBeNull();
+  });
+
+  it('refuses it on an image row too, rather than falling back into signing it', () => {
+    // The fallback must reach the OWNER'S original, never the planted key.
+    expect(previewKeyFor({ ownerUserId: 7, kind: 'image', r2Key: A_PNG, posterR2Key: FOREIGN })).toBe(A_PNG);
+  });
+
+  it('refuses an original that does not belong to the row either', () => {
+    expect(previewKeyFor({ ownerUserId: 7, kind: 'image', r2Key: 'atelier/stills/99/x.png', posterR2Key: null })).toBeNull();
+  });
+
+  it('a row with no owner signs nothing, rather than defaulting open', () => {
+    expect(previewKeyFor({ kind: 'image', r2Key: A_PNG, posterR2Key: A_THUMB })).toBeNull();
+  });
+
+  it('refuses a job namespace belonging to a DIFFERENT job', () => {
+    // My first guard asked only whether the owner's id appeared as some segment, so
+    // `jobs/7/frame.webp` passed for owner 7 — where that 7 is a JOB id in another
+    // tenant's namespace. Anchoring on the row's own jobId is what closes it.
+    const other = '99999999-2222-3333-4444-555555555555';
+    expect(keyOwnedByRow(`jobs/${other}/poster.webp`, { ownerUserId: 7, jobId: JOB })).toBe(false);
+    expect(keyOwnedByRow(`jobs/${JOB}/poster.webp`, { ownerUserId: 7, jobId: JOB })).toBe(true);
+  });
+
+  it('anchors the owner at its POSITION, not anywhere in the path', () => {
+    expect(keyOwnedByRow('atelier/stills/77/x.png', { ownerUserId: 7 })).toBe(false);
+    expect(keyOwnedByRow('atelier/stills/7/x.png', { ownerUserId: 7 })).toBe(true);
+    // The owner's id appearing DEEPER in someone else's path must not count.
+    expect(keyOwnedByRow('atelier/stills/99/thumbs/7.webp', { ownerUserId: 7 })).toBe(false);
+  });
+
+  it('refuses a namespace this system does not write', () => {
+    expect(keyOwnedByRow('waivers/7/signed.pdf', { ownerUserId: 7 })).toBe(false);
+    expect(keyOwnedByRow('7', { ownerUserId: 7 })).toBe(false);
+  });
+
+  it('refuses empty and relative segments', () => {
+    expect(keyOwnedByRow('atelier/stills/7/../../x.png', { ownerUserId: 7 })).toBe(false);
+    expect(keyOwnedByRow('atelier/stills/7//x.png', { ownerUserId: 7 })).toBe(false);
+  });
+
+  it('a numeric owner matches its string segment', () => {
+    expect(keyOwnedByRow('atelier/stills/7/x.png', { ownerUserId: '7' })).toBe(true);
+  });
+
+  it('a legitimate video poster in the job namespace IS shown', () => {
+    // The whole point. My first guard failed this closed, which would have left every
+    // properly-produced clip as the grey box this slice exists to remove.
+    expect(previewKeyFor({ ownerUserId: 7, jobId: JOB, kind: 'video',
+      r2Key: A_MP4, posterR2Key: `jobs/${JOB}/poster.webp` })).toBe(`jobs/${JOB}/poster.webp`);
+  });
+});
 ```
 
-### 7b. New block appended to `assetLibraryPreviews.test.mjs`
+### 7b. `assetLibraryPreviews.test.mjs`
 
 ```js
+/**
+ * Library previews — the difference between an index and a library.
+ *
+ * Split from assetLibrary.test.mjs at the 300-line cap. That file tests FINDING an
+ * asset; this one tests SEEING it, which is a different job with different failure
+ * modes — chiefly that one object which will not sign must cost its own card and
+ * never the page, while EVERY object failing is a broken signer and must say so.
+ */
+
+import { describe, it, expect } from 'vitest';
+import { listAssets } from '../../services/atelier/assetLibrary.mjs';
+
+const JOB = '11111111-2222-3333-4444-555555555555';
+
+const Op = { contains: Symbol('contains'), or: Symbol('or'), lt: Symbol('lt') };
+
+const row = (over = {}) => ({
+  id: over.id || '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+  // Real rows always carry this (MediaAsset.ownerUserId is allowNull: false) and the
+  // preview signer now reads it: a key is signed only if it belongs to this row's owner.
+  ownerUserId: 1,
+  jobId: JOB,
+  kind: 'image', mime: 'image/png', width: 1920, height: 1080, sizeBytes: '2048',
+  approvalStatus: 'draft', createdAt: new Date('2026-08-26T10:00:00.000Z'),
+  r2Key: 'atelier/stills/1/abc.png',
+  tags: ['atelier', 'still', 'lane:local'],
+  provenance: { request: { prompt: 'a lone red fox', promptTruncated: false } },
+  ...over,
+});
+
+describe('previews turn an index into a library', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+
+  it('signs one URL per image row', async () => {
+    const signed = [];
+    const readUrl = async (key, mime) => { signed.push([key, mime]); return `https://cdn.example/${key}?sig=abc`; };
+    const out = await listAssets({ userId: 1 }, { assetModel: model([row(), row({ id: 'b' })]), Op, readUrl });
+    expect(out.assets[0].previewUrl).toMatch(/^https:\/\/cdn\.example\//);
+    expect(signed).toHaveLength(2);
+    expect(signed[0][0]).toBe('atelier/stills/1/abc.png');
+  });
+
+  it('ONE unsignable object costs its own card, not the page', async () => {
+    // A page that 500s because of a thumbnail is a worse library than one with a missing
+    // thumbnail. The bad row degrades to its dimensions; every other row is unaffected.
+    let n = 0;
+    const readUrl = async () => { n += 1; if (n === 1) throw new Error('object gone'); return 'https://cdn.example/ok'; };
+    const out = await listAssets({ userId: 1 }, { assetModel: model([row(), row({ id: 'b' })]), Op, readUrl });
+    expect(out.assets).toHaveLength(2);
+    expect(out.assets[0].previewUrl).toBeNull();
+    expect(out.assets[1].previewUrl).toBe('https://cdn.example/ok');
+  });
+
+  it('a synchronously-throwing signer is caught too', async () => {
+    // `.catch()` alone would not save this — the throw happens before a promise exists.
+    const readUrl = () => { throw new Error('boom'); };
+    const out = await listAssets({ userId: 1 }, { assetModel: model([row()]), Op, readUrl });
+    expect(out.assets[0].previewUrl).toBeNull();
+  });
+
+  it('signs nothing for a row with no poster and no viewable original', async () => {
+    // The reason is the POSTER'S ABSENCE, not the kind. These rows carry none, so there is
+    // nothing to show; a video that HAS one is signed, and is covered below. The original
+    // name of this test said "non-image rows have no still to preview", which stopped being
+    // true the moment posters were signed — a test name is a claim like any other.
+    const signed = [];
+    const readUrl = async (k) => { signed.push(k); return 'x'; };
+    await listAssets({ userId: 1 }, { assetModel: model([row({ kind: 'video' }), row({ kind: 'audio' })]), Op, readUrl });
+    expect(signed).toHaveLength(0);
+  });
+
+  it('with no signer injected every preview is null and nothing throws', async () => {
+    const out = await listAssets({ userId: 1 }, { assetModel: model([row()]), Op });
+    expect(out.assets[0].previewUrl).toBeNull();
+  });
+});
+
+describe('the library signs the DERIVATIVE, and falls back rather than losing a picture', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+  it('signs the thumbnail when the asset has one', async () => {
+    // The whole point of the slice: a ~30 KB WebP instead of a ~2 MB PNG, two dozen times
+    // per page. Signing the original made a library page cost tens of megabytes.
+    const signed = [];
+    const readUrl = async (key, mime) => { signed.push([key, mime]); return `https://cdn.example/${key}?sig=abc`; };
+    const out = await listAssets({ userId: 1 }, {
+      assetModel: model([row({ posterR2Key: `atelier/stills/1/thumbs/deadbeef.webp` })]), Op, readUrl,
+    });
+    expect(signed[0][0]).toBe(`atelier/stills/1/thumbs/deadbeef.webp`);
+    expect(signed[0][1]).toBeUndefined();   // one argument, because the real signer takes one
+    expect(out.assets[0].previewUrl).toContain('/thumbs/');
+  });
+
+  it('falls back to the ORIGINAL for assets made before thumbnails existed', async () => {
+    // Signing a derived key unconditionally would hand every older asset a URL for an
+    // object that was never written: the browser 404s, the card's error handler falls back
+    // to dimensions, and every picture made before this slice quietly becomes a grey box.
+    // Heavy and visible beats light and absent.
+    const signed = [];
+    const readUrl = async (key, mime) => { signed.push([key, mime]); return `https://cdn.example/${key}?sig=abc`; };
+    const out = await listAssets({ userId: 1 }, { assetModel: model([row({ posterR2Key: null })]), Op, readUrl });
+    expect(signed[0][0]).not.toContain('/thumbs/');
+    expect(out.assets[0].previewUrl).toBeTruthy();      // the card still shows a picture
+  });
+});
+
 describe('a clip has a poster, and it was never signed', () => {
   const model = (rows) => ({ findAll: async () => rows });
   const clip = (over = {}) => row({
-    kind: 'video', mime: 'video/mp4', r2Key: 'atelier/video/1/clip.mp4', ...over,
+    kind: 'video', mime: 'video/mp4', r2Key: `jobs/${JOB}/source.mp4`, ...over,
   });
 
   it('signs the POSTER of a video, so a clip stops being a grey box', async () => {
@@ -527,10 +795,23 @@ describe('a clip has a poster, and it was never signed', () => {
     const signed = [];
     const readUrl = async (key) => { signed.push(key); return `https://cdn.example/${key}?sig=abc`; };
     const out = await listAssets({ userId: 1 }, {
-      assetModel: model([clip({ posterR2Key: 'atelier/video/1/poster.webp' })]), Op, readUrl,
+      assetModel: model([clip({ posterR2Key: `jobs/${JOB}/poster.webp` })]), Op, readUrl,
     });
-    expect(signed).toEqual(['atelier/video/1/poster.webp']);
+    expect(signed).toEqual([`jobs/${JOB}/poster.webp`]);
     expect(out.assets[0].previewUrl).toContain('poster.webp');
+  });
+
+  it('the view CARRIES the kind, which is the seam the frontend marker depends on', async () => {
+    // The frontend test for the "· video" marker injects `kind` at its fake API, so it
+    // proves the card renders what it is given and NOTHING about whether the server sends
+    // it. A field the view quietly dropped would leave that test green and the marker dead
+    // — a poster rendered as though it were a photograph, which is the exact honesty
+    // problem the marker exists to prevent. Asserted here through the real `assetView`.
+    const readUrl = async (key) => `https://cdn.example/${key}`;
+    const out = await listAssets({ userId: 1 }, {
+      assetModel: model([clip({ posterR2Key: `jobs/${JOB}/poster.webp` })]), Op, readUrl,
+    });
+    expect(out.assets[0].kind).toBe('video');
   });
 
   it('NEVER falls back to the video file itself when there is no poster', async () => {
@@ -555,11 +836,11 @@ describe('a clip has a poster, and it was never signed', () => {
     const readUrl = async (key) => { signed.push(key); return 'https://cdn/x'; };
     await listAssets({ userId: 1 }, {
       assetModel: model([
-        row({ kind: 'audio', r2Key: 'atelier/audio/1/take.mp3', posterR2Key: 'atelier/audio/1/cover.webp' }),
-        row({ id: 'b', kind: 'audio', r2Key: 'atelier/audio/1/other.mp3', posterR2Key: null }),
+        row({ kind: 'audio', r2Key: `atelier/stills/1/take.mp3`, posterR2Key: `atelier/stills/1/thumbs/cover.webp` }),
+        row({ id: 'b', kind: 'audio', r2Key: `atelier/stills/1/other.mp3`, posterR2Key: null }),
       ]), Op, readUrl,
     });
-    expect(signed).toEqual(['atelier/audio/1/cover.webp']);
+    expect(signed).toEqual([`atelier/stills/1/thumbs/cover.webp`]);
   });
 
   it('a page of clips whose posters all fail IS a broken signer', async () => {
@@ -568,8 +849,8 @@ describe('a clip has a poster, and it was never signed', () => {
     const readUrl = async () => { throw new Error('signature key missing'); };
     const out = await listAssets({ userId: 1 }, {
       assetModel: model([
-        clip({ posterR2Key: 'atelier/video/1/a.webp' }),
-        clip({ id: 'b', posterR2Key: 'atelier/video/1/b.webp' }),
+        clip({ posterR2Key: `jobs/${JOB}/a.webp` }),
+        clip({ id: 'b', posterR2Key: `jobs/${JOB}/b.webp` }),
       ]), Op, readUrl,
     });
     expect(out.previewsUnavailable).toBe(true);
@@ -580,8 +861,8 @@ describe('a clip has a poster, and it was never signed', () => {
     const readUrl = async () => { n += 1; if (n === 1) throw new Error('object gone'); return 'https://cdn/ok'; };
     const out = await listAssets({ userId: 1 }, {
       assetModel: model([
-        clip({ posterR2Key: 'atelier/video/1/a.webp' }),
-        clip({ id: 'b', posterR2Key: 'atelier/video/1/b.webp' }),
+        clip({ posterR2Key: `jobs/${JOB}/a.webp` }),
+        clip({ id: 'b', posterR2Key: `jobs/${JOB}/b.webp` }),
       ]), Op, readUrl,
     });
     expect(out.assets[0].previewUrl).toBeNull();
@@ -589,9 +870,260 @@ describe('a clip has a poster, and it was never signed', () => {
     expect(out.previewsUnavailable).toBe(false);
   });
 });
+
+describe('the whole view shape crosses the seam, not just the field I was asked about', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+
+  it('every field the card renders is actually sent', async () => {
+    // The `kind` assertion above was added because a reviewer asked about `kind`. Every
+    // sibling the card reads is the same untested class: the frontend tests inject at the
+    // fake API, so a field the view quietly dropped would leave them green while
+    // `{a.brandKit && …}` rendered nothing forever. Fixing the one that was asked about
+    // and leaving five open is the half-of-a-pair habit, applied to my own fix.
+    const out = await listAssets({ userId: 1 }, {
+      assetModel: model([row({ posterR2Key: 'thumbs/x.webp' })]), Op,
+      readUrl: async (k) => `https://cdn.example/${k}`,
+    });
+    const a = out.assets[0];
+    for (const field of ['id', 'kind', 'mime', 'width', 'height', 'sizeBytes', 'status',
+      'createdAt', 'brandKit', 'brandKitHash', 'workspaceId', 'lane', 'seed', 'sha256',
+      'prompt', 'promptTruncated', 'previewUrl']) {
+      expect(a, `assetView dropped "${field}", which the library card reads`).toHaveProperty(field);
+    }
+  });
+});
 ```
 
-### 7c. New block appended to `AtelierLibrary.test.tsx`
+### 7c. `assetLibrarySignerSignals.test.mjs`
+
+```js
+/**
+ * Signer HEALTH signals — what the page is entitled to claim about why a picture is missing.
+ *
+ * Split from assetLibraryPreviews.test.mjs at the 300-line cap, on a real boundary:
+ * that file tests whether a card gets a PICTURE, this one tests what the system is
+ * allowed to SAY when it does not. The two failure modes are different — a missing
+ * preview is a card problem, a claim about WHY it is missing is an assertion about
+ * cause, and this subsystem has now twice shipped that assertion when it could not
+ * know. One purged object and a broken signer are indistinguishable until there were
+ * two chances to fail.
+ */
+
+import { describe, it, expect } from 'vitest';
+import { listAssets } from '../../services/atelier/assetLibrary.mjs';
+
+const JOB = '11111111-2222-3333-4444-555555555555';
+
+const Op = { contains: Symbol('contains'), or: Symbol('or'), lt: Symbol('lt') };
+
+const row = (over = {}) => ({
+  id: over.id || '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+  // Real rows always carry this (MediaAsset.ownerUserId is allowNull: false) and the
+  // preview signer now reads it: a key is signed only if it belongs to this row's owner.
+  ownerUserId: 1,
+  jobId: JOB,
+  kind: 'image', mime: 'image/png', width: 1920, height: 1080, sizeBytes: '2048',
+  approvalStatus: 'draft', createdAt: new Date('2026-08-26T10:00:00.000Z'),
+  r2Key: 'atelier/stills/1/abc.png',
+  tags: ['atelier', 'still', 'lane:local'],
+  provenance: { request: { prompt: 'a lone red fox', promptTruncated: false } },
+  ...over,
+});
+
+describe('one bad object and a broken signer are different facts', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+
+  it('ONE failure is isolation working — previewsUnavailable stays false', async () => {
+    let n = 0;
+    const readUrl = async () => { n += 1; if (n === 1) throw new Error('object gone'); return 'https://cdn/ok'; };
+    const out = await listAssets({ userId: 1 }, { assetModel: model([row(), row({ id: 'b' })]), Op, readUrl });
+    expect(out.previewsUnavailable).toBe(false);
+  });
+
+  it('EVERY failure is a broken signer, and the page says so', async () => {
+    // Silent isolation turns a rotated secret into a page of grey boxes with a 200 and no
+    // telemetry — the operator concludes their renders are broken and nothing corrects them.
+    const readUrl = async () => { throw new Error('signature key missing'); };
+    const out = await listAssets({ userId: 1 }, { assetModel: model([row(), row({ id: 'b' })]), Op, readUrl });
+    expect(out.previewsUnavailable).toBe(true);
+    expect(out.assets.every((a) => a.previewUrl === null)).toBe(true);
+  });
+
+  it('a page where nothing was signable is not a signer failure', async () => {
+    // Nothing ATTEMPTED is not everything FAILED. This row is a video with no poster, so
+    // the signer is never called and there is no evidence either way about its health.
+    const readUrl = async () => { throw new Error('never called'); };
+    const out = await listAssets({ userId: 1 }, { assetModel: model([row({ kind: 'video' })]), Op, readUrl });
+    expect(out.previewsUnavailable).toBe(false);
+  });
+
+  it('no signer injected is not a signer failure either', async () => {
+    const out = await listAssets({ userId: 1 }, { assetModel: model([row()]), Op });
+    expect(out.previewsUnavailable).toBe(false);
+  });
+});
+
+describe('a diagnosis needs more evidence than a flag does', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+  const clip = (over = {}) => row({ kind: 'video', mime: 'video/mp4', r2Key: `jobs/${JOB}/source.mp4`, ...over });
+
+  it('does NOT claim a misconfigured signer when only one object was signable', async () => {
+    // 23 posterless rows and one purged poster reaches failed === attempted just as easily
+    // as a one-row page does. "The signer is likely misconfigured" is wrong there, and it
+    // is the sentence this message exists to keep anyone from having to guess at.
+    const errs = [];
+    const spy = console.error; console.error = (m) => errs.push(String(m));
+    try {
+      const rows = [clip({ posterR2Key: `jobs/${JOB}/gone.webp` })];
+      for (let i = 0; i < 23; i += 1) rows.push(clip({ id: `n${i}`, posterR2Key: null }));
+      const out = await listAssets({ userId: 1 }, {
+        assetModel: model(rows), Op, readUrl: async () => { throw new Error('object gone'); },
+      });
+      // ROUND-3 REVERSAL. I first kept the flag true here and gated only the log, on the
+      // reasoning that a quiet flag means silence about a broken signer. But the flag's
+      // ONLY consumer is a page-wide banner reading "this is a preview-signing problem,
+      // not a problem with your assets" — the same causal claim as the log line, in the
+      // place a person reads it. Gating one and not the other put the wrong sentence
+      // exactly where it does harm. Nothing goes silent: the warn below still fires.
+      expect(out.previewsUnavailable).toBe(false);
+      expect(errs.join(' ')).not.toMatch(/misconfigured/);
+    } finally { console.error = spy; }
+  });
+
+  it('DOES claim it once two objects were signable and both failed', async () => {
+    const errs = [];
+    const spy = console.error; console.error = (m) => errs.push(String(m));
+    try {
+      await listAssets({ userId: 1 }, {
+        assetModel: model([
+          clip({ posterR2Key: `jobs/${JOB}/a.webp` }), clip({ id: 'b', posterR2Key: `jobs/${JOB}/b.webp` }),
+        ]), Op, readUrl: async () => { throw new Error('signature key missing'); },
+      });
+      expect(errs.join(' ')).toMatch(/misconfigured/);
+    } finally { console.error = spy; }
+  });
+});
+
+describe('an absent signer is legitimate, but never silent', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+
+  it('warns when rows were signable and no signer was injected', async () => {
+    // If the route's injection regresses, this branch returns a full page of nulls with a
+    // 200 and no telemetry — the same silence the per-row catch refuses. The rule has to
+    // hold on the not-attempted branch too, or it is guarding one half of a pair.
+    const warns = [];
+    const spy = console.warn; console.warn = (m) => warns.push(String(m));
+    try {
+      const out = await listAssets({ userId: 1 }, { assetModel: model([row()]), Op });
+      expect(out.previewsUnavailable).toBe(false);   // not a BROKEN signer — an absent one
+      expect(warns.join(' ')).toMatch(/no signer was injected/);
+    } finally { console.warn = spy; }
+  });
+
+  it('says nothing when there was nothing to sign anyway', async () => {
+    // An empty page, or one of posterless clips, is no evidence about wiring.
+    const warns = [];
+    const spy = console.warn; console.warn = (m) => warns.push(String(m));
+    try {
+      await listAssets({ userId: 1 }, {
+        assetModel: model([row({ kind: 'video', posterR2Key: null })]), Op,
+      });
+      expect(warns.join(' ')).not.toMatch(/no signer was injected/);
+    } finally { console.warn = spy; }
+  });
+});
+
+describe('a signer that resolves nothing is a failure, not a success', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+
+  it('an undefined resolution counts as failed, so the page still says so', async () => {
+    // The third signer mode. Absent is guarded by reportNoSigner; rejecting (and throwing
+    // synchronously) is guarded by the catch. Present-but-resolving-nothing threaded
+    // between both: every card null, `failed` never incremented, no banner, no log, 200.
+    const errs = [];
+    const spy = console.error; console.error = (m) => errs.push(String(m));
+    try {
+      const out = await listAssets({ userId: 1 }, {
+        assetModel: model([row(), row({ id: 'b' })]), Op, readUrl: async () => undefined,
+      });
+      expect(out.assets.every((a) => a.previewUrl === null)).toBe(true);
+      expect(out.previewsUnavailable).toBe(true);
+      expect(errs.join(' ')).toMatch(/misconfigured/);
+    } finally { console.error = spy; }
+  });
+
+  it('an empty-string resolution is the same failure', async () => {
+    const out = await listAssets({ userId: 1 }, {
+      assetModel: model([row(), row({ id: 'b' })]), Op, readUrl: async () => '',
+    });
+    expect(out.previewsUnavailable).toBe(true);
+  });
+
+  it('a real URL is still passed straight through', async () => {
+    // The guard must not eat the success path.
+    const out = await listAssets({ userId: 1 }, {
+      assetModel: model([row()]), Op, readUrl: async (k) => `https://cdn.example/${k}`,
+    });
+    expect(out.assets[0].previewUrl).toBe('https://cdn.example/atelier/stills/1/abc.png');
+    expect(out.previewsUnavailable).toBe(false);
+  });
+});
+```
+
+### 7d. Publish-guard block appended to `atelierPublish.test.mjs`
+
+```js
+describe('the publish signer will not sign a key this system did not write', () => {
+  // r2Key on a video row is caller-supplied: it arrives from the body of
+  // POST /api/render-agents/jobs/:jobId/complete, and verifyObject — when it runs at all —
+  // checks that an object EXISTS at that key, never that the key is ours.
+  // generatePlaybackUrl presigns anything it is handed. The library learned this and
+  // started checking; this signer reads the same unvalidated field.
+  const FOREIGN = 'atelier/stills/99/secret.png';
+  const model = (asset) => ({ findOne: async () => asset });
+  const signer = { readUrl: async (k) => `https://cdn.example/${k}?sig=x` };
+
+  it('withholds the reference rather than signing a foreign key', async () => {
+    const asset = base({ approvalStatus: 'published', r2Key: FOREIGN });
+    const out = await publishedReference({ id: 'a1', userId: 1 }, { assetModel: model(asset), ...signer });
+    expect(out.readUrl).toBeNull();
+    expect(out.snippet).toBeNull();
+    expect(out.withheld).toMatch(/not one this system wrote/);
+  });
+
+  it('still signs a key the system did write', async () => {
+    // The guard must not eat the working path.
+    const asset = base({ approvalStatus: 'published' });
+    const out = await publishedReference({ id: 'a1', userId: 1 }, { assetModel: model(asset), ...signer });
+    expect(out.readUrl).toContain('atelier/stills/1/x.png');
+    expect(out.withheld).toBeNull();
+  });
+
+  it('the UNAUTHENTICATED permalink resolves to nothing for a foreign key', async () => {
+    // This route is mounted without auth, so it is the least forgiving place in the system
+    // to sign an unvalidated key: a planted r2Key on a published row would otherwise become
+    // a public signed URL for someone else's object.
+    const asset = base({ approvalStatus: 'published', r2Key: FOREIGN });
+    expect(await resolvePublic({ id: 'a1' }, { assetModel: model(asset), ...signer })).toBeNull();
+  });
+
+  it('the permalink still resolves for a key the system wrote', async () => {
+    const asset = base({ approvalStatus: 'published' });
+    const out = await resolvePublic({ id: 'a1' }, { assetModel: model(asset), ...signer });
+    expect(out.url).toContain('atelier/stills/1/x.png');
+  });
+
+  it('a video asset published from its own job namespace still resolves', async () => {
+    const jobId = '11111111-2222-3333-4444-555555555555';
+    const asset = base({ approvalStatus: 'published', jobId, kind: 'video',
+      mime: 'video/mp4', r2Key: `jobs/${jobId}/source.mp4` });
+    const out = await resolvePublic({ id: 'a1' }, { assetModel: model(asset), ...signer });
+    expect(out.url).toContain(`jobs/${jobId}/source.mp4`);
+  });
+});
+```
+
+### 7e. Frontend blocks appended to `AtelierLibrary.test.tsx`
 
 ```tsx
 describe('a clip is labelled, because its poster looks exactly like a still', () => {
@@ -611,6 +1143,58 @@ describe('a clip is labelled, because its poster looks exactly like a still', ()
     render(<AtelierLibrary api={api} />);
     await screen.findByAltText(/lone red fox/);
     expect(screen.queryByText(/image/)).not.toBeInTheDocument();
+  });
+});
+
+describe('the banner is where previewsUnavailable actually means something', () => {
+  // The flag exists ONLY to raise this notice, and it was the subject of a reversal:
+  // it must not fire when a single object failed, because "this is a preview-signing
+  // problem" is then a false statement to the operator. Every other test for it asserts
+  // the boolean at the value level; this is the seam where a person reads it, and until
+  // now nothing rendered it.
+  it('shows the signer notice when the server reports previews unavailable', async () => {
+    const { api } = fakeApi({
+      assets: [asset({ previewUrl: null })], hasMore: false, nextCursor: null,
+      pageSize: 24, previewsUnavailable: true,
+    });
+    render(<AtelierLibrary api={api} />);
+    expect(await screen.findByText(/preview-signing problem/i)).toBeInTheDocument();
+  });
+
+  it('stays silent when the server does not report it', async () => {
+    const { api } = fakeApi({
+      assets: [asset({ previewUrl: null })], hasMore: false, nextCursor: null,
+      pageSize: 24, previewsUnavailable: false,
+    });
+    render(<AtelierLibrary api={api} />);
+    await screen.findByText(/lone red fox/);
+    expect(screen.queryByText(/preview-signing problem/i)).not.toBeInTheDocument();
+  });
+
+  it('a page that omits the field is not a signer failure', async () => {
+    // Absent must read as false, not as truthy-undefined.
+    const { api } = fakeApi({ assets: [asset()], hasMore: false, nextCursor: null, pageSize: 24 });
+    render(<AtelierLibrary api={api} />);
+    await screen.findByAltText(/lone red fox/);
+    expect(screen.queryByText(/preview-signing problem/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('the marker never renders a separator with nothing after it', () => {
+  it('a row with no kind shows no dangling separator', async () => {
+    // `null !== 'image'` is true, so the guard was one truthiness check short of rendering
+    // " · " followed by nothing. MediaAsset.kind is allowNull: false with an isIn
+    // validator, so this cannot arrive from the database — but a card that renders
+    // punctuation for absent data is the same small dishonesty as a poster with no label.
+    const { api } = fakeApi({
+      assets: [asset({ kind: null as unknown as string })],
+      hasMore: false, nextCursor: null, pageSize: 24,
+    });
+    const { container } = render(<AtelierLibrary api={api} />);
+    await screen.findByAltText(/lone red fox/);
+    // Without the guard the meta row reads "draft ·  · universal" — two separators with
+    // nothing between them. With it, "draft · universal".
+    expect(container.textContent).not.toMatch(/·\s*·/);
   });
 });
 ```
@@ -636,17 +1220,37 @@ stopped being true the moment posters were signed for non-image rows.
 - `a page with no image rows at all is not a signer failure`
   → `a page where nothing was signable is not a signer failure`
 
-## 10. Sibling sweep
+## 10. Sibling sweep — CORRECTED at round 8
+
+**The original sweep asked the wrong question and this section blessed a hole for six
+rounds.** It asked *which object* each signing sibling reads — and every answer was right —
+so it concluded there was no sibling defect. It never asked ***whose***. Two of the three
+read a caller-supplied key.
 
 `grep -rn "generateThumbnailUrl\|readUrl\|getSignedUrl\|signedUrl" backend --include=*.mjs`
-minus node_modules and tests. Three atelier siblings sign an asset, and all three correctly
-want the ORIGINAL, so none carries this defect:
+minus node_modules and tests:
 
-| Site | Signs | Correct because |
-|---|---|---|
-| `publishAsset.mjs:165,193` | `asset.r2Key` via `generatePlaybackUrl` | the published embed; for a clip the MP4 IS the artifact |
-| `motionBind.mjs:157` | `ref.r2Key` via `generatePlaybackUrl` | the init image Motion animates must be the real bytes |
-| `persistStills.mjs:265` | `row.r2Key` via `generatePlaybackUrl` | a still just made; `kind: 'image'` is hardcoded at :180 |
+| Site | Signs | WHICH object | WHOSE object |
+|---|---|---|---|
+| `assetPreviews.mjs` (library card) | poster, else the original for an image | correct | **guarded** — `keyOwnedByRow`, round 6/7 |
+| `publishAsset.mjs:165` (`publishedReference`) | `asset.r2Key` — the published embed; for a clip the MP4 IS the artifact | correct | **guarded** at round 8; withholds the reference and says why |
+| `publishAsset.mjs:193` (`resolvePublic`) | `asset.r2Key` — the permalink, **mounted WITHOUT auth** | correct | **guarded** at round 8; resolves to nothing |
+| `motionBind.mjs:157` | `ref.r2Key` — the init image Motion animates must be the real bytes | correct | **not guarded.** Reads the same field; see below |
+| `persistStills.mjs:265` | `row.r2Key` — a still just made, `kind: 'image'` hardcoded at :180 | correct | n/a — the key was built by `stillObjectKey` in the same call |
+
+**`motionBind` is the remaining consumer and is NOT fixed here.** It signs `ref.r2Key` for a
+bind the operator initiated, and it already compares a caller-supplied `sha256` against the
+row's recorded hash — a planted key would have to also match that hash, which is the
+content hash of the bytes the operator approved. So it is materially harder to reach than
+the two publish sites, and changing a gate whose whole purpose is adversarial comparison
+deserves its own slice rather than a passing edit in this one. **Named rather than swept.**
+
+**The structural fix neither this slice nor any per-consumer guard achieves:** a prefix
+allowlist inside `generateThumbnailUrl` / `generatePlaybackUrl` would close the class for
+every reader, present and future, instead of requiring each one to remember. That signer is
+shared with `videoCatalog*`, `bodyMapEvidenceStorage` and others whose key conventions this
+slice has not audited, so it is not a change to make from here — but it is the right one,
+and it belongs to Sean, not to a backlog line.
 
 ## 11. Verification
 
@@ -1301,3 +1905,67 @@ spot from round 2: a test that cannot be seen to fail. Recorded for whoever fixe
 
 Falsifying the predicate reddens **10** tests across both consumers. Frontend **141/141**.
 Line cap and secret scan clean on all six touched backend files.
+
+---
+
+# ROUND 8 — a reviewer proved the document wrong from the inside
+
+**GLM: REVISE** (1 P0, 1 P1, 3 P2). **Qwen: APPROVE**, no blockers.
+
+| # | Finding | Outcome |
+|---|---|---|
+| 1 (P0) | Section 7's pasted tests cannot pass against section 3's pasted guard | **CONFIRMED about the DOCUMENT. Section 7 re-spliced** |
+| 2 (P1) | Round 7's publish fix exists only as prose; section 10 still blesses it | **CONFIRMED. Section 4c spliced, section 10 corrected** |
+| 3 | The `attempted >= 2` gate stands on a premise round 7 retracted | **CONFIRMED about the RATIONALE. Comment rewritten; behaviour kept** |
+| 4 | `sizeBytes` has the NaN defect I fixed in `seed` six lines away | **CONFIRMED. One helper now serves both** |
+| 5 | A null `kind` renders a dangling separator | **CONFIRMED. Fixed** |
+
+## Finding 1 — the best kind of review finding: it needed nothing but the document
+
+GLM traced section 7a's fixtures through section 3's guard and showed the two could not both
+be true: `previewKeyFor({ kind: 'image', r2Key: 'a.png', posterR2Key: 't.webp' })` reaches
+`keyOwnedByRow`, which sees one segment, matches neither namespace, and returns null — so
+four pasted assertions must fail. It then dated the drift, noticing the `atelier/video/1/...`
+fixtures would have passed round 6's guard but not round 7's.
+
+It was right, and the answer is the benign one: rounds 6 and 7 rewrote every fixture to use
+real namespaces, and **I re-spliced the source sections and not the test sections.** The
+suites are green — but nothing in this document could show that, which is the same as not
+having proven it.
+
+**Third instance of stale-paste here.** Round 3's lesson was "re-splice, never append"; the
+lesson it should have been is **re-splice every section the change touched, not the one under
+discussion.** All five test files are now spliced from current source, and section 4c carries
+the publish guard round 7 only described.
+
+## Finding 3 — the rationale was retracted and the comment still argued it
+
+Round 7 established that presigning is a local HMAC, so a purged object signs fine. That
+retired the "one purged object" example — but the shipped comment and the warn string still
+used it, and GLM was right that the module was then holding two positions at once.
+
+The behaviour is unchanged and the reason is now the honest one: `readUrl` is an **injected
+seam**, and the contract does not promise a signer never touches the object. One that did
+could fail per-object, and a page-wide "this is a preview-signing problem" would then be a
+false statement. That is the same argument as round 5's falsy-resolution guard — defend the
+seam, not the implementation currently behind it — so the module now takes one position
+instead of two.
+
+## Findings 4 and 5 — the pair defect, twice more
+
+`sizeBytes: Number(row.sizeBytes)` sat **six lines** from the `seed` coercion I had just
+hardened, in the same object literal, unguarded. Both now go through one `finiteOrNull`
+helper, so they cannot drift apart again. It is unreachable from a `BIGINT` column — the
+point is not the bug, it is that a reader finding one field guarded and its neighbour bare
+cannot tell which is deliberate.
+
+`{a.kind !== 'image' && ...}` was one truthiness check short of rendering a separator with
+nothing after it. `kind` is `allowNull: false` with an `isIn` validator so it cannot arrive
+null from the database, but a card that renders punctuation for absent data is the same small
+dishonesty as a poster with no label — which is the whole reason the marker exists.
+
+## Round-8 verification
+
+Backend extended glob **699/699 across 53 suites**. Frontend **142/142 across 15**.
+Each fix falsified: neutering `finiteOrNull` reddens the sizeBytes test; removing the
+truthiness check reddens the dangling-separator test. Line cap and secret scan clean.

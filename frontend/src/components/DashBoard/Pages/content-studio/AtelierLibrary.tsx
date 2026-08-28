@@ -215,7 +215,7 @@ const AtelierLibrary: React.FC<{
                       appear and leaving it unlabelled trades one honesty problem for
                       a worse one: a grey box tells you nothing, a poster tells you
                       something false. */}
-                  {a.kind !== 'image' && <span> · {a.kind}</span>}
+                  {a.kind && a.kind !== 'image' && <span> · {a.kind}</span>}
                   {a.brandKit && <span> · {a.brandKit}</span>}
                   {a.lane && <span> · {a.lane}</span>}
                 </AssetMeta>

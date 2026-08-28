@@ -284,3 +284,21 @@ describe('the banner is where previewsUnavailable actually means something', () 
     expect(screen.queryByText(/preview-signing problem/i)).not.toBeInTheDocument();
   });
 });
+
+describe('the marker never renders a separator with nothing after it', () => {
+  it('a row with no kind shows no dangling separator', async () => {
+    // `null !== 'image'` is true, so the guard was one truthiness check short of rendering
+    // " · " followed by nothing. MediaAsset.kind is allowNull: false with an isIn
+    // validator, so this cannot arrive from the database — but a card that renders
+    // punctuation for absent data is the same small dishonesty as a poster with no label.
+    const { api } = fakeApi({
+      assets: [asset({ kind: null as unknown as string })],
+      hasMore: false, nextCursor: null, pageSize: 24,
+    });
+    const { container } = render(<AtelierLibrary api={api} />);
+    await screen.findByAltText(/lone red fox/);
+    // Without the guard the meta row reads "draft ·  · universal" — two separators with
+    // nothing between them. With it, "draft · universal".
+    expect(container.textContent).not.toMatch(/·\s*·/);
+  });
+});

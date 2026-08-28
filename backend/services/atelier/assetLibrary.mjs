@@ -176,9 +176,7 @@ export function assetView(row, previewUrl = null) {
     const hit = tags.find((t) => typeof t === 'string' && t.startsWith(`${prefix}:`));
     return hit ? hit.slice(prefix.length + 1) : null;
   };
-  const rawSeed = tag('seed');
-  const parsedSeed = rawSeed === null ? NaN : Number(rawSeed);
-  const seedTag = Number.isFinite(parsedSeed) ? parsedSeed : null;
+  const seedTag = finiteOrNull(tag('seed'));
 
   return {
     id: row.id,
@@ -186,7 +184,15 @@ export function assetView(row, previewUrl = null) {
     mime: row.mime,
     width: row.width ?? null,
     height: row.height ?? null,
-    sizeBytes: row.sizeBytes === undefined || row.sizeBytes === null ? null : Number(row.sizeBytes),
+    // Same treatment as `seed` below, and for the same reason: a number the client cannot
+    // read must arrive as null on purpose, never as NaN that JSON.stringify turns into null
+    // silently. BIGINT comes back from Sequelize as a STRING to protect precision, so this
+    // coercion is load-bearing rather than decorative. Unlike `seed` — which parses a
+    // free-text tag and can genuinely see `seed:v2` — a typed column cannot hold garbage,
+    // so this guard is unreachable today. It is here because the two fields sit in one
+    // object literal, and a reader who finds one guarded and the other bare cannot tell
+    // which is deliberate. That asymmetry is exactly the shape this subsystem gets bitten by.
+    sizeBytes: finiteOrNull(row.sizeBytes),
     status: row.approvalStatus,
     createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
     // Lifted out of tags so a client never parses strings to answer "which brand made this".
@@ -194,10 +200,9 @@ export function assetView(row, previewUrl = null) {
     brandKitHash: tag('brandkit-hash'),
     workspaceId: tag('workspace'),
     lane: tag('lane'),
-    // NaN IS NOT A NUMBER THE CLIENT CAN READ. `Number('v2')` is NaN, and JSON.stringify
-    // emits NaN as `null` — so a malformed tag arrived as a seed of null with nothing
-    // logged and no error, and any attempt to reproduce that render lost its anchor
-    // silently. Parsed once (it was evaluated twice) and only accepted if it is finite.
+    // NaN IS NOT A NUMBER THE CLIENT CAN READ. `Number('v2')` is NaN and JSON.stringify
+    // emits it as `null`, so a malformed tag arrived as a seed of null with nothing logged
+    // and no error, and any attempt to reproduce that render lost its anchor silently.
     seed: seedTag,
     // The prompt, from frozen provenance. Truncated at write time by buildProvenance;
     // shown so a person can recognise their own work, which is the whole point of a library.
@@ -222,6 +227,15 @@ export function assetView(row, previewUrl = null) {
     // is the same trade the published-reference endpoint already makes.
     previewUrl,
   };
+}
+
+/** A number the client can actually read, or null on purpose — never NaN, which
+ *  `JSON.stringify` emits as `null` with nothing logged and no error. One helper so the
+ *  fields that need it cannot drift apart. */
+function finiteOrNull(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
 }
 
 /**

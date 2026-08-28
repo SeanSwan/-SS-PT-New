@@ -274,3 +274,22 @@ describe('a seed the client cannot read is null, not NaN', () => {
     expect(assetView({ id: 'a', tags: [], provenance: {} }).seed).toBeNull();
   });
 });
+
+describe('sizeBytes gets the same treatment as seed, in the same object literal', () => {
+  it('a non-numeric sizeBytes is null, not NaN', () => {
+    // Unreachable from a BIGINT column — the guard exists because `seed` six lines away
+    // needed it, and a reader who finds one field guarded and its neighbour bare cannot
+    // tell which is deliberate. That asymmetry is the shape this subsystem gets bitten by.
+    expect(assetView({ id: 'a', sizeBytes: '12MB', tags: [], provenance: {} }).sizeBytes).toBeNull();
+  });
+
+  it('a BIGINT arriving as a string still becomes a number', () => {
+    // Sequelize returns BIGINT as a string to protect precision, so this coercion is
+    // load-bearing rather than decorative.
+    expect(assetView({ id: 'a', sizeBytes: '2048', tags: [], provenance: {} }).sizeBytes).toBe(2048);
+  });
+
+  it('an absent sizeBytes stays null', () => {
+    expect(assetView({ id: 'a', sizeBytes: null, tags: [], provenance: {} }).sizeBytes).toBeNull();
+  });
+});
