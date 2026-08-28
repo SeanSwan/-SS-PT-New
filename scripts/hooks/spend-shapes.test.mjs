@@ -48,7 +48,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const GATE = join(HERE, 'spend-guard-gate.mjs');
 const SEAT = 'scripts/consult-fable.mjs';
 
-function gate(command) {
+function run(command) {
   const dir = mkdtempSync(join(tmpdir(), 'swan-shapes-'));
   const r = spawnSync(process.execPath, [GATE], {
     input: JSON.stringify({ tool_name: 'Bash', tool_input: { command } }),
@@ -56,8 +56,9 @@ function gate(command) {
     env: { ...process.env, SWAN_SPEND_DIR: dir },
   });
   rmSync(dir, { recursive: true, force: true });
-  return r.status;
+  return { code: r.status, stderr: r.stderr || '' };
 }
+const gate = (command) => run(command).code;
 
 /**
  * BILLS — bash runs a paid seat on this line. The gate must not exit 0.
@@ -197,6 +198,134 @@ test('CORPUS: every inert shape stays quiet', () => {
     'Cry-wolf is the more corrosive failure — a guard people learn to wave through',
     'protects nothing. A fix that turns a BILLS row green by turning one of these red',
     'has not fixed anything.',
+  ].join('\n'));
+});
+
+/**
+ * WRAPPERS — the cross product. GLM 5.3's round-7 ONE THING, and his diagnosis of why
+ * the corpus alone was not enough: **"you tested points, not the product."**
+ *
+ * Both of his round-7 blockers were CROSSES of rows the corpus already had:
+ *   `xargs` (r5 row) x `bash -c` (r1 row)
+ *   the `for`-loop cry-wolf fix x `if <cmd>`
+ * A list of points cannot find a composition, by construction. This can.
+ *
+ * Every wrapper below is already a row or a named constant elsewhere in the system, so
+ * this adds no new claims about the world — it asserts that the claims already made
+ * still hold when they compose. That is the property the last four rounds kept losing.
+ */
+const EXEC_WRAPPERS = [
+  ['bare', (b) => b],
+  ['sudo', (b) => `sudo ${b}`],
+  ['xargs', (b) => `xargs ${b}`],
+  ['nohup', (b) => `nohup ${b}`],
+  ['command', (b) => `command ${b}`],
+  ['env -i', (b) => `env -i ${b}`],
+  ['if-condition', (b) => `if ${b}; then echo ok; fi`],
+  ['while-condition', (b) => `while ${b}; do sleep 1; done`],
+  ['sh -c', (b) => `sh -c '${b}'`],
+  ['bash -c dq', (b) => `bash -c "${b}"`],
+  ['backticks', (b) => `echo \`${b}\``],
+  ['$( )', (b) => `echo $(${b})`],
+  ['&& tail', (b) => `${b} && echo done`],
+  ['head &&', (b) => `echo start && ${b}`],
+];
+
+/** A representative slice of BILLS — one per mechanism, not all 55, to stay near budget. */
+const CROSS_BODIES = [
+  `node ${SEAT} --document plan.md`,
+  `node "${SEAT}" --document x`,
+  `node --trace-warnings ${SEAT}`,
+  `node --import=./setup.mjs ${SEAT}`,
+  `./${SEAT} --document x`,
+];
+
+test('CROSS: every exec wrapper x every body still blocks', () => {
+  // The composition space, which is where both round-7 blockers came from. If a
+  // wrapper and a body are each handled correctly on their own, the pair must be too —
+  // and twice now it was not.
+  const escaped = [];
+  for (const [wname, wrap] of EXEC_WRAPPERS) {
+    for (const body of CROSS_BODIES) {
+      const cmd = wrap(body);
+      if (gate(cmd) !== 2) escaped.push(`${wname} x ${body}`);
+    }
+  }
+  assert.deepEqual(escaped, [], [
+    '',
+    'These WRAPPER x BODY compositions ran a paid seat:',
+    ...escaped.map((n) => `    ${n}`),
+    '',
+    'Both round-7 blockers were compositions of rows this corpus already had as',
+    'separate points. A list of points cannot find a composition, by construction.',
+  ].join('\n'));
+});
+
+test('CROSS: inert heads crossed with a runner MENTION stay quiet', () => {
+  // The cry-wolf half of the product, and the harder half: these heads all take a
+  // token that looks exactly like an invocation, and none of them runs it.
+  const wolves = [];
+  const MENTIONS = [
+    `cat ${SEAT}`,
+    `echo node ${SEAT}`,
+    `grep -n "node ${SEAT}" docs/notes.md`,
+    `git grep "node ${SEAT}" docs`,
+    `git -c color.ui=always status`,
+    `vim -c 'set nu' ${SEAT}`,
+    `awk '{print $1}' ${SEAT}`,
+    `sort -u ${SEAT}`,
+    'man bash',
+    'which node',
+    `wc -l ${SEAT}`,
+    `head -20 ${SEAT}`,
+  ];
+  for (const cmd of MENTIONS) {
+    if (gate(cmd) !== 0) wolves.push(cmd);
+  }
+  assert.deepEqual(wolves, [], [
+    '',
+    'These lines spend nothing and were refused:',
+    ...wolves.map((n) => `    ${n}`),
+    '',
+    'Each shares a HEAD with a BILLS row — which is the point of per-head exec hatches.',
+    '`git grep` and `git -c core.editor=...` are the same binary; only one shells out.',
+  ].join('\n'));
+});
+
+test('CORPUS: a plainly-visible seat is PRICED, not merely refused as unreadable', () => {
+  // GLM 5.3 round-7 MISSED 3, demonstrated live while mutation-testing his B1 fix:
+  // **the corpus asserts exit codes only.** Reverting the condition-stripping fix
+  // produced ZERO reds — because the fail-closed unknown-head rule caught `if <seat>`
+  // anyway, as an unattributable execution rather than a $1.06 Fable call. Both block,
+  // so a verdict-only assertion cannot tell them apart, and the mechanism can rot
+  // underneath while the table stays green.
+  //
+  // That is the fourth distinct meaning of "zero reds" in this workstream, and the one
+  // this file was supposed to prevent. Shapes where the seat is plainly visible must
+  // resolve to a PRICE — falling back to "cannot read" is a silent downgrade.
+  const PRICED = [
+    `node ${SEAT} --document plan.md`,
+    `if node ${SEAT} --document plan.md; then echo ok; fi`,
+    `while node ${SEAT} --document plan.md; do sleep 1; done`,
+    `sh -c "node ${SEAT} --document plan.md"`,
+    `node "${SEAT}" --document x`,
+    `nohup node ${SEAT} --document x`,
+  ];
+  const downgraded = [];
+  for (const cmd of PRICED) {
+    const r = run(cmd);
+    if (r.code !== 2 || !/worst case\s+\$1\.06/.test(r.stderr) || /cannot read/.test(r.stderr)) {
+      downgraded.push(cmd);
+    }
+  }
+  assert.deepEqual(downgraded, [], [
+    '',
+    'These lines name a seat plainly and must be PRICED, not refused as unreadable:',
+    ...downgraded.map((n) => `    ${n}`),
+    '',
+    'Blocking for the wrong reason still blocks — which is why a verdict-only',
+    'assertion hid the mechanism rotting. The refusal Sean reads should say what the',
+    'call costs, not that the gate could not parse his command.',
   ].join('\n'));
 });
 

@@ -103,9 +103,31 @@ const EVAL_FLAGS = new Set(['-e', '--eval', '-p', '--print', '--input-type']);
  *
  * A loop or conditional HEADER runs nothing; the body is a separate command once the
  * line is split on `;`. `do`/`then`/`else` are stripped so the body is examined.
+ *
+ * CORRECTION (GLM 5.3 round-7 B1). The sentence above was a FALSE CLAIM ABOUT THE
+ * WORLD, and it licensed the code beneath it — the fifth time in this workstream a
+ * confident comment has stood in for a control, and the second time one has done it on
+ * the money path.
+ *
+ * `for f in a.mjs b.mjs` names files. `if <cmd>`, `elif <cmd>`, `while <cmd>` and
+ * `until <cmd>` RUN `<cmd>` — the condition IS a command. All four ran a seat at exit
+ * 0, and none needs an adversarial spelling:
+ *
+ *     if node scripts/consult-fable.mjs --document plan.md; then echo ok; fi
+ *     while node scripts/consult-fable.mjs --document plan.md; do sleep 60; done
+ *
+ * The `while` case is worse than a single free call: bash re-runs the condition every
+ * iteration. And this was introduced by the fix for the `for`-loop cry-wolf, which
+ * swallowed the one keyword family whose "header" is a command — a patch contradicting
+ * the doctrine it was written under.
+ *
+ * So the four conditions move to PREFIXES: strip the keyword, examine the remainder.
+ * The pinned inert rows survive because their conditions are genuinely inert —
+ * `while read l` and `if [ -f x ]` strip to `read` and `[`, neither of which carries a
+ * runner or a script.
  */
-const KEYWORD_HEADERS = new Set(['for', 'while', 'until', 'if', 'elif', 'case', 'select', 'function']);
-const KEYWORD_PREFIXES = new Set(['do', 'then', 'else']);
+const KEYWORD_HEADERS = new Set(['for', 'case', 'select', 'function']);
+const KEYWORD_PREFIXES = new Set(['do', 'then', 'else', 'if', 'elif', 'while', 'until', '!']);
 const KEYWORD_ENDS = new Set(['done', 'fi', 'esac', 'in']);
 
 /**
@@ -160,14 +182,29 @@ const INERT_HEADS = {
   // that is the worst kind. The hatch is narrow on purpose: a `!`-prefixed alias is
   // the shell-out, while `git grep "node <seat>"` — pinned ALLOW, and it must stay
   // that way — is a search pattern and matches nothing here.
-  git: { why: 'version control', execPattern: /^alias\.[^=]*=\s*!/ },
+  // git shells out through more than aliases (GLM 5.3 round-7 B2c): `-c core.editor=`,
+  // `-c core.pager=`, `-c core.hooksPath=`, `difftool --extcmd=`, and filter-branch's
+  // filters all run a command. Each is NAMED rather than the whole of `-c` being
+  // treated as a hatch, because `git -c color.ui=always status` is ordinary and pinned
+  // ALLOW — as is `git grep "node <seat>"`, which is a search pattern.
+  git: {
+    why: 'version control',
+    execPattern: /^(alias\.[^=]*=\s*!|core\.(editor|pager|hooksPath|sshCommand|askPass)=|--extcmd|--(tree|index|parent|msg|commit|env|subdirectory)-filter)/,
+  },
   gh: 'GitHub CLI',
   // `sort --compress-program=<cmd>` shells out. Flash flagged it as an unverified
   // same-class candidate; it is one line to close and costs nothing if he was wrong.
   sort: { why: 'sorts', execPattern: /^--compress-program(=|$)/ },
   // Editors execute whatever their command flags say.
-  vim: { why: 'editor', execFlags: ['-c', '--cmd', '-S'] },
-  nvim: { why: 'editor', execFlags: ['-c', '--cmd', '-S'] },
+  // An editor's `-c` runs an EDITOR command; only a `!`-bearing one shells out. Keying
+  // the hatch on the flag made `vim -c 'set nu' <seat>` — opening the seat file to set
+  // line numbers — read as an execution, because the hatch opened and then the seat
+  // PATH itself qualified as evidence. Caught by the cross-product test on its first
+  // run, which is the argument for that test: the flag and the path were each handled
+  // correctly, and their composition was not. `-S` stays a flag hatch: sourcing a vim
+  // script really does run one.
+  vim: { why: 'editor', execFlags: ['-S'], execPattern: /^\s*!|^\+\s*!/ },
+  nvim: { why: 'editor', execFlags: ['-S'], execPattern: /^\s*!|^\+\s*!/ },
   emacs: { why: 'editor', execFlags: ['--eval', '-f', '--funcall', '--load', '-l'] },
   nano: 'editor with no exec flag',
   code: 'opens an editor window',
