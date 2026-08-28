@@ -17,6 +17,7 @@ multiply its alpha channel (128 becomes 64), making converted artwork too faint.
 from __future__ import annotations
 
 import os
+import tempfile
 
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -42,20 +43,29 @@ def _downscale(master, size):
 
 def write_ico(master, out_path):
     """Write the exact Windows frame roster used by Swan launcher icons."""
-    os.makedirs(os.path.dirname(os.path.abspath(out_path)) or ".", exist_ok=True)
+    directory = os.path.dirname(os.path.abspath(out_path)) or "."
+    os.makedirs(directory, exist_ok=True)
     frames = [_downscale(master, size) for size in ICO_SIZES]
-    frames[-1].save(
-        out_path,
-        format="ICO",
-        sizes=[(size, size) for size in ICO_SIZES],
-        append_images=frames[:-1],
-    )
+    handle, staged_path = tempfile.mkstemp(prefix=".swan-icon-", suffix=".ico", dir=directory)
+    os.close(handle)
+    try:
+        frames[-1].save(
+            staged_path,
+            format="ICO",
+            sizes=[frame.size for frame in frames],
+            append_images=frames[:-1],
+        )
+        os.replace(staged_path, out_path)
+    finally:
+        if os.path.exists(staged_path):
+            os.remove(staged_path)
     return out_path
 
 
 def load_png(path):
     """Load source art, center it on a transparent square, and normalize to BASE."""
-    image = Image.open(path).convert("RGBA")
+    with Image.open(path) as source:
+        image = source.convert("RGBA")
     if image.width != image.height:
         side = max(image.size)
         square = Image.new("RGBA", (side, side), (0, 0, 0, 0))

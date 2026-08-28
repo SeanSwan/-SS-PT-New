@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import datetime
 import glob
+import locale
 import os
 import re
 import sys
@@ -32,8 +33,8 @@ import sys
 DESKTOP = os.path.join(os.path.expanduser("~"), "Desktop")
 
 RE_SET = re.compile(r'^\s*set\s+"([A-Za-z_][A-Za-z0-9_]*)=([^"]*)"', re.I | re.M)
-RE_NOTEXIST = re.compile(r'if\s+not\s+exist\s+"([^"]+)"', re.I)
-RE_CD = re.compile(r'cd\s+/d\s+"([^"]+)"', re.I)
+RE_NOTEXIST = re.compile(r'if\s+(?:/i\s+)?not\s+exist\s+"([^"]+)"', re.I)
+RE_CD = re.compile(r'\b(?:cd(?:\s+/d)?|pushd)\s+"([^"]+)"', re.I)
 # Quoted paths may contain spaces. Bare paths may not: in command syntax the first
 # whitespace starts the next argument. Keeping those grammars separate prevents
 # `git worktree add C:\tmp\repo branch/name` from becoming one imaginary path.
@@ -100,6 +101,17 @@ def dependencies(text: str) -> tuple[set[str], dict]:
     return clean, env
 
 
+def read_launcher(path) -> str:
+    """Decode modern UTF-8 launchers, then fall back to the Windows ANSI code page."""
+    with open(path, "rb") as stream:
+        raw = stream.read()
+    try:
+        return raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        fallback = "mbcs" if os.name == "nt" else locale.getpreferredencoding(False)
+        return raw.decode(fallback, errors="replace")
+
+
 def main() -> int:
     files = sorted(glob.glob(os.path.join(DESKTOP, "*.cmd")))
     if not files:
@@ -112,7 +124,7 @@ def main() -> int:
     print("  " + "-" * 96)
 
     for path in files:
-        text = open(path, encoding="utf-8", errors="replace").read()
+        text = read_launcher(path)
         deps, _ = dependencies(text)
         missing = sorted(d for d in deps if not os.path.exists(d))
         mtime = datetime.date.fromtimestamp(os.path.getmtime(path))

@@ -61,6 +61,25 @@ class LauncherAuditTests(unittest.TestCase):
         )
         self.assertEqual({r"C:\Program Data\tool.txt"}, dependencies)
 
+    def test_if_not_exist_with_i_switch_expands_launcher_variables(self):
+        dependencies, _ = audit_launchers.dependencies(
+            'set "ROOT=C:\\gone"\nif /i not exist "%ROOT%\\tool.exe" exit /b 1'
+        )
+        self.assertIn(r"C:\gone\tool.exe", dependencies)
+
+    def test_cd_without_d_and_pushd_expand_launcher_variables(self):
+        dependencies, _ = audit_launchers.dependencies(
+            'set "ROOT=C:\\repo"\ncd "%ROOT%"\npushd "%ROOT%\\backend"'
+        )
+        self.assertEqual({r"C:\repo", r"C:\repo\backend"}, dependencies)
+
+    def test_cp1252_launcher_path_decodes_without_replacement_characters(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = pathlib.Path(temp) / "ansi.cmd"
+            source.write_bytes('if not exist "C:\\José\\tool.exe" exit /b 1'.encode("cp1252"))
+            dependencies, _ = audit_launchers.dependencies(audit_launchers.read_launcher(source))
+        self.assertEqual({"C:\\José\\tool.exe"}, dependencies)
+
     def test_system_prefix_requires_a_path_boundary(self):
         dependencies, _ = audit_launchers.dependencies(
             r"call C:\WindowsEvil\tool.exe"
@@ -103,15 +122,27 @@ class SwanIconTests(unittest.TestCase):
                 }
         self.assertEqual(colors, actual)
 
+    def test_ico_writer_preserves_existing_icon_when_serialization_fails(self):
+        with tempfile.TemporaryDirectory() as temp:
+            target = pathlib.Path(temp) / "existing.ico"
+            target.write_bytes(b"previous-good-icon")
+
+            def partial_write_then_fail(_image, path, **_kwargs):
+                pathlib.Path(path).write_bytes(b"partial")
+                raise RuntimeError("synthetic serializer failure")
+
+            with mock.patch.object(Image.Image, "save", autospec=True, side_effect=partial_write_then_fail):
+                with self.assertRaisesRegex(RuntimeError, "synthetic serializer failure"):
+                    swan_icon.write_ico(Image.new("RGBA", (1024, 1024)), target)
+            self.assertEqual(b"previous-good-icon", target.read_bytes())
+
     def test_production_modules_respect_300_line_limit(self):
         production = [
             HERE / "audit_launchers.py",
             HERE / "swan_icon.py",
             HERE / "Set-SwanLauncher.ps1",
         ]
-        optional_io = HERE / "swan_icon_io.py"
-        if optional_io.exists():
-            production.append(optional_io)
+        production.append(HERE / "swan_icon_io.py")
         lengths = {
             path.name: len(path.read_text(encoding="utf-8").splitlines())
             for path in production

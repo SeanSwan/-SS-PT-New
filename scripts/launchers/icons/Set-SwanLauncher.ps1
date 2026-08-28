@@ -159,6 +159,52 @@ if ([string]::IsNullOrWhiteSpace($Name) -or
 Write-Host ''
 Write-Host "  Launcher : $Cmd"
 
+# --- collision preflight --------------------------------------------------------------------
+$DesktopRoot = [System.IO.Path]::GetFullPath($Desktop)
+$LnkPath = [System.IO.Path]::GetFullPath((Join-Path $DesktopRoot "$Name.lnk"))
+if (-not [string]::Equals(
+    [System.IO.Path]::GetDirectoryName($LnkPath),
+    $DesktopRoot,
+    [System.StringComparison]::OrdinalIgnoreCase
+)) {
+    [Console]::Error.WriteLine('Resolved shortcut path must remain directly inside the Desktop directory.')
+    exit 2
+}
+$existed = Test-Path -LiteralPath $LnkPath
+$sh = New-Object -ComObject WScript.Shell
+$preserveExistingSemantics = $false
+$replaceForeign = $false
+
+if ($existed) {
+    $prior = $sh.CreateShortcut($LnkPath)
+    $priorTarget = $prior.TargetPath
+    $sameTarget = $false
+    if ($priorTarget) {
+        try {
+            $sameTarget = [string]::Equals(
+                [System.IO.Path]::GetFullPath($priorTarget),
+                $Cmd,
+                [System.StringComparison]::OrdinalIgnoreCase
+            )
+        } catch { $sameTarget = $false }
+    }
+    if (-not $sameTarget -and -not $Force) {
+        Write-Host ''
+        Write-Host "  REFUSED - a different shortcut already owns that name." -ForegroundColor Red
+        Write-Host "    $LnkPath"
+        Write-Host "    currently points at : $priorTarget"
+        Write-Host "    would be changed to : $Cmd"
+        if ($prior.Arguments)  { Write-Host "    it also carries arguments: $($prior.Arguments)" }
+        if ($prior.Hotkey)     { Write-Host "    it also carries a hotkey : $($prior.Hotkey)" }
+        Write-Host ''
+        Write-Host "  Re-run with -Force to replace it (the original is backed up first)," -ForegroundColor DarkYellow
+        Write-Host "  or pass -Name to write a differently-named shortcut instead." -ForegroundColor DarkYellow
+        Write-Host ''
+        exit 3
+    }
+    if ($sameTarget) { $preserveExistingSemantics = $true } else { $replaceForeign = $true }
+}
+
 # --- icon -----------------------------------------------------------------------------------
 if (-not $Icon) {
     if (-not (Test-Path -LiteralPath $IconPy)) { throw "swan_icon.py not found beside this script: $IconPy" }
@@ -193,83 +239,37 @@ if (-not $Icon) {
     if (-not [System.IO.Path]::IsPathRooted($Icon)) { $Icon = Join-Path $Desktop $Icon }
     if (-not (Test-Path -LiteralPath $Icon)) { throw "No such icon: $Icon" }
     $Icon = (Resolve-Path -LiteralPath $Icon).Path
-    # IconLocation is the positional string "path,index". A comma in the path itself makes that
-    # ambiguous, and commas are legal in folder names - "Doe, John" profiles exist. The generated
-    # path is safe by construction; this only guards the -Icon escape hatch.
-    if ($Icon.Contains(',')) {
-        throw "Icon path contains a comma, which IconLocation cannot express unambiguously: $Icon`nCopy it somewhere without a comma and pass that."
-    }
 }
 
-# --- shortcut ---------------------------------------------------------------------------------
-$DesktopRoot = [System.IO.Path]::GetFullPath($Desktop)
-$LnkPath = [System.IO.Path]::GetFullPath((Join-Path $DesktopRoot "$Name.lnk"))
-if (-not [string]::Equals(
-    [System.IO.Path]::GetDirectoryName($LnkPath),
-    $DesktopRoot,
-    [System.StringComparison]::OrdinalIgnoreCase
-)) {
-    [Console]::Error.WriteLine('Resolved shortcut path must remain directly inside the Desktop directory.')
-    exit 2
-}
-$existed = Test-Path -LiteralPath $LnkPath
-$sh = New-Object -ComObject WScript.Shell
-$preserveExistingSemantics = $false
-
-if ($existed) {
-    # Read what is there BEFORE touching it. CreateShortcut binds an existing shortcut for
-    # editing and Save() preserves every field we do not set - so writing blind would repoint
-    # someone else's shortcut at our .cmd while its Arguments and Hotkey survived.
-    $prior = $sh.CreateShortcut($LnkPath)
-    $priorTarget = $prior.TargetPath
-    $sameTarget = $false
-    if ($priorTarget) {
-        try {
-            $sameTarget = [string]::Equals(
-                [System.IO.Path]::GetFullPath($priorTarget),
-                $Cmd,
-                [System.StringComparison]::OrdinalIgnoreCase
-            )
-        } catch { $sameTarget = $false }
-    }
-    if (-not $sameTarget) {
-        if (-not $Force) {
-            Write-Host ''
-            Write-Host "  REFUSED - a different shortcut already owns that name." -ForegroundColor Red
-            Write-Host "    $LnkPath"
-            Write-Host "    currently points at : $priorTarget"
-            Write-Host "    would be changed to : $Cmd"
-            if ($prior.Arguments)  { Write-Host "    it also carries arguments: $($prior.Arguments)" }
-            if ($prior.Hotkey)     { Write-Host "    it also carries a hotkey : $($prior.Hotkey)" }
-            Write-Host ''
-            Write-Host "  Re-run with -Force to replace it (the original is backed up first)," -ForegroundColor DarkYellow
-            Write-Host "  or pass -Name to write a differently-named shortcut instead." -ForegroundColor DarkYellow
-            Write-Host ''
-            exit 3
-        }
-        # -Force: back up, then DELETE so the new shortcut is built clean rather than inheriting
-        # stale Arguments/Hotkey/WindowStyle from whatever was there.
-        $backup = "$LnkPath.bak-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-        Copy-Item -LiteralPath $LnkPath -Destination $backup -Force
-        Remove-Item -LiteralPath $LnkPath -Force
-        Write-Host "  Replaced a foreign shortcut. Original backed up:" -ForegroundColor DarkYellow
-        Write-Host "    $backup" -ForegroundColor DarkYellow
-    } else {
-        $preserveExistingSemantics = $true
-    }
+# --- shortcut write -------------------------------------------------------------------------
+$backup = $null
+if ($replaceForeign) {
+    $backup = "$LnkPath.bak-$(Get-Date -Format 'yyyyMMdd-HHmmss')-$([guid]::NewGuid().ToString('N').Substring(0, 8))"
+    Copy-Item -LiteralPath $LnkPath -Destination $backup
+    Remove-Item -LiteralPath $LnkPath -Force
+    Write-Host "  Replaced a foreign shortcut. Original backed up:" -ForegroundColor DarkYellow
+    Write-Host "    $backup" -ForegroundColor DarkYellow
 }
 
-$lnk = if ($preserveExistingSemantics) { $prior } else { $sh.CreateShortcut($LnkPath) }
-if (-not $preserveExistingSemantics) {
-    $lnk.Arguments = ''
-    $lnk.Hotkey = ''
-    $lnk.TargetPath = $Cmd
-    $lnk.WorkingDirectory = Split-Path -Parent $Cmd
-    $lnk.WindowStyle = 1
-    $lnk.Description = "SwanStudios - $Name"
+try {
+    $lnk = if ($preserveExistingSemantics) { $prior } else { $sh.CreateShortcut($LnkPath) }
+    if (-not $preserveExistingSemantics) {
+        $lnk.Arguments = ''
+        $lnk.Hotkey = ''
+        $lnk.TargetPath = $Cmd
+        $lnk.WorkingDirectory = Split-Path -Parent $Cmd
+        $lnk.WindowStyle = 1
+        $lnk.Description = "SwanStudios - $Name"
+    }
+    $lnk.IconLocation = "$Icon,0"
+    $lnk.Save()
+} catch {
+    if ($backup -and (Test-Path -LiteralPath $backup)) {
+        if (Test-Path -LiteralPath $LnkPath) { Remove-Item -LiteralPath $LnkPath -Force }
+        Copy-Item -LiteralPath $backup -Destination $LnkPath -Force
+    }
+    throw
 }
-$lnk.IconLocation = "$Icon,0"
-$lnk.Save()
 
 Write-Host "  Icon     : $Icon"
 Write-Host "  Shortcut : $LnkPath  $(if ($existed) { '(updated)' } else { '(created)' })"
