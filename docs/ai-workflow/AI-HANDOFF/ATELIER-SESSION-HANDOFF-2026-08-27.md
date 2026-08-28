@@ -1,10 +1,17 @@
 ---
 decision: "Comprehensive handoff for the Swan Atelier workstream as of 2026-08-27. Covers the eleven-round hostile-review loop, the thumbnail slice, the reuse slice, and every correction made to earlier claims. Written so the next agent continues without re-deriving anything or asking Sean a question already answered."
-status: open
+status: superseded
 supersedes: docs/ai-workflow/AI-HANDOFF/ATELIER-LOOP-SESSION-HANDOFF-2026-08-26.md
 ---
 
 # Swan Atelier — comprehensive handoff · 2026-08-27
+
+> **SUPERSEDED for current state by `ATELIER-VIDEO-POSTER-HANDOFF-2026-08-28.md`.** Still
+> correct for the studio as a whole and the earlier build slices. Three things in it are now
+> known wrong and are corrected there: §5a's baseline-failure list names suites that do not
+> LOAD rather than ones that fail; §5's backend glob is keyword-based and cannot see test
+> files added since; and its backlog #1 framing ("ask Sean whether the Assets tab should list
+> video") was already answered by shipped code — it does.
 
 **Read this file, then `git log --oneline main..HEAD`. Nothing else is required to start.**
 
