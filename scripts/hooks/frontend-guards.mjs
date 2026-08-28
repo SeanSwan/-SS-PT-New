@@ -42,7 +42,20 @@ const FRONTEND_RE = /^frontend\/src\/.+\.(tsx?|jsx?|css)$/;
 
 function stagedFiles() {
   const out = execFileSync('git', ['diff', '--cached', '--name-only', '--diff-filter=ACMR'], { encoding: 'utf8' });
-  return out.split('\n').filter((f) => FRONTEND_RE.test(f));
+  const names = out.split('\n');
+  // X1b — SELECTION must be merge-aware, not just the exemption. `git diff --cached` is
+  // index-vs-HEAD, so during a merge a path whose resolution equals THIS BRANCH's pre-merge
+  // copy is not listed at all — even though the merge just discarded main's version of it.
+  // Concretely: main FIXED a G5 violation, the merge resolves by keeping the branch's old
+  // file, and the fix is silently reverted with the guard never looking. G5 is the
+  // production-outage class (error #12 at mount), so that is not a style regression.
+  // Found by attacking X1 rather than by testing it, alongside the same hole in the
+  // constitution guard. FAILS CLOSED: outside a merge, selection is exactly as before.
+  if (MERGE_IN_PROGRESS) {
+    const vsMain = gitOut(['diff', '--cached', '--name-only', '--diff-filter=ACMR', 'origin/main']);
+    if (vsMain !== null) for (const f of vsMain.split('\n')) if (!names.includes(f)) names.push(f);
+  }
+  return names.filter((f) => FRONTEND_RE.test(f));
 }
 
 function stagedContent(file) {
@@ -83,10 +96,55 @@ function gitOut(args) {
   }
 }
 
-const MERGE_IN_PROGRESS = gitOut(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null;
+// `git merge --squash` stages every carried byte and writes NO MERGE_HEAD, only SQUASH_MSG.
+// Keyed on MERGE_HEAD alone, a squash-sync of main got zero relief and every carried
+// violation was billed to this commit. Verified against real git. (Flash, R8, finding 2.)
+const MERGE_IN_PROGRESS = (() => {
+  if (gitOut(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null) return true;
+  const dir = gitOut(['rev-parse', '--git-dir']);
+  return Boolean(dir) && existsSync(`${dir}/SQUASH_MSG`);
+})();
+
+// Paths git recorded as CONFLICTED in this merge. A conflict means a human or agent CHOSE a
+// side, and choosing main's side is not the same act as carrying main's bytes untouched — even
+// though the resulting blob is byte-identical and so indistinguishable to the OID predicate.
+// The case that matters: main holds a G5 violation, THIS BRANCH FIXED IT, the conflict is
+// resolved to main's side, and the fix is silently reverted with the guard exempting the file.
+// So: a conflicted path is never exempt, whatever its OID says.
+//
+// MERGE_MSG records these as COMMENTED lines ("# Conflicts:" then "#\t<path>"), not the bare
+// "Conflicts:" a first reading assumed — verified against a real conflicted merge before use.
+// Read via `git rev-parse --git-dir`, never a literal `.git/`: in a WORKTREE the gitdir lives
+// elsewhere and the literal path silently reports "no conflicts", which would fail OPEN.
+// (GLM 5.3, hostile round 8, A1.)
+const CONFLICTED = (() => {
+  if (!MERGE_IN_PROGRESS) return new Set();
+  const dir = gitOut(['rev-parse', '--git-dir']);
+  if (!dir) return null; // unknown => treat every path as conflicted (fail CLOSED)
+  let text = '';
+  try {
+    text = readFileSync(`${dir}/MERGE_MSG`, 'utf8');
+  } catch {
+    // git writes MERGE_MSG for EVERY merge, conflicted or clean — verified, not assumed.
+    // So during a merge its absence is an anomaly, not "no conflicts", and reading it as the
+    // latter would silently exempt every path. Unknown => fail CLOSED.
+    return null;
+  }
+  const out = new Set();
+  let inBlock = false;
+  for (const line of text.split('\n')) {
+    if (/^#\s*Conflicts:/.test(line)) { inBlock = true; continue; }
+    if (!inBlock) continue;
+    const m = /^#\s+(.+?)\s*$/.exec(line);
+    if (m) out.add(m[1]); else if (line.trim() === '' || !line.startsWith('#')) inBlock = false;
+  }
+  return out;
+})();
 
 function verbatimCarryFrom(file) {
   if (!MERGE_IN_PROGRESS) return null;
+  // fail CLOSED: null means we could not determine the conflict set
+  if (CONFLICTED === null || CONFLICTED.has(file)) return null;
   const staged = (gitOut(['ls-files', '-s', '--', file]) || '').match(/^\d+\s+([0-9a-f]{40})\s/);
   const main = gitOut(['rev-parse', `origin/main:${file}`]);
   if (!staged || !main || staged[1] !== main) return null;

@@ -263,6 +263,101 @@ t('X1 FAILS CLOSED: merge in progress but origin/main unresolvable => no exempti
   if (res.status === 0) throw new Error(`unresolvable origin/main must fail CLOSED: ${res.stdout}${res.stderr}`);
 });
 
+
+// ---- X1b: SELECTION must be merge-aware too ---------------------------------
+// The exemption was only half of it. `git diff --cached` is index-vs-HEAD, so a merge
+// resolved by keeping the BRANCH's copy leaves the path un-staged relative to HEAD and the
+// guard never looks at it — while the merge has just discarded main's version. If main had
+// FIXED a violation there, the merge silently reverts the fix. Same hole as the constitution
+// guard's, found by attacking X1 rather than by testing it.
+t('X1b: a merge that reverts main\'s FIX by keeping the branch file is still CHECKED', () => {
+  const r = mkdtempSync(join(tmpdir(), 'fg-x1b-'));
+  mkdirSync(join(r, 'frontend', 'src'), { recursive: true });
+  git(r, 'init', '-q', '-b', 'trunk');
+  git(r, 'config', 'user.email', 't@t.t'); git(r, 'config', 'user.name', 't');
+  git(r, 'config', 'commit.gpgsign', 'false');
+  writeFileSync(join(r, 'seed.txt'), 'seed\n');
+  git(r, 'add', '-A'); git(r, 'commit', '-qm', 'seed', '--no-verify');
+  const base = git(r, 'rev-parse', 'HEAD').stdout.trim();
+
+  // main FIXES the file (tokenised, clean)
+  writeFileSync(join(r, PATH), 'const c = `color: var(--accent, #123456);`;\n');
+  git(r, 'add', '-A'); git(r, 'commit', '-qm', 'main fixes the hex', '--no-verify');
+  git(r, 'update-ref', 'refs/remotes/origin/main', git(r, 'rev-parse', 'HEAD').stdout.trim());
+
+  // branch keeps the VIOLATING version.
+  // mkdir again: checking out `base` deletes frontend/src/carried.ts and git prunes the
+  // now-empty directory, so the next write ENOENTs without this.
+  git(r, 'checkout', '-q', '-b', 'side', base);
+  mkdirSync(join(r, 'frontend', 'src'), { recursive: true });
+  writeFileSync(join(r, PATH), VIOLATION);
+  git(r, 'add', '-A'); git(r, 'commit', '-qm', 'branch keeps the raw hex', '--no-verify');
+
+  git(r, 'merge', '--no-commit', '--no-ff', 'refs/remotes/origin/main');
+  // resolve by keeping the BRANCH's violating file => index == HEAD for this path
+  writeFileSync(join(r, PATH), VIOLATION);
+  git(r, 'add', '--', PATH);
+  const stagedVsHead = git(r, 'diff', '--cached', '--name-only').stdout.split('\n');
+  const res = guardStaged(r);
+  rmSync(r, { recursive: true, force: true });
+  // precondition: if the path DID show up vs HEAD this test proves nothing
+  if (stagedVsHead.includes(PATH)) throw new Error('precondition failed: path appeared in diff --cached vs HEAD');
+  if (res.status === 0) throw new Error(`reverting main's fix must still be judged: ${res.stdout}${res.stderr}`);
+  if (!/G4 hardcoded-hex/.test(res.stdout + res.stderr)) throw new Error(`expected G4: ${res.stdout}${res.stderr}`);
+});
+// ---- A1: a CONFLICT resolved to main's side is not a "carry" ----------------
+// main holds a violation, THIS BRANCH FIXED IT, the merge conflicts, the resolver takes main's
+// side. The staged blob is byte-identical to main's, so the OID predicate alone cannot tell
+// this from a genuine carry — but the branch's fix has just been silently reverted. Git
+// recorded the difference in MERGE_MSG's commented "# Conflicts:" block. (GLM 5.3, R8, A1.)
+t('A1: a conflicted path resolved to main\'s side is NOT exempt', () => {
+  const r = mkdtempSync(join(tmpdir(), 'fg-a1-'));
+  mkdirSync(join(r, 'frontend', 'src'), { recursive: true });
+  git(r, 'init', '-q', '-b', 'trunk');
+  git(r, 'config', 'user.email', 't@t.t'); git(r, 'config', 'user.name', 't');
+  git(r, 'config', 'commit.gpgsign', 'false');
+  writeFileSync(join(r, PATH), 'const seed = 1;\n');
+  git(r, 'add', '-A'); git(r, 'commit', '-qm', 'seed', '--no-verify');
+  const base = git(r, 'rev-parse', 'HEAD').stdout.trim();
+
+  // main keeps the VIOLATION
+  writeFileSync(join(r, PATH), VIOLATION);
+  git(r, 'add', '-A'); git(r, 'commit', '-qm', 'main has the raw hex', '--no-verify');
+  git(r, 'update-ref', 'refs/remotes/origin/main', git(r, 'rev-parse', 'HEAD').stdout.trim());
+
+  // branch FIXES it -> both sides modified the same file -> real conflict
+  git(r, 'checkout', '-q', '-b', 'side', base);
+  mkdirSync(join(r, 'frontend', 'src'), { recursive: true });
+  writeFileSync(join(r, PATH), 'const c = `color: var(--accent, #123456);`;\n');
+  git(r, 'add', '-A'); git(r, 'commit', '-qm', 'branch fixes it', '--no-verify');
+
+  git(r, 'merge', '--no-commit', '--no-ff', 'refs/remotes/origin/main');
+  // resolve to MAIN's side: blob becomes byte-identical to origin/main's
+  writeFileSync(join(r, PATH), VIOLATION);
+  git(r, 'add', '--', PATH);
+
+  const staged = git(r, 'ls-files', '-s', '--', PATH).stdout.match(/^\d+ ([0-9a-f]{40})/);
+  const main = git(r, 'rev-parse', 'refs/remotes/origin/main:' + PATH).stdout.trim();
+  const res = guardStaged(r);
+  rmSync(r, { recursive: true, force: true });
+  // precondition: if the blobs differ this proves nothing — the OID predicate would catch it anyway
+  if (!staged || staged[1] !== main) throw new Error('precondition failed: staged blob must equal main\'s for this test to mean anything');
+  if (res.status === 0) throw new Error(`a conflict resolved to main must still be judged: ${res.stdout}${res.stderr}`);
+  if (!/G4 hardcoded-hex/.test(res.stdout + res.stderr)) throw new Error(`expected G4: ${res.stdout}${res.stderr}`);
+});
+
+t('A1 FAILS CLOSED: MERGE_MSG unreadable => nothing is exempt', () => {
+  // git writes MERGE_MSG for every merge, so during a merge its absence is an anomaly.
+  // Reading that as "no conflicts" would silently exempt every carried path — the mutation
+  // that survived the first pass, which is why this test exists.
+  const r = repoWithMerge({ mainText: VIOLATION });
+  const gd = git(r, 'rev-parse', '--git-dir').stdout.trim();
+  rmSync(join(r, gd, 'MERGE_MSG'), { force: true });
+  const res = guardStaged(r);
+  rmSync(r, { recursive: true, force: true });
+  if (res.status === 0) throw new Error(`unreadable MERGE_MSG must exempt nothing: ${res.stdout}${res.stderr}`);
+});
+
 rmSync(root, { recursive: true, force: true });
 console.log(`\n${pass} passed, ${fail.length} failed`);
 if (fail.length) process.exit(1);

@@ -288,5 +288,25 @@ t('X3 FAILS CLOSED: merge in progress but origin/main missing => baseline stays 
   } finally { s.cleanup(); }
 });
 
+// ---- A5: the diff must FAIL CLOSED, never silently report zero added lines ----
+// The catch here used to swallow every git failure into `diff = ''`, which means the file
+// contributes no added lines and is never judged — a guard reporting green on work it never
+// looked at. The call also had no maxBuffer, so Node's 1 MiB default turned a large diff into
+// exactly that silent pass, and basing the diff on origin/main made large diffs MORE likely.
+// (GLM 5.3 + Flash, R8, A5 — independently reported, verified: no maxBuffer existed anywhere.)
+t('A5 FAILS CLOSED: a git diff that errors BLOCKS instead of reporting clean', () => {
+  // running outside a git repo makes `git diff` exit non-zero — the cheapest real throw
+  const d = mkdtempSync(join(tmpdir(), 'tokreg-nogit-'));
+  try {
+    mkdirSync(join(d, 'frontend', 'src', 'styles'), { recursive: true });
+    writeFileSync(join(d, 'frontend', 'src', 'styles', 'theme.css'), ':root{--a:#fff;}');
+    writeFileSync(join(d, 'frontend', 'src', 'x.ts'), 'export const a = `var(--never, #fff);`;');
+    const r = spawnSync('node', [SCRIPT, '--added-only', '--file', 'frontend/src/x.ts'], { cwd: d, encoding: 'utf8' });
+    const out = `${r.stdout}${r.stderr}`;
+    assert.equal(r.status, 1, `an unreadable diff must BLOCK, not pass: ${out}`);
+    assert.match(out, /could not diff/);
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
 console.log(`\ntoken-registry-check: ${pass} passed, ${fail.length} failed`);
 if (fail.length) process.exit(1);

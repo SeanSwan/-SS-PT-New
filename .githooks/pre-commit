@@ -86,8 +86,20 @@ fi
 # "read for contradiction" is: resolve the document's verifiable assertions against
 # ground truth. Cited paths are the cheapest such assertion — first run found five
 # documents that NEVER existed in git, two of them marked MANDATORY.
+# A constitution file counts as touched if it differs from HEAD *or*, during a merge, from
+# origin/main -- a merge resolved by keeping the branch copy is invisible to the former while
+# having just discarded main's rules. See the X2c note in constitution-guard.mjs.
+staged_matches() {
+  git diff --cached --name-only | grep -qE "$1" && return 0
+  if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 && git rev-parse -q --verify origin/main >/dev/null 2>&1; then
+    git diff --cached --name-only origin/main | grep -qE "$1" && return 0
+  fi
+  return 1
+}
+constitution_touched() { staged_matches '^(CLAUDE\.md|AGENTS\.md)$'; }
+
 CONSTITUTION_REFS="$REPO_ROOT/scripts/hooks/constitution-references.mjs"
-if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md)$'; then
+if constitution_touched; then
   if [[ -f "$CONSTITUTION_REFS" ]]; then
     echo "[pre-commit] Resolving constitution references..."
     if ! node "$CONSTITUTION_REFS"; then
@@ -116,7 +128,17 @@ TOKEN_CHECK="$REPO_ROOT/scripts/hooks/token-registry-check.mjs"
 # not exist, so such a file would be SKIPPED while its siblings passed — a gate that
 # reports green on work it never looked at. frontend/src already contains one path with
 # a space today.
-mapfile -t STAGED_FE < <(git diff --cached --name-only --diff-filter=ACM -- 'frontend/src/*.ts' 'frontend/src/*.tsx' 'frontend/src/*.css')
+# MERGE-AWARE SELECTION (2026-08-27). `git diff --cached` is index-vs-HEAD, so during a merge
+# a path whose resolution equals THIS BRANCH's pre-merge copy is not listed -- even though the
+# merge just discarded main's version of it. If main had DEFINED a token that the branch's copy
+# uses raw, the merge silently reverts that and this gate never looks. Same class as the holes
+# found in frontend-guards and constitution-guard the same day. Fails closed: outside a merge,
+# or with origin/main unreadable, the list is exactly what it was before.
+if git rev-parse -q --verify MERGE_HEAD >/dev/null 2>&1 && git rev-parse -q --verify origin/main >/dev/null 2>&1; then
+  mapfile -t STAGED_FE < <( { git diff --cached --name-only --diff-filter=ACM -- 'frontend/src/*.ts' 'frontend/src/*.tsx' 'frontend/src/*.css';                               git diff --cached --name-only --diff-filter=ACM origin/main -- 'frontend/src/*.ts' 'frontend/src/*.tsx' 'frontend/src/*.css'; } | sort -u )
+else
+  mapfile -t STAGED_FE < <(git diff --cached --name-only --diff-filter=ACM -- 'frontend/src/*.ts' 'frontend/src/*.tsx' 'frontend/src/*.css')
+fi
 if [[ ${#STAGED_FE[@]} -gt 0 ]]; then
   if [[ -f "$TOKEN_CHECK" ]]; then
     # The checker reads the WORKING TREE, while --added-only reads added lines from the
@@ -144,7 +166,7 @@ if [[ ${#STAGED_FE[@]} -gt 0 ]]; then
 fi
 
 SKILL_REGISTRY="$REPO_ROOT/scripts/ai-workflow/validate-skill-registry.mjs"
-if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.claude/skills/|\.agents/skills/)'; then
+if staged_matches '^(CLAUDE\.md|AGENTS\.md|\.claude/skills/|\.agents/skills/)'; then
   if [[ -f "$SKILL_REGISTRY" ]]; then
     echo "[pre-commit] Running skill-advertising parity check..."
     if ! node "$SKILL_REGISTRY" --check; then
@@ -157,7 +179,7 @@ if git diff --cached --name-only | grep -qE '^(CLAUDE\.md|AGENTS\.md|\.claude/sk
 fi
 
 BRAIN_LINKS="$REPO_ROOT/scripts/design-brain/check-brain-links.mjs"
-if git diff --cached --name-only | grep -qE '^(docs/ai-workflow/design-brain/|scripts/design-brain/)'; then
+if staged_matches '^(docs/ai-workflow/design-brain/|scripts/design-brain/)'; then
   if [[ -f "$BRAIN_LINKS" ]]; then
     # The checker reads the WORKING TREE, not the staged index. If any brain file differs
     # between them, a pass here says nothing about the blob being committed: stage a broken

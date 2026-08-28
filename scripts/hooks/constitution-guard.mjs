@@ -86,11 +86,38 @@
  * reads as a REVERSION — the merge is carrying main's newer text over this branch's
  * older copy, and the guard calls adopting current law a regression.
  *
- * So when MERGE_HEAD is present the baseline becomes origin/main: "does this merge lose
- * law relative to the branch that HOLDS current law." Strictly the right question, and
- * strictly stronger — a merge that clobbers one of main's rules with this branch's older
- * text still shrinks against main and is still BLOCKED. FAILS CLOSED: no MERGE_HEAD, or
- * origin/main unreadable, and the baseline stays HEAD with every check unchanged.
+ * So when MERGE_HEAD is present the baseline becomes origin/main. FAILS CLOSED: no
+ * MERGE_HEAD, or origin/main unreadable, and the baseline stays HEAD with every check
+ * unchanged.
+ *
+ * X2b — AND THE BASELINE IS THE UNION OF BOTH PARENTS, NOT ONE OF THEM.
+ * Substituting origin/main for HEAD (X2's first form) fixed the false positive and opened a
+ * REAL hole. Confirmed by constructing it, in the same hostile round that shipped X2: a rule
+ * this BRANCH legitimately added, which main never had, could be silently dropped by the merge
+ * and the guard saw nothing — origin/main has no such rule, so its absence is not a removal.
+ * That is exactly the 10a3e7fa1 class this guard exists to stop, re-opened by its own fix.
+ * The lesson, worth more than the patch: a guard's baseline may be WIDENED, never SWAPPED.
+ *   PRESENCE — a rule in EITHER parent must survive (union of keys).
+ *   BODY     — judged against origin/main's copy where main has the rule (so main's deliberate
+ *              trims read as adoption), and against HEAD's copy for a branch-only rule.
+ * Blockers name the parent a rule actually came from, so nobody is sent to the wrong tree.
+ *
+ * X2c — SELECTION had the same blind spot and it was WORSE, because baseline logic never runs
+ * on a file the guard does not select. `git diff --cached` is index-vs-HEAD, so a merge
+ * resolved by keeping the branch's CLAUDE.md leaves it un-staged relative to HEAD: the guard
+ * printed 'no constitution file staged — SKIP' and the commit went green with every rule main
+ * added since the fork discarded. That one PREDATED X2 entirely and was live on main.
+ *
+ * X2d — BODY must be judged three-way, not against one parent. 'staged == main's copy, HEAD's
+ * differs' covers two opposite situations that are textually identical: main deliberately
+ * trimmed (adopt) versus the merge discarded THIS branch's newer law (block). Only the merge
+ * base separates them, so the merge base is what decides.
+ *
+ * X2e — AGGREGATE shrink is measured PER PARENT. Pooling lets adopted, unchanged mass from a
+ * long-diverged main dilute the 0.5% budget until a real death-by-a-thousand-trims fits under it.
+ *
+ * Every one of X2b-X2e was found by ATTACKING X2, not by testing it. The first fix opened a
+ * hole of the same class it closed; that is the argument for hostile review of a fix.
  *
  * Found when a zero-conflict sync merge reported 13 rules "REVERTED, stale-copy
  * signature" whose staged bodies were byte-identical to origin/main — main had trimmed
@@ -100,6 +127,7 @@
  * EXIT: 0 = pass or not applicable. 1 = blocked.
  */
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 
 const MIRROR_MARKER = '--- project-doc mirror from CLAUDE.md ---';
 const FILES = ['CLAUDE.md', 'AGENTS.md'];
@@ -115,6 +143,22 @@ const git = (args) => {
   });
   return { ok: r.status === 0, out: r.stdout ?? '', err: r.stderr ?? '' };
 };
+
+// `git merge --squash` stages every carried byte and writes NO MERGE_HEAD - only SQUASH_MSG.
+// Keying merge-mode on MERGE_HEAD alone left the closest sibling of the operation this work
+// exists to support uncovered: a squash-sync of main reproduces the original incident
+// verbatim, reporting main's own rules as 'REVERTED, stale-copy signature'. Verified against
+// a real `merge --squash`, not assumed. (GLM 5.3 Flash, R8, finding 2.)
+const SQUASHING = (() => {
+  const dir = git(['rev-parse', '--git-dir']);
+  if (!dir.ok) return false;
+  return existsSync(`${dir.out.trim()}/SQUASH_MSG`);
+})();
+const MERGING = git(['rev-parse', '-q', '--verify', 'MERGE_HEAD']).ok || SQUASHING;
+// The ref whose content this operation is ADOPTING. MERGE_HEAD names it exactly and is immune
+// to origin/main moving mid-merge; a squash does not record its source, so origin/main is the
+// only anchor available there and the merge base is taken against it.
+const CARRY_REF = git(['rev-parse', '-q', '--verify', 'MERGE_HEAD']).ok ? 'MERGE_HEAD' : 'origin/main';
 
 /**
  * Rules as name -> {num, name, body, len, mandatory, amendments}, parsed from the
@@ -427,7 +471,34 @@ function die(reason) {
 const staged = git(['diff', '--cached', '--name-only']);
 if (!staged.ok) die(`could not list staged files (${staged.err.trim().slice(0, 120)})`);
 
-const touched = FILES.filter((f) => staged.out.split('\n').includes(f));
+// X2c — SELECTION, not just baseline. `git diff --cached` is index-vs-HEAD, so during a merge
+// a constitution file whose staged content equals THIS BRANCH's pre-merge copy does not appear
+// as staged at all — and the guard skips it entirely, whatever the baseline logic then does.
+//
+// That is reachable and severe: resolve a merge by keeping the branch's CLAUDE.md verbatim and
+// every rule main added since the branch forked is silently discarded, with the guard printing
+// "no constitution file staged — SKIP" and the commit going green. It is the 10a3e7fa1 class
+// arriving through a merge instead of through a whole-file rewrite.
+//
+// This one PREDATES the X2 baseline work — the selection line was never merge-aware. It was
+// found by attacking X2, which is the argument for attacking a fix rather than only testing it.
+//
+// So during a merge, a constitution file also counts as touched when it differs from
+// origin/main. FAILS CLOSED: outside a merge, or with origin/main unreadable, selection is
+// exactly as before.
+const stagedNames = staged.out.split('\n');
+let alsoTouched = [];
+if (MERGING && git(['rev-parse', '-q', '--verify', 'origin/main']).ok) {
+  const vsMain = git(['diff', '--cached', '--name-only', 'origin/main']);
+  if (!vsMain.ok) die(`could not diff the index against origin/main during a merge (${vsMain.err.trim().slice(0, 120)})`);
+  alsoTouched = vsMain.out.split('\n');
+  const extra = FILES.filter((f) => !stagedNames.includes(f) && alsoTouched.includes(f));
+  if (extra.length) {
+    console.log(`[constitution-guard] merge: ${extra.join(', ')} match(es) the pre-merge tip but DIFFER from origin/main — checking anyway`);
+  }
+}
+
+const touched = FILES.filter((f) => stagedNames.includes(f) || alsoTouched.includes(f));
 if (touched.length === 0) {
   console.log('[constitution-guard] no constitution file staged — SKIP');
   process.exit(0);
@@ -480,7 +551,6 @@ let checked = 0;
 // signature" whose staged bodies were byte-identical to origin/main — main had trimmed them
 // deliberately. Same structural gap the frontend guard had (X1): a guard that cannot tell
 // a line it AUTHORED from a line that ARRIVED.
-const MERGING = git(['rev-parse', '-q', '--verify', 'MERGE_HEAD']).ok;
 const BASELINE = MERGING && git(['rev-parse', '-q', '--verify', 'origin/main']).ok ? 'origin/main' : 'HEAD';
 if (BASELINE !== 'HEAD') {
   console.log(`[constitution-guard] merge in progress — baseline is ${BASELINE} (current law), not the pre-merge tip`);
@@ -492,12 +562,82 @@ for (const file of touched) {
   const next = git(['show', `:${file}`]);
   // D3: a file we cannot read is a file we cannot clear. Never skip past it.
   if (!head.ok) die(`${file}: could not read ${BASELINE} version (${head.err.trim().slice(0, 100)})`);
+  // During a merge the OTHER parent must also be read — see the union below. Same D3 rule:
+  // if we switched baseline to origin/main we are still accountable for HEAD's rules.
+  const otherRaw = BASELINE === 'HEAD' ? null : git(['show', `HEAD:${file}`]);
+  if (otherRaw && !otherRaw.ok) die(`${file}: could not read HEAD version for the merge union (${otherRaw.err.trim().slice(0, 100)})`);
   if (!next.ok) die(`${file}: could not read staged version (${next.err.trim().slice(0, 100)})`);
   const beforeText = file === 'AGENTS.md' ? head.out.slice(head.out.indexOf(MIRROR_MARKER)) : head.out;
   const afterText = file === 'AGENTS.md' ? next.out.slice(next.out.indexOf(MIRROR_MARKER)) : next.out;
 
-  const before = parseRules(beforeText);
+  const beforeOwn = parseRules(beforeText);
   const after = parseRules(afterText);
+
+  // X2b — the baseline during a merge is the UNION of both parents, not one of them.
+  //
+  // Substituting origin/main for HEAD (X2's first form) fixed the false positive and opened a
+  // REAL hole, confirmed by constructing it: a rule this BRANCH legitimately added, which main
+  // never had, could be silently dropped by the merge and the guard saw nothing — origin/main
+  // has no such rule, so its absence from the result is not a removal. That is precisely the
+  // 10a3e7fa1 class this guard exists to stop, re-opened by its own fix.
+  //
+  // Union semantics, per rule name:
+  //   PRESENCE  — a rule in EITHER parent must survive. Union keys, so nothing can hide by
+  //               being absent from the parent we happened to pick.
+  //   BODY      — compared against origin/main's copy when main has the rule (current law, which
+  //               is what makes main's deliberate trims read as adoption rather than reversion),
+  //               and against HEAD's copy for a rule only this branch carries.
+  // Merging main's map OVER head's gives exactly that in one pass.
+  let before = beforeOwn;
+  if (otherRaw && beforeOwn) {
+    const otherText = file === 'AGENTS.md'
+      ? otherRaw.out.slice(otherRaw.out.indexOf(MIRROR_MARKER))
+      : otherRaw.out;
+    const otherRules = parseRules(otherText);
+    if (!otherRules) {
+      blockers.push(`${file}: HEAD's "## MANDATORY Rules" section could not be parsed for the merge union — verify by hand.`);
+      continue;
+    }
+    // start from HEAD's rules, then let origin/main's copy win where both have the rule
+    // tag provenance so a blocker names the parent the rule ACTUALLY came from. Reporting
+    // "exists in origin/main" for a rule that only HEAD carries sends the reader to the wrong
+    // tree and costs them a turn (Rule 75, and the same class as rule 74's dead citation).
+    before = new Map([...otherRules].map(([k, v]) => [k, { ...v, from: 'the pre-merge HEAD' }]));
+    for (const [k, v] of beforeOwn) before.set(k, { ...v, from: BASELINE });
+
+    // X2d - PRESENCE was unioned; BODY was still one-sided, and that left the hole open.
+    //
+    // Taking origin/main's body as the yardstick makes main's deliberate trims read as
+    // adoption (correct) - and ALSO makes the merge DISCARDING this branch's own newer law
+    // read as adoption (wrong). Both are identical in text: staged == main's copy, HEAD's
+    // copy differs. Text cannot separate them.
+    //
+    // The MERGE BASE can. Three-way merge semantics, applied rule-wise:
+    //   base body == HEAD body  -> the branch never touched this rule; HEAD merely carries
+    //                              the pre-trim text, so adopting main's copy is correct.
+    //   base body != HEAD body  -> the BRANCH edited this rule after the fork, and taking
+    //                              main's side silently drops that edit. Must be loud.
+    // Only the second case is re-anchored, so the false positive X2 removed stays removed.
+    // (GLM 5.3, R8/B1: the finding was right, its proposed fix was not - 'block whenever
+    // staged equals one parent' would re-block every legitimate adoption.)
+    const mb = git(['merge-base', 'HEAD', CARRY_REF]);
+    if (!mb.ok) die(`${file}: merge in progress but the merge base is unreadable (${mb.err.trim().slice(0, 100)})`);
+    const baseRaw = git(['show', `${mb.out.trim()}:${file}`]);
+    const baseRules = baseRaw.ok
+      ? parseRules(file === 'AGENTS.md' ? baseRaw.out.slice(baseRaw.out.indexOf(MIRROR_MARKER)) : baseRaw.out)
+      : null;   // absent from the base => new on one side => no branch edit to lose
+    if (baseRules) {
+      for (const [key, headRule] of otherRules) {
+        const mainRule = beforeOwn.get(key);
+        const baseRule = baseRules.get(key);
+        if (!mainRule || !baseRule) continue;           // new on a side - nothing to lose
+        if (headRule.body === mainRule.body) continue;  // parents agree - no choice was made
+        if (headRule.body === baseRule.body) continue;  // branch never edited it - adopt main
+        before.set(key, { ...headRule, from: 'the pre-merge HEAD (this branch edited it after the fork)' });
+      }
+    }
+  }
+
   if (!before || !after) {
     blockers.push(`${file}: the "## MANDATORY Rules" section could not be parsed — the document shape changed. Verify by hand.`);
     continue;
@@ -568,7 +708,14 @@ for (const file of touched) {
   // counting it against the aggregate budget left the check unsatisfiable for the
   // RULEBOOK trailer's own `narrative-cut` class ("declare it" with no way to).
   // The budget still guards every UNDECLARED rule at full strength.
-  let aggBefore = 0; let aggAfter = 0;
+  // X2e - aggregate shrink is measured PER PARENT during a merge, never pooled.
+  // A long-diverged branch adopts many rules from main whose bodies are unchanged. Pooling
+  // them puts pure ballast in the denominator, so the fixed 0.5% budget stops describing the
+  // rules actually at risk and a real death-by-a-thousand-trims can hide behind adopted mass.
+  // Split by provenance, block if EITHER side exceeds. Outside a merge every rule shares one
+  // provenance, so this is arithmetically identical to the single pool it replaces.
+  // (GLM 5.3, hostile round 8, B3.)
+  const pools = new Map();
   for (const [key, was] of before) {
     const now = after.get(key);
     if (!now) continue;
@@ -576,7 +723,17 @@ for (const file of touched) {
       if (now.len !== was.len) usedHatch.add(String(was.num));
       continue;
     }
-    aggBefore += was.len; aggAfter += now.len;
+    const src = was.from ?? BASELINE;
+    const pool = pools.get(src) ?? { b: 0, a: 0 };
+    pool.b += was.len; pool.a += now.len;
+    pools.set(src, pool);
+  }
+  let aggBefore = 0; let aggAfter = 0;
+  let worstPool = null;
+  for (const [name, pool] of pools) {
+    aggBefore += pool.b; aggAfter += pool.a;
+    const shrink = pool.b ? (pool.b - pool.a) / pool.b : 0;
+    if (!worstPool || shrink > worstPool.shrink) worstPool = { name, shrink, b: pool.b, a: pool.a };
   }
   // Breadth bound on the declared SET (Ox prune-r2 F1, hardened GLM prune-r3 F1):
   // many individually-plausible declared trims must not compose into a gutting.
@@ -589,9 +746,9 @@ for (const file of touched) {
   if (declSetShrink > DECLARED_SET_FLOOR || declSetLost > DECLARED_SET_ABS_CAP) {
     blockers.push(`${file}: the DECLARED rules collectively lost ${declSetLost} chars (${(declSetShrink * 100).toFixed(1)}% of their combined ${declSetBefore}; growth does not offset) — individually-plausible trims stacking past ${DECLARED_SET_FLOOR * 100}% or ${DECLARED_SET_ABS_CAP} chars is a GUTTING of the set. Declare removals explicitly, or land the cut across separately reviewed commits.`);
   }
-  const aggShrink = aggBefore ? (aggBefore - aggAfter) / aggBefore : 0;
+  const aggShrink = worstPool ? worstPool.shrink : 0;
   if (aggShrink > AGGREGATE_SHRINK_TOLERANCE) {
-    blockers.push(`${file}: the surviving rules lost ${(aggShrink * 100).toFixed(1)}% of their combined length (${aggBefore} -> ${aggAfter} chars) even though no single rule tripped the per-rule floor. Death by a thousand trims is the same outcome as a clobber. Declare it or split it.`);
+    blockers.push(`${file}: the surviving rules from ${worstPool.name} lost ${(aggShrink * 100).toFixed(1)}% of their combined length (${worstPool.b} -> ${worstPool.a} chars) even though no single rule tripped the per-rule floor. Death by a thousand trims is the same outcome as a clobber. Declare it or split it.`);
   }
 
   console.log(`[constitution-guard] ${file}: ${before.size} rules in ${BASELINE} -> ${after.size} staged; ${removed.length} removed, ${renumbered.length} renumbered, ${reverted.length} reverted; aggregate body ${aggShrink >= 0 ? '-' : '+'}${Math.abs(aggShrink * 100).toFixed(2)}%`);
@@ -653,7 +810,7 @@ for (const file of touched) {
     blockers.push(`${file}: ${removed.length} rule(s) removed and ${added.length} added in the same commit — this may be a RENAME, not a deletion. If so, declare it: SWAN_RULE_RENAME="${hint}"`);
   }
 
-  for (const r of removed) blockers.push(`${file}: rule ${r.num} "${r.name.slice(0, 70)}" exists in ${BASELINE} and is GONE from the staged file.`);
+  for (const r of removed) blockers.push(`${file}: rule ${r.num} "${r.name.slice(0, 70)}" exists in ${r.from ?? BASELINE} and is GONE from the staged file.`);
   for (const { was, now } of renumbered) blockers.push(`${file}: "${was.name.slice(0, 60)}" renumbered ${was.num} -> ${now.num}. Every "Rule ${was.num}" citation in the repo now points elsewhere.`);
   for (const { was, why } of reverted) blockers.push(`${file}: rule ${was.num} "${was.name.slice(0, 55)}" looks REVERTED, not edited — ${why.join('; ')}. This is the stale-copy signature: older text restored over newer law.`);
 }

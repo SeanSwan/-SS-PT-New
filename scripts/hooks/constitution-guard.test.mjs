@@ -631,3 +631,199 @@ test('X2: with NO merge in progress the baseline stays HEAD and a reversion stil
     assert.match(out.stderr, /rule 46 .*REVERTED/s);
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });
+
+// ---- X2b: the merge baseline is the UNION of both parents --------------------
+// This is the hole X2's first form opened, found and closed in the same hostile round that
+// shipped it. A rule the BRANCH added, which main never had, was silently droppable by a
+// merge: origin/main has no such rule, so its absence from the result was not a removal —
+// exactly the 10a3e7fa1 class this guard exists to stop, re-opened by its own fix.
+// The general lesson these pin: a guard's baseline may be WIDENED, never SWAPPED.
+function unionRepo({ mainNums, branchNums, stagedNums }) {
+  const r = repo();
+  commitDocs(r, claudeDoc(BASE));
+  const base = r.g('rev-parse', 'HEAD').stdout.trim();
+  stageDocs(r, claudeDoc(mainNums)); r.g('commit', '-q', '-m', 'main moves on');
+  r.g('update-ref', 'refs/remotes/origin/main', r.g('rev-parse', 'HEAD').stdout.trim());
+  r.g('checkout', '-q', '-b', 'side', base);
+  stageDocs(r, claudeDoc(branchNums)); r.g('commit', '-q', '-m', 'branch adds its own rule');
+  r.g('merge', '--no-commit', '--no-ff', 'refs/remotes/origin/main');
+  const merging = r.g('rev-parse', '-q', '--verify', 'MERGE_HEAD');
+  assert.equal(merging.status, 0, 'fixture must leave a REAL merge in progress');
+  stageDocs(r, claudeDoc(stagedNums));
+  return r;
+}
+
+test('X2b BLOCKS a merge that silently drops a rule only the BRANCH had', () => {
+  const r = unionRepo({ mainNums: [16, 46, 80], branchNums: [16, 46, 81], stagedNums: [16, 46, 80] });
+  try {
+    const out = runGuard(r);
+    assert.equal(out.status, 1, 'dropping a branch-only rule during a merge must BLOCK');
+    assert.match(out.stderr, /rule 81 .*is GONE/s);
+    // and it must send the reader to the RIGHT tree — 81 is not in origin/main
+    assert.match(out.stderr, /rule 81 .*exists in the pre-merge HEAD/s);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('X2b BLOCKS a merge that drops a rule only MAIN had', () => {
+  const r = unionRepo({ mainNums: [16, 46, 80], branchNums: [16, 46, 81], stagedNums: [16, 46, 81] });
+  try {
+    const out = runGuard(r);
+    assert.equal(out.status, 1, 'dropping a main-only rule during a merge must BLOCK');
+    assert.match(out.stderr, /rule 80 .*is GONE/s);
+    assert.match(out.stderr, /rule 80 .*exists in origin\/main/s);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('X2b PASSES the honest merge: rules from BOTH parents survive', () => {
+  const r = unionRepo({ mainNums: [16, 46, 80], branchNums: [16, 46, 81], stagedNums: [16, 46, 80, 81] });
+  try {
+    const out = runGuard(r);
+    assert.equal(out.status, 0, `keeping BOTH parents' rules must PASS: ${out.stderr}`);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+// ---- X2c: SELECTION must be merge-aware too ---------------------------------
+// The most severe finding of the round, and it PREDATED the X2 baseline work: `git diff
+// --cached` is index-vs-HEAD, so a merge resolved by keeping the branch's CLAUDE.md verbatim
+// leaves the file un-staged relative to HEAD. The guard printed "no constitution file staged
+// — SKIP" and the commit went green, with every rule main added since the fork discarded.
+// Baseline logic is irrelevant if the file is never selected.
+test('X2c BLOCKS a merge that discards main\'s rules by keeping the branch file verbatim', () => {
+  const r = repo();
+  try {
+    commitDocs(r, claudeDoc([16, 46]));
+    const base = r.g('rev-parse', 'HEAD').stdout.trim();
+    stageDocs(r, claudeDoc([16, 46, 80])); r.g('commit', '-q', '-m', 'main adds 80');
+    r.g('update-ref', 'refs/remotes/origin/main', r.g('rev-parse', 'HEAD').stdout.trim());
+    r.g('checkout', '-q', '-b', 'side', base);
+    stageDocs(r, claudeDoc([16, 46, 81])); r.g('commit', '-q', '-m', 'branch adds 81');
+    r.g('merge', '--no-commit', '--no-ff', 'refs/remotes/origin/main');
+    assert.equal(r.g('rev-parse', '-q', '--verify', 'MERGE_HEAD').status, 0, 'fixture needs a real merge');
+    // resolve by keeping the BRANCH's file verbatim => index == HEAD for this path
+    stageDocs(r, claudeDoc([16, 46, 81]));
+    assert.ok(
+      !r.g('diff', '--cached', '--name-only').stdout.split('\n').includes('CLAUDE.md'),
+      'precondition: the file must NOT appear in diff --cached, or this tests nothing',
+    );
+    const out = runGuard(r);
+    assert.equal(out.status, 1, 'discarding main\'s rules via a merge resolution must BLOCK');
+    assert.match(out.stderr, /rule 80 .*is GONE/s);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+// ---- X2d: body must be judged three-way, not against one parent --------------
+// The union fixed PRESENCE and left BODY one-sided. "staged == main's copy, HEAD's differs"
+// covers two opposite situations that are textually identical: main deliberately trimmed
+// (adopt it) versus the merge discarded THIS branch's newer law (block it). Only the merge
+// base separates them. (GLM 5.3, R8/B1 — finding right, proposed fix would have re-blocked
+// every legitimate adoption.)
+function threeWayRepo({ branchEdits }) {
+  const r = repo();
+  const base12 = '12. **Rule 12 name** — (MANDATORY) Established 2026-07-01. Body for 12.\n    AMENDED 2026-08-01: enforcement paragraph.\n    Padding padding padding.';
+  const docWith = (twelve, extra = []) => claudeDoc([16, ...extra], { bodies: {} })
+    .replace('## Dual-Pass Fix/Review Discipline', `${twelve}\n\n## Dual-Pass Fix/Review Discipline`);
+  commitDocs(r, docWith(base12));
+  const base = r.g('rev-parse', 'HEAD').stdout.trim();
+  stageDocs(r, docWith(base12, [80])); r.g('commit', '-q', '-m', 'main adds 80, leaves 12 alone');
+  r.g('update-ref', 'refs/remotes/origin/main', r.g('rev-parse', 'HEAD').stdout.trim());
+  r.g('checkout', '-q', '-b', 'side', base);
+  const branch12 = branchEdits
+    ? `${base12}\n    AMENDED 2026-08-27: the branch tightened this rule with new enforcement law.`
+    : base12;
+  stageDocs(r, docWith(branch12)); r.g('commit', '-q', '-m', 'branch work');
+  r.g('merge', '--no-commit', '--no-ff', 'refs/remotes/origin/main');
+  assert.equal(r.g('rev-parse', '-q', '--verify', 'MERGE_HEAD').status, 0, 'fixture needs a real merge');
+  stageDocs(r, docWith(base12, [80]));   // resolve to MAIN's side wholesale
+  return r;
+}
+
+test('X2d BLOCKS a merge that discards a rule body THIS BRANCH tightened', () => {
+  const r = threeWayRepo({ branchEdits: true });
+  try {
+    const out = runGuard(r);
+    assert.equal(out.status, 1, 'discarding the branch\'s own newer law must BLOCK');
+    assert.match(out.stderr, /rule 12/s);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('X2d PASSES the same shape when the branch never edited that rule', () => {
+  // identical text outcome; only the merge base distinguishes it. If this fails, the fix
+  // has become the false positive X2 existed to remove.
+  const r = threeWayRepo({ branchEdits: false });
+  try {
+    const out = runGuard(r);
+    assert.equal(out.status, 0, `legitimate adoption must still PASS: ${out.stderr}`);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+// ---- squash merges stage carried content with NO MERGE_HEAD ------------------
+// `git merge --squash` writes only SQUASH_MSG. Keying merge-mode on MERGE_HEAD alone left the
+// closest sibling of the operation this work supports uncovered, and the original incident
+// reproduced verbatim through it. (GLM 5.3 Flash, R8, finding 2 — verified against real git.)
+test('SQUASH: a squash-sync of main is treated as a merge, not as this commit\'s own edit', () => {
+  const r = repo();
+  try {
+    // main trims rule 46; the branch merely carries the older, longer copy
+    commitDocs(r, claudeDoc(BASE));
+    const base = r.g('rev-parse', 'HEAD').stdout.trim();
+    const trimmed46 = '46. **Kimi Hostile-Review Gate** — (MANDATORY) Trimmed on main.';
+    stageDocs(r, claudeDoc(BASE, { bodies: { 46: trimmed46 } }));
+    r.g('commit', '-q', '-m', 'main trims 46');
+    r.g('update-ref', 'refs/remotes/origin/main', r.g('rev-parse', 'HEAD').stdout.trim());
+    r.g('checkout', '-q', '-b', 'side', base);
+    writeFileSync(join(r.dir, 'unrelated.txt'), 'side\n', 'utf8');
+    r.g('add', 'unrelated.txt'); r.g('commit', '-q', '-m', 'side');
+
+    r.g('merge', '--squash', 'refs/remotes/origin/main');
+    // precondition: this is the whole point — a squash records NO MERGE_HEAD
+    assert.notEqual(r.g('rev-parse', '-q', '--verify', 'MERGE_HEAD').status, 0,
+      'precondition: a squash must NOT write MERGE_HEAD, or this tests nothing');
+    stageDocs(r, claudeDoc(BASE, { bodies: { 46: trimmed46 } }));
+
+    const out = runGuard(r);
+    assert.equal(out.status, 0, `carrying main's trim via squash must PASS: ${out.stderr}`);
+    assert.match(out.stdout, /baseline is origin\/main/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+// ---- X2e: aggregate shrink is PER PARENT, never pooled -----------------------
+// A long-diverged branch adopts many unchanged rules from main. Pooling them puts pure
+// ballast in the denominator, so the fixed 0.5% budget stops describing the rules actually
+// at risk and a real death-by-a-thousand-trims hides behind adopted mass. Constructed so the
+// branch pool trips (>0.5%) while the POOLED figure does not — the two mutations that
+// survived the first pass were "pool everything" and "report the best pool". (GLM 5.3, R8/B3.)
+const pad = (n, chars) => `${n}. **Rule ${n} name** — (MANDATORY) Established 2026-07-01. ${'x'.repeat(chars)}`;
+
+test('X2e BLOCKS trims that only trip once the branch pool is measured alone', () => {
+  const r = repo();
+  try {
+    // 5 main rules x ~1000 chars of unchanged ballast, 2 branch rules x ~1000 chars
+    const mainRules = [50, 51, 52, 53, 54].map((n) => pad(n, 1000));
+    const branchFull = [60, 61].map((n) => pad(n, 1000));
+    const branchTrim = [60, 61].map((n) => pad(n, 985));   // -15 chars each: 1.5% < 2% floor
+    const doc = (extra) => ['# CLAUDE.md', '', '## MANDATORY Rules', '', ...extra.flatMap((b) => [b, '']),
+      '## Dual-Pass Fix/Review Discipline', '', 'tail.'].join('\n');
+
+    commitDocs(r, doc(mainRules));
+    const base = r.g('rev-parse', 'HEAD').stdout.trim();
+    // main must ADVANCE past base, or the merge is already-up-to-date and writes no
+    // MERGE_HEAD — the fixture then silently tests the non-merge path and proves nothing.
+    writeFileSync(join(r.dir, 'main-only.txt'), 'main moved on\n', 'utf8');
+    r.g('add', 'main-only.txt'); r.g('commit', '-q', '-m', 'main advances');
+    r.g('update-ref', 'refs/remotes/origin/main', r.g('rev-parse', 'HEAD').stdout.trim());
+
+    r.g('checkout', '-q', '-b', 'side', base);
+    stageDocs(r, doc([...mainRules, ...branchFull]));
+    r.g('commit', '-q', '-m', 'branch adds two rules of its own');
+
+    r.g('merge', '--no-commit', '--no-ff', 'refs/remotes/origin/main');
+    assert.equal(r.g('rev-parse', '-q', '--verify', 'MERGE_HEAD').status, 0, 'fixture needs a real merge');
+    stageDocs(r, doc([...mainRules, ...branchTrim]));       // trim ONLY the branch's own rules
+
+    const out = runGuard(r);
+    // precondition: pooled would be 30/7000 = 0.43% < 0.5% and would NOT block.
+    // If this starts passing, the per-parent split has been lost.
+    assert.equal(out.status, 1, `branch-pool trims must BLOCK once measured alone: ${out.stdout}${out.stderr}`);
+    assert.match(out.stderr, /surviving rules from the pre-merge HEAD lost/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});

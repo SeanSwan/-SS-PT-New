@@ -266,7 +266,14 @@ function main() {
       return execFileSync('git', a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], env: { ...process.env, MSYS_NO_PATHCONV: '1' } }).trim();
     } catch { return null; }
   };
-  const DIFF_BASE = gitQuiet(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null
+  // `git merge --squash` stages carried bytes and writes NO MERGE_HEAD, only SQUASH_MSG;
+  // keyed on MERGE_HEAD alone a squash-sync billed main's lines to this commit.
+  // Verified against real git. (Flash, R8, finding 2.)
+  const squashing = (() => {
+    const dir = gitQuiet(['rev-parse', '--git-dir']);
+    return Boolean(dir) && existsSync(`${dir}/SQUASH_MSG`);
+  })();
+  const DIFF_BASE = (gitQuiet(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null || squashing)
     && gitQuiet(['rev-parse', '-q', '--verify', 'origin/main']) !== null
     ? ['origin/main'] : [];
   if (DIFF_BASE.length) {
@@ -278,10 +285,31 @@ function main() {
       const set = new Set();
       let diff = '';
       try {
-        diff = execFileSync('git', ['diff', '--cached', ...DIFF_BASE, '-U0', '--', f], { encoding: 'utf8' });
-      } catch {
-        // A file with no staged diff is not an error - it simply contributes no added lines.
-        diff = '';
+        // maxBuffer: this call had NO limit, so it inherited Node's 1 MiB default. A diff
+        // larger than that throws ERR_CHILD_PROCESS_STDOUT_MAXBUFFER, the catch below swallowed
+        // it, `diff` became '', the file contributed ZERO added lines and was never judged.
+        // A guard that silently stops judging is the worst failure this file can have, and
+        // basing the diff on origin/main made large diffs MORE likely, not less: a carried or
+        // renamed file produces whole-file hunks against that base. Siblings in this repo use
+        // 16-64MB. (GLM 5.3, hostile round 8, A5 — verified: no maxBuffer existed anywhere here.)
+        diff = execFileSync('git', ['diff', '--cached', ...DIFF_BASE, '-U0', '--', f], {
+          encoding: 'utf8',
+          maxBuffer: 64 * 1024 * 1024,
+        });
+      } catch (err) {
+        // A file with no staged diff is not an error - it simply contributes no added lines,
+        // and git signals that with exit 0 and empty stdout, never by throwing. Anything that
+        // THROWS here is a real failure (buffer overrun, git error, missing object), and
+        // treating it as "no added lines" is a silent fail-OPEN. Fail closed instead.
+        if (err && err.status === 0) {
+          diff = '';
+        } else {
+          console.error(`\nCOMMIT BLOCKED: token-registry-check could not diff ${f}.`);
+          console.error(`  ${err && err.message ? String(err.message).split('\n')[0] : err}`);
+          console.error('  This gate cannot vouch for a file it failed to read, so it refuses');
+          console.error('  rather than reporting green on work it never looked at.');
+          process.exit(1);
+        }
       }
       for (const m of diff.matchAll(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@/gm)) {
         const start = Number(m[1]);
