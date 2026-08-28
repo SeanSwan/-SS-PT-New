@@ -142,7 +142,10 @@ const INERT_HEADS = {
   // does. Matched on the script text rather than a flag.
   sed: { why: 'stream editor', execPattern: /(^|[;\n])\s*e(\s|$)/ },
   awk: { why: 'text processing', execPattern: /\b(system|print\s*\|)\s*\(?/ },
-  wc: 'counts', sort: 'sorts', uniq: 'dedupes', cut: 'slices', tr: 'translates',
+  // `sort` is NOT here — it has an exec hatch below. A duplicate key would silently
+  // shadow that hatch on any reorder, which is the decorative-row failure this round
+  // is about, one mechanism over.
+  wc: 'counts', uniq: 'dedupes', cut: 'slices', tr: 'translates',
   diff: 'compares', jq: 'queries JSON', yq: 'queries YAML', file: 'types a file',
   stat: 'reads metadata', ls: 'lists', tree: 'lists', du: 'sizes', df: 'sizes',
   pwd: 'prints cwd', which: 'resolves a name', basename: 'string op', dirname: 'string op',
@@ -151,7 +154,17 @@ const INERT_HEADS = {
   find: { why: 'walks a tree', execFlags: ['-exec', '-execdir', '-ok', '-okdir'] },
   cp: 'copies', mv: 'moves', rm: 'deletes', mkdir: 'creates', rmdir: 'removes',
   touch: 'creates', chmod: 'permissions', chown: 'ownership', ln: 'links', tee: 'splits output',
-  git: 'version control', gh: 'GitHub CLI',
+  // `git -c alias.x='!node <seat>' x` runs the alias under `sh -c`, repo or not,
+  // self-contained on one line (flash round-7 B2). `git` was a bare-string row with no
+  // hatch — the dangerous list on the safe side, in the round after I wrote down why
+  // that is the worst kind. The hatch is narrow on purpose: a `!`-prefixed alias is
+  // the shell-out, while `git grep "node <seat>"` — pinned ALLOW, and it must stay
+  // that way — is a search pattern and matches nothing here.
+  git: { why: 'version control', execPattern: /^alias\.[^=]*=\s*!/ },
+  gh: 'GitHub CLI',
+  // `sort --compress-program=<cmd>` shells out. Flash flagged it as an unverified
+  // same-class candidate; it is one line to close and costs nothing if he was wrong.
+  sort: { why: 'sorts', execPattern: /^--compress-program(=|$)/ },
   // Editors execute whatever their command flags say.
   vim: { why: 'editor', execFlags: ['-c', '--cmd', '-S'] },
   nvim: { why: 'editor', execFlags: ['-c', '--cmd', '-S'] },
@@ -290,6 +303,20 @@ export function parseCommands(input) {
       // thrown away, so the runner had no script and nothing was recorded — exit 0,
       // while node evaluates the redirected stdin and bills. The parser HAD the
       // information and discarded it; it is remembered now.
+      // PROCESS SUBSTITUTION — `>(…)` and `<(…)` — is not a redirect (flash round-7 B3).
+      // The runner receives `/dev/fd/N` as an ARGUMENT and reads a program from it:
+      //
+      //     node >(echo "import(process.cwd() + '/scripts/consult-fable.mjs')")
+      //
+      // `>` took the redirect branch, the target-consumer hit `(` and stopped having
+      // consumed nothing, then `(` ended the command — so the runner was pushed as
+      // `[node]` alone: no positional, `stdinFed` false, no opaque. `<(…)` happened to
+      // block, fail-closed by accident; `>(…)` is the money direction, and flash's tell
+      // is right — it is the one nobody types by mistake.
+      //
+      // Both spellings now mark the command as fed a program, symmetrically, and the
+      // body is left to be parsed as its own command by the paren split below.
+      if (text[i + 1] === '(') { stdinFed = true; endToken(); continue; }
       if (ch === '<') stdinFed = true;
       if (/^[0-9&]*$/.test(token)) { token = ''; started = false; } // `2>`, `&>`, `>`
       else endToken();
@@ -553,9 +580,32 @@ export function invokedScripts(input, depth = 0) {
     // replaced, same disease. This is the inversion: an unrecognised head that carries
     // a runner or a script-shaped token is an execution I cannot attribute, so it
     // blocks as unpriced instead of passing as unseen.
+    // AN INVOCATION EMBEDDED IN A FUSED TOKEN COUNTS TOO (flash round-7 B1).
+    //
+    // The exec hatches added in round 6 were DECORATIVE for `awk`, and flash proved it
+    // the right way — by showing the behaviour is identical to having no row at all:
+    //
+    //     awk '{system("node scripts/consult-fable.mjs")}' file.txt
+    //
+    // `execPattern` matched `system`, so `headIsInert` correctly returned false — and
+    // then this condition still required a token that ENDS IN `.mjs` or IS exactly a
+    // runner basename. The awk program is one fused token ending in `)}`, whose
+    // basename is `consult-fable.mjs")}`. Both tests failed. No opaque, exit 0.
+    //
+    // `sed`'s hatch worked only because its fused token happens to end at `.mjs`;
+    // wrap the same call in `("…")` and it stopped working. That is a hatch that fires
+    // on the accident of punctuation, which is not a control.
+    //
+    // Once a head's hatch has FIRED, the token is a program, so a runner-then-script
+    // pattern anywhere inside it is the thing to look for. This stays narrow because
+    // it is reached only for non-inert heads: `git grep "node <seat>"` and
+    // `echo node <seat>` never get here, because those heads are inert for those argvs.
+    const embedsInvocation = (v) => /\b(?:node|nodejs|npx|bunx?|tsx|ts-node)\b[^\n]{0,200}?\.(?:mjs|js|cjs)\b/i.test(v);
     if (!headIsInert(head, argv)
         && argv.some((t, k) => k > 0
-          && (/\.(mjs|js|cjs)$/i.test(t.value) || RUNNERS.has(basename(t.value))))) {
+          && (/\.(mjs|js|cjs)$/i.test(t.value)
+            || RUNNERS.has(basename(t.value))
+            || embedsInvocation(t.value)))) {
       out.push(opaque(`unknown-head:${head}`));
     }
   }

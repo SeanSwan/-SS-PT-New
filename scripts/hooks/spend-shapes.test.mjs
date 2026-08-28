@@ -114,6 +114,16 @@ const BILLS = [
   ['r6  env -S quoted body',          `env -S "node ${SEAT} --document x"`],
   ['r6  eval beside a positional',    `node ${SEAT} --document x -e '1'`],
   ['r6  uppercase extension',         'node scripts/consult-fable.MJS --document x'],
+  // Round 7. All three share one root: an exec hatch fired correctly and then the
+  // block condition still demanded a token that ENDS in `.mjs` or IS a runner, which
+  // a fused token never satisfies. The hatch was decorative — behaviour identical to
+  // having no row at all, which is how flash proved it.
+  ['r7  awk system()',                `awk '{system("node ${SEAT}")}' file.txt`],
+  ['r7  awk print into a command',    `awk '{print | "node ${SEAT}"}' f.txt`],
+  ['r7  git -c alias shell-out',      `git -c alias.x='!node ${SEAT} --document plan.md' x`],
+  ['r7  sort --compress-program',     `sort --compress-program='node ${SEAT}' big.txt`],
+  ['r7  >( ) process substitution',   `node >(echo "import(process.cwd() + '/${SEAT}')")`],
+  ['r7  <( ) process substitution',   `node <(echo "import('./${SEAT}')")`],
 ];
 
 /**
@@ -150,6 +160,12 @@ const INERT = [
   ['data on stdin, not a program',    'node build.mjs < input.txt'],
   ['a pipe into grep',                'cat notes.md | grep node'],
   ['npm',                             'npm run build'],
+  // Round 7's cry-wolf side. Each of these shares a HEAD with a BILLS row above, which
+  // is the whole point of per-head exec hatches: `git grep` and `git -c alias='!…'` are
+  // the same binary, and only one of them shells out.
+  ['git log',                         'git log --oneline -5'],
+  ['awk ordinary',                    `awk '{print $1}' file.txt`],
+  ['sort ordinary',                   'sort -u file.txt'],
 ];
 
 test('CORPUS: every shape that bills is blocked', () => {
@@ -187,8 +203,8 @@ test('CORPUS: every inert shape stays quiet', () => {
 test('CORPUS: the table itself is non-trivial and the instrument works', () => {
   // A corpus test that silently ran zero rows would report perfect coverage, which
   // is the instrument-blindness this workstream has now hit four separate times.
-  assert.ok(BILLS.length >= 45, `the BILLS corpus shrank to ${BILLS.length} — rows are not deleted, they are fixed`);
-  assert.ok(INERT.length >= 20, `the INERT corpus shrank to ${INERT.length}`);
+  assert.ok(BILLS.length >= 55, `the BILLS corpus shrank to ${BILLS.length} — rows are not deleted, they are fixed`);
+  assert.ok(INERT.length >= 26, `the INERT corpus shrank to ${INERT.length}`);
   // And the harness really distinguishes the two directions.
   assert.equal(gate(`node ${SEAT} --document plan.md`), 2, 'control: the canonical paid call blocks');
   assert.equal(gate(`cat ${SEAT}`), 0, 'control: the canonical mention does not');
