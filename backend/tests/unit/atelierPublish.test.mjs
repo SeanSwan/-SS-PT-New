@@ -176,3 +176,42 @@ describe('the publish signer will not sign a key this system did not write', () 
     expect(out.url).toContain(`jobs/${jobId}/source.mp4`);
   });
 });
+
+describe('the embed snippet is pasted onto a public site, so attribution is not trusted', () => {
+  const model = (asset) => ({ findOne: async () => asset });
+  const signer = { readUrl: async (k) => `https://cdn.example/${k}?sig=x` };
+  const ref = (attribution) => publishedReference({ id: 'a1', userId: 1 }, {
+    assetModel: model(base({
+      approvalStatus: 'published',
+      provenance: { ...prov(), attribution },
+    })),
+    ...signer,
+  });
+
+  it('an attribution cannot close the HTML comment it sits in', async () => {
+    // `provenance` reaches MediaAsset as `meta.provenance` from the render-agent completion
+    // body, so an enrolled agent chooses this string — and the operator is told to paste the
+    // snippet onto a public website. `-->` would end the comment and make everything after
+    // it live markup on their site.
+    const out = await ref('Wan 2.2 --> <img src=x onerror=alert(1)>');
+    // The property that matters is that the ATTRIBUTION contributes no comment terminator
+    // and no angle bracket. The word "onerror" survives as inert text inside the comment,
+    // which is fine and is deliberately not asserted against: without a `<` it cannot
+    // become a tag, and stripping vocabulary rather than syntax is how sanitisers rot.
+    // Exactly one comment terminator, and nothing bracket-shaped between the delimiters.
+    expect((out.snippet.match(/-->/g) || []).length).toBe(1);
+    const inside = out.snippet.slice(out.snippet.indexOf('<!--') + 4, out.snippet.lastIndexOf('-->'));
+    expect(inside).not.toMatch(/[<>]/);
+  });
+
+  it('a legitimate attribution still appears', async () => {
+    // The sanitiser must not eat the credit the licence requires.
+    const out = await ref('Video generated with Wan 2.2');
+    expect(out.snippet).toContain('Video generated with Wan 2.2');
+  });
+
+  it('an attribution of only markup leaves no empty comment behind', async () => {
+    const out = await ref('<<>>');
+    expect(out.snippet).not.toContain('<!--');
+  });
+});

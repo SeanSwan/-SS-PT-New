@@ -183,7 +183,18 @@ export async function publishedReference({ id, userId, publicBase = '' }, deps =
   const permalink = `${publicBase || d.publicBase || ''}${PUBLIC_PATH}/${asset.id}`;
   const isVideo = String(asset.mime || '').startsWith('video/');
   const alt = 'Generated asset';
-  const credit = base.attribution ? ` <!-- ${base.attribution} -->` : '';
+  // ATTRIBUTION IS NOT OURS. `provenance` reaches MediaAsset as `meta.provenance` from the
+  // body of POST /api/render-agents/jobs/:jobId/complete (videoRenderJobService.mjs:291), so
+  // an enrolled agent chooses this string — and this snippet is HTML the operator is told
+  // to paste onto a public website. An attribution containing `-->` closes the comment and
+  // everything after it becomes live markup on their site; `<img src=x onerror=...>` runs on
+  // the visitor. Every other part of this snippet is server-built.
+  //
+  // The comment delimiters are removed rather than escaped: there is no escaping INSIDE an
+  // HTML comment — `-->` is the terminator, full stop — so the only safe move is to ensure
+  // the sequence cannot appear. `<` goes too, so a stripped remainder cannot open a tag.
+  const safeAttribution = String(base.attribution || '').replace(/[<>]/g, ' ').replace(/--+/g, '-').trim();
+  const credit = safeAttribution ? ` <!-- ${safeAttribution} -->` : '';
   const snippet = isVideo
     ? `<video src="${permalink}" playsinline muted loop autoplay></video>${credit}`
     : `<img src="${permalink}" alt="${alt}"${asset.width ? ` width="${asset.width}"` : ''}${asset.height ? ` height="${asset.height}"` : ''} />${credit}`;

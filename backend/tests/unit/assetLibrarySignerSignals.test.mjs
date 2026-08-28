@@ -169,3 +169,50 @@ describe('a signer that resolves nothing is a failure, not a success', () => {
     expect(out.previewsUnavailable).toBe(false);
   });
 });
+
+describe('a partial failure is not page-wide, but it must not be invisible', () => {
+  const model = (rows) => ({ findAll: async () => rows });
+  const clip = (over = {}) => row({ kind: 'video', mime: 'video/mp4', r2Key: `jobs/${JOB}/source.mp4`, ...over });
+
+  it('warns when SOME previews fail while others succeed', async () => {
+    // A signing credential scoped to `atelier/*` signs every still and refuses every clip.
+    // `failed === attempted` never fires, so the banner stays silent and the operator sees
+    // photographs working beside grey videos with nothing saying why — the exact page shape
+    // the video-poster feature introduced.
+    const warns = [];
+    const spy = console.warn; console.warn = (m, ...a) => warns.push(String(m) + a.join(' '));
+    try {
+      const out = await listAssets({ userId: 1 }, {
+        assetModel: model([
+          row({ posterR2Key: 'atelier/stills/1/thumbs/a.webp' }),
+          row({ id: 'b', posterR2Key: 'atelier/stills/1/thumbs/b.webp' }),
+          clip({ id: 'c', posterR2Key: `jobs/${JOB}/c.webp` }),
+          clip({ id: 'd', posterR2Key: `jobs/${JOB}/d.webp` }),
+        ]),
+        Op,
+        readUrl: async (k) => { if (k.startsWith('jobs/')) throw new Error('scope'); return `https://cdn/${k}`; },
+      });
+      // NOT page-wide: two previews genuinely worked, so "previews are unavailable" is false.
+      expect(out.previewsUnavailable).toBe(false);
+      expect(warns.join(' ')).toMatch(/partial failure/);
+    } finally { console.warn = spy; }
+  });
+
+  it('says nothing about a partial failure when only ONE object failed', async () => {
+    // One bad object is isolation working, and already has its own per-row warn.
+    const warns = [];
+    const spy = console.warn; console.warn = (m, ...a) => warns.push(String(m) + a.join(' '));
+    try {
+      let n = 0;
+      await listAssets({ userId: 1 }, {
+        assetModel: model([
+          row({ posterR2Key: 'atelier/stills/1/thumbs/a.webp' }),
+          row({ id: 'b', posterR2Key: 'atelier/stills/1/thumbs/b.webp' }),
+        ]),
+        Op,
+        readUrl: async () => { n += 1; if (n === 1) throw new Error('gone'); return 'https://cdn/ok'; },
+      });
+      expect(warns.join(' ')).not.toMatch(/partial failure/);
+    } finally { console.warn = spy; }
+  });
+});

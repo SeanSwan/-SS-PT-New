@@ -173,6 +173,20 @@ export async function signPreviews(page = [], readUrl) {
     } else {
       console.warn('[Atelier/library] the page\u0027s only signable object failed — a sample of one cannot tell a bad object from a bad signer.');
     }
+  } else if (failed >= 2) {
+    // PARTIAL FAILURE IS THE SHAPE THIS SLICE CREATES, AND `totalFailure` CANNOT SEE IT.
+    //
+    // `failed === attempted` fires only when EVERYTHING fails. A signing credential or KMS
+    // policy scoped to `atelier/*` would sign every still and refuse every clip: on a mixed
+    // page the flag stays false, the banner never renders, and the operator sees a library
+    // where photographs work and every video is a grey box, with nothing saying why.
+    //
+    // That is the silence this module's header calls unacceptable, arriving through the
+    // page shape the video-poster feature itself introduced — a rule covering only the
+    // all-or-nothing half of its own pair. NOT raised to the banner: a partial failure is
+    // genuinely not "previews are unavailable", and saying so would be the false page-wide
+    // claim rounds 3 and 8 were about. Logged, so it is findable.
+    console.warn('[Atelier/library] %d of %d previews failed to sign while others succeeded — a partial failure the page-wide signal cannot show. Check whether the signer scope covers every key namespace.', failed, attempted);
   }
   return { previews, previewsUnavailable };
 }
