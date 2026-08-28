@@ -1,5 +1,5 @@
 ---
-decision: "Full session handoff: ComfyUI stopped charging, 15 launchers got icons, the Taste Console shipped all five blueprint slices. Favourites decisions answered; F0 (world epoch + browser suite) and F1 (the store, Save/Steer, the relabel) built and committed. Next agent starts at F2 — the drawer."
+decision: "Taste Console shipped all five blueprint slices. Favourites F0 (world epoch + browser suite), F1 (store, Save/Steer, relabel) and F2 (the drawer) built and committed. A GLM 5.3 + GLM 5.3 Flash hostile review found six real defects in F1 including silent data loss; all reproduced and fixed. Next agent starts at F3 — the motion."
 status: open
 supersedes: none
 board: SWA-186
@@ -25,9 +25,9 @@ Three unrelated pieces of work happened, in this order:
 2. **All 15 Desktop launchers got SwanStudios icons**, plus a tool to make more.
 3. **The Swan Taste Console** — a five-slice redesign of Sean's local taste tool. **All five slices
    shipped.** Then a hostile review found three live bugs, all fixed.
-4. **Favourites** (save a prompt you like): decisions answered, **F0 and F1 built and committed.**
-   The store exists, `♥ Save` and `Steer` are live on Make cards, and the relabel shipped (§13, §14).
-   **You start at F2 — the drawer.**
+4. **Favourites**: **F0, F1 and F2 all built and committed.** The store, the buttons, the relabel,
+   and the drawer are live. A two-seat hostile review then found **six real defects in F1** — one of
+   them silent data loss — all fixed (§15). **You start at F3 — the motion.**
 
 **Nothing is pushed.** SS-PT is 66 commits ahead of its remote (most predate this session).
 swan-taste-brain is a local repo on `master` with **no remote at all** — commits are the only record.
@@ -272,7 +272,8 @@ Both went the way the blueprint ruled, so §1 of the blueprint stands unamended.
 |---|---|---|
 | ~~**F0**~~ | ~~World epoch + a `pageerror` listener in every browser probe~~ | ✅ **DONE** — `d200a0a` / `03291a9`, §13 |
 | ~~**F1**~~ | ~~Store + `Save`/`Steer` on Make cards; the relabel~~ | ✅ **DONE** — `4f8063e`, §14 |
-| **F2** | **The drawer: chip, `<dialog>`, list, filter, promote/demote — START HERE** | |
+| ~~**F2**~~ | ~~The drawer: chip, `<dialog>`, list, filter, promote/demote~~ | ✅ **DONE** — `38add97`, §15 |
+| **F3** | **Ink-rise heart + ember + steering-share bar — START HERE** | |
 | F2 | The drawer: chip, `<dialog>`, list, filter, promote/demote |
 | F3 | Ink-rise heart + ember + steering-share bar |
 | F4 | Presentation/print exclusion + the 11 F-series tests |
@@ -554,3 +555,74 @@ The favourites list is a **sixth memory-scoped read** and inherits everything in
 `Swan.world()` before its fetch. `test-world.mjs` W12 sweeps per call site, so a drawer fetch that
 forgets fails the suite rather than shipping. The drawer is a summoned `<dialog>` off a header heart
 chip — **not** a fourth section; both review seats refused that independently.
+
+---
+
+## 15. F2 + the hostile-review round — 2026-08-27 (`38add97`)
+
+**Sean asked for GLM 5.3 and GLM 5.3 Flash to hostile-review F0+F1 before continuing.** Both free,
+both dispatched in parallel, **$0.00**. Packet and raw returns:
+`docs/ai-workflow/AI-HANDOFF/panel-favourites-f0f1-2026-08-27/`.
+
+### Read this part even if you skip the rest
+
+**They opened on the same P0, and nine of their ten top findings reproduced against shipped code.**
+F1 had **581 passing assertions**. Every one used a well-formed file and a well-formed prompt. The
+suite tested the happy path exhaustively and the failure surface not at all — so the seats did not
+find subtle bugs, they found *an entire category of input that had never been tried*.
+
+The worst of it was **silent data loss**: Sean's steer path unshelved a prompt, then called a CLI
+whose duplicate check is a **substring** match on the whole file. A shelf entry that is a substring
+of any kept line makes that CLI print "Already kept.", exit **0**, and write **nothing** — while the
+route reported success and had already destroyed the shelf entry. Unconditional. No concurrency, no
+crash, no hand-editing required.
+
+Full defect table and fixes: **`FAVOURITES-BLUEPRINT-2026-08-27.md` §13.**
+
+### The one principle that fixed most of them
+
+**Confirm a write by reading it back.** Not the absence of an error; not an exit code; the file.
+That closes the P0, both silent-no-op writers, and the round-trip class (validate by passing text
+through the **real** reader instead of restating its rules).
+
+### One panel claim was wrong
+
+Flash grouped bullet-leading prompts with the paren/backtick shapes. They round-trip fine — the
+reader strips exactly one marker. Adopting all three would have added a user-hostile rule for a
+defect that does not exist. **A seat's finding is a hypothesis until you reproduce it**, and that
+holds for the nine that were right as much as the one that wasn't.
+
+### F2, and the bug it shipped with
+
+Chip → `<dialog>` drawer → one list, two states, filter, find, promote/demote, share bar. Three
+sections still.
+
+**`display: flex` on the bare `.favdrawer` selector beat the UA's `dialog:not([open]) {display:none}`**
+— layered author CSS outranks the UA origin. The **closed** drawer stayed full-height in the layout,
+invisible and opaque to the pointer, so after one open and Esc **every click on the page landed on
+it**. Nothing looked wrong; the suite found it only because it clicks the chip a second time.
+
+### The npm question — settled, and better than either option
+
+Sean said do it if it helps. It does, so: `package.json` with Playwright as a **devDependency only**,
+pinned to the sibling SS-PT checkout so `npm install` reuses the shared browser cache (3 packages,
+no download). **`dependencies` stays empty — the runtime is still zero-dependency with no build
+step**, and the file says so at length.
+
+Better than a plain install: **`--require`** (used by `npm run test:browser`) turns any skip into a
+**failure**. A skip that exits 0 is indistinguishable from a pass to anything reading exit codes.
+Positive-controlled both ways.
+
+### Where things stand
+
+- `test-favourites.mjs` 61 · `test-browser.mjs` 72 · **12 node suites 591/591, browser 72/72**, exit 0,
+  zero page errors, zero console errors.
+- Both suites now clean up **on process exit** — they had leaked five throwaway memories across a
+  crash and two timeouts, because cleanup was the last statement in the file.
+- No strays; Sean's vault verified untouched.
+
+### For F3
+
+Ink-rise heart, ember, animated steering-share bar. The seats are built: `.fav` carries a
+transparent left border for the ember, and the share bar renders its fill from a real percentage. F3
+is motion over a structure that already reports the right facts.

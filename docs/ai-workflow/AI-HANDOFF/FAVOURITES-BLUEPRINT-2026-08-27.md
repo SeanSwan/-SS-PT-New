@@ -450,3 +450,70 @@ The ink-rise heart, the ember, and the steering-share bar (§3) are unbuilt — 
 after the drawer exists to hold them. Today the status line reports the state and the Kept tab states
 the shelf count; that count was added because otherwise `♥ Save` is a control with no visible
 destination, which is its own small dishonesty.
+
+---
+
+## 13. F2 closeout + the panel round that found F1 was not safe (2026-08-27, `38add97`)
+
+**Sean asked for a hostile review by GLM 5.3 and GLM 5.3 Flash before continuing. Both opened on the
+same P0. Nine of their ten top findings reproduced against the shipped code.**
+
+That matters more than any single defect: **F1 shipped with 581 passing assertions, and every one of
+them used a well-formed file and a well-formed prompt.** The suite tested the happy path
+exhaustively and the failure surface not at all. The seats did not find subtle bugs — they found
+that a whole category of input had never been tried.
+
+### What was actually broken in F1
+
+| Sev | Defect | Why the tests missed it |
+|---|---|---|
+| **P0** | Sean's steer path unshelved **before** the CLI, hardcoded `ok:true`, and never checked the write landed. `execFileSync` throws on non-zero exit — after the unshelve. Worse and unconditional: the CLI's duplicate check is `md.includes(text)`, a **substring** match on the whole file, so a shelf entry that is a substring of any kept line makes it print "Already kept.", exit **0**, write **nothing** — and the route destroyed the shelf entry reporting success. | No test ever made the CLI no-op. |
+| **P1** | A save could **silently store nothing, permanently**. A file ending `## Shelf` with no trailing newline passes the heading test and matches nothing in the replace, so it was written back byte-identical while reporting ok. `keepFor` shared the idiom. **The CLI grew an `if (md === before)` guard for exactly this in a round-5 panel; neither server writer inherited it.** | Every fixture ended with a newline. |
+| **P1** | A prompt starting `(` or wrapped in backticks was **written and never read back** — counted as zero, duplicated without bound on every repeat, and could not be removed. | Every fixture was an ordinary sentence. |
+| **P1** | A **failed promote destroyed the line**: it unshelved first and relied on a rollback that re-entered the same validator, refused identically, and had its result discarded. | Nothing ever failed mid-transaction. |
+| **P1** | **`♥ Save` could reduce steering.** `state:'shelf'` on an already-steering prompt called `demoteFor` — so hearting something you had steered silently removed a score-1000 exemplar, from a gesture whose tooltip promises it changes nothing. | The suite never hearted a steering prompt. |
+| **P2** | An under-specified request **defaulted to `sean/default`** — the memory governed by the corpus licence was the destination for malformed input. Defence in depth, inverted. | Every call passed explicit ids. |
+
+### The fix that closes most of them is one idea
+
+**Confirm a write by reading it back.** Not the absence of an error, not an exit code — the file.
+That single principle fixes the P0 (verify `kept.md` gained the line before unshelving), both
+silent-no-op writers, and the round-trip class (validate by passing the text through the **real**
+reader rather than restating its rules, so a future reader change tightens the writer automatically).
+
+### One panel claim was wrong, and checking mattered
+
+Flash listed **bullet-leading prompts** (`- already a bullet`) as the same class as the paren and
+backtick shapes. They are not: the reader strips exactly **one** marker, so `- text` written as
+`- - text` reads back unchanged. The round-trip guard correctly permits it, and the suite now asserts
+that permission with the reasoning attached. Adopting all three would have added a user-hostile rule
+for a defect that does not exist.
+
+### F2 itself, and the bug it shipped with
+
+Heart chip in the header → native `<dialog>` (420px right drawer; bottom sheet ≤640px) → one list,
+two states, filter, find, promote/demote, share bar. **Section count stays three**, as §2 required.
+
+**The drawer shipped with a defect the suite caught immediately:** `display: flex` on the bare
+`.favdrawer` selector beat the UA's `dialog:not([open]) { display: none }` — layered author CSS still
+outranks the UA origin. The **closed** drawer stayed full-height in the layout: invisible, and
+opaque to the pointer. After one open and Esc, **every click on the page landed on it.** Nothing
+looked wrong. It was found only because the suite tries to click the chip a *second* time.
+
+That is the F2 entry in the same ledger as §8 and §11: **a surface is not proven by looking right.**
+
+### Where the tests are now
+
+- `test-favourites.mjs` — 61 checks, including every panel reproduction above.
+- `test-browser.mjs` — 72 checks: drawer opened, demoted, filtered, searched, Esc-closed with focus
+  returned to the chip, modal inertness asserted, presentation force-close asserted, 44px at 390px,
+  and the dead-control sweep run over the drawer's own buttons.
+- Both suites now **clean up on process exit**, not at the end of the happy path — they had leaked
+  five throwaway memories across a crash and two timeouts.
+- `--require` turns a skip into a failure, so a suite that cannot run can never read as a pass.
+
+### F3 is next
+
+Ink-rise heart, the ember, and the animated steering-share bar. The DOM and CSS seats for all three
+exist (`.fav` carries a transparent left border for the ember; the share bar renders its fill from a
+real percentage), so F3 is motion over a structure that already reports the right facts.
