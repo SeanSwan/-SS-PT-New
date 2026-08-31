@@ -4,7 +4,7 @@
  * Endpoints (all under /api/trainer-onboarding, all require an authenticated user):
  *   GET  /contract            — serve current trainer agreement text + consents (draft v1)
  *   GET  /status              — the current user's latest application status (or none)
- *   POST /credentials         — upload a COI / certification file to R2, returns a key
+ *   POST /credentials         — encrypt and privately store a COI/certification file
  *   POST /apply               — submit the signed application (fail-closed: pending_review)
  *
  * FAIL-CLOSED: submitting creates a TrainerApplication with status 'pending_review'.
@@ -12,14 +12,32 @@
  * separately. Stripe Connect payout wiring is a SEPARATE future slice.
  *
  * PRIVACY (rule 8): no SSN/EIN/bank details are accepted here (those go to Stripe's
- * embedded onboarding in the future slice). Files go to R2 by key, not stored inline.
+ * embedded onboarding in the future slice). Credential files are encrypted before
+ * private R2 storage and referenced here only by owner-scoped opaque keys.
  *
  * @module controllers/trainerOnboardingController
  */
 import { getModel } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
-import { getCurrentContract, CURRENT_CONTRACT_VERSION, CONTRACT_CONSENTS, contractTextHash } from '../config/trainerContract.mjs';
-import { uploadPhoto } from '../services/photoStorageService.mjs';
+import {
+  getCurrentContract,
+  CURRENT_CONTRACT_VERSION,
+  CONTRACT_CONSENTS,
+  contractTextHash,
+  contractPackageHash,
+} from '../config/trainerContract.mjs';
+import {
+  CredentialStorageError,
+} from '../services/trainerCredentialStorageService.mjs';
+import {
+  CredentialReceiptError,
+  createApplicationWithCredentialReceipts,
+  storeTrainerCredentialUpload,
+} from '../services/trainerCredentialReceiptService.mjs';
+import {
+  validateApplicationFields,
+  validateSignatureData,
+} from '../utils/trainerOnboardingValidation.mjs';
 
 const ALL_CONSENT_KEYS = CONTRACT_CONSENTS.map((c) => c.key);
 const REQUIRED_CONSENT_KEYS = CONTRACT_CONSENTS.filter((c) => c.required).map((c) => c.key);
@@ -37,7 +55,7 @@ export async function getMyApplicationStatus(req, res) {
     const app = await TrainerApplication.findOne({
       where: { userId: req.user.id },
       order: [['createdAt', 'DESC']],
-      attributes: ['id', 'status', 'contractVersion', 'signedAt', 'reviewedAt', 'reviewNotes', 'createdAt'],
+      attributes: ['id', 'status', 'contractVersion', 'signedAt', 'reviewedAt', 'createdAt'],
     });
     return res.json({ success: true, application: app || null });
   } catch (err) {
@@ -47,22 +65,24 @@ export async function getMyApplicationStatus(req, res) {
 }
 
 /**
- * POST /credentials — upload a COI or certification document to R2.
- * Multipart: field 'file' (validated by multer in the route). Returns an R2 key only.
+ * POST /credentials — upload a COI or certification document to private storage.
+ * Multipart: field 'file' (validated by multer + magic bytes). Returns an opaque key.
  */
 export async function uploadCredential(req, res) {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded.' });
     }
-    const kind = req.body?.kind === 'insurance' ? 'insurance' : 'certification';
-    const result = await uploadPhoto(req.file.buffer, {
+    const requestedKind = req.body?.kind;
+    if (requestedKind != null && !['insurance', 'certification'].includes(requestedKind)) {
+      return res.status(400).json({ success: false, message: 'Credential kind must be insurance or certification' });
+    }
+    const kind = requestedKind || 'certification';
+    const result = await storeTrainerCredentialUpload(req.file.buffer, {
       userId: req.user.id,
-      category: 'trainer-credentials',
-      originalFilename: req.file.originalname,
-      contentType: req.file.mimetype,
+      kind,
+      declaredMime: req.file.mimetype,
     });
-    // photoStorageService.uploadPhoto returns { url, storageKey, storage } (r2 or local).
     const key = result?.storageKey || null;
     if (!key) {
       logger.error('[trainerOnboarding] upload returned no storageKey', { result: Object.keys(result || {}) });
@@ -70,17 +90,25 @@ export async function uploadCredential(req, res) {
     }
     return res.json({ success: true, kind, key });
   } catch (err) {
+    if (err instanceof CredentialReceiptError || err?.name === 'CredentialReceiptError') {
+      const status = Number.isInteger(err.statusCode) ? err.statusCode : 500;
+      const message = status === 409
+        ? 'Pending credential storage is full. Submit your application or wait for old uploads to expire.'
+        : status === 400
+          ? 'The credential upload was rejected.'
+          : 'Private credential storage is temporarily unavailable.';
+      return res.status(status).json({ success: false, message });
+    }
+    if (err instanceof CredentialStorageError || err?.name === 'CredentialStorageError') {
+      const status = Number.isInteger(err.statusCode) ? err.statusCode : 500;
+      const message = status === 400
+        ? 'The credential file was rejected. Upload a valid PDF or image.'
+        : 'Private credential storage is temporarily unavailable.';
+      return res.status(status).json({ success: false, message });
+    }
     logger.error('[trainerOnboarding] credential upload error:', err);
     return res.status(500).json({ success: false, message: 'Upload failed. Please try again.' });
   }
-}
-
-function isValidDateOnly(v) {
-  if (v == null || v === '') return true; // optional
-  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
-  const [y, m, d] = v.split('-').map(Number);
-  const dt = new Date(y, m - 1, d);
-  return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
 }
 
 /**
@@ -91,21 +119,6 @@ export async function submitApplication(req, res) {
     const TrainerApplication = getModel('TrainerApplication');
     const userId = req.user.id;
     const b = req.body || {};
-
-    // Accept only file keys the upload endpoint (POST /credentials) could have produced
-    // for the trainer-credentials category. In R2 mode keys are user-scoped
-    // (photos/trainer-credentials/<userId>/...) — enforce THIS user's segment to block a
-    // caller from attaching another user's file by posting its key (IDOR). In local-disk
-    // fallback keys are /uploads/trainer-credentials/... (not user-scoped by the service),
-    // so we can only constrain them to the category namespace. Anything else → null.
-    const r2Prefix = `photos/trainer-credentials/${userId}/`;
-    const localPrefix = `/uploads/trainer-credentials/`;
-    const safeKey = (k) => {
-      if (typeof k !== 'string') return null;
-      if (k.startsWith(r2Prefix)) return k;
-      if (k.startsWith(localPrefix) && !k.includes('..')) return k;
-      return null;
-    };
 
     // ── Block duplicate/active applications ──
     const existing = await TrainerApplication.findOne({
@@ -119,13 +132,15 @@ export async function submitApplication(req, res) {
       });
     }
 
-    // ── Required core fields ──
-    const fullName = typeof b.fullName === 'string' ? b.fullName.trim() : '';
-    const email = typeof b.email === 'string' ? b.email.trim() : '';
-    if (!fullName) return res.status(400).json({ success: false, message: 'Full name is required.' });
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ success: false, message: 'A valid email is required.' });
+    // ── Normalize and bound every persisted applicant field ──
+    const fieldValidation = validateApplicationFields(b);
+    if (!fieldValidation.ok) {
+      return res.status(fieldValidation.statusCode).json({
+        success: false,
+        message: fieldValidation.message,
+      });
     }
+    const fields = fieldValidation.values;
 
     // ── Contract version must match the current one (prevents stale-text signing) ──
     if (b.contractVersion !== CURRENT_CONTRACT_VERSION) {
@@ -135,16 +150,24 @@ export async function submitApplication(req, res) {
         currentVersion: CURRENT_CONTRACT_VERSION,
       });
     }
+    const currentContractPackageHash = contractPackageHash();
+    if (b.contractPackageHash !== currentContractPackageHash) {
+      return res.status(409).json({
+        success: false,
+        message: 'The agreement contents changed. Please reload and review them before signing.',
+        currentVersion: CURRENT_CONTRACT_VERSION,
+      });
+    }
 
     // ── Signature required ──
-    const signatureData = typeof b.signatureData === 'string' ? b.signatureData : '';
-    if (!signatureData.startsWith('data:image/')) {
-      return res.status(400).json({ success: false, message: 'A drawn signature is required.' });
+    const signatureValidation = validateSignatureData(b.signatureData);
+    if (!signatureValidation.ok) {
+      return res.status(signatureValidation.statusCode).json({
+        success: false,
+        message: signatureValidation.message,
+      });
     }
-    // Cap signature size (~250KB base64) to prevent oversized payloads.
-    if (signatureData.length > 250_000) {
-      return res.status(413).json({ success: false, message: 'Signature image is too large.' });
-    }
+    const signatureData = signatureValidation.value;
 
     // ── All required consents must be affirmatively true ──
     const rawConsents = (b.consentFlags && typeof b.consentFlags === 'object') ? b.consentFlags : {};
@@ -160,32 +183,30 @@ export async function submitApplication(req, res) {
     // keys/values into the JSONB evidence record (keeps the signed-consent record clean + tamper-resistant).
     const consentFlags = Object.fromEntries(ALL_CONSENT_KEYS.map((k) => [k, rawConsents[k] === true]));
 
-    // ── Validate optional date fields ──
-    for (const f of ['certificationExpiry', 'cprAedExpiry', 'insuranceExpiry']) {
-      if (!isValidDateOnly(b[f])) {
-        return res.status(400).json({ success: false, message: `Invalid date for ${f}.` });
+    // ── Normalize keys; durable receipt ownership/kind/existence is checked atomically below ──
+    const credentialKeys = {};
+    for (const field of ['certificationFileKey', 'insuranceFileKey']) {
+      const key = b[field];
+      if (key == null || key === '') {
+        credentialKeys[field] = null;
+        continue;
       }
+      if (typeof key !== 'string' || key.length > 500) {
+        return res.status(400).json({
+          success: false,
+          message: `The uploaded file for ${field} is missing or does not belong to this account.`,
+        });
+      }
+      credentialKeys[field] = key;
     }
 
-    // ── Create the application (fail-closed pending_review) ──
-    const application = await TrainerApplication.create({
+    // ── Create application + consume upload receipts in one transaction ──
+    const contractDisplaySnapshot = getCurrentContract();
+    const applicationPayload = {
       userId,
-      fullName,
-      email,
-      phone: typeof b.phone === 'string' ? b.phone.trim() || null : null,
-      businessName: typeof b.businessName === 'string' ? b.businessName.trim() || null : null,
-      specialties: typeof b.specialties === 'string' ? b.specialties.trim() || null : null,
-      bio: typeof b.bio === 'string' ? b.bio.trim() || null : null,
-      yearsExperience: Number.isInteger(b.yearsExperience) ? b.yearsExperience : null,
-      primaryCertification: typeof b.primaryCertification === 'string' ? b.primaryCertification.trim() || null : null,
-      certificationNumber: typeof b.certificationNumber === 'string' ? b.certificationNumber.trim() || null : null,
-      certificationExpiry: b.certificationExpiry || null,
-      cprAedExpiry: b.cprAedExpiry || null,
-      certificationFileKey: safeKey(b.certificationFileKey),
-      insuranceCarrier: typeof b.insuranceCarrier === 'string' ? b.insuranceCarrier.trim() || null : null,
-      insurancePolicyNumber: typeof b.insurancePolicyNumber === 'string' ? b.insurancePolicyNumber.trim() || null : null,
-      insuranceExpiry: b.insuranceExpiry || null,
-      insuranceFileKey: safeKey(b.insuranceFileKey),
+      ...fields,
+      certificationFileKey: credentialKeys.certificationFileKey,
+      insuranceFileKey: credentialKeys.insuranceFileKey,
       additionalInsuredAttested: consentFlags.selfInsure === true,
       contractVersion: CURRENT_CONTRACT_VERSION,
       signatureData,
@@ -194,26 +215,36 @@ export async function submitApplication(req, res) {
       // Do NOT fall back to the raw x-forwarded-for header — it's client-spoofable and would
       // corrupt this legal e-signature evidence field.
       ipAddress: req.ip || null,
-      userAgent: req.headers['user-agent'] || null,
+      userAgent: typeof req.headers['user-agent'] === 'string'
+        ? req.headers['user-agent'].slice(0, 1_000)
+        : null,
       consentFlags,
       // v1 is independent-trainer only (15% fee). When the trainer-TYPE branch lands (SWA-62
       // Part 1), this must be derived from the chosen type — affiliated ≠ 15%. Do NOT keep
       // this literal once the type split ships.
-      platformFeePercent: 15.0,
+      platformFeePercent: contractDisplaySnapshot.platformFeePercent,
       status: 'pending_review',
       metadata: {
         contractTextHash: contractTextHash(),
+        contractPackageHash: currentContractPackageHash,
+        contractDisplaySnapshot,
         submittedAt: new Date().toISOString(),
         source: 'in_app',
         isDraftContract: true,
       },
+    };
+    const application = await createApplicationWithCredentialReceipts({
+      userId,
+      credentialKeys,
+      applicationModel: TrainerApplication,
+      applicationPayload,
     });
 
     logger.info(`[trainerOnboarding] application ${application.id} submitted by user ${userId} (pending_review)`);
 
     return res.status(201).json({
       success: true,
-      message: "Application received. We'll verify your insurance and certifications, then activate your trainer account.",
+      message: "Application received for review. We'll contact you with next steps after verifying your insurance and certifications.",
       application: { id: application.id, status: application.status },
     });
   } catch (err) {
@@ -222,6 +253,20 @@ export async function submitApplication(req, res) {
       return res.status(409).json({
         success: false,
         message: "You already have an application in progress. You can't submit another right now.",
+      });
+    }
+    if (err instanceof CredentialReceiptError || err?.name === 'CredentialReceiptError') {
+      const status = Number.isInteger(err.statusCode) ? err.statusCode : 400;
+      const message = status === 400
+        ? 'A credential upload is missing, expired, already used, or belongs to another field.'
+        : 'Credential verification is temporarily unavailable.';
+      return res.status(status).json({ success: false, message });
+    }
+    if (err instanceof CredentialStorageError || err?.name === 'CredentialStorageError') {
+      const status = Number.isInteger(err.statusCode) ? err.statusCode : 503;
+      return res.status(status).json({
+        success: false,
+        message: 'Private credential storage is temporarily unavailable.',
       });
     }
     logger.error('[trainerOnboarding] submit error:', err);

@@ -71,8 +71,7 @@ export function contractTextHash() {
   return crypto.createHash('sha256').update(CONTRACT_BODY, 'utf8').digest('hex');
 }
 
-/** The public payload the frontend fetches to render the contract + consents. */
-export function getCurrentContract() {
+function contractDisplayPayload() {
   return {
     version: CURRENT_CONTRACT_VERSION,
     title: CONTRACT_TITLE,
@@ -81,5 +80,20 @@ export function getCurrentContract() {
     platformFeePercent: 15.0,
     textHash: contractTextHash(),
     isDraft: true,
+  };
+}
+
+/** SHA-256 of every displayed/signable field, including consent labels and fee. */
+export function contractPackageHash() {
+  return crypto.createHash('sha256')
+    .update(JSON.stringify(contractDisplayPayload()), 'utf8')
+    .digest('hex');
+}
+
+/** The public payload the frontend fetches to render the contract + consents. */
+export function getCurrentContract() {
+  return {
+    ...contractDisplayPayload(),
+    packageHash: contractPackageHash(),
   };
 }

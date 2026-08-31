@@ -38,15 +38,51 @@ vi.mock('../../utils/logger.mjs', () => ({
   default: { info: () => {}, warn: () => {}, error: () => {} },
 }));
 
-const uploadPhotoMock = vi.fn();
-vi.mock('../../services/photoStorageService.mjs', () => ({
-  uploadPhoto: (...args) => uploadPhotoMock(...args),
+const uploadCredentialMock = vi.fn();
+const credentialExistsMock = vi.fn();
+vi.mock('../../services/trainerCredentialStorageService.mjs', async (importOriginal) => ({
+  ...(await importOriginal()),
+  uploadTrainerCredential: (...args) => uploadCredentialMock(...args),
+  credentialExistsForUser: (...args) => credentialExistsMock(...args),
 }));
+vi.mock('../../services/trainerCredentialReceiptService.mjs', () => ({
+  CredentialReceiptError: class CredentialReceiptError extends Error {
+    constructor(message, { code = 'INVALID_CREDENTIAL_RECEIPT', statusCode = 400 } = {}) {
+      super(message);
+      this.name = 'CredentialReceiptError';
+      this.code = code;
+      this.statusCode = statusCode;
+    }
+  },
+  storeTrainerCredentialUpload: (...args) => uploadCredentialMock(...args),
+  createApplicationWithCredentialReceipts: async ({
+    userId, credentialKeys, applicationModel, applicationPayload,
+  }) => {
+    for (const [field, kind] of [
+      ['certificationFileKey', 'certification'],
+      ['insuranceFileKey', 'insurance'],
+    ]) {
+      const key = credentialKeys[field];
+      if (key && !(await credentialExistsMock(key, userId, kind))) {
+        const error = new Error('invalid credential receipt');
+        error.name = 'CredentialReceiptError';
+        error.statusCode = 400;
+        throw error;
+      }
+    }
+    return applicationModel.create({ ...applicationPayload, userId });
+  },
+}));
+
 
 const {
   getContract, getMyApplicationStatus, uploadCredential, submitApplication,
 } = await import('../../controllers/trainerOnboardingController.mjs');
-const { CURRENT_CONTRACT_VERSION, CONTRACT_CONSENTS } = await import('../../config/trainerContract.mjs');
+const {
+  CURRENT_CONTRACT_VERSION,
+  CONTRACT_CONSENTS,
+  contractPackageHash,
+} = await import('../../config/trainerContract.mjs');
 
 const REQUIRED_KEYS = CONTRACT_CONSENTS.filter((c) => c.required).map((c) => c.key);
 const ALL_KEYS = CONTRACT_CONSENTS.map((c) => c.key);
@@ -66,7 +102,8 @@ const validBody = (over = {}) => ({
   fullName: 'Alex Trainer',
   email: 'alex@example.com',
   contractVersion: CURRENT_CONTRACT_VERSION,
-  signatureData: 'data:image/png;base64,AAAA',
+  contractPackageHash: contractPackageHash(),
+  signatureData: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
   consentFlags: allConsents(),
   ...over,
 });
@@ -76,7 +113,12 @@ beforeEach(() => {
   store.rows = [];
   store.created = null;
   store.throwOnCreate = null;
-  uploadPhotoMock.mockReset();
+  uploadCredentialMock.mockReset();
+  credentialExistsMock.mockReset().mockImplementation(async (key, userId) => (
+    typeof key === 'string'
+    && !key.includes('..')
+    && key.startsWith(`private/trainer-credentials/${userId}/`)
+  ));
 });
 
 describe('getContract', () => {
@@ -107,14 +149,17 @@ describe('uploadCredential', () => {
   });
 
   it('502s when storage returns no reference — never reports success on a lost file', async () => {
-    uploadPhotoMock.mockResolvedValue({ url: 'x' }); // no storageKey
+    uploadCredentialMock.mockResolvedValue({ storage: 'r2' }); // no storageKey
     const req = { ...asUser({}), file: { buffer: Buffer.from('x'), originalname: 'coi.pdf', mimetype: 'application/pdf' } };
     const res = await call(uploadCredential, req);
     expect(res.code).toBe(502);
   });
 
   it('returns the storage key and defaults kind to certification', async () => {
-    uploadPhotoMock.mockResolvedValue({ storageKey: `photos/trainer-credentials/${USER_ID}/a.pdf`, storage: 'r2' });
+    uploadCredentialMock.mockResolvedValue({
+      storageKey: `private/trainer-credentials/${USER_ID}/certification/2026-08/a.pdf.enc`,
+      storage: 'r2',
+    });
     const req = { ...asUser({}), file: { buffer: Buffer.from('x'), originalname: 'cert.pdf', mimetype: 'application/pdf' } };
     const res = await call(uploadCredential, req);
     expect(res.payload.success).toBe(true);
@@ -150,6 +195,14 @@ describe('submitApplication — validation', () => {
     const res = await call(submitApplication, asUser(validBody({ contractVersion: 'v0-ancient' })));
     expect(res.code).toBe(409);
     expect(res.payload.currentVersion).toBe(CURRENT_CONTRACT_VERSION);
+  });
+
+  it('409s when the displayed contract package changed without a version bump', async () => {
+    const res = await call(submitApplication, asUser(validBody({
+      contractPackageHash: '0'.repeat(64),
+    })));
+    expect(res.code).toBe(409);
+    expect(store.created).toBeNull();
   });
 
   it('400s without a drawn signature', async () => {
@@ -190,29 +243,30 @@ describe('submitApplication — validation', () => {
 });
 
 describe('submitApplication — security behaviours', () => {
-  it('IDOR: refuses to attach ANOTHER user\'s R2 credential key', async () => {
-    const victimKey = 'photos/trainer-credentials/99999/stolen.pdf';
+  it('IDOR: refuses to attach ANOTHER user\'s private credential key', async () => {
+    const victimKey = 'private/trainer-credentials/99999/certification/2026-08/stolen.pdf.enc';
     const res = await call(submitApplication, asUser(validBody({ certificationFileKey: victimKey })));
-    expect(res.code).toBe(201);
-    // The application is created, but the foreign key is dropped rather than persisted.
-    expect(store.created.certificationFileKey).toBeNull();
+    expect(res.code).toBe(400);
+    expect(store.created).toBeNull();
   });
 
-  it('keeps this user\'s OWN R2 key', async () => {
-    const ownKey = `photos/trainer-credentials/${USER_ID}/mine.pdf`;
+  it('keeps this user\'s OWN private credential key', async () => {
+    const ownKey = `private/trainer-credentials/${USER_ID}/certification/2026-08/mine.pdf.enc`;
     await call(submitApplication, asUser(validBody({ certificationFileKey: ownKey })));
     expect(store.created.certificationFileKey).toBe(ownKey);
   });
 
   it('refuses a local key containing a traversal segment', async () => {
-    const evil = '/uploads/trainer-credentials/../../../etc/passwd';
-    await call(submitApplication, asUser(validBody({ insuranceFileKey: evil })));
-    expect(store.created.insuranceFileKey).toBeNull();
+    const evil = `private/trainer-credentials/${USER_ID}/insurance/../../../etc/passwd.pdf.enc`;
+    const res = await call(submitApplication, asUser(validBody({ insuranceFileKey: evil })));
+    expect(res.code).toBe(400);
+    expect(store.created).toBeNull();
   });
 
   it('refuses a key outside the credentials namespace entirely', async () => {
-    await call(submitApplication, asUser(validBody({ insuranceFileKey: 'photos/avatars/1/a.png' })));
-    expect(store.created.insuranceFileKey).toBeNull();
+    const res = await call(submitApplication, asUser(validBody({ insuranceFileKey: 'photos/avatars/1/a.png' })));
+    expect(res.code).toBe(400);
+    expect(store.created).toBeNull();
   });
 
   it('consent allowlist: attacker-supplied extra keys never reach the evidence record', async () => {
@@ -222,14 +276,11 @@ describe('submitApplication — security behaviours', () => {
     expect(store.created.consentFlags.isAdmin).toBeUndefined();
   });
 
-  it('a non-true consent value is stored as false, not as the raw value', async () => {
-    const truthy = { ...allConsents(), [ALL_KEYS[0]]: 'yes' };
-    // 'yes' is not === true, so a REQUIRED key would be rejected upstream; use an optional one.
-    const optional = ALL_KEYS.find((k) => !REQUIRED_KEYS.includes(k));
-    if (!optional) return; // all consents required in this contract version — nothing to assert
-    await call(submitApplication, asUser(validBody({ consentFlags: { ...allConsents(), [optional]: 'yes' } })));
-    expect(store.created.consentFlags[optional]).toBe(false);
-    void truthy;
+  it('rejects a truthy string for a required consent instead of treating it as agreement', async () => {
+    const truthy = { ...allConsents(), [REQUIRED_KEYS[0]]: 'yes' };
+    const res = await call(submitApplication, asUser(validBody({ consentFlags: truthy })));
+    expect(res.code).toBe(400);
+    expect(res.payload.missingConsents).toContain(REQUIRED_KEYS[0]);
   });
 
   it('always creates as pending_review and never trusts a client-supplied status', async () => {

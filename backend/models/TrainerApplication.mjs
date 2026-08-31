@@ -14,11 +14,12 @@
  *
  * PRIVACY (rule 8): stores trainer-supplied business/professional data + a signature image.
  * Does NOT store SSN/EIN/bank details — those live only in Stripe's embedded onboarding
- * (future slice). COI/credential files live in R2 (photoStorageService), referenced here by key.
+ * (future slice). COI/credential files are encrypted by trainerCredentialStorageService
+ * before private storage and are referenced here only by owner-scoped opaque keys.
  *
  * @module models/TrainerApplication
  */
-import { DataTypes, Model } from 'sequelize';
+import { DataTypes, Model, Op } from 'sequelize';
 import sequelize from '../database.mjs';
 
 class TrainerApplication extends Model {}
@@ -38,6 +39,8 @@ TrainerApplication.init(
         model: 'Users',
         key: 'id',
       },
+      onUpdate: 'CASCADE',
+      onDelete: 'RESTRICT',
     },
     // ── Applicant identity (display copy; canonical identity stays on User) ──
     fullName: {
@@ -91,7 +94,7 @@ TrainerApplication.init(
       type: DataTypes.DATEONLY,
       allowNull: true,
     },
-    // R2 object key for uploaded credential/cert doc (via photoStorageService, category 'trainer-credentials')
+    // Owner-scoped encrypted private-storage key for the credential/cert document.
     certificationFileKey: {
       type: DataTypes.STRING(500),
       allowNull: true,
@@ -109,7 +112,7 @@ TrainerApplication.init(
       type: DataTypes.DATEONLY,
       allowNull: true,
     },
-    // R2 object key for uploaded Certificate of Insurance (COI) PDF
+    // Owner-scoped encrypted private-storage key for the Certificate of Insurance.
     insuranceFileKey: {
       type: DataTypes.STRING(500),
       allowNull: true,
@@ -168,6 +171,8 @@ TrainerApplication.init(
       type: DataTypes.INTEGER,
       allowNull: true,
       references: { model: 'Users', key: 'id' },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
     },
     reviewedAt: {
       type: DataTypes.DATE,
@@ -183,7 +188,7 @@ TrainerApplication.init(
       allowNull: true,
       comment: 'Stripe Connect Express account id — set by the future payout-wiring slice, null now',
     },
-    // Evidence snapshot: { contractTextHash, contractDisplaySnapshot, submittedAt, source }
+    // Evidence snapshot: displayed contract, body/package hashes, submission time, and source.
     metadata: {
       type: DataTypes.JSONB,
       allowNull: true,
@@ -198,6 +203,12 @@ TrainerApplication.init(
       { fields: ['userId'], name: 'trainer_applications_userId' },
       { fields: ['status'], name: 'trainer_applications_status' },
       { fields: ['email'], name: 'trainer_applications_email' },
+      {
+        fields: ['userId'],
+        name: 'trainer_applications_one_active_per_user',
+        unique: true,
+        where: { status: { [Op.in]: ['pending_review', 'approved', 'suspended'] } },
+      },
     ],
   },
 );
@@ -206,10 +217,20 @@ TrainerApplication.associate = (models) => {
   TrainerApplication.belongsTo(models.User, {
     foreignKey: 'userId',
     as: 'applicant',
+    onUpdate: 'CASCADE',
+    onDelete: 'RESTRICT',
   });
   TrainerApplication.belongsTo(models.User, {
     foreignKey: 'reviewedBy',
     as: 'reviewer',
+    onUpdate: 'CASCADE',
+    onDelete: 'SET NULL',
+  });
+  TrainerApplication.hasMany(models.TrainerCredentialUpload, {
+    foreignKey: 'attachedApplicationId',
+    as: 'credentialUploads',
+    onUpdate: 'CASCADE',
+    onDelete: 'RESTRICT',
   });
 };
 

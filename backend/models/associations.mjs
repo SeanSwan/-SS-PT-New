@@ -14,6 +14,7 @@ const setupAssociations = async () => {
     // Import ONLY SEQUELIZE MODELS (PostgreSQL)
     const UserModule = await import('./User.mjs');
     const TrainerApplicationModule = await import('./TrainerApplication.mjs');
+    const TrainerCredentialUploadModule = await import('./TrainerCredentialUpload.mjs');
     const SessionModule = await import('./Session.mjs');
     const SessionTypeModule = await import('./SessionType.mjs');
     const ClientProgressModule = await import('./ClientProgress.mjs');
@@ -243,6 +244,7 @@ const setupAssociations = async () => {
     // Extract default exports for SEQUELIZE models only
     const User = UserModule.default;
     const TrainerApplication = TrainerApplicationModule.default;
+    const TrainerCredentialUpload = TrainerCredentialUploadModule.default;
     const Session = SessionModule.default;
     const SessionType = SessionTypeModule.default;
     const ClientProgress = ClientProgressModule.default;
@@ -532,7 +534,7 @@ const setupAssociations = async () => {
         WaiverVersion, WaiverRecord, WaiverRecordVersion,
         WaiverConsentFlags, PendingWaiverMatch, AiConsentLog,
         // Trainer Onboarding
-        TrainerApplication,
+        TrainerApplication, TrainerCredentialUpload,
         // Video Catalog Models
         VideoCatalog, VideoCollection, VideoCollectionItem,
         UserWatchHistory, VideoAccessGrant, VideoOutboundClick, VideoJobLog,
@@ -1180,9 +1182,27 @@ const setupAssociations = async () => {
     PendingWaiverMatch.belongsTo(User, { foreignKey: 'reviewedByUserId', as: 'reviewedByUser' });
 
     // Trainer Onboarding (self-serve application + contract e-sign)
-    User.hasMany(TrainerApplication, { foreignKey: 'userId', as: 'trainerApplications' });
-    TrainerApplication.belongsTo(User, { foreignKey: 'userId', as: 'applicant' });
-    TrainerApplication.belongsTo(User, { foreignKey: 'reviewedBy', as: 'reviewer' });
+    User.hasMany(TrainerApplication, {
+      foreignKey: 'userId', as: 'trainerApplications', onUpdate: 'CASCADE', onDelete: 'RESTRICT',
+    });
+    TrainerApplication.belongsTo(User, {
+      foreignKey: 'userId', as: 'applicant', onUpdate: 'CASCADE', onDelete: 'RESTRICT',
+    });
+    TrainerApplication.belongsTo(User, {
+      foreignKey: 'reviewedBy', as: 'reviewer', onUpdate: 'CASCADE', onDelete: 'SET NULL',
+    });
+    User.hasMany(TrainerCredentialUpload, {
+      foreignKey: 'userId', as: 'trainerCredentialUploads', onUpdate: 'CASCADE', onDelete: 'RESTRICT',
+    });
+    TrainerCredentialUpload.belongsTo(User, {
+      foreignKey: 'userId', as: 'owner', onUpdate: 'CASCADE', onDelete: 'RESTRICT',
+    });
+    TrainerApplication.hasMany(TrainerCredentialUpload, {
+      foreignKey: 'attachedApplicationId', as: 'credentialUploads', onUpdate: 'CASCADE', onDelete: 'RESTRICT',
+    });
+    TrainerCredentialUpload.belongsTo(TrainerApplication, {
+      foreignKey: 'attachedApplicationId', as: 'application', onUpdate: 'CASCADE', onDelete: 'RESTRICT',
+    });
 
     User.hasMany(AiConsentLog, { foreignKey: 'userId', as: 'aiConsentLogs' });
     AiConsentLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
@@ -1562,6 +1582,7 @@ const setupAssociations = async () => {
 
       // Trainer Onboarding (self-serve application + contract e-sign)
       TrainerApplication,
+      TrainerCredentialUpload,
 
       // Video Catalog Models
       VideoCatalog,
