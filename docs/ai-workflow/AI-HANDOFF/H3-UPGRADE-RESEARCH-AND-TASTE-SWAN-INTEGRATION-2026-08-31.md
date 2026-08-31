@@ -57,3 +57,86 @@ Integration plumbing truths (verified against ComfyUI docs): `/prompt` accepts A
 3. Taste-brain backup: private remote vs scheduled bundle.
 4. Candidate output location long-term: keep `output-candidate` (isolation) vs re-point to `Z:\SwanStudios-Video\output` (space + one render library) once the candidate is accepted as primary.
 5. Whether to green-light the §2 install order (SageAttention → PDD LoRA → INT8 quant → SeedVR2/RIFE) as the next hardening batch.
+
+---
+
+## 5. Community intel, 2026-08-31 (two video transcripts supplied by Sean)
+
+Both are from a creator who publishes ComfyUI workflows on Patreon. The **techniques** below are
+general knowledge and safe to apply; the **workflow JSON files** are that creator's paid product —
+get them from his Patreon rather than reconstructing them from a transcript.
+
+### 5.1 MiniMax H3 "Ultra workflow v3"
+
+| Technique | What it does | Verdict |
+|---|---|---|
+| **Fast workflow: low-res → latent upscale** | Generate at ~0.2 MP, then latent-upscale to target (~1.2 MP). Measured 172s → <100s on a rented card. The gap widens as target resolution rises. | **Adopt.** This is a graph-level restructure, not a new model — cheapest large win available. |
+| **Inpainting with SAM 3.1 auto-mask** | Type one word ("head", "basketball"); SAM tracks and masks it through the clip; a reference image replaces it. No hand-masking. | **Adopt** — the strongest new capability in either transcript. |
+| **Extend video** | Chain up to 6 further clips × 15s ≈ 90s total, each with its own prompt, optional new reference images. | **Adopt.** Corroborates §2 item 5 (`MiniMaxH3AddGuide`). |
+| **Long text-to-video / long image-to-video** | Same chaining from scratch, or from keyframes. Reported seamless at adequate resolution. | Adopt for T2V; the creator himself prefers generate-then-extend over keyframe I2V. |
+| **Model-preview override node** | Lets you watch generation; costs real speed. | Bypass or delete it. |
+
+**CORRECTION to §2 of this document.** §2 item 7 treated 4-step distilled H3 variants as broadly
+favourable. This creator tested the released 4-step `fast-video` H3 finetune and reports it is
+**text-to-video only and of poor quality**, and deliberately excluded it from his workflow. Treat
+"4-step distill" claims per-variant: the official PDD Acc LoRAs (§2 item 2, with an FL2VA variant
+matching our first/last-frame mode) are a different artifact from that finetune and remain the
+recommended fast path. `[LIKELY]` — one experienced practitioner's testing, not reproduced here.
+
+### 5.2 Krea 2 LoRA training (AI Toolkit)
+
+Relevant because **the Swan Taste Brain is already a LoRA dataset generator** — see §5.3.
+
+- **Dataset**: ~12–24 high-resolution images is enough; Krea 2 is unusually sensitive, so quality
+  beats quantity. 1024 px for best results.
+- **Architecture: RAW — never "Turbo with training adapter."** The creator is emphatic that the
+  Turbo variant badly degrades quality and that people are picking it by mistake. This is the single
+  highest-value setting in the transcript.
+- **Put the trigger token in EVERY caption** (`swanstyle, a glacier…`). Without it the model never
+  binds the token. Applies to subjects, styles and concepts alike.
+- **Steps**: 90–95% of runs are finished between 1,000 and 2,000 steps. Leave the cap at 3,000 to
+  collect checkpoints, then pick; more training makes a LoRA *less flexible*, not better.
+- **Off by default**: EMA (measured worse), differential guidance (measured no better). Timestep
+  `linear balanced`; `weighted high noise` only for a strong uniform style set.
+- **Disable sampling** — previews are slow, use VRAM, and are not representative. Compare checkpoints
+  in ComfyUI instead. Also raise "max step saves to keep"; the default keeps too few to compare.
+- **Cache text embeddings** on (removes the trigger-word field).
+- **VRAM**: the 5090's 32 GB trains at 1024 with no layer offloading. Offloading enables ~10 GB cards
+  but needs ~64 GB system RAM and is much slower.
+- **Checkpoint comparison**: render the same prompt and seed through each checkpoint side by side.
+  Test *flexibility* with an off-domain prompt ("anime portrait of X") — a LoRA that can only produce
+  photographs is overtrained.
+- **At inference**: style LoRAs often want strength 1.5–2.5, not 1.0.
+
+### 5.3 What was actually built from this (2026-08-31)
+
+`swan-taste-brain` gained **S5 — LoRA dataset export** (`prompter/lib/lora.mjs`,
+`prompter/export-lora-dataset.mjs`, `prompter/test-lora.mjs`), because the taste brain already holds
+the two things a trainer needs:
+
+1. **Which pictures are his** — the courtroom's `closest` verdicts.
+2. **A ground-truth caption for each** — a render's originating prompt is stored against its token,
+   so captioning with a vision model (the transcript's Qwen3-VL / ChatGPT-zip step) is unnecessary
+   *and worse*: it reconstructs, badly, a sentence we already have exactly.
+
+The trigger token is forced into every caption, and `TRAINING-NOTES.json` ships beside the images
+carrying the settings above (RAW-never-Turbo, 1024, rank 32, no EMA, no differential guidance,
+sampling off, 1,000–2,000 step window).
+
+**LICENCE GATE — the reason this slice is narrow.** A memory's judged picks include third-party
+photographs: the shareable pool, and for Sean the Midlibrary corpus. Those are *reference* material.
+Training redistributes the thing the licence covers, so only `generated: true` renders — pictures
+made from his own prompts — are ever exported, and everything refused is counted by reason and
+reported rather than silently shrinking the dataset. This is the same law as the existing
+OWN-MATERIAL rule, applied at a new surface.
+
+**Measured today: 0 trainable images, 9 reference pictures correctly refused.** The LoRA path is
+blocked on Sean judging his OWN renders (Judge tab → "My renders"), not on any code.
+
+### 5.4 Open question for Sean
+
+Krea 2 is a **cloud/hosted** text-to-image model; this box runs a local ComfyUI. Before any Krea 2
+LoRA work, confirm which is intended — a local Krea 2 checkpoint if one is obtainable, or training
+against a hosted endpoint (which puts the dataset on someone else's machine, a T3 external-visible
+action under the operator bridge and a separate decision from anything above). The dataset exporter
+is model-agnostic: it emits image+caption pairs that any trainer of this family accepts.
