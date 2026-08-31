@@ -40,3 +40,27 @@ this reason — do not "tidy" the hyphens back into em dashes.
 - Hardening handoff: `../../AFTERTASTE-MINIMAX-H3-HARDENING-HANDOFF-2026-08-31.md`
 - Upgrade research + integration blueprint: `../../H3-UPGRADE-RESEARCH-AND-TASTE-SWAN-INTEGRATION-2026-08-31.md`
 - Benchmark evidence for the candidate: `../h3-lightx-v1-fp8-124f-receipt.md`
+
+## Update 2026-08-31 — one render library, and weights kept off C:
+
+Three more files are rescued here, and two config decisions were made:
+
+| File | Original location | What changed |
+|---|---|---|
+| `Start-H3-Candidate.ps1` | `C:\ComfyUI-H3-v0.34.2-cu130\` | `--output-directory` now resolves to `Z:\SwanStudios-Video\output`, falling back to the local `output-candidate` only when Z: is not mounted |
+| `extra_model_paths.yaml` | same | added `upscale_models`, `controlnet`, `clip_vision` mappings to the Z: library |
+| `Swan-Local-Video-5090.cmd` | Desktop | reports the render path it will actually use, instead of always naming `output-candidate` |
+
+**Why the output moved.** The candidate wrote video to `output-candidate` on C:, which has ~146 GB
+free and is the system drive, while Z: has ~715 GB and already held the 144 MB render library.
+Splitting output across two folders also hid renders from the taste brain, which joins renders in a
+single directory — the tool reported "no renders to judge" while 17 sat on disk.
+
+**Why the model paths were extended BEFORE downloading anything.** A folder not named in
+`extra_model_paths.yaml` falls back to `C:\ComfyUI-H3-v0.34.2-cu130\models\<folder>`. Upscaler
+weights are large, so without the mapping the first upscaler download would have quietly filled the
+system drive. `upscale_models`, `controlnet` and `clip_vision` now point at Z: and the folders exist.
+
+**Verified at the time of writing:** no upscaler models and no upscaler custom nodes are installed on
+either ComfyUI — both `upscale_models` folders contained only ComfyUI's placeholder file. Upscaling
+was recommended in the research shortlist but never installed; do not assume it is present.

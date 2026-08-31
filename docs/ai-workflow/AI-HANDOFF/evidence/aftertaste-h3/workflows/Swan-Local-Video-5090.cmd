@@ -74,7 +74,11 @@ echo   GPU:
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>nul
 if %errorlevel% neq 0 echo     [!] nvidia-smi unavailable - starting anyway.
 echo.
-echo   Candidate output: %CANDIDATE_ROOT%\output-candidate
+if exist "Z:\SwanStudios-Video\" (
+  echo   Render output:    Z:\SwanStudios-Video\output   [one library, on the big disk]
+) else (
+  echo   Render output:    %CANDIDATE_ROOT%\output-candidate   [Z: not mounted - using the local fallback]
+)
 echo   Saved workflows: %WORKFLOW_DIR%
 echo   Starting on %URL% ...
 echo.

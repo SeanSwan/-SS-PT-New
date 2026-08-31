@@ -1,0 +1,16 @@
+# Candidate reads the existing Z: model library without moving or duplicating weights.
+#
+# Weights belong on Z:, not on C:. The system drive has ~146 GB free and these files are large
+# (the diffusion models alone are 20 GB); Z: has ~715 GB and already holds the library. Any folder
+# NOT mapped here falls back to C:\ComfyUI-H3-v0.34.2-cu130\models\<folder>, which is how upscaler
+# weights would have quietly landed on the system drive — so the upscale/restoration folders are
+# mapped here BEFORE anything is downloaded into them.
+swan_shared_models:
+    base_path: Z:/AI-Weights/ComfyUI/
+    diffusion_models: diffusion_models
+    text_encoders: text_encoders
+    vae: vae
+    loras: loras
+    upscale_models: upscale_models
+    controlnet: controlnet
+    clip_vision: clip_vision
