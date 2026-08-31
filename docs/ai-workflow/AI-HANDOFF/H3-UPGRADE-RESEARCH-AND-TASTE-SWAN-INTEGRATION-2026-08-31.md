@@ -42,11 +42,11 @@ The loop is already ~80 % built. What Sean asked for (pick styles/artists from t
 |---|---|---|
 | 1 | Point taste-brain at the candidate: `comfy.local.json` → api 8189, output `output-candidate` | **DONE this session** |
 | 2 | Re-capture the Make template from the NEW install: run the first/last-frame workflow once in ComfyUI, with `node prompter/capture-workflow.mjs --watch` running (capture is memory-only history; cannot be done for Sean) | **SEAN — one action** |
-| 3 | Commit the taste-brain WIP (gateway G0/G1, movie.mjs, tests) after its suites pass; decide backup/remote for the repo | Open |
-| 4 | Build Prompt Studio S1–S4: brain browser (223 SREF · 398 artists · 407 handles · themes · 3,980 prompts, click-to-insert), main prompt box, director rounds, iteration ledger. Spec is build-ready; no model needed until S5 | Next build slice |
+| 3 | Commit the taste-brain WIP (gateway G0/G1, movie.mjs, tests) after its suites pass; decide backup/remote for the repo | **DONE** (`8951440`); backup/remote still Sean's call |
+| 4 | Build Prompt Studio S1–S4: brain browser, click-to-insert, director rounds, iteration ledger | **DONE** (`30cbf75`). Real panel counts, read from disk rather than written down: **9,521 catalog entries · 4,340 artists · 5,434 prompts** · 223 sref · 407 handles · 22 parameters. The "398 artists / 3,980 prompts" in the spec predates the 2026-08-21 catalog merge. |
 | 5 | Extend `/api/make` for first/last-frame: `POST /upload/image` (field `image`, `overwrite=true`, use returned `name`), rewrite the two LoadImage nodes located by class_type/wiring — never by node id (ids renumber on edit; our wiring-based field finder already avoids this) | Small slice |
 | 6 | Video prompts through the seedance grammar: fold §2's H3 prompt truths into `lib/video.mjs`'s curated table + `movie.mjs` chapters; Make 4 queues seed variants server-side | Small slice |
-| 7 | S0 full Midlibrary `/styles` catalog | **BLOCKED on Sean's decision** (spec §4.5 — recommend emailing Midlibrary first) |
+| 7 | S0 full Midlibrary `/styles` catalog | **ALREADY DONE — the spec is stale.** `sources/midlibrary/distilled/catalog-index.json` (1.7 MB, 9,521 entries) has been on disk since 2026-08-21, with `catalog-templates`, `catalog-features`, `catalog-guides` and a 5 MB description file beside it. Spec §4.5's "BLOCKED on Sean" and its 407-handle honesty note describe a state that ended ten days ago. |
 
 Integration plumbing truths (verified against ComfyUI docs): `/prompt` accepts API-format JSON only (Workflow → Export (API)); completion = websocket `executing` with `node: null` (+ `/history/{id}` poll fallback); randomize seed or ComfyUI serves the cached result; `node_errors` come back on the POST, not the socket; local H3 node is `MiniMaxH3ImageToVideo` — do NOT template the similarly-named cloud-billed `MinimaxHailuo03FirstLastFrameNode`.
 
