@@ -86,6 +86,11 @@ export const STATUS = Object.freeze({
   E_JOB_NOT_FOUND: 404,
   E_LEASE_CONFLICT: 409,
   E_BIND_NO_INIT_IMAGE: 400,
+  // The bound frame's key is not one this system wrote for that job's owner. A refusal by
+  // policy, not a server fault — 409 like its sibling E_BIND_HASH_MISMATCH, because both say
+  // "the thing you named is not the thing you are entitled to", and a 500 would send an
+  // agent into retry against a decision that will never change.
+  E_BIND_FOREIGN_KEY: 409,
   E_BAD_STATUS: 400,
   E_BAD_TRANSITION: 409,
   E_PUBLISH_BLOCKED: 422,

@@ -105,7 +105,10 @@ describe('the queued job carries the bound reference', () => {
 });
 
 describe('the agent read ticket', () => {
-  const job = { id: 'job-9', leasedBy: 'agent-A', params: { initImage: { assetId: 'asset-1', r2Key: 'atelier/stills/1/x.png', sha256: H, mime: 'image/png' } } };
+  // `userId` is allowNull: false on VideoRenderJob, and the read ticket now checks the bound
+  // key against it. Omitting it described a job that cannot exist — and exercised a path
+  // production never takes.
+  const job = { id: 'job-9', userId: 1, leasedBy: 'agent-A', params: { initImage: { assetId: 'asset-1', r2Key: 'atelier/stills/1/x.png', sha256: H, mime: 'image/png' } } };
   it('is issued only to the lease holder, from the job\'s own params', async () => {
     const d = deps({ getJob: async () => job });
     const t = await initImageReadTicket({ jobId: 'job-9', agentId: 'agent-A' }, d);
@@ -116,5 +119,41 @@ describe('the agent read ticket', () => {
   it('refuses a job with no bound frame', async () => {
     const d = deps({ getJob: async () => ({ ...job, params: { initImage: 'plain.png' } }) });
     await expect(initImageReadTicket({ jobId: 'job-9', agentId: 'agent-A' }, d)).rejects.toMatchObject({ code: 'E_BIND_NO_INIT_IMAGE' });
+  });
+});
+
+describe('the read ticket applies the same ownership rule as the other two signers', () => {
+  // NOT reachable today, and the comment in the source says so: bindMotion GATE 1 refuses any
+  // asset whose kind is not 'image', and image rows are written only by persistStills, whose
+  // key is stillObjectKey — atelier/stills/<userId>/<sha>. The caller-supplied keys that
+  // motivated this guard live only on video rows, which cannot be bound. The rule is here
+  // because it now governs three signers, and a rule applied to two of three is the shape
+  // this subsystem produces defects in.
+  const ticket = (initImage, over = {}) => initImageReadTicket(
+    { jobId: 'job-9', agentId: 'agent-A' },
+    deps({ getJob: async () => ({ id: 'job-9', userId: 1, leasedBy: 'agent-A', params: { initImage }, ...over }) }),
+  );
+
+  it('refuses a bound frame whose key belongs to another owner', async () => {
+    await expect(ticket({ assetId: 'a', r2Key: 'atelier/stills/99/x.png', sha256: H, mime: 'image/png' }))
+      .rejects.toMatchObject({ code: 'E_BIND_FOREIGN_KEY' });
+  });
+
+  it('refuses a namespace this system does not write', async () => {
+    await expect(ticket({ assetId: 'a', r2Key: 'waivers/1/signed.pdf', sha256: H, mime: 'image/png' }))
+      .rejects.toMatchObject({ code: 'E_BIND_FOREIGN_KEY' });
+  });
+
+  it('still issues a ticket for the owner\u2019s own still', async () => {
+    // The guard must not eat the working path — this is the whole reason the ticket exists.
+    const t = await ticket({ assetId: 'a', r2Key: 'atelier/stills/1/x.png', sha256: H, mime: 'image/png' });
+    expect(t.url).toBeTruthy();
+  });
+
+  it('accepts the job namespace anchored to THIS job', async () => {
+    const t = await ticket({ assetId: 'a', r2Key: 'jobs/job-9/frame.png', sha256: H, mime: 'image/png' });
+    expect(t.url).toBeTruthy();
+    await expect(ticket({ assetId: 'a', r2Key: 'jobs/job-OTHER/frame.png', sha256: H, mime: 'image/png' }))
+      .rejects.toMatchObject({ code: 'E_BIND_FOREIGN_KEY' });
   });
 });

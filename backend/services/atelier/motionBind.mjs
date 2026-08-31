@@ -30,6 +30,7 @@
 import { createHash } from 'node:crypto';
 import { resolve as resolveProvider, validateVideoRequest, readGrants, readEnabled, ProviderError } from '../../../shared/providers/video/registry.mjs';
 import { ComposeError, normalizeText } from './composeLimits.mjs';
+import { keyOwnedByRow } from './assetKeyOwnership.mjs';
 import { STILL_PROVIDER } from './localStillLane.mjs';
 
 export class MotionError extends ComposeError {
@@ -154,6 +155,22 @@ export async function initImageReadTicket({ jobId, agentId }, deps = {}) {
   if (job.leasedBy !== agentId) throw new MotionError('E_LEASE_CONFLICT', 'You do not hold the lease for this job.');
   const ref = job.params?.initImage;
   if (!ref || typeof ref !== 'object' || !ref.r2Key) throw new MotionError('E_BIND_NO_INIT_IMAGE', 'This job has no bound frame.');
+  // THE SAME OWNERSHIP RULE THE OTHER TWO SIGNERS APPLY.
+  //
+  // Not reachable today, and that is worth stating precisely rather than implying a hole:
+  // GATE 1 of `bindMotion` refuses any asset whose `kind` is not `image`, and image rows are
+  // written by exactly one place — `persistStills.mjs:180`, whose key is built by
+  // `stillObjectKey` as `atelier/stills/<userId>/<sha>.<ext>`. The caller-supplied keys that
+  // motivated this guard live only on VIDEO rows, which cannot be bound. Nothing writes
+  // `job.params` but the bind itself; the agent routes' `req.params` is Express, not this.
+  //
+  // It is here anyway because the rule now governs three signers and a rule applied to two
+  // of three is the shape this subsystem produces defects in — the guard is uniform, or it
+  // is a coin flip which consumer someone remembers next. Fails closed: a bound frame whose
+  // key this system did not write is a wiring error, not a picture to hand out.
+  if (!keyOwnedByRow(ref.r2Key, { ownerUserId: job.userId, jobId: job.id })) {
+    throw new MotionError('E_BIND_FOREIGN_KEY', 'That job\u0027s bound frame is not an object this system wrote for its owner.');
+  }
   const url = await d.readUrl(ref.r2Key, ref.mime || 'image/png');
   return { url, sha256: ref.sha256, mime: ref.mime || 'image/png', assetId: ref.assetId };
 }

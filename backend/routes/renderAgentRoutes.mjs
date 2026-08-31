@@ -21,6 +21,7 @@
 
 import { Router } from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { STATUS } from './atelierStatusMap.mjs';
 import { createArtifactUploadUrl, ArtifactUploadError } from '../services/videoRenderArtifactUpload.mjs';
 import {
   enrolAgent, revokeAgent, authenticateAgent, RenderAgentAuthError,
@@ -164,7 +165,12 @@ router.post('/jobs/:jobId/init-image', agentAuth, async (req, res) => {
     const out = await initImageReadTicket({ jobId: req.params.jobId, agentId: req.agent.id });
     return res.json({ success: true, data: out });
   } catch (err) {
-    const status = err?.code === 'E_LEASE_CONFLICT' ? 409 : err?.code === 'E_JOB_NOT_FOUND' ? 404 : err?.code === 'E_BIND_NO_INIT_IMAGE' ? 400 : 500;
+    // ONE MAPPING TABLE, NOT TWO. This was an inline ternary listing three codes, so a
+    // fourth added at the throw site fell through to 500 — a deliberate policy refusal
+    // reported as a server fault, which is what sends an agent into retry against a decision
+    // that will never change. STATUS already holds the invariant "every code an Atelier
+    // service can throw has a deliberate status"; a second copy here could only drift from it.
+    const status = STATUS[err?.code] || 500;
     if (err?.code) return res.status(status).json({ success: false, error: err.message, code: err.code });
     return sendServiceError(res, err, 'init-image');
   }
