@@ -150,3 +150,138 @@ describe('completeJob authorization predicate', () => {
     expect(blocked('agent-a', 'EVIL', 'ready', 'k', 'other')).toBe(true);
   });
 });
+
+/**
+ * completeJob's DATABASE path — reachable at last.
+ *
+ * This file's header says it covers only paths running BEFORE database access, and that the
+ * leasing paths "need Postgres and are covered by the integration suite". That was true, and
+ * it is why three real defects in one `findOrCreate` went unfixed across two sessions: an
+ * unfalsifiable fix is not a fix. `completeJob` now takes its models through `options`, so
+ * the transaction body is reachable with fakes and each defect has a test that fails without it.
+ *
+ * These are NOT a substitute for the integration suite. They prove the logic this function
+ * applies; they do not prove Sequelize does what the fakes pretend.
+ */
+describe('completeJob — the three defects in one findOrCreate', () => {
+  const JOB = '11111111-2222-3333-4444-555555555555';
+  const R2 = `jobs/${JOB}/source.mp4`;
+
+  function harness({ existing = null, job: jobOver = {} } = {}) {
+    const job = {
+      id: JOB, userId: 7, leasedBy: 'agent-A', status: 'rendering', isTerminal: false,
+      exerciseId: null, projectId: null, posterR2Key: null, r2Key: null,
+      update: async (patch) => Object.assign(job, patch),
+      ...jobOver,
+    };
+    const calls = { findOrCreate: [], assetUpdate: [], created: null };
+    const assetModel = {
+      findOrCreate: async ({ where, defaults }) => {
+        calls.findOrCreate.push(where);
+        if (existing) {
+          existing.update = async (patch) => { calls.assetUpdate.push(patch); return Object.assign(existing, patch); };
+          return [existing, false];
+        }
+        const row = { ...defaults, update: async (p) => Object.assign(row, p) };
+        calls.created = row;
+        return [row, true];
+      },
+    };
+    return {
+      job, calls,
+      opts: { jobModel: { findByPk: async () => job }, assetModel, db: { transaction: async (fn) => fn('TX') } },
+    };
+  }
+
+  const complete = (h, meta = {}) => completeJob({ jobId: JOB, agentId: 'agent-A', r2Key: R2, ...meta }, h.opts);
+
+  it('(a) scopes the lookup by OWNER, not by r2Key alone', async () => {
+    // On a key collision across tenants this found another tenant's row: the completer's
+    // asset never appeared in their library, ownerUserId stayed the original owner's, and
+    // nothing errored.
+    const h = harness();
+    await complete(h);
+    expect(h.calls.findOrCreate[0]).toEqual({ r2Key: R2, ownerUserId: 7 });
+  });
+
+  it('(b) backfills the poster on the FOUND path, where defaults are ignored', async () => {
+    // A clip whose row was created on a poster-less declaration kept null forever, while
+    // the JOB knew better — the poster written below belongs to job.update, not the asset.
+    const existing = { id: 'asset-1', posterR2Key: null };
+    const h = harness({ existing });
+    await complete(h, { posterR2Key: `jobs/${JOB}/poster.webp` });
+    expect(h.calls.assetUpdate).toEqual([{ posterR2Key: `jobs/${JOB}/poster.webp` }]);
+  });
+
+  it('(b) never overwrites a poster the asset already has', async () => {
+    // Fills a gap; it is not a channel for replacing one declaration with a later one.
+    const existing = { id: 'asset-1', posterR2Key: `jobs/${JOB}/original.webp` };
+    const h = harness({ existing });
+    await complete(h, { posterR2Key: `jobs/${JOB}/newer.webp` });
+    expect(h.calls.assetUpdate).toEqual([]);
+    expect(existing.posterR2Key).toBe(`jobs/${JOB}/original.webp`);
+  });
+
+  it('(c) drops a poster key this system did not write for this job', async () => {
+    // meta reaches here from the request body and verifyObject checks EXISTENCE, never
+    // ownership. Dropped rather than rejected: a poster is an optimisation, and refusing
+    // the completion would trade a missing thumbnail for a lost render.
+    const h = harness();
+    await complete(h, { posterR2Key: 'atelier/stills/99/thumbs/victim.webp' });
+    // The row that was actually written carried null, not the foreign key.
+    expect(h.calls.created.posterR2Key).toBeNull();
+    // And the JOB did not keep it either — both writes read the same sanitised value.
+    expect(h.job.posterR2Key).toBeNull();
+  });
+
+  it('(c) keeps a poster in this job\u2019s own namespace', async () => {
+    const h = harness();
+    await complete(h, { posterR2Key: `jobs/${JOB}/poster.webp` });
+    expect(h.job.posterR2Key).toBe(`jobs/${JOB}/poster.webp`);
+  });
+
+  it('the completion still does its job — the row is created and the job goes ready', async () => {
+    // The guard must not eat the working path.
+    const h = harness();
+    const out = await complete(h);
+    expect(out.asset).toBeDefined();
+    expect(h.job.status).toBe('ready');
+    expect(h.job.r2Key).toBe(R2);
+  });
+});
+
+describe('owner-scoping turns a silent adoption into a named refusal', () => {
+  const JOB = '11111111-2222-3333-4444-555555555555';
+
+  it('a unique-key collision is 409 KEY_COLLISION, not an unhandled 500', async () => {
+    // media_assets.r2_key carries a UNIQUE partial index. Before the owner was in the
+    // lookup, a cross-tenant collision FOUND the other tenant's row and adopted it silently.
+    // Now the lookup misses and the insert hits the index — correct, but an unhandled
+    // constraint error is a server fault for what is a deliberate refusal.
+    const job = { id: JOB, userId: 7, leasedBy: 'agent-A', isTerminal: false, update: async () => {} };
+    const boom = Object.assign(new Error('duplicate key'), { name: 'SequelizeUniqueConstraintError' });
+    await expect(completeJob(
+      { jobId: JOB, agentId: 'agent-A', r2Key: `jobs/${JOB}/x.mp4` },
+      {
+        jobModel: { findByPk: async () => job },
+        assetModel: { findOrCreate: async () => { throw boom; } },
+        db: { transaction: async (fn) => fn('TX') },
+      },
+    )).rejects.toMatchObject({ statusCode: 409, code: 'KEY_COLLISION' });
+  });
+
+  it('any other database error still propagates unchanged', async () => {
+    // The catch must name ONE condition, not swallow the class. A connection failure
+    // reported as a key collision would send an agent to fix the wrong thing.
+    const job = { id: JOB, userId: 7, leasedBy: 'agent-A', isTerminal: false, update: async () => {} };
+    const other = Object.assign(new Error('connection terminated'), { name: 'SequelizeConnectionError' });
+    await expect(completeJob(
+      { jobId: JOB, agentId: 'agent-A', r2Key: `jobs/${JOB}/x.mp4` },
+      {
+        jobModel: { findByPk: async () => job },
+        assetModel: { findOrCreate: async () => { throw other; } },
+        db: { transaction: async (fn) => fn('TX') },
+      },
+    )).rejects.toMatchObject({ name: 'SequelizeConnectionError' });
+  });
+});
