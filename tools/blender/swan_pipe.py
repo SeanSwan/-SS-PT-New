@@ -46,7 +46,7 @@ import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from swan_pipe_manifest import plan, out_dir_for, write_manifest_stub, executed_stage_ids, parse_args  # noqa: E402
+from swan_pipe_manifest import plan, out_dir_for, write_manifest_stub, write_success_receipt, executed_stage_ids, parse_args  # noqa: E402
 
 try:
     import bpy  # noqa: F401
@@ -269,8 +269,7 @@ def main():
         if missing:  # plan/code drift is a FAILURE, not a note — run 1 hid collision + still this way
             raise SystemExit(f"swan_pipe: plan() lists stages this run did not execute: {missing}")
         path = write_manifest_stub(args, tmp_dir)
-        with open(os.path.join(tmp_dir, ".swan-pipe.ok"), "w", encoding="utf-8") as fh:
-            fh.write("ok\n")  # success sentinel: a caller that cannot trust exit codes checks this file
+        write_success_receipt(tmp_dir)
     except BaseException:
         shutil.rmtree(tmp_dir, ignore_errors=True)  # never leave a half-run where --all could find it
         raise

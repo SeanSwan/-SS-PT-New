@@ -89,7 +89,11 @@ export function validate(manifest, ctx) {
       if (!Array.isArray(got) || got.length === 0) E('a rigged asset declares no animations');
       for (const clip of got) if (!allowed.has(clip)) E(`clip "${clip}" is not in ${manifest.skeleton} (allowed: ${sk.clips.join(', ')})`);
       const missing = sk.clips.filter((c) => !got.includes(c));
-      if (missing.length) W(`skeleton clips not yet authored: ${missing.join(', ')}`);
+      if (missing.length) {
+        const detail = `required skeleton clips: ${missing.join(', ')}`;
+        if (['validated', 'shipped'].includes(manifest.status)) E(`${manifest.status} asset is missing ${detail}`);
+        else W(`skeleton clips not yet authored: ${missing.join(', ')}`);
+      }
       if (!CLIP_ORDER_FREE) W('clip order enforcement is off');
     }
   }

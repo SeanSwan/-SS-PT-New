@@ -10,14 +10,15 @@
  *   node scripts/assets/validate-asset.selftest.mjs
  *   exit 0 = all fixtures pass, 1 = a rule regressed
  */
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validate } from './validate-asset.mjs';
-import { writeFileSync, readFileSync, unlinkSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+const FIXTURE_DIR = mkdtempSync(join(tmpdir(), 'swan-asset-selftest-'));
 
 // Minimal REAL GLBs for the presence fixtures (a name check against a registry is not a
 // presence check against bytes). Written beside the selftest, deleted on exit.
@@ -32,20 +33,34 @@ function glb(gltf) {  // eslint-disable-line no-unused-vars
 // of these fixtures omitted nodes, so the containment rule silently skipped and the fixture
 // 'passed' by not running (found when worldAabb replaced the local one, 2026-08-26).
 const mesh = (count, mn, mx) => ({ asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ mesh: 0 }], meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count, min: mn, max: mx }] });
+const riggedMesh = (count, mn, mx, clips) => {
+  const doc = mesh(count, mn, mx);
+  doc.nodes.push({ name: 'root-joint' });
+  Object.assign(doc.meshes[0].primitives[0].attributes, { JOINTS_0: 1, WEIGHTS_0: 2 });
+  doc.accessors.push({ count }, { count });
+  doc.skins = [{ joints: [1] }];
+  doc.animations = clips.map((name) => ({ name }));
+  return doc;
+};
+const REQUIRED_CLIPS = ['idle', 'move', 'attack', 'hit', 'death'];
 const GLB_LOD0_100 = '.selftest-lod0-100.glb';   // 300 verts non-indexed = 100 tris, box -1..1
+const GLB_LOD1_50 = '.selftest-lod1-50.glb';
 const GLB_LOD2_40 = '.selftest-lod2-40.glb';     // 120 verts = 40 tris = 40% of lod0 (tier table allows 25%)
 const GLB_LOD2_20 = '.selftest-lod2-20.glb';     // 60 verts = 20 tris = 20% — allowed
+const GLB_COLL_IN = '.selftest-coll-in.glb';
 const GLB_COLL_OUT = '.selftest-coll-out.glb';   // AABB pokes outside the lod0 box
-writeFileSync(join(ROOT, GLB_LOD0_100), glb(mesh(300, [-1, -1, -1], [1, 1, 1])));
-writeFileSync(join(ROOT, GLB_LOD2_40), glb(mesh(120, [-1, -1, -1], [1, 1, 1])));
-writeFileSync(join(ROOT, GLB_LOD2_20), glb(mesh(60, [-1, -1, -1], [1, 1, 1])));
-writeFileSync(join(ROOT, GLB_COLL_OUT), glb(mesh(12, [-1, -1, -1], [1, 1, 1.5])));
+writeFileSync(join(FIXTURE_DIR, GLB_LOD0_100), glb(riggedMesh(300, [-1, -1, -1], [1, 1, 1], REQUIRED_CLIPS)));
+writeFileSync(join(FIXTURE_DIR, GLB_LOD1_50), glb(mesh(150, [-1, -1, -1], [1, 1, 1])));
+writeFileSync(join(FIXTURE_DIR, GLB_LOD2_40), glb(mesh(120, [-1, -1, -1], [1, 1, 1])));
+writeFileSync(join(FIXTURE_DIR, GLB_LOD2_20), glb(mesh(60, [-1, -1, -1], [1, 1, 1])));
+writeFileSync(join(FIXTURE_DIR, GLB_COLL_IN), glb(mesh(30, [-0.8, -0.8, -0.8], [0.8, 0.8, 0.8])));
+writeFileSync(join(FIXTURE_DIR, GLB_COLL_OUT), glb(mesh(30, [-1, -1, -1], [1, 1, 1.5])));
 const GLB_NO_SKIN = '.selftest-noskin.glb';
 const GLB_WITH_SKIN = '.selftest-skin.glb';
-writeFileSync(join(ROOT, GLB_NO_SKIN), glb({ asset: { version: '2.0' }, meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count: 3 }] }));
-writeFileSync(join(ROOT, GLB_WITH_SKIN), glb({ asset: { version: '2.0' }, meshes: [{ primitives: [{ attributes: { POSITION: 0 } }] }], accessors: [{ count: 3 }], skins: [{ joints: [0] }], animations: [{ name: 'move' }] }));
-process.on('exit', () => { for (const f of [GLB_NO_SKIN, GLB_WITH_SKIN, GLB_LOD0_100, GLB_LOD2_40, GLB_LOD2_20, GLB_COLL_OUT]) { try { unlinkSync(join(ROOT, f)); } catch {} } });
-const sha = (rel) => createHash('sha256').update(readFileSync(join(ROOT, rel))).digest('hex');
+writeFileSync(join(FIXTURE_DIR, GLB_NO_SKIN), glb(mesh(300, [-1, -1, -1], [1, 1, 1])));
+writeFileSync(join(FIXTURE_DIR, GLB_WITH_SKIN), glb(riggedMesh(300, [-1, -1, -1], [1, 1, 1], ['move'])));
+process.on('exit', () => { try { rmSync(FIXTURE_DIR, { recursive: true, force: true }); } catch {} });
+const sha = (rel) => createHash('sha256').update(readFileSync(join(FIXTURE_DIR, rel))).digest('hex');
 
 /* ------------------------------------------------------------------ selftest */
 
@@ -75,19 +90,24 @@ function selftest() {
       similarityReviewed: { reviewer: 'owner', date: '2026-08-25', comparedAgainst: ['trademarks'] },
       license: { kind: 'owner-authored' },
     },
-    runtime: { lod0: 'x', lod1: 'x', lod2: 'x', collision: 'x', compression: 'none' },
-    sha256: {},
+    runtime: { lod0: GLB_LOD0_100, lod1: GLB_LOD1_50, lod2: GLB_LOD2_20, collision: GLB_COLL_IN, compression: 'none' },
+    sha256: {
+      lod0: sha(GLB_LOD0_100), lod1: sha(GLB_LOD1_50),
+      lod2: sha(GLB_LOD2_20), collision: sha(GLB_COLL_IN),
+    },
   });
 
   const cases = [
     ['unregistered id is refused', (m) => { m.id = 'enemy.nope'; }, /NOT in assets\/registry/],
     ['flat zone id is refused', (m) => { m.zone = 'zone.flat'; }, /flat/],
     ['unknown clip is refused', (m) => { m.animations.push('dance'); }, /not in skeleton/],
+    ['planned asset may declare an incomplete clip set', (m) => { m.animations = ['idle']; }, null],
+    ['validated asset missing required clips is refused', (m) => { m.status = 'validated'; m.animations = ['idle']; }, /validated asset is missing required skeleton clips/],
     ['bare budget number is refused', (m) => { m.budgets = { lod0Triangles: 1500 }; }, /fabricated number/],
-    ['budget with provenance is accepted', (m) => { m.budgets = { lod0Triangles: 1500, tool: 'gltf-transform', command: 'x', date: '2026-08-25', commit: 'abc' }; }, null],
+    ['budget with provenance is accepted', (m) => { m.budgets = { lod0Triangles: 100, tool: 'gltf-transform', command: 'x', date: '2026-08-25', commit: 'b68ec1d39' }; }, null],
     // handoff 2026-08-26 s9: a bare textureMB 0 reads as a measured budget, not a missing bake stage
     ['textureMB 0 with no bake declaration is refused', (m) => { m.budgets = { lod0Triangles: 1500, textureMB: 0, tool: 't', command: 'c', date: '2026-08-26', commit: 'abc' }; }, /no budgets\.bake/],
-    ['textureMB 0 declared not-baked is accepted', (m) => { m.budgets = { lod0Triangles: 1500, textureMB: 0, bake: 'not-baked', tool: 't', command: 'c', date: '2026-08-26', commit: 'abc' }; }, null],
+    ['textureMB 0 declared not-baked is accepted', (m) => { m.budgets = { lod0Triangles: 100, textureMB: 0, bake: 'not-baked', tool: 't', command: 'c', date: '2026-08-26', commit: 'b68ec1d39' }; }, null],
     // Ox open item: spawn-on-death had no manifest representation
     ['spawnOnDeath naming an unregistered asset is refused', (m) => { m.spawnOnDeath = ['enemy.ghost']; }, /spawnOnDeath "enemy\.ghost" is NOT in/],
     ['spawnOnDeath naming itself is refused', (m) => { m.spawnOnDeath = ['enemy.fryling']; }, /names the asset itself/],
@@ -113,7 +133,7 @@ function selftest() {
     ['budget commit that does not exist in the repo is refused', (m) => { m.budgets = { lod0Triangles: 1, tool: 't', command: 'c', date: '2026-08-25', commit: 'deadbeefdead' }; }, /not a commit in this repository/],
     ['aiAssisted without weights hash is refused', (m) => { m.provenance.aiAssisted = true; m.provenance.generator = { name: 'a', version: '1' }; m.provenance.seed = 1; }, /weightsSha256/],
     ['Draco on a rigged asset is refused', (m) => { m.runtime.compression = 'draco'; }, /Draco on a rigged/],
-    ['missing sha256 is refused', () => {}, /sha256\.lod0 missing|file not found/],
+    ['missing sha256 is refused', (m) => { delete m.sha256.lod0; }, /sha256\.lod0 missing/],
     // Regression pins for defects found by RUNNING the code, not reading it. Both seats
     // noted the 11 original fixtures did not cover the bug R1 found (Ox + GLM, P1 panel).
     ['aiAssisted: null is refused (R1 regression — null !== undefined)', (m) => { m.provenance.aiAssisted = null; }, /aiAssisted must be true or false/],
@@ -126,12 +146,10 @@ function selftest() {
   let pass = 0; let fail = 0;
   for (const [name, mutate, expect] of cases) {
     const m = base(); mutate(m);
-    const ctx = { registry, worldIds, manifestDir: ROOT, root: ROOT };  // FRESH per fixture — validate() writes into ctx
+    const ctx = { registry, worldIds, manifestDir: FIXTURE_DIR, root: ROOT };  // FRESH per fixture — validate() writes into ctx
     const { errs } = validate(m, ctx);
     const joined = errs.join(' | ');
-    const ok = expect === null
-      ? !errs.some((e) => /fabricated number|misses its budget|collision AABB/.test(e))
-      : expect.test(joined);
+    const ok = expect === null ? errs.length === 0 : expect.test(joined);
     if (ok) { pass += 1; console.log(`  PASS  ${name}`); }
     else { fail += 1; console.log(`  FAIL  ${name}\n        got: ${joined || '(no errors)'}`); }
   }

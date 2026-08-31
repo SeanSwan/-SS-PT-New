@@ -1,0 +1,17 @@
+{
+  "name": "@swanstudios/aftertaste-asset-pipeline",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node validate-gltf.selftest.mjs",
+    "validate": "node validate-gltf.mjs"
+  },
+  "dependencies": {
+    "@gltf-transform/cli": "4.4.2",
+    "gltf-validator": "2.0.0-dev.3.10"
+  },
+  "overrides": {
+    "sharp": "0.35.4"
+  }
+}

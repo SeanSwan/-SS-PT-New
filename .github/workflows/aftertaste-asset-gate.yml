@@ -1,0 +1,83 @@
+name: Aftertaste Asset Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/**'
+      - 'scripts/assets/**'
+      - 'tools/asset-pipeline/**'
+      - 'tools/blender/**'
+      - '.github/workflows/aftertaste-asset-gate.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'assets/**'
+      - 'scripts/assets/**'
+      - 'tools/asset-pipeline/**'
+      - 'tools/blender/**'
+      - '.github/workflows/aftertaste-asset-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  asset-contract:
+    name: Registry, GLB, and Blender contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/asset-pipeline/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned asset tools
+        run: npm ci --ignore-scripts --no-audit --no-fund --prefix tools/asset-pipeline
+
+      - name: Audit asset-tool dependencies
+        run: npm audit --omit=dev --audit-level=high --prefix tools/asset-pipeline
+
+      - name: Run JavaScript contract tests
+        run: |
+          node scripts/assets/measure-glb.mjs --selftest
+          node scripts/assets/validate-asset.selftest.mjs
+          node scripts/assets/validate-asset.cli.selftest.mjs
+          node scripts/assets/run-blender.selftest.mjs
+          node tools/asset-pipeline/validate-gltf.selftest.mjs
+
+      - name: Validate every registered asset manifest
+        run: node scripts/assets/validate-asset.mjs --all
+
+      - name: Validate and inspect every runtime GLB
+        shell: bash
+        run: |
+          mapfile -d '' glbs < <(find assets/runtime -type f -name '*.glb' -print0)
+          if [ "${#glbs[@]}" -eq 0 ]; then
+            echo "No runtime GLBs found; refusing a false-green asset gate."
+            exit 2
+          fi
+          node tools/asset-pipeline/validate-gltf.mjs "${glbs[@]}"
+          for glb in "${glbs[@]}"; do
+            tools/asset-pipeline/node_modules/.bin/gltf-transform inspect "$glb" >/dev/null
+          done
+
+      - name: Check Blender pipeline Python
+        run: |
+          python -m py_compile tools/blender/swan_pipe.py tools/blender/swan_pipe_manifest.py tools/blender/swan_pipe_stages.py
+          python tools/blender/swan_pipe_manifest_selftest.py
+          python tools/blender/roster_grammar_selftest.py

@@ -1,3 +1,7 @@
-# CODEOWNERS - the asset registry is the authority every gate reads. A change to it is a
-# change to what "valid" means, so it needs the owner's eyes. (Aftertaste handoff 2026-08-26 s9.)
-/assets/registry.json @SeanSwan
+# CODEOWNERS - Aftertaste authority, runtime artifacts, validators, and generation tools
+# change what "valid" or "shippable" means, so each requires the owner's eyes.
+/assets/ @SeanSwan
+/scripts/assets/ @SeanSwan
+/tools/asset-pipeline/ @SeanSwan
+/tools/blender/ @SeanSwan
+/.github/workflows/aftertaste-asset-gate.yml @SeanSwan

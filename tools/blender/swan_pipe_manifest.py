@@ -8,6 +8,7 @@ Blender, which is what lets `--dry-run` work anywhere.
 import argparse
 import json
 import os
+from datetime import datetime, timezone
 
 LOD_RATIOS = {"lod0": 1.0, "lod1": 0.45, "lod2": 0.18}
 
@@ -75,6 +76,19 @@ def write_manifest_stub(args, out_dir):
     os.makedirs(out_dir, exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(stub, fh, indent=2)
+    return path
+
+
+def write_success_receipt(out_dir):
+    """Write the run-bound sentinel consumed by scripts/assets/run-blender.mjs."""
+    run_id = os.environ.get("SWAN_PIPE_RUN_ID")
+    if not run_id:
+        raise SystemExit("swan_pipe: SWAN_PIPE_RUN_ID is required; invoke through run-blender.mjs")
+    receipt = {"runId": run_id, "completedAt": datetime.now(timezone.utc).isoformat()}
+    path = os.path.join(out_dir, ".swan-pipe.ok")
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(receipt, fh)
+        fh.write("\n")
     return path
 
 
