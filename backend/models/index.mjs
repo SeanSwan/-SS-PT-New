@@ -119,6 +119,7 @@ export { getModel };
 // 🎯 ENHANCED: Synchronous getter functions for critical models (post-initialization)
 export const getCartItem = () => getModel('CartItem');
 export const getStorefrontItem = () => getModel('StorefrontItem');
+export const getPriceChangeLog = () => getModel('PriceChangeLog');
 export const getProductVariant = () => getModel('ProductVariant');
 export const getShoppingCart = () => getModel('ShoppingCart');
 export const getUser = () => getModel('User');

@@ -33,6 +33,7 @@ import {
   safeFindOrCreateActiveCart,
   safeLoadCartItemsWithStorefront
 } from '../utils/cartSchemaRecovery.mjs';
+import { observeCartAdd } from '../services/economics/shadowObserver.mjs';
 const { updateCartTotals, getCartTotalsWithFallback } = cartHelpers;
 
 const router = express.Router();
@@ -531,6 +532,19 @@ router.post('/add', protect, cartMutationLimiter, ensureNumericCartUser, validat
         error: totalsResult.error
       });
     }
+
+    // Trainer-Economics (SWA-62) S1 — SHADOW price observation. FIRE-AND-FORGET: intentionally NOT
+    // awaited so a slow/blocked audit-table write can add ZERO latency to the cart response (Codex
+    // S1 review F3 — awaiting it meant a degraded price_change_logs table could slow every cart add).
+    // The service is fully self-guarded and never throws; the trailing .catch is a belt-and-suspenders
+    // guard so an unexpected async rejection can never surface as an unhandledRejection.
+    // OBSERVES ONLY: priceFloorEnforce is false in S1, so the resolved price is never used and the
+    // price actually charged above is untouched.
+    void observeCartAdd({
+      storefrontItem: snapshot.storefrontItem,
+      chargedPrice: snapshot.price,
+      actor: { userId: req.authUserId, role: req.user?.role },
+    }).catch(() => {});
 
     // Get updated cart with items
     const storefrontAttributes = await getSafeStorefrontAttributes(StorefrontItem);
