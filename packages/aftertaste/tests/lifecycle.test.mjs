@@ -46,12 +46,15 @@ test('an enemy with NO state field behaves as alive — lifecycle is opt-in per 
 
 // --- transitions ------------------------------------------------------------------------------
 
+// Boundary tests probe "just after", not the exact instant: 10 + 0.6 - 10 is 0.5999999999999996
+// in floating point, and a game tick never lands on an exact boundary anyway. The contract under
+// test is the ORDERING (before < boundary < after), not IEEE-754 equality.
 test('spawning becomes alive after SPAWN_SECONDS, not a frame before', () => {
   const e = at('spawning', 10);
   assert.equal(stepLifecycle(e, 10 + SPAWN_SECONDS - 0.01, false), e, 'same object = no transition');
-  const grown = stepLifecycle(e, 10 + SPAWN_SECONDS, false);
+  const grown = stepLifecycle(e, 10 + SPAWN_SECONDS + 1e-6, false);
   assert.equal(grown.state, 'alive');
-  assert.equal(grown.stateSince, 10 + SPAWN_SECONDS);
+  assert.equal(grown.stateSince, 10 + SPAWN_SECONDS + 1e-6);
 });
 
 test('alive starts attacking on touch, and NOT merely from time passing', () => {
@@ -65,14 +68,14 @@ test('alive starts attacking on touch, and NOT merely from time passing', () => 
 test('an attack lasts exactly ATTACK_SECONDS then returns to alive (which may re-attack next tick)', () => {
   const e = at('attacking', 5);
   assert.equal(stepLifecycle(e, 5 + ATTACK_SECONDS - 0.01, true), e, 'still mid-attack');
-  const done = stepLifecycle(e, 5 + ATTACK_SECONDS, true);
+  const done = stepLifecycle(e, 5 + ATTACK_SECONDS + 1e-6, true);
   assert.equal(done.state, 'alive');
 });
 
 test('dying is removed after DEATH_SECONDS — null means "take it off the board"', () => {
   const e = at('dying', 2);
   assert.equal(stepLifecycle(e, 2 + DEATH_SECONDS - 0.01, false), e, 'corpse still animating');
-  assert.equal(stepLifecycle(e, 2 + DEATH_SECONDS, false), null);
+  assert.equal(stepLifecycle(e, 2 + DEATH_SECONDS + 1e-6, false), null);
 });
 
 test('no transition returns the SAME object — identity is the cheap change detector', () => {
