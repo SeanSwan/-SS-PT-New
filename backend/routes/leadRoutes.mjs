@@ -62,12 +62,20 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    // Whitelist the sort column (an unvalidated identifier -> Postgres "column does
+    // not exist" -> 500) and clamp pagination (page=0/negative -> negative OFFSET,
+    // limit=-1 -> negative LIMIT, NaN -> query error; all -> 500). HR-005-1 / HR-005-2.
+    const SORTABLE_LEAD_FIELDS = ['createdAt', 'updatedAt', 'score', 'nextFollowUpAt', 'lastContactedAt', 'status', 'firstName', 'lastName', 'email', 'contactCount'];
+    const sortColumn = SORTABLE_LEAD_FIELDS.includes(sortBy) ? sortBy : 'createdAt';
+    const sortDir = String(sortOrder).toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(Math.max(1, parseInt(limit, 10) || 50), 100);
+    const offset = (pageNum - 1) * limitNum;
 
     const { rows: leads, count: total } = await Lead.findAndCountAll({
       where,
-      order: [[sortBy, sortOrder.toUpperCase() === 'ASC' ? 'ASC' : 'DESC']],
-      limit: Math.min(parseInt(limit), 100),
+      order: [[sortColumn, sortDir]],
+      limit: limitNum,
       offset,
     });
 
@@ -76,9 +84,9 @@ router.get('/', async (req, res) => {
       leads,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum),
       },
     });
   } catch (err) {

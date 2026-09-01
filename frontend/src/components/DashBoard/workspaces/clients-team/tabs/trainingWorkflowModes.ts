@@ -84,10 +84,14 @@ export const getTrainingModeConfig = (mode: TrainingWorkflowMode): TrainingModeC
 );
 
 /**
- * History & Inputs lanes call /api/admin/clients/:id/workouts, which the
- * backend's /api/admin router-level authorize(['admin']) gate blocks for
- * trainers today. Until that lane is opened server-side, trainers get the
- * Today + Plan workflow only.
+ * The History & Inputs lane calls /api/admin/clients/:id/workouts. The backend
+ * authorizes that route for BOTH admin and trainer (adminWorkoutLoggerRoutes.mjs
+ * -> router.use(authorize(['admin', 'trainer']))) WITH a per-client
+ * ensureClientAccess assignment guard, so it is already safe to expose to trainers
+ * server-side. Hiding it from the trainer surface here is a deliberate PRODUCT/UX
+ * choice (Today + Plan is the focused trainer flow) — NOT a security boundary and
+ * NOT a missing server-side gate. Do not treat this UI hide as the access control:
+ * the per-request assignment guard on the backend is the real boundary. (HR-006-01)
  */
 const TRAINER_HIDDEN_MODES: readonly TrainingWorkflowMode[] = ['inputs'];
 
