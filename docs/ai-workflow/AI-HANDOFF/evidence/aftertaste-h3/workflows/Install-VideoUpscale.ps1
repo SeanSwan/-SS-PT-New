@@ -23,10 +23,10 @@ $ErrorActionPreference = 'Stop'
 $base = 'Z:\AI-Weights\ComfyUI'
 
 $items = @(
-    @{ Repo='Comfy-Org/SeedVR2'; Path='diffusion_models/seedvr2_7b_nvfp4.safetensors'; Dir='diffusion_models'; MiB=4539; Note='SeedVR2 7B (nvfp4) - the quality model' },
-    @{ Repo='Comfy-Org/SeedVR2'; Path='diffusion_models/seedvr2_3b_nvfp4.safetensors'; Dir='diffusion_models'; MiB=1904; Note='SeedVR2 3B (nvfp4) - fast draft pass' },
-    @{ Repo='Comfy-Org/SeedVR2'; Path='vae/seedvr2_ema_vae_fp16.safetensors';          Dir='vae';              MiB=478;  Note='SeedVR2 VAE' },
-    @{ Repo='Comfy-Org/frame_interpolation'; Path='frame_interpolation/rife_v4.25.safetensors'; Dir='frame_interpolation'; MiB=22; Note='RIFE 4.25 - 24fps to 48fps' }
+    @{ Repo='Comfy-Org/SeedVR2'; Path='diffusion_models/seedvr2_7b_nvfp4.safetensors'; Dir='diffusion_models'; MiB=4539; Sha='cc4af1a7bd5377066496f393555478323e806fa21163bdbe3409451aface9b93'; Note='SeedVR2 7B (nvfp4) - the quality model' },
+    @{ Repo='Comfy-Org/SeedVR2'; Path='diffusion_models/seedvr2_3b_nvfp4.safetensors'; Dir='diffusion_models'; MiB=1904; Sha='c8dea38b04d43295621726e2cd371c0d2d001006169c113aea17950f2cb2e295'; Note='SeedVR2 3B (nvfp4) - fast draft pass' },
+    @{ Repo='Comfy-Org/SeedVR2'; Path='vae/seedvr2_ema_vae_fp16.safetensors';          Dir='vae';              MiB=478;  Sha='20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1'; Note='SeedVR2 VAE' },
+    @{ Repo='Comfy-Org/frame_interpolation'; Path='frame_interpolation/rife_v4.25.safetensors'; Dir='frame_interpolation'; MiB=22; Sha='1505884b9bdae956795430d2a70f7e2317b2abd8f130f8cfdb35a5759f909481'; Note='RIFE 4.25 - 24fps to 48fps' }
 )
 
 # Not on Hugging Face; a direct release asset.
@@ -34,6 +34,7 @@ $esrgan = @{
     Url  = 'https://github.com/Phhofm/models/releases/download/4xNomosWebPhoto_RealPLKSR/4xNomosWebPhoto_RealPLKSR.pth'
     Dest = Join-Path $base 'upscale_models\4xNomosWebPhoto_RealPLKSR.pth'
     MiB  = 28
+    Sha  = 'a9db66c9b674c6a5025b6ef3bee71a57c33b8605d8a2de0980470f89002efbbe'
     Note = '4x photo upscaler (CC-BY-4.0, commercial-safe)'
 }
 
@@ -66,13 +67,18 @@ if ($esrganMissing) { $needMiB += $esrgan.MiB }
 
 Write-Host ''
 if ($needMiB -eq 0) {
-    Write-Host '  Everything is here. Load "02 SWAN - Upscale to 2K-4K" from the ComfyUI Workflow browser.'
-    Write-Host ''
-    exit 0
+    # Nothing to download - but STILL verify. An install that is never re-checked rots silently: a
+    # half-written resume, a bad sector, or a substituted file all leave the right filenames in
+    # place. This branch used to exit here without hashing anything.
+    Write-Host '  Nothing to download. Checking what is already here.'
+    $VerifyOnly = $true
+} else {
+    Write-Host ("  {0} MiB to fetch." -f $needMiB)
+    if (-not $Download) { Write-Host '  DRY RUN -- re-run with -Download.'; Write-Host ''; exit 0 }
+    $VerifyOnly = $false
 }
-Write-Host ("  {0} MiB to fetch." -f $needMiB)
-if (-not $Download) { Write-Host '  DRY RUN -- re-run with -Download.'; Write-Host ''; exit 0 }
 
+if (-not $VerifyOnly) {
 foreach ($i in $missing) {
     New-Item -ItemType Directory -Force -Path (Join-Path $base $i.Dir) | Out-Null
     Write-Host ''
@@ -87,27 +93,33 @@ if ($esrganMissing) {
     Write-Host '  fetching 4xNomosWebPhoto_RealPLKSR.pth (28 MiB)...'
     Invoke-WebRequest -Uri $esrgan.Url -OutFile $esrgan.Dest -UseBasicParsing
 }
-
-Write-Host ''
-Write-Host '  verifying:'
-$bad = 0
-foreach ($i in $items) {
-    $dest = Join-Path $base $i.Path
-    if (-not (Test-Path -LiteralPath $dest)) { Write-Host "  MISSING after download: $($i.Path)"; $bad++; continue }
-    $mib = (Get-Item -LiteralPath $dest).Length / 1MB
-    # A truncated download is the failure that looks like success: the file exists and ComfyUI fails
-    # later with an unhelpful error. Within 3% of the published size, or it is not trusted.
-    if ([math]::Abs($mib - $i.MiB) / $i.MiB -gt 0.03) { Write-Host ("  SIZE WRONG {0}: {1:N0} MiB, expected ~{2}" -f (Split-Path -Leaf $i.Path), $mib, $i.MiB); $bad++ }
-    else { Write-Host ("  ok  {0,-46} {1,6:N0} MiB" -f (Split-Path -Leaf $i.Path), $mib) }
 }
-if (Test-Path -LiteralPath $esrgan.Dest) {
-    $mib = (Get-Item -LiteralPath $esrgan.Dest).Length / 1MB
-    if ([math]::Abs($mib - $esrgan.MiB) / $esrgan.MiB -gt 0.10) { Write-Host ("  SIZE WRONG esrgan: {0:N0} MiB" -f $mib); $bad++ }
-    else { Write-Host ("  ok  {0,-46} {1,6:N0} MiB" -f '4xNomosWebPhoto_RealPLKSR.pth', $mib) }
-} else { Write-Host '  MISSING after download: 4xNomosWebPhoto_RealPLKSR.pth'; $bad++ }
 
 Write-Host ''
-if ($bad) { Write-Host "  $bad file(s) missing or wrong size -- do NOT rely on this install."; exit 1 }
-Write-Host '  Upscaling is installed. Restart ComfyUI and load "02 SWAN - Upscale to 2K-4K".'
+Write-Host '  verifying by SHA-256 (identity, not approximate size):'
+# This used to accept a file whose size was within 3% of the published figure. Size is not identity:
+# it accepts a corrupted file of the right length, a resumed download that raced, and any substituted
+# artifact of similar size. Hugging Face publishes the SHA-256 as the LFS oid, so there is no reason
+# to guess. Digests below were read from the HF paths-info API and confirmed against these files.
+$bad = 0
+$all = @()
+foreach ($i in $items) { $all += @{ Dest = (Join-Path $base $i.Path); Name = (Split-Path -Leaf $i.Path); Sha = $i.Sha } }
+$all += @{ Dest = $esrgan.Dest; Name = '4xNomosWebPhoto_RealPLKSR.pth'; Sha = $esrgan.Sha }
+foreach ($a in $all) {
+    if (-not (Test-Path -LiteralPath $a.Dest)) { Write-Host "  MISSING after download: $($a.Name)"; $bad++; continue }
+    $got = (Get-FileHash -LiteralPath $a.Dest -Algorithm SHA256).Hash.ToLower()
+    if ($got -ne $a.Sha) {
+        Write-Host ("  SHA MISMATCH {0}" -f $a.Name)
+        Write-Host ("    expected {0}" -f $a.Sha)
+        Write-Host ("    got      {0}" -f $got)
+        $bad++
+    } else {
+        Write-Host ("  ok  {0,-46} sha256 {1}..." -f $a.Name, $got.Substring(0,16))
+    }
+}
+
+Write-Host ''
+if ($bad) { Write-Host "  $bad file(s) missing or failed SHA-256 -- do NOT rely on this install."; exit 1 }
+Write-Host '  Verified. Restore with "02 SWAN - Restore 2x (SeedVR2)", finish with "03 SWAN - Finish 4K + 48fps".'
 Write-Host ''
 exit 0

@@ -1,0 +1,354 @@
+{
+  "id": "swan-finish-4k-48fps",
+  "revision": 0,
+  "last_node_id": 7,
+  "last_link_id": 7,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadVideo",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        330,
+        110
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            1
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadVideo"
+      },
+      "widgets_values": [
+        "swan-upscale-test.mp4"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "GetVideoComponents",
+      "pos": [
+        420,
+        60
+      ],
+      "size": [
+        330,
+        110
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            2
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            6
+          ]
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": []
+        },
+        {
+          "name": "bit_depth",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "color_space",
+          "type": "COMBO",
+          "links": []
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GetVideoComponents"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 3,
+      "type": "ImageScale",
+      "pos": [
+        800,
+        40
+      ],
+      "size": [
+        330,
+        110
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageScale"
+      },
+      "widgets_values": [
+        "lanczos",
+        3840,
+        2160,
+        "center"
+      ]
+    },
+    {
+      "id": 4,
+      "type": "FrameInterpolationModelLoader",
+      "pos": [
+        800,
+        240
+      ],
+      "size": [
+        330,
+        110
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INTERP_MODEL",
+          "type": "INTERP_MODEL",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FrameInterpolationModelLoader"
+      },
+      "widgets_values": [
+        "rife_v4.25.safetensors"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "FrameInterpolate",
+      "pos": [
+        1180,
+        80
+      ],
+      "size": [
+        330,
+        110
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "interp_model",
+          "type": "INTERP_MODEL",
+          "link": 3
+        },
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "FrameInterpolate"
+      },
+      "widgets_values": [
+        2
+      ]
+    },
+    {
+      "id": 6,
+      "type": "CreateVideo",
+      "pos": [
+        1540,
+        60
+      ],
+      "size": [
+        330,
+        110
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 5
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 6,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "VIDEO",
+          "type": "VIDEO",
+          "links": [
+            7
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CreateVideo"
+      },
+      "widgets_values": [
+        48,
+        8
+      ]
+    },
+    {
+      "id": 7,
+      "type": "SaveVideo",
+      "pos": [
+        1900,
+        60
+      ],
+      "size": [
+        330,
+        110
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "video",
+          "type": "VIDEO",
+          "link": 7
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveVideo"
+      },
+      "widgets_values": [
+        "video/swan-4k",
+        "mp4",
+        "h264"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "VIDEO"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      3,
+      4,
+      0,
+      5,
+      0,
+      "INTERP_MODEL"
+    ],
+    [
+      4,
+      3,
+      0,
+      5,
+      1,
+      "IMAGE"
+    ],
+    [
+      5,
+      5,
+      0,
+      6,
+      0,
+      "IMAGE"
+    ],
+    [
+      6,
+      2,
+      1,
+      6,
+      1,
+      "AUDIO"
+    ],
+    [
+      7,
+      6,
+      0,
+      7,
+      0,
+      "VIDEO"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.75,
+      "offset": [
+        0,
+        0
+      ]
+    }
+  },
+  "version": 0.4
+}

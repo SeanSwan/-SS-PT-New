@@ -273,8 +273,23 @@ def main():
     except BaseException:
         shutil.rmtree(tmp_dir, ignore_errors=True)  # never leave a half-run where --all could find it
         raise
-    shutil.rmtree(out_dir, ignore_errors=True)
-    os.replace(tmp_dir, out_dir)
+    # NOT rmtree-then-replace. That deleted the last good output BEFORE the new one was in place,
+    # so any failure in the window - a crash, a full disk, an AV lock, a cross-device replace -
+    # left the asset with no output at all. The docstring called it "atomically swapped in"; it
+    # was not. Move the old aside first, put the new one in, and only then drop the old. If the
+    # replace fails, roll the previous output back.
+    backup_dir = out_dir + ".prev"
+    shutil.rmtree(backup_dir, ignore_errors=True)
+    had_previous = os.path.exists(out_dir)
+    if had_previous:
+        os.replace(out_dir, backup_dir)
+    try:
+        os.replace(tmp_dir, out_dir)
+    except BaseException:
+        if had_previous and not os.path.exists(out_dir):
+            os.replace(backup_dir, out_dir)   # the previous good output survives a failed swap
+        raise
+    shutil.rmtree(backup_dir, ignore_errors=True)
     path = os.path.join(out_dir, os.path.basename(path))
     print(f"[swan_pipe] manifest stub -> {path}")
     print("[swan_pipe] NOW: fill provenance by hand, hash the GLBs, then validate.")

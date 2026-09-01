@@ -9,7 +9,7 @@ REM  Starts the isolated, verified ComfyUI/H3 candidate and opens its browser.
 REM  The original rollback launcher is preserved beside this file as:
 REM    Swan Local Video 5090.rollback-20260831.cmd
 REM
-REM  Candidate: ComfyUI 0.34.2 + Python 3.13.15 + PyTorch CUDA 13
+REM  Candidate runtime is REPORTED at startup from /system_stats, not hard-coded here.
 REM  Port: 8189 (the frozen rollback remains on 8188)
 REM  Models: read from Z:\AI-Weights\ComfyUI; candidate state stays isolated on C:
 REM ============================================================================
@@ -110,8 +110,12 @@ echo   ==================================================
 echo      READY  -  opening %URL%
 echo   ==================================================
 echo.
-echo   Verified candidate: ComfyUI 0.34.2 / Python 3.13.15 / Torch CUDA 13
-echo   H3 Studio nodes and CUDA backend were proven in the candidate smoke test.
+REM  Ask the running server what it actually is. This line used to print a hard-coded
+REM  "Verified candidate: ComfyUI 0.34.2 / Python 3.13.15 / Torch CUDA 13" after nothing more
+REM  than an HTTP 200, so it kept claiming those versions after any upgrade or venv change.
+REM  A hostile review caught it. Reported, not asserted:
+for /f "delims=" %%V in ('powershell -NoProfile -Command "try{$s=(Invoke-RestMethod -Uri '%URL%/system_stats' -TimeoutSec 8).system; 'ComfyUI ' + $s.comfyui_version + ' / Python ' + ($s.python_version -split ' ')[0] + ' / Torch ' + $s.pytorch_version}catch{'could not read /system_stats'}"') do set "RUNTIME=%%V"
+echo   Running now: %RUNTIME%
 echo.
 echo   To use start/end images: open the Workflow menu and load:
 echo     01 SWAN - H3 local - First + Last Frame

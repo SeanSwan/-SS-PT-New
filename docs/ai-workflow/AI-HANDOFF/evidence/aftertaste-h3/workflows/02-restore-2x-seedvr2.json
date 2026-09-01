@@ -302,7 +302,7 @@
         },
         "revision": 0,
         "config": {},
-        "name": "Swan - Upscale to 2K/4K (SeedVR2 7B nvfp4)",
+        "name": "Swan - Restore 2x (SeedVR2 7B nvfp4) - NOT 4K; finish with workflow 03",
         "inputNode": {
           "id": -10,
           "bounding": [

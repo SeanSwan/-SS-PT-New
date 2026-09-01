@@ -8,7 +8,7 @@
  * traceback again. This wrapper is the enforcement: it always passes the flag, it locates
  * Blender itself, and it refuses to report success unless the script's SUCCESS SENTINEL
  * (`.swan-pipe.ok`, written only after every planned stage executed and the output dir was
- * atomically swapped in) exists.
+ * swapped in, previous output preserved on failure) exists.
  *
  *   node scripts/assets/run-blender.mjs <script.py> -- <script args including --out <dir>>
  *
