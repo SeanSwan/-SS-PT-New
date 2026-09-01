@@ -14,3 +14,4 @@ swan_shared_models:
     upscale_models: upscale_models
     controlnet: controlnet
     clip_vision: clip_vision
+    frame_interpolation: frame_interpolation
