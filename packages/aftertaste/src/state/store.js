@@ -33,7 +33,8 @@ export const usePlayerStore = create((set) => ({
  * everything "just in case" is how a small game turns into a tangle.
  */
 import { hitscan, damage, isDead } from '../combat/combat.js';
-import { waveSize, spawnRing, tickRound, PLAYER_HP } from '../systems/waves.js';
+import { waveSize, spawnRing, tickRound, PLAYER_HP, TOUCH_RADIUS } from '../systems/waves.js';
+import { stepLifecycle, can, holdsWave } from '../systems/lifecycle.js';
 
 /** Seconds of mercy after a hit, so one touch is not three instant deaths. */
 const INVULN_SECONDS = 1.0;
@@ -65,13 +66,19 @@ export const useGameStore = create((set, get) => ({
    */
   shoot: (origin, dir) => {
     const { enemies, kills } = get();
-    const hit = hitscan(origin, dir, enemies);
+    // Only the shootable are targets — the ray passes THROUGH a toppling corpse and a still-
+    // materialising spawn to whatever stands behind them. The lifecycle table decides, not us.
+    const hit = hitscan(origin, dir, enemies.filter((e) => can(e, 'canBeShot')));
     if (!hit) return false;
     const hurt = damage(hit.target, 1);
     const killed = isDead(hurt) ? 1 : 0;
-    const next = killed
-      ? enemies.filter((e) => e.id !== hit.target.id)
-      : enemies.map((e) => (e.id === hit.target.id ? hurt : e));
+    // The killing shot does NOT remove the enemy — it starts the death. The corpse stays on the
+    // board playing its topple until the lifecycle ages it off; the kill is SCORED now, because
+    // the kill happened now.
+    const next = enemies.map((e) => {
+      if (e.id !== hit.target.id) return e;
+      return killed ? { ...hurt, state: 'dying', stateSince: clockNow } : hurt;
+    });
     set({
       enemies: next,
       kills: kills + killed,
@@ -98,13 +105,28 @@ export const useGameStore = create((set, get) => ({
 
     const merciful = elapsed < s.invulnUntil;
 
+    // Age every enemy through the state machine against the REAL clock and board: spawns mature,
+    // attacks begin when in touch range and expire back to alive, corpses fall off the board.
+    // stepLifecycle returns the SAME object when nothing changed, so `changed` is an identity
+    // check, and a frame where nobody transitions costs no React work at all.
+    const touch2 = TOUCH_RADIUS ** 2;
+    const stepped = [];
+    let changed = false;
+    for (const e of s.enemies) {
+      const inRange = (e.x - player.x) ** 2 + (e.z - player.z) ** 2 <= touch2;
+      const next = stepLifecycle(e, elapsed, inRange);
+      if (next !== e) changed = true;
+      if (next) stepped.push(next);
+    }
+
     // Ask about the REAL board, then decide what to act on. An earlier version suppressed damage by
     // handing tickRound an empty enemy list -- but an empty list also means "wave cleared", so every
     // hit advanced the wave and respawned the flock at radius 18, and the round could not be lost.
     // Both units were correct; the composition was not. Suppress the CONSEQUENCE, never the input.
-    const r = tickRound({ hp: s.hp, wave: s.wave }, player, s.enemies);
+    const r = tickRound({ hp: s.hp, wave: s.wave }, player, stepped, elapsed);
 
     const patch = {};
+    if (changed) patch.enemies = stepped;
     if (r.touched && !merciful) {
       patch.hp = r.hp;
       patch.over = r.over;
@@ -113,14 +135,23 @@ export const useGameStore = create((set, get) => ({
     if (r.cleared) {
       patch.wave = r.wave;
       // Centred on the PLAYER: the floor follows you now, so a ring fixed at the origin would
-      // spawn the next wave a full sprint behind wherever you have kited to.
-      patch.enemies = spawnRing(waveSize(r.wave), 18, r.wave, player);
+      // spawn the next wave a full sprint behind wherever you have kited to. Corpses still mid-
+      // topple SURVIVE the respawn — the lifecycle removes them when their death clip ends;
+      // replacing the whole array would make kills pop instead of fall.
+      patch.enemies = [
+        ...stepped.filter((e) => e.state === 'dying'),
+        ...spawnRing(waveSize(r.wave), 18, r.wave, player, elapsed),
+      ];
     }
     if (Object.keys(patch).length) set(patch);
 
     if (typeof window !== 'undefined') {
       const now = get();
-      window.__swanRound = { hp: now.hp, wave: now.wave, over: now.over, left: now.enemies.length };
+      window.__swanRound = {
+        hp: now.hp, wave: now.wave, over: now.over,
+        // "Remaining" counts what still holds the wave open — a corpse is not remaining.
+        left: now.enemies.filter(holdsWave).length,
+      };
     }
   },
 
@@ -128,7 +159,7 @@ export const useGameStore = create((set, get) => ({
     // The player does not teleport home on a restart, so the fresh wave rings THEM.
     const centre = usePlayerStore.getState().position;
     set({
-      enemies: spawnRing(waveSize(1), 18, 1, centre),
+      enemies: spawnRing(waveSize(1), 18, 1, centre, clockNow),
       kills: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0,
       lastHitAt: 0, lastKillAt: 0,
     });

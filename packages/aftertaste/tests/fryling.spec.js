@@ -45,6 +45,11 @@ test('the Fryling renders as a skinned mesh, animates, and each enemy owns its s
   // The crowd-bug assertion: shared skeletons would collapse this set.
   expect(counts.distinctRootBones, 'every enemy owns its OWN skeleton').toBe(counts.skinned);
 
+  // Wait for maturity FIRST: a spawning Fryling plays `idle`, which does not touch the bone this
+  // test samples — only `move` (the waddle) provably rotates it. Fair-spawn also makes newborns
+  // unshootable, and the darkening shot below needs a shootable target.
+  await page.waitForFunction(() => window.__swanEnemyPos?.[0]?.state === 'alive', undefined, { timeout: 10_000 });
+
   // The mixer is advancing: a mid-chain bone's local rotation must differ across ~400ms. The move
   // clip is rotation-keyed, so a frozen quaternion means no mixer is updating this instance.
   const sampleBone = () => page.evaluate(() => {

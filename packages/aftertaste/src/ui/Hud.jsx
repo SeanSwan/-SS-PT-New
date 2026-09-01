@@ -11,6 +11,7 @@
  */
 import { useEffect } from 'react';
 import { useGameStore } from '../state/store.js';
+import { holdsWave } from '../systems/lifecycle.js';
 
 /**
  * TEACHING NOTE — THE CROSSHAIR IS HTML TOO:
@@ -68,7 +69,8 @@ export default function Hud() {
         <span data-testid="hud-hp">HP: {hp}</span>
         <span data-testid="hud-wave">Wave: {wave}</span>
         <span data-testid="hud-kills">Kills: {kills}</span>
-        <span data-testid="hud-left">Remaining: {enemies.length}</span>
+        {/* A toppling corpse is not "remaining" — count what still holds the wave open. */}
+        <span data-testid="hud-left">Remaining: {enemies.filter(holdsWave).length}</span>
         <span style={{ opacity: 0.6 }}>click to take aim &middot; WASD move &middot; hold to fire</span>
       </div>
 

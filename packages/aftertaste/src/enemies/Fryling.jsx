@@ -18,15 +18,16 @@
  *
  * WHICH CLIPS PLAY HERE:
  * The GLB carries all five the skeleton contract names (idle, move, attack, hit, death; each one
- * verified to actually animate by scripts/assets/verify-clips.mjs). This component plays `move`,
- * and flinches with `hit` when the creature takes damage. `attack` and `death` are NOT wired yet:
- * both need a lifecycle this slice does not have — an enemy that is mid-attack or mid-death is
- * still on the board but must not damage you, block a wave from clearing, or be shot again. That
- * is a behaviour slice, not an asset one, and claiming it here would be claiming a state machine
- * that does not exist.
+ * verified to actually animate by scripts/assets/verify-clips.mjs). The LIFECYCLE decides which
+ * plays: `state` maps 1:1 to a clip — spawning breathes `idle`, alive waddles `move`, attacking
+ * lunges `attack` (once — the state lasts exactly the clip's 16 frames), dying topples `death`
+ * and CLAMPS on the final frame until the machine removes the corpse. The component never decides
+ * behaviour; it performs whatever state the machine put on its enemy. `hit` flinches on damage,
+ * except while dying — a corpse that flinches un-dies in the viewer's eye.
  */
 import { useEffect, useMemo, useRef } from 'react';
 import { useAnimations, useGLTF } from '@react-three/drei';
+import { LoopOnce } from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 
 // Imported by URL from the SINGLE source of truth: the validated asset directory. Not copied into
@@ -40,7 +41,10 @@ const MODEL_FOOTPRINT = 2;
 const SCALE = 1 / MODEL_HEIGHT;
 const CENTRE_OFFSET = -(MODEL_FOOTPRINT / 2) * SCALE;
 
-export default function Fryling({ hp = 2 }) {
+/** state → clip. The mapping IS the performance contract; behaviour lives in the state machine. */
+const CLIP_FOR = { spawning: 'idle', alive: 'move', attacking: 'attack', dying: 'death' };
+
+export default function Fryling({ hp = 2, state = 'alive' }) {
   const { scene, animations } = useGLTF(frylingUrl);
   const group = useRef();
 
@@ -64,21 +68,27 @@ export default function Fryling({ hp = 2 }) {
   const { actions } = useAnimations(animations, model);
 
   useEffect(() => {
-    const move = actions?.move;
-    if (!move) return undefined;
-    move.reset().fadeIn(0.2).play();
-    return () => { move.fadeOut(0.2); };
-  }, [actions]);
+    const action = actions?.[CLIP_FOR[state] ?? 'move'];
+    if (!action) return undefined;
+    if (state === 'attacking' || state === 'dying') {
+      action.setLoop(LoopOnce, 1);
+      // Without clampWhenFinished a finished death SNAPS BACK to the bind pose — the corpse
+      // stands up for a frame before removal, and it reads as a resurrection bug.
+      action.clampWhenFinished = true;
+    }
+    action.reset().fadeIn(0.15).play();
+    return () => { action.fadeOut(0.15); };
+  }, [actions, state]);
 
   // Flinch on damage. Guarded by a ref so the FIRST render does not read as a hit — mounting is
   // not being shot, and a monster that flinches the moment it spawns looks broken.
   const previousHp = useRef(hp);
   useEffect(() => {
-    if (hp < previousHp.current && actions?.hit) {
-      actions.hit.reset().setLoop(2200, 1).play(); // THREE.LoopOnce
+    if (hp < previousHp.current && state !== 'dying' && actions?.hit) {
+      actions.hit.reset().setLoop(LoopOnce, 1).play();
     }
     previousHp.current = hp;
-  }, [hp, actions]);
+  }, [hp, state, actions]);
 
   // Damaged monsters darken, exactly as the grey-box did — the cheapest possible "I hit it".
   useEffect(() => {

@@ -17,6 +17,7 @@ import { Suspense, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { stepEnemy } from './steering.js';
 import Fryling from './Fryling.jsx';
+import { can } from '../systems/lifecycle.js';
 import { useGameStore, usePlayerStore } from '../state/store.js';
 
 export default function Enemies() {
@@ -36,6 +37,10 @@ export default function Enemies() {
     const snapshot = list.map((e) => ({ x: e.x, z: e.z }));
 
     for (let i = 0; i < list.length; i++) {
+      // Only the alive MOVE — the lifecycle table decides. A spawning enemy is materialising, an
+      // attacking one is planted in its lunge, a corpse is toppling. All of them still stand in
+      // the separation snapshot above, so the living flock walks AROUND a corpse, not through it.
+      if (!can(list[i], 'canMove')) continue;
       const next = stepEnemy(snapshot[i], player, snapshot, delta);
       list[i].x = next.x;
       list[i].z = next.z;
@@ -44,7 +49,7 @@ export default function Enemies() {
     }
 
     if (typeof window !== 'undefined') {
-      window.__swanEnemyPos = list.map((e) => ({ x: e.x, z: e.z, hp: e.hp }));
+      window.__swanEnemyPos = list.map((e) => ({ x: e.x, z: e.z, hp: e.hp, state: e.state }));
     }
   });
 
@@ -70,7 +75,7 @@ export default function Enemies() {
               </mesh>
             )}
           >
-            <Fryling hp={e.hp} />
+            <Fryling hp={e.hp} state={e.state} />
           </Suspense>
         </group>
       ))}

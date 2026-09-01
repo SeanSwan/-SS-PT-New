@@ -62,3 +62,8 @@ is not here, that is a bug in the docs, not a gap in you.
 | **fov (field of view)** | How wide the camera sees, in degrees. ~75 vertical is FPS convention; the old top-down 50 reads claustrophobic from eye height. |
 | **fog** | Distance fade toward a colour. Matched to the background it buys depth AND hides the floor's edge — the cheapest "infinite world" there is. |
 | **emissive** | Light a material emits from within, ignoring every lamp. A faint ember on monsters is why a threat never disappears into an unlit side. |
+| **state machine** | A thing that is always in exactly ONE named state, with explicit rules for moving between them. Cheap to test, impossible to be in two minds. See CONCEPTS/enemy-lifecycle.md. |
+| **capabilities table** | One table declaring what each state may do (move/hurt/be shot/hold the wave). Every system asks it; none carries its own opinion — one place to be wrong. |
+| **wind-up / telegraph** | The visible pause before an attack lands. It is the dodge window — the difference between damage as a tax and damage as a game. |
+| **fair-spawn window** | A newborn briefly can neither hurt you nor be shot. Fairness cuts both ways: no spawn-kills against you, no free farming for you. |
+| **clampWhenFinished** | Tells a play-once animation to HOLD its final frame. Without it a finished death snaps back to the bind pose — a corpse that stands up for one frame. |

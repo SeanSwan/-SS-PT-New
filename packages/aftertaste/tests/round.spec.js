@@ -22,19 +22,22 @@ test('clearing every enemy advances the wave and spawns a bigger one', async ({ 
   const firstWaveSize = await page.evaluate(() => window.__swanEnemyPos.length);
 
   // Kill everything by shooting straight down at each enemy, wherever it currently is (the FPS
-  // model: shoot() takes a ray; a vertical ray over the target is the deterministic aim).
-  await page.evaluate(() => {
+  // model: shoot() takes a ray; a vertical ray over the target is the deterministic aim). Polled,
+  // because freshly spawned enemies are briefly UNSHOOTABLE (fair-spawn protection) — keep firing
+  // until the wave actually clears.
+  await page.waitForFunction(() => {
     const store = window.__swanGameStore;
-    for (let pass = 0; pass < 6; pass++) {
-      for (const e of store.getState().enemies.map((x) => ({ x: x.x, z: x.z }))) {
-        store.getState().shoot({ x: e.x, y: 10, z: e.z }, { x: 0, y: -1, z: 0 });
-      }
-      if (store.getState().enemies.length === 0) break;
+    for (const e of store.getState().enemies.map((x) => ({ x: x.x, z: x.z }))) {
+      store.getState().shoot({ x: e.x, y: 10, z: e.z }, { x: 0, y: -1, z: 0 });
     }
-  });
+    return store.getState().wave >= 2;
+  }, null, { timeout: 15_000, polling: 100 });
 
   await expect(page.getByTestId('hud-wave')).toHaveText('Wave: 2', { timeout: 10_000 });
-  const secondWaveSize = await page.evaluate(() => window.__swanGameStore.getState().enemies.length);
+  // Count what holds the wave: corpses from wave 1 may still be toppling on the board.
+  const secondWaveSize = await page.evaluate(
+    () => window.__swanGameStore.getState().enemies.filter((e) => e.state !== 'dying').length,
+  );
   expect(secondWaveSize, 'wave 2 must be bigger than wave 1').toBeGreaterThan(firstWaveSize);
 });
 

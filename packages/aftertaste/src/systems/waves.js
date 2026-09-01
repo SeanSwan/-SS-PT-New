@@ -15,6 +15,8 @@
  * as much as a design one.
  */
 
+import { hurtsNow, holdsWave } from './lifecycle.js';
+
 /** How many hits the player survives. Low on purpose — a long health bar hides bad feel. */
 export const PLAYER_HP = 3;
 
@@ -38,7 +40,7 @@ export function waveSize(wave) {
  * spawn wave 9 forty units behind a player who has been kiting north, and the game turns into
  * waiting for a delivery. Threats spawn around wherever you actually are.
  */
-export function spawnRing(count, radius, waveNumber = 1, centre = { x: 0, z: 0 }) {
+export function spawnRing(count, radius, waveNumber = 1, centre = { x: 0, z: 0 }, now = 0) {
   const out = [];
   for (let i = 0; i < count; i++) {
     // Offset by the wave number so successive waves do not arrive at identical angles.
@@ -48,6 +50,9 @@ export function spawnRing(count, radius, waveNumber = 1, centre = { x: 0, z: 0 }
       x: centre.x + Math.cos(angle) * radius,
       z: centre.z + Math.sin(angle) * radius,
       hp: 2,
+      // Born into the state machine: a brief fair-spawn window before it can act or be shot.
+      state: 'spawning',
+      stateSince: now,
     });
   }
   return out;
@@ -58,19 +63,27 @@ const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
 /**
  * One frame of round logic.
  *
+ * TEACHING NOTE — DAMAGE CHANGED FROM A TAX TO A GAME:
+ * Before the lifecycle, an enemy hurt you by mere PROXIMITY, every frame it touched. Now an enemy
+ * in range first enters `attacking` and telegraphs a wind-up; only past ATTACK_WINDUP — and only
+ * if you are STILL in range — does the strike land. Step back during the wind-up and the lunge
+ * whiffs. Both questions are asked of the lifecycle table (hurtsNow / holdsWave), never answered
+ * locally — one place to be wrong.
+ *
  * @param {{hp:number, wave:number}} round
  * @param {{x:number,z:number}} player
- * @param {{x:number,z:number}[]} enemies
+ * @param {object[]} enemies   the REAL board, corpses included — see the Slice-5 lesson
+ * @param {number} now         the game clock, for the wind-up arithmetic
  * @returns {{hp:number, wave:number, over:boolean, cleared:boolean, touched:boolean}}
  */
-export function tickRound(round, player, enemies) {
-  // ONE life per frame however many enemies are touching. Without this, walking into a crowd
-  // deletes the whole health bar in a single frame and the death feels arbitrary rather than
-  // earned — the difference between "that was my fault" and "this game is broken".
-  const touched = enemies.some((e) => dist2(e, player) <= TOUCH_RADIUS ** 2);
+export function tickRound(round, player, enemies, now = 0) {
+  // ONE life per frame however many strikes land. Without this, walking into a crowd deletes the
+  // whole health bar in a single frame and the death feels arbitrary rather than earned.
+  const touched = enemies.some((e) => hurtsNow(e, now) && dist2(e, player) <= TOUCH_RADIUS ** 2);
   const hp = Math.max(0, touched ? round.hp - 1 : round.hp);
 
-  const cleared = enemies.length === 0;
+  // Corpses do not hold a wave open: mid-topple enemies are on the board but already beaten.
+  const cleared = enemies.every((e) => !holdsWave(e));
   return {
     hp,
     wave: cleared ? round.wave + 1 : round.wave,
