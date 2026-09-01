@@ -14,7 +14,11 @@ export default defineConfig({
 
     // Test file patterns
     include: ['__tests__/**/*.test.{js,mjs}', 'tests/**/*.test.{js,mjs}'],
-    exclude: ['node_modules', 'dist', 'tests/integration/**'],
+    // `.nodetest.mjs` files are written against node:test, not vitest. The include
+    // pattern above does not match them (`*.test.mjs` needs a literal dot before
+    // `test`), but that is a subtlety one rename would undo silently — so the
+    // intent is stated here too. Run them with `npm run test:node`.
+    exclude: ['node_modules', 'dist', 'tests/integration/**', '**/*.nodetest.mjs'],
 
     // Setup file for test environment
     setupFiles: ['./tests/setup.mjs'],
