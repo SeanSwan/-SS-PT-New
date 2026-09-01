@@ -28,6 +28,10 @@ vi.mock('../../services/historicalWorkoutImportService.mjs', () => ({ previewHis
 vi.mock('../../models/index.mjs', () => ({
   getWorkoutSession: () => ({ findAll: mockSessionFindAll }),
   getWorkoutLog: () => ({ findAll: mockLogFindAll }),
+  // The upload lanes gate on the client's AI consent, so the route module
+  // imports this getter at load time. These tests exercise /last-weights,
+  // which never reaches the gate — the mock only has to satisfy the import.
+  getAiPrivacyProfile: () => ({ findOne: async () => null }),
   getModel: (name) => {
     if (name === 'ClientTrainerAssignment') return { findOne: mockAssignmentFindOne };
     throw new Error(`unexpected model ${name}`);
