@@ -205,8 +205,16 @@ export function stripNullRatings(exercises: ExerciseEntry[]): SanitizedExercise[
           restTime: s.restTime,
           notes: s.notes,
           setType: s.setType || 'working',
-          isometricHoldSeconds: s.isometricHoldSeconds,
         };
+        // Untouched optionals stay OMITTED, never serialized as a present-undefined
+        // key — the same rule rpe and formQuality follow below. isometricHoldSeconds
+        // was assigned unconditionally, so EVERY set on EVERY save carried
+        // `isometricHoldSeconds: undefined`. JSON.stringify drops it on the wire, so
+        // nothing broke in production, but it violated the payload's own omission
+        // contract and is why shell.save-path.canonical's byte-shape pin was red.
+        if (s.isometricHoldSeconds !== null && s.isometricHoldSeconds !== undefined) {
+          setOut.isometricHoldSeconds = s.isometricHoldSeconds;
+        }
         if (s.rpe !== null && s.rpe !== undefined) setOut.rpe = s.rpe;
         if (s.formQuality !== null && s.formQuality !== undefined) setOut.formQuality = s.formQuality;
         return setOut;

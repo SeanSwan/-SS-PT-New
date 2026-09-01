@@ -180,7 +180,14 @@ describe('canonical save-path pin — the payload the shell must never change', 
           painLevel: 0,
           performanceNotes: '',
           sets: [
-            { setNumber: 1, weight: 45, reps: 10, tempo: '', restTime: 60, notes: '' },
+            // setType rides the wire on every set: it is NOT an untouched optional
+            // but a defaulted field (`s.setType || 'working'`), persisted by
+            // adminWorkoutLoggerController and backed by the circuit-fields
+            // migration. Added to the pin when 'preserve circuit and drop-set
+            // structure' landed the feature without updating this contract.
+            // isometricHoldSeconds is deliberately ABSENT: it is a true optional
+            // and the emitter now omits it unless set (see workoutLoggerSubmitPayload).
+            { setNumber: 1, weight: 45, reps: 10, tempo: '', restTime: 60, notes: '', setType: 'working' },
           ],
         },
       ],
