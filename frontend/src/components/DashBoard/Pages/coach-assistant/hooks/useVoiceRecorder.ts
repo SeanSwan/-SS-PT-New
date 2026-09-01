@@ -15,7 +15,7 @@
  *   → useGeminiTranscription → POST /api/ai-chat/transcribe → text result
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { safeMicrophoneFailure } from '../CoachIntakeOperationalText.logic';
 
 // ─────────────────────────────────────────────────────────────
@@ -75,6 +75,42 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const levelBufferRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
 
+  /**
+   * Cancellation latch for the permission window. `stop()` during 'requesting'
+   * has nothing to stop — no recorder exists yet — and the in-flight
+   * getUserMedia cannot be aborted. Without this latch a user could tap stop
+   * (or navigate away, unmounting every guard upstream), THEN click "Allow" on
+   * the still-open permission bubble, and the microphone went live with no
+   * owner and no release path until tab close. Checked the moment the promise
+   * resolves; a late grant is stopped before any recorder is built.
+   */
+  const cancelRequestedRef = useRef(false);
+
+  /**
+   * Per-flight generation. The boolean latch alone guards a world that can hold
+   * TWO in-flight getUserMedia requests: start → stop (latch set) → start again
+   * (latch CLEARED, second request issued) → grant #1 resolves against the
+   * cleared latch and is accepted — then grant #2 overwrites every ref and
+   * stream #1's tracks are never stopped by anyone. Each start mints a
+   * generation; only the CURRENT generation's grant may build a recorder.
+   */
+  const flightSeqRef = useRef(0);
+
+  /**
+   * Mirrors `state` for callbacks with empty deps — their closures go stale.
+   * Written SYNCHRONOUSLY by every transition via setRecState: a render-time
+   * mirror alone lags one commit, so a stop() issued in the same tick as
+   * start() read a stale 'idle', skipped the requesting→idle settlement, and
+   * the hook stuck at visible 'requesting' forever.
+   */
+  const stateRef = useRef<RecordingState>('idle');
+  stateRef.current = state;
+
+  const setRecState = useCallback((next: RecordingState) => {
+    stateRef.current = next;
+    setState(next);
+  }, []);
+
   const cleanup = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -90,18 +126,50 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     }
     analyserRef.current = null;
     levelBufferRef.current = null;
+    /**
+     * Detach handlers BEFORE dropping the reference. MediaRecorder queues a
+     * final `dataavailable` (then `stop`) after stop() — with the closures
+     * still attached, that late chunk arrived AFTER a reset, rebuilt the blob,
+     * and flipped state to 'stopped': audio the user had just discarded
+     * resurrected itself.
+     */
+    if (recorderRef.current) {
+      recorderRef.current.ondataavailable = null;
+      recorderRef.current.onstop = null;
+      recorderRef.current.onerror = null;
+    }
     recorderRef.current = null;
     chunksRef.current = [];
   }, []);
 
   const start = useCallback(async () => {
+    const flight = ++flightSeqRef.current;
+    /**
+     * SUPERSEDE SAFELY. A second start while a recorder/stream exists — live,
+     * or stopped-with-queued-final-events — used to overwrite the only refs:
+     * the old stream's tracks became unreachable (mic live until tab close) and
+     * the old recorder's still-attached onstop then built a blob from the NEW
+     * flight's chunks and cleanup()'d the NEW refs. Release anything held,
+     * synchronously, before creating anything new.
+     */
+    if (recorderRef.current || streamRef.current) cleanup();
     try {
+      cancelRequestedRef.current = false;   // only a new start clears the latch
       setError(null);
       setAudioBlob(null);
       setDuration(0);
-      setState('requesting');
+      setRecState('requesting');
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (cancelRequestedRef.current || flight !== flightSeqRef.current) {
+        // Stop/reset was requested while the prompt was open, or a NEWER start
+        // superseded this flight. Either way the grant arrived for a request
+        // that no longer owns the microphone — release the tracks immediately,
+        // build nothing, and touch no state that now belongs to another flight.
+        stream.getTracks().forEach(t => t.stop());
+        if (flight === flightSeqRef.current) setRecState('idle');
+        return;
+      }
       streamRef.current = stream;
 
       // Optional level meter — recording works fine without it.
@@ -133,36 +201,58 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' });
         setAudioBlob(blob);
-        setState('stopped');
+        setRecState('stopped');
         cleanup();
       };
 
       recorder.onerror = () => {
         setError('Recording failed');
-        setState('error');
+        setRecState('error');
         cleanup();
       };
 
       recorder.start(250); // Collect chunks every 250ms
       startTimeRef.current = Date.now();
-      setState('recording');
+      setRecState('recording');
 
       // Duration timer
       timerRef.current = setInterval(() => {
         setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
       }, 500);
     } catch {
-      setError(safeMicrophoneFailure());
-      setState('error');
-      cleanup();
+      // A stale flight's rejection must not clobber the current flight's state.
+      if (flight === flightSeqRef.current) {
+        setError(safeMicrophoneFailure());
+        setRecState('error');
+        cleanup();
+      }
     }
-  }, [cleanup]);
+  }, [cleanup, setRecState]);
 
   const stop = useCallback(() => {
     if (recorderRef.current && recorderRef.current.state === 'recording') {
       recorderRef.current.stop();
+      /**
+       * Release the TRACKS synchronously, handlers still attached.
+       * MediaRecorder.stop() only QUEUES the final dataavailable/stop work —
+       * on pagehide/screen-lock the page can freeze before that queue runs,
+       * leaving the microphone live after the event that promised silence. The
+       * recorder finalises from already-captured data, so the blob still lands
+       * when the queued onstop runs; cleanup()'s later track-stop is a no-op.
+       */
+      streamRef.current?.getTracks().forEach(t => t.stop());
+    } else {
+      // Nothing recording — we may be inside the permission window. Latch the
+      // cancellation AND invalidate the pending flight so a late grant is
+      // stopped on arrival even if a newer start has cleared the latch since.
+      cancelRequestedRef.current = true;
+      flightSeqRef.current += 1;
+      // The request is dead from the caller's perspective RIGHT NOW. Only from
+      // 'requesting': a stray stop after a finished capture must not wipe
+      // 'stopped' + blob.
+      if (stateRef.current === 'requesting') setRecState('idle');
     }
-  }, []);
+  }, [setRecState]);
 
   const getAudioLevel = useCallback((): number => {
     const analyser = analyserRef.current;
@@ -179,11 +269,26 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
   }, []);
 
   const reset = useCallback(() => {
+    cancelRequestedRef.current = true;   // a pending grant must not outlive a reset
+    flightSeqRef.current += 1;           // …even one a newer start re-cleared the latch for
     cleanup();
-    setState('idle');
+    setRecState('idle');
     setAudioBlob(null);
     setDuration(0);
     setError(null);
+  }, [cleanup, setRecState]);
+
+  /**
+   * The primitive is fail-closed BY ITSELF. This hook shipped for months with
+   * no unmount cleanup at all — the microphone outlived every consumer that
+   * forgot to call stop(), and VoiceRecordingOverlay consumes it directly.
+   * Unmount latches cancellation, invalidates any pending permission flight,
+   * and releases everything.
+   */
+  useEffect(() => () => {
+    cancelRequestedRef.current = true;
+    flightSeqRef.current += 1;
+    cleanup();
   }, [cleanup]);
 
   return { state, audioBlob, duration, error, start, stop, reset, getAudioLevel };
