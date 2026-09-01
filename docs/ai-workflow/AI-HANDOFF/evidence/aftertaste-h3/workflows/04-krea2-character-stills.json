@@ -144,7 +144,7 @@
         "character-lora-goes-here.safetensors",
         1.0
       ],
-      "title": "4 - Character LoRA (BYPASSED - Ctrl+B to enable)"
+      "title": "4 - Character LoRA (BYPASSED - pick file, THEN Ctrl+B)"
     },
     {
       "id": 5,
@@ -410,7 +410,7 @@
         "Node name for S&R": "Note"
       },
       "widgets_values": [
-        "SWAN STUDIOS - KREA 2 CHARACTER STILLS  (runs on YOUR 5090, costs nothing)\n\nMakes the PICTURES that feed the H3 video graph. Size is 1280x704 on\npurpose: finished stills drop straight into nodes A / C of\n'01 SWAN - H3 local - First + Last Frame'.\n\nEDIT the prompt node, hit Run. ~2s per image after first load.\nModels load into VRAM only when you press Run - having this workflow\nopen costs NOTHING. Switching between this and H3 swaps models\nautomatically (the first switch each way takes a moment).\n\nThe LoRA node is BYPASSED by default (shown purple). When your\ncharacter LoRA exists in Z:\\AI-Weights\\ComfyUI\\loras: click the node,\npress Ctrl+B to un-bypass, pick the file. Ctrl+B again = off.\nRecipe stays: 8 steps / cfg 1.0 / euler / simple. No mu knob exists.\n\nCHARACTER (AVATAR) PIPELINE\n  1. curate 15-30 images of ONE face (generate them right here)\n  2. train a character LoRA once - separate install, see\n     Install-Krea2-Training-NOTES.md next to the ComfyUI folder\n  3. un-bypass the LoRA node -> the same person, any scene, forever\n  4. two stills -> H3 first/last frame -> movie of your character"
+        "SWAN STUDIOS - KREA 2 CHARACTER STILLS  (runs on YOUR 5090, costs nothing)\n\nMakes the PICTURES that feed the H3 video graph. Size is 1280x704 on\npurpose: finished stills drop straight into nodes A / C of\n'01 SWAN - H3 local - First + Last Frame'.\n\nEDIT the prompt node, hit Run.\nModels load into VRAM only when you press Run - having this workflow\nopen costs NOTHING. After a Run, ComfyUI keeps models cached and\nfrees them only when the next job needs the space, so switching\nbetween this and H3 is automatic (and instant when both fit).\nVerified 2026-09-01: this exact graph at 1280x704, seed 42,\ncompleted in 10.0s wall -> swan/krea2_character_00001_.png\n\nThe LoRA node is BYPASSED by default (shown purple). When your\ncharacter LoRA exists in Z:\\AI-Weights\\ComfyUI\\loras: FIRST pick the\nreal file in the node's dropdown, THEN press Ctrl+B to un-bypass.\n(Un-bypassing while the placeholder filename is selected makes every\nRun fail on a missing file.) Ctrl+B again = off.\nRecipe stays: 8 steps / cfg 1.0 / euler / simple. No mu knob exists.\n\nCHARACTER (AVATAR) PIPELINE\n  1. curate 15-30 images of ONE face (generate them right here)\n  2. train a character LoRA once - separate install, see\n     Install-Krea2-Training-NOTES.md next to the ComfyUI folder\n  3. un-bypass the LoRA node -> the same person, any scene, forever\n  4. two stills -> H3 first/last frame -> movie of your character"
       ],
       "title": "Note"
     }

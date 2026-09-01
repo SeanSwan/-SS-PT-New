@@ -22,6 +22,13 @@ param([switch]$Download)
 $ErrorActionPreference = 'Stop'
 $base = 'Z:\AI-Weights\ComfyUI'
 
+# Pinned to the exact repo commits the SHA-256 digests were read from, so an upstream re-upload
+# cannot silently change what this script fetches.
+$revisions = @{
+    'Comfy-Org/SeedVR2'             = '673340c8a66db62b84e4099def7d01d337ae12dc'
+    'Comfy-Org/frame_interpolation' = '9bca6366a22473ccee25602fa82b224d78413960'
+}
+
 $items = @(
     @{ Repo='Comfy-Org/SeedVR2'; Path='diffusion_models/seedvr2_7b_nvfp4.safetensors'; Dir='diffusion_models'; MiB=4539; Sha='cc4af1a7bd5377066496f393555478323e806fa21163bdbe3409451aface9b93'; Note='SeedVR2 7B (nvfp4) - the quality model' },
     @{ Repo='Comfy-Org/SeedVR2'; Path='diffusion_models/seedvr2_3b_nvfp4.safetensors'; Dir='diffusion_models'; MiB=1904; Sha='c8dea38b04d43295621726e2cd371c0d2d001006169c113aea17950f2cb2e295'; Note='SeedVR2 3B (nvfp4) - fast draft pass' },
@@ -61,8 +68,6 @@ else { Write-Host ("  present  {0,-46} {1,6} MiB   {2}" -f '4xNomosWebPhoto_Real
 # Hashtable keys are not properties: Measure-Object -Property cannot see them. Sum by hand.
 $needMiB = 0
 foreach ($m in $missing) { $needMiB += $m.MiB }
-$__unused = 0
-
 if ($esrganMissing) { $needMiB += $esrgan.MiB }
 
 Write-Host ''
@@ -74,7 +79,24 @@ if ($needMiB -eq 0) {
     $VerifyOnly = $true
 } else {
     Write-Host ("  {0} MiB to fetch." -f $needMiB)
-    if (-not $Download) { Write-Host '  DRY RUN -- re-run with -Download.'; Write-Host ''; exit 0 }
+    if (-not $Download) {
+        # A dry run on a PARTIAL install still hash-checks whatever is already here -- exiting
+        # without verifying present files is exactly the rot scenario the verify step exists for.
+        $present = @()
+        foreach ($i in $items) { $d = Join-Path $base $i.Path; if (Test-Path -LiteralPath $d) { $present += @{ Dest=$d; Name=(Split-Path -Leaf $i.Path); Sha=$i.Sha } } }
+        if (-not $esrganMissing) { $present += @{ Dest=$esrgan.Dest; Name='4xNomosWebPhoto_RealPLKSR.pth'; Sha=$esrgan.Sha } }
+        if ($present.Count -gt 0) {
+            Write-Host '  verifying the files that are already here (SHA-256):'
+            $preBad = 0
+            foreach ($a in $present) {
+                $got = (Get-FileHash -LiteralPath $a.Dest -Algorithm SHA256).Hash.ToLower()
+                if ($got -ne $a.Sha) { Write-Host ("  SHA MISMATCH {0}  (fix: Remove-Item -LiteralPath '{1}' ; re-run -Download)" -f $a.Name, $a.Dest); $preBad++ }
+                else { Write-Host ("  ok  {0,-46} sha256 {1}..." -f $a.Name, $got.Substring(0,16)) }
+            }
+            if ($preBad) { Write-Host ''; Write-Host "  $preBad present file(s) FAILED SHA-256 -- fix before downloading the rest."; exit 1 }
+        }
+        Write-Host '  DRY RUN -- re-run with -Download.'; Write-Host ''; exit 0
+    }
     $VerifyOnly = $false
 }
 
@@ -83,7 +105,7 @@ foreach ($i in $missing) {
     New-Item -ItemType Directory -Force -Path (Join-Path $base $i.Dir) | Out-Null
     Write-Host ''
     Write-Host ("  fetching {0} ({1} MiB)..." -f (Split-Path -Leaf $i.Path), $i.MiB)
-    & hf download $i.Repo $i.Path --local-dir $base
+    & hf download $i.Repo $i.Path --revision $revisions[$i.Repo] --local-dir $base
     if ($LASTEXITCODE -ne 0) { throw "download failed: $($i.Path)" }
 }
 
@@ -112,6 +134,8 @@ foreach ($a in $all) {
         Write-Host ("  SHA MISMATCH {0}" -f $a.Name)
         Write-Host ("    expected {0}" -f $a.Sha)
         Write-Host ("    got      {0}" -f $got)
+        Write-Host ("    fix: Remove-Item -LiteralPath '{0}' ; re-run with -Download" -f $a.Dest)
+        Write-Host  '         (hf download skips a full-length file, so a corrupted one is never re-fetched on its own)'
         $bad++
     } else {
         Write-Host ("  ok  {0,-46} sha256 {1}..." -f $a.Name, $got.Substring(0,16))

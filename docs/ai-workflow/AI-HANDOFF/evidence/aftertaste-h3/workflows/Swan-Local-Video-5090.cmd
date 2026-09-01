@@ -117,8 +117,8 @@ REM  A hostile review caught it. Reported, not asserted:
 for /f "delims=" %%V in ('powershell -NoProfile -Command "try{$s=(Invoke-RestMethod -Uri '%URL%/system_stats' -TimeoutSec 8).system; 'ComfyUI ' + $s.comfyui_version + ' / Python ' + ($s.python_version -split ' ')[0] + ' / Torch ' + $s.pytorch_version}catch{'could not read /system_stats'}"') do set "RUNTIME=%%V"
 echo   Running now: %RUNTIME%
 echo.
-echo   Workflows (left rail, Workflows panel - both open free, VRAM
-echo   is only used when you press Run; switching auto-swaps models):
+echo   Workflows (left rail, Workflows panel - both open free; VRAM
+echo   is used only on Run, and ComfyUI caches/frees models itself):
 echo     01 SWAN - H3 local - First + Last Frame   [videos]
 echo     04 SWAN - Krea2 - Character Stills        [pictures / avatar]
 echo   Videos: replace START and END images, then Run.

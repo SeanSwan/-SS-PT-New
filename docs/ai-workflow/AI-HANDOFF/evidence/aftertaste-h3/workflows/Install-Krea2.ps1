@@ -22,7 +22,32 @@ param([switch]$Download)
 
 $ErrorActionPreference = 'Stop'
 $repo = 'Comfy-Org/Krea-2'
+# Pinned to the exact repo commit the SHA-256 digests were read from, so a future upstream
+# re-upload cannot silently change what this script fetches (the digests would catch it, but
+# pinning fails faster and names the cause).
+$revision = 'e5ea8b4dd7f38f348b138eb0fe29f92c0e367e96'
 $base = 'Z:\AI-Weights\ComfyUI'
+
+# Hash-verify a list of entries (Path + Sha); returns the number of bad files.
+function Test-SwanWeights($entries) {
+    $bad = 0
+    foreach ($f in $entries) {
+        $dest = Join-Path $base $f.Path
+        if (-not (Test-Path -LiteralPath $dest)) { Write-Host "  MISSING: $($f.Path)"; $bad++; continue }
+        $got = (Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash.ToLower()
+        if ($got -ne $f.Sha) {
+            Write-Host ("  SHA MISMATCH {0}" -f (Split-Path -Leaf $f.Path))
+            Write-Host ("    expected {0}" -f $f.Sha)
+            Write-Host ("    got      {0}" -f $got)
+            Write-Host ("    fix: Remove-Item -LiteralPath '{0}' ; re-run with -Download" -f $dest)
+            Write-Host  '         (hf download skips a full-length file, so a corrupted one is never re-fetched on its own)'
+            $bad++
+        } else {
+            Write-Host ("  ok  {0,-52} sha256 {1}..." -f (Split-Path -Leaf $f.Path), $got.Substring(0,16))
+        }
+    }
+    return $bad
+}
 
 $files = @(
     @{ Path = 'diffusion_models/krea2_turbo_fp8_scaled.safetensors'; Dir = 'diffusion_models'; GiB = 12.24; Sha = 'eb4dd8c612cfd10f64f25b057e6e6bbcb5737c94a7372177e456dbf7579502f1'; Note = 'the model (8-step Turbo, fp8)' },
@@ -54,8 +79,6 @@ foreach ($f in $files) {
 # Hashtable keys are not properties: Measure-Object -Property cannot see them. Sum by hand.
 $needGiB = 0.0
 foreach ($m in $missing) { $needGiB += $m.GiB }
-$__unused = 0
-
 
 Write-Host ''
 if ($missing.Count -eq 0) {
@@ -70,6 +93,14 @@ if ($missing.Count -eq 0) {
     if ($freeGiB -lt ($needGiB * 1.2)) { throw "Not enough free space on Z: for $needGiB GiB." }
 
     if (-not $Download) {
+        # A dry run on a PARTIAL install still hash-checks whatever is already here. Exiting
+        # without verifying present files is exactly the rot scenario the verify step exists for.
+        $present = @($files | Where-Object { Test-Path -LiteralPath (Join-Path $base $_.Path) })
+        if ($present.Count -gt 0) {
+            Write-Host '  verifying the files that are already here (SHA-256):'
+            $preBad = Test-SwanWeights $present
+            if ($preBad) { Write-Host ''; Write-Host "  $preBad present file(s) FAILED SHA-256 -- fix before downloading the rest."; exit 1 }
+        }
         Write-Host '  DRY RUN -- nothing downloaded. Re-run with -Download to fetch.'
         Write-Host ''
         exit 0
@@ -85,7 +116,7 @@ foreach ($f in $missing) {
     New-Item -ItemType Directory -Force -Path $outDir | Out-Null
     Write-Host ''
     Write-Host ("  fetching {0} ({1} GiB)..." -f (Split-Path -Leaf $f.Path), $f.GiB)
-    & hf download $repo $f.Path --local-dir $base
+    & hf download $repo $f.Path --revision $revision --local-dir $base
     if ($LASTEXITCODE -ne 0) { throw "download failed: $($f.Path)" }
 }
 }
@@ -96,24 +127,12 @@ Write-Host '  verifying by SHA-256 (identity, not approximate size):'
 # it accepts a corrupted file of the right length, a resumed download that raced, and any substituted
 # artifact of similar size. Hugging Face publishes the SHA-256 as the LFS oid, so there is no reason
 # to guess. Digests above were read from the HF paths-info API for Comfy-Org/Krea-2 on 2026-09-01.
-$bad = 0
-foreach ($f in $files) {
-    $dest = Join-Path $base $f.Path
-    if (-not (Test-Path -LiteralPath $dest)) { Write-Host "  MISSING after download: $($f.Path)"; $bad++; continue }
-    $got = (Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash.ToLower()
-    if ($got -ne $f.Sha) {
-        Write-Host ("  SHA MISMATCH {0}" -f (Split-Path -Leaf $f.Path))
-        Write-Host ("    expected {0}" -f $f.Sha)
-        Write-Host ("    got      {0}" -f $got)
-        $bad++
-    } else {
-        Write-Host ("  ok  {0,-52} sha256 {1}..." -f (Split-Path -Leaf $f.Path), $got.Substring(0,16))
-    }
-}
+$bad = Test-SwanWeights $files
 
 Write-Host ''
 if ($bad) { Write-Host "  $bad file(s) missing or failed SHA-256 -- do NOT rely on this install."; exit 1 }
-Write-Host '  Krea 2 is installed. Restart ComfyUI, then load the Krea 2 template from the Workflow browser.'
-Write-Host '  Settings that matter: 8 steps, cfg 0.0, mu 1.15.'
+Write-Host '  Krea 2 is installed. Load "04 SWAN - Krea2 - Character Stills" from the Workflows panel.'
+Write-Host '  Settings that matter: 8 steps, cfg 1.0, euler / simple. Negative is automatic'
+Write-Host '  (ConditioningZeroOut). There is no mu knob in the local ComfyUI graph.'
 Write-Host ''
 exit 0
