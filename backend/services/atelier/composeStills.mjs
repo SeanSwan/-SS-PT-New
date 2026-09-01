@@ -29,7 +29,7 @@ import { generate as hostedGenerate, verify as hostedVerify } from '../../../sha
 import {
   ComposeError, MAX_STILLS, MAX_BRIEF_CHARS, IMAGE_PRICES, SPEND_ENV_KEY, RUNS_ENV_KEY,
   DEFAULT_MAX_SPEND_USD_DAILY, DEFAULT_MAX_RUNS_DAILY, readComposeLimits, estimateStills,
-  clampCount, sha, seedFor, deriveKey, normalizeText,
+  clampCount, sha, seedFor, deriveKey, normalizeText, chargedUsdFor,
 } from './composeLimits.mjs';
 import { promptsFromBrief, promptsFromTaste, resolveLawProfile, resolveKit, LAW_PROFILES } from './promptSources.mjs';
 import * as local from './localStillLane.mjs';
@@ -257,7 +257,7 @@ export async function composeStills(req = {}, deps = {}) {
     return {
       persistence,
       estimateOnly: false, lane, promptSource, stills, failures, partial: failures.length > 0, replayed: false,
-      cost: { ...cost, chargedUsd: cost.unitUsd * stills.length }, model: cost.model, key, admission, brandKit: brandKitView(kit),
+      cost: { ...cost, chargedUsd: chargedUsdFor(cost.unitUsd, stills.length) }, model: cost.model, key, admission, brandKit: brandKitView(kit),
       // NESTED, matching the async batch snapshot. These were spread top-level here and
       // nested there, so a client reading `lawRejected` had to know which lane produced
       // the response before it knew where to look — for facts that are identical in kind.

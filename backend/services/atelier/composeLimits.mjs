@@ -51,6 +51,36 @@ export const IMAGE_PRICES = Object.freeze({
  * default is deliberate: a lane that bills is denied until someone sets a real
  * number, and every refusal names the variable that lifts it.
  */
+/**
+ * WHAT A BATCH IS ACTUALLY CHARGED: unit price times stills DELIVERED, not requested.
+ *
+ * This rule existed twice — `composeStills` for the synchronous lane, `localBatchRunner`
+ * for the async one — and the async copy's own comment said so: "the same rule the
+ * synchronous lane already applies". A rule stated in two places is this subsystem's
+ * signature defect, and these two had ALREADY diverged: the sync copy multiplied
+ * `cost.unitUsd` raw, so an absent unit price produced `NaN` and `JSON.stringify` shipped
+ * it to the client as `null`; the async copy coerced and produced 0. Same rule, two answers,
+ * on the money path.
+ *
+ * DELIVERED, NOT REQUESTED, is the substance: a batch of ten that returns eight must quote
+ * eight. Charging for the request is how a partial failure becomes a billing dispute.
+ *
+ * A BAD INPUT IS 0, NEVER NaN. Zero is a claim we can defend — nothing was delivered, or
+ * nothing was priced — where NaN reaches the client as `null` with nothing logged and no
+ * error, which is the same silent-null failure `finiteOrNull` exists to stop in the library.
+ *
+ * Deliberately NOT covering: the async lane is local-only today and local's `unitUsd` is 0,
+ * so on real traffic this returns 0 whichever way it is written. That is exactly why the
+ * rule is worth having in ONE place — no test on the async lane can redden if it drifts
+ * again, so the only durable protection is that there is nothing left to drift from.
+ */
+export function chargedUsdFor(unitUsd, delivered) {
+  const unit = Number(unitUsd);
+  const n = Number(delivered);
+  if (!Number.isFinite(unit) || !Number.isFinite(n) || n < 0) return 0;
+  return unit * n;
+}
+
 export const SPEND_ENV_KEY = 'SWAN_ATELIER_MAX_SPEND_USD_DAILY';
 export const RUNS_ENV_KEY = 'SWAN_ATELIER_MAX_RUNS_DAILY';
 export const DEFAULT_MAX_SPEND_USD_DAILY = 0;

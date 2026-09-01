@@ -14,7 +14,7 @@
 
 import * as batches from './batchStore.mjs';
 import { BATCH_TTL_MS } from './batchStore.mjs';
-import { sha, seedFor } from './composeLimits.mjs';
+import { sha, seedFor, chargedUsdFor } from './composeLimits.mjs';
 import { buildPrompts } from './composePrompts.mjs';
 import { releaseWhenSettled } from './composeGpu.mjs';
 import { brandKitView } from '../../../shared/brandKits/registry.mjs';
@@ -239,11 +239,17 @@ export function startLocalBatch({ req, brief, count, key, promptSource, lawProfi
             // times stills DELIVERED); the twelfth time in this review a correction landed
             // on one half of a pair, and the pair here is two fields of one object.
             //
+            // AND THE RULE ITSELF WAS THE OUTER HALF OF A LARGER PAIR. It lived here AND in
+            // composeStills, and the two had already drifted: the sync copy multiplied
+            // `unitUsd` raw, so an absent price gave NaN and shipped to the client as null;
+            // this copy coerced and gave 0. Same rule, two answers, on the money path. It is
+            // now `chargedUsdFor` in composeLimits, called by both.
+            //
             // UNOBSERVABLE TODAY: the only async lane is local, where unitUsd is 0, so this
-            // expression is 0 either way and no test can redden on it. It is written now so
-            // the rule is already right when a charging lane goes async — not because a
-            // green test proves it, which is a thing a green test here cannot do.
-            cost: { ...accepted.cost, chargedUsd: (Number(accepted.cost?.unitUsd) || 0) * snap.stills.length },
+            // expression is 0 either way and no test on THIS lane can redden on it. That is
+            // precisely why one shared function beats a parity test — a test that cannot
+            // fail protects nothing, whereas there is now nothing left here to drift from.
+            cost: { ...accepted.cost, chargedUsd: chargedUsdFor(accepted.cost?.unitUsd, snap.stills.length) },
             // The replay is only honest while the row it points at still exists. Rows expire
             // an hour after they finish; the stub used to live until something evicted it,
             // so a delayed retry got a confident success payload and a statusUrl that 404s.
