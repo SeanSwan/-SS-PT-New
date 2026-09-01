@@ -1095,6 +1095,7 @@ These skills have been moved off the default-exposed surface. Their sources now 
 - **Task tracker:** `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md`
 - **Handoff protocol:** `docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md`
 - **Master handbook:** `docs/MASTER-HANDBOOK.md`
+- **Hostile Review Slam Registry (MANDATORY accountability ledger):** `docs/ai-workflow/hostile-reviews/INDEX.md`. **Prove-or-Named rule:** no work is "done" until it is hostile-reviewed to **zero errors** (Rule 17/41/61); if you ship/hand off without proving that, the work **and your agent name** auto-list here as an OPEN entry (Owner = you) until a hostile pass CLEARS it. Any AI can run a **Slam** — hostile-review every OPEN entry until zero issues remain (invite as many AIs as possible). Protocol: `docs/ai-workflow/hostile-reviews/README.md`. Complements (does not replace) the live 2-agent `.ai-workflow/coordination/review-queue.md`.
 
 ## Open Items — Session Continuity Index
 > Read the linked handoff docs for full context. This section is the quick-reference only.
