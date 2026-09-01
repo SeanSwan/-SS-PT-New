@@ -144,7 +144,12 @@ Three files, ~17.4 GiB total, all into `Z:\AI-Weights\ComfyUI\`:
 | `vae/qwen_image_vae.safetensors` | 0.24 | VAE |
 
 `hf download` resumes partials and skips complete files, so re-running after an interruption is safe.
-**Settings that matter at inference: 8 steps, cfg 0.0, mu 1.15.**
+**Settings that matter at inference — verified 2026-09-01 from the shipped ComfyUI template**
+(`image_krea2_turbo_t2i.json` in `comfyui_workflow_templates_json`): KSampler **8 steps, cfg 1.0,
+euler/simple, denoise 1.0**, negative conditioning via **ConditioningZeroOut**, and
+**CLIPLoader type `krea2`**. Earlier guidance here said "cfg 0.0, mu 1.15" — the shipped template
+has **no mu parameter anywhere**, and cfg 1.0 with a zeroed negative is the no-CFG equivalent. Do
+not go hunting for a mu knob.
 
 **Why fp8 and not NVFP4:** NVFP4 is Blackwell-native and smaller (7.15 GiB), but it has an open
 ComfyUI loading issue on the 5090 and sources disagree on whether it needs an extra backend. Treat
@@ -249,11 +254,15 @@ SeedVR2 fit.
 
 1. ~~Fix `Install-Krea2.ps1` hash verification~~ **DONE 2026-09-01** (§4.2) — digests pinned,
    negative control passed (exit 1 on wrong content).
-2. **Run `Install-Krea2.ps1 -Download`** — started 2026-09-01; on completion the script SHA-256
-   verifies all three files itself. Then restart ComfyUI and load the Krea 2 template.
-3. **Render one image and confirm it looks right** at 8 steps / cfg 0.0 / mu 1.15. Do not declare the
-   install good on "the file is on disk" — that is the exact class of claim this branch has been
-   burned by twice.
+2. ~~Run `Install-Krea2.ps1 -Download`~~ **DONE 2026-09-01** — all three files fetched and SHA-256
+   verified against the pinned digests (script exit 0). A follow-up flip-one-byte control on the
+   REAL VAE (size unchanged) was rejected with exit 1, then the byte was restored and the full
+   verify passed clean — the exact defect class the old 2% size check could never catch.
+3. ~~Render one image~~ **DONE 2026-09-01** — queued headless via the API using the shipped
+   template's exact graph (8 steps / cfg 1.0 / euler / simple / ConditioningZeroOut / CLIPLoader
+   type `krea2`, LoRA path off): `history` reported success and
+   `Z:\SwanStudios-Video\output\Krea2_install_proof_00001_.png` (1024x1024, seed 42) is a correct,
+   photorealistic render of the prompt. Krea 2 fp8 is proven working on the 5090.
 4. ~~Correct §5.4~~ **DONE 2026-09-01** of the upgrade-research doc (§4.4).
 5. **Only then** consider LoRA training — and it stays blocked until Sean has judged 12+ of his own
    renders. Say so plainly rather than working around it.
