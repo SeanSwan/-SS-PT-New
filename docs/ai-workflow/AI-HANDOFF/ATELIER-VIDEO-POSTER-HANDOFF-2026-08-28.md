@@ -1,5 +1,5 @@
 ---
-decision: "Handoff for the Atelier video-poster slice. Nine hostile-review rounds run, all committed; two fixes in the final commit are tested but not falsified. Names the exact next actions and the three defects deliberately left for whoever has a database."
+decision: "Handoff for the Atelier video-poster slice (nine hostile rounds) and the eight backlog slices worked on 2026-09-01. The defect backlog is done; what remains is trigger-gated, feature work, or Sean's decisions, each named with why. Review packet: ATELIER-CODEX-REVIEW-PACKET-2026-09-01.md."
 status: open
 supersedes: none
 ---
@@ -19,8 +19,8 @@ and what is owed.
 | | |
 |---|---|
 | **Worktree** | `c:/tmp/ss-atelier-v2` — a git worktree, **not** the main checkout |
-| **Branch** | `feat/atelier-v2-compose` · **HEAD `356fef248`** · **192 ahead of `main`** |
-| **Pushed** | **NO.** Nine commits sit local only. Rule 70 batch-push — see §5 |
+| **Branch** | `feat/atelier-v2-compose` · **HEAD `3a73d55ef`** · **99 ahead of `main`** (local `main` was fast-forwarded to `origin/main` on 2026-09-01, which is why earlier counts here read ~190) |
+| **Pushed** | **YES**, all of it |
 | **Deployed** | **NO.** Nothing from this branch is in production |
 | **PR** | **#73**, open, unmerged |
 | **Review record** | `ATELIER-VIDEO-POSTER-REVIEW-PACKET-2026-08-27.md` + `panel-2026-08-27-atelier-video-poster/` (GLM + Qwen, rounds 1–8) |
@@ -30,9 +30,15 @@ were there before this session.
 
 ---
 
-## 1. STEP 1 — falsify two fixes. Do this before anything else.
+## 1. STEP 1 — DONE 2026-09-01. Kept for the procedure.
 
-The final commit (`356fef248`) says so itself. Two fixes have **passing tests that have never
+The two fixes this section flagged as unfalsified were neutered on 2026-09-01 and each
+reddened only its own test: the attribution sanitiser reddens both attribution assertions and
+leaves the legitimate-credit one green; the partial-failure warn reddens the SOME-fail case
+alone. **The disclosure in `356fef248` is discharged.**
+
+The procedure below is left in place because it is the one that has ever found this defect
+class, and because a later reader will need it. Two fixes had **passing tests that had never
 been seen to fail**:
 
 ```bash
@@ -178,77 +184,61 @@ cd c:/tmp/ss-atelier-v2/backend && npx vitest run      # full: 6 failed / ~9879 
 
 ---
 
-## 6. Backlog, ranked
+## 6. Backlog — WORKED 2026-09-01, see `ATELIER-CODEX-REVIEW-PACKET-2026-09-01.md`
 
-### 1. `videoRenderJobService.mjs` — THREE defects in one `findOrCreate`. Top of the list.
+**The defect backlog below is done.** Eight further slices ran (`3a38a3031..3a73d55ef`).
+What remains is not defects — it is trigger-gated hardening, work needing infrastructure
+that does not exist, and Sean's decisions. Each is named with why, because "remaining
+backlog" that is really "deliberately not built" is how a list becomes noise.
 
-```js
-const [asset] = await MediaAsset.findOrCreate({
-  where: { r2Key },              // (a) no owner in the lookup
-  defaults: { ... posterR2Key: meta.posterR2Key ?? null,   // (b) never backfilled on the found path
-              provenance: meta.provenance ?? null },       // (c) unvalidated
-```
+### Done
 
-- **(a)** On an `r2Key` collision across tenants a completing render *finds another tenant's
-  row*: the completer's asset never appears in their library, `ownerUserId` stays the original
-  owner's, nothing errors. One line: `where: { r2Key, ownerUserId: job.userId }`.
-- **(b)** `defaults` are ignored on the found path, and the `posterR2Key` written twelve lines
-  later belongs to `job.update(...)` — the **job**, not the asset. A clip whose row was created
-  on a poster-less declaration keeps `null` forever, and this slice cannot show it. **So the
-  slice's headline is scoped: every video *whose row carries a poster* now shows it.**
-- **(c)** `meta` is cherry-picked, which is why `jobId`/`ownerUserId` are safe — but
-  `posterR2Key` and `provenance` pass through unvalidated from the request body. Both
-  consumers are now guarded at the reader (this slice), which is defence in depth, not a fix.
+| Item | Outcome |
+|---|---|
+| `videoRenderJobService` — three defects in one `findOrCreate` | **Done.** Dependency injection made them provable first. Collision now `409 KEY_COLLISION`, not an unhandled 500 |
+| `motionBind` unguarded | **Done** — and it was never reachable; GATE 1's kind check already excluded every caller-supplied key. Guarded anyway so the rule covers three signers, not two |
+| `resolvePublic` rate limit | **Done**, 600/15min. Also: 404 stopped meaning both "not found" and "we broke" |
+| `E_REPLAY_CONTENTION` mapping | **Done**, 429 + Retry-After. It was answering **400** — "your request is malformed, do not retry" — beside a message saying retry |
+| `chargedUsd` parity | **Done, but not as a test.** A parity test is impossible (local `unitUsd` is 0, both sides return 0). The rule was two copies that had already drifted — one produced NaN, the other 0. Now one function |
 
-**Why none of it was done here:** `videoRenderJobService.test.mjs` states in its own header
-that it covers only paths running *before* database access, and that the leasing paths need
-Postgres. This environment has none — the full suite fails with
-`SASL: SCRAM-SERVER-FIRST-MESSAGE`. **An unfalsifiable fix is not a fix.** Whoever has a
-database should fix and prove all three together.
+### Not done, and why — read the reason before picking one up
 
-**Measure (b) before deciding its size — the query, not a guess:**
-```sql
-SELECT count(*) AS clips_with_a_poster_the_library_cannot_show
-FROM media_assets a JOIN video_render_jobs j ON j.id = a.job_id
-WHERE a.kind = 'video' AND a.poster_r2_key IS NULL AND j.poster_r2_key IS NOT NULL;
-```
+- **The `MediaAsset` date index cannot be created as this document previously described.**
+  `date_trunc(text, timestamptz)` is STABLE; Postgres refuses it in an index. Casting only
+  the index creates a clean index the planner never uses. The real change touches the
+  cursor-comparison path on both sides at once and wants a real EXPLAIN. **The other two
+  indexes are ordinary and carry no trap:** `(owner_user_id, kind, approval_status)` and GIN
+  on `tags`.
+- **Signer-level prefix allowlist** inside `generateThumbnailUrl`/`generatePlaybackUrl`.
+  Would make per-consumer guards unnecessary — but that service is shared with
+  `videoCatalog*` and `bodyMapEvidenceStorage`, whose key conventions were not audited.
+  **Sean's call, not a backlog line.**
+- **Per-user cap in the client-keyed eviction class.** Trigger: a second tenant. There is
+  one operator.
+- **Owner-side watchdog on a never-settling claim.** Needs the microtask harness below to be
+  provable, and an unfalsifiable concurrency fix is worse than none.
+- **Deterministic microtask harness.** Real value, and genuinely speculative to build with no
+  defect in hand — it is the instrument, and instruments get designed wrong when nothing is
+  pressing on them.
+- **Replay-guard observability counters.** There is no metrics sink. Counters would be
+  console lines that either flood or go unread; better designed when there is somewhere to
+  send them.
+- **Everything after that** — prompt search, Motion brand kits, authz on kit selection,
+  sequence + mediaSync, taste feedback, Doctor surface, batch/matrix, ComfyUI GC, FLUX
+  fallback — is **feature work**, not backlog.
 
-### 2. A latent trap, harmless today
+### Still the single highest risk
 
-`completeJob` does `job.update({ r2Key })`, so a completer's job can end up pointing at a key
-it merely declared. **Nothing signs `job.r2Key`** — verified by grep across routes and
-controllers — so it is inert. A future endpoint that signs it would be exploitable.
+Every concurrency invariant in this subsystem is true in ONE process against ONE synchronous
+Map. The hosted lane re-runs for money. Behind a second replica or an async store they become
+probabilistic, and the failure is a silent double charge.
 
-### 3. `motionBind` is the one signing consumer still unguarded
+### And the thing Sean has to do
 
-It signs `ref.r2Key`, reading the same caller-supplied field. It is materially harder to
-reach: it already compares a caller-supplied `sha256` against the row's recorded hash, so a
-planted key must also match the content hash of bytes the operator approved, and it loads
-owner-scoped (`{ id: assetId, ownerUserId: req.userId }`). Changing a gate whose whole purpose
-is adversarial comparison deserves its own slice. **Named, not swept.**
-
-### 4. The structural fix that makes 1(c) and 3 unnecessary
-
-A prefix allowlist inside `generateThumbnailUrl` / `generatePlaybackUrl` closes the class for
-every reader, present and future, instead of asking each one to remember. Sean's call (§5.4).
-
-### 5. `resolvePublic` is unauthenticated with no rate limit shown
-
-UUIDv4 kills enumeration; nothing kills volume. Also: its deps pattern means a partially-wired
-route (`{ assetModel }` without `readUrl`) throws a TypeError → 500 on an unauthenticated
-surface.
-
-### 6. Then the previous handoff's list, unchanged
-
-`MediaAsset` declares **no indexes** — the library wants the expression index
-`(owner_user_id, date_trunc('milliseconds', created_at) DESC, id DESC)`. Then durable batch
-rows, replay-guard observability, a deterministic microtask harness, `E_REPLAY_CONTENTION`
-mapping, the per-user eviction cap, the owner-side watchdog, `chargedUsd` parity.
-
-**And still the single highest risk:** every concurrency invariant in this subsystem is true
-in ONE process against ONE synchronous Map. The hosted lane re-runs for money.
-
----
+`npm install` for `jose` and `sanitize-html` — declared, absent from the shared
+`node_modules`. Twelve suites cannot LOAD, including four security probes
+(`adminRoleEscalationMatrix`, `destructiveOwnershipMatrix`, `memberDirectoryLateralProbe`,
+`myTrainerScope.probe`). **They have not run.**
 
 ## 7. What the nine rounds actually taught
 
