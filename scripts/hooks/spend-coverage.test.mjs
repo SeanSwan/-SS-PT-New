@@ -286,6 +286,41 @@ test('CONTRACT: SCRIPT_MODEL has no ghosts either', () => {
   }
 });
 
+test('DOC TRUTH: the skill file describes the code it documents', () => {
+  // Round 11. The spend-guard SKILL.md was SEVEN ROUNDS STALE — the document an agent
+  // loads to learn how to behave. It still described the deleted seat enumeration
+  // (`consult-fable|sol|kimi|grok|panel`, including a script that does not exist),
+  // quoted a Fable estimate of "~$1.66" when the gate says $1.06, said pricing
+  // "assumes a large input packet" after it started measuring the real one, never said
+  // WHERE the approval token lives — the crux of the two-ask protocol — and
+  // recommended a `node -e` one-liner that THE GATE ITSELF NOW BLOCKS.
+  //
+  // Seventh false claim of this workstream. Rule 75 exists for exactly this: docs
+  // describe what the code does NOW. A stale doc is worse than none, because a fresh
+  // agent trusts it and stops looking — which is how five of the other six cost
+  // something.
+  //
+  // Pinned on the specific claims that were false, not on prose style: a doc test that
+  // asserts wording becomes a chore and gets deleted.
+  const doc = readFileSync(join(SCRIPTS, '..', '.claude', 'skills', 'spend-guard', 'SKILL.md'), 'utf-8');
+
+  assert.doesNotMatch(doc, /consult-fable\|sol\|kimi\|grok\|panel/,
+    'the doc must not describe the hand-curated seat list the gate deleted');
+  assert.doesNotMatch(doc, /\$1\.66/, 'the doc must not quote a Fable estimate the gate no longer gives');
+  assert.match(doc, /PENDING-SPEND-APPROVAL\.txt/,
+    'the doc must say where the approval token lives — an agent that cannot find it cannot follow the protocol');
+  assert.match(doc, /fails? CLOSED/i, 'the doc must describe the fail-closed inversion');
+  assert.match(doc, /spend-shapes\.test\.mjs/, 'the doc must point at the shape corpus');
+
+  // Every `node scripts/...` command the doc recommends must actually exist, and the
+  // one-liner it used to recommend must stay gone.
+  assert.doesNotMatch(doc, /node -e "import\('\.\/scripts\/lib\/spend-ledger/,
+    'the doc must not recommend a command the gate blocks');
+  for (const m of doc.matchAll(/node (scripts\/[\w./-]+\.mjs)/g)) {
+    assert.ok(existsSync(join(SCRIPTS, '..', m[1])), `the doc points at ${m[1]}, which does not exist`);
+  }
+});
+
 test('CONTRACT: the gate sees the context-gateway engine path', () => {
   // Kept as defence in depth, with the CLAIM CORRECTED.
   //
