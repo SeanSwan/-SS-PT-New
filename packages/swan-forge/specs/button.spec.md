@@ -5,7 +5,7 @@
 
 ## Acceptance (Phase 1.5 gate)
 
-- [ ] Pixel-parity vs original GlowButton under `crystalline-swan` (named assertions: Dual-Button Glow — primary fill → purple glow pole, accent fill → cyan pole; sheen sweep; reduced-motion renders static with spinner→dot)
+- [~] **WITHDRAWN 2026-09-01 (SWA-224).** Pixel-parity vs origin/main's GlowButton is no longer the acceptance criterion: Sean overturned that button as the taste anchor once the five generations were shown side by side, so parity against it would have locked in the wrong target permanently. See catalog §10.3a-amended. The named assertions SURVIVE and remain required — Dual-Button Glow (primary fill → purple pole, accent fill → cyan pole), sheen sweep, and reduced-motion rendering static with spinner→dot. Only the "parity vs that button" framing is dropped.
 - [x] 44px min target (`--sw-p-target-min` floor — not themeable)
 - [x] Loading keeps focus (aria-disabled + aria-busy); disabled uses native attribute
 - [x] Focus ring visible in both packs (≥3:1 audited)
