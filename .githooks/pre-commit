@@ -182,4 +182,100 @@ if git diff --cached --name-only | grep -qE '^(docs/ai-workflow/design-brain/|sc
   fi
 fi
 
+# Paid-seat coverage contract (SWA-218). Every script that reads a payment
+# credential must be matched by the spend gate, or be on an allowlist WITH a
+# written reason. No third option.
+#
+# WHY IT IS A COMMIT GATE AND NOT JUST A TEST. A contract nobody runs is the same
+# disease as a gate that never fires — the defect this whole workstream exists to
+# fix. It found seven unmetered scripts on its first run, including the paid AI
+# Village, after the hand-curated roster had drifted in BOTH directions for weeks
+# with nothing to notice. Drift lands in a commit; this is where to catch it.
+# Measured at ~0.25s, so it can never become the check people learn to bypass.
+#
+# SCOPED to staged changes under scripts/, because that is exactly what the
+# contract walks. A frontend-only commit gets silence.
+if git diff --cached --name-only | grep -qE '^scripts/'; then
+  COVERAGE="$REPO_ROOT/scripts/hooks/spend-coverage.test.mjs"
+  if [[ -f "$COVERAGE" ]]; then
+    echo "[pre-commit] Running paid-seat coverage contract..."
+    if ! node "$COVERAGE" > /dev/null 2>&1; then
+      node "$COVERAGE" 2>&1 | sed -n '/read a payment credential/,/Do not delete this test/p' >&2
+      echo "COMMIT BLOCKED: a script can spend money with no cap, no token and no record." >&2
+      echo "  Classify it in scripts/lib/paid-seats.mjs. Details above." >&2
+      exit 1
+    fi
+
+    # The contract walks the WORKING TREE, not the staged index — the same caveat
+    # the token-registry and Design Brain checks above handle by refusing outright.
+    # This one only WARNS, deliberately, and the difference is the cost of being wrong:
+    #   - a real FAILURE is real either way, so it blocks regardless (above);
+    #   - a false PASS lets one unmetered script through for a single commit, and
+    #     the contract catches it on the next clean run.
+    # Hard-refusing every commit that touches scripts/ while anything under it is
+    # unstaged would block ordinary in-progress work for a modest gain — and a gate
+    # that cries wolf is the one people learn to wave through, which is the failure
+    # mode this workstream keeps running into. Revisit deliberately if a false pass
+    # ever actually costs something.
+    COVERAGE_UNSTAGED="$(git diff --name-only -- scripts/)"
+    if [[ -n "$COVERAGE_UNSTAGED" ]]; then
+      echo "[pre-commit] coverage contract: PASS on the working tree — NOT a verdict on the index." >&2
+      echo "  Unstaged under scripts/, so the commit itself is unverified by this check:" >&2
+      echo "$COVERAGE_UNSTAGED" | sed 's/^/    /' >&2
+    else
+      echo "[pre-commit] Paid-seat coverage: CLEAN"
+    fi
+  else
+    echo "[pre-commit] coverage contract: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
+  fi
+
+  # Cross-table parity (SWA-218 round 5). Same scope, same reason, ~0.15s.
+  #
+  # The coverage contract asks "is this seat metered at all". This asks "do the two
+  # sides AGREE" — and they did not. The gate reserved budget under `claude-fable-5`
+  # while the writer settled under `anthropic/claude-fable-5`, so no completed call
+  # ever released its hold and every consult double-counted itself for ten minutes.
+  # It also caught the gate pricing Sol at HALF the figure the seat's own provider
+  # record has carried since 2026-07-17.
+  #
+  # Neither is visible from inside either file: each reads correct on its own. Only
+  # running the two real sides against each other shows it, which is why this is a
+  # commit gate and not a code-review habit.
+  PARITY="$REPO_ROOT/scripts/lib/spend-settle.test.mjs"
+  if [[ -f "$PARITY" ]]; then
+    if ! node --test "$PARITY" > /dev/null 2>&1; then
+      node --test "$PARITY" 2>&1 | grep -E "^not ok|error:|provider record|never settled" >&2
+      echo "COMMIT BLOCKED: the spend gate and the seat writers disagree." >&2
+      echo "  A key mismatch means holds never settle; a price mismatch means the cap" >&2
+      echo "  is counting the wrong number. Details above." >&2
+      exit 1
+    fi
+    echo "[pre-commit] Seat parity (keys + prices): CLEAN"
+  else
+    echo "[pre-commit] seat parity: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
+  fi
+
+  # THE SHAPE CORPUS (SWA-218 round 6). ~3s, and it is the most expensive check here
+  # by an order of magnitude — which is the right trade, because it is the only one
+  # that catches a REGRESSION rather than a drift.
+  #
+  # The round-4 packet explained that `cmd /c` "regressed silently, because the sweep
+  # lived in prose rather than a test", and then the sweep stayed prose. Backticks
+  # regressed the same way two rounds later, and `find -exec` the round after that.
+  # Every shape any round has ever found is now a row that runs.
+  SHAPES="$REPO_ROOT/scripts/hooks/spend-shapes.test.mjs"
+  if [[ -f "$SHAPES" ]]; then
+    if ! node --test "$SHAPES" > /dev/null 2>&1; then
+      node --test "$SHAPES" 2>&1 | sed -n '/run a PAID SEAT/,/lost\./p;/spend nothing/,/has not fixed anything/p' >&2
+      echo "COMMIT BLOCKED: a command shape changed sides." >&2
+      echo "  A row here is a shape some round already found. Going green->red is a" >&2
+      echo "  REGRESSION, not a discovery. Details above." >&2
+      exit 1
+    fi
+    echo "[pre-commit] Shape corpus: CLEAN"
+  else
+    echo "[pre-commit] shape corpus: SCRIPT ABSENT in this checkout — skipped (announced, not silent)"
+  fi
+fi
+
 exit 0

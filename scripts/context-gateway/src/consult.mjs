@@ -14,6 +14,9 @@
  * @module context-gateway/consult
  */
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+// SWA-218: the cumulative cap ledger. Until 2026-08-27 NOTHING on any consult path
+// wrote to it, so perTopic/perDay accumulated nothing and the caps were fiction.
+import { recordSpend, topicFromPath } from '../../lib/spend-ledger.mjs';
 import { shortPath, finalSegment } from './paths.mjs';
 import { getProvider, assertSpend } from './providers.mjs';
 import { loadEnv, callProvider } from './transport.mjs';
@@ -260,6 +263,40 @@ async function runConsultInner(providerName, defaultRemit, defaultOut, ctx = {})
   // stdout. Hardening the RECORD against the OS-username leak while spraying the same path to the
   // console would defeat the point (Kimi round 2, F1).
   if (receiptPath) console.log(`[consult-${providerName}] receipt -> ${shortPath(receiptPath)}`);
+
+  // --- CUMULATIVE SPEND LEDGER (SWA-218, 2026-08-27) -------------------------
+  //
+  // Until this line existed, NO consult seat wrote to scripts/lib/spend-ledger.mjs.
+  // `checkSpend` only ever READ it. So the per-topic and per-day caps — the entire
+  // reason that ledger exists — accumulated nothing for Fable, Sol or Kimi, and had
+  // been a fiction for every seat that runs through this engine.
+  //
+  // Found by GLM 5.3 in the round-3 review, as a MISSED item rather than a blocker.
+  // It survived four rounds of hostile review and a full test suite because every
+  // test SEEDS the ledger by hand: the caps were proven to work on data no production
+  // path ever produced. Sean's original words for why the ledger exists — no single
+  // call was outrageous, "four reasonable calls in a row are what blew the budget" —
+  // describe exactly the failure that was still live.
+  //
+  // topicFromPath is the SHARED normalizer, imported rather than re-derived. A past
+  // incident had the guard and a writer keying topics differently, so the per-topic
+  // cap silently never accumulated; doing that again here would rebuild the same hole
+  // one layer down.
+  //
+  // NON-FATAL. The money is already spent and the artifact is already written; losing
+  // the review because the ledger could not be appended would be strictly worse. It
+  // fails loudly instead. `r.cost` is passed through untouched — recordSpend() treats
+  // an unpriceable value as WORST CASE, so an unknown cost errs toward refusal.
+  try {
+    recordSpend({
+      model: r.model || providerName,
+      topic: topicFromPath(docPath),
+      usd: r.cost,
+      note: `consult-${providerName}${r.empty ? ' | EMPTY_RESPONSE' : ''}`,
+    });
+  } catch (err) {
+    console.error(`[consult-${providerName}] LEDGER WRITE FAILED — this call is NOT in the cumulative caps: ${err?.message}`);
+  }
 
   // A paid call that returned nothing must fail for AUTOMATION too, not just for a human reading
   // stderr. The banner and the warning are interaction affordances; a pipeline sees only the exit
