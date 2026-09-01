@@ -490,7 +490,9 @@ const tokenKey = ({ model, topic, worstCaseUsd }) =>
  * @param {{model:string, topic:string, worstCaseUsd:number, approvalToken?:string}} req
  * @returns {{allow:boolean, reason:string, breach:string|null, token:string|null, totals:object}}
  */
-export function checkSpend({ model, topic, worstCaseUsd, approvalToken = '', selfHeld = false }) {
+export function checkSpend({
+  model, topic, worstCaseUsd, approvalToken = '', selfHeld = false, callCount = 1,
+}) {
   const entries = readLedger();
   const totals = {
     call: Number(worstCaseUsd) || 0,
@@ -517,7 +519,18 @@ export function checkSpend({ model, topic, worstCaseUsd, approvalToken = '', sel
 
   const breaches = [];
   if (totals.call > CAPS.perCall) {
-    breaches.push(`single call $${totals.call.toFixed(2)} > cap $${CAPS.perCall.toFixed(2)}`);
+    // SAY HOW MANY CALLS THE NUMBER IS FOR (flash round-6 F4, reproduced round 10).
+    // Four batched Sol calls summing to $2.44 were refused as "single call $2.44 > cap
+    // $1.00" — and there is no single call over the cap. The block is the intended
+    // N-calls-are-not-one rule wearing the wrong label, and Sean was being asked to
+    // approve a proposition that is false.
+    //
+    // This is the SIXTH false claim in this workstream, and the only one in text a
+    // human reads at the moment of deciding. The others at least sat in comments where
+    // a reader could check the code beneath them; this one IS the evidence.
+    breaches.push(callCount > 1
+      ? `${callCount} calls on this line total $${totals.call.toFixed(2)} > per-call cap $${CAPS.perCall.toFixed(2)} (batching does not raise the ceiling)`
+      : `single call $${totals.call.toFixed(2)} > cap $${CAPS.perCall.toFixed(2)}`);
   }
   if (totals.topic + pending > CAPS.perTopic) {
     breaches.push(`topic "${topic}" would reach $${(totals.topic + pending).toFixed(2)} > cap $${CAPS.perTopic.toFixed(2)} (already spent $${(totals.topic + pending - totals.call).toFixed(2)})`);

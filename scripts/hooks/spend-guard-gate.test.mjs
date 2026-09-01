@@ -935,6 +935,27 @@ test('R6: a PANEL reserves under the seat ids its fan-out records', () => {
   assert.deepEqual(rows.map((r) => r.model).sort(), ['grok-4.6', 'kimi-k3']);
 });
 
+test('R10: the refusal text does not call a batched line a "single call"', () => {
+  // flash round-6 F4, reproduced in round 10. Four batched Sol calls summing to $2.44
+  // were refused as "single call $2.44 > cap $1.00" — and there IS no single call over
+  // the cap. The block is the intended N-calls-are-not-one rule wearing the wrong
+  // label, and Sean was being asked to approve a proposition that is false.
+  //
+  // SIXTH false claim in this workstream, and the only one in text a human reads at
+  // the moment of deciding. The other five sat in comments, where a reader could at
+  // least check the code beneath them. This one IS the evidence.
+  const many = Array.from({ length: 4 }, (_, i) => `node scripts/consult-sol.mjs --document d${i}.md`).join(' && ');
+  const r = runGate(many);
+  assert.equal(r.code, BLOCK, 'control: four Sol calls sum past the per-call cap');
+  assert.match(r.stderr, /4 calls on this line/, 'the refusal must say how many calls the number is for');
+  assert.doesNotMatch(r.stderr, /single call/, 'and must NOT claim a batched line is one call');
+
+  // A genuinely single call keeps the accurate singular wording.
+  const one = runGate(FABLE);
+  assert.equal(one.code, BLOCK);
+  assert.match(one.stderr, /single call/, 'one call is still described as one call');
+});
+
 test('R9: the estimate prices the REAL document, and only ever upward', () => {
   // Round 9, solo. The comment being replaced said "input size is unknown at gate
   // time" — a false claim about the world dressed as a limitation. `--document` names

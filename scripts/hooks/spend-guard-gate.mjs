@@ -782,7 +782,17 @@ try {
     }
   }
 
-  const decision = checkSpend({ model: modelKey || 'panel', topic, worstCaseUsd, approvalToken, selfHeld });
+  // `callCount` so the refusal can say what the number is FOR. A panel is one command
+  // whose price is a fan-out, so it counts as one; a compound line counts its
+  // chargeable invocations.
+  const decision = checkSpend({
+    model: modelKey || 'panel',
+    topic,
+    worstCaseUsd,
+    approvalToken,
+    selfHeld,
+    callCount: isPanel ? 1 : chargeable.length,
+  });
 
   if (decision.allow) {
     if (decision.reason === 'second approval accepted') {
