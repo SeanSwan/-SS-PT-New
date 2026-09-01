@@ -44,46 +44,11 @@ import {
 } from './WorkoutHistoryTimeline.styles';
 import { groupWorkoutLogsByCircuit } from './workoutHistoryGrouping';
 
-// ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
-interface WorkoutLog {
-  id: number;
-  exerciseName: string;
-  setNumber: number;
-  reps: number;
-  weight: number;
-  tempo?: string;
-  rest?: number;
-  rpe?: number;
-  notes?: string;
-  circuitName?: string;
-  circuitOrder?: number;
-  exerciseRole?: string;
-  setType?: string;
-  isometricHoldSeconds?: number;
-}
-
-interface Workout {
-  id: string;
-  title: string;
-  date: string;
-  duration: number;
-  intensity: number;
-  status: string;
-  totalSets: number;
-  totalReps: number;
-  totalWeight: number;
-  logs: WorkoutLog[];
-}
-
-// ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
-interface WorkoutHistoryTimelineProps {
-  clientId: number | string;
-  clientName?: string;
-}
+import type {
+  WorkoutLog,
+  Workout,
+  WorkoutHistoryTimelineProps,
+} from './WorkoutHistoryTimeline.types';
 
 const WorkoutHistoryTimeline: React.FC<WorkoutHistoryTimelineProps> = ({ clientId, clientName: _clientName }) => {
   const { authAxios } = useAuth() as any;

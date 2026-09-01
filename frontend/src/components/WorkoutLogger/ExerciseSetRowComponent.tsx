@@ -26,7 +26,7 @@ import {
   StarButton,
   StarRatingContainer,
 } from './ExerciseCardComponent.styles';
-import { SetStructureFields } from './ExerciseCardComponent.styles';
+import { SetStructureFields } from './ExerciseCardCircuit.styles';
 import {
   LastWeightChip,
   NumberInput,

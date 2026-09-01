@@ -17,10 +17,12 @@ import {
   SliderValue,
   StarButton,
   StarRatingContainer,
-  SupersetBadge,
-    SupersetLinkButton,
-    CircuitFields,
 } from './ExerciseCardComponent.styles';
+import {
+  CircuitFields,
+  SupersetBadge,
+  SupersetLinkButton,
+} from './ExerciseCardCircuit.styles';
 import {
   AddSetButton,
   SetDetailsToggle,
