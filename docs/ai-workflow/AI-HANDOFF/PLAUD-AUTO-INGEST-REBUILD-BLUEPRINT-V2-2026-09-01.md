@@ -72,6 +72,10 @@ supersedes: docs/ai-workflow/AI-HANDOFF/PLAUD-AUTO-INGEST-REBUILD-BLUEPRINT-2026
 9. **Consent helper exists, is wired to exactly 2 lanes, and PLAUD is not one of them** — zero consent references in the whole PLAUD path (`aiEligibilityHelper.mjs:45`; importers: aiWorkoutController, longHorizonController only).
 10. **The transcription model is already env-swappable** — `AI_GEMINI_TRANSCRIPTION_MODEL` (`voiceTranscriptionService.mjs:112`) — the provider interface (Part 10) formalizes an existing seam rather than inventing one.
 
+### 1.35 GLM hostile round — 2026-09-01 (post-publication, amendments applied in place)
+
+Sean authorized a Z.AI panel: **GLM 5.3 → REJECT (15 findings)**, **GLM 5.3 Flash → REVISE (14 findings)**. Same lab — overlap counted once; ~20 distinct defects after merge. Adjudication: **all 20 adopted** (this document already reflects every fix — search `[GLM round]`), zero disproven; three repo-dependent VERIFYs resolved by direct read (`awardWorkoutXP` internally idempotent `:65-83`; consent `withdrawnAt` exists `:81,95`; `PATCH .../workouts/:sessionId` edit route exists `:104` — which enabled the amendment CUT). Headline adoptions: per-source outbox gating (the flag would have frozen platform-wide side effects); `plaud_capture` source-policy registration (silent billing bug); amendment mode cut (four independent uniqueness walls); ledger subject-typing (Slice-2/4 FK ordering); consent re-check inside the transcribe worker + revocation semantics; admin_override stripped of egress power; legacy-sweeper retune (24h TTL vs 96h review window); output identity `(trainer, client, date)` cross-aggregate; typed `CLIENT_LOG_EXISTS`; encrypted verbatim evidence; header-authoritative replay keys; per-event outbox delivery contracts; tap-first split control; 8 new test suites. Full transcripts: `GLM-CONSULT-PLAUD-V2-2026-09-01.md`, `GLMFLASH-CONSULT-PLAUD-V2-2026-09-01.md`.
+
 ### 1.4 Disposition of prior work
 
 - **v1 blueprint: SUPERSEDED** by this document (kept as history; its ABC UI, vocabulary, wireframes, consent finding, connector direction, and test-shape survive INTO v2).
@@ -190,10 +194,10 @@ All migrations: `.cjs`, reversible, `"Users"` quoted, INTEGER user FKs, additive
 | Table | Key columns | Notes |
 |---|---|---|
 | `plaud_capture_aggregates` | id BIGINT pk · aggregate_id UUID uq · user_id INT →"Users" (trainer) · source_device_id →connector_devices NULL · window_start/window_end TSTZ · status (`open,segmenting,in_review,closed,expired`) · clusterer_version · expires_at (96h default, `PLAUD_CAPTURE_TTL_HOURS`) | The trainer/device/day envelope. NO client identity here (H7) |
-| `plaud_capture_membership_events` | id · aggregate_id FK · clip_id FK plaud_clips · action (`added,removed`) · actor (`system,trainer:<id>`) · reason · created_at | Append-only; "current membership" = latest event per clip. Resolves the v1 ERD/schema contradiction (H8) `[DECIDED]` |
-| `plaud_capture_segments` | id · segment_id UUID uq · aggregate_id FK · start_at/end_at TSTZ · clip_spans JSONB (`[{clipId,startMs,endMs}]`) · suggested_client_id NULL · suggestion JSONB (scorer_version, signals, ranked candidates, reason codes) · confirmed_client_id NULL · confirmed_date DATEONLY NULL · consent_state (`unchecked,allowed,denied,admin_override`) · consent_log_id NULL · status (`proposed,needs_client,suggested,confirmed,processing,parsed,attention,discarded,expired`) | One clip may span segments; per-segment client/date/consent (H7) |
-| `plaud_capture_outputs` | id · output_id UUID uq · aggregate_id FK · segment_ids JSONB · client_id INT · workout_date DATEONLY · plan_pin JSONB NULL (Part 9.1) · parsed_workout ENCRYPTED (existing cipher service, key-versioned) · evidence JSONB (Part 9.3) · reconciliation_id NULL · status (`assembling,ready_review,approved,discarded,attention,expired`) · warnings JSONB | One approvable draft per client/date/occurrence |
-| `plaud_capture_output_applications` | id · application_id UUID uq · output_id FK **UNIQUE per correction_revision** (uq on (output_id, correction_revision)) · idempotency_key CHAR(64) uq (`sha256(output_id|correction_revision)`) · request_hash CHAR(64) · daily_workout_form_id UUID FK · workout_session_id UUID FK · completion_receipt_id UUID FK NULL · applied_by INT · applied_at · mode (`standard,merge_into_pending,amendment`) | The durable ledger (H15). Replay same key+hash → 200 original receipt; same key+different hash → 409 `IDEMPOTENCY_MISMATCH` |
+| `plaud_capture_membership_events` | id · aggregate_id FK · clip_id FK plaud_clips · action (`added,removed`) · actor (`system,trainer:<id>`) · reason · created_at | Append-only; "current membership" = latest event per clip. Concurrency guard `[GLM round]`: inserts run under an advisory lock per clip_id, and an `added` is rejected while another aggregate holds an un-`removed` `added` for that clip — one clip is current in at most one aggregate, by construction. Resegmentation freezes once ANY output of the aggregate reaches `assembling`; changing membership after that requires discarding the affected output first (which returns its segments to `proposed`) |
+| `plaud_capture_segments` | id · segment_id UUID uq · aggregate_id FK · start_at/end_at TSTZ · clip_spans JSONB (`[{clipId,startMs,endMs}]`) · suggested_client_id NULL · suggestion JSONB (scorer_version, signals, ranked candidates, reason codes) · confirmed_client_id NULL · confirmed_date DATEONLY NULL · consent_state (`unchecked,allowed,denied,admin_override`) · consent_log_id NULL · status (`proposed,needs_client,suggested,confirmed,processing,parsed,consumed,attention,discarded,expired`) `[GLM round: `consumed` added — set when an output assembles the segment; `consumed → proposed` on output discard (with membership event + audit) so mis-attributed audio is recoverable instead of stranded]` | One clip may span segments; per-segment client/date/consent (H7). Confirm uses a conditional UPDATE (`WHERE status IN ('proposed','suggested','needs_client')`) so two concurrent confirms produce one winner and one 409 |
+| `plaud_capture_outputs` | id · output_id UUID uq · **trainer_id INT + client_id INT + workout_date DATEONLY = the output's identity `[DECIDED — GLM round]`: partial UNIQUE on (trainer_id, client_id, workout_date) WHERE status NOT IN ('approved','discarded','expired') — one PENDING draft per trainer/client/day, enforced, cross-aggregate** · aggregate_id FK (provenance only, not identity — late audio in a NEW aggregate merges into the existing pending output for the same identity) · segment_ids JSONB · plan_pin JSONB NULL (Part 9.1) · parsed_workout ENCRYPTED (existing cipher service, key-versioned; **verbatim evidence text lives INSIDE this ciphertext** — 9.3) · evidence JSONB (offsets/refs only, no plaintext speech) · reconciliation_id NULL · status (`assembling,ready_review,approved,discarded,attention,expired`) · warnings JSONB | Assembly of output + segment flips + job row = ONE transaction; rollback returns segments to `parsed`. **Midnight rule `[DECIDED]`: `workout_date` = the trainer-TZ calendar day holding the majority of the output's audio duration** |
+| `plaud_capture_output_applications` | id · application_id UUID uq · **subject_type (`merge_request,capture_output`) + subject_id BIGINT** `[DECIDED — GLM round: no FK at creation — Slice 2 predates the outputs table; Slice 4's migration adds the real FK constraint for `capture_output` rows via a CHECK + trigger or validated FK, and the uq is on (subject_type, subject_id, correction_revision) so the two id spaces can never collide]` · correction_revision INT · idempotency_key VARCHAR(128) uq (client-supplied header, 6.3) · request_hash CHAR(64) · daily_workout_form_id UUID FK · workout_session_id UUID FK · completion_receipt_id UUID FK NULL · applied_by INT · applied_at · mode (`standard,merge_into_pending`) | The durable ledger (H15). `amendment` mode REMOVED (13.4). Replay semantics per 6.3 |
 | `workout_reconciliations` | id · capture_output_application_id FK **UNIQUE** · workout_session_id NON-unique · completion_receipt_id NULL · plan_pin JSONB (copy of the validated pin) · actual_snapshot JSONB · match_decisions JSONB (Part 9.4 decision objects) · axes JSONB (Part 9.5) · created_at | Uniqueness per application, not per session (H12) |
 | `workout_side_effect_outbox` | id · event_type (`xp,challenge,pr,earnings,notification,analytics`) · payload JSONB · dedupe_key uq (`<type>:<formId>`) · status (`pending,in_flight,done,failed_terminal`) · attempts · next_retry_at · locked_by/locked_until (claim) · last_error | Written INSIDE the core tx; workers use the socialJobScheduler claim idiom `[DECIDED — Part 1.2]` |
 | `plaud_processing_jobs` | id · job_key uq (deterministic: `<stage>:<subject_id>:<input_hash>`) · stage (`cluster,segment,attribute,consent,transcribe,parse,pin,reconcile,prepare_review,purge`) · subject_type/subject_id · status · attempts · next_retry_at · locked_by/locked_until · input_hash · output_hash · provider_meta JSONB (model/version) · failure_class · created/updated | Same claim idiom; DB is truth (H10) |
@@ -218,9 +222,11 @@ submitAiWorkoutLogAsDailyForm(args)            // thin wrapper, signature unchan
   → return buildResultShape(core)               // NO side-effect execution here
 catch: if (!committed) rollback; throw          // the committed flag H4 demands
 ```
-- The four post-commit calls (earnings/challenges/XP/PR) MOVE from the service body into outbox workers keyed `<type>:<formId>` (dedupe = at-most-once effect per form). Suppression flags from the source policy are evaluated at enqueue time (suppressed → no row).
-- Return-shape compatibility: `xp`/`challengeProgress`/`prEvents` become `{status:'queued'}` markers; the controller response keeps its keys (frontends already treat xp as nullable — builder verifies each of the 4 callers' consumers and updates the two that render xp inline to handle `queued`).
-- Existing callers keep calling the wrapper — zero signature churn.
+- **Per-source routing `[DECIDED — GLM round]`:** the four post-commit calls (earnings/challenges/XP/PR) move to outbox rows **for the capture lane only** (`source policy flag routeSideEffectsToOutbox`, set for `plaud_capture`). The four EXISTING callers keep their current inline post-commit execution — bytes unchanged, real xp values in responses, zero consumer churn — until the outbox has burned in, after which inline→outbox promotion for legacy sources is its own later slice with its own gate. This kills the original design's flaw: `WORKOUT_OUTBOX_ENABLED` (default off) would otherwise have silently frozen XP/earnings/challenges/PR for every production workout between the Slice 1 deploy and a flag flip — a platform-wide regression disguised as a capture kill switch. Now the flag's blast radius is exactly the capture lane.
+- The **committed-flag fix applies to ALL sources immediately** (that part is a pure bug fix): commit → `committed = true`; the four inline effects run after it, each individually try/caught (today only PR is); the outer catch rolls back only when `!committed`.
+- The inline block and the outbox workers call the SAME extracted per-effect functions — one implementation, two invocation paths.
+- Add a startup/ops alert: pending outbox rows older than 10 minutes while the worker flag is on → warn; while off → error (the drain-on-enable contract is explicit: enabling the flag drains the backlog oldest-first).
+- `[DECIDED — GLM round]` **Register `source: 'plaud_capture'` in `workoutLogSourcePolicy` in the same slice that first sends it** (Slice 2), with `plaud_merge`'s exact flags (paid-session deduction OFF, XP/PR/challenges/plan-advance ON) **plus** `routeSideEffectsToOutbox`. Without this row the string falls through to `live` and paid-session deduction turns ON — a silent money bug (Flash's catch). A source-policy table test asserts a `plaud_capture` approval enqueues zero billing deduction.
 
 ### 6.2 PLAUD approval transaction
 `approveCaptureOutput({ outputId, correctionRevision, overrides, actor })` — ONE tx:
@@ -230,14 +236,27 @@ catch: if (!committed) rollback; throw          // the committed flag H4 demands
 4. Insert `plaud_capture_output_applications` row (idempotency key).
 5. Insert `workout_reconciliations` row.
 6. Update output → `approved`; release capture claim; mark segments consumed.
-7. Legacy-bridge: while the old merge flow still runs (dual-read window), also flip `plaud_merge_requests` in this same tx.
+7. Legacy-bridge `[DECIDED — GLM round]`: the `plaud_merge_requests` flip happens ONLY in the Slice-2 legacy lane (whose ledger subject IS a merge request). **Capture outputs never touch `plaud_merge_requests`** — there is no mapping between them and none is invented.
 8. Outbox rows; commit. Failure anywhere = rollback of EVERYTHING — the compensating-delete block (1.3.1) is deleted, and the stranded-side-effect classes become impossible rather than compensated.
+9. Client-self-log collision `[DECIDED — GLM round]`: if the core's one-form-per-day guard (or the Slice-1 unique index) fires because the client logged their own workout after segment confirm, approval returns typed `CLIENT_LOG_EXISTS` (not a raw constraint error), the output moves to `attention` with a plain-language card ("`{client}` logged their own workout for this day — review it, then discard this recording or edit their log"), the capture claim is HELD until the trainer resolves, and the card links the existing workout. Retry becomes possible if the self-log is deleted/moved.
 
-### 6.3 Idempotent replay
-Same `Idempotency-Key` + same request hash → 200 with the stored application receipt. Different hash → 409 `IDEMPOTENCY_MISMATCH`. New key on an applied output+revision → 200 canonical receipt (no second write).
+### 6.3 Idempotent replay `[reworked — GLM round]`
+- The client's **`Idempotency-Key` header is authoritative** (server derives nothing). Stored with `request_hash = sha256(output_id | correction_revision | pinChoice | mode | canonicalized-overrides)` — volatile fields excluded.
+- Same key + same hash → 200 with the stored application receipt. Same key + different hash → 409 `IDEMPOTENCY_MISMATCH` **with a diff of the changed fields** — never a silent 200 carrying a stale receipt.
+- Post-lock routing is explicit: a request that acquires the row lock and finds the output already `approved` WITH a ledger row → 200 canonical receipt (replay path), regardless of key. `approved` without a ledger row is impossible by construction (same tx).
+- Corrections are **endpoint-only** (`POST .../corrections`); the approve body carries no inline edits. Every correction increments `correction_revision`, and the UI **mints a fresh Idempotency-Key whenever `correction_revision` changes** — a retry of a stale key after an edit correctly 409s with the diff.
 
 ### 6.4 Workers
-`backend/jobs/workoutOutboxWorker.mjs` + `plaudProcessingWorker.mjs`: `setInterval` pollers (proven pattern), atomic conditional-UPDATE claim, heartbeat, 15-min stuck-reaper, bounded attempts (5) with backoff, `failed_terminal` + alert (mirror `plaudR2MirrorWorker` + `socialJobScheduler`). Gated by `PLAUD_CAPTURE_PIPELINE_ENABLED` and `WORKOUT_OUTBOX_ENABLED`, both default off.
+`backend/jobs/workoutOutboxWorker.mjs` + `plaudProcessingWorker.mjs`: `setInterval` pollers (proven pattern), atomic conditional-UPDATE claim, heartbeat, 15-min stuck-reaper, bounded attempts (5) with backoff, `failed_terminal` + alert (mirror `plaudR2MirrorWorker` + `socialJobScheduler`). Gated by `PLAUD_CAPTURE_PIPELINE_ENABLED` and `WORKOUT_OUTBOX_ENABLED` (capture-lane scope only, per 6.1), both default off.
+
+**Per-event delivery semantics `[DECIDED — GLM round]` — "at-most-once per dedupe_key" guarantees one ROW, not one EXECUTION; a crash between executing an effect and marking `done` lets the reaper re-run it, so each event type declares its real contract:**
+| Event | Contract | Mechanism |
+|---|---|---|
+| `xp` | effectively-once | `awardWorkoutXP` is ALREADY internally idempotent — `idempotencyKey` + `alreadyAwarded` short-circuit `[MAIN-VERIFIED awardWorkoutXP.mjs:65-83]`; re-fire is a no-op |
+| `pr`, `challenge`, `earnings` | effectively-once, DB-transactional | worker wraps effect + `done` update in ONE DB transaction where the effect is DB-only; each effect gains a natural-key guard (challenge: form+challenge id; earnings: session id; PR: form+exercise). **Slice 0 VERIFY task: audit each service's existing internal idempotency** (earnings has a money-write alert path; challenge/PR unknown) and add the guard where absent |
+| `notification`, `analytics` | at-least-once, consumer-idempotent | external side effects can't join the DB tx; consumers must tolerate duplicates (notification keyed by form id; analytics events carry dedupe ids) |
+
+`failed_terminal` money events get an operator **re-drive path**: `POST /api/admin/outbox/:id/redrive` (admin-only, audited) + a runbook entry — a terminal earnings row must never just vanish behind an alert. The crash-after-execute window is explicitly tested (Part 15).
 
 ```mermaid
 sequenceDiagram
@@ -245,7 +264,7 @@ sequenceDiagram
     participant API as POST /api/plaud/capture-outputs/:id/approve
     participant TX as approveCaptureOutput (one tx)
     participant OB as outbox workers
-    UI->>API: Idempotency-Key + corrections
+    UI->>API: Idempotency-Key + pinChoice (corrections were saved via their own endpoint)
     API->>TX: BEGIN
     TX->>TX: lock output, validate pin+consent+assignment
     TX->>TX: applyWorkoutLogCore (form+session+logs+billing+receipt)
@@ -267,7 +286,8 @@ stateDiagram-v2
         [*] --> open
         open --> segmenting: clips settled (no new clip 20min) or manual
         segmenting --> in_review: segments proposed
-        in_review --> closed: all outputs terminal
+        in_review --> segmenting: late clip arrives (re-entry, GLM round)
+        in_review --> closed: all outputs terminal (stays open otherwise)
         in_review --> expired: TTL
     }
 ```
@@ -282,21 +302,24 @@ stateDiagram-v2
     confirmed --> attention: consent denied (consent_blocked)
     processing --> parsed: transcript+parse complete
     processing --> attention: stage failed terminal
-    parsed --> [*]: consumed into output
+    parsed --> consumed: output assembles segment (one tx)
+    consumed --> proposed: output discarded (audited, membership event)
+    attention --> processing: retry (transient failure cleared)
+    attention --> discarded
     suggested --> expired: TTL
     needs_client --> expired: TTL
-    attention --> discarded
 ```
 ```mermaid
 stateDiagram-v2
     [*] --> assembling: segments parsed
     assembling --> ready_review: reconciliation done
     assembling --> attention: reconcile/pin failure
+    ready_review --> assembling: regeneration (late audio merged / segments changed)
     ready_review --> approved: approval tx commits
     ready_review --> discarded: trainer discards
     ready_review --> ready_review: correction saved (revision++)
-    approved --> approved: amendment (new application, mode=amendment)
     attention --> assembling: retry
+    attention --> discarded: trainer resolves CLIENT_LOG_EXISTS by discarding
     [*] --> expired: TTL from aggregate
 ```
 Job rows: `pending → in_flight (leased) → done | pending(retry) | failed_terminal`, reaper returns stuck leases.
@@ -342,7 +365,7 @@ flowchart TD
 Recompute current revision/hash. Match → proceed; receipt created by the core (via the existing in-tx `advancePlanAfterPlannedAssignmentLog`). Changed → surface **"Plan changed after this recording — compare against the captured prescription or the current revision"**; the trainer's choice (`use_pin | use_current`) is stored on the reconciliation row and audited. Never silently reconcile against a later cursor.
 
 ### 9.3 Evidence spans (H16)
-Every parsed exercise/set/value carries: `{clipId, startMs, endMs, speaker?, verbatim, confidence, provider, modelVersion, originalValue, correctedValue?, correctedBy?, correctedAt?}`. The verbatim transcript is immutable evidence; display transcripts are derived. The approve screen's numbers are tappable → seek audio to `startMs`.
+Every parsed exercise/set/value carries: `{clipId, startMs, endMs, speaker?, verbatim, confidence, provider, modelVersion, originalValue, correctedValue?, correctedBy?, correctedAt?}`. Storage split `[GLM round]`: the `verbatim` text lives INSIDE the encrypted `parsed_workout` payload; the plaintext `evidence` JSONB column holds only clip refs + offsets + metadata — speech never sits in a plaintext column. The verbatim transcript is immutable evidence; display transcripts are derived. The approve screen's numbers are tappable → seek audio to `startMs`; purged audio renders the `AUDIO_PURGED` chip state (14).
 
 ### 9.4 Exercise identity (H17)
 `exerciseMatchService` ladder (exact name → **`Exercise.aliases`** (finally read by something) → token normalization (db/bb/plurals) → Levenshtein ≤2 unique-winner) returns a **decision object** `{raw, normalized, candidates:[{id,score}], selectedId|null, method, ambiguityReason?}` — stored in `match_decisions`, never silently applied. Additive migration: nullable `workout_logs.exercise_id` UUID FK → `"Exercises"` + `matcher_version`; unmatched keeps free text + `unmatchedExercise` flag feeding the alias-curation backlog.
@@ -385,7 +408,7 @@ Every parsed exercise/set/value carries: `{clipId, startMs, endMs, speaker?, ver
 | `POST /api/plaud/capture-aggregates/:id/resegment` | manual split/merge `{operations:[...]}` while no approved output |
 | `GET /api/plaud/capture-outputs/:id` | draft + evidence + reconciliation + warnings + planChanged flag |
 | `POST /api/plaud/capture-outputs/:id/corrections` | inline set/rep/weight/exercise-match edits → revision++ |
-| `POST /api/plaud/capture-outputs/:id/approve` | Idempotency-Key required; `{pinChoice?, mode?}`; replay semantics 6.3 |
+| `POST /api/plaud/capture-outputs/:id/approve` | Idempotency-Key required; body `{pinChoice?}` only (corrections endpoint-only; ledger `mode` is server-recorded); replay semantics 6.3 |
 | `POST /api/plaud/capture-outputs/:id/discard` | releases claim, schedules purge |
 | connector device CRUD + heartbeat + health | Part 11 |
 | `GET /api/plan-vs-actual` | server read-model (9.5) |
@@ -399,8 +422,8 @@ Surfaces: trainer `/dashboard/trainer/plaud` and admin coach-assistant `workspac
 
 ### 13.1 A — Sync strip (unchanged from v1 + per-device rows for admins)
 ### 13.2 B — Review queue (v1 wireframe carries over, +2 states)
-- **Processing card state** (between Confirm and Ready): "Transcribing… ~2 min" with stage dots — the missing state GPT flagged.
-- **Split/merge affordance** on multi-session cards: `[Split at 10:02]` suggestion chip when a schedule boundary bisects a segment; drag-handle manual split in the detail view.
+- **Processing card state** (between Confirm and Ready): "Transcribing…" with stage dots and an estimate DERIVED from measured per-minute throughput for the active provider (no hardcoded "~2 min") — the missing state GPT flagged.
+- **Split/merge affordance** `[reworked — GLM round: one-handed first]`: primary control is a 44px `Split here` button acting at the audio playhead, snapping to the nearest silence gap or session boundary; `[Split at 10:02]` suggestion chips appear when a schedule boundary bisects the segment; drag-handle fine adjustment is a desktop/two-handed enhancement, never the only path.
 - Suggestion chip shows reason in plain words: "Booked: Marcus 9:00–10:00" (▸ opens the full signal disclosure).
 
 ### 13.3 C — Approve screen (v1 wireframe carries over, +3 elements)
@@ -409,10 +432,11 @@ Surfaces: trainer `/dashboard/trainer/plaud` and admin coach-assistant `workspac
 - Multi-axis adherence row (coverage / sets / reps / load) instead of one percentage; no adjustment chips.
 - Inline correction = steppers on sets/reps/weight + exercise-match picker fed by the decision object's candidates.
 
-### 13.4 Same-day conflict `[DECIDED]` (replaces v1's two-button append, per H14)
-1. **More audio for a not-yet-approved output** → merged into the pending output automatically (same client/date) — no user decision.
-2. **Client/date already has an APPROVED workout** → two options only: `Amend today's workout` (creates `mode=amendment` application: auditable revision through the canonical core with delta-aware outbox — no silent bulk-append) or `Discard this recording`.
-3. **A genuine second workout that day** → NOT SUPPORTED in this release; the amend dialog says so plainly ("Second sessions on one day aren't supported yet — amend today's log or discard"). Shipping it requires the occurrence-index product decision (receipt idempotency key collides — Part 3.3) and is parked as its own future workstream. The `workout_sessions` unique-index migration waits with it (Part 5).
+### 13.4 Same-day conflict `[REWORKED — GLM round]` (replaces v1's two-button append, per H14; amendment mode CUT)
+1. **More audio for a not-yet-approved output** → merged into the pending output automatically. Output identity is `(trainer, client, workout_date)` independent of aggregate (Part 5), so a late-synced clip in a NEW aggregate still lands in the SAME pending draft; the output transitions `ready_review → assembling` (regeneration) and re-reconciles. If the trainer had the draft open, the UI shows "New audio was added — refreshed" (revision-invalidation via the output's `updatedAt`).
+2. **Client/date already has an APPROVED capture workout** → `mode=amendment` is **CUT from this release**. Both GLM seats proved it unimplementable as specced (it collides with the Slice-1 unique form index, the receipt idempotency key that excludes formId, receipt immutability hooks, AND the `<type>:<formId>` outbox dedupe — four independent walls). Post-approval fixes route to the **existing edit surface**: `PATCH /api/admin/clients/:clientId/workouts/:sessionId` (`editWorkout` — `[MAIN-VERIFIED adminWorkoutLoggerRoutes.mjs:104]`), which the approve screen deep-links as `Edit today's workout`. Capture-side amendment ships later WITH the occurrence-index workstream, specced together.
+3. **A genuine second workout that day** → NOT SUPPORTED in this release (unchanged); parked with the occurrence-index decision, and the `workout_sessions` unique-index migration waits with it (Part 5).
+4. **Client self-logged after segment confirm** `[NEW — GLM round]` → approval returns typed `CLIENT_LOG_EXISTS` (6.2 step 9): output → `attention`, claim held, card offers `Review their log` (deep-link) · `Discard this recording` · `Edit their log` (same PATCH surface). Never a raw constraint error, never silent destruction (Slice-1 self-log protection stands).
 
 ---
 
@@ -420,11 +444,12 @@ Surfaces: trainer `/dashboard/trainer/plaud` and admin coach-assistant `workspac
 
 | Control | Spec |
 |---|---|
-| Consent gate | `checkAiEligibility` (existing, `aiEligibilityHelper.mjs:45`) runs per confirmed client BEFORE any egress job; result + `consentSource` + policy version stored on the segment (`consent_state`, `consent_log_id` → `AiConsentLog`). Denied → `consent_blocked`: audio playable in-house, no cloud egress, manual logging path offered. Admin override = distinct state, audited, surfaced in the admin health view — never rendered as ordinary consent |
-| Multi-speaker hole (GPT's strongest privacy point, adopted) | When schedule/time evidence indicates >1 booked session inside a segment window, cloud egress is BLOCKED until the trainer confirms segment boundaries. Diarization output listing more speakers than expected (>2 for a 1-client segment) raises `unknown_speaker` warning on the output. Sean action item: an operational recording policy (trainers, clients, incidental speakers, signage, retention) — Slice 3 checklist |
+| Consent gate `[hardened — GLM round]` | `checkAiEligibility` (existing, `aiEligibilityHelper.mjs:45`) runs TWICE: at confirm (fast feedback) AND **inside the transcribe worker's claim, immediately before egress** — jobs can sit queued for hours, and revocation (`withdrawnAt`, `[MAIN-VERIFIED aiEligibilityHelper.mjs:81,95]`) between confirm and execution must win. Worker re-check fails → segment → `consent_blocked`, job aborted. **Revocation semantics:** on withdrawal, pending egress jobs for that client cancel, derived transcripts/parses purge (cipher purge path), affected non-approved outputs → `attention`; approved workouts keep their text data (the workout record is the trainer's business record — evidence audio still purges on its retention clock). Result + `consentSource` + policy version stored per segment |
+| Admin override `[REDEFINED — GLM round]` | `admin_override` **never authorizes egress**. It authorizes exactly the no-egress manual path: in-house playback + manual logging from audio. Overriding a client's recorded DENIAL to ship their voice to a cloud provider is a compliance liability, not a control — if a denial was recorded in error, the fix is a fresh consent event from the client, not an override. Enum semantics updated accordingly; audited either way |
+| Multi-speaker `[hardened — GLM round]` | **Default-deny pre-egress:** a segment egresses only when (a) it has a unique schedule overlap (DR1) OR trainer-confirmed boundaries, AND (b) a local silence/energy screen (existing ffmpeg — no new dependency) does not flag mid-segment speaker-change suspicion, AND (c) the trainer's **stored, versioned recording-policy acknowledgment** exists on the aggregate (a precondition, not paperwork). Post-egress diarization >expected speakers still raises `unknown_speaker` on the output. Stated honestly: audio has ALREADY transited PLAUD's cloud under PLAUD's terms before Swan ever sees it — the recording policy (Slice 3, Sean item) must cover that leg too; Swan's gate governs Swan's egress only |
 | Vendor terms | Production audio only via the paid Google project + documented DPA review `[VENDOR]`; provider prompts limited to transcription/extraction |
 | Storage truth (corrected) | R2 encrypts at rest by default (v1's "plaintext R2" withdrawn). Real controls: narrow R2 credentials scoped to the plaud prefix, lifecycle rules matching retention classes, deletion verification on purge jobs, disk copies 0600 with TTL purge, no identifying metadata in logs/backups, access audit events |
-| Retention classes | raw audio (96h unconfirmed → purge; approved → configurable, default 30d then purge, form/receipt/evidence text persist) · transcripts/parsed (encrypted, purge on discard/TTL as today) · evidence verbatim spans (persist with the workout — they are the audit trail) · consent/audit rows (persist) |
+| Retention classes `[reconciled — GLM round]` | **Slice 3 explicitly RETUNES the legacy sweepers** — the existing 24h clip TTL + cipher purge crons gain a predicate exempting clips owned by a non-terminal capture aggregate (which carry the 96h class); leaving both untouched would have the old sweeper delete audio mid-review (both seats caught this). `expires_at` anchor: `max(recorded_at + 96h, uploaded_at + 48h)` — the late-arrival floor covers a Monday recording synced Thursday. Classes: raw audio (96h unconfirmed → purge; approved → 30d then purge) · transcripts/parsed+**verbatim evidence spans: ENCRYPTED inside `parsed_workout` ciphertext** (a plaintext quote column would be the same speech the cipher protects — `evidence` JSONB carries offsets/clip-refs only), purged on discard/TTL, verbatim persists with approved workouts under the same key-versioned cipher · consent/audit rows persist. UI: evidence chips on purged audio render `AUDIO_PURGED` state (verbatim text still shown from the encrypted store; play button disabled with the purge date) |
 | Device tokens | Part 11 C1; creation/rotation/revocation audited |
 | Kill switches | `PLAUD_MERGE_ENABLED` (everything, existing) · `PLAUD_CAPTURE_PIPELINE_ENABLED` (new pipeline; off = clips land + wait) · `WORKOUT_OUTBOX_ENABLED` (side-effect workers; off = effects queue and hold) · per-device revocation · per-org attribution flag |
 
@@ -439,7 +464,7 @@ Surfaces: trainer `/dashboard/trainer/plaud` and admin coach-assistant `workspac
 |---|---|
 | `workoutOutboxWorker.test.mjs` | at-most-once per dedupe_key; claim/lease/reaper; retry backoff; failed_terminal alert; suppression flags enqueue nothing |
 | `applyWorkoutLogCoreRefactor.test.mjs` | wrapper byte-compatibility for the 4 existing callers; committed-flag: post-commit throw no longer triggers rollback-on-committed (H4 regression); outbox rows written in-tx (rollback removes them) |
-| `captureOutputApplications.test.mjs` | idempotent replay (same key+hash → original receipt); IDEMPOTENCY_MISMATCH; amendment revision chain |
+| `captureOutputApplications.test.mjs` | idempotent replay (same key+hash → original receipt); IDEMPOTENCY_MISMATCH with field diff; correction-revision chain + fresh-key-per-revision rule |
 | `planPin.test.mjs` | pin at confirm; validation match/changed paths; use_pin vs use_current audited; unplanned null-pin |
 | `reconciliationV2.test.mjs` | multi-axis outputs incl. dead-branch regression (weight compared when prescription parses — the current production dead code); positional-pairing misalignment cases the old resolver never tested |
 | `planVsActualDualRead.test.mjs` | old resolver vs new read-model parity on a fixture corpus; discrepancy logging |
@@ -449,6 +474,14 @@ Surfaces: trainer `/dashboard/trainer/plaud` and admin coach-assistant `workspac
 | Golden-audio benchmark harness | Part 10 rubric; run per provider/model-version change; regression gate in CI notes |
 | Chaos suite (staging) | worker crash mid-stage; replay; partial segment completion; Redis absent (must be a no-op — nothing depends on it); provider timeout; plan edit mid-review; retention purge during review |
 | Shadow-attribution telemetry tests | choices + corrections recorded; no UI effect while flag off; promotion-gate metrics computed correctly |
+| **GLM-round additions** — `sourcePolicyPlaudCapture.test.mjs` | `plaud_capture` registered with plaud_merge flags + outbox routing; an approval enqueues ZERO billing deduction (the silent-money-bug regression) |
+| `concurrentApprovalDistinctKeys.test.mjs` | two simultaneous approvals with different Idempotency-Keys → exactly one ledger row, both callers get 200 with the same receipt (post-lock replay routing) |
+| `consentRevokeMidPipeline.test.mjs` | consent withdrawn between confirm and transcribe-execute → worker re-check aborts, zero egress calls (spy at JOB time, not confirm time), pending jobs cancelled, derived artifacts purged |
+| `outboxCrashAfterExecute.test.mjs` | kill worker after effect executes, before `done` → reaper re-runs → XP no-ops via `alreadyAwarded`; challenge/earnings/PR blocked by their natural-key guards; the double-execute window is modeled explicitly |
+| `clientLogExistsFlow.test.mjs` | self-log collision at approval → typed `CLIENT_LOG_EXISTS`, output → attention, claim held, no destruction, retry after resolution |
+| `lateClipReentry.test.mjs` | clip arrives while aggregate `in_review` → re-enters `segmenting`; pending output for same (trainer,client,date) regenerates (`ready_review → assembling`), cross-aggregate |
+| `segmentRecovery.test.mjs` | output discard returns segments `consumed → proposed`; assembly is one tx (injected failure returns segments to `parsed`, no orphan output) |
+| `audioPurgedEvidence.test.mjs` | purged clip → chip renders AUDIO_PURGED with verbatim fallback; approval still possible |
 
 **Test-hygiene prerequisites (carried):** quarantine the prod-DB-writing test behind `INTEGRATION_DB=1`; `npm ci` frontend; both from v1 Slice 0.
 
@@ -458,15 +491,15 @@ Surfaces: trainer `/dashboard/trainer/plaud` and admin coach-assistant `workspac
 
 | # | Slice | Contents | Gate |
 |---|---|---|---|
-| 0 | **Base + truth** | Cut branch from current main; re-pin SHA; re-verify Part 3 facts; regenerate schema snapshot; test hygiene; **Sean action: enable branch protection + required checks** (verified off) | Map delta report in-thread |
-| 1 | **Canonical core refactor** | 6.1 split + committed flag + outbox table/worker + unique `daily_workout_forms(clientId,date)` (with dedupe audit) + self-log protection flag | H4 + race + self-log regression tests green; 4 callers byte-compatible |
-| 2 | **Application ledger + idempotent approval (bridge)** | `plaud_capture_output_applications` serving the EXISTING merge flow first: controller seam replaced by `approveCaptureOutput`-lite (one tx, ledger, replay semantics); segment lane validated + ledgered; compensating deletes deleted | Fault-injection suite green; legacy UI unaffected |
-| 3 | **Privacy preflight** | Consent gate wired (`checkAiEligibility` + `AiConsentLog`) ahead of all transcription; retention classes; paid-project/DPA checklist + recording policy (Sean items); R2 credential scope review | Consent integration tests; audited override path |
-| 4 | **Capture hierarchy** | Aggregates/segments/outputs/membership-events tables + processing-jobs table + workers + TTL inheritance | Membership + job-claim suites |
+| 0 | **Base + truth** | Cut branch from current main; re-pin SHA; re-verify Part 3 facts (+ GLM round: Exercises PK type — UUID per the session-1 map, re-confirm; `Exercise.aliases` population stats; earnings/challenge/PR internal-idempotency audit); regenerate schema snapshot; test hygiene; **Sean action: enable branch protection + required checks** (verified off) | Map delta report in-thread |
+| 1 | **Canonical core refactor** | 6.1 split + committed flag (ALL sources) + per-effect extraction (inline for legacy, one implementation) + outbox table/worker (capture-scope) + unique `daily_workout_forms(clientId,date)` (with dedupe audit) + self-log protection flag | H4 + race + self-log regression green; 4 legacy callers behave identically INCLUDING live xp values (no queued markers for legacy) |
+| 2 | **Application ledger + idempotent approval (bridge)** | `plaud_capture_output_applications` with **subject_type/subject_id (no FK yet — target table arrives in Slice 4)** serving the EXISTING merge flow: controller seam replaced by one-tx approve + ledger + 6.3 replay; `plaud_capture` + outbox flag registered in source policy (billing-suppression test); segment lane validated + ledgered; compensating deletes deleted | Fault-injection + sourcePolicy suites green; legacy UI unaffected |
+| 3 | **Privacy preflight** | Consent gate at confirm AND in-worker (revocation semantics); admin_override = no-egress-only; **legacy sweeper retune (24h TTL exemption for capture-owned clips; late-arrival expires_at anchor)**; retention classes; recording-policy acknowledgment storage; paid-project/DPA checklist + recording policy (Sean items); R2 credential scope review | Consent + revocation + sweeper-conflict tests |
+| 4 | **Capture hierarchy** | Aggregates/segments/outputs/membership-events (advisory-lock guard) + processing-jobs + workers + TTL inheritance + output identity partial-unique + **ledger FK constraint added for capture_output subject rows** | Membership + job-claim + late-clip re-entry suites |
 | 5 | **Transcription provider interface + benchmark** | Provider abstraction over the existing env seam; golden-audio corpus; pick default by rubric | Benchmark report to Sean |
 | 6 | **Segmentation + attribution (shadow)** | Interval clusterer + DR1/DR2 deterministic rules + shadow scorer + telemetry | Shadow tests; zero UI change |
 | 7 | **Plan pin + reconciliation v2** | Pin at confirm; server reconciliation; multi-axis; evidence spans; exercise identity (+`workout_logs.exercise_id` migration; aliases finally read) | Pin/reconciliation suites |
-| 8 | **Approve v2** | Full `approveCaptureOutput` on outputs; corrections; amendments; claims | E2E approval set |
+| 8 | **Approve v2** | Full `approveCaptureOutput` on outputs; corrections; claims; typed `CLIENT_LOG_EXISTS` flow; edit-surface deep link | E2E approval set |
 | 9 | **UI A+B** | Sync strip, review queue, processing state, split/merge, suggestion chips (DR rules only until promotion gate) | Vocabulary + 414px audits |
 | 10 | **UI C** | Approve screen: evidence taps, plan-changed banner, multi-axis row, inline corrections, 13.4 conflict flow | Design dual-pass; E2E |
 | 11 | **Connector v2** | Device registry/principal/binding/pinning/fixtures/health/lineage-dedupe | Connector suite; revoke→health flip |
