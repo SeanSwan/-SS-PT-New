@@ -89,7 +89,15 @@ export function identityNames() {
 
 /** Identity-bearing patterns, built from the RUNTIME environment. */
 function identityPatterns() {
-  const out = [];
+  // Paths must be redacted before their identity-bearing segments. If names run
+  // first, `C:\\Users\\operator` becomes `C:\\Users\\<OPERATOR>` and the path
+  // rule can no longer prove or replace the absolute prefix. Match one or two
+  // backslashes so the same rule covers raw text and JSON-stringified bodies.
+  const out = [
+    [/\/mnt\/[a-z]\/Users\/[^/\s"'<>:,;)\]]+/g, '<PATH>'],
+    [/[A-Za-z]:(?:\\{1,2}|\/)Users(?:\\{1,2}|\/)[^\\/\s"'<>]+/g, '<PATH>'],
+    [/\/(?:home|Users)\/[^/\s"'<>:,;)\]]+/g, '<PATH>'],
+  ];
   for (const name of identityNames()) {
     const esc = escapeRe(name);
     const re = COMMON_WORD_NAMES.has(name.toLowerCase())
@@ -97,10 +105,6 @@ function identityPatterns() {
       : new RegExp(esc, 'gi');
     out.push([re, '<OPERATOR>']);
   }
-  // Absolute paths leak the username even when the name itself is spelled oddly.
-  out.push([/[A-Za-z]:[\\/]Users[\\/][^\\/\s"'<>]+/g, '<PATH>']);
-  out.push([/\/(?:home|Users)\/[^/\s"'<>:,;)\]]+/g, '<PATH>']);
-  out.push([/\/mnt\/[a-z]\/Users\/[^/\s"'<>:,;)\]]+/g, '<PATH>']);
   return out;
 }
 
@@ -203,12 +207,45 @@ export function readForEgress(path, opts = {}) {
  * the same treatment the document did. Headers are untouched (the API key
  * lives there and belongs there). Canary failure throws → nothing is sent.
  */
+/**
+ * Seats that must never be reached through a paid reseller.
+ *
+ * Sean holds a Z.ai subscription that already includes BOTH glm-5.3 and glm-5.3-flash,
+ * so routing either one through OpenRouter pays per-token for something already bought.
+ * This lives at the egress chokepoint rather than in a doc because every consult script
+ * funnels through here: a prose rule has to be remembered by each new script and each
+ * new agent, and this project's own corpus records prose rules being violated four times
+ * in one session after being written up. A refusal cannot be forgotten.
+ */
+const SUBSCRIPTION_ONLY_MODEL_PREFIXES = [
+  { prefix: 'z-ai/', seat: 'GLM (glm-5.3, glm-5.3-flash)', use: 'node scripts/consult-glm.mjs --model glm-5.3[-flash]' }
+];
+
+export function assertNotResoldSubscriptionSeat(url, body) {
+  let host = '';
+  try { host = new URL(url).host.toLowerCase(); } catch { return; }
+  if (!host.includes('openrouter')) return;
+
+  let model = '';
+  try { model = String(JSON.parse(body)?.model ?? ''); } catch { return; }
+  if (!model) return;
+
+  const hit = SUBSCRIPTION_ONLY_MODEL_PREFIXES.find((entry) => model.toLowerCase().startsWith(entry.prefix));
+  if (!hit) return;
+
+  throw new Error(
+    `[redact-egress] REFUSED: "${model}" via OpenRouter. The ${hit.seat} seat is covered by the ` +
+    `Z.ai subscription and must go direct, not through a paid reseller. Use: ${hit.use}`
+  );
+}
+
 export async function fetchForEgress(url, init = {}, { label = 'request', quiet = false, fetchImpl = globalThis.fetch } = {}) {
   if (typeof init.body !== 'string') {
     throw new Error('[redact-egress] fetchForEgress requires a string body (JSON.stringify it first); refusing to send an unredactable body.');
   }
+  assertNotResoldSubscriptionSeat(url, init.body);
   const body = redactOutbound(init.body, { label, quiet });
   return fetchImpl(url, { ...init, body });
 }
 
-export default { readForEgress, redactForEgress, redactOutbound, fetchForEgress, selfTest, identityNames };
+export default { readForEgress, redactForEgress, redactOutbound, fetchForEgress, assertNotResoldSubscriptionSeat, selfTest, identityNames };

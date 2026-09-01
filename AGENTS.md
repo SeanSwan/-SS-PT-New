@@ -750,6 +750,17 @@ Use this on every new page, redesign, landing page, dashboard surface, and any v
 - **Codex (Hostile Reviewer)** — rule-46 review remains mandatory input for substantial changes, but its verdict is advisory to Fable (see rule 46 amendment).
 - **Sonnet 4.6 (VP Eng)** — Premium code quality. Used in AI Village debates.
 - **Design execution rule:** Gemini may set the vision, but Claude must still run hostile design critique, responsive QA, and production-fidelity review before ship.
+- **GLM seats route DIRECT to Z.ai — NEVER OpenRouter (Sean, 2026-09-01).** Sean holds a
+  **Z.ai subscription that covers BOTH `glm-5.3` AND `glm-5.3-flash`**, so either model sent
+  through OpenRouter pays per token for something already bought. Use
+  `node scripts/consult-glm.mjs --document <path> --model glm-5.3` (or `--model glm-5.3-flash`).
+  Do **NOT** use `SWAN_GROK_MODEL=z-ai/...` with `consult-grok.mjs`, and do not add a `z-ai/*`
+  model to any OpenRouter panel. **This is enforced, not advisory:** `fetchForEgress` in
+  `scripts/lib/redact-egress.mjs` refuses any `z-ai/*` model addressed to an OpenRouter host
+  before the request reaches the network (`scripts/lib/redact-egress.subscription-seat.test.mjs`).
+  If you hit that refusal, the fix is to switch seats, never to bypass the guard.
+  Note the Z.ai path serialises behind a single call lock — when another agent holds it, retry;
+  never seize it (Rule 67 R5).
 - **Model-ID discipline:** Names in this section are role labels, not executable API IDs. Once `config/MODEL_VERSIONS.md` exists, scripts must use verified registry IDs only; do not assume model IDs from memory.
 - Consult: `node scripts/consult-gemini.mjs --plan|--design|--review|--ask`
 - Output: `AI-Village-Documentation/gemini-consults/latest.md`
