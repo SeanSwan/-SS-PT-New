@@ -41,8 +41,21 @@ const unpriced = rows.filter((e) => e.usd === null || e.usd === undefined).lengt
 if (only) {
   const mine = rows.filter((e) => e.topic === only);
   console.log(`topic "${only}": ${money(spentOnTopic(only))} of ${money(CAPS.perTopic)} across ${mine.length} call(s)`);
+  // `e.ts` is formatted DEFENSIVELY. `recordSpend` always writes it, so this looked
+  // safe — and `e.ts.slice(...)` threw on a row with no `ts`, and again on one where
+  // `ts` was a number. Found by COMPOSITION: I had tested "a row with no ts" and
+  // "--topic" separately, and this branch is the only one that touches `ts`. A list of
+  // points cannot find a composition, which is the lesson round 7 taught about the
+  // shape corpus, arriving here fifteen minutes after I wrote the file.
+  //
+  // It matters more here than the odds suggest: this is a DIAGNOSTIC. Sean runs it
+  // when something is already wrong, which is exactly when a ledger might be
+  // hand-edited or half-written, and exactly when a crash is least useful.
+  const when = (ts) => (typeof ts === 'string' && ts.length >= 19
+    ? ts.slice(0, 19).replace('T', ' ')
+    : String(ts ?? '(no timestamp)').padEnd(19).slice(0, 19));
   for (const e of mine) {
-    console.log(`   ${e.ts.slice(0, 19).replace('T', ' ')}  ${String(e.model).padEnd(28)} ${money(rowUsd(e)).padStart(7)}${e.usd == null ? '  (UNPRICED, counted at the cap)' : ''}`);
+    console.log(`   ${when(e.ts)}  ${String(e.model ?? '(no model)').padEnd(28)} ${money(rowUsd(e)).padStart(7)}${e.usd == null ? '  (UNPRICED, counted at the cap)' : ''}`);
   }
   process.exit(0);
 }
