@@ -14,6 +14,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { SheenButton } from './SheenButton';
 import { SheenCard } from './SheenCard';
 import { SHEEN, sheenFrameWidth, sheenShimmerFor } from '../../../styles/sheenPackTokens';
+import * as pointerModule from '../../../hooks/useSheenPointer';
+
+// Spy, not stub: the real hook still runs, we only observe what it is handed.
+const pointerSpy = vi.spyOn(pointerModule, 'useSheenPointer');
 
 describe('SheenButton', () => {
   it('renders a real button element with the label', () => {
@@ -119,6 +123,39 @@ describe('SheenCard', () => {
   it('hides its decorative layers too', () => {
     const { container } = render(<SheenCard>Body</SheenCard>);
     expect(container.querySelector('.sheen-window')).toHaveAttribute('aria-hidden', 'true');
+  });
+});
+
+describe('SheenCard — Swan Card Standard: data cards must not track the pointer', () => {
+  // CLAUDE.md: "Client/data cards ... must stay low-motion: no pointer tracking."
+  // The Forge encodes the same split as .sw-card--showcase vs .sw-card--data.
+  //
+  // This asserts REGISTRATION, not rendered style. An earlier version of this
+  // suite checked that --px was never written, which passed even with the
+  // violation reintroduced: jsdom reports zero-size rects, the engine skips any
+  // surface with no width, and so nothing is ever written for EITHER surface.
+  // The assertion was true for a reason unrelated to the fix. Spying on what the
+  // component hands the hook is the thing that actually differs.
+  it('hands the pointer engine a null ref for a data card, and the real node for a showcase card', () => {
+    const seen = pointerSpy.mock.calls.length;
+
+    render(<SheenCard>Client record</SheenCard>);
+    const dataRef = pointerSpy.mock.calls[seen][0] as React.RefObject<HTMLElement | null>;
+    expect(dataRef.current).toBeNull();
+
+    render(<SheenCard surface="showcase">Store item</SheenCard>);
+    const showcaseRef = pointerSpy.mock.calls[seen + 1][0] as React.RefObject<HTMLElement | null>;
+    expect(showcaseRef.current).toBeInstanceOf(HTMLElement);
+  });
+
+  it('defaults to the low-motion data surface', () => {
+    const { container } = render(<SheenCard>Client record</SheenCard>);
+    expect(container.firstElementChild).toHaveAttribute('data-sheen-surface', 'data');
+  });
+
+  it('opts in explicitly for a showcase card', () => {
+    const { container } = render(<SheenCard surface="showcase">Store item</SheenCard>);
+    expect(container.firstElementChild).toHaveAttribute('data-sheen-surface', 'showcase');
   });
 });
 

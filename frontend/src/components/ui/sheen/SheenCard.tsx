@@ -16,6 +16,15 @@
  * Frame weight is 6px here, not the button's 4.5px. That is decision 2: worlds
  * are not legible below 6px, and a card has the room a 44px control does not.
  *
+ * SWAN CARD STANDARD (CLAUDE.md): "Client/data cards ... must stay low-motion:
+ * no pointer tracking, no heavy animation loops, no hover-only actions." The
+ * Forge encodes the same split as `.sw-card--showcase` (motion allowed) vs
+ * `.sw-card--data` (low-motion, no pointer tracking). This component therefore
+ * defaults to `data` — the SAFE side. A card only tracks the pointer when a
+ * caller explicitly asks for `showcase`, so the violation cannot happen by
+ * omission. The first version of this file tracked unconditionally and shipped
+ * that way; caught 2026-09-01 reading the Forge's own card spec.
+ *
  * @see docs SWA-224 · tokens `styles/sheenPackTokens.ts`
  */
 
@@ -27,9 +36,20 @@ import { useSheenPointer } from '../../../hooks/useSheenPointer';
 import { sheenWindow, sheenWorld, sheenReducedMotion, sheenForcedColors } from './sheenFrame';
 import { SheenWorldLayers } from './SheenWorldLayers';
 
+/**
+ * `showcase` sells something (store, feature, hero) and may move.
+ * `data` presents a client/trainer/measurement record and must not.
+ */
+export type SheenCardSurface = 'showcase' | 'data';
+
 export interface SheenCardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Which world is painted inside the frame. */
   world?: SheenWorldId;
+  /**
+   * Motion tier. Defaults to `data` — the low-motion side — so a client or
+   * measurement card cannot acquire pointer tracking by forgetting a prop.
+   */
+  surface?: SheenCardSurface;
   /**
    * Make the whole card activatable. Adds button semantics, keyboard support
    * and a focus ring. Leave false for a plain container — a non-interactive
@@ -112,12 +132,18 @@ const Root = styled.div<{ $world: SheenWorldId; $interactive: boolean }>`
   }
 `;
 
+/** Stable empty ref: registering this is a no-op, which is how a data card opts out. */
+const nullRef: React.RefObject<HTMLDivElement | null> = { current: null };
+
 export const SheenCard = forwardRef<HTMLDivElement, SheenCardProps>(function SheenCard(
-  { world = 'sky', interactive = false, children, onClick, onKeyDown, ...rest },
+  { world = 'sky', surface = 'data', interactive = false, children, onClick, onKeyDown, ...rest },
   forwardedRef,
 ) {
   const selfRef = useRef<HTMLDivElement>(null);
-  useSheenPointer(selfRef);
+  // Only a showcase card tracks the pointer. Passing a null ref to the hook
+  // registers nothing, so a data card costs the engine nothing at all.
+  const trackedRef = surface === 'showcase' ? selfRef : nullRef;
+  useSheenPointer(trackedRef);
 
   const setRefs = (node: HTMLDivElement | null) => {
     (selfRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
@@ -144,6 +170,7 @@ export const SheenCard = forwardRef<HTMLDivElement, SheenCardProps>(function She
       $world={world}
       $interactive={interactive}
       data-sheen-world={world}
+      data-sheen-surface={surface}
       role={interactive ? 'button' : undefined}
       tabIndex={interactive ? 0 : undefined}
       onClick={onClick}
