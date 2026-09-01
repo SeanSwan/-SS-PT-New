@@ -50,8 +50,9 @@ An agent that concludes Fable is warranted does **not** run `consult-fable.mjs`.
 prints the handoff block, and yields the turn. Sean switches the model himself.
 
 **This is a hook, not an honour system.** `scripts/hooks/fable-remit-gate.mjs` (PreToolUse,
-Bash) refuses the **first** invocation of `consult-fable.mjs` — and of `consult-panel.mjs` when
-`fable` is a named seat — **whatever the `--remit` says**, then mints a random single-use token
+Bash) refuses the **first** invocation of `consult-fable.mjs` — and of
+`consult-openrouter-panel.mjs` when `fable` is a named seat (either `--seats fable` or
+`--seats=fable`) — **whatever the `--remit` says**, then mints a random single-use token
 bound to that exact command. Only a separate invocation carrying that token proceeds, which is
 Sean's explicit override. The gate is **purpose-blind on purpose**: the remit is a string the
 caller writes, so filtering it would test vocabulary rather than intent. Rewording does not get
@@ -166,11 +167,18 @@ The relay seats are the expensive end of a chain that starts free. Standing orde
 
 ```
 Opus builds + runs its own hostile loop   (free, always)
-  → free panel: Ox Alpha + GLM + Qwen     (about $0, always available)
+  → free panel: GLM 5.3 + GLM 5.3-flash + Qwen   (about $0, always available)
     → relay: ChatGPT Sol / Codex          (Sean's subscriptions, hand-driven)
       → FABLE GATE: hostile review        (paid, stop-and-switch, last)
         → Opus folds every verdict, verifies each finding, arbitrates
 ```
+
+**Ox Alpha was removed from this chain 2026-08-31.** Its stealth listing is gone (it
+404s), and — the part that matters for review quality — **Ox Alpha WAS GLM-5.3 Flash**.
+Every past round where "Ox and GLM independently agreed" was one model family answering
+twice, which is not corroboration. A panel whose members are secretly the same seat
+produces agreement that means nothing, and reads exactly like consensus. Two GLM tiers
+are listed by their real names now so nobody mistakes the second for a second opinion.
 
 Never invert it. A Fable review of work the free panel would have rejected is money spent
 proving something cheap seats already knew.
