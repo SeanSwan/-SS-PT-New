@@ -21,11 +21,14 @@ import React from 'react';
 import '@swan/forge/tokens/primitive.css';
 import '@swan/forge/tokens/packs/crystalline-swan.css';
 import '@swan/forge/css/button.css';
+import '@swan/forge/css/sheen.css';
 import {
   getButtonState,
   getButtonAttrs,
   canActivate,
 } from '@swan/forge/core/button';
+import { useSheenPointer } from '../../../hooks/useSheenPointer';
+import { SheenFrame, type SheenWorld } from './SheenFrame';
 
 export interface ForgeButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'> {
@@ -53,8 +56,21 @@ export interface ForgeButtonProps
   pulse?: boolean;
   haptic?: boolean;
   glowIntensity?: 'low' | 'medium' | 'high';
+  /**
+   * Sheen tier (SWA-224): render the border as a window onto a world.
+   * Opt-in and off by default — the base button is unchanged for the ~90 existing
+   * call sites, so this cannot alter a surface nobody asked to change.
+   */
+  sheen?: SheenWorld;
   children?: React.ReactNode;
 }
+
+/** Dual-Button Glow as data: the orb pair is the OPPOSITE family from the fill. */
+const SHEEN_ORB: Record<string, readonly [string, string]> = {
+  accent: ['#60C0F0', '#50A0F0'], // purple fill → cyan pole  // swan-guard-allow-hex Forge pack values, mirrored for the JS engine
+  gilded: ['#C6A84B', '#60C0F0'], // gold fill → ice pole     // swan-guard-allow-hex Forge pack values, mirrored for the JS engine
+  primary: ['#8B5CF6', '#60C0F0'], // blue fill → purple pole // swan-guard-allow-hex Forge pack values, mirrored for the JS engine
+};
 
 const ForgeButton: React.FC<ForgeButtonProps> = ({
   text,
@@ -75,6 +91,7 @@ const ForgeButton: React.FC<ForgeButtonProps> = ({
   pulse: _pulse,
   haptic: _haptic,
   glowIntensity: _glowIntensity,
+  sheen,
   children,
   className,
   onClick,
@@ -85,6 +102,16 @@ const ForgeButton: React.FC<ForgeButtonProps> = ({
   // `class` is re-keyed to React's className with the self-scoped pack class.
   const { class: coreClass, disabled: coreDisabled, ...coreAttrs } = getButtonAttrs(state) as Record<string, string | boolean | undefined>;
 
+  // Registered only when a sheen world is requested: a null ref is a no-op, so
+  // every non-sheen button costs the pointer engine nothing at all.
+  const sheenRef = React.useRef<HTMLButtonElement>(null);
+  const nullRef = React.useRef<HTMLButtonElement>(null);
+  useSheenPointer(sheen ? sheenRef : nullRef, {
+    orb: SHEEN_ORB[state.variant as string] ?? SHEEN_ORB.primary,
+    // MUST match the names css/sheen.css reads, or the orb silently never moves.
+    varPrefix: 'sw-sheen-',
+  });
+
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!canActivate(state)) { e.preventDefault(); return; }
     onClick?.(e);
@@ -92,12 +119,14 @@ const ForgeButton: React.FC<ForgeButtonProps> = ({
 
   return (
     <button
+      ref={sheen ? sheenRef : undefined}
       {...rest}
       {...(coreAttrs as React.ButtonHTMLAttributes<HTMLButtonElement>)}
       disabled={coreDisabled === true}
       className={['sw-pack-crystalline-swan', coreClass, animateOnRender ? 'sw-btn--enter' : '', className].filter(Boolean).join(' ')}
       onClick={handleClick}
     >
+      {sheen ? <SheenFrame world={sheen} /> : null}
       {leftIcon ?? startIcon}
       {children || text /* `||` not `??`: the original GlowButton renders `children || text`, so falsy children ('' / false / 0) fall back to the label (Ox, PR #2 review) */}
       {rightIcon ?? endIcon}

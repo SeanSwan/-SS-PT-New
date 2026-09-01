@@ -67,6 +67,26 @@
   --sw-btn-danger-glow-a: #EF4444;
   --sw-btn-danger-glow-b: #FC8181;
   --sw-btn-ghost-glow-a: #4070C0;   /* Swan Lavender */
+
+  /* ── Sheen tier (SWA-224) — component-tier, NOT semantic-contract names.
+     The four v1 worlds. The other 29 built during the lineup stay in the
+     artifact as a proven catalog; each is one token plus one rule to promote. */
+  --sw-sheen-frame-btn: 4.5px;
+  --sw-sheen-frame-card: 6px;
+  --sw-sheen-shimmer-metal: 0.85;   /* metal has no scenery to erase */
+  --sw-sheen-shimmer-scenic: 0.6;   /* at 0.9 the shimmer erased the scene */
+  --sw-sheen-chrome-stops: #05070C, #7E93A8, #FFFFFF, #C3D4E2, #1B2430, #46586B, #EEF5FB, #05070C; /* banded specular = true metal */
+  --sw-sheen-gold-stops: #2A1F05, #8A6E22, #F6E4A6, #C6A84B, #4A380C, #B08F35, #FFF6D8, #2A1F05;   /* bullion ramp around Gilded Fern */
+  --sw-sheen-neon-stops: #60C0F0, #4070C0, #8B5CF6, #C6A84B, #50A0F0, #60C0F0; /* palette-pure; the Vegas spectrum stays showcase-only */
+  --sw-sheen-sky-stops: #1C6FD6, #3FA0EE, #8FD0F7, #D8EFFB;                     /* daylight gradient seen through the frame */
+  --sw-sheen-drift-a:
+    radial-gradient(38px 20px at 12% 40%, #FFFFFF 60%, transparent 72%),
+    radial-gradient(52px 26px at 30% 46%, #FFFFFF 62%, transparent 74%),
+    radial-gradient(60px 28px at 58% 52%, #FFFFFF 60%, transparent 73%),
+    radial-gradient(44px 24px at 84% 44%, #FFFFFF 60%, transparent 73%);
+  --sw-sheen-drift-b:
+    radial-gradient(70px 30px at 8% 55%, #FFFFFF 60%, transparent 74%),
+    radial-gradient(90px 36px at 44% 48%, #FFFFFF 60%, transparent 74%);
   --sw-btn-ghost-glow-b: #60C0F0;   /* Ice Wing */
   /* Button geometry = the ORIGINAL GlowButton BUTTON_SIZES table (Sean's taste anchor).
      This is PACK taste, not a catalog default — core stays on primitives (PR #2 review).

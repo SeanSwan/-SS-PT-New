@@ -47,6 +47,16 @@ export const forgeTheme = {
   btnDangerGlowA: "#EF4444", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   btnDangerGlowB: "#FC8181", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   btnGhostGlowA: "#4070C0", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
+  sheenFrameBtn: "4.5px",
+  sheenFrameCard: "6px",
+  sheenShimmerMetal: "0.85",
+  sheenShimmerScenic: "0.6",
+  sheenChromeStops: "#05070C, #7E93A8, #FFFFFF, #C3D4E2, #1B2430, #46586B, #EEF5FB, #05070C", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
+  sheenGoldStops: "#2A1F05, #8A6E22, #F6E4A6, #C6A84B, #4A380C, #B08F35, #FFF6D8, #2A1F05", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
+  sheenNeonStops: "#60C0F0, #4070C0, #8B5CF6, #C6A84B, #50A0F0, #60C0F0", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
+  sheenSkyStops: "#1C6FD6, #3FA0EE, #8FD0F7, #D8EFFB", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
+  sheenDriftA: "radial-gradient(38px 20px at 12% 40%, #FFFFFF 60%, transparent 72%),\r\n    radial-gradient(52px 26px at 30% 46%, #FFFFFF 62%, transparent 74%),\r\n    radial-gradient(60px 28px at 58% 52%, #FFFFFF 60%, transparent 73%),\r\n    radial-gradient(44px 24px at 84% 44%, #FFFFFF 60%, transparent 73%)", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
+  sheenDriftB: "radial-gradient(70px 30px at 8% 55%, #FFFFFF 60%, transparent 74%),\r\n    radial-gradient(90px 36px at 44% 48%, #FFFFFF 60%, transparent 74%)", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   btnGhostGlowB: "#60C0F0", // swan-guard-allow-hex generated from crystalline-swan.css (token source of truth)
   btnHeight: "48px",
   btnRadius: "12px",
