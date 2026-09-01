@@ -101,7 +101,7 @@ The 2026-08-23 Swan Coach panel blueprint (GLM final, ruling FIX BEFORE BUILD) d
 
 1. **SwanGuard AI confirmed as the SECOND Jarvis-contract consumer.** Sean: the Swan Coach brain pattern is "definitely the plan" for a SwanGuard AI. Framing: Swan Coach is NOT converted/moved — SS-PT keeps Swan Coach; SwanGuard gets its own brain speaking the SAME contract with a different persona + capability manifest (news curation/source vetting vs training actions). This upgrades the Jarvis contract from N=1 (R3's weakness) to N=2 planned consumers.
 2. **The ORIGINAL GlowButton is the taste anchor for the Forge Button.** Sean built a new glow button, then reverted to the original he likes. Phase 0 must locate the canonical current GlowButton on origin/main (two tracked variants exist in the stale wip tree: `frontend/src/components/ui/buttons/GlowButton.tsx`, `frontend/src/components/ui/GlowButton.ts`; classify per Rule 27) and treat the original's look/feel as the design target. Forge Button = original GlowButton aesthetics rebuilt on the three-layer split (headless core + variants + zero-runtime tokens per D2), Dual-Button Glow discipline intact.
-3a. **Grill checkpoints (2026-08-24, Phase 1 kickoff):** Sean confirmed (a) origin/main `buttons/GlowButton.tsx` IS the original he likes — Forge Button styling target locked; (b) push target = **main when gates are green** (additive-only content, Rule 42 audit first, one deploy). Build happens on fresh branch `forge/phase-1` cut from origin/main — never the stale wip tree.
+3a. **SUPERSEDED 2026-08-31 — see §10.3a-amended below. Kept for the record, not for use.** Grill checkpoints (2026-08-24, Phase 1 kickoff): Sean confirmed (a) origin/main `buttons/GlowButton.tsx` IS the original he likes — Forge Button styling target locked; (b) push target = **main when gates are green** (additive-only content, Rule 42 audit first, one deploy). Build happens on fresh branch `forge/phase-1` cut from origin/main — never the stale wip tree.
 3. **Swan design brain wired into Forge design work.** Two integration points: (a) `swan-design-router` + design-brain docs govern all Forge visual work (Rule 40 — already mandatory); (b) the Swan Brain vault (`node scripts/swan-brain.mjs`, incl. Sean's Midjourney/visual-taste archive) is queried during Phase 1 per-component design so "what Sean likes" comes from his curated taste data, not model guesses. Verify vault reachability at Phase 1 start (a prior session found it unreachable from one WSL context — do not assume). **[VERIFIED 2026-08-24: vault reachable, 5 hits on test query.]**
 
 ## 11. Panel Round 2 — GLM 5.3 REVISE integration (2026-08-24; full review: `docs/ai-workflow/AI-HANDOFF/GLM-FORGE-RATIFIED-REVIEW-2026-08-24.md`)
@@ -123,7 +123,7 @@ GLM verdict: **REVISE** — "the plan earns its build; it has not yet earned its
 - **B9 — ADOPTED.** Phase 4 sliced: **4a** = SwanGuard consumes tokens + Button via namespaced release tag (tests ONLY the cross-repo delivery mechanics); **4b** = broader component consumption + light-pack proof; **4c** = SwanGuard AI conformance profile (separate track, after Phase 3).
 
 **Sequencing/governance (C1–C7):**
-- **C1 — CLOSED with evidence.** Origin/main `buttons/GlowButton.tsx` verified canonical (84 consumers; `ui/GlowButton.ts` is a 3-line shim) and Sean confirmed it IS the original (§10.3a). Forge Button acceptance test = pixel-parity vs the original under crystalline-swan with Dual-Button Glow + reduced-motion as named assertions. Strangler PRs must record load-bearing behaviors in the harvest table before replacing.
+- **C1 — REOPENED then RE-CLOSED 2026-08-31 on a different anchor (see §10.3a-amended).** The canonical-surface half stands: origin/main `buttons/GlowButton.tsx` is verified canonical (84 consumers; `ui/GlowButton.ts` is a 3-line shim). The TASTE half does not: Sean's 2026-08-24 confirmation that it IS the original was overturned on 2026-08-31 once the five generations were shown side by side. Forge Button acceptance test is therefore NO LONGER pixel-parity vs origin/main's button — that criterion is withdrawn, because it would have locked in the wrong target. It anchors to the fusion mechanism set inherited through the Sheen pack tokens; Dual-Button Glow, 44px and reduced-motion remain named assertions. Strangler PRs must still record load-bearing behaviors in the harvest table before replacing.
 - **C2 — ADOPTED: Phase 1.5 wiring gate** inserted into §6. The panel's strongest objection; D2 interop is proven on one real production surface before Phase 2 spend.
 - **C3 — ADOPTED.** Exception ledger (`packages/swan-forge/EXCEPTIONS.md`: owner, reason, expiry, review date) ships in the SAME slice as the drift-linter; linter runs report-only until the D4 CLAUDE.md rule lands.
 - **C4 — ADOPTED.** D4 rule text is scoped: "all new UI **of a class the Forge ships** comes from the Forge or files an exception." No exception spam for classes the catalog doesn't cover yet.
@@ -132,6 +132,27 @@ GLM verdict: **REVISE** — "the plan earns its build; it has not yet earned its
 - **C7 — CLOSED.** §9 dispositions recorded: **Sean ACCEPTED all five advisory items** (9.1 light pack in Phase 1; 9.2 derived contract as amended by B8; 9.3 router enforcement at Phase 1 close; 9.4 gallery copy-snippet/pack starter; 9.5 asset slots) — grill checkpoint 2026-08-24.
 
 **Absence adoptions:** i18n foundation from day one — all Forge CSS uses logical properties (`padding-inline`, `margin-block`), headless cores take strings as props (no hardcoded English). Release pipeline + exception ledger + non-functional contract surface + test-integrity program all covered above.
+
+
+## 10.3a-amended — the taste anchor is the FUSION, not origin/main's GlowButton (2026-08-31 / 2026-09-01)
+
+**What changed.** §10.3a and §11 C1 both recorded that origin/main `buttons/GlowButton.tsx` is the original Sean likes, and the Forge Button styling target was locked to it. **Sean overturned that on 2026-08-31.** The Phase-0 inventory had flagged its own claim as only PRESUMED — "confirm visually before styling lock" — and that owed confirmation was finally run as a five-generation lineup (SWA-224, artifact `57ece162`). Shown side by side, the presumed anchor was not the one.
+
+**The real anchor is a fusion of three things:**
+- **motion** from the true original `frontend/src/Button/glowButton.jsx` (added `4dae086ee`, deleted `7e51dfc93`) — a GSAP-eased glow orb that TRAILS the cursor plus a continuous chroma blend across the width, not the midpoint flip the current `.tsx` uses;
+- **look** from `assets/user-dashboard/dashboard-export/src/glow.jsx|glow.css` — fill inset so the rotating shine is an always-visible metal ring, pill radius, and its SheenCard kept as-is ("pretty much perfect" — Sean);
+- **a new rotating multi-colour neon edge** with 3D bevel and ambient bloom, and the border treated as a WINDOW onto a world.
+
+**Why it was missed:** the "very metallic" quality Sean kept describing comes from the trailing/blending orb plus the visible spinning ring — both removed by the Crystalline rewrite. Pixel-parity against the current `.tsx` would therefore have locked in the wrong target permanently.
+
+**Consequence for the Forge Button acceptance test.** "Pixel-parity vs origin/main GlowButton" is **withdrawn** as the acceptance criterion. The Forge Button anchors to the fusion MECHANISM SET, and inherits it via the Sheen pack tokens rather than by copying styles. Dual-Button Glow, 44px minimum and reduced-motion remain named assertions, unchanged.
+
+**Shipped implementation** (branch `ogpswan/swa-224-forge-sheen-pack`, PR #98):
+`frontend/src/styles/sheenPackTokens.ts` · `frontend/src/hooks/useSheenPointer.ts` · `frontend/src/hooks/sheenColor.ts` · `frontend/src/components/ui/sheen/{sheenFrame.ts,SheenButton.tsx,SheenCard.tsx,SheenWorldLayers.tsx,index.ts}`.
+
+**Ratified decisions (Sean, 2026-09-01):** v1 ships four worlds (chrome, sky, gold, neon) with the other 29 held in the artifact as a proven catalog; frame weight is a per-surface token (4.5px button / 6px card); shimmer is a per-kind token (0.6 scenic / 0.85 metal); cursor catch-up stays 0.22 because the trailing orb IS the chosen mechanism.
+
+**Verified, and what was not.** 28/28 unit tests; a negative control fails 3 of 8 engine tests when the defects are reintroduced; scoped `tsc --strict` exit 0; vite build exit 0; all pre-commit guards clean. Browser-verified in Chromium: orb tracks to 15.70 / 78.08 / 140.65px against expected 15.6 / 78.2 / 140.8 across a 156px face, blending purple to cyan across the width. Project-wide `tsc --noEmit` still OOMs on this repo independently of this work — no repo-wide typecheck-clean is claimed.
 
 ## 12. Panel Round 3 — Ox Alpha REVISE on v0.3 (2026-08-24; full review: `docs/ai-workflow/AI-HANDOFF/OX-FORGE-RATIFIED-REVIEW-2026-08-24.md`)
 
