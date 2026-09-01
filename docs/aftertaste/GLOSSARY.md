@@ -39,3 +39,10 @@ is not here, that is a bug in the docs, not a gap in you.
 | **HUD** | Heads-Up Display — the score and status drawn over the game. Done in plain HTML here, because 3D text costs draw calls and fights antialiasing. |
 | **pure function** | A function that reads its inputs and returns a new value without changing anything. Testable in milliseconds, and it cannot corrupt a snapshot another system is reading. |
 | **physics engine** | A library simulating real collisions, stacking and friction (rapier, cannon). Powerful, heavy, and unnecessary when your question is only "is this box near that box". |
+| **game feel** | How a game responds to you, as distinct from what its rules say. Almost always a handful of timing constants, not a system. |
+| **i-frames (invulnerability frames)** | A brief window after taking damage during which you cannot be hit again. Without it, per-frame contact damage kills you in a heartbeat. |
+| **wave** | One batch of enemies. Clearing it advances to a bigger one — the simplest difficulty curve there is. |
+| **difficulty curve** | How much harder each wave gets. Here it is literally one function, `waveSize(n)`. |
+| **fun probe** | Reaching a playable state as early as possible, on purpose, while changing a number is still cheap. |
+| **seam** | The join between two components. Both can be correct and the join still wrong — which is why the seam needs its own test. |
+| **negative control** | Deliberately checking that your test FAILS when the bug is present. A test that has never failed has proven nothing. |

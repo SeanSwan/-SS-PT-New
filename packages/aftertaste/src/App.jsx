@@ -40,9 +40,14 @@ export default function App() {
     <>
     <Canvas
       // camera sits back and above, looking at the origin — the classic third-person framing.
-      camera={{ position: [8, 6, 10], fov: 50 }}
+      camera={{ position: [0, 13, 15], fov: 50 }}
       // Tell three.js we want webgl2 explicitly; the boot test asserts this context exists.
       gl={{ antialias: true }}
+      // TEACHING NOTE: meshes have carried castShadow/receiveShadow since Slice 1, and they did
+      // NOTHING -- shadows are off at the renderer unless you ask for them here. It is not an
+      // error, it just silently draws no shadow. A contact shadow under a box is the strongest
+      // single cue for WHERE a thing is on the floor, which is why it is worth the draw cost.
+      shadows
     >
       <color attach="background" args={['#0b0b0e']} />
 
@@ -50,7 +55,18 @@ export default function App() {
           ambient  = flat fill so nothing is pure black
           directional = a "sun" that creates the shading which reads as shape */}
       <ambientLight intensity={0.4} />
-      <directionalLight position={[5, 10, 5]} intensity={1.2} />
+      <directionalLight
+        position={[12, 18, 8]}
+        intensity={1.4}
+        castShadow
+        // The shadow camera is an orthographic box; anything outside it casts no shadow at all.
+        // It must cover the play area, or monsters lose their shadow as they walk in.
+        shadow-camera-left={-30}
+        shadow-camera-right={30}
+        shadow-camera-top={30}
+        shadow-camera-bottom={-30}
+        shadow-mapSize={[1024, 1024]}
+      />
 
       <Ground onClick={shoot} />
       <Player />

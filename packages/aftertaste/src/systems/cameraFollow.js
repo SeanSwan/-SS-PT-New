@@ -10,7 +10,12 @@
  * The fraction is frame-rate corrected: at 120fps we take a smaller step than at 60fps, so the feel
  * is identical on any machine. 1 - (1 - t)^(delta*60) is the standard way to write that.
  */
-export const CAMERA_OFFSET = { x: 0, y: 7, z: 10 };
+// Pulled back in Slice 5. At y:7/z:10 the view covered roughly 20 units, and enemies spawn on a
+// ring of radius 18 -- so they arrived entirely off-screen and the first thing you knew about a
+// monster was losing a life to it. Being killed by something you were never shown is not difficulty,
+// it is a missing camera. This framing shows enough of the ring that threats are visible as they
+// close in. See CONCEPTS/game-feel.md.
+export const CAMERA_OFFSET = { x: 0, y: 13, z: 15 };
 const SMOOTH = 0.12; // 0 = never moves, 1 = snaps instantly
 
 export function followPlayer(camera, target, delta) {

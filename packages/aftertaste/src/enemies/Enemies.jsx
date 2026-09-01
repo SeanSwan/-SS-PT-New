@@ -22,8 +22,11 @@ export default function Enemies() {
   const meshes = useRef({});
   const enemies = useGameStore((s) => s.enemies);
 
-  useFrame((_state, delta) => {
+  useFrame((state, delta) => {
     const player = usePlayerStore.getState().position;
+    // The round advances here because this loop already has the player position and the flock.
+    // state.clock.elapsedTime is three.js's running total; the invulnerability window uses it.
+    useGameStore.getState().tick(player, state.clock.elapsedTime);
     const list = useGameStore.getState().enemies;
 
     // Steer everyone against a SNAPSHOT taken before anyone moves. Updating in place would make

@@ -45,23 +45,36 @@ test('enemies close in on the player, and nothing throws', async ({ page }) => {
   expect(thrown, `page threw: ${thrown.join(' | ')}`).toHaveLength(0);
 });
 
-test('the player can outrun them — they are slower, by design', async ({ page }) => {
+test('the player is faster than the enemies, measured, not assumed', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('canvas')).toBeVisible({ timeout: 20_000 });
   await page.waitForFunction(() => window.__swanEnemyPos?.length > 0, null, { timeout: 20_000 });
 
-  const nearest = async () => page.evaluate(() => {
-    const p = window.__swanPlayerPos;
-    return Math.min(...window.__swanEnemyPos.map((e) => Math.hypot(e.x - p.x, e.z - p.z)));
-  });
+  // This used to hold S and assert the nearest enemy got further away. That was only true while
+  // every enemy spawned on one side; Slice 5 spawns them on a RING around the player, so running
+  // "away" runs toward the far side of the ring. The test assumption died, not the game.
+  //
+  // What "you can outrun them" actually MEANS is: in the same interval, the player covers more
+  // ground than any enemy. That is true whatever the geometry.
+  const sample = () => page.evaluate(() => ({
+    player: { ...window.__swanPlayerPos },
+    enemies: window.__swanEnemyPos.map((e) => ({ x: e.x, z: e.z })),
+  }));
 
-  const before = await nearest();
   await page.locator('canvas').click();
-  // Run AWAY from them: they start at -z, so hold S (+z).
+  const before = await sample();
   await page.keyboard.down('KeyS');
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1200);
   await page.keyboard.up('KeyS');
+  const after = await sample();
 
-  const after = await nearest();
-  expect(after, `running away should open the gap (${before} -> ${after})`).toBeGreaterThan(before);
+  const moved = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+  const playerMoved = moved(before.player, after.player);
+  const enemyMoved = Math.max(
+    ...before.enemies.map((e, i) => (after.enemies[i] ? moved(e, after.enemies[i]) : 0)),
+  );
+
+  expect(playerMoved, 'the player actually moved').toBeGreaterThan(0.5);
+  expect(playerMoved, `player ${playerMoved} must outpace fastest enemy ${enemyMoved}`)
+    .toBeGreaterThan(enemyMoved);
 });

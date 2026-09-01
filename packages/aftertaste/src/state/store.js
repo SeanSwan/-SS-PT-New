@@ -32,18 +32,21 @@ export const usePlayerStore = create((set) => ({
  * second system needs the same data is the moment it belongs in the store — not before. Promoting
  * everything "just in case" is how a small game turns into a tangle.
  */
-import { fireAt as fireAtPure } from '../combat/combat.js';
-import { ENEMY_HP } from '../combat/combat.js';
+import { fireAt as fireAtPure, ENEMY_HP } from '../combat/combat.js';
+import { waveSize, spawnRing, tickRound, PLAYER_HP } from '../systems/waves.js';
 
-const START = [
-  { id: 'e1', x: -6, z: -8, hp: ENEMY_HP },
-  { id: 'e2', x: 0, z: -10, hp: ENEMY_HP },
-  { id: 'e3', x: 6, z: -8, hp: ENEMY_HP },
-];
+/** Seconds of mercy after a hit, so one touch is not three instant deaths. */
+const INVULN_SECONDS = 1.0;
+
+const firstWave = () => spawnRing(waveSize(1), 18, 1);
 
 export const useGameStore = create((set, get) => ({
-  enemies: START.map((e) => ({ ...e })),
+  enemies: firstWave(),
   kills: 0,
+  hp: PLAYER_HP,
+  wave: 1,
+  over: false,
+  invulnUntil: 0,
 
   /** Fire at a world point. Returns how many died, so the caller can react (sound, later). */
   fire: (point) => {
@@ -54,9 +57,51 @@ export const useGameStore = create((set, get) => ({
     return result.killed;
   },
 
+  /**
+   * One frame of round logic. Called from the game loop.
+   *
+   * TEACHING NOTE — WHY AN INVULNERABILITY WINDOW:
+   * tickRound costs one life per FRAME an enemy is touching. At 60fps that is 60 lives a second,
+   * so a single bump would end the round instantly. Every game with contact damage has a brief
+   * mercy period after a hit; this is that. Without it the death feels arbitrary, and the player
+   * blames the game rather than themselves.
+   */
+  tick: (player, elapsed) => {
+    const s = get();
+    if (s.over) return;
+
+    const merciful = elapsed < s.invulnUntil;
+
+    // Ask about the REAL board, then decide what to act on. An earlier version suppressed damage by
+    // handing tickRound an empty enemy list -- but an empty list also means "wave cleared", so every
+    // hit advanced the wave and respawned the flock at radius 18, and the round could not be lost.
+    // Both units were correct; the composition was not. Suppress the CONSEQUENCE, never the input.
+    const r = tickRound({ hp: s.hp, wave: s.wave }, player, s.enemies);
+
+    const patch = {};
+    if (r.touched && !merciful) {
+      patch.hp = r.hp;
+      patch.over = r.over;
+      patch.invulnUntil = elapsed + INVULN_SECONDS;
+    }
+    if (r.cleared) {
+      patch.wave = r.wave;
+      patch.enemies = spawnRing(waveSize(r.wave), 18, r.wave);
+    }
+    if (Object.keys(patch).length) set(patch);
+
+    if (typeof window !== 'undefined') {
+      const now = get();
+      window.__swanRound = { hp: now.hp, wave: now.wave, over: now.over, left: now.enemies.length };
+    }
+  },
+
   reset: () => {
-    set({ enemies: START.map((e) => ({ ...e })), kills: 0 });
-    if (typeof window !== 'undefined') window.__swanKills = 0;
+    set({ enemies: firstWave(), kills: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0 });
+    if (typeof window !== 'undefined') {
+      window.__swanKills = 0;
+      window.__swanRound = { hp: PLAYER_HP, wave: 1, over: false, left: waveSize(1) };
+    }
   },
 }));
 
