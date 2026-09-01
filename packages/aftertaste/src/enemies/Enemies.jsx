@@ -16,7 +16,8 @@
 import { Suspense, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { stepEnemy } from './steering.js';
-import Fryling from './Fryling.jsx';
+import Monster from './Monster.jsx';
+import { ROSTER } from './roster.js';
 import { can } from '../systems/lifecycle.js';
 import { useGameStore, usePlayerStore } from '../state/store.js';
 
@@ -41,7 +42,8 @@ export default function Enemies() {
       // attacking one is planted in its lunge, a corpse is toppling. All of them still stand in
       // the separation snapshot above, so the living flock walks AROUND a corpse, not through it.
       if (!can(list[i], 'canMove')) continue;
-      const next = stepEnemy(snapshot[i], player, snapshot, delta);
+      // Per-monster speed from the roster row; the fallback keeps stateless test enemies moving.
+      const next = stepEnemy(snapshot[i], player, snapshot, delta, ROSTER[list[i].type]?.speed);
       list[i].x = next.x;
       list[i].z = next.z;
       const mesh = meshes.current[list[i].id];
@@ -49,7 +51,7 @@ export default function Enemies() {
     }
 
     if (typeof window !== 'undefined') {
-      window.__swanEnemyPos = list.map((e) => ({ x: e.x, z: e.z, hp: e.hp, state: e.state }));
+      window.__swanEnemyPos = list.map((e) => ({ x: e.x, z: e.z, hp: e.hp, state: e.state, type: e.type }));
     }
   });
 
@@ -75,7 +77,7 @@ export default function Enemies() {
               </mesh>
             )}
           >
-            <Fryling hp={e.hp} state={e.state} />
+            <Monster type={e.type ?? 'fryling'} hp={e.hp} state={e.state} />
           </Suspense>
         </group>
       ))}

@@ -83,3 +83,10 @@ test('an enemy takes ENEMY_HP shots to kill, not one', () => {
   }
   assert.equal(isDead(damage(e, 1)), true);
 });
+
+test('a target may carry its OWN aimRadius — the long patty-larva is easier to hit than a fryling', () => {
+  const wide = { id: 'larva', x: 0.8, z: -10, aimRadius: 0.9 };
+  const normal = { id: 'fry', x: 0.8, z: -10 };
+  assert.equal(hitscan(waist, FWD, [wide])?.target.id, 'larva', 'inside ITS radius');
+  assert.equal(hitscan(waist, FWD, [normal]), null, 'same offset misses the default radius');
+});

@@ -8,6 +8,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { waveSize, spawnRing, tickRound, PLAYER_HP, TOUCH_RADIUS } from '../src/systems/waves.js';
 import { ATTACK_WINDUP } from '../src/systems/lifecycle.js';
+import { ROSTER } from '../src/enemies/roster.js';
 
 const at = (x, z) => ({ x, z });
 
@@ -112,4 +113,16 @@ test('spawnRing centres on the player, not the origin — the world is infinite 
     const d = Math.hypot(e.x - 100, e.z - -50);
     assert.ok(Math.abs(d - 10) < 1e-9, `enemy at radius ${d} from the given centre`);
   }
+});
+
+test('spawnRing fills slots from the roster: type, hp and aimRadius are the row, not a constant', () => {
+  const w4 = spawnRing(8, 10, 4, { x: 0, z: 0 }, 0);
+  const types = new Set(w4.map((e) => e.type));
+  assert.equal(types.size, 4, 'wave 4 mixes all four monsters');
+  for (const e of w4) {
+    assert.equal(e.hp, ROSTER[e.type].hp, `${e.type} hp comes from its row`);
+    assert.equal(e.aimRadius, ROSTER[e.type].aimRadius);
+  }
+  const w1 = spawnRing(5, 10, 1, { x: 0, z: 0 }, 0);
+  assert.ok(w1.every((e) => e.type === 'fryling'), 'wave 1 is frylings only');
 });

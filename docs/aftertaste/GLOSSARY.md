@@ -67,3 +67,6 @@ is not here, that is a bug in the docs, not a gap in you.
 | **wind-up / telegraph** | The visible pause before an attack lands. It is the dodge window — the difference between damage as a tax and damage as a game. |
 | **fair-spawn window** | A newborn briefly can neither hurt you nor be shot. Fairness cuts both ways: no spawn-kills against you, no free farming for you. |
 | **clampWhenFinished** | Tells a play-once animation to HOLD its final frame. Without it a finished death snaps back to the bind pose — a corpse that stands up for one frame. |
+| **data-driven design** | Behaviour shared, differences as numbers in one table. A monster is a ROW; code appears only when a number cannot express the difference. See CONCEPTS/data-driven-monsters.md. |
+| **schema test** | A test that checks the SHAPE of data — every row complete, every number in bounds. A missing stat is a half-working monster with no error anywhere. |
+| **stat spread** | Roles expressed as numbers: fast-and-fragile vs slow-and-armoured. The spread IS the design; tuning it is editing a table. |

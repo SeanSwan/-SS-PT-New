@@ -16,6 +16,7 @@
  */
 
 import { hurtsNow, holdsWave } from './lifecycle.js';
+import { ROSTER, typeForSlot } from '../enemies/roster.js';
 
 /** How many hits the player survives. Low on purpose — a long health bar hides bad feel. */
 export const PLAYER_HP = 3;
@@ -45,11 +46,16 @@ export function spawnRing(count, radius, waveNumber = 1, centre = { x: 0, z: 0 }
   for (let i = 0; i < count; i++) {
     // Offset by the wave number so successive waves do not arrive at identical angles.
     const angle = (i / count) * Math.PI * 2 + waveNumber * 0.37;
+    // The roster decides WHO fills the slot and what its numbers are — a monster is a row.
+    const type = typeForSlot(waveNumber, i);
+    const spec = ROSTER[type];
     out.push({
       id: `w${waveNumber}-e${i}-${Math.random().toString(36).slice(2, 7)}`,
+      type,
       x: centre.x + Math.cos(angle) * radius,
       z: centre.z + Math.sin(angle) * radius,
-      hp: 2,
+      hp: spec.hp,
+      aimRadius: spec.aimRadius,
       // Born into the state machine: a brief fair-spawn window before it can act or be shot.
       state: 'spawning',
       stateSince: now,

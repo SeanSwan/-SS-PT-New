@@ -34,8 +34,11 @@ export const MAX_RANGE = 60;
 
 /**
  * Fire a ray from `origin` along unit vector `dir`; return the FIRST target it passes within
- * `radius` of, as `{ target, t }` where `t` is the distance along the ray — or null for a miss.
+ * range of, as `{ target, t }` where `t` is the distance along the ray — or null for a miss.
  * Targets behind the origin never count: a gun does not shoot backwards.
+ *
+ * A target may carry its own `aimRadius` (the roster's long, low patty-larva needs a bigger
+ * sphere than the compact fryling); `radius` is the fallback for targets that do not.
  */
 export function hitscan(origin, dir, targets, radius = AIM_RADIUS, maxRange = MAX_RANGE) {
   let best = null;
@@ -48,7 +51,8 @@ export function hitscan(origin, dir, targets, radius = AIM_RADIUS, maxRange = MA
     if (t < 0 || t > maxRange) continue;
     // Distance² from centre to that closest point (Pythagoras, no square root needed).
     const closest2 = ox * ox + oy * oy + oz * oz - t * t;
-    if (closest2 > radius * radius) continue;
+    const r = target.aimRadius ?? radius;
+    if (closest2 > r * r) continue;
     if (!best || t < best.t) best = { target, t };
   }
   return best;

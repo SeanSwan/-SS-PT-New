@@ -73,8 +73,10 @@ export function separate(self, neighbours) {
  * @param {{x:number,z:number}} target      where the player is
  * @param {{x:number,z:number}[]} neighbours other enemies (may include self; distance 0 is skipped)
  * @param {number} delta                     seconds since the last frame
+ * @param {number} speed                     units/sec — the roster's per-monster number; the
+ *                                           default keeps every pre-roster caller identical
  */
-export function stepEnemy(self, target, neighbours, delta) {
+export function stepEnemy(self, target, neighbours, delta, speed = ENEMY_SPEED) {
   const toPlayer = seek(self, target);
   const push = separate(self, neighbours);
 
@@ -89,7 +91,7 @@ export function stepEnemy(self, target, neighbours, delta) {
   z /= len;
 
   return {
-    x: self.x + x * ENEMY_SPEED * delta,
-    z: self.z + z * ENEMY_SPEED * delta,
+    x: self.x + x * speed * delta,
+    z: self.z + z * speed * delta,
   };
 }

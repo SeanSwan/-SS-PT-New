@@ -72,3 +72,11 @@ test('an enemy already touching the player does not jitter or NaN', () => {
   assert.ok(!Number.isNaN(next.x) && !Number.isNaN(next.z));
   assert.deepEqual(next, { x: 5, z: 5 });
 });
+
+test('per-monster speed scales displacement; the default keeps every old caller identical', () => {
+  const fast = stepEnemy({ x: 0, z: 0 }, { x: 0, z: -100 }, [], 1, 3.4);
+  const slow = stepEnemy({ x: 0, z: 0 }, { x: 0, z: -100 }, [], 1, 1.4);
+  assert.ok(Math.abs(fast.z) > Math.abs(slow.z), 'faster speed covers more ground');
+  const def = stepEnemy({ x: 0, z: 0 }, { x: 0, z: -100 }, [], 1);
+  assert.ok(Math.abs(Math.abs(def.z) - ENEMY_SPEED) < 1e-9, 'default is ENEMY_SPEED exactly');
+});
