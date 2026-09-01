@@ -1,17 +1,17 @@
 ---
-decision: "Swan Coach ownership is merged with main and green. Three pre-commit guards were hardened through a hostile round that found nine real defects, two of them pre-existing holes on main. Round 9 has not run; three findings are documented-open. The merge to main is Sean's call and is fully specified."
+decision: "Swan Coach ownership is merged with main and green. Three pre-commit guards were hardened across TWO hostile rounds finding twelve real defects, two of them pre-existing holes on main. Round 9 is CLOSED - no findings remain open. CI now runs and both its failures are proven pre-existing on main. The merge to main is Sean's call and is fully specified."
 status: open
 supersedes: none
 ---
 
-# HANDOFF — guard hardening, round 8 closed, round 9 not started
+# HANDOFF — guard hardening, rounds 8 AND 9 closed, nothing open
 
-**Branch:** `claude/coach-endpoint-truth-v2-20260824` @ `ab6f1da78` — **PUSHED**, verified
-(remote == local, unpushed 0). **NOT merged. NOT deployed.** Behind `origin/main`: 0. Ahead: 55.
-**PR #95** open. Cost across everything today: **$0.00**.
+**Branch:** `claude/coach-endpoint-truth-v2-20260824` @ `71397b452` — **PUSHED**, verified
+(remote == local, unpushed 0). **NOT merged. NOT deployed.** Behind `origin/main`: 0. Ahead: 59.
+**PR #95** open. Cost across everything: **$0.00**.
 
-> **You are between hostile rounds, not inside one.** Round 8 is fixed, committed and pushed.
-> Round 9 has not been run. That is the clean boundary this handoff sits on.
+> **Rounds 8 and 9 are both closed. No finding is open.** Twelve defects found and fixed across
+> the two rounds. The only thing left on this workstream is Sean's merge/deploy decision.
 
 ---
 
@@ -56,17 +56,18 @@ stop. Every subsequent finding came from attacking a fix, not from testing it.
 
 | check | result |
 |---|---|
-| Guard suites | **87 tests green** — constitution 43, frontend 28, token-registry 16 |
-| Mutations (hand-run) | **16**, every anchor confirmed matched, file restored byte-identical each time |
-| Backend baseline gate @ `e607d2dc6` | **exit 0** — 9906 passed, 25 known-failing / 23 files |
-| Ownership mutation harness @ `e607d2dc6` | **46/46 FIRED**, 0 survived, 0 anchor misses |
+| Guard suites | **92 tests green** — constitution 48, frontend 28, token-registry 16 |
+| Mutations (hand-run) | **22**, every anchor confirmed matched, file restored byte-identical each time |
+| Backend baseline gate @ `71397b452` | **exit 0** — 9907 passed, 25 known-failing / 23 files |
+| Ownership mutation harness @ `71397b452` | see the round-9 closeout comment on SWA-64 |
 | Five pre-commit guards | all PASS on the level — **no `--no-verify` anywhere in this history** |
 | CI | **fixed and verified working** (runs execute 59s/5m35s; previously every run died at 0s) |
 
-**NOT re-run since `e607d2dc6`:** the backend gate and the 46-mutation harness. Round 8 touched
-only `scripts/hooks/`, `.githooks/pre-commit`, the constitution and one skill file — **zero
-backend or frontend runtime code** — so those results still describe the shipped tree. Re-run
-before merging if you want the number to be current rather than reasoned.
+**CI now runs, and both its failures are PROVEN pre-existing on `main`** — verified, not assumed:
+`AI Eval Gate` fails on every `main` run including the newest, and `Documentation Link Check`
+reports 3,738 dead links of which **my files contributed zero** (correlated FILE→dead-link, 105
+files implicated, none mine). CodeRabbit shows "pass" but its reason is *"Review rate limited"* —
+it never reviewed, so do not read that as a pass.
 
 **One SURVIVED mutation, disclosed:** dropping the `maxBuffer` in `token-registry-check.mjs` is
 killed by no test — generating a >64 MB diff is impractical. Acceptable **only** because the
@@ -108,19 +109,39 @@ anchored to `origin/main` only.** Do not let a future round re-accept this.
 
 ---
 
-## 4. STILL OPEN — round 9's actual work
+## 4. ROUND 9 — CLOSED. Nothing open.
 
-Deliberately not rushed at the end of a round. All three are from GLM 5.3, none verified by me:
+All three findings round 8 left open are fixed, tested and mutation-covered.
 
-| # | finding | severity | why it is where it is |
+| # | finding | severity | fix |
 |---|---|---|---|
-| 1 | **Numeric escape-hatches are ambiguous under a two-parent baseline.** `SWAN_ALLOW_RULE_REMOVAL=50` waives "rule 50" — but which parent's rule 50, if they renumbered differently? A declaration for one rule could authorise deleting another. | HIGH | Highest open severity. Fix direction: key hatches on rule identity (number + body hash), or require naming the parent. |
-| 2 | **Merge-mode should gate on ancestry, not ref existence.** Merging a feature branch INTO main (HEAD ahead of `origin/main`) engages merge-mode with the wrong anchor → false blocks. GLM's fix: `git merge-base --is-ancestor origin/main MERGE_HEAD` to confirm this merge *adopts* main. | MEDIUM | Availability, not safety — it over-blocks, never under-protects. |
-| 3 | **Cherry-pick / revert / `git am` stage arrived content with no MERGE_HEAD**, so attribution names the wrong parent ("exists in HEAD and is GONE" for a foreign edit). | LOW | Fail-closed direction. The cost is a message that trains operators the guard is wrong. |
+| X2f | A rule NUMBER stops being a unique key once the baseline has two parents, so a number-keyed hatch declared for HEAD's rule 50 could silently waive main's different rule 50 | HIGH | Ambiguous numbers REFUSED, not guessed at. The refusal is **narrow** — a control test asserts an unambiguous declaration still works, because a blanket ban is what teaches people to reach for `--no-verify` |
+| X4 | Merge-mode engaged on any merge, including merging a branch INTO main, where the merged ref does not contain main and the anchor is wrong | MEDIUM | Merge-mode now requires that the merged ref CONTAINS current main. Squash's proxy is "HEAD does not already contain main". Fails closed |
+| X5 | cherry-pick / revert / `am` stage unauthored content with no MERGE_HEAD, so blockers said "exists in HEAD and is GONE" about a foreign edit | LOW | Blocker names the sequencer. Direction was always fail-closed; the cost was a message that reads as wrong |
 
-**Also worth doing:** three guards now implement merge-awareness independently. **Extract one
-shared helper** so a fourth guard inherits it instead of rediscovering it the hard way — Flash
-recommended this explicitly, and today proved the class recurs.
+**Two of my own round-9 tests were vacuous and mutation testing caught both** — worth reading,
+because both are the same class the ownership arc found five of:
+
+- `X4-M1` (ignore ancestry entirely) **SURVIVED**: my fixture forked the feature branch FROM
+  `origin/main`, so the merged ref trivially contained it and the gate never engaged. The test
+  even carried a comment *noting* that — a precondition documenting the flaw instead of enforcing
+  it. Rewritten so the fork predates main's advance; the precondition now asserts the merged ref
+  does NOT contain `origin/main`.
+- `X4-M3` (invert the ancestry direction) **SURVIVED**: every fixture had `MERGE_HEAD` equal to
+  `origin/main` exactly, where both directions agree. Added a case where the merged ref strictly
+  CONTAINS main, which separates them.
+
+**Three things verified against real git rather than assumed**, each of which had already sent an
+attempt in the wrong direction: a clean `cherry-pick --no-commit` writes **no** `CHERRY_PICK_HEAD`
+(only the conflicted form does — stated as a known limit in the code); `--git-dir` returns a
+**relative** path that resolves against the calling process, not the fixture; and a cherry-pick
+only conflicts when both sides touch the **same region**.
+
+### Still worth doing, not a defect
+
+Three guards now implement merge-awareness independently. **Extract one shared helper** so a
+fourth inherits it rather than rediscovering it. Flash recommended this and two rounds proved the
+class recurs. This is a refactor of working, tested code — not an open finding.
 
 ---
 
