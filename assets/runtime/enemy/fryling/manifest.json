@@ -1,0 +1,71 @@
+{
+  "schema": "swan.game-asset.v1",
+  "id": "enemy.fryling",
+  "status": "planned",
+  "targetSurface": "standalone",
+  "paletteLaw": "B",
+  "calibrationFixture": false,
+  "zone": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
+  "skeleton": "skeleton.creature-small.v1",
+  "animations": [
+    "idle"
+  ],
+  "budgets": {
+    "lod0Triangles": 292,
+    "lod1Triangles": 146,
+    "lod2Triangles": 60,
+    "textureMB": 0,
+    "bake": "not-baked - swan_pipe.py has no texture bake stage (removed from plan() 2026-08-26 until it exists); 0 is measured embedded texture bytes, not a budget",
+    "tool": "scripts/assets/measure-glb.mjs",
+    "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/lod0.glb lod1.glb lod2.glb",
+    "date": "2026-08-25",
+    "commit": "ea7915ef6",
+    "note": "Regenerated 2026-08-26 from the ROSTER blockout (6 voxels, Ox Alpha spec) rather than the hand-made 5-voxel calibration shape. Built in a staging dir and copied across, because the pipe now refuses to overwrite a curated manifest."
+  },
+  "provenance": {
+    "humanOwner": "owner",
+    "createdAtUtc": "2026-08-26T08:00:00.000Z",
+    "aiAssisted": false,
+    "generator": {
+      "name": "tools/blender/swan_pipe.py",
+      "version": "run-17-rigged",
+      "blender": "4.5.13 LTS (daeeeca98fb0)",
+      "invocation": "scripts/assets/run-blender.mjs (--disable-autoexec --python-exit-code 1, sentinel-checked)"
+    },
+    "source": "assets/source/enemy/fryling/fryling-blockout.obj",
+    "similarityReviewed": {
+      "reviewer": "owner",
+      "date": "2026-08-25",
+      "comparedAgainst": [
+        "protected game assets",
+        "characters",
+        "UI",
+        "audio",
+        "trademarks",
+        "real likeness"
+      ],
+      "note": "a 5-voxel L-shaped blockout — pipe proof geometry, no likeness to anything"
+    },
+    "license": {
+      "kind": "owner-authored"
+    }
+  },
+  "runtime": {
+    "lod0": "lod0.glb",
+    "lod1": "lod1.glb",
+    "lod2": "lod2.glb",
+    "collision": "collision.glb",
+    "stillFallback": "still.png",
+    "compression": "none"
+  },
+  "sha256": {
+    "lod0": "0007a7bf243ee3ad4f5f5e842cbcf692f7248ad38910efc00786eb4e59037db0",
+    "lod1": "8e784190411c8d8145e19787dcf689de9ddb3af7240da16d8c34a9dbe3b4f01a",
+    "lod2": "a64c6a485cfda5fe8e6fe23eed023b34007ef40ff18e176ad9347d5af7b8bd0e",
+    "collision": "106185ac82810d6ce968c8af949bae3087f1c33c42b6111f1bc9b35235cfdc66"
+  },
+  "_source": {
+    "file": "fryling-blockout.obj",
+    "pipeline": "swan_pipe.py"
+  }
+}

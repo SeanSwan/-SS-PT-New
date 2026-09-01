@@ -1,0 +1,3 @@
+# CODEOWNERS - the asset registry is the authority every gate reads. A change to it is a
+# change to what "valid" means, so it needs the owner's eyes. (Aftertaste handoff 2026-08-26 s9.)
+/assets/registry.json @SeanSwan
