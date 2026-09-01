@@ -1,14 +1,18 @@
 {
   "schema": "swan.game-asset.v1",
   "id": "enemy.fryling",
-  "status": "planned",
+  "status": "validated",
   "targetSurface": "standalone",
   "paletteLaw": "B",
   "calibrationFixture": false,
   "zone": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
   "skeleton": "skeleton.creature-small.v1",
   "animations": [
-    "idle"
+    "idle",
+    "move",
+    "attack",
+    "hit",
+    "death"
   ],
   "budgets": {
     "lod0Triangles": 292,
@@ -18,24 +22,24 @@
     "bake": "not-baked - swan_pipe.py has no texture bake stage (removed from plan() 2026-08-26 until it exists); 0 is measured embedded texture bytes, not a budget",
     "tool": "scripts/assets/measure-glb.mjs",
     "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling/lod0.glb lod1.glb lod2.glb",
-    "date": "2026-08-25",
-    "commit": "ea7915ef6",
-    "note": "Regenerated 2026-08-26 from the ROSTER blockout (6 voxels, Ox Alpha spec) rather than the hand-made 5-voxel calibration shape. Built in a staging dir and copied across, because the pipe now refuses to overwrite a curated manifest."
+    "date": "2026-09-01",
+    "note": "Regenerated 2026-09-01 for Slice 6. Same 292/146/60 geometry as the 2026-08-26 build; the change is the rig, which now carries all FIVE clips the skeleton contract names (idle, move, attack, hit, death) instead of idle alone. lod1/lod2/collision came out byte-identical to the previous build, so only the rigged lod0 hash moved.",
+    "commit": "cc7f7c504"
   },
   "provenance": {
     "humanOwner": "owner",
-    "createdAtUtc": "2026-08-26T08:00:00.000Z",
+    "createdAtUtc": "2026-09-01T09:00:00.000Z",
     "aiAssisted": false,
     "generator": {
       "name": "tools/blender/swan_pipe.py",
-      "version": "run-17-rigged",
+      "version": "run-18-rigged-5clip",
       "blender": "4.5.13 LTS (daeeeca98fb0)",
       "invocation": "scripts/assets/run-blender.mjs (--disable-autoexec --python-exit-code 1, sentinel-checked)"
     },
     "source": "assets/source/enemy/fryling/fryling-blockout.obj",
     "similarityReviewed": {
       "reviewer": "owner",
-      "date": "2026-08-25",
+      "date": "2026-09-01",
       "comparedAgainst": [
         "protected game assets",
         "characters",
@@ -44,7 +48,7 @@
         "trademarks",
         "real likeness"
       ],
-      "note": "a 5-voxel L-shaped blockout — pipe proof geometry, no likeness to anything"
+      "note": "a 6-voxel blockout on a 3-bone rig; every clip is a procedural bone-rotation curve (sway, waddle, lunge, flinch, topple) written as numbers in swan_pipe_stages.py - no motion capture, no reference footage, no likeness to anything."
     },
     "license": {
       "kind": "owner-authored"
@@ -59,7 +63,7 @@
     "compression": "none"
   },
   "sha256": {
-    "lod0": "0007a7bf243ee3ad4f5f5e842cbcf692f7248ad38910efc00786eb4e59037db0",
+    "lod0": "06696774cddf7962015ae57e8b98523b7c8eae460760b92d7328d1b88984f048",
     "lod1": "8e784190411c8d8145e19787dcf689de9ddb3af7240da16d8c34a9dbe3b4f01a",
     "lod2": "a64c6a485cfda5fe8e6fe23eed023b34007ef40ff18e176ad9347d5af7b8bd0e",
     "collision": "106185ac82810d6ce968c8af949bae3087f1c33c42b6111f1bc9b35235cfdc66"
@@ -67,5 +71,19 @@
   "_source": {
     "file": "fryling-blockout.obj",
     "pipeline": "swan_pipe.py"
+  },
+  "clipContract": {
+    "closes": [
+      "idle",
+      "move",
+      "attack",
+      "hit"
+    ],
+    "once": [
+      "death"
+    ],
+    "tool": "scripts/assets/verify-clips.mjs",
+    "command": "node scripts/assets/verify-clips.mjs assets/runtime/enemy/fryling/lod0.glb --loop idle,move,attack,hit --once death",
+    "note": "Presence of a named clip proves nothing - a clip can be named and empty and pass every other check. These are the properties that matter: clips that repeat or recover must return to their start pose or they snap; death must NOT, or the corpse stands back up."
   }
 }

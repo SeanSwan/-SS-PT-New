@@ -199,7 +199,8 @@ def run_in_blender(args, out_dir, done):
         # silhouettes that never animate. Rigging them would triple the bind cost for nothing.
         rigged = False
         if args.skeleton and name == "lod0":
-            arm = rig_and_animate(target, args.skeleton, ["idle"])
+            clips = [c.strip() for c in args.clips.split(",") if c.strip()]
+            arm = rig_and_animate(target, args.skeleton, clips)
             done.add("rig")
             rigged = True
 
@@ -215,6 +216,10 @@ def run_in_blender(args, out_dir, done):
             export_cameras=False, export_lights=False,
         )
         if rigged:
+            # export_optimize_animation_size stays at its default (ON). MEASURED: it compresses
+            # CONSTANT channels to 2 keys and leaves moving ones at full resolution (idle keeps 24
+            # keys on tip.rotation; the 8 channels that never move drop to 2). Turning it off wrote
+            # every frame of every channel -- 9x the animation data for identical motion.
             export_kwargs.update(export_skins=True, export_animations=True, export_animation_mode="ACTIONS")
         res = bpy.ops.export_scene.gltf(**export_kwargs)
         assert_artifact(res, os.path.join(out_dir, f"{name}.glb"), f"export {name}")

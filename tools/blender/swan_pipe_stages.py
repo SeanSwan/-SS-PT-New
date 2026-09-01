@@ -131,12 +131,14 @@ def render_still(obj, out_dir):
 
 
 def rig_and_animate(obj, skeleton_id, clips):
-    """Minimal shared creature rig + one clip, exported inside the GLB.
+    """Minimal shared creature rig + the requested clips, exported inside the GLB.
 
     WHY MINIMAL: the registry's skeleton contract (skeleton.creature-small.v1) names five clips,
     and the validator now refuses a manifest declaring clips the bytes do not contain (N1). So the
     honest path is a rig the pipe can actually produce for a blockout — three deform bones along
-    the silhouette's Y extent — not a Rigify humanoid a 5-voxel fry has no anatomy for.
+    the silhouette's Y extent — not a Rigify humanoid a 5-voxel fry has no anatomy for. Each clip
+    in `clips` must have an authoring recipe below; asking for one that does not exist is a hard
+    failure, never a silently shorter animation list.
 
     Bones are placed by the mesh's own bounding box, so this works on any blockout without
     per-asset tuning. Vertices bind by automatic weights.
@@ -179,26 +181,112 @@ def rig_and_animate(obj, skeleton_id, clips):
     if res != {"FINISHED"}:
         raise SystemExit(f"swan_pipe: armature bind returned {res}, not FINISHED")
 
-    # one clip. `idle` is the only one the pipe can honestly author for a blockout: a slow
-    # breathing sway on the tip bone. The other four clips in the registry contract stay
-    # UNAUTHORED, and the manifest must not claim them.
+    # ------------------------------------------------------------------ clips
+    # WHAT THE PIPE CAN HONESTLY AUTHOR:
+    # Three deform bones along the silhouette. That is not enough anatomy for a walk cycle with
+    # legs -- but it IS enough for the four clips a wave-survival enemy actually needs, because a
+    # legless voxel fry does not walk, it waddles. Each clip below is a pose curve on bones that
+    # exist. Nothing here claims a clip the bytes do not contain.
+    #
+    # Was ONE clip (`idle`) with the other four left UNAUTHORED and unclaimed. Slice 6 needs the
+    # creature to actually behave, so walk/attack/die are authored here rather than declared.
     scene = bpy.context.scene
-    scene.frame_start, scene.frame_end = 1, 24
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.mode_set(mode="POSE")
-    tip = arm.pose.bones["tip"]
-    action = bpy.data.actions.new("idle")
     arm.animation_data_create()
-    arm.animation_data.action = action
-    for frame, angle in ((1, 0.0), (12, 0.12), (24, 0.0)):
-        scene.frame_set(frame)
-        tip.rotation_mode = "XYZ"
-        tip.rotation_euler = (angle, 0.0, 0.0)
-        tip.keyframe_insert(data_path="rotation_euler", frame=frame)
+
+    # frame -> {bone: (x, y, z) euler radians}. Rotating X leans forward/back, Y leans sideways.
+    # CLIP NAMES COME FROM THE SKELETON CONTRACT, NOT FROM TASTE.
+    # skeleton.creature-small.v1 names exactly: idle, move, attack, hit, death. An earlier pass here
+    # authored "walk" and "die" because those are the words a person reaches for -- the validator
+    # rejected both, correctly. The registry is the authority on names; this file supplies motion.
+    CLIPS = {
+        # a slow breathing sway; the original, unchanged, so existing bytes stay comparable
+        "idle": (24, [
+            (1,  {"tip": (0.0, 0.0, 0.0)}),
+            (12, {"tip": (0.12, 0.0, 0.0)}),
+            (24, {"tip": (0.0, 0.0, 0.0)}),
+        ]),
+        # a waddle: rock side to side, dipping on each plant. Frame 16 repeats frame 1 so it loops.
+        # A legless voxel fry does not walk -- giving it a leg cycle it has no anatomy for is how a
+        # blockout starts lying about what it is.
+        "move": (16, [
+            (1,  {"root": (0.0, 0.0, 0.0),   "mid": (0.0, 0.0, 0.0)}),
+            (5,  {"root": (0.0, 0.11, 0.0),  "mid": (-0.07, 0.0, 0.0)}),
+            (9,  {"root": (0.0, 0.0, 0.0),   "mid": (0.0, 0.0, 0.0)}),
+            (13, {"root": (0.0, -0.11, 0.0), "mid": (-0.07, 0.0, 0.0)}),
+            (16, {"root": (0.0, 0.0, 0.0),   "mid": (0.0, 0.0, 0.0)}),
+        ]),
+        # wind up, then lunge. The wind-up is the whole reason an attack reads as an attack --
+        # without it the hit is instantaneous and the player has nothing to react to.
+        "attack": (16, [
+            (1,  {"mid": (0.0, 0.0, 0.0),   "tip": (0.0, 0.0, 0.0)}),
+            (4,  {"mid": (-0.15, 0.0, 0.0), "tip": (-0.38, 0.0, 0.0)}),
+            (8,  {"mid": (0.28, 0.0, 0.0),  "tip": (0.62, 0.0, 0.0)}),
+            (12, {"mid": (0.10, 0.0, 0.0),  "tip": (0.25, 0.0, 0.0)}),
+            (16, {"mid": (0.0, 0.0, 0.0),   "tip": (0.0, 0.0, 0.0)}),
+        ]),
+        # a flinch: snap back on the frame it is struck, then recover. Short on purpose -- a long
+        # hit reaction is a stun, and stunning an enemy every time you graze it removes the threat.
+        "hit": (12, [
+            (1,  {"mid": (0.0, 0.0, 0.0),   "tip": (0.0, 0.0, 0.0)}),
+            (3,  {"mid": (-0.22, 0.0, 0.0), "tip": (-0.34, 0.0, 0.0)}),
+            (7,  {"mid": (0.06, 0.0, 0.0),  "tip": (0.10, 0.0, 0.0)}),
+            (12, {"mid": (0.0, 0.0, 0.0),   "tip": (0.0, 0.0, 0.0)}),
+        ]),
+        # topple over and settle. Deliberately does NOT return to upright: a death clip that loops
+        # back to standing is the classic way a corpse resurrects itself on screen.
+        "death": (24, [
+            (1,  {"root": (0.0, 0.0, 0.0),  "mid": (0.0, 0.0, 0.0),  "tip": (0.0, 0.0, 0.0)}),
+            (10, {"root": (0.55, 0.0, 0.0), "mid": (0.18, 0.0, 0.0), "tip": (0.12, 0.0, 0.0)}),
+            (18, {"root": (1.45, 0.0, 0.0), "mid": (0.35, 0.0, 0.0), "tip": (0.25, 0.0, 0.0)}),
+            (24, {"root": (1.40, 0.0, 0.0), "mid": (0.30, 0.0, 0.0), "tip": (0.20, 0.0, 0.0)}),
+        ]),
+    }
+
+    wanted = [c for c in (clips or ["idle"]) if c in CLIPS]
+    missing = [c for c in (clips or []) if c not in CLIPS]
+    if missing:
+        # Fail rather than silently ship fewer clips than asked for. A manifest that claims a clip
+        # the GLB does not contain is exactly the drift the validator exists to stop.
+        raise SystemExit(f"swan_pipe: no authoring recipe for clip(s) {missing}; known: {sorted(CLIPS)}")
+
+    for name in wanted:
+        frame_end, keys = CLIPS[name]
+        scene.frame_start, scene.frame_end = 1, frame_end
+
+        # Reset every bone before authoring. Pose is sticky between actions: a bone left rotated by
+        # the previous clip and not keyed by this one keeps that rotation, and the clip exports with
+        # a lean nobody put there.
+        for pb in arm.pose.bones:
+            pb.rotation_mode = "XYZ"
+            pb.rotation_euler = (0.0, 0.0, 0.0)
+
+        action = bpy.data.actions.new(name)
+        arm.animation_data.action = action
+        for frame, poses in keys:
+            scene.frame_set(frame)
+            for bone_name, rot in poses.items():
+                pb = arm.pose.bones[bone_name]
+                pb.rotation_mode = "XYZ"
+                pb.rotation_euler = rot
+                pb.keyframe_insert(data_path="rotation_euler", frame=frame)
+        if not action.fcurves:
+            raise SystemExit(f"swan_pipe: clip '{name}' produced zero fcurves")
+
+        # Stash into an NLA track. An action that is merely present in the file is not reliably
+        # picked up by the exporter; one parked on a track is. The active action is then cleared so
+        # the next clip starts from a clean slot rather than appending to this one.
+        track = arm.animation_data.nla_tracks.new()
+        track.name = name
+        track.strips.new(name, 1, action)
+        arm.animation_data.action = None
+        print(f"[swan_pipe] clip '{name}': {len(action.fcurves)} fcurves, frames 1-{frame_end}")
+
     bpy.ops.object.mode_set(mode="OBJECT")
-    if not arm.animation_data or not arm.animation_data.action:
-        raise SystemExit("swan_pipe: no action bound to the armature after keyframing")
-    print(f"[swan_pipe] rig: 3 bones, action '{action.name}' with {len(action.fcurves)} fcurves")
+    if not arm.animation_data or not arm.animation_data.nla_tracks:
+        raise SystemExit("swan_pipe: no NLA tracks on the armature after keyframing")
+    print(f"[swan_pipe] rig: 3 bones, {len(arm.animation_data.nla_tracks)} clip(s): {', '.join(wanted)}")
     return arm
 
 

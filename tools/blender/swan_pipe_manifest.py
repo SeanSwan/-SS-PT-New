@@ -106,7 +106,11 @@ def parse_args(argv):
     p.add_argument("--in", dest="src", required=True, help="source .vox/.obj/.glb")
     p.add_argument("--id", dest="asset_id", required=True, help="registry asset id, e.g. enemy.fryling")
     p.add_argument("--out", dest="out_dir", default=None, help="output dir (default assets/runtime/<id>)")
-    p.add_argument("--skeleton", default=None, help="registry skeleton id; omit for a static prop. When set, the pipe rigs LOD0 and authors the `idle` clip")
+    p.add_argument("--skeleton", default=None, help="registry skeleton id; omit for a static prop. When set, the pipe rigs LOD0 and authors the clips named by --clips")
+    p.add_argument("--clips", default="idle",
+                   help="comma-separated clips to author on the rig (idle,walk,attack,die). Every "
+                        "name must have an authoring recipe in swan_pipe_stages.rig_and_animate, "
+                        "or the run fails -- a manifest must never claim a clip the bytes lack.")
     p.add_argument("--bevel-width", type=float, default=0.012, help="the 'not plastic cubes' gene")
     p.add_argument("--bake-size", type=int, default=1024)
     p.add_argument("--lod-ratios", default="1.0,0.45,0.18",
