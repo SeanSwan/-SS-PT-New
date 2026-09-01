@@ -53,3 +53,12 @@ is not here, that is a bug in the docs, not a gap in you.
 | **Suspense** | React's "this component is still loading" boundary. `useGLTF` pauses the component until the file arrives; Suspense says what to render meanwhile — here, the grey box. |
 | **translation-invariance** | Arranging the world so absolute position stops mattering — floor, grid and sun follow the player. If it renders right at spawn, it renders right everywhere. |
 | **near plane** | The camera's closest visible distance. Geometry crossing it must be clipped, and lines that cross far behind the camera are where Windows GL visibly gets clipping wrong. |
+| **yaw / pitch** | The aim as two numbers: spin left-right, tilt up-down. Clamping pitch is one line; clamping a quaternion is a research topic. Roll stays zero — a rolled FPS camera reads as drunk. |
+| **pointer lock** | The browser API that hides the cursor and reports RELATIVE mouse motion forever — what makes "keep turning right" possible. Needs a user gesture; Esc always exits. |
+| **hitscan** | The Overwatch/BF6 shot model: an instant ray from the eye decides the hit; any tracer is decoration. The alternative — a simulated projectile — costs an object per bullet per frame. |
+| **ray-vs-sphere** | The three-line test behind hitscan: project the target's offset onto the ray (dot product), compare closest approach to a radius, keep the nearest. Exact, and needs no physics engine. |
+| **view-relative movement** | W means "the way I am facing": rotate the WASD intent by yaw before applying it. By yaw ONLY — looking at the floor must not walk you into it. |
+| **hitmarker** | The ✕ that flashes when a shot CONNECTS (white hit, red kill). At range it is the only way to know you are hitting a 40-pixel monster. |
+| **fov (field of view)** | How wide the camera sees, in degrees. ~75 vertical is FPS convention; the old top-down 50 reads claustrophobic from eye height. |
+| **fog** | Distance fade toward a colour. Matched to the background it buys depth AND hides the floor's edge — the cheapest "infinite world" there is. |
+| **emissive** | Light a material emits from within, ignoring every lamp. A faint ember on monsters is why a threat never disappears into an unlit side. |

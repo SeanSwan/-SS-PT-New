@@ -1,40 +1,38 @@
 /**
- * Player.jsx — the box you drive.
+ * Player.jsx — you, now that the camera is behind your eyes.
  *
- * TEACHING NOTE — useFrame IS THE UPDATE STEP:
- * The callback below runs once per frame, before the picture is drawn. `delta` is how many seconds
- * passed since the last one. This is the "update" half of the game loop you read about in
- * CONCEPTS/game-loop.md — for this one object.
+ * TEACHING NOTE — THE PLAYER RENDERS NOTHING IN FIRST PERSON:
+ * The blue box is gone because YOU are standing where it stood. In an FPS the "player" is not a
+ * thing you draw — it is a position and an aim that everything else reads (the camera parks at the
+ * position; enemies seek it; the gun fires from it). What survives from the top-down slices is
+ * exactly the part that was never about drawing: the movement rule, still a pure function.
  *
- * Notice what it does NOT do: it does not re-render React. It writes straight to the 3D object's
- * position (`ref.current.position`). Sixty React re-renders a second would be slow and pointless —
- * the 3D library is already redrawing every frame.
+ * TEACHING NOTE — useFrame IS STILL THE UPDATE STEP:
+ * The callback runs once per frame before the picture is drawn, and it does not re-render React —
+ * it updates a plain object and publishes to the store. Movement is now VIEW-RELATIVE: step()
+ * receives the aim's yaw, so W means "the way I am looking" (see movement.js for why, and why
+ * pitch deliberately does not steer).
  */
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useKeyboard } from './useKeyboard.js';
 import { step } from './movement.js';
+import { aim } from './aim.js';
 import { usePlayerStore } from '../state/store.js';
 
 export default function Player() {
-  const ref = useRef();
+  const pos = useRef({ x: 0, z: 0 });
   const keys = useKeyboard();
   const setPosition = usePlayerStore((s) => s.setPosition);
 
   useFrame((_state, delta) => {
-    if (!ref.current) return;
-    const now = { x: ref.current.position.x, z: ref.current.position.z };
-    const next = step(now, keys.current, delta);
-    ref.current.position.x = next.x;
-    ref.current.position.z = next.z;
-    // Publish for anything that needs to know where the player is (the camera; later, enemies).
+    const next = step(pos.current, keys.current, delta, aim.yaw);
+    pos.current = next;
+    // Publish EVERY frame, moving or not — the __swanPlayerPos seam must exist from frame one.
+    // (A "publish only on change" optimisation here broke seven browser tests at once: everything
+    // that reads the seam before the player's first step saw undefined.)
     setPosition(next);
   });
 
-  return (
-    <mesh ref={ref} position={[0, 0.5, 0]} castShadow name="player">
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="#60C0F0" />
-    </mesh>
-  );
+  return null;
 }

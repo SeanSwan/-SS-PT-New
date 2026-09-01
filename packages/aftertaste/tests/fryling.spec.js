@@ -63,13 +63,13 @@ test('the Fryling renders as a skinned mesh, animates, and each enemy owns its s
   const moved = before.some((v, i) => Math.abs(v - after[i]) > 1e-6);
   expect(moved, `bone rotation advanced (before=${before} after=${after})`).toBe(true);
 
-  // Damage feedback reaches the REAL model: fire at an enemy through the store (the same path a
-  // click takes after the raycast) and require exactly one monster to darken to the low-hp tint.
-  // This is the hp-prop seam between the store and Fryling.jsx — the two units are each tested,
-  // and Slice 5 taught us the seam is where the bugs live.
+  // Damage feedback reaches the REAL model: shoot an enemy through the store (the same path the
+  // trigger takes after computing the camera ray) and require exactly one monster to darken to
+  // the low-hp tint. This is the hp-prop seam between the store and Fryling.jsx — the two units
+  // are each tested, and Slice 5 taught us the seam is where the bugs live.
   const darkened = await page.evaluate(() => {
     const target = window.__swanEnemyPos[0];
-    window.__swanGameStore.getState().fire({ x: target.x, z: target.z });
+    window.__swanGameStore.getState().shoot({ x: target.x, y: 10, z: target.z }, { x: 0, y: -1, z: 0 });
     return new Promise((resolve) => setTimeout(() => {
       let dark = 0;
       window.__swanScene.traverse((o) => {

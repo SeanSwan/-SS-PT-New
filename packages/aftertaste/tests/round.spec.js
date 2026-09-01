@@ -21,12 +21,13 @@ test('clearing every enemy advances the wave and spawns a bigger one', async ({ 
 
   const firstWaveSize = await page.evaluate(() => window.__swanEnemyPos.length);
 
-  // Kill everything by firing at each enemy twice, wherever it currently is.
+  // Kill everything by shooting straight down at each enemy, wherever it currently is (the FPS
+  // model: shoot() takes a ray; a vertical ray over the target is the deterministic aim).
   await page.evaluate(() => {
     const store = window.__swanGameStore;
     for (let pass = 0; pass < 6; pass++) {
       for (const e of store.getState().enemies.map((x) => ({ x: x.x, z: x.z }))) {
-        store.getState().fire(e);
+        store.getState().shoot({ x: e.x, y: 10, z: e.z }, { x: 0, y: -1, z: 0 });
       }
       if (store.getState().enemies.length === 0) break;
     }

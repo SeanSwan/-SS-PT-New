@@ -26,9 +26,19 @@ export const SPEED = 5;
  * @param {{x:number,z:number}} pos    where the player is now
  * @param {{forward:boolean,back:boolean,left:boolean,right:boolean}} keys what is held down
  * @param {number} delta               seconds since the previous frame
+ * @param {number} yaw                 which way you are FACING (radians; 0 faces -z)
  * @returns {{x:number,z:number}}      where the player should be now
+ *
+ * TEACHING NOTE — FPS MOVEMENT IS VIEW-RELATIVE:
+ * In the top-down slices W always meant "north" (-z). The moment the camera went behind your eyes
+ * (the Overwatch/BF6 change), W has to mean "the way I am looking" — walking north while looking
+ * east is not a control scheme anyone can use. The fix is one 2D rotation: build the intent in
+ * LOCAL space (right/back, exactly as before), then rotate it by yaw into WORLD space. At yaw 0
+ * the rotation is the identity, which is why every earlier movement test still passes untouched.
+ * Only yaw steers movement — pitch must not: looking at the floor should not make W walk you
+ * downward into it.
  */
-export function step(pos, keys, delta) {
+export function step(pos, keys, delta, yaw = 0) {
   // -z is "forward" because the camera looks down -z by default in three.js.
   let dx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
   let dz = (keys.back ? 1 : 0) - (keys.forward ? 1 : 0);
@@ -41,8 +51,14 @@ export function step(pos, keys, delta) {
   dx /= len;
   dz /= len;
 
+  // Rotate the local intent by yaw into world space (standard 2D rotation about Y).
+  const cos = Math.cos(yaw);
+  const sin = Math.sin(yaw);
+  const wx = dx * cos + dz * sin;
+  const wz = -dx * sin + dz * cos;
+
   return {
-    x: pos.x + dx * SPEED * delta,
-    z: pos.z + dz * SPEED * delta,
+    x: pos.x + wx * SPEED * delta,
+    z: pos.z + wz * SPEED * delta,
   };
 }

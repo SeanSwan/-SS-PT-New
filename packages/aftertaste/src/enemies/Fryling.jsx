@@ -53,6 +53,10 @@ export default function Fryling({ hp = 2 }) {
     copy.traverse((o) => {
       if (o.isMesh && o.material) o.material = o.material.clone();
       if (o.isMesh) o.castShadow = true;
+      // A faint ember glow from within. A THREAT MUST ALWAYS READ: at FPS eye height most of what
+      // you see is the unlit side of things, and a monster that fades into darkness is not
+      // difficulty, it is a missing render. Emissive light ignores the sun entirely.
+      if (o.isMesh && o.material?.emissive) o.material.emissive.set('#571510');
     });
     return copy;
   }, [scene]);

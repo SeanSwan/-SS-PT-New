@@ -32,16 +32,21 @@ export function waveSize(wave) {
 /**
  * Spawn `count` enemies evenly around a ring at `radius`, so they arrive from all sides rather
  * than as one clump you can simply run away from.
+ *
+ * The ring is centred on `centre` — THE PLAYER, not the origin. The world became effectively
+ * infinite when the floor started following the player; a ring fixed at the origin would then
+ * spawn wave 9 forty units behind a player who has been kiting north, and the game turns into
+ * waiting for a delivery. Threats spawn around wherever you actually are.
  */
-export function spawnRing(count, radius, waveNumber = 1) {
+export function spawnRing(count, radius, waveNumber = 1, centre = { x: 0, z: 0 }) {
   const out = [];
   for (let i = 0; i < count; i++) {
     // Offset by the wave number so successive waves do not arrive at identical angles.
     const angle = (i / count) * Math.PI * 2 + waveNumber * 0.37;
     out.push({
       id: `w${waveNumber}-e${i}-${Math.random().toString(36).slice(2, 7)}`,
-      x: Math.cos(angle) * radius,
-      z: Math.sin(angle) * radius,
+      x: centre.x + Math.cos(angle) * radius,
+      z: centre.z + Math.sin(angle) * radius,
       hp: 2,
     });
   }

@@ -13,24 +13,111 @@
  * Lights matter: with no light, a standard material renders pure black. That is the single most
  * common "my scene is empty" mistake, and it is not an error — it draws perfectly, in black.
  */
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Vector3 } from 'three';
+
+/** One scratch vector, reused every shot — allocating in a frame loop feeds the garbage collector. */
+const _dirScratch = new Vector3();
 import Ground from './world/Ground.jsx';
 import Player from './player/Player.jsx';
 import Enemies from './enemies/Enemies.jsx';
 import Hud from './ui/Hud.jsx';
-import { useShoot } from './combat/Shooting.jsx';
-import { usePlayerStore } from './state/store.js';
-import { followPlayer } from './systems/cameraFollow.js';
+import { aim, applyLook } from './player/aim.js';
+import { useGameStore, usePlayerStore } from './state/store.js';
+
+/** Eye height. Enemies are ~1 unit tall, so you look slightly DOWN at the swarm — CoD-zombies framing. */
+const EYE_HEIGHT = 1.6;
+
+/** Seconds between shots while the trigger is held. ~400 rounds/min — an Overwatch-ish auto. */
+const FIRE_INTERVAL = 0.15;
 
 /**
- * A component that renders nothing and only runs a per-frame system. This is a common and useful
+ * FpsRig — the camera goes behind your eyes (Sean's call: shoot like Overwatch/Battlefield).
+ *
+ * TEACHING NOTE — POINTER LOCK IS WHAT MAKES MOUSE-LOOK POSSIBLE:
+ * A normal mouse cursor stops at the screen edge, so "keep turning right" would be impossible.
+ * requestPointerLock() hides the cursor and starts reporting RELATIVE movement (movementX/Y)
+ * forever, which is exactly what an aim wants. It must be requested from a user gesture — the
+ * click — and Esc always releases it; the browser owns that, not us. Lock gates LOOKING only;
+ * firing works regardless, which also keeps the game testable in browsers where lock is refused.
+ *
+ * TEACHING NOTE — A COMPONENT THAT RENDERS NOTHING and only runs a per-frame system is a normal
  * shape: "logic that needs the frame, but is not a visible thing."
  */
-function CameraRig() {
-  const { camera } = useThree();
-  useFrame((_s, delta) => {
-    followPlayer(camera, usePlayerStore.getState().position, delta);
+function FpsRig() {
+  const { camera, gl } = useThree();
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    // YXZ: spin (yaw) first, then tilt (pitch). Any other order makes diagonal looking "roll".
+    camera.rotation.order = 'YXZ';
+    const onMouseDown = () => {
+      if (document.pointerLockElement !== canvas) canvas.requestPointerLock?.();
+    };
+    const onMouseMove = (e) => {
+      if (document.pointerLockElement !== canvas) return;
+      Object.assign(aim, applyLook(aim, e.movementX, e.movementY));
+    };
+    canvas.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    // Test seam: headless browsers refuse pointer lock, and a synthetic MouseEvent cannot carry
+    // movementX. This is the same one-readable-global reasoning as __swanPlayerPos.
+    if (typeof window !== 'undefined') {
+      window.__swanAim = aim;
+      window.__swanLook = (dx, dy) => Object.assign(aim, applyLook(aim, dx, dy));
+    }
+    return () => {
+      canvas.removeEventListener('mousedown', onMouseDown);
+      document.removeEventListener('mousemove', onMouseMove);
+    };
+  }, [camera, gl]);
+
+  useFrame(() => {
+    const p = usePlayerStore.getState().position;
+    camera.position.set(p.x, EYE_HEIGHT, p.z);
+    camera.rotation.set(aim.pitch, aim.yaw, 0);
+  });
+  return null;
+}
+
+/**
+ * TriggerControl — hold to fire.
+ *
+ * TEACHING NOTE — THE TRIGGER IS A FRAME SYSTEM, NOT A CLICK HANDLER:
+ * A click handler fires once per click; Overwatch/BF6 guns fire while HELD, at a fixed rate. So
+ * mousedown/mouseup only record intent, and the frame loop is what actually pulls the trigger —
+ * first shot instantly, then one every FIRE_INTERVAL. The decision itself is a hitscan from the
+ * camera (see combat.js): the ray IS the shot; any tracer would be decoration.
+ */
+function TriggerControl() {
+  const { camera, gl } = useThree();
+  const held = useRef(false);
+  const lastShot = useRef(-Infinity);
+
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const down = (e) => { if (e.button === 0) held.current = true; };
+    const up = (e) => { if (e.button === 0) held.current = false; };
+    canvas.addEventListener('mousedown', down);
+    document.addEventListener('mouseup', up);
+    return () => {
+      canvas.removeEventListener('mousedown', down);
+      document.removeEventListener('mouseup', up);
+    };
+  }, [gl]);
+
+  useFrame((state) => {
+    if (!held.current) return;
+    const now = state.clock.elapsedTime;
+    if (now - lastShot.current < FIRE_INTERVAL) return;
+    lastShot.current = now;
+    const dir = camera.getWorldDirection(_dirScratch);
+    useGameStore.getState().shoot(
+      { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+      { x: dir.x, y: dir.y, z: dir.z },
+    );
+    if (typeof window !== 'undefined') window.__swanShotsFired = (window.__swanShotsFired ?? 0) + 1;
   });
   return null;
 }
@@ -70,12 +157,13 @@ function SunLight() {
 }
 
 export default function App() {
-  const shoot = useShoot();
   return (
     <>
     <Canvas
-      // camera sits back and above, looking at the origin — the classic third-person framing.
-      camera={{ position: [0, 13, 15], fov: 50 }}
+      // First-person: FpsRig owns position and rotation every frame, so no initial pose matters.
+      // fov 75 vertical is the FPS convention (Overwatch/Battlefield territory); the old 50 was a
+      // telephoto look that reads claustrophobic from eye height.
+      camera={{ fov: 75, near: 0.1 }}
       // Tell three.js we want webgl2 explicitly; the boot test asserts this context exists.
       gl={{ antialias: true }}
       // TEACHING NOTE: meshes have carried castShadow/receiveShadow since Slice 1, and they did
@@ -93,19 +181,26 @@ export default function App() {
       }}
     >
       <color attach="background" args={['#0b0b0e']} />
+      {/* Fog the same colour as the background: distance fades to void instead of ending at a
+          visible floor edge. It starts past the whole spawn ring (18) so threats are never hidden,
+          and fully swallows the world before the floor's 25-unit edge could show. Depth for free. */}
+      <fog attach="fog" args={['#0b0b0e', 20, 46]} />
 
       {/* Two lights, because one is never enough:
           ambient  = flat fill so nothing is pure black
-          directional = a "sun" that creates the shading which reads as shape */}
-      <ambientLight intensity={0.4} />
+          directional = a "sun" that creates the shading which reads as shape.
+          Ambient came up from 0.4 when the camera dropped to eye height — at ground level you
+          mostly see the UNLIT side of things, and 0.4 read as near-black monsters. */}
+      <ambientLight intensity={0.6} />
       <SunLight />
 
-      <Ground onClick={shoot} />
+      <Ground />
       <Player />
       <Enemies />
 
-      {/* Slice 2 replaced OrbitControls with a camera that follows the player. */}
-      <CameraRig />
+      {/* Slice 2 replaced OrbitControls with a follow camera; the FPS slice put it behind your eyes. */}
+      <FpsRig />
+      <TriggerControl />
     </Canvas>
     <Hud />
     </>

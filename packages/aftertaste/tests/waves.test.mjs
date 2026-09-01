@@ -77,3 +77,11 @@ test('hp never goes negative, however hard you are hit', () => {
   const r = tickRound({ hp: 1, wave: 1 }, at(0, 0), [at(0, 0), at(0, 0)]);
   assert.ok(r.hp >= 0, `hp was ${r.hp}`);
 });
+
+test('spawnRing centres on the player, not the origin — the world is infinite now', () => {
+  const ring = spawnRing(4, 10, 1, { x: 100, z: -50 });
+  for (const e of ring) {
+    const d = Math.hypot(e.x - 100, e.z - -50);
+    assert.ok(Math.abs(d - 10) < 1e-9, `enemy at radius ${d} from the given centre`);
+  }
+});

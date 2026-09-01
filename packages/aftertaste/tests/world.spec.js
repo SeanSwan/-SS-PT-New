@@ -32,23 +32,21 @@ test('floor, grid and sun follow the player; the grid snaps to whole units', asy
   const world = await page.evaluate(() => {
     const out = { player: window.__swanPlayerPos };
     window.__swanScene.traverse((o) => {
-      if (o.name === 'ground') out.floor = { x: o.position.x, z: o.position.z };
-      if (o.type === 'GridHelper') out.grid = { x: o.position.x, z: o.position.z };
+      if (o.name === 'ground') out.floor = { x: o.position.x, z: o.position.z, hasGridTexture: Boolean(o.material.map) };
       if (o.isDirectionalLight) out.sun = { x: o.position.x, z: o.position.z, tx: o.target.position.x, tz: o.target.position.z };
     });
     return out;
   });
 
-  // Floor glides continuously with the player.
-  expect(Math.abs(world.floor.x - world.player.x)).toBeLessThan(0.01);
-  expect(Math.abs(world.floor.z - world.player.z)).toBeLessThan(0.01);
-
-  // Grid stays within one cell of the player AND sits on exact whole units.
-  expect(Math.abs(world.grid.x - world.player.x)).toBeLessThanOrEqual(0.5);
-  expect(Math.abs(world.grid.z - world.player.z)).toBeLessThanOrEqual(0.5);
+  // The floor carries the grid as a TEXTURE (line primitives lost half the grid to GL clipping —
+  // twice), stays within one cell of the player, and sits on exact whole units so its painted
+  // lines land where an infinite world grid's lines would.
+  expect(world.floor.hasGridTexture, 'grid is painted on the floor').toBe(true);
+  expect(Math.abs(world.floor.x - world.player.x)).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(world.floor.z - world.player.z)).toBeLessThanOrEqual(0.5);
   // Math.abs also normalizes -0: (-12 % 1) is -0 in JS, and Object.is(-0, 0) is false.
-  expect(Math.abs(world.grid.x % 1), 'grid x is a whole unit').toBe(0);
-  expect(Math.abs(world.grid.z % 1), 'grid z is a whole unit').toBe(0);
+  expect(Math.abs(world.floor.x % 1), 'floor x is a whole unit').toBe(0);
+  expect(Math.abs(world.floor.z % 1), 'floor z is a whole unit').toBe(0);
 
   // The sun keeps its OFFSET (direction is what shading comes from) and its target on the player.
   expect(Math.abs(world.sun.x - (world.player.x + 12))).toBeLessThan(0.01);

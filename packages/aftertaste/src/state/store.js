@@ -32,11 +32,19 @@ export const usePlayerStore = create((set) => ({
  * second system needs the same data is the moment it belongs in the store — not before. Promoting
  * everything "just in case" is how a small game turns into a tangle.
  */
-import { fireAt as fireAtPure, ENEMY_HP } from '../combat/combat.js';
+import { hitscan, damage, isDead } from '../combat/combat.js';
 import { waveSize, spawnRing, tickRound, PLAYER_HP } from '../systems/waves.js';
 
 /** Seconds of mercy after a hit, so one touch is not three instant deaths. */
 const INVULN_SECONDS = 1.0;
+
+/**
+ * The game clock's latest reading, OUTSIDE the reactive state on purpose: it changes 60 times a
+ * second, and putting it in the store would re-render every HUD subscriber every frame for a
+ * number no UI draws. tick() refreshes it; shoot() reads it to timestamp hitmarkers. Same
+ * reasoning as the aim living outside the store — see aim.js.
+ */
+let clockNow = 0;
 
 const firstWave = () => spawnRing(waveSize(1), 18, 1);
 
@@ -47,14 +55,31 @@ export const useGameStore = create((set, get) => ({
   wave: 1,
   over: false,
   invulnUntil: 0,
+  /** When the last shot connected / killed — the HUD's hitmarker reads these. 0 = never. */
+  lastHitAt: 0,
+  lastKillAt: 0,
 
-  /** Fire at a world point. Returns how many died, so the caller can react (sound, later). */
-  fire: (point) => {
+  /**
+   * Fire one hitscan shot from `origin` along `dir` (the Overwatch/BF6 model — the decision is a
+   * ray test at the instant of the trigger; any tracer is decoration). Returns true on a hit.
+   */
+  shoot: (origin, dir) => {
     const { enemies, kills } = get();
-    const result = fireAtPure(enemies, point);
-    set({ enemies: result.enemies, kills: kills + result.killed });
-    if (typeof window !== 'undefined') window.__swanKills = kills + result.killed;
-    return result.killed;
+    const hit = hitscan(origin, dir, enemies);
+    if (!hit) return false;
+    const hurt = damage(hit.target, 1);
+    const killed = isDead(hurt) ? 1 : 0;
+    const next = killed
+      ? enemies.filter((e) => e.id !== hit.target.id)
+      : enemies.map((e) => (e.id === hit.target.id ? hurt : e));
+    set({
+      enemies: next,
+      kills: kills + killed,
+      lastHitAt: clockNow,
+      ...(killed ? { lastKillAt: clockNow } : {}),
+    });
+    if (typeof window !== 'undefined') window.__swanKills = kills + killed;
+    return true;
   },
 
   /**
@@ -68,6 +93,7 @@ export const useGameStore = create((set, get) => ({
    */
   tick: (player, elapsed) => {
     const s = get();
+    clockNow = elapsed;
     if (s.over) return;
 
     const merciful = elapsed < s.invulnUntil;
@@ -86,7 +112,9 @@ export const useGameStore = create((set, get) => ({
     }
     if (r.cleared) {
       patch.wave = r.wave;
-      patch.enemies = spawnRing(waveSize(r.wave), 18, r.wave);
+      // Centred on the PLAYER: the floor follows you now, so a ring fixed at the origin would
+      // spawn the next wave a full sprint behind wherever you have kited to.
+      patch.enemies = spawnRing(waveSize(r.wave), 18, r.wave, player);
     }
     if (Object.keys(patch).length) set(patch);
 
@@ -97,7 +125,13 @@ export const useGameStore = create((set, get) => ({
   },
 
   reset: () => {
-    set({ enemies: firstWave(), kills: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0 });
+    // The player does not teleport home on a restart, so the fresh wave rings THEM.
+    const centre = usePlayerStore.getState().position;
+    set({
+      enemies: spawnRing(waveSize(1), 18, 1, centre),
+      kills: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0,
+      lastHitAt: 0, lastKillAt: 0,
+    });
     if (typeof window !== 'undefined') {
       window.__swanKills = 0;
       window.__swanRound = { hp: PLAYER_HP, wave: 1, over: false, left: waveSize(1) };

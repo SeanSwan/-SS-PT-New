@@ -1,25 +1,62 @@
 /**
- * Slice 4 — combat, as pure functions.
+ * Combat, as pure functions — rewritten for the FPS slice.
  *
- * No physics engine. A bullet hitting a box is a distance check, and knowing you do NOT need
- * rapier here is the point of this slice. See CONCEPTS/collision-without-physics.md.
+ * TEST-DELTA DISCLOSURE: the Slice-4 tests for `hits`/`fireAt` (point-and-radius, click-to-shoot)
+ * were REMOVED together with that mechanic when Sean redirected shooting to the Overwatch/BF6
+ * model — hitscan from the eye. The damage/isDead tests survive unchanged; the ray tests below
+ * are the new mechanic's contract. See CONCEPTS/fps-camera-and-hitscan.md.
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { hits, damage, isDead, fireAt, ENEMY_HP, HIT_RADIUS } from '../src/combat/combat.js';
+import {
+  hitscan, damage, isDead, ENEMY_HP, AIM_RADIUS, TARGET_HEIGHT, MAX_RANGE,
+} from '../src/combat/combat.js';
 
-const at = (x, z) => ({ x, z });
+const eye = { x: 0, y: 1.6, z: 0 };
+/** A level ray needs a level target: fire from waist height so geometry is 2D-simple. */
+const waist = { x: 0, y: TARGET_HEIGHT, z: 0 };
+const FWD = { x: 0, y: 0, z: -1 };
 
-test('a shot inside the radius hits', () => {
-  assert.equal(hits(at(0, 0), at(0.5, 0)), true);
+test('a straight-ahead shot hits the enemy in front of you', () => {
+  const hit = hitscan(waist, FWD, [{ id: 'a', x: 0, z: -10 }]);
+  assert.equal(hit?.target.id, 'a');
+  assert.ok(Math.abs(hit.t - 10) < 1e-9, 'distance along the ray is reported');
 });
 
-test('a shot outside the radius misses', () => {
-  assert.equal(hits(at(0, 0), at(HIT_RADIUS + 1, 0)), false);
+test('an enemy BEHIND you is never hit — guns do not shoot backwards', () => {
+  assert.equal(hitscan(waist, FWD, [{ id: 'a', x: 0, z: +10 }]), null);
 });
 
-test('the boundary is inclusive, and stated rather than accidental', () => {
-  assert.equal(hits(at(0, 0), at(HIT_RADIUS, 0)), true);
+test('of two enemies on the same line, the NEARER one takes the shot', () => {
+  const hit = hitscan(waist, FWD, [
+    { id: 'far', x: 0, z: -20 },
+    { id: 'near', x: 0, z: -5 },
+  ]);
+  assert.equal(hit.target.id, 'near');
+});
+
+test('a shot passing within AIM_RADIUS counts; outside it misses', () => {
+  assert.ok(hitscan(waist, FWD, [{ id: 'graze', x: AIM_RADIUS - 0.01, z: -10 }]));
+  assert.equal(hitscan(waist, FWD, [{ id: 'wide', x: AIM_RADIUS + 0.01, z: -10 }]), null);
+});
+
+test('beyond MAX_RANGE the shot hits nothing', () => {
+  assert.equal(hitscan(waist, FWD, [{ id: 'a', x: 0, z: -(MAX_RANGE + 1) }]), null);
+});
+
+test('shooting from eye height at the floor-standing enemy works when the ray tilts down', () => {
+  // Enemy centre is at TARGET_HEIGHT; from a 1.6-high eye a LEVEL ray passes 1.1 above it — too
+  // far. Aim down at it and it hits. This is why aim has pitch.
+  const ez = -10;
+  assert.equal(hitscan(eye, FWD, [{ id: 'a', x: 0, z: ez }]), null, 'level ray sails over');
+  const dy = TARGET_HEIGHT - eye.y;
+  const len = Math.hypot(ez, dy);
+  const down = { x: 0, y: dy / len, z: ez / len };
+  assert.equal(hitscan(eye, down, [{ id: 'a', x: 0, z: ez }])?.target.id, 'a');
+});
+
+test('an empty world is a miss, not a crash', () => {
+  assert.equal(hitscan(waist, FWD, []), null);
 });
 
 test('damage reduces hp and never mutates the enemy passed in', () => {
@@ -30,8 +67,7 @@ test('damage reduces hp and never mutates the enemy passed in', () => {
 });
 
 test('hp floors at zero — negative hp breaks every UI that renders a bar', () => {
-  const enemy = { hp: 1, x: 0, z: 0 };
-  assert.equal(damage(enemy, 999).hp, 0);
+  assert.equal(damage({ hp: 1, x: 0, z: 0 }, 999).hp, 0);
 });
 
 test('dead means hp <= 0', () => {
@@ -46,35 +82,4 @@ test('an enemy takes ENEMY_HP shots to kill, not one', () => {
     assert.equal(isDead(e), false, `died early after ${i + 1} shots`);
   }
   assert.equal(isDead(damage(e, 1)), true);
-});
-
-test('fireAt damages every enemy in range and leaves the rest alone', () => {
-  const enemies = [
-    { id: 'a', hp: ENEMY_HP, x: 0, z: 0 },
-    { id: 'b', hp: ENEMY_HP, x: 50, z: 50 },
-  ];
-  const { enemies: next, killed } = fireAt(enemies, at(0, 0));
-  assert.equal(next[0].hp, ENEMY_HP - 1, 'in range should be damaged');
-  assert.equal(next[1].hp, ENEMY_HP, 'out of range must be untouched');
-  assert.equal(killed, 0);
-});
-
-test('fireAt reports kills, and dead enemies are removed', () => {
-  const enemies = [{ id: 'a', hp: 1, x: 0, z: 0 }];
-  const { enemies: next, killed } = fireAt(enemies, at(0, 0));
-  assert.equal(killed, 1);
-  assert.equal(next.length, 0, 'a dead enemy must not linger');
-});
-
-test('fireAt on an empty world is a no-op, not a crash', () => {
-  const { enemies, killed } = fireAt([], at(0, 0));
-  assert.deepEqual(enemies, []);
-  assert.equal(killed, 0);
-});
-
-test('a miss changes nothing at all', () => {
-  const enemies = [{ id: 'a', hp: ENEMY_HP, x: 99, z: 99 }];
-  const { enemies: next, killed } = fireAt(enemies, at(0, 0));
-  assert.equal(next[0].hp, ENEMY_HP);
-  assert.equal(killed, 0);
 });

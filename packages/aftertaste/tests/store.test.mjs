@@ -2,7 +2,7 @@
  * store.test.mjs — the SEAM between the round rules and the world state.
  *
  * WHY THIS FILE EXISTS (a defect, not a hunch):
- * waves.test.mjs proves tickRound is correct. combat.test.mjs proves fireAt is correct. Both passed
+ * waves.test.mjs proves tickRound is correct. combat.test.mjs proves the combat maths. Both passed
  * while the game was unloseable, because store.tick COMPOSED them wrongly: during the mercy window
  * it passed an EMPTY enemy list to tickRound to suppress damage, and an empty list also means
  * "wave cleared". So every hit advanced the wave and teleported the flock back to radius 18.
@@ -89,4 +89,51 @@ test('reset restores a full, playable round', () => {
   assert.equal(s.kills, 0);
   assert.equal(s.over, false);
   assert.ok(s.enemies.length > 0, 'reset must respawn a wave, not leave an empty board');
+});
+
+// --- shoot(): the FPS trigger's seam into the world -------------------------------------------
+
+const shotAt = (enemy) => useGameStore.getState().shoot(
+  { x: enemy.x, y: 10, z: enemy.z },
+  { x: 0, y: -1, z: 0 },
+);
+
+test('a connected shot damages exactly the enemy under the ray', () => {
+  const s = useGameStore.getState();
+  const target = s.enemies[0];
+  const others = s.enemies.slice(1).map((e) => e.hp);
+  assert.equal(shotAt(target), true);
+  const after = useGameStore.getState().enemies;
+  assert.equal(after.find((e) => e.id === target.id).hp, target.hp - 1);
+  assert.deepEqual(after.slice(1).map((e) => e.hp), others, 'bystanders untouched');
+});
+
+test('the killing shot removes the enemy and scores the kill', () => {
+  const target = useGameStore.getState().enemies[0];
+  shotAt(target);
+  shotAt(target);
+  const s = useGameStore.getState();
+  assert.equal(s.enemies.some((e) => e.id === target.id), false);
+  assert.equal(s.kills, 1);
+});
+
+test('a miss changes nothing and reports false', () => {
+  const before = useGameStore.getState();
+  const result = before.shoot({ x: 999, y: 10, z: 999 }, { x: 0, y: -1, z: 0 });
+  assert.equal(result, false);
+  assert.equal(useGameStore.getState().enemies.length, before.enemies.length);
+  assert.equal(useGameStore.getState().kills, 0);
+});
+
+test('hitmarker timestamps: every hit stamps lastHitAt; only a kill stamps lastKillAt to match', () => {
+  const target = useGameStore.getState().enemies[0];
+  // Advance the game clock so timestamps are non-zero (tick caches it for shoot).
+  useGameStore.getState().tick({ x: 500, z: 500 }, 7);
+  shotAt(target);
+  let s = useGameStore.getState();
+  assert.equal(s.lastHitAt, 7);
+  assert.notEqual(s.lastKillAt, s.lastHitAt, 'first hit is not a kill');
+  shotAt(target);
+  s = useGameStore.getState();
+  assert.equal(s.lastKillAt, 7, 'the kill stamps lastKillAt');
 });

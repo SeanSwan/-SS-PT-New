@@ -58,3 +58,23 @@ test('opposite keys cancel instead of jittering', () => {
   const next = step(at(), { ...none, forward: true, back: true }, 1);
   assert.deepEqual(next, { x: 0, z: 0 });
 });
+
+// --- FPS: movement is view-relative (the Overwatch/BF6 change) --------------------------------
+
+test('yaw rotates intent: facing +x (a quarter-turn right), W walks along +x', () => {
+  const next = step({ x: 0, z: 0 }, { forward: true, back: false, left: false, right: false }, 1, -Math.PI / 2);
+  assert.ok(Math.abs(next.x - SPEED) < 1e-9, `walked +x, got ${next.x}`);
+  assert.ok(Math.abs(next.z) < 1e-9, `no z drift, got ${next.z}`);
+});
+
+test('yaw defaults to 0, so every pre-FPS movement behaviour is unchanged', () => {
+  const a = step({ x: 1, z: 2 }, { forward: true, back: false, left: false, right: false }, 0.5);
+  const b = step({ x: 1, z: 2 }, { forward: true, back: false, left: false, right: false }, 0.5, 0);
+  assert.deepEqual(a, b);
+});
+
+test('strafing right while facing +x walks +z (your right hand points south now)', () => {
+  const next = step({ x: 0, z: 0 }, { forward: false, back: false, left: false, right: true }, 1, -Math.PI / 2);
+  assert.ok(Math.abs(next.z - SPEED) < 1e-9, `walked +z, got ${next.z}`);
+  assert.ok(Math.abs(next.x) < 1e-9);
+});

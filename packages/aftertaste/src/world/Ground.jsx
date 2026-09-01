@@ -1,56 +1,71 @@
 /**
- * Ground.jsx — the floor, and the thing your clicks land on.
+ * Ground.jsx — the floor.
  *
  * TEACHING NOTE: a plane is created standing up (facing you), so it must be rotated flat.
  * -Math.PI / 2 is -90 degrees in radians. three.js uses radians everywhere, never degrees.
  *
- * TEACHING NOTE — THE CLICK TARGET:
- * onClick here is what turns a flat mouse position into a world point: React Three Fiber raycasts
- * from the camera through the pixel, finds where it crosses this plane, and hands us event.point.
- * The ground is the natural click surface for a top-down game.
- *
  * TEACHING NOTE -- WHY THE GRID IS NOT DECORATION:
- * With a camera that follows the player, the player stays in the middle of the screen. On a plain
- * untextured floor that means NOTHING on screen changes as you move, and the game reads as frozen.
- * Your eye needs fixed features passing by to perceive motion at all. A grid is the cheapest
- * possible source of them -- one line, no texture, no art. Every grey-box prototype has one, and
- * this is the reason. It is also a free ruler: one square is one world unit, so you can SEE that
- * the player covers 5 units a second and an enemy covers 2.2.
+ * Your eye needs fixed features passing by to perceive motion at all; on a featureless floor the
+ * game reads as frozen. A grid is the cheapest possible source of them, and it is a free ruler:
+ * one square is one world unit, so you can SEE that you cover 5 units a second and an enemy 2.2.
  *
- * TEACHING NOTE — WHY THE FLOOR FOLLOWS THE PLAYER (the infinite-floor trick):
- * A fixed 50x50 floor has an EDGE, and worse: a grid line that runs along the camera's view
- * direction eventually has an endpoint far BEHIND the camera, and on Windows the browser's GL
- * layer visibly fails to clip such lines — half the grid silently stops drawing after ~9 units of
- * travel. No error, all tests green; only a screenshot caught it (see
- * CONCEPTS/debugging-by-elimination.md for the hunt). The fix is to make the world
- * TRANSLATION-INVARIANT: the plane glides with the player, and the grid follows in WHOLE-UNIT
- * steps — snapped to its own 1-unit cell so the lines land exactly where the "real" infinite
- * grid's lines would be. Snap the grid, or it swims with you and the motion cue it exists to
- * provide is destroyed. The plane is featureless, so IT may follow continuously.
+ * TEACHING NOTE — WHY THE GRID IS A TEXTURE AND NOT LINES (twice burned):
+ * The grid began as a GridHelper — actual GL line primitives. Lines running along the camera's
+ * view direction eventually cross far behind the camera, and the Windows GL layer visibly fails
+ * to clip them: half the grid silently stopped drawing. At a 13-unit top-down height that took 9
+ * units of travel to trigger; from a 1.6-unit FPS eye it is triggered STANDING STILL. So the grid
+ * is now PAINTED ON THE FLOOR — a tiny canvas drawn once and repeated 50×50 across the plane.
+ * A textured triangle cannot lose its stripes to line clipping; there are no lines left to clip.
+ * (The hunt that found the original defect: CONCEPTS/debugging-by-elimination.md.)
+ *
+ * TEACHING NOTE — THE FLOOR FOLLOWS THE PLAYER, IN WHOLE-UNIT STEPS:
+ * The world is translation-invariant (see the sun in App.jsx): the floor glides with you so it is
+ * effectively infinite. It snaps to WHOLE units — its texture is the grid now, so a continuously
+ * gliding floor would carry its lines with you and destroy the exact motion cue they exist for.
+ * Snapped to its own 1-unit cell, every line lands where an infinite world grid's lines would.
  */
-import { useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { CanvasTexture, RepeatWrapping } from 'three';
 import { usePlayerStore } from '../state/store.js';
 
-export default function Ground({ onClick }) {
+/** One grid cell, drawn once: floor colour with a 2px line along two edges. Repeated by the GPU. */
+function makeGridTexture() {
+  const size = 64;
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#23232b';
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = '#3d4356';
+  ctx.fillRect(0, 0, size, 2);
+  ctx.fillRect(0, 0, 2, size);
+  const texture = new CanvasTexture(c);
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
+  texture.repeat.set(50, 50);
+  // Without anisotropy a floor texture at a grazing FPS angle smears to mud in the distance.
+  texture.anisotropy = 8;
+  return texture;
+}
+
+export default function Ground() {
   const plane = useRef();
-  const grid = useRef();
+  const texture = useMemo(makeGridTexture, []);
 
   useFrame(() => {
     const p = usePlayerStore.getState().position;
-    if (plane.current) { plane.current.position.x = p.x; plane.current.position.z = p.z; }
-    if (grid.current) { grid.current.position.x = Math.round(p.x); grid.current.position.z = Math.round(p.z); }
+    if (plane.current) {
+      plane.current.position.x = Math.round(p.x);
+      plane.current.position.z = Math.round(p.z);
+    }
   });
 
   return (
-    <group name="ground-group">
-      <mesh ref={plane} rotation={[-Math.PI / 2, 0, 0]} receiveShadow onClick={onClick} name="ground">
-        <planeGeometry args={[50, 50]} />
-        <meshStandardMaterial color="#23232b" />
-      </mesh>
-      {/* Lifted a hair off the floor: two surfaces at exactly the same height fight over which is
-          in front, and the result flickers as the camera moves ("z-fighting"). */}
-      <gridHelper ref={grid} args={[50, 50, '#3d4356', '#2c313f']} position={[0, 0.01, 0]} />
-    </group>
+    <mesh ref={plane} rotation={[-Math.PI / 2, 0, 0]} receiveShadow name="ground">
+      <planeGeometry args={[50, 50]} />
+      <meshStandardMaterial map={texture} />
+    </mesh>
   );
 }
