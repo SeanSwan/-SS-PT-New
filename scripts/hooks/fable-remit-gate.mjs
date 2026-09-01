@@ -89,11 +89,22 @@
  * matched (verified 2026-08-26): a `package.json` script or `bash cmdfile` wrapper
  * (the name never appears); shell-variable indirection (`N=node; $N …`); a glob or
  * quote-split path (`consult-fab*.mjs`, `consu''lt-fable.mjs`); `xargs` with the
- * runner last; and **the substitute path** — `scripts/context-gateway/src/consult.mjs`
- * is what `consult-fable.mjs` actually shims to, so calling it directly spends Fable
- * through the same billing path and matches nothing here.
- * Detection for these is the spend LEDGER, not this gate. Say so out loud rather
- * than letting the header's confidence imply coverage that does not exist.
+ * runner last.
+ *
+ * REMOVED FROM THAT LIST 2026-08-31: `scripts/context-gateway/src/consult.mjs` was
+ * cited here as a live "substitute path" that spends Fable directly. **It is not, and
+ * it never was.** Verified: the file has no shebang and no self-invocation guard, so
+ * `node .../consult.mjs` defines exports and exits, spending nothing. The claim was
+ * accepted after confirming a REGEX did not match it, without confirming the file was
+ * EXECUTABLE — matching is not the same as exploitable, and verifying the wrong
+ * proposition is how a finding gets "confirmed" while staying wrong.
+ *
+ * Leaving it listed had a real cost beyond being untrue: it named a fake hole beside
+ * genuine ones, so a reader auditing this list would spend effort on the fake and
+ * learn that the list is noisy. A known-gaps list is only useful if every row is real.
+ *
+ * Detection for the remaining shapes is the spend LEDGER, not this gate. Say so out
+ * loud rather than letting the header's confidence imply coverage that does not exist.
  *
  * WHY `--dry-run` IS NOT HONORED
  * ------------------------------
@@ -112,6 +123,8 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
+import { planFrom } from '../lib/invocation-plan.mjs';
+import { redeemOnce } from '../lib/atomic-claim.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const STATE_DIR = join(HERE, '..', '..', '.ai-workflow', 'gates');
@@ -225,18 +238,42 @@ export function commandKey(cmd) {
 /** True when this command actually spends Fable. Exported for the tests. */
 export function invokesFable(cmd) {
   const c = String(cmd || '');
+
+  // THE PLAN FIRST, because it canonicalizes what the regex compares as bytes.
+  // Node accepts a module specifier as a file URL and a URL may percent-encode any
+  // character, so `--import=file:///…/consult%2Dfable.mjs` runs the Fable seat and
+  // contains no literal `consult-fable.mjs` for any pattern to find (Codex
+  // 2026-08-31). Query strings and fragments are the same story. The parser resolves
+  // all three to the path Node resolves them to, once, for both gates.
+  if (planFrom(c).some((inv) => inv.name === 'consult-fable.mjs')) return true;
+
+  // The regex stays as the PRESENCE test for shapes the plan does not attribute — a
+  // mention-resistant net over wrappers, substitutions and quoting. The two are
+  // complementary: the plan knows what executes, the regex knows what is named.
   if (INVOCATION.test(c)) return true;
+  // THE PANEL ARM READS THE INVOCATION PLAN, NOT THE RAW LINE.
+  //
+  // Codex hostile review 2026-08-31 found two defects here that are one defect:
+  //   `--seats "fable,sol"`  read as `"fable` — a quoted value scanned as text.
+  //   `<panel --seats sol> && <panel --seats fable>` cleared, because the FIRST
+  //   `--seats` on the line won and a different command's flag answered for this one.
+  //
+  // Both die with the scan. The plan hands back each panel invocation with its OWN
+  // argv, already unquoted by the parser — so there is no quote to strip and no way to
+  // read a neighbour's flag. The `--seats=` spelling comes free, because `flagFrom`
+  // handles both forms rather than a regex trying to spell them.
+  //
+  // The seat-list SEMANTICS are unchanged and still deliberate: an absent or empty
+  // list means the panel's DEFAULT roster, and Fable is not in it — so an unnamed list
+  // is genuinely not a Fable call. That is the same distinction the spend gate learned
+  // in round 5, where collapsing "empty" into "none" priced a confirmed fan-out at $0.
+  if (planFrom(c).some((inv) => inv.isPanel && (inv.seats || []).includes('fable'))) return true;
   if (PANEL_WITH_FABLE.test(c)) {
-    // BOTH SPELLINGS. `--seats=fable` was invisible to the space-only form, and that
-    // exact spelling gap cost the spend gate a blocker in round 6 (`--import=` vs
-    // `--import `). Every flag reader in this system has now been bitten by it once.
-    const seats = (c.match(/--seats[\s=]+([^\s]+)/) || [])[1] || '';
-    const named = seats.split(',').map((s) => s.trim().toLowerCase());
-    // An EMPTY or absent seat list means the panel's DEFAULT roster, which the spend
-    // gate learned the hard way (round 5: `--seats ""` priced a confirmed fan-out at
-    // $0). Fable is not in the default roster, so an unnamed list is genuinely not a
-    // Fable call — but a list that fails to parse is not the same as one that says no.
-    return named.includes('fable');
+    // The plan could not attribute this line (an unknown wrapper, an eval, a nested
+    // shell) yet a panel is plainly named in it. Falling through to `false` here would
+    // be the fail-OPEN this gate is written not to do, so an unreadable panel line
+    // counts as a Fable call and Sean gets the handoff block.
+    return planFrom(c).some((inv) => inv.unknown);
   }
   return false;
 }
@@ -245,7 +282,13 @@ export function invokesFable(cmd) {
  * The decision. Pure, so the tests can drive it without spawning a process.
  * @returns {{allow:boolean, token:string|null, reason:string}}
  */
-export function decide(cmd, { tokens = readTokens(), persist = writeTokens } = {}) {
+export function decide(cmd, {
+  tokens = readTokens(),
+  persist = writeTokens,
+  // The shared single-winner primitive. Injectable so `decide` stays pure for tests;
+  // the default is the real O_EXCL claim used by the spend ledger.
+  claim = (key, token) => redeemOnce(STATE_DIR, key, token),
+} = {}) {
   if (!invokesFable(cmd)) return { allow: true, token: null, reason: 'not a Fable invocation' };
 
   const key = commandKey(cmd);
@@ -254,8 +297,27 @@ export function decide(cmd, { tokens = readTokens(), persist = writeTokens } = {
 
   // SECOND ask: Sean saw the handoff block and said yes anyway. His call, and it
   // overrides this gate (standing owner override) — but it is now on the record.
-  if (presented && held && held.token === presented && !held.used) {
-    held.used = true;
+  if (presented && held && held.token === presented) {
+    // THE CLAIM IS ATOMIC, AND `held.used` NO LONGER DECIDES ANYTHING.
+    //
+    // Codex hostile review 2026-08-31: two processes that both read the store while it
+    // still said `used: false` both proceeded. Read tokens.json, check the flag, set
+    // it, write back — that is an unlocked read-modify-write, so "check then set" has
+    // a window, and this harness issues tool calls in parallel as a matter of course.
+    //
+    // The spend ledger had the IDENTICAL race and fixed it months ago. It survived
+    // here because only one gate was ever audited — the most expensive recurring shape
+    // in this workstream. So the primitive is now SHARED (`lib/atomic-claim.mjs`)
+    // rather than reimplemented: exactly one process can create the O_EXCL claim path,
+    // and the spent-marker is what makes that claim mean "spent" rather than
+    // "in progress".
+    //
+    // `claim` is injectable so the pure `decide()` stays testable without touching
+    // disk; the default is the real primitive.
+    if (!claim(key, presented)) {
+      return { allow: false, token: null, reason: 'that approval is already being redeemed, or was already spent' };
+    }
+    held.used = true;                 // audit trail only — the claim decided this
     held.usedAt = new Date().toISOString();
     persist(tokens);
     return { allow: true, token: null, reason: 'second approval accepted' };

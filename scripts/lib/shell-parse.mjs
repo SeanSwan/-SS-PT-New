@@ -240,6 +240,40 @@ function headIsInert(head, argv) {
 const basename = (p) => String(p).replace(/^.*[/\\]/, '');
 
 /**
+ * A Node MODULE SPECIFIER as Node resolves it, not as bytes.
+ *
+ * Codex hostile review 2026-08-31. Node accepts a specifier as a file URL, and a URL
+ * may percent-encode any character — so `consult%2Dfable.mjs` IS `consult-fable.mjs`
+ * to Node, and is NOT to a matcher comparing text. Query strings and fragments are
+ * equally legal on a file URL and equally invisible:
+ *
+ *     node --import=file:///C:/repo/scripts/consult%2Dfable.mjs   ->  runs the seat
+ *     node --import=./scripts/consult-fable.mjs?v=2               ->  runs the seat
+ *
+ * Both gates missed all three. This is the same class as the round-8 NUL byte and the
+ * round-6 uppercase extension: an encoding the RUNNER understands and the matcher does
+ * not. Canonicalising once, here, is why neither gate needs to learn it separately.
+ *
+ * Deliberately total: an undecodable specifier returns unchanged rather than throwing,
+ * because a malformed path is still a path and losing it would be a silent miss.
+ */
+export function canonicalSpecifier(raw) {
+  let s = String(raw ?? '');
+  if (!s) return s;
+  // Strip a query string or fragment — neither is part of the resolved path.
+  s = s.replace(/[?#].*$/, '');
+  // `file:///C:/x` and `file:///home/x` both become an ordinary path.
+  if (/^file:\/\//i.test(s)) {
+    s = s.replace(/^file:\/\/\/?/i, '');
+    if (/^[A-Za-z]:/.test(s) === false && !s.startsWith('/')) s = `/${s}`;
+  }
+  // Percent-decoding LAST, so an encoded `%3F` cannot smuggle a query delimiter past
+  // the strip above and re-appear as structure.
+  try { s = decodeURIComponent(s); } catch { /* malformed escape — keep the raw form */ }
+  return s;
+}
+
+/**
  * Split into segments at UNQUOTED separators, then tokenise each into argv.
  * Quotes are consumed as structure: a token records whether it was quoted, because
  * a quoted arg is data even when it looks like a path.
@@ -556,7 +590,10 @@ export function invokedScripts(input, depth = 0) {
         // an argument the target ignores, which is exactly how the carve-out became
         // a bypass. Position is the whole point, and a parser is what makes position
         // expressible.
-        if (!/\.(mjs|js|cjs)$/i.test(t.value)) {
+        // CANONICAL FORM decides script-shape, so `./x.mjs?v=2` and a percent-encoded
+        // file URL are recognised as the scripts Node will actually resolve them to.
+        const canon = canonicalSpecifier(t.value);
+        if (!/\.(mjs|js|cjs)$/i.test(canon)) {
           if (t.value.startsWith('-') && NON_EXECUTING_FLAGS.has(t.value.split('=')[0])) nonExecuting = true;
           continue;
         }
@@ -601,8 +638,11 @@ export function invokedScripts(input, depth = 0) {
         // itself script-shaped, so it poisoned the positional rule in the same motion.
         // The gate's READERS were tested thoroughly for `--flag=value`; the parser's
         // loader flags never were. One spelling gap, one blocker.
+        // The loaded file is CANONICALIZED before it leaves the parser, so no consumer
+        // has to know that a file URL, a percent-escape, a query string and a fragment
+        // are all the same path to Node (Codex 2026-08-31).
         if (LOADER_FLAGS.has(t.value.split('=')[0]) && t.value.includes('=')) {
-          out.push({ path: t.value.slice(t.value.indexOf('=') + 1), nonExecuting, args: [] });
+          out.push({ path: canonicalSpecifier(t.value.slice(t.value.indexOf('=') + 1)), nonExecuting, args: [] });
           continue; // a loaded file competes for neither the positional nor the seat slot
         }
         const prev = argv[i - 1];
@@ -613,7 +653,7 @@ export function invokedScripts(input, depth = 0) {
         // Each executed file's args are what FOLLOW it, which is what lets the gate
         // read `--document` / `--seats` / `--model` off the seat that carries them.
         out.push({
-          path: t.value,
+          path: canon,
           nonExecuting,
           args: argv.slice(i + 1).map((a) => a.value),
         });
@@ -639,8 +679,11 @@ export function invokedScripts(input, depth = 0) {
     // write a path with spaces, not a way to mean something other than a command —
     // and in the argv[0] position there is nothing else it could mean. The `quoted`
     // flag still matters where a token could plausibly be data; this is not that.
-    if (/\.(mjs|js|cjs)$/i.test(argv[0].value)) {
-      out.push({ path: argv[0].value, nonExecuting: false, args: argv.slice(1).map((a) => a.value) });
+    // Canonicalized here too: `./scripts/consult%2Dfable.mjs` is a direct execution of
+    // the real seat, and only the canonical form says so.
+    const head0 = canonicalSpecifier(argv[0].value);
+    if (/\.(mjs|js|cjs)$/i.test(head0)) {
+      out.push({ path: head0, nonExecuting: false, args: argv.slice(1).map((a) => a.value) });
       continue;
     }
 

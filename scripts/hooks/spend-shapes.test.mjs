@@ -133,6 +133,17 @@ const BILLS = [
   ['r8  vim -c silent !',             `vim -c 'silent !node ${SEAT}' -c qa f`],
   ['r8  vim -c :! form',              `vim -c ':!node ${SEAT}' f`],
   ['r8  awk exec by shebang',         `awk '{system("./${SEAT}")}' f.txt`],
+  // Codex 2026-08-31. Node resolves a module specifier as a URL, so a percent-escape,
+  // a file:// prefix, a query string and a fragment are all the same path to the
+  // runner and none of them to a byte comparison. Benign by construction: every row
+  // names a seat so there is something to classify, and nothing here executes one.
+  ['cdx percent-encoded file URL',    `node --import=file:///C:/repo/${SEAT.replace('consult-', 'consult%2D')} build.mjs`],
+  ['cdx query string on specifier',   `node --require=./${SEAT}?v=2 build.mjs`],
+  ['cdx fragment on specifier',       `node --import=./${SEAT}#frag build.mjs`],
+  ['cdx space-form encoded loader',   `node --require file:///C:/repo/${SEAT.replace('consult-', 'consult%2D')} build.mjs`],
+  ['cdx encoded direct execution',    './scripts/consult%2Dfable.mjs --document x'],
+  ['cdx two confirmed panels',        'node scripts/consult-openrouter-panel.mjs --seats fable --confirm-spend && node scripts/consult-openrouter-panel.mjs --seats fable --confirm-spend'],
+  ['cdx panel, quoted seat list',     'node scripts/consult-openrouter-panel.mjs --seats "fable,sol" --document x --confirm-spend'],
 ];
 
 /**
@@ -182,6 +193,11 @@ const INERT = [
   ['vim -c substitute',               `vim -c 's/a/b/g' notes.txt`],
   ['diff of two process subs',        'diff <(sort a.txt) <(sort b.txt)'],
   ['a tab-separated command',         'cd /repo\t&& echo hi'],
+  // The cry-wolf side of loader canonicalization: an unrelated encoded loader, and a
+  // query string on a build script, must still run.
+  ['encoded loader, not a seat',      'node --import=file:///C:/repo/scripts/set%2Dup.mjs build.mjs'],
+  ['query string, not a seat',        'node --import=./scripts/setup.mjs?v=2 build.mjs'],
+  ['a panel naming no paid seat',     'node scripts/consult-openrouter-panel.mjs --seats glm,qwen --document x'],
 ];
 
 test('CORPUS: every shape that bills is blocked', () => {
@@ -347,8 +363,8 @@ test('CORPUS: a plainly-visible seat is PRICED, not merely refused as unreadable
 test('CORPUS: the table itself is non-trivial and the instrument works', () => {
   // A corpus test that silently ran zero rows would report perfect coverage, which
   // is the instrument-blindness this workstream has now hit four separate times.
-  assert.ok(BILLS.length >= 60, `the BILLS corpus shrank to ${BILLS.length} — rows are not deleted, they are fixed`);
-  assert.ok(INERT.length >= 32, `the INERT corpus shrank to ${INERT.length}`);
+  assert.ok(BILLS.length >= 67, `the BILLS corpus shrank to ${BILLS.length} — rows are not deleted, they are fixed`);
+  assert.ok(INERT.length >= 35, `the INERT corpus shrank to ${INERT.length}`);
   // And the harness really distinguishes the two directions.
   assert.equal(gate(`node ${SEAT} --document plan.md`), 2, 'control: the canonical paid call blocks');
   assert.equal(gate(`cat ${SEAT}`), 0, 'control: the canonical mention does not');

@@ -285,3 +285,78 @@ test('the command key ignores the token itself, so mint and redeem agree', () =>
   const withToken = commandKey('SWAN_FABLE_APPROVE=aabbccddeeff node scripts/consult-fable.mjs --document a.md');
   assert.equal(bare, withToken);
 });
+
+// ---------------------------------------------------------------------------
+// Codex hostile review, 2026-08-31. Every case below was reproduced against the
+// unfixed code before any implementation changed.
+// ---------------------------------------------------------------------------
+
+test('CODEX-1: a QUOTED --seats value is still a named seat', () => {
+  // `--seats "fable,sol"` is how a multi-seat list is actually written, and the
+  // reader captured `[^\s]+` from raw text — so it took `"fable,sol"` WITH the quote
+  // and split it into `"fable`, which is not `fable`. A confirmed fan-out carrying
+  // Fable read as not-a-Fable-call.
+  assert.equal(invokesFable('node scripts/consult-openrouter-panel.mjs --seats "fable,sol" --confirm-spend'), true);
+  assert.equal(invokesFable("node scripts/consult-openrouter-panel.mjs --seats 'sol,fable' --confirm-spend"), true);
+  // The negative still holds — quoting must not turn every panel into a Fable call.
+  assert.equal(invokesFable('node scripts/consult-openrouter-panel.mjs --seats "sol,glm" --confirm-spend'), false);
+});
+
+test('CODEX-2: flags belong to the invocation that owns them', () => {
+  // Two panels on one line: the first names sol, the second names fable. A
+  // line-global "first --seats wins" read returns sol and clears the whole line, so
+  // the Fable fan-out rode through because a DIFFERENT command was cheap.
+  const solFirst = 'node scripts/consult-openrouter-panel.mjs --seats sol --confirm-spend'
+    + ' && node scripts/consult-openrouter-panel.mjs --seats fable --confirm-spend';
+  assert.equal(invokesFable(solFirst), true);
+
+  // Order must not matter.
+  const fableFirst = 'node scripts/consult-openrouter-panel.mjs --seats fable --confirm-spend'
+    + ' && node scripts/consult-openrouter-panel.mjs --seats sol --confirm-spend';
+  assert.equal(invokesFable(fableFirst), true);
+
+  // And neither naming fable is still not a Fable call — the fix must not become
+  // "any panel gates", which would be cry-wolf on every free fan-out.
+  const neither = 'node scripts/consult-openrouter-panel.mjs --seats sol --confirm-spend'
+    + ' && node scripts/consult-openrouter-panel.mjs --seats glm --confirm-spend';
+  assert.equal(invokesFable(neither), false);
+});
+
+test('CODEX-5: Node loader specifiers are canonicalized before classification', () => {
+  // Node accepts a module specifier as a file URL, and a URL may percent-encode any
+  // character: `consult%2Dfable.mjs` IS `consult-fable.mjs` to Node, and is NOT to a
+  // matcher comparing bytes. Query strings and fragments are equally legal and
+  // equally invisible.
+  //
+  // These fixtures are BENIGN BY CONSTRUCTION — they name a seat path so there is
+  // something to classify, and nothing in this file ever executes one.
+  assert.equal(invokesFable('node --import=file:///C:/repo/scripts/consult%2Dfable.mjs build.mjs'), true,
+    'percent-encoded hyphen inside a file URL');
+  assert.equal(invokesFable('node --import=./scripts/consult-fable.mjs?v=2 build.mjs'), true,
+    'query string on the specifier');
+  assert.equal(invokesFable('node --import=./scripts/consult-fable.mjs#frag build.mjs'), true,
+    'fragment on the specifier');
+  assert.equal(invokesFable('node --require file:///C:/repo/scripts/consult%2Dfable.mjs build.mjs'), true,
+    'space-separated loader flag, same encoding');
+  // The negative: an unrelated encoded loader must not gate.
+  assert.equal(invokesFable('node --import=file:///C:/repo/scripts/set%2Dup.mjs build.mjs'), false);
+});
+
+test('CODEX-6: one unused approval snapshot yields exactly ONE winner', () => {
+  // Two processes that both read the store while it still said `used: false` both
+  // proceeded. The store is an unlocked read-modify-write, so "check then set" has a
+  // window — and this harness issues tool calls in parallel as a matter of course.
+  //
+  // Forced rather than raced: two decisions driven from the SAME snapshot is exactly
+  // what two processes holding a stale read see. A process-level barrier test lives
+  // beside this one.
+  const cmd = 'node scripts/consult-fable.mjs --document a.md';
+  const key = commandKey(cmd);
+  const snapshot = () => ({ [key]: { token: 'aaaaaaaaaaaa', used: false } });
+  const present = `SWAN_FABLE_APPROVE=aaaaaaaaaaaa ${cmd}`;
+
+  const a = decide(present, { tokens: snapshot(), persist: () => {} });
+  const b = decide(present, { tokens: snapshot(), persist: () => {} });
+  const winners = [a, b].filter((r) => r.allow).length;
+  assert.equal(winners, 1, `one approval admitted ${winners} calls — the claim is not atomic`);
+});

@@ -472,6 +472,48 @@ test('R5: a spent token is dead by the MARKER, not by forgetfulness', async () =
   rmSync(dir, { recursive: true, force: true });
 });
 
+test('CODEX-4: a non-nonce release settles the SMALLEST matching hold', async () => {
+  // Codex hostile review 2026-08-31, reproduced against the unfixed fold.
+  //
+  //   reserve  kimi/t  $0.90
+  //   reserve  kimi/t  $0.20
+  //   record   kimi/t  $0.01   (a completion)
+  //   -> accounted exposure collapsed to $0.21
+  //
+  // The fold settles the OLDEST matching hold when the releaser knows no nonce, and
+  // the shims never know one — they complete in a different process from the gate
+  // that reserved. So a $0.01 completion cancelled a $0.90 hold and the caps stopped
+  // seeing $0.70 of live exposure.
+  //
+  // "Oldest" was chosen as the ordinary one-call-one-release shape, and it is right
+  // for MATCHED sizes. It is wrong the moment two holds of different sizes share a
+  // model and topic, which is exactly the batching case per-seat holds created.
+  //
+  // Smallest-first is the conservative rule: the ledger keeps the larger hold until
+  // something actually settles it, so the error direction is toward refusal. A guard
+  // may over-count; it may not under-count.
+  const { dir, mod } = await freshLedger();
+  mod.reserveSpend({ model: 'kimi-k3', topic: 't', usd: 0.90 });
+  mod.reserveSpend({ model: 'kimi-k3', topic: 't', usd: 0.20 });
+  assert.ok(Math.abs(mod.spentOnTopic('t') - 1.10) < 1e-9, 'control: both holds are visible');
+
+  mod.recordSpend({ model: 'moonshotai/kimi-k3', topic: 't', usd: 0.01 });
+  const after = mod.spentOnTopic('t');
+  assert.ok(after >= 0.91 - 1e-9,
+    `a $0.01 completion must not cancel a $0.90 hold — exposure fell to $${after.toFixed(2)}`);
+
+  // And the nonce path still settles EXACTLY the hold it names, whatever the sizes.
+  const { dir: d2, mod: m2 } = await freshLedger();
+  const big = m2.reserveSpend({ model: 'kimi-k3', topic: 't', usd: 0.90 });
+  m2.reserveSpend({ model: 'kimi-k3', topic: 't', usd: 0.20 });
+  m2.releaseReservation({ model: 'kimi-k3', topic: 't', nonce: big });
+  assert.ok(Math.abs(m2.spentOnTopic('t') - 0.20) < 1e-9,
+    'a nonce names one hold and must settle that one, large or small');
+
+  rmSync(dir, { recursive: true, force: true });
+  rmSync(d2, { recursive: true, force: true });
+});
+
 test('normalizeModelKey folds vendor prefixes and case, and nothing else', async () => {
   const { dir, mod } = await freshLedger();
   const n = mod.normalizeModelKey;

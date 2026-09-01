@@ -935,6 +935,57 @@ test('R6: a PANEL reserves under the seat ids its fan-out records', () => {
   assert.deepEqual(rows.map((r) => r.model).sort(), ['grok-4.6', 'kimi-k3']);
 });
 
+test('CODEX-3: repeated panels are priced, counted and held per occurrence', () => {
+  // Codex hostile review 2026-08-31, reproduced against the unfixed gate: two
+  // CONFIRMED Fable panels on one Bash line priced as $1.06, reported "single call",
+  // and created ONE reserve. The second fan-out was free.
+  //
+  // Root cause is the same one the summing fix was written for, surviving in the one
+  // branch that never adopted it: `isPanel` is a line-level boolean, so a line with N
+  // panels collapses to one. Invocation MULTIPLICITY has to survive into pricing.
+  const one = 'node scripts/consult-openrouter-panel.mjs --seats fable --document x --confirm-spend';
+  const r = runGate(`${one} && ${one}`);
+  assert.equal(r.code, BLOCK);
+
+  const worst = Number((r.stderr.match(/worst case\s+\$([\d.]+)/) || [])[1]);
+  assert.ok(worst >= 2.0, `two Fable panels must price ~$2.12, got $${worst}`);
+  assert.match(r.stderr, /2 calls on this line/, 'and must be COUNTED as two, not called a single call');
+  assert.doesNotMatch(r.stderr, /single call/);
+
+  // One hold per PAID seat per panel occurrence. Free seats hold nothing.
+  const rows = readFileSync(join(r.dir, 'reservations.jsonl'), 'utf-8')
+    .trim().split('\n').map((l) => JSON.parse(l)).filter((x) => x.kind === 'reserve');
+  assert.equal(rows.length, 2, `expected one hold per panel occurrence, got ${rows.length}`);
+  assert.deepEqual(rows.map((x) => x.model), ['claude-fable-5', 'claude-fable-5']);
+
+  // A two-seat panel twice: two paid seats x two occurrences = four holds.
+  const two = 'node scripts/consult-openrouter-panel.mjs --seats fable,kimi --document x --confirm-spend';
+  const r2 = runGate(`${two} && ${two}`);
+  const rows2 = readFileSync(join(r2.dir, 'reservations.jsonl'), 'utf-8')
+    .trim().split('\n').map((l) => JSON.parse(l)).filter((x) => x.kind === 'reserve');
+  assert.equal(rows2.length, 4, `two paid seats over two panels is four holds, got ${rows2.length}`);
+});
+
+test('CODEX-5: the gate canonicalizes Node loader specifiers', () => {
+  // Node accepts a module specifier as a file URL, and a URL may percent-encode any
+  // character — `consult%2Dfable.mjs` IS `consult-fable.mjs` to Node. Query strings
+  // and fragments are equally legal and equally invisible to a byte comparison.
+  //
+  // Benign by construction: these name a seat path so there is something to classify,
+  // and no test here executes one.
+  for (const cmd of [
+    'node --import=file:///C:/repo/scripts/consult%2Dfable.mjs build.mjs',
+    'node --require=./scripts/consult-fable.mjs?v=2 build.mjs',
+    'node --import=./scripts/consult-fable.mjs#frag build.mjs',
+    'node --require file:///C:/repo/scripts/consult%2Dfable.mjs build.mjs',
+  ]) {
+    assert.equal(runGate(cmd).code, BLOCK, `loader specifier not canonicalized: ${cmd}`);
+  }
+  // The cry-wolf side: an unrelated encoded loader must still run.
+  assert.equal(runGate('node --import=file:///C:/repo/scripts/set%2Dup.mjs build.mjs').code, ALLOW);
+  assert.equal(runGate('node --import=./scripts/setup.mjs?v=2 build.mjs').code, ALLOW);
+});
+
 test('R10: the refusal text does not call a batched line a "single call"', () => {
   // flash round-6 F4, reproduced in round 10. Four batched Sol calls summing to $2.44
   // were refused as "single call $2.44 > cap $1.00" — and there IS no single call over

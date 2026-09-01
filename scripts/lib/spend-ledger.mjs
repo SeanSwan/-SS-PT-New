@@ -222,10 +222,32 @@ function readReservations() {
   for (const r of rows) {
     if (r.kind === 'reserve') { live.push(r); continue; }
     if (r.kind !== 'release') continue;
-    // Settle by nonce when the releaser knows it, else the oldest matching hold.
+    // Settle by nonce when the releaser knows it, else the SMALLEST matching hold.
+    //
+    // Codex hostile review 2026-08-31, reproduced: two holds on one model+topic at
+    // $0.90 and $0.20, then a $0.01 completion, and accounted exposure collapsed to
+    // $0.21. The fold settled the OLDEST match, so a one-cent call cancelled a
+    // ninety-cent hold and the caps stopped seeing $0.70 of live exposure.
+    //
+    // "Oldest" was chosen for the ordinary one-call-one-release shape and is right
+    // when the sizes match. It became wrong the moment per-invocation holds made two
+    // different-sized holds on one model+topic routine — the fix for one finding
+    // creating the conditions for the next, which is this workstream's signature.
+    //
+    // SMALLEST-FIRST IS THE CONSERVATIVE RULE, and conservative here has a direction:
+    // the larger hold stays until something actually settles it, so the ledger
+    // over-counts rather than under-counts. A spend guard may cry wolf; it may not
+    // quietly free budget it never got back. The nonce path is unaffected — a release
+    // that names a hold settles exactly that one, large or small.
     let i = r.nonce ? live.findIndex((h) => h.nonce === r.nonce) : -1;
     if (i < 0 && !r.nonce) {
-      i = live.findIndex((h) => h.model === r.model && h.topic === r.topic);
+      let best = -1;
+      for (let k = 0; k < live.length; k += 1) {
+        const h = live[k];
+        if (h.model !== r.model || h.topic !== r.topic) continue;
+        if (best < 0 || rowUsd(h) < rowUsd(live[best])) best = k;
+      }
+      i = best;
     }
     if (i >= 0) live.splice(i, 1); // orphan releases fall through and are DISCARDED
   }

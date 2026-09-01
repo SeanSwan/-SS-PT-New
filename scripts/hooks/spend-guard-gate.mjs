@@ -35,6 +35,7 @@ import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR, r
 // Hand-curating it inside this regex is what drifted in both directions at once.
 import { FREE_ALLOWLIST, KNOWN_UNGATED, DRY_RUN_AWARE, PANEL_SCRIPTS, scriptNameFrom, allScriptNamesFrom, invokesPaidSeat, seatInvocations, unmodelledExecutions } from '../lib/paid-seats.mjs';
 import { flagFrom, hasFlag, envAssignments } from '../lib/shell-parse.mjs';
+import { planFrom } from '../lib/invocation-plan.mjs';
 
 const ALLOW = () => process.exit(0);
 
@@ -439,7 +440,12 @@ try {
   const PANEL_OUT_TOK = 16000;
   const callUsdAt = (p) => (PANEL_IN_TOK / 1e6) * p[0] + (PANEL_OUT_TOK / 1e6) * p[1];
 
-  const FREE_PANEL_SEATS = new Set(['glm', 'qwen', 'gemini', 'ox']);
+  // `ox` stays listed as FREE, deliberately, even though it is dead. Removing it from
+  // the free set would make a stale `--seats ...,ox` price at the per-call cap and
+  // BLOCK — crying wolf over a seat that cannot bill because it cannot answer. Free is
+  // the accurate reading of a seat that is gone; the removal that matters is from
+  // DEFAULT_SEATS, where it was a recommendation.
+  const FREE_PANEL_SEATS = new Set(['glm', 'glmflash', 'qwen', 'gemini', 'ox']);
   const PANEL_SEAT_MODEL = {
     fable: 'claude-fable-5', sol: 'gpt-5.6-sol', kimi: 'kimi-k3', grok: 'grok-4.6',
     dspro: 'deepseek-v4-pro', dsflash: 'deepseek-v4-flash',
@@ -452,7 +458,13 @@ try {
     // silent-zero class this file has closed twice elsewhere.
     return k && PRICES[k] ? callUsdAt(PRICES[k]) : CAPS.perCall;
   };
-  const DEFAULT_SEATS = ['kimi', 'glm', 'qwen', 'ox', 'gemini', 'grok', 'dspro', 'dsflash'];
+  // `ox` REMOVED 2026-08-31. Ox Alpha's stealth listing is gone — it 404s — and it was
+  // GLM-5.3 Flash all along, so every past round where "Ox and GLM independently
+  // agreed" was one model family answering twice. Keeping a dead seat in the DEFAULT
+  // roster costs nothing in dollars (it priced at $0) and costs something worse: it
+  // recommends a seat that cannot answer, and implies a corroboration that never
+  // existed. `glmflash` is the same capacity under its real name.
+  const DEFAULT_SEATS = ['kimi', 'glm', 'glmflash', 'qwen', 'gemini', 'grok', 'dspro', 'dsflash'];
   // From the PANEL's own argv (GLM 5.3 round-5 B2): a panel appearing second on a
   // line had its `--seats` read off the first seat, found nothing, and priced the
   // fan-out at the full DEFAULT_SEATS roster — over-stating a small run, which is the
@@ -650,11 +662,30 @@ try {
     ? Math.max(0, callUsd(modelKey) - callUsd(raiseBase))
     : 0;
 
-  const worstCaseUsd = isPanel
-    ? panelUsd
-    : (chargeable.length > 1
-      ? chargeable.reduce((sum, n) => sum + oneCallUsd(n), 0) + raiseDelta
-      : (ASSUMED_IN_TOK / 1e6) * price[0] + (maxTok / 1e6) * price[1]);
+  // --- PRICED PER INVOCATION, FROM THE PLAN --------------------------------
+  //
+  // Codex hostile review 2026-08-31: two CONFIRMED Fable panels on one line priced as
+  // $1.06, reported "single call", and created ONE reserve. The second fan-out was
+  // free.
+  //
+  // `isPanel` is a line-level BOOLEAN, so N panels collapse to 1 — the exact scalar
+  // flattening the summing fix removed for ordinary seats in round 3 and never
+  // removed here. This is the last branch that still asked "is this line a panel?"
+  // instead of "what does this line run?".
+  //
+  // Each panel is now priced from ITS OWN `--seats`, so two panels naming different
+  // rosters cost what they actually cost rather than what the first one did.
+  const chargeableInvocations = planFrom(cmd)
+    .filter((inv) => !inv.unknown)
+    .filter((inv) => !FREE_ALLOWLIST[inv.name] && !KNOWN_UNGATED[inv.name]);
+
+  const seatsOf = (inv) => ((inv.seats && inv.seats.length) ? inv.seats : DEFAULT_SEATS);
+  const panelUsdFor = (inv) => seatsOf(inv).reduce((sum, s) => sum + seatWorstUsd(s), 0);
+  const invocationUsd = (inv) => (inv.isPanel ? panelUsdFor(inv) : oneCallUsd(inv.name));
+
+  const worstCaseUsd = chargeableInvocations.length
+    ? chargeableInvocations.reduce((sum, inv) => sum + invocationUsd(inv), 0) + raiseDelta
+    : ((ASSUMED_IN_TOK / 1e6) * price[0] + (maxTok / 1e6) * price[1]);
 
   // --- topic: what "the whole thing" means --------------------------------
   // Best available proxy for one workstream is the document/out path stem.
@@ -722,19 +753,23 @@ try {
   // reservation rows for a panel line, and the settle-parity pairs derive from
   // providers.mjs, which cannot contain 'panel'. A claim in a comment is not a control,
   // and this is the third time that has cost something.
-  const panelHolds = () => panelSeats
-    .filter((s) => !FREE_PANEL_SEATS.has(s))
-    .map((s) => ({ model: PANEL_SEAT_MODEL[s] || s, usd: seatWorstUsd(s), topic }));
+  // ONE HOLD PER PAID SEAT PER INVOCATION — built from the same plan that priced it,
+  // so holds and price can no longer disagree about how many calls a line makes.
+  // Two panels produce two sets of per-seat holds; free seats hold nothing.
+  const holdsForInvocation = (inv) => {
+    if (!inv.isPanel) {
+      const t = topicFromPath(flagFrom(inv.args, 'document') || flagFrom(inv.args, 'out') || 'untitled');
+      return [{ model: SCRIPT_MODEL[inv.name] || inv.name, usd: oneCallUsd(inv.name), topic: t }];
+    }
+    const t = topicFromPath(flagFrom(inv.args, 'document') || flagFrom(inv.args, 'out') || 'untitled');
+    return seatsOf(inv)
+      .filter((s) => !FREE_PANEL_SEATS.has(s))
+      .map((s) => ({ model: PANEL_SEAT_MODEL[s] || s, usd: seatWorstUsd(s), topic: t }));
+  };
 
-  const holdSpec = isPanel
-    ? panelHolds()
-    : (chargeable.length <= 1
-      ? [{ model: modelKey, usd: worstCaseUsd, topic }]
-      : chargeable.map((n) => (PANEL_SCRIPTS.has(n)
-        ? null                      // expanded below, per seat
-        : { model: SCRIPT_MODEL[n] || n, usd: oneCallUsd(n), topic: topicOfSeat(n) }))
-        .filter(Boolean)
-        .concat(chargeable.some((n) => PANEL_SCRIPTS.has(n)) ? panelHolds() : []));
+  const holdSpec = chargeableInvocations.length
+    ? chargeableInvocations.flatMap(holdsForInvocation)
+    : [{ model: modelKey, usd: worstCaseUsd, topic }];
 
   // Non-fatal: a hold that cannot be written must not block a call the caps would
   // allow. It is loud, because silently losing it reopens the parallel overshoot.
@@ -791,7 +826,7 @@ try {
     worstCaseUsd,
     approvalToken,
     selfHeld,
-    callCount: isPanel ? 1 : chargeable.length,
+    callCount: chargeableInvocations.length || 1,
   });
 
   if (decision.allow) {
