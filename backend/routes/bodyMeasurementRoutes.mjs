@@ -23,7 +23,13 @@ const router = express.Router();
 // Configure multer with memory storage (buffers for R2 upload)
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB per photo (JPEG, small files)
+  // 2MB per photo (JPEG, small files). `files` must be set explicitly: an
+  // `.array('photos', 10)` overflow raises LIMIT_UNEXPECTED_FILE, NOT
+  // LIMIT_FILE_COUNT, so without this the friendly "Maximum 10 photos" branch
+  // below is unreachable and a trainer uploading an 11th photo gets the generic
+  // fallback instead. Verified against multer 1.4.5-lts.2 and 2.3.0 alike —
+  // see tests/api/multerUploadBehavior.test.mjs.
+  limits: { fileSize: 2 * 1024 * 1024, files: 10 },
   fileFilter: function(req, file, cb) {
     const filetypes = /jpeg|jpg/;
     const mimetype = filetypes.test(file.mimetype);
