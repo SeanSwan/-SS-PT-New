@@ -1,13 +1,13 @@
 ---
-decision: "Consolidated Codex review packet for the Atelier video-poster slice and the six backlog slices that followed. 18 commits, 67 files. Written to be attacked, not admired."
+decision: "Consolidated Codex review packet for the Atelier video-poster slice and the eight backlog slices that followed. 21 commits. Written to be attacked, not admired."
 status: open
 supersedes: none
 ---
 
-# Codex review packet — Atelier, `14b04c407..2958ae3fb`
+# Codex review packet — Atelier, `14b04c407..539eac2bd`
 
 **Branch** `feat/atelier-v2-compose` · worktree `c:/tmp/ss-atelier-v2` · pushed · not deployed
-· **18 commits, 67 files, +5073/−144** · Linear **SWA-165**
+· **21 commits, 71 files** · Linear **SWA-165**
 
 Nine hostile rounds ran against the first slice with GLM 5.3 + Qwen 3.8 (records in
 `panel-2026-08-27-atelier-video-poster/`). The six slices after it were reviewed **solo** —
@@ -208,6 +208,30 @@ real change touches the cursor-comparison path on both sides at once — where a
 silently drops the rows of a four-up Compose batch rather than erroring.
 
 ---
+
+## 7b. Two slices added after this packet was first written
+
+**`chargedUsdFor`** (`composeLimits.mjs`). The handoff asked for a `chargedUsd` parity gate.
+A parity TEST is impossible — the only async lane is local, `unitUsd` is 0, both sides return
+0 whatever they do, and the async site's own comment says "no test can redden on it". So the
+gate is deleting the second copy. The rule lived in `composeStills` and `localBatchRunner`,
+and the two had **already drifted**: sync multiplied `unitUsd` raw (NaN when unpriced, shipped
+to the client as `null`), async coerced (0). Same rule, two answers, on the money path.
+
+*Attack:* a bad input now returns 0. Is silently charging 0 right, or should an unpriced
+batch refuse? I chose 0 because it is a claim we can defend and NaN is not.
+
+**A log on `resolvePublic`'s refusal.** `keyOwnedByRow` refuses at four sites; three say why.
+This one returned null and the route answered 404 — a permalink that worked yesterday simply
+stops, indistinguishable from an unpublish, on the one path mounted without auth.
+
+*Attack the residual risk it exposes, which I could not close:* `r2KeyForJob` is **called by
+nothing in production** — only its own tests reference it. The agent supplies `r2Key` freely,
+so `jobs/<jobId>/…` is a convention, not an enforced format. **If any historical video asset
+carries a different shape, my guard now refuses to sign it.** Stills are provably fine (an
+older `atelier/stills/<userId>/<ym>/<hash>` format passes, because the owner is checked
+positionally at segment 2). Video needs the production database to confirm, and this
+environment has none. **This is the single unquantified risk in the whole change.**
 
 ## 8. Verification
 
