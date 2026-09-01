@@ -12,16 +12,19 @@ step per frame, and a whole second world model to keep in sync with your own.
 
 ## What we need instead
 
-> Is the shot within 1.4 units of that enemy?
+> Is this enemy near enough to touch me? Does my aim line pass near that monster?
 
 ```js
 const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
-hits = dist2(shot, enemy) <= HIT_RADIUS ** 2;
+touched = dist2(enemy, player) <= TOUCH_RADIUS ** 2;   // waves.js — contact
+// and combat.js answers the aim question with the same idea along a ray (ray-vs-sphere hitscan)
 ```
 
-Two subtractions, two multiplies, a comparison. **Note there is no square root** — comparing squared
+Subtractions, multiplies, a comparison. **Note there is no square root** — comparing squared
 distances gives the same answer, and `Math.sqrt` is the expensive part. That trick is worth
-remembering; it appears everywhere in game code.
+remembering; it appears everywhere in game code. (The top-down slices used the identical test for
+click-to-shoot — `hits`/`fireAt`, deleted with that mechanic in the FPS slice; the maths survived
+the control scheme because it was never about the mouse.)
 
 ## When you genuinely need the engine
 
@@ -38,10 +41,12 @@ player must not walk through, revisit this page.
 
 ## The broad-phase, for when it gets big
 
-Right now `fireAt` checks every enemy against the shot. With 3 enemies that is 3 checks; with 500
-you are doing 500 checks per shot, and every enemy checking every other enemy for separation is
-250,000 comparisons per frame — *that* is what actually kills the frame rate, long before rendering
-does.
+Right now every shot checks every enemy, and separation checks every enemy against every other:
+that grows with the SQUARE of the flock. Honest numbers at honest scales: at the wave cap of 40,
+all-pairs is 1,600 comparisons — microseconds, nothing, and the reason the cap is safe. At 500 it
+would be 250,000 per frame, which is where you would START measuring (not where the frame rate
+automatically dies — JS does hundreds of millions of simple ops a second; rendering usually falls
+over first). The lesson is the quadratic GROWTH, not a scary number.
 
 The fix is a **spatial hash grid**: divide the floor into cells, put each enemy in its cell, and only
 compare against neighbours in nearby cells. It turns "check everything" into "check the nine cells

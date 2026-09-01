@@ -29,6 +29,15 @@ import { useFrame } from '@react-three/fiber';
 import { CanvasTexture, RepeatWrapping } from 'three';
 import { usePlayerStore } from '../state/store.js';
 
+/**
+ * The floor must END beyond where the fog fully wins, or the edge shows. The first size (50,
+ * edge 25 units out) claimed to be "fully swallowed" by fog ending at 46 — arithmetic said
+ * otherwise: (25−20)/(46−20) ≈ 19% fogged at the straight-ahead edge, ~59% at the corners
+ * (GLM-Flash finding 9). At 110, the nearest edge sits 55 units out — past fog-far, invisible
+ * by construction. One repeated texture cell per unit, so the grid stays a true world-unit ruler.
+ */
+export const FLOOR_SIZE = 110;
+
 /** One grid cell, drawn once: floor colour with a 2px line along two edges. Repeated by the GPU. */
 function makeGridTexture() {
   const size = 64;
@@ -44,7 +53,7 @@ function makeGridTexture() {
   const texture = new CanvasTexture(c);
   texture.wrapS = RepeatWrapping;
   texture.wrapT = RepeatWrapping;
-  texture.repeat.set(50, 50);
+  texture.repeat.set(FLOOR_SIZE, FLOOR_SIZE);
   // Without anisotropy a floor texture at a grazing FPS angle smears to mud in the distance.
   texture.anisotropy = 8;
   return texture;
@@ -64,7 +73,7 @@ export default function Ground() {
 
   return (
     <mesh ref={plane} rotation={[-Math.PI / 2, 0, 0]} receiveShadow name="ground">
-      <planeGeometry args={[50, 50]} />
+      <planeGeometry args={[FLOOR_SIZE, FLOOR_SIZE]} />
       <meshStandardMaterial map={texture} />
     </mesh>
   );

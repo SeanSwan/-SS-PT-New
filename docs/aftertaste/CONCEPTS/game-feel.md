@@ -26,13 +26,19 @@ it is the same idea.
 | Constant | Where | Now | Turn it up and… | Turn it down and… |
 |---|---|---|---|---|
 | `INVULN_SECONDS` | `state/store.js` | 1.0 | you can wade through a crowd | one mistake is the whole round |
-| `ENEMY_SPEED` | `enemies/steering.js` | 2.2 | you are cornered, tense | you are never threatened |
+| per-monster `speed` | `enemies/roster.js` | 2.2 / 1.8 / 3.4 / 1.4 | you are cornered, tense | you are never threatened |
 | `waveSize(n)` | `systems/waves.js` | `1 + n*2` | the ramp bites early | it never gets hard |
-| `spawnRing` radius | `state/store.js` | 18 | you get breathing room between waves | waves land on your head |
+| `SPAWN_RADIUS` | `state/store.js` | 18 | you get breathing room between waves | waves land on your head |
 
-**`SPEED` (5) vs `ENEMY_SPEED` (2.2) is the most important relationship in the game.** The ratio,
-not either number, decides whether the game is about *dodging* or about *positioning*. Make enemies
-faster than the player and there is no game left — only a countdown.
+(Tuning moved once already, and this table follows the code: monster speeds live in the ROSTER
+rows now — `ENEMY_SPEED` in steering.js is only the fallback for enemies with no row, and editing
+it changes nothing you can see in the real game. A tuning table that points at a dead constant
+teaches the worst possible lesson: you edit a number and nothing happens.)
+
+**`SPEED` (5) vs the fastest roster speed (grease-fly, 3.4) is the most important relationship in
+the game.** The ratio, not either number, decides whether the game is about *dodging* or about
+*positioning*. Make any monster faster than the player and there is no game left — only a
+countdown; `roster.test.mjs` enforces that as a law, per row.
 
 ## The honest test: play it for two minutes
 

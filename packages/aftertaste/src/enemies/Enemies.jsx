@@ -20,6 +20,7 @@ import Monster from './Monster.jsx';
 import { ROSTER } from './roster.js';
 import { can } from '../systems/lifecycle.js';
 import { useGameStore, usePlayerStore } from '../state/store.js';
+import { FRAME_ORDER } from '../systems/frameOrder.js';
 
 export default function Enemies() {
   const meshes = useRef({});
@@ -53,7 +54,7 @@ export default function Enemies() {
     if (typeof window !== 'undefined') {
       window.__swanEnemyPos = list.map((e) => ({ x: e.x, z: e.z, hp: e.hp, state: e.state, type: e.type }));
     }
-  });
+  }, FRAME_ORDER.world);
 
   // The per-frame position writes land on this WRAPPER group, not on the model inside it. The
   // Fryling's own scale/offset (feet on the floor, centre on the enemy's position) then composes on

@@ -13,7 +13,7 @@ is not here, that is a bug in the docs, not a gap in you.
 | **mesh** | A visible thing = a **shape** plus a **material**. |
 | **material** | How a surface responds to light. A "standard" material with no light in the scene renders pure black — the most common "my screen is empty" mistake. |
 | **radians** | How three.js measures angles. `Math.PI` = 180°, so `-Math.PI / 2` = -90°. It never uses degrees. |
-| **LOD** (Level Of Detail) | Cheaper, simpler versions of a model shown when it is far from the camera. This is how you keep 40 monsters on screen without the frame rate collapsing. |
+| **LOD** (Level Of Detail) | Cheaper, simpler versions of a model for when it is far away. The asset pipeline exports and budgets lod0/1/2 per monster, but the game currently renders lod0 only — runtime LOD switching is future work, not a live feature. |
 | **rig / skeleton** | The invisible puppet-strings inside a model that let it bend and move. |
 | **clip** | One recorded animation, e.g. "walk" or "death". A model has several; code picks which plays. |
 | **navmesh** | An invisible simplified floor shape that marks where characters are allowed to walk. |
@@ -29,12 +29,12 @@ is not here, that is a bug in the docs, not a gap in you.
 | **pathfinding / A\*** | Searching a map for a route around obstacles. Clever, and costs a real search per agent — which is why 40 agents re-planning every frame kills a browser game. |
 | **A\* (a-star)** | The standard pathfinding algorithm. Needs a navmesh, and pays for cleverness with CPU time. |
 | **seek** | The simplest steering rule: a unit-length direction pointing at the target. |
-| **separation** | The rule that stops a flock stacking into one square. Closer neighbours push harder. Without it, seek alone gives you one box wearing 39 hats. |
+| **separation** | The rule that stops a flock stacking into one square. Closer neighbours steer the escape direction hardest; the push STRENGTH is constant (SEPARATION_WEIGHT). Without it, seek alone gives you one box wearing 39 hats. |
 | **boids** | Craig Reynolds' 1987 flocking model (seek/separate/align). The origin of nearly every crowd in games and film. |
 | **NaN** | "Not a Number" — what you get from dividing by zero. It does not throw; it silently propagates, and a NaN position makes an object vanish with no error to search for. |
 | **snapshot** | Reading every agent's position *before* moving any of them, so each steers against the same world state instead of a half-updated one. |
 | **tripwire** | A written-down condition that says when to switch tools (e.g. "more than 30 agents needing real routes -> now you need pathfinding"), instead of switching on instinct. |
-| **raycast** | Firing an invisible ray from the camera through the pixel you clicked to find what it hits in 3D. How a flat mouse position becomes a world point. |
+| **raycast** | Firing an invisible ray to find what it crosses in 3D. The top-down slices raycast clicks onto the ground (mechanic since deleted); the FPS hitscan is the same idea done as pure math from the camera. |
 | **hit-points (hp)** | How much damage a thing absorbs before dying. Flooring at 0 matters: negative hp breaks every UI that draws a bar. |
 | **HUD** | Heads-Up Display — the score and status drawn over the game. Done in plain HTML here, because 3D text costs draw calls and fights antialiasing. |
 | **pure function** | A function that reads its inputs and returns a new value without changing anything. Testable in milliseconds, and it cannot corrupt a snapshot another system is reading. |

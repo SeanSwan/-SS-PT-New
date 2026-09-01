@@ -19,6 +19,7 @@ import { useKeyboard } from './useKeyboard.js';
 import { step } from './movement.js';
 import { aim } from './aim.js';
 import { usePlayerStore } from '../state/store.js';
+import { FRAME_ORDER } from '../systems/frameOrder.js';
 
 export default function Player() {
   const pos = useRef({ x: 0, z: 0 });
@@ -32,7 +33,7 @@ export default function Player() {
     // (A "publish only on change" optimisation here broke seven browser tests at once: everything
     // that reads the seam before the player's first step saw undefined.)
     setPosition(next);
-  });
+  }, FRAME_ORDER.player);
 
   return null;
 }

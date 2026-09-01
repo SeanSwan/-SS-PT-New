@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { ROSTER } from '../src/enemies/roster.js';
 
 /**
  * Slice 6b acceptance: the rigged Fryling is actually IN the game — not merely written, not merely
@@ -72,17 +73,20 @@ test('the Fryling renders as a skinned mesh, animates, and each enemy owns its s
   // trigger takes after computing the camera ray) and require exactly one monster to darken to
   // the low-hp tint. This is the hp-prop seam between the store and Fryling.jsx — the two units
   // are each tested, and Slice 5 taught us the seam is where the bugs live.
-  const darkened = await page.evaluate(() => {
+  // The expected tint comes from the roster ROW, not a hardcoded hex — a designer retuning the
+  // palette must not break this test, which is about the DAMAGE SEAM, not the colour choice.
+  const damagedTint = ROSTER.fryling.tint[1].slice(1).toLowerCase();
+  const darkened = await page.evaluate((tintHex) => {
     const target = window.__swanEnemyPos[0];
     window.__swanGameStore.getState().shoot({ x: target.x, y: 10, z: target.z }, { x: 0, y: -1, z: 0 });
     return new Promise((resolve) => setTimeout(() => {
       let dark = 0;
       window.__swanScene.traverse((o) => {
-        if (o.isSkinnedMesh && o.material.color.getHexString() === '7a2418') dark += 1;
+        if (o.isSkinnedMesh && o.material.color.getHexString() === tintHex) dark += 1;
       });
       resolve(dark);
     }, 200));
-  });
+  }, damagedTint);
   expect(darkened, 'exactly the hit monster darkened').toBe(1);
 
   expect(thrown, `page threw: ${thrown.join(' | ')}`).toHaveLength(0);

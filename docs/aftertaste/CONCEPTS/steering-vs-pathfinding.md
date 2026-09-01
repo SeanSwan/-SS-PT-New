@@ -36,7 +36,9 @@ These are the classic pair, from Craig Reynolds' 1987 "boids" work — the same 
 every flock of birds in every film since:
 
 - **SEEK** — move toward the target.
-- **SEPARATE** — do not stand inside your neighbour. Closer neighbours push harder.
+- **SEPARATE** — do not stand inside your neighbour. Closer neighbours dominate the escape
+  DIRECTION (the blend weights by 1/distance), but the final push is normalised to constant
+  strength — `SEPARATION_WEIGHT` sets the shove, not proximity. Tune the weight.
 
 **Seek alone is not enough**, and this is the bit worth remembering: with only seek, every monster
 computes the same direction and they collapse into a single stack — one box wearing 39 hats. It
@@ -45,15 +47,23 @@ added together, produce behaviour that reads as intelligent. That is the trick.
 
 ## When to switch to pathfinding
 
-Do not switch on instinct — switch on a **tripwire**. Aftertaste's are written down:
+Do not switch on instinct — switch on a **tripwire**. Aftertaste's is: **walls arrive** (Slice 10,
+the food court). And the honest tripwire is wider than "monsters need routes" — walls break FOUR
+systems at once, and a plan that fixes only the first ships three holes (GLM-5.3 hostile review):
 
-- more than ~30 agents needing real routes,
-- a second walkable interior (rooms, corridors, doorways),
-- animation state machines past ~4 layers,
-- ragdoll or stacked physics,
-- rollback networking.
+1. **enemy steering** — the one everyone remembers: seek walks monsters into walls forever;
+2. **player movement** — `movement.js` has no collision at all; you would walk through the walls
+   that were the point of the slice;
+3. **hitscan occlusion** — `hitscan` tests enemies only, so every shot passes through cover:
+   one-way cover for the AI, decoration for you;
+4. **spawn validity** — a spawn ring does not know about rooms; it will place monsters inside
+   walls.
 
-Until one of those trips, steering is not a shortcut — it is the correct engineering choice.
+(An agent-COUNT tripwire used to live here — "~30 agents needing real routes." The wave cap is 40
+and the game runs fine, because in an OPEN arena no agent needs a route at any count. The count
+was never the trigger; geometry is. A wrong threshold you memorised is worse than none.)
+
+Until walls trip it, steering is not a shortcut — it is the correct engineering choice.
 Knowing when you do **not** need a tool is a senior skill, and it is worth as much as knowing how to
 use one.
 

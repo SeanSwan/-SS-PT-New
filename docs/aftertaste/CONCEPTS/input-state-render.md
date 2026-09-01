@@ -27,11 +27,15 @@ famous games. Dividing the direction by its own length fixes it. There is a test
 That means it can be tested in milliseconds with no browser, and you can read the entire rule on one
 screen. **Rules of the game go in files like this. Components just draw the result.**
 
-## Why the camera lags on purpose
+## Why the third-person camera lagged — and why the FPS camera must NOT
 
-`cameraFollow.js` moves the camera a *fraction* of the way toward where it should be, each frame.
-Snapping it exactly to the target works and feels rigid and twitchy. The lag is what reads as
-"smooth" — it is behind almost every third-person camera you have used.
+The top-down slices' follow camera (`cameraFollow.js`, retired with the FPS pivot) moved a
+*fraction* of the way toward its target each frame; the lag read as "smooth" and is behind almost
+every third-person camera you have used. The first-person camera does the OPPOSITE — it snaps to
+the eye and to the aim, 1:1, every frame (`FpsRig` in App.jsx) — because in first person the
+camera IS your head: any smoothing between your hand and your view reads as swimming aim, and
+enough of it reads as motion sickness. Same lesson, opposite conclusions: smoothing is a choice
+about what the camera *is*, not a default you sprinkle on.
 
 ## You understand this when
 

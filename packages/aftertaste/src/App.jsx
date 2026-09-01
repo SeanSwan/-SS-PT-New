@@ -25,9 +25,12 @@ import Enemies from './enemies/Enemies.jsx';
 import Hud from './ui/Hud.jsx';
 import { aim, applyLook } from './player/aim.js';
 import { useGameStore, usePlayerStore } from './state/store.js';
+import { FRAME_ORDER } from './systems/frameOrder.js';
 
 /** Eye height. Enemies are ~1 unit tall, so you look slightly DOWN at the swarm — CoD-zombies framing. */
 const EYE_HEIGHT = 1.6;
+
+// Frame ordering is DECLARED, not mount-order luck — see systems/frameOrder.js (GLM-5.3, finding 9).
 
 /** Seconds between shots while the trigger is held. ~400 rounds/min — an Overwatch-ish auto. */
 const FIRE_INTERVAL = 0.15;
@@ -77,7 +80,7 @@ function FpsRig() {
     const p = usePlayerStore.getState().position;
     camera.position.set(p.x, EYE_HEIGHT, p.z);
     camera.rotation.set(aim.pitch, aim.yaw, 0);
-  });
+  }, FRAME_ORDER.camera);
   return null;
 }
 
@@ -90,25 +93,50 @@ function FpsRig() {
  * first shot instantly, then one every FIRE_INTERVAL. The decision itself is a hitscan from the
  * camera (see combat.js): the ray IS the shot; any tracer would be decoration.
  */
+/** Seconds a fresh unlocked click must be held before it fires. The click that GRABS the aim
+ *  (requests pointer lock) must not also be a bullet down the pre-aim ray — cold start, every
+ *  Esc, every restart, the crosshair sits wherever it sat and the "free shot" reads as a hit the
+ *  player never authored (GLM-Flash finding 2). While already locked, clicks fire instantly. In
+ *  a browser that refuses lock (headless tests), the still-held button simply starts firing when
+ *  the window lapses — which is why every trigger test holds longer than this. */
+const ARM_SECONDS = 0.25;
+
 function TriggerControl() {
   const { camera, gl } = useThree();
   const held = useRef(false);
   const lastShot = useRef(-Infinity);
+  const armedAt = useRef(0);
 
   useEffect(() => {
     const canvas = gl.domElement;
-    const down = (e) => { if (e.button === 0) held.current = true; };
+    const down = (e) => {
+      if (e.button !== 0) return;
+      held.current = true;
+      // An unlocked click is (also) the aim-grab — give the lock a beat before the gun believes it.
+      armedAt.current = document.pointerLockElement === canvas ? 0 : performance.now() / 1000 + ARM_SECONDS;
+    };
     const up = (e) => { if (e.button === 0) held.current = false; };
+    // The keyboard has cleared its keys on window blur since Slice 2; the mouse path never did.
+    // Alt-tab while firing left `held` true FOREVER (the mouseup lands on the other window), and
+    // on refocus the gun fired autonomously with no button down (GLM-Flash finding 1).
+    const blur = () => { held.current = false; };
     canvas.addEventListener('mousedown', down);
     document.addEventListener('mouseup', up);
+    window.addEventListener('blur', blur);
     return () => {
       canvas.removeEventListener('mousedown', down);
       document.removeEventListener('mouseup', up);
+      window.removeEventListener('blur', blur);
     };
   }, [gl]);
 
   useFrame((state) => {
+    // Death opens the hand: without this, dying mid-burst leaves `held` true forever (the death
+    // overlay swallows the mouseup) and "Go again" resumes firing uncommanded. shoot() itself
+    // also refuses while over — belt AND braces, because they fail differently.
+    if (useGameStore.getState().over) { held.current = false; return; }
     if (!held.current) return;
+    if (performance.now() / 1000 < armedAt.current) return;
     const now = state.clock.elapsedTime;
     if (now - lastShot.current < FIRE_INTERVAL) return;
     lastShot.current = now;
@@ -118,7 +146,7 @@ function TriggerControl() {
       { x: dir.x, y: dir.y, z: dir.z },
     );
     if (typeof window !== 'undefined') window.__swanShotsFired = (window.__swanShotsFired ?? 0) + 1;
-  });
+  }, FRAME_ORDER.trigger);
   return null;
 }
 
@@ -183,7 +211,10 @@ export default function App() {
       <color attach="background" args={['#0b0b0e']} />
       {/* Fog the same colour as the background: distance fades to void instead of ending at a
           visible floor edge. It starts past the whole spawn ring (18) so threats are never hidden,
-          and fully swallows the world before the floor's 25-unit edge could show. Depth for free. */}
+          and ends at 46 — INSIDE the floor's 55-unit edge, so the edge is gone by construction.
+          (The first floor was 50 wide and the old comment claimed full swallowing; arithmetic said
+          19% fog at the edge — GLM-Flash finding 9. Sizes are now chosen to make the claim true,
+          and MAX_RANGE in combat.js stays inside fog-far so nothing hittable is invisible.) */}
       <fog attach="fog" args={['#0b0b0e', 20, 46]} />
 
       {/* Two lights, because one is never enough:

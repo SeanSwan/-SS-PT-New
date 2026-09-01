@@ -15,6 +15,10 @@ const out = arg('--out', 'docs/ai-workflow/AI-HANDOFF/GLM-CONSULT.md');
 const remit = arg('--remit', '');
 const model = arg('--model', 'glm-5.3');
 const maxTokens = Number(arg('--max-tokens', '32000'));
+// Z.ai thinking control ("enabled"/"disabled"). Empty = API default. Added 2026-09-01 after a
+// 53k-token hostile-review packet made glm-5.3 spend 31,996 of its 32,000 output tokens on
+// reasoning and emit "(empty)" — a reasoning model with a big task can think its whole budget away.
+const thinking = arg('--thinking', '');
 
 if (!document) { console.error('--document is required'); process.exit(1); }
 
@@ -38,6 +42,7 @@ const res = await fetch('https://api.z.ai/api/coding/paas/v4/chat/completions', 
     model,
     max_tokens: maxTokens,
     stream: true,
+    ...(thinking ? { thinking: { type: thinking } } : {}),
     messages: [{ role: 'user', content: prompt }],
   }),
 });

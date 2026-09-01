@@ -7,7 +7,8 @@ monsters are junk food, decay organisms, parasites, deep-ocean horrors and paras
 ```
 npm run aftertaste
 ```
-That opens `http://127.0.0.1:5299` and you should see a dark floor you can drag to orbit.
+That opens `http://127.0.0.1:5299`: click the canvas to grab the mouse (Esc releases it), aim by
+looking, WASD to move, hold the left button to fire.
 
 **Run its test:**
 ```

@@ -18,6 +18,12 @@
  * grease-fly = fast and fragile (dies to ONE shot, but closes distance); patty-larva = armoured
  * crawler, long and low, soaks four hits. Every speed stays below the player's 5 — the moment an
  * enemy outruns you there is no game left, only a countdown.
+ *
+ * aimRadius is a SINGLE sphere standing in for a body, and for a long body that is an admitted
+ * approximation: it must at least cover most of the longest half-extent, or shots visibly through
+ * the rendered tail miss with no feedback — "unfair for invisible reasons" (GLM-Flash finding 4;
+ * the schema test enforces the floor). The honest shape for the larva is a capsule/per-part
+ * spheres — that arrives WITH the roster-v2 dismemberment contract, which needs parts anyway.
  */
 
 export const ROSTER = {
@@ -32,12 +38,12 @@ export const ROSTER = {
     tint: ['#C9A227', '#71581A'], ember: '#4a3a10',
   },
   'grease-fly': {
-    hp: 1, speed: 3.4, aimRadius: 0.5,
+    hp: 1, speed: 3.4, aimRadius: 0.55,
     model: { minX: -1, maxX: 2, minZ: 0, maxZ: 1, height: 3 },
     tint: ['#9DB04C', '#4F5C28'], ember: '#39470f',
   },
   'patty-larva': {
-    hp: 4, speed: 1.4, aimRadius: 0.9,
+    hp: 4, speed: 1.4, aimRadius: 1.05,
     model: { minX: -2, maxX: 3, minZ: 0, maxZ: 2, height: 2 },
     tint: ['#B06A4C', '#5E2F26'], ember: '#571f15',
   },

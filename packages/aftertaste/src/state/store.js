@@ -33,7 +33,7 @@ export const usePlayerStore = create((set) => ({
  * everything "just in case" is how a small game turns into a tangle.
  */
 import { hitscan, damage, isDead } from '../combat/combat.js';
-import { waveSize, spawnRing, tickRound, PLAYER_HP, TOUCH_RADIUS } from '../systems/waves.js';
+import { waveSize, spawnRing, tickRound, PLAYER_HP, inTouchRange } from '../systems/waves.js';
 import { stepLifecycle, can, holdsWave } from '../systems/lifecycle.js';
 
 /** Seconds of mercy after a hit, so one touch is not three instant deaths. */
@@ -47,7 +47,12 @@ const INVULN_SECONDS = 1.0;
  */
 let clockNow = 0;
 
-const firstWave = () => spawnRing(waveSize(1), 18, 1);
+/** Where threats appear, relative to the player. ONE export — it used to be a literal 18 in
+ *  three call sites, and the blueprint's "change the game by editing a number" promise was a lie
+ *  for this number (GLM-5.3 hostile review, finding 15). */
+export const SPAWN_RADIUS = 18;
+
+const firstWave = () => spawnRing(waveSize(1), SPAWN_RADIUS, 1);
 
 export const useGameStore = create((set, get) => ({
   enemies: firstWave(),
@@ -56,16 +61,21 @@ export const useGameStore = create((set, get) => ({
   wave: 1,
   over: false,
   invulnUntil: 0,
-  /** When the last shot connected / killed — the HUD's hitmarker reads these. 0 = never. */
-  lastHitAt: 0,
-  lastKillAt: 0,
+  /** When the last shot connected / killed — the HUD's hitmarker reads these. -1 = never:
+   *  0 is a REAL clock value (a hit on the first frame, before any tick), and using it as the
+   *  sentinel swallowed that hitmarker. Sentinels must live outside the value's domain. */
+  lastHitAt: -1,
+  lastKillAt: -1,
 
   /**
    * Fire one hitscan shot from `origin` along `dir` (the Overwatch/BF6 model — the decision is a
    * ray test at the instant of the trigger; any tracer is decoration). Returns true on a hit.
    */
   shoot: (origin, dir) => {
-    const { enemies, kills } = get();
+    const { enemies, kills, over } = get();
+    // The dead do not shoot. Without this, dying while holding the trigger farms kills from the
+    // death screen — tick() stops, but the trigger's frame loop does not (GLM-5.3, finding 1).
+    if (over) return false;
     // Only the shootable are targets — the ray passes THROUGH a toppling corpse and a still-
     // materialising spawn to whatever stands behind them. The lifecycle table decides, not us.
     const hit = hitscan(origin, dir, enemies.filter((e) => can(e, 'canBeShot')));
@@ -109,12 +119,11 @@ export const useGameStore = create((set, get) => ({
     // attacks begin when in touch range and expire back to alive, corpses fall off the board.
     // stepLifecycle returns the SAME object when nothing changed, so `changed` is an identity
     // check, and a frame where nobody transitions costs no React work at all.
-    const touch2 = TOUCH_RADIUS ** 2;
     const stepped = [];
     let changed = false;
     for (const e of s.enemies) {
-      const inRange = (e.x - player.x) ** 2 + (e.z - player.z) ** 2 <= touch2;
-      const next = stepLifecycle(e, elapsed, inRange);
+      // The SAME range function tickRound asks — attack trigger and strike range cannot drift.
+      const next = stepLifecycle(e, elapsed, inTouchRange(e, player));
       if (next !== e) changed = true;
       if (next) stepped.push(next);
     }
@@ -140,7 +149,7 @@ export const useGameStore = create((set, get) => ({
       // replacing the whole array would make kills pop instead of fall.
       patch.enemies = [
         ...stepped.filter((e) => e.state === 'dying'),
-        ...spawnRing(waveSize(r.wave), 18, r.wave, player, elapsed),
+        ...spawnRing(waveSize(r.wave), SPAWN_RADIUS, r.wave, player, elapsed),
       ];
     }
     if (Object.keys(patch).length) set(patch);
@@ -159,12 +168,15 @@ export const useGameStore = create((set, get) => ({
     // The player does not teleport home on a restart, so the fresh wave rings THEM.
     const centre = usePlayerStore.getState().position;
     set({
-      enemies: spawnRing(waveSize(1), 18, 1, centre, clockNow),
+      enemies: spawnRing(waveSize(1), SPAWN_RADIUS, 1, centre, clockNow),
       kills: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0,
-      lastHitAt: 0, lastKillAt: 0,
+      lastHitAt: -1, lastKillAt: -1,
     });
     if (typeof window !== 'undefined') {
+      // Reset owns EVERY seam a round accumulates — a per-round stat built on a seam that
+      // survives restarts silently inherits the previous round (GLM-5.3, finding 13).
       window.__swanKills = 0;
+      window.__swanShotsFired = 0;
       window.__swanRound = { hp: PLAYER_HP, wave: 1, over: false, left: waveSize(1) };
     }
   },

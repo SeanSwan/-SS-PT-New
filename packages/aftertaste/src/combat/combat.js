@@ -29,8 +29,10 @@ export const AIM_RADIUS = 0.6;
 /** Enemies are ~1 unit tall standing on the floor, so a sphere centred at waist height is honest. */
 export const TARGET_HEIGHT = 0.5;
 
-/** Beyond this a shot hits nothing. Keeps the ray test bounded and misses cheap. */
-export const MAX_RANGE = 60;
+/** Beyond this a shot hits nothing. Keeps the ray test bounded — and it must stay INSIDE the
+ *  fog's far distance (46, App.jsx): a longer range kills targets that render as nothing, which
+ *  is the "killed by something you were never shown" sin relocated to the gun (GLM-Flash, F9). */
+export const MAX_RANGE = 45;
 
 /**
  * Fire a ray from `origin` along unit vector `dir`; return the FIRST target it passes within
@@ -48,12 +50,21 @@ export function hitscan(origin, dir, targets, radius = AIM_RADIUS, maxRange = MA
     const oz = target.z - origin.z;
     // How far along the ray the closest approach to this centre is.
     const t = ox * dir.x + oy * dir.y + oz * dir.z;
-    if (t < 0 || t > maxRange) continue;
-    // Distance² from centre to that closest point (Pythagoras, no square root needed).
-    const closest2 = ox * ox + oy * oy + oz * oz - t * t;
+    const d2 = ox * ox + oy * oy + oz * oz;
     const r = target.aimRadius ?? radius;
+    const inside = d2 <= r * r;
+    // Behind the muzzle AND not swallowing it: a gun does not shoot backwards.
+    if (!inside && t < 0) continue;
+    // Distance² from centre to the closest point on the ray (Pythagoras, no square root needed).
+    const closest2 = d2 - t * t;
     if (closest2 > r * r) continue;
-    if (!best || t < best.t) best = { target, t };
+    // Select on the sphere's ENTRY point, not the nearest centre — the bullet stops at the first
+    // surface it reaches. A grazed sphere can begin BEFORE a dead-centre one whose centre is
+    // nearer; nearest-centre selection awards that shot to the wrong monster. (GLM-5.3 hostile
+    // review 2026-09-01 — and load-bearing for locational damage, where spheres overlap by design.)
+    const tEnter = inside ? 0 : t - Math.sqrt(r * r - closest2);
+    if (tEnter > maxRange) continue;
+    if (!best || tEnter < best.t) best = { target, t: tEnter };
   }
   return best;
 }

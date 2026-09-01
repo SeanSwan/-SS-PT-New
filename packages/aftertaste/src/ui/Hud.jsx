@@ -54,7 +54,19 @@ const overlay = {
 };
 
 export default function Hud() {
-  const { kills, hp, wave, over, enemies, reset, lastHitAt, lastKillAt } = useGameStore();
+  // One SELECTOR per value, not a whole-store destructure: the enemies array gets a new identity
+  // on every hit and on nearly every frame of a melee, and a selectorless subscription re-rendered
+  // the entire HUD at frame rate during exactly the busiest moments (GLM-Flash finding 5). Each
+  // selector re-renders only when ITS value changes; `remaining` selects the derived NUMBER so a
+  // new array with the same count does not re-render the bar.
+  const kills = useGameStore((s) => s.kills);
+  const hp = useGameStore((s) => s.hp);
+  const wave = useGameStore((s) => s.wave);
+  const over = useGameStore((s) => s.over);
+  const reset = useGameStore((s) => s.reset);
+  const lastHitAt = useGameStore((s) => s.lastHitAt);
+  const lastKillAt = useGameStore((s) => s.lastKillAt);
+  const remaining = useGameStore((s) => s.enemies.reduce((n, e) => n + (holdsWave(e) ? 1 : 0), 0));
 
   // Death hands the mouse back: pointer lock hides the cursor, and a hidden cursor cannot press
   // the restart button. The browser releases lock on Esc; we release it on the death screen.
@@ -70,12 +82,13 @@ export default function Hud() {
         <span data-testid="hud-wave">Wave: {wave}</span>
         <span data-testid="hud-kills">Kills: {kills}</span>
         {/* A toppling corpse is not "remaining" — count what still holds the wave open. */}
-        <span data-testid="hud-left">Remaining: {enemies.filter(holdsWave).length}</span>
+        <span data-testid="hud-left">Remaining: {remaining}</span>
         <span style={{ opacity: 0.6 }}>click to take aim &middot; WASD move &middot; hold to fire</span>
       </div>
 
       {!over && <div data-testid="crosshair" style={crosshairStyle}>+</div>}
-      {!over && lastHitAt > 0 && (
+      {/* -1 is "never": 0 is a real clock reading (a first-frame hit), so it cannot be the sentinel. */}
+      {!over && lastHitAt >= 0 && (
         <div key={lastHitAt} data-testid="hitmarker" style={hitmarkerStyle(lastKillAt === lastHitAt)}>✕</div>
       )}
 

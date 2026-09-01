@@ -24,6 +24,15 @@ export const PLAYER_HP = 3;
 /** How close an enemy must get to hurt you. */
 export const TOUCH_RADIUS = 1.1;
 
+/**
+ * THE range question, answered once. Both askers — "should this enemy start attacking?"
+ * (store.tick) and "does the landing strike connect?" (tickRound) — call this same function, so
+ * the two can never quietly disagree. When the design wants a lunge that REACHES farther than the
+ * trigger (it will — it is a lunge), the asymmetry gets built here, visibly, not by two constants
+ * drifting apart (GLM-Flash hostile review, finding 3).
+ */
+export const inTouchRange = (enemy, player) => dist2(enemy, player) <= TOUCH_RADIUS ** 2;
+
 /** Ceiling on a wave, so wave 50 cannot melt the machine. */
 const MAX_WAVE_SIZE = 40;
 
@@ -85,7 +94,7 @@ const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
 export function tickRound(round, player, enemies, now = 0) {
   // ONE life per frame however many strikes land. Without this, walking into a crowd deletes the
   // whole health bar in a single frame and the death feels arbitrary rather than earned.
-  const touched = enemies.some((e) => hurtsNow(e, now) && dist2(e, player) <= TOUCH_RADIUS ** 2);
+  const touched = enemies.some((e) => hurtsNow(e, now) && inTouchRange(e, player));
   const hp = Math.max(0, touched ? round.hp - 1 : round.hp);
 
   // Corpses do not hold a wave open: mid-topple enemies are on the board but already beaten.

@@ -44,11 +44,14 @@ export const can = (enemy, ability) => CAPABILITIES[stateOf(enemy)][ability];
 export const holdsWave = (enemy) => can(enemy, 'holdsWave');
 
 /**
- * Is this enemy's strike landing RIGHT NOW? Only an attack past its wind-up hurts — the wind-up
- * is the dodge window, and it is what turns contact damage from a tax into a game.
+ * Is this enemy's strike landing RIGHT NOW? Only a state the TABLE says canHurt, past its
+ * wind-up, hurts — the wind-up is the dodge window, and it is what turns contact damage from a
+ * tax into a game. This function ASKS the table like everyone else: an earlier version tested
+ * `state === 'attacking'` directly, which meant `canHurt` was a declaration nothing read — the
+ * next state added would get it wrong silently (GLM-5.3 hostile review, finding 4).
  */
 export function hurtsNow(enemy, now) {
-  return stateOf(enemy) === 'attacking' && now - enemy.stateSince >= ATTACK_WINDUP;
+  return can(enemy, 'canHurt') && now - enemy.stateSince >= ATTACK_WINDUP;
 }
 
 /**

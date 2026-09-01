@@ -27,27 +27,31 @@ Swanverse's fallen food court. React Three Fiber in the browser.
 waves escalate, you die, you go again.
 
 ```
-packages/aftertaste/
-  src/
-    App.jsx                  the scene: canvas, lights, camera rig
-    world/Ground.jsx         floor + grid (the grid is load-bearing — see §4)
-    player/Player.jsx        the blue box you drive
-    player/movement.js       PURE movement rule            (7 unit tests)
-    enemies/steering.js      seek + separate               (10 unit tests)
+packages/aftertaste/            (tree as of the 2026-09-01 GLM-review round — both reviewers
+  src/                          caught the previous version of this map describing deleted files)
+    App.jsx                  the scene: canvas, lights, FpsRig (pointer lock), TriggerControl
+    world/Ground.jsx         infinite floor, grid painted as a TEXTURE (see §4 + the GLM round)
+    player/Player.jsx        you — renders nothing in first person; owns movement
+    player/aim.js            yaw/pitch, clamping, aimDirection
+    player/movement.js       PURE view-relative movement rule
+    enemies/steering.js      seek + separate (per-monster speed)
     enemies/Enemies.jsx      ONE component owns the flock
-    enemies/Fryling.jsx      the real model — WRITTEN, NEVER RENDERED (§5)
-    combat/combat.js         hits/damage/fireAt            (11 unit tests)
-    combat/Shooting.jsx      click → raycast → world point
-    systems/waves.js         waveSize/spawnRing/tickRound  (12 unit tests)
-    systems/cameraFollow.js  smoothed third-person follow
-    state/store.js           zustand: player + game state  (7 unit tests)
-    ui/Hud.jsx               HP / Wave / Kills / Remaining + game over
-  tests/                     47 unit (node --test) + 9 browser (Playwright)
+    enemies/Monster.jsx      renders ANY roster row (skeleton-cloned, state → clip)
+    enemies/roster.js        every monster as DATA; models.js quarantines the Vite URLs
+    combat/combat.js         hitscan (ray-vs-sphere, ENTRY-ordered), damage
+    systems/lifecycle.js     the state machine + capabilities table
+    systems/waves.js         waveSize/spawnRing/tickRound/inTouchRange
+    systems/frameOrder.js    declared per-frame execution order
+    state/store.js           zustand: player + game state, SPAWN_RADIUS
+    ui/Hud.jsx               HP/Wave/Kills/Remaining + crosshair + hitmarker + game over
+  tests/                     unit (node --test) + browser specs (Playwright)
 docs/aftertaste/             THE TEACHING LAYER — glossary, concept cards, learning path
 ```
 
 **Run it:** `cd packages/aftertaste && npm run dev` → `http://127.0.0.1:5299`
-**Test it:** `npm test` (unit then browser) — currently **47/47 unit, 9/9 browser**, run 3× with no flake.
+**Test it:** `npm test` (unit then browser), run 3× for flake. Do NOT trust any count typed in
+this document — both GLM reviewers caught three different stale counts in one packet; the runner's
+own summary is the only source of truth for how many tests exist and pass.
 
 ---
 
@@ -69,11 +73,11 @@ All four are named and in one place on purpose, so Sean can change the game by e
 | Constant | Where | Now |
 |---|---|---|
 | `SPEED` (player) | `player/movement.js` | 5 |
-| `ENEMY_SPEED` | `enemies/steering.js` | 2.2 |
+| per-monster `speed` | `enemies/roster.js` (ENEMY_SPEED in steering.js is only the fallback) | 2.2/1.8/3.4/1.4 |
 | `INVULN_SECONDS` | `state/store.js` | 1.0 |
 | `PLAYER_HP` | `systems/waves.js` | 3 |
 | `waveSize(n)` | `systems/waves.js` | `1 + n*2`, capped 40 |
-| spawn ring radius | `state/store.js` | 18 |
+| `SPAWN_RADIUS` | `state/store.js` (one export — was a literal in three call sites) | 18 |
 
 **`SPEED` vs `ENEMY_SPEED` is the most important relationship in the game.** The *ratio* decides
 whether this is a game about dodging or about positioning. Make enemies faster than the player and
@@ -216,7 +220,7 @@ Currently `Fryling.jsx` plays `move`, and flinches with `hit` on damage.
 | ~~**FPS**~~ | ~~Overwatch/BF6 shooting~~ **DONE 2026-09-01**, `26bf9cb99` — Sean's mid-session directive. First-person camera (eye 1.6, fov 75, pointer lock), view-relative WASD, hitscan (`combat.js` ray-vs-sphere), hold-to-fire, crosshair + hitmarkers. Grid became a floor TEXTURE (line primitives clip-broken at eye height), fog added, enemies got emissive. Old click-to-shoot mechanic + its spec deleted. | the game Sean actually asked for |
 | ~~**7**~~ | ~~WIRE the enemy lifecycle~~ **DONE 2026-09-01**, `7518c2707` — kills topple (corpses ride wave respawns, untargetable, don't hold waves), attacks telegraph (ATTACK_WINDUP = the dodge window; proximity damage left the game), spawns are fair both ways. All rules answered by the ONE capabilities table. 82 unit / 13 browser. Card: `CONCEPTS/enemy-lifecycle.md` | the state machine everything else needed |
 | ~~**8**~~ | ~~the other three enemies~~ **DONE 2026-09-01** — 8a `8a7cfda41`: all three rigged with five verified clips, `validated`, lod1/2/collision byte-identical to the prop builds (rig-only change, same signature as the fryling). 8b `546654624`: in the game as DATA — `roster.js` (facts, node-tested schema + the every-monster-slower-than-player ratio law), `models.js` (Vite-only URLs quarantined), `Monster.jsx` (one component, any row; Fryling.jsx deleted). Stat spread = role system; waves unlock one face at a time, deterministic cycle; per-target aimRadius. 90 unit / 14 browser ×3. Card: `CONCEPTS/data-driven-monsters.md` | same pipeline, one row + one URL per monster |
-| **8b** | **dismemberment — Sean's standing directive**: "shoot off body parts, limbs, head, legs, feet, toes." Needs (a) locational hitscan — per-part spheres instead of one, the ray already reports where it struck; (b) severable part meshes, which means the Blender pipeline must emit part-tagged geometry (the current Fryling is one blob on 3 bones — nothing to sever). Design it INTO the roster assets rather than retrofitting | headshots and gore are the CoD-Zombies fantasy; asset contract must be born with parts |
+| **8b** | **dismemberment — Sean's standing directive** ("shoot off body parts, limbs, head, legs, feet, toes"), RE-SCOPED per the GLM round: this is the **roster-v2 asset contract**, a pipeline slice BIGGER than 8a, not an additive gameplay pass. What it actually needs, in order: (1) the contract itself — part-tagged geometry, per-part hit spheres/capsules (also retiring the single-sphere approximation the long larva exposes), a richer skeleton (3 bones cannot articulate toes → contract version bump), measured per-part clip durations; (2) **re-export + re-verify of ALL FOUR landed monsters** against the new contract — every manifest sha256, clip set, and `validated` status is invalidated by the bump, budget for it; (3) hitscan is ENTRY-ordered now (`ccfc…`+GLM round) — the prerequisite for part selection is met, but `{target, t}` yields a strike POINT, not a part: part selection = nearest part-sphere entry, new code; (4) the capability model must answer what a severed state IS — can "alive minus a leg" move slower (needs per-enemy mutable stats, roster rows are immutable), do gibs holdWave / canBeShot / expire? Answer in the table BEFORE slicing, or the three-rule drift the table exists to prevent returns as gore | headshots and gore are the CoD-Zombies fantasy; the contract must be designed before the knife |
 | **9** | sound | the feedback moments already exist (hit, kill, wave, death) — they were built as hooks |
 | **10** | the food court itself — walls, props, a place | **this is the slice that needs pathfinding**; see the tripwire below |
 

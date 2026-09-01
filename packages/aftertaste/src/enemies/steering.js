@@ -45,8 +45,14 @@ export function seek(from, to) {
 
 /**
  * A direction away from any neighbour inside SEPARATION_RADIUS.
- * Closer neighbours push harder (the push is divided by distance), which is what stops a pile
- * forming without needing any collision physics.
+ *
+ * HONESTY NOTE (GLM-Flash finding 7): the per-neighbour push IS divided by distance, but the
+ * final normalisation throws the magnitude away — the returned vector is always unit length. So
+ * "closer neighbours push harder" is true only of how neighbours are WEIGHTED AGAINST EACH OTHER
+ * when the escape direction is blended; the overall push strength is constant and set by
+ * SEPARATION_WEIGHT in stepEnemy. Tune the weight for shove strength; do not expect distance to
+ * scale it. (The behaviour is deliberate and feels right; the previous comment described a graded
+ * mechanism that did not exist, and reasoning built on it would tune a phantom.)
  */
 export function separate(self, neighbours) {
   let x = 0;

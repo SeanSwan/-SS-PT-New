@@ -47,3 +47,18 @@ test('wave 99 does not walk off the unlock list', () => {
   assert.equal(unlockedTypes(99).length, 4);
   assert.ok(ROSTER[typeForSlot(99, 7)], 'every slot resolves to a real monster');
 });
+
+test('the aim sphere must cover most of the body it stands in for — no invisible misses', () => {
+  // A single sphere for a long body is an approximation; below ~80% of the longest normalized
+  // half-extent, shots visibly through the rendered body miss with no feedback (GLM-Flash, F4).
+  for (const [type, spec] of Object.entries(ROSTER)) {
+    const scale = 1 / spec.model.height;
+    const halfX = ((spec.model.maxX - spec.model.minX) / 2) * scale;
+    const halfZ = ((spec.model.maxZ - spec.model.minZ) / 2) * scale;
+    const longestHalf = Math.max(halfX, halfZ);
+    assert.ok(
+      spec.aimRadius >= 0.8 * longestHalf,
+      `${type}: aimRadius ${spec.aimRadius} covers under 80% of its ${longestHalf.toFixed(2)} half-extent`,
+    );
+  }
+});

@@ -18,7 +18,7 @@
  * The LIFECYCLE decides — `state` maps 1:1 to a clip. The component never decides behaviour; it
  * performs whatever state the machine put on its enemy. See CONCEPTS/enemy-lifecycle.md.
  */
-import { useEffect, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import { useAnimations, useGLTF } from '@react-three/drei';
 import { LoopOnce } from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -28,7 +28,15 @@ import { MODEL_URLS } from './models.js';
 /** state → clip. The mapping IS the performance contract; behaviour lives in the state machine. */
 const CLIP_FOR = { spawning: 'idle', alive: 'move', attacking: 'attack', dying: 'death' };
 
-export default function Monster({ type = 'fryling', hp = 2, state = 'alive' }) {
+/**
+ * memo, because of how the flock re-renders at the wave cap: an ENGAGED enemy cycles
+ * attacking ↔ alive every ~0.7s, and with 40 enemies in contact-adjacent states some enemy
+ * transitions on nearly every frame — so the enemies array gets a new identity at frame rate and
+ * Enemies re-renders. memo stops that from re-rendering all 40 Monsters when only one changed
+ * props (GLM-5.3, finding 5). Positions are unaffected: they are written to the wrapper groups
+ * imperatively, never through React.
+ */
+function Monster({ type = 'fryling', hp = 2, state = 'alive' }) {
   const spec = ROSTER[type];
   const { scene, animations } = useGLTF(MODEL_URLS[type]);
   const group = useRef();
@@ -68,10 +76,14 @@ export default function Monster({ type = 'fryling', hp = 2, state = 'alive' }) {
   }, [actions, state]);
 
   // Flinch on damage. Guarded by a ref so the FIRST render does not read as a hit — mounting is
-  // not being shot. Suppressed while dying: a corpse that flinches un-dies in the viewer's eye.
+  // not being shot. Suppressed while dying (a corpse that flinches un-dies in the viewer's eye)
+  // AND while attacking: the wind-up is the dodge TELEGRAPH the whole combat design depends on,
+  // and layering a flinch over it corrupts the read exactly when it matters (GLM-5.3, finding 11).
+  // The damage still registers — the tint darkens; the flinch is decoration, the telegraph is
+  // gameplay, and gameplay wins.
   const previousHp = useRef(hp);
   useEffect(() => {
-    if (hp < previousHp.current && state !== 'dying' && actions?.hit) {
+    if (hp < previousHp.current && state !== 'dying' && state !== 'attacking' && actions?.hit) {
       actions.hit.reset().setLoop(LoopOnce, 1).play();
     }
     previousHp.current = hp;
@@ -92,6 +104,8 @@ export default function Monster({ type = 'fryling', hp = 2, state = 'alive' }) {
     </group>
   );
 }
+
+export default memo(Monster);
 
 // Start fetching every face before its first wave, so nothing pops in mid-round.
 for (const url of Object.values(MODEL_URLS)) useGLTF.preload(url);

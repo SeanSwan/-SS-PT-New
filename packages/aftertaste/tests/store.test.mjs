@@ -224,3 +224,14 @@ test('spawn maturity is time-based, not tick-count-based', () => {
   tick(FAR, T = spawnedAt + SPAWN_SECONDS + 0.05);
   assert.equal(useGameStore.getState().enemies[0].state, 'alive');
 });
+
+test('the dead do not shoot: shoot() is a no-op once the round is over (GLM-5.3 finding 1)', () => {
+  mature();
+  for (let i = 0; i < PLAYER_HP; i++) landStrike();
+  assert.equal(useGameStore.getState().over, true, 'precondition: the round is over');
+  const target = useGameStore.getState().enemies.find((e) => e.state !== 'dying');
+  const killsBefore = useGameStore.getState().kills;
+  assert.equal(shotAt(target), false, 'a shot from the death screen must not land');
+  assert.equal(useGameStore.getState().kills, killsBefore, 'no kill farming while dead');
+  assert.equal(useGameStore.getState().enemies.find((e) => e.id === target.id).hp, target.hp);
+});

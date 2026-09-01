@@ -98,3 +98,19 @@ test('holding the trigger fires repeatedly, and an aimed burst scores a kill wit
 
   expect(thrown, `page threw: ${thrown.join(' | ')}`).toHaveLength(0);
 });
+
+test('releasing the trigger STOPS the fire, and the rate is bounded by FIRE_INTERVAL', async ({ page }) => {
+  // GLM-5.3 blind-spot finding: a trigger that never stops after mouseup — or fires every frame —
+  // passed the whole suite. This is the test that makes both failures red.
+  await boot(page);
+  await page.mouse.move(640, 400);
+  await page.mouse.down();
+  await page.waitForTimeout(650);
+  await page.mouse.up();
+  const atRelease = await page.evaluate(() => window.__swanShotsFired ?? 0);
+  expect(atRelease, 'held trigger fired').toBeGreaterThan(1);
+  expect(atRelease, 'rate bounded: ~650ms at 0.15s/shot is at most 6 shots').toBeLessThanOrEqual(6);
+  await page.waitForTimeout(500);
+  const afterRelease = await page.evaluate(() => window.__swanShotsFired ?? 0);
+  expect(afterRelease, 'firing CEASED on release').toBe(atRelease);
+});
