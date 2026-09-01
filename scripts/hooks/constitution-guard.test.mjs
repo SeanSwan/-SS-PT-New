@@ -12,7 +12,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -825,5 +825,200 @@ test('X2e BLOCKS trims that only trip once the branch pool is measured alone', (
     // If this starts passing, the per-parent split has been lost.
     assert.equal(out.status, 1, `branch-pool trims must BLOCK once measured alone: ${out.stdout}${out.stderr}`);
     assert.match(out.stderr, /surviving rules from the pre-merge HEAD lost/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+// ---- X2f: a rule NUMBER is not a unique key across two parents ---------------
+// The escape hatches are keyed by number. Under a union baseline both parents can hold
+// DIFFERENT rules at the same number, so a declaration made for one silently authorises
+// waiving the other. Refused rather than guessed at. (GLM 5.3, R8/B1b.)
+const named = (n, name) => `${n}. **${name}** — (MANDATORY) Established 2026-07-01. Body for ${n}.\n    AMENDED 2026-08-01: enforcement paragraph.\n    Padding so a removal is material.`;
+
+test('X2f REFUSES a numeric hatch when the two parents hold different rules at that number', () => {
+  const r = repo();
+  try {
+    const doc = (rules) => ['# CLAUDE.md', '', '## MANDATORY Rules', '', ...rules.flatMap((b) => [b, '']),
+      '## Dual-Pass Fix/Review Discipline', '', 'tail.'].join('\n');
+    commitDocs(r, doc([named(16, 'Village permission')]));
+    const base = r.g('rev-parse', 'HEAD').stdout.trim();
+
+    // main's rule 50 is a security rule
+    stageDocs(r, doc([named(16, 'Village permission'), named(50, 'Security check')]));
+    r.g('commit', '-q', '-m', 'main adds its rule 50');
+    r.g('update-ref', 'refs/remotes/origin/main', r.g('rev-parse', 'HEAD').stdout.trim());
+
+    // the branch's rule 50 is something else entirely
+    r.g('checkout', '-q', '-b', 'side', base);
+    stageDocs(r, doc([named(16, 'Village permission'), named(50, 'Legacy lint')]));
+    r.g('commit', '-q', '-m', 'branch adds a DIFFERENT rule 50');
+
+    r.g('merge', '--no-commit', '--no-ff', 'refs/remotes/origin/main');
+    assert.equal(r.g('rev-parse', '-q', '--verify', 'MERGE_HEAD').status, 0, 'fixture needs a real merge');
+    // drop BOTH rule-50s, then try to wave it through by number
+    stageDocs(r, doc([named(16, 'Village permission')]));
+
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: '50' });
+    assert.equal(out.status, 1, `an ambiguous numeric hatch must be REFUSED, not honoured: ${out.stdout}${out.stderr}`);
+    assert.match(out.stderr, /parents hold DIFFERENT rules at 50/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('X2f leaves an UNAMBIGUOUS numeric hatch working — the refusal is targeted, not blanket', () => {
+  // same shape, but both parents agree on what rule 50 is. If this fails, X2f has become a
+  // blanket ban on declarations during merges, which would push people to --no-verify.
+  const r = repo();
+  try {
+    const doc = (rules) => ['# CLAUDE.md', '', '## MANDATORY Rules', '', ...rules.flatMap((b) => [b, '']),
+      '## Dual-Pass Fix/Review Discipline', '', 'tail.'].join('\n');
+    commitDocs(r, doc([named(16, 'Village permission'), named(50, 'Security check')]));
+    const base = r.g('rev-parse', 'HEAD').stdout.trim();
+    writeFileSync(join(r.dir, 'main-only.txt'), 'main moved on\n', 'utf8');
+    r.g('add', 'main-only.txt'); r.g('commit', '-q', '-m', 'main advances');
+    r.g('update-ref', 'refs/remotes/origin/main', r.g('rev-parse', 'HEAD').stdout.trim());
+    r.g('checkout', '-q', '-b', 'side', base);
+    writeFileSync(join(r.dir, 'side.txt'), 'side\n', 'utf8');
+    r.g('add', 'side.txt'); r.g('commit', '-q', '-m', 'side');
+    r.g('merge', '--no-commit', '--no-ff', 'refs/remotes/origin/main');
+    assert.equal(r.g('rev-parse', '-q', '--verify', 'MERGE_HEAD').status, 0, 'fixture needs a real merge');
+    stageDocs(r, doc([named(16, 'Village permission')]));   // drop rule 50, declared
+
+    const out = runGuard(r, { SWAN_ALLOW_RULE_REMOVAL: '50' });
+    assert.equal(out.status, 0, `an unambiguous declared removal must still PASS: ${out.stdout}${out.stderr}`);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+// ---- X4: merge-mode only applies when this merge ADOPTS main -----------------
+// The mirror direction: merging a feature branch INTO main. HEAD is ahead of origin/main,
+// the merged ref does NOT contain main, and anchoring to main points the baseline at a ref
+// this operation is not adopting. Pre-X behaviour was correct there. (GLM 5.3, R8/B2.)
+//
+// The first version of this test forked the feature branch FROM origin/main, so the merged
+// ref trivially contained it, the ancestry gate never engaged, and a mutation that ignored
+// ancestry entirely SURVIVED. Worse, it carried a comment noting that — a precondition that
+// documented the flaw instead of enforcing it. It now asserts the precondition for real.
+test('X4: merging a branch that does NOT contain main keeps the HEAD baseline', () => {
+  const r = repo();
+  try {
+    commitDocs(r, claudeDoc(BASE));
+    const base = r.g('rev-parse', 'HEAD').stdout.trim();
+
+    // feature forks HERE, before main advances, so it will not contain origin/main
+    r.g('checkout', '-q', '-b', 'feature', base);
+    writeFileSync(join(r.dir, 'feature.txt'), 'feature work\n', 'utf8');
+    r.g('add', 'feature.txt'); r.g('commit', '-q', '-m', 'feature');
+    const feature = r.g('rev-parse', 'HEAD').stdout.trim();
+
+    // main advances AFTER the fork
+    r.g('checkout', '-q', base);
+    r.g('checkout', '-q', '-b', 'mainline');
+    writeFileSync(join(r.dir, 'main-advance.txt'), 'main advanced\n', 'utf8');
+    r.g('add', 'main-advance.txt'); r.g('commit', '-q', '-m', 'main advances past the fork');
+    r.g('update-ref', 'refs/remotes/origin/main', r.g('rev-parse', 'HEAD').stdout.trim());
+
+    // and HEAD moves past origin/main too — the "merging into main" shape
+    writeFileSync(join(r.dir, 'unpushed.txt'), 'local, unpushed\n', 'utf8');
+    r.g('add', 'unpushed.txt'); r.g('commit', '-q', '-m', 'unpushed main work');
+
+    r.g('merge', '--no-commit', '--no-ff', feature);
+    assert.equal(r.g('rev-parse', '-q', '--verify', 'MERGE_HEAD').status, 0, 'fixture needs a real merge');
+    // THE precondition: the merged ref must NOT contain origin/main, or the ancestry gate is
+    // never exercised and this test proves nothing. `--is-ancestor` exits 1 when false.
+    assert.equal(
+      r.g('merge-base', '--is-ancestor', 'refs/remotes/origin/main', 'MERGE_HEAD').status, 1,
+      'precondition: MERGE_HEAD must NOT contain origin/main, or the ancestry gate is untested',
+    );
+
+    stageDocs(r, claudeDoc(BASE.filter((n) => n !== 46)));   // silently drop a rule
+    const out = runGuard(r);
+    assert.equal(out.status, 1, 'a dropped rule must still BLOCK when merging INTO main');
+    assert.match(out.stderr, /rule 46 .*is GONE/s);
+    // and it must NOT have announced main-anchored merge-mode
+    assert.doesNotMatch(out.stdout, /baseline is origin\/main/,
+      'merging INTO main must not engage the main-anchored baseline');
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+test('X4: merging a branch that CONTAINS main still engages merge-mode (pins the direction)', () => {
+  // Every other fixture has MERGE_HEAD == origin/main exactly, so both ancestry directions
+  // agree and an inverted test survives. This one separates them: an integration branch that
+  // is main PLUS extra work. Correct direction (is origin/main an ancestor of MERGE_HEAD)
+  // is TRUE here; the inverted form is FALSE and would silently disable merge-mode for the
+  // most ordinary case there is — merging a branch that is ahead of main.
+  const r = repo();
+  try {
+    const trimmed46 = '46. **Kimi Hostile-Review Gate** — (MANDATORY) Trimmed on main.';
+    commitDocs(r, claudeDoc(BASE));
+    const base = r.g('rev-parse', 'HEAD').stdout.trim();
+
+    // main trims rule 46
+    stageDocs(r, claudeDoc(BASE, { bodies: { 46: trimmed46 } }));
+    r.g('commit', '-q', '-m', 'main trims 46');
+    r.g('update-ref', 'refs/remotes/origin/main', r.g('rev-parse', 'HEAD').stdout.trim());
+
+    // integration branch = main + extra, so it strictly CONTAINS origin/main
+    r.g('checkout', '-q', '-b', 'integration');
+    writeFileSync(join(r.dir, 'extra.txt'), 'integration extra\n', 'utf8');
+    r.g('add', 'extra.txt'); r.g('commit', '-q', '-m', 'integration extra');
+    const integration = r.g('rev-parse', 'HEAD').stdout.trim();
+
+    // our branch forked before the trim and carries the OLD longer rule 46
+    r.g('checkout', '-q', '-b', 'side', base);
+    writeFileSync(join(r.dir, 'side.txt'), 'side\n', 'utf8');
+    r.g('add', 'side.txt'); r.g('commit', '-q', '-m', 'side');
+
+    r.g('merge', '--no-commit', '--no-ff', integration);
+    assert.equal(r.g('rev-parse', '-q', '--verify', 'MERGE_HEAD').status, 0, 'fixture needs a real merge');
+    // preconditions that make this test mean something: main IS contained, and MERGE_HEAD is NOT
+    assert.equal(r.g('merge-base', '--is-ancestor', 'refs/remotes/origin/main', 'MERGE_HEAD').status, 0,
+      'precondition: MERGE_HEAD must CONTAIN origin/main');
+    assert.equal(r.g('merge-base', '--is-ancestor', 'MERGE_HEAD', 'refs/remotes/origin/main').status, 1,
+      'precondition: the inverted direction must be FALSE, or the directions are not separated');
+
+    stageDocs(r, claudeDoc(BASE, { bodies: { 46: trimmed46 } }));   // faithfully carry main's trim
+    const out = runGuard(r);
+    assert.equal(out.status, 0, `carrying main's trim must PASS when the merged ref contains main: ${out.stderr}`);
+    assert.match(out.stdout, /baseline is origin\/main/);
+  } finally { rmSync(r.dir, { recursive: true, force: true }); }
+});
+
+// ---- X5: name the sequencer, so the blocker does not lie about authorship ----
+// cherry-pick / revert / am stage content this commit did not author. The direction is
+// fail-closed, so nothing unsafe passes — the cost is a message that reads as wrong, and a
+// guard people believe is wrong is one they route around with --no-verify. (R8/A7.)
+//
+// KNOWN LIMIT, verified against real git rather than assumed: a CLEAN `cherry-pick
+// --no-commit` writes NO CHERRY_PICK_HEAD (only MERGE_MSG), so X5 cannot fire there. The
+// marker exists for a CONFLICTED pick — which is exactly the case where a human runs
+// `git commit` by hand and the hook fires, so the case that matters is covered.
+test('X5 names a cherry-pick in the blocker instead of blaming the committer', () => {
+  const r = repo();
+  try {
+    commitDocs(r, claudeDoc(BASE));
+    const base = r.g('rev-parse', 'HEAD').stdout.trim();
+    // a commit elsewhere that drops a rule
+    r.g('checkout', '-q', '-b', 'other', base);
+    stageDocs(r, claudeDoc(BASE.filter((n) => n !== 46)));
+    r.g('commit', '-q', '-m', 'drop 46 over here');
+    const dropper = r.g('rev-parse', 'HEAD').stdout.trim();
+    // trunk edits the SAME files so the pick conflicts and git records CHERRY_PICK_HEAD
+    r.g('checkout', '-q', base);
+    // trunk must edit the SAME REGION the pick touches (rule 46), or git auto-merges the two
+    // disjoint hunks, the pick commits cleanly, and no CHERRY_PICK_HEAD is ever written.
+    stageDocs(r, claudeDoc(BASE, { bodies: { 46: '46. **Kimi Hostile-Review Gate** — (MANDATORY) trunk rewrote this body.\n    AMENDED 2026-08-31: trunk edit, same region as the pick.' } }));
+    r.g('commit', '-q', '-m', 'trunk edits rule 46 too');
+    r.g('cherry-pick', dropper);
+
+    // `--git-dir` returns a RELATIVE path (".git"), which resolves against THIS process's
+    // cwd, not the fixture's — the same gitdir trap that made a guard read "not merging".
+    const gdRaw = r.g('rev-parse', '--git-dir').stdout.trim();
+    const gd = resolve(r.dir, gdRaw);
+    // precondition: a sequencer must actually be running, or this tests nothing
+    assert.ok(existsSync(join(gd, 'CHERRY_PICK_HEAD')), 'precondition: CHERRY_PICK_HEAD must exist');
+
+    // resolve to the dropper's content, then commit — which is when the hook runs
+    stageDocs(r, claudeDoc(BASE.filter((n) => n !== 46)));
+    const out = runGuard(r);
+    assert.equal(out.status, 1, 'the dropped rule must still BLOCK — fail-closed is the point');
+    assert.match(out.stderr, /cherry-pick is in progress/);
   } finally { rmSync(r.dir, { recursive: true, force: true }); }
 });

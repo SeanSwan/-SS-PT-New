@@ -99,7 +99,27 @@ function gitOut(args) {
 // `git merge --squash` stages every carried byte and writes NO MERGE_HEAD, only SQUASH_MSG.
 // Keyed on MERGE_HEAD alone, a squash-sync of main got zero relief and every carried
 // violation was billed to this commit. Verified against real git. (Flash, R8, finding 2.)
-const MERGE_IN_PROGRESS = (() => {
+// ADOPTION GATE (X4) - merge-mode is only valid when this operation is ADOPTING main.
+// Merging a feature branch INTO main is the mirror case: HEAD is ahead of origin/main, the
+// merge never touches main, and anchoring to it counts main's own unpushed lines as newly
+// added (false blocks) while pointing the baseline at a ref the merge is not adopting.
+// Test: does the thing being merged CONTAIN current main? If yes, main-anchored logic is
+// valid. If no, fall back to the pre-X behaviour, which was correct for that direction.
+// A squash records no source, so the nearest honest proxy is 'HEAD does not already
+// contain main'. FAILS CLOSED: any unresolvable ref means no merge-mode.
+// (GLM 5.3, R8/B2.)
+const ADOPTS_MAIN = (() => {
+  if (gitOut(['rev-parse', '-q', '--verify', 'origin/main']) === null) return false;
+  if (gitOut(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null) {
+    return gitOut(['merge-base', '--is-ancestor', 'origin/main', 'MERGE_HEAD']) !== null;
+  }
+  const dir = gitOut(['rev-parse', '--git-dir']);
+  if (dir && existsSync(`${dir}/SQUASH_MSG`)) {
+    return gitOut(['merge-base', '--is-ancestor', 'origin/main', 'HEAD']) === null;
+  }
+  return false;
+})();
+const MERGE_IN_PROGRESS = ADOPTS_MAIN && (() => {
   if (gitOut(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null) return true;
   const dir = gitOut(['rev-parse', '--git-dir']);
   return Boolean(dir) && existsSync(`${dir}/SQUASH_MSG`);

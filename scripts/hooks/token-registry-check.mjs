@@ -273,7 +273,20 @@ function main() {
     const dir = gitQuiet(['rev-parse', '--git-dir']);
     return Boolean(dir) && existsSync(`${dir}/SQUASH_MSG`);
   })();
-  const DIFF_BASE = (gitQuiet(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null || squashing)
+  // ADOPTION GATE (X4) - merge-mode is only valid when this operation is ADOPTING main.
+  // Merging a feature branch INTO main is the mirror case: HEAD is ahead of origin/main, so
+  // diffing added lines against origin/main bills main's own unpushed lines to this commit.
+  // Test whether the thing being merged CONTAINS current main; if not, keep the HEAD base,
+  // which was correct for that direction. FAILS CLOSED. (GLM 5.3, R8/B2.)
+  const adoptsMain = (() => {
+    if (gitQuiet(['rev-parse', '-q', '--verify', 'origin/main']) === null) return false;
+    if (gitQuiet(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null) {
+      return gitQuiet(['merge-base', '--is-ancestor', 'origin/main', 'MERGE_HEAD']) !== null;
+    }
+    if (squashing) return gitQuiet(['merge-base', '--is-ancestor', 'origin/main', 'HEAD']) === null;
+    return false;
+  })();
+  const DIFF_BASE = adoptsMain && (gitQuiet(['rev-parse', '-q', '--verify', 'MERGE_HEAD']) !== null || squashing)
     && gitQuiet(['rev-parse', '-q', '--verify', 'origin/main']) !== null
     ? ['origin/main'] : [];
   if (DIFF_BASE.length) {

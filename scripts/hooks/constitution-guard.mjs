@@ -116,6 +116,23 @@
  * X2e — AGGREGATE shrink is measured PER PARENT. Pooling lets adopted, unchanged mass from a
  * long-diverged main dilute the 0.5% budget until a real death-by-a-thousand-trims fits under it.
  *
+ * X2f — a rule NUMBER stops being a unique key once the baseline has two parents. The escape
+ * hatches are number-keyed, so a declaration made for HEAD's rule 50 could silently waive
+ * main's entirely different rule 50. Ambiguous numbers are REFUSED, not guessed at — and the
+ * refusal is narrow, because a blanket ban on declarations during merges is what teaches
+ * people to reach for --no-verify.
+ *
+ * X4 — ADOPTION GATE. Merge-mode is only valid when this operation is ADOPTING main. Merging
+ * a feature branch INTO main is the mirror case: HEAD is ahead of origin/main and the merged
+ * ref does not contain it, so main-anchored logic points at a ref the merge never touched.
+ * Test: does the merged ref CONTAIN current main. Direction matters and is pinned by a test.
+ *
+ * X5 — NAME THE SEQUENCER. cherry-pick / revert / am stage content this commit did not author.
+ * The direction is fail-CLOSED so nothing unsafe passes; the cost is a blocker that reads as
+ * wrong, and a guard people believe is wrong is one they route around. Known limit, verified:
+ * a CLEAN `cherry-pick --no-commit` writes no CHERRY_PICK_HEAD, so X5 cannot fire there; the
+ * marker exists for a CONFLICTED pick, which is when a human commits by hand and the hook runs.
+ *
  * Every one of X2b-X2e was found by ATTACKING X2, not by testing it. The first fix opened a
  * hole of the same class it closed; that is the argument for hostile review of a fix.
  *
@@ -154,7 +171,24 @@ const SQUASHING = (() => {
   if (!dir.ok) return false;
   return existsSync(`${dir.out.trim()}/SQUASH_MSG`);
 })();
-const MERGING = git(['rev-parse', '-q', '--verify', 'MERGE_HEAD']).ok || SQUASHING;
+// ADOPTION GATE (X4) - merge-mode is only valid when this operation is ADOPTING main.
+// Merging a feature branch INTO main is the mirror case: HEAD is ahead of origin/main, the
+// merge never touches main, and anchoring to it counts main's own unpushed lines as newly
+// added (false blocks) while pointing the baseline at a ref the merge is not adopting.
+// Test: does the thing being merged CONTAIN current main? If yes, main-anchored logic is
+// valid. If no, fall back to the pre-X behaviour, which was correct for that direction.
+// A squash records no source, so the nearest honest proxy is 'HEAD does not already
+// contain main'. FAILS CLOSED: any unresolvable ref means no merge-mode.
+// (GLM 5.3, R8/B2.)
+const ADOPTS_MAIN = (() => {
+  if (!git(['rev-parse', '-q', '--verify', 'origin/main']).ok) return false;
+  if (git(['rev-parse', '-q', '--verify', 'MERGE_HEAD']).ok) {
+    return git(['merge-base', '--is-ancestor', 'origin/main', 'MERGE_HEAD']).ok;
+  }
+  if (SQUASHING) return !git(['merge-base', '--is-ancestor', 'origin/main', 'HEAD']).ok;
+  return false;
+})();
+const MERGING = (git(['rev-parse', '-q', '--verify', 'MERGE_HEAD']).ok || SQUASHING) && ADOPTS_MAIN;
 // The ref whose content this operation is ADOPTING. MERGE_HEAD names it exactly and is immune
 // to origin/main moving mid-merge; a squash does not record its source, so origin/main is the
 // only anchor available there and the merge base is taken against it.
@@ -589,6 +623,12 @@ for (const file of touched) {
   //               and against HEAD's copy for a rule only this branch carries.
   // Merging main's map OVER head's gives exactly that in one pass.
   let before = beforeOwn;
+  // X2f - numeric escape hatches are keyed by rule NUMBER, which stops being a unique key the
+  // moment the baseline has two parents. If HEAD's rule 50 is 'Legacy lint' and main's rule 50
+  // is a security rule, SWAN_ALLOW_RULE_REMOVAL=50 declared for the first silently authorises
+  // deleting the second - a declaration for one rule waiving a different rule entirely.
+  // Detected per file and REFUSED rather than guessed at. (GLM 5.3, R8/B1b.)
+  let ambiguousNums = new Set();
   if (otherRaw && beforeOwn) {
     const otherText = file === 'AGENTS.md'
       ? otherRaw.out.slice(otherRaw.out.indexOf(MIRROR_MARKER))
@@ -602,6 +642,16 @@ for (const file of touched) {
     // tag provenance so a blocker names the parent the rule ACTUALLY came from. Reporting
     // "exists in origin/main" for a rule that only HEAD carries sends the reader to the wrong
     // tree and costs them a turn (Rule 75, and the same class as rule 74's dead citation).
+    const numToNames = new Map();
+    for (const src of [otherRules, beforeOwn]) {
+      for (const [k, v] of src) {
+        const key = String(v.num);
+        if (!numToNames.has(key)) numToNames.set(key, new Set());
+        numToNames.get(key).add(k);
+      }
+    }
+    ambiguousNums = new Set([...numToNames].filter(([, names]) => names.size > 1).map(([n]) => n));
+
     before = new Map([...otherRules].map(([k, v]) => [k, { ...v, from: 'the pre-merge HEAD' }]));
     for (const [k, v] of beforeOwn) before.set(k, { ...v, from: BASELINE });
 
@@ -677,6 +727,10 @@ for (const file of touched) {
     // An unblockable check is a check people learn to bypass wholesale, so
     // legitimate changes need a sanctioned way through — Proof-Before-Done
     // genuinely moved 73 -> 74 during this very repair.
+    if (allowed.has(String(was.num)) && ambiguousNums.has(String(was.num))) {
+      blockers.push(`${file}: SWAN_ALLOW_RULE_REMOVAL names ${was.num}, but during this merge the two parents hold DIFFERENT rules at ${was.num}. A number is not a unique key across two parents, so the declaration is ambiguous and is REFUSED rather than guessed at - it could waive a rule you never meant to touch. Land the constitution change in its own commit, outside a merge, where the number is unambiguous.`);
+      continue;
+    }
     if (allowed.has(String(was.num))) {
       // The hatch is not bottomless: a declared SURVIVOR may trim, not vanish in
       // place. Beyond DECLARED_TRIM_FLOOR the declaration stops being believable
@@ -719,6 +773,10 @@ for (const file of touched) {
   for (const [key, was] of before) {
     const now = after.get(key);
     if (!now) continue;
+    if (allowed.has(String(was.num)) && ambiguousNums.has(String(was.num))) {
+      blockers.push(`${file}: SWAN_ALLOW_RULE_REMOVAL names ${was.num}, but during this merge the two parents hold DIFFERENT rules at ${was.num}. A number is not a unique key across two parents, so the declaration is ambiguous and is REFUSED rather than guessed at - it could waive a rule you never meant to touch. Land the constitution change in its own commit, outside a merge, where the number is unambiguous.`);
+      continue;
+    }
     if (allowed.has(String(was.num))) {
       if (now.len !== was.len) usedHatch.add(String(was.num));
       continue;
@@ -864,6 +922,31 @@ console.error('\n' + '━'.repeat(60));
 console.error('COMMIT BLOCKED: constitution integrity');
 console.error('━'.repeat(60));
 for (const b of blockers) console.error(`  • ${b}`);
+
+// X5 - name the SEQUENCER when one is running. cherry-pick, revert and `git am` stage
+// content this commit did not author, with no MERGE_HEAD, so every message above says
+// 'exists in HEAD and is GONE' about an edit that arrived from somewhere else. The
+// direction is fail-CLOSED so nothing unsafe passes - the cost is a blocker that reads as
+// wrong, and a guard people believe is wrong is a guard they route around with --no-verify.
+// Say what is actually happening instead. (GLM 5.3 + Flash, R8/A7.)
+const gitDirForSeq = git(['rev-parse', '--git-dir']);
+if (gitDirForSeq.ok) {
+  const d = gitDirForSeq.out.trim();
+  const seq = [
+    ['CHERRY_PICK_HEAD', 'a cherry-pick'],
+    ['REVERT_HEAD', 'a revert'],
+    ['rebase-merge', 'a rebase'],
+    ['rebase-apply', 'a rebase or `git am`'],
+  ].find(([f]) => existsSync(`${d}/${f}`));
+  if (seq) {
+    console.error(``);
+    console.error(`  NOTE: ${seq[1]} is in progress. The findings above describe the staged tree`);
+    console.error(`  against ${BASELINE}, but the content was authored elsewhere and replayed here,`);
+    console.error(`  so "exists in ... and is GONE" means the replayed commit does not carry it -`);
+    console.error(`  not that you deleted it. If that is the intent, finish the sequence and land`);
+    console.error(`  the constitution change as its own commit where the attribution is honest.`);
+  }
+}
 console.error(`
 This is the 10a3e7fa1 failure class: a whole-file rewrite from a stale copy
 keeps its intended edits and silently reverts everything that landed since.
