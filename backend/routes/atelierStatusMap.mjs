@@ -95,6 +95,11 @@ export const STATUS = Object.freeze({
   E_BAD_TRANSITION: 409,
   E_PUBLISH_BLOCKED: 422,
   E_PUBLISH_DECLARATION_REQUIRED: 422,
+  // Contention on a claim, not a bad request. `fail` defaults an unmapped ComposeError to
+  // 400 — which told a client its request was malformed while the message said "retry in a
+  // moment; nothing was spent". 429 is the status clients actually back off and retry on,
+  // and the throw carries retryAfterSec so the header goes with it.
+  E_REPLAY_CONTENTION: 429,
   E_BATCH_NOT_FOUND: 404,
   E_BAD_BATCH_ID: 400,
 });

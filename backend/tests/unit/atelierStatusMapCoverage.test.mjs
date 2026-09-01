@@ -34,10 +34,12 @@ const SERVICES = join(HERE, '..', '..', 'services', 'atelier');
  * an unexplained exemption list is how a drift test becomes decorative.
  */
 const ALLOWED_UNMAPPED = new Map([
-  // Not a refusal: the replay guard's internal signal for "someone else holds the claim",
-  // handled inside compose rather than returned. If it ever reaches a route it needs a
-  // status (429 with Retry-After) — that is a known backlog item, not an oversight here.
-  ['E_REPLAY_CONTENTION', 'internal to the replay guard; never returned to a caller today'],
+  // E_REPLAY_CONTENTION WAS EXEMPTED HERE AND THE EXEMPTION WAS FALSE. I wrote "handled
+  // inside compose rather than returned" without tracing it: `claimOrCoalesce` is called
+  // OUTSIDE the try in composeStills, so it escapes to the route and was being answered
+  // 400. It is mapped 429 now. Left as a comment rather than deleted, because the first
+  // entry this list ever rotted was written by the person who built the list, one hour in
+  // — an exemption is an assertion, and this one was never checked.
 
   // The rest are OUTCOME FIELDS, not refusals: each is carried inside a result object
   // (`{ ok: false, code }`, `{ status: 'rejected', reason: { code } }`, `batch.error`) and
@@ -104,5 +106,31 @@ describe('the status map covers every code the atelier services can throw', () =
 
   it('the code this test was written for is mapped, and to a refusal not a fault', () => {
     expect(STATUS.E_BIND_FOREIGN_KEY).toBe(409);
+  });
+});
+
+describe('a retryable refusal answers with a retryable status', () => {
+  it('contention is 429, not the 400 an unmapped ComposeError defaults to', async () => {
+    // `fail` in atelierComposeRoutes does `STATUS[err.code] || 400`. Unmapped, this told a
+    // client its request was MALFORMED — do not retry — while the message beside it said
+    // "retry in a moment; nothing was spent". The two were giving opposite instructions.
+    expect(STATUS.E_REPLAY_CONTENTION).toBe(429);
+  });
+
+  it('the throw carries the retry hint that makes fail() emit Retry-After', async () => {
+    // A 429 without Retry-After leaves the client to guess, and the guess that costs least
+    // is to retry immediately — which is the contention it just lost.
+    const { claimOrCoalesce } = await import('../../services/atelier/composeReplay.mjs');
+    const store = new Map();
+    // A key held by a live claim that never settles: every attempt coalesces onto a promise
+    // that yields nothing usable, so the loop exhausts and throws.
+    const held = { promise: Promise.resolve(null), expiresAt: Number.MAX_SAFE_INTEGER };
+    const err = await claimOrCoalesce(
+      { get: () => held, set: () => false, delete: () => false, has: () => true },
+      'k',
+      () => 1,
+    ).catch((e) => e);
+    expect(err.code).toBe('E_REPLAY_CONTENTION');
+    expect(err.retryAfterSec).toBeGreaterThan(0);
   });
 });

@@ -237,6 +237,13 @@ export async function claimOrCoalesce(store, key, clock, attempts = 3) {
     // loop and try to claim the now-empty key, conditionally, like every other write here.
   }
 
+  // RETRYABLE, AND THE STATUS HAS TO SAY SO. This escapes composeStills — `claimOrCoalesce`
+  // is called OUTSIDE the try there — and reaches the route's `fail`, which was mapping it
+  // to 400 by default. A 400 tells every well-behaved client the request was malformed and
+  // must not be retried, while the message beside it says "retry in a moment". The
+  // `retryAfterSec` extra is what makes `fail` emit a Retry-After header, and 2s is chosen
+  // to be longer than the contention window this loop just exhausted.
   throw new ComposeError('E_REPLAY_CONTENTION',
-    `Could not establish ownership of this request after ${attempts} attempts. Retry in a moment; nothing was spent.`);
+    `Could not establish ownership of this request after ${attempts} attempts. Retry in a moment; nothing was spent.`,
+    { retryAfterSec: 2 });
 }
