@@ -40,6 +40,7 @@
 
 import { useEffect, useRef } from 'react';
 import { SHEEN } from '../styles/sheenPackTokens';
+import { blendHex } from './sheenColor';
 
 export interface SheenSurfaceOptions {
   /** Optional [fromHex, toHex] pair blended across the surface width. */
@@ -78,26 +79,6 @@ export interface SheenPointerEngine {
   /** Test seam: number of getBoundingClientRect() batches performed. */
   readonly measureCount: number;
 }
-
-const lerpChannel = (a: number, b: number, t: number) => Math.round(a + (b - a) * t);
-
-const hexToRgb = (hex: string): [number, number, number] => {
-  const h = hex.replace('#', '');
-  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h;
-  return [
-    parseInt(full.slice(0, 2), 16) || 0,
-    parseInt(full.slice(2, 4), 16) || 0,
-    parseInt(full.slice(4, 6), 16) || 0,
-  ];
-};
-
-/** Continuous colour blend across the surface width — candidate B's behaviour. */
-export const blendHex = (from: string, to: string, t: number): [number, number, number] => {
-  const a = hexToRgb(from);
-  const b = hexToRgb(to);
-  const k = Math.min(1, Math.max(0, t));
-  return [lerpChannel(a[0], b[0], k), lerpChannel(a[1], b[1], k), lerpChannel(a[2], b[2], k)];
-};
 
 export function createSheenPointer(options: SheenPointerOptions = {}): SheenPointerEngine {
   const target = options.target ?? (typeof window !== 'undefined' ? window : undefined);
@@ -225,6 +206,17 @@ export function createSheenPointer(options: SheenPointerOptions = {}): SheenPoin
     engine.lastFrameWrites = writes;
     if (active) handle = raf(tick);
     else running = false;
+  }
+
+  // Web fonts change metrics after first paint. Without this the cached rects
+  // stay wrong until the first scroll or resize, so the orb tracks to the wrong
+  // place on a freshly-loaded page. The prototype had this; the rewrite dropped
+  // it, and only a browser check surfaced the gap.
+  if (typeof document !== 'undefined' && document.fonts?.ready) {
+    document.fonts.ready.then(() => {
+      rectsDirty = true;
+      kick();
+    }).catch(() => {});
   }
 
   target?.addEventListener('pointermove', onPointerMove, { passive: true });

@@ -78,7 +78,13 @@ const faceStyles = css<{ $variant: SheenButtonVariant }>`
   justify-content: center;
   gap: 8px;
   width: 100%;
-  height: 100%;
+  /* NOT height: 100%. The root is a flex container with min-height and an auto
+     height, so a percentage height is indefinite -> resolves to content height
+     (16px), AND an explicit height cancels the flex stretch that would have
+     filled the button. The face then paints a thin strip across the top third.
+     Browser-verified 2026-09-01; jsdom cannot see this. Stretch instead. */
+  align-self: stretch;
+  min-height: 100%;
   border-radius: inherit;
   overflow: hidden;
   padding: 0 30px;
@@ -118,6 +124,7 @@ const Root = styled.button<{ $variant: SheenButtonVariant; $world: SheenWorldId;
   position: relative;
   z-index: 1;
   display: inline-flex;
+  align-items: stretch;
   border: none;
   padding: 0;
   background: none;

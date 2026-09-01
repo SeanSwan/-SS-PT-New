@@ -8,7 +8,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createSheenPointer, blendHex } from './useSheenPointer';
+import { createSheenPointer } from './useSheenPointer';
+import { blendHex } from './sheenColor';
 
 /** Minimal controllable rAF so frames are stepped explicitly, never by wall clock. */
 function makeFrameDriver() {
@@ -186,6 +187,32 @@ describe('useSheenPointer — D2: distant surfaces must stop being styled', () =
     target.emit('pointermove', { clientX: 50, clientY: 20 } as PointerEvent);
     for (let i = 0; i < 40; i += 1) frames.step();
     expect(Number(el.style.getPropertyValue('--opac'))).toBeGreaterThan(0.9);
+
+    engine.destroy();
+  });
+});
+
+describe('useSheenPointer — stale rects after late layout', () => {
+  it('re-measures when a resize reports new geometry', () => {
+    const frames = makeFrameDriver();
+    const target = makeTarget();
+    const engine = createSheenPointer({
+      target: target as unknown as Window,
+      raf: frames.raf,
+      caf: frames.caf,
+      prefersReducedMotion: false,
+    });
+
+    engine.register(elementAt(0, 0));
+    frames.step();
+    const before = engine.measureCount;
+
+    // Web fonts landing, a container resizing, an image decoding: all arrive as
+    // layout changes after first paint. Without a re-measure the cached rect is
+    // wrong and the orb tracks to the wrong place.
+    target.emit('resize');
+    frames.step();
+    expect(engine.measureCount).toBe(before + 1);
 
     engine.destroy();
   });
