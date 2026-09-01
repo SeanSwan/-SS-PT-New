@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "playwright test"
+    "test": "node --test tests/movement.test.mjs && playwright test"
   },
   "dependencies": {
     "@react-three/drei": "9.114.0",

@@ -21,3 +21,8 @@ is not here, that is a bug in the docs, not a gap in you.
 | **draw call** | One instruction to the graphics card. Too many is the usual reason a scene runs slowly. |
 | **atlas bake** | Packing many small textures into one big image so the graphics card needs fewer draw calls. |
 | **strictPort** | A dev-server setting that makes it FAIL when its port is busy instead of quietly moving to another one. A server that silently moves is a test that silently tests nothing. |
+| **delta** | Seconds elapsed since the previous frame. Multiply movement by it so speed is per SECOND and identical on a 60Hz and a 120Hz machine. |
+| **normalise** | Scaling a direction so its length is exactly 1. Without it, diagonal movement is 41% faster than straight — a bug that shipped in real, famous games. |
+| **store** | A small shared table of world state any component can read, instead of threading values down through every component in between. |
+| **ref** | A React value that can change without causing a re-render. Used for things that change every frame, because 60 re-renders a second is how a React game gets slow. |
+| **test seam** | A deliberate, documented hook added so a test can observe something it could not otherwise reach. Kept narrow so nothing else depends on it. |

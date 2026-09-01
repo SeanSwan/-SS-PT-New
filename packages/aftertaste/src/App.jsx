@@ -13,9 +13,23 @@
  * Lights matter: with no light, a standard material renders pure black. That is the single most
  * common "my scene is empty" mistake, and it is not an error — it draws perfectly, in black.
  */
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls } from '@react-three/drei';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import Ground from './world/Ground.jsx';
+import Player from './player/Player.jsx';
+import { usePlayerStore } from './state/store.js';
+import { followPlayer } from './systems/cameraFollow.js';
+
+/**
+ * A component that renders nothing and only runs a per-frame system. This is a common and useful
+ * shape: "logic that needs the frame, but is not a visible thing."
+ */
+function CameraRig() {
+  const { camera } = useThree();
+  useFrame((_s, delta) => {
+    followPlayer(camera, usePlayerStore.getState().position, delta);
+  });
+  return null;
+}
 
 export default function App() {
   return (
@@ -34,9 +48,10 @@ export default function App() {
       <directionalLight position={[5, 10, 5]} intensity={1.2} />
 
       <Ground />
+      <Player />
 
-      {/* Drag to orbit. This is a DEV convenience, not the game camera — Slice 2 replaces it. */}
-      <OrbitControls makeDefault />
+      {/* Slice 2 replaced OrbitControls with a camera that follows the player. */}
+      <CameraRig />
     </Canvas>
   );
 }
