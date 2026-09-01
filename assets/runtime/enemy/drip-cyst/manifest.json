@@ -1,13 +1,19 @@
 {
   "schema": "swan.game-asset.v1",
   "id": "enemy.drip-cyst",
-  "status": "planned",
+  "status": "validated",
   "targetSurface": "standalone",
   "paletteLaw": "B",
   "calibrationFixture": false,
   "zone": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
-  "skeleton": null,
-  "animations": null,
+  "skeleton": "skeleton.creature-small.v1",
+  "animations": [
+    "idle",
+    "move",
+    "attack",
+    "hit",
+    "death"
+  ],
   "budgets": {
     "lod0Triangles": 469,
     "lod1Triangles": 199,
@@ -15,10 +21,10 @@
     "textureMB": 0,
     "bake": "not-baked - swan_pipe.py has no texture bake stage (removed from plan() 2026-08-26 until it exists); 0 is measured embedded texture bytes, not a budget",
     "tool": "scripts/assets/measure-glb.mjs",
-    "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/drip-cyst/lod0.glb",
-    "date": "2026-08-26",
-    "commit": "e1cba57e9",
-    "note": "prop; rig:none path. LOD2 needed ladder rung 4 (decimate the un-beveled form) — un-beveled as-is was 124 against a 117 ceiling; +collapse reached 112. The rung came from running the probe the refusal named."
+    "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/drip-cyst/lod0.glb lod1.glb lod2.glb",
+    "date": "2026-09-01",
+    "commit": "a06f25bf6",
+    "note": "Regenerated 2026-09-01 for the Slice 8 roster: same 469/199/112 geometry as the 2026-08-26 prop build, now rigged on skeleton.creature-small.v1 with all FIVE contract clips. lod1/lod2/collision came out byte-identical to the previous build (hashes unchanged), so only the rigged lod0 hash moved — the same signature the fryling re-rig produced. The 2026-08-26 LOD2 ladder note still applies to the geometry: un-beveled decimate + collapse reached 112 against a 117 ceiling."
   },
   "provenance": {
     "humanOwner": "owner",
@@ -26,7 +32,7 @@
     "aiAssisted": false,
     "generator": {
       "name": "tools/blender/swan_pipe.py",
-      "version": "roster-run",
+      "version": "roster-run-rigged-5clip",
       "blender": "4.5.13 LTS (daeeeca98fb0)",
       "invocation": "scripts/assets/run-blender.mjs (--disable-autoexec --python-exit-code 1, sentinel-checked)",
       "specAuthor": "stealth/ox-alpha — enemy roster 2026-08-26 (text spec only; no mesh data from the model)"
@@ -58,9 +64,23 @@
     "compression": "none"
   },
   "sha256": {
-    "lod0": "700649bce2d94ac99ddbe0621914cd6a43cde62b69b52d33c2b02c9ef34c179d",
+    "lod0": "cd46b4a5609a9024987e32e58af157952f03843701360e88bdbf49195baa1db1",
     "lod1": "bf084225d15f3d56df5d5a3b8bff802f2df481b774c102005d6b4ff002b9d1cb",
     "lod2": "03c996235c5d4107d3ab14be4f0943d558a88eee514656eb56f2dab1f1390a3e",
     "collision": "ae98afabdba9f8074ec54679b725e25f1aa6002a8a281146e9e1fa7b1c585d12"
+  },
+  "clipContract": {
+    "closes": [
+      "idle",
+      "move",
+      "attack",
+      "hit"
+    ],
+    "once": [
+      "death"
+    ],
+    "tool": "scripts/assets/verify-clips.mjs",
+    "command": "node scripts/assets/verify-clips.mjs assets/runtime/enemy/drip-cyst/lod0.glb --loop idle,move,attack,hit --once death",
+    "note": "Presence of a named clip proves nothing - a clip can be named and empty and pass every other check. These are the properties that matter: clips that repeat or recover must return to their start pose or they snap; death must NOT, or the corpse stands back up."
   }
 }
