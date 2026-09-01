@@ -13,6 +13,7 @@
  * Lights matter: with no light, a standard material renders pure black. That is the single most
  * common "my scene is empty" mistake, and it is not an error — it draws perfectly, in black.
  */
+import { useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import Ground from './world/Ground.jsx';
 import Player from './player/Player.jsx';
@@ -34,6 +35,40 @@ function CameraRig() {
   return null;
 }
 
+/**
+ * The sun follows the player, exactly as the floor does (see Ground.jsx) and for the same reason:
+ * the shadow camera is a fixed box in the LIGHT's space, and anything that walks out of the box
+ * simply stops casting a shadow — no error, no warning, the shadow just is not there. Anchoring
+ * the box to the player means "inside the box" is always true. A directional light's DIRECTION is
+ * what creates the shading, and direction is preserved: position and target move together.
+ */
+function SunLight() {
+  const light = useRef();
+  useFrame(() => {
+    const p = usePlayerStore.getState().position;
+    const l = light.current;
+    if (!l) return;
+    l.position.set(p.x + 12, 18, p.z + 8);
+    l.target.position.set(p.x, 0, p.z);
+    l.target.updateMatrixWorld();
+  });
+  return (
+    <directionalLight
+      ref={light}
+      position={[12, 18, 8]}
+      intensity={1.4}
+      castShadow
+      // The shadow camera is an orthographic box; anything outside it casts no shadow at all.
+      // It must cover the play area, or monsters lose their shadow as they walk in.
+      shadow-camera-left={-30}
+      shadow-camera-right={30}
+      shadow-camera-top={30}
+      shadow-camera-bottom={-30}
+      shadow-mapSize={[1024, 1024]}
+    />
+  );
+}
+
 export default function App() {
   const shoot = useShoot();
   return (
@@ -48,6 +83,14 @@ export default function App() {
       // error, it just silently draws no shadow. A contact shadow under a box is the strongest
       // single cue for WHERE a thing is on the floor, which is why it is worth the draw cost.
       shadows
+      // Test seam, same reasoning as __swanPlayerPos: a browser test cannot reach into R3F's
+      // internals, and "a SkinnedMesh is actually in the scene" is unprovable from the DOM alone.
+      onCreated={(state) => {
+        if (typeof window !== 'undefined') {
+          window.__swanScene = state.scene;
+          window.__swanCamera = state.camera;
+        }
+      }}
     >
       <color attach="background" args={['#0b0b0e']} />
 
@@ -55,18 +98,7 @@ export default function App() {
           ambient  = flat fill so nothing is pure black
           directional = a "sun" that creates the shading which reads as shape */}
       <ambientLight intensity={0.4} />
-      <directionalLight
-        position={[12, 18, 8]}
-        intensity={1.4}
-        castShadow
-        // The shadow camera is an orthographic box; anything outside it casts no shadow at all.
-        // It must cover the play area, or monsters lose their shadow as they walk in.
-        shadow-camera-left={-30}
-        shadow-camera-right={30}
-        shadow-camera-top={30}
-        shadow-camera-bottom={-30}
-        shadow-mapSize={[1024, 1024]}
-      />
+      <SunLight />
 
       <Ground onClick={shoot} />
       <Player />
