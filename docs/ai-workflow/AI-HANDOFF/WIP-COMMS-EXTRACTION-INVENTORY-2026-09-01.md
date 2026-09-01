@@ -56,6 +56,14 @@ Mostly learning packets, handoffs, dry-loop ledgers. SWA-184 already tracks the 
 3. `git cherry` equivalence is patch-exact; a reworked-on-main commit shows as "not on main" — each lane's first extraction step is a content diff vs main for its files, not a trusting cherry-pick.
 4. Branch is docs-majority: 54% of the 540 commits carry zero runtime code. The extraction problem is ~62 commits, not 540.
 
+## CORRECTION 2026-09-01 (same day, hours later): sweep open PRs FIRST
+
+This inventory swept commits and lanes but **not open PRs** — and an Opus 5 session had already extracted the top lanes on 08-27/28: **#94** (gym-ops), **#96** (onboarding backend + credential custody, a superset), **#97** (economics, registry fix included), **#93** (egress), **#92** (cancellation rate, SWA-212), under Codex review packet SWA-219 / `CODEX-HOSTILE-REVIEW-PACKET-2026-08-28.md`, with a prior inventory at `WIP-EXTRACTION-INVENTORY-2026-08-27.md`. My duplicate PRs #99/#100 are closed; #101 (drift detector) was novel and stands.
+
+**Standing rule for every future lane: `gh pr list --state open` + grep the AI-HANDOFF dir for prior inventories BEFORE cutting a worktree.** The recon skill exists for exactly this.
+
+The dedup collision did surface real value: PR #94 imports `zonedTime.mjs` but ships it nowhere (merge = boot crash — filed on the PR); #96 lacks the frontend page (preserved guard-tokenized on `claude/trainereco-extract-20260901`); #97 independently fixed the same PriceChangeLog registry gap my repair commit fixed — two extractions converging on one latent branch defect is strong evidence the defect is real.
+
 ## Recommended order
 
 1. **gym-ops/locations** (zero collision, SWA-74 tagged) → 2. **trainer-economics/commission** (SWA-62) → 3. **schema truth** (SWA-87 + drift detector) → 4. **pricing/cancellation under SWA-216/208** → 5. **comms/notifications** (3-way on Notification.mjs) → 6. **workouts** single commit → 7. **coach freestyle** (owner decision vs W3 rebuild) → tooling/governance last, as its own program.
