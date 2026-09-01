@@ -26,3 +26,11 @@ is not here, that is a bug in the docs, not a gap in you.
 | **store** | A small shared table of world state any component can read, instead of threading values down through every component in between. |
 | **ref** | A React value that can change without causing a re-render. Used for things that change every frame, because 60 re-renders a second is how a React game gets slow. |
 | **test seam** | A deliberate, documented hook added so a test can observe something it could not otherwise reach. Kept narrow so nothing else depends on it. |
+| **pathfinding / A\*** | Searching a map for a route around obstacles. Clever, and costs a real search per agent — which is why 40 agents re-planning every frame kills a browser game. |
+| **A\* (a-star)** | The standard pathfinding algorithm. Needs a navmesh, and pays for cleverness with CPU time. |
+| **seek** | The simplest steering rule: a unit-length direction pointing at the target. |
+| **separation** | The rule that stops a flock stacking into one square. Closer neighbours push harder. Without it, seek alone gives you one box wearing 39 hats. |
+| **boids** | Craig Reynolds' 1987 flocking model (seek/separate/align). The origin of nearly every crowd in games and film. |
+| **NaN** | "Not a Number" — what you get from dividing by zero. It does not throw; it silently propagates, and a NaN position makes an object vanish with no error to search for. |
+| **snapshot** | Reading every agent's position *before* moving any of them, so each steers against the same world state instead of a half-updated one. |
+| **tripwire** | A written-down condition that says when to switch tools (e.g. "more than 30 agents needing real routes -> now you need pathfinding"), instead of switching on instinct. |

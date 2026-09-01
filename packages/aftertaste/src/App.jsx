@@ -16,6 +16,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import Ground from './world/Ground.jsx';
 import Player from './player/Player.jsx';
+import Enemies from './enemies/Enemies.jsx';
 import { usePlayerStore } from './state/store.js';
 import { followPlayer } from './systems/cameraFollow.js';
 
@@ -49,6 +50,7 @@ export default function App() {
 
       <Ground />
       <Player />
+      <Enemies />
 
       {/* Slice 2 replaced OrbitControls with a camera that follows the player. */}
       <CameraRig />
