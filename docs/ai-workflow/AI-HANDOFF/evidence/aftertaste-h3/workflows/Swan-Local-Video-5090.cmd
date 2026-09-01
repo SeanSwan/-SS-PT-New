@@ -19,6 +19,7 @@ set "URL=http://127.0.0.1:8189"
 set "CANDIDATE_SCRIPT=%CANDIDATE_ROOT%\Start-H3-Candidate.ps1"
 set "WORKFLOW_DIR=%CANDIDATE_ROOT%\user-candidate\default\workflows"
 set "I2V_WORKFLOW=%WORKFLOW_DIR%\01 SWAN - H3 local - First + Last Frame.json"
+set "KREA_WORKFLOW=%WORKFLOW_DIR%\04 SWAN - Krea2 - Character Stills.json"
 
 echo.
 echo   ==================================================
@@ -116,6 +117,11 @@ REM  than an HTTP 200, so it kept claiming those versions after any upgrade or v
 REM  A hostile review caught it. Reported, not asserted:
 for /f "delims=" %%V in ('powershell -NoProfile -Command "try{$s=(Invoke-RestMethod -Uri '%URL%/system_stats' -TimeoutSec 8).system; 'ComfyUI ' + $s.comfyui_version + ' / Python ' + ($s.python_version -split ' ')[0] + ' / Torch ' + $s.pytorch_version}catch{'could not read /system_stats'}"') do set "RUNTIME=%%V"
 echo   Running now: %RUNTIME%
+REM  Same reported-not-asserted pattern for the hardware: read the device list the server
+REM  actually sees, so "right ComfyUI on the wrong box" is visible at a glance.
+for /f "delims=" %%G in ('powershell -NoProfile -Command "try{$d=(Invoke-RestMethod -Uri '%URL%/system_stats' -TimeoutSec 8).devices[0]; ($d.name -replace 'cuda:0 ','') + ' - ' + [math]::Round($d.vram_total/1GB) + ' GB VRAM, ' + [math]::Round($d.vram_free/1GB) + ' GB free'}catch{'could not read device info'}"') do set "GPUINFO=%%G"
+echo   GPU now:     %GPUINFO%
+if not exist "%KREA_WORKFLOW%" echo   [!] Stills workflow missing: 04 SWAN - Krea2 - Character Stills ^(videos unaffected^)
 echo.
 echo   Workflows (left rail, Workflows panel - both open free; VRAM
 echo   is used only on Run, and ComfyUI caches/frees models itself):

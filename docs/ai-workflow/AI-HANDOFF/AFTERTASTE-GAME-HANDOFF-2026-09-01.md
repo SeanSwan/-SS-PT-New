@@ -355,3 +355,15 @@ player covers more ground than any enemy in the same interval, which holds whate
 - SWA-211 updated.
 
 **Do not write "done" without current-session proof in the same message.** The word costs evidence.
+
+---
+
+## 13. Perf at the wave cap — measured, not assumed (2026-09-01, post-GLM round)
+
+Both GLM reviewers correctly noted every perf claim was structural. Measured: a forced engaged
+wave-cap board (40 mixed skinned monsters spawned at radius 2-5, invulnerable player, flock
+flapping alive↔attacking) in **headless Chromium — the pessimistic floor, no GPU accel**:
+**p50 16.7 ms (60fps), mean 22.6, p95/max 33.4 ms** over 300 frames (the 33.4s are rAF vsync
+quantization — frames snap to 1× or 2× 16.7, not continuous jitter). Verdict: playable at cap in
+the worst environment; on real hardware this is headroom, not a fire. Re-measure with this same
+probe shape after roster-v2 multiplies mesh count per monster.

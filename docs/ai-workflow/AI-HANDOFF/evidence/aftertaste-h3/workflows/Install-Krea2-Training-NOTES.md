@@ -91,3 +91,12 @@ If that tripwire is unwelcome, **FLUX.2 [klein] 4B** (7.22 GiB) is **Apache 2.0*
 FLUX.2 [dev] rates higher for general photorealism. Krea 2 is rated strongest specifically for *raw,
 textured* realism — grain, motion blur, low dynamic range — which is closer to the nature-and-
 wildlife look this vault's taste memory keeps selecting for.
+
+## Loader trap: text-encoder keys are silently dropped
+
+Workflow 04 (and the A/B rig) load the LoRA with `LoraLoaderModelOnly`, which applies MODEL
+weights only. If the trainer was configured to also train the text encoder, those tensors are
+silently ignored and the LoRA looks weaker than it is. `Check-CharacterLora.ps1` inspects the
+file's keys and warns when text-encoder tensors are present; if it warns, switch the workflow
+to the full `LoraLoader` node (model + clip inputs) or retrain with the text encoder frozen
+(the recommended Krea 2 recipe trains model-only anyway).
