@@ -13,9 +13,10 @@
  * remove them, so the list moved to the store — the shared table both systems read. That is the
  * normal moment to promote state: when a SECOND system needs it, not before.
  */
-import { useRef } from 'react';
+import { Suspense, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { stepEnemy } from './steering.js';
+import Fryling from './Fryling.jsx';
 import { useGameStore, usePlayerStore } from '../state/store.js';
 
 export default function Enemies() {
@@ -47,19 +48,31 @@ export default function Enemies() {
     }
   });
 
+  // The per-frame position writes land on this WRAPPER group, not on the model inside it. The
+  // Fryling's own scale/offset (feet on the floor, centre on the enemy's position) then composes on
+  // top, so movement code never has to know what the monster looks like. Note y=0 where the box
+  // used y=0.5 — a box is centred on its origin, but the Fryling's origin is at its feet.
   return (
     <group name="enemies">
       {enemies.map((e) => (
-        <mesh
+        <group
           key={e.id}
           ref={(el) => { if (el) meshes.current[e.id] = el; else delete meshes.current[e.id]; }}
-          position={[e.x, 0.5, e.z]}
-          castShadow
+          position={[e.x, 0, e.z]}
         >
-          <boxGeometry args={[1, 1, 1]} />
-          {/* Damaged enemies go darker — the cheapest possible "I hit it" feedback. */}
-          <meshStandardMaterial color={e.hp > 1 ? '#C4462F' : '#7A2418'} />
-        </mesh>
+          {/* Suspense: useGLTF suspends until the GLB arrives. The fallback is the Slice-3 box, so
+              the first frames of wave 1 show grey-box enemies instead of an empty board. */}
+          <Suspense
+            fallback={(
+              <mesh position={[0, 0.5, 0]} castShadow>
+                <boxGeometry args={[1, 1, 1]} />
+                <meshStandardMaterial color={e.hp > 1 ? '#C4462F' : '#7A2418'} />
+              </mesh>
+            )}
+          >
+            <Fryling hp={e.hp} />
+          </Suspense>
+        </group>
       ))}
     </group>
   );

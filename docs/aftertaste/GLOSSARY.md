@@ -46,3 +46,10 @@ is not here, that is a bug in the docs, not a gap in you.
 | **fun probe** | Reaching a playable state as early as possible, on purpose, while changing a number is still cheap. |
 | **seam** | The join between two components. Both can be correct and the join still wrong — which is why the seam needs its own test. |
 | **negative control** | Deliberately checking that your test FAILS when the bug is present. A test that has never failed has proven nothing. |
+| **skinned mesh** | Geometry bound to a skeleton: clips move the bones, the mesh follows. The bind is also where crowd bugs live — see CONCEPTS/skinned-mesh-crowds.md. |
+| **AnimationMixer** | The runtime player that advances a clip onto a skeleton a little every frame. No mixer update, no motion — a model without one stands in its bind pose, silently. |
+| **SkeletonUtils.clone** | The clone that duplicates the bones too. Ordinary `.clone()` shares the original skeleton, so a whole crowd animates as one creature — with no error. |
+| **bind pose** | The shape a skinned model holds when no clip is playing (often a T or A pose). Seeing it in-game means the mixer is not running, not that the model is broken. |
+| **Suspense** | React's "this component is still loading" boundary. `useGLTF` pauses the component until the file arrives; Suspense says what to render meanwhile — here, the grey box. |
+| **translation-invariance** | Arranging the world so absolute position stops mattering — floor, grid and sun follow the player. If it renders right at spawn, it renders right everywhere. |
+| **near plane** | The camera's closest visible distance. Geometry crossing it must be clipped, and lines that cross far behind the camera are where Windows GL visibly gets clipping wrong. |
