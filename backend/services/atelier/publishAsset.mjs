@@ -216,6 +216,20 @@ export async function resolvePublic({ id }, deps = {}) {
   // This route is mounted WITHOUT auth, so it is the least forgiving place in the system to
   // sign an unvalidated key: a planted `r2Key` on a published row would become a public
   // signed URL for someone else's object. Same predicate as everywhere else.
-  if (!keyOwnedByRow(asset.r2Key, asset)) return null;
+  //
+  // AND IT IS THE ONLY REFUSAL IN THIS FAMILY THAT WOULD BE SILENT. The library degrades to
+  // a visible placeholder, `publishedReference` returns a `withheld` reason, `motionBind`
+  // throws a named error — this one returns null and the route answers 404. So a permalink
+  // that worked yesterday would simply stop, indistinguishable from an unpublish.
+  //
+  // That matters because the key convention is NOT enforced at the writer: `r2KeyForJob` is
+  // called by nothing in production, so the agent supplies `r2Key` freely and a historical
+  // asset may legitimately carry a shape this predicate does not recognise. If that ever
+  // happens this line is the cause, and without the log it would be a support ticket about
+  // a "deleted" image that is sitting in the bucket.
+  if (!keyOwnedByRow(asset.r2Key, asset)) {
+    console.warn('[Atelier/Publish] refusing to sign asset %s: its stored key is not one this system wrote for its owner', asset.id);
+    return null;
+  }
   return { url: await d.readUrl(asset.r2Key, asset.mime), mime: asset.mime };
 }

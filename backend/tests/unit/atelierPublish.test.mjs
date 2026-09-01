@@ -215,3 +215,36 @@ describe('the embed snippet is pasted onto a public site, so attribution is not 
     expect(out.snippet).not.toContain('<!--');
   });
 });
+
+describe('the one refusal that would otherwise be silent', () => {
+  it('logs when the public permalink refuses a key, because a 404 hides the reason', async () => {
+    // The library degrades to a visible placeholder and publishedReference returns a
+    // `withheld` reason. This path returns null and the route answers 404 — a permalink
+    // that worked yesterday simply stops, indistinguishable from an unpublish. The key
+    // convention is not enforced at the writer (r2KeyForJob is called by nothing in
+    // production), so a historical asset may carry a shape this predicate does not know.
+    const warns = [];
+    const spy = console.warn; console.warn = (m, ...a) => warns.push(String(m) + a.join(' '));
+    try {
+      const asset = base({ approvalStatus: 'published', r2Key: 'legacy/shape/x.png' });
+      const out = await resolvePublic({ id: 'a1' }, {
+        assetModel: { findOne: async () => asset },
+        readUrl: async () => 'https://cdn/x',
+      });
+      expect(out).toBeNull();
+      expect(warns.join(' ')).toMatch(/not one this system wrote/);
+    } finally { console.warn = spy; }
+  });
+
+  it('says nothing when the key is fine', async () => {
+    const warns = [];
+    const spy = console.warn; console.warn = (m, ...a) => warns.push(String(m) + a.join(' '));
+    try {
+      await resolvePublic({ id: 'a1' }, {
+        assetModel: { findOne: async () => base({ approvalStatus: 'published' }) },
+        readUrl: async (k) => `https://cdn/${k}`,
+      });
+      expect(warns.join(' ')).not.toMatch(/not one this system wrote/);
+    } finally { console.warn = spy; }
+  });
+});
