@@ -12,8 +12,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { decide, invokesFable, commandKey } from './fable-remit-gate.mjs';
+import { redeemOnce } from '../lib/atomic-claim.mjs';
 
 // Most cases drive the pure `decide()`. The refusal-output tests must spawn the real
 // process, because what the AGENT sees is the whole point of GLM 5.3's blocker 1.
@@ -350,13 +353,47 @@ test('CODEX-6: one unused approval snapshot yields exactly ONE winner', () => {
   // Forced rather than raced: two decisions driven from the SAME snapshot is exactly
   // what two processes holding a stale read see. A process-level barrier test lives
   // beside this one.
-  const cmd = 'node scripts/consult-fable.mjs --document a.md';
-  const key = commandKey(cmd);
-  const snapshot = () => ({ [key]: { token: 'aaaaaaaaaaaa', used: false } });
-  const present = `SWAN_FABLE_APPROVE=aaaaaaaaaaaa ${cmd}`;
+  // HERMETIC, and it was not at first. Written without injecting `claim`, this test
+  // used the gate's REAL state dir, so the token was spent on the first run and stayed
+  // spent: it passed once and failed every run after, which is the worst shape a test
+  // can have — green on the machine that wrote it, red on the next one. The claim dir
+  // is injected precisely so the primitive can be exercised without touching live state.
+  const dir = mkdtempSync(join(tmpdir(), 'swan-codex6-'));
+  try {
+    const cmd = 'node scripts/consult-fable.mjs --document a.md';
+    const key = commandKey(cmd);
+    const snapshot = () => ({ [key]: { token: 'aaaaaaaaaaaa', used: false } });
+    const present = `SWAN_FABLE_APPROVE=aaaaaaaaaaaa ${cmd}`;
+    const claim = (k, t) => redeemOnce(dir, k, t);
 
-  const a = decide(present, { tokens: snapshot(), persist: () => {} });
-  const b = decide(present, { tokens: snapshot(), persist: () => {} });
-  const winners = [a, b].filter((r) => r.allow).length;
-  assert.equal(winners, 1, `one approval admitted ${winners} calls — the claim is not atomic`);
+    const a = decide(present, { tokens: snapshot(), persist: () => {}, claim });
+    const b = decide(present, { tokens: snapshot(), persist: () => {}, claim });
+    const winners = [a, b].filter((r) => r.allow).length;
+    assert.equal(winners, 1, `one approval admitted ${winners} calls — the claim is not atomic`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('CODEX-6b: the suite is re-runnable — a second pass over the same dir still yields ONE', () => {
+  // The negative control for the bug above. A test whose result depends on whether it
+  // has run before does not measure the code; it measures the filesystem. Two full
+  // cycles in one process prove the isolation is real rather than incidental.
+  for (const round of [1, 2]) {
+    const dir = mkdtempSync(join(tmpdir(), 'swan-codex6b-'));
+    try {
+      const cmd = `node scripts/consult-fable.mjs --document r${round}.md`;
+      const key = commandKey(cmd);
+      const present = `SWAN_FABLE_APPROVE=bbbbbbbbbbbb ${cmd}`;
+      const claim = (k, t) => redeemOnce(dir, k, t);
+      const snap = () => ({ [key]: { token: 'bbbbbbbbbbbb', used: false } });
+      const n = [
+        decide(present, { tokens: snap(), persist: () => {}, claim }),
+        decide(present, { tokens: snap(), persist: () => {}, claim }),
+      ].filter((r) => r.allow).length;
+      assert.equal(n, 1, `round ${round} admitted ${n}`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
 });
