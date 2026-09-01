@@ -1,5 +1,5 @@
 ---
-decision: Continue Project Aftertaste by WIRING the enemy lifecycle (module landed dormant in `src/systems/lifecycle.js`, 10 tests green); Slice 6b (Fryling in-game) and the FPS slice (Overwatch/BF6 shooting, Sean's directive) both landed 2026-09-01; dismemberment is a standing Sean directive that lands with the enemy roster (needs part-tagged meshes from the pipeline)
+decision: Continue Project Aftertaste from Slice 8 — the enemy roster (drip-cyst, grease-fly, patty-larva) designed WITH severable parts for Sean's dismemberment directive; 6b + FPS + lifecycle wiring all landed 2026-09-01
 status: open
 supersedes: none
 ---
@@ -214,7 +214,7 @@ Currently `Fryling.jsx` plays `move`, and flinches with `hit` on damage.
 |---|---|---|
 | ~~**6b**~~ | ~~finish 6 — model in game, verified in browser~~ **DONE 2026-09-01**, `684a564db` + world fix `ccfc750a8` | the pipeline reached the runtime |
 | ~~**FPS**~~ | ~~Overwatch/BF6 shooting~~ **DONE 2026-09-01**, `26bf9cb99` — Sean's mid-session directive. First-person camera (eye 1.6, fov 75, pointer lock), view-relative WASD, hitscan (`combat.js` ray-vs-sphere), hold-to-fire, crosshair + hitmarkers. Grid became a floor TEXTURE (line primitives clip-broken at eye height), fog added, enemies got emissive. Old click-to-shoot mechanic + its spec deleted. | the game Sean actually asked for |
-| **7** | **WIRE the enemy lifecycle** — the machine already exists, dormant: `src/systems/lifecycle.js` + 10 green tests (`spawning → alive → attacking → dying → gone`, capabilities table, dodgeable ATTACK_WINDUP). Wiring = store.tick drives transitions, corpses persist through wave respawns, combat skips non-shootable, Fryling plays `attack`/`death` clips per state, HUD counts holdsWave only | unblocks `attack` + `death`; the state machine everything else needs |
+| ~~**7**~~ | ~~WIRE the enemy lifecycle~~ **DONE 2026-09-01**, `7518c2707` — kills topple (corpses ride wave respawns, untargetable, don't hold waves), attacks telegraph (ATTACK_WINDUP = the dodge window; proximity damage left the game), spawns are fair both ways. All rules answered by the ONE capabilities table. 82 unit / 13 browser. Card: `CONCEPTS/enemy-lifecycle.md` | the state machine everything else needed |
 | **8** | the other three enemies (`drip-cyst`, `grease-fly`, `patty-larva`) | all still `planned` with `idle` only — same pipeline, `--clips idle,move,attack,hit,death` |
 | **8b** | **dismemberment — Sean's standing directive**: "shoot off body parts, limbs, head, legs, feet, toes." Needs (a) locational hitscan — per-part spheres instead of one, the ray already reports where it struck; (b) severable part meshes, which means the Blender pipeline must emit part-tagged geometry (the current Fryling is one blob on 3 bones — nothing to sever). Design it INTO the roster assets rather than retrofitting | headshots and gore are the CoD-Zombies fantasy; asset contract must be born with parts |
 | **9** | sound | the feedback moments already exist (hit, kill, wave, death) — they were built as hooks |
