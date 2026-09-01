@@ -52,7 +52,6 @@
     "lucide-react": "^0.300.0",
     "moment": "^2.29.4",
     "react": "^18.2.0",
-    "react-big-calendar": "^1.8.2",
     "react-dom": "^18.2.0",
     "react-helmet-async": "^2.0.4",
     "react-icons": "^5.5.0",
