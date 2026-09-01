@@ -1,6 +1,7 @@
 ---
 decision: "Keep the proven PLAUD substrate (storage/idempotency/crypto/locks); rebuild the workflow layer — capture sessions + attribution engine + plan reconciliation + one-transaction approval — and collapse four surfaces into one ABC flow per role."
-status: open
+status: superseded
+superseded_by: docs/ai-workflow/AI-HANDOFF/PLAUD-AUTO-INGEST-REBUILD-BLUEPRINT-V2-2026-09-01.md (2026-09-01 — v1's F1/F2 diagnoses were verified against a stale branch; v2 is rebased to origin/main truth and merges the GPT-Pro hostile review, itself corrected)
 supersedes: docs/ai-workflow/AI-HANDOFF/PHASE-5-PLAUD-AUTO-INGESTION-PLAN-v1.2-2026-05-04.md (workflow layer only; its connector/security groundwork remains historical record)
 ---
 
