@@ -277,6 +277,12 @@ export async function logWorkoutForClient({
   trainerId,
   sequelize,
   suppressEngagementSideEffects = false,
+  // Blueprint Slice 1 (2026-09-01): an externally-owned transaction. When
+  // provided, this function JOINS it — no commit/rollback here, and
+  // engagement side effects are deferred to the transaction owner (they must
+  // run post-commit; see awardEngagementForWorkout). All existing callers
+  // omit this and keep the original own-transaction behavior byte-for-byte.
+  transaction: externalTransaction = null,
 }) {
   // ── Input validation ─────────────────────────────────────────────────────
 
@@ -330,7 +336,8 @@ export async function logWorkoutForClient({
 
   // ── DB write (single transaction) ────────────────────────────────────────
 
-  const transaction = await sequelize.transaction();
+  const ownsTransaction = !externalTransaction;
+  const transaction = externalTransaction ?? await sequelize.transaction();
   let committed = false;
 
   try {
@@ -345,7 +352,9 @@ export async function logWorkoutForClient({
       transaction,
     });
     if (existingSession) {
-      await transaction.rollback();
+      if (ownsTransaction) {
+        await transaction.rollback();
+      }
       throw new WorkoutLogError(
         'A workout session already exists for this client on this date',
         'DUPLICATE_DATE'
@@ -377,70 +386,34 @@ export async function logWorkoutForClient({
     const exerciseCount = exercises.length;
 
     await session.update({ totalSets, totalReps, totalWeight }, { transaction });
-    await transaction.commit();
-    committed = true;
+    if (ownsTransaction) {
+      await transaction.commit();
+      committed = true;
+    }
 
     logger.info(`[WorkoutLogService] Logged for client ${clientId}: session ${session.id} (${exerciseCount} exercises, ${totalSets} sets)`);
 
-    // ── Best-effort XP (separate transaction) ───────────────────────────
+    // ── Best-effort XP + auto-post (extracted 2026-09-01, Slice 1) ──────
 
-    let xpResult = null;
-    let xpTx = null;
+    let xpResponse = null;
     if (suppressEngagementSideEffects) {
       logger.info(`[WorkoutLogService] Engagement side effects skipped for historical import session ${session.id}`);
+    } else if (!ownsTransaction) {
+      // Engagement must only run after a real commit. When the caller owns
+      // the transaction, the caller invokes awardEngagementForWorkout after
+      // its own commit (see approveCaptureWorkoutService).
+      logger.info(`[WorkoutLogService] Engagement deferred to transaction owner for session ${session.id}`);
     } else {
-      try {
-        xpTx = await sequelize.transaction();
-        xpResult = await awardWorkoutXP({
-          userId: clientId,
-          workoutId: session.id,
-          duration: parsedDuration,
-          exercisesCompleted: exerciseCount,
-          workoutDate: parsedDate,
-          awardedBy: trainerId,
-        }, xpTx);
-
-        if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
-          const { WorkoutSession: WS } = getAllModels();
-          await WS.update(
-            { experiencePoints: xpResult.pointsAwarded },
-            { where: { id: session.id }, transaction: xpTx }
-          );
-        }
-        await xpTx.commit();
-
-        // Best-effort social auto-post
-        if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
-          try {
-            const { createWorkoutAutoPost, createStreakAutoPost } = await import('../socialAutoPost.mjs');
-            await createWorkoutAutoPost(clientId, {
-              duration: parsedDuration,
-              exercisesCompleted: exerciseCount,
-              pointsAwarded: xpResult.pointsAwarded,
-            });
-            if (xpResult.streakDays && [7, 14, 30, 60, 90, 180, 365].includes(xpResult.streakDays)) {
-              await createStreakAutoPost(clientId, xpResult.streakDays);
-            }
-          } catch (autoPostErr) {
-            logger.warn(`[WorkoutLogService] Auto-post failed for session ${session.id}: ${autoPostErr.message}`);
-          }
-        }
-      } catch (xpErr) {
-        try { await xpTx?.rollback(); } catch (_) { /* already rolled back */ }
-        logger.warn(`[WorkoutLogService] XP award failed for session ${session.id}: ${xpErr.message}`);
-        xpResult = null;
-      }
+      xpResponse = await awardEngagementForWorkout({
+        sequelize,
+        clientId,
+        sessionId: session.id,
+        duration: parsedDuration,
+        exerciseCount,
+        workoutDate: parsedDate,
+        trainerId,
+      });
     }
-
-    // Collapse sameDay / alreadyAwarded → null for both callers
-    const xpResponse = (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded)
-      ? {
-          pointsAwarded: xpResult.pointsAwarded,
-          newBalance: xpResult.newBalance,
-          streakDays: xpResult.streakDays,
-          milestones: (xpResult.awardedMilestones || []).map(m => m.name),
-        }
-      : null;
 
     return {
       sessionId: session.id,
@@ -458,9 +431,83 @@ export async function logWorkoutForClient({
       xp: xpResponse,
     };
   } catch (err) {
-    if (!committed) {
+    if (ownsTransaction && !committed) {
       try { await transaction.rollback(); } catch (_) { /* already rolled back */ }
     }
     throw err;
   }
+}
+
+// ── Post-commit engagement side effects (XP + social auto-post) ─────────────
+//
+// Extracted 2026-09-01 (blueprint Slice 1) from the inline block above so
+// external-transaction callers can run it AFTER their commit. Best-effort by
+// contract: any failure logs a warning and returns null — it never fails the
+// workout write it decorates.
+
+/**
+ * @returns {Promise<{pointsAwarded:number,newBalance:number,streakDays:number,milestones:string[]}|null>}
+ */
+export async function awardEngagementForWorkout({
+  sequelize,
+  clientId,
+  sessionId,
+  duration,
+  exerciseCount,
+  workoutDate,
+  trainerId,
+}) {
+  let xpResult = null;
+  let xpTx = null;
+  try {
+    xpTx = await sequelize.transaction();
+    xpResult = await awardWorkoutXP({
+      userId: clientId,
+      workoutId: sessionId,
+      duration,
+      exercisesCompleted: exerciseCount,
+      workoutDate,
+      awardedBy: trainerId,
+    }, xpTx);
+
+    if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
+      const { WorkoutSession: WS } = getAllModels();
+      await WS.update(
+        { experiencePoints: xpResult.pointsAwarded },
+        { where: { id: sessionId }, transaction: xpTx }
+      );
+    }
+    await xpTx.commit();
+
+    // Best-effort social auto-post
+    if (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded) {
+      try {
+        const { createWorkoutAutoPost, createStreakAutoPost } = await import('../socialAutoPost.mjs');
+        await createWorkoutAutoPost(clientId, {
+          duration,
+          exercisesCompleted: exerciseCount,
+          pointsAwarded: xpResult.pointsAwarded,
+        });
+        if (xpResult.streakDays && [7, 14, 30, 60, 90, 180, 365].includes(xpResult.streakDays)) {
+          await createStreakAutoPost(clientId, xpResult.streakDays);
+        }
+      } catch (autoPostErr) {
+        logger.warn(`[WorkoutLogService] Auto-post failed for session ${sessionId}: ${autoPostErr.message}`);
+      }
+    }
+  } catch (xpErr) {
+    try { await xpTx?.rollback(); } catch (_) { /* already rolled back */ }
+    logger.warn(`[WorkoutLogService] XP award failed for session ${sessionId}: ${xpErr.message}`);
+    xpResult = null;
+  }
+
+  // Collapse sameDay / alreadyAwarded → null for all callers
+  return (xpResult && !xpResult.sameDay && !xpResult.alreadyAwarded)
+    ? {
+        pointsAwarded: xpResult.pointsAwarded,
+        newBalance: xpResult.newBalance,
+        streakDays: xpResult.streakDays,
+        milestones: (xpResult.awardedMilestones || []).map(m => m.name),
+      }
+    : null;
 }

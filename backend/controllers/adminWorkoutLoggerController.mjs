@@ -18,6 +18,10 @@ import {
   WorkoutLogError,
 } from '../services/workout/workoutLogService.mjs';
 import { isHistoricalWorkoutLogSource } from '../services/workout/workoutLogSourcePolicy.mjs';
+import {
+  approvePlaudMergeWorkout,
+  MergeApprovalError,
+} from '../services/workout/approveCaptureWorkoutService.mjs';
 
 const WORKOUT_LOG_CLIENT_ERROR_MESSAGES = {
   DUPLICATE_DATE: 'A workout session already exists for this client on this date.',
@@ -57,35 +61,57 @@ export const logWorkout = async (req, res) => {
       return res.status(400).json({ success: false, message: 'title is required and must be non-empty' });
     }
 
-    // Phase 3 Slice 3.8 (2026-05-04): if this apply originates from a
-    // PLAUD merge, validate the mergeRequestId format before service
-    // call. Only the source==='plaud_merge' branch hits this path.
-    let isPlaudMergeApply = false;
-    if (source === 'plaud_merge') {
+    // Reworked 2026-09-01 (blueprint Slice 1 — F1/F2). PLAUD sources route
+    // through approveCaptureWorkoutService, which locks the merge request
+    // FOR UPDATE and commits the workout write + merge finalization in ONE
+    // transaction. History of the defective in-controller seam this
+    // replaces is documented in that service's header.
+    const isPlaudMergeApply = source === 'plaud_merge';
+    const isPlaudSegmentApply = source === 'plaud_merge_segment';
+    if (isPlaudMergeApply || isPlaudSegmentApply) {
       if (typeof mergeRequestId !== 'string' || !/^[0-9a-fA-F-]{36}$/.test(mergeRequestId)) {
         return res.status(400).json({
           success: false,
           message: 'mergeRequestId is required and must be a UUID when source=plaud_merge',
         });
       }
-      isPlaudMergeApply = true;
     }
     const isHistoricalImport = isHistoricalWorkoutLogSource(source);
 
     let serviceResult;
     try {
-      serviceResult = await logWorkoutForClient({
-        clientId,
-        exercises,
-        date,
-        notes,
-        title,
-        duration,
-        intensity,
-        trainerId: req.user?.id ?? null,
-        sequelize,
-        suppressEngagementSideEffects: isHistoricalImport,
-      });
+      if (isPlaudMergeApply || isPlaudSegmentApply) {
+        serviceResult = await approvePlaudMergeWorkout({
+          mergeRequestId,
+          clientId,
+          exercises,
+          date,
+          notes,
+          title,
+          duration,
+          intensity,
+          actingUserId: req.user?.id ?? null,
+          actingRole: req.user?.role || 'trainer',
+          sequelize,
+          finalizeMerge: isPlaudMergeApply,
+        });
+        if (serviceResult.mergeApproved) {
+          logger.info('[plaudApply] merge_request %s approved for client %d', mergeRequestId, clientId);
+        }
+      } else {
+        serviceResult = await logWorkoutForClient({
+          clientId,
+          exercises,
+          date,
+          notes,
+          title,
+          duration,
+          intensity,
+          trainerId: req.user?.id ?? null,
+          sequelize,
+          suppressEngagementSideEffects: isHistoricalImport,
+        });
+      }
     } catch (err) {
       if (err instanceof WorkoutLogError) {
         const status = err.code === 'DUPLICATE_DATE' ? 409 : 400;
@@ -94,65 +120,14 @@ export const logWorkout = async (req, res) => {
           message: getWorkoutLogClientErrorMessage(err),
         });
       }
-      throw err;
-    }
-
-    // Phase 3 Slice 3.8: PLAUD merge approval — guarded UPDATE.
-    // Codex Round 2 CRIT #4 + Round 4 HIGH atomic-finalization invariant:
-    // mark the merge_request approved only when ownership + status +
-    // already-approved invariants hold; rollback the workout form on
-    // mismatch.
-    if (isPlaudMergeApply) {
-      const [approvalRows] = await sequelize.query(
-        `UPDATE plaud_merge_requests
-         SET status                   = 'approved',
-             approved_workout_form_id = :formId,
-             approved_at              = NOW(),
-             payload_cipher           = NULL,
-             payload_iv               = NULL,
-             payload_tag              = NULL,
-             cipher_purged_at         = NOW()
-         WHERE merge_request_id = :mergeRequestId
-           AND client_id        = :clientId
-           AND status           = 'completed'
-           AND ( :role = 'admin' OR user_id = :actingUserId )
-           AND approved_workout_form_id IS NULL
-         RETURNING id`,
-        {
-          replacements: {
-            mergeRequestId,
-            clientId: Number(clientId),
-            actingUserId: Number(req.user?.id ?? 0),
-            role: req.user?.role || 'trainer',
-            formId: serviceResult.formId || serviceResult.sessionId, // sessionId fallback if service shape lacks formId
-          },
-        },
-      );
-      if (!approvalRows || approvalRows.length === 0) {
-        // Approval invariant failed. Roll back the workout form.
-        // logWorkoutForClient is its own transaction, so we delete the
-        // freshly-created session + form rows here. If this best-effort
-        // delete fails, surface 409 anyway — the failure to mark
-        // approved is the bigger problem the trainer must see.
-        try {
-          await sequelize.query(
-            `DELETE FROM workout_logs WHERE "sessionId" = :sessionId`,
-            { replacements: { sessionId: serviceResult.sessionId } },
-          );
-          await sequelize.query(
-            `DELETE FROM workout_sessions WHERE id = :sessionId`,
-            { replacements: { sessionId: serviceResult.sessionId } },
-          );
-        } catch (cleanupErr) {
-          logger.error('[plaudApply] failed to clean up workout session after approval invariant failure: %s', cleanupErr.message);
-        }
+      if (err instanceof MergeApprovalError) {
         return res.status(409).json({
           success: false,
-          message: 'MERGE_NOT_APPROVABLE: merge request not in approvable state (wrong owner / wrong client / already approved / not completed)',
+          message: `MERGE_NOT_APPROVABLE: ${err.message}`,
           errorCode: 'MERGE_NOT_APPROVABLE',
         });
       }
-      logger.info('[plaudApply] merge_request %s approved for client %d', mergeRequestId, clientId);
+      throw err;
     }
 
     return res.status(201).json({
@@ -172,6 +147,7 @@ export const logWorkout = async (req, res) => {
       },
       xp: serviceResult.xp,
       ...(isPlaudMergeApply ? { plaudMergeApproved: true } : {}),
+      ...(isPlaudSegmentApply ? { plaudSegmentLogged: true } : {}),
     });
   } catch (error) {
     logger.error('Workout logging failed:', error);

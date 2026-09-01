@@ -11,11 +11,15 @@
  * `{ transcript, parsedWorkout }` keyed by cipher_key_id (e.g. 'V2'),
  * with payload_iv + payload_tag per row. See plaudCipherService.mjs.
  *
- * markApproved guarded UPDATE pattern (Codex Round 2 CRIT #4 + Round 4 HIGH):
- *   the apply path (POST /api/admin/clients/:clientId/workouts) calls
- *   PlaudMergeRequest.markApproved within the same transaction that
- *   creates the workout form. The UPDATE asserts ownership, status,
- *   and approve-once invariants via WHERE clauses.
+ * Approval (reworked 2026-09-01, blueprint Slice 1 — F1/F2):
+ *   the apply path (POST /api/admin/clients/:clientId/workouts) routes
+ *   plaud_merge / plaud_merge_segment sources through
+ *   approveCaptureWorkoutService, which locks this row FOR UPDATE and
+ *   commits the workout write + approval flip in ONE transaction,
+ *   recording approved_workout_session_id (FK → workout_sessions).
+ *   approvedWorkoutFormId is RETIRED — its FK targets daily_workout_forms,
+ *   which the approval path never writes; the column is kept one release
+ *   for rollback safety, then dropped.
  */
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
@@ -98,11 +102,20 @@ PlaudMergeRequest.init(
       allowNull: true,
       field: 'parsed_exercise_count',
     },
+    // RETIRED 2026-09-01 (F1): never successfully written — the approval path
+    // creates workout_sessions rows, not daily_workout_forms rows. Kept one
+    // release for rollback safety; see 20260901090000 migration.
     approvedWorkoutFormId: {
       type: DataTypes.UUID,
       allowNull: true,
       field: 'approved_workout_form_id',
       references: { model: 'daily_workout_forms', key: 'id' },
+    },
+    approvedWorkoutSessionId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      field: 'approved_workout_session_id',
+      references: { model: 'workout_sessions', key: 'id' },
     },
     createdAt: {
       type: DataTypes.DATE,
