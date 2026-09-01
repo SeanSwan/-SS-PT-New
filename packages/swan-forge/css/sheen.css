@@ -1,0 +1,225 @@
+/**
+ * @swan/forge — Sheen tier (.sw-sheen). Zero-runtime; tokens only (no raw hex here).
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * The border rendered as a WINDOW onto a world. Everything painted by the layers
+ * inside is visible ONLY through the frame ring, which is what makes it read as a
+ * window rather than a background.
+ *
+ * Taste anchor (SWA-224, Sean 2026-08-31): the FUSION — candidate B's trailing
+ * eased glow orb and continuous chroma blend, inside candidate C's always-visible
+ * rotating metal ring, crowned with a rotating multi-colour neon edge. It is
+ * explicitly NOT origin/main's GlowButton.tsx; see catalog §10.3a-amended.
+ *
+ * TIER: this file is STRUCTURE. Every colour arrives from the pack as a
+ * `--sw-sheen-*-stops` list, because packs own taste and components own shape.
+ * That is also why there is no literal below — including the mask, which uses
+ * `--sw-p-mask-opaque`: a mask reads only alpha, so the value is a sentinel
+ * rather than a colour, and it lives in tokens/ where literals belong.
+ *
+ * DOM: `.sw-sheen` is a CHILD element, not a pseudo-element. Both `::before` and
+ * `::after` on `.sw-btn` are already spoken for (loading spinner, sheen sweep), so
+ * a modifier alone could not carry these layers. The host renders
+ * `<span class="sw-sheen sw-sheen--<world>" aria-hidden="true">` with the <i>
+ * layers its world needs.
+ *
+ * MOTION: every duration multiplies by `--sw-motion`, so capture mode and
+ * reduced-motion zero it, per the pack law. The reduced-motion block additionally
+ * stops the layers while KEEPING them visible — the frame holds still rather than
+ * disappearing, so the control does not change shape for motion-sensitive users.
+ *
+ * POINTER: `--sw-sheen-px/py/opac` are written by the host's pointer engine
+ * (SS-PT `useSheenPointer`). They CANNOT live in this package — the Forge is
+ * zero-runtime by contract and ships no JS behaviour of this kind. With no engine
+ * present the orb simply never appears; nothing here depends on it.
+ *
+ * Ratified decisions this file encodes (SWA-224, Sean 2026-09-01):
+ *   frame weight is per-surface (button vs card), not one global number;
+ *   shimmer strength is per world KIND, because at high coverage it erased scenery;
+ *   the four v1 worlds are chrome, gold, neon, sky.
+ */
+
+/* ── The frame window ─────────────────────────────────────────────── */
+.sw-sheen {
+  --_frame: var(--sw-sheen-frame, var(--sw-p-space-1));
+  --_shimmer: var(--sw-sheen-shimmer, 0.6);
+  --_spin: var(--sw-sheen-spin, 6s);
+
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  pointer-events: none;
+  overflow: hidden;
+  padding: var(--_frame);
+  -webkit-mask:
+    linear-gradient(var(--sw-p-mask-opaque) 0 0) content-box,
+    linear-gradient(var(--sw-p-mask-opaque) 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(var(--sw-p-mask-opaque) 0 0) content-box,
+    linear-gradient(var(--sw-p-mask-opaque) 0 0);
+  mask-composite: exclude;
+}
+
+.sw-sheen > i {
+  position: absolute;
+  display: block;
+  border-radius: inherit;
+}
+
+/* Per-surface frame weight. Worlds are not legible below ~6px, but 6px is 27% of
+   a 44px control and crowds the label — so a card gets the heavier frame and a
+   button does not. One global number would have had to lose one of those cases. */
+.sw-btn > .sw-sheen { --_frame: var(--sw-sheen-frame-btn, 4.5px); }
+.sw-card > .sw-sheen { --_frame: var(--sw-sheen-frame-card, 6px); }
+
+/* ── Rotating ring (the metal worlds) ─────────────────────────────── */
+.sw-sheen > i.sw-sheen__spin {
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 300%;
+  padding-block-end: 300%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  background: conic-gradient(from 0deg, var(--_stops));
+  filter: saturate(1.25) brightness(1.08);
+  animation: sw-sheen-spin calc(var(--_spin) / max(var(--sw-motion), 0.001)) linear infinite;
+}
+
+/* Horizontal specular banding — this, not hue, is what reads as metal. */
+.sw-sheen > i.sw-sheen__band {
+  inset: 0;
+  mix-blend-mode: overlay;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0) 26%,
+    rgba(0, 0, 0, 0.45) 48%,
+    rgba(255, 255, 255, 0.28) 62%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+}
+
+/* ── Scenic worlds: parallax bands ────────────────────────────────── */
+/* Parallax law (catalog §Run 4): a world moves >=2 layers at different rates, so
+   the frame has depth instead of one sliding texture. */
+.sw-sheen > i.sw-sheen__scene {
+  inset: 0;
+  background: linear-gradient(180deg, var(--_stops));
+}
+
+.sw-sheen > i.sw-sheen__drift {
+  inset: -40% -10%;
+  opacity: 0.95;
+  background: var(--sw-sheen-drift-a);
+  background-repeat: repeat-x;
+  background-size: 52% 100%;
+  animation: sw-sheen-drift calc(26s / max(var(--sw-motion), 0.001)) linear infinite;
+}
+
+.sw-sheen > i.sw-sheen__drift-far {
+  inset: -55% -10%;
+  opacity: 0.5;
+  filter: blur(1.5px);
+  background: var(--sw-sheen-drift-b);
+  background-repeat: repeat-x;
+  background-size: 64% 100%;
+  animation: sw-sheen-drift calc(44s / max(var(--sw-motion), 0.001)) linear infinite reverse;
+}
+
+/* ── The travelling polish, over every world ──────────────────────── */
+/* Two narrow highlights and one shadow, mostly transparent. At higher coverage
+   this erased the scenery outright (Rain rendered as plain chrome), which is why
+   strength is a token keyed to world KIND rather than a constant. */
+.sw-sheen > i.sw-sheen__shim {
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 300%;
+  padding-block-end: 300%;
+  transform: translate(-50%, -50%) rotate(0deg);
+  mix-blend-mode: overlay;
+  opacity: var(--_shimmer);
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0) 0deg,
+    rgba(255, 255, 255, 0.95) 9deg,
+    rgba(255, 255, 255, 0) 20deg,
+    rgba(255, 255, 255, 0) 120deg,
+    rgba(0, 0, 0, 0.34) 138deg,
+    rgba(255, 255, 255, 0) 156deg,
+    rgba(255, 255, 255, 0) 208deg,
+    rgba(255, 255, 255, 0.78) 220deg,
+    rgba(255, 255, 255, 0) 234deg,
+    rgba(255, 255, 255, 0) 360deg
+  );
+  animation: sw-sheen-spin calc(4.5s / max(var(--sw-motion), 0.001)) linear infinite;
+}
+
+/* Machined inner rim — one bright hairline, one dark. */
+.sw-sheen > i.sw-sheen__rim {
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 0.75px rgba(255, 255, 255, 0.42),
+    inset 0 0 0 1.6px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Worlds ───────────────────────────────────────────────────────── */
+/* `--_stops` is the only thing a world changes about the ring or the scene; the
+   shimmer token is the only thing its KIND changes. Adding a world is therefore
+   one pack token plus one rule here. */
+.sw-sheen--chrome { --_stops: var(--sw-sheen-chrome-stops); --_shimmer: var(--sw-sheen-shimmer-metal, 0.85); --_spin: var(--sw-sheen-spin-chrome, 6s); }
+.sw-sheen--gold   { --_stops: var(--sw-sheen-gold-stops);   --_shimmer: var(--sw-sheen-shimmer-metal, 0.85); --_spin: var(--sw-sheen-spin-gold, 5.5s); }
+.sw-sheen--neon   { --_stops: var(--sw-sheen-neon-stops);   --_shimmer: var(--sw-sheen-shimmer-metal, 0.85); --_spin: var(--sw-sheen-spin-neon, 3.5s); }
+.sw-sheen--sky    { --_stops: var(--sw-sheen-sky-stops);    --_shimmer: var(--sw-sheen-shimmer-scenic, 0.6); }
+
+/* ── Trailing orb (host-driven) ───────────────────────────────────── */
+/* Position and colour come from the host's pointer engine. Absent an engine the
+   opacity token is unset, so the orb stays invisible and costs nothing. */
+.sw-sheen__orb {
+  position: absolute;
+  inset-block-start: var(--sw-sheen-py, 50%);
+  inset-inline-start: var(--sw-sheen-px, 50%);
+  inline-size: 2em;
+  block-size: 2em;
+  border-radius: var(--sw-p-radius-pill);
+  /* A percentage inside translate() would resolve against this 2em box, capping
+     travel; the offsets above resolve against the parent, which is the point. */
+  transform: translate(-50%, -50%);
+  background: var(--sw-sheen-orb, transparent);
+  opacity: var(--sw-sheen-opac, 0);
+  filter: blur(20px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes sw-sheen-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes sw-sheen-drift {
+  to { background-position: -200% 0; }
+}
+
+/* Reduced motion: layers STOP but stay visible. The frame keeps its look and
+   simply holds still, so the control does not change shape for the user who
+   asked for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  .sw-sheen > i.sw-sheen__spin,
+  .sw-sheen > i.sw-sheen__shim,
+  .sw-sheen > i.sw-sheen__drift,
+  .sw-sheen > i.sw-sheen__drift-far {
+    animation: none;
+  }
+}
+
+/* Forced colours: the decoration is dropped entirely and a system border is
+   restored, so the control stays legible when the user's palette replaces ours. */
+@media (forced-colors: active) {
+  .sw-sheen > i,
+  .sw-sheen__orb {
+    display: none;
+  }
+  .sw-sheen {
+    border: 1px solid CanvasText;
+  }
+}

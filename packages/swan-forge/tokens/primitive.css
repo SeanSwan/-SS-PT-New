@@ -81,4 +81,12 @@
      A pack ALWAYS overrides these. */
   --sw-motion: 1;
   --sw-ease: var(--sw-p-ease-standard);
+
+  /* ── Mask sentinel (NOT a colour) ──────────────────────
+     A mask reads only alpha, so any fully-opaque value behaves identically.
+     It lives here because tokens/ is the one home for a literal, and because a
+     component referencing a named sentinel says what it means — whereas a bare
+     literal in css/ reads like a colour choice and trips drift-lint R1 for
+     exactly that reason. Packs must not override this: it is not taste. */
+  --sw-p-mask-opaque: #000;
 }

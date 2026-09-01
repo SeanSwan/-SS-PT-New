@@ -218,6 +218,57 @@ describe('useSheenPointer — stale rects after late layout', () => {
   });
 });
 
+describe('useSheenPointer — custom property namespace', () => {
+  it('writes namespaced properties when a prefix is given', () => {
+    const frames = makeFrameDriver();
+    const target = makeTarget();
+    const engine = createSheenPointer({
+      target: target as unknown as Window,
+      raf: frames.raf,
+      caf: frames.caf,
+      prefersReducedMotion: true,
+    });
+
+    const el = elementAt(0, 0);
+    engine.register(el, { varPrefix: 'sw-sheen-', orb: ['#000000', '#FFFFFF'] });
+    frames.step();
+    target.emit('pointermove', { clientX: 50, clientY: 20 } as PointerEvent);
+    frames.step();
+
+    // The Forge stylesheet reads these names. A mismatch is invisible at runtime:
+    // the engine happily writes properties nothing is listening to.
+    expect(el.style.getPropertyValue('--sw-sheen-px')).toBe('50.00%');
+    expect(el.style.getPropertyValue('--sw-sheen-opac')).toBe('1.000');
+    expect(el.style.getPropertyValue('--sw-sheen-orb')).not.toBe('');
+    // and must NOT write the unnamespaced ones
+    expect(el.style.getPropertyValue('--px')).toBe('');
+
+    engine.destroy();
+  });
+
+  it('keeps the bare names when no prefix is given', () => {
+    const frames = makeFrameDriver();
+    const target = makeTarget();
+    const engine = createSheenPointer({
+      target: target as unknown as Window,
+      raf: frames.raf,
+      caf: frames.caf,
+      prefersReducedMotion: true,
+    });
+
+    const el = elementAt(0, 0);
+    engine.register(el);
+    frames.step();
+    target.emit('pointermove', { clientX: 50, clientY: 20 } as PointerEvent);
+    frames.step();
+
+    expect(el.style.getPropertyValue('--px')).toBe('50.00%');
+    expect(el.style.getPropertyValue('--sw-sheen-px')).toBe('');
+
+    engine.destroy();
+  });
+});
+
 describe('useSheenPointer — reduced motion and teardown', () => {
   beforeEach(() => {
     document.body.innerHTML = '';

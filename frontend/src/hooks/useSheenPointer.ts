@@ -45,6 +45,14 @@ import { blendHex } from './sheenColor';
 export interface SheenSurfaceOptions {
   /** Optional [fromHex, toHex] pair blended across the surface width. */
   orb?: readonly [string, string];
+  /**
+   * Namespace for the custom properties this engine writes.
+   * Defaults to '' (`--px`, `--py`, `--opac`, `--orb`). The Forge sheen layer
+   * reads namespaced names, so it passes 'sw-sheen-' — without this the engine
+   * writes properties no stylesheet is listening to and the orb never moves,
+   * silently. Caught during the Forge port, 2026-09-01.
+   */
+  varPrefix?: string;
 }
 
 interface SheenSurfaceState extends SheenSurfaceOptions {
@@ -164,7 +172,7 @@ export function createSheenPointer(options: SheenPointerOptions = {}): SheenPoin
       if (s.to === 0 && s.o <= P.invisibleEpsilon) {
         if (!s.atRest) {
           s.o = 0;
-          s.el.style.setProperty('--opac', '0');
+          s.el.style.setProperty(`--${s.varPrefix ?? ''}opac`, '0');
           s.atRest = true;
           writes += 1;
         }
@@ -191,14 +199,15 @@ export function createSheenPointer(options: SheenPointerOptions = {}): SheenPoin
         active = true;
       }
 
+      const n = s.varPrefix ?? '';
       const px = `${(s.x * 100).toFixed(2)}%`;
       const py = `${(s.y * 100).toFixed(2)}%`;
-      s.el.style.setProperty('--px', px);
-      s.el.style.setProperty('--py', py);
-      s.el.style.setProperty('--opac', s.o.toFixed(3));
+      s.el.style.setProperty(`--${n}px`, px);
+      s.el.style.setProperty(`--${n}py`, py);
+      s.el.style.setProperty(`--${n}opac`, s.o.toFixed(3));
       if (s.orb) {
         const [r8, g8, b8] = blendHex(s.orb[0], s.orb[1], s.x);
-        s.el.style.setProperty('--orb', `rgba(${r8},${g8},${b8},${(s.o * 0.55).toFixed(3)})`);
+        s.el.style.setProperty(`--${n}orb`, `rgba(${r8},${g8},${b8},${(s.o * 0.55).toFixed(3)})`);
       }
       writes += 1;
     }
