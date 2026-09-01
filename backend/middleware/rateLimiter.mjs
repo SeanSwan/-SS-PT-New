@@ -100,6 +100,39 @@ export const waiverVersionsLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+/**
+ * Atelier published-permalink resolver (120 req / 15 min per IP).
+ *
+ * GET /api/atelier/public/:id is mounted with NO AUTH by design: a public site cannot
+ * hold an admin session. Its safety rests on UUIDv4 ids not being enumerable and on the
+ * published-only predicate — neither of which bounds VOLUME. Every hit costs a database
+ * lookup plus a SigV4 presign, and the endpoint exists precisely to be embedded in pages
+ * that may be loaded by many people at once.
+ *
+ * 600/15min — forty a minute sustained — and the number is chosen against the WRONG
+ * failure, deliberately. My first pass wrote 120, reasoning from what one reader costs.
+ * That is not who shares an IP: fifty people in an office behind one NAT opening a page
+ * with six images is three hundred requests in a burst, all legitimate, all one `req.ip`.
+ * A limiter that 429s them has traded real availability on a PUBLIC embed endpoint for
+ * protection it does not really provide.
+ *
+ * What it does provide: no single host can turn a permalink into an unbounded presign
+ * treadmill. What it does NOT provide, said plainly rather than implied: any defence
+ * against a distributed flood. That is a CDN's job, and the 5-minute Cache-Control above
+ * is what lets one do it.
+ *
+ * Per-IP is correct here — core/app.mjs sets `trust proxy` to 1, so `req.ip` is the real
+ * client behind Render's proxy and not the proxy itself. Keyed on the proxy this would be
+ * one global bucket for every visitor at once.
+ */
+export const atelierPublicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 600,
+  message: { success: false, error: 'rate_limited' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Public waiver submission rate limiter (10 req / 15 min per IP)
 export const waiverLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
