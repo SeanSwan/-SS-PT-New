@@ -22,6 +22,11 @@ $candidateArgs = @(
     '--output-directory', $outputDir,
     '--temp-directory', (Join-Path $candidateRoot 'temp-candidate'),
     '--input-directory', (Join-Path $candidateRoot 'input-candidate'),
+    # The workflow Notes say "NEVER use partner/ nodes - they bill MiniMax credits per run."
+    # This flag makes that structural instead of advisory: API nodes are not even loaded,
+    # so a paid call cannot be queued by accident. Remove the flag only if Sean explicitly
+    # decides to use hosted partner nodes.
+    '--disable-api-nodes',
     '--log-stdout'
 )
 

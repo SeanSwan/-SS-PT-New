@@ -88,7 +88,7 @@ if ($missing.Count -eq 0) {
     Write-Host "  Nothing to download ($([math]::Round($haveGiB,2)) GiB present). Checking what is already here."
     $VerifyOnly = $true
 } else {
-    $freeGiB = [math]::Round((Get-PSDrive -Name Z).Free / 1GB, 1)
+    $freeGiB = [math]::Round((Get-PSDrive -Name $base.Substring(0,1)).Free / 1GB, 1)
     Write-Host ("  {0} file(s) to fetch, {1} GiB. Free on Z: {2} GiB." -f $missing.Count, [math]::Round($needGiB,2), $freeGiB)
     if ($freeGiB -lt ($needGiB * 1.2)) { throw "Not enough free space on Z: for $needGiB GiB." }
 
