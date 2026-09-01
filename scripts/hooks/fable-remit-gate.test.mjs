@@ -98,10 +98,50 @@ test('BYPASS: tsx and ts-node are gated', () => {
   assert.equal(invokesFable('ts-node scripts/consult-fable.mjs --document a.md'), true);
 });
 
-test('nodejs and node-foo are NOT the node binary', () => {
-  // The widened alternation must not widen into false positives.
-  assert.equal(invokesFable('nodejs scripts/consult-fable.mjs'), false);
+test('nodejs IS the node binary; node-foo is not', () => {
+  // CORRECTED 2026-08-31. This asserted that `nodejs <seat>` does NOT match, as a
+  // false-positive guard — and it was WRONG ABOUT THE WORLD. Debian and Ubuntu ship
+  // node as `nodejs`, so that command runs Fable and bills. The test enshrined a real
+  // hole as a requirement.
+  //
+  // The identical false test existed in the spend gate and was corrected in its round
+  // 5. Both gates were written from the same assumption and only one was ever audited,
+  // which is how this one survived. A cry-wolf test is still a claim about the world,
+  // and a false one defends the bug.
+  assert.equal(invokesFable('nodejs scripts/consult-fable.mjs'), true);
   assert.equal(invokesFable('node-foo scripts/consult-fable.mjs'), false);
+});
+
+test('the three blind spots the spend gate\'s corpus found', () => {
+  // Found 2026-08-31 by running THIS matcher against the SPEND gate's shape corpus —
+  // 60 command shapes that nine rounds of hostile review proved reach a paid seat.
+  // Nobody had ever compared the two gates. That is the same cross-table blindness
+  // which let the spend gate price Sol at half the rate its own provider record
+  // carried, for weeks, with nothing comparing them.
+  assert.equal(invokesFable('./scripts/consult-fable.mjs --document x'), true,
+    'a shebang script needs no runner word');
+  assert.equal(invokesFable('node scripts/consult-fable.MJS --document x'), true,
+    'NTFS and macOS are case-insensitive, and this host is Windows');
+  // And the mention guard survives the widening — the reason the shebang case is its
+  // own alternation rather than an optional runner.
+  assert.equal(invokesFable('cat scripts/consult-fable.mjs'), false);
+  assert.equal(invokesFable('grep -n remit scripts/consult-fable.mjs'), false);
+});
+
+test('the REAL panel is gated — consult-panel.mjs was a ghost', () => {
+  // The panel arm named `consult-panel.mjs`, which DOES NOT EXIST. The real fan-out is
+  // `consult-openrouter-panel.mjs`, so `--seats fable` through the panel reached Fable
+  // COMPLETELY UNGATED — while this file's own comment called it "the same spend by
+  // another entrance", which is exactly right and exactly what was not happening.
+  //
+  // The same ghost was purged from the spend gate in round 5, which also priced
+  // `consult-grok.mjs`, equally nonexistent. Two gates, one stale list, one audit.
+  assert.equal(invokesFable('node scripts/consult-openrouter-panel.mjs --seats ox,fable --document a.md'), true);
+  assert.equal(invokesFable('node scripts/consult-openrouter-panel.mjs --seats ox,glm --document a.md'), false);
+  // Both flag spellings. `--seats=fable` was invisible to the space-only form — the
+  // exact spelling gap that cost the spend gate a blocker in round 6.
+  assert.equal(invokesFable('node scripts/consult-openrouter-panel.mjs --seats=ox,fable --document a.md'), true);
+  assert.equal(invokesFable('node scripts/consult-openrouter-panel.mjs --seats=ox,glm --document a.md'), false);
 });
 
 // --- the second ask must NOT be satisfiable from the agent's own output ------

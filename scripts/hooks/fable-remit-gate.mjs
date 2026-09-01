@@ -152,15 +152,53 @@ const ALLOW = () => process.exit(0);
  * remits containing "APPROVE | REVISE | REJECT". The middle now alternates quoted spans
  * (opaque, any content) with non-boundary characters — verified against 39 invocation
  * shapes with zero misses and zero false positives, boundary cases included.
+ *
+ * THREE MISSES CLOSED 2026-08-31, found by running this matcher against the SPEND
+ * gate's shape corpus — 60 command shapes that nine rounds of hostile review proved
+ * reach a paid seat. Nobody had ever compared the two gates, which is the same
+ * cross-table blindness that let the spend gate price Sol at half the rate its own
+ * provider record carried, for weeks, with nothing comparing them.
+ *
+ *   ./scripts/consult-fable.mjs        a shebang script needs NO runner word
+ *   nodejs scripts/consult-fable.mjs   `nodejs` is a real node binary (Debian/Ubuntu)
+ *   scripts/consult-fable.MJS          NTFS and macOS are case-insensitive, so this
+ *                                      resolves and runs — and this host is Windows
+ *
+ * WHY THIS STAYS A REGEX while the spend gate got a parser: they answer different
+ * questions. The spend gate must decide whether a command EXECUTES a seat, so position
+ * and quoting are load-bearing and a miss costs money. This gate asks only whether
+ * Fable is NAMED AT ALL, where over-matching costs a handoff block on a task Sean was
+ * going to do by hand anyway. A presence test is the right shape here — which is why
+ * `--check`, backticks, `find -exec` and even a NUL byte all still match it, and why
+ * only the three genuine blind spots above needed closing.
  */
-const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?consult-fable[.]mjs/;
+// The shebang case is its OWN alternation, not an optional runner. Making the runner
+// optional was my first attempt and it over-matched immediately: `cat
+// scripts/consult-fable.mjs` started gating, which this file's own tests caught within
+// a minute. Requiring a literal `./` or `../` keeps a bare mention out while catching
+// the direct execution that needs no runner at all.
+//
+// KNOWN over-match, in the affordable direction: `cat ./scripts/consult-fable.mjs`
+// gates. Nobody writes that, and if they do the cost is a handoff block on a task Sean
+// performs by hand anyway.
+const INVOCATION = /(?:^|[^A-Za-z0-9_-])(?:(?:node|nodejs|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?|\.{1,2}\/(?:[\w.-]+\/)*)consult-fable[.]mjs/i;
 
 /**
  * The panel can carry Fable as an opt-in seat, which is the same spend by another
  * entrance. Gate it only when Fable is actually named in --seats.
+ *
+ * THE SCRIPT NAMED HERE DID NOT EXIST. `consult-panel.mjs` is a GHOST — the real
+ * fan-out is `consult-openrouter-panel.mjs` — so this entire arm was dead code and
+ * `--seats fable` through the panel reached Fable completely ungated. Its own comment
+ * calls that "the same spend by another entrance", which is exactly right and exactly
+ * what was not happening.
+ *
+ * The identical ghost was purged from the spend gate in round 5 (it also priced
+ * `consult-grok.mjs`, which does not exist). The two gates were written from the same
+ * stale list and only one of them was ever audited.
  */
 const PANEL_WITH_FABLE =
-  /(?:^|[^A-Za-z0-9_-])(?:node|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?consult-panel[.]mjs/;
+  /(?:^|[^A-Za-z0-9_-])(?:(?:node|nodejs|npx|bunx?|tsx|ts-node)[^A-Za-z0-9_-](?:"[^"]*"|'[^']*'|[^|;&])*?|\.{1,2}\/(?:[\w.-]+\/)*)consult-(?:openrouter-)?panel[.]mjs/i;
 
 function readTokens() {
   if (!existsSync(TOKENS)) return {};
@@ -189,8 +227,16 @@ export function invokesFable(cmd) {
   const c = String(cmd || '');
   if (INVOCATION.test(c)) return true;
   if (PANEL_WITH_FABLE.test(c)) {
-    const seats = (c.match(/--seats\s+([^\s]+)/) || [])[1] || '';
-    return seats.split(',').map((s) => s.trim()).includes('fable');
+    // BOTH SPELLINGS. `--seats=fable` was invisible to the space-only form, and that
+    // exact spelling gap cost the spend gate a blocker in round 6 (`--import=` vs
+    // `--import `). Every flag reader in this system has now been bitten by it once.
+    const seats = (c.match(/--seats[\s=]+([^\s]+)/) || [])[1] || '';
+    const named = seats.split(',').map((s) => s.trim().toLowerCase());
+    // An EMPTY or absent seat list means the panel's DEFAULT roster, which the spend
+    // gate learned the hard way (round 5: `--seats ""` priced a confirmed fan-out at
+    // $0). Fable is not in the default roster, so an unnamed list is genuinely not a
+    // Fable call — but a list that fails to parse is not the same as one that says no.
+    return named.includes('fable');
   }
   return false;
 }
