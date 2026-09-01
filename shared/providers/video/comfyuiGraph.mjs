@@ -100,12 +100,22 @@ export function buildGraph(request, cfg, { seed } = {}) {
  * `gifs`, `videos`, or plain `images` with a video extension. Scanning all of them beats
  * hardcoding one pack's convention.
  */
-export function findOutputFile(entry) {
-  const VIDEO_EXT = /\.(mp4|webm|mov|mkv|gif)$/i;
+export const VIDEO_EXT = /\.(mp4|webm|mov|mkv|gif)$/i;
+export const IMAGE_EXT = /\.(png|jpe?g|webp)$/i;
+
+/**
+ * @param {object} entry   a ComfyUI /history entry
+ * @param {RegExp} [match] which filenames count as THE artifact. Defaults to
+ *   video — the lane this was written for. The Atelier still lane passes
+ *   IMAGE_EXT: a graph ending in SaveImage emits `.png`, which the video
+ *   default rightly ignores, so without this a finished still reported as
+ *   "no output" and pointed diagnosis at the graph instead of the matcher.
+ */
+export function findOutputFile(entry, match = VIDEO_EXT) {
   for (const nodeOut of Object.values(entry?.outputs || {})) {
     for (const key of ['videos', 'gifs', 'images']) {
       for (const f of nodeOut?.[key] || []) {
-        if (f?.filename && VIDEO_EXT.test(f.filename)) return f;
+        if (f?.filename && match.test(f.filename)) return f;
       }
     }
   }

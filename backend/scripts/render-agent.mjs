@@ -36,10 +36,10 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { extractMono } from '../services/mediaSync/audioExtract.mjs';
-import { findOffset } from '../services/mediaSync/crossCorrelation.mjs';
 import { runGenerate } from './handlers/generateVideo.mjs';
+import { runMediaSync, isPermanentExtractionFailure } from './handlers/mediaSync.mjs';
 import { completionBody, completionSummary } from './handlers/completion.mjs';
+import { videoLedger } from '../services/laneLedger.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -143,81 +143,11 @@ async function api(path, { method = 'POST', body } = {}) {
   return payload;
 }
 
-/**
- * The only handler that currently does real work. Everything else is refused explicitly
- * rather than faked — an agent that pretends to render is the same lie as an endpoint
- * that pretends to queue.
- */
-/**
- * Is this extraction failure ever going to succeed on a retry?
- *
- * It matters because `retryable` decides whether the job goes back on the queue. A file
- * that does not exist, is not media, or is a directory will NEVER become valid — but the
- * first version reported all of them as retryable, so each one burned the job's entire
- * attempt budget in a loop, occupying lease slots ahead of real work and ending in the
- * same failure hours later. Measured: missing file, non-media file, and a directory all
- * reported permanent:false.
- *
- * The distinction is structural-vs-environmental, not error-vs-success:
- *   permanent   the INPUT is wrong — wrong path, no audio stream, corrupt stream
- *   retryable   the ENVIRONMENT was wrong — timeout, ffmpeg missing, transient mount
- */
-export function isPermanentExtractionFailure(err) {
-  // The probe classifies its own failures; a corrupt/unreadable clip is about the file.
-  if (err?.detail?.cause === 'ClipCorruptError') return true;
-  const m = String(err?.message || '');
-  if (/timed out/i.test(m)) return false;              // may succeed on a quieter machine
-  if (/failed to start/i.test(m)) return false;        // ffmpeg absent — an env fix
-  return /no audio stream|zero audio bytes|non-finite|not a multiple of 4|exceeds .* cap|does not exist/i.test(m);
-}
-
-async function extractOrClassify(filePath, opts) {
-  try {
-    return await extractMono(filePath, opts);
-  } catch (err) {
-    err.permanent = isPermanentExtractionFailure(err);
-    throw err;
-  }
-}
-
-async function runMediaSync(job, onProgress) {
-  const p = job.params || {};
-  const refPath = p.referencePath;
-  const tgtPath = p.targetPath;
-  if (!refPath || !tgtPath) {
-    const e = new Error('mediasync requires params.referencePath and params.targetPath');
-    e.permanent = true;
-    throw e;
-  }
-
-  await onProgress(10, 'decoding reference');
-  const ref = await extractOrClassify(refPath, { sampleRate: p.sampleRate || 8000 });
-  await onProgress(45, 'decoding target');
-  const tgt = await extractOrClassify(tgtPath, { sampleRate: p.sampleRate || 8000 });
-
-  await onProgress(75, 'correlating');
-  const result = findOffset(ref.samples, tgt.samples, {
-    referenceSampleRate: ref.sampleRate,
-    targetSampleRate: tgt.sampleRate,
-    maxOffsetSeconds: p.maxOffsetSeconds || 120,
-  });
-
-  // A refusal is a legitimate ANSWER, not a crash: the engine is telling us the evidence
-  // is too weak to trust. Reporting it as a failed job would be a lie in the other
-  // direction, and retrying it would produce the same refusal forever.
-  return {
-    offsetSeconds: result.offsetSeconds,
-    usable: result.usable,
-    reason: result.reason,
-    peak: result.peak,
-    prominence: result.prominence,
-    marginToRefusal: result.marginToRefusal,
-    reference: { path: refPath, durationSec: ref.durationSec, sourceChannels: ref.source.channels },
-    target: { path: tgtPath, durationSec: tgt.durationSec, sourceChannels: tgt.source.channels },
-  };
-}
+// The mediasync handler moved to handlers/mediaSync.mjs beside the others when this file
+// went over its line cap. Re-exported at the foot so existing imports are unchanged.
 
 const HANDLERS = { mediasync: runMediaSync, generate: runGenerate };
+
 
 
 async function handleJob(job) {
@@ -252,7 +182,9 @@ async function handleJob(job) {
     // presigned upload URL. The agent deliberately holds no R2 credentials and no S3
     // SDK — it runs from a fresh checkout with zero install — so the server signs and
     // the handler does a plain PUT. runMediaSync ignores this third argument.
-    const output = await handler(job, onProgress, { api });
+    // The ledger makes SWAN_VIDEO_MAX_SPEND_USD_DAILY a day rather than a single run; see
+    // laneLedger.mjs. Omitting it is refused at the handler, not silently uncapped.
+    const output = await handler(job, onProgress, { api, ledger: videoLedger() });
     clearInterval(beat); beat = null;
 
     // Artifact pointer + operator summary. A handler declaring neither gets mediasync's
@@ -335,4 +267,4 @@ if (invokedDirectly) {
 
 // Exported so the work handler — the only part that touches real media — is testable
 // without standing up a server or holding a credential.
-export { runMediaSync, HANDLERS, main as runAgentLoop };
+export { runMediaSync, isPermanentExtractionFailure, HANDLERS, main as runAgentLoop };

@@ -21,6 +21,7 @@
 
 import { Router } from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import { STATUS } from './atelierStatusMap.mjs';
 import { createArtifactUploadUrl, ArtifactUploadError } from '../services/videoRenderArtifactUpload.mjs';
 import {
   enrolAgent, revokeAgent, authenticateAgent, RenderAgentAuthError,
@@ -149,6 +150,29 @@ router.post('/jobs/:jobId/upload-url', agentAuth, async (req, res) => {
     return res.json({ success: true, data: out });
   } catch (err) {
     return sendServiceError(res, err, 'upload-url');
+  }
+});
+
+/**
+ * POST /api/render-agents/jobs/:jobId/init-image — a short-lived READ URL for the frame a
+ * Motion job is bound to. The key is taken from the JOB's own params; the agent cannot
+ * name one, and only the lease holder may ask. The agent re-hashes what it downloads
+ * before the graph ever sees it (handlers/initImageBind.mjs).
+ */
+router.post('/jobs/:jobId/init-image', agentAuth, async (req, res) => {
+  try {
+    const { initImageReadTicket } = await import('../services/atelier/motionBind.mjs');
+    const out = await initImageReadTicket({ jobId: req.params.jobId, agentId: req.agent.id });
+    return res.json({ success: true, data: out });
+  } catch (err) {
+    // ONE MAPPING TABLE, NOT TWO. This was an inline ternary listing three codes, so a
+    // fourth added at the throw site fell through to 500 — a deliberate policy refusal
+    // reported as a server fault, which is what sends an agent into retry against a decision
+    // that will never change. STATUS already holds the invariant "every code an Atelier
+    // service can throw has a deliberate status"; a second copy here could only drift from it.
+    const status = STATUS[err?.code] || 500;
+    if (err?.code) return res.status(status).json({ success: false, error: err.message, code: err.code });
+    return sendServiceError(res, err, 'init-image');
   }
 });
 

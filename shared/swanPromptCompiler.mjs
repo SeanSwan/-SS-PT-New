@@ -21,7 +21,7 @@
  * Dependency-free apart from the law filter.
  */
 
-import { assertLawful } from './swanLawFilter.mjs';
+import { assertLawful, applyLaws } from './swanLawFilter.mjs';
 import { KILL_LIST_ENABLED } from './forgeConfig.mjs';
 // Rendering lives next door (rule-4 split). Imported for LOCAL use AND
 // re-exported — `export ... from` alone creates no local binding (bitten 3×).
@@ -137,7 +137,33 @@ export function compileImage(brief = {}, caps = {}) {
   const slots = resolveSlots(brief);
   const facets = Array.isArray(brief.facets) ? brief.facets : [];
 
-  const lawResult = assertLawful(slots, facets);
+  // LAWS, SCOPED TO THE BRAND THIS RENDER IS FOR.
+  //
+  // `assertLawful` applies every law, and for a long time that was the only path — which
+  // meant a site that is NOT SwanStudios could not render a fox. LAW4 forbids literal
+  // creature form to protect the Swan mark; the `universal` law profile exists precisely
+  // to drop that, and it never reached here: the profile was consulted on the taste path
+  // and nowhere else. An empirical compile of "a lone red fox crossing a snowfield" under
+  // the universal kit refused, which is how this was found.
+  //
+  // `lawProfileDrop` names the law ids this brand is not judged by. Absent or empty means
+  // the original behaviour EXACTLY — every existing caller and every existing test takes
+  // the untouched branch below.
+  const lawDrop = new Set(Array.isArray(brief.lawProfileDrop) ? brief.lawProfileDrop : []);
+  let lawResult;
+  if (lawDrop.size === 0) {
+    lawResult = assertLawful(slots, facets);
+  } else {
+    lawResult = applyLaws(slots, facets);
+    const remaining = (lawResult.violations || []).filter((v) => !lawDrop.has(v.law));
+    if (remaining.length) {
+      const first = remaining[0];
+      const err = new Error(`E_LAW_VIOLATION: [${first.law}] slot "${first.slot}" — ${first.detail}`);
+      err.code = 'E_LAW_VIOLATION';
+      err.violations = remaining;
+      throw err;
+    }
+  }
 
   if (brief.aspect && Array.isArray(caps.supportedAspectRatios)
       && caps.supportedAspectRatios.length && !caps.supportedAspectRatios.includes(brief.aspect)) {

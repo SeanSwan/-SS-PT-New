@@ -131,6 +131,9 @@ export async function generate(request, opts = {}) {
     providerId = PROVIDER_ID,
     timeoutMs = 15 * 60 * 1000,
     sleep = (ms) => new Promise(r => setTimeout(r, ms)),
+    // Which output filenames count as the artifact. Video by default; the
+    // Atelier still lane passes IMAGE_EXT. See findOutputFile.
+    outputMatch,
   } = opts;
 
   const cfg = resolveConfig(env, providerId);
@@ -182,10 +185,11 @@ export async function generate(request, opts = {}) {
       + 'The job is still queued on the GPU; this attempt gave up waiting.');
   }
 
-  const file = findOutputFile(entry);
+  const file = outputMatch ? findOutputFile(entry, outputMatch) : findOutputFile(entry);
   if (!file) {
     throw new ComfyError('E_NO_OUTPUT',
-      'ComfyUI reported completion but produced no video output. Check that the graph ends in a video-saving node.');
+      `ComfyUI reported completion but produced no ${outputMatch ? 'matching' : 'video'} output. `
+      + `Check that the graph ends in a ${outputMatch ? 'saver whose filename matches ' + outputMatch : 'video-saving node'}.`);
   }
 
   await onProgress(85, 'downloading artifact');

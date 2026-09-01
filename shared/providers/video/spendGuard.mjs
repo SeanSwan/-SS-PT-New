@@ -65,10 +65,8 @@ export function readLimits(env = process.env) {
   });
 }
 
-/** UTC day key. UTC rather than local so a timezone shift cannot silently reset a ledger. */
-export function dayKey(now = new Date()) {
-  return now.toISOString().slice(0, 10);
-}
+// dayKey lives with the ledger it keys; re-exported so video imports are unchanged.
+export { dayKey } from '../spendLedger.mjs';
 
 /**
  * Decide whether one run may proceed.
@@ -131,72 +129,9 @@ export function checkRunAllowed(caps, usage = { runs: 0, spendUsd: 0 }, limits =
   return { allowed: true, projectedSpendUsd: projected, runCost };
 }
 
-/**
- * A tiny day-scoped usage ledger on local disk.
- *
- * Deliberately not a database. The thing being counted is one operator's runs on one
- * machine, and a schema migration to hold two integers would be a worse trade than a
- * JSON file that a human can read and delete.
- *
- * KNOWN LIMIT, stated rather than discovered: two agents on the same machine sharing a
- * ledger file can interleave a read and a write and undercount. For one operator on one
- * workstation that is not a real scenario; if it becomes one, this is the piece that
- * moves server-side, which is where the commitment pointed in the first place.
- */
-export function makeFileLedger(path, fs) {
-  let degraded = false;
-  const read = () => {
-    try {
-      const raw = JSON.parse(fs.readFileSync(path, 'utf8'));
-      degraded = false;
-      return (raw && typeof raw === 'object') ? raw : {};
-    } catch (err) {
-      // A MISSING ledger is simply a fresh day and reads as zero.
-      //
-      // A CORRUPT one is different, and conflating them was the defect: truncating this
-      // file to "{" resets the day's usage, and anyone with disk access to the worker can
-      // do that. Blanket fail-open turned a counter into an unlimited-quota exploit.
-      //
-      // So corruption is recorded and the ceiling degrades ASYMMETRICALLY: the free local
-      // path keeps running (a bookkeeping problem must not become an outage) while
-      // anything that spends money is refused until the ledger is readable again.
-      degraded = err && err.code !== 'ENOENT' && !/ENOENT/.test(String(err.message));
-      return {};
-    }
-  };
-
-  return {
-    usageFor(day) {
-      const all = read();
-      const rec = all[day] || {};
-      return {
-        runs: Number(rec.runs) || 0,
-        spendUsd: Number(rec.spendUsd) || 0,
-        // True only when the file existed and could not be parsed. Consumed by
-        // checkRunAllowed to refuse billing providers while leaving free ones alone.
-        degraded,
-      };
-    },
-    record(day, { runs = 1, spendUsd = 0 } = {}) {
-      // MONOTONIC. A negative delta buys back headroom — an external reviewer probed this
-      // and drove a recorded 5 runs / $5 back down to 1 / $1, which would let any caller
-      // that can reach the ledger mint unlimited quota. Usage only ever goes up; a refund
-      // is not a spend-guard concern, and if it ever becomes one it needs its own audited
-      // path rather than a sign flip on the counter.
-      const dRuns = Math.max(0, Number(runs) || 0);
-      const dSpend = Math.max(0, Number(spendUsd) || 0);
-      const all = read();
-      const rec = all[day] || { runs: 0, spendUsd: 0 };
-      const next = { runs: (Number(rec.runs) || 0) + dRuns, spendUsd: (Number(rec.spendUsd) || 0) + dSpend };
-      // Keep only the last 30 days. An append-forever ledger is a slow leak, and older
-      // rows answer no question this guard asks.
-      const trimmed = Object.fromEntries(
-        Object.entries({ ...all, [day]: next }).sort(([a], [b]) => (a < b ? 1 : -1)).slice(0, 30),
-      );
-      fs.writeFileSync(path, JSON.stringify(trimmed, null, 2));
-      return next;
-    },
-  };
-}
+// The day-scoped counter moved to a lane-neutral module when the image lane needed the
+// same one; a second implementation of the same money gate was the alternative. Re-
+// exported here so every existing video import keeps working unchanged.
+export { makeFileLedger } from '../spendLedger.mjs';
 
 export { SpendGuardError };

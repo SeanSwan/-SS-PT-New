@@ -37,6 +37,8 @@ import VideoRenderJob, {
   VIDEO_JOB_TERMINAL_STATUSES,
 } from '../models/VideoRenderJob.mjs';
 import MediaAsset from '../models/MediaAsset.mjs';
+import { keyOwnedByRow } from './atelier/assetKeyOwnership.mjs';
+import logger from '../utils/logger.mjs';
 
 export class VideoRenderJobError extends Error {
   constructor(statusCode, code, message) {
@@ -241,7 +243,14 @@ export async function heartbeat({ jobId, agentId, progress, message }) {
 export async function completeJob({ jobId, agentId, r2Key, mime = 'video/mp4', ...meta }, options = {}) {
   if (!r2Key) throw new VideoRenderJobError(400, 'VALIDATION_ERROR', 'r2Key is required.');
 
-  const job = await VideoRenderJob.findByPk(jobId);
+  // MODELS INJECTED, DEFAULTING TO THE REAL ONES. Not a refactor for its own sake: this
+  // function had three known defects that went unfixed across two sessions purely because
+  // nothing here could be tested — the suite's own header says it covers only paths running
+  // BEFORE database access, and the leasing paths "need Postgres". An unfalsifiable fix is
+  // not a fix, so the first move is making the path reachable from a test.
+  const d = { jobModel: VideoRenderJob, assetModel: MediaAsset, db: sequelize, ...options };
+
+  const job = await d.jobModel.findByPk(jobId);
   if (!job) throw new VideoRenderJobError(404, 'NOT_FOUND', 'Job not found.');
 
   // AUTHORIZATION. The obvious form of this check —
@@ -267,16 +276,47 @@ export async function completeJob({ jobId, agentId, r2Key, mime = 'video/mp4', .
     }
   }
 
-  return sequelize.transaction(async (transaction) => {
-    const [asset] = await MediaAsset.findOrCreate({
-      where: { r2Key },
+  // THE POSTER IS CALLER-SUPPLIED AND WAS NEVER CHECKED. `meta` reaches here from the body
+  // of POST /api/render-agents/jobs/:jobId/complete, and `verifyObject` above checks that an
+  // object EXISTS at `r2Key` — never that a key is one this system wrote. An enrolled agent
+  // could therefore store a poster pointing anywhere in the bucket, on a row it legitimately
+  // owns. Both readers now refuse such a key, but a reader should not be the only line: a
+  // value that cannot legitimately be stored should not be stored.
+  //
+  // Dropped rather than rejected. The poster is an OPTIMISATION — every path that produces
+  // one already tolerates its absence — so refusing the whole completion would trade a
+  // missing thumbnail for a lost render, which is the wrong direction on a job that has
+  // already spent GPU time.
+  const declaredPoster = meta.posterR2Key ?? null;
+  const poster = keyOwnedByRow(declaredPoster, { ownerUserId: job.userId, jobId: job.id })
+    ? declaredPoster
+    : null;
+  if (declaredPoster && !poster) {
+    logger.warn('[VideoRenderJob] job %s declared a poster key this system did not write for it; dropped', job.id);
+  }
+
+  // AND WHAT OWNER-SCOPING TURNS A COLLISION INTO. `media_assets.r2_key` carries a UNIQUE
+  // partial index (`ma_r2_key_live_uniq`, WHERE deleted_at IS NULL). Before the owner was in
+  // the lookup, a cross-tenant collision FOUND the other tenant's row and silently adopted
+  // it. Now the lookup misses, the insert hits that index, and Sequelize throws.
+  //
+  // Loud is the right direction, but an unhandled constraint error is a 500 — a server
+  // fault for what is actually a deliberate refusal, which is the same mistake this slice
+  // just fixed one file over. Named instead: 409, because the caller has declared a key that
+  // is not theirs to declare, and no retry of the same request will change that.
+  const runCompletion = async (transaction) => {
+    const [asset, created] = await d.assetModel.findOrCreate({
+      // OWNER IN THE LOOKUP, not only in the defaults. On an `r2Key` collision across
+      // tenants this found ANOTHER tenant's row: the completer's asset never appeared in
+      // their library, `ownerUserId` stayed the original owner's, and nothing errored.
+      where: { r2Key, ownerUserId: job.userId },
       defaults: {
         ownerUserId: job.userId,
         jobId: job.id,
         kind: 'video',
         source: 'generated',
         r2Key,
-        posterR2Key: meta.posterR2Key ?? null,
+        posterR2Key: poster,
         mime,
         width: meta.width ?? null,
         height: meta.height ?? null,
@@ -293,12 +333,25 @@ export async function completeJob({ jobId, agentId, r2Key, mime = 'video/mp4', .
       transaction,
     });
 
+    // BACKFILL ON THE FOUND PATH. `defaults` are ignored when the row already exists, and
+    // the poster written twelve lines below belongs to `job.update(...)` — the JOB, not the
+    // asset. So a clip whose row was created on a poster-less declaration kept `null`
+    // forever while the job knew better, and the library could not show it. Only ever
+    // fills a gap: an existing poster is never overwritten by a later declaration.
+    if (!created && poster && !asset.posterR2Key) {
+      await asset.update({ posterR2Key: poster }, { transaction });
+    }
+
     if (!job.isTerminal) {
       await job.update({
         status: 'ready',
         progress: 100,
         r2Key,
-        posterR2Key: meta.posterR2Key ?? job.posterR2Key,
+        // THE SAME SANITISED VALUE THE ASSET GOT. This read `meta.posterR2Key` directly, so
+        // the asset dropped a foreign key while the job twelve lines away kept it — one half
+        // of a pair, in the fix for a pair defect. A strengthened test caught it; the weak
+        // one I wrote first would not have.
+        posterR2Key: poster ?? job.posterR2Key,
         durationMs: meta.durationMs ?? job.durationMs,
         width: meta.width ?? job.width,
         height: meta.height ?? job.height,
@@ -311,7 +364,17 @@ export async function completeJob({ jobId, agentId, r2Key, mime = 'video/mp4', .
     }
 
     return { job, asset };
-  });
+  };
+
+  try {
+    return await d.db.transaction(runCompletion);
+  } catch (err) {
+    if (err?.name === 'SequelizeUniqueConstraintError') {
+      throw new VideoRenderJobError(409, 'KEY_COLLISION',
+        'That object key already belongs to another owner\u0027s asset. Declare a key under this job.');
+    }
+    throw err;
+  }
 }
 
 /**
