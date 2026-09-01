@@ -192,6 +192,23 @@ fix. The 2026-08-31 corpus deletion is documented in
 5. **Report** what you looked for, what you found, what you fixed, and the proof — with §10
    disclosure. "Found nothing this round" is a legitimate and useful line.
 
+## When the review comes from outside
+
+An external review is a set of **claims**, not findings — the same standing as a subagent's output
+(§ "Subagent Skepticism"). Check each one against the files before accepting OR dismissing it. On
+2026-09-01 an external review of eight commits produced six technical findings; **all six were real**,
+and one was a data-loss bug. Reflexively defending the work would have kept it.
+
+The reverse discipline matters equally: that review also asserted the work was deficient for lacking
+a web product that was never in scope. Accepting a correct bug report does not oblige you to accept
+an incorrect scope claim — record the disagreement explicitly rather than silently ignoring it, so a
+later reader can see it was considered and why it was rejected.
+
+Two tells that an external finding is worth acting on immediately:
+- it names a **line or a config key** you can open (all six here did);
+- it describes a **failure window** rather than a style preference ("if the replace fails between
+  these two lines…"). Those are the ones that turn out to be real.
+
 ## Recording a review
 
 Append a row to the log below so the next agent can see what has already been attacked and does not
@@ -203,3 +220,6 @@ re-run a dry lane blindly.
 | 2026-08-31 | Aftertaste H3 hardening handoff (SS-PT) | §5 §7 §8 | 19-file patch uncommitted in a temp worktree; render loop disconnected by the port/output change; benchmark profile already outdated | APPROVE with findings |
 | 2026-08-31 | LoRA export + backup tooling | §2 §9 | write path never executed; backup module not import-safe (ran its CLI on import) | fixed, re-verified |
 | 2026-08-31 | Judge empty state | §4 | markup rendered as literal text; memory-scoped read across an await with no world guard | fixed, re-verified |
+| 2026-08-31 | Upscaler + Krea 2 install (ComfyUI) | §1 §5 §8 §9 | "already set up" was false — nothing installed; research claimed the template leaves audio unwired and fps hardcoded, **both false in this template version**; nvfp4 models are Blackwell-only and would silently fail on the planned 4080 | corrected before install |
+| 2026-08-31 | Two-PC split proposal | §1 §5 | proposed offload was arithmetically impossible — SeedVR2 reserves 8.5 GiB before any activation, so a 16 GB card returns zero frames at every target resolution | plan rewritten |
+| 2026-09-01 | External review of 8 Fable commits (received) | §1 §2 §5 §8 §9 | **6 of 6 technical findings confirmed by checking the files**: CI had never run on the branch (push was main-only); installers accepted files by ±3% size, not identity; launcher printed a hard-coded "Verified" runtime after an HTTP 200; workflow named 2K/4K contained no RIFE/ESRGAN and only a 2× resize; Blender swap rmtree'd the last good output BEFORE replacing it; movable action tags | all six fixed; each fix carries a check that can fail; CI now green on GitHub |
