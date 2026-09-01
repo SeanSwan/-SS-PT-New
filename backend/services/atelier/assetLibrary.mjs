@@ -28,9 +28,12 @@
  * ── NO INDEXES EXIST ON THIS TABLE ─────────────────────────────────────────
  * `MediaAsset` declares none. Every filter here is therefore a sequential scan,
  * which is fine at one operator's volume and is NOT fine later. Stated rather
- * than discovered: the trigger for adding `(owner_user_id, created_at)` and a
- * GIN index on `tags` is the first time this list feels slow, and that will
- * happen long before anyone thinks to look.
+ * than discovered: the trigger is the first time this list feels slow, and that
+ * will happen long before anyone thinks to look.
+ *
+ * `(owner_user_id, kind, approval_status)` and a GIN index on `tags` are ordinary
+ * and can be added whenever. The DATE index is the one with a trap in it — see the
+ * cursor-precision note below before writing that migration.
  *
  * ── PAGINATION IS A CURSOR, NOT AN OFFSET ──────────────────────────────────
  * House rule, and the right one: an offset re-reads rows and shifts under
@@ -52,9 +55,24 @@
  * Sorting and comparing both happen at `date_trunc('milliseconds', ...)`, so the
  * sort key is a value the cursor can represent EXACTLY. Within one millisecond
  * the ordering is then the id, which the cursor also carries, and the slice is
- * precise. The cost is that this wants an expression index —
- * `(owner_user_id, date_trunc('milliseconds', created_at) DESC, id DESC)` —
- * which joins the index note above rather than adding a new problem.
+ * precise.
+ *
+ * THE INDEX THIS WANTS CANNOT BE CREATED AS WRITTEN, and both this file and the
+ * handoff said otherwise until 2026-09-01. `date_trunc(text, timestamptz)` depends
+ * on the session TimeZone, so Postgres marks it STABLE and REFUSES it in an index
+ * expression: `CREATE INDEX ... (date_trunc('milliseconds', created_at) DESC, ...)`
+ * errors with "functions in index expression must be marked IMMUTABLE".
+ *
+ * Nor is it enough to cast only in the index. An expression index is used only for a
+ * query written the SAME way, so an index on `created_at::timestamp` and a query on
+ * bare `created_at` never meet — that index would cost writes and be ignored by the
+ * planner, which is worse than having none.
+ *
+ * So the real change is to BOTH sides at once, to an immutable form such as
+ * `date_trunc('milliseconds', created_at AT TIME ZONE 'UTC')`, verified with a real
+ * EXPLAIN. That touches the cursor-comparison path, where a mismatch silently drops
+ * rows rather than erroring, so it wants a database to test against and is not
+ * something to land blind.
  */
 
 import { ComposeError } from './composeLimits.mjs';
