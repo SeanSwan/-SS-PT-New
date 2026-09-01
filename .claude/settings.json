@@ -325,6 +325,10 @@
           },
           {
             "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/fable-remit-gate.mjs\""
+          },
+          {
+            "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR:-.}/scripts/hooks/irreversible-git-gate.mjs\"",
             "timeout": 30
           },
