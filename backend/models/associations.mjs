@@ -43,6 +43,7 @@ const setupAssociations = async () => {
 
     // E-Commerce Models (Sequelize)
     const StorefrontItemModule = await import('./StorefrontItem.mjs');
+    const PriceChangeLogModule = await import('./PriceChangeLog.mjs');
     const ProductVariantModule = await import('./ProductVariant.mjs');
     const ShoppingCartModule = await import('./ShoppingCart.mjs');
     const CartItemModule = await import('./CartItem.mjs');
@@ -271,6 +272,7 @@ const setupAssociations = async () => {
 
     // E-Commerce Models
     const StorefrontItem = StorefrontItemModule.default;
+    const PriceChangeLog = PriceChangeLogModule.default;
     const ProductVariant = ProductVariantModule.default;
     const ShoppingCart = ShoppingCartModule.default;
     const CartItem = CartItemModule.default;
@@ -507,6 +509,8 @@ const setupAssociations = async () => {
         User, Session, SessionType, ClientProgress, Gamification, Achievement, GamificationSettings,
         UserAchievement, UserReward, UserMilestone, Reward, Milestone,
         PointTransaction, StorefrontItem, ProductVariant, ShoppingCart, CartItem, Order,
+        // Trainer-Economics (SWA-62)
+        PriceChangeLog,
         OrderItem, SessionPackage, Package, AdminSpecial, FoodIngredient, FoodProduct, FoodScanHistory,
         SocialPost, SocialComment, SocialLike, Friendship,
         PostReport, ModerationAction,
@@ -707,6 +711,11 @@ const setupAssociations = async () => {
     ProductVariant.hasMany(CartItem, { foreignKey: 'productVariantId', as: 'cartItems' });
     // Phase 1 commerce: physical products can have variants (drink sizes, merch size/color)
     StorefrontItem.hasMany(ProductVariant, { foreignKey: 'storefrontItemId', as: 'variants' });
+
+    // Trainer-Economics (SWA-62) — shadow price-change audit trail.
+    StorefrontItem.hasMany(PriceChangeLog, { foreignKey: 'storeFrontItemId', as: 'priceChangeLogs' });
+    PriceChangeLog.belongsTo(StorefrontItem, { foreignKey: 'storeFrontItemId', as: 'storefrontItem' });
+    PriceChangeLog.belongsTo(User, { foreignKey: 'changedByUserId', as: 'changedBy' });
     ProductVariant.belongsTo(StorefrontItem, { foreignKey: 'storefrontItemId', as: 'storefrontItem' });
 
     // ORDER ASSOCIATIONS
@@ -1457,6 +1466,7 @@ const setupAssociations = async () => {
       
       // E-Commerce Models
       StorefrontItem,
+      PriceChangeLog,
       ProductVariant,
       ShoppingCart,
       CartItem,
