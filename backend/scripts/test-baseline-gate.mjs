@@ -23,15 +23,31 @@
  * Exit 0 = no new failures (baseline may still be red).
  * Exit 1 = a file that used to pass now fails, OR the run itself did not complete.
  * Exit 2 = usage / could not run.
+ * Exit 3 = the suite is INCOMPLETE: files could not load because a declared dependency is
+ *          missing. Nothing regressed; the remedy is an install, not an afternoon reading
+ *          tests that never ran.
  *
  * It deliberately reports files that were EXPECTED to fail and now pass, too — a
  * baseline that silently rots is the next version of this same problem.
+ *
+ * ── AND FOR ITS WHOLE LIFE BEFORE 2026-08-31, IT ANSWERED WRONG ────────────────────────
+ * vitest writes colour, and both parsers anchored on literal text with no escape sequences
+ * in them. `parseTotals` returned null on every real run, the "did not produce a summary"
+ * branch fired, and this exited 1 against every tree it was ever pointed at.
+ *
+ * It failed CLOSED, which is why it lasted: a gate stuck on FAIL is indistinguishable from
+ * a red suite, and this suite IS red, so the wrong answer was the expected one. Nothing
+ * shipped because of it. It simply stopped being a gate — the fate its own second paragraph
+ * warns about. The parsers now live in ./lib/test-output-parsers.mjs with tests held
+ * against real captured output, because a parser exercised only by the thing it checks
+ * cannot be told from a broken one.
  */
 
 import { spawn } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseFailingFiles, parseTotals, parseMissingPackages } from './lib/test-output-parsers.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BASELINE_PATH = join(HERE, '..', 'tests', 'known-failing-baseline.json');
@@ -43,6 +59,10 @@ function runSuite() {
     const p = spawn('npx', ['vitest', 'run', '--reporter', 'dot'], {
       cwd: join(HERE, '..'),
       shell: process.platform === 'win32',
+      // Ask for plain output. Belt only: the parsers strip ANSI themselves, because an env
+      // var that silently stops being honoured would return this gate to the state it spent
+      // its entire life in. See the note on stripAnsi.
+      env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
     });
     let out = '';
     p.stdout.on('data', (c) => { out += c.toString(); });
@@ -52,20 +72,8 @@ function runSuite() {
   });
 }
 
-/** Failing FILES, not individual test names — test names churn, files are stable. */
-function parseFailingFiles(out) {
-  const files = new Set();
-  for (const line of out.split('\n')) {
-    const m = line.match(/^\s*FAIL\s+(\S+)/);
-    if (m) files.add(m[1].replace(/\\/g, '/'));
-  }
-  return [...files].sort();
-}
-
-function parseTotals(out) {
-  const m = out.match(/Tests\s+(?:(\d+) failed \| )?(\d+) passed/);
-  return m ? { failed: Number(m[1] || 0), passed: Number(m[2]) } : null;
-}
+// The parsers live in ./lib/test-output-parsers.mjs. This file runs the suite at import
+// time, so a test importing them from here would spawn vitest inside vitest.
 
 const { out, code } = await runSuite();
 const failing = parseFailingFiles(out);
@@ -111,11 +119,36 @@ if (fixed.length) {
   for (const f of fixed) process.stdout.write(`    ${f}\n`);
 }
 
-if (regressions.length) {
+// UNLOADABLE IS NOT FAILING, AND AN INSTALL IS NOT A REGRESSION. A file whose import throws
+// `Cannot find package` never ran: no code changed, no test executed, and telling someone
+// "do not push, fix them" sends them to read a test that is fine. It must not reach the
+// baseline either — that turns a missing package into a permanent excuse the moment the
+// package comes back.
+const missing = parseMissingPackages(out);
+const envBroken = regressions.filter((f) => missing.has(f));
+const realRegressions = regressions.filter((f) => !missing.has(f));
+
+if (envBroken.length) {
+  const packages = [...new Set(envBroken.map((f) => missing.get(f)))].sort();
+  process.stderr.write(`\n  ENVIRONMENT — ${envBroken.length} file(s) could not LOAD, because `
+    + `${packages.length === 1 ? 'a declared dependency is' : 'declared dependencies are'} missing: ${packages.join(', ')}\n`);
+  for (const f of envBroken) process.stderr.write(`    ${f}  (needs ${missing.get(f)})\n`);
+  process.stderr.write('\n  These did not run, and are NOT regressions. Fix the install; do not baseline them.\n');
+}
+
+if (realRegressions.length) {
   process.stderr.write('\n  REGRESSION — these files were not failing before:\n');
-  for (const f of regressions) process.stderr.write(`    ${f}\n`);
+  for (const f of realRegressions) process.stderr.write(`    ${f}\n`);
   process.stderr.write('\n  Do not push. Fix them, or record a new baseline deliberately.\n\n');
   process.exit(1);
+}
+
+if (envBroken.length) {
+  // Still a refusal — a suite that could not load a dozen files has not been checked. But
+  // the exit now says WHY, so the remedy is an install rather than an afternoon reading
+  // tests that were never run.
+  process.stderr.write('\n  Suite incomplete: fix the install, then re-run this gate.\n\n');
+  process.exit(3);
 }
 
 process.stdout.write('  no new failures — safe to push.\n\n');
