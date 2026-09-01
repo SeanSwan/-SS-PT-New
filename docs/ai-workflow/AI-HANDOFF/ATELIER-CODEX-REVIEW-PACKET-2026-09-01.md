@@ -4,13 +4,13 @@ status: open
 supersedes: none
 ---
 
-# Codex review packet — Atelier, `14b04c407..539eac2bd`
+# Review packet — Atelier, `14b04c407..5b5558cdb`
 
 **Branch** `feat/atelier-v2-compose` · worktree `c:/tmp/ss-atelier-v2` · pushed · not deployed
-· **21 commits, 71 files** · Linear **SWA-165**
+· **24 commits** · Linear **SWA-165**
 
 Nine hostile rounds ran against the first slice with GLM 5.3 + Qwen 3.8 (records in
-`panel-2026-08-27-atelier-video-poster/`). The six slices after it were reviewed **solo** —
+`panel-2026-08-27-atelier-video-poster/`). The eleven slices after it were reviewed **solo** —
 the seats were out of tokens — which is exactly why this packet exists. **Treat the solo
 slices as the least-reviewed code here.**
 
@@ -232,6 +232,223 @@ carries a different shape, my guard now refuses to sign it.** Stills are provabl
 older `atelier/stills/<userId>/<ym>/<hash>` format passes, because the owner is checked
 positionally at segment 2). Video needs the production database to confirm, and this
 environment has none. **This is the single unquantified risk in the whole change.**
+
+## 7c. The infrastructure slices — least reviewed, largest reach
+
+Three slices are TOOLING rather than product, so a defect in them is silent by
+construction: a broken detector reports nothing and reads as health.
+
+**`test-baseline-gate.mjs` had never given a correct answer.** Its parsers anchored on
+literal text; vitest writes ANSI. Measured: raw → 0 files and null totals; stripped → 35
+files and `{failed: 6, passed: 9904}`. It failed CLOSED, which is why nobody noticed — a
+gate stuck on FAIL is indistinguishable from a red suite, and this suite IS red.
+
+**16 `node:test` suites were recorded as known-failures while passing 178/178**, executed
+by no automated path. They could never have left the baseline: the rot detector prunes
+entries that start passing, and a file vitest cannot collect never starts passing.
+
+**Dependency drift (check 10) + `deps-restore.mjs`.** Worktrees share `node_modules` but
+not `package.json`; a dep declared on a newer branch is invisible to an install run from
+the checkout that owns the folder. Two findings, never merged: `missing` (broken now) and
+`atRisk` (installed, declared here, absent from the owner's manifest — one `npm ci` from
+vanishing). `origin/main` already declares both packages; the durable fix is an
+operational branch move, not code.
+
+### The infrastructure source, pasted WHOLE — this is the least-reviewed code here
+
+`scripts/lib/dep-drift.mjs` (the classifier):
+
+```js
+export function classifyDeps({ declared = {}, isInstalled, ownerDeclared = null } = {}) {
+  const names = Object.keys(declared).sort();
+  const missing = [];
+  const atRisk = [];
+
+  for (const name of names) {
+    const installed = isInstalled(name);
+    if (!installed) {
+      missing.push(name);
+      continue;
+    }
+    // Only meaningful when the folder is SHARED. An unshared node_modules cannot be
+    // reinstalled out from under this manifest, so nothing here is at risk — and
+    // reporting it anyway would be the noise that gets a gate ignored.
+    if (ownerDeclared && !ownerDeclared.has(name)) atRisk.push(name);
+  }
+
+  return { missing, atRisk };
+}
+
+/**
+ * The finding text. Separated so a test can assert what an operator is actually told —
+ * a detector that fires correctly and explains badly still costs someone an afternoon.
+ *
+ * Returns [] when there is nothing to say, so the caller can spread it unconditionally.
+ */
+export function describeDepDrift({ label, missing = [], atRisk = [], ownerPath = null } = {}) {
+  const out = [];
+
+  if (missing.length) {
+    out.push(
+      `${label}: ${missing.length} declared dependenc${missing.length === 1 ? 'y is' : 'ies are'} ` +
+      `NOT INSTALLED — ${missing.join(', ')}. Files importing them cannot LOAD, and a test ` +
+      'runner reports that as a failing file with zero tests, which reads exactly like an ' +
+      'ordinary failure. Install before trusting any suite result.'
+    );
+  }
+
+  if (atRisk.length) {
+    out.push(
+      `${label}: ${atRisk.length} package${atRisk.length === 1 ? '' : 's'} installed here ` +
+      `but declared in NO manifest the owning checkout reads — ${atRisk.join(', ')}. ` +
+      `node_modules is shared with ${ownerPath || 'another checkout'}, whose package.json ` +
+      'predates them, so they exist only because someone installed them by hand. A clean ' +
+      'install or `npm ci` there DELETES them and the affected suites silently stop ' +
+      'loading. Durable fix: the owning checkout moves to a branch that declares them.'
+    );
+  }
+
+  return out;
+}
+```
+
+`scripts/hooks/drift-check-gate.mjs` (check 10 — the filesystem half):
+
+```js
+// ---- Check: declared dependencies vs the packages actually on disk ---------
+//
+// 2026-09-01: twelve backend suites — four of them security probes — had NEVER executed
+// here, because `jose` and `sanitize-html` were declared and not installed. A file that
+// cannot load is reported by the runner as a failing FILE with zero tests, which reads
+// exactly like an ordinary failure. Nothing said "install something".
+//
+// The cause is structural and outlives today's fix: worktrees share `node_modules` but
+// not `package.json`. Installing the packages left them declared in NO manifest the
+// OWNING checkout reads, so the next clean install there deletes them and the suites go
+// quiet again. That second state is the dangerous one, and it is what `atRisk` names.
+//
+// Reasoning lives in scripts/lib/dep-drift.mjs; the filesystem work is here, because it
+// is the part that must fail open.
+try {
+  const readJson = (f) => { const t = read(f); if (!t) return null; try { return JSON.parse(t); } catch { return null; } };
+
+  // Resolve the way Node does: this directory, then each parent. Without the walk a
+  // hoisted dependency reads as missing, and a detector with false positives is one
+  // nobody reads.
+  const resolvesFrom = (startDir, name) => {
+    let dir = startDir;
+    for (let i = 0; i < 6; i += 1) {
+      if (existsSync(join(dir, 'node_modules', name, 'package.json'))) return true;
+      const up = dirname(dir);
+      if (up === dir) break;
+      dir = up;
+    }
+    return false;
+  };
+
+  // When node_modules is a symlink, the checkout it points into owns the folder — and
+  // its manifest is the one a clean install would obey.
+  const ownerManifestFor = (dir) => {
+    const nm = join(dir, 'node_modules');
+    try {
+      if (!existsSync(nm) || !lstatSync(nm).isSymbolicLink()) return null;
+      const ownerDir = dirname(realpathSync(nm));
+      if (resolve(ownerDir) === resolve(dir)) return null;
+      const pkg = readJson(join(ownerDir, 'package.json'));
+      if (!pkg) return null;
+      return { ownerDir, names: new Set([...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.devDependencies || {})]) };
+    } catch { return null; }
+  };
+
+  for (const rel of ['backend', 'frontend', '.']) {
+    const dir = resolve(SS_PT, rel);
+    const pkg = readJson(join(dir, 'package.json'));
+    if (!pkg) continue;
+    // devDependencies included on purpose: a missing test-only package is exactly how
+    // this failed, and it is the class least likely to be noticed in production.
+    const declared = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+    if (!Object.keys(declared).length) continue;
+
+    const owner = ownerManifestFor(dir);
+    const { missing, atRisk } = classifyDeps({
+      declared,
+      isInstalled: (name) => resolvesFrom(dir, name),
+      ownerDeclared: owner ? owner.names : null,
+    });
+    findings.push(...describeDepDrift({
+      label: rel === '.' ? 'repo root' : rel,
+      missing, atRisk,
+      ownerPath: owner ? owner.ownerDir : null,
+    }));
+  }
+} catch { /* fail-open — a drift detector must never be the thing that breaks a session */ }
+```
+
+`scripts/deps-restore.mjs` (the decision helpers; the npm call is untested by choice):
+
+```js
+export function resolvesFrom(startDir, name) {
+  let dir = startDir;
+  for (let i = 0; i < 6; i += 1) {
+    if (existsSync(join(dir, 'node_modules', name, 'package.json'))) return true;
+    const up = dirname(dir);
+    if (up === dir) break;
+    dir = up;
+  }
+  return false;
+}
+
+export function ownerOf(dir) {
+  const nm = join(dir, 'node_modules');
+  try {
+    if (!existsSync(nm) || !lstatSync(nm).isSymbolicLink()) return null;
+    const ownerDir = dirname(realpathSync(nm));
+    return resolve(ownerDir) === resolve(dir) ? null : ownerDir;
+  } catch { return null; }
+}
+
+/**
+ * Prefer the version the lockfile pins over the range the manifest allows.
+ *
+ * A range would let npm resolve something newer than the tree was tested against, on a
+ * folder shared with every other worktree — a silent upgrade for everybody, arriving
+ * through a repair script. Exact or nothing.
+ */
+export function pinnedVersion(dir, name, declaredRange) {
+  const lock = readJson(join(dir, 'package-lock.json'));
+  const entry = lock?.packages?.[`node_modules/${name}`];
+  return entry?.version ? `${name}@${entry.version}` : `${name}@${declaredRange}`;
+}
+
+/**
+ * ONLY WHEN RUN DIRECTLY. The helpers above are imported by a test, and everything below
+ * spawns npm. Without this guard, importing `resolvesFrom` would start installing packages
+ * into a folder shared with every other worktree — the exact class of accident this file
+ * exists to prevent. Third time this trap has appeared today; the push gate and the
+ * node:test runner both had it, and I only caught this one because the test I was writing
+ * to prove the script printed "restored 0 packages" while merely being imported.
+ */
+const invokedDirectly = process.argv[1]
+  && import.meta.url === pathToFileURL(process.argv[1]).href;
+```
+
+### Attack these hardest
+
+- **`parseMissingPackages` attributes a package to EVERY `FAIL` since the last error
+  block**, because vitest groups suites. Over-claiming here **hides a real regression as
+  "environment"** — the worst failure this code can have. Is there a reporter shape where
+  it over-claims?
+- **The `.nodetest.mjs` convention rests on `*.test.mjs` not matching it.** Subtle. Is the
+  explicit vitest `exclude` sufficient, and does the drift test really catch a new
+  `node:test` file named wrongly?
+- **Check 10 walks 6 parent levels to resolve.** Too few for a deep worktree? Too many, so
+  it finds an unrelated package?
+- **`deps-restore` never simulates its own `npm install`** — deliberately, since that
+  means deleting packages from a folder three live agents share. Is the untested half the
+  half that matters?
+- **All three run at session start or on demand and are FAIL-OPEN by design.** Argue that
+  contract is wrong, if you think it is: it means none of them can ever stop a bad state
+  from being used, only describe it.
 
 ## 8. Verification
 
