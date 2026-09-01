@@ -125,6 +125,14 @@ const BILLS = [
   ['r7  sort --compress-program',     `sort --compress-program='node ${SEAT}' big.txt`],
   ['r7  >( ) process substitution',   `node >(echo "import(process.cwd() + '/${SEAT}')")`],
   ['r7  <( ) process substitution',   `node <(echo "import('./${SEAT}')")`],
+  // Round 8, found solo. A NUL is built here with String.fromCharCode rather than
+  // embedded as a literal — a literal control character in a fixture is invisible in
+  // review, and a tool silently writing one is exactly how this bug was created.
+  ['r8  NUL between args',            `node ${SEAT}${String.fromCharCode(0)} --document x`],
+  ['r8  NUL inside the path',         `node scripts/consult-fable${String.fromCharCode(0)}.mjs --doc x`],
+  ['r8  vim -c silent !',             `vim -c 'silent !node ${SEAT}' -c qa f`],
+  ['r8  vim -c :! form',              `vim -c ':!node ${SEAT}' f`],
+  ['r8  awk exec by shebang',         `awk '{system("./${SEAT}")}' f.txt`],
 ];
 
 /**
@@ -167,6 +175,13 @@ const INERT = [
   ['git log',                         'git log --oneline -5'],
   ['awk ordinary',                    `awk '{print $1}' file.txt`],
   ['sort ordinary',                   'sort -u file.txt'],
+  // Round 8's cry-wolf side. The vim hatch now fires on a `!` ANYWHERE in an editor
+  // payload, which is a deliberately wide rule — these pin what it must not catch.
+  ['vim -c set nu on the seat',       `vim -c 'set nu' ${SEAT}`],
+  ['vim plain on the seat',           `vim ${SEAT}`],
+  ['vim -c substitute',               `vim -c 's/a/b/g' notes.txt`],
+  ['diff of two process subs',        'diff <(sort a.txt) <(sort b.txt)'],
+  ['a tab-separated command',         'cd /repo\t&& echo hi'],
 ];
 
 test('CORPUS: every shape that bills is blocked', () => {
@@ -332,8 +347,8 @@ test('CORPUS: a plainly-visible seat is PRICED, not merely refused as unreadable
 test('CORPUS: the table itself is non-trivial and the instrument works', () => {
   // A corpus test that silently ran zero rows would report perfect coverage, which
   // is the instrument-blindness this workstream has now hit four separate times.
-  assert.ok(BILLS.length >= 55, `the BILLS corpus shrank to ${BILLS.length} — rows are not deleted, they are fixed`);
-  assert.ok(INERT.length >= 26, `the INERT corpus shrank to ${INERT.length}`);
+  assert.ok(BILLS.length >= 60, `the BILLS corpus shrank to ${BILLS.length} — rows are not deleted, they are fixed`);
+  assert.ok(INERT.length >= 32, `the INERT corpus shrank to ${INERT.length}`);
   // And the harness really distinguishes the two directions.
   assert.equal(gate(`node ${SEAT} --document plan.md`), 2, 'control: the canonical paid call blocks');
   assert.equal(gate(`cat ${SEAT}`), 0, 'control: the canonical mention does not');

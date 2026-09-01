@@ -203,8 +203,17 @@ const INERT_HEADS = {
   // run, which is the argument for that test: the flag and the path were each handled
   // correctly, and their composition was not. `-S` stays a flag hatch: sourcing a vim
   // script really does run one.
-  vim: { why: 'editor', execFlags: ['-S'], execPattern: /^\s*!|^\+\s*!/ },
-  nvim: { why: 'editor', execFlags: ['-S'], execPattern: /^\s*!|^\+\s*!/ },
+  // The `!` need not be FIRST. Round 8 (solo): `vim -c 'silent !node <seat>'` and
+  // `vim -c ':!node <seat>'` both ran free, because the pattern anchored at the start
+  // of the token. `silent`, `:`, and other command modifiers are the ordinary way to
+  // write this — anchoring was a guess about spelling, which is the same mistake as
+  // the `sed` hatch that only worked when the token happened to END at `.mjs`.
+  //
+  // A `!` anywhere in an editor-command payload means a shell escape. The cry-wolf
+  // risk is a `!` inside a genuine editor command (`-c 's/a/b/g'` has none;
+  // `-c 'set nu'` has none), and the corpus pins both.
+  vim: { why: 'editor', execFlags: ['-S'], execPattern: /!/ },
+  nvim: { why: 'editor', execFlags: ['-S'], execPattern: /!/ },
   emacs: { why: 'editor', execFlags: ['--eval', '-f', '--funcall', '--load', '-l'] },
   nano: 'editor with no exec flag',
   code: 'opens an editor window',
@@ -438,6 +447,34 @@ export function invokedScripts(input, depth = 0) {
   // (GLM 5.3 round-5 F6, reproduced). "I stopped looking" is not "there is nothing
   // there", and only one of those two is safe to act on.
   if (depth > 4) return [opaque('recursion-depth')];
+
+  // C0 CONTROL CHARACTERS ARE UNMODELLABLE (round 8, found by accident — see below).
+  //
+  //     node scripts/consult-fable.mjs\0 --document x    -> exit 0
+  //     node scripts/consult-fable\0.mjs --document x    -> exit 0
+  //
+  // A NUL is not in the separator set, so it is appended to the token:
+  // `consult-fable.mjs\0--document` no longer ends in `.mjs`, and the seat vanishes.
+  // What bash does with an embedded NUL is version- and context-dependent — it
+  // commonly DROPS it, which would execute the real path and bill — so the gate cannot
+  // know whether this line spends. That is the definition of opaque, and this file's
+  // doctrine has one answer for it.
+  //
+  // Costs nothing: no legitimate command contains a NUL, and `\t`, `\n`, `\r` are
+  // explicitly kept because the corpus has rows that use all three as real separators.
+  //
+  // HOW IT WAS FOUND, because the provenance is the interesting part: my own editor
+  // tool silently wrote a NUL where I had typed a space inside a probe fixture. The
+  // probe then reported the CANONICAL paid call as free — which read as either a
+  // catastrophic regression or a broken probe, so I checked the instrument before
+  // believing it (15/15 correct in isolation), then found the file was flagged
+  // "Binary file matches". The accident was a real bypass. Third time this workstream
+  // that an instrument artefact turned into a genuine finding.
+  const CTRL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
+  if (depth === 0 && CTRL.test(String(input || ''))) {
+    return [opaque('control-characters')];
+  }
+
   const out = [];
 
   for (const raw of parseCommands(input)) {
@@ -637,7 +674,20 @@ export function invokedScripts(input, depth = 0) {
     // pattern anywhere inside it is the thing to look for. This stays narrow because
     // it is reached only for non-inert heads: `git grep "node <seat>"` and
     // `echo node <seat>` never get here, because those heads are inert for those argvs.
-    const embedsInvocation = (v) => /\b(?:node|nodejs|npx|bunx?|tsx|ts-node)\b[^\n]{0,200}?\.(?:mjs|js|cjs)\b/i.test(v);
+    // A RUNNER WORD IS NOT REQUIRED. Round 8 (solo):
+    //
+    //     awk '{system("./scripts/consult-fable.mjs")}' f.txt
+    //
+    // ran free, because this required `node …` before the path — and a shebang script
+    // needs no runner. The direct-execution branch above already treats `./<seat>` as
+    // an invocation; this is the same shape one layer in, and requiring the runner word
+    // was a leftover assumption from when only `node <script>` was modelled.
+    //
+    // Two alternatives, either sufficient: a runner word followed by a script path, or
+    // a path that is executed directly (`./…` or a bare `scripts/…`). Reached only for
+    // heads whose exec hatch has already fired, so it does not widen inert heads.
+    const embedsInvocation = (v) => /\b(?:node|nodejs|npx|bunx?|tsx|ts-node)\b[^\n]{0,400}?\.(?:mjs|js|cjs)\b/i.test(v)
+      || /(?:^|[\s"'(;&|])\.{0,2}\/?[\w.-]*\/[\w.-]*\.(?:mjs|js|cjs)\b/i.test(v);
     if (!headIsInert(head, argv)
         && argv.some((t, k) => k > 0
           && (/\.(mjs|js|cjs)$/i.test(t.value)
