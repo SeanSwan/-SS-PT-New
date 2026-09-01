@@ -58,7 +58,36 @@ Sean's explicit override. The gate is **purpose-blind on purpose**: the remit is
 caller writes, so filtering it would test vocabulary rather than intent. Rewording does not get
 you through, and neither does `--dry-run` (the Fable path does not implement it, so an ignored
 flag would bill in full). It **fails closed on exceptions** — note the precision: a regex MISS is not an exception, and the
-hook header lists the shapes known to miss. 35 tests in `fable-remit-gate.test.mjs`.
+hook header lists the shapes known to miss. 37 tests in `fable-remit-gate.test.mjs`.
+
+### A Fable call passes TWO gates, and Sean approves TWICE
+
+This is not documented anywhere else, and an agent that meets the second block after
+clearing the first will reasonably think the protocol is broken. It is not.
+
+```
+node scripts/consult-fable.mjs --document plan.md
+  ↓  1. SPEND gate   — "$1.06 > the $1.00 per-call cap"
+     token → .ai-workflow/spend/PENDING-SPEND-APPROVAL.txt   (SWAN_SPEND_APPROVE=…)
+  ↓  2. FABLE gate   — "is this review-or-blueprint, or is it build work?"
+     token → .ai-workflow/gates/PENDING-FABLE-APPROVAL.txt   (SWAN_FABLE_APPROVE=…)
+  ↓  runs
+```
+
+**Two different questions, so two different gates.** The spend gate asks *how much*;
+this one asks *what for*. Neither answer implies the other — a cheap Fable call is
+still build work, and an expensive review is still a review — which is why collapsing
+them into one approval would quietly drop half the protection.
+
+The practical shape: Sean reads back **two tokens from two files**, and the final
+command carries both assignments, leading the command:
+
+    SWAN_SPEND_APPROVE=<a> SWAN_FABLE_APPROVE=<b> node scripts/consult-fable.mjs --document plan.md
+
+Verified end to end 2026-08-31 by running both hooks in registration order against one
+command. Four asks for one Fable call is the intended cost of the most expensive seat
+in the system — and if it feels heavy, that is the reminder to switch the model by hand
+instead, which is what this whole skill is for.
 
 **Know what this gate is, or you will trust it too far.** It is **friction plus an audit trail
 against an eager agent — not a wall against a hostile one.** Two hostile reviews on 2026-08-26
