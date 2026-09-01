@@ -25,9 +25,9 @@ $repo = 'Comfy-Org/Krea-2'
 $base = 'Z:\AI-Weights\ComfyUI'
 
 $files = @(
-    @{ Path = 'diffusion_models/krea2_turbo_fp8_scaled.safetensors'; Dir = 'diffusion_models'; GiB = 12.24; Note = 'the model (8-step Turbo, fp8)' },
-    @{ Path = 'text_encoders/qwen3vl_4b_fp8_scaled.safetensors';     Dir = 'text_encoders';    GiB = 4.88;  Note = 'text encoder (Qwen3-VL 4B, fp8)' },
-    @{ Path = 'vae/qwen_image_vae.safetensors';                      Dir = 'vae';              GiB = 0.24;  Note = 'VAE' }
+    @{ Path = 'diffusion_models/krea2_turbo_fp8_scaled.safetensors'; Dir = 'diffusion_models'; GiB = 12.24; Sha = 'eb4dd8c612cfd10f64f25b057e6e6bbcb5737c94a7372177e456dbf7579502f1'; Note = 'the model (8-step Turbo, fp8)' },
+    @{ Path = 'text_encoders/qwen3vl_4b_fp8_scaled.safetensors';     Dir = 'text_encoders';    GiB = 4.88;  Sha = '54bd5144df0bbc25dd6ccadfcb826b521445a1b06ae5a42570bdd2974ca87094'; Note = 'text encoder (Qwen3-VL 4B, fp8)' },
+    @{ Path = 'vae/qwen_image_vae.safetensors';                      Dir = 'vae';              GiB = 0.24;  Sha = 'a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f'; Note = 'VAE' }
 )
 
 if (-not (Test-Path -LiteralPath $base)) { throw "Shared weights library not found: $base (is Z: mounted?)" }
@@ -59,23 +59,27 @@ $__unused = 0
 
 Write-Host ''
 if ($missing.Count -eq 0) {
-    Write-Host "  Everything is here ($([math]::Round($haveGiB,2)) GiB). Load the Krea 2 template from the ComfyUI Workflow browser."
-    Write-Host ''
-    exit 0
-}
+    # Nothing to download - but STILL verify. An install that is never re-checked rots silently: a
+    # half-written resume, a bad sector, or a substituted file all leave the right filenames in
+    # place. This script used to exit here without hashing anything.
+    Write-Host "  Nothing to download ($([math]::Round($haveGiB,2)) GiB present). Checking what is already here."
+    $VerifyOnly = $true
+} else {
+    $freeGiB = [math]::Round((Get-PSDrive -Name Z).Free / 1GB, 1)
+    Write-Host ("  {0} file(s) to fetch, {1} GiB. Free on Z: {2} GiB." -f $missing.Count, [math]::Round($needGiB,2), $freeGiB)
+    if ($freeGiB -lt ($needGiB * 1.2)) { throw "Not enough free space on Z: for $needGiB GiB." }
 
-$freeGiB = [math]::Round((Get-PSDrive -Name Z).Free / 1GB, 1)
-Write-Host ("  {0} file(s) to fetch, {1} GiB. Free on Z: {2} GiB." -f $missing.Count, [math]::Round($needGiB,2), $freeGiB)
-if ($freeGiB -lt ($needGiB * 1.2)) { throw "Not enough free space on Z: for $needGiB GiB." }
-
-if (-not $Download) {
-    Write-Host '  DRY RUN -- nothing downloaded. Re-run with -Download to fetch.'
-    Write-Host ''
-    exit 0
+    if (-not $Download) {
+        Write-Host '  DRY RUN -- nothing downloaded. Re-run with -Download to fetch.'
+        Write-Host ''
+        exit 0
+    }
+    $VerifyOnly = $false
 }
 
 # `hf download` resumes a partial file and skips a complete one, so re-running after an interruption
 # is safe and cheap.
+if (-not $VerifyOnly) {
 foreach ($f in $missing) {
     $outDir = Join-Path $base $f.Dir
     New-Item -ItemType Directory -Force -Path $outDir | Out-Null
@@ -84,26 +88,31 @@ foreach ($f in $missing) {
     & hf download $repo $f.Path --local-dir $base
     if ($LASTEXITCODE -ne 0) { throw "download failed: $($f.Path)" }
 }
+}
 
 Write-Host ''
-Write-Host '  verifying what landed:'
+Write-Host '  verifying by SHA-256 (identity, not approximate size):'
+# This used to accept a file whose size was within 2% of the published figure. Size is not identity:
+# it accepts a corrupted file of the right length, a resumed download that raced, and any substituted
+# artifact of similar size. Hugging Face publishes the SHA-256 as the LFS oid, so there is no reason
+# to guess. Digests above were read from the HF paths-info API for Comfy-Org/Krea-2 on 2026-09-01.
 $bad = 0
 foreach ($f in $files) {
     $dest = Join-Path $base $f.Path
     if (-not (Test-Path -LiteralPath $dest)) { Write-Host "  MISSING after download: $($f.Path)"; $bad++; continue }
-    $actual = (Get-Item -LiteralPath $dest).Length / 1GB
-    # A truncated download is the failure that looks like success: the file exists, and ComfyUI fails
-    # later with an unhelpful error. Within 2% of the published size, or it is not trusted.
-    if ([math]::Abs($actual - $f.GiB) / $f.GiB -gt 0.02) {
-        Write-Host ("  SIZE WRONG {0}: {1:N2} GiB, expected ~{2} GiB" -f (Split-Path -Leaf $f.Path), $actual, $f.GiB)
+    $got = (Get-FileHash -LiteralPath $dest -Algorithm SHA256).Hash.ToLower()
+    if ($got -ne $f.Sha) {
+        Write-Host ("  SHA MISMATCH {0}" -f (Split-Path -Leaf $f.Path))
+        Write-Host ("    expected {0}" -f $f.Sha)
+        Write-Host ("    got      {0}" -f $got)
         $bad++
     } else {
-        Write-Host ("  ok  {0,-52} {1:N2} GiB" -f (Split-Path -Leaf $f.Path), $actual)
+        Write-Host ("  ok  {0,-52} sha256 {1}..." -f (Split-Path -Leaf $f.Path), $got.Substring(0,16))
     }
 }
 
 Write-Host ''
-if ($bad) { Write-Host "  $bad file(s) are missing or the wrong size -- do NOT rely on this install."; exit 1 }
+if ($bad) { Write-Host "  $bad file(s) missing or failed SHA-256 -- do NOT rely on this install."; exit 1 }
 Write-Host '  Krea 2 is installed. Restart ComfyUI, then load the Krea 2 template from the Workflow browser.'
 Write-Host '  Settings that matter: 8 steps, cfg 0.0, mu 1.15.'
 Write-Host ''

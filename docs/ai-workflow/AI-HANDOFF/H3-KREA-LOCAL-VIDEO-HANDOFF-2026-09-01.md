@@ -150,26 +150,24 @@ Three files, ~17.4 GiB total, all into `Z:\AI-Weights\ComfyUI\`:
 ComfyUI loading issue on the 5090 and sources disagree on whether it needs an extra backend. Treat
 NVFP4 as a *speed experiment after* fp8 is proven working, never as the baseline.
 
-### 4.2 ⚠ FIX THIS BEFORE YOU TRUST THE INSTALL — the finding-4 fix was never applied here
+### 4.2 ✅ FIXED 2026-09-01 — the finding-4 gap is closed and the verifier is tested
 
-`Install-Krea2.ps1` still verifies downloads by **size within 2%**:
+`Install-Krea2.ps1` originally verified downloads by **size within 2%** — precisely the defect
+finding 4 named; the fix had landed in `Install-VideoUpscale.ps1` only (its sibling untouched —
+the Rule 20 sibling-sweep failure mode, recorded in §8).
 
-```powershell
-if ([math]::Abs($actual - $f.GiB) / $f.GiB -gt 0.02) { ... }
-```
-
-That is precisely the defect finding 4 named. `Install-VideoUpscale.ps1` was fixed with pinned
-SHA-256 + `Get-FileHash`; its sibling was not. Verified 2026-09-01: `Get-FileHash` appears **1×** in
-`Install-VideoUpscale.ps1` and **0×** in `Install-Krea2.ps1`.
-
-**Do this:** pull the three SHA-256 digests from the Hugging Face LFS oids for `Comfy-Org/Krea-2`,
-pin them in the `$files` table, and replace the size comparison with a hash check — copy the shape
-already working in `Install-VideoUpscale.ps1:110`. Prove it with the same negative control used
-there: **flip one byte** (file size unchanged) and confirm the script exits 1. A verifier that has
-never rejected anything has not been tested.
-
-Also carried over from the finding-4 fix and worth checking here: verification must run **even when
-nothing needed downloading**, or a completed install is never re-checked.
+**Done, same session that wrote this doc's follow-up:**
+- Three SHA-256 digests pulled from the HF paths-info API for `Comfy-Org/Krea-2` and pinned in the
+  `$files` table (the API's byte sizes matched the published GiB figures exactly).
+- Size comparison replaced with `Get-FileHash` identity check, same shape as
+  `Install-VideoUpscale.ps1:110`.
+- Verification now runs **even when nothing needed downloading** (the VerifyOnly path), so a
+  completed install is re-checked on every run.
+- **Negative control executed and passed:** wrong-content files placed at all three destinations →
+  script reported `SHA MISMATCH` on each and exited 1, then the dummies were removed. The verifier
+  has rejected something; it is a tested instrument.
+- The fixed script is mirrored at `evidence/aftertaste-h3/workflows/Install-Krea2.ps1` (this was the
+  live-Desktop-vs-git mirror rule in §1 being honored).
 
 ### 4.3 Training a Krea 2 LoRA — a SEPARATE install, deliberately
 
@@ -194,13 +192,12 @@ Full detail in `Install-Krea2-Training-NOTES.md`. The load-bearing points:
   correctly refused.** Sean must judge his OWN renders (Judge tab → "My renders") to build a pool;
   a LoRA wants 12+.
 
-### 4.4 Stale doc to correct while you are here
+### 4.4 ✅ DONE 2026-09-01 — the stale doc is corrected
 
-`H3-UPGRADE-RESEARCH-AND-TASTE-SWAN-INTEGRATION-2026-08-31.md` **§5.4** still says *"Krea 2 is a
-cloud/hosted text-to-image model"* and asks Sean to confirm local vs hosted. **That question is
-answered** — local, on the 5090, with open weights from the ungated `Comfy-Org/Krea-2`. Rewrite §5.4
-to record the decision. A doc that states a settled question as open sends the next agent to ask
-Sean something he has already decided.
+`H3-UPGRADE-RESEARCH-AND-TASTE-SWAN-INTEGRATION-2026-08-31.md` **§5.4** used to say *"Krea 2 is a
+cloud/hosted text-to-image model"* and ask Sean to confirm local vs hosted. §5.4 now records the
+decision — local, on the 5090, open weights from the ungated `Comfy-Org/Krea-2` — so the next agent
+is not sent to ask Sean something he already decided.
 
 ---
 
@@ -250,13 +247,14 @@ SeedVR2 fit.
 
 ## 7. Recommended order for the next session
 
-1. **Fix `Install-Krea2.ps1` hash verification** (§4.2) — before downloading 17 GiB you cannot verify.
-   Prove it with the flip-one-byte negative control.
-2. **Run `Install-Krea2.ps1 -Download`**, then restart ComfyUI and load the Krea 2 template.
+1. ~~Fix `Install-Krea2.ps1` hash verification~~ **DONE 2026-09-01** (§4.2) — digests pinned,
+   negative control passed (exit 1 on wrong content).
+2. **Run `Install-Krea2.ps1 -Download`** — started 2026-09-01; on completion the script SHA-256
+   verifies all three files itself. Then restart ComfyUI and load the Krea 2 template.
 3. **Render one image and confirm it looks right** at 8 steps / cfg 0.0 / mu 1.15. Do not declare the
    install good on "the file is on disk" — that is the exact class of claim this branch has been
    burned by twice.
-4. **Correct §5.4** of the upgrade-research doc (§4.4).
+4. ~~Correct §5.4~~ **DONE 2026-09-01** of the upgrade-research doc (§4.4).
 5. **Only then** consider LoRA training — and it stays blocked until Sean has judged 12+ of his own
    renders. Say so plainly rather than working around it.
 6. Optional: NVFP4 Krea as a speed experiment, *after* fp8 is proven.

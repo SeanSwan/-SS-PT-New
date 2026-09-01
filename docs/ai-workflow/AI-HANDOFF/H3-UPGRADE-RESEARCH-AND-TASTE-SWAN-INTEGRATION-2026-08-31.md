@@ -133,10 +133,14 @@ OWN-MATERIAL rule, applied at a new surface.
 **Measured today: 0 trainable images, 9 reference pictures correctly refused.** The LoRA path is
 blocked on Sean judging his OWN renders (Judge tab → "My renders"), not on any code.
 
-### 5.4 Open question for Sean
+### 5.4 DECIDED — local, on the 5090 (was: open question for Sean)
 
-Krea 2 is a **cloud/hosted** text-to-image model; this box runs a local ComfyUI. Before any Krea 2
-LoRA work, confirm which is intended — a local Krea 2 checkpoint if one is obtainable, or training
-against a hosted endpoint (which puts the dataset on someone else's machine, a T3 external-visible
-action under the operator bridge and a separate decision from anything above). The dataset exporter
-is model-agnostic: it emits image+caption pairs that any trainer of this family accepts.
+**Answered by Sean 2026-09-01: "It's gonna be local. Using it on the fifty ninety."** This section
+originally described Krea 2 as cloud/hosted-only; that was wrong. `Comfy-Org/Krea-2` on Hugging Face
+is **ungated** and ships ComfyUI-ready quantizations (fp8_scaled baseline, NVFP4 as a later speed
+experiment). Install via `Install-Krea2.ps1` next to the candidate ComfyUI — SHA-256-verified
+against the HF LFS oids. Hosted training was rejected: it puts the dataset on someone else's machine,
+a T3 external-visible action under the operator bridge. Do not re-open local-vs-hosted. The dataset
+exporter is model-agnostic: it emits image+caption pairs that any trainer of this family accepts.
+Full install/training detail: `H3-KREA-LOCAL-VIDEO-HANDOFF-2026-09-01.md` §4 and
+`Install-Krea2-Training-NOTES.md`.
