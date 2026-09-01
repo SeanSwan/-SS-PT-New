@@ -58,7 +58,10 @@ const CTASection: React.FC<CTASectionProps> = ({ tier }) => {
 
   const buttons = (
     <CTAButtons>
-      <ForgeButton onClick={() => navigate('/store')} variant="primary">
+      {/* Sheen tier (SWA-224) on the closing ask ONLY. The secondary stays plain
+          on purpose: when one button in a pair carries the metal frame, the sheen
+          reads as hierarchy rather than decoration. */}
+      <ForgeButton onClick={() => navigate('/store')} variant="primary" sheen="chrome">
         Join SwanStudios
       </ForgeButton>
       <ForgeButton onClick={() => navigate('/contact')} variant="ghost">
