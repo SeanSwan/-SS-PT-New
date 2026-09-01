@@ -1,0 +1,27 @@
+{
+  "name": "@swan/aftertaste",
+  "version": "0.1.0",
+  "description": "Project Aftertaste — the playable grey-box. Built boxes-first, on purpose: if it is not fun with boxes it will not be fun with monsters.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "@react-three/drei": "9.114.0",
+    "@react-three/fiber": "8.18.0",
+    "three": "0.169.0",
+    "zustand": "4.5.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@vitejs/plugin-react": "4.7.0",
+    "vite": "6.4.3"
+  }
+}
