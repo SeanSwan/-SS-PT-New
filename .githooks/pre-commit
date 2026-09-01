@@ -75,6 +75,26 @@ if [[ -f "$LANE_GUARD" ]] && command -v node >/dev/null 2>&1; then
   fi
 fi
 
+# -- Windows script ASCII gate -----------------------------------------------
+# Four Windows scripts have shipped broken on smart punctuation (an em dash in a .cmd FILENAME,
+# then three .ps1 files whose quotes PowerShell could not parse). The last one was a SECURITY fix
+# that silently did not run. The file never parses, so nothing executes and the error points at a
+# quote several characters from the real culprit -- exactly the class a human review misses.
+# BLOCKS on violations; fail-open on its own bugs, like the other guards here.
+ASCII_GATE="$REPO_ROOT/scripts/hooks/windows-script-ascii-gate.mjs"
+if [[ -f "$ASCII_GATE" ]]; then
+  set +e
+  node "$ASCII_GATE" --staged
+  ASCII_RC=$?
+  set -e
+  if [[ $ASCII_RC -eq 1 ]]; then
+    echo "[pre-commit] COMMIT BLOCKED by windows-script-ascii gate (see above)." >&2
+    exit 1
+  elif [[ $ASCII_RC -ne 0 ]]; then
+    echo "[pre-commit] windows-script-ascii gate errored (rc=$ASCII_RC) -- allowing commit (fail-open)." >&2
+  fi
+fi
+
 # NOTE: the rulebook-review guard lives in .githooks/commit-msg, NOT here. It needs the
 # commit MESSAGE, and during pre-commit the message is not written yet (with -m, git
 # writes COMMIT_EDITMSG after pre-commit) — a pre-commit read sees the PREVIOUS commit's
