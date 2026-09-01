@@ -34,3 +34,8 @@ is not here, that is a bug in the docs, not a gap in you.
 | **NaN** | "Not a Number" — what you get from dividing by zero. It does not throw; it silently propagates, and a NaN position makes an object vanish with no error to search for. |
 | **snapshot** | Reading every agent's position *before* moving any of them, so each steers against the same world state instead of a half-updated one. |
 | **tripwire** | A written-down condition that says when to switch tools (e.g. "more than 30 agents needing real routes -> now you need pathfinding"), instead of switching on instinct. |
+| **raycast** | Firing an invisible ray from the camera through the pixel you clicked to find what it hits in 3D. How a flat mouse position becomes a world point. |
+| **hit-points (hp)** | How much damage a thing absorbs before dying. Flooring at 0 matters: negative hp breaks every UI that draws a bar. |
+| **HUD** | Heads-Up Display — the score and status drawn over the game. Done in plain HTML here, because 3D text costs draw calls and fights antialiasing. |
+| **pure function** | A function that reads its inputs and returns a new value without changing anything. Testable in milliseconds, and it cannot corrupt a snapshot another system is reading. |
+| **physics engine** | A library simulating real collisions, stacking and friction (rapier, cannon). Powerful, heavy, and unnecessary when your question is only "is this box near that box". |

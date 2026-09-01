@@ -22,3 +22,45 @@ export const usePlayerStore = create((set) => ({
     if (typeof window !== 'undefined') window.__swanPlayerPos = position;
   },
 }));
+
+/**
+ * The world state that more than one system touches: the enemies, and the score.
+ *
+ * TEACHING NOTE — WHEN TO PROMOTE STATE INTO A STORE:
+ * In Slice 3 the enemy list lived inside Enemies.jsx, and that was correct: only one thing used it.
+ * Slice 4 adds shooting, which must REMOVE enemies from somewhere else entirely. The moment a
+ * second system needs the same data is the moment it belongs in the store — not before. Promoting
+ * everything "just in case" is how a small game turns into a tangle.
+ */
+import { fireAt as fireAtPure } from '../combat/combat.js';
+import { ENEMY_HP } from '../combat/combat.js';
+
+const START = [
+  { id: 'e1', x: -6, z: -8, hp: ENEMY_HP },
+  { id: 'e2', x: 0, z: -10, hp: ENEMY_HP },
+  { id: 'e3', x: 6, z: -8, hp: ENEMY_HP },
+];
+
+export const useGameStore = create((set, get) => ({
+  enemies: START.map((e) => ({ ...e })),
+  kills: 0,
+
+  /** Fire at a world point. Returns how many died, so the caller can react (sound, later). */
+  fire: (point) => {
+    const { enemies, kills } = get();
+    const result = fireAtPure(enemies, point);
+    set({ enemies: result.enemies, kills: kills + result.killed });
+    if (typeof window !== 'undefined') window.__swanKills = kills + result.killed;
+    return result.killed;
+  },
+
+  reset: () => {
+    set({ enemies: START.map((e) => ({ ...e })), kills: 0 });
+    if (typeof window !== 'undefined') window.__swanKills = 0;
+  },
+}));
+
+// Test seam, same reasoning as __swanPlayerPos: a browser test cannot reach into a module closure,
+// and driving combat through exact screen pixels of a MOVING box is flaky for reasons unrelated to
+// the feature under test. The raycast path is covered by its own ground-click test.
+if (typeof window !== 'undefined') window.__swanGameStore = useGameStore;

@@ -17,6 +17,8 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import Ground from './world/Ground.jsx';
 import Player from './player/Player.jsx';
 import Enemies from './enemies/Enemies.jsx';
+import Hud from './ui/Hud.jsx';
+import { useShoot } from './combat/Shooting.jsx';
 import { usePlayerStore } from './state/store.js';
 import { followPlayer } from './systems/cameraFollow.js';
 
@@ -33,7 +35,9 @@ function CameraRig() {
 }
 
 export default function App() {
+  const shoot = useShoot();
   return (
+    <>
     <Canvas
       // camera sits back and above, looking at the origin — the classic third-person framing.
       camera={{ position: [8, 6, 10], fov: 50 }}
@@ -48,12 +52,14 @@ export default function App() {
       <ambientLight intensity={0.4} />
       <directionalLight position={[5, 10, 5]} intensity={1.2} />
 
-      <Ground />
+      <Ground onClick={shoot} />
       <Player />
       <Enemies />
 
       {/* Slice 2 replaced OrbitControls with a camera that follows the player. */}
       <CameraRig />
     </Canvas>
+    <Hud />
+    </>
   );
 }

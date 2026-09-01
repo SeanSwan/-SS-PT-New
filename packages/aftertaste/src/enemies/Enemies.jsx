@@ -2,70 +2,60 @@
  * Enemies.jsx — every enemy, in ONE component.
  *
  * TEACHING NOTE — WHY NOT ONE COMPONENT PER ENEMY:
- * The obvious design is <Enemy /> repeated 40 times, each with its own useFrame. That works, and it
- * costs you 40 separate per-frame callbacks and 40 React components to reconcile. Worse, each enemy
- * needs to know about all the others (for separation), which means either 40 store subscriptions or
- * passing an array into each one.
+ * The obvious design is <Enemy /> repeated 40 times, each with its own useFrame. That costs 40
+ * per-frame callbacks and 40 React components to reconcile, and every enemy needs to know about all
+ * the others (for separation). One component owning the whole flock is the habit that keeps a
+ * browser game fast — think in FLOCKS, not individuals. The positions live in a plain array, which
+ * is also what instanced rendering will want later.
  *
- * Instead: one component owns the whole flock. One useFrame, one loop over a plain array. This is
- * the single most useful habit for keeping a browser game fast — think in FLOCKS, not individuals.
- *
- * When you eventually have hundreds, the next step is instanced rendering (one draw call for all of
- * them). The shape of this file is already ready for that: the positions live in a plain array, not
- * scattered across component state.
+ * TEACHING NOTE — WHY THE LIST LIVES IN THE STORE NOW:
+ * Slice 3 kept enemies private to this component. Slice 4 needs shooting (a click, elsewhere) to
+ * remove them, so the list moved to the store — the shared table both systems read. That is the
+ * normal moment to promote state: when a SECOND system needs it, not before.
  */
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { stepEnemy } from './steering.js';
-import { usePlayerStore } from '../state/store.js';
-
-/** Where the first wave stands. Slice 5 replaces this with a spawner. */
-const START = [
-  { x: -6, z: -8 },
-  { x: 0, z: -10 },
-  { x: 6, z: -8 },
-];
+import { useGameStore, usePlayerStore } from '../state/store.js';
 
 export default function Enemies() {
-  const meshes = useRef([]);
-  // The authoritative positions. The meshes are just what you can see of them.
-  const positions = useRef(START.map((p) => ({ ...p })));
+  const meshes = useRef({});
+  const enemies = useGameStore((s) => s.enemies);
 
   useFrame((_state, delta) => {
     const player = usePlayerStore.getState().position;
-    const current = positions.current;
+    const list = useGameStore.getState().enemies;
 
-    // Read ALL current positions before writing any, so every enemy steers against the same
-    // snapshot. Updating in place would make enemy 2 react to enemy 1's already-moved position —
-    // subtly order-dependent, and the kind of bug that only shows up as "the flock leans left".
-    const snapshot = current.map((p) => ({ ...p }));
+    // Steer everyone against a SNAPSHOT taken before anyone moves. Updating in place would make
+    // enemy 2 react to enemy 1's already-moved position — the flock develops a lean that is almost
+    // impossible to diagnose later.
+    const snapshot = list.map((e) => ({ x: e.x, z: e.z }));
 
-    for (let i = 0; i < current.length; i++) {
+    for (let i = 0; i < list.length; i++) {
       const next = stepEnemy(snapshot[i], player, snapshot, delta);
-      current[i].x = next.x;
-      current[i].z = next.z;
-      const mesh = meshes.current[i];
-      if (mesh) {
-        mesh.position.x = next.x;
-        mesh.position.z = next.z;
-      }
+      list[i].x = next.x;
+      list[i].z = next.z;
+      const mesh = meshes.current[list[i].id];
+      if (mesh) { mesh.position.x = next.x; mesh.position.z = next.z; }
     }
 
-    // Exposed for the browser test, same reason as the player position.
-    if (typeof window !== 'undefined') window.__swanEnemyPos = current.map((p) => ({ ...p }));
+    if (typeof window !== 'undefined') {
+      window.__swanEnemyPos = list.map((e) => ({ x: e.x, z: e.z, hp: e.hp }));
+    }
   });
 
   return (
     <group name="enemies">
-      {START.map((p, i) => (
+      {enemies.map((e) => (
         <mesh
-          key={i}
-          ref={(el) => { meshes.current[i] = el; }}
-          position={[p.x, 0.5, p.z]}
+          key={e.id}
+          ref={(el) => { if (el) meshes.current[e.id] = el; else delete meshes.current[e.id]; }}
+          position={[e.x, 0.5, e.z]}
           castShadow
         >
           <boxGeometry args={[1, 1, 1]} />
-          <meshStandardMaterial color="#C4462F" />
+          {/* Damaged enemies go darker — the cheapest possible "I hit it" feedback. */}
+          <meshStandardMaterial color={e.hp > 1 ? '#C4462F' : '#7A2418'} />
         </mesh>
       ))}
     </group>
