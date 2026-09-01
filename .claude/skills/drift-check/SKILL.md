@@ -241,6 +241,47 @@ summary line used to say "7 checks", then "8" — a hand-maintained number insid
 gate whose newest check exists to catch hand-maintained numbers. It no longer prints
 a count.
 
+### 10. Dependency drift — a manifest and the packages on disk disagree
+
+**Twelve backend suites, four of them security probes, had never executed on this
+machine.** `jose` and `sanitize-html` were declared and not installed, so those files
+could not be LOADED — and a runner reports that as a failing FILE with zero tests, which
+is indistinguishable from ordinary failure unless you read the error text. Nothing
+anywhere said "install something".
+
+**The cause is structural, and it is why this needs a detector rather than a habit.**
+Worktrees share `node_modules` but not `package.json`. Every shared worktree's
+`backend/node_modules` is a symlink into the MAIN checkout, and that checkout sits on a
+branch whose manifest predates the packages. The tree that OWNS the folder had never heard
+of them, so no install run from there could ever have produced them.
+
+**And installing them creates the second, worse state.** They now exist on disk while
+declared in NO manifest the owning checkout reads. The next `npm ci` there deletes them
+and the suites go quiet again — with everything looking healthy right up until it does
+not. So the check reports two findings, never merged, because they have different causes
+and different remedies:
+
+| | |
+|---|---|
+| `missing` | declared, not installed. **Broken now.** Loud, and cheap to fix |
+| `atRisk` | installed, declared here, absent from the owner's manifest. **Works today only because someone installed it by hand** |
+
+`atRisk` is the one worth having a detector for. `missing` you would eventually notice.
+
+```bash
+node scripts/hooks/drift-check-gate.mjs   # check 10 runs automatically at SessionStart
+node --test scripts/lib/dep-drift.test.mjs  # 13 cases
+```
+
+**Resolution walks up like Node does**, so a hoisted dependency does not read as missing —
+a detector with false positives is one nobody reads. `devDependencies` are included on
+purpose: a missing test-only package is exactly how this failed, and it is the class least
+likely to be noticed in production.
+
+**The durable fix is not in this repository's gift.** It is the owning checkout moving to a
+branch that declares the packages. Until then this check is the thing standing between a
+clean install and twelve suites silently going dark.
+
 ## Reporting
 
 State each check as `OK` / `DRIFT` / `N/A`, with the command output. For any DRIFT, say

@@ -32,10 +32,11 @@
  * any error exits 0 silently rather than blocking a session.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, lstatSync, realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { classifyDeps, describeDepDrift } from '../lib/dep-drift.mjs';
 
 /**
  * Resolve the repo from THIS FILE's location, never process.cwd().
@@ -228,6 +229,74 @@ try {
     'can state its own size is UNKNOWN this session, not clean.'
   );
 }
+
+// ---- Check: declared dependencies vs the packages actually on disk ---------
+//
+// 2026-09-01: twelve backend suites — four of them security probes — had NEVER executed
+// here, because `jose` and `sanitize-html` were declared and not installed. A file that
+// cannot load is reported by the runner as a failing FILE with zero tests, which reads
+// exactly like an ordinary failure. Nothing said "install something".
+//
+// The cause is structural and outlives today's fix: worktrees share `node_modules` but
+// not `package.json`. Installing the packages left them declared in NO manifest the
+// OWNING checkout reads, so the next clean install there deletes them and the suites go
+// quiet again. That second state is the dangerous one, and it is what `atRisk` names.
+//
+// Reasoning lives in scripts/lib/dep-drift.mjs; the filesystem work is here, because it
+// is the part that must fail open.
+try {
+  const readJson = (f) => { const t = read(f); if (!t) return null; try { return JSON.parse(t); } catch { return null; } };
+
+  // Resolve the way Node does: this directory, then each parent. Without the walk a
+  // hoisted dependency reads as missing, and a detector with false positives is one
+  // nobody reads.
+  const resolvesFrom = (startDir, name) => {
+    let dir = startDir;
+    for (let i = 0; i < 6; i += 1) {
+      if (existsSync(join(dir, 'node_modules', name, 'package.json'))) return true;
+      const up = dirname(dir);
+      if (up === dir) break;
+      dir = up;
+    }
+    return false;
+  };
+
+  // When node_modules is a symlink, the checkout it points into owns the folder — and
+  // its manifest is the one a clean install would obey.
+  const ownerManifestFor = (dir) => {
+    const nm = join(dir, 'node_modules');
+    try {
+      if (!existsSync(nm) || !lstatSync(nm).isSymbolicLink()) return null;
+      const ownerDir = dirname(realpathSync(nm));
+      if (resolve(ownerDir) === resolve(dir)) return null;
+      const pkg = readJson(join(ownerDir, 'package.json'));
+      if (!pkg) return null;
+      return { ownerDir, names: new Set([...Object.keys(pkg.dependencies || {}), ...Object.keys(pkg.devDependencies || {})]) };
+    } catch { return null; }
+  };
+
+  for (const rel of ['backend', 'frontend', '.']) {
+    const dir = resolve(SS_PT, rel);
+    const pkg = readJson(join(dir, 'package.json'));
+    if (!pkg) continue;
+    // devDependencies included on purpose: a missing test-only package is exactly how
+    // this failed, and it is the class least likely to be noticed in production.
+    const declared = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+    if (!Object.keys(declared).length) continue;
+
+    const owner = ownerManifestFor(dir);
+    const { missing, atRisk } = classifyDeps({
+      declared,
+      isInstalled: (name) => resolvesFrom(dir, name),
+      ownerDeclared: owner ? owner.names : null,
+    });
+    findings.push(...describeDepDrift({
+      label: rel === '.' ? 'repo root' : rel,
+      missing, atRisk,
+      ownerPath: owner ? owner.ownerDir : null,
+    }));
+  }
+} catch { /* fail-open — a drift detector must never be the thing that breaks a session */ }
 
 // ---- Emit: silent when clean ----------------------------------------------
 if (findings.length) {
