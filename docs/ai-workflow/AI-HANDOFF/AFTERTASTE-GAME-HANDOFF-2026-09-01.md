@@ -1,5 +1,5 @@
 ---
-decision: Continue Project Aftertaste from Slice 6 — wire the rigged Fryling into the running game, then build the enemy lifecycle that attack/death need
+decision: Continue Project Aftertaste from Slice 7 — the enemy lifecycle (spawning → alive → attacking → dying → gone) that attack/death clips need; Slice 6b (Fryling in-game) landed 2026-09-01
 status: open
 supersedes: none
 ---
@@ -157,13 +157,23 @@ node scripts/assets/verify-clips.mjs --selftest    # 7 negative controls
 the words a person reaches for. `validate-asset` rejected both: `skeleton.creature-small.v1` names
 `idle, move, attack, hit, death`, and a `validated` asset must carry all five. Good gate.
 
-### NOT done, and NOT proven: the model in the game
+### DONE 2026-09-01: the model is in the game (commit `684a564db`)
 
-`packages/aftertaste/src/enemies/Fryling.jsx` **is written and has never been rendered in a browser.**
-It is committed so it cannot be lost, **not because it works**. `Enemies.jsx` still renders red
-boxes; nothing imports `Fryling.jsx` yet.
+Slice 6b landed: `Enemies.jsx` renders a Fryling per enemy (position writes land on a wrapper
+group; the Slice-3 box survives as the Suspense fallback), `vite.config.js` carries `fs.allow` for
+the repo root, and `tests/fryling.spec.js` proves it in a browser — one SkinnedMesh per enemy,
+distinct root bone per enemy (the crowd-bug regression), a bone quaternion advancing, and
+`store.fire()` darkening exactly the monster it hit. Suite: 47/47 unit, 11/11 browser ×3.
 
-**Your first job.** In order:
+The same slice's screenshot review found a **pre-existing** renderer defect (present since Slice 2,
+confirmed against stashed code): after ~9 units of travel the fixed grid's along-view lines stop
+rasterizing (Windows GL near-plane line clipping). Fixed in `ccfc750a8` by making the world
+translation-invariant — floor/grid/sun follow the player (grid in whole-unit snaps), guarded by
+`tests/world.spec.js`, taught in `CONCEPTS/debugging-by-elimination.md`. New browser-test seams:
+`window.__swanScene`, `window.__swanCamera`.
+
+The original work order is kept below because its reasoning still teaches (all four steps were
+done, in this order):
 
 1. **Vite must be allowed to serve the GLB.** It is imported by URL from the repo-root asset
    directory — `import frylingUrl from '../../../../assets/runtime/enemy/fryling/lod0.glb?url'` —
@@ -202,7 +212,7 @@ Currently `Fryling.jsx` plays `move`, and flinches with `hit` on damage.
 
 | Slice | What | Why here |
 |---|---|---|
-| **6b** | finish 6 — model in game, verified in browser | the pipeline must actually reach the runtime |
+| ~~**6b**~~ | ~~finish 6 — model in game, verified in browser~~ **DONE 2026-09-01**, `684a564db` + world fix `ccfc750a8` | the pipeline reached the runtime |
 | **7** | **enemy lifecycle**: `spawning → alive → attacking → dying → gone` | unblocks `attack` + `death`; the state machine everything else needs |
 | **8** | the other three enemies (`drip-cyst`, `grease-fly`, `patty-larva`) | all still `planned` with `idle` only — same pipeline, `--clips idle,move,attack,hit,death` |
 | **9** | sound | the feedback moments already exist (hit, kill, wave, death) — they were built as hooks |
