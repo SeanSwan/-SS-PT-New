@@ -23,6 +23,20 @@ WorkoutLog.init(
       type: DataTypes.STRING(255),
       allowNull: false
     },
+    circuitName: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    circuitOrder: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      validate: { min: 1 }
+    },
+    exerciseRole: {
+      type: DataTypes.STRING(32),
+      allowNull: true,
+      validate: { isIn: [['primary', 'drop-movement', 'active-recovery', 'core', 'mobility', 'finisher']] }
+    },
     setNumber: {
       type: DataTypes.INTEGER,
       allowNull: false
@@ -80,6 +94,17 @@ WorkoutLog.init(
     exerciseNote: {
       type: DataTypes.TEXT,
       allowNull: true
+    },
+    setType: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      defaultValue: 'working',
+      validate: { isIn: [['warmup', 'working', 'dropset', 'superset', 'failure', 'amrap', 'rest_pause']] }
+    },
+    isometricHoldSeconds: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      validate: { min: 0 }
     }
   },
   {

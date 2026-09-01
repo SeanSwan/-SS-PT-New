@@ -18,7 +18,8 @@ import {
   StarButton,
   StarRatingContainer,
   SupersetBadge,
-  SupersetLinkButton,
+    SupersetLinkButton,
+    CircuitFields,
 } from './ExerciseCardComponent.styles';
 import {
   AddSetButton,
@@ -163,6 +164,14 @@ const ExerciseCardComponent: React.FC<ExerciseCardComponentProps> = React.memo((
           </RemoveExerciseBtn>
         </ExerciseRatings>
       </ExerciseHeader>
+
+      <CircuitFields>
+        <label>Circuit / block<input value={exercise.circuitName || ''} onChange={event => onUpdateExercise(exerciseIndex, 'circuitName', event.target.value)} placeholder="Circuit 1" /></label>
+        <label>Order<input type="number" min={1} value={exercise.circuitOrder || ''} onChange={event => onUpdateExercise(exerciseIndex, 'circuitOrder', Number(event.target.value) || undefined)} /></label>
+        <label>Movement role<select value={exercise.exerciseRole || 'primary'} onChange={event => onUpdateExercise(exerciseIndex, 'exerciseRole', event.target.value)}>
+          <option value="primary">Primary</option><option value="drop-movement">Drop movement</option><option value="active-recovery">Active recovery</option><option value="core">Core</option><option value="mobility">Mobility</option><option value="finisher">Finisher</option>
+        </select></label>
+      </CircuitFields>
 
       <SetsTable>
         <TableHeader>

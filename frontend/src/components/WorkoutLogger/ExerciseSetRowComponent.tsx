@@ -26,6 +26,7 @@ import {
   StarButton,
   StarRatingContainer,
 } from './ExerciseCardComponent.styles';
+import { SetStructureFields } from './ExerciseCardComponent.styles';
 import {
   LastWeightChip,
   NumberInput,
@@ -85,6 +86,7 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
   // L2: coarse-pointer keypad — one-hop advance weight→reps; "use system keyboard" opts out per row.
   const keypad = useKeypadField((field, value) => onUpdateSet(exerciseIndex, setIndex, field, value));
   return (
+  <>
   <SetRow data-details={showDetails ? 'open' : 'closed'} data-logged={isLogged ? 'true' : 'false'}>
     <SetCell data-label="Set" data-essential="cell">
       <SetNumber>{set.setNumber}</SetNumber>
@@ -217,6 +219,15 @@ const ExerciseSetRowComponent: React.FC<ExerciseSetRowComponentProps> = ({
       </RemoveSetButton>
     </SetCell>
   </SetRow>
+  {showDetails && (
+    <SetStructureFields>
+      <label>Set type<select value={set.setType || 'working'} onChange={event => onUpdateSet(exerciseIndex, setIndex, 'setType', event.target.value)}>
+        <option value="warmup">Warm-up</option><option value="working">Working</option><option value="dropset">Drop set</option><option value="superset">Superset</option><option value="failure">Failure</option><option value="amrap">AMRAP</option><option value="rest_pause">Rest-pause</option>
+      </select></label>
+      <label>Isometric hold (seconds)<input type="number" min={0} value={set.isometricHoldSeconds ?? ''} placeholder="10" onChange={event => onUpdateSet(exerciseIndex, setIndex, 'isometricHoldSeconds', Math.max(0, Number(event.target.value) || 0))} /></label>
+    </SetStructureFields>
+  )}
+  </>
   );
 };
 

@@ -55,6 +55,53 @@ export const ExerciseHeader = styled.div`
   @media (max-width: 768px) { flex-direction: column; }
 `;
 
+export const CircuitFields = styled.div`
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(90px, 0.7fr) minmax(160px, 1fr);
+  gap: 0.75rem;
+  margin: -0.5rem 0 1rem;
+
+  label {
+    display: grid;
+    gap: 0.35rem;
+    color: ${CS.textSecondary};
+    font: 600 0.75rem 'Sora', sans-serif;
+  }
+
+  input, select {
+    box-sizing: border-box;
+    min-height: 44px;
+    width: 100%;
+    border: 1px solid ${withAlpha(CS.glow, 0.28)};
+    border-radius: 0.55rem;
+    background: ${withAlpha(CS.bgDeep, 0.72)};
+    color: ${CS.text};
+    padding: 0.6rem 0.75rem;
+  }
+
+  @media (max-width: 700px) { grid-template-columns: 1fr; }
+`;
+
+export const SetStructureFields = styled.div`
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(160px, 1fr);
+  gap: 0.75rem;
+  padding: 0.45rem 0 0.8rem 50px;
+
+  label { color: ${CS.textSecondary}; font: 600 0.72rem 'Sora', sans-serif; }
+  select, input {
+    min-height: 44px;
+    width: 100%;
+    margin-top: 0.3rem;
+    border: 1px solid ${withAlpha(CS.gaming, 0.28)};
+    border-radius: 0.5rem;
+    background: ${withAlpha(CS.bgDeep, 0.72)};
+    color: ${CS.text};
+    padding: 0.55rem;
+  }
+  @media (max-width: 620px) { grid-template-columns: 1fr; padding-left: 0; }
+`;
+
 export const ExerciseTitle = styled.div`
   flex: 1;
 
