@@ -21,8 +21,15 @@
  * FAIL-OPEN on its own errors. A spend guard that bricks the toolchain when it
  * has a bug costs more than the spend it prevents. It fails open loudly.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
+import { join, dirname, isAbsolute } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// The repo root, for resolving `--document` paths so the gate can price the REAL input
+// rather than a flat assumption. Derived from this file's own location: the hook's cwd
+// is the harness's, not the repo's, and guessing that wrong would silently disable the
+// measurement while leaving it looking active.
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 import { checkSpend, CAPS, spentToday, spentOnTopic, topicFromPath, SPEND_DIR, reserveSpend, releaseReservation } from '../lib/spend-ledger.mjs';
 // SWA-218: the seat roster lives in ONE file, policed by spend-coverage.test.mjs.
 // Hand-curating it inside this regex is what drifted in both directions at once.
@@ -546,9 +553,54 @@ try {
     || 0;
   const maxTok = Math.max(declaredTok, SCRIPT_DEFAULT_MAX_TOK);
 
-  // Input size is unknown at gate time; assume a large review packet so the
-  // worst case is honest rather than flattering.
-  const ASSUMED_IN_TOK = 26000;
+  // INPUT SIZE IS NOT UNKNOWN — THE FILE IS RIGHT THERE (round 9, solo).
+  //
+  // The comment this replaces said "input size is unknown at gate time", and that was
+  // a false claim about the world, dressed as a limitation: `--document` names a path,
+  // the path is on disk, and the gate runs before the call. Every call was priced at a
+  // flat 26,000 input tokens.
+  //
+  // Measured against packets this workstream has ACTUALLY sent:
+  //     round-7 packet   257 KB  ~66k tokens   counted 26k
+  //     Sol in-part      counted $0.13, real ~$0.33   under by $0.20 PER CALL
+  //
+  // The ledger itself stays accurate — the writer records the provider's real cost —
+  // so this never corrupted history. What it corrupted is everything that happens
+  // BEFORE the call: the hold is too small (so parallel calls overshoot by the
+  // difference), the refusal fires later than it should, and the number Sean is shown
+  // when he is asked to approve is too low. That last one matters most: the two-ask
+  // protocol exists to put a real number in front of him twice.
+  //
+  // FLOOR, NEVER A DISCOUNT. The estimate takes the max of the old assumption and the
+  // measured size, so this can only ever raise a price. A missing or unreadable file
+  // falls back to the assumption rather than to zero — the same reasoning as every
+  // other unknown here, and the reason this cannot become a bypass by pointing
+  // `--document` at something that does not exist.
+  const ASSUMED_IN_TOK = (() => {
+    const BASE = 26000;
+    try {
+      let bytes = 0;
+      for (const inv of seatInvocations(cmd)) {
+        for (const flag of ['document', 'seed']) {
+          const p = flagFrom(inv.args, flag);
+          if (!p) continue;
+          // An absolute path must not be joined onto the repo root — `join` would
+          // mangle it and the file would silently read as absent, which falls back to
+          // the floor and looks exactly like "this document is small". A measurement
+          // that quietly stops measuring is the instrument-blindness class this
+          // workstream has hit four times.
+          const abs = isAbsolute(p) ? p : join(REPO_ROOT, p);
+          if (existsSync(abs) && statSync(abs).isFile()) bytes += statSync(abs).size;
+        }
+      }
+      // ~4 bytes per token is the usual rule of thumb for English prose and code. It
+      // is an approximation and named as one; being roughly right about 66k beats
+      // being exactly wrong about 26k.
+      return Math.max(BASE, Math.round(bytes / 4));
+    } catch {
+      return BASE; // never let a stat error brick the gate
+    }
+  })();
   // SUM every chargeable invocation in the line, not just the priciest one.
   //
   // GLM 5.3-flash round-3 blocker 4, reproduced live at exit 0:

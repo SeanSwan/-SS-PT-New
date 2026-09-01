@@ -935,6 +935,48 @@ test('R6: a PANEL reserves under the seat ids its fan-out records', () => {
   assert.deepEqual(rows.map((r) => r.model).sort(), ['grok-4.6', 'kimi-k3']);
 });
 
+test('R9: the estimate prices the REAL document, and only ever upward', () => {
+  // Round 9, solo. The comment being replaced said "input size is unknown at gate
+  // time" — a false claim about the world dressed as a limitation. `--document` names
+  // a path, the path is on disk, and the gate runs BEFORE the call. Every call was
+  // priced at a flat 26,000 input tokens.
+  //
+  // Measured against packets this workstream actually sent: the round-7 packet is
+  // 257 KB, roughly 66k tokens, counted as 26k. For Sol that is $0.13 counted against
+  // ~$0.33 real — under by $0.20 PER CALL.
+  //
+  // The ledger stayed accurate (the writer records the provider's real cost), so this
+  // never corrupted history. It corrupted everything BEFORE the call: the hold is too
+  // small, the refusal fires late, and the number Sean is shown when asked to approve
+  // is too low. The two-ask protocol exists to put a REAL number in front of him.
+  const big = join(sandbox, 'big-packet.md');
+  writeFileSync(big, 'x'.repeat(400_000), 'utf-8'); // ~100k tokens at 4 bytes/token
+  const small = join(sandbox, 'small.md');
+  writeFileSync(small, 'x'.repeat(1_000), 'utf-8');
+
+  // Forward slashes deliberately. A raw Windows path in a bash command line is
+  // mangled by BASH — `\U` is an escape — and the parser models that correctly, so
+  // the first version of this test failed on its own fixture rather than on the code.
+  // Real callers quote such paths or use forward slashes, and node accepts both.
+  const slash = (p) => p.split('\\').join('/');
+  const priceOf = (doc) => {
+    const r = runGate(`node scripts/consult-fable.mjs --document ${slash(doc)}`);
+    assert.equal(r.code, BLOCK, 'control: Fable always breaches the per-call cap');
+    return Number((r.stderr.match(/worst case\s+\$([\d.]+)/) || [])[1]);
+  };
+
+  const cheap = priceOf(small);
+  const dear = priceOf(big);
+  assert.ok(dear > cheap, `a 400 KB document must price above a 1 KB one (${dear} vs ${cheap})`);
+
+  // FLOOR, NEVER A DISCOUNT — this is the half that stops the measurement becoming a
+  // bypass. A small, absent, or unreadable document falls back to the old assumption,
+  // so pointing `--document` at nothing cannot buy a cheaper estimate.
+  assert.equal(cheap, 1.06, 'a small document keeps the old flat floor');
+  assert.equal(priceOf('does-not-exist-anywhere.md'), 1.06, 'an ABSENT document must not discount');
+  assert.equal(priceOf('/nonexistent/absolute/path.md'), 1.06, 'nor an absent absolute path');
+});
+
 test('R5: SWAN_* env vars are read from the PARSE, not from raw text', () => {
   // GLM 5.3 round-5 F8 — the last position-blind readers in the gate. Three
   // `cmd.match(/SWAN_…/)` scans survived the parser rewrite, so a value inside a
