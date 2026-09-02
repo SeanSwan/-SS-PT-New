@@ -74,6 +74,7 @@ export default function Hud() {
   // trust. Written straight to the element every frame instead of through React state: the cone
   // changes on every shot, and a store value would re-render the whole HUD at fire rate.
   const crossRef = useRef(null);
+  const ammoRef = useRef(null);
   useEffect(() => {
     let raf;
     const tick = () => {
@@ -83,6 +84,13 @@ export default function Hud() {
         const frac = (currentCone(gun) - s.base) / (s.max - s.base); // 0 at rest, 1 at the cap
         const scale = Math.max(0.75, Math.min(1.6, 1 + frac * 0.6));
         el.style.transform = `translate(-50%, -50%) scale(${scale.toFixed(3)})`;
+      }
+      // Ammo lives outside React for the same reason the crosshair does — it changes at fire rate.
+      const a = ammoRef.current;
+      if (a) {
+        a.textContent = gun.reloadingUntil > 0
+          ? `${weaponOf(gun).name.split(' (')[0]} — RELOADING…`
+          : `${weaponOf(gun).name.split(' (')[0]}  ${gun.mag} / ${gun.reserveAmmo}`;
       }
       raf = requestAnimationFrame(tick);
     };
@@ -105,8 +113,9 @@ export default function Hud() {
         <span data-testid="hud-kills">Kills: {kills}</span>
         {/* A toppling corpse is not "remaining" — count what still holds the wave open. */}
         <span data-testid="hud-left">Remaining: {remaining}</span>
+        <span ref={ammoRef} data-testid="hud-ammo" style={{ fontVariantNumeric: 'tabular-nums' }} />
         <span style={{ opacity: 0.6 }}>
-          click to take aim &middot; WASD &middot; SHIFT run &middot; SPACE jump &middot; F punch &middot; RMB aim &middot; hold LMB to fire
+          click to take aim &middot; WASD &middot; SHIFT run &middot; SPACE jump &middot; F punch &middot; R reload &middot; RMB aim &middot; hold LMB to fire
         </span>
       </div>
 

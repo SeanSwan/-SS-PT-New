@@ -72,3 +72,55 @@ test('applySpread stays INSIDE the cone and returns unit vectors; zero cone is e
     assert.ok(angle <= 0.03 + 1e-6, `deviation ${angle} inside the 0.03 cone`);
   }
 });
+
+// ---- AMMO + RELOAD (Beyond-Zombies S1) -------------------------------------------------------
+// The magazine is the rhythm of a horde game: fire, count, and the reload is the moment the
+// window you ignored becomes the window that kills you.
+const { ammoAfterShot, canFire, startReload, finishReload, needsReload } = await import('../src/combat/gunState.js');
+
+test('every weapon declares its ammo row: fireMode, mag, reserve, reload time', () => {
+  for (const [id, w] of Object.entries(WEAPONS)) {
+    assert.ok(['auto', 'semi'].includes(w.fireMode), `${id}.fireMode`);
+    assert.ok(Number.isInteger(w.mag) && w.mag > 0, `${id}.mag`);
+    assert.ok(Number.isInteger(w.reserve) && w.reserve >= w.mag, `${id} carries at least one spare mag`);
+    assert.ok(w.reloadSeconds > 0, `${id}.reloadSeconds`);
+  }
+});
+
+test('firing drains the mag by one and stops at zero — no negative bullets', () => {
+  let g = G({ mag: 2, reserveAmmo: 10 });
+  g = { ...g, ...ammoAfterShot(g) };
+  assert.equal(g.mag, 1);
+  g = { ...g, ...ammoAfterShot(g) };
+  assert.equal(g.mag, 0);
+  assert.equal(canFire(g, 100), false, 'an empty mag cannot fire');
+  assert.deepEqual(ammoAfterShot(g), { mag: 0 }, 'firing on empty changes nothing');
+});
+
+test('reload is a STATE with a duration, and the maths moves rounds mag<-reserve exactly', () => {
+  let g = G({ mag: 3, reserveAmmo: 100, reloadingUntil: 0 });
+  g = { ...g, ...startReload(g, 10) };
+  assert.equal(g.reloadingUntil, 10 + WEAPONS[DEFAULT_WEAPON].reloadSeconds);
+  assert.equal(canFire(g, 10.5), false, 'cannot fire mid-reload');
+  assert.equal(g.mag, 3, 'rounds arrive at the END of the reload, not the start');
+  g = { ...g, ...finishReload(g) };
+  assert.equal(g.mag, WEAPONS[DEFAULT_WEAPON].mag);
+  assert.equal(g.reserveAmmo, 100 - (WEAPONS[DEFAULT_WEAPON].mag - 3), 'reserve paid only the topped-up rounds');
+});
+
+test('reload floors at the reserve: 5 rounds left fills 5, an empty reserve reloads nothing', () => {
+  let g = G({ mag: 0, reserveAmmo: 5, reloadingUntil: 0 });
+  g = { ...g, ...startReload(g, 1), };
+  g = { ...g, ...finishReload(g) };
+  assert.equal(g.mag, 5);
+  assert.equal(g.reserveAmmo, 0);
+  const empty = G({ mag: 0, reserveAmmo: 0, reloadingUntil: 0 });
+  assert.deepEqual(startReload(empty, 1), {}, 'no reserve = no reload state entered');
+});
+
+test('a full mag refuses to reload — R with 24/120 must not waste the press', () => {
+  const g = G({ mag: WEAPONS[DEFAULT_WEAPON].mag, reserveAmmo: 120, reloadingUntil: 0 });
+  assert.deepEqual(startReload(g, 1), {});
+  assert.equal(needsReload(g), false);
+  assert.equal(needsReload(G({ mag: 0, reserveAmmo: 10 })), true);
+});

@@ -26,6 +26,10 @@ export const WEAPONS = {
     name: 'Fry Rifle (working name)',
     damage: 1,
     fireInterval: 0.15,
+    fireMode: 'auto',      // 'auto' fires while held; 'semi' needs a fresh click per shot
+    mag: 24,               // rounds in a full magazine
+    reserve: 120,          // rounds carried beyond the magazine
+    reloadSeconds: 1.6,
     // A learnable climb: strong first kicks easing off, drifting right — classic AR grammar.
     recoilPattern: [
       [0.010, 0.000], [0.009, 0.001], [0.008, 0.002], [0.006, 0.002],

@@ -28,7 +28,10 @@ import { aim, applyLook, PITCH_LIMIT, SENSITIVITY } from './player/aim.js';
 import Tracers from './combat/Tracers.jsx';
 import { useGameStore, usePlayerStore } from './state/store.js';
 import { FRAME_ORDER } from './systems/frameOrder.js';
-import { gun, weaponOf, recoilKick, spreadAfterShot, spreadAfterRest, currentCone, applySpread } from './combat/gunState.js';
+import {
+  gun, weaponOf, recoilKick, spreadAfterShot, spreadAfterRest, currentCone, applySpread,
+  canFire, ammoAfterShot, needsReload, startReload, finishReload,
+} from './combat/gunState.js';
 
 /** Eye height. Enemies are ~1 unit tall, so you look slightly DOWN at the swarm — CoD-zombies framing. */
 const EYE_HEIGHT = 1.6;
@@ -137,6 +140,7 @@ function TriggerControl() {
   const held = useRef(false);
   const lastShot = useRef(-Infinity);
   const armedAt = useRef(0);
+  const wantReload = useRef(false);
 
   useEffect(() => {
     const canvas = gl.domElement;
@@ -160,9 +164,16 @@ function TriggerControl() {
     // a leaned-on key from machine-gunning fists (the store's cooldown is the real gate, but a key
     // that fires 30 times a second would burn it on the first frame).
     const key = (e) => {
-      if (e.code !== 'KeyF' || e.repeat) return;
-      const p = usePlayerStore.getState().position;
-      useGameStore.getState().melee({ x: p.x, z: p.z }, aim.yaw);
+      if (e.repeat) return;
+      if (e.code === 'KeyF') {
+        const p = usePlayerStore.getState().position;
+        useGameStore.getState().melee({ x: p.x, z: p.z }, aim.yaw);
+      }
+      // R reloads — but only records INTENT. The frame loop enters the state with ITS clock,
+      // because the key handler's clock (performance.now) and the game's clock (R3F elapsedTime)
+      // are different epochs: a reloadingUntil stamped from the wrong one is hours in the future
+      // and the gun never finishes reloading. Same intent-vs-act split as the trigger itself.
+      if (e.code === 'KeyR') wantReload.current = true;
     };
     // The keyboard has cleared its keys on window blur since Slice 2; the mouse path never did.
     // Alt-tab while firing left `held` true FOREVER (the mouseup lands on the other window), and
@@ -194,15 +205,39 @@ function TriggerControl() {
       gun.ads = false;
       gun.spread = weaponOf(gun).spread.base;
       gun.burstIndex = 0;
+      gun.reloadingUntil = 0;
+      gun.mag = weaponOf(gun).mag;
+      gun.reserveAmmo = weaponOf(gun).reserve;
       return;
     }
     const now = state.clock.elapsedTime;
     // The cone shrinks back on its own once you stop shooting — the reward for firing in bursts.
     if (now - gun.lastShotAt > SPREAD_RECOVER_DELAY) gun.spread = spreadAfterRest(gun, delta);
+
+    // --- Ammo/reload state (Beyond-Zombies S1) ---
+    if (wantReload.current) {
+      wantReload.current = false;
+      if (gun.reloadingUntil === 0) Object.assign(gun, startReload(gun, now));
+    }
+    if (gun.reloadingUntil > 0) {
+      // Sprinting holsters the ram-rod: the reload cancels with the mag exactly as it was —
+      // startReload moved nothing, so cancelling is just forgetting the timer.
+      if (usePlayerStore.getState().position.sprinting) { gun.reloadingUntil = 0; }
+      else if (now >= gun.reloadingUntil) { Object.assign(gun, finishReload(gun)); }
+      else return; // rounds move at the END; a reloading gun cannot fire
+    }
+
     if (!held.current) return;
     if (performance.now() / 1000 < armedAt.current) return;
+    if (!canFire(gun, now)) {
+      // Dry trigger on an empty mag reloads by itself — the horde-game convention, because the
+      // player is watching the window, not the counter.
+      if (needsReload(gun)) Object.assign(gun, startReload(gun, now));
+      return;
+    }
     if (now - lastShot.current < weaponOf(gun).fireInterval) return;
     lastShot.current = now;
+    Object.assign(gun, ammoAfterShot(gun));
 
     // The bullet leaves inside the CONE, not down the exact crosshair ray. The cone is knowable
     // (it blooms per shot and is hard-capped — Sean: "make sure this spread has a limit, so it's

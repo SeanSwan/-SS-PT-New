@@ -119,6 +119,37 @@ test('the spread has a LIMIT: a long hold stops opening, and letting go closes i
   expect(rested, 'the cone closes again once you let go').toBeLessThan(0.006);
 });
 
+test('AMMO: firing drains the mag on the HUD, R reloads it, and an empty mag reloads itself', async ({ page }) => {
+  await boot(page);
+  await page.evaluate(() => window.__swanGameStore.setState({ hp: 99999 }));
+  const full = await page.evaluate(() => window.__swanGun.mag);
+
+  // Drain some rounds and watch the HUD tell the truth about it.
+  await page.mouse.move(640, 400);
+  await page.mouse.down();
+  await page.waitForFunction((f) => window.__swanGun.mag <= f - 5, full, { timeout: 10_000 });
+  await page.mouse.up();
+  const midHud = await page.locator('[data-testid="hud-ammo"]').textContent();
+  const midMag = await page.evaluate(() => window.__swanGun.mag);
+  expect(midHud, `HUD shows the live count (${midMag})`).toContain(`${midMag} /`);
+
+  // R reloads: the HUD announces it, then the mag is full and the reserve paid for it.
+  const reserveBefore = await page.evaluate(() => window.__swanGun.reserveAmmo);
+  await page.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', bubbles: true })));
+  await expect(page.locator('[data-testid="hud-ammo"]')).toContainText('RELOADING', { timeout: 3_000 });
+  await page.waitForFunction((f) => window.__swanGun.mag === f, full, { timeout: 5_000 });
+  const paid = await page.evaluate(() => window.__swanGun.reserveAmmo);
+  expect(paid, 'reserve paid exactly the topped-up rounds').toBe(reserveBefore - (full - midMag));
+
+  // Empty the mag entirely: the gun reloads itself. Let go once the auto-reload begins — with the
+  // trigger still held, firing resumes the same FRAME the reload lands, so "mag === full" exists
+  // for zero observable frames and a poll can never see it (first version of this test did that).
+  await page.mouse.down();
+  await page.waitForFunction(() => window.__swanGun.reloadingUntil > 0, null, { timeout: 20_000 });
+  await page.mouse.up();
+  await page.waitForFunction((f) => window.__swanGun.mag === f, full, { timeout: 8_000 });
+});
+
 test('death holsters the gun: the cone closes and the burst resets before you go again', async ({ page }) => {
   await boot(page);
   await page.mouse.move(640, 400);

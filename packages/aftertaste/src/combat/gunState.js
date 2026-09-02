@@ -12,9 +12,39 @@ export const gun = {
   burstIndex: 0,
   lastShotAt: -Infinity,
   ads: false,
+  mag: WEAPONS[DEFAULT_WEAPON].mag,
+  reserveAmmo: WEAPONS[DEFAULT_WEAPON].reserve,
+  reloadingUntil: 0, // a clock time; the gun is reloading while now < reloadingUntil
 };
 
 export const weaponOf = (g) => WEAPONS[g.weaponId];
+
+// ---- Ammo (Beyond-Zombies S1) ----------------------------------------------------------------
+// Pure delta-returning functions, same shape as the spread math: callers spread the result over
+// their own gun object, so node tests never need the live singleton.
+
+/** Can the trigger do anything right now? Empty mags and mid-reload guns say no. */
+export const canFire = (g, now) => g.mag > 0 && now >= (g.reloadingUntil ?? 0);
+
+/** One shot's ammo cost. Firing an empty gun is a no-op — the dry click is the caller's feedback. */
+export const ammoAfterShot = (g) => ({ mag: Math.max(0, g.mag - 1) });
+
+/** Is a reload worth anything? (Full mags and empty reserves both say no.) */
+export const needsReload = (g) => g.mag < weaponOf(g).mag && g.reserveAmmo > 0;
+
+/**
+ * Begin reloading: a STATE with a duration, not an instant. The rounds move at the END —
+ * finishReload — because an interrupted reload (sprint-cancel, death) must leave the mag exactly
+ * as it was, and that is only possible if starting moves nothing.
+ */
+export const startReload = (g, now) =>
+  needsReload(g) ? { reloadingUntil: now + weaponOf(g).reloadSeconds } : {};
+
+/** Complete the reload: top the mag up from reserve, paying only for the rounds that moved. */
+export function finishReload(g) {
+  const take = Math.min(weaponOf(g).mag - g.mag, g.reserveAmmo);
+  return { mag: g.mag + take, reserveAmmo: g.reserveAmmo - take, reloadingUntil: 0 };
+}
 
 /**
  * The recoil kick for THIS shot — deterministic: position N of a burst always kicks the same
