@@ -12,12 +12,13 @@
 // D3: the fryling loads its roster-v2 PARTED build (part:body + part:head meshes) so severing can
 // detach a whole mesh. v1 stays on disk as the un-parted reference until the roster pass retires it.
 import frylingUrl from '../../../../assets/runtime/enemy/fryling-v2/lod0.glb?url';
-import dripCystUrl from '../../../../assets/runtime/enemy/drip-cyst/lod0.glb?url';
-import greaseFlyUrl from '../../../../assets/runtime/enemy/grease-fly/lod0.glb?url';
-import pattyLarvaUrl from '../../../../assets/runtime/enemy/patty-larva/lod0.glb?url';
+import dripCystUrl from '../../../../assets/runtime/enemy/drip-cyst-v2/lod0.glb?url';
+import greaseFlyUrl from '../../../../assets/runtime/enemy/grease-fly-v2/lod0.glb?url';
+import pattyLarvaUrl from '../../../../assets/runtime/enemy/patty-larva-v2/lod0.glb?url';
 // Beyond-Zombies S2 cast wave 1 — both built parted (part:body + part:head), severable on arrival.
 import regularUrl from '../../../../assets/runtime/enemy/regular/lod0.glb?url';
 import crumbRoachUrl from '../../../../assets/runtime/enemy/crumb-roach/lod0.glb?url';
+import kissingBugUrl from '../../../../assets/runtime/enemy/kissing-bug/lod0.glb?url';
 
 export const MODEL_URLS = {
   fryling: frylingUrl,
@@ -26,4 +27,5 @@ export const MODEL_URLS = {
   'patty-larva': pattyLarvaUrl,
   regular: regularUrl,
   'crumb-roach': crumbRoachUrl,
+  'kissing-bug': kissingBugUrl,
 };

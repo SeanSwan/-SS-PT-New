@@ -29,8 +29,23 @@ const STILL = { rotX: 0, rotZ: 0, yawJitter: 0, yOffset: 0, speedScale: 1 };
  * The pose for one enemy this frame. Unknown/absent gait = STILL (a row without a gait moves the
  * old way, so the whole cast never depends on this file being complete).
  */
-export function gaitPose(gait, t, seed = 0) {
+export function gaitPose(gait, t, seed = 0, distance = Infinity) {
   if (!gait) return STILL;
+  if (gait.type === 'creep') {
+    // The kissing bug: the ONLY gait that reads the world. Far away it creeps low and slow; inside
+    // lungeRange it commits, hard. The distance argument exists for this one creature, and every
+    // other gait ignores it — a gait that changes with the player is a different ANIMAL, not a
+    // speed setting.
+    const p = t * gait.hz * Math.PI * 2 + seed;
+    const lunging = distance <= gait.lungeRange;
+    return {
+      rotZ: 0,
+      rotX: lunging ? -0.18 : gait.crouch + Math.sin(p) * 0.02, // crouched, then thrown forward
+      yawJitter: 0,
+      yOffset: lunging ? 0.04 : 0,
+      speedScale: lunging ? gait.lungeMult : 0.55,
+    };
+  }
   if (gait.type === 'shamble') {
     // The Regular: heavy side-to-side sway with a slight forward hang — weight, not bounce.
     const p = t * gait.hz * Math.PI * 2 + seed;
@@ -41,6 +56,26 @@ export function gaitPose(gait, t, seed = 0) {
       yOffset: Math.abs(Math.sin(p)) * 0.02,
       speedScale: 1,
     };
+  }
+  if (gait.type === 'lurch') {
+    // The drip-cyst: top-heavy, so it DIPS and recovers rather than swaying — weight falling
+    // forward and catching itself.
+    const p = t * gait.hz * Math.PI * 2 + seed;
+    const dip = Math.max(0, Math.sin(p));
+    return { rotZ: 0, rotX: dip * gait.dip, yawJitter: 0, yOffset: dip * 0.03, speedScale: 0.6 + dip * 0.8 };
+  }
+  if (gait.type === 'hover') {
+    // The fly: never touches down. A fast bob with a banking roll — the only cast member whose
+    // vertical offset is its identity.
+    const p = t * gait.hz * Math.PI * 2 + seed;
+    return { rotZ: Math.sin(p * 0.7) * gait.roll, rotX: 0, yawJitter: 0, yOffset: gait.lift + Math.sin(p) * gait.bob, speedScale: 1 };
+  }
+  if (gait.type === 'inch') {
+    // The larva: compress, surge, compress. Its speed IS the animation — a caterpillar that moved
+    // at a constant rate would read as a sliding prop.
+    const p = t * gait.hz * Math.PI * 2 + seed;
+    const surge = Math.max(0, Math.sin(p));
+    return { rotZ: 0, rotX: -surge * 0.05, yawJitter: 0, yOffset: 0, speedScale: (1 - gait.surge) + surge * gait.surge * Math.PI };
   }
   if (gait.type === 'skitter') {
     // The roach: bursts of speed with darting heading wobble — insect rhythm, not a glide.

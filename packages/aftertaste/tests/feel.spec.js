@@ -184,3 +184,24 @@ test('right-click AIMS DOWN SIGHTS: the view zooms in and the cone tightens; rel
   expect(back.ads).toBe(false);
   expect(back.fov, 'released back to hip-fire FOV').toBeGreaterThan(70);
 });
+
+test('a fever is VISIBLE on the HUD and clears itself when the timer runs out', async ({ page }) => {
+  await boot(page);
+  // The DAMAGE path that sets a fever is proven in the unit suite (where ATTACK_WINDUP is
+  // importable and the strike sequence is exact). What only a browser can prove is the design
+  // rule itself: that the fever is never hidden from the player.
+  await expect(page.getByTestId('hud-fever')).toHaveCount(0);
+  await page.evaluate(() => {
+    const store = window.__swanGameStore;
+    store.setState({ feverUntil: 9_999_999 });
+  });
+  await expect(page.getByTestId('hud-fever')).toBeVisible({ timeout: 3_000 });
+
+  await page.evaluate(() => {
+    const store = window.__swanGameStore;
+    const p = window.__swanPlayerPos;
+    store.setState({ feverUntil: 1, enemies: [] });
+    store.getState().tick({ x: p.x, z: p.z }, 600); // the clock passes it: the store expires it
+  });
+  await expect(page.getByTestId('hud-fever')).toHaveCount(0, { timeout: 3_000 });
+});

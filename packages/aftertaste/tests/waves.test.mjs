@@ -117,9 +117,9 @@ test('spawnRing centres on the player, not the origin — the world is infinite 
 
 test('spawnRing fills slots from the roster: type, hp, scaled aim and renderScale are the row', () => {
   // TEST-DELTA (S2): the cast grew to six; wave 4's mix and wave 1's face count updated.
-  const w4 = spawnRing(12, 10, 4, { x: 0, z: 0 }, 0);
+  const w4 = spawnRing(14, 10, 4, { x: 0, z: 0 }, 0);
   const types = new Set(w4.map((e) => e.type));
-  assert.equal(types.size, 6, 'wave 4 mixes all six monsters');
+  assert.equal(types.size, 7, 'wave 4 mixes all seven monsters');
   for (const e of w4) {
     assert.equal(e.hp, ROSTER[e.type].hp, `${e.type} hp comes from its row`);
     // R1/H8: the aim sphere scales WITH the rendered silhouette, and renderScale rides along
@@ -129,4 +129,22 @@ test('spawnRing fills slots from the roster: type, hp, scaled aim and renderScal
   }
   const w1 = spawnRing(6, 10, 1, { x: 0, z: 0 }, 0);
   assert.equal(new Set(w1.map((e) => e.type)).size, 3, 'wave 1 mixes three faces (R2 + S2)');
+});
+
+test('a kissing-bug strike carries a FEVER; other faces do not', () => {
+  const bug = { x: 0, z: 0, hp: 2, type: 'kissing-bug', state: 'attacking', stateSince: NOW - ATTACK_WINDUP - 0.01 };
+  const withFever = tickRound({ hp: PLAYER_HP, wave: 3 }, at(0, 0), [bug], NOW);
+  assert.equal(withFever.hp, PLAYER_HP - 1, 'the bite still costs a life');
+  assert.equal(withFever.fever, ROSTER['kissing-bug'].onTouch.fever, 'and leaves its roster fever');
+
+  const plain = { ...bug, type: 'regular' };
+  assert.equal(tickRound({ hp: PLAYER_HP, wave: 3 }, at(0, 0), [plain], NOW).fever, 0,
+    'a face with no onTouch row leaves no fever');
+});
+
+test('the worst fever in a frame wins — a crowd cannot stack timers', () => {
+  const bite = (i) => ({ x: i * 0.01, z: 0, hp: 2, type: 'kissing-bug', state: 'attacking', stateSince: NOW - ATTACK_WINDUP - 0.01 });
+  const r = tickRound({ hp: PLAYER_HP, wave: 3 }, at(0, 0), [bite(0), bite(1), bite(2)], NOW);
+  assert.equal(r.fever, ROSTER['kissing-bug'].onTouch.fever);
+  assert.equal(r.hp, PLAYER_HP - 1, 'and it is still ONE life for the frame');
 });

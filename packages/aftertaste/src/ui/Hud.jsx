@@ -67,6 +67,8 @@ export default function Hud() {
   const reset = useGameStore((s) => s.reset);
   const lastHitAt = useGameStore((s) => s.lastHitAt);
   const lastKillAt = useGameStore((s) => s.lastKillAt);
+  // A fever is VISIBLE by design rule — the player must always be able to see what a bite did.
+  const feverUntil = useGameStore((st) => st.feverUntil);
   const remaining = useGameStore((s) => s.enemies.reduce((n, e) => n + (holdsWave(e) ? 1 : 0), 0));
 
   // THE CROSSHAIR IS THE SPREAD, DRAWN. It opens exactly as far as the bullet cone opens and stops
@@ -113,6 +115,9 @@ export default function Hud() {
         <span data-testid="hud-kills">Kills: {kills}</span>
         {/* A toppling corpse is not "remaining" — count what still holds the wave open. */}
         <span data-testid="hud-left">Remaining: {remaining}</span>
+        {feverUntil > 0 && (
+          <span data-testid="hud-fever" style={{ color: '#E8A33D' }}>⚠ FEVER</span>
+        )}
         <span ref={ammoRef} data-testid="hud-ammo" style={{ fontVariantNumeric: 'tabular-nums' }} />
         <span style={{ opacity: 0.6 }}>
           click to take aim &middot; WASD &middot; SHIFT run &middot; SPACE jump &middot; F punch &middot; R reload &middot; RMB aim &middot; hold LMB to fire

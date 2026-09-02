@@ -73,6 +73,8 @@ export const useGameStore = create((set, get) => ({
   wave: 1,
   over: false,
   invulnUntil: 0,
+  /** Kissing-bug fever: a clock time, 0 = healthy. Visible on the HUD by design (S3). */
+  feverUntil: 0,
   /** When the last shot connected / killed — the HUD's hitmarker reads these. -1 = never:
    *  0 is a REAL clock value (a hit on the first frame, before any tick), and using it as the
    *  sentinel swallowed that hitmarker. Sentinels must live outside the value's domain. */
@@ -229,7 +231,12 @@ export const useGameStore = create((set, get) => ({
       patch.hp = r.hp;
       patch.over = r.over;
       patch.invulnUntil = elapsed + INVULN_SECONDS;
+      // A fever is a VISIBLE timer (roster onTouch). It rides the same invulnerability gate as the
+      // damage that carried it, so a bite you were merciful-immune to cannot infect you either.
+      if (r.fever > 0) patch.feverUntil = elapsed + r.fever;
     }
+    // Expire it here rather than in the HUD: one clock owns the truth, and the HUD only draws.
+    if (s.feverUntil > 0 && elapsed >= s.feverUntil) patch.feverUntil = 0;
     if (r.cleared) {
       patch.wave = r.wave;
       // Centred on the PLAYER: the floor follows you now, so a ring fixed at the origin would
@@ -258,7 +265,7 @@ export const useGameStore = create((set, get) => ({
     const centre = usePlayerStore.getState().position;
     set({
       enemies: spawnRing(waveSize(1), SPAWN_RADIUS, 1, centre, clockNow),
-      kills: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0,
+      kills: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0, feverUntil: 0,
       lastHitAt: -1, lastKillAt: -1, debris: [], shots: [], meleeReadyAt: 0,
     });
     if (typeof window !== 'undefined') {

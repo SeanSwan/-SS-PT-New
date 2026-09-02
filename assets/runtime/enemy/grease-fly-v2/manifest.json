@@ -1,6 +1,6 @@
 {
  "schema": "swan.game-asset.v1",
- "id": "enemy.fryling-v2",
+ "id": "enemy.grease-fly-v2",
  "status": "validated",
  "targetSurface": "standalone",
  "paletteLaw": "B",
@@ -15,20 +15,20 @@
   "death"
  ],
  "budgets": {
-  "lod0Triangles": 732,
-  "lod1Triangles": 328,
-  "lod2Triangles": 142,
+  "lod0Triangles": 640,
+  "lod1Triangles": 288,
+  "lod2Triangles": 114,
   "textureMB": 0,
   "bake": "not-baked - swan_pipe.py has no texture bake stage (removed from plan() 2026-08-26 until it exists); 0 is measured embedded texture bytes, not a budget",
   "tool": "scripts/assets/measure-glb.mjs",
-  "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling-v2/lod0.glb lod1.glb lod2.glb",
+  "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/grease-fly-v2/lod0.glb lod1.glb lod2.glb",
   "date": "2026-09-02",
   "note": "S3 re-sculpt (2026-09-02): silhouette rebuilt from boxes-with-intent so the cast stops reading as Tetris blocks (Sean, playtest 4). Parted at the top third; hit shapes measured from part vertices by the pipe; validate-asset re-derives them from the bytes.",
   "commit": "cfa10148e"
  },
  "provenance": {
   "humanOwner": "owner",
-  "createdAtUtc": "2026-09-02T23:12:04.139Z",
+  "createdAtUtc": "2026-09-02T23:12:04.142Z",
   "aiAssisted": false,
   "generator": {
    "name": "tools/blender/swan_pipe.py",
@@ -36,7 +36,7 @@
    "blender": "4.5.13 LTS (daeeeca98fb0)",
    "invocation": "scripts/assets/run-blender.mjs (--disable-autoexec --python-exit-code 1, sentinel-checked)"
   },
-  "source": "assets/source/enemy/fryling/fryling-sculpt.obj",
+  "source": "assets/source/enemy/grease-fly/grease-fly-sculpt.obj",
   "similarityReviewed": {
    "reviewer": "owner",
    "date": "2026-09-02",
@@ -59,17 +59,16 @@
   "lod1": "lod1.glb",
   "lod2": "lod2.glb",
   "collision": "collision.glb",
-  "stillFallback": "still.png",
   "compression": "none"
  },
  "sha256": {
-  "lod0": "6e546aafc79a454db2465c9bff3e95a706c3753cb018307728e9c68538449a3f",
-  "lod1": "f0dadcfee4a30356a41e01f3bc25379b08f8f697aabe4e2ab0e02169a5418cbf",
-  "lod2": "6c70a8d382051ee0c1b2eacd4728232747856ce3f1b58a7244287778a8e34399",
-  "collision": "41f7933938da75e778dd49316853b329cea14b1d1d10bb4ed43ca68ac5823739"
+  "lod0": "16c2efb85bb89b33f6fcc974894b5dedb9ac0c551b55d2360ece3df05c32dda5",
+  "lod1": "11acde2ee627a68620a6ca9bfae236471d58a3ba2bcb3fde7a5e350f0b01b64f",
+  "lod2": "4d7daaa0ce49d962c0377cadff74f113580828fcd99eca75413dbf47ef74f3dc",
+  "collision": "3c69b26e47bb568819557644e10910d69d3ef22f5cd62c64e9246f476579df4a"
  },
  "_source": {
-  "file": "fryling-sculpt.obj",
+  "file": "grease-fly-sculpt.obj",
   "pipeline": "swan_pipe.py"
  },
  "clipContract": {
@@ -83,7 +82,7 @@
    "death"
   ],
   "tool": "scripts/assets/verify-clips.mjs",
-  "command": "node scripts/assets/verify-clips.mjs assets/runtime/enemy/fryling-v2/lod0.glb --loop idle,move,attack,hit --once death",
+  "command": "node scripts/assets/verify-clips.mjs assets/runtime/enemy/grease-fly-v2/lod0.glb --loop idle,move,attack,hit --once death",
   "note": "Presence of a named clip proves nothing - a clip can be named and empty and pass every other check. These are the properties that matter: clips that repeat or recover must return to their start pose or they snap; death must NOT, or the corpse stands back up."
  },
  "parts": [
@@ -95,15 +94,15 @@
     "kind": "capsule",
     "a": [
      0,
-     0.3337,
-     -0.001
+     0.3563,
+     -0.0705
     ],
     "b": [
      0,
-     0.3337,
-     -0.001
+     0.3563,
+     -0.0705
     ],
-    "r": 0.5
+    "r": 0.5714
    }
   },
   {
@@ -116,10 +115,10 @@
     "kind": "sphere",
     "c": [
      0,
-     0.8334,
-     0.0834
+     0.8563,
+     0.1428
     ],
-    "r": 0.3334
+    "r": 0.2142
    }
   }
  ]

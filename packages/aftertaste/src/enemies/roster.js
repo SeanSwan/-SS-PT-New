@@ -29,24 +29,32 @@
 export const ROSTER = {
   fryling: {
     hp: 2, speed: 2.2, aimRadius: 0.6, renderHeight: 1.0,
-    model: { minX: 0, maxX: 2, minZ: 0, maxZ: 2, height: 3 },
+    model: { minX: -3, maxX: 3, minZ: -1, maxZ: 4, height: 6 },
     tint: ['#C4462F', '#7A2418'], ember: '#571510',
+    gait: { type: 'shamble', sway: 0.06, hz: 2.0 },
   },
+
   'drip-cyst': {
     hp: 3, speed: 1.8, aimRadius: 0.6, renderHeight: 1.5,
-    model: { minX: -1, maxX: 2, minZ: 0, maxZ: 2, height: 4 },
+    model: { minX: -3, maxX: 3, minZ: -2, maxZ: 3, height: 6 },
     tint: ['#C9A227', '#71581A'], ember: '#4a3a10',
+    gait: { type: 'lurch', hz: 0.9, dip: 0.10 },
   },
+
   'grease-fly': {
-    hp: 1, speed: 3.4, aimRadius: 0.55, renderHeight: 0.8,
-    model: { minX: -1, maxX: 2, minZ: 0, maxZ: 1, height: 3 },
+    hp: 1, speed: 3.4, aimRadius: 0.6, renderHeight: 0.8,
+    model: { minX: -4, maxX: 4, minZ: -2, maxZ: 3, height: 7 },
     tint: ['#9DB04C', '#4F5C28'], ember: '#39470f',
+    gait: { type: 'hover', hz: 3.4, bob: 0.04, roll: 0.10, lift: 0.08 },
   },
+
   'patty-larva': {
     hp: 4, speed: 1.4, aimRadius: 1.05, renderHeight: 0.55,
-    model: { minX: -2, maxX: 3, minZ: 0, maxZ: 2, height: 2 },
+    model: { minX: -4, maxX: 4, minZ: -1, maxZ: 1, height: 5 },
     tint: ['#B06A4C', '#5E2F26'], ember: '#571f15',
+    gait: { type: 'inch', hz: 1.1, surge: 0.5 },
   },
+
   // Beyond-Zombies S2 — the real cast begins (Sean, playtest 4: "the zombies as people").
   // The Regular: a zombified diner, tallest thing in the wave, the shambling body of the horde.
   // C7 law: a VICTIM being saved, never a caricature — greys and bruise tones, no body-mockery.
@@ -63,6 +71,17 @@ export const ROSTER = {
     tint: ['#6B4A2B', '#3E2B18'], ember: '#2b1d10',
     gait: { type: 'skitter', burstHz: 2.2, jitter: 0.22 },
   },
+  // Kissing bug (S3): the patient predator. It CREEPS while far and LUNGES when close — the one
+  // creature whose gait changes with distance, which is why `creep` reads as a different animal
+  // from `skitter` rather than a slower roach. A landed bite is a VISIBLE fever (see store), never
+  // a hidden debuff — the design doc's own rule.
+  'kissing-bug': {
+    hp: 2, speed: 1.1, aimRadius: 0.85, renderHeight: 0.9,
+    model: { minX: -3, maxX: 6, minZ: -2, maxZ: 2, height: 5 },
+    tint: ['#3E2A24', '#A65A3A'], ember: '#5a2412',
+    gait: { type: 'creep', lungeRange: 4.5, lungeMult: 3.4, hz: 1.6, crouch: 0.07 },
+    onTouch: { fever: 3.0 },
+  },
 };
 
 /**
@@ -74,7 +93,8 @@ const UNLOCK_BY_WAVE = [
   // S2: the Regular leads every wave — the horde's face is a PERSON now, per Sean's playtest-4 ask.
   ['regular', 'fryling', 'grease-fly'],                                            // wave 1
   ['regular', 'crumb-roach', 'fryling', 'grease-fly'],                             // wave 2
-  ['regular', 'crumb-roach', 'fryling', 'grease-fly', 'drip-cyst', 'patty-larva'], // wave 3+
+  ['regular', 'crumb-roach', 'fryling', 'grease-fly', 'kissing-bug'],              // wave 3
+  ['regular', 'crumb-roach', 'fryling', 'grease-fly', 'kissing-bug', 'drip-cyst', 'patty-larva'], // wave 4+
 ];
 
 export function unlockedTypes(wave) {

@@ -180,6 +180,54 @@
     "textureMB": 0,
     "source": "measured 2026-09-02 well under prior"
    }
+  },
+  {
+   "id": "enemy.drip-cyst-v2",
+   "kind": "enemy",
+   "note": "Beyond-Zombies S3 — parted re-sculpt / new cast face",
+   "budgetPriors": {
+    "lod0Triangles": 1500,
+    "lod1Triangles": 700,
+    "lod2Triangles": 300,
+    "textureMB": 0,
+    "source": "measured 2026-09-02"
+   }
+  },
+  {
+   "id": "enemy.grease-fly-v2",
+   "kind": "enemy",
+   "note": "Beyond-Zombies S3 — parted re-sculpt / new cast face",
+   "budgetPriors": {
+    "lod0Triangles": 1500,
+    "lod1Triangles": 700,
+    "lod2Triangles": 300,
+    "textureMB": 0,
+    "source": "measured 2026-09-02"
+   }
+  },
+  {
+   "id": "enemy.patty-larva-v2",
+   "kind": "enemy",
+   "note": "Beyond-Zombies S3 — parted re-sculpt / new cast face",
+   "budgetPriors": {
+    "lod0Triangles": 1500,
+    "lod1Triangles": 700,
+    "lod2Triangles": 300,
+    "textureMB": 0,
+    "source": "measured 2026-09-02"
+   }
+  },
+  {
+   "id": "enemy.kissing-bug",
+   "kind": "enemy",
+   "note": "Beyond-Zombies S3 — parted re-sculpt / new cast face",
+   "budgetPriors": {
+    "lod0Triangles": 1500,
+    "lod1Triangles": 700,
+    "lod2Triangles": 300,
+    "textureMB": 0,
+    "source": "measured 2026-09-02"
+   }
   }
  ],
  "budgetPolicy": {

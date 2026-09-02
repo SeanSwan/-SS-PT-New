@@ -1,6 +1,6 @@
 {
  "schema": "swan.game-asset.v1",
- "id": "enemy.fryling-v2",
+ "id": "enemy.drip-cyst-v2",
  "status": "validated",
  "targetSurface": "standalone",
  "paletteLaw": "B",
@@ -15,20 +15,20 @@
   "death"
  ],
  "budgets": {
-  "lod0Triangles": 732,
-  "lod1Triangles": 328,
-  "lod2Triangles": 142,
+  "lod0Triangles": 640,
+  "lod1Triangles": 288,
+  "lod2Triangles": 114,
   "textureMB": 0,
   "bake": "not-baked - swan_pipe.py has no texture bake stage (removed from plan() 2026-08-26 until it exists); 0 is measured embedded texture bytes, not a budget",
   "tool": "scripts/assets/measure-glb.mjs",
-  "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/fryling-v2/lod0.glb lod1.glb lod2.glb",
+  "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/drip-cyst-v2/lod0.glb lod1.glb lod2.glb",
   "date": "2026-09-02",
   "note": "S3 re-sculpt (2026-09-02): silhouette rebuilt from boxes-with-intent so the cast stops reading as Tetris blocks (Sean, playtest 4). Parted at the top third; hit shapes measured from part vertices by the pipe; validate-asset re-derives them from the bytes.",
   "commit": "cfa10148e"
  },
  "provenance": {
   "humanOwner": "owner",
-  "createdAtUtc": "2026-09-02T23:12:04.139Z",
+  "createdAtUtc": "2026-09-02T23:12:04.142Z",
   "aiAssisted": false,
   "generator": {
    "name": "tools/blender/swan_pipe.py",
@@ -36,7 +36,7 @@
    "blender": "4.5.13 LTS (daeeeca98fb0)",
    "invocation": "scripts/assets/run-blender.mjs (--disable-autoexec --python-exit-code 1, sentinel-checked)"
   },
-  "source": "assets/source/enemy/fryling/fryling-sculpt.obj",
+  "source": "assets/source/enemy/drip-cyst/drip-cyst-sculpt.obj",
   "similarityReviewed": {
    "reviewer": "owner",
    "date": "2026-09-02",
@@ -59,17 +59,16 @@
   "lod1": "lod1.glb",
   "lod2": "lod2.glb",
   "collision": "collision.glb",
-  "stillFallback": "still.png",
   "compression": "none"
  },
  "sha256": {
-  "lod0": "6e546aafc79a454db2465c9bff3e95a706c3753cb018307728e9c68538449a3f",
-  "lod1": "f0dadcfee4a30356a41e01f3bc25379b08f8f697aabe4e2ab0e02169a5418cbf",
-  "lod2": "6c70a8d382051ee0c1b2eacd4728232747856ce3f1b58a7244287778a8e34399",
-  "collision": "41f7933938da75e778dd49316853b329cea14b1d1d10bb4ed43ca68ac5823739"
+  "lod0": "3114747a259e181af3e744984f32963f2028f0a94fb2a181dca372f2cfd87513",
+  "lod1": "9c227a7c1e54e8eca73e410786c2ba1ad1becf53a1f5cb1d04a579ba9e0f681b",
+  "lod2": "d92b00c13a416eb779ab39d36f19b5d7e6d89ecdd47b0338c5b585689e8deea3",
+  "collision": "ec5717e07ee9597ec07a763bdcd6bec362d686a10743374db5ffa1034092066e"
  },
  "_source": {
-  "file": "fryling-sculpt.obj",
+  "file": "drip-cyst-sculpt.obj",
   "pipeline": "swan_pipe.py"
  },
  "clipContract": {
@@ -83,7 +82,7 @@
    "death"
   ],
   "tool": "scripts/assets/verify-clips.mjs",
-  "command": "node scripts/assets/verify-clips.mjs assets/runtime/enemy/fryling-v2/lod0.glb --loop idle,move,attack,hit --once death",
+  "command": "node scripts/assets/verify-clips.mjs assets/runtime/enemy/drip-cyst-v2/lod0.glb --loop idle,move,attack,hit --once death",
   "note": "Presence of a named clip proves nothing - a clip can be named and empty and pass every other check. These are the properties that matter: clips that repeat or recover must return to their start pose or they snap; death must NOT, or the corpse stands back up."
  },
  "parts": [
@@ -95,13 +94,13 @@
     "kind": "capsule",
     "a": [
      0,
-     0.3337,
-     -0.001
+     0.3333,
+     -0.0834
     ],
     "b": [
      0,
-     0.3337,
-     -0.001
+     0.3333,
+     -0.0834
     ],
     "r": 0.5
    }
@@ -117,9 +116,9 @@
     "c": [
      0,
      0.8334,
-     0.0834
+     0.001
     ],
-    "r": 0.3334
+    "r": 0.4157
    }
   }
  ]

@@ -102,8 +102,13 @@ const dist2 = (a, b) => (a.x - b.x) ** 2 + (a.z - b.z) ** 2;
 export function tickRound(round, player, enemies, now = 0) {
   // ONE life per frame however many strikes land. Without this, walking into a crowd deletes the
   // whole health bar in a single frame and the death feels arbitrary rather than earned.
-  const touched = enemies.some((e) => hurtsNow(e, now) && inTouchRange(e, player));
+  const biters = enemies.filter((e) => hurtsNow(e, now) && inTouchRange(e, player));
+  const touched = biters.length > 0;
   const hp = Math.max(0, touched ? round.hp - 1 : round.hp);
+  // The kissing bug's bite leaves a FEVER — and the design rule is that it is always visible, never
+  // a hidden debuff (ox-parasite-expansion: "a visible fever timer... never a hidden debuff"). The
+  // roster row owns the duration, so a second fever-carrier is a row, not a branch here.
+  const fever = biters.reduce((best, e) => Math.max(best, ROSTER[e.type]?.onTouch?.fever ?? 0), 0);
 
   // Corpses do not hold a wave open: mid-topple enemies are on the board but already beaten.
   const cleared = enemies.every((e) => !holdsWave(e));
@@ -113,5 +118,6 @@ export function tickRound(round, player, enemies, now = 0) {
     over: hp <= 0,
     cleared,
     touched,
+    fever,
   };
 }

@@ -1,0 +1,31 @@
+{
+  "schema": "swan.game-asset.v1",
+  "id": "enemy.patty-larva-v2",
+  "zone": null,
+  "skeleton": "skeleton.creature-small.v2",
+  "animations": [
+    "idle"
+  ],
+  "budgets": null,
+  "provenance": {
+    "humanOwner": null,
+    "createdAtUtc": null,
+    "aiAssisted": null,
+    "similarityReviewed": false,
+    "license": null,
+    "_note": "swan_pipe emits these EMPTY on purpose. A pipeline that pre-fills provenance launders it. Copy to manifest.json, fill in by hand, then validate. Named .stub.json so validate-asset --all never treats it as a real manifest (Ox Alpha, branch gate)."
+  },
+  "runtime": {
+    "lod0": "lod0.glb",
+    "lod1": "lod1.glb",
+    "lod2": "lod2.glb",
+    "collision": "collision.glb",
+    "stillFallback": "still.png",
+    "compression": "none"
+  },
+  "sha256": {},
+  "_source": {
+    "file": "patty-larva-sculpt.obj",
+    "pipeline": "swan_pipe.py"
+  }
+}

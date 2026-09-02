@@ -19,6 +19,7 @@ import { stepEnemy } from './steering.js';
 import Monster from './Monster.jsx';
 import { ROSTER } from './roster.js';
 import { gaitPose, gaitSeed } from './gaits.js';
+import { PART_MESH_COUNT } from './partsData.js';
 import { can } from '../systems/lifecycle.js';
 import { useGameStore, usePlayerStore } from '../state/store.js';
 import { FRAME_ORDER } from '../systems/frameOrder.js';
@@ -47,7 +48,8 @@ export default function Enemies() {
       const row = ROSTER[list[i].type];
       // Gait identity (S2): the pose decorates, the speedScale pulses — the skitter's burst rhythm
       // IS its speed some frames and its pause others; steering itself is unchanged.
-      const pose = gaitPose(row?.gait, state.clock.elapsedTime, gaitSeed(list[i].id));
+      const dist = Math.hypot(player.x - snapshot[i].x, player.z - snapshot[i].z);
+      const pose = gaitPose(row?.gait, state.clock.elapsedTime, gaitSeed(list[i].id), dist);
       // Per-monster speed from the roster row; the fallback keeps stateless test enemies moving.
       const next = stepEnemy(snapshot[i], player, snapshot, delta, (row?.speed ?? 2) * pose.speedScale);
       list[i].x = next.x;
@@ -67,6 +69,10 @@ export default function Enemies() {
 
     if (typeof window !== 'undefined') {
       window.__swanEnemyPos = list.map((e) => ({ x: e.x, z: e.z, hp: e.hp, state: e.state, type: e.type }));
+      // Test seam: how many skinned meshes each type renders. Browser specs asserting mesh counts
+      // used to hardcode which types were parted, and went red every time the cast grew — the
+      // count belongs to the data, so the seam exposes the data.
+      window.__swanPartMeshCount = PART_MESH_COUNT;
     }
   }, FRAME_ORDER.world);
 

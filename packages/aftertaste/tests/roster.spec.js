@@ -44,7 +44,7 @@ test('wave 2 mixes in the drip-cyst, and every enemy still owns one skinned mesh
     let skinned = 0;
     window.__swanScene.traverse((o) => { if (o.isSkinnedMesh) skinned += 1; });
     const want = window.__swanGameStore.getState().enemies
-      .reduce((n, e) => n + (['fryling', 'regular', 'crumb-roach'].includes(e.type) ? 2 : 1), 0);
+      .reduce((n, e) => n + (window.__swanPartMeshCount?.[e.type] ?? 1), 0);
     return skinned === want && skinned > 0;
   }, null, { timeout: 20_000 });
   const bones = await page.evaluate(() => {

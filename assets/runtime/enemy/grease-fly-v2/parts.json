@@ -1,0 +1,37 @@
+[
+  {
+    "tag": "body",
+    "bone": "body",
+    "severable": false,
+    "hitShape": {
+      "kind": "capsule",
+      "a": [
+        0.0,
+        0.3563,
+        -0.0705
+      ],
+      "b": [
+        0.0,
+        0.3563,
+        -0.0705
+      ],
+      "r": 0.5714
+    }
+  },
+  {
+    "tag": "head",
+    "bone": "head",
+    "severable": true,
+    "onSever": "kill",
+    "severAtHpFraction": 0.0,
+    "hitShape": {
+      "kind": "sphere",
+      "c": [
+        0.0,
+        0.8563,
+        0.1428
+      ],
+      "r": 0.2142
+    }
+  }
+]

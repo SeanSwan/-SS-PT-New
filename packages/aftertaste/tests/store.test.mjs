@@ -267,7 +267,16 @@ test('a headshot one-shots a full-hp fryling: x2 damage, onSever kill, corpse mi
 test('a body shot deals normal damage and severs nothing', () => {
   mature();
   const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
-  assert.equal(shotAt(target), true); // shotAt fires down the centre line = body capsule
+  // TEST-DELTA (S3 re-sculpt): the fryling's new silhouette puts its head over the centre line,
+  // so the old straight-down ray now pierces the HEAD first (entry-ordered hitscan, working as
+  // designed). A body shot must be aimed at the body: fire horizontally at the body capsule's own
+  // height, offset from the head's x so the head sphere is not in the path.
+  const body = target.parts.find((p) => p.tag === 'body').hitShape;
+  const bodyY = (body.a[1] + body.b[1]) / 2 * (target.renderScale ?? 1);
+  assert.equal(useGameStore.getState().shoot(
+    { x: target.x, y: bodyY, z: target.z - 10 },
+    { x: 0, y: 0, z: 1 },
+  ), true);
   const after = useGameStore.getState().enemies.find((e) => e.id === target.id);
   assert.equal(after.hp, target.hp - 1, 'body damage is x1');
   assert.equal(after.state, 'alive');

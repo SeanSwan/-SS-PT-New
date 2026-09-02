@@ -45,8 +45,10 @@ test('the Fryling renders as a skinned mesh, animates, and each enemy owns its s
       if (o.isSkinnedMesh) seen.push(o.skeleton.bones[0].uuid);
     });
     const enemies = window.__swanEnemyPos;
-    // TEST-DELTA (S2): regular + crumb-roach are also PARTED two-mesh models now.
-    const want = enemies.reduce((n, e) => n + (['fryling', 'regular', 'crumb-roach'].includes(e.type) ? 2 : 1), 0);
+    // The count comes from the DATA (PART_MESH_COUNT via a seam), not a hardcoded type list —
+    // the list version went red on every cast addition, which is a test tracking its own staleness
+    // rather than the game.
+    const want = enemies.reduce((n, e) => n + (window.__swanPartMeshCount?.[e.type] ?? 1), 0);
     const out = { skinned: seen.length, distinctRootBones: new Set(seen).size, enemies: enemies.length, want };
     return (out.skinned === out.want && out.enemies > 0) ? out : false;
   }, null, { timeout: 20_000 }).then((h) => h.jsonValue());
