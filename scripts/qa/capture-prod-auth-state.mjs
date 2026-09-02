@@ -92,7 +92,14 @@ function defaultOutputPath() {
 
 async function loadChromium() {
   const moduleUrl = pathToFileURL(path.join(frontendDir, 'node_modules', '@playwright', 'test', 'index.js')).href;
-  const playwright = await import(moduleUrl);
+  let playwright;
+  try {
+    playwright = await import(moduleUrl);
+  } catch {
+    // A diagnostic that crashes with a raw module stack on the exact condition it
+    // exists to diagnose is broken. Report the condition; exit clean.
+    fail('Playwright driver not installed — run `npm ci` in frontend/ (expected frontend/node_modules/@playwright/test)');
+  }
   const chromium = playwright.chromium || playwright.default?.chromium;
   if (!chromium?.launch) {
     fail('Playwright Chromium driver could not be resolved from frontend/node_modules');

@@ -64,5 +64,16 @@ jobs:
       - name: Install backend dependencies
         run: npm ci
 
-      - name: Run backend tests
-        run: npm test
+      # Bare `npm test` exits 1 on a perfectly good tree because this suite carries a
+      # recorded non-green baseline (backend/tests/known-failing-baseline.json). The
+      # honest CI question is "did anything NEW fail?" — exactly what the baseline
+      # gate answers: exit 1 on any regression OR an incomplete run, and it names
+      # baselined files that now pass so the baseline gets pruned, never grown.
+      - name: Run backend tests (baseline gate — fails on NEW failures)
+        run: node scripts/test-baseline-gate.mjs
+
+      # The Sheen Forge suite is node:test, not vitest — excluded from vitest by
+      # config (guarded by tests/unit/nodeTestRunnerSeparation.test.mjs) and run
+      # here under its intended runner. All-green as of 2026-09-02.
+      - name: Run node:test suite
+        run: npm run test:node

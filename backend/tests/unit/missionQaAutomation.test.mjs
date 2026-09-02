@@ -157,7 +157,7 @@ describe('mission QA automation guards', () => {
     expect(source).not.toMatch(/password|sk_live|pk_live|whsec_/i);
   });
 
-  it('verifies the production auth helper can resolve a Chromium driver without opening login', () => {
+  it('verifies the production auth helper resolves a Chromium driver, or reports its absence cleanly', () => {
     const launcherPath = path.join(repoRoot, 'scripts/qa/capture-prod-auth-state.mjs');
     const result = spawnSync(process.execPath, [launcherPath, '--check-browser-driver'], {
       cwd: repoRoot,
@@ -165,8 +165,24 @@ describe('mission QA automation guards', () => {
       timeout: 30_000,
     });
 
-    expect(result.status).toBe(0);
-    expect(result.stdout).toContain('Chromium browser driver available');
+    // The backend suite must be honest in backend-only environments (fresh worktrees,
+    // backend-only CI) where frontend/node_modules does not exist. Both branches assert
+    // real behavior — neither is a skip:
+    //  - driver installed  → clean success message, exit 0
+    //  - driver absent     → the helper's SPECIFIC guidance, exit 1, and never a raw
+    //    ERR_MODULE_NOT_FOUND stack (that crash was live until 2026-09-02)
+    const driverInstalled = existsSync(
+      path.join(repoRoot, 'frontend/node_modules/@playwright/test/index.js'),
+    );
+
+    if (driverInstalled) {
+      expect(result.status).toBe(0);
+      expect(result.stdout).toContain('Chromium browser driver available');
+    } else {
+      expect(result.status).toBe(1);
+      expect(result.stderr).toContain('Playwright driver not installed');
+      expect(result.stderr).not.toContain('ERR_MODULE_NOT_FOUND');
+    }
   });
 
   it('documents mission QA as opt-in and separates contract, read-only, and write modes', () => {

@@ -3,6 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 const generateContentMock = vi.fn();
 
 vi.mock('@google/generative-ai', () => ({
+  // Mirrors the real SDK enum — the service builds structured-output schemas from
+  // it, and vitest THROWS on any export access the mock does not define (that throw
+  // was swallowed by getGeminiClient's catch and misreported as 'SDK not installed'
+  // from 2026-08 until 2026-09-02).
+  SchemaType: {
+    STRING: 'string', NUMBER: 'number', INTEGER: 'integer',
+    BOOLEAN: 'boolean', ARRAY: 'array', OBJECT: 'object',
+  },
   GoogleGenerativeAI: vi.fn(function GoogleGenerativeAI() {
     this.getGenerativeModel = vi.fn(() => ({
       generateContent: generateContentMock,

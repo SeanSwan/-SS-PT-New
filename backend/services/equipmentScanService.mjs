@@ -77,8 +77,14 @@ async function getGeminiClient() {
   try {
     const mod = await import('@google/generative-ai');
     return { GoogleGenerativeAI: mod.GoogleGenerativeAI, SchemaType: mod.SchemaType };
-  } catch {
-    throw new Error('Google Generative AI SDK not installed');
+  } catch (err) {
+    // Keep the cause: this catch once swallowed a vitest strict-mock error and
+    // misreported it as a missing SDK for weeks (fixed 2026-09-02). A wrapper
+    // that hides its cause turns every downstream failure into this message.
+    throw new Error(
+      'Google Generative AI SDK not installed or failed to load: ' + (err?.message || err),
+      { cause: err },
+    );
   }
 }
 
