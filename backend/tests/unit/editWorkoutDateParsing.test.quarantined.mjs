@@ -1,3 +1,4 @@
+// QUARANTINED SWA-231 2026-09-02: same real-model chain as adminWorkoutLoggerHistoryDate; db.define unavailable under vitest. Un-skip criteria: same database.mjs test stub.
 /**
  * adminWorkoutLoggerController.editWorkout — Phase 15.4 date-parsing tests
  * =========================================================================

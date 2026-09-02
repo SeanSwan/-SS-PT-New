@@ -131,7 +131,7 @@ beforeAll(async () => {
     }
   };
   patch(app._router.stack);
-});
+}, 120_000); // full createApp under whole-suite contention overran the 30s default in the EX-0 gate run (passes alone in <8s) — SWA-231
 
 beforeEach(() => {
   actingUser = { ...MEMBER_A };
