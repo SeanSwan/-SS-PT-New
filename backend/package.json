@@ -106,8 +106,7 @@
     "migrate:status:dev": "npx sequelize-cli db:migrate:status --config config/config.cjs --migrations-path migrations --models-path models --env development",
     "lint": "eslint . --ext .mjs,.js --max-warnings 9999 --ignore-path ../.gitignore",
     "lint:fix": "eslint . --ext .mjs,.js --fix --ignore-path ../.gitignore",
-    "lint:check": "eslint . --ext .mjs,.js --max-warnings 0 --ignore-path ../.gitignore",
-    "test:node": "node --test tests/unit/bracket.test.mjs tests/unit/capabilityHonesty.test.mjs tests/unit/capturedFixtures.test.mjs tests/unit/contactSheet.test.mjs tests/unit/fixAfter.test.mjs tests/unit/forgeAspectContract.test.mjs tests/unit/forgeEndToEnd.test.mjs tests/unit/imageDimensions.test.mjs tests/unit/moduleSmoke.test.mjs tests/unit/pixels.test.mjs tests/unit/prune.test.mjs tests/unit/swanLawFilter.corpus.test.mjs tests/unit/swanLawFilter.test.mjs tests/unit/swanPromptCompiler.test.mjs tests/unit/variantRun.test.mjs tests/unit/winnerAndCapability.test.mjs"
+    "lint:check": "eslint . --ext .mjs,.js --max-warnings 0 --ignore-path ../.gitignore"
   },
   "keywords": [],
   "author": "",

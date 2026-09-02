@@ -55,8 +55,13 @@ jobs:
       # for months and gated nothing, because it was never a required check.
       #
       # Verified locally at 66ffde607: 1179 files passed, 9562 tests, 1 file skipped.
-      - name: Backend tests (vitest, full suite)
-        run: npm test
+      # Bare `npm test` is red on a good tree under the 2026-09-02 resolution: the 7
+      # pre-existing failures stay VISIBLE in the suite and recorded (with per-file
+      # classifications) in tests/known-failing-baseline.json — burn-down: SWA-142 —
+      # rather than hidden in vitest excludes. The check that protects main is the
+      # baseline gate: exit 1 on any NEW failing file or an incomplete run.
+      - name: Backend tests (vitest via baseline gate — fails on NEW failures)
+        run: node scripts/test-baseline-gate.mjs
 
       # 16 files under tests/unit use Node's built-in runner, not vitest. Vitest reports
       # them as "No test suite found" failures, which is why `npm test` was permanently
@@ -65,21 +70,15 @@ jobs:
       - name: Backend tests (node:test lane)
         run: npm run test:node
 
-      # NON-BLOCKING, deliberately. Do not quietly flip this to blocking.
-      #
-      # `npm run eval` FAILS on main at 66ffde607 — exit 1, with
-      #   CORRECTNESS FAILURE: warnings_02 — expected warningCount=0 but got 1
-      #   THRESHOLD FAILURE:   warning-generation accuracy 85.7% < 100.0% (6/7)
-      #
-      # So ai-eval-gate.yml has been not merely unenforced but red: had anyone made it
-      # required, it would have blocked every merge. It runs here so the failure is
-      # VISIBLE. Remove continue-on-error in the same PR that fixes warnings_02.
+      # BLOCKING as of 2026-09-02, per this file's own instruction: "Remove
+      # continue-on-error in the same PR that fixes warnings_02." That fix is in this
+      # chain (the warnings_02 fixture omitted tempo, and self-heal corrections merge
+      # into warnings, so warningCount 0 was unsatisfiable) — `npm run eval` now exits 0.
       #
       # The report is written to ../ on purpose: upload-artifact resolves paths from the
       # workspace root and ignores `defaults.working-directory`. Do not "fix" this to a
       # bare filename — the upload will silently find nothing.
-      - name: AI eval harness (deterministic, no network) — non-blocking, see note
-        continue-on-error: true
+      - name: AI eval harness (deterministic, no network)
         run: npm run eval > ../ai-eval-report.json
 
       - name: Upload eval report
