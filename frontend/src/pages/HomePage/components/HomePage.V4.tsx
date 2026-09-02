@@ -20,6 +20,7 @@ import { EvidenceLensBand } from './EvidenceLensBand'; // SWA-25 ratified proof 
 
 // Section components
 import HeroSection from './sections/HeroSection';
+import QuickLinksStrip from './sections/QuickLinksStrip';
 import MissionSection from './sections/MissionSection';
 import TrainersSection from './sections/TrainersSection';
 import ArsenalSection from './sections/ArsenalSection';
@@ -71,6 +72,8 @@ const HomePageV4: React.FC = () => {
           prefersReduced={tier === 'essential'}
           onOpenOrientation={() => setShowOrientation(true)}
         />
+        {/* Quick-nav pills relocated from the hero (H5, five-surface review): hero keeps two CTAs */}
+        <QuickLinksStrip />
         {/* PRISM speed-to-lead capture — self-gates to null when PRISM_CAPTURE_ENABLED/flag is off (zero impact) */}
         <PrismCapture />
         {/* SWA-25: ratified gold Evidence Lens — circles the ONE real-proof number (marketingStats
