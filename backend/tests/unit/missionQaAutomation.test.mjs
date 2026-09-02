@@ -29,7 +29,11 @@ describe('mission QA automation guards', () => {
     expect(source).toContain('frontend/e2e/mission');
   });
 
-  it('keeps launcher help fast and prevents local Vite child leaks on Windows', () => {
+  // CI-SKIPPED SWA-231: spawns the repo-root Playwright launcher, whose imports
+  // live outside backend/node_modules; the backend CI job installs only backend
+  // deps, so --help exits 1 there. Runs everywhere locally. Un-skip criteria:
+  // a workspace-aware CI job, or a launcher --help path with zero fe deps.
+  it.skipIf(!!process.env.CI)('keeps launcher help fast and prevents local Vite child leaks on Windows', () => {
     const launcherPath = path.join(repoRoot, 'scripts/qa/playwright-mission.mjs');
     const result = spawnSync(process.execPath, [launcherPath, '--help'], {
       cwd: repoRoot,
