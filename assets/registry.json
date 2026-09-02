@@ -49,6 +49,38 @@
         "hit",
         "death"
       ]
+    },
+    {
+      "id": "skeleton.creature-small.v2",
+      "status": "planned",
+      "clips": [
+        "idle",
+        "move",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "bones": [
+        "root",
+        "body",
+        "head",
+        "limb-l",
+        "limb-r"
+      ],
+      "partVocabulary": [
+        "body",
+        "head",
+        "limb-l",
+        "limb-r",
+        "tail"
+      ],
+      "partRules": {
+        "requiredParts": [
+          "body"
+        ],
+        "bonePerPart": true,
+        "note": "dismemberment contract - AFTERTASTE-ROSTER-V2-DISMEMBERMENT-CONTRACT-2026-09-01.md; hit shapes emitted by the pipeline in D2, coverage checked there"
+      }
     }
   ],
   "assets": [

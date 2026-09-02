@@ -67,7 +67,17 @@ const sha = (rel) => createHash('sha256').update(readFileSync(join(FIXTURE_DIR, 
 function selftest() {
   const registry = {
     assets: [{ id: 'enemy.fryling', budgetPriors: { lod0Triangles: 1500 } }],
-    skeletons: [{ id: 'skeleton.creature-small.v1', clips: ['idle', 'move', 'attack', 'hit', 'death'] }],
+    skeletons: [
+      { id: 'skeleton.creature-small.v1', clips: ['idle', 'move', 'attack', 'hit', 'death'] },
+      // Roster-v2 (dismemberment contract, D1 2026-09-01): named part bones + a part vocabulary.
+      {
+        id: 'skeleton.creature-small.v2',
+        clips: ['idle', 'move', 'attack', 'hit', 'death'],
+        bones: ['root', 'body', 'head', 'limb-l', 'limb-r'],
+        partVocabulary: ['body', 'head', 'limb-l', 'limb-r', 'tail'],
+        partRules: { requiredParts: ['body'], bonePerPart: true },
+      },
+    ],
     zones: [{ id: 'world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court', chromeLaw: { embedded: 'A', standalone: 'B' } }],
     licensePolicy: { kindValues: ['owner-authored', 'cc0', 'ccby', 'model'] },
     statusValues: ['planned', 'in-progress', 'validated', 'shipped', 'retired'],
@@ -141,7 +151,28 @@ function selftest() {
     ['runtime path escaping the asset dir is refused', (m) => { m.runtime.lod0 = '../../../etc/passwd'; }, /escapes the asset directory/],
     ['absolute runtime path is refused', (m) => { m.runtime.lod0 = '/etc/passwd'; }, /must be a relative path/],
     ['__proto__ in the manifest does not poison defaults', (m) => { m.__proto__ = { similarityReviewed: true }; m.provenance.similarityReviewed = false; }, /similarityReviewed/],
+    // --- roster-v2 parts contract (D1, 2026-09-01) — negative controls written RED-first ------
+    ['a well-formed v2 parts manifest is accepted (positive control)', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); }, null],
+    ['parts on a skeleton with no part vocabulary is refused', (m) => { m.parts = V2_PARTS(); }, /has no partVocabulary/],
+    ['a part tag outside the vocabulary is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].tag = 'wing'; }, /tag "wing" is not in/],
+    ['a part bone the skeleton does not have is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].bone = 'tail-9'; }, /bone "tail-9" is not in/],
+    ['duplicate part tags are refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].tag = 'body'; m.parts[1].severable = false; }, /duplicate part tag/],
+    ['zero non-severable body parts is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[0].severable = true; m.parts[0].severAtHpFraction = 0.5; m.parts[0].onSever = 'none'; }, /exactly one non-severable "body"/],
+    ['a severable part with no severAtHpFraction is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); delete m.parts[1].severAtHpFraction; }, /severAtHpFraction/],
+    ['severAtHpFraction outside 0..1 is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].severAtHpFraction = 1.5; }, /severAtHpFraction/],
+    ['an unknown onSever effect is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].onSever = 'explode'; }, /onSever/],
+    ['a hit shape with an unknown kind is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[0].hitShape = { kind: 'box', c: [0, 0, 0], r: 1 }; }, /hitShape/],
+    ['a sphere with a non-positive radius is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].hitShape = { kind: 'sphere', c: [0, 0.8, 0], r: 0 }; }, /radius/],
+    ['a capsule missing its second endpoint is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[0].hitShape = { kind: 'capsule', a: [0, 0.2, 0], r: 0.3 }; }, /capsule/],
   ];
+
+  // A valid v2 parts block, fresh per fixture so mutations never leak between cases.
+  function V2_PARTS() {
+    return [
+      { tag: 'body', bone: 'body', severable: false, hitShape: { kind: 'capsule', a: [0, 0.2, 0], b: [0, 0.7, 0], r: 0.35 } },
+      { tag: 'head', bone: 'head', severable: true, severAtHpFraction: 0.0, onSever: 'kill', hitShape: { kind: 'sphere', c: [0, 0.85, 0], r: 0.22 } },
+    ];
+  }
 
   let pass = 0; let fail = 0;
   for (const [name, mutate, expect] of cases) {

@@ -18,6 +18,7 @@ import { resolve, isAbsolute, sep } from 'node:path';
 import { measure, parseGlb, worldAabb } from './measure-glb.mjs';
 import { COMPRESSION_VALUES, MAX_ASSET_BYTES, unreadRegistryKeys } from './validate-asset.contract.mjs';
 import { checkBudgets } from './validate-asset.budgets.mjs';
+import { checkParts } from './validate-asset.parts.mjs';
 
 export { unreadRegistryKeys };  // re-exported so the CLI keeps one import path
 
@@ -97,6 +98,9 @@ export function validate(manifest, ctx) {
       if (!CLIP_ORDER_FREE) W('clip order enforcement is off');
     }
   }
+  // Roster-v2 dismemberment parts (D1 2026-09-01) — rules live in validate-asset.parts.mjs.
+  checkParts(manifest, skeletons, E);
+  if (manifest.parts !== undefined && !manifest.skeleton) E('parts declared on an unrigged asset — parts own bones');
 
   const b = manifest.budgets;  // the tier-table rule below still reads it
   checkBudgets(manifest, entry, ctx, E, W);  // moved to validate-asset.budgets.mjs (300-line cap)
