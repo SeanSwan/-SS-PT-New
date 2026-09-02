@@ -21,7 +21,7 @@ import assert from 'node:assert/strict';
 import { useGameStore } from '../src/state/store.js';
 import { PLAYER_HP } from '../src/systems/waves.js';
 import { ATTACK_WINDUP, SPAWN_SECONDS, DEATH_SECONDS } from '../src/systems/lifecycle.js';
-import { DEBRIS_TTL } from '../src/state/store.js';
+import { DEBRIS_TTL, MELEE_COOLDOWN } from '../src/state/store.js';
 
 const ORIGIN = { x: 0, z: 0 };
 const FAR = { x: 999, z: 999 };
@@ -290,4 +290,55 @@ test('debris expires after its TTL and a fresh round starts with none', () => {
   assert.equal(useGameStore.getState().debris.length, 0, 'the floor does not fill with crumbs');
   useGameStore.getState().reset();
   assert.equal(useGameStore.getState().debris.length, 0);
+});
+
+// --- FEEL PACK: the punch, through the store ---------------------------------------------------
+
+test('a punch damages and SHOVES everything in the arc, and respects its cooldown', () => {
+  mature();
+  const s0 = useGameStore.getState();
+  const target = s0.enemies.find((e) => e.state === 'alive');
+  // Put the target dead ahead of the player, in punch range.
+  target.x = 0; target.z = -1.2;
+  const before = { hp: target.hp, z: target.z };
+  assert.equal(useGameStore.getState().melee({ x: 0, z: 0 }, 0), true, 'the punch landed');
+  const after = useGameStore.getState().enemies.find((e) => e.id === target.id);
+  assert.equal(after.hp, before.hp - 1, 'a punch is 1 damage');
+  assert.ok(after.z < before.z - 0.5, `shoved away (z ${after.z} vs ${before.z})`);
+  // Inside the cooldown a second punch whiffs entirely.
+  assert.equal(useGameStore.getState().melee({ x: 0, z: after.z + 1.2 }, 0), false, 'cooldown holds');
+});
+
+test('a punch can finish an enemy — the corpse follows the same dying rules as a bullet kill', () => {
+  mature();
+  const target = useGameStore.getState().enemies.find((e) => e.state === 'alive');
+  target.x = 0; target.z = -1.2;
+  shotAt(target); // soften to 1 hp (fryling) or kill (fly) — find a fryling to be sure
+  const soft = useGameStore.getState().enemies.find((e) => e.id === target.id);
+  if (soft && soft.state === 'alive') {
+    tick(FAR, T += MELEE_COOLDOWN + 0.05); // clear any cooldown, keep the clock honest
+    const t2 = useGameStore.getState().enemies.find((e) => e.id === target.id);
+    t2.x = 0; t2.z = -1.2;
+    useGameStore.getState().melee({ x: 0, z: 0 }, 0);
+    const corpse = useGameStore.getState().enemies.find((e) => e.id === target.id);
+    assert.equal(corpse.state, 'dying', 'punched to death = same corpse rules');
+  }
+});
+
+// --- FEEL PACK: visible bullets — every trigger pull records a tracer, hit or miss -------------
+
+test('every shot records a tracer segment (miss included), and tracers drain fast', () => {
+  mature();
+  const target = useGameStore.getState().enemies.find((e) => e.state === 'alive');
+  shotAt(target); // hit
+  useGameStore.getState().shoot({ x: 9999, y: 10, z: 9999 }, { x: 0, y: -1, z: 0 }); // miss
+  const s = useGameStore.getState();
+  assert.equal(s.shots.length, 2, 'hit AND miss both drew a bullet');
+  assert.ok(s.shots.every((sh) => Array.isArray(sh.from) && Array.isArray(sh.to) && typeof sh.at === 'number'));
+  const hitShot = s.shots[0];
+  const missShot = s.shots[1];
+  const len = (sh) => Math.hypot(sh.to[0] - sh.from[0], sh.to[1] - sh.from[1], sh.to[2] - sh.from[2]);
+  assert.ok(len(hitShot) < len(missShot), 'a hit tracer STOPS at the monster; a miss flies to max range');
+  tick(FAR, T += 1);
+  assert.equal(useGameStore.getState().shots.length, 0, 'tracers are gone within a blink');
 });

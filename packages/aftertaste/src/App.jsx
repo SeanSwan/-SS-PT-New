@@ -24,7 +24,8 @@ import Debris from './world/Debris.jsx';
 import Player from './player/Player.jsx';
 import Enemies from './enemies/Enemies.jsx';
 import Hud from './ui/Hud.jsx';
-import { aim, applyLook } from './player/aim.js';
+import { aim, applyLook, PITCH_LIMIT } from './player/aim.js';
+import Tracers from './combat/Tracers.jsx';
 import { useGameStore, usePlayerStore } from './state/store.js';
 import { FRAME_ORDER } from './systems/frameOrder.js';
 
@@ -77,10 +78,27 @@ function FpsRig() {
     };
   }, [camera, gl]);
 
-  useFrame(() => {
+  // View bob honours the user's reduced-motion preference — bob is feel for most, nausea for some.
+  const reducedMotion = typeof window !== 'undefined'
+    && window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const bobPhase = useRef(0);
+
+  useFrame((state, delta) => {
     const p = usePlayerStore.getState().position;
-    camera.position.set(p.x, EYE_HEIGHT, p.z);
+    // Subtle view bob, driven by actual ground speed — standing still is perfectly still.
+    let bob = 0;
+    if (!reducedMotion && (p.grounded ?? true) && (p.speed ?? 0) > 0.5) {
+      bobPhase.current += delta * (p.speed ?? 0) * 1.9;
+      bob = Math.sin(bobPhase.current) * 0.022;
+    }
+    camera.position.set(p.x, EYE_HEIGHT + (p.y ?? 0) + bob, p.z);
     camera.rotation.set(aim.pitch, aim.yaw, 0);
+    // Sprint widens the world a touch — the classic speed cue. Eased, never snapped.
+    const wantFov = p.sprinting ? 81 : 75;
+    if (Math.abs(camera.fov - wantFov) > 0.05) {
+      camera.fov += (wantFov - camera.fov) * Math.min(1, delta * 8);
+      camera.updateProjectionMatrix();
+    }
   }, FRAME_ORDER.camera);
   return null;
 }
@@ -111,11 +129,19 @@ function TriggerControl() {
   useEffect(() => {
     const canvas = gl.domElement;
     const down = (e) => {
+      if (e.button === 2) {
+        // THE PUNCH (playtest 2): right-click swings at everything in the facing arc.
+        const p = usePlayerStore.getState().position;
+        useGameStore.getState().melee({ x: p.x, z: p.z }, aim.yaw);
+        return;
+      }
       if (e.button !== 0) return;
       held.current = true;
       // An unlocked click is (also) the aim-grab — give the lock a beat before the gun believes it.
       armedAt.current = document.pointerLockElement === canvas ? 0 : performance.now() / 1000 + ARM_SECONDS;
     };
+    const noMenu = (e) => e.preventDefault(); // right-click belongs to the fist, not the browser menu
+    canvas.addEventListener('contextmenu', noMenu);
     const up = (e) => { if (e.button === 0) held.current = false; };
     // The keyboard has cleared its keys on window blur since Slice 2; the mouse path never did.
     // Alt-tab while firing left `held` true FOREVER (the mouseup lands on the other window), and
@@ -126,6 +152,7 @@ function TriggerControl() {
     window.addEventListener('blur', blur);
     return () => {
       canvas.removeEventListener('mousedown', down);
+      canvas.removeEventListener('contextmenu', noMenu);
       document.removeEventListener('mouseup', up);
       window.removeEventListener('blur', blur);
     };
@@ -146,6 +173,9 @@ function TriggerControl() {
       { x: camera.position.x, y: camera.position.y, z: camera.position.z },
       { x: dir.x, y: dir.y, z: dir.z },
     );
+    // RECOIL (playtest 2: "tighten up the shooting"): a small upward kick the player fights.
+    // Clamped by the same pitch limit the mouse obeys — recoil cannot look past straight up.
+    aim.pitch = Math.min(aim.pitch + 0.008, PITCH_LIMIT);
     if (typeof window !== 'undefined') window.__swanShotsFired = (window.__swanShotsFired ?? 0) + 1;
   }, FRAME_ORDER.trigger);
   return null;
@@ -230,6 +260,7 @@ export default function App() {
       <Player />
       <Enemies />
       <Debris />
+      <Tracers />
 
       {/* Slice 2 replaced OrbitControls with a follow camera; the FPS slice put it behind your eyes. */}
       <FpsRig />

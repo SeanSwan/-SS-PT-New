@@ -10,7 +10,7 @@
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { step, SPEED } from '../src/player/movement.js';
+import { step, stepV, SPEED, SPRINT_MULT } from '../src/player/movement.js';
 
 const at = (x = 0, z = 0) => ({ x, z });
 const none = { forward: false, back: false, left: false, right: false };
@@ -77,4 +77,62 @@ test('strafing right while facing +x walks +z (your right hand points south now)
   const next = step({ x: 0, z: 0 }, { forward: false, back: false, left: false, right: true }, 1, -Math.PI / 2);
   assert.ok(Math.abs(next.z - SPEED) < 1e-9, `walked +z, got ${next.z}`);
   assert.ok(Math.abs(next.x) < 1e-9);
+});
+
+// --- FEEL PACK (playtest 2): velocity, sprint, jump — red-first against the old teleport-feel --
+
+test('velocity ramps: one frame of W does not reach full speed instantly', () => {
+  const s0 = { x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0 };
+  const s1 = stepV(s0, { forward: true, back: false, left: false, right: false, sprint: false, jump: false }, 1 / 60, 0);
+  const speed1 = Math.hypot(s1.vx, s1.vz);
+  assert.ok(speed1 > 0, 'moving');
+  assert.ok(speed1 < SPEED * 0.75, `first frame at ${speed1} — instant full speed is the old teleport-feel`);
+});
+
+test('held W converges to full speed within ~0.2s, and stopping decays fast', () => {
+  let s = { x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0 };
+  const held = { forward: true, back: false, left: false, right: false, sprint: false, jump: false };
+  for (let i = 0; i < 12; i++) s = stepV(s, held, 1 / 60, 0);
+  assert.ok(Math.hypot(s.vx, s.vz) > SPEED * 0.95, 'converged to run speed');
+  const released = { ...held, forward: false };
+  for (let i = 0; i < 8; i++) s = stepV(s, released, 1 / 60, 0);
+  assert.ok(Math.hypot(s.vx, s.vz) < SPEED * 0.2, 'stops quickly — sliding is not weight, it is soap');
+});
+
+test('sprint multiplies the target speed', () => {
+  let walk = { x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0 };
+  let run = { x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0 };
+  const base = { forward: true, back: false, left: false, right: false, jump: false };
+  for (let i = 0; i < 30; i++) {
+    walk = stepV(walk, { ...base, sprint: false }, 1 / 60, 0);
+    run = stepV(run, { ...base, sprint: true }, 1 / 60, 0);
+  }
+  const ratio = Math.hypot(run.vx, run.vz) / Math.hypot(walk.vx, walk.vz);
+  assert.ok(Math.abs(ratio - SPRINT_MULT) < 0.05, `sprint ratio ${ratio.toFixed(2)} vs ${SPRINT_MULT}`);
+});
+
+test('jump: grounded jump rises, arcs, and lands back at y=0; airborne jumps are refused', () => {
+  let s = { x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0 };
+  const idle = { forward: false, back: false, left: false, right: false, sprint: false };
+  s = stepV(s, { ...idle, jump: true }, 1 / 60, 0);
+  assert.ok(s.vy > 0, 'left the ground');
+  const vyAfterFirst = s.vy;
+  s = stepV(s, { ...idle, jump: true }, 1 / 60, 0); // mashing jump mid-air
+  assert.ok(s.vy < vyAfterFirst, 'no double jump — gravity is winning');
+  let peak = 0; let frames = 0;
+  while ((s.y > 0 || s.vy > 0) && frames < 300) { s = stepV(s, { ...idle, jump: false }, 1 / 60, 0); peak = Math.max(peak, s.y); frames += 1; }
+  assert.ok(peak > 0.35 && peak < 1.2, `jump peak ${peak.toFixed(2)} — clears a crumb, not a building`);
+  assert.equal(s.y, 0, 'landed');
+  assert.equal(s.vy, 0, 'at rest');
+});
+
+test('air control exists but is reduced — you steer a jump, you do not teleport it', () => {
+  let grounded = { x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0 };
+  let airborne = { x: 0, z: 0, vx: 0, vz: 0, y: 0.5, vy: 1 };
+  const w = { forward: true, back: false, left: false, right: false, sprint: false, jump: false };
+  grounded = stepV(grounded, w, 1 / 60, 0);
+  airborne = stepV(airborne, w, 1 / 60, 0);
+  const g = Math.hypot(grounded.vx, grounded.vz);
+  const a = Math.hypot(airborne.vx, airborne.vz);
+  assert.ok(a > 0 && a < g, `air accel ${a} < ground accel ${g}`);
 });

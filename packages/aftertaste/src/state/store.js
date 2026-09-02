@@ -32,7 +32,11 @@ export const usePlayerStore = create((set) => ({
  * second system needs the same data is the moment it belongs in the store — not before. Promoting
  * everything "just in case" is how a small game turns into a tangle.
  */
-import { hitscan, damage, isDead } from '../combat/combat.js';
+import { hitscan, damage, isDead, meleeHits } from '../combat/combat.js';
+
+/** Seconds between punches, and how far a landed punch shoves its victims. */
+export const MELEE_COOLDOWN = 0.4;
+export const MELEE_KNOCKBACK = 1.4;
 import { waveSize, spawnRing, tickRound, PLAYER_HP, inTouchRange } from '../systems/waves.js';
 import { stepLifecycle, can, holdsWave } from '../systems/lifecycle.js';
 import { PART_DAMAGE } from '../enemies/partsData.js';
@@ -40,6 +44,9 @@ import { ROSTER } from '../enemies/roster.js';
 
 /** Seconds a severed part's debris tumbles before fading off the floor — T4 default. */
 export const DEBRIS_TTL = 4;
+
+/** Seconds a tracer streak lives. A blink — the bullet already arrived; this is its wake. */
+export const SHOT_TTL = 0.08;
 
 /** Seconds of mercy after a hit, so one touch is not three instant deaths. */
 const INVULN_SECONDS = 1.0;
@@ -74,6 +81,8 @@ export const useGameStore = create((set, get) => ({
   /** Severed parts tumbling on the floor. DECORATION, by contract: never consulted by tickRound,
    *  hitscan, or steering — a gib cannot hold a wave open or soak a bullet. Drained by tick. */
   debris: [],
+  /** Live tracer streaks — every trigger pull, hit or miss ("I wanna see bullets"). Drained fast. */
+  shots: [],
 
   /**
    * Fire one hitscan shot from `origin` along `dir` (the Overwatch/BF6 model — the decision is a
@@ -87,7 +96,16 @@ export const useGameStore = create((set, get) => ({
     // Only the shootable are targets — the ray passes THROUGH a toppling corpse and a still-
     // materialising spawn to whatever stands behind them. The lifecycle table decides, not us.
     const hit = hitscan(origin, dir, enemies.filter((e) => can(e, 'canBeShot')));
-    if (!hit) return false;
+    // THE BULLET IS VISIBLE, hit or miss: a hit tracer stops at the monster, a miss flies to max
+    // range. Recorded before the miss-return so whiffs still read as gunfire.
+    const reach = hit ? hit.t : 60;
+    const tracer = {
+      id: `shot-${clockNow.toFixed(3)}-${Math.random().toString(36).slice(2, 6)}`,
+      from: [origin.x, origin.y, origin.z],
+      to: [origin.x + dir.x * reach, origin.y + dir.y * reach, origin.z + dir.z * reach],
+      at: clockNow,
+    };
+    if (!hit) { set({ shots: [...get().shots, tracer] }); return false; }
     // LOCATIONAL DAMAGE (D3): the struck part sets the multiplier — headshots hit twice as hard
     // (T3 default). A partless monster's null part reads as x1.
     let hurt = damage(hit.target, PART_DAMAGE[hit.part] ?? 1);
@@ -119,10 +137,47 @@ export const useGameStore = create((set, get) => ({
       enemies: next,
       kills: kills + killed,
       lastHitAt: clockNow,
+      shots: [...get().shots, tracer],
       ...(killed ? { lastKillAt: clockNow } : {}),
       ...(newDebris.length ? { debris: [...get().debris, ...newDebris] } : {}),
     });
     if (typeof window !== 'undefined') window.__swanKills = kills + killed;
+    return true;
+  },
+
+  /** When the last punch may swing again — outside reactive state (it never draws UI). */
+  meleeReadyAt: 0,
+
+  /**
+   * The punch (playtest 2). Hits EVERYTHING in range inside the swing arc: 1 damage each plus a
+   * shove away from you. Fists are not locational — no severing, no multipliers; a punch that
+   * finishes an enemy starts the same dying it would from a bullet.
+   */
+  melee: (player, yaw) => {
+    const s = get();
+    if (s.over || clockNow < s.meleeReadyAt) return false;
+    const victims = meleeHits(s.enemies.filter((e) => can(e, 'canBeShot')), player, yaw);
+    if (!victims.length) { set({ meleeReadyAt: clockNow + MELEE_COOLDOWN }); return false; }
+    let killedNow = 0;
+    const ids = new Set(victims.map((v) => v.id));
+    const next = s.enemies.map((e) => {
+      if (!ids.has(e.id)) return e;
+      let hurt = damage(e, 1);
+      // The shove: straight away from the player, capped so nobody teleports.
+      const dx = e.x - player.x; const dz = e.z - player.z;
+      const d = Math.hypot(dx, dz) || 1;
+      hurt = { ...hurt, x: e.x + (dx / d) * MELEE_KNOCKBACK, z: e.z + (dz / d) * MELEE_KNOCKBACK };
+      if (isDead(hurt)) { killedNow += 1; hurt = { ...hurt, state: 'dying', stateSince: clockNow }; }
+      return hurt;
+    });
+    set({
+      enemies: next,
+      kills: s.kills + killedNow,
+      meleeReadyAt: clockNow + MELEE_COOLDOWN,
+      lastHitAt: clockNow,
+      ...(killedNow ? { lastKillAt: clockNow } : {}),
+    });
+    if (typeof window !== 'undefined') window.__swanKills = s.kills + killedNow;
     return true;
   },
 
@@ -167,6 +222,9 @@ export const useGameStore = create((set, get) => ({
     if (s.debris.length && s.debris.some((d) => elapsed - d.bornAt >= DEBRIS_TTL)) {
       patch.debris = s.debris.filter((d) => elapsed - d.bornAt < DEBRIS_TTL);
     }
+    if (s.shots.length && s.shots.some((sh) => elapsed - sh.at >= SHOT_TTL)) {
+      patch.shots = s.shots.filter((sh) => elapsed - sh.at < SHOT_TTL);
+    }
     if (r.touched && !merciful) {
       patch.hp = r.hp;
       patch.over = r.over;
@@ -201,7 +259,7 @@ export const useGameStore = create((set, get) => ({
     set({
       enemies: spawnRing(waveSize(1), SPAWN_RADIUS, 1, centre, clockNow),
       kills: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0,
-      lastHitAt: -1, lastKillAt: -1, debris: [],
+      lastHitAt: -1, lastKillAt: -1, debris: [], shots: [], meleeReadyAt: 0,
     });
     if (typeof window !== 'undefined') {
       // Reset owns EVERY seam a round accumulates — a per-round stat built on a seam that

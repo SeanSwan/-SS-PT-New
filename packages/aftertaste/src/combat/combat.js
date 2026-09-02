@@ -117,6 +117,27 @@ export function hitscan(origin, dir, targets, radius = AIM_RADIUS, maxRange = MA
   return best;
 }
 
+/** How far a punch reaches, and how wide the swing is (± radians off the facing direction). */
+export const MELEE_RANGE = 1.7;
+export const MELEE_ARC = Math.PI / 3; // ±60°
+
+/**
+ * The punch (playtest 2: "run, jump, punch"). Everything close enough AND inside the swing arc
+ * is hit — a crowd shove, not a sniper poke. Pure: returns the enemies the swing connects with.
+ * Yaw follows the aim convention (0 faces -z; facing = aimDirection's ground projection).
+ */
+export function meleeHits(enemies, player, yaw) {
+  const fx = -Math.sin(yaw); const fz = -Math.cos(yaw);
+  return enemies.filter((e) => {
+    const dx = e.x - player.x; const dz = e.z - player.z;
+    const d = Math.hypot(dx, dz);
+    if (d === 0) return true; // standing inside you is very much in range
+    if (d > MELEE_RANGE) return false;
+    const cos = (dx * fx + dz * fz) / d;
+    return cos >= Math.cos(MELEE_ARC);
+  });
+}
+
 /** A NEW enemy with hp reduced, floored at 0. Never mutates. */
 export function damage(enemy, amount) {
   return { ...enemy, hp: Math.max(0, enemy.hp - amount) };

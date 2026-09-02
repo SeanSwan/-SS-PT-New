@@ -16,23 +16,30 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useKeyboard } from './useKeyboard.js';
-import { step } from './movement.js';
+import { stepV } from './movement.js';
 import { aim } from './aim.js';
 import { usePlayerStore } from '../state/store.js';
 import { FRAME_ORDER } from '../systems/frameOrder.js';
 
 export default function Player() {
-  const pos = useRef({ x: 0, z: 0 });
+  // Position AND velocity now (feel pack): stepV evolves velocity, which is what reads as weight.
+  const body = useRef({ x: 0, z: 0, vx: 0, vz: 0, y: 0, vy: 0 });
   const keys = useKeyboard();
   const setPosition = usePlayerStore((s) => s.setPosition);
 
   useFrame((_state, delta) => {
-    const next = step(pos.current, keys.current, delta, aim.yaw);
-    pos.current = next;
+    const next = stepV(body.current, keys.current, delta, aim.yaw);
+    body.current = next;
     // Publish EVERY frame, moving or not — the __swanPlayerPos seam must exist from frame one.
-    // (A "publish only on change" optimisation here broke seven browser tests at once: everything
-    // that reads the seam before the player's first step saw undefined.)
-    setPosition(next);
+    // (A "publish only on change" optimisation here broke seven browser tests at once.) The
+    // published object carries y + speed + sprint for the camera's bob/FOV; 2D consumers
+    // (enemies, spawn rings, touch range) read x/z as ever.
+    setPosition({
+      x: next.x, z: next.z, y: next.y,
+      speed: Math.hypot(next.vx, next.vz),
+      grounded: next.y <= 0,
+      sprinting: keys.current.sprint && (keys.current.forward || keys.current.back || keys.current.left || keys.current.right),
+    });
   }, FRAME_ORDER.player);
 
   return null;

@@ -9,7 +9,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  hitscan, damage, isDead, ENEMY_HP, AIM_RADIUS, TARGET_HEIGHT, MAX_RANGE,
+  hitscan, damage, isDead, meleeHits, ENEMY_HP, AIM_RADIUS, TARGET_HEIGHT, MAX_RANGE,
 } from '../src/combat/combat.js';
 
 const eye = { x: 0, y: 1.6, z: 0 };
@@ -190,4 +190,23 @@ test('renderScale scales part shapes: hitboxes follow the rendered silhouette (H
   const highRay = { x: 0.3332, y: 1.75, z: 0 };
   assert.equal(hitscan(highRay, FWD, [PARTED()]), null, '1x monster tops out below y=1.75');
   assert.equal(hitscan(highRay, FWD, [big])?.part, 'head', 'the 2x head occupies that height');
+});
+
+// --- FEEL PACK: the punch — close range, in your facing arc, shoves what it hits --------------
+
+test('meleeHits: in range AND inside the facing arc hits; behind you or far away does not', () => {
+  const player = { x: 0, z: 0 };
+  const enemies = [
+    { id: 'front', x: 0, z: -1.2 },   // dead ahead (yaw 0 faces -z)
+    { id: 'flank', x: 1.0, z: -1.0 }, // ~45° off — inside the arc
+    { id: 'behind', x: 0, z: 1.2 },   // behind
+    { id: 'far', x: 0, z: -3 },       // ahead but out of reach
+  ];
+  const hits = meleeHits(enemies, player, 0).map((e) => e.id).sort();
+  assert.deepEqual(hits, ['flank', 'front']);
+});
+
+test('meleeHits respects yaw: turn 180° and the arc turns with you', () => {
+  const hits = meleeHits([{ id: 'b', x: 0, z: 1.2 }], { x: 0, z: 0 }, Math.PI);
+  assert.deepEqual(hits.map((e) => e.id), ['b']);
 });

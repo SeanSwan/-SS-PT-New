@@ -67,6 +67,8 @@ export default function Hud() {
   const lastHitAt = useGameStore((s) => s.lastHitAt);
   const lastKillAt = useGameStore((s) => s.lastKillAt);
   const remaining = useGameStore((s) => s.enemies.reduce((n, e) => n + (holdsWave(e) ? 1 : 0), 0));
+  // Crosshair bloom while rounds are in the air — tracers live SHOT_TTL, so this breathes with fire.
+  const firing = useGameStore((s) => s.shots.length > 0);
 
   // Death hands the mouse back: pointer lock hides the cursor, and a hidden cursor cannot press
   // the restart button. The browser releases lock on Esc; we release it on the death screen.
@@ -86,7 +88,16 @@ export default function Hud() {
         <span style={{ opacity: 0.6 }}>click to take aim &middot; WASD move &middot; hold to fire</span>
       </div>
 
-      {!over && <div data-testid="crosshair" style={crosshairStyle}>+</div>}
+      {!over && (
+        <div
+          data-testid="crosshair"
+          style={{
+            ...crosshairStyle,
+            transition: 'transform 70ms ease-out',
+            transform: `translate(-50%, -50%) scale(${firing ? 1.35 : 1})`,
+          }}
+        >+</div>
+      )}
       {/* -1 is "never": 0 is a real clock reading (a first-frame hit), so it cannot be the sentinel. */}
       {!over && lastHitAt >= 0 && (
         <div key={lastHitAt} data-testid="hitmarker" style={hitmarkerStyle(lastKillAt === lastHitAt)}>✕</div>

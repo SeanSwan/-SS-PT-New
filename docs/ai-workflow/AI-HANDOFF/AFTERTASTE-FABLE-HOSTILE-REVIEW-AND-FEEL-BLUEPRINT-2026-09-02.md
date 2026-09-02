@@ -199,3 +199,24 @@ browser proof first — it is code-complete, unit-proven 108/108, blocked only o
 3. **Sound palette** — synthesized retro-arcade by default (fits voxels, costs nothing). If you
    want sampled/gritty later, the hooks don't change.
 4. The four T1-T4 gore defaults remain live and overridable.
+
+---
+
+## 10. Playtest 2 delta (2026-09-02, "super fun" + six asks) — hostile pass and disposition
+
+Sean's second session confirmed the fantasy lands (severed heads read!) and issued six asks.
+Hostile disposition of each against the codebase:
+
+| Ask | Hostile finding | Disposition |
+|---|---|---|
+| "I wanna see bullets" | The gun's only feedback was the hitmarker (H3, confirmed twice by hands) | **SHIPPED**: tracers hit-or-miss (a hit streak STOPS at the monster — free aim feedback), muzzle-flash light, recoil kick the player fights, crosshair bloom |
+| "run" | Constant-velocity glide | **SHIPPED**: accel/decel curve (~0.15s up, ~0.08s stop), Shift-sprint ×1.45 with eased FOV 75→81 |
+| "jump" | No vertical axis existed at all | **SHIPPED**: Space, gravity arc peaking ~0.5, no double-jump, reduced air control, bunny-hop on held Space (kept — it feels right). HONEST GAP: jumping does not yet dodge — touch range is 2D; goes with the arena slice |
+| "punch" | No melee | **SHIPPED**: right-click, ±60° arc, 1.7 reach, 1 dmg + 1.4 shove, 0.4s cooldown, same corpse rules as bullets. No sever by fist — by design |
+| "make these characters / not Tetris" | Blockouts ARE abstract; silhouette heights (R1) helped but identity needs real modeling + per-type gait + palette | **NEXT ARC** — character pass: sculpted blockout v2 per monster through the pipe, per-type clips, the 5 unbuilt roster specs (crumb-roach, pizza-husk, rot-maitre-d, rind-bulwark, glaze-decoy) |
+| "more mobs" | 5 specs authored, 0 built | folded into the character arc above |
+| view bob | (added with movement, unasked) | respects prefers-reduced-motion; speed-driven, still when still |
+
+Feel-pack test truth: 120 unit / 20 browser ×3; the jump spec's first version held Space and
+demanded a landing — bunny-hop is intended, the TEST was wrong, rewritten to tap.
+Sound (R5) remains the next feel slice after the character arc unless Sean reorders.

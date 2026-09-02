@@ -20,20 +20,28 @@ const MAP = {
   KeyS: 'back', ArrowDown: 'back',
   KeyA: 'left', ArrowLeft: 'left',
   KeyD: 'right', ArrowRight: 'right',
+  ShiftLeft: 'sprint', ShiftRight: 'sprint',
+  Space: 'jump',
 };
 
+const CLEARED = { forward: false, back: false, left: false, right: false, sprint: false, jump: false };
+
 export function useKeyboard() {
-  const keys = useRef({ forward: false, back: false, left: false, right: false });
+  const keys = useRef({ ...CLEARED });
 
   useEffect(() => {
-    const set = (code, value) => {
+    const set = (code, value, e) => {
       const name = MAP[code];
-      if (name) keys.current[name] = value;
+      if (name) {
+        keys.current[name] = value;
+        // Space scrolls the page and Shift+key triggers browser accelerators — the game owns them.
+        if (e && (code === 'Space')) e.preventDefault();
+      }
     };
-    const down = (e) => set(e.code, true);
-    const up = (e) => set(e.code, false);
+    const down = (e) => set(e.code, true, e);
+    const up = (e) => set(e.code, false, e);
     // If the window loses focus mid-press, the keyup never arrives and the player runs forever.
-    const blur = () => { keys.current = { forward: false, back: false, left: false, right: false }; };
+    const blur = () => { keys.current = { ...CLEARED }; };
 
     window.addEventListener('keydown', down);
     window.addEventListener('keyup', up);
