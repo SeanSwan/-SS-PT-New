@@ -200,7 +200,10 @@ never after the pixels exist.
 3. **Taste check:** `GET http://127.0.0.1:7331/api/profile`; treat the response
    as the Taste Brain only if it matches the profile shape
    (grids/judgements/directions) — anything else is `[TASTE BRAIN OFFLINE]`,
-   proceed from doc priors. Precedence is fixed: law → Step-3 bind → taxonomy
+   proceed from doc priors (a dated local snapshot — `node
+   scripts/taste-profile-snapshot.mjs` → `.ai-workflow/taste-profile.local.md`,
+   gitignored — may inform the pick when fresh; its tiers are copied verbatim,
+   never upgraded). Precedence is fixed: law → Step-3 bind → taxonomy
    → taste. Taste RANKS lawful candidates; it never introduces a facet, never
    overrides a ban, and its magnitude is not acted on — carry tier +
    facet/codes only (`evidence` / `prior`; a direction with neither backing is
