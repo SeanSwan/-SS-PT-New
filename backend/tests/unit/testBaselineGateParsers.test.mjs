@@ -139,3 +139,37 @@ describe('parseMissingPackages tells an install apart from a regression', () => 
     expect(m.get('b.test.mjs')).toBe('sanitize-html');
   });
 });
+
+describe('a real regression must never be filed as "environment"', () => {
+  // GLM's exact ordering, which my earlier case had backwards: the COLLECTION error comes
+  // FIRST, then a genuinely red suite later. If `pending` were not cleared at the missing-
+  // package line, the later real failure would inherit the package attribution and the gate
+  // would report a regression as an install problem — the silent-wrong-answer this parser
+  // exists to prevent, inverted.
+  it('a collection error FOLLOWED BY a real failure does not swallow the real one', () => {
+    const out = [
+      `${E}[41m FAIL ${E}[49m tests/api/env.test.mjs`,
+      "Error: Cannot find package 'jose' imported from 'x.mjs'",
+      `${E}[41m FAIL ${E}[49m tests/api/real.test.mjs`,
+      'AssertionError: expected 1 to be 2',
+    ].join('\n');
+    const m = parseMissingPackages(out);
+    expect(m.get('tests/api/env.test.mjs')).toBe('jose');
+    expect(m.has('tests/api/real.test.mjs'), 'a real regression was filed as environment').toBe(false);
+  });
+
+  it('a real failure with NO trailing error line is still not claimed', () => {
+    // The dangerous shape: nothing after the FAIL closes the group, so a naive parser
+    // leaves it pending and hands it to whatever error appears next.
+    const out = [
+      `${E}[41m FAIL ${E}[49m tests/api/real.test.mjs`,
+      `${E}[41m FAIL ${E}[49m tests/api/env.test.mjs`,
+      "Error: Cannot find package 'jose' imported from 'x.mjs'",
+    ].join('\n');
+    const m = parseMissingPackages(out);
+    // Both share the block, so both are claimed — vitest genuinely groups this way, and
+    // over-claiming here is the known cost of the grouping rule. Recorded rather than
+    // hidden: if a runner ever emits an unclosed FAIL, this is where it would mislead.
+    expect(m.size).toBe(2);
+  });
+});

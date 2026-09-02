@@ -41,8 +41,9 @@
 import { readFileSync, existsSync, lstatSync, realpathSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import { classifyDeps } from './lib/dep-drift.mjs';
+import { isMainModule } from './lib/is-main-module.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DRY = process.argv.includes('--dry-run');
@@ -93,8 +94,7 @@ export function pinnedVersion(dir, name, declaredRange) {
  * node:test runner both had it, and I only caught this one because the test I was writing
  * to prove the script printed "restored 0 packages" while merely being imported.
  */
-const invokedDirectly = process.argv[1]
-  && import.meta.url === pathToFileURL(process.argv[1]).href;
+const invokedDirectly = isMainModule(import.meta.url);
 
 if (invokedDirectly) {
 let installed = 0;

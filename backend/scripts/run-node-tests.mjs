@@ -28,7 +28,8 @@
 import { spawn } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { isMainModule } from '../../scripts/lib/is-main-module.mjs';
+import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..');
@@ -58,8 +59,7 @@ export function findNodeTestFiles(root = ROOT) {
  * there the answer was to move the pure function into `scripts/lib/`. Here it is one small
  * function and a guard says the same thing without adding a file for it.
  */
-const invokedDirectly = process.argv[1]
-  && import.meta.url === pathToFileURL(process.argv[1]).href;
+const invokedDirectly = isMainModule(import.meta.url);
 
 if (invokedDirectly) {
   const files = findNodeTestFiles();

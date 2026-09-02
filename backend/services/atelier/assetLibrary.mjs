@@ -26,14 +26,23 @@
  * surface is the one below.
  *
  * ── NO INDEXES EXIST ON THIS TABLE ─────────────────────────────────────────
- * `MediaAsset` declares none. Every filter here is therefore a sequential scan,
- * which is fine at one operator's volume and is NOT fine later. Stated rather
- * than discovered: the trigger is the first time this list feels slow, and that
- * will happen long before anyone thinks to look.
+ * CORRECTED 2026-09-01, and the correction is the interesting part. This said "MediaAsset
+ * declares none", which is true of the MODEL FILE and false of the DATABASE — the exact
+ * model-vs-schema conflation rule 58 exists for, committed here in a passage about indexes.
+ * The migration creates four:
  *
- * `(owner_user_id, kind, approval_status)` and a GIN index on `tags` are ordinary
- * and can be added whenever. The DATE index is the one with a trap in it — see the
- * cursor-precision note below before writing that migration.
+ *   ma_r2_key_live_uniq   (r2_key) UNIQUE WHERE deleted_at IS NULL
+ *   ma_owner_idx          (owner_user_id, created_at DESC) WHERE deleted_at IS NULL
+ *   ma_exercise_idx       (exercise_id) WHERE exercise_id IS NOT NULL AND deleted_at IS NULL
+ *   media_assets_provenance_provider_idx
+ *
+ * So the owner-scoped page is NOT a sequential scan. `ma_owner_idx` already covers the
+ * filter every query here applies, and the backlog item asking for `(owner_user_id,
+ * created_at)` was asking for something that shipped in the same migration as the table.
+ *
+ * What is genuinely absent: a GIN index on `tags`, and `kind`/`approval_status` as
+ * filter columns. Those are ordinary and can be added whenever. The DATE index is the one
+ * with a trap in it — see the cursor-precision note below before writing that migration.
  *
  * ── PAGINATION IS A CURSOR, NOT AN OFFSET ──────────────────────────────────
  * House rule, and the right one: an offset re-reads rows and shifts under

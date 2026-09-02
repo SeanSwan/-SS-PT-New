@@ -1,5 +1,5 @@
 ---
-decision: "Consolidated Codex review packet for the Atelier video-poster slice and the eight backlog slices that followed. 21 commits. Written to be attacked, not admired."
+decision: "Consolidated Codex review packet for the Atelier video-poster slice and the backlog slices that followed. 26 commits. Written to be attacked, not admired."
 status: open
 supersedes: none
 ---
@@ -7,7 +7,7 @@ supersedes: none
 # Review packet — Atelier, `14b04c407..5b5558cdb`
 
 **Branch** `feat/atelier-v2-compose` · worktree `c:/tmp/ss-atelier-v2` · pushed · not deployed
-· **24 commits** · Linear **SWA-165**
+· **26 commits, 78 files** · Linear **SWA-165**
 
 Nine hostile rounds ran against the first slice with GLM 5.3 + Qwen 3.8 (records in
 `panel-2026-08-27-atelier-video-poster/`). The eleven slices after it were reviewed **solo** —
