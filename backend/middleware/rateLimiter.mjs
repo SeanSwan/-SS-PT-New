@@ -1,12 +1,32 @@
 /**
- * Rate Limiter Middleware
- * ======================
+ * Rate Limiter Middleware — every ceiling this API applies, and why each number is that number.
+ * ============================================================================
  *
- * Provides rate limiting for API endpoints to prevent abuse
- * Uses in-memory storage for development (consider Redis for production)
+ * In-memory store. Per-IP, which is correct because core/app.mjs:44 sets `trust proxy` to 1,
+ * so `req.ip` is the real client behind Render's proxy rather than the proxy itself. Keyed on
+ * the proxy, every one of these would be a single global bucket for all visitors at once.
  *
- * Created: 2026-01-05
- * Part of: API Security Layer
+ * ── THIS FILE IS OVER THE 300-LINE CAP AND IS DELIBERATELY NOT SPLIT ────────
+ * 2026-09-02. Two review seats flagged 356 lines as a rule-4 violation, correctly. Three
+ * candidate seams were examined and each one was arbitrary:
+ *
+ *   public vs authenticated   a threat-model taxonomy invented for the occasion; the next
+ *                             person adds a limiter to the wrong half and nobody notices
+ *   config vs behaviour       true of exactly one limiter (`preKeyFetchLimiter`, the only
+ *                             one with a keyGenerator) and worth ~30 lines
+ *   by feature cluster        splits `waiverLimiter` from `waiverVersionsLimiter` for
+ *                             adjacency, which is not a reason
+ *
+ * None reaches 300, and all three cost the property that makes this file useful: ONE place
+ * to look for "what throttles X, and how hard". Rule 4 exists to break up files that mix
+ * concerns — a 300-line component doing state, layout and fetching. This file has one
+ * concern and is long because roughly three quarters of it is prose explaining, per limiter,
+ * the specific abuse it stops and why the ceiling sits where it does. Deleting that
+ * commentary would pass the check and lose the thing worth keeping.
+ *
+ * Recorded as an argued exception rather than a silent deferral, which is what the seats
+ * actually asked for. **It is Sean's to grant or refuse** — if refused, the honest split is
+ * by threat model, and every limiter needs re-reading to place it, which is its own slice.
  */
 
 import rateLimit from 'express-rate-limit';
@@ -343,15 +363,16 @@ export const preKeyFetchLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-export default {
-  apiLimiter,
-  authLimiter,
-  adminLimiter,
-  uploadLimiter,
-  waiverLimiter,
-  contactLimiter,
-  orientationLimiter,
-  handoffLimiter,
-  foodScannerLimiter,
-  preKeyFetchLimiter,
-};
+/*
+ * DEFAULT EXPORT REMOVED 2026-09-02. It listed ten of thirteen limiters and nothing
+ * imported it — verified against named, default, `require()` and dynamic `import()` forms;
+ * the only dynamic hits were a different file, `services/ai/rateLimiter.mjs`. A barrel that
+ * had already drifted from what it claimed to enumerate, kept alive by nobody.
+ *
+ * `authLimiter` (max 5) and `uploadLimiter` are exported and unused. `authLimiter` looked
+ * like a security gap, so it was chased: `POST /api/auth/login` IS limited, inline at
+ * authRoutes.mjs:397 — a 100/15min shared-network ceiling, plus per-identity failure
+ * counting and row locking in the controller. A better design, which supersedes this one.
+ * Kept rather than deleted: an exported symbol is API surface, and that is a separate
+ * decision from removing a barrel (rule 34). Recorded so nobody re-derives that login is safe.
+ */
