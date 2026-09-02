@@ -10,11 +10,18 @@
  * rotating metal ring, crowned with a rotating multi-colour neon edge. It is
  * explicitly NOT origin/main's GlowButton.tsx; see catalog §10.3a-amended.
  *
- * TIER: this file is STRUCTURE. Every colour arrives from the pack as a
- * `--sw-sheen-*-stops` list, because packs own taste and components own shape.
- * That is also why there is no literal below — including the mask, which uses
- * `--sw-p-mask-opaque`: a mask reads only alpha, so the value is a sentinel
- * rather than a colour, and it lives in tokens/ where literals belong.
+ * TIER LAW: this file carries STRUCTURE ONLY. Every colour — world ramps AND the
+ * specular character (band, shimmer, rim, ring filter) — arrives from the pack,
+ * because packs own taste and components own shape. The mask uses
+ * `--sw-p-mask-opaque`: a mask reads only alpha, so that value is a sentinel, not
+ * a colour, and it lives in tokens/ where literals belong.
+ *
+ * This is stated as the LAW THE FILE FOLLOWS, not as an inventory of its current
+ * contents. The previous header asserted "there is no literal below" while 17
+ * colour literals sat underneath it in functional notation — drift-lint R1 only
+ * matched hex, so the doc lied and the gate green-lit the lie. R1 now covers the
+ * functional notations too. (Naming the notation here would itself trip it: a
+ * literal written to explain a literal is still a literal.)
  *
  * DOM: `.sw-sheen` is a CHILD element, not a pseudo-element. Both `::before` and
  * `::after` on `.sw-btn` are already spoken for (loading spinner, sheen sweep), so
@@ -71,7 +78,15 @@
    a 44px control and crowds the label — so a card gets the heavier frame and a
    button does not. One global number would have had to lose one of those cases. */
 .sw-btn > .sw-sheen { --_frame: var(--sw-sheen-frame-btn, 4.5px); }
-.sw-card > .sw-sheen { --_frame: var(--sw-sheen-frame-card, 6px); }
+
+/* NO `.sw-card > .sw-sheen` RULE — deliberately. Sean ratified 6px for cards and
+   `--sw-sheen-frame-card` holds that decision in the pack, but wiring the selector
+   here would hand every `.sw-card` a full-motion frame (26s/44s drift, 4.5s shimmer,
+   an orb slot) by adding one class name. The Swan Card Standard says client/data
+   cards are LOW-MOTION with no pointer tracking, and there is no ForgeCard to carry
+   a motion gate. Shipped-but-unreachable CSS that exists to violate a house rule is
+   a trap, not a feature. Restore this line together with a motion-gated ForgeCard
+   and a test — not before. (GLM 5.3 M2 + Flash S1.2, 2026-09-01.) */
 
 /* ── Rotating ring (the metal worlds) ─────────────────────────────── */
 .sw-sheen > i.sw-sheen__spin {
@@ -81,7 +96,7 @@
   padding-block-end: 300%;
   transform: translate(-50%, -50%) rotate(0deg);
   background: conic-gradient(from 0deg, var(--_stops));
-  filter: saturate(1.25) brightness(1.08);
+  filter: var(--sw-sheen-ring-filter);
   animation: sw-sheen-spin calc(var(--_spin) / max(var(--sw-motion), 0.001)) linear infinite;
 }
 
@@ -89,14 +104,7 @@
 .sw-sheen > i.sw-sheen__band {
   inset: 0;
   mix-blend-mode: overlay;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0) 26%,
-    rgba(0, 0, 0, 0.45) 48%,
-    rgba(255, 255, 255, 0.28) 62%,
-    rgba(0, 0, 0, 0.3) 100%
-  );
+  background: var(--sw-sheen-band);
 }
 
 /* ── Scenic worlds: parallax bands ────────────────────────────────── */
@@ -112,7 +120,8 @@
   opacity: 0.95;
   background: var(--sw-sheen-drift-a);
   background-repeat: repeat-x;
-  background-size: 52% 100%;
+  /* 50% => travel 2(1-0.5)=1.0 box = exactly 2 tiles. Seamless. */
+  background-size: 50% 100%;
   animation: sw-sheen-drift calc(26s / max(var(--sw-motion), 0.001)) linear infinite;
 }
 
@@ -122,7 +131,9 @@
   filter: blur(1.5px);
   background: var(--sw-sheen-drift-b);
   background-repeat: repeat-x;
-  background-size: 64% 100%;
+  /* 40% => travel 2(1-0.4)=1.2 box = exactly 3 tiles. Seamless, and a different
+     tile scale from the near layer so the parallax reads as depth. */
+  background-size: 40% 100%;
   animation: sw-sheen-drift calc(44s / max(var(--sw-motion), 0.001)) linear infinite reverse;
 }
 
@@ -138,19 +149,7 @@
   transform: translate(-50%, -50%) rotate(0deg);
   mix-blend-mode: overlay;
   opacity: var(--_shimmer);
-  background: conic-gradient(
-    from 0deg,
-    rgba(255, 255, 255, 0) 0deg,
-    rgba(255, 255, 255, 0.95) 9deg,
-    rgba(255, 255, 255, 0) 20deg,
-    rgba(255, 255, 255, 0) 120deg,
-    rgba(0, 0, 0, 0.34) 138deg,
-    rgba(255, 255, 255, 0) 156deg,
-    rgba(255, 255, 255, 0) 208deg,
-    rgba(255, 255, 255, 0.78) 220deg,
-    rgba(255, 255, 255, 0) 234deg,
-    rgba(255, 255, 255, 0) 360deg
-  );
+  background: var(--sw-sheen-shim);
   animation: sw-sheen-spin calc(4.5s / max(var(--sw-motion), 0.001)) linear infinite;
 }
 
@@ -158,9 +157,7 @@
 .sw-sheen > i.sw-sheen__rim {
   inset: 0;
   border-radius: inherit;
-  box-shadow:
-    inset 0 0 0 0.75px rgba(255, 255, 255, 0.42),
-    inset 0 0 0 1.6px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--sw-sheen-rim-shadow);
 }
 
 /* ── Worlds ───────────────────────────────────────────────────────── */

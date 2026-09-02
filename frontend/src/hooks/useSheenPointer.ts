@@ -92,9 +92,20 @@ export function createSheenPointer(options: SheenPointerOptions = {}): SheenPoin
   const target = options.target ?? (typeof window !== 'undefined' ? window : undefined);
   const raf = options.raf ?? ((cb: FrameRequestCallback) => requestAnimationFrame(cb));
   const caf = options.caf ?? ((h: number) => cancelAnimationFrame(h));
-  const reduce =
-    options.prefersReducedMotion ??
-    (typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  // H1 (GLM 5.3 + Flash, 2026-09-01): this was read ONCE at engine construction,
+  // and the engine is a module singleton — so a user who enabled reduce mid-session
+  // got frozen CSS layers and an orb that kept easing. The CSS half was live; the
+  // JS half was not. A pinned test boolean meant no test could see it.
+  const mql =
+    options.prefersReducedMotion === undefined && typeof matchMedia !== 'undefined'
+      ? matchMedia('(prefers-reduced-motion: reduce)')
+      : null;
+  let reduce = options.prefersReducedMotion ?? mql?.matches ?? false;
+  const onMotionPrefChange = (e: MediaQueryListEvent) => {
+    reduce = e.matches;
+    kick(); // re-settle immediately at the new easing rate
+  };
+  mql?.addEventListener('change', onMotionPrefChange);
 
   const P = SHEEN.pointer;
   const surfaces: SheenSurfaceState[] = [];
@@ -231,7 +242,10 @@ export function createSheenPointer(options: SheenPointerOptions = {}): SheenPoin
   target?.addEventListener('pointermove', onPointerMove, { passive: true });
   target?.addEventListener('pointerleave', onPointerGone, { passive: true });
   target?.addEventListener('blur', onPointerGone, { passive: true });
-  target?.addEventListener('scroll', markDirty, { passive: true });
+  // M5: `scroll` does not bubble. Without capture, scrolling any inner
+  // overflow container (modal, menu, carousel) never marks rects dirty and the
+  // orb guides to stale coordinates until the next pointermove.
+  target?.addEventListener('scroll', markDirty, { passive: true, capture: true });
   target?.addEventListener('resize', markDirty, { passive: true });
 
   return {
@@ -260,7 +274,8 @@ export function createSheenPointer(options: SheenPointerOptions = {}): SheenPoin
       target?.removeEventListener('pointermove', onPointerMove);
       target?.removeEventListener('pointerleave', onPointerGone);
       target?.removeEventListener('blur', onPointerGone);
-      target?.removeEventListener('scroll', markDirty);
+      target?.removeEventListener('scroll', markDirty, { capture: true } as EventListenerOptions);
+      mql?.removeEventListener('change', onMotionPrefChange);
       target?.removeEventListener('resize', markDirty);
       if (running) caf(handle);
       running = false;
