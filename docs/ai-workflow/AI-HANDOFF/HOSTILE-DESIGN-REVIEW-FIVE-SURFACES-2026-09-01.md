@@ -35,13 +35,15 @@
 
 **X5 — [Rule 34] Dead parallel generations + one shared-shell orphan.** Home: ~2,700 unmounted lines (`HomePage.V3` 1400, `Hero-Section.V2` 468, `CreativeExpressionSection` 464, `ProgramsOverview.V3` 435). Client: dormant `ClientObservatoryHome` (297). Shared shell: `UniversalDashboardLayout.routeComponents.tsx:54` still lazy-exports the superseded `MyClientsView` (whose fallback carries `mockClients`), and `:84` lazy-exports the unrouted `TrainerVideosPage` (placeholder data inside — the file behind rev 2's withdrawn T4) — as `lazy()` it is a chunk fetched only on navigation, so the hazard is **routing drift in a file all four roles route through**, not runtime weight. Delete the export line now (provably unrouted); the rest goes through a Rule-34 classify→grep→approve pass.
 
+**X6 — P0 PRODUCTION (found by probe 0b, 2026-09-02, FIXED on this branch): an infinite fetch cycle hammered `/api/sessions` + `/api/sessions/analytics` from every page.** `SessionContext.tsx` — `fetchSessionAnalytics` listed `sessions` in its `useCallback` deps (:392 pre-fix) while the login-load effect (:472) depended on `fetchSessionAnalytics` and called `fetchSessions` → `setSessions` → new callback identity → effect re-ran, forever, ~2 pairs/sec for the life of the tab (350+ pairs observed in one page view). `SessionProvider` wraps the entire app (`App.tsx:266`), so every authenticated visitor ran this loop continuously against the paid Render Postgres. Fix shipped: analytics fallback reads through `sessionsRef`, `sessions` dropped from the deps; contract test `sessionContextPollingLoop.contract.test.ts` pins the cycle broken. Anonymous attribution is `[LIKELY]` (timeline strongly indicates the loop also ran on the anonymous page, but the network log accumulates across navigations — instrument limitation; post-deploy re-probe will settle it). `[VERIFIED — live log + mechanism in source]`
+
 ---
 
 ## HOME PAGE — verdict: **REVISE**
 
 **H2 — BLOCKER [LAW 4]: "The Arsenal" is a literal creature rendering on the flagship surface.** Live section media is a full glowing winged-swan illustration. LAW 4: nature enters as light behavior only; the sanctioned pattern is the About occluder ("the swan is bent light, never a drawn silhouette"). This is the highest-traffic surface violating the brand's most identity-defining law, on-capture, on-evidence. Fix: replace with an optics treatment (caustic field / refraction sweep over real training-detail macro); the replacement brief now requires a Step 3.5 STYLE RECEIPT. `[VERIFIED — live capture]`
 
-**H1 — production error, rescoped per R2+probe: authenticated cart fetch 500s.** The captured (authenticated) session logged `GET /api/cart → 500` on page load; the anonymous path returns a clean 401 `[VERIFIED — console log + curl]`. So the defect is scoped to **logged-in users' cart bootstrap** and its breadth is **UNPROVEN** — possibly one stale/corrupt session, possibly every session. Repro (minutes, do FIRST): log in fresh at sswanstudios.com → load `/` → Network tab → `GET /api/cart`. If it 500s on a fresh session, this outranks all hero work; if not, it is a stale-session edge. Money-path priority is contingent on that probe.
+**H1 — production error, rescoped per R2+probe: authenticated cart fetch 500s.** The captured (authenticated) session logged `GET /api/cart → 500` on page load; the anonymous path returns a clean 401 `[VERIFIED — console log + curl]`. Probe 0a ran 2026-09-02: the capture session's token REFRESHED successfully (`/api/auth/refresh-token` → 200, `/api/auth/me` → 200) and `GET /api/cart` still returned **500** on the same load — so "stale session" is largely dead: a live, refresh-capable session fails cart bootstrap. `[VERIFIED — live network log]`. Residual UNPROVEN: whether EVERY account reproduces (probe used one account); a fresh-credential login remains the final confirmation. Money-path fix slice is GO.
 
 **H3 — [LAW 2] Gold as interactive chrome:** "SwanStudios Photography" and "Trainer Staff Review" pills render gold. Allowlist is PR numeral / ≤1px filigree / focus ring / one badge. De-gold. `[VERIFIED — captures]`
 
@@ -99,10 +101,10 @@ Strongest engineering: per-widget `WidgetErrorBoundary`, `metricUnavailable` hon
 
 ## Ranked next-slice order (Rule 60, rebuilt after R4 — rev 2's "gate the Videos tab" slice is DELETED with its false finding)
 
-0. **Two probes before any slice (minutes each):** fresh-login cart repro (H1 — if it 500s on a fresh session it jumps to #1) · clean-profile anonymous home capture (gate on all hero slices).
-1. **Hero mobile-honesty triad — H3 + H5 + H6.** Hours of diffs on the highest-traffic surface: 8 interactive elements over a near-black field → 2 CTAs above the fold, de-golded, `svh`-stable.
+0. ~~Two probes~~ **RAN 2026-09-02:** 0a → cart-500 confirmed on a refresh-capable session (H1 fix is GO); 0b → anonymous baseline captured (`home-anon-414.png` sha256 c23920bb89a4, scratchpad `home-captures/`; pills rendered for logged-out visitors too — now relocated) AND exposed X6, the app-wide fetch cycle — fixed on this branch.
+1. ~~Hero mobile-honesty triad — H3 + H5 + H6~~ **SHIPPED on this branch:** pills relocated to `QuickLinksStrip` below the fold (hero = 2 CTAs), de-golded to one calm sapphire treatment, `min-height:100svh` with `100vh` fallback. Contract test re-anchored (`trainerRecruitmentLinks.contract.test.ts` — intent preserved, anchor followed the link).
 2. **Error-honesty pair — C1 (client recap card) + T2 (trainer fetch/save paths).** Same defect class, same `ErrorCard` reuse; converts "silently wrong" into "honest + retryable" on both core loops.
-3. **H1 — fix the authenticated cart-500** (scope set by probe 0).
+3. **H1 — fix the authenticated cart-500** (probe confirms GO; backend slice).
 4. **A1 — admin landing reorder** (order now lead-verified; pure IA change).
 5. **H2 — Arsenal creature replacement** (Seedance asset run; STYLE RECEIPT required).
 6. **X1 — bless CelebrationBurst as the Crystallize execution** (option a).

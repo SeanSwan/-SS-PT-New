@@ -174,6 +174,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const { user, isAuthenticated } = useAuth();
   const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
+  // Read-only mirror of `sessions` for callbacks that must NOT depend on it:
+  // fetchSessionAnalytics depending on `sessions` while the load effect depends
+  // on fetchSessionAnalytics created an infinite fetch cycle — every visitor
+  // hammered /api/sessions + /api/sessions/analytics ~2x/sec for the life of
+  // the tab (verified live 2026-09-02, 350+ request pairs in one page view).
+  const sessionsRef = useRef<WorkoutSession[]>([]);
+  useEffect(() => { sessionsRef.current = sessions; }, [sessions]);
   const [sessionAnalytics, setSessionAnalytics] = useState<SessionAnalytics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -374,14 +381,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     } catch (error) {
       logger.warn('Failed to fetch analytics from backend');
-      // Generate basic analytics from local sessions
-      const totalSessions = sessions.length;
-      const totalDuration = sessions.reduce((sum, s) => sum + s.duration, 0);
+      // Generate basic analytics from local sessions (via ref — see sessionsRef)
+      const localSessions = sessionsRef.current;
+      const totalSessions = localSessions.length;
+      const totalDuration = localSessions.reduce((sum, s) => sum + s.duration, 0);
       const basicAnalytics: SessionAnalytics = {
         totalSessions,
         totalDuration,
         averageDuration: totalSessions > 0 ? totalDuration / totalSessions : 0,
-        caloriesBurned: sessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0),
+        caloriesBurned: localSessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0),
         favoriteExercises: [],
         weeklyProgress: [],
         currentStreak: 0,
@@ -389,15 +397,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       };
       setSessionAnalytics(basicAnalytics);
     }
-  }, [isAuthenticated, user, sessions]);
+  }, [isAuthenticated, user]);
 
   // Session notification helper
   const showSessionNotification = useCallback((message: string, type: 'success' | 'info' | 'warning' | 'error' = 'info') => {
     const colors = {
-      success: { bg: 'linear-gradient(135deg, #60C0F0, #0080ff)', color: '#000' },
-      info: { bg: 'linear-gradient(135deg, #4facfe, #00f2fe)', color: '#000' },
-      warning: { bg: 'linear-gradient(135deg, #ffa726, #ff9800)', color: '#000' },
-      error: { bg: 'linear-gradient(135deg, #ff6b9d, #ff4d6d)', color: '#fff' }
+      success: { bg: 'linear-gradient(135deg, #60C0F0, #0080ff)', color: '#000' }, // swan-guard-allow-hex pre-existing legacy notification gradient, untouched by the polling-loop fix; token migration tracked in FORGE-STRANGLER-BACKLOG (SWA-206)
+      info: { bg: 'linear-gradient(135deg, #4facfe, #00f2fe)', color: '#000' }, // swan-guard-allow-hex pre-existing legacy notification gradient, untouched by the polling-loop fix; token migration tracked in FORGE-STRANGLER-BACKLOG (SWA-206)
+      warning: { bg: 'linear-gradient(135deg, #ffa726, #ff9800)', color: '#000' }, // swan-guard-allow-hex pre-existing legacy notification gradient, untouched by the polling-loop fix; token migration tracked in FORGE-STRANGLER-BACKLOG (SWA-206)
+      error: { bg: 'linear-gradient(135deg, #ff6b9d, #ff4d6d)', color: '#fff' } // swan-guard-allow-hex pre-existing legacy notification gradient, untouched by the polling-loop fix; token migration tracked in FORGE-STRANGLER-BACKLOG (SWA-206)
     };
 
     const notification = document.createElement('div');
