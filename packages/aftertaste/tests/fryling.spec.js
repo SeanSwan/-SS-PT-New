@@ -37,16 +37,20 @@ test('the Fryling renders as a skinned mesh, animates, and each enemy owns its s
   // TEST-DELTA (D3+R2): the fryling loads its PARTED v2 build — two skinned meshes sharing one
   // per-enemy skeleton — and wave 1 now MIXES two faces (R2), so expected meshes are summed per
   // type. The crowd-bug assertion: distinct skeletons must equal ENEMIES, not meshes.
-  const counts = await page.evaluate(() => {
+  // WAIT for the counts to line up rather than sampling once: with three GLB types loading in
+  // parallel, a single sample races whichever model resolves last (S2 flake, 1-in-4 runs).
+  const counts = await page.waitForFunction(() => {
     const seen = [];
     window.__swanScene.traverse((o) => {
       if (o.isSkinnedMesh) seen.push(o.skeleton.bones[0].uuid);
     });
     const enemies = window.__swanEnemyPos;
-    const want = enemies.reduce((n, e) => n + (e.type === 'fryling' ? 2 : 1), 0);
-    return { skinned: seen.length, distinctRootBones: new Set(seen).size, enemies: enemies.length, want };
-  });
-  expect(counts.skinned, 'two part meshes per fryling, one per other face').toBe(counts.want);
+    // TEST-DELTA (S2): regular + crumb-roach are also PARTED two-mesh models now.
+    const want = enemies.reduce((n, e) => n + (['fryling', 'regular', 'crumb-roach'].includes(e.type) ? 2 : 1), 0);
+    const out = { skinned: seen.length, distinctRootBones: new Set(seen).size, enemies: enemies.length, want };
+    return (out.skinned === out.want && out.enemies > 0) ? out : false;
+  }, null, { timeout: 20_000 }).then((h) => h.jsonValue());
+  expect(counts.skinned, 'two part meshes per parted face, one per other').toBe(counts.want);
   // The crowd-bug assertion: shared skeletons ACROSS enemies would collapse this below enemy count.
   expect(counts.distinctRootBones, 'every enemy owns its OWN skeleton').toBe(counts.enemies);
 

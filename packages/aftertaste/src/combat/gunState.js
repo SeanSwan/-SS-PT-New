@@ -70,6 +70,16 @@ export function spreadAfterRest(g, dt) {
   return Math.max(s.base, g.spread - s.recovery * dt);
 }
 
+/**
+ * How long after the last shot before the cone starts closing. Derived from the WEAPON's own fire
+ * interval — "stopped firing" can only mean "longer than one firing cycle". A fixed constant
+ * shorter than the interval (the first version: 0.12s vs a 0.15s interval) let recovery run
+ * BETWEEN the shots of a held burst, and on a slow frame a full mag emptied without the cone ever
+ * reaching its cap — the third two-rates-on-one-number bug of this project, caught by a saved
+ * failure artifact showing RELOADING with the cap never hit.
+ */
+export const recoverDelay = (g) => weaponOf(g).fireInterval + 0.1;
+
 /** The effective cone half-angle right now (ADS tightens it). */
 export function currentCone(g) {
   const s = weaponOf(g).spread;

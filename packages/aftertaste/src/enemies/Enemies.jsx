@@ -18,6 +18,7 @@ import { useFrame } from '@react-three/fiber';
 import { stepEnemy } from './steering.js';
 import Monster from './Monster.jsx';
 import { ROSTER } from './roster.js';
+import { gaitPose, gaitSeed } from './gaits.js';
 import { can } from '../systems/lifecycle.js';
 import { useGameStore, usePlayerStore } from '../state/store.js';
 import { FRAME_ORDER } from '../systems/frameOrder.js';
@@ -43,12 +44,25 @@ export default function Enemies() {
       // attacking one is planted in its lunge, a corpse is toppling. All of them still stand in
       // the separation snapshot above, so the living flock walks AROUND a corpse, not through it.
       if (!can(list[i], 'canMove')) continue;
+      const row = ROSTER[list[i].type];
+      // Gait identity (S2): the pose decorates, the speedScale pulses — the skitter's burst rhythm
+      // IS its speed some frames and its pause others; steering itself is unchanged.
+      const pose = gaitPose(row?.gait, state.clock.elapsedTime, gaitSeed(list[i].id));
       // Per-monster speed from the roster row; the fallback keeps stateless test enemies moving.
-      const next = stepEnemy(snapshot[i], player, snapshot, delta, ROSTER[list[i].type]?.speed);
+      const next = stepEnemy(snapshot[i], player, snapshot, delta, (row?.speed ?? 2) * pose.speedScale);
       list[i].x = next.x;
       list[i].z = next.z;
       const mesh = meshes.current[list[i].id];
-      if (mesh) { mesh.position.x = next.x; mesh.position.z = next.z; }
+      if (mesh) {
+        mesh.position.x = next.x;
+        mesh.position.z = next.z;
+        mesh.position.y = pose.yOffset;
+        // Face the walk (plus the gait's wobble). atan2(dx, dz): three.js yaw 0 looks down +z.
+        const dx = player.x - next.x; const dz = player.z - next.z;
+        if (dx * dx + dz * dz > 1e-6) mesh.rotation.y = Math.atan2(dx, dz) + pose.yawJitter;
+        mesh.rotation.x = pose.rotX;
+        mesh.rotation.z = pose.rotZ;
+      }
     }
 
     if (typeof window !== 'undefined') {

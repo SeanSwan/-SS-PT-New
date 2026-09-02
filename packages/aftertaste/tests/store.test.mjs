@@ -128,14 +128,17 @@ const shotAt = (enemy) => useGameStore.getState().shoot(
 );
 
 test('a connected shot damages exactly the enemy under the ray', () => {
+  // TEST-DELTA (S2): enemies[0] is now the PARTED regular, and a straight-down ray lands on its
+  // HEAD part (×2) — correct behaviour, wrong fixture for a plain-damage claim. Target a partless
+  // type so this test keeps asserting base damage; part multipliers have their own tests.
   mature();
   const s = useGameStore.getState();
-  const target = s.enemies[0];
-  const others = s.enemies.slice(1).map((e) => e.hp);
+  const target = s.enemies.find((e) => e.type === 'grease-fly');
+  const others = s.enemies.filter((e) => e.id !== target.id).map((e) => e.hp);
   assert.equal(shotAt(target), true);
   const after = useGameStore.getState().enemies;
   assert.equal(after.find((e) => e.id === target.id).hp, target.hp - 1);
-  assert.deepEqual(after.slice(1).map((e) => e.hp), others, 'bystanders untouched');
+  assert.deepEqual(after.filter((e) => e.id !== target.id).map((e) => e.hp), others, 'bystanders untouched');
 });
 
 test('a SPAWNING enemy cannot be shot — fair-spawn cuts both ways', () => {

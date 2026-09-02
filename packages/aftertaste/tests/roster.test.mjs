@@ -32,16 +32,17 @@ test('THE ratio law: every monster is slower than the player, or there is no gam
 
 // TEST-DELTA (R2, Fable review): "wave 1 is frylings only" asserted the pacing the first human
 // playtest disproved — a player dying on wave 2 met one monster. Superseded by the mix tests.
+// TEST-DELTA (S2): the cast grew from 4 to 6 (regular + crumb-roach); wave sizes updated to match.
 test('by wave 4 every monster is in the mix, and the cycle is deterministic', () => {
-  assert.equal(unlockedTypes(4).length, 4);
+  assert.equal(unlockedTypes(4).length, 6);
   const seen = new Set();
-  for (let i = 0; i < 8; i++) seen.add(typeForSlot(4, i));
-  assert.equal(seen.size, 4, 'eight slots at wave 4 contain all four types');
-  assert.equal(typeForSlot(4, 0), typeForSlot(4, 4), 'a cycle, not a dice roll');
+  for (let i = 0; i < 12; i++) seen.add(typeForSlot(4, i));
+  assert.equal(seen.size, 6, 'twelve slots at wave 4 contain all six types');
+  assert.equal(typeForSlot(4, 0), typeForSlot(4, 6), 'a cycle, not a dice roll');
 });
 
 test('wave 99 does not walk off the unlock list', () => {
-  assert.equal(unlockedTypes(99).length, 4);
+  assert.equal(unlockedTypes(99).length, 6);
   assert.ok(ROSTER[typeForSlot(99, 7)], 'every slot resolves to a real monster');
 });
 
@@ -70,8 +71,9 @@ test('every monster declares a renderHeight, and they DIFFER — silhouette is a
   assert.ok(new Set(heights).size >= 3, 'uniform heights erase the roster row a player reads at distance');
 });
 
-test('wave 1 already mixes two faces; the full cast arrives by wave 3', () => {
-  assert.equal(unlockedTypes(1).length, 2, 'a first session meets more than one monster');
-  assert.ok(unlockedTypes(1).includes('fryling'), 'the baseline face is always first');
-  assert.equal(unlockedTypes(3).length, 4, 'the whole cast by wave 3 — players die before wave 4');
+test('wave 1 already mixes faces and the Regular LEADS it; the full cast arrives by wave 3', () => {
+  assert.equal(unlockedTypes(1).length, 3, 'a first session meets three monsters');
+  assert.equal(unlockedTypes(1)[0], 'regular', 'the horde face is a person now (S2, playtest 4)');
+  assert.ok(unlockedTypes(2).includes('crumb-roach'), 'the roach arrives by wave 2');
+  assert.equal(unlockedTypes(3).length, 6, 'the whole cast by wave 3 — players die before wave 4');
 });

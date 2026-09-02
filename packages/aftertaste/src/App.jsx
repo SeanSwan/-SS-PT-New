@@ -30,7 +30,7 @@ import { useGameStore, usePlayerStore } from './state/store.js';
 import { FRAME_ORDER } from './systems/frameOrder.js';
 import {
   gun, weaponOf, recoilKick, spreadAfterShot, spreadAfterRest, currentCone, applySpread,
-  canFire, ammoAfterShot, needsReload, startReload, finishReload,
+  canFire, ammoAfterShot, needsReload, startReload, finishReload, recoverDelay,
 } from './combat/gunState.js';
 
 /** Eye height. Enemies are ~1 unit tall, so you look slightly DOWN at the swarm — CoD-zombies framing. */
@@ -38,13 +38,9 @@ const EYE_HEIGHT = 1.6;
 
 // Frame ordering is DECLARED, not mount-order luck — see systems/frameOrder.js (GLM-5.3, finding 9).
 
-/**
- * Seconds after the last shot before the cone starts shrinking again. Without this delay, recovery
- * and bloom fight each other INSIDE a burst — at 0.15s between shots, a 0.08/s recovery eats 0.012
- * while each shot adds 0.006, so a held trigger would get MORE accurate. Recovery is what happens
- * when you let go, not a discount on spraying.
- */
-const SPREAD_RECOVER_DELAY = 0.12;
+// Spread-recovery delay now lives with the gun math (recoverDelay in gunState.js) — derived from
+// each weapon's own fire interval, because a fixed constant shorter than the interval let the cone
+// recover BETWEEN the shots of a held burst on slow frames (see the note on recoverDelay).
 
 /**
  * FpsRig — the camera goes behind your eyes (Sean's call: shoot like Overwatch/Battlefield).
@@ -212,7 +208,7 @@ function TriggerControl() {
     }
     const now = state.clock.elapsedTime;
     // The cone shrinks back on its own once you stop shooting — the reward for firing in bursts.
-    if (now - gun.lastShotAt > SPREAD_RECOVER_DELAY) gun.spread = spreadAfterRest(gun, delta);
+    if (now - gun.lastShotAt > recoverDelay(gun)) gun.spread = spreadAfterRest(gun, delta);
 
     // --- Ammo/reload state (Beyond-Zombies S1) ---
     if (wantReload.current) {

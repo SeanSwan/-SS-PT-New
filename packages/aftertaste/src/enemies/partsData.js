@@ -12,14 +12,18 @@
  * test a world ray against them, offset by the enemy's (x, z) — that is combat.js's job.
  */
 import frylingV2 from '../../../../assets/runtime/enemy/fryling-v2/manifest.json' with { type: 'json' };
+import regularM from '../../../../assets/runtime/enemy/regular/manifest.json' with { type: 'json' };
+import crumbRoachM from '../../../../assets/runtime/enemy/crumb-roach/manifest.json' with { type: 'json' };
 
 /** type → parts array (undefined = partless monster, whole-sphere hitscan as before). */
 export const PARTS = {
   fryling: frylingV2.parts,
+  regular: regularM.parts,
+  'crumb-roach': crumbRoachM.parts,
 };
 
 /** Damage multiplier per struck part — T3 default (headshot ×2), Sean-overridable. */
 export const PART_DAMAGE = { head: 2 };
 
 /** type → how many skinned meshes its model renders (parted models carry one per part). */
-export const PART_MESH_COUNT = { fryling: 2 };
+export const PART_MESH_COUNT = { fryling: 2, regular: 2, 'crumb-roach': 2 };

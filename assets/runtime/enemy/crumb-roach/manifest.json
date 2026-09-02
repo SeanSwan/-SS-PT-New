@@ -1,0 +1,125 @@
+{
+ "schema": "swan.game-asset.v1",
+ "id": "enemy.crumb-roach",
+ "status": "validated",
+ "targetSurface": "standalone",
+ "paletteLaw": "B",
+ "calibrationFixture": false,
+ "zone": "world.miniature-play.voxel-realm/zone.aftertaste.fallen-food-court",
+ "skeleton": "skeleton.creature-small.v2",
+ "animations": [
+  "idle",
+  "move",
+  "attack",
+  "hit",
+  "death"
+ ],
+ "budgets": {
+  "lod0Triangles": 398,
+  "lod1Triangles": 176,
+  "lod2Triangles": 96,
+  "textureMB": 0,
+  "bake": "not-baked - swan_pipe.py has no texture bake stage (removed from plan() 2026-08-26 until it exists); 0 is measured embedded texture bytes, not a budget",
+  "tool": "scripts/assets/measure-glb.mjs",
+  "command": "node scripts/assets/measure-glb.mjs assets/runtime/enemy/crumb-roach/lod0.glb lod1.glb lod2.glb",
+  "date": "2026-09-02",
+  "note": "Crumb-roach - Beyond-Zombies S2. 10-voxel authored blockout (ox roster 2026-08-26) through the v2 parted pipe.",
+  "commit": "e5f466401"
+ },
+ "provenance": {
+  "humanOwner": "owner",
+  "createdAtUtc": "2026-09-02T05:50:21.391Z",
+  "aiAssisted": false,
+  "generator": {
+   "name": "tools/blender/swan_pipe.py",
+   "version": "roster-v2-parted-5clip",
+   "blender": "4.5.13 LTS (daeeeca98fb0)",
+   "invocation": "scripts/assets/run-blender.mjs (--disable-autoexec --python-exit-code 1, sentinel-checked)"
+  },
+  "source": "assets/source/enemy/crumb-roach/crumb-roach-blockout.obj",
+  "similarityReviewed": {
+   "reviewer": "owner",
+   "date": "2026-09-02",
+   "comparedAgainst": [
+    "protected game assets",
+    "characters",
+    "UI",
+    "audio",
+    "trademarks",
+    "real likeness"
+   ],
+   "note": "a voxel blockout on the 3-bone v2 rig; every clip is a procedural bone-rotation curve written as numbers in swan_pipe_stages.py - no motion capture, no reference footage, no likeness to anything."
+  },
+  "license": {
+   "kind": "owner-authored"
+  }
+ },
+ "runtime": {
+  "lod0": "lod0.glb",
+  "lod1": "lod1.glb",
+  "lod2": "lod2.glb",
+  "collision": "collision.glb",
+  "compression": "none"
+ },
+ "sha256": {
+  "lod0": "7bcde9bb28c9b60ee478bc3366dd7604bb9296a734b2f40b4dcaa6fa49ae5433",
+  "lod1": "121bf723132b1dd322dd51990bbf5e4d333cd66377a0c690725bb9cbf65a72e8",
+  "lod2": "918aec5c3987115b0e9f8c9a36825037320de5aa82183ffcf08b5f54f8ec5602",
+  "collision": "c8c5f7c0a9aa9660b0ecc90682ef8caba8270c47f894ca918a96dd7e73c4624e"
+ },
+ "_source": {
+  "file": "crumb-roach-blockout.obj",
+  "pipeline": "swan_pipe.py"
+ },
+ "clipContract": {
+  "closes": [
+   "idle",
+   "move",
+   "attack",
+   "hit"
+  ],
+  "once": [
+   "death"
+  ],
+  "tool": "scripts/assets/verify-clips.mjs",
+  "command": "node scripts/assets/verify-clips.mjs assets/runtime/enemy/crumb-roach/lod0.glb --loop idle,move,attack,hit --once death",
+  "note": "Presence of a named clip proves nothing - a clip can be named and empty and pass every other check. These are the properties that matter: clips that repeat or recover must return to their start pose or they snap; death must NOT, or the corpse stands back up."
+ },
+ "parts": [
+  {
+   "tag": "body",
+   "bone": "body",
+   "severable": false,
+   "hitShape": {
+    "kind": "capsule",
+    "a": [
+     0,
+     0.25,
+     0
+    ],
+    "b": [
+     0,
+     0.25,
+     0
+    ],
+    "r": 1
+   }
+  },
+  {
+   "tag": "head",
+   "bone": "head",
+   "severable": true,
+   "onSever": "kill",
+   "severAtHpFraction": 0,
+   "hitShape": {
+    "kind": "sphere",
+    "c": [
+     0.25,
+     0.747,
+     0
+    ],
+    "r": 0.75
+   }
+  }
+ ]
+}

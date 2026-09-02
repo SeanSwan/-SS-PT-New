@@ -47,6 +47,22 @@ export const ROSTER = {
     model: { minX: -2, maxX: 3, minZ: 0, maxZ: 2, height: 2 },
     tint: ['#B06A4C', '#5E2F26'], ember: '#571f15',
   },
+  // Beyond-Zombies S2 — the real cast begins (Sean, playtest 4: "the zombies as people").
+  // The Regular: a zombified diner, tallest thing in the wave, the shambling body of the horde.
+  // C7 law: a VICTIM being saved, never a caricature — greys and bruise tones, no body-mockery.
+  regular: {
+    hp: 3, speed: 1.6, aimRadius: 0.55, renderHeight: 1.7,
+    model: { minX: -2, maxX: 2, minZ: -1, maxZ: 3, height: 9 },
+    tint: ['#8A8D96', '#4A4E5A'], ember: '#2e3140',
+    gait: { type: 'shamble', sway: 0.09, hz: 1.4 },
+  },
+  // Crumb-roach: flood pressure — cheap, fast, dies to one hit; terror is the COUNT, not the unit.
+  'crumb-roach': {
+    hp: 1, speed: 3.0, aimRadius: 0.85, renderHeight: 0.45,
+    model: { minX: -1, maxX: 3, minZ: 0, maxZ: 2, height: 2 },
+    tint: ['#6B4A2B', '#3E2B18'], ember: '#2b1d10',
+    gait: { type: 'skitter', burstHz: 2.2, jitter: 0.22 },
+  },
 };
 
 /**
@@ -55,9 +71,10 @@ export const ROSTER = {
  * the baseline with the fast-fragile flier; the full cast arrives by wave 3.
  */
 const UNLOCK_BY_WAVE = [
-  ['fryling', 'grease-fly'],                              // wave 1
-  ['fryling', 'grease-fly', 'drip-cyst'],                 // wave 2
-  ['fryling', 'grease-fly', 'drip-cyst', 'patty-larva'],  // wave 3+
+  // S2: the Regular leads every wave — the horde's face is a PERSON now, per Sean's playtest-4 ask.
+  ['regular', 'fryling', 'grease-fly'],                                            // wave 1
+  ['regular', 'crumb-roach', 'fryling', 'grease-fly'],                             // wave 2
+  ['regular', 'crumb-roach', 'fryling', 'grease-fly', 'drip-cyst', 'patty-larva'], // wave 3+
 ];
 
 export function unlockedTypes(wave) {

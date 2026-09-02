@@ -124,3 +124,12 @@ test('a full mag refuses to reload — R with 24/120 must not waste the press', 
   assert.equal(needsReload(g), false);
   assert.equal(needsReload(G({ mag: 0, reserveAmmo: 10 })), true);
 });
+
+test('recovery can NEVER start between the shots of a held burst — delay exceeds the fire cycle', async () => {
+  const { recoverDelay } = await import('../src/combat/gunState.js');
+  for (const id of Object.keys(WEAPONS)) {
+    const g = G({ weaponId: id });
+    assert.ok(recoverDelay(g) > WEAPONS[id].fireInterval,
+      `${id}: recoverDelay ${recoverDelay(g)} must exceed fireInterval ${WEAPONS[id].fireInterval}`);
+  }
+});

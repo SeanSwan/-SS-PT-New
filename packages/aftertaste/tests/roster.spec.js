@@ -16,8 +16,9 @@ test('wave 2 mixes in the drip-cyst, and every enemy still owns one skinned mesh
   // Wave 1 is frylings only — the learnable wave.
   // TEST-DELTA (R2): wave 1 mixes two faces now — the first playtest proved the old one-face
   // wave taught nothing before the player died.
+  // TEST-DELTA (S2): the Regular leads wave 1 — the horde's face is a person (Beyond-Zombies cast).
   const wave1Types = await page.evaluate(() => [...new Set(window.__swanEnemyPos.map((e) => e.type))].sort());
-  expect(wave1Types).toEqual(['fryling', 'grease-fly']);
+  expect(wave1Types).toEqual(['fryling', 'grease-fly', 'regular']);
 
   // Clear wave 1 (poll-shooting past fair-spawn) and wait for wave 2's flock to mature.
   await page.waitForFunction(() => {
@@ -29,11 +30,12 @@ test('wave 2 mixes in the drip-cyst, and every enemy still owns one skinned mesh
   }, null, { timeout: 20_000, polling: 100 });
 
   const wave2 = await page.evaluate(() => {
-    const types = [...new Set(window.__swanGameStore.getState().enemies
-      .filter((e) => e.state !== 'dying').map((e) => e.type))];
+    // TEST-DELTA (S2): count DYING too — the poll-shooter above one-taps the hp-1 crumb-roach
+    // the moment it matures, so excluding corpses made the composition claim race its own probe.
+    const types = [...new Set(window.__swanGameStore.getState().enemies.map((e) => e.type))];
     return { types, wave: window.__swanGameStore.getState().wave };
   });
-  expect(wave2.types, 'wave 2 contains the second face').toContain('drip-cyst');
+  expect(wave2.types, 'wave 2 brings the crumb-roach (S2 unlock table)').toContain('crumb-roach');
   expect(wave2.types).toContain('fryling');
 
   // Both models render as skinned meshes — the PARTED fryling carries two meshes on one skeleton
@@ -42,7 +44,7 @@ test('wave 2 mixes in the drip-cyst, and every enemy still owns one skinned mesh
     let skinned = 0;
     window.__swanScene.traverse((o) => { if (o.isSkinnedMesh) skinned += 1; });
     const want = window.__swanGameStore.getState().enemies
-      .reduce((n, e) => n + (e.type === 'fryling' ? 2 : 1), 0);
+      .reduce((n, e) => n + (['fryling', 'regular', 'crumb-roach'].includes(e.type) ? 2 : 1), 0);
     return skinned === want && skinned > 0;
   }, null, { timeout: 20_000 });
   const bones = await page.evaluate(() => {

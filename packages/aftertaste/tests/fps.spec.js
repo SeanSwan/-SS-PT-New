@@ -81,7 +81,9 @@ test('holding the trigger fires repeatedly, and an aimed burst scores a kill wit
       if (d < bd) { bd = d; best = e; }
     }
     const dx = best.x - p.x;
-    const dyy = 0.5 - 1.6;
+    // 0.3, not 0.5: the parted crumb-roach is 0.45 tall — its hit shapes top out BELOW 0.5, so
+    // aiming at the old waist height whiffed it forever whenever it was the nearest enemy (S2).
+    const dyy = 0.3 - 1.6;
     const dz = best.z - p.z;
     window.__swanAim.yaw = Math.atan2(-dx, -dz);
     window.__swanAim.pitch = Math.asin(dyy / Math.hypot(dx, dyy, dz));

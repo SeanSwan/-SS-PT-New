@@ -116,9 +116,10 @@ test('spawnRing centres on the player, not the origin — the world is infinite 
 });
 
 test('spawnRing fills slots from the roster: type, hp, scaled aim and renderScale are the row', () => {
-  const w4 = spawnRing(8, 10, 4, { x: 0, z: 0 }, 0);
+  // TEST-DELTA (S2): the cast grew to six; wave 4's mix and wave 1's face count updated.
+  const w4 = spawnRing(12, 10, 4, { x: 0, z: 0 }, 0);
   const types = new Set(w4.map((e) => e.type));
-  assert.equal(types.size, 4, 'wave 4 mixes all four monsters');
+  assert.equal(types.size, 6, 'wave 4 mixes all six monsters');
   for (const e of w4) {
     assert.equal(e.hp, ROSTER[e.type].hp, `${e.type} hp comes from its row`);
     // R1/H8: the aim sphere scales WITH the rendered silhouette, and renderScale rides along
@@ -127,5 +128,5 @@ test('spawnRing fills slots from the roster: type, hp, scaled aim and renderScal
     assert.equal(e.renderScale, ROSTER[e.type].renderHeight);
   }
   const w1 = spawnRing(6, 10, 1, { x: 0, z: 0 }, 0);
-  assert.equal(new Set(w1.map((e) => e.type)).size, 2, 'wave 1 mixes two faces (R2)');
+  assert.equal(new Set(w1.map((e) => e.type)).size, 3, 'wave 1 mixes three faces (R2 + S2)');
 });
