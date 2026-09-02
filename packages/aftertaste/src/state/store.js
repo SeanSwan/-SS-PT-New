@@ -41,6 +41,7 @@ import { waveSize, spawnRing, tickRound, PLAYER_HP, inTouchRange } from '../syst
 import { stepLifecycle, can, holdsWave } from '../systems/lifecycle.js';
 import { PART_DAMAGE } from '../enemies/partsData.js';
 import { ROSTER } from '../enemies/roster.js';
+import { awardForShot, awardForRound } from '../systems/economy.js';
 
 /** Seconds a severed part's debris tumbles before fading off the floor — T4 default. */
 export const DEBRIS_TTL = 4;
@@ -69,6 +70,8 @@ const firstWave = () => spawnRing(waveSize(1), SPAWN_RADIUS, 1);
 export const useGameStore = create((set, get) => ({
   enemies: firstWave(),
   kills: 0,
+  /** The wallet. Earned by RESULTS only — see systems/economy.js. */
+  points: 0,
   hp: PLAYER_HP,
   wave: 1,
   over: false,
@@ -135,9 +138,12 @@ export const useGameStore = create((set, get) => ({
       if (e.id !== hit.target.id) return e;
       return killed ? { ...hurt, state: 'dying', stateSince: clockNow } : hurt;
     });
+    // ONE choke point for income (S4): every point in the game is minted here or at round clear.
+    const earned = awardForShot({ severed: newDebris.length, killed: killed === 1 });
     set({
       enemies: next,
       kills: kills + killed,
+      ...(earned ? { points: get().points + earned } : {}),
       lastHitAt: clockNow,
       shots: [...get().shots, tracer],
       ...(killed ? { lastKillAt: clockNow } : {}),
@@ -239,6 +245,7 @@ export const useGameStore = create((set, get) => ({
     if (s.feverUntil > 0 && elapsed >= s.feverUntil) patch.feverUntil = 0;
     if (r.cleared) {
       patch.wave = r.wave;
+      patch.points = s.points + awardForRound(s.wave);
       // Centred on the PLAYER: the floor follows you now, so a ring fixed at the origin would
       // spawn the next wave a full sprint behind wherever you have kited to. Corpses still mid-
       // topple SURVIVE the respawn — the lifecycle removes them when their death clip ends;
@@ -265,7 +272,7 @@ export const useGameStore = create((set, get) => ({
     const centre = usePlayerStore.getState().position;
     set({
       enemies: spawnRing(waveSize(1), SPAWN_RADIUS, 1, centre, clockNow),
-      kills: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0, feverUntil: 0,
+      kills: 0, points: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0, feverUntil: 0,
       lastHitAt: -1, lastKillAt: -1, debris: [], shots: [], meleeReadyAt: 0,
     });
     if (typeof window !== 'undefined') {

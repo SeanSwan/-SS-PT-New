@@ -354,3 +354,39 @@ test('every shot records a tracer segment (miss included), and tracers drain fas
   tick(FAR, T += 1);
   assert.equal(useGameStore.getState().shots.length, 0, 'tracers are gone within a blink');
 });
+
+// --- S4: the sever-native economy at the store seam -------------------------------------------
+
+test('a body shot pays NOTHING; the kill pays; the sever pays on top', () => {
+  mature();
+  const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
+  const body = target.parts.find((p) => p.tag === 'body').hitShape;
+  const bodyY = (body.a[1] + body.b[1]) / 2 * (target.renderScale ?? 1);
+  const before = useGameStore.getState().points;
+  useGameStore.getState().shoot({ x: target.x, y: bodyY, z: target.z - 10 }, { x: 0, y: 0, z: 1 });
+  assert.equal(useGameStore.getState().points, before, 'plinking a body must not pay');
+
+  // Now take the head off: the sever AND the kill land on one shot.
+  const alive = useGameStore.getState().enemies.find((e) => e.id === target.id);
+  headShotAt(alive);
+  const after = useGameStore.getState();
+  assert.ok(after.points > before, `a result pays (${before} -> ${after.points})`);
+});
+
+test('clearing a round pays a bonus that scales with the round', () => {
+  const first = useGameStore.getState().points;
+  useGameStore.setState({ enemies: [] });
+  tick(FAR, T += 1);
+  const afterWave1 = useGameStore.getState().points;
+  assert.ok(afterWave1 > first, 'surviving wave 1 paid');
+  useGameStore.setState({ enemies: [] });
+  tick(FAR, T += 1);
+  const afterWave2 = useGameStore.getState().points;
+  assert.ok(afterWave2 - afterWave1 > afterWave1 - first, 'wave 2 pays more than wave 1');
+});
+
+test('reset empties the wallet — a new run starts broke', () => {
+  useGameStore.setState({ points: 9999 });
+  useGameStore.getState().reset();
+  assert.equal(useGameStore.getState().points, 0);
+});

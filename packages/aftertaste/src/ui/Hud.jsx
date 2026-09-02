@@ -61,6 +61,7 @@ export default function Hud() {
   // selector re-renders only when ITS value changes; `remaining` selects the derived NUMBER so a
   // new array with the same count does not re-render the bar.
   const kills = useGameStore((s) => s.kills);
+  const points = useGameStore((s) => s.points);
   const hp = useGameStore((s) => s.hp);
   const wave = useGameStore((s) => s.wave);
   const over = useGameStore((s) => s.over);
@@ -113,6 +114,7 @@ export default function Hud() {
         <span data-testid="hud-hp">HP: {hp}</span>
         <span data-testid="hud-wave">Wave: {wave}</span>
         <span data-testid="hud-kills">Kills: {kills}</span>
+        <span data-testid="hud-points" style={{ color: '#C6A84B' }}>Points: {points.toLocaleString()}</span>
         {/* A toppling corpse is not "remaining" — count what still holds the wave open. */}
         <span data-testid="hud-left">Remaining: {remaining}</span>
         {feverUntil > 0 && (
@@ -139,7 +141,7 @@ export default function Hud() {
       {over && (
         <div data-testid="gameover" style={overlay}>
           <div style={{ fontSize: '1.6rem' }}>You were eaten.</div>
-          <div data-testid="final-score">Wave {wave} &middot; {kills} kills</div>
+          <div data-testid="final-score">Wave {wave} &middot; {kills} kills &middot; {points.toLocaleString()} points</div>
           <button
             data-testid="restart"
             onClick={reset}

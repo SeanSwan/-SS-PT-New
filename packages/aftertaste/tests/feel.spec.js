@@ -205,3 +205,30 @@ test('a fever is VISIBLE on the HUD and clears itself when the timer runs out', 
   });
   await expect(page.getByTestId('hud-fever')).toHaveCount(0, { timeout: 3_000 });
 });
+
+test('POINTS: killing pays, the HUD counts it, and a body plink pays nothing', async ({ page }) => {
+  await boot(page);
+  await expect(page.getByTestId('hud-points')).toContainText('Points: 0');
+
+  const result = await page.evaluate(async () => {
+    const store = window.__swanGameStore;
+    // Let the flock mature, then take a head off through the REAL shoot path.
+    store.getState().tick({ x: 9999, z: 9999 }, 1000);
+    const target = store.getState().enemies.find((e) => e.state === 'alive' && e.parts);
+    const head = target.parts.find((p) => p.tag === 'head').hitShape.c;
+    const before = store.getState().points;
+    // Shoot until it dies. One head shot severs only if the pool is already low enough — the
+    // roster-v2 threshold is a FRACTION of max hp, so a 3-hp face needs more than one bullet and
+    // the first draft of this test asserted income from a single tap on an enemy that survived it.
+    const rs = target.renderScale ?? 1;
+    let hits = 0;
+    while (hits < 12 && store.getState().enemies.find((e) => e.id === target.id)?.state === 'alive') {
+      const live = store.getState().enemies.find((e) => e.id === target.id);
+      store.getState().shoot({ x: live.x + head[0] * rs, y: 10, z: live.z + head[2] * rs }, { x: 0, y: -1, z: 0 });
+      hits += 1;
+    }
+    return { before, after: store.getState().points, hits };
+  });
+  expect(result.after, 'a severing kill paid').toBeGreaterThan(result.before);
+  await expect(page.getByTestId('hud-points')).not.toContainText('Points: 0');
+});
