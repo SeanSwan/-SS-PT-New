@@ -131,7 +131,13 @@ beforeAll(async () => {
     }
   };
   patch(app._router.stack);
-});
+  // Explicit hook budget: this beforeAll boots the ENTIRE app (16.8s observed in a
+  // loaded full run) under vitest's default 30s hookTimeout. Under full-suite CPU
+  // contention that margin flaked twice on 2026-09-02 (file-level FAIL, green solo
+  // and in api-dir runs). 120s is headroom, not a behavior change — assertions are
+  // untouched. NOTE: 17 tests/api files boot the app with no explicit budget; this
+  // is the observed flaker only. If another one flakes, sweep the class.
+}, 120_000);
 
 beforeEach(() => {
   actingUser = { ...MEMBER_A };
