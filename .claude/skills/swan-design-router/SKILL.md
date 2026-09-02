@@ -179,6 +179,30 @@ polish skips it. If you cannot write the direction sentence + the ONE phenomenon
 the signature moment, do not build — ask.
 **Step 3 — Bind:** world/lens tokens, palette slots, type scale, spacing. Confirm
 zero kill-list material in the plan.
+**Step 3.5 — Style Intelligence (MANDATORY for ASSET tasks and every Gate-0
+concept direction; skip for small polish and pure data-plumbing):** consult the
+style vocabulary and Sean's measured taste BEFORE naming a visual direction —
+never after the pixels exist.
+1. **Two-axis pick** from `docs/ai-workflow/design-brain/style-taxonomy.md`:
+   1–3 QUALITY facets (checked against that file's Swan ban mapping) + 1 SOURCE
+   category, and name the style anchor via the personification formula —
+   "[Artist]'s [their actual medium] depicting [subject]", never
+   "[subject] by [Artist]".
+2. **Taste check:** if the Swan Taste Brain is up
+   (`GET http://127.0.0.1:7331/api/profile`), read directions/codes/tallies and
+   carry the tier word (`evidence` / `prior`) into the brief under
+   `taste-discovery-grill.md` law — agents read IDs and tallies, never images,
+   and never write taste. Server down → write `[TASTE BRAIN OFFLINE]` and
+   proceed from doc priors; never fabricate a tier.
+3. **Corpus reach:** for image/film prompt work, query the Midjourney reference
+   archive via `node scripts/swan-brain.mjs "<style query>"` — IF that script
+   exists on the current branch (it ships on the comms wip branch and is not yet
+   merged to main). Absent → write `[SWAN BRAIN UNAVAILABLE]` and proceed from
+   the taxonomy alone. Cite results; never paste corpus text into repo files.
+4. Emit a **STYLE RECEIPT** in the brief/thread: facets picked + why, source
+   category, anchor formula, taste tier (or OFFLINE), corpus citations.
+Taste evidence never overrides law: a facet on the LAW-3 / taxonomy ban list is
+recorded as taste and still refused as design.
 **Step 4 — Blueprint:** BUILD-EXACT (below).
 **Step 5 — Build, then pass Gates 1–3.**
 
@@ -188,7 +212,8 @@ zero kill-list material in the plan.
 - **AUDIT:** findings cite laws, not taste: `[LAW n] violation — evidence — fix`.
   No "consider," no "maybe."
 - **ASSET:** load `SWAN-ASSET-STORYBOARDING.md`; optics-not-creatures + two-speed
-  bind generated media too.
+  bind generated media too. Step 3.5 is mandatory here — no Seedance/Forge brief
+  ships without its STYLE RECEIPT.
 - **Design generation via Kimi:** `consult-kimi.mjs --document <seed> --effort
   medium --max-tokens 26000` (REFINEMENT 5 — `--effort high` burns the budget on
   reasoning and returns EMPTY). RELATIVE paths only; serialize consults; a `*/`
@@ -231,7 +256,8 @@ reduced-motion path (use `svh`/`dvh`, not `100vh`, for full-height mobile heroes
 ## Gates
 
 **Gate 0 — Direction (pre-code):** direction sentence? one impossible phenomenon?
-signature moment? surface class? Missing any → stop.
+signature moment? surface class? style anchor from Step 3.5 (or a stated NONE
+reason)? Missing any → stop.
 **Gate 1 — Taste:** gold only in allowlist · kill-list scan zero hits · no creature
 geometry · no raw hex / no Galaxy values (fallbacks scanned) · no glass-on-glass.
 **Gate 2 — Contrast & motion:** Dual-Button Glow revalidated on THIS surface ·
@@ -266,6 +292,10 @@ hardcode `p.theme.colors.*` hex; CLAUDE.md Rule 46 + the shipped architecture wi
 | `SWAN-CINEMATIC-DESIGN-SYSTEM.md` | Cinematic/public builds; deep palette + motion values |
 | `SWAN-ASSET-STORYBOARDING.md` | Any generated/commissioned media |
 | `docs/ai-workflow/design-brain/design.md` | The Crystalline Canon — **sole canonical copy** (the `design.html` mirror was retired 2026-08-16; no second file to reconcile). Still ADAPTS the two source-of-truth docs above — "sole" means one copy, not top of the precedence chain |
+| `docs/ai-workflow/design-brain/style-taxonomy.md` | Step 3.5 — the two-axis (SOURCE × QUALITY) Midlibrary-derived style vocabulary + Swan ban mapping; vocabulary, never a license |
+| `docs/ai-workflow/design-brain/taste-discovery-grill.md` | Step 3.5 taste check + whenever the unresolved question is Sean's eye — the `/api/profile` read law and grill-me's Visual-taste mode |
+| `docs/ai-workflow/references/SWAN-BRAIN-QUERY.md` | Step 3.5 corpus reach — `node scripts/swan-brain.mjs` over the Midjourney reference archive (cite, never paste). NOT yet on main — present on the comms wip branch; skip with `[SWAN BRAIN UNAVAILABLE]` where absent |
+| `docs/ai-workflow/design-brain/forge-compiler-contract.md` | When compiling image prompts — the 12-slot composer; slot 4 (styleAnchor) is fed by the Step 3.5 pick |
 | `design.md.pre-redo` / `SKILL.md.pre-redo` | Historical context only |
 
 **Precedence on conflict:** this skill > reference docs > existing components >
@@ -287,6 +317,7 @@ WORLD ID: [stable id from worlds.md, or NONE for M0-M3 product work]
 DIRECTION: [one sentence — mood, hierarchy, the ONE impossible phenomenon]
 SIGNATURE MOMENT: [usually the Crystallize; else justify]
 PALETTE LAW: [A Swan-native | B world-native non-Swan]
+STYLE ANCHOR: [Step 3.5 pick — QUALITY facets + SOURCE category, or taste-evidence codes with tier; NONE only with a stated reason]
 KILL-LIST CHECK: [confirm zero LAW-3 material]
 ```
 
