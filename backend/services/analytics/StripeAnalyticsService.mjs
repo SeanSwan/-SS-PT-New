@@ -31,17 +31,13 @@ import CartItem from '../../models/CartItem.mjs';
 import User from '../../models/User.mjs';
 import StorefrontItem from '../../models/StorefrontItem.mjs';
 import { Op } from 'sequelize';
+import { getStripeClient } from '../../utils/stripeClient.mjs';
 
 // Initialize Stripe client
 let stripeClient = null;
 if (isStripeEnabled()) {
   try {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16',
-      telemetry: false, // Disable telemetry for production performance
-      maxNetworkRetries: 3,
-      timeout: 10000 // 10 second timeout
-    });
+    stripeClient = getStripeClient();
     logger.info('🎯 StripeAnalyticsService: Stripe client initialized successfully');
   } catch (error) {
     logger.error(`❌ StripeAnalyticsService: Failed to initialize Stripe client: ${error.message}`);

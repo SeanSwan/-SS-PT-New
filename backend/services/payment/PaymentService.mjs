@@ -32,6 +32,7 @@ import { isStripeEnabled } from '../../utils/apiKeyChecker.mjs';
 import ManualPaymentStrategy from './strategies/ManualPaymentStrategy.mjs';
 import StripeCheckoutStrategy from './strategies/StripeCheckoutStrategy.mjs';
 import StripeElementsStrategy from './strategies/StripeElementsStrategy.mjs';
+import { getStripeClient } from '../../utils/stripeClient.mjs';
 
 class PaymentService {
   constructor() {
@@ -141,9 +142,7 @@ class PaymentService {
         throw new Error('Invalid Stripe secret key format');
       }
 
-      this.stripeClient = new Stripe(secretKey.trim(), {
-        apiVersion: '2023-10-16'
-      });
+      this.stripeClient = getStripeClient();
 
       // Test Stripe connection
       const account = await this.stripeClient.accounts.retrieve();

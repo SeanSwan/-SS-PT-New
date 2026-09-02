@@ -40,6 +40,16 @@ module.exports = {
         message:
           'Hardcoded API key detected. Use process.env.*_API_KEY.',
       },
+      // ============================================
+      // One Stripe construction point (SWA-225 EX-1)
+      // 19 scattered `new Stripe(...)` drifted into TWO api versions because
+      // construction was copy-pasteable. Site #20 fails lint instead.
+      // ============================================
+      {
+        selector: "NewExpression[callee.name='Stripe']",
+        message:
+          'Construct Stripe only in utils/stripeClient.mjs (getStripeClient / getLegacyDefaultStripeClient). SWA-225 EX-1: scattered construction is how the two-version split happened.',
+      },
     ],
 
     // ============================================
@@ -62,6 +72,29 @@ module.exports = {
     'no-process-exit': 'warn', // catch accidental process.exit() in non-CLI code
   },
   overrides: [
+    // The ONE file allowed to construct Stripe (SWA-225 EX-1). The credential
+    // selectors above still apply here — only the construction ban lifts, and
+    // only by re-stating the rule WITHOUT the Stripe selector.
+    {
+      files: ['utils/stripeClient.mjs'],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector:
+              "Literal[value=/^(postgresql:\\/\\/|postgres:\\/\\/|mongodb(\\+srv)?:\\/\\/).*:[^@]+@/]",
+            message:
+              'Hardcoded database URL with credentials detected. Use process.env.DATABASE_URL.',
+          },
+          {
+            selector:
+              "Literal[value=/^(AIza[A-Za-z0-9_-]{35}|sk-ant-api|sk-proj-|ghp_)/]",
+            message:
+              'Hardcoded API key detected. Use process.env.*_API_KEY.',
+          },
+        ],
+      },
+    },
     // Test files — looser rules
     {
       files: [

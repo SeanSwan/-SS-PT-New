@@ -22,6 +22,7 @@ import unifiedSessionService from '../services/sessions/session.service.mjs';
 import { claimIdempotentRecord } from '../utils/paymentIdempotency.mjs';
 import { fulfillGalleryVipSession } from '../services/galleryVipFulfillmentService.mjs';
 import sequelize from '../database.mjs';
+import { getStripeClient } from '../utils/stripeClient.mjs';
 
 /**
  * Resolve the Order behind an ACH PaymentIntent.
@@ -104,9 +105,7 @@ const router = express.Router();
 let stripeClient = null;
 if (isStripeEnabled()) {
   try {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16' // Use a fixed, recent API version
-    });
+    stripeClient = getStripeClient();
     logger.info('Stripe client initialized successfully in stripeWebhook.');
   } catch (error) {
     logger.error(`Failed to initialize Stripe in stripeWebhook: ${error.message}`);

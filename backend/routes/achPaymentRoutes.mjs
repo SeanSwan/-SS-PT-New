@@ -31,6 +31,7 @@ import { generateSwanOrderNumber } from '../utils/orderNumber.mjs';
 // disables the ceiling below. See the note in cartRoutes.mjs.
 import { MAX_CART_ITEM_QUANTITY, MAX_PAYMENT_LINE_ITEMS } from '../utils/cartHelpers.mjs';
 import { resolveUnitPrice, UnpriceableItemError } from '../services/store/itemPricing.mjs';
+import { getStripeClient } from '../utils/stripeClient.mjs';
 import {
   claimIdempotentRecord,
 } from '../utils/paymentIdempotency.mjs';
@@ -44,7 +45,7 @@ const router = express.Router();
 let stripe = null;
 try {
   if (process.env.STRIPE_SECRET_KEY) {
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' });
+    stripe = getStripeClient();
   }
 } catch (err) {
   logger.error('[ACH] Stripe init failed:', err.message);
