@@ -24,18 +24,24 @@ import Debris from './world/Debris.jsx';
 import Player from './player/Player.jsx';
 import Enemies from './enemies/Enemies.jsx';
 import Hud from './ui/Hud.jsx';
-import { aim, applyLook, PITCH_LIMIT } from './player/aim.js';
+import { aim, applyLook, PITCH_LIMIT, SENSITIVITY } from './player/aim.js';
 import Tracers from './combat/Tracers.jsx';
 import { useGameStore, usePlayerStore } from './state/store.js';
 import { FRAME_ORDER } from './systems/frameOrder.js';
+import { gun, weaponOf, recoilKick, spreadAfterShot, spreadAfterRest, currentCone, applySpread } from './combat/gunState.js';
 
 /** Eye height. Enemies are ~1 unit tall, so you look slightly DOWN at the swarm — CoD-zombies framing. */
 const EYE_HEIGHT = 1.6;
 
 // Frame ordering is DECLARED, not mount-order luck — see systems/frameOrder.js (GLM-5.3, finding 9).
 
-/** Seconds between shots while the trigger is held. ~400 rounds/min — an Overwatch-ish auto. */
-const FIRE_INTERVAL = 0.15;
+/**
+ * Seconds after the last shot before the cone starts shrinking again. Without this delay, recovery
+ * and bloom fight each other INSIDE a burst — at 0.15s between shots, a 0.08/s recovery eats 0.012
+ * while each shot adds 0.006, so a held trigger would get MORE accurate. Recovery is what happens
+ * when you let go, not a discount on spraying.
+ */
+const SPREAD_RECOVER_DELAY = 0.12;
 
 /**
  * FpsRig — the camera goes behind your eyes (Sean's call: shoot like Overwatch/Battlefield).
@@ -62,7 +68,11 @@ function FpsRig() {
     };
     const onMouseMove = (e) => {
       if (document.pointerLockElement !== canvas) return;
-      Object.assign(aim, applyLook(aim, e.movementX, e.movementY));
+      // Aiming down sights SLOWS the mouse by the weapon's own factor. Without this, zoom makes a
+      // gun harder to aim, not easier: the same wrist flick sweeps the same angle across a much
+      // narrower field of view, so every micro-correction is magnified. Every shooter does this.
+      const sens = SENSITIVITY * (gun.ads ? weaponOf(gun).adsSensitivity : 1);
+      Object.assign(aim, applyLook(aim, e.movementX, e.movementY, sens));
     };
     canvas.addEventListener('mousedown', onMouseDown);
     document.addEventListener('mousemove', onMouseMove);
@@ -70,6 +80,7 @@ function FpsRig() {
     // movementX. This is the same one-readable-global reasoning as __swanPlayerPos.
     if (typeof window !== 'undefined') {
       window.__swanAim = aim;
+      window.__swanGun = gun;
       window.__swanLook = (dx, dy) => Object.assign(aim, applyLook(aim, dx, dy));
     }
     return () => {
@@ -94,7 +105,8 @@ function FpsRig() {
     camera.position.set(p.x, EYE_HEIGHT + (p.y ?? 0) + bob, p.z);
     camera.rotation.set(aim.pitch, aim.yaw, 0);
     // Sprint widens the world a touch — the classic speed cue. Eased, never snapped.
-    const wantFov = p.sprinting ? 81 : 75;
+    // ADS (right-click) beats sprint: if you are looking down the sights you are aiming, not running.
+    const wantFov = gun.ads ? weaponOf(gun).zoomFov : (p.sprinting ? 81 : 75);
     if (Math.abs(camera.fov - wantFov) > 0.05) {
       camera.fov += (wantFov - camera.fov) * Math.min(1, delta * 8);
       camera.updateProjectionMatrix();
@@ -129,53 +141,89 @@ function TriggerControl() {
   useEffect(() => {
     const canvas = gl.domElement;
     const down = (e) => {
-      if (e.button === 2) {
-        // THE PUNCH (playtest 2): right-click swings at everything in the facing arc.
-        const p = usePlayerStore.getState().position;
-        useGameStore.getState().melee({ x: p.x, z: p.z }, aim.yaw);
-        return;
-      }
+      // RIGHT-CLICK IS AIM, NOT A FIST (Sean, playtest 3: "Who does punch as right click? That's
+      // the F key. Right click is so you can zoom in when you actually get a scope"). Hold to aim
+      // down sights: narrower FOV, slower mouse, tighter cone. It is the slot a real scope upgrades.
+      if (e.button === 2) { gun.ads = true; return; }
       if (e.button !== 0) return;
       held.current = true;
       // An unlocked click is (also) the aim-grab — give the lock a beat before the gun believes it.
       armedAt.current = document.pointerLockElement === canvas ? 0 : performance.now() / 1000 + ARM_SECONDS;
     };
-    const noMenu = (e) => e.preventDefault(); // right-click belongs to the fist, not the browser menu
+    const noMenu = (e) => e.preventDefault(); // right-click belongs to the sights, not the browser menu
     canvas.addEventListener('contextmenu', noMenu);
-    const up = (e) => { if (e.button === 0) held.current = false; };
+    const up = (e) => {
+      if (e.button === 0) held.current = false;
+      if (e.button === 2) gun.ads = false;
+    };
+    // THE PUNCH IS F. A key event, not a held state: one swing per press, and `repeat` is what stops
+    // a leaned-on key from machine-gunning fists (the store's cooldown is the real gate, but a key
+    // that fires 30 times a second would burn it on the first frame).
+    const key = (e) => {
+      if (e.code !== 'KeyF' || e.repeat) return;
+      const p = usePlayerStore.getState().position;
+      useGameStore.getState().melee({ x: p.x, z: p.z }, aim.yaw);
+    };
     // The keyboard has cleared its keys on window blur since Slice 2; the mouse path never did.
     // Alt-tab while firing left `held` true FOREVER (the mouseup lands on the other window), and
-    // on refocus the gun fired autonomously with no button down (GLM-Flash finding 1).
-    const blur = () => { held.current = false; };
+    // on refocus the gun fired autonomously with no button down (GLM-Flash finding 1). ADS is the
+    // same bug in a second costume: alt-tab while aiming and you come back permanently zoomed.
+    const blur = () => { held.current = false; gun.ads = false; };
     canvas.addEventListener('mousedown', down);
     document.addEventListener('mouseup', up);
+    window.addEventListener('keydown', key);
     window.addEventListener('blur', blur);
     return () => {
       canvas.removeEventListener('mousedown', down);
       canvas.removeEventListener('contextmenu', noMenu);
       document.removeEventListener('mouseup', up);
+      window.removeEventListener('keydown', key);
       window.removeEventListener('blur', blur);
     };
   }, [gl]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     // Death opens the hand: without this, dying mid-burst leaves `held` true forever (the death
     // overlay swallows the mouseup) and "Go again" resumes firing uncommanded. shoot() itself
     // also refuses while over — belt AND braces, because they fail differently.
-    if (useGameStore.getState().over) { held.current = false; return; }
+    // Death holsters the gun: hand open, sights down, cone closed, pattern back to the top. Without
+    // the last two, "Go again" starts you with a blown-open crosshair and a mid-burst kick you did
+    // not earn — the round is new, the gun should be too.
+    if (useGameStore.getState().over) {
+      held.current = false;
+      gun.ads = false;
+      gun.spread = weaponOf(gun).spread.base;
+      gun.burstIndex = 0;
+      return;
+    }
+    const now = state.clock.elapsedTime;
+    // The cone shrinks back on its own once you stop shooting — the reward for firing in bursts.
+    if (now - gun.lastShotAt > SPREAD_RECOVER_DELAY) gun.spread = spreadAfterRest(gun, delta);
     if (!held.current) return;
     if (performance.now() / 1000 < armedAt.current) return;
-    const now = state.clock.elapsedTime;
-    if (now - lastShot.current < FIRE_INTERVAL) return;
+    if (now - lastShot.current < weaponOf(gun).fireInterval) return;
     lastShot.current = now;
-    const dir = camera.getWorldDirection(_dirScratch);
+
+    // The bullet leaves inside the CONE, not down the exact crosshair ray. The cone is knowable
+    // (it blooms per shot and is hard-capped — Sean: "make sure this spread has a limit, so it's
+    // just not running everywhere all the time"); only the point inside it is random.
+    const camDir = camera.getWorldDirection(_dirScratch);
+    const dir = applySpread({ x: camDir.x, y: camDir.y, z: camDir.z }, currentCone(gun));
     useGameStore.getState().shoot(
       { x: camera.position.x, y: camera.position.y, z: camera.position.z },
-      { x: dir.x, y: dir.y, z: dir.z },
+      dir,
     );
-    // RECOIL (playtest 2: "tighten up the shooting"): a small upward kick the player fights.
-    // Clamped by the same pitch limit the mouse obeys — recoil cannot look past straight up.
-    aim.pitch = Math.min(aim.pitch + 0.008, PITCH_LIMIT);
+
+    // RECOIL AS A PATTERN, NOT A DICE ROLL (Sean: "when the gun kicks up, that's not just a random
+    // kick up... weapons in BF6 have different kick to figure out how strong they are"). Shot N of
+    // a burst always kicks the same way, so the gun can be LEARNED and pulled against; a pause
+    // resets to the top of the pattern. Clamped by the pitch limit the mouse obeys.
+    const kick = recoilKick(gun, now);
+    aim.pitch = Math.min(aim.pitch + kick.pitch, PITCH_LIMIT);
+    aim.yaw += kick.yaw;
+    gun.burstIndex = kick.nextIndex;
+    gun.spread = spreadAfterShot(gun);
+    gun.lastShotAt = now;
     if (typeof window !== 'undefined') window.__swanShotsFired = (window.__swanShotsFired ?? 0) + 1;
   }, FRAME_ORDER.trigger);
   return null;

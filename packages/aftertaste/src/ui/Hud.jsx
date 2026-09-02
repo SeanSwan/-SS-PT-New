@@ -9,9 +9,10 @@
  * pointerEvents: none on the top bar is the important line -- without it the bar silently eats
  * clicks meant for the game. The game-over panel DOES take pointer events, because it has a button.
  */
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useGameStore } from '../state/store.js';
 import { holdsWave } from '../systems/lifecycle.js';
+import { gun, weaponOf, currentCone } from '../combat/gunState.js';
 
 /**
  * TEACHING NOTE — THE CROSSHAIR IS HTML TOO:
@@ -67,8 +68,27 @@ export default function Hud() {
   const lastHitAt = useGameStore((s) => s.lastHitAt);
   const lastKillAt = useGameStore((s) => s.lastKillAt);
   const remaining = useGameStore((s) => s.enemies.reduce((n, e) => n + (holdsWave(e) ? 1 : 0), 0));
-  // Crosshair bloom while rounds are in the air — tracers live SHOT_TTL, so this breathes with fire.
-  const firing = useGameStore((s) => s.shots.length > 0);
+
+  // THE CROSSHAIR IS THE SPREAD, DRAWN. It opens exactly as far as the bullet cone opens and stops
+  // where the cone's cap stops, so "my spread has a limit" is something you can SEE rather than
+  // trust. Written straight to the element every frame instead of through React state: the cone
+  // changes on every shot, and a store value would re-render the whole HUD at fire rate.
+  const crossRef = useRef(null);
+  useEffect(() => {
+    let raf;
+    const tick = () => {
+      const el = crossRef.current;
+      if (el) {
+        const s = weaponOf(gun).spread;
+        const frac = (currentCone(gun) - s.base) / (s.max - s.base); // 0 at rest, 1 at the cap
+        const scale = Math.max(0.75, Math.min(1.6, 1 + frac * 0.6));
+        el.style.transform = `translate(-50%, -50%) scale(${scale.toFixed(3)})`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [over]);
 
   // Death hands the mouse back: pointer lock hides the cursor, and a hidden cursor cannot press
   // the restart button. The browser releases lock on Esc; we release it on the death screen.
@@ -85,17 +105,16 @@ export default function Hud() {
         <span data-testid="hud-kills">Kills: {kills}</span>
         {/* A toppling corpse is not "remaining" — count what still holds the wave open. */}
         <span data-testid="hud-left">Remaining: {remaining}</span>
-        <span style={{ opacity: 0.6 }}>click to take aim &middot; WASD move &middot; hold to fire</span>
+        <span style={{ opacity: 0.6 }}>
+          click to take aim &middot; WASD &middot; SHIFT run &middot; SPACE jump &middot; F punch &middot; RMB aim &middot; hold LMB to fire
+        </span>
       </div>
 
       {!over && (
         <div
+          ref={crossRef}
           data-testid="crosshair"
-          style={{
-            ...crosshairStyle,
-            transition: 'transform 70ms ease-out',
-            transform: `translate(-50%, -50%) scale(${firing ? 1.35 : 1})`,
-          }}
+          style={{ ...crosshairStyle, transition: 'transform 70ms ease-out' }}
         >+</div>
       )}
       {/* -1 is "never": 0 is a real clock reading (a first-frame hit), so it cannot be the sentinel. */}

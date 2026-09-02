@@ -54,7 +54,7 @@ test('SHIFT sprints: measured ground speed rises by the sprint multiplier', asyn
   expect(run / walk, `sprint ratio (walk ${walk.toFixed(1)}, run ${run.toFixed(1)})`).toBeGreaterThan(1.25);
 });
 
-test('right-click PUNCHES: an adjacent enemy takes damage and is shoved', async ({ page }) => {
+test('F PUNCHES: an adjacent enemy takes damage and is shoved', async ({ page }) => {
   await boot(page);
   await page.waitForFunction(() => window.__swanEnemyPos?.some((e) => e.state === 'alive'), null, { timeout: 10_000 });
   const result = await page.evaluate(() => {
@@ -65,8 +65,7 @@ test('right-click PUNCHES: an adjacent enemy takes damage and is shoved', async 
     target.x = p.x; target.z = p.z - 1.2;
     window.__swanAim.yaw = 0; window.__swanAim.pitch = 0;
     const before = { hp: target.hp, z: target.z };
-    const canvas = document.querySelector('canvas');
-    canvas.dispatchEvent(new MouseEvent('mousedown', { button: 2, bubbles: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyF', bubbles: true }));
     const after = store.getState().enemies.find((e) => e.id === target.id);
     return { before, after: { hp: after.hp, z: after.z, state: after.state } };
   });
@@ -80,12 +79,77 @@ test('firing draws a tracer streak in the scene and blooms the crosshair', async
   await boot(page);
   await page.mouse.move(640, 400);
   await page.mouse.down();
+  // The crosshair reads the real cone now, so this asserts a MEASURED bloom rather than a magic
+  // string — the earlier version pinned `scale(1.3` and would have gone green on a frozen value.
   const seen = await page.waitForFunction(() => {
     let streaks = 0;
     window.__swanScene.traverse((o) => { if (o.parent?.name === 'tracers' && o.isMesh) streaks += 1; });
-    const bloomed = /scale\(1\.3/.test(document.querySelector('[data-testid="crosshair"]')?.style.transform ?? '');
-    return (streaks >= 1 && bloomed) ? { streaks, bloomed } : false;
+    const t = document.querySelector('[data-testid="crosshair"]')?.style.transform ?? '';
+    const scale = Number(/scale\(([\d.]+)\)/.exec(t)?.[1] ?? 1);
+    return (streaks >= 1 && scale > 1.25) ? { streaks, scale } : false;
   }, null, { timeout: 10_000 });
   await page.mouse.up();
   expect(seen).toBeTruthy();
+});
+
+test('the spread has a LIMIT: a long hold stops opening, and letting go closes it', async ({ page }) => {
+  await boot(page);
+  // Standing still while holding the trigger is how you get eaten, and death freezes the gun
+  // mid-bloom. Survival is not what is under test, so it is removed as a variable rather than left
+  // to luck — this test failed once inside the full suite and its artifacts were gone before the
+  // cause could be read, so BOTH plausible causes are closed: death here, and a fixed sleep that
+  // assumes a frame rate (the wait below is a condition, not a stopwatch).
+  await page.evaluate(() => window.__swanGameStore.setState({ hp: 99999 }));
+  await page.mouse.move(640, 400);
+  await page.mouse.down();
+
+  // Bloom until the cap, however long the machine takes to fire those shots.
+  await page.waitForFunction(() => window.__swanGun.spread >= 0.035, null, { timeout: 15_000 });
+  // Then keep holding. THIS is the claim Sean asked for — not "it reaches a number" but "it stops
+  // there while you keep spraying".
+  await page.waitForTimeout(1200);
+  const capped = await page.evaluate(() => ({ spread: window.__swanGun.spread, shots: window.__swanShotsFired }));
+
+  await page.mouse.up();
+  await page.waitForFunction(() => window.__swanGun.spread < 0.006, null, { timeout: 5_000 });
+  const rested = await page.evaluate(() => window.__swanGun.spread);
+
+  expect(capped.shots, 'the burst actually fired').toBeGreaterThan(8);
+  expect(capped.spread, 'held at the cap, not climbing forever').toBeCloseTo(0.035, 5);
+  expect(rested, 'the cone closes again once you let go').toBeLessThan(0.006);
+});
+
+test('death holsters the gun: the cone closes and the burst resets before you go again', async ({ page }) => {
+  await boot(page);
+  await page.mouse.move(640, 400);
+  await page.mouse.down();
+  await page.waitForFunction(() => window.__swanGun.spread >= 0.035, null, { timeout: 15_000 });
+  await page.evaluate(() => window.__swanGameStore.setState({ over: true }));
+  const holstered = await page.waitForFunction(
+    () => (window.__swanGun.spread <= 0.0041 && window.__swanGun.burstIndex === 0 && !window.__swanGun.ads)
+      ? { ...window.__swanGun } : false,
+    null, { timeout: 5_000 },
+  );
+  await page.mouse.up();
+  expect(holstered).toBeTruthy();
+});
+
+test('right-click AIMS DOWN SIGHTS: the view zooms in and the cone tightens; release restores it', async ({ page }) => {
+  await boot(page);
+  const canvas = page.locator('canvas');
+  const hipFov = await page.evaluate(() => window.__swanCamera.fov);
+
+  await canvas.dispatchEvent('mousedown', { button: 2 });
+  await page.waitForTimeout(700); // the FOV is eased, never snapped
+  const ads = await page.evaluate(() => ({ fov: window.__swanCamera.fov, ads: window.__swanGun.ads }));
+
+  await page.evaluate(() => document.dispatchEvent(new MouseEvent('mouseup', { button: 2, bubbles: true })));
+  await page.waitForTimeout(700);
+  const back = await page.evaluate(() => ({ fov: window.__swanCamera.fov, ads: window.__swanGun.ads }));
+
+  expect(hipFov).toBeGreaterThan(70);
+  expect(ads.ads, 'holding RMB is aiming').toBe(true);
+  expect(ads.fov, `zoomed in from ${hipFov}`).toBeLessThan(60);
+  expect(back.ads).toBe(false);
+  expect(back.fov, 'released back to hip-fire FOV').toBeGreaterThan(70);
 });
