@@ -6,27 +6,14 @@
  * so `req.ip` is the real client behind Render's proxy rather than the proxy itself. Keyed on
  * the proxy, every one of these would be a single global bucket for all visitors at once.
  *
- * ── THIS FILE IS OVER THE 300-LINE CAP AND IS DELIBERATELY NOT SPLIT ────────
- * 2026-09-02. Two review seats flagged 356 lines as a rule-4 violation, correctly. Three
- * candidate seams were examined and each one was arbitrary:
+ * ── OVER THE 300-LINE CAP, AS AN ARGUED EXCEPTION ──────────────────────────
+ * Three candidate seams were examined on 2026-09-02 and each was arbitrary; none reached
+ * 300, and all cost the one property that makes this file useful — a single place to look
+ * for what throttles X and how hard. Reasoning in commit 5eaac472b. **The waiver is Sean's
+ * to grant or refuse**; if refused, the split is by threat model and is its own slice.
  *
- *   public vs authenticated   a threat-model taxonomy invented for the occasion; the next
- *                             person adds a limiter to the wrong half and nobody notices
- *   config vs behaviour       true of exactly one limiter (`preKeyFetchLimiter`, the only
- *                             one with a keyGenerator) and worth ~30 lines
- *   by feature cluster        splits `waiverLimiter` from `waiverVersionsLimiter` for
- *                             adjacency, which is not a reason
- *
- * None reaches 300, and all three cost the property that makes this file useful: ONE place
- * to look for "what throttles X, and how hard". Rule 4 exists to break up files that mix
- * concerns — a 300-line component doing state, layout and fetching. This file has one
- * concern and is long because roughly three quarters of it is prose explaining, per limiter,
- * the specific abuse it stops and why the ceiling sits where it does. Deleting that
- * commentary would pass the check and lose the thing worth keeping.
- *
- * Recorded as an argued exception rather than a silent deferral, which is what the seats
- * actually asked for. **It is Sean's to grant or refuse** — if refused, the honest split is
- * by threat model, and every limiter needs re-reading to place it, which is its own slice.
+ * (This note is short on purpose. The first version of it ran 28 lines and made the file
+ * LONGER than the cap violation it was explaining — a decision recorded in the wrong place.)
  */
 
 import rateLimit from 'express-rate-limit';
