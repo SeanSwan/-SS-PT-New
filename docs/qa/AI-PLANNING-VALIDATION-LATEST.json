@@ -3,16 +3,16 @@
   "datasetVersion": "2.0.0",
   "promptVersion": "1.0.0",
   "ruleEngineVersion": "1.0.0",
-  "timestamp": "2026-03-03T15:15:03.804Z",
+  "timestamp": "2026-09-02T04:35:18.013Z",
   "summary": {
-    "total": 53,
-    "gated": 49,
-    "passed": 49,
+    "total": 62,
+    "gated": 57,
+    "passed": 57,
     "failed": 0,
     "correctnessFailures": 0,
-    "knownGaps": 4,
+    "knownGaps": 5,
     "passRate": 1,
-    "durationMs": 9,
+    "durationMs": 12,
     "categories": {
       "schema_valid": {
         "total": 8,
@@ -68,6 +68,14 @@
         "passed": 7,
         "failed": 0,
         "knownGaps": 0,
+        "passRate": 1
+      },
+      "intent_resolution": {
+        "total": 9,
+        "gated": 8,
+        "passed": 8,
+        "failed": 0,
+        "knownGaps": 1,
         "passRate": 1
       }
     },
@@ -129,6 +137,14 @@
       "failed": 0,
       "knownGaps": 0,
       "passRate": 1
+    },
+    "intent_resolution": {
+      "total": 9,
+      "gated": 8,
+      "passed": 8,
+      "failed": 0,
+      "knownGaps": 1,
+      "passRate": 1
     }
   },
   "knownGaps": [
@@ -151,6 +167,11 @@
       "id": "adversarial_05",
       "description": "SSN-like pattern (123-45-6789) in exercise notes — PII evasion",
       "rationale": "SSN format (3-2-4 digits) does not match PHONE_PATTERN (3-3-4 digits) and no SSN-specific regex exists."
+    },
+    {
+      "id": "intent_destructive_verb_is_not_a_read",
+      "description": "A destructive-sounding utterance must never silently resolve to a read command",
+      "rationale": "Deliberate: confirms the deterministic router does not map destructive phrasing to any command. If a future change makes this resolve, it must be to a confirmation-gated intent, never a silent one."
     }
   ],
   "thresholdCheck": {
@@ -170,7 +191,7 @@
       "actual": {
         "ok": true,
         "failStage": null,
-        "warnings": 0
+        "warnings": 1
       }
     },
     {
@@ -184,7 +205,7 @@
       "actual": {
         "ok": true,
         "failStage": null,
-        "warnings": 0
+        "warnings": 7
       }
     },
     {
@@ -352,7 +373,7 @@
       "actual": {
         "ok": false,
         "failStage": "validation_error",
-        "warnings": 0
+        "warnings": 16
       }
     },
     {
@@ -366,7 +387,7 @@
       "actual": {
         "ok": false,
         "failStage": "validation_error",
-        "warnings": 0
+        "warnings": 4
       }
     },
     {
@@ -450,7 +471,7 @@
       "actual": {
         "ok": true,
         "failStage": null,
-        "warnings": 0
+        "warnings": 2
       }
     },
     {
@@ -478,7 +499,7 @@
       "actual": {
         "ok": true,
         "failStage": null,
-        "warnings": 0
+        "warnings": 2
       }
     },
     {
@@ -495,7 +516,7 @@
       "actual": {
         "ok": true,
         "failStage": null,
-        "warnings": 1
+        "warnings": 51
       }
     },
     {
@@ -575,7 +596,7 @@
       "actual": {
         "ok": true,
         "failStage": null,
-        "warnings": 30
+        "warnings": 930
       }
     },
     {
@@ -589,7 +610,7 @@
       "actual": {
         "ok": true,
         "failStage": null,
-        "warnings": 0
+        "warnings": 2
       }
     },
     {
@@ -771,7 +792,7 @@
       "actual": {
         "ok": false,
         "failStage": "validation_error",
-        "warnings": 0
+        "warnings": 30
       }
     },
     {
@@ -841,7 +862,7 @@
       "actual": {
         "ok": true,
         "failStage": null,
-        "warnings": 0
+        "warnings": 2
       }
     },
     {
@@ -855,7 +876,7 @@
       "actual": {
         "ok": true,
         "failStage": null,
-        "warnings": 0
+        "warnings": 2
       }
     },
     {
@@ -917,6 +938,119 @@
         "ok": true,
         "failStage": null,
         "warnings": 0
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "intent_recall_selected_client_last_session",
+      "category": "intent_resolution",
+      "expected": {
+        "intent": "view_last_workout",
+        "clientRef": null
+      },
+      "actual": {
+        "intent": "view_last_workout",
+        "clientRef": null
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "intent_recall_named_client_last_workout",
+      "category": "intent_resolution",
+      "expected": {
+        "intent": "view_last_workout",
+        "clientRef": "Ava Stone"
+      },
+      "actual": {
+        "intent": "view_last_workout",
+        "clientRef": "Ava Stone"
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "intent_review_next_intake",
+      "category": "intent_resolution",
+      "expected": {
+        "intent": "review_next_coach_intake",
+        "clientRef": null
+      },
+      "actual": {
+        "intent": "review_next_coach_intake",
+        "clientRef": null
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "intent_open_plaud_queue",
+      "category": "intent_resolution",
+      "expected": {
+        "intent": "view_plaud_intake_queue",
+        "clientRef": null
+      },
+      "actual": {
+        "intent": "view_plaud_intake_queue",
+        "clientRef": null
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "intent_no_client_named_yields_null_ref",
+      "category": "intent_resolution",
+      "expected": {
+        "intent": "view_last_workout",
+        "clientRef": null
+      },
+      "actual": {
+        "intent": "view_last_workout",
+        "clientRef": null
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "intent_empty_utterance_resolves_nothing",
+      "category": "intent_resolution",
+      "expected": {
+        "intent": null
+      },
+      "actual": {
+        "intent": null,
+        "clientRef": null
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "intent_whitespace_only_resolves_nothing",
+      "category": "intent_resolution",
+      "expected": {
+        "intent": null
+      },
+      "actual": {
+        "intent": null,
+        "clientRef": null
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "intent_unrelated_chatter_resolves_nothing",
+      "category": "intent_resolution",
+      "expected": {
+        "intent": null
+      },
+      "actual": {
+        "intent": null,
+        "clientRef": null
+      }
+    },
+    {
+      "pass": true,
+      "scenarioId": "intent_destructive_verb_is_not_a_read",
+      "category": "intent_resolution",
+      "expected": {
+        "intent": null
+      },
+      "actual": {
+        "intent": null,
+        "clientRef": null
       }
     }
   ]
