@@ -643,14 +643,43 @@ export const initializeServer = async (app) => {
           logger.warn(`Checkout reconciliation sweeper failed to start: ${reconcileErr.message}`);
         }
 
+        // S1 (blueprint 0.3, 2026-09-02): the destructive-approval signing key is
+        // REQUIRED. Deliberately OUTSIDE any try/catch — a deploy without
+        // OPERATION_SIGNING_KEY must fail HERE, at boot, with the remedy in the
+        // message, not silently mint per-process random keys that void every
+        // approval on restart (the standing P0). A swallowed throw here would be
+        // exactly the fail-open wrapper this class of guard keeps growing.
+        {
+          const { assertOperationSigningKey } = await import('../services/ai/destructiveOperations.mjs');
+          assertOperationSigningKey();
+        }
+
+        // 0.4b: install the durable approval store when explicitly opted in.
+        // Opt-in (APPROVAL_STORE=redis) rather than auto-on-REDIS_URL so a config
+        // typo can never silently change approval semantics; flipping it is a
+        // deliberate operator action. Fail CLOSED on the flag: if redis was ASKED
+        // for and cannot install, booting in-process would silently restore the P0
+        // while the operator believes it fixed — refuse to boot instead.
+        if (process.env.APPROVAL_STORE === 'redis') {
+          try {
+            const { installRedisPendingOperationStore } = await import('../services/ai/redisPendingOperationStore.mjs');
+            await installRedisPendingOperationStore();
+            logger.info('[Startup] Destructive-approval store: REDIS (durable, multi-instance)');
+          } catch (redisStoreErr) {
+            throw new Error(
+              `APPROVAL_STORE=redis was requested but the Redis approval store could not be installed: ${redisStoreErr.message}. `
+              + 'Fix REDIS_URL / connectivity, or unset APPROVAL_STORE to boot with the in-process store (single-instance only).'
+            );
+          }
+        }
+
         try {
           // S2 (2026-08-21). Reports at ERROR level when the destructive-approval
           // store is in-process while NODE_ENV=production — approvals then cannot
-          // survive a restart or cross instances, and the HMAC guarding them is
-          // inert. Deliberately does NOT throw: the condition has been latent for
-          // months and the remedy (provisioning Redis) is not something the process
-          // can perform for itself, so refusing to boot would convert a silent
-          // defect into an outage. Makes it visible in Render logs and alerting.
+          // survive a restart or cross instances. Deliberately does NOT throw: the
+          // remedy (provisioning Redis) is not something the process can perform
+          // for itself, so refusing to boot would convert a silent defect into an
+          // outage. Makes it visible in Render logs and alerting.
           const { assertStoreIsSafeForEnvironment } = await import('../services/ai/pendingOperationStore.mjs');
           assertStoreIsSafeForEnvironment();
         } catch (storeGuardErr) {

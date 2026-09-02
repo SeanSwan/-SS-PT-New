@@ -452,7 +452,7 @@ router.post('/cancel', protect, async (req, res) => {
       return res.status(400).json({ success: false, error: 'operationId is required' });
     }
 
-    const cancelled = cancelOperation(operationId, req.user.id);
+    const cancelled = await cancelOperation(operationId, req.user.id);
     if (cancelled) {
       recordCommandAudit({
         userId: req.user.id,
@@ -542,13 +542,15 @@ router.get('/commands', protect, (req, res) => {
 
 // ── GET /health — Command engine health check ───────────────────────────────
 
-router.get('/health', protect, (req, res) => {
+router.get('/health', protect, async (req, res) => {
+  // 0.4b: async — the store contract is async now; a sync handler here would
+  // serialise a Promise into the JSON (the exact trap the S2 handoff named).
   const allCommands = getAllCommandTypes();
   res.json({
     success: true,
     engine: 'god-level-ai-command-v1',
     registeredCommands: allCommands.length,
-    pendingOperations: getPendingCount(req.user.id),
+    pendingOperations: await getPendingCount(req.user.id),
     status: allCommands.length > 0 ? 'operational' : 'no_commands_registered',
   });
 });

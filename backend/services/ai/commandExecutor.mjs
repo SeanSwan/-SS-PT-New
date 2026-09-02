@@ -563,7 +563,7 @@ async function stepConfirmation(ctx) {
 
   // For destructive ops, prepare HMAC-signed operation
   if (ctx.command.destructive) {
-    const pending = prepareDestructiveOperation({
+    const pending = await prepareDestructiveOperation({
       type: ctx.command.method === 'DELETE' ? 'DELETE' : 'UPDATE',
       endpoint: ctx.command.endpoint,
       commandParams: ctx.intent.params,
@@ -589,7 +589,7 @@ async function stepConfirmation(ctx) {
     ? (ctx.resolvedClient.firstName || `Client #${ctx.resolvedClient.id}`)
     : null;
 
-  const pending = preparePendingConfirmation({
+  const pending = await preparePendingConfirmation({
     commandType: ctx.command.type,
     params: ctx.intent.params,
     clientId: ctx.resolvedClient?.id ?? null,
@@ -857,7 +857,7 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   }
 
   // ── Path 1: Non-destructive pending confirmation ─────────────────────────
-  const ndResult = retrievePendingConfirmation(operationId, user.id);
+  const ndResult = await retrievePendingConfirmation(operationId, user.id);
   if (ndResult.verified) {
     const { operation } = ndResult;
     if (operation.frontendEvent) {
@@ -987,7 +987,7 @@ export async function executeConfirmedOperation(operationId, user, sequelize) {
   }
 
   // ── Path 2: Destructive HMAC-signed operation ─────────────────────────────
-  const { verified, operation, error } = verifyAndRetrieveOperation(operationId, user.id);
+  const { verified, operation, error } = await verifyAndRetrieveOperation(operationId, user.id);
 
   if (!verified) {
     auditConfirm('failed', { errorCode: 'verification_failed', destructive: true });

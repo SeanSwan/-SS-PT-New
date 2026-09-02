@@ -20,25 +20,20 @@
  *      when the store moves behind an injectable adapter". This module is that
  *      adapter, and A6-tamper is now a real test.
  *
- * WHAT THIS MODULE DOES NOT DO: it does not yet ship a Redis implementation.
- * The store API here is deliberately SYNCHRONOUS, matching the existing
- * behaviour exactly, because a Redis implementation could not be verified in
- * this slice — no Redis SERVER was reachable and `ioredis-mock` is not a
- * dependency — and shipping an unproven durable-store path would be worse than
- * shipping none. (Hand-written in-process doubles for the seam itself are trivial
- * and the tests use several; a faithful Redis double is a different problem.)
+ * 0.4b (2026-09-02): the contract is ASYNC and a Redis implementation exists at
+ * redisPendingOperationStore.mjs, installed by core/startup.mjs when
+ * APPROVAL_STORE=redis and REDIS_URL are set (explicit opt-in; the in-process
+ * store stays the default so a mis-set flag can never brick approvals).
+ * The two traps the S2 handoff named are both closed:
+ *   - `aiCommandRoutes.mjs` `GET /health` and `/cancel` are async handlers now
+ *     (a sync handler awaiting nothing would serialise a Promise to `{}`).
+ *   - One-time consumption is atomic on delete()'s RETURN VALUE: N racing
+ *     confirms all pass the checks, exactly one delete returns true (Map.delete
+ *     in-process, DEL 1/0 in Redis) and only that caller executes. GET-then-DEL
+ *     never decides consumption.
  *
- * The remaining work is tracked as S2b and is gated on confirming `REDIS_URL`
- * on the Render service. Two things S2b must handle, discovered here:
- *   - The API must become async, and `aiCommandRoutes.mjs` `GET /health` is a
- *     SYNCHRONOUS handler calling `getPendingCount()`. Converting the store to
- *     async without also making that handler async serialises a Promise to `{}`
- *     in the JSON response — a silent data bug, not a crash.
- *   - One-time consumption must stay atomic. In Redis that means GETDEL or a
- *     Lua script, never GET-then-DEL, or two racing confirms both succeed.
- *
- * Until then, `assertStoreIsSafeForEnvironment()` makes the defect LOUD at boot
- * instead of silent at 3am.
+ * `assertStoreIsSafeForEnvironment()` still makes an in-process store in
+ * production LOUD at boot instead of silent at 3am.
  */
 import logger from '../../utils/logger.mjs';
 
@@ -52,11 +47,29 @@ export function createInProcessStore() {
   return {
     kind: 'in-process',
     durable: false,
-    get: (id) => ops.get(id),
-    set: (id, op) => { ops.set(id, op); },
-    delete: (id) => ops.delete(id),
+    // 0.4b: the contract is ASYNC so a durable store can implement it. The
+    // in-process implementation stays a Map underneath; `delete` returning the
+    // Map's boolean is load-bearing — destructiveOperations treats that return
+    // as the atomic one-time-consumption token (exactly one of N racing
+    // confirms sees true). `set` takes a ttlMs a durable store uses for PSETEX;
+    // in-process expiry stays on the op's own expiresAt via the sweep.
+    get: async (id) => ops.get(id),
+    set: async (id, op, _ttlMs) => { ops.set(id, op); },
+    delete: async (id) => ops.delete(id),
     has: (id) => ops.has(id),
-    /** Iterate for expiry sweeps and per-user counting. */
+    /**
+     * Per-user live count (flash FF24: first-class store method, so a durable
+     * store answers from a per-user index instead of an O(n) keyspace scan).
+     */
+    countForUser: async (userId) => {
+      let count = 0;
+      const now = Date.now();
+      for (const op of ops.values()) {
+        if (op.createdBy === userId && new Date(op.expiresAt).getTime() > now) count++;
+      }
+      return count;
+    },
+    /** Iterate for the in-process expiry sweep. Durable stores omit this (TTL). */
     entries: () => ops.entries(),
     values: () => ops.values(),
     get size() { return ops.size; },
@@ -85,7 +98,7 @@ export function setPendingOperationStore(store) {
   // that could not CONSUME an operation installed cleanly and would have broken
   // one-time consumption, which is the whole point of the lane. Flagged by three
   // review seats; the message and the check now agree.
-  const required = ['get', 'set', 'delete', 'entries', 'values'];
+  const required = ['get', 'set', 'delete', 'countForUser'];
   const missing = store ? required.filter((m) => typeof store[m] !== 'function') : required;
   if (missing.length > 0) {
     throw new Error(
@@ -143,4 +156,16 @@ export function assertStoreIsSafeForEnvironment({
   });
 
   return { safe: false, reason };
+}
+
+/**
+ * Count of live pending operations for a user — the shared cap input for BOTH
+ * lane halves (destructive + pending-confirmed). Lives here so neither half
+ * imports the other (no cycle); delegates to the store's own index
+ * (flash FF24: a durable store answers without a keyspace scan).
+ * @param {number} userId
+ * @returns {Promise<number>}
+ */
+export async function countPendingForUser(userId) {
+  return activeStore.countForUser(userId);
 }

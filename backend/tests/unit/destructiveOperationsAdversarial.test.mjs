@@ -33,8 +33,8 @@ const OWNER = 1001;
 const ATTACKER = 2002;
 
 /** Mint a standard scoped destructive operation owned by `userId`. */
-function mint(userId = OWNER, overrides = {}) {
-  return prepareDestructiveOperation({
+async function mint(userId = OWNER, overrides = {}) {
+  return await prepareDestructiveOperation({
     type: 'DELETE',
     endpoint: '/api/sessions/:id',
     commandType: 'cancel_session',
@@ -47,50 +47,50 @@ function mint(userId = OWNER, overrides = {}) {
 }
 
 describe('approval lane — adversarial lock (S11)', () => {
-  it('A1: confirm-without-mint is rejected (no forged operationId is accepted)', () => {
-    const result = verifyAndRetrieveOperation('00000000-0000-4000-8000-000000000000', OWNER);
+  it('A1: confirm-without-mint is rejected (no forged operationId is accepted)', async () => {
+    const result = await verifyAndRetrieveOperation('00000000-0000-4000-8000-000000000000', OWNER);
 
     expect(result.verified).toBe(false);
     expect(result.operation).toBeNull();
     expect(result.error).toMatch(/not found/i);
   });
 
-  it('A2: replay is rejected — a consumed operationId cannot be reused', () => {
-    const pending = mint();
+  it('A2: replay is rejected — a consumed operationId cannot be reused', async () => {
+    const pending = await mint();
 
-    const first = verifyAndRetrieveOperation(pending.operationId, OWNER);
+    const first = await verifyAndRetrieveOperation(pending.operationId, OWNER);
     expect(first.verified).toBe(true);
     expect(first.operation.commandType).toBe('cancel_session');
 
     // One-time consumption: the same id must not verify a second time.
-    const replay = verifyAndRetrieveOperation(pending.operationId, OWNER);
+    const replay = await verifyAndRetrieveOperation(pending.operationId, OWNER);
     expect(replay.verified).toBe(false);
     expect(replay.operation).toBeNull();
   });
 
-  it('A3: cross-user confirm is rejected — approvals are actor-bound', () => {
-    const pending = mint(OWNER);
+  it('A3: cross-user confirm is rejected — approvals are actor-bound', async () => {
+    const pending = await mint(OWNER);
 
-    const stolen = verifyAndRetrieveOperation(pending.operationId, ATTACKER);
+    const stolen = await verifyAndRetrieveOperation(pending.operationId, ATTACKER);
     expect(stolen.verified).toBe(false);
     expect(stolen.operation).toBeNull();
     expect(stolen.error).toMatch(/another user/i);
 
-    cancelOperation(pending.operationId, OWNER);
+    await cancelOperation(pending.operationId, OWNER);
   });
 
-  it('A4: a cross-user attempt does NOT consume the owner\'s pending operation', () => {
-    const pending = mint(OWNER);
+  it('A4: a cross-user attempt does NOT consume the owner\'s pending operation', async () => {
+    const pending = await mint(OWNER);
 
-    expect(verifyAndRetrieveOperation(pending.operationId, ATTACKER).verified).toBe(false);
+    expect((await verifyAndRetrieveOperation(pending.operationId, ATTACKER)).verified).toBe(false);
 
     // The rightful owner must still be able to confirm — a failed theft is not a DoS.
-    const owner = verifyAndRetrieveOperation(pending.operationId, OWNER);
+    const owner = await verifyAndRetrieveOperation(pending.operationId, OWNER);
     expect(owner.verified).toBe(true);
   });
 
-  it('A5: params are frozen at mint — the caller cannot alter them at confirm time', () => {
-    const pending = mint(OWNER, { commandParams: { id: 184, cascade: false } });
+  it('A5: params are frozen at mint — the caller cannot alter them at confirm time', async () => {
+    const pending = await mint(OWNER, { commandParams: { id: 184, cascade: false } });
 
     // WHAT THIS DOES AND DOES NOT PROVE. `Function.length` stops counting at the
     // first parameter with a default, so a third OPTIONAL argument — the most likely
@@ -104,18 +104,18 @@ describe('approval lane — adversarial lock (S11)', () => {
     // rule that out, and this file does not have one. Tracked in SWA-142.
     expect(verifyAndRetrieveOperation).toHaveLength(2);
 
-    const result = verifyAndRetrieveOperation(pending.operationId, OWNER);
+    const result = await verifyAndRetrieveOperation(pending.operationId, OWNER);
     expect(result.verified).toBe(true);
     expect(result.operation.params).toEqual({ id: 184, cascade: false });
   });
 
-  it('A6: every minted operation carries an HMAC signature over its identifying fields', () => {
+  it('A6: every minted operation carries an HMAC signature over its identifying fields', async () => {
     // Scope note (kept): this asserts the signature EXISTS and that the fields it
     // covers survive the round trip. Tamper-REJECTION is now asserted separately in
     // A15-A17, which the S2 store seam made possible. Do not rename this test to
     // claim more than it checks.
-    const pending = mint(OWNER);
-    const retrieved = verifyAndRetrieveOperation(pending.operationId, OWNER);
+    const pending = await mint(OWNER);
+    const retrieved = await verifyAndRetrieveOperation(pending.operationId, OWNER);
 
     expect(retrieved.verified).toBe(true);
     expect(retrieved.operation.signature).toMatch(/^[0-9a-f]{64}$/); // sha256 hex
@@ -123,9 +123,8 @@ describe('approval lane — adversarial lock (S11)', () => {
     expect(retrieved.operation.createdBy).toBe(OWNER);
   });
 
-  it('A7: unscoped DELETE is refused at mint (no mass deletion is representable)', () => {
-    expect(() =>
-      prepareDestructiveOperation({
+  it('A7: unscoped DELETE is refused at mint (no mass deletion is representable)', async () => {
+    await expect(prepareDestructiveOperation({
         type: 'DELETE',
         endpoint: '/api/sessions',
         commandType: 'cancel_session',
@@ -133,15 +132,13 @@ describe('approval lane — adversarial lock (S11)', () => {
         userId: OWNER,
         description: 'Delete everything',
         affectedRecords: [],
-      })
-    ).toThrow(/explicit scope/i);
+      })).rejects.toThrow(/explicit scope/i);
   });
 
-  it('A8: bulk blast radius is capped at 50 affected records', () => {
+  it('A8: bulk blast radius is capped at 50 affected records', async () => {
     const tooMany = Array.from({ length: 51 }, (_, i) => ({ id: i + 1 }));
 
-    expect(() =>
-      prepareDestructiveOperation({
+    await expect(prepareDestructiveOperation({
         type: 'DELETE',
         endpoint: '/api/sessions/:id',
         commandType: 'cancel_session',
@@ -149,46 +146,45 @@ describe('approval lane — adversarial lock (S11)', () => {
         userId: OWNER,
         description: 'Bulk cancel',
         affectedRecords: tooMany,
-      })
-    ).toThrow(/Max: 50/);
+      })).rejects.toThrow(/Max: 50/);
   });
 
-  it('A9: pending operations are capped per user (memory-exhaustion guard)', () => {
+  it('A9: pending operations are capped per user (memory-exhaustion guard)', async () => {
     const minted = [];
     for (let i = 0; i < 5; i += 1) {
-      minted.push(mint(ATTACKER, { commandParams: { id: 900 + i } }));
+      minted.push(await mint(ATTACKER, { commandParams: { id: 900 + i } }));
     }
 
-    expect(() => mint(ATTACKER, { commandParams: { id: 999 } })).toThrow(/Too many pending/i);
+    await expect(mint(ATTACKER, { commandParams: { id: 999 } })).rejects.toThrow(/Too many pending/i);
 
-    minted.forEach((op) => cancelOperation(op.operationId, ATTACKER));
+    for (const op of minted) await cancelOperation(op.operationId, ATTACKER);
   });
 
-  it('A10: cancel is also actor-bound — one user cannot cancel another\'s operation', () => {
-    const pending = mint(OWNER);
+  it('A10: cancel is also actor-bound — one user cannot cancel another\'s operation', async () => {
+    const pending = await mint(OWNER);
 
-    expect(cancelOperation(pending.operationId, ATTACKER)).toBe(false);
-    expect(cancelOperation(pending.operationId, OWNER)).toBe(true);
+    expect(await cancelOperation(pending.operationId, ATTACKER)).toBe(false);
+    expect(await cancelOperation(pending.operationId, OWNER)).toBe(true);
   });
 
-  it('A11: a cancelled operation can never be confirmed', () => {
-    const pending = mint(OWNER);
-    expect(cancelOperation(pending.operationId, OWNER)).toBe(true);
+  it('A11: a cancelled operation can never be confirmed', async () => {
+    const pending = await mint(OWNER);
+    expect(await cancelOperation(pending.operationId, OWNER)).toBe(true);
 
-    const result = verifyAndRetrieveOperation(pending.operationId, OWNER);
+    const result = await verifyAndRetrieveOperation(pending.operationId, OWNER);
     expect(result.verified).toBe(false);
     expect(result.operation).toBeNull();
   });
 
-  it('A12: every minted operation carries a finite TTL (no immortal approvals)', () => {
-    const pending = mint(OWNER);
+  it('A12: every minted operation carries a finite TTL (no immortal approvals)', async () => {
+    const pending = await mint(OWNER);
 
     const ttlMs = new Date(pending.expiresAt).getTime() - Date.now();
     expect(ttlMs).toBeGreaterThan(0);
     expect(ttlMs).toBeLessThanOrEqual(120_000);
     expect(pending.requiresConfirmation).toBe(true);
 
-    cancelOperation(pending.operationId, OWNER);
+    await cancelOperation(pending.operationId, OWNER);
   });
 });
 
