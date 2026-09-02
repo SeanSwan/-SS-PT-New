@@ -179,50 +179,16 @@ polish skips it. If you cannot write the direction sentence + the ONE phenomenon
 the signature moment, do not build — ask.
 **Step 3 — Bind:** world/lens tokens, palette slots, type scale, spacing. Confirm
 zero kill-list material in the plan.
-**Step 3.5 — Style Intelligence:** runs when the task (a) composes a
-generative-media brief (Forge/Seedance) or (b) establishes a NEW visual
-direction not inherited from an already-bound world/lens. A surface whose
-direction is fixed by the Step-3 bind cites that bind as its anchor and skips
-this step. Consult vocabulary + measured taste BEFORE naming the direction —
-never after the pixels exist.
-1. **Two-axis pick** from `docs/ai-workflow/design-brain/style-taxonomy.md`:
-   1–3 QUALITY facets + 1 SOURCE category. Per facet, QUOTE its mapping line —
-   preferred / requires-justification (state the justification) / banned
-   (refuse). An unmapped facet defaults to requires-justification. A SOURCE or
-   artist whose signature qualities ARE banned facets is a refused anchor.
-   LAW-3 is the registry of record; the taxonomy mapping applies it — where
-   they disagree, LAW-3 wins.
-2. **Anchor form:** web surfaces anchor on facets + movement/era language
-   ("Swiss-editorial grid," "Dutch still-life light") — never a named
-   individual. The personification formula — "[Artist]'s [their actual medium]
-   depicting [subject]", never "[subject] by [Artist]" — is for
-   generative-media briefs (Forge slot 4) only.
-3. **Taste check:** `GET http://127.0.0.1:7331/api/profile`; treat the response
-   as the Taste Brain only if it matches the profile shape
-   (grids/judgements/directions) — anything else is `[TASTE BRAIN OFFLINE]`,
-   proceed from doc priors (a dated local snapshot — `node
-   scripts/taste-profile-snapshot.mjs` → `.ai-workflow/taste-profile.local.md`,
-   gitignored — may inform the pick when fresh; its tiers are copied verbatim,
-   never upgraded). Precedence is fixed: law → Step-3 bind → taxonomy
-   → taste. Taste RANKS lawful candidates; it never introduces a facet, never
-   overrides a ban, and its magnitude is not acted on — carry tier +
-   facet/codes only (`evidence` / `prior`; a direction with neither backing is
-   tier `absent` — never fabricate a tier). Tallies and profile JSON never
-   enter committed files. Agents read IDs/tallies, never images; never write
-   taste (`taste-discovery-grill.md` law).
-4. **Corpus reach** (generative briefs only): attempt
-   `node scripts/swan-brain.mjs "<style query>"`; ANY failure — script absent,
-   node missing, error — records `[SWAN BRAIN UNAVAILABLE]` and the taxonomy
-   carries the pick alone. Citations are `[query → hit ids]` — never pasted
-   corpus text.
-5. **STYLE RECEIPT** in the brief/thread: facets + their quoted mapping lines,
-   source category, anchor (form per item 2), taste tier + profile fingerprint
-   (the `grids` count) or OFFLINE, corpus citations, and a refused-facets line
-   whenever law refused something taste favored. The receipt is the SOLE input
-   to Forge slot 4. Direction changes after Gate 0 ⇒ re-run this step and
-   supersede (never delete) the receipt.
-Taste evidence never overrides law: a banned facet a profile favors is
-recorded as taste and still refused as design.
+**Step 3.5 — Style Intelligence** (procedure + real taste-API contract:
+`docs/ai-workflow/design-brain/style-intelligence.md`): runs when the task
+composes a generative-media brief OR establishes a NEW visual direction not
+inherited from a bound world/lens (a bind-inherited skip NAMES the bind's
+identity in the receipt). Two-axis taxonomy pick with quoted mapping lines;
+web anchors = facets + movement/era, never a named individual; taste ranks
+lawful candidates under precedence law → bind → taxonomy → taste, floor ≥8
+judgements/≥2 grids, fingerprint = `snapshot.sourceHash`. Emit the checkable
+STYLE RECEIPT (sole input to Forge slot 4); re-run + supersede on direction
+change. Taste evidence never overrides law.
 **Step 4 — Blueprint:** BUILD-EXACT (below).
 **Step 5 — Build, then pass Gates 1–3.**
 
@@ -314,10 +280,7 @@ hardcode `p.theme.colors.*` hex; CLAUDE.md Rule 46 + the shipped architecture wi
 | `SWAN-CINEMATIC-DESIGN-SYSTEM.md` | Cinematic/public builds; deep palette + motion values |
 | `SWAN-ASSET-STORYBOARDING.md` | Any generated/commissioned media |
 | `docs/ai-workflow/design-brain/design.md` | The Crystalline Canon — **sole canonical copy** (the `design.html` mirror was retired 2026-08-16; no second file to reconcile). Still ADAPTS the two source-of-truth docs above — "sole" means one copy, not top of the precedence chain |
-| `docs/ai-workflow/design-brain/style-taxonomy.md` | Step 3.5 — the two-axis (SOURCE × QUALITY) Midlibrary-derived style vocabulary + Swan ban mapping; vocabulary, never a license |
-| `docs/ai-workflow/design-brain/taste-discovery-grill.md` | Step 3.5 taste check + whenever the unresolved question is Sean's eye — the `/api/profile` read law and grill-me's Visual-taste mode |
-| `docs/ai-workflow/references/SWAN-BRAIN-QUERY.md` | Step 3.5 corpus reach — `node scripts/swan-brain.mjs` over the Midjourney reference archive (cite ids, never paste). Attempt the query; ANY failure records `[SWAN BRAIN UNAVAILABLE]` |
-| `docs/ai-workflow/design-brain/forge-compiler-contract.md` | When compiling image prompts — the 12-slot composer; slot 4 (styleAnchor) is fed by the Step 3.5 pick |
+| `docs/ai-workflow/design-brain/style-intelligence.md` | Step 3.5 detail — the two-axis pick, real taste-API contract (`taste-snapshot/1` + `sourceHash`), evidence floor, receipt schema. Loads `style-taxonomy.md` + `taste-discovery-grill.md` + `forge-compiler-contract.md` from there |
 | `design.md.pre-redo` / `SKILL.md.pre-redo` | Historical context only |
 
 **Precedence on conflict:** this skill > reference docs > existing components >

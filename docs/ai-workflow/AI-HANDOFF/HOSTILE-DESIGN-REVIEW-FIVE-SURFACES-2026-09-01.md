@@ -1,9 +1,9 @@
-# Hostile Design Review — Home + User/Client/Trainer/Admin Dashboards (rev 2)
+# Hostile Design Review — Home + User/Client/Trainer/Admin Dashboards (rev 3)
 
-- **Date:** 2026-09-01 · **Lead reviewer:** Claude Fable 5 (Final Decider) · **Panel:** GLM 5.3 (hostile seat, R2) + GLM 5.3 Flash (cross-check, R3) — outputs in `panel-design-brain-style-intelligence-2026-09-01/`
+- **Date:** 2026-09-01, rev 3 2026-09-02 · **Lead reviewer:** Claude Fable 5 (Final Decider) · **Panel:** GLM 5.3 (hostile seat, R2) + GLM 5.3 Flash (cross-check, R3) + GPT-5.6 Sol (filesystem hostile pass, R4) — outputs in `panel-design-brain-style-intelligence-2026-09-01/`
 - **Decision:** verdicts + ranked defect list per surface; no code changed by this review
 - **Status:** open
-- **Supersedes:** rev 1 (same file, superseded in place after R2 arbitration — see Review log)
+- **Supersedes:** rev 1 (R2 arbitration) and rev 2 (R4/Sol arbitration — T4 withdrawn as FALSE, A1 corrected to 8-of-11, C1 narrowed; see Review log + `05-sol-arbitration-and-corrections.md`)
 - **Baseline:** origin/main `4c2fd507e` (worktree `feat/design-brain-style-intelligence`). Live captures: sswanstudios.com 2026-09-01 at 414/1440/2560 CSS px + console log + one anonymous curl probe and two settled greps (Instrument note 3). Evidence packs: five scoped agent inventories (file:line receipts) — hypotheses per Rule 30; load-bearing claims spot-verified where noted.
 - **Grading law (full declaration, per R2 ATK-1):** router LAWS 1–11, the complete CLAUDE.md numbered rules (4, 6, 10, 24, 27, 30, 34, 43, 60, 62 are cited below), the Product Core Loop, and the task-type Definitions of Done.
 
@@ -11,12 +11,13 @@
 
 1. A full-page Playwright screenshot does NOT fire `useInView`/`whileInView`. The "0+ / 0%" stats and the giant black inter-section gaps in the 1440px full-page capture are **capture artifacts** — `StatsSection.tsx:74` gates `AnimatedCounter` on `useInView`, and STATS values are real claims from `content/marketingStats` (`HomeData:73-80`). Withdrawn as display findings — but see H8: the gating itself is a real SEO/no-JS defect. `[VERIFIED]`
 2. The capture session carried an avatar + Logout — an authenticated (possibly stale) session, not a clean anonymous visit. Every live-capture claim below inherits that caveat; an anonymous clean-profile capture is a gate on the home slices. `[VERIFIED — session state observed]`
-3. **Settled probes (post-R2):** anonymous `GET /api/cart` returns **401** `{"Not authorized, no token"}` — clean refusal, no 500 `[VERIFIED — curl]`. `chartVisibility` IS user-surfaced (`UserDashboard/components/EditProfileChartToggles.tsx`, `ChartTogglePanel.tsx`, `EditProfileModal.tsx`) `[VERIFIED — grep]`. `UniversalDashboardLayout.routeComponents.tsx` is consumed by `UniversalDashboardLayout.routes.tsx`, which serves ALL FOUR roles `[VERIFIED — grep]`.
+3. **Capture artifacts (session-local, sha256-prefixed):** scratchpad `home-captures/` — `home-1440-above-fold.png` df26228b9d40 · `home-414-above-fold.png` 41623ed164c8 · `home-2560-above-fold.jpeg` e2e5d28750f7 · `home-1440-full.jpeg` f69291f8df5a (full-page: instrument-limited per note 1). All taken 2026-09-01, authenticated-session caveat per note 2. Visual claims cite these; they live outside the repo, so a re-reviewer without them should re-capture rather than trust prose.
+4. **Settled probes (post-R2):** anonymous `GET /api/cart` returns **401** `{"Not authorized, no token"}` — clean refusal, no 500 `[VERIFIED — curl]`. `chartVisibility` IS user-surfaced (`UserDashboard/components/EditProfileChartToggles.tsx`, `ChartTogglePanel.tsx`, `EditProfileModal.tsx`) `[VERIFIED — grep]`. `UniversalDashboardLayout.routeComponents.tsx` is consumed by `UniversalDashboardLayout.routes.tsx`, which serves ALL FOUR roles `[VERIFIED — grep]`.
 
 ## What is CLEAN across the five surfaces `[VERIFIED via scoped greps]`
 
 - **Zero** MUI, recharts, Tailwind, and **zero Galaxy-Swan literals** in all five canonical trees. Victory is the only chart library (Rule 10 holds).
-- Every checked **dashboard-panel** datum traces to a real API — with one exception the trainer verdict now carries: the routed Videos tab ships placeholder data (T4). Outside T4, the only mock dataset found lives in an unrouted orphan (T1).
+- Every checked **dashboard-panel** datum traces to a real API. The only placeholder/mock datasets found live in UNROUTED orphans — `MyClientsViewWithFallback` and `TrainerVideosPage` (X5); no routed surface was proven to ship fake data. `[VERIFIED — R4 route walk]`
 - Reduced-motion coverage is broad in-app (user 69 / client 77 / trainer 65 / admin 18 grep hits — grep counts, not motion-weight proof).
 - Token-driven styling is pervasive (`var(--…)`: user 1664 / client 2241 / trainer 3128 / admin 1150).
 
@@ -32,7 +33,7 @@
 
 **X4 — [Rule 4] Five outright cap breaches.** Client `AiConsentScreen` 819, `ClientProfilePage` 419, `ClientDashboardHomeTab` 314, `ClientMyWorkoutsPage` 309; user `HomeTab` 374. Decompose using the in-tree `CanonicalProgressChartsGrid.*` split pattern; consent screen first (it is also X3's trust surface). (Near-cap files at 293–298 are compliant; no finding without interior evidence — R2 ATK-7 sustained.)
 
-**X5 — [Rule 34] Dead parallel generations + one shared-shell orphan.** Home: ~2,700 unmounted lines (`HomePage.V3` 1400, `Hero-Section.V2` 468, `CreativeExpressionSection` 464, `ProgramsOverview.V3` 435). Client: dormant `ClientObservatoryHome` (297). Shared shell: `UniversalDashboardLayout.routeComponents.tsx:54` still lazy-exports the superseded `MyClientsView` (whose fallback carries `mockClients`) — as `lazy()` it is a chunk fetched only on navigation, so the hazard is **routing drift in a file all four roles route through**, not runtime weight. Delete the export line now (provably unrouted); the rest goes through a Rule-34 classify→grep→approve pass.
+**X5 — [Rule 34] Dead parallel generations + one shared-shell orphan.** Home: ~2,700 unmounted lines (`HomePage.V3` 1400, `Hero-Section.V2` 468, `CreativeExpressionSection` 464, `ProgramsOverview.V3` 435). Client: dormant `ClientObservatoryHome` (297). Shared shell: `UniversalDashboardLayout.routeComponents.tsx:54` still lazy-exports the superseded `MyClientsView` (whose fallback carries `mockClients`), and `:84` lazy-exports the unrouted `TrainerVideosPage` (placeholder data inside — the file behind rev 2's withdrawn T4) — as `lazy()` it is a chunk fetched only on navigation, so the hazard is **routing drift in a file all four roles route through**, not runtime weight. Delete the export line now (provably unrouted); the rest goes through a Rule-34 classify→grep→approve pass.
 
 ---
 
@@ -40,7 +41,7 @@
 
 **H2 — BLOCKER [LAW 4]: "The Arsenal" is a literal creature rendering on the flagship surface.** Live section media is a full glowing winged-swan illustration. LAW 4: nature enters as light behavior only; the sanctioned pattern is the About occluder ("the swan is bent light, never a drawn silhouette"). This is the highest-traffic surface violating the brand's most identity-defining law, on-capture, on-evidence. Fix: replace with an optics treatment (caustic field / refraction sweep over real training-detail macro); the replacement brief now requires a Step 3.5 STYLE RECEIPT. `[VERIFIED — live capture]`
 
-**H1 — production error, rescoped per R2+probe: authenticated cart fetch 500s.** The captured (authenticated) session logged `GET /api/cart → 500` on page load; the anonymous path returns a clean 401 `[VERIFIED — console log + curl]`. So the defect is scoped to **logged-in users' cart bootstrap** — possibly a stale/corrupt session record, possibly every session. Gate before slicing: reproduce with a fresh login. Money-path severity stands; "every homepage load" does not.
+**H1 — production error, rescoped per R2+probe: authenticated cart fetch 500s.** The captured (authenticated) session logged `GET /api/cart → 500` on page load; the anonymous path returns a clean 401 `[VERIFIED — console log + curl]`. So the defect is scoped to **logged-in users' cart bootstrap** and its breadth is **UNPROVEN** — possibly one stale/corrupt session, possibly every session. Repro (minutes, do FIRST): log in fresh at sswanstudios.com → load `/` → Network tab → `GET /api/cart`. If it 500s on a fresh session, this outranks all hero work; if not, it is a stale-session edge. Money-path priority is contingent on that probe.
 
 **H3 — [LAW 2] Gold as interactive chrome:** "SwanStudios Photography" and "Trainer Staff Review" pills render gold. Allowlist is PR numeral / ≤1px filigree / focus ring / one badge. De-gold. `[VERIFIED — captures]`
 
@@ -71,46 +72,47 @@ Product loop holds: Progress is tab #2, one click from Home; training-proof runs
 
 Data truth is good: no mocks, client-safe analytics endpoints, skeletons present.
 
-**C1 — Error states masquerade as emptiness.** `ClientProgressDashboardPage.tsx:166,172,178` renders `—` on error — a paying client cannot distinguish "no data yet" from "we failed to load your data." Fix: one reuse source — the user-tree `ErrorCard` + retry (chosen over admin's `metricUnavailable`, which is a value-level pattern, per R2). `[LIKELY — agent receipt]`
+**C1 — narrowed (R4/Sol + lead verification): stat tiles are honest; the recap card is not.** The stat strip DOES distinguish states — `weeklyRecapError ? '—' : value` (`ClientProgressDashboardPage.tsx:159-180`), so rev 2's "error is indistinguishable from no data" was overbroad. The real defect: `WeeklyRecapCard` receives no error state and renders "No weekly recap available yet." after a network FAILURE (`ClientProgressDashboardPage.cards.tsx:68` area) — a paying client reads a failed fetch as an empty week, with no retry. Fix: failure copy + retry on the recap card (user-tree `ErrorCard` pattern); do NOT redesign the whole progress state model. `[VERIFIED — lead file read 2026-09-02]`
 **C2 — [Rule 4]** breaches per X4 — consent screen first (819 lines AND palette drift on a trust surface, X3/N6); `ClientDashboardHomeTab` (314) is a 9-hook coupling hub — decompose and give each rail section its own error boundary as admin does.
 **C3 —** dormant `ClientObservatoryHome` (X5) — classify before anyone edits the wrong home.
 
-## TRAINER DASHBOARD — verdict: **REVISE** (downgraded from APPROVE per R2 ATK-9/10 — user-visible severity must outrank dormant-code severity)
+## TRAINER DASHBOARD — verdict: **REVISE** (rev 3: driver is T2 — the money loop has no failure UX; rev 2's T4 is WITHDRAWN as false)
 
 The coaching loop is the best in the product: landing → My Clients → card "Log" → shared `WorkoutLogger` = **2 clicks** (`ClientsWorkspace.tsx:186-192,101-105`). Only tree consuming world/lens tokens; Aurora Console root present.
 
-**T4 — a routed tab ships fake data.** `TrainerVideosPage.tsx:36,64` — "Placeholder data — replace with API fetch" on a live nav destination. Minutes-cost fix: gate/hide the tab until wired. This is the finding that qualifies the no-mocks clean claim. `[LIKELY — agent receipt, quoted comment]`
-**T2 — no failure UX on the money loop.** ~30 files show loading states; ~3 handle errors. A failed client-list fetch or failed save mid-session — the trainer's highest-stress moment — has no specified UX. Error+retry on `ClientsWorkspace` fetch and `WorkoutLogger` save paths first.
+**T4 — WITHDRAWN (R4/Sol, route-walk verified).** Trainer `/videos` mounts `VideoLibraryPage` → `VideoLibraryV3` (real `/api/v2/videos` + error handling) at `UniversalDashboardLayout.routes.tsx:193`; `TrainerVideosPage` (the placeholder file) is an UNROUTED lazy export at `routeComponents.tsx:84` — an orphan, not a live tab. Rev 2 accepted an agent receipt at `[LIKELY]` without opening the route map. The orphan folds into X5. `[VERIFIED — routes.tsx:179,193 + routeComponents.tsx:84-85]`
+**T2 — no failure UX on the money loop (the REVISE driver).** ~30 files show loading states; ~3 handle errors. A failed client-list fetch or failed save mid-session — the trainer's highest-stress moment — has no specified UX. Error+retry on `ClientsWorkspace` fetch and `WorkoutLogger` save paths first.
 **T1 —** shared-shell orphan export (X5) — delete `routeComponents.tsx:54`.
 **T5 — [Rule 62]** 22 routed trainer tabs dwarf the 5-tab coaching core; run the kill-or-defer test on the tail.
-APPROVE becomes available when T4 is gated and T2's two paths are specified.
+APPROVE becomes available when T2's two paths (client-list fetch, workout save) have specified error+retry UX — the same error-honesty bar C1 holds the client surface to.
 
 ## ADMIN DASHBOARD — verdict: **REVISE**
 
 Strongest engineering: per-widget `WidgetErrorBoundary`, `metricUnavailable` honesty objects, `Promise.allSettled`, real-API Victory charts.
 
-**A1 — [Rule 62/Core Loop] Proof-of-value is LAST — 8th of 8 (corrected per R2 ATK-4).** Landing order: Signal bar → Quick actions → AI Terminal → Alerts → Work Queues → Business Lens → Revenue Integrity → **Operations (who trained / who's stale / who needs intervention)** (`AdminOverviewPanel.tsx:198-268`). The admin law says workout/progress truth surfaces before decorative features; the intervention band trails everything including an AI terminal. Rule-30 gate: verify the section order in-file before scheduling the reorder (agent receipt, not yet lead-verified). Fix: Work Queues + Operations above the fold.
+**A1 — [Rule 62/Core Loop] Proof-of-value renders 8th of ELEVEN top-level bands (rev 3, now lead-verified in-file).** Landing order: Signal bar → Quick actions → AI Terminal → Alerts → Work Queues → Business Lens → Revenue Integrity → **Operations (who trained / who's stale / who needs intervention)** → Ops Intelligence → Community/Content Safety → Telemetry (`AdminOverviewPanel.tsx:198-292`). Rev 2 called it "8th of 8 — last": FALSE (R4/Sol) — three bands follow it. The corrected argument stands on the real order: the intervention band still sits below an AI terminal and three money bands, and the admin law says client workout/progress truth outranks decorative utility. Fix: Work Queues + Operations above the fold. `[VERIFIED — lead file read 2026-09-02]`
 **A2 — [Rule 24]** landing grid stops at a 1280px 6-col (`AdminOverviewPanel.styles.ts:39-80`); behavior at 2560 unestablished (stretch vs island decides the fix — capture first, then slice).
 **A3 — (demoted to note per R2 ATK-11)** `bentoItemAnimation` is `css``-wrapped `[VERIFIED — styles.ts:16]` — Rule 43 satisfied; motion-weight concern recorded, no LAW-6 breach asserted without a measured budget violation.
 **A4 — [Rule 4]** none breach in the sampled admin set; watch the two at 296–297.
 
 ---
 
-## Ranked next-slice order (Rule 60, rebuilt after R2)
+## Ranked next-slice order (Rule 60, rebuilt after R4 — rev 2's "gate the Videos tab" slice is DELETED with its false finding)
 
-1. **Hero mobile-honesty triad — H3 + H5 + H6** (+ the N8 clean-profile anonymous capture as its gate). Hours of diffs on the highest-traffic surface: 8 interactive elements over a near-black field → 2 CTAs above the fold, de-golded, `svh`-stable.
-2. **T4 — gate the Videos tab.** Minutes; removes user-visible fake data from a live product.
-3. **C1 — error-vs-empty card on the client progress page.** Converts "silently wrong" into "honest + retryable" for paying clients.
-4. **H1 — reproduce authenticated cart-500 with a fresh login, then fix.** Money-path; scope now honest.
-5. **A1 — admin landing reorder** (after in-file order verification).
-6. **H2 — Arsenal creature replacement** (needs a Seedance asset run — bigger slice; STYLE RECEIPT required).
-7. **X1 — bless CelebrationBurst as the Crystallize execution** (option a).
-8. **U1+U4 — pagination + advertised trend charts, one slice.**
-9. **X2 — world/lens bridge, one surface per slice** (user tree first — biggest contract gap).
-10. **X4 — decomposition, consent screen first** · 11. **X5 — Rule-34 cleanup pass + orphan export deletion.**
+0. **Two probes before any slice (minutes each):** fresh-login cart repro (H1 — if it 500s on a fresh session it jumps to #1) · clean-profile anonymous home capture (gate on all hero slices).
+1. **Hero mobile-honesty triad — H3 + H5 + H6.** Hours of diffs on the highest-traffic surface: 8 interactive elements over a near-black field → 2 CTAs above the fold, de-golded, `svh`-stable.
+2. **Error-honesty pair — C1 (client recap card) + T2 (trainer fetch/save paths).** Same defect class, same `ErrorCard` reuse; converts "silently wrong" into "honest + retryable" on both core loops.
+3. **H1 — fix the authenticated cart-500** (scope set by probe 0).
+4. **A1 — admin landing reorder** (order now lead-verified; pure IA change).
+5. **H2 — Arsenal creature replacement** (Seedance asset run; STYLE RECEIPT required).
+6. **X1 — bless CelebrationBurst as the Crystallize execution** (option a).
+7. **U1+U4 — pagination + advertised trend charts, one slice.**
+8. **X2 — world/lens bridge, one surface per slice** (user tree first — biggest contract gap).
+9. **X4 — decomposition, consent screen first** · 10. **X5 — Rule-34 cleanup pass + deletion of BOTH orphan exports (`routeComponents.tsx:54` and `:84`).**
 
 ## Review log
 
 - **R1** — Fable lead pass over five evidence packs + live captures; two self-findings withdrawn on instrument grounds (stats zeros, black gaps).
 - **R2** — GLM 5.3 hostile seat (`03-glm53-five-surface-review.md`): 12 attacks, 8 new findings, 3 verdict challenges. **Arbitration:** ATK-1..12 sustained except ATK-12 (partially — capture unavailable for authed admin at 2560, disambiguation kept as gate); N1–N8 adopted (N1→H8, N2→X2, N3→U1+U4, N4→X5/T1, N5→H9, N6/N7→X3, N8→slice-1 gate). Verdicts changed: USER APPROVE→REVISE (settled by `chartVisibility` probe), TRAINER APPROVE→REVISE (severity consistency). A1 corrected 5th→8th of 8. H1 rescoped by anonymous-curl probe (401, not 500).
-- **R3** — GLM 5.3 Flash cross-check of rev 2 (`04-glm-flash-five-surface-crosscheck.md`).
+- **R3** — GLM 5.3 Flash cross-check of rev 2 (`04-glm-flash-five-surface-crosscheck.md`): PASS + 2 wording nits (fixed in rev 2.1). Scope caveat (per R4): R2 was evidence-restricted to the review's own quotes and R3 verified arbitration fidelity — neither re-opened source files; they validate editorial integrity, not ground truth.
+- **R4** — GPT-5.6 Sol, filesystem hostile pass (`05-sol-arbitration-and-corrections.md` carries the full arbitration): 10/10 findings verified REAL by lead re-reads + a live `compileProfile({write:false})` probe. Rev 3 changes: **T4 withdrawn as FALSE** (trainer `/videos` → `VideoLibraryPage`; the placeholder file is an unrouted orphan), **A1 corrected** to 8th-of-11 with lead-verified order, **C1 narrowed** to the recap card, **H1 breadth marked UNPROVEN** with the fresh-login repro as gate 0, capture artifacts now cited with sha256 prefixes, ranked list rebuilt. The taste bridge and Step 3.5 were repaired in the same pass (real `taste-snapshot/1` + `sourceHash` contract, last-known-good preservation, 12 regression tests) — see the branch commits.

@@ -105,9 +105,10 @@ Loop mechanics (each round, before the checklists below):
   5. Scale rounds to blast radius: trivial one-liners may dry in 2 rounds
      (1 find-nothing + 1 confirm); production/money/auth surfaces should expect
      3-5+. Token cost is not a reason to stop early — Sean's standing directive.
-  6. HARNESS ENFORCEMENT: a deterministic Stop hook (`scripts/hooks/dry-loop-gate.mjs`)
-     blocks the turn from ending when files changed / commits landed without the
-     ledger. The closeout MUST end with the literal marker `DRY-LOOP: CLEAN×2
+  6. HARNESS ENFORCEMENT (historical — the hook `dry-loop-gate.mjs` was DELETED
+     2026-08-31 when its fire-rate removal condition was invoked; see CLAUDE.md
+     rule 74 note): the behavioral requirement below survives the gate's deletion
+     and is enforced by this skill's own discipline, not a hook. The closeout MUST end with the literal marker `DRY-LOOP: CLEAN×2
      (rounds: N)` — or `DRY-LOOP: N/A — <reason>` for genuinely non-build turns.
      The marker is a CLAIM: emitting it without the rounds behind it violates
      rules 19/28. NOTE: the hook can only verify the marker STRING is present — it

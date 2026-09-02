@@ -37,6 +37,14 @@ skills_touched:
 
 # A brain that never opens its own library, and a screenshot that cannot see motion
 
+> **SUPERSEDED IN PART (2026-09-02, R4/Sol arbitration — `docs/ai-workflow/AI-HANDOFF/panel-design-brain-style-intelligence-2026-09-01/05-sol-arbitration-and-corrections.md`).**
+> Three claims below were FALSE when written and must not be learned as fact:
+> (1) "all spot-checks of the gatherers' load-bearing claims held" — two verdict-driving receipts (trainer T4, admin "8th of 8") were false; T4's "routed placeholder tab" file is an UNROUTED orphan.
+> (2) "imposter-on-port risk handled by shape validation" — the validation checked fields the real API doesn't gate on AND the projection read fields (`name`/`codes`) that don't exist; the bridge also DESTROYED its last-known-good snapshot on outage.
+> (3) The GLM "PASS" chain was prose-to-prose — it verified arbitration fidelity, never ground truth.
+> The corrected lessons: a [LIKELY] receipt may never drive a verdict; a mock/fixture must be derived from a probe of the real implementation (this exact lesson already existed in the corpus and was repeated anyway — that repeat is the signal); a review-of-review needs at least one file-access seat.
+
+
 Branch: `feat/design-brain-style-intelligence` (eae029c3c → 34f84fd75, pushed). Review artifact: `docs/ai-workflow/AI-HANDOFF/HOSTILE-DESIGN-REVIEW-FIVE-SURFACES-2026-09-01.md`.
 
 ## Who did what
@@ -69,8 +77,11 @@ See frontmatter. The load-bearing one: the router now runs Step 3.5 (two-axis Mi
 - **Narrow-probe → broad-claim:** recurred TWICE this session (screenshot artifacts; H1 scope), the corpus's worst family (88% documented recurrence). Both were stopped pre-ship — not by care, but by procedure: (a) read the gating code before believing a capture, (b) curl the exact persona you're claiming about. The correction that survives is "no absence/scope claim without a probe of that exact path"; "be more careful with screenshots" would not have survived.
 - **Constitution-cites-dead-tool:** found one (rule 74 → deleted dry-loop-gate) and nearly authored one (Step 3.5 → swan-brain.mjs absent on main). Same class, both stopped by a file-existence check; the branch-topology wording GLM then killed ("IF that script exists on the current branch") shows the tempting wrong fix — law must attempt-and-record-failure, never encode checkout state.
 
+- **(R4 additions, 2026-09-02)** **Mock-shares-your-assumption: REPEATED** — the corpus already carried this lesson by name (2026-08-16 packet) and the bridge's first tests still validated invented `name`/`codes` fields against a self-made mock. Recurred AFTER documentation; stopped only by a seat with filesystem access probing the real compiler. Surviving correction: fixture shapes are DERIVED from a `write:false` probe of the real implementation, never typed. — **[LIKELY]-drives-verdict:** two rev-2 verdict drivers (T4, A1-as-last) were unopened agent receipts; both false. Surviving correction: a finding may not drive a verdict or ranked slice while tagged [LIKELY].
+
 ## External-model calibration
 
 - **GLM 5.3:** 2 calls. Call 1: 6/6 blockers real, 5/5 serious adopted, 2/14 findings rejected on verification (misread the taxonomy doc as a 5,525-name load; flagged an echo chamber the grill already structurally prevents). Call 2: 11/12 attacks sustained, 8/8 new findings adopted. Best value-per-token hostile seat currently available; its findings were load-bearing, not cosmetic.
 - **GLM 5.3 Flash:** 2 calls, verification-only. 6/6 and 20/23-row tables accurate; found 2 real wording contradictions; invented nothing. Correct role: cross-check, never lead.
 - Total external spend: ~$0 (both on the Z.ai subscription, routed direct per the seat rule).
+- **GPT-5.6 Sol (R4, filesystem access):** 10/10 findings real, 0 disproven — 4 P0 (incl. two the whole GLM chain missed because its prompts were evidence-restricted). The differentiator was file access + route walking, not tier. Correct role: ground-truth hostile pass on finished branches.

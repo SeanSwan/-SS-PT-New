@@ -1034,7 +1034,7 @@ The strict-model design architecture is fully enforced. `swan-design-router` is 
 | `hermes-inbox` | Any-agent → Hermes working channel (rule 69). Work done OUTSIDE Hermes (terminal Claude/Codex, local Qwen, scripts) drops a short IDs-only memo in `.ai-workflow/hermes-inbox/pending/`; Hermes reads at session start, absorbs, then memos archive to `consumed/` (Rule 34). Ephemeral + any-agent — distinct from the Fable-tier-only durable learning-packet and the Sean-triggered continuity bridge. Fires via rule 69 + closeout-evidence-lock fold + a SessionStart hook. |
 | `handoff` | **Session-transfer gate (rule 83).** Fires on ANY handoff phrasing — "hand this off", "this chat is getting long", "pass it to the next agent" — and asks in one line when unsure. Harvests the WHOLE conversation (not the tail), re-derives every number, gap-analyses against Sean's vision, grills him on the gaps and records his verdicts, then writes the cold-start doc + a paste-ready agent prompt to `docs/ai-workflow/AI-HANDOFF/`. Paired with `scripts/hooks/context-watch-gate.mjs`, which watches real token usage and forces the handoff at ~70% context so a session never drifts into a lossy compaction. |
 
-**Evidence gates (4) — rules 52 / 80-81:**
+**Evidence gates (6) — rules 52 / 80-81 (+ the seat-relay purpose gate):**
 | Skill | Role |
 |---|---|
 | `cross-env-verify` | Fires before any "X is broken / missing / corrupt" claim, and **hard-gates every destructive remedy** (delete, re-clone, re-init, reset, wipe, reinstall). One tool's failure is not a fact about the world — re-check from a second vantage first. Born 2026-08-05 from a near-miss that would have destroyed a branch and its history. |

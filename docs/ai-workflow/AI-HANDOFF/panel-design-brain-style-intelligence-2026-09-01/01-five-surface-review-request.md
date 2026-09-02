@@ -69,7 +69,7 @@ Product loop holds: Progress is tab #2, one click from Home (`UserDashboardTabBa
 **U1 — Progress is chart-poor for a progress-first product.** One chart file (`WorkoutsTabCharts.tsx` — bars only) while `ProfileData.chartVisibility` advertises `weightProgression`, `bodyFatTrend`, `strength1RM` that nothing renders (`types/UserDashboardTypes.ts:44-57`). The product's proof-of-progress promise is wider than its render. Fix: trend/line charts for the advertised series, C11 chart-environment treatment. `[LIKELY — agent receipt; render-path unverified]`
 **U2 — [Rule 4]** `HomeTab.tsx` 374 lines on the highest-traffic panel. Split.
 **U3 — [LAW 9]** 37 inline `style={{` uses bypass tokens (`CrystalProgressRing.fx.tsx:110` etc.). Migrate to styled/transient props.
-**U4 — Hard `limit: 200`, no pagination** (`WorkoutsTab.tsx:91`) — long histories silently truncate; an athlete's year disappears without a "load more." 
+**U4 — Hard `limit: 200`, no pagination** (`WorkoutsTab.tsx:91`) — long histories silently truncate; an athlete's year disappears without a "load more."
 **U5 — [LAW 8]** zero world/lens tokens (X2 applies).
 
 ## CLIENT DASHBOARD — verdict: **REVISE** (structure, not data)
@@ -96,7 +96,7 @@ The coaching loop is genuinely low-click: landing → My Clients → card "Log" 
 Engineering quality is the strongest here: per-widget `WidgetErrorBoundary`, `metricUnavailable` honesty objects instead of fake numbers, `Promise.allSettled` fan-out, real-API Victory charts ("without demo fallbacks", `RevenueChart.tsx:1-3`).
 
 **A1 — [Rule 62/Core Loop] Proof-of-value is buried 5th of 8.** Landing order: Signal bar → Quick actions → AI Terminal → Alerts → Work Queues → Business Lens → Revenue Integrity → **Operations (who trained / who's stale / who needs intervention)** (`AdminOverviewPanel.tsx:198-268`). The admin priority law says workout/progress truth surfaces before decorative features; an AI terminal panel outranking client-intervention signals is backwards. Fix: reorder — Work Queues + Operations above the fold, terminal below. `[LIKELY — agent receipt of section order]`
-**A2 — [Rule 24] No ultra-wide plan on the landing grid.** `AdminOverviewPanel.styles.ts:39-80` stops at a 1280px 6-col; on Sean's own 2560 QHD the bento stretches or islands (the `2560px` pattern exists in-tree at `MeasurementEntry.baseStyles.ts:30` but not here). 
+**A2 — [Rule 24] No ultra-wide plan on the landing grid.** `AdminOverviewPanel.styles.ts:39-80` stops at a 1280px 6-col; on Sean's own 2560 QHD the bento stretches or islands (the `2560px` pattern exists in-tree at `MeasurementEntry.baseStyles.ts:30` but not here).
 **A3 — Motion weight on an operator surface.** `bentoItemAnimation` staggers entry across up to 12 tiles (`AdminOverviewPanel.styles.ts:16-37,87,95,111`). Rule 43 is satisfied — it IS `css``-wrapped now `[VERIFIED — file read, line 16]` — the residual issue is LAW 6 calm-atmosphere budget on an in-app tree with only 18 reduced-motion guards (lowest of the four dashboards).
 **A4 — [Rule 4]** `AdminOverviewPanel.tsx` 297 / `AdminStellarSidebar.tsx` 296 — at the ceiling (X4).
 
