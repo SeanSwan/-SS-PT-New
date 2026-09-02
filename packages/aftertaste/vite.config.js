@@ -21,5 +21,13 @@ export default defineConfig({
   // resolves to IPv6 ::1 — so http://localhost:5299 answered 200 while http://127.0.0.1:5299
   // answered nothing, and the Playwright webServer (polling the IPv4 address) timed out for two
   // full runs against a server that was up the whole time. Pin the family; do not guess it.
-  server: { host: '127.0.0.1', port: 5299, strictPort: true, fs: { allow: [repoRoot] } },
+  // SWAN_PORT: the test suite runs on its own port so Sean PLAYING on 5299 never blocks a proof
+  // run (Fable review §7 — the playtest cadence must not fight the suite for a socket).
+  // strictPort stays: a server that silently moves is a test that silently tests nothing.
+  server: {
+    host: '127.0.0.1',
+    port: Number(process.env.SWAN_PORT ?? 5299),
+    strictPort: true,
+    fs: { allow: [repoRoot] },
+  },
 });

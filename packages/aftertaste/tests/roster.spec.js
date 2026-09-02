@@ -14,8 +14,10 @@ test('wave 2 mixes in the drip-cyst, and every enemy still owns one skinned mesh
   await page.waitForFunction(() => window.__swanScene && window.__swanEnemyPos?.length > 0, null, { timeout: 20_000 });
 
   // Wave 1 is frylings only — the learnable wave.
-  const wave1Types = await page.evaluate(() => [...new Set(window.__swanEnemyPos.map((e) => e.type))]);
-  expect(wave1Types).toEqual(['fryling']);
+  // TEST-DELTA (R2): wave 1 mixes two faces now — the first playtest proved the old one-face
+  // wave taught nothing before the player died.
+  const wave1Types = await page.evaluate(() => [...new Set(window.__swanEnemyPos.map((e) => e.type))].sort());
+  expect(wave1Types).toEqual(['fryling', 'grease-fly']);
 
   // Clear wave 1 (poll-shooting past fair-spawn) and wait for wave 2's flock to mature.
   await page.waitForFunction(() => {
@@ -34,19 +36,21 @@ test('wave 2 mixes in the drip-cyst, and every enemy still owns one skinned mesh
   expect(wave2.types, 'wave 2 contains the second face').toContain('drip-cyst');
   expect(wave2.types).toContain('fryling');
 
-  // Both models render as skinned meshes — one per living-or-dying enemy, each with its own
-  // skeleton (the crowd-bug assertion, now across MULTIPLE GLBs sharing a scene).
+  // Both models render as skinned meshes — the PARTED fryling carries two meshes on one skeleton
+  // (TEST-DELTA, D3), every other type one. The crowd-bug assertion: distinct skeletons == enemies.
   await page.waitForFunction(() => {
     let skinned = 0;
     window.__swanScene.traverse((o) => { if (o.isSkinnedMesh) skinned += 1; });
-    return skinned === window.__swanGameStore.getState().enemies.length && skinned > 0;
+    const want = window.__swanGameStore.getState().enemies
+      .reduce((n, e) => n + (e.type === 'fryling' ? 2 : 1), 0);
+    return skinned === want && skinned > 0;
   }, null, { timeout: 20_000 });
   const bones = await page.evaluate(() => {
     const roots = [];
     window.__swanScene.traverse((o) => { if (o.isSkinnedMesh) roots.push(o.skeleton.bones[0].uuid); });
-    return { total: roots.length, distinct: new Set(roots).size };
+    return { enemies: window.__swanGameStore.getState().enemies.length, distinct: new Set(roots).size };
   });
-  expect(bones.distinct, 'every enemy owns its OWN skeleton, across model types').toBe(bones.total);
+  expect(bones.distinct, 'every enemy owns its OWN skeleton, across model types').toBe(bones.enemies);
 
   expect(thrown, `page threw: ${thrown.join(' | ')}`).toHaveLength(0);
 });

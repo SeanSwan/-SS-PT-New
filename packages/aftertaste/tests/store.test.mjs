@@ -21,6 +21,7 @@ import assert from 'node:assert/strict';
 import { useGameStore } from '../src/state/store.js';
 import { PLAYER_HP } from '../src/systems/waves.js';
 import { ATTACK_WINDUP, SPAWN_SECONDS, DEATH_SECONDS } from '../src/systems/lifecycle.js';
+import { DEBRIS_TTL } from '../src/state/store.js';
 
 const ORIGIN = { x: 0, z: 0 };
 const FAR = { x: 999, z: 999 };
@@ -234,4 +235,59 @@ test('the dead do not shoot: shoot() is a no-op once the round is over (GLM-5.3 
   assert.equal(shotAt(target), false, 'a shot from the death screen must not land');
   assert.equal(useGameStore.getState().kills, killsBefore, 'no kill farming while dead');
   assert.equal(useGameStore.getState().enemies.find((e) => e.id === target.id).hp, target.hp);
+});
+
+// --- D3: severing — headshots, detached parts, debris (T1-T4 defaults) -------------------------
+
+const headShotAt = (enemy) => {
+  // The fryling's head sphere sits at normalized offset (+0.1666, -0.1666) from the enemy —
+  // a vertical ray THERE pierces the head before the body (proven in combat.test.mjs).
+  const head = enemy.parts.find((p) => p.tag === 'head').hitShape.c;
+  return useGameStore.getState().shoot(
+    { x: enemy.x + head[0], y: 10, z: enemy.z + head[2] },
+    { x: 0, y: -1, z: 0 },
+  );
+};
+
+test('a headshot one-shots a full-hp fryling: x2 damage, onSever kill, corpse missing its head', () => {
+  mature();
+  const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
+  assert.ok(target?.parts, 'precondition: wave-1 frylings carry parts');
+  assert.equal(headShotAt(target), true);
+  const s = useGameStore.getState();
+  const corpse = s.enemies.find((e) => e.id === target.id);
+  assert.equal(corpse.state, 'dying', 'head off = dead, whatever the pool said');
+  assert.ok(corpse.severed?.includes('head'), 'the corpse records its missing head');
+  assert.equal(s.kills, 1);
+});
+
+test('a body shot deals normal damage and severs nothing', () => {
+  mature();
+  const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
+  assert.equal(shotAt(target), true); // shotAt fires down the centre line = body capsule
+  const after = useGameStore.getState().enemies.find((e) => e.id === target.id);
+  assert.equal(after.hp, target.hp - 1, 'body damage is x1');
+  assert.equal(after.state, 'alive');
+  assert.equal(after.severed, undefined);
+});
+
+test('a sever spawns debris; debris lives in its own array, never among enemies', () => {
+  mature();
+  const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
+  headShotAt(target);
+  const s = useGameStore.getState();
+  assert.ok(s.debris.length >= 1, 'the severed head became debris');
+  assert.ok(s.debris.every((d) => d.part && typeof d.bornAt === 'number'));
+  assert.ok(!s.enemies.some((e) => e.part), 'no debris leaked into the enemy list');
+});
+
+test('debris expires after its TTL and a fresh round starts with none', () => {
+  mature();
+  const target = useGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
+  headShotAt(target);
+  assert.ok(useGameStore.getState().debris.length >= 1);
+  tick(FAR, T += DEBRIS_TTL + 0.1);
+  assert.equal(useGameStore.getState().debris.length, 0, 'the floor does not fill with crumbs');
+  useGameStore.getState().reset();
+  assert.equal(useGameStore.getState().debris.length, 0);
 });

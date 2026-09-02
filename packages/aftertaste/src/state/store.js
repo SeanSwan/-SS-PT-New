@@ -35,6 +35,11 @@ export const usePlayerStore = create((set) => ({
 import { hitscan, damage, isDead } from '../combat/combat.js';
 import { waveSize, spawnRing, tickRound, PLAYER_HP, inTouchRange } from '../systems/waves.js';
 import { stepLifecycle, can, holdsWave } from '../systems/lifecycle.js';
+import { PART_DAMAGE } from '../enemies/partsData.js';
+import { ROSTER } from '../enemies/roster.js';
+
+/** Seconds a severed part's debris tumbles before fading off the floor — T4 default. */
+export const DEBRIS_TTL = 4;
 
 /** Seconds of mercy after a hit, so one touch is not three instant deaths. */
 const INVULN_SECONDS = 1.0;
@@ -66,6 +71,9 @@ export const useGameStore = create((set, get) => ({
    *  sentinel swallowed that hitmarker. Sentinels must live outside the value's domain. */
   lastHitAt: -1,
   lastKillAt: -1,
+  /** Severed parts tumbling on the floor. DECORATION, by contract: never consulted by tickRound,
+   *  hitscan, or steering — a gib cannot hold a wave open or soak a bullet. Drained by tick. */
+  debris: [],
 
   /**
    * Fire one hitscan shot from `origin` along `dir` (the Overwatch/BF6 model — the decision is a
@@ -80,7 +88,25 @@ export const useGameStore = create((set, get) => ({
     // materialising spawn to whatever stands behind them. The lifecycle table decides, not us.
     const hit = hitscan(origin, dir, enemies.filter((e) => can(e, 'canBeShot')));
     if (!hit) return false;
-    const hurt = damage(hit.target, 1);
+    // LOCATIONAL DAMAGE (D3): the struck part sets the multiplier — headshots hit twice as hard
+    // (T3 default). A partless monster's null part reads as x1.
+    let hurt = damage(hit.target, PART_DAMAGE[hit.part] ?? 1);
+    // SEVERING, per the roster-v2 contract: a severable part detaches when the pool crosses its
+    // threshold AND that part took the crossing hit — you shot the arm off, the arm you shot.
+    const newDebris = [];
+    const struck = hit.part && (hit.target.parts ?? []).find((p) => p.tag === hit.part);
+    if (struck?.severable && !(hit.target.severed ?? []).includes(struck.tag)) {
+      const maxHp = ROSTER[hit.target.type]?.hp ?? hit.target.hp;
+      if (hurt.hp <= struck.severAtHpFraction * maxHp) {
+        hurt = { ...hurt, severed: [...(hit.target.severed ?? []), struck.tag] };
+        if (struck.onSever === 'kill') hurt = { ...hurt, hp: 0 };
+        if (struck.onSever === 'slow') hurt = { ...hurt, speedScale: (hit.target.speedScale ?? 1) * 0.5 };
+        newDebris.push({
+          id: `${hit.target.id}-${struck.tag}`, type: hit.target.type, part: struck.tag,
+          x: hit.target.x, z: hit.target.z, bornAt: clockNow,
+        });
+      }
+    }
     const killed = isDead(hurt) ? 1 : 0;
     // The killing shot does NOT remove the enemy — it starts the death. The corpse stays on the
     // board playing its topple until the lifecycle ages it off; the kill is SCORED now, because
@@ -94,6 +120,7 @@ export const useGameStore = create((set, get) => ({
       kills: kills + killed,
       lastHitAt: clockNow,
       ...(killed ? { lastKillAt: clockNow } : {}),
+      ...(newDebris.length ? { debris: [...get().debris, ...newDebris] } : {}),
     });
     if (typeof window !== 'undefined') window.__swanKills = kills + killed;
     return true;
@@ -136,6 +163,10 @@ export const useGameStore = create((set, get) => ({
 
     const patch = {};
     if (changed) patch.enemies = stepped;
+    // Debris fades when its TTL ends — decoration cleans itself up (T4 default: 4s).
+    if (s.debris.length && s.debris.some((d) => elapsed - d.bornAt >= DEBRIS_TTL)) {
+      patch.debris = s.debris.filter((d) => elapsed - d.bornAt < DEBRIS_TTL);
+    }
     if (r.touched && !merciful) {
       patch.hp = r.hp;
       patch.over = r.over;
@@ -170,7 +201,7 @@ export const useGameStore = create((set, get) => ({
     set({
       enemies: spawnRing(waveSize(1), SPAWN_RADIUS, 1, centre, clockNow),
       kills: 0, hp: PLAYER_HP, wave: 1, over: false, invulnUntil: 0,
-      lastHitAt: -1, lastKillAt: -1,
+      lastHitAt: -1, lastKillAt: -1, debris: [],
     });
     if (typeof window !== 'undefined') {
       // Reset owns EVERY seam a round accumulates — a per-round stat built on a seam that

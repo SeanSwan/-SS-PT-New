@@ -20,6 +20,7 @@ import { Vector3 } from 'three';
 /** One scratch vector, reused every shot — allocating in a frame loop feeds the garbage collector. */
 const _dirScratch = new Vector3();
 import Ground from './world/Ground.jsx';
+import Debris from './world/Debris.jsx';
 import Player from './player/Player.jsx';
 import Enemies from './enemies/Enemies.jsx';
 import Hud from './ui/Hud.jsx';
@@ -228,6 +229,7 @@ export default function App() {
       <Ground />
       <Player />
       <Enemies />
+      <Debris />
 
       {/* Slice 2 replaced OrbitControls with a follow camera; the FPS slice put it behind your eyes. */}
       <FpsRig />

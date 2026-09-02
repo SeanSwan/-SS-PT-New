@@ -115,14 +115,17 @@ test('spawnRing centres on the player, not the origin — the world is infinite 
   }
 });
 
-test('spawnRing fills slots from the roster: type, hp and aimRadius are the row, not a constant', () => {
+test('spawnRing fills slots from the roster: type, hp, scaled aim and renderScale are the row', () => {
   const w4 = spawnRing(8, 10, 4, { x: 0, z: 0 }, 0);
   const types = new Set(w4.map((e) => e.type));
   assert.equal(types.size, 4, 'wave 4 mixes all four monsters');
   for (const e of w4) {
     assert.equal(e.hp, ROSTER[e.type].hp, `${e.type} hp comes from its row`);
-    assert.equal(e.aimRadius, ROSTER[e.type].aimRadius);
+    // R1/H8: the aim sphere scales WITH the rendered silhouette, and renderScale rides along
+    // so part shapes scale identically in hitscan.
+    assert.equal(e.aimRadius, ROSTER[e.type].aimRadius * ROSTER[e.type].renderHeight);
+    assert.equal(e.renderScale, ROSTER[e.type].renderHeight);
   }
-  const w1 = spawnRing(5, 10, 1, { x: 0, z: 0 }, 0);
-  assert.ok(w1.every((e) => e.type === 'fryling'), 'wave 1 is frylings only');
+  const w1 = spawnRing(6, 10, 1, { x: 0, z: 0 }, 0);
+  assert.equal(new Set(w1.map((e) => e.type)).size, 2, 'wave 1 mixes two faces (R2)');
 });

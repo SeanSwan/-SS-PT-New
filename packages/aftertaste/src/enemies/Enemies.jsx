@@ -78,7 +78,7 @@ export default function Enemies() {
               </mesh>
             )}
           >
-            <Monster type={e.type ?? 'fryling'} hp={e.hp} state={e.state} />
+            <Monster type={e.type ?? 'fryling'} hp={e.hp} state={e.state} severed={e.severed} />
           </Suspense>
         </group>
       ))}

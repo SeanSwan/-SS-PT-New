@@ -113,3 +113,81 @@ test('a muzzle INSIDE a sphere still hits it — entry clamps to zero, it does n
   const hit = hitscan(waist, FWD, [swallowing]);
   assert.equal(hit?.target.id, 'S', 'point-blank contact must register');
 });
+
+// --- D3: locational hitscan — the ray picks the PART it enters first ---------------------------
+
+const PARTED = () => ({
+  id: 'parted', x: 0, z: -10,
+  parts: [
+    { tag: 'body', hitShape: { kind: 'capsule', a: [0, 0.3333, 0], b: [0, 0.3333, 0], r: 0.3333 } },
+    { tag: 'head', hitShape: { kind: 'sphere', c: [0.1666, 0.8334, -0.1666], r: 0.1667 } },
+  ],
+});
+
+test('a ray through the head sphere reports part "head"', () => {
+  // Straight down over the head shape's own x/z: it pierces the head at y=1.0 before it could
+  // reach the body capsule lower down — entry ORDER picks the part, exactly like enemy selection.
+  const origin = { x: 0.1666, y: 10, z: -10.1666 };
+  const hit = hitscan(origin, { x: 0, y: -1, z: 0 }, [PARTED()]);
+  assert.equal(hit?.target.id, 'parted');
+  assert.equal(hit.part, 'head');
+});
+
+test('a ray through the torso reports part "body"', () => {
+  // Level ray at waist height through the enemy's centre line — inside the body capsule,
+  // far from the head sphere.
+  const hit = hitscan({ x: 0, y: 0.3333, z: 0 }, FWD, [PARTED()]);
+  assert.equal(hit?.target.id, 'parted');
+  assert.equal(hit.part, 'body');
+});
+
+test('head-vs-body ordering: a downward ray clipping BOTH shapes goes to the one entered first', () => {
+  // x/z chosen so the vertical ray passes through the head sphere AND within the body capsule's
+  // radius. Head entry is higher (y≈1.0) than body entry (y≈0.57): head must win.
+  const origin = { x: 0.1666, y: 10, z: -10.1666 };
+  const e = PARTED();
+  const hit = hitscan(origin, { x: 0, y: -1, z: 0 }, [e]);
+  // precondition: the body capsule IS reachable by this ray (lateral distance < r)
+  const lat = Math.hypot(0.1666 - 0, -10.1666 - (-10));
+  assert.ok(lat < 0.3333, `precondition failed: lateral ${lat}`);
+  assert.equal(hit.part, 'head');
+});
+
+test('a partless enemy still hits with part null — lifecycle for the other three monsters', () => {
+  const hit = hitscan(waist, FWD, [{ id: 'plain', x: 0, z: -10 }]);
+  assert.equal(hit?.target.id, 'plain');
+  assert.equal(hit.part ?? null, null);
+});
+
+test('nearest ENTRY still arbitrates across enemies when one is parted', () => {
+  // A partless enemy in front of the parted one: its sphere entry comes first.
+  const near = { id: 'near', x: 0, z: -5 };
+  const hit = hitscan(waist, FWD, [PARTED(), near]);
+  assert.equal(hit.target.id, 'near');
+});
+
+test('a miss on every part is a miss on the enemy — no falling back to the whole-body sphere', () => {
+  // Ray passes the OLD whole-body sphere region but outside every part shape: above the body
+  // capsule, beside the head. A parted monster is exactly its parts.
+  const hit = hitscan({ x: -0.3, y: 0.9, z: 0 }, FWD, [PARTED()]);
+  assert.equal(hit, null);
+});
+
+test('renderScale scales part shapes: hitboxes follow the rendered silhouette (H8 guard)', () => {
+  // FIRST VERSION OF THIS TEST measured an incidental arrangement (§10.2's own lesson): it fired
+  // at the old 1x head position and expected a miss — but the 2x head sphere GROWS enough to
+  // still cover that ray. The claim worth testing is the ENTRY HEIGHT: a doubled monster's head
+  // is entered roughly twice as high, so the vertical ray's entry t (from y=10) is smaller.
+  const big = { ...PARTED(), id: 'big', renderScale: 2 };
+  const headAt1 = hitscan({ x: 0.1666, y: 10, z: -10.1666 }, { x: 0, y: -1, z: 0 }, [PARTED()]);
+  assert.equal(headAt1.part, 'head', 'precondition: the 1x ray finds the head');
+  const scaledRay = hitscan({ x: 0.3332, y: 10, z: -10.3332 }, { x: 0, y: -1, z: 0 }, [big]);
+  assert.equal(scaledRay?.part, 'head', 'the 2x head lives at 2x the offset');
+  // 1x head top ≈ y 1.0 → t ≈ 9.0; 2x head entry ≈ y 1.9-2.0 → t ≈ 8.0-8.1.
+  assert.ok(scaledRay.t < headAt1.t - 0.5,
+    `the scaled head is entered HIGHER (t ${scaledRay.t.toFixed(2)} vs ${headAt1.t.toFixed(2)})`);
+  // And a ray ABOVE the 1x head but inside the 2x head's reach hits only the big one.
+  const highRay = { x: 0.3332, y: 1.75, z: 0 };
+  assert.equal(hitscan(highRay, FWD, [PARTED()]), null, '1x monster tops out below y=1.75');
+  assert.equal(hitscan(highRay, FWD, [big])?.part, 'head', 'the 2x head occupies that height');
+});

@@ -17,6 +17,7 @@
 
 import { hurtsNow, holdsWave } from './lifecycle.js';
 import { ROSTER, typeForSlot } from '../enemies/roster.js';
+import { PARTS } from '../enemies/partsData.js';
 
 /** How many hits the player survives. Low on purpose — a long health bar hides bad feel. */
 export const PLAYER_HP = 3;
@@ -64,7 +65,14 @@ export function spawnRing(count, radius, waveNumber = 1, centre = { x: 0, z: 0 }
       x: centre.x + Math.cos(angle) * radius,
       z: centre.z + Math.sin(angle) * radius,
       hp: spec.hp,
-      aimRadius: spec.aimRadius,
+      // The aim sphere and part shapes scale WITH the rendered silhouette (R1/H8): a monster
+      // drawn at 1.5x is hit like a 1.5x monster. renderScale multiplies part shapes in hitscan.
+      aimRadius: spec.aimRadius * (spec.renderHeight ?? 1),
+      renderScale: spec.renderHeight ?? 1,
+      // Locational damage (D3): parted monsters carry their measured hit shapes from the
+      // manifest. Shared reference on purpose — hitscan only reads it. Partless types stay on
+      // the single waist sphere.
+      ...(PARTS[type] ? { parts: PARTS[type] } : {}),
       // Born into the state machine: a brief fair-spawn window before it can act or be shot.
       state: 'spawning',
       stateSince: now,

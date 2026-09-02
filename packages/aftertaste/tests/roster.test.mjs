@@ -30,11 +30,8 @@ test('THE ratio law: every monster is slower than the player, or there is no gam
   }
 });
 
-test('wave 1 is frylings only — one new face per wave, learnable then relentless', () => {
-  assert.deepEqual(unlockedTypes(1), ['fryling']);
-  for (let i = 0; i < 5; i++) assert.equal(typeForSlot(1, i), 'fryling');
-});
-
+// TEST-DELTA (R2, Fable review): "wave 1 is frylings only" asserted the pacing the first human
+// playtest disproved — a player dying on wave 2 met one monster. Superseded by the mix tests.
 test('by wave 4 every monster is in the mix, and the cycle is deterministic', () => {
   assert.equal(unlockedTypes(4).length, 4);
   const seen = new Set();
@@ -61,4 +58,20 @@ test('the aim sphere must cover most of the body it stands in for — no invisib
       `${type}: aimRadius ${spec.aimRadius} covers under 80% of its ${longestHalf.toFixed(2)} half-extent`,
     );
   }
+});
+
+// --- R1/R2 (Fable feel blueprint, 2026-09-02): silhouette identity + early variety ------------
+
+test('every monster declares a renderHeight, and they DIFFER — silhouette is an identity channel', () => {
+  const heights = Object.entries(ROSTER).map(([t, s]) => {
+    assert.ok(typeof s.renderHeight === 'number' && s.renderHeight > 0, `${t}.renderHeight`);
+    return s.renderHeight;
+  });
+  assert.ok(new Set(heights).size >= 3, 'uniform heights erase the roster row a player reads at distance');
+});
+
+test('wave 1 already mixes two faces; the full cast arrives by wave 3', () => {
+  assert.equal(unlockedTypes(1).length, 2, 'a first session meets more than one monster');
+  assert.ok(unlockedTypes(1).includes('fryling'), 'the baseline face is always first');
+  assert.equal(unlockedTypes(3).length, 4, 'the whole cast by wave 3 — players die before wave 4');
 });

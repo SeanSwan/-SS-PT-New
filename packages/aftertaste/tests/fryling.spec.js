@@ -34,22 +34,29 @@ test('the Fryling renders as a skinned mesh, animates, and each enemy owns its s
     return skinned > 0;
   }, undefined, { timeout: 30_000 });
 
-  // Every enemy on the board should be a skinned Fryling — no leftover boxes once loading settles.
+  // TEST-DELTA (D3+R2): the fryling loads its PARTED v2 build — two skinned meshes sharing one
+  // per-enemy skeleton — and wave 1 now MIXES two faces (R2), so expected meshes are summed per
+  // type. The crowd-bug assertion: distinct skeletons must equal ENEMIES, not meshes.
   const counts = await page.evaluate(() => {
     const seen = [];
     window.__swanScene.traverse((o) => {
       if (o.isSkinnedMesh) seen.push(o.skeleton.bones[0].uuid);
     });
-    return { skinned: seen.length, distinctRootBones: new Set(seen).size, enemies: window.__swanEnemyPos.length };
+    const enemies = window.__swanEnemyPos;
+    const want = enemies.reduce((n, e) => n + (e.type === 'fryling' ? 2 : 1), 0);
+    return { skinned: seen.length, distinctRootBones: new Set(seen).size, enemies: enemies.length, want };
   });
-  expect(counts.skinned, 'one skinned mesh per enemy').toBe(counts.enemies);
-  // The crowd-bug assertion: shared skeletons would collapse this set.
-  expect(counts.distinctRootBones, 'every enemy owns its OWN skeleton').toBe(counts.skinned);
+  expect(counts.skinned, 'two part meshes per fryling, one per other face').toBe(counts.want);
+  // The crowd-bug assertion: shared skeletons ACROSS enemies would collapse this below enemy count.
+  expect(counts.distinctRootBones, 'every enemy owns its OWN skeleton').toBe(counts.enemies);
 
   // Wait for maturity FIRST: a spawning Fryling plays `idle`, which does not touch the bone this
   // test samples — only `move` (the waddle) provably rotates it. Fair-spawn also makes newborns
-  // unshootable, and the darkening shot below needs a shootable target.
-  await page.waitForFunction(() => window.__swanEnemyPos?.[0]?.state === 'alive', undefined, { timeout: 10_000 });
+  // unshootable, and the darkening shot below needs a shootable FRYLING (wave 1 is mixed, R2).
+  await page.waitForFunction(
+    () => window.__swanEnemyPos?.some((e) => e.type === 'fryling' && e.state === 'alive'),
+    undefined, { timeout: 10_000 },
+  );
 
   // The mixer is advancing: a mid-chain bone's local rotation must differ across ~400ms. The move
   // clip is rotation-keyed, so a frozen quaternion means no mixer is updating this instance.
@@ -77,7 +84,7 @@ test('the Fryling renders as a skinned mesh, animates, and each enemy owns its s
   // palette must not break this test, which is about the DAMAGE SEAM, not the colour choice.
   const damagedTint = ROSTER.fryling.tint[1].slice(1).toLowerCase();
   const darkened = await page.evaluate((tintHex) => {
-    const target = window.__swanEnemyPos[0];
+    const target = window.__swanGameStore.getState().enemies.find((e) => e.type === 'fryling' && e.state === 'alive');
     window.__swanGameStore.getState().shoot({ x: target.x, y: 10, z: target.z }, { x: 0, y: -1, z: 0 });
     return new Promise((resolve) => setTimeout(() => {
       let dark = 0;
@@ -87,7 +94,9 @@ test('the Fryling renders as a skinned mesh, animates, and each enemy owns its s
       resolve(dark);
     }, 200));
   }, damagedTint);
-  expect(darkened, 'exactly the hit monster darkened').toBe(1);
+  // TEST-DELTA (D3): a parted fryling is TWO meshes sharing one tint — the struck monster's body
+  // AND head darken together, and nobody else's do. 1 was the one-mesh era's number.
+  expect(darkened, 'exactly the hit monster darkened — both its part meshes').toBe(2);
 
   expect(thrown, `page threw: ${thrown.join(' | ')}`).toHaveLength(0);
 });

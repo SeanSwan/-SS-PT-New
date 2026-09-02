@@ -42,29 +42,77 @@ export const MAX_RANGE = 45;
  * A target may carry its own `aimRadius` (the roster's long, low patty-larva needs a bigger
  * sphere than the compact fryling); `radius` is the fallback for targets that do not.
  */
+/** Ray entry into a sphere at world centre c with radius r; null on miss. Entry clamps to 0 when
+ *  the origin is inside — point-blank contact registers, it does not go negative-and-skip. */
+function sphereEntry(origin, dir, c, r, maxRange) {
+  const ox = c[0] - origin.x; const oy = c[1] - origin.y; const oz = c[2] - origin.z;
+  const t = ox * dir.x + oy * dir.y + oz * dir.z;
+  const d2 = ox * ox + oy * oy + oz * oz;
+  const inside = d2 <= r * r;
+  if (!inside && t < 0) return null;
+  const closest2 = d2 - t * t;
+  if (closest2 > r * r) return null;
+  const tEnter = inside ? 0 : t - Math.sqrt(r * r - closest2);
+  return tEnter > maxRange ? null : tEnter;
+}
+
+/** Ray entry into a capsule (segment a-b swept by radius r): find the segment point nearest the
+ *  ray (standard ray/segment closest approach), then treat it as a sphere there. Exact for the
+ *  degenerate a===b capsule; a hair conservative at the caps of long ones — honest enough for a
+ *  grey-box, and always inside the true capsule (it never awards a hit the true shape would not). */
+function capsuleEntry(origin, dir, a, b, r, maxRange) {
+  const ab = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+  const abLen2 = ab[0] ** 2 + ab[1] ** 2 + ab[2] ** 2;
+  let s = 0;
+  if (abLen2 > 1e-12) {
+    // Closest parameters between ray (origin + t·dir) and segment (a + s·ab), s clamped to 0..1.
+    const ao = [origin.x - a[0], origin.y - a[1], origin.z - a[2]];
+    const dDotAb = dir.x * ab[0] + dir.y * ab[1] + dir.z * ab[2];
+    const aoDotAb = ao[0] * ab[0] + ao[1] * ab[1] + ao[2] * ab[2];
+    const aoDotD = ao[0] * dir.x + ao[1] * dir.y + ao[2] * dir.z;
+    const denom = abLen2 - dDotAb * dDotAb; // dir is unit length
+    s = denom > 1e-12 ? (aoDotAb - aoDotD * dDotAb) / denom : 0;
+    s = Math.max(0, Math.min(1, s));
+  }
+  const p = [a[0] + ab[0] * s, a[1] + ab[1] * s, a[2] + ab[2] * s];
+  return sphereEntry(origin, dir, p, r, maxRange);
+}
+
+/** Entry into one part's shape, offset to the enemy's world position and scaled by its render
+ *  scale (shapes live in the normalized 1-unit frame; a monster rendered at 1.5x carries its
+ *  hitboxes at 1.5x — the H8 guard: hit shapes move WITH the silhouette, or collisions look
+ *  unfair for invisible reasons). */
+function partEntry(origin, dir, shape, ex, ez, k, maxRange) {
+  if (shape?.kind === 'sphere') {
+    return sphereEntry(origin, dir, [ex + shape.c[0] * k, shape.c[1] * k, ez + shape.c[2] * k], shape.r * k, maxRange);
+  }
+  if (shape?.kind === 'capsule') {
+    const a = [ex + shape.a[0] * k, shape.a[1] * k, ez + shape.a[2] * k];
+    const b = [ex + shape.b[0] * k, shape.b[1] * k, ez + shape.b[2] * k];
+    return capsuleEntry(origin, dir, a, b, shape.r * k, maxRange);
+  }
+  return null;
+}
+
 export function hitscan(origin, dir, targets, radius = AIM_RADIUS, maxRange = MAX_RANGE) {
   let best = null;
   for (const target of targets) {
-    const ox = target.x - origin.x;
-    const oy = TARGET_HEIGHT - origin.y;
-    const oz = target.z - origin.z;
-    // How far along the ray the closest approach to this centre is.
-    const t = ox * dir.x + oy * dir.y + oz * dir.z;
-    const d2 = ox * ox + oy * oy + oz * oz;
+    // LOCATIONAL: a parted monster IS its parts — the ray tests each part shape and the earliest
+    // entry names both the monster and the part. No fallback to the whole-body sphere: a shot
+    // that misses every part misses the monster (D3, roster-v2 contract §4).
+    if (Array.isArray(target.parts) && target.parts.length) {
+      const k = target.renderScale ?? 1;
+      for (const p of target.parts) {
+        const tEnter = partEntry(origin, dir, p.hitShape, target.x, target.z, k, maxRange);
+        if (tEnter !== null && (!best || tEnter < best.t)) best = { target, t: tEnter, part: p.tag };
+      }
+      continue;
+    }
+    // Partless: one sphere at waist height, as before. Select on the ENTRY point, not the nearest
+    // centre — the bullet stops at the first surface it reaches (GLM-5.3 hostile review).
     const r = target.aimRadius ?? radius;
-    const inside = d2 <= r * r;
-    // Behind the muzzle AND not swallowing it: a gun does not shoot backwards.
-    if (!inside && t < 0) continue;
-    // Distance² from centre to the closest point on the ray (Pythagoras, no square root needed).
-    const closest2 = d2 - t * t;
-    if (closest2 > r * r) continue;
-    // Select on the sphere's ENTRY point, not the nearest centre — the bullet stops at the first
-    // surface it reaches. A grazed sphere can begin BEFORE a dead-centre one whose centre is
-    // nearer; nearest-centre selection awards that shot to the wrong monster. (GLM-5.3 hostile
-    // review 2026-09-01 — and load-bearing for locational damage, where spheres overlap by design.)
-    const tEnter = inside ? 0 : t - Math.sqrt(r * r - closest2);
-    if (tEnter > maxRange) continue;
-    if (!best || tEnter < best.t) best = { target, t: tEnter };
+    const tEnter = sphereEntry(origin, dir, [target.x, TARGET_HEIGHT, target.z], r, maxRange);
+    if (tEnter !== null && (!best || tEnter < best.t)) best = { target, t: tEnter, part: null };
   }
   return best;
 }

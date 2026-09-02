@@ -36,13 +36,16 @@ const CLIP_FOR = { spawning: 'idle', alive: 'move', attacking: 'attack', dying: 
  * props (GLM-5.3, finding 5). Positions are unaffected: they are written to the wrapper groups
  * imperatively, never through React.
  */
-function Monster({ type = 'fryling', hp = 2, state = 'alive' }) {
+function Monster({ type = 'fryling', hp = 2, state = 'alive', severed }) {
   const spec = ROSTER[type];
   const { scene, animations } = useGLTF(MODEL_URLS[type]);
   const group = useRef();
 
-  // Normalise to 1 unit tall; centre the measured footprint on the logical position.
-  const scale = 1 / spec.model.height;
+  // Scale to the roster's DESIGNED height, not a uniform 1 unit: uniform normalization erased
+  // the silhouette identity the roster designed — the one channel a player reads at distance
+  // (Fable review H1/R1; Sean's "Tetris zombies... didn't see the characters"). Hit shapes scale
+  // with the same factor via the enemy's renderScale, so hitbox and silhouette cannot detach.
+  const scale = (spec.renderHeight ?? 1) / spec.model.height;
   const offsetX = -((spec.model.minX + spec.model.maxX) / 2) * scale;
   const offsetZ = -((spec.model.minZ + spec.model.maxZ) / 2) * scale;
 
@@ -50,6 +53,12 @@ function Monster({ type = 'fryling', hp = 2, state = 'alive' }) {
   const model = useMemo(() => {
     const copy = cloneSkinned(scene);
     copy.traverse((o) => {
+      // GLTFLoader SANITIZES node names for animation-track binding: "part:head" arrives as
+      // "parthead" (the colon is stripped — verified empirically 2026-09-02, it broke severing
+      // silently). Restore the canonical name once, here at the clone boundary, so every
+      // downstream consumer — the sever effect, the browser specs — speaks "part:<tag>".
+      const m = /^part:?([\w-]+)$/.exec(o.name ?? '');
+      if (m) o.name = `part:${m[1]}`;
       // Materials are shared by the clone; tinting one enemy would tint the whole flock.
       if (o.isMesh && o.material) o.material = o.material.clone();
       if (o.isMesh) o.castShadow = true;
@@ -97,6 +106,18 @@ function Monster({ type = 'fryling', hp = 2, state = 'alive' }) {
       if (o.isMesh && o.material?.color) o.material.color.set(damagedLook ? spec.tint[1] : spec.tint[0]);
     });
   }, [hp, model, spec]);
+
+  // SEVERING (D3): a severed part's mesh disappears from the monster — the debris system throws
+  // the tumbling replacement. Hiding beats removing: the clone's skeleton stays intact for the
+  // clips still playing on the surviving parts, and a re-render can never resurrect a limb.
+  useEffect(() => {
+    const gone = new Set(severed ?? []);
+    model.traverse((o) => {
+      if (typeof o.name === 'string' && o.name.startsWith('part:')) {
+        o.visible = !gone.has(o.name.slice(5));
+      }
+    });
+  }, [severed, model]);
 
   return (
     <group ref={group}>
