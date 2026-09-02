@@ -14,7 +14,12 @@ export default defineConfig({
 
     // Test file patterns
     include: ['__tests__/**/*.test.{js,mjs}', 'tests/**/*.test.{js,mjs}'],
-    exclude: ['node_modules', 'dist', 'tests/integration/**'],
+    // tests/node-runner/** are node:test-dialect files (import test from 'node:test').
+    // Vitest collects them and reports "No test suite found" — 16 of the 23 red
+    // files on main were exactly this: healthy tests in the wrong runner (SWA-231).
+    // They run in CI via `node --test tests/node-runner/*.test.mjs` (glob form —
+    // a bare directory arg is treated as a module path and fails).
+    exclude: ['node_modules', 'dist', 'tests/integration/**', 'tests/node-runner/**'],
 
     // Setup file for test environment
     setupFiles: ['./tests/setup.mjs'],

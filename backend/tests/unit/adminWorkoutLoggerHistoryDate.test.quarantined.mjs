@@ -1,3 +1,4 @@
+// QUARANTINED SWA-231 2026-09-02: imports the real controller -> badgeRewardPointsService -> PointTransaction, and db.define is unavailable under the vitest env. Un-skip criteria: provide a database.mjs test stub so real-model chains load.
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Op } from 'sequelize';
 

@@ -1,3 +1,4 @@
+// QUARANTINED SWA-231 2026-09-02: vitest transform reports an anonymous SyntaxError; the file and its import pass node --check — runner-level, not reproducible in 10min. Un-skip criteria: reproduce the transform error with a minimal import or migrate the audit script consumption.
 /**
  * ============================================================================
  * FILE: backend/tests/api/idorAuditReaderControls.test.mjs
