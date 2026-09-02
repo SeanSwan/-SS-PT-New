@@ -18,7 +18,7 @@ import { resolve, isAbsolute, sep } from 'node:path';
 import { measure, parseGlb, worldAabb } from './measure-glb.mjs';
 import { COMPRESSION_VALUES, MAX_ASSET_BYTES, unreadRegistryKeys } from './validate-asset.contract.mjs';
 import { checkBudgets } from './validate-asset.budgets.mjs';
-import { checkParts } from './validate-asset.parts.mjs';
+import { checkParts, checkPartsGeometry } from './validate-asset.parts.mjs';
 
 export { unreadRegistryKeys };  // re-exported so the CLI keeps one import path
 
@@ -98,7 +98,7 @@ export function validate(manifest, ctx) {
       if (!CLIP_ORDER_FREE) W('clip order enforcement is off');
     }
   }
-  // Roster-v2 dismemberment parts (D1 2026-09-01) — rules live in validate-asset.parts.mjs.
+  // Roster-v2 dismemberment parts (D1 structure, D2 geometry) — rules in validate-asset.parts.mjs.
   checkParts(manifest, skeletons, E);
   if (manifest.parts !== undefined && !manifest.skeleton) E('parts declared on an unrigged asset — parts own bones');
 
@@ -219,6 +219,7 @@ export function validate(manifest, ctx) {
             (pr) => pr.attributes?.JOINTS_0 !== undefined && pr.attributes?.WEIGHTS_0 !== undefined));
           ctx.aabb = ctx.aabb || {};
           ctx.aabb.lod0 = worldAabb(g);
+          ctx.glbLod0 = g; // parts geometry check (D2) reads the same parse
         } catch { /* already reported as unparseable above */ }
       }
       if (slot === 'collision') {
@@ -291,6 +292,9 @@ export function validate(manifest, ctx) {
       if (!ctx.glbClips?.has(clip)) E(`animation "${clip}" declared but not present in lod0.glb (clips in file: ${[...(ctx.glbClips || [])].join(', ') || 'none'})`);
     }
   }
+
+  // D2: declared part shapes vs the actual part meshes in the bytes (runs after ctx.glbLod0 set).
+  checkPartsGeometry(manifest, ctx, E);
 
   return { errs, warns };
 }

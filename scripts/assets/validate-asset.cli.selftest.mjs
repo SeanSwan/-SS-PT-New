@@ -45,7 +45,12 @@ check('unreadable manifest exits 2', () => {
 check('checked-in runtime manifests exit 0', () => {
   const result = run(['--all']);
   if (result.status !== 0) throw new Error(`exit ${result.status}: ${result.stdout} ${result.stderr}`);
-  if (!/4\/4 valid/.test(result.stdout)) throw new Error('missing exact all-valid count');
+  // Pin the SHAPE (N/N valid, N >= 1), not a literal count: a hardcoded "4/4" went stale the
+  // moment a fifth asset landed (fryling-v2, D2) — the check failed while the gate was fine.
+  // The all-valid property is "numerator equals denominator"; the census is the registry's job.
+  const m = /(\d+)\/(\d+) valid/.exec(result.stdout);
+  if (!m) throw new Error('missing all-valid count line');
+  if (m[1] !== m[2] || Number(m[1]) < 1) throw new Error(`not all valid: ${m[0]}`);
 });
 
 const fixtureRoot = mkdtempSync(join(tmpdir(), 'swan-asset-cli-'));

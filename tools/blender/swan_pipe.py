@@ -54,7 +54,7 @@ try:
     IN_BLENDER = True
     # (script dir already on sys.path — see the top-level insert)
     from swan_pipe_stages import (smooth_by_angle, export_collision, render_still,  # noqa: E402
-                                   assert_artifact, rig_and_animate, uv_project)
+                                   assert_artifact, rig_and_animate, uv_project, emit_part_shapes)
 except ImportError:  # allows --dry-run linting outside Blender
     IN_BLENDER = False
 
@@ -198,14 +198,18 @@ def run_in_blender(args, out_dir, done):
         # RIG ONLY LOD0. The validator reads skins/clips from lod0.glb; lower tiers are distant
         # silhouettes that never animate. Rigging them would triple the bind cost for nothing.
         rigged = False
+        rig_meshes = [target]
         if args.skeleton and name == "lod0":
             clips = [c.strip() for c in args.clips.split(",") if c.strip()]
-            arm = rig_and_animate(target, args.skeleton, clips)
+            arm, rig_meshes = rig_and_animate(target, args.skeleton, clips)
             done.add("rig")
             rigged = True
+            if len(rig_meshes) > 1:  # v2 part split — emit the measured hit shapes beside the GLBs
+                emit_part_shapes(rig_meshes, out_dir)
 
         bpy.ops.object.select_all(action="DESELECT")
-        target.select_set(True)
+        for m in rig_meshes:
+            m.select_set(True)
         if rigged:
             arm.select_set(True)  # the armature must be in the selection or export_skins writes nothing
         bpy.context.view_layer.objects.active = target
@@ -226,8 +230,9 @@ def run_in_blender(args, out_dir, done):
         if rigged:
             # drop the armature before the next tier: a lingering modifier follows the copies
             bpy.data.objects.remove(arm, do_unlink=True)
-            for m in [m for m in target.modifiers if m.type == "ARMATURE"]:
-                target.modifiers.remove(m)
+            for mesh_obj in rig_meshes:
+                for m in [m for m in mesh_obj.modifiers if m.type == "ARMATURE"]:
+                    mesh_obj.modifiers.remove(m)
 
     export_collision(pre_bevel, out_dir, args.collision_ratio)  # PROBED: un-beveled 0.45 -> 38 tris; beveled floors at 124
     done.add("collision")

@@ -59,6 +59,30 @@ const GLB_NO_SKIN = '.selftest-noskin.glb';
 const GLB_WITH_SKIN = '.selftest-skin.glb';
 writeFileSync(join(FIXTURE_DIR, GLB_NO_SKIN), glb(mesh(300, [-1, -1, -1], [1, 1, 1])));
 writeFileSync(join(FIXTURE_DIR, GLB_WITH_SKIN), glb(riggedMesh(300, [-1, -1, -1], [1, 1, 1], ['move'])));
+// Roster-v2 (D2): a rigged GLB whose meshes live under "part:" named nodes — body box y -1..0.2,
+// head box y 0.2..1, whole 2 units tall. Normalized (the frame shapes are declared in): body
+// y 0..0.6, head y 0.6..1, footprint ±0.5. 300 verts total = 100 tris, same ratios as LOD0_100.
+const partedRiggedMesh = (clips) => ({
+  asset: { version: '2.0' }, scene: 0,
+  scenes: [{ nodes: [0, 1, 2] }],
+  nodes: [
+    { name: 'part:body', mesh: 0 },
+    { name: 'part:head', mesh: 1 },
+    { name: 'root-joint' },
+  ],
+  meshes: [
+    { primitives: [{ attributes: { POSITION: 0, JOINTS_0: 1, WEIGHTS_0: 2 } }] },
+    { primitives: [{ attributes: { POSITION: 3, JOINTS_0: 4, WEIGHTS_0: 5 } }] },
+  ],
+  accessors: [
+    { count: 150, min: [-1, -1, -1], max: [1, 0.2, 1] }, { count: 150 }, { count: 150 },
+    { count: 150, min: [-1, 0.2, -1], max: [1, 1, 1] }, { count: 150 }, { count: 150 },
+  ],
+  skins: [{ joints: [2] }],
+  animations: clips.map((name) => ({ name })),
+});
+const GLB_PARTED = '.selftest-parted.glb';
+writeFileSync(join(FIXTURE_DIR, GLB_PARTED), glb(partedRiggedMesh(REQUIRED_CLIPS)));
 process.on('exit', () => { try { rmSync(FIXTURE_DIR, { recursive: true, force: true }); } catch {} });
 const sha = (rel) => createHash('sha256').update(readFileSync(join(FIXTURE_DIR, rel))).digest('hex');
 
@@ -151,28 +175,44 @@ function selftest() {
     ['runtime path escaping the asset dir is refused', (m) => { m.runtime.lod0 = '../../../etc/passwd'; }, /escapes the asset directory/],
     ['absolute runtime path is refused', (m) => { m.runtime.lod0 = '/etc/passwd'; }, /must be a relative path/],
     ['__proto__ in the manifest does not poison defaults', (m) => { m.__proto__ = { similarityReviewed: true }; m.provenance.similarityReviewed = false; }, /similarityReviewed/],
-    // --- roster-v2 parts contract (D1, 2026-09-01) — negative controls written RED-first ------
-    ['a well-formed v2 parts manifest is accepted (positive control)', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); }, null],
+    // --- roster-v2 parts contract (D1 structure, 2026-09-01) — controls written RED-first ------
+    ['a well-formed v2 parts manifest is accepted (positive control)', (m) => { V2(m); }, null],
     ['parts on a skeleton with no part vocabulary is refused', (m) => { m.parts = V2_PARTS(); }, /has no partVocabulary/],
-    ['a part tag outside the vocabulary is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].tag = 'wing'; }, /tag "wing" is not in/],
-    ['a part bone the skeleton does not have is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].bone = 'tail-9'; }, /bone "tail-9" is not in/],
-    ['duplicate part tags are refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].tag = 'body'; m.parts[1].severable = false; }, /duplicate part tag/],
-    ['zero non-severable body parts is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[0].severable = true; m.parts[0].severAtHpFraction = 0.5; m.parts[0].onSever = 'none'; }, /exactly one non-severable "body"/],
-    ['a severable part with no severAtHpFraction is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); delete m.parts[1].severAtHpFraction; }, /severAtHpFraction/],
-    ['severAtHpFraction outside 0..1 is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].severAtHpFraction = 1.5; }, /severAtHpFraction/],
-    ['an unknown onSever effect is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].onSever = 'explode'; }, /onSever/],
-    ['a hit shape with an unknown kind is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[0].hitShape = { kind: 'box', c: [0, 0, 0], r: 1 }; }, /hitShape/],
-    ['a sphere with a non-positive radius is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[1].hitShape = { kind: 'sphere', c: [0, 0.8, 0], r: 0 }; }, /radius/],
-    ['a capsule missing its second endpoint is refused', (m) => { m.skeleton = 'skeleton.creature-small.v2'; m.parts = V2_PARTS(); m.parts[0].hitShape = { kind: 'capsule', a: [0, 0.2, 0], r: 0.3 }; }, /capsule/],
+    ['a part tag outside the vocabulary is refused', (m) => { V2(m); m.parts[1].tag = 'wing'; }, /tag "wing" is not in/],
+    ['a part bone the skeleton does not have is refused', (m) => { V2(m); m.parts[1].bone = 'tail-9'; }, /bone "tail-9" is not in/],
+    ['duplicate part tags are refused', (m) => { V2(m); m.parts[1].tag = 'body'; m.parts[1].severable = false; }, /duplicate part tag/],
+    ['zero non-severable body parts is refused', (m) => { V2(m); m.parts[0].severable = true; m.parts[0].severAtHpFraction = 0.5; m.parts[0].onSever = 'none'; }, /exactly one non-severable "body"/],
+    ['a severable part with no severAtHpFraction is refused', (m) => { V2(m); delete m.parts[1].severAtHpFraction; }, /severAtHpFraction/],
+    ['severAtHpFraction outside 0..1 is refused', (m) => { V2(m); m.parts[1].severAtHpFraction = 1.5; }, /severAtHpFraction/],
+    ['an unknown onSever effect is refused', (m) => { V2(m); m.parts[1].onSever = 'explode'; }, /onSever/],
+    ['a hit shape with an unknown kind is refused', (m) => { V2(m); m.parts[0].hitShape = { kind: 'box', c: [0, 0, 0], r: 1 }; }, /hitShape/],
+    ['a sphere with a non-positive radius is refused', (m) => { V2(m); m.parts[1].hitShape = { kind: 'sphere', c: [0, 0.8, 0], r: 0 }; }, /radius/],
+    ['a capsule missing its second endpoint is refused', (m) => { V2(m); m.parts[0].hitShape = { kind: 'capsule', a: [0, 0.2, 0], r: 0.3 }; }, /capsule/],
+    // --- D2 geometry honesty: shapes vs the actual bytes. The rules' bite was proven before
+    // these fixtures existed: the D1 positive control went red the moment the geometry check
+    // landed, because its GLB carried no part meshes (selftest 47/48, 2026-09-02).
+    ['declared part with no matching part-mesh in the bytes is refused', (m) => { V2(m); m.runtime.lod0 = GLB_LOD0_100; m.sha256.lod0 = sha(GLB_LOD0_100); }, /no mesh node named "part:/],
+    ['part-tagged bytes with NO parts declared are refused', (m) => { m.runtime.lod0 = GLB_PARTED; m.sha256.lod0 = sha(GLB_PARTED); }, /manifest declares no parts/],
+    ['a part mesh in the bytes missing from manifest.parts is refused', (m) => { V2(m); m.parts = [m.parts[0]]; }, /"part:head" is not declared/],
+    ['an undersized hit shape is refused by the coverage floor', (m) => { V2(m); m.parts[1].hitShape = { kind: 'sphere', c: [0, 0.8, 0], r: 0.1 }; }, /coverage floor/],
+    ['a hit shape centred outside its part is refused', (m) => { V2(m); m.parts[1].hitShape = { kind: 'sphere', c: [0, 0.1, 0], r: 0.45 }; }, /outside the part's normalized bounds/],
   ];
 
-  // A valid v2 parts block, fresh per fixture so mutations never leak between cases.
+  // A valid v2 parts block, fresh per fixture so mutations never leak between cases. Shapes are
+  // honest against GLB_PARTED's normalized boxes (body y 0..0.6, head y 0.6..1, footprint ±0.5).
   function V2_PARTS() {
     return [
-      { tag: 'body', bone: 'body', severable: false, hitShape: { kind: 'capsule', a: [0, 0.2, 0], b: [0, 0.7, 0], r: 0.35 } },
-      { tag: 'head', bone: 'head', severable: true, severAtHpFraction: 0.0, onSever: 'kill', hitShape: { kind: 'sphere', c: [0, 0.85, 0], r: 0.22 } },
+      { tag: 'body', bone: 'body', severable: false, hitShape: { kind: 'capsule', a: [0, 0.1, 0], b: [0, 0.5, 0], r: 0.45 } },
+      { tag: 'head', bone: 'head', severable: true, severAtHpFraction: 0.0, onSever: 'kill', hitShape: { kind: 'sphere', c: [0, 0.8, 0], r: 0.45 } },
     ];
   }
+  // Every v2 parts fixture points lod0 at the parted GLB, so structure AND geometry rules run.
+  const V2 = (m) => {
+    m.skeleton = 'skeleton.creature-small.v2';
+    m.parts = V2_PARTS();
+    m.runtime.lod0 = GLB_PARTED;
+    m.sha256.lod0 = sha(GLB_PARTED);
+  };
 
   let pass = 0; let fail = 0;
   for (const [name, mutate, expect] of cases) {

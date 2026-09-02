@@ -169,6 +169,46 @@ export function worldAabb(gltf) {
   return Number.isFinite(min[0]) ? { min, max } : null;
 }
 
+/**
+ * Per-part world AABBs for nodes named "part:<tag>" (roster-v2 dismemberment, D2 2026-09-01).
+ * Same transform walk and cycle guard as worldAabb; a part's box covers every mesh under its
+ * named node. Returns { tag: {min,max} } — empty object when the file carries no part nodes.
+ */
+export function namedPartAabbs(gltf) {
+  const IDENT = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  const out = {};
+  const addMesh = (box, node, world) => {
+    const mesh = gltf.meshes?.[node.mesh];
+    if (!mesh) return;
+    for (const prim of mesh.primitives || []) {
+      const acc = gltf.accessors?.[prim.attributes?.POSITION];
+      if (!acc?.min || !acc?.max) continue;
+      for (let i = 0; i < 8; i += 1) {
+        const corner = [i & 1 ? acc.max[0] : acc.min[0], i & 2 ? acc.max[1] : acc.min[1], i & 4 ? acc.max[2] : acc.min[2]];
+        const w = applyM(world, corner);
+        for (let k = 0; k < 3; k += 1) { box.min[k] = Math.min(box.min[k], w[k]); box.max[k] = Math.max(box.max[k], w[k]); }
+      }
+    }
+  };
+  const visit = (idx, parent, tag, seen) => {
+    if (seen.has(idx)) return;
+    seen.add(idx);
+    const node = gltf.nodes?.[idx];
+    if (!node) return;
+    const world = mul(parent, trsMatrix(node));
+    const myTag = typeof node.name === 'string' && node.name.startsWith('part:') ? node.name.slice(5) : tag;
+    if (myTag) {
+      const box = (out[myTag] ??= { min: [Infinity, Infinity, Infinity], max: [-Infinity, -Infinity, -Infinity] });
+      addMesh(box, node, world);
+    }
+    for (const child of node.children || []) visit(child, world, myTag, seen);
+  };
+  const roots = gltf.scenes?.[gltf.scene ?? 0]?.nodes ?? (gltf.nodes || []).map((_, i) => i);
+  for (const r of roots) visit(r, IDENT, null, new Set());
+  for (const tag of Object.keys(out)) if (!Number.isFinite(out[tag].min[0])) delete out[tag];
+  return out;
+}
+
 /* -------------------------------------------------------------- selftest */
 
 function selftest() {

@@ -155,14 +155,21 @@ def rig_and_animate(obj, skeleton_id, clips):
     cx = sum(v.x for v in bb) / 8.0
     cy = sum(v.y for v in bb) / 8.0
 
+    # ROSTER-V2 (dismemberment contract, D2 2026-09-01): same three-bone chain, but the bones
+    # carry PART names and the mesh is SPLIT into part meshes that each bind wholly to one bone.
+    # A hard boundary is the point: severing detaches one whole mesh, so there are no half-weighted
+    # vertices to smear across the cut. v1 keeps automatic weights and one mesh, unchanged.
+    v2 = skeleton_id.endswith(".v2")
+    chain = ("root", "body", "head") if v2 else ("root", "mid", "tip")
+    bone_map = dict(zip(("root", "mid", "tip"), chain))  # clip recipes speak v1; the map translates
+
     arm_data = bpy.data.armatures.new(f"{skeleton_id}.data")
     arm = bpy.data.objects.new(skeleton_id, arm_data)
     bpy.context.collection.objects.link(arm)
     bpy.context.view_layer.objects.active = arm
     bpy.ops.object.mode_set(mode="EDIT")
-    names = ("root", "mid", "tip")
     prev = None
-    for i, name in enumerate(names):
+    for i, name in enumerate(chain):
         b = arm_data.edit_bones.new(name)
         b.head = (cx, cy, lo + span * (i / 3.0))
         b.tail = (cx, cy, lo + span * ((i + 1) / 3.0))
@@ -172,14 +179,51 @@ def rig_and_animate(obj, skeleton_id, clips):
         prev = b
     bpy.ops.object.mode_set(mode="OBJECT")
 
-    # bind: automatic weights needs the mesh active with the armature selected
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    arm.select_set(True)
-    bpy.context.view_layer.objects.active = arm
-    res = bpy.ops.object.parent_set(type="ARMATURE_AUTO")
-    if res != {"FINISHED"}:
-        raise SystemExit(f"swan_pipe: armature bind returned {res}, not FINISHED")
+    part_objects = [obj]
+    if v2:
+        # Split at the head boundary (top third of the silhouette — where the head bone begins).
+        # Faces are assigned by their centre's Z; a face is exactly one part, never both.
+        boundary = lo + span * (2.0 / 3.0)
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="DESELECT")
+        bpy.ops.object.mode_set(mode="OBJECT")
+        mw = obj.matrix_world
+        for poly in obj.data.polygons:
+            poly.select = (mw @ poly.center).z >= boundary
+        head_faces = sum(1 for p in obj.data.polygons if p.select)
+        if head_faces == 0 or head_faces == len(obj.data.polygons):
+            raise SystemExit(f"swan_pipe: v2 part split found {head_faces} head faces of "
+                             f"{len(obj.data.polygons)} — a split that produces an empty part is not a split")
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.separate(type="SELECTED")
+        bpy.ops.object.mode_set(mode="OBJECT")
+        newly = [o for o in bpy.context.selected_objects if o is not obj and o.type == "MESH"]
+        if len(newly) != 1:
+            raise SystemExit(f"swan_pipe: separate produced {len(newly)} objects, expected 1")
+        head_obj = newly[0]
+        obj.name, head_obj.name = "part:body", "part:head"
+        part_objects = [obj, head_obj]
+        print(f"[swan_pipe] v2 split: body {len(obj.data.polygons)} faces, head {len(head_obj.data.polygons)} faces at z>={boundary:.2f}")
+
+        # Hard binding: every vertex of a part to its ONE bone at weight 1.
+        for part_obj, bone in ((obj, "body"), (head_obj, "head")):
+            vg = part_obj.vertex_groups.new(name=bone)
+            vg.add(list(range(len(part_obj.data.vertices))), 1.0, "REPLACE")
+            mod = part_obj.modifiers.new("Armature", "ARMATURE")
+            mod.object = arm
+            part_obj.parent = arm
+    else:
+        # bind: automatic weights needs the mesh active with the armature selected
+        bpy.ops.object.select_all(action="DESELECT")
+        obj.select_set(True)
+        arm.select_set(True)
+        bpy.context.view_layer.objects.active = arm
+        res = bpy.ops.object.parent_set(type="ARMATURE_AUTO")
+        if res != {"FINISHED"}:
+            raise SystemExit(f"swan_pipe: armature bind returned {res}, not FINISHED")
 
     # ------------------------------------------------------------------ clips
     # WHAT THE PIPE CAN HONESTLY AUTHOR:
@@ -267,7 +311,7 @@ def rig_and_animate(obj, skeleton_id, clips):
         for frame, poses in keys:
             scene.frame_set(frame)
             for bone_name, rot in poses.items():
-                pb = arm.pose.bones[bone_name]
+                pb = arm.pose.bones[bone_map[bone_name]]  # recipes speak v1; the map translates to the chain
                 pb.rotation_mode = "XYZ"
                 pb.rotation_euler = rot
                 pb.keyframe_insert(data_path="rotation_euler", frame=frame)
@@ -286,8 +330,70 @@ def rig_and_animate(obj, skeleton_id, clips):
     bpy.ops.object.mode_set(mode="OBJECT")
     if not arm.animation_data or not arm.animation_data.nla_tracks:
         raise SystemExit("swan_pipe: no NLA tracks on the armature after keyframing")
-    print(f"[swan_pipe] rig: 3 bones, {len(arm.animation_data.nla_tracks)} clip(s): {', '.join(wanted)}")
-    return arm
+    print(f"[swan_pipe] rig: 3 bones ({'/'.join(chain)}), {len(arm.animation_data.nla_tracks)} clip(s): {', '.join(wanted)}")
+    # Callers export EVERY returned object plus the armature; v1 returns one mesh, v2 the parts.
+    return arm, part_objects
+
+
+def emit_part_shapes(part_objects, out_dir):
+    """Write parts.json: measured hit shapes per part, in the NORMALIZED glTF frame the game
+    renders in (1 unit tall, footprint centred, feet at y=0) — the same transform Monster.jsx and
+    validate-asset.parts.mjs use, so pipe, gate, and renderer cannot disagree.
+
+    Blender is Z-up; glTF is Y-up (gltf x,y,z = blender x, z, -y — the -y flip swaps that axis's
+    min/max). Shapes: the body gets a Y-axis capsule (radius = max lateral half-extent), the head
+    a sphere at its box centre with r = longest half-extent — both cover 100% of the longest
+    half-extent by construction, comfortably over the gate's 80% floor.
+    """
+    import json
+    import mathutils
+
+    # Measure from VERTICES, not bound_box: after mesh.separate the cached bound_box is stale
+    # until a depsgraph update, and a stale box reports the pre-split whole for both parts —
+    # the same staleness class N1 hit with modifier_apply. Vertices are ground truth.
+    bpy.context.view_layer.update()
+    boxes = {}
+    for o in part_objects:
+        mw = o.matrix_world
+        if not o.data.vertices:
+            raise SystemExit(f"swan_pipe: part '{o.name}' has no vertices to measure")
+        pts = [mw @ v.co for v in o.data.vertices]
+        gx = [p.x for p in pts]; gy = [p.z for p in pts]; gz = [-p.y for p in pts]
+        tag = o.name.split(":", 1)[1] if ":" in o.name else o.name
+        boxes[tag] = ([min(gx), min(gy), min(gz)], [max(gx), max(gy), max(gz)])
+    wmin = [min(b[0][k] for b in boxes.values()) for k in range(3)]
+    wmax = [max(b[1][k] for b in boxes.values()) for k in range(3)]
+    height = wmax[1] - wmin[1]
+    if height <= 0:
+        raise SystemExit("swan_pipe: zero-height creature; cannot normalize part shapes")
+    s = 1.0 / height
+    cx = (wmin[0] + wmax[0]) / 2.0
+    cz = (wmin[2] + wmax[2]) / 2.0
+    norm = lambda v: [round((v[0] - cx) * s, 4), round((v[1] - wmin[1]) * s, 4), round((v[2] - cz) * s, 4)]  # noqa: E731
+
+    parts = []
+    for tag, (mn, mx) in boxes.items():
+        nmn, nmx = norm(mn), norm(mx)
+        half = [(nmx[k] - nmn[k]) / 2.0 for k in range(3)]
+        centre = [round((nmn[k] + nmx[k]) / 2.0, 4) for k in range(3)]
+        if tag == "body":
+            r = round(max(half[0], half[2]), 4)
+            seg = max(half[1] - r, 0.0)
+            a = [centre[0], round(centre[1] - seg, 4), centre[2]]
+            b = [centre[0], round(centre[1] + seg, 4), centre[2]]
+            parts.append({"tag": tag, "bone": "body", "severable": False,
+                          "hitShape": {"kind": "capsule", "a": a, "b": b, "r": r}})
+        else:
+            r = round(max(half), 4)
+            entry = {"tag": tag, "bone": tag, "severable": True, "onSever": "kill" if tag == "head" else "none",
+                     "severAtHpFraction": 0.0 if tag == "head" else 0.5,
+                     "hitShape": {"kind": "sphere", "c": centre, "r": r}}
+            parts.append(entry)
+    path = os.path.join(out_dir, "parts.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(parts, f, indent=2)
+    print(f"[swan_pipe] part shapes -> {path} ({', '.join(sorted(boxes))})")
+    return path
 
 
 def uv_project(o):
