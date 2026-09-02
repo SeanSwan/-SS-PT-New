@@ -166,7 +166,18 @@
       "mcp__playwright__browser_handle_dialog",
       "mcp__playwright__browser_hover",
       "mcp__playwright__browser_drag",
-      "Bash(ffmpeg -y -v error -f lavfi -i color=c=blue:s=64x64:d=1 -frames:v 1 /c/tmp/t.png)"
+      "Bash(ffmpeg -y -v error -f lavfi -i color=c=blue:s=64x64:d=1 -frames:v 1 /c/tmp/t.png)",
+      "Bash(node scripts/orient.mjs:*)",
+      "Bash(node scripts/lane.mjs:*)",
+      "Bash(node scripts/hermes-learning-surface.mjs:*)",
+      "Bash(node scripts/coordination-prune.mjs)",
+      "mcp__linear-server__list_issues",
+      "mcp__linear-server__get_issue",
+      "mcp__linear-server__list_comments",
+      "mcp__swan-scout__yt_search",
+      "mcp__swan-scout__yt_transcript",
+      "mcp__swan-scout__yt_find_in_video",
+      "mcp__mobbin__search_screens"
     ],
     "deny": [
       "Bash(rm -rf /:*)",
