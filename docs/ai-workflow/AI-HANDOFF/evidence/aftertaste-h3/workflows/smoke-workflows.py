@@ -32,6 +32,8 @@ SMOKE = [
     # (filename, {widget-name: override})   overrides keep the smoke small
     ("00 SWAN — H3 local — Text to Video.json", {"length": 25}),
     ("04 SWAN - Krea2 - Character Stills.json", {}),
+    # needs its reference image present in the input dir (candidate_00010_.png uploaded 2026-09-01)
+    ("05 SWAN - Krea2 - Same Face New Scene.json", {}),
 ]
 
 def api(path, payload=None):
