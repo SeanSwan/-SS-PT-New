@@ -41,52 +41,18 @@
 import { useEffect, useRef } from 'react';
 import { SHEEN } from '../styles/sheenPackTokens';
 import { blendHex } from './sheenColor';
+import type {
+  SheenSurfaceOptions,
+  SheenSurfaceState,
+  SheenPointerOptions,
+  SheenPointerEngine,
+} from './sheenPointerTypes';
 
-export interface SheenSurfaceOptions {
-  /** Optional [fromHex, toHex] pair blended across the surface width. */
-  orb?: readonly [string, string];
-  /**
-   * Namespace for the custom properties this engine writes.
-   * Defaults to '' (`--px`, `--py`, `--opac`, `--orb`). The Forge sheen layer
-   * reads namespaced names, so it passes 'sw-sheen-' — without this the engine
-   * writes properties no stylesheet is listening to and the orb never moves,
-   * silently. Caught during the Forge port, 2026-09-01.
-   */
-  varPrefix?: string;
-}
-
-interface SheenSurfaceState extends SheenSurfaceOptions {
-  el: HTMLElement;
-  /** Current (eased) normalised position and opacity. */
-  x: number;
-  y: number;
-  o: number;
-  /** Target normalised position and opacity. */
-  tx: number;
-  ty: number;
-  to: number;
-  rect: DOMRect | null;
-  /** True once the surface has been snapped to rest; skipped until woken. */
-  atRest: boolean;
-}
-
-export interface SheenPointerOptions {
-  /** Injected for tests. Defaults to the real window. */
-  target?: Pick<Window, 'addEventListener' | 'removeEventListener'>;
-  raf?: (cb: FrameRequestCallback) => number;
-  caf?: (handle: number) => void;
-  /** Injected for tests. Defaults to the real media query. */
-  prefersReducedMotion?: boolean;
-}
-
-export interface SheenPointerEngine {
-  register(el: HTMLElement, opts?: SheenSurfaceOptions): () => void;
-  destroy(): void;
-  /** Test seam: number of surfaces styled during the most recent frame. */
-  readonly lastFrameWrites: number;
-  /** Test seam: number of getBoundingClientRect() batches performed. */
-  readonly measureCount: number;
-}
+export type {
+  SheenSurfaceOptions,
+  SheenPointerOptions,
+  SheenPointerEngine,
+} from './sheenPointerTypes';
 
 export function createSheenPointer(options: SheenPointerOptions = {}): SheenPointerEngine {
   const target = options.target ?? (typeof window !== 'undefined' ? window : undefined);
