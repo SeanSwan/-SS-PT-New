@@ -56,6 +56,11 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Script-relative, never process.cwd() - the failure class that silently minted a
+// blast-radius approval into the wrong directory on 2026-09-02.
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const argv = process.argv.slice(2);
 
@@ -275,6 +280,13 @@ function main() {
     process.exit(1);
   }
 
+  // F2 (GLM-5.3 hostile review, 2026-09-03): `git bundle --all` packs TRACKED history
+  // only. The Blueprint Vault lives in gitignored `.ai-workflow/vault` and holds the ONLY
+  // copy of every uncommitted blueprint revision, so it was never leaving this machine -
+  // exactly the content you would want after a disk failure. Mirror it beside the verified
+  // bundle. Best-effort by design: a vault-copy problem must never fail a good repo backup.
+  mirrorVault();
+
   // Prune oldest, but only ever when a freshly VERIFIED bundle exists — so a failed run can never
   // leave the machine with fewer backups than it started with.
   const all = existingBundles();
@@ -286,6 +298,33 @@ function main() {
   console.log('\n  RESTORE:  git clone <bundle-file> <new-dir>');
   console.log('            (then `git remote set-url origin <real-url>`)\n');
   process.exit(0);
+}
+
+/**
+ * Mirror the gitignored Blueprint Vault next to the bundles.
+ *
+ * A mirror rather than a timestamped copy: the vault is already content-deduped and
+ * pruned per file, so snapshotting the snapshotter would multiply it for no recall value.
+ * Stale slots are left in place - deleting backup content to match a working tree is how
+ * a backup becomes a sync, and a sync propagates deletions.
+ */
+function mirrorVault() {
+  const src = path.join(REPO, '.ai-workflow', 'vault');
+  const dst = path.join(DEST, 'SS-PT-vault-mirror');
+  try {
+    if (!fs.existsSync(src)) { console.log('  vault mirror : (no vault yet)'); return; }
+    fs.cpSync(src, dst, { recursive: true, force: true });
+    let files = 0;
+    const walk = (d) => {
+      for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        if (e.isDirectory()) walk(path.join(d, e.name)); else files += 1;
+      }
+    };
+    walk(dst);
+    console.log(`  vault mirror : OK - ${files} snapshot file(s) -> ${dst}`);
+  } catch (error) {
+    console.log(`  vault mirror : SKIPPED (${String(error.message).split(String.fromCharCode(10))[0]})`);
+  }
 }
 
 main();
