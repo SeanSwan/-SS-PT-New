@@ -1,4 +1,8 @@
 /**
+ * SUPERSEDED 2026-08-26 — merged into scripts/hooks/closeout-gate.mjs (one closeout gate, one block).
+ * Not registered in .claude/settings.json. Kept one release for its tests; delete in a separate PR.
+ */
+/**
  * dual-tier-gate.mjs — deterministic Stop hook enforcing Rule 57 (Dual-Tier Summary).
  *
  * WHY (Sean, 2026-08-03): "i originally told you to give me a plain english review and a

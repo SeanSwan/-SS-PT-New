@@ -1,4 +1,8 @@
 /**
+ * SUPERSEDED 2026-08-26 — merged into scripts/hooks/closeout-gate.mjs (one closeout gate, one block).
+ * Not registered in .claude/settings.json. Kept one release for its tests; delete in a separate PR.
+ */
+/**
  * linear-sync-gate.mjs — deterministic Stop hook enforcing SWA-23 (unprompted Linear board sync).
  *
  * WHY (Sean, 2026-07-21 — "did you add this to Linear?"): substantial work was shipping without a

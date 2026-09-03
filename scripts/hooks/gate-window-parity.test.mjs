@@ -33,7 +33,9 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 // dry-loop-gate was DELETED 2026-08-26: it fired on 74 of 157 turns (47%). GLM 5.3:
 // 'no data rescues a smoke alarm that fires at dinner.' Removed from parity coverage
 // because the gate no longer exists, not because parity stopped mattering.
-const GATES = ['dual-tier-gate', 'hermes-closeout-gate', 'linear-sync-gate'];
+// 2026-08-26: the three closeout gates were merged into ONE (closeout-gate.mjs) — Fable 5
+// governance verdict §2: serialized single-condition Stop blocks were the toe-stepping.
+const GATES = ['closeout-gate'];
 
 // Every gate carrying the inline predicate, closeout gate or not. privacy-boundary-gate
 // (slice 2) windows the turn the same way to find the artifacts it must scan, so it
@@ -157,9 +159,7 @@ test('THE BUG: a build-shaped turn stays visible after its own feedback lands', 
   // Each gate names its "I can see the closeout" signal differently — assert the
   // real one per gate rather than a signal that only some of them have.
   const CLOSEOUT_SIGNAL = {
-    'dual-tier-gate': (s) => s.plainSeen && s.techSeen && s.plainFirst,
-    'hermes-closeout-gate': (s) => s.memoEmitted,
-    'linear-sync-gate': (s) => s.markerSeen,
+    'closeout-gate': (s) => s.plainSeen && s.techSeen && s.plainFirst && s.memoEmitted && s.linearMarker,
     // Not a closeout signal — the thing this gate would lose if the window reset
     // is the artifact list it exists to scan.
     'privacy-boundary-gate': (s) => s.artifacts.length === 1,
@@ -174,7 +174,8 @@ test('THE BUG: a build-shaped turn stays visible after its own feedback lands', 
       `${gate}: lost sight of the closeout after its own feedback`,
     );
     assert.equal(
-      m.decide({ stop_hook_active: false }, transcript), null,
+      // closeout-gate returns { reason, checks }; privacy-boundary-gate returns the reason directly.
+      (() => { const d = m.decide({ stop_hook_active: false }, transcript); return d && typeof d === 'object' && 'reason' in d ? d.reason : d; })(), null,
       `${gate}: blocked a turn that carried everything it asked for`,
     );
   }

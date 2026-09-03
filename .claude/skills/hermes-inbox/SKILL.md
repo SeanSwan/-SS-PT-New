@@ -53,7 +53,7 @@ Full protocol lives at `.ai-workflow/hermes-inbox/README.md`. This skill is the 
    - Honest-empty is allowed but rare: `## Mistakes I made — none surfaced this task`, and only
      after a hostile pass genuinely ran dry. **Never omit the heading** — an absent section reads
      as "nothing went wrong," which is almost never true.
-   - Enforced deterministically: `scripts/hooks/hermes-closeout-gate.mjs` reads the emitted memo
+   - Enforced deterministically: `scripts/hooks/closeout-gate.mjs` reads the emitted memo
      and BLOCKS the turn when the heading is missing (fail-open if unreadable).
 4. **Privacy gate (Rules 8 / 44 / 59 — this dir is committed + LLM-read):** IDs/roles only. No client
    names, medical/immigration/PII, secrets, keys, tokens, DB URLs, or absolute user paths. Run
@@ -118,6 +118,6 @@ Layered so it doesn't:
 
 ## Automatic closeout override (Sean opted in 2026-07-11)
 
-The `SessionStart` hook still injects the pending count. A deterministic project `Stop` command hook (`scripts/hooks/hermes-closeout-gate.mjs`, fail-open, zero model calls) now evaluates
+The `SessionStart` hook still injects the pending count. A deterministic project `Stop` command hook (`scripts/hooks/closeout-gate.mjs`, fail-open, zero model calls) now evaluates
 completed turns and blocks the first stop only when substantial work needs a memo. It passes trivial
 turns, already-emitted closeouts, and `stop_hook_active` continuations to avoid noise and loops.

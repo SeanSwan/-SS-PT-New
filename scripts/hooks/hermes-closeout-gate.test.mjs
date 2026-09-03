@@ -39,8 +39,10 @@ test('is registered as a command-type Stop hook, and no Stop hook is prompt-type
   const mine = stopHooks.filter(
     (h) => h.type === 'command' && /hermes-closeout-gate\.mjs/.test(String(h.command ?? '')),
   );
-  assert.equal(mine.length, 1, 'this gate must be registered exactly once as a command hook');
-  assert.equal(mine[0].timeout, 30, 'timeout must stay 30s');
+  // SUPERSEDED 2026-08-26: merged into closeout-gate.mjs (registered exactly once there —
+  // see closeout-gate.test.mjs). This file stays only so the predecessor logic stays tested
+  // until the old module is deleted in a later, separate PR (Rule 34).
+  assert.equal(mine.length, 0, 'hermes-closeout-gate must NOT be registered — closeout-gate replaces it');
 });
 
 test('stop_hook_active passes deterministically (no-loop guard)', () => {

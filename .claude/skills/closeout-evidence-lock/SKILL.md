@@ -261,7 +261,7 @@ A bare "SWA-123" mention no longer satisfies the Stop gate. Reason: closeouts ci
 context constantly ("see SWA-111"), so citing had become indistinguishable from syncing and the
 gate effectively never fired — a governance change once shipped with zero board activity and
 still passed. An actual `save_issue`/`save_comment` call needs no marker at all (preferred).
-Enforced by `scripts/hooks/linear-sync-gate.mjs` (12/12 contract tests, mutation-proven).
+Enforced by `scripts/hooks/closeout-gate.mjs` (the single closeout Stop gate; Linear check ported from `linear-sync-gate.mjs`, contract tests in `closeout-gate.test.mjs`).
 
 === SECTION 7 — Residual Risk ===
 Things NOT verified in this session:
