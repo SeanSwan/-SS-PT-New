@@ -8,7 +8,7 @@ privacy: IDs/roles only. Committed to repo.
 
 # AFTERTASTE — Beyond Zombies Master Blueprint
 
-**Date:** 2026-09-02 · **Author:** Fable 5 · **Status:** **v2 — revised after GLM 5.3 + GLM Flash hostile review (both REVISE)**; disposition of all 49 findings in §13. Build-ready.
+**Date:** 2026-09-02 · **Author:** Fable 5 · **Status:** **v2 — design canon.** BUILD ORDER + per-slice contracts now live in `AFTERTASTE-FABLE51-HOSTILE-REVIEW-AND-BUILD-BLUEPRINT-V3-2026-09-02.md` (Fable 5.1); that doc wins on any build-order or contract conflict. Disposition of the 49 GLM findings in §13.
 **Owner's brief (Sean, playtest 4):** *"I'm completely bored of these Tetris enemies. I want the real ones — the flies, the kissing bugs, the roaches, the zombies as people. This is supposed to be Call of Duty Zombies: rooms where the mobs come in one by one and get points. There's no point system, no power-ups, no different guns. Base it off real guns first — assault rifles, LMGs, SMGs, 9-millimeters — then add our own creative guns later. We're gonna need power-ups. We're gonna need bosses. We already have all this decided. Make it better than CoD Zombies."*
 
 ---
