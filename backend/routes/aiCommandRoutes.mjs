@@ -32,6 +32,8 @@ import {
 import { buildCommandContextEnvelope } from '../services/ai/commandContextEnvelope.mjs';
 import { cancelOperation, getPendingCount, peekOperation } from '../services/ai/destructiveOperations.mjs';
 import { renderDigestOf, digestMatches } from '../services/ai/renderDigest.mjs';
+import { describeLaneControls } from '../services/ai/commandLaneControls.mjs';
+import { getPendingOperationStore } from '../services/ai/pendingOperationStore.mjs';
 import { recordApprovalEvent, APPROVAL_EVENTS } from '../services/ai/approvalEvents.mjs';
 import {
   getCommandsForRole,
@@ -521,7 +523,14 @@ router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
 
 // ── POST /cancel — Cancel a pending operation ───────────────────────────────
 
-router.post('/cancel', protect, async (req, res) => {
+// Card 1.5 (finding F14g): /cancel ran with `protect` ONLY while /execute and
+// /confirm both carried the kill switch and the rate limiter — so a paused lane
+// still mutated pending-operation state, and an authenticated endpoint whose
+// failures are unaudited had no rate limit at all. A kill switch that does not
+// kill the whole lane is a footnote waiting to become an incident.
+// aiCommandRouteGuardContract.test.mjs now walks the router and fails any
+// mutating route missing either guard, so this cannot regress one route at a time.
+router.post('/cancel', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, async (req, res) => {
   try {
     const { operationId } = req.body;
 
@@ -628,6 +637,12 @@ router.get('/health', protect, async (req, res) => {
     engine: 'god-level-ai-command-v1',
     registeredCommands: allCommands.length,
     pendingOperations: await getPendingCount(req.user.id),
+    // Card 1.5: during an incident the operator needs the EFFECTIVE state, not
+    // the env string they think they set — and needs to know whether approvals
+    // are durable, because an in-process store silently voids them on deploy.
+    controls: describeLaneControls(),
+    approvalStore: getPendingOperationStore().kind,
+    approvalStoreDurable: Boolean(getPendingOperationStore().durable),
     status: allCommands.length > 0 ? 'operational' : 'no_commands_registered',
   });
 });

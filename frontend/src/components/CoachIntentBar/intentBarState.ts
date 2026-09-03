@@ -55,6 +55,10 @@ export interface IntentBarState {
   targetClientId: number | null;
   /** True only when both resolve AND differ. */
   crossClient: boolean;
+  /** A client was NAMED while nothing was locked — see resolveIntentBarState. */
+  unlockedTarget: boolean;
+  /** crossClient || unlockedTarget: the action reaches an unlocked client. */
+  identityCrossing: boolean;
   chipTone: ChipTone;
   /**
    * True when a command is client-scoped but nothing is locked. Unattributed is
@@ -95,11 +99,32 @@ export function resolveIntentBarState(input: IntentBarInput = {}): IntentBarStat
   // A command that names a client while nothing is locked cannot be attributed.
   const unresolvedClient = lockedClientId === null && targetClientId === null;
 
+  /**
+   * THE BETWEEN-CASE (card 1.2, finding F16g/FF19 — GLM 5.3 + flash).
+   *
+   * `crossClient` needs BOTH ids; `unresolvedClient` needs BOTH null. A command
+   * that NAMES a client while nothing is locked satisfied neither, so the chip
+   * showed the quiet `unlocked` tone — "nothing selected" — while
+   * `effectiveClientId` silently returned that named client and the write landed
+   * on a specific record. The operator saw a neutral chip and a targeted action.
+   *
+   * The backend escalates this shape to `deliberate` (reason `unlocked_target`).
+   * The chip must agree, or the two surfaces disagree about what "safe" means.
+   */
+  const unlockedTarget = lockedClientId === null && targetClientId !== null;
+
+  /** Either shape where the action reaches a client the operator did not lock. */
+  const identityCrossing = crossClient || unlockedTarget;
+
   let chipTone: ChipTone = 'locked';
-  if (crossClient) chipTone = 'cross-client';
+  if (identityCrossing) chipTone = 'cross-client';
   else if (lockedClientId === null) chipTone = 'unlocked';
 
-  return { audience, lockedClientId, targetClientId, crossClient, chipTone, unresolvedClient };
+  return {
+    audience, lockedClientId, targetClientId,
+    crossClient, unlockedTarget, identityCrossing,
+    chipTone, unresolvedClient,
+  };
 }
 
 /**

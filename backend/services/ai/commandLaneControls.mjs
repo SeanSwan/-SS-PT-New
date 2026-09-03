@@ -15,9 +15,50 @@
  * Slice F1 — Command-Lane Security Foundation (2026-06-10)
  */
 
-/** Whole command lane on/off. Default ON; only 'false' disables. */
+/**
+ * Is this env value an intentional "off"? — card 1.5, finding FF23.
+ *
+ * The original check was `!== 'false'`, and its comment celebrated that a typo
+ * could never cause an outage. The inverted property is the dangerous one: a
+ * typo could never STOP one. `False`, `FALSE`, ` false `, `0`, `no` all left the
+ * lane hot, and an operator reaching for a kill switch mid-incident types
+ * whatever their fingers produce. For a kill switch, availability-of-disable
+ * dominates availability-of-service.
+ *
+ * Recognised: false/FALSE/False, 0, no, off — trimmed, case-insensitive.
+ * Anything else (including empty and unset) leaves the flag ON.
+ */
+export function parsesAsDisabled(value) {
+  if (typeof value !== 'string') return false;
+  return ['false', '0', 'no', 'off'].includes(value.trim().toLowerCase());
+}
+
+/**
+ * A value that is neither canonical-off nor plausibly-on. Logged at boot so an
+ * operator who typed `AI_COMMANDS_ENABLED=flase` finds out from the logs rather
+ * than from an incident that would not stop.
+ */
+export function isNonCanonicalFlagValue(value) {
+  if (typeof value !== 'string' || value.trim() === '') return false;
+  const v = value.trim().toLowerCase();
+  return !['false', '0', 'no', 'off', 'true', '1', 'yes', 'on'].includes(v);
+}
+
+/** Whole command lane on/off. Default ON; any recognised "off" disables. */
 export function isCommandLaneEnabled() {
-  return process.env.AI_COMMANDS_ENABLED !== 'false';
+  return !parsesAsDisabled(process.env.AI_COMMANDS_ENABLED);
+}
+
+/** Effective switch state, for /health — an incident needs the truth, not the env string. */
+export function describeLaneControls() {
+  return {
+    commandsEnabled: isCommandLaneEnabled(),
+    writesEnabled: areCommandWritesEnabled(),
+    nonCanonicalValues: [
+      ['AI_COMMANDS_ENABLED', process.env.AI_COMMANDS_ENABLED],
+      ['AI_COMMAND_WRITES_ENABLED', process.env.AI_COMMAND_WRITES_ENABLED],
+    ].filter(([, v]) => isNonCanonicalFlagValue(v)).map(([k]) => k),
+  };
 }
 
 /**
@@ -27,7 +68,7 @@ export function isCommandLaneEnabled() {
  * reads never require confirmation).
  */
 export function areCommandWritesEnabled() {
-  return process.env.AI_COMMAND_WRITES_ENABLED !== 'false';
+  return !parsesAsDisabled(process.env.AI_COMMAND_WRITES_ENABLED);
 }
 
 export const COMMAND_WRITES_PAUSED_MESSAGE =

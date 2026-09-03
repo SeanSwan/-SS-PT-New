@@ -52,7 +52,10 @@ describe('ConfirmationSheet', () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<ConfirmationSheet operationId={OP_ID} input={input()} lockedClientId={61} />);
 
-    await waitFor(() => expect(screen.getByTestId('confirmation-sheet')).toBeTruthy());
+    // Wait for the read-back + digest to resolve and the sheet to ENTER arming
+    // before advancing the clock — the timer starts on that transition, and
+    // waiting merely for the element to exist raced it under a loaded run.
+    await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('arming'));
     await act(async () => { vi.advanceTimersByTime(3000); });
     await waitFor(() => expect(screen.getByTestId('confirm-button').hasAttribute('disabled')).toBe(false));
 
