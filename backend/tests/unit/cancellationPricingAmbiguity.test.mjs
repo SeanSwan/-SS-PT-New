@@ -11,6 +11,11 @@
  * totalSessions — nothing records 30 vs 60 minutes). That is a schema gap, not a
  * parameter gap, and is recorded on SWA-212.
  *
+ * UPDATE: duration-aware REFUSAL was since implemented — see
+ * cancellationPricingDuration.test.mjs. The helper still cannot SELECT the right package,
+ * but it can now prove that a given package does NOT apply and fall back instead of
+ * offering a rate that is wrong by $65. Selection remains blocked on the schema.
+ *
  * What IS implementable is refusing to guess. When the source order contains more
  * than one session package at DIFFERENT per-session rates, the helper cannot know
  * which one covers this session — so it must report isFallback rather than
