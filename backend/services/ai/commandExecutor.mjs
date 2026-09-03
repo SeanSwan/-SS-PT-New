@@ -650,6 +650,7 @@ async function stepConfirmation(ctx) {
     : null;
 
   const pending = await preparePendingConfirmation({
+    actorRole: ctx.user?.role ?? null,
     commandType: ctx.command.type,
     params: ctx.intent.params,
     clientId: ctx.resolvedClient?.id ?? null,

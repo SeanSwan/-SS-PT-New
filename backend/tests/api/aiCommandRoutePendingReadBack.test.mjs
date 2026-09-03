@@ -185,6 +185,30 @@ describe('POST /api/ai-command/confirm — proof of render', () => {
     expect(mockExecuteConfirmed).not.toHaveBeenCalled();
   });
 
+  it('an EXPIRED operation says expired, not "does not match" — the remedies differ', async () => {
+    // Self-review finding (Opus, 2026-09-02): an operation that expired between
+    // render and confirm was reported as render_mismatch, sending the operator
+    // hunting for a discrepancy that does not exist. Re-open vs re-issue are
+    // different actions, so they need different codes.
+    const res = await request(makeApp())
+      .post('/api/ai-command/confirm')
+      .send({ operationId: '00000000-0000-4000-8000-000000000000', renderedDigest: 'a'.repeat(64) })
+      .expect(400);
+    expect(res.body.code).toBe('expired');
+    expect(res.body.error).toMatch(/expired|no longer available/i);
+    expect(mockExecuteConfirmed).not.toHaveBeenCalled();
+  });
+
+  it('a pending CONFIRMATION (non-destructive) mints a countable event too — half a funnel reads as complete', async () => {
+    const { preparePendingConfirmation } = await import('../../services/ai/pendingConfirmations.mjs');
+    mockRecordAudit.mockReset();
+    await preparePendingConfirmation({
+      commandType: 'log_workout', params: { exerciseName: 'Bench' }, clientId: 61,
+      userId: 7, actorRole: 'trainer', description: 'Log a workout',
+    });
+    expect(mockRecordAudit.mock.calls.some(([e]) => e.outcome === 'approval:minted')).toBe(true);
+  });
+
   it('even in observe mode a PRESENT-but-wrong digest is refused — the check is never theatre', async () => {
     const pending = await mint();
     const res = await request(makeApp())

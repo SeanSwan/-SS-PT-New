@@ -476,7 +476,23 @@ router.post('/confirm', protect, aiCommandLaneKillSwitch, aiCommandRateLimiter, 
     const digestMode = process.env.APPROVAL_RENDER_DIGEST === 'enforce' ? 'enforce' : 'observe';
     if (renderedDigest !== undefined && renderedDigest !== null) {
       const { found, operation: stored } = await peekOperation(operationId, req.user.id);
-      if (!found || !digestMatches(String(renderedDigest), renderDigestOf(stored))) {
+      // SELF-REVIEW FIX (Opus, 2026-09-02): an operation that EXPIRED between
+      // render and confirm was reported as `render_mismatch` — "what you approved
+      // does not match" — which sends the operator hunting for a discrepancy that
+      // does not exist. The remedies differ (re-open vs re-issue), so the codes
+      // must too. `expired` is also what the sheet's state machine already
+      // distinguishes from `mismatch`.
+      if (!found) {
+        void recordApprovalEvent({
+          event: APPROVAL_EVENTS.EXPIRED, userId: req.user.id, userRole: req.user.role, operationId,
+        });
+        return res.status(400).json({
+          success: false,
+          code: 'expired',
+          error: 'This approval expired or is no longer available. Re-issue the request.',
+        });
+      }
+      if (!digestMatches(String(renderedDigest), renderDigestOf(stored))) {
         void recordApprovalEvent({
           event: APPROVAL_EVENTS.RENDER_MISMATCH, userId: req.user.id, userRole: req.user.role,
           operationId, commandType: stored?.commandType ?? null,

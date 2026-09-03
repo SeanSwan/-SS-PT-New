@@ -12,6 +12,7 @@ import crypto from 'crypto';
 import logger from '../../utils/logger.mjs';
 import { getPendingOperationStore, countPendingForUser } from './pendingOperationStore.mjs';
 import { signPendingConfirmation } from './operationSigning.mjs';
+import { recordApprovalEvent, APPROVAL_EVENTS } from './approvalEvents.mjs';
 
 const OPERATION_TTL_SECONDS = 120;
 const MAX_PENDING_PER_USER = 5;
@@ -30,7 +31,7 @@ const store = () => getPendingOperationStore();
  * @param {string} [params.frontendEvent] - Browser event for confirmed frontend dispatches
  * @returns {Promise<{ operationId: string, description: string, expiresAt: string }>}
  */
-export async function preparePendingConfirmation({ commandType, params, clientId, userId, description, frontendEvent = null }) {
+export async function preparePendingConfirmation({ commandType, params, clientId, userId, actorRole = null, description, frontendEvent = null }) {
   const userCount = await countPendingForUser(userId);
   if (userCount >= MAX_PENDING_PER_USER) {
     throw new Error(`Too many pending operations (${userCount}). Please confirm or cancel existing operations first.`);
@@ -64,6 +65,16 @@ export async function preparePendingConfirmation({ commandType, params, clientId
     commandType,
     userId,
     expiresAt: operation.expiresAt,
+  });
+  // SELF-REVIEW FIX (Opus, 2026-09-02): the destructive half emitted `minted`
+  // while this half emitted nothing, so the approval funnel counted only the
+  // rarer branch — every safe-write confirmation was invisible to the metrics
+  // card 1.0 exists to provide. Half a funnel is worse than none: it reads as
+  // complete.
+  void recordApprovalEvent({
+    event: APPROVAL_EVENTS.MINTED, userId, userRole: actorRole,
+    commandType: commandType ?? null, operationId: opId,
+    targetClientId: scopedClientId, destructive: false,
   });
 
   return { operationId: opId, description, expiresAt: operation.expiresAt };
