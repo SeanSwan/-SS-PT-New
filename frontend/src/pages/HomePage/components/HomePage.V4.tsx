@@ -21,6 +21,7 @@ import { EvidenceLensBand } from './EvidenceLensBand'; // SWA-25 ratified proof 
 // Section components
 import HeroSection from './sections/HeroSection';
 import QuickLinksStrip from './sections/QuickLinksStrip';
+import { TierProvider } from './shared/TierContext';
 import MissionSection from './sections/MissionSection';
 import TrainersSection from './sections/TrainersSection';
 import ArsenalSection from './sections/ArsenalSection';
@@ -64,6 +65,7 @@ const HomePageV4: React.FC = () => {
 
       <ScrollProgress enabled={isFull} />
 
+      <TierProvider tier={tier}>
       <MainWrapper>
         {isFull && <NoiseOverlay />}
 
@@ -113,6 +115,7 @@ const HomePageV4: React.FC = () => {
 
         <CTASection tier={tier} />
       </MainWrapper>
+      </TierProvider>
 
       {showOrientation && (
         <OrientationForm onClose={() => setShowOrientation(false)} />

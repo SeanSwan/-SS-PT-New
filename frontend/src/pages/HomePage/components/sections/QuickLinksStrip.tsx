@@ -12,15 +12,17 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { UserCircle, Camera, FileSignature, LayoutDashboard, Award } from 'lucide-react';
 import logoImg from '../../../../assets/Logo.png';
+import { useAuth } from '../../../../context/AuthContext';
+import { quickLinksFor, type QuickLinkId } from './quickLinks.data';
 
-const LINKS: { icon: React.ReactNode; label: string; to: string }[] = [
-  { icon: <img src={logoImg} alt="" width={16} height={16} />, label: 'SwanStudios Social', to: '/user-dashboard' },
-  { icon: <UserCircle size={16} />, label: 'Client Dashboard', to: '/dashboard/client/overview' },
-  { icon: <Camera size={16} />, label: 'SwanStudios Photography', to: '/gallery' },
-  { icon: <FileSignature size={16} />, label: 'Waiver', to: '/waiver' },
-  { icon: <LayoutDashboard size={16} />, label: 'Trainer Dashboard', to: '/dashboard/trainer/overview' },
-  { icon: <Award size={16} />, label: 'Trainer Staff Review', to: '/contact' },
-];
+const ICONS: Record<QuickLinkId, React.ReactNode> = {
+  social: <img src={logoImg} alt="" width={16} height={16} />,
+  'client-dashboard': <UserCircle size={16} />,
+  'trainer-dashboard': <LayoutDashboard size={16} />,
+  photography: <Camera size={16} />,
+  waiver: <FileSignature size={16} />,
+  'staff-review': <Award size={16} />,
+};
 
 const Band = styled.nav`
   position: relative;
@@ -61,15 +63,20 @@ const Pill = styled(Link)`
 
 /** One calm sapphire treatment for every link — the carnival of per-pill colors
  * (incl. two gold pills) was the LAW-2 defect; differentiation is the icon. */
-const QuickLinksStrip: React.FC = () => (
-  <Band aria-label="Quick links">
-    {LINKS.map(({ icon, label, to }) => (
-      <Pill key={to} to={to}>
-        {icon}
-        {label}
-      </Pill>
-    ))}
-  </Band>
-);
+const QuickLinksStrip: React.FC = () => {
+  const { isAuthenticated, user } = useAuth();
+  const links = quickLinksFor(Boolean(isAuthenticated), user?.role);
+
+  return (
+    <Band aria-label="Quick links">
+      {links.map(({ id, label, to }) => (
+        <Pill key={id} to={to}>
+          {ICONS[id]}
+          {label}
+        </Pill>
+      ))}
+    </Band>
+  );
+};
 
 export default QuickLinksStrip;

@@ -5,7 +5,7 @@
  * Quick-nav capsules relocated to sections/QuickLinksStrip.tsx (finding H5,
  * five-surface hostile review 2026-09-01) — the hero keeps exactly two CTAs.
  */
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import styled, { keyframes } from 'styled-components';
@@ -74,7 +74,15 @@ const HeroSection: React.FC<HeroProps> = ({ prefersReduced, tier, onOpenOrientat
   const contentY = useTransform(scrollYProgress, [0, 1], [0, -80]);
   const reveal = getReveal(prefersReduced);
   const isFull = tier === 'full';
+  // A poster only covers the gap BEFORE the video loads. If the source fails
+  // after first paint the poster is already gone, leaving a 0.35-opacity black
+  // field with nothing behind it — so a load failure falls back to the real
+  // static backdrop (H7).
+  const [videoFailed, setVideoFailed] = useState(false);
   const isEssential = tier === 'essential';
+  // Deliberately separate from the tier: a failed video swaps the BACKDROP, it
+  // does not silently demote the surface's motion tier.
+  const showStaticBg = isEssential || videoFailed;
   const HEADLINE = 'Health First. Community Always.';
 
   return (
@@ -82,7 +90,7 @@ const HeroSection: React.FC<HeroProps> = ({ prefersReduced, tier, onOpenOrientat
       {/* 6.4: page-level meta lives in HomePage.V4 (SeoHead) — the hero's
           duplicate <Helmet> used to race it and could win with generic copy. */}
 
-      {isEssential ? (
+      {showStaticBg ? (
         <StaticBg />
       ) : (
         <VideoBg
@@ -92,6 +100,7 @@ const HeroSection: React.FC<HeroProps> = ({ prefersReduced, tier, onOpenOrientat
           poster="/images/parallax/hero-swan-bg.png"
           preload="metadata"
           autoPlay loop muted playsInline
+          onError={() => setVideoFailed(true)}
           {...motionStyleProps(isFull ? { scale: videoScale } : undefined)}
         />
       )}

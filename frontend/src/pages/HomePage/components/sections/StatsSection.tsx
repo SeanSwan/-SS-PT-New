@@ -109,12 +109,14 @@ const StatsSection: React.FC<StatsSectionProps> = ({ tier }) => {
                       target={stat.target}
                       suffix={stat.suffix}
                       skipAnimation={isEssential}
+                      seedFinal
                     />
                   ) : (
                     <AnimatedCounter
                       target={stat.target}
                       suffix={stat.suffix}
                       skipAnimation={isEssential}
+                      seedFinal
                     />
                   )}
                 </StatNumber>

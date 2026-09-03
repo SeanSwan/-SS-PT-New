@@ -22,6 +22,17 @@ interface AnimatedCounterProps {
   duration?: number;
   /** Skip animation — show final value immediately */
   skipAnimation?: boolean;
+  /**
+   * Render the FINAL value in the initial DOM and animate toward it once the
+   * counter scrolls into view.
+   *
+   * Without this, the count-up starts at 0 and is gated on useInView — so every
+   * consumer that never intersects (a crawler, a link-preview bot, a print
+   * stylesheet, a no-JS reader, a stuck observer) reads "0+ Years Experience"
+   * and "0% Client Satisfaction". Animating decoration is fine; animating the
+   * CLAIM is not. Consumers rendering real marketing numbers pass seedFinal.
+   */
+  seedFinal?: boolean;
   className?: string;
 }
 
@@ -31,11 +42,12 @@ const AnimatedCounter: React.FC<AnimatedCounterProps> = ({
   suffix = '',
   duration = 2500,
   skipAnimation = false,
+  seedFinal = false,
   className,
 }) => {
   const ref = useRef<HTMLSpanElement>(null);
   const isInView = useInView(ref, { once: true, amount: 0.5 });
-  const [value, setValue] = useState(0);
+  const [value, setValue] = useState(seedFinal ? target : 0);
   const hasAnimated = useRef(false);
 
   useEffect(() => {
