@@ -249,6 +249,7 @@ export const getMarketingCalendarItem = () => getModel('MarketingCalendarItem');
 export const getSocialPublishingAccount = () => getModel('SocialPublishingAccount');
 export const getSocialPublishingJob = () => getModel('SocialPublishingJob');
 export const getSocialPublishingAttempt = () => getModel('SocialPublishingAttempt');
+export const getLocation = () => getModel('Location');
 
 // Export Sequelize operators for routes
 export { Op };
