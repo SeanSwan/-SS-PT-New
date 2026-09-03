@@ -29,7 +29,11 @@ export interface StoredOperation {
   affectedCount?: number;
   expiresAt?: string;
   clientId?: number | null;
-  /** Server-declared: this command has no inverse (flash F-21). */
+  /**
+   * Forward slot: nothing server-side sets this yet (verified 2026-09-03 —
+   * neither mint nor the command registry has an irreversibility concept). When
+   * one does, it wins over the client-side list without a change here.
+   */
   irreversible?: boolean;
 }
 
@@ -184,11 +188,26 @@ export function useConfirmationSheet({
     chipAlarm,
     targetClientId,
     /**
-     * flash F-21: a client-side string set duplicating a fact the server
-     * registry owns drifts, and the drift shows up as an irreversible action
-     * with NO badge before the confirm. The stored operation is now the source;
-     * the local set remains only as a fallback for operations minted before the
-     * server carried the flag, and is named so it cannot be mistaken for truth.
+     * flash F-21, corrected after checking instead of assuming.
+     *
+     * My first pass here wrote that "the server's `irreversible` is the truth"
+     * and demoted the local set to a fallback. That description was false the
+     * moment it was written: there is NO irreversibility concept anywhere in the
+     * backend — not on the command registry, not on either mint. The `??` chain
+     * means the local set is not a fallback at all, it is the ONLY live path,
+     * and a comment claiming otherwise sends the next reader looking for a
+     * server field that has never existed.
+     *
+     * So, truthfully: this list is the source today. Reading
+     * `operation.irreversible` first is a forward slot, deliberately kept so the
+     * server can take ownership later without touching this file — and it stays
+     * a slot, not a claim, until something server-side actually sets it.
+     *
+     * The real risk the finding named is unchanged and still open: a
+     * client-side list of command types drifts from the registry, and the drift
+     * shows up as an irreversible action rendering with NO warning before the
+     * confirm. Closing that needs a registry flag stamped at mint (card 4.2),
+     * not a better comment here.
      */
     irreversible: Boolean(
       operation?.irreversible

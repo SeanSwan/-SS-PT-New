@@ -146,13 +146,26 @@ describe('ConfirmationSheet', () => {
    * comparing them. The component now asks the guidance module, and these
    * assertions are what stop the hardcoded list from growing back.
    */
+  /**
+   * Reach a terminal state on REAL timers.
+   *
+   * The obvious version of this used fake timers to skip the arm delay, and it
+   * made the whole file flaky: four more timer-swapping tests alongside the
+   * existing ones passed in isolation and failed intermittently when the folder
+   * ran together, which is the worst kind of red — it looks like whatever
+   * changed most recently. None of these cases are ABOUT the arm delay, so they
+   * should not be paying for it.
+   *
+   * A non-destructive action affecting <= 3 records arms immediately
+   * (armDelayMs), so the confirm control is live with no clock to advance and no
+   * timer mode to swap. The arm delay keeps its own dedicated tests.
+   */
+  const READY_NOW = input({ isDestructive: false, affectedCount: 1 });
+
   async function driveToRefusal(code: string) {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const user = userEvent.setup();
     post.mockRejectedValue({ response: { data: { code, error: 'refused' } } });
-    render(<ConfirmationSheet operationId={OP_ID} input={input()} lockedClientId={61} />);
-    await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('arming'));
-    await act(async () => { vi.advanceTimersByTime(3000); });
+    render(<ConfirmationSheet operationId={OP_ID} input={READY_NOW} lockedClientId={61} />);
     await waitFor(() => expect(screen.getByTestId('confirm-button').hasAttribute('disabled')).toBe(false));
     await user.click(screen.getByTestId('confirm-button'));
     return user;
@@ -187,11 +200,8 @@ describe('ConfirmationSheet', () => {
     // F-03: without a declared channel the server treats the confirmation as
     // unproven and refuses anything identity-crossing, so a surface that omits
     // this is not merely impolite — it is broken for the case that matters.
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<ConfirmationSheet operationId={OP_ID} input={input()} lockedClientId={61} />);
-    await waitFor(() => expect(screen.getByTestId('confirmation-sheet').dataset.state).toBe('arming'));
-    await act(async () => { vi.advanceTimersByTime(3000); });
+    const user = userEvent.setup();
+    render(<ConfirmationSheet operationId={OP_ID} input={READY_NOW} lockedClientId={61} />);
     await waitFor(() => expect(screen.getByTestId('confirm-button').hasAttribute('disabled')).toBe(false));
     await user.click(screen.getByTestId('confirm-button'));
 
