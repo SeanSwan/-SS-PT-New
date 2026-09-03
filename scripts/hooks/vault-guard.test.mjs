@@ -220,3 +220,35 @@ test('the hook never blocks, whatever it is fed', () => {
     assert.equal(r.status, 0, `exit 0 for input: ${JSON.stringify(input)}`);
   }
 });
+
+test('F1: a Bash payload snapshots the blueprints its command names', () => {
+  const rel = 'docs/ai-workflow/brainstorms/__vault-bash.md';
+  const abs = tempDoc('docs/ai-workflow/brainstorms', '__vault-bash.md', 'BASH VERSION ONE\n');
+  const slot = slotFor(rel);
+  cleanup([slot]);
+  try {
+    const r = spawnSync(process.execPath, [HOOK], {
+      input: JSON.stringify({
+        tool_name: 'Bash',
+        tool_input: { command: `sed -i 's/ONE/TWO/' ${rel}` },
+      }),
+      encoding: 'utf8',
+      cwd: os.tmpdir(),
+    });
+    assert.equal(r.status, 0, 'never blocks');
+    const snaps = fs.readdirSync(slot);
+    assert.equal(snaps.length, 1, 'the pre-command content was captured');
+    assert.match(fs.readFileSync(path.join(slot, snaps[0]), 'utf8'), /BASH VERSION ONE/);
+  } finally {
+    cleanup([abs, slot]);
+  }
+});
+
+test('F1: a Bash command naming no blueprint snapshots nothing', () => {
+  const r = spawnSync(process.execPath, [HOOK], {
+    input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'npm run build && ls -la' } }),
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0);
+  assert.equal(fs.existsSync(slotFor('npm')), false);
+});

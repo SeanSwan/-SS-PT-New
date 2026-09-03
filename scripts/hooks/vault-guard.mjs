@@ -40,10 +40,13 @@
  *   F8  junk files ate the quota   -> only well-formed snapshot names count
  *   F9  8-hex dedupe collision     -> 12 hex
  *
+ *   F1  Bash writes bypassed it   -> this hook now also accepts a Bash payload
+ *                                     and snapshots every vault-class path the
+ *                                     command mentions (over-approximating on
+ *                                     purpose) BEFORE it runs. Requires `Bash`
+ *                                     in the settings.json matcher to fire.
+ *
  * KNOWN, DELIBERATE LIMITS (do not mistake for oversights):
- *   - F1: Bash writes (`sed -i`, `>`, `mv`, `prettier --write`) fire no
- *     Write/Edit hook. Closing that needs the `Bash` matcher in settings.json,
- *     which is a guard file requiring Sean's per-change approval.
  *   - Non-Claude agents (Codex etc.) run no Claude Code hooks at all.
  *   - F2: the vault lives under gitignored `.ai-workflow/`, so `git bundle --all`
  *     (backup-repo.mjs) does NOT carry it off-machine. Verified 2026-09-03.
@@ -162,6 +165,63 @@ function snapshot(absInput) {
   }
 }
 
+/**
+/**
+ * F1: a Bash command can destroy a blueprint just as thoroughly as an Edit
+ * (`sed -i`, `> file`, `mv`, `cp`, `prettier --write`, `git checkout --`), and
+ * none of those fire a Write/Edit hook. Confirmed empirically 2026-09-03: a
+ * `sed -i` on a real blueprint produced zero snapshots.
+ *
+ * The parse is deliberately DUMB and over-approximating. Snapshotting a file
+ * that was never going to be touched costs one deduped copy; missing one costs
+ * the version forever. So: pull every token that looks like a path, plus every
+ * blueprint under a mentioned docs directory, and snapshot what is vault-class.
+ * Only paths that ALREADY EXIST are considered, so noise tokens cost a stat().
+ */
+const SCAN_CAP = 400; // a formatter aimed at a whole tree must not stall the turn
+const QUOTED = /["'`]([^"'`\n]{2,300})["'`]/g;
+const BARE = /[A-Za-z0-9_./-]{2,300}/g;
+
+export function pathsFromCommand(command) {
+  if (typeof command !== 'string' || !command) return [];
+  const tokens = new Set();
+  for (const m of command.matchAll(QUOTED)) tokens.add(m[1]);
+  for (const m of command.matchAll(BARE)) tokens.add(m[0]);
+
+  const files = new Set();
+  for (const raw of tokens) {
+    if (files.size >= SCAN_CAP) break;
+    const tok = raw.replace(/^["'`]|["'`]$/g, '').replace(/[),;:]+$/, '');
+    if (!tok || tok.startsWith('-')) continue;
+
+    let abs;
+    try { abs = path.resolve(REPO, tok); } catch { continue; }
+    let st;
+    try { st = fs.statSync(abs); } catch { continue; } // only real, existing paths
+    if (st.isFile()) { files.add(abs); continue; }
+    if (!st.isDirectory()) continue;
+
+    // A directory mention (`prettier --write docs/ai-workflow/`) endangers every
+    // blueprint underneath it. Bound the walk to docs/ so `rm -rf node_modules`
+    // does not turn into a filesystem crawl.
+    const rel = path.relative(REPO, abs).split(String.fromCharCode(92)).join('/').toLowerCase();
+    if (!rel || rel.startsWith('..')) continue;
+    if (!(rel === 'docs' || rel.startsWith('docs/'))) continue;
+    const stack = [abs];
+    while (stack.length && files.size < SCAN_CAP) {
+      const dir = stack.pop();
+      let entries = [];
+      try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { continue; }
+      for (const e of entries) {
+        if (files.size >= SCAN_CAP) break;
+        const child = path.join(dir, e.name);
+        if (e.isDirectory()) stack.push(child); else files.add(child);
+      }
+    }
+  }
+  return [...files].slice(0, SCAN_CAP);
+}
+
 // Only run the hook body when invoked as a hook — the test suite imports
 // isVaultClass/snapshot directly.
 const invokedDirectly = process.argv[1]
@@ -177,9 +237,11 @@ if (invokedDirectly) {
     try { payload = JSON.parse(raw); } catch { done(); }
 
     const target = payload?.tool_input?.file_path || payload?.tool_input?.notebook_path;
-    if (!target) done();
+    if (target) { snapshot(target); done(); }
 
-    snapshot(target);
+    // F1: Bash can overwrite a blueprint with no Write/Edit event at all.
+    const command = payload?.tool_input?.command;
+    if (command) { for (const f of pathsFromCommand(command)) snapshot(f); }
     done();
   } catch (err) {
     note('(hook)', err);
