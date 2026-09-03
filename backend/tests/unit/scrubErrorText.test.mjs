@@ -107,13 +107,13 @@ describe('scrubLogMeta', () => {
       userId: 7,
       ok: true,
       message: 'failed for someone@example.com',
-      nested: { detail: 'Key (email)=(a@b.co) already exists' },
+      nested: { detail: 'Key (email)=(first@example.com) already exists' },
       aFieldAddedLater: 'token eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9aaaaaaaaaaaaaaaaaaaa',
     });
     expect(out.userId).toBe(7);
     expect(out.ok).toBe(true);
     expect(out.message).not.toContain('someone@example.com');
-    expect(out.nested.detail).not.toContain('a@b.co');
+    expect(out.nested.detail).not.toContain('first@example.com');
     expect(out.aFieldAddedLater).toContain('<redacted-token>');
   });
 
@@ -173,8 +173,8 @@ describe('scrubLogMeta — round 3', () => {
 
   it('walks arrays and Maps', () => {
     const out = scrubLogMeta({
-      list: ['a@b.co'],
-      map: new Map([['k', 'c@d.co']]),
+      list: ['first@example.com'],
+      map: new Map([['k', 'second@example.com']]),
     });
     expect(out.list[0]).toContain('<redacted-email>');
     expect(out.map.k).toContain('<redacted-email>');
@@ -201,7 +201,7 @@ describe('scrubErrorText — round 4: the sentinel must not eat real numbers', (
   });
 
   it('emits no raw control character', () => {
-    const out = scrubErrorText('constraint "orders_pkey" failed at 2024-01-15 for a@b.co');
+    const out = scrubErrorText('constraint "orders_pkey" failed at 2024-01-15 for first@example.com');
     // eslint-disable-next-line no-control-regex
     expect(out).not.toMatch(/[\u0000-\u0008]/);
   });
