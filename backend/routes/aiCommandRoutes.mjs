@@ -777,7 +777,26 @@ router.get('/health', protect, async (req, res) => {
       // whether each check is ENFORCING or merely counting.
       approvalModes: {
         renderDigest: process.env.APPROVAL_RENDER_DIGEST === 'enforce' ? 'enforce' : 'observe',
-        tier: process.env.APPROVAL_TIER_MODE === 'enforce' ? 'enforce' : 'observe',
+        /**
+         * ADVISORY ONLY — say so, because an incident commander will otherwise
+         * flip it and believe they hardened something.
+         *
+         * Self-review round 3, 2026-09-03: `APPROVAL_TIER_MODE` is read in
+         * exactly one place in the executor, a LOG LINE. F-01 made a tier
+         * refusal short-circuit in BOTH modes (authorization must never be a
+         * rollout flag), and the ceremony the sheet renders comes from the
+         * envelope regardless of mode. So the flag changes a log field and this
+         * string, and nothing else.
+         *
+         * Reporting it beside renderDigest and channel — which DO gate
+         * behaviour — invited exactly the wrong inference during the one moment
+         * you cannot afford it. Either wire it or retire it; until then it says
+         * what it is.
+         */
+        tier: {
+          mode: process.env.APPROVAL_TIER_MODE === 'enforce' ? 'enforce' : 'observe',
+          effect: 'advisory — refusals short-circuit in both modes; this flag changes logging only',
+        },
         // Added after catching myself: I wrote the rule directly above, then
         // shipped APPROVAL_CHANNEL_MODE one commit later without surfacing it —
         // an invisible control, by the same definition, in the same file.
