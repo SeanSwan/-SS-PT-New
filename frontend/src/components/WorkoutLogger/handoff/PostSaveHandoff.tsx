@@ -27,6 +27,7 @@ import StreakGoalModule from './StreakGoalModule';
 import { ProofCardShell, ChromeRow, ChromeBrand, ChromeHandle, CardDateLine } from './ProofCardShell.styles';
 import { isPostSaveHandoffEnabled } from './postSaveHandoffFlag';
 import CelebrationBurst from './CelebrationBurst';
+import CrystallizeRecord from '../../../adapters/style-lens-swan/motion/CrystallizeRecord';
 import { useCountUp } from './useCountUp';
 import type { PostSaveHandoffProps } from './workoutHandoff.types';
 
@@ -183,6 +184,17 @@ const PostSaveHandoff: React.FC<PostSaveHandoffProps> = ({
         {(headline === 'pr' || headline === 'first' || headline === 'streak') && (
           <CelebrationBurst intensity={headline === 'streak' ? 'light' : 'full'} />
         )}
+        {/* ── LAW 5 record artifact: EVERY save condenses into the Crystallize
+            chip. The burst above is the PR bloom layered on top of it, not a
+            second celebration — an ordinary save used to record nothing. ── */}
+        <CrystallizeRecord
+          phase="formed"
+          label={proof.exerciseName}
+          value={proof.todayE1rm !== null ? `${Math.round(proof.todayE1rm)} lb est. 1RM` : undefined}
+          isPR={proof.pr}
+          delta={proof.pr && proof.prDeltaLbs > 0 ? `+${Math.round(proof.prDeltaLbs)} lb` : undefined}
+          testId="crystallize-record"
+        />
         {/* ── Zone 1 — declaration ── */}
         <ZoneDecl>
           <Headline id={headlineId}>{headlineText(isOwner, viewerFirstName)}</Headline>

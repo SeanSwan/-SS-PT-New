@@ -40,6 +40,9 @@ import { buildV2OnlyAllowlistExemptions } from './v2/catalogV2Exemptions';
 export { SWAN_FLAGSHIP_MANIFEST } from './manifests/swanFlagship';
 export { SWAN_ROLE_SLOT_MAP } from './roleMapping';
 export { SwanStyleLensGlobalStyles } from './SwanStyleLensGlobalStyles';
+// LAW 5 record artifact — the adapter owns the signature (Blueprint v2 S7).
+export { default as CrystallizeRecord } from './motion/CrystallizeRecord';
+export type { CrystallizeRecordPhase, CrystallizeRecordProps } from './motion/CrystallizeRecord';
 export { SWAN_STYLE_LENS_VISUALS } from './visuals';
 
 export const SWAN_SENTINEL_MANIFESTS = Object.freeze([
