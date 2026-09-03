@@ -20,7 +20,6 @@
  */
 
 import express from 'express';
-import Stripe from 'stripe';
 import { Op } from 'sequelize';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import Subscription from '../models/Subscription.mjs';

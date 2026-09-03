@@ -24,7 +24,6 @@
  * Master Prompt v33 Compliance: Anti-Confusion Protocol Enforced
  */
 
-import Stripe from 'stripe';
 import logger from '../../utils/logger.mjs';
 import { isStripeEnabled } from '../../utils/apiKeyChecker.mjs';
 

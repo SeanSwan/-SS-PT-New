@@ -14,7 +14,6 @@
  */
 
 import express from 'express';
-import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { requireAdmin } from '../middleware/adminMiddleware.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';

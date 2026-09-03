@@ -29,7 +29,6 @@
  */
 
 import express from 'express';
-import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { checkoutSessionLimiter, paymentVerifyLimiter } from '../middleware/moneyPathRateLimits.mjs';
 import { MAX_CART_ITEM_QUANTITY } from '../utils/cartHelpers.mjs';

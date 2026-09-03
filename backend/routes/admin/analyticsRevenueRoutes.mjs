@@ -38,7 +38,6 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { Op } from 'sequelize';
-import Stripe from 'stripe';
 
 import { authenticateToken, authorizeAdmin } from '../../middleware/auth.mjs';
 import sequelize from '../../database.mjs';

@@ -22,7 +22,6 @@
  * - Comprehensive business intelligence capabilities
  */
 
-import Stripe from 'stripe';
 import Redis from 'ioredis';
 import logger from '../../utils/logger.mjs';
 import { isStripeEnabled } from '../../utils/apiKeyChecker.mjs';

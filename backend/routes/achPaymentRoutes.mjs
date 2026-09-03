@@ -14,7 +14,6 @@
  * - POST /api/payments/ach/create-intent — Create ACH PaymentIntent
  */
 import express from 'express';
-import Stripe from 'stripe';
 import Decimal from 'decimal.js';
 import { protect } from '../middleware/authMiddleware.mjs';
 // Money-path rate limit: each accepted call mints a real Stripe PaymentIntent and

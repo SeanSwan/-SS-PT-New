@@ -34,7 +34,6 @@
 
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { requireAdmin } from '../middleware/adminMiddleware.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';

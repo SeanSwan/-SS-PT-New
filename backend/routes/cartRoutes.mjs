@@ -17,7 +17,6 @@ import {
 // 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
 // Models will be retrieved via getter functions inside each route handler when needed
 
-import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 // MAX_CART_ITEM_QUANTITY is a NAMED import on purpose. It was previously

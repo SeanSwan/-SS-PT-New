@@ -1,6 +1,5 @@
 // backend/routes/sessionPackageRoutes.mjs
 import express from 'express';
-import Stripe from 'stripe';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { resolvePriceVisibility, isPriceAccessGranted } from '../services/store/priceVisibilityService.mjs';

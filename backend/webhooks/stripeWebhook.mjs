@@ -1,6 +1,5 @@
 // backend/webhooks/stripeWebhook.mjs
 import express from 'express';
-import Stripe from 'stripe';
 import ShoppingCart from '../models/ShoppingCart.mjs';
 import CartItem from '../models/CartItem.mjs';
 import User from '../models/User.mjs';
